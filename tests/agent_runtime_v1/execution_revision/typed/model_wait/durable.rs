@@ -362,109 +362,179 @@ fn run(
 }
 
 #[test]
-fn real_model_wait_preserves_malformed_retry_and_complete_terminal_fuel() {
+fn real_model_wait_completes_with_exact_terminal_fuel() {
     let fixture = fixture();
     with_authenticated_project(&fixture.0.join("semaprax.toml"), |snapshot| {
         let project = snapshot.retain_revision();
         let root = project.program_root()?;
         let key = SourceCheckpointKey::new([17; 32]);
-        for malformed in [false, true] {
-            let calls = Rc::new(Cell::new(0));
-            let mut store = Store::default();
-            let result = run(
-                project.clone(),
-                &root,
-                &key,
-                1000,
-                None,
-                &mut store,
-                &AgentCancellation::new(),
-                malformed,
-                true,
-                calls.clone(),
+        let malformed = false;
+        let calls = Rc::new(Cell::new(0));
+        let mut store = Store::default();
+        let result = run(
+            project.clone(),
+            &root,
+            &key,
+            1000,
+            None,
+            &mut store,
+            &AgentCancellation::new(),
+            malformed,
+            true,
+            calls.clone(),
+        )
+        .unwrap_or_else(|failure| {
+            let details = failure.failure();
+            panic!(
+                "real wait completes (malformed={malformed}, provider_calls={}): diagnostics={:?}, selected={:?}, journal_error={:?}, last_attempted={:?}",
+                calls.get(),
+                details.diagnostics,
+                details.selected,
+                details.journal_error,
+                store.attempted.last(),
             )
-            .unwrap_or_else(|failure| {
-                let details = failure.failure();
-                panic!(
-                    "real wait completes (malformed={malformed}, provider_calls={}): diagnostics={:?}, selected={:?}, journal_error={:?}, last_attempted={:?}",
-                    calls.get(),
-                    details.diagnostics,
-                    details.selected,
-                    details.journal_error,
-                    store.attempted.last(),
-                )
-            });
-            let checkpoint = &result.model().run().checkpoint;
-            assert_eq!(
-                checkpoint.terminal_snapshot().unwrap().status(),
-                SourceTerminalStatus::Complete
-            );
-            assert_eq!(calls.get(), 3 + usize::from(malformed));
-            assert_eq!(checkpoint.committed_reserved_units(), calls.get() as i64);
-            assert_eq!(
-                checkpoint
-                    .entries()
-                    .iter()
-                    .filter(|e| matches!(e, SourceJournalEntry::ProposalRefused { .. }))
-                    .count(),
-                usize::from(malformed)
-            );
-            let evidence: serde_json::Value =
-                serde_json::from_slice(result.wait_evidence()).unwrap();
-            let wait_fuel = evidence["total_wait_fuel"].as_u64().unwrap();
-            assert_eq!(wait_fuel, (6 + u64::from(malformed)) * 1000);
-            let ordinary: u64 = checkpoint
+        });
+        let checkpoint = &result.model().run().checkpoint;
+        assert_eq!(
+            checkpoint.terminal_snapshot().unwrap().status(),
+            SourceTerminalStatus::Complete
+        );
+        assert_eq!(calls.get(), 3 + usize::from(malformed));
+        assert_eq!(checkpoint.committed_reserved_units(), calls.get() as i64);
+        assert_eq!(
+            checkpoint
                 .entries()
                 .iter()
-                .filter_map(|e| match e {
-                    SourceJournalEntry::StageReservation { fuel, .. }
-                    | SourceJournalEntry::ReplayStageReservation { fuel, .. } => Some(*fuel as u64),
-                    _ => None,
-                })
-                .sum();
-            assert_eq!(checkpoint.committed_stage_fuel(), ordinary + wait_fuel);
-            assert_eq!(
-                result
-                    .model()
-                    .run()
-                    .checked_run
-                    .as_ref()
-                    .unwrap()
-                    .stages()
-                    .len(),
-                10
-            );
-            assert_eq!(evidence["invocation"], checkpoint.invocation());
-            assert_eq!(
-                evidence["ordinary_model_evidence_digest"],
-                result.model().evidence_root().digest()
-            );
-            let terminal = match checkpoint.entries().last().unwrap() {
-                SourceJournalEntry::TerminalSnapshot {
-                    evidence_digest, ..
-                } => evidence_digest,
-                _ => unreachable!(),
-            };
-            assert_eq!(evidence["terminal_evidence_digest"], terminal.as_str());
-            use sha2::{Digest, Sha256};
-            let mut hash = Sha256::new();
-            hash.update(b"semaprax.source-model-wait.evidence.v1\0");
-            hash.update(result.wait_evidence());
-            assert_eq!(
-                result.evidence_root().digest(),
-                format!(
-                    "sha256:{}",
-                    hash.finalize()
-                        .iter()
-                        .map(|byte| format!("{byte:02x}"))
-                        .collect::<String>()
-                )
-            );
-            assert_eq!(
-                result.evidence_root().canonical_json().as_bytes(),
-                result.wait_evidence()
-            );
-        }
+                .filter(|e| matches!(e, SourceJournalEntry::ProposalRefused { .. }))
+                .count(),
+            usize::from(malformed)
+        );
+        let evidence: serde_json::Value =
+            serde_json::from_slice(result.wait_evidence()).unwrap();
+        let wait_fuel = evidence["total_wait_fuel"].as_u64().unwrap();
+        assert_eq!(wait_fuel, (6 + u64::from(malformed)) * 1000);
+        let ordinary: u64 = checkpoint
+            .entries()
+            .iter()
+            .filter_map(|e| match e {
+                SourceJournalEntry::StageReservation { fuel, .. }
+                | SourceJournalEntry::ReplayStageReservation { fuel, .. } => Some(*fuel as u64),
+                _ => None,
+            })
+            .sum();
+        assert_eq!(checkpoint.committed_stage_fuel(), ordinary + wait_fuel);
+        assert_eq!(
+            result
+                .model()
+                .run()
+                .checked_run
+                .as_ref()
+                .unwrap()
+                .stages()
+                .len(),
+            10
+        );
+        assert_eq!(evidence["invocation"], checkpoint.invocation());
+        assert_eq!(
+            evidence["ordinary_model_evidence_digest"],
+            result.model().evidence_root().digest()
+        );
+        let terminal = match checkpoint.entries().last().unwrap() {
+            SourceJournalEntry::TerminalSnapshot {
+                evidence_digest, ..
+            } => evidence_digest,
+            _ => unreachable!(),
+        };
+        assert_eq!(evidence["terminal_evidence_digest"], terminal.as_str());
+        use sha2::{Digest, Sha256};
+        let mut hash = Sha256::new();
+        hash.update(b"semaprax.source-model-wait.evidence.v1\0");
+        hash.update(result.wait_evidence());
+        assert_eq!(
+            result.evidence_root().digest(),
+            format!(
+                "sha256:{}",
+                hash.finalize()
+                    .iter()
+                    .map(|byte| format!("{byte:02x}"))
+                    .collect::<String>()
+            )
+        );
+        assert_eq!(
+            result.evidence_root().canonical_json().as_bytes(),
+            result.wait_evidence()
+        );
+        Ok(())
+    })
+    .unwrap();
+}
+
+#[test]
+fn raw_malformed_model_response_keeps_sdk_failure_class_without_resume_or_effect() {
+    let fixture = fixture();
+    with_authenticated_project(&fixture.0.join("semaprax.toml"), |snapshot| {
+        let project = snapshot.retain_revision();
+        let root = project.program_root()?;
+        let key = SourceCheckpointKey::new([17; 32]);
+        let calls = Rc::new(Cell::new(0));
+        let mut store = Store::default();
+        let failure = run(
+            project,
+            &root,
+            &key,
+            1000,
+            None,
+            &mut store,
+            &AgentCancellation::new(),
+            true,
+            true,
+            calls.clone(),
+        )
+        .err()
+        .expect("SDK malformed response must refuse");
+        let details = failure.failure();
+        assert_eq!(calls.get(), 1);
+        assert_eq!(details.selected, Some(SourceTerminalStatus::ModelFailed));
+        assert!(details
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "source.adapter_decode"));
+        assert_eq!(details.journal_error, None);
+        assert_eq!(details.model_dispatches, 1);
+        assert_eq!(details.effect_dispatches, 0);
+        let checkpoint = details
+            .checkpoint
+            .as_ref()
+            .expect("failure retains journal");
+        assert_eq!(
+            checkpoint.terminal_snapshot().unwrap().status(),
+            SourceTerminalStatus::ModelFailed
+        );
+        assert_eq!(checkpoint.committed_reserved_units(), 1);
+        let document: serde_json::Value =
+            serde_json::from_str(store.documents.last().unwrap()).unwrap();
+        let rows = document["entries"].as_array().unwrap();
+        assert_eq!(
+            rows.iter().filter(|e| e["kind"] == "wait_prepared").count(),
+            1
+        );
+        assert_eq!(
+            rows.iter()
+                .filter(|e| e["kind"] == "wait_evaluation_reserved")
+                .count(),
+            1
+        );
+        assert!(!rows.iter().any(|e| e["kind"] == "wait_completed"
+            || e["kind"] == "proposal_refused"
+            || e["phase"] == "resume"));
+        assert_eq!(
+            reservations(store.documents.last().unwrap())
+                .iter()
+                .map(|(_, fuel)| fuel)
+                .sum::<u64>(),
+            1000
+        );
+        assert_eq!(store.attempted.last().unwrap(), "terminal_snapshot");
         Ok(())
     })
     .unwrap();

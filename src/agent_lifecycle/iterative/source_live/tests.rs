@@ -9,6 +9,8 @@
 mod adversarial_tests;
 #[path = "budget_boundaries.rs"]
 mod budget_boundaries;
+#[path = "model_wait_tests.rs"]
+mod model_wait_tests;
 #[path = "priced_tests.rs"]
 mod priced_tests;
 

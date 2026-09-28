@@ -227,3 +227,6 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) use settlement::cl
 pub(in crate::live_invocation::source_journal::owned_wait_v8) use settlement::cleanup::reduce::VerifiedOwnedReduceReservationSuccessorV8;
 #[cfg(test)]
 pub(in crate::live_invocation::source_journal::owned_wait_v8) use settlement::cleanup::tests::test_executed;
+
+#[cfg(test)]
+pub(in crate::live_invocation::source_journal::owned_wait_v8) use settlement::cleanup::reduce::test_evaluated_failed;

@@ -82,7 +82,7 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) struct VerifiedOwn
     session: AppendSessionV8<'j>,
     witness: VerifiedOwnedEffectReadySuccessorV8<'j>,
 }
-impl VerifiedOwnedEffectAppendV8<'_> {
+impl<'j> VerifiedOwnedEffectAppendV8<'j> {
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_live(
         &self,
     ) -> Result<(), SourceJournalError> {
@@ -91,6 +91,21 @@ impl VerifiedOwnedEffectAppendV8<'_> {
             .inspect_err(|_| {
                 self.session.journal.poisoned.set(true);
             })
+    }
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_ready(
+        self,
+    ) -> Result<
+        super::super::live_upstream::effect::authorization::LiveAuthorizationConsumedAppendV8<'j>,
+        super::super::live_upstream::effect::authorization::LiveReadyAdvanceFailureV8<'j>,
+    > {
+        let Self {
+            obligation,
+            session,
+            witness,
+        } = self;
+        super::super::live_upstream::effect::authorization::advance_verified_ready_v8(
+            obligation, session, witness,
+        )
     }
 }
 

@@ -81,7 +81,7 @@ pub struct AgentInteractionContractFacts {
 }
 
 impl AgentInteractionContractFacts {
-    pub(crate) fn derive(
+    pub(in crate::project) fn derive(
         project_revision: &str,
         source_workspace_revision: &str,
         project_graph_digest: &str,

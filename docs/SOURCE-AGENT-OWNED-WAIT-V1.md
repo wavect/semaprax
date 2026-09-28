@@ -582,3 +582,12 @@ The fixed Ready append envelope has a consuming private `advance_ready` method. 
 Promotion uses the existing checked Authorize settlement with its compiler-proved empty successful cleanup vector. It moves the same Staged State/Decision roots to the existing physical Ready wrapper without another source evaluation, host call or semantic release. A failure after that move retains the actual Ready wrapper and permanently quarantines the held container; it does not restore Staged or retry settlement.
 
 The resulting move-only obligation selects the existing ordinary AuthorizationConsumed row with the source Ready grant. The distinct physical target grant remains separately pinned. Every later guard failure quarantines the container. This boundary alone supplies no Consumed physical ACK, Prepared effect, prospective Reduce hold, Intent, target entry, Reduce evaluation, public Agent execution or recovery materialization. Those require their own actual owner consumers and executable gates.
+
+
+## 26. Actual fixed AuthorizationConsumed append (private integration boundary)
+
+The fixed Consumed adapter accepts only the actual move-only obligation from section 25. Its selected ordinary row must match the same journal and unchanged Ready successor sequence and bytes. Candidate validation and the common same-FD append, sync, reread and postguards precede construction of the private Consumed successor witness. The successful envelope retains the unchanged actual obligation first, the actual post-Consumed session and the sealed witness; failures retain the actual owner once.
+
+The core successor validator authenticates that witness against the original Ready lineage and checks the new current Consumed prefix before and after caught clock, cancellation, current policy and actual State/Decision/K checks. It does not use the stale pre-Consumed Ready prefix as a freshness check. Any later validation failure permanently quarantines the held container. A wrong-container preflight performs no append and does not poison either healthy container; same-container stale lineage retires authority.
+
+This boundary provides an actual Consumed ACK with its retained owner. It does not construct a Prepared effect or expose a detached ACK, owner, grant or witness. Exclusive prospective Reduce funding, Intent authority and later owner phase consumers remain required before target entry.

@@ -648,6 +648,10 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_verifie
             ))
         }
         FailedStateOwnerV8::Released(mut o) => {
+            if matches!(&owner.selected, EntryV8::Owned(OwnedBodyV8::OwnedEffectFailureStateCleanupSettled { receipt, .. }) if receipt["settlement"] != "completed")
+            {
+                o.lineage.journal().quarantine();
+            }
             o.lineage.acks.push(FailedStateAckV8 { session, witness });
             Ok(LiveFailedEffectStateAcknowledgedV8::Released(o))
         }

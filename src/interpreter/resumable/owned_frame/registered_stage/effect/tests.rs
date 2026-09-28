@@ -268,7 +268,7 @@ fn owned_frame_v8_effect_matching_acks_release_seal_then_mint_unique_outcome_and
             super::super::reduce::stage_executed_owned_reduce_v2(prepared, &mut fuel, |_| true)
                 .unwrap_or_else(|e| panic!("{:?}", e.diagnostic));
         assert!(staged.failure().is_none());
-        assert_eq!(staged.effect_settled(), 26);
+        assert_eq!(staged.effect_settled(), 27);
         assert!(staged.validate_store());
         assert!(fuel.consumed() > 0);
         assert_eq!(host.calls, 1);

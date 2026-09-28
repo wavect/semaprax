@@ -18,6 +18,16 @@ pub(crate) struct RegisteredJournalLease {
     pub(super) fault: Option<(usize, bool)>,
     #[cfg(test)]
     writes: usize,
+    #[cfg(test)]
+    stage_fault: Option<(usize, AppendFaultStage)>,
+}
+#[cfg(test)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) enum AppendFaultStage {
+    BeforeWrite,
+    AfterWriteBeforeSync,
+    BeforeSync,
+    AfterSync,
 }
 fn failure(_: impl Sized) -> Error {
     Error::Storage
@@ -136,6 +146,8 @@ impl RegisteredJournalLease {
             fault: None,
             #[cfg(test)]
             writes: 0,
+            #[cfg(test)]
+            stage_fault: None,
         })
     }
     pub(crate) fn recover(
@@ -199,6 +211,8 @@ impl RegisteredJournalLease {
             fault: None,
             #[cfg(test)]
             writes: 0,
+            #[cfg(test)]
+            stage_fault: None,
         };
         lease.check()?;
         Ok(lease)
@@ -307,8 +321,16 @@ impl RegisteredJournalLease {
         // caller later sees no complete row. Only new authenticated recovery
         // may decide its tail; this live description never retries.
         self.poisoned = true;
+        #[cfg(test)]
+        self.check_stage_fault(AppendFaultStage::BeforeWrite)?;
         self.file.write_all(bytes).map_err(|_| Error::InDoubt)?;
+        #[cfg(test)]
+        self.check_stage_fault(AppendFaultStage::AfterWriteBeforeSync)?;
+        #[cfg(test)]
+        self.check_stage_fault(AppendFaultStage::BeforeSync)?;
         self.file.sync_all().map_err(|_| Error::InDoubt)?;
+        #[cfg(test)]
+        self.check_stage_fault(AppendFaultStage::AfterSync)?;
         self.length += bytes.len() as u64;
         #[cfg(test)]
         if self.fault == Some((self.writes, true)) {
@@ -335,6 +357,16 @@ impl Drop for RegisteredJournalLease {
 
 #[cfg(test)]
 impl RegisteredJournalLease {
+    pub(super) fn fail_append_stage(&mut self, number: usize, stage: AppendFaultStage) {
+        self.stage_fault = Some((number, stage));
+    }
+    fn check_stage_fault(&self, stage: AppendFaultStage) -> Result<(), Error> {
+        if self.stage_fault == Some((self.writes, stage)) {
+            Err(Error::InDoubt)
+        } else {
+            Ok(())
+        }
+    }
     pub(super) fn mark_foreign_process_for_test(&mut self) {
         self.creator_process = std::process::id().wrapping_add(1);
     }

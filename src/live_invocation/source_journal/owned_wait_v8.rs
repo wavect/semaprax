@@ -1,5 +1,6 @@
 //! Inert v8 combined journal proof data. No store, owner, or evidence authority.
 //! Production binding and physical append adapters are owned by the typed runtime.
+mod append;
 mod candidate;
 mod capacity;
 mod checked_context;

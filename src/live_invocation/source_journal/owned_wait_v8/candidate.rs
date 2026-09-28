@@ -3,17 +3,14 @@ use super::*;
 use crate::resumable_effects::owned_frame::SourceOwnedWaitLeaseV8;
 
 enum ContextV8<'a> {
-    Checked {
-        context: &'a CheckedOwnedWaitJournalContextV8,
-        lease: &'a SourceOwnedWaitLeaseV8,
-    },
+    Checked(&'a CheckedOwnedWaitJournalContextV8),
     #[cfg(test)]
     Synthetic(&'a FoldContextV8),
 }
 impl ContextV8<'_> {
     fn fold(&self) -> &FoldContextV8 {
         match self {
-            Self::Checked { context, .. } => context.fold(),
+            Self::Checked(context) => context.fold(),
             #[cfg(test)]
             Self::Synthetic(context) => context,
         }
@@ -62,14 +59,14 @@ pub(super) struct TrustedAppendAckV8 {
 impl<'a> InventoryV8<'a> {
     pub(super) fn recover(
         context: &'a CheckedOwnedWaitJournalContextV8,
-        lease: &'a SourceOwnedWaitLeaseV8,
+        lease: &SourceOwnedWaitLeaseV8,
         key: &'a SourceCheckpointKey,
         document: &[u8],
     ) -> Result<Self, SourceJournalError> {
         let checked = inventory::checked_inventory_v8(context, lease, key, document)?;
         let (entries, mac) = checked.into_parts();
         Ok(Self {
-            context: ContextV8::Checked { context, lease },
+            context: ContextV8::Checked(context),
             key,
             entries,
             invocation: context.ordinary().invocation().to_owned(),
@@ -80,7 +77,7 @@ impl<'a> InventoryV8<'a> {
     }
     pub(super) fn fresh(
         context: &'a CheckedOwnedWaitJournalContextV8,
-        lease: &'a SourceOwnedWaitLeaseV8,
+        lease: &SourceOwnedWaitLeaseV8,
         key: &'a SourceCheckpointKey,
     ) -> Result<Self, SourceJournalError> {
         Self::recover(context, lease, key, &[])
@@ -91,19 +88,24 @@ impl<'a> InventoryV8<'a> {
     pub(super) fn acknowledged_bytes(&self) -> usize {
         self.document.len()
     }
-    pub(super) fn prepare(self, row: EntryV8) -> Result<CandidateV8<'a>, CandidateRejectionV8<'a>> {
+    pub(super) fn prepare(
+        self,
+        lease: &SourceOwnedWaitLeaseV8,
+        row: EntryV8,
+    ) -> Result<CandidateV8<'a>, CandidateRejectionV8<'a>> {
         #[cfg(test)]
         {
-            self.prepare_inner(row, None)
+            self.prepare_inner(row, Some(lease), None)
         }
         #[cfg(not(test))]
         {
-            self.prepare_inner(row)
+            self.prepare_inner(row, Some(lease))
         }
     }
     fn prepare_inner(
         mut self,
         row: EntryV8,
+        lease: Option<&SourceOwnedWaitLeaseV8>,
         #[cfg(test)] synthetic: Option<ValidatedEntryV8>,
     ) -> Result<CandidateV8<'a>, CandidateRejectionV8<'a>> {
         let result = (|| {
@@ -117,7 +119,8 @@ impl<'a> InventoryV8<'a> {
             };
             let encoded = wire::encode(&row, &expected, self.key)?;
             let (checked, successor_mac) = match &self.context {
-                ContextV8::Checked { context, lease } => {
+                ContextV8::Checked(context) => {
+                    let lease = lease.ok_or(SourceJournalError::Binding)?;
                     // No supplied proof pairs: authenticate the original ACK
                     // prefix and derive this row's facts from that same history.
                     let checked = inventory::checked_candidate_inventory_v8(
@@ -261,7 +264,7 @@ impl<'a> InventoryV8<'a> {
         self,
         row: ValidatedEntryV8,
     ) -> Result<CandidateV8<'a>, CandidateRejectionV8<'a>> {
-        self.prepare_inner(row.entry.clone(), Some(row))
+        self.prepare_inner(row.entry.clone(), None, Some(row))
     }
 }
 impl<'a> CandidateV8<'a> {
@@ -274,6 +277,59 @@ impl<'a> PendingV8<'a> {
     /// Only Pending exposes bytes to the future adapter; Candidate cannot I/O.
     pub(super) fn bytes(&self) -> &[u8] {
         &self.0.encoded
+    }
+    pub(super) fn check_prefix(
+        &self,
+        lease: &SourceOwnedWaitLeaseV8,
+        bytes: &[u8],
+    ) -> Result<(), SourceJournalError> {
+        let inventory = &self.0.inventory;
+        if bytes != inventory.document {
+            return Err(SourceJournalError::Binding);
+        }
+        let ContextV8::Checked(context) = &inventory.context else {
+            return Err(SourceJournalError::Binding);
+        };
+        let checked = super::inventory::checked_inventory_v8(context, lease, inventory.key, bytes)?;
+        let (entries, mac) = checked.into_parts();
+        if entries.len() != inventory.entries.len() || mac != inventory.mac {
+            return Err(SourceJournalError::Binding);
+        }
+        Ok(())
+    }
+    pub(super) fn check_written(
+        &self,
+        lease: &SourceOwnedWaitLeaseV8,
+        bytes: &[u8],
+    ) -> Result<(), SourceJournalError> {
+        let inventory = &self.0.inventory;
+        let total = inventory
+            .document
+            .len()
+            .checked_add(self.0.encoded.len())
+            .ok_or(SourceJournalError::Capacity)?;
+        if bytes.len() != total
+            || !bytes.starts_with(&inventory.document)
+            || bytes[inventory.document.len()..] != self.0.encoded
+        {
+            return Err(SourceJournalError::Binding);
+        }
+        let ContextV8::Checked(context) = &inventory.context else {
+            return Err(SourceJournalError::Binding);
+        };
+        let checked = super::inventory::checked_inventory_v8(context, lease, inventory.key, bytes)?;
+        let (entries, mac) = checked.into_parts();
+        if entries.len() != inventory.entries.len() + 1 || mac != self.0.successor_mac {
+            return Err(SourceJournalError::Binding);
+        }
+        Ok(())
+    }
+    /// Only the fixed adapter can construct this sealed postappend witness.
+    pub(super) fn acknowledge_verified(
+        self,
+        _verified: super::append::AppendVerifiedV8,
+    ) -> InventoryV8<'a> {
+        self.finish_ack()
     }
     pub(super) fn poison(self) -> PoisonedV8<'a> {
         PoisonedV8 { _pending: self }
@@ -295,6 +351,9 @@ impl<'a> PendingV8<'a> {
                 _poisoned: self.poison(),
             });
         }
+        Ok(self.finish_ack())
+    }
+    fn finish_ack(self) -> InventoryV8<'a> {
         let CandidateV8 {
             mut inventory,
             row,
@@ -303,8 +362,8 @@ impl<'a> PendingV8<'a> {
         } = self.0;
         inventory.document.extend_from_slice(&encoded); // reserved before Pending
         inventory.mac = successor_mac;
-        inventory.entries.push(row);
-        Ok(inventory)
+        inventory.entries.push(row); // capacity retained by the preflight push/pop
+        inventory
     }
     #[cfg(test)]
     pub(super) fn synthetic_ack_for_inert_test(&self) -> TrustedAppendAckV8 {

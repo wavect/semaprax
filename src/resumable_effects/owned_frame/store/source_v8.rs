@@ -194,6 +194,18 @@ impl SourceOwnedWaitLeaseV8 {
             .validate_scope(&self.registration.expected.scope)?;
         self.inner.read()
     }
+    /// Read-only admission before a physical append is attempted. This cannot
+    /// authorize a fresh lease or replace its independently retained grant.
+    pub(crate) fn validate_append_authorized(
+        &self,
+        registration: &SourceOwnedWaitStoreRegistrationV8,
+    ) -> Result<(), Error> {
+        self.validate_registration(registration)?;
+        if !self.start_authorized {
+            return Err(Error::Policy);
+        }
+        Ok(())
+    }
     pub(crate) fn append(&mut self, bytes: &[u8]) -> Result<(), Error> {
         self.inner
             .validate_profile(StoreProfile::SourceOwnedWaitV8)?;
@@ -300,3 +312,26 @@ fn validate_directory_identity(_: &File, _: (u64, u64)) -> Result<(), Error> {
 
 #[cfg(all(test, unix))]
 mod tests;
+
+#[cfg(all(test, unix))]
+impl SourceOwnedWaitLeaseV8 {
+    pub(crate) fn test_fail_before_write(&mut self, number: usize) {
+        self.inner
+            .fail_append_stage(number, super::unix::AppendFaultStage::BeforeWrite);
+    }
+    pub(crate) fn test_fail_after_write(&mut self, number: usize) {
+        self.inner
+            .fail_append_stage(number, super::unix::AppendFaultStage::AfterWriteBeforeSync);
+    }
+    pub(crate) fn test_fail_before_sync(&mut self, number: usize) {
+        self.inner
+            .fail_append_stage(number, super::unix::AppendFaultStage::BeforeSync);
+    }
+    pub(crate) fn test_fail_after_sync(&mut self, number: usize) {
+        self.inner
+            .fail_append_stage(number, super::unix::AppendFaultStage::AfterSync);
+    }
+    pub(crate) fn test_mark_foreign(&mut self) {
+        self.inner.mark_foreign_process_for_test();
+    }
+}

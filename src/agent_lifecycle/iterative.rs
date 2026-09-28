@@ -8,6 +8,7 @@ pub mod driver;
 pub mod effects;
 pub mod model;
 pub mod model_wait;
+mod owned_wait_metadata;
 mod render;
 pub mod source_live;
 mod step;
@@ -136,6 +137,12 @@ pub struct CompiledIterativeLifecycle {
     step: step::StepShape,
 }
 impl CompiledIterativeLifecycle {
+    pub(crate) fn owned_wait_outcome_v8(
+        &self,
+    ) -> owned_wait_metadata::OwnedWaitOutcomeMetadataV8<'_> {
+        owned_wait_metadata::outcome(&self.inner)
+    }
+
     pub(crate) fn owned_wait_step_v8(&self) -> step::OwnedWaitStepMetadataV8<'_> {
         self.step.owned_wait_metadata()
     }

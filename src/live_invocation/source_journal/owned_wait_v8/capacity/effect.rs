@@ -47,10 +47,10 @@ pub(super) fn rooms(
         "attempt":u32::MAX, "staged":u32::MAX, "ready":u32::MAX,
         "consumed":u32::MAX, "intent":u32::MAX, "settlement":u32::MAX,
         "recorded":u32::MAX, "decision_digest":hash(),
-        "operations":max.decision_operations, "operations_digest":hash()
+        "operations":max.effect_operations, "operations_digest":hash()
     }))?;
     let cleanup = started
-        .add(receipt(&max.decision_operations)?)?
+        .add(receipt(&max.effect_operations)?)?
         .add(state_cleanup)?;
     let recorded = recorded.add(cleanup)?;
     let settlement = observed.either(failed).add(recorded)?;
@@ -74,3 +74,6 @@ pub(super) fn receipt(operations: &Value) -> Result<RoomV8, SourceJournalError> 
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod phase_tests;

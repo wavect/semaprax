@@ -57,15 +57,12 @@ fn effect_closure_preserves_room_across_maximum_serialized_phase_edges() {
         check_edge(bound.settlement, recorded.bytes, bound.recorded);
         let started = row(json!({"kind":"owned_effect_decision_cleanup_started","turn":u32::MAX,"attempt":u32::MAX,
             "staged":u32::MAX,"ready":u32::MAX,"consumed":u32::MAX,"intent":u32::MAX,"settlement":u32::MAX,
-            "recorded":u32::MAX,"decision_digest":hash(),"operations":max.decision_operations,"operations_digest":hash()})).unwrap();
-        let after_started = receipt(&max.decision_operations)
-            .unwrap()
-            .add(state)
-            .unwrap();
+            "recorded":u32::MAX,"decision_digest":hash(),"operations":max.effect_operations,"operations_digest":hash()})).unwrap();
+        let after_started = receipt(&max.effect_operations).unwrap().add(state).unwrap();
         check_edge(bound.recorded, started.bytes, after_started);
         check_edge(
             after_started,
-            receipt(&max.decision_operations).unwrap().bytes,
+            receipt(&max.effect_operations).unwrap().bytes,
             state,
         );
         assert_eq!(

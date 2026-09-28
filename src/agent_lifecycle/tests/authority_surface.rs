@@ -21,6 +21,10 @@ fn the_authorization_value_has_exactly_one_mint_site_in_the_crate() {
     .join("\n");
     let model_wait_sources = [
         (
+            "live_invocation/source_journal/owned_wait_v8/capacity/effect.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/capacity/effect.rs"),
+        ),
+        (
             "live_invocation/source_journal/owned_wait_v8/effect_fold.rs",
             include_str!("../../live_invocation/source_journal/owned_wait_v8/effect_fold.rs"),
         ),
@@ -159,6 +163,10 @@ fn the_stage_executor_seam_has_exactly_three_implementations_and_one_dispatch_ro
     ]
     .join("\n");
     let model_wait_sources = [
+        (
+            "live_invocation/source_journal/owned_wait_v8/capacity/effect.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/capacity/effect.rs"),
+        ),
         (
             "live_invocation/source_journal/owned_wait_v8/effect_fold.rs",
             include_str!("../../live_invocation/source_journal/owned_wait_v8/effect_fold.rs"),

@@ -14,6 +14,7 @@ pub(super) struct Maxima {
     pub state_operations: Value,
     pub result_operations: Value,
     pub decision_operations: Value,
+    pub effect_operations: Value,
     pub partial_operations: Value,
     pub terminal: Value,
 }
@@ -183,6 +184,19 @@ pub(super) fn maxima(context: &FoldContextV8) -> Result<Maxima, SourceJournalErr
         state_operations: operations(&helper.liveness().failure_cleanup)?,
         result_operations: operations(&helper.liveness().result_disposal)?,
         decision_operations: operations(authorize.disposal())?,
+        effect_operations: operations(
+            &authorize
+                .disposal()
+                .iter()
+                .filter(|action| {
+                    action
+                        .active_case
+                        .as_ref()
+                        .is_some_and(|case| case.case == *authorize.granted())
+                })
+                .cloned()
+                .collect::<Vec<_>>(),
+        )?,
         partial_operations: operations(authorize.partial_disposal())?,
         terminal: largest_terminal(context)?,
     })

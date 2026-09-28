@@ -150,16 +150,20 @@ fn suspension_cleanup_matches_existing_requires_failure_without_id_sorting() {
 fn owned_frame_refuses_additional_owned_local_assignment_call_and_second_yield() {
     // The additional Bytes local is valid ordinary source. Its rejection must
     // come from suspension admission, not a byte-operation type mismatch.
-    let ordinary = SOURCE.replace("yields i64 -> i64", "").replace(
-        "let answer = yield state.budget;",
+    for local in [
         "let extra = bytes_zeroed(1usize);",
-    );
-    hir::resolve(&crate::parse(&ordinary, Path::new("owned-frame-local-control.spx")).unwrap())
-        .expect("the additional owned local is well typed without suspension");
+        "let mut extra = bytes_zeroed(1usize);",
+    ] {
+        let ordinary = SOURCE
+            .replace("yields i64 -> i64", "")
+            .replace("let answer = yield state.budget;", local);
+        hir::resolve(&crate::parse(&ordinary, Path::new("owned-frame-local-control.spx")).unwrap())
+            .expect("the additional owned local is well typed without suspension");
+    }
     for body in [
         "let extra = bytes_zeroed(1usize); let answer = yield state.budget; state",
+        "let mut extra = bytes_zeroed(1usize); let answer = yield state.budget; state",
         "let answer = yield state.budget; let other = yield answer; state",
-        "let answer = yield state.budget; state.budget = answer; state",
     ] {
         let source = SOURCE.replace("let answer = yield state.budget;\n    state", body);
         let error =
@@ -167,4 +171,15 @@ fn owned_frame_refuses_additional_owned_local_assignment_call_and_second_yield()
                 .unwrap_err();
         assert!(error.iter().any(|e| e.code == "SPX-T303"), "{error:?}");
     }
+
+    // Parameters are immutable: this hostile assignment selects the language's
+    // ownership diagnostic before suspension-profile admission.
+    let source = SOURCE.replace(
+        "let answer = yield state.budget;\n    state",
+        "let answer = yield state.budget; state.budget = answer; state",
+    );
+    let error =
+        hir::resolve(&crate::parse(&source, Path::new("owned-frame-rejected.spx")).unwrap())
+            .unwrap_err();
+    assert!(error.iter().any(|e| e.code == "SPX-U107"), "{error:?}");
 }

@@ -18,7 +18,7 @@ use std::sync::Arc;
 pub(crate) struct SourceOwnedWaitJournalV8 {
     context: Arc<CheckedOwnedWaitJournalContextV8>,
     key: SourceCheckpointKey,
-    poisoned: Cell<bool>,
+    poisoned: observer_terminal::ObserverRetirementV8,
     append_active: Cell<bool>,
     prospective_reduce: RefCell<Option<ProspectiveReduceRegistryV8>>,
     prospective_reduce_identity: Cell<u64>,
@@ -78,7 +78,7 @@ struct Attempting<'a> {
 impl Drop for Attempting<'_> {
     fn drop(&mut self) {
         if !self.complete.get() {
-            self.journal.poisoned.set(true);
+            self.journal.quarantine();
         }
         self.journal.append_active.set(false);
     }
@@ -93,7 +93,7 @@ impl SourceOwnedWaitJournalV8 {
         Ok(Self {
             context,
             key,
-            poisoned: Cell::new(false),
+            poisoned: observer_terminal::ObserverRetirementV8::new(),
             append_active: Cell::new(false),
             prospective_reduce: RefCell::new(None),
             prospective_reduce_identity: Cell::new(0),
@@ -107,7 +107,7 @@ impl SourceOwnedWaitJournalV8 {
     }
     /// Retire the held container without reading, borrowing, or minting authority.
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn quarantine(&self) {
-        self.poisoned.set(true);
+        self.poisoned.retire();
     }
     pub(crate) fn hold(&self) -> Result<HeldOwnedWaitStoreV8<'_>, SourceJournalError> {
         self.validate_guard()?;
@@ -129,7 +129,7 @@ impl SourceOwnedWaitJournalV8 {
             .try_borrow()
             .map_err(|_| SourceJournalError::Order)?;
         self.context.validate_lease(&lease).inspect_err(|_| {
-            self.poisoned.set(true);
+            self.quarantine();
         })
     }
     // Acquisition-only packet: no closed live phase route can bypass this.
@@ -154,7 +154,7 @@ impl SourceOwnedWaitJournalV8 {
             let bytes = lease.read().map_err(store_error)?;
             InventoryV8::recover(&self.context, &lease, &self.key, &bytes)
         })();
-        let inventory = recovered.inspect_err(|_| self.poisoned.set(true))?;
+        let inventory = recovered.inspect_err(|_| self.quarantine())?;
         self.validate_guard()?;
         Ok(AppendSessionV8 {
             journal: self,
@@ -175,14 +175,14 @@ impl HeldOwnedWaitStoreV8<'_> {
         self.validate_guard()?;
         let current = self.journal.begin_session()?;
         if current.sequence() != sequence || current.acknowledged_bytes() != bytes {
-            self.journal.poisoned.set(true);
+            self.journal.quarantine();
             return Err(SourceJournalError::Order);
         }
         self.validate_guard()
     }
     /// Permanent quarantine of an actual callback failure; no authority is minted.
     pub(crate) fn quarantine(&self) {
-        self.journal.poisoned.set(true);
+        self.journal.quarantine();
     }
     pub(crate) fn generation(&self) -> &str {
         self.journal.context.generation()
@@ -251,7 +251,7 @@ impl<'a> AppendSessionV8<'a> {
             .and_then(|_| journal.validate_guard())
             .and_then(|_| pending.validate_fixed_failed_state_prefix(journal, permit))
         {
-            journal.poisoned.set(true);
+            journal.quarantine();
             return Err(AppendFailureV8::PrewriteRefused {
                 _journal: journal,
                 _pending: pending,
@@ -344,7 +344,7 @@ impl<'a> AppendSessionV8<'a> {
             .and_then(|_| journal.validate_guard())
             .and_then(|_| pending.validate_fixed_intent_prefix(journal, permit))
         {
-            journal.poisoned.set(true);
+            journal.quarantine();
             return Err(AppendFailureV8::PrewriteRefused {
                 _journal: journal,
                 _pending: pending,
@@ -430,7 +430,7 @@ impl<'a> AppendSessionV8<'a> {
             .and_then(|_| journal.validate_guard())
             .and_then(|_| pending.validate_fixed_settlement_prefix(journal, permit))
         {
-            journal.poisoned.set(true);
+            journal.quarantine();
             return Err(AppendFailureV8::PrewriteRefused {
                 _journal: journal,
                 _pending: pending,
@@ -516,7 +516,7 @@ impl<'a> AppendSessionV8<'a> {
             .and_then(|_| journal.validate_guard())
             .and_then(|_| pending.validate_fixed_cleanup_prefix(journal, permit))
         {
-            journal.poisoned.set(true);
+            journal.quarantine();
             return Err(AppendFailureV8::PrewriteRefused {
                 _journal: journal,
                 _pending: pending,
@@ -602,7 +602,7 @@ impl<'a> AppendSessionV8<'a> {
             .and_then(|_| journal.validate_guard())
             .and_then(|_| pending.validate_fixed_original_reduce_prefix(journal, permit))
         {
-            journal.poisoned.set(true);
+            journal.quarantine();
             return Err(AppendFailureV8::PrewriteRefused {
                 _journal: journal,
                 _pending: pending,
@@ -688,7 +688,7 @@ impl<'a> AppendSessionV8<'a> {
             .and_then(|_| journal.validate_guard())
             .and_then(|_| pending.validate_fixed_continue_prefix(journal, permit))
         {
-            journal.poisoned.set(true);
+            journal.quarantine();
             return Err(AppendFailureV8::PrewriteRefused {
                 _journal: journal,
                 _pending: pending,
@@ -773,7 +773,7 @@ impl<'a> AppendSessionV8<'a> {
             .and_then(|_| journal.validate_guard())
             .and_then(|_| pending.validate_fixed_step_prefix(journal, permit))
         {
-            journal.poisoned.set(true);
+            journal.quarantine();
             return Err(AppendFailureV8::PrewriteRefused {
                 _journal: journal,
                 _pending: pending,
@@ -846,7 +846,7 @@ impl<'a> AppendSessionV8<'a> {
         let pending = candidate.into_pending();
         // Pending exists before the first append-adapter physical call.
         if let Err(error) = journal.validate_guard() {
-            journal.poisoned.set(true);
+            journal.quarantine();
             return Err(AppendFailureV8::PrewriteRefused {
                 _journal: journal,
                 _pending: pending,
@@ -893,7 +893,7 @@ fn reject_candidate<'a>(
     rejected: CandidateRejectionV8<'a>,
 ) -> AppendFailureV8<'a> {
     let physical = if rejected.physical {
-        journal.poisoned.set(true);
+        journal.quarantine();
         Some(rejected.error)
     } else {
         journal.validate_guard().err()
@@ -1274,3 +1274,6 @@ fn physical_append_fixed_failed_state(
     pending.validate_fixed_failed_state_prefix(journal, permit)?;
     Ok(AppendVerifiedV8 { _sealed: () })
 }
+
+// Sibling consumers borrow sealed terminal facts; no lease or raw token getter.
+pub(super) mod observer_terminal;

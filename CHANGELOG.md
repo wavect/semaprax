@@ -8,6 +8,10 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Add private actual Continue State/Observe ACK carry and irreversible observer
+  cleanup-seal foundations; retain static Reduce capacity templates per exact
+  Context. Cumulative physical execution and integration gates remain pending.
+
 - Retain immutable checked Reduce proof per invocation and add private actual
   failed-target State disposal through fixed durable ACKs with unchanged
   accounting. Focused integration verification remains required.

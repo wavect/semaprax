@@ -380,3 +380,36 @@ fn owned_reduce_template_cache_recomputes_changed_inputs_and_reset() {
     assert!(context.reduce_templates.entry.borrow().is_none());
     assert_eq!(rooms(&context).unwrap(), fresh);
 }
+
+#[test]
+fn owned_reduce_template_cache_cumulative_profile_resets_and_keys_actual_maximum_turn() {
+    super::super::super::CheckedOwnedWaitJournalContextV8::test_with_actual_runtime(
+        |context, lease, _key| {
+            // These checked Context/template assertions perform no source Observe,
+            // target exchange, physical continuation, or authenticated second turn.
+            let default = rooms(context.fold()).unwrap();
+            assert!(context.fold().reduce_templates.entry.borrow().is_some());
+            let context = context.with_cumulative_initialization(&lease).unwrap();
+            assert!(context.fold().reduce_templates.entry.borrow().is_none());
+            let fold = context.fold();
+            let maximum = context.ordinary().max_iterations() - 1;
+            assert_eq!(maximum_turn(fold), maximum);
+            let fresh = rooms_with_plan(fold, fold.checked_reduce().unwrap()).unwrap();
+            for _ in 0..2 {
+                assert_eq!(rooms(fold).unwrap(), fresh);
+            }
+            let key = fold
+                .reduce_templates
+                .entry
+                .borrow()
+                .as_ref()
+                .unwrap()
+                .0
+                .clone();
+            let key: Value = serde_json::from_str(&key).unwrap();
+            assert_eq!(key["cumulative"], json!(true));
+            assert_eq!(key["coordinate_turn"], json!(maximum));
+            assert_eq!(default.cases.len(), fresh.cases.len());
+        },
+    );
+}

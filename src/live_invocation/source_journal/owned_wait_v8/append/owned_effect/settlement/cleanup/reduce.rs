@@ -129,7 +129,7 @@ impl<'j> VerifiedOwnedReduceReservationAppendV8<'j> {
     ) -> Result<(), SourceJournalError> {
         self.obligation
             .validate_reduce_successor(&self.witness, &self.session)
-            .inspect_err(|_| self.session.journal.poisoned.set(true))
+            .inspect_err(|_| self.session.journal.quarantine())
     }
     /// Closed move into the actual engine ACK consumer; no host or parts API.
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_reduce(
@@ -197,7 +197,7 @@ impl<'j> AppendSessionV8<'j> {
                 // Harmless wrong-container preflight does not poison that other
                 // container. Stale actual same-container ownership retires it.
                 if same_journal {
-                    self.journal.poisoned.set(true);
+                    self.journal.quarantine();
                 }
                 return Err(LiveOriginalReduceAppendFailureV8::Before {
                     _obligation: obligation,
@@ -210,7 +210,7 @@ impl<'j> AppendSessionV8<'j> {
         let permit = match obligation.fixed_append_permit() {
             Ok(permit) => permit,
             Err(error) => {
-                self.journal.poisoned.set(true);
+                self.journal.quarantine();
                 return Err(LiveOriginalReduceAppendFailureV8::Before {
                     _obligation: obligation,
                     _session: self,

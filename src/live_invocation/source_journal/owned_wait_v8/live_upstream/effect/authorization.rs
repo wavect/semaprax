@@ -361,3 +361,5 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) use prepared::clea
 pub(in crate::live_invocation::source_journal::owned_wait_v8) use cleanup::reduce::step;
 
 pub(in crate::live_invocation::source_journal::owned_wait_v8) use cleanup::failed_state;
+
+pub(in crate::live_invocation::source_journal::owned_wait_v8) use cleanup::observer_failed_state;

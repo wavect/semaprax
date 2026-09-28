@@ -691,3 +691,29 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn test_failed_tar
     callback(owner, weak);
     assert_eq!(host.calls, 1);
 }
+
+/// Actual failed observer receipt ACK; no synthetic cleanup ACK or new owner.
+pub(in crate::live_invocation::source_journal::owned_wait_v8) fn test_observer_failed_receipt<
+    'j,
+>(
+    journal: &'j SourceOwnedWaitJournalV8,
+    cancel: &'j AgentCancellation,
+    policy: &'j CapabilityPolicy,
+    clock: &'j dyn SourceInvocationClock,
+    callback: impl FnOnce(crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect::authorization::cleanup::LiveCleanedOwnedEffectV8<'j>, Vec<Weak<[u8]>>),
+) {
+    let mut host = Host { calls: 0, mode: 0 };
+    let (selected, weak) = cleanup(journal, cancel, policy, &mut host, clock);
+    let owner = started(journal, selected)
+        .release_decision(|_| panic!("actual failed Decision observer"))
+        .unwrap_or_else(|_| panic!("actual full release retains failed receipt"));
+    let selected = owner
+        .prepare_settled()
+        .unwrap_or_else(|_| panic!("actual failed receipt"));
+    let owner = cleaned(journal, selected);
+    assert_eq!(host.calls, 1);
+    assert_eq!(weak[0].strong_count(), 1);
+    assert!(weak[1].upgrade().is_none());
+    callback(owner, weak.clone());
+    assert!(weak.iter().all(|w| w.upgrade().is_none()));
+}

@@ -52,6 +52,7 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) struct LiveCleaned
     pending: PendingOwnedEffectReceiptV8<'j>,
     accounting: TargetAccounting,
     lineage: CleanupLineageV8<'j>,
+    observer_seal: Option<crate::live_invocation::source_journal::owned_wait_v8::append::observer_terminal::ObserverTerminalSealV8<'j>>,
 }
 pub(in crate::live_invocation::source_journal::owned_wait_v8) struct LiveExecutedOwnedEffectV8<'j> {
     executed: ExecutedOwnedAgentTurnV2<'j>,
@@ -62,6 +63,7 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) struct LiveFailedO
     pending: PendingOwnedEffectReceiptV8<'j>,
     accounting: TargetAccounting,
     lineage: CleanupLineageV8<'j>,
+    observer_seal: Option<crate::live_invocation::source_journal::owned_wait_v8::append::observer_terminal::ObserverTerminalSealV8<'j>>,
 }
 pub(in crate::live_invocation::source_journal::owned_wait_v8) enum LiveCleanupAcknowledgedV8<'j> {
     Started(LiveStartedOwnedEffectV8<'j>),
@@ -468,7 +470,11 @@ impl<'j> LiveCleanedOwnedEffectV8<'j> {
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_live(
         &self,
     ) -> Result<(), SourceJournalError> {
-        self.lineage.validate_cleanup()
+        if self.observer_seal.is_some() {
+            self.validate_observer_seal()
+        } else {
+            self.lineage.validate_cleanup()
+        }
     }
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_outcome(
         self,
@@ -484,14 +490,13 @@ impl<'j> LiveCleanedOwnedEffectV8<'j> {
                 pending,
                 accounting,
                 lineage,
+                observer_seal,
             } = self;
-            if pending.receipt()["settlement"] != "completed" {
-                lineage.recorded.intent.journal.quarantine();
-            }
             return Ok(LiveOutcomeV8::Failed(LiveFailedOwnedEffectV8 {
                 pending,
                 accounting,
                 lineage,
+                observer_seal,
             }));
         }
         if let Err(error) = self.lineage.validate_outcome() {
@@ -504,6 +509,7 @@ impl<'j> LiveCleanedOwnedEffectV8<'j> {
             pending,
             accounting,
             lineage,
+            observer_seal: _,
         } = self;
         let result = ack_live_owned_effect_cleanup_v8(pending, &lineage.permit());
         match result {
@@ -721,12 +727,20 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_verifie
                 mut lineage,
             } = owner;
             lineage.settled = Some(ack);
-            let actual = LiveCleanedOwnedEffectV8 {
+            let mut actual = LiveCleanedOwnedEffectV8 {
                 pending,
                 accounting,
                 lineage,
+                observer_seal: None,
             };
             if let Err(error) = actual.lineage.validate_cleanup() {
+                return Err(LiveEffectCleanupFailureV8::Cleaned {
+                    _owner: actual,
+                    error,
+                });
+            }
+            if let Err(error) = actual.install_observer_seal() {
+                actual.lineage.recorded.intent.journal.quarantine();
                 return Err(LiveEffectCleanupFailureV8::Cleaned {
                     _owner: actual,
                     error,
@@ -749,3 +763,5 @@ impl LiveExecutedOwnedEffectV8<'_> {
 pub(in crate::live_invocation::source_journal::owned_wait_v8) mod reduce;
 
 pub(in crate::live_invocation::source_journal::owned_wait_v8) mod failed_state;
+
+pub(in crate::live_invocation::source_journal::owned_wait_v8) mod observer_failed_state;

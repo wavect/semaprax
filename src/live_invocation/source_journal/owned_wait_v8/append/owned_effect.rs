@@ -107,7 +107,7 @@ impl<'j> VerifiedOwnedEffectAppendV8<'j> {
         self.obligation
             .validate_ready_successor(&self.witness)
             .inspect_err(|_| {
-                self.session.journal.poisoned.set(true);
+                self.session.journal.quarantine();
             })
     }
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_ready(
@@ -204,7 +204,7 @@ impl<'j> AppendSessionV8<'j> {
             witness,
         };
         if let Err(error) = verified.validate_live() {
-            verified.session.journal.poisoned.set(true);
+            verified.session.journal.quarantine();
             return Err(LiveOwnedEffectAppendFailureV8::After {
                 _verified: verified,
                 error,
@@ -238,3 +238,6 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) use settlement::cl
 pub(in crate::live_invocation::source_journal::owned_wait_v8) use settlement::cleanup::{test_failed_target,TestFailedTargetV8};
 
 pub(in crate::live_invocation::source_journal::owned_wait_v8) use settlement::cleanup::reduce::step::r#continue::VerifiedOwnedContinueSuccessorV8;
+
+#[cfg(test)]
+pub(in crate::live_invocation::source_journal::owned_wait_v8) use settlement::cleanup::tests::test_observer_failed_receipt;

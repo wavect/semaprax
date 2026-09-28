@@ -894,6 +894,12 @@ guards are recomputed. Cumulative continuation and terminal delivery still
 require actual live obligations. Other ACK constructors remain
 test-only until those obligations are connected;
 unpublished durable holders release backing without claiming semantic cleanup.
+The fixed Continue children carry actual mapped State through State and original
+Observe ACKs, retaining the same ledger and hold. The observer-terminal child
+owns permanent normal poison plus independent monotonic cleanup-seal retirement;
+its authorize/effect children borrow actual failed full-receipt State provenance.
+Static Reduce capacity templates are privately retained under exact Context and
+checked proof identity; all current fold/prefix/physical checks remain fresh.
 `registered_stage/live_run` consumes the separately bound live initialization
 permit, retaining actual Task Bytes provenance in initialized State.
 

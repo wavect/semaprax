@@ -72,7 +72,7 @@ impl<'j> VerifiedOwnedAuthorizationConsumedV8<'j> {
         self.obligation
             .validate_consumed_successor(&self.witness)
             .inspect_err(|_| {
-                self.session.journal.poisoned.set(true);
+                self.session.journal.quarantine();
             })
     }
 }
@@ -125,7 +125,7 @@ impl<'j> AppendSessionV8<'j> {
                 // stale same-container owner lineage is permanently retired;
                 // wrong-container preflight neither writes nor poisons it.
                 if same_journal {
-                    self.journal.poisoned.set(true);
+                    self.journal.quarantine();
                 }
                 return Err(LiveOwnedAuthorizationConsumedAppendFailureV8::Before {
                     _obligation: obligation,
@@ -157,7 +157,7 @@ impl<'j> AppendSessionV8<'j> {
             witness,
         };
         if let Err(error) = verified.validate_live() {
-            verified.session.journal.poisoned.set(true);
+            verified.session.journal.quarantine();
             return Err(LiveOwnedAuthorizationConsumedAppendFailureV8::After {
                 _verified: verified,
                 error,

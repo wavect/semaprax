@@ -822,3 +822,5 @@ mod effect_failed_state;
 pub(super) use effect_failed_state::{
     FailedEffectStateReleaseRejectionV8, FailedEffectStateReleaseV8,
 };
+
+mod observer_failed_state;

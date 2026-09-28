@@ -59,7 +59,7 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) struct Prospective
 impl Drop for ProspectiveOwnedReduceHoldV8<'_> {
     fn drop(&mut self) {
         // No refund, replacement or terminal retirement exists in this packet.
-        self.journal.poisoned.set(true);
+        self.journal.quarantine();
     }
 }
 pub(in crate::live_invocation::source_journal::owned_wait_v8) struct ReduceHoldRejectionV8<'j> {
@@ -134,7 +134,7 @@ impl ProspectiveOwnedReduceHoldV8<'_> {
             }
             Ok(())
         })();
-        result.inspect_err(|_| self.journal.poisoned.set(true))
+        result.inspect_err(|_| self.journal.quarantine())
     }
 
     /// Separate fresh Intent phase guard. The old Consumed guard stays closed.
@@ -153,7 +153,7 @@ impl ProspectiveOwnedReduceHoldV8<'_> {
             self.validate_intent_inventory(&current.inventory, sequence, acknowledged_bytes)?;
             journal.validate_guard()
         })();
-        result.inspect_err(|_| self.journal.poisoned.set(true))
+        result.inspect_err(|_| self.journal.quarantine())
     }
     fn validate_intent_inventory(
         &self,
@@ -265,7 +265,7 @@ impl ProspectiveOwnedReduceHoldV8<'_> {
             record.authentication = authentication;
             Ok(())
         })();
-        result.inspect_err(|_| self.journal.poisoned.set(true))
+        result.inspect_err(|_| self.journal.quarantine())
     }
 
     /// Exact existing settlement phases retain the same prospective credit.
@@ -295,7 +295,7 @@ impl ProspectiveOwnedReduceHoldV8<'_> {
             }
             Ok(())
         })();
-        result.inspect_err(|_| self.journal.poisoned.set(true))
+        result.inspect_err(|_| self.journal.quarantine())
     }
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_settlement_guard(
         &self,
@@ -312,7 +312,7 @@ impl ProspectiveOwnedReduceHoldV8<'_> {
             self.validate_settlement_inventory(&current.inventory, sequence, bytes)?;
             journal.validate_guard()
         })();
-        result.inspect_err(|_| self.journal.poisoned.set(true))
+        result.inspect_err(|_| self.journal.quarantine())
     }
     fn validate_settlement_inventory(
         &self,
@@ -402,7 +402,7 @@ impl ProspectiveOwnedReduceHoldV8<'_> {
             record.authentication = authentication;
             Ok(())
         })();
-        result.inspect_err(|_| self.journal.poisoned.set(true))
+        result.inspect_err(|_| self.journal.quarantine())
     }
 
     /// Callback-free checked phase/funding match. No cancellation or clock call.
@@ -476,7 +476,7 @@ impl ProspectiveOwnedReduceHoldV8<'_> {
             }
             Ok(())
         })();
-        result.inspect_err(|_| self.journal.poisoned.set(true))
+        result.inspect_err(|_| self.journal.quarantine())
     }
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_cleanup_guard(
         &self,
@@ -493,7 +493,7 @@ impl ProspectiveOwnedReduceHoldV8<'_> {
             self.validate_cleanup_inventory(&current.inventory, sequence, bytes)?;
             journal.validate_guard()
         })();
-        result.inspect_err(|_| self.journal.poisoned.set(true))
+        result.inspect_err(|_| self.journal.quarantine())
     }
     fn validate_cleanup_inventory(
         &self,
@@ -583,7 +583,7 @@ impl ProspectiveOwnedReduceHoldV8<'_> {
             record.authentication = authentication;
             Ok(())
         })();
-        result.inspect_err(|_| self.journal.poisoned.set(true))
+        result.inspect_err(|_| self.journal.quarantine())
     }
 
     /// The actual owner selects one original full-F Reduce reservation. This
@@ -617,7 +617,7 @@ impl ProspectiveOwnedReduceHoldV8<'_> {
             if (*actual_turn,*actual_attempt)!=(turn,attempt)||u64::try_from(*actual_fuel).ok()!=Some(fuel)||!matches!(previous,EntryV8::Owned(crate::live_invocation::source_journal::owned_wait_v8::model::OwnedBodyV8::OwnedEffectDecisionCleanupSettled{..})){return Err(SourceJournalError::Binding);}
             Ok(())
         })();
-        result.inspect_err(|_| self.journal.poisoned.set(true))
+        result.inspect_err(|_| self.journal.quarantine())
     }
     /// Under the append marker only the actual fixed ACK and exact session can
     /// consume the one prospective slot. The fold already charged F and a stage.
@@ -679,7 +679,7 @@ impl ProspectiveOwnedReduceHoldV8<'_> {
             record.authentication = authentication;
             Ok(())
         })();
-        result.inspect_err(|_| self.journal.poisoned.set(true))
+        result.inspect_err(|_| self.journal.quarantine())
     }
     /// Exact current original-Reduce prefix after the single recorded charge.
     /// Future Step rows require their own closed phase, never this old cursor.
@@ -731,7 +731,7 @@ impl ProspectiveOwnedReduceHoldV8<'_> {
             }
             journal.validate_guard()
         })();
-        result.inspect_err(|_| self.journal.poisoned.set(true))
+        result.inspect_err(|_| self.journal.quarantine())
     }
     /// Borrow-only exact spent lineage for the closed Step producer. The fold
     /// has already charged the original F and stage; no future funding is added.
@@ -791,7 +791,7 @@ impl ProspectiveOwnedReduceHoldV8<'_> {
             if !matches!(selected,EntryV8::Owned(crate::live_invocation::source_journal::owned_wait_v8::model::OwnedBodyV8::OwnedEffectFailureStateCleanupStarted{..}|crate::live_invocation::source_journal::owned_wait_v8::model::OwnedBodyV8::OwnedEffectFailureStateCleanupSettled{..})|EntryV8::Ordinary(SourceJournalEntry::Stop{..})){return Err(SourceJournalError::Binding);}
             Ok(())
         })();
-        result.inspect_err(|_| self.journal.poisoned.set(true))
+        result.inspect_err(|_| self.journal.quarantine())
     }
     /// Callback-free, real ACK-only phase update under the physical marker.
     /// Retain the charged aggregate R/S and the same identity/F forever.
@@ -847,7 +847,7 @@ impl ProspectiveOwnedReduceHoldV8<'_> {
             record.authentication = authentication;
             Ok(())
         })();
-        result.inspect_err(|_| self.journal.poisoned.set(true))
+        result.inspect_err(|_| self.journal.quarantine())
     }
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_failed_state_guard(
         &self,
@@ -864,7 +864,7 @@ impl ProspectiveOwnedReduceHoldV8<'_> {
             self.validate_failed_state_inventory(journal, &current.inventory, sequence, bytes)?;
             journal.validate_guard()
         })();
-        result.inspect_err(|_| self.journal.poisoned.set(true))
+        result.inspect_err(|_| self.journal.quarantine())
     }
     fn validate_step_inventory(
         &self,
@@ -940,7 +940,7 @@ impl ProspectiveOwnedReduceHoldV8<'_> {
             }
             Ok(())
         })();
-        result.inspect_err(|_| self.journal.poisoned.set(true))
+        result.inspect_err(|_| self.journal.quarantine())
     }
     /// Callback-free, real ACK-only phase update under the physical marker.
     /// Retain the charged aggregate R/S and the same identity/F forever.
@@ -1002,7 +1002,7 @@ impl ProspectiveOwnedReduceHoldV8<'_> {
             record.authentication = authentication;
             Ok(())
         })();
-        result.inspect_err(|_| self.journal.poisoned.set(true))
+        result.inspect_err(|_| self.journal.quarantine())
     }
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_step_guard(
         &self,
@@ -1019,7 +1019,7 @@ impl ProspectiveOwnedReduceHoldV8<'_> {
             self.validate_step_inventory(journal, &current.inventory, sequence, bytes)?;
             journal.validate_guard()
         })();
-        result.inspect_err(|_| self.journal.poisoned.set(true))
+        result.inspect_err(|_| self.journal.quarantine())
     }
     fn validate_continue_inventory(
         &self,
@@ -1096,7 +1096,7 @@ impl ProspectiveOwnedReduceHoldV8<'_> {
             }
             Ok(())
         })();
-        result.inspect_err(|_| self.journal.poisoned.set(true))
+        result.inspect_err(|_| self.journal.quarantine())
     }
     /// Only a real persisted ACK can advance this same token; no reopening/refund.
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_continue_ack(
@@ -1163,7 +1163,7 @@ impl ProspectiveOwnedReduceHoldV8<'_> {
             record.authentication = session.inventory.authentication_tail().to_owned();
             Ok(())
         })();
-        result.inspect_err(|_| self.journal.poisoned.set(true))
+        result.inspect_err(|_| self.journal.quarantine())
     }
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_continue_guard(
         &self,
@@ -1180,7 +1180,7 @@ impl ProspectiveOwnedReduceHoldV8<'_> {
             self.validate_continue_inventory(journal, &current.inventory, sequence, bytes)?;
             journal.validate_guard()
         })();
-        result.inspect_err(|_| self.journal.poisoned.set(true))
+        result.inspect_err(|_| self.journal.quarantine())
     }
     fn checked_spent_funding(&self, reserved: u64, stages: u32) -> Result<u64, SourceJournalError> {
         let ordinary = self.journal.context.ordinary();
@@ -1263,7 +1263,7 @@ impl ProspectiveOwnedReduceHoldV8<'_> {
             // No registry borrow crosses this final physical guard.
             journal.validate_guard()
         })();
-        result.inspect_err(|_| self.journal.poisoned.set(true))
+        result.inspect_err(|_| self.journal.quarantine())
     }
 }
 impl<'j> HeldOwnedAuthorizationConsumedV8<'j> {
@@ -1297,7 +1297,7 @@ impl<'j> HeldOwnedAuthorizationConsumedV8<'j> {
             // Policy/clock callbacks have ended; re-read the physical prefix.
             guard()
         })();
-        result.inspect_err(|_| self.hold.journal.poisoned.set(true))
+        result.inspect_err(|_| self.hold.journal.quarantine())
     }
 }
 
@@ -1338,7 +1338,7 @@ pub(super) fn reserve<'j>(
             || current.inventory.authentication_tail()
                 != owner.session.inventory.authentication_tail()
         {
-            journal.poisoned.set(true);
+            journal.quarantine();
             return Err(SourceJournalError::Order);
         }
         let (reserved, stages, turn, attempt) = current.inventory.prospective_reduce_facts()?;

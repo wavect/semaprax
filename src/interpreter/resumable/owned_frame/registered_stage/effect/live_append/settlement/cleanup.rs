@@ -278,3 +278,5 @@ pub(crate) use failed_state::{
     release_live_failed_effect_state_v8, LiveFailedEffectStateReleaseFailureV8,
     ReleasedFailedEffectStateV8,
 };
+
+mod observer_failed_state;

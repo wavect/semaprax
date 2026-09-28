@@ -702,3 +702,16 @@ The authenticated accounting builder extends the existing four-dimension exchang
 Capacity forecasting includes the profile row, checked maximal closure of every remaining turn and retained State cleanup at the iteration ceiling, with checked byte/row multiplication and no increase to frozen global limits. Known terminal or failed branches carry no future turn room. All new positive-turn Reduce templates use the authenticated maximal coordinate width; default capacity templates remain unchanged.
 
 This is profile and inert admission machinery plus the actual initializer's profile ACK. It supplies no physical continuation from JSON, owner reconstruction, second live Intent, terminal delivery, public Agent route or crash recovery. Complete actual ledger/owner carry, Observe consumed evidence and public execution remain required before acceptance.
+
+
+## 40. Actual Continue State and original Observe handoff
+
+The actual compiler-mapped Continue State selects the next canonical State commitment through a fixed same-file ACK. The same accounting ledger and exclusive spent Reduce hold remain attached; the commitment preserves R/S and advances the checked turn below the invocation iteration ceiling. Authored Task.budget is language data, not a host iteration ceiling.
+
+The next original Observe reservation has exactly the invocation allowance. Its authentic ACK adds that F and one stage once to the same hold registry, before the sole consuming Observe evaluation. The actual observed or failed holder retains the observed budget consumption and original State backing. Every rejected append retains its actual phase owner; uncertain persistence and post-ACK guard failures quarantine without evaluation retry. Genuine owning tests compare actual Copy results and consumption against independent ordinary Observe and prove failed ACKs never enter the evaluator. This handoff stops at the opaque actual observed/failed holder. It does not implement a second target exchange, terminal publication or public lifecycle acceptance.
+
+## 41. Irreversible observer cleanup seal foundation
+
+A complete actual failed Decision observer receipt ACK, while ordinary authority is still healthy, can atomically install a private cleanup-only seal bound to the actual retained State, journal identity, cursor/MAC, policy, invocation ledger and same Reduce hold. Partial Decision release cannot create it. Ordinary poison remains permanent and cannot be cleared.
+
+The seal has separate monotonic retirement. Expected ordinary Poisoned refusal does not retire it; any later actual fault, pin/prefix loss or seal drop retires it permanently, even if bytes or namespace pins are restored. All physical fault writes pass through a retirement-aware private poison carrier with no raw setter. Owning controls exercise actual receipt installation, ordinary refusal and pin-loss restoration with unchanged prefix and State backing. This foundation supplies no State cleanup writer, Stop or completion route.

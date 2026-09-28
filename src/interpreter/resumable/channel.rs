@@ -58,6 +58,25 @@ pub(crate) fn valid_copy_channel_response(
     function_id: &str,
     supplied: &ResumableChannelValue,
 ) -> bool {
+    valid_copy_channel_boundary(program, function_id, supplied, false)
+}
+
+/// Validate the complete checked Copy request without evaluator entry or an
+/// owned Bytes reconstruction. It shares the response boundary's conversions.
+pub(crate) fn valid_copy_channel_request(
+    program: &ResolvedProgram,
+    function_id: &str,
+    supplied: &ResumableChannelValue,
+) -> bool {
+    valid_copy_channel_boundary(program, function_id, supplied, true)
+}
+
+fn valid_copy_channel_boundary(
+    program: &ResolvedProgram,
+    function_id: &str,
+    supplied: &ResumableChannelValue,
+    request: bool,
+) -> bool {
     if matches!(
         supplied,
         ResumableChannelValue::RecordBytes { .. } | ResumableChannelValue::VariantBytes { .. }
@@ -72,26 +91,21 @@ pub(crate) fn valid_copy_channel_response(
     else {
         return false;
     };
-    if hir::yield_aggregate::has_bytes_leaf(&program.declarations, &yields.response_type) {
+    let ty = if request {
+        &yields.request_type
+    } else {
+        &yields.response_type
+    };
+    if hir::yield_aggregate::has_bytes_leaf(&program.declarations, ty) {
         return false;
     }
-    if !hir::is_scalar_resolved_type(&yields.response_type)
-        && hir::yield_aggregate::bounded_aggregate_refusal(
-            &program.declarations,
-            &yields.response_type,
-        )
-        .is_err()
+    if !hir::is_scalar_resolved_type(ty)
+        && hir::yield_aggregate::bounded_aggregate_refusal(&program.declarations, ty).is_err()
     {
         return false;
     }
     let mut allocation = 0;
-    value_of_channel(
-        &program.declarations,
-        &yields.response_type,
-        supplied,
-        &mut allocation,
-    )
-    .is_some()
+    value_of_channel(&program.declarations, ty, supplied, &mut allocation).is_some()
 }
 
 pub(super) fn admit_channel_entry<'p>(

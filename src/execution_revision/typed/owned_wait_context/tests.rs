@@ -44,6 +44,7 @@ enum RuntimeFixture {
     ReduceArithmetic,
     ReduceEnsures,
     ContinuedObserveEnsures,
+    InitialObserveEnsures,
     BaselineTaskZero,
     ProspectiveReduce(TestProspectiveReduceLimitV8),
 }
@@ -96,6 +97,14 @@ fn fixture_for(profile: RuntimeFixture) -> Fixture {
             source.replace(
                 original,
                 &original.replace("budget: state.budget", &format!("budget: {budget}")),
+            )
+        }
+        RuntimeFixture::InitialObserveEnsures => {
+            let original = "fn observe(state: borrow State) -> Observation\n{";
+            assert_eq!(source.matches(original).count(), 1);
+            source.replace(
+                original,
+                "fn observe(state: borrow State) -> Observation\n    ensures false\n{",
             )
         }
         RuntimeFixture::ContinuedObserveEnsures => {
@@ -223,7 +232,8 @@ fn runtime_for(
             | RuntimeFixture::ReduceFuel
             | RuntimeFixture::ReduceArithmetic
             | RuntimeFixture::ReduceEnsures
-            | RuntimeFixture::ContinuedObserveEnsures => IterativeBudget {
+            | RuntimeFixture::ContinuedObserveEnsures
+            | RuntimeFixture::InitialObserveEnsures => IterativeBudget {
                 max_steps_per_stage: 1000,
                 ..IterativeBudget::default()
             },
@@ -665,6 +675,16 @@ impl crate::live_invocation::source_journal::CheckedOwnedWaitJournalContextV8 {
         ) -> T,
     ) -> T {
         Self::test_with_runtime_fixture(RuntimeFixture::Baseline, retention_ack, callback)
+    }
+    pub(crate) fn test_with_actual_initial_observe_ensures_store<T>(
+        callback: impl FnOnce(
+            Self,
+            crate::resumable_effects::owned_frame::SourceOwnedWaitLeaseV8,
+            crate::resumable_effects::source_checkpoint::SourceCheckpointKey,
+            &std::path::Path,
+        ) -> T,
+    ) -> T {
+        Self::test_with_runtime_fixture(RuntimeFixture::InitialObserveEnsures, true, callback)
     }
     /// The actual initial epoch passes; the same continued State fails Observe.
     pub(crate) fn test_with_actual_continued_observe_ensures_store<T>(

@@ -184,7 +184,7 @@ fn owned_frame_v8_effect_matching_acks_release_seal_then_mint_unique_outcome_and
                     attempt: 0,
                     state: &staged.prepared.basis.state,
                     decision: &staged.prepared.basis.decision,
-                    proposal: k.clone(),
+                    proposal: &k,
                 },
                 &ordinary,
                 &target_wire,

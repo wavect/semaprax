@@ -464,3 +464,98 @@ The fresh initialized/observed actor may append the existing OwnedWaitCreated an
 The fixed checkpoint producer borrows its key, full scope, context and true Prepared sequence from the same session/container. It preserves frozen v2 checkpoint schema, HMAC domains, canonical bytes and LF. The complete checkpoint is at most65536bytes including LF before hex or append and is checked by the unchanged strict validator. Full reserved fuel comes from acknowledged combined inventory; recorded-consumption lower bound includes acknowledged consumed entries plus this actual Start, without inferring unrecorded Observe work. The Prepared ACK is checked against the actual parked holder.
 
 Initialize, Observe and helper Start each reserveF, totaling3F; original ordinary stage count remains2. Encoding/refusal/uncertain persistence retains the actual holder and container, and cancellation already present when the park actor is entered leaves the observed seven-row prefix unchanged; later cancellation retains any acknowledged reservations/rows. No helper evaluation follows a failed Start ACK. Terminal/parked roots abandon backing without claiming source semantic cleanup. Model dispatch, response/Resume, transfer/authorization, partial-failure recovery and public Agent execution remain outside this slice.
+
+### 22.6 Actual model settlement and charged Resume
+
+The private initialized actor may use its actual parked holder and borrowed checked observation to derive the existing SDK request. It appends the ordinary AttemptIntent through the same held session before dispatch. The one-use dispatch permit binds the actual acknowledged prefix, full PID/pins, scope, E/B and cancellation. Request rendering preserves the legacy SDK prompt bytes; the actor retains the already decoded checked Proposal rather than parsing or reconstructing an owner.
+
+Each external factory, capability, start, poll and clock callback is guarded before subsequent work by held-prefix/cancellation checks. Cancellation may still record its existing failure and bounded usage but cannot Resume; the cancel callback checks held-prefix/store validity while preserving that selected failure. Callback panic persistently quarantines the container and returns the same opaque owner; cancel failure cannot replace an already selected SDK failure. Raw settlement and bounded usage are recorded through the ordinary rows before the exact Resume reservation. The original checked F is charged once at its ACK; callback deadline/pin/cancellation checks precede evaluator entry and follow actual evaluation. The retained bound clock is checked after settlement/usage and at Resume entry/publication.
+
+Only the original parked owner and that reservation may enter Resume. Successful Completed follows the actual terminal helper with its checked Proposal, original State allocation witnesses and true ACK reference. Rejection, malformed response, uncertain persistence or guard loss retains the original owner and any actual provisional terminal result under the same held store. Drop abandons backing only. This holder is private helper completion: Proposal admission, State transfer, Authorize, target dispatch, Reduce, public Agent result delivery, cumulative accounting and durable partial recovery remain separate required successors.
+
+## 23. Authenticated first-turn Reduce proof data
+
+This section defines the closed private proof-data grammar. The admitted implementation checks compiler plans, nominal values, causal references, ordered cleanup observations, original aggregate reservation accounting and phase-specific serialized closure capacity. It does not evaluate Reduce, restore owners, dispatch a target, perform cleanup, deliver an Agent result or mint a production physical ACK from decoded rows. Generic append refuses the seven new owned bodies and ordinary Reduce/Transition/Stop advances of an active Reduce obligation.
+
+The prospective hold, physical producer, physical transfer, cumulative next-turn driver and terminal mapping requirements below are required successor boundaries. They are not implemented by the inert codec/fold. In particular, the current fold refuses TerminalSnapshot, replay Reduce, and next-turn execution; a checked Continue or held terminal Transition is proof data only. A failure Stop records the selected failure after its successful whole receipt without granting terminal delivery.
+
+### 23.1 Admission and start boundary
+
+First implementation is turn0 only, with the actual authenticated Source Agent B, same genuine typed E/runtime, same registered held container, and current checked Target settlement. It never resets TargetAccounting or reuses turn0 proofs to dispatch a later turn. Continue may produce a held next State and the separately checked Observe foundation; production next-turn model/effect remains refused until cumulative accounting/driver joins.
+
+A successful EffectObserved + authenticated OwnedEffectSettlementRecorded + matching whole successful Decision CleanupSettled ends at EffectDecisionReleased (effect_fold.rs:159–195). Only that phase can admit the next ordinary StageReservation(role Reduce, turn0, allowance F==typed E.evaluation_fuel). The original reservation charges full F once and increments original stage count once through the existing ordinary accounting. Owned rows do neither. EffectFailedState/EffectCleanupFailed cannot reserve/evaluate Reduce. No fake Reduce with Outcome reconstructed from result bytes.
+
+Before EffectIntent, the live actor retains one move-only prospective hold for this Reduce F, one original stage slot and full rendered effect→Reduce closure, checked against aggregate ordinary-original/replay plus wait reservation fuel/stage inventory. It is not spent fuel and no refund exists. The matching Reduce reservation ACK consumes the hold exactly once; attempted-write uncertainty quarantines hold and all actual owners under the same lock. An inert record cannot reconstruct the hold or an evaluator allowance. Partial/failed constructors are physical obligations, not snapshots to restore.
+
+### 23.2 Closed bodies
+
+All rows retain exact existing v8 framing/auth/true seq/LF. Digests sha256:lowercase64; coordinates/refs/flags canonical u32; consumed canonical u64 <= the referenced exact F. `plan` equals current B, but exact checked Reduce function/mappings/compiler vectors must additionally match. Unknown/duplicate/missing keys refuse.
+
+| Body kind | Required fields besides kind |
+|---|---|
+| owned_reduce_staged | turn,attempt,plan,stage_reservation,effect_cleanup_settled,step,step_digest,consumed |
+| owned_reduce_cleanup_started | turn,attempt,plan,stage_reservation,effect_cleanup_settled,basis,basis_digest,consumed,operations |
+| owned_reduce_cleanup_settled | turn,attempt,started,receipt |
+| owned_step_transfer_reserved | turn,attempt,plan,stage_reservation,staged,cleanup,case |
+| owned_step_transfer_completed | turn,attempt,reserved,target,transfer_digest |
+| owned_effect_failure_state_cleanup_started | turn,attempt,plan,settlement,recorded,decision_cleanup_settled,effect_failure,state_digest,operations |
+| owned_effect_failure_state_cleanup_settled | turn,attempt,started,receipt |
+
+**Consumed refinement:** CleanupStarted records actual Reduce consumed also for no-Staged failures. Success must equal its Staged consumed; count the evaluator reservation once, never sum both duplicate observations. This is ACK-observed lower-bound work until complete ordinary stage evidence mapping is checked. It does not convert existing partial inventory into exact terminal total. The closed codec and authenticated fold admit this field.
+
+Step is the exact full nominal Step only after a complete constructor and passed postconditions. Provisional postcondition failure MUST NOT emit Staged. `cleanup` is exactly `{kind:"compiler_empty"}` or `{kind:"observed",started:u32,settled:u32}`. `target` is exactly `{kind:"continue",state:State}`, `{kind:"suspend",state:State}`, `{kind:"complete",report:Report}` or `{kind:"fail",code:i64}`; no nullable fields/extra variants. State/Report/Step use checked nominal IDs and declaration-order fields with existing exact v2 leaf encoding. These are inert data, not owners.
+
+### 23.3 Exact predecessor table
+
+| Current phase | Next legal row | Result / constraints |
+|---|---|---|
+| EffectDecisionReleased | original Reduce StageReservation | ChargedReduce; observed effect and complete successful Decision receipt required; consumes matching prospective hold |
+| ChargedReduce | ReduceStaged | FullStep; exact same reservation/Decision cleanup closure; passed ensures, consumed<=F |
+| ChargedReduce | ReduceCleanupStarted(initial/partial/provisional failure) | ReduceCleanupInDoubt; exact actual selected failure + compiler basis/vector; no Staged |
+| FullStep | ReduceCleanupStarted(success) | ReduceCleanupInDoubt; only if selected completion vector has active work; basis cites this exact Staged |
+| FullStep | TransferReserved(compiler_empty) | TransferInDoubt; independently prove zero active success actions, no fake Cleanup rows |
+| ReduceCleanupInDoubt | matching ReduceCleanupSettled | CleanupObserved; exact full ordered receipt, matching Started true seq |
+| CleanupObserved(success,whole receipt succeeded) | TransferReserved(observed) | TransferInDoubt; exact Started/Settled/Staged/reservation links |
+| CleanupObserved(failure,whole receipt succeeded) | matching ordinary Stop then TerminalSnapshot | FailedTerminal; preserve first selected status; no owner transfer/claim |
+| CleanupObserved(unsuccessful observation) | none in this initial producer | Quarantined; preserves existing selected failure if any, no invented cleanup status/Stop/transfer |
+| TransferInDoubt | matching TransferCompleted | MappedStep; same actual live map/move once, not generic matching-bytes owner mint |
+| MappedStep | matching ordinary Transition | Continue boundary or held terminal boundary; exact frozen mapped-value carrier digest |
+| terminal Transition | matching TerminalSnapshot | Terminal held only; complete checked stage/evidence accounting required for success; terminal claim/delivery separately gated |
+| Continue Transition | next Observe reservation/TurnObserved | Separate next-turn grammar; cannot admit model/effect until cumulative successor, never retire old K by installing it as new K |
+| EffectFailedState | failure State CleanupStarted | FailureStateInDoubt; exact previously selected failed effect + completed Decision receipt; no Reduce |
+| FailureStateInDoubt | matching failure State CleanupSettled | FailureStateObserved; receipt against exact active subsequence; Stop/Terminal only if all observations succeeded and selected failure matches |
+| FailureStateObserved(unsuccessful observation) | none in this initial producer | Quarantined; no fabricated terminal cleanup success |
+| EffectCleanupFailed | none in this initial producer | Quarantined; effect-observation failure does not give State cleanup or ReplaceFailure authority |
+
+The effect Decision receipt references must remain true combined seqs, not projected ordinary indices. New rows never allow legacy owned State cleanup to bypass EffectFailedState. No rearm/replay/effect/transfer/Terminal may cross an unacknowledged cleanup intent. ACKed CleanupStarted recovery is zero-restoration/in-doubt. Any producer Stop before required cleanup ACK is refused; conservative recovered StopInDoubt classification stays separate from producer grammar.
+
+### 23.4 Compiler basis, vectors and failure selection
+
+Closed basis variants (no raw host count):
+- `{kind:"initial_failure",status:FailurePair}`: no selected constructor/full Step; exact initial_disposal vector; active flags derive its original vector order.
+- `{kind:"partial_failure",status:FailurePair,constructor:ExpressionId,case:DeclarationId,transfer_prefix:[ExpressionId...],active_flags:[u32...]}`: exact compiler constructor under source revision, prefix of its checked field transfer expressions; vector equals failure_by_prefix at that exact prefix. Active flags match the original selected vector. Caller prefix/count cannot attest physical transfer.
+- `{kind:"provisional_failure",status:FailurePair,constructor:ExpressionId,case:DeclarationId,active_flags:[u32...]}`: complete actual constructor but failed ensures; vector equals provisional_failure, flags equal completion_live_flags followed by selected result_disposal flags exactly as step.rs:217–238. No successful Staged and no published Step.
+- `{kind:"success",staged:u32,constructor:ExpressionId,case:DeclarationId,active_flags:[u32...]}`: exact successful Staged, vector equals completion_cleanup, flags equal compiler completion_live_flags. False guards remain in original vector; do not filter/sort/repair the plan.
+
+FailurePair is frozen `{failure,language_status}`. Nonlanguage closed tags require null language_status. Language failure must match full actual checked NormalizedStatus.to_json on the Reduce proof (including schema/domain/code/class/retryable), not a generic caller status. Cleanup observation failure cannot replace an already selected Reduce/effect/language failure. If cleanup observer fails on otherwise successful Staged, successful transfer is blocked and this initial producer stays quarantined with no Stop/Terminal. There is no existing selected evaluator failure to preserve and no new host-failure tag is invented. A later broader cleanup-failure terminal mapping requires separate contract approval.
+
+Physical prefix/active backing validity must be derived from the sealed live staged obligation and compared to compiler metadata before ACK producer creation. The inert decoder/fold verifies shape/compiler/causal facts only and cannot authorize restoration or release. Pure Context admission requires the closed compiler and causal proof validators. Physical producer and ACK activation additionally require the sealed live lineage; an admitted inert history cannot supply it.
+
+### 23.5 Exact hash/receipt rules
+
+New payloads use recursive lexical JSON-map order, no LF; arrays preserve compiler order:
+- Step domain `semaprax.source-agent-owned-reduce.step.v1\0`, payload `{scope,binding:B,plan,turn,attempt,stage_reservation,step}`.
+- Basis domain `semaprax.source-agent-owned-reduce.basis.v1\0`, payload `{scope,binding:B,plan,turn,attempt,stage_reservation,basis}`.
+- Transfer domain `semaprax.source-agent-owned-reduce.transfer.v1\0`, payload `{scope,binding:B,plan,turn,attempt,reserved,case,mapping,target}`. Mapping is ordered compiler `(source_id,target_id)` pairs; no supplied override.
+- Failed-effect `state_digest` is the exact already validated unchanged State commitment retained through Authorize/Ready; failed effect has not run Reduce and cannot replace that digest. Operations are compared in full to the sealed State disposal vector. The authenticated row binds them; these proposed bodies carry no extra operations_digest. Receipt is the exact existing observed receipt JSON, validated against that retained vector and carried directly in the authenticated Settled row (no extra receipt_digest field). No new Operations/Receipt domain or incorrectly shaped reuse of existing RecipeV8::Operations is introduced.
+
+Started.operations is the FULL canonical compiler vector, including false-guard entries, and must equal that original vector independently. Derive the ACTIVE ordered subsequence solely from the sealed compiler basis/actual flags; do not trust a host-selected list. Step settlement skips false guards entirely (step.rs:138–171); it performs no physical operation or observer for them. Settled.receipt uses the existing observed receipt JSON validated against exactly that active subsequence. Its length/order equals the actual active releases, not the full vector; no fake false-guard completed entries are permitted. Capture each actual post-last-owner observer outcome, including mixed panics. The approved physical wrapper catches only observer callback, records that exact outcome, resumes unwind so existing settlement continues; authority checks remain outside both catches. No receipt fabricated from aggregate bool. Missing active operation/outcome or prefix receipt never closes successful cleanup. Unsuccessful observations quarantine both Reduce and failed-effect State cleanup with no fabricated Stop/Terminal success.
+
+
+### 23.6 Failed-effect status and closure capacity
+
+A failed-effect State cleanup cites the exact authenticated ordinary EffectFailed reason retained at the true combined settlement sequence. HandlerFailed and ResultLimit retain EffectFailed/EffectFailed; no Reduce reservation or phantom evaluator stage is admitted. A producer must separately prove any broader physical failed-effect case before activating it.
+
+For Reduce failures, ReduceFuelExhausted and CallDepthExceeded map to BudgetExhausted/BudgetExhausted. Other admitted checked failures map to Rejected/StageRefused, with a full checked normalized language status where applicable. Cancellation and deadline remain their selected Cancelled/Cancelled or Deadline/Deadline pairs at any future physical producer boundary. No cleanup observation may replace the first selected failure.
+
+Closure room renders exact legal rows from checked vectors and mappings, including authentication, true reference widths and LF. Exclusive branches use maxima; remaining effect-to-Reduce closure propagates backward through authorization and malformed-Proposal retries. The failed-State receipt has no Decision receipt digest. An acknowledged Started row consumes only its own serialized room; the remaining receipt and terminal allowance fit the previously reserved exact byte/row caps. Prospective room does not spend evaluator fuel; the matching original Reduce reservation is charged once by ordinary accounting.

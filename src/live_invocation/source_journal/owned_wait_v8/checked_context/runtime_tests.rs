@@ -1,4 +1,6 @@
 //! Genuine runtime/lease data checks. These do not attest authorize execution.
+#[path = "reduce_tests.rs"]
+mod reduce_tests;
 use super::*;
 use crate::agent_lifecycle::authorization::checked_owned_wait_ready_commitments_v8;
 

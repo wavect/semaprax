@@ -132,42 +132,36 @@ fn owned_frame_store_uncertain_append_before_and_after_persistence_requires_new_
 
 #[test]
 fn owned_frame_inherited_lease_refuses_before_io_and_child_drop_preserves_parent_lock() {
-    use std::os::unix::process::CommandExt;
     let directory = Directory::new();
     let lease =
         RegisteredJournalLease::fresh(directory.file(), directory.identity(), &scope()).unwrap();
     let identity = lease.identity();
-    let mut inherited = Some(lease);
     let mut child = std::process::Command::new(std::env::current_exe().unwrap());
-    child.args([
-        "__owned_frame_inherited_child_has_no_matching_test",
-        "--test-threads=1",
-    ]);
-    // No allocation, locks, evaluation or authority in the fork child: the
-    // process check is the first read/append gate. Drop only closes its FD.
-    unsafe {
-        child.pre_exec(move || {
-            let Some(lease) = inherited.take() else {
-                return Err(std::io::Error::from_raw_os_error(22));
-            };
-            let mut lease = std::mem::ManuallyDrop::new(lease);
-            if lease.validate_current() != Err(Error::Policy)
-                || lease.read() != Err(Error::Policy)
-                || lease.append(b"forbidden-child-write\n") != Err(Error::Policy)
-            {
-                return Err(std::io::Error::from_raw_os_error(22));
-            }
-            // Run only the helper used by Drop (getpid + foreign branch), then
-            // close its descriptor. Do not free the inherited heap/String.
-            lease.unlock_creator_only();
-            use std::os::fd::{AsRawFd, FromRawFd};
-            drop(File::from_raw_fd(lease.file.as_raw_fd()));
-            Ok(())
-        });
-    }
-    assert!(child.output().unwrap().status.success());
-    // The parent Command retains its original copy of the pre_exec closure;
-    // dropping the child's inherited open description did not unlock it.
+    child.args(["owned_frame_inherited_child_probe", "--test-threads=1"]);
+    child.env("SPX_OWNED_FRAME_CHILD_DIRECTORY", &directory.0);
+    child.env(
+        "SPX_OWNED_FRAME_CHILD_CREATOR",
+        std::process::id().to_string(),
+    );
+    child.env(
+        "SPX_OWNED_FRAME_CHILD_PINS",
+        format!(
+            "{}:{}:{}:{}",
+            identity.directory_device,
+            identity.directory_inode,
+            identity.file_device,
+            identity.file_inode
+        ),
+    );
+    // Safe spawn passes this real shared open-file description as stdin. No
+    // Rust callback runs between fork and exec and no raw FD escapes the test.
+    child.stdin(std::process::Stdio::from(lease.file.try_clone().unwrap()));
+    let output = child.output().unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
     assert_eq!(
         RegisteredJournalLease::recover(directory.file(), grant(identity), &scope()).err(),
         Some(Error::Busy)
@@ -178,9 +172,57 @@ fn owned_frame_inherited_lease_refuses_before_io_and_child_drop_preserves_parent
             .is_empty()
     );
     drop(child);
+    drop(lease);
     let mut reopened =
         RegisteredJournalLease::recover(directory.file(), grant(identity), &scope()).unwrap();
     assert!(reopened.read().unwrap().is_empty());
+}
+
+#[test]
+fn owned_frame_inherited_child_probe() {
+    use std::os::fd::AsFd;
+    let Some(directory) = std::env::var_os("SPX_OWNED_FRAME_CHILD_DIRECTORY") else {
+        return;
+    };
+    let creator_process: u32 = std::env::var("SPX_OWNED_FRAME_CHILD_CREATOR")
+        .unwrap()
+        .parse()
+        .unwrap();
+    assert_ne!(creator_process, std::process::id());
+    let pins: Vec<u64> = std::env::var("SPX_OWNED_FRAME_CHILD_PINS")
+        .unwrap()
+        .split(':')
+        .map(|n| n.parse().unwrap())
+        .collect();
+    assert_eq!(pins.len(), 4);
+    let identity = OwnedFrameStoreIdentity {
+        directory_device: pins[0],
+        directory_inode: pins[1],
+        file_device: pins[2],
+        file_inode: pins[3],
+    };
+    let mut inherited = RegisteredJournalLease {
+        directory: File::open(directory).unwrap(),
+        file: File::from(rustix::io::dup(std::io::stdin().as_fd()).unwrap()),
+        identity,
+        name: super::super::name(&scope()),
+        scope: codec::scope(&scope()).unwrap(),
+        length: 0,
+        poisoned: false,
+        creator_process,
+        fault: None,
+        writes: 0,
+    };
+    assert_eq!(inherited.validate_current(), Err(Error::Policy));
+    assert_eq!(inherited.read(), Err(Error::Policy));
+    assert_eq!(
+        inherited.append(b"forbidden-child-write\n"),
+        Err(Error::Policy)
+    );
+    assert_eq!(inherited.writes, 0);
+    // Actual whole Drop in a different process must never unlock the parent's
+    // shared flock. The parent tests Busy before releasing its own live lease.
+    drop(inherited);
 }
 
 #[test]

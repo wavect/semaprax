@@ -481,3 +481,4 @@ mod tests;
 pub(crate) mod authorize;
 pub(crate) mod initialize;
 pub(crate) mod observe;
+pub(crate) mod reduce;

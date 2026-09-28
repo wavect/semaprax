@@ -1415,6 +1415,8 @@ mod observer_state;
 
 mod failed_observe_funnel;
 mod failed_observe_state;
+#[cfg(test)]
+pub(super) use failed_observe_state::LiveFailedObserveStateAppendFailureV8;
 pub(in crate::live_invocation::source_journal::owned_wait_v8) use failed_observe_state::VerifiedFailedObserveStateSuccessorV8;
 
 pub(super) mod continued_start;

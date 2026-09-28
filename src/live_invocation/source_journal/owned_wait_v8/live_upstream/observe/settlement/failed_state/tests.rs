@@ -98,11 +98,10 @@ fn generic_refuses_without_io(journal: &SourceOwnedWaitJournalV8, row: EntryV8) 
     );
 }
 fn append_failure_description(
-    failure: &crate::live_invocation::source_journal::owned_wait_v8::append::failed_observe_state::LiveFailedObserveStateAppendFailureV8<'_>,
+    failure: &crate::live_invocation::source_journal::owned_wait_v8::append::LiveFailedObserveStateAppendFailureV8<'_>,
 ) -> String {
     use crate::live_invocation::source_journal::owned_wait_v8::append::{
-        failed_observe_state::LiveFailedObserveStateAppendFailureV8 as Actual,
-        AppendFailureV8 as Append,
+        AppendFailureV8 as Append, LiveFailedObserveStateAppendFailureV8 as Actual,
     };
     match failure {
         Actual::Before { error, .. } => format!("Before: {error:?}"),
@@ -384,7 +383,7 @@ fn failed_observe_state_cleanup_actual_faults_all_three_phases_are_permanent() {
                     .expect("physical fault cannot mint ACK");
                 assert!(
                     matches!(&actual,
-                        crate::live_invocation::source_journal::owned_wait_v8::append::failed_observe_state::LiveFailedObserveStateAppendFailureV8::Append {
+                        crate::live_invocation::source_journal::owned_wait_v8::append::LiveFailedObserveStateAppendFailureV8::Append {
                             _failure: crate::live_invocation::source_journal::owned_wait_v8::append::AppendFailureV8::InDoubt { .. }, ..
                         }),
                     "physical phase {phase} mode {mode}: {}", append_failure_description(&actual)

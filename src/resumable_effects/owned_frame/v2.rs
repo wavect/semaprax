@@ -10,6 +10,7 @@ mod observe_plan;
 mod plan;
 mod proposal_binding;
 mod reduce_plan;
+mod state_projection;
 
 pub(crate) use authorize_plan::{compile_owned_authorize_v2, CheckedOwnedAuthorizeV2};
 pub(crate) use initialize_plan::{compile_owned_initialize_v2, CheckedOwnedInitializeV2};
@@ -34,3 +35,7 @@ pub(crate) use checkpoint::{
 };
 
 pub(crate) use proposal_binding::{bind_owned_wait_proposal_v8, CheckedOwnedWaitProposalV8};
+
+#[cfg(test)]
+pub(crate) use checkpoint::test_encode_owned_wait_checkpoint_v8;
+pub(crate) use state_projection::owned_wait_ordinary_state_digest_v8;

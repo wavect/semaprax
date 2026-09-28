@@ -53,7 +53,7 @@ fn copy(rows: &[ValidatedEntryV8]) -> Vec<ValidatedEntryV8> {
         })
         .collect()
 }
-fn context() -> FoldContextV8 {
+pub(in crate::live_invocation::source_journal::owned_wait_v8) fn context() -> FoldContextV8 {
     let checked = checked_binding();
     let authorize = checked.authorize();
     assert_eq!(authorize.disposal().len(), 1);
@@ -121,7 +121,9 @@ fn clone_row(row: &ValidatedEntryV8) -> ValidatedEntryV8 {
     }
 }
 
-fn fixtures(c: &FoldContextV8) -> Vec<ValidatedEntryV8> {
+pub(in crate::live_invocation::source_journal::owned_wait_v8) fn fixtures(
+    c: &FoldContextV8,
+) -> Vec<ValidatedEntryV8> {
     let Body::OwnedRunCreated {
         scope,
         execution,

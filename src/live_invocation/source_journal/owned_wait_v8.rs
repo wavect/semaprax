@@ -2,6 +2,7 @@
 //! Production binding and physical append adapters are owned by the typed runtime.
 mod checked_context;
 mod fold;
+mod inventory;
 mod model;
 #[cfg(test)]
 mod tests;
@@ -32,8 +33,8 @@ pub(super) struct ExpectedRowV8<'a> {
     pub ordinary: &'a SourceInvocationBinding,
 }
 
-/// Future checked binder creates this only after its actual compiler-owned
-/// carrier validators have replayed the inert row. No production factory yet.
+/// The closed typed inventory binder creates this after actual carrier replay.
+/// Its current prefix profile explicitly refuses Ready and cleanup rows.
 pub(super) struct ValidatedEntryV8 {
     entry: EntryV8,
     observation: Option<crate::resumable_effects::owned_frame::v2::CheckedOwnedWaitObservationV8>,

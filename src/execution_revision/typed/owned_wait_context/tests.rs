@@ -384,6 +384,29 @@ fn owned_wait_typed_context_joins_actual_execution_and_complete_physical_registr
             )
             .unwrap();
         checked.validate_lease(&lease).unwrap();
+        let key = crate::resumable_effects::source_checkpoint::SourceCheckpointKey::new([73; 32]);
+        let state = serde_json::json!({"declaration":"fixture.agent.type.state","fields":[
+            {"identity":"fixture.agent.type.state.objective","value":{"kind":"bytes","hex":"00"}},
+            {"identity":"fixture.agent.type.state.budget","value":{"tag":"i64","value":10}},
+            {"identity":"fixture.agent.type.state.epoch","value":{"tag":"i64","value":0}}]});
+        let document = checked.test_state_document(&key, state.clone());
+        assert_eq!(
+            checked.test_inventory_len(&lease, &key, &document).unwrap(),
+            3
+        );
+        assert!(checked
+            .test_inventory_len(
+                &lease,
+                &crate::resumable_effects::source_checkpoint::SourceCheckpointKey::new([74; 32]),
+                &document
+            )
+            .is_err());
+        let mut wrong_state = state;
+        wrong_state["declaration"] = serde_json::json!("wrong.state");
+        let wrong_document = checked.test_state_document(&key, wrong_state);
+        assert!(checked
+            .test_inventory_len(&lease, &key, &wrong_document)
+            .is_err());
         let other = runtime(Arc::clone(&project), effects(), true, b"changed task");
         let other_e = Arc::new(context(&other, Arc::clone(&wait)));
         assert!(checked_owned_wait_journal_context_v8(other_e, &lease, &registration).is_err());
@@ -394,6 +417,9 @@ fn owned_wait_typed_context_joins_actual_execution_and_complete_physical_registr
                 .is_err()
         );
         assert!(checked.validate_lease(&other_lease).is_err());
+        assert!(checked
+            .test_inventory_len(&other_lease, &key, &document)
+            .is_err());
         let (wrong_limit, wrong_lease) = registered_context_store(&f.0, "wrong-limit", &e, true);
         assert!(
             checked_owned_wait_journal_context_v8(Arc::clone(&e), &wrong_lease, &wrong_limit)

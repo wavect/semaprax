@@ -161,3 +161,13 @@ pub(crate) fn validate_owned_wait_checkpoint_v8(
 }
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+pub(crate) fn test_encode_owned_wait_checkpoint_v8(
+    binding: &CheckedOwnedAgentWaitBindingV8,
+    key: &SourceCheckpointKey,
+    expected: &OwnedWaitCheckpointExpectationV8<'_>,
+    argument: &Value,
+) -> Vec<u8> {
+    tests::sign(key, tests::payload(binding, expected, argument))
+}

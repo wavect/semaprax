@@ -50,7 +50,7 @@ fn park(state: own State, observation: Observation) -> State yields Observation 
         argument,
     )
 }
-fn payload(
+pub(super) fn payload(
     b: &CheckedOwnedAgentWaitBindingV8,
     e: &OwnedWaitCheckpointExpectationV8<'_>,
     argument: &Value,
@@ -63,7 +63,7 @@ fn payload(
         "request":e.observation.copy_arguments()[0]["value"],"request_digest":e.observation.request_digest(),
         "reserved_total":e.reserved_total,"consumed_total":e.consumed_total,"sequence":e.sequence})
 }
-fn sign(key: &SourceCheckpointKey, payload: Value) -> Vec<u8> {
+pub(super) fn sign(key: &SourceCheckpointKey, payload: Value) -> Vec<u8> {
     let auth = key.authenticate(AUTH, &codec::canonical(&payload));
     let mut bytes =
         codec::canonical(&json!({"payload":payload,"authentication":codec::hex(&auth)}));

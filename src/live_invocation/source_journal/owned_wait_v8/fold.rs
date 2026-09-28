@@ -1241,7 +1241,7 @@ fn ordinary(
 
 #[cfg(test)]
 #[path = "fold_tests.rs"]
-mod tests;
+pub(super) mod tests;
 
 /// Recovery recognizes uncertain historical tails; the candidate producer must
 /// invoke this additional gate before extending a checked prefix.

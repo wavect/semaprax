@@ -122,3 +122,52 @@ pub(crate) fn checked_owned_wait_journal_context_v8(
         creator: std::process::id(),
     })
 }
+#[cfg(test)]
+impl CheckedOwnedWaitJournalContextV8 {
+    pub(crate) fn test_state_document(&self, key: &SourceCheckpointKey, state: Value) -> Vec<u8> {
+        let arg = crate::live_invocation::identity::digest(
+            b"semaprax.source-owned-frame-args.v2\0",
+            &wire::canonical(&state),
+        );
+        let entries = [
+            EntryV8::Owned(self.fold.created.clone()),
+            EntryV8::Ordinary(SourceJournalEntry::RunOpened),
+            EntryV8::Owned(model::OwnedBodyV8::OwnedStateCommitted {
+                turn: 0,
+                state,
+                argument_digest: arg,
+                cleanup_plan_digest: self.fold.cleanup_plan_digest.clone(),
+            }),
+        ];
+        let mut prev = "0".repeat(64);
+        let mut document = Vec::new();
+        for (seq, entry) in entries.into_iter().enumerate() {
+            let expected = ExpectedRowV8 {
+                invocation: self.ordinary().invocation(),
+                generation: self.generation(),
+                seq: seq as u32,
+                prev_mac: &prev,
+                ordinary: self.ordinary(),
+            };
+            let bytes = wire::encode(&entry, &expected, key).unwrap();
+            prev = wire::parse(&bytes[..bytes.len() - 1]).unwrap()["authentication"]
+                .as_str()
+                .unwrap()
+                .into();
+            document.extend(bytes);
+        }
+        document
+    }
+    pub(crate) fn test_inventory_len(
+        &self,
+        lease: &SourceOwnedWaitLeaseV8,
+        key: &SourceCheckpointKey,
+        bytes: &[u8],
+    ) -> Result<usize, SourceJournalError> {
+        Ok(
+            super::inventory::checked_inventory_v8(self, lease, key, bytes)?
+                .entries()
+                .len(),
+        )
+    }
+}

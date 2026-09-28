@@ -96,3 +96,160 @@ impl VerifiedOwnedEffectIntentSuccessorV8<'_> {
         self.successor.bytes
     }
 }
+
+use crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect::authorization::{
+    advance_verified_intent_v8, LiveActivatedOwnedEffectV8, LiveEffectIntentActivationFailureV8,
+    LiveOwnedEffectIntentAppendV8,
+};
+
+/// The actual unchanged obligation is first. Session/witness never stand alone.
+pub(in crate::live_invocation::source_journal::owned_wait_v8) struct VerifiedOwnedEffectIntentAppendV8<
+    'j,
+> {
+    obligation: LiveOwnedEffectIntentAppendV8<'j>,
+    session: AppendSessionV8<'j>,
+    witness: VerifiedOwnedEffectIntentSuccessorV8<'j>,
+}
+impl<'j> VerifiedOwnedEffectIntentAppendV8<'j> {
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_live(
+        &self,
+    ) -> Result<(), SourceJournalError> {
+        self.obligation
+            .validate_intent_successor(&self.witness)
+            .inspect_err(|_| self.session.journal.poisoned.set(true))
+    }
+    /// Closed move into the actual engine ACK consumer; no host or parts API.
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_intent(
+        self,
+    ) -> Result<LiveActivatedOwnedEffectV8<'j>, LiveEffectIntentActivationFailureV8<'j>> {
+        let Self {
+            obligation,
+            session,
+            witness,
+        } = self;
+        advance_verified_intent_v8(obligation, session, witness)
+    }
+}
+pub(in crate::live_invocation::source_journal::owned_wait_v8) enum LiveOwnedEffectIntentAppendFailureV8<
+    'j,
+> {
+    Before {
+        _obligation: LiveOwnedEffectIntentAppendV8<'j>,
+        _session: AppendSessionV8<'j>,
+        error: SourceJournalError,
+    },
+    Append {
+        _obligation: LiveOwnedEffectIntentAppendV8<'j>,
+        _failure: AppendFailureV8<'j>,
+    },
+    Acknowledged {
+        _obligation: LiveOwnedEffectIntentAppendV8<'j>,
+        _session: AppendSessionV8<'j>,
+        _witness: VerifiedOwnedEffectIntentSuccessorV8<'j>,
+        error: SourceJournalError,
+    },
+    After {
+        _verified: VerifiedOwnedEffectIntentAppendV8<'j>,
+        error: SourceJournalError,
+    },
+}
+impl<'j> AppendSessionV8<'j> {
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn append_owned_effect_intent(
+        self,
+        obligation: LiveOwnedEffectIntentAppendV8<'j>,
+    ) -> Result<VerifiedOwnedEffectIntentAppendV8<'j>, LiveOwnedEffectIntentAppendFailureV8<'j>>
+    {
+        let same_journal = obligation.belongs_to(self.journal);
+        let predecessor = match (|| {
+            if !same_journal
+                || obligation.sequence() != self.sequence()
+                || obligation.acknowledged_bytes() != self.acknowledged_bytes()
+                || !matches!(
+                    obligation.selected_row(),
+                    EntryV8::Ordinary(SourceJournalEntry::EffectIntent { .. })
+                )
+            {
+                return Err(SourceJournalError::Binding);
+            }
+            obligation.validate_live()?;
+            self.effect_cursor()
+        })() {
+            Ok(cursor) => cursor,
+            Err(error) => {
+                // Harmless wrong-container preflight does not poison that other
+                // container. Stale actual same-container ownership retires it.
+                if same_journal {
+                    self.journal.poisoned.set(true);
+                }
+                return Err(LiveOwnedEffectIntentAppendFailureV8::Before {
+                    _obligation: obligation,
+                    _session: self,
+                    error,
+                });
+            }
+        };
+        // This permit is borrowed only from this actual owner-containing object.
+        let permit = match obligation.fixed_append_permit() {
+            Ok(permit) => permit,
+            Err(error) => {
+                self.journal.poisoned.set(true);
+                return Err(LiveOwnedEffectIntentAppendFailureV8::Before {
+                    _obligation: obligation,
+                    _session: self,
+                    error,
+                });
+            }
+        };
+        let selected = permit.selected_row().clone();
+        let (pending, verified, attempting) = match self.begin_fixed_intent_append(&permit) {
+            Ok(completion) => completion,
+            Err(failure) => {
+                return Err(LiveOwnedEffectIntentAppendFailureV8::Append {
+                    _obligation: obligation,
+                    _failure: failure,
+                })
+            }
+        };
+        let session = AppendSessionV8 {
+            journal: attempting.journal,
+            inventory: pending.acknowledge_verified(verified),
+        };
+        // Sole literal constructor: actual same-FD write/sync/reread has ACKed
+        // this Pending. Recovered inventory never reaches this construction.
+        let witness = VerifiedOwnedEffectIntentSuccessorV8 {
+            predecessor,
+            successor: OwnedEffectAppendCursorV8::capture(&session),
+            selected,
+        };
+        let advanced = witness
+            .validate_against_acknowledged_session(&session)
+            .and_then(|_| permit.advance_registry(&witness, &session));
+        if let Err(error) = advanced {
+            // Attempting remains incomplete and poisons before any return.
+            drop(attempting);
+            return Err(LiveOwnedEffectIntentAppendFailureV8::Acknowledged {
+                _obligation: obligation,
+                _session: session,
+                _witness: witness,
+                error,
+            });
+        }
+        attempting.complete.set(true);
+        drop(attempting); // full clock/policy/file owner checks follow the marker
+        let envelope = VerifiedOwnedEffectIntentAppendV8 {
+            obligation,
+            session,
+            witness,
+        };
+        if let Err(error) = envelope.validate_live() {
+            return Err(LiveOwnedEffectIntentAppendFailureV8::After {
+                _verified: envelope,
+                error,
+            });
+        }
+        Ok(envelope)
+    }
+}
+
+#[cfg(test)]
+mod tests;

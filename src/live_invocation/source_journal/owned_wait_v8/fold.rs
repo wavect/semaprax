@@ -212,6 +212,7 @@ impl FoldV8 {
             }
         }
         capacity::ClosureFactsV8 {
+            attempt,
             intent,
             model_failed: self.model_failed,
             response_closed,

@@ -12,6 +12,7 @@ pub(super) struct Maxima {
     pub observation: Value,
     pub decision: Value,
     pub state_operations: Value,
+    pub result_operations: Value,
     pub decision_operations: Value,
     pub partial_operations: Value,
     pub terminal: Value,
@@ -27,8 +28,8 @@ fn scalar(ty: &ResolvedType) -> Result<ArgumentValue, SourceJournalError> {
         ResolvedType::U8 => ArgumentValue::Uint8(u8::MAX),
         ResolvedType::Usize => ArgumentValue::Usize(u32::MAX as u64),
         ResolvedType::Char => ArgumentValue::Char(0x10ffff),
-        ResolvedType::F32 => ArgumentValue::Float32(f32::MAX),
-        ResolvedType::F64 => ArgumentValue::Float64(f64::MAX),
+        ResolvedType::F32 => ArgumentValue::Float32(f32::from_bits(u32::MAX)),
+        ResolvedType::F64 => ArgumentValue::Float64(f64::from_bits(u64::MAX)),
         _ => return binding(),
     })
 }
@@ -98,7 +99,20 @@ fn copy_channel(context: &FoldContextV8, request: bool) -> Result<Value, SourceJ
     Ok(checkpoint::channel_json(&carrier))
 }
 fn largest_terminal(context: &FoldContextV8) -> Result<Value, SourceJournalError> {
-    let mut largest = json!({"failure":"call_depth_exceeded","language_status":null});
+    let mut largest = Value::Null;
+    for failure in [
+        "fuel_exhausted",
+        "host_abandoned",
+        "answer_type_mismatch",
+        "evaluation_rejected",
+        "handler_failed",
+        "call_depth_exceeded",
+    ] {
+        let value = json!({"failure":failure,"language_status":null});
+        if wire::canonical(&value).len() > wire::canonical(&largest).len() {
+            largest = value;
+        }
+    }
     for f in [
         context.checked_binding.helper().function(),
         context.checked_binding.observe().function(),
@@ -167,6 +181,7 @@ pub(super) fn maxima(context: &FoldContextV8) -> Result<Maxima, SourceJournalErr
         observation: copy_channel(context, true)?,
         decision,
         state_operations: operations(&helper.liveness().failure_cleanup)?,
+        result_operations: operations(&helper.liveness().result_disposal)?,
         decision_operations: operations(authorize.disposal())?,
         partial_operations: operations(authorize.partial_disposal())?,
         terminal: largest_terminal(context)?,

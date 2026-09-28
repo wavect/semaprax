@@ -647,15 +647,22 @@ fn refusal_retirement_rearm_and_retry_preserve_the_exact_original_carriers() {
         attempt: 0,
         reason: super::super::super::SourceProposalRefusal::MalformedDecode,
     }));
+    let refusal_room = capacity::outstanding(&c, &fold(&c, &retry).unwrap()).unwrap();
     retry.push(owned(json!({"kind":"owned_wait_retired","turn":0,"attempt":0,"wait":wait,"prepared":7,"state_digest":argument_digest,"observation_digest":observation_digest})));
     let retired = fold(&c, &retry).unwrap();
     assert_eq!(retired.tail, TailV8::TransferInDoubt);
     assert!(retired.state_basis.is_none());
+    let retired_room = capacity::outstanding(&c, &retired).unwrap();
+    assert_phase_room_edge(&c, &retry[12], 12, refusal_room, retired_room);
+
     let mut forbidden = copy(&retry);
     forbidden.push(replay_wait(&rows, PhaseV8::Start, 6));
     assert!(fold(&c, &forbidden).is_err());
     retry.push(owned(json!({"kind":"owned_state_rearmed","turn":0,"attempt":0,"wait":wait,"retired":12,"state":state,"state_digest":argument_digest,"observation":copy_arguments[0]["value"],"observation_digest":observation_digest})));
     assert_eq!(fold(&c, &retry).unwrap().tail, TailV8::RearmedState);
+    let rearmed_room = capacity::outstanding(&c, &fold(&c, &retry).unwrap()).unwrap();
+    assert_phase_room_edge(&c, &retry[13], 13, retired_room, rearmed_room);
+
     let mut wrong = copy(&retry);
     body_mut(&mut wrong, 13, |b| {
         b["state"]["fields"][1]["value"]["hex"] = json!("01")
@@ -685,6 +692,12 @@ fn refusal_retirement_rearm_and_retry_preserve_the_exact_original_carriers() {
     *wait = next_wait;
     retry.push(next);
     let f = fold(&c, &retry).unwrap();
+    let next_room = capacity::outstanding(&c, &f).unwrap();
+    assert_phase_room_edge(&c, &retry[14], 14, rearmed_room, next_room);
+    assert!(
+        next_room.bytes_for_inert_test() > 131072,
+        "next attempt checkpoint and settlement remain reserved"
+    );
     assert_eq!(
         (f.tail, f.stages, f.reserved_total),
         (TailV8::WaitCreated, 1, 20)
@@ -1207,4 +1220,50 @@ fn near_capacity_authenticated_replays_leave_room_for_the_already_reserved_closu
     assert_eq!(inventory.sequence(), 20 + offset);
     assert_eq!(inventory.acknowledged_bytes(), document.len());
     assert!(document.len() <= super::super::super::MAX_SOURCE_DOCUMENT_BYTES);
+}
+
+fn assert_phase_room_edge(
+    c: &FoldContextV8,
+    row: &ValidatedEntryV8,
+    seq: usize,
+    before: capacity::RoomV8,
+    after: capacity::RoomV8,
+) {
+    let id = hash("inert room identity");
+    let zero = "0".repeat(64);
+    let bytes = wire::encode(
+        &row.entry,
+        &ExpectedRowV8 {
+            invocation: &id,
+            generation: &id,
+            seq: u32::try_from(seq).unwrap(),
+            prev_mac: &zero,
+            ordinary: &c.ordinary,
+        },
+        &SourceCheckpointKey::new([73; 32]),
+    )
+    .unwrap();
+    let exact = super::super::super::MAX_SOURCE_DOCUMENT_BYTES - before.bytes_for_inert_test();
+    assert!(before.check(exact, seq).is_ok());
+    assert!(
+        after.check(exact + bytes.len(), seq + 1).is_ok(),
+        "legal phase edge must retain its full remaining closure room"
+    );
+    assert!(before.bytes_for_inert_test() >= after.bytes_for_inert_test() + bytes.len());
+}
+#[test]
+fn authorization_stage_room_is_reserved_before_the_ordinary_charge() {
+    let c = context();
+    let rows = fixtures(&c);
+    let pending = fold(&c, &rows[..16]).unwrap();
+    let charged = fold(&c, &rows[..17]).unwrap();
+    assert_eq!(pending.tail, TailV8::PendingAuthorize);
+    assert_eq!(charged.tail, TailV8::ChargedAuthorizeReplay);
+    assert_phase_room_edge(
+        &c,
+        &rows[16],
+        16,
+        capacity::outstanding(&c, &pending).unwrap(),
+        capacity::outstanding(&c, &charged).unwrap(),
+    );
 }

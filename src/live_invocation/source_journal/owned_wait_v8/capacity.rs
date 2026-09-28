@@ -6,6 +6,7 @@ use model::{OwnerV8, PhaseV8};
 use serde_json::json;
 
 pub(super) struct ClosureFactsV8<'a> {
+    pub attempt: Option<u32>,
     pub intent: bool,
     pub model_failed: bool,
     pub response_closed: bool,
@@ -126,7 +127,9 @@ pub(super) fn outstanding(
         return Ok(terminal);
     }
     let max = templates::maxima(context)?;
-    let state_cleanup = cleanup(&max, OwnerV8::State, &max.state_operations)?.add(terminal)?;
+    let state_cleanup = cleanup(&max, OwnerV8::State, &max.state_operations)?
+        .add(terminal)?
+        .either(cleanup(&max, OwnerV8::State, &max.result_operations)?.add(terminal)?);
     let decision_cleanup =
         cleanup(&max, OwnerV8::Decision, &max.decision_operations)?.add(state_cleanup)?;
     let partial_cleanup =
@@ -205,7 +208,7 @@ pub(super) fn outstanding(
         } else {
             decision_cleanup
         })?);
-    if matches!(folded.tail, PendingAuthorize | ChargedAuthorizeReplay) {
+    if folded.tail == ChargedAuthorizeReplay {
         return Ok(authorize);
     }
     let stage = ordinary(SourceJournalEntry::StageReservation {
@@ -217,6 +220,9 @@ pub(super) fn outstanding(
             .max_steps_per_stage()
             .ok_or(SourceJournalError::Binding)?,
     })?;
+    if folded.tail == PendingAuthorize {
+        return stage.add(authorize);
+    }
     let transfer_completed = row(
         json!({"kind":"owned_state_transfer_completed","turn":u32::MAX,"attempt":u32::MAX,"wait":hash(),"reservation":u32::MAX,"state":max.state,"state_digest":hash(),"proposal":max.proposal,"proposal_digest":hash(),"transfer_digest":hash()}),
     )?;
@@ -241,11 +247,16 @@ pub(super) fn outstanding(
     let rearmed = row(
         json!({"kind":"owned_state_rearmed","turn":u32::MAX,"attempt":u32::MAX,"wait":hash(),"retired":u32::MAX,"state":max.state,"state_digest":hash(),"observation":max.observation,"observation_digest":hash()}),
     )?;
-    if folded.tail == TransferInDoubt {
-        return Ok(rearmed.either(state_cleanup));
-    }
-    if folded.tail == ProposalRefused {
-        return Ok(retired.add(rearmed)?.either(state_cleanup));
+    let retry_tail = matches!(
+        folded.tail,
+        ProposalRefused | TransferInDoubt | RearmedState
+    );
+    let retry_allowed = facts
+        .attempt
+        .and_then(|a| a.checked_add(1))
+        .is_some_and(|a| a < context.ordinary.max_attempts());
+    if retry_tail && !retry_allowed {
+        return Ok(state_cleanup);
     }
     let completed = row(
         json!({"kind":"owned_wait_completed","turn":u32::MAX,"attempt":u32::MAX,"wait":hash(),"reservation":u32::MAX,"proposal":max.proposal,"proposal_digest":hash(),"result_digest":hash(),"consumed":u64::MAX}),
@@ -288,10 +299,10 @@ pub(super) fn outstanding(
         }),
     })?;
     let mut future = resume.add(completed)?.add(after_completed)?;
-    if !facts.usage_closed {
+    if retry_tail || !facts.usage_closed {
         future = usage.add(future)?;
     }
-    if !facts.response_closed {
+    if retry_tail || !facts.response_closed {
         future = ordinary(SourceJournalEntry::AttemptSettled {
             turn: u32::MAX,
             attempt: u32::MAX,
@@ -300,7 +311,7 @@ pub(super) fn outstanding(
         })?
         .add(future)?;
     }
-    if !facts.intent {
+    if retry_tail || !facts.intent {
         future = ordinary(SourceJournalEntry::AttemptIntent {
             turn: u32::MAX,
             attempt: u32::MAX,
@@ -334,6 +345,15 @@ pub(super) fn outstanding(
         json!({"kind":"owned_wait_created","turn":u32::MAX,"attempt":u32::MAX,"wait":hash(),"plan_digest":context.plan_digest,"cleanup_plan_digest":context.cleanup_plan_digest,"signature":context.signature,"argument_digest":hash(),"copy_arguments":[{"parameter":context.checked_binding.helper().function().params[1].id.as_str(),"value":max.observation}],"copy_arguments_digest":hash()}),
     )?;
     future = wait_created.add(future)?;
+    if folded.tail == TransferInDoubt {
+        return rearmed.add(future).map(|r| r.either(state_cleanup));
+    }
+    if folded.tail == ProposalRefused {
+        return retired
+            .add(rearmed)?
+            .add(future)
+            .map(|r| r.either(state_cleanup));
+    }
     if matches!(folded.tail, Observed | RearmedState) {
         return Ok(future);
     }

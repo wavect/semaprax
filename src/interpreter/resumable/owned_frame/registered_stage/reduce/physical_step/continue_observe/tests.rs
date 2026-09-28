@@ -7,7 +7,7 @@ fn with_continue(
     callback: impl FnOnce(
         CommittedContinueObserveV2<'_>,
         std::sync::Weak<[u8]>,
-        &crate::agent_lifecycle::AgentCancellation,
+        &crate::agent_runtime::AgentCancellation,
         &std::path::Path,
     ),
 ) {

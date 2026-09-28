@@ -25,7 +25,7 @@ struct HeldOwnedTurnContextV2<'a> {
     execution: &'a crate::execution_revision::typed::CheckedTypedOwnedWaitExecutionV8,
     store: crate::live_invocation::source_journal::HeldOwnedWaitStoreV8<'a>,
     policy: &'a crate::resumable_effects::capability::CapabilityPolicy,
-    cancellation: &'a crate::agent_lifecycle::AgentCancellation,
+    cancellation: &'a crate::agent_runtime::AgentCancellation,
     effect_id: String,
     creator: u32,
 }

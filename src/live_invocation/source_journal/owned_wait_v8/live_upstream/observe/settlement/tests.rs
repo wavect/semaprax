@@ -57,7 +57,7 @@ fn ordinary(
                     "i32" => R::I32(value["value"].as_i64().unwrap() as i32),
                     "bool" => R::Bool(value["value"].as_bool().unwrap()),
                     "u8" => R::U8(value["value"].as_u64().unwrap() as u8),
-                    "usize" => R::Usize(value["value"].as_u64().unwrap() as usize),
+                    "usize" => R::Usize(value["value"].as_u64().unwrap()),
                     _ => panic!("fixture scalar"),
                 }
             };
@@ -159,8 +159,14 @@ fn owned_observe_settlement_initial_ensures_retains_failed_cause_state_and_count
                 panic!("actual failed settled owner")
             };
             let data = failed.owner.data().unwrap();
-            assert!(data.consumed > 0);
-            assert!(matches!(data.failure, Some(OwnedFrameFailure::Language(_))));
+            let oracle = ordinary(&journal, &data.state);
+            assert_eq!(data.consumed, oracle.steps_used as u64);
+            let crate::interpreter::retained_call::RetainedCallOutcome::LanguageFailure(status) =
+                oracle.outcome
+            else {
+                panic!("ordinary failed Observe")
+            };
+            assert_eq!(data.failure, Some(OwnedFrameFailure::Language(status)));
             assert!(data.observation.is_none());
             assert_eq!(entries(), count + 1);
             let current = journal.begin_session().unwrap();
@@ -255,7 +261,7 @@ fn with_continued(
             &clock,
             |moved, weak| {
                 let ledger = *moved.accounting();
-                let (observation, consumed) = if failed {
+                let (observation, mut consumed) = if failed {
                     (None, 0)
                 } else {
                     let (value, used) = moved.test_observe_oracle();
@@ -287,6 +293,18 @@ fn with_continued(
                 let obligation = observed
                     .prepare_observe_settlement()
                     .unwrap_or_else(|_| panic!("actual settlement producer"));
+                if failed {
+                    let data = obligation.owner.data().unwrap();
+                    let oracle = ordinary(&journal, &data.state);
+                    let crate::interpreter::retained_call::RetainedCallOutcome::LanguageFailure(
+                        status,
+                    ) = oracle.outcome
+                    else {
+                        panic!("ordinary continued failed Observe")
+                    };
+                    assert_eq!(data.failure, Some(OwnedFrameFailure::Language(status)));
+                    consumed = oracle.steps_used;
+                }
                 callback(
                     &journal,
                     obligation,
@@ -349,12 +367,13 @@ fn owned_observe_settlement_continued_actual_oracle_same_ledger_and_once_funding
 }
 #[test]
 fn owned_observe_settlement_continued_ensures_retains_actual_failed_state_count() {
-    with_continued(true, |journal, owner, weak, ledger, _, _, _| {
+    with_continued(true, |journal, owner, weak, ledger, _, consumed, _| {
         let settled = ack(journal, owner);
         let data = settled.owner.data().unwrap();
         assert!(matches!(data.failure, Some(OwnedFrameFailure::Language(_))));
         assert!(data.observation.is_none());
         assert!(data.consumed > 0);
+        assert_eq!(data.consumed, consumed as u64);
         let LiveObserveSettlementOwnerV8::Continued(c) = &settled.owner else {
             panic!()
         };

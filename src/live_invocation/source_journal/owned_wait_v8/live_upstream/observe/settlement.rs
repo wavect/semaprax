@@ -65,13 +65,17 @@ impl InitialObserveSettlementV8<'_> {
     fn data(&self) -> Result<ObserveDataV8, SourceJournalError> {
         match &self.owner {
             LiveObserveOutcomeV8::Observed(o) => Ok(ObserveDataV8 {
-                state: o.facts().clone(),
+                state: o
+                    .live_state_facts_v8()
+                    .map_err(|_| SourceJournalError::Binding)?,
                 observation: Some(o.observation().clone()),
                 failure: None,
                 consumed: o.consumed(),
             }),
             LiveObserveOutcomeV8::Failed(f) => Ok(ObserveDataV8 {
-                state: f.facts().clone(),
+                state: f
+                    .live_state_facts_v8()
+                    .map_err(|_| SourceJournalError::Binding)?,
                 observation: None,
                 failure: Some(f.failure().clone()),
                 consumed: f.consumed(),
@@ -241,7 +245,7 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn select_observe_
             acks: Vec::new(),
         }),
         Err(error) => {
-            owner.journal().poisoned.set(true);
+            owner.journal().quarantine();
             Err(LiveObserveSettlementFailureV8::Selection { owner, error })
         }
     }
@@ -287,7 +291,7 @@ impl<'j> LiveOwnedObserveSettlementAppendV8<'j> {
             }
             Ok(())
         })();
-        r.inspect_err(|_| self.owner.journal().poisoned.set(true))
+        r.inspect_err(|_| self.owner.journal().quarantine())
     }
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn fixed_append_permit(
         &self,
@@ -320,7 +324,7 @@ impl<'j> LiveOwnedObserveSettlementAppendV8<'j> {
             }
             witness.validate_current_session(session)
         })();
-        r.inspect_err(|_| self.owner.journal().poisoned.set(true))
+        r.inspect_err(|_| self.owner.journal().quarantine())
     }
 }
 pub(in crate::live_invocation::source_journal::owned_wait_v8) struct FixedOwnedObserveSettlementAppendPermitV8<
@@ -442,7 +446,7 @@ impl<'j> LiveSettledObserveV8<'j> {
                 acks: self.acks,
             }),
             Err(error) => {
-                self.owner.journal().poisoned.set(true);
+                self.owner.journal().quarantine();
                 Err(LiveObserveSettlementFailureV8::Settled { owner: self, error })
             }
         }

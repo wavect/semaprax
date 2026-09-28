@@ -262,3 +262,6 @@ impl<'j> AppendSessionV8<'j> {
         Ok(envelope)
     }
 }
+
+#[cfg(test)]
+pub(in crate::live_invocation::source_journal::owned_wait_v8) mod tests;

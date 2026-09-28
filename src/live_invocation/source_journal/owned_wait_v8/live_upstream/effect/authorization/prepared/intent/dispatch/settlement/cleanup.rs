@@ -735,3 +735,12 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_verifie
         }
     }
 }
+
+#[cfg(test)]
+impl LiveExecutedOwnedEffectV8<'_> {
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn test_outcome_weak(
+        &self,
+    ) -> std::sync::Weak<[u8]> {
+        self.executed.test_live_outcome_weak_v8()
+    }
+}

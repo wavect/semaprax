@@ -198,3 +198,17 @@ impl StagedOwnedEffectV8<'_> {
         Ok((basis.decision, operations))
     }
 }
+
+#[cfg(test)]
+impl ExecutedOwnedAgentTurnV2<'_> {
+    pub(crate) fn test_live_outcome_weak_v8(&self) -> std::sync::Weak<[u8]> {
+        let Value::Record(outcome) = self.roots.outcome.as_ref().expect("actual Outcome") else {
+            panic!("nominal Outcome");
+        };
+        let metadata = self.binding.lifecycle().owned_wait_outcome_v8();
+        let Value::Bytes(bytes) = &outcome.fields[&metadata.bytes_field] else {
+            panic!("actual owned payload");
+        };
+        std::sync::Arc::downgrade(&bytes.bytes)
+    }
+}

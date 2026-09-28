@@ -406,7 +406,10 @@ fn owned_wait_live_model_cancel_callback_panic_cannot_replace_decoder_primary() 
             Some(super::super::super::super::SourceAttemptFailure::MalformedResponse)
         );
         assert_eq!(counts.borrow().polls, 1);
-        assert_eq!(journal.begin_session().unwrap().sequence(), 13);
+        assert_eq!(
+            failed.held.validate_guard(),
+            Err(SourceJournalError::Poisoned)
+        );
     });
 }
 #[test]
@@ -522,4 +525,147 @@ fn owned_wait_live_model_usage_returned_with_cancellation_is_recorded_without_an
         assert_eq!(counts.borrow().polls, 1);
         assert_eq!(journal.begin_session().unwrap().sequence(), 13);
     });
+}
+struct JournalDeadlineClock<'a> {
+    journal: &'a SourceOwnedWaitJournalV8,
+    expire_at: usize,
+}
+impl crate::live_invocation::InvocationClock for JournalDeadlineClock<'_> {
+    fn now_millis(&self) -> i64 {
+        if self.journal.begin_session().unwrap().sequence() >= self.expire_at {
+            1000
+        } else {
+            1
+        }
+    }
+}
+impl SourceInvocationClock for JournalDeadlineClock<'_> {
+    fn clock_domain(&self) -> &str {
+        "owned.wait.test"
+    }
+}
+#[test]
+fn owned_wait_live_model_late_deadline_blocks_resume_reservation_or_source_entry() {
+    for expire_at in [13, 14] {
+        CheckedOwnedWaitJournalContextV8::test_with_actual_runtime(|context, lease, key| {
+            let response = document(&context);
+            let context = context.with_initialization(&lease).unwrap();
+            let journal = SourceOwnedWaitJournalV8::open(Arc::new(context), key, lease).unwrap();
+            let cancel = crate::agent_runtime::AgentCancellation::new();
+            let parked = park(&journal, &cancel);
+            let weak = parked.owner.test_weak();
+            let clock = JournalDeadlineClock {
+                journal: &journal,
+                expire_at,
+            };
+            let counts = Rc::new(RefCell::new(Counts::default()));
+            let mut factory = factory(Rc::clone(&counts), script(&response), Rc::new(|_| {}));
+            let mut source = source(journal.context(), &mut factory);
+            let failed = match model_live_actor_v8(parked, &mut source, &clock) {
+                Err(f) => f,
+                Ok(_) => panic!("expired after raw settlement ACK"),
+            };
+            assert_eq!(counts.borrow().starts, 1);
+            assert_eq!(journal.begin_session().unwrap().sequence(), expire_at);
+            if expire_at == 13 {
+                assert_eq!(failed.error, SourceJournalError::Time);
+                assert!(matches!(&failed.owner, LiveModelFailureOwnerV8::Parked(_)));
+            } else {
+                assert!(matches!(
+                    &failed.owner,
+                    LiveModelFailureOwnerV8::Resume(LiveWaitResumeOutcomeV8::Refused(_))
+                ));
+            }
+            assert!(weak.iter().all(|w| w.strong_count() == 1));
+            drop(failed);
+            assert!(weak.iter().all(|w| w.upgrade().is_none()));
+        });
+    }
+}
+#[test]
+fn owned_wait_live_model_each_external_adapter_panic_retains_owner_and_permanently_quarantines() {
+    for phase in ["factory", "caps", "start", "poll"] {
+        CheckedOwnedWaitJournalContextV8::test_with_actual_runtime(|context, lease, key| {
+            let response = document(&context);
+            let context = context.with_initialization(&lease).unwrap();
+            let journal = SourceOwnedWaitJournalV8::open(Arc::new(context), key, lease).unwrap();
+            let cancel = crate::agent_runtime::AgentCancellation::new();
+            let parked = park(&journal, &cancel);
+            let weak = parked.owner.test_weak();
+            let counts = Rc::new(RefCell::new(Counts::default()));
+            let mut factory = factory(
+                Rc::clone(&counts),
+                script(&response),
+                Rc::new(move |at| {
+                    if at == phase {
+                        panic!("external callback {phase}")
+                    }
+                }),
+            );
+            let mut source = source(journal.context(), &mut factory);
+            let failed = match model_live_actor_v8(parked, &mut source, &Clock) {
+                Err(f) => f,
+                Ok(_) => panic!("panicked callback"),
+            };
+            assert_eq!(failed.error, SourceJournalError::Poisoned);
+            assert!(matches!(&failed.owner, LiveModelFailureOwnerV8::Parked(_)));
+            assert_eq!(counts.borrow().polls, usize::from(phase == "poll"));
+            assert_eq!(journal.hold().err(), Some(SourceJournalError::Poisoned));
+            assert!(weak.iter().all(|w| w.strong_count() == 1));
+            drop(failed);
+            assert!(weak.iter().all(|w| w.upgrade().is_none()));
+        });
+    }
+}
+struct PanickingClock {
+    phase: &'static str,
+    calls: std::cell::Cell<usize>,
+}
+impl crate::live_invocation::InvocationClock for PanickingClock {
+    fn now_millis(&self) -> i64 {
+        let n = self.calls.get() + 1;
+        self.calls.set(n);
+        if self.phase == "now" || (self.phase == "sdk_now" && n == 2) {
+            panic!("host clock callback")
+        }
+        1
+    }
+}
+impl SourceInvocationClock for PanickingClock {
+    fn clock_domain(&self) -> &str {
+        if self.phase == "domain" {
+            panic!("host clock domain callback")
+        }
+        "owned.wait.test"
+    }
+}
+#[test]
+fn owned_wait_live_model_clock_panics_before_and_after_intent_preserve_real_owner() {
+    for phase in ["domain", "now", "sdk_now"] {
+        CheckedOwnedWaitJournalContextV8::test_with_actual_runtime(|context, lease, key| {
+            let response = document(&context);
+            let context = context.with_initialization(&lease).unwrap();
+            let journal = SourceOwnedWaitJournalV8::open(Arc::new(context), key, lease).unwrap();
+            let cancel = crate::agent_runtime::AgentCancellation::new();
+            let parked = park(&journal, &cancel);
+            let weak = parked.owner.test_weak();
+            let clock = PanickingClock {
+                phase,
+                calls: std::cell::Cell::new(0),
+            };
+            let counts = Rc::new(RefCell::new(Counts::default()));
+            let mut factory = factory(Rc::clone(&counts), script(&response), Rc::new(|_| {}));
+            let mut source = source(journal.context(), &mut factory);
+            let failed = match model_live_actor_v8(parked, &mut source, &clock) {
+                Err(f) => f,
+                Ok(_) => panic!("clock panic"),
+            };
+            assert_eq!(failed.error, SourceJournalError::Poisoned);
+            assert_eq!(counts.borrow().factories, 0);
+            assert_eq!(journal.hold().err(), Some(SourceJournalError::Poisoned));
+            assert!(weak.iter().all(|w| w.strong_count() == 1));
+            drop(failed);
+            assert!(weak.iter().all(|w| w.upgrade().is_none()));
+        });
+    }
 }

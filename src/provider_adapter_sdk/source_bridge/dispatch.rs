@@ -3,7 +3,7 @@
 use super::*;
 use crate::live_invocation::source_journal::LiveModelIntentPermitV8;
 impl StreamingSourceProposalAdapter<'_> {
-    fn check_deadline_live_v8(
+    pub(super) fn check_deadline_live_v8(
         &self,
         clock: Option<&dyn SourceInvocationClock>,
         live: Option<&LiveModelIntentPermitV8<'_>>,
@@ -40,7 +40,7 @@ impl StreamingSourceProposalAdapter<'_> {
         }
         guard()
     }
-    fn propose_adapter_inner(
+    pub(super) fn propose_adapter_inner(
         &mut self,
         adapter_request: AdapterRequest,
         source_clock: Option<&dyn SourceInvocationClock>,
@@ -71,6 +71,9 @@ impl StreamingSourceProposalAdapter<'_> {
                     let cancelled = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
                         $adapter.cancel($reason)
                     }));
+                    if cancelled.is_err() {
+                        live.quarantine();
+                    }
                     if live.validate_store().is_err() || cancelled.is_err() {
                         return Err(Self::refusal("source.owned_wait_guard"));
                     }

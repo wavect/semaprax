@@ -26,6 +26,9 @@ impl LiveModelIntentPermitV8<'_> {
             super::super::super::SourceAttemptFailure::Refused
         }
     }
+    pub(crate) fn quarantine(&self) {
+        self.held.quarantine();
+    }
     pub(crate) fn clock(&self) -> &dyn crate::live_invocation::SourceInvocationClock {
         self.clock
     }
@@ -41,17 +44,72 @@ pub(crate) struct LiveWaitResumePermitV8<'j> {
     sequence: usize,
     bytes: usize,
     cancellation: &'j crate::agent_runtime::AgentCancellation,
+    clock: &'j dyn crate::live_invocation::SourceInvocationClock,
+    deadline: i64,
+    initial: i64,
+    domain: &'j str,
 }
 impl LiveWaitResumePermitV8<'_> {
     pub(crate) fn validate_guard(&self) -> Result<(), SourceJournalError> {
-        if self.cancellation.is_cancelled() {
-            return Err(SourceJournalError::Binding);
-        }
-        self.held.validate_prefix(self.sequence, self.bytes)
+        check_clock_v8(
+            &self.held,
+            self.sequence,
+            self.bytes,
+            self.cancellation,
+            self.clock,
+            self.domain,
+            self.initial,
+            self.deadline,
+        )
     }
     pub(crate) fn fuel(&self) -> usize {
         self.fuel
     }
+}
+fn check_clock_v8(
+    held: &HeldOwnedWaitStoreV8<'_>,
+    sequence: usize,
+    bytes: usize,
+    cancellation: &crate::agent_runtime::AgentCancellation,
+    clock: &dyn crate::live_invocation::SourceInvocationClock,
+    domain: &str,
+    initial: i64,
+    deadline: i64,
+) -> Result<(), SourceJournalError> {
+    let guard = || {
+        held.validate_prefix(sequence, bytes)?;
+        if cancellation.is_cancelled() {
+            return Err(SourceJournalError::Binding);
+        }
+        Ok(())
+    };
+    guard()?;
+    let read_domain =
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| clock.clock_domain()));
+    let read_domain = match read_domain {
+        Ok(domain) => domain,
+        Err(_) => {
+            held.quarantine();
+            return Err(SourceJournalError::Poisoned);
+        }
+    };
+    guard()?;
+    if read_domain != domain {
+        return Err(SourceJournalError::Binding);
+    }
+    let now = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| clock.now_millis()));
+    let now = match now {
+        Ok(now) => now,
+        Err(_) => {
+            held.quarantine();
+            return Err(SourceJournalError::Poisoned);
+        }
+    };
+    guard()?;
+    if now < initial || now >= deadline {
+        return Err(SourceJournalError::Time);
+    }
+    Ok(())
 }
 use super::wait::ParkedLiveOwnedRunV8;
 use crate::interpreter::resumable::owned_frame::registered_stage::live_run::{
@@ -148,21 +206,17 @@ pub(super) fn model_live_actor_v8<'j>(
         ));
     };
     let scope = &held.registration().expected_facts().scope;
-    let domain = clock.clock_domain();
-    guard!(session);
-    if domain != context.ordinary().clock_domain() {
-        return Err(fail!(
-            LiveModelFailureOwnerV8::Parked(owner),
-            SourceJournalError::Binding
-        ));
-    }
-    let now = clock.now_millis();
-    guard!(session);
-    if now < context.ordinary().initial_millis() || now >= context.ordinary().deadline_millis() {
-        return Err(fail!(
-            LiveModelFailureOwnerV8::Parked(owner),
-            SourceJournalError::Binding
-        ));
+    if let Err(error) = check_clock_v8(
+        &held,
+        session.sequence(),
+        session.acknowledged_bytes(),
+        cancellation,
+        clock,
+        context.ordinary().clock_domain(),
+        context.ordinary().initial_millis(),
+        context.ordinary().deadline_millis(),
+    ) {
+        return Err(fail!(LiveModelFailureOwnerV8::Parked(owner), error));
     }
     let request = match adapter.checked_owned_model_request_v8(
         runtime,
@@ -216,7 +270,20 @@ pub(super) fn model_live_actor_v8<'j>(
         cancellation,
     };
     adapter.configure_durable_boundary(cancellation, context.ordinary().deadline_millis());
-    let (permit, result) = adapter.dispatch_owned_wait_v8(permit).into_parts();
+    let dispatched = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        adapter.dispatch_owned_wait_v8(permit)
+    }));
+    let dispatched = match dispatched {
+        Ok(result) => result,
+        Err(_) => {
+            held.quarantine();
+            return Err(fail!(
+                LiveModelFailureOwnerV8::Parked(owner),
+                SourceJournalError::Poisoned
+            ));
+        }
+    };
+    let (permit, result) = dispatched.into_parts();
     // Cancellation may record the actual failure/usage, but may never Resume.
     if let Err(error) = permit.validate_store() {
         let mut failed = fail!(LiveModelFailureOwnerV8::Parked(owner), error);
@@ -301,6 +368,18 @@ pub(super) fn model_live_actor_v8<'j>(
         return Err(failed);
     };
     guard!(session);
+    if let Err(error) = check_clock_v8(
+        &held,
+        session.sequence(),
+        session.acknowledged_bytes(),
+        cancellation,
+        clock,
+        context.ordinary().clock_domain(),
+        context.ordinary().initial_millis(),
+        context.ordinary().deadline_millis(),
+    ) {
+        return Err(fail!(LiveModelFailureOwnerV8::Parked(owner), error));
+    }
     let proposal = match bind_owned_wait_proposal_v8(execution.wait(), scope, &decoded) {
         Ok(p) => p,
         Err(_) => {
@@ -364,6 +443,10 @@ pub(super) fn model_live_actor_v8<'j>(
             sequence: session.sequence(),
             bytes: session.acknowledged_bytes(),
             cancellation,
+            clock,
+            deadline: context.ordinary().deadline_millis(),
+            initial: context.ordinary().initial_millis(),
+            domain: context.ordinary().clock_domain(),
         },
         owner,
         proposal.carrier().clone(),

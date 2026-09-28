@@ -143,6 +143,10 @@ impl HeldOwnedWaitStoreV8<'_> {
         }
         self.validate_guard()
     }
+    /// Permanent quarantine of an actual callback failure; no authority is minted.
+    pub(crate) fn quarantine(&self) {
+        self.journal.poisoned.set(true);
+    }
     pub(crate) fn generation(&self) -> &str {
         self.journal.context.generation()
     }

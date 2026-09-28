@@ -176,21 +176,24 @@ impl ContinuedStartedWaitV8<'_> {
         session: &AppendSessionV8<'_>,
         witness: &VerifiedOwnedContinuedStartSuccessorV8<'_>,
     ) -> Result<(), SourceJournalError> {
-        guard_start(&self.lineage, session, witness)?;
-        let LiveContinuedWaitStartOutcomeV8::Parked(owner) = &self.outcome else {
-            return Err(SourceJournalError::Binding);
-        };
-        let execution = self
-            .lineage
-            .journal()
-            .context()
-            .ready_runtime()
-            .ok_or(SourceJournalError::Binding)?
-            .1;
-        owner
-            .checked_facts(execution.wait())
-            .ok_or(SourceJournalError::Binding)?;
-        witness.validate_current_session(session)
+        let result = (|| {
+            guard_start(&self.lineage, session, witness)?;
+            let LiveContinuedWaitStartOutcomeV8::Parked(owner) = &self.outcome else {
+                return Err(SourceJournalError::Binding);
+            };
+            let execution = self
+                .lineage
+                .journal()
+                .context()
+                .ready_runtime()
+                .ok_or(SourceJournalError::Binding)?
+                .1;
+            owner
+                .checked_facts(execution.wait())
+                .ok_or(SourceJournalError::Binding)?;
+            witness.validate_current_session(session)
+        })();
+        result.inspect_err(|_| self.lineage.journal().quarantine())
     }
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn consumed(
         &self,

@@ -135,8 +135,16 @@ fn readonly(e: &ResolvedExpr, f: &ResolvedFunction, d: &hir::DeclarationIndex) -
         }
         ResolvedExprKind::BorrowPlace { operation, place } => {
             operation.as_str() == crate::byte_ops::BYTES_AS_SLICE_ID
-                && place.root == f.params[0].id
-                && bytes_projection(&place.projections, &f.params[0].ty, d)
+                && ((place.root == f.params[0].id
+                    && bytes_projection(&place.projections, &f.params[0].ty, d))
+                    || (place.projections.is_empty()
+                        && borrowed_alias_field(&f.body, f, &place.root).is_some_and(|field| {
+                            bytes_projection(
+                                &[hir::PlaceProjection::Field(field)],
+                                &f.params[0].ty,
+                                d,
+                            )
+                        })))
         }
         ResolvedExprKind::Unary { value, .. } => readonly(value, f, d),
         ResolvedExprKind::Binary { left, right, .. } => {
@@ -162,6 +170,12 @@ fn readonly(e: &ResolvedExpr, f: &ResolvedFunction, d: &hir::DeclarationIndex) -
                         OwnershipMode::Value | OwnershipMode::Borrow
                     ) && copy_or_view(&binding.ty, d)
                         && readonly(value, f, d)
+                        && (binding.ty != ResolvedType::SliceU8
+                            || d.byte_slice_provenance(&binding.id).is_some_and(|p| {
+                                p.root == f.params[0].id
+                                    && p.projected_type == ResolvedType::Bytes
+                                    && bytes_projection(&p.projections, &f.params[0].ty, d)
+                            }))
                 }
                 _ => false,
             }) && readonly(tail, f, d)
@@ -185,14 +199,105 @@ fn readonly(e: &ResolvedExpr, f: &ResolvedFunction, d: &hir::DeclarationIndex) -
                 && args.iter().all(|v| readonly(v, f, d))
         }
         ResolvedExprKind::Match {
-            scrutinee, arms, ..
+            mode,
+            scrutinee,
+            arms,
         } => {
-            readonly(scrutinee, f, d)
-                && arms.iter().all(|arm| {
-                    arm.guard.as_ref().is_none_or(|g| readonly(g, f, d))
-                        && readonly(&arm.value, f, d)
-                })
+            if *mode == hir::ResolvedMatchMode::Borrow
+                && matches!(&scrutinee.kind, ResolvedExprKind::Place(p) if p.root == f.params[0].id && p.projections.is_empty())
+            {
+                scrutinee.ty == f.params[0].ty
+                    && arms.len() == 1
+                    && arms[0].guard.is_none()
+                    && borrowed_pattern(&arms[0].pattern, f, d)
+                    && readonly(&arms[0].value, f, d)
+            } else {
+                readonly(scrutinee, f, d)
+                    && arms.iter().all(|arm| {
+                        arm.guard.as_ref().is_none_or(|g| readonly(g, f, d))
+                            && readonly(&arm.value, f, d)
+                    })
+            }
         }
         _ => false,
+    }
+}
+
+fn borrowed_pattern(
+    pattern: &hir::ResolvedMatchPattern,
+    f: &ResolvedFunction,
+    d: &hir::DeclarationIndex,
+) -> bool {
+    let hir::ResolvedMatchPattern::Record {
+        instance, fields, ..
+    } = pattern
+    else {
+        return false;
+    };
+    *instance == f.params[0].ty
+        && fields.iter().all(|field| match &field.pattern {
+            hir::ResolvedRecordMatchFieldPattern::Wildcard => true,
+            hir::ResolvedRecordMatchFieldPattern::Binding(b) => {
+                (b.ty == ResolvedType::Bytes
+                    && b.ownership == OwnershipMode::Borrow
+                    && bytes_projection(
+                        &[hir::PlaceProjection::Field(field.field.clone())],
+                        &f.params[0].ty,
+                        d,
+                    ))
+                    || (hir::is_scalar_resolved_type(&b.ty) && b.ownership == OwnershipMode::Value)
+            }
+            _ => false,
+        })
+}
+fn borrowed_alias_field(
+    e: &ResolvedExpr,
+    f: &ResolvedFunction,
+    id: &hir::ValueId,
+) -> Option<DeclarationId> {
+    match &e.kind {
+        ResolvedExprKind::Match {
+            mode: hir::ResolvedMatchMode::Borrow,
+            scrutinee,
+            arms,
+        } if matches!(&scrutinee.kind, ResolvedExprKind::Place(p) if p.root == f.params[0].id && p.projections.is_empty()) =>
+        {
+            for arm in arms {
+                if let hir::ResolvedMatchPattern::Record { fields, .. } = &arm.pattern {
+                    for field in fields {
+                        if let hir::ResolvedRecordMatchFieldPattern::Binding(b) = &field.pattern {
+                            if b.id == *id
+                                && b.ty == ResolvedType::Bytes
+                                && b.ownership == OwnershipMode::Borrow
+                            {
+                                return Some(field.field.clone());
+                            }
+                        }
+                    }
+                }
+                if let Some(field) = borrowed_alias_field(&arm.value, f, id) {
+                    return Some(field);
+                }
+            }
+            None
+        }
+        ResolvedExprKind::Block { statements, tail } => {
+            for s in statements {
+                if let ResolvedStatement::Let { value, .. } = s {
+                    if let Some(field) = borrowed_alias_field(value, f, id) {
+                        return Some(field);
+                    }
+                }
+            }
+            borrowed_alias_field(tail, f, id)
+        }
+        ResolvedExprKind::If {
+            condition,
+            then_branch,
+            else_branch,
+        } => borrowed_alias_field(condition, f, id)
+            .or_else(|| borrowed_alias_field(then_branch, f, id))
+            .or_else(|| borrowed_alias_field(else_branch, f, id)),
+        _ => None,
     }
 }

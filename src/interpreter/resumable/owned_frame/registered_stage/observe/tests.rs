@@ -21,8 +21,13 @@ module owned.observe;
  state
 }
 @id("observe") fn observe(state: borrow State) -> Observation {
- let view = bytes_as_slice(state.second);
- Observation { budget: state.budget, length: byte_len(view) }
+ let length = match borrow state {
+  State { first: _, second, budget: _ } => {
+   let view = bytes_as_slice(second);
+   byte_len(view)
+  },
+ };
+ Observation { budget: state.budget, length: length }
 }
 @id("main") fn main() -> i64 { 0 }
 "#;
@@ -244,14 +249,38 @@ fn owned_frame_v2_observe_canonical_graph_borrow_loans_and_empty_cleanup() {
     let f = p.function();
     assert_eq!(f.params[0].ownership, hir::OwnershipMode::Borrow);
     assert_eq!(f.return_type, p.helper().function().params[1].ty);
-    assert!(!f.loan_plan.loans.is_empty());
-    assert!(f
-        .loan_plan
-        .loans
-        .iter()
-        .all(|l| l.origin.root == f.params[0].id
-            && l.origin.projections
-                == vec![hir::PlaceProjection::Field(DeclarationId::new("state.a"))]));
+    // Borrow-only roots intentionally carry the canonical empty loan plan;
+    // projected view provenance and the borrowed pattern are authenticated HIR.
+    assert!(f.loan_plan.loans.is_empty());
+    let ResolvedExprKind::Block { statements, .. } = &f.body.kind else {
+        panic!()
+    };
+    let ResolvedStatement::Let { value, .. } = &statements[0] else {
+        panic!()
+    };
+    let ResolvedExprKind::Match { mode, arms, .. } = &value.kind else {
+        panic!()
+    };
+    assert_eq!(*mode, hir::ResolvedMatchMode::Borrow);
+    let ResolvedExprKind::Block { statements, .. } = &arms[0].value.kind else {
+        panic!()
+    };
+    let ResolvedStatement::Let { binding, value, .. } = &statements[0] else {
+        panic!()
+    };
+    let provenance = p
+        .helper()
+        .program()
+        .declarations
+        .byte_slice_provenance(&binding.id)
+        .unwrap();
+    assert_eq!(provenance.root, f.params[0].id);
+    assert_eq!(
+        provenance.projections,
+        vec![hir::PlaceProjection::Field(DeclarationId::new("state.a"))]
+    );
+    assert_eq!(provenance.producer.as_ref(), Some(&value.id));
+    assert_eq!(provenance.projected_type, ResolvedType::Bytes);
     assert!(f
         .cleanup_plan
         .exits
@@ -355,4 +384,11 @@ fn owned_frame_v2_observe_invalid_allocation_namespace_refuses_before_evaluation
         drop(rejection);
         assert!(roots.iter().all(|w| w.upgrade().is_none()));
     }
+}
+
+#[test]
+fn owned_frame_v2_observe_direct_projected_slice_view_remains_source_refused() {
+    let source = SOURCE.replace("bytes_as_slice(second)", "bytes_as_slice(state.second)");
+    let diagnostics = crate::check(&source, "observe-direct-view.spx").unwrap_err();
+    assert_eq!(diagnostics[0].code, "SPX-T266");
 }

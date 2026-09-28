@@ -8,6 +8,11 @@ use crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect
 /// Closed metadata phase. Neither variant changes credit or grants a write.
 pub(in crate::live_invocation::source_journal::owned_wait_v8::append) enum OwnedReduceHoldPhaseV8 {
     Consumed,
+    Continuation {
+        selected: EntryV8,
+        reserved: u64,
+        stages: u32,
+    },
     Intent {
         selected: SourceJournalEntry,
     },
@@ -1012,6 +1017,167 @@ impl ProspectiveOwnedReduceHoldV8<'_> {
             journal.validate_guard()?;
             let current = journal.begin_session()?;
             self.validate_step_inventory(journal, &current.inventory, sequence, bytes)?;
+            journal.validate_guard()
+        })();
+        result.inspect_err(|_| self.journal.poisoned.set(true))
+    }
+    fn validate_continue_inventory(
+        &self,
+        journal: &SourceOwnedWaitJournalV8,
+        inventory: &super::super::super::super::candidate::InventoryV8<'_>,
+        sequence: usize,
+        bytes: usize,
+    ) -> Result<(), SourceJournalError> {
+        if !std::ptr::eq(self.journal, journal)
+            || journal.poisoned.get()
+            || !inventory.belongs_to_context(&journal.context)
+        {
+            return Err(SourceJournalError::Binding);
+        }
+        let (reserved, stages, turn, selected) = inventory.continuation_facts()?;
+        let fuel = self.checked_spent_funding(reserved, stages)?;
+        let registry = journal
+            .prospective_reduce
+            .try_borrow()
+            .map_err(|_| SourceJournalError::Order)?;
+        let record = registry.as_ref().ok_or(SourceJournalError::Binding)?;
+        let (actual, r, s) = match &record.phase {
+            OwnedReduceHoldPhaseV8::Step {
+                selected,
+                reserved,
+                stages,
+            }
+            | OwnedReduceHoldPhaseV8::Continuation {
+                selected,
+                reserved,
+                stages,
+            } => (selected, *reserved, *stages),
+            _ => return Err(SourceJournalError::Binding),
+        };
+        if actual != selected
+            || r != reserved
+            || s != stages
+            || record.identity != self.identity
+            || record.fuel != fuel
+            || record.turn != turn
+            || record.sequence != sequence
+            || record.bytes != bytes
+            || inventory.sequence() != sequence
+            || inventory.acknowledged_bytes() != bytes
+            || record.authentication != inventory.authentication_tail()
+        {
+            return Err(SourceJournalError::Binding);
+        }
+        Ok(())
+    }
+    /// No callbacks/lease reads: only the actual retained token and checked prefix.
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_continue_append_prefix(
+        &self,
+        journal: &SourceOwnedWaitJournalV8,
+        inventory: &super::super::super::super::candidate::InventoryV8<'_>,
+        selected: &EntryV8,
+    ) -> Result<(), SourceJournalError> {
+        let result = (|| {
+            self.validate_continue_inventory(
+                journal,
+                inventory,
+                inventory.sequence(),
+                inventory.acknowledged_bytes(),
+            )?;
+            let (_, _, turn, last) = inventory.continuation_facts()?;
+            match (last,selected){
+                (EntryV8::Ordinary(SourceJournalEntry::Transition{case:crate::live_invocation::source_journal::SourceTransitionCase::Continue,..}),
+                    EntryV8::Owned(crate::live_invocation::source_journal::owned_wait_v8::model::OwnedBodyV8::OwnedStateCommitted{turn:next,..}))
+                    if turn.checked_add(1)==Some(*next)=>{},
+                (EntryV8::Owned(crate::live_invocation::source_journal::owned_wait_v8::model::OwnedBodyV8::OwnedStateCommitted{..}),
+                    EntryV8::Ordinary(SourceJournalEntry::StageReservation{turn:next,attempt:None,role:crate::live_invocation::source_journal::SourceStageRole::Observe,fuel}))
+                    if *next==turn&&Some(*fuel)==journal.context.ordinary().max_steps_per_stage()=>{},
+                _=>return Err(SourceJournalError::Binding),
+            }
+            Ok(())
+        })();
+        result.inspect_err(|_| self.journal.poisoned.set(true))
+    }
+    /// Only a real persisted ACK can advance this same token; no reopening/refund.
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_continue_ack(
+        &self,
+        witness:&super::super::settlement::cleanup::reduce::step::r#continue::VerifiedOwnedContinueSuccessorV8<'_>,
+        session: &AppendSessionV8<'_>,
+    ) -> Result<(), SourceJournalError> {
+        let result = (|| {
+            if !std::ptr::eq(self.journal, session.journal)
+                || self.journal.poisoned.get()
+                || !self.journal.append_active.get()
+            {
+                return Err(SourceJournalError::Binding);
+            }
+            witness.validate_against_acknowledged_session(session)?;
+            let (reserved, stages, turn, selected) = session.inventory.continuation_facts()?;
+            let fuel = self.checked_spent_funding(reserved, stages)?;
+            let mut registry = self
+                .journal
+                .prospective_reduce
+                .try_borrow_mut()
+                .map_err(|_| SourceJournalError::Order)?;
+            let record = registry.as_mut().ok_or(SourceJournalError::Binding)?;
+            let (previous, r, s) = match &record.phase {
+                OwnedReduceHoldPhaseV8::Step {
+                    selected,
+                    reserved,
+                    stages,
+                }
+                | OwnedReduceHoldPhaseV8::Continuation {
+                    selected,
+                    reserved,
+                    stages,
+                } => (selected, *reserved, *stages),
+                _ => return Err(SourceJournalError::Binding),
+            };
+            if record.identity != self.identity || record.fuel != fuel {
+                return Err(SourceJournalError::Binding);
+            }
+            match (previous,selected){
+                (EntryV8::Ordinary(SourceJournalEntry::Transition{case:crate::live_invocation::source_journal::SourceTransitionCase::Continue,..}),
+                    EntryV8::Owned(crate::live_invocation::source_journal::owned_wait_v8::model::OwnedBodyV8::OwnedStateCommitted{..}))
+                    if record.turn.checked_add(1)==Some(turn)&&reserved==r&&stages==s=>{},
+                (EntryV8::Owned(crate::live_invocation::source_journal::owned_wait_v8::model::OwnedBodyV8::OwnedStateCommitted{..}),
+                    EntryV8::Ordinary(SourceJournalEntry::StageReservation{role:crate::live_invocation::source_journal::SourceStageRole::Observe,attempt:None,fuel:f,..}))
+                    if record.turn==turn&&Some(*f)==self.journal.context.ordinary().max_steps_per_stage()
+                        &&r.checked_add(fuel)==Some(reserved)&&s.checked_add(1)==Some(stages)=>{},
+                _=>return Err(SourceJournalError::Binding),
+            }
+            witness.validate_previous_registry(
+                self.journal,
+                record.sequence,
+                record.bytes,
+                &record.authentication,
+            )?;
+            record.phase = OwnedReduceHoldPhaseV8::Continuation {
+                selected: selected.clone(),
+                reserved,
+                stages,
+            };
+            record.turn = turn;
+            record.sequence = session.sequence();
+            record.bytes = session.acknowledged_bytes();
+            record.authentication = session.inventory.authentication_tail().to_owned();
+            Ok(())
+        })();
+        result.inspect_err(|_| self.journal.poisoned.set(true))
+    }
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_continue_guard(
+        &self,
+        journal: &SourceOwnedWaitJournalV8,
+        sequence: usize,
+        bytes: usize,
+    ) -> Result<(), SourceJournalError> {
+        let result = (|| {
+            if !std::ptr::eq(self.journal, journal) {
+                return Err(SourceJournalError::Binding);
+            }
+            journal.validate_guard()?;
+            let current = journal.begin_session()?;
+            self.validate_continue_inventory(journal, &current.inventory, sequence, bytes)?;
             journal.validate_guard()
         })();
         result.inspect_err(|_| self.journal.poisoned.set(true))

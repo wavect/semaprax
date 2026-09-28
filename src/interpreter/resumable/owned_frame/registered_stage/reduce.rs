@@ -406,3 +406,10 @@ pub(crate) use physical_step::{
     consume_live_owned_step_v8, settle_live_owned_reduce_v8, LiveOwnedReduceCleanupFailureV8,
     LiveOwnedStepTransferFailureV8, OwnedReduceCleanupOriginV8,
 };
+
+pub(crate) use physical_step::{
+    observe_live_continued_state_v8, ContinuedOwnedObserveV2, LiveContinuedObserveFailureV8,
+};
+
+#[cfg(test)]
+pub(crate) use physical_step::{test_continue_observe_entries_v8, test_continue_observe_oracle_v8};

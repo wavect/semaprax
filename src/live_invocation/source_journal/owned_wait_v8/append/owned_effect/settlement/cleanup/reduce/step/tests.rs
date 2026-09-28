@@ -530,3 +530,18 @@ fn owned_step_append_compiler_empty_complete_moves_both_original_leaves_without_
         });
     });
 }
+
+/// Genuine successful SDK/target/Reduce/Step pipeline; no synthetic ACKs.
+pub(super) fn test_moved<'j>(
+    journal: &'j SourceOwnedWaitJournalV8,
+    cancel: &'j AgentCancellation,
+    policy: &'j CapabilityPolicy,
+    clock: &'j dyn SourceInvocationClock,
+    callback: impl FnOnce(LiveMovedStepV8<'j>, Vec<std::sync::Weak<[u8]>>),
+) {
+    test_evaluated(journal, cancel, policy, clock, |evaluated, weak| {
+        let moved = full_success(journal, evaluated, |_| {});
+        assert_eq!(moved.kind(), "continue");
+        callback(moved, weak);
+    });
+}

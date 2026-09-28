@@ -355,3 +355,10 @@ pub(crate) use live_append::{
     consume_live_owned_step_v8, settle_live_owned_reduce_v8, LiveOwnedReduceCleanupFailureV8,
     LiveOwnedStepTransferFailureV8,
 };
+
+pub(crate) use continue_observe::{observe_live_continued_state_v8, LiveContinuedObserveFailureV8};
+
+#[cfg(test)]
+pub(crate) use continue_observe::{
+    test_continue_observe_entries_v8, test_continue_observe_oracle_v8,
+};

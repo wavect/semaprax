@@ -188,3 +188,9 @@ pub(crate) fn observe_continued_owned_state_v2<'a>(
 
 #[cfg(test)]
 mod tests;
+
+mod live_append;
+pub(crate) use live_append::{observe_live_continued_state_v8, LiveContinuedObserveFailureV8};
+
+#[cfg(test)]
+pub(crate) use live_append::{test_continue_observe_entries_v8, test_continue_observe_oracle_v8};

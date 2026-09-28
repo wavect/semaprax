@@ -221,3 +221,9 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) use settlement::cl
     LiveOwnedEffectCleanupAppendFailureV8, VerifiedOwnedEffectCleanupAppendV8,
     VerifiedOwnedEffectCleanupSuccessorV8,
 };
+
+#[cfg(test)]
+pub(in crate::live_invocation::source_journal::owned_wait_v8) use settlement::cleanup::reduce::test_evaluated;
+pub(in crate::live_invocation::source_journal::owned_wait_v8) use settlement::cleanup::reduce::VerifiedOwnedReduceReservationSuccessorV8;
+#[cfg(test)]
+pub(in crate::live_invocation::source_journal::owned_wait_v8) use settlement::cleanup::tests::test_executed;

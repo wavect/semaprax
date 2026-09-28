@@ -101,7 +101,7 @@ impl StagedOwnedEffectV8<'_> {
         }
         Ok(CheckedLiveOwnedEffectSettlementV8 {
             ordinary,
-            evidence_digest: facts.evidence().digest(),
+            evidence_digest: facts.evidence().digest().to_owned(),
             evidence,
             result,
             intent: self.intent,

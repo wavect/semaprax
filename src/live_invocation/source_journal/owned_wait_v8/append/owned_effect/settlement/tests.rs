@@ -7,6 +7,9 @@ use crate::agent_lifecycle::authorization::target_protocol::{
 use crate::agent_runtime::AgentCancellation;
 use crate::live_invocation::source_journal::owned_wait_v8::append::owned_effect::OwnedReduceHoldPhaseV8;
 use crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect::tests::test_ready_obligation;
+use crate::live_invocation::source_journal::{
+    SourceEffectFailure, SourceStopReason, SourceStopStatus,
+};
 use crate::live_invocation::SourceInvocationClock;
 use crate::resumable_effects::CapabilityPolicy;
 use std::sync::{Arc, Weak};

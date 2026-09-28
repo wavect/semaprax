@@ -1,6 +1,8 @@
 //! Actual consuming source reducer. The effect-completed input constructor is
 //! deliberately absent until the real effect owner supplies that sealed seam.
 use super::*;
+use crate::hir::DeclarationId;
+use crate::interpreter::resumable::clone_scalar;
 use crate::interpreter::OwnedVariantValue;
 use crate::resumable_effects::owned_frame::v2::CheckedOwnedReduceV2;
 
@@ -61,7 +63,7 @@ pub(crate) fn stage_owned_reduce_v2(
                 .response_type,
             &input.proposal,
         )
-        .is_ok();
+        .is_some();
     if !valid {
         return Err(OwnedReduceRejectionV2 {
             input,
@@ -236,6 +238,7 @@ fn evaluate(
                 .ok_or(Flow::Guard("checked reducer constructor"))?;
             staged.case = Some(index);
             staged.step = Some(Value::Variant(Arc::new(OwnedVariantValue {
+                ty: expr.ty.clone(),
                 variant: variant.clone(),
                 case: case.clone(),
                 fields: BTreeMap::new(),

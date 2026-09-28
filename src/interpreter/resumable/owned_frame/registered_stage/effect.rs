@@ -524,30 +524,7 @@ pub(crate) fn dispatch_owned_effect_v8<'a>(
     mut check: impl FnMut(OwnedEffectPhaseV8) -> bool,
     handler: &mut dyn TargetHostHandler,
 ) -> Result<StagedOwnedEffectV8<'a>, OwnedEffectDispatchRejectionV8<'a>> {
-    let request_digest =
-        target_protocol::owned_wait_v8::physical::request_digest(&prepared.request);
-    if ack.basis != prepared.basis
-        || ack.authorization != prepared.authorization_tail
-        || ack.intent <= ack.authorization
-        || ack.request != request_digest
-        || ack.operation != prepared.plan.operation().operation_id()
-    {
-        return Err(OwnedEffectDispatchRejectionV8 {
-            prepared,
-            diagnostic: rejected("effect intent ACK differs"),
-        });
-    }
-    // A valid acknowledged intent is consumed even if the subsequent guard
-    // refuses. Returning Staged rather than Prepared prevents redispatch.
-    let mut staged = StagedOwnedEffectV8 {
-        prepared,
-        intent: ack.intent,
-        dispatch: None,
-        accepted: None,
-        failure: None,
-        cleanup_started: false,
-        authority_lost: false,
-    };
+    let mut staged = live_append::intent::activate_ack_owned_effect_v8(prepared, ack)?.staged;
     let phase = OwnedEffectPhaseV8::Intent(staged.intent);
     let entry_guard = guard_status(
         &staged.prepared.inputs,

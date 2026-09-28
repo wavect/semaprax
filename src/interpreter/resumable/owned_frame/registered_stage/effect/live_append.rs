@@ -140,3 +140,5 @@ impl PreparedOwnedEffectV8<'_> {
 
 #[cfg(test)]
 mod tests;
+
+pub(super) mod intent;

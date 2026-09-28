@@ -10,14 +10,14 @@ fn receipt(ops: &Value, completed: bool) -> Value {
 fn owned_reduce_fold_failure_requires_exact_funding_and_whole_active_receipt() {
     let p = plan();
     let scope = json!({});
-    let ops = v2::owned_wait_operations_v8(&p.transfers().initial_disposal);
+    let ops = v2::owned_wait_operations_v8(&p.transfers().initial_disposal).unwrap();
     let basis = ReduceBasisV8::InitialFailure {
         status: json!({"failure":"fuel_exhausted","language_status":null}),
     };
     let payload = json!({"scope":scope,"binding":p.binding(),"plan":p.binding(),"turn":0,"attempt":0,
         "stage_reservation":28,"basis":serde_json::to_value(&basis).unwrap()});
     let digest = recipe_digest(ReduceRecipeV8::Basis, &payload).unwrap();
-    let mut f = ReduceFoldV8::after_checked_reservation(0, 0, 28, 10, 27).unwrap();
+    let mut f = ReduceFoldV8::after_checked_reservation(&p, &scope, 0, 0, 28, 10, 27).unwrap();
     assert!(f
         .cleanup_started(
             &p,
@@ -103,13 +103,13 @@ fn owned_reduce_fold_failure_requires_exact_funding_and_whole_active_receipt() {
 fn owned_reduce_fold_failed_observation_quarantines_without_replacing_failure() {
     let p = plan();
     let scope = json!({});
-    let ops = v2::owned_wait_operations_v8(&p.transfers().initial_disposal);
+    let ops = v2::owned_wait_operations_v8(&p.transfers().initial_disposal).unwrap();
     let basis = ReduceBasisV8::InitialFailure {
         status: json!({"failure":"fuel_exhausted","language_status":null}),
     };
     let digest=recipe_digest(ReduceRecipeV8::Basis,&json!({"scope":scope,"binding":p.binding(),
         "plan":p.binding(),"turn":0,"attempt":0,"stage_reservation":28,"basis":serde_json::to_value(&basis).unwrap()})).unwrap();
-    let mut f = ReduceFoldV8::after_checked_reservation(0, 0, 28, 10, 27).unwrap();
+    let mut f = ReduceFoldV8::after_checked_reservation(&p, &scope, 0, 0, 28, 10, 27).unwrap();
     f.cleanup_started(
         &p,
         p.binding(),
@@ -155,7 +155,30 @@ fn owned_reduce_fold_success_maps_exact_step_and_counts_consumption_once() {
         "plan":p.binding(),"turn":0,"attempt":0,"stage_reservation":28,"step":step}),
     )
     .unwrap();
-    let mut f = ReduceFoldV8::after_checked_reservation(0, 0, 28, 10, 27).unwrap();
+    let mut f = ReduceFoldV8::after_checked_reservation(&p, &scope, 0, 0, 28, 10, 27).unwrap();
+    let foreign_scope = json!({"invocation":"foreign"});
+    let foreign_digest = recipe_digest(
+        ReduceRecipeV8::Step,
+        &json!({"scope":foreign_scope,
+        "binding":p.binding(),"plan":p.binding(),"turn":0,"attempt":0,"stage_reservation":28,
+        "step":step}),
+    )
+    .unwrap();
+    assert!(f
+        .staged(
+            &p,
+            p.binding(),
+            &foreign_scope,
+            29,
+            0,
+            0,
+            28,
+            27,
+            &step,
+            &foreign_digest,
+            7
+        )
+        .is_err());
     assert!(f
         .staged(&p, p.binding(), &scope, 29, 0, 1, 28, 27, &step, &digest, 7)
         .is_err());
@@ -177,7 +200,7 @@ fn owned_reduce_fold_success_maps_exact_step_and_counts_consumption_once() {
         active_flags: c.completion_live_flags.iter().map(|f| f.0).collect(),
     };
     let value = serde_json::to_value(&basis).unwrap();
-    let ops = v2::owned_wait_operations_v8(&p.transfers().completion_cleanup);
+    let ops = v2::owned_wait_operations_v8(&p.transfers().completion_cleanup).unwrap();
     let active = v2::validate_owned_reduce_cleanup_v8(&p, &value, &ops).unwrap();
     let (seq, cleanup) = if active.active_operations().as_array().unwrap().is_empty() {
         (30, ReduceCleanupV8::CompilerEmpty)

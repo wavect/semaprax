@@ -21,6 +21,9 @@ pub(super) enum ReduceTailV8 {
 /// whole Decision receipt and the original ordinary Reduce reservation check.
 /// This inert inventory does not reproduce the physical State/Outcome owners.
 pub(super) struct ReduceFoldV8 {
+    binding: String,
+    function: String,
+    scope: Value,
     turn: u32,
     attempt: u32,
     reservation: u32,
@@ -46,6 +49,8 @@ fn require(ok: bool) -> Result<(), Error> {
 }
 impl ReduceFoldV8 {
     pub(super) fn after_checked_reservation(
+        plan: &v2::CheckedOwnedReduceV2,
+        scope: &Value,
         turn: u32,
         attempt: u32,
         reservation: u32,
@@ -54,6 +59,9 @@ impl ReduceFoldV8 {
     ) -> Result<Self, Error> {
         require(turn == 0 && effect_cleanup.checked_add(1) == Some(reservation) && allowance > 0)?;
         Ok(Self {
+            binding: plan.binding().to_owned(),
+            function: plan.function().id.as_str().to_owned(),
+            scope: scope.clone(),
             turn,
             attempt,
             reservation,
@@ -79,6 +87,15 @@ impl ReduceFoldV8 {
     }
     pub(super) fn consumed(&self) -> Option<u64> {
         self.consumed
+    }
+    fn plan(&self, plan: &v2::CheckedOwnedReduceV2, scope: Option<&Value>) -> Result<(), Error> {
+        if plan.binding() != self.binding
+            || plan.function().id.as_str() != self.function
+            || scope.is_some_and(|s| s != &self.scope)
+        {
+            return Err(Error::Binding);
+        }
+        Ok(())
     }
     fn coordinates(&self, seq: u32, turn: u32, attempt: u32) -> Result<(), Error> {
         require(
@@ -112,6 +129,7 @@ impl ReduceFoldV8 {
         if row_plan != plan.binding() {
             return Err(Error::Binding);
         }
+        self.plan(plan, Some(scope))?;
         self.coordinates(seq, turn, attempt)?;
         self.refs(reservation, effect_cleanup, consumed)?;
         require(self.tail == ReduceTailV8::Charged)?;
@@ -141,6 +159,7 @@ impl ReduceFoldV8 {
         if row_plan != plan.binding() {
             return Err(Error::Binding);
         }
+        self.plan(plan, Some(scope))?;
         self.coordinates(seq, turn, attempt)?;
         self.refs(reservation, effect_cleanup, consumed)?;
         let success = matches!(basis, ReduceBasisV8::Success { .. });
@@ -227,6 +246,7 @@ impl ReduceFoldV8 {
         if row_plan != plan.binding() {
             return Err(Error::Binding);
         }
+        self.plan(plan, None)?;
         self.coordinates(seq, turn, attempt)?;
         require(
             reservation == self.reservation
@@ -254,7 +274,8 @@ impl ReduceFoldV8 {
                 for c in matching {
                     let basis = json!({"kind":"success","staged":staged,"constructor":c.constructor.as_str(),
                         "case":case,"active_flags":c.completion_live_flags.iter().map(|f|f.0).collect::<Vec<_>>()});
-                    let ops = v2::owned_wait_operations_v8(&plan.transfers().completion_cleanup);
+                    let ops = v2::owned_wait_operations_v8(&plan.transfers().completion_cleanup)
+                        .map_err(|_| Error::Binding)?;
                     let checked = v2::validate_owned_reduce_cleanup_v8(plan, &basis, &ops)
                         .map_err(|_| Error::Binding)?;
                     require(
@@ -282,6 +303,7 @@ impl ReduceFoldV8 {
         target: &Value,
         digest: &str,
     ) -> Result<(), Error> {
+        self.plan(plan, Some(scope))?;
         self.coordinates(seq, turn, attempt)?;
         require(self.tail == ReduceTailV8::TransferInDoubt && self.transfer == Some(reserved))?;
         let step = self.step.as_ref().ok_or(Error::Order)?;

@@ -178,6 +178,10 @@ fn the_authorization_value_has_exactly_one_mint_site_in_the_crate() {
             ),
         ),
         (
+            "interpreter/resumable/owned_frame/registered_stage/reduce/live_stage.rs",
+            include_str!("../../interpreter/resumable/owned_frame/registered_stage/reduce/live_stage.rs"),
+        ),
+        (
             "provider_adapter_sdk/source_bridge/dispatch.rs",
             include_str!("../../provider_adapter_sdk/source_bridge/dispatch.rs"),
         ),
@@ -504,6 +508,10 @@ fn the_stage_executor_seam_has_exactly_three_implementations_and_one_dispatch_ro
             include_str!(
                 "../../interpreter/resumable/owned_frame/registered_stage/live_run/authorize.rs"
             ),
+        ),
+        (
+            "interpreter/resumable/owned_frame/registered_stage/reduce/live_stage.rs",
+            include_str!("../../interpreter/resumable/owned_frame/registered_stage/reduce/live_stage.rs"),
         ),
         (
             "provider_adapter_sdk/source_bridge/dispatch.rs",

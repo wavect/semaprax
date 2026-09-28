@@ -395,3 +395,6 @@ pub(crate) use step::{
 };
 #[cfg(test)]
 mod tests;
+
+mod live_stage;
+pub(crate) use live_stage::CheckedLiveOwnedReduceStageFactsV8;

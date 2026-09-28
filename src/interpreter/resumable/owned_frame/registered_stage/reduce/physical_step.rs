@@ -183,6 +183,8 @@ pub(crate) fn settle_executed_owned_reduce_v2<'a>(
         staged,
         inputs,
         effect_settled,
+        allowance,
+        consumed,
     } = staged;
     // Clone the exact compiler-selected active actions and allocate all receipt
     // slots before any actual finalizer. Neither order nor guards are repaired.
@@ -263,6 +265,8 @@ pub(crate) fn settle_executed_owned_reduce_v2<'a>(
                     staged: error.staged,
                     inputs,
                     effect_settled,
+                    allowance,
+                    consumed,
                 },
                 started,
                 observations,

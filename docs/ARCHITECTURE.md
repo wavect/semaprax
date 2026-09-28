@@ -174,6 +174,10 @@ fresh post-ACK checks and the zero-target-call engine activation permit. Its
 private invocation accounting ledger with the same hold through one host call;
 `registered_stage/effect/live_append/intent/dispatch` owns the shared legacy
 and live dispatch body.
+`registered_stage/reduce/live_stage` borrows inert full-Step or failure facts
+from the actual physical reducer stage, including canonical cleanup vectors
+and observed evaluator fuel; descriptive facts grant no execution or cleanup
+authority.
 Default ObserveOnly remains separate.
 [Source Agent owned wait v1](SOURCE-AGENT-OWNED-WAIT-V1.md) owns these bounded
 private successors; public Agent execution and partial-initialization recovery

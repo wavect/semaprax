@@ -43,6 +43,7 @@ enum RuntimeFixture {
     ReduceFuel,
     ReduceArithmetic,
     ReduceEnsures,
+    ContinuedObserveEnsures,
     BaselineTaskZero,
     ProspectiveReduce(TestProspectiveReduceLimitV8),
 }
@@ -95,6 +96,14 @@ fn fixture_for(profile: RuntimeFixture) -> Fixture {
             source.replace(
                 original,
                 &original.replace("budget: state.budget", &format!("budget: {budget}")),
+            )
+        }
+        RuntimeFixture::ContinuedObserveEnsures => {
+            let original = "fn observe(state: borrow State) -> Observation\n{";
+            assert_eq!(source.matches(original).count(), 1);
+            source.replace(
+                original,
+                "fn observe(state: borrow State) -> Observation\n    ensures state.epoch == 1\n{",
             )
         }
         RuntimeFixture::ReduceEnsures => {
@@ -213,7 +222,8 @@ fn runtime_for(
             | RuntimeFixture::BaselineTaskZero
             | RuntimeFixture::ReduceFuel
             | RuntimeFixture::ReduceArithmetic
-            | RuntimeFixture::ReduceEnsures => IterativeBudget {
+            | RuntimeFixture::ReduceEnsures
+            | RuntimeFixture::ContinuedObserveEnsures => IterativeBudget {
                 max_steps_per_stage: 1000,
                 ..IterativeBudget::default()
             },
@@ -655,6 +665,17 @@ impl crate::live_invocation::source_journal::CheckedOwnedWaitJournalContextV8 {
         ) -> T,
     ) -> T {
         Self::test_with_runtime_fixture(RuntimeFixture::Baseline, retention_ack, callback)
+    }
+    /// The actual initial epoch passes; the same continued State fails Observe.
+    pub(crate) fn test_with_actual_continued_observe_ensures_store<T>(
+        callback: impl FnOnce(
+            Self,
+            crate::resumable_effects::owned_frame::SourceOwnedWaitLeaseV8,
+            crate::resumable_effects::source_checkpoint::SourceCheckpointKey,
+            &std::path::Path,
+        ) -> T,
+    ) -> T {
+        Self::test_with_runtime_fixture(RuntimeFixture::ContinuedObserveEnsures, true, callback)
     }
     /// Limits enter actual runtime/policy/model/E/registration construction.
     pub(crate) fn test_with_actual_reduce_hold_limits_store<T>(

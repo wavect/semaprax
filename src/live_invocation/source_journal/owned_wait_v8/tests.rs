@@ -3,7 +3,7 @@ use crate::live_invocation::identity::digest;
 use model::{OwnedBodyV8, PhaseV8};
 use serde_json::json;
 
-fn binding() -> SourceInvocationBinding {
+pub(super) fn binding() -> SourceInvocationBinding {
     let d = |label: &str| digest(b"test\0", label.as_bytes());
     super::super::SourceInvocationBinding::bind_execution(
         super::super::SourceInvocationSeed {

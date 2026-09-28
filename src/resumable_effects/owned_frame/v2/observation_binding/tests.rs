@@ -42,6 +42,14 @@ fn checked_observation_uses_frozen_ordinary_codec_and_v2_request_recipe() {
     let scope = scope(&b);
     let observation = observation();
     let facts = bind_owned_wait_observation_v8(&b, &scope, &observation).unwrap();
+    assert!(facts.matches(
+        b.binding(),
+        &super::super::super::codec::scope(&scope).unwrap()
+    ));
+    assert!(!facts.matches(
+        "sha256:wrong",
+        &super::super::super::codec::scope(&scope).unwrap()
+    ));
     assert_eq!(
         facts.ordinary_digest(),
         "sha256:96ac3faa91e1f081bba4360e16493719e01839c4b853c0c7939f5ecd130ccd6c"

@@ -9,12 +9,18 @@ use serde_json::{json, Value};
 
 /// Private fields and a checked-only constructor prevent caller-shaped digest
 /// pairs from replacing the actual source/nominal/value projection.
+#[derive(Clone)]
 pub(crate) struct CheckedOwnedWaitObservationV8 {
     ordinary_digest: String,
     request_digest: String,
     copy_arguments: Value,
+    binding: String,
+    scope: Value,
 }
 impl CheckedOwnedWaitObservationV8 {
+    pub(crate) fn matches(&self, binding: &str, scope: &Value) -> bool {
+        self.binding == binding && &self.scope == scope
+    }
     pub(crate) fn ordinary_digest(&self) -> &str {
         &self.ordinary_digest
     }
@@ -101,6 +107,8 @@ pub(crate) fn bind_owned_wait_observation_v8(
         ordinary_digest,
         request_digest,
         copy_arguments,
+        binding: binding.binding().to_owned(),
+        scope,
     })
 }
 

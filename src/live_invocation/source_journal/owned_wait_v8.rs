@@ -1,5 +1,6 @@
 //! Inert v8 combined journal proof data. No store, owner, or evidence authority.
 //! Production binding and physical append adapters are owned by the typed runtime.
+mod fold;
 mod model;
 #[cfg(test)]
 mod tests;
@@ -28,4 +29,28 @@ pub(super) struct ExpectedRowV8<'a> {
     pub seq: u32,
     pub prev_mac: &'a str,
     pub ordinary: &'a SourceInvocationBinding,
+}
+
+/// Future checked binder creates this only after its actual compiler-owned
+/// carrier validators have replayed the inert row. No production factory yet.
+pub(super) struct ValidatedEntryV8 {
+    entry: EntryV8,
+    observation: Option<crate::resumable_effects::owned_frame::v2::CheckedOwnedWaitObservationV8>,
+}
+
+/// Sealed expected facts, to be constructed by the actual typed binding/store
+/// join. Neither codec bytes nor generic callbacks can mint this context.
+pub(super) struct FoldContextV8 {
+    ordinary: SourceInvocationBinding,
+    created: model::OwnedBodyV8,
+    plan_digest: String,
+    cleanup_plan_digest: String,
+    signature: Value,
+    helper: String,
+    authorize: String,
+    granted: String,
+    refused: String,
+    refused_cleanup_empty: bool,
+    #[cfg(test)]
+    test_binding: crate::resumable_effects::owned_frame::v2::CheckedOwnedAgentWaitBindingV8,
 }

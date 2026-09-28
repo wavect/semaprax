@@ -41,6 +41,17 @@ impl Workspace {
         let program = semaprax::parse(source, self.0.join(path)).unwrap();
         std::fs::write(self.0.join(path), semaprax::format::canonical(&program)).unwrap();
     }
+    fn managed_graph(&self) -> Value {
+        let path_set = self.0.join("agent-paths.json");
+        std::fs::write(
+            &path_set,
+            "{\"schema\":\"semaprax.workspace-semantic-path-set.v1\",\"files\":[{\"path\":\"src/app.spx\"}]}\n",
+        )
+        .unwrap();
+        semaprax::semantic_workspace::initialize(&self.0, &path_set).unwrap();
+        let graph = semaprax::workspace_graph::snapshot(&self.0, "fixture.app").unwrap();
+        serde_json::from_str(&graph.to_json()).unwrap()
+    }
     fn revision(&self) -> Arc<ProjectRevision> {
         with_authenticated_project(&self.0.join("semaprax.toml"), |snapshot| {
             Ok(snapshot.retain_revision())
@@ -65,42 +76,48 @@ fn workspace_v4_preserves_each_dynamic_base_and_exact_source_agent_rows() {
         };
         let workspace = Workspace::new(&source, None);
         let revision = workspace.revision();
-        let graph: Value = serde_json::from_str(revision.semantic_graph()).unwrap();
-        assert_eq!(graph["schema"], "semaprax.workspace-semantic-graph.v4");
-        let section = &graph["agent_execution"];
-        assert_eq!(
-            section["base_schema"],
-            format!("semaprax.workspace-semantic-graph.v{version}")
-        );
-        assert_eq!(section["authority"], "none");
-        let rows = section["agents"].as_array().unwrap();
-        assert_eq!(rows.len(), 1);
-        assert_eq!(rows[0]["module"], "fixture.app");
-        assert_eq!(rows[0]["path"], "src/app.spx");
-        let parsed = semaprax::check(&source, "src/app.spx").unwrap();
-        let canonical = semaprax::format::canonical(&parsed);
-        let repeated = semaprax::check(&canonical, "src/app.spx").unwrap();
-        assert_eq!(semaprax::format::canonical(&repeated), canonical);
-        let source_graph: Value =
-            serde_json::from_str(&semaprax::graph::to_json(&repeated).unwrap()).unwrap();
-        assert_eq!(
-            rows[0]["agent"],
-            source_graph["agent_execution"]["agents"][0]["agent"]
-        );
-        assert_eq!(
-            rows[0]["operations"],
-            source_graph["agent_execution"]["agents"][0]["operations"]
-        );
-        assert_eq!(
-            rows[0]["model_wait"],
-            source_graph["agent_execution"]["agents"][0]["model_wait"]
-        );
-        assert_eq!(rows[0]["operations"].as_array().unwrap().len(), 4);
-        if version >= 2 {
-            assert!(graph.get("session_protocols").is_some());
-        }
-        if version == 3 {
-            assert!(graph.get("session_protocol_follows").is_some());
+        let project_graph: Value = serde_json::from_str(revision.semantic_graph()).unwrap();
+        let managed_graph = workspace.managed_graph();
+        for (graph, family) in [(&project_graph, "project"), (&managed_graph, "workspace")] {
+            assert_eq!(
+                graph["schema"],
+                format!("semaprax.{family}-semantic-graph.v4")
+            );
+            let section = &graph["agent_execution"];
+            assert_eq!(
+                section["base_schema"],
+                format!("semaprax.{family}-semantic-graph.v{version}")
+            );
+            assert_eq!(section["authority"], "none");
+            let rows = section["agents"].as_array().unwrap();
+            assert_eq!(rows.len(), 1);
+            assert_eq!(rows[0]["module"], "fixture.app");
+            assert_eq!(rows[0]["path"], "src/app.spx");
+            let parsed = semaprax::check(&source, "src/app.spx").unwrap();
+            let canonical = semaprax::format::canonical(&parsed);
+            let repeated = semaprax::check(&canonical, "src/app.spx").unwrap();
+            assert_eq!(semaprax::format::canonical(&repeated), canonical);
+            let source_graph: Value =
+                serde_json::from_str(&semaprax::graph::to_json(&repeated).unwrap()).unwrap();
+            assert_eq!(
+                rows[0]["agent"],
+                source_graph["agent_execution"]["agents"][0]["agent"]
+            );
+            assert_eq!(
+                rows[0]["operations"],
+                source_graph["agent_execution"]["agents"][0]["operations"]
+            );
+            assert_eq!(
+                rows[0]["model_wait"],
+                source_graph["agent_execution"]["agents"][0]["model_wait"]
+            );
+            assert_eq!(rows[0]["operations"].as_array().unwrap().len(), 4);
+            if version >= 2 {
+                assert!(graph.get("session_protocols").is_some());
+            }
+            if version == 3 {
+                assert!(graph.get("session_protocol_follows").is_some());
+            }
         }
     }
 }
@@ -113,7 +130,7 @@ fn legacy_source_retains_its_base_schema_without_execution_facts() {
     let second = workspace.revision();
     assert_eq!(first.semantic_graph(), second.semantic_graph());
     let graph: Value = serde_json::from_str(first.semantic_graph()).unwrap();
-    assert_eq!(graph["schema"], "semaprax.workspace-semantic-graph.v1");
+    assert_eq!(graph["schema"], "semaprax.project-semantic-graph.v1");
     assert!(graph.get("agent_execution").is_none());
     let source_graph: Value = serde_json::from_str(
         &semaprax::graph::to_json(&semaprax::check(&source, "src/app.spx").unwrap()).unwrap(),
@@ -126,7 +143,9 @@ fn legacy_source_retains_its_base_schema_without_execution_facts() {
 #[test]
 fn unreachable_opted_in_module_does_not_require_unlinked_agent_functions() {
     let source = "module fixture.app; @id(\"fixture.main\") fn main()->i64 {0} @id(\"fixture.public\") fn published()->i64 {0}";
-    let spare = fixture::workspace_source(true, true).replace("fixture.", "spare.");
+    let spare = fixture::workspace_source(true, true)
+        .replace("fixture.", "spare.")
+        .replace("fn main()", "fn spare_entry()");
     let workspace = Workspace::new(source, Some(&spare));
     let revision = workspace.revision();
     assert!(revision.entry_program().agents.is_empty());
@@ -137,7 +156,7 @@ fn unreachable_opted_in_module_does_not_require_unlinked_agent_functions() {
         .any(|function| function.id.as_str().starts_with("spare.")));
     let graph: Value = serde_json::from_str(revision.semantic_graph()).unwrap();
     assert!(graph.get("agent_execution").is_none());
-    assert_eq!(graph["schema"], "semaprax.workspace-semantic-graph.v1");
+    assert_eq!(graph["schema"], "semaprax.project-semantic-graph.v1");
 }
 
 #[test]

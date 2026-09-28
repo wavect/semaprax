@@ -308,3 +308,37 @@ impl<'j> ModelOwnerV8<'j> {
         }
     }
 }
+
+impl<'j> ModelOwnerV8<'j> {
+    pub(super) fn activate_continued_intent(
+        self,
+        prior: &AppendSessionV8<'j>,
+        consumed:&crate::live_invocation::source_journal::owned_wait_v8::append::VerifiedOwnedContinuedEffectSuccessorV8<'j>,
+        session: &AppendSessionV8<'j>,
+        witness:&crate::live_invocation::source_journal::owned_wait_v8::append::VerifiedOwnedContinuedIntentSuccessorV8<'j>,
+        proposal: &CheckedOwnedWaitProposalV8,
+        commitments: &crate::agent_lifecycle::authorization::CheckedOwnedWaitReadyCommitmentsV8,
+        references: (u32, u32, u32),
+    ) -> Result<Self, (Self, SourceJournalError)> {
+        match self {
+            Self::Resumed(actual) => {
+                let ResumedModelOwnerV8 { owner, history } = actual;
+                match owner.activate_continued_intent(
+                    prior,
+                    consumed,
+                    session,
+                    witness,
+                    proposal,
+                    commitments,
+                    references,
+                ) {
+                    Ok(owner) => Ok(Self::Resumed(ResumedModelOwnerV8 { owner, history })),
+                    Err((owner, error)) => {
+                        Err((Self::Resumed(ResumedModelOwnerV8 { owner, history }), error))
+                    }
+                }
+            }
+            owner => Err((owner, SourceJournalError::Order)),
+        }
+    }
+}

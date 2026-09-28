@@ -1440,3 +1440,6 @@ pub(super) use continued_authorize::VerifiedOwnedContinuedAuthorizeSuccessorV8;
 
 pub(super) mod continued_effect;
 pub(super) use continued_effect::VerifiedOwnedContinuedEffectSuccessorV8;
+
+mod continued_intent;
+pub(super) use continued_intent::VerifiedOwnedContinuedIntentSuccessorV8;

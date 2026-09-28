@@ -4,6 +4,7 @@ use super::*;
 pub(in crate::live_invocation::source_journal::owned_wait_v8::append) enum RenewalPhaseV8 {
     Ready,
     Consumed,
+    Intent,
 }
 fn phase_matches(phase: &OwnedReduceHoldPhaseV8) -> bool {
     match phase {OwnedReduceHoldPhaseV8::TurnAuthorize{selected,..}=>matches!(selected,EntryV8::Owned(crate::live_invocation::source_journal::owned_wait_v8::model::OwnedBodyV8::OwnedAuthorizationStaged{..})),OwnedReduceHoldPhaseV8::TurnEffect{phase:RenewalPhaseV8::Ready,selected,..}=>matches!(selected,EntryV8::Owned(crate::live_invocation::source_journal::owned_wait_v8::model::OwnedBodyV8::OwnedAuthorizationReady{..})),OwnedReduceHoldPhaseV8::TurnEffect{phase:RenewalPhaseV8::Consumed,selected,..}=>matches!(selected,EntryV8::Ordinary(SourceJournalEntry::AuthorizationConsumed{..})),_=>false}
@@ -172,3 +173,5 @@ impl ProspectiveOwnedReduceHoldV8<'_> {
         result.inspect_err(|_| self.journal.quarantine())
     }
 }
+
+mod intent;

@@ -13,7 +13,7 @@ use crate::resumable_effects::source_checkpoint::{SourceCheckpointKey, SourceChe
 use serde_json::Value;
 mod accounting;
 pub(super) use accounting::CheckedAccountingPrefixV8;
-mod cumulative;
+pub(super) mod cumulative;
 pub(crate) use cumulative::CheckedCumulativeEffectPrefixV8;
 
 pub(super) struct CheckedInventoryV8<'a> {

@@ -212,3 +212,9 @@ pub(crate) use wait::continued::model::authorize::effect::prepared::{
 pub(crate) use wait::continued::model::authorize::effect::prepared::{
     test_continued_effect_preparations_v8, test_note_preparation,
 };
+
+pub(crate) use wait::continued::model::authorize::effect::prepared::intent::LiveContinuedEffectActivationV8;
+#[cfg(test)]
+pub(crate) use wait::continued::model::authorize::effect::prepared::intent::{
+    test_continued_activations, test_note_continued_activation,
+};

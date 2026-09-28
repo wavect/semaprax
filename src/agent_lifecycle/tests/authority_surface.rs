@@ -1,5 +1,8 @@
 //! Textual authority gates include every model-wait route under the same seam.
 
+#[path = "authority_surface/continued_intent_sources.rs"]
+mod continued_intent_sources;
+
 #[test]
 fn the_authorization_value_has_exactly_one_mint_site_in_the_crate() {
     let authorization_joined = [
@@ -608,6 +611,7 @@ fn the_authorization_value_has_exactly_one_mint_site_in_the_crate() {
     ]
     .into_iter()
     .chain(model_wait_sources)
+    .chain(continued_intent_sources::SOURCES.iter().copied())
     {
         assert_eq!(source.matches("Authorized {").count(), 0, "{name}");
         assert_eq!(source.matches("mint(").count(), 0, "{name}");
@@ -661,6 +665,7 @@ fn the_authorization_value_has_exactly_one_mint_site_in_the_crate() {
         ]
         .into_iter()
         .chain(model_wait_sources)
+        .chain(continued_intent_sources::SOURCES.iter().copied())
         {
             assert!(!source.contains(forbidden), "{name} contains {forbidden}");
         }
@@ -1307,6 +1312,7 @@ fn the_stage_executor_seam_has_exactly_three_implementations_and_one_dispatch_ro
     ]
     .into_iter()
     .chain(model_wait_sources)
+    .chain(continued_intent_sources::SOURCES.iter().copied())
     {
         assert_eq!(
             source.matches("impl StageExecutor for").count(),
@@ -1342,6 +1348,7 @@ fn the_stage_executor_seam_has_exactly_three_implementations_and_one_dispatch_ro
     ]
     .into_iter()
     .chain(model_wait_sources)
+    .chain(continued_intent_sources::SOURCES.iter().copied())
     {
         assert_eq!(
             source.matches("evaluate_retained_call(").count(),

@@ -6,7 +6,7 @@ use std::cell::Cell;
 fn entries() -> usize {
     crate::interpreter::resumable::owned_frame::registered_stage::live_run::test_continued_effect_preparations_v8()
 }
-fn renew<'j>(
+pub(super) fn renew<'j>(
     journal: &'j SourceOwnedWaitJournalV8,
     staged: LiveContinuedAuthorizationV8<'j>,
 ) -> LiveContinuedEffectV8<'j> {

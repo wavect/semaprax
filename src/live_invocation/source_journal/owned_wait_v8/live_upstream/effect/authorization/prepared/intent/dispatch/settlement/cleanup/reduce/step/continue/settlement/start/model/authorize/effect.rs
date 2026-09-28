@@ -132,6 +132,7 @@ impl LiveContinuedReadyPromotionPermitV8<'_, '_> {
     }
 }
 pub(super) enum ContinuedEffectOutcomeV8<'j> {
+    Activation(crate::interpreter::resumable::owned_frame::registered_stage::live_run::LiveContinuedEffectActivationV8<'j>),
     Preparation(prepared::LiveContinuedEffectPreparationV8<'j>),
     Promotion(LiveContinuedReadyPromotionOutcomeV8<'j>),
 }

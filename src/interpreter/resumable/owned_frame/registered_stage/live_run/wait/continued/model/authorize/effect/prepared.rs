@@ -141,3 +141,5 @@ pub(crate) fn test_continued_effect_preparations_v8() -> usize {
 pub(crate) fn test_note_preparation() {
     PREPARATIONS.with(|x| x.set(x.get() + 1));
 }
+
+pub(crate) mod intent;

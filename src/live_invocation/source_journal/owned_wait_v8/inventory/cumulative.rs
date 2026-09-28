@@ -25,7 +25,7 @@ impl CheckedCumulativeEffectPrefixV8<'_> {
         )
     }
 }
-pub(super) fn checked_prefix<'a>(
+pub(in crate::live_invocation::source_journal::owned_wait_v8) fn checked_prefix<'a>(
     context: &super::super::FoldContextV8,
     rows: &[ValidatedEntryV8],
     inputs: &OwnedEffectSettlementInputsV8<'a>,

@@ -329,3 +329,6 @@ pub(crate) use effect::authorization::step::r#continue::settlement::start::model
 
 #[cfg(test)]
 pub(in crate::live_invocation::source_journal::owned_wait_v8) use effect::authorization::step::r#continue::settlement::start::model::authorize::effect::prepared::test_continued_preparation_admissions;
+
+pub(in crate::live_invocation::source_journal::owned_wait_v8) use observe::settlement::carry::start::prepared::model::authorize::effect::prepared::intent::{advance_verified_continued_intent_v8,FixedOwnedContinuedIntentAppendPermitV8,LiveContinuedIntentAcknowledgmentFailureV8,LiveActivatedContinuedEffectV8,LiveOwnedContinuedIntentAppendV8};
+pub(crate) use effect::authorization::step::r#continue::settlement::start::model::authorize::effect::prepared::intent::LiveContinuedIntentPermitV8;

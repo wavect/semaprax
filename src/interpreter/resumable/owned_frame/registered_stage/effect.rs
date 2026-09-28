@@ -731,3 +731,5 @@ pub(crate) use live_append::settlement::cleanup::{
     release_live_observer_failed_state_v8, LiveObserverFailedStateReleaseFailureV8,
     ReleasedObserverFailedStateV8,
 };
+
+pub(crate) use live_append::intent::{activate_with_guard_v8, LiveIntentGuardV8};

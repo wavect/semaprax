@@ -255,3 +255,5 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn test_continued_
 ) -> usize {
     ADMISSIONS.with(std::cell::Cell::get)
 }
+
+pub(in crate::live_invocation::source_journal::owned_wait_v8) mod intent;

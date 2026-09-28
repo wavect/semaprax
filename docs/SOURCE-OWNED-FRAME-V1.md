@@ -368,7 +368,9 @@ control-owned, aggregate-channel, whole-function Copy, or Source Live codec:
 
 | Item | Proposed identity/domain |
 | --- | --- |
-| Checked plan | `semaprax.source-owned-frame-plan.v1` |
+| Checked plan identity | `semaprax.source-owned-frame-plan.v1` |
+| Outer plan digest | `semaprax.source-owned-frame-plan.v1\0` |
+| Cleanup-plan digest | `semaprax.source-owned-frame-cleanup-plan.v1\0` |
 | Checkpoint schema | `semaprax.source-owned-frame-checkpoint.v1` |
 | Checkpoint MAC | `semaprax.source-owned-frame-checkpoint-authentication.v1\0` |
 | Journal schema | `semaprax.source-owned-frame-journal.v1` |
@@ -459,7 +461,7 @@ a new wire failure class. `failure` is one of `language_failure`, `fuel_exhauste
 `call_depth_exceeded`, `evaluation_rejected`, `handler_failed`,
 `answer_type_mismatch`, `host_abandoned`. Language status is retained separately
 in the Failed row as `language_status` (null except language_failure), using
-the normalized status object's domain/code/class; no exception message enters
+the complete normalized status v1 data object described below; no exception message enters
 it. All statuses must match the compiler/runtime owner, never a free string.
 
 ### 6.1 Pinned value encodings
@@ -482,7 +484,7 @@ This preserves the shape encoding, not v7 admission or its authority rules.
 The source cleanup plan has one of the explicitly closed
 `semaprax.cleanup-plan.v2` through `semaprax.cleanup-plan.v13` identities,
 selected and independently replay-validated by the compiler at this base.
-No later plan schema is implicitly accepted. Plan digest hashes the exact
+No later plan schema is implicitly accepted. `cleanup_plan_digest` hashes the exact
 `graph_cleanup::cleanup_plan_json` bytes from this base under
 `semaprax.source-owned-frame-cleanup-plan.v1\0`; their existing field order is
 preserved, not reserialized through the new lexicographic wire renderer.
@@ -500,14 +502,22 @@ The owned wire embeds only this fixed subset, rederived from that plan:
 The checked binding additionally includes the full record liveness shape
 from `graph_cleanup::liveness_shape_json` at the same base (record root,
 field_liveness entries, leaf/no_drop shapes); no generic model substitutes
-for this real metadata. Source plan schema/digest are included in signature
-binding's plan digest input, with no new signature wire fields.
+for this real metadata. The outer `plan_digest` hashes the complete checked owned-frame binding from
+section 2 under `semaprax.source-owned-frame-plan.v1\0`. It includes source
+and function/site identity, parameter/result/channel shapes, exact record
+liveness, cleanup vectors, profile, and the source cleanup schema plus
+`cleanup_plan_digest`. It is not the cleanup metadata digest. Signature
+`plan_identity` binds this same full outer plan digest; no new signature wire
+fields are added.
 
 `profile` is exactly `semaprax.source-owned-frame.v1`, `kind` is the exact
 case-sensitive row name in the table, and `schema` is the stated new journal
 identity. `created_sequence` is 0 and each sequence increments by one.
 Row sequences, causal references, counts, reservation and fuel totals are u64;
-site is exactly the checked single suspension's persistent identity; generations
+site is the exact checked suspension expression's revision-scoped ExpressionId,
+not an authored persistent @id. It is bound under the exact source/program and
+outer plan digest; a body/path change requires a newly derived site/plan.
+Generations
 and digest fields are sha256-prefixed strings; authentication/previous_mac are
 64-digit lowercase hex. Stable declaration/value/site strings have the stated
 UTF-8 bounds. `argument`, `result`, `frame`, `answer`, `request`, `signature`,
@@ -516,8 +526,16 @@ JSON strings or arbitrary blobs. Pending cleanup is exactly the canonical
 operation vector. `checkpoint` is the complete canonical envelope UTF-8 string
 including its LF; byte cap counts decoded UTF-8 and record cap counts escaped
 rendering. `scope.policy_epoch` is u64. `language_status` is exactly null or
-`{domain: <string>, code: <u32>, class: "semantic"}`, rederived from the
-selected checked source failure. No defaulted/nullable invented replay fields
+the complete `conformance::NormalizedStatus::to_json` v1 data object:
+`{schema: "semaprax.status.v1", domain_id: <string>, code: <nonzero u32>,
+class: "contract" | "arithmetic", retryable: <bool | "unknown">}`. The new
+outer renderer canonically orders that object's keys without losing any
+field. Its values are independently rederived from the selected checked
+source failure, including compiler-owned domain/code/class/retryability.
+Import, ExplicitClose and Adapter exist in the ordinary normalized status
+enum but are not source language failures in this call-free, effect-free
+profile; they cannot be relabelled as contract/arithmetic. No invented
+"semantic" class is accepted. No defaulted/nullable invented replay fields
 or other scalar/schema fallback exists.
 
 ## 7. Exact bounds and preflight

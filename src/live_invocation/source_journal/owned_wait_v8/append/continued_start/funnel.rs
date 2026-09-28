@@ -1,8 +1,8 @@
 //! Fixed continued Start funnel; the common verified append body is unchanged.
 use super::*;
 use crate::live_invocation::source_journal::owned_wait_v8::live_upstream::FixedOwnedContinuedStartAppendPermitV8;
-impl<'j> AppendSessionV8<'j> {
-    fn begin_fixed_continued_start_append(
+impl<'a> AppendSessionV8<'a> {
+    pub(super) fn begin_fixed_continued_start_append(
         self,
         permit: &FixedOwnedContinuedStartAppendPermitV8<'_, 'a>,
     ) -> Result<(PendingV8<'a>, AppendVerifiedV8, Attempting<'a>), AppendFailureV8<'a>> {

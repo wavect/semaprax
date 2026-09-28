@@ -1,6 +1,6 @@
-# Source owned frame v1 — proposed bounded contract
+# Source owned frame v1 — bounded contract
 
-Status: **proposal for independent review; no implementation or completion claim**.
+Status: **reviewed design; implementation in progress; no completion claim**.
 Audience: compiler, interpreter and durable-runtime implementers and reviewers.
 Base: `5ae54dd4`. This is a proposed additive R20/#296 dependency slice, not
 approval to close R20 or widen any backend's support policy.

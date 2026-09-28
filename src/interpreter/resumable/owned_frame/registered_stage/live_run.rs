@@ -171,6 +171,6 @@ mod authorize;
 pub(crate) use authorize::{
     authorize_live_owned_state_v8, promote_live_owned_authorization_v8,
     transfer_live_owned_state_v8, LiveAuthorizeOutcomeV8, LiveReadyAuthorizationV8,
-    LiveReadyPromotionOutcomeV8, LiveStagedAuthorizationV8, LiveStateTransferOutcomeV8,
-    LiveTransferredStateV8,
+    LiveReadyEffectPreparationRejectionV8, LiveReadyPromotionOutcomeV8, LiveStagedAuthorizationV8,
+    LiveStateTransferOutcomeV8, LiveTransferredStateV8,
 };

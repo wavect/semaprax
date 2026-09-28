@@ -1276,5 +1276,6 @@ pub(crate) use owned_wait_v8::{
 
 pub(crate) use owned_wait_v8::{LiveModelIntentPermitV8, LiveWaitResumePermitV8};
 
+pub(crate) use owned_wait_v8::LiveEffectAuthorizationPermitV8;
 pub(crate) use owned_wait_v8::LiveReadyPromotionPermitV8;
 pub(crate) use owned_wait_v8::{LiveAuthorizePermitV8, LiveStateTransferPermitV8};

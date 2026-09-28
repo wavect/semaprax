@@ -184,6 +184,12 @@ impl<'a> AppendSessionV8<'a> {
     pub(super) fn fold_for_live_test(&self) -> super::fold::FoldV8 {
         self.inventory.fold_for_live_test()
     }
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn belongs_to(
+        &self,
+        journal: &SourceOwnedWaitJournalV8,
+    ) -> bool {
+        std::ptr::eq(self.journal, journal)
+    }
     pub(super) fn sequence(&self) -> usize {
         self.inventory.sequence()
     }

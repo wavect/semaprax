@@ -16,6 +16,10 @@ fn the_authorization_value_has_exactly_one_mint_site_in_the_crate() {
     let journal = include_str!("../durable/journal.rs");
     let model_wait_sources = [
         (
+            "live_invocation/source_journal/owned_wait_v8/effect_fold.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/effect_fold.rs"),
+        ),
+        (
             "live_invocation/source_journal/owned_wait_v8/ready_commitment.rs",
             include_str!("../../live_invocation/source_journal/owned_wait_v8/ready_commitment.rs"),
         ),
@@ -145,6 +149,10 @@ fn the_stage_executor_seam_has_exactly_three_implementations_and_one_dispatch_ro
     let checkpoint = include_str!("../durable/checkpoint.rs");
     let journal = include_str!("../durable/journal.rs");
     let model_wait_sources = [
+        (
+            "live_invocation/source_journal/owned_wait_v8/effect_fold.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/effect_fold.rs"),
+        ),
         (
             "live_invocation/source_journal/owned_wait_v8/ready_commitment.rs",
             include_str!("../../live_invocation/source_journal/owned_wait_v8/ready_commitment.rs"),

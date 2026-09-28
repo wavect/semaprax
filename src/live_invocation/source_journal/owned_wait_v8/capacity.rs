@@ -14,6 +14,8 @@ pub(super) struct ClosureFactsV8<'a> {
     pub pending_historical: bool,
     pub cleanup_owner: Option<OwnerV8>,
     pub cleanup_operations: Option<&'a Value>,
+    pub effect_operations: Option<&'a Value>,
+    pub effect_observed: bool,
 }
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]

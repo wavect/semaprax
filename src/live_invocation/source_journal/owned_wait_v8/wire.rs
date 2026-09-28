@@ -274,6 +274,7 @@ pub(super) enum RecipeV8 {
     Generation,
     Transfer,
     Operations,
+    EffectDecisionOperations,
     Receipt,
     Decision,
     Grant,
@@ -286,6 +287,9 @@ impl RecipeV8 {
             Self::Generation => b"semaprax.source-agent-owned-wait.generation.v1\0",
             Self::Transfer => b"semaprax.source-agent-owned-wait.transfer.v1\0",
             Self::Operations => b"semaprax.source-agent-owned-wait.operations.v1\0",
+            Self::EffectDecisionOperations => {
+                b"semaprax.source-agent-owned-wait.effect-decision-operations.v1\0"
+            }
             Self::Receipt => b"semaprax.source-agent-owned-wait.receipt.v1\0",
             Self::Decision => b"semaprax.source-agent-owned-wait.decision.v1\0",
             Self::Grant => b"semaprax.source-agent-owned-wait.grant.v1\0",
@@ -308,6 +312,18 @@ impl RecipeV8 {
                 "proposal_digest",
             ],
             Self::Operations => &["owner", "basis", "terminal", "operations"],
+            Self::EffectDecisionOperations => &[
+                "turn",
+                "attempt",
+                "staged",
+                "ready",
+                "consumed",
+                "intent",
+                "settlement",
+                "recorded",
+                "decision_digest",
+                "operations",
+            ],
             Self::Receipt => return None,
             Self::Decision => &["scope", "turn", "attempt", "authorize", "decision"],
             Self::Grant => &[

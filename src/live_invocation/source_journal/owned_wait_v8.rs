@@ -1,5 +1,5 @@
-//! Inert v8 combined journal proof data. No store, owner, or evidence authority.
-//! Production binding and physical append adapters are owned by the typed runtime.
+//! Private v8 journal proof data and fixed physical append adapter.
+//! Authenticated inventory carries no owner restoration or effect authority.
 mod append;
 pub(crate) use append::{HeldOwnedWaitStoreV8, SourceOwnedWaitJournalV8};
 mod candidate;
@@ -40,7 +40,7 @@ pub(super) struct ExpectedRowV8<'a> {
 }
 
 /// The closed typed inventory binder creates this after actual carrier replay.
-/// Its current prefix profile explicitly refuses Ready and cleanup rows.
+/// Ready and effect commitments are inert; legacy cleanup remains refused.
 pub(super) struct ValidatedEntryV8 {
     entry: EntryV8,
     observation: Option<crate::resumable_effects::owned_frame::v2::CheckedOwnedWaitObservationV8>,

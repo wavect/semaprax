@@ -306,3 +306,6 @@ impl FoldContextV8 {
         scope
     }
 }
+
+#[path = "effect_tests.rs"]
+mod effect_tests;

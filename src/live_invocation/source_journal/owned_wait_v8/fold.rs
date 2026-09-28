@@ -2,6 +2,8 @@
 use super::super::{SourceStageRole, MAX_SOURCE_ENTRIES};
 use super::*;
 use model::{OwnedBodyV8 as Body, OwnerV8, PhaseV8};
+#[path = "effect_fold.rs"]
+mod effect_fold;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(super) enum TailV8 {
@@ -29,6 +31,13 @@ pub(super) enum TailV8 {
     PendingRefusal,
     ResultDeliveryInDoubt,
     ReadyPair,
+    EffectInDoubt,
+    EffectSettlementUncommitted,
+    EffectSettled,
+    EffectCleanupInDoubt,
+    EffectDecisionReleased,
+    EffectCleanupFailed,
+    EffectFailedState,
     FailedState,
     FailedDecisionThenState,
     CleanupInDoubt,
@@ -137,6 +146,7 @@ pub(super) struct FoldV8 {
     transfer: Option<Transfer>,
     decision: Option<Decision>,
     cleanup: Option<Cleanup>,
+    effect: Option<effect_fold::EffectV8>,
     stage_originals: Vec<(u32, SourceStageRole, u64)>,
     stage_current: Option<(u32, SourceStageRole, u64)>,
     ordinary: Vec<SourceJournalEntry>,
@@ -178,6 +188,7 @@ impl FoldV8 {
             transfer: None,
             decision: None,
             cleanup: None,
+            effect: None,
             stage_originals: Vec::new(),
             stage_current: None,
             ordinary: Vec::new(),
@@ -224,6 +235,8 @@ impl FoldV8 {
             }),
             cleanup_owner: self.cleanup.as_ref().map(|c| c.owner),
             cleanup_operations: self.cleanup.as_ref().map(|c| &c.operations),
+            effect_operations: self.effect.as_ref().and_then(|e| e.operations.as_ref()),
+            effect_observed: self.effect.as_ref().is_some_and(|e| e.observed),
         }
     }
     fn current_wait(
@@ -293,7 +306,7 @@ pub(super) fn fold(
         let seq = u32::try_from(index).map_err(|_| SourceJournalError::Capacity)?;
         require(!matches!(
             fold.tail,
-            TailV8::Terminal | TailV8::TerminalInDoubt | TailV8::ReadyPair
+            TailV8::Terminal | TailV8::TerminalInDoubt
         ))?;
         if matches!(fold.tail, TailV8::Stopped | TailV8::StopInDoubt) {
             require(matches!(
@@ -942,6 +955,11 @@ fn owned(
             d.grant = Some(grant_digest.clone());
             f.tail = TailV8::ResultDeliveryInDoubt;
         }
+        Body::OwnedEffectSettlementRecorded { .. }
+        | Body::OwnedEffectDecisionCleanupStarted { .. }
+        | Body::OwnedEffectDecisionCleanupSettled { .. } => {
+            effect_fold::owned(context, f, body, seq)?
+        }
         Body::OwnedCleanupStarted {
             turn,
             attempt,
@@ -954,6 +972,7 @@ fn owned(
         } => {
             require(
                 *turn == 0
+                    && f.effect.is_none()
                     && !matches!(
                         f.tail,
                         TailV8::ResultDeliveryInDoubt
@@ -1122,6 +1141,7 @@ fn ordinary(
         } => {
             require(
                 !f.failure_selected
+                    && f.effect.is_none()
                     && !matches!(
                         f.tail,
                         TailV8::ModelDispatchInDoubt
@@ -1236,7 +1256,11 @@ fn ordinary(
                         d.granted && d.ready.is_some() && d.grant.as_ref() == Some(grant_digest)
                     }),
             )?;
+            f.effect = Some(effect_fold::EffectV8::consumed(seq));
             f.tail = TailV8::ReadyPair;
+        }
+        E::EffectIntent { .. } | E::EffectObserved { .. } | E::EffectFailed { .. } => {
+            effect_fold::ordinary(f, e, seq)?;
         }
         E::AuthorizationRefused { turn, attempt, .. } => {
             require(
@@ -1249,6 +1273,7 @@ fn ordinary(
             f.tail = TailV8::FailedDecisionThenState;
         }
         E::Stop { .. } => {
+            require(f.effect.is_none())?;
             if f.tail == TailV8::MetadataOnly && f.state_basis.is_none() && f.decision.is_none() {
                 f.tail = TailV8::Stopped;
             } else {
@@ -1288,6 +1313,7 @@ pub(super) fn validate_producer_transition(
     previous: &FoldV8,
     row: &ValidatedEntryV8,
 ) -> Result<(), SourceJournalError> {
+    require(!effect_fold::is_effect_row(&row.entry))?;
     if matches!(
         row.entry,
         EntryV8::Ordinary(SourceJournalEntry::Stop { .. })

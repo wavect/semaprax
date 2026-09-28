@@ -279,6 +279,71 @@ fn check_entries_with_runtime(
                     )?;
                 require(facts.grant_digest() == grant_digest)?;
             }
+            EntryV8::Ordinary(Ordinary::EffectIntent {
+                turn,
+                attempt,
+                operation,
+                request_digest,
+            }) => {
+                let inputs = effect_inputs(
+                    ready,
+                    &scope,
+                    *turn,
+                    *attempt,
+                    &state_value,
+                    &staged_decision,
+                    &proposal_facts,
+                )?;
+                let facts = crate::agent_lifecycle::authorization::target_protocol::owned_wait_v8::settlement::checked_owned_effect_request_v8(&inputs)?;
+                require(
+                    facts.operation().operation_id() == operation
+                        && facts.request_digest() == *request_digest,
+                )?;
+            }
+            EntryV8::Owned(Body::OwnedEffectSettlementRecorded {
+                turn,
+                attempt,
+                intent,
+                settlement,
+                evidence,
+                evidence_digest,
+                result_wire,
+            }) => {
+                let inputs = effect_inputs(
+                    ready,
+                    &scope,
+                    *turn,
+                    *attempt,
+                    &state_value,
+                    &staged_decision,
+                    &proposal_facts,
+                )?;
+                let evidence = effect_hex(evidence, 1475)?;
+                let result = result_wire
+                    .as_deref()
+                    .map(|hex| effect_hex(hex, 65536))
+                    .transpose()?;
+                let ordinary = match rows.get(*settlement as usize).map(|r| &r.entry) {
+                    Some(EntryV8::Ordinary(e)) => e,
+                    _ => return Err(Error::Binding),
+                };
+                let facts = crate::agent_lifecycle::authorization::target_protocol::owned_wait_v8::settlement::checked_owned_effect_settlement_v8(inputs, ordinary, &evidence, result.as_deref())?;
+                require(facts.evidence().digest() == evidence_digest)?;
+                match rows.get(*intent as usize).map(|r| &r.entry) {
+                    Some(EntryV8::Ordinary(Ordinary::EffectIntent {
+                        turn: it,
+                        attempt: ia,
+                        operation,
+                        request_digest,
+                    })) => require(
+                        it == turn
+                            && ia == attempt
+                            && facts.operation().operation_id() == operation
+                            && facts.request_digest() == *request_digest,
+                    )?,
+                    _ => return Err(Error::Binding),
+                }
+            }
             EntryV8::Owned(Body::OwnedWaitFailed { status, .. }) => {
                 typed(v2::validate_owned_wait_failure_v8(
                     b,
@@ -308,6 +373,31 @@ fn check_entries_with_runtime(
     Ok(CheckedInventoryV8 {
         entries: rows,
         last_mac: "0".repeat(64),
+    })
+}
+
+fn effect_hex(text: &str, max: usize) -> Result<Vec<u8>, Error> {
+    if text.len() > max.checked_mul(2).ok_or(Error::Capacity)? {
+        return Err(Error::Capacity);
+    }
+    let bytes = crate::live_invocation::identity::unhex(text).ok_or(Error::Malformed)?;
+    require(crate::live_invocation::identity::hex(&bytes) == text)?;
+    Ok(bytes)
+}
+fn effect_inputs<'a>(
+    ready: Option<(&'a crate::execution_revision::typed::AgentRuntimeV2,
+        &'a crate::execution_revision::typed::CheckedTypedOwnedWaitExecutionV8)>,
+    scope: &'a SourceCheckpointScope, turn: u32, attempt: u32,
+    state: &'a Option<Value>, staged: &'a Option<(u32,u32,usize,Value)>,
+    proposal: &'a Option<(u32,u32,v2::CheckedOwnedWaitProposalV8)>,
+) -> Result<crate::agent_lifecycle::authorization::target_protocol::owned_wait_v8::settlement::OwnedEffectSettlementInputsV8<'a>, Error>{
+    let (runtime, execution) = ready.ok_or(Error::Binding)?;
+    let (st, sa, _, decision) = staged.as_ref().ok_or(Error::Binding)?;
+    let (pt, pa, proposal) = proposal.as_ref().ok_or(Error::Binding)?;
+    require(*st == turn && *sa == attempt && *pt == turn && *pa == attempt)?;
+    Ok(crate::agent_lifecycle::authorization::target_protocol::owned_wait_v8::settlement::OwnedEffectSettlementInputsV8 {
+        runtime, execution, scope, turn, attempt,
+        state: state.as_ref().ok_or(Error::Binding)?, decision, proposal,
     })
 }
 

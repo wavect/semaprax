@@ -89,6 +89,18 @@ fn fresh_token_acquisition_refuses_wrong_shape_and_exhaustion_before_registratio
         registry.acquire_fresh_token(wrong),
         Err(HostBoundaryRejection::WrongLifecycle)
     ));
+    let mut raw = provenance();
+    raw.resource_type = HostIdentity::try_new("token.type").unwrap();
+    assert_eq!(
+        registry.acquire_fresh_token(raw).unwrap_err(),
+        HostBoundaryRejection::WrongResourceType
+    );
+    let mut raw = provenance();
+    raw.lifecycle = HostIdentity::try_new("token.drop").unwrap();
+    assert_eq!(
+        registry.acquire_fresh_token(raw).unwrap_err(),
+        HostBoundaryRejection::WrongLifecycle
+    );
     registry.next_slot = u64::MAX;
     assert!(matches!(
         registry.acquire_fresh_token(provenance()),

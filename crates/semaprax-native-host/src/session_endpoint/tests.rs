@@ -34,6 +34,13 @@ impl Fixture {
             "adapter.h",
         )
         .unwrap();
+        // The real compiler descriptor uses framed host identities. Raw source
+        // IDs are not the provenance or credential identities of this adapter.
+        let descriptor = crate::descriptor::Descriptor::parse(artifact.descriptor()).unwrap();
+        assert_eq!(
+            descriptor.owned_parameter(0),
+            Some((TOKEN_RESOURCE, TOKEN_LIFECYCLE, 0))
+        );
         let directory = std::env::temp_dir().join(format!(
             "semaprax-fresh-token-{}-{}",
             std::process::id(),

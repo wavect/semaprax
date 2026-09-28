@@ -12,8 +12,9 @@ use super::{
 };
 
 pub(crate) const FRESH_TOKEN_PRODUCER: &str = "session.token.acquire.initial.v1";
-pub(crate) const TOKEN_RESOURCE: &str = "token.type";
-pub(crate) const TOKEN_LIFECYCLE: &str = "token.drop";
+// Exact compiler NativeHost identity frames, not unqualified source IDs.
+pub(crate) const TOKEN_RESOURCE: &str = "semaprax.native-host-resource.v1:10:token.type";
+pub(crate) const TOKEN_LIFECYCLE: &str = "semaprax.native-host-lifecycle.v1:10:token.drop";
 const MAX_FRESH_TOKEN_CELLS: usize = 256;
 static NEXT_ACQUISITION: AtomicU64 = AtomicU64::new(1);
 

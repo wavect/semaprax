@@ -204,8 +204,15 @@ fn project(
     f: &hir::ResolvedFunction,
     root: &Value,
 ) -> Result<(), Flow> {
-    project_copy(expression, f, root)?;
+    if matches!(&expression.kind, ResolvedExprKind::Place(_)) {
+        return project_copy(expression, f, root);
+    }
     match &mut expression.kind {
+        ResolvedExprKind::Unary { value, .. } => project(value, f, root)?,
+        ResolvedExprKind::Binary { left, right, .. } => {
+            project(left, f, root)?;
+            project(right, f, root)?;
+        }
         ResolvedExprKind::If {
             condition,
             then_branch,

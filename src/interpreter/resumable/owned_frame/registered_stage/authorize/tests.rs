@@ -125,66 +125,102 @@ fn seal_weak(staged: &StagedOwnedAuthorizeV2) -> Option<Weak<[u8]>> {
 
 #[test]
 fn owned_frame_v2_authorize_real_checked_decision_preserves_state_and_matches_ordinary_charges() {
-    let p = proof(SOURCE);
-    for (budget, case) in [(5, "decision.granted"), (11, "decision.refused")] {
-        let state = completed(&p, budget);
-        let backing = state_weak(&state);
-        let mut fuel = OwnedFrameBudget::new(100).unwrap();
-        let staged = stage_owned_authorize_v2(state, &p, &mut fuel)
-            .unwrap_or_else(|r| panic!("{:?}", r.diagnostic));
-        assert!(staged.failure().is_none());
-        assert!(backing.iter().all(|w| w.strong_count() == 1));
-        let Value::Variant(v) = staged.decision.as_ref().unwrap() else {
-            panic!()
-        };
-        assert_eq!(v.case.as_str(), case);
-        let seal = seal_weak(&staged);
-        if let Some(seal) = &seal {
-            assert_eq!(&*seal.upgrade().unwrap(), &[65, 90]);
-            assert_eq!(seal.strong_count(), 1);
-        }
-        // Independent ordinary route is an oracle only; the staged route never
-        // converts its live State to RetainedValue or re-admits a copied root.
-        use crate::interpreter::retained_call::{RetainedField, RetainedRecord, RetainedValue};
-        let args = [
-            RetainedValue::Record(RetainedRecord {
-                record: DeclarationId::new("state"),
-                fields: vec![
-                    RetainedField {
-                        field: DeclarationId::new("state.z"),
-                        value: RetainedValue::Bytes(vec![]),
-                    },
-                    RetainedField {
-                        field: DeclarationId::new("state.a"),
-                        value: RetainedValue::Bytes(vec![0]),
-                    },
-                    RetainedField {
-                        field: DeclarationId::new("state.budget"),
-                        value: RetainedValue::I64(10),
-                    },
-                ],
-            }),
-            RetainedValue::I64(budget),
-            RetainedValue::Bool(true),
-            RetainedValue::Usize(1),
-        ];
-        let prepared =
-            crate::interpreter::prepare_retained_call(p.helper().program(), "authorize").unwrap();
-        let ordinary =
-            crate::interpreter::evaluate_retained_call(p.helper().program(), &prepared, &args, 100)
-                .unwrap();
-        assert_eq!(fuel.consumed(), ordinary.steps_used, "{case}");
-        let OwnedAuthorizeSettledV2::Ready(ready) =
-            settle_owned_authorize_v2(staged, || true, |_| panic!("empty success vector"))
-                .unwrap_or_else(|r| panic!("{:?}", r.diagnostic))
-        else {
-            panic!()
-        };
-        assert!(backing.iter().all(|w| w.strong_count() == 1));
-        drop(ready);
-        assert!(backing.iter().all(|w| w.upgrade().is_none()));
-        if let Some(seal) = seal {
-            assert!(seal.upgrade().is_none());
+    for source in [
+        SOURCE.to_owned(),
+        SOURCE.replace(
+            "budget <= state.budget",
+            "(if state.budget > 0 { budget } else { 11 }) <= state.budget",
+        ),
+        SOURCE.replace(
+            "budget <= state.budget",
+            "!(if state.budget <= 0 { true } else { false }) && budget <= state.budget",
+        ),
+    ] {
+        let p = proof(&source);
+        for (budget, case) in [(5, "decision.granted"), (11, "decision.refused")] {
+            let state = completed(&p, budget);
+            let backing = state_weak(&state);
+            let mut fuel = OwnedFrameBudget::new(100).unwrap();
+            let staged = stage_owned_authorize_v2(state, &p, &mut fuel)
+                .unwrap_or_else(|r| panic!("{:?}", r.diagnostic));
+            assert!(staged.failure().is_none());
+            assert!(backing.iter().all(|w| w.strong_count() == 1));
+            let Value::Variant(v) = staged.decision.as_ref().unwrap() else {
+                panic!()
+            };
+            assert_eq!(v.case.as_str(), case);
+            let seal = seal_weak(&staged);
+            if let Some(seal) = &seal {
+                assert_eq!(&*seal.upgrade().unwrap(), &[65, 90]);
+                assert_eq!(seal.strong_count(), 1);
+            }
+            // Independent ordinary route is an oracle only; the staged route never
+            // converts its live State to RetainedValue or re-admits a copied root.
+            use crate::interpreter::retained_call::{RetainedField, RetainedRecord, RetainedValue};
+            let args = [
+                RetainedValue::Record(RetainedRecord {
+                    record: DeclarationId::new("state"),
+                    fields: vec![
+                        RetainedField {
+                            field: DeclarationId::new("state.z"),
+                            value: RetainedValue::Bytes(vec![]),
+                        },
+                        RetainedField {
+                            field: DeclarationId::new("state.a"),
+                            value: RetainedValue::Bytes(vec![0]),
+                        },
+                        RetainedField {
+                            field: DeclarationId::new("state.budget"),
+                            value: RetainedValue::I64(10),
+                        },
+                    ],
+                }),
+                RetainedValue::I64(budget),
+                RetainedValue::Bool(true),
+                RetainedValue::Usize(1),
+            ];
+            let prepared =
+                crate::interpreter::prepare_retained_call(p.helper().program(), "authorize")
+                    .unwrap();
+            let ordinary = crate::interpreter::evaluate_retained_call(
+                p.helper().program(),
+                &prepared,
+                &args,
+                100,
+            )
+            .unwrap();
+            assert_eq!(fuel.consumed(), ordinary.steps_used, "{case}");
+            let crate::interpreter::retained_call::RetainedCallOutcome::Returned(
+                RetainedValue::Variant(expected),
+            ) = &ordinary.outcome
+            else {
+                panic!("{:?}", ordinary.outcome)
+            };
+            assert_eq!(expected.case, v.case);
+            assert_eq!(expected.fields.len(), v.fields.len());
+            for field in &expected.fields {
+                match (&field.value, &v.fields[&field.field]) {
+                    (RetainedValue::I64(expected), Value::Int(actual)) => {
+                        assert_eq!(expected, actual)
+                    }
+                    (RetainedValue::Bytes(expected), Value::Bytes(actual)) => {
+                        assert_eq!(expected.as_slice(), &*actual.bytes)
+                    }
+                    _ => panic!("ordinary result leaf differs"),
+                }
+            }
+            let OwnedAuthorizeSettledV2::Ready(ready) =
+                settle_owned_authorize_v2(staged, || true, |_| panic!("empty success vector"))
+                    .unwrap_or_else(|r| panic!("{:?}", r.diagnostic))
+            else {
+                panic!()
+            };
+            assert!(backing.iter().all(|w| w.strong_count() == 1));
+            drop(ready);
+            assert!(backing.iter().all(|w| w.upgrade().is_none()));
+            if let Some(seal) = seal {
+                assert!(seal.upgrade().is_none());
+            }
         }
     }
 }

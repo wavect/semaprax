@@ -45,7 +45,7 @@ impl Workspace {
         let path_set = self.0.join("agent-paths.json");
         std::fs::write(
             &path_set,
-            "{\"schema\":\"semaprax.workspace-semantic-path-set.v1\",\"files\":[{\"path\":\"src/app.spx\"}]}\n",
+            "{\"schema\":\"semaprax.workspace-semantic-path-set.v1\",\"files\":[{\"path\":\"src/app.spx\"},{\"path\":\"src/tests.spx\"}]}\n",
         )
         .unwrap();
         semaprax::semantic_workspace::initialize(&self.0, &path_set).unwrap();

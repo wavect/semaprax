@@ -245,6 +245,7 @@ fn check_entries_with_runtime(
                         execution,
                         &scope,
                         *turn,
+                        *attempt,
                         state_value.as_ref().ok_or(Error::Binding)?,
                         decision,
                         proposal,

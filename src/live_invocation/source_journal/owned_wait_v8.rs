@@ -6,6 +6,8 @@ mod checked_context;
 mod fold;
 mod inventory;
 mod model;
+mod ready_commitment;
+pub(crate) use ready_commitment::owned_wait_ready_commitment_v8;
 #[cfg(test)]
 mod tests;
 mod wire;

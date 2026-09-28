@@ -10,7 +10,9 @@ use serde_json::Value;
 pub(crate) struct CheckedOwnedWaitReadyCommitmentsV8 {
     authorization_binding: String,
     grant_digest: String,
+    target_grant_digest: String,
     argument_digest: String,
+    budget: i64,
 }
 impl CheckedOwnedWaitReadyCommitmentsV8 {
     pub(crate) fn authorization_binding(&self) -> &str {
@@ -22,6 +24,12 @@ impl CheckedOwnedWaitReadyCommitmentsV8 {
     pub(crate) fn argument_digest(&self) -> &str {
         &self.argument_digest
     }
+    pub(crate) fn target_grant_digest(&self) -> &str {
+        &self.target_grant_digest
+    }
+    pub(crate) fn budget(&self) -> i64 {
+        self.budget
+    }
 }
 
 pub(crate) fn checked_owned_wait_ready_commitments_v8(
@@ -29,6 +37,7 @@ pub(crate) fn checked_owned_wait_ready_commitments_v8(
     execution: &CheckedTypedOwnedWaitExecutionV8,
     scope: &SourceCheckpointScope,
     turn: u32,
+    attempt: u32,
     state: &Value,
     decision: &Value,
     proposal: &CheckedOwnedWaitProposalV8,
@@ -39,7 +48,7 @@ pub(crate) fn checked_owned_wait_ready_commitments_v8(
     if decision["case"] != authorize.granted().as_str() {
         return Err(Error::Binding);
     }
-    let state = v2::ordinary_state_bytes(binding, state).map_err(|_| Error::Binding)?;
+    let state_canonical = v2::ordinary_state_bytes(binding, state).map_err(|_| Error::Binding)?;
     let seal = decision["fields"]
         .as_array()
         .and_then(|fields| {
@@ -58,7 +67,7 @@ pub(crate) fn checked_owned_wait_ready_commitments_v8(
     );
     let authorization = super::binding_from_canonical_state(
         &policy,
-        &state,
+        &state_canonical,
         proposal.canonical_proposal(),
         authorize.granted(),
         &seal,
@@ -74,9 +83,22 @@ pub(crate) fn checked_owned_wait_ready_commitments_v8(
         plan.operation(),
         &argument_digest,
     );
+    let (grant_digest, budget) =
+        crate::live_invocation::source_journal::owned_wait_ready_commitment_v8(
+            binding,
+            scope,
+            turn,
+            attempt,
+            state,
+            decision,
+            proposal.ordinary_digest(),
+            &authorization,
+        )?;
     Ok(CheckedOwnedWaitReadyCommitmentsV8 {
         authorization_binding: authorization,
-        grant_digest: target,
+        grant_digest,
+        target_grant_digest: target,
         argument_digest,
+        budget,
     })
 }

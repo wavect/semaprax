@@ -85,7 +85,7 @@ impl CheckedOwnedWaitJournalContextV8 {
         .unwrap();
         let (runtime, execution) = self.ready_runtime().unwrap();
         let commitments = checked_owned_wait_ready_commitments_v8(
-            runtime, execution, scope, *turn, state, decision, &proposal,
+            runtime, execution, scope, *turn, *attempt, state, decision, &proposal,
         )
         .unwrap();
         // All three facts remain inert. Changing the source turn changes the
@@ -95,6 +95,7 @@ impl CheckedOwnedWaitJournalContextV8 {
             execution,
             scope,
             turn + 1,
+            *attempt,
             state,
             decision,
             &proposal,
@@ -106,6 +107,75 @@ impl CheckedOwnedWaitJournalContextV8 {
         );
         assert_ne!(commitments.grant_digest(), other_turn.grant_digest());
         assert_eq!(commitments.argument_digest(), other_turn.argument_digest());
+        assert_ne!(
+            commitments.grant_digest(),
+            commitments.target_grant_digest()
+        );
+        assert_eq!(commitments.budget(), 3);
+        let source_grant = wire::recipe_digest(wire::RecipeV8::Grant, &serde_json::json!({
+            "scope": self.fold.created_scope_for_test(), "turn":turn,"attempt":attempt,
+            "state_digest":state_digest,"proposal_digest":proposal.ordinary_digest(),
+            "decision_digest":decision_digest,"authorization_binding":commitments.authorization_binding(),"budget":3
+        })).unwrap();
+        assert_eq!(commitments.grant_digest(), source_grant);
+        let other_attempt = checked_owned_wait_ready_commitments_v8(
+            runtime,
+            execution,
+            scope,
+            *turn,
+            attempt + 1,
+            state,
+            decision,
+            &proposal,
+        )
+        .unwrap();
+        assert_ne!(commitments.grant_digest(), other_attempt.grant_digest());
+        assert_eq!(
+            commitments.target_grant_digest(),
+            other_attempt.target_grant_digest()
+        );
+        let mut other_budget = decision.clone();
+        let budget_id = execution
+            .wait()
+            .authorize()
+            .helper()
+            .program()
+            .declarations
+            .case_fields(execution.wait().authorize().granted())
+            .unwrap()
+            .iter()
+            .find(|field| field.ty == crate::hir::ResolvedType::I64)
+            .unwrap()
+            .id
+            .as_str();
+        let field = other_budget["fields"]
+            .as_array_mut()
+            .unwrap()
+            .iter_mut()
+            .find(|field| field["identity"] == budget_id)
+            .unwrap();
+        field["value"]["value"] = serde_json::json!(4);
+        let other_budget = checked_owned_wait_ready_commitments_v8(
+            runtime,
+            execution,
+            scope,
+            *turn,
+            *attempt,
+            state,
+            &other_budget,
+            &proposal,
+        )
+        .unwrap();
+        assert_eq!(other_budget.budget(), 4);
+        assert_ne!(commitments.grant_digest(), other_budget.grant_digest());
+        assert_eq!(
+            commitments.authorization_binding(),
+            other_budget.authorization_binding()
+        );
+        assert_eq!(
+            commitments.target_grant_digest(),
+            other_budget.target_grant_digest()
+        );
         let turn = *turn;
         let attempt = *attempt;
         let ready = model::OwnedBodyV8::OwnedAuthorizationReady {
@@ -126,6 +196,20 @@ impl CheckedOwnedWaitJournalContextV8 {
         ));
         let positive = encode(self, key, &rows);
         let mut negatives = Vec::new();
+        let mut crossed = rows.clone();
+        let EntryV8::Owned(model::OwnedBodyV8::OwnedAuthorizationReady { grant_digest, .. }) =
+            &mut crossed[18]
+        else {
+            panic!()
+        };
+        *grant_digest = commitments.target_grant_digest().into();
+        let EntryV8::Ordinary(SourceJournalEntry::AuthorizationConsumed { grant_digest, .. }) =
+            &mut crossed[19]
+        else {
+            panic!()
+        };
+        *grant_digest = commitments.target_grant_digest().into();
+        negatives.push(encode(self, key, &crossed));
         // Coherent inert commitments do not prove that source authorize ran.
         // Here only the seal and its Decision sidecar are changed, leaving the
         // previously recorded Ready/Consumed grant stale; admission must fail.

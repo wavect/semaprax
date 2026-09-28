@@ -352,3 +352,13 @@ The actual typed execution binding E remains unchanged and is recorded in `Owned
 The closed context constructor joins genuine checked typed E and B with the held v8 lease and complete independently retained registration. It checks creator PID first, complete registration equality, all four current physical pins, exact standalone source revision, expected I/scope/epoch, E/B and all limits. The first route uses the full fixed ordinary stage fuel ceiling for helper evaluation; a differing evaluation fuel proof is refused by this context.
 
 Context construction and structural validators are data-only. They do not acknowledge registration retention, enable append, restore an owner, dispatch a model/effect, or publish evidence. The live route still needs independent retention ACK and must recheck the held lease and current policy before and after every callback and physical operation.
+
+## 17. SDK Proposal and Copy answer commitments
+
+The ordinary SDK Proposal commitment and the owned helper's Copy answer commitment are distinct. A single checked projection takes the already decoded SDK Proposal from the exact B-owned schema and produces the declaration-ordered Copy channel carrier; it does not parse model bytes in the continuation owner.
+
+`OwnedWaitCompleted.proposal` and each transfer's `proposal` are that exact Copy channel encoding. Their `proposal_digest` is the unchanged ordinary `semaprax.source-proposal.v2` hash of the SDK decoder's exact canonical Proposal document, including its LF. Ordinary `ProposalAdmitted` therefore retains its existing bytes and compares that same ordinary digest.
+
+The projection separately derives `answer_digest = D(source-owned-frame-answer.v2, {scope,plan_digest:B,value:Copy carrier})`. `OwnedWaitCompleted.result_digest` is `D(source-owned-frame-result.v2, {argument_digest,answer_digest})`. Never substitute the ordinary digest for answer_digest or vice versa. Recovery obtains the same projection from the acknowledged authoritative raw settlement through the existing SDK decoder and checks every recorded carrier/digest. A raw digest pair or caller-reminted Copy carrier cannot replace this projection.
+
+The existing SDK/Agent carrier profile remains unchanged. In this portable owned wait route, all Copy scalars additionally satisfy frozen frame scalar bounds, including usize<=u32::MAX. Proposal sidecars, commitments and canonical strings grant no ownership, authorization, append or dispatch authority.

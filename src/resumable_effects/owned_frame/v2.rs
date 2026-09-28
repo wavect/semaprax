@@ -8,6 +8,7 @@ mod initialize_plan;
 mod observation_binding;
 mod observe_plan;
 mod plan;
+mod proposal_binding;
 mod reduce_plan;
 
 pub(crate) use authorize_plan::{compile_owned_authorize_v2, CheckedOwnedAuthorizeV2};
@@ -31,3 +32,5 @@ pub(crate) use checkpoint::{
     validate_owned_wait_checkpoint_v8, CheckedOwnedWaitCheckpointV8,
     OwnedWaitCheckpointExpectationV8,
 };
+
+pub(crate) use proposal_binding::{bind_owned_wait_proposal_v8, CheckedOwnedWaitProposalV8};

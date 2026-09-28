@@ -366,3 +366,44 @@ pub(super) fn checkpoint_bytes_digest(bytes: &[u8]) -> Result<String, SourceJour
         bytes,
     ))
 }
+
+/// Authenticate the complete combined inventory before any future fold use.
+/// This returns data only; store/checked-source provenance is independent.
+pub(super) fn decode_inventory(
+    bytes: &[u8],
+    expected: &ExpectedRowV8<'_>,
+    key: &SourceCheckpointKey,
+) -> Result<Vec<EntryV8>, SourceJournalError> {
+    if bytes.len() > super::super::MAX_SOURCE_DOCUMENT_BYTES {
+        return Err(SourceJournalError::Capacity);
+    }
+    if expected.seq != 0 || expected.prev_mac != "0".repeat(64) {
+        return Err(SourceJournalError::Binding);
+    }
+    if !bytes.is_empty() && !bytes.ends_with(b"\n") {
+        return Err(SourceJournalError::Malformed);
+    }
+    let mut entries = Vec::new();
+    let mut previous = expected.prev_mac.to_owned();
+    for row in bytes.split_inclusive(|byte| *byte == b'\n') {
+        if entries.len() >= super::super::MAX_SOURCE_ENTRIES {
+            return Err(SourceJournalError::Capacity);
+        }
+        let current = ExpectedRowV8 {
+            invocation: expected.invocation,
+            generation: expected.generation,
+            seq: u32::try_from(entries.len()).map_err(|_| SourceJournalError::Capacity)?,
+            prev_mac: &previous,
+            ordinary: expected.ordinary,
+        };
+        let entry = decode(row, &current, key)?;
+        // Already canonical, duplicate-free and authenticated by decode.
+        let value = parse(&row[..row.len() - 1])?;
+        previous = value["authentication"]
+            .as_str()
+            .ok_or(SourceJournalError::Malformed)?
+            .to_owned();
+        entries.push(entry);
+    }
+    Ok(entries)
+}

@@ -477,3 +477,56 @@ fn hash_recipes_have_closed_payload_keys_and_domain_separation() {
         .unwrap()
     );
 }
+
+#[test]
+fn combined_inventory_authenticates_every_sequence_and_predecessor_before_use() {
+    let binding = binding();
+    let expected = row_facts(&binding);
+    let entries = [
+        EntryV8::Ordinary(SourceJournalEntry::RunOpened),
+        reserved(),
+        EntryV8::Owned(OwnedBodyV8::OwnedWaitReplayChecked {
+            turn: 0,
+            attempt: 0,
+            wait: d(),
+            reservation: 1,
+            original: 0,
+            result_digest: d(),
+            consumed: 1,
+        }),
+    ];
+    // Codec-only shape inventory: the future fold independently rejects order.
+    let mut rows = Vec::new();
+    let mut previous = expected.prev_mac.to_owned();
+    for (seq, entry) in entries.iter().enumerate() {
+        let current = ExpectedRowV8 {
+            seq: seq as u32,
+            prev_mac: &previous,
+            ..row_facts(&binding)
+        };
+        let row = wire::encode(entry, &current, &key()).unwrap();
+        let value: Value = serde_json::from_slice(&row).unwrap();
+        previous = value["authentication"].as_str().unwrap().to_owned();
+        rows.push(row);
+    }
+    let joined = rows.concat();
+    assert_eq!(
+        wire::decode_inventory(&joined, &expected, &key()).unwrap(),
+        entries
+    );
+    for hostile in [
+        vec![rows[1].clone(), rows[0].clone(), rows[2].clone()].concat(),
+        vec![rows[0].clone(), rows[2].clone()].concat(),
+        vec![rows[0].clone(), rows[1].clone(), rows[1].clone()].concat(),
+    ] {
+        assert!(wire::decode_inventory(&hostile, &expected, &key()).is_err());
+    }
+    let mut altered: Value = serde_json::from_slice(&rows[1]).unwrap();
+    altered["prev_mac"] = "0".repeat(64).into();
+    let reminted = vec![rows[0].clone(), signed(altered), rows[2].clone()].concat();
+    assert!(wire::decode_inventory(&reminted, &expected, &key()).is_err());
+    assert!(wire::decode_inventory(&joined[..joined.len() - 1], &expected, &key()).is_err());
+    let mut old: Value = serde_json::from_slice(&rows[0]).unwrap();
+    old["schema"] = "semaprax.live-invocation.source-persisted-journal.v1".into();
+    assert!(wire::decode_inventory(&signed(old), &expected, &key()).is_err());
+}

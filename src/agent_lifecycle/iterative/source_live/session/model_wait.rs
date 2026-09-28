@@ -1,11 +1,11 @@
 //! Pure interpreter wait evaluations share the outer source checkpoint owner.
 use super::*;
 use crate::agent_lifecycle::iterative::model_wait::{carrier_digest, SourceModelWaitBinding};
-use crate::interpreter::resumable::{
+use crate::interpreter::resumable::channel::{
     resume_sequential_channel_resumable_effect_with_arguments,
-    run_sequential_channel_resumable_effect_with_arguments, ResumableChannelValue,
-    SequentialChannelArgumentsStep,
+    run_sequential_channel_resumable_effect_with_arguments, SequentialChannelArgumentsStep,
 };
+use crate::interpreter::resumable::ResumableChannelValue;
 use crate::resumable_effects::source_checkpoint::{
     decode_source_checkpoint_v7, encode_source_checkpoint_v7, SourceCheckpointKey,
     SourceCheckpointScope,
@@ -19,7 +19,7 @@ pub(super) struct ModelWaitContext<'a> {
 }
 
 impl<'a> SourceExecutionSession<'a> {
-    pub(super) fn with_model_wait(
+    pub(in crate::agent_lifecycle::iterative::source_live) fn with_model_wait(
         mut self,
         lifecycle: &'a CompiledIterativeLifecycle,
         binding: SourceModelWaitBinding,

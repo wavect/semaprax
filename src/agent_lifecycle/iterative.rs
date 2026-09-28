@@ -136,6 +136,10 @@ pub struct CompiledIterativeLifecycle {
     step: step::StepShape,
 }
 impl CompiledIterativeLifecycle {
+    pub(crate) fn owned_wait_step_v8(&self) -> step::OwnedWaitStepMetadataV8<'_> {
+        self.step.owned_wait_metadata()
+    }
+
     pub fn digest(&self) -> &str {
         &self.inner.digest
     }

@@ -40,10 +40,11 @@ pub struct ResolvedAgentOperationRole {
     pub role: ResolvedAgentOperationRoleKind,
     pub kind: ResolvedAgentOperationKind,
     pub stable_id: DeclarationId,
+    pub embedded: bool,
 }
 
 /// A real HIR node for one parser-admitted Agent declaration. Role bodies are
-/// intentionally absent until the deterministic-role execution tranche.
+/// retained once as ordinary ResolvedFunction nodes; these fields carry only origin facts.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ResolvedAgentDeclaration {
     pub stable_id: DeclarationId,
@@ -51,4 +52,10 @@ pub struct ResolvedAgentDeclaration {
     pub types: Vec<ResolvedAgentTypeRole>,
     pub operations: Vec<ResolvedAgentOperationRole>,
     pub runtime_v1_json: String,
+    pub model_wait: Option<Box<ResolvedAgentModelWaitBinding>>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ResolvedAgentModelWaitBinding {
+    pub helper_id: DeclarationId,
 }

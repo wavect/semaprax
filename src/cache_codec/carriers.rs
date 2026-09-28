@@ -36,8 +36,10 @@ mod ast {
         role,
         kind,
         stable_id,
-        span
+        span,
+        embedded_function_index
     });
+    codec_struct!(AgentModelWaitBinding { helper_id, span });
     codec_struct!(AgentDeclaration {
         stable_id,
         name,
@@ -45,7 +47,8 @@ mod ast {
         types,
         operations,
         runtime_v1_json,
-        span
+        span,
+        model_wait
     });
     codec_struct!(Program {
         path,

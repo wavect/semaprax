@@ -516,6 +516,8 @@ pub struct AgentOperationDeclaration {
     pub kind: AgentOperationKind,
     pub stable_id: String,
     pub span: Span,
+    /// Exact source-owned entry in Program.functions, never an ID-set filter.
+    pub embedded_function_index: Option<usize>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -529,6 +531,119 @@ pub struct AgentDeclaration {
     /// Semantic lowering re-admits it through the existing definition compiler.
     pub runtime_v1_json: String,
     pub span: Span,
+    pub model_wait: Option<Box<AgentModelWaitBinding>>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AgentModelWaitBinding {
+    pub helper_id: String,
+    pub span: Span,
+}
+
+impl AgentDeclaration {
+    pub(crate) fn has_execution_metadata(&self) -> bool {
+        self.model_wait.is_some()
+            || self
+                .operations
+                .iter()
+                .any(|op| op.embedded_function_index.is_some())
+    }
+
+    /// Source admission checks only opted-in Agents; legacy role references stay inert.
+    pub(crate) fn validate_execution_metadata(
+        &self,
+        program: &Program,
+    ) -> Result<(), &'static str> {
+        if !self.has_execution_metadata() {
+            return Ok(());
+        }
+        let mut origins = std::collections::BTreeSet::new();
+        for operation in &self.operations {
+            if operation.kind != AgentOperationKind::Deterministic {
+                if operation.embedded_function_index.is_some() {
+                    return Err("model and effect Agent operations cannot carry bodies");
+                }
+                continue;
+            }
+            let mut matches = program
+                .functions
+                .iter()
+                .filter(|f| f.stable_id == operation.stable_id);
+            let function = matches
+                .next()
+                .ok_or("opted-in Agent deterministic role has no same-module function")?;
+            if matches.next().is_some() {
+                return Err("opted-in Agent function identity is duplicated");
+            }
+            if operation.embedded_function_index.is_some()
+                && (self
+                    .embedded_function(operation, &program.functions)
+                    .is_none()
+                    || !origins.insert(operation.embedded_function_index.unwrap()))
+            {
+                return Err("embedded Agent function origin is invalid");
+            }
+            if function.name != operation.role.source_name()
+                || !function.type_parameters.is_empty()
+                || !function.effects.is_empty()
+                || function.yields.is_some()
+                || function.follows.is_some()
+            {
+                return Err(
+                    "opted-in Agent deterministic function is outside the ordinary pure profile",
+                );
+            }
+        }
+        if let Some(binding) = &self.model_wait {
+            if !crate::agent_definition::canonical_identifier(&binding.helper_id)
+                || binding.helper_id == self.stable_id
+                || self.types.iter().any(|r| r.stable_id == binding.helper_id)
+                || self
+                    .operations
+                    .iter()
+                    .any(|r| r.stable_id == binding.helper_id)
+            {
+                return Err("Agent model wait helper identity is invalid or aliases a role");
+            }
+            let mut matches = program
+                .functions
+                .iter()
+                .filter(|f| f.stable_id == binding.helper_id);
+            let function = matches
+                .next()
+                .ok_or("Agent model wait helper has no same-module function")?;
+            if matches.next().is_some()
+                || !function.explicit_id
+                || !function.type_parameters.is_empty()
+                || program.agents.iter().any(|agent| {
+                    agent.operations.iter().any(|op| {
+                        agent
+                            .embedded_function(op, &program.functions)
+                            .is_some_and(|f| std::ptr::eq(f, function))
+                    })
+                })
+            {
+                return Err("Agent model wait helper must be a unique non-generic top-level explicit function");
+            }
+        }
+        Ok(())
+    }
+
+    /// A formatter may hide only the actual validated parser-origin entry.
+    pub fn embedded_function<'a>(
+        &self,
+        operation: &AgentOperationDeclaration,
+        functions: &'a [Function],
+    ) -> Option<&'a Function> {
+        let function = functions.get(operation.embedded_function_index?)?;
+        (operation.kind == AgentOperationKind::Deterministic
+            && function.stable_id == operation.stable_id
+            && function.name == operation.role.source_name()
+            && function.span == operation.span
+            && function.span.start >= self.span.start
+            && function.span.end <= self.span.end)
+            .then_some(function)
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]

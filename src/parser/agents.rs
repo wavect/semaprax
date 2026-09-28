@@ -9,6 +9,8 @@ use crate::lexer::TokenKind;
 
 use super::Parser;
 
+mod embedded;
+
 const MAX_RUNTIME_V1_JSON_BYTES: usize = 1_310_720;
 const TYPE_ROLES: [(&str, AgentTypeRole); 6] = [
     ("task", AgentTypeRole::Task),
@@ -54,6 +56,8 @@ const OPERATIONS: [(&str, AgentOperationRole, AgentOperationKind); 6] = [
 impl Parser {
     pub(super) fn agent(
         &mut self,
+        module: &str,
+        functions: &mut Vec<crate::ast::Function>,
         stable_id: Option<String>,
     ) -> Result<AgentDeclaration, Diagnostic> {
         let start = self.keyword("agent")?.span;
@@ -106,36 +110,18 @@ impl Parser {
                     self.error_previous("SPX-P124", "agent identities must be locally unique")
                 );
             }
-            let operation_start = self.current().span;
-            match kind {
-                AgentOperationKind::Deterministic => {}
-                AgentOperationKind::Model => {
-                    self.keyword("model")?;
-                }
-                AgentOperationKind::Effect => {
-                    self.keyword("effect")?;
-                }
-            }
-            self.keyword("fn")?;
-            let (actual_name, _) = self.ident("agent operation role")?;
-            if actual_name != expected_name {
-                return Err(self.error_previous(
-                    "SPX-P124",
-                    format!("expected agent operation role `{expected_name}`"),
-                ));
-            }
-            let end = self
-                .expect(&TokenKind::Semicolon, "`;` after agent operation")?
-                .span;
-            operations.push(AgentOperationDeclaration {
+            operations.push(self.agent_operation(
+                module,
+                functions,
+                expected_name,
                 role,
                 kind,
-                stable_id: operation_id,
-                span: operation_start.merge(end),
-            });
+                operation_id,
+            )?);
         }
         self.expect(&TokenKind::RBrace, "`}` after agent operations")?;
 
+        let model_wait = self.agent_model_wait()?;
         self.keyword("runtime_v1")?;
         self.expect(&TokenKind::LBrace, "`{` before runtime_v1 compatibility")?;
         self.keyword("canonical_json")?;
@@ -167,6 +153,7 @@ impl Parser {
             operations,
             runtime_v1_json,
             span: start.merge(end),
+            model_wait,
         })
     }
 

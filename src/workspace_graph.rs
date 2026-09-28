@@ -1506,6 +1506,9 @@ impl WorkspaceGraphBuild {
         &self,
         linked: &mut hir::ResolvedProgram,
     ) -> Result<(), Vec<Diagnostic>> {
+        retained_vectors::reserve_agent_execution_metadata(
+            self.hir.modules.iter().flat_map(|module| &module.agents),
+        )?;
         let mut agents = self
             .hir
             .modules

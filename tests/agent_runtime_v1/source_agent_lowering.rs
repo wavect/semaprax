@@ -38,6 +38,7 @@ fn declaration(agent_id: &str) -> AgentDeclaration {
         kind,
         stable_id: format!("{agent_id}.fn.{suffix}"),
         span: Span::default(),
+        embedded_function_index: None,
     };
     AgentDeclaration {
         stable_id: agent_id.to_owned(),
@@ -83,6 +84,7 @@ fn declaration(agent_id: &str) -> AgentDeclaration {
                 "reduce",
             ),
         ],
+        model_wait: None,
         runtime_v1_json: runtime_v1(&profile()),
         span: Span::default(),
     }

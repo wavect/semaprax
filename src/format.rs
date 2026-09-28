@@ -541,57 +541,13 @@ pub(crate) fn write_canonical_commented(
         placement.trailing(output, implementation.span.start, 0);
     }
     session_protocol::write_session_protocols(&program.session_protocols, placement, output);
-    agents::write_agents(&program.agents, placement, output);
-    for function in &program.functions {
+    agents::write_agents(program, placement, output);
+    for (index, function) in program.functions.iter().enumerate() {
+        if agents::is_embedded(program, index) {
+            continue;
+        }
         writeln!(output).unwrap();
-        placement.leading(output, function.span.start, 0);
-        if function.explicit_id {
-            write!(output, "@id(\"").unwrap();
-            write_escaped(output, &function.stable_id);
-            writeln!(output, "\")").unwrap();
-        }
-        write!(output, "fn {}", function.name).unwrap();
-        write_type_parameters(output, &function.type_parameters);
-        output.write_char('(').unwrap();
-        for (index, param) in function.params.iter().enumerate() {
-            if index > 0 {
-                output.write_str(", ").unwrap();
-            }
-            write!(output, "{}: {}", param.name, param.mode.source_prefix()).unwrap();
-            write_type(output, &param.ty);
-        }
-        output.write_str(") -> ").unwrap();
-        write_type(output, &function.return_type);
-        writeln!(output).unwrap();
-        if !function.effects.is_empty() {
-            write!(output, "    uses {{ ").unwrap();
-            write_joined(output, &function.effects, ", ");
-            writeln!(output, " }}").unwrap();
-        }
-        if let Some(yields) = &function.yields {
-            write!(output, "    yields ").unwrap();
-            write_type(output, &yields.request_type);
-            write!(output, " -> ").unwrap();
-            write_type(output, &yields.response_type);
-            writeln!(output).unwrap();
-        }
-        if let Some(follows) = &function.follows {
-            write!(output, "    follows session protocol \"").unwrap();
-            write_escaped(output, &follows.protocol_id);
-            writeln!(output, "\"").unwrap();
-        }
-        for contract in &function.requires {
-            write!(output, "    requires ").unwrap();
-            write_record_literal_delimited_expr(output, contract);
-            writeln!(output).unwrap();
-        }
-        for contract in &function.ensures {
-            write!(output, "    ensures ").unwrap();
-            write_record_literal_delimited_expr(output, contract);
-            writeln!(output).unwrap();
-        }
-        write_function_body(output, &function.body, placement);
-        placement.trailing(output, function.span.start, 0);
+        agents::write_function(function, output, placement, 0);
     }
     placement.file_end(output);
 }

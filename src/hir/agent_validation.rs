@@ -1,5 +1,7 @@
 //! Independent HIR validation for language-native Agent nodes.
 
+mod embedded;
+
 use std::collections::BTreeSet;
 
 use crate::diagnostic::Diagnostic;
@@ -12,6 +14,7 @@ use super::{
 pub(super) fn validate(program: &ResolvedProgram) -> Result<(), Diagnostic> {
     let mut project_agent_ids = BTreeSet::new();
     for agent in &program.agents {
+        embedded::validate(program, agent)?;
         if agent.types.len() != 6
             || agent.types.iter().map(|role| role.role).ne([
                 ResolvedAgentTypeRoleKind::Task,

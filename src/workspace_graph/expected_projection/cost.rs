@@ -214,6 +214,10 @@ impl StructuralCost {
                 self.embedded_string(&operation.stable_id)?;
             }
             self.embedded_string(&agent.runtime_v1_json)?;
+            if let Some(binding) = &agent.model_wait {
+                self.value(binding.as_ref())?;
+                self.embedded_string(&binding.helper_id)?;
+            }
         }
         Ok(())
     }

@@ -1,13 +1,16 @@
 use std::fmt::Write;
 
-use crate::ast::AgentDeclaration;
+use crate::ast::Program;
+#[path = "agents/embedded.rs"]
+mod embedded;
+pub(super) use embedded::write_function;
 
 pub(super) fn write_agents(
-    agents: &[AgentDeclaration],
+    program: &Program,
     placement: &super::comments::Placement,
     output: &mut impl Write,
 ) {
-    for agent in agents {
+    for agent in &program.agents {
         writeln!(output).unwrap();
         placement.leading(output, agent.span.start, 0);
         write!(output, "@id(\"").unwrap();
@@ -26,6 +29,10 @@ pub(super) fn write_agents(
         writeln!(output, "    }}").unwrap();
         writeln!(output, "    operations {{").unwrap();
         for operation in &agent.operations {
+            if let Some(function) = agent.embedded_function(operation, &program.functions) {
+                write_function(function, output, placement, 2);
+                continue;
+            }
             placement.leading(output, operation.span.start, 2);
             write!(output, "        @id(\"").unwrap();
             super::write_escaped(output, &operation.stable_id);
@@ -40,6 +47,16 @@ pub(super) fn write_agents(
             placement.trailing(output, operation.span.start, 2);
         }
         writeln!(output, "    }}").unwrap();
+        if let Some(binding) = &agent.model_wait {
+            writeln!(output, "    model_wait_v1 {{").unwrap();
+            writeln!(
+                output,
+                "        propose = {};",
+                super::canonical_string(&binding.helper_id)
+            )
+            .unwrap();
+            writeln!(output, "    }}").unwrap();
+        }
         writeln!(output, "    runtime_v1 {{").unwrap();
         writeln!(
             output,
@@ -52,4 +69,15 @@ pub(super) fn write_agents(
         writeln!(output, "}}").unwrap();
         placement.trailing(output, agent.span.start, 0);
     }
+}
+
+pub(super) fn is_embedded(program: &Program, index: usize) -> bool {
+    program.agents.iter().any(|agent| {
+        agent.operations.iter().any(|operation| {
+            operation.embedded_function_index == Some(index)
+                && agent
+                    .embedded_function(operation, &program.functions)
+                    .is_some()
+        })
+    })
 }

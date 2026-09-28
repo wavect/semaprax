@@ -186,6 +186,9 @@ pub fn compile_source_project_agents(programs: &[&Program]) -> Result<CompiledSo
     let mut declarations = Vec::with_capacity(count);
     for program in programs {
         for declaration in &program.agents {
+            declaration
+                .validate_execution_metadata(program)
+                .map_err(invariant)?;
             if occupied_ids.contains(&declaration.stable_id) {
                 return Err(invariant(
                     "source Agent declaration identity collides with an existing declaration",
@@ -267,9 +270,15 @@ fn resolve_source_agent(declaration: &AgentDeclaration) -> ResolvedSourceAgent {
                     AgentOperationKind::Effect => crate::hir::ResolvedAgentOperationKind::Effect,
                 },
                 stable_id: crate::hir::DeclarationId::new(operation.stable_id.clone()),
+                embedded: operation.embedded_function_index.is_some(),
             })
             .collect(),
         runtime_v1_json: declaration.runtime_v1_json.clone(),
+        model_wait: declaration.model_wait.as_ref().map(|binding| {
+            Box::new(crate::hir::ResolvedAgentModelWaitBinding {
+                helper_id: crate::hir::DeclarationId::new(binding.helper_id.clone()),
+            })
+        }),
     }
 }
 

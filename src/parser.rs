@@ -8,7 +8,9 @@ use crate::ast::{
 };
 use crate::diagnostic::Diagnostic;
 use crate::lexer::{Token, TokenKind};
-
+#[cfg(test)]
+#[path = "parser/agent_embedded_tests.rs"]
+pub(crate) mod agent_embedded_tests;
 #[cfg(test)]
 #[path = "parser/agent_tests.rs"]
 mod agent_tests;
@@ -37,7 +39,6 @@ impl Parser {
         self.module_header()?;
         let (module, _) = self.qualified_ident("module name")?;
         self.take(&TokenKind::Semicolon);
-
         let mut module_uses = Vec::new();
         while self.at_keyword("use") {
             module_uses.push(self.module_use()?);
@@ -49,7 +50,6 @@ impl Parser {
         } else {
             Vec::new()
         };
-
         let mut types = Vec::new();
         let mut interfaces = Vec::new();
         let mut protocols = Vec::new();
@@ -66,7 +66,7 @@ impl Parser {
             }
             let stable_id = self.stable_id_attribute()?;
             if self.at_keyword("agent") {
-                agents.push(self.agent(stable_id)?);
+                agents.push(self.agent(&module, &mut functions, stable_id)?);
             } else if self.at_keyword("resource") {
                 types.push(self.resource(&module, stable_id)?);
             } else if self.at_keyword("record") {

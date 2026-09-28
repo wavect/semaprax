@@ -430,6 +430,11 @@ impl Resolver<'_> {
             .collect::<Result<Vec<_>, _>>()?;
         let function_instances =
             self.discover_function_instances(&functions, &function_templates)?;
+        for agent in &self.program.agents {
+            agent
+                .validate_execution_metadata(self.program)
+                .map_err(|message| Diagnostic::io("SPX-G559", message))?;
+        }
         let agents = self
             .program
             .agents
@@ -1319,9 +1324,15 @@ fn resolve_agent_declaration(
                     }
                 },
                 stable_id: DeclarationId::new(operation.stable_id.clone()),
+                embedded: operation.embedded_function_index.is_some(),
             })
             .collect(),
         runtime_v1_json: declaration.runtime_v1_json.clone(),
+        model_wait: declaration.model_wait.as_ref().map(|binding| {
+            Box::new(super::ResolvedAgentModelWaitBinding {
+                helper_id: super::DeclarationId::new(binding.helper_id.clone()),
+            })
+        }),
     }
 }
 

@@ -128,3 +128,91 @@ pub(super) fn filter_owned_vec_accounted<T>(
     debug_assert_eq!(retained.len(), selected);
     Ok(retained)
 }
+
+/// Reserve actual retained Agent clone carriers and payloads before linking.
+/// Legacy source bytes do not change, but the successor cache accounts its
+/// actual Rust metadata footprint even when optional helper metadata is absent.
+pub(super) fn reserve_agent_execution_metadata<'a>(
+    agents: impl Iterator<Item = &'a hir::ResolvedAgentDeclaration>,
+) -> Result<(), Vec<Diagnostic>> {
+    let mut bytes = 0usize;
+    let mut add = |amount: usize| -> Result<(), Vec<Diagnostic>> {
+        bytes = bytes.checked_add(amount).ok_or_else(limit_error)?;
+        Ok(())
+    };
+    for agent in agents {
+        add(std::mem::size_of_val(agent))?;
+        for value in [
+            agent.stable_id.as_str(),
+            &agent.name,
+            &agent.runtime_v1_json,
+        ] {
+            add(value.len())?;
+        }
+        for role in &agent.types {
+            add(std::mem::size_of_val(role))?;
+            add(role.stable_id.as_str().len())?;
+        }
+        for operation in &agent.operations {
+            add(std::mem::size_of_val(operation))?;
+            add(operation.stable_id.as_str().len())?;
+        }
+        if let Some(binding) = &agent.model_wait {
+            add(std::mem::size_of_val(binding.as_ref()))?;
+            add(binding.helper_id.as_str().len())?;
+        }
+    }
+    reserve_builder_structure(bytes)
+}
+
+#[cfg(test)]
+mod agent_execution_tests {
+    use super::*;
+
+    #[test]
+    fn cloned_agent_carriers_charge_actual_fixed_and_optional_bytes_at_exact_limits() {
+        let text = format!(
+            "{}\n@id(\"helper\") fn wait(value:i64)->i64 {{value}}",
+            crate::parser::agent_embedded_tests::source().replace(
+                "runtime_v1",
+                "model_wait_v1 { propose = \"helper\"; } runtime_v1"
+            )
+        );
+        let ast = crate::check(&text, "agent-charge.spx").unwrap();
+        let resolved = crate::hir::resolve(&ast).unwrap();
+        let original = resolved.agents[0].clone();
+        for with_helper in [false, true] {
+            let mut agent = original.clone();
+            if !with_helper {
+                agent.model_wait = None;
+            }
+            let mut expected = std::mem::size_of_val(&agent)
+                + agent.stable_id.as_str().len()
+                + agent.name.len()
+                + agent.runtime_v1_json.len();
+            for role in &agent.types {
+                expected += std::mem::size_of_val(role) + role.stable_id.as_str().len();
+            }
+            for operation in &agent.operations {
+                expected += std::mem::size_of_val(operation) + operation.stable_id.as_str().len();
+            }
+            if with_helper {
+                expected +=
+                    std::mem::size_of::<hir::ResolvedAgentModelWaitBinding>() + "helper".len();
+            }
+            let (result, overflow, used) =
+                crate::bounded_output::with_limit_usage(expected, || {
+                    reserve_agent_execution_metadata(std::iter::once(&agent))
+                });
+            result.unwrap();
+            assert!(!overflow);
+            assert_eq!(used, expected);
+            let (result, overflow, _) =
+                crate::bounded_output::with_limit_usage(expected - 1, || {
+                    reserve_agent_execution_metadata(std::iter::once(&agent))
+                });
+            assert_eq!(result.unwrap_err()[0].code, "SPX-G171");
+            assert!(overflow);
+        }
+    }
+}

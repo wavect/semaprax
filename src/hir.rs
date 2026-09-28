@@ -117,8 +117,9 @@ mod validation;
 mod workspace_link;
 pub(crate) mod yield_aggregate;
 pub use agent_nodes::{
-    ResolvedAgentDeclaration, ResolvedAgentOperationKind, ResolvedAgentOperationRole,
-    ResolvedAgentOperationRoleKind, ResolvedAgentTypeRole, ResolvedAgentTypeRoleKind,
+    ResolvedAgentDeclaration, ResolvedAgentModelWaitBinding, ResolvedAgentOperationKind,
+    ResolvedAgentOperationRole, ResolvedAgentOperationRoleKind, ResolvedAgentTypeRole,
+    ResolvedAgentTypeRoleKind,
 };
 pub(crate) use workspace_link::compiler_prelude_declarations;
 

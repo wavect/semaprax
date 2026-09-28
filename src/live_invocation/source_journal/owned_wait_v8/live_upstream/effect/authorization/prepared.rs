@@ -1,4 +1,4 @@
-//! Actual Consumed lineage plus its exclusive future Reduce hold. No Intent.
+//! Actual Consumed lineage plus its exclusive future Reduce hold. No target entry.
 use super::*;
 use crate::interpreter::resumable::owned_frame::registered_stage::effect::{
     OwnedEffectInputsV8, PreparedOwnedEffectV8,
@@ -329,3 +329,9 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_verifie
 
 #[cfg(test)]
 mod tests;
+
+mod intent;
+pub(in crate::live_invocation::source_journal::owned_wait_v8) use intent::{
+    FixedOwnedEffectIntentAppendPermitV8, LiveEffectIntentPreparationFailureV8,
+    LiveOwnedEffectIntentAppendV8,
+};

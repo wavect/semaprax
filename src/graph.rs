@@ -22,6 +22,7 @@ macro_rules! format {
     };
 }
 
+mod agent_execution;
 mod agent_instances;
 mod environment;
 mod expression;
@@ -34,6 +35,7 @@ mod process;
 mod session_protocol_decl;
 mod session_protocol_facet;
 mod session_protocol_follows;
+pub(crate) use agent_execution::facts as agent_execution_facts;
 use expression::expr_json;
 mod generic_instances;
 mod generic_mapping;
@@ -83,6 +85,7 @@ pub fn to_json(program: &Program) -> Result<String, Vec<Diagnostic>> {
     to_hir_json(&resolved, &revision)
         .and_then(|graph| session_protocol_decl::attach(program, &resolved, graph))
         .and_then(|graph| session_protocol_follows::attach(program, graph))
+        .and_then(|graph| agent_execution::attach(program, graph))
         .map_err(|diagnostic| vec![diagnostic])
 }
 

@@ -2,6 +2,7 @@
 //! Offline Multi-Package Source Capsule replay. Serialized facts carry no HIR
 //! or Project association and are never accepted as compilation authority.
 use std::collections::BTreeMap;
+mod agent_execution;
 
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
@@ -27,6 +28,8 @@ pub const PACKAGE_SEMANTIC_GRAPH_SCHEMA_V2: &str = "semaprax.package-semantic-gr
 /// `.v2`. A follows-free package graph keeps `.v2` (or `.v1`) and
 /// byte-identical output.
 pub const PACKAGE_SEMANTIC_GRAPH_SCHEMA_V3: &str = "semaprax.package-semantic-graph.v3";
+/// Checked scalar-source Agent metadata; no owned-State lifecycle ABI.
+pub const PACKAGE_SEMANTIC_GRAPH_SCHEMA_V4: &str = agent_execution::SCHEMA;
 pub const PACKAGE_SEMANTIC_SUMMARY_SCHEMA: &str = "semaprax.package-semantic-summary.v1";
 pub const PACKAGE_SEMANTIC_CONSUMERS_SCHEMA: &str = "semaprax.package-semantic-consumers.v1";
 pub const MAX_PACKAGE_SEMANTIC_GRAPH_BYTES: usize = 16 * 1024 * 1024;
@@ -112,6 +115,7 @@ impl PackageSemanticGraph {
         let mut packages = Vec::new();
         let mut declared_session_protocols = Vec::new();
         let mut session_protocol_follows = Vec::new();
+        let mut agent_rows = Vec::new();
         let mut budget = ConstructionBudget { bytes: 16_384 };
         for (coordinate, fact) in &source_facts {
             let selected_exports = exports
@@ -139,18 +143,21 @@ impl PackageSemanticGraph {
             // own doc comment) and are told apart here by their own leading
             // JSON key alone (`{"stable_id":...` vs `{"function":...`),
             // costing no extra discriminator or second field.
+            let legacy_count = fact
+                .session_protocol_facts
+                .iter()
+                .filter(|row| !row.starts_with("{\"agent\":"))
+                .count();
             if declared_session_protocols
                 .len()
-                .saturating_add(fact.session_protocol_facts.len())
+                .saturating_add(legacy_count)
                 > MAX_SESSION_PROTOCOL_DECLARATIONS
             {
                 return Err(limit(
                     "package graph session protocol declaration inventory exceeds its bound",
                 ));
             }
-            if session_protocol_follows
-                .len()
-                .saturating_add(fact.session_protocol_facts.len())
+            if session_protocol_follows.len().saturating_add(legacy_count)
                 > MAX_SESSION_PROTOCOL_FOLLOWS_BINDINGS
             {
                 return Err(limit(
@@ -158,6 +165,12 @@ impl PackageSemanticGraph {
                 ));
             }
             for raw in &fact.session_protocol_facts {
+                if agent_execution::retain(raw, coordinate, &mut agent_rows, &mut budget)? {
+                    continue;
+                }
+                if !raw.starts_with("{\"function\":") && !raw.starts_with("{\"stable_id\":") {
+                    return Err(binding("package graph checked fact has an unknown tag"));
+                }
                 budget.charge(raw.len(), 256)?;
                 let mut parsed: Value = serde_json::from_str(raw).map_err(|_| {
                     binding("package graph session protocol fact is not canonical JSON")
@@ -270,6 +283,7 @@ impl PackageSemanticGraph {
                     "bindings":session_protocol_follows}),
                 );
         }
+        agent_execution::attach(&mut facts, schema, agent_rows)?;
         let json = render(facts.clone(), true, MAX_PACKAGE_SEMANTIC_GRAPH_BYTES)?;
         let digest = digest(
             b"semaprax.package-semantic-graph.digest.v1\0",

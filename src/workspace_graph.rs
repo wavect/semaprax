@@ -17,6 +17,7 @@ mod generic_type_import;
 mod operation_sidecar;
 mod owned_function_import;
 use owned_function_import::validate_imported_function;
+mod agent_execution;
 mod owned_generics;
 mod package;
 mod prelude_binding;
@@ -3483,10 +3484,17 @@ fn render_graph_json(
     let mut session_protocol_follows: Vec<(String, String, String)> = Vec::new();
     for module in &projection.modules {
         for fact in &module.session_protocol_facts {
+            if fact.starts_with("{\"agent\":") {
+                continue;
+            }
             let row = (module.module.clone(), module.path.clone(), fact.clone());
             if fact.starts_with("{\"function\":") {
                 session_protocol_follows.push(row);
             } else {
+                assert!(
+                    fact.starts_with("{\"stable_id\":"),
+                    "unknown private checked fact tag"
+                );
                 session_protocols.push(row);
             }
         }
@@ -3494,7 +3502,10 @@ fn render_graph_json(
     output.push_str("{\"schema\":");
     push_json_string(
         &mut output,
-        session_protocol_decl::schema(&session_protocols, &session_protocol_follows),
+        agent_execution::schema(
+            session_protocol_decl::schema(&session_protocols, &session_protocol_follows),
+            &projection.modules,
+        ),
     );
     output.push_str(",\"workspace_manifest_schema\":");
     push_json_string(&mut output, WORKSPACE_MANIFEST_SCHEMA);
@@ -3617,6 +3628,10 @@ fn render_graph_json(
     output.push_str(&session_protocol_decl::render_trailing(&session_protocols));
     output.push_str(&session_protocol_decl::render_follows_trailing(
         &session_protocol_follows,
+    ));
+    output.push_str(&agent_execution::render_trailing(
+        session_protocol_decl::schema(&session_protocols, &session_protocol_follows),
+        &projection.modules,
     ));
     output.push('}');
     output.into_string()
@@ -4366,6 +4381,7 @@ fn retain_workspace_module(
     // comment on `WorkspaceResolvedModule`.
     let mut session_protocol_facts = session_protocol_decl::declaration_facts(program, &resolved)?;
     session_protocol_facts.extend(session_protocol_decl::follows_facts(program)?);
+    session_protocol_facts.extend(agent_execution::facts(program)?);
     let types = filter_owned_vec(
         resolved.types,
         |item| {

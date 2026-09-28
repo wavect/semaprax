@@ -152,6 +152,8 @@ pub(crate) struct PackageWorkspaceModule {
     /// Semantic Graph's own `session_protocol_decl` projects, reused
     /// unchanged rather than recomputed. A declaration fact starts
     /// `{"stable_id":...`; a `follows` binding fact starts `{"function":...`.
+    /// Checked source Agent execution metadata starts `{"agent":...` and is
+    /// descriptive only; it confers no lifecycle or publication authority.
     pub(crate) session_protocol_facts: Vec<String>,
 }
 
@@ -270,7 +272,9 @@ pub(crate) fn build_package_scalar_sources(
         modules.push(PackageWorkspaceModule {
             package: module.module.clone(),
             interface,
-            session_protocol_facts: module.session_protocol_facts.clone(),
+            session_protocol_facts: super::agent_execution::clone_package_facts(
+                &module.session_protocol_facts,
+            )?,
         });
     }
     modules.sort_by(|left, right| left.package.as_bytes().cmp(right.package.as_bytes()));

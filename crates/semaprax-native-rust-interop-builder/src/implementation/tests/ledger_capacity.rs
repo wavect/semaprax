@@ -185,6 +185,7 @@ fn hir_capacity_layout_constants_are_bound_to_root_const_assertions() {
     );
     let lower = concat!(
         include_str!("../../../../../src/cleanup_plan/build.rs"),
+        include_str!("../../../../../src/cleanup_plan/build/owned_frame_finalizers.rs"),
         include_str!("../../../../../src/cleanup_plan/build/call_reference.rs"),
         include_str!("../../../../../src/cleanup_plan/build/generic_variant.rs"),
         include_str!("../../../../../src/cleanup_plan/build/bounded_box.rs"),

@@ -113,7 +113,7 @@ fn owned_continued_start_actual_ack_faults_retain_owner_and_retire_all_handles()
                 let entries = crate::interpreter::resumable::owned_frame::registered_stage::reduce::test_continue_observe_entries_v8();
                 let source_entries = start_entries();
                 {
-                    let mut lease = journal.lease.borrow_mut();
+                    let mut lease = journal.test_observe_lease().borrow_mut();
                     match mode {
                         0 => lease.test_fail_before_write(number),
                         1 => lease.test_fail_after_write(number),
@@ -177,7 +177,7 @@ fn owned_continued_start_actual_park_and_prepared_ack_match_ordinary_helper() {
         let (reserved_total, acknowledged_consumed, _) = journal
             .begin_session()
             .unwrap()
-            .inventory
+            .test_observe_inventory()
             .continued_start_checkpoint_basis(&reserved.owner.observation)
             .unwrap();
         let started = reserved
@@ -265,7 +265,7 @@ fn owned_continued_start_prepared_ack_faults_retain_actual_park_without_reentry(
                 .unwrap_or_else(|_| panic!("Prepared"));
             let number = selected.sequence() + 1;
             {
-                let mut lease = journal.lease.borrow_mut();
+                let mut lease = journal.test_observe_lease().borrow_mut();
                 match mode {
                     0 => lease.test_fail_before_write(number),
                     1 => lease.test_fail_after_write(number),

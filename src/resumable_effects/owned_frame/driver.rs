@@ -61,6 +61,7 @@ pub(super) struct OwnedFrameInvocation<'key> {
     journal: Journal<'key>,
     owner: Option<DurableOwner>,
     replay_checked: bool,
+    historical_resume_pending: bool,
 }
 pub(super) enum OwnedFrameStart<'key> {
     Rejected {
@@ -128,7 +129,7 @@ impl<'key> OwnedFrameInvocation<'key> {
         max_reserved_fuel: u64,
         policy: &CapabilityPolicy,
     ) -> Result<(Self, Result<(), Error>), Error> {
-        lease.validate_current()?;
+        lease.validate_scope(&scope)?;
         if !policy.allows(plan.function().id.as_str()) {
             return Err(Error::Policy);
         }
@@ -160,6 +161,7 @@ impl<'key> OwnedFrameInvocation<'key> {
             journal,
             owner,
             replay_checked: false,
+            historical_resume_pending: false,
         };
         let mut validation = Ok(());
         if matches!(
@@ -184,6 +186,7 @@ impl<'key> OwnedFrameInvocation<'key> {
         self.guard(policy, scope)?;
         let phase = self.journal.state.phase;
         let basis = self.journal.state.basis()?;
+        self.historical_resume_pending = matches!(phase, Phase::Answered | Phase::Resuming);
         let mut budget = self.reserve(Kind::ReplayReserved)?;
         self.guard(policy, scope)?;
         let facts = self
@@ -209,7 +212,13 @@ impl<'key> OwnedFrameInvocation<'key> {
                 return Err(Error::Binding);
             }
         }
+        self.append(Record::new(Kind::ReplayValidated,json!({"reservation_sequence":self.journal.state.records.len() as u64-1,"basis":basis,"consumed_steps":budget.consumed()}))?)?;
         if matches!(phase, Phase::Answered | Phase::Resuming) {
+            // Each interpreter phase receives its own ACKed full allowance;
+            // neither phase borrows the other's unused reservation.
+            self.historical_resume_pending = false;
+            let mut resume_budget = self.reserve(Kind::ReplayReserved)?;
+            self.guard(policy, scope)?;
             let answer = codec::decode_scalar(
                 &self
                     .journal
@@ -222,18 +231,15 @@ impl<'key> OwnedFrameInvocation<'key> {
             let resumed = self.owner.as_ref().ok_or(Error::Binding)?.replay_resume(
                 &facts,
                 &answer,
-                &mut budget,
+                &mut resume_budget,
             );
-            exhausted |= matches!(resumed.failure(), Some(OwnedFrameFailure::FuelExhausted));
-            // Historical resume is borrowed validation, never publication or a
-            // second cleanup owner. Exhaustion is ACK-recorded below before a
-            // retry/abandon decision; the original answer remains authoritative.
             if resumed.request().is_some() {
                 self.journal.poisoned = true;
                 return Err(Error::Binding);
             }
+            exhausted |= matches!(resumed.failure(), Some(OwnedFrameFailure::FuelExhausted));
+            self.append(Record::new(Kind::ReplayValidated,json!({"reservation_sequence":self.journal.state.records.len() as u64-1,"basis":basis,"consumed_steps":resume_budget.consumed()}))?)?;
         }
-        self.append(Record::new(Kind::ReplayValidated,json!({"reservation_sequence":self.journal.state.records.len() as u64-1,"basis":basis,"consumed_steps":budget.consumed()}))?)?;
         self.guard(policy, scope)?;
         if matches!(
             phase,
@@ -262,7 +268,7 @@ impl<'key> OwnedFrameInvocation<'key> {
         policy: &CapabilityPolicy,
     ) -> OwnedFrameStart<'key> {
         let preflight = (|| {
-            lease.validate_current()?;
+            lease.validate_scope(&prepared.scope)?;
             if !policy.allows(prepared.plan.function().id.as_str()) {
                 return Err(Error::Policy);
             }
@@ -293,7 +299,7 @@ impl<'key> OwnedFrameInvocation<'key> {
             Ok(j) => j,
             Err(error) => return OwnedFrameStart::Rejected { argument, error },
         };
-        let branches = match capacity::remaining(&journal.state, &row, key) {
+        let branches = match capacity::remaining(&journal.state, &row, key, false) {
             Ok(b) => b,
             Err(error) => return OwnedFrameStart::Rejected { argument, error },
         };
@@ -305,7 +311,7 @@ impl<'key> OwnedFrameInvocation<'key> {
         let owner = DurableOwner::from_argument(argument);
         let acknowledgement=journal.append(row,&branches).and_then(|_| {
             let row=Record::new(Kind::ArgumentCommitted,json!({"argument_digest":journal.state.argument_digest()?,"storage":codec::storage(&journal.state.plan.liveness().storage)?,"leaf_flags":codec::leaf_flags(&journal.state.plan)}))?;
-            let branches=capacity::remaining(&journal.state,&row,key)?;
+            let branches=capacity::remaining(&journal.state,&row,key,false)?;
             journal.append(row,&branches)
         });
         OwnedFrameStart::Invocation {
@@ -313,21 +319,26 @@ impl<'key> OwnedFrameInvocation<'key> {
                 journal,
                 owner: Some(owner),
                 replay_checked: true,
+                historical_resume_pending: false,
             },
             acknowledgement,
         }
     }
     fn guard(&self, policy: &CapabilityPolicy, scope: &SourceCheckpointScope) -> Result<(), Error> {
-        self.journal.validate_current()?;
         if *scope != self.journal.state.scope
             || !policy.allows(self.journal.state.plan.function().id.as_str())
         {
             return Err(Error::Policy);
         }
-        Ok(())
+        self.journal.validate_current()
     }
     fn append(&mut self, row: Record) -> Result<(), Error> {
-        let branches = capacity::remaining(&self.journal.state, &row, self.journal.key)?;
+        let branches = capacity::remaining(
+            &self.journal.state,
+            &row,
+            self.journal.key,
+            self.historical_resume_pending,
+        )?;
         self.journal.append(row, &branches)
     }
     fn reserve(&mut self, kind: Kind) -> Result<OwnedFrameBudget, Error> {

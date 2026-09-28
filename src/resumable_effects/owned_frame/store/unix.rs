@@ -9,6 +9,7 @@ pub(crate) struct RegisteredJournalLease {
     file: File,
     identity: OwnedFrameStoreIdentity,
     name: String,
+    scope: Value,
     length: u64,
     poisoned: bool,
     creator_process: u32,
@@ -100,6 +101,7 @@ impl RegisteredJournalLease {
                 file_inode,
             },
             name,
+            scope: codec::scope(scope)?,
             length,
             poisoned: false,
             creator_process: std::process::id(),
@@ -147,6 +149,7 @@ impl RegisteredJournalLease {
             file,
             identity: registration.identity,
             name,
+            scope: codec::scope(scope)?,
             length,
             poisoned: false,
             creator_process: std::process::id(),
@@ -160,6 +163,15 @@ impl RegisteredJournalLease {
     }
     pub(crate) fn validate_current(&self) -> Result<(), Error> {
         self.check()
+    }
+    pub(crate) fn validate_scope(&self, expected: &SourceCheckpointScope) -> Result<(), Error> {
+        if self.creator_process != std::process::id() {
+            return Err(Error::Policy);
+        }
+        if self.scope != codec::scope(expected)? {
+            return Err(Error::Binding);
+        }
+        self.validate_current()
     }
     pub(crate) fn identity(&self) -> OwnedFrameStoreIdentity {
         self.identity

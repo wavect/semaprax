@@ -10,6 +10,7 @@ pub(super) fn remaining(
     state: &State,
     candidate: &Record,
     key: &SourceCheckpointKey,
+    historical_resume_pending: bool,
 ) -> Result<Vec<Vec<Record>>, Error> {
     let mut next = state.clone();
     next.apply(key, candidate)?;
@@ -144,11 +145,27 @@ pub(super) fn remaining(
     };
     // Original in-progress evaluation needs no second original reservation;
     // interrupted recovery does, after the charged historical validation ACK.
-    if next.replay.is_none() && matches!(next.phase, Phase::Starting | Phase::Resuming) {
+    if next.replay.is_none()
+        && !next.replay_ready
+        && matches!(next.phase, Phase::Starting | Phase::Resuming)
+    {
         rows.remove(0);
     }
     if let Some(replay) = replay {
         rows.insert(0, replay);
+    }
+    if historical_resume_pending {
+        let basis = max_counters(&next.basis()?);
+        let reservation = make(
+            Kind::ReplayReserved,
+            json!({"basis":basis,"reservation":counter,"reserved_total":counter}),
+        )?;
+        let validated = make(
+            Kind::ReplayValidated,
+            json!({"reservation_sequence":counter,"basis":basis,"consumed_steps":counter}),
+        )?;
+        let at = usize::from(next.replay.is_some());
+        rows.splice(at..at, [reservation, validated]);
     }
     let mut branches = Vec::new();
     for cut in 0..rows.len() {

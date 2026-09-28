@@ -121,6 +121,74 @@ fn owned_frame_durable_start_recompares_actual_argument_before_any_write() {
     assert!(lease.read().unwrap().is_empty());
     assert!(weak.iter().all(|leaf| leaf.upgrade().is_none()));
 }
+
+#[test]
+fn owned_frame_durable_start_refuses_existing_history_and_entire_granted_scope_prewrite() {
+    use crate::interpreter::resumable::owned_frame::durable::{
+        evaluation_count, reset_evaluations,
+    };
+    let scopes = [
+        SourceCheckpointScope::new("sha256:other-program", "owned-journal", 7).unwrap(),
+        SourceCheckpointScope::new("sha256:program", "other-invocation", 7).unwrap(),
+        SourceCheckpointScope::new("sha256:program", "owned-journal", 8).unwrap(),
+    ];
+    for existing in [false, true] {
+        for changed_scope in std::iter::once(None).chain(scopes.iter().map(Some)) {
+            if !existing && changed_scope.is_none() {
+                continue;
+            }
+            let directory = Directory::new();
+            let (plan, input, scope, key) = fixture();
+            let mut lease =
+                RegisteredJournalLease::fresh(directory.file(), directory.identity(), &scope)
+                    .unwrap();
+            let identity = lease.identity();
+            if existing {
+                let state = State::new(plan.clone(), scope.clone(), 100, 2000, identity).unwrap();
+                let mut journal = Journal::fresh(lease, &key, state).unwrap();
+                journal
+                    .append(created(&journal.state, &input).unwrap(), &[])
+                    .unwrap();
+                drop(journal);
+                let grant =
+                    OwnedFrameStoreRegistration::grant_for_trusted_host(identity, &scope, true)
+                        .unwrap();
+                lease = RegisteredJournalLease::recover(directory.file(), grant, &scope).unwrap();
+            }
+            let before = lease.read().unwrap();
+            let actual = admit_owned_frame_input(&plan, input.clone())
+                .unwrap_or_else(|e| panic!("{:?}", e.diagnostic));
+            let weak = snapshot::argument_weak(&actual);
+            let prepared = PreparedOwnedFrame::new(
+                &plan,
+                &actual,
+                changed_scope.unwrap_or(&scope).clone(),
+                100,
+                2000,
+            )
+            .unwrap();
+            reset_evaluations();
+            match OwnedFrameInvocation::start(prepared, actual, lease, &key, &policy()) {
+                OwnedFrameStart::Rejected { argument, error } => {
+                    assert_eq!(error, Error::Binding);
+                    assert_eq!(
+                        codec::input(&plan, &snapshot::argument_input(&argument).unwrap()).unwrap(),
+                        codec::input(&plan, &input).unwrap()
+                    );
+                    assert!(weak.iter().all(|leaf| leaf.strong_count() == 1));
+                    drop(argument);
+                }
+                OwnedFrameStart::Invocation { .. } => panic!("wrong history/scope committed"),
+            }
+            assert_eq!(evaluation_count(), 0);
+            let grant = OwnedFrameStoreRegistration::grant_for_trusted_host(identity, &scope, true)
+                .unwrap();
+            let mut lease =
+                RegisteredJournalLease::recover(directory.file(), grant, &scope).unwrap();
+            assert_eq!(lease.read().unwrap(), before);
+        }
+    }
+}
 #[test]
 fn owned_frame_durable_abandon_releases_actual_leaves_in_compiler_order_after_drop() {
     let directory = Directory::new();
@@ -261,7 +329,11 @@ fn owned_frame_durable_replay_ack_windows_preserve_charges_without_unreserved_ev
         Phase::Answered,
         Phase::Resuming,
     ] {
-        for number in [1, 2] {
+        for number in 1..=if matches!(phase, Phase::Answered | Phase::Resuming) {
+            4
+        } else {
+            2
+        } {
             for after in [false, true] {
                 let directory = Directory::new();
                 let (plan, input, scope, key) = fixture();
@@ -309,7 +381,7 @@ fn owned_frame_durable_replay_ack_windows_preserve_charges_without_unreserved_ev
                     evaluation_count(),
                     if number == 1 {
                         0
-                    } else if matches!(phase, Phase::Answered | Phase::Resuming) {
+                    } else if number == 4 {
                         2
                     } else {
                         1
@@ -337,7 +409,14 @@ fn owned_frame_durable_replay_ack_windows_preserve_charges_without_unreserved_ev
                 let journal = Journal::reopen(lease, &key, state).unwrap();
                 assert_eq!(
                     journal.state.reserved_total,
-                    prior + if number == 1 && !after { 0 } else { 100 }
+                    prior
+                        + if number == 1 && !after {
+                            0
+                        } else if number == 4 || number == 3 && after {
+                            200
+                        } else {
+                            100
+                        }
                 );
                 assert_eq!(journal.state.phase, phase);
             }
@@ -421,5 +500,100 @@ fn owned_frame_durable_cleanup_ack_loss_never_repeats_physical_release() {
                 }
             }
         }
+    }
+}
+
+#[test]
+fn owned_frame_durable_answered_recovery_charges_each_historical_phase_separately() {
+    let (plan, input, scope, key) = fixture();
+    let argument = admit_owned_frame_input(&plan, input.clone())
+        .unwrap_or_else(|e| panic!("{:?}", e.diagnostic));
+    let mut start_budget = OwnedFrameBudget::new(100).unwrap();
+    let owner = DurableOwner::from_argument(argument).start(&mut start_budget);
+    let mut resume_budget = OwnedFrameBudget::new(100).unwrap();
+    let owner = owner.resume(ArgumentValue::Int(1), &mut resume_budget);
+    assert!(owner.failure().is_none());
+    let start_steps = start_budget.consumed() as u64;
+    let resume_steps = resume_budget.consumed() as u64;
+    let allowance = start_steps.max(resume_steps);
+    assert!(start_steps > 0 && resume_steps > 0 && start_steps + resume_steps > allowance);
+    drop(owner);
+    let directory = Directory::new();
+    let argument =
+        admit_owned_frame_input(&plan, input).unwrap_or_else(|e| panic!("{:?}", e.diagnostic));
+    let prepared =
+        PreparedOwnedFrame::new(&plan, &argument, scope.clone(), allowance, 8 * allowance).unwrap();
+    let lease =
+        RegisteredJournalLease::fresh(directory.file(), directory.identity(), &scope).unwrap();
+    let mut invocation =
+        match OwnedFrameInvocation::start(prepared, argument, lease, &key, &policy()) {
+            OwnedFrameStart::Invocation {
+                invocation,
+                acknowledgement,
+            } => {
+                acknowledgement.unwrap();
+                invocation
+            }
+            OwnedFrameStart::Rejected { error, .. } => panic!("{error:?}"),
+        };
+    invocation.begin(&policy(), &scope).unwrap();
+    invocation
+        .dispatch(&policy(), &scope, &mut |_| Ok(ArgumentValue::Int(1)))
+        .unwrap();
+    let identity = invocation.journal.lease.identity();
+    drop(invocation);
+    let registration =
+        OwnedFrameStoreRegistration::grant_for_trusted_host(identity, &scope, true).unwrap();
+    let lease = RegisteredJournalLease::recover(directory.file(), registration, &scope).unwrap();
+    let (mut recovered, validation) = OwnedFrameInvocation::recover(
+        lease,
+        &key,
+        &plan,
+        scope.clone(),
+        allowance,
+        8 * allowance,
+        &policy(),
+    )
+    .unwrap();
+    validation.unwrap();
+    assert_eq!(recovered.journal.state.reserved_total, 3 * allowance);
+    assert_eq!(recovered.journal.state.reservation_count, 3);
+    recovered.resume(&policy(), &scope).unwrap();
+    assert_eq!(recovered.journal.state.phase, Phase::Completed);
+    assert_eq!(recovered.journal.state.reserved_total, 4 * allowance);
+    assert_eq!(
+        recovered.journal.state.consumed_total,
+        2 * (start_steps + resume_steps)
+    );
+}
+
+#[test]
+fn owned_frame_durable_capacity_after_replay_ack_keeps_fresh_retry_reservation() {
+    for phase in [Phase::Starting, Phase::Resuming] {
+        let directory = Directory::new();
+        let (plan, input, scope, key) = fixture();
+        let mut invocation = started(&directory, &key, &plan, input, &scope, None);
+        if phase == Phase::Starting {
+            invocation.reserve(Kind::StartReserved).unwrap();
+        } else {
+            invocation.begin(&policy(), &scope).unwrap();
+            invocation
+                .dispatch(&policy(), &scope, &mut |_| Ok(ArgumentValue::Int(1)))
+                .unwrap();
+            invocation.reserve(Kind::ResumeReserved).unwrap();
+        }
+        let basis = invocation.journal.state.basis().unwrap();
+        invocation.reserve(Kind::ReplayReserved).unwrap();
+        let validated=Record::new(Kind::ReplayValidated,json!({"reservation_sequence":invocation.journal.state.records.len() as u64-1,"basis":basis,"consumed_steps":0})).unwrap();
+        let branches =
+            capacity::remaining(&invocation.journal.state, &validated, &key, false).unwrap();
+        let retry = if phase == Phase::Starting {
+            Kind::StartReserved
+        } else {
+            Kind::ResumeReserved
+        };
+        assert!(branches
+            .iter()
+            .any(|branch| branch.iter().any(|row| row.kind == retry)));
     }
 }

@@ -65,6 +65,9 @@ impl RegisteredJournalLease {
     pub(crate) fn validate_current(&self) -> Result<(), Error> {
         Err(Error::UnsupportedStore)
     }
+    pub(crate) fn validate_scope(&self, _: &SourceCheckpointScope) -> Result<(), Error> {
+        Err(Error::UnsupportedStore)
+    }
     pub(crate) fn identity(&self) -> OwnedFrameStoreIdentity {
         unreachable!("unsupported store")
     }

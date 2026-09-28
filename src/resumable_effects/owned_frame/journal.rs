@@ -178,11 +178,22 @@ pub(super) struct Journal<'key> {
 }
 impl<'key> Journal<'key> {
     pub(super) fn fresh(
+        mut lease: RegisteredJournalLease,
+        key: &'key SourceCheckpointKey,
+        state: State,
+    ) -> Result<Self, Error> {
+        lease.validate_scope(&state.scope)?;
+        if !lease.read()?.is_empty() {
+            return Err(Error::Binding);
+        }
+        Self::unfolded(lease, key, state)
+    }
+    fn unfolded(
         lease: RegisteredJournalLease,
         key: &'key SourceCheckpointKey,
         state: State,
     ) -> Result<Self, Error> {
-        lease.validate_current()?;
+        lease.validate_scope(&state.scope)?;
         Ok(Self {
             lease,
             key,
@@ -199,12 +210,12 @@ impl<'key> Journal<'key> {
         key: &'key SourceCheckpointKey,
         state: State,
     ) -> Result<Self, Error> {
-        lease.validate_current()?;
+        lease.validate_scope(&state.scope)?;
         let bytes = lease.read()?;
         if !bytes.is_empty() && bytes.last() != Some(&b'\n') {
             return Err(Error::Malformed);
         }
-        let mut journal = Self::fresh(lease, key, state)?;
+        let mut journal = Self::unfolded(lease, key, state)?;
         for line in bytes.split_inclusive(|byte| *byte == b'\n') {
             if line.is_empty() {
                 continue;
@@ -270,7 +281,7 @@ impl<'key> Journal<'key> {
         Ok(journal)
     }
     pub(super) fn validate_current(&self) -> Result<(), Error> {
-        self.lease.validate_current()?;
+        self.lease.validate_scope(&self.state.scope)?;
         if self.poisoned {
             return Err(Error::InDoubt);
         }
@@ -372,10 +383,11 @@ impl<'key> Journal<'key> {
 pub(crate) struct OwnedFrameClaimPermit<'lease> {
     lease: &'lease RegisteredJournalLease,
     plan_digest: String,
+    scope: SourceCheckpointScope,
 }
 impl OwnedFrameClaimPermit<'_> {
     pub(crate) fn consume(self, plan: &CheckedOwnedFramePlan) -> Result<(), Error> {
-        self.lease.validate_current()?;
+        self.lease.validate_scope(&self.scope)?;
         if self.plan_digest != plan.binding() {
             return Err(Error::Binding);
         }
@@ -392,6 +404,7 @@ impl Journal<'_> {
         Ok(OwnedFrameClaimPermit {
             lease: &self.lease,
             plan_digest: self.state.plan.binding().to_owned(),
+            scope: self.state.scope.clone(),
         })
     }
 }
@@ -401,6 +414,7 @@ impl Journal<'_> {
 pub(crate) struct OwnedFrameRestorePermit<'lease> {
     lease: &'lease RegisteredJournalLease,
     plan_digest: String,
+    scope: SourceCheckpointScope,
     input: OwnedFrameInput,
     kind: RestorationKind,
 }
@@ -417,7 +431,7 @@ impl OwnedFrameRestorePermit<'_> {
         self,
         plan: &CheckedOwnedFramePlan,
     ) -> Result<(OwnedFrameInput, RestorationKind), Error> {
-        self.lease.validate_current()?;
+        self.lease.validate_scope(&self.scope)?;
         if self.plan_digest != plan.binding() {
             return Err(Error::Binding);
         }
@@ -458,6 +472,7 @@ impl Journal<'_> {
         Ok(OwnedFrameRestorePermit {
             lease: &self.lease,
             plan_digest: self.state.plan.binding().to_owned(),
+            scope: self.state.scope.clone(),
             input,
             kind,
         })

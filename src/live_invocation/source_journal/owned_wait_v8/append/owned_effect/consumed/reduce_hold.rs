@@ -105,6 +105,137 @@ impl ProspectiveOwnedReduceHoldV8<'_> {
         result.inspect_err(|_| self.journal.poisoned.set(true))
     }
 
+    /// Separate fresh Intent phase guard. The old Consumed guard stays closed.
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_intent_guard(
+        &self,
+        journal: &SourceOwnedWaitJournalV8,
+        sequence: usize,
+        acknowledged_bytes: usize,
+    ) -> Result<(), SourceJournalError> {
+        let result = (|| {
+            if !std::ptr::eq(self.journal, journal) {
+                return Err(SourceJournalError::Binding);
+            }
+            journal.validate_guard()?;
+            let current = journal.begin_session()?;
+            self.validate_intent_inventory(&current.inventory, sequence, acknowledged_bytes)?;
+            journal.validate_guard()
+        })();
+        result.inspect_err(|_| self.journal.poisoned.set(true))
+    }
+    fn validate_intent_inventory(
+        &self,
+        inventory: &super::super::super::super::candidate::InventoryV8<'_>,
+        sequence: usize,
+        acknowledged_bytes: usize,
+    ) -> Result<(), SourceJournalError> {
+        if !inventory.belongs_to_context(&self.journal.context) || self.journal.poisoned.get() {
+            return Err(SourceJournalError::Binding);
+        }
+        let (reserved, stages, turn, attempt, selected) = inventory.effect_intent_reduce_facts()?;
+        let fuel = self.checked_funding(reserved, stages)?;
+        let registry = self
+            .journal
+            .prospective_reduce
+            .try_borrow()
+            .map_err(|_| SourceJournalError::Order)?;
+        let record = registry.as_ref().ok_or(SourceJournalError::Binding)?;
+        let OwnedReduceHoldPhaseV8::Intent { selected: actual } = &record.phase else {
+            return Err(SourceJournalError::Binding);
+        };
+        if !matches!(selected, EntryV8::Ordinary(expected) if expected == actual)
+            || record.identity != self.identity
+            || record.fuel != fuel
+            || record.turn != turn
+            || record.attempt != attempt
+            || record.sequence != sequence
+            || inventory.sequence() != sequence
+            || record.bytes != acknowledged_bytes
+            || inventory.acknowledged_bytes() != acknowledged_bytes
+            || record.authentication != inventory.authentication_tail()
+        {
+            return Err(SourceJournalError::Binding);
+        }
+        Ok(())
+    }
+    fn checked_funding(&self, reserved: u64, stages: u32) -> Result<u64, SourceJournalError> {
+        let ordinary = self.journal.context.ordinary();
+        let (_, execution) = self
+            .journal
+            .context
+            .ready_runtime()
+            .ok_or(SourceJournalError::Binding)?;
+        let fuel =
+            u64::try_from(execution.evaluation_fuel()).map_err(|_| SourceJournalError::Capacity)?;
+        if Some(execution.evaluation_fuel()) != ordinary.max_steps_per_stage() {
+            return Err(SourceJournalError::Binding);
+        }
+        funding(
+            reserved,
+            stages,
+            fuel,
+            u64::try_from(
+                ordinary
+                    .max_total_steps()
+                    .ok_or(SourceJournalError::Binding)?,
+            )
+            .map_err(|_| SourceJournalError::Capacity)?,
+            ordinary.max_stages(),
+        )?;
+        Ok(fuel)
+    }
+    /// Only an actual fixed Intent ACK witness plus its acknowledged session can
+    /// advance this retained registry. No callback or file access under marker.
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_intent_ack(
+        &self,
+        witness: &super::super::intent::VerifiedOwnedEffectIntentSuccessorV8<'_>,
+        session: &AppendSessionV8<'_>,
+    ) -> Result<(), SourceJournalError> {
+        let result = (|| {
+            if !std::ptr::eq(self.journal, session.journal)
+                || self.journal.poisoned.get()
+                || !self.journal.append_active.get()
+            {
+                return Err(SourceJournalError::Binding);
+            }
+            witness.validate_against_acknowledged_session(session)?;
+            let (reserved, stages, turn, attempt, selected) =
+                session.inventory.effect_intent_reduce_facts()?;
+            let fuel = self.checked_funding(reserved, stages)?;
+            let EntryV8::Ordinary(selected) = selected else {
+                return Err(SourceJournalError::Binding);
+            };
+            let selected = selected.clone();
+            let authentication = session.inventory.authentication_tail().to_owned();
+            let mut registry = self
+                .journal
+                .prospective_reduce
+                .try_borrow_mut()
+                .map_err(|_| SourceJournalError::Order)?;
+            let record = registry.as_mut().ok_or(SourceJournalError::Binding)?;
+            if !matches!(&record.phase, OwnedReduceHoldPhaseV8::Consumed)
+                || record.identity != self.identity
+                || record.fuel != fuel
+                || record.turn != turn
+                || record.attempt != attempt
+            {
+                return Err(SourceJournalError::Binding);
+            }
+            witness.validate_consumed_registry(
+                self.journal,
+                record.sequence,
+                record.bytes,
+                &record.authentication,
+            )?;
+            record.phase = OwnedReduceHoldPhaseV8::Intent { selected };
+            record.sequence = session.sequence();
+            record.bytes = session.acknowledged_bytes();
+            record.authentication = authentication;
+            Ok(())
+        })();
+        result.inspect_err(|_| self.journal.poisoned.set(true))
+    }
+
     /// Borrow-only Consumed-phase guard, never an owner/ACK/token producer.
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_guard(
         &self,

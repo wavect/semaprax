@@ -13,7 +13,7 @@ use crate::agent_lifecycle::authorization::{
     },
 };
 use crate::agent_lifecycle::iterative::effects::{plan_owned_effect_v8, CheckedOwnedEffectPlanV8};
-use crate::agent_lifecycle::AgentCancellation;
+use crate::agent_runtime::AgentCancellation;
 use crate::execution_revision::typed::{AgentRuntimeV2, CheckedTypedOwnedWaitExecutionV8};
 use crate::live_invocation::source_journal::{HeldOwnedWaitStoreV8, SourceEffectFailure};
 use crate::resumable_effects::capability::CapabilityPolicy;

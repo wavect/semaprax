@@ -143,9 +143,8 @@ fn legacy_source_retains_its_base_schema_without_execution_facts() {
 #[test]
 fn unreachable_opted_in_module_does_not_require_unlinked_agent_functions() {
     let source = "module fixture.app; @id(\"fixture.main\") fn main()->i64 {0} @id(\"fixture.public\") fn published()->i64 {0}";
-    let spare = fixture::workspace_source(true, true)
-        .replace("fixture.", "spare.")
-        .replace("fn main()", "fn spare_entry()");
+    let executable_spare = fixture::workspace_source(true, true).replace("fixture.", "spare.");
+    let spare = executable_spare.replace("fn main()", "fn spare_entry()");
     let workspace = Workspace::new(source, Some(&spare));
     let revision = workspace.revision();
     assert!(revision.entry_program().agents.is_empty());
@@ -157,6 +156,52 @@ fn unreachable_opted_in_module_does_not_require_unlinked_agent_functions() {
     let graph: Value = serde_json::from_str(revision.semantic_graph()).unwrap();
     assert!(graph.get("agent_execution").is_none());
     assert_eq!(graph["schema"], "semaprax.project-semantic-graph.v1");
+    // The provider contributes checked schema data, never executable roots.
+    let contracts = revision.agent_interaction_contract_facts().unwrap();
+    let provider = contracts.fact("spare.agent").unwrap();
+    let proposal = semaprax::project::compile_source_agent_proposal_schema(
+        &executable_spare,
+        "src/spare.spx",
+        "spare.agent",
+    )
+    .unwrap();
+    let observation = semaprax::agent_observation::compile_source_agent_observation_schema(
+        &executable_spare,
+        "src/spare.spx",
+        "spare.agent",
+    )
+    .unwrap();
+    assert_eq!(
+        provider.proposal_schema(),
+        proposal.schema().canonical_json()
+    );
+    assert_eq!(
+        provider.observation_schema(),
+        observation.schema().canonical_json()
+    );
+    assert_eq!(
+        provider.proposal_type_revision(),
+        proposal.schema().proposal_type_revision()
+    );
+    assert_eq!(
+        provider.observation_type_revision(),
+        observation.schema().observation_type_revision()
+    );
+    let invalid = spare.replace(
+        "@id(\"spare.agent.type.proposal.value\") value:i64,",
+        "@id(\"spare.agent.type.proposal.value\") value:Bytes,",
+    );
+    assert_ne!(invalid, spare);
+    workspace.write("src/spare.spx", &invalid);
+    let errors = with_authenticated_project(&workspace.0.join("semaprax.toml"), |snapshot| {
+        Ok(snapshot.retain_revision())
+    })
+    .err()
+    .expect("owned Proposal leaf must retain the SDK refusal");
+    assert!(
+        errors.iter().any(|error| error.code == "SPX-G548"),
+        "{errors:?}"
+    );
 }
 
 #[test]

@@ -103,6 +103,13 @@ fn finish_build(
         .command()
         .map(|id| vec![id.to_owned()])
         .unwrap_or_default();
+    let provider_agent_schemas = super::agent_contract_facts::prepare_provider_agent_schemas(
+        &graph,
+        manifest.entry(),
+        &files,
+        &program_refs,
+        &agent_definitions,
+    )?;
     let semantic_parts = graph.into_project_semantic_parts(
         &workspace_revision,
         graph_source_facts,
@@ -169,6 +176,7 @@ fn finish_build(
             &files,
             &program_refs,
             &agent_definitions,
+            provider_agent_schemas,
         )?)
     };
     // Keep execution bound to the entry-only closure while retaining the

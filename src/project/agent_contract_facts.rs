@@ -1,5 +1,8 @@
 //! Content-addressed Proposal and Observation contracts for source-owned Agents.
 
+mod provider;
+pub(super) use provider::{prepare as prepare_provider_agent_schemas, PreparedProviderSchemas};
+
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 
@@ -85,6 +88,7 @@ impl AgentInteractionContractFacts {
         files: &[SemanticWorkspaceFileFact],
         programs: &[&Program],
         definitions: &[CompiledAgentDefinition],
+        mut providers: Vec<PreparedProviderSchemas>,
     ) -> Result<Self> {
         if definitions.is_empty()
             || definitions.len()
@@ -97,10 +101,11 @@ impl AgentInteractionContractFacts {
                 "Agent interaction contracts require every source Agent",
             ));
         }
-        let linked_graph = if programs
-            .iter()
-            .any(|program| !program.agents.is_empty() && !program.module_uses.is_empty())
-        {
+        let linked_graph = if programs.iter().any(|program| {
+            !program.agents.is_empty()
+                && !program.module_uses.is_empty()
+                && program.functions.iter().any(|f| f.name == "main")
+        }) {
             let paths = files
                 .iter()
                 .map(|file| file.path().to_owned())
@@ -136,7 +141,9 @@ impl AgentInteractionContractFacts {
                         .any(|agent| agent.stable_id == agent_id)
                 })
                 .ok_or_else(|| invalid("Agent interaction contract source module is missing"))?;
-            let linked = if !program.module_uses.is_empty() {
+            let provider = provider::take(&mut providers, agent_id, file.path());
+            let provider_prepared = provider.is_some();
+            let linked = if !provider_prepared && !program.module_uses.is_empty() {
                 let agent = program
                     .agents
                     .iter()
@@ -166,27 +173,32 @@ impl AgentInteractionContractFacts {
             } else {
                 None
             };
-            let proposal = if let Some(linked) = &linked {
-                crate::agent_proposal::compile_resolved_agent_proposal_schema(
-                    linked,
-                    file.source_revision().to_owned(),
-                    definition,
-                )?
+            let (proposal, observation) = if let Some(provider) = provider {
+                provider.into_parts()
             } else {
-                compile_agent_proposal_schema(
-                    file.source(),
-                    file.path(),
-                    definition.definition().canonical_source(),
-                )?
-            };
-            let observation = if let Some(linked) = &linked {
-                crate::agent_observation::compile_resolved_agent_observation_schema(
-                    linked,
-                    file.source_revision().to_owned(),
-                    definition,
-                )?
-            } else {
-                compile_source_agent_observation_schema(file.source(), file.path(), agent_id)?
+                let proposal = if let Some(linked) = &linked {
+                    crate::agent_proposal::compile_resolved_agent_proposal_schema(
+                        linked,
+                        file.source_revision().to_owned(),
+                        definition,
+                    )?
+                } else {
+                    compile_agent_proposal_schema(
+                        file.source(),
+                        file.path(),
+                        definition.definition().canonical_source(),
+                    )?
+                };
+                let observation = if let Some(linked) = &linked {
+                    crate::agent_observation::compile_resolved_agent_observation_schema(
+                        linked,
+                        file.source_revision().to_owned(),
+                        definition,
+                    )?
+                } else {
+                    compile_source_agent_observation_schema(file.source(), file.path(), agent_id)?
+                };
+                (proposal, observation)
             };
             if proposal.definition_digest() != definition.definition().digest()
                 || observation.definition_digest() != definition.definition().digest()
@@ -203,7 +215,9 @@ impl AgentInteractionContractFacts {
             }
             let proposal_schema = proposal.schema().canonical_json().to_owned();
             let observation_schema = observation.schema().canonical_json().to_owned();
-            if let Some(linked) = &linked {
+            if provider_prepared {
+                // Both schemas already replayed against the actual preflight HIR.
+            } else if let Some(linked) = &linked {
                 let proposal_replay =
                     crate::agent_proposal::compile_resolved_agent_proposal_schema(
                         linked,
@@ -270,6 +284,9 @@ impl AgentInteractionContractFacts {
                 observation_type_revision,
                 value,
             });
+        }
+        if !providers.is_empty() {
+            return Err(stale("provider Agent prepared inventory differs"));
         }
         if facts
             .windows(2)

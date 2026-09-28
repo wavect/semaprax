@@ -36,6 +36,73 @@ impl SourceModelWaitBinding {
     pub(crate) fn matches(&self, lifecycle: &CompiledIterativeLifecycle) -> bool {
         self.lifecycle == lifecycle.digest() && self.source_revision == lifecycle.source_revision()
     }
+
+    pub(crate) fn observation_carrier(
+        &self,
+        lifecycle: &CompiledIterativeLifecycle,
+        value: &RetainedValue,
+    ) -> Option<ResumableChannelValue> {
+        if !self.matches(lifecycle) {
+            return None;
+        }
+        let RetainedValue::Record(value) = value else {
+            return None;
+        };
+        if value.record != self.observation {
+            return None;
+        }
+        let expected = record_fields(&lifecycle.inner.program, &self.observation)?;
+        if value.fields.len() != expected.len() {
+            return None;
+        }
+        let fields = expected
+            .iter()
+            .zip(&value.fields)
+            .map(|(field, actual)| {
+                if field.id != actual.field {
+                    return None;
+                }
+                Some(match (&field.ty, &actual.value) {
+                    (hir::ResolvedType::Bool, RetainedValue::Bool(v)) => ArgumentValue::Bool(*v),
+                    (hir::ResolvedType::I32, RetainedValue::I32(v)) => ArgumentValue::Int32(*v),
+                    (hir::ResolvedType::I64, RetainedValue::I64(v)) => ArgumentValue::Int(*v),
+                    (hir::ResolvedType::U8, RetainedValue::U8(v)) => ArgumentValue::Uint8(*v),
+                    (hir::ResolvedType::Usize, RetainedValue::Usize(v)) => ArgumentValue::Usize(*v),
+                    _ => return None,
+                })
+            })
+            .collect::<Option<Vec<_>>>()?;
+        Some(ResumableChannelValue::Record {
+            declaration: self.observation.clone(),
+            fields,
+        })
+    }
+}
+
+pub(crate) fn carrier_digest(
+    wait: &str,
+    kind: &str,
+    carrier: &ResumableChannelValue,
+) -> Option<String> {
+    let ResumableChannelValue::Record {
+        declaration,
+        fields,
+    } = carrier
+    else {
+        return None;
+    };
+    let fields = serde_json::Value::Array(fields.iter().map(checkpoint::scalar_json).collect());
+    let canonical = format!(
+        "{{\"wait\":{},\"kind\":{},\"declaration\":{},\"fields\":{}}}",
+        quote_json(wait),
+        quote_json(kind),
+        quote_json(declaration.as_str()),
+        fields
+    );
+    Some(super::super::digest(
+        b"semaprax.source-model-wait.carrier.v1\0",
+        canonical.as_bytes(),
+    ))
 }
 
 impl CompiledIterativeLifecycle {

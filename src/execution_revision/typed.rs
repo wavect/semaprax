@@ -18,6 +18,7 @@ use crate::provider_adapter_sdk::StreamingSourceProposalAdapter;
 
 pub const MAX_ITERATIVE_PROPOSAL_BYTES: usize = 2 * 1024 * 1024;
 
+#[path = "typed/model_wait.rs"]
 mod model_wait;
 pub use model_wait::SourceModelWaitBinding;
 
@@ -658,7 +659,8 @@ fn bind_runtime(
 mod durable;
 pub use durable::{
     AgentRuntimeV2DurableEvidence, AgentRuntimeV2DurableModelEvidence,
-    AgentRuntimeV2DurableModelFailure, PreparedAgentRuntimeV2SourceMigration,
+    AgentRuntimeV2DurableModelFailure, AgentRuntimeV2DurableModelWaitEvidence,
+    PreparedAgentRuntimeV2SourceMigration,
 };
 
 #[path = "typed_migration.rs"]

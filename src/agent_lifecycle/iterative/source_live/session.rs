@@ -3,8 +3,10 @@ use super::*;
 use crate::live_invocation::source_journal::*;
 use crate::live_invocation::InvocationBudgetHook;
 use driver::{IterativeDriver, ProposalRequest, ProposalSource};
+mod model_wait;
 
 pub(crate) struct SourceExecutionSession<'a> {
+    model_wait: Option<model_wait::ModelWaitContext<'a>>,
     pub(super) sink: SourceCheckpointSink<'a>,
     pub(super) ledger: CumulativeBudgetLedger<'a>,
     clock: &'a dyn SourceInvocationClock,
@@ -64,13 +66,19 @@ impl<'a> SourceExecutionSession<'a> {
             .map_or(0, |value| value.saturating_add(1));
         let replay = sink
             .journal()
-            .entries()
-            .iter()
-            .enumerate()
-            .filter(|(_, entry)| !sideband(entry) && !migration_preamble(entry))
-            .map(|(seq, entry)| (seq as u32, entry.clone()))
+            .execution_entries_v7()
+            .into_iter()
+            .filter_map(|(seq, entry)| match entry {
+                SourceExecutionEntryV7::Ordinary(entry)
+                    if !sideband(&entry) && !migration_preamble(&entry) =>
+                {
+                    Some((seq, entry))
+                }
+                _ => None,
+            })
             .collect();
         Self {
+            model_wait: None,
             sink,
             ledger,
             clock,
@@ -228,6 +236,11 @@ impl<'a> SourceExecutionSession<'a> {
             return self.propose_policy(source, request);
         }
         self.guard()?;
+        self.prepare_model_wait(
+            request.turn as u32,
+            request.attempt as u32,
+            request.observation,
+        )?;
         let identity = source.checkpoint_attempt_identity(&request)?;
         let turn = request.turn as u32;
         let attempt = request.attempt as u32;

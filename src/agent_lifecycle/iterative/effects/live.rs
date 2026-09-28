@@ -5,6 +5,8 @@
 //! its `before_effect` boundary, then uses the same Dispatch as frozen input.
 
 use super::*;
+#[path = "live/model_wait.rs"]
+mod model_wait;
 use crate::agent_lifecycle::authorization::target_protocol::{
     self, TargetAccounting, TargetGrant, TargetHostHandler, TargetLimits, TargetOperation,
     TypedCarrier,

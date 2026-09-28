@@ -19,7 +19,10 @@ use crate::provider_adapter_sdk::StreamingSourceProposalAdapter;
 
 #[path = "typed_durable/migration.rs"]
 mod migration;
+#[path = "typed_durable/model_wait.rs"]
+mod model_wait;
 pub use migration::PreparedAgentRuntimeV2SourceMigration;
+pub use model_wait::AgentRuntimeV2DurableModelWaitEvidence;
 
 impl AgentRuntimeV2 {
     /// Derives the exact unpriced durable checkpoint binding before a caller

@@ -1,5 +1,7 @@
 use super::*;
 use semaprax::agent_runtime_v2::bind_agent_runtime_v2_live;
+#[path = "model_wait/durable.rs"]
+mod durable;
 
 #[test]
 fn model_wait_binding_obeys_exact_runtime_stage_ceiling() {

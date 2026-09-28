@@ -300,6 +300,7 @@ impl CompiledIterativeLifecycle {
                 stop!(IterativeStatus::ModelFailed, None);
             };
             if let Some(session) = session.as_deref_mut() {
+                session.model_wait_proposal(run.iterations, attempt, &decoded)?;
                 session.proposal_admitted(run.iterations, attempt, decoded.canonical_json())?;
             }
             boundary!();

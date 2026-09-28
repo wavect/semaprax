@@ -320,6 +320,19 @@ impl<'a> StreamingSourceProposalAdapter<'a> {
     pub fn model_policy_binding(&self) -> Option<&SourceModelPolicyBinding> {
         self.policy.as_ref().map(SourceModelPolicySession::binding)
     }
+    pub(crate) fn ordinary_checkpoint_matches(&self, policy: &SourceProposalPolicy<'_>) -> bool {
+        self.binding.is_some()
+            && self.binding_capability.is_some()
+            && self.policy.is_none()
+            && self
+                .checkpoint
+                .as_ref()
+                .is_some_and(|(deployment, response, units)| {
+                    deployment == policy.deployment_binding
+                        && *response == policy.response_limit
+                        && *units == policy.reservation_units
+                })
+    }
     #[must_use]
     pub fn with_cancellation(mut self, cancellation: &'a AgentCancellation) -> Self {
         self.cancellation = Some(cancellation);

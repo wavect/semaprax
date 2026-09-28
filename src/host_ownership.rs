@@ -16,6 +16,8 @@ use crate::conformance::{NormalizedStatus, Retryability, StatusClass};
 
 pub(crate) const HOST_OWNERSHIP_SCHEMA_V1: &str = "semaprax.host-ownership.v1";
 
+pub(crate) mod session_endpoint;
+
 static NEXT_REGISTRY_NONCE: AtomicU64 = AtomicU64::new(1);
 
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
@@ -417,6 +419,7 @@ pub(crate) struct HostOwnershipRegistry {
     next_slot: u64,
     next_invocation: u64,
     owners: BTreeMap<u64, HostOwnerEntry>,
+    fresh_cells: BTreeMap<u64, std::sync::Arc<session_endpoint::FreshTokenCell>>,
     active: Option<ActiveInvocation>,
     last_abandonment: bool,
     poisoned: bool,
@@ -435,6 +438,7 @@ impl HostOwnershipRegistry {
             next_slot: 1,
             next_invocation: 1,
             owners: BTreeMap::new(),
+            fresh_cells: BTreeMap::new(),
             active: None,
             last_abandonment: false,
             poisoned: false,

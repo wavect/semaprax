@@ -8,6 +8,10 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Add private fresh-cell acquisition certificates and native host custody,
+  rollback and retirement on the existing owner registry. Owning runtime gates
+  are pending; source endpoints and interpreter/Wasm admission remain unfinished.
+
 - Add private continued Start and Prepared ACK transport around the actual
   retained owner and existing evaluator, preserving its ledger and hold.
   Owning runtime verification and the next real SDK exchange remain pending.

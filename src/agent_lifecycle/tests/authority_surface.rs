@@ -22,6 +22,14 @@ fn the_authorization_value_has_exactly_one_mint_site_in_the_crate() {
     .join("\n");
     let model_wait_sources = [
         (
+            "host_ownership/session_endpoint.rs",
+            include_str!("../../host_ownership/session_endpoint.rs"),
+        ),
+        (
+            "crates/semaprax-native-host/src/session_endpoint.rs",
+            include_str!("../../../crates/semaprax-native-host/src/session_endpoint.rs"),
+        ),
+        (
             "interpreter/resumable/owned_frame/registered_stage/live_run/wait/continued.rs",
             include_str!("../../interpreter/resumable/owned_frame/registered_stage/live_run/wait/continued.rs"),
         ),
@@ -582,6 +590,14 @@ fn the_stage_executor_seam_has_exactly_three_implementations_and_one_dispatch_ro
     ]
     .join("\n");
     let model_wait_sources = [
+        (
+            "host_ownership/session_endpoint.rs",
+            include_str!("../../host_ownership/session_endpoint.rs"),
+        ),
+        (
+            "crates/semaprax-native-host/src/session_endpoint.rs",
+            include_str!("../../../crates/semaprax-native-host/src/session_endpoint.rs"),
+        ),
         (
             "interpreter/resumable/owned_frame/registered_stage/live_run/wait/continued.rs",
             include_str!("../../interpreter/resumable/owned_frame/registered_stage/live_run/wait/continued.rs"),

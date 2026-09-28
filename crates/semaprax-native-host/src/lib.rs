@@ -334,6 +334,8 @@ mod desktop_api {
         }
     }
 
+    include!("session_endpoint.rs");
+
     struct LedgerState {
         registry: HostOwnershipRegistry,
     }

@@ -2803,6 +2803,15 @@ These areas are deliberately outside the public compiler contract:
 
 - `crates/semaprax-native-loader`: unsafe dynamic-loader boundary;
 - `crates/semaprax-native-host`: connected callable and settlement host;
+- `src/host_ownership/session_endpoint.rs`: private bounded fresh-cell
+  acquisition certificates using the existing owner slots and generations;
+  actual backing stays in the registry through rollback or retirement. Its
+  bounded map contributes to the actual registry footprint.
+- `crates/semaprax-native-host/src/session_endpoint.rs`: a new lexical include
+  within private `desktop_api`, retaining actual host ledger and module
+  credential custody around fresh acquisition and local retirement. These
+  foundations supply no source endpoint attachment, interpreter/Wasm endpoint
+  admission or imported-finalizer support; owning runtime verification is pending;
 - `crates/semaprax-native-rust-interop-*`: unpublished deterministic Rust SDK
   builder and platform-specific publication authority;
 - `crates/semaprax-native-rust-interop-platform/src/host_target.rs`: shared

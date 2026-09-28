@@ -146,6 +146,58 @@ fn owned_wait_effect_settlement_replays_exact_exchange_and_refuses_result_or_pha
         let payload =
             b"{\"schema\":\"semaprax.agent-effect-fields.v1\",\"fields\":[[\"value\",\"9\"]]}\n"
                 .to_vec();
+        let mut no_budget = decision.clone();
+        no_budget["fields"][1]["value"]["value"] = json!(0);
+        assert!(
+            checked_owned_effect_request_v8(&OwnedEffectSettlementInputsV8 {
+                decision: &no_budget,
+                ..inputs()
+            })
+            .is_err(),
+            "zero Decision budget cannot authorize the profile's host work unit"
+        );
+        assert!(
+            checked_owned_effect_request_v8(&OwnedEffectSettlementInputsV8 {
+                turn: 1,
+                ..inputs()
+            })
+            .is_err(),
+            "a new turn cannot reset this first-effect accounting proof"
+        );
+        let cancelled = AgentCancellation::new();
+        cancelled.cancel();
+        let mut untouched = Host {
+            calls: 0,
+            payload: payload.clone(),
+            malformed: false,
+            panic: false,
+        };
+        let pre_dispatch = crate::agent_lifecycle::authorization::target_protocol::dispatch(
+            grant(),
+            plan.argument().clone(),
+            1,
+            plan.target_limits(),
+            &mut TargetAccounting::default(),
+            &cancelled,
+            &mut untouched,
+        );
+        assert_eq!(untouched.calls, 0);
+        let refused = SourceJournalEntry::EffectFailed {
+            turn: 0,
+            attempt: 0,
+            operation: plan.operation().operation_id().into(),
+            reason: SourceEffectFailure::Cancelled,
+        };
+        assert!(
+            checked_owned_effect_settlement_v8(
+                inputs(),
+                &refused,
+                &pre_dispatch.evidence().canonical_wire(),
+                None
+            )
+            .is_err(),
+            "genuine pre-dispatch cancellation is outside dispatched §21"
+        );
         for shape in 0..4 {
             let mut host = Host {
                 calls: 0,
@@ -202,6 +254,33 @@ fn owned_wait_effect_settlement_replays_exact_exchange_and_refuses_result_or_pha
             )
             .unwrap();
             assert_eq!(checked.operation(), plan.operation());
+            for field in 0..4 {
+                let mut reminted = run.evidence().clone();
+                match field {
+                    0 => reminted.accounting.calls = reminted.accounting.calls.saturating_add(1),
+                    1 => {
+                        reminted.accounting.request_bytes =
+                            reminted.accounting.request_bytes.saturating_add(1)
+                    }
+                    2 => {
+                        reminted.accounting.result_bytes =
+                            reminted.accounting.result_bytes.saturating_add(1)
+                    }
+                    3 => reminted.accounting.fuel = reminted.accounting.fuel.saturating_add(1),
+                    _ => unreachable!(),
+                }
+                assert!(
+                    checked_owned_effect_settlement_v8(
+                        inputs(),
+                        &ordinary,
+                        &reminted.canonical_wire(),
+                        result.as_deref()
+                    )
+                    .is_err(),
+                    "canonical reminted evidence cannot alter charge dimension {field}"
+                );
+            }
+
             assert_eq!(request.request_wire(), checked.request_wire());
             assert_eq!(request.request_digest(), checked.request_digest());
             assert_eq!(checked.evidence().digest(), run.evidence().digest());

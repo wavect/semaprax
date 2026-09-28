@@ -5,6 +5,12 @@ use crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect
     advance_verified_authorization_v8, LiveEffectAuthorizationFailureV8, LivePreparedOwnedEffectV8,
 };
 
+/// Closed metadata phase. Neither variant changes credit or grants a write.
+pub(in crate::live_invocation::source_journal::owned_wait_v8::append) enum OwnedReduceHoldPhaseV8 {
+    Consumed,
+    Intent { selected: SourceJournalEntry },
+}
+
 /// The actual owner is retained first; credit never exists as a detached token.
 pub(in crate::live_invocation::source_journal::owned_wait_v8) struct HeldOwnedAuthorizationConsumedV8<
     'j,
@@ -29,6 +35,76 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) struct ReduceHoldR
     error: SourceJournalError,
 }
 impl ProspectiveOwnedReduceHoldV8<'_> {
+    /// Pure prefix/credit check for the sealed actual Intent permit. In particular
+    /// it cannot recover/read a file, borrow a lease, call policy/clock, or grant
+    /// permission from a selected row without this actual retained hold.
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_intent_append_prefix(
+        &self,
+        journal: &SourceOwnedWaitJournalV8,
+        inventory: &super::super::super::super::candidate::InventoryV8<'_>,
+        selected: &EntryV8,
+    ) -> Result<(), SourceJournalError> {
+        let result = (|| {
+            if !std::ptr::eq(self.journal, journal)
+                || journal.poisoned.get()
+                || !inventory.belongs_to_context(&journal.context)
+            {
+                return Err(SourceJournalError::Binding);
+            }
+            let EntryV8::Ordinary(SourceJournalEntry::EffectIntent { turn, attempt, .. }) =
+                selected
+            else {
+                return Err(SourceJournalError::Binding);
+            };
+            let (reserved, stages, actual_turn, actual_attempt) =
+                inventory.prospective_reduce_facts()?;
+            let ordinary = journal.context.ordinary();
+            let (_, execution) = journal
+                .context
+                .ready_runtime()
+                .ok_or(SourceJournalError::Binding)?;
+            let fuel = u64::try_from(execution.evaluation_fuel())
+                .map_err(|_| SourceJournalError::Capacity)?;
+            if Some(execution.evaluation_fuel()) != ordinary.max_steps_per_stage() {
+                return Err(SourceJournalError::Binding);
+            }
+            funding(
+                reserved,
+                stages,
+                fuel,
+                u64::try_from(
+                    ordinary
+                        .max_total_steps()
+                        .ok_or(SourceJournalError::Binding)?,
+                )
+                .map_err(|_| SourceJournalError::Capacity)?,
+                ordinary.max_stages(),
+            )?;
+            {
+                let registry = journal
+                    .prospective_reduce
+                    .try_borrow()
+                    .map_err(|_| SourceJournalError::Order)?;
+                let record = registry.as_ref().ok_or(SourceJournalError::Binding)?;
+                if !matches!(&record.phase, OwnedReduceHoldPhaseV8::Consumed)
+                    || record.identity != self.identity
+                    || record.fuel != fuel
+                    || record.turn != *turn
+                    || record.attempt != *attempt
+                    || record.turn != actual_turn
+                    || record.attempt != actual_attempt
+                    || record.sequence != inventory.sequence()
+                    || record.bytes != inventory.acknowledged_bytes()
+                    || record.authentication != inventory.authentication_tail()
+                {
+                    return Err(SourceJournalError::Binding);
+                }
+            }
+            Ok(())
+        })();
+        result.inspect_err(|_| self.journal.poisoned.set(true))
+    }
+
     /// Borrow-only Consumed-phase guard, never an owner/ACK/token producer.
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_guard(
         &self,
@@ -72,7 +148,8 @@ impl ProspectiveOwnedReduceHoldV8<'_> {
                     .try_borrow()
                     .map_err(|_| SourceJournalError::Order)?;
                 let record = registry.as_ref().ok_or(SourceJournalError::Binding)?;
-                if record.identity != self.identity
+                if !matches!(&record.phase, OwnedReduceHoldPhaseV8::Consumed)
+                    || record.identity != self.identity
                     || record.turn != turn
                     || record.attempt != attempt
                     || record.fuel != fuel
@@ -216,6 +293,7 @@ pub(super) fn reserve<'j>(
             turn,
             attempt,
             fuel,
+            phase: OwnedReduceHoldPhaseV8::Consumed,
         });
         Ok(identity)
     })();

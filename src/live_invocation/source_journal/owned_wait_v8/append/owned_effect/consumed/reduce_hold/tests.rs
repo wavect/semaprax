@@ -505,3 +505,74 @@ fn owned_reduce_hold_sealed_guard_rejects_foreign_container_before_its_io() {
         assert!(weak.iter().all(|w| w.upgrade().is_none()));
     });
 }
+
+#[test]
+fn owned_reduce_hold_intent_prefix_is_pure_under_marker_and_exclusive_lease_borrow() {
+    CheckedOwnedWaitJournalContextV8::test_with_actual_runtime(|context, lease, key| {
+        let context = context.with_initialization(&lease).unwrap();
+        let journal = SourceOwnedWaitJournalV8::open(Arc::new(context), key, lease).unwrap();
+        let cancel = AgentCancellation::new();
+        let policy = CapabilityPolicy::new(vec!["read".into()]).unwrap();
+        let (owner, weak) = consumed(&journal, &cancel, &policy);
+        let selected = history_legal_intent(&journal);
+        let before = bytes(&journal);
+        let held = owner
+            .reserve_owned_reduce()
+            .unwrap_or_else(|_| panic!("actual hold"));
+        {
+            let _exclusive_lease = journal.lease.try_borrow_mut().unwrap();
+            journal.append_active.set(true);
+            held.hold
+                .validate_intent_append_prefix(&journal, &held.owner.session.inventory, &selected)
+                .unwrap();
+            journal.append_active.set(false);
+        }
+        held.validate_live().unwrap();
+        assert_eq!(bytes(&journal), before);
+        assert!(weak.iter().all(|w| w.strong_count() == 1));
+        let registry = journal.prospective_reduce.borrow();
+        assert!(matches!(
+            &registry.as_ref().unwrap().phase,
+            OwnedReduceHoldPhaseV8::Consumed
+        ));
+        drop(registry);
+        drop(held);
+        assert!(weak.iter().all(|w| w.upgrade().is_none()));
+    });
+}
+
+#[test]
+fn owned_reduce_hold_intent_prefix_rejects_foreign_coordinates_without_io_or_refund() {
+    CheckedOwnedWaitJournalContextV8::test_with_actual_runtime(|context, lease, key| {
+        let context = context.with_initialization(&lease).unwrap();
+        let journal = SourceOwnedWaitJournalV8::open(Arc::new(context), key, lease).unwrap();
+        let cancel = AgentCancellation::new();
+        let policy = CapabilityPolicy::new(vec!["read".into()]).unwrap();
+        let (owner, weak) = consumed(&journal, &cancel, &policy);
+        let mut selected = history_legal_intent(&journal);
+        let EntryV8::Ordinary(SourceJournalEntry::EffectIntent { attempt, .. }) = &mut selected
+        else {
+            panic!("actual Intent shape")
+        };
+        *attempt = attempt.checked_add(1).unwrap();
+        let before = bytes(&journal);
+        let held = owner
+            .reserve_owned_reduce()
+            .unwrap_or_else(|_| panic!("actual hold"));
+        assert_eq!(
+            held.hold.validate_intent_append_prefix(
+                &journal,
+                &held.owner.session.inventory,
+                &selected,
+            ),
+            Err(SourceJournalError::Binding)
+        );
+        assert_eq!(bytes(&journal), before);
+        assert!(journal.prospective_reduce.borrow().is_some(), "no refund");
+        assert!(journal.hold().is_err());
+        assert!(journal.begin_session().is_err());
+        assert!(weak.iter().all(|w| w.strong_count() == 1));
+        drop(held);
+        assert!(weak.iter().all(|w| w.upgrade().is_none()));
+    });
+}

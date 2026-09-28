@@ -159,6 +159,21 @@ non-Clone; outcome accessors expose data/status only):
 ```rust
 compile_owned_frame_plan(program: &ResolvedProgram, function: &DeclarationId)
     -> Result<CheckedOwnedFramePlan, Diagnostic>;
+// Inert data, not an owner or a restoration credential.
+pub struct OwnedFrameInput {
+    pub declaration: DeclarationId,
+    pub fields: Vec<OwnedFrameInputField>,
+}
+pub struct OwnedFrameInputField {
+    pub identity: DeclarationId,
+    pub value: OwnedFrameInputValue,
+}
+pub enum OwnedFrameInputValue {
+    Bytes(Vec<u8>),
+    Scalar(ArgumentValue),
+}
+admit_owned_frame_input(plan: &CheckedOwnedFramePlan, input: OwnedFrameInput)
+    -> Result<OwnedFrameArgument, OwnedFrameInputRejection>;
 admit_owned_frame_argument(plan: &CheckedOwnedFramePlan, input: RetainedValue)
     -> Result<OwnedFrameArgument, OwnedFrameArgumentRejection>;
 start_owned_frame(plan: &CheckedOwnedFramePlan, argument: OwnedFrameArgument,
@@ -169,7 +184,24 @@ settle_owned_frame(terminal: OwnedFrameStagedTerminal)
     -> Result<OwnedFrameSettledOutcome, OwnedFrameSettlementRejection>;
 ```
 
-ArgumentRejection returns the original inert input, not a constructed owner.
+OwnedFrameInputRejection owns the original unchanged OwnedFrameInput and the
+diagnostic. Admission borrows the input to validate the nominal declaration,
+exact declaration order, field identities/count/types, payload bounds and all
+eight admitted scalar types before creating any fresh private Arc owner. The
+scalar types are i64, i32, u8, usize, char, bool, f32 and f64; Unicode scalar
+validity and the profile's usize u32 range are checked. Float32/Float64 retain
+their exact bits, including NaN payloads and negative zero. Borrowed scalar
+variants are refused. The input contains no semantic cleanup obligation or
+restoration credential; dropping rejected or otherwise inert input only
+disposes ordinary host data.
+
+The existing admit_owned_frame_argument(RetainedValue) is a convenience subset
+using the same pure borrowed validator, not a limit on this approved profile.
+Its OwnedFrameArgumentRejection returns the original unchanged RetainedValue,
+including its original variant, and the diagnostic; the old enum remains
+unchanged. Neither admission path constructs a private owner before validation
+succeeds. Private field-substitution and float-bit tests observe the real
+interpreter backing without adding a public result-payload projection.
 FoundationStep is exactly Parked(OwnedFrameParked) or
 Terminal(OwnedFrameStagedTerminal). Fuel/cancellation/guard/answer failures
 retain the pending root in Terminal, never a bare error that silently disposes

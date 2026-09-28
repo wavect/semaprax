@@ -353,3 +353,41 @@ fn observe_first_seed_has_no_fabricated_initialize_and_preserves_legacy_default(
     )
     .is_err());
 }
+
+#[test]
+fn full_row_capacity_includes_the_terminal_lf_for_decode_and_encode() {
+    let binding = binding();
+    let expected = row_facts(&binding);
+    // This codec-only limits object is inert; the checked context owns its shape.
+    let mut entry = OwnedBodyV8::OwnedRunCreated {
+        scope: json!({}),
+        execution: d(),
+        binding: d(),
+        signature: json!({}),
+        limits: json!({"padding":""}),
+        store_identity: json!({}),
+    };
+    let base = wire::encode(&EntryV8::Owned(entry.clone()), &expected, &key()).unwrap();
+    let padding = super::super::MAX_SOURCE_DOCUMENT_BYTES - base.len();
+    if let OwnedBodyV8::OwnedRunCreated { limits, .. } = &mut entry {
+        limits["padding"] = "x".repeat(padding).into();
+    }
+    let exact = wire::encode(&EntryV8::Owned(entry.clone()), &expected, &key()).unwrap();
+    assert_eq!(exact.len(), super::super::MAX_SOURCE_DOCUMENT_BYTES);
+    assert!(wire::decode(&exact, &expected, &key()).is_ok());
+    if let OwnedBodyV8::OwnedRunCreated { limits, .. } = &mut entry {
+        limits["padding"] = "x".repeat(padding + 1).into();
+    }
+    assert_eq!(
+        wire::encode(&EntryV8::Owned(entry), &expected, &key()),
+        Err(SourceJournalError::Capacity)
+    );
+    let mut row: Value = serde_json::from_slice(&exact).unwrap();
+    row["limits"]["padding"] = "x".repeat(padding + 1).into();
+    let oversized = signed(row);
+    assert_eq!(oversized.len(), super::super::MAX_SOURCE_DOCUMENT_BYTES + 1);
+    assert_eq!(
+        wire::decode(&oversized, &expected, &key()),
+        Err(SourceJournalError::Capacity)
+    );
+}

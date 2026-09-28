@@ -141,6 +141,9 @@ pub(super) fn encode(
     );
     let mut bytes = canonical(&Value::Object(row));
     bytes.push(b'\n');
+    if bytes.len() > super::super::MAX_SOURCE_DOCUMENT_BYTES {
+        return Err(SourceJournalError::Capacity);
+    }
     // Round-trip enforces the same structural caps for trusted typed producers.
     decode(&bytes, expected, key)?;
     Ok(bytes)
@@ -151,6 +154,9 @@ pub(super) fn decode(
     expected: &ExpectedRowV8<'_>,
     key: &SourceCheckpointKey,
 ) -> Result<EntryV8, SourceJournalError> {
+    if bytes.len() > super::super::MAX_SOURCE_DOCUMENT_BYTES {
+        return Err(SourceJournalError::Capacity);
+    }
     if !expected_valid(expected) {
         return Err(SourceJournalError::Binding);
     }

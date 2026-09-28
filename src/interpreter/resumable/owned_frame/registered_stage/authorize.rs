@@ -1,5 +1,6 @@
 //! Staged checked authorization. No durable ACK, grant mint, or public result.
 use super::*;
+use crate::interpreter::OwnedVariantValue;
 use crate::resumable_effects::owned_frame::v2::CheckedOwnedAuthorizeV2;
 
 pub(crate) struct StagedOwnedAuthorizeV2 {

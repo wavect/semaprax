@@ -179,10 +179,12 @@ fn owned_frame_v2_authorize_real_checked_decision_preserves_state_and_matches_or
                 RetainedValue::Bool(true),
                 RetainedValue::Usize(1),
             ];
-            let prepared =
-                crate::interpreter::prepare_retained_call(p.helper().program(), "authorize")
-                    .unwrap();
-            let ordinary = crate::interpreter::evaluate_retained_call(
+            let prepared = crate::interpreter::retained_call::prepare_retained_call(
+                p.helper().program(),
+                "authorize",
+            )
+            .unwrap();
+            let ordinary = crate::interpreter::retained_call::evaluate_retained_call(
                 p.helper().program(),
                 &prepared,
                 &args,
@@ -299,11 +301,11 @@ fn owned_frame_v2_authorize_failures_retain_real_partial_and_provisional_cleanup
             if seal.is_some() {
                 assert_eq!(
                     &after[0].0,
-                    &(if mode == "partial" {
+                    if mode == "partial" {
                         &p.partial_disposal()[0].source
                     } else {
                         &p.disposal()[0].source
-                    })
+                    }
                 );
                 assert_eq!((after[0].1, after[0].2, after[0].3), (true, false, false));
                 if mode == "partial" {

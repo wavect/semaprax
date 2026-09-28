@@ -2,6 +2,7 @@
 //! These proofs grant no durable owner or store authority.
 mod agent_binding;
 mod authorize_plan;
+mod checkpoint;
 mod data;
 mod initialize_plan;
 mod observation_binding;
@@ -22,4 +23,9 @@ pub(crate) use data::{
 };
 pub(crate) use observation_binding::{
     bind_owned_wait_observation_v8, CheckedOwnedWaitObservationV8,
+};
+
+pub(crate) use checkpoint::{
+    validate_owned_wait_checkpoint_v8, CheckedOwnedWaitCheckpointV8,
+    OwnedWaitCheckpointExpectationV8,
 };

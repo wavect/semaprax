@@ -334,3 +334,13 @@ A retried Start evaluates the same checked helper with the exact committed/rearm
 OwnedWaitFailed.status uses the existing owned-frame failure facts as exactly `{failure,language_status}`. Failure is one of language_failure, fuel_exhausted, host_abandoned, answer_type_mismatch, evaluation_rejected, handler_failed, call_depth_exceeded. Only language_failure carries the exact compiler-admitted NormalizedStatus; all other tags require null language_status. A failed wait selects that entire status carrier permanently: ensuing CleanupStarted.terminal equals it exactly, and every subsequent owner cleanup retains the same terminal even if cleanup itself fails. Other source-stage refusal/status carriers must come from their owning checked stage and are not manufactured from a wait failure.
 
 A selected Refused Decision can retire structurally before State cleanup without physical Decision rows only when the sealed checked authorize proof establishes that the selected Refused case has an empty disposal vector. No host boolean supplies that proof. A nonempty Decision vector must receive its CleanupStarted/observed CleanupSettled pair before State cleanup. This refines section 8.4 and does not add fictional empty physical cleanup rows.
+
+## 15. V2 checkpoint accounting and true sequence
+
+`sequence` is the true combined causal sequence of the `OwnedWaitPrepared` row whose candidate carries the checkpoint, including the first durable Prepared after an interrupted original Start and fresh Start reservations. It is never a wait-local ordinal or a reservation sequence.
+
+`reserved_total` includes all acknowledged ordinary and owned reservations through that Prepared candidate. `consumed_total` is §11's recorded lower bound (`consumed_recorded`), including this Prepared's actual consumed work plus prior acknowledged consumption; it is not an exact terminal total. Missing interrupted-reservation consumption remains unknown and never becomes zero/refunded work.
+
+Structural checkpoint validation obtains all three expected facts from the independently validated candidate fold and compares them exactly. It never takes expected accounting from the checkpoint itself. Authentic checkpoint bytes grant no authority to append, evaluate, restore a root, publish a result or dispatch.
+
+The 65536-byte checkpoint bound includes the complete canonical envelope and its single trailing LF. At the ceiling, closed shape checks still apply; one additional byte is refused before parsing or owner allocation.

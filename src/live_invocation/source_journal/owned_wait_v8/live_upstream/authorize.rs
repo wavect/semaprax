@@ -79,16 +79,16 @@ pub(super) struct LiveAuthorizeFailureV8<'j> {
 }
 /// Full actual Decision is still staged, never an authorization permission.
 pub(super) struct StagedLiveOwnedRunV8<'j> {
-    owner: LiveStagedAuthorizationV8,
-    session: AppendSessionV8<'j>,
-    held: HeldOwnedWaitStoreV8<'j>,
-    journal: &'j SourceOwnedWaitJournalV8,
-    proposal: CheckedOwnedWaitProposalV8,
-    transfer: u32,
-    reservation: u32,
-    staged: u32,
-    cancellation: &'j crate::agent_runtime::AgentCancellation,
-    clock: &'j dyn SourceInvocationClock,
+    pub(super) owner: LiveStagedAuthorizationV8,
+    pub(super) session: AppendSessionV8<'j>,
+    pub(super) held: HeldOwnedWaitStoreV8<'j>,
+    pub(super) journal: &'j SourceOwnedWaitJournalV8,
+    pub(super) proposal: CheckedOwnedWaitProposalV8,
+    pub(super) transfer: u32,
+    pub(super) reservation: u32,
+    pub(super) staged: u32,
+    pub(super) cancellation: &'j crate::agent_runtime::AgentCancellation,
+    pub(super) clock: &'j dyn SourceInvocationClock,
 }
 pub(super) fn authorize_live_actor_v8<'j>(
     completed: CompletedLiveOwnedRunV8<'j>,

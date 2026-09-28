@@ -65,6 +65,7 @@ impl LiveWaitStartPermitV8<'_> {
     }
 }
 pub(super) mod authorize;
+pub(super) mod effect;
 pub(super) mod model;
 mod observe;
 mod wait;

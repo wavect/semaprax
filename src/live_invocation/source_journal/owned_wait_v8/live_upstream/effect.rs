@@ -1,5 +1,6 @@
 //! First live effect obligation, produced only from the actual source actor.
 //! Inert Ready metadata remains legal; it cannot mint this lineage or an ACK.
+use super::super::append::owned_effect::VerifiedOwnedEffectReadySuccessorV8;
 use super::authorize::StagedLiveOwnedRunV8;
 use super::model::check_clock_v8;
 use super::*;
@@ -45,6 +46,42 @@ impl LiveOwnedEffectAppendV8<'_> {
         &self,
     ) -> Result<(), SourceJournalError> {
         validate(&self.owner, self.policy)?;
+        self.validate_facts()?;
+        validate(&self.owner, self.policy)
+    }
+    /// Only the fixed adapter can mint this post-append witness. The original
+    /// session remains unchanged; no caller prefix or snapshot can rebase it.
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_ready_successor(
+        &self,
+        witness: &VerifiedOwnedEffectReadySuccessorV8<'_>,
+    ) -> Result<(), SourceJournalError> {
+        witness.validate_predecessor(
+            self.owner.journal,
+            self.sequence(),
+            self.acknowledged_bytes(),
+            &self.selected,
+        )?;
+        validate_at(
+            &self.owner,
+            self.policy,
+            witness.sequence(),
+            witness.acknowledged_bytes(),
+        )?;
+        self.validate_facts()?;
+        validate_at(
+            &self.owner,
+            self.policy,
+            witness.sequence(),
+            witness.acknowledged_bytes(),
+        )?;
+        witness.validate_predecessor(
+            self.owner.journal,
+            self.sequence(),
+            self.acknowledged_bytes(),
+            &self.selected,
+        )
+    }
+    fn validate_facts(&self) -> Result<(), SourceJournalError> {
         let (selected, commitments) = ready_facts(&self.owner, self.policy)?;
         if selected != self.selected
             || commitments.authorization_binding() != self.commitments.authorization_binding()
@@ -55,12 +92,25 @@ impl LiveOwnedEffectAppendV8<'_> {
         {
             return Err(SourceJournalError::Binding);
         }
-        validate(&self.owner, self.policy)
+        Ok(())
     }
 }
 fn validate(
     owner: &StagedLiveOwnedRunV8<'_>,
     policy: &CapabilityPolicy,
+) -> Result<(), SourceJournalError> {
+    validate_at(
+        owner,
+        policy,
+        owner.session.sequence(),
+        owner.session.acknowledged_bytes(),
+    )
+}
+fn validate_at(
+    owner: &StagedLiveOwnedRunV8<'_>,
+    policy: &CapabilityPolicy,
+    sequence: usize,
+    bytes: usize,
 ) -> Result<(), SourceJournalError> {
     let context = owner.journal.context();
     if owner.session.sequence() != owner.staged as usize + 1 {
@@ -68,8 +118,8 @@ fn validate(
     }
     check_clock_v8(
         &owner.held,
-        owner.session.sequence(),
-        owner.session.acknowledged_bytes(),
+        sequence,
+        bytes,
         owner.cancellation,
         owner.clock,
         context.ordinary().clock_domain(),
@@ -83,9 +133,7 @@ fn validate(
     if !policy.allows(plan.operation().effect_id()) {
         return Err(SourceJournalError::Binding);
     }
-    owner
-        .held
-        .validate_prefix(owner.session.sequence(), owner.session.acknowledged_bytes())
+    owner.held.validate_prefix(sequence, bytes)
 }
 fn ready_facts(
     owner: &StagedLiveOwnedRunV8<'_>,
@@ -174,4 +222,4 @@ pub(super) fn prepare_live_effect_ready_v8<'j>(
     Ok(obligation)
 }
 #[cfg(test)]
-mod tests;
+pub(in crate::live_invocation::source_journal::owned_wait_v8) mod tests;

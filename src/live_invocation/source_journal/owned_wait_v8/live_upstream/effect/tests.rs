@@ -17,6 +17,21 @@ impl SourceInvocationClock for Clock {
     }
 }
 
+/// Runs the real fixed source/SDK actor; it never fabricates a staged root or ACK.
+pub(in crate::live_invocation::source_journal::owned_wait_v8) fn test_ready_obligation<'j>(
+    journal: &'j SourceOwnedWaitJournalV8,
+    cancellation: &'j crate::agent_runtime::AgentCancellation,
+    clock: &'j dyn SourceInvocationClock,
+    policy: &'j CapabilityPolicy,
+) -> (LiveOwnedEffectAppendV8<'j>, Vec<std::sync::Weak<[u8]>>) {
+    let completed = completed_test_actor(journal, cancellation, clock, 3);
+    let staged = authorize_live_actor_v8(completed).unwrap_or_else(|_| panic!("actual authorize"));
+    let leaves = staged.owner.test_weak();
+    let obligation = prepare_live_effect_ready_v8(staged, policy)
+        .unwrap_or_else(|failed| panic!("actual Ready {:?}", failed.error));
+    (obligation, leaves)
+}
+
 #[test]
 fn owned_wait_live_effect_ready_requires_current_policy_and_retains_actual_roots() {
     CheckedOwnedWaitJournalContextV8::test_with_actual_runtime(|context, lease, key| {

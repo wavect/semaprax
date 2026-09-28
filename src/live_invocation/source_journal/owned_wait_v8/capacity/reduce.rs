@@ -124,7 +124,16 @@ fn failure_statuses(plan: &v2::CheckedOwnedReduceV2) -> Result<Vec<Value>, Sourc
             "language_status":wire::parse(status.to_json().as_bytes())?}));
         }
     }
-    Ok(statuses)
+    // Capacity is the maximum over possible rows. Repeated compiler sites
+    // with the same normalized status produce identical rows; retain the first
+    // occurrence without changing status acceptance or canonical cleanup order.
+    let mut unique = Vec::new();
+    for status in statuses {
+        if !unique.contains(&status) {
+            unique.push(status);
+        }
+    }
+    Ok(unique)
 }
 fn receipt(active: &Value) -> Result<RoomV8, SourceJournalError> {
     row(

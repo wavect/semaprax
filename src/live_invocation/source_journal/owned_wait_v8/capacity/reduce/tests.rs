@@ -124,3 +124,105 @@ fn failed_state_started_ack_preserves_exact_reserved_closure_edge() {
         },
     );
 }
+
+// Original capacity enumeration: one status per compiler site, including repeats.
+fn original_status_multiset(plan: &v2::CheckedOwnedReduceV2) -> Vec<Value> {
+    let mut statuses = [
+        "fuel_exhausted",
+        "host_abandoned",
+        "answer_type_mismatch",
+        "evaluation_rejected",
+        "handler_failed",
+        "call_depth_exceeded",
+    ]
+    .into_iter()
+    .map(|failure| json!({"failure":failure,"language_status":null}))
+    .collect::<Vec<_>>();
+    for source in &plan.function().cleanup_plan.status_sources {
+        use crate::cleanup_plan::StatusProducer;
+        let values = match &source.producer {
+            StatusProducer::ContractFalse { phase, .. } => {
+                vec![crate::conformance::NormalizedStatus::contract(*phase)]
+            }
+            StatusProducer::CheckedArithmetic {
+                normalized_cases, ..
+            } => normalized_cases
+                .iter()
+                .map(|n| crate::conformance::NormalizedStatus::arithmetic(*n))
+                .collect(),
+            StatusProducer::PropagatedCall { .. } => Vec::new(),
+        };
+        for status in values {
+            statuses.push(json!({"failure":"language_failure",
+                "language_status":wire::parse(status.to_json().as_bytes()).unwrap()}));
+        }
+    }
+    statuses
+}
+
+#[test]
+fn owned_reduce_capacity_status_dedup_preserves_every_original_failure_room() {
+    super::super::super::CheckedOwnedWaitJournalContextV8::test_with_actual_reduce_arithmetic_store(
+        |context, _lease, _key, _directory| {
+            let context = context.fold();
+            let plan = v2::compile_owned_reduce_v2(&context.checked_binding).unwrap();
+            let original = original_status_multiset(&plan);
+            let unique = failure_statuses(&plan).unwrap();
+            assert!(
+                original.len() > unique.len(),
+                "actual compiler repeats a status"
+            );
+            let mut first_occurrences = Vec::new();
+            for status in &original {
+                if !first_occurrences.contains(status) {
+                    first_occurrences.push(status.clone());
+                }
+            }
+            assert_eq!(unique, first_occurrences);
+            let fuel = context.ordinary.max_steps_per_stage().unwrap();
+            let mut bases = vec![(
+                json!({"kind":"initial_failure","status":null}),
+                v2::owned_wait_operations_v8(&plan.transfers().initial_disposal).unwrap(),
+            )];
+            for case in &plan.transfers().cases {
+                for prefix in 0..=case.fields.len() {
+                    let actions = &case.failure_by_prefix[prefix];
+                    bases.push((json!({"kind":"partial_failure","status":null,
+                        "constructor":case.constructor.as_str(),"case":case.case.as_str(),
+                        "transfer_prefix":case.fields[..prefix].iter().map(|f|f.at.as_str()).collect::<Vec<_>>(),
+                        "active_flags":actions.iter().map(|a|a.guard_flag.0).collect::<Vec<_>>()}),
+                        v2::owned_wait_operations_v8(actions).unwrap()));
+                }
+                let mut flags = case
+                    .completion_live_flags
+                    .iter()
+                    .map(|f| f.0)
+                    .collect::<Vec<_>>();
+                flags.extend(
+                    plan.transfers()
+                        .result_disposal
+                        .iter()
+                        .filter(|a| a.active_case.as_ref().is_some_and(|c| c.case == case.case))
+                        .map(|a| a.guard_flag.0),
+                );
+                bases.push((json!({"kind":"provisional_failure","status":null,
+                    "constructor":case.constructor.as_str(),"case":case.case.as_str(),"active_flags":flags}),
+                    v2::owned_wait_operations_v8(&plan.transfers().provisional_failure).unwrap()));
+            }
+            // Exhaust every failure component used by rooms(); success components
+            // do not consume failure_statuses and remain unchanged.
+            let limit = super::super::super::super::MAX_SOURCE_DOCUMENT_BYTES;
+            for (basis, operations) in bases {
+                let before = failure(&plan, basis.clone(), &operations, fuel, &original).unwrap();
+                let after = failure(&plan, basis, &operations, fuel, &unique).unwrap();
+                assert_eq!(before, after);
+                assert_eq!(after.either(after), after);
+                after.check(limit - after.bytes, 0).unwrap();
+                assert_eq!(
+                    after.check(limit - after.bytes + 1, 0),
+                    Err(SourceJournalError::Capacity)
+                );
+            }
+        },
+    );
+}

@@ -648,6 +648,10 @@ fn refusal_retirement_rearm_and_retry_preserve_the_exact_original_carriers() {
         reason: super::super::super::SourceProposalRefusal::MalformedDecode,
     }));
     let refusal_room = capacity::outstanding(&c, &fold(&c, &retry).unwrap()).unwrap();
+    let settled_room = capacity::outstanding(&c, &fold(&c, &rows[..10]).unwrap()).unwrap();
+    let usage_room = capacity::outstanding(&c, &fold(&c, &rows[..11]).unwrap()).unwrap();
+    assert_phase_room_edge(&c, &rows[10], 10, settled_room, usage_room);
+    assert_phase_room_edge(&c, &retry[11], 11, usage_room, refusal_room);
     retry.push(owned(json!({"kind":"owned_wait_retired","turn":0,"attempt":0,"wait":wait,"prepared":7,"state_digest":argument_digest,"observation_digest":observation_digest})));
     let retired = fold(&c, &retry).unwrap();
     assert_eq!(retired.tail, TailV8::TransferInDoubt);
@@ -1266,4 +1270,122 @@ fn authorization_stage_room_is_reserved_before_the_ordinary_charge() {
         capacity::outstanding(&c, &pending).unwrap(),
         capacity::outstanding(&c, &charged).unwrap(),
     );
+}
+
+#[test]
+fn every_remaining_attempt_reserves_the_next_malformed_refusal_branch() {
+    let c = context();
+    let original = fixtures(&c);
+    let mut rows = copy(&original[..11]);
+    let Body::OwnedRunCreated {
+        execution, binding, ..
+    } = &c.created
+    else {
+        panic!()
+    };
+    let invocation = wire::recipe_digest(
+        wire::RecipeV8::Invocation,
+        &json!({"execution":execution,"owned_wait_binding":binding}),
+    )
+    .unwrap();
+    let EntryV8::Owned(Body::OwnedStateCommitted {
+        state,
+        argument_digest,
+        ..
+    }) = &original[2].entry
+    else {
+        panic!()
+    };
+    let EntryV8::Owned(Body::OwnedWaitCreated { copy_arguments, .. }) = &original[5].entry else {
+        panic!()
+    };
+    let EntryV8::Owned(Body::OwnedWaitPrepared {
+        observation_digest, ..
+    }) = &original[7].entry
+    else {
+        panic!()
+    };
+    let mut prepared_seq = 7;
+    for attempt in 0..c.ordinary.max_attempts() {
+        let wait = wire::recipe_digest(
+            wire::RecipeV8::Attempt,
+            &json!({"invocation":invocation,"turn":0,"attempt":attempt,"binding":binding}),
+        )
+        .unwrap();
+        let refusal = ordinary(SourceJournalEntry::ProposalRefused {
+            turn: 0,
+            attempt,
+            reason: super::super::super::SourceProposalRefusal::MalformedDecode,
+        });
+        let before = capacity::outstanding(&c, &fold(&c, &rows).unwrap()).unwrap();
+        let seq = rows.len();
+        rows.push(refusal);
+        let after = capacity::outstanding(&c, &fold(&c, &rows).unwrap()).unwrap();
+        assert_phase_room_edge(&c, &rows[seq], seq, before, after);
+        if attempt + 1 == c.ordinary.max_attempts() {
+            break;
+        }
+        let retired_seq = rows.len();
+        rows.push(owned(json!({"kind":"owned_wait_retired","turn":0,"attempt":attempt,"wait":wait,"prepared":prepared_seq,"state_digest":argument_digest,"observation_digest":observation_digest})));
+        rows.push(owned(json!({"kind":"owned_state_rearmed","turn":0,"attempt":attempt,"wait":wait,"retired":retired_seq,"state":state,"state_digest":argument_digest,"observation":copy_arguments[0]["value"],"observation_digest":observation_digest})));
+        let next_attempt = attempt + 1;
+        let next_wait = wire::recipe_digest(
+            wire::RecipeV8::Attempt,
+            &json!({"invocation":invocation,"turn":0,"attempt":next_attempt,"binding":binding}),
+        )
+        .unwrap();
+        let start_seq = rows.len() + 1;
+        for index in 5..=7 {
+            let mut row = clone_row(&original[index]);
+            let EntryV8::Owned(body) = &row.entry else {
+                panic!()
+            };
+            let mut value = serde_json::to_value(body).unwrap();
+            value["attempt"] = json!(next_attempt);
+            value["wait"] = json!(next_wait);
+            if index == 7 {
+                value["reservation"] = json!(start_seq);
+                prepared_seq = rows.len();
+            }
+            row.entry = EntryV8::Owned(serde_json::from_value(value).unwrap());
+            let before = capacity::outstanding(&c, &fold(&c, &rows).unwrap()).unwrap();
+            let seq = rows.len();
+            rows.push(row);
+            let after = capacity::outstanding(&c, &fold(&c, &rows).unwrap()).unwrap();
+            assert_phase_room_edge(&c, &rows[seq], seq, before, after);
+        }
+        for index in 8..=10 {
+            let mut row = clone_row(&original[index]);
+            match &mut row.entry {
+                EntryV8::Ordinary(SourceJournalEntry::AttemptIntent {
+                    attempt,
+                    attempt_digest,
+                    request_digest,
+                    prompt_digest,
+                    request_bytes,
+                    ..
+                }) => {
+                    *attempt = next_attempt;
+                    *attempt_digest = c.ordinary.attempt_digest(
+                        0,
+                        next_attempt,
+                        request_digest,
+                        prompt_digest,
+                        *request_bytes,
+                    );
+                }
+                EntryV8::Ordinary(
+                    SourceJournalEntry::AttemptSettled { attempt, .. }
+                    | SourceJournalEntry::AttemptUsage { attempt, .. },
+                ) => *attempt = next_attempt,
+                _ => panic!(),
+            }
+            let before = capacity::outstanding(&c, &fold(&c, &rows).unwrap()).unwrap();
+            let seq = rows.len();
+            rows.push(row);
+            let after = capacity::outstanding(&c, &fold(&c, &rows).unwrap()).unwrap();
+            assert_phase_room_edge(&c, &rows[seq], seq, before, after);
+        }
+    }
+    assert_eq!(fold(&c, &rows).unwrap().tail, TailV8::ProposalRefused);
 }

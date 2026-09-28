@@ -256,7 +256,11 @@ pub(super) fn outstanding(
         .and_then(|a| a.checked_add(1))
         .is_some_and(|a| a < context.ordinary.max_attempts());
     if retry_tail && !retry_allowed {
-        return Ok(state_cleanup);
+        return match folded.tail {
+            ProposalRefused => retired.add(rearmed)?.add(state_cleanup),
+            TransferInDoubt => rearmed.add(state_cleanup),
+            _ => Ok(state_cleanup),
+        };
     }
     let completed = row(
         json!({"kind":"owned_wait_completed","turn":u32::MAX,"attempt":u32::MAX,"wait":hash(),"reservation":u32::MAX,"proposal":max.proposal,"proposal_digest":hash(),"result_digest":hash(),"consumed":u64::MAX}),
@@ -298,65 +302,103 @@ pub(super) fn outstanding(
             cache_write: Some(u64::MAX),
         }),
     })?;
-    let mut future = resume.add(completed)?.add(after_completed)?;
-    if retry_tail || !facts.usage_closed {
-        future = usage.add(future)?;
-    }
-    if retry_tail || !facts.response_closed {
-        future = ordinary(SourceJournalEntry::AttemptSettled {
-            turn: u32::MAX,
-            attempt: u32::MAX,
-            response: vec![255; context.ordinary.response_limit()],
-            response_digest: hash(),
-        })?
-        .add(future)?;
-    }
-    if retry_tail || !facts.intent {
-        future = ordinary(SourceJournalEntry::AttemptIntent {
-            turn: u32::MAX,
-            attempt: u32::MAX,
-            attempt_digest: hash(),
-            request_digest: hash(),
-            prompt_digest: hash(),
-            request_bytes: super::super::MAX_SOURCE_REQUEST_BYTES,
-            reserved_units: i64::MAX,
-            response_limit: context.ordinary.response_limit(),
-        })?
-        .add(future)?;
-    }
-    if matches!(folded.tail, Settled | ModelDispatchInDoubt | Prepared) {
-        return future.add(pending_replay)?.either(wait_failure);
-    }
+    let response = ordinary(SourceJournalEntry::AttemptSettled {
+        turn: u32::MAX,
+        attempt: u32::MAX,
+        response: vec![255; context.ordinary.response_limit()],
+        response_digest: hash(),
+    })?;
+    let intent = ordinary(SourceJournalEntry::AttemptIntent {
+        turn: u32::MAX,
+        attempt: u32::MAX,
+        attempt_digest: hash(),
+        request_digest: hash(),
+        prompt_digest: hash(),
+        request_bytes: super::super::MAX_SOURCE_REQUEST_BYTES,
+        reserved_units: i64::MAX,
+        response_limit: context.ordinary.response_limit(),
+    })?;
     let prepared = row(
         json!({"kind":"owned_wait_prepared","turn":u32::MAX,"attempt":u32::MAX,"wait":hash(),"reservation":u32::MAX,"observation_digest":hash(),"checkpoint_digest":hash(),"checkpoint":"ff".repeat(65536),"consumed":u64::MAX}),
     )?;
-    future = prepared.add(future)?.either(wait_failure);
-    if folded.tail == StartReserved {
-        return Ok(future);
-    }
     let start = row(
         json!({"kind":"owned_wait_reserved","turn":u32::MAX,"attempt":u32::MAX,"wait":hash(),"phase":PhaseV8::Start,"replay_of":u32::MAX,"fuel":u64::MAX}),
     )?;
-    future = start.add(future)?;
-    if folded.tail == WaitCreated {
-        return Ok(future);
-    }
     let wait_created = row(
         json!({"kind":"owned_wait_created","turn":u32::MAX,"attempt":u32::MAX,"wait":hash(),"plan_digest":context.plan_digest,"cleanup_plan_digest":context.cleanup_plan_digest,"signature":context.signature,"argument_digest":hash(),"copy_arguments":[{"parameter":context.checked_binding.helper().function().params[1].id.as_str(),"value":max.observation}],"copy_arguments_digest":hash()}),
     )?;
-    future = wait_created.add(future)?;
+    let refused_proposal = ordinary(SourceJournalEntry::ProposalRefused {
+        turn: u32::MAX,
+        attempt: u32::MAX,
+        reason: super::super::SourceProposalRefusal::MalformedDecode,
+    })?;
+    let success = resume.add(completed)?.add(after_completed)?;
+    let prefix = sum(&[wait_created, start, prepared, intent, response, usage])?;
+    let current = facts
+        .attempt
+        .unwrap_or(0)
+        .checked_add(u32::from(retry_tail))
+        .ok_or(SourceJournalError::Capacity)?;
+    let remaining = context
+        .ordinary
+        .max_attempts()
+        .checked_sub(current)
+        .ok_or(SourceJournalError::Binding)?;
+    // The ordinary checked profile admits at most four attempts. Build from
+    // the last attempt backwards: success and refusal/retry are alternatives,
+    // while each legal retry includes its own complete future closure.
+    if remaining == 0 || remaining > super::super::MAX_SOURCE_ATTEMPTS {
+        return Err(SourceJournalError::Binding);
+    }
+    let mut full = RoomV8::default();
+    let mut after_model = RoomV8::default();
+    for n in 1..=remaining {
+        let refusal_tail = if n == 1 {
+            // Retirement/rearm may close the old attempt even when no new
+            // model attempt remains; only State cleanup can follow then.
+            retired.add(rearmed)?.add(state_cleanup)?
+        } else {
+            retired.add(rearmed)?.add(full)?.either(state_cleanup)
+        };
+        after_model = success
+            .either(wait_failure)
+            .either(refused_proposal.add(refusal_tail)?);
+        full = prefix.add(after_model)?.either(wait_failure);
+    }
     if folded.tail == TransferInDoubt {
-        return rearmed.add(future).map(|r| r.either(state_cleanup));
+        return rearmed.add(full).map(|r| r.either(state_cleanup));
     }
     if folded.tail == ProposalRefused {
         return retired
             .add(rearmed)?
-            .add(future)
+            .add(full)
             .map(|r| r.either(state_cleanup));
     }
-    if matches!(folded.tail, Observed | RearmedState) {
+    if folded.tail == RearmedState || folded.tail == Observed {
+        return Ok(full);
+    }
+    let mut future = after_model;
+    if !facts.usage_closed {
+        future = usage.add(future)?;
+    }
+    if !facts.response_closed {
+        future = response.add(future)?;
+    }
+    if !facts.intent {
+        future = intent.add(future)?;
+    }
+    if matches!(folded.tail, Settled | ModelDispatchInDoubt | Prepared) {
+        return future.add(pending_replay).map(|r| r.either(wait_failure));
+    }
+    future = prepared.add(future)?.either(wait_failure);
+    if folded.tail == StartReserved {
         return Ok(future);
     }
+    future = start.add(future)?;
+    if folded.tail == WaitCreated {
+        return Ok(future);
+    }
+    future = wait_created.add(future)?;
     let observed = ordinary(SourceJournalEntry::TurnObserved {
         turn: u32::MAX,
         state: hash(),

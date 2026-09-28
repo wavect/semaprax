@@ -611,6 +611,19 @@ pub(crate) fn owned_step_transfer_plan(
                 .iter()
                 .any(|p| p.failure_by_prefix.contains(&exit.finalize_in_order))
         {
+            #[cfg(test)]
+            return Err(Diagnostic::io(
+                "SPX-T303",
+                format!(
+                    "owned stage failure vector differs: actual={:?}; prefixes={:?}",
+                    exit.finalize_in_order,
+                    cases
+                        .iter()
+                        .map(|c| &c.failure_by_prefix)
+                        .collect::<Vec<_>>()
+                ),
+            ));
+            #[cfg(not(test))]
             return Err(refused());
         }
     }

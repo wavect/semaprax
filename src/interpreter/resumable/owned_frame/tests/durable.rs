@@ -120,6 +120,17 @@ fn owned_frame_durable_authority_loss_after_callback_stops_before_next_release()
     assert_eq!(retained.failure().cloned(), primary);
     assert!(weak[1].upgrade().is_none());
     assert!(weak[0].upgrade().is_some()); // second physical release was refused
+    assert!(retained.input().is_err()); // partial root cannot become checkpoint/input
+    let mut retried_observers = 0;
+    let (retained, _) = match retained.settle(&mut |_| {
+        retried_observers += 1;
+        true
+    }) {
+        Err(rejected) => rejected,
+        Ok(_) => panic!("full compiler vector cannot retry a partially released root"),
+    };
+    assert_eq!(retried_observers, 0);
+    assert!(weak[0].upgrade().is_some());
     drop(retained); // unresolved backing disposal, no semantic receipt
     assert!(weak.iter().all(|leaf| leaf.upgrade().is_none()));
 }

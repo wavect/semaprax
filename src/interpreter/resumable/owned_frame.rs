@@ -42,6 +42,8 @@ pub(crate) enum OwnedFrameFailure {
     HostAbandoned,
     AnswerTypeMismatch,
     EvaluationRejected,
+    HandlerFailed,
+    CallDepthExceeded,
 }
 pub(crate) struct OwnedFrameArgument {
     plan: CheckedOwnedFramePlan,
@@ -254,6 +256,13 @@ fn validate_fields<'a>(
     Ok(())
 }
 fn stage_input(plan: &CheckedOwnedFramePlan, input: OwnedFrameInput) -> OwnedFrameArgument {
+    OwnedFrameArgument {
+        plan: plan.clone(),
+        root: Some(stage_root(plan, input)),
+    }
+}
+// Only checked admission or the consuming registered-lease permit calls this.
+fn stage_root(plan: &CheckedOwnedFramePlan, input: OwnedFrameInput) -> Value {
     let ResolvedType::Nominal { declaration, .. } = &plan.function().params[0].ty else {
         unreachable!()
     };
@@ -279,13 +288,10 @@ fn stage_input(plan: &CheckedOwnedFramePlan, input: OwnedFrameInput) -> OwnedFra
         };
         fields.insert(field.identity, value);
     }
-    OwnedFrameArgument {
-        plan: plan.clone(),
-        root: Some(Value::Record(Arc::new(OwnedRecordValue {
-            record: input.declaration,
-            fields,
-        }))),
-    }
+    Value::Record(Arc::new(OwnedRecordValue {
+        record: input.declaration,
+        fields,
+    }))
 }
 
 pub(crate) fn start_owned_frame(

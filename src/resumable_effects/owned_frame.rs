@@ -20,3 +20,6 @@ pub(crate) enum OwnedFrameError {
 }
 
 mod store;
+
+mod fold;
+pub(crate) mod journal;

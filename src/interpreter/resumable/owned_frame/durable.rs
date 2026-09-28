@@ -11,11 +11,127 @@ enum OwnerState {
         plan: CheckedOwnedFramePlan,
         root: Value,
     },
+    // An authenticated root awaiting charged historical start reconstruction.
+    RestoringParked {
+        plan: CheckedOwnedFramePlan,
+        root: Value,
+    },
     Parked(OwnedFrameParked),
     Terminal(OwnedFrameStagedTerminal),
     Unpublished(UnpublishedOwnedFrameResult),
 }
+// Contains only Copy evaluation state, never a root or leaf Arc. The driver
+// compares its facts to authenticated history before installing it after ACK.
+pub(crate) struct OwnedFrameReplay {
+    environment: Environment,
+    request: Option<ArgumentValue>,
+    next: usize,
+    failure: Option<OwnedFrameFailure>,
+    provisional: bool,
+}
+impl OwnedFrameReplay {
+    pub(crate) fn request(&self) -> Option<&ArgumentValue> {
+        self.request.as_ref()
+    }
+    pub(crate) fn failure(&self) -> Option<&OwnedFrameFailure> {
+        self.failure.as_ref()
+    }
+    pub(crate) fn provisional(&self) -> bool {
+        self.provisional
+    }
+}
 impl DurableOwner {
+    // Caller must ACK its phase reservation before entering either evaluator.
+    pub(crate) fn replay_start(&self, budget: &mut OwnedFrameBudget) -> OwnedFrameReplay {
+        let (plan, root) = self.root_and_plan();
+        let (outcome, environment, provisional) = replay::evaluate(
+            plan,
+            root,
+            Environment::from(Vec::new()),
+            0,
+            None,
+            true,
+            budget,
+        );
+        replay_result(outcome, environment, provisional)
+    }
+    pub(crate) fn replay_resume(
+        &self,
+        start: OwnedFrameReplay,
+        answer: &ArgumentValue,
+        budget: &mut OwnedFrameBudget,
+    ) -> OwnedFrameReplay {
+        let (plan, root) = self.root_and_plan();
+        let Some(scalar) = super::super::scalar_of(
+            &plan
+                .function()
+                .yields
+                .as_ref()
+                .expect("checked yield")
+                .response_type,
+            answer,
+        ) else {
+            return OwnedFrameReplay {
+                failure: Some(OwnedFrameFailure::AnswerTypeMismatch),
+                ..start
+            };
+        };
+        let (outcome, environment, provisional) = replay::evaluate(
+            plan,
+            root,
+            start.environment,
+            start.next,
+            Some(scalar),
+            false,
+            budget,
+        );
+        replay_result(outcome, environment, provisional)
+    }
+    pub(crate) fn install_replayed_park(self, replayed: OwnedFrameReplay) -> Result<Self, Self> {
+        if replayed.failure.is_some() || replayed.request.is_none() {
+            return Err(self);
+        }
+        let (plan, root) = match self.state {
+            OwnerState::RestoringParked { plan, root } => (plan, root),
+            _ => return Err(self),
+        };
+        Ok(Self {
+            state: OwnerState::Parked(OwnedFrameParked {
+                plan,
+                root,
+                environment: replayed.environment,
+                request: replayed.request.expect("checked request"),
+                next: replayed.next,
+            }),
+        })
+    }
+    pub(crate) fn restore(
+        plan: &CheckedOwnedFramePlan,
+        permit: crate::resumable_effects::owned_frame::journal::OwnedFrameRestorePermit<'_>,
+    ) -> Result<Self, crate::resumable_effects::owned_frame::OwnedFrameError> {
+        use crate::resumable_effects::owned_frame::journal::RestorationKind;
+        let (input, kind) = permit.consume(plan)?;
+        let root = stage_root(plan, input);
+        let plan = plan.clone();
+        Ok(Self {
+            state: match kind {
+                RestorationKind::PreYield => OwnerState::PreYield { plan, root },
+                RestorationKind::Parked => OwnerState::RestoringParked { plan, root },
+                RestorationKind::Terminal {
+                    failure,
+                    provisional,
+                } => OwnerState::Terminal(OwnedFrameStagedTerminal {
+                    plan,
+                    root,
+                    failure,
+                    provisional,
+                }),
+                RestorationKind::Unpublished => {
+                    OwnerState::Unpublished(UnpublishedOwnedFrameResult { plan, root })
+                }
+            },
+        })
+    }
     pub(crate) fn from_argument(mut argument: OwnedFrameArgument) -> Self {
         Self {
             state: OwnerState::PreYield {
@@ -27,6 +143,7 @@ impl DurableOwner {
     pub(in crate::interpreter) fn root_and_plan(&self) -> (&CheckedOwnedFramePlan, &Value) {
         match &self.state {
             OwnerState::PreYield { plan, root } => (plan, root),
+            OwnerState::RestoringParked { plan, root } => (plan, root),
             OwnerState::Parked(p) => (&p.plan, &p.root),
             OwnerState::Terminal(t) => (&t.plan, &t.root),
             OwnerState::Unpublished(r) => (&r.plan, &r.root),
@@ -87,6 +204,7 @@ impl DurableOwner {
     pub(crate) fn abandon(self, selected: OwnedFrameFailure) -> Self {
         let (plan, root, provisional) = match self.state {
             OwnerState::PreYield { plan, root } => (plan, root, false),
+            OwnerState::RestoringParked { plan, root } => (plan, root, false),
             OwnerState::Parked(p) => (p.plan, p.root, false),
             OwnerState::Terminal(t) => {
                 return Self {
@@ -126,6 +244,35 @@ impl DurableOwner {
                 e.diagnostic,
             )
         })
+    }
+}
+fn replay_result(
+    outcome: replay::PhaseResult,
+    environment: Environment,
+    provisional: bool,
+) -> OwnedFrameReplay {
+    match outcome {
+        Ok(Some((request, next))) => OwnedFrameReplay {
+            environment,
+            request: Some(request),
+            next,
+            failure: None,
+            provisional,
+        },
+        Ok(None) => OwnedFrameReplay {
+            environment,
+            request: None,
+            next: 0,
+            failure: None,
+            provisional,
+        },
+        Err(flow) => OwnedFrameReplay {
+            environment,
+            request: None,
+            next: 0,
+            failure: Some(failure(flow)),
+            provisional,
+        },
     }
 }
 fn from_step(step: OwnedFrameFoundationStep) -> DurableOwner {

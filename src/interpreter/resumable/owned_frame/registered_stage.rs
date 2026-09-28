@@ -418,3 +418,5 @@ pub(crate) fn settle_owned_copy_wait_v2(
 }
 #[cfg(test)]
 mod tests;
+
+pub(crate) mod authorize;

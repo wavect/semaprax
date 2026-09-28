@@ -1098,3 +1098,8 @@ mod owned_frame_v2;
 pub(crate) use owned_frame_v2::{
     owned_frame_v2_body, owned_frame_v2_liveness, owned_frame_v2_parameter,
 };
+
+mod owned_authorize;
+pub(crate) use owned_authorize::{
+    owned_authorize_partial_disposal, owned_authorize_result_disposal,
+};

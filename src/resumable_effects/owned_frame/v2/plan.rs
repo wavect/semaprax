@@ -11,6 +11,9 @@ pub(crate) struct CheckedOwnedFrameHelperV2 {
     liveness: OwnedFrameLiveness,
 }
 impl CheckedOwnedFrameHelperV2 {
+    pub(crate) fn same_helper(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.program, &other.program) && self.function == other.function
+    }
     pub(crate) fn program(&self) -> &ResolvedProgram {
         &self.program
     }

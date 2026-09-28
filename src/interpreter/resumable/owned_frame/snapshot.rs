@@ -21,7 +21,7 @@ pub(crate) fn validate_input(
     )
 }
 
-pub(crate) fn root_input(
+pub(in crate::interpreter) fn root_input(
     plan: &CheckedOwnedFramePlan,
     root: &Value,
 ) -> Result<OwnedFrameInput, Diagnostic> {

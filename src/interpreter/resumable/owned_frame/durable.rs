@@ -2,7 +2,11 @@
 use super::settlement::{DurableRelease, UnpublishedOwnedFrameResult};
 use super::*;
 
-pub(crate) enum DurableOwner {
+/// Opaque across the interpreter boundary; no enum arm exposes private Value.
+pub(crate) struct DurableOwner {
+    state: OwnerState,
+}
+enum OwnerState {
     PreYield {
         plan: CheckedOwnedFramePlan,
         root: Value,
@@ -13,44 +17,51 @@ pub(crate) enum DurableOwner {
 }
 impl DurableOwner {
     pub(crate) fn from_argument(mut argument: OwnedFrameArgument) -> Self {
-        Self::PreYield {
-            plan: argument.plan.clone(),
-            root: argument.root.take().expect("admitted argument"),
+        Self {
+            state: OwnerState::PreYield {
+                plan: argument.plan.clone(),
+                root: argument.root.take().expect("admitted argument"),
+            },
+        }
+    }
+    pub(in crate::interpreter) fn root_and_plan(&self) -> (&CheckedOwnedFramePlan, &Value) {
+        match &self.state {
+            OwnerState::PreYield { plan, root } => (plan, root),
+            OwnerState::Parked(p) => (&p.plan, &p.root),
+            OwnerState::Terminal(t) => (&t.plan, &t.root),
+            OwnerState::Unpublished(r) => (&r.plan, &r.root),
         }
     }
     pub(crate) fn input(&self) -> Result<OwnedFrameInput, Diagnostic> {
-        let (plan, root) = match self {
-            Self::PreYield { plan, root } => (plan, root),
-            Self::Parked(p) => (&p.plan, &p.root),
-            Self::Terminal(t) => (&t.plan, &t.root),
-            Self::Unpublished(r) => (&r.plan, &r.root),
-        };
+        let (plan, root) = self.root_and_plan();
         snapshot::root_input(plan, root)
     }
     pub(crate) fn request(&self) -> Option<&ArgumentValue> {
-        match self {
-            Self::Parked(p) => Some(&p.request),
+        match &self.state {
+            OwnerState::Parked(p) => Some(&p.request),
             _ => None,
         }
     }
     pub(crate) fn failure(&self) -> Option<&OwnedFrameFailure> {
-        match self {
-            Self::Terminal(t) => t.failure.as_ref(),
+        match &self.state {
+            OwnerState::Terminal(t) => t.failure.as_ref(),
             _ => None,
         }
     }
     pub(crate) fn pending_cleanup(&self) -> Option<&[FinalizeAction]> {
-        match self {
-            Self::Terminal(t) if t.failure.is_some() && t.provisional => {
+        match &self.state {
+            OwnerState::Terminal(t) if t.failure.is_some() && t.provisional => {
                 Some(&t.plan.liveness().result_disposal)
             }
-            Self::Terminal(t) if t.failure.is_some() => Some(&t.plan.liveness().failure_cleanup),
-            Self::Terminal(t) => Some(&t.plan.liveness().completion_cleanup),
+            OwnerState::Terminal(t) if t.failure.is_some() => {
+                Some(&t.plan.liveness().failure_cleanup)
+            }
+            OwnerState::Terminal(t) => Some(&t.plan.liveness().completion_cleanup),
             _ => None,
         }
     }
     pub(crate) fn start(self, budget: &mut OwnedFrameBudget) -> Self {
-        let Self::PreYield { plan, root } = self else {
+        let OwnerState::PreYield { plan, root } = self.state else {
             panic!("checked pre-yield phase")
         };
         from_step(if budget.cancelled {
@@ -68,39 +79,53 @@ impl DurableOwner {
         })
     }
     pub(crate) fn resume(self, answer: ArgumentValue, budget: &mut OwnedFrameBudget) -> Self {
-        let Self::Parked(parked) = self else {
+        let OwnerState::Parked(parked) = self.state else {
             panic!("checked parked phase")
         };
         from_step(resume_owned_frame(parked, answer, budget))
     }
     pub(crate) fn abandon(self, selected: OwnedFrameFailure) -> Self {
-        let (plan, root, provisional) = match self {
-            Self::PreYield { plan, root } => (plan, root, false),
-            Self::Parked(p) => (p.plan, p.root, false),
-            Self::Terminal(t) => return Self::Terminal(t), // primary stays sticky
-            Self::Unpublished(r) => (r.plan, r.root, true),
+        let (plan, root, provisional) = match self.state {
+            OwnerState::PreYield { plan, root } => (plan, root, false),
+            OwnerState::Parked(p) => (p.plan, p.root, false),
+            OwnerState::Terminal(t) => {
+                return Self {
+                    state: OwnerState::Terminal(t),
+                }
+            }
+            OwnerState::Unpublished(r) => (r.plan, r.root, true),
         };
-        Self::Terminal(OwnedFrameStagedTerminal {
-            plan,
-            root,
-            failure: Some(selected),
-            provisional,
-        })
+        Self {
+            state: OwnerState::Terminal(OwnedFrameStagedTerminal {
+                plan,
+                root,
+                failure: Some(selected),
+                provisional,
+            }),
+        }
     }
     pub(crate) fn settle(
         self,
         observer: &mut dyn FnMut(&FinalizeAction) -> bool,
     ) -> Result<DurableRelease, (Self, Diagnostic)> {
-        let Self::Terminal(terminal) = self else {
+        let OwnerState::Terminal(terminal) = self.state else {
             panic!("checked terminal phase")
         };
-        settlement::settle(terminal, observer)
-            .map_err(|e| (Self::Terminal(e.terminal), e.diagnostic))
+        settlement::settle(terminal, observer).map_err(|e| {
+            (
+                Self {
+                    state: OwnerState::Terminal(e.terminal),
+                },
+                e.diagnostic,
+            )
+        })
     }
 }
 fn from_step(step: OwnedFrameFoundationStep) -> DurableOwner {
-    match step {
-        OwnedFrameFoundationStep::Parked(p) => DurableOwner::Parked(p),
-        OwnedFrameFoundationStep::Terminal(t) => DurableOwner::Terminal(t),
+    DurableOwner {
+        state: match step {
+            OwnedFrameFoundationStep::Parked(p) => OwnerState::Parked(p),
+            OwnedFrameFoundationStep::Terminal(t) => OwnerState::Terminal(t),
+        },
     }
 }

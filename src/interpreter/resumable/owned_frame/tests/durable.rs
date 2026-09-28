@@ -8,9 +8,7 @@ fn owned_frame_durable_borrowed_replay_keeps_one_actual_owner() {
     let weak = weak_backing(argument.root.as_ref().unwrap());
     let before = snapshot::argument_input(&argument).unwrap();
     let owner = DurableOwner::from_argument(argument);
-    let DurableOwner::PreYield { plan, root } = &owner else {
-        panic!()
-    };
+    let (plan, root) = owner.root_and_plan();
     let mut budget = OwnedFrameBudget::new(100).unwrap();
     let (facts, copy_environment, _) = replay::evaluate(
         plan,

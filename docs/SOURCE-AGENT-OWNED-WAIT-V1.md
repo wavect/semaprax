@@ -412,3 +412,33 @@ Before accepting an Intent candidate, reserve serialized maxima for ordinary set
 This first slice admits the new rows only for inert recovered-data validation. validate_producer_transition rejects every new effect Intent/settlement/Recorded/consumption-cleanup row through the generic candidate route. A subsequent reviewed private candidate overload will consume a non-Clone LiveOwnedEffectAppendObligationV8 produced only by the actual Prepared/Staged/PendingReceipt engine holder and bound to the same held container, authenticated prefix/tail and intended exact row bytes. No caller boolean, raw digest tuple or recovered prefix can construct it. Therefore no recovered uncertain tail is extendable in this slice; pure fold recognition is not producer admission.
 
 Discriminating tests: genuine runtime/store prefix with real target request/evidence, successful/failed actual target settlement; re-MACed wrong target/source grant, request, auth, E/I8, operation, payload/result/accounting/evidence, true combined references and Decision vector; receipt order/duplicates/missing/failed observer; historical uncertain tail recognition vs producer extension refusal; exact boundary capacity and untouched old failure/hash oracle. The actual physical bridge tests remain separate proof of actual drop/ownership. This slice has no production ACK constructors and cannot close R20.
+
+## 22. Private fresh initialization profile
+
+This explicitly selected private v8 successor admits fresh initialization only. It does not admit public Agent execution, authorization ACK factories, owner restoration, replay after partial initialization, or durable terminal delivery. The default ObserveOnly profile and its frozen row/hash rules remain unchanged. Initialization mode is selected from the expected checked Context and actual retained runtime/B initializer proof before decoding; journal rows cannot select or infer this mode.
+
+### 22.1 Exact Task and acknowledged sequence
+
+Before any physical write or ownership admission, the live actor checks the actual typed runtime Task bound into E: nominal declaration, ordered field identities, scalar values and exact Bytes must agree, and the borrowed Task must satisfy its compiled schema. An inert matching carrier alone cannot construct a live owner.
+
+Fresh successful initialization has these true combined sequence positions:
+
+| Sequence | Record | Required basis |
+|---|---|---|
+| 0 | existing OwnedRunCreated | exact checked Context |
+| 1 | ordinary RunOpened | same invocation |
+| 2 | ordinary StageReservation | turn0, attempt=null, role=initialize, fuel exactly E.max_steps_per_stage |
+| 3 | new owned_initialization_committed | reservation=2, task, task_digest, state, state_digest, consumed |
+| 4 | existing owned_state_committed | turn0, state, argument_digest, cleanup_plan_digest |
+
+The new InitializationCommitted body has exactly `kind,reservation,task,task_digest,state,state_digest,consumed`; unknown/duplicate keys refuse. Its reservation is the actual original Initialize reservation, consumed is u64 and at most its exact F, and Task is the exact expected typed Task. Task/state use the existing `semaprax.source-owned-frame-args.v2\0` digest of the canonical record; no new hash, envelope or MAC recipe is introduced. StateCommitted must contain exactly the preceding initialized State and digest, with the existing checked helper cleanup-plan digest. Default ObserveOnly never admits this initialization sequence.
+
+Full F is charged once through the ordinary original Initialize stage reservation, including its original stage count. Recorded consumed is observed source work, not a refund or replacement for F. A smaller or larger reservation allowance refuses before evaluation; that reservation-equality control is distinct from the initializer evaluator's existing fuel-boundary gate.
+
+### 22.2 Physical owner and failure
+
+The actor derives and retains the exact checked initializer. A private non-Clone initialization permit retains the same held store borrower, exact F and cancellation binding. The real reservation ACK precedes source evaluation; Checked-context/store/PID/cancellation checks and complete physical pins surround entry. The actual Task Bytes backing and monotonic allocation provenance move through the checked source initializer into State; source evaluation and the compiler's empty nonresult cleanup proof precede successful commit. The actor records actual consumed steps and exact State from that owner, then checks matching physical initialization and State ACKs. Decoded historical rows cannot create this permit or State owner.
+
+Actual physical append uncertainty or physical guard failure poisons the shared container and quarantines the actual owner. Pure candidate refusal does not itself poison the container; the current actor may still withhold its owner after that refusal, and its broad Uncertain return classification is not evidence of physical poisoning. Failed/partial/provisional initialization has no successful InitializationCommitted/StateCommitted claim, fabricated cleanup receipt, replay permission or Stop publication. The opaque holder retains the container through abandonment; Drop drains backing before the inner foundation's semantic disposer and cannot claim compiler semantic cleanup. Partial initialization cleanup and recovery remain outside this admitted slice.
+
+Owning gates cover actual Task-to-State backing identity and acknowledged F/consumed/stage inventory, prewrite Task/schema/mode/cancellation refusals, before/after persistence failure at all five rows, exact reservation F-minus1/F-plus1 refusals, zero semantic release on abandonment, and unchanged default ObserveOnly seed/inventory behavior.

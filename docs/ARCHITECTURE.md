@@ -152,6 +152,17 @@ defines the bound limits and the private CLI v3 projection.
 `source_journal/wait_v7` owns the opt-in combined model-wait inventory, canonical
 wire, replay closure grammar, fuel and phase-specific capacity; `sink` retains
 the one caller-owned checkpoint writer. Frozen v1-v6 profiles remain separate.
+`source_journal/owned_wait_v8` owns the separate private typed owned-wait
+inventory, exact E/B bindings, phase capacity and fixed same-file append
+adapter. Its shared journal container retains the exclusive physical lease;
+borrowers keep that container through owned stages. Physical uncertainty
+permanently poisons the container; pure prospective row refusal does not.
+`live_upstream` owns fresh initialization through real reservation and State
+ACKs in an explicitly selected initialized profile. Historical rows cannot
+mint physical owners or permits. Default ObserveOnly remains separate.
+[Source Agent owned wait v1](SOURCE-AGENT-OWNED-WAIT-V1.md) owns these bounded
+private successors; public Agent execution and partial-initialization recovery
+remain unfinished.
 `source_journal/policy_v6` owns independently folded quote reservations, observed
 and unknown exposure, and cumulative policy carry. Its V6 profile composes I/O
 limits and restores reservations before source continuation.
@@ -833,8 +844,16 @@ opaque live root, retains that root through park/resume and staged terminal
 failures, and performs explicit ordered settlement or consuming result handoff.
 Its environments contain Copy observations, and alias checks precede physical
 leaf release. This private foundation is separate from scalar replay. Durable
-checkpoint/restore and journal authority, target emission, and Agent session
-integration are not implemented by this subtree.
+checkpoint owner restoration, target emission and public Agent session
+integration remain unfinished. Its `registered_stage/effect` child consumes
+actual State/Decision roots under sealed effect ACK envelopes and retains the
+same held journal container through Decision release, fresh Outcome and Reduce.
+`registered_stage/reduce/physical_step` retains that lineage through ordered
+per-operation cleanup observations and actual mapped Step moves. Their ACK
+constructors remain test-only until live journal obligations are connected;
+unpublished durable holders release backing without claiming semantic cleanup.
+`registered_stage/live_run` consumes the separately bound live initialization
+permit, retaining actual Task Bytes provenance in initialized State.
 
 `src/resumable_effects/target.rs` owns the public, authority-free production
 preparation profile for those already authenticated projections. It emits an

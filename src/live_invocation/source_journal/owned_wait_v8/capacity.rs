@@ -1,6 +1,7 @@
 //! Private phase-specific closure room; acknowledged payloads are not reserved twice.
 mod effect;
 mod reduce;
+pub(super) use reduce::ReduceTemplateCacheV8;
 mod templates;
 use super::*;
 use fold::{FoldV8, TailV8};

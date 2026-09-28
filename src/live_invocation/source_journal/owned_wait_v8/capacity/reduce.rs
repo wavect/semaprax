@@ -4,7 +4,7 @@ use crate::hir::ResolvedType;
 use crate::interpreter::{resumable::checkpoint, ArgumentValue};
 use crate::resumable_effects::owned_frame::v2;
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub(super) struct ReduceRoomsV8 {
     pub before_stage: RoomV8,
     pub charged: RoomV8,
@@ -12,7 +12,7 @@ pub(super) struct ReduceRoomsV8 {
     pub mapped: RoomV8,
     pub failed_state: RoomV8,
 }
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub(super) struct ReduceCaseRoomsV8 {
     pub case: String,
     pub staged: RoomV8,
@@ -209,8 +209,45 @@ fn transfer(
     Ok((full, completed))
 }
 
+#[derive(Default)]
+pub(in crate::live_invocation::source_journal::owned_wait_v8) struct ReduceTemplateCacheV8 {
+    entry: std::cell::RefCell<
+        Option<(
+            String,
+            std::sync::Arc<v2::CheckedOwnedReduceV2>,
+            Result<ReduceRoomsV8, SourceJournalError>,
+        )>,
+    >,
+}
+impl ReduceTemplateCacheV8 {
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn reset(&mut self) {
+        *self.entry.get_mut() = None;
+    }
+}
+
 pub(super) fn rooms(context: &FoldContextV8) -> Result<ReduceRoomsV8, SourceJournalError> {
-    rooms_with_plan(context, context.checked_reduce()?)
+    // Compiler proof identity is checked even when static templates are retained.
+    let plan = context.checked_reduce()?;
+    // Complete immutable builder inputs for the currently admitted turn-zero
+    // profile. Cumulative integration must add its actual maximum coordinate.
+    let key = wire::canonical(&json!({
+        "created": serde_json::to_value(&context.created).map_err(|_| SourceJournalError::Malformed)?,
+        "fuel": context.ordinary.max_steps_per_stage(),
+        "iterations": context.ordinary.max_iterations(),
+        "initialized": context.initialized_task.is_some(),
+        "coordinate_turn": 0,
+    }));
+    let key = String::from_utf8(key).map_err(|_| SourceJournalError::Malformed)?;
+    if let Some((actual, actual_plan, retained)) = context.reduce_templates.entry.borrow().as_ref()
+    {
+        if actual == &key && std::sync::Arc::ptr_eq(actual_plan, plan) {
+            return retained.clone();
+        }
+    }
+    let retained = rooms_with_plan(context, plan);
+    *context.reduce_templates.entry.borrow_mut() =
+        Some((key, std::sync::Arc::clone(plan), retained.clone()));
+    retained
 }
 
 fn rooms_with_plan(

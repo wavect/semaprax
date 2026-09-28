@@ -64,6 +64,7 @@ pub(super) struct FoldContextV8 {
     granted: String,
     refused: String,
     refused_cleanup_empty: bool,
+    reduce_templates: capacity::ReduceTemplateCacheV8,
     checked_reduce: Result<
         std::sync::Arc<crate::resumable_effects::owned_frame::v2::CheckedOwnedReduceV2>,
         SourceJournalError,

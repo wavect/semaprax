@@ -322,5 +322,61 @@ fn owned_reduce_cached_proof_preserves_deferred_refusal_for_real_unsupported_red
         super::super::super::fold::fold(&context, &rows[..2]).is_ok(),
         "unsupported reducer proof does not reject earlier default journal admission"
     );
-    assert_eq!(rooms(&context).err().unwrap(), SourceJournalError::Binding);
+    for _ in 0..2 {
+        assert_eq!(rooms(&context).err().unwrap(), SourceJournalError::Binding);
+        assert!(context.reduce_templates.entry.borrow().is_none());
+    }
+}
+
+#[test]
+fn owned_reduce_template_cache_matches_every_room_and_refuses_crossed_proof() {
+    super::super::super::CheckedOwnedWaitJournalContextV8::test_with_actual_reduce_arithmetic_store(
+        |context, _lease, _key, _directory| {
+            let context = context.fold();
+            let plan = context.checked_reduce().unwrap();
+            let expected = rooms_with_plan(context, plan).unwrap();
+            for _ in 0..3 {
+                assert_eq!(rooms(context).unwrap(), expected);
+                let cache = context.reduce_templates.entry.borrow();
+                let (_, actual_plan, retained) = cache.as_ref().unwrap();
+                assert!(std::sync::Arc::ptr_eq(plan, actual_plan));
+                assert_eq!(retained.as_ref().unwrap(), &expected);
+            }
+            let mut crossed = super::super::super::fold::tests::context();
+            crossed.checked_reduce = Ok(std::sync::Arc::clone(plan));
+            assert_eq!(rooms(&crossed).err(), Some(SourceJournalError::Binding));
+            assert!(crossed.reduce_templates.entry.borrow().is_none());
+        },
+    );
+}
+
+#[test]
+fn owned_reduce_template_cache_recomputes_changed_inputs_and_reset() {
+    let mut context = super::super::super::fold::tests::context();
+    let initial = rooms(&context).unwrap();
+    let old_key = context
+        .reduce_templates
+        .entry
+        .borrow()
+        .as_ref()
+        .unwrap()
+        .0
+        .clone();
+    // Inert Context mutation exercises private key invalidation. It grants no
+    // live profile, journal authority, or physical capacity check.
+    let model::OwnedBodyV8::OwnedRunCreated { scope, .. } = &mut context.created else {
+        panic!()
+    };
+    *scope = json!({"inert_larger_scope":"a different bounded scope"});
+    let fresh = rooms_with_plan(&context, context.checked_reduce().unwrap()).unwrap();
+    assert_eq!(rooms(&context).unwrap(), fresh);
+    assert_ne!(
+        context.reduce_templates.entry.borrow().as_ref().unwrap().0,
+        old_key
+    );
+    assert_eq!(rooms(&context).unwrap(), fresh);
+    assert_eq!(initial.cases.len(), fresh.cases.len());
+    context.reduce_templates.reset();
+    assert!(context.reduce_templates.entry.borrow().is_none());
+    assert_eq!(rooms(&context).unwrap(), fresh);
 }

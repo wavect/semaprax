@@ -154,7 +154,10 @@ wire, replay closure grammar, fuel and phase-specific capacity; `sink` retains
 the one caller-owned checkpoint writer. Frozen v1-v6 profiles remain separate.
 `source_journal/owned_wait_v8` owns the separate private typed owned-wait
 inventory, exact E/B bindings, phase capacity and fixed same-file append
-adapter. Its shared journal container retains the exclusive physical lease;
+adapter. Its `inventory/accounting` child retains the exact Context borrow in
+an incremental authenticated accounting prefix; the target protocol's
+`owned_wait_v8/settlement/accounting` child owns shared reservation/result-charge
+verification. Pure entry checking publishes no authenticated history. Its shared journal container retains the exclusive physical lease;
 borrowers keep that container through owned stages. Physical uncertainty
 permanently poisons the container; pure prospective row refusal does not.
 `live_upstream` owns fresh initialization through real reservation and State

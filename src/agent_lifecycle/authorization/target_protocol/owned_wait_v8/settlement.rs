@@ -1,6 +1,7 @@
 //! Pure successor settlement replay. These checked facts carry no grant,
 //! dispatch permit, append ACK, cleanup authority or physical runtime owner.
 use super::super::*;
+pub(crate) mod accounting;
 use crate::agent_lifecycle::authorization::checked_owned_wait_ready_commitments_v8;
 use crate::agent_lifecycle::iterative::effects::{plan_owned_effect_v8, CheckedOwnedEffectPlanV8};
 use crate::execution_revision::typed::{AgentRuntimeV2, CheckedTypedOwnedWaitExecutionV8};
@@ -27,7 +28,7 @@ pub(crate) struct OwnedEffectSettlementInputsV8<'a> {
 pub(crate) struct CheckedOwnedEffectRequestV8<'a> {
     plan: CheckedOwnedEffectPlanV8<'a>,
     request: Vec<u8>,
-    first_dispatch: TargetAccounting,
+    first_dispatch: accounting::ReservedTargetAccountingV8,
 }
 impl CheckedOwnedEffectRequestV8<'_> {
     pub(crate) fn operation(&self) -> &TargetOperation {
@@ -80,10 +81,7 @@ pub(crate) fn checked_owned_effect_request_v8<'a>(
     .canonical_wire();
     // Proof of this closed first-effect request only. This does not reset or
     // replace a live invocation's cumulative target accounting owner.
-    let mut first_dispatch = TargetAccounting::default();
-    first_dispatch
-        .reserve(request.len() as u64, 1, plan.target_limits())
-        .map_err(|_| Error::Binding)?;
+    let first_dispatch = accounting::reserve_first(&request, plan.target_limits())?;
     Ok(CheckedOwnedEffectRequestV8 {
         plan,
         request,
@@ -95,6 +93,7 @@ pub(crate) struct CheckedOwnedEffectSettlementV8 {
     operation: TargetOperation,
     request: Vec<u8>,
     evidence: TargetEvidence,
+    accounting: accounting::CheckedTargetAccountingV8,
     accepted_payload: Option<Vec<u8>>,
     result_wire_limit: u64,
 }
@@ -107,6 +106,9 @@ impl CheckedOwnedEffectSettlementV8 {
     }
     pub(crate) fn request_digest(&self) -> String {
         digest(REQUEST_DOMAIN, &self.request)
+    }
+    pub(crate) fn accounting_proof(&self) -> &accounting::CheckedTargetAccountingV8 {
+        &self.accounting
     }
     pub(crate) fn evidence(&self) -> &TargetEvidence {
         &self.evidence
@@ -157,6 +159,26 @@ pub(crate) fn checked_owned_effect_settlement_v8(
     evidence_wire: &[u8],
     result_wire: Option<&[u8]>,
 ) -> Result<CheckedOwnedEffectSettlementV8, Error> {
+    checked_owned_effect_settlement_after_prefix_v8(
+        inputs,
+        None,
+        ordinary,
+        evidence_wire,
+        result_wire,
+    )
+}
+/// Current closed source profile cannot consume a second Recorded exchange.
+/// Retaining the preceding checked proof makes reset attempts explicit.
+pub(crate) fn checked_owned_effect_settlement_after_prefix_v8(
+    inputs: OwnedEffectSettlementInputsV8<'_>,
+    previous: Option<&accounting::CheckedTargetAccountingV8>,
+    ordinary: &SourceJournalEntry,
+    evidence_wire: &[u8],
+    result_wire: Option<&[u8]>,
+) -> Result<CheckedOwnedEffectSettlementV8, Error> {
+    if previous.is_some() {
+        return Err(Error::Binding);
+    }
     let checked = checked_owned_effect_request_v8(&inputs)?;
     let plan = &checked.plan;
     let request = &checked.request;
@@ -165,7 +187,12 @@ pub(crate) fn checked_owned_effect_settlement_v8(
     if !evidence.dispatched() {
         return Err(Error::Binding);
     }
-    let mut expected = checked.first_dispatch;
+    let accounting = accounting::verify(
+        checked.first_dispatch,
+        plan.target_limits(),
+        &evidence,
+        result_wire,
+    )?;
     let mut accepted_payload = None;
     let matches_phase = |turn: u32, attempt: u32, operation: &str| {
         turn == inputs.turn
@@ -179,9 +206,6 @@ pub(crate) fn checked_owned_effect_settlement_v8(
         }
         evidence
             .replay_exchange_wire(request, Some(result_wire))
-            .map_err(|_| Error::Binding)?;
-        expected
-            .charge_result(result_wire.len(), plan.target_limits())
             .map_err(|_| Error::Binding)?;
         let carrier = TypedCarrier::decode(result_wire, plan.operation().result_type())
             .map_err(|_| Error::Malformed)?;
@@ -223,31 +247,8 @@ pub(crate) fn checked_owned_effect_settlement_v8(
             .replay_exchange_wire(request, None)
             .map_err(|_| Error::Binding)?;
         let expected_reason = match evidence.settlement() {
-            Settlement::HostFailed | Settlement::HostPanicked => {
-                expected
-                    .charge_result(0, plan.target_limits())
-                    .map_err(|_| Error::Binding)?;
-                SourceEffectFailure::HandlerFailed
-            }
-            Settlement::ResultBudget => {
-                let limits = plan.target_limits();
-                let response_limit = limits
-                    .max_result_bytes
-                    .min(
-                        limits
-                            .max_total_bytes
-                            .saturating_sub(expected.request_bytes()),
-                    )
-                    .min(MAX_CARRIER_BYTES as u64);
-                let sentinel = usize::try_from(response_limit)
-                    .map_err(|_| Error::Binding)?
-                    .checked_add(1)
-                    .ok_or(Error::Binding)?;
-                if expected.charge_result(sentinel, limits) != Err(Settlement::ResultBudget) {
-                    return Err(Error::Binding);
-                }
-                SourceEffectFailure::ResultLimit
-            }
+            Settlement::HostFailed | Settlement::HostPanicked => SourceEffectFailure::HandlerFailed,
+            Settlement::ResultBudget => SourceEffectFailure::ResultLimit,
             // CancelledAfterDispatch discards its raw charge basis; all
             // pre-dispatch and other raw-result forms remain outside §21.
             _ => return Err(Error::Binding),
@@ -258,13 +259,11 @@ pub(crate) fn checked_owned_effect_settlement_v8(
             return Err(Error::Binding);
         }
     }
-    if evidence.accounting() != expected {
-        return Err(Error::Binding);
-    }
     Ok(CheckedOwnedEffectSettlementV8 {
         operation: plan.operation().clone(),
         request: checked.request,
         evidence,
+        accounting,
         accepted_payload,
         result_wire_limit: plan.target_limits().max_result_bytes,
     })

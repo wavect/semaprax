@@ -11,12 +11,14 @@ use crate::resumable_effects::owned_frame::{
 };
 use crate::resumable_effects::source_checkpoint::{SourceCheckpointKey, SourceCheckpointScope};
 use serde_json::Value;
+mod accounting;
 
-pub(super) struct CheckedInventoryV8 {
+pub(super) struct CheckedInventoryV8<'a> {
     entries: Vec<ValidatedEntryV8>,
     last_mac: String,
+    accounting: Option<accounting::CheckedAccountingPrefixV8<'a>>,
 }
-impl CheckedInventoryV8 {
+impl CheckedInventoryV8<'_> {
     pub(super) fn into_parts(self) -> (Vec<ValidatedEntryV8>, String) {
         (self.entries, self.last_mac)
     }
@@ -47,21 +49,21 @@ impl InventoryValidationErrorV8 {
         }
     }
 }
-pub(super) fn checked_inventory_v8(
-    context: &CheckedOwnedWaitJournalContextV8,
+pub(super) fn checked_inventory_v8<'a>(
+    context: &'a CheckedOwnedWaitJournalContextV8,
     lease: &SourceOwnedWaitLeaseV8,
     key: &SourceCheckpointKey,
     bytes: &[u8],
-) -> Result<CheckedInventoryV8, Error> {
+) -> Result<CheckedInventoryV8<'a>, Error> {
     checked_inventory_tagged_v8(context, lease, key, bytes)
         .map_err(InventoryValidationErrorV8::error)
 }
-pub(super) fn checked_inventory_tagged_v8(
-    context: &CheckedOwnedWaitJournalContextV8,
+pub(super) fn checked_inventory_tagged_v8<'a>(
+    context: &'a CheckedOwnedWaitJournalContextV8,
     lease: &SourceOwnedWaitLeaseV8,
     key: &SourceCheckpointKey,
     bytes: &[u8],
-) -> Result<CheckedInventoryV8, InventoryValidationErrorV8> {
+) -> Result<CheckedInventoryV8<'a>, InventoryValidationErrorV8> {
     context
         .validate_lease(lease)
         .map_err(InventoryValidationErrorV8::Physical)?;
@@ -75,13 +77,25 @@ pub(super) fn checked_inventory_tagged_v8(
     };
     let decoded =
         wire::decode_inventory(bytes, &expected, key).map_err(InventoryValidationErrorV8::Proof)?;
-    let mut result =
-        check_entries_with_runtime(context.fold(), key, decoded, context.ready_runtime())
-            .map_err(InventoryValidationErrorV8::Proof)?;
+    let mut accounting = accounting::AccountingBuilderV8::authenticated(context, bytes)
+        .map_err(InventoryValidationErrorV8::Proof)?;
+    let mut result = check_entries_with_runtime(
+        context.fold(),
+        key,
+        decoded,
+        context.ready_runtime(),
+        Some(&mut accounting),
+    )
+    .map_err(InventoryValidationErrorV8::Proof)?;
     result.last_mac = document_mac(bytes).map_err(InventoryValidationErrorV8::Proof)?;
     context
         .validate_lease(lease)
         .map_err(InventoryValidationErrorV8::Physical)?;
+    result.accounting = Some(
+        accounting
+            .finish()
+            .map_err(InventoryValidationErrorV8::Proof)?,
+    );
     Ok(result)
 }
 fn scope(context: &super::FoldContextV8) -> Result<SourceCheckpointScope, Error> {
@@ -112,15 +126,15 @@ fn observation(
 }
 /// Pure prefixes have no retained runtime, so Ready remains refused.
 #[cfg(test)]
-fn check_entries(
+fn check_entries<'a>(
     context: &super::FoldContextV8,
     key: &SourceCheckpointKey,
     decoded: Vec<EntryV8>,
-) -> Result<CheckedInventoryV8, Error> {
-    check_entries_with_runtime(context, key, decoded, None)
+) -> Result<CheckedInventoryV8<'a>, Error> {
+    check_entries_with_runtime(context, key, decoded, None, None)
 }
 /// Cleanup remains refused until actual selected stage obligations are joined.
-fn check_entries_with_runtime(
+fn check_entries_with_runtime<'a>(
     context: &super::FoldContextV8,
     key: &SourceCheckpointKey,
     decoded: Vec<EntryV8>,
@@ -128,7 +142,8 @@ fn check_entries_with_runtime(
         &crate::execution_revision::typed::AgentRuntimeV2,
         &crate::execution_revision::typed::CheckedTypedOwnedWaitExecutionV8,
     )>,
-) -> Result<CheckedInventoryV8, Error> {
+    mut accounting: Option<&mut accounting::AccountingBuilderV8<'a>>,
+) -> Result<CheckedInventoryV8<'a>, Error> {
     let b = &context.checked_binding;
     let scope = scope(context)?;
     let mut rows = Vec::new();
@@ -334,7 +349,7 @@ fn check_entries_with_runtime(
                     Some(EntryV8::Ordinary(e)) => e,
                     _ => return Err(Error::Binding),
                 };
-                let facts = crate::agent_lifecycle::authorization::target_protocol::owned_wait_v8::settlement::checked_owned_effect_settlement_v8(inputs, ordinary, &evidence, result.as_deref())?;
+                let facts = crate::agent_lifecycle::authorization::target_protocol::owned_wait_v8::settlement::checked_owned_effect_settlement_after_prefix_v8(inputs, accounting.as_ref().and_then(|a| a.preceding()), ordinary, &evidence, result.as_deref())?;
                 require(facts.evidence().digest() == evidence_digest)?;
                 match rows.get(*intent as usize).map(|r| &r.entry) {
                     Some(EntryV8::Ordinary(Ordinary::EffectIntent {
@@ -349,6 +364,9 @@ fn check_entries_with_runtime(
                             && facts.request_digest() == *request_digest,
                     )?,
                     _ => return Err(Error::Binding),
+                }
+                if let Some(a) = accounting.as_mut() {
+                    a.record(rows.len(), *intent as usize, *settlement as usize, &facts)?;
                 }
                 recorded_effect = Some((*turn, *attempt, rows.len(), facts));
             }
@@ -389,11 +407,15 @@ fn check_entries_with_runtime(
             entry,
             observation: row_obs,
         });
+        if let Some(a) = accounting.as_mut() {
+            a.row_checked(rows.len())?;
+        }
     }
     fold::fold(context, &rows)?;
     Ok(CheckedInventoryV8 {
         entries: rows,
         last_mac: "0".repeat(64),
+        accounting: None,
     })
 }
 
@@ -432,23 +454,23 @@ fn document_mac(bytes: &[u8]) -> Result<String, Error> {
         .ok_or(Error::Malformed)?
         .to_owned())
 }
-pub(super) fn checked_candidate_inventory_v8(
-    context: &CheckedOwnedWaitJournalContextV8,
+pub(super) fn checked_candidate_inventory_v8<'a>(
+    context: &'a CheckedOwnedWaitJournalContextV8,
     lease: &SourceOwnedWaitLeaseV8,
     key: &SourceCheckpointKey,
     prefix: &[u8],
     row: &[u8],
-) -> Result<CheckedInventoryV8, Error> {
+) -> Result<CheckedInventoryV8<'a>, Error> {
     checked_candidate_inventory_tagged_v8(context, lease, key, prefix, row)
         .map_err(InventoryValidationErrorV8::error)
 }
-pub(super) fn checked_candidate_inventory_tagged_v8(
-    context: &CheckedOwnedWaitJournalContextV8,
+pub(super) fn checked_candidate_inventory_tagged_v8<'a>(
+    context: &'a CheckedOwnedWaitJournalContextV8,
     lease: &SourceOwnedWaitLeaseV8,
     key: &SourceCheckpointKey,
     prefix: &[u8],
     row: &[u8],
-) -> Result<CheckedInventoryV8, InventoryValidationErrorV8> {
+) -> Result<CheckedInventoryV8<'a>, InventoryValidationErrorV8> {
     let acknowledged = checked_inventory_tagged_v8(context, lease, key, prefix)?;
     let expected = ExpectedRowV8 {
         invocation: context.ordinary().invocation(),

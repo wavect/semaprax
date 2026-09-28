@@ -21,6 +21,7 @@ import runnable_adapter_v2 as v2
 import runnable_v3_provenance as p
 import runnable_v3_extraction as extraction
 import runnable_v3_authority as authority
+import runnable_v3_corrections as corrections
 
 SCHEMA = "benchmark.cross_language.runnable_adapter.v3"
 MUTANT_PATH = SUITE / "provenance/typescript-official-v3-mutants.json"
@@ -67,7 +68,9 @@ class OfficialSession:
     def __enter__(self):
         try:
             self.host = p.host_identity()
-            self.manifest, self.sources = p.source_snapshot()
+            self.manifest, baseline = p.source_snapshot()
+            self.correction = corrections.admit(self.manifest, baseline)
+            self.sources = self.correction["sources"]
             self.subject = execution_subject()
             mutant_bytes = p.read_regular(MUTANT_PATH, 65536)
             if p.digest(mutant_bytes) != MUTANT_HASH:
@@ -146,15 +149,19 @@ class OfficialSession:
             if name.startswith(prefix):
                 v1._write_snapshot_file(directory / name[len(prefix):], data)
 
-    def _mutate(self, directory, mutant):
+    def _mutate(self, directory, mutant, artifact_name=None):
         path = directory / mutant["path"]
         content = p.read_regular(path, v1.MAX_SOURCE_FILE_BYTES).decode()
         if content.count(mutant["target"]) != 1:
             raise p.Error("mutant_target_missing_or_ambiguous")
         changed = content.replace(mutant["target"], mutant["replacement"])
         path.write_text(changed)
+        if artifact_name:
+            self.artifacts.append({"path": artifact_name, "bytes": len(changed.encode()),
+                                   "sha256": p.digest(changed.encode()), "base64": base64.b64encode(changed.encode()).decode()})
         return {"path": mutant["path"], "before_sha256": p.digest(content.encode()),
-                "after_sha256": p.digest(changed.encode()), "target_count": 1}
+                "after_sha256": p.digest(changed.encode()), "target_count": 1,
+                **({"source_artifact": artifact_name} if artifact_name else {})}
 
     def _capture(self, directory, label):
         count = 0
@@ -176,28 +183,45 @@ class OfficialSession:
 
     def score(self, task_id, *, mutant=False):
         # No source_root or candidate bytes argument; only fixed approved corpus.
-        p.source_snapshot()
+        manifest, baseline = p.source_snapshot()
+        fresh = corrections.admit(manifest, baseline)
+        if manifest != self.manifest or fresh["sources"] != self.sources or fresh != self.correction:
+            raise p.Error("effective_source_snapshot_drifted")
         task = next((row for row in self.tasks if row["id"] == task_id), None)
         if task is None:
             raise p.Error("task_not_in_approved_inventory")
+        if type(mutant) is str:
+            if task_id != corrections.TASK or mutant not in self.correction["mutants"]:
+                raise p.Error("correction_mutant_not_in_approved_inventory")
+            selected_mutant = self.correction["mutants"][mutant]
+            mutant_id = mutant
+        elif type(mutant) is bool:
+            selected_mutant = self.mutants[task_id] if mutant else None
+            mutant_id = "stale-edit-missing-zero-clamp" if mutant and task_id == corrections.TASK else None
+        else:
+            raise p.Error("mutant_not_in_approved_inventory")
         self.deadline = time.monotonic() + v1.MAX_TIMEOUT_SECONDS
         paths = task["languages"]["typescript"]
-        parent = self.root / (task_id + ("-mutant" if mutant else "-positive"))
+        parent = self.root / (task_id + ("-" + mutant_id if mutant_id else ("-mutant" if mutant else "-positive")))
         parent.mkdir(mode=0o700)
         public, hidden = parent / "public", parent / "hidden"
         observations_start = len(self.authority.commands)
         record = {"task_id": task_id, "adapter_id": "typescript", "classification": "official_toolchain_conformance",
-                  "mutant": mutant, "source_manifest_sha256": p.SOURCE_HASH}
+                  "mutant": bool(mutant), "source_manifest_sha256": p.SOURCE_HASH,
+                  "source_variant": "stale_edit_floor_v1" if task_id == corrections.TASK else "baseline"}
+        if mutant_id:
+            record["mutant_id"] = mutant_id
+        label = task_id + ("/mutant/" + (mutant_id or "default") if mutant else "/positive")
         try:
             self._copy_phase(public, paths["public"])
             problem = self.scorer.hidden_overlay_problem(self.host_sources / paths["public"], self.host_sources / paths["hidden"])
             if problem:
                 raise p.Error("hidden_overlay_refused:" + problem)
             if mutant:
-                record["mutation"] = self._mutate(public, self.mutants[task_id])
+                record["mutation"] = self._mutate(public, selected_mutant, label + "/source/" + selected_mutant["path"])
             hidden_only = self.scorer.relative_files(self.host_sources / paths["hidden"]) - self.scorer.relative_files(self.host_sources / paths["public"])
             record["public"] = self._stage(public)
-            self._capture(public, task_id + ("/mutant/public" if mutant else "/positive/public"))
+            self._capture(public, label + "/public")
             record["leak_check"] = "ok" if not hidden_only.intersection(self.scorer.relative_files(public)) else "failed"
             if record["leak_check"] != "ok":
                 raise p.Error("hidden_path_leaked_into_public")
@@ -214,12 +238,14 @@ class OfficialSession:
                         destination.unlink()
                     v1._write_snapshot_file(destination, data)
             if mutant:
-                self._mutate(hidden, self.mutants[task_id])
+                hidden_mutation = self._mutate(hidden, selected_mutant)
+                if task_id == corrections.TASK and hidden_mutation["after_sha256"] != record["mutation"]["after_sha256"]:
+                    raise p.Error("mutant_phase_source_disagrees")
             record["hidden"] = self._stage(hidden)
-            self._capture(hidden, task_id + ("/mutant/hidden" if mutant else "/positive/hidden"))
+            self._capture(hidden, label + "/hidden")
             record["status"] = "ok" if record["public"]["passed"] and record["hidden"]["passed"] else "failed"
             if mutant:
-                expected = self.mutants[task_id]
+                expected = selected_mutant
                 if (record["public"]["phase"] != "run" or record["hidden"]["phase"] != "run"
                         or record["public"]["passed"] != expected["public_passed"]
                         or record["hidden"]["passed"] != expected["hidden_passed"]):
@@ -233,7 +259,7 @@ class OfficialSession:
     def evidence(self):
         # Preserve exact command streams and policy bytes once as artifacts;
         # metadata references them rather than duplicating large SBPL strings.
-        artifacts = list(self.artifacts) + self.provenance["receipt_artifacts"]
+        artifacts = list(self.artifacts) + self.provenance["receipt_artifacts"] + self.correction["artifacts"]
         provenance = {key: value for key, value in self.provenance.items() if key != "receipt_artifacts"}
         provenance["original_receipt_artifacts"] = [row["path"] for row in self.provenance["receipt_artifacts"]]
         inventory = [dict(row, v3_availability="admitted" if row["adapter_id"] == "typescript" else "unavailable",
@@ -261,7 +287,9 @@ class OfficialSession:
                   "source_manifest_sha256": p.SOURCE_HASH, "execution_subject": self.subject,
                   "host": self.host, "provenance": provenance, "authority": self.observations,
                   "comparison_inventory": inventory, "results": self.results,
-                  "commands": command_rows}
+                  "commands": command_rows, "source_correction_sha256": corrections.HASH,
+                  "source_effective_files": self.correction["references"],
+                  "source_correction_oracle_artifact": self.correction["oracle_artifact"]}
         if len(p.canonical(result)) > v1.MAX_RESULT_BYTES:
             raise p.Error("result_metadata_exceeds_bound")
         bundle = {"result": result, "source_manifest": self.manifest, "artifacts": artifacts}

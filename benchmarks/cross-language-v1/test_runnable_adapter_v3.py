@@ -75,6 +75,57 @@ class PureProvenanceTests(unittest.TestCase):
                     prepare.assert_not_called()
                 path.write_bytes(original)
 
+    def test_correction_reminted_payloads_vectors_oracle_and_inventory_refuse_before_dispatch(self):
+        correction = v3.corrections
+        approved = p.read_regular(correction.PATH, 65536)
+        for target in ("base", "candidate", "public", "hidden", "oracle", "review", "order", "mutant", "unknown"):
+            row = json.loads(approved)
+            if target in ("base", "candidate", "public", "hidden", "oracle"):
+                item = (row["oracle"] if target == "oracle" else
+                        row["files"][{"base": 0, "candidate": 0, "public": 1, "hidden": 2}[target]]["base" if target == "base" else "effective"])
+                data = base64.b64decode(item["base64"]) + b"\n"
+                item.update(bytes=len(data), sha256=p.digest(data), base64=base64.b64encode(data).decode())
+            elif target == "review":
+                row["equivalence_review"] = "caller self-attests equivalence"
+            elif target == "order":
+                row["files"].reverse()
+            elif target == "mutant":
+                row["mutants"][0]["public_passed"] = True
+            else:
+                row["unknown"] = True
+            reminted = p.canonical(row)
+            self.assertNotEqual(p.digest(reminted), correction.HASH)
+            with tempfile.TemporaryDirectory(prefix="r03-correction-negative-") as temporary:
+                root = pathlib.Path(temporary).resolve()
+                path = root / "correction.json"
+                path.write_bytes(reminted)
+                with mock.patch.object(correction, "PATH", path), mock.patch.object(x, "prepare") as prepare:
+                    with self.assertRaisesRegex(p.Error, "approved_source_correction_drifted") as caught:
+                        with v3.OfficialSession(root):
+                            self.fail("reminted correction dispatched")
+                    self.assertEqual(caught.exception.official_commands, [])
+                    prepare.assert_not_called()
+
+    def test_correction_baseline_remint_source_oracle_and_manifest_cannot_authorize_dispatch(self):
+        manifest, sources = p.source_snapshot()
+        for name in (v3.corrections.PREFIX + "public/typescript/candidate.ts",
+                     v3.corrections.PREFIX + "public/typescript/index.ts",
+                     v3.corrections.PREFIX + "hidden/typescript/index.ts",
+                     v3.corrections.PREFIX + "EQUIVALENCE.md"):
+            changed = dict(sources)
+            changed[name] += b"\n"
+            reminted = json.loads(p.canonical(manifest))
+            entry = next(row for row in reminted["files"] if row["path"] == name)
+            entry.update(bytes=len(changed[name]), sha256="sha256:" + p.digest(changed[name]))
+            with tempfile.TemporaryDirectory(prefix="r03-baseline-remint-") as temporary:
+                root = pathlib.Path(temporary).resolve()
+                with mock.patch.object(p, "source_snapshot", return_value=(reminted, changed)), mock.patch.object(x, "prepare") as prepare:
+                    with self.assertRaisesRegex(p.Error, "correction_baseline_binding_refused") as caught:
+                        with v3.OfficialSession(root):
+                            self.fail("reminted baseline dispatched")
+                    self.assertEqual(caught.exception.official_commands, [])
+                    prepare.assert_not_called()
+
     def test_nofollow_rejects_leaf_and_ancestor_substitution(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = pathlib.Path(temporary).resolve()
@@ -215,7 +266,7 @@ class OfficialRuntimeTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix="r03-live-tree-hostile-") as temporary:
             root = pathlib.Path(temporary).resolve()
             live = root / "repo"
-            for name, data in self.session.sources.items():
+            for name, data in p.source_snapshot()[1].items():
                 target = live / name
                 target.parent.mkdir(parents=True, exist_ok=True)
                 target.write_bytes(data)
@@ -245,6 +296,63 @@ class OfficialRuntimeTests(unittest.TestCase):
             code = "try{require('fs').readFileSync(" + json.dumps(str(path)) + ");process.exitCode=1}catch(e){console.log(e.code)}"
             status, out, _ = self.session.authority.launch([str(self.session.runtime.node), "-e", code], phase, time.monotonic() + 10)
             self.assertEqual((status, out), (0, "EPERM\n"))
+
+    def test_correction_original_trunc_formula_is_real_runtime_failure_in_both_phases(self):
+        row = self.session.score(v3.corrections.TASK, mutant="stale-edit-original-trunc-formula")
+        self.assertEqual(row["mutant_id"], "stale-edit-original-trunc-formula")
+        self.assertFalse(row["public"]["passed"])
+        self.assertFalse(row["hidden"]["passed"])
+        self.assertEqual((row["public"]["phase"], row["hidden"]["phase"]), ("run", "run"))
+        self.assertEqual(len(row["command_indices"]), 4)
+        self.assertEqual(row["leak_check"], "ok")
+
+    def test_correction_damaged_stale_helper_preserves_public_but_fails_hidden_at_runtime(self):
+        row = self.session.score(v3.corrections.TASK, mutant="stale-edit-damaged-stale-helper")
+        self.assertEqual(row["mutant_id"], "stale-edit-damaged-stale-helper")
+        self.assertTrue(row["public"]["passed"])
+        self.assertFalse(row["hidden"]["passed"])
+        self.assertEqual((row["public"]["phase"], row["hidden"]["phase"]), ("run", "run"))
+        self.assertEqual(len(row["command_indices"]), 4)
+        self.assertEqual(row["leak_check"], "ok")
+
+    def test_effective_source_vector_and_oracle_drift_refuse_without_new_dispatch(self):
+        for name in [v3.corrections.PREFIX + relative for relative in v3.corrections.FILES] + [v3.corrections.PREFIX + "EQUIVALENCE.md"]:
+            original = self.session.sources[name]
+            before = len(self.session.authority.commands)
+            try:
+                self.session.sources[name] += b"\n"
+                with self.assertRaisesRegex(p.Error, "effective_source_snapshot_drifted"):
+                    self.session.score(v3.corrections.TASK)
+                self.assertEqual(len(self.session.authority.commands), before)
+            finally:
+                self.session.sources[name] = original
+
+    def test_z_correction_evidence_delivers_exact_base_delta_oracle_and_all_three_mutants(self):
+        bundle = self.session.evidence()
+        artifacts = {row["path"]: row for row in bundle["artifacts"]}
+        sidecar = base64.b64decode(artifacts["correction-subject.json"]["base64"])
+        self.assertEqual(p.digest(sidecar), v3.corrections.HASH)
+        row = json.loads(sidecar)
+        self.assertEqual(bundle["result"]["source_correction_sha256"], v3.corrections.HASH)
+        for entry, refs in zip(row["files"], bundle["result"]["source_effective_files"]):
+            self.assertEqual(entry["path"], refs["path"])
+            for variant in ("base", "effective"):
+                artifact = artifacts[refs[variant + "_artifact"]]
+                self.assertEqual(artifact["bytes"], entry[variant]["bytes"])
+                self.assertEqual(artifact["sha256"], entry[variant]["sha256"])
+                self.assertEqual(artifact["base64"], entry[variant]["base64"])
+        oracle = artifacts[bundle["result"]["source_correction_oracle_artifact"]]
+        self.assertEqual(oracle["base64"], row["oracle"]["base64"])
+        stale = [result for result in self.session.results if result["task_id"] == v3.corrections.TASK]
+        self.assertEqual({result["mutant_id"] for result in stale if result["mutant"]}, set(v3.corrections.MUTANTS))
+        self.assertTrue(all(result["source_variant"] == "stale_edit_floor_v1" for result in stale))
+        self.assertTrue(all(result["source_variant"] == "baseline" for result in self.session.results if result["task_id"] != v3.corrections.TASK))
+        for result in stale:
+            if result["mutant"]:
+                mutation = result["mutation"]
+                self.assertEqual(artifacts[mutation["source_artifact"]]["sha256"], mutation["after_sha256"])
+        self.assertLessEqual(len(p.canonical(bundle["result"])), v3.v1.MAX_RESULT_BYTES)
+        self.assertLessEqual(len(p.canonical(bundle)), v3.MAX_EVIDENCE_BYTES)
 
     def test_closed_environment_ignores_startup_and_loader_injection(self):
         phase = self.phase()

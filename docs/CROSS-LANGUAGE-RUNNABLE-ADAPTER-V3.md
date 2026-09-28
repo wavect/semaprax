@@ -1,6 +1,6 @@
 # Cross-language runnable adapter v3: official TypeScript lane
 
-Status: implemented locally with a known stale-edit oracle gap; §8 correction is a review candidate, not runtime admission or R03 acceptance.
+Status: local v3 correction implementation awaiting runtime review and fresh clean-head gates; no full R03 acceptance.
 Audience: benchmark adapter implementers, independent reviewers and maintainers.
 
 ## 1. Scope and frozen behavior
@@ -298,7 +298,7 @@ implementation lease. These initial probes still do not replace the owning
 implementation selector or integrated acceptance evidence.
 
 
-## 8. Stale-edit correction subject: candidate for independent review
+## 8. Independently approved stale-edit correction subject
 
 The written `stale-edit-preservation-v1/EQUIVALENCE.md` requires
 `floor(price - price * pct / 100)`, clamped at zero. The frozen baseline
@@ -317,13 +317,15 @@ reviewed 13-task audit identifies stale-edit as the sole TypeScript mismatch.
 
 ### Closed correction sidecar
 
-Candidate path:
+Approved correction path:
 `benchmarks/cross-language-v1/provenance/typescript-official-v3-corrections.json`.
 Its schema is `benchmark.cross_language.official_ts_correction.v1`; the exact
-candidate is **15706 bytes**, SHA-256
+approved subject is **15706 bytes**, SHA-256
 `7ebeac85f9443b5d90ffaf22bdb03fa5bd26db9260d1fe3ff03e9f99f1b59f3c`.
-This pin is proposed for independent approval. Runtime overlay admission is
-not implemented or authorized by recording the candidate hash here.
+Independent review verified the exact baseline/oracle bytes, single formula
+change, preserved helper/assertions and all five rational expected values.
+`runnable_v3_corrections.py` owns admission of this fixed pin; its runtime
+implementation and new owning gates require separate review and evidence.
 
 Canonical JSON has recursively sorted object keys, indent 2, ASCII escaping,
 and exactly one final LF. Digests are 64 lowercase hexadecimal SHA-256 digits.
@@ -425,3 +427,29 @@ artifacts; metadata carries compact references, not duplicate payloads. The
 prior 48-test result used 247591 metadata bytes, so the successor must verify
 complete delivery remains bounded with both additional mutant executions. No
 existing oracle, original mutant, hostile control or bound may be removed to fit.
+
+
+### Correction implementation and owning gate
+
+`OfficialSession` first captures and admits every frozen baseline file, then
+admits the fixed sidecar and derives one effective snapshot before runtime
+materialization or any Node dispatch. The same snapshot supplies the private
+host-only scorer tree and both isolated phase trees. Each score rechecks the
+baseline/sidecar and refuses any drift of its held effective snapshot before
+new dispatch. `score(task_id, mutant=identity)` admits only the sidecar's fixed
+identities for stale-edit; it accepts no caller candidate bytes or expected pins.
+
+The owning selector now contains **54 tests**: all prior 48 controls, two
+additional real runtime mutants, two pure reminted baseline/sidecar controls,
+a no-new-dispatch effective source/oracle/vector drift control, and complete
+base/delta/oracle/three-mutant evidence assertions. The two prior single-file
+entry mutants retain their distinct public/hidden assertion source; candidate
+byte equality across phases is required specifically for the stale-edit shared
+candidate. The existing 13 mutant outcomes remain unchanged.
+
+The initial correction run passed 52/54 and exposed an overly broad phase-byte
+comparison on the two unrelated single-file entry mutants. Restricting that
+comparison to the shared stale-edit candidate restored both focused controls.
+The failed log and complete bounded evidence remain in authorized scratch.
+A fresh clean exact-commit 54-test run and independent runtime review are the
+required successor evidence; prior 48-pass evidence does not satisfy this gate.

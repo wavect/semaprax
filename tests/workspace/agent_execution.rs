@@ -57,7 +57,7 @@ impl Drop for Workspace {
 #[test]
 fn workspace_v4_preserves_each_dynamic_base_and_exact_source_agent_rows() {
     for version in 1..=3 {
-        let source = fixture::source(true, true);
+        let source = fixture::workspace_source(true, true);
         let source = if version == 1 {
             source
         } else {
@@ -107,7 +107,7 @@ fn workspace_v4_preserves_each_dynamic_base_and_exact_source_agent_rows() {
 
 #[test]
 fn legacy_source_retains_its_base_schema_without_execution_facts() {
-    let source = fixture::source(false, false);
+    let source = fixture::workspace_source(false, false);
     let workspace = Workspace::new(&source, None);
     let first = workspace.revision();
     let second = workspace.revision();
@@ -126,7 +126,7 @@ fn legacy_source_retains_its_base_schema_without_execution_facts() {
 #[test]
 fn unreachable_opted_in_module_does_not_require_unlinked_agent_functions() {
     let source = "module fixture.app; @id(\"fixture.main\") fn main()->i64 {0} @id(\"fixture.public\") fn published()->i64 {0}";
-    let spare = fixture::source(true, true).replace("fixture.", "spare.");
+    let spare = fixture::workspace_source(true, true).replace("fixture.", "spare.");
     let workspace = Workspace::new(source, Some(&spare));
     let revision = workspace.revision();
     assert!(revision.entry_program().agents.is_empty());
@@ -142,7 +142,7 @@ fn unreachable_opted_in_module_does_not_require_unlinked_agent_functions() {
 
 #[test]
 fn program_root_binds_helper_and_body_metadata_but_semantic_program_ignores_comments() {
-    let source = fixture::source(true, true);
+    let source = fixture::workspace_source(true, true);
     let workspace = Workspace::new(&source, None);
     let original = workspace.revision().canonical_workspace_revision().unwrap();
     let root = original.program_root().unwrap();
@@ -185,7 +185,7 @@ fn program_root_binds_helper_and_body_metadata_but_semantic_program_ignores_comm
 #[test]
 fn web_observe_subset_omits_opted_in_metadata_and_keeps_legacy_inventory() {
     for embedded in [false, true] {
-        let workspace = Workspace::new(&fixture::source(embedded, embedded), None);
+        let workspace = Workspace::new(&fixture::workspace_source(embedded, embedded), None);
         let path = workspace.0.join("semaprax.toml");
         let manifest = std::fs::read_to_string(&path).unwrap();
         std::fs::write(
@@ -210,8 +210,8 @@ fn web_observe_subset_omits_opted_in_metadata_and_keeps_legacy_inventory() {
 
 #[test]
 fn unreachable_agent_duplicate_identity_is_checked_before_selection() {
-    let source = fixture::source(true, true);
-    let spare = fixture::source(true, true)
+    let source = fixture::workspace_source(true, true);
+    let spare = fixture::workspace_source(true, true)
         .replace("fixture.", "spare.")
         .replace("@id(\"spare.agent\")", "@id(\"fixture.agent\")");
     let workspace = Workspace::new(&source, Some(&spare));

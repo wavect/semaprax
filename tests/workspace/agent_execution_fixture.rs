@@ -110,3 +110,27 @@ pub(super) fn protocol(source: &str, follows: bool) -> String {
     };
     format!("{source}\n{protocol}")
 }
+
+/// The Project SDK additionally derives genuine Proposal/Observation schemas.
+/// Keep the package's scalar metadata-only fixture unchanged.
+pub(super) fn workspace_source(embedded: bool, wait: bool) -> String {
+    let source = source(embedded, wait);
+    let mut declarations = String::new();
+    for (role, name) in [
+        ("task", "Task"),
+        ("state", "State"),
+        ("observation", "Observation"),
+        ("proposal", "Proposal"),
+        ("outcome", "Outcome"),
+        ("result", "Result"),
+    ] {
+        declarations.push_str(&format!(
+            "@id(\"fixture.agent.type.{role}\") record {name} {{ @id(\"fixture.agent.type.{role}.value\") value:i64; }}\n"
+        ));
+    }
+    source.replacen(
+        "module fixture.app;\n",
+        &format!("module fixture.app;\n{declarations}"),
+        1,
+    )
+}

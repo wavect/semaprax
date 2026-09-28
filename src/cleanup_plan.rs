@@ -800,3 +800,4 @@ fn staged_result_bytes(source: &StagedCopyResultSource) -> Option<usize> {
 }
 
 pub(crate) use owned_liveness::{owned_record_transfer_plan, OwnedRecordTransferPlan};
+pub(crate) use owned_liveness::{owned_step_transfer_plan, OwnedStepTransferPlan};

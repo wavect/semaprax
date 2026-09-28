@@ -336,3 +336,413 @@ fn flat_slot(
     }
     Ok(output)
 }
+
+#[derive(Clone)]
+pub(crate) struct OwnedStepCaseTransferPlan {
+    pub constructor: ExpressionId,
+    pub case: DeclarationId,
+    pub fields: Vec<OwnedRecordFieldTransfer>,
+    pub failure_by_prefix: Vec<Vec<FinalizeAction>>,
+    /// These are the live guards after this branch. The completion vector is
+    /// the original compiler vector, including its false guarded operations.
+    pub completion_live_flags: Vec<LivenessFlagId>,
+}
+
+#[derive(Clone)]
+pub(crate) struct OwnedStepTransferPlan {
+    pub initial_disposal: Vec<FinalizeAction>,
+    pub cases: Vec<OwnedStepCaseTransferPlan>,
+    pub completion_cleanup: Vec<FinalizeAction>,
+    pub provisional_failure: Vec<FinalizeAction>,
+    pub result_disposal: Vec<FinalizeAction>,
+}
+
+type LeafFacts = (LivenessFlagId, CleanupPlace, DeclarationId);
+
+/// The closed reducer profile passes its actual constructors, not synthetic
+/// HIR. Every ownership edge and guard below comes from ordinary cleanup.
+pub(crate) fn owned_step_transfer_plan(
+    declarations: &DeclarationIndex,
+    function: &ResolvedFunction,
+    constructors: &[&ResolvedExpr],
+) -> Result<OwnedStepTransferPlan, Diagnostic> {
+    let params = function
+        .params
+        .iter()
+        .filter(|p| p.ownership == crate::hir::OwnershipMode::Own)
+        .collect::<Vec<_>>();
+    if params.len() != 2 || constructors.is_empty() || constructors.len() > 4 {
+        return Err(refused());
+    }
+    let expected_entry = params
+        .iter()
+        .map(|p| CleanupPlace {
+            storage: StorageId::Value(p.id.clone()),
+            projections: vec![],
+        })
+        .collect::<Vec<_>>();
+    if function.cleanup_plan.entry_state.live_owned_parameters != expected_entry
+        || !function
+            .cleanup_plan
+            .entry_state
+            .conditional_owned_parameters
+            .is_empty()
+    {
+        return Err(refused());
+    }
+    let mut inputs = Vec::new();
+    for p in &params {
+        let leaves = flat_slot(
+            declarations,
+            function,
+            &StorageId::Value(p.id.clone()),
+            &p.ty,
+        )?;
+        if leaves.is_empty() {
+            return Err(refused());
+        }
+        inputs.extend(leaves);
+    }
+    let initial = inputs.iter().map(|(id, _, _)| *id).collect::<Vec<_>>();
+    let initial_disposal = finalize_leaves(&initial, &inputs);
+    let result = variant_slot(declarations, function, &StorageId::ProvisionalResult)?;
+    let ResolvedType::Nominal {
+        declaration: variant,
+        arguments,
+    } = &function.return_type
+    else {
+        return Err(refused());
+    };
+    if !arguments.is_empty() {
+        return Err(refused());
+    }
+    let mut cases = Vec::new();
+    for constructor in constructors {
+        let ResolvedExprKind::ConstructVariant { case, fields, .. } = &constructor.kind else {
+            return Err(refused());
+        };
+        if cases
+            .iter()
+            .any(|p: &OwnedStepCaseTransferPlan| p.case == *case)
+        {
+            return Err(refused());
+        }
+        let temporary = StorageId::Temporary(constructor.id.clone());
+        let temp = variant_slot(declarations, function, &temporary)?;
+        let selected = temp.iter().find(|(id, _)| id == case).ok_or_else(refused)?;
+        let mut facts = inputs.clone();
+        facts.extend(selected.1.iter().cloned());
+        let mut live = initial.clone();
+        let mut failure_by_prefix = vec![initial_disposal.clone()];
+        let mut transfers = Vec::new();
+        for (field_index, field) in fields.iter().enumerate() {
+            if field.value.ty != ResolvedType::Bytes {
+                continue;
+            }
+            let ResolvedExprKind::Place(place) = &field.value.kind else {
+                return Err(refused());
+            };
+            let [crate::hir::PlaceProjection::Field(id)] = place.projections.as_slice() else {
+                return Err(refused());
+            };
+            if !params.iter().any(|p| p.id == place.root) {
+                return Err(refused());
+            }
+            let source = CleanupPlace {
+                storage: StorageId::Value(place.root.clone()),
+                projections: vec![id.clone()],
+            };
+            let destination = CleanupPlace {
+                storage: temporary.clone(),
+                projections: vec![case.clone(), field.field.clone()],
+            };
+            let mut edges = function.cleanup_plan.blocks.iter().flat_map(|b| &b.transitions).filter(|t| matches!(t, CleanupTransition::Transfer { at, source: s, destination: d } if *at == field.value.id && *s == source && *d == destination));
+            if edges.next().is_none() || edges.next().is_some() {
+                return Err(refused());
+            }
+            let source_flag = inputs
+                .iter()
+                .find(|(_, p, _)| *p == source)
+                .map(|(id, _, _)| *id)
+                .ok_or_else(refused)?;
+            let destination_flag = selected
+                .1
+                .iter()
+                .find(|(_, p, _)| *p == destination)
+                .map(|(id, _, _)| *id)
+                .ok_or_else(refused)?;
+            if !live.contains(&source_flag) || live.contains(&destination_flag) {
+                return Err(refused());
+            }
+            live.retain(|id| *id != source_flag);
+            live.push(destination_flag);
+            transfers.push(OwnedRecordFieldTransfer {
+                field_index,
+                at: field.value.id.clone(),
+                source,
+                destination,
+            });
+            failure_by_prefix.push(finalize_leaves(&live, &facts));
+        }
+        if transfers.len() != selected.1.len() {
+            return Err(refused());
+        }
+        let remaining = initial
+            .iter()
+            .filter(|id| live.contains(id))
+            .copied()
+            .collect::<Vec<_>>();
+        // Whole variant transfers preserve the selected case and actual flag
+        // namespace at every enclosing expression; no record-style shortcut.
+        let mut storage = temporary;
+        let mut visited = Vec::new();
+        while storage != StorageId::ProvisionalResult {
+            if visited.contains(&storage) || visited.len() > function.cleanup_plan.slots.len() {
+                return Err(refused());
+            }
+            visited.push(storage.clone());
+            let mut edges = function
+                .cleanup_plan
+                .blocks
+                .iter()
+                .flat_map(|b| &b.transitions)
+                .filter_map(|t| match t {
+                    CleanupTransition::TransferVariant {
+                        source,
+                        destination,
+                        variant: actual,
+                        ..
+                    } if source.storage == storage
+                        && source.projections.is_empty()
+                        && destination.projections.is_empty()
+                        && actual == variant =>
+                    {
+                        Some(destination.storage.clone())
+                    }
+                    _ => None,
+                });
+            let destination = edges.next().ok_or_else(refused)?;
+            if edges.next().is_some() {
+                return Err(refused());
+            }
+            let slots = variant_slot(declarations, function, &destination)?;
+            if slots
+                .iter()
+                .find(|(id, _)| id == case)
+                .ok_or_else(refused)?
+                .1
+                .len()
+                != selected.1.len()
+            {
+                return Err(refused());
+            }
+            storage = destination;
+        }
+        cases.push(OwnedStepCaseTransferPlan {
+            constructor: constructor.id.clone(),
+            case: case.clone(),
+            fields: transfers,
+            failure_by_prefix,
+            completion_live_flags: remaining,
+        });
+    }
+    let mut commits = function
+        .cleanup_plan
+        .exits
+        .iter()
+        .filter(|e| matches!(e.continuation, ExitContinuation::CommitResult { .. }));
+    let commit = commits.next().ok_or_else(refused)?;
+    if commits.next().is_some() {
+        return Err(refused());
+    }
+    let union = initial
+        .iter()
+        .filter(|id| cases.iter().any(|p| p.completion_live_flags.contains(id)))
+        .copied()
+        .collect::<Vec<_>>();
+    let completion_cleanup = finalize_leaves(&union, &inputs);
+    if completion_cleanup != commit.finalize_in_order {
+        return Err(refused());
+    }
+    let ordered = result
+        .iter()
+        .map(|(case, fields)| {
+            (
+                case.clone(),
+                fields.iter().map(|(id, _, _)| *id).collect::<Vec<_>>(),
+            )
+        })
+        .collect::<Vec<_>>();
+    let metadata = result
+        .iter()
+        .flat_map(|(_, fields)| fields)
+        .collect::<Vec<_>>();
+    let result_disposal = crate::cleanup_plan::build::canonical_conditional_finalizers_for(
+        &CleanupPlace {
+            storage: StorageId::ProvisionalResult,
+            projections: vec![],
+        },
+        variant,
+        &ordered,
+        |flag| {
+            let (_, place, lifecycle) = metadata
+                .iter()
+                .find(|(id, _, _)| *id == flag)
+                .expect("checked result flag");
+            (place.clone(), lifecycle.clone())
+        },
+        |_| true,
+    );
+    let mut provisional_failure = completion_cleanup.clone();
+    provisional_failure.extend(result_disposal.iter().cloned());
+    for exit in &function.cleanup_plan.exits {
+        if matches!(exit.continuation, ExitContinuation::ReturnFailure { .. })
+            && exit.finalize_in_order != initial_disposal
+            && exit.finalize_in_order != provisional_failure
+            && !cases
+                .iter()
+                .any(|p| p.failure_by_prefix.contains(&exit.finalize_in_order))
+        {
+            return Err(refused());
+        }
+    }
+    Ok(OwnedStepTransferPlan {
+        initial_disposal,
+        cases,
+        completion_cleanup,
+        provisional_failure,
+        result_disposal,
+    })
+}
+
+fn finalize_leaves(live: &[LivenessFlagId], facts: &[LeafFacts]) -> Vec<FinalizeAction> {
+    crate::cleanup_plan::build::canonical_finalizers_for(
+        live,
+        |flag| {
+            let (_, place, lifecycle) = facts
+                .iter()
+                .find(|(id, _, _)| *id == flag)
+                .expect("checked compiler leaf");
+            (place.clone(), lifecycle.clone())
+        },
+        |_| true,
+    )
+}
+
+fn variant_slot(
+    declarations: &DeclarationIndex,
+    function: &ResolvedFunction,
+    storage: &StorageId,
+) -> Result<Vec<(DeclarationId, Vec<LeafFacts>)>, Diagnostic> {
+    let slot = function
+        .cleanup_plan
+        .slots
+        .iter()
+        .find(|s| s.storage == *storage)
+        .ok_or_else(refused)?;
+    let inventory = function
+        .cleanup
+        .slots
+        .get(slot.storage_index as usize)
+        .ok_or_else(refused)?;
+    let origin = match (storage, &inventory.origin) {
+        (
+            StorageId::Temporary(id),
+            crate::cleanup::CleanupStorageOrigin::Temporary { expression },
+        ) => id == expression,
+        (
+            StorageId::ProvisionalResult,
+            crate::cleanup::CleanupStorageOrigin::ProvisionalResult { value },
+        ) => value == &function.result_id,
+        _ => false,
+    };
+    if !origin
+        || slot.ty != function.return_type
+        || !crate::cleanup::field_liveness_shapes_equal(
+            &inventory.shape,
+            &slot.field_liveness_shape,
+        )?
+    {
+        return Err(refused());
+    }
+    let ResolvedType::Nominal {
+        declaration,
+        arguments,
+    } = &slot.ty
+    else {
+        return Err(refused());
+    };
+    let FieldLivenessShape::Variant {
+        declaration: actual,
+        cases,
+    } = &slot.field_liveness_shape
+    else {
+        return Err(refused());
+    };
+    let declared = declarations
+        .variant_cases(declaration)
+        .ok_or_else(refused)?;
+    if !arguments.is_empty() || actual != declaration || cases.len() != declared.len() {
+        return Err(refused());
+    }
+    let mut output = Vec::new();
+    let mut seen = Vec::new();
+    for (index, (case, expected)) in cases.iter().zip(declared).enumerate() {
+        let fields = declarations.case_fields(&expected.id).ok_or_else(refused)?;
+        if case.case != expected.id
+            || case.case_index != index as u32
+            || case.fields.len() != fields.len()
+        {
+            return Err(refused());
+        }
+        let mut leaves = Vec::new();
+        for (index, (field, expected)) in case.fields.iter().zip(fields).enumerate() {
+            if field.field != expected.id || field.field_index != index as u32 {
+                return Err(refused());
+            }
+            match (&field.shape, &expected.ty) {
+                (FieldLivenessShape::NoDrop, ty) if crate::hir::is_scalar_resolved_type(ty) => {}
+                (FieldLivenessShape::Leaf { flag, lifecycle }, ResolvedType::Bytes)
+                    if lifecycle.as_str() == crate::cleanup::BYTES_DROP_LIFECYCLE_ID =>
+                {
+                    let facts = function
+                        .cleanup
+                        .flags
+                        .iter()
+                        .filter(|f| f.id == *flag)
+                        .collect::<Vec<_>>();
+                    if facts.len() != 1
+                        || seen.contains(flag)
+                        || facts[0].place.storage != inventory.id
+                        || facts[0].place.projections != [case.case.clone(), field.field.clone()]
+                        || facts[0].lifecycle != *lifecycle
+                    {
+                        return Err(refused());
+                    }
+                    seen.push(*flag);
+                    leaves.push((
+                        *flag,
+                        CleanupPlace {
+                            storage: storage.clone(),
+                            projections: facts[0].place.projections.clone(),
+                        },
+                        lifecycle.clone(),
+                    ));
+                }
+                _ => return Err(refused()),
+            }
+        }
+        output.push((case.case.clone(), leaves));
+    }
+    if function
+        .cleanup
+        .flags
+        .iter()
+        .filter(|f| f.place.storage == inventory.id)
+        .count()
+        != seen.len()
+    {
+        return Err(refused());
+    }
+    Ok(output)
+}

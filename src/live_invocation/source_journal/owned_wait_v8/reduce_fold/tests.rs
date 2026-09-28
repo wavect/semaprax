@@ -19,14 +19,69 @@ fn owned_reduce_fold_failure_requires_exact_funding_and_whole_active_receipt() {
     let digest = recipe_digest(ReduceRecipeV8::Basis, &payload).unwrap();
     let mut f = ReduceFoldV8::after_checked_reservation(0, 0, 28, 10, 27).unwrap();
     assert!(f
-        .cleanup_started(&p, &scope, 29, 0, 0, 27, 27, &basis, &digest, 9, &ops)
+        .cleanup_started(
+            &p,
+            "forged-plan",
+            &scope,
+            29,
+            0,
+            0,
+            28,
+            27,
+            &basis,
+            &digest,
+            9,
+            &ops
+        )
         .is_err());
     assert!(f
-        .cleanup_started(&p, &scope, 29, 0, 0, 28, 27, &basis, &digest, 11, &ops)
+        .cleanup_started(
+            &p,
+            p.binding(),
+            &scope,
+            29,
+            0,
+            0,
+            27,
+            27,
+            &basis,
+            &digest,
+            9,
+            &ops
+        )
+        .is_err());
+    assert!(f
+        .cleanup_started(
+            &p,
+            p.binding(),
+            &scope,
+            29,
+            0,
+            0,
+            28,
+            27,
+            &basis,
+            &digest,
+            11,
+            &ops
+        )
         .is_err());
     assert_eq!(
-        f.cleanup_started(&p, &scope, 29, 0, 0, 28, 27, &basis, &digest, 9, &ops)
-            .unwrap(),
+        f.cleanup_started(
+            &p,
+            p.binding(),
+            &scope,
+            29,
+            0,
+            0,
+            28,
+            27,
+            &basis,
+            &digest,
+            9,
+            &ops
+        )
+        .unwrap(),
         9
     );
     let active = f.cleanup.as_ref().unwrap().active_operations().clone();
@@ -55,8 +110,21 @@ fn owned_reduce_fold_failed_observation_quarantines_without_replacing_failure() 
     let digest=recipe_digest(ReduceRecipeV8::Basis,&json!({"scope":scope,"binding":p.binding(),
         "plan":p.binding(),"turn":0,"attempt":0,"stage_reservation":28,"basis":serde_json::to_value(&basis).unwrap()})).unwrap();
     let mut f = ReduceFoldV8::after_checked_reservation(0, 0, 28, 10, 27).unwrap();
-    f.cleanup_started(&p, &scope, 29, 0, 0, 28, 27, &basis, &digest, 9, &ops)
-        .unwrap();
+    f.cleanup_started(
+        &p,
+        p.binding(),
+        &scope,
+        29,
+        0,
+        0,
+        28,
+        27,
+        &basis,
+        &digest,
+        9,
+        &ops,
+    )
+    .unwrap();
     let failed = receipt(f.cleanup.as_ref().unwrap().active_operations(), false);
     f.cleanup_settled(30, 0, 0, 29, &failed).unwrap();
     assert_eq!(f.tail(), ReduceTailV8::Quarantined);
@@ -89,10 +157,10 @@ fn owned_reduce_fold_success_maps_exact_step_and_counts_consumption_once() {
     .unwrap();
     let mut f = ReduceFoldV8::after_checked_reservation(0, 0, 28, 10, 27).unwrap();
     assert!(f
-        .staged(&p, &scope, 29, 0, 1, 28, 27, &step, &digest, 7)
+        .staged(&p, p.binding(), &scope, 29, 0, 1, 28, 27, &step, &digest, 7)
         .is_err());
     assert_eq!(
-        f.staged(&p, &scope, 29, 0, 0, 28, 27, &step, &digest, 7)
+        f.staged(&p, p.binding(), &scope, 29, 0, 0, 28, 27, &step, &digest, 7)
             .unwrap(),
         7
     );
@@ -121,11 +189,37 @@ fn owned_reduce_fold_success_maps_exact_step_and_counts_consumption_once() {
         )
         .unwrap();
         assert!(f
-            .cleanup_started(&p, &scope, 30, 0, 0, 28, 27, &basis, &digest, 8, &ops)
+            .cleanup_started(
+                &p,
+                p.binding(),
+                &scope,
+                30,
+                0,
+                0,
+                28,
+                27,
+                &basis,
+                &digest,
+                8,
+                &ops
+            )
             .is_err());
         assert_eq!(
-            f.cleanup_started(&p, &scope, 30, 0, 0, 28, 27, &basis, &digest, 7, &ops)
-                .unwrap(),
+            f.cleanup_started(
+                &p,
+                p.binding(),
+                &scope,
+                30,
+                0,
+                0,
+                28,
+                27,
+                &basis,
+                &digest,
+                7,
+                &ops
+            )
+            .unwrap(),
             0
         );
         let receipt = receipt(active.active_operations(), true);
@@ -139,10 +233,30 @@ fn owned_reduce_fold_success_maps_exact_step_and_counts_consumption_once() {
         )
     };
     assert!(f
-        .transfer_reserved(&p, seq, 0, 0, 28, 28, &cleanup, mapping.case.as_str())
+        .transfer_reserved(
+            &p,
+            p.binding(),
+            seq,
+            0,
+            0,
+            28,
+            28,
+            &cleanup,
+            mapping.case.as_str()
+        )
         .is_err());
-    f.transfer_reserved(&p, seq, 0, 0, 28, 29, &cleanup, mapping.case.as_str())
-        .unwrap();
+    f.transfer_reserved(
+        &p,
+        p.binding(),
+        seq,
+        0,
+        0,
+        28,
+        29,
+        &cleanup,
+        mapping.case.as_str(),
+    )
+    .unwrap();
     let target = f.step.as_ref().unwrap().target().clone();
     let digest = f
         .step

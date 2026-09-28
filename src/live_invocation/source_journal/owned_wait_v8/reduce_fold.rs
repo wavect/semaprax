@@ -98,6 +98,7 @@ impl ReduceFoldV8 {
     pub(super) fn staged(
         &mut self,
         plan: &v2::CheckedOwnedReduceV2,
+        row_plan: &str,
         scope: &Value,
         seq: u32,
         turn: u32,
@@ -108,6 +109,9 @@ impl ReduceFoldV8 {
         digest: &str,
         consumed: u64,
     ) -> Result<u64, Error> {
+        if row_plan != plan.binding() {
+            return Err(Error::Binding);
+        }
         self.coordinates(seq, turn, attempt)?;
         self.refs(reservation, effect_cleanup, consumed)?;
         require(self.tail == ReduceTailV8::Charged)?;
@@ -122,6 +126,7 @@ impl ReduceFoldV8 {
     pub(super) fn cleanup_started(
         &mut self,
         plan: &v2::CheckedOwnedReduceV2,
+        row_plan: &str,
         scope: &Value,
         seq: u32,
         turn: u32,
@@ -133,6 +138,9 @@ impl ReduceFoldV8 {
         consumed: u64,
         operations: &Value,
     ) -> Result<u64, Error> {
+        if row_plan != plan.binding() {
+            return Err(Error::Binding);
+        }
         self.coordinates(seq, turn, attempt)?;
         self.refs(reservation, effect_cleanup, consumed)?;
         let success = matches!(basis, ReduceBasisV8::Success { .. });
@@ -207,6 +215,7 @@ impl ReduceFoldV8 {
     pub(super) fn transfer_reserved(
         &mut self,
         plan: &v2::CheckedOwnedReduceV2,
+        row_plan: &str,
         seq: u32,
         turn: u32,
         attempt: u32,
@@ -215,6 +224,9 @@ impl ReduceFoldV8 {
         cleanup: &ReduceCleanupV8,
         case: &str,
     ) -> Result<(), Error> {
+        if row_plan != plan.binding() {
+            return Err(Error::Binding);
+        }
         self.coordinates(seq, turn, attempt)?;
         require(
             reservation == self.reservation

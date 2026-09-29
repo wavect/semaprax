@@ -161,7 +161,7 @@ fn common_and_deny_inventories_are_exact_and_role_extensions_are_scoped() {
     }
     assert_eq!(EVENT_LOOP_NAMES.len() + 1, X86_SAFE_ADDITIONS.len());
     // AArch64 gets nothing: `ARM_COMMON` has no equivalents and none is invented.
-    assert!(ARM_SAFE_ADDITIONS.is_empty());
+    assert_eq!(ARM_SAFE_ADDITIONS, &[] as &[u32]);
     for policy in ROLE_POLICIES {
         // clang is a static binary that needs no event loop, so its row stays
         // empty. This is the assertion that keeps the extension from silently
@@ -178,6 +178,16 @@ fn common_and_deny_inventories_are_exact_and_role_extensions_are_scoped() {
                 DoctorOfflineTool::Clang => X86FcntlPolicy::None,
                 DoctorOfflineTool::Node => X86FcntlPolicy::Node,
                 DoctorOfflineTool::Rustc => X86FcntlPolicy::Rustc,
+            },
+            "{:?}",
+            policy.tool
+        );
+        assert_eq!(
+            policy.x86_thread,
+            if policy.tool == DoctorOfflineTool::Rustc {
+                X86ThreadPolicy::Pthread
+            } else {
+                X86ThreadPolicy::None
             },
             "{:?}",
             policy.tool
@@ -526,9 +536,17 @@ fn every_role_policy_preserves_the_shared_mandatory_deny_floor() {
             };
             assert!(validate_policy(common, additional, safe, floor, &[]).is_ok());
             for number in floor {
+                // Rustc's clone3 is refused as unavailable so glibc retries
+                // through the argument-checked clone(2); it is never allowed.
+                let refused =
+                    if arch == X86_ARCH && tool == DoctorOfflineTool::Rustc && *number == 435 {
+                        UNAVAILABLE
+                    } else {
+                        DENY
+                    };
                 assert_eq!(
                     evaluate(&guard, arch, *number, [u64::MAX; 6]),
-                    DENY,
+                    refused,
                     "{tool:?} arch {arch:x} mandatory deny {number}"
                 );
                 assert!(matches!(
@@ -591,7 +609,85 @@ fn clone3_remains_unavailable_after_role_local_compatibility_rules() {
             policy.tool
         );
         let guard = Guard::for_arch(policy.role, policy.tool, X86_ARCH).unwrap();
-        assert_eq!(evaluate(&guard, X86_ARCH, CLONE3, [u64::MAX; 6]), DENY);
+        for args in [[0; 6], [u64::MAX; 6]] {
+            assert_eq!(
+                evaluate(&guard, X86_ARCH, CLONE3, args),
+                if policy.tool == DoctorOfflineTool::Rustc {
+                    UNAVAILABLE
+                } else {
+                    DENY
+                },
+                "{:?}",
+                policy.tool
+            );
+        }
+        let arm = Guard::for_arch(policy.role, policy.tool, ARM_ARCH).unwrap();
+        assert_eq!(evaluate(&arm, ARM_ARCH, CLONE3, [0; 6]), DENY);
+    }
+}
+
+#[test]
+fn rustc_threads_are_exact_pthread_clones_and_never_processes() {
+    // Independent Linux x86-64 values: clone(56), clone3(435), ENOSYS(38), and
+    // glibc's create_thread word CLONE_VM|FS|FILES|SIGHAND|THREAD|SYSVSEM|
+    // SETTLS|PARENT_SETTID|CHILD_CLEARTID with a zero exit signal.
+    const CLONE: u32 = 56;
+    const CLONE3: u32 = 435;
+    const PTHREAD: u64 = 0x003d_0f00;
+    const ENOSYS_RESULT: u32 = 0x0005_0000 | 38;
+    const SIGCHLD: u64 = 17;
+    const CLONE_PIDFD: u64 = 0x1000;
+    const CLONE_NEWUSER: u64 = 0x1000_0000;
+    const CLONE_VFORK: u64 = 0x4000;
+
+    assert_eq!(u64::from(PTHREAD_CLONE_FLAGS), PTHREAD);
+    assert_eq!(UNAVAILABLE, ENOSYS_RESULT);
+    assert!(X86_MANDATORY_DENY.contains(&CLONE));
+    assert!(X86_MANDATORY_DENY.contains(&CLONE3));
+
+    let rustc = Guard::for_arch(4, DoctorOfflineTool::Rustc, X86_ARCH).unwrap();
+    let thread = [
+        PTHREAD,
+        0x7000_0000,
+        0x7000_1000,
+        0x7000_2000,
+        0x7000_3000,
+        0,
+    ];
+    assert_eq!(evaluate(&rustc, X86_ARCH, CLONE, thread), ALLOW);
+    assert_eq!(evaluate(&rustc, X86_ARCH, CLONE3, thread), ENOSYS_RESULT);
+
+    // Every single-bit change to the flag word, including the exit-signal byte
+    // and the upper half, is refused.
+    for bit in 0..64 {
+        let mut args = thread;
+        args[0] ^= 1 << bit;
+        assert_eq!(evaluate(&rustc, X86_ARCH, CLONE, args), DENY, "bit {bit}");
+    }
+    for flags in [
+        0,
+        SIGCHLD,
+        PTHREAD | SIGCHLD,
+        PTHREAD | CLONE_PIDFD,
+        PTHREAD | CLONE_NEWUSER,
+        PTHREAD | CLONE_VFORK,
+        u64::MAX,
+    ] {
+        let mut args = thread;
+        args[0] = flags;
+        assert_eq!(evaluate(&rustc, X86_ARCH, CLONE, args), DENY, "{flags:x}");
+    }
+
+    // The exception does not leak to another role or to AArch64.
+    for tool in [DoctorOfflineTool::Clang, DoctorOfflineTool::Node] {
+        let guard = Guard::for_arch(expected_role(tool), tool, X86_ARCH).unwrap();
+        assert_eq!(evaluate(&guard, X86_ARCH, CLONE, thread), DENY, "{tool:?}");
+        assert_eq!(evaluate(&guard, X86_ARCH, CLONE3, thread), DENY, "{tool:?}");
+    }
+    for tool in TOOLS {
+        let arm = Guard::for_arch(expected_role(tool), tool, ARM_ARCH).unwrap();
+        assert_eq!(evaluate(&arm, ARM_ARCH, 220, thread), DENY, "{tool:?}");
+        assert_eq!(evaluate(&arm, ARM_ARCH, CLONE3, thread), DENY, "{tool:?}");
     }
 }
 
@@ -627,9 +723,14 @@ fn complete_syscall_selection_is_default_deny_on_both_native_abis() {
                     } else {
                         matches!(number, 56 | 261)
                     };
+                let refused = if x86 && tool == DoctorOfflineTool::Rustc && number == 435 {
+                    UNAVAILABLE
+                } else {
+                    DENY
+                };
                 assert_eq!(
                     evaluate(&guard, arch, number, [0; 6]),
-                    if allowed_zero { ALLOW } else { DENY },
+                    if allowed_zero { ALLOW } else { refused },
                     "{tool:?} arch {arch:x} syscall {number}"
                 );
             }

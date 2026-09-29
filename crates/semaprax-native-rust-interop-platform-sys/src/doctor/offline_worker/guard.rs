@@ -23,6 +23,25 @@ const F_GETFL: u32 = 3;
 const F_SETFL: u32 = 4;
 const FD_CLOEXEC: u32 = 1;
 const O_RDONLY_OR_NONBLOCK: u32 = 0x800;
+// ENOSYS, not EPERM: glibc's thread creation retries through clone(2) only when
+// clone3 reports that the kernel lacks it.
+const UNAVAILABLE: u32 = 0x0005_0000 | libc::ENOSYS as u32;
+const X86_CLONE: u32 = 56;
+const X86_CLONE3: u32 = 435;
+// The exact flag word glibc 2.34+ `create_thread` passes for pthread_create,
+// with a zero exit signal. Every bit keeps the new task inside the calling
+// process: shared memory, descriptor table, filesystem context, signal
+// handlers and thread group. No namespace, parent, pidfd, vfork, ptrace or
+// exit-signal bit can be present, so this word cannot create a process.
+const PTHREAD_CLONE_FLAGS: u32 = (libc::CLONE_VM
+    | libc::CLONE_FS
+    | libc::CLONE_FILES
+    | libc::CLONE_SYSVSEM
+    | libc::CLONE_SIGHAND
+    | libc::CLONE_THREAD
+    | libc::CLONE_SETTLS
+    | libc::CLONE_PARENT_SETTID
+    | libc::CLONE_CHILD_CLEARTID) as u32;
 const DEFAULT_ADDRESS_SPACE_LIMIT: libc::rlim_t = 4 * 1024 * 1024 * 1024;
 // Official x86-64 Node 22 builds enable V8's sandbox, whose 1 TiB reservation
 // must itself be aligned to a 1 TiB boundary. The reservation path can map a
@@ -88,6 +107,13 @@ const ARM_COMMON: &[u32] = &[
 // refuses a role addition that is not also listed here. AArch64 admits
 // nothing, so its gate stays closed.
 const X86_SAFE_ADDITIONS: &[u32] = X86_RUST_STARTUP;
+
+// Hosted run 35591319262 passed Clang and Node and still failed Rust 1.88. Its
+// unconfined `rustc --version` census shows one clone3 after the pipe2/fcntl
+// pair: rustc_driver installs its Ctrl-C handler, whose watcher thread must
+// start or rustc aborts. The shared floor answered EPERM, which glibc does not
+// retry. Rustc alone receives ENOSYS for clone3 and the exact pthread clone(2)
+// word; clang and Node keep the floor's EPERM for both.
 const ARM_SAFE_ADDITIONS: &[u32] = &[];
 
 // A role row is the only route from an authenticated worker tool identity to
@@ -102,6 +128,7 @@ struct RolePolicy {
     address_space_limit: libc::rlim_t,
     x86_additional: &'static [u32],
     x86_fcntl: X86FcntlPolicy,
+    x86_thread: X86ThreadPolicy,
     arm_additional: &'static [u32],
 }
 
@@ -115,6 +142,15 @@ enum X86FcntlPolicy {
     Rustc,
 }
 
+// clone and clone3 stay in the mandatory floor, so no inventory row can admit
+// them. `Pthread` is the only route to a thread, emitted as argument-exact
+// rules for an authenticated x86 role.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum X86ThreadPolicy {
+    None,
+    Pthread,
+}
+
 const ROLE_POLICIES: [RolePolicy; 3] = [
     RolePolicy {
         role: 1,
@@ -122,6 +158,7 @@ const ROLE_POLICIES: [RolePolicy; 3] = [
         address_space_limit: DEFAULT_ADDRESS_SPACE_LIMIT,
         x86_additional: &[],
         x86_fcntl: X86FcntlPolicy::None,
+        x86_thread: X86ThreadPolicy::None,
         arm_additional: &[],
     },
     RolePolicy {
@@ -132,6 +169,7 @@ const ROLE_POLICIES: [RolePolicy; 3] = [
         // Hosted run 35575666208: F_GETFL on 0/1/2 and
         // F_SETFD(FD_CLOEXEC) on 0 through 16 only.
         x86_fcntl: X86FcntlPolicy::Node,
+        x86_thread: X86ThreadPolicy::None,
         arm_additional: &[],
     },
     RolePolicy {
@@ -141,6 +179,8 @@ const ROLE_POLICIES: [RolePolicy; 3] = [
         x86_additional: X86_RUST_STARTUP,
         // Hosted run 35575666208: F_SETFL(O_RDONLY|O_NONBLOCK) on fd 4 only.
         x86_fcntl: X86FcntlPolicy::Rustc,
+        // Hosted run 35591319262: one clone3 for the Ctrl-C watcher thread.
+        x86_thread: X86ThreadPolicy::Pthread,
         arm_additional: &[],
     },
 ];
@@ -328,6 +368,9 @@ impl Guard {
                 X86FcntlPolicy::Node => node_fcntl_rule(&mut filter, fcntl)?,
                 X86FcntlPolicy::Rustc => rustc_fcntl_rule(&mut filter, fcntl)?,
             }
+        }
+        if arch == X86_ARCH && policy.x86_thread == X86ThreadPolicy::Pthread {
+            pthread_rules(&mut filter)?;
         }
         if filter.len() >= CAPACITY {
             return Err(Error::Limit);
@@ -533,6 +576,27 @@ fn rustc_fcntl_rule(filter: &mut Vec<libc::sock_filter>, number: u32) -> Result<
             ins(RETURN, DENY, 0, 0),
             ins(LOAD, offset(0), 0, 0),
             ins(EQUAL, 4, 1, 0),
+            ins(RETURN, DENY, 0, 0),
+            ins(RETURN, ALLOW, 0, 0),
+        ],
+    )
+}
+
+// clone3 passes its flags through a pointer that classic BPF cannot inspect, so
+// it is never admitted; ENOSYS makes glibc retry with clone(2), whose flags are
+// a register. Only the exact pthread word with a zero upper half is allowed.
+// The new thread inherits this filter, rlimits and the delegated cgroup.
+fn pthread_rules(filter: &mut Vec<libc::sock_filter>) -> Result<(), Error> {
+    rule(filter, X86_CLONE3, &[ins(RETURN, UNAVAILABLE, 0, 0)])?;
+    rule(
+        filter,
+        X86_CLONE,
+        &[
+            ins(LOAD, offset(0) + 4, 0, 0),
+            ins(EQUAL, 0, 1, 0),
+            ins(RETURN, DENY, 0, 0),
+            ins(LOAD, offset(0), 0, 0),
+            ins(EQUAL, PTHREAD_CLONE_FLAGS, 1, 0),
             ins(RETURN, DENY, 0, 0),
             ins(RETURN, ALLOW, 0, 0),
         ],

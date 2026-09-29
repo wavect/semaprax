@@ -8,6 +8,11 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Let the confined x86-64 rustc doctor role start the Ctrl-C watcher thread
+  that rustc 1.88 requires (#320). Its `clone3` now returns `ENOSYS` so glibc
+  falls back to `clone(2)`, admitted only for the exact pthread flag word;
+  Clang, Node and AArch64 keep denying both. Local evidence is the BPF-oracle
+  suite on Linux; the real-carrier gate has not yet been rerun.
 - Give Linux source-repair tests the same dedicated blocking lane as macOS,
   preserving once-per-host coverage. Author the UTF-8 capacity fixture from a
   formatter-pinned canonical template so setup does not replay proof-only

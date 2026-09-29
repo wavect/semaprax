@@ -267,6 +267,7 @@ fn current_rust_matrix_reuses_the_exact_inventory_in_parallel_platform_shards() 
     );
     assert!(repair.contains("--features semaprax/unstable-native-host-internal,semaprax/unstable-wit-component-harness,semaprax/unstable-workflow-profiling"));
     assert!(repair.contains("source_live_cli::repair::tests::"));
+    assert!(repair.contains("-- --test-threads=1"));
     assert!(repair.contains("os: [ubuntu-latest, macos-latest]"));
     assert!(repair.contains("fail-fast: false"));
     assert!(!repair.contains("continue-on-error"));

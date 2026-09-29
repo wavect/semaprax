@@ -1944,7 +1944,7 @@ jobs:
         run: |
           cargo test --locked --offline -p semaprax-toolchain --all-features --lib \
             --features semaprax/unstable-native-host-internal,semaprax/unstable-wit-component-harness,semaprax/unstable-workflow-profiling \
-            source_live_cli::repair::tests::
+            source_live_cli::repair::tests:: -- --test-threads=1
 
   windows-agent-runtime-rest:
     name: Rust Windows agent runtime remainder
@@ -2079,7 +2079,14 @@ jobs:
         with:
           toolchain: 1.97.1
       - name: Fetch the locked dependency closure
-        run: cargo fetch --locked
+        run: |
+          for attempt in 1 2 3; do
+            if cargo fetch --locked; then
+              exit 0
+            fi
+            sleep $((attempt * 15))
+          done
+          exit 1
       - name: Prove the confinement primitive denies a real escape
         run: |
           cargo test --locked --offline \

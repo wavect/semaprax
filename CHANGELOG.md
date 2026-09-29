@@ -8,6 +8,12 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Split the longest CI legs. `verify-tests` gains `integration-5`; the Unix
+  source-repair matrix runs two shards that `ci-msrv.py --repair-shard` fills
+  round-robin from the listed cases; Windows repair cases leave the Windows
+  unit shard for a dedicated `windows-source-repair` blocker; and AGENT-06
+  runs its `lifecycle` and `revisions` halves as separate legs, which together
+  had reached the six-hour job ceiling.
 - Carry `$ORIGIN`-resolved libraries in the doctor bundle's system library
   directory (#320). The confined root has no `/proc`, so the loader never
   expands `$ORIGIN` and real rustc exited 127 before `main`; the same

@@ -29,6 +29,7 @@ pub(crate) const RELEASE_BLOCKERS: &[&str] = &[
     "verify-tests",
     "unix-source-repair",
     "windows-agent-runtime-rest",
+    "windows-source-repair",
     "desktop-native-product",
     "doctor-macos-confinement",
     "ios-static-cross-check",

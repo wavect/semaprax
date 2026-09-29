@@ -10,10 +10,63 @@ import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parent.parent
-SHARDS = ("unit", "integration-0", "integration-1", "integration-2", "integration-3", "integration-4")
+SHARDS = (
+    "unit",
+    "integration-0",
+    "integration-1",
+    "integration-2",
+    "integration-3",
+    "integration-4",
+    "integration-5",
+)
 HEAVY_UNIT_SHARD = "unit-heavy"
 HEAVY_UNIT_FILTERS = ("kernel_zero::differential::", "workspace_graph::tests::")
 TEST = ["cargo", "test", "--locked", "--workspace", "--all-features"]
+REPAIR_FILTER = "source_live_cli::repair::tests::"
+REPAIR_TEST = [
+    "cargo", "test", "--locked", "--offline", "-p", "semaprax-toolchain", "--all-features", "--lib",
+    "--features",
+    "semaprax/unstable-native-host-internal,semaprax/unstable-wit-component-harness,"
+    "semaprax/unstable-workflow-profiling",
+]
+
+
+def repair_shard_names(listing, index, count):
+    """Select every source-repair case in exactly one of `count` shards.
+
+    `listing` is libtest's `--list --format terse` output for REPAIR_FILTER.
+    Sorted names are dealt round-robin, so the shards partition the complete
+    listed inventory; a shard that would run nothing is refused rather than
+    broadened to libtest's unfiltered default.
+    """
+    if count < 1 or not 0 <= index < count:
+        raise ValueError(f"source-repair shard {index}/{count} is out of range")
+    names = sorted({
+        line[:-len(": test")] for line in listing.splitlines() if line.endswith(": test")
+    })
+    if any(not name.startswith(REPAIR_FILTER) for name in names):
+        raise ValueError("source-repair listing escaped its module filter")
+    selected = names[index::count]
+    if not selected:
+        raise ValueError(f"source-repair shard {index}/{count} would select no case")
+    return selected
+
+
+def run_repair_shard(label, selector, cargo_env):
+    index, separator, count = selector.partition("/")
+    if not separator or not index.isdigit() or not count.isdigit():
+        raise ValueError(f"source-repair shard {selector!r} is not <index>/<count>")
+    listing = subprocess.run(
+        REPAIR_TEST + [REPAIR_FILTER, "--", "--list", "--format", "terse"],
+        cwd=ROOT, env=cargo_env, capture_output=True, text=True, check=True,
+    )
+    names = repair_shard_names(listing.stdout, int(index), int(count))
+    print(f"{label} {selector}: {len(names)} source-repair cases", flush=True)
+    # One case at a time, as the unsharded job ran them.
+    return subprocess.run(
+        REPAIR_TEST + ["--", "--exact", "--test-threads=1", *names],
+        cwd=ROOT, env=cargo_env, check=False,
+    ).returncode
 
 
 def cargo_environment(environment=None, executable=None):
@@ -145,12 +198,17 @@ def plan(metadata, excluded_packages=()):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--shard", choices=(*SHARDS, HEAVY_UNIT_SHARD))
+    parser.add_argument("--repair-shard", metavar="INDEX/COUNT")
     parser.add_argument("--plan-only", action="store_true")
     parser.add_argument("--exclude-package", action="append", default=[])
     parser.add_argument("--split-windows-agent-runtime", action="store_true")
     parser.add_argument("--nocapture", action="store_true")
     parser.add_argument("--label", default="MSRV")
     args = parser.parse_args(argv)
+    if args.repair_shard is not None:
+        if args.shard is not None or args.plan_only:
+            parser.error("--repair-shard selects its own cases; omit --shard and --plan-only")
+        return run_repair_shard(args.label, args.repair_shard, cargo_environment())
     if args.shard is None and not args.plan_only:
         parser.error("--shard is required unless --plan-only is selected")
     cargo_env = cargo_environment()
@@ -223,9 +281,10 @@ def main(argv=None):
     if args.shard == "unit" and (
         (sys.platform == "darwin" and args.label == "Rust macOS")
         or (sys.platform.startswith("linux") and args.label == "Rust Linux")
+        or (sys.platform == "win32" and args.label == "Rust Windows")
     ):
-        # Every Unix repair case runs once in the dedicated source-repair
-        # matrix. Keep its multi-case replay cost out of the main unit lane.
+        # Every repair case runs once in the dedicated source-repair jobs.
+        # Keep its multi-case replay cost out of the main unit lane.
         test_arguments.extend(("--skip", "source_live_cli::repair::tests::"))
     if (
         sys.platform == "darwin"

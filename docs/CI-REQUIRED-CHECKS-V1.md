@@ -167,9 +167,10 @@ gh api repos/wavect/semaprax/commits/main/check-runs \
 | `native-rust-sdk-v1` | `Public Native Rust SDK v1 (ubuntu-latest \| macos-latest \| windows-latest)` | 3 |
 | `verify` | `Rust ubuntu-latest`, `Rust macos-latest`, `Rust windows-latest` | 3 |
 | `verify-build` | `Rust build ubuntu-latest`, `Rust build macos-latest`, `Rust build windows-latest` | 3 |
-| `verify-tests` | `Rust tests <os> (unit \| unit-heavy \| integration-0 \| integration-1 \| integration-2 \| integration-3 \| integration-4)` over the three hosts | 21 |
-| `unix-source-repair` | `Rust source repair (ubuntu-latest \| macos-latest)` | 2 |
+| `verify-tests` | `Rust tests <os> (unit \| unit-heavy \| integration-0 \| integration-1 \| integration-2 \| integration-3 \| integration-4 \| integration-5)` over the three hosts | 24 |
+| `unix-source-repair` | `Rust source repair (<os>, 0/2 \| 1/2)` over `ubuntu-latest` and `macos-latest` | 4 |
 | `windows-agent-runtime-rest` | `Rust Windows agent runtime remainder` | 1 |
+| `windows-source-repair` | `Rust Windows source repair` | 1 |
 | `desktop-native-product` | `Private desktop + native UI product (windows-2025 \| macos-15)` | 2 |
 | `doctor-macos-confinement` | `Doctor macOS Seatbelt confinement and settlement` | 1 |
 | `ios-static-cross-check` | `Private iOS static loader + host runtime` | 1 |
@@ -181,7 +182,8 @@ gh api repos/wavect/semaprax/commits/main/check-runs \
 | `msrv` | `Rust 1.88 minimum` | 1 |
 | `release-gate` | **`Release gate`** | 1 |
 
-The authored workflow additionally includes the three AGENT-06 client contexts
+The authored workflow additionally includes the six AGENT-06 contexts
+(`AGENT-06 lifecycle and clients (<os>, lifecycle | revisions)`)
 and the GEN-05B closure context. The expanded context inventory changes when
 the matrix changes; the aggregate remains the stable required check. The
 public generic ownership milestone context has since
@@ -196,7 +198,7 @@ workflow adds `Build book` and, on `main` pushes only, `Deploy to GitHub Pages`.
 
 ## The aggregate gate
 
-`.github/workflows/ci.yml` has 29 blocking jobs, many with matrix legs. Pinning
+`.github/workflows/ci.yml` has 30 blocking jobs, many with matrix legs. Pinning
 every expanded context name into a ruleset
 would make every sharding change a repository-administration change. The
 proposal requires exactly one context instead: **`Release gate`**, the job that
@@ -211,7 +213,7 @@ An aggregate is only worth requiring if it cannot be satisfied vacuously. The
   environment, and fails unless **every** upstream entry has
   `result == "success"` -- `failure`, `skipped`, and `cancelled` are all
   rejected by name;
-- passes `--min-jobs 29`, so an accidentally emptied or narrowed `needs:` list
+- passes `--min-jobs 30`, so an accidentally emptied or narrowed `needs:` list
   cannot pass vacuously on `{}`;
 - checks out the repository and compares `git rev-parse HEAD` against
 

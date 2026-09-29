@@ -21,6 +21,13 @@ that closure with `ldd` and records each file under the exact name the loader
 opens it by, which is why the lookup paths are preserved rather than rewritten
 to the physical paths a usrmerge or SONAME symlink hides behind them.
 
+The one exception is a library the host loader reached through `$ORIGIN`. The
+root has no `/proc`, so the confined loader cannot read `/proc/self/exe` and
+skips every `$ORIGIN` search entry: rust's `bin/rustc` then cannot find
+`lib/librustc_driver-*.so` (hosted run 36612136976, exit 127). Such a library
+is carried once, under its `DT_NEEDED` name, in the system directory `ldd`
+resolved `libc.so.6` from, which the confined loader always searches.
+
     scripts/doctor-provisioned-linux-bundle.py \\
         --selector real-distributions \\
         --clang /usr/lib/llvm-18/bin/clang \\
@@ -148,7 +155,13 @@ def elf_interpreter(content: bytes, path: str) -> str | None:
     return interpreter
 
 
-def resolve_closure(binary: str) -> list[str]:
+def system_directories(libc_directory: str) -> set[str]:
+    """The loader's default search directories for this host's libc layout."""
+    merged = libc_directory.removeprefix("/usr")
+    return {merged, "/usr" + merged}
+
+
+def resolve_closure(binary: str) -> list[tuple[str, str]]:
     """Every file `ld.so` opens for `binary`, at the names it opens them by.
 
     The root holds the inventory and nothing else, so an omitted object is a
@@ -161,17 +174,43 @@ def resolve_closure(binary: str) -> list[str]:
     symlinks: the loader inside the pivoted root opens the literal path it was
     given. So each entry is recorded under the lookup path, resolved only for
     `.` and `..`, and never rewritten to the physical path behind it.
+
+    Returns `(lookup path, host file)` pairs. A library outside the system
+    directories was found through `$ORIGIN`, which the `/proc`-less root cannot
+    expand, so its lookup path moves to the libc directory under its
+    `DT_NEEDED` name; its bytes are still the host file ldd named.
     """
     finished = subprocess.run(
         ["ldd", binary], capture_output=True, text=True, check=False
     )
     if finished.returncode != 0:
         raise Rejected(f"ldd {binary} failed: {finished.stderr.strip()}")
+    needed = []
     resolved = []
     for line in finished.stdout.splitlines():
-        for token in line.split():
+        tokens = line.split()
+        if len(tokens) >= 3 and tokens[1] == "=>" and tokens[2].startswith("/"):
+            if os.path.isfile(tokens[2]):
+                needed.append((tokens[0], tokens[2]))
+            continue
+        for token in tokens:
             if token.startswith("/") and os.path.isfile(token):
-                resolved.append(token)
+                resolved.append((token, token))
+    libc = [
+        os.path.dirname(os.path.normpath(host))
+        for name, host in needed
+        if name == "libc.so.6"
+    ]
+    if needed and len(libc) != 1:
+        raise Rejected(f"ldd {binary} did not resolve exactly one libc.so.6")
+    system = system_directories(libc[0]) if libc else set()
+    for name, host in needed:
+        if "/" in name:
+            raise Rejected(f"ldd {binary} named {name!r} as a DT_NEEDED entry")
+        if os.path.dirname(os.path.normpath(host)) in system:
+            resolved.append((host, host))
+        else:
+            resolved.append((os.path.join(libc[0], name), host))
     return resolved
 
 
@@ -179,14 +218,14 @@ def collect(arguments) -> dict[str, str]:
     """Map each inventory path to the host file whose bytes it carries."""
     inventory: dict[str, str] = {}
 
-    def record(host: str) -> str:
-        lookup = os.path.normpath(os.path.abspath(host))
-        if not os.path.isfile(lookup):
+    def record(host: str, lookup: str | None = None) -> str:
+        source = os.path.normpath(os.path.abspath(host))
+        if not os.path.isfile(source):
             raise Rejected(f"{host} is not a regular file")
-        path = lookup.lstrip("/")
+        path = os.path.normpath(os.path.abspath(lookup or host)).lstrip("/")
         validate_path(path)
-        previous = inventory.setdefault(path, lookup)
-        if os.path.realpath(previous) != os.path.realpath(lookup):
+        previous = inventory.setdefault(path, source)
+        if os.path.realpath(previous) != os.path.realpath(source):
             raise Rejected(f"{path} would carry two different files")
         return path
 
@@ -206,8 +245,8 @@ def collect(arguments) -> dict[str, str]:
             )
         roles[name] = path
         if arguments.closure:
-            for member in resolve_closure(host):
-                record(member)
+            for lookup, member in resolve_closure(host):
+                record(member, lookup)
     if not roles:
         raise Rejected("at least one role must be supplied")
     for host in arguments.include:

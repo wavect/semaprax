@@ -8,6 +8,10 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Carry `$ORIGIN`-resolved libraries in the doctor bundle's system library
+  directory (#320). The confined root has no `/proc`, so the loader never
+  expands `$ORIGIN` and real rustc exited 127 before `main`; the same
+  inventory now starts `rustc --version` in a `/proc`-less root locally.
 - Let the confined x86-64 rustc doctor role start the Ctrl-C watcher thread
   that rustc 1.88 requires (#320). Its `clone3` now returns `ENOSYS` so glibc
   falls back to `clone(2)`, admitted only for the exact pthread flag word;

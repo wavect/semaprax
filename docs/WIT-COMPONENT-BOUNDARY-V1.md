@@ -120,10 +120,15 @@ first-failure behavior, and executable add/subtract/multiply/divide/remainder/
 negate overflow and zero-divisor status paths. Wasmtime fuel exhaustion remains
 an out-of-band engine error rather than a forged typed SEMAPRAX status.
 
-The current isolated runner is pinned to Wasmtime 47.0.4, including its matching
-lockfile family, to address GHSA-x84v-gj2h-g759 and GHSA-vqjp-4c8c-hfgg. The typed
-runtime test and runner Clippy pass locally on macOS/Rust 1.98; the exact pinned
-Linux/Rust 1.97.1 hosted gate remains separate evidence. The earlier hosted
+The current isolated runner is pinned to Wasmtime 48.0.3, including its matching
+lockfile family, to address GHSA-x84v-gj2h-g759, GHSA-vqjp-4c8c-hfgg,
+GHSA-m63x-6p34-q65x (RUSTSEC-2026-0315) and GHSA-jqpg-j7w6-42pr
+(RUSTSEC-2026-0316). The typed runtime test, all four runner tests, the runner
+and runner Clippy pass locally on macOS/Rust 1.97.1; the exact pinned
+Linux/Rust 1.97.1 hosted gate remains separate evidence. Wasmtime 49.0.1 also
+carries both fixes, but in these selectors a refused call makes the next entry
+into the same Store fail with `cannot enter component instance`, which breaks
+the same-Store recovery they prove; moving to 49 is a separate decision. The earlier hosted
 links below are historical and do not establish current-head success for this
 dependency update. Imports, denial policy, features, and public dependencies
 are unchanged.

@@ -8,6 +8,10 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Move the isolated Component runtime runner to Wasmtime 48.0.3 for
+  RUSTSEC-2026-0315 and RUSTSEC-2026-0316, which failed its `cargo deny`
+  advisory audit. 49.0.1 carries the same fixes but breaks the runner's
+  same-Store recovery after a refused call, so it is not adopted here.
 - Split the longest CI legs. `verify-tests` gains `integration-5`; the Unix
   source-repair matrix runs two shards that `ci-msrv.py --repair-shard` fills
   round-robin from the listed cases; Windows repair cases leave the Windows

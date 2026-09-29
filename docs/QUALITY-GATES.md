@@ -125,6 +125,11 @@ exclusion against Cargo metadata instead of accepting a free-form omitted
 target. Unknown target kinds or package exclusions fail closed. The release
 gate requires all three matrices.
 
+Unix source-repair unit tests run once per host in the blocking
+`unix-source-repair` Linux/macOS matrix, not in the ordinary unit shards.
+This gives their multi-case checkpoint replays a separate six-hour budget.
+Windows retains the Unix-checkpoint refusal tests in its unit shard.
+
 The source Agent lifecycle suite runs once in the sharded matrix. The separate
 Rust evidence job runs only the provisioned Proposal-client case under its
 explicit environment flag; repeating the entire Agent Runtime harness there

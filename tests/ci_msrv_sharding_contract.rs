@@ -245,7 +245,7 @@ fn current_rust_matrix_reuses_the_exact_inventory_in_parallel_platform_shards() 
         .unwrap()
         .0;
     assert!(release.contains("      - verify-tests\n"));
-    assert!(release.contains("      - macos-source-repair\n"));
+    assert!(release.contains("      - unix-source-repair\n"));
     assert!(release.contains("      - windows-agent-runtime-rest\n"));
     let router = std::fs::read_to_string(root().join("scripts/ci-msrv.py")).unwrap();
     assert!(router.contains(
@@ -256,13 +256,19 @@ fn current_rust_matrix_reuses_the_exact_inventory_in_parallel_platform_shards() 
     assert!(router
         .contains("test_arguments.extend((\"--skip\", \"source_live_cli::repair::tests::\"))"));
     let repair = workflow
-        .split_once("\n  macos-source-repair:\n")
+        .split_once("\n  unix-source-repair:\n")
         .unwrap()
         .1
         .split_once("\n  windows-agent-runtime-rest:\n")
         .unwrap()
         .0;
-    assert!(repair.contains("cargo test --locked --offline -p semaprax-toolchain --all-features --lib source_live_cli::repair::tests::"));
+    assert!(
+        repair.contains("cargo test --locked --offline -p semaprax-toolchain --all-features --lib")
+    );
+    assert!(repair.contains("--features semaprax/unstable-native-host-internal,semaprax/unstable-wit-component-harness,semaprax/unstable-workflow-profiling"));
+    assert!(repair.contains("source_live_cli::repair::tests::"));
+    assert!(repair.contains("os: [ubuntu-latest, macos-latest]"));
+    assert!(repair.contains("fail-fast: false"));
     assert!(!repair.contains("continue-on-error"));
 }
 
@@ -440,5 +446,22 @@ with patch('subprocess.run', side_effect=[
     command = run.call_args_list[1].args[0]
     assert command[:len(plan['shards'][0]['command'])] == plan['shards'][0]['command']
     assert all(command[command.index(test_filter) - 1] == '--skip' for test_filter in router['HEAVY_UNIT_FILTERS'])
+repair_filter = 'source_live_cli::repair::tests::'
+for platform, label, dedicated in (
+    ('linux', 'Rust Linux', True),
+    ('darwin', 'Rust macOS', True),
+    ('win32', 'Rust Windows', False),
+    ('linux', 'MSRV', False),
+):
+    with patch('sys.platform', platform), patch('subprocess.run', side_effect=[
+        subprocess.CompletedProcess([], 0, stdout=json.dumps(metadata)),
+        subprocess.CompletedProcess([], 0),
+    ]) as run:
+        with contextlib.redirect_stdout(io.StringIO()):
+            assert router['main'](['--shard', 'unit', '--label', label]) == 0
+        command = run.call_args_list[1].args[0]
+        assert (repair_filter in command) == dedicated, (platform, label, command)
+        if dedicated:
+            assert command[command.index(repair_filter) - 1] == '--skip'
 sys.stdout.buffer.write(router_log.getvalue().encode('utf-8'))
 "#;

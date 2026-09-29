@@ -220,9 +220,12 @@ def main(argv=None):
         # The typed execution-revision corpus runs in AGENT-06 on Windows.
         # Keeping it here as well exceeded the hosted six-hour job ceiling.
         test_arguments.extend(("--skip", "execution_revision::typed::"))
-    if sys.platform == "darwin" and args.label == "Rust macOS" and args.shard == "unit":
-        # The same repair module runs in its own macOS release blocker, so
-        # its longer V2 deadline cannot push this near-six-hour shard over.
+    if args.shard == "unit" and (
+        (sys.platform == "darwin" and args.label == "Rust macOS")
+        or (sys.platform.startswith("linux") and args.label == "Rust Linux")
+    ):
+        # Every Unix repair case runs once in the dedicated source-repair
+        # matrix. Keep its multi-case replay cost out of the main unit lane.
         test_arguments.extend(("--skip", "source_live_cli::repair::tests::"))
     if (
         sys.platform == "darwin"

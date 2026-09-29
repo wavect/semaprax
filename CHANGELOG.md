@@ -8,6 +8,16 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Give Linux source-repair tests the same dedicated blocking lane as macOS,
+  preserving once-per-host coverage. Author the UTF-8 capacity fixture from a
+  formatter-pinned canonical template so setup does not replay proof-only
+  scalar renderers for each of its 25,000-plus characters. Keep all three
+  capacity boundaries, Project authentication, artifact replay, publication,
+  and independent Node byte checks; add phase timings for timeout diagnosis.
+  Meter npm recipe String literals under the existing 1 MiB bound so their
+  source writer uses the bounded Rust-authority path without changing bytes
+  or bypassing recipe/HIR replay.
+
 - Repartition slow macOS repair and Windows agent-runtime tests into distinct
   release blockers without duplicating their coverage. Use a real macOS Git
   executable for publication tests, keep unsupported Windows stage hosts

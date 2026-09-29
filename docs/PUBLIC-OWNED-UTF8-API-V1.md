@@ -248,7 +248,15 @@ The separate `tests/support/owned_utf8_capacity.rs` subject isolates the String
 result boundary in a two-source Project. A single selected literal contains
 65,535 or 65,536 UTF-8 bytes, including repeated BOM, NUL, multibyte and astral
 characters. No other String literal consumes the shared 65,536-byte Wasm
-literal pool. The real npm and native Rust publication gates compare returned
+literal pool. The fixture uses an authored canonical source template, pinned
+against the formatter on a small scalar corpus. Ordinary Project admission
+still parses and canonical-checks every full-size source; fixture construction
+does not repeat the unbounded formatter's per-scalar proof replay.
+String literals in the npm semantic recipe use a metered source writer under
+the recipe's unchanged 1 MiB ceiling. Exact recipe/HIR replay, canonical bytes,
+and artifact integrity checks remain required; only unbounded proof-candidate
+work is excluded from that bounded writer.
+The real npm and native Rust publication gates compare returned
 strings against independently spelled byte oracles, exercise repeated calls
 through two instances, and retain earlier host values. Native host values are
 also checked after SDK destruction. Package and source inputs remain exact.

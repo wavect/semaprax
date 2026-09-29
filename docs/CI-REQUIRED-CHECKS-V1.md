@@ -167,8 +167,8 @@ gh api repos/wavect/semaprax/commits/main/check-runs \
 | `native-rust-sdk-v1` | `Public Native Rust SDK v1 (ubuntu-latest \| macos-latest \| windows-latest)` | 3 |
 | `verify` | `Rust ubuntu-latest`, `Rust macos-latest`, `Rust windows-latest` | 3 |
 | `verify-build` | `Rust build ubuntu-latest`, `Rust build macos-latest`, `Rust build windows-latest` | 3 |
-| `verify-tests` | `Rust tests <os> (unit \| integration-0 \| integration-1 \| integration-2 \| integration-3 \| integration-4)` over the three hosts | 18 |
-| `macos-source-repair` | `Rust macOS source repair` | 1 |
+| `verify-tests` | `Rust tests <os> (unit \| unit-heavy \| integration-0 \| integration-1 \| integration-2 \| integration-3 \| integration-4)` over the three hosts | 21 |
+| `unix-source-repair` | `Rust source repair (ubuntu-latest \| macos-latest)` | 2 |
 | `windows-agent-runtime-rest` | `Rust Windows agent runtime remainder` | 1 |
 | `desktop-native-product` | `Private desktop + native UI product (windows-2025 \| macos-15)` | 2 |
 | `doctor-macos-confinement` | `Doctor macOS Seatbelt confinement and settlement` | 1 |

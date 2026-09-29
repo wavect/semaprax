@@ -1899,9 +1899,13 @@ jobs:
           if ('${{ matrix.shard }}' -eq 'integration-3') { $split = @('--split-windows-agent-runtime') }
           python3 scripts/ci-msrv.py --label "Rust Windows" --shard "${{ matrix.shard }}" --exclude-package semaprax-native-rust-interop --nocapture @split
 
-  macos-source-repair:
-    name: Rust macOS source repair
-    runs-on: macos-latest
+  unix-source-repair:
+    name: Rust source repair (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 360
     env:
       CARGO_PROFILE_DEV_DEBUG: "0"
@@ -1928,13 +1932,19 @@ jobs:
           set -euo pipefail
           echo "RUSTC=$(rustup which rustc)" >> "$GITHUB_ENV"
           echo "CLANG=$(command -v clang)" >> "$GITHUB_ENV"
-          echo "SEMAPRAX_ARCHIVER=/usr/bin/libtool" >> "$GITHUB_ENV"
+          if [[ "$RUNNER_OS" == "macOS" ]]; then
+            echo "SEMAPRAX_ARCHIVER=/usr/bin/libtool" >> "$GITHUB_ENV"
+          else
+            echo "SEMAPRAX_ARCHIVER=$(readlink -f "$(command -v ar)")" >> "$GITHUB_ENV"
+          fi
           echo "SEMAPRAX_TEST_PYTHON=$(command -v python3)" >> "$GITHUB_ENV"
       - name: Fetch locked dependencies
         run: cargo fetch --locked
       - name: Run every source-repair unit case once
         run: |
-          cargo test --locked --offline -p semaprax-toolchain --all-features --lib source_live_cli::repair::tests::
+          cargo test --locked --offline -p semaprax-toolchain --all-features --lib \
+            --features semaprax/unstable-native-host-internal,semaprax/unstable-wit-component-harness,semaprax/unstable-workflow-profiling \
+            source_live_cli::repair::tests::
 
   windows-agent-runtime-rest:
     name: Rust Windows agent runtime remainder
@@ -2406,7 +2416,7 @@ jobs:
       - verify
       - verify-build
       - verify-tests
-      - macos-source-repair
+      - unix-source-repair
       - windows-agent-runtime-rest
       - desktop-native-product
       - doctor-macos-confinement

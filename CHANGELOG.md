@@ -8,6 +8,15 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Run all twenty-six AArch64 offline-doctor lifecycle fixtures against real
+  carriers (#334). `doctor-provisioned-linux-aarch64-carriers.sh` provisions
+  pinned Clang 17.0.6, Node 22.23.2 and Rust 1.88.0 and bundles them with the
+  packager's new explicit `--architecture aarch64`; the lifecycle driver now
+  requires those inputs instead of probing for their absence. The AArch64
+  syscall rows gain the traced Node and rustc `fcntl` rules, rustc's `ppoll`
+  and `pipe2`, and its exact pthread `clone`. 26/26 passed locally on native
+  AArch64 (Linux 6.18.35 with `CONFIG_PROC_CHILDREN`); not hosted, not a
+  signed-release gate.
 - Move the isolated Component runtime runner to Wasmtime 48.0.3 for
   RUSTSEC-2026-0315 and RUSTSEC-2026-0316, which failed its `cargo deny`
   advisory audit. 49.0.1 carries the same fixes but breaks the runner's

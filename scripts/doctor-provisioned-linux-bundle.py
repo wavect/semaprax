@@ -64,10 +64,12 @@ MAX_TOTAL_PATH_BYTES = 1024 * 1024
 MAX_COMPONENTS = 32
 MAX_COMPONENT_BYTES = 255
 
-# DoctorOfflineArchitecture::LinuxX86_64. This packager admits one target for
-# the same reason the gate does: issue #61 scopes exactly one environment.
-ARCHITECTURE = 1
-ELF_MACHINE = 62
+# DoctorOfflineArchitecture wire byte and ELF e_machine per native target.
+# x86-64 stays the default because the gate admits exactly one environment
+# (issue #61). AArch64 must be selected by name, for the separate local
+# AArch64 lifecycle probe (issue #334); it never widens the x86-64 gate.
+ARCHITECTURES = {"x86_64": (1, 62), "aarch64": (2, 183)}
+ARCHITECTURE, ELF_MACHINE = ARCHITECTURES["x86_64"]
 
 # DoctorOfflineTarget, and the role mask each target requires.
 TARGETS = {"contributor": 0, "native": 1, "web": 2, "all": 3}
@@ -370,7 +372,15 @@ def main(argv):
         help="64 hexadecimal digits binding this invocation's bytes",
     )
     parser.add_argument("--plan", action="store_true")
+    parser.add_argument(
+        "--architecture",
+        default="x86_64",
+        choices=sorted(ARCHITECTURES),
+        help="native target the bundle is for; x86_64 unless named",
+    )
     arguments = parser.parse_args(argv)
+    global ARCHITECTURE, ELF_MACHINE
+    ARCHITECTURE, ELF_MACHINE = ARCHITECTURES[arguments.architecture]
 
     inventory, roles = collect(arguments)
     # `--plan` measures; it never writes. An inventory that overruns the carrier

@@ -132,12 +132,14 @@ not lift resource limits or clear the parent-death signal. A retained supervisor
 pidfd closes the parent-death setup race before executable entry. Unsupported
 syscalls fail; compatibility failures never trigger an unconfined retry.
 
-Thread creation is denied for Clang and Node. The x86-64 rustc role alone may
-create threads, because rustc 1.88 starts a Ctrl-C watcher thread
-unconditionally and aborts without it (hosted run 35591319262). Its `clone3`
-returns `ENOSYS`, never success, since classic BPF cannot inspect the
-pointed-to arguments; glibc then retries with `clone(2)`, which is admitted only
-for glibc's exact pthread flag word (`CLONE_VM|FS|FILES|SIGHAND|THREAD|SYSVSEM|
+Thread creation is denied for Clang and Node. The rustc role alone may create
+threads, on both native ABIs, because rustc 1.88 starts a Ctrl-C watcher thread
+unconditionally and aborts without it (x86-64 hosted run 35591319262; the
+AArch64 real-carrier run of issue #334, where glibc 2.36 calls `clone`
+directly). Its `clone3` returns `ENOSYS`, never success, since classic BPF
+cannot inspect the pointed-to arguments; glibc then retries with `clone(2)`
+(56 on x86-64, 220 on AArch64), which is admitted only for glibc's exact
+pthread flag word (`CLONE_VM|FS|FILES|SIGHAND|THREAD|SYSVSEM|
 SETTLS|PARENT_SETTID|CHILD_CLEARTID`, zero exit signal, zero upper half). That
 word cannot select a namespace, parent, pidfd, vfork, trace or exit signal, so
 it creates a task inside the confined process: it inherits the filter, rlimits

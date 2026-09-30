@@ -472,7 +472,7 @@ fn parse_aarch64_tracking_workflow(workflow: &str) -> Result<(), String> {
     let job_fields = direct_children(&lines, job_start, 2);
     if job_fields
         != [
-            "name: Linux AArch64 offline doctor lifecycle (partial tracking)",
+            "name: Linux AArch64 offline doctor lifecycle (real carriers)",
             "runs-on: ubuntu-24.04-arm",
             "timeout-minutes: 180",
             "steps:",
@@ -496,8 +496,9 @@ fn parse_aarch64_tracking_workflow(workflow: &str) -> Result<(), String> {
         "- uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master",
         "- name: Require a native Linux AArch64 runner",
         "- name: Acquire the locked dependency closure before offline execution",
+        "- name: Provision the real AArch64 Clang, Node and Rust carriers",
         "- name: Require the source bytes the tracking result binds",
-        "- name: Run the AArch64 partial lifecycle tracking probe",
+        "- name: Run the AArch64 lifecycle probe with real carriers",
         "- name: Preserve the explicit non-promotion boundary",
     ];
     if steps != expected_step_headers {
@@ -545,25 +546,29 @@ fn parse_aarch64_tracking_workflow(workflow: &str) -> Result<(), String> {
             "8:run: cargo fetch --locked",
         ],
         vec![
+            "6:- name: Provision the real AArch64 Clang, Node and Rust carriers",
+            "8:run: bash scripts/doctor-provisioned-linux-aarch64-carriers.sh \"${{ runner.temp }}/doctor-aarch64-carriers\"",
+        ],
+        vec![
             "6:- name: Require the source bytes the tracking result binds",
             "8:run: |",
             "10:set -euo pipefail",
             "10:test -z \"$(git status --porcelain)\"",
         ],
         vec![
-            "6:- name: Run the AArch64 partial lifecycle tracking probe",
+            "6:- name: Run the AArch64 lifecycle probe with real carriers",
             "8:env:",
             "10:CARGO_NET_OFFLINE: \"true\"",
             "10:CARGO_TARGET_DIR: ${{ runner.temp }}/semaprax-doctor-aarch64-target",
-            "8:run: bash scripts/doctor-provisioned-linux-aarch64-local-lifecycle.sh",
+            "8:run: bash scripts/doctor-provisioned-linux-aarch64-local-lifecycle.sh \"${{ runner.temp }}/doctor-aarch64-carriers/carriers.env\"",
         ],
         vec![
             "6:- name: Preserve the explicit non-promotion boundary",
             "8:run: |",
             "10:set -euo pipefail",
             "10:printf '%s\\n' \\",
-            "12:'This dispatch is a 24-case AArch64 tracking probe, not the full 26-case signed-release gate.' \\",
-            "12:'A result does not resolve the two real-distribution exclusions or promote WP-05.'",
+            "12:'This dispatch is the 26-case AArch64 lifecycle probe with real carriers, not a signed-release gate.' \\",
+            "12:'A result is AArch64 evidence only; it does not promote WP-05 or cover x86-64.'",
         ],
     ]
     .into_iter()
@@ -616,6 +621,7 @@ fn aarch64_local_driver_boundary(local_driver: &str) -> Result<(), String> {
         "doctor::offline_worker::tests::provisioned_materializer_exec_and_socket_denial",
         "doctor::offline_worker::tests::provisioned_missing_role_bad_hash_and_invalid_request_emit_no_frame",
         "doctor::offline_worker::tests::provisioned_overflow_and_timeout_publish_only_settled_failure",
+        "doctor::offline_worker::tests::provisioned_real_clang_node_rust_distributions",
     ];
     let expected_collector = [
         "actual_worker_materializes_executes_and_settles_before_canonical_report",
@@ -630,6 +636,7 @@ fn aarch64_local_driver_boundary(local_driver: &str) -> Result<(), String> {
         "physical_reports::all_three_roles_settle_and_tool_failure_is_an_ordinary_exit_one_report",
         "physical_reports::closed_report_sink_fails_after_collection_without_successful_delivery",
         "prepared_handoff::prepared_native_and_all_role_handoffs_preserve_literal_wire_and_reject_transport_drift",
+        "real_launched_handoff::production_launcher_reports_all_roles_from_provisioned_real_distributions",
     ];
     if bash_array(local_driver, "PLATFORM_LIFECYCLE_TESTS")? != expected_platform {
         return Err("AArch64 platform lifecycle selection changed".to_owned());
@@ -641,37 +648,48 @@ fn aarch64_local_driver_boundary(local_driver: &str) -> Result<(), String> {
         local_driver,
         "AArch64 local lifecycle plan",
         &[
-            "readonly TRACKING_FIXTURE_COUNT=24",
-            "[ \"${#PLATFORM_LIFECYCLE_TESTS[@]}\" -eq 12 ]",
-            "[ \"${#COLLECTOR_LIFECYCLE_TESTS[@]}\" -eq 12 ]",
+            "readonly TRACKING_FIXTURE_COUNT=26",
+            "[ \"${#PLATFORM_LIFECYCLE_TESTS[@]}\" -eq 13 ]",
+            "[ \"${#COLLECTOR_LIFECYCLE_TESTS[@]}\" -eq 13 ]",
             "--ignored --exact --test-threads=1",
             "\"${PLATFORM_LIFECYCLE_TESTS[@]}\"",
             "\"${COLLECTOR_LIFECYCLE_TESTS[@]}\"",
         ],
     )?;
-    let exclusions = [
-        "--skip doctor::offline_worker::tests::provisioned_real_clang_node_rust_distributions",
-        "--skip real_launched_handoff::production_launcher_reports_all_roles_from_provisioned_real_distributions",
-    ];
-    let actual_exclusions: Vec<_> = local_driver
+    // Every fixture is a positive case now: no selector may be skipped, and
+    // the real-carrier inputs are required, never probed for absence.
+    if local_driver
         .lines()
-        .map(str::trim)
-        .filter(|line| line.starts_with("--skip "))
-        .map(|line| {
-            line.strip_suffix(" \\").ok_or_else(|| {
-                "AArch64 exclusion selector must continue into its exact plan".to_owned()
-            })
-        })
-        .collect::<Result<_, _>>()?;
-    if actual_exclusions != exclusions {
-        return Err(format!(
-            "AArch64 partial driver exclusions changed: expected {exclusions:?}, got {actual_exclusions:?}"
-        ));
+        .any(|line| line.trim_start().starts_with("--skip"))
+    {
+        return Err("AArch64 driver skips a lifecycle fixture".to_owned());
     }
+    if bash_array(local_driver, "REAL_CARRIER_KEYS")?
+        != [
+            "SEMAPRAX_DOCTOR_REAL_BUNDLE",
+            "SEMAPRAX_DOCTOR_REAL_SELECTOR",
+            "SEMAPRAX_DOCTOR_EXPECTED_CLANG_DETAIL",
+            "SEMAPRAX_DOCTOR_EXPECTED_NODE_DETAIL",
+            "SEMAPRAX_DOCTOR_EXPECTED_RUST_DETAIL",
+        ]
+    {
+        return Err("AArch64 real-carrier inputs changed".to_owned());
+    }
+    require(
+        local_driver,
+        "AArch64 real-carrier refusal",
+        &[
+            "load_real_carriers \"$1\"",
+            "|| fail \"real-carrier input ${key} is missing; provision it with doctor-provisioned-linux-aarch64-carriers.sh\"",
+            "|| fail \"real bundle ${SEMAPRAX_DOCTOR_REAL_BUNDLE} does not exist\"",
+            "*) fail \"unexpected real-carrier key ${key}\" ;;",
+            "*\" ${key} \"*) fail \"duplicate real-carrier key ${key}\" ;;",
+        ],
+    )?;
     if local_driver
         .matches("--ignored --exact --test-threads=1")
         .count()
-        != 4
+        != 2
         || local_driver.contains("doctor::offline_worker doctor::offline_root")
     {
         return Err(
@@ -681,40 +699,18 @@ fn aarch64_local_driver_boundary(local_driver: &str) -> Result<(), String> {
 
     let command_prefix = "unshare --user --map-root-user --mount --net --ipc --uts -- \\\n\t\tcargo test --locked --offline";
     let commands: Vec<_> = local_driver.split(command_prefix).skip(1).collect();
-    if commands.len() != 4 {
+    if commands.len() != 2 {
         return Err(format!(
-            "expected exactly four AArch64 lifecycle test commands, got {}",
+            "expected exactly two AArch64 lifecycle test commands, got {}",
             commands.len()
         ));
     }
-    for (index, command) in commands[..2].iter().enumerate() {
-        // Only the cargo test invocation itself must be unmasked; the
-        // subsequent shell probes for the real-distribution fixtures
-        // legitimately use `|| fail` after the lifecycle suite.
+    for (index, command) in commands.iter().enumerate() {
         let cargo_invocation = command.split("\n\techo").next().unwrap_or(command);
         if cargo_invocation.contains("||") {
             return Err(format!(
                 "selected AArch64 lifecycle command {index} is masked instead of fail-fast"
             ));
-        }
-    }
-    for (command, fixture, refusal) in [
-        (
-            commands[2],
-            "doctor::offline_worker::tests::provisioned_real_clang_node_rust_distributions",
-            "fail \"platform real-distribution fixture unexpectedly passed without the contracted provisioned bundle\"",
-        ),
-        (
-            commands[3],
-            "real_launched_handoff::production_launcher_reports_all_roles_from_provisioned_real_distributions",
-            "fail \"collector real-distribution fixture unexpectedly passed without the contracted provisioned bundle\"",
-        ),
-    ] {
-        if command.contains("--skip ") || !command.contains(fixture) || !command.contains(refusal) {
-            return Err(
-                "an excluded AArch64 fixture is not a required failing precondition probe"
-                    .to_owned(),
-            );
         }
     }
     Ok(())
@@ -732,7 +728,7 @@ fn aarch64_tracking_contract_tripwires(
         tracking,
         "AArch64 tracking contract",
         &[
-            "Status: **in scope, tracked, and unexecuted on the proposed hosted runner.**",
+            "Status: **all twenty-six fixtures executed locally on native AArch64 with real\ncarriers; not executed on the proposed hosted runner.**",
             "first implementation is native 64-bit little-endian Linux\nx86-64 **and AArch64**",
             "default-deny syscall table for each native ABI",
             "Commit [`734e67af`]",
@@ -740,14 +736,16 @@ fn aarch64_tracking_contract_tripwires(
             "passed 24 of the 26 ignored lifecycle fixtures",
             "doctor::offline_worker::tests::provisioned_real_clang_node_rust_distributions",
             "real_launched_handoff::production_launcher_reports_all_roles_from_provisioned_real_distributions",
-            "failed fast because that local run supplied neither the required real\nClang/Node/Rust bundle nor its selector",
+            "13 of 13 `platform-sys-lib` and 13 of\n13 `doctor-collector` `provisioned` cases, with no skipped or ignored case.",
+            "It is **local VM\nevidence**, not GitHub-hosted evidence and not physical-device evidence.",
+            "exactly one change, `PROC_CHILDREN n -> y`.",
+            "Clang and Node get no AArch64 addition.",
+            "No signed AArch64 release package was built or is claimed.",
             "GitHub-hosted `ubuntu-24.04-arm` runner",
-            "exactly two named\n`--skip` exclusions",
-            "Those exclusions define its twenty-four-case boundary.",
-            "Each probe is required to fail with its exact missing-bundle or\nmissing-selector reason",
-            "Every selected lifecycle command is otherwise unmasked and\nfail-fast",
-            "does **not** call itself a full AArch64 gate",
-            "not a production or WP-05 promotion",
+            "The driver has no `--skip` selector: it runs all twenty-six fixtures",
+            "refuses before building if any real-carrier input is\nmissing, malformed, duplicated or unexpected.",
+            "Every lifecycle command is\nunmasked and fail-fast.",
+            "not a\nsigned-release gate and not a production or WP-05 promotion",
             "needs an observed real-binary behaviour and a negative control",
         ],
     )?;
@@ -759,14 +757,9 @@ fn aarch64_tracking_contract_tripwires(
             "THIS IS NOT scripts/doctor-provisioned-linux-gate.py",
             "aarch64 | arm64",
             "This is a failure, not a skip.",
-            "--skip doctor::offline_worker::tests::provisioned_real_clang_node_rust_distributions",
-            "--skip real_launched_handoff::production_launcher_reports_all_roles_from_provisioned_real_distributions",
-            "observed required missing-platform-bundle refusal",
-            "observed required missing-collector-bundle refusal",
-            "partial probe requires SEMAPRAX_DOCTOR_REAL_BUNDLE to be absent",
-            "partial probe requires SEMAPRAX_DOCTOR_REAL_SELECTOR to be absent",
-            "grep -Fq 'provision real bundle'",
-            "grep -Fq 'provision real selector'",
+            "without them it refuses before building anything.",
+            "so no release capsule is involved and none is claimed.",
+            "== done: ${TRACKING_FIXTURE_COUNT} AArch64 lifecycle fixtures passed with real carriers ==",
         ],
     )?;
     aarch64_local_driver_boundary(local_driver)?;
@@ -777,7 +770,10 @@ fn aarch64_tracking_contract_tripwires(
             "const ARM_ARCH: u32 = 0xc000_00b7;",
             "const ARM_COMMON",
             "const ARM_MANDATORY_DENY",
-            "const ARM_SAFE_ADDITIONS: &[u32] = &[];",
+            "const ARM_RUST_STARTUP: &[u32] = &[73, 59];",
+            "const ARM_SAFE_ADDITIONS: &[u32] = ARM_RUST_STARTUP;",
+            "const ARM_FCNTL: u32 = 25;",
+            "const ARM_CLONE: u32 = 220;",
             "ARM_ARCH => (",
             "ARM_COMMON,",
             "ARM_MANDATORY_DENY,",
@@ -971,24 +967,42 @@ fn aarch64_linux_tracking_contract_is_separate_fail_closed_and_non_promotional()
     )
     .unwrap_or_else(|error| panic!("{error}"));
 
-    let added_lifecycle_case = local_driver.replacen(
-        "\t\"doctor::offline_worker::tests::provisioned_overflow_and_timeout_publish_only_settled_failure\"\n)",
-        "\t\"doctor::offline_worker::tests::provisioned_overflow_and_timeout_publish_only_settled_failure\"\n\t\"doctor::offline_worker::tests::unexpected_new_ignored_case\"\n)",
-        1,
-    );
-    assert!(
-        aarch64_local_driver_boundary(&added_lifecycle_case).is_err(),
-        "an added ignored lifecycle case must require an explicit reviewed 24-case-plan update"
-    );
-    for refusal in [
-        "fail \"platform real-distribution fixture unexpectedly passed without the contracted provisioned bundle\"",
-        "fail \"collector real-distribution fixture unexpectedly passed without the contracted provisioned bundle\"",
+    let real_platform_case =
+        "\t\"doctor::offline_worker::tests::provisioned_real_clang_node_rust_distributions\"\n)";
+    for (name, hostile_driver) in [
+        (
+            "added lifecycle case",
+            local_driver.replacen(
+                real_platform_case,
+                "\t\"doctor::offline_worker::tests::provisioned_real_clang_node_rust_distributions\"\n\t\"doctor::offline_worker::tests::unexpected_new_ignored_case\"\n)",
+                1,
+            ),
+        ),
+        (
+            "dropped real-carrier case",
+            local_driver.replacen(real_platform_case, ")", 1),
+        ),
+        (
+            "optional real-carrier input",
+            local_driver.replacen(
+                "|| fail \"real-carrier input ${key} is missing; provision it with doctor-provisioned-linux-aarch64-carriers.sh\"",
+                "|| true",
+                1,
+            ),
+        ),
+        (
+            "reintroduced skip",
+            local_driver.replacen(
+                "\t\t--ignored --exact --test-threads=1 \\\n\t\t\"${PLATFORM_LIFECYCLE_TESTS[@]}\"",
+                "\t\t--ignored --exact --test-threads=1 \\\n\t\t--skip doctor::offline_worker::tests::provisioned_real_clang_node_rust_distributions \\\n\t\t\"${PLATFORM_LIFECYCLE_TESTS[@]}\"",
+                1,
+            ),
+        ),
     ] {
-        let fail_open = local_driver.replacen(refusal, "true", 1);
-        assert_ne!(fail_open, local_driver, "missing refusal mutation anchor");
+        assert_ne!(hostile_driver, local_driver, "missing {name} mutation anchor");
         assert!(
-            aarch64_local_driver_boundary(&fail_open).is_err(),
-            "an unexpectedly passing excluded fixture must fail the tracking route"
+            aarch64_local_driver_boundary(&hostile_driver).is_err(),
+            "hostile {name} mutation escaped the AArch64 driver boundary"
         );
     }
     let masked_lifecycle = local_driver.replacen(
@@ -1017,7 +1031,7 @@ fn aarch64_linux_tracking_contract_is_separate_fail_closed_and_non_promotional()
         (
             "hosted promotion",
             tracking.replacen(
-                "unexecuted on the proposed hosted runner",
+                "not executed on the proposed hosted runner",
                 "HOSTED GREEN",
                 1,
             ),
@@ -1111,6 +1125,24 @@ fn aarch64_linux_tracking_contract_is_separate_fail_closed_and_non_promotional()
             "masked host failure",
             tracking.clone(),
             format!("{workflow}\ncontinue-on-error: true\n"),
+        ),
+        (
+            "removed carrier provisioning",
+            tracking.clone(),
+            workflow.replacen(
+                "      - name: Provision the real AArch64 Clang, Node and Rust carriers\n        run: bash scripts/doctor-provisioned-linux-aarch64-carriers.sh \"${{ runner.temp }}/doctor-aarch64-carriers\"\n\n",
+                "",
+                1,
+            ),
+        ),
+        (
+            "lifecycle without carriers",
+            tracking.clone(),
+            workflow.replacen(
+                " \"${{ runner.temp }}/doctor-aarch64-carriers/carriers.env\"",
+                "",
+                1,
+            ),
         ),
     ] {
         assert!(

@@ -484,6 +484,7 @@ Audience: all documentation readers.
 - [Architecture](ARCHITECTURE.md)
 - [Quality gates](QUALITY-GATES.md)
 - [Installed toolchain journey test](INSTALLED-JOURNEY-TEST.md)
+- [Independent installed-artifact repair journey](INDEPENDENT-INSTALLED-ARTIFACT-JOURNEY-V1.md)
 - [Required CI checks](CI-REQUIRED-CHECKS-V1.md)
 - [Release process and tag evidence](RELEASE-PROCESS.md)
 - [Release signing and provenance policy v1](RELEASE-SIGNING-POLICY-V1.md)

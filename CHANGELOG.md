@@ -39,6 +39,12 @@ format: `Unreleased` then release buckets, grouped by impact.
   decision from historical local counts and hosted evidence. No gate was run,
   and rung 1 remains the only accepted rung.
 
+- Add a read-only validator for #328's accepted-revision record. It enforces
+  canonical record bytes, the complete ordered receipt inventory, immutable
+  commit bindings, and byte-exact declared-subject reconciliation including
+  `Cargo.lock`; success and drift/inventory refusal regressions are present but
+  unrun. It cannot run receipts or validate a rung-2 promotion.
+
 - Connect actual continued owned-Agent Decision cleanup to the existing v8
   fixed append and physical release path (#330). Preserve the same State,
   reservation hold and accounting across Started/Settled, cancellation and

@@ -2,9 +2,9 @@
 
 Audience: the reviewer resolving issue #328.
 
-Status: a closed acceptance-record format and pending gate inventory. It records
-no accepted revision, completed gate, reviewer decision, hosted result, or rung
-promotion.
+Status: a closed acceptance-record format, read-only validation gate, and
+pending gate inventory. It records no accepted revision, completed gate,
+reviewer decision, hosted result, or rung promotion.
 
 ## Purpose and boundary
 
@@ -40,6 +40,51 @@ and must be rerun. The reconciliation records the exact compared path list and
 both full commit IDs. A source-equivalence comparison validates only the named
 unchanged subject; it does not turn a historical execution into a new execution
 of a broader profile.
+
+## Read-only record gate
+
+`scripts/kernel0-accepted-revision-gate.py` validates one canonical JSON record
+without running a receipt command, writing any input, selecting a candidate
+revision, or changing the current outcome. It requires full lowercase 40-hex
+commits and resolves each as a commit object. Its fixed ordered inventory is the
+seven rows below.
+
+An `executed` receipt must have passed at `candidate_revision`. A `reconciled`
+receipt records its earlier execution commit plus a complete declared inventory
+grouped as selector, harness, profile sources, fixtures, generated inputs, and
+the exact tracked `Cargo.lock`. The gate requires all declared paths to be
+tracked file blobs at both commits and uses Git's exact commit comparison to
+refuse byte drift. It validates the declared inventory; it does not infer that
+a reviewer declared every relevant file. The owning receipt specification
+remains responsible for that completeness judgment.
+
+The gate accepts only `validation-incomplete` and `rung-1-retained` outcomes.
+It deliberately cannot validate or produce `rung-2-promoted`: component-boundary
+acceptance remains the separate explicit reviewer decision required below.
+
+The record's top-level keys are exactly `schema`, `candidate_revision`,
+`receipts`, `outcome`, and `reason`; its bytes are canonical sorted-key JSON
+with one trailing LF. Receipts occur once in this fixed order: `lean-proof`,
+`renderer-authority`, `bootstrap-artifact`, `scalar-targets-recovery`,
+`differential-corpus`, `owned-handoff`, `baseline-preservation`. A pending row
+is exactly `{"id":"...","state":"pending"}`. An executed row additionally
+names a nonempty `command`, true `passed`, `execution_revision` equal to the
+candidate, and a string-valued `tool_versions` object. A reconciled row instead
+includes `inventory`: six nonempty, sorted path lists named `selector`,
+`harness`, `profile_sources`, `fixtures`, `generated_inputs`, and `cargo_lock`.
+The final list is exactly `["Cargo.lock"]`, and paths may not overlap. Both
+completed forms retain the same `command`, `passed`, `execution_revision`, and
+`tool_versions` fields. Unknown or omitted keys refuse.
+
+Focused regression selector:
+
+```sh
+python3 scripts/kernel0-accepted-revision-gate.py --self-test
+```
+
+For a committed record, invoke the same script with `--record PATH` and an
+explicit checkout path via `--repository`. The script emits a small canonical
+summary on success and a stable `SPX-K328-*` diagnostic on refusal.
 
 ## Required local receipt inventory
 

@@ -448,6 +448,42 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_live_ow
         .resume_actual()
         .map_err(LiveContinuedResumeDriverFailureV8::ResumeActual)
 }
+
+/// Keeps the resumed owner inside every failure until its Completed row is
+/// durably acknowledged; authorization begins from the returned owner later.
+pub(in crate::live_invocation::source_journal::owned_wait_v8) enum LiveContinuedCompletedDriverFailureV8<
+    'j,
+> {
+    Prepare(LiveContinuedModelFailureV8<'j>),
+    Session {
+        owner: LiveOwnedContinuedModelAppendV8<'j>,
+        error: SourceJournalError,
+    },
+    Append(LiveOwnedContinuedModelAppendFailureV8<'j>),
+    Advance(LiveContinuedModelAcknowledgmentFailureV8<'j>),
+}
+pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_live_owned_continued_completed_v8<'j>(
+    journal: &'j SourceOwnedWaitJournalV8,
+    model: LiveContinuedModelV8<'j>,
+) -> Result<LiveContinuedModelV8<'j>, LiveContinuedCompletedDriverFailureV8<'j>> {
+    let completed = model
+        .prepare_next()
+        .map_err(LiveContinuedCompletedDriverFailureV8::Prepare)?;
+    let session = match journal.begin_session() {
+        Ok(session) => session,
+        Err(error) => {
+            return Err(LiveContinuedCompletedDriverFailureV8::Session {
+                owner: completed,
+                error,
+            });
+        }
+    };
+    session
+        .append_owned_continued_model(completed)
+        .map_err(LiveContinuedCompletedDriverFailureV8::Append)?
+        .advance_continued_model()
+        .map_err(LiveContinuedCompletedDriverFailureV8::Advance)
+}
 impl<'j> AppendSessionV8<'j> {
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn append_owned_continue(
         self,

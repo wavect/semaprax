@@ -8,6 +8,10 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Durably ACK the owned-wait v8 next-turn Completed row after the single
+  resumed-program entry (#330). The real-chain selector passed 1/1 locally;
+  authorization and public multi-turn recovery remain open.
+
 - Advance a real owned-wait v8 next-turn Model holder through Usage and
   Resume-reservation ACKs before one actual resumed-program entry (#330).
   The focused selector passed 1/1 locally. Completed-row publication,

@@ -564,7 +564,7 @@ fn enriched_next_record(done: bool, phase: usize, record: usize) -> usize
 @id("catalog_normalizer.app.enriched-next-phase")
 fn enriched_next_phase(done: bool, phase: usize, count: usize, record: usize, outcome: usize) -> usize
 {
-    if !done { phase } else { if phase == 4usize && count == 0usize { 19usize } else { if phase == 10usize { 16usize } else { if phase == 16usize { 17usize + outcome * 4usize } else { if phase == 18usize { if record + 1usize < count { 5usize } else { 19usize } } else { if phase == 19usize { 48usize } else { 18usize } } } } } }
+    if !done { phase } else { if phase == 4usize && count == 0usize { 19usize } else { if phase < 10usize { phase + 1usize } else { if phase == 10usize { 16usize } else { if phase == 16usize { 17usize + outcome * 4usize } else { if phase == 18usize { if record + 1usize < count { 5usize } else { 19usize } } else { if phase == 19usize { 48usize } else { 18usize } } } } } } }
 }
 
 // CNORM-042 writer. The input is a fully selected failure; it cannot emit a

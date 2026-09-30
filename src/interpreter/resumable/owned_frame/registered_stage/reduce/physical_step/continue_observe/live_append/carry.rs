@@ -113,7 +113,7 @@ impl PreparedHeldContinuedWaitV2<'_> {
         Ok(())
     }
 }
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod tests;
 
 mod start;

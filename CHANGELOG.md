@@ -16,6 +16,9 @@ format: `Unreleased` then release buckets, grouped by impact.
   diagnostics for owned-wait context matching and private phase visibility.
   Restore the owned-wait outcome visibility required by parent modules and
   accept the three exact linker builds observed on hosted Windows runners.
+  Keep platform-independent owned-wait tests active on Windows while limiting
+  tests that require the Unix physical lease fixture to Unix; resolve the
+  hosted Clippy diagnostics in workspace and catalog acceptance tests.
 
 - Add a closed acceptance-record format for #328's Kernel-0 rung-2 decision.
   It requires every local receipt to bind to one selected revision or an exact

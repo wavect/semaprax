@@ -15,7 +15,7 @@ mod reduce_inventory;
 mod reduce_model;
 mod reduce_wire;
 pub(crate) use ready_commitment::owned_wait_ready_commitment_v8;
-#[cfg(all(test, unix))]
+#[cfg(test)]
 mod tests;
 mod wire;
 

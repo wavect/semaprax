@@ -50,7 +50,7 @@ impl Workspace {
         .unwrap();
         semaprax::semantic_workspace::initialize(&self.0, &path_set).unwrap();
         let graph = semaprax::workspace_graph::snapshot(&self.0, "fixture.app").unwrap();
-        serde_json::from_str(&graph.to_json()).unwrap()
+        serde_json::from_str(graph.to_json()).unwrap()
     }
     fn revision(&self) -> Arc<ProjectRevision> {
         with_authenticated_project(&self.0.join("semaprax.toml"), |snapshot| {

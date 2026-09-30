@@ -23,6 +23,10 @@ const OUTPUT_CAPACITY: usize =
 // The exact maximal plain and enriched calls retain the original acceptance
 // target. Keep this separate from the 2M source-test envelope below.
 const MAXIMAL_RESPONSE_FUEL_ENVELOPE: usize = 100_000_000;
+const _: () = assert!(
+    MAX_STEPS_LIMIT >= MAXIMAL_RESPONSE_FUEL_ENVELOPE,
+    "the interpreter must admit catalog-normalizer's maximal-response target"
+);
 
 const SOURCE_FILES: &[&str] = &[
     "app.spx",
@@ -660,10 +664,6 @@ fn focused_r05_controls_agree_across_interpreter_native_and_core_wasm() {
 
 #[test]
 fn batch_boundaries_and_string_normalization_agree_across_backends() {
-    assert!(
-        MAX_STEPS_LIMIT >= MAXIMAL_RESPONSE_FUEL_ENVELOPE,
-        "the interpreter must admit catalog-normalizer's maximal-response target"
-    );
     let root = fixture();
     for source in SOURCE_FILES {
         let path = root.join("src").join(source);

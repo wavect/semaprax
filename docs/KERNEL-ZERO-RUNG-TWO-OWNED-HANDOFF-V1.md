@@ -4,8 +4,8 @@ Audience: compiler and self-hosting contributors.
 
 Status: private implementation for R16 / #294 with the bounded local evidence
 recorded below. This is not accepted-head, hosted, full-gate, or self-hosting-rung
-evidence. Remaining acceptance gates and the exact accepted revision must be
-recorded independently.
+evidence. [Accepted-Revision Validation v1](KERNEL-ZERO-ACCEPTED-REVISION-VALIDATION-V1.md)
+owns the remaining receipt inventory and exact accepted-revision record.
 
 ## Closed subject and proof boundary
 

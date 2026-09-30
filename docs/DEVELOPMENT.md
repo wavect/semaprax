@@ -30,7 +30,7 @@ Additional required references:
 | Change area | Owning references |
 | --- | --- |
 | Optional workflow stage instrumentation and observation campaigns | [Workflow Profiling v1](WORKFLOW-PROFILING-V1.md) |
-| Kernel-0 formatter candidate ownership handoff | [Semantic Kernel v1](SEMANTIC-KERNEL-V1.md), [Formatter Authority v1](KERNEL-ZERO-RUNG-TWO-AUTHORITY-V1.md), [Owned Handoff v1](KERNEL-ZERO-RUNG-TWO-OWNED-HANDOFF-V1.md), [Bootstrap v2](KERNEL-ZERO-RUNG-TWO-BOOTSTRAP-V2.md), [Target Recovery v1](KERNEL-ZERO-RUNG-TWO-TARGET-RECOVERY-V1.md) |
+| Kernel-0 formatter candidate ownership handoff | [Semantic Kernel v1](SEMANTIC-KERNEL-V1.md), [Formatter Authority v1](KERNEL-ZERO-RUNG-TWO-AUTHORITY-V1.md), [Owned Handoff v1](KERNEL-ZERO-RUNG-TWO-OWNED-HANDOFF-V1.md), [Bootstrap v2](KERNEL-ZERO-RUNG-TWO-BOOTSTRAP-V2.md), [Target Recovery v1](KERNEL-ZERO-RUNG-TWO-TARGET-RECOVERY-V1.md), [Accepted-Revision Validation v1](KERNEL-ZERO-ACCEPTED-REVISION-VALIDATION-V1.md) |
 | First-class function values and indirect invocation | [Function Values v1](FUNCTION-VALUES-V1.md), [Function Values v2](FUNCTION-VALUES-V2.md), [Scalar Snapshot Closures v1](CLOSURES-V1.md), [Generic and Loop Closures v2](CLOSURES-V2.md), [RFC 0004](RFC-0004-NATIVE-CALL-SETTLEMENT.md) |
 | Generic argument inference | [Argument Inference v1](GENERIC-ARGUMENT-INFERENCE-V1.md), [Argument Inference v2](GENERIC-ARGUMENT-INFERENCE-V2.md), [Argument Inference v3](GENERIC-ARGUMENT-INFERENCE-V3.md) |
 | Records, variants, generics, matching, `Option`, `Result` | [RFC 0002](RFC-0002-ALGEBRAIC-DATA.md) |

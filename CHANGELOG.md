@@ -8,6 +8,12 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Add a closed acceptance-record format for #328's Kernel-0 rung-2 decision.
+  It requires every local receipt to bind to one selected revision or an exact
+  unchanged subject, keeps all rows pending, and separates an eventual reviewer
+  decision from historical local counts and hosted evidence. No gate was run,
+  and rung 1 remains the only accepted rung.
+
 - Connect actual continued owned-Agent Decision cleanup to the existing v8
   fixed append and physical release path (#330). Preserve the same State,
   reservation hold and accounting across Started/Settled, cancellation and

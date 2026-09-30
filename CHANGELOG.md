@@ -36,12 +36,12 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 - Retain catalog-normalizer's 100,000,000-step maximal-response requirement
   (#324) in the complete application selector. Its one-call scalar phase
-  encoder omits redundant per-byte token-length arguments and selects the
-  plain or enriched terminal phases without a second per-byte function call.
-  Record the 160,000,000-step library ceiling only as the current execution
-  capacity and retain the separate 2,000,000-step source-suite bound. The
-  frozen oracle, corpus, response capacity, mutation controls and backend
-  lanes are unchanged.
+  encoder omits redundant per-byte token-length, terminal-shape and enrichment
+  arguments; the bounded fixture outcome is represented only in the enriched
+  tail phase. Record the 160,000,000-step library ceiling only as the current
+  execution capacity and retain the separate 2,000,000-step source-suite
+  bound. The frozen oracle, corpus, response capacity, mutation controls and
+  backend lanes are unchanged.
 
 - Add the explicit `endpoint Bytes` session profile, connecting checked protocol
   order to a unique source carrier through local moves and terminal consumption.

@@ -8,6 +8,11 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Advance the real owned-wait v8 next-turn Prepared owner through one checked
+  Model intent and durable Model acknowledgement (#330). The focused selector
+  passed 1/1 locally and proves no provider construction or source resume at
+  this boundary. Dispatch and public multi-turn recovery remain open.
+
 - Gate reference-service completion delivery with the checked source export
   policy (#336), using the canonical signed-event length and configured
   telemetry origin before any outbound attempt. Focused refusal and existing

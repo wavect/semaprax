@@ -1,8 +1,10 @@
 //! Genuine Continue owner and fixed original ACKs; no reconstructed State.
 use super::*;
+use crate::agent_lifecycle::iterative::source_live::SourceProposalPolicy;
 use crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect::authorization::step::LiveMovedStepV8;
 use crate::agent_runtime::AgentCancellation;
 use crate::live_invocation::{InvocationClock,SourceInvocationClock};
+use crate::provider_adapter_sdk::{AdapterInvocationCapability, StreamingSourceProposalAdapter};
 use crate::resumable_effects::CapabilityPolicy;
 use std::cell::Cell;
 use std::sync::Arc;
@@ -95,7 +97,7 @@ fn owned_continue_driver_advances_one_real_step_into_the_next_turn() {
     });
 }
 #[test]
-fn owned_continue_driver_enters_next_turn_start_once_and_parks_a_real_prepared_owner() {
+fn owned_continue_driver_enters_next_turn_start_once_and_acks_model_without_dispatch() {
     with_moved(|journal, moved, weak, _, _| {
         let observed = advance_live_owned_continue_v8(journal, moved)
             .unwrap_or_else(|_| panic!("actual Continue driver"));
@@ -159,9 +161,45 @@ fn owned_continue_driver_enters_next_turn_start_once_and_parks_a_real_prepared_o
             entries + 1,
             "Prepared ACK cannot replay Start source"
         );
+        let (_, execution) = journal.context().test_runtime_execution();
+        let model = execution.model();
+        let mut factory = || -> Box<dyn crate::provider_adapter_sdk::ProviderAdapter> {
+            panic!("Model ACK must not construct an SDK provider")
+        };
+        let adapter = StreamingSourceProposalAdapter::new_bound_checkpointed(
+            &mut factory,
+            AdapterInvocationCapability::grant("continued Model driver test"),
+            execution.wait().lifecycle().proposal_schema(),
+            model.clone(),
+            model.invocation_capability(),
+            SourceProposalPolicy {
+                deployment_binding: model.digest(),
+                response_limit: execution.ordinary().response_limit(),
+                reservation_units: execution.ordinary().reservation_units(),
+            },
+        )
+        .unwrap_or_else(|_| panic!("actual checked Model adapter"));
+        let model_sequence = journal.begin_session().unwrap().sequence();
+        let resume_entries = crate::interpreter::resumable::owned_frame::registered_stage::live_run::test_continued_resume_entries_v8();
+
+        let model = advance_live_owned_continued_model_v8(journal, prepared, &adapter)
+            .unwrap_or_else(|_| panic!("actual Model request and ACK"));
+
+        assert_eq!(journal.begin_session().unwrap().sequence(), model_sequence + 1);
+        let (_, _, model_turn, _) = journal
+            .begin_session()
+            .unwrap()
+            .continued_model_facts()
+            .unwrap_or_else(|_| panic!("actual continued Model inventory"));
+        assert_eq!(model_turn, 1);
+        assert_eq!(
+            crate::interpreter::resumable::owned_frame::registered_stage::live_run::test_continued_resume_entries_v8(),
+            resume_entries,
+            "Model ACK cannot resume source"
+        );
         assert!(weak.iter().any(|owner| owner.strong_count() == 1));
 
-        drop(prepared);
+        drop(model);
         assert!(weak.iter().all(|owner| owner.upgrade().is_none()));
     });
 }

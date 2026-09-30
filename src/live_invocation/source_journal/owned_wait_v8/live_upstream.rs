@@ -313,7 +313,7 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) use effect::author
 pub(in crate::live_invocation::source_journal::owned_wait_v8) use observe::settlement::carry::start::LiveContinuedStartedPhaseV8;
 pub(in crate::live_invocation::source_journal::owned_wait_v8) use observe::settlement::carry::start::prepared::{advance_verified_continued_prepared_v8,FixedOwnedContinuedPreparedAppendPermitV8,LiveContinuedPreparedFailureV8,LiveContinuedPreparedPhaseV8,LiveOwnedContinuedPreparedAppendV8};
 
-pub(in crate::live_invocation::source_journal::owned_wait_v8) use observe::settlement::carry::start::prepared::model::{advance_verified_continued_model_v8,FixedOwnedContinuedModelAppendPermitV8,LiveContinuedModelAcknowledgmentFailureV8,LiveContinuedModelV8,LiveOwnedContinuedModelAppendV8};
+pub(in crate::live_invocation::source_journal::owned_wait_v8) use observe::settlement::carry::start::prepared::model::{advance_verified_continued_model_v8,FixedOwnedContinuedModelAppendPermitV8,LiveContinuedModelAcknowledgmentFailureV8,LiveContinuedModelPreparationFailureV8,LiveContinuedModelV8,LiveOwnedContinuedModelAppendV8};
 pub(crate) use observe::settlement::carry::start::prepared::model::{LiveContinuedModelRequestOriginV8,LiveContinuedModelIntentPermitV8};
 pub(crate) use effect::authorization::step::r#continue::settlement::start::model::LiveContinuedWaitResumePermitV8;
 pub(in crate::live_invocation::source_journal::owned_wait_v8) use effect::authorization::step::r#continue::settlement::start::model::ContinuedResumedWaitV8;

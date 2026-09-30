@@ -114,11 +114,15 @@ use crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect
     LiveObservedContinueV8, LiveOwnedContinueAppendV8,
 };
 use crate::live_invocation::source_journal::owned_wait_v8::live_upstream::{
+    LiveContinuedModelAcknowledgmentFailureV8, LiveContinuedModelPreparationFailureV8,
+    LiveContinuedModelV8, LiveOwnedContinuedModelAppendV8,
     LiveContinuedPreparedFailureV8, LiveContinuedPreparedPhaseV8,
     LiveContinuedSourceEntryFailureV8, LiveContinuedStartPhaseV8,
     LiveOwnedContinuedPreparedAppendV8,
 };
-use crate::live_invocation::source_journal::owned_wait_v8::append::LiveOwnedContinuedPreparedAppendFailureV8;
+use crate::live_invocation::source_journal::owned_wait_v8::append::{
+    LiveOwnedContinuedModelAppendFailureV8, LiveOwnedContinuedPreparedAppendFailureV8,
+};
 
 /// The actual unchanged obligation is first. Session/witness never stand alone.
 pub(in crate::live_invocation::source_journal::owned_wait_v8) struct VerifiedOwnedContinueAppendV8<
@@ -291,6 +295,47 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_live_ow
         .map_err(LiveContinuedStartDriverFailureV8::PreparedAppend)?
         .advance_continued_prepared()
         .map_err(LiveContinuedStartDriverFailureV8::PreparedAdvance)
+}
+
+/// Retains the one real Prepared owner at every Model-row boundary. This
+/// driver stops before dispatch, so it cannot invoke an SDK or resume source.
+pub(in crate::live_invocation::source_journal::owned_wait_v8) enum LiveContinuedModelDriverFailureV8<
+    'j,
+> {
+    Prepare(LiveContinuedModelPreparationFailureV8<'j>),
+    ModelSession {
+        owner: LiveOwnedContinuedModelAppendV8<'j>,
+        error: SourceJournalError,
+    },
+    ModelAppend(LiveOwnedContinuedModelAppendFailureV8<'j>),
+    ModelAdvance(LiveContinuedModelAcknowledgmentFailureV8<'j>),
+}
+
+/// Binds the actual Prepared owner to one checked Model request and one
+/// durable Model acknowledgement. It takes the live adapter directly; no
+/// receipt can reconstruct a request origin or obtain SDK authority.
+pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_live_owned_continued_model_v8<'j>(
+    journal: &'j SourceOwnedWaitJournalV8,
+    prepared: LiveContinuedPreparedPhaseV8<'j>,
+    adapter: &crate::provider_adapter_sdk::StreamingSourceProposalAdapter<'_>,
+) -> Result<LiveContinuedModelV8<'j>, LiveContinuedModelDriverFailureV8<'j>> {
+    let selected = prepared
+        .prepare_model_intent(adapter)
+        .map_err(LiveContinuedModelDriverFailureV8::Prepare)?;
+    let session = match journal.begin_session() {
+        Ok(session) => session,
+        Err(error) => {
+            return Err(LiveContinuedModelDriverFailureV8::ModelSession {
+                owner: selected,
+                error,
+            });
+        }
+    };
+    session
+        .append_owned_continued_model(selected)
+        .map_err(LiveContinuedModelDriverFailureV8::ModelAppend)?
+        .advance_continued_model()
+        .map_err(LiveContinuedModelDriverFailureV8::ModelAdvance)
 }
 impl<'j> AppendSessionV8<'j> {
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn append_owned_continue(

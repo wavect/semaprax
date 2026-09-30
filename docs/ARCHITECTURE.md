@@ -39,6 +39,15 @@ It has no toolchain dispatch or scoring path and does not change v1/v2/v3
 execution authority. [Runnable adapter v3](CROSS-LANGUAGE-RUNNABLE-ADAPTER-V3.md)
 owns the actual official TypeScript admission and runtime evidence.
 
+`benchmarks/cross-language-v1/agent/specialization_accounting.py` owns the
+read-only [specialization cell accounting](../benchmarks/cross-language-v1/agent/README.md#issue-326-frozen-cell-accounting-blocked).
+It authenticates retained original protocol/task metadata and selected current
+source bytes with the existing bounded no-follow reader, then invokes the
+unchanged specialization v1 plan builder. It neither imports a provider nor
+reads task trees, executes an oracle, accepts approval or emits model results.
+The original 81 cells and nine later additions remain distinct. Nonzero blocked
+status and missing independent-review/custody records cannot confer authority.
+
 ## System shape
 
 ```text

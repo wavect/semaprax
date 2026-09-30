@@ -8,6 +8,12 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Add #326 read-only specialization cell accounting using the existing v1
+  protocol. Retain the original 81-cell inputs byte-for-byte from `ebe4235e`,
+  distinguish today's nine added cells and oracle drift, and report every
+  missing authority, unexecuted outcome and unrecorded independent review.
+  No provider or training work is dispatched; the experiment remains blocked.
+
 - Resolve comparison-adapter scope #322 through explicit exclusions: retain
   only the already-admitted official TypeScript v3 lane, without promoting
   local fixtures. Add a read-only, source/correction-bound support inventory

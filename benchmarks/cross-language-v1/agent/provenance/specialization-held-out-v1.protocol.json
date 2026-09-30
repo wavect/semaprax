@@ -1,0 +1,105 @@
+{
+  "acceptance_oracle": {
+    "revision": "cross-language-v1-oracle-2026-09-21",
+    "runner": "benchmarks/cross-language-v1/run.py",
+    "sha256": "sha256:4fda29764163f6c4d1e8e16a8b9afaa3d9f7af10aa16fd2b32fed03f12fa02f2"
+  },
+  "authorization": {
+    "required": [
+      "approved-model-budget",
+      "blinded-review-operator",
+      "provider-credential-and-egress-review"
+    ],
+    "status": "not_authorized"
+  },
+  "base_model": {
+    "model": "fixture-model",
+    "provider": "offline-fixture",
+    "revision": "fixture-2026-09-21"
+  },
+  "evaluation": {
+    "language": "semaprax-project",
+    "task_inventory_sha256": "sha256:f5cd390280bbdd82533fa6953d114ecf66a67d65c66d6571ccc6acb05a1113f1"
+  },
+  "id": "semaprax-specialization-held-out-v1",
+  "metrics": [
+    "accepted_outcome",
+    "model_input_tokens",
+    "model_output_tokens",
+    "presented_context_bytes",
+    "tool_calls",
+    "tool_request_bytes",
+    "tool_response_bytes",
+    "failed_attempts",
+    "stale_failures",
+    "stale_recovery_actions",
+    "validation_wall_ms",
+    "review_wall_ms",
+    "human_interventions",
+    "total_cost_usd"
+  ],
+  "repetitions": 3,
+  "resource_policy": {
+    "max_completion_tokens": 16000,
+    "max_cost_usd": 0,
+    "max_prompt_tokens": 32000,
+    "max_retries": 2,
+    "max_total_tokens": 48000
+  },
+  "schema": "benchmark.cross_language.agent.specialization_protocol.v1",
+  "tool_configuration": {
+    "action_api_sha256": "sha256:70c84f7d57dfb73d50b77d37f7898c9d7522981ed788dc10b7f5b13a0e46cbbe",
+    "revision": "agent-driver-v1",
+    "runner": "benchmarks/cross-language-v1/agent/run_agent.py"
+  },
+  "variants": [
+    {
+      "action_constraint": {
+        "mode": "none"
+      },
+      "adaptation": null,
+      "guidance": {
+        "mode": "none"
+      },
+      "id": "base",
+      "model": {
+        "model": "fixture-model",
+        "provider": "offline-fixture",
+        "revision": "fixture-2026-09-21"
+      }
+    },
+    {
+      "action_constraint": {
+        "mode": "none"
+      },
+      "adaptation": null,
+      "guidance": {
+        "mode": "versioned",
+        "sha256": "sha256:ae76ed5343c1f4f8b51dd6f85675de8ef22417bcce59e664ebda14d5efa1c8cb"
+      },
+      "id": "guided",
+      "model": {
+        "model": "fixture-model",
+        "provider": "offline-fixture",
+        "revision": "fixture-2026-09-21"
+      }
+    },
+    {
+      "action_constraint": {
+        "mode": "schema",
+        "sha256": "sha256:7b38a070d0febc67b61de424f1bd480412b235ced6714975607fbb8cadacbce0"
+      },
+      "adaptation": null,
+      "guidance": {
+        "mode": "versioned",
+        "sha256": "sha256:ae76ed5343c1f4f8b51dd6f85675de8ef22417bcce59e664ebda14d5efa1c8cb"
+      },
+      "id": "constrained",
+      "model": {
+        "model": "fixture-model",
+        "provider": "offline-fixture",
+        "revision": "fixture-2026-09-21"
+      }
+    }
+  ]
+}

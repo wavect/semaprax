@@ -1,0 +1,269 @@
+{
+  "schema": "benchmark.cross_language.tasks.v1",
+  "tasks": [
+    {
+      "id": "sequence-digest-v1",
+      "category": "greenfield",
+      "issue_211_category": "greenfield",
+      "split": "development",
+      "summary": "Four independent scalar digests (sum, count of even inputs, count of negative inputs, maximum) over five fixed signed 64-bit inputs.",
+      "equivalence": "tasks/sequence-digest-v1/EQUIVALENCE.md",
+      "languages": {
+        "semaprax": {
+          "public": "benchmarks/cross-language-v1/tasks/sequence-digest-v1/public/semaprax",
+          "hidden": "benchmarks/cross-language-v1/tasks/sequence-digest-v1/hidden/semaprax"
+        },
+        "rust": {
+          "public": "benchmarks/cross-language-v1/tasks/sequence-digest-v1/public/rust",
+          "hidden": "benchmarks/cross-language-v1/tasks/sequence-digest-v1/hidden/rust"
+        },
+        "typescript": {
+          "public": "benchmarks/cross-language-v1/tasks/sequence-digest-v1/public/typescript",
+          "hidden": "benchmarks/cross-language-v1/tasks/sequence-digest-v1/hidden/typescript"
+        }
+      }
+    },
+    {
+      "id": "bounded-counter-repair-v1",
+      "category": "repair",
+      "issue_211_category": "requirement preservation",
+      "split": "held_out",
+      "summary": "A saturating counter bounded to [0, 100] that applies five signed 64-bit deltas in sequence; catches the off-by-one repair bug of clamping only the final summed delta instead of clamping the running counter after every step.",
+      "equivalence": "tasks/bounded-counter-repair-v1/EQUIVALENCE.md",
+      "languages": {
+        "semaprax": {
+          "public": "benchmarks/cross-language-v1/tasks/bounded-counter-repair-v1/public/semaprax",
+          "hidden": "benchmarks/cross-language-v1/tasks/bounded-counter-repair-v1/hidden/semaprax"
+        },
+        "rust": {
+          "public": "benchmarks/cross-language-v1/tasks/bounded-counter-repair-v1/public/rust",
+          "hidden": "benchmarks/cross-language-v1/tasks/bounded-counter-repair-v1/hidden/rust"
+        },
+        "typescript": {
+          "public": "benchmarks/cross-language-v1/tasks/bounded-counter-repair-v1/public/typescript",
+          "hidden": "benchmarks/cross-language-v1/tasks/bounded-counter-repair-v1/hidden/typescript"
+        }
+      }
+    },
+    {
+      "id": "structured-input-error-handling-v1",
+      "category": "validation",
+      "issue_211_category": "API evolution",
+      "split": "validation",
+      "summary": "Classify a bounded versioned record envelope with deterministic first-error precedence.",
+      "equivalence": "tasks/structured-input-error-handling-v1/EQUIVALENCE.md",
+      "languages": {
+        "rust": {
+          "public": "benchmarks/cross-language-v1/tasks/structured-input-error-handling-v1/public/rust",
+          "hidden": "benchmarks/cross-language-v1/tasks/structured-input-error-handling-v1/hidden/rust"
+        },
+        "typescript": {
+          "public": "benchmarks/cross-language-v1/tasks/structured-input-error-handling-v1/public/typescript",
+          "hidden": "benchmarks/cross-language-v1/tasks/structured-input-error-handling-v1/hidden/typescript"
+        },
+        "semaprax-project": {
+          "public": "benchmarks/cross-language-v1/tasks/structured-input-error-handling-v1/public/semaprax",
+          "hidden": "benchmarks/cross-language-v1/tasks/structured-input-error-handling-v1/hidden/semaprax"
+        }
+      }
+    },
+    {
+      "id": "module-import-refactor-v1",
+      "category": "greenfield",
+      "issue_211_category": "cross-file refactor",
+      "split": "held_out",
+      "summary": "Compute a bounded invoice total through an imported whole-subtotal tax helper.",
+      "equivalence": "tasks/module-import-refactor-v1/EQUIVALENCE.md",
+      "languages": {
+        "rust": {
+          "public": "benchmarks/cross-language-v1/tasks/module-import-refactor-v1/public/rust",
+          "hidden": "benchmarks/cross-language-v1/tasks/module-import-refactor-v1/hidden/rust"
+        },
+        "typescript": {
+          "public": "benchmarks/cross-language-v1/tasks/module-import-refactor-v1/public/typescript",
+          "hidden": "benchmarks/cross-language-v1/tasks/module-import-refactor-v1/hidden/typescript"
+        },
+        "semaprax-project": {
+          "public": "benchmarks/cross-language-v1/tasks/module-import-refactor-v1/public/semaprax",
+          "hidden": "benchmarks/cross-language-v1/tasks/module-import-refactor-v1/hidden/semaprax"
+        }
+      }
+    },
+    {
+      "id": "booking-window-conflict-v1",
+      "category": "repair",
+      "issue_211_category": "requirement preservation",
+      "split": "held_out",
+      "summary": "Detect conflicts between two valid half-open booking windows; adjacent handoffs are not overlaps.",
+      "equivalence": "tasks/booking-window-conflict-v1/EQUIVALENCE.md",
+      "languages": {
+        "rust": {
+          "public": "benchmarks/cross-language-v1/tasks/booking-window-conflict-v1/public/rust",
+          "hidden": "benchmarks/cross-language-v1/tasks/booking-window-conflict-v1/hidden/rust"
+        },
+        "typescript": {
+          "public": "benchmarks/cross-language-v1/tasks/booking-window-conflict-v1/public/typescript",
+          "hidden": "benchmarks/cross-language-v1/tasks/booking-window-conflict-v1/hidden/typescript"
+        },
+        "semaprax-project": {
+          "public": "benchmarks/cross-language-v1/tasks/booking-window-conflict-v1/public/semaprax",
+          "hidden": "benchmarks/cross-language-v1/tasks/booking-window-conflict-v1/hidden/semaprax"
+        }
+      }
+    },
+    {
+      "id": "cold-chain-release-gate-v1",
+      "category": "validation",
+      "issue_211_category": "security fix",
+      "split": "held_out",
+      "summary": "Release a shipment only when both independent sensor readings lie within their inclusive accepted bands.",
+      "equivalence": "tasks/cold-chain-release-gate-v1/EQUIVALENCE.md",
+      "languages": {
+        "rust": {
+          "public": "benchmarks/cross-language-v1/tasks/cold-chain-release-gate-v1/public/rust",
+          "hidden": "benchmarks/cross-language-v1/tasks/cold-chain-release-gate-v1/hidden/rust"
+        },
+        "typescript": {
+          "public": "benchmarks/cross-language-v1/tasks/cold-chain-release-gate-v1/public/typescript",
+          "hidden": "benchmarks/cross-language-v1/tasks/cold-chain-release-gate-v1/hidden/typescript"
+        },
+        "semaprax-project": {
+          "public": "benchmarks/cross-language-v1/tasks/cold-chain-release-gate-v1/public/semaprax",
+          "hidden": "benchmarks/cross-language-v1/tasks/cold-chain-release-gate-v1/hidden/semaprax"
+        }
+      }
+    },
+    {
+      "id": "stable-dispatch-order-v1",
+      "category": "greenfield",
+      "issue_211_category": "concurrent change",
+      "split": "held_out",
+      "summary": "Order three jobs by increasing priority while preserving arrival order for ties.",
+      "equivalence": "tasks/stable-dispatch-order-v1/EQUIVALENCE.md",
+      "languages": {
+        "rust": {
+          "public": "benchmarks/cross-language-v1/tasks/stable-dispatch-order-v1/public/rust",
+          "hidden": "benchmarks/cross-language-v1/tasks/stable-dispatch-order-v1/hidden/rust"
+        },
+        "typescript": {
+          "public": "benchmarks/cross-language-v1/tasks/stable-dispatch-order-v1/public/typescript",
+          "hidden": "benchmarks/cross-language-v1/tasks/stable-dispatch-order-v1/hidden/typescript"
+        },
+        "semaprax-project": {
+          "public": "benchmarks/cross-language-v1/tasks/stable-dispatch-order-v1/public/semaprax",
+          "hidden": "benchmarks/cross-language-v1/tasks/stable-dispatch-order-v1/hidden/semaprax"
+        }
+      }
+    },
+    {
+      "id": "owned-byte-sentinel-balance-v1",
+      "category": "greenfield",
+      "issue_211_category": "ownership change",
+      "split": "held_out",
+      "summary": "Map sentinels in an owned byte buffer and compute the one-based positional checksum of the transformed bytes.",
+      "equivalence": "tasks/owned-byte-sentinel-balance-v1/EQUIVALENCE.md",
+      "languages": {
+        "rust": {
+          "public": "benchmarks/cross-language-v1/tasks/owned-byte-sentinel-balance-v1/public/rust",
+          "hidden": "benchmarks/cross-language-v1/tasks/owned-byte-sentinel-balance-v1/hidden/rust"
+        },
+        "typescript": {
+          "public": "benchmarks/cross-language-v1/tasks/owned-byte-sentinel-balance-v1/public/typescript",
+          "hidden": "benchmarks/cross-language-v1/tasks/owned-byte-sentinel-balance-v1/hidden/typescript"
+        },
+        "semaprax-project": {
+          "public": "benchmarks/cross-language-v1/tasks/owned-byte-sentinel-balance-v1/public/semaprax",
+          "hidden": "benchmarks/cross-language-v1/tasks/owned-byte-sentinel-balance-v1/hidden/semaprax"
+        }
+      }
+    },
+    {
+      "id": "stale-edit-preservation-v1",
+      "category": "repair",
+      "issue_211_category": "context-limited maintenance",
+      "split": "held_out",
+      "summary": "Floor a corrupted-percentage discount at zero without disturbing an unrelated, already-completed helper function left by a prior session.",
+      "equivalence": "tasks/stale-edit-preservation-v1/EQUIVALENCE.md",
+      "languages": {
+        "rust": {
+          "public": "benchmarks/cross-language-v1/tasks/stale-edit-preservation-v1/public/rust",
+          "hidden": "benchmarks/cross-language-v1/tasks/stale-edit-preservation-v1/hidden/rust"
+        },
+        "typescript": {
+          "public": "benchmarks/cross-language-v1/tasks/stale-edit-preservation-v1/public/typescript",
+          "hidden": "benchmarks/cross-language-v1/tasks/stale-edit-preservation-v1/hidden/typescript"
+        },
+        "semaprax-project": {
+          "public": "benchmarks/cross-language-v1/tasks/stale-edit-preservation-v1/public/semaprax",
+          "hidden": "benchmarks/cross-language-v1/tasks/stale-edit-preservation-v1/hidden/semaprax"
+        }
+      }
+    },
+    {
+      "id": "telemetry-overflow-diagnosis-v1",
+      "category": "diagnosis",
+      "issue_211_category": "failure recovery",
+      "split": "held_out",
+      "summary": "Diagnose and fix a 32-bit telemetry combiner that must saturate at the signed boundary instead of wrapping, trapping, or silently leaving its declared range; a missing overflow guard is invisible on public examples and manifests as a different failure in each port's own runtime.",
+      "equivalence": "tasks/telemetry-overflow-diagnosis-v1/EQUIVALENCE.md",
+      "languages": {
+        "rust": {
+          "public": "benchmarks/cross-language-v1/tasks/telemetry-overflow-diagnosis-v1/public/rust",
+          "hidden": "benchmarks/cross-language-v1/tasks/telemetry-overflow-diagnosis-v1/hidden/rust"
+        },
+        "typescript": {
+          "public": "benchmarks/cross-language-v1/tasks/telemetry-overflow-diagnosis-v1/public/typescript",
+          "hidden": "benchmarks/cross-language-v1/tasks/telemetry-overflow-diagnosis-v1/hidden/typescript"
+        },
+        "semaprax-project": {
+          "public": "benchmarks/cross-language-v1/tasks/telemetry-overflow-diagnosis-v1/public/semaprax",
+          "hidden": "benchmarks/cross-language-v1/tasks/telemetry-overflow-diagnosis-v1/hidden/semaprax"
+        }
+      }
+    },
+    {
+      "id": "clean-install-calculator-v1",
+      "category": "onboarding",
+      "issue_211_category": "feature change",
+      "split": "held_out",
+      "summary": "Add a subtract operation to a calculator project scaffolded verbatim by `semaprax new --template calculator`, the exact workflow a fresh install leads to, without disturbing the pre-existing generated files or operation.",
+      "equivalence": "tasks/clean-install-calculator-v1/EQUIVALENCE.md",
+      "languages": {
+        "rust": {
+          "public": "benchmarks/cross-language-v1/tasks/clean-install-calculator-v1/public/rust",
+          "hidden": "benchmarks/cross-language-v1/tasks/clean-install-calculator-v1/hidden/rust"
+        },
+        "typescript": {
+          "public": "benchmarks/cross-language-v1/tasks/clean-install-calculator-v1/public/typescript",
+          "hidden": "benchmarks/cross-language-v1/tasks/clean-install-calculator-v1/hidden/typescript"
+        },
+        "semaprax-project": {
+          "public": "benchmarks/cross-language-v1/tasks/clean-install-calculator-v1/public/semaprax",
+          "hidden": "benchmarks/cross-language-v1/tasks/clean-install-calculator-v1/hidden/semaprax"
+        }
+      }
+    },
+    {
+      "id": "concurrent-delta-merge-v1",
+      "category": "greenfield",
+      "issue_211_category": "concurrent change",
+      "split": "held_out",
+      "summary": "Merge two independently-arriving deltas against a shared [0, 1_000_000]-bounded counter from one common base value; catches the concurrency-safety bug of clamping one delta's effect before the other is folded in, which silently discards value neither delta alone would have triggered a clamp for.",
+      "equivalence": "tasks/concurrent-delta-merge-v1/EQUIVALENCE.md",
+      "languages": {
+        "rust": {
+          "public": "benchmarks/cross-language-v1/tasks/concurrent-delta-merge-v1/public/rust",
+          "hidden": "benchmarks/cross-language-v1/tasks/concurrent-delta-merge-v1/hidden/rust"
+        },
+        "typescript": {
+          "public": "benchmarks/cross-language-v1/tasks/concurrent-delta-merge-v1/public/typescript",
+          "hidden": "benchmarks/cross-language-v1/tasks/concurrent-delta-merge-v1/hidden/typescript"
+        },
+        "semaprax-project": {
+          "public": "benchmarks/cross-language-v1/tasks/concurrent-delta-merge-v1/public/semaprax",
+          "hidden": "benchmarks/cross-language-v1/tasks/concurrent-delta-merge-v1/hidden/semaprax"
+        }
+      }
+    }
+  ]
+}

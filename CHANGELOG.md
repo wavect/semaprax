@@ -8,12 +8,12 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
-- Reconcile catalog-normalizer's maximal-response fuel contract (#324): bind
-  the complete application selector to the existing 160,000,000-step
-  interpreter ceiling, retain its separate 2,000,000-step source-suite bound,
-  and record the retained plain/enriched maximal measurements that exceed the
-  former 100,000,000-step limit. The frozen oracle, corpus, response capacity,
-  mutation controls and backend lanes are unchanged.
+- Retain catalog-normalizer's 100,000,000-step maximal-response requirement
+  (#324) in the complete application selector and remove one per-byte phase
+  dispatcher from its scalar writer. Record the 160,000,000-step library
+  ceiling only as the current execution capacity and retain the separate
+  2,000,000-step source-suite bound. The frozen oracle, corpus, response
+  capacity, mutation controls and backend lanes are unchanged.
 
 - Add an opt-in local Ollama specialization runner for #326 around the frozen
   control schedule and scorer, with public-only prompt projection, exact model

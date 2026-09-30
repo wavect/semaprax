@@ -20,9 +20,9 @@ const SUCCESS_ENVELOPE_MAX_BYTES: usize = 78;
 const ENRICHED_FIELD_MAX_BYTES: usize = 16;
 const OUTPUT_CAPACITY: usize =
     MAX_REQUEST_BYTES + SUCCESS_ENVELOPE_MAX_BYTES + MAX_RECORDS * ENRICHED_FIELD_MAX_BYTES;
-// The exact maximal plain and enriched calls use the documented application
-// envelope. Keep this separate from the 2M source-test envelope below.
-const MAXIMAL_RESPONSE_FUEL_ENVELOPE: usize = 160_000_000;
+// The exact maximal plain and enriched calls retain the original acceptance
+// target. Keep this separate from the 2M source-test envelope below.
+const MAXIMAL_RESPONSE_FUEL_ENVELOPE: usize = 100_000_000;
 
 const SOURCE_FILES: &[&str] = &[
     "app.spx",
@@ -661,8 +661,8 @@ fn focused_r05_controls_agree_across_interpreter_native_and_core_wasm() {
 #[test]
 fn batch_boundaries_and_string_normalization_agree_across_backends() {
     assert_eq!(
-        MAX_STEPS_LIMIT, MAXIMAL_RESPONSE_FUEL_ENVELOPE,
-        "catalog-normalizer's maximal-response contract must match the interpreter ceiling"
+        MAX_STEPS_LIMIT >= MAXIMAL_RESPONSE_FUEL_ENVELOPE,
+        "the interpreter must admit catalog-normalizer's maximal-response target"
     );
     let root = fixture();
     for source in SOURCE_FILES {

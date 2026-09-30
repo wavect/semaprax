@@ -8,6 +8,8 @@ use super::super::capsule::CapsuleError;
 use super::*;
 use std::ffi::OsString;
 
+mod binding;
+
 const TEST_PARENT_ENV: &str = "SEMAPRAX_WINDOWS_CONFINEMENT_TEST_PARENT";
 const TEST_MARKER: &str = "runtime-child-started.bin";
 const DESCENDANT_PERMIT: &str = "runtime-descendant-permit.bin";
@@ -49,9 +51,20 @@ struct TestCapsule {
 }
 
 fn test_capsule_body() -> TestCapsule {
+    use sha2::{Digest as _, Sha256};
     let architecture = super::super::capsule::windows_architecture_code()
         .expect("the selected runtime gate only admits Windows x86-64 or AArch64");
-    let (bytes, public_key_hex) = super::super::capsule::signed_test_fixture(architecture);
+    let executable = std::fs::read(std::env::current_exe().unwrap()).unwrap();
+    let mut artifacts = std::array::from_fn(|index| semaprax_doctor_capsule::Artifact {
+        length: index as u64 + 1,
+        digest: [0x42; 32],
+    });
+    artifacts[3] = semaprax_doctor_capsule::Artifact {
+        length: executable.len() as u64,
+        digest: Sha256::digest(&executable).into(),
+    };
+    let (bytes, public_key_hex) =
+        super::super::capsule::signed_test_fixture_with_artifacts(architecture, artifacts);
     TestCapsule {
         bytes,
         public_key_hex,
@@ -549,9 +562,13 @@ fn windows_runtime_signed_test_key_capsule_refusals_and_launch_settle() {
     let capsule = test_capsule_body();
 
     let handles_before_refusals = current_process_handle_count();
-    let missing_anchor = confined_spawn_using(&executable, &borrowed_args, &parent, || {
-        super::super::capsule::parse_with_anchor(&capsule.bytes, None)
-    });
+    let missing_anchor = confined_spawn_using(
+        &executable,
+        ImageRole::Worker,
+        &borrowed_args,
+        &parent,
+        || super::super::capsule::parse_with_anchor(&capsule.bytes, None),
+    );
     assert_eq!(
         missing_anchor.err(),
         Some(Refusal::Capsule(CapsuleError::MissingTrustAnchor))

@@ -14,14 +14,10 @@
 //! ([`settlement`]) -- compile and run their tests on every host this crate
 //! builds on, this one included. Only [`primitive`], the actual restricted
 //! token / tightened job object / ACL'd scratch root / sealed-capsule
-//! consumption wiring, is `#[cfg(windows)]`: it is not compiled or executed on
-//! this authoring host (macOS arm64, no Windows toolchain, no
-//! `*-pc-windows-*` target). Hosted run
-//! [35988348061](https://github.com/wavect/semaprax/actions/runs/35988348061)
-//! executed five selected Windows runtime tests on exact checkout `3d4220b6`,
-//! before the signed-capsule admission change in this checkout. See
-//! [`primitive`]'s module documentation for the current evidence ceiling and
-//! the remaining spec nonclaims.
+//! consumption wiring, is `#[cfg(windows)]`. The historical ten-case native
+//! selector passed at `f4d3291f`; the signed-image binding continuation and
+//! five additional cases have no native execution receipt. See the owning
+//! specification for the retained historical evidence and remaining nonclaims.
 //!
 //! [doc]: https://github.com/wavect/semaprax/blob/main/docs/DOCTOR-PRODUCTION-PROVISIONER-WINDOWS-V1.md
 //!

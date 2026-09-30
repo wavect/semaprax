@@ -4,7 +4,8 @@
 This gate fails if its Windows host or scratch parent is absent, if Cargo or
 libtest fails, or if any named live test is filtered, ignored, or missing. The
 runtime cases use a deterministic test-only signing key to exercise the shared
-capsule verifier; this is not release trust-anchor or artifact-binding evidence.
+capsule verifier and held-image binding; this is not production release trust
+or Windows request/bundle transport evidence.
 """
 
 from __future__ import annotations
@@ -35,6 +36,11 @@ EXPECTED_TESTS = (
     "doctor::windows_confinement::refusal::tests::windows_runtime_bad_signature_refuses_before_token_job_or_filesystem",
     "doctor::windows_confinement::refusal::tests::windows_runtime_signed_linux_architecture_capsule_refuses_before_token_job_or_filesystem",
     "doctor::windows_confinement::primitive::tests::windows_runtime_protected_scratch_dacl_blocks_inherited_parent_ace",
+    "doctor::windows_confinement::primitive::tests::binding::windows_runtime_signed_image_mismatch_refuses_before_process_effects",
+    "doctor::windows_confinement::primitive::tests::binding::windows_runtime_signed_image_pins_leaf_and_ancestors_through_launch",
+    "doctor::windows_confinement::primitive::tests::binding::windows_runtime_signed_image_refuses_preexisting_writer_and_hardlink",
+    "doctor::windows_confinement::primitive::tests::binding::windows_runtime_signed_image_refuses_writable_mapping_after_writer_closes",
+    "doctor::windows_confinement::primitive::tests::binding::windows_runtime_dropped_child_releases_image_and_process_handles",
 )
 REPO_ROOT = Path(__file__).resolve().parents[1]
 TERMINATION_TIMEOUT_SECONDS = 30
@@ -299,7 +305,7 @@ def main():
         print(f"Cargo selector: -p {PACKAGE} --lib {FILTER} -- --ignored --nocapture --test-threads=1")
         for test in EXPECTED_TESTS:
             print(f"required executed test: {test}")
-        print("selected tests use a deterministic test-only signing key; this is not release trust or artifact-binding evidence")
+        print("selected tests use a deterministic test-only signing key; this is not release trust or request/bundle transport evidence")
         return 0
     return run_gate()
 

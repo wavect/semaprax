@@ -387,7 +387,7 @@ Two `#[ignore]`d helper files in the doctor tree are deliberately excluded:
 private subprocess helpers selected by their own parent tests, not gates. So
 are the Windows revision-store and `owned_npm` symlink fixtures, which belong
 to separately tracked hosts. The Windows-only
-`doctor/windows_confinement/primitive/tests.rs` and
+`doctor/windows_confinement/primitive/tests.rs`, its `tests/binding.rs` child, and
 `doctor/windows_confinement/refusal/tests.rs` files are also excluded from this
 Linux gate's ignored-file inventory: their live cases belong to the separate
 exact-selector Windows confinement gate. It is `#[cfg(windows)]`, so this Linux

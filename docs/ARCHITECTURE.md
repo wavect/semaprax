@@ -513,6 +513,15 @@ operations. The separate report-delivery module owns bounded writes and final
 standard-pipe closure after collection. Resource-free scripts exercise the same
 state transitions without constructing observations or process authority.
 
+The standalone `doctor/windows_confinement/primitive/image.rs` boundary binds
+one explicit signed image role to a held local NTFS file and its pinned
+volume-GUID path components before process setup. A read-oplock preflight
+excludes pre-existing writable sections; deny-write/delete sharing remains held
+through child settlement. It supplies the authenticated name to the Windows
+spawn primitive. This does not implement Windows request/bundle transport or
+ordinary CLI admission; its added native regression cases remain unexecuted.
+See [Windows doctor v1](DOCTOR-PRODUCTION-PROVISIONER-WINDOWS-V1.md).
+
 The retained safe `semaprax-native-rust-interop-platform` facade and platform-sys
 quarantine's separate `doctor/` module are no longer connected to that CLI route.
 This lower-level fixed `--version` probe owns bounded combined

@@ -1641,6 +1641,7 @@ EXCLUDED_IGNORED_FILES = frozenset(
         f"{PLATFORM_ROOT}/doctor/offline_input/create/tests.rs",
         f"{PLATFORM_ROOT}/doctor/offline_input/create/executable_tests/native/faults.rs",
         f"{PLATFORM_ROOT}/doctor/windows_confinement/primitive/tests.rs",
+        f"{PLATFORM_ROOT}/doctor/windows_confinement/primitive/tests/binding.rs",
         f"{PLATFORM_ROOT}/doctor/windows_confinement/refusal/tests.rs",
     }
 )

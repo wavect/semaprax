@@ -8,6 +8,15 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Share cleanup-plan replay skeleton observations behind `Rc`. Sequencing a
+  path prefix with each suffix deep-copied every identity and place, so a
+  function with tens of thousands of paths materialized gigabytes: the
+  catalog-normalizer test's `tests.main` enumerates 65,533 paths and is
+  replayed 37 times per project authentication. Budget charges, sorting and
+  comparison are unchanged. Locally the
+  `catalog_normalizer_application::batch_boundaries_and_string_normalization_agree_across_backends`
+  test drops from 862 s and 6.51 GiB peak to 210 s and 0.71 GiB; on hosted
+  Windows it had exceeded the six-hour job limit.
 - Run all twenty-six AArch64 offline-doctor lifecycle fixtures against real
   carriers (#334). `doctor-provisioned-linux-aarch64-carriers.sh` provisions
   pinned Clang 17.0.6, Node 22.23.2 and Rust 1.88.0 and bundles them with the

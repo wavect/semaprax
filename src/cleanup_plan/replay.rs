@@ -31,12 +31,14 @@ use super::{
     CLEANUP_PLAN_SCHEMA_V7, CLEANUP_PLAN_SCHEMA_V8, CLEANUP_PLAN_SCHEMA_V9,
 };
 mod path_summary;
+mod skeleton_work;
 use path_summary::{
     cleanup_inert_large_decisions_can_be_summarized, cleanup_inert_path_product_can_be_summarized,
     plan_structure_units, status_only_paths_can_be_summarized, validate_replay_size_budget,
 };
 #[cfg(test)]
 use path_summary::{cleanup_plan_requires_path_replay, STATUS_ONLY_PATH_SUMMARY_THRESHOLD};
+use skeleton_work::SkeletonWork;
 
 #[cfg(test)]
 mod copy_success_result_tests;
@@ -164,12 +166,12 @@ fn skeleton_push<T>(
     budget: &mut ReplayBudget,
     function: &ResolvedFunction,
     target: &mut Vec<T>,
-    value: T,
+    value: impl Into<T>,
     phase: &str,
 ) -> Result<(), Diagnostic> {
     budget.charge_skeleton(function, 1, phase)?;
     note_skeleton_materialization();
-    target.push(value);
+    target.push(value.into());
     Ok(())
 }
 
@@ -267,13 +269,13 @@ enum SkeletonTerminal {
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 struct SkeletonPath {
-    observations: Vec<SkeletonObservation>,
+    observations: Vec<std::rc::Rc<SkeletonObservation>>,
     terminal: SkeletonTerminal,
 }
 
 #[derive(Clone)]
 struct ExprSkeletonPath {
-    observations: Vec<SkeletonObservation>,
+    observations: Vec<std::rc::Rc<SkeletonObservation>>,
     owned_source: Option<CleanupPlace>,
     failed: bool,
     residual: bool,
@@ -3080,101 +3082,6 @@ fn hir_skeleton_paths(
     Ok(completed)
 }
 
-struct SkeletonWork<'a, 'b> {
-    function: &'a ResolvedFunction,
-    budget: &'b mut ReplayBudget,
-}
-
-impl SkeletonWork<'_, '_> {
-    fn charge(&mut self, units: usize, phase: &str) -> Result<(), Diagnostic> {
-        self.budget.charge_skeleton(self.function, units, phase)
-    }
-
-    fn clone_owned<T: Clone>(&mut self, value: &T, phase: &str) -> Result<T, Diagnostic> {
-        self.charge(1, phase)?;
-        note_skeleton_materialization();
-        Ok(value.clone())
-    }
-
-    fn push_expr_path(
-        &mut self,
-        paths: &mut Vec<ExprSkeletonPath>,
-        path: ExprSkeletonPath,
-        phase: &str,
-    ) -> Result<(), Diagnostic> {
-        self.charge(1, phase)?;
-        note_skeleton_materialization();
-        paths.push(path);
-        Ok(())
-    }
-
-    fn push_skeleton_path(
-        &mut self,
-        paths: &mut Vec<SkeletonPath>,
-        path: SkeletonPath,
-        phase: &str,
-    ) -> Result<(), Diagnostic> {
-        self.charge(1, phase)?;
-        note_skeleton_materialization();
-        paths.push(path);
-        Ok(())
-    }
-
-    fn singleton_path(
-        &mut self,
-        path: ExprSkeletonPath,
-        phase: &str,
-    ) -> Result<Vec<ExprSkeletonPath>, Diagnostic> {
-        let mut paths = Vec::new();
-        self.push_expr_path(&mut paths, path, phase)?;
-        Ok(paths)
-    }
-
-    fn clone_expr_path(
-        &mut self,
-        path: &ExprSkeletonPath,
-        phase: &str,
-    ) -> Result<ExprSkeletonPath, Diagnostic> {
-        self.charge(1, phase)?;
-        note_skeleton_materialization();
-        Ok(path.clone())
-    }
-
-    fn clone_observations(
-        &mut self,
-        observations: &[SkeletonObservation],
-        phase: &str,
-    ) -> Result<Vec<SkeletonObservation>, Diagnostic> {
-        self.charge(1, phase)?;
-        note_skeleton_materialization();
-        Ok(observations.to_vec())
-    }
-
-    fn extend_observations(
-        &mut self,
-        target: &mut Vec<SkeletonObservation>,
-        observations: &[SkeletonObservation],
-        phase: &str,
-    ) -> Result<(), Diagnostic> {
-        self.charge(1, phase)?;
-        note_skeleton_materialization();
-        target.extend_from_slice(observations);
-        Ok(())
-    }
-
-    fn push_observation(
-        &mut self,
-        path: &mut ExprSkeletonPath,
-        observation: SkeletonObservation,
-        phase: &str,
-    ) -> Result<(), Diagnostic> {
-        self.charge(1, phase)?;
-        note_skeleton_materialization();
-        path.observations.push(observation);
-        Ok(())
-    }
-}
-
 fn empty_expr_path() -> ExprSkeletonPath {
     ExprSkeletonPath {
         observations: Vec::new(),
@@ -4645,13 +4552,16 @@ fn expression_skeleton(
                                         for field in binding.path {
                                             field_source.projections.push(field);
                                         }
-                                        path.observations.push(SkeletonObservation::Transfer {
-                                            at: expression.id.clone(),
-                                            source: field_source,
-                                            destination: CleanupPlace::whole(StorageId::Value(
-                                                binding.binding,
-                                            )),
-                                        });
+                                        path.observations.push(
+                                            SkeletonObservation::Transfer {
+                                                at: expression.id.clone(),
+                                                source: field_source,
+                                                destination: CleanupPlace::whole(StorageId::Value(
+                                                    binding.binding,
+                                                )),
+                                            }
+                                            .into(),
+                                        );
                                     }
                                     continue;
                                 }
@@ -4683,13 +4593,16 @@ fn expression_skeleton(
                                     if binding.ownership != crate::hir::OwnershipMode::Own {
                                         continue;
                                     }
-                                    path.observations.push(SkeletonObservation::Transfer {
-                                        at: expression.id.clone(),
-                                        source: source.projected(field.field.clone()),
-                                        destination: CleanupPlace::whole(StorageId::Value(
-                                            binding.id.clone(),
-                                        )),
-                                    });
+                                    path.observations.push(
+                                        SkeletonObservation::Transfer {
+                                            at: expression.id.clone(),
+                                            source: source.projected(field.field.clone()),
+                                            destination: CleanupPlace::whole(StorageId::Value(
+                                                binding.id.clone(),
+                                            )),
+                                        }
+                                        .into(),
+                                    );
                                 }
                             } else {
                                 // A borrowed match observes a named owned or borrowed
@@ -6357,7 +6270,7 @@ fn plan_skeleton_paths(
         budget,
         function,
         &mut queue,
-        (plan.entry, Vec::<SkeletonObservation>::new()),
+        (plan.entry, Vec::<std::rc::Rc<SkeletonObservation>>::new()),
         "cleanup-plan root state push",
     )?;
     let mut paths = Vec::new();

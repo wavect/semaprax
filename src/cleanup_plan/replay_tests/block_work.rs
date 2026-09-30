@@ -335,7 +335,7 @@ fn valid_resource_bindings_and_block_results_include_transfer_work() {
         assert!(paths[0]
             .observations
             .iter()
-            .all(|event| matches!(event, SkeletonObservation::Transfer { .. })));
+            .all(|event| matches!(**event, SkeletonObservation::Transfer { .. })));
         assert_eq!(
             paths[0].owned_source,
             Some(CleanupPlace {

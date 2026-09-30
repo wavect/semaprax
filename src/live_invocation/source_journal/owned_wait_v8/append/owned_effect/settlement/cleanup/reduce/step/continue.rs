@@ -114,6 +114,8 @@ use crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect
     LiveObservedContinueV8, LiveOwnedContinueAppendV8,
 };
 use crate::live_invocation::source_journal::owned_wait_v8::live_upstream::{
+    LiveContinuedAuthorizationAdmissionFailureV8, LiveContinuedAuthorizationFailureV8,
+    LiveContinuedAuthorizationV8, LiveContinuedAuthorizeAcknowledgmentFailureV8,
     LiveContinuedModelAcknowledgmentFailureV8, LiveContinuedModelPreparationFailureV8,
     LiveContinuedModelFailureV8, LiveContinuedModelV8, LiveOwnedContinuedModelAppendV8,
     LiveContinuedPreparedFailureV8, LiveContinuedPreparedPhaseV8,
@@ -121,7 +123,8 @@ use crate::live_invocation::source_journal::owned_wait_v8::live_upstream::{
     LiveOwnedContinuedPreparedAppendV8,
 };
 use crate::live_invocation::source_journal::owned_wait_v8::append::{
-    LiveOwnedContinuedModelAppendFailureV8, LiveOwnedContinuedPreparedAppendFailureV8,
+    LiveOwnedContinuedAuthorizeAppendFailureV8, LiveOwnedContinuedModelAppendFailureV8,
+    LiveOwnedContinuedPreparedAppendFailureV8,
 };
 
 /// The actual unchanged obligation is first. Session/witness never stand alone.
@@ -483,6 +486,54 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_live_ow
         .map_err(LiveContinuedCompletedDriverFailureV8::Append)?
         .advance_continued_model()
         .map_err(LiveContinuedCompletedDriverFailureV8::Advance)
+}
+/// Carries the sole live authorization owner across each of its four durable
+/// acknowledgements, including transfer and guarded stage entry.
+pub(in crate::live_invocation::source_journal::owned_wait_v8) enum LiveContinuedAuthorizeDriverFailureV8<
+    'j,
+> {
+    Prepare(LiveContinuedAuthorizationAdmissionFailureV8<'j>),
+    Next(LiveContinuedAuthorizationFailureV8<'j>),
+    Session {
+        owner: crate::live_invocation::source_journal::owned_wait_v8::live_upstream::LiveOwnedContinuedAuthorizeAppendV8<'j>,
+        error: SourceJournalError,
+    },
+    Append(LiveOwnedContinuedAuthorizeAppendFailureV8<'j>),
+    Advance(LiveContinuedAuthorizeAcknowledgmentFailureV8<'j>),
+}
+fn ack_continued_authorize_v8<'j>(
+    journal: &'j SourceOwnedWaitJournalV8,
+    owner: crate::live_invocation::source_journal::owned_wait_v8::live_upstream::LiveOwnedContinuedAuthorizeAppendV8<'j>,
+) -> Result<LiveContinuedAuthorizationV8<'j>, LiveContinuedAuthorizeDriverFailureV8<'j>> {
+    let session = match journal.begin_session() {
+        Ok(session) => session,
+        Err(error) => {
+            return Err(LiveContinuedAuthorizeDriverFailureV8::Session { owner, error });
+        }
+    };
+    session
+        .append_owned_continued_authorize(owner)
+        .map_err(LiveContinuedAuthorizeDriverFailureV8::Append)?
+        .advance_continued_authorize()
+        .map_err(LiveContinuedAuthorizeDriverFailureV8::Advance)
+}
+pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_live_owned_continued_authorize_v8<'j>(
+    journal: &'j SourceOwnedWaitJournalV8,
+    completed: LiveContinuedModelV8<'j>,
+) -> Result<LiveContinuedAuthorizationV8<'j>, LiveContinuedAuthorizeDriverFailureV8<'j>> {
+    let one = completed
+        .prepare_authorize()
+        .map_err(LiveContinuedAuthorizeDriverFailureV8::Prepare)?;
+    let two = ack_continued_authorize_v8(journal, one)?
+        .prepare_next()
+        .map_err(LiveContinuedAuthorizeDriverFailureV8::Next)?;
+    let three = ack_continued_authorize_v8(journal, two)?
+        .prepare_next()
+        .map_err(LiveContinuedAuthorizeDriverFailureV8::Next)?;
+    let four = ack_continued_authorize_v8(journal, three)?
+        .prepare_next()
+        .map_err(LiveContinuedAuthorizeDriverFailureV8::Next)?;
+    ack_continued_authorize_v8(journal, four)
 }
 impl<'j> AppendSessionV8<'j> {
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn append_owned_continue(

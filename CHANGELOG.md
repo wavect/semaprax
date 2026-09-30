@@ -8,6 +8,11 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Advance the real owned-wait v8 next-turn Completed owner through four
+  durable authorization ACKs (#330), including transfer at the second and
+  guarded stage entry at the fourth. The focused real-chain selector passed
+  1/1 locally. Effect execution and public recovery remain open.
+
 - Add a crate-private migration-seeded durable metering route (#327) that
   retains authenticated per-stage semantic receipts across recovery. The
   focused seeded interpreter selector passed 1/1 locally and verifies no

@@ -1445,6 +1445,7 @@ pub(super) mod continued_model;
 pub(in crate::live_invocation::source_journal::owned_wait_v8) use continued_model::{LiveOwnedContinuedModelAppendFailureV8, VerifiedOwnedContinuedModelSuccessorV8};
 
 pub(super) mod continued_authorize;
+pub(in crate::live_invocation::source_journal::owned_wait_v8) use continued_authorize::LiveOwnedContinuedAuthorizeAppendFailureV8;
 pub(super) use continued_authorize::VerifiedOwnedContinuedAuthorizeSuccessorV8;
 
 pub(super) mod continued_effect;

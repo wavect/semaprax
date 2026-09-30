@@ -261,6 +261,10 @@ fn owned_continue_driver_dispatches_next_turn_model_once_and_records_settlement(
         let model = advance_live_owned_continued_completed_v8(journal, model)
             .unwrap_or_else(|_| panic!("actual Completed ACK"));
         assert_eq!(journal.begin_session().unwrap().sequence(), completed_sequence + 1);
+        let authorize_sequence = journal.begin_session().unwrap().sequence();
+        let authorization = advance_live_owned_continued_authorize_v8(journal, model)
+            .unwrap_or_else(|_| panic!("four actual authorization ACKs"));
+        assert_eq!(journal.begin_session().unwrap().sequence(), authorize_sequence + 4);
         assert_eq!(
             crate::interpreter::resumable::owned_frame::registered_stage::live_run::test_continued_resume_entries_v8(),
             resume_entries + 1,
@@ -268,7 +272,7 @@ fn owned_continue_driver_dispatches_next_turn_model_once_and_records_settlement(
         );
         assert!(weak.iter().any(|owner| owner.strong_count() == 1));
 
-        drop(model);
+        drop(authorization);
         assert!(weak.iter().all(|owner| owner.upgrade().is_none()));
     });
 }

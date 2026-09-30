@@ -8,6 +8,13 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Reconcile generated-package support decision #325 with ADR 0003: retain
+  ordinary owned-data Rust-only maintenance, the fixed unpublished preview
+  identity and five-target boundary, and real SemVer before any future publish.
+  Distinguish genuine Rust/npm consumer and exact local MSRV evidence from npm
+  maintenance, public promotion, publisher identity and release provenance.
+  npm remains deferred to its own ADR; no publication or machinery change.
+
 - Add private continued Transfer and Authorize transport into actual Granted or
   Refused Staged outcomes, retaining the same token, ledger and measured source
   consumption. Owning runtime gates and full public execution remain pending.

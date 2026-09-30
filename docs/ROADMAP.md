@@ -66,9 +66,12 @@ visible until a promoted workflow intentionally hides them from users.
 ## Developer preview: promote the authored Project v8 slice
 
 Project v8's bounded owned-byte path and its direct-browser regression are
-implemented. Promotion still needs a package and browser/runtime support
-decision. Preserve descriptor/carrier replay, ownership settlement, stable
-identity, and no-clobber publication. [Transport v5](PROJECT-AGENT-TRANSPORT-V5.md)
+implemented. [ADR 0003](decisions/0003-maintained-generated-package-support.md#current-maintainer-decision)
+reaffirms ordinary owned-data Rust-only maintenance for #325; npm maintenance
+remains deferred to a separate ADR. Registry publication and broader
+API/browser/runtime promotion remain separate decisions, not implied by the
+Rust scope or genuine local npm execution. Preserve descriptor/carrier replay,
+ownership settlement, stable identity, and no-clobber publication. [Transport v5](PROJECT-AGENT-TRANSPORT-V5.md)
 and [v6](PROJECT-AGENT-TRANSPORT-V6.md) are read-only; they gain no write or
 publication authority.
 

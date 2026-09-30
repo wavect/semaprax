@@ -12,8 +12,17 @@ In plain terms: this is a fixed safe-data API for a named set of functions, with
 Issue [#145](https://github.com/wavect/semaprax/issues/145) selected this
 profile for a reproducible generated-package route.
 `scripts/generated-package-release.py` only prepares and dry-run-checks a
-deterministic preview bundle; it never publishes it. The decision remains an
-[unapproved draft](GENERATED-PACKAGE-PUBLICATION-DECISION-DRAFT-V1.md).
+deterministic preview bundle; it never publishes it.
+[ADR 0003](decisions/0003-maintained-generated-package-support.md#current-maintainer-decision)
+records the accepted maintenance scope, reaffirmed for issue #325: ordinary
+owned-data Rust only, with npm maintenance deferred to a separate ADR. The
+fixed Rust `0.1.0` remains an unpublished preview; real SemVer is required
+before any separately authorized publication. Genuine Rust/npm consumer
+execution and exact local Rust-consumer MSRV evidence are not a registry
+release, an npm maintenance promise or formal public promotion. Publication,
+publisher identity and release provenance remain separate; the
+[publication draft](GENERATED-PACKAGE-PUBLICATION-DECISION-DRAFT-V1.md) is still
+unapproved for that purpose, not an unresolved Rust maintenance decision.
 
 Public Owned Data API v1 adds one Project profile for a closed stable-ID
 function set in JavaScript/TypeScript and safe Rust. It adds controlled owned

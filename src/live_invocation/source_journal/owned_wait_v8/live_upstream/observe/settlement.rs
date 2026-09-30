@@ -31,7 +31,7 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) struct LiveSettled
     owner: LiveObserveSettlementOwnerV8<'j>,
     acks: Vec<ObserveSettlementAckV8<'j>>,
 }
-struct ObserveSettlementAckV8<'j> {
+pub(in crate::live_invocation::source_journal::owned_wait_v8) struct ObserveSettlementAckV8<'j> {
     session: AppendSessionV8<'j>,
     witness: VerifiedOwnedObserveSettlementSuccessorV8<'j>,
 }

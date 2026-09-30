@@ -12,7 +12,8 @@ format: `Unreleased` then release buckets, grouped by impact.
   budget, Unix-only owned-wait test selection on Windows, the desktop linker
   pin, generated-package Cargo coverage, generic Wasm entry-wrapper count,
   and sanitizer omission-control cleanup. Keep the browser fixture's exact
-  revision mismatch visible for the next hosted run.
+  revision mismatch visible for the next hosted run. Follow up on hosted Clippy
+  diagnostics for owned-wait context matching and private phase visibility.
 
 - Add a closed acceptance-record format for #328's Kernel-0 rung-2 decision.
   It requires every local receipt to bind to one selected revision or an exact

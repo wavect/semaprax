@@ -8,7 +8,7 @@ struct Ack<'j> {
     session: AppendSessionV8<'j>,
     witness: VerifiedOwnedContinuedSettlementSuccessorV8<'j>,
 }
-struct Phase<'j> {
+pub(in crate::live_invocation::source_journal::owned_wait_v8) struct Phase<'j> {
     owner: LiveDispatchedContinuedEffectV8<'j>,
     facts: CheckedLiveOwnedEffectSettlementV8,
     acks: Vec<Ack<'j>>,

@@ -1364,8 +1364,10 @@ impl<'a> PendingV8<'a> {
         if bytes != inventory.document {
             return Err(SourceJournalError::Binding);
         }
-        let ContextV8::Checked(context) = &inventory.context else {
-            return Err(SourceJournalError::Binding);
+        let context = match &inventory.context {
+            ContextV8::Checked(context) => context,
+            #[cfg(test)]
+            ContextV8::Synthetic(_) => return Err(SourceJournalError::Binding),
         };
         let checked = super::inventory::checked_inventory_v8(context, lease, inventory.key, bytes)?;
         let (entries, mac) = checked.into_parts();
@@ -1391,8 +1393,10 @@ impl<'a> PendingV8<'a> {
         {
             return Err(SourceJournalError::Binding);
         }
-        let ContextV8::Checked(context) = &inventory.context else {
-            return Err(SourceJournalError::Binding);
+        let context = match &inventory.context {
+            ContextV8::Checked(context) => context,
+            #[cfg(test)]
+            ContextV8::Synthetic(_) => return Err(SourceJournalError::Binding),
         };
         let checked = super::inventory::checked_inventory_v8(context, lease, inventory.key, bytes)?;
         let (entries, mac) = checked.into_parts();

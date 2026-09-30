@@ -15,7 +15,7 @@ struct FailedStateAckV8<'j> {
     session: AppendSessionV8<'j>,
     witness: VerifiedFailedEffectStateSuccessorV8<'j>,
 }
-struct FailedStateLineageV8<'j> {
+pub(in crate::live_invocation::source_journal::owned_wait_v8) struct FailedStateLineageV8<'j> {
     cleanup: CleanupLineageV8<'j>,
     state: Value,
     operations: Value,

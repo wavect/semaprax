@@ -11,7 +11,7 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) struct LiveOwnedCo
     owner: LivePreparedContinuedEffectV8<'j>,
     selected: EntryV8,
 }
-struct ContinuedIntentPhaseV8<'j> {
+pub(in crate::live_invocation::source_journal::owned_wait_v8) struct ContinuedIntentPhaseV8<'j> {
     owner: LivePreparedContinuedEffectV8<'j>,
     ack: IntentAckV8<'j>,
 }

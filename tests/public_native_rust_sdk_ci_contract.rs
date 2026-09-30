@@ -149,12 +149,15 @@ fn external_consumers_share_one_bounded_nested_cargo_linker_path_binder() {
             expected_commands,
             "{path} must keep every nested Cargo target inside its short isolated directory"
         );
+        // The owned-data consumer's submodule adds one factory call inside
+        // ConsumerToolchain; its four callers supply their own target paths.
+        let factory_dispatch = usize::from(path == "tests/public_native_rust_owned_data_sdk_v1.rs");
         assert_eq!(
             consumer
                 .matches("native_rust_cargo::cargo_command()")
                 .count()
                 + consumer.matches(".cargo_command()").count(),
-            expected_commands,
+            expected_commands + factory_dispatch,
             "{path} must bind every generated-package Cargo invocation"
         );
         assert!(!consumer.contains("Command::new(\"cargo\")"), "{path}");

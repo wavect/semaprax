@@ -108,9 +108,10 @@ impl VerifiedOwnedContinueSuccessorV8<'_> {
     }
 }
 
+use crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect::authorization::step::LiveMovedStepV8;
 use crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect::authorization::step::r#continue::{
-    advance_verified_continue_v8, LiveContinueAcknowledgedV8,
-    LiveContinueFailureV8, LiveOwnedContinueAppendV8,
+    advance_verified_continue_v8, LiveContinueAcknowledgedV8, LiveContinueFailureV8,
+    LiveObservedContinueV8, LiveOwnedContinueAppendV8,
 };
 
 /// The actual unchanged obligation is first. Session/witness never stand alone.
@@ -163,6 +164,83 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) enum LiveOwnedCont
         _verified: VerifiedOwnedContinueAppendV8<'j>,
         error: SourceJournalError,
     },
+}
+
+/// Owns the unique live holder at every failed continuation boundary. The
+/// authenticated rows remain inside these variants: receipt bytes cannot
+/// reconstruct State or re-enter Observe.
+pub(in crate::live_invocation::source_journal::owned_wait_v8) enum LiveContinueDriverFailureV8<
+    'j,
+> {
+    Prepare(LiveContinueFailureV8<'j>),
+    StateSession {
+        owner: LiveOwnedContinueAppendV8<'j>,
+        error: SourceJournalError,
+    },
+    StateAppend(LiveOwnedContinueAppendFailureV8<'j>),
+    StateAdvance(LiveContinueFailureV8<'j>),
+    StateAcknowledged(LiveContinueAcknowledgedV8<'j>),
+    ObservePrepare(LiveContinueFailureV8<'j>),
+    ObserveSession {
+        owner: LiveOwnedContinueAppendV8<'j>,
+        error: SourceJournalError,
+    },
+    ObserveAppend(LiveOwnedContinueAppendFailureV8<'j>),
+    ObserveAdvance(LiveContinueFailureV8<'j>),
+    ObserveAcknowledged(LiveContinueAcknowledgedV8<'j>),
+}
+
+/// Advances an actual Step::Continue owner through its two fixed durable
+/// acknowledgements. A future public driver may call this narrow boundary;
+/// it accepts no snapshot and exposes no append receipt as source authority.
+pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_live_owned_continue_v8<'j>(
+    journal: &'j SourceOwnedWaitJournalV8,
+    moved: LiveMovedStepV8<'j>,
+) -> Result<LiveObservedContinueV8<'j>, LiveContinueDriverFailureV8<'j>> {
+    let state_append = moved
+        .prepare_continue()
+        .map_err(LiveContinueDriverFailureV8::Prepare)?;
+    let state_session = match journal.begin_session() {
+        Ok(session) => session,
+        Err(error) => {
+            return Err(LiveContinueDriverFailureV8::StateSession {
+                owner: state_append,
+                error,
+            });
+        }
+    };
+    let state_ack = state_session
+        .append_owned_continue(state_append)
+        .map_err(LiveContinueDriverFailureV8::StateAppend)?;
+    let state = match state_ack
+        .advance_continue()
+        .map_err(LiveContinueDriverFailureV8::StateAdvance)?
+    {
+        LiveContinueAcknowledgedV8::State(state) => state,
+        acknowledged => return Err(LiveContinueDriverFailureV8::StateAcknowledged(acknowledged)),
+    };
+    let observe_append = state
+        .prepare_observe()
+        .map_err(LiveContinueDriverFailureV8::ObservePrepare)?;
+    let observe_session = match journal.begin_session() {
+        Ok(session) => session,
+        Err(error) => {
+            return Err(LiveContinueDriverFailureV8::ObserveSession {
+                owner: observe_append,
+                error,
+            });
+        }
+    };
+    let observe_ack = observe_session
+        .append_owned_continue(observe_append)
+        .map_err(LiveContinueDriverFailureV8::ObserveAppend)?;
+    match observe_ack
+        .advance_continue()
+        .map_err(LiveContinueDriverFailureV8::ObserveAdvance)?
+    {
+        LiveContinueAcknowledgedV8::Observed(observed) => Ok(observed),
+        acknowledged => Err(LiveContinueDriverFailureV8::ObserveAcknowledged(acknowledged)),
+    }
 }
 impl<'j> AppendSessionV8<'j> {
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn append_owned_continue(

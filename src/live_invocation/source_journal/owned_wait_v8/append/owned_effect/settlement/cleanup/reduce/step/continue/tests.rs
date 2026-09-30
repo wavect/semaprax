@@ -65,6 +65,36 @@ fn ack<'j>(
         .unwrap_or_else(|_| panic!("actual sameFD continuation ACK"))
 }
 #[test]
+fn owned_continue_driver_advances_one_real_step_into_the_next_turn() {
+    with_moved(|journal, moved, weak, _, _| {
+        let before = journal.begin_session().unwrap();
+        let (reserved, stages, turn, _) = before.inventory.continuation_facts().unwrap();
+        let observation = moved.test_observe_oracle();
+        let accounting = *moved.accounting();
+
+        let observed = advance_live_owned_continue_v8(journal, moved)
+            .unwrap_or_else(|_| panic!("two ACKs advance the actual Continue owner"));
+
+        assert!(observed.is_observed());
+        assert_eq!(observed.turn(), turn + 1);
+        assert_eq!(observed.test_observation(), &observation.0);
+        assert_eq!(observed.consumed(), observation.1);
+        assert_eq!(observed.accounting(), &accounting);
+        let after = journal.begin_session().unwrap();
+        let (next_reserved, next_stages, next_turn, _) =
+            after.inventory.continuation_facts().unwrap();
+        let fuel = journal.context().ordinary().max_steps_per_stage().unwrap() as u64;
+        assert_eq!(
+            (next_reserved, next_stages, next_turn),
+            (reserved + fuel, stages + 1, turn + 1)
+        );
+        assert!(weak.iter().any(|owner| owner.strong_count() == 1));
+
+        drop(observed);
+        assert!(weak.iter().all(|owner| owner.upgrade().is_none()));
+    });
+}
+#[test]
 fn owned_continue_actual_state_and_observe_acks_preserve_owner_ledger_and_cumulative_funding() {
     with_moved(|journal, moved, weak, _, _| {
         let before = journal.begin_session().unwrap();

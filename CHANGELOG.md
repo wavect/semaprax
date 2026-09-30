@@ -8,6 +8,11 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Advance a real owned-wait v8 `Step::Continue` holder through its State and
+  next-turn Observe journal acknowledgements (#330), retaining the unique
+  live owner on each failure path. The focused real-owner selector passed 1/1
+  locally. Later turns and public restart recovery remain open.
+
 - Route reference-service idempotent enqueue through the scaffold's checked
   scalar decision (#336), removing the Rust truth-table mirror. Focused
   decision admission, source/host parity, and actual enqueue selectors passed

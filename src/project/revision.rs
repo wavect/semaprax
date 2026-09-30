@@ -815,6 +815,8 @@ fn public_argument_matches(
 fn public_argument_name(argument: &PublicApiArgument<'_>) -> &'static str {
     match argument {
         PublicApiArgument::I64(_) => "i64",
+        PublicApiArgument::U8(_) => "u8",
+        PublicApiArgument::Usize(_) => "usize",
         PublicApiArgument::Bool(_) => "bool",
         PublicApiArgument::BorrowStr(_) => "borrow-str",
         PublicApiArgument::BorrowSliceU8(_) => "borrow-slice-u8",

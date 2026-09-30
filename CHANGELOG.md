@@ -14,6 +14,8 @@ format: `Unreleased` then release buckets, grouped by impact.
   and sanitizer omission-control cleanup. Keep the browser fixture's exact
   revision mismatch visible for the next hosted run. Follow up on hosted Clippy
   diagnostics for owned-wait context matching and private phase visibility.
+  Restore the owned-wait outcome visibility required by parent modules and
+  accept the three exact linker builds observed on hosted Windows runners.
 
 - Add a closed acceptance-record format for #328's Kernel-0 rung-2 decision.
   It requires every local receipt to bind to one selected revision or an exact

@@ -179,7 +179,7 @@ impl LiveContinuedAuthorizePermitV8<'_, '_> {
         self.fuel
     }
 }
-enum ContinuedAuthorizationOutcomeV8<'j> {
+pub(super) enum ContinuedAuthorizationOutcomeV8<'j> {
     Effect(effect::ContinuedEffectOutcomeV8<'j>),
     Transfer(LiveContinuedTransferOutcomeV8<'j>),
     Authorize(LiveContinuedAuthorizeOutcomeV8<'j>),

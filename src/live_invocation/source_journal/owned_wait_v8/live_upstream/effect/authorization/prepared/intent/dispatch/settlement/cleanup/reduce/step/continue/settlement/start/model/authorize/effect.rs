@@ -131,7 +131,7 @@ impl LiveContinuedReadyPromotionPermitV8<'_, '_> {
         self.held.same_container(held)
     }
 }
-pub(super) enum ContinuedEffectOutcomeV8<'j> {
+pub(in super::super) enum ContinuedEffectOutcomeV8<'j> {
     Dispatch(crate::interpreter::resumable::owned_frame::registered_stage::live_run::LiveContinuedDispatchedEffectV8<'j>,TargetAccounting),
     Activation(crate::interpreter::resumable::owned_frame::registered_stage::live_run::LiveContinuedEffectActivationV8<'j>),
     Preparation(prepared::LiveContinuedEffectPreparationV8<'j>),

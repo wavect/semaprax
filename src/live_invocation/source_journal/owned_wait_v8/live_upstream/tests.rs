@@ -1,7 +1,10 @@
 use super::*;
 use crate::interpreter::resumable::owned_frame::{OwnedFrameInputField, OwnedFrameInputValue};
 use crate::interpreter::ArgumentValue;
-use std::sync::Arc;
+use crate::resumable_effects::owned_frame::{
+    recover_source_owned_wait_v8, ExplicitStoreRegistrationGrant,
+};
+use std::{fs::File, sync::Arc};
 pub(super) fn input(context: &CheckedOwnedWaitJournalContextV8) -> OwnedFrameInput {
     let (runtime, execution) = context.ready_runtime().expect("actual runtime");
     let task = runtime.owned_wait_task_v8(execution).unwrap();
@@ -75,6 +78,63 @@ fn owned_wait_live_initialize_has_real_task_owner_charge_and_acknowledged_state(
         assert!(weak.iter().all(|w| w.upgrade().is_none()));
         journal.hold().unwrap().validate_guard().unwrap();
     });
+}
+
+#[test]
+fn owned_wait_recovered_prepared_prefix_refuses_fresh_state_before_effects() {
+    CheckedOwnedWaitJournalContextV8::test_with_actual_runtime_store(
+        true,
+        |context, lease, key, directory| {
+            // The protected checkpoint key is held by the restart host, never
+            // recovered from the journal bytes.
+            let restart_key =
+                crate::resumable_effects::source_checkpoint::SourceCheckpointKey::new([73; 32]);
+            let context = Arc::new(context.with_initialization(&lease).unwrap());
+            let journal = SourceOwnedWaitJournalV8::open(Arc::clone(&context), key, lease).unwrap();
+            let cancellation = crate::agent_runtime::AgentCancellation::new();
+            let initialized =
+                match initialize_live_actor_v8(&journal, input(&context), &cancellation) {
+                    Ok(Ok(initialized)) => initialized,
+                    _ => panic!("actual initial State"),
+                };
+            let observed = match super::observe::observe_live_actor_v8(initialized) {
+                Ok(observed) => observed,
+                Err(_) => panic!("actual initial Observe"),
+            };
+            let parked = match super::wait::start_live_actor_v8(observed) {
+                Ok(parked) => parked,
+                Err(_) => panic!("actual initial Start"),
+            };
+            let sequence = parked.session.sequence();
+            let paths: Vec<_> = std::fs::read_dir(directory)
+                .unwrap()
+                .map(|entry| entry.unwrap().path())
+                .collect();
+            assert_eq!(paths.len(), 1, "one held v8 journal");
+            let path = paths.into_iter().next().unwrap();
+            let bytes = std::fs::read(&path).unwrap();
+            drop(parked);
+            drop(journal);
+
+            let recovered = recover_source_owned_wait_v8(
+                File::open(directory).unwrap(),
+                context.registration(),
+                context.registration().expected_facts().clone(),
+                ExplicitStoreRegistrationGrant::for_trusted_host(true).unwrap(),
+            )
+            .unwrap();
+            let reopened =
+                SourceOwnedWaitJournalV8::open(Arc::clone(&context), restart_key, recovered)
+                    .unwrap();
+            let rejected = initialize_live_actor_v8(&reopened, input(&context), &cancellation)
+                .err()
+                .expect("authenticated recovered prefix refuses a new State");
+            assert_eq!(rejected.error, SourceJournalError::Order);
+            assert_eq!(reopened.begin_session().unwrap().sequence(), sequence);
+            assert_eq!(std::fs::read(path).unwrap(), bytes);
+            reopened.hold().unwrap().validate_guard().unwrap();
+        },
+    );
 }
 #[test]
 fn owned_wait_live_initialize_refuses_task_substitution_and_observe_only_prewrite() {

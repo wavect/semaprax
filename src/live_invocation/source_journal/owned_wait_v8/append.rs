@@ -163,6 +163,15 @@ impl SourceOwnedWaitJournalV8 {
             inventory,
         })
     }
+    /// Fresh State initialization is admitted only after the held store's
+    /// authenticated prefix proves that no earlier live turn exists.
+    pub(super) fn begin_fresh_session(&self) -> Result<AppendSessionV8<'_>, SourceJournalError> {
+        let session = self.begin_session()?;
+        if session.sequence() != 0 {
+            return Err(SourceJournalError::Order);
+        }
+        Ok(session)
+    }
 }
 impl HeldOwnedWaitStoreV8<'_> {
     pub(crate) fn validate_guard(&self) -> Result<(), SourceJournalError> {

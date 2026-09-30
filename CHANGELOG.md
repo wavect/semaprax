@@ -8,6 +8,12 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Authenticate a recovered owned-wait v8 journal before admitting a fresh
+  first-turn State (#330). A real held-store restart regression verifies that
+  an existing prepared prefix refuses reinitialization, preserves the exact
+  journal bytes and sequence, and keeps the reopened lease valid. The focused
+  selector passed 1/1 locally; multi-turn public recovery remains open.
+
 - Make the reference service's narrower database contract explicit (#336):
   checked configuration and independent host requests reject SQLite,
   PostgreSQL, and DSN selections with stable diagnostics. Snapshot remains

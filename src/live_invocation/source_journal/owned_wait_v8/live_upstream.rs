@@ -128,13 +128,12 @@ pub(super) fn initialize_live_actor_v8<'j>(
         Ok(held) => held,
         Err(error) => return Err(reject(input, error)),
     };
-    let session = match journal.begin_session() {
+    // Recover and authenticate the actual held prefix before the State owner
+    // can be initialized. A first-turn entry cannot recreate an earlier turn.
+    let session = match journal.begin_fresh_session() {
         Ok(session) => session,
         Err(error) => return Err(reject(input, error)),
     };
-    if session.sequence() != 0 {
-        return Err(reject(input, SourceJournalError::Order));
-    }
     let mut session = match session.append(EntryV8::Owned(context.fold().created.clone())) {
         Ok(session) => session,
         Err(_) => {

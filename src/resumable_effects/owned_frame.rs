@@ -23,9 +23,9 @@ pub enum OwnedFrameError {
 
 mod store;
 pub(crate) use store::source_v8::{
-    fresh_source_owned_wait_v8, prepare_fresh_source_owned_wait_v8, ExplicitStoreRegistrationGrant,
-    FreshSourceOwnedWaitFactsV8, SourceOwnedWaitLeaseV8, SourceOwnedWaitLimitsV8,
-    SourceOwnedWaitStoreRegistrationV8,
+    fresh_source_owned_wait_v8, prepare_fresh_source_owned_wait_v8, recover_source_owned_wait_v8,
+    ExplicitStoreRegistrationGrant, FreshSourceOwnedWaitFactsV8, SourceOwnedWaitLeaseV8,
+    SourceOwnedWaitLimitsV8, SourceOwnedWaitStoreRegistrationV8,
 };
 
 mod fold;

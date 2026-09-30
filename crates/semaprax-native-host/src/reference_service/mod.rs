@@ -96,6 +96,10 @@ pub(crate) mod test_support {
         pub(crate) fn join(&self, name: &str) -> PathBuf {
             self.path.join(name)
         }
+
+        pub(crate) fn path(&self) -> &std::path::Path {
+            &self.path
+        }
     }
 
     impl Drop for TempDir {

@@ -160,7 +160,7 @@ impl<'j> LivePreparedOwnedEffectV8<'j> {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod tests;
 
 mod activation;

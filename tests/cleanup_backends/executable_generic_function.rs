@@ -349,8 +349,9 @@ fn generic_functions_are_equivalent_in_node_wasm_with_reentry() {
     let bytes = wasm::emit_module(&program).unwrap();
     assert_eq!(bytes, wasm::emit_module(&program).unwrap());
     let resolved = semaprax::hir::resolve(&program).unwrap();
+    // The external `semaprax_main` entry now has its own depth-reset wrapper.
     let expected_functions =
-        u32::try_from(resolved.functions.len() + resolved.function_instances.len()).unwrap();
+        u32::try_from(resolved.functions.len() + resolved.function_instances.len() + 1).unwrap();
     let emitted_functions = wasmparser::Parser::new(0)
         .parse_all(&bytes)
         .filter_map(|payload| match payload.unwrap() {

@@ -341,7 +341,7 @@ pub(crate) fn consume_executed_owned_step_v2<'a>(
     })
 }
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod tests;
 
 mod continue_observe;

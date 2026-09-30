@@ -260,5 +260,5 @@ impl<'j> AppendSessionV8<'j> {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod tests;

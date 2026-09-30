@@ -266,12 +266,12 @@ impl<'j> AppendSessionV8<'j> {
         Ok(envelope)
     }
 }
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod tests;
 
 pub(super) mod r#continue;
 
 pub(in crate::live_invocation::source_journal::owned_wait_v8) use r#continue::VerifiedOwnedContinueSuccessorV8;
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 pub(in crate::live_invocation::source_journal::owned_wait_v8) use tests::test_moved;

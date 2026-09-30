@@ -143,7 +143,7 @@ impl LivePreparedContinuedEffectV8<'_> {
         .inspect_err(|_| owner.journal().quarantine())
     }
 }
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod tests;
 
 pub(in crate::live_invocation::source_journal::owned_wait_v8) mod intent;

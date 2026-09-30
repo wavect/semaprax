@@ -700,9 +700,9 @@ pub(crate) fn ack_owned_effect_cleanup_v8<'a>(
         settled: ack.settled,
     })
 }
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod tests;
-#[cfg(test)]
+#[cfg(all(test, unix))]
 pub(super) use tests::{
     with_staged_complete_reduce_v2, with_staged_effect_reduce_v2, with_staged_task_zero_reduce_v2,
 };

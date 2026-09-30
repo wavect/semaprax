@@ -505,7 +505,7 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_verifie
         .enter_stage()
         .map_err(LiveContinuedAuthorizeAcknowledgmentFailureV8::Entered)
 }
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod tests;
 
 pub(in crate::live_invocation::source_journal::owned_wait_v8) mod effect;

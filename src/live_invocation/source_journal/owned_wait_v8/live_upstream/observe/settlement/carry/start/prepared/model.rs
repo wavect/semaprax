@@ -560,7 +560,7 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_verifie
 mod resume;
 use resume::ModelOwnerV8;
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod tests;
 
 pub(in crate::live_invocation::source_journal::owned_wait_v8) mod authorize;

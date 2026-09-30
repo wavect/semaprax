@@ -74,7 +74,7 @@ fn private_desktop_packages_are_feature_gated_native_and_source_locked() {
             "windows.visual-studio.major=18",
             "windows.msvc.tools.version=14.51.36231",
             "windows.link.version=14.51.36256.0",
-            "windows.link.alternate-version=14.51.36257.0",
+            "windows.link.alternate-version=14.51.36260.0",
             "windows.sdk.version=10.0.26100.0",
             "windows.provider.libraries=libcmt.lib,libvcruntime.lib,libucrt.lib,oldnames.lib,ucrt.lib,kernel32.lib",
             "network=forbidden-cargo-offline",

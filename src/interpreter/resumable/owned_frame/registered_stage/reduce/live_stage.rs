@@ -157,7 +157,7 @@ fn status(failure: &OwnedFrameFailure) -> Result<Json, Diagnostic> {
     };
     Ok(json!({"failure":tag,"language_status":language}))
 }
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod tests;
 
 use super::super::effect::ExecutedOwnedAgentTurnV2;

@@ -152,7 +152,8 @@ fn external_consumers_share_one_bounded_nested_cargo_linker_path_binder() {
         assert_eq!(
             consumer
                 .matches("native_rust_cargo::cargo_command()")
-                .count(),
+                .count()
+                + consumer.matches(".cargo_command()").count(),
             expected_commands,
             "{path} must bind every generated-package Cargo invocation"
         );
@@ -162,6 +163,11 @@ fn external_consumers_share_one_bounded_nested_cargo_linker_path_binder() {
             "{path}"
         );
     }
+    let consumer_toolchain =
+        read("tests/public_native_rust_owned_data_sdk_v1/consumer_toolchain.rs");
+    assert!(consumer_toolchain.contains("super::native_rust_cargo::cargo_command()"));
+    assert!(consumer_toolchain
+        .contains("super::native_rust_cargo::bind_nested_cargo_linker_path(&mut command)"));
 
     let target = read("tests/support/native_rust_target.rs");
     for required in [

@@ -577,9 +577,9 @@ pub(super) fn settle_initial_observe_v8<'j>(
     })
 }
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod tests;
-#[cfg(test)]
+#[cfg(all(test, unix))]
 pub(crate) use tests::test_initial_observe_entry_v8;
 
 pub(in crate::live_invocation::source_journal::owned_wait_v8) mod carry;

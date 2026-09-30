@@ -220,7 +220,7 @@ pub(super) fn validate_stop(
     })
 }
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod tests;
 
 mod failed_cleanup;

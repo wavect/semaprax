@@ -171,7 +171,11 @@ const fixtures = roots.map((root, index) => {
     manifest.workspace_revision !== spec.workspace_revision ||
     manifest.project_graph_digest !== spec.project_graph_digest
   ) {
-    throw new Error(`Project fixture does not match its exact rename known-answer subject: ${resolved}`);
+    throw new Error(
+      `Project fixture does not match its exact rename known-answer subject: ${resolved}; ` +
+      `actual=${JSON.stringify([manifest.project_revision, manifest.workspace_revision, manifest.project_graph_digest])}; ` +
+      `expected=${JSON.stringify([spec.project_revision, spec.workspace_revision, spec.project_graph_digest])}`,
+    );
   }
   if (!Array.isArray(manifest.artifacts) || manifest.artifacts.length !== expectedArtifacts.length) {
     throw new Error(`calculator fixture has the wrong artifact inventory: ${resolved}`);

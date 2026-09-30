@@ -72,7 +72,7 @@ pub(super) fn receipt(operations: &Value) -> Result<RoomV8, SourceJournalError> 
     }))
 }
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod tests;
 
 #[cfg(test)]

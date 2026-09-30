@@ -398,5 +398,5 @@ pub(super) fn authorize_live_actor_v8<'j>(
         transfer_digest: selected_transfer_digest,
     })
 }
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod tests;

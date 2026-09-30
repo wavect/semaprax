@@ -323,7 +323,7 @@ impl LiveActivatedContinuedEffectV8<'_> {
         self.phase.validate_activated()
     }
 }
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod tests;
 
 #[cfg(test)]

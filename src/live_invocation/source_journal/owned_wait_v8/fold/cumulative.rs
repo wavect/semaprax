@@ -176,7 +176,7 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn commit_next_sta
     Ok(true)
 }
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod tests;
 
 impl FoldV8 {

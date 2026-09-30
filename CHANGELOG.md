@@ -8,6 +8,12 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Repair main CI regressions in the example index, Rust formatting and module
+  budget, Unix-only owned-wait test selection on Windows, the desktop linker
+  pin, generated-package Cargo coverage, generic Wasm entry-wrapper count,
+  and sanitizer omission-control cleanup. Keep the browser fixture's exact
+  revision mismatch visible for the next hosted run.
+
 - Add a closed acceptance-record format for #328's Kernel-0 rung-2 decision.
   It requires every local receipt to bind to one selected revision or an exact
   unchanged subject, keeps all rows pending, and separates an eventual reviewer

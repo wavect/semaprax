@@ -449,9 +449,18 @@ impl ProspectiveOwnedReduceHoldV8<'_> {
                     ..
                 }) => {
                     if *turn == 0 {
-                        self.validate_settlement_inventory(inventory, inventory.sequence(), inventory.acknowledged_bytes())?;
+                        self.validate_settlement_inventory(
+                            inventory,
+                            inventory.sequence(),
+                            inventory.acknowledged_bytes(),
+                        )?;
                     } else {
-                        self.validate_continued_settlement_inventory(journal, inventory, inventory.sequence(), inventory.acknowledged_bytes())?;
+                        self.validate_continued_settlement_inventory(
+                            journal,
+                            inventory,
+                            inventory.sequence(),
+                            inventory.acknowledged_bytes(),
+                        )?;
                     }
                     let (_, _, t, a, row) = inventory.effect_settlement_reduce_facts()?;
                     if !matches!(
@@ -1433,7 +1442,7 @@ pub(super) fn reserve<'j>(
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod tests;
 
 // Pure already-charged arithmetic. Prospective funding() intentionally adds

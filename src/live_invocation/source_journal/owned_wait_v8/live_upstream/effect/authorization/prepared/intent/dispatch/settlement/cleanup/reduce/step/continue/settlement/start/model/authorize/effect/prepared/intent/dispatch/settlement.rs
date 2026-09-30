@@ -341,7 +341,7 @@ impl<'j> ContinuedResumedWaitV8<'j> {
 }
 
 impl<'j> ContinuedResumedWaitV8<'j> {
-    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn cleanup_hold(&self) -> &crate::live_invocation::source_journal::owned_wait_v8::append::owned_effect::ProspectiveOwnedReduceHoldV8<'j> {
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn cleanup_hold(&self) -> &crate::live_invocation::source_journal::owned_wait_v8::append::owned_effect::ProspectiveOwnedReduceHoldV8<'j>{
         &self.lineage.step.origin().hold
     }
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_continued_cleanup_guard(
@@ -352,19 +352,47 @@ impl<'j> ContinuedResumedWaitV8<'j> {
     ) -> Result<(), SourceJournalError> {
         (|| {
             let journal = self.lineage.journal();
-            if !session.belongs_to(journal) { return Err(SourceJournalError::Binding); }
+            if !session.belongs_to(journal) {
+                return Err(SourceJournalError::Binding);
+            }
             witness.validate_current_session(session)?;
-            self.cleanup_hold().validate_cleanup_guard(journal, session.sequence(), session.acknowledged_bytes())?;
+            self.cleanup_hold().validate_cleanup_guard(
+                journal,
+                session.sequence(),
+                session.acknowledged_bytes(),
+            )?;
             let held = journal.hold()?;
-            let (runtime, execution) = journal.context().ready_runtime().ok_or(SourceJournalError::Binding)?;
-            let plan = plan_owned_effect_v8(runtime, execution, &held.registration().expected_facts().scope, proposal).map_err(|_| SourceJournalError::Binding)?;
-            if !self.lineage.step.origin().policy.allows(plan.operation().effect_id()) { return Err(SourceJournalError::Binding); }
+            let (runtime, execution) = journal
+                .context()
+                .ready_runtime()
+                .ok_or(SourceJournalError::Binding)?;
+            let plan = plan_owned_effect_v8(
+                runtime,
+                execution,
+                &held.registration().expected_facts().scope,
+                proposal,
+            )
+            .map_err(|_| SourceJournalError::Binding)?;
+            if !self
+                .lineage
+                .step
+                .origin()
+                .policy
+                .allows(plan.operation().effect_id())
+            {
+                return Err(SourceJournalError::Binding);
+            }
             // Cleanup incurred at Started keeps physical/policy authority, even
             // when cancellation or deadline prevents later source work.
             held.validate_prefix(session.sequence(), session.acknowledged_bytes())?;
-            self.cleanup_hold().validate_cleanup_guard(journal, session.sequence(), session.acknowledged_bytes())?;
+            self.cleanup_hold().validate_cleanup_guard(
+                journal,
+                session.sequence(),
+                session.acknowledged_bytes(),
+            )?;
             witness.validate_current_session(session)
-        })().inspect_err(|_| self.lineage.journal().quarantine())
+        })()
+        .inspect_err(|_| self.lineage.journal().quarantine())
     }
 }
 

@@ -15,7 +15,7 @@ mod reduce_inventory;
 mod reduce_model;
 mod reduce_wire;
 pub(crate) use ready_commitment::owned_wait_ready_commitment_v8;
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod tests;
 mod wire;
 
@@ -122,7 +122,7 @@ pub(crate) use live_upstream::effect::authorization::failed_state::LiveFailedEff
 
 pub(crate) use live_upstream::effect::authorization::step::r#continue::LiveContinueObservePermitV8;
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 pub(crate) use live_upstream::test_initial_observe_entry_v8;
 
 pub(crate) use live_upstream::effect::authorization::observer_failed_state::state::LiveObserverFailedStateCleanupPermitV8;

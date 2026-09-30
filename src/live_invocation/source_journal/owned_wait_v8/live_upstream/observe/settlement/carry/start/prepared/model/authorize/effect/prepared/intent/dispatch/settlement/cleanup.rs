@@ -142,7 +142,7 @@ impl PreparedContinuedDecisionCleanupV8<'_> {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod tests;
 
 use crate::live_invocation::source_journal::owned_wait_v8::append::owned_effect::{ProspectiveOwnedReduceHoldV8, VerifiedOwnedEffectCleanupSuccessorV8};

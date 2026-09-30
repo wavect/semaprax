@@ -126,9 +126,19 @@ impl CompiledTypedEffects {
             observations: &observations,
         };
         let run = self.run_durable_inner(
-            task, proposals, handler, stages, effects, cancellation,
-            execution_revision_digest, program_root_digest, None, store,
-            max_reserved_fuel, None, Some(backend),
+            task,
+            proposals,
+            handler,
+            stages,
+            effects,
+            cancellation,
+            execution_revision_digest,
+            program_root_digest,
+            None,
+            store,
+            max_reserved_fuel,
+            None,
+            Some(backend),
         )?;
         let observations = observations.into_inner();
         let observations_complete = observations.len() == run.run().lifecycle().stages().len();
@@ -148,8 +158,17 @@ impl CompiledTypedEffects {
         });
         document.sort_all_objects();
         let evidence = format!("{document}\n");
-        let digest = digest(b"semaprax.agent-durable-semantic-work.v1\0", evidence.as_bytes());
-        Ok(MeteredDurableTypedRun { run, observations, observations_complete, evidence, digest })
+        let digest = digest(
+            b"semaprax.agent-durable-semantic-work.v1\0",
+            evidence.as_bytes(),
+        );
+        Ok(MeteredDurableTypedRun {
+            run,
+            observations,
+            observations_complete,
+            evidence,
+            digest,
+        })
     }
 
     /// Refuse a selected migration target before that migration reserves fuel

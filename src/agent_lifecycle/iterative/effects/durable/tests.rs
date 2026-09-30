@@ -248,10 +248,9 @@ fn durable_semantic_metering_refuses_recovery_before_store_or_handler_work() {
     let Err(failure) = run_metered(&compiled, &mut handler, &mut store, Some(&retained)) else {
         panic!("retained metered checkpoint was accepted");
     };
-    assert!(failure
-        .diagnostics()
-        .iter()
-        .any(|diagnostic| diagnostic.message.contains("semantic_work.recovery_unsupported")));
+    assert!(failure.diagnostics().iter().any(|diagnostic| diagnostic
+        .message
+        .contains("semantic_work.recovery_unsupported")));
     assert_eq!((handler.calls, store.commits), before);
 }
 

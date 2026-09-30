@@ -8,11 +8,12 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
-- Bind the standalone Windows doctor spawn to its explicitly selected signed
-  image using held NTFS file/path guards and a writable-mapping refusal (#333).
-  Preserve the ten historical native cases and add five substitution/settlement
-  cases. Native Windows execution and request/bundle transport remain pending;
-  no production or release-trust support is promoted.
+- Add partial signed-image checks to the standalone Windows doctor spawn using
+  held NTFS file/path guards and a retained advisory read oplock (#333).
+  Preserve the ten historical native cases and add six substitution/settlement
+  cases. Writable-section mutation can still race; exact binding acceptance,
+  native Windows execution and request/bundle transport remain open. No
+  production or release-trust support is promoted.
 
 - Retain catalog-normalizer's 100,000,000-step maximal-response requirement
   (#324) in the complete application selector and remove one per-byte phase

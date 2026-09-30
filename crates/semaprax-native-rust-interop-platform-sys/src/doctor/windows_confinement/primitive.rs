@@ -5,11 +5,12 @@
 //!
 //! The historical ten-case native Windows selector passed on `f4d3291f`;
 //! the owning specification retains the earlier exact compilation/runtime
-//! receipts. The signed-image binding continuation and its five additional
+//! receipts. The signed-image binding continuation and its six additional
 //! cases have no native Windows execution receipt on this macOS authoring
 //! host. A cross-target type-check is not runtime acceptance. Production
 //! release trust, Windows request/bundle transport and broader confinement
-//! remain separate requirements.
+//! remain separate requirements. Retained writable-section mutation can still
+//! race advisory oplock checks; exact image-binding acceptance remains open.
 //!
 //! # Scope
 //!
@@ -463,7 +464,7 @@ impl Drop for ConfinedProcess {
 }
 
 /// Verify the release-signed capsule using the compile-time release trust
-/// anchor, bind `exe` to the selected signed image role through held NTFS
+/// anchor, check `exe` against the selected signed image role with held NTFS
 /// file/namespace guards, then spawn suspended under a restricted token, inside a
 /// fresh ACL-confined scratch root, assigned to a tightened job object,
 /// before any target code runs. Missing or malformed trust input refuses; it
@@ -569,6 +570,11 @@ fn confined_spawn_after_binding(
     startup.hStdOutput = stdout.raw();
     startup.hStdError = stderr.raw();
     let mut process_information = PROCESS_INFORMATION::default();
+    if !image.intact() {
+        return Err(Refusal::Capsule(
+            super::capsule::CapsuleError::ArtifactBinding,
+        ));
+    }
     // SAFETY: `token` is a live restricted token with the rights
     // `CreateProcessAsUserW` requires; `application`/`cwd`/`environment` are
     // live NUL-terminated (or double-NUL-terminated) wide buffers; `command`

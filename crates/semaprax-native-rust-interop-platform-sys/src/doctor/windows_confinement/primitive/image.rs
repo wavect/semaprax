@@ -2,13 +2,15 @@
 //!
 //! Require local NTFS, hold a read-only/no-write/no-delete file open, and pin
 //! every component of its normalized volume-GUID name without following
-//! reparse points. A read-oplock grant excludes pre-existing writable mapped
-//! sections; the retained sharing denial prevents any new writer thereafter.
+//! reparse points. A retained read oplock detects observed section changes.
+//! Oplock breaks for writable sections are advisory: this does not establish
+//! atomic exclusion of mutation through every retained writable section.
 //! This is an image binding primitive, not Windows request/bundle transport,
 //! DLL closure validation, or protection from kernel/administrator mutation.
 use super::{wide, Handle, MAX_WIDE};
 use semaprax_doctor_capsule::{Artifact, Capsule, MAX_ARTIFACT_BYTES};
 use sha2::{Digest as _, Sha256};
+use std::cell::UnsafeCell;
 use std::ffi::OsString;
 use std::fs::{File, OpenOptions};
 use std::io::Read as _;
@@ -17,7 +19,7 @@ use std::os::windows::fs::OpenOptionsExt as _;
 use std::os::windows::io::AsRawHandle as _;
 use std::path::{Path, PathBuf};
 use windows_sys::Win32::Foundation::{
-    GetLastError, ERROR_IO_PENDING, ERROR_OPERATION_ABORTED, HANDLE,
+    GetLastError, ERROR_IO_PENDING, ERROR_OPERATION_ABORTED, HANDLE, WAIT_TIMEOUT,
 };
 use windows_sys::Win32::Storage::FileSystem::{
     GetFileInformationByHandle, GetFileType, GetFinalPathNameByHandleW,
@@ -30,7 +32,7 @@ use windows_sys::Win32::System::Ioctl::{
     REQUEST_OPLOCK_INPUT_BUFFER, REQUEST_OPLOCK_INPUT_FLAG_REQUEST, REQUEST_OPLOCK_OUTPUT_BUFFER,
 };
 use windows_sys::Win32::System::Threading::{
-    CreateEventW, QueryFullProcessImageNameW, PROCESS_NAME_NATIVE,
+    CreateEventW, QueryFullProcessImageNameW, WaitForSingleObject, PROCESS_NAME_NATIVE,
 };
 use windows_sys::Win32::System::IO::{
     CancelIoEx, DeviceIoControl, GetOverlappedResult, OVERLAPPED,
@@ -57,6 +59,7 @@ impl ImageRole {
 pub(super) struct HeldImage {
     application: Vec<u16>,
     native_name: Vec<u16>,
+    oplock: ImageOplock,
     _file: File,
     _ancestors: Vec<File>,
 }
@@ -76,11 +79,10 @@ impl HeldImage {
             return Err(());
         }
         let native_name = final_name(&file, VOLUME_NAME_NT)?;
-        // The original and synchronous reader both deny write/delete sharing.
-        // A successful read-oplock grant excludes a writable mapping whose
-        // creator has already closed its original write handle. Cancel and
-        // observe completion before letting the borrowed FFI buffers die.
-        exclude_writable_mapping(&original)?;
+        // Keep the request and its stable buffers alive through process
+        // creation and settlement. An observed break refuses; an unobserved
+        // advisory break is not proof that concurrent writes are excluded.
+        let oplock = ImageOplock::acquire(original)?;
         let length = (u64::from(identity.nFileSizeHigh) << 32) | u64::from(identity.nFileSizeLow);
         if length != artifact.length {
             return Err(());
@@ -96,6 +98,7 @@ impl HeldImage {
         }
         if file.read(&mut buffer[..1]).map_err(|_| ())? != 0
             || <[u8; 32]>::from(digest.finalize()) != artifact.digest
+            || !oplock.intact()
         {
             return Err(());
         }
@@ -104,6 +107,7 @@ impl HeldImage {
         Ok(Self {
             application: terminated,
             native_name,
+            oplock,
             _file: file,
             _ancestors: ancestors,
         })
@@ -111,6 +115,10 @@ impl HeldImage {
 
     pub(super) fn application(&self) -> &[u16] {
         &self.application
+    }
+
+    pub(super) fn intact(&self) -> bool {
+        self.oplock.intact()
     }
 
     pub(super) fn matches_process(&self, process: HANDLE) -> bool {
@@ -125,13 +133,14 @@ impl HeldImage {
         {
             return false;
         }
-        name[..length as usize] == self.native_name
+        name[..length as usize] == self.native_name && self.intact()
     }
 }
 
 fn open(path: &Path, flags: u32) -> Result<File, ()> {
-    // All handles are non-inheritable. Retaining FILE_SHARE_READ alone blocks
-    // file mutation, unlink and replacement; OPEN_REPARSE_POINT authenticates
+    // All handles are non-inheritable. FILE_SHARE_READ denies new write/delete
+    // opens; it does not by itself exclude retained writable sections.
+    // OPEN_REPARSE_POINT authenticates
     // the opened component itself rather than a substituted link target.
     let _ = wide(path.as_os_str())?;
     OpenOptions::new()
@@ -254,55 +263,97 @@ fn pin_ancestors(path: &[u16]) -> Result<Vec<File>, ()> {
     Ok(held)
 }
 
-fn exclude_writable_mapping(file: &File) -> Result<(), ()> {
-    let input = REQUEST_OPLOCK_INPUT_BUFFER {
-        StructureVersion: REQUEST_OPLOCK_CURRENT_VERSION as u16,
-        StructureLength: std::mem::size_of::<REQUEST_OPLOCK_INPUT_BUFFER>() as u16,
-        RequestedOplockLevel: OPLOCK_LEVEL_CACHE_READ,
-        Flags: REQUEST_OPLOCK_INPUT_FLAG_REQUEST,
-    };
-    let mut output = REQUEST_OPLOCK_OUTPUT_BUFFER::default();
-    // SAFETY: unnamed, non-inheritable, manual-reset event with no attributes.
-    let event = unsafe { CreateEventW(std::ptr::null(), 1, 0, std::ptr::null()) };
-    if event.is_null() {
-        return Err(());
+// OS-owned asynchronous buffers need stable addresses and interior mutability
+// until completion. No Rust code reads output/overlap while the I/O is pending.
+struct OplockBuffers {
+    input: REQUEST_OPLOCK_INPUT_BUFFER,
+    output: UnsafeCell<REQUEST_OPLOCK_OUTPUT_BUFFER>,
+    overlap: UnsafeCell<OVERLAPPED>,
+}
+
+struct ImageOplock {
+    file: File,
+    event: Handle,
+    buffers: Box<OplockBuffers>,
+    pending: bool,
+}
+
+impl ImageOplock {
+    fn acquire(file: File) -> Result<Self, ()> {
+        // SAFETY: unnamed, non-inheritable, manual-reset event.
+        let event = unsafe { CreateEventW(std::ptr::null(), 1, 0, std::ptr::null()) };
+        if event.is_null() {
+            return Err(());
+        }
+        let event = Handle::new(event);
+        let buffers = Box::new(OplockBuffers {
+            input: REQUEST_OPLOCK_INPUT_BUFFER {
+                StructureVersion: REQUEST_OPLOCK_CURRENT_VERSION as u16,
+                StructureLength: std::mem::size_of::<REQUEST_OPLOCK_INPUT_BUFFER>() as u16,
+                RequestedOplockLevel: OPLOCK_LEVEL_CACHE_READ,
+                Flags: REQUEST_OPLOCK_INPUT_FLAG_REQUEST,
+            },
+            output: UnsafeCell::new(REQUEST_OPLOCK_OUTPUT_BUFFER::default()),
+            overlap: UnsafeCell::new(OVERLAPPED {
+                hEvent: event.raw(),
+                ..Default::default()
+            }),
+        });
+        let mut guard = Self {
+            file,
+            event,
+            buffers,
+            pending: false,
+        };
+        // SAFETY: boxed buffers do not move with the guard. The exclusive
+        // owner drains this exact request in Drop before freeing any buffer.
+        guard.pending = unsafe {
+            DeviceIoControl(
+                guard.file.as_raw_handle(),
+                FSCTL_REQUEST_OPLOCK,
+                (&guard.buffers.input as *const REQUEST_OPLOCK_INPUT_BUFFER).cast(),
+                std::mem::size_of::<REQUEST_OPLOCK_INPUT_BUFFER>() as u32,
+                guard.buffers.output.get().cast(),
+                std::mem::size_of::<REQUEST_OPLOCK_OUTPUT_BUFFER>() as u32,
+                std::ptr::null_mut(),
+                guard.buffers.overlap.get(),
+            )
+        } == 0
+            && unsafe { GetLastError() } == ERROR_IO_PENDING;
+        if !guard.pending || !guard.intact() {
+            return Err(());
+        }
+        Ok(guard)
     }
-    let event = Handle::new(event);
-    let mut overlap = OVERLAPPED {
-        hEvent: event.raw(),
-        ..Default::default()
-    };
-    // SAFETY: every buffer lives until the pending request has been drained.
-    let granted = unsafe {
-        DeviceIoControl(
-            file.as_raw_handle(),
-            FSCTL_REQUEST_OPLOCK,
-            (&input as *const REQUEST_OPLOCK_INPUT_BUFFER).cast(),
-            std::mem::size_of_val(&input) as u32,
-            (&mut output as *mut REQUEST_OPLOCK_OUTPUT_BUFFER).cast(),
-            std::mem::size_of_val(&output) as u32,
-            std::ptr::null_mut(),
-            &mut overlap,
-        )
-    } == 0
-        && unsafe { GetLastError() } == ERROR_IO_PENDING;
-    if !granted {
-        return Err(());
+
+    fn intact(&self) -> bool {
+        // SAFETY: event stays live until the request is drained. A break or
+        // wait error refuses. This observation is not an atomic write barrier.
+        (unsafe { WaitForSingleObject(self.event.raw(), 0) }) == WAIT_TIMEOUT
     }
-    // SAFETY: cancel only this owned request, then wait for its completion.
-    // Cancellation is not completion: no return may drop the buffers first.
-    unsafe { CancelIoEx(file.as_raw_handle(), &overlap) };
-    let mut transferred = 0;
-    let completed =
-        unsafe { GetOverlappedResult(file.as_raw_handle(), &overlap, &mut transferred, 1) };
-    if completed != 0 {
-        // A real oplock break is completed, but is not an admission.
-        return Err(());
+}
+
+impl Drop for ImageOplock {
+    fn drop(&mut self) {
+        if !self.pending {
+            return;
+        }
+        // SAFETY: cancel/drain this sole owned request while its file, event
+        // and boxed buffers remain live. CancelIoEx alone is not completion.
+        unsafe { CancelIoEx(self.file.as_raw_handle(), self.buffers.overlap.get()) };
+        let mut transferred = 0;
+        let completed = unsafe {
+            GetOverlappedResult(
+                self.file.as_raw_handle(),
+                self.buffers.overlap.get(),
+                &mut transferred,
+                1,
+            )
+        };
+        if completed == 0 && unsafe { GetLastError() } != ERROR_OPERATION_ABORTED {
+            // No completion proof: never free a buffer still owned by the OS.
+            std::process::abort();
+        }
+        self.pending = false;
     }
-    if unsafe { GetLastError() } != ERROR_OPERATION_ABORTED {
-        // An unexpected wait/handle failure gives no completion proof. Never
-        // unwind or return while the kernel may still own these stack buffers.
-        std::process::abort();
-    }
-    Ok(())
 }

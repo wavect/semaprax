@@ -8,12 +8,14 @@ historical five-test runtime witness on exact checkout `3d4220b6`, extending the
 two-test witness at `c6bf9902`. The historical signed-capsule nine-case exact selector
 (six runtime cases plus three admission refusals) passed on exact checkout
 `c608b8d8`. The historical ten-case selector added a hostile inheritable-parent-ACE
-DACL case and passed on exact checkout `f4d3291f`. The current fifteen-case
+DACL case and passed on exact checkout `f4d3291f`. The current sixteen-case
 selector preserves those ten and adds signed-image substitution, writable
 mapping, and handle-settlement regressions; native execution of the added
-binding path is pending. The authoring host remains macOS arm64; the current continuation has a
-Windows-target Rust type-check but no native Windows runtime, and no
-cross-compilation or emulated substitute is treated as native execution evidence. Host-independent capsule, admission-ordering,
+binding path is pending, and exact exclusion of retained writable-section
+mutation remains unresolved. The authoring host remains macOS arm64; the
+continuation has a Windows-target Rust type-check but no native Windows runtime.
+No cross-compilation or emulated substitute is treated as native execution
+evidence. Host-independent capsule, admission-ordering,
 and settlement logic remains separately testable on non-Windows hosts. See
 [Hosted Windows compilation evidence](#hosted-windows-compilation-evidence-type-check-only),
 [Hosted Windows runtime evidence](#hosted-windows-runtime-evidence), and
@@ -264,10 +266,11 @@ specified in [Linux production provisioner v1](DOCTOR-PRODUCTION-PROVISIONER-V1.
 and [sealed input v1](DOCTOR-SEALED-INPUT-V1.md#capsule-wire-architecture).
 The structural decoder remains only as a non-authoritative malformed-wire test
 utility; production does not fall back to it. The deterministic test key is
-not a release anchor. The standalone spawn now requires an explicit `ImageRole` (launcher, worker,
-collector), binds the selected signed length and SHA-256 to held executable
-bytes, and retains that binding through settlement. Request/bundle carriers,
-selector/role handoff and Windows production transport remain unimplemented;
+not a release anchor. The standalone spawn now requires an explicit `ImageRole`
+(launcher, worker, collector), checks the selected signed length and SHA-256 against held executable
+bytes, and retains file/path handles and an advisory oplock through settlement.
+Exact binding under retained writable-section mutation remains unresolved.
+Request/bundle carriers, selector/role handoff and Windows production transport remain unimplemented;
 this is not complete signed-carrier admission or production support.
 
 ### Signed image binding continuation (#333; native execution pending)
@@ -285,11 +288,13 @@ token, job, scratch creation or process effect, it:
    volume/file identity to the original before reading any image bytes.
 3. Requires a Read oplock grant on the original asynchronous handle. Microsoft's
    [grant conditions](https://learn.microsoft.com/en-us/windows-hardware/drivers/ifs/granting-oplocks)
-   exclude pre-existing writable user-mapped sections. This closes the gap left
-   when a writer maps a file and closes its write handle before admission.
-   It cancels and drains that exact request while both deny-write handles stay
-   open; cancellation alone is never treated as I/O completion. Unsupported
-   filesystems, absent oplock support, or a break refuse with
+   exclude writable user-mapped sections at grant time. The pending request,
+   original file, event and stable boxed buffers now stay owned through
+   suspended process creation and child settlement. The guard checks for an
+   observed break after hashing, before creation and before resume. Drop
+   cancels and drains that exact request before releasing its buffers;
+   cancellation alone is never treated as I/O completion. Unsupported
+   filesystems, absent oplock support, or an observed break refuse with
    `Capsule(ArtifactBinding)`. An unexpected wait/handle error without observed
    I/O completion terminates the host process instead of returning with live
    kernel pointers into released buffers.
@@ -304,27 +309,42 @@ token, job, scratch creation or process effect, it:
    follows suspended process creation but precedes target code execution; it
    does not reopen or trust the child's reported pathname.
 
-This relies on the ordinary NTFS sharing and oplock contract and the trusted
-Windows kernel/volume namespace. It does not authenticate imported DLLs or
+**Exact race-resistant image binding remains unresolved.** A retained writable
+section object whose file handle has closed needs separate admission and race
+coverage, including the state before any writable view exists. Microsoft's
+[section-synchronization rules](https://learn.microsoft.com/en-us/windows-hardware/drivers/ifs/fs-filter-acquire-for-section-synchronization2)
+say writable-section operations can break Read/Read-Handle/Read-Write oplocks
+without acknowledgment and proceed immediately. Keeping the request alive and
+checking its event therefore provides detection and defense in depth, not an
+atomic exclusion proof. Writable-section mutation can still race these checks;
+#333's exact binding acceptance remains open. The initial continuation's
+cancel-before-hash/pre-spawn design did not establish this guarantee either.
+
+These partial checks rely on the ordinary NTFS sharing and oplock contract and
+the trusted Windows kernel/volume namespace. It does not authenticate imported DLLs or
 protect against administrator/kernel mutation. It adds no ordinary CLI route
 or Windows request/bundle carrier, and does not modify the Linux sealed-file
 launcher. The deterministic test capsule signs the actual test image's bytes;
 its other slots remain fixture-only inputs and are not transport evidence.
 
-The five new selected cases exercise signed length/digest/role mismatch before
+The six new selected cases exercise signed length/digest/role mismatch before
 launch, denied leaf deletion/write/rename and ancestor rename between admission
 and spawn, pre-existing writable handles and hardlinks, a writable mapping whose
-handles have both closed, and drop-time process/image handle settlement. Success
+handles have both closed, a retained PAGE_READWRITE section without any view,
+and drop-time process/image handle settlement. The section-without-view case
+requires pre-spawn refusal; its behavior is still unverified on Windows. Success
 controls require NTFS/oplock acquisition to work; no unavailable prerequisite
-can pass by skipping. All fifteen native cases still require an authorized
+can pass by skipping. All sixteen native cases still require an authorized
 Windows execution at the changed revision.
 
-Local verification of this continuation on 30 September 2026:
+Local verification on 30 September 2026: the initial `64472c71b` continuation
+and the retained-oplock correction both passed the Windows-target check below
+(the correction additionally used `--offline`):
 `cargo check --locked -p semaprax-native-rust-interop-platform-sys --tests
 --target x86_64-pc-windows-msvc` passed on macOS using the preinstalled target
 standard library. This type-checks the Windows library and test source
-but executes no Windows code. The Windows gate's `--self-test` passed and the
-Linux gate's `--self-test` passed 137/137 checks, including the explicit exclusion
+but executes no Windows code. The corrected sixteen-case Windows gate's
+`--self-test` passed. The initial Linux gate's `--self-test` passed 137/137 checks, including the explicit exclusion
 of the new Windows-only test module. No native Windows acceptance is recorded.
 
 
@@ -386,13 +406,13 @@ The dispatch-only
 uses an ephemeral `windows-2025` runner and creates a fresh, explicit scratch
 parent under `RUNNER_TEMP`. The gate fails when the host is not 64-bit Windows,
 the parent is missing, nonempty, or a reparse point, Cargo fails, any named
-test is filtered or ignored, or the test summary does not report all fifteen
+test is filtered or ignored, or the test summary does not report all sixteen
 selected cases as passed. It never treats an absent prerequisite or a zero-test
 run as a skip/pass.
 
 `scripts/doctor-provisioned-windows-gate.py --self-test` checks the gate's
 refusal and libtest-result parsing on any host; it provides no Windows runtime
-evidence. `--plan` prints the exact fifteen-test selector. The live selection runs
+evidence. `--plan` prints the exact sixteen-test selector. The live selection runs
 `windows_runtime_launches_restricted_child_inside_acl_scratch_and_settles_it`
 and `windows_runtime_timeout_terminates_the_confined_job_and_settles_cancellation`,
 plus `windows_runtime_timeout_terminates_an_actual_job_descendant`,
@@ -403,7 +423,7 @@ plus `windows_runtime_timeout_terminates_an_actual_job_descendant`,
 `windows_runtime_bad_signature_refuses_before_token_job_or_filesystem`, and
 `windows_runtime_signed_linux_architecture_capsule_refuses_before_token_job_or_filesystem`,
 and `windows_runtime_protected_scratch_dacl_blocks_inherited_parent_ace`.
-The nested `primitive::tests::binding` module adds the five cases described in
+The nested `primitive::tests::binding` module adds the six cases described in
 [Signed image binding](#signed-image-binding-continuation-333-native-execution-pending).
 The child-launch cases traverse `confined_spawn_using`; capsule verification
 uses the production release-key path or the explicit test-only key seam. The success case inspects
@@ -442,7 +462,7 @@ checkout `c608b8d8`: six live runtime cases (including deterministic test-only
 signed-key launch/settlement) and three signed-admission refusal cases. The
 historical ten-case source added the hostile inheritable-parent-ACE scratch-DACL
 case and passed at `f4d3291f`. The test key is not release trust. The current
-fifteen-case source and its held-image binding have no native execution receipt.
+sixteen-case source and its held-image binding have no native execution receipt.
 
 ## Acceptance criteria status
 
@@ -450,7 +470,7 @@ fifteen-case source and its held-image binding have no native execution receipt.
 |---|---|
 | Versioned Windows contract, cross-referenced from V1 | met |
 | Confinement primitive exists in the owning crate | implemented in `doctor::windows_confinement::primitive`; hosted type-check at exact checkout `7cab8aa8` and historical five selected runtime tests passed at exact checkout `3d4220b6`; see [Nonclaims](#nonclaims) |
-| Sealed-capsule consumption | production path calls shared `parse_signed` with the compile-time release-key input and requires native Windows code 3/4; nine test-key/admission cases passed at `c608b8d8`; selected-image binding is now implemented with native execution pending; request/bundle transport remains open |
+| Sealed-capsule consumption | production path calls shared `parse_signed` with the compile-time release-key input and requires native Windows code 3/4; nine test-key/admission cases passed at `c608b8d8`; partial signed-image checks exist, but mapped-section race exclusion and native execution remain unresolved; request/bundle transport remains open |
 | Hostile-input tests for the host-independent parts | 29 tests across `capsule`, `refusal`, and `settlement` pass on this authoring host (macOS arm64); `cargo test -p semaprax-native-rust-interop-platform-sys --lib doctor::windows_confinement` |
 | Runtime tests for the Win32 primitive itself | ten selected cases, including the hostile-parent-ACE case, passed in [run 35993882814](https://github.com/wavect/semaprax/actions/runs/35993882814) on `f4d3291f` |
 | Fail-closed gate authored and run | script self-test passed locally; exact ten-test selector passed at `f4d3291f` |
@@ -459,7 +479,7 @@ fifteen-case source and its held-image binding have no native execution receipt.
 
 ## Nonclaims
 
-This contract does not claim that the fifteen-test Windows selector is a
+This contract does not claim that the sixteen-test Windows selector is a
 complete hostile corpus or production-support gate. The two-test run at
 `c6bf9902` and five-test run at `3d4220b6` each bind only their exact checkout
 and selected tests.
@@ -469,8 +489,9 @@ tests give narrow observations only for their exact checkout and assertions.
 Earlier hand-checking against vendored `windows-sys` was diligence, not
 substitute execution evidence. The selector uses a
 deterministic test-only signing key and does not establish release trust. The
-new image binding has no native execution evidence, and Windows request/bundle
-carriers remain absent. Independent hostile-corpus,
+partial image checks have no native execution evidence or atomic exclusion
+proof for retained writable sections, and Windows request/bundle carriers
+remain absent. Independent hostile-corpus,
 general descendant-tree, and production-support requirements remain open. Do not claim the existing ordinary-probe
 job-object confinement in `windows.rs` as evidence of production-grade
 sandboxing (it confines process *lifetime*, not filesystem or network access,
@@ -488,5 +509,5 @@ observations of the restricted token, protected DACL, production job limits,
 descendant launch refusal, test-owned descendant timeout, normal/nonzero
 settlement, cancellation, and repeated filesystem-stage refusal/handle cleanup.
 The remaining work includes restricted-token refinement,
-native validation of the selected-image binding, Windows request/bundle
-transport, and a broader hostile/resource corpus across supported Windows runners.
+closing the retained writable-section mutation race, native validation of the
+selected-image checks, Windows request/bundle transport, and a broader hostile/resource corpus across supported Windows runners.

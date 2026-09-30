@@ -58,7 +58,10 @@ fn assert_refused(fixture: &Fixture, capsule: &TestCapsule, role: ImageRole) {
         &[],
         &fixture.scratch,
         || Ok(verified(capsule)),
-        || called.set(true),
+        || {
+            called.set(true);
+            panic!("rejected image reached the pre-spawn hook");
+        },
     );
     assert_eq!(
         result.err(),
@@ -254,4 +257,39 @@ fn windows_runtime_dropped_child_releases_image_and_process_handles() {
         .write(true)
         .open(&fixture.executable)
         .unwrap();
+}
+
+#[test]
+#[ignore = "requires the explicitly provisioned Windows runtime gate"]
+fn windows_runtime_signed_image_refuses_retained_writable_section_without_view() {
+    use windows_sys::Win32::System::Memory::{CreateFileMappingW, PAGE_READWRITE};
+    let fixture = Fixture::new();
+    let capsule = test_capsule_body();
+    let file = OpenOptions::new()
+        .read(true)
+        .write(true)
+        .open(&fixture.executable)
+        .unwrap();
+    // SAFETY: live writable file, unnamed section, existing file size. Do not
+    // create a view: the hostile capability is a retained section handle that
+    // could acquire a writable view after file-handle admission.
+    let mapping = unsafe {
+        CreateFileMappingW(
+            file.as_raw_handle(),
+            std::ptr::null(),
+            PAGE_READWRITE,
+            0,
+            0,
+            std::ptr::null(),
+        )
+    };
+    assert!(!mapping.is_null());
+    let mapping = Handle::new(mapping);
+    drop(file);
+    let baseline = current_process_handle_count();
+    assert_refused(&fixture, &capsule, ImageRole::Worker);
+    assert_eq!(current_process_handle_count(), baseline);
+    drop(mapping);
+    // This success control rejects an unavailable-oplock fixture as a failure.
+    drop(image::HeldImage::acquire(&fixture.executable, verified(&capsule).worker()).unwrap());
 }

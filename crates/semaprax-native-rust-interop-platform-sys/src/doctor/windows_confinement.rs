@@ -16,7 +16,7 @@
 //! token / tightened job object / ACL'd scratch root / sealed-capsule
 //! consumption wiring, is `#[cfg(windows)]`. The historical ten-case native
 //! selector passed at `f4d3291f`; the signed-image binding continuation and
-//! five additional cases have no native execution receipt. See the owning
+//! six additional cases have no native execution receipt. See the owning
 //! specification for the retained historical evidence and remaining nonclaims.
 //!
 //! [doc]: https://github.com/wavect/semaprax/blob/main/docs/DOCTOR-PRODUCTION-PROVISIONER-WINDOWS-V1.md

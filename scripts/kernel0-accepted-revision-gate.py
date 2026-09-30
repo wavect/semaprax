@@ -103,6 +103,13 @@ def inventory(value: Any, where: str) -> list[str]:
 def tracked_blob(repository: Path, revision: str, path: str, where: str) -> None:
     if git(repository, "cat-file", "-t", f"{revision}:{path}") != "blob":
         fail("SPX-K328-SUBJECT", f"{where} is not a tracked file blob")
+    entry = subprocess.run(
+        ("git", "ls-tree", "-z", "--full-tree", revision, "--", path),
+        cwd=repository, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE, check=False,
+    )
+    if entry.returncode or entry.stdout.count(b"\0") != 1 or not entry.stdout.startswith((b"100644 blob ", b"100755 blob ")):
+        fail("SPX-K328-SUBJECT", f"{where} must be a regular tracked file")
 
 
 def validate_receipt(repository: Path, candidate: str, value: Any) -> str:
@@ -210,6 +217,22 @@ class GateTests(unittest.TestCase):
         record = self.record()
         record["receipts"].pop()
         with self.assertRaisesRegex(Refusal, "SPX-K328-INVENTORY"):
+            validate(record, self.repo)
+
+    def test_refuses_symlink_in_declared_subject(self) -> None:
+        record = self.record()
+        target = subprocess.run(
+            ("git", "hash-object", "-w", "--stdin"), cwd=self.repo,
+            input=b"harness.py", stdout=subprocess.PIPE, check=True,
+        ).stdout.decode("ascii").strip()
+        subprocess.run(
+            ("git", "update-index", "--add", "--cacheinfo", f"120000,{target},fixture.txt"),
+            cwd=self.repo, check=True,
+        )
+        subprocess.run(("git", "commit", "-qm", "symlink subject"), cwd=self.repo, check=True)
+        record["candidate_revision"] = git(self.repo, "rev-parse", "HEAD")
+        record["receipts"][0]["execution_revision"] = record["candidate_revision"]
+        with self.assertRaisesRegex(Refusal, "SPX-K328-SUBJECT"):
             validate(record, self.repo)
 
 

@@ -53,7 +53,8 @@ An `executed` receipt must have passed at `candidate_revision`. A `reconciled`
 receipt records its earlier execution commit plus a complete declared inventory
 grouped as selector, harness, profile sources, fixtures, generated inputs, and
 the exact tracked `Cargo.lock`. The gate requires all declared paths to be
-tracked file blobs at both commits and uses Git's exact commit comparison to
+regular tracked file blobs (mode `100644` or `100755`, never symlinks) at both
+commits and uses Git's exact commit comparison to
 refuse byte drift. It validates the declared inventory; it does not infer that
 a reviewer declared every relevant file. The owning receipt specification
 remains responsible for that completeness judgment.

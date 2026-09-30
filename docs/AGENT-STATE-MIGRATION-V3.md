@@ -147,3 +147,12 @@ target migration retains its exact metered target binding in the authenticated
 handoff: the durable facade refuses an absent, unmetered, or differently bound
 target before its destination handoff reservation or host work. The full
 acceptance gate remains open.
+
+On Linux, `sanitized_held_native_migration_and_recovery` opens a test-only held
+clang wrapper which adds ASan and UBSan to every generated native stage compile,
+requires both symbol families from the generated executable, and then exercises
+pure migration plus durable recovery without redelivery. It grants no `PATH`
+lookup. The local Darwin held-process attestation requires exactly one mapped
+region for the registered executable before it runs; an ASan image maps none at
+that point, so the ordinary held-native recovery selector remains the Darwin
+gate. The sanitizer selector awaits Linux execution.

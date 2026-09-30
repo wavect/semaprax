@@ -8,6 +8,14 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Advance the real owned-wait v8 next-turn effect owner through guarded
+  preparation and a durable Intent ACK (#330). The focused real-chain
+  selector passed 1/1 locally with no effect host dispatch. Actual effect
+  dispatch and public durable recovery remain open.
+
+- Add a Linux held-clang ASan/UBSan gate for metered v4 Agent migration and
+  durable recovery; its Linux execution remains pending.
+
 - Bind v4 pure-migration target execution to the metered durable destination
   route (#327). Missing, unmetered, changed-fuel, and mixed held targets now
   refuse before destination handoff or host work. Two focused refusal selectors

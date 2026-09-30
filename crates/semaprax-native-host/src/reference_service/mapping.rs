@@ -916,30 +916,6 @@ fn delete_task(
     )
 }
 
-/// The host's Rust mirror of `task_service.core.enqueue_outcome`'s
-/// documented truth table (`std.jobs.idempotency.enqueue_outcome`: fresh 0,
-/// duplicate 1, conflicting reuse 2), used instead of invoking the checked
-/// decision: the decision's closure reaches the contract-bearing
-/// `std.bytes.byte_to_i64`, so invocation through the public-API seam is
-/// refused (`SPX-F102`, see `decisions.rs`).
-///
-/// Extracted to a pure function -- rather than inlined in [`enqueue_job`]
-/// -- so the regression test below can call the exact logic production uses
-/// and check it against the real checked decision, evaluated through the
-/// project's normal (non-public-API) test-execution path, for
-/// representative inputs. Nothing else cross-checks this mirror against the
-/// checked `.spx` truth, so a std-library edit that changes the decision
-/// must fail visibly instead of only diverging silently at runtime.
-fn enqueue_outcome_mirror(key_exists: bool, existing_desc: &[u8], candidate_desc: &[u8]) -> u8 {
-    if !key_exists {
-        0
-    } else if existing_desc == candidate_desc {
-        1
-    } else {
-        2
-    }
-}
-
 fn enqueue_job(
     host: &mut BoundHost<'_, '_>,
     committed: &mut CommittedState,
@@ -957,11 +933,14 @@ fn enqueue_job(
         return error(400, "invalid_job", None);
     }
     let existing = committed.state.job_by_key(key);
-    let outcome = enqueue_outcome_mirror(
+    let outcome = match host.decisions.enqueue_outcome(
         existing.is_some(),
         existing.map(|job| job.desc.as_bytes()).unwrap_or(&[]),
         desc.as_bytes(),
-    );
+    ) {
+        Ok(value) if value <= 2 => value as u8,
+        Ok(_) | Err(_) => return error(500, "decision_failed", None),
+    };
     match outcome {
         0 => {
             if existing.is_some() {

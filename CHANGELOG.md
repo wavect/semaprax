@@ -8,6 +8,12 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Route reference-service idempotent enqueue through the scaffold's checked
+  scalar decision (#336), removing the Rust truth-table mirror. Focused
+  decision admission, source/host parity, and actual enqueue selectors passed
+  1/1 each locally; the project formatter check passed. Remaining service
+  decision paths and OCI execution remain open.
+
 - Authenticate a recovered owned-wait v8 journal before admitting a fresh
   first-turn State (#330). A real held-store restart regression verifies that
   an existing prepared prefix refuses reinitialization, preserves the exact

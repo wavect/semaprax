@@ -111,12 +111,6 @@ impl DecisionIdentities {
         &self.prefix
     }
 
-    /// The resolved but deliberately uninvoked enqueue identity. Its closure
-    /// reaches the contract-bearing `std.bytes.byte_to_i64`, so invocation
-    /// is refused (`SPX-F102`) and the host mirrors its truth table.
-    pub fn enqueue_outcome_id(&self) -> &str {
-        &self.enqueue_outcome
-    }
 }
 
 fn sole(
@@ -307,6 +301,23 @@ impl<'revision> DecisionEngine<'revision> {
             &[PublicApiArgument::Usize(state)],
         )
     }
+
+    /// Evaluate the scaffold's contract-free idempotent-enqueue decision.
+    pub fn enqueue_outcome(
+        &self,
+        key_exists: bool,
+        existing_descriptor: &[u8],
+        candidate_descriptor: &[u8],
+    ) -> Result<u64, DecisionRefusal> {
+        self.invoke_usize(
+            &self.identities.enqueue_outcome,
+            &[
+                PublicApiArgument::Bool(key_exists),
+                PublicApiArgument::BorrowSliceU8(existing_descriptor),
+                PublicApiArgument::BorrowSliceU8(candidate_descriptor),
+            ],
+        )
+    }
 }
 
 #[cfg(test)]
@@ -359,12 +370,9 @@ mod tests {
             3
         );
         assert_eq!(engine.session_next_state_on_logout(0).unwrap(), 5);
-        // The enqueue identity resolves (proving the exact decision set)
-        // but is deliberately never invoked (see below).
-        assert_eq!(
-            engine.identities().enqueue_outcome_id(),
-            "task_service.core.enqueue_outcome"
-        );
+        assert_eq!(engine.enqueue_outcome(false, b"", b"job-1").unwrap(), 0);
+        assert_eq!(engine.enqueue_outcome(true, b"job-1", b"job-1").unwrap(), 1);
+        assert_eq!(engine.enqueue_outcome(true, b"job-1", b"job-2").unwrap(), 2);
     }
 
     #[test]
@@ -391,11 +399,10 @@ mod tests {
                 DECISION_MAX_STEPS
             )
             .is_err());
-        // A vocabulary-admitting decision whose closure reaches a
-        // contract-bearing callee (`std.bytes.byte_to_i64`) is refused as
-        // well; the host mirrors its truth table instead of invoking it.
+        // The contract-bearing standard function remains outside the service
+        // vocabulary, while the scaffold wrapper above is admitted.
         let enqueue = revision.evaluate_service_decision_v1(
-            "task_service.core.enqueue_outcome",
+            "std.jobs.idempotency.enqueue_outcome",
             &[
                 PublicApiArgument::Bool(false),
                 PublicApiArgument::BorrowSliceU8(b"job-1"),

@@ -16,7 +16,6 @@ use function @id("std.db.transaction.next_on_commit") from std.db as transaction
 use function @id("std.http.method_is_valid") from std.http as http_method_is_valid;
 use function @id("std.http.request_line_admitted") from std.http as request_line_admitted;
 use function @id("std.jobs.claim.is_legal") from std.jobs as claim_is_legal;
-use function @id("std.jobs.idempotency.enqueue_outcome") from std.jobs as idempotency_enqueue_outcome;
 use function @id("std.jobs.retry.next_state_after_outcome") from std.jobs as retry_next_state_after_outcome;
 use function @id("std.jobs.schedule.is_due") from std.jobs as schedule_is_due;
 use function @id("std.jobs.state.is_terminal") from std.jobs as state_is_terminal;
@@ -123,7 +122,17 @@ fn enqueue_is_legal(pending_state: usize, now_tick: usize, next_run_tick: usize)
 @id("task_service.core.enqueue_outcome")
 fn enqueue_outcome(key_exists: bool, existing_descriptor: borrow Slice<u8>, candidate_descriptor: borrow Slice<u8>) -> usize
 {
-    idempotency_enqueue_outcome(key_exists, existing_descriptor, candidate_descriptor)
+    let length = byte_len(existing_descriptor);
+    let mut index = 0usize;
+    let mut same = length == byte_len(candidate_descriptor);
+    while index < length && same {
+        let existing = match byte_get(existing_descriptor, index) { Option::Some { value } => value, Option::None {} => 0u8, };
+        let candidate = match byte_get(candidate_descriptor, index) { Option::Some { value } => value, Option::None {} => 0u8, };
+        same = existing == candidate;
+        index = index + 1usize;
+        index < length && same
+    }
+    if !key_exists { 0usize } else { if same { 1usize } else { 2usize } }
 }
 
 @id("task_service.core.mark_job_succeeded")

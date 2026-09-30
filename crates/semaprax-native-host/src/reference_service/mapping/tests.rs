@@ -495,24 +495,24 @@ fn job_enqueue_is_idempotent_and_completion_settles_once() {
 /// function is auto-discovered as an individually executed case (see
 /// `project::execution::cases`) and returns the *raw* usize outcome
 /// converted to `i64`, not a pass/fail encoding, so the assertions below
-/// compare the real checked decision's returned value against
-/// `enqueue_outcome_mirror` for the exact same representative inputs:
+/// compare the real checked standard decision's returned value against the
+/// host's admitted scaffold decision for the exact same representative inputs:
 /// no existing job (fresh), an equal descriptor (duplicate), a
 /// conflicting descriptor, empty descriptors, and descriptor bytes at
 /// the exact `u8` boundary (0x00/0xFF). This runs through the project's
 /// normal (non-public-API) test-execution path -- the same one
 /// `semaprax test` uses -- because the public-API seam refuses this
 /// closure (`SPX-F102`, see `decisions.rs`): it reaches the
-/// contract-bearing `std.bytes.byte_to_i64`. Nothing else cross-checks
-/// `enqueue_outcome_mirror` against the checked `.spx` truth, so a
-/// std-library edit that changes the decision fails this test visibly.
+/// contract-bearing `std.bytes.byte_to_i64`. The host invokes the
+/// contract-free scaffold decision, so a change in either source truth fails
+/// this parity regression visibly.
 #[test]
-fn enqueue_outcome_mirror_matches_the_checked_decision_for_representative_inputs() {
-    const MANIFEST: &str = "schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"enqueue-outcome-mirror-check\"\nversion = \"0.1.0\"\nprofile = \"useful-data.v1\"\n\n[modules]\nentry = \"enqueue_outcome_check.app\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\ntests = [\"enqueue_outcome_check.tests\"]\n\n[exports]\nweb = [\"enqueue_outcome_check.app.probe\"]\n\n[dependencies]\nstd.jobs = \"=0.1.0\"\n";
+fn enqueue_outcome_source_and_host_decisions_remain_in_parity() {
+    const MANIFEST: &str = "schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"enqueue-outcome-source-host-parity\"\nversion = \"0.1.0\"\nprofile = \"useful-data.v1\"\n\n[modules]\nentry = \"enqueue_outcome_check.app\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\ntests = [\"enqueue_outcome_check.tests\"]\n\n[exports]\nweb = [\"enqueue_outcome_check.app.probe\"]\n\n[dependencies]\nstd.jobs = \"=0.1.0\"\n";
     const APP: &str = "module enqueue_outcome_check.app;\n\n@id(\"enqueue_outcome_check.app.probe\")\nfn probe(view: borrow Slice<u8>) -> bool\n{\n    byte_len(view) < 1000000usize\n}\n\n@id(\"enqueue_outcome_check.app.main\")\nfn main() -> i64\n{\n    0\n}\n";
     const TESTS: &str = "module enqueue_outcome_check.tests;\nuse function @id(\"std.jobs.idempotency.enqueue_outcome\") from std.jobs as idempotency_enqueue_outcome;\n\n@id(\"enqueue_outcome_check.tests.to_i64\")\nfn to_i64(value: usize) -> i64\n{\n    if value == 0usize { 0 } else { if value == 1usize { 1 } else { 2 } }\n}\n\n@id(\"enqueue_outcome_check.tests.test_fresh\")\nfn test_fresh() -> i64\n{\n    let existing = [0u8; 0];\n    let candidate = [106u8, 111u8, 98u8, 45u8, 49u8];\n    to_i64(idempotency_enqueue_outcome(false, array_as_slice(existing), array_as_slice(candidate)))\n}\n\n@id(\"enqueue_outcome_check.tests.test_equal_descriptor\")\nfn test_equal_descriptor() -> i64\n{\n    let descriptor = [106u8, 111u8, 98u8, 45u8, 49u8];\n    to_i64(idempotency_enqueue_outcome(true, array_as_slice(descriptor), array_as_slice(descriptor)))\n}\n\n@id(\"enqueue_outcome_check.tests.test_different_descriptor\")\nfn test_different_descriptor() -> i64\n{\n    let existing = [106u8, 111u8, 98u8, 45u8, 49u8];\n    let candidate = [106u8, 111u8, 98u8, 45u8, 50u8];\n    to_i64(idempotency_enqueue_outcome(true, array_as_slice(existing), array_as_slice(candidate)))\n}\n\n@id(\"enqueue_outcome_check.tests.test_empty_descriptors\")\nfn test_empty_descriptors() -> i64\n{\n    let empty = [0u8; 0];\n    to_i64(idempotency_enqueue_outcome(true, array_as_slice(empty), array_as_slice(empty)))\n}\n\n@id(\"enqueue_outcome_check.tests.test_boundary_bytes\")\nfn test_boundary_bytes() -> i64\n{\n    let boundary = [0u8, 255u8];\n    to_i64(idempotency_enqueue_outcome(true, array_as_slice(boundary), array_as_slice(boundary)))\n}\n\n@id(\"enqueue_outcome_check.tests.main\")\nfn main() -> i64\n{\n    0\n}\n";
 
-    let (temp, _held) = TempDir::hold("enqueue-outcome-mirror-check");
+    let (temp, _held) = TempDir::hold("enqueue-outcome-source-host-parity");
     std::fs::create_dir_all(temp.join("src")).unwrap();
     std::fs::write(temp.join("semaprax.toml"), MANIFEST).unwrap();
     std::fs::write(temp.join("src/app.spx"), APP).unwrap();
@@ -522,7 +522,7 @@ fn enqueue_outcome_mirror_matches_the_checked_decision_for_representative_inputs
         snapshot.check()?;
         Ok(snapshot.retain_revision())
     })
-    .expect("load the throwaway enqueue-outcome-mirror-check project");
+    .expect("load the throwaway enqueue-outcome-source-host-parity project");
     let execution = revision
         .execute_test(&semaprax::project::ProjectExecutionOptions::default())
         .expect("execute the throwaway project's test module");
@@ -538,25 +538,46 @@ fn enqueue_outcome_mirror_matches_the_checked_decision_for_representative_inputs
             other => panic!("case `{name}` did not return a value: {other:?}"),
         }
     };
+    let fixture = fixture();
 
     assert_eq!(
         raw("test_fresh"),
-        enqueue_outcome_mirror(false, b"", b"job-1") as i64
+        fixture
+            .host
+            .decisions
+            .enqueue_outcome(false, b"", b"job-1")
+            .unwrap() as i64
     );
     assert_eq!(
         raw("test_equal_descriptor"),
-        enqueue_outcome_mirror(true, b"job-1", b"job-1") as i64
+        fixture
+            .host
+            .decisions
+            .enqueue_outcome(true, b"job-1", b"job-1")
+            .unwrap() as i64
     );
     assert_eq!(
         raw("test_different_descriptor"),
-        enqueue_outcome_mirror(true, b"job-1", b"job-2") as i64
+        fixture
+            .host
+            .decisions
+            .enqueue_outcome(true, b"job-1", b"job-2")
+            .unwrap() as i64
     );
     assert_eq!(
         raw("test_empty_descriptors"),
-        enqueue_outcome_mirror(true, b"", b"") as i64
+        fixture
+            .host
+            .decisions
+            .enqueue_outcome(true, b"", b"")
+            .unwrap() as i64
     );
     assert_eq!(
         raw("test_boundary_bytes"),
-        enqueue_outcome_mirror(true, &[0u8, 255u8], &[0u8, 255u8]) as i64
+        fixture
+            .host
+            .decisions
+            .enqueue_outcome(true, &[0u8, 255u8], &[0u8, 255u8])
+            .unwrap() as i64
     );
 }

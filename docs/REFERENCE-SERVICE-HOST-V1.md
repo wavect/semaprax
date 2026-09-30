@@ -45,9 +45,11 @@ Each exchange first passes the scaffold's own `request_is_admitted`
 decision. The checked invocation vocabulary admits `i64`, `u8`, `usize`,
 `bool`, and borrowed bytes when the selected closure is effect- and
 contract-free. The host invokes the scaffold's request-line, registration
-name, row-ownership, and session-deadline decisions. Idempotent enqueue mirrors the
-checked decision's 0/1/2 truth table host-side because its closure reaches
-a contract-bearing callee. The remaining scaffold decisions not required by
+name, row-ownership, session-deadline, and idempotent-enqueue decisions. The
+enqueue wrapper compares borrowed descriptor bytes in checked source and
+returns the 0/1/2 outcome; the host refuses evaluator errors or out-of-range
+outcomes. Direct selection of the contract-bearing standard-library enqueue
+helper still refuses at the public-API seam. The remaining scaffold decisions not required by
 these routes retain their fixture-mode coverage and are documented as open in
 `reference_service::decisions`.
 

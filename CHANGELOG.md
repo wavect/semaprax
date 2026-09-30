@@ -19,6 +19,9 @@ format: `Unreleased` then release buckets, grouped by impact.
   Keep platform-independent owned-wait tests active on Windows while limiting
   tests that require the Unix physical lease fixture to Unix; resolve the
   hosted Clippy diagnostics in workspace and catalog acceptance tests.
+  Retain cross-platform settlement test helpers, refresh the browser
+  baseline's exact graph digest, and admit the shared workspace fixture in
+  the offline package test harness.
 
 - Add a closed acceptance-record format for #328's Kernel-0 rung-2 decision.
   It requires every local receipt to bind to one selected revision or an exact

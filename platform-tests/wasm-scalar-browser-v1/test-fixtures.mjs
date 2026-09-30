@@ -39,7 +39,7 @@ const fixtureSpecs = [
     schema: "semaprax.web-project.v1",
     project_revision: "sha256:8576caa566cb7f0d265354927c5bc7b481146f05e616f76917f340b4af26f053",
     workspace_revision: "sha256:f0454397a2b339677bc49c9ccd8e8491917426202c6aba2475221879e02ae3f6",
-    project_graph_digest: "sha256:7cce96e824f2d69330624882a4c8ce844e396dbcebb826281c41f0ad84ea5c85",
+    project_graph_digest: "sha256:868426c0c3eae80ed005c774d52b834808c0d806608e55b51057f9fcaca0cdbb",
   },
   {
     name: "project-renamed",

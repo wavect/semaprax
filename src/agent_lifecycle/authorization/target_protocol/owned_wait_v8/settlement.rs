@@ -306,7 +306,7 @@ fn settle_checked(
     })
 }
 
-#[cfg(all(test, unix))]
+#[cfg(test)]
 mod tests;
 #[cfg(test)]
 pub(crate) use tests::{test_effect_exchange, test_failed_effect_exchange};

@@ -123,6 +123,7 @@ fn test_effect_exchange_mode(
         run.result().map(TypedCarrier::encode),
     )
 }
+#[cfg(unix)]
 #[test]
 fn owned_wait_effect_settlement_replays_exact_exchange_and_refuses_result_or_phase_substitution() {
     CheckedOwnedWaitJournalContextV8::test_with_actual_runtime(|context, _lease, _key| {

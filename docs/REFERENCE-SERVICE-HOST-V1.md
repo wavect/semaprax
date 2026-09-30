@@ -129,11 +129,14 @@ only from operator-held certificate/key material named on the command
 line, not from configuration intent, and not chained beyond the one leaf
 certificate this host holds. The `.invalid` origins in tests exist so no
 real peer can be contacted; delivery attempts there fail closed by design.
-Sessions carry persisted Unix-second idle and absolute deadline facts. At each
-authenticated request, the host invokes the scaffold's checked
-`session_is_usable` decision with those facts and the current host tick; an
-expired token receives the ordinary unauthorized response. The default fixed
+Sessions carry persisted Unix-second idle and absolute deadline facts plus the
+checked `std.auth.session` state code. At each authenticated request, the host
+invokes the scaffold's `session_is_usable` and `session_next_state_on_access`
+decisions with those facts and the current host tick. Their answers must agree:
+an active result remains usable, while expiry is committed as its selected
+terminal state before the ordinary unauthorized response. Explicit logout
+similarly persists the source-selected logout state. The default fixed
 deadlines are 15 minutes and 8 hours from login, with CLI values bounded to
-`idle <= absolute <= 7 days`. Snapshot schema v2 adds these deadline fields;
-v1 snapshots are deliberately refused rather than guessed or silently
+`idle <= absolute <= 7 days`. Snapshot schema v3 adds the state code; v1 and
+v2 snapshots are deliberately refused rather than guessed or silently
 migrated.

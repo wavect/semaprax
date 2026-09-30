@@ -295,16 +295,18 @@ pub fn handle(
     if exchange.method == "POST" && exchange.target == "/v1/login" {
         return login(host, committed, exchange);
     }
-    let Some(authenticated) = authenticate(host, committed, exchange) else {
-        // Registration, login, and health are the only unauthenticated
-        // routes; everything else needs a usable session first.
-        if exchange.method == "POST" && exchange.target == "/v1/logout" {
-            return error(401, "unauthorized", None);
+    let authenticated = match authenticate(host, committed, exchange) {
+        Authentication::Authenticated(value) => value,
+        Authentication::Unauthorized => {
+            if exchange.method == "POST" && exchange.target == "/v1/logout" {
+                return error(401, "unauthorized", None);
+            }
+            if route_needs_auth(&exchange.method, &exchange.target) {
+                return error(401, "unauthorized", None);
+            }
+            return error(404, "unknown_route", None);
         }
-        if route_needs_auth(&exchange.method, &exchange.target) {
-            return error(401, "unauthorized", None);
-        }
-        return error(404, "unknown_route", None);
+        Authentication::Failed => return error(500, "decision_failed", None),
     };
     if exchange.method == "POST" && exchange.target == "/v1/logout" {
         return logout(host, committed, &authenticated);
@@ -341,6 +343,12 @@ pub fn handle(
 struct Authenticated {
     account: i64,
     session: String,
+}
+
+enum Authentication {
+    Authenticated(Authenticated),
+    Unauthorized,
+    Failed,
 }
 
 fn route_needs_auth(method: &str, target: &str) -> bool {
@@ -394,17 +402,21 @@ fn parse_id(text: &str) -> Option<i64> {
 }
 
 fn authenticate(
-    host: &BoundHost<'_, '_>,
-    committed: &CommittedState,
+    host: &mut BoundHost<'_, '_>,
+    committed: &mut CommittedState,
     exchange: &HttpExchange,
-) -> Option<Authenticated> {
+) -> Authentication {
     let value = exchange
         .headers
         .iter()
         .find(|(name, _)| name.eq_ignore_ascii_case("authorization"))
-        .map(|(_, value)| value.as_str())?;
-    let token = value.strip_prefix("Bearer ")?;
-    let (id, tag) = token.split_once('.')?;
+        .map(|(_, value)| value.as_str());
+    let Some(token) = value.and_then(|value| value.strip_prefix("Bearer ")) else {
+        return Authentication::Unauthorized;
+    };
+    let Some((id, tag)) = token.split_once('.') else {
+        return Authentication::Unauthorized;
+    };
     if id.len() != SESSION_ID_BYTES * 2
         || tag.len() != 64
         || !id.bytes().all(|byte| byte.is_ascii_hexdigit())
@@ -412,30 +424,75 @@ fn authenticate(
         || id.bytes().any(|byte| byte.is_ascii_uppercase())
         || tag.bytes().any(|byte| byte.is_ascii_uppercase())
     {
-        return None;
+        return Authentication::Unauthorized;
     }
-    let id_bytes = unhex(id)?;
-    let mut mac = HmacSha256::new_from_slice(host.secrets.session_key()).ok()?;
+    let Some(id_bytes) = unhex(id) else {
+        return Authentication::Unauthorized;
+    };
+    let Ok(mut mac) = HmacSha256::new_from_slice(host.secrets.session_key()) else {
+        return Authentication::Failed;
+    };
     mac.update(&id_bytes);
-    mac.verify_slice(&unhex(tag)?).ok()?;
-    let session = committed.state.session_by_id(id)?;
-    if session.retired {
-        return None;
+    let Some(tag) = unhex(tag) else {
+        return Authentication::Unauthorized;
+    };
+    if mac.verify_slice(&tag).is_err() {
+        return Authentication::Unauthorized;
     }
-    let usable = host
-        .decisions
-        .session_is_usable(
-            0,
-            current_tick()?,
-            u64::try_from(session.idle_deadline_tick).ok()?,
-            u64::try_from(session.absolute_deadline_tick).ok()?,
-        )
-        .ok()?;
+    let Some(session) = committed.state.session_by_id(id) else {
+        return Authentication::Unauthorized;
+    };
+    let Some(now_tick) = current_tick() else {
+        return Authentication::Failed;
+    };
+    let (state, account, idle_deadline_tick, absolute_deadline_tick) = (
+        u64::from(session.state),
+        session.account,
+        match u64::try_from(session.idle_deadline_tick) {
+            Ok(value) => value,
+            Err(_) => return Authentication::Failed,
+        },
+        match u64::try_from(session.absolute_deadline_tick) {
+            Ok(value) => value,
+            Err(_) => return Authentication::Failed,
+        },
+    );
+    let usable = match host.decisions.session_is_usable(
+        state,
+        now_tick,
+        idle_deadline_tick,
+        absolute_deadline_tick,
+    ) {
+        Ok(value) => value,
+        Err(_) => return Authentication::Failed,
+    };
+    let next_state = match host.decisions.session_next_state_on_access(
+        state,
+        now_tick,
+        idle_deadline_tick,
+        absolute_deadline_tick,
+    ) {
+        Ok(value) if value <= 5 => value as u8,
+        Ok(_) | Err(_) => return Authentication::Failed,
+    };
+    if usable != (next_state == 0) {
+        return Authentication::Failed;
+    }
+    if next_state != session.state {
+        let mut state = committed.state.clone();
+        let Some(session) = state.sessions.iter_mut().find(|session| session.id == id) else {
+            return Authentication::Failed;
+        };
+        session.state = next_state;
+        if commit(host, committed, state).is_err() {
+            return Authentication::Failed;
+        }
+    }
     if !usable {
-        return None;
+        return Authentication::Unauthorized;
     }
-    Some(Authenticated {
-        account: session.account,
+    Authentication::Authenticated(Authenticated {
+        account,
         session: id.to_owned(),
     })
 }
@@ -650,7 +707,7 @@ fn login(
     state.sessions.push(Session {
         id,
         account: account_id,
-        retired: false,
+        state: 0,
         idle_deadline_tick,
         absolute_deadline_tick,
     });
@@ -679,7 +736,13 @@ fn logout(
     else {
         return error(401, "unauthorized", None);
     };
-    session.retired = true;
+    session.state = match host
+        .decisions
+        .session_next_state_on_logout(u64::from(session.state))
+    {
+        Ok(value) if value <= 5 => value as u8,
+        Ok(_) | Err(_) => return error(500, "decision_failed", None),
+    };
     if let Err(response) = commit(host, committed, state) {
         return response;
     }
@@ -741,9 +804,9 @@ fn authorize_row(
     owner: i64,
     authenticated: &Authenticated,
 ) -> Result<bool, PendingResponse> {
-    // Host usability is presence plus non-retirement (the session passed
-    // `authenticate`); the scaffold's tick-based session decision is not in
-    // the invocable vocabulary, so it keeps its fixture-mode coverage.
+    // `authenticate` has already evaluated the checked session usability and
+    // access transition. Row ownership is therefore the separate source
+    // authorization decision over a currently active session.
     host.decisions
         .task_owner_authorized(owner, authenticated.account, true)
         .map_err(|_| error(500, "decision_failed", None))

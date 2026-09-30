@@ -13,7 +13,8 @@
 //! Only the scaffold decisions whose signatures that vocabulary admits,
 //! and whose entire call closure is effect- and contract-free, are
 //! invocable here: `request_is_admitted`, `identifier_is_valid`,
-//! `method_is_rejected`, `task_owner_authorized`, and `session_is_usable`.
+//! `method_is_rejected`, `task_owner_authorized`, and the three session
+//! predicates/transitions.
 //! `enqueue_outcome`
 //! admits the vocabulary but its closure reaches the contract-bearing
 //! `std.bytes.byte_to_i64`, so the host mirrors its documented 0/1/2 truth
@@ -49,8 +50,8 @@ pub enum DecisionRefusal {
 
 /// The scaffold decision identities resolved from one revision. The module
 /// prefix is discovered, never assumed: a scaffolded project carries
-/// `<module>.core.<decision>` for its own module name. All six must
-/// resolve (proving the exact decision set), but only five are invoked
+/// `<module>.core.<decision>` for its own module name. All eight must
+/// resolve (proving the exact decision set), but only seven are invoked
 /// (see the module documentation).
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct DecisionIdentities {
@@ -60,6 +61,8 @@ pub struct DecisionIdentities {
     method_is_rejected: String,
     task_owner_authorized: String,
     session_is_usable: String,
+    session_next_state_on_access: String,
+    session_next_state_on_logout: String,
     enqueue_outcome: String,
 }
 
@@ -73,6 +76,8 @@ impl DecisionIdentities {
         let method_is_rejected = sole(program, "method_is_rejected")?;
         let task_owner_authorized = sole(program, "task_owner_authorized")?;
         let session_is_usable = sole(program, "session_is_usable")?;
+        let session_next_state_on_access = sole(program, "session_next_state_on_access")?;
+        let session_next_state_on_logout = sole(program, "session_next_state_on_logout")?;
         let enqueue_outcome = sole(program, "enqueue_outcome")?;
         let prefix = prefix_of(&request_is_admitted).ok_or(DecisionRefusal::Unresolved)?;
         for identity in [
@@ -80,6 +85,8 @@ impl DecisionIdentities {
             &method_is_rejected,
             &task_owner_authorized,
             &session_is_usable,
+            &session_next_state_on_access,
+            &session_next_state_on_logout,
             &enqueue_outcome,
         ] {
             if prefix_of(identity) != Some(prefix) {
@@ -93,6 +100,8 @@ impl DecisionIdentities {
             method_is_rejected,
             task_owner_authorized,
             session_is_usable,
+            session_next_state_on_access,
+            session_next_state_on_logout,
             enqueue_outcome,
         })
     }
@@ -138,6 +147,8 @@ fn prefix_of(identity: &str) -> Option<&str> {
         .or_else(|| identity.strip_suffix(".core.method_is_rejected"))
         .or_else(|| identity.strip_suffix(".core.task_owner_authorized"))
         .or_else(|| identity.strip_suffix(".core.session_is_usable"))
+        .or_else(|| identity.strip_suffix(".core.session_next_state_on_access"))
+        .or_else(|| identity.strip_suffix(".core.session_next_state_on_logout"))
         .or_else(|| identity.strip_suffix(".core.enqueue_outcome"))
 }
 
@@ -179,6 +190,22 @@ impl<'revision> DecisionEngine<'revision> {
             .map_err(|_| DecisionRefusal::EvaluationFailed)?;
         match evaluation.outcome {
             PublicApiEvaluationOutcome::Returned(PublicApiValue::Bool(value)) => Ok(value),
+            PublicApiEvaluationOutcome::Returned(_) => Err(DecisionRefusal::UnexpectedResult),
+            _ => Err(DecisionRefusal::EvaluationFailed),
+        }
+    }
+
+    fn invoke_usize(
+        &self,
+        identity: &str,
+        arguments: &[PublicApiArgument<'_>],
+    ) -> Result<usize, DecisionRefusal> {
+        let evaluation = self
+            .revision
+            .evaluate_service_decision_v1(identity, arguments, self.max_steps)
+            .map_err(|_| DecisionRefusal::EvaluationFailed)?;
+        match evaluation.outcome {
+            PublicApiEvaluationOutcome::Returned(PublicApiValue::Usize(value)) => Ok(value),
             PublicApiEvaluationOutcome::Returned(_) => Err(DecisionRefusal::UnexpectedResult),
             _ => Err(DecisionRefusal::EvaluationFailed),
         }
@@ -251,6 +278,35 @@ impl<'revision> DecisionEngine<'revision> {
             ],
         )
     }
+
+    /// Evaluate the source transition selected for an access attempt. The
+    /// returned state is persisted by the host, preserving terminality across
+    /// restart instead of treating expiry as a transient authorization check.
+    pub fn session_next_state_on_access(
+        &self,
+        state: u64,
+        now_tick: u64,
+        idle_deadline_tick: u64,
+        absolute_deadline_tick: u64,
+    ) -> Result<usize, DecisionRefusal> {
+        self.invoke_usize(
+            &self.identities.session_next_state_on_access,
+            &[
+                PublicApiArgument::Usize(state),
+                PublicApiArgument::Usize(now_tick),
+                PublicApiArgument::Usize(idle_deadline_tick),
+                PublicApiArgument::Usize(absolute_deadline_tick),
+            ],
+        )
+    }
+
+    /// Evaluate the source transition selected for an explicit logout.
+    pub fn session_next_state_on_logout(&self, state: u64) -> Result<usize, DecisionRefusal> {
+        self.invoke_usize(
+            &self.identities.session_next_state_on_logout,
+            &[PublicApiArgument::Usize(state)],
+        )
+    }
 }
 
 #[cfg(test)]
@@ -290,6 +346,19 @@ mod tests {
         assert!(engine.session_is_usable(0, 1_000, 1_900, 5_000).unwrap());
         assert!(!engine.session_is_usable(0, 1_900, 1_900, 5_000).unwrap());
         assert!(!engine.session_is_usable(0, 5_000, 6_000, 5_000).unwrap());
+        assert_eq!(
+            engine
+                .session_next_state_on_access(0, 1_000, 1_900, 5_000)
+                .unwrap(),
+            0
+        );
+        assert_eq!(
+            engine
+                .session_next_state_on_access(0, 1_900, 1_900, 5_000)
+                .unwrap(),
+            3
+        );
+        assert_eq!(engine.session_next_state_on_logout(0).unwrap(), 5);
         // The enqueue identity resolves (proving the exact decision set)
         // but is deliberately never invoked (see below).
         assert_eq!(

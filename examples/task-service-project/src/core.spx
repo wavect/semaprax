@@ -99,6 +99,18 @@ fn session_is_usable_for_host(state: usize, now_tick: usize, idle_deadline_tick:
     session_is_usable(state, now_tick, idle_deadline_tick, absolute_deadline_tick)
 }
 
+@id("task_service.core.session_next_state_on_access")
+fn session_next_state_on_access_for_host(state: usize, now_tick: usize, idle_deadline_tick: usize, absolute_deadline_tick: usize) -> usize
+{
+    session_next_state_on_access(state, now_tick, idle_deadline_tick, absolute_deadline_tick)
+}
+
+@id("task_service.core.session_next_state_on_logout")
+fn session_next_state_on_logout_for_host(state: usize) -> usize
+{
+    session_next_state_on_logout(state)
+}
+
 @id("task_service.core.enqueue_is_legal")
 fn enqueue_is_legal(pending_state: usize, now_tick: usize, next_run_tick: usize) -> bool
 {
@@ -166,12 +178,12 @@ fn run_scenario() -> i64
     let owner_account_id = 1;
     let table_name = [116u8, 97u8, 115u8, 107u8, 115u8];
     let task_id = 1;
-    let state_at_update = session_next_state_on_access(active, update_tick, idle_deadline, absolute_deadline);
+    let state_at_update = session_next_state_on_access_for_host(active, update_tick, idle_deadline, absolute_deadline);
     let in_progress_status = 1usize;
     let job_key = [1u8, 4u8, 3u8];
     let enqueue_outcome_code = enqueue_outcome(false, array_as_slice(job_key), array_as_slice(job_key));
     let finished_job_state = mark_job_succeeded(0u8, 3u8);
-    let logged_out = session_next_state_on_logout(state_at_update);
+    let logged_out = session_next_state_on_logout_for_host(state_at_update);
     let intruder_account_id = 2;
     let bad_method = [103u8, 101u8, 116u8];
     let bad_identifier = [49u8, 116u8, 97u8, 115u8, 107u8];

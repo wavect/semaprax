@@ -220,12 +220,94 @@ fn register_login_crud_logout_round_trip() {
         &exchange("POST", "/v1/logout", "", Some(&token)),
     );
     assert_eq!(logged_out.status, 200);
+    assert_eq!(
+        fixture
+            .committed
+            .state
+            .session_by_id(&token[..SESSION_ID_BYTES * 2])
+            .unwrap()
+            .state,
+        5,
+        "logout persists the checked terminal state"
+    );
     let retired = handle(
         &mut fixture.host,
         &mut fixture.committed,
         &exchange("GET", "/v1/tasks/1", "", Some(&token)),
     );
     assert_eq!(retired.status, 401);
+}
+
+#[test]
+fn source_selected_expiry_is_persisted_and_sticky() {
+    let mut fixture = fixture();
+    let registered = handle(
+        &mut fixture.host,
+        &mut fixture.committed,
+        &exchange(
+            "POST",
+            "/v1/register",
+            r#"{"username":"expiring","password":"correct horse 7"}"#,
+            None,
+        ),
+    );
+    assert_eq!(registered.status, 201, "{}", registered.body);
+    let logged_in = handle(
+        &mut fixture.host,
+        &mut fixture.committed,
+        &exchange(
+            "POST",
+            "/v1/login",
+            r#"{"username":"expiring","password":"correct horse 7"}"#,
+            None,
+        ),
+    );
+    assert_eq!(logged_in.status, 200, "{}", logged_in.body);
+    let token = field(&logged_in.body, "token").as_str().unwrap().to_owned();
+    let session_id = &token[..SESSION_ID_BYTES * 2];
+    let expired = fixture
+        .committed
+        .state
+        .sessions
+        .iter_mut()
+        .find(|session| session.id == session_id)
+        .unwrap();
+    expired.idle_deadline_tick = 0;
+    expired.absolute_deadline_tick = i64::MAX;
+
+    let first = handle(
+        &mut fixture.host,
+        &mut fixture.committed,
+        &exchange("GET", "/v1/tasks/1", "", Some(&token)),
+    );
+    assert_eq!(first.status, 401, "{}", first.body);
+    assert_eq!(
+        fixture
+            .committed
+            .state
+            .session_by_id(session_id)
+            .unwrap()
+            .state,
+        3,
+        "the checked access transition selects idle_expired"
+    );
+    let sequence_after_expiry = fixture.committed.state.seq;
+    let second = handle(
+        &mut fixture.host,
+        &mut fixture.committed,
+        &exchange("GET", "/v1/tasks/1", "", Some(&token)),
+    );
+    assert_eq!(second.status, 401, "{}", second.body);
+    assert_eq!(fixture.committed.state.seq, sequence_after_expiry);
+    assert_eq!(
+        fixture
+            .committed
+            .state
+            .session_by_id(session_id)
+            .unwrap()
+            .state,
+        3
+    );
 }
 
 #[test]

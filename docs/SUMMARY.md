@@ -336,6 +336,7 @@ Audience: all documentation readers.
 - [Public Generic Settlement Corpus v1](PUBLIC-GENERIC-SETTLEMENT-CORPUS-V1.md)
 - [Public Generic Candidate Delta v1](PUBLIC-GENERIC-CANDIDATE-DELTA-V1.md)
 - [Public Generic Release-Candidate Evidence v1](PUBLIC-GENERIC-RELEASE-CANDIDATE-EVIDENCE-V1.md)
+- [Public Generic Candidate Reconciliation — v080](PUBLIC-GENERIC-CANDIDATE-RECONCILIATION-V080.md)
 - [Owned npm invocation failure state v1](OWNED-NPM-INVOCATION-V1.md)
 - [Useful Text Consumer v1](USEFUL-TEXT-CONSUMER-V1.md)
 - [Bounded stdout transcript](BOUNDED-STDOUT-TRANSCRIPT-V1.md)

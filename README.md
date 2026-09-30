@@ -1,7 +1,5 @@
 <div align="center">
 
-<img src="handbook/assets/ernesto/ernesto.png" alt="Ernesto, the official Semaprax mascot" width="180">
-
 # SEMAPRAX
 
 ### Meaning in. Verified machine code out.

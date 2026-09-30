@@ -448,11 +448,11 @@ impl ProspectiveOwnedReduceHoldV8<'_> {
                     recorded,
                     ..
                 }) => {
-                    self.validate_settlement_inventory(
-                        inventory,
-                        inventory.sequence(),
-                        inventory.acknowledged_bytes(),
-                    )?;
+                    if *turn == 0 {
+                        self.validate_settlement_inventory(inventory, inventory.sequence(), inventory.acknowledged_bytes())?;
+                    } else {
+                        self.validate_continued_settlement_inventory(journal, inventory, inventory.sequence(), inventory.acknowledged_bytes())?;
+                    }
                     let (_, _, t, a, row) = inventory.effect_settlement_reduce_facts()?;
                     if !matches!(
                         row,
@@ -597,7 +597,7 @@ impl ProspectiveOwnedReduceHoldV8<'_> {
                 &record.authentication,
             )?;
             let phase=match (&record.phase,&selected){
-                (OwnedReduceHoldPhaseV8::Recorded{..},EntryV8::Owned(crate::live_invocation::source_journal::owned_wait_v8::model::OwnedBodyV8::OwnedEffectDecisionCleanupStarted{..}))=>OwnedReduceHoldPhaseV8::CleanupStarted{selected},
+                (OwnedReduceHoldPhaseV8::Recorded{..} | OwnedReduceHoldPhaseV8::TurnEffect{phase:turn_effect::RenewalPhaseV8::Recorded,..},EntryV8::Owned(crate::live_invocation::source_journal::owned_wait_v8::model::OwnedBodyV8::OwnedEffectDecisionCleanupStarted{..}))=>OwnedReduceHoldPhaseV8::CleanupStarted{selected},
                 (OwnedReduceHoldPhaseV8::CleanupStarted{..},EntryV8::Owned(crate::live_invocation::source_journal::owned_wait_v8::model::OwnedBodyV8::OwnedEffectDecisionCleanupSettled{..}))=>OwnedReduceHoldPhaseV8::CleanupSettled{selected},
                 _=>return Err(SourceJournalError::Binding),
             };

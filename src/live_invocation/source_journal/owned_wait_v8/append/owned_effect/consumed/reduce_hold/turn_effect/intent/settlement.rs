@@ -8,7 +8,7 @@ fn phase_matches(phase: &RenewalPhaseV8, row: &EntryV8) -> bool {
  (RenewalPhaseV8::Recorded,EntryV8::Owned(crate::live_invocation::source_journal::owned_wait_v8::model::OwnedBodyV8::OwnedEffectSettlementRecorded{..})))
 }
 impl ProspectiveOwnedReduceHoldV8<'_> {
-    fn validate_continued_settlement_inventory(
+    pub(in crate::live_invocation::source_journal::owned_wait_v8::append) fn validate_continued_settlement_inventory(
         &self,
         journal: &SourceOwnedWaitJournalV8,
         inventory: &InventoryV8<'_>,

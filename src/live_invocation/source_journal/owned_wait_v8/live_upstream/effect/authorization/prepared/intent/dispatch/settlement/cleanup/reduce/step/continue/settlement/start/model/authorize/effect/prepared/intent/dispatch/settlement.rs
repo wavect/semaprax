@@ -259,6 +259,60 @@ impl<'j> ContinuedResumedWaitV8<'j> {
         })()
         .inspect_err(|_| self.lineage.journal().quarantine())
     }
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn continued_cleanup_values(
+        &self,
+        prior: &AppendSessionV8<'j>,
+        consumed: &VerifiedOwnedContinuedEffectSuccessorV8<'j>,
+        intent_session: &AppendSessionV8<'j>,
+        intent_witness: &VerifiedOwnedContinuedIntentSuccessorV8<'j>,
+        proposal: &CheckedOwnedWaitProposalV8,
+        commitments: &CheckedOwnedWaitReadyCommitmentsV8,
+        references: (u32, u32, u32),
+        previous: Option<(
+            &AppendSessionV8<'j>,
+            &VerifiedOwnedContinuedSettlementSuccessorV8<'j>,
+        )>,
+        current: Option<(
+            &AppendSessionV8<'j>,
+            &VerifiedOwnedContinuedSettlementSuccessorV8<'j>,
+        )>,
+    ) -> Result<(serde_json::Value, serde_json::Value), SourceJournalError> {
+        (|| {
+            let ContinuedResumeOutcomeV8::Authorization(ContinuedAuthorizationOutcomeV8::Effect(
+                ContinuedEffectOutcomeV8::Dispatch(owner, preceding),
+            )) = &self.outcome
+            else {
+                return Err(SourceJournalError::Order);
+            };
+            if let Some(error) = owner.selected_error() {
+                return Err(error);
+            }
+            if !owner.accounting_matches(preceding, &self.accounting) {
+                return Err(SourceJournalError::Binding);
+            }
+            let intent = LiveContinuedIntentPermitV8 {
+                lineage: &self.lineage,
+                prior,
+                consumed,
+                current: Some((intent_session, intent_witness)),
+                proposal,
+                commitments,
+                references,
+                accounting: preceding,
+            };
+            let permit = LiveContinuedSettlementPermitV8 {
+                intent,
+                previous,
+                current,
+                actual_accounting: &self.accounting,
+            };
+            permit.validate_current()?;
+            let facts = owner.decision_cleanup_values(&permit)?;
+            permit.validate_current()?;
+            Ok(facts)
+        })()
+        .inspect_err(|_| self.lineage.journal().quarantine())
+    }
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_continued_settlement_append_prefix(
         &self,
         journal: &SourceOwnedWaitJournalV8,
@@ -285,3 +339,33 @@ impl<'j> ContinuedResumedWaitV8<'j> {
             .advance_continued_settlement_ack(witness, session)
     }
 }
+
+impl<'j> ContinuedResumedWaitV8<'j> {
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn cleanup_hold(&self) -> &crate::live_invocation::source_journal::owned_wait_v8::append::owned_effect::ProspectiveOwnedReduceHoldV8<'j> {
+        &self.lineage.step.origin().hold
+    }
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_continued_cleanup_guard(
+        &self,
+        session: &AppendSessionV8<'_>,
+        witness: &crate::live_invocation::source_journal::owned_wait_v8::append::owned_effect::VerifiedOwnedEffectCleanupSuccessorV8<'_>,
+        proposal: &CheckedOwnedWaitProposalV8,
+    ) -> Result<(), SourceJournalError> {
+        (|| {
+            let journal = self.lineage.journal();
+            if !session.belongs_to(journal) { return Err(SourceJournalError::Binding); }
+            witness.validate_current_session(session)?;
+            self.cleanup_hold().validate_cleanup_guard(journal, session.sequence(), session.acknowledged_bytes())?;
+            let held = journal.hold()?;
+            let (runtime, execution) = journal.context().ready_runtime().ok_or(SourceJournalError::Binding)?;
+            let plan = plan_owned_effect_v8(runtime, execution, &held.registration().expected_facts().scope, proposal).map_err(|_| SourceJournalError::Binding)?;
+            if !self.lineage.step.origin().policy.allows(plan.operation().effect_id()) { return Err(SourceJournalError::Binding); }
+            // Cleanup incurred at Started keeps physical/policy authority, even
+            // when cancellation or deadline prevents later source work.
+            held.validate_prefix(session.sequence(), session.acknowledged_bytes())?;
+            self.cleanup_hold().validate_cleanup_guard(journal, session.sequence(), session.acknowledged_bytes())?;
+            witness.validate_current_session(session)
+        })().inspect_err(|_| self.lineage.journal().quarantine())
+    }
+}
+
+pub(in crate::live_invocation::source_journal::owned_wait_v8) mod cleanup;

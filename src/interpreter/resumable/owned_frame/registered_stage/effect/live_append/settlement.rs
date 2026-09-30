@@ -134,3 +134,5 @@ impl StagedOwnedEffectV8<'_> {
 }
 
 pub(in crate::interpreter::resumable::owned_frame::registered_stage::effect) mod cleanup;
+
+pub(crate) use cleanup::{release_with_guard_v8, DecisionCleanupGuardV8};

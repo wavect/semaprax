@@ -1316,3 +1316,5 @@ pub(crate) use owned_wait_v8::LiveContinuedEffectAuthorizationPermitV8;
 pub(crate) use owned_wait_v8::LiveContinuedIntentPermitV8;
 
 pub(crate) use owned_wait_v8::LiveContinuedSettlementPermitV8;
+
+pub(crate) use owned_wait_v8::LiveContinuedDecisionCleanupPermitV8;

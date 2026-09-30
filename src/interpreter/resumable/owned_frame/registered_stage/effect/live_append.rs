@@ -199,3 +199,5 @@ pub(super) mod intent;
 
 pub(in crate::interpreter::resumable::owned_frame::registered_stage::effect) mod settlement;
 pub(crate) use settlement::CheckedLiveOwnedEffectSettlementV8;
+
+pub(crate) use settlement::{release_with_guard_v8, DecisionCleanupGuardV8};

@@ -23,6 +23,13 @@ pub(crate) fn release_live_owned_effect_decision_v8<'j>(
     permit: &LiveEffectDecisionCleanupPermitV8<'_, 'j>,
     observe: impl FnMut(&FinalizeAction),
 ) -> Result<PendingOwnedEffectReceiptV8<'j>, LiveEffectDecisionReleaseFailureV8<'j>> {
+    release_with_guard_v8(staged, DecisionCleanupGuardV8::Initial(permit), observe)
+}
+pub(crate) fn release_with_guard_v8<'j>(
+    staged: StagedOwnedEffectV8<'j>,
+    permit: DecisionCleanupGuardV8<'_, '_, 'j>,
+    observe: impl FnMut(&FinalizeAction),
+) -> Result<PendingOwnedEffectReceiptV8<'j>, LiveEffectDecisionReleaseFailureV8<'j>> {
     let valid = (|| {
         permit.validate_guard(&staged.prepared.inputs)?;
         if staged.cleanup_started || staged.authority_lost {
@@ -176,6 +183,15 @@ pub(crate) fn ack_live_owned_effect_cleanup_v8<'j>(
     }
 }
 impl StagedOwnedEffectV8<'_> {
+    pub(crate) fn continued_decision_cleanup_values_v8(
+        &self,
+        permit: &crate::live_invocation::source_journal::LiveContinuedSettlementPermitV8<'_, '_>,
+    ) -> Result<(serde_json::Value, serde_json::Value), SourceJournalError> {
+        permit.validate_guard(&self.prepared.inputs)?;
+        let values = self.live_decision_cleanup_values_v8()?;
+        permit.validate_guard(&self.prepared.inputs)?;
+        Ok(values)
+    }
     /// Inert compiler projection from the still-live exact Decision. No release
     /// or ACK authority is created by these canonical values.
     pub(crate) fn live_decision_cleanup_values_v8(
@@ -285,3 +301,7 @@ pub(crate) use observer_failed_state::{
     release_live_observer_failed_state_v8, LiveObserverFailedStateReleaseFailureV8,
     ReleasedObserverFailedStateV8,
 };
+
+#[path = "cleanup/continued_guard.rs"]
+mod continued_guard;
+pub(crate) use continued_guard::DecisionCleanupGuardV8;

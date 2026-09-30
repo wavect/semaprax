@@ -3169,3 +3169,14 @@ all artifact routes fail closed until its Core Wasm provider emitter exists.
 
 
 The private source-owned Step adapter lives under `append/owned_effect/settlement/cleanup/reduce/step`, with its consuming source obligations under the matching `live_upstream` child. `registered_stage/reduce/physical_step/live_append` joins sealed live permits to the existing physical cleanup and Step field mover. Both authority inventories include these production children. These adapters preserve the same accounting ledger and charged Reduce hold through exact durable successor ACKs; the public Agent driver and cumulative/terminal routes remain separate unfinished joins.
+
+The continued owned-Agent Decision cleanup child under
+`live_upstream/observe/settlement/carry/start/prepared/model/authorize/effect/prepared/intent/dispatch/settlement/cleanup`
+retains the actual second target holder and selects the existing cleanup rows.
+The original fixed cleanup append adapter owns both first-turn and continued
+ACKs; its hold registry moves the cumulative Recorded phase into the same
+cleanup phases without replacing the token. The continued source permit and
+closed interpreter cleanup-guard sum admit actual physical Decision release
+through the existing release primitive. State and partial-release custody stay
+inside the continued holder. Continued Outcome/Reduce and public/recovered
+execution still require their own consuming joins.

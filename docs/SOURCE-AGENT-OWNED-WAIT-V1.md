@@ -777,3 +777,36 @@ The actual full Granted or Refused Decision selects OwnedAuthorizationStaged thr
 New phase-specific witnesses and guards replace the old model cursor after each true ACK. Initial and continued authorization reuse the existing evaluator and transfer protocol. Strict cancellation, deadline, physical provenance, policy and callback checks remain necessary before new source work; incurred source failure retains actual custody rather than granting a retry.
 
 Four owning tests cover full Granted/Refused results and exact consumption, all five ACK phases at four physical fault windows, Requires/Ensures/Arithmetic/Fuel failures after actual source entry, and strict pre-entry plus post-evaluation guards. They remain unrun until the central gate. This private route supplies no Ready, token renewal, second target dispatch, Refused cleanup tail, public terminal publication or recovery reconstruction; those remain required for the full lifecycle criterion.
+
+
+## 49. Actual continued Decision cleanup
+
+An actual continued Recorded holder can select the next Decision cleanup only
+by borrowing its own retained Decision through the current settlement permit.
+The selected row uses the current positive turn, exact Staged/Ready/Consumed,
+Intent/settlement/Recorded references, and the unchanged compiler disposal
+vector and digest recipes. Preparation moves the same live holder into an
+opaque obligation; snapshots and evidence cannot construct it.
+
+The existing fixed cleanup append adapter now admits that obligation. Only its
+actual same-descriptor Started ACK advances the same prospective Reduce hold
+from the cumulative Recorded phase. It neither refunds nor debits fuel, stage
+reservations or target accounting. The old settlement cursor becomes historical.
+That fixed ACK permits the existing physical Decision release once. Its actual
+receipt selects the unchanged Settled row through the same adapter. The State,
+accounting ledger and same hold remain retained throughout, including every
+failed append, partial release and failed observer result. Release failure
+permanently quarantines the holder; it cannot return to dispatch or retry release.
+
+New work before Started requires the existing full settlement guards. Incurred
+release and receipt retain store/PID/source/policy checks while allowing
+cancellation or deadline expiry. An observer panic is captured by the existing
+ordered release primitive and recorded as a failed receipt, never a successful
+Outcome. These checks add no recovered-owner constructor or second journal.
+
+Focused owning tests cover genuine second-target success, host failure and
+result-budget failure, exact compiler vectors and coordinates, cancellation,
+observer panic, and both cleanup ACK rows at all four physical fault windows.
+Execution is pending until the focused gate runs. This private cleanup boundary
+ends at the retained actual Settled holder; continued Outcome/Reduce, terminal
+publication, public multi-turn entry and restart recovery remain unfinished.

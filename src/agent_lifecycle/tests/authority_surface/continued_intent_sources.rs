@@ -65,4 +65,16 @@ pub(super) const SOURCES: &[(&str, &str)] = &[
         "live_invocation/source_journal/owned_wait_v8/live_upstream/observe/settlement/carry/start/prepared/model/authorize/effect/prepared/intent/dispatch/settlement.rs",
         include_str!("../../../live_invocation/source_journal/owned_wait_v8/live_upstream/observe/settlement/carry/start/prepared/model/authorize/effect/prepared/intent/dispatch/settlement.rs"),
     ),
+    (
+        "live_invocation/source_journal/owned_wait_v8/live_upstream/observe/settlement/carry/start/prepared/model/authorize/effect/prepared/intent/dispatch/settlement/cleanup.rs",
+        include_str!("../../../live_invocation/source_journal/owned_wait_v8/live_upstream/observe/settlement/carry/start/prepared/model/authorize/effect/prepared/intent/dispatch/settlement/cleanup.rs"),
+    ),
+    (
+        "interpreter/resumable/owned_frame/registered_stage/effect/live_append/settlement/cleanup/continued_guard.rs",
+        include_str!("../../../interpreter/resumable/owned_frame/registered_stage/effect/live_append/settlement/cleanup/continued_guard.rs"),
+    ),
+    (
+        "live_invocation/source_journal/owned_wait_v8/live_upstream/effect/authorization/prepared/intent/dispatch/settlement/cleanup/reduce/step/continue/settlement/start/model/authorize/effect/prepared/intent/dispatch/settlement/cleanup.rs",
+        include_str!("../../../live_invocation/source_journal/owned_wait_v8/live_upstream/effect/authorization/prepared/intent/dispatch/settlement/cleanup/reduce/step/continue/settlement/start/model/authorize/effect/prepared/intent/dispatch/settlement/cleanup.rs"),
+    ),
 ];

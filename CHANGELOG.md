@@ -8,6 +8,12 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Connect actual continued owned-Agent Decision cleanup to the existing v8
+  fixed append and physical release path (#330). Preserve the same State,
+  reservation hold and accounting across Started/Settled, cancellation and
+  observed release failure. Continued Outcome/Reduce, public execution and
+  restart recovery remain unfinished; focused execution is pending.
+
 - Add partial signed-image checks to the standalone Windows doctor spawn using
   held NTFS file/path guards and a retained advisory read oplock (#333).
   Preserve the ten historical native cases and add six substitution/settlement

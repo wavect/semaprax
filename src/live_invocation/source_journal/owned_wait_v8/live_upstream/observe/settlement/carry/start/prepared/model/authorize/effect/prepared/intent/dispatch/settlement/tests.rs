@@ -6,7 +6,7 @@ use crate::agent_lifecycle::authorization::target_protocol::{Settlement, TargetE
 fn bytes(journal: &SourceOwnedWaitJournalV8) -> Vec<u8> {
     journal.test_observe_lease().borrow_mut().read().unwrap()
 }
-fn ack<'j>(
+pub(super) fn ack<'j>(
     journal: &'j SourceOwnedWaitJournalV8,
     owner: LiveOwnedContinuedSettlementAppendV8<'j>,
 ) -> LiveContinuedSettlementAcknowledgedV8<'j> {

@@ -145,3 +145,5 @@ pub(crate) use live_upstream::LiveContinuedEffectAuthorizationPermitV8;
 pub(crate) use live_upstream::LiveContinuedIntentPermitV8;
 
 pub(crate) use live_upstream::LiveContinuedSettlementPermitV8;
+
+pub(crate) use live_upstream::LiveContinuedDecisionCleanupPermitV8;

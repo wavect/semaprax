@@ -8,6 +8,12 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Expose an explicit metered durable route on fresh and resumed migrated
+  runtimes (#327), binding stage semantic-work evidence to a distinct
+  migration root. The focused same-Interpreter recovery selector passed 1/1
+  locally with no retained host-work redelivery. Cross-target acceptance
+  remains open.
+
 - Advance the real owned-wait v8 next-turn Completed owner through four
   durable authorization ACKs (#330), including transfer at the second and
   guarded stage entry at the fourth. The focused real-chain selector passed

@@ -132,3 +132,14 @@ common charge. The root is immutable handoff input, so a recovered destination
 does not repeat either evaluation or charge. The parity evidence above is
 local; hosted migration evidence and full target cleanup-event parity remain
 open.
+
+Fresh and resumed migrated runtimes also expose
+`run_durable_metered_with_backend` for the explicit metered checkpoint profile.
+It retains one authenticated semantic-work receipt per committed destination
+stage and returns a distinct
+`semaprax.evidence-root.durable-migration-metered.v1` association binding the
+migration handoff, typed-effect evidence, checkpoint and semantic-work digest.
+The ordinary durable migration route and evidence schema remain separate.
+A local same-Interpreter migration/recovery selector verifies the association
+and no retained host-work redelivery; other target combinations and the full
+acceptance gate remain open.

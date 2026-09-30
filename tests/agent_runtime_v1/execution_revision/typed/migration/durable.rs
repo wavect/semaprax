@@ -556,6 +556,65 @@ fn metered_target_migration_handoff_recovers_without_repeating_the_pure_call() {
 }
 
 #[test]
+fn metered_migrated_durable_recovery_replays_same_target_receipts() {
+    use semaprax::agent_lifecycle::iterative::effects::TargetStageBackend;
+
+    let a = first();
+    let b = successor(&a, "State", "StateB", "b", &["marker"], false);
+    let (migration, before, after) = migrated_with_metered_interpreter(&a, &b);
+    let handoff = migration.handoff_digest().unwrap();
+    let mut host = handler();
+    let mut store = Store::default();
+    let completed = migration
+        .run_durable_metered_with_backend(
+            &mut host,
+            &AgentCancellation::new(),
+            &mut store,
+            TargetStageBackend::Interpreter,
+            10_000,
+        )
+        .unwrap();
+    assert_eq!(
+        completed.run().run().run().lifecycle().status(),
+        IterativeStatus::Complete
+    );
+    assert!(completed.run().observations_complete());
+    assert_eq!(host.calls.len(), 3);
+    let evidence: serde_json::Value =
+        serde_json::from_str(completed.evidence_root().canonical_json()).unwrap();
+    assert_eq!(
+        evidence["schema"],
+        "semaprax.evidence-root.durable-migration-metered.v1"
+    );
+    assert_eq!(
+        evidence["facts"]["semantic_work_evidence"],
+        completed.run().evidence_digest()
+    );
+    let retained = store.document.clone();
+    let resumed = resume_migrated_agent_runtime_v2(
+        bind(&a, b"chain payload"),
+        bind(&b, b"destination input ignored"),
+        &retained,
+        &handoff,
+        &before,
+        &after,
+    )
+    .expect("metered v4 target-migration handoff recovers");
+    let replay = resumed
+        .run_durable_metered_with_backend(
+            &mut host,
+            &AgentCancellation::new(),
+            &mut store,
+            TargetStageBackend::Interpreter,
+            10_000,
+        )
+        .unwrap();
+    assert_eq!(replay.run().run().run().dispatched(), 0);
+    assert!(replay.run().observations_complete());
+    assert_eq!(host.calls.len(), 3);
+}
+
+#[test]
 fn migrated_genesis_and_effect_lost_acknowledgements_fail_closed_and_recover() {
     let a = first();
     let b = successor(&a, "State", "StateB", "b", &["marker"], false);

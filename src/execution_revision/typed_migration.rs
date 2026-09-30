@@ -16,7 +16,8 @@ use crate::interpreter::retained_call::{
     RetainedValue,
 };
 pub use durable::{
-    resume_migrated_agent_runtime_v2, DurableMigrationFailure, ResumedMigratedAgentRuntimeV2,
+    resume_migrated_agent_runtime_v2, DurableMigrationFailure,
+    MeteredAgentRuntimeV2DurableMigrationEvidence, ResumedMigratedAgentRuntimeV2,
 };
 
 /// Retained source identities selected by the existing checked typed migration

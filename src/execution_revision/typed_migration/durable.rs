@@ -1,13 +1,41 @@
 //! Caller-owned handoff persistence and exact-runtime recovery. Store snapshots
 //! and expected handoff digests are trusted inputs, never ambient authority.
 use super::{handoff::Handoff, *};
-use crate::agent_lifecycle::iterative::effects::DurableTypedFailure;
 use crate::agent_lifecycle::iterative::effects::TargetStageBackend;
+use crate::agent_lifecycle::iterative::effects::{DurableTypedFailure, MeteredDurableTypedRun};
 use crate::agent_lifecycle::{CheckpointStore, CheckpointStoreError};
 use serde_json::Value;
 
 const SCHEMA: &str = "semaprax.agent-migrated-checkpoint.v1";
 const MAX_BYTES: usize = 8 * 1024 * 1024;
+
+/// A migration-seeded durable run whose evidence also binds target-observed
+/// semantic-work receipts. This is separate from the ordinary durable
+/// migration association because the ordinary checkpoint wire has no receipts.
+pub struct MeteredAgentRuntimeV2DurableMigrationEvidence {
+    run: MeteredDurableTypedRun,
+    evidence: ExecutionRoot,
+    revision: ExecutionRoot,
+    handoff: String,
+    checkpoint: String,
+}
+impl MeteredAgentRuntimeV2DurableMigrationEvidence {
+    pub fn checkpoint(&self) -> &str {
+        &self.checkpoint
+    }
+    pub fn migration_handoff_digest(&self) -> &str {
+        &self.handoff
+    }
+    pub fn run(&self) -> &MeteredDurableTypedRun {
+        &self.run
+    }
+    pub fn evidence_root(&self) -> &ExecutionRoot {
+        &self.evidence
+    }
+    pub fn execution_revision(&self) -> &ExecutionRoot {
+        &self.revision
+    }
+}
 
 pub struct DurableMigrationFailure {
     diagnostics: Vec<Diagnostic>,
@@ -122,6 +150,28 @@ impl MigratedAgentRuntimeV2 {
     ) -> std::result::Result<AgentRuntimeV2DurableEvidence, DurableMigrationFailure> {
         run(self, None, handler, cancellation, store, Some(selected))
     }
+
+    /// Continue the migration handoff with receipts from the held destination
+    /// target. Recovery replays those receipts before reusing a stage.
+    pub fn run_durable_metered_with_backend(
+        self,
+        handler: &mut dyn TypedEffectHandler,
+        cancellation: &AgentCancellation,
+        store: &mut dyn CheckpointStore,
+        selected: TargetStageBackend<'_>,
+        semantic_fuel_limit: u64,
+    ) -> std::result::Result<MeteredAgentRuntimeV2DurableMigrationEvidence, DurableMigrationFailure>
+    {
+        run_metered(
+            self,
+            None,
+            handler,
+            cancellation,
+            store,
+            selected,
+            semantic_fuel_limit,
+        )
+    }
 }
 
 /// A recovered checked runtime plus the trusted journal it must replay.
@@ -165,6 +215,27 @@ impl ResumedMigratedAgentRuntimeV2 {
             cancellation,
             store,
             Some(selected),
+        )
+    }
+
+    /// Resume the migration handoff with the same held target profile.
+    pub fn run_durable_metered_with_backend(
+        self,
+        handler: &mut dyn TypedEffectHandler,
+        cancellation: &AgentCancellation,
+        store: &mut dyn CheckpointStore,
+        selected: TargetStageBackend<'_>,
+        semantic_fuel_limit: u64,
+    ) -> std::result::Result<MeteredAgentRuntimeV2DurableMigrationEvidence, DurableMigrationFailure>
+    {
+        run_metered(
+            self.migrated,
+            Some(self.snapshot),
+            handler,
+            cancellation,
+            store,
+            selected,
+            semantic_fuel_limit,
         )
     }
 }
@@ -277,6 +348,105 @@ fn run(
         handoff_digest,
         store.candidate,
     ))
+}
+
+#[allow(clippy::too_many_arguments)]
+fn run_metered(
+    migrated: MigratedAgentRuntimeV2,
+    retained: Option<Snapshot>,
+    handler: &mut dyn TypedEffectHandler,
+    cancellation: &AgentCancellation,
+    store: &mut dyn CheckpointStore,
+    selected: TargetStageBackend<'_>,
+    semantic_fuel_limit: u64,
+) -> std::result::Result<MeteredAgentRuntimeV2DurableMigrationEvidence, DurableMigrationFailure> {
+    let fresh = retained.is_none();
+    let snapshot = match retained {
+        Some(snapshot) => snapshot,
+        None => Snapshot {
+            handoff: Handoff::from_seed(&migrated.seed).map_err(|diagnostics| {
+                DurableMigrationFailure {
+                    diagnostics,
+                    checkpoint: String::new(),
+                    durable: None,
+                }
+            })?,
+            checkpoint: None,
+        },
+    };
+    migrated
+        .runtime
+        .lifecycle
+        .validate_durable_backend(selected)
+        .map_err(|diagnostics| DurableMigrationFailure {
+            diagnostics,
+            checkpoint: snapshot.canonical_json(),
+            durable: None,
+        })?;
+    let candidate = snapshot.canonical_json();
+    if candidate.len() > MAX_BYTES {
+        return Err(DurableMigrationFailure {
+            diagnostics: refused("migration.snapshot.bytes"),
+            checkpoint: String::new(),
+            durable: None,
+        });
+    }
+    let mut store = HandoffStore {
+        store,
+        snapshot,
+        candidate,
+    };
+    if fresh && store.store.commit(0, &store.candidate).is_err() {
+        return Err(DurableMigrationFailure {
+            diagnostics: refused("migration.handoff.uncertain_store"),
+            checkpoint: store.candidate,
+            durable: None,
+        });
+    }
+    let retained_checkpoint = store.snapshot.checkpoint.clone();
+    let runtime = migrated.runtime;
+    let result = runtime
+        .lifecycle
+        .run_durable_from_seed_metered_with_backend(
+            &runtime.task,
+            &runtime.proposals,
+            handler,
+            runtime.budget,
+            runtime.effects,
+            cancellation,
+            runtime.revision.digest(),
+            &runtime.program_root,
+            retained_checkpoint.as_deref(),
+            &mut store,
+            migrated.seed.max_reserved_fuel(),
+            &migrated.seed,
+            selected,
+            semantic_fuel_limit,
+        )
+        .map_err(|durable| DurableMigrationFailure {
+            diagnostics: durable.diagnostics().to_vec(),
+            checkpoint: store.candidate.clone(),
+            durable: Some(durable),
+        })?;
+    let handoff = store.snapshot.handoff.digest();
+    let evidence = root(
+        "semaprax.evidence-root.durable-migration-metered.v1",
+        json!({
+            "execution_revision":runtime.revision.digest(), "instance_root":runtime.instance.digest(),
+            "migration_root":migrated.seed.binding.digest(), "handoff":handoff,
+            "typed_effect_evidence":result.run().run().evidence_digest(),
+            "semantic_work_evidence":result.evidence_digest(),
+            "checkpoint":result.run().checkpoint_digest(), "iterations":result.run().iterations(),
+            "stages":result.run().stages(),
+        }),
+    );
+    Ok(MeteredAgentRuntimeV2DurableMigrationEvidence {
+        run: result,
+        evidence,
+        revision: runtime.revision,
+        handoff,
+        checkpoint: store.candidate,
+    })
 }
 
 /// Recover only from the caller-authorized trusted store under exclusive writer

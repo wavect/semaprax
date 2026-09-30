@@ -5,6 +5,7 @@
 # Getting started
 
 - [Install](getting-started/install.md)
+- [See Semaprax in action](getting-started/see-it-in-action.md)
 - [First program](getting-started/first-program.md)
 - [First project](getting-started/first-project.md)
 

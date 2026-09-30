@@ -3,6 +3,10 @@
 Single files are for learning; projects are for building. A project is a
 `semaprax.toml` manifest beside a `src/` directory.
 
+Ernesto's next stop is the generated calculator: one small project with source,
+tests, and a web target. [See the commands in action](see-it-in-action.md)
+before making your own.
+
 ## Scaffold it
 
 Preview the template without writing anything:

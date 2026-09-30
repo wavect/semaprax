@@ -4,6 +4,11 @@ Semaprax is built for this workflow: the compiler exposes program meaning as
 queryable data, so an agent spends tokens on source and decisions — not on
 dumping whole repositories into context.
 
+<img src="../assets/ernesto/ernesto-laptop.png" alt="Ernesto working at a laptop" width="180">
+
+If you are new to the CLI, the [visual tour](../getting-started/see-it-in-action.md)
+shows the first inspect-and-run commands on a committed example.
+
 ## The edit loop
 
 1. Write the file, run `semaprax fmt <file>`, then

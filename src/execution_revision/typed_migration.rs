@@ -609,6 +609,15 @@ fn evaluate_migration_on_target(
     }
     let first_facts = target_evaluation_facts(&first.evaluation)?;
     let second_facts = target_evaluation_facts(&second.evaluation)?;
+    // The target's instruction counter is an implementation observation, but
+    // semantic work and copy-out cleanup are part of the deterministic pure
+    // migration contract. A differing receipt must not become a durable
+    // handoff that recovery could treat as already settled.
+    if first_facts["semantic_work"] != second_facts["semantic_work"]
+        || first_facts["copy_out_cleanup_events"] != second_facts["copy_out_cleanup_events"]
+    {
+        return Err(refused("migration.replay"));
+    }
     let RetainedCallOutcome::Returned(value) = first.evaluation.outcome else {
         return Err(refused("migration.did_not_return"));
     };

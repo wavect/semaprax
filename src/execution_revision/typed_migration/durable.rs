@@ -456,6 +456,13 @@ fn target_execution_valid(value: &Value) -> bool {
         && evaluations.iter().all(|evaluation| {
             target_evaluation_valid(evaluation, target["semantic_fuel_limit"].as_u64())
         })
+        // Instruction counts belong to one concrete executor, while semantic
+        // work and copy-out cleanup witness the repeated pure call itself.
+        // Recovery accepts only a receipt whose two evaluations agree on that
+        // common work, including ordered target finalizers.
+        && evaluations[0]["semantic_work"] == evaluations[1]["semantic_work"]
+        && evaluations[0]["copy_out_cleanup_events"]
+            == evaluations[1]["copy_out_cleanup_events"]
 }
 
 fn target_evaluation_valid(value: &Value, expected_limit: Option<u64>) -> bool {
@@ -498,4 +505,52 @@ fn hash_valid(value: &str) -> bool {
         && value[7..]
             .bytes()
             .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn receipt() -> Value {
+        serde_json::json!({
+            "execution_binding": format!("sha256:{}", "0".repeat(64)),
+            "semantic_fuel_limit": 10,
+            "evaluations": [
+                {
+                    "instruction_steps": 12,
+                    "semantic_work": {
+                        "fuel_used": 7,
+                        "fuel_limit": 10,
+                        "exhausted": false,
+                        "finalizer_events": [["fixture.migrate", 0]],
+                    },
+                    "copy_out_cleanup_events": 1,
+                },
+                {
+                    "instruction_steps": 0,
+                    "semantic_work": {
+                        "fuel_used": 7,
+                        "fuel_limit": 10,
+                        "exhausted": false,
+                        "finalizer_events": [["fixture.migrate", 0]],
+                    },
+                    "copy_out_cleanup_events": 1,
+                },
+            ],
+        })
+    }
+
+    #[test]
+    fn target_receipt_rejects_mismatched_common_work_or_copyout_cleanup() {
+        let receipt = receipt();
+        assert!(target_execution_valid(&receipt));
+
+        let mut changed_work = receipt.clone();
+        changed_work["evaluations"][1]["semantic_work"]["fuel_used"] = serde_json::json!(8);
+        assert!(!target_execution_valid(&changed_work));
+
+        let mut changed_cleanup = receipt;
+        changed_cleanup["evaluations"][1]["copy_out_cleanup_events"] = serde_json::json!(2);
+        assert!(!target_execution_valid(&changed_cleanup));
+    }
 }

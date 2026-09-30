@@ -108,7 +108,9 @@ is reserved. Missing retained Wasm source or an unsupported semantic closure
 therefore refuses before a compiler, runtime, or destination handoff can run.
 The resulting additive `semaprax.agent-state-migration.v4` root binds both
 metered evaluations, their target-specific instruction and cleanup observations,
-and the target/registry binding. The v4 root becomes part of the existing
+and the target/registry binding. Its two receipts must agree on common semantic
+work and copy-out cleanup before they can become a handoff; instruction counts
+remain target-specific observations. The v4 root becomes part of the existing
 durable handoff, so recovery restores the already charged migration result and
 does not repeat either target evaluation. The ordinary v1-v3 roots, reservation
 accounting, handoff wire, and interpreter-default API remain unchanged.

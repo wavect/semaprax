@@ -41,6 +41,7 @@ pub struct MeteredTargetEffectRun {
 pub struct MeteredDurableTypedRun {
     run: DurableTypedRun,
     observations: Vec<StageSemanticObservation>,
+    observations_complete: bool,
     evidence: String,
     digest: String,
 }
@@ -50,6 +51,9 @@ impl MeteredDurableTypedRun {
     }
     pub fn observations(&self) -> &[StageSemanticObservation] {
         &self.observations
+    }
+    pub fn observations_complete(&self) -> bool {
+        self.observations_complete
     }
     pub fn evidence(&self) -> &str {
         &self.evidence
@@ -127,16 +131,14 @@ impl CompiledTypedEffects {
             max_reserved_fuel, None, Some(backend),
         )?;
         let observations = observations.into_inner();
-        if observations.len() != run.run().lifecycle().stages().len() {
-            return Err(durable::semantic_refusal(
-                "semantic_work.stage_count",
-                run.checkpoint(),
-            ));
-        }
+        let observations_complete = observations.len() == run.run().lifecycle().stages().len();
         let mut document = serde_json::json!({
             "schema": "semaprax.agent-durable-semantic-work.v1",
             "checkpoint_digest": run.checkpoint_digest(),
             "semantic_fuel_limit": semantic_fuel_limit,
+            "observations_complete": observations_complete,
+            "observed_stage_count": observations.len(),
+            "committed_stage_count": run.run().lifecycle().stages().len(),
             "stages": observations.iter().map(|observation| serde_json::json!({
                 "function": observation.function_id(),
                 "fuel_used": observation.work().fuel_used,
@@ -147,7 +149,7 @@ impl CompiledTypedEffects {
         document.sort_all_objects();
         let evidence = format!("{document}\n");
         let digest = digest(b"semaprax.agent-durable-semantic-work.v1\0", evidence.as_bytes());
-        Ok(MeteredDurableTypedRun { run, observations, evidence, digest })
+        Ok(MeteredDurableTypedRun { run, observations, observations_complete, evidence, digest })
     }
 
     /// Refuse a selected migration target before that migration reserves fuel

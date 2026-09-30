@@ -199,6 +199,62 @@ fn run_selected(
     )
 }
 
+fn run_metered(
+    compiled: &CompiledTypedEffects,
+    handler: &mut Handler,
+    store: &mut Store,
+    retained: Option<&str>,
+) -> Result<super::super::MeteredDurableTypedRun, DurableTypedFailure> {
+    compiled.run_durable_metered_with_backend(
+        &task(),
+        &proposals(compiled),
+        handler,
+        IterativeBudget::default(),
+        budget(),
+        &AgentCancellation::new(),
+        &root(),
+        &root(),
+        retained,
+        store,
+        10_000_000,
+        super::super::TargetStageBackend::Interpreter,
+        100,
+    )
+}
+
+#[test]
+fn fresh_durable_semantic_metering_records_every_committed_stage() {
+    let compiled = super::super::tests::compile();
+    let mut handler = Handler::default();
+    let mut store = Store::default();
+    let metered = run_metered(&compiled, &mut handler, &mut store, None).unwrap();
+    assert!(metered.observations_complete());
+    assert_eq!(
+        metered.observations().len(),
+        metered.run().run().lifecycle().stages().len()
+    );
+    assert!(!metered.evidence().is_empty());
+    assert!(metered.evidence_digest().starts_with("sha256:"));
+}
+
+#[test]
+fn durable_semantic_metering_refuses_recovery_before_store_or_handler_work() {
+    let compiled = super::super::tests::compile();
+    let mut handler = Handler::default();
+    let mut store = Store::default();
+    let fresh = run_metered(&compiled, &mut handler, &mut store, None).unwrap();
+    let retained = fresh.run().checkpoint().to_owned();
+    let before = (handler.calls, store.commits);
+    let Err(failure) = run_metered(&compiled, &mut handler, &mut store, Some(&retained)) else {
+        panic!("retained metered checkpoint was accepted");
+    };
+    assert!(failure
+        .diagnostics()
+        .iter()
+        .any(|diagnostic| diagnostic.message.contains("semantic_work.recovery_unsupported")));
+    assert_eq!((handler.calls, store.commits), before);
+}
+
 #[test]
 fn public_durable_selector_replays_a_partial_checkpoint_across_targets() {
     if !crate::agent_lifecycle::tests::stage_process_host_supported() {

@@ -130,10 +130,13 @@ retain their unmetered dispatch. The additive public target route below opts
 into the same metered seam. A fresh durable typed-effect route also records
 the metered stage receipts beside its unchanged authenticated checkpoint. Its
 post-commit result carries both observed and committed stage counts plus an
-`observations_complete` fact; a receipt mismatch never turns an already
-committed durable outcome into a new failure;
-resumption through that route refuses before store or target work because the
-current checkpoint schema does not bind historical semantic-work receipts.
+`observations_complete` fact; a receipt mismatch refuses result publication
+while retaining any selected lifecycle terminal;
+recovery validates retained receipts while it re-executes and newly charges
+deterministic stages, appending a receipt for each new reservation; retained
+observations still prevent host redelivery. An unpaired or malformed receipt
+refuses before handler work. The caller-trusted store and hash chain bind exact
+bytes; they do not grant cryptographic authority.
 
 **Semantic fuel.** One unit is charged at each of two checked semantic events,
 and at no other point:

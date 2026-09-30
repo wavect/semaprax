@@ -233,24 +233,97 @@ fn fresh_durable_semantic_metering_records_every_committed_stage() {
         metered.observations().len(),
         metered.run().run().lifecycle().stages().len()
     );
+    let checkpoint: serde_json::Value = serde_json::from_str(metered.run().checkpoint()).unwrap();
+    let entries = checkpoint["entries"].as_array().unwrap();
+    assert_eq!(
+        entries
+            .iter()
+            .filter(|entry| entry["event"]["kind"] == "stage_reservation")
+            .count(),
+        entries
+            .iter()
+            .filter(|entry| entry["event"]["kind"] == "semantic_work")
+            .count(),
+        "every published metered stage reservation has an authenticated receipt",
+    );
     assert!(!metered.evidence().is_empty());
     assert!(metered.evidence_digest().starts_with("sha256:"));
 }
 
 #[test]
-fn durable_semantic_metering_refuses_recovery_before_store_or_handler_work() {
+fn durable_semantic_metering_recovers_authenticated_receipts_without_redelivery() {
     let compiled = super::super::tests::compile();
     let mut handler = Handler::default();
     let mut store = Store::default();
     let fresh = run_metered(&compiled, &mut handler, &mut store, None).unwrap();
     let retained = fresh.run().checkpoint().to_owned();
     let before = (handler.calls, store.commits);
-    let Err(failure) = run_metered(&compiled, &mut handler, &mut store, Some(&retained)) else {
-        panic!("retained metered checkpoint was accepted");
-    };
-    assert!(failure.diagnostics().iter().any(|diagnostic| diagnostic
-        .message
-        .contains("semantic_work.recovery_unsupported")));
+    let recovered = run_metered(&compiled, &mut handler, &mut store, Some(&retained))
+        .expect("authenticated metered checkpoint recovers");
+    assert!(recovered.observations_complete());
+    assert_eq!(
+        recovered.run().run().lifecycle().status(),
+        IterativeStatus::Complete
+    );
+    assert_eq!(
+        handler.calls, before.0,
+        "recovery redelivered retained host work"
+    );
+    assert!(
+        store.commits >= before.1,
+        "recovery lost its authenticated journal"
+    );
+}
+
+#[test]
+fn durable_semantic_metering_refuses_ordinary_checkpoint_before_store_or_handler_work() {
+    let compiled = super::super::tests::compile();
+    let mut handler = Handler::default();
+    let mut store = Store::default();
+    let ordinary = run(&compiled, &mut handler, &mut store, None).unwrap();
+    let retained = ordinary.checkpoint().to_owned();
+    let before = (handler.calls, store.commits);
+    let failure = run_metered(&compiled, &mut handler, &mut store, Some(&retained))
+        .err()
+        .expect("ordinary v2 checkpoint lacks retained semantic receipts");
+    assert!(failure
+        .diagnostics()
+        .iter()
+        .any(|diagnostic| diagnostic.message.contains("semantic_work.profile")));
+    assert_eq!((handler.calls, store.commits), before);
+}
+
+#[test]
+fn ordinary_durable_route_refuses_metered_checkpoint_before_store_or_handler_work() {
+    let compiled = super::super::tests::compile();
+    let mut handler = Handler::default();
+    let mut store = Store::default();
+    let metered = run_metered(&compiled, &mut handler, &mut store, None).unwrap();
+    let retained = metered.run().checkpoint().to_owned();
+    let before = (handler.calls, store.commits);
+    let failure = run(&compiled, &mut handler, &mut store, Some(&retained))
+        .err()
+        .expect("ordinary route must not reinterpret metered receipts");
+    assert!(failure
+        .diagnostics()
+        .iter()
+        .any(|diagnostic| diagnostic.message.contains("semantic_work.profile")));
+    assert_eq!((handler.calls, store.commits), before);
+}
+
+#[test]
+fn durable_semantic_metering_refuses_tampered_receipt_before_store_or_handler_work() {
+    let compiled = super::super::tests::compile();
+    let mut handler = Handler::default();
+    let mut store = Store::default();
+    let metered = run_metered(&compiled, &mut handler, &mut store, None).unwrap();
+    let retained = metered.run().checkpoint().replacen(
+        "\"kind\":\"semantic_work\"",
+        "\"kind\":\"semantic_work_tampered\"",
+        1,
+    );
+    let before = (handler.calls, store.commits);
+    assert!(run_metered(&compiled, &mut handler, &mut store, Some(&retained)).is_err());
     assert_eq!((handler.calls, store.commits), before);
 }
 

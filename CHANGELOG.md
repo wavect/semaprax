@@ -21,10 +21,12 @@ format: `Unreleased` then release buckets, grouped by impact.
   process-level pre-write refusal passed 1/1 locally; SQL support and the
   runnable OCI route remain open.
 
-- Add a fresh durable typed-effect semantic-metering route (#327) with
-  per-stage observations and explicit post-commit completeness counts. Its
-  focused success and pre-work recovery-refusal regressions passed 2/2 locally;
-  authenticated historical receipts and complete recovery remain open.
+- Add #327's explicit metered durable typed-effect checkpoint profile. The
+  caller-trusted store retains hash-chained stage receipts; recovery validates
+  retained deterministic work, appends newly charged replay receipts, and does
+  not redeliver retained host effects. Focused metered recovery evidence passed
+  4/4 and ordinary-route crossover refusal passed 1/1 locally. Digests bind
+  bytes and grant no cryptographic authority.
 
 - Cache immutable owned-wait capacity maxima under exact checked-binding
   identity (#330). The focused cache reuse and crossed-proof refusal regression

@@ -18,6 +18,7 @@ pub(crate) fn decode_retained_value(value: &Value) -> Result<RetainedValue, Diag
 }
 
 pub const CHECKPOINT_SCHEMA: &str = "semaprax.agent-operation-checkpoint.v2";
+pub const METERED_CHECKPOINT_SCHEMA: &str = "semaprax.agent-operation-checkpoint-metered.v1";
 const MAX_BYTES: usize = 2_097_152;
 const MAX_ENTRIES: usize = 4096;
 fn rejected(field: &str) -> Diagnostic {
@@ -62,6 +63,11 @@ pub struct CheckpointLimits {
     pub total_bytes: u64,
     pub reserved_fuel: u64,
 }
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum CheckpointProfile {
+    Ordinary,
+    Metered { semantic_fuel_limit: u64 },
+}
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct EffectContext {
     pub turn: u64,
@@ -79,6 +85,16 @@ pub enum JournalEvent {
         turn: u64,
         stage: String,
         fuel: u64,
+    },
+    /// A completed stage receipt in the explicit metered checkpoint profile.
+    /// It is journal-chained before a resumed driver may rely on that stage.
+    SemanticWork {
+        ordinal: u64,
+        function: String,
+        fuel_used: u64,
+        fuel_limit: u64,
+        exhausted: bool,
+        finalizer_events: Option<Vec<(String, u32)>>,
     },
     Intent(EffectContext),
     Observed {
@@ -106,6 +122,7 @@ struct JournalEntry {
 pub struct OperationCheckpoint {
     identity: CheckpointIdentity,
     limits: CheckpointLimits,
+    profile: CheckpointProfile,
     entries: Vec<JournalEntry>,
     poisoned: bool,
 }
@@ -132,15 +149,38 @@ impl OperationCheckpoint {
         Ok(Self {
             identity,
             limits,
+            profile: CheckpointProfile::Ordinary,
             entries: Vec::new(),
             poisoned: false,
         })
+    }
+    pub fn new_metered(
+        identity: CheckpointIdentity,
+        limits: CheckpointLimits,
+        semantic_fuel_limit: u64,
+    ) -> Result<Self, Diagnostic> {
+        if !(1..=1_000_000).contains(&semantic_fuel_limit) {
+            return Err(rejected("semantic_work.fuel_limit"));
+        }
+        let mut journal = Self::new(identity, limits)?;
+        journal.profile = CheckpointProfile::Metered {
+            semantic_fuel_limit,
+        };
+        Ok(journal)
     }
     pub fn identity(&self) -> &CheckpointIdentity {
         &self.identity
     }
     pub fn limits(&self) -> CheckpointLimits {
         self.limits
+    }
+    pub fn semantic_fuel_limit(&self) -> Option<u64> {
+        match self.profile {
+            CheckpointProfile::Ordinary => None,
+            CheckpointProfile::Metered {
+                semantic_fuel_limit,
+            } => Some(semantic_fuel_limit),
+        }
     }
     pub fn usage(&self) -> CheckpointUsage {
         self.entries.last().map(|e| e.usage).unwrap_or_default()
@@ -175,13 +215,25 @@ impl OperationCheckpoint {
         }
         Ok(journal)
     }
+    pub fn decode_metered_with_limits(
+        document: &str,
+        expected: &CheckpointIdentity,
+        limits: CheckpointLimits,
+        semantic_fuel_limit: u64,
+    ) -> Result<Self, Diagnostic> {
+        let journal = Self::decode_with_limits(document, expected, limits)?;
+        if journal.semantic_fuel_limit() != Some(semantic_fuel_limit) {
+            return Err(rejected("semantic_work.profile"));
+        }
+        Ok(journal)
+    }
     pub fn recovery_disposition(&self) -> RecoveryDisposition {
         match self
             .entries
             .iter()
             .rev()
             .find_map(|entry| match &entry.event {
-                JournalEvent::StageReservation { .. } => None,
+                JournalEvent::StageReservation { .. } | JournalEvent::SemanticWork { .. } => None,
                 event => Some(event),
             }) {
             None => RecoveryDisposition::Fresh,
@@ -258,7 +310,7 @@ impl OperationCheckpoint {
             .iter()
             .rev()
             .find_map(|entry| match &entry.event {
-                JournalEvent::StageReservation { .. } => None,
+                JournalEvent::StageReservation { .. } | JournalEvent::SemanticWork { .. } => None,
                 event => Some(event),
             });
         let failed_observation = matches!(
@@ -299,6 +351,49 @@ impl OperationCheckpoint {
                     || usage.result_bytes != prior.result_bytes
                 {
                     return Err(rejected("stage.reservation"));
+                }
+            }
+            JournalEvent::SemanticWork {
+                ordinal,
+                function,
+                fuel_used,
+                fuel_limit,
+                exhausted,
+                finalizer_events,
+            } => {
+                let CheckpointProfile::Metered {
+                    semantic_fuel_limit,
+                } = self.profile
+                else {
+                    return Err(rejected("semantic_work.profile"));
+                };
+                let expected = self
+                    .entries
+                    .iter()
+                    .filter(|entry| matches!(entry.event, JournalEvent::SemanticWork { .. }))
+                    .count() as u64;
+                let reservation_count = self
+                    .entries
+                    .iter()
+                    .filter(|entry| matches!(entry.event, JournalEvent::StageReservation { .. }))
+                    .count() as u64;
+                let events_valid = finalizer_events.as_ref().is_none_or(|events| {
+                    events.len() <= 256
+                        && events
+                            .iter()
+                            .all(|(function, _)| !function.is_empty() && function.len() <= 256)
+                });
+                if *ordinal != expected
+                    || *ordinal >= reservation_count
+                    || function.is_empty()
+                    || function.len() > 256
+                    || *fuel_limit != semantic_fuel_limit
+                    || *fuel_used > *fuel_limit
+                    || (*exhausted && *fuel_used != *fuel_limit)
+                    || !events_valid
+                    || usage != prior
+                {
+                    return Err(rejected("semantic_work.receipt"));
                 }
             }
             JournalEvent::Intent(context) => {

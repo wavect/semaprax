@@ -29,7 +29,11 @@ fn read_usage(v: &Value) -> Result<CheckpointUsage, Diagnostic> {
     })
 }
 pub(super) fn binding(j: &OperationCheckpoint) -> Value {
-    json!({"identity":{"execution_revision":j.identity.execution_revision,"invocation":j.identity.invocation,"registry":j.identity.registry,"program_root":j.identity.program_root},"limits":{"calls":j.limits.calls,"argument_bytes":j.limits.argument_bytes,"result_bytes":j.limits.result_bytes,"total_bytes":j.limits.total_bytes,"reserved_fuel":j.limits.reserved_fuel}})
+    let mut binding = json!({"identity":{"execution_revision":j.identity.execution_revision,"invocation":j.identity.invocation,"registry":j.identity.registry,"program_root":j.identity.program_root},"limits":{"calls":j.limits.calls,"argument_bytes":j.limits.argument_bytes,"result_bytes":j.limits.result_bytes,"total_bytes":j.limits.total_bytes,"reserved_fuel":j.limits.reserved_fuel}});
+    if let Some(limit) = j.semantic_fuel_limit() {
+        binding["semantic_fuel_limit"] = json!(limit);
+    }
+    binding
 }
 fn context(c: &EffectContext) -> Result<Value, Diagnostic> {
     if c.turn >= 4096
@@ -75,6 +79,16 @@ pub(super) fn event(e: &JournalEvent) -> Result<Value, Diagnostic> {
         JournalEvent::StageReservation { turn, stage, fuel } => {
             json!({"kind":"stage_reservation","turn":turn,"stage":stage,"fuel":fuel})
         }
+        JournalEvent::SemanticWork {
+            ordinal,
+            function,
+            fuel_used,
+            fuel_limit,
+            exhausted,
+            finalizer_events,
+        } => {
+            json!({"kind":"semantic_work","ordinal":ordinal,"function":function,"fuel_used":fuel_used,"fuel_limit":fuel_limit,"exhausted":exhausted,"finalizer_events":finalizer_events})
+        }
         JournalEvent::Intent(c) => json!({"kind":"intent","context":context(c)?}),
         JournalEvent::Observed {
             context: c,
@@ -100,6 +114,59 @@ fn read_event(v: &Value) -> Result<JournalEvent, Diagnostic> {
                 turn: number(v, "turn")?,
                 stage: text(v, "stage")?.to_owned(),
                 fuel: number(v, "fuel")?,
+            }
+        }
+        "semantic_work" => {
+            keys(
+                v,
+                &[
+                    "kind",
+                    "ordinal",
+                    "function",
+                    "fuel_used",
+                    "fuel_limit",
+                    "exhausted",
+                    "finalizer_events",
+                ],
+            )?;
+            let finalizer_events = if v["finalizer_events"].is_null() {
+                None
+            } else {
+                v["finalizer_events"]
+                    .as_array()
+                    .ok_or_else(|| rejected("semantic_work.finalizer_events"))?
+                    .iter()
+                    .map(|event| {
+                        let pair = event
+                            .as_array()
+                            .ok_or_else(|| rejected("semantic_work.finalizer_event"))?;
+                        if pair.len() != 2 {
+                            return Err(rejected("semantic_work.finalizer_event"));
+                        }
+                        let liveness_flag = pair[1]
+                            .as_u64()
+                            .and_then(|value| u32::try_from(value).ok())
+                            .ok_or_else(|| rejected("semantic_work.finalizer_event"))?;
+                        Ok((
+                            pair[0]
+                                .as_str()
+                                .ok_or_else(|| rejected("semantic_work.finalizer_event"))?
+                                .to_owned(),
+                            liveness_flag,
+                        ))
+                    })
+                    .collect::<Result<Vec<_>, _>>()
+                    .map(Some)?
+            };
+            JournalEvent::SemanticWork {
+                ordinal: number(v, "ordinal")?,
+                function: text(v, "function")?.to_owned(),
+                fuel_used: number(v, "fuel_used")?,
+                fuel_limit: number(v, "fuel_limit")?,
+                exhausted: v["exhausted"]
+                    .as_bool()
+                    .ok_or_else(|| rejected("semantic_work.exhausted"))?,
+                finalizer_events,
             }
         }
         "intent" => {
@@ -133,7 +200,7 @@ pub(super) fn encode(j: &OperationCheckpoint) -> String {
     let entries:Vec<_> = j.entries.iter().map(|e| json!({"generation":e.generation,"prior_digest":e.prior_digest,"usage":usage(e.usage),"event":event(&e.event).expect("validated checkpoint event"),"digest":e.digest})).collect();
     format!(
         "{}\n",
-        json!({"schema":CHECKPOINT_SCHEMA,"binding":binding(j),"generation":j.generation(),"digest":j.digest(),"entries":entries})
+        json!({"schema":if j.semantic_fuel_limit().is_some() { METERED_CHECKPOINT_SCHEMA } else { CHECKPOINT_SCHEMA },"binding":binding(j),"generation":j.generation(),"digest":j.digest(),"entries":entries})
     )
 }
 pub(super) fn decode(
@@ -148,11 +215,17 @@ pub(super) fn decode(
         &v,
         &["schema", "binding", "generation", "digest", "entries"],
     )?;
-    if text(&v, "schema")? != CHECKPOINT_SCHEMA {
-        return Err(rejected("schema"));
-    }
+    let metered = match text(&v, "schema")? {
+        CHECKPOINT_SCHEMA => false,
+        METERED_CHECKPOINT_SCHEMA => true,
+        _ => return Err(rejected("schema")),
+    };
     let b = &v["binding"];
-    keys(b, &["identity", "limits"])?;
+    if metered {
+        keys(b, &["identity", "limits", "semantic_fuel_limit"])?;
+    } else {
+        keys(b, &["identity", "limits"])?;
+    }
     let i = &b["identity"];
     keys(
         i,
@@ -190,7 +263,11 @@ pub(super) fn decode(
         total_bytes: number(l, "total_bytes")?,
         reserved_fuel: number(l, "reserved_fuel")?,
     };
-    let mut journal = OperationCheckpoint::new(identity, limits)?;
+    let mut journal = if metered {
+        OperationCheckpoint::new_metered(identity, limits, number(b, "semantic_fuel_limit")?)?
+    } else {
+        OperationCheckpoint::new(identity, limits)?
+    };
     let entries = v["entries"].as_array().ok_or_else(|| rejected("entries"))?;
     if entries.len() > MAX_ENTRIES {
         return Err(rejected("entries"));

@@ -132,7 +132,11 @@ real peer can be contacted; delivery attempts there fail closed by design.
 Sessions carry persisted Unix-second idle and absolute deadline facts plus the
 checked `std.auth.session` state code. At each authenticated request, the host
 invokes the scaffold's `session_is_usable` and `session_next_state_on_access`
-decisions with those facts and the current host tick. Their answers must agree:
+decisions with those facts and the current host tick. The latter scaffold
+wrapper mirrors the `std.auth.session.next_state_on_access` branches using
+contract-free `std.auth` predicates: the host's closed public-API evaluator
+does not admit the standard transition's `ensures` clause in its call closure.
+The logout wrapper follows the same rule. Their answers must agree:
 an active result remains usable, while expiry is committed as its selected
 terminal state before the ordinary unauthorized response. Explicit logout
 similarly persists the source-selected logout state. The default fixed

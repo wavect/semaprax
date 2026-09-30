@@ -199,7 +199,7 @@ impl<'revision> DecisionEngine<'revision> {
         &self,
         identity: &str,
         arguments: &[PublicApiArgument<'_>],
-    ) -> Result<usize, DecisionRefusal> {
+    ) -> Result<u64, DecisionRefusal> {
         let evaluation = self
             .revision
             .evaluate_service_decision_v1(identity, arguments, self.max_steps)
@@ -288,7 +288,7 @@ impl<'revision> DecisionEngine<'revision> {
         now_tick: u64,
         idle_deadline_tick: u64,
         absolute_deadline_tick: u64,
-    ) -> Result<usize, DecisionRefusal> {
+    ) -> Result<u64, DecisionRefusal> {
         self.invoke_usize(
             &self.identities.session_next_state_on_access,
             &[
@@ -301,7 +301,7 @@ impl<'revision> DecisionEngine<'revision> {
     }
 
     /// Evaluate the source transition selected for an explicit logout.
-    pub fn session_next_state_on_logout(&self, state: u64) -> Result<usize, DecisionRefusal> {
+    pub fn session_next_state_on_logout(&self, state: u64) -> Result<u64, DecisionRefusal> {
         self.invoke_usize(
             &self.identities.session_next_state_on_logout,
             &[PublicApiArgument::Usize(state)],

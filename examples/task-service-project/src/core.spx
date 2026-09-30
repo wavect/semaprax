@@ -1,6 +1,9 @@
 module task_service.core;
 use function @id("std.auth.password.policy_within_bounds") from std.auth as password_policy_within_bounds;
 use function @id("std.auth.session.is_usable") from std.auth as session_is_usable;
+use function @id("std.auth.session.state_is_valid") from std.auth as session_state_is_valid;
+use function @id("std.auth.session.idle_expired") from std.auth as session_idle_expired;
+use function @id("std.auth.session.absolute_expired") from std.auth as session_absolute_expired;
 use function @id("std.auth.session.next_state_on_access") from std.auth as session_next_state_on_access;
 use function @id("std.auth.session.next_state_on_logout") from std.auth as session_next_state_on_logout;
 use function @id("std.db.identifier.is_valid") from std.db as db_identifier_is_valid;
@@ -102,13 +105,13 @@ fn session_is_usable_for_host(state: usize, now_tick: usize, idle_deadline_tick:
 @id("task_service.core.session_next_state_on_access")
 fn session_next_state_on_access_for_host(state: usize, now_tick: usize, idle_deadline_tick: usize, absolute_deadline_tick: usize) -> usize
 {
-    session_next_state_on_access(state, now_tick, idle_deadline_tick, absolute_deadline_tick)
+    if state != 0usize { if session_state_is_valid(state) { state } else { 2usize } } else { if session_absolute_expired(now_tick, absolute_deadline_tick) { 4usize } else { if session_idle_expired(now_tick, idle_deadline_tick) { 3usize } else { 0usize } } }
 }
 
 @id("task_service.core.session_next_state_on_logout")
 fn session_next_state_on_logout_for_host(state: usize) -> usize
 {
-    session_next_state_on_logout(state)
+    if state == 0usize { 5usize } else { if session_state_is_valid(state) { state } else { 2usize } }
 }
 
 @id("task_service.core.enqueue_is_legal")
@@ -178,12 +181,12 @@ fn run_scenario() -> i64
     let owner_account_id = 1;
     let table_name = [116u8, 97u8, 115u8, 107u8, 115u8];
     let task_id = 1;
-    let state_at_update = session_next_state_on_access_for_host(active, update_tick, idle_deadline, absolute_deadline);
+    let state_at_update = session_next_state_on_access(active, update_tick, idle_deadline, absolute_deadline);
     let in_progress_status = 1usize;
     let job_key = [1u8, 4u8, 3u8];
     let enqueue_outcome_code = enqueue_outcome(false, array_as_slice(job_key), array_as_slice(job_key));
     let finished_job_state = mark_job_succeeded(0u8, 3u8);
-    let logged_out = session_next_state_on_logout_for_host(state_at_update);
+    let logged_out = session_next_state_on_logout(state_at_update);
     let intruder_account_id = 2;
     let bad_method = [103u8, 101u8, 116u8];
     let bad_identifier = [49u8, 116u8, 97u8, 115u8, 107u8];

@@ -94,7 +94,10 @@ host configuration boundary explicit:
   host-secret resolve, and telemetry emit — plus only
   bounded origins and secret references. A separate closed request-v1 decoder
   replays those bytes for host consumption and retains the telemetry origin as
-  an intent only. It cannot construct an outbound policy or capability: the
+  an intent only. The only admitted host telemetry profile is the closed
+  `semaprax-json-events` envelope (`semaprax.json-event.v1`) on `/v1/events`;
+  it is not OTLP and does not accept a caller-defined event schema or path. It
+  cannot construct an outbound policy or capability: the
   host must separately grant one whose exact allowed-origin set contains that
   target before it can bind an adapter. This is an intent declaration, not a
   capability grant or a physical adapter implementation.

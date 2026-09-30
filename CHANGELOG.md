@@ -17,6 +17,13 @@ format: `Unreleased` then release buckets, grouped by impact.
   identity (#330). The focused cache reuse and crossed-proof refusal regression
   passed 1/1 locally; continued lifecycle acceptance remains open.
 
+- Bind the reference service's accepted `semaprax-json-events` telemetry
+  profile to the closed `semaprax.json-event.v1` completion envelope and its
+  fixed `/v1/events` route. The generated configuration still admits only
+  `snapshot` plus that telemetry profile and refuses SQLite, PostgreSQL, DSN,
+  and OTLP selections. Static format/diff checks passed; focused regressions
+  are unrun, and no hosted, OCI, SQL, or OTLP support is claimed.
+
 - Record the Windows doctor #333 binding decision and native mechanism/corpus
   plan. Reject advisory oplocks, repeated hashes, byte-range locks and an
   unproven copy/reopen transition as exact image-binding repairs. Image-section

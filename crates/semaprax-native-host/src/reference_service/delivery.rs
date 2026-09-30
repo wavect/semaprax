@@ -44,8 +44,15 @@ type HmacSha256 = Hmac<Sha256>;
 /// reference host may post telemetry-shaped webhooks only there, never to a
 /// caller-selected path.
 pub const TELEMETRY_EVENTS_PATH: &str = "/v1/events";
+/// The only envelope admitted by the bounded `semaprax-json-events` profile.
+///
+/// This is a closed event envelope, not an OTLP signal or a caller-defined
+/// JSON webhook. The decoded configuration selects the profile and fixed
+/// route; it cannot supply another schema or path.
+const EVENT_SCHEMA: &str = "semaprax.json-event.v1";
 const WEBHOOK_EVENT: &str = "job.completed";
 const WEBHOOK_CONTENT_TYPE: &str = "application/json";
+const EVENT_SCHEMA_HEADER: &str = "x-semaprax-event-schema";
 const DELIVERY_CAPACITY: usize = 64;
 const DELIVERY_DEADLINE_MS: u64 = 10_000;
 const POLICY_ID: &str = "reference-service-outbound-v1";
@@ -338,15 +345,19 @@ pub fn deliver_completion_webhook(
     let invocation_id = format!("{INVOCATION_PREFIX}{job_id}");
     let capability =
         OutboundCapability::grant_for_trusted_host(deployment_binding, invocation_id, policy)?;
-    let (body, signature) = signed_body(job_id, owner, desc, webhook_key);
+    let (body, signature) = signed_event(job_id, owner, desc, webhook_key);
     let request = HttpRequest {
         method: HttpMethod::Post,
         endpoint: format!("{endpoint_origin}{TELEMETRY_EVENTS_PATH}"),
         request_id: format!("req-{job_id}-{owner}"),
         idempotency_key: COMPLETION_IDEMPOTENCY_KEY.to_owned(),
         content_type: Some(WEBHOOK_CONTENT_TYPE.to_owned()),
-        headers: vec![HttpHeader::new("x-webhook-signature", signature)
-            .map_err(|_| DeliveryRefusal::InvalidRequest)?],
+        headers: vec![
+            HttpHeader::new(EVENT_SCHEMA_HEADER, EVENT_SCHEMA)
+                .map_err(|_| DeliveryRefusal::InvalidRequest)?,
+            HttpHeader::new("x-webhook-signature", signature)
+                .map_err(|_| DeliveryRefusal::InvalidRequest)?,
+        ],
         body: body.into_bytes(),
         deadline_ms: DELIVERY_DEADLINE_MS,
     };
@@ -359,12 +370,13 @@ pub fn deliver_completion_webhook(
     })
 }
 
-fn signed_body(job_id: i64, owner: i64, desc: &str, webhook_key: &[u8; 32]) -> (String, String) {
+fn signed_event(job_id: i64, owner: i64, desc: &str, webhook_key: &[u8; 32]) -> (String, String) {
     let payload = json::render(&JsonValue::Object(vec![
         ("desc".to_owned(), JsonValue::Str(desc.to_owned())),
         ("event".to_owned(), JsonValue::Str(WEBHOOK_EVENT.to_owned())),
         ("job_id".to_owned(), JsonValue::Int(job_id)),
         ("owner".to_owned(), JsonValue::Int(owner)),
+        ("schema".to_owned(), JsonValue::Str(EVENT_SCHEMA.to_owned())),
     ]));
     let mut mac = HmacSha256::new_from_slice(webhook_key).expect("HMAC accepts 32-byte keys");
     mac.update(payload.as_bytes());
@@ -374,6 +386,7 @@ fn signed_body(job_id: i64, owner: i64, desc: &str, webhook_key: &[u8; 32]) -> (
         ("event".to_owned(), JsonValue::Str(WEBHOOK_EVENT.to_owned())),
         ("job_id".to_owned(), JsonValue::Int(job_id)),
         ("owner".to_owned(), JsonValue::Int(owner)),
+        ("schema".to_owned(), JsonValue::Str(EVENT_SCHEMA.to_owned())),
         ("signature".to_owned(), JsonValue::Str(tag.clone())),
     ]));
     (body, tag)
@@ -460,8 +473,16 @@ mod tests {
     }
 
     #[test]
-    fn webhook_body_is_signed_and_canonical() {
-        let (body, signature) = signed_body(7, 1, "task-1", &[5_u8; 32]);
+    fn completion_event_is_schema_bound_signed_and_canonical() {
+        let (body, signature) = signed_event(7, 1, "task-1", &[5_u8; 32]);
+        assert_eq!(EVENT_SCHEMA_HEADER, "x-semaprax-event-schema");
+        assert_eq!(
+            super::EVENT_SCHEMA,
+            "semaprax.json-event.v1",
+            "the accepted configuration profile has one named envelope"
+        );
+        assert!(body.contains("\"schema\":\"semaprax.json-event.v1\""));
+        assert!(body.contains("\"event\":\"job.completed\""));
         assert!(body.contains("\"signature\":\""));
         assert_eq!(signature.len(), 64);
         // The signature covers the exact unsigned payload rendering.
@@ -470,6 +491,7 @@ mod tests {
             ("event".to_owned(), JsonValue::Str(WEBHOOK_EVENT.to_owned())),
             ("job_id".to_owned(), JsonValue::Int(7)),
             ("owner".to_owned(), JsonValue::Int(1)),
+            ("schema".to_owned(), JsonValue::Str(EVENT_SCHEMA.to_owned())),
         ]));
         let mut mac = HmacSha256::new_from_slice(&[5_u8; 32]).unwrap();
         mac.update(payload.as_bytes());

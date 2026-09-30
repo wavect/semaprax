@@ -1104,8 +1104,10 @@ fn complete_job(
         Ok(false) => return error(403, "forbidden", None),
         Err(response) => return response,
     }
-    if job.state != JobState::Pending {
-        return error(409, "already_completed", Some(&committed.digest));
+    match host.decisions.job_status_is_complete(job.state.source_status()) {
+        Ok(false) => {}
+        Ok(true) => return error(409, "already_completed", Some(&committed.digest)),
+        Err(_) => return error(500, "decision_failed", None),
     }
     let event_bytes = match delivery::completion_event_len(
         job.id,

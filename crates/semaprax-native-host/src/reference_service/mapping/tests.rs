@@ -590,6 +590,10 @@ fn job_enqueue_is_idempotent_and_completion_settles_once() {
         field(&completed.body, "webhook").as_str().unwrap(),
         "uncertain"
     );
+    let outbound_entries_before_retry = std::fs::read_dir(fixture.outbound.path())
+        .unwrap()
+        .count();
+    assert!(outbound_entries_before_retry > 0);
 
     let again = handle(
         &mut fixture.host,
@@ -597,6 +601,11 @@ fn job_enqueue_is_idempotent_and_completion_settles_once() {
         &exchange("POST", "/v1/jobs/1/complete", "", Some(&token)),
     );
     assert_eq!(again.status, 409);
+    assert_eq!(
+        std::fs::read_dir(fixture.outbound.path()).unwrap().count(),
+        outbound_entries_before_retry,
+        "a source-selected terminal status refuses before another outbound attempt"
+    );
 
     let queried = handle(
         &mut fixture.host,

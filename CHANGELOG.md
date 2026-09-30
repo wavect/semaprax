@@ -8,6 +8,11 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Select completed-job retry refusal through the checked source terminality
+  decision (#336), with an explicit mapping from persisted reference-service
+  states to durable-job codes. The focused completion selector passed 1/1
+  locally and verifies no second outbound marker on retry.
+
 - Gate reference-service registration through the checked source admission
   decision (#336) before password work, using the live account count, persisted
   capacity and selected Argon parameters. Focused capacity refusal and

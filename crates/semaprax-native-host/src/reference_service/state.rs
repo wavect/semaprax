@@ -79,6 +79,16 @@ pub enum JobState {
 }
 
 impl JobState {
+    /// The checked scaffold's durable-job state code for this persisted
+    /// reference-service state. The host owns this representation mapping;
+    /// checked source selects whether the mapped code is terminal.
+    pub(crate) fn source_status(self) -> u64 {
+        match self {
+            Self::Pending => 0,
+            Self::Completed => 4,
+        }
+    }
+
     fn decode(value: &str) -> Option<Self> {
         match value {
             "pending" => Some(Self::Pending),

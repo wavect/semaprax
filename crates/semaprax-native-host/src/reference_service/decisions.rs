@@ -18,9 +18,8 @@
 //! `registration_admitted`, `enqueue_outcome`, and
 //! `completed_job_export_is_admitted` are invoked through the checked
 //! public-API seam before their corresponding host work. The remaining
-//! scaffold decisions (job terminality, migration/transaction,
-//! log/trace/metric, and webhook policies) retain fixture-mode coverage
-//! until a host route needs them.
+//! scaffold decisions (migration/transaction, log/trace/metric, and webhook
+//! policies) retain fixture-mode coverage until a host route needs them.
 //!
 //! [`ProjectRevision::evaluate_service_decision_v1`]: semaprax::project::ProjectRevision::evaluate_service_decision_v1
 
@@ -62,6 +61,7 @@ pub struct DecisionIdentities {
     session_next_state_on_access: String,
     session_next_state_on_logout: String,
     enqueue_outcome: String,
+    job_status_is_complete: String,
     completed_job_export_is_admitted: String,
 }
 
@@ -79,6 +79,7 @@ impl DecisionIdentities {
         let session_next_state_on_access = sole(program, "session_next_state_on_access")?;
         let session_next_state_on_logout = sole(program, "session_next_state_on_logout")?;
         let enqueue_outcome = sole(program, "enqueue_outcome")?;
+        let job_status_is_complete = sole(program, "job_status_is_complete")?;
         let completed_job_export_is_admitted = sole(program, "completed_job_export_is_admitted")?;
         let prefix = prefix_of(&request_is_admitted).ok_or(DecisionRefusal::Unresolved)?;
         for identity in [
@@ -90,6 +91,7 @@ impl DecisionIdentities {
             &session_next_state_on_access,
             &session_next_state_on_logout,
             &enqueue_outcome,
+            &job_status_is_complete,
             &completed_job_export_is_admitted,
         ] {
             if prefix_of(identity) != Some(prefix) {
@@ -107,6 +109,7 @@ impl DecisionIdentities {
             session_next_state_on_access,
             session_next_state_on_logout,
             enqueue_outcome,
+            job_status_is_complete,
             completed_job_export_is_admitted,
         })
     }
@@ -150,6 +153,7 @@ fn prefix_of(identity: &str) -> Option<&str> {
         .or_else(|| identity.strip_suffix(".core.session_next_state_on_access"))
         .or_else(|| identity.strip_suffix(".core.session_next_state_on_logout"))
         .or_else(|| identity.strip_suffix(".core.enqueue_outcome"))
+        .or_else(|| identity.strip_suffix(".core.job_status_is_complete"))
         .or_else(|| identity.strip_suffix(".core.completed_job_export_is_admitted"))
 }
 
@@ -350,6 +354,15 @@ impl<'revision> DecisionEngine<'revision> {
         )
     }
 
+    /// Evaluate whether the persisted job-status representation is terminal
+    /// before the host attempts any completion delivery.
+    pub fn job_status_is_complete(&self, state: u64) -> Result<bool, DecisionRefusal> {
+        self.invoke_bool(
+            &self.identities.job_status_is_complete,
+            &[PublicApiArgument::Usize(state)],
+        )
+    }
+
     /// Evaluate the checked admission policy before one completion event is
     /// handed to the host-created outbound adapter.
     pub fn completed_job_export_is_admitted(
@@ -430,6 +443,8 @@ mod tests {
         assert_eq!(engine.enqueue_outcome(false, b"", b"job-1").unwrap(), 0);
         assert_eq!(engine.enqueue_outcome(true, b"job-1", b"job-1").unwrap(), 1);
         assert_eq!(engine.enqueue_outcome(true, b"job-1", b"job-2").unwrap(), 2);
+        assert!(!engine.job_status_is_complete(0).unwrap());
+        assert!(engine.job_status_is_complete(4).unwrap());
         assert!(engine
             .completed_job_export_is_admitted(0, 1, 128, b"https://telemetry.example")
             .unwrap());

@@ -66,7 +66,7 @@ fn effect_closure_preserves_room_across_maximum_serialized_phase_edges() {
     });
 }
 
-fn checked_width(context: &CheckedOwnedWaitJournalContextV8, value: Value) -> RoomV8 {
+pub(super) fn checked_width(context: &CheckedOwnedWaitJournalContextV8, value: Value) -> RoomV8 {
     let expected = row(value.clone()).unwrap();
     let body: model::OwnedBodyV8 = serde_json::from_value(value).unwrap();
     let bytes = wire::encode(

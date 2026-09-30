@@ -14,6 +14,13 @@ format: `Unreleased` then release buckets, grouped by impact.
   exclusion, request/bundle transport and resource/handle corpus work remain
   open; this documentation change adds no execution or support evidence.
 
+- Correct the historical effect-capacity phase regression (#330) to assert
+  distinct exact Reduce and Decision-observer State cleanup reserves. The
+  observer branch checks typed authenticated widths, legal cleanup edges,
+  premature/wrong-status Stop refusal and failed-State-observer quarantine.
+  The old equality predated the separate observer closure; production capacity
+  and the fixed-row cache are unchanged. The strengthened selector is unrun.
+
 - Memoize the three immutable v8 effect-room aggregates (#330) through their
   existing canonical serializers. Compiler-dependent cleanup, current closure,
   authenticated inventory and physical checks remain live. Fixed-prefix parity

@@ -174,11 +174,14 @@ fn effect_actual_authenticated_phase_edges_keep_reserved_room_and_refuse_produce
         }
         let (released, room) = check(rows.len());
         assert_eq!(released.tail, fold::TailV8::EffectDecisionReleased);
-        assert!(
-            room.rows >= 4,
-            "successful Decision release still preserves future State failure closure"
+        assert_eq!(
+            room,
+            RoomV8 {
+                bytes: 275709,
+                rows: 8
+            },
+            "this checked fixture retains its full successful Reduce closure"
         );
-        assert!(room.bytes > 0);
         // Failed observation cannot be replaced by an unrelated legacy terminal.
         let mut failed_receipt = rows.clone();
         let EntryV8::Owned(model::OwnedBodyV8::OwnedEffectDecisionCleanupSettled {
@@ -201,9 +204,190 @@ fn effect_actual_authenticated_phase_edges_keep_reserved_room_and_refuse_produce
         .unwrap();
         let folded = fold::fold(context.fold(), checked.entries()).unwrap();
         assert_eq!(folded.tail, fold::TailV8::EffectCleanupFailed);
-        assert_eq!(
-            super::super::outstanding(context.fold(), &folded).unwrap(),
-            room
+        check_observer_failure_closure(
+            &context,
+            &lease,
+            &key,
+            failed_receipt,
+            &max.result_operations,
         );
     });
+}
+
+fn check_observer_failure_closure(
+    context: &CheckedOwnedWaitJournalContextV8,
+    lease: &crate::resumable_effects::owned_frame::SourceOwnedWaitLeaseV8,
+    key: &SourceCheckpointKey,
+    mut rows: Vec<EntryV8>,
+    operations: &Value,
+) {
+    use crate::live_invocation::source_journal::{SourceStopReason, SourceStopStatus};
+    let terminal = RoomV8 {
+        bytes: super::super::super::super::execution::TERMINAL_ROOM_BYTES,
+        rows: 2,
+    };
+    // Spec sections 23.6/43: a failed Decision observer has its own State
+    // Started + Settled + sticky terminal closure. The historical equality
+    // with successful Reduce room predates that separate grammar.
+    let max_started = super::tests::checked_width(
+        context,
+        json!({
+            "kind":"owned_effect_observer_failure_state_cleanup_started",
+            "turn":u32::MAX,"attempt":u32::MAX,"plan":hash(),
+            "settlement":u32::MAX,"recorded":u32::MAX,
+            "decision_cleanup_settled":u32::MAX,"decision_receipt_digest":hash(),
+            "cause":"decision_observation_failed","selected_effect_failure":"handler_failed",
+            "state_digest":hash(),"operations":operations
+        }),
+    );
+    let max_settled = super::tests::checked_width(
+        context,
+        json!({
+            "kind":"owned_effect_observer_failure_state_cleanup_settled",
+            "turn":u32::MAX,"attempt":u32::MAX,"started":u32::MAX,
+            "receipt":templates::receipt(operations).unwrap()
+        }),
+    );
+    let expected = max_started.add(max_settled).unwrap().add(terminal).unwrap();
+    assert_eq!(
+        expected,
+        RoomV8 {
+            bytes: 268245,
+            rows: 4
+        }
+    );
+    let check = |rows: &[EntryV8]| {
+        let checked =
+            inventory::checked_inventory_v8(context, lease, key, &encode(context, key, rows))
+                .unwrap();
+        let folded = fold::fold(context.fold(), checked.entries()).unwrap();
+        let room = super::super::outstanding(context.fold(), &folded).unwrap();
+        (folded, room)
+    };
+    let (failed, before) = check(&rows);
+    assert_eq!(before, expected);
+    let used_rows = super::super::super::super::MAX_SOURCE_ENTRIES - expected.rows;
+    expected.check(0, used_rows).unwrap();
+    assert_eq!(
+        expected.check(0, used_rows + 1),
+        Err(SourceJournalError::Capacity)
+    );
+    let stop = EntryV8::Ordinary(SourceJournalEntry::Stop {
+        turn: Some(0),
+        attempt: Some(0),
+        status: SourceStopStatus::Rejected,
+        reason: SourceStopReason::StageRefused,
+    });
+    let refuse = |prefix: &[EntryV8], row: &EntryV8| {
+        let mut candidate = prefix.to_vec();
+        candidate.push(row.clone());
+        assert_eq!(
+            inventory::checked_inventory_v8(context, lease, key, &encode(context, key, &candidate))
+                .err(),
+            Some(SourceJournalError::Order)
+        );
+    };
+    refuse(&rows, &stop);
+    assert!(fold::validate_producer_transition(
+        &failed,
+        &ValidatedEntryV8 {
+            entry: stop.clone(),
+            observation: None,
+        }
+    )
+    .is_err());
+    let EntryV8::Owned(model::OwnedBodyV8::OwnedEffectDecisionCleanupSettled {
+        receipt_digest,
+        ..
+    }) = &rows[24]
+    else {
+        panic!()
+    };
+    let EntryV8::Owned(model::OwnedBodyV8::OwnedStateTransferCompleted { state, .. }) = &rows[15]
+    else {
+        panic!()
+    };
+    let started = EntryV8::Owned(
+        model::OwnedBodyV8::OwnedEffectObserverFailureStateCleanupStarted {
+            turn: 0,
+            attempt: 0,
+            plan: context.fold().checked_binding.binding().into(),
+            settlement: 21,
+            recorded: 22,
+            decision_cleanup_settled: 24,
+            decision_receipt_digest: receipt_digest.clone(),
+            cause: "decision_observation_failed".into(),
+            selected_effect_failure: None,
+            state_digest: wire::record_argument_digest(state),
+            operations: operations.clone(),
+        },
+    );
+    assert!(fold::validate_producer_transition(
+        &failed,
+        &ValidatedEntryV8 {
+            entry: started.clone(),
+            observation: None,
+        }
+    )
+    .is_err());
+    let old_len = encode(context, key, &rows).len();
+    rows.push(started);
+    let (_, after_started) = check(&rows);
+    assert_eq!(after_started, max_settled.add(terminal).unwrap());
+    check_edge(
+        before,
+        encode(context, key, &rows).len() - old_len,
+        after_started,
+    );
+    refuse(&rows, &stop);
+    let state_receipt = templates::receipt(operations).unwrap();
+    let settled = EntryV8::Owned(
+        model::OwnedBodyV8::OwnedEffectObserverFailureStateCleanupSettled {
+            turn: 0,
+            attempt: 0,
+            started: 25,
+            receipt: state_receipt.clone(),
+        },
+    );
+    // A second failed observer quarantines without granting Stop or Reduce.
+    let mut failed_state = rows.clone();
+    let mut failed_state_receipt = state_receipt;
+    failed_state_receipt["operations"][0]["outcome"] = json!("failed");
+    failed_state_receipt["settlement"] = json!("failed");
+    failed_state.push(EntryV8::Owned(
+        model::OwnedBodyV8::OwnedEffectObserverFailureStateCleanupSettled {
+            turn: 0,
+            attempt: 0,
+            started: 25,
+            receipt: failed_state_receipt,
+        },
+    ));
+    assert_eq!(check(&failed_state).1, RoomV8::default());
+    refuse(&failed_state, &stop);
+    let old_len = encode(context, key, &rows).len();
+    rows.push(settled);
+    let (_, after_settled) = check(&rows);
+    assert_eq!(after_settled, terminal);
+    check_edge(
+        after_started,
+        encode(context, key, &rows).len() - old_len,
+        after_settled,
+    );
+    let wrong_stop = EntryV8::Ordinary(SourceJournalEntry::Stop {
+        turn: Some(0),
+        attempt: Some(0),
+        status: SourceStopStatus::EffectFailed,
+        reason: SourceStopReason::EffectFailed,
+    });
+    refuse(&rows, &wrong_stop);
+    rows.push(stop);
+    let (stopped, after_stop) = check(&rows);
+    assert_eq!(stopped.tail, fold::TailV8::Stopped);
+    assert_eq!(
+        after_stop,
+        RoomV8 {
+            rows: 1,
+            ..terminal
+        }
+    );
 }

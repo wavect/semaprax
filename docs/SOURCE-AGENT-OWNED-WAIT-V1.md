@@ -732,6 +732,15 @@ The failed grammar requires canonical State cleanup and the exact full original 
 
 ## 43. Actual Decision-observer terminal State cleanup
 
+The capacity phase regression distinguishes the successful Decision cleanup's
+Reduce reserve from the failed Decision observer's own State cleanup reserve.
+The historical equality between them predates this separate closure. Its
+replacement pins both fixture bounds, checks the observer bound against typed
+authenticated Started/Settled widths plus terminal allowance, and exercises
+legal cleanup edges, premature or wrong-status Stop refusal, and a failed State
+observer's zero continuation room. This strengthened regression is unrun; no
+capacity formula or production authority is changed by the correction.
+
 The private cleanup seal from a complete failed Decision observation receipt can select a distinct State cleanup Started row, bound to that actual receipt and retained State. Its fixed durable ACK authorizes the original compiler State disposal vector. The actual ordered physical receipt selects Settled; only successful complete observations and its true ACK can select the original sticky Stop. Failed target causes retain EffectFailed; a successful target with failed Decision observation uses the distinct observer cause and Rejected/StageRefused.
 
 The same State, four-dimensional ledger and Reduce hold remain attached. Normal poison stays permanent; only the cleanup seal advances, and all later faults retire it permanently. Incurred release/receipt may finish under the narrow cancellation/deadline exception, preserving store/PID/binding/policy checks; before Started and Stop all full guards apply. Partial or failed State observation cannot publish Stop. Actual owning tests include all sticky target causes, guard loss, persistence faults, wrong journal, reminted joins and pin restoration. Integrated runtime verification remains pending; no public terminal publication or recovery is supplied.

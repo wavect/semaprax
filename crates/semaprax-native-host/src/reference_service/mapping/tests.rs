@@ -311,6 +311,90 @@ fn source_selected_expiry_is_persisted_and_sticky() {
 }
 
 #[test]
+fn source_selected_absolute_expiry_is_persisted_and_sticky() {
+    let mut fixture = fixture();
+    let registered = handle(
+        &mut fixture.host,
+        &mut fixture.committed,
+        &exchange(
+            "POST",
+            "/v1/register",
+            r#"{"username":"absolute","password":"correct horse 7"}"#,
+            None,
+        ),
+    );
+    assert_eq!(registered.status, 201, "{}", registered.body);
+    let logged_in = handle(
+        &mut fixture.host,
+        &mut fixture.committed,
+        &exchange(
+            "POST",
+            "/v1/login",
+            r#"{"username":"absolute","password":"correct horse 7"}"#,
+            None,
+        ),
+    );
+    assert_eq!(logged_in.status, 200, "{}", logged_in.body);
+    let token = field(&logged_in.body, "token").as_str().unwrap().to_owned();
+    let session_id = &token[..SESSION_ID_BYTES * 2];
+    let expired = fixture
+        .committed
+        .state
+        .sessions
+        .iter_mut()
+        .find(|session| session.id == session_id)
+        .unwrap();
+    expired.idle_deadline_tick = i64::MAX;
+    expired.absolute_deadline_tick = 0;
+
+    let source_state = fixture
+        .host
+        .decisions
+        .session_next_state_on_access(0, 1, i64::MAX as u64, 0)
+        .unwrap();
+    assert_eq!(source_state, 4, "checked source prioritizes absolute expiry");
+    assert!(!fixture
+        .host
+        .decisions
+        .session_is_usable(0, 1, i64::MAX as u64, 0)
+        .unwrap());
+
+    let first = handle(
+        &mut fixture.host,
+        &mut fixture.committed,
+        &exchange("GET", "/v1/tasks/1", "", Some(&token)),
+    );
+    assert_eq!(first.status, 401, "{}", first.body);
+    assert_eq!(
+        fixture
+            .committed
+            .state
+            .session_by_id(session_id)
+            .unwrap()
+            .state,
+        source_state as u8,
+        "the host persists the source-selected absolute-expired state"
+    );
+    let sequence_after_expiry = fixture.committed.state.seq;
+    let second = handle(
+        &mut fixture.host,
+        &mut fixture.committed,
+        &exchange("GET", "/v1/tasks/1", "", Some(&token)),
+    );
+    assert_eq!(second.status, 401, "{}", second.body);
+    assert_eq!(fixture.committed.state.seq, sequence_after_expiry);
+    assert_eq!(
+        fixture
+            .committed
+            .state
+            .session_by_id(session_id)
+            .unwrap()
+            .state,
+        4
+    );
+}
+
+#[test]
 fn fixture_intent_and_bad_deployment_refuse_binding() {
     let manifest = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("..")

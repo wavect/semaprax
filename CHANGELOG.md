@@ -8,6 +8,10 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Cover the reference service's source-selected absolute session expiry (#336):
+  a focused host regression verifies the checked state transition, persisted
+  terminal state, HTTP refusal, and replay stability (1/1 locally).
+
 - Advance a real owned-wait v8 `Step::Continue` holder through its State and
   next-turn Observe journal acknowledgements (#330), retaining the unique
   live owner on each failure path. The focused real-owner selector passed 1/1

@@ -8,6 +8,11 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Cover the migrated runtime's metered durable recovery on the same
+  caller-held Core Wasm target (#327). The focused selector passed 1/1
+  locally with receipt pairing and zero retained host-work redelivery;
+  native-target and full acceptance remain open.
+
 - Expose an explicit metered durable route on fresh and resumed migrated
   runtimes (#327), binding stage semantic-work evidence to a distinct
   migration root. The focused same-Interpreter recovery selector passed 1/1

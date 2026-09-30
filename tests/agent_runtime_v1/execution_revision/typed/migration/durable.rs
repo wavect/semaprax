@@ -615,6 +615,77 @@ fn metered_migrated_durable_recovery_replays_same_target_receipts() {
 }
 
 #[test]
+#[cfg(any(target_os = "linux", target_os = "macos"))]
+fn metered_migrated_durable_recovery_replays_same_held_wasm_target() {
+    use semaprax::agent_lifecycle::iterative::effects::{TargetStageBackend, WasmTargetHost};
+
+    let a = first();
+    let b = successor(&a, "State", "StateB", "b", &["marker"], false);
+    let (migration, before, after) = migrated_with_metered_interpreter(&a, &b);
+    let node = std::env::var_os("SEMAPRAX_TEST_WASM_STAGE_NODE")
+        .map(std::path::PathBuf::from)
+        .into_iter()
+        .chain([
+            std::path::PathBuf::from("/usr/bin/node"),
+            std::path::PathBuf::from("/usr/local/bin/node"),
+            std::path::PathBuf::from("/opt/homebrew/bin/node"),
+        ])
+        .find_map(|path| WasmTargetHost::open(path).ok())
+        .expect("metered migration recovery requires an explicit held Node runtime");
+    let handoff = migration.handoff_digest().unwrap();
+    let mut host = handler();
+    let mut store = Store::default();
+    let completed = migration
+        .run_durable_metered_with_backend(
+            &mut host,
+            &AgentCancellation::new(),
+            &mut store,
+            TargetStageBackend::CoreWasmHeld(&node),
+            10_000,
+        )
+        .expect("held Core Wasm records durable migration receipts");
+    assert!(completed.run().observations_complete());
+    assert_eq!(host.calls.len(), 3);
+    let snapshot: serde_json::Value = serde_json::from_str(&store.document).unwrap();
+    let checkpoint: serde_json::Value =
+        serde_json::from_str(snapshot["checkpoint"].as_str().unwrap()).unwrap();
+    let entries = checkpoint["entries"].as_array().unwrap();
+    assert_eq!(
+        entries
+            .iter()
+            .filter(|entry| entry["event"]["kind"] == "stage_reservation")
+            .count(),
+        entries
+            .iter()
+            .filter(|entry| entry["event"]["kind"] == "semantic_work")
+            .count(),
+        "every held-Wasm migration stage reservation has an authenticated receipt",
+    );
+    let retained = store.document.clone();
+    let resumed = resume_migrated_agent_runtime_v2(
+        bind(&a, b"chain payload"),
+        bind(&b, b"destination input ignored"),
+        &retained,
+        &handoff,
+        &before,
+        &after,
+    )
+    .expect("held-Wasm v4 migration handoff recovers");
+    let replay = resumed
+        .run_durable_metered_with_backend(
+            &mut host,
+            &AgentCancellation::new(),
+            &mut store,
+            TargetStageBackend::CoreWasmHeld(&node),
+            10_000,
+        )
+        .expect("same held Core Wasm replays durable migration receipts");
+    assert!(replay.run().observations_complete());
+    assert_eq!(replay.run().run().run().dispatched(), 0);
+    assert_eq!(host.calls.len(), 3);
+}
+
+#[test]
 fn migrated_genesis_and_effect_lost_acknowledgements_fail_closed_and_recover() {
     let a = first();
     let b = successor(&a, "State", "StateB", "b", &["marker"], false);

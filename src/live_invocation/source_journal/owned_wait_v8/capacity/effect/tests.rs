@@ -88,37 +88,3 @@ fn checked_width(context: &CheckedOwnedWaitJournalContextV8, value: Value) -> Ro
     );
     expected
 }
-
-#[test]
-fn effect_fixed_room_cache_matches_uncached_rows_and_keeps_dynamic_cleanup() {
-    // Rebuild the original fixed prefix each time as the uncached oracle.
-    for _ in 0..2 {
-        let expected = fixed_rooms_uncached().unwrap();
-        assert_eq!(fixed_rooms().unwrap(), expected);
-    }
-    CheckedOwnedWaitJournalContextV8::test_with_actual_runtime(|context, _lease, _key| {
-        let mut max = templates::maxima(context.fold()).unwrap();
-        let baseline = rooms(&max, RoomV8::default()).unwrap();
-        let retained = RoomV8 {
-            bytes: 4096,
-            rows: 7,
-        };
-        let larger = rooms(&max, retained).unwrap();
-        for (before, after) in [
-            (baseline.ready, larger.ready),
-            (baseline.intent, larger.intent),
-            (baseline.settlement, larger.settlement),
-            (baseline.recorded, larger.recorded),
-            (baseline.cleanup, larger.cleanup),
-        ] {
-            assert_eq!(after, before.add(retained).unwrap());
-        }
-        // A warm constant cache still derives the receipt from this call's
-        // operations and refuses a malformed vector before producing room.
-        max.effect_operations = json!({"invalid":"operations"});
-        assert!(matches!(
-            rooms(&max, retained),
-            Err(SourceJournalError::Binding)
-        ));
-    });
-}

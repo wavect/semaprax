@@ -8,12 +8,6 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
-- Memoize the three immutable v8 effect-room aggregates (#330) through their
-  existing canonical serializers. Compiler-dependent cleanup, current closure,
-  authenticated inventory and physical checks remain live. Fixed-prefix parity
-  and malformed-cleanup refusal coverage is added but unrun; timing remains
-  unverified.
-
 - Retain the immutable cumulative v8 fresh-turn capacity forecast under exact
   context and checked-proof identities (#330), avoiding repeated maximal
   checkpoint and effect-result template serialization. Current prefix and

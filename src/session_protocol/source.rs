@@ -670,8 +670,17 @@ pub(crate) fn declaration_json(declaration: &SessionProtocolDeclaration) -> Stri
         })
         .collect::<Vec<_>>()
         .join(",");
+    let endpoint = declaration
+        .endpoint
+        .as_ref()
+        .map_or_else(String::new, |carrier| {
+            format!(
+                ",\"endpoint\":{{\"profile\":\"affine-bytes.v1\",\"carrier\":{}}}",
+                quote_json(&carrier.name)
+            )
+        });
     format!(
-        "{{\"stable_id\":{},\"name\":{},\"span\":{},\"states\":{},\"initial\":{},\"terminals\":[{}],\"transitions\":[{}],\"static_validation\":{},\"bounded_reachability\":{},\"authority\":\"none\"}}",
+        "{{\"stable_id\":{},\"name\":{},\"span\":{},\"states\":{},\"initial\":{},\"terminals\":[{}],\"transitions\":[{}],\"static_validation\":{},\"bounded_reachability\":{},\"authority\":\"none\"{endpoint}}}",
         quote_json(&declaration.stable_id),
         quote_json(&declaration.name),
         span_json(declaration.span),

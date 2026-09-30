@@ -27,6 +27,9 @@ pub(super) fn write_session_protocols(
         write_name_set(output, &protocol.states);
         writeln!(output).unwrap();
         writeln!(output, "    initial {};", protocol.initial.name).unwrap();
+        if let Some(endpoint) = &protocol.endpoint {
+            writeln!(output, "    endpoint {};", endpoint.name).unwrap();
+        }
         for terminal in &protocol.terminals {
             write!(output, "    terminal {} cleanup ", terminal.state.name).unwrap();
             write_name_set(output, &terminal.cleanup);

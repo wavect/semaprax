@@ -1,0 +1,47 @@
+module example.session_endpoint;
+
+@id("channel.protocol")
+session protocol "channel-v1" {
+    states { Ready, Active, Closed }
+    initial Ready;
+    endpoint Bytes;
+    terminal Closed cleanup {}
+    on Ready step: send Unit consumes resource via "channel.step" -> Active;
+    on Ready cancel: cancel Unit consumes resource via "channel.cancel" -> Closed;
+    on Active close: send Unit consumes resource via "channel.close" -> Closed;
+    on Active cancel: cancel Unit consumes resource via "channel.cancel" -> Closed;
+}
+
+@id("channel.step")
+fn step(value: own Bytes) -> Bytes
+{
+    value
+}
+
+@id("channel.close")
+fn close(value: own Bytes) -> i64
+{
+    if byte_len(bytes_as_slice(value)) == 2usize { 42 } else { 1 }
+}
+
+@id("channel.cancel")
+fn cancel(value: own Bytes) -> i64
+{
+    42
+}
+
+@id("channel.use")
+fn use_channel(endpoint: own Bytes) -> i64
+    follows session protocol "channel.protocol"
+{
+    let moved = endpoint;
+    let active = step(moved);
+    close(active)
+}
+
+@id("app.main")
+fn main() -> i64
+{
+    let data = [4u8, 2u8];
+    use_channel(bytes_copy(array_as_slice(data)))
+}

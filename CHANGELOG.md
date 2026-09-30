@@ -15,6 +15,14 @@ format: `Unreleased` then release buckets, grouped by impact.
   2,000,000-step source-suite bound. The frozen oracle, corpus, response
   capacity, mutation controls and backend lanes are unchanged.
 
+- Add the explicit `endpoint Bytes` session profile, connecting checked protocol
+  order to a unique source carrier through local moves and terminal consumption.
+  Refuse stale aliases, use after close, replacement carriers and escapes before
+  backend emission; preserve the existing declaration-only profile.
+- Add source/HIR/graph/cache regressions and interpreter/native O0/O2/generated
+  Wasm success and terminal-failure settlement gates. Execution remains pending
+  until the owning specification's gate has run.
+
 - Add an opt-in local Ollama specialization runner for #326 around the frozen
   control schedule and scorer, with public-only prompt projection, exact model
   pins, explicit independent-review gates and immutable outcome receipts.

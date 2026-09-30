@@ -66,6 +66,15 @@ impl Parser {
         let initial = self.session_name("initial state name")?;
         self.expect(&TokenKind::Semicolon, "`;` after initial state")?;
 
+        let endpoint = if self.at_keyword("endpoint") {
+            self.bump();
+            let carrier = self.session_name("endpoint carrier")?;
+            self.expect(&TokenKind::Semicolon, "`;` after endpoint carrier")?;
+            Some(carrier)
+        } else {
+            None
+        };
+
         let mut terminals = Vec::new();
         while self.at_keyword("terminal") {
             if terminals.len() >= MAX_SESSION_PROTOCOL_STATES {
@@ -103,6 +112,7 @@ impl Parser {
             name_span,
             states,
             initial,
+            endpoint,
             terminals,
             transitions,
             span: start.merge(end),

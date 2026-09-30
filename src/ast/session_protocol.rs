@@ -29,6 +29,8 @@ pub struct SessionProtocolDeclaration {
     /// Declared state set, in source order.
     pub states: Vec<SessionProtocolName>,
     pub initial: SessionProtocolName,
+    /// Optional affine endpoint carrier; v1 admits only `Bytes`.
+    pub endpoint: Option<SessionProtocolName>,
     /// Terminal states with their canonical cleanup inventories, in source
     /// order. Cleanup order is runtime order and is never sorted.
     pub terminals: Vec<SessionProtocolTerminal>,

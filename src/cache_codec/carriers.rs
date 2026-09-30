@@ -91,6 +91,7 @@ mod ast {
         name_span,
         states,
         initial,
+        endpoint,
         terminals,
         transitions,
         span

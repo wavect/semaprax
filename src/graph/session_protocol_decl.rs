@@ -45,7 +45,16 @@ pub(super) fn attach(
             "checked graph header is not canonical",
         ));
     }
-    graph.replace_range(..prefix.len(), &format!("{{\"schema\":\"{GRAPH_SCHEMA}\""));
+    let schema = if program
+        .session_protocols
+        .iter()
+        .any(|protocol| protocol.endpoint.is_some())
+    {
+        "semaprax.graph.v51"
+    } else {
+        GRAPH_SCHEMA
+    };
+    graph.replace_range(..prefix.len(), &format!("{{\"schema\":\"{schema}\""));
     graph.pop();
     graph.push_str(&format!(
         ",\"session_protocols\":{{\"base_schema\":{},\"authority\":\"none\",\"declarations\":{}}}}}",

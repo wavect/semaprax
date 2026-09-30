@@ -69,6 +69,8 @@
 //! has no HIR node, no native/Wasm lowering, and no runtime representation --
 //! a `follows` clause is erased exactly like the declaration it names.
 
+mod endpoint;
+
 use std::collections::{BTreeMap, BTreeSet, HashSet};
 
 use crate::ast::{
@@ -86,7 +88,7 @@ fn k_error(program: &Program, code: &'static str, message: String, span: Span) -
 /// (returns immediately) for a program with no such function, so an ordinary
 /// program pays nothing for this check existing.
 pub(crate) fn check(program: &Program) -> Vec<Diagnostic> {
-    let mut diagnostics = Vec::new();
+    let mut diagnostics = endpoint::check_declarations(program);
     // The clause shares the function grammar, so a class method can carry
     // it; only free functions are checked, so refuse it on a method rather
     // than admit an unchecked claim.
@@ -489,6 +491,7 @@ fn check_function(
             ));
         }
     }
+    endpoint::check_function(program, function, protocol)?;
     Ok(())
 }
 

@@ -4,7 +4,8 @@ Audience: compiler contributors implementing the source-syntax/HIR/backend
 generalization this document specifies, and reviewers auditing what this
 slice of #206 delivered versus what remains.
 
-Status: **reference validator plus a checked, erased `.spx` declaration**.
+Status: **reference validator, checked `.spx` declarations, and an authored
+bounded affine source carrier whose execution gate is pending**.
 Issue #206 asked for a bounded session/protocol type model applied to two
 real subsystems. `src/session_protocol/` delivers a Rust-level protocol
 declaration, an affine typed endpoint, and a runtime engine proving the
@@ -23,9 +24,9 @@ span, and the checked HIR functions its `via` clauses name. The declaration
 is checked and erased: it has no runtime representation, lowers to nothing on
 the native or Wasm backend, and grants no authority. See
 [Declared session protocols](#declared-session-protocols-issue-297). Typestate
-checking of `.spx` endpoint *values* (use-after-close rejected at compile time
-in `.spx` source) is still not implemented -- see
-[Scope boundary](#scope-boundary).
+checking of `.spx` endpoint *values* now has the bounded
+[affine Bytes carrier profile](#affine-source-endpoint-carrier-issue-331).
+Its executable gate is authored; execution evidence is recorded in that section.
 
 ## What already exists on `main`
 
@@ -897,8 +898,8 @@ program discipline.
   (non-`via`) function that itself calls a `via`-bound function elsewhere is
   invisible to this check, exactly as issue #297's own request describes
   ("within one function body").
-- **No compiler-checked ownership/use-after-close analysis of an endpoint
-  *value***. This checks the *order of calls by name*, never the flow of an
+- **Legacy call-order mode has no endpoint-value ownership analysis.** Without
+  the #331 `endpoint Bytes` clause, this checks the *order of calls by name*, never the flow of an
   endpoint value through locals, fields, or return positions. Nothing here
   represents an `Endpoint` in checked HIR, so "does this local still denote a
   live, non-terminal endpoint" is not a question this check can ask or
@@ -936,19 +937,140 @@ pinned `EFFECTS_MARKDOWN` golden staying unchanged, and the same facts
 surfacing through `semaprax query`'s ordinary `--kind`/`--name` filters with
 no dedicated query code of their own).
 
+## Affine source endpoint carrier (issue #331)
+
+Status: implementation and executable gate authored; local compilation/testing
+must be reported separately. This profile reuses the compiler's existing unique
+`Bytes` values, resolved ownership and cleanup plans, interpreter, native C11,
+and generated Wasm byte runtime. A source endpoint is the one actual owner
+passed to the followed function, including its local moves and each successor
+returned by a declared transition.
+
+The complete executable source is [session-endpoint.spx](../examples/session-endpoint.spx).
+Add `endpoint Bytes;` immediately after `initial` in the declaration:
+
+```text
+@id("channel.protocol")
+session protocol "channel-v1" {
+    states { Ready, Active, Closed }
+    initial Ready;
+    endpoint Bytes;
+    terminal Closed cleanup {}
+    on Ready step: send Unit consumes resource via "channel.step" -> Active;
+    on Ready cancel: cancel Unit consumes resource via "channel.cancel" -> Closed;
+    on Active close: send Unit consumes resource via "channel.close" -> Closed;
+    on Active cancel: cancel Unit consumes resource via "channel.cancel" -> Closed;
+}
+
+@id("channel.use")
+fn use_channel(endpoint: own Bytes) -> i64
+    follows session protocol "channel.protocol"
+{
+    let moved = endpoint;
+    let active = step(moved);
+    close(active)
+}
+```
+
+`channel.step` takes `value: own Bytes` first and returns `Bytes`.
+`channel.close` and `channel.cancel` take `value: own Bytes` first and return a
+Copy scalar. Other parameters are Copy scalars. These are ordinary checked
+source functions; the declaration grants none of their effects or authority.
+The caller constructs or obtains the initial unique buffer through the ordinary
+admitted byte operations and transfers it into `use_channel`.
+
+Every endpoint-following function takes exactly one `own Bytes` parameter,
+optional scalar parameters, and returns a scalar. Every transition has a local
+monomorphic `via`, `consumes resource`, and a single next state. The first
+argument must transfer the current endpoint. Nonterminal transitions return its
+successor owner; terminal transitions consume it and return a scalar. The
+existing call-order checker proves each step legal from every incoming state
+and every normal path terminal. The additional value walk proves that the
+argument is the actual endpoint rather than a replacement buffer. Immutable
+`let` moves and nested transition calls are admitted; moving or closing an
+owner invalidates all previous local names. A second use is a source diagnostic
+before HIR/backend emission.
+
+An `if` may preserve the same incoming binding or consume it on both branches.
+Endpoint-valued branch results, mutation, loops containing endpoint operations,
+closure capture, fields, returned endpoints, generic carriers, multiple
+endpoints, opaque inspection and non-`via` escapes are refused. Other expressions
+can execute when they contain neither endpoint references nor protocol calls.
+The existing ordinary ownership verifier independently rejects duplication and
+stale loans. This profile does not infer endpoint obligations in functions
+without `follows`.
+
+Terminal cleanup inventories must be empty. Carrier settlement is the existing
+canonical Bytes cleanup, including call staging, preconditions, postconditions,
+exceptional exits and terminal failure. A declaration cannot name a physical
+finalizer and expect the compiler to dispatch it. Successful `step` functions
+may transform their owned buffer under ordinary ownership rules; protocol
+successor ownership does not assert byte equality or external session identity.
+
+No protocol state or carrier grants host authority. `SessionTable` authority and
+generation checks remain unchanged for its live Rust callers. The source
+profile does not serialize or create a `SessionTable` credential, and does not
+claim runtime protocol enforcement for arbitrary foreign handles. Refused
+source produces no target artifact. Its own buffer handles retain their existing
+runtime ownership, context and freshness checks on the routes that use them.
+
+| Diagnostic | Meaning |
+| --- | --- |
+| `SPX-K110` | Unsupported endpoint carrier, transition/function signature, branching transition, missing `via`/resource transfer, or nonempty physical cleanup inventory. |
+| `SPX-K111` | Endpoint used after move/close, replaced by another buffer, escaped, captured, mutated, or left live at a checked exit. |
+| `SPX-K108` / `SPX-K109` | Existing illegal-state/nonterminal-path and unsupported call-order checks, unchanged. |
+| `SPX-O101` | The ordinary ownership verifier independently rejects a moved carrier. |
+
+Parser, canonical formatter and source cache preserve the optional carrier.
+Declarations without it keep their existing source, graph, native and Wasm
+projections. Endpoint declarations add an `endpoint` fact with profile
+`affine-bytes.v1` and carrier `Bytes`; their per-source graph is v51 (an Agent
+execution graph may wrap it as its recorded dynamic base). The project semantic
+cache compatibility is v5 (frontend AST compatibility v3) to reject older
+positional AST encodings. HIR already
+represents every carrier, move, owned argument, result and cleanup through the
+ordinary byte machinery; no second runtime endpoint representation is erased.
+
+The executable gate is
+`cargo test --locked -p semaprax --lib session_protocol::typestate::endpoint`.
+It covers source success, canonical/cache round-trip, HIR admission, graph
+facts, stable refusal before native/Wasm emission, moved aliases, use after
+close, replacement, capture, wrong state, abandonment, missing authority and
+invalid carrier declarations. Backend cases require Clang and Node (absence
+fails the gate), run native C11 at O0/O2, compare the interpreter result, and
+repeat real generated Wasm invocations with one owned-byte slot on success and
+terminal postcondition failure to detect missing settlement.
+
+Run the existing `session_protocol` library tests and
+`graph::session_protocol` tests as the erased-profile preservation gate, plus
+`scripts/quality.sh full` for integration. None of these authored cases alone
+establishes executed or hosted evidence.
+
+Local work on 2026-09-30 (macOS): `cargo check --locked -p semaprax --lib`
+passed with `CARGO_BUILD_JOBS=1`, `CARGO_INCREMENTAL=0`,
+`CARGO_PROFILE_DEV_DEBUG=0`, and the checkout-private
+`CARGO_TARGET_DIR=target/session-331`. This check preceded the final statement
+walk refinement and frontend-cache version adjustment. The focused endpoint
+`cargo test` command, with the same settings plus `CARGO_PROFILE_TEST_DEBUG=0`,
+was stopped during compilation before any test ran, because only about 596 MiB
+of disk remained. The final revision's execution and integration gates remain
+unverified; the implementation is not yet an acceptance or hosted receipt.
+
 ## Scope boundary
 
 Explicitly **not** done in this slice, and why:
 
 - **Superseded by issue #297 for declarations, and by issue #297 follow-on
-  (R21) for call-order typestate checking; still open for endpoint values.**
+  (R21) for call-order typestate checking, and issue #331 for the bounded
+  affine Bytes carrier profile.**
   A `session protocol` declaration now exists end to end (see [Declared
   session protocols](#declared-session-protocols-issue-297)), and a function
   may now opt in to a static call-order check over its own body (see
   [Endpoint typestate
   checking](#endpoint-typestate-checking-issue-297-follow-on-r21)). What
-  remains open is typestate checking of an `.spx` endpoint *value*'s flow
-  through locals, fields, and return positions (ownership, use-after-close),
+  remains open beyond #331 is general endpoint flow through fields and return
+  positions; #331 checks local carrier flow and use-after-close. The original
+  larger scope concerned all endpoint values,
   which -- unlike the call-order check, which is checked and erased with no
   HIR or backend representation of its own -- would carry runtime meaning if
   it modeled a real endpoint value, and so needs parser, HIR, verifier and
@@ -970,7 +1092,7 @@ Explicitly **not** done in this slice, and why:
   [Acceptance criteria](#acceptance-criteria-met-here-versus-open) for that
   decision and for the `architecture_claims`/`assurance_manifest`
   evaluation the same row records.)
-- **No compiler-checked ownership analysis.** `Endpoint`'s affinity is
+- **The Rust kernel remains separate from the #331 source carrier.** `Endpoint`'s affinity is
   enforced by Rust's own move checker and a runtime drop bomb over a
   reference kernel's own values, not the compiler's alias/uniqueness
   analysis over real checked HIR locals.

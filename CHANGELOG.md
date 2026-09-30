@@ -8,6 +8,11 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Advance a real owned-wait v8 next-turn Model holder through Usage and
+  Resume-reservation ACKs before one actual resumed-program entry (#330).
+  The focused selector passed 1/1 locally. Completed-row publication,
+  authorization and public recovery remain open.
+
 - Dispatch a real owned-wait v8 next-turn Model request once and durably ACK
   its settled response before Usage or Resume (#330). The focused selector
   passed 1/1 locally with one provider start, one Settled row, and no source

@@ -381,6 +381,73 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_live_ow
         .advance_continued_model()
         .map_err(LiveContinuedDispatchDriverFailureV8::SettledAdvance)
 }
+
+/// Carries each unique Model owner through the two durable boundaries that
+/// precede the one actual resumed-program evaluation.
+pub(in crate::live_invocation::source_journal::owned_wait_v8) enum LiveContinuedResumeDriverFailureV8<
+    'j,
+> {
+    UsagePrepare(LiveContinuedModelFailureV8<'j>),
+    UsageSession {
+        owner: LiveOwnedContinuedModelAppendV8<'j>,
+        error: SourceJournalError,
+    },
+    UsageAppend(LiveOwnedContinuedModelAppendFailureV8<'j>),
+    UsageAdvance(LiveContinuedModelAcknowledgmentFailureV8<'j>),
+    ResumePrepare(LiveContinuedModelFailureV8<'j>),
+    ResumeSession {
+        owner: LiveOwnedContinuedModelAppendV8<'j>,
+        error: SourceJournalError,
+    },
+    ResumeAppend(LiveOwnedContinuedModelAppendFailureV8<'j>),
+    ResumeAdvance(LiveContinuedModelAcknowledgmentFailureV8<'j>),
+    ResumeActual(LiveContinuedModelFailureV8<'j>),
+}
+
+/// Acknowledges Usage and the Resume reservation before the single resumed
+/// source evaluation. It stops before publishing the resulting Completed row.
+pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_live_owned_continued_resume_v8<'j>(
+    journal: &'j SourceOwnedWaitJournalV8,
+    model: LiveContinuedModelV8<'j>,
+) -> Result<LiveContinuedModelV8<'j>, LiveContinuedResumeDriverFailureV8<'j>> {
+    let usage = model
+        .prepare_next()
+        .map_err(LiveContinuedResumeDriverFailureV8::UsagePrepare)?;
+    let usage_session = match journal.begin_session() {
+        Ok(session) => session,
+        Err(error) => {
+            return Err(LiveContinuedResumeDriverFailureV8::UsageSession {
+                owner: usage,
+                error,
+            });
+        }
+    };
+    let usage = usage_session
+        .append_owned_continued_model(usage)
+        .map_err(LiveContinuedResumeDriverFailureV8::UsageAppend)?
+        .advance_continued_model()
+        .map_err(LiveContinuedResumeDriverFailureV8::UsageAdvance)?;
+    let resume = usage
+        .prepare_next()
+        .map_err(LiveContinuedResumeDriverFailureV8::ResumePrepare)?;
+    let resume_session = match journal.begin_session() {
+        Ok(session) => session,
+        Err(error) => {
+            return Err(LiveContinuedResumeDriverFailureV8::ResumeSession {
+                owner: resume,
+                error,
+            });
+        }
+    };
+    let reserved = resume_session
+        .append_owned_continued_model(resume)
+        .map_err(LiveContinuedResumeDriverFailureV8::ResumeAppend)?
+        .advance_continued_model()
+        .map_err(LiveContinuedResumeDriverFailureV8::ResumeAdvance)?;
+    reserved
+        .resume_actual()
+        .map_err(LiveContinuedResumeDriverFailureV8::ResumeActual)
+}
 impl<'j> AppendSessionV8<'j> {
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn append_owned_continue(
         self,

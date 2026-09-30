@@ -253,10 +253,14 @@ fn owned_continue_driver_dispatches_next_turn_model_once_and_records_settlement(
             .unwrap_or_else(|_| panic!("sole SDK dispatch and Settled ACK"));
         assert_eq!(starts.get(), 1);
         assert_eq!(journal.begin_session().unwrap().sequence(), settled_sequence + 1);
+        let resume_sequence = journal.begin_session().unwrap().sequence();
+        let model = advance_live_owned_continued_resume_v8(journal, model)
+            .unwrap_or_else(|_| panic!("Usage and Resume ACKs before actual resumed source"));
+        assert_eq!(journal.begin_session().unwrap().sequence(), resume_sequence + 2);
         assert_eq!(
             crate::interpreter::resumable::owned_frame::registered_stage::live_run::test_continued_resume_entries_v8(),
-            resume_entries,
-            "Model ACK cannot resume source"
+            resume_entries + 1,
+            "only the fourth Model ACK may resume source"
         );
         assert!(weak.iter().any(|owner| owner.strong_count() == 1));
 

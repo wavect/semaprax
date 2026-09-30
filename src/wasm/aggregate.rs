@@ -3,12 +3,14 @@
 //! This is deliberately isolated from the scalar encoder so existing scalar,
 //! owned-resource, callable, and Component byte contracts remain unchanged.
 use std::collections::{BTreeMap, BTreeSet, HashMap};
+pub(super) mod call_admission;
 mod cleanup;
 #[path = "closure.rs"]
 mod closure;
 mod collect_block;
 mod expressions;
 mod function_value;
+pub(super) mod semantic_work;
 mod target_gates;
 #[cfg(test)]
 use function_value::hex_identity;
@@ -1902,6 +1904,8 @@ fn emit_byte_exports_profile(
                 u32::try_from(private_range_global_count)
                     .map_err(|_| error("byte-range private global count overflows u32"))?,
             )
+            .and_then(|count| count.checked_add(semantic_work::global_count()))
+            .and_then(|count| count.checked_add(call_admission::GLOBAL_COUNT))
             .ok_or_else(|| error("byte-range global count overflows u32"))?,
     );
     globals.extend([I32, 0x01, 0x41]);
@@ -1942,6 +1946,11 @@ fn emit_byte_exports_profile(
     for _ in 0..private_range_global_count {
         globals.extend([I64, 0x01, 0x42, 0x00, 0x0b]);
     }
+    let global_base = public_global_count + private_range_global_count as u32;
+    semantic_work::append_globals(&mut globals, global_base);
+    call_admission::append_globals(&mut globals);
+    let call_admission_base = global_base + semantic_work::global_count();
+    let _call_admission = call_admission::activate(call_admission_base)?;
     section(&mut module, 6, globals);
 
     let mut exports = Vec::new();
@@ -1964,6 +1973,8 @@ fn emit_byte_exports_profile(
             u32::try_from(plans.len() + owned_plans.len() + usize::from(command_io.is_some()))
                 .map_err(|_| error("too many data exports"))?,
         )
+        .and_then(|count| count.checked_add(semantic_work::export_count()))
+        .and_then(|count| count.checked_add(1))
         .ok_or_else(|| error("Public Useful Data export count overflows u32"))?,
     );
     write_name(&mut exports, super::data_exports::MEMORY_EXPORT);
@@ -2033,6 +2044,8 @@ fn emit_byte_exports_profile(
                 .ok_or_else(|| error("Language Command wrapper index overflows u32"))?,
         );
     }
+    semantic_work::append_exports(&mut exports);
+    call_admission::append_exports(&mut exports);
     section(&mut module, 7, exports);
 
     let closure_adapter_base = function_indexes.values().copied().max().unwrap_or(0)
@@ -2742,6 +2755,7 @@ fn emit_profile_with_scalar_exports(
                 u32::try_from(private_range_global_count)
                     .map_err(|_| error("byte-range private global count overflows u32"))?,
             )
+            .and_then(|count| count.checked_add(call_admission::GLOBAL_COUNT))
             .ok_or_else(|| error("byte-range global count overflows u32"))?,
     );
     globals.extend([I32, 0x01, 0x41]);
@@ -2760,6 +2774,9 @@ fn emit_profile_with_scalar_exports(
     for _ in 0..private_range_global_count {
         globals.extend([I64, 0x01, 0x42, 0x00, 0x0b]);
     }
+    call_admission::append_globals(&mut globals);
+    let call_admission_base = public_global_count + private_range_global_count as u32;
+    let _call_admission = call_admission::activate(call_admission_base)?;
     section(&mut module, 6, globals);
 
     let mut exports = Vec::new();
@@ -3157,6 +3174,8 @@ fn emit_function_profile(
         environment_utf8_index,
         standalone_strings,
     };
+    emitter.call_depth_admission()?;
+    emitter.semantic_charge()?;
     for contract in &function.requires {
         let condition = emitter.emit_expr(contract)?;
         emitter.require_scalar(&condition, &ResolvedType::Bool, "precondition")?;
@@ -3257,7 +3276,11 @@ fn emit_function_profile(
     drop(emitter);
     body.push(0x0b);
     // Every recoverable failure branches here. Canonical CleanupPlan actions
-    // have settled every live String carrier before reaching this edge.
+    // have settled every live String carrier before reaching this edge. Every
+    // entered frame incremented the call-depth counter exactly once in
+    // `call_depth_admission`, refused or not, so this decrement is
+    // unconditional too (see `call_admission`'s module documentation).
+    call_admission::emit_decrement(&mut body);
     body.push(0x20);
     write_u32(&mut body, plan.old_stack);
     body.push(0x24);
@@ -8388,37 +8411,6 @@ impl Emitter<'_> {
     /// instance before any later action.
     fn trap_if(&mut self) {
         self.output.extend([0x04, 0x40, 0x00, 0x0b]);
-    }
-
-    /// Bounded While-Loops v1 lowers to a core `block`/`loop` pair: the
-    /// condition re-evaluates at the top, a false condition branches out of
-    /// the enclosing block, and the discarded body value falls through to the
-    /// back-edge branch. Checked-arithmetic failures inside the loop keep the
-    /// same sticky host-status contract as straight-line code.
-    fn emit_while(
-        &mut self,
-        condition: &ResolvedExpr,
-        body: &ResolvedExpr,
-    ) -> Result<(), Diagnostic> {
-        if self.owned_utf8_literals.is_some() && body.ty == ResolvedType::String {
-            return Err(error(
-                "discarding an owned string has no admitted WebAssembly lowering",
-            ));
-        }
-        self.output.extend([0x02, 0x40]); // block (empty) $exit
-        self.output.extend([0x03, 0x40]); // loop (empty) $top
-        self.control_depth += 2;
-        let condition_value = self.emit_expr(condition)?;
-        self.require_scalar(&condition_value, &ResolvedType::Bool, "while condition")?;
-        self.get_scalar(&condition_value);
-        self.output.push(0x45); // i32.eqz
-        self.output.extend([0x0d, 0x01]); // br_if 1 -> $exit on false
-        let _body_value = self.emit_expr(body)?;
-        self.control_depth -= 2;
-        self.output.extend([0x0c, 0x00]); // br 0 -> $top
-        self.output.push(0x0b); // end loop
-        self.output.push(0x0b); // end block
-        Ok(())
     }
 }
 

@@ -6,6 +6,7 @@ use std::path::Path;
 
 use sha2::{Digest, Sha256};
 
+use crate::ast::Program;
 use crate::bounded_output::BudgetedJoin as _;
 use crate::call_index::{PersistentCallIndex, PersistentCallableKind};
 use crate::diagnostic::{quote_json, Diagnostic};
@@ -160,6 +161,12 @@ struct ConsumerFact {
 struct BuiltChanges {
     json: String,
     seeds: BTreeMap<DeclarationId, BTreeSet<usize>>,
+    /// Every declaration id this patch directly changes (a rename target or
+    /// the owner of a changed call instance), independent of `seeds`: a
+    /// session protocol's `via` is not a real call edge, so it must never
+    /// feed `reverse_closure`, only the separate
+    /// `session_protocols_affected_json` reverse lookup.
+    changed_ids: BTreeSet<DeclarationId>,
 }
 
 struct BuiltImpactReport {
@@ -205,6 +212,8 @@ fn build_report_with_complete_limits(
         let all_affected = reverse_closure(&built_changes.seeds, &call_index, max_complete_nodes)?;
         let operations = operations_json(preflight.operations());
         let patch_digest = patch_digest(preflight.patch_source());
+        let session_protocols_affected =
+            session_protocols_affected_json(preflight.before(), &built_changes.changed_ids);
 
         let within_depth = all_affected
             .iter()
@@ -220,6 +229,7 @@ fn build_report_with_complete_limits(
                 patch_digest: &patch_digest,
                 operations: &operations,
                 changes: &built_changes.json,
+                session_protocols_affected: &session_protocols_affected,
                 all_affected: &all_affected,
                 within_depth: &within_depth,
                 node_selected,
@@ -374,6 +384,7 @@ fn changes_json(
 ) -> Result<BuiltChanges, Vec<Diagnostic>> {
     let mut output = Vec::new();
     let mut seeds = BTreeMap::<DeclarationId, BTreeSet<usize>>::new();
+    let mut changed_ids = BTreeSet::<DeclarationId>::new();
     let consumers_by_change = consumers_by_change(preflight, before)?;
     for (change_index, change) in preflight.changes().iter().enumerate() {
         let consumers_json = consumers_by_change[change_index]
@@ -389,15 +400,18 @@ fn changes_json(
                 before,
                 after,
                 operation_indices,
-            } => output.push(bformat!(
-                "{{\"kind\":\"rename\",\"target\":{},\"target_kind\":{},\"before\":{},\"after\":{},\"classification\":\"source_projection\",\"operation_indices\":{},\"source_consumers\":[{}]}}",
-                quote_json(target),
-                quote_json(target_kind.text()),
-                quote_json(before),
-                quote_json(after),
-                usize_array(operation_indices),
-                consumers_json
-            )),
+            } => {
+                changed_ids.insert(DeclarationId::new(target.as_str()));
+                output.push(bformat!(
+                    "{{\"kind\":\"rename\",\"target\":{},\"target_kind\":{},\"before\":{},\"after\":{},\"classification\":\"source_projection\",\"operation_indices\":{},\"source_consumers\":[{}]}}",
+                    quote_json(target),
+                    quote_json(target_kind.text()),
+                    quote_json(before),
+                    quote_json(after),
+                    usize_array(operation_indices),
+                    consumers_json
+                ));
+            }
             PreflightChange::CallInstance {
                 expression,
                 template,
@@ -426,6 +440,7 @@ fn changes_json(
                     .entry(site.owner.clone())
                     .or_default()
                     .extend(operation_indices.iter().copied());
+                changed_ids.insert(site.owner.clone());
                 output.push(bformat!(
                     "{{\"kind\":\"call_instance\",\"expression\":{},\"containing_function\":{},\"containing_kind\":{},\"template\":{},\"before_type_arguments\":{},\"after_type_arguments\":{},\"before_instance\":{},\"after_instance\":{},\"classification\":\"behavioral_call_instance\",\"operation_indices\":{},\"source_consumers\":[{}]}}",
                     quote_json(expression),
@@ -445,7 +460,48 @@ fn changes_json(
     Ok(BuiltChanges {
         json: output.as_slice().budgeted_join(","),
         seeds,
+        changed_ids,
     })
+}
+
+/// Session protocols declared in `before` whose `via` names a declaration id
+/// this patch directly changes (a rename target, by persistent id, or the
+/// owner of a changed call instance). Restricted to the transitions that
+/// actually name a changed id; empty when the module declares no session
+/// protocol or none is affected. A `via` binds by persistent id, so a plain
+/// display-name rename never breaks the binding -- this only reports that
+/// the realizer changed, for the caller's own awareness.
+fn session_protocols_affected_json(
+    before: &Program,
+    changed_ids: &BTreeSet<DeclarationId>,
+) -> String {
+    let mut protocols = Vec::new();
+    for declaration in &before.session_protocols {
+        let mut via = Vec::new();
+        for transition in &declaration.transitions {
+            let Some(target) = &transition.via else {
+                continue;
+            };
+            if changed_ids.contains(&DeclarationId::new(target.name.as_str())) {
+                via.push(bformat!(
+                    "{{\"from\":{},\"label\":{},\"via\":{}}}",
+                    quote_json(&transition.from.name),
+                    quote_json(&transition.label.name),
+                    quote_json(&target.name)
+                ));
+            }
+        }
+        if via.is_empty() {
+            continue;
+        }
+        protocols.push(bformat!(
+            "{{\"protocol\":{},\"protocol_name\":{},\"authority\":\"none\",\"via\":[{}]}}",
+            quote_json(&declaration.stable_id),
+            quote_json(&declaration.name),
+            via.as_slice().budgeted_join(",")
+        ));
+    }
+    protocols.as_slice().budgeted_join(",")
 }
 
 fn consumers_by_change(
@@ -640,6 +696,7 @@ struct RenderInputs<'a> {
     patch_digest: &'a str,
     operations: &'a str,
     changes: &'a str,
+    session_protocols_affected: &'a str,
     all_affected: &'a [AffectedFunction],
     within_depth: &'a [AffectedFunction],
     node_selected: usize,
@@ -900,6 +957,14 @@ fn render_complete_report(
     output.push_str(inputs.operations);
     output.push_str("],\"changes\":[");
     output.push_str(inputs.changes);
+    output.push(']');
+    // Omitted entirely (not even `[]`) for a protocol-free module, so an
+    // existing pinned report stays byte-identical.
+    if !inputs.session_protocols_affected.is_empty() {
+        output.push_str(",\"session_protocols_affected\":[");
+        output.push_str(inputs.session_protocols_affected);
+        output.push(']');
+    }
     let _ = write!(
         output,
         "],\"query\":{{\"direction\":\"reverse\",\"depth\":{},\"max_bytes\":{},\"max_nodes\":{}}},\"budget\":{{\"used_bytes\":{used_bytes},\"used_nodes\":{},\"max_depth_used\":{max_depth_used}}},\"truncation\":{{\"truncated\":false,\"reasons\":[],\"omitted_known_nodes\":0,\"deferred_known_nodes\":0}},\"frontier\":[],\"affected_functions\":[",
@@ -948,8 +1013,18 @@ fn push_json_string(output: &mut crate::bounded_output::CappedString, value: &st
 }
 
 fn render_report(inputs: &RenderInputs<'_>, state: &RenderState, used_bytes: usize) -> String {
+    // Omitted entirely (not even the key) for a protocol-free module, so an
+    // existing pinned report stays byte-identical.
+    let session_protocols_affected = if inputs.session_protocols_affected.is_empty() {
+        String::new()
+    } else {
+        format!(
+            ",\"session_protocols_affected\":[{}]",
+            inputs.session_protocols_affected
+        )
+    };
     format!(
-        "{{\"schema\":\"semaprax.semantic-impact.v1\",\"source_graph_schema\":{},\"base_revision\":{},\"candidate_revision\":{},\"patch\":{{\"schema\":{},\"digest\":{}}},\"operations\":[{}],\"changes\":[{}],\"query\":{{\"direction\":\"reverse\",\"depth\":{},\"max_bytes\":{},\"max_nodes\":{}}},\"budget\":{{\"used_bytes\":{},\"used_nodes\":{},\"max_depth_used\":{}}},\"truncation\":{{\"truncated\":{},\"reasons\":[{}],\"omitted_known_nodes\":{},\"deferred_known_nodes\":{}}},\"frontier\":[{}],\"affected_functions\":[{}]}}",
+        "{{\"schema\":\"semaprax.semantic-impact.v1\",\"source_graph_schema\":{},\"base_revision\":{},\"candidate_revision\":{},\"patch\":{{\"schema\":{},\"digest\":{}}},\"operations\":[{}],\"changes\":[{}]{},\"query\":{{\"direction\":\"reverse\",\"depth\":{},\"max_bytes\":{},\"max_nodes\":{}}},\"budget\":{{\"used_bytes\":{},\"used_nodes\":{},\"max_depth_used\":{}}},\"truncation\":{{\"truncated\":{},\"reasons\":[{}],\"omitted_known_nodes\":{},\"deferred_known_nodes\":{}}},\"frontier\":[{}],\"affected_functions\":[{}]}}",
         quote_json(inputs.source_graph_schema),
         quote_json(inputs.preflight.base_revision()),
         quote_json(inputs.preflight.candidate_revision()),
@@ -957,6 +1032,7 @@ fn render_report(inputs: &RenderInputs<'_>, state: &RenderState, used_bytes: usi
         quote_json(inputs.patch_digest),
         inputs.operations,
         inputs.changes,
+        session_protocols_affected,
         inputs.options.depth,
         inputs.options.max_bytes,
         inputs.options.max_nodes,

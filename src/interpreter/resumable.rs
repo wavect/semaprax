@@ -24,9 +24,11 @@
 //! - every parameter and intermediate value is an admitted Copy scalar
 //!   (`SPX-T301`/`SPX-T303`), so nothing owned is live across the
 //!   suspension and the replay allocates and frees nothing;
-//! - `parser::yields` admits only a function's direct top-level sequence
-//!   (`SPX-T297`/`SPX-T298`), so control cannot branch around or repeat a site;
-//!   `resumable_effects::lowering` narrows that sequence to one to eight sites;
+//! - `parser::yields` admits direct top-level sites and, for the
+//!   control-dependent lane in [`control`], structured-control sites inside
+//!   `if`/`else` branches and `while` bodies (`SPX-T297`/`SPX-T298`); the
+//!   sequential lane narrows to one to eight direct sites, and the control
+//!   lane replays each suspension at exactly its recorded site;
 //! - `resumable_effects::lowering` rejects a call closure that reaches any
 //!   other `yields`-declaring function. The ordered replay proof is therefore
 //!   over the complete reachable computation, not merely the selected
@@ -68,16 +70,18 @@
 
 use crate::conformance::NormalizedStatus;
 use crate::diagnostic::Diagnostic;
-use crate::hir::{self, ResolvedFunction, ResolvedType};
+use crate::hir::{self, ExpressionId, ResolvedExpr, ResolvedFunction, ResolvedType, ValueId};
 use crate::resumable_effects::lowering::{
     self, ResumableScalar, ResumableStateId, ResumableSuspensionBinding, SequentialResumablePlan,
 };
+use std::collections::BTreeMap;
 
 use super::prepared::PreparedCancellation;
 use super::{
     admitted_resolved_functions, argument_error, option_error, resolved_signature_is_admitted,
-    scan_closure, selection_error, ArgumentValue, Evaluator, Flow, FunctionLookup, Value,
-    EVALUATION_STACK_BYTES, MAX_STEPS_LIMIT, REASON_AUTOMATIC_IDENTITY, REASON_UNSUPPORTED_CALLEE,
+    scan_closure, selection_error, ArgumentValue, Environment, Evaluator, Flow, FunctionLookup,
+    OwnedRecordValue, OwnedVariantValue, Value, EVALUATION_STACK_BYTES, MAX_STEPS_LIMIT,
+    REASON_AUTOMATIC_IDENTITY, REASON_UNSUPPORTED_CALLEE,
 };
 
 /// The function named for this lane declares no `yields` clause.
@@ -153,6 +157,52 @@ impl ResumableContinuation {
     }
 }
 
+/// Issue #296 R20: [`ResumableYieldRecord`] widened to
+/// [`ResumableChannelValue`]. Defined here, alongside
+/// [`ResumableContinuation`] and its own record type, rather than in
+/// `channel.rs`, so every descendant of this module (`channel`, `checkpoint`,
+/// and a future durable-journal bridge) can construct and destructure it
+/// directly, exactly as they already do for the scalar carrier.
+#[derive(Clone, Debug, PartialEq)]
+pub(super) struct ChannelYieldRecord {
+    request: ResumableChannelValue,
+    answer: ResumableChannelValue,
+}
+
+/// [`ResumableContinuation`]'s own shape and proof-data guarantees, widened
+/// to [`ResumableChannelValue`]: it grants no authority to answer a request,
+/// and decoding it independently re-derives the checked program, site,
+/// argument binding, and typed history rather than trusting stored bytes.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ResumableChannelContinuation {
+    state: ResumableStateId,
+    binding: ResumableSuspensionBinding,
+    request: ResumableChannelValue,
+    history: Vec<ChannelYieldRecord>,
+}
+
+impl ResumableChannelContinuation {
+    pub fn state(&self) -> &ResumableStateId {
+        &self.state
+    }
+
+    pub fn binding(&self) -> &ResumableSuspensionBinding {
+        &self.binding
+    }
+
+    pub fn request(&self) -> &ResumableChannelValue {
+        &self.request
+    }
+
+    pub(crate) fn history(
+        &self,
+    ) -> impl ExactSizeIterator<Item = (&ResumableChannelValue, &ResumableChannelValue)> {
+        self.history
+            .iter()
+            .map(|record| (&record.request, &record.answer))
+    }
+}
+
 /// How one `Evaluator` treats the ordered top-level `yield` sites its function
 /// may contain.
 pub(super) enum Resumption {
@@ -160,7 +210,15 @@ pub(super) enum Resumption {
     Refused,
     /// A fresh resumable invocation: the first `yield` parks its request
     /// here and suspends.
-    Fresh { parked: Option<Value> },
+    Fresh {
+        parked: Option<Value>,
+        parked_site: Option<ExpressionId>,
+        /// Issue #296, spec section 11.6: the frame's own bindings at the
+        /// moment of park, snapshotted so the control lane can read the
+        /// owned `Bytes` locals it proves live at this site. Unused by the
+        /// legacy and sequential lanes.
+        parked_environment: Option<Vec<(ValueId, Value)>>,
+    },
     /// A replayed resumable invocation replays every completed request in
     /// order, then consumes one new answer. If another direct site is
     /// reached, it parks it for the next explicit continuation call.
@@ -170,6 +228,18 @@ pub(super) enum Resumption {
         observed: usize,
         parked: Option<Value>,
         history: Vec<ResumableYieldRecord>,
+        /// Control lane only: the exact site of each replayed suspension.
+        sites: Option<Vec<ExpressionId>>,
+        parked_site: Option<ExpressionId>,
+        parked_environment: Option<Vec<(ValueId, Value)>>,
+        /// Issue #296, spec section 11.6: the owned `Bytes` locals carried
+        /// into this resume, keyed by the exact `let`-bound storage they
+        /// substitute. A `Let` statement whose binding identity is a key
+        /// here binds the carried value directly and removes the entry,
+        /// rather than re-evaluating (and so recomputing) its own value
+        /// expression; every other lane's map is empty and every ordinary
+        /// `Let` is unaffected.
+        carried: BTreeMap<ValueId, Value>,
     },
 }
 
@@ -186,15 +256,52 @@ enum ResumeInput {
     },
 }
 
+impl Evaluator<'_> {
+    /// A `let` statement's value: a control-lane resume that carries this
+    /// exact `let`-bound owned `Bytes` value (issue #296, spec section 11.6)
+    /// substitutes it directly instead of recomputing (and so
+    /// reallocating) its defining expression, and removes it from the map
+    /// so a later dynamic occurrence of the same static binding (inside a
+    /// loop body) still evaluates normally. Every other lane's map is
+    /// always empty, so this is a no-op there.
+    pub(super) fn resolve_let_value(
+        &mut self,
+        binding_id: &hir::ValueId,
+        value: &ResolvedExpr,
+        environment: &mut Environment,
+        depth: usize,
+    ) -> Result<Value, Flow> {
+        let carried = match &mut self.resumption {
+            Resumption::Replay { carried, .. } => carried.remove(binding_id),
+            _ => None,
+        };
+        match carried {
+            Some(value) => Ok(value),
+            None => self.evaluate(value, environment, depth),
+        }
+    }
+}
+
 /// The ordered `yield` sites' whole runtime behaviour, in one place.
-pub(super) fn settle_yield(state: &mut Resumption, request: Value) -> Result<Value, Flow> {
+pub(super) fn settle_yield(
+    state: &mut Resumption,
+    site: &ExpressionId,
+    request: Value,
+    environment: &Environment,
+) -> Result<Value, Flow> {
     match state {
         Resumption::Refused => Err(Flow::Guard(YIELD_REFUSED)),
-        Resumption::Fresh { parked } => {
+        Resumption::Fresh {
+            parked,
+            parked_site,
+            parked_environment,
+        } => {
             if parked.is_some() {
                 return Err(Flow::Guard(SECOND_YIELD));
             }
             *parked = Some(request);
+            *parked_site = Some(site.clone());
+            *parked_environment = Some(snapshot_environment(environment));
             Err(Flow::Guard(SUSPENDED_AT_YIELD))
         }
         Resumption::Replay {
@@ -202,6 +309,9 @@ pub(super) fn settle_yield(state: &mut Resumption, request: Value) -> Result<Val
             answers,
             observed,
             parked,
+            sites,
+            parked_site,
+            parked_environment,
             ..
         } => {
             if *observed == expected.len() {
@@ -209,7 +319,16 @@ pub(super) fn settle_yield(state: &mut Resumption, request: Value) -> Result<Val
                     return Err(Flow::Guard(SECOND_YIELD));
                 }
                 *parked = Some(request);
+                *parked_site = Some(site.clone());
+                *parked_environment = Some(snapshot_environment(environment));
                 return Err(Flow::Guard(SUSPENDED_AT_YIELD));
+            }
+            // Control lane: replay must reach exactly the recorded site.
+            if sites
+                .as_ref()
+                .is_some_and(|sites| sites.get(*observed) != Some(site))
+            {
+                return Err(Flow::Guard(REQUEST_DRIFT));
             }
             let Some(expected) = expected.get(*observed) else {
                 return Err(Flow::Guard(SECOND_YIELD));
@@ -410,47 +529,12 @@ fn evaluate_resumable(
     sequential: bool,
     max_steps: usize,
 ) -> Result<Evaluated, Vec<Diagnostic>> {
-    if !(1..=MAX_STEPS_LIMIT).contains(&max_steps) {
-        return Err(vec![option_error(format!(
-            "resumable-effect evaluation max_steps must be between 1 and {MAX_STEPS_LIMIT}"
-        ))]);
-    }
-    let entry = program
-        .functions
-        .iter()
-        .find(|function| function.id.as_str() == function_id)
-        .ok_or_else(|| {
-            vec![selection_error(
-                REASON_UNSUPPORTED_CALLEE,
-                format!("resumable entry `{function_id}` is absent from the function index"),
-            )]
-        })?;
-    if !program
-        .declarations
-        .declaration(&entry.id)
-        .is_some_and(|declaration| declaration.identity_origin == hir::IdentityOrigin::Explicit)
-    {
-        return Err(vec![selection_error(
-            REASON_AUTOMATIC_IDENTITY,
-            format!("resumable entry `{function_id}` does not have an explicit stable identity"),
-        )]);
-    }
-    let yields = entry.yields.as_ref().ok_or_else(|| {
-        vec![selection_error(
-            REASON_NOT_RESUMABLE,
-            format!("`{function_id}` declares no `yields` clause; this lane runs only functions that can suspend"),
-        )]
-    })?;
-    if !resolved_signature_is_admitted(entry, &program.declarations) {
-        return Err(vec![selection_error(
-            REASON_OUTSIDE_PROFILE,
-            format!("resumable entry `{function_id}` is outside the interpreter profile"),
-        )]);
-    }
-    let bound = bind_scalar_arguments(entry, arguments)?;
-    let admitted = admitted_resolved_functions(program);
-    scan_closure(function_id, &admitted, program)?;
-    hir::validate(program).map_err(|error| vec![error])?;
+    let Admitted {
+        entry,
+        yields,
+        bound,
+        admitted,
+    } = admit_entry(program, function_id, arguments, max_steps)?;
     let plan = lowering::lower_sequential(program, entry).map_err(|error| vec![error])?;
     if sequential == (plan.suspensions.len() == 1) {
         let detail = if sequential {
@@ -471,7 +555,11 @@ fn evaluate_resumable(
     })?;
     let (resumption, next_binding) = match resume {
         None => (
-            Resumption::Fresh { parked: None },
+            Resumption::Fresh {
+                parked: None,
+                parked_site: None,
+                parked_environment: None,
+            },
             Some(plan.suspension_binding(&scalar_arguments)),
         ),
         Some(ResumeInput::Legacy {
@@ -506,6 +594,10 @@ fn evaluate_resumable(
                     observed: 0,
                     parked: None,
                     history: Vec::new(),
+                    sites: None,
+                    parked_site: None,
+                    parked_environment: None,
+                    carried: BTreeMap::new(),
                 },
                 None,
             )
@@ -598,47 +690,29 @@ fn evaluate_resumable(
                     observed: 0,
                     parked: None,
                     history,
+                    sites: None,
+                    parked_site: None,
+                    parked_environment: None,
+                    carried: BTreeMap::new(),
                 },
                 next_binding,
             )
         }
     };
-    let closure_functions =
-        super::closures::checked_functions(program).map_err(|error| vec![error])?;
-
-    let evaluated = std::thread::scope(|scope| {
-        let worker = std::thread::Builder::new()
-            .name("semaprax-resumable-evaluate".to_owned())
-            .stack_size(EVALUATION_STACK_BYTES)
-            .spawn_scoped(scope, || {
-                let mut evaluator = Evaluator::new_prepared(
-                    FunctionLookup::Borrowed(&admitted),
-                    closure_functions,
-                    &program.declarations,
-                    max_steps,
-                    0,
-                    PreparedCancellation::Never,
-                );
-                evaluator.resumption = resumption;
-                let settled = evaluator.evaluate_entry(entry, &bound);
-                let step = settle_step(settled, &mut evaluator.resumption, &plan, next_binding);
-                Evaluated {
-                    step,
-                    steps_used: evaluator.steps,
-                    max_steps,
-                }
-            })
-            .map_err(|error| {
-                vec![option_error(format!(
-                    "resumable-effect evaluation thread failed to start: {error}"
-                ))]
-            })?;
-        worker.join().map_err(|_| {
-            vec![option_error(
-                "resumable-effect evaluation thread panicked".to_owned(),
-            )]
-        })
-    })?;
+    let (step, steps_used) = run_worker(
+        program,
+        &admitted,
+        entry,
+        &bound,
+        resumption,
+        max_steps,
+        |settled, resumption| settle_step(settled, resumption, &plan, next_binding),
+    )?;
+    let evaluated = Evaluated {
+        step,
+        steps_used,
+        max_steps,
+    };
 
     if evaluated.step == EvaluatedStep::GuardError(REQUEST_DRIFT.to_owned()) {
         return Err(vec![Diagnostic::io(
@@ -650,6 +724,154 @@ fn evaluate_resumable(
         )]);
     }
     Ok(evaluated)
+}
+
+/// The exact admitted entry facts every resumable lane shares.
+pub(super) struct Admitted<'p> {
+    pub(super) entry: &'p ResolvedFunction,
+    pub(super) yields: &'p hir::ResolvedYieldsClause,
+    pub(super) bound: Vec<(String, ArgumentValue)>,
+    pub(super) admitted: std::collections::BTreeMap<&'p str, &'p ResolvedFunction>,
+}
+
+/// Select, identity-check and bind a resumable entry before any lowering.
+pub(super) fn admit_entry<'p>(
+    program: &'p hir::ResolvedProgram,
+    function_id: &str,
+    arguments: &[ArgumentValue],
+    max_steps: usize,
+) -> Result<Admitted<'p>, Vec<Diagnostic>> {
+    if !(1..=MAX_STEPS_LIMIT).contains(&max_steps) {
+        return Err(vec![option_error(format!(
+            "resumable-effect evaluation max_steps must be between 1 and {MAX_STEPS_LIMIT}"
+        ))]);
+    }
+    let entry = program
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == function_id)
+        .ok_or_else(|| {
+            vec![selection_error(
+                REASON_UNSUPPORTED_CALLEE,
+                format!("resumable entry `{function_id}` is absent from the function index"),
+            )]
+        })?;
+    if !program
+        .declarations
+        .declaration(&entry.id)
+        .is_some_and(|declaration| declaration.identity_origin == hir::IdentityOrigin::Explicit)
+    {
+        return Err(vec![selection_error(
+            REASON_AUTOMATIC_IDENTITY,
+            format!("resumable entry `{function_id}` does not have an explicit stable identity"),
+        )]);
+    }
+    let yields = entry.yields.as_ref().ok_or_else(|| {
+        vec![selection_error(
+            REASON_NOT_RESUMABLE,
+            format!("`{function_id}` declares no `yields` clause; this lane runs only functions that can suspend"),
+        )]
+    })?;
+    if !resolved_signature_is_admitted(entry, &program.declarations) {
+        return Err(vec![selection_error(
+            REASON_OUTSIDE_PROFILE,
+            format!("resumable entry `{function_id}` is outside the interpreter profile"),
+        )]);
+    }
+    let bound = bind_scalar_arguments(entry, arguments)?;
+    let admitted = admitted_resolved_functions(program);
+    scan_closure(function_id, &admitted, program)?;
+    hir::validate(program).map_err(|error| vec![error])?;
+    Ok(Admitted {
+        entry,
+        yields,
+        bound,
+        admitted,
+    })
+}
+
+pub(super) fn max_byte_allocation(value: &Value) -> u32 {
+    match value {
+        Value::Bytes(bytes) => bytes.allocation,
+        Value::Record(record) => record
+            .fields
+            .values()
+            .map(max_byte_allocation)
+            .max()
+            .unwrap_or(0),
+        Value::Variant(variant) => variant
+            .fields
+            .values()
+            .map(max_byte_allocation)
+            .max()
+            .unwrap_or(0),
+        _ => 0,
+    }
+}
+
+/// Evaluate one segment on the bounded-stack worker and settle it there.
+pub(super) fn run_worker<T: Send>(
+    program: &hir::ResolvedProgram,
+    admitted: &std::collections::BTreeMap<&str, &ResolvedFunction>,
+    entry: &ResolvedFunction,
+    bound: &[(String, ArgumentValue)],
+    resumption: Resumption,
+    max_steps: usize,
+    settle: impl FnOnce(Result<Value, Flow>, &mut Resumption) -> T + Send,
+) -> Result<(T, usize), Vec<Diagnostic>> {
+    let closure_functions =
+        super::closures::checked_functions(program).map_err(|error| vec![error])?;
+
+    std::thread::scope(|scope| {
+        let worker = std::thread::Builder::new()
+            .name("semaprax-resumable-evaluate".to_owned())
+            .stack_size(EVALUATION_STACK_BYTES)
+            .spawn_scoped(scope, move || {
+                let mut evaluator = Evaluator::new_prepared(
+                    FunctionLookup::Borrowed(admitted),
+                    closure_functions,
+                    &program.declarations,
+                    max_steps,
+                    0,
+                    PreparedCancellation::Never,
+                );
+                // Issue #296, spec section 11.6: a carried owned `Bytes`
+                // value is injected directly (never evaluated by an
+                // allocating operation this evaluator's own counter would
+                // charge), so the counter starts pre-charged for exactly as
+                // many carried values as this resume substitutes. Every
+                // other lane's `carried` map is empty and this is a no-op.
+                if let Resumption::Replay {
+                    carried,
+                    expected,
+                    answers,
+                    ..
+                } = &resumption
+                {
+                    evaluator.next_byte_allocation = carried
+                        .values()
+                        .chain(expected.iter())
+                        .chain(answers.iter())
+                        .map(max_byte_allocation)
+                        .max()
+                        .unwrap_or(0);
+                }
+                evaluator.resumption = resumption;
+                let settled = evaluator.evaluate_entry(entry, bound);
+                let step = settle(settled, &mut evaluator.resumption);
+                (step, evaluator.steps)
+            })
+            .map_err(|error| {
+                vec![option_error(format!(
+                    "resumable-effect evaluation thread failed to start: {error}"
+                ))]
+            })?;
+        worker.join().map_err(|_| {
+            vec![option_error(
+                "resumable-effect evaluation thread panicked".to_owned(),
+            )]
+        })
+    })
 }
 
 fn into_legacy(evaluated: Evaluated) -> Result<ResumableEvaluation, Vec<Diagnostic>> {
@@ -732,6 +954,7 @@ fn settle_step(
             match resumption {
                 Resumption::Fresh {
                     parked: Some(request),
+                    ..
                 } => {
                     let Some(request) = argument_of(request) else {
                         return EvaluatedStep::GuardError(
@@ -802,22 +1025,23 @@ fn settle_step(
 }
 
 fn resumable_scalars(arguments: &[ArgumentValue]) -> Option<Vec<ResumableScalar>> {
-    arguments
-        .iter()
-        .map(|argument| {
-            Some(match argument {
-                ArgumentValue::Int(value) => ResumableScalar::I64(*value),
-                ArgumentValue::Int32(value) => ResumableScalar::I32(*value),
-                ArgumentValue::Uint8(value) => ResumableScalar::U8(*value),
-                ArgumentValue::Usize(value) => ResumableScalar::Usize(*value),
-                ArgumentValue::Char(value) => ResumableScalar::Char(*value),
-                ArgumentValue::Float32(value) => ResumableScalar::F32(value.to_bits()),
-                ArgumentValue::Float64(value) => ResumableScalar::F64(value.to_bits()),
-                ArgumentValue::Bool(value) => ResumableScalar::Bool(*value),
-                _ => return None,
-            })
-        })
-        .collect()
+    arguments.iter().map(resumable_scalar_of).collect()
+}
+
+/// The [`ResumableScalar`] one admitted Copy-scalar `ArgumentValue` denotes,
+/// or `None` for a borrowed view the resumable profile never admits.
+fn resumable_scalar_of(argument: &ArgumentValue) -> Option<ResumableScalar> {
+    Some(match argument {
+        ArgumentValue::Int(value) => ResumableScalar::I64(*value),
+        ArgumentValue::Int32(value) => ResumableScalar::I32(*value),
+        ArgumentValue::Uint8(value) => ResumableScalar::U8(*value),
+        ArgumentValue::Usize(value) => ResumableScalar::Usize(*value),
+        ArgumentValue::Char(value) => ResumableScalar::Char(*value),
+        ArgumentValue::Float32(value) => ResumableScalar::F32(value.to_bits()),
+        ArgumentValue::Float64(value) => ResumableScalar::F64(value.to_bits()),
+        ArgumentValue::Bool(value) => ResumableScalar::Bool(*value),
+        _ => return None,
+    })
 }
 
 /// Bind the caller's arguments positionally, refusing an arity or type
@@ -897,35 +1121,300 @@ fn argument_of(value: &Value) -> Option<ArgumentValue> {
     })
 }
 
+/// Issue #296 R20: a record or variant channel value clones the same way
+/// [`super::Evaluator::clone_value`] already does for any other reachable
+/// aggregate alias -- an `Arc::clone`, never a deep field-by-field copy.
+/// This is sound only because the admitted bounded-aggregate shape is always
+/// fully Copy (every field is itself a Copy scalar, never an owned or
+/// borrowed carrier), exactly like the scalars this function already
+/// cloned, so no unique-ownership or borrow invariant is ever shared this
+/// way.
 fn clone_scalar(value: &Value) -> Option<Value> {
-    argument_of(value).and_then(|argument| match argument {
-        ArgumentValue::Int(inner) => Some(Value::Int(inner)),
-        ArgumentValue::Int32(inner) => Some(Value::Int32(inner)),
-        ArgumentValue::Uint8(inner) => Some(Value::Uint8(inner)),
-        ArgumentValue::Usize(inner) => Some(Value::Usize(inner)),
-        ArgumentValue::Char(inner) => Some(Value::Char(inner)),
-        ArgumentValue::Float32(inner) => Some(Value::Float32(inner)),
-        ArgumentValue::Float64(inner) => Some(Value::Float64(inner)),
-        ArgumentValue::Bool(inner) => Some(Value::Bool(inner)),
-        _ => None,
-    })
+    match value {
+        Value::Record(record) => Some(Value::Record(std::sync::Arc::clone(record))),
+        Value::Variant(variant) => Some(Value::Variant(std::sync::Arc::clone(variant))),
+        other => argument_of(other).and_then(|argument| match argument {
+            ArgumentValue::Int(inner) => Some(Value::Int(inner)),
+            ArgumentValue::Int32(inner) => Some(Value::Int32(inner)),
+            ArgumentValue::Uint8(inner) => Some(Value::Uint8(inner)),
+            ArgumentValue::Usize(inner) => Some(Value::Usize(inner)),
+            ArgumentValue::Char(inner) => Some(Value::Char(inner)),
+            ArgumentValue::Float32(inner) => Some(Value::Float32(inner)),
+            ArgumentValue::Float64(inner) => Some(Value::Float64(inner)),
+            ArgumentValue::Bool(inner) => Some(Value::Bool(inner)),
+            _ => None,
+        }),
+    }
+}
+
+/// Issue #296, spec section 11.6: every binding of `environment` this
+/// admitted profile can hold -- an admitted Copy scalar, or (only in the
+/// control lane's owned-Bytes profile) an owned `Bytes` value -- cloned into
+/// an owned snapshot at the moment of park. A binding this cannot clone is
+/// simply absent from the snapshot rather than a hard failure: the admitted
+/// profile never puts one there, so an absent entry only ever means "not
+/// carried", never a wrong or missing carried value.
+fn snapshot_environment(environment: &Environment) -> Vec<(ValueId, Value)> {
+    environment
+        .iter()
+        .filter_map(|(id, value)| clone_environment_value(value).map(|value| (id.clone(), value)))
+        .collect()
+}
+
+fn clone_environment_value(value: &Value) -> Option<Value> {
+    match value {
+        Value::Bytes(inner) => Some(Value::Bytes(inner.clone())),
+        other => clone_scalar(other),
+    }
 }
 
 /// Exact scalar identity for the drift check. Floats compare by bits, not by
 /// IEEE equality, so a replayed `NaN` request agrees with the recorded one
-/// and `-0.0` never silently passes for `0.0`.
+/// and `-0.0` never silently passes for `0.0`. Issue #296 R20: a record or
+/// variant channel value recurses field by field in canonical declared
+/// order, still by bits for any nested float, rather than falling through to
+/// `Value`'s own derived `PartialEq` (which would compare a nested `NaN`
+/// field by IEEE equality and spuriously report drift for a bit-identical
+/// replay).
 fn scalar_values_equal(left: &Value, right: &Value) -> bool {
     match (left, right) {
         (Value::Float32(left), Value::Float32(right)) => left.to_bits() == right.to_bits(),
         (Value::Float64(left), Value::Float64(right)) => left.to_bits() == right.to_bits(),
+        (Value::Bytes(left), Value::Bytes(right)) => left.bytes == right.bytes,
+        (Value::Record(left), Value::Record(right)) => {
+            left.record == right.record
+                && left.fields.len() == right.fields.len()
+                && left.fields.iter().zip(right.fields.iter()).all(
+                    |((left_id, left), (right_id, right))| {
+                        left_id == right_id && scalar_values_equal(left, right)
+                    },
+                )
+        }
+        (Value::Variant(left), Value::Variant(right)) => {
+            left.ty == right.ty
+                && left.variant == right.variant
+                && left.case == right.case
+                && left.fields.len() == right.fields.len()
+                && left.fields.iter().zip(right.fields.iter()).all(
+                    |((left_id, left), (right_id, right))| {
+                        left_id == right_id && scalar_values_equal(left, right)
+                    },
+                )
+        }
         (left, right) => argument_of(left).is_some() && left == right,
     }
 }
 
-#[cfg(test)]
-mod tests;
+/// One bounded Copy-scalar `yields` request or response value (issue #296
+/// R20): either a bare admitted scalar, or a value of the shape
+/// `hir::yield_aggregate::bounded_aggregate_refusal` admits -- a record's
+/// own fields, or a variant's selected case's own fields, in canonical
+/// declared field order, one level deep by construction. `channel.rs`'s
+/// sequential-channel evaluation is the only lane that ever produces or
+/// consumes `Record`/`Variant`; every other lane's request/answer stays
+/// `Scalar` (an admitted `ArgumentValue`), the exact profile this type
+/// otherwise matches.
+#[derive(Clone, Debug, PartialEq)]
+pub enum ResumableChannelValue {
+    Scalar(ArgumentValue),
+    Record {
+        declaration: hir::DeclarationId,
+        fields: Vec<ArgumentValue>,
+    },
+    Variant {
+        declaration: hir::DeclarationId,
+        case: hir::DeclarationId,
+        fields: Vec<ArgumentValue>,
+    },
+    RecordBytes {
+        declaration: hir::DeclarationId,
+        fields: Vec<channel_bytes::ChannelField>,
+    },
+    VariantBytes {
+        declaration: hir::DeclarationId,
+        case: hir::DeclarationId,
+        fields: Vec<channel_bytes::ChannelField>,
+    },
+}
 
+pub use channel_bytes::ChannelField;
+
+impl From<ArgumentValue> for ResumableChannelValue {
+    fn from(value: ArgumentValue) -> Self {
+        Self::Scalar(value)
+    }
+}
+
+/// The [`ResumableChannelValue`] a runtime `Value` denotes, in the
+/// declaration index's own canonical field order. `None` for a carrier this
+/// admitted profile never puts at a yield boundary (a borrow, a resource, an
+/// owned `Bytes`/`Vec`/`Box`, or a field that is itself one of those).
+pub(super) fn channel_of(
+    declarations: &hir::DeclarationIndex,
+    value: &Value,
+) -> Option<ResumableChannelValue> {
+    match value {
+        Value::Record(_) | Value::Variant(_) => channel_bytes::channel_of(declarations, value),
+        /*Value::Record(record) => {
+            let canonical = declarations.record_fields(&record.record)?;
+            let fields = canonical
+                .iter()
+                .map(|field| record.fields.get(&field.id).and_then(argument_of))
+                .collect::<Option<Vec<_>>>()?;
+            Some(ResumableChannelValue::Record {
+                declaration: record.record.clone(),
+                fields,
+            })
+        }
+        Value::Variant(variant) => {
+            let canonical = declarations.case_fields(&variant.case)?;
+            let fields = canonical
+                .iter()
+                .map(|field| variant.fields.get(&field.id).and_then(argument_of))
+                .collect::<Option<Vec<_>>>()?;
+            Some(ResumableChannelValue::Variant {
+                declaration: variant.variant.clone(),
+                case: variant.case.clone(),
+                fields,
+            })
+        }*/
+        other => argument_of(other).map(ResumableChannelValue::Scalar),
+    }
+}
+
+/// The exact runtime `Value` a [`ResumableChannelValue`] denotes at
+/// `declared`, or `None` when the two disagree: a wrong declaration or case
+/// identity, a field-count mismatch, or a field outside the admitted scalar
+/// profile. Deliberately total and exact, mirroring [`scalar_of`]: no
+/// coercion, and the declared type's own identity -- not merely its field
+/// count -- must match, so a channel value manufactured for one nominal type
+/// can never be replayed in as another.
+pub(super) fn value_of_channel(
+    declarations: &hir::DeclarationIndex,
+    declared: &ResolvedType,
+    supplied: &ResumableChannelValue,
+    allocation: &mut u32,
+) -> Option<Value> {
+    match supplied {
+        ResumableChannelValue::Scalar(argument) => scalar_of(declared, argument),
+        ResumableChannelValue::Record {
+            declaration,
+            fields,
+        } => {
+            let ResolvedType::Nominal {
+                declaration: expected,
+                arguments,
+            } = declared
+            else {
+                return None;
+            };
+            if expected != declaration || !arguments.is_empty() {
+                return None;
+            }
+            let canonical = declarations.record_fields(declaration)?;
+            if canonical.len() != fields.len() {
+                return None;
+            }
+            let mut built = std::collections::BTreeMap::new();
+            for (field, argument) in canonical.iter().zip(fields) {
+                built.insert(field.id.clone(), scalar_of(&field.ty, argument)?);
+            }
+            Some(Value::Record(std::sync::Arc::new(OwnedRecordValue {
+                record: declaration.clone(),
+                fields: built,
+            })))
+        }
+        ResumableChannelValue::Variant {
+            declaration,
+            case,
+            fields,
+        } => {
+            let ResolvedType::Nominal {
+                declaration: expected,
+                arguments,
+            } = declared
+            else {
+                return None;
+            };
+            if expected != declaration || !arguments.is_empty() {
+                return None;
+            }
+            let cases = declarations.variant_cases(declaration)?;
+            if !cases.iter().any(|candidate| &candidate.id == case) {
+                return None;
+            }
+            let canonical = declarations.case_fields(case)?;
+            if canonical.len() != fields.len() {
+                return None;
+            }
+            let mut built = std::collections::BTreeMap::new();
+            for (field, argument) in canonical.iter().zip(fields) {
+                built.insert(field.id.clone(), scalar_of(&field.ty, argument)?);
+            }
+            Some(Value::Variant(std::sync::Arc::new(OwnedVariantValue {
+                ty: declared.clone(),
+                variant: declaration.clone(),
+                case: case.clone(),
+                fields: built,
+            })))
+        }
+        owned @ (ResumableChannelValue::RecordBytes { .. }
+        | ResumableChannelValue::VariantBytes { .. }) => {
+            channel_bytes::value_of(declarations, declared, owned, allocation)
+        }
+    }
+}
+
+/// The [`ResumableScalar`] one [`ResumableChannelValue`] denotes, for the
+/// suspension binding hash. `None` when a field is outside the admitted
+/// scalar profile (unreachable for a value this module itself produced, but
+/// never assumed).
+fn channel_to_resumable_scalar(value: &ResumableChannelValue) -> Option<ResumableScalar> {
+    Some(match value {
+        ResumableChannelValue::Scalar(scalar) => resumable_scalar_of(scalar)?,
+        ResumableChannelValue::Record { fields, .. } => ResumableScalar::Record(
+            fields
+                .iter()
+                .map(resumable_scalar_of)
+                .collect::<Option<Vec<_>>>()?,
+        ),
+        ResumableChannelValue::Variant { case, fields, .. } => ResumableScalar::Variant {
+            case: case.as_str().to_owned(),
+            fields: fields
+                .iter()
+                .map(resumable_scalar_of)
+                .collect::<Option<Vec<_>>>()?,
+        },
+        owned @ (ResumableChannelValue::RecordBytes { .. }
+        | ResumableChannelValue::VariantBytes { .. }) => channel_bytes::binding(owned)?,
+    })
+}
+
+/// Check one resume channel value against its declared type before the
+/// program runs. Mirrors [`typed_resume_value`], widened to
+/// [`ResumableChannelValue`].
+fn typed_resume_channel_value(
+    declarations: &hir::DeclarationIndex,
+    declared: &ResolvedType,
+    supplied: &ResumableChannelValue,
+    role: &str,
+    allocation: &mut u32,
+) -> Result<Value, Vec<Diagnostic>> {
+    value_of_channel(declarations, declared, supplied, allocation).ok_or_else(|| {
+        vec![Diagnostic::io(
+            RESUME_TYPE_MISMATCH,
+            format!("resume {role} does not have the declared `yields` {role} type"),
+        )]
+    })
+}
+
+pub mod channel;
+pub(crate) mod channel_bytes;
 /// Inner closed recovery bytes for the admitted scalar sequential lane. The
 /// public scoped envelope is `resumable_effects::source_checkpoint`; keeping
 /// this structural layer crate-private prevents bypassing its external scope.
 pub(crate) mod checkpoint;
+pub mod control;
+pub(crate) mod owned_frame;
+#[cfg(test)]
+mod tests;

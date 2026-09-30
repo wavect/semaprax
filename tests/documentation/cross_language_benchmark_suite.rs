@@ -33,14 +33,24 @@ mod clean_install_calculator;
 mod cold_chain_release_gate;
 #[path = "cross_language_benchmark_suite/concurrent_delta_merge.rs"]
 mod concurrent_delta_merge;
+#[path = "cross_language_benchmark_suite/hidden_overlay_admission.rs"]
+mod hidden_overlay_admission;
+#[path = "cross_language_benchmark_suite/iterative_repair_workflow.rs"]
+mod iterative_repair_workflow;
 #[path = "cross_language_benchmark_suite/owned_byte_sentinel_balance.rs"]
 mod owned_byte_sentinel_balance;
 #[path = "cross_language_benchmark_suite/reproducibility.rs"]
 mod reproducibility;
+#[path = "cross_language_benchmark_suite/specialization_accounting.rs"]
+mod specialization_accounting;
+#[path = "cross_language_benchmark_suite/specialization_local.rs"]
+mod specialization_local;
 #[path = "cross_language_benchmark_suite/stable_dispatch_order.rs"]
 mod stable_dispatch_order;
 #[path = "cross_language_benchmark_suite/stale_edit_preservation.rs"]
 mod stale_edit_preservation;
+#[path = "cross_language_benchmark_suite/supported_scope.rs"]
+mod supported_scope;
 #[path = "cross_language_benchmark_suite/telemetry_overflow_diagnosis.rs"]
 mod telemetry_overflow_diagnosis;
 
@@ -115,7 +125,7 @@ fn write_mock_language(task_dir: &Path, language: &MockLanguage) {
     std::fs::write(
         hidden.join("prog.py"),
         format!(
-            "import sys\nsys.exit({})\n",
+            "# hidden overlay keeps the same exit contract\nassert 1 == 1\nimport sys\nsys.exit({})\n",
             language.hidden_exit_code.unwrap_or(language.exit_code)
         ),
     )

@@ -32,6 +32,11 @@ pub struct SourceEffectSignature {
     answer_shape: String,
     plan_identity: [u8; 32],
     yield_count: u32,
+    control_dependent: bool,
+    carries_owned_bytes: bool,
+    aggregate_channel: bool,
+    aggregate_bytes_channel: bool,
+    aggregate_function_boundary: bool,
     table: EffectSignatureTable,
 }
 
@@ -52,8 +57,40 @@ impl SourceEffectSignature {
         &self.plan_identity
     }
 
+    /// Static yield-site count of the selected plan.
     pub fn yield_count(&self) -> u32 {
         self.yield_count
+    }
+
+    /// True when the plan is the control-dependent (v3 or v4) plan rather
+    /// than the direct sequential one; the identities never coincide.
+    pub fn is_control_dependent(&self) -> bool {
+        self.control_dependent
+    }
+
+    /// True when the plan carries an owned `Bytes` local across some site
+    /// (issue #296, spec section 11.6): fixes the checkpoint envelope to the
+    /// v4 schema and the plan/binding identity to the v4 domain, rather than
+    /// v3. Always `false` for a sequential plan.
+    pub fn carries_owned_bytes(&self) -> bool {
+        self.carries_owned_bytes
+    }
+
+    /// True when the request or response type is a bounded record/variant
+    /// of Copy scalars (issue #296 R20) rather than a bare Copy scalar.
+    /// Admitted only for the direct top-level (sequential) placement, so
+    /// this is always `false` when [`Self::is_control_dependent`] is `true`.
+    pub fn is_aggregate_channel(&self) -> bool {
+        self.aggregate_channel
+    }
+
+    pub fn has_aggregate_bytes(&self) -> bool {
+        self.aggregate_bytes_channel
+    }
+
+    /// Selects the separate Copy-only whole-function carrier and its plan.
+    pub fn has_aggregate_function_boundary(&self) -> bool {
+        self.aggregate_function_boundary
     }
 
     pub fn table(&self) -> &EffectSignatureTable {
@@ -74,7 +111,11 @@ impl SourceEffectSignature {
     /// Re-derive every field from the current checked program. This is a pure
     /// equality check and never repairs a stale binding.
     pub fn verify(&self, program: &ResolvedProgram) -> Result<(), Diagnostic> {
-        let observed = derive_source_effect_signature(program, &self.function_id)?;
+        let observed = if self.aggregate_function_boundary {
+            derive_source_effect_signature_with_arguments(program, &self.function_id)?
+        } else {
+            derive_source_effect_signature(program, &self.function_id)?
+        };
         if observed != *self {
             return Err(invalid(
                 "source effect signature is stale for the checked program",
@@ -95,30 +136,134 @@ pub fn derive_source_effect_signature(
     program: &ResolvedProgram,
     function_id: &str,
 ) -> Result<SourceEffectSignature, Diagnostic> {
+    derive_source_effect_signature_for_boundary(program, function_id, false)
+}
+
+/// Derive a signature only for the distinct sequential Copy aggregate
+/// whole-function carrier. The scalar durable path cannot reinterpret it.
+pub(crate) fn derive_source_effect_signature_with_arguments(
+    program: &ResolvedProgram,
+    function_id: &str,
+) -> Result<SourceEffectSignature, Diagnostic> {
+    derive_source_effect_signature_for_boundary(program, function_id, true)
+}
+
+fn derive_source_effect_signature_for_boundary(
+    program: &ResolvedProgram,
+    function_id: &str,
+    aggregate_function_boundary: bool,
+) -> Result<SourceEffectSignature, Diagnostic> {
     let function = selected_function(program, function_id)?;
-    let plan = lowering::lower_sequential(program, function)?;
+    if aggregate_function_boundary {
+        let has_nominal_boundary = function
+            .params
+            .iter()
+            .any(|param| matches!(&param.ty, ResolvedType::Nominal { .. }))
+            || matches!(&function.return_type, ResolvedType::Nominal { .. });
+        if !has_nominal_boundary {
+            return Err(invalid(
+                "aggregate function carrier requires a record or variant parameter or result",
+            ));
+        }
+        if function.params.iter().any(|param| {
+            crate::hir::yield_aggregate::has_bytes_leaf(&program.declarations, &param.ty)
+        }) || crate::hir::yield_aggregate::has_bytes_leaf(
+            &program.declarations,
+            &function.return_type,
+        ) {
+            return Err(invalid(
+                "aggregate function carrier does not admit owned Bytes parameters or results",
+            ));
+        }
+    }
+    let control_dependent = lowering::control::is_control_dependent(function);
+    if aggregate_function_boundary && control_dependent {
+        return Err(invalid(
+            "aggregate whole-function signatures require direct sequential yields",
+        ));
+    }
+    let (plan_identity, site_count, carries_owned_bytes) = if control_dependent {
+        let plan = lowering::control::lower_control(program, function)?;
+        (
+            *plan.identity.as_bytes(),
+            plan.sites.len(),
+            plan.carries_owned_bytes,
+        )
+    } else {
+        let plan = if aggregate_function_boundary {
+            lowering::lower_sequential_with_arguments(program, function)?
+        } else {
+            lowering::lower_sequential(program, function)?
+        };
+        (*plan.identity.as_bytes(), plan.suspensions.len(), false)
+    };
     let yields = function
         .yields
         .as_ref()
         .ok_or_else(|| invalid("selected function has no `yields` clause"))?;
-    let request_shape = source_shape(&yields.request_type)?;
-    let answer_shape = source_shape(&yields.response_type)?;
+    if aggregate_function_boundary
+        && crate::hir::yield_aggregate::has_bytes_leaf(&program.declarations, &yields.request_type)
+    {
+        return Err(invalid(
+            "aggregate function carrier does not admit owned Bytes requests",
+        ));
+    }
+    if crate::hir::yield_aggregate::has_bytes_leaf(&program.declarations, &yields.response_type) {
+        return Err(invalid(
+            "source signature does not admit a Bytes response channel",
+        ));
+    }
+    let request_shape = source_shape(&program.declarations, &yields.request_type)?;
+    let answer_shape = source_shape(&program.declarations, &yields.response_type)?;
     let effect = EffectSignature::new(function.id.as_str(), &request_shape, &answer_shape);
     let table = EffectSignatureTable::new(vec![effect]).map_err(|error| {
         invalid(format!(
             "compiler-derived effect signature table was invalid: {error:?}"
         ))
     })?;
-    let yield_count = u32::try_from(plan.suspensions.len())
+    let yield_count = u32::try_from(site_count)
         .map_err(|_| invalid("resumable yield count does not fit its public field"))?;
+    let aggregate_channel = matches!(yields.request_type, ResolvedType::Nominal { .. })
+        || matches!(yields.response_type, ResolvedType::Nominal { .. });
+    let aggregate_bytes_channel = aggregate_has_bytes(&program.declarations, &yields.request_type)
+        || aggregate_has_bytes(&program.declarations, &yields.response_type);
     Ok(SourceEffectSignature {
         function_id: function.id.as_str().to_owned(),
         request_shape,
         answer_shape,
-        plan_identity: *plan.identity.as_bytes(),
+        plan_identity,
         yield_count,
+        control_dependent,
+        carries_owned_bytes,
+        aggregate_channel,
+        aggregate_bytes_channel,
+        aggregate_function_boundary,
         table,
     })
+}
+
+fn aggregate_has_bytes(declarations: &crate::hir::DeclarationIndex, ty: &ResolvedType) -> bool {
+    let ResolvedType::Nominal {
+        declaration,
+        arguments,
+    } = ty
+    else {
+        return false;
+    };
+    if !arguments.is_empty() {
+        return false;
+    }
+    declarations
+        .record_fields(declaration)
+        .is_some_and(|fields| fields.iter().any(|field| field.ty == ResolvedType::Bytes))
+        || declarations
+            .variant_cases(declaration)
+            .is_some_and(|cases| {
+                cases
+                    .iter()
+                    .flat_map(|case| &case.fields)
+                    .any(|field| field.ty == ResolvedType::Bytes)
+            })
 }
 
 fn selected_function<'a>(
@@ -132,10 +277,23 @@ fn selected_function<'a>(
         .ok_or_else(|| invalid(format!("resumable function `{function_id}` was not found")))
 }
 
-fn source_shape(ty: &ResolvedType) -> Result<String, Diagnostic> {
-    if !crate::hir::is_scalar_resolved_type(ty) {
+fn source_shape(
+    declarations: &crate::hir::DeclarationIndex,
+    ty: &ResolvedType,
+) -> Result<String, Diagnostic> {
+    // Issue #296 R20: a bounded record/variant of Copy scalars
+    // (`hir::yield_aggregate::bounded_aggregate_refusal`) is an admitted
+    // shape alongside a bare Copy scalar; `hir::resolve_yield` already
+    // checked it for the direct top-level (sequential) placement this
+    // derivation reuses. The `identity_key()` shape string already
+    // distinguishes any two distinct nominal types, so no separate encoding
+    // is needed for the aggregate case.
+    let is_bounded_aggregate = matches!(ty, ResolvedType::Nominal { .. })
+        && crate::hir::yield_aggregate::bounded_aggregate_refusal(declarations, ty).is_ok();
+    if !crate::hir::is_scalar_resolved_type(ty) && !is_bounded_aggregate {
         return Err(invalid(format!(
-            "source effect signature type `{}` is outside the Copy-scalar profile",
+            "source effect signature type `{}` is outside the admitted Copy-scalar or bounded \
+             aggregate profile",
             ty.identity_key()
         )));
     }
@@ -165,6 +323,22 @@ fn ask(seed: i64) -> bool yields i64 -> bool {
 fn main() -> i64 { 0 }
 "#;
 
+    const AGGREGATE_FUNCTION: &str = r#"
+module test.aggregate_source_signature;
+@id("app.input")
+record Input { @id("app.input.seed") seed: i64, }
+@id("app.output")
+record Output { @id("app.output.value") value: i64, }
+@id("app.ask")
+fn ask(input: Input) -> Output yields i64 -> i64 {
+    let first = yield input.seed;
+    let second = yield first;
+    Output { value: second }
+}
+@id("app.main")
+fn main() -> i64 { 0 }
+"#;
+
     fn program(source: &str) -> ResolvedProgram {
         let parsed = crate::parse(source, "source-signature.spx").unwrap();
         crate::hir::resolve(&parsed).unwrap()
@@ -188,6 +362,27 @@ fn main() -> i64 { 0 }
             .check_answer(&signature.request_tag(), &signature.answer_tag())
             .is_ok());
         signature.verify(&program).unwrap();
+    }
+
+    #[test]
+    fn aggregate_function_signature_is_distinct_from_scalar_durable_signature() {
+        let checked = program(AGGREGATE_FUNCTION);
+        assert_eq!(
+            derive_source_effect_signature(&checked, "app.ask")
+                .unwrap_err()
+                .code,
+            "SPX-H006"
+        );
+        let signature = derive_source_effect_signature_with_arguments(&checked, "app.ask").unwrap();
+        assert!(signature.has_aggregate_function_boundary());
+        assert_eq!(signature.yield_count(), 2);
+        signature.verify(&checked).unwrap();
+        assert_eq!(
+            derive_source_effect_signature_with_arguments(&program(SOURCE), "app.ask")
+                .unwrap_err()
+                .code,
+            "SPX-H006"
+        );
     }
 
     #[test]

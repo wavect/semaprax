@@ -2,7 +2,7 @@
 title = "SEMAPRAX"
 authors = ["Wavect GmbH"]
 description = "Agent-native systems programming language: meaning in, verified machine code out."
-src = "docs"
+src = "handbook"
 language = "en"
 
 [build]

@@ -405,11 +405,61 @@ fn capability_and_dependency_policy_are_fail_closed() {
     let runner = [
         read("platform-tests/component-runtime/src/main.rs"),
         read("platform-tests/component-runtime/src/public_generic_component_tests.rs"),
+        read("platform-tests/component-runtime/src/public_generic_component_tests/parity.rs"),
+        read("platform-tests/component-runtime/src/public_generic_component_tests/parity/cancellation.rs"),
     ]
     .join("\n");
+    // The native C11 differential column (issue #292) is a deliberately
+    // isolated harness -- its own separate Cargo workspace, compiling and
+    // running a native binary through a real `clang` invocation -- not the
+    // Wasmtime Component/Core-provider surface `runner` binds above. Its
+    // legitimate temp-directory and process-spawn use would trip the ambient-
+    // authority refusals below for a surface those refusals were never about,
+    // so it is checked on its own, for the real behavior it claims rather
+    // than folded into `runner`'s closed inventory.
+    let native = read(
+        "platform-tests/component-runtime/src/public_generic_component_tests/parity/native.rs",
+    );
+    // The column runs the compiler-derived nested-moves profile (issue #292,
+    // 8cb29463) over the descriptor the other columns verified, rather than
+    // re-deriving its own flat-moves endpoint.
+    for required in [
+        "SPX-B103",
+        "VerifiedPublicGenericDescriptor",
+        "render_authenticated_nested_moves_provider",
+        "generate_authenticated_nested_moves_calling_consumer_v1",
+        "-O0",
+        "-O2",
+    ] {
+        assert!(
+            native.contains(required),
+            "native parity column missing expected surface: {required}"
+        );
+    }
+    // The checked contract failure is asserted on both native optimization
+    // levels by the shared parity test instead of an inline `requires false`.
+    for required in [
+        "native_o0 != Outcome::ContractViolation",
+        "native_o2 != Outcome::ContractViolation",
+    ] {
+        assert!(
+            runner.contains(required),
+            "native contract-failure parity missing: {required}"
+        );
+    }
     for required in [
         "/fixtures/public-generic-v1/semaprax.toml",
         "/fixtures/public-generic-contract-failure-v1/semaprax.toml",
+        "/fixtures/public-generic-parity-v1/semaprax.toml",
+        "/fixtures/public-generic-parity-failure-v1/semaprax.toml",
+        "nonidentity_component_matches_interpreter_and_core_provider",
+        "checked_contract_failure_matches_interpreter_and_core_provider",
+        "oversized_list_traps_and_a_fresh_instance_recovers",
+        "let component = admit_component(&revision, artifact.bytes(), pins)?;",
+        "stale Component from another revision was admitted",
+        "Component was admitted under a stale descriptor digest",
+        "Core provider opened with a stale descriptor",
+        "prepare_retained_call(program, WITNESS_ID)?",
         "with_authenticated_project(manifest, |snapshot|",
         "EXPECTED_PUBLIC_GENERIC_COMPONENT_DIGEST",
         "EXPECTED_PUBLIC_GENERIC_DESCRIPTOR_DIGEST",
@@ -612,6 +662,10 @@ fn capability_and_dependency_policy_are_fail_closed() {
         "platform-tests/component-runtime/fixtures/public-generic-v1/src/tests.spx",
         "platform-tests/component-runtime/fixtures/public-generic-contract-failure-v1/src/app.spx",
         "platform-tests/component-runtime/fixtures/public-generic-contract-failure-v1/src/tests.spx",
+        "platform-tests/component-runtime/fixtures/public-generic-parity-v1/src/app.spx",
+        "platform-tests/component-runtime/fixtures/public-generic-parity-v1/src/tests.spx",
+        "platform-tests/component-runtime/fixtures/public-generic-parity-failure-v1/src/app.spx",
+        "platform-tests/component-runtime/fixtures/public-generic-parity-failure-v1/src/tests.spx",
     ] {
         let source = read(relative);
         let parsed = semaprax::parse(&source, root().join(relative))
@@ -694,6 +748,50 @@ fn capability_and_dependency_policy_are_fail_closed() {
         failure_mismatches.is_empty(),
         "contract-failure Component known answers differ: {failure_mismatches:?}"
     );
+    for (prefix, fixture) in [
+        ("EXPECTED_PARITY_", "public-generic-parity-v1"),
+        (
+            "EXPECTED_PARITY_FAILURE_",
+            "public-generic-parity-failure-v1",
+        ),
+    ] {
+        let parity_artifact = semaprax::project::with_authenticated_project(
+            &root().join(format!(
+                "platform-tests/component-runtime/fixtures/{fixture}/semaprax.toml"
+            )),
+            |snapshot| {
+                snapshot.check()?;
+                snapshot
+                    .retain_revision()
+                    .public_generic_wasm_component_artifact_v1()
+            },
+        )
+        .expect("parity Component fixture must admit and emit");
+        let mut parity_raw_digest = String::with_capacity(64);
+        for byte in Sha256::digest(parity_artifact.bytes()) {
+            write!(parity_raw_digest, "{byte:02x}").unwrap();
+        }
+        let mut parity_mismatches = Vec::new();
+        for (name, expected) in [
+            ("COMPONENT_DIGEST", parity_artifact.digest()),
+            ("DESCRIPTOR_DIGEST", parity_artifact.descriptor_digest()),
+            ("PROVIDER_DIGEST", parity_artifact.provider_digest()),
+            ("COMPONENT_SHA256", parity_raw_digest.as_str()),
+        ] {
+            let declaration = format!("const {prefix}{name}: &str =");
+            let value = runner
+                .split_once(&declaration)
+                .and_then(|(_, rest)| rest.split_once(';'))
+                .map(|(value, _)| value.trim());
+            if value != Some(format!("\"{expected}\"").as_str()) {
+                parity_mismatches.push(format!("{name}: {expected}"));
+            }
+        }
+        assert!(
+            parity_mismatches.is_empty(),
+            "{fixture} Component known answers differ: {parity_mismatches:?}"
+        );
+    }
     assert_eq!(
         runner
             .matches("get_typed_func::<(i64, i32, i64, i64), i32>")
@@ -715,12 +813,12 @@ fn capability_and_dependency_policy_are_fail_closed() {
     );
     assert_eq!(
         runner.matches("Module::new").count(),
-        5,
-        "only authenticated v6/v7/v8/v9/v10 embedded cores may be instantiated directly"
+        7,
+        "only authenticated v6/v7/v8/v9/v10 embedded cores, the replayed parity Core provider, and the cancellation Core-provider fixture may be instantiated directly"
     );
     assert_eq!(
         runner.matches("usize::try_from(").count(),
-        18,
-        "every v6/v7/v8/v9/v10 raw result pointer must be converted without signed truncation"
+        19,
+        "every v6/v7/v8/v9/v10 raw result pointer and parity Core offset must be converted without signed truncation"
     );
 }

@@ -69,6 +69,7 @@ impl CompiledTypedEffects {
         effects: EffectBudget,
         cancellation: &AgentCancellation,
         seed: &MigrationSeed,
+        selected: Option<TargetStageBackend<'_>>,
     ) -> Result<SeededTypedRun, SeededTypedFailure> {
         let prior = seed.usage();
         let early = |field: &str| SeededTypedFailure {
@@ -78,6 +79,18 @@ impl CompiledTypedEffects {
             iterations: seed.prior_iterations(),
             stages: seed.prior_stages(),
         };
+        // Validate the selected held target before reserving or dispatching any
+        // destination work. A missing retained Wasm source must never fall back.
+        let backend = selected
+            .map(|selected| self.selected_target_backend(selected))
+            .transpose()
+            .map_err(|diagnostics| SeededTypedFailure {
+                diagnostics,
+                usage: prior,
+                terminal: None,
+                iterations: seed.prior_iterations(),
+                stages: seed.prior_stages(),
+            })?;
         let prior_calls =
             usize::try_from(prior.calls).map_err(|_| early("migration.calls.overflow"))?;
         let prior_arguments = usize::try_from(prior.argument_bytes)
@@ -126,14 +139,25 @@ impl CompiledTypedEffects {
             reservations: 0,
             completed_iterations: 0,
         };
-        let outcome = self.lifecycle.run_with_driver_seed(
-            task,
-            proposals,
-            &mut driver,
-            remaining,
-            cancellation,
-            seed,
-        );
+        let outcome = match backend {
+            Some(backend) => self.lifecycle.run_with_driver_seed_on(
+                task,
+                proposals,
+                &mut driver,
+                remaining,
+                cancellation,
+                seed,
+                backend,
+            ),
+            None => self.lifecycle.run_with_driver_seed(
+                task,
+                proposals,
+                &mut driver,
+                remaining,
+                cancellation,
+                seed,
+            ),
+        };
         let usage = CheckpointUsage {
             calls: prior
                 .calls
@@ -222,6 +246,74 @@ mod tests {
     }
     fn proposals(compiled: &CompiledTypedEffects) -> Vec<String> {
         vec![crate::agent_lifecycle::tests::proposal(&compiled.lifecycle.inner, "1", "0"); 3]
+    }
+
+    #[test]
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
+    fn selected_migration_missing_wasm_source_refuses_before_reservation_or_dispatch() {
+        let Some(wasm) = std::env::var_os("SEMAPRAX_TEST_WASM_STAGE_NODE")
+            .map(std::path::PathBuf::from)
+            .into_iter()
+            .chain(
+                [
+                    "/usr/bin/node",
+                    "/usr/local/bin/node",
+                    "/opt/homebrew/bin/node",
+                ]
+                .map(std::path::PathBuf::from),
+            )
+            .find_map(|path| WasmTargetHost::open(path).ok())
+        else {
+            eprintln!("skipping migration held-source refusal: held node unavailable");
+            return;
+        };
+        let mut compiled = super::super::tests::compile();
+        compiled.target_source = None;
+        let prior = CheckpointUsage {
+            calls: 0,
+            argument_bytes: 11,
+            result_bytes: 13,
+            reserved_fuel: 700_000,
+        };
+        let seed = MigrationSeed::for_test(
+            RetainedValue::Record(crate::interpreter::retained_call::RetainedRecord {
+                record: crate::hir::DeclarationId::new("fixture.agent.type.state"),
+                fields: vec![],
+            }),
+            crate::execution_revision::root(
+                "test.migration-seed.v1",
+                serde_json::json!({"fixture": "missing-held-source"}),
+            ),
+            prior,
+            1,
+            3,
+            1_000_000,
+        );
+        let mut handler = Host {
+            calls: 0,
+            result: RetainedValue::Bool(true),
+        };
+        let failure = compiled
+            .run_from_seed(
+                &task(),
+                &proposals(&compiled),
+                &mut handler,
+                IterativeBudget::default(),
+                budget(),
+                &AgentCancellation::new(),
+                &seed,
+                Some(TargetStageBackend::CoreWasmHeld(&wasm)),
+            )
+            .err()
+            .expect("selected Wasm must refuse missing retained source");
+        assert_eq!(failure.diagnostics.len(), 1);
+        assert!(failure.diagnostics[0]
+            .message
+            .contains("target_backend.core_wasm_source"));
+        assert_eq!(handler.calls, 0);
+        assert_eq!(failure.usage, prior);
+        assert_eq!((failure.iterations, failure.stages), (1, 3));
+        assert!(failure.terminal.is_none());
     }
 
     #[test]

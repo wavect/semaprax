@@ -366,17 +366,11 @@ impl Resolver<'_> {
                         expression.span,
                     ));
                 }
-                // Resumable Effects v1 (issue #204): unreachable in
-                // practice -- `parser::yields` already refuses `yield`
-                // anywhere inside a `while` body -- but still an explicit
-                // refusal rather than a silent fallthrough.
-                ExprKind::Yield { .. } => {
-                    return Err(self.error(
-                        "SPX-T252",
-                        "`yield` is not admitted in while bodies",
-                        expression.span,
-                    ));
-                }
+                // Resumable Effects control profile (issue #296):
+                // `parser::yields` admits a `yield` only as a direct
+                // statement value here; its request is an ordinary scalar
+                // expression, and `hir::resolve_yield` owns the typing.
+                ExprKind::Yield { request } => pending.push(Item::Expression(request)),
             }
         }
         Ok(())

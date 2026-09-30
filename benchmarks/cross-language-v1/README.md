@@ -5,8 +5,8 @@ adapter inventories, the provenance binding, and the comparison/regression
 logic that issue #211 asks for.
 
 **What is, and is not, "Agent" here.** `run.py` (this directory's original
-harness) scores a fixed, human-written source tree through each language's
-official toolchain. It has no model, no provider, no sampling parameters, and
+harness) scores a fixed, human-written source tree through installed
+toolchain commands; that alone does not independently authenticate their origin. It has no model, no provider, no sampling parameters, and
 no budget anywhere in it — it is a cross-language *toolchain-conformance and
 scoring* harness, not something that has ever run a model. `agent/` (added
 alongside it) is the seam an Agent-driven run would go through: an explicit
@@ -22,6 +22,19 @@ evidence, and the six unimplemented languages). See
 contract, provenance model, and what a future quiet-host or credentialed run
 must do to produce real numbers.
 
+## Current official comparison support
+
+The supported independently runnable set for issue #322 is **TypeScript only**:
+official Node.js 22.12.0 Darwin arm64 plus TypeScript 5.8.3, on the fixed macOS
+26.5.1 / 25F80 v3 host profile. All other 13 adapters are explicitly **not
+supported for independent official comparisons**, even where local-fixture
+execution exists. The retained corrected TypeScript 54/54 result belongs to
+its original revision/host, not every subsequent checkout. See the
+[complete supported-set decision](../../docs/CROSS-LANGUAGE-RUNNABLE-ADAPTER-V3.md#9-supported-runnable-set-issue-322).
+The 13-task x 14-adapter denominator remains **182 rows**, including all 169
+not-supported slots and their reasons. This scope does not withdraw compiler
+features or remove legacy fixture workflows, and it makes no model claim.
+
 ## Layout
 
 | Path | Role |
@@ -29,6 +42,7 @@ must do to produce real numbers.
 | `run.py` | The toolchain-conformance harness: resolves tasks/adapters, builds and tests each task/language pair against a fixed, human-written source tree, records provenance, scores comparisons. No model involved. |
 | `agent/` | The agent-driver seam: explicit model/sampling/budget contracts, a deterministic offline replay transport, a declared-but-inert live transport, and an orchestrator that scores a transport-produced candidate through `run.py`'s own build/test/leak-check/provenance machinery. It retains complete, digest-bound transcript/candidate evidence and supports only explicit literal-redaction projections; candidate paths must exactly match their declaration. See `agent/README.md`. |
 | `reproduction_capsule.py` | An offline, input-only capsule builder/verifier. It binds the exact supplied task and adapter inventory bytes plus every declared public tree, hidden tree, equivalence contract, and adapter row. It invokes no toolchain or model; an `inputs_match` verification is explicitly not a benchmark result. It requires descriptor-relative no-follow traversal and returns unavailable rather than falling back to pathname traversal on hosts without it. |
+| `supported_scope.py` | Read-only supported-set projection using the pinned v3 source/correction gates: all 182 rows, explicit exclusions, no runtime probe or execution. |
 | `tasks.json` | Task inventory (schema `benchmark.cross_language.tasks.v1`). Each task declares a `split` — `development` (the frozen original pilot) or `held_out` (issue #106's contamination-protected extension; see that task's `EQUIVALENCE.md`) — and both its pre-existing five-value `category` and an additive `issue_211_category` naming which of issue #211's eleven task categories it demonstrates; see `docs/METHODOLOGY.md`'s "Taxonomy mapping" section for the full table and reasoning, including why `category` itself is never rewritten |
 | `adapters.json` | Per-language adapter inventory (schema `benchmark.cross_language.adapters.v1`): official toolchain invocation, version probe, success signal |
 | `tasks/<task-id>/EQUIVALENCE.md` | That task's fairness contract: inputs, outputs, measured boundary, allowed optimizations |
@@ -39,10 +53,14 @@ must do to produce real numbers.
 ## Quick start
 
 ```sh
+# Complete official support inventory; no runtime probe, execution or score.
+python3 benchmarks/cross-language-v1/supported_scope.py
+
 # Plan only: resolve every task/language pair, run nothing.
 python3 benchmarks/cross-language-v1/run.py --dry-run --output /tmp/plan.json
 
-# Score every implemented adapter against the committed pilot task.
+# Legacy local-fixture workflow, NOT independent official-toolchain admission.
+# Score implemented adapters against the committed tasks.
 python3 benchmarks/cross-language-v1/run.py \
   --semaprax target/debug/semaprax \
   --output /tmp/result.json
@@ -74,15 +92,19 @@ python3 benchmarks/cross-language-v1/reproduction_capsule.py verify \
 
 ## Languages
 
-Nine languages are on the roster in `adapters.json`, matching issue #211's
-initial list: SEMAPRAX, Zero, NTNT, Aver, Vera, Hale, MoonBit, Rust, and
-TypeScript. Three are wired (`"implemented": true`) with a real, working
-official-toolchain adapter today: **SEMAPRAX**, **Rust**, and **TypeScript**.
-The other six are declared with an honest `blocked_reason` and never scored
-as a pass or a fail — the harness reports them as `blocked`, distinctly from
-`ok` or `failed`. Wiring one is a scoped, mechanical follow-up once its
-official toolchain is available in a pinned, network-free form (see
-`adapters.json` and `docs/METHODOLOGY.md`).
+`adapters.json` retains 14 adapters: `semaprax`, `semaprax-project`, `rust`,
+`typescript`, `c`, `python`, `swift`, `java`, `zero`, `ntnt`, `aver`, `vera`,
+`hale`, and `moonbit`. Eight have `implemented: true`; the final six retain
+their original `blocked_reason`. These flags describe the frozen fixture
+inventory, not official admission. Missing task ports likewise remain visible
+as `declared: false` slots rather than disappearing from the denominator.
+
+The v1 Rust and v2 C/Python/Swift/Java/TypeScript paths remain local fixtures.
+Only the separately authenticated, corrected v3 TypeScript route is supported
+for independent official conformance. The other 13 adapters are explicitly
+excluded from that set; a future admission needs its own official artifact
+provenance, source/equivalence review and actual bounded scorer/hostile controls.
+Neither a fixture pass nor a scope-inventory report satisfies those gates.
 
 ## Non-claims
 
@@ -125,8 +147,10 @@ official toolchain is available in a pinned, network-free form (see
   "Taxonomy mapping" section); it is evidence the harness's leak check and
   provenance binding hold for a newly-authored task, not a performance claim
   either.
-- This is local, single-host evidence for whichever toolchain versions
-  happen to be installed on the run host, recorded, not pinned by a lockfile
-  or a container image. Containerized/pinned environments are in issue
-  #211's scope and are not built here (see `docs/METHODOLOGY.md`'s
-  "What remains for a quiet-host run" section).
+- Legacy `run.py` and v1/v2 local-fixture results are not independently
+  authenticated official-toolchain evidence. The separately pinned v3
+  TypeScript profile has the retained local evidence described above; it does
+  not promote the other adapters or another host. `supported_scope.py` emits
+  `execution: not_attempted` and `runtime_availability: not_probed`, not a new
+  conformance receipt. Quiet-host timing and model comparisons remain separate
+  (see `docs/METHODOLOGY.md`).

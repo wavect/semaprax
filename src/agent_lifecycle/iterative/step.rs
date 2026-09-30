@@ -17,7 +17,41 @@ pub(super) struct StepShape {
     result: DeclarationId,
 }
 
+/// Borrowed checked Step metadata. This view grants no transition or owner.
+pub(crate) struct OwnedWaitStepMetadataV8<'a> {
+    pub(crate) id: &'a DeclarationId,
+    pub(crate) state: &'a DeclarationId,
+    pub(crate) result: &'a DeclarationId,
+    shape: &'a StepShape,
+}
+pub(crate) struct OwnedWaitStepCaseMetadataV8<'a> {
+    pub(crate) id: &'a DeclarationId,
+    pub(crate) role: &'static str,
+    pub(crate) fields: &'a [(DeclarationId, DeclarationId)],
+}
+impl<'a> OwnedWaitStepMetadataV8<'a> {
+    pub(crate) fn cases(&self) -> impl Iterator<Item = OwnedWaitStepCaseMetadataV8<'a>> + 'a {
+        self.shape
+            .cases
+            .iter()
+            .map(|case| OwnedWaitStepCaseMetadataV8 {
+                id: &case.id,
+                role: case.role,
+                fields: &case.fields,
+            })
+    }
+}
+
 impl StepShape {
+    pub(super) fn owned_wait_metadata(&self) -> OwnedWaitStepMetadataV8<'_> {
+        OwnedWaitStepMetadataV8 {
+            id: &self.id,
+            state: &self.state,
+            result: &self.result,
+            shape: self,
+        }
+    }
+
     pub(super) fn bind(
         program: &hir::ResolvedProgram,
         id: &str,

@@ -108,3 +108,76 @@ earlier no-effect refusal. There remains no cross-store atomic transaction,
 ambient network/cache discovery, cache-carried signature/freshness authority,
 installation, execution, hosted registry, TLS-peer, DNS, Internet, production
 root/key or availability claim.
+
+## Trust decisions and supported scope
+
+Issue #304 (R19) closes with `trust::host::registry_v3::mirror_acceptance_tests`,
+one composition acceptance module driving both flows above against a genuine
+local `TcpListener` loopback mirror instead of the in-process transport fakes
+used everywhere else in this tree. This section records what that local
+implementation decides. These are facts about this repository's local code,
+not an approval of any production policy.
+
+Roles: three disjoint signing roles participate in an ordinary metadata
+update — `timestamp`, `snapshot`, and one `publisher-<namespace>` role per
+delegated package namespace. Root rotation is a separate dual-threshold
+root-only role; no timestamp or snapshot key can rotate roots or reassign a
+publisher's namespace. Each signed statement is bound to its own `role` field
+at authentication time (`SPX-PKR622`), so serving one publisher's genuine,
+unmodified metadata under a different publisher's declared path — namespace
+reassignment / wrong publisher identity — is refused even though every byte
+is otherwise validly signed.
+
+Freshness windows: ordinary Trust-v2/v3 metadata freshness is each role's own
+signed `expires` field, checked against the caller-supplied trusted time
+(`SPX-PKR623`). The mirror bridge additionally enforces a local, Wavect-chosen
+`MAX_MIRROR_OFFLINE_SECONDS` (seven days) maximum age since the last *new*
+signed timestamp was observed, independent of that timestamp's own signed
+expiry; replaying byte-identical timestamp bytes never extends this window,
+only a newer signed timestamp does. Rollback — a lower role version, or an
+equal version with a different digest, replacing an already-observed one — is
+refused (`SPX-PKR623`) on both the ordinary offline commit path and the
+mirror path.
+
+Revocation semantics: a package is revoked/yanked through the producer-backed
+Registry-v3 snapshot's own `PublicationStatus`, authenticated as part of the
+ordinary signed snapshot; there is no separate revocation list, CRL, or
+OCSP-style channel. A yanked package's subject cannot be selected into a
+Lock-v3 (`SPX-PKR631`) and its bytes cannot be read (`SPX-PKR625`) even when
+the metadata naming it is otherwise current and validly signed.
+
+Lock/artifact inseparability: a held generation's committed lock text is part
+of that generation's own cache-availability set. A live artifact read
+requires the exact committed lock bytes; a lock text that differs by even one
+byte is refused (`SPX-PKR626`), regardless of whether that differing text is
+itself a separately well-formed Lock-v3 admitted elsewhere.
+
+Fail-closed distribution: a swapped, tampered, stale, rolled-back,
+misattributed, or yanked mirror response, and an unreachable mirror (a real
+refused connection or a real timed-out read over a genuine loopback socket),
+all refuse before any held-store effect — the held generation and its
+`ACTIVE` pointer are unchanged in every case above. There is no partial
+publish visible to a later reader.
+
+Explicitly **not** supported by this local implementation:
+
+- A production Wavect (or any other) publisher root, key custody, or signing
+  ceremony. Every root/publisher/timestamp/snapshot key exercised by this
+  acceptance evidence and by `trust::registry_v3::tests` is a fixture-only
+  Ed25519 test key generated in-process; none is installed, escrowed, or
+  usable outside this repository's own test fixtures.
+- A hosted registry, real TLS-terminating peer, DNS resolution, or any
+  Internet-reachable mirror. `NativeHttpsMirrorTransport` only trusts the
+  public WebPKI root set and is never exercised against a self-signed or
+  loopback peer. The acceptance evidence's `LoopbackMirrorTransport` is a
+  separate, clearly labelled, test-only plain-HTTP-over-loopback client used
+  solely to prove genuine socket-level connection-refused/timeout behavior;
+  it must not be read as TLS or production-transport support.
+- Public distribution, package publication, or install-script execution of
+  any kind.
+- A revocation channel other than the signed snapshot's own
+  `PublicationStatus`, or automatic key/root rotation without an explicit
+  dual-threshold rotation envelope.
+- Physical power-loss durability proof beyond the existing local fail-stop
+  recovery evidence recorded for the held host in
+  `PACKAGE-REGISTRY-HOST-V2.md`.

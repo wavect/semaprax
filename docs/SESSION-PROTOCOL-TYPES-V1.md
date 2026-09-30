@@ -4,28 +4,30 @@ Audience: compiler contributors implementing the source-syntax/HIR/backend
 generalization this document specifies, and reviewers auditing what this
 slice of #206 delivered versus what remains.
 
-Status: **reference validator**, not yet source syntax. Issue #206 asks for
-a bounded session/protocol type model applied to two real subsystems. This
-slice delivers a Rust-level protocol declaration, an affine typed endpoint,
-and a runtime engine (`src/session_protocol/`) proving the message-order,
-ownership and authority properties, plus this design. It adds no `.spx`
-syntax, HIR node, or verifier rule -- see [Scope boundary](#scope-boundary).
-Two real subsystems -- `project_transport::session` and
-`database_fixture`'s transaction -- now hold live `SessionTable`s and take
-every lifecycle decision through this engine at runtime, so it is a
-reference validator that real code actually runs on, not one that only
-models real code.
-A `context`-envelope projection now exposes this module's fixed catalog as
-declaration-independent reference data (`session_protocol_kernel`, selected by
-`--filters session_protocol`, CLI-reachable today). The standalone Rust API
-`graph::session_protocol_kernel_json()` exposes full per-transition detail
-without its own CLI verb. A later review evaluated
-`architecture_claims` and `assurance_manifest` for the same projection and
-argued both are not a fit, with evidence. That argument is a proposed
-*narrowing* of issue #206's architecture/assurance criterion, not
-satisfaction of it, and only the issue's maintainer can accept it -- see
-[Acceptance criteria](#acceptance-criteria-met-here-versus-open)'s "Protocol
-facts" row for the reasoning behind all of the above.
+Status: **reference validator, checked `.spx` declarations, and a bounded
+affine source carrier with local execution evidence (8/8 at `c714e7c6c`)**.
+Issue #206 asked for a bounded session/protocol type model applied to two
+real subsystems. `src/session_protocol/` delivers a Rust-level protocol
+declaration, an affine typed endpoint, and a runtime engine proving the
+message-order, ownership and authority properties. Two real subsystems --
+`project_transport::session` and `database_fixture`'s transaction -- hold
+live `SessionTable`s and take every lifecycle decision through this engine
+at runtime.
+
+Issue #297 adds the source half: a `session protocol` declaration that the
+parser, canonical formatter, verifier (`SPX-K1xx`), per-source semantic
+graph (`semaprax.graph.v48`), `context`, Architecture Claims
+(`protocol_realizers_bound`) and Assurance Manifest (`session_protocol`
+obligations) understand -- and no other output (see
+[Non-claims](#non-claims)) -- bound to the declaration's `@id`, its source
+span, and the checked HIR functions its `via` clauses name. The declaration
+is checked and erased: it has no runtime representation, lowers to nothing on
+the native or Wasm backend, and grants no authority. See
+[Declared session protocols](#declared-session-protocols-issue-297). Typestate
+checking of `.spx` endpoint *values* now has the bounded
+[affine Bytes carrier profile](#affine-source-endpoint-carrier-issue-331).
+Its eight-test executable gate passed locally; the exact revision and later
+source-equivalence check are recorded in that section.
 
 ## What already exists on `main`
 
@@ -441,18 +443,666 @@ requires to be unique) is normalized out of both traces.
   to a distinct `Uncertain` terminal, never conflated with a clean
   `Cancel`.
 
+## Declared session protocols (issue #297)
+
+### Syntax
+
+```text
+@id("<persistent-id>")
+session protocol "<versioned-name>" {
+    states { S, ... }
+    initial S;
+    terminal S cleanup { op, ... }                         // zero or more
+    on S label: kind Payload [requires capability cap.name]
+        [consumes resource] [via "<function-id>"] -> S | choice { label: S, ... };
+}
+```
+
+`kind` is one of `send`, `receive`, `call`, `return`, `cancel`, `timeout`,
+`fail`, mirroring `spec::Kind`. The clause order is fixed and closed, so the
+canonical formatter (`src/format/session_protocol.rs`) has exactly one
+spelling; a declaration is one comment-placement leaf, like a static
+`protocol`. Parsing lives in `src/parser/session_protocol.rs`; the AST in
+`src/ast/session_protocol.rs`; the sealed cache codec carries it
+(`src/cache_codec/carriers.rs`).
+
+### Comments
+
+A declaration is one comment-placement leaf, like a static `protocol`. A
+comment before its `@id` leads it; a comment anywhere inside its body is
+hoisted, in source order, above its `@id`. This is deterministic and a fixed
+point (`comments_inside_the_declaration_body_hoist_above_it_deterministically`),
+but in-body comment position is not preserved.
+
+### Checking
+
+`crate::session_protocol::source::check` runs inside `verify::verify`
+(and therefore inside `hir::resolve`). It lowers the declaration onto the
+kernel's own `ProtocolSpec` -- names map through a bounded, process-lifetime
+static symbol pool, so the kernel is reused unchanged and no compile leaks --
+and reports:
+
+| Code | Meaning |
+| --- | --- |
+| `SPX-K101` | Duplicate protocol name or identity, an identity colliding with another declaration, or a repeated state, terminal, or cleanup operation. |
+| `SPX-K102` | `ProtocolSpec::validate` refused the declared graph (unknown state, duplicate label, one-branch or duplicate-branch choice, terminal with an outgoing transition, dead end, missing `cancel`/`timeout`/`fail` escape, terminal without cleanup). |
+| `SPX-K103` | `model_check::check_bounded` (bound = state count) refused it: an unreachable state, or no bounded path to a terminal. |
+| `SPX-K104` | A `via` names no ordinary monomorphic function of this module; also the fail-closed HIR recheck when a projection finds a `via` the checked HIR does not retain. |
+| `SPX-K105` | A `requires capability` names an effect its `via` function does not declare in `uses { ... }`. |
+| `SPX-K106` | Capacity: more than 64 declarations per module, 64 states/terminals/cleanup operations, 256 transitions, or 64 choice branches (parser); or, for a declaration built outside the parser, more distinct names than the lowering pool admits (verifier, never a panic). |
+
+### Legal order is not authority
+
+A transition's `requires capability` is ordering metadata. With a `via`, it
+must already be one of that function's declared effects, and the ordinary
+effect rules (`SPX-E101`/`SPX-E102`/`SPX-E103`) stay authoritative: a caller
+of a `via` function still needs its own `uses` set, whatever the protocol
+says (`a_protocol_capability_never_satisfies_the_ordinary_effect_check`).
+Without a `via`, the capability is realized outside checked source (for the
+two canonical declarations, by the Rust subsystems) and every projection
+labels it `"capability_binding":"unattributed"`. Nothing in a declaration
+adds an effect, a capability, or a resource token to anything, and every
+projected fact carries `"authority":"none"`.
+
+### Projections
+
+- **Per-source graph.** `graph::to_json` selects `semaprax.graph.v48` only
+  when the program declares at least one session protocol. The document is
+  the program's otherwise-selected graph with the v48 header and one trailing
+  `session_protocols` object: `base_schema` (the schema it extends),
+  `authority: "none"`, and one fact per declaration (stable id, name, span,
+  states, initial, terminals with ordered cleanup, transitions with payload,
+  capability, capability binding, ownership, `via`, continuation and span,
+  plus `static_validation` and `bounded_reachability`). Every `via` is first
+  bound against the checked HIR of the same program. A program without a
+  declaration keeps its existing schema and bytes; `to_legacy_json` refuses a
+  declaring program.
+- **Context.** With `--filters session_protocol`, the envelope's
+  `session_protocol_kernel` object gains a `declared` array of the same facts
+  when, and only when, the queried program declares a protocol.
+- **Architecture.** `ArchitectureClaim::protocol_realizers_bound(id, protocol)`
+  (see [Architecture Claims v1](ARCHITECTURE-CLAIMS-V1.md)). It attests only
+  that every `via` target is a checked function node of the evaluated
+  revision's call graph. It says nothing about message order or call order.
+- **Assurance.** One `session_protocol` obligation per declaration
+  (see [Assurance Manifest v1](ASSURANCE-MANIFEST-V1.md)), `compiler_proved`
+  for static validation only; never `model_checked`.
+- **Workspace Semantic Graph (R21, issue #297 follow-on).**
+  `workspace_graph::snapshot` selects `semaprax.workspace-semantic-graph.v2`
+  only when at least one managed module declares a session protocol; a
+  protocol-free workspace keeps `.v1` and byte-identical output, mirroring the
+  per-source graph's own v48 gating. A declaring workspace gains one trailing
+  `session_protocols` object: `base_schema` (the `.v1` schema it extends),
+  `authority: "none"`, and one fact per declaration, each the same canonical
+  fact the per-source graph emits plus `module` and `path` naming the exact
+  managed source that owns it. Every `via` is bound against the checked HIR
+  built from that same module before it is recorded, in the same per-module
+  pass that already binds cross-file call edges
+  (`src/workspace_graph/session_protocol_decl.rs`).
+- **Package Semantic Graph (R21, issue #297 follow-on).**
+  `PackageSemanticGraph::derive` selects `semaprax.package-semantic-graph.v2`
+  only when at least one selected package declares a session protocol; a
+  protocol-free package graph keeps `.v1` and byte-identical output, the
+  identical gating discipline the per-source graph and the Workspace Semantic
+  Graph already use. A declaring graph gains one trailing `session_protocols`
+  object: `base_schema`, `authority: "none"`, and one fact per declaration,
+  each the same canonical fact plus `package` and `version` naming the
+  selected coordinate that owns it. The package-source build reuses the
+  Workspace Semantic Graph's own per-module pass
+  (`workspace_graph::build_package_scalar_sources` calling
+  `retain_workspace_module`), so no protocol fact here is derived by a second,
+  independent code path; see [Package Semantic Graph
+  v1](PACKAGE-SEMANTIC-GRAPH-V1.md#declared-session-protocols-issue-297-follow-on).
+- **Documentation (R21).** `semaprax doc` renders a `session_protocol` entry
+  per declaration: the canonical declaration text as its signature (states,
+  initial, terminals with cleanup, and every transition, in source order),
+  and `States`/`Initial`/`Terminals`/`Authority` facts. Transitions have no
+  persistent identity of their own in the AST, so unlike a static `protocol`'s
+  methods they are not separately documented members.
+- **Declaration Query (R21).** `semaprax query --kind session_protocol`
+  selects the same `session_protocol` entries `semaprax doc` renders, for
+  both a single checked module and an authenticated Project, since both reuse
+  `crate::doc::document`.
+- **Help shape catalog and agent quick reference (R21, issue #297
+  follow-on).** `src/doc.rs`'s own `SECTIONS` (the order `semaprax doc`
+  renders) already carried `("session_protocol", "Session protocols")`;
+  `tests/projections/shapes_catalog.rs`'s separate `SECTIONS` (which
+  `semaprax help shapes` and `docs/LANGUAGE-SHAPES-CATALOG.{md,json}` are
+  generated from) now matches it. `examples/session_protocol.spx` is the
+  committed, compiler-verified example that gives the catalog its one
+  `session_protocol` entry. [The agent quick reference](AGENT-QUICK-REFERENCE.md#session-protocols)
+  gains a `## Session protocols` section: the shape's grammar, its
+  checked-and-erased/`via`/`requires capability` rules, and one compiler-
+  checked example module (`tests/documentation.rs::agent_quick_reference`
+  parses, verifies with zero diagnostics, and byte-compares it against
+  `format::canonical`, exactly like every other unmarked block on the page).
+- **Semantic-workspace rename, change, impact, and review (R21, issue #297
+  follow-on).** A `via` clause binds by persistent `@id`, never by display
+  name, so `src/semantic_workspace_operations.rs`'s rename derivation (which
+  changes only a declaration's display name, addressed by its immutable
+  `@id`) can never break a `via` binding by construction -- there is no
+  operation in this codebase that reassigns a declaration's `@id`. What a
+  rename or a general change *can* do is remove or alter the realizing
+  function outright; every candidate source set either derivation builds is
+  replayed through the same per-module pass that already binds `via` targets
+  against checked HIR (`retain_workspace_module` /
+  `session_protocol_decl::declaration_facts`), so a candidate that would
+  orphan a `via` fails closed with the ordinary stable diagnostic
+  (`SPX-K104`) rather than being silently admitted; pinned at the exact entry
+  points rename and change use
+  (`workspace_graph::build_owned_retaining_sources_for_operations` and
+  `_for_change`) by
+  `a_via_bound_functions_display_rename_is_admitted_by_operations_and_change_candidate_builds`
+  and
+  `removing_a_via_bound_function_is_refused_with_a_stable_diagnostic_by_operations_and_change_candidate_builds`
+  in `src/workspace_graph/session_protocol_decl.rs`. Impact and review
+  (`src/impact.rs`, wrapped unchanged by `src/review.rs`) gain a
+  `session_protocols_affected` fact array: one entry per session protocol in
+  the previewed module whose `via` names a declaration id the patch directly
+  changes (a rename target or the owner of a changed call instance),
+  restricted to the affected transitions, each carrying `protocol`,
+  `protocol_name`, `authority: "none"`, and the matched `via` edges. Omitted
+  entirely (not even `[]`) for a module with no session protocol or none
+  affected, so every existing pinned Impact/Review report stays
+  byte-identical; a session protocol's `via` is not a real call edge, so this
+  reporting is computed independently of, and never feeds, the reverse-call
+  closure (`reverse_closure`/`affected_functions`) that already exists for
+  real callers.
+
+### Bundled dependency pruning
+
+The Workspace Semantic Graph's bundled-dependency pruning
+(`src/workspace_graph/dependency_pruning.rs`) treats every `via` target as a
+root, because `via` names its realizer by persistent id rather than display
+name (`a_session_protocol_via_target_is_retained`).
+
+### Non-claims
+
+A session protocol declaration is projected by the per-source graph (v48),
+the Workspace Semantic Graph (v2, R21), the Package Semantic Graph (v2, R21),
+`context` (`--filters session_protocol`), Architecture Claims
+(`protocol_realizers_bound`, Rust API only), single-file and Project Assurance
+Manifest v1, `semaprax doc`, and `semaprax query --kind session_protocol`. The
+following omit declarations entirely, and nothing here claims otherwise:
+
+- the VS Code grammar (`editors/`);
+- a CLI flag for `protocol_realizers_bound`;
+- any runtime enforcement from a declaration: it is erased, and the two live
+  lifecycles are enforced by the Rust kernel, not by their `.spx`
+  declarations. A function's `follows` clause (below) is checked and erased
+  the same way, and grants no runtime authority either;
+- ordering attestation of any kind by `protocol_realizers_bound`;
+- a `follows`/typestate fact in Architecture Claims or the VS Code grammar --
+  see [Endpoint typestate non-claims](#endpoint-typestate-non-claims) for
+  which of the eight outputs above do carry one;
+- typestate checking of an endpoint *value*'s flow through locals, fields, or
+  return positions (use-after-close, ownership) -- see [Endpoint typestate
+  non-claims](#endpoint-typestate-non-claims). What issue #297 follow-on (R21)
+  *does* check -- the call order of a function's own direct calls to a
+  protocol's `via`-bound functions -- is [Endpoint typestate
+  checking](#endpoint-typestate-checking-issue-297-follow-on-r21), below.
+
+### The two canonical declarations and the drift gate
+
+`src/session_protocol/tests/fixtures/project_agent_session.spx` and
+`database_transaction.spx` declare `project-agent-session-v1` and
+`database-transaction-v1` in source. They live under the session-protocol
+tests rather than `std/` so no standard-library catalog changes.
+`canonical_declarations_match_the_kernel_specs_field_for_field` parses and
+verifies each one and compares it with `protocols::project_agent_session_protocol()`
+and `protocols::database_transaction_protocol()` (the specs the live
+subsystems run) through `source::drift_from_spec`: name, state set, initial,
+terminal set, per-terminal cleanup inventory in canonical order, and every
+transition in order including payload, capability, ownership and
+continuation. `drift_gate_refuses_a_mutated_declaration_and_a_mutated_kernel_spec`
+is the negative control. The runtime subsystems keep using `shared.rs`
+unchanged; neither was migrated a second time.
+
+### `std.db.transaction` is a different state machine
+
+`std/db`'s `std.db.transaction.*` functions are **not** bound to
+`database-transaction-v1`, and must not be. They model a *connection* that is
+reused across transactions: `next_on_begin(COMMITTED)` returns `OPEN`, and
+`next_on_connection_lost(NONE)` leaves `NONE` unchanged. The kernel spec
+models one transaction's lifecycle: `Committed`, `RolledBack` and `Failed`
+are terminal, and a `connection_lost` outside `Open` is refused. Binding one
+to the other would project a false fact, so the two stay separate and this
+difference is recorded here instead.
+
+## Endpoint typestate checking (issue #297 follow-on, R21)
+
+Declaring a protocol (above) is checked and erased, but until this slice
+nothing checked that a program's *use* of a declared protocol's endpoints
+follows the legal order it declares. This section is the design for the
+smallest admissible static check that is sound for the admitted subset, and
+records exactly what it does and does not check.
+
+### Opt-in: `follows session protocol "<protocol-id>"`
+
+A function opts in with a new, optional clause between `yields` and the
+`requires`/`ensures` contracts, admitted only there so the canonical
+formatter keeps one fixed spelling:
+
+```text
+fn name(params) -> T
+    uses { ... }
+    yields Request -> Response
+    follows session protocol "<protocol-id>"
+    requires ...
+    ensures ...
+{ body }
+```
+
+`<protocol-id>` is the persistent `@id` of a `session protocol` declaration in
+the *same module* -- never its versioned display name, and never a
+cross-module reference -- mirroring how a transition's own `via` names its
+realizing function by persistent id rather than display name
+([`crate::ast::SessionProtocolFollowsClause`]). A function that does not
+write `follows` is entirely unaffected, byte for byte: parsing, canonical
+formatting, verification, the semantic graph, and both backends produce
+identical output whether or not this feature exists for that function.
+Naming a protocol declared in another module, or one that does not exist, is
+refused (`SPX-K107`); this keeps the check local to one already-checked
+`Program`, exactly like the declaration's own `via` binding.
+
+### What is checked, and how
+
+Starting from the protocol's declared `initial` state (an explicit,
+separately declared entry state is a natural future extension this slice does
+not add -- see [Non-claims](#endpoint-typestate-non-claims)), the checker
+walks the opted-in function's own body once, left to right -- the same
+evaluation order [RFC 0001](RFC-0001.md) requires everywhere else -- tracking
+the *set* of protocol states the function could be in at each point. A set,
+not one state, because `if`/`else` genuinely can leave the function in either
+of two different states depending on a runtime condition this static check
+never evaluates: both branches are walked from the same incoming state(s),
+and their resulting states are unioned for whatever follows the `if`. A
+direct call to one of the protocol's `via`-bound functions advances every
+state currently in the set along that function's realized transition; a call
+the current state does not admit is refused (`SPX-K108`). Every path through
+the function's body must end in a declared terminal state (`SPX-K108`) --
+exactly "every exit path reaches a terminal state or a declared escape",
+since `Cancel`/`Timeout`/`Fail` transitions already land on an ordinary
+terminal state in this kernel, so no separate "escape" case is needed. The
+state set can never grow without bound across arbitrarily nested `if`/`else`:
+the number of distinct protocol states is already bounded at 64 (`SPX-K106`).
+
+### What is refused outright, rather than approximated
+
+This is a small, *sound* subset of possible programs, not an unsound
+approximation of a larger one: anything the walk cannot resolve statically
+and precisely is refused with a stable diagnostic (`SPX-K109`) rather than
+silently admitted or silently skipped over:
+
+- **Loops** (`while`, `for`, `for own`) whose condition/source or body
+  reaches a `via`-bound call: the number of iterations is not known
+  statically, so the call could execute any number of times, including zero
+  or unboundedly many.
+- **Recursion**: a followed function that calls itself anywhere in its own
+  body, `via`-bound or not. A straight-line/if-else walk has no model for a
+  re-entrant call, and the recursive invocation could revisit `via` calls an
+  unbounded number of times, the same hazard as a loop.
+- **Closures**: a `via`-bound call written inside a closure literal may run
+  zero, one, or many times, at a point this walk cannot order against the
+  rest of the function -- the same "escaping endpoint" hazard the issue
+  names, generalized to any deferred/uncertain-arity invocation rather than a
+  single "endpoint value" representation this slice does not add.
+- **Indirect or ambiguous calls**: a call whose callee name is shadowed
+  *anywhere* in the function by a parameter or `let` binding is never
+  resolved as a direct call to a `via`-bound function, even where the
+  shadowing does not lexically reach this exact call site (the check is
+  deliberately whole-function and scope-insensitive here, which can only
+  over-refuse, never under-refuse); likewise a `via`-bound function that
+  itself realizes more than one transition from the same current state.
+- **A `via` transition with a branching (`choice`) continuation**: which
+  branch a call actually took is a runtime fact (for example, the remote
+  peer's reply) this static check cannot observe. Admitting the union of
+  every declared branch's target state would be *unsound*, not merely
+  imprecise: a later call that is illegal on one branch but legal on another
+  would then wrongly pass. Only a `via` transition with a `Then` continuation
+  is checked; one with a `Choice` continuation is refused wherever a checked
+  function actually calls it.
+- **The conditionally evaluated right-hand side of `&&` or `||`**: it may
+  execute or be skipped based on the left operand. A `via`-bound call there
+  is refused rather than treated as an unconditional state transition.
+- Every other expression shape the walk does not specifically know how to
+  step through (`match`, method calls, record construction/update, `project`,
+  `try`, `yield`) is treated as an opaque, state-preserving expression *only
+  when it contains no reachable `via`-bound call at all*; otherwise it is
+  refused the same way, rather than silently skipped past a call it cannot
+  order.
+
+### Legal order is still not authority
+
+Exactly like a declaration itself: passing this check proves only that the
+checked function's own call sequence traces a legal path through the declared
+graph. It adds no effect, capability, or resource authority of its own; the
+ordinary effect checks (`SPX-E101`/`SPX-E102`/`SPX-E103`) and `SPX-K105`'s
+"ordering metadata cannot mint a capability" rule are unchanged and
+unaffected by whether a function opts in.
+
+### Erasure
+
+A `follows` clause has no HIR node, no native lowering, and no Wasm lowering.
+`hir::resolve` never reads `Function::follows`, so it cannot influence
+checked HIR, and both backends produce byte-identical output whether or not a
+function opts in --
+`session_protocol::typestate::tests::a_follows_clause_is_erased_from_native_and_wasm_output`
+asserts this directly by comparing `codegen::emit_c` and `wasm::emit_module`
+between two otherwise-identical programs that differ only in whether the
+one function's `follows` clause is present.
+
+### Projections
+
+Each fact below is the function `@id` bound to the protocol `@id` it
+follows, plus the fixed result `"typestate_checked"` -- exactly as
+authority-free as passing typestate checking itself
+(`crate::session_protocol::source::follows_json`). A program with no
+`follows` clause is unaffected, byte for byte, in every one of these
+projections, mirroring the declaration's own v-bump-only-for-a-declaring-
+program discipline.
+
+- **Per-source graph.** `graph::to_json` selects `semaprax.graph.v49` only
+  when the program has at least one `follows` clause -- always a strict
+  additional selection over `semaprax.graph.v48`, since a `follows` clause
+  names a protocol declared in the same module (`SPX-K107` refuses anything
+  else). The document is v48's own output (or the program's ordinary schema,
+  for a protocol-free program -- unreachable here since a `follows` clause
+  requires a declaration) with the v49 header and one trailing
+  `session_protocol_follows` object: `base_schema` (the schema it extends),
+  `authority: "none"`, and one binding fact per opted-in function (function,
+  protocol, result, span). A program with no `follows` clause keeps its v48
+  (or ordinary) schema and bytes (`src/graph/session_protocol_follows.rs`).
+- **Context.** With `--filters session_protocol`, the envelope's
+  `session_protocol_kernel` object gains a `follows` array of the same facts
+  when, and only when, the queried program has at least one `follows`
+  clause.
+- **Workspace Semantic Graph.** `workspace_graph::snapshot` selects
+  `semaprax.workspace-semantic-graph.v3` only when at least one managed
+  module has a `follows` clause; a workspace with none keeps `.v2` (or `.v1`)
+  and byte-identical output. A selecting workspace gains one trailing
+  `session_protocol_follows` object: `base_schema` (the `.v2` schema it
+  extends), `authority: "none"`, and one binding fact per opted-in function,
+  each carrying `module` and `path` naming the exact managed source that
+  owns it (`src/workspace_graph/session_protocol_decl.rs`).
+- **Package Semantic Graph.** `PackageSemanticGraph::derive` selects
+  `semaprax.package-semantic-graph.v3` only when at least one selected
+  package has a `follows` clause; a package graph with none keeps `.v2` (or
+  `.v1`) and byte-identical output. A selecting graph gains one trailing
+  `session_protocol_follows` object: `base_schema`, `authority: "none"`, and
+  one binding fact per opted-in function, each carrying `package` and
+  `version` naming the selected coordinate that owns it. The `summary`
+  projection copies this key generically, exactly like every other
+  top-level fact (`src/package_semantic_graph.rs`).
+- **Assurance.** One further `session_protocol` obligation per opted-in
+  function (locator `protocol:call-order-typestate`, distinct from a
+  declaration's own `protocol:static-validation`), `compiler_proved` for the
+  static call-order check only (`SPX-K107`..`SPX-K109`); never
+  `model_checked`, and explicitly not runtime authority
+  (`src/assurance_manifest/session_protocol.rs::follows_obligations`).
+- **`semaprax doc` and `semaprax query` (R21 follow-on's own extension).**
+  `semaprax doc` renders the binding on both sides of it: a following
+  function's entry gains `Follows` (the protocol `@id`), `Typestate`
+  (`"typestate_checked"`), and `Authority` (`"none"`) facts, and the named
+  protocol's own entry gains a `Following functions` fact (every opted-in
+  function `@id`, in source order) -- both read from the one canonical fact
+  every other projection shares (`follows_json`/`follows_facts_json`) rather
+  than re-derived (`src/doc.rs`). Only a top-level function ever gains these
+  facts: `session_protocol::source::check`/`bind_follows` and
+  `session_protocol::typestate::check` only ever validate and erasure-check a
+  `follows` clause on `Program::functions`, never on a class method, so a
+  method's clause (admitted by the shared function grammar but never checked
+  or bound) has no canonical fact to document. `semaprax query` needs no
+  separate code: `query::run` and `query::run_project` already render every
+  entry directly from `crate::doc::document`, so the new facts are queryable
+  exactly the way existing session-protocol facts already are (`States`,
+  `Initial`, `Terminals`, `Authority`, or a method's `Owner`) -- present on
+  the matched `Entry`'s `facts` once selected by the ordinary
+  `--kind`/`--name`/`--id` filters, with no dedicated `--follows` filter or
+  JSON field of its own. A program with no `follows` clause is unaffected,
+  byte for byte (`src/doc/tests.rs` and `tests/projections/doc_projection.rs`
+  keep their exact pre-existing fact sets and the pinned
+  `EFFECTS_MARKDOWN`/`declared.spx` goldens).
+- **Not projected.** Architecture Claims (`protocol_realizers_bound`
+  attests only `via` targets, an orthogonal declaration-side fact) is
+  unaffected by this follow-on.
+
+### Diagnostics (`SPX-K107`..`SPX-K109`)
+
+| Code | Meaning |
+| --- | --- |
+| `SPX-K107` | A `follows` clause names no `session protocol` declaration in this module. |
+| `SPX-K108` | A call to a `via`-bound function is not legal from the function's current state at that point, or some path through the function ends in a non-terminal state. |
+| `SPX-K109` | The function contains a construct this subset does not admit reaching a `via`-bound call through: a loop, direct recursion, a closure, an indirect/ambiguous call, a `via` transition with a branching `choice` continuation, or any other unsupported expression shape; also a `follows` clause on a class method, since only top-level functions are checked. |
+
+### Endpoint typestate non-claims
+
+- **Projections (R21 follow-on).** The function `@id` bound to the protocol
+  `@id` it follows, plus the fixed result `"typestate_checked"`, is projected
+  into the per-source graph (`semaprax.graph.v49`), `context` (`--filters
+  session_protocol`), the Workspace and Package Semantic Graphs (`.v3`), the
+  Assurance Manifest, `semaprax doc`, and `semaprax query` (see
+  [Projections](#projections) above). Architecture Claims'
+  `protocol_realizers_bound` remains an orthogonal, declaration-side (`via`)
+  fact this follow-on does not touch, and the VS Code grammar does not parse
+  `follows` distinctly. Every projection keeps a program with no `follows`
+  clause byte-for-byte unaffected, exactly like `semaprax.graph.v48` already
+  does for the declaration itself.
+- **No explicit entry state.** Every followed function starts from the
+  protocol's declared `initial` state; a clause selecting a different,
+  explicitly declared entry state is a natural extension this slice does not
+  add.
+- **No cross-module protocol reference**, mirroring `via`'s own restriction to
+  ordinary functions of the same module.
+- **No interprocedural analysis.** Only calls written directly in the
+  checked function's own body are considered; a call to an ordinary
+  (non-`via`) function that itself calls a `via`-bound function elsewhere is
+  invisible to this check, exactly as issue #297's own request describes
+  ("within one function body").
+- **Legacy call-order mode has no endpoint-value ownership analysis.** Without
+  the #331 `endpoint Bytes` clause, this checks the *order of calls by name*, never the flow of an
+  endpoint value through locals, fields, or return positions. Nothing here
+  represents an `Endpoint` in checked HIR, so "does this local still denote a
+  live, non-terminal endpoint" is not a question this check can ask or
+  answer; only `session_protocol::engine::Endpoint`'s own Rust-level affine
+  drop bomb (see above) answers that question, and only for the two Rust
+  reference kernels, not for `.spx` source.
+
+### Gate (endpoint typestate checking)
+
+`cargo test --locked -p semaprax --lib session_protocol::typestate` covers
+the parser, canonical formatter, `SPX-K107`..`SPX-K109`, canonical
+round-trip, cache-codec round-trip, and native/Wasm erasure for `follows`.
+It is exercised by the existing `cargo test --locked -p semaprax --lib
+session_protocol` selector alongside every other test in this module.
+
+The [Projections](#projections) above (R21) are covered by: `cargo test
+--locked -p semaprax --lib graph::session_protocol_follows` (graph v49 and
+`context`'s `follows` facet, including the byte-identical regression against
+the declaration-only golden and the dangling-binding negative control);
+`cargo test --locked -p semaprax --lib workspace_graph::session_protocol_decl`
+(the same module as the declaration's own v2 gating, extended with the v3
+`follows` gating, module-bound facts, and the dangling-binding negative
+control); `cargo test --locked -p semaprax --test offline_package
+semantic_graph::` (Package Semantic Graph's v3 gating and package-bound
+facts); and `cargo test --locked -p semaprax --lib
+assurance_manifest::session_protocol` (the `protocol:call-order-typestate`
+obligation, its coexistence with the declaration's own obligation in one
+generated envelope, and the dangling-binding negative control); `cargo test
+--locked -p semaprax --lib doc::` (the `Follows`/`Typestate`/`Authority`
+facts on a following function, the `Following functions` fact on its
+protocol, their Markdown and JSON rendering, and the byte-identical
+regression against the declaration-only fixture); and `cargo test --locked
+-p semaprax --test projections doc_projection:: query_projection::` (the
+pinned `EFFECTS_MARKDOWN` golden staying unchanged, and the same facts
+surfacing through `semaprax query`'s ordinary `--kind`/`--name` filters with
+no dedicated query code of their own).
+
+## Affine source endpoint carrier (issue #331)
+
+Status: **local gate passed, 8/8 at `c714e7c6c` on 2026-09-30**; this is no
+hosted or broader-profile claim. This profile reuses the compiler's existing unique
+`Bytes` values, resolved ownership and cleanup plans, interpreter, native C11,
+and generated Wasm byte runtime. A source endpoint is the one actual owner
+passed to the followed function, including its local moves and each successor
+returned by a declared transition.
+
+The complete executable source is [session-endpoint.spx](../examples/session-endpoint.spx).
+Add `endpoint Bytes;` immediately after `initial` in the declaration:
+
+```text
+@id("channel.protocol")
+session protocol "channel-v1" {
+    states { Ready, Active, Closed }
+    initial Ready;
+    endpoint Bytes;
+    terminal Closed cleanup {}
+    on Ready step: send Unit consumes resource via "channel.step" -> Active;
+    on Ready cancel: cancel Unit consumes resource via "channel.cancel" -> Closed;
+    on Active close: send Unit consumes resource via "channel.close" -> Closed;
+    on Active cancel: cancel Unit consumes resource via "channel.cancel" -> Closed;
+}
+
+@id("channel.use")
+fn use_channel(endpoint: own Bytes) -> i64
+    follows session protocol "channel.protocol"
+{
+    let moved = endpoint;
+    let active = step(moved);
+    close(active)
+}
+```
+
+`channel.step` takes `value: own Bytes` first and returns `Bytes`.
+`channel.close` and `channel.cancel` take `value: own Bytes` first and return a
+Copy scalar. Other parameters are Copy scalars. These are ordinary checked
+source functions; the declaration grants none of their effects or authority.
+The caller constructs or obtains the initial unique buffer through the ordinary
+admitted byte operations and transfers it into `use_channel`.
+
+Every endpoint-following function takes exactly one `own Bytes` parameter,
+optional scalar parameters, and returns a scalar. Every transition has a local
+monomorphic `via`, `consumes resource`, and a single next state. The first
+argument must transfer the current endpoint. Nonterminal transitions return its
+successor owner; terminal transitions consume it and return a scalar. The
+existing call-order checker proves each step legal from every incoming state
+and every normal path terminal. The additional value walk proves that the
+argument is the actual endpoint rather than a replacement buffer. Immutable
+`let` moves and nested transition calls are admitted; moving or closing an
+owner invalidates all previous local names. A second use is a source diagnostic
+before HIR/backend emission.
+
+An `if` may preserve the same incoming binding or consume it on both branches.
+Endpoint-valued branch results, mutation, loops containing endpoint operations,
+closure capture, fields, returned endpoints, generic carriers, multiple
+endpoints, opaque inspection and non-`via` escapes are refused. Other expressions
+can execute when they contain neither endpoint references nor protocol calls.
+The existing ordinary ownership verifier independently rejects duplication and
+stale loans. This profile does not infer endpoint obligations in functions
+without `follows`.
+
+Terminal cleanup inventories must be empty. Carrier settlement is the existing
+canonical Bytes cleanup, including call staging, preconditions, postconditions,
+exceptional exits and terminal failure. A declaration cannot name a physical
+finalizer and expect the compiler to dispatch it. Successful `step` functions
+may transform their owned buffer under ordinary ownership rules; protocol
+successor ownership does not assert byte equality or external session identity.
+
+No protocol state or carrier grants host authority. `SessionTable` authority and
+generation checks remain unchanged for its live Rust callers. The source
+profile does not serialize or create a `SessionTable` credential, and does not
+claim runtime protocol enforcement for arbitrary foreign handles. Refused
+source produces no target artifact. Its own buffer handles retain their existing
+runtime ownership, context and freshness checks on the routes that use them.
+
+| Diagnostic | Meaning |
+| --- | --- |
+| `SPX-K110` | Unsupported endpoint carrier, transition/function signature, branching transition, missing `via`/resource transfer, or nonempty physical cleanup inventory. |
+| `SPX-K111` | Endpoint used after move/close, replaced by another buffer, escaped, captured, mutated, or left live at a checked exit. |
+| `SPX-K108` / `SPX-K109` | Existing illegal-state/nonterminal-path and unsupported call-order checks, unchanged. |
+| `SPX-O101` | The ordinary ownership verifier independently rejects a moved carrier. |
+
+Parser, canonical formatter and source cache preserve the optional carrier.
+Declarations without it keep their existing source, graph, native and Wasm
+projections. Endpoint declarations add an `endpoint` fact with profile
+`affine-bytes.v1` and carrier `Bytes`; their per-source graph is v51 (an Agent
+execution graph may wrap it as its recorded dynamic base). The project semantic
+cache compatibility is v5 (frontend AST compatibility v3) to reject older
+positional AST encodings. HIR already
+represents every carrier, move, owned argument, result and cleanup through the
+ordinary byte machinery; no second runtime endpoint representation is erased.
+
+The executable gate is
+`cargo test --locked -p semaprax --lib session_protocol::typestate::endpoint`.
+It covers source success, canonical/cache round-trip, HIR admission, graph
+facts, stable refusal before native/Wasm emission, moved aliases, use after
+close, replacement, capture, wrong state, abandonment, missing authority and
+invalid carrier declarations. Backend cases require Clang and Node (absence
+fails the gate), run native C11 at O0/O2, compare the interpreter result, and
+repeat real generated Wasm invocations with one owned-byte slot on success and
+terminal postcondition failure to detect missing settlement.
+
+### Local execution receipt
+
+On 2026-09-30, the integrated revision
+[`c714e7c6c164f2b83d4575f8ade318c0ef80aa6b`](https://github.com/wavect/semaprax/commit/c714e7c6c164f2b83d4575f8ade318c0ef80aa6b)
+passed **8 tests, 0 failed** with the checkout-private validation target:
+
+```sh
+CARGO_TARGET_DIR="$PWD/target/v070-validation" cargo test --locked -p semaprax --lib session_protocol::typestate::endpoint -- --test-threads=1
+```
+
+The executed cases include the committed canonical `.spx` example, source
+move/close and refusal checks, HIR/cache/graph assertions, interpreter results,
+native C11 O0/O2 execution, and repeated generated Wasm success and terminal
+postcondition-failure settlement with one owned-byte slot. Clang and Node are
+required by these cases; they do not silently skip missing tools. This receipt
+supersedes the earlier interrupted `target/session-331` build, which ran no
+tests because only approximately 596 MiB of disk remained.
+
+A subsequent Git comparison of that tested revision with
+[`e9019e9e1046e9d3416929f525cc01aa1bfd0c11`](https://github.com/wavect/semaprax/commit/e9019e9e1046e9d3416929f525cc01aa1bfd0c11)
+found changes only in the catalog-normalizer example, its test, and the
+changelog. The endpoint implementation, test module, compiler, interpreter,
+native/Wasm backends, cache and graph paths are unchanged. This is a
+source-equivalence check through `e9019e9e1`, not another execution receipt.
+
+The eight-test receipt does not include a rerun of the existing legacy
+erasure/graph preservation tests or `scripts/quality.sh full`. For the narrow
+preservation check, select
+`session_protocol::typestate::tests::a_follows_clause_is_erased_from_native_and_wasm_output`
+and
+`graph::session_protocol_follows::tests::a_program_without_a_follows_clause_is_byte_identical_to_the_pre_existing_v48_golden`.
+Broader integration or hosted evidence must be reported separately; this local
+receipt does not promote those claims.
+
 ## Scope boundary
 
 Explicitly **not** done in this slice, and why:
 
-- **No `.spx` syntax, HIR node, or verifier rule.** The repository's change
-  protocol requires parser, canonical formatter, resolver/HIR, verifier,
-  semantic graph, native backend, and Wasm backend to move together once
-  syntax carries runtime meaning; landing a half-wired parser rule with no
-  checked HIR consumer would violate that protocol rather than satisfy it.
-  This is the same scope boundary `resumable_effects` and `live_invocation`
-  already document for their own boundaries, and this document is the
-  design a follow-up parser/HIR/graph tranche implements against. (A later
+- **Superseded by issue #297 for declarations, and by issue #297 follow-on
+  (R21) for call-order typestate checking, and issue #331 for the bounded
+  affine Bytes carrier profile.**
+  A `session protocol` declaration now exists end to end (see [Declared
+  session protocols](#declared-session-protocols-issue-297)), and a function
+  may now opt in to a static call-order check over its own body (see
+  [Endpoint typestate
+  checking](#endpoint-typestate-checking-issue-297-follow-on-r21)). What
+  remains open beyond #331 is general endpoint flow through fields and return
+  positions; #331 checks local carrier flow and use-after-close. The original
+  larger scope concerned all endpoint values,
+  which -- unlike the call-order check, which is checked and erased with no
+  HIR or backend representation of its own -- would carry runtime meaning if
+  it modeled a real endpoint value, and so needs parser, HIR, verifier and
+  both backends together. The original rationale follows. The repository's
+  change protocol requires parser, canonical formatter, resolver/HIR,
+  verifier, semantic graph, native backend, and Wasm backend to move
+  together once syntax carries runtime meaning; landing a half-wired parser
+  rule with no checked HIR consumer would violate that protocol rather than
+  satisfy it. This is the same scope boundary `resumable_effects` and
+  `live_invocation` already document for their own boundaries, and this
+  document is the design a follow-up parser/HIR/graph tranche implements
+  against. (A later
   session did add a `context` projection of this module's own fixed catalog
   -- `session_protocol_kernel`, declaration-independent reference data, not
   a projection of any `.spx`-declared protocol, since none exists -- plus a
@@ -462,7 +1112,7 @@ Explicitly **not** done in this slice, and why:
   [Acceptance criteria](#acceptance-criteria-met-here-versus-open) for that
   decision and for the `architecture_claims`/`assurance_manifest`
   evaluation the same row records.)
-- **No compiler-checked ownership analysis.** `Endpoint`'s affinity is
+- **The Rust kernel remains separate from the #331 source carrier.** `Endpoint`'s affinity is
   enforced by Rust's own move checker and a runtime drop bomb over a
   reference kernel's own values, not the compiler's alias/uniqueness
   analysis over real checked HIR locals.
@@ -506,14 +1156,27 @@ Explicitly **not** done in this slice, and why:
 | Invalid order is rejected before runtime | **Static declaration defects**: at spec-validation time (`SpecError`, before any session opens). **Message-order defects**: at the engine's own runtime check (`IllegalTransition` etc.) -- not before compilation, since the protocol is declared data in this slice, not `.spx` source the compiler itself parses. The one case genuinely caught by `rustc` at compile time is presenting an already-consumed `Endpoint` binding a second time, and presenting a `Grant` for the wrong capability marker type. |
 | Ownership and authority are coupled to protocol state | **Met at the reference-kernel level**: `required_capability` and `OwnershipMove` are per-transition fields the engine checks alongside state/order, and are proven independently failing from state/order correctness (`missing_authority_is_refused_even_in_correct_order`). |
 | Failure/cancellation/uncertainty remain explicit | **Met**: `Cancel`/`Timeout`/`Fail` are ordinary declared transitions with their own cleanup; `Timeout` is routed to a distinct `Uncertain` terminal in both applied protocols. |
-| Protocol facts appear in context, graph, architecture, and assurance outputs | **Half met, deliberately as reference data, not as a real projection; the CLI-surface and architecture/assurance halves of this row were evaluated and closed this session, one via proven reachability and one as not applicable.** A prior session decided the `context` half of this row is buildable now, without waiting for the `.spx`-declared-protocol tranche: `src/graph/session_protocol_facet.rs` projects this module's fixed built-in catalog (name/states/initial/terminal/transition-count/well-formed/model-checked) as `session_protocol_kernel` behind the opt-in `AgentContextFilter::SessionProtocol` (`--filters session_protocol`) at the `context` v1/v2 envelope level. This is exactly the "second, disconnected source of truth" this row named as the reason not to do it: no `.spx` declaration is consulted or bound to a `ProtocolSpec`, and the projection's own `"note"` field says so in the emitted JSON rather than leaving that disclosure only in this document. The catalog's full per-transition detail lives separately as a standalone Rust API, `graph::session_protocol_kernel_json()` (`src/graph.rs`) -- **not** merged into `to_json`'s per-program output, and its own doc comment records the three-regression byte-budget measurement that ruled that merge out. **CLI surface for `graph::session_protocol_kernel_json()`:** deliberately none added. The function takes no `Program`, so it reports nothing about the file `semaprax graph <file>` names; `graph`'s single-file grammar is deliberately closed (`src/cli/graph.rs`'s own `graph_grammar_is_closed` test), not an oversight, so widening it for a fact independent of the named file would be the wrong shape even as an added flag. `context --filters session_protocol` already delivers the identical facts (same three specs, same header fields, same in-band `note`) to any CLI/MCP-driven caller; this was proven end to end against a real compiled `semaprax` binary and a real `.spx` file (`semaprax context probe.spx probe.add --filters session_protocol` returns the `session_protocol_kernel` object), and is now pinned as a permanent regression at the CLI-argument-grammar level by `cli_driver::options::tests::context_filters_accepts_session_protocol_at_the_cli_grammar_level` (`src/cli_driver/options/tests.rs`), not only at the Rust-API level `tests/agent_context.rs`/`tests/agent_context_v2.rs` already covered. **`architecture_claims` and `assurance_manifest`:** evaluated and closed as **not applicable**, not merely deferred. `architecture_claims` is closed to one operator, `forbid_reaches(from, to)` (`src/architecture_claims.rs`), evaluated only over direct static-call edges between declarations retained in a `ProjectRevision`'s checked HIR; `docs/ARCHITECTURE-CLAIMS-V1.md`'s own design contract is "no caller-authored edges, no competing graph," and (as this row already states) no `.spx` declaration is bound to any `ProtocolSpec`, so there is no `from`/`to` declaration pair to state a claim about -- injecting the fixed catalog would itself be the caller-authored, disconnected edge that contract refuses to accept. `assurance_manifest` fails for three independent reasons: its `model_checking` submodule is an unrelated authorization/handle-model obligation lattice, as a prior session found; the base `semaprax.assurance-manifest.v1` envelope has a versioned, frozen top-level key list -- `schema, source, limits, counts, obligations, assumptions, nonclaims` (`docs/ASSURANCE-MANIFEST-V1.md`'s "Canonical envelope") -- whose fixed `nonclaims` array unconditionally asserts `"no_model_checker_invoked"` (`NONCLAIMS_JSON` in `src/assurance_manifest/render.rs`), so folding in a catalog whose own header field is a bounded-model-checking verdict would contradict that disclaimer without a deliberate, version-bumping spec revision that is out of this residue's scope; and both the base manifest's `obligations` and its `architecture_claims` field in `src/assurance_manifest/project.rs` are ledgers keyed to declaration ids in one project revision (the latter populated only from evaluating a caller-supplied `ArchitectureClaimSet`, which the `architecture_claims` finding above already rules out), and no declaration exists here to key an entry to. A reasoned no closes this half of the row rather than forcing a misleading or contract-breaking projection in. |
+| Protocol facts appear in context, graph, architecture, and assurance outputs | **Met for declared protocols (issue #297), locally evidenced.** A `.spx` `session protocol` declaration is bound to its `@id`, source span, and the checked HIR functions its `via` clauses name, and appears in these four outputs, and only these: `context` (`session_protocol_kernel.declared`, alongside the unchanged built-in catalog), the per-source graph (`semaprax.graph.v48`, selected only for a declaring program), Architecture Claims (`protocol_realizers_bound`, bound to the `project_revision` digest; it attests only that every `via` target is a checked call-graph node, not ordering), and Assurance Manifest v1 (`session_protocol` obligations, `compiler_proved` for static validation only; the `no_model_checker_invoked` nonclaim stands). The two real lifecycles have canonical `.spx` declarations gated field-for-field against the kernel specs they run on. Ordering metadata grants nothing (`SPX-K105`, and the ordinary effect checks still apply). An earlier session had evaluated `architecture_claims` and `assurance_manifest` as not applicable because no declaration existed to bind; that reasoning no longer holds and the narrowing was never accepted. See [Declared session protocols](#declared-session-protocols-issue-297). Not claimed: see [Non-claims](#non-claims). |
 | Applied subsystem regressions and bounded model-checking integration (required tests/evidence) | **Bounded model-checking: met**, at the graph-shape level -- `model_check::check_bounded` (see [Bounded model-checking](#bounded-model-checking)), exercised against all three applied protocols including the real-subsystem transcription. **Applied subsystem regression: met.** `tests/applied_project_session.rs` still regresses the declared topology directly, and both applied subsystems' own existing suites (`src/project_transport/session/rename/tests.rs`, `tests/agent_transport*`, `database_fixture`'s transaction tests) now exercise the kernel on every run, because those subsystems have no other state machine left to exercise: breaking a `SessionTable` call in either one turns those suites red. `tests/admits.rs` additionally pins `SessionTable::admits` to `advance` across every state/label pair of both applied specs, so the read-only gate a migrated subsystem depends on cannot drift from the operation that commits. |
 
 ## Gate
 
-`cargo test --locked -p semaprax --lib session_protocol::` (53 unit tests;
-was 45 before `tests/applied_project_session.rs` added its 8)
-and `cargo test --locked -p semaprax --doc session_protocol` (3
-`compile_fail` doctests: grant-for-wrong-capability, double-use of a
-consumed `Endpoint`, and the capability module's own copy of the
-grant-for-wrong-capability example) are this module's focused selectors.
+`cargo test --locked -p semaprax --lib session_protocol` covers this module's
+unit tests (including `tests::source_declarations`, the #297 parser,
+formatter, `SPX-K1xx`, erasure, HIR-binding, cache-codec and drift-gate
+tests), `graph::session_protocol_decl` and `graph::session_protocol_facet`
+(graph v48 and `context`), and `assurance_manifest::session_protocol`.
+`cargo test --locked -p semaprax --test workspace architecture_claims::`
+covers `protocol_realizers_bound` over real compiled revisions.
+`cargo test --locked -p semaprax --lib workspace_graph::session_protocol_decl`
+covers the Workspace Semantic Graph's v2 gating, module-bound facts,
+determinism, and the `via`-binding failure (R21); `cargo test --locked -p
+semaprax --test projections doc_projection::` and `query_projection::` cover
+`semaprax doc`'s `session_protocol` entry and `semaprax query --kind
+session_protocol` (R21).
+`cargo test --locked -p semaprax --doc session_protocol` (3 `compile_fail`
+doctests: grant-for-wrong-capability, double-use of a consumed `Endpoint`,
+and the capability module's own copy of the grant-for-wrong-capability
+example) remains the doctest selector. The two live lifecycles are regressed
+by `cargo test --locked -p semaprax --lib database_fixture::` and
+`--lib project_transport::session`.

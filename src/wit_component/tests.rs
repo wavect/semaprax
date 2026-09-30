@@ -212,13 +212,18 @@ fn checked_component_v2_is_generated_bound_and_independently_parsed() {
     let second = emit_private_checked_component_v2(&program).unwrap();
     assert_eq!(first, second);
     assert_eq!(first.source_revision(), graph::revision(&program));
+    // The component-byte KAT below moved when issue #293 P2-2 (commit
+    // 10be59b4, following P2-1's fea670ee) gave the legacy scalar-core
+    // emitter its always-on call-depth live-frame counter global: the
+    // generated core's bytes -- and so this component's digest -- changed,
+    // though the fixed runtime core did not.
     assert_eq!(
         (first.runtime_core_digest(), first.digest()),
         (
             CHECKED_RUNTIME_CORE_V2_SHA256,
             [
-                119, 64, 121, 190, 218, 225, 188, 152, 163, 144, 126, 124, 65, 232, 17, 166, 244,
-                208, 224, 245, 49, 82, 137, 203, 164, 156, 135, 55, 14, 182, 32, 80,
+                63, 24, 227, 180, 145, 101, 191, 33, 249, 239, 201, 213, 245, 219, 204, 114, 109,
+                195, 45, 121, 197, 167, 146, 161, 154, 241, 148, 205, 192, 60, 208, 38,
             ]
         )
     );

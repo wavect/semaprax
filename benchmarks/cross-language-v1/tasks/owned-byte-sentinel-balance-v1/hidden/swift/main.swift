@@ -1,0 +1,38 @@
+// Hidden overlay: replaces the public `main.swift` verbatim (same relative
+// path) for the scoring phase only. `sentinelChecksum` is unchanged from
+// the public file. Vectors mixing zero and 0xff sentinels at several
+// positions.
+import Foundation
+
+func sentinelChecksum(_ input: [UInt8]) -> Int64 {
+    var transformed = input
+    for index in 0..<transformed.count {
+        let byte = transformed[index]
+        if byte == 0xff {
+            transformed[index] = 0x00
+        } else if byte == 0x00 {
+            transformed[index] = 0xff
+        } else {
+            transformed[index] = 0x01
+        }
+    }
+    var checksum: Int64 = 0
+    for index in 0..<transformed.count {
+        checksum += Int64(index + 1) * Int64(transformed[index])
+    }
+    return checksum
+}
+
+var failures: Int32 = 0
+
+func check(_ actual: Int64, _ expected: Int64, _ label: String) {
+    if actual != expected {
+        FileHandle.standardError.write("\(label): expected \(expected), got \(actual)\n".data(using: .utf8)!)
+        failures += 1
+    }
+}
+
+check(sentinelChecksum([0x00, 0xff, 0x00, 0x09]), 1024, "zero and ff")
+check(sentinelChecksum([0x09, 0x00, 0xff, 0x00, 0x09]), 1536, "two zeroes")
+
+exit(failures == 0 ? 0 : 1)

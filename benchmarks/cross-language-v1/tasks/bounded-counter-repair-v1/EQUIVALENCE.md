@@ -86,6 +86,26 @@ bare `rustc --test` over `cargo test`, and a local `assertEqual` helper over
 | SEMAPRAX | `semaprax run digest.spx` | prints `app.main`'s `i64` result to stdout; `0` means every check passed |
 | Rust | `rustc --edition 2021 --test main.rs -o test_bin` then `./test_bin` | process exit code (`0` = all `#[test]` fns passed) |
 | TypeScript | `tsc --strict --target ES2020 --module commonjs index.ts` then `node index.js` | process exit code (`0` = no uncaught assertion `Error`) |
+| C | `clang -std=c11 -Wall -Wextra -o test_bin main.c` then `./test_bin` | process exit code (`0` = every in-process check passed) |
+| Python | `python3 digest.py` | process exit code (`0` = every in-process check passed) |
+| Swift | `swiftc -o test_bin main.swift` then `./test_bin` | process exit code (`0` = every in-process check passed) |
+| Java | `javac Main.java` then `java Main` | process exit code (`0` = every in-process check passed) |
+
+**C, Python, Swift, and Java ports** (added under the `runnable_adapter_v2`
+extension; see `sequence-digest-v1/EQUIVALENCE.md`'s "Independent review"
+section for the general convention these four lanes follow in this suite):
+each port is a single self-contained file (`main`, or for Python the
+top-level module body, is the official test runner, the same convention
+`sequence-digest-v1` already uses), authored independently from this file's
+own `clamp`/`step`/`apply5` contract and the Rust/TypeScript reference ports
+rather than transliterated line-by-line. Each was checked to compute the
+same four public vectors and the same two hidden vectors listed below, then
+independently compiled and run against both its public vectors and a
+deliberately mutated candidate (`apply5` replaced with a single
+end-of-sequence `clamp(c0 + d1 + d2 + d3 + d4 + d5)`, the exact naive repair
+this task is built to catch) to confirm that mutant passes every public
+vector and fails both hidden vectors (getting `100`/`35` instead of the
+correct `70`/`50`) before being committed.
 
 ## Public vectors (do not expose the repair bug)
 

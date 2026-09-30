@@ -86,12 +86,24 @@ const NONCLAIMS: &[&str] = &[
 
 type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
 
+#[path = "architecture_claims/session_protocol.rs"]
+mod session_protocol;
+
 /// One closed architecture claim operator. This slice implements exactly one
 /// variant; the enum stays non-exhaustive in spirit (private, closed) so a
 /// future operator is an additive variant, not a competing type.
 #[derive(Clone, Debug, Eq, PartialEq)]
 enum ArchitectureClaimOperator {
-    ForbidReaches { from: String, to: String },
+    ForbidReaches {
+        from: String,
+        to: String,
+    },
+    /// Issue #297: every `via` target of one declared session protocol is a
+    /// checked function node of this revision's direct call graph. Not an
+    /// ordering or call-order claim.
+    ProtocolRealizersBound {
+        protocol: String,
+    },
 }
 
 /// One user-declared architecture claim with a caller-chosen stable id.
@@ -127,6 +139,27 @@ impl ArchitectureClaim {
         })
     }
 
+    /// Construct a `protocol_realizers_bound` claim over the session protocol
+    /// declared with stable id `protocol` in the revision's retained source.
+    /// It attests only that every `via` target of that declaration is a
+    /// checked function node of the revision's direct call graph (and that at
+    /// least one `via` exists). It does **not** attest message order, call
+    /// order, or that any caller respects the protocol, and it grants no
+    /// authority.
+    pub fn protocol_realizers_bound(
+        id: impl Into<String>,
+        protocol: impl Into<String>,
+    ) -> Result<Self> {
+        let id = id.into();
+        let protocol = protocol.into();
+        validate_claim_id(&id)?;
+        validate_target(&protocol)?;
+        Ok(Self {
+            id,
+            operator: ArchitectureClaimOperator::ProtocolRealizersBound { protocol },
+        })
+    }
+
     /// The claim's caller-chosen stable id.
     pub fn id(&self) -> &str {
         &self.id
@@ -135,13 +168,33 @@ impl ArchitectureClaim {
     fn operator_name(&self) -> &'static str {
         match self.operator {
             ArchitectureClaimOperator::ForbidReaches { .. } => "forbid_reaches",
+            ArchitectureClaimOperator::ProtocolRealizersBound { .. } => "protocol_realizers_bound",
         }
     }
 
+    #[cfg(test)]
     fn evaluate(&self, graph: &CallGraphFacts, max_walk: usize) -> Result<Value> {
+        self.evaluate_in(
+            graph,
+            &session_protocol::DeclaredProtocols::default(),
+            max_walk,
+        )
+    }
+
+    fn evaluate_in(
+        &self,
+        graph: &CallGraphFacts,
+        protocols: &session_protocol::DeclaredProtocols,
+        max_walk: usize,
+    ) -> Result<Value> {
         match &self.operator {
             ArchitectureClaimOperator::ForbidReaches { from, to } => {
                 self.evaluate_forbid_reaches(graph, from, to, max_walk)
+            }
+            ArchitectureClaimOperator::ProtocolRealizersBound { protocol } => {
+                session_protocol::evaluate(&self.id, protocol, protocols, |id| {
+                    graph.nodes.contains_key(id)
+                })
             }
         }
     }
@@ -234,9 +287,20 @@ impl ArchitectureClaimSet {
         max_walk: usize,
     ) -> Result<ArchitectureClaimSetResult> {
         let graph = CallGraphFacts::from_revision(revision)?;
+        // Declarations are reparsed only when some claim needs them.
+        let protocols = if self.claims.iter().any(|claim| {
+            matches!(
+                claim.operator,
+                ArchitectureClaimOperator::ProtocolRealizersBound { .. }
+            )
+        }) {
+            session_protocol::DeclaredProtocols::from_revision(revision)?
+        } else {
+            session_protocol::DeclaredProtocols::default()
+        };
         let mut claim_values = Vec::with_capacity(self.claims.len());
         for claim in &self.claims {
-            claim_values.push(claim.evaluate(&graph, max_walk)?);
+            claim_values.push(claim.evaluate_in(&graph, &protocols, max_walk)?);
         }
         claim_values
             .sort_by(|left, right| left["claim_id"].as_str().cmp(&right["claim_id"].as_str()));

@@ -7,11 +7,13 @@ mod handoff;
 #[path = "typed_migration/linked.rs"]
 mod linked;
 use super::*;
+use crate::agent_lifecycle::iterative::effects::TargetStageBackend;
 use crate::agent_lifecycle::iterative::IterativeStatus;
 use crate::agent_runtime_v2::checkpoint::CheckpointUsage;
 use crate::hir::{self, DeclarationId, ResolvedType, ResolvedTypeDeclarationKind};
 use crate::interpreter::retained_call::{
-    evaluate_retained_call, prepare_retained_call, RetainedCallOutcome, RetainedValue,
+    evaluate_retained_call, prepare_retained_call, RetainedCallEvaluation, RetainedCallOutcome,
+    RetainedValue,
 };
 pub use durable::{
     resume_migrated_agent_runtime_v2, DurableMigrationFailure, ResumedMigratedAgentRuntimeV2,
@@ -82,6 +84,28 @@ impl MigrationSeed {
     pub(crate) fn max_reserved_fuel(&self) -> u64 {
         self.max_reserved_fuel
     }
+    /// Local fixture only: exercises the destination-side durable/backend
+    /// parity routes directly against a hand-built seed, without the full
+    /// checked migration/handoff pipeline this type is otherwise only ever
+    /// produced through.
+    #[cfg(test)]
+    pub(crate) fn for_test(
+        value: RetainedValue,
+        binding: ExecutionRoot,
+        usage: CheckpointUsage,
+        iterations: usize,
+        stages: usize,
+        max_reserved_fuel: u64,
+    ) -> Self {
+        Self {
+            value,
+            binding,
+            usage,
+            iterations,
+            stages,
+            max_reserved_fuel,
+        }
+    }
 }
 
 /// One newly bound runtime plus the State its checked migration actually returned.
@@ -99,6 +123,27 @@ impl MigratedAgentRuntimeV2 {
         handler: &mut dyn TypedEffectHandler,
         cancellation: &AgentCancellation,
     ) -> std::result::Result<AgentRuntimeV2MigrationEvidence, AgentRuntimeV2MigrationFailure> {
+        self.run_selected(handler, cancellation, None)
+    }
+
+    /// Continue the checked migrated State on an explicitly held stage target.
+    /// This selects destination stages only: the pure migration call has already
+    /// completed on the interpreter. Usage retains reservation accounting.
+    pub fn run_with_backend(
+        self,
+        handler: &mut dyn TypedEffectHandler,
+        cancellation: &AgentCancellation,
+        selected: TargetStageBackend<'_>,
+    ) -> std::result::Result<AgentRuntimeV2MigrationEvidence, AgentRuntimeV2MigrationFailure> {
+        self.run_selected(handler, cancellation, Some(selected))
+    }
+
+    fn run_selected(
+        self,
+        handler: &mut dyn TypedEffectHandler,
+        cancellation: &AgentCancellation,
+        selected: Option<TargetStageBackend<'_>>,
+    ) -> std::result::Result<AgentRuntimeV2MigrationEvidence, AgentRuntimeV2MigrationFailure> {
         let run = self
             .runtime
             .lifecycle
@@ -110,6 +155,7 @@ impl MigratedAgentRuntimeV2 {
                 self.runtime.effects,
                 cancellation,
                 &self.seed,
+                selected,
             )
             .map_err(|failure| AgentRuntimeV2MigrationFailure {
                 diagnostics: failure.diagnostics,
@@ -222,6 +268,61 @@ pub fn migrate_suspended_agent_runtime_v2(
     max_migration_steps: usize,
     max_reserved_fuel: u64,
 ) -> std::result::Result<MigratedAgentRuntimeV2, AgentRuntimeV2MigrationFailure> {
+    migrate_suspended_agent_runtime_v2_inner(
+        previous,
+        suspended,
+        destination,
+        expected_previous_revision,
+        expected_destination_revision,
+        migration_function,
+        max_migration_steps,
+        max_reserved_fuel,
+        None,
+    )
+}
+
+/// Consume a durable suspension and evaluate its checked pure migration on an
+/// explicitly held target. The selected execution is metered independently of
+/// interpreter instruction steps, and its receipt is bound into the durable
+/// migration root before the destination handoff can be committed.
+#[allow(clippy::too_many_arguments)]
+pub fn migrate_suspended_agent_runtime_v2_with_backend(
+    previous: AgentRuntimeV2,
+    suspended: AgentRuntimeV2DurableEvidence,
+    destination: AgentRuntimeV2,
+    expected_previous_revision: &str,
+    expected_destination_revision: &str,
+    migration_function: &str,
+    max_migration_steps: usize,
+    max_reserved_fuel: u64,
+    selected: TargetStageBackend<'_>,
+    semantic_fuel_limit: u64,
+) -> std::result::Result<MigratedAgentRuntimeV2, AgentRuntimeV2MigrationFailure> {
+    migrate_suspended_agent_runtime_v2_inner(
+        previous,
+        suspended,
+        destination,
+        expected_previous_revision,
+        expected_destination_revision,
+        migration_function,
+        max_migration_steps,
+        max_reserved_fuel,
+        Some((selected, semantic_fuel_limit)),
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn migrate_suspended_agent_runtime_v2_inner(
+    previous: AgentRuntimeV2,
+    suspended: AgentRuntimeV2DurableEvidence,
+    destination: AgentRuntimeV2,
+    expected_previous_revision: &str,
+    expected_destination_revision: &str,
+    migration_function: &str,
+    max_migration_steps: usize,
+    max_reserved_fuel: u64,
+    selected: Option<(TargetStageBackend<'_>, u64)>,
+) -> std::result::Result<MigratedAgentRuntimeV2, AgentRuntimeV2MigrationFailure> {
     let mut charged_usage = suspended.run().usage();
     let charged_iterations = suspended.run().iterations();
     let mut charged_stages = 0;
@@ -261,6 +362,25 @@ pub fn migrate_suspended_agent_runtime_v2(
             return Err(refused("migration.old_state_schema_drift"));
         }
         flat_state(&new_program, &new_state)?;
+        // A caller-selected backend must prove its retained source and closed
+        // semantic profile before migration fuel is reserved. In particular,
+        // a linked runtime without a single retained Wasm source cannot spend
+        // the reservation and then fall back to the interpreter.
+        let selected_call = if let Some((selected, semantic_fuel_limit)) = selected {
+            let call =
+                prepare_migration_call(&new_program, migration_function, &old_state, &new_state)?;
+            destination
+                .lifecycle
+                .validate_target_retained_call_metered(
+                    &new_program,
+                    &call,
+                    selected,
+                    semantic_fuel_limit,
+                )?;
+            Some(call)
+        } else {
+            None
+        };
         let mut usage = suspended.run().usage();
         let reservation = u64::try_from(max_migration_steps)
             .ok()
@@ -283,14 +403,31 @@ pub fn migrate_suspended_agent_runtime_v2(
             return Err(refused("migration.prior_usage_exhausts_destination"));
         }
         charged_usage = usage;
-        let migrated = evaluate_migration(
-            &new_program,
-            migration_function,
-            &old_state,
-            &new_state,
-            value,
-            max_migration_steps,
-        )?;
+        let (migrated, target_execution) = match selected {
+            Some((selected, semantic_fuel_limit)) => evaluate_migration_on_target(
+                &destination.lifecycle,
+                &new_program,
+                selected_call
+                    .as_ref()
+                    .ok_or_else(|| refused("migration.target_call"))?,
+                &new_state,
+                value,
+                max_migration_steps,
+                selected,
+                semantic_fuel_limit,
+            )?,
+            None => (
+                evaluate_migration(
+                    &new_program,
+                    migration_function,
+                    &old_state,
+                    &new_state,
+                    value,
+                    max_migration_steps,
+                )?,
+                None,
+            ),
+        };
         let mut facts = json!({
             "previous_program_root": previous.program_root,
             "destination_program_root": destination.program_root,
@@ -316,6 +453,14 @@ pub fn migrate_suspended_agent_runtime_v2(
             "semaprax.agent-state-migration.v2"
         } else {
             "semaprax.agent-state-migration.v1"
+        };
+        if let Some(target_execution) = target_execution {
+            facts["target_execution"] = target_execution;
+        }
+        let schema = if facts.get("target_execution").is_some() {
+            "semaprax.agent-state-migration.v4"
+        } else {
+            schema
         };
         let binding = root(schema, facts);
         Ok(MigratedAgentRuntimeV2 {
@@ -428,6 +573,93 @@ pub(crate) fn evaluate_migration(
         return Err(refused("migration.result_state"));
     }
     Ok(value)
+}
+
+#[allow(clippy::too_many_arguments)]
+fn evaluate_migration_on_target(
+    lifecycle: &crate::agent_lifecycle::iterative::effects::CompiledTypedEffects,
+    program: &hir::ResolvedProgram,
+    call: &crate::interpreter::retained_call::PreparedRetainedCall,
+    new_state: &DeclarationId,
+    value: &RetainedValue,
+    max_steps: usize,
+    selected: TargetStageBackend<'_>,
+    semantic_fuel_limit: u64,
+) -> Result<(RetainedValue, Option<serde_json::Value>)> {
+    let first = lifecycle.execute_target_retained_call_metered(
+        program,
+        call,
+        std::slice::from_ref(value),
+        max_steps,
+        selected,
+        semantic_fuel_limit,
+    )?;
+    let second = lifecycle.execute_target_retained_call_metered(
+        program,
+        call,
+        std::slice::from_ref(value),
+        max_steps,
+        selected,
+        semantic_fuel_limit,
+    )?;
+    if first.execution_binding != second.execution_binding
+        || first.evaluation.outcome != second.evaluation.outcome
+    {
+        return Err(refused("migration.replay"));
+    }
+    let first_facts = target_evaluation_facts(&first.evaluation)?;
+    let second_facts = target_evaluation_facts(&second.evaluation)?;
+    // The target's instruction counter is an implementation observation, but
+    // semantic work and copy-out cleanup are part of the deterministic pure
+    // migration contract. A differing receipt must not become a durable
+    // handoff that recovery could treat as already settled.
+    if first_facts["semantic_work"] != second_facts["semantic_work"]
+        || first_facts["copy_out_cleanup_events"] != second_facts["copy_out_cleanup_events"]
+    {
+        return Err(refused("migration.replay"));
+    }
+    let RetainedCallOutcome::Returned(value) = first.evaluation.outcome else {
+        return Err(refused("migration.did_not_return"));
+    };
+    if !matches!(&value, RetainedValue::Record(record) if record.record == *new_state)
+        || crate::agent_lifecycle::encode_value(&value).len() > 262_144
+    {
+        return Err(refused("migration.result_state"));
+    }
+    Ok((
+        value,
+        Some(json!({
+            "execution_binding": first.execution_binding,
+            "semantic_fuel_limit": semantic_fuel_limit,
+            "evaluations": [
+                first_facts,
+                second_facts,
+            ],
+        })),
+    ))
+}
+
+fn target_evaluation_facts(evaluation: &RetainedCallEvaluation) -> Result<serde_json::Value> {
+    let work = evaluation
+        .semantic_work
+        .as_ref()
+        .ok_or_else(|| refused("migration.semantic_work"))?;
+    let finalizers = work.finalizer_events.as_ref().map(|events| {
+        events
+            .iter()
+            .map(|event| json!([event.function.as_str(), event.liveness_flag]))
+            .collect::<Vec<_>>()
+    });
+    Ok(json!({
+        "instruction_steps": evaluation.steps_used,
+        "semantic_work": {
+            "fuel_used": work.fuel_used,
+            "fuel_limit": work.fuel_limit,
+            "exhausted": work.exhausted,
+            "finalizer_events": finalizers,
+        },
+        "copy_out_cleanup_events": evaluation.cleanup_events.len(),
+    }))
 }
 
 /// Identical checked call boundary for fresh evaluation and trusted recovery.

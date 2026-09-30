@@ -335,6 +335,31 @@ impl ProjectRevision {
         execution::execute(self, role, options)
     }
 
+    /// Evaluate one checked, effect-free decision by explicit stable identity
+    /// against this retained entry closure.
+    ///
+    /// Selection authority remains with the caller's retained revision: only
+    /// an explicit stable identity already linked into the entry closure can
+    /// be selected, and only with the frozen public-invocation argument
+    /// vocabulary (`i64`, `bool`, borrowed UTF-8, borrowed bytes). This
+    /// accepts no descriptor, filesystem, or process authority and mints
+    /// none. A host that serves decisions still needs its own separately
+    /// granted policy and adapters before any returned outcome may cause an
+    /// effect.
+    pub fn evaluate_service_decision_v1(
+        &self,
+        stable_id: &str,
+        arguments: &[PublicApiArgument<'_>],
+        max_steps: usize,
+    ) -> Result<PublicApiEvaluation, Vec<Diagnostic>> {
+        crate::interpreter::evaluate_resolved_public_api(
+            self.entry_program(),
+            stable_id,
+            arguments,
+            max_steps,
+        )
+    }
+
     /// Build Project v1 as one deterministic pathless scalar-Web carrier.
     pub fn build_web_inline(&self, max_bytes: usize) -> Result<ProjectWebBuild, Vec<Diagnostic>> {
         if self.manifest.project_profile() != ProjectProfile::ScalarV1 {
@@ -790,6 +815,8 @@ fn public_argument_matches(
 fn public_argument_name(argument: &PublicApiArgument<'_>) -> &'static str {
     match argument {
         PublicApiArgument::I64(_) => "i64",
+        PublicApiArgument::U8(_) => "u8",
+        PublicApiArgument::Usize(_) => "usize",
         PublicApiArgument::Bool(_) => "bool",
         PublicApiArgument::BorrowStr(_) => "borrow-str",
         PublicApiArgument::BorrowSliceU8(_) => "borrow-slice-u8",

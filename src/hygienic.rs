@@ -714,6 +714,7 @@ fn build_function(
         return_type,
         effects: vec![],
         yields: None,
+        follows: None,
         requires: vec![],
         ensures: vec![],
         body: block(tail, span),
@@ -891,6 +892,7 @@ fn formatted_digest(module: &str, artifact: &GeneratedArtifact) -> String {
         interfaces: vec![],
         protocols: vec![],
         implementations: vec![],
+        session_protocols: vec![],
         agents: vec![],
         functions: vec![artifact.function.clone()],
     };

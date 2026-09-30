@@ -109,3 +109,26 @@ The existing durable-driver and frozen operation-checkpoint codec regressions
 remain part of the evidence. The earlier focused local runs are historical
 witnesses; the current released implementation is **HOSTED GREEN** under the
 v0.4.0 baseline. This does not complete the broader gates listed above.
+
+`cargo test --locked -p semaprax --lib
+agent_lifecycle::iterative::effects::durable::tests::migration_seeded_checkpoint_restores_on_a_different_backend_than_it_saved_on`
+adds local, test-only backend-selection evidence for the destination-side
+durable driver this migration route resumes through: the same
+`run_durable_from_seed_on` entry described in
+[the iterative lifecycle's checkpoint-route parity evidence](AGENT-ITERATIVE-LIFECYCLE-V2.md),
+exercised here against a hand-built seed rather than the full checked
+handoff/snapshot pipeline. It requires an explicit held `clang` and `node`.
+The default `resume_migrated_agent_runtime_v2`/`run_durable_from_seed`
+route continues to select the interpreter. Additive `run_durable_with_backend`
+on fresh and resumed migrated runtimes selects an explicitly held native or
+Core Wasm stage host through the same checked handoff and persisted journal.
+Invalid Core Wasm source selection is refused before the destination handoff
+is staged. Additive
+`migrate_suspended_agent_runtime_v2_with_backend` selects that same held target
+for the consuming pure migration before the handoff is created. It records two
+metered migration evaluations in the v4 migration root: instruction steps and
+physical finalizer events remain target-specific, while semantic fuel is the
+common charge. The root is immutable handoff input, so a recovered destination
+does not repeat either evaluation or charge. The parity evidence above is
+local; hosted migration evidence and full target cleanup-event parity remain
+open.

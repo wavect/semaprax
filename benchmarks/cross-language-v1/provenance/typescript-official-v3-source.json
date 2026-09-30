@@ -1,0 +1,2787 @@
+{
+  "comparison_inventory": [
+    {
+      "adapter_id": "semaprax",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "sequence-digest-v1"
+    },
+    {
+      "adapter_id": "semaprax-project",
+      "blocked_reason": null,
+      "declared": false,
+      "implemented": true,
+      "task_id": "sequence-digest-v1"
+    },
+    {
+      "adapter_id": "rust",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "sequence-digest-v1"
+    },
+    {
+      "adapter_id": "typescript",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "sequence-digest-v1"
+    },
+    {
+      "adapter_id": "c",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "sequence-digest-v1"
+    },
+    {
+      "adapter_id": "python",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "sequence-digest-v1"
+    },
+    {
+      "adapter_id": "swift",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "sequence-digest-v1"
+    },
+    {
+      "adapter_id": "java",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "sequence-digest-v1"
+    },
+    {
+      "adapter_id": "zero",
+      "blocked_reason": "an official revision is already pinned elsewhere in this repository (benchmarks/agent-task-comparison-v1/manifest.json: vercel-labs/zerolang@eb2ed6c22fe3f6e3152efa0c0d05ffcf1ff4a2c7), but fetching or installing it here needs build-time network access (a git clone of that revision), which this sandbox forbids; issue #106/#107's review step ('the reserved historical Zero revision is not automatically the appropriate current comparison subject') has also not been completed. HUMAN_BLOCKED: review whether that pinned revision is still the right comparison subject, then provision it as a network-free local checkout or toolchain image before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "sequence-digest-v1"
+    },
+    {
+      "adapter_id": "ntnt",
+      "blocked_reason": "no publicly documented official toolchain was located for this benchmark snapshot. HUMAN_BLOCKED: identify and pin the official NTNT toolchain and version before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "sequence-digest-v1"
+    },
+    {
+      "adapter_id": "aver",
+      "blocked_reason": "no publicly documented official toolchain was located for this benchmark snapshot. HUMAN_BLOCKED: identify and pin the official Aver toolchain and version before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "sequence-digest-v1"
+    },
+    {
+      "adapter_id": "vera",
+      "blocked_reason": "no publicly documented official toolchain was located for this benchmark snapshot. HUMAN_BLOCKED: identify and pin the official Vera toolchain and version before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "sequence-digest-v1"
+    },
+    {
+      "adapter_id": "hale",
+      "blocked_reason": "no publicly documented official toolchain was located for this benchmark snapshot. HUMAN_BLOCKED: identify and pin the official Hale toolchain and version before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "sequence-digest-v1"
+    },
+    {
+      "adapter_id": "moonbit",
+      "blocked_reason": "the official MoonBit toolchain installs through a network-fetched installer script; this sandbox forbids build-time network access, so the adapter is declared but not wired. HUMAN_BLOCKED: pre-provision a pinned, network-free MoonBit toolchain image before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "sequence-digest-v1"
+    },
+    {
+      "adapter_id": "semaprax",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "bounded-counter-repair-v1"
+    },
+    {
+      "adapter_id": "semaprax-project",
+      "blocked_reason": null,
+      "declared": false,
+      "implemented": true,
+      "task_id": "bounded-counter-repair-v1"
+    },
+    {
+      "adapter_id": "rust",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "bounded-counter-repair-v1"
+    },
+    {
+      "adapter_id": "typescript",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "bounded-counter-repair-v1"
+    },
+    {
+      "adapter_id": "c",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "bounded-counter-repair-v1"
+    },
+    {
+      "adapter_id": "python",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "bounded-counter-repair-v1"
+    },
+    {
+      "adapter_id": "swift",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "bounded-counter-repair-v1"
+    },
+    {
+      "adapter_id": "java",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "bounded-counter-repair-v1"
+    },
+    {
+      "adapter_id": "zero",
+      "blocked_reason": "an official revision is already pinned elsewhere in this repository (benchmarks/agent-task-comparison-v1/manifest.json: vercel-labs/zerolang@eb2ed6c22fe3f6e3152efa0c0d05ffcf1ff4a2c7), but fetching or installing it here needs build-time network access (a git clone of that revision), which this sandbox forbids; issue #106/#107's review step ('the reserved historical Zero revision is not automatically the appropriate current comparison subject') has also not been completed. HUMAN_BLOCKED: review whether that pinned revision is still the right comparison subject, then provision it as a network-free local checkout or toolchain image before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "bounded-counter-repair-v1"
+    },
+    {
+      "adapter_id": "ntnt",
+      "blocked_reason": "no publicly documented official toolchain was located for this benchmark snapshot. HUMAN_BLOCKED: identify and pin the official NTNT toolchain and version before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "bounded-counter-repair-v1"
+    },
+    {
+      "adapter_id": "aver",
+      "blocked_reason": "no publicly documented official toolchain was located for this benchmark snapshot. HUMAN_BLOCKED: identify and pin the official Aver toolchain and version before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "bounded-counter-repair-v1"
+    },
+    {
+      "adapter_id": "vera",
+      "blocked_reason": "no publicly documented official toolchain was located for this benchmark snapshot. HUMAN_BLOCKED: identify and pin the official Vera toolchain and version before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "bounded-counter-repair-v1"
+    },
+    {
+      "adapter_id": "hale",
+      "blocked_reason": "no publicly documented official toolchain was located for this benchmark snapshot. HUMAN_BLOCKED: identify and pin the official Hale toolchain and version before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "bounded-counter-repair-v1"
+    },
+    {
+      "adapter_id": "moonbit",
+      "blocked_reason": "the official MoonBit toolchain installs through a network-fetched installer script; this sandbox forbids build-time network access, so the adapter is declared but not wired. HUMAN_BLOCKED: pre-provision a pinned, network-free MoonBit toolchain image before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "bounded-counter-repair-v1"
+    },
+    {
+      "adapter_id": "semaprax",
+      "blocked_reason": null,
+      "declared": false,
+      "implemented": true,
+      "task_id": "structured-input-error-handling-v1"
+    },
+    {
+      "adapter_id": "semaprax-project",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "structured-input-error-handling-v1"
+    },
+    {
+      "adapter_id": "rust",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "structured-input-error-handling-v1"
+    },
+    {
+      "adapter_id": "typescript",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "structured-input-error-handling-v1"
+    },
+    {
+      "adapter_id": "c",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "structured-input-error-handling-v1"
+    },
+    {
+      "adapter_id": "python",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "structured-input-error-handling-v1"
+    },
+    {
+      "adapter_id": "swift",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "structured-input-error-handling-v1"
+    },
+    {
+      "adapter_id": "java",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "structured-input-error-handling-v1"
+    },
+    {
+      "adapter_id": "zero",
+      "blocked_reason": "an official revision is already pinned elsewhere in this repository (benchmarks/agent-task-comparison-v1/manifest.json: vercel-labs/zerolang@eb2ed6c22fe3f6e3152efa0c0d05ffcf1ff4a2c7), but fetching or installing it here needs build-time network access (a git clone of that revision), which this sandbox forbids; issue #106/#107's review step ('the reserved historical Zero revision is not automatically the appropriate current comparison subject') has also not been completed. HUMAN_BLOCKED: review whether that pinned revision is still the right comparison subject, then provision it as a network-free local checkout or toolchain image before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "structured-input-error-handling-v1"
+    },
+    {
+      "adapter_id": "ntnt",
+      "blocked_reason": "no publicly documented official toolchain was located for this benchmark snapshot. HUMAN_BLOCKED: identify and pin the official NTNT toolchain and version before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "structured-input-error-handling-v1"
+    },
+    {
+      "adapter_id": "aver",
+      "blocked_reason": "no publicly documented official toolchain was located for this benchmark snapshot. HUMAN_BLOCKED: identify and pin the official Aver toolchain and version before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "structured-input-error-handling-v1"
+    },
+    {
+      "adapter_id": "vera",
+      "blocked_reason": "no publicly documented official toolchain was located for this benchmark snapshot. HUMAN_BLOCKED: identify and pin the official Vera toolchain and version before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "structured-input-error-handling-v1"
+    },
+    {
+      "adapter_id": "hale",
+      "blocked_reason": "no publicly documented official toolchain was located for this benchmark snapshot. HUMAN_BLOCKED: identify and pin the official Hale toolchain and version before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "structured-input-error-handling-v1"
+    },
+    {
+      "adapter_id": "moonbit",
+      "blocked_reason": "the official MoonBit toolchain installs through a network-fetched installer script; this sandbox forbids build-time network access, so the adapter is declared but not wired. HUMAN_BLOCKED: pre-provision a pinned, network-free MoonBit toolchain image before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "structured-input-error-handling-v1"
+    },
+    {
+      "adapter_id": "semaprax",
+      "blocked_reason": null,
+      "declared": false,
+      "implemented": true,
+      "task_id": "module-import-refactor-v1"
+    },
+    {
+      "adapter_id": "semaprax-project",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "module-import-refactor-v1"
+    },
+    {
+      "adapter_id": "rust",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "module-import-refactor-v1"
+    },
+    {
+      "adapter_id": "typescript",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "module-import-refactor-v1"
+    },
+    {
+      "adapter_id": "c",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "module-import-refactor-v1"
+    },
+    {
+      "adapter_id": "python",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "module-import-refactor-v1"
+    },
+    {
+      "adapter_id": "swift",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "module-import-refactor-v1"
+    },
+    {
+      "adapter_id": "java",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "module-import-refactor-v1"
+    },
+    {
+      "adapter_id": "zero",
+      "blocked_reason": "an official revision is already pinned elsewhere in this repository (benchmarks/agent-task-comparison-v1/manifest.json: vercel-labs/zerolang@eb2ed6c22fe3f6e3152efa0c0d05ffcf1ff4a2c7), but fetching or installing it here needs build-time network access (a git clone of that revision), which this sandbox forbids; issue #106/#107's review step ('the reserved historical Zero revision is not automatically the appropriate current comparison subject') has also not been completed. HUMAN_BLOCKED: review whether that pinned revision is still the right comparison subject, then provision it as a network-free local checkout or toolchain image before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "module-import-refactor-v1"
+    },
+    {
+      "adapter_id": "ntnt",
+      "blocked_reason": "no publicly documented official toolchain was located for this benchmark snapshot. HUMAN_BLOCKED: identify and pin the official NTNT toolchain and version before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "module-import-refactor-v1"
+    },
+    {
+      "adapter_id": "aver",
+      "blocked_reason": "no publicly documented official toolchain was located for this benchmark snapshot. HUMAN_BLOCKED: identify and pin the official Aver toolchain and version before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "module-import-refactor-v1"
+    },
+    {
+      "adapter_id": "vera",
+      "blocked_reason": "no publicly documented official toolchain was located for this benchmark snapshot. HUMAN_BLOCKED: identify and pin the official Vera toolchain and version before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "module-import-refactor-v1"
+    },
+    {
+      "adapter_id": "hale",
+      "blocked_reason": "no publicly documented official toolchain was located for this benchmark snapshot. HUMAN_BLOCKED: identify and pin the official Hale toolchain and version before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "module-import-refactor-v1"
+    },
+    {
+      "adapter_id": "moonbit",
+      "blocked_reason": "the official MoonBit toolchain installs through a network-fetched installer script; this sandbox forbids build-time network access, so the adapter is declared but not wired. HUMAN_BLOCKED: pre-provision a pinned, network-free MoonBit toolchain image before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "module-import-refactor-v1"
+    },
+    {
+      "adapter_id": "semaprax",
+      "blocked_reason": null,
+      "declared": false,
+      "implemented": true,
+      "task_id": "booking-window-conflict-v1"
+    },
+    {
+      "adapter_id": "semaprax-project",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "booking-window-conflict-v1"
+    },
+    {
+      "adapter_id": "rust",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "booking-window-conflict-v1"
+    },
+    {
+      "adapter_id": "typescript",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "booking-window-conflict-v1"
+    },
+    {
+      "adapter_id": "c",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "booking-window-conflict-v1"
+    },
+    {
+      "adapter_id": "python",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "booking-window-conflict-v1"
+    },
+    {
+      "adapter_id": "swift",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "booking-window-conflict-v1"
+    },
+    {
+      "adapter_id": "java",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "booking-window-conflict-v1"
+    },
+    {
+      "adapter_id": "zero",
+      "blocked_reason": "an official revision is already pinned elsewhere in this repository (benchmarks/agent-task-comparison-v1/manifest.json: vercel-labs/zerolang@eb2ed6c22fe3f6e3152efa0c0d05ffcf1ff4a2c7), but fetching or installing it here needs build-time network access (a git clone of that revision), which this sandbox forbids; issue #106/#107's review step ('the reserved historical Zero revision is not automatically the appropriate current comparison subject') has also not been completed. HUMAN_BLOCKED: review whether that pinned revision is still the right comparison subject, then provision it as a network-free local checkout or toolchain image before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "booking-window-conflict-v1"
+    },
+    {
+      "adapter_id": "ntnt",
+      "blocked_reason": "no publicly documented official toolchain was located for this benchmark snapshot. HUMAN_BLOCKED: identify and pin the official NTNT toolchain and version before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "booking-window-conflict-v1"
+    },
+    {
+      "adapter_id": "aver",
+      "blocked_reason": "no publicly documented official toolchain was located for this benchmark snapshot. HUMAN_BLOCKED: identify and pin the official Aver toolchain and version before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "booking-window-conflict-v1"
+    },
+    {
+      "adapter_id": "vera",
+      "blocked_reason": "no publicly documented official toolchain was located for this benchmark snapshot. HUMAN_BLOCKED: identify and pin the official Vera toolchain and version before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "booking-window-conflict-v1"
+    },
+    {
+      "adapter_id": "hale",
+      "blocked_reason": "no publicly documented official toolchain was located for this benchmark snapshot. HUMAN_BLOCKED: identify and pin the official Hale toolchain and version before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "booking-window-conflict-v1"
+    },
+    {
+      "adapter_id": "moonbit",
+      "blocked_reason": "the official MoonBit toolchain installs through a network-fetched installer script; this sandbox forbids build-time network access, so the adapter is declared but not wired. HUMAN_BLOCKED: pre-provision a pinned, network-free MoonBit toolchain image before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "booking-window-conflict-v1"
+    },
+    {
+      "adapter_id": "semaprax",
+      "blocked_reason": null,
+      "declared": false,
+      "implemented": true,
+      "task_id": "cold-chain-release-gate-v1"
+    },
+    {
+      "adapter_id": "semaprax-project",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "cold-chain-release-gate-v1"
+    },
+    {
+      "adapter_id": "rust",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "cold-chain-release-gate-v1"
+    },
+    {
+      "adapter_id": "typescript",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "cold-chain-release-gate-v1"
+    },
+    {
+      "adapter_id": "c",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "cold-chain-release-gate-v1"
+    },
+    {
+      "adapter_id": "python",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "cold-chain-release-gate-v1"
+    },
+    {
+      "adapter_id": "swift",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "cold-chain-release-gate-v1"
+    },
+    {
+      "adapter_id": "java",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "cold-chain-release-gate-v1"
+    },
+    {
+      "adapter_id": "zero",
+      "blocked_reason": "an official revision is already pinned elsewhere in this repository (benchmarks/agent-task-comparison-v1/manifest.json: vercel-labs/zerolang@eb2ed6c22fe3f6e3152efa0c0d05ffcf1ff4a2c7), but fetching or installing it here needs build-time network access (a git clone of that revision), which this sandbox forbids; issue #106/#107's review step ('the reserved historical Zero revision is not automatically the appropriate current comparison subject') has also not been completed. HUMAN_BLOCKED: review whether that pinned revision is still the right comparison subject, then provision it as a network-free local checkout or toolchain image before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "cold-chain-release-gate-v1"
+    },
+    {
+      "adapter_id": "ntnt",
+      "blocked_reason": "no publicly documented official toolchain was located for this benchmark snapshot. HUMAN_BLOCKED: identify and pin the official NTNT toolchain and version before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "cold-chain-release-gate-v1"
+    },
+    {
+      "adapter_id": "aver",
+      "blocked_reason": "no publicly documented official toolchain was located for this benchmark snapshot. HUMAN_BLOCKED: identify and pin the official Aver toolchain and version before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "cold-chain-release-gate-v1"
+    },
+    {
+      "adapter_id": "vera",
+      "blocked_reason": "no publicly documented official toolchain was located for this benchmark snapshot. HUMAN_BLOCKED: identify and pin the official Vera toolchain and version before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "cold-chain-release-gate-v1"
+    },
+    {
+      "adapter_id": "hale",
+      "blocked_reason": "no publicly documented official toolchain was located for this benchmark snapshot. HUMAN_BLOCKED: identify and pin the official Hale toolchain and version before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "cold-chain-release-gate-v1"
+    },
+    {
+      "adapter_id": "moonbit",
+      "blocked_reason": "the official MoonBit toolchain installs through a network-fetched installer script; this sandbox forbids build-time network access, so the adapter is declared but not wired. HUMAN_BLOCKED: pre-provision a pinned, network-free MoonBit toolchain image before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "cold-chain-release-gate-v1"
+    },
+    {
+      "adapter_id": "semaprax",
+      "blocked_reason": null,
+      "declared": false,
+      "implemented": true,
+      "task_id": "stable-dispatch-order-v1"
+    },
+    {
+      "adapter_id": "semaprax-project",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "stable-dispatch-order-v1"
+    },
+    {
+      "adapter_id": "rust",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "stable-dispatch-order-v1"
+    },
+    {
+      "adapter_id": "typescript",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "stable-dispatch-order-v1"
+    },
+    {
+      "adapter_id": "c",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "stable-dispatch-order-v1"
+    },
+    {
+      "adapter_id": "python",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "stable-dispatch-order-v1"
+    },
+    {
+      "adapter_id": "swift",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "stable-dispatch-order-v1"
+    },
+    {
+      "adapter_id": "java",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "stable-dispatch-order-v1"
+    },
+    {
+      "adapter_id": "zero",
+      "blocked_reason": "an official revision is already pinned elsewhere in this repository (benchmarks/agent-task-comparison-v1/manifest.json: vercel-labs/zerolang@eb2ed6c22fe3f6e3152efa0c0d05ffcf1ff4a2c7), but fetching or installing it here needs build-time network access (a git clone of that revision), which this sandbox forbids; issue #106/#107's review step ('the reserved historical Zero revision is not automatically the appropriate current comparison subject') has also not been completed. HUMAN_BLOCKED: review whether that pinned revision is still the right comparison subject, then provision it as a network-free local checkout or toolchain image before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "stable-dispatch-order-v1"
+    },
+    {
+      "adapter_id": "ntnt",
+      "blocked_reason": "no publicly documented official toolchain was located for this benchmark snapshot. HUMAN_BLOCKED: identify and pin the official NTNT toolchain and version before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "stable-dispatch-order-v1"
+    },
+    {
+      "adapter_id": "aver",
+      "blocked_reason": "no publicly documented official toolchain was located for this benchmark snapshot. HUMAN_BLOCKED: identify and pin the official Aver toolchain and version before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "stable-dispatch-order-v1"
+    },
+    {
+      "adapter_id": "vera",
+      "blocked_reason": "no publicly documented official toolchain was located for this benchmark snapshot. HUMAN_BLOCKED: identify and pin the official Vera toolchain and version before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "stable-dispatch-order-v1"
+    },
+    {
+      "adapter_id": "hale",
+      "blocked_reason": "no publicly documented official toolchain was located for this benchmark snapshot. HUMAN_BLOCKED: identify and pin the official Hale toolchain and version before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "stable-dispatch-order-v1"
+    },
+    {
+      "adapter_id": "moonbit",
+      "blocked_reason": "the official MoonBit toolchain installs through a network-fetched installer script; this sandbox forbids build-time network access, so the adapter is declared but not wired. HUMAN_BLOCKED: pre-provision a pinned, network-free MoonBit toolchain image before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "stable-dispatch-order-v1"
+    },
+    {
+      "adapter_id": "semaprax",
+      "blocked_reason": null,
+      "declared": false,
+      "implemented": true,
+      "task_id": "owned-byte-sentinel-balance-v1"
+    },
+    {
+      "adapter_id": "semaprax-project",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "owned-byte-sentinel-balance-v1"
+    },
+    {
+      "adapter_id": "rust",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "owned-byte-sentinel-balance-v1"
+    },
+    {
+      "adapter_id": "typescript",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "owned-byte-sentinel-balance-v1"
+    },
+    {
+      "adapter_id": "c",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "owned-byte-sentinel-balance-v1"
+    },
+    {
+      "adapter_id": "python",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "owned-byte-sentinel-balance-v1"
+    },
+    {
+      "adapter_id": "swift",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "owned-byte-sentinel-balance-v1"
+    },
+    {
+      "adapter_id": "java",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "owned-byte-sentinel-balance-v1"
+    },
+    {
+      "adapter_id": "zero",
+      "blocked_reason": "an official revision is already pinned elsewhere in this repository (benchmarks/agent-task-comparison-v1/manifest.json: vercel-labs/zerolang@eb2ed6c22fe3f6e3152efa0c0d05ffcf1ff4a2c7), but fetching or installing it here needs build-time network access (a git clone of that revision), which this sandbox forbids; issue #106/#107's review step ('the reserved historical Zero revision is not automatically the appropriate current comparison subject') has also not been completed. HUMAN_BLOCKED: review whether that pinned revision is still the right comparison subject, then provision it as a network-free local checkout or toolchain image before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "owned-byte-sentinel-balance-v1"
+    },
+    {
+      "adapter_id": "ntnt",
+      "blocked_reason": "no publicly documented official toolchain was located for this benchmark snapshot. HUMAN_BLOCKED: identify and pin the official NTNT toolchain and version before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "owned-byte-sentinel-balance-v1"
+    },
+    {
+      "adapter_id": "aver",
+      "blocked_reason": "no publicly documented official toolchain was located for this benchmark snapshot. HUMAN_BLOCKED: identify and pin the official Aver toolchain and version before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "owned-byte-sentinel-balance-v1"
+    },
+    {
+      "adapter_id": "vera",
+      "blocked_reason": "no publicly documented official toolchain was located for this benchmark snapshot. HUMAN_BLOCKED: identify and pin the official Vera toolchain and version before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "owned-byte-sentinel-balance-v1"
+    },
+    {
+      "adapter_id": "hale",
+      "blocked_reason": "no publicly documented official toolchain was located for this benchmark snapshot. HUMAN_BLOCKED: identify and pin the official Hale toolchain and version before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "owned-byte-sentinel-balance-v1"
+    },
+    {
+      "adapter_id": "moonbit",
+      "blocked_reason": "the official MoonBit toolchain installs through a network-fetched installer script; this sandbox forbids build-time network access, so the adapter is declared but not wired. HUMAN_BLOCKED: pre-provision a pinned, network-free MoonBit toolchain image before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "owned-byte-sentinel-balance-v1"
+    },
+    {
+      "adapter_id": "semaprax",
+      "blocked_reason": null,
+      "declared": false,
+      "implemented": true,
+      "task_id": "stale-edit-preservation-v1"
+    },
+    {
+      "adapter_id": "semaprax-project",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "stale-edit-preservation-v1"
+    },
+    {
+      "adapter_id": "rust",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "stale-edit-preservation-v1"
+    },
+    {
+      "adapter_id": "typescript",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "stale-edit-preservation-v1"
+    },
+    {
+      "adapter_id": "c",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "stale-edit-preservation-v1"
+    },
+    {
+      "adapter_id": "python",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "stale-edit-preservation-v1"
+    },
+    {
+      "adapter_id": "swift",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "stale-edit-preservation-v1"
+    },
+    {
+      "adapter_id": "java",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "stale-edit-preservation-v1"
+    },
+    {
+      "adapter_id": "zero",
+      "blocked_reason": "an official revision is already pinned elsewhere in this repository (benchmarks/agent-task-comparison-v1/manifest.json: vercel-labs/zerolang@eb2ed6c22fe3f6e3152efa0c0d05ffcf1ff4a2c7), but fetching or installing it here needs build-time network access (a git clone of that revision), which this sandbox forbids; issue #106/#107's review step ('the reserved historical Zero revision is not automatically the appropriate current comparison subject') has also not been completed. HUMAN_BLOCKED: review whether that pinned revision is still the right comparison subject, then provision it as a network-free local checkout or toolchain image before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "stale-edit-preservation-v1"
+    },
+    {
+      "adapter_id": "ntnt",
+      "blocked_reason": "no publicly documented official toolchain was located for this benchmark snapshot. HUMAN_BLOCKED: identify and pin the official NTNT toolchain and version before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "stale-edit-preservation-v1"
+    },
+    {
+      "adapter_id": "aver",
+      "blocked_reason": "no publicly documented official toolchain was located for this benchmark snapshot. HUMAN_BLOCKED: identify and pin the official Aver toolchain and version before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "stale-edit-preservation-v1"
+    },
+    {
+      "adapter_id": "vera",
+      "blocked_reason": "no publicly documented official toolchain was located for this benchmark snapshot. HUMAN_BLOCKED: identify and pin the official Vera toolchain and version before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "stale-edit-preservation-v1"
+    },
+    {
+      "adapter_id": "hale",
+      "blocked_reason": "no publicly documented official toolchain was located for this benchmark snapshot. HUMAN_BLOCKED: identify and pin the official Hale toolchain and version before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "stale-edit-preservation-v1"
+    },
+    {
+      "adapter_id": "moonbit",
+      "blocked_reason": "the official MoonBit toolchain installs through a network-fetched installer script; this sandbox forbids build-time network access, so the adapter is declared but not wired. HUMAN_BLOCKED: pre-provision a pinned, network-free MoonBit toolchain image before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "stale-edit-preservation-v1"
+    },
+    {
+      "adapter_id": "semaprax",
+      "blocked_reason": null,
+      "declared": false,
+      "implemented": true,
+      "task_id": "telemetry-overflow-diagnosis-v1"
+    },
+    {
+      "adapter_id": "semaprax-project",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "telemetry-overflow-diagnosis-v1"
+    },
+    {
+      "adapter_id": "rust",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "telemetry-overflow-diagnosis-v1"
+    },
+    {
+      "adapter_id": "typescript",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "telemetry-overflow-diagnosis-v1"
+    },
+    {
+      "adapter_id": "c",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "telemetry-overflow-diagnosis-v1"
+    },
+    {
+      "adapter_id": "python",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "telemetry-overflow-diagnosis-v1"
+    },
+    {
+      "adapter_id": "swift",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "telemetry-overflow-diagnosis-v1"
+    },
+    {
+      "adapter_id": "java",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "telemetry-overflow-diagnosis-v1"
+    },
+    {
+      "adapter_id": "zero",
+      "blocked_reason": "an official revision is already pinned elsewhere in this repository (benchmarks/agent-task-comparison-v1/manifest.json: vercel-labs/zerolang@eb2ed6c22fe3f6e3152efa0c0d05ffcf1ff4a2c7), but fetching or installing it here needs build-time network access (a git clone of that revision), which this sandbox forbids; issue #106/#107's review step ('the reserved historical Zero revision is not automatically the appropriate current comparison subject') has also not been completed. HUMAN_BLOCKED: review whether that pinned revision is still the right comparison subject, then provision it as a network-free local checkout or toolchain image before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "telemetry-overflow-diagnosis-v1"
+    },
+    {
+      "adapter_id": "ntnt",
+      "blocked_reason": "no publicly documented official toolchain was located for this benchmark snapshot. HUMAN_BLOCKED: identify and pin the official NTNT toolchain and version before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "telemetry-overflow-diagnosis-v1"
+    },
+    {
+      "adapter_id": "aver",
+      "blocked_reason": "no publicly documented official toolchain was located for this benchmark snapshot. HUMAN_BLOCKED: identify and pin the official Aver toolchain and version before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "telemetry-overflow-diagnosis-v1"
+    },
+    {
+      "adapter_id": "vera",
+      "blocked_reason": "no publicly documented official toolchain was located for this benchmark snapshot. HUMAN_BLOCKED: identify and pin the official Vera toolchain and version before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "telemetry-overflow-diagnosis-v1"
+    },
+    {
+      "adapter_id": "hale",
+      "blocked_reason": "no publicly documented official toolchain was located for this benchmark snapshot. HUMAN_BLOCKED: identify and pin the official Hale toolchain and version before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "telemetry-overflow-diagnosis-v1"
+    },
+    {
+      "adapter_id": "moonbit",
+      "blocked_reason": "the official MoonBit toolchain installs through a network-fetched installer script; this sandbox forbids build-time network access, so the adapter is declared but not wired. HUMAN_BLOCKED: pre-provision a pinned, network-free MoonBit toolchain image before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "telemetry-overflow-diagnosis-v1"
+    },
+    {
+      "adapter_id": "semaprax",
+      "blocked_reason": null,
+      "declared": false,
+      "implemented": true,
+      "task_id": "clean-install-calculator-v1"
+    },
+    {
+      "adapter_id": "semaprax-project",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "clean-install-calculator-v1"
+    },
+    {
+      "adapter_id": "rust",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "clean-install-calculator-v1"
+    },
+    {
+      "adapter_id": "typescript",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "clean-install-calculator-v1"
+    },
+    {
+      "adapter_id": "c",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "clean-install-calculator-v1"
+    },
+    {
+      "adapter_id": "python",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "clean-install-calculator-v1"
+    },
+    {
+      "adapter_id": "swift",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "clean-install-calculator-v1"
+    },
+    {
+      "adapter_id": "java",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "clean-install-calculator-v1"
+    },
+    {
+      "adapter_id": "zero",
+      "blocked_reason": "an official revision is already pinned elsewhere in this repository (benchmarks/agent-task-comparison-v1/manifest.json: vercel-labs/zerolang@eb2ed6c22fe3f6e3152efa0c0d05ffcf1ff4a2c7), but fetching or installing it here needs build-time network access (a git clone of that revision), which this sandbox forbids; issue #106/#107's review step ('the reserved historical Zero revision is not automatically the appropriate current comparison subject') has also not been completed. HUMAN_BLOCKED: review whether that pinned revision is still the right comparison subject, then provision it as a network-free local checkout or toolchain image before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "clean-install-calculator-v1"
+    },
+    {
+      "adapter_id": "ntnt",
+      "blocked_reason": "no publicly documented official toolchain was located for this benchmark snapshot. HUMAN_BLOCKED: identify and pin the official NTNT toolchain and version before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "clean-install-calculator-v1"
+    },
+    {
+      "adapter_id": "aver",
+      "blocked_reason": "no publicly documented official toolchain was located for this benchmark snapshot. HUMAN_BLOCKED: identify and pin the official Aver toolchain and version before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "clean-install-calculator-v1"
+    },
+    {
+      "adapter_id": "vera",
+      "blocked_reason": "no publicly documented official toolchain was located for this benchmark snapshot. HUMAN_BLOCKED: identify and pin the official Vera toolchain and version before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "clean-install-calculator-v1"
+    },
+    {
+      "adapter_id": "hale",
+      "blocked_reason": "no publicly documented official toolchain was located for this benchmark snapshot. HUMAN_BLOCKED: identify and pin the official Hale toolchain and version before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "clean-install-calculator-v1"
+    },
+    {
+      "adapter_id": "moonbit",
+      "blocked_reason": "the official MoonBit toolchain installs through a network-fetched installer script; this sandbox forbids build-time network access, so the adapter is declared but not wired. HUMAN_BLOCKED: pre-provision a pinned, network-free MoonBit toolchain image before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "clean-install-calculator-v1"
+    },
+    {
+      "adapter_id": "semaprax",
+      "blocked_reason": null,
+      "declared": false,
+      "implemented": true,
+      "task_id": "concurrent-delta-merge-v1"
+    },
+    {
+      "adapter_id": "semaprax-project",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "concurrent-delta-merge-v1"
+    },
+    {
+      "adapter_id": "rust",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "concurrent-delta-merge-v1"
+    },
+    {
+      "adapter_id": "typescript",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "concurrent-delta-merge-v1"
+    },
+    {
+      "adapter_id": "c",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "concurrent-delta-merge-v1"
+    },
+    {
+      "adapter_id": "python",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "concurrent-delta-merge-v1"
+    },
+    {
+      "adapter_id": "swift",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "concurrent-delta-merge-v1"
+    },
+    {
+      "adapter_id": "java",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "concurrent-delta-merge-v1"
+    },
+    {
+      "adapter_id": "zero",
+      "blocked_reason": "an official revision is already pinned elsewhere in this repository (benchmarks/agent-task-comparison-v1/manifest.json: vercel-labs/zerolang@eb2ed6c22fe3f6e3152efa0c0d05ffcf1ff4a2c7), but fetching or installing it here needs build-time network access (a git clone of that revision), which this sandbox forbids; issue #106/#107's review step ('the reserved historical Zero revision is not automatically the appropriate current comparison subject') has also not been completed. HUMAN_BLOCKED: review whether that pinned revision is still the right comparison subject, then provision it as a network-free local checkout or toolchain image before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "concurrent-delta-merge-v1"
+    },
+    {
+      "adapter_id": "ntnt",
+      "blocked_reason": "no publicly documented official toolchain was located for this benchmark snapshot. HUMAN_BLOCKED: identify and pin the official NTNT toolchain and version before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "concurrent-delta-merge-v1"
+    },
+    {
+      "adapter_id": "aver",
+      "blocked_reason": "no publicly documented official toolchain was located for this benchmark snapshot. HUMAN_BLOCKED: identify and pin the official Aver toolchain and version before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "concurrent-delta-merge-v1"
+    },
+    {
+      "adapter_id": "vera",
+      "blocked_reason": "no publicly documented official toolchain was located for this benchmark snapshot. HUMAN_BLOCKED: identify and pin the official Vera toolchain and version before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "concurrent-delta-merge-v1"
+    },
+    {
+      "adapter_id": "hale",
+      "blocked_reason": "no publicly documented official toolchain was located for this benchmark snapshot. HUMAN_BLOCKED: identify and pin the official Hale toolchain and version before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "concurrent-delta-merge-v1"
+    },
+    {
+      "adapter_id": "moonbit",
+      "blocked_reason": "the official MoonBit toolchain installs through a network-fetched installer script; this sandbox forbids build-time network access, so the adapter is declared but not wired. HUMAN_BLOCKED: pre-provision a pinned, network-free MoonBit toolchain image before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "concurrent-delta-merge-v1"
+    },
+    {
+      "adapter_id": "semaprax",
+      "blocked_reason": null,
+      "declared": false,
+      "implemented": true,
+      "task_id": "iterative-repair-workflow-v1"
+    },
+    {
+      "adapter_id": "semaprax-project",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "iterative-repair-workflow-v1"
+    },
+    {
+      "adapter_id": "rust",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "iterative-repair-workflow-v1"
+    },
+    {
+      "adapter_id": "typescript",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "iterative-repair-workflow-v1"
+    },
+    {
+      "adapter_id": "c",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "iterative-repair-workflow-v1"
+    },
+    {
+      "adapter_id": "python",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "iterative-repair-workflow-v1"
+    },
+    {
+      "adapter_id": "swift",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "iterative-repair-workflow-v1"
+    },
+    {
+      "adapter_id": "java",
+      "blocked_reason": null,
+      "declared": true,
+      "implemented": true,
+      "task_id": "iterative-repair-workflow-v1"
+    },
+    {
+      "adapter_id": "zero",
+      "blocked_reason": "an official revision is already pinned elsewhere in this repository (benchmarks/agent-task-comparison-v1/manifest.json: vercel-labs/zerolang@eb2ed6c22fe3f6e3152efa0c0d05ffcf1ff4a2c7), but fetching or installing it here needs build-time network access (a git clone of that revision), which this sandbox forbids; issue #106/#107's review step ('the reserved historical Zero revision is not automatically the appropriate current comparison subject') has also not been completed. HUMAN_BLOCKED: review whether that pinned revision is still the right comparison subject, then provision it as a network-free local checkout or toolchain image before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "iterative-repair-workflow-v1"
+    },
+    {
+      "adapter_id": "ntnt",
+      "blocked_reason": "no publicly documented official toolchain was located for this benchmark snapshot. HUMAN_BLOCKED: identify and pin the official NTNT toolchain and version before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "iterative-repair-workflow-v1"
+    },
+    {
+      "adapter_id": "aver",
+      "blocked_reason": "no publicly documented official toolchain was located for this benchmark snapshot. HUMAN_BLOCKED: identify and pin the official Aver toolchain and version before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "iterative-repair-workflow-v1"
+    },
+    {
+      "adapter_id": "vera",
+      "blocked_reason": "no publicly documented official toolchain was located for this benchmark snapshot. HUMAN_BLOCKED: identify and pin the official Vera toolchain and version before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "iterative-repair-workflow-v1"
+    },
+    {
+      "adapter_id": "hale",
+      "blocked_reason": "no publicly documented official toolchain was located for this benchmark snapshot. HUMAN_BLOCKED: identify and pin the official Hale toolchain and version before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "iterative-repair-workflow-v1"
+    },
+    {
+      "adapter_id": "moonbit",
+      "blocked_reason": "the official MoonBit toolchain installs through a network-fetched installer script; this sandbox forbids build-time network access, so the adapter is declared but not wired. HUMAN_BLOCKED: pre-provision a pinned, network-free MoonBit toolchain image before this adapter can run.",
+      "declared": false,
+      "implemented": false,
+      "task_id": "iterative-repair-workflow-v1"
+    }
+  ],
+  "files": [
+    {
+      "bytes": 6447,
+      "path": "benchmarks/cross-language-v1/adapters.json",
+      "sha256": "sha256:4493a1b619b27c051e4279a0cc792cef36070091fc6a60ed6fa0f2e2d8ab24ee"
+    },
+    {
+      "bytes": 10166,
+      "path": "benchmarks/cross-language-v1/agent/baseline_admission.py",
+      "sha256": "sha256:7f4227bcbf3c490ce6bc6d64bbe32bdeef0de2cc2ef3ef71a7e0b992d54607fc"
+    },
+    {
+      "bytes": 28079,
+      "path": "benchmarks/cross-language-v1/run.py",
+      "sha256": "sha256:29b9955133f70efabf9f240f5254a5654e0aec21ef7acf4e12b975b45322d5aa"
+    },
+    {
+      "bytes": 27974,
+      "path": "benchmarks/cross-language-v1/runnable_adapter.py",
+      "sha256": "sha256:3d645b0546b184789724c670746900a9811d57130248ff2f94e307798652c138"
+    },
+    {
+      "bytes": 19719,
+      "path": "benchmarks/cross-language-v1/runnable_adapter_v2.py",
+      "sha256": "sha256:38086bff44fe183784bfe4404816264e324961b6a48707afe8f98da0a84b9c1b"
+    },
+    {
+      "bytes": 26607,
+      "path": "benchmarks/cross-language-v1/tasks.json",
+      "sha256": "sha256:cd6cef4d71810f1f1c9187b5750fa2dc8a0c9a1fe4dee32a9a70b51f19e3700f"
+    },
+    {
+      "bytes": 3400,
+      "path": "benchmarks/cross-language-v1/tasks/booking-window-conflict-v1/EQUIVALENCE.md",
+      "sha256": "sha256:7a9a528b8d233622317f145b57131728396698f8049d3f9aa49f2f8bcbbd4991"
+    },
+    {
+      "bytes": 739,
+      "path": "benchmarks/cross-language-v1/tasks/booking-window-conflict-v1/hidden/c/main.c",
+      "sha256": "sha256:c7a6973e60efe460b58b45be10de877dc22387b2b511b9e7467085990dcc63a8"
+    },
+    {
+      "bytes": 806,
+      "path": "benchmarks/cross-language-v1/tasks/booking-window-conflict-v1/hidden/java/Main.java",
+      "sha256": "sha256:ccef07953e2d774681a5b5f6215e70d263389bdcbfffd0fba5dfcc1d3158afb2"
+    },
+    {
+      "bytes": 683,
+      "path": "benchmarks/cross-language-v1/tasks/booking-window-conflict-v1/hidden/python/digest.py",
+      "sha256": "sha256:9b2ca712848200ac2caca3f1045b2390dac8a1a7ef00449bf4eb950a84506868"
+    },
+    {
+      "bytes": 333,
+      "path": "benchmarks/cross-language-v1/tasks/booking-window-conflict-v1/hidden/rust/main.rs",
+      "sha256": "sha256:5e489eb743ef7f9c76f4785eaeffa481df8f4fd93058d4f9dd990c9c32f70cef"
+    },
+    {
+      "bytes": 295,
+      "path": "benchmarks/cross-language-v1/tasks/booking-window-conflict-v1/hidden/semaprax/src/app.spx",
+      "sha256": "sha256:91706f3b9d1ff1f15263e38bb83f050623a3216e035e912cfe8011a76ca76cbb"
+    },
+    {
+      "bytes": 834,
+      "path": "benchmarks/cross-language-v1/tasks/booking-window-conflict-v1/hidden/swift/main.swift",
+      "sha256": "sha256:a1128cd7c2af1b894f59ceba4d5d699961ea0403aaba72a87d45524290301a36"
+    },
+    {
+      "bytes": 349,
+      "path": "benchmarks/cross-language-v1/tasks/booking-window-conflict-v1/hidden/typescript/index.ts",
+      "sha256": "sha256:b34acd48f3e56a2d55340333df3eeeb3b7ff7025a252980a2ee35c40a3f233c6"
+    },
+    {
+      "bytes": 414,
+      "path": "benchmarks/cross-language-v1/tasks/booking-window-conflict-v1/public/c/candidate.c",
+      "sha256": "sha256:c2ee5e68c3decd1ad587f88cee67db665649ab2fab3c429b06713aeecf2f9348"
+    },
+    {
+      "bytes": 679,
+      "path": "benchmarks/cross-language-v1/tasks/booking-window-conflict-v1/public/c/main.c",
+      "sha256": "sha256:b1bd3e28f599956343c5e6197131f04b54d41b63a717389bea4ac8c661c393a1"
+    },
+    {
+      "bytes": 371,
+      "path": "benchmarks/cross-language-v1/tasks/booking-window-conflict-v1/public/java/Candidate.java",
+      "sha256": "sha256:69301c48aa9046b5eba6897a65add39ae4d5d8358dd2603b2932658e57261ca6"
+    },
+    {
+      "bytes": 772,
+      "path": "benchmarks/cross-language-v1/tasks/booking-window-conflict-v1/public/java/Main.java",
+      "sha256": "sha256:526f7d4ec24bac678379c53c5a57f4f6e8be61c48c38ed761178c4dadad52eee"
+    },
+    {
+      "bytes": 301,
+      "path": "benchmarks/cross-language-v1/tasks/booking-window-conflict-v1/public/python/candidate.py",
+      "sha256": "sha256:d6098b67d2ee1503dadf3bd5738a7de81b30ab75270a2335fc1e71b8e1479b8c"
+    },
+    {
+      "bytes": 620,
+      "path": "benchmarks/cross-language-v1/tasks/booking-window-conflict-v1/public/python/digest.py",
+      "sha256": "sha256:ae59adcf0d1f69483ee6616397e4d720c1d084c626dc08ba690fa5e57711bea5"
+    },
+    {
+      "bytes": 163,
+      "path": "benchmarks/cross-language-v1/tasks/booking-window-conflict-v1/public/rust/candidate.rs",
+      "sha256": "sha256:931ee0930c0e8e33b2751ca06c5195840b8238cea204710ceb47e3ea4db08633"
+    },
+    {
+      "bytes": 384,
+      "path": "benchmarks/cross-language-v1/tasks/booking-window-conflict-v1/public/rust/main.rs",
+      "sha256": "sha256:61acfdfe9182c7ecd2648486c68a02fe96ea8a5285b28f273f1e53fe69e39a6a"
+    },
+    {
+      "bytes": 230,
+      "path": "benchmarks/cross-language-v1/tasks/booking-window-conflict-v1/public/semaprax/semaprax.toml",
+      "sha256": "sha256:ba53bc3337c4e19d2b0de87241c1ed853b65e117059311d576833c7d202d6fe3"
+    },
+    {
+      "bytes": 359,
+      "path": "benchmarks/cross-language-v1/tasks/booking-window-conflict-v1/public/semaprax/src/app.spx",
+      "sha256": "sha256:dfe223a13efd2f6715eb46c6afcb7beb6323b585e4418d44a7b8b7e9a0ed2567"
+    },
+    {
+      "bytes": 205,
+      "path": "benchmarks/cross-language-v1/tasks/booking-window-conflict-v1/public/semaprax/src/candidate.spx",
+      "sha256": "sha256:c55f879630511db3c4bab858512896201e8e0056884884c87877acfe26011369"
+    },
+    {
+      "bytes": 83,
+      "path": "benchmarks/cross-language-v1/tasks/booking-window-conflict-v1/public/semaprax/src/tests.spx",
+      "sha256": "sha256:3083f47efc80f405aec6bb608a561928b0b7afeb684cd0c5d0eab41705a50105"
+    },
+    {
+      "bytes": 1014,
+      "path": "benchmarks/cross-language-v1/tasks/booking-window-conflict-v1/public/swift/main.swift",
+      "sha256": "sha256:026cb9d24302dee9fcb58a446745af0996e5a6d70fcfc03c4247ba72d9876f7b"
+    },
+    {
+      "bytes": 147,
+      "path": "benchmarks/cross-language-v1/tasks/booking-window-conflict-v1/public/typescript/candidate.ts",
+      "sha256": "sha256:13431e9d15626d42dde7b45cffa4f16c5955d64988df7516ec15ff0382d69a56"
+    },
+    {
+      "bytes": 420,
+      "path": "benchmarks/cross-language-v1/tasks/booking-window-conflict-v1/public/typescript/index.ts",
+      "sha256": "sha256:2e6ff17022a9546022e516093b85acbdda0a56dcf90d1ca94dc1b205106ce417"
+    },
+    {
+      "bytes": 9241,
+      "path": "benchmarks/cross-language-v1/tasks/bounded-counter-repair-v1/EQUIVALENCE.md",
+      "sha256": "sha256:4bc1227ca59a6f3b39f4edc58b9456e925811a2ef1d7f214bc7416245a2da651"
+    },
+    {
+      "bytes": 1935,
+      "path": "benchmarks/cross-language-v1/tasks/bounded-counter-repair-v1/hidden/c/main.c",
+      "sha256": "sha256:4c40a5ba19a0e3b0c1be5c70e27217de0e1847f012db784985d1e49bf4747178"
+    },
+    {
+      "bytes": 2071,
+      "path": "benchmarks/cross-language-v1/tasks/bounded-counter-repair-v1/hidden/java/Main.java",
+      "sha256": "sha256:9a2dff135d32b092eb4fcc77add3eb39ebf865abaa5ac3eb70f67ab366beb109"
+    },
+    {
+      "bytes": 1724,
+      "path": "benchmarks/cross-language-v1/tasks/bounded-counter-repair-v1/hidden/python/digest.py",
+      "sha256": "sha256:78297dea98d1c9f72d3165f902d84cea7f60230f6590ca9a398dc784adf6d7a4"
+    },
+    {
+      "bytes": 1844,
+      "path": "benchmarks/cross-language-v1/tasks/bounded-counter-repair-v1/hidden/rust/main.rs",
+      "sha256": "sha256:7745078cb1f7bd5d75b0d36fb40e63615d20a1d6254f0c7465393fdcd0745923"
+    },
+    {
+      "bytes": 1949,
+      "path": "benchmarks/cross-language-v1/tasks/bounded-counter-repair-v1/hidden/semaprax/digest.spx",
+      "sha256": "sha256:875d5dda110905d6b778bb7bad7154f167f5ac995799d0a55c0b59aa7165a1d8"
+    },
+    {
+      "bytes": 1832,
+      "path": "benchmarks/cross-language-v1/tasks/bounded-counter-repair-v1/hidden/swift/main.swift",
+      "sha256": "sha256:fe9fb72dec996d720d437a54af9fb5ec8a38b691a05500a6e8d289c2960e2b82"
+    },
+    {
+      "bytes": 1801,
+      "path": "benchmarks/cross-language-v1/tasks/bounded-counter-repair-v1/hidden/typescript/index.ts",
+      "sha256": "sha256:238aeb6fa90a76e1c3085627011a89eb5be5789618957baf69908aac40d39f3d"
+    },
+    {
+      "bytes": 1524,
+      "path": "benchmarks/cross-language-v1/tasks/bounded-counter-repair-v1/public/c/main.c",
+      "sha256": "sha256:5a50150c1c3b53879486c97a306decc3b5f06f01032322977fdea58a5d55b8fb"
+    },
+    {
+      "bytes": 1660,
+      "path": "benchmarks/cross-language-v1/tasks/bounded-counter-repair-v1/public/java/Main.java",
+      "sha256": "sha256:101ce7f213f1cf9c95812a0d270e1c129f3ad5284170a79cc443a1c95019bb8b"
+    },
+    {
+      "bytes": 1350,
+      "path": "benchmarks/cross-language-v1/tasks/bounded-counter-repair-v1/public/python/digest.py",
+      "sha256": "sha256:6971d447c7c8007a29c61d81045fffa1a32f4190baa27ab1f0fd9c51fd6f6935"
+    },
+    {
+      "bytes": 1289,
+      "path": "benchmarks/cross-language-v1/tasks/bounded-counter-repair-v1/public/rust/main.rs",
+      "sha256": "sha256:5f7229de188d3eb147ea77d0e50793cbfe771baf9287d90f17cafba85a04cacf"
+    },
+    {
+      "bytes": 1785,
+      "path": "benchmarks/cross-language-v1/tasks/bounded-counter-repair-v1/public/semaprax/digest.spx",
+      "sha256": "sha256:f1c0dd4385edc9fa4ea28cbc451588505b645d7b07d5bf07c47dda87423dc29c"
+    },
+    {
+      "bytes": 1459,
+      "path": "benchmarks/cross-language-v1/tasks/bounded-counter-repair-v1/public/swift/main.swift",
+      "sha256": "sha256:67ea2a29a9877121f892b22615f333bd7af45f3beb99e265fdab2167b116d192"
+    },
+    {
+      "bytes": 1579,
+      "path": "benchmarks/cross-language-v1/tasks/bounded-counter-repair-v1/public/typescript/index.ts",
+      "sha256": "sha256:f4d158c8ca3d9442fd780984c8ced789f395d6a9216877f99a1011e79e9f95b5"
+    },
+    {
+      "bytes": 8480,
+      "path": "benchmarks/cross-language-v1/tasks/clean-install-calculator-v1/EQUIVALENCE.md",
+      "sha256": "sha256:9533aa448faa45b58e6912f74dd2d6120afa8e12d436a0a00324b0e83570fe04"
+    },
+    {
+      "bytes": 820,
+      "path": "benchmarks/cross-language-v1/tasks/clean-install-calculator-v1/hidden/c/main.c",
+      "sha256": "sha256:796d5d338cfdb83d4cdbb095cea6d5b0345b95a245bc9af18148958b64758030"
+    },
+    {
+      "bytes": 901,
+      "path": "benchmarks/cross-language-v1/tasks/clean-install-calculator-v1/hidden/java/Main.java",
+      "sha256": "sha256:83d2425b8537544af6cd8e35d40920d6918c16dc78373cd3837c0708bf6e489d"
+    },
+    {
+      "bytes": 763,
+      "path": "benchmarks/cross-language-v1/tasks/clean-install-calculator-v1/hidden/python/digest.py",
+      "sha256": "sha256:989cd3fa89dc59002ab81fea5187ffdd7fa4cc607cdfad4080836f1b0ba5642d"
+    },
+    {
+      "bytes": 324,
+      "path": "benchmarks/cross-language-v1/tasks/clean-install-calculator-v1/hidden/rust/main.rs",
+      "sha256": "sha256:6607f7aae845b6c7cb4ad45f180ceff8366fcc1a4478dd547aa4ee62df82ac7f"
+    },
+    {
+      "bytes": 417,
+      "path": "benchmarks/cross-language-v1/tasks/clean-install-calculator-v1/hidden/semaprax/src/app.spx",
+      "sha256": "sha256:376982dc4b458277c8df3056854a85c6936abae4a478f52094788fe75a655c6f"
+    },
+    {
+      "bytes": 925,
+      "path": "benchmarks/cross-language-v1/tasks/clean-install-calculator-v1/hidden/swift/main.swift",
+      "sha256": "sha256:30d6b6c265d3f490e117f8cf0518103b9b83e9fccf8f522675798ae523bc2380"
+    },
+    {
+      "bytes": 450,
+      "path": "benchmarks/cross-language-v1/tasks/clean-install-calculator-v1/hidden/typescript/index.ts",
+      "sha256": "sha256:7c3f1d941c47017fd7823d185f8cafea1ec30bf19f758a12700044f0d434d087"
+    },
+    {
+      "bytes": 536,
+      "path": "benchmarks/cross-language-v1/tasks/clean-install-calculator-v1/public/c/candidate.c",
+      "sha256": "sha256:c46f18514ea8894605ff651b00b42519d25b2fa26d1e7c1cb18e951b4bae3577"
+    },
+    {
+      "bytes": 607,
+      "path": "benchmarks/cross-language-v1/tasks/clean-install-calculator-v1/public/c/main.c",
+      "sha256": "sha256:9f40f819309a63e4ad79b4bbb20cdef5819c3c4a3e9b2cc63984213381b2b9a8"
+    },
+    {
+      "bytes": 535,
+      "path": "benchmarks/cross-language-v1/tasks/clean-install-calculator-v1/public/java/Candidate.java",
+      "sha256": "sha256:08485fd8d165ffefb5e85c1751314b031a933a1a0eb1af77020e596447aeae0b"
+    },
+    {
+      "bytes": 686,
+      "path": "benchmarks/cross-language-v1/tasks/clean-install-calculator-v1/public/java/Main.java",
+      "sha256": "sha256:f51560b23066a127cc5cf9ecbcd17020d555309936bf577f1a386aca51c31bb1"
+    },
+    {
+      "bytes": 417,
+      "path": "benchmarks/cross-language-v1/tasks/clean-install-calculator-v1/public/python/candidate.py",
+      "sha256": "sha256:04c4f47befec76a0f64b5a986664424335ffe34da0400b7cf38477a4c8f02fce"
+    },
+    {
+      "bytes": 557,
+      "path": "benchmarks/cross-language-v1/tasks/clean-install-calculator-v1/public/python/digest.py",
+      "sha256": "sha256:5785f86e5f9f1795b44a83a8672fea824f01687e1de3c4ae07e976e80764bb57"
+    },
+    {
+      "bytes": 418,
+      "path": "benchmarks/cross-language-v1/tasks/clean-install-calculator-v1/public/rust/candidate.rs",
+      "sha256": "sha256:4fffb26b4583594b52f76b593e4dd2f0aad6f9c283cc8ebe5d3201b0a1d75c73"
+    },
+    {
+      "bytes": 275,
+      "path": "benchmarks/cross-language-v1/tasks/clean-install-calculator-v1/public/rust/main.rs",
+      "sha256": "sha256:f1ca158162ac57178ed5c6f866c045a0d7aac89c8df2765824c0e5df15240cee"
+    },
+    {
+      "bytes": 3542,
+      "path": "benchmarks/cross-language-v1/tasks/clean-install-calculator-v1/public/semaprax/AGENTS.md",
+      "sha256": "sha256:dd90780de35e71268440648c47ad6c8b9a2e9fee89bed4e01b9b5db664912f31"
+    },
+    {
+      "bytes": 331,
+      "path": "benchmarks/cross-language-v1/tasks/clean-install-calculator-v1/public/semaprax/README.md",
+      "sha256": "sha256:ea2e55fcd45e8f9ebcc0beb5417e3f8ea7472404a77d363beb9c7defe651fc35"
+    },
+    {
+      "bytes": 297,
+      "path": "benchmarks/cross-language-v1/tasks/clean-install-calculator-v1/public/semaprax/semaprax.toml",
+      "sha256": "sha256:6fa3a730bf91b71152f937763b31ed96e490244d2a21c733d1578e610d7bb911"
+    },
+    {
+      "bytes": 376,
+      "path": "benchmarks/cross-language-v1/tasks/clean-install-calculator-v1/public/semaprax/src/app.spx",
+      "sha256": "sha256:d707f5fd98cbc67476d024939508423fde096a0cfd8f22f8144d21fdb70f757f"
+    },
+    {
+      "bytes": 238,
+      "path": "benchmarks/cross-language-v1/tasks/clean-install-calculator-v1/public/semaprax/src/core.spx",
+      "sha256": "sha256:1d02eaee8a6ccc86ecce4b1c95457fe43f1ee4d7d48c0c6a384deba136d7e6b0"
+    },
+    {
+      "bytes": 142,
+      "path": "benchmarks/cross-language-v1/tasks/clean-install-calculator-v1/public/semaprax/src/tests.spx",
+      "sha256": "sha256:e83c284b684daff5444a3e9e08c6dcea7507f09637d82454d8b20fe2780fe4f2"
+    },
+    {
+      "bytes": 1156,
+      "path": "benchmarks/cross-language-v1/tasks/clean-install-calculator-v1/public/swift/main.swift",
+      "sha256": "sha256:1cbf47c1c2259e614689a99fca7fc6d175b175f60f0c28f3e7acf94fc7ca8b79"
+    },
+    {
+      "bytes": 468,
+      "path": "benchmarks/cross-language-v1/tasks/clean-install-calculator-v1/public/typescript/candidate.ts",
+      "sha256": "sha256:8e401c4e8ba005c280f37017519d12d247d62fa2210503487d43ddff46e11922"
+    },
+    {
+      "bytes": 355,
+      "path": "benchmarks/cross-language-v1/tasks/clean-install-calculator-v1/public/typescript/index.ts",
+      "sha256": "sha256:1f5ea674ee23fba6ee51666245d8767a704944e23b668d7c6bef943dfcf97e3a"
+    },
+    {
+      "bytes": 3629,
+      "path": "benchmarks/cross-language-v1/tasks/cold-chain-release-gate-v1/EQUIVALENCE.md",
+      "sha256": "sha256:3362382fc4dc9275ef166e38c93ad4dcdfd59a200376f4dff4b1c0d25fa7a601"
+    },
+    {
+      "bytes": 921,
+      "path": "benchmarks/cross-language-v1/tasks/cold-chain-release-gate-v1/hidden/c/main.c",
+      "sha256": "sha256:23109a28c44b00dccf4191c6dfea291ca15c2a17b424ebae6c09d0216d4fd429"
+    },
+    {
+      "bytes": 1012,
+      "path": "benchmarks/cross-language-v1/tasks/cold-chain-release-gate-v1/hidden/java/Main.java",
+      "sha256": "sha256:022da7de7f9624df249c32a98b995b934756dd07a67565b5ed4bedf0f26af7b9"
+    },
+    {
+      "bytes": 861,
+      "path": "benchmarks/cross-language-v1/tasks/cold-chain-release-gate-v1/hidden/python/digest.py",
+      "sha256": "sha256:3b977f4650147ee238754772782436c75442697fcdf7b6ba7225f4edbf37412f"
+    },
+    {
+      "bytes": 507,
+      "path": "benchmarks/cross-language-v1/tasks/cold-chain-release-gate-v1/hidden/rust/main.rs",
+      "sha256": "sha256:019d3fed6ba2b20ca275a4d1558ad01cd6ee2b17f8ad676077ed3b41887caa0f"
+    },
+    {
+      "bytes": 410,
+      "path": "benchmarks/cross-language-v1/tasks/cold-chain-release-gate-v1/hidden/semaprax/src/app.spx",
+      "sha256": "sha256:73e55722dbaba1e68936af85ac6f08fead3c3d17956bbfe34ae84955f9d027b4"
+    },
+    {
+      "bytes": 1056,
+      "path": "benchmarks/cross-language-v1/tasks/cold-chain-release-gate-v1/hidden/swift/main.swift",
+      "sha256": "sha256:8a98238c746f18d363ada48d3ea918900eb869b3d8b375f71741e2675563915e"
+    },
+    {
+      "bytes": 533,
+      "path": "benchmarks/cross-language-v1/tasks/cold-chain-release-gate-v1/hidden/typescript/index.ts",
+      "sha256": "sha256:d14043d2e03989ac3838d05b4e880cabe9a50bcde1a65f7b6c8d4ac333f5790d"
+    },
+    {
+      "bytes": 483,
+      "path": "benchmarks/cross-language-v1/tasks/cold-chain-release-gate-v1/public/c/candidate.c",
+      "sha256": "sha256:359ce2b83864b577acfcd7a29484f7d9bef59f9642dddf7615899fc81b16d8a1"
+    },
+    {
+      "bytes": 729,
+      "path": "benchmarks/cross-language-v1/tasks/cold-chain-release-gate-v1/public/c/main.c",
+      "sha256": "sha256:49963d4627d18bbe38f46f1ff6a0f7881f1cc84598cbf75c2d0602d704cf009b"
+    },
+    {
+      "bytes": 448,
+      "path": "benchmarks/cross-language-v1/tasks/cold-chain-release-gate-v1/public/java/Candidate.java",
+      "sha256": "sha256:1d7d7c04f25d03f5c8b529f1f2890833d78acf011804d65ac95af6a24f58afca"
+    },
+    {
+      "bytes": 819,
+      "path": "benchmarks/cross-language-v1/tasks/cold-chain-release-gate-v1/public/java/Main.java",
+      "sha256": "sha256:e8d03c753f3912ffcc33cbaa3972bf6741d948ae26c3d0664fe1d1057326efec"
+    },
+    {
+      "bytes": 379,
+      "path": "benchmarks/cross-language-v1/tasks/cold-chain-release-gate-v1/public/python/candidate.py",
+      "sha256": "sha256:3c2dc105c6b9a324964287f2b1a0f598a197dc459f73c5eba4093343fa6da789"
+    },
+    {
+      "bytes": 676,
+      "path": "benchmarks/cross-language-v1/tasks/cold-chain-release-gate-v1/public/python/digest.py",
+      "sha256": "sha256:3bd4e4f614a276dc3949b15237e316272fce9be861422c90c94c97aef11326be"
+    },
+    {
+      "bytes": 247,
+      "path": "benchmarks/cross-language-v1/tasks/cold-chain-release-gate-v1/public/rust/candidate.rs",
+      "sha256": "sha256:9cae4aaf9efa09a0cb1a831b6861039a74fe96ca73fc952795155734d0ebb914"
+    },
+    {
+      "bytes": 406,
+      "path": "benchmarks/cross-language-v1/tasks/cold-chain-release-gate-v1/public/rust/main.rs",
+      "sha256": "sha256:0cc31b2bfc0207e5926c9677a4f5eee9bb6a83cdaf84111b6b1428d2c096ea13"
+    },
+    {
+      "bytes": 242,
+      "path": "benchmarks/cross-language-v1/tasks/cold-chain-release-gate-v1/public/semaprax/semaprax.toml",
+      "sha256": "sha256:e9ff348736ba954b9a1922987d9a71c72cfc095bd898239f8ac94cfe82d74ea4"
+    },
+    {
+      "bytes": 354,
+      "path": "benchmarks/cross-language-v1/tasks/cold-chain-release-gate-v1/public/semaprax/src/app.spx",
+      "sha256": "sha256:b90137db57abddcbde7463139030b32a72494275c602dca6cc800553280a50f8"
+    },
+    {
+      "bytes": 283,
+      "path": "benchmarks/cross-language-v1/tasks/cold-chain-release-gate-v1/public/semaprax/src/candidate.spx",
+      "sha256": "sha256:b67e2bceaceafac97ac44655447a68912e04746ba11957e86415f1b04fd2d639"
+    },
+    {
+      "bytes": 87,
+      "path": "benchmarks/cross-language-v1/tasks/cold-chain-release-gate-v1/public/semaprax/src/tests.spx",
+      "sha256": "sha256:a71c549e372e211f83ba496b9f1dfa4b34e0858d383339434c72fc67179b77eb"
+    },
+    {
+      "bytes": 1121,
+      "path": "benchmarks/cross-language-v1/tasks/cold-chain-release-gate-v1/public/swift/main.swift",
+      "sha256": "sha256:7e0ce415f3ac9d3c6b2565239a982638d4e42c710c6856bf674e7093ff43d5da"
+    },
+    {
+      "bytes": 206,
+      "path": "benchmarks/cross-language-v1/tasks/cold-chain-release-gate-v1/public/typescript/candidate.ts",
+      "sha256": "sha256:42162e8f5c0346fdb573ff618894913f7edc5bd13babe5f7a0497750b94ec8ca"
+    },
+    {
+      "bytes": 463,
+      "path": "benchmarks/cross-language-v1/tasks/cold-chain-release-gate-v1/public/typescript/index.ts",
+      "sha256": "sha256:8addda0199abd45b76ec644ea13c753790606871ef27c6f3003ab9a2bd1ae93a"
+    },
+    {
+      "bytes": 6814,
+      "path": "benchmarks/cross-language-v1/tasks/concurrent-delta-merge-v1/EQUIVALENCE.md",
+      "sha256": "sha256:18af84a77e6425dd8588713021ff7596428924fe13c81a4977b6b36553779500"
+    },
+    {
+      "bytes": 1484,
+      "path": "benchmarks/cross-language-v1/tasks/concurrent-delta-merge-v1/hidden/c/main.c",
+      "sha256": "sha256:ff1f504afcc45e6744f69a4a6ca81fa292c5bffc5e02174e93ff0ab56375a24e"
+    },
+    {
+      "bytes": 1616,
+      "path": "benchmarks/cross-language-v1/tasks/concurrent-delta-merge-v1/hidden/java/Main.java",
+      "sha256": "sha256:9af78b522879d158e2d077bdc0aec4b1e07b5bb7b3819781dd0fe940e73a82e3"
+    },
+    {
+      "bytes": 1407,
+      "path": "benchmarks/cross-language-v1/tasks/concurrent-delta-merge-v1/hidden/python/digest.py",
+      "sha256": "sha256:2c59d3a9d2326ca5020e8fbe764b193bca308a8d5b690ae6e7e4073a3f63af7e"
+    },
+    {
+      "bytes": 1404,
+      "path": "benchmarks/cross-language-v1/tasks/concurrent-delta-merge-v1/hidden/rust/main.rs",
+      "sha256": "sha256:9effeb929a550486ecc7749c3aebeafa7c807f061c753ff0d0079e5c7837235c"
+    },
+    {
+      "bytes": 1398,
+      "path": "benchmarks/cross-language-v1/tasks/concurrent-delta-merge-v1/hidden/semaprax/src/app.spx",
+      "sha256": "sha256:23bec8fd70e0ea41b739f842804b167653effcbd599adb4f972ebe632aea8bfa"
+    },
+    {
+      "bytes": 1670,
+      "path": "benchmarks/cross-language-v1/tasks/concurrent-delta-merge-v1/hidden/swift/main.swift",
+      "sha256": "sha256:f3069d3c0338081c897dafb1526b43d7beea4188f2db897209c408d4073d556e"
+    },
+    {
+      "bytes": 1106,
+      "path": "benchmarks/cross-language-v1/tasks/concurrent-delta-merge-v1/hidden/typescript/index.ts",
+      "sha256": "sha256:d967c40ea1945b1bb07700d164ceae5d467a33ec6c6f42a6e42a8e5555fb8ec2"
+    },
+    {
+      "bytes": 674,
+      "path": "benchmarks/cross-language-v1/tasks/concurrent-delta-merge-v1/public/c/candidate.c",
+      "sha256": "sha256:f744261a44d54c09dba7296fe4ed6fcf2e789bece720c4828e2b7746c66f4971"
+    },
+    {
+      "bytes": 804,
+      "path": "benchmarks/cross-language-v1/tasks/concurrent-delta-merge-v1/public/c/main.c",
+      "sha256": "sha256:791c3b2903c79e46ff476a8601d1619ff872c1feaf1e8dc9cce1a8e4a02acbb9"
+    },
+    {
+      "bytes": 611,
+      "path": "benchmarks/cross-language-v1/tasks/concurrent-delta-merge-v1/public/java/Candidate.java",
+      "sha256": "sha256:367d63433101b3a2b57c74f33487be99da2e060fb294f6669801ad6810bf4ea5"
+    },
+    {
+      "bytes": 905,
+      "path": "benchmarks/cross-language-v1/tasks/concurrent-delta-merge-v1/public/java/Main.java",
+      "sha256": "sha256:224a613577e9f0d6c69df5f26c1825649ec9bd533a87dfa191d7a395ceecc242"
+    },
+    {
+      "bytes": 537,
+      "path": "benchmarks/cross-language-v1/tasks/concurrent-delta-merge-v1/public/python/candidate.py",
+      "sha256": "sha256:94f552899f06a668df2930d3d826120da5c9cf1531567ad91216c33a96cdbe24"
+    },
+    {
+      "bytes": 756,
+      "path": "benchmarks/cross-language-v1/tasks/concurrent-delta-merge-v1/public/python/digest.py",
+      "sha256": "sha256:a30727e3258b11bf9dd924f217ca0fac372eedd80557ac9c3a6bf31b509cec6a"
+    },
+    {
+      "bytes": 237,
+      "path": "benchmarks/cross-language-v1/tasks/concurrent-delta-merge-v1/public/rust/candidate.rs",
+      "sha256": "sha256:f420ddd46f02e394eb685e206b3fea0ba3096442dcf23cb720095fec75dbdfe4"
+    },
+    {
+      "bytes": 529,
+      "path": "benchmarks/cross-language-v1/tasks/concurrent-delta-merge-v1/public/rust/main.rs",
+      "sha256": "sha256:2c845795a8e0af2b03383282001ccf4841ba1cd6ddd5b65d0952cc0be5852614"
+    },
+    {
+      "bytes": 267,
+      "path": "benchmarks/cross-language-v1/tasks/concurrent-delta-merge-v1/public/semaprax/semaprax.toml",
+      "sha256": "sha256:91589fbe19106d06499c83f8f10cbc391f0f0d4f898936475690bd5461e5e084"
+    },
+    {
+      "bytes": 1336,
+      "path": "benchmarks/cross-language-v1/tasks/concurrent-delta-merge-v1/public/semaprax/src/app.spx",
+      "sha256": "sha256:4a084c615ce5f2eb1eccb952115558f3e8de3601cf882d18c47ef99f46532f60"
+    },
+    {
+      "bytes": 291,
+      "path": "benchmarks/cross-language-v1/tasks/concurrent-delta-merge-v1/public/semaprax/src/candidate.spx",
+      "sha256": "sha256:c3a7c145e23c55b4e0ade71f074a28c224458b56fa75394ef0658d5273c82be9"
+    },
+    {
+      "bytes": 104,
+      "path": "benchmarks/cross-language-v1/tasks/concurrent-delta-merge-v1/public/semaprax/src/tests.spx",
+      "sha256": "sha256:12e848f22a645795774a748d469137f48de0d0f390a4ccae6b9d9db5f9e52767"
+    },
+    {
+      "bytes": 1324,
+      "path": "benchmarks/cross-language-v1/tasks/concurrent-delta-merge-v1/public/swift/main.swift",
+      "sha256": "sha256:2fcd4a015c254785a7814ec5e0feceb7d36a9dc8f8234480fe545441e55a0854"
+    },
+    {
+      "bytes": 222,
+      "path": "benchmarks/cross-language-v1/tasks/concurrent-delta-merge-v1/public/typescript/candidate.ts",
+      "sha256": "sha256:95caa9efa55310ff531f240ba568ce4aa51936d6467ef89566f8447f7d24fdf9"
+    },
+    {
+      "bytes": 543,
+      "path": "benchmarks/cross-language-v1/tasks/concurrent-delta-merge-v1/public/typescript/index.ts",
+      "sha256": "sha256:4800bc5124844760ee0879688994032c47badf37e0dc1d89dff74a0d0ed0afc4"
+    },
+    {
+      "bytes": 13788,
+      "path": "benchmarks/cross-language-v1/tasks/iterative-repair-workflow-v1/EQUIVALENCE.md",
+      "sha256": "sha256:b4fd8e36cd714604e108b1289240071c295e59fb00c1dc4d222a491f0b0cd879"
+    },
+    {
+      "bytes": 1966,
+      "path": "benchmarks/cross-language-v1/tasks/iterative-repair-workflow-v1/hidden/c/main.c",
+      "sha256": "sha256:41737beac3e57a1d531d91995bc0d692f854a4eef5675f00ae886baeb3b573b5"
+    },
+    {
+      "bytes": 2152,
+      "path": "benchmarks/cross-language-v1/tasks/iterative-repair-workflow-v1/hidden/java/Main.java",
+      "sha256": "sha256:2165e018900199f9b1450c58977281b8452f9545e3ed09c2c7cef6e1a77474c8"
+    },
+    {
+      "bytes": 1861,
+      "path": "benchmarks/cross-language-v1/tasks/iterative-repair-workflow-v1/hidden/python/digest.py",
+      "sha256": "sha256:527a52cec6b3a30929a02ca6087ea75d791c1257ec2ca635e14be66b09c30e04"
+    },
+    {
+      "bytes": 1887,
+      "path": "benchmarks/cross-language-v1/tasks/iterative-repair-workflow-v1/hidden/rust/main.rs",
+      "sha256": "sha256:95a24b357e5d51c93e21d0688adb7576ca91d510fbcc5d64a32e36cffbaefc96"
+    },
+    {
+      "bytes": 1732,
+      "path": "benchmarks/cross-language-v1/tasks/iterative-repair-workflow-v1/hidden/semaprax/src/app.spx",
+      "sha256": "sha256:162c9c409b6c4625e6a4d848b08b9e2d6a5f842e677f074616dafc83aca0b13f"
+    },
+    {
+      "bytes": 2649,
+      "path": "benchmarks/cross-language-v1/tasks/iterative-repair-workflow-v1/hidden/swift/main.swift",
+      "sha256": "sha256:3aa37ce2b9da408010e794665243d1a168e221d1cbc89f1f56bb40607cea5c86"
+    },
+    {
+      "bytes": 1840,
+      "path": "benchmarks/cross-language-v1/tasks/iterative-repair-workflow-v1/hidden/typescript/index.ts",
+      "sha256": "sha256:714aeb5dcf7b6e25548867760a90af2ee5ca7311f0d04dcdc0495540232be7fc"
+    },
+    {
+      "bytes": 1641,
+      "path": "benchmarks/cross-language-v1/tasks/iterative-repair-workflow-v1/public/c/candidate.c",
+      "sha256": "sha256:d7e6ef10748a7263615568bfb45b06e383dbf421f67d29d3de08aaaf544de2f2"
+    },
+    {
+      "bytes": 977,
+      "path": "benchmarks/cross-language-v1/tasks/iterative-repair-workflow-v1/public/c/main.c",
+      "sha256": "sha256:a0229d6bd059233e26e4bda12e482f75491435c00a21c92121ff2378075c5618"
+    },
+    {
+      "bytes": 1706,
+      "path": "benchmarks/cross-language-v1/tasks/iterative-repair-workflow-v1/public/java/Candidate.java",
+      "sha256": "sha256:ca8d8e8e131f9da2d8c6033c218e76ed6d38e6571ad6b34a24cd791bc7b0dd81"
+    },
+    {
+      "bytes": 1080,
+      "path": "benchmarks/cross-language-v1/tasks/iterative-repair-workflow-v1/public/java/Main.java",
+      "sha256": "sha256:aa4795f8c61ead372a9aea484005b89c91654d83afa04cb6de73d62907104d92"
+    },
+    {
+      "bytes": 1449,
+      "path": "benchmarks/cross-language-v1/tasks/iterative-repair-workflow-v1/public/python/candidate.py",
+      "sha256": "sha256:a0fdb309e94e1f019db409079080cde7ed483c69ce08d183f4acb838b771ad9e"
+    },
+    {
+      "bytes": 911,
+      "path": "benchmarks/cross-language-v1/tasks/iterative-repair-workflow-v1/public/python/digest.py",
+      "sha256": "sha256:d7b847242afe78081dca0ae97968886ebf80b2f64a76158542174934ffa66fcc"
+    },
+    {
+      "bytes": 1884,
+      "path": "benchmarks/cross-language-v1/tasks/iterative-repair-workflow-v1/public/rust/candidate.rs",
+      "sha256": "sha256:0f6972dc057e41473fabd1b0705363f5d10036de1fb14905a9954132a9be0a72"
+    },
+    {
+      "bytes": 1285,
+      "path": "benchmarks/cross-language-v1/tasks/iterative-repair-workflow-v1/public/rust/main.rs",
+      "sha256": "sha256:75d141fcc1e213daf0d23b0c79e64ece99612399b7d7afa855a3f83278cde762"
+    },
+    {
+      "bytes": 233,
+      "path": "benchmarks/cross-language-v1/tasks/iterative-repair-workflow-v1/public/semaprax/semaprax.toml",
+      "sha256": "sha256:e5518c3dd6218e561b1dcbcdae88aecc14ad5d61d867c3e50295d307214128b5"
+    },
+    {
+      "bytes": 955,
+      "path": "benchmarks/cross-language-v1/tasks/iterative-repair-workflow-v1/public/semaprax/src/app.spx",
+      "sha256": "sha256:fde56246c0f04ecbf9a38d9f2d56b56268d39bf428ab1256bc0d165bcec118e0"
+    },
+    {
+      "bytes": 1315,
+      "path": "benchmarks/cross-language-v1/tasks/iterative-repair-workflow-v1/public/semaprax/src/candidate.spx",
+      "sha256": "sha256:8622bcefa7d1b26772299485ea0db9adaae2493816e06189b73a21459f423029"
+    },
+    {
+      "bytes": 81,
+      "path": "benchmarks/cross-language-v1/tasks/iterative-repair-workflow-v1/public/semaprax/src/tests.spx",
+      "sha256": "sha256:d1ae36b86a2dbd143205d8ae4a7467e8ef94d6cdb6333525205c943a339ddce2"
+    },
+    {
+      "bytes": 2476,
+      "path": "benchmarks/cross-language-v1/tasks/iterative-repair-workflow-v1/public/swift/main.swift",
+      "sha256": "sha256:a8965f634d919c844a9bacaa5080c705303750c94399e45528bb03d5b9f65d2d"
+    },
+    {
+      "bytes": 1437,
+      "path": "benchmarks/cross-language-v1/tasks/iterative-repair-workflow-v1/public/typescript/candidate.ts",
+      "sha256": "sha256:bb6f04c675dc6e43f9ee465a1216feb3fb4d127618b1fb39fc1ba4f13ae49cd5"
+    },
+    {
+      "bytes": 854,
+      "path": "benchmarks/cross-language-v1/tasks/iterative-repair-workflow-v1/public/typescript/index.ts",
+      "sha256": "sha256:92aae8c75309f53e17b91415f79811b48cf32ac429ae195306d9fc07b738cc30"
+    },
+    {
+      "bytes": 3734,
+      "path": "benchmarks/cross-language-v1/tasks/module-import-refactor-v1/EQUIVALENCE.md",
+      "sha256": "sha256:143452c466ac7aa720a393640b1951023f5dd3f149fe54b1ecc82d9c171f58ee"
+    },
+    {
+      "bytes": 820,
+      "path": "benchmarks/cross-language-v1/tasks/module-import-refactor-v1/hidden/c/main.c",
+      "sha256": "sha256:9bcad54be6ce039a30d0f93cad2a34c8157bb1402998beceda4ef62e4ef0a22e"
+    },
+    {
+      "bytes": 902,
+      "path": "benchmarks/cross-language-v1/tasks/module-import-refactor-v1/hidden/java/Main.java",
+      "sha256": "sha256:af22f2baf183f9e2673ca2564d8ec90e71472eca3e0b9d0c50b816a32149ccc1"
+    },
+    {
+      "bytes": 761,
+      "path": "benchmarks/cross-language-v1/tasks/module-import-refactor-v1/hidden/python/digest.py",
+      "sha256": "sha256:5115b350ba0c5798d61a7d2da999f14594d8a2457ec74e8bbcabd3986a71467e"
+    },
+    {
+      "bytes": 358,
+      "path": "benchmarks/cross-language-v1/tasks/module-import-refactor-v1/hidden/rust/main.rs",
+      "sha256": "sha256:df737a9d88b9e215d1b73089ec42d08c70d58512840a3fc19b7a929499464fa0"
+    },
+    {
+      "bytes": 371,
+      "path": "benchmarks/cross-language-v1/tasks/module-import-refactor-v1/hidden/semaprax/src/app.spx",
+      "sha256": "sha256:008d91bc6554f82074534bf3ece1da6f3c0dc4610e983ae3fa204a0685879ae3"
+    },
+    {
+      "bytes": 1191,
+      "path": "benchmarks/cross-language-v1/tasks/module-import-refactor-v1/hidden/swift/main.swift",
+      "sha256": "sha256:f5d26d3c2c2bdfd5db27c5ed8b13639074aa1bb99ea64a8d38c98b61048b0bda"
+    },
+    {
+      "bytes": 435,
+      "path": "benchmarks/cross-language-v1/tasks/module-import-refactor-v1/hidden/typescript/index.ts",
+      "sha256": "sha256:0110a02cec383a3125d426ae743652e72b2bbfff069db63bc59390d3db3210e4"
+    },
+    {
+      "bytes": 737,
+      "path": "benchmarks/cross-language-v1/tasks/module-import-refactor-v1/public/c/candidate.c",
+      "sha256": "sha256:7204855a44fe66bad2721a574b67edc06bb0ecb9409f7b022b695d3d215ab8d8"
+    },
+    {
+      "bytes": 341,
+      "path": "benchmarks/cross-language-v1/tasks/module-import-refactor-v1/public/c/helper.c",
+      "sha256": "sha256:b1808bfd908fb0ecc05a8a8b6d52016a1c711c5f8035e0bf4ac9b5ba1a80d380"
+    },
+    {
+      "bytes": 672,
+      "path": "benchmarks/cross-language-v1/tasks/module-import-refactor-v1/public/c/main.c",
+      "sha256": "sha256:168a559e633f6fd48f30b68106cc4373340cc9a8916571588f63b2a433fd2d50"
+    },
+    {
+      "bytes": 589,
+      "path": "benchmarks/cross-language-v1/tasks/module-import-refactor-v1/public/java/Candidate.java",
+      "sha256": "sha256:035763b6f7b5a15dea9e40bd21334ee51e5af0364060bb819f73a9d11db64559"
+    },
+    {
+      "bytes": 357,
+      "path": "benchmarks/cross-language-v1/tasks/module-import-refactor-v1/public/java/Helper.java",
+      "sha256": "sha256:e3e0a791fb7a352dd64b1f745fc67588cc72ea9b0e98a847424521a7ad21d6e8"
+    },
+    {
+      "bytes": 762,
+      "path": "benchmarks/cross-language-v1/tasks/module-import-refactor-v1/public/java/Main.java",
+      "sha256": "sha256:6e1725de255f5b17a5cbbfa13a902c70cea6124c60d9993a59ccdab1b8db2a1e"
+    },
+    {
+      "bytes": 584,
+      "path": "benchmarks/cross-language-v1/tasks/module-import-refactor-v1/public/python/candidate.py",
+      "sha256": "sha256:85397455f4200089f622ac713e6cf90ed8abb56c0373556d419702e47503be04"
+    },
+    {
+      "bytes": 617,
+      "path": "benchmarks/cross-language-v1/tasks/module-import-refactor-v1/public/python/digest.py",
+      "sha256": "sha256:75f0fabfe0de4fe3bba0afcc4a011e0eb902248cd97b232cf7fa8c09091564ee"
+    },
+    {
+      "bytes": 192,
+      "path": "benchmarks/cross-language-v1/tasks/module-import-refactor-v1/public/python/helper.py",
+      "sha256": "sha256:f1d74815c578de58fc2b6c26b86a66d85d5689b24c3de86da3b1c0652eaf5aa7"
+    },
+    {
+      "bytes": 227,
+      "path": "benchmarks/cross-language-v1/tasks/module-import-refactor-v1/public/rust/candidate.rs",
+      "sha256": "sha256:b4f62400f2c45fdd5316904d98457932ec2d37e222bd811cd369df2bf0b8e0f5"
+    },
+    {
+      "bytes": 95,
+      "path": "benchmarks/cross-language-v1/tasks/module-import-refactor-v1/public/rust/helper.rs",
+      "sha256": "sha256:2af601bc2aec5288c91179272b327f03637a15a11a0dc1d2cb3bd663d66bbf80"
+    },
+    {
+      "bytes": 343,
+      "path": "benchmarks/cross-language-v1/tasks/module-import-refactor-v1/public/rust/main.rs",
+      "sha256": "sha256:2e657a08c5f37ba8bef6d539944bbd280045ce796befa0c3e323fd635d2922be"
+    },
+    {
+      "bytes": 248,
+      "path": "benchmarks/cross-language-v1/tasks/module-import-refactor-v1/public/semaprax/semaprax.toml",
+      "sha256": "sha256:9363b9b23d2d6065bbefccf4f0ec2bbf8f438b5df1ac5146116a96573b33d21c"
+    },
+    {
+      "bytes": 375,
+      "path": "benchmarks/cross-language-v1/tasks/module-import-refactor-v1/public/semaprax/src/app.spx",
+      "sha256": "sha256:d1028d11dfc32f3c39ce661ec896d1e763760312acbd661307426927ea167aae"
+    },
+    {
+      "bytes": 347,
+      "path": "benchmarks/cross-language-v1/tasks/module-import-refactor-v1/public/semaprax/src/candidate.spx",
+      "sha256": "sha256:3b93f6052db81d462c0eabf7ee6b6b81d4ec36d4711b6b8a55ed0ec647e2dbb1"
+    },
+    {
+      "bytes": 160,
+      "path": "benchmarks/cross-language-v1/tasks/module-import-refactor-v1/public/semaprax/src/helper.spx",
+      "sha256": "sha256:e1d1e7490f06fdcfc661299e0969c07aa65e918ec324abd57f03265ad116fa18"
+    },
+    {
+      "bytes": 81,
+      "path": "benchmarks/cross-language-v1/tasks/module-import-refactor-v1/public/semaprax/src/tests.spx",
+      "sha256": "sha256:1df153f2d5c007ef6becd3738c87fced3edcf190616d417c4b130d67a0455967"
+    },
+    {
+      "bytes": 1483,
+      "path": "benchmarks/cross-language-v1/tasks/module-import-refactor-v1/public/swift/main.swift",
+      "sha256": "sha256:34b08df5008c9f88e482ee4c35b68f7224919964a1daa77b08f38909b2936f8a"
+    },
+    {
+      "bytes": 256,
+      "path": "benchmarks/cross-language-v1/tasks/module-import-refactor-v1/public/typescript/candidate.ts",
+      "sha256": "sha256:76471f6abfda72223e657170662770bbf2b4808182acf757d4c865f00647c8e5"
+    },
+    {
+      "bytes": 127,
+      "path": "benchmarks/cross-language-v1/tasks/module-import-refactor-v1/public/typescript/helper.ts",
+      "sha256": "sha256:5a143e8f5b2fe38afc67ae9fabe158fb3227c1cb9212e2e114d856b1f5a0c398"
+    },
+    {
+      "bytes": 444,
+      "path": "benchmarks/cross-language-v1/tasks/module-import-refactor-v1/public/typescript/index.ts",
+      "sha256": "sha256:851db107ea3eaadbe40eec37af06b654cf24220e509c35b41365a00b01bc81fe"
+    },
+    {
+      "bytes": 4674,
+      "path": "benchmarks/cross-language-v1/tasks/owned-byte-sentinel-balance-v1/EQUIVALENCE.md",
+      "sha256": "sha256:898c2889c967272c1f0541662d7bca84a1d7a03975aa2396d9d6e084bd5a14e5"
+    },
+    {
+      "bytes": 831,
+      "path": "benchmarks/cross-language-v1/tasks/owned-byte-sentinel-balance-v1/hidden/c/main.c",
+      "sha256": "sha256:4c9431615965c13a7453bda99463a53f3ad10398f838ee16550387a9ba8fff60"
+    },
+    {
+      "bytes": 809,
+      "path": "benchmarks/cross-language-v1/tasks/owned-byte-sentinel-balance-v1/hidden/java/Main.java",
+      "sha256": "sha256:5a9c9071c332a62baef18ea5e21dcbe0de561679fc571056a770680352d0206e"
+    },
+    {
+      "bytes": 693,
+      "path": "benchmarks/cross-language-v1/tasks/owned-byte-sentinel-balance-v1/hidden/python/digest.py",
+      "sha256": "sha256:0c9b8ca90eab71362103ea50e5c40fe3af127b4cc277d3172d5263ec7e7aa442"
+    },
+    {
+      "bytes": 316,
+      "path": "benchmarks/cross-language-v1/tasks/owned-byte-sentinel-balance-v1/hidden/rust/main.rs",
+      "sha256": "sha256:ca6b0d3c8505b4904cc55a19c7f734204f94d9051da955585f4a7bf59e0c1875"
+    },
+    {
+      "bytes": 380,
+      "path": "benchmarks/cross-language-v1/tasks/owned-byte-sentinel-balance-v1/hidden/semaprax/src/entry.spx",
+      "sha256": "sha256:7d883368f77658b3412c19d2d4aeb2f9ee4b796154262a2da38a87aea592b7ba"
+    },
+    {
+      "bytes": 84,
+      "path": "benchmarks/cross-language-v1/tasks/owned-byte-sentinel-balance-v1/hidden/semaprax/src/tests.spx",
+      "sha256": "sha256:621ed361b6d27d70b5e7a7cfadc9020587ec1ab364350fdbe2a70b24d4b3f9f7"
+    },
+    {
+      "bytes": 1216,
+      "path": "benchmarks/cross-language-v1/tasks/owned-byte-sentinel-balance-v1/hidden/swift/main.swift",
+      "sha256": "sha256:bc35afac1dda6a611d9f9c4fbcb0c309787b25cf888ee5770168de79f41e0f4e"
+    },
+    {
+      "bytes": 421,
+      "path": "benchmarks/cross-language-v1/tasks/owned-byte-sentinel-balance-v1/hidden/typescript/index.ts",
+      "sha256": "sha256:f8af429bd519d0a7de28debe4c6c40bbd151e2dc03f9e7f85a8702ba7c0e1c2a"
+    },
+    {
+      "bytes": 1137,
+      "path": "benchmarks/cross-language-v1/tasks/owned-byte-sentinel-balance-v1/public/c/candidate.c",
+      "sha256": "sha256:89cd881fec5994fdc2dce14fa70f8c167e6df5b1433ae0c9cd8ff8fbb500405f"
+    },
+    {
+      "bytes": 783,
+      "path": "benchmarks/cross-language-v1/tasks/owned-byte-sentinel-balance-v1/public/c/main.c",
+      "sha256": "sha256:3e657522427d9273da85b7ee4c049b1147667dfa126848964d7f5dfa4b809e0a"
+    },
+    {
+      "bytes": 1218,
+      "path": "benchmarks/cross-language-v1/tasks/owned-byte-sentinel-balance-v1/public/java/Candidate.java",
+      "sha256": "sha256:677ef639cc12fe22d78caaf2ba836237f780022957e0b099f62b3c1aea4152c8"
+    },
+    {
+      "bytes": 747,
+      "path": "benchmarks/cross-language-v1/tasks/owned-byte-sentinel-balance-v1/public/java/Main.java",
+      "sha256": "sha256:7675e1acae2a4d90727b616c5dc19264bb5681bd7d62d15aa9bb020f37d043a3"
+    },
+    {
+      "bytes": 863,
+      "path": "benchmarks/cross-language-v1/tasks/owned-byte-sentinel-balance-v1/public/python/candidate.py",
+      "sha256": "sha256:256f46dee6aff79844e65efbadf207cacaac98a8f18f46b76b18cfaa9a7a53b9"
+    },
+    {
+      "bytes": 597,
+      "path": "benchmarks/cross-language-v1/tasks/owned-byte-sentinel-balance-v1/public/python/digest.py",
+      "sha256": "sha256:640b85c9b6c7416da094a6b38964ec3bd667c8dc56ad101bceee4be0bac7cbc9"
+    },
+    {
+      "bytes": 432,
+      "path": "benchmarks/cross-language-v1/tasks/owned-byte-sentinel-balance-v1/public/rust/candidate.rs",
+      "sha256": "sha256:cdeb33ab934b2549aa024e2417f1472c817603208c64e69f4d4249f2e1ceb15f"
+    },
+    {
+      "bytes": 340,
+      "path": "benchmarks/cross-language-v1/tasks/owned-byte-sentinel-balance-v1/public/rust/main.rs",
+      "sha256": "sha256:c0e011aa5db0f1009d4c96a11ea8032122beb5193bdc8b25791c7fd35bf720e1"
+    },
+    {
+      "bytes": 251,
+      "path": "benchmarks/cross-language-v1/tasks/owned-byte-sentinel-balance-v1/public/semaprax/semaprax.toml",
+      "sha256": "sha256:bce6550f937ef94640554443048121199618f3074eb4fcdce3117b4f17892a00"
+    },
+    {
+      "bytes": 1193,
+      "path": "benchmarks/cross-language-v1/tasks/owned-byte-sentinel-balance-v1/public/semaprax/src/app.spx",
+      "sha256": "sha256:8a631463b4c9d5369c4190bb4a90493ea35fc0dba9feec2f4b0aa08f714fc509"
+    },
+    {
+      "bytes": 428,
+      "path": "benchmarks/cross-language-v1/tasks/owned-byte-sentinel-balance-v1/public/semaprax/src/entry.spx",
+      "sha256": "sha256:10cd451898ed94930de76cd6a46b496ebbb629de854862122ad0a448680a0b59"
+    },
+    {
+      "bytes": 84,
+      "path": "benchmarks/cross-language-v1/tasks/owned-byte-sentinel-balance-v1/public/semaprax/src/tests.spx",
+      "sha256": "sha256:621ed361b6d27d70b5e7a7cfadc9020587ec1ab364350fdbe2a70b24d4b3f9f7"
+    },
+    {
+      "bytes": 1567,
+      "path": "benchmarks/cross-language-v1/tasks/owned-byte-sentinel-balance-v1/public/swift/main.swift",
+      "sha256": "sha256:8d05f4eb0cbad2b384637bc5cf6b12da72b04265e67afc2d9c596e342f7f9f02"
+    },
+    {
+      "bytes": 546,
+      "path": "benchmarks/cross-language-v1/tasks/owned-byte-sentinel-balance-v1/public/typescript/candidate.ts",
+      "sha256": "sha256:07f14512d316a644ed3c4285bc508be4368ef65796903f37706b6ff01baf68b6"
+    },
+    {
+      "bytes": 461,
+      "path": "benchmarks/cross-language-v1/tasks/owned-byte-sentinel-balance-v1/public/typescript/index.ts",
+      "sha256": "sha256:d63573380820ed9db42622353a41ee6b85b7bd980b4122c7811b05f9b8c9c8a8"
+    },
+    {
+      "bytes": 8934,
+      "path": "benchmarks/cross-language-v1/tasks/sequence-digest-v1/EQUIVALENCE.md",
+      "sha256": "sha256:662820199389b3691b0b7fa44de109565bef1db9e2e79e727285daa9a4f33e60"
+    },
+    {
+      "bytes": 2606,
+      "path": "benchmarks/cross-language-v1/tasks/sequence-digest-v1/hidden/c/main.c",
+      "sha256": "sha256:82470751ff26650e7ed62406ccc1c3248a5a5e369e00cc429fb4abb9d37e43bd"
+    },
+    {
+      "bytes": 2647,
+      "path": "benchmarks/cross-language-v1/tasks/sequence-digest-v1/hidden/java/Main.java",
+      "sha256": "sha256:1366b0b8f2e10d168ee4f3f6b2e6bc353cd45ecf7b53f1ec244ddf47309e2f08"
+    },
+    {
+      "bytes": 2297,
+      "path": "benchmarks/cross-language-v1/tasks/sequence-digest-v1/hidden/python/digest.py",
+      "sha256": "sha256:e37cc4bfc095fe0d26f5b4240d7e6dbbf39c1cecd8b8abb60da87d51bec01351"
+    },
+    {
+      "bytes": 2105,
+      "path": "benchmarks/cross-language-v1/tasks/sequence-digest-v1/hidden/rust/main.rs",
+      "sha256": "sha256:ac48691557c944028d9bcdae74ba7c8a9d733fb95995dc24cb9b2134f8becab4"
+    },
+    {
+      "bytes": 2483,
+      "path": "benchmarks/cross-language-v1/tasks/sequence-digest-v1/hidden/semaprax/digest.spx",
+      "sha256": "sha256:b012b353d3d01b83d5694c5d62aeeddda91b3a0a9e4590403ec40de3b2bd960f"
+    },
+    {
+      "bytes": 2353,
+      "path": "benchmarks/cross-language-v1/tasks/sequence-digest-v1/hidden/swift/main.swift",
+      "sha256": "sha256:6fbd2b075067bc82814f919f6a9fb8f99a5a8aca459dc843f8948f66a40c865c"
+    },
+    {
+      "bytes": 2407,
+      "path": "benchmarks/cross-language-v1/tasks/sequence-digest-v1/hidden/typescript/index.ts",
+      "sha256": "sha256:e2b165f87ed4372b89437c9a0a9eb91d368b77b6415cd23cfebb5427cf874c8d"
+    },
+    {
+      "bytes": 2364,
+      "path": "benchmarks/cross-language-v1/tasks/sequence-digest-v1/public/c/main.c",
+      "sha256": "sha256:5bd432bc23bc9b7e96f6bf745a14a2df3b67424d804f0b8f6184d0c77d23822c"
+    },
+    {
+      "bytes": 2302,
+      "path": "benchmarks/cross-language-v1/tasks/sequence-digest-v1/public/java/Main.java",
+      "sha256": "sha256:694589826fa2d6c4f1b00cf7754ae36c3d58e5ff4a2ba4a0a355c19109cfdb14"
+    },
+    {
+      "bytes": 2010,
+      "path": "benchmarks/cross-language-v1/tasks/sequence-digest-v1/public/python/digest.py",
+      "sha256": "sha256:3633c358db84cc7394f1bcbd8937045f65e83c6e9ea676171035621d4f6520eb"
+    },
+    {
+      "bytes": 1821,
+      "path": "benchmarks/cross-language-v1/tasks/sequence-digest-v1/public/rust/main.rs",
+      "sha256": "sha256:9e3989545e035f748c7dae46c0255dcfb9d950028912b65eaf292498c8615ba9"
+    },
+    {
+      "bytes": 2405,
+      "path": "benchmarks/cross-language-v1/tasks/sequence-digest-v1/public/semaprax/digest.spx",
+      "sha256": "sha256:4e04ca027289c4c9dab1ce7798ebeae842c5230f1b58b9710d6ffa0851324b59"
+    },
+    {
+      "bytes": 2084,
+      "path": "benchmarks/cross-language-v1/tasks/sequence-digest-v1/public/swift/main.swift",
+      "sha256": "sha256:2ae015766280770dd965e1d4e8e4c621f9b929cc0c843b4bbb490d967c725f49"
+    },
+    {
+      "bytes": 2178,
+      "path": "benchmarks/cross-language-v1/tasks/sequence-digest-v1/public/typescript/index.ts",
+      "sha256": "sha256:1fcf0d58d57dc13c5425987411457a5670d04ad27f89a4176585866bbaca0246"
+    },
+    {
+      "bytes": 3682,
+      "path": "benchmarks/cross-language-v1/tasks/stable-dispatch-order-v1/EQUIVALENCE.md",
+      "sha256": "sha256:51054581cb0ad58ae3ebdfd1a87849d99d599e70d792fb56bd111973aed015ed"
+    },
+    {
+      "bytes": 834,
+      "path": "benchmarks/cross-language-v1/tasks/stable-dispatch-order-v1/hidden/c/main.c",
+      "sha256": "sha256:1ecc282d36c8f4a12241f9833c2155f0b90c7452483775cbda7869cd7af6883f"
+    },
+    {
+      "bytes": 922,
+      "path": "benchmarks/cross-language-v1/tasks/stable-dispatch-order-v1/hidden/java/Main.java",
+      "sha256": "sha256:9c1cf18a5ef3687264b74573ea03a0ed8441433c70454d61a759db4729a6d4df"
+    },
+    {
+      "bytes": 773,
+      "path": "benchmarks/cross-language-v1/tasks/stable-dispatch-order-v1/hidden/python/digest.py",
+      "sha256": "sha256:13eff73f6e9a29ed1edfbadc9f3e1ca312f6932ca83ba27b7426d05ea4da3eef"
+    },
+    {
+      "bytes": 467,
+      "path": "benchmarks/cross-language-v1/tasks/stable-dispatch-order-v1/hidden/rust/main.rs",
+      "sha256": "sha256:a7a34b733fa670f6d999ad0fe189ca898ec2bce1da5bf5f99486df6e2482c7ee"
+    },
+    {
+      "bytes": 416,
+      "path": "benchmarks/cross-language-v1/tasks/stable-dispatch-order-v1/hidden/semaprax/src/app.spx",
+      "sha256": "sha256:6f6cc46c6c221836c305ecf802dcf71ba792918e0bcdbd8e40b8521902fe4cc1"
+    },
+    {
+      "bytes": 1148,
+      "path": "benchmarks/cross-language-v1/tasks/stable-dispatch-order-v1/hidden/swift/main.swift",
+      "sha256": "sha256:65fc9f7a756f6e8b7812fc999bef05b8838bd33749b354d6971aa76f6e726fc8"
+    },
+    {
+      "bytes": 495,
+      "path": "benchmarks/cross-language-v1/tasks/stable-dispatch-order-v1/hidden/typescript/index.ts",
+      "sha256": "sha256:cb0e04c88e3e0973f2789830d42412fcbb65e14751cb38bcbfc3566df5fd3452"
+    },
+    {
+      "bytes": 792,
+      "path": "benchmarks/cross-language-v1/tasks/stable-dispatch-order-v1/public/c/candidate.c",
+      "sha256": "sha256:6693332aa5ff480ee83f9ce38778c06ee329c102a6ca2a56a275e458eae16dc1"
+    },
+    {
+      "bytes": 715,
+      "path": "benchmarks/cross-language-v1/tasks/stable-dispatch-order-v1/public/c/main.c",
+      "sha256": "sha256:8258c9faccd1a8652c31b7f19e7c16ca0d33e317fb7adaa464c4817063b53058"
+    },
+    {
+      "bytes": 623,
+      "path": "benchmarks/cross-language-v1/tasks/stable-dispatch-order-v1/public/java/Candidate.java",
+      "sha256": "sha256:2c3e3667a08dc6108569fb84d9f752231e2566306f7b530d1d9eff8588b6059d"
+    },
+    {
+      "bytes": 805,
+      "path": "benchmarks/cross-language-v1/tasks/stable-dispatch-order-v1/public/java/Main.java",
+      "sha256": "sha256:55beb6a78a7da069f3f2b4d5c7170d83031528a5ff93c7580f0b63fc3d85a74d"
+    },
+    {
+      "bytes": 630,
+      "path": "benchmarks/cross-language-v1/tasks/stable-dispatch-order-v1/public/python/candidate.py",
+      "sha256": "sha256:1f8f20e0396a5be06d4d6911700277f3a513f0c0e0751e180f72fda839b856b6"
+    },
+    {
+      "bytes": 661,
+      "path": "benchmarks/cross-language-v1/tasks/stable-dispatch-order-v1/public/python/digest.py",
+      "sha256": "sha256:b831b7d1d8ec6343c20d53d4f654f36b20fdc2afc299eb79d6c5ac3659cc3e80"
+    },
+    {
+      "bytes": 493,
+      "path": "benchmarks/cross-language-v1/tasks/stable-dispatch-order-v1/public/rust/candidate.rs",
+      "sha256": "sha256:b5a95f44efc29472afd5c23d858fd222c5b00ed4dd1473d6207bf7cfd7c1d36c"
+    },
+    {
+      "bytes": 340,
+      "path": "benchmarks/cross-language-v1/tasks/stable-dispatch-order-v1/public/rust/main.rs",
+      "sha256": "sha256:34c0bce0b78defacdd8d339ba135d9bf8001c514109d317e38518259982faeae"
+    },
+    {
+      "bytes": 227,
+      "path": "benchmarks/cross-language-v1/tasks/stable-dispatch-order-v1/public/semaprax/semaprax.toml",
+      "sha256": "sha256:a009c36d4688789fb0ed8cc4a981daa42e5fbfb0f045bb3393f311334787bcbe"
+    },
+    {
+      "bytes": 355,
+      "path": "benchmarks/cross-language-v1/tasks/stable-dispatch-order-v1/public/semaprax/src/app.spx",
+      "sha256": "sha256:4309bdbafda771f063f92a5d40cb3bc8affde60f19a342351d38180e9b0ba6de"
+    },
+    {
+      "bytes": 449,
+      "path": "benchmarks/cross-language-v1/tasks/stable-dispatch-order-v1/public/semaprax/src/candidate.spx",
+      "sha256": "sha256:6e0d26c8ad2b2e517e6ea660d08f54e453d9a7c1e0cc3525b01fc3f3bd6d9e61"
+    },
+    {
+      "bytes": 85,
+      "path": "benchmarks/cross-language-v1/tasks/stable-dispatch-order-v1/public/semaprax/src/tests.spx",
+      "sha256": "sha256:114c3aec973ee009071ca001a4a29fd886511c3929731640226e0d10b4f9eab8"
+    },
+    {
+      "bytes": 1291,
+      "path": "benchmarks/cross-language-v1/tasks/stable-dispatch-order-v1/public/swift/main.swift",
+      "sha256": "sha256:bf6f1bc2a133a2145e98c93c555ef64fda58720101a68a129708e66f433d6445"
+    },
+    {
+      "bytes": 362,
+      "path": "benchmarks/cross-language-v1/tasks/stable-dispatch-order-v1/public/typescript/candidate.ts",
+      "sha256": "sha256:14c9e6f8c270186543ac5048809dfa0212972aa0c1c8c410bacc9f82c69ba2e6"
+    },
+    {
+      "bytes": 468,
+      "path": "benchmarks/cross-language-v1/tasks/stable-dispatch-order-v1/public/typescript/index.ts",
+      "sha256": "sha256:f81e386eb7469b830ea2bd1d00b7c7dc690fd776fd5ddfb2171f2bc24fb4809c"
+    },
+    {
+      "bytes": 6034,
+      "path": "benchmarks/cross-language-v1/tasks/stale-edit-preservation-v1/EQUIVALENCE.md",
+      "sha256": "sha256:87327bf8cf64ab1a1c7a4bc1d2cdb5a0eb20f5aaef7dcb9e142175344c5dee2d"
+    },
+    {
+      "bytes": 930,
+      "path": "benchmarks/cross-language-v1/tasks/stale-edit-preservation-v1/hidden/c/main.c",
+      "sha256": "sha256:8a023f14df4f5047796285fd7b3914a732b806eb607a23cc1ef8e3f7c3c7aad0"
+    },
+    {
+      "bytes": 1020,
+      "path": "benchmarks/cross-language-v1/tasks/stale-edit-preservation-v1/hidden/java/Main.java",
+      "sha256": "sha256:d1cabc84b5c45056048db8d4bff75dd007a1e30be589fc602deaabe5d99ba550"
+    },
+    {
+      "bytes": 881,
+      "path": "benchmarks/cross-language-v1/tasks/stale-edit-preservation-v1/hidden/python/digest.py",
+      "sha256": "sha256:d332ea492a0163c2ccd5b014e34ed6a1a95d4da2dd06553ff28d48f6697a6208"
+    },
+    {
+      "bytes": 456,
+      "path": "benchmarks/cross-language-v1/tasks/stale-edit-preservation-v1/hidden/rust/main.rs",
+      "sha256": "sha256:ef5b1d976e44e051d8e1d2c1e3798d2c3b807e5826d9a6d57a724d5c448b7db8"
+    },
+    {
+      "bytes": 454,
+      "path": "benchmarks/cross-language-v1/tasks/stale-edit-preservation-v1/hidden/semaprax/src/app.spx",
+      "sha256": "sha256:c53526398980189b130855f066f1e8c9968fe3b549ef1fad6788c2996a7693f4"
+    },
+    {
+      "bytes": 1085,
+      "path": "benchmarks/cross-language-v1/tasks/stale-edit-preservation-v1/hidden/swift/main.swift",
+      "sha256": "sha256:58a14caf84fe876a7ec24aecb08c2ba2cd8196c6fdf5ad86fd38160ba7f1e7d3"
+    },
+    {
+      "bytes": 544,
+      "path": "benchmarks/cross-language-v1/tasks/stale-edit-preservation-v1/hidden/typescript/index.ts",
+      "sha256": "sha256:455b803beb715421c45975a0d914453fe33bb9bd9d202986d681718f29eb1401"
+    },
+    {
+      "bytes": 726,
+      "path": "benchmarks/cross-language-v1/tasks/stale-edit-preservation-v1/public/c/candidate.c",
+      "sha256": "sha256:998e4b24fef28cb0c0635932fc5251b0986c8d4974ad6aeea64eae1d62650b5e"
+    },
+    {
+      "bytes": 580,
+      "path": "benchmarks/cross-language-v1/tasks/stale-edit-preservation-v1/public/c/main.c",
+      "sha256": "sha256:9a1dd9dcfefc0a034179ce70b9e6bf340a74b60be492ad9f0c117e1161e7072d"
+    },
+    {
+      "bytes": 702,
+      "path": "benchmarks/cross-language-v1/tasks/stale-edit-preservation-v1/public/java/Candidate.java",
+      "sha256": "sha256:fb7365a39fa06f9cfcf9a460333b577206c3685e4adb3b47a08e717514345bc5"
+    },
+    {
+      "bytes": 657,
+      "path": "benchmarks/cross-language-v1/tasks/stale-edit-preservation-v1/public/java/Main.java",
+      "sha256": "sha256:0908f12f5b23ee557fa0fb570ff7197af9770a5c522044acbcfd0b5550ca9d70"
+    },
+    {
+      "bytes": 587,
+      "path": "benchmarks/cross-language-v1/tasks/stale-edit-preservation-v1/public/python/candidate.py",
+      "sha256": "sha256:60ff8fd09b30bc5a386ac60abc4697c0c77935f610e6f5571976387475a6653e"
+    },
+    {
+      "bytes": 531,
+      "path": "benchmarks/cross-language-v1/tasks/stale-edit-preservation-v1/public/python/digest.py",
+      "sha256": "sha256:a8279b0cd816c5df04c665726c182a8c8469165ade174d7e7fe7c27f911b7e54"
+    },
+    {
+      "bytes": 559,
+      "path": "benchmarks/cross-language-v1/tasks/stale-edit-preservation-v1/public/rust/candidate.rs",
+      "sha256": "sha256:2788e4fe136d00bfa1e3aa29f2c03dd43b803a993b77aef017476b8cc21f0d4c"
+    },
+    {
+      "bytes": 267,
+      "path": "benchmarks/cross-language-v1/tasks/stale-edit-preservation-v1/public/rust/main.rs",
+      "sha256": "sha256:55591f04d369c2abf372ff0b570fc5e4e337983d623047417a71c40c3141e943"
+    },
+    {
+      "bytes": 229,
+      "path": "benchmarks/cross-language-v1/tasks/stale-edit-preservation-v1/public/semaprax/semaprax.toml",
+      "sha256": "sha256:e14f9efff58b37ee87739f671b0c05de2d92cd9545250d370b7c491cc5909c1c"
+    },
+    {
+      "bytes": 284,
+      "path": "benchmarks/cross-language-v1/tasks/stale-edit-preservation-v1/public/semaprax/src/app.spx",
+      "sha256": "sha256:5b55881b7db706cd76553f841b8d35a2bf3074af2f8feab9ee3c5ef287c0667c"
+    },
+    {
+      "bytes": 514,
+      "path": "benchmarks/cross-language-v1/tasks/stale-edit-preservation-v1/public/semaprax/src/candidate.spx",
+      "sha256": "sha256:461a6e7d49303bc48a7d142b20347eb97ed24eb0ec0da48ff29040d094146b39"
+    },
+    {
+      "bytes": 79,
+      "path": "benchmarks/cross-language-v1/tasks/stale-edit-preservation-v1/public/semaprax/src/tests.spx",
+      "sha256": "sha256:4dc7b09ee3ba62546da41ae81f2351cf1b282d771cbd9c166791f2e28cc59079"
+    },
+    {
+      "bytes": 1383,
+      "path": "benchmarks/cross-language-v1/tasks/stale-edit-preservation-v1/public/swift/main.swift",
+      "sha256": "sha256:7ce5bcd0af24ab91c86a9773ba573393627c951f3601f5a201c9a3b67ff9ff17"
+    },
+    {
+      "bytes": 569,
+      "path": "benchmarks/cross-language-v1/tasks/stale-edit-preservation-v1/public/typescript/candidate.ts",
+      "sha256": "sha256:b34373d11563e9103d7ce61ce9ac8d3b3fb3a3627a2bd1b55941493ce968aa6e"
+    },
+    {
+      "bytes": 354,
+      "path": "benchmarks/cross-language-v1/tasks/stale-edit-preservation-v1/public/typescript/index.ts",
+      "sha256": "sha256:1c8b04a219163dc3ff7d12293afab5cb0dea0e0b5c3ea9d38a871441d5828648"
+    },
+    {
+      "bytes": 4394,
+      "path": "benchmarks/cross-language-v1/tasks/structured-input-error-handling-v1/EQUIVALENCE.md",
+      "sha256": "sha256:4ffff112ae54f5490283ff57463cc9879b2424d51c6aa0d45470b5d815a276f7"
+    },
+    {
+      "bytes": 1038,
+      "path": "benchmarks/cross-language-v1/tasks/structured-input-error-handling-v1/hidden/c/main.c",
+      "sha256": "sha256:f98a635bdac0ebe6ac331e33101d03d41f63aacd1b87d023e738872ab1f0ceeb"
+    },
+    {
+      "bytes": 1161,
+      "path": "benchmarks/cross-language-v1/tasks/structured-input-error-handling-v1/hidden/java/Main.java",
+      "sha256": "sha256:46fcae88e878ef5b7993e0d2e38fe353641084548683b3a8958a5192dd9fce49"
+    },
+    {
+      "bytes": 958,
+      "path": "benchmarks/cross-language-v1/tasks/structured-input-error-handling-v1/hidden/python/digest.py",
+      "sha256": "sha256:a75a6f16b343c1763ca67219e87d1e33c4b8ae10956daad0df09225e8b55952e"
+    },
+    {
+      "bytes": 439,
+      "path": "benchmarks/cross-language-v1/tasks/structured-input-error-handling-v1/hidden/rust/main.rs",
+      "sha256": "sha256:5655b2a2952e84495f3ccfd40c59ccd29e0c9cb1d190198d2ad921d30ecf3bd7"
+    },
+    {
+      "bytes": 508,
+      "path": "benchmarks/cross-language-v1/tasks/structured-input-error-handling-v1/hidden/semaprax/src/app.spx",
+      "sha256": "sha256:5ba8bc9b5f2246b59a1441a2e0aeb9e51654a9227c08a17bd54e8df8d04bfef5"
+    },
+    {
+      "bytes": 1222,
+      "path": "benchmarks/cross-language-v1/tasks/structured-input-error-handling-v1/hidden/swift/main.swift",
+      "sha256": "sha256:2aca9cea9239d7a77b9b1818546649f2e953d730def00a1df3cfce8a5bc8c49b"
+    },
+    {
+      "bytes": 580,
+      "path": "benchmarks/cross-language-v1/tasks/structured-input-error-handling-v1/hidden/typescript/index.ts",
+      "sha256": "sha256:563669334d0843b98b60f88dd543fd49acc35dd24671dbb282c2616261526bde"
+    },
+    {
+      "bytes": 641,
+      "path": "benchmarks/cross-language-v1/tasks/structured-input-error-handling-v1/public/c/candidate.c",
+      "sha256": "sha256:577dae935bc6f8eb8bd48757ed61781a59876df23f96f528b5466e68bb8721a8"
+    },
+    {
+      "bytes": 910,
+      "path": "benchmarks/cross-language-v1/tasks/structured-input-error-handling-v1/public/c/main.c",
+      "sha256": "sha256:64ef10e25ac08f0c8be633dfd826414846cce6d5a6cbbe96b18ffc726d39f8e7"
+    },
+    {
+      "bytes": 726,
+      "path": "benchmarks/cross-language-v1/tasks/structured-input-error-handling-v1/public/java/Candidate.java",
+      "sha256": "sha256:53a4577a8ce5d9e1939010f818f387f937b8696c392501b502e7c6c7d5b840a7"
+    },
+    {
+      "bytes": 923,
+      "path": "benchmarks/cross-language-v1/tasks/structured-input-error-handling-v1/public/java/Main.java",
+      "sha256": "sha256:9e907cd36272bda4dbea8f5b85e13390484355a49eb2467fe74133971b546ba0"
+    },
+    {
+      "bytes": 618,
+      "path": "benchmarks/cross-language-v1/tasks/structured-input-error-handling-v1/public/python/candidate.py",
+      "sha256": "sha256:a1ff764fe6d69a56bc848bd165294b4276fbd66bc3302c2e204a8bb13e9830c2"
+    },
+    {
+      "bytes": 713,
+      "path": "benchmarks/cross-language-v1/tasks/structured-input-error-handling-v1/public/python/digest.py",
+      "sha256": "sha256:aecee4ff74e9b5c51e36d5d145b2b1578ef027f0a0ade6fff1eebbe502acc0ae"
+    },
+    {
+      "bytes": 178,
+      "path": "benchmarks/cross-language-v1/tasks/structured-input-error-handling-v1/public/rust/candidate.rs",
+      "sha256": "sha256:01b28c6f5ab7970995d704641688ca13413c0fa74a8ff56d98cea9eaac89c8e2"
+    },
+    {
+      "bytes": 424,
+      "path": "benchmarks/cross-language-v1/tasks/structured-input-error-handling-v1/public/rust/main.rs",
+      "sha256": "sha256:902941d6c3f0eb764aec292eae6f454b0c5cde2464f8d5ca9b94395d0a45d2f8"
+    },
+    {
+      "bytes": 246,
+      "path": "benchmarks/cross-language-v1/tasks/structured-input-error-handling-v1/public/semaprax/semaprax.toml",
+      "sha256": "sha256:bbf6e4ca33b59deca51e497fa505d6e04f0c67f84e010f965b5d294c2c1181b1"
+    },
+    {
+      "bytes": 509,
+      "path": "benchmarks/cross-language-v1/tasks/structured-input-error-handling-v1/public/semaprax/src/app.spx",
+      "sha256": "sha256:05863ff00b696951d1a1f5a1085348f194cc04e2854eca5503cd5c68cfa5ed2f"
+    },
+    {
+      "bytes": 269,
+      "path": "benchmarks/cross-language-v1/tasks/structured-input-error-handling-v1/public/semaprax/src/candidate.spx",
+      "sha256": "sha256:39dd4484be797656af1f2bec2e0262edc69aacfec944be77564a16ff063eb4eb"
+    },
+    {
+      "bytes": 226,
+      "path": "benchmarks/cross-language-v1/tasks/structured-input-error-handling-v1/public/semaprax/src/tests.spx",
+      "sha256": "sha256:25a656d14a6d39f5a850fb4510d5bf3764be9808dd5f3807be2218130c180db9"
+    },
+    {
+      "bytes": 1370,
+      "path": "benchmarks/cross-language-v1/tasks/structured-input-error-handling-v1/public/swift/main.swift",
+      "sha256": "sha256:839413bc4dd04b88154871ea548107e562e796aacd018bbaa92a79e1cbd6bee9"
+    },
+    {
+      "bytes": 555,
+      "path": "benchmarks/cross-language-v1/tasks/structured-input-error-handling-v1/public/typescript/index.ts",
+      "sha256": "sha256:4536abec9576a66f8074284fac680518cbf738a1ca755c766d7b9122bf030909"
+    },
+    {
+      "bytes": 210,
+      "path": "benchmarks/cross-language-v1/tasks/structured-input-error-handling-v1/public/typescript/validate.ts",
+      "sha256": "sha256:9416518aefcdb1e3a7810c2cff149db9fdf25bdf266315fb4247760c70682f3a"
+    },
+    {
+      "bytes": 9691,
+      "path": "benchmarks/cross-language-v1/tasks/telemetry-overflow-diagnosis-v1/EQUIVALENCE.md",
+      "sha256": "sha256:64ed8359824a7d0aaa51fcfa86b82a1faf85e8d69278042485bfc3422aaf110b"
+    },
+    {
+      "bytes": 800,
+      "path": "benchmarks/cross-language-v1/tasks/telemetry-overflow-diagnosis-v1/hidden/c/main.c",
+      "sha256": "sha256:cf7500d3a9a39c5dd7fb0ea2017be83fa766d21e09d8dc128df44768cf2cb2d5"
+    },
+    {
+      "bytes": 903,
+      "path": "benchmarks/cross-language-v1/tasks/telemetry-overflow-diagnosis-v1/hidden/java/Main.java",
+      "sha256": "sha256:98b25fd36d44fa8da78ceb1b5c1841c85d9bc9b131d27d22c0c3fa4d069ec368"
+    },
+    {
+      "bytes": 770,
+      "path": "benchmarks/cross-language-v1/tasks/telemetry-overflow-diagnosis-v1/hidden/python/digest.py",
+      "sha256": "sha256:4c24f90f19d3a2b3d36b8a051f5e206ba12a7aa4a429d76cbc2b6f65a47b6afb"
+    },
+    {
+      "bytes": 364,
+      "path": "benchmarks/cross-language-v1/tasks/telemetry-overflow-diagnosis-v1/hidden/rust/main.rs",
+      "sha256": "sha256:84b98233d2e2400142958b61ebd260bb49cdabd75d8662357b20484fada1ef9e"
+    },
+    {
+      "bytes": 342,
+      "path": "benchmarks/cross-language-v1/tasks/telemetry-overflow-diagnosis-v1/hidden/semaprax/src/app.spx",
+      "sha256": "sha256:f2c3e6ca729c00f0b4bb13f7fde44f11d63670aefcf976b3bf16d600be20da9e"
+    },
+    {
+      "bytes": 1049,
+      "path": "benchmarks/cross-language-v1/tasks/telemetry-overflow-diagnosis-v1/hidden/swift/main.swift",
+      "sha256": "sha256:41027c610fa43d6de9359a295f290dab35ea32cdc52a2a469062cf3c225331c6"
+    },
+    {
+      "bytes": 423,
+      "path": "benchmarks/cross-language-v1/tasks/telemetry-overflow-diagnosis-v1/hidden/typescript/index.ts",
+      "sha256": "sha256:d42552625444eed2c687bacc750f6617c3e8cf4027397ab1434dc5f27a2e9271"
+    },
+    {
+      "bytes": 947,
+      "path": "benchmarks/cross-language-v1/tasks/telemetry-overflow-diagnosis-v1/public/c/candidate.c",
+      "sha256": "sha256:1994899cbaf51d128dcc1b149f184b995657a8b597397344496a390837119658"
+    },
+    {
+      "bytes": 590,
+      "path": "benchmarks/cross-language-v1/tasks/telemetry-overflow-diagnosis-v1/public/c/main.c",
+      "sha256": "sha256:d332e3ebe817577bfc79f4ffc408b8d23f056f71cf509b66334bfb9cba00d20d"
+    },
+    {
+      "bytes": 807,
+      "path": "benchmarks/cross-language-v1/tasks/telemetry-overflow-diagnosis-v1/public/java/Candidate.java",
+      "sha256": "sha256:3fe7dd5005a0e6a25af3e56f0f3b4f44d3d1918c92037e4b7c1a1bf961e0ddc1"
+    },
+    {
+      "bytes": 673,
+      "path": "benchmarks/cross-language-v1/tasks/telemetry-overflow-diagnosis-v1/public/java/Main.java",
+      "sha256": "sha256:ed42d6b84a88065d153528d94378bf09f4e8a9e25b89513519e4a7076f84e564"
+    },
+    {
+      "bytes": 909,
+      "path": "benchmarks/cross-language-v1/tasks/telemetry-overflow-diagnosis-v1/public/python/candidate.py",
+      "sha256": "sha256:7397135b59aebe2bf3cd308d6e47c4dcc2d54b2936e0dab3a5dcc7de42e277c0"
+    },
+    {
+      "bytes": 552,
+      "path": "benchmarks/cross-language-v1/tasks/telemetry-overflow-diagnosis-v1/public/python/digest.py",
+      "sha256": "sha256:672bfc027faec994382c116697e795c6714259a816abf4ffdea44d55eeccc5b2"
+    },
+    {
+      "bytes": 832,
+      "path": "benchmarks/cross-language-v1/tasks/telemetry-overflow-diagnosis-v1/public/rust/candidate.rs",
+      "sha256": "sha256:a2f790aa5a7f6bb8b8d7a5e3f0b2f0e746ba4da37c1a63370a3d851a71c91e92"
+    },
+    {
+      "bytes": 281,
+      "path": "benchmarks/cross-language-v1/tasks/telemetry-overflow-diagnosis-v1/public/rust/main.rs",
+      "sha256": "sha256:8697bd4c428b136a8ab65d5e47e0a244e63729866a0e24fc33b22cf892e060a0"
+    },
+    {
+      "bytes": 249,
+      "path": "benchmarks/cross-language-v1/tasks/telemetry-overflow-diagnosis-v1/public/semaprax/semaprax.toml",
+      "sha256": "sha256:1994f6e2eee26ae3d32a04367aeb0650668f16d459f9f122923a21f68b9f29ab"
+    },
+    {
+      "bytes": 307,
+      "path": "benchmarks/cross-language-v1/tasks/telemetry-overflow-diagnosis-v1/public/semaprax/src/app.spx",
+      "sha256": "sha256:9b08130f077803a54da331d8dd052c7ed99a8b74e64eda35f13d463709d7cbe5"
+    },
+    {
+      "bytes": 697,
+      "path": "benchmarks/cross-language-v1/tasks/telemetry-overflow-diagnosis-v1/public/semaprax/src/candidate.spx",
+      "sha256": "sha256:892fdad4691bb3aa66b444002aac2933fa136af6377981ab95d482b55b648b81"
+    },
+    {
+      "bytes": 87,
+      "path": "benchmarks/cross-language-v1/tasks/telemetry-overflow-diagnosis-v1/public/semaprax/src/tests.spx",
+      "sha256": "sha256:dfcebec1e38e70b6623a68e6c4c9a88d7628a8a5746ca4d7dfbdcc2d9689117e"
+    },
+    {
+      "bytes": 1320,
+      "path": "benchmarks/cross-language-v1/tasks/telemetry-overflow-diagnosis-v1/public/swift/main.swift",
+      "sha256": "sha256:b30d36eaeeffb766a82a8d41f42f27cf8f1252735e9d5f3d6dae94fb48583111"
+    },
+    {
+      "bytes": 645,
+      "path": "benchmarks/cross-language-v1/tasks/telemetry-overflow-diagnosis-v1/public/typescript/candidate.ts",
+      "sha256": "sha256:9a56037964e89d5add6491c6948e87db3b78dfabf55ce8a3584354f1f18216fd"
+    },
+    {
+      "bytes": 365,
+      "path": "benchmarks/cross-language-v1/tasks/telemetry-overflow-diagnosis-v1/public/typescript/index.ts",
+      "sha256": "sha256:2ac7a361f5ca2abe162de31c6c01268f8c333914623f7be120b354709eea305c"
+    }
+  ],
+  "git_subject": "8e2a1c58324fb17308084e3cef149494259bd585",
+  "schema": "benchmark.cross_language.official_ts_source_subject.v1",
+  "task_ids": [
+    "sequence-digest-v1",
+    "bounded-counter-repair-v1",
+    "structured-input-error-handling-v1",
+    "module-import-refactor-v1",
+    "booking-window-conflict-v1",
+    "cold-chain-release-gate-v1",
+    "stable-dispatch-order-v1",
+    "owned-byte-sentinel-balance-v1",
+    "stale-edit-preservation-v1",
+    "telemetry-overflow-diagnosis-v1",
+    "clean-install-calculator-v1",
+    "concurrent-delta-merge-v1",
+    "iterative-repair-workflow-v1"
+  ]
+}

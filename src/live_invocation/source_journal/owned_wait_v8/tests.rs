@@ -1,0 +1,532 @@
+use super::*;
+use crate::live_invocation::identity::digest;
+use model::{OwnedBodyV8, PhaseV8};
+use serde_json::json;
+
+pub(super) fn binding() -> SourceInvocationBinding {
+    let d = |label: &str| digest(b"test\0", label.as_bytes());
+    super::super::SourceInvocationBinding::bind_execution(
+        super::super::SourceInvocationSeed {
+            lifecycle_digest: d("lifecycle"),
+            source_revision: d("source"),
+            deployment_binding: d("deployment"),
+            task: vec![],
+            task_budget: 10,
+            proposal_schema_digest: d("proposal"),
+            response_limit: 4096,
+            max_iterations: 2,
+            max_stages: 10,
+            max_attempts: 3,
+            max_steps_per_stage: 10,
+            max_total_steps: 100,
+            ceiling: 100,
+            reservation_units: 1,
+            unit: "bytes".into(),
+            clock_domain: "test".into(),
+            initial_millis: 0,
+            deadline_millis: 100,
+            program_root: None,
+        },
+        &d("evaluator"),
+    )
+    .unwrap()
+}
+fn row_facts(binding: &SourceInvocationBinding) -> ExpectedRowV8<'_> {
+    ExpectedRowV8 {
+        invocation: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        generation: "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        seq: 0,
+        prev_mac: "0000000000000000000000000000000000000000000000000000000000000000",
+        ordinary: binding,
+    }
+}
+fn key() -> SourceCheckpointKey {
+    SourceCheckpointKey::new([7; 32])
+}
+fn d() -> String {
+    "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".into()
+}
+fn reserved() -> EntryV8 {
+    EntryV8::Owned(OwnedBodyV8::OwnedWaitReserved {
+        turn: 0,
+        attempt: 0,
+        wait: d(),
+        phase: PhaseV8::Start,
+        replay_of: None,
+        fuel: 10,
+    })
+}
+fn signed(mut row: Value) -> Vec<u8> {
+    row.as_object_mut().unwrap().remove("authentication");
+    let tag = crate::live_invocation::identity::hex(
+        &key().authenticate(RECORD_DOMAIN, &wire::canonical(&row)),
+    );
+    row["authentication"] = tag.into();
+    let mut out = wire::canonical(&row);
+    out.push(b'\n');
+    out
+}
+
+#[test]
+fn canonical_record_hmac_has_an_independent_literal_known_answer() {
+    let binding = binding();
+    let expected = row_facts(&binding);
+    let bytes = wire::encode(
+        &EntryV8::Ordinary(SourceJournalEntry::RunOpened),
+        &expected,
+        &key(),
+    )
+    .unwrap();
+    let value: Value = serde_json::from_slice(&bytes).unwrap();
+    assert_eq!(
+        value["authentication"],
+        "9468ac3b7fcb52adf6ce92f0a829c8eb8f4eb26018368f7e77cada189a97db16"
+    );
+    assert_eq!(
+        wire::decode(&bytes, &expected, &key()).unwrap(),
+        EntryV8::Ordinary(SourceJournalEntry::RunOpened)
+    );
+    assert_eq!(
+        wire::canonical(&json!({"z":{"b":1,"a":2},"a":[{"z":1,"a":2},0]})),
+        br#"{"a":[{"a":2,"z":1},0],"z":{"a":2,"b":1}}"#
+    );
+}
+
+#[test]
+fn strict_row_parser_refuses_duplicate_unknown_noncanonical_and_float_bytes() {
+    let binding = binding();
+    let expected = row_facts(&binding);
+    let bytes = wire::encode(&reserved(), &expected, &key()).unwrap();
+    let value: Value = serde_json::from_slice(&bytes).unwrap();
+    for mutation in 0..8 {
+        let mut row = value.clone();
+        match mutation {
+            0 => {
+                row["extra"] = 1.into();
+            }
+            1 => {
+                row["kind"] = "owned_unknown".into();
+            }
+            2 => {
+                row["fuel"] = json!(1.5);
+            }
+            3 => {
+                row["phase"] = "other".into();
+            }
+            4 => {
+                row["replay_of"] = json!(-1);
+            }
+            5 => {
+                row.as_object_mut().unwrap().remove("replay_of");
+            }
+            6 => {
+                row["wait"] = "not-a-digest".into();
+            }
+            _ => {
+                row["schema"] = "semaprax.live-invocation.source-persisted-journal.v7".into();
+            }
+        }
+        assert!(
+            wire::decode(&signed(row), &expected, &key()).is_err(),
+            "mutation{mutation}"
+        );
+    }
+    let text = String::from_utf8(bytes.clone()).unwrap();
+    let duplicate = text.replacen("\"fuel\":10", "\"fuel\":10,\"fuel\":10", 1);
+    assert_eq!(
+        wire::decode(duplicate.as_bytes(), &expected, &key()),
+        Err(SourceJournalError::Malformed)
+    );
+    let spaced = text.replacen('{', "{ ", 1);
+    assert_eq!(
+        wire::decode(spaced.as_bytes(), &expected, &key()),
+        Err(SourceJournalError::Malformed)
+    );
+    assert!(wire::decode(&bytes[..bytes.len() - 1], &expected, &key()).is_err());
+    let mut wrong = bytes;
+    wrong[20] ^= 1;
+    assert!(wire::decode(&wrong, &expected, &key()).is_err());
+}
+
+#[test]
+fn every_external_chain_dimension_and_key_is_checked() {
+    let binding = binding();
+    let expected = row_facts(&binding);
+    let bytes = wire::encode(&reserved(), &expected, &key()).unwrap();
+    for mutation in 0..4 {
+        let mut wrong = row_facts(&binding);
+        match mutation {
+            0 => wrong.seq = 1,
+            1 => {
+                wrong.prev_mac = "1111111111111111111111111111111111111111111111111111111111111111"
+            }
+            2 => wrong.invocation = wrong.generation,
+            _ => wrong.generation = wrong.invocation,
+        }
+        assert!(wire::decode(&bytes, &wrong, &key()).is_err());
+    }
+    assert_eq!(
+        wire::decode(&bytes, &expected, &SourceCheckpointKey::new([8; 32])),
+        Err(SourceJournalError::Chain)
+    );
+}
+
+#[test]
+fn nested_duplicate_depth_and_size_caps_precede_materialization() {
+    assert_eq!(
+        wire::parse(br#"{"state":{"x":1,"x":2}}"#),
+        Err(SourceJournalError::Malformed)
+    );
+    let too_deep = format!("{}0{}", "[".repeat(25), "]".repeat(25));
+    assert_eq!(
+        wire::parse(too_deep.as_bytes()),
+        Err(SourceJournalError::Malformed)
+    );
+    assert!(wire::parse(format!("{}0{}", "[".repeat(24), "]".repeat(24)).as_bytes()).is_ok());
+    let oversized = vec![b' '; super::super::MAX_SOURCE_DOCUMENT_BYTES + 1];
+    assert_eq!(wire::parse(&oversized), Err(SourceJournalError::Capacity));
+}
+
+#[test]
+fn owned_body_optional_fields_are_required_and_snapshot_caps_apply_to_producers() {
+    let binding = binding();
+    let expected = row_facts(&binding);
+    let entry = EntryV8::Owned(OwnedBodyV8::OwnedWaitCompleted {
+        turn: 0,
+        attempt: 0,
+        wait: d(),
+        reservation: 1,
+        proposal: json!({"field":"x".repeat(65536)}),
+        proposal_digest: d(),
+        result_digest: d(),
+        consumed: 1,
+    });
+    assert_eq!(
+        wire::encode(&entry, &expected, &key()),
+        Err(SourceJournalError::Capacity)
+    );
+    let prepared = EntryV8::Owned(OwnedBodyV8::OwnedWaitPrepared {
+        turn: 0,
+        attempt: 0,
+        wait: d(),
+        reservation: 1,
+        observation_digest: d(),
+        checkpoint_digest: d(),
+        checkpoint: "a".repeat(131073),
+        consumed: 1,
+    });
+    assert_eq!(
+        wire::encode(&prepared, &expected, &key()),
+        Err(SourceJournalError::Capacity)
+    );
+}
+
+#[test]
+fn all_sixteen_closed_owned_bodies_roundtrip_and_refuse_each_missing_key() {
+    // Independently transcribed normative §8.4 inventory, including nullable keys.
+    let shapes=[
+        ("owned_run_created","scope execution binding signature limits store_identity"),
+        ("owned_state_committed","turn state argument_digest cleanup_plan_digest"),
+        ("owned_wait_created","turn attempt wait plan_digest cleanup_plan_digest signature argument_digest copy_arguments copy_arguments_digest"),
+        ("owned_wait_reserved","turn attempt wait phase replay_of fuel"),
+        ("owned_wait_prepared","turn attempt wait reservation observation_digest checkpoint_digest checkpoint consumed"),
+        ("owned_wait_completed","turn attempt wait reservation proposal proposal_digest result_digest consumed"),
+        ("owned_wait_failed","turn attempt wait reservation status consumed"),
+        ("owned_wait_replay_checked","turn attempt wait reservation original result_digest consumed"),
+        ("owned_wait_retired","turn attempt wait prepared state_digest observation_digest"),
+        ("owned_state_rearmed","turn attempt wait retired state state_digest observation observation_digest"),
+        ("owned_cleanup_started","turn attempt wait owner basis terminal operations operations_digest"),
+        ("owned_cleanup_settled","turn attempt wait owner started receipt receipt_digest"),
+        ("owned_state_transfer_reserved","turn attempt wait from to state_digest proposal_digest transfer_digest"),
+        ("owned_state_transfer_completed","turn attempt wait reservation state state_digest proposal proposal_digest transfer_digest"),
+        ("owned_authorization_staged","turn attempt stage_reservation transfer state_digest proposal_digest decision decision_digest consumed"),
+        ("owned_authorization_ready","turn attempt staged state_digest decision_digest grant_digest"),
+    ];
+    let binding = binding();
+    let expected = row_facts(&binding);
+    for (kind, fields) in shapes {
+        let mut body = json!({"kind":kind});
+        for field in fields.split_whitespace() {
+            body[field] = if field.ends_with("_digest")
+                || matches!(field, "wait" | "execution" | "binding")
+            {
+                d().into()
+            } else {
+                match field {
+                    "phase" => "start".into(),
+                    "owner" => "state".into(),
+                    "checkpoint" => "00".into(),
+                    "from" | "to" => "function.id".into(),
+                    "replay_of" => Value::Null,
+                    "scope" | "signature" | "limits" | "store_identity" | "state" | "proposal"
+                    | "decision" | "observation" | "status" | "terminal" | "receipt" => json!({}),
+                    "copy_arguments" | "operations" => json!([]),
+                    _ => 0.into(),
+                }
+            };
+        }
+        let typed: OwnedBodyV8 = serde_json::from_value(body).unwrap();
+        let entry = EntryV8::Owned(typed);
+        let bytes = wire::encode(&entry, &expected, &key()).unwrap();
+        assert_eq!(
+            wire::decode(&bytes, &expected, &key()).unwrap(),
+            entry,
+            "{kind}"
+        );
+        let row: Value = serde_json::from_slice(&bytes).unwrap();
+        for field in fields.split_whitespace() {
+            let mut missing = row.clone();
+            missing.as_object_mut().unwrap().remove(field);
+            assert!(
+                wire::decode(&signed(missing), &expected, &key()).is_err(),
+                "{kind}/{field}"
+            );
+        }
+        let mut extra = row;
+        extra["unrecognized"] = true.into();
+        assert!(
+            wire::decode(&signed(extra), &expected, &key()).is_err(),
+            "{kind}/extra"
+        );
+    }
+}
+
+#[test]
+fn observe_first_seed_has_no_fabricated_initialize_and_preserves_legacy_default() {
+    use super::super::{execution, validate, SourceStageRole};
+    let binding = binding();
+    let observe = vec![
+        SourceJournalEntry::RunOpened,
+        SourceJournalEntry::StageReservation {
+            turn: 0,
+            attempt: None,
+            role: SourceStageRole::Observe,
+            fuel: 10,
+        },
+        SourceJournalEntry::TurnObserved {
+            turn: 0,
+            state: d(),
+            observation: d(),
+            feedback: d(),
+        },
+    ];
+    assert!(execution::validate(&binding, &observe).is_err());
+    let fold = execution::validate_inner_seeded(
+        &binding,
+        &observe,
+        20,
+        validate::InitialStage::ObserveOnly,
+    )
+    .unwrap();
+    assert_eq!(
+        (fold.stages, fold.stage_fuel, fold.attempts, fold.effects),
+        (1, 30, 0, 0)
+    );
+    let mut ordinary = observe;
+    ordinary.insert(
+        1,
+        SourceJournalEntry::StageReservation {
+            turn: 0,
+            attempt: None,
+            role: SourceStageRole::Initialize,
+            fuel: 10,
+        },
+    );
+    let old = execution::validate(&binding, &ordinary).unwrap();
+    let seeded = execution::validate_inner_seeded(
+        &binding,
+        &ordinary,
+        0,
+        validate::InitialStage::InitializeThenObserve,
+    )
+    .unwrap();
+    assert_eq!(
+        (old.stages, old.stage_fuel, old.model_units),
+        (seeded.stages, seeded.stage_fuel, seeded.model_units)
+    );
+    assert_eq!((old.stages, old.stage_fuel), (2, 20));
+    assert!(execution::validate_inner_seeded(
+        &binding,
+        &ordinary,
+        0,
+        validate::InitialStage::ObserveOnly
+    )
+    .is_err());
+}
+
+#[test]
+fn full_row_capacity_includes_the_terminal_lf_for_decode_and_encode() {
+    let binding = binding();
+    let expected = row_facts(&binding);
+    // This codec-only limits object is inert; the checked context owns its shape.
+    let mut entry = OwnedBodyV8::OwnedRunCreated {
+        scope: json!({}),
+        execution: d(),
+        binding: d(),
+        signature: json!({}),
+        limits: json!({"padding":""}),
+        store_identity: json!({}),
+    };
+    let base = wire::encode(&EntryV8::Owned(entry.clone()), &expected, &key()).unwrap();
+    let padding = super::super::MAX_SOURCE_DOCUMENT_BYTES - base.len();
+    if let OwnedBodyV8::OwnedRunCreated { limits, .. } = &mut entry {
+        limits["padding"] = "x".repeat(padding).into();
+    }
+    let exact = wire::encode(&EntryV8::Owned(entry.clone()), &expected, &key()).unwrap();
+    assert_eq!(exact.len(), super::super::MAX_SOURCE_DOCUMENT_BYTES);
+    assert!(wire::decode(&exact, &expected, &key()).is_ok());
+    if let OwnedBodyV8::OwnedRunCreated { limits, .. } = &mut entry {
+        limits["padding"] = "x".repeat(padding + 1).into();
+    }
+    assert_eq!(
+        wire::encode(&EntryV8::Owned(entry), &expected, &key()),
+        Err(SourceJournalError::Capacity)
+    );
+    let mut row: Value = serde_json::from_slice(&exact).unwrap();
+    row["limits"]["padding"] = "x".repeat(padding + 1).into();
+    let oversized = signed(row);
+    assert_eq!(oversized.len(), super::super::MAX_SOURCE_DOCUMENT_BYTES + 1);
+    assert_eq!(
+        wire::decode(&oversized, &expected, &key()),
+        Err(SourceJournalError::Capacity)
+    );
+}
+
+#[test]
+fn hash_recipes_preserve_canonical_operation_order_and_checkpoint_lf() {
+    use wire::RecipeV8;
+    let operations = json!({"owner":"state","basis":7,"terminal":{"code":1},"operations":[{"slot":2},{"slot":1}]});
+    assert_eq!(
+        wire::recipe_digest(RecipeV8::Operations, &operations).unwrap(),
+        "sha256:b4bc92cc74cf8a93c70884977cd8065317a2dfeabf5dda3782f06f49ff7d8217"
+    );
+    let mut reversed = operations.clone();
+    reversed["operations"].as_array_mut().unwrap().reverse();
+    assert_ne!(
+        wire::recipe_digest(RecipeV8::Operations, &reversed).unwrap(),
+        wire::recipe_digest(RecipeV8::Operations, &operations).unwrap()
+    );
+    let envelope = json!({"payload":{"schema":"semaprax.source-owned-frame-checkpoint.v2"},"authentication":"0".repeat(64)});
+    let mut bytes = wire::canonical(&envelope);
+    bytes.push(b'\n');
+    assert_eq!(
+        wire::checkpoint_bytes_digest(&bytes).unwrap(),
+        "sha256:6b1e3da93f57bd3986b889b4a5536df70c5677841d680dcd74689b38e09a6292"
+    );
+    assert!(wire::checkpoint_bytes_digest(&bytes[..bytes.len() - 1]).is_err());
+    let mut extra = envelope;
+    extra["extra"] = 0.into();
+    let mut bytes = wire::canonical(&extra);
+    bytes.push(b'\n');
+    assert!(wire::checkpoint_bytes_digest(&bytes).is_err());
+}
+
+#[test]
+fn hash_recipes_have_closed_payload_keys_and_domain_separation() {
+    use wire::RecipeV8;
+    let fixtures = [
+        (
+            RecipeV8::Invocation,
+            json!({"execution":d(),"owned_wait_binding":d()}),
+        ),
+        (
+            RecipeV8::Attempt,
+            json!({"invocation":d(),"turn":0,"attempt":0,"binding":d()}),
+        ),
+        (
+            RecipeV8::Generation,
+            json!({"scope":{},"execution":d(),"binding":d(),"store_identity":{},"limits":{}}),
+        ),
+        (
+            RecipeV8::Transfer,
+            json!({"scope":{},"generation":d(),"turn":0,"attempt":0,"wait":d(),"from":"helper","to":"authorize","state_digest":d(),"proposal_digest":d()}),
+        ),
+        (
+            RecipeV8::Operations,
+            json!({"owner":"state","basis":0,"terminal":{},"operations":[]}),
+        ),
+        (
+            RecipeV8::Decision,
+            json!({"scope":{},"turn":0,"attempt":0,"authorize":"authorize","decision":{}}),
+        ),
+        (
+            RecipeV8::Grant,
+            json!({"scope":{},"turn":0,"attempt":0,"state_digest":d(),"proposal_digest":d(),"decision_digest":d(),"authorization_binding":d(),"budget":1}),
+        ),
+    ];
+    let mut hashes = std::collections::BTreeSet::new();
+    for (recipe, value) in fixtures {
+        assert!(hashes.insert(wire::recipe_digest(recipe, &value).unwrap()));
+        let mut unknown = value.clone();
+        unknown["extra"] = 1.into();
+        assert!(wire::recipe_digest(recipe, &unknown).is_err());
+        for field in value.as_object().unwrap().keys() {
+            let mut missing = value.clone();
+            missing.as_object_mut().unwrap().remove(field);
+            assert!(wire::recipe_digest(recipe, &missing).is_err());
+        }
+    }
+    // The receipt codec owner supplies its own closed shape; hashing is inert.
+    let receipt = json!({"kind":"observed","operations":[]});
+    assert_ne!(
+        wire::recipe_digest(RecipeV8::Receipt, &receipt).unwrap(),
+        wire::recipe_digest(
+            RecipeV8::Decision,
+            &json!({"scope":{},"turn":0,"attempt":0,"authorize":"authorize","decision":receipt})
+        )
+        .unwrap()
+    );
+}
+
+#[test]
+fn combined_inventory_authenticates_every_sequence_and_predecessor_before_use() {
+    let binding = binding();
+    let expected = row_facts(&binding);
+    let entries = [
+        EntryV8::Ordinary(SourceJournalEntry::RunOpened),
+        reserved(),
+        EntryV8::Owned(OwnedBodyV8::OwnedWaitReplayChecked {
+            turn: 0,
+            attempt: 0,
+            wait: d(),
+            reservation: 1,
+            original: 0,
+            result_digest: d(),
+            consumed: 1,
+        }),
+    ];
+    // Codec-only shape inventory: the future fold independently rejects order.
+    let mut rows = Vec::new();
+    let mut previous = expected.prev_mac.to_owned();
+    for (seq, entry) in entries.iter().enumerate() {
+        let current = ExpectedRowV8 {
+            seq: seq as u32,
+            prev_mac: &previous,
+            ..row_facts(&binding)
+        };
+        let row = wire::encode(entry, &current, &key()).unwrap();
+        let value: Value = serde_json::from_slice(&row).unwrap();
+        previous = value["authentication"].as_str().unwrap().to_owned();
+        rows.push(row);
+    }
+    let joined = rows.concat();
+    assert_eq!(
+        wire::decode_inventory(&joined, &expected, &key()).unwrap(),
+        entries
+    );
+    for hostile in [
+        vec![rows[1].clone(), rows[0].clone(), rows[2].clone()].concat(),
+        vec![rows[0].clone(), rows[2].clone()].concat(),
+        vec![rows[0].clone(), rows[1].clone(), rows[1].clone()].concat(),
+    ] {
+        assert!(wire::decode_inventory(&hostile, &expected, &key()).is_err());
+    }
+    let mut altered: Value = serde_json::from_slice(&rows[1]).unwrap();
+    altered["prev_mac"] = "0".repeat(64).into();
+    let reminted = vec![rows[0].clone(), signed(altered), rows[2].clone()].concat();
+    assert!(wire::decode_inventory(&reminted, &expected, &key()).is_err());
+    assert!(wire::decode_inventory(&joined[..joined.len() - 1], &expected, &key()).is_err());
+    let mut old: Value = serde_json::from_slice(&rows[0]).unwrap();
+    old["schema"] = "semaprax.live-invocation.source-persisted-journal.v1".into();
+    assert!(wire::decode_inventory(&signed(old), &expected, &key()).is_err());
+}

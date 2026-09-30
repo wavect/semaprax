@@ -17,7 +17,7 @@ use semaprax::{
     },
 };
 
-const BODY: &str = r"{
+pub(super) const BODY: &str = r"{
     let saved = value;
     if true {
         let left = saved.left;

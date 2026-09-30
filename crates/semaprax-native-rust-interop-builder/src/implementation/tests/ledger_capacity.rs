@@ -134,6 +134,7 @@ fn hir_capacity_layout_constants_are_bound_to_root_const_assertions() {
         include_str!("../../../../../src/hir/generic_variant.rs"),
         include_str!("../../../../../src/hir/agent_nodes.rs"),
         include_str!("../../../../../src/hir/agent_validation.rs"),
+        include_str!("../../../../../src/hir/agent_validation/embedded.rs"),
         include_str!("../../../../../src/hir/owned_result_try.rs"),
         include_str!("../../../../../src/hir/resolve_class.rs"),
         include_str!("../../../../../src/hir/resolve_expr.rs"),
@@ -142,6 +143,7 @@ fn hir_capacity_layout_constants_are_bound_to_root_const_assertions() {
         include_str!("../../../../../src/hir/resolve_box_call/iterator.rs"),
         include_str!("../../../../../src/hir/resolve_vec_call.rs"),
         include_str!("../../../../../src/hir/resolve_yield.rs"),
+        include_str!("../../../../../src/hir/yield_aggregate.rs"),
         include_str!("../../../../../src/hir/resolve_expr_frame.rs"),
         include_str!("../../../../../src/hir/resolve_expr_reference.rs"),
         include_str!("../../../../../src/hir/resolve_for.rs"),
@@ -184,6 +186,7 @@ fn hir_capacity_layout_constants_are_bound_to_root_const_assertions() {
     );
     let lower = concat!(
         include_str!("../../../../../src/cleanup_plan/build.rs"),
+        include_str!("../../../../../src/cleanup_plan/build/owned_frame_finalizers.rs"),
         include_str!("../../../../../src/cleanup_plan/build/call_reference.rs"),
         include_str!("../../../../../src/cleanup_plan/build/generic_variant.rs"),
         include_str!("../../../../../src/cleanup_plan/build/bounded_box.rs"),

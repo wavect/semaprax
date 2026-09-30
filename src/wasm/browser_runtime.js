@@ -311,6 +311,12 @@ export const imports = {
     spx_contract_fail: code => {
       if (code === 9) throw new SpxSemanticFailure("semaprax.contract.v1", 1, "SEMAPRAX contract failure");
       if (code === 10) throw new SpxSemanticFailure("semaprax.contract.v1", 2, "SEMAPRAX contract failure");
+      // Call-depth admission (issue #293 P2-2), shared with the legacy
+      // scalar-core Wasm emitter's own `spx_contract_fail` calls: the same
+      // wire value `aggregate::call_admission::CALL_DEPTH_STATUS` (18)
+      // normalizes to the identical status the native C11 backend's
+      // `spx_rt_call_depth_failure` reports.
+      if (code === 18) throw new SpxSemanticFailure("semaprax.runtime.v1", 1, "SEMAPRAX call-depth admission failure");
       if (code === 11) throw new SpxSemanticFailure("semaprax.byte-range.v1", 1, "SEMAPRAX byte range failure");
       if (code === 12) throw new SpxSemanticFailure("semaprax.byte-range.v1", 2, "SEMAPRAX byte range failure");
       if (code === 16) throw new SpxSemanticFailure("semaprax.byte-buffer.v1", 1, "SEMAPRAX owned byte buffer failure");

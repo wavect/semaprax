@@ -79,8 +79,10 @@ mod owned_vec;
 mod prepared;
 mod resolved_case;
 pub mod resumable;
+mod resumable_entry;
 pub mod retained_call;
 mod scalar_profile;
+mod semantic_work;
 use api_admission::{
     owned_utf8_api_result_matches, public_api_argument_matches, public_api_parameter_type_matches,
     public_api_result_is_admitted, require_acyclic_public_api_closure,
@@ -613,6 +615,8 @@ pub struct OwnedDataEvaluation {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PublicApiArgument<'a> {
     I64(i64),
+    U8(u8),
+    Usize(u64),
     Bool(bool),
     BorrowStr(&'a str),
     BorrowSliceU8(&'a [u8]),
@@ -977,7 +981,10 @@ pub(crate) fn evaluate_resolved_public_api(
         let length = match argument {
             PublicApiArgument::BorrowStr(value) => value.len(),
             PublicApiArgument::BorrowSliceU8(value) => value.len(),
-            PublicApiArgument::I64(_) | PublicApiArgument::Bool(_) => 0,
+            PublicApiArgument::I64(_)
+            | PublicApiArgument::U8(_)
+            | PublicApiArgument::Usize(_)
+            | PublicApiArgument::Bool(_) => 0,
         };
         borrowed_bytes = borrowed_bytes.checked_add(length).ok_or_else(|| {
             vec![argument_error(
@@ -1093,6 +1100,8 @@ pub(crate) fn evaluate_resolved_public_api(
         .map(|(parameter, argument)| {
             let value = match argument {
                 PublicApiArgument::I64(value) => ArgumentValue::Int(*value),
+                PublicApiArgument::U8(value) => ArgumentValue::Uint8(*value),
+                PublicApiArgument::Usize(value) => ArgumentValue::Usize(*value),
                 PublicApiArgument::Bool(value) => ArgumentValue::Bool(*value),
                 PublicApiArgument::BorrowStr(value) => {
                     ArgumentValue::BorrowedStr((*value).to_owned())
@@ -1304,6 +1313,8 @@ pub(crate) fn evaluate_resolved_flat_owned_record_api(
         .map(|(parameter, argument)| {
             let value = match argument {
                 PublicApiArgument::I64(value) => ArgumentValue::Int(*value),
+                PublicApiArgument::U8(value) => ArgumentValue::Uint8(*value),
+                PublicApiArgument::Usize(value) => ArgumentValue::Usize(*value),
                 PublicApiArgument::Bool(value) => ArgumentValue::Bool(*value),
                 PublicApiArgument::BorrowStr(value) => {
                     ArgumentValue::BorrowedStr((*value).to_owned())
@@ -1507,6 +1518,8 @@ pub(crate) fn evaluate_resolved_owned_utf8_api(
         .map(|(parameter, argument)| {
             let value = match argument {
                 PublicApiArgument::I64(value) => ArgumentValue::Int(*value),
+                PublicApiArgument::U8(value) => ArgumentValue::Uint8(*value),
+                PublicApiArgument::Usize(value) => ArgumentValue::Usize(*value),
                 PublicApiArgument::Bool(value) => ArgumentValue::Bool(*value),
                 PublicApiArgument::BorrowStr(value) => {
                     ArgumentValue::BorrowedStr((*value).to_owned())
@@ -2205,6 +2218,7 @@ use nested_owned::{
 mod variant_admission;
 use variant_admission::{
     is_admitted_fieldless_variant, is_admitted_owned_byte_variant, is_admitted_owned_variant,
+    is_option_u8, option_u8_pattern_is_admitted,
 };
 
 fn concrete_variant_case_fields(
@@ -2445,7 +2459,8 @@ fn scan_closure(
                 Err(reject_scan(expression, REASON_RECORD_CONSTRUCTION))
             }
             ResolvedExprKind::ConstructVariant { .. }
-                if variant_constructor_is_admitted(declarations, expression) =>
+                if variant_constructor_is_admitted(declarations, expression)
+                    || nested_owned::bc_construct(declarations, expression) =>
             {
                 Ok(())
             }
@@ -2507,11 +2522,13 @@ fn scan_closure(
                 );
                 let owned_byte_variant = is_admitted_resolved_scalar(&expression.ty)
                     && variant_pattern_is_admitted(declarations, *mode, &scrutinee.ty, arms);
+                let agg = nested_owned::bc_match(declarations, *mode, &scrutinee.ty, arms);
                 if (!scalar
                     && !option_u8
                     && !owned_byte_record
                     && !owned_byte_variant
-                    && !owned_record_result)
+                    && !owned_record_result
+                    && !agg)
                     || (scalar && !patterns_admitted)
                     || arms.is_empty()
                 {
@@ -3051,6 +3068,7 @@ pub(crate) fn evaluate_resolved_language_command(
         trace_phase: ResolvedTracePhase::Body,
         failure_detail: None,
         resumption: resumable::Resumption::Refused,
+        semantic: Default::default(),
     };
     let evaluated = evaluator.call_frame(entry, Vec::new(), 0);
     let outcome = match evaluated {
@@ -3129,34 +3147,6 @@ enum Value {
     /// Runtime tombstone for a verifier-authenticated move from an owned
     /// storage slot. Reaching it again is an impossible post-verify state.
     Moved,
-}
-
-fn is_option_u8(ty: &ResolvedType) -> bool {
-    matches!(
-        ty,
-        ResolvedType::Nominal { declaration, arguments }
-            if declaration.as_str() == crate::prelude::OPTION_ID
-                && arguments.as_slice() == [ResolvedType::U8]
-    )
-}
-
-fn option_u8_pattern_is_admitted(pattern: &crate::hir::ResolvedMatchPattern) -> bool {
-    let crate::hir::ResolvedMatchPattern::Variant {
-        variant,
-        case,
-        fields,
-    } = pattern
-    else {
-        return false;
-    };
-    if variant.as_str() != crate::prelude::OPTION_ID {
-        return false;
-    }
-    (case.as_str() == crate::prelude::OPTION_NONE_ID && fields.is_empty())
-        || (case.as_str() == crate::prelude::OPTION_SOME_ID
-            && fields.len() == 1
-            && fields[0].field.as_str() == crate::prelude::OPTION_SOME_VALUE_ID
-            && fields[0].binding.ty == ResolvedType::U8)
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -3506,6 +3496,7 @@ struct Evaluator<'a> {
     trace_phase: ResolvedTracePhase,
     failure_detail: Option<ContractFailureDetail>,
     resumption: resumable::Resumption,
+    semantic: semantic_work::SemanticMeter,
 }
 
 use function_values::{evaluate_resolved_entry, evaluate_resolved_entry_with_utf8_budget};
@@ -3541,6 +3532,7 @@ impl Evaluator<'_> {
             trace_phase: ResolvedTracePhase::Body,
             failure_detail: None,
             resumption: resumable::Resumption::Refused,
+            semantic: Default::default(),
         }
     }
 
@@ -3888,6 +3880,8 @@ impl Evaluator<'_> {
         values: Vec<(ValueId, Value)>,
         depth: usize,
     ) -> Result<Value, Flow> {
+        // Stage semantic work v1: one unit per admitted source frame.
+        self.semantic_charge()?;
         let mut frame = Environment::from(values);
         self.set_trace_phase(ResolvedTracePhase::Requires);
         for (index, clause) in function.requires.iter().enumerate() {
@@ -3946,7 +3940,7 @@ impl Evaluator<'_> {
             // on a fresh invocation, drift check + answer on a replayed one.
             ResolvedExprKind::Yield { request } => {
                 let produced = self.evaluate(request, environment, depth)?;
-                resumable::settle_yield(&mut self.resumption, produced)
+                resumable::settle_yield(&mut self.resumption, &expression.id, produced, environment)
             }
             ResolvedExprKind::Closure { .. }
             | ResolvedExprKind::FunctionReference { .. }
@@ -4307,7 +4301,7 @@ impl Evaluator<'_> {
                 case,
                 fields,
             } => {
-                if !is_admitted_owned_variant(self.declarations, &expression.ty) {
+                if !nested_owned::construct_ok(self.declarations, expression) {
                     return Err(Flow::Guard(
                         "variant construction is outside owned byte variant v1",
                     ));
@@ -4652,7 +4646,7 @@ impl Evaluator<'_> {
                 'statements: for statement in statements {
                     match statement {
                         ResolvedStatement::Let { binding, value, .. } => {
-                            match self.evaluate(value, environment, depth) {
+                            match self.resolve_let_value(&binding.id, value, environment, depth) {
                                 Ok(value) => environment.push((binding.id.clone(), value)),
                                 Err(flow) => {
                                     interrupted = Some(flow);
@@ -4726,7 +4720,11 @@ impl Evaluator<'_> {
                                 if !flag {
                                     break;
                                 }
-                                if let Err(flow) = self.evaluate(body, environment, depth) {
+                                // Stage semantic work v1: one unit per entered body.
+                                if let Err(flow) = self
+                                    .semantic_charge()
+                                    .and_then(|()| self.evaluate(body, environment, depth))
+                                {
                                     interrupted = Some(flow);
                                     break 'statements;
                                 }
@@ -4829,7 +4827,8 @@ impl Evaluator<'_> {
                     return outcome;
                 }
                 if let Value::Variant(variant) = staged {
-                    if !variant_pattern_is_admitted(self.declarations, *mode, &scrutinee.ty, arms) {
+                    let agg = nested_owned::bc_match(self.declarations, *mode, &scrutinee.ty, arms);
+                    if !nested_owned::variant_ok(self.declarations, *mode, &scrutinee.ty, arms) {
                         return Err(Flow::Guard(
                             "owned byte variant match is outside the authenticated profile",
                         ));
@@ -4935,6 +4934,14 @@ impl Evaluator<'_> {
                                 }
                                 bindings.push((field.binding.id.clone(), self.clone_value(value)?));
                             }
+                        }
+                        hir::ResolvedMatchMode::Value if agg => {
+                            bindings = nested_owned::bc_bind_fields(
+                                self,
+                                &declared_fields,
+                                fields,
+                                &variant,
+                            )?;
                         }
                         hir::ResolvedMatchMode::Value => {
                             if !is_admitted_fieldless_variant(self.declarations, &variant.ty)
@@ -6092,6 +6099,7 @@ fn main() -> i64 { 0 }
                 trace_phase: ResolvedTracePhase::Body,
                 failure_detail: None,
                 resumption: resumable::Resumption::Refused,
+                semantic: Default::default(),
             };
             let outcome = evaluator.call_frame(
                 inspect,
@@ -6179,6 +6187,7 @@ fn inspect(value: borrow Either<Bytes, Bytes>) -> i64 {
                 trace_phase: ResolvedTracePhase::Body,
                 failure_detail: None,
                 resumption: resumable::Resumption::Refused,
+                semantic: Default::default(),
             };
             let outcome = evaluator.call_frame(
                 inspect,

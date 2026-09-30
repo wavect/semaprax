@@ -470,6 +470,24 @@ interface TokenHost
 }
 ```
 
+## Session protocols
+
+### `checkout.session` (`examples/session_protocol.spx`)
+
+```semaprax
+@id("checkout.session")
+session protocol "checkout-v1" {
+    states { Idle, Open, Done, Failed }
+    initial Idle;
+    terminal Done cleanup { release }
+    terminal Failed cleanup { discard }
+    on Idle begin: send Begin via "checkout.begin" -> Open;
+    on Idle abort: fail Unit -> Failed;
+    on Open commit: send Commit via "checkout.commit" -> choice { committed: Done, refused: Failed };
+    on Open lost: fail Unit -> Failed;
+}
+```
+
 ## Functions
 
 ### `ledger.is_deposit` (`examples/banking_ledger.spx`)
@@ -1449,6 +1467,27 @@ fn route(code: char) -> i64
 
 ```semaprax
 @id("main")
+fn main() -> i64
+```
+
+### `checkout.begin` (`examples/session_protocol.spx`)
+
+```semaprax
+@id("checkout.begin")
+fn begin() -> i64
+```
+
+### `checkout.commit` (`examples/session_protocol.spx`)
+
+```semaprax
+@id("checkout.commit")
+fn commit() -> i64
+```
+
+### `app.main` (`examples/session_protocol.spx`)
+
+```semaprax
+@id("app.main")
 fn main() -> i64
 ```
 

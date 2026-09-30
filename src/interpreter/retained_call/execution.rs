@@ -69,7 +69,11 @@ pub(super) fn prepare<'a>(
 }
 
 impl Invocation<'_> {
-    pub(super) fn run(self, max_steps: usize) -> RetainedCallEvaluation {
+    pub(super) fn run(
+        self,
+        max_steps: usize,
+        semantic_limit: Option<u64>,
+    ) -> RetainedCallEvaluation {
         let Self {
             program,
             prepared,
@@ -97,6 +101,9 @@ impl Invocation<'_> {
         // allocation identity or payload the program did not have.
         evaluator.next_byte_allocation = staging.allocations;
         evaluator.allocated_byte_payload = staging.payload;
+        if let Some(limit) = semantic_limit {
+            evaluator.semantic = super::super::semantic_work::SemanticMeter::limited(limit);
+        }
         let evaluated = evaluator.call_frame(entry, values, 0);
         let mut cleanup_events = Vec::new();
         let outcome = match evaluated {
@@ -130,6 +137,12 @@ impl Invocation<'_> {
             steps_used: evaluator.steps,
             max_steps,
             failure: evaluator.failure_detail.take(),
+            semantic_work: Some(SemanticWork {
+                fuel_used: evaluator.semantic.used(),
+                fuel_limit: evaluator.semantic.limit(),
+                exhausted: evaluator.semantic.exhausted(),
+                finalizer_events: None,
+            }),
         }
     }
 }

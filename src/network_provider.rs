@@ -30,7 +30,10 @@ pub use deadline::{
 };
 pub use fixture::{FixtureNetworkProvider, FIXTURE_SCHEMA_V3, MAX_NETWORK_FIXTURE_BYTES};
 pub use resolver::{NameResolver, ResolveFailure, ScriptedResolver, SystemResolver};
-pub use tcp::TcpNetworkProvider;
+pub use tcp::{
+    client_tls_config_trusting, server_tls_config_from_der, ClientTlsConfigFailure,
+    ServerTlsConfigFailure, TcpNetworkProvider,
+};
 
 use crate::model_budget_policy::classification::AttemptOutcomeClass;
 use crate::network_io_ops;

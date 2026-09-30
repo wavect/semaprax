@@ -491,18 +491,21 @@ record below.
 | PG-1, PG-2 | [type grammar](PUBLIC-GENERIC-TYPE-GRAMMAR-V1.md) | nothing; hosted green on three hosts |
 | PG-3 | [compatibility rules](PUBLIC-GENERIC-COMPATIBILITY-V1.md) | nothing; hosted green on three hosts |
 | PG-4 | [candidate delta](PUBLIC-GENERIC-CANDIDATE-DELTA-V1.md) | nothing; hosted green on three hosts. It describes a genuine public-generic signature only when one is named explicitly via `public_generic_delta_with_boundary_subjects` (#139, #161); no manifest-profile route admits one on its own |
-| PG-5, PG-6 | [consumers](PUBLIC-GENERIC-CONSUMERS-V1.md), [descriptor](PUBLIC-GENERIC-DESCRIPTOR-V1.md), [carrier](PUBLIC-GENERIC-CARRIER-V1.md) | hosted at `7def8fb1…`, not yet a #164 frozen candidate; codegen wiring from a verified descriptor to a real callable function body on any backend (every provider still binds a fixture endpoint); a compiled `.wasm` implementing the full provider ABI (#229); per #173's 2026-09-19 audit, descriptor-level hostility was already exercised through all four calling consumers by `6d1289b9`/`5ac1331d` and hosted at `7def8fb1…`. The later local-only `19a9154b` mutation controls close the former non-vacuity gap for all six `malformed_trusted_descriptor_cases`: C11 and generated Rust independently weaken each selected check, C++17 executes the mutated C11 facade, and TypeScript weakens its matching generated check; in every case the byte-identical configured descriptor reaches the provider only after that exact check is removed. The remaining carrier-side categories — handle generation, ownership flag, field path, variant tag, and cleanup-plan substitution — are not fields of the generated consumers' flat result carrier, so existing reference-codec, provider-lifecycle, and settlement tests remain separate evidence. A reusable native-only admission primitive now parses and descriptor-binds logical input frames before exposing their leaves, with local hostile coverage for those carrier categories. No production caller installs it at the flat C11 handoff yet: it is not a public C ABI, does not protect or wire the rendered provider, and makes no cross-language or #229 claim. Full native/Wasm physical-provider authority remains unimplemented (#154/#155). |
-| PG-7 | [settlement obligations](PUBLIC-GENERIC-SETTLEMENT-V1.md), [carrier](PUBLIC-GENERIC-CARRIER-V1.md); [cross-engine corpus](PUBLIC-GENERIC-CONSUMERS-V1.md#cross-engine-settlement-corpus-issue-162) | hosted at `7def8fb1…`, not yet a #164 frozen candidate; complete model/compiled-Wasm/consumer participation in the persisted settlement corpus; comparable all-engine peaks and logical traces; the same fixture-endpoint and nested-record limitations as PG-5/PG-6 above |
-| PG-8 | the `public-generic-ownership-milestone` CI job | nothing for the corpus as it exists today (hosted at `7def8fb1…` for all three hosts); #164's formal exact-head freeze protocol has not run |
-| PG-9 | this document | nothing to decide further; decided 2026-09-19 as `unsupported`/`unpublished` (see the PG-9 decision record and "PG-9 decision recorded" addendum below). Moving to a more permissive option would still require #164's freeze protocol to run and the remaining structural blockers (fixture endpoints, #229) to be resolved or explicitly accepted |
+| PG-5, PG-6 | [consumers](PUBLIC-GENERIC-CONSUMERS-V1.md), [descriptor](PUBLIC-GENERIC-DESCRIPTOR-V1.md), [carrier](PUBLIC-GENERIC-CARRIER-V1.md) | hosted at `7def8fb1…`, not yet a #164 frozen candidate; the original fixture-only/no-compiled-provider gaps are superseded for the closed profiles in [current scoped execution evidence](#current-scoped-execution-evidence-2026-09-28); exact-candidate evidence remains separate; per #173's 2026-09-19 audit, descriptor-level hostility was already exercised through all four calling consumers by `6d1289b9`/`5ac1331d` and hosted at `7def8fb1…`. The later local-only `19a9154b` mutation controls close the former non-vacuity gap for all six `malformed_trusted_descriptor_cases`: C11 and generated Rust independently weaken each selected check, C++17 executes the mutated C11 facade, and TypeScript weakens its matching generated check; in every case the byte-identical configured descriptor reaches the provider only after that exact check is removed. The remaining carrier-side categories — handle generation, ownership flag, field path, variant tag, and cleanup-plan substitution — are not fields of the generated consumers' flat result carrier, so existing reference-codec, provider-lifecycle, and settlement tests remain separate evidence. A reusable native-only admission primitive now parses and descriptor-binds logical input frames before exposing their leaves, with local hostile coverage for those carrier categories. That standalone admission primitive is not itself a public C ABI or a claim about the separate compiler-backed authenticated handoff. The legacy reference route and the new closed profiles must be evaluated separately; see the current scoped evidence below. |
+| PG-7 | [settlement obligations](PUBLIC-GENERIC-SETTLEMENT-V1.md), [carrier](PUBLIC-GENERIC-CARRIER-V1.md); [cross-engine corpus](PUBLIC-GENERIC-CONSUMERS-V1.md#cross-engine-settlement-corpus-issue-162) | hosted at `7def8fb1…`, not yet a #164 frozen candidate; the legacy persisted reference corpus retains its fixture scope; the separate checked-source v2 matrix and complete local inventory are recorded below, without claiming formal release-packet completion |
+| PG-8 | the `public-generic-ownership-milestone` CI job | the historical corpus ran hosted at `7def8fb1…` on all three hosts; this is not current-candidate evidence, and #164's formal exact-head freeze/local packet remains separate |
+| PG-9 | this document | nothing to decide further; decided 2026-09-19 as `unsupported`/`unpublished` (see the PG-9 decision record and "PG-9 decision recorded" addendum below). Moving to a more permissive option would still require #164's freeze protocol to run and the remaining packet requirements to be resolved or explicitly accepted under that separately authorized decision; historical fixture-only blockers do not describe the new closed profiles |
 
 The shape of what is left is no longer "there is no versioned public generic
 descriptor and carrier" — one now exists, with local evidence for all three
 of PG-5, PG-6, and PG-7. Nor is there still a blanket absence of compiled
 providers: the generated TypeScript package drives the compiler-owned Wasm
 artifact, and the private authenticated native identity profile invokes one
-checked body. What remains is broader-body and shared-corpus coverage, hosted
-closure, formal freeze, and an explicit supported-publication decision. The
+checked body. For R09, what remains is the exact-candidate local packet, applicable gate
+coverage and inventory, compatibility/security review and decision linkage;
+the hosted-only waiver is not a passing hosted run. Broader profile admission
+is separate work, and the existing unsupported/unpublished decision needs no
+new support/publication decision to remain in force. The
 private compiled C11 reference route below remains an in-module multi-call
 fixture and does not change public ABI status.
 
@@ -516,6 +519,65 @@ cases now have fresh native C/C++ comparisons. These checks exercise the
 hand-assembled reversal endpoint under two V8 tiers, not a compiled generic
 provider ABI. Actual Rust-generator equality remains a separate required gate;
 no new PG-7 completion or hosted-green claim follows from local template runs.
+
+### Compiled Core Wasm provider hardening, 2026-09-26/27 (#287, #288, #301, #292; local evidence only)
+
+This addendum records local-only work on the separately-scoped
+`public-generic-wasm-provider.v1` profile
+([PUBLIC-GENERIC-WASM-PROVIDER-TARGET-V1.md](PUBLIC-GENERIC-WASM-PROVIDER-TARGET-V1.md),
+`src/wasm/public_generic_provider`) already distinguished above from PG-5/PG-6's
+own fixture-endpoint adapters. It does not change any PG-1 through PG-9 gate
+status, the fixture-endpoint characterization of PG-5/PG-6's own adapters, or
+issue #229's still-open compiled-`.wasm`-for-that-ABI requirement; no hosted
+run and no candidate freeze accompany any of it.
+
+- **#287**: the generated TypeScript consumer's own ABI hostility against this
+  compiled provider is now proven directly (call-after-close, an
+  over-capacity/out-of-bounds length, a byte-mutated canonical frame,
+  export-before-call, foreign/stale/double release, and cross-instance handle
+  confusion all refuse at the provider's own exact status), by intercepting
+  the real `WebAssembly.instantiate` rather than reading a hand-written
+  re-implementation; the shipped generator template is unchanged.
+- **#288**: this differential testing found and fixed four defects in the
+  compiled provider: a stubbed owned-byte runtime that trapped on any
+  allocating subject now has a real invocation-local implementation;
+  `input_prepare` no longer grows linear memory before the carrier frame is
+  validated; the input-payload window moved into its own 128 KiB region,
+  fixing a silent overwrite of combined payloads above 2 KiB; and the
+  provider now emits Wasm adapter ABI v2, reporting a semantic carrier-replay
+  failure as its own raw status 14 (`SPX-PG803`) instead of collapsing it to
+  raw 5.
+- **#301**: one closed, versioned settlement-matrix corpus
+  (`semaprax.public-generic.settlement-matrix.v1`, 14 cases over checked
+  `Pair<Bytes>` subjects) now runs this compiled provider side by side with
+  the retained interpreter, native C11 (O0/O2 plus local ASan), and the
+  generated C11/Rust/C++17/TypeScript callers across 126 asserted cells.
+  Following #288's fixes the matrix's former 8 known-defect cells (this
+  provider's own defects above) now pass: **105 pass, 0 known-defect, 21
+  not-applicable**, asserted exactly (not merely a floor) by
+  `shared_settlement_corpus_matrix_is_complete_and_asserted`.
+- **#292**: a Wasmtime 47.0.4 differential-conformance submodule added to the
+  private Component runner cross-checks the reference interpreter, this
+  standalone compiled provider, and the typed Component on two checked-in
+  projects, including stale-Component/descriptor refusal and resource-arena
+  recovery; it found the #288 payload-overlap defect before that fix landed.
+  Its four component-runtime fixtures' provider/component/component-SHA-256
+  digests were re-pinned after #288 changed the compiled provider's bytes
+  (each fixture's descriptor digest, a pure function of checked source, is
+  unchanged); the differential's own in-process re-derivation
+  (`component_runtime_ci_contract`) re-verifies every re-pinned value rather
+  than trusting the pinning commit.
+- **#293's** unrelated Core Wasm call-depth admission does not touch this
+  provider: its lowering path (`aggregate::provider_lowering::
+  lower_public_generic_provider_closure`) never calls
+  `aggregate::call_admission::activate`, confirmed by reading both modules,
+  so the #292 re-pinned digests above remain current for this profile.
+
+None of this is hosted evidence, an artifact-digest inventory from a hosted
+run, or a security/trust review; none of it is a #164 candidate freeze or a
+PG-9 change. See
+[PUBLIC-GENERIC-RELEASE-CANDIDATE-EVIDENCE-V1.md](PUBLIC-GENERIC-RELEASE-CANDIDATE-EVIDENCE-V1.md)
+for the fuller local-candidate accounting.
 
 ## Standing support and publication decision
 
@@ -611,9 +673,26 @@ them:
   — so a provider cannot even be *derived* from a checked generic export
   today, compiled or not. #229 is flagged `HUMAN_BLOCKED` on a target-profile
   design decision, not a bounded-worker task.
-- **Every physical adapter (interpreter, native, Wasm) still binds a fixture
-  endpoint**, not a function body generated from a real admitted
-  public-generic `.spx` export. No real monomorphized public generic export
+
+  **Correction, 2026-09-26 (issue #287 audit):** the target-profile decision
+  this bullet describes as blocking has since been made, and a genuinely
+  *compiled* closed Core Wasm provider artifact implementing
+  `open`/`input_prepare`/`call`/`result_export`/`value_release`/
+  `result_release`/`provider_close` now exists
+  (`src/wasm/public_generic_provider`, `emit_public_generic_wasm_provider_v1`,
+  selected by the `public-generic-wasm-provider.v1` profile; see
+  [PUBLIC-GENERIC-WASM-PROVIDER-TARGET-V1.md](PUBLIC-GENERIC-WASM-PROVIDER-TARGET-V1.md)).
+  The generated TypeScript consumer's `wasm-provider.ts` now has a second,
+  internal `CompiledProvider` class that delegates to it instead of keeping
+  allocator/handle bookkeeping host-side, proven by
+  `tests/public_generic_wasm_adapter_v1/compiler_provider_artifact.rs`. This
+  is a narrower, differently-scoped artifact than the manifest-derived
+  `web_export` widening this bullet also names as still missing -- that part
+  of this bullet, and #229's own open/closed tracking status, are unchanged
+  by this correction, as is the `unsupported`/`unpublished` decision below.
+- **Historical 2026-09-18 finding: every physical adapter (interpreter, native,
+  Wasm) still binds a fixture endpoint**, not a function body generated from a
+  real admitted public-generic `.spx` export. No real monomorphized public generic export
   has ever been called through this boundary end to end. This is stated in
   four places in the source itself
   (`src/public_generic_abi/native.rs:25`, `wasm/provider.rs:85-86`,
@@ -671,8 +750,9 @@ parity (`carrier::settlement_corpus`, 9/9 local), not yet for any of the four
 generated calling consumers.
 
 **Target/toolchain versions**: native C11 (`clang`, both `-O0`/`-O2`), Core
-Wasm (model only — no compiled artifact implements the provider ABI, see
-#229), Rust generated consumer pinned to MSRV 1.88 (proven locally,
+Wasm (this settlement corpus's own target is model-only, comparing against
+the in-process `WasmProvider` struct, not the separate compiled provider
+artifact #229/#287 shipped since -- see the correction above), Rust generated consumer pinned to MSRV 1.88 (proven locally,
 `d9410607`), TypeScript/Wasm via `tsc` 5.8.3 (pinned in CI preflight,
 `1d2a3e09`, itself not yet exercised against the full corpus), C++17.
 Hosted-green platform evidence exists **only** for the narrower pre-#140
@@ -794,7 +874,7 @@ task and #165 both warn against. These fields become required inputs to the
 *next* revision of this record, at the point a maintainer selects Option B,
 C, or D.
 
-### Nonclaims (unchanged by this record)
+### Nonclaims (historical decision-record scope)
 
 No runtime generic specialization; no generic variants, resources, or
 borrowed aggregates; no ambient publication authority; no universal
@@ -803,6 +883,10 @@ compiled Wasm provider ABI; no compiler-derived generic export reaching any
 adapter; no guarantee beyond the exact bounded profile described above; no
 reinterpretation of Project v8/v9/v11 formats; no distributed/concurrent
 calling; no hidden allocator ABI.
+
+The dated absence-of-compiled-provider/body observations are superseded only
+for the closed routes in [current scoped execution evidence](#current-scoped-execution-evidence-2026-09-28).
+The support/publication and other scope exclusions remain unchanged.
 
 ### Reverified 2026-09-19: fresh hosted evidence found for the widened corpus (issue #164 audit; does not change the decision)
 
@@ -913,6 +997,46 @@ and it is not evidence that any gate has passed. The
 [completion matrix](COMPLETION-MATRIX.md) owns product status; the
 [quality gates](QUALITY-GATES.md) own required verification.
 
+### Current scoped execution evidence (2026-09-28)
+
+The dated 2026-09-18/19 fixture-only and no-compiled-provider observations in
+this document are historical. At source-inspection base `6a68fded`, distinct
+closed profiles execute selected compiler-checked bodies:
+
+- `semaprax.authenticated-native-identity.v1` and
+  `semaprax.authenticated-native-allocating.v1`: the native renderer derives C
+  from checked HIR and substitutes the selected checked endpoint for the
+  reference reversal body/call (`src/public_generic_abi/native/authenticated.rs:152-169,216-237`;
+  allocating owner `src/public_generic_abi/native/authenticated/allocating.rs:22-43`).
+  The ordinary native emitter's selected symbol is actually invoked
+  (`src/codegen/native_emit/public_generic_bridge.rs:143-153,178` and
+  `src/codegen/native_emit/public_generic_bridge/allocating.rs:105`).
+- `public-generic-wasm-provider.v1`: the compiled provider lowers the admitted
+  checked endpoint and emits its execution closure's bodies
+  (`src/wasm/public_generic_provider/mod.rs:286-341`;
+  `src/wasm/aggregate/provider_lowering.rs:122-145`). Legacy reference adapters
+  and their fixture descriptions are not widened by this route.
+
+The same-subject settlement harness derives these artifacts from each exact
+checked source and asserts descriptor equality before execution
+(`tests/public_generic_native_adapter_v1/settlement_matrix/engines.rs:135-156`).
+The [complete R08 local supplement](evidence/public-generic-settlement-v2/README.md)
+binds clean conformance subject `888ac18e416303c3a78544194cf3937d9ff4c5ff`:
+owning selector **5/5**, frozen v1 **105/0/21** and additive v2 **123/0/30**
+(pass/known-defect/N/A), with local ASan, physical failure controls and the
+complete 210-artifact inventory. It is not a formal release-candidate freeze,
+full local release packet, or fresh hosted evidence. No tests were run for
+this source-inspection correction, including the authenticated-handoff suite
+at `6a68fded`.
+
+The [release evidence record](PUBLIC-GENERIC-RELEASE-CANDIDATE-EVIDENCE-V1.md#current-scoped-provider-and-r08-evidence-facts-2026-09-28)
+tracks the remaining exact-candidate/local-gate, compatibility/security and
+decision-linkage obligations. The hosted-only waiver is not a passing hosted
+run or a local-gate waiver. Existing PG-9 decision
+`PG-9-DECISION-2026-09-19-v1` remains **unsupported/unpublished**. These facts
+remove the universal fixture-only assertion for the named routes; they do not
+establish unrestricted public generic support or rewrite the dated decisions.
+
 ### Native admission continuation
 
 The [single-owner continuation](PUBLIC-GENERIC-SETTLEMENT-CORPUS-V1.md#native-single-owner-admission-continuation-issue-162)
@@ -921,9 +1045,11 @@ thread-local fault/diagnostic isolation, last-provider owner handoff and bounded
 non-recycled thread identities. It exercises real C11 allocation/call/export/
 release under pthread test contention, with zero-resource assertions and fresh
 replay. This is enforcement of the synchronous non-concurrency policy, not
-admission of concurrency or cancellation. PG-7 remains partial: compiler-derived
-generic subjects, the admitted compiled Wasm provider ABI, complete four-language
-participation and all-engine settlement equality are still separate requirements.
+admission of concurrency or cancellation. This continuation alone did not
+establish compiler-derived generic subjects, the admitted compiled Wasm provider
+ABI, complete four-language participation or all-engine settlement equality.
+The later closed-profile evidence is scoped above; PG-7 release acceptance
+remains governed by its full owning packet.
 
 ### Compiled reference continuation
 

@@ -76,6 +76,59 @@ pub fn render_authenticated_moves_provider(
     })
 }
 
+/// A distinct, separately versioned physical profile
+/// (`semaprax.authenticated-native-moves-nested.v1`, issue #292): `moves-v1`
+/// itself ([`render_authenticated_moves_provider`]) stays exactly as
+/// written above, still only a flat one-level owned-Bytes record, with
+/// byte-identical output for every program it already admitted. This
+/// constructor additionally admits a nested owned record (a record whose
+/// fields are themselves owned-Bytes-only record instances, to a bounded
+/// depth) through [`crate::codegen::emit_public_generic_nested_moves_bridge`]'s
+/// own admission and C field-access codegen, rather than silently widening
+/// `moves-v1`'s frozen contract in place.
+pub const NESTED_MOVES_PROFILE: &str = "semaprax.authenticated-native-moves-nested.v1";
+
+/// A separately admitted private nested-record movement-body artifact, not a
+/// `moves-v1`, identity-v1, or general allocating-body/public-support claim.
+pub struct AuthenticatedNativeNestedMovesArtifact {
+    inner: AuthenticatedNativeIdentityArtifact,
+}
+
+impl AuthenticatedNativeNestedMovesArtifact {
+    pub fn source(&self) -> &str {
+        self.inner.source()
+    }
+    pub fn descriptor_bytes(&self) -> &[u8] {
+        self.inner.descriptor_bytes()
+    }
+    pub fn binding(&self) -> &NativeProviderBindingV1 {
+        self.inner.binding()
+    }
+}
+
+pub fn render_authenticated_nested_moves_provider(
+    program: &ResolvedProgram,
+    source_revision: &str,
+    descriptor: &VerifiedPublicGenericDescriptor,
+) -> Result<AuthenticatedNativeNestedMovesArtifact, Diagnostic> {
+    let (source, bridge) = crate::codegen::emit_public_generic_nested_moves_bridge(
+        program,
+        source_revision,
+        descriptor,
+    )?;
+    Ok(AuthenticatedNativeNestedMovesArtifact {
+        inner: render_admitted(
+            descriptor,
+            &source,
+            &bridge,
+            NESTED_MOVES_PROFILE,
+            b"semaprax.authenticated-native-moves-nested.v1.runtime\0",
+            b"semaprax.authenticated-native-moves-nested.v1.artifact\0",
+            "spx_pg_endpoint_checked_nested_moves_v1(",
+        )?,
+    })
+}
+
 /// Deterministic in-memory C artifact. No compilation, invocation or publication
 /// authority is acquired by generating it.
 pub struct AuthenticatedNativeIdentityArtifact {

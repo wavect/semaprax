@@ -145,6 +145,16 @@ pub(crate) struct PackageWorkspaceCall {
 pub(crate) struct PackageWorkspaceModule {
     pub(crate) package: String,
     pub(crate) interface: ScalarPackageInterface,
+    /// Canonical facts of this module's own declared session protocols
+    /// (issue #297) and endpoint typestate `follows` bindings (issue #297
+    /// follow-on, R21: Package Semantic Graph), already bound by
+    /// `retain_workspace_module` -- the identical field the Workspace
+    /// Semantic Graph's own `session_protocol_decl` projects, reused
+    /// unchanged rather than recomputed. A declaration fact starts
+    /// `{"stable_id":...`; a `follows` binding fact starts `{"function":...`.
+    /// Checked source Agent execution metadata starts `{"agent":...` and is
+    /// descriptive only; it confers no lifecycle or publication authority.
+    pub(crate) session_protocol_facts: Vec<String>,
 }
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -262,6 +272,9 @@ pub(crate) fn build_package_scalar_sources(
         modules.push(PackageWorkspaceModule {
             package: module.module.clone(),
             interface,
+            session_protocol_facts: super::agent_execution::clone_package_facts(
+                &module.session_protocol_facts,
+            )?,
         });
     }
     modules.sort_by(|left, right| left.package.as_bytes().cmp(right.package.as_bytes()));

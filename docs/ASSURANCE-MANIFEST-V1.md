@@ -97,6 +97,7 @@ alias two different identities. `kind` is one of the closed tokens below.
 | `resource_cleanup` | `cleanup:all-paths` | One per resolved ordinary function whose canonical cleanup inventory contains an owned cleanup leaf. It covers that function's complete target-neutral cleanup plan, not a physical finalizer or backend trace. |
 | `architecture_law` | `law:<name>` | Reserved; not derived automatically in this tranche. |
 | `generated_interface` | `interface:<name>` | Stable across formatting/rename. `<name>` is the declaring `interface`'s own name; changes if the interface is renamed — a semantic change, exactly like a `stable_id`-scoped rename elsewhere in this table. Derived automatically today, one obligation per interface that declares at least one import; see "Obligation derivation". |
+| `session_protocol` | `protocol:static-validation` | One per declared `session protocol` (issue #297), keyed to the declaration's `@id`; stable across formatting and unrelated renames. Derived automatically; see "Obligation derivation". |
 
 `kind` is a closed enum in `ObligationKind`; an unrecognized token is a
 replay failure (`SPX-Z103`), not a silently-accepted extension. This mirrors
@@ -176,6 +177,21 @@ state precisely which guarantee that fact carries:
   obligation derivation after `verify::verify` returned no error
   diagnostic, every such interface's imports already survived all of those
   checks; its method record has class `compiler_proved`.
+
+- **`session_protocol`.** One obligation per declared `session protocol`
+  (issue #297; [Session/protocol types v1](SESSION-PROTOCOL-TYPES-V1.md#declared-session-protocols-issue-297)).
+  `verify::verify` rejects a declaration whose graph the session-protocol
+  kernel's `ProtocolSpec::validate` refuses, whose `via` names no ordinary
+  function of the module, or whose `requires capability` is not already a
+  declared effect of its `via` function (`SPX-K101`..`SPX-K105`), and
+  `generate` re-binds every `via` against the validated HIR before deriving.
+  Its one method has class `compiler_proved` for that **static validation
+  only**, tool `semaprax-session-protocol-checker`, inputs the protocol name
+  followed by each `via` id in declaration order. The verifier's bounded
+  reachability check is not recorded as `model_checked`, and the
+  `no_model_checker_invoked` nonclaim stands. Legal order is not recorded as
+  authority. A program without a declaration derives nothing here, so its
+  envelope bytes are unchanged.
 
 `ownership_result` is derived once per resolved ordinary function, including
 scalar results: HIR validation checks the body type and ownership against the

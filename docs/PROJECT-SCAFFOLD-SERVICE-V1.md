@@ -75,7 +75,7 @@ host configuration boundary explicit:
   cannot cross a scalar-signature function boundary) plus one more section
   naming all ten bundled dependencies and their non-claims.
 - `service-config.schema.json` is a closed Draft 2020-12 schema for fixture,
-  SQLite/PostgreSQL, native HTTP/TLS, OTLP, and host-owned secret-reference
+  durable `snapshot`, native HTTP/TLS, `semaprax-json-events`, and host-owned secret-reference
   selections. Nested database, HTTP, telemetry, and secret objects all refuse
   unknown fields and retain finite string bounds.
 - `service.config.json` selects only credential-free fixture adapters, null
@@ -84,14 +84,14 @@ host configuration boundary explicit:
   `src/project/scaffold/service_config.rs` independently decodes this v1 wire
   under a 16 KiB pre-parse bound, exact closed objects, canonical sorted JSON,
   bounded reference/origin grammar, and paired mode rules: fixture mode admits
-  only null/fixture selections, while host mode requires SQLite/PostgreSQL,
-  native modern-TLS HTTP, OTLP, HTTPS origins, and nonempty host-owned secret
+  only null/fixture selections, while host mode requires the named snapshot
+  store, native modern-TLS HTTP, Semaprax JSON events, HTTPS origins, and nonempty host-owned secret
   references. JSON Schema guidance is therefore not the compiler's sole check.
 - `service-host-adapter-request.json` is the compiler-rendered canonical
   handoff for the fixture configuration. It is bounded to 16 KiB and declares
   no capabilities. From a valid host configuration the same decoder renders a
-  separate request naming exactly four capabilities — database connect,
-  native TLS serve, host-secret resolve, and telemetry emit — plus only
+  separate request naming exactly three capabilities — native TLS serve,
+  host-secret resolve, and telemetry emit — plus only
   bounded origins and secret references. A separate closed request-v1 decoder
   replays those bytes for host consumption and retains the telemetry origin as
   an intent only. It cannot construct an outbound policy or capability: the
@@ -151,7 +151,7 @@ The independent host-request decoder separately rejects unknown, duplicate,
 reordered-capability, noncanonical, and max-plus-one request bytes. Its
 private-root loopback integration starts from a checked host configuration,
 then proves that only a separately host-granted outbound policy matching the
-decoded OTLP origin can bind the fixed telemetry route. Neither the scaffold
+decoded Semaprax JSON-event origin can bind the fixed telemetry route. Neither the scaffold
 fixture (which has no requirements) nor request replay grants network I/O.
 
 ## Nonclaims

@@ -829,6 +829,7 @@ fn the_proposal_surface_mints_no_authorization_and_reaches_no_host() {
         include_str!("../../src/agent_proposal/decode.rs"),
         include_str!("../../src/agent_proposal/clients.rs"),
         include_str!("../../src/agent_proposal/runtime_v1.rs"),
+        include_str!("../../src/agent_proposal/model_wait.rs"),
     ] {
         for forbidden in [
             "AgentRuntimeAuthority",

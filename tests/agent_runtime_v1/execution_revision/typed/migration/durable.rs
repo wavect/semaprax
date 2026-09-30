@@ -317,6 +317,86 @@ fn migrated(
     )
 }
 
+fn migrated_with_metered_interpreter(
+    a: &Fixture,
+    b: &Fixture,
+) -> (
+    semaprax::execution_revision::typed::MigratedAgentRuntimeV2,
+    String,
+    String,
+) {
+    use semaprax::agent_lifecycle::iterative::effects::TargetStageBackend;
+
+    let previous = bind(a, b"chain payload");
+    let before = previous.execution_revision().digest().to_owned();
+    let suspended = bind(a, b"chain payload")
+        .run_durable(
+            &mut handler(),
+            &AgentCancellation::new(),
+            None,
+            &mut Store::default(),
+            10_000_000,
+        )
+        .unwrap();
+    let destination = bind(b, b"destination input ignored");
+    let after = destination.execution_revision().digest().to_owned();
+    (
+        migrate_suspended_agent_runtime_v2_with_backend(
+            previous,
+            suspended,
+            destination,
+            &before,
+            &after,
+            "fixture.agent.fn.migrate_b",
+            10_000,
+            10_000_000,
+            TargetStageBackend::Interpreter,
+            10_000,
+        )
+        .unwrap(),
+        before,
+        after,
+    )
+}
+
+#[test]
+#[cfg(any(target_os = "linux", target_os = "macos"))]
+fn selected_migration_runs_with_held_wasm_and_commits_checkpoint() {
+    use semaprax::agent_lifecycle::iterative::effects::{TargetStageBackend, WasmTargetHost};
+
+    let a = first();
+    let b = successor(&a, "State", "StateB", "b", &["marker"], false);
+    let (migration, _, _) = migrated(&a, &b);
+    // The selected route uses the destination's retained source and held Node.
+    let node = std::env::var_os("SEMAPRAX_TEST_WASM_STAGE_NODE")
+        .map(std::path::PathBuf::from)
+        .into_iter()
+        .chain([
+            std::path::PathBuf::from("/usr/bin/node"),
+            std::path::PathBuf::from("/usr/local/bin/node"),
+            std::path::PathBuf::from("/opt/homebrew/bin/node"),
+        ])
+        .find_map(|path| WasmTargetHost::open(path).ok())
+        .expect("selected migration test requires an explicit held Node runtime");
+    let mut host = handler();
+    let mut store = Store::default();
+    let complete = migration
+        .run_durable_with_backend(
+            &mut host,
+            &AgentCancellation::new(),
+            &mut store,
+            TargetStageBackend::CoreWasmHeld(&node),
+        )
+        .expect("held Core Wasm must run the checked migration destination");
+    assert_eq!(
+        complete.run().run().lifecycle().status(),
+        IterativeStatus::Complete
+    );
+    assert_eq!(host.calls.len(), 3);
+    assert!(store.commits > 0);
+    assert_eq!(complete.checkpoint(), store.document);
+}
+
 #[test]
 fn migrated_durable_complete_and_full_replay_preserve_payload_and_charges() {
     let a = first();
@@ -438,6 +518,41 @@ fn migrated_durable_complete_and_full_replay_preserve_payload_and_charges() {
     .is_err());
     assert_eq!(host.calls.len(), 3);
     assert_eq!(store.commits, commits);
+}
+
+#[test]
+fn metered_target_migration_handoff_recovers_without_repeating_the_pure_call() {
+    let a = first();
+    let b = successor(&a, "State", "StateB", "b", &["marker"], false);
+    let (migration, before, after) = migrated_with_metered_interpreter(&a, &b);
+    let root = migration.migration_root().canonical_json().to_owned();
+    assert!(root.contains("semaprax.agent-state-migration.v4"));
+    let handoff = migration.handoff_digest().unwrap();
+    let mut host = handler();
+    let mut store = Store::default();
+    let completed = migration
+        .run_durable(&mut host, &AgentCancellation::new(), &mut store)
+        .unwrap();
+    assert_eq!(
+        completed.run().run().lifecycle().status(),
+        IterativeStatus::Complete
+    );
+    assert_eq!(host.calls.len(), 3);
+    let retained = store.document.clone();
+    let resumed = resume_migrated_agent_runtime_v2(
+        bind(&a, b"chain payload"),
+        bind(&b, b"destination input ignored"),
+        &retained,
+        &handoff,
+        &before,
+        &after,
+    )
+    .expect("v4 target-migration handoff recovers");
+    let replay = resumed
+        .run_durable(&mut host, &AgentCancellation::new(), &mut store)
+        .unwrap();
+    assert_eq!(replay.run().run().dispatched(), 0);
+    assert_eq!(host.calls.len(), 3);
 }
 
 #[test]

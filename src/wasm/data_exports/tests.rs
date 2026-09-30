@@ -418,6 +418,11 @@ fn core_wasm_exports_only_the_exact_public_boundary_and_node_executes_it() {
             (raw_symbol("data.length"), ExternalKind::Func),
             (raw_symbol("data.present"), ExternalKind::Func),
             (raw_symbol("data.total"), ExternalKind::Func),
+            // Issue #293 P2-1: the sticky call-depth-exceeded marker every
+            // Public Useful Data Export v1 module now carries unconditionally,
+            // alongside the always-on depth counter this same admission
+            // checks but never exports (see `wasm::aggregate::call_admission`).
+            ("spx_call_depth_exceeded".to_owned(), ExternalKind::Global),
         ]
     );
 

@@ -3,6 +3,10 @@
 Status: public alpha installation guide; not a production-readiness claim.
 Audience: new users and contributors.
 
+> Prefer a shorter path? The user-facing [Semaprax Handbook](../handbook/README.md)
+> covers installation in [Install](../handbook/getting-started/install.md).
+> This page remains the complete, test-pinned installation reference.
+
 Install from source for the newest local build, or use the last published
 [v0.5.0 archive](https://github.com/wavect/semaprax/releases/tag/v0.5.0).
 Then follow the [quickstart](QUICKSTART.md) to run a calculator project. For

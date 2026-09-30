@@ -12,8 +12,17 @@ In plain terms: this is a fixed safe-data API for a named set of functions, with
 Issue [#145](https://github.com/wavect/semaprax/issues/145) selected this
 profile for a reproducible generated-package route.
 `scripts/generated-package-release.py` only prepares and dry-run-checks a
-deterministic preview bundle; it never publishes it. The decision remains an
-[unapproved draft](GENERATED-PACKAGE-PUBLICATION-DECISION-DRAFT-V1.md).
+deterministic preview bundle; it never publishes it.
+[ADR 0003](decisions/0003-maintained-generated-package-support.md#current-maintainer-decision)
+records the accepted maintenance scope, reaffirmed for issue #325: ordinary
+owned-data Rust only, with npm maintenance deferred to a separate ADR. The
+fixed Rust `0.1.0` remains an unpublished preview; real SemVer is required
+before any separately authorized publication. Genuine Rust/npm consumer
+execution and exact local Rust-consumer MSRV evidence are not a registry
+release, an npm maintenance promise or formal public promotion. Publication,
+publisher identity and release provenance remain separate; the
+[publication draft](GENERATED-PACKAGE-PUBLICATION-DECISION-DRAFT-V1.md) is still
+unapproved for that purpose, not an unresolved Rust maintenance decision.
 
 Public Owned Data API v1 adds one Project profile for a closed stable-ID
 function set in JavaScript/TypeScript and safe Rust. It adds controlled owned
@@ -981,6 +990,28 @@ are not OS-level network confinement. This gate passed locally on macOS arm64
 with Node 24.3, npm 11.4.2 and TypeScript 5.8.3, for both display names. The
 separate direct-consumer strict TypeScript gate also passed. The gates cover
 v8 only and do not establish registry publication or hosted promotion.
+
+The same test also applies four hostile-byte regressions directly to this
+genuine, compiler-produced package rather than a synthetic stand-in (issue
+#290/P3). Before packing, a bit-flip in `semaprax.bindings.js` and separately
+in `app.wasm` (a swapped Wasm binary) are each refused by the release-
+preparation script's preview digest check. After packing, a hostile copy of
+the real tarball whose `app.wasm` archive member path escapes the package
+root (`package/../app.wasm`) is refused by that script's own
+`_verify_npm_tarball_payload` byte-binding, reused unchanged against the
+genuine archive. Finally, a hostile copy of the real tarball with `app.wasm`
+content substituted is installed at the same `file:` dependency path the
+lockfile already recorded an integrity digest for; `npm ci` refuses it with
+`EINTEGRITY` once it is forced to re-verify from disk. A cache already warmed
+by the earlier lock-only install of the genuine tarball was found, this
+session, to mask that exact substitution instead of catching it -- the test
+therefore uses a cache the genuine artifact has never touched for that one
+check, and every other install in the test keeps using the shared cache. This
+target is not selected into any hosted CI job today (`--ignored` is not
+passed to it anywhere in `.github/workflows/ci.yml` or `scripts/ci-msrv.py`),
+so this remains local-only evidence; see
+[ADR 0003](decisions/0003-maintained-generated-package-support.md) row 14 for
+the full evidence record and what remains open for the npm route.
 
 ### Authored same-source Result-extrema gates
 

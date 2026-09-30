@@ -671,3 +671,6 @@ mod live_repair_smoke_v1;
 
 #[path = "agent_runtime_v1/execution_revision.rs"]
 mod execution_revision;
+
+#[path = "agent_runtime_v1/source_agent_embedded.rs"]
+mod source_agent_embedded;

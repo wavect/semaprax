@@ -40,7 +40,16 @@ receipts never authorize mutation or publication.
 
 The [Public Generic Ownership milestone](PUBLIC-GENERIC-OWNERSHIP-MILESTONE-V1.md)
 owns PG-1 through PG-9. The cited PG-1–8 hosted run applies to its exact older
-commit, not automatically to current main.
+commit, not automatically to current main. Local-only hardening of the
+separately-scoped `public-generic-wasm-provider.v1` compiled-provider profile
+(#287, #288, #301, #292; local candidate `77d68e49` on the unreleased
+`wavect/v070` integration branch) has since narrowed the caller/carrier and
+physical-adapter evidence gap for that one profile further; it is not a
+hosted run, not a #164 candidate freeze, and does not change PG-9. The next
+boundary for ABI-09 remains: a fresh hosted three-OS run, an artifact-digest
+inventory, and a compatibility/security review at one exact frozen candidate
+— all currently open because hosted CI capacity (GitHub Actions credits) is
+exhausted for this account, not because the work was skipped.
 
 <a id="current-priority-post-v02-promotion-boundaries"></a>
 
@@ -57,9 +66,12 @@ visible until a promoted workflow intentionally hides them from users.
 ## Developer preview: promote the authored Project v8 slice
 
 Project v8's bounded owned-byte path and its direct-browser regression are
-implemented. Promotion still needs a package and browser/runtime support
-decision. Preserve descriptor/carrier replay, ownership settlement, stable
-identity, and no-clobber publication. [Transport v5](PROJECT-AGENT-TRANSPORT-V5.md)
+implemented. [ADR 0003](decisions/0003-maintained-generated-package-support.md#current-maintainer-decision)
+reaffirms ordinary owned-data Rust-only maintenance for #325; npm maintenance
+remains deferred to a separate ADR. Registry publication and broader
+API/browser/runtime promotion remain separate decisions, not implied by the
+Rust scope or genuine local npm execution. Preserve descriptor/carrier replay,
+ownership settlement, stable identity, and no-clobber publication. [Transport v5](PROJECT-AGENT-TRANSPORT-V5.md)
 and [v6](PROJECT-AGENT-TRANSPORT-V6.md) are read-only; they gain no write or
 publication authority.
 

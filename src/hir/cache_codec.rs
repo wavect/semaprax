@@ -61,14 +61,24 @@ codec_struct!(ResolvedAgentTypeRole { role, stable_id });
 codec_struct!(ResolvedAgentOperationRole {
     role,
     kind,
-    stable_id
+    stable_id,
+    embedded
+});
+codec_struct!(ResolvedAgentModelWaitBinding { helper_id });
+codec_struct!(AgentExecutionSourceAssociation {
+    module,
+    operations,
+    model_wait,
+    helper_top_level
 });
 codec_struct!(ResolvedAgentDeclaration {
     stable_id,
     name,
     types,
     operations,
-    runtime_v1_json
+    runtime_v1_json,
+    model_wait,
+    source_association
 });
 
 // Every lookup map is part of the complete HIR value, including native import,

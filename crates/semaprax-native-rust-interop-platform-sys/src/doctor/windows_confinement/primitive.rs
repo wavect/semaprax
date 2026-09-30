@@ -3,28 +3,14 @@
 //!
 //! # Authoring-host and hosted evidence boundaries
 //!
-//! The authoring host for this module is macOS arm64 with no `rustup`, no
-//! installed `*-pc-windows-*` target, and no Windows toolchain of any kind,
-//! so `cfg(windows)` code is not compiled here. Hosted Windows run
-//! [35988348061](https://github.com/wavect/semaprax/actions/runs/35988348061)
-//! on exact checkout `3d4220b6` executed the prior five-case structural-
-//! capsule runtime selector. The signed-admission changes in this checkout
-//! require a new exact hosted run; the earlier run is not evidence for them.
-//! Every function signature, struct
-//! layout, and constant used below was cross-checked against the exact
-//! vendored `windows-sys = "=0.61.2"` source
-//! (`~/.cargo/registry/src/.../windows-sys-0.61.2`) already pinned by this
-//! crate's `Cargo.toml`, using its enabled features
-//! (`Win32_Foundation`, `Win32_Security`, `Win32_Security_Authorization`,
-//! `Win32_Storage_FileSystem`,
-//! `Win32_System_JobObjects`, `Win32_System_Threading`). The Authorization
-//! feature lets runtime tests inspect the resulting scratch DACL. That
-//! cross-check raises confidence that the
-//! code compiles; it is not a substitute for real Windows execution and must
-//! never be described as one. Treat every claim this file's doc comments
-//! make about its own behavior as a design intent, not evidence beyond those
-//! exact hosted cases, until a Windows-capable session builds and runs it (see the gate in
-//! `DOCTOR-PRODUCTION-PROVISIONER-WINDOWS-V1.md`).
+//! The historical ten-case native Windows selector passed on `f4d3291f`;
+//! the owning specification retains the earlier exact compilation/runtime
+//! receipts. The signed-image binding continuation and its six additional
+//! cases have no native Windows execution receipt on this macOS authoring
+//! host. A cross-target type-check is not runtime acceptance. Production
+//! release trust, Windows request/bundle transport and broader confinement
+//! remain separate requirements. Retained writable-section mutation can still
+//! race advisory oplock checks; exact image-binding acceptance remains open.
 //!
 //! # Scope
 //!
@@ -102,6 +88,9 @@ use windows_sys::Win32::System::Threading::{
 };
 
 const MAX_WIDE: usize = 32767;
+
+mod image;
+pub use image::ImageRole;
 /// Denies every UI-affecting capability a confined batch tool has no
 /// legitimate use for, per this contract's job-limit tightening.
 const DENIED_UI_LIMITS: u32 = JOB_OBJECT_UILIMIT_HANDLES
@@ -455,6 +444,8 @@ pub struct ConfinedProcess {
     _stdout: Handle,
     _stderr: Handle,
     _scratch: ScratchRoot,
+    // Retain the authenticated file and its namespace guards until settlement.
+    _image: image::HeldImage,
     settled: bool,
 }
 
@@ -473,17 +464,19 @@ impl Drop for ConfinedProcess {
 }
 
 /// Verify the release-signed capsule using the compile-time release trust
-/// anchor, then spawn `exe` suspended under a restricted token, inside a
+/// anchor, check `exe` against the selected signed image role with held NTFS
+/// file/namespace guards, then spawn suspended under a restricted token, inside a
 /// fresh ACL-confined scratch root, assigned to a tightened job object,
 /// before any target code runs. Missing or malformed trust input refuses; it
 /// never falls back to structural-only parsing.
 pub fn confined_spawn(
     exe: &Path,
+    role: ImageRole,
     args: &[&OsStr],
     scratch_root: &Path,
     capsule_bytes: &[u8],
 ) -> Result<ConfinedProcess, Refusal> {
-    confined_spawn_using(exe, args, scratch_root, || {
+    confined_spawn_using(exe, role, args, scratch_root, || {
         super::capsule::parse_with_release_anchor(capsule_bytes)
     })
 }
@@ -499,48 +492,65 @@ fn confined_spawn_with_test_key(
     capsule_bytes: &[u8],
     public_key_hex: &str,
 ) -> Result<ConfinedProcess, Refusal> {
-    confined_spawn_using(exe, args, scratch_root, || {
+    confined_spawn_using(exe, ImageRole::Worker, args, scratch_root, || {
         super::capsule::parse_windows_signed_with_key(capsule_bytes, public_key_hex)
     })
 }
 
 fn confined_spawn_using(
     exe: &Path,
+    role: ImageRole,
     args: &[&OsStr],
     scratch_root: &Path,
     parse_capsule: impl FnOnce()
         -> Result<super::capsule::VerifiedCapsule, super::capsule::CapsuleError>,
 ) -> Result<ConfinedProcess, Refusal> {
-    let (_host, _capsule, token, job, scratch): (_, super::capsule::VerifiedCapsule, _, _, _) =
-        admit(
-            || {
-                if cfg!(all(
-                    windows,
-                    target_pointer_width = "64",
-                    any(target_arch = "x86_64", target_arch = "aarch64")
-                )) {
-                    Ok(())
-                } else {
-                    Err(())
-                }
-            },
-            parse_capsule,
-            restricted_token,
-            tightened_job,
-            || {
-                let token = restricted_token()?;
-                let mut sid_buffer = [0u8; 256];
-                read_token_user_sid(&token, &mut sid_buffer)?;
-                confined_scratch_root(scratch_root, &sid_buffer)
-            },
-        )?;
+    confined_spawn_after_binding(exe, role, args, scratch_root, parse_capsule, || {})
+}
+
+fn confined_spawn_after_binding(
+    exe: &Path,
+    role: ImageRole,
+    args: &[&OsStr],
+    scratch_root: &Path,
+    parse_capsule: impl FnOnce()
+        -> Result<super::capsule::VerifiedCapsule, super::capsule::CapsuleError>,
+    after_binding: impl FnOnce(),
+) -> Result<ConfinedProcess, Refusal> {
+    let (_host, image, token, job, scratch) = admit(
+        || {
+            if cfg!(all(
+                windows,
+                target_pointer_width = "64",
+                any(target_arch = "x86_64", target_arch = "aarch64")
+            )) {
+                Ok(())
+            } else {
+                Err(())
+            }
+        },
+        || {
+            let capsule = parse_capsule()?;
+            image::HeldImage::acquire(exe, role.artifact(&capsule))
+                .map_err(|()| super::capsule::CapsuleError::ArtifactBinding)
+        },
+        restricted_token,
+        tightened_job,
+        || {
+            let token = restricted_token()?;
+            let mut sid_buffer = [0u8; 256];
+            read_token_user_sid(&token, &mut sid_buffer)?;
+            confined_scratch_root(scratch_root, &sid_buffer)
+        },
+    )?;
+    after_binding();
     let stdin = open_inheritable_null().map_err(|()| Refusal::FilesystemConfinement)?;
     let stdout =
         create_inheritable_log(&scratch.stdout_log).map_err(|()| Refusal::FilesystemConfinement)?;
     let stderr =
         create_inheritable_log(&scratch.stderr_log).map_err(|()| Refusal::FilesystemConfinement)?;
 
-    let application = wide(exe.as_os_str()).map_err(|()| Refusal::Invalid)?;
+    let application = image.application();
     let mut command: Vec<u16> = Vec::new();
     command.push(u16::from(b'"'));
     command.extend_from_slice(&application[..application.len() - 1]);
@@ -560,6 +570,11 @@ fn confined_spawn_using(
     startup.hStdOutput = stdout.raw();
     startup.hStdError = stderr.raw();
     let mut process_information = PROCESS_INFORMATION::default();
+    if !image.intact() {
+        return Err(Refusal::Capsule(
+            super::capsule::CapsuleError::ArtifactBinding,
+        ));
+    }
     // SAFETY: `token` is a live restricted token with the rights
     // `CreateProcessAsUserW` requires; `application`/`cwd`/`environment` are
     // live NUL-terminated (or double-NUL-terminated) wide buffers; `command`
@@ -595,7 +610,25 @@ fn confined_spawn_using(
         // SAFETY: the leader is still suspended; terminating it now cannot
         // race with any code the leader would otherwise run.
         unsafe { TerminateProcess(process.raw(), 1) };
+        // SAFETY: the owned process remains suspended until it exits. Do not
+        // return an unowned live leader after a setup failure.
+        if unsafe { WaitForSingleObject(process.raw(), 5_000) } != WAIT_OBJECT_0 {
+            std::process::abort();
+        }
         return Err(Refusal::Spawn);
+    }
+    // CreateProcess can be redirected by host policy (for example IFEO).
+    // Require the suspended process's native image name to name the held
+    // authenticated file before its first thread may execute any code.
+    if !image.matches_process(process.raw()) {
+        // SAFETY: this job owns the suspended leader; no thread was resumed.
+        unsafe { TerminateJobObject(job.raw(), 1) };
+        if unsafe { WaitForSingleObject(process.raw(), 5_000) } != WAIT_OBJECT_0 {
+            std::process::abort();
+        }
+        return Err(Refusal::Capsule(
+            super::capsule::CapsuleError::ArtifactBinding,
+        ));
     }
     // SAFETY: this is the primary thread `CreateProcessAsUserW` returned
     // suspended.
@@ -612,6 +645,7 @@ fn confined_spawn_using(
         _stdin: stdin,
         _stdout: stdout,
         _stderr: stderr,
+        _image: image,
         settled: false,
     })
 }

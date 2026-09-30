@@ -8,11 +8,26 @@
 mod build;
 mod deferred_commit;
 mod execute;
+// Owned-value-across-a-yield liveness query (issue #296, spec section 11.6).
+// `admit_owned_bytes_profile` is the second increment's real caller: the HIR
+// resolve pipeline calls it once a `yields`-declaring function's cleanup plan
+// is built, so an owned `Bytes` local live across a real suspension site can
+// leave the Copy-scalar profile; every other owned or aggregate value still
+// keeps its existing SPX-T303/T305/T306 refusal.
+mod owned_liveness;
 mod replay;
 mod validate;
 
 pub(crate) use build::build_plan;
 pub use execute::{execute_for_conformance, CleanupExecutionError, CleanupScenario};
+pub(crate) use owned_liveness::{
+    admit_owned_bytes_profile, admit_sequential_aggregate_bytes_profile, carried_locals_at,
+};
+pub(crate) use owned_liveness::{
+    owned_authorize_partial_disposal, owned_authorize_result_disposal, owned_frame_body,
+    owned_frame_copy_expression, owned_frame_liveness, owned_frame_parameter, owned_frame_v2_body,
+    owned_frame_v2_liveness, owned_frame_v2_parameter, OwnedFrameLiveness,
+};
 pub(crate) use replay::selected_schema;
 pub(crate) use validate::validate_program;
 
@@ -783,3 +798,6 @@ fn staged_result_bytes(source: &StagedCopyResultSource) -> Option<usize> {
         .checked_add(resolved_type_owned_capacity(target_instance)?),
     }
 }
+
+pub(crate) use owned_liveness::{owned_record_transfer_plan, OwnedRecordTransferPlan};
+pub(crate) use owned_liveness::{owned_step_transfer_plan, OwnedStepTransferPlan};

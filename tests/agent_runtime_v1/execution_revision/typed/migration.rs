@@ -4,7 +4,8 @@ use semaprax::agent_lifecycle::iterative::{
 };
 use semaprax::agent_lifecycle::{CheckpointStore, CheckpointStoreError};
 use semaprax::agent_runtime_v2::{
-    bind_agent_runtime_v2, migrate_suspended_agent_runtime_v2, AgentRuntimeV2,
+    bind_agent_runtime_v2, migrate_suspended_agent_runtime_v2,
+    migrate_suspended_agent_runtime_v2_with_backend, AgentRuntimeV2,
 };
 use semaprax::execution_revision::ProgramRootRef;
 
@@ -76,8 +77,7 @@ fn runtime(
     })
 }
 
-#[test]
-fn prepared_migration_consumes_actual_suspend_and_charges_old_and_new_work() {
+fn migration_fixtures() -> (Fixture, Fixture, EffectBudget) {
     let old_fixture = typed_fixture();
     let old_path = old_fixture.0.join("src/app.spx");
     let old_before = std::fs::read_to_string(&old_path).unwrap();
@@ -151,6 +151,12 @@ fn migrate(old: own State) -> NewState {
         max_result_bytes: 4096,
         max_total_bytes: 16_384,
     };
+    (old_fixture, new_fixture, effects)
+}
+
+#[test]
+fn prepared_migration_consumes_actual_suspend_and_charges_old_and_new_work() {
+    let (old_fixture, new_fixture, effects) = migration_fixtures();
     let old_for_run = runtime(&old_fixture, b"migration task", effects).unwrap();
     let old_revision = old_for_run.execution_revision().digest().to_owned();
     let old = runtime(&old_fixture, b"migration task", effects).unwrap();
@@ -361,6 +367,248 @@ fn migrate(old: own State) -> NewState {
     .expect("migration fuel must exhaust");
     assert_eq!(failure.usage().calls, before.calls);
     assert_eq!(failure.usage().reserved_fuel, before.reserved_fuel + 2);
+}
+
+#[test]
+#[cfg(any(target_os = "linux", target_os = "macos"))]
+fn selected_migration_continuation_preserves_state_usage_and_precancellation() {
+    use semaprax::agent_lifecycle::iterative::effects::{
+        NativeTargetHost, TargetStageBackend, WasmTargetHost,
+    };
+    let Some(native) = std::env::var_os("SEMAPRAX_TEST_NATIVE_STAGE_CLANG")
+        .map(std::path::PathBuf::from)
+        .into_iter()
+        .chain(
+            [
+                "/usr/bin/clang",
+                "/usr/local/bin/clang",
+                "/opt/homebrew/bin/clang",
+            ]
+            .map(std::path::PathBuf::from),
+        )
+        .find_map(|path| NativeTargetHost::open(path).ok())
+    else {
+        eprintln!("skipping migration target parity: held clang unavailable");
+        return;
+    };
+    let Some(wasm) = std::env::var_os("SEMAPRAX_TEST_WASM_STAGE_NODE")
+        .map(std::path::PathBuf::from)
+        .into_iter()
+        .chain(
+            [
+                "/usr/bin/node",
+                "/usr/local/bin/node",
+                "/opt/homebrew/bin/node",
+            ]
+            .map(std::path::PathBuf::from),
+        )
+        .find_map(|path| WasmTargetHost::open(path).ok())
+    else {
+        eprintln!("skipping migration target parity: held node unavailable");
+        return;
+    };
+    let (old_fixture, new_fixture, effects) = migration_fixtures();
+    let mut expected = None;
+    let mut expected_migration_work = None;
+    for cancelled in [false, true] {
+        for selected in [
+            None,
+            Some(TargetStageBackend::Interpreter),
+            Some(TargetStageBackend::Native(&native)),
+            Some(TargetStageBackend::CoreWasmHeld(&wasm)),
+        ] {
+            let previous = runtime(&old_fixture, b"migration task", effects).unwrap();
+            let before = previous.execution_revision().digest().to_owned();
+            let mut old_handler = Handler {
+                calls: Vec::new(),
+                wrong: false,
+            };
+            let suspended = runtime(&old_fixture, b"migration task", effects)
+                .unwrap()
+                .run_durable(
+                    &mut old_handler,
+                    &AgentCancellation::new(),
+                    None,
+                    &mut MigrationStore::default(),
+                    10_000_000,
+                )
+                .unwrap();
+            assert_eq!(
+                suspended.run().run().lifecycle().status(),
+                IterativeStatus::Suspend
+            );
+            assert_eq!(old_handler.calls.len(), 3);
+            let prior = suspended.run().usage();
+            let prior_stages = suspended.run().run().lifecycle().stages().len();
+            let destination = runtime(&new_fixture, b"fresh destination input", effects).unwrap();
+            let after = destination.execution_revision().digest().to_owned();
+            let migration = match selected {
+                None => migrate_suspended_agent_runtime_v2(
+                    previous,
+                    suspended,
+                    destination,
+                    &before,
+                    &after,
+                    "fixture.agent.fn.migrate",
+                    10_000,
+                    10_000_000,
+                ),
+                Some(selected) => migrate_suspended_agent_runtime_v2_with_backend(
+                    previous,
+                    suspended,
+                    destination,
+                    &before,
+                    &after,
+                    "fixture.agent.fn.migrate",
+                    10_000,
+                    10_000_000,
+                    selected,
+                    10_000,
+                ),
+            }
+            .unwrap();
+            let migration_root: serde_json::Value =
+                serde_json::from_str(migration.migration_root().canonical_json()).unwrap();
+            if let Some(selected) = selected {
+                assert_eq!(
+                    migration_root["schema"],
+                    "semaprax.agent-state-migration.v4"
+                );
+                let target = &migration_root["facts"]["target_execution"];
+                assert!(target["execution_binding"]
+                    .as_str()
+                    .is_some_and(|binding| binding.starts_with("sha256:")));
+                assert_eq!(target["semantic_fuel_limit"], 10_000);
+                for evaluation in target["evaluations"].as_array().unwrap() {
+                    let work = &evaluation["semantic_work"];
+                    assert_eq!(work["fuel_limit"], 10_000);
+                    assert!(work["fuel_used"].as_u64().unwrap() > 0);
+                    assert!(!work["exhausted"].as_bool().unwrap());
+                    if matches!(selected, TargetStageBackend::Interpreter) {
+                        assert!(evaluation["instruction_steps"].as_u64().unwrap() > 0);
+                        assert!(work["finalizer_events"].is_null());
+                    } else {
+                        assert_eq!(evaluation["instruction_steps"], 0);
+                        assert!(work["finalizer_events"].is_array());
+                    }
+                }
+                let common_work = target["evaluations"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .map(|evaluation| {
+                        let work = &evaluation["semantic_work"];
+                        (
+                            work["fuel_used"].clone(),
+                            work["fuel_limit"].clone(),
+                            work["exhausted"].clone(),
+                        )
+                    })
+                    .collect::<Vec<_>>();
+                if let Some(expected) = &expected_migration_work {
+                    assert_eq!(&common_work, expected);
+                } else {
+                    expected_migration_work = Some(common_work);
+                }
+            } else {
+                assert_ne!(
+                    migration_root["schema"],
+                    "semaprax.agent-state-migration.v4"
+                );
+                assert!(migration_root["facts"].get("target_execution").is_none());
+            }
+            let cancellation = AgentCancellation::new();
+            if cancelled {
+                cancellation.cancel();
+            }
+            let mut handler = Handler {
+                calls: Vec::new(),
+                wrong: false,
+            };
+            let interpreted = matches!(selected, None | Some(TargetStageBackend::Interpreter));
+            let evidence = match selected {
+                None => migration.run(&mut handler, &cancellation),
+                Some(selected) => migration.run_with_backend(&mut handler, &cancellation, selected),
+            }
+            .unwrap();
+            // Independently verify the root's digest over the exact reported facts.
+            // Its nested lifecycle evidence retains backend-specific instruction
+            // counts, so byte-identical roots are not a cross-target invariant.
+            use sha2::{Digest, Sha256};
+            let mut root: serde_json::Value =
+                serde_json::from_str(evidence.evidence_root().canonical_json()).unwrap();
+            let declared = root.as_object_mut().unwrap().remove("digest").unwrap();
+            assert_eq!(declared, evidence.evidence_root().digest());
+            let mut hash = Sha256::new();
+            hash.update(root["schema"].as_str().unwrap().as_bytes());
+            hash.update([0]);
+            hash.update(format!("{root}\n").as_bytes());
+            let computed: String = hash
+                .finalize()
+                .iter()
+                .map(|byte| format!("{byte:02x}"))
+                .collect();
+            assert_eq!(
+                evidence.evidence_root().digest(),
+                format!("sha256:{computed}")
+            );
+            let lifecycle = evidence.run().lifecycle();
+            assert!(lifecycle
+                .stages()
+                .iter()
+                .all(|stage| stage.role() != "initialize"));
+            if cancelled {
+                assert_eq!(lifecycle.status(), IterativeStatus::Cancelled);
+                assert!(handler.calls.is_empty());
+                assert!(lifecycle.stages().is_empty());
+                assert_eq!(evidence.stages(), prior_stages);
+                assert_eq!(evidence.iterations(), 3);
+                assert_eq!(evidence.usage().calls, prior.calls);
+                assert_eq!(evidence.usage().argument_bytes, prior.argument_bytes);
+                assert_eq!(evidence.usage().result_bytes, prior.result_bytes);
+                assert_eq!(evidence.usage().reserved_fuel, prior.reserved_fuel + 20_000);
+            } else {
+                assert_eq!(lifecycle.status(), IterativeStatus::Complete);
+                assert_eq!(handler.calls.len(), 3);
+                assert_eq!(evidence.usage().calls, 6);
+                assert_eq!(evidence.iterations(), 6);
+                assert_eq!(evidence.stages(), prior_stages + 9);
+                assert_eq!(
+                    evidence.usage().reserved_fuel,
+                    prior.reserved_fuel + 920_000
+                );
+                let mut lifecycle_facts: serde_json::Value =
+                    serde_json::from_str(lifecycle.evidence()).unwrap();
+                for stage in lifecycle_facts["stages"].as_array_mut().unwrap() {
+                    let row = stage.as_array_mut().unwrap();
+                    assert_eq!(row.len(), 4);
+                    let instruction_steps = row.pop().unwrap().as_u64().unwrap();
+                    if interpreted {
+                        assert!(instruction_steps > 0);
+                    } else {
+                        assert_eq!(instruction_steps, 0);
+                    }
+                }
+                {
+                    let facts = lifecycle_facts.as_object_mut().unwrap();
+                    facts.remove("authorizations");
+                    facts.remove("invocation_digest");
+                }
+                let observed = (
+                    lifecycle.value().cloned(),
+                    evidence.usage(),
+                    evidence.iterations(),
+                    evidence.stages(),
+                    lifecycle_facts,
+                );
+                if let Some(expected) = &expected {
+                    assert_eq!(&observed, expected);
+                } else {
+                    expected = Some(observed);
+                }
+            }
+        }
+    }
 }
 
 #[path = "migration/durable.rs"]

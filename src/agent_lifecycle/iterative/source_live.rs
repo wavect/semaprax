@@ -4,6 +4,7 @@ pub use crate::live_invocation::source_journal::{SourceIoLimits, SourceIoTotals}
 
 use super::*;
 mod migration;
+mod model_wait;
 mod policy_v6;
 mod priced;
 pub use priced::SourceLivePricing;
@@ -228,6 +229,21 @@ impl CompiledIterativeLifecycle {
         store: &mut dyn CheckpointStore,
         binding: SourceInvocationBinding,
     ) -> Result<SourceLiveOutcome, SourceLiveFailure> {
+        self.run_live_durable_bound_inner(request, source, driver, store, binding, None)
+    }
+
+    fn run_live_durable_bound_inner(
+        &self,
+        request: SourceLiveRequest<'_>,
+        source: &mut dyn driver::ProposalSource,
+        driver: &mut dyn driver::IterativeDriver,
+        store: &mut dyn CheckpointStore,
+        binding: SourceInvocationBinding,
+        wait: Option<(
+            &crate::agent_lifecycle::iterative::model_wait::SourceModelWaitBinding,
+            &crate::resumable_effects::source_checkpoint::SourceCheckpointKey,
+        )>,
+    ) -> Result<SourceLiveOutcome, SourceLiveFailure> {
         use crate::live_invocation::source_journal::{
             recover_source_checkpoint, SourceJournalEntry,
         };
@@ -237,6 +253,10 @@ impl CompiledIterativeLifecycle {
             .transpose()
             .map_err(|error| SourceLiveFailure::initial(error, None))?;
         if let Some(checkpoint) = recovered.as_ref() {
+            if let Some((wait, key)) = wait {
+                model_wait::validate_recovered(self, wait, key, checkpoint)
+                    .map_err(|e| SourceLiveFailure::initial(e, recovered.clone()))?;
+            }
             if checkpoint.terminal_snapshot().is_some() {
                 return Ok(SourceLiveOutcome {
                     checked_run: None,
@@ -324,6 +344,9 @@ impl CompiledIterativeLifecycle {
         };
         let mut session =
             SourceExecutionSession::new(sink, ledger, request.clock, request.cancellation);
+        if let Some((wait, key)) = wait {
+            session = session.with_model_wait(self, wait.clone(), key);
+        }
         if let Some(SourceJournalEntry::Stop { status, .. }) =
             session.sink.journal().entries().last()
         {

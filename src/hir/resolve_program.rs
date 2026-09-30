@@ -430,11 +430,16 @@ impl Resolver<'_> {
             .collect::<Result<Vec<_>, _>>()?;
         let function_instances =
             self.discover_function_instances(&functions, &function_templates)?;
+        for agent in &self.program.agents {
+            agent
+                .validate_execution_metadata(self.program)
+                .map_err(|message| Diagnostic::io("SPX-G559", message))?;
+        }
         let agents = self
             .program
             .agents
             .iter()
-            .map(resolve_agent_declaration)
+            .map(|declaration| resolve_agent_declaration(declaration, &self.program.module))
             .collect();
         let byte_slice_roots = derive_byte_slice_provenance(&functions, &self.declarations)?;
         let mut declarations = self.declarations;
@@ -511,6 +516,32 @@ impl Resolver<'_> {
             .zip(instance_cleanup_plans)
         {
             instance.function.cleanup_plan = cleanup_plan;
+        }
+        for function in &resolved.functions {
+            if let Some(yields) = &function.yields {
+                if crate::cleanup_plan::owned_frame_parameter(
+                    &resolved.declarations,
+                    &function.params,
+                ) {
+                    crate::cleanup_plan::owned_frame_liveness(&resolved.declarations, function)?;
+                } else if crate::cleanup_plan::owned_frame_v2_parameter(
+                    &resolved.declarations,
+                    &function.params,
+                ) {
+                    crate::cleanup_plan::owned_frame_v2_liveness(&resolved.declarations, function)?;
+                } else {
+                    crate::cleanup_plan::admit_owned_bytes_profile(function)?;
+                }
+                if crate::hir::yield_aggregate::has_bytes_leaf(
+                    &resolved.declarations,
+                    &yields.request_type,
+                ) || crate::hir::yield_aggregate::has_bytes_leaf(
+                    &resolved.declarations,
+                    &yields.response_type,
+                ) {
+                    crate::cleanup_plan::admit_sequential_aggregate_bytes_profile(function)?;
+                }
+            }
         }
         validate(&resolved)?;
         Ok((resolved, self.function_work))
@@ -907,7 +938,13 @@ impl Resolver<'_> {
             .collect::<Result<_, _>>()?;
         let mut body = self.resolve_expr(function_scope, &function.body, &bindings, "body")?;
         if let Some(yields_clause) = &yields {
-            self.finish_yields_admission(&function.name, yields_clause, &mut body)?;
+            self.finish_yields_admission(
+                &function.name,
+                yields_clause,
+                &params,
+                &return_type,
+                &mut body,
+            )?;
         }
 
         let mut ensures_bindings = bindings;
@@ -1228,6 +1265,7 @@ impl Resolver<'_> {
 
 fn resolve_agent_declaration(
     declaration: &crate::ast::AgentDeclaration,
+    module: &str,
 ) -> super::ResolvedAgentDeclaration {
     super::ResolvedAgentDeclaration {
         stable_id: DeclarationId::new(declaration.stable_id.clone()),
@@ -1287,10 +1325,18 @@ fn resolve_agent_declaration(
                     }
                 },
                 stable_id: DeclarationId::new(operation.stable_id.clone()),
+                embedded: operation.embedded_function_index.is_some(),
             })
             .collect(),
+        source_association: None,
         runtime_v1_json: declaration.runtime_v1_json.clone(),
+        model_wait: declaration.model_wait.as_ref().map(|binding| {
+            Box::new(super::ResolvedAgentModelWaitBinding {
+                helper_id: super::DeclarationId::new(binding.helper_id.clone()),
+            })
+        }),
     }
+    .bind_source_association(module)
 }
 
 #[cfg(test)]

@@ -47,3 +47,23 @@ plausible inclusive-end candidate while preserving the half-open contract.
 
 This fixture is held out. Its vectors and repair transcript must not be used
 to tune a language adapter or admitted feature set.
+
+## C, Python, Swift, and Java ports
+
+Added under the `runnable_adapter_v2` extension. C, Python, and Java keep
+the same candidate/entry split the Rust and TypeScript ports use
+(`candidate.c`/`candidate.py`/`Candidate.java` hold the unchanged
+`conflicts` predicate; the hidden overlay replaces only
+`main.c`/`digest.py`/`Main.java`, via `#include`, `import`, and javac's
+same-directory auto-discovery respectively). Swift's fixed single-file
+`swiftc main.swift` invocation admits no such split, so `conflicts` is
+repeated verbatim in both the public and hidden `main.swift`.
+
+Each port was authored independently against this file's strict-inequality
+contract and the Rust/TypeScript references, not transliterated
+line-by-line, and was independently compiled/run against the public and
+hidden vectors above, then checked against the plausible inclusive-boundary
+repair this task is built to catch (`<=` in place of both strict `<`
+comparisons): the mutant passes every public vector and fails both hidden
+adjacency vectors (`1` instead of the correct `0`, in both directions) in
+all four languages, confirming the hidden vectors are non-vacuous.

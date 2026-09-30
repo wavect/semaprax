@@ -105,6 +105,13 @@ its terminal value is unchanged. State migration is an implemented additive
 contract; a suspended value alone still grants no resume authority. Hosted
 evidence for the admitted runtime is green at the v0.4.0 baseline, without
 promoting unimplemented provider transports or general public ABI support.
+`run_durable` and its migration-seeded counterpart `run_durable_from_seed`
+themselves select only the interpreter; a local, test-only backend selector
+(`run_durable_on`/`run_durable_from_seed_on`, see the
+[iterative lifecycle's checkpoint-route parity evidence](AGENT-ITERATIVE-LIFECYCLE-V2.md))
+additionally proves the same canonical checkpoint bytes decode and continue
+correctly under native C11 or Core Wasm, without changing either production
+entry.
 
 ## Live Repair Smoke v1 and the repair publication boundary
 

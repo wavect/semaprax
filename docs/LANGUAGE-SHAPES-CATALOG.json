@@ -235,6 +235,12 @@
       "signature": "@id(\"platform.token.host\")\ninterface TokenHost\n    permits { platform.token.release }\n{\n    @id(\"platform.token.finalize\")\n    import fn finalize(token: own Token) -> unit\n        effects { platform.token.release }\n        failure infallible\n        consumes token always;\n}\n"
     },
     {
+      "id": "checkout.session",
+      "kind": "session_protocol",
+      "path": "examples/session_protocol.spx",
+      "signature": "@id(\"checkout.session\")\nsession protocol \"checkout-v1\" {\n    states { Idle, Open, Done, Failed }\n    initial Idle;\n    terminal Done cleanup { release }\n    terminal Failed cleanup { discard }\n    on Idle begin: send Begin via \"checkout.begin\" -> Open;\n    on Idle abort: fail Unit -> Failed;\n    on Open commit: send Commit via \"checkout.commit\" -> choice { committed: Done, refused: Failed };\n    on Open lost: fail Unit -> Failed;\n}\n"
+    },
+    {
       "id": "ledger.is_deposit",
       "kind": "function",
       "path": "examples/banking_ledger.spx",
@@ -977,6 +983,24 @@
       "kind": "function",
       "path": "examples/refutable_match.spx",
       "signature": "@id(\"main\")\nfn main() -> i64\n"
+    },
+    {
+      "id": "checkout.begin",
+      "kind": "function",
+      "path": "examples/session_protocol.spx",
+      "signature": "@id(\"checkout.begin\")\nfn begin() -> i64\n"
+    },
+    {
+      "id": "checkout.commit",
+      "kind": "function",
+      "path": "examples/session_protocol.spx",
+      "signature": "@id(\"checkout.commit\")\nfn commit() -> i64\n"
+    },
+    {
+      "id": "app.main",
+      "kind": "function",
+      "path": "examples/session_protocol.spx",
+      "signature": "@id(\"app.main\")\nfn main() -> i64\n"
     },
     {
       "id": "ops.combine",

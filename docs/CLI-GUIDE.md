@@ -4,6 +4,11 @@ Status: public alpha user guide.
 
 Audience: language users running the compiler locally or from automation.
 
+> New to the CLI? The user-facing [Semaprax Handbook](../handbook/README.md)
+> covers everyday commands in its [First project](../handbook/getting-started/first-project.md)
+> and [Cheatsheet](../handbook/reference/cheatsheet.md) pages. This guide
+> remains the complete command reference.
+
 Use `semaprax` for ordinary source and project work. A source checkout can
 also build `semaprax-full`, which adds private host-backed operations. See
 [Install](INSTALL.md) if a command is missing from your binary.

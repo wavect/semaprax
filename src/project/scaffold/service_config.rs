@@ -99,15 +99,15 @@ pub(super) fn decode(bytes: &[u8]) -> Result<ServiceConfigV1, String> {
         && webhook.is_none()
         && telemetry_adapter == "fixture"
         && telemetry_origin.is_none();
-    let host = matches!(database_adapter, "sqlite" | "postgresql")
-        && dsn.is_some()
+    let host = database_adapter == "snapshot"
+        && dsn.is_none()
         && http_adapter == "native"
         && listen_origin.is_some()
         && tls_profile == "modern"
         && password.is_some()
         && session.is_some()
         && webhook.is_some()
-        && telemetry_adapter == "otlp"
+        && telemetry_adapter == "semaprax-json-events"
         && telemetry_origin.is_some();
     if !matches!(
         (mode, fixture, host),
@@ -169,7 +169,9 @@ fn adapter_request(
             "telemetry": {"adapter": telemetry_adapter},
         }),
         Mode::Host => {
-            let dsn = dsn.ok_or("service host request lacks database reference")?;
+            if dsn.is_some() {
+                return Err("service snapshot profile must not carry a database reference".into());
+            }
             let listen_origin = listen_origin.ok_or("service host request lacks HTTPS origin")?;
             let password = password.ok_or("service host request lacks password reference")?;
             let session = session.ok_or("service host request lacks session reference")?;
@@ -180,14 +182,12 @@ fn adapter_request(
                 "schema": ADAPTER_REQUEST_SCHEMA,
                 "mode": "host",
                 "capabilities": [
-                    "semaprax.service.database.connect.v1",
                     "semaprax.service.http.serve-tls.v1",
                     "semaprax.service.secrets.resolve.v1",
                     "semaprax.service.telemetry.emit.v1",
                 ],
                 "database": {
                     "adapter": database_adapter,
-                    "dsn_secret_ref": dsn,
                     "migration_table": migration_table,
                 },
                 "http": {
@@ -347,10 +347,10 @@ mod tests {
         let host = serde_json::json!({
             "schema": SCHEMA,
             "mode": "host",
-            "database": {"adapter":"postgresql","dsn_secret_ref":"db.primary","migration_table":"semaprax_migrations"},
+            "database": {"adapter":"snapshot","dsn_secret_ref":null,"migration_table":"semaprax_migrations"},
             "http": {"adapter":"native","listen_origin":"https://service.example","tls_profile":"modern"},
             "secrets": {"password_pepper_ref":"auth.pepper","session_signing_key_ref":"auth.session","webhook_signing_key_ref":"webhook.signing"},
-            "telemetry": {"adapter":"otlp","endpoint_origin":"https://telemetry.example"},
+            "telemetry": {"adapter":"semaprax-json-events","endpoint_origin":"https://telemetry.example"},
         });
         let mut host = serde_json::to_vec(&host).unwrap();
         host.push(b'\n');
@@ -358,12 +358,11 @@ mod tests {
         assert_eq!(decoded.canonical_bytes(), host);
         let request: Value = serde_json::from_slice(decoded.adapter_request_bytes()).unwrap();
         assert_eq!(request["mode"], "host");
-        assert_eq!(request["database"]["adapter"], "postgresql");
+        assert_eq!(request["database"]["adapter"], "snapshot");
         assert_eq!(request["http"]["listen_origin"], "https://service.example");
         assert_eq!(
             request["capabilities"],
             serde_json::json!([
-                "semaprax.service.database.connect.v1",
                 "semaprax.service.http.serve-tls.v1",
                 "semaprax.service.secrets.resolve.v1",
                 "semaprax.service.telemetry.emit.v1",
@@ -373,18 +372,37 @@ mod tests {
             .adapter_request_bytes()
             .windows(b"secret-value".len())
             .any(|window| window == b"secret-value"));
+
+        let canonical_host: Value = serde_json::from_slice(&host).unwrap();
+        for (field, legacy_label) in [
+            ("database", "sqlite"),
+            ("database", "postgresql"),
+            ("telemetry", "otlp"),
+        ] {
+            let mut legacy = canonical_host.clone();
+            legacy[field]["adapter"] = Value::String(legacy_label.into());
+            legacy.sort_all_objects();
+            let mut legacy = serde_json::to_vec(&legacy).unwrap();
+            legacy.push(b'\n');
+            assert!(
+                decode(&legacy).is_err(),
+                "legacy {legacy_label} adapter label must refuse"
+            );
+        }
     }
 
     #[test]
     fn hostile_shape_mode_and_canonical_drift_refuse() {
         let valid: Value = serde_json::from_slice(&fixture()).unwrap();
-        let mutations: [fn(&mut Value); 5] = [
+        let mutations: [fn(&mut Value); 7] = [
             |value: &mut Value| value["unknown"] = Value::Bool(true),
             |value: &mut Value| value["mode"] = Value::String("host".into()),
+            |value: &mut Value| value["database"]["adapter"] = Value::String("sqlite".into()),
             |value: &mut Value| value["database"]["adapter"] = Value::String("postgresql".into()),
             |value: &mut Value| {
                 value["database"]["dsn_secret_ref"] = Value::String("postgres://credential".into())
             },
+            |value: &mut Value| value["telemetry"]["adapter"] = Value::String("otlp".into()),
             |value: &mut Value| {
                 value["http"]["listen_origin"] = Value::String("http://insecure.example".into())
             },
@@ -417,8 +435,7 @@ mod tests {
         ] {
             let mut host = valid.clone();
             host["mode"] = Value::String("host".into());
-            host["database"]["adapter"] = Value::String("sqlite".into());
-            host["database"]["dsn_secret_ref"] = Value::String("db.primary".into());
+            host["database"]["adapter"] = Value::String("snapshot".into());
             host["http"]["adapter"] = Value::String("native".into());
             host["http"]["listen_origin"] =
                 Value::String(format!("https://service.example:{port}"));
@@ -426,7 +443,7 @@ mod tests {
             host["secrets"]["password_pepper_ref"] = Value::String("auth.pepper".into());
             host["secrets"]["session_signing_key_ref"] = Value::String("auth.session".into());
             host["secrets"]["webhook_signing_key_ref"] = Value::String("webhook.signing".into());
-            host["telemetry"]["adapter"] = Value::String("otlp".into());
+            host["telemetry"]["adapter"] = Value::String("semaprax-json-events".into());
             host["telemetry"]["endpoint_origin"] =
                 Value::String(format!("https://telemetry.example:{port}"));
             host.sort_all_objects();
@@ -447,15 +464,14 @@ mod tests {
         ] {
             let mut host = valid.clone();
             host["mode"] = Value::String("host".into());
-            host["database"]["adapter"] = Value::String("sqlite".into());
-            host["database"]["dsn_secret_ref"] = Value::String("db.primary".into());
+            host["database"]["adapter"] = Value::String("snapshot".into());
             host["http"]["adapter"] = Value::String("native".into());
             host["http"]["listen_origin"] = Value::String("https://service.example".into());
             host["http"]["tls_profile"] = Value::String("modern".into());
             host["secrets"]["password_pepper_ref"] = Value::String("auth.pepper".into());
             host["secrets"]["session_signing_key_ref"] = Value::String("auth.session".into());
             host["secrets"]["webhook_signing_key_ref"] = Value::String("webhook.signing".into());
-            host["telemetry"]["adapter"] = Value::String("otlp".into());
+            host["telemetry"]["adapter"] = Value::String("semaprax-json-events".into());
             host["telemetry"]["endpoint_origin"] = Value::String(origin.clone());
             host.sort_all_objects();
             let mut bytes = serde_json::to_vec(&host).unwrap();

@@ -63,7 +63,7 @@ mod semantic_transaction;
 mod semantic_transaction_composition;
 mod semantic_transaction_v2;
 mod semantic_transaction_v2_workflow;
-pub(crate) mod service_host_adapter_request;
+pub mod service_host_adapter_request;
 mod source_hint;
 pub(crate) mod standard_dependencies;
 mod std_collections;
@@ -434,7 +434,6 @@ pub use project_lock::{
     classify_lock_change, render_project_lock, verify_project_lock, LockCompatibility,
     VerifiedProjectLock, MAX_PROJECT_LOCK_BYTES, PROJECT_LOCK_FILE, PROJECT_LOCK_SCHEMA,
 };
-pub(crate) use scaffold::derive_service_host_adapter_request_v1;
 pub use scalar_wit_compare::{
     classify_scalar_wit_change, ScalarWitCompatibility, SCALAR_WIT_COMPATIBILITY_SCHEMA,
 };
@@ -559,7 +558,8 @@ pub use public_api::{
 };
 pub use public_utf8_api::{PUBLIC_OWNED_UTF8_API_SCHEMA, PUBLIC_OWNED_UTF8_PROJECT_SCHEMA};
 pub use scaffold::{
-    derive_project_scaffold_v1, derive_project_scaffold_v1_with_layout, project_scaffold_inventory,
+    derive_project_scaffold_v1, derive_project_scaffold_v1_with_layout,
+    derive_service_host_adapter_request_v1, project_scaffold_inventory,
     project_scaffold_inventory_with_layout, replay_project_scaffold_v1, ProjectScaffoldFileV1,
     ProjectScaffoldV1, ScaffoldLayout, MAX_PROJECT_SCAFFOLD_DESCRIPTOR_BYTES,
     MAX_PROJECT_SCAFFOLD_NAME_BYTES, PROJECT_SCAFFOLD_FILE_COUNT, PROJECT_SCAFFOLD_INVENTORY,

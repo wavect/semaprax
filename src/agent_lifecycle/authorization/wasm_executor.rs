@@ -145,17 +145,29 @@ use super::{sealed, ExecutionAuthority, StageExecutor};
 mod outcome;
 #[path = "wasm_executor_process.rs"]
 mod process;
+#[path = "wasm_executor_result_plan.rs"]
+mod result_plan;
+#[path = "wasm_executor_semantic.rs"]
+mod semantic;
 #[path = "wasm_executor_workspace.rs"]
 mod workspace;
 use outcome::{decode_node_outcomes, NodeStageRun};
 pub use process::WasmStageHost;
 use process::{run_node_process, MAX_NODE_STDOUT_BYTES};
+pub(in crate::agent_lifecycle) use result_plan::BYTE_STREAM_CAP;
+use result_plan::{
+    drivers_for, nominal_declaration, Driver, Leaf, Projection, ResultPlan, BYTE_HELPERS,
+};
+use semantic::{WasmMeter, MAX_SEMANTIC_ROW_BYTES};
 use workspace::WasmStageWorkspace;
 
 // The registered process provider admits at most 64 KiB total output. Keep a
 // conservative per-projection reservation inside that hard boundary; larger
 // byte-stream projections fail closed before process admission.
 const MAX_NODE_OUTCOME_ROW_BYTES: usize = 4 * 1_024;
+// Scalar values and the fixed compiler-owned status envelopes fit within
+// this bound; only owned-byte projections require the larger row allowance.
+const MAX_NODE_SCALAR_OUTCOME_ROW_BYTES: usize = 512;
 
 /// The Core Wasm stage executor, carrying the exact module source text it is
 /// allowed to re-resolve. It reads no file and opens no network; the source
@@ -370,6 +382,35 @@ impl StageExecutor for WasmStageExecutor<'_> {
         )
         .map_err(|error| vec![error])
     }
+
+    #[allow(clippy::too_many_arguments)]
+    fn execute_metered(
+        &self,
+        _authority: ExecutionAuthority,
+        program: &hir::ResolvedProgram,
+        prepared: &PreparedRetainedCall,
+        arguments: &[RetainedValue],
+        max_steps: usize,
+        profile: &super::StageSemanticProfile,
+        cancellation: Option<&AgentCancellation>,
+    ) -> Result<RetainedCallEvaluation, Vec<Diagnostic>> {
+        let meter = WasmMeter::new(profile);
+        let run = || {
+            let mut evaluation = run_selected(
+                self.host,
+                self.source,
+                program,
+                prepared,
+                arguments,
+                max_steps,
+                cancellation,
+                Some(&meter),
+            )?;
+            evaluation.semantic_work = Some(meter.take()?);
+            Ok(evaluation)
+        };
+        run().map_err(|error| vec![error])
+    }
 }
 
 fn admitted_parameter(ty: &ResolvedType, ownership: OwnershipMode) -> bool {
@@ -412,6 +453,29 @@ fn run_admitted(
     max_steps: usize,
     cancellation: Option<&AgentCancellation>,
 ) -> Result<RetainedCallEvaluation, Diagnostic> {
+    run_selected(
+        host,
+        source,
+        program,
+        prepared,
+        arguments,
+        max_steps,
+        cancellation,
+        None,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn run_selected(
+    host: Option<&WasmStageHost>,
+    source: &str,
+    program: &hir::ResolvedProgram,
+    prepared: &PreparedRetainedCall,
+    arguments: &[RetainedValue],
+    max_steps: usize,
+    cancellation: Option<&AgentCancellation>,
+    meter: Option<&WasmMeter<'_>>,
+) -> Result<RetainedCallEvaluation, Diagnostic> {
     if cancellation.is_some_and(AgentCancellation::is_cancelled) {
         return Err(invariant("wasm_executor.process.cancelled"));
     }
@@ -441,6 +505,7 @@ fn run_admitted(
             arguments,
             max_steps,
             cancellation,
+            meter,
         );
     }
     run_through_injected_driver(
@@ -451,6 +516,7 @@ fn run_admitted(
         arguments,
         max_steps,
         cancellation,
+        meter,
     )
 }
 
@@ -458,6 +524,7 @@ fn run_admitted(
 // The direct path: a call the existing descriptor already admits unchanged.
 // ---------------------------------------------------------------------------
 
+#[allow(clippy::too_many_arguments)]
 fn run_direct(
     host: Option<&WasmStageHost>,
     binding: &WasmTargetBinding<'_>,
@@ -466,6 +533,7 @@ fn run_direct(
     arguments: &[RetainedValue],
     max_steps: usize,
     cancellation: Option<&AgentCancellation>,
+    meter: Option<&WasmMeter<'_>>,
 ) -> Result<RetainedCallEvaluation, Diagnostic> {
     let mut call_args = Vec::with_capacity(arguments.len());
     for (parameter, argument) in entry.params.iter().zip(arguments) {
@@ -512,12 +580,30 @@ fn run_direct(
         &selected,
         &selected,
         &[call],
+        0,
         cancellation,
+        meter,
     )? {
         NodeStageRun::LanguageFailure(status) => {
             return Ok(evaluation(
                 entry,
                 RetainedCallOutcome::LanguageFailure(status),
+                max_steps,
+                Vec::new(),
+            ));
+        }
+        NodeStageRun::FuelExhausted => {
+            return Ok(evaluation(
+                entry,
+                RetainedCallOutcome::FuelExhausted,
+                max_steps,
+                Vec::new(),
+            ));
+        }
+        NodeStageRun::CallDepthExceeded => {
+            return Ok(evaluation(
+                entry,
+                RetainedCallOutcome::CallDepthExceeded,
                 max_steps,
                 Vec::new(),
             ));
@@ -557,337 +643,8 @@ fn evaluation(
         steps_used: 0,
         max_steps,
         failure: None,
+        semantic_work: None,
     }
-}
-
-// ---------------------------------------------------------------------------
-// The injected-driver path: the record/variant value never leaves the module.
-// ---------------------------------------------------------------------------
-
-/// One admitted projection leaf: what a single driver function returns.
-#[derive(Clone, Copy, Eq, PartialEq)]
-enum Leaf {
-    I64,
-    Bool,
-    Usize,
-    U8,
-    Bytes,
-}
-
-impl Leaf {
-    fn of(ty: &ResolvedType) -> Option<Self> {
-        match ty {
-            ResolvedType::I64 => Some(Self::I64),
-            ResolvedType::Bool => Some(Self::Bool),
-            ResolvedType::Usize => Some(Self::Usize),
-            ResolvedType::U8 => Some(Self::U8),
-            ResolvedType::Bytes => Some(Self::Bytes),
-            _ => None,
-        }
-    }
-}
-
-/// How one driver hands its leaf back across the arena boundary.
-///
-/// `IndexedBytes` exists because of a real, cited language rule, not an
-/// executor shortcut: a `Bytes` payload carried by a variant CASE cannot
-/// leave a `match own` arm at all. `SPX-T216` ("owned variant match arms
-/// must return a Copy i64 or bool value") and `SPX-T258` ("aggregate-valued
-/// match arms are outside the executable match profile") both refuse it. So
-/// a variant case's `Bytes` leaf is read one byte at a time through an
-/// ordinary `i64`-returning call inside the arm -- exactly the idiom
-/// `std/bytes/src/bytes.spx::get_or` already uses -- with `-1` for "past the
-/// end", a value no byte can take. A record's `Bytes` field has no such
-/// restriction and is returned whole.
-#[derive(Clone, Copy, Eq, PartialEq)]
-enum Projection {
-    I64,
-    Bool,
-    Usize,
-    U8,
-    OwnedBytes,
-    IndexedBytes,
-}
-
-impl Projection {
-    fn signature(self, name: &str) -> String {
-        match self {
-            Self::I64 => format!("fn {name}() -> i64"),
-            Self::Bool => format!("fn {name}() -> bool"),
-            Self::Usize => format!("fn {name}() -> usize"),
-            // The public owned-data boundary has no `u8` result kind. A
-            // source-level helper widens the already-checked byte to its
-            // exact 0..=255 `i64` representation before it crosses.
-            Self::U8 => format!("fn {name}() -> i64"),
-            Self::OwnedBytes => format!("fn {name}() -> Bytes"),
-            Self::IndexedBytes => format!("fn {name}(spx_index: i64) -> i64"),
-        }
-    }
-}
-
-/// The internal bounded Core-Wasm profile's maximum `Bytes` payload. It
-/// bounds both source-synthesized arguments and one indexed result stream;
-/// exceeding it refuses the dispatch rather than truncating a payload. This
-/// is crate-private test/implementation vocabulary, not a public API.
-pub(in crate::agent_lifecycle) const BYTE_STREAM_CAP: usize = 65_536;
-
-/// The helper functions an `IndexedBytes` projection calls from inside a
-/// `match own` arm. They are ordinary checked SPX -- `u8`-to-`i64` and
-/// `i64`-to-`usize` widening written as the repository's own `std/bytes`
-/// package writes them, because the language admits no cast for either.
-const BYTE_HELPERS: &str = r#"
-@id("wasm.stage.helper.byte-to-i64")
-fn spx_wasm_stage_helper_byte_to_i64(byte: u8) -> i64
-{
-    let mut value = 0;
-    let mut probe = 0u8;
-    while probe != byte {
-        value = value + 1;
-        probe = probe + 1u8;
-        probe != byte
-    }
-    value
-}
-
-@id("wasm.stage.helper.index")
-fn spx_wasm_stage_helper_index(value: i64) -> usize
-{
-    let mut remaining = value;
-    let mut count = 0usize;
-    while remaining > 0 {
-        remaining = remaining - 1;
-        count = count + 1usize;
-        remaining > 0
-    }
-    count
-}
-
-@id("wasm.stage.helper.byte-at")
-fn spx_wasm_stage_helper_byte_at(payload: own Bytes, index: i64) -> i64
-{
-    let view = bytes_as_slice(payload);
-    match byte_get(view, spx_wasm_stage_helper_index(index)) { Option::Some { value: byte } => spx_wasm_stage_helper_byte_to_i64(byte), Option::None {} => -1, }
-}
-"#;
-
-struct FieldLeaf {
-    field: DeclarationId,
-    name: String,
-    leaf: Leaf,
-}
-
-fn field_leaves(fields: &[ResolvedFieldDeclaration]) -> Result<Vec<FieldLeaf>, Diagnostic> {
-    if fields.is_empty() {
-        return Err(invariant("wasm_executor.result.empty_fields"));
-    }
-    fields
-        .iter()
-        .map(|field| {
-            Leaf::of(&field.ty)
-                .map(|leaf| FieldLeaf {
-                    field: field.id.clone(),
-                    name: field.name.clone(),
-                    leaf,
-                })
-                .ok_or_else(|| invariant("wasm_executor.result.leaf"))
-        })
-        .collect()
-}
-
-struct CasePlan {
-    case: DeclarationId,
-    name: String,
-    fields: Vec<FieldLeaf>,
-}
-
-enum ResultPlan {
-    Record {
-        record: DeclarationId,
-        fields: Vec<FieldLeaf>,
-    },
-    Variant {
-        variant: DeclarationId,
-        name: String,
-        cases: Vec<CasePlan>,
-    },
-}
-
-fn nominal_declaration<'a>(
-    program: &'a hir::ResolvedProgram,
-    ty: &ResolvedType,
-) -> Result<&'a hir::ResolvedTypeDeclaration, Diagnostic> {
-    let ResolvedType::Nominal {
-        declaration,
-        arguments,
-    } = ty
-    else {
-        return Err(invariant("wasm_executor.result.shape"));
-    };
-    if !arguments.is_empty() {
-        return Err(invariant("wasm_executor.result.generic"));
-    }
-    program
-        .types
-        .iter()
-        .find(|item| item.id == *declaration)
-        .ok_or_else(|| invariant("wasm_executor.result.declaration"))
-}
-
-impl ResultPlan {
-    fn derive(program: &hir::ResolvedProgram, ty: &ResolvedType) -> Result<Self, Diagnostic> {
-        let declaration = nominal_declaration(program, ty)?;
-        match &declaration.kind {
-            ResolvedTypeDeclarationKind::Record { fields } => Ok(Self::Record {
-                record: declaration.id.clone(),
-                fields: field_leaves(fields)?,
-            }),
-            ResolvedTypeDeclarationKind::Variant { cases } => {
-                if cases.is_empty() {
-                    return Err(invariant("wasm_executor.result.empty_variant"));
-                }
-                let mut planned = Vec::with_capacity(cases.len());
-                for case in cases {
-                    let fields = field_leaves(&case.fields)?;
-                    // `match own` may return a Copy `i64` or `bool` arm, but
-                    // not `usize`. A variant `usize` projection would make
-                    // the synthesized driver fail at source checking, so
-                    // refuse it explicitly before any target artifact is
-                    // prepared. Record projections do not use `match own`
-                    // and retain their full `usize` support.
-                    if fields.iter().any(|field| field.leaf == Leaf::Usize) {
-                        return Err(invariant("wasm_executor.result.variant_usize"));
-                    }
-                    planned.push(CasePlan {
-                        case: case.id.clone(),
-                        name: case.name.clone(),
-                        fields,
-                    });
-                }
-                Ok(Self::Variant {
-                    variant: declaration.id.clone(),
-                    name: declaration.name.clone(),
-                    cases: planned,
-                })
-            }
-            _ => Err(invariant("wasm_executor.result.kind")),
-        }
-    }
-}
-
-/// One synthesized driver function: one leaf of the stage's real result.
-struct Driver {
-    id: String,
-    name: String,
-    projection: Projection,
-    tail: String,
-}
-
-/// Renders every `match own` arm of one variant projection, binding each
-/// case's fields to fresh names so no arm can shadow another.
-fn variant_arms(
-    variant_name: &str,
-    cases: &[CasePlan],
-    arm: impl Fn(usize, &CasePlan) -> String,
-) -> String {
-    let mut rendered = String::new();
-    for (index, case) in cases.iter().enumerate() {
-        let bindings = case
-            .fields
-            .iter()
-            .enumerate()
-            .map(|(position, field)| format!("{}: spx_f{position}", field.name))
-            .collect::<Vec<_>>()
-            .join(", ");
-        rendered.push_str(&format!(
-            "        {variant_name}::{} {{ {bindings} }} => {},\n",
-            case.name,
-            arm(index, case)
-        ));
-    }
-    rendered
-}
-
-fn drivers_for(plan: &ResultPlan) -> Vec<Driver> {
-    let mut drivers = Vec::new();
-    match plan {
-        ResultPlan::Record { fields, .. } => {
-            for field in fields {
-                drivers.push(Driver {
-                    id: format!("wasm.stage.driver.{}", drivers.len()),
-                    name: format!("spx_wasm_stage_driver_{}", drivers.len()),
-                    projection: match field.leaf {
-                        Leaf::I64 => Projection::I64,
-                        Leaf::Bool => Projection::Bool,
-                        Leaf::Usize => Projection::Usize,
-                        Leaf::U8 => Projection::U8,
-                        Leaf::Bytes => Projection::OwnedBytes,
-                    },
-                    tail: match field.leaf {
-                        Leaf::U8 => format!(
-                            "    spx_wasm_stage_helper_byte_to_i64(spx_call.{})\n",
-                            field.name
-                        ),
-                        _ => format!("    spx_call.{}\n", field.name),
-                    },
-                });
-            }
-        }
-        ResultPlan::Variant { name, cases, .. } => {
-            // Driver 0 is the discriminant: which case the stage actually
-            // took. Every later driver reads one field of one case, so the
-            // reconstructed variant carries the real case and the real
-            // payload, not a guess.
-            let tag = variant_arms(name, cases, |index, _| index.to_string());
-            drivers.push(Driver {
-                id: "wasm.stage.driver.0".to_owned(),
-                name: "spx_wasm_stage_driver_0".to_owned(),
-                projection: Projection::I64,
-                tail: format!("    match own spx_call {{\n{tag}    }}\n"),
-            });
-            for (case_index, case) in cases.iter().enumerate() {
-                for (position, field) in case.fields.iter().enumerate() {
-                    let ordinal = drivers.len();
-                    let arms = variant_arms(name, cases, |index, _| {
-                        match (index == case_index, field.leaf) {
-                            (true, Leaf::I64 | Leaf::Bool | Leaf::Usize) => {
-                                format!("spx_f{position}")
-                            }
-                            (true, Leaf::U8) => {
-                                format!("spx_wasm_stage_helper_byte_to_i64(spx_f{position})")
-                            }
-                            (true, Leaf::Bytes) => {
-                                format!("spx_wasm_stage_helper_byte_at(spx_f{position}, spx_index)")
-                            }
-                            // A non-selected arm never contributes to the
-                            // decoded value: driver 0 already fixed which case
-                            // the stage took. `-1` is the same "past the end"
-                            // sentinel the indexed read uses, so a
-                            // non-selected byte stream is empty rather than
-                            // wrong.
-                            (false, Leaf::I64) => "0".to_owned(),
-                            (false, Leaf::Bool) => "false".to_owned(),
-                            (false, Leaf::Usize) => "0usize".to_owned(),
-                            (false, Leaf::U8) => "0".to_owned(),
-                            (false, Leaf::Bytes) => "-1".to_owned(),
-                        }
-                    });
-                    drivers.push(Driver {
-                        id: format!("wasm.stage.driver.{ordinal}"),
-                        name: format!("spx_wasm_stage_driver_{ordinal}"),
-                        projection: match field.leaf {
-                            Leaf::I64 => Projection::I64,
-                            Leaf::Bool => Projection::Bool,
-                            Leaf::Usize => Projection::Usize,
-                            Leaf::U8 => Projection::U8,
-                            Leaf::Bytes => Projection::IndexedBytes,
-                        },
-                        tail: format!("    match own spx_call {{\n{arms}    }}\n"),
-                    });
-                }
-            }
-        }
-    }
-    drivers
 }
 
 /// Renders one `RetainedValue` as an `.spx` expression, pushing any
@@ -1030,6 +787,7 @@ fn render_fields(
     Ok(rendered.join(", "))
 }
 
+#[allow(clippy::too_many_arguments)]
 fn run_through_injected_driver(
     host: Option<&WasmStageHost>,
     binding: &WasmTargetBinding<'_>,
@@ -1038,6 +796,7 @@ fn run_through_injected_driver(
     arguments: &[RetainedValue],
     max_steps: usize,
     cancellation: Option<&AgentCancellation>,
+    meter: Option<&WasmMeter<'_>>,
 ) -> Result<RetainedCallEvaluation, Diagnostic> {
     let plan = ResultPlan::derive(program, &entry.return_type)?;
 
@@ -1114,15 +873,30 @@ fn run_through_injected_driver(
             // Reads the variant case's byte payload one byte at a time until
             // the module reports `-1` (past the end). The cap is a
             // fail-closed bound, not a silent truncation: exceeding it throws
-            // and the whole dispatch is refused.
-            Projection::IndexedBytes => format!(
-                "(() => {{ let hex = ''; for (let i = 0; ; i += 1) {{ \
-                 if (i > {BYTE_STREAM_CAP}) throw new Error('indexed byte stream cap'); \
-                 const byte = api.functions['{}'](BigInt(i)); \
-                 if (byte < 0n) break; \
-                 hex += Number(byte).toString(16).padStart(2, '0'); }} return hex; }})()",
-                driver.id
-            ),
+            // and the whole dispatch is refused. Reassembled into a real
+            // `Uint8Array`, not a hex string, so the shared `stage()`
+            // observer below classifies it exactly like an `OwnedBytes`
+            // driver's whole-value return -- the same `settled_owned_bytes`
+            // receipt tag, because it is the same real settlement, just
+            // reached through more Wasm calls.
+            Projection::IndexedBytes => {
+                let call = format!("api.functions['{}'](BigInt(i))", driver.id);
+                // Each byte (including the sentinel) re-executes the pure
+                // stage. Meter each physical call independently and require
+                // identical receipts, just like the other projections.
+                let call = if meter.is_some() {
+                    format!("semanticProjection(() => {call})")
+                } else {
+                    call
+                };
+                format!(
+                    "(() => {{ const bytes = []; for (let i = 0; ; i += 1) {{ \
+                     if (i > {BYTE_STREAM_CAP}) throw new Error('indexed byte stream cap'); \
+                     const byte = {call}; \
+                     if (byte < 0n) break; \
+                     bytes.push(Number(byte)); }} return Uint8Array.from(bytes); }})()"
+                )
+            }
         })
         .collect::<Vec<_>>();
     let invoked = drivers
@@ -1136,7 +910,17 @@ fn run_through_injected_driver(
         &selected,
         &invoked,
         &calls,
+        drivers
+            .iter()
+            .filter(|driver| {
+                matches!(
+                    driver.projection,
+                    Projection::OwnedBytes | Projection::IndexedBytes
+                )
+            })
+            .count(),
         cancellation,
+        meter,
     )? {
         NodeStageRun::LanguageFailure(status) => {
             return Ok(evaluation(
@@ -1146,14 +930,44 @@ fn run_through_injected_driver(
                 Vec::new(),
             ));
         }
+        NodeStageRun::FuelExhausted => {
+            return Ok(evaluation(
+                entry,
+                RetainedCallOutcome::FuelExhausted,
+                max_steps,
+                Vec::new(),
+            ));
+        }
+        NodeStageRun::CallDepthExceeded => {
+            return Ok(evaluation(
+                entry,
+                RetainedCallOutcome::CallDepthExceeded,
+                max_steps,
+                Vec::new(),
+            ));
+        }
         NodeStageRun::Returned(values) => values,
     };
     let mut leaves = Vec::with_capacity(drivers.len());
     let mut cleanup_events = Vec::new();
     for (driver, row) in drivers.iter().zip(&lines) {
-        let expected_owned = driver.projection == Projection::OwnedBytes;
+        // Both projections settle a real owned Bytes copy at the Wasm
+        // boundary and are strictly parsed as the same `settled_owned_bytes`
+        // receipt tag: a Record field returns its whole owned value
+        // directly (`OwnedBytes`); a variant case's Bytes leaf cannot leave
+        // a `match own` arm as an aggregate (SPX-T216/SPX-T258), so it is
+        // read back and reassembled one byte at a time (`IndexedBytes`) --
+        // more Wasm calls, the same real settlement. `Record` has no case
+        // selection, so every `OwnedBytes` driver's settlement below is one
+        // real output leaf; a `Variant`'s settled leaves are instead counted
+        // once the selected case is known, so a driver built for a case the
+        // call did not take is never counted twice or spuriously.
+        let expected_owned = matches!(
+            driver.projection,
+            Projection::OwnedBytes | Projection::IndexedBytes
+        );
         row.require_projection(expected_owned)?;
-        if expected_owned {
+        if driver.projection == Projection::OwnedBytes {
             cleanup_events.push(OwnedDataCleanupEvent::CopyOutAndSettleBytes);
         }
         let line = &row.text;
@@ -1223,6 +1037,14 @@ fn run_through_injected_driver(
                         .ok_or_else(|| invariant("wasm_executor.decode.arity"))?
                         .clone(),
                 });
+                // Only the selected case's own Bytes leaf was ever bound and
+                // consumed by the arm that actually executed; a driver built
+                // for a case the call did not take reads its designated
+                // field's dummy "past the end" sentinel and never calls the
+                // owned-consuming helper, so it settles nothing to report.
+                if field.leaf == Leaf::Bytes {
+                    cleanup_events.push(OwnedDataCleanupEvent::CopyOutAndSettleBytes);
+                }
             }
             RetainedCallOutcome::Returned(RetainedValue::Variant(RetainedVariant {
                 variant,
@@ -1254,6 +1076,36 @@ fn decode_hex(hex: &str) -> Result<Vec<u8>, Diagnostic> {
 // The shared build-and-run path: one owned-data package, one Node process.
 // ---------------------------------------------------------------------------
 
+fn node_output_budget(
+    calls: usize,
+    owned_byte_projections: usize,
+    metered: bool,
+) -> Result<usize, Diagnostic> {
+    if !metered {
+        // Preserve the legacy pooled allowance of every unmetered route.
+        return calls
+            .checked_mul(MAX_NODE_OUTCOME_ROW_BYTES)
+            .filter(|bytes| *bytes > 0 && *bytes <= MAX_NODE_STDOUT_BYTES)
+            .ok_or_else(|| invariant("wasm_executor.process.output_budget"));
+    }
+    calls
+        .checked_sub(owned_byte_projections)
+        .and_then(|count| count.checked_mul(MAX_NODE_SCALAR_OUTCOME_ROW_BYTES))
+        .and_then(|bytes| {
+            owned_byte_projections
+                .checked_mul(MAX_NODE_OUTCOME_ROW_BYTES)
+                .and_then(|owned| bytes.checked_add(owned))
+        })
+        .and_then(|bytes| {
+            calls
+                .checked_mul(if metered { MAX_SEMANTIC_ROW_BYTES } else { 0 })
+                .and_then(|semantic| bytes.checked_add(semantic))
+        })
+        .filter(|bytes| *bytes > 0 && *bytes <= MAX_NODE_STDOUT_BYTES)
+        .ok_or_else(|| invariant("wasm_executor.process.output_budget"))
+}
+
+#[allow(clippy::too_many_arguments)]
 fn build_and_drive(
     host: &WasmStageHost,
     binding: &WasmTargetBinding<'_>,
@@ -1261,16 +1113,14 @@ fn build_and_drive(
     selected: &[String],
     invocations: &[String],
     calls: &[String],
+    owned_byte_projections: usize,
     cancellation: Option<&AgentCancellation>,
+    meter: Option<&WasmMeter<'_>>,
 ) -> Result<NodeStageRun, Diagnostic> {
     if invocations.len() != calls.len() {
         return Err(invariant("wasm_executor.binding.invocation_arity"));
     }
-    let output_budget = calls
-        .len()
-        .checked_mul(MAX_NODE_OUTCOME_ROW_BYTES)
-        .filter(|bytes| *bytes <= MAX_NODE_STDOUT_BYTES)
-        .ok_or_else(|| invariant("wasm_executor.process.output_budget"))?;
+    let output_budget = node_output_budget(calls.len(), owned_byte_projections, meter.is_some())?;
     if cancellation.is_some_and(AgentCancellation::is_cancelled) {
         return Err(invariant("wasm_executor.process.cancelled"));
     }
@@ -1278,15 +1128,24 @@ fn build_and_drive(
         .map_err(|_| invariant("wasm_executor.descriptor"))?;
     let artifact = binding.bind_artifact(&descriptor, selected)?;
     artifact.verify_invocations(invocations)?;
-    let build = project::prepare_owned_data_npm_build(
-        program,
-        &descriptor,
-        "agent-lifecycle-wasm-stage-executor",
-        "0.1.0",
-        40 * 1024 * 1024,
-    )
-    .map_err(|_| invariant("wasm_executor.npm_build"))?;
-    artifact.verify_build(&build, &descriptor)?;
+    // A metered package is built and replay-verified under one scoped
+    // metering selection, so its replay re-derives the same metered module.
+    let prepare = || {
+        let build = project::prepare_owned_data_npm_build(
+            program,
+            &descriptor,
+            "agent-lifecycle-wasm-stage-executor",
+            "0.1.0",
+            40 * 1024 * 1024,
+        )
+        .map_err(|_| invariant("wasm_executor.npm_build"))?;
+        artifact.verify_build(&build, &descriptor)?;
+        Ok(build)
+    };
+    let build = match meter {
+        Some(meter) => crate::wasm::with_semantic_metering(meter.metering(), prepare),
+        None => prepare(),
+    }?;
     let envelope: serde_json::Value =
         serde_json::from_str(build.envelope()).map_err(|_| invariant("wasm_executor.envelope"))?;
 
@@ -1298,11 +1157,15 @@ fn build_and_drive(
         &mut workspace,
         cancellation,
         output_budget,
+        meter,
     );
     let cleanup = workspace.cleanup();
     let outcome = outcome?;
     cleanup?;
-    decode_node_outcomes(&outcome, calls.len())
+    match meter {
+        Some(meter) => meter.decode(&outcome, calls.len()),
+        None => decode_node_outcomes(&outcome, calls.len()),
+    }
 }
 
 fn drive_node(
@@ -1312,6 +1175,7 @@ fn drive_node(
     workspace: &mut WasmStageWorkspace,
     cancellation: Option<&AgentCancellation>,
     output_budget: usize,
+    meter: Option<&WasmMeter<'_>>,
 ) -> Result<String, Diagnostic> {
     for row in envelope["artifacts"]
         .as_array()
@@ -1330,9 +1194,9 @@ fn drive_node(
         .map(|call| format!("() => {call}"))
         .collect::<Vec<_>>()
         .join(",\n");
-    workspace.write(
-        Path::new("observe.mjs"),
-        format!(
+    let observe = match meter {
+        Some(meter) => meter.observe_source(&call_thunks),
+        None => format!(
             r#"import fs from 'node:fs';
 import instantiate from './semaprax.bindings.js';
 const wasm = new Uint8Array(fs.readFileSync(new URL('./app.wasm', import.meta.url)));
@@ -1366,10 +1230,9 @@ for (const call of calls) {{
 }}
 process.stdout.write(out.map(value => JSON.stringify(value) + '\n').join(''));
 "#
-        )
-        .as_bytes(),
-    )
-    ?;
+        ),
+    };
+    workspace.write(Path::new("observe.mjs"), observe.as_bytes())?;
     run_node_process(host, workspace, cancellation, output_budget)
 }
 

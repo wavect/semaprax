@@ -54,6 +54,7 @@ impl ScalarExportPlan {
         &self,
         body: &mut impl ByteOutput,
         function_indexes: &HashMap<FunctionExecutionId, u32>,
+        depth_global: u32,
     ) -> Result<(), Diagnostic> {
         let result_local = self.params.len() as u32;
         if self.result.needs_boundary_trap() {
@@ -63,6 +64,14 @@ impl ScalarExportPlan {
         } else {
             write_u32(body, 0);
         }
+        // This wrapper is a genuine external entry (issue #293 P2-2): the
+        // only way host code reaches the selected function, never an
+        // internal call target itself. Reset the shared live-frame counter
+        // here so a call that trapped on a previous invocation of this same
+        // module instance -- refused call depth, checked-arithmetic
+        // overflow, a false contract -- cannot leave later calls refused at
+        // a phantom depth.
+        super::scalar_call_admission::emit_reset(body, depth_global);
         for (index, parameter) in self.params.iter().enumerate() {
             emit_boundary_trap(body, *parameter, index as u32);
             body.push(0x20); // local.get

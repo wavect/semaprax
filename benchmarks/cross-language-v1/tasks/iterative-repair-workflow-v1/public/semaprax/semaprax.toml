@@ -1,0 +1,6 @@
+schema = "semaprax.project.v1"
+name = "iterative-repair-workflow"
+entry = "bench.ledger.app"
+sources = ["src/app.spx", "src/candidate.spx", "src/tests.spx"]
+web_exports = ["bench.ledger.process_batch"]
+tests = ["bench.ledger.tests"]

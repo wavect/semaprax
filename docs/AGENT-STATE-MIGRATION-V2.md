@@ -58,3 +58,65 @@ profile. Automatic reconciliation remains separate functionality.
 preparation with persisted handoff and destination recovery. Its release
 evidence is hosted green under the same v0.4.0 baseline, with its own wire and
 trust boundaries.
+
+## Held-target destination continuation
+
+The additive `MigratedAgentRuntimeV2::run_with_backend` library method accepts
+`TargetStageBackend::Interpreter`, `Native` with a caller-held compiler, or
+`CoreWasmHeld` with a caller-held Node runtime. It continues the already migrated
+State through the same seeded driver and sealed stage dispatch as `run`.
+`run` retains its interpreter default. No destination initialize is executed;
+the continuation retains prior calls, bytes, iterations and stage reservations,
+and obtains fresh authorizations for its new effects. Evidence schemas and
+reservation accounting are unchanged. Reservation totals are target-neutral;
+lifecycle evidence retains backend-specific instruction counts, so the resulting
+evidence roots need not be byte-identical across targets.
+
+The selected Wasm route requires the destination registry's own retained source
+before any destination reservation or handler call; missing source is refused,
+with no fallback. Cancellation present before the first destination stage
+returns `Cancelled` with no stage or effect work and preserves all prior charges,
+including the already completed pure migration call's reservations.
+
+The focused local target gate is
+`cargo test --locked -p semaprax --test agent_runtime_v1 selected_migration_continuation_preserves_state_usage_and_precancellation`.
+It compares the default and three public selectors using an actual durable
+predecessor suspension and checked migration, including identical continuation
+results, stage outcomes, cumulative accounting and cancellation before work.
+It independently verifies each evidence root while checking instruction counts
+separately: interpreter stages report their steps; native and Wasm report zero.
+The library refusal gate is
+`cargo test --locked -p semaprax --lib selected_migration_missing_wasm_source_refuses_before_reservation_or_dispatch`.
+Held-target tests require explicitly opened `clang` and `node` tools and skip
+when those optional tools are unavailable; skipped legs are not target evidence.
+Executed local legs do not establish hosted evidence. The pure `OldState -> NewState` migration call
+still executes twice on the interpreter during ordinary preparation.
+
+## Held-target pure migration and durable metering
+
+`migrate_suspended_agent_runtime_v2_with_backend` evaluates the same checked
+pure call twice on the caller-selected Interpreter, held native C11, or held
+Core Wasm target. It requires a separate semantic-fuel limit in the admitted
+`1..=1_000_000` interval. This limit charges the existing semantic events, not
+interpreter instructions: the two compiled backends report zero instruction
+steps while all three targets report the same semantic fuel and termination
+facts. Native and Wasm additionally retain their ordered physical cleanup-plan
+finalizer events; the interpreter reports no physical finalizer sequence.
+
+The selected target and semantic-fuel limit are checked before migration fuel
+is reserved. Missing retained Wasm source or an unsupported semantic closure
+therefore refuses before a compiler, runtime, or destination handoff can run.
+The resulting additive `semaprax.agent-state-migration.v4` root binds both
+metered evaluations, their target-specific instruction and cleanup observations,
+and the target/registry binding. Its two receipts must agree on common semantic
+work and copy-out cleanup before they can become a handoff; instruction counts
+remain target-specific observations. The v4 root becomes part of the existing
+durable handoff, so recovery restores the already charged migration result and
+does not repeat either target evaluation. The ordinary v1-v3 roots, reservation
+accounting, handoff wire, and interpreter-default API remain unchanged.
+
+The focused target gate is
+`cargo test --locked -p semaprax --test agent_runtime_v1 selected_migration_continuation_preserves_state_usage_and_precancellation`.
+It uses a real durable suspension, checks all three held target selections for
+both pure migration and continuation, and distinguishes target instruction
+counts from common semantic charges and target cleanup observations.

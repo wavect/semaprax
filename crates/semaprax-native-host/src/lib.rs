@@ -107,6 +107,11 @@ mod settlement_ledger;
 #[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
 pub mod outbound_delivery_store;
 
+// The runnable reference-service host is likewise a desktop/server adapter:
+// it holds directories, binds loopback sockets, and resolves secret files.
+#[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
+pub mod reference_service;
+
 #[cfg(feature = "unstable-desktop-app-harness")]
 #[doc(hidden)]
 pub use desktop_app_harness::private_desktop_v3_app_main;
@@ -328,6 +333,8 @@ mod desktop_api {
             }
         }
     }
+
+    include!("session_endpoint.rs");
 
     struct LedgerState {
         registry: HostOwnershipRegistry,

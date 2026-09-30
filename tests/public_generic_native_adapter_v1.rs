@@ -57,6 +57,13 @@ mod rust_calling_consumer;
 /// against one independently pinned expectation and against each other.
 #[path = "public_generic_native_adapter_v1/settlement_corpus.rs"]
 mod settlement_corpus;
+/// Issue #301: one closed, versioned settlement corpus executed against the
+/// interpreter, raw native C11 -O0/-O2 (plus local ASan), the compiled Core
+/// Wasm provider and the generated C11/Rust/C++17/TypeScript callers for the
+/// same checked `Pair<Bytes>` endpoint, asserted as a complete matrix.
+#[cfg(unix)]
+#[path = "public_generic_native_adapter_v1/settlement_matrix.rs"]
+mod settlement_matrix;
 /// Issue #160: the shared malformed-input/wrong-binding corpus, executed
 /// identically by the Rust, C11, and C++17 generated calling consumers
 /// above and cross-checked against one manifest

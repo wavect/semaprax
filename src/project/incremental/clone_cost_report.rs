@@ -101,9 +101,8 @@ impl CloneCostReport {
 /// (and parse, and iterative-`Drop`) work. Types, interfaces, protocols, and
 /// protocol implementations carry no embedded expression bodies in this
 /// language's grammar, so they are counted once each as declarations and not
-/// walked further; agent operation bodies are likewise not walked (no fixture
-/// in this report's tests declares an agent, and undercounting here only
-/// makes the reported clone cost a floor, never an inflated one).
+/// walked further. Embedded Agent operation bodies are ordinary Program.functions
+/// entries and are counted exactly once by the same walk below.
 pub(crate) fn program_ast_node_count(program: &Program) -> usize {
     let mut count = program.types.len()
         + program.interfaces.len()

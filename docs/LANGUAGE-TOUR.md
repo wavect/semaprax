@@ -6,6 +6,11 @@ Status: alpha tour of committed examples, not a readiness claim. See the
 [completion matrix](COMPLETION-MATRIX.md) for supported features and
 [RFC 0001](RFC-0001.md) for exact language rules.
 
+> Prefer task-oriented guides? The user-facing [Semaprax Handbook](../handbook/README.md)
+> teaches the same language through best-practice pages starting at
+> [Essentials](../handbook/language/essentials.md). This tour remains the
+> verbatim, compiler-checked example walkthrough.
+
 Start with a program, then learn persistent IDs, contracts, mutation,
 ownership, effects, and the semantic graph. Each section links to the exact
 rule in its owning specification.

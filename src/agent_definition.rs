@@ -806,7 +806,7 @@ fn string<'a>(object: &'a Map<String, Value>, key: &str) -> Result<&'a str, Diag
         .ok_or_else(malformed)
 }
 
-fn canonical_identifier(value: &str) -> bool {
+pub(crate) fn canonical_identifier(value: &str) -> bool {
     !value.is_empty()
         && value.len() <= MAX_IDENTIFIER_BYTES
         && value

@@ -80,6 +80,26 @@ that provider source to equal one exact final-candidate source. This adds a
 bounded source projection for known consumers; it does not change this graph's
 independent `project_association: "none"` contract or infer installed consumers.
 
+## Declared session protocols (issue #297 follow-on)
+
+`PackageSemanticGraph::derive` selects `semaprax.package-semantic-graph.v2`
+only when at least one selected package declares a `.spx` `session protocol`;
+a protocol-free package graph keeps `semaprax.package-semantic-graph.v1` and
+byte-identical output, mirroring the per-source graph's own `semaprax.graph.v48`
+gating and the Workspace Semantic Graph's own `.v2` gating
+(see [Session/protocol types v1](SESSION-PROTOCOL-TYPES-V1.md)). A declaring
+graph gains one trailing `session_protocols` object: `base_schema` (the `.v1`
+schema it extends), `authority: "none"`, and one fact per declaration, each
+the same canonical fact the per-source graph emits plus `package` and
+`version` naming the exact selected coordinate that owns it. Every `via` is
+bound against the checked HIR built from that package's own source before it
+is retained, in the same per-module pass the ordinary Workspace Semantic Graph
+build already runs (`retain_workspace_module`); `build_package_scalar_sources`
+is that same pass reused for the package-source workspace profile, so no
+protocol fact here is derived by a second, independent code path. Declaration
+count is bounded to 256 (four selected packages times the parser's own
+64-declarations-per-module cap).
+
 ## Scope and preservation
 
 The existing capsule profile remains two through four selected packages,
@@ -117,3 +137,7 @@ coordinate and revision selection, import/call distinctions, independent
 Project association, startup-only attachment, method availability and retained
 read behavior. The released regression corpus is HOSTED GREEN; the full graph-operational
 programme remains incomplete.
+
+## Additive scalar-source Agent metadata (v070 candidate)
+
+An already admitted scalar package source can contain inert Agent metadata with embedded scalar operation bodies. Such checked facts select `semaprax.package-semantic-graph.v4` and append `agent_execution` containing the actual v1/v2/v3 `base_schema`, `authority: "none"`, and package/version-qualified Agent rows. The [source syntax contract](LANGUAGE-NATIVE-AGENT-SYNTAX-V1.md#additive-embedded-execution-metadata-v070-candidate) owns the row shape. The inventory is bounded to 256 rows over the existing four-package limit and 64 Agents per source. Existing protocol/follows limits and legacy graph bytes remain unchanged. This metadata does not broaden the scalar package ABI: nominal owned-State lifecycle sources still receive the existing `SPX-PS504` refusal. Authentication remains mandatory and these facts grant no runtime authority.

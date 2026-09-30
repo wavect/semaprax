@@ -149,6 +149,16 @@ fn emit_value(output: &mut String, name: &str, value: &ResumableScalar) {
             "    bool {name} = {};\n",
             if *value { "true" } else { "false" }
         )),
+        // Issue #296 R20: an aggregate `yields` channel is admitted only for
+        // the direct top-level (sequential) placement, and this
+        // compiler-private native parity runner only ever executes a
+        // Copy-scalar plan's yield-free projection -- native/Wasm still
+        // refuse every `yields`-declaring function's own emission
+        // (`SPX-B116`), so an aggregate value can never reach this encoder
+        // in practice.
+        ResumableScalar::Record(_) | ResumableScalar::Variant { .. } | ResumableScalar::Bytes(_) => unreachable!(
+            "the native resumable-effect parity runner does not encode an aggregate channel value"
+        ),
     }
 }
 

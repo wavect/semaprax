@@ -18,6 +18,15 @@ use crate::provider_adapter_sdk::StreamingSourceProposalAdapter;
 
 pub const MAX_ITERATIVE_PROPOSAL_BYTES: usize = 2 * 1024 * 1024;
 
+#[path = "typed/model_wait.rs"]
+mod model_wait;
+#[path = "typed/owned_wait_context.rs"]
+mod owned_wait_context;
+pub use model_wait::SourceModelWaitBinding;
+pub(crate) use owned_wait_context::CheckedTypedOwnedWaitExecutionV8;
+#[cfg(test)]
+pub(crate) use owned_wait_context::TestProspectiveReduceLimitV8;
+
 pub struct AgentRuntimeV2 {
     project: Arc<ProjectRevision>,
     program_root: String,
@@ -655,13 +664,18 @@ fn bind_runtime(
 mod durable;
 pub use durable::{
     AgentRuntimeV2DurableEvidence, AgentRuntimeV2DurableModelEvidence,
-    AgentRuntimeV2DurableModelFailure, PreparedAgentRuntimeV2SourceMigration,
+    AgentRuntimeV2DurableModelFailure, AgentRuntimeV2DurableModelWaitEvidence,
+    PreparedAgentRuntimeV2SourceMigration,
 };
 
 #[path = "typed_migration.rs"]
 pub(crate) mod migration;
 pub use migration::{
-    migrate_suspended_agent_runtime_v2, resume_migrated_agent_runtime_v2,
-    AgentRuntimeV2MigrationEvidence, AgentRuntimeV2MigrationFailure, DurableMigrationFailure,
-    MigratedAgentRuntimeV2, ResumedMigratedAgentRuntimeV2,
+    migrate_suspended_agent_runtime_v2, migrate_suspended_agent_runtime_v2_with_backend,
+    resume_migrated_agent_runtime_v2, AgentRuntimeV2MigrationEvidence,
+    AgentRuntimeV2MigrationFailure, DurableMigrationFailure, MigratedAgentRuntimeV2,
+    ResumedMigratedAgentRuntimeV2,
 };
+
+#[cfg(test)]
+pub(crate) use owned_wait_context::TestContinuedAuthorizeV8;

@@ -2,6 +2,7 @@
 //! Offline Multi-Package Source Capsule replay. Serialized facts carry no HIR
 //! or Project association and are never accepted as compilation authority.
 use std::collections::BTreeMap;
+mod agent_execution;
 
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
@@ -12,12 +13,36 @@ use crate::package_resolver::{ResolutionInput, ResolutionOptions};
 use crate::package_source_capsule::{self, PackageSource, SourceCapsuleOptions};
 
 pub const PACKAGE_SEMANTIC_GRAPH_SCHEMA: &str = "semaprax.package-semantic-graph.v1";
+/// Selected only when at least one selected package declares a `.spx`
+/// `session protocol` (issue #297 follow-on). A protocol-free package graph
+/// keeps `PACKAGE_SEMANTIC_GRAPH_SCHEMA` and byte-identical output, mirroring
+/// the per-source graph's own `semaprax.graph.v48` gating and the Workspace
+/// Semantic Graph's own `.v2` gating.
+pub const PACKAGE_SEMANTIC_GRAPH_SCHEMA_V2: &str = "semaprax.package-semantic-graph.v2";
+/// Selected only when at least one selected package has a function that
+/// opts into endpoint typestate checking with `follows` (issue #297
+/// follow-on, R21) -- always a strict additional selection over
+/// [`PACKAGE_SEMANTIC_GRAPH_SCHEMA_V2`], since a `follows` clause names a
+/// protocol declared in the same module (`SPX-K107` refuses anything else),
+/// so a package graph with at least one `follows` binding already selected
+/// `.v2`. A follows-free package graph keeps `.v2` (or `.v1`) and
+/// byte-identical output.
+pub const PACKAGE_SEMANTIC_GRAPH_SCHEMA_V3: &str = "semaprax.package-semantic-graph.v3";
+/// Checked scalar-source Agent metadata; no owned-State lifecycle ABI.
+pub const PACKAGE_SEMANTIC_GRAPH_SCHEMA_V4: &str = agent_execution::SCHEMA;
 pub const PACKAGE_SEMANTIC_SUMMARY_SCHEMA: &str = "semaprax.package-semantic-summary.v1";
 pub const PACKAGE_SEMANTIC_CONSUMERS_SCHEMA: &str = "semaprax.package-semantic-consumers.v1";
 pub const MAX_PACKAGE_SEMANTIC_GRAPH_BYTES: usize = 16 * 1024 * 1024;
 pub const MAX_PACKAGE_SEMANTIC_REPORT_BYTES: usize = 1024 * 1024;
 const MAX_CALLS: usize = 65_536;
 const MAX_INTERFACE_FUNCTIONS: usize = 4096;
+/// 4 selected packages times the parser's own 64-declarations-per-module cap.
+const MAX_SESSION_PROTOCOL_DECLARATIONS: usize = 256;
+/// 4 selected packages times the parser's own 64-declarations-per-module cap
+/// (issue #297 follow-on, R21): the same bound as
+/// [`MAX_SESSION_PROTOCOL_DECLARATIONS`], since a `follows` binding is
+/// carried by a function, itself a declaration under that same per-module cap.
+const MAX_SESSION_PROTOCOL_FOLLOWS_BINDINGS: usize = 256;
 
 /// Immutable descriptive graph. Construction independently authenticates the
 /// caller-supplied source, reports, resolution and exact capsule bytes. No raw
@@ -88,6 +113,9 @@ impl PackageSemanticGraph {
             .find(|coordinate| coordinate.package == verified.receipt.root_package())
             .ok_or_else(|| binding("package graph root coordinate is absent"))?;
         let mut packages = Vec::new();
+        let mut declared_session_protocols = Vec::new();
+        let mut session_protocol_follows = Vec::new();
+        let mut agent_rows = Vec::new();
         let mut budget = ConstructionBudget { bytes: 16_384 };
         for (coordinate, fact) in &source_facts {
             let selected_exports = exports
@@ -110,6 +138,54 @@ impl PackageSemanticGraph {
                 "interface_digest":fact.interface_digest,"interface_source_revision":fact.interface_source_revision,
                 "source_revision":fact.source_revision,"source_digest":fact.source_digest,
                 "source_bytes":fact.source_bytes,"exports":selected_exports}));
+            // A declaration fact and a `follows` binding fact share one
+            // per-package `Vec` (`LinkedPackageSourceFact::session_protocol_facts`'s
+            // own doc comment) and are told apart here by their own leading
+            // JSON key alone (`{"stable_id":...` vs `{"function":...`),
+            // costing no extra discriminator or second field.
+            let legacy_count = fact
+                .session_protocol_facts
+                .iter()
+                .filter(|row| !row.starts_with("{\"agent\":"))
+                .count();
+            if declared_session_protocols
+                .len()
+                .saturating_add(legacy_count)
+                > MAX_SESSION_PROTOCOL_DECLARATIONS
+            {
+                return Err(limit(
+                    "package graph session protocol declaration inventory exceeds its bound",
+                ));
+            }
+            if session_protocol_follows.len().saturating_add(legacy_count)
+                > MAX_SESSION_PROTOCOL_FOLLOWS_BINDINGS
+            {
+                return Err(limit(
+                    "package graph session protocol follows binding inventory exceeds its bound",
+                ));
+            }
+            for raw in &fact.session_protocol_facts {
+                if agent_execution::retain(raw, coordinate, &mut agent_rows, &mut budget)? {
+                    continue;
+                }
+                if !raw.starts_with("{\"function\":") && !raw.starts_with("{\"stable_id\":") {
+                    return Err(binding("package graph checked fact has an unknown tag"));
+                }
+                budget.charge(raw.len(), 256)?;
+                let mut parsed: Value = serde_json::from_str(raw).map_err(|_| {
+                    binding("package graph session protocol fact is not canonical JSON")
+                })?;
+                let object = parsed.as_object_mut().ok_or_else(|| {
+                    binding("package graph session protocol fact is not a JSON object")
+                })?;
+                object.insert("package".to_owned(), json!(coordinate.package));
+                object.insert("version".to_owned(), json!(coordinate.version));
+                if object.contains_key("function") {
+                    session_protocol_follows.push(parsed);
+                } else {
+                    declared_session_protocols.push(parsed);
+                }
+            }
         }
         let mut imports = Vec::new();
         for import in &verified.import_facts {
@@ -172,7 +248,14 @@ impl PackageSemanticGraph {
                 "target_source_revision":target.source_revision,"site":call.site,"expression":call.expression,
                 "ast_path":call.ast_path,"alias":call.alias,"ordinal":call.ordinal}));
         }
-        let facts = json!({"schema":PACKAGE_SEMANTIC_GRAPH_SCHEMA,
+        let schema = if !session_protocol_follows.is_empty() {
+            PACKAGE_SEMANTIC_GRAPH_SCHEMA_V3
+        } else if declared_session_protocols.is_empty() {
+            PACKAGE_SEMANTIC_GRAPH_SCHEMA
+        } else {
+            PACKAGE_SEMANTIC_GRAPH_SCHEMA_V2
+        };
+        let mut facts = json!({"schema":schema,
             "source_capsule_digest":verified.receipt.digest(),"source_set_digest":verified.receipt.source_set_digest(),
             "link_digest":verified.receipt.link_digest(),"root_package":coordinate_value(root),
             "packages":packages,"imports":imports,"calls":calls,
@@ -180,6 +263,27 @@ impl PackageSemanticGraph {
                 "imports":verified.import_facts.len(),"cross_package_calls":verified.call_facts.len()},
             "project_association":"none","evidence_owner":"verified_package_source_capsule_and_workspace_calls",
             "source_authority":false,"execution":false,"publication_authority":false,"nonclaims":nonclaims()});
+        if !declared_session_protocols.is_empty() {
+            facts
+                .as_object_mut()
+                .ok_or_else(|| binding("package graph retained facts are invalid"))?
+                .insert(
+                    "session_protocols".to_owned(),
+                    json!({"base_schema":PACKAGE_SEMANTIC_GRAPH_SCHEMA,"authority":"none",
+                    "declarations":declared_session_protocols}),
+                );
+        }
+        if !session_protocol_follows.is_empty() {
+            facts
+                .as_object_mut()
+                .ok_or_else(|| binding("package graph retained facts are invalid"))?
+                .insert(
+                    "session_protocol_follows".to_owned(),
+                    json!({"base_schema":PACKAGE_SEMANTIC_GRAPH_SCHEMA_V2,"authority":"none",
+                    "bindings":session_protocol_follows}),
+                );
+        }
+        agent_execution::attach(&mut facts, schema, agent_rows)?;
         let json = render(facts.clone(), true, MAX_PACKAGE_SEMANTIC_GRAPH_BYTES)?;
         let digest = digest(
             b"semaprax.package-semantic-graph.digest.v1\0",

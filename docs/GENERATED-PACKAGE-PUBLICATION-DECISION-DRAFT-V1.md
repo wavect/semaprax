@@ -1,20 +1,24 @@
 # Generated package publication decision (DRAFT -- not approved)
 
-Status: **unapproved design draft** for maintainer review under GitHub issue
-[#145](https://github.com/wavect/semaprax/issues/145). Nothing in this
-document authorizes a registry write, a signature, or a public-support
-promotion. Until a maintainer explicitly accepts a version of this draft, the
-generated packages it describes remain exactly what
-[docs/PUBLIC-OWNED-DATA-API-V1.md](PUBLIC-OWNED-DATA-API-V1.md) already says
-they are: implemented, unpublished, and open for formal promotion.
+Status: **unapproved publication design draft**; historical issue #145
+background, not the authority for the accepted Rust-only maintenance scope.
+Nothing here authorizes publication, signing or public-support promotion.
+Audience: maintainers considering a separately authorized publication design.
 
-Audience: maintainers deciding whether, and how, to publish a generated
-package; implementers of the next slice of issue #145.
+[ADR 0003](decisions/0003-maintained-generated-package-support.md#current-maintainer-decision)
+owns the current maintenance decision, reaffirmed on 2026-09-30 for #325:
+ordinary owned-data Rust only; npm maintenance deferred to its own ADR. The
+package/preview identities are fixed there, with real SemVer required before
+publication. Generated packages remain unpublished. Selecting registry names,
+publisher identities, release versions, credentials and provenance is still
+separate work; this draft does not reopen the accepted support scope.
 
-## What this proposes
+## Historical proposal
 
-Adopt exactly one existing generated-package profile as the first candidate
-for a maintained, reproducible external-consumer route:
+The original draft considered the existing generated-package profile below
+for a maintained, reproducible external-consumer route. ADR 0003 subsequently
+selected only its Rust package. The npm identifiers in this inventory do not
+constitute an npm support or publication decision:
 
 | Field | Value |
 | --- | --- |
@@ -62,7 +66,7 @@ edits the compiler's render pipeline or its pinned byte-exact output tests:
 See `scripts/test-generated-package-release.py` for the determinism,
 tamper-detection, and refusal evidence.
 
-## What remains open (human decisions, not implementation gaps)
+## Future publication decisions (outside issue #325)
 
 1. **Whether to publish at all**, and if so to which registries (npmjs.org
    scope/org name; crates.io publisher identity) under which package name.
@@ -85,23 +89,21 @@ tamper-detection, and refusal evidence.
    `publish-release`'s pattern of running only after every release blocker
    succeeds, with `contents: write`/registry-publish scope granted to no
    earlier job) is a separate, explicitly maintainer-reviewed change.
-5. **Consumer install-from-tarball evidence.** The release wrapper now has a
-   local real-tool npm gate that packs a synthetic compiler-shaped fixture,
-   verifies the tar stream, structurally binds the generated lockfile,
-   installs offline with lifecycle scripts disabled, verifies the installed
-   inventory byte-for-byte, and imports it. This proves the wrapper's archive
-   consumer mechanics, not execution of genuinely compiler-generated Wasm.
-   The existing
-   `tests/release_archive_product_v1/owned_frame.rs` lane proves an external
-   Node/Rust consumer builds and runs against the generated package's exact
-   bytes, but does so through a path dependency into a freshly built
-   directory, not through an installed npm/crates.io tarball. Closing that
-   genuinely compiler-built npm gap still needs its ignored product gate to
-   run with provisioned Node/npm/TypeScript; a local file tarball is not
-   equivalent to a registry install. The Rust `.crate` extraction consumer is
-   likewise local rather than registry evidence. Real registry evidence still
-   needs credentials in a hosted, maintainer-approved job. Recording these
-   distinctions avoids promoting synthetic or path-dependency evidence.
+## Consumer evidence already retained
+
+Genuine compiler-built Rust `.crate` extraction and npm `.tgz`
+pack/install/execute gates have passed; see ADR 0003's retained evidence rows
+14-16, including the exact local Cargo/rustc 1.85.0 Rust-consumer pass. The
+synthetic npm fixture and release-root path-dependency lane remain separate
+wrapper/integration coverage, not substitutes for those genuine consumers.
+Do not describe the genuine npm gate as awaiting its first local execution.
+
+Archive consumption is not registry installation. The cited runs remain bound
+to their revisions, hosts and selected toolchains; they do not grant npm
+maintenance, publisher identity, real release provenance or publication.
+No new hosted run is required solely to close the maintenance-decision ticket
+#325. A future registry workflow would need its own explicit authority and
+execution evidence; this draft does not request credentials or a registry run.
 
 ## Rollback / deprecation policy (proposed)
 
@@ -119,7 +121,9 @@ artifact to roll back. Once (if) a maintainer approves real publication:
 
 ## Review checkpoint
 
-This draft requires independent maintainer review under issue #145's guardrails;
-it is not an approved decision. If accepted, the maintainer—not an implementing
-agent—should update the Status line with the reviewer, date, and which open
-items remain deferred or are resolved.
+This publication draft still requires independent maintainer review; it is
+not an approved publication decision. That review must record the actual
+reviewer, date and authorized/deferred publication scope. The accepted Rust-only
+maintenance decision is already recorded in ADR 0003 and is not awaiting
+acceptance of this draft. npm maintenance requires its own ADR regardless of
+any future review of this publication design.

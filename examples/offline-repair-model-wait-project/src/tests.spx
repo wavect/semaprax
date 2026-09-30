@@ -1,0 +1,7 @@
+module fixture.tests;
+
+@id("fixture.tests.main")
+fn main() -> i64
+{
+    0
+}

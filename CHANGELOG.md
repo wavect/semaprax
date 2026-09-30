@@ -8,6 +8,171 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Add a closed acceptance-record format for #328's Kernel-0 rung-2 decision.
+  It requires every local receipt to bind to one selected revision or an exact
+  unchanged subject, keeps all rows pending, and separates an eventual reviewer
+  decision from historical local counts and hosted evidence. No gate was run,
+  and rung 1 remains the only accepted rung.
+
+- Connect actual continued owned-Agent Decision cleanup to the existing v8
+  fixed append and physical release path (#330). Preserve the same State,
+  reservation hold and accounting across Started/Settled, cancellation and
+  observed release failure. Continued Outcome/Reduce, public execution and
+  restart recovery remain unfinished. Compilation passed; bounded test runs
+  were interrupted without completed results, so this increment is unverified.
+
+- Add partial signed-image checks to the standalone Windows doctor spawn using
+  held NTFS file/path guards and a retained advisory read oplock (#333).
+  Preserve the ten historical native cases and add six substitution/settlement
+  cases. Writable-section mutation can still race; exact binding acceptance,
+  native Windows execution and request/bundle transport remain open. No
+  production or release-trust support is promoted.
+
+- Retain catalog-normalizer's 100,000,000-step maximal-response requirement
+  (#324) in the complete application selector. Its one-call scalar phase
+  encoder omits redundant per-byte token-length arguments and selects the
+  plain or enriched terminal phases without a second per-byte function call.
+  Record the 160,000,000-step library ceiling only as the current execution
+  capacity and retain the separate 2,000,000-step source-suite bound. The
+  frozen oracle, corpus, response capacity, mutation controls and backend
+  lanes are unchanged.
+
+- Add the explicit `endpoint Bytes` session profile, connecting checked protocol
+  order to a unique source carrier through local moves and terminal consumption.
+  Refuse stale aliases, use after close, replacement carriers and escapes before
+  backend emission; preserve the existing declaration-only profile.
+- Pass all eight source/HIR/graph/cache and interpreter/native O0/O2/generated
+  Wasm endpoint success and terminal-failure settlement tests locally at
+  `c714e7c6c` on 2026-09-30. Endpoint/compiler/backend paths remain unchanged
+  through `e9019e9e1`; that later comparison is source equivalence, not a new
+  execution receipt. [Session Protocol Types v1](docs/SESSION-PROTOCOL-TYPES-V1.md#local-execution-receipt)
+  records the command, scope, and separately pending legacy preservation and
+  broader integration evidence.
+
+- Add an opt-in local Ollama specialization runner for #326 around the frozen
+  control schedule and scorer, with public-only prompt projection, exact model
+  pins, explicit independent-review gates and immutable outcome receipts.
+  Keep the unresolved discount cells unavailable; synthetic tests and offline
+  receipt checks are not actual model execution or experiment acceptance.
+
+- Add #326 read-only specialization cell accounting using the existing v1
+  protocol. Retain the original 81-cell inputs byte-for-byte from `ebe4235e`,
+  distinguish today's nine added cells and oracle drift, and report every
+  missing authority, unexecuted outcome and unrecorded independent review.
+  No provider or training work is dispatched; the experiment remains blocked.
+
+- Resolve comparison-adapter scope #322 through explicit exclusions: retain
+  only the already-admitted official TypeScript v3 lane, without promoting
+  local fixtures. Add a read-only, source/correction-bound support inventory
+  and offline regression gate preserving all 182 task/adapter rows. Correct
+  stale status prose while retaining the original 54/54 execution subject.
+  No executor, scorer, frozen source, wire profile or resource bound changes.
+
+- Reconcile generated-package support decision #325 with ADR 0003: retain
+  ordinary owned-data Rust-only maintenance, the fixed unpublished preview
+  identity and five-target boundary, and real SemVer before any future publish.
+  Distinguish genuine Rust/npm consumer and exact local MSRV evidence from npm
+  maintenance, public promotion, publisher identity and release provenance.
+  npm remains deferred to its own ADR; no publication or machinery change.
+
+- Add private continued Transfer and Authorize transport into actual Granted or
+  Refused Staged outcomes, retaining the same token, ledger and measured source
+  consumption. Owning runtime gates and full public execution remain pending.
+
+- Add private continued model SDK settlement and Resume transport through actual
+  durable ACKs, retaining authenticated accounting and the same spent token.
+  Owning runtime gates, next authorization and full public execution remain pending.
+
+- Add private fresh-cell acquisition certificates and native host custody,
+  rollback and retirement on the existing owner registry. Owning runtime gates
+  are pending; source endpoints and interpreter/Wasm admission remain unfinished.
+
+- Add private continued Start and Prepared ACK transport around the actual
+  retained owner and existing evaluator, preserving its ledger and hold.
+  Owning runtime verification and the next real SDK exchange remain pending.
+
+- Add private actual failed-Observe State cleanup ownership, per-action release
+  capture and fixed durable ACK transport. Owning runtime verification and
+  public lifecycle acceptance remain pending.
+
+- Add private actual Decision-observer State cleanup through a monotonic seal
+  and fixed ACKs, plus retained continuation preparation foundations.
+  Integrated runtime verification and public lifecycle acceptance are pending.
+
+- Add private initial and continued Observe settlement producers with actual
+  State provenance, evaluator consumption and fixed durable ACKs. Owning
+  integration verification and cumulative lifecycle execution remain pending.
+
+- Add private actual Continue State/Observe ACK carry and irreversible observer
+  cleanup-seal foundations; retain static Reduce capacity templates per exact
+  Context. Cumulative physical execution and integration gates remain pending.
+
+- Retain immutable checked Reduce proof per invocation and add private actual
+  failed-target State disposal through fixed durable ACKs with unchanged
+  accounting. Focused integration verification remains required.
+
+- Add private owned-wait v8 authenticated effect history, retained-container
+  append checks and physical effect/reducer ownership foundations. Fresh
+  initialization uses exact typed Task and acknowledged stage reservations;
+  historical data cannot mint owners. Actual held Authorize/Consumed/Intent
+  ACKs now preserve the same owner and exclusive future-Reduce credit through
+  consuming host dispatch, settlement/Recorded ACKs, physical Decision cleanup,
+  and guarded Outcome handoff with retained invocation accounting. Actual reducer
+  stages expose inert compiler-checked Step/failure facts and observed fuel.
+  Original Reduce now spends that same hold only at its actual full-F reservation
+  ACK and enters the existing evaluator with the actual State and Outcome roots.
+  Public owned Agent execution and durable recovery remain incomplete; full integrated
+  acceptance is pending.
+
+- Add candidate embedded ordinary Agent operation bodies and same-module model-wait helper associations, with original-source replay before checked HIR cache reuse. Source graph v50 and workspace/package graph v4 preserve their selected legacy bases and carry descriptive execution associations. The owned Agent lifecycle remains incomplete; integrated acceptance gates are pending.
+
+- Add an opt-in interpreter model wait through one combined Source Live v7
+  journal, with checked Copy carriers, precharged evaluation/replay, crash
+  recovery, and exact joined evidence. Migrate an explicit offline repair
+  example through the public route; retain existing SDK malformed-response
+  failure and frozen journal profiles. Full owned Agent state remains open.
+
+- Extend the local public-generic settlement corpus with versioned physical
+  input/result commit and result-root acquisition failures, strict Rust error
+  category checks, and an opt-in complete artifact/provenance inventory.
+
+- Add an opt-in held-target selector for the v2 in-memory migrated Agent
+  continuation. Interpreter, native C11, and Core Wasm retain the same
+  migration result and reservation accounting; backend instruction counts
+  remain distinct in evidence. Pure migration evaluation and general durable
+  metering remain interpreter-selected.
+
+- Admit bounded Copy-only record or variant parameters and results through a
+  separate sequential interpreter `yields` entry point. Bind aggregate
+  arguments to replay, preserve the existing scalar API and bounded Bytes
+  request channel. Add a distinct aggregate durable invocation with a v2
+  authenticated journal and v7 checkpoint, checked answer refusal before
+  append, and success/failure crash recovery tests. The Agent-operation
+  bridge remains open.
+
+- Carry one direct sequential `yields` request with bounded `Bytes` leaves
+  through interpreter suspension, a v6 authenticated checkpoint, and the
+  durable journal. Reject a second Bytes request site and Bytes responses at
+  checked admission; Agent operation migration remains open.
+
+- Add an opt-in public Agent live target route that records bounded semantic
+  work, ordered cleanup events, and settlement for interpreter, native C11,
+  and Core Wasm stages through the sealed dispatch. Focused local parity tests
+  cover the selected backends; durable routes retain reservation accounting.
+
+- Reject missing, empty, or byte-identical hidden overlays before scoring
+  cross-language benchmark tasks, including caller-supplied inventories.
+  Fixed scoring, agent scoring, and dry-run planning share the preflight;
+  invalid fixtures cannot invoke the solver transport or produce a false
+  hidden-test success. Same-path replacements remain supported. This is
+  structural fixture validation, not a test-coverage or model-quality claim.
+
+- Add caller-held native and Core Wasm selectors to durable Agent checkpoint
+  and checked migration execution. Both reuse the existing journal, preserve
+  target-neutral checkpoint identity, and refuse unavailable retained Wasm
+  source before a migration handoff is staged. Local parity and refusal tests
+  cover the new route; hosted target evidence remains open (#293).
+
 - Share cleanup-plan replay skeleton observations behind `Rc`. Sequencing a
   path prefix with each suffix deep-copied every identity and place, so a
   function with tens of thousands of paths materialized gigabytes: the
@@ -129,6 +294,299 @@ format: `Unreleased` then release buckets, grouped by impact.
   held-store admission flow. Local scripted transport controls are not hosted
   registry, TLS-peer, availability or production evidence.
 
+- Steer agents to the cheapest sufficient semantic command. The repository
+  guide now orders `query`, `doc`, `context`, then `graph`, with the measured
+  cost of each step on the committed examples: one line per declaration,
+  roughly the source bytes, a caller-chosen byte budget, and roughly forty
+  times the source bytes.
+
+- Attach an actionable hint to the `compact api-surface` refusal on projects
+  without the owned-data-api.v1 profile. The `SPX-J105` diagnostic keeps its
+  code and message and now points at `semaprax doc` and `semaprax query`;
+  a CLI regression test pins the hint on the committed calculator project.
+
+- Point the agent command ladder at `doc --json` for machine consumers. The
+  contracted `semaprax.doc.v1` skeleton carries signatures, contracts, and
+  identities at roughly the source bytes, eighteen to thirty-four times
+  smaller than the full graph on the measured examples.
+
+- Merge the pending Dependabot bumps (`wasm-encoder`/`wasmparser` 0.259.0,
+  `argon2` 0.6.0, `x509-cert` 0.3.0, `rustix` 1.1.5, `reqwest` 0.13.5, the
+  pinned `dtolnay/rust-toolchain` action, and `actions/upload-artifact`
+  7.0.1; #264-#267, #311-#313) and fix the resulting API breaks (x509-cert's
+  private `tbs_certificate` field, argon2/password-hash 0.6 APIs, wasmparser
+  wire pins and KATs). Admit the transitional duplicate versions these bumps
+  introduce in `cargo-deny` (`deny.toml` skips for `x509-cert@0.2.5`,
+  `der@0.7.10`, `der_derive@0.7.3`, `spki@0.7.3`, `base64@0.22.1`) and
+  refresh the five standalone lockfiles the bumps left stale.
+
+- Pin single-runner CI jobs, and the Android JNI matrix entries, to
+  `ubuntu-24.04` ahead of GitHub's `ubuntu-latest` migration to Ubuntu 26
+  (2026-10-19). The six three-OS matrices keep their `ubuntu-latest` matrix
+  value, so required check names such as `Rust ubuntu-latest` are unchanged;
+  only `runs-on` resolves to `ubuntu-24.04`.
+
+- Prove the compiled public-generic Core Wasm provider's own ABI hostility
+  through the generated TypeScript consumer (#287): call-after-close, an
+  over-capacity/out-of-bounds declared length, a byte-mutated canonical
+  frame, export-before-call, release of a foreign/stale/already-consumed
+  handle, double release, and a handle foreign to a second simultaneously
+  live instance all refuse at the provider's own exact status with no
+  leaked handle and no duplicate dispatch. The regression drives the real
+  compiled `WebAssembly.Instance` through an intercepted `instantiate`,
+  never a hand-written re-read of `instance.exports`; the shipped generator
+  template is unchanged. Local, proof-only evidence; no PG-9 or support
+  decision changes.
+
+- Fix four defects the differential harnesses found in the compiled
+  public-generic Core Wasm provider (#288): a stubbed owned-byte runtime
+  that trapped on any allocating subject (`bytes_copy`/`bytes_zeroed`/
+  `bytes_set`) now has a real invocation-local implementation; `input_prepare`
+  no longer grows linear memory before the carrier frame is validated; the
+  input-payload window moved off the input aggregate record into its own
+  128 KiB region, fixing a silent overwrite of combined payloads above
+  2 KiB while the call still reported success; and the provider now emits
+  Wasm adapter ABI v2, reporting a semantic carrier-replay failure as its
+  own raw status 14 (`SPX-PG803`) instead of collapsing it to raw 5.
+  `result_export`'s destination pointer/length is now bounds-checked before
+  the memory copy (status 13), and the classifier's baked-in leaf count is
+  const-asserted against the endpoint's actual leaf count so the two can no
+  longer drift apart silently. Local, proof-only evidence.
+
+- Execute one closed, versioned settlement-matrix corpus
+  (`semaprax.public-generic.settlement-matrix.v1`, 14 cases over the checked
+  `Pair<Bytes>` identity/refusing/allocating subjects) across the retained
+  interpreter, raw authenticated native C11 (O0/O2 plus local ASan), the
+  compiled Core Wasm provider, and the generated C11/Rust/C++17/TypeScript
+  callers built from the same descriptor bytes (#301). Each engine reports
+  one receipt per case/cycle (primary/secondary status, returned bytes,
+  dispatch count, live/peak resources, physical release order); the harness
+  asserts an exact, non-vacuous 126-cell split. Following #288's provider
+  fixes, the matrix's former 8 known-defect cells now pass: 105 pass, 0
+  known-defect, 21 documented not-applicable. Local, proof-only evidence.
+
+- Add a Wasmtime 47.0.4 differential-conformance submodule to the private
+  Component runner (#292): the reference interpreter, the standalone
+  compiled Core Wasm provider, and the typed Component must agree on
+  returned leaves for two checked-in projects (a non-identity leaf swap,
+  and `requires false`), including stale-Component and stale-descriptor
+  refusal before instantiation, Core open refusal of a stale descriptor,
+  resource-arena recovery after both success and failure, and an
+  oversized-list trap followed by fresh-instance recovery. The differential
+  found the standalone provider's payload-overlap defect #288 later fixed.
+  Re-pinned all four component-runtime fixtures' provider/component digests
+  and raw component SHA-256 after #288 changed the compiled provider's
+  bytes (each fixture's descriptor digest, a pure function of checked
+  source, is unchanged); un-ignored the large-payload regression the fix
+  closed. Local, proof-only evidence.
+
+- Give Core Wasm call-depth admission equivalent to the interpreter's
+  `MAX_CALL_DEPTH` and native C11's `SPX_MAX_CALL_DEPTH` (256), across both
+  the aggregate byte/scalar-export emitter and the separate legacy
+  scalar-core emitter (#293). Both emitters use an always-on live-frame
+  counter reset at every genuine external entry, so a refused deep
+  recursion cannot poison a later, shallower call on the same module
+  instance; the executor-side status decode reports
+  `RetainedCallOutcome::CallDepthExceeded` consistently across native and
+  Core Wasm. Also add semantic fuel/cleanup metering parity across the
+  interpreter, native, and both Wasm Agent Stage executors, and fix a
+  macOS held-tool spawn issue. Local, proof-only evidence; the affected
+  Wasm-byte pins were re-derived field-by-field for the changed private
+  global.
+
+- Replace the durable HTTP-delivery library entry point's
+  whole-checkpoint-digest provisional probe with an identity-keyed
+  (deployment/invocation/idempotency-key) atomic create-new intent marker,
+  independent of capacity, policy, and restoration state (#295): an
+  existing marker, or any create/sync/recheck error, surfaces `Uncertain`
+  and never enters the adapter, and the marker commit is one atomic
+  create-new with no preceding read, so concurrent fresh workers cannot
+  both win. Loopback fixtures only; this remains a library entry point with
+  no caller in a runnable application or service policy package.
+
+- Add a Reference Service Host v1 (#303, `docs/REFERENCE-SERVICE-HOST-V1.md`):
+  the existing service scaffold (`examples/task-service-project`) now runs
+  as a real local loopback process — HTTP/1.1 serving, content-addressed
+  write-once snapshot persistence, held file-backed secrets, and durable
+  outbound webhook delivery over #295's identity-keyed marker — reusing
+  existing decision and adapter machinery and granting no new authority. No
+  SQL wire protocol (SQLite/PostgreSQL DSNs are held, never connected to),
+  no TLS server provisioning, no OTLP protobuf, and no hosted or production
+  support is implemented or claimed.
+
+- Add a resumable-effects continuation contract v1 (#296,
+  `docs/RESUMABLE-EFFECTS-CONTINUATION-V1.md`): a durable, fsync'd,
+  HMAC-chained, single-writer (flock) journal-backed library driver
+  (Unix only), extending the source-level resumable profile with
+  control-dependent yields (`if`/`else` branches and `while` bodies; v3
+  plan/envelope, up to 8 static sites, up to 16 suspensions; `SPX-T305`/
+  `SPX-T306` refusals) and a whole owned `Bytes` local carried across
+  `if`/`else`-nested yields in a v4 envelope with driver-enforced per-item
+  cleanup settlement. Loop-embedded carrying is refused (`SPX-T303`), not
+  silently narrowed. Native and Wasm code generation still refuse `yields`
+  (`SPX-B116`/`SPX-W126`); this is a library contract with local evidence
+  only, not a runtime scheduler or public continuation ABI.
+
+- Session protocol declarations (`session protocol`) are parsed,
+  canonically formatted, verified (`SPX-K101`-`SPX-K106`), and erased with
+  unchanged native/Wasm bytes (#297), and are bound to their `@id`, span,
+  and checked HIR `via` functions in the per-source graph
+  (`semaprax.graph.v48`, declaring programs only), `context`
+  (`session_protocol_kernel.declared`), Architecture Claims
+  (`protocol_realizers_bound`, attesting only that `via` targets are
+  checked call-graph nodes, not ordering), and Assurance Manifest v1 (a
+  closed `session_protocol` obligation kind, `compiler_proved` static
+  validation only; older verifiers reject such envelopes with `SPX-Z103`).
+  Canonical declarations of `project-agent-session-v1` and
+  `database-transaction-v1` are gated field-for-field against the kernel
+  specs the two live subsystems run. Legal declaration order grants no
+  runtime authority. Project semantic cache compatibility bumped to
+  `semaprax.project-checked-module-hir.v2`. Fixed a stale
+  `context --filters session_protocol` note that had claimed no subsystem
+  calls the kernel.
+
+- Add a Compute Kernel Profile (#306, RFC 0005): a deterministic CPU
+  reference executor (`semaprax.compute-cpu-reference.v1`) for
+  elementwise-map and sequential-fold kernels bound to checked functions by
+  `@id`, with capability-gated owned device-buffer lifecycle, sticky
+  failure selection, stale-artifact refusal, and diagnostics
+  `SPX-GC014`-`SPX-GC021`. Add an optional macOS `metal-device` Metal
+  backend (`objc2-metal`) for the elementwise map on `i32`/`i64` with
+  dispatch-time admission parity, including a fix for a 64-bit `ulong`
+  division that crashed the Metal compiler service. Local physical-device
+  evidence on one Apple M3 Pro only; no hosted, multi-device, or production
+  accelerator claim.
+
+- Add cross-language runnable-adapter contract v2 (#284,
+  `docs/CROSS-LANGUAGE-RUNNABLE-ADAPTER-V2.md`): C, Python, Swift and Java
+  lanes with independent ports of all twelve comparison tasks (48 of 48
+  pairs run `ok`, each port checked against a task-specific broken
+  candidate), and real execution of the already-admitted TypeScript lane, all bounded, offline and pinned to
+  exactly observed local toolchain paths and digests (local provenance only,
+  never official). v1 and its Rust lane are unchanged; the six reserved
+  external languages stay blocked with their recorded reasons.
+
+- Execute the genuine compiler-built npm package journey (#290): pack,
+  offline install into a clean project, strict TypeScript build, import and
+  real Wasm calls, plus tampered-file, swapped-Wasm, path-traversal and
+  stale-integrity refusals applied to that same tarball. The stale-integrity
+  check uses an npm cache the genuine tarball never touched, because a warm
+  cache masks `file:` integrity failures. Local evidence only; the npm
+  support decision stays open (ADR 0003 answer 8).
+
+- Fix Core Wasm agent stages never reporting the settlement of an owned
+  `Bytes` leaf returned inside a multi-leaf variant (#293): the byte-stream
+  driver did settle the leaf but returned a hex string, so no
+  `CopyOutAndSettleBytes` receipt was recorded. Cleanup events are now counted
+  for the selected case only, and the Core Wasm special case that accepted
+  empty cleanup events in `rich_target_backends_preserve_raw_grant_and_continue_byte_payloads`
+  is removed, restoring the strict cross-backend assertion.
+
+- Make the Kernel-0 interpreter differential corpus finish (#294): each
+  self-hosted canonical-token renderer (int, bool, char, operator, string)
+  re-derived its fixed embedded Kernel-0 component on every rendered token.
+  Renderers now derive once and reuse the program only for byte-identical
+  source, keeping drift detection intact.
+  `reference_interpreter_agrees_with_the_compiler_over_the_kernel_zero_corpus`
+  drops from over four hours to about nine minutes locally (854 comparisons,
+  0 disagreements, unchanged corpus and seed).
+
+- Extend public-generic Component conformance (#292): native C11 -O0/-O2 as
+  a fourth parity column (over an equivalent flat fixture, since native
+  admission does not yet accept the nested record the other columns use), and
+  mid-call fuel interruption for the Component and the Core Wasm provider,
+  which traps, discards the store without publishing and recovers on a fresh
+  instance. Private profile; no public-support claim.
+- Record the benchmark's issue #211 category coverage, observed local
+  toolchain identities and the reserved languages' provisioning needs (#298);
+  the "Agent workflow" category's coverage awaits a maintainer scope decision,
+  and the real two-model and second-host pilot remains open.
+- Admit nested owned records on the native boundary through a new, separately
+  versioned `authenticated-native-moves-nested.v1` profile (#292), with
+  positional leaf-path equality against the verified descriptor and the hostile
+  corpus rerun against a nested descriptor; the Component parity suite's native
+  column now uses the same checked endpoint and byte-identical descriptor as
+  the interpreter, Core Wasm and Component columns. `moves-v1` is unchanged.
+- Extend the optional Metal backend to sequential folds and to `u8`, `usize`
+  and `bool` (#306), with an order-preserving single-thread fold and a
+  division-free binary long division for 64-bit unsigned `/` and `%`, covered on
+  the local M3 Pro across divisor classes up to `u64::MAX`.
+- Add the benchmark's thirteenth task, `iterative-repair-workflow-v1`, for the
+  "Agent workflow" category (#298): two sequentially masked defects and a
+  preserved sibling behaviour, ported to every runnable lane. The maintainer
+  directed a dedicated task over orthogonal orchestrator coverage.
+- Admit an owned `Bytes` local carried across a loop-embedded resumable
+  yield when it is defined outside every enclosing `while` and never touched
+  inside it (#296), on the existing v4 envelope. The per-slot check walks
+  every nested expression and statement exhaustively and refuses otherwise;
+  reassignment inside the loop stays refused (SPX-T252).
+- Prove the composed registry path over a real loopback socket (#304): ten
+  acceptance cases drive mirror fetch, held commit, signed cache and
+  Resolver-v2/Lock-v3 replay through a 127.0.0.1 listener, covering clean
+  reproduction, swapped artifact, tampered metadata, stale timestamp,
+  rollback, publisher reassignment, yanked package, connection refusal and
+  timeout, each leaving the held store unchanged. Plain HTTP test transport
+  only; the mirror-flow spec now records its trust decisions and scope.
+- Bind resumable `requires`/`ensures` obligations for control-dependent
+  (v3/v4) functions, which previously failed obligation generation (#296).
+  The Agent lifecycle migration stays open; the continuation spec records
+  why no existing Agent example fits the admitted yield profile.
+- Restore ordinary and migration-seeded durable Agent checkpoints across
+  interpreter, native -O0 and Core Wasm in test-only routes (#293).
+  Checkpoint identity no longer binds the executing backend; a mismatched
+  Wasm stage source is refused explicitly. Production routes stay
+  interpreter-selected.
+- Project declared session protocols into the Package Semantic Graph
+  (`semaprax.package-semantic-graph.v2` for declaring packages only;
+  protocol-free graphs stay v1 byte-identical), the help shape catalog and
+  the agent quick reference, and report protocols whose `via` targets a
+  changed declaration in semantic impact/review (#297).
+- Admit a resumable function whose later top-level yield follows an if/else
+  when no owned value is live: the branch-join refusal (SPX-H006) now applies
+  only to a genuine owned-`Bytes` join (#296).
+- Serve the Reference Service Host over TLS on loopback when the operator
+  holds certificate and key material (`--tls-certificate-secret`,
+  `--tls-private-key-secret`) (#303). TLS 1.2+ only, no plaintext fallback;
+  a request for TLS without held material is refused before bind. The full
+  login/CRUD/job/restart flow and wrong-issuer, wrong-hostname, expired and
+  plaintext-client cases run against a test CA. Local evidence only.
+- Generate C++17 and Rust calling consumers for the
+  `authenticated-native-moves-nested.v1` profile and drive them through the
+  same O0/O2 positive controls and seven hostile recipes as the other
+  authenticated profiles (#288). The native hostile corpus and positive
+  controls for all four profiles now also run under local Clang
+  AddressSanitizer and UndefinedBehaviorSanitizer on macOS arm64 with zero
+  reports; LeakSanitizer is unsupported there and the live-allocation
+  counters remain the leak oracle. Not hosted or Linux evidence.
+- Check `.spx` endpoint typestate (#297): a function that declares
+  `follows session protocol "<id>"` must call the protocol's `via` functions
+  in a legal order along every straight-line and if/else path, ending in a
+  terminal state (`SPX-K107`-`SPX-K109`). Loops, recursion, closures,
+  indirect calls and branching `choice` continuations that reach a `via` call
+  are refused rather than approximated. The clause is erased before codegen.
+  The project semantic cache tag is now
+  `semaprax.project-checked-module-hir.v3`. Legal order grants no authority.
+- Refuse a record or variant `yields` request/response type with the
+  dedicated `SPX-T307` ("aggregate yield channel not yet admitted") instead of
+  the generic scalar refusal, and record the bounded aggregate shape and the
+  runtime work it still needs (#296).
+- Project `follows session protocol` bindings (function `@id` to protocol
+  `@id`, typestate checked) into the per-source graph (`semaprax.graph.v49`,
+  only for programs that use the clause), `context`, the Workspace and
+  Package Semantic Graphs (`.v3`) and the Assurance Manifest as a
+  `compiler_proved` call-order obligation (#297). `semaprax doc` shows the
+  binding on the function and the protocol, and `semaprax query` finds it
+  through the existing entry facts. A `follows` clause on a class method is
+  refused (`SPX-K109`) instead of being accepted unchecked.
+- Run a bounded, flat record or variant of Copy scalars (at most 8 fields,
+  or 8 cases of at most 8 fields) as a `yields` request/response channel for
+  top-level yields on the interpreter, the source-checkpoint driver (new
+  signature-bound v5 envelope; v1-v4 unchanged) and the durable journal
+  driver (#296). A `yield` inside `if`/`while` and any aggregate with a
+  `Bytes` leaf still refuse with `SPX-T307`. Journal lock acquisition now
+  retries briefly so a descriptor held across a concurrent fork no longer
+  reports a spurious `JournalBusy`.
+
 ## 0.6.0 — 2026-09-24
 
 - Keep the frozen private Component v7 WIT identity at `0.5.0` while the crate
@@ -203,7 +661,6 @@ format: `Unreleased` then release buckets, grouped by impact.
   and exercise ten oracle-frozen controls across interpreter, native C and
   Core Wasm. The maximal 65,536-byte response still exhausts the unchanged
   100M-step fuel bound, so the catalog acceptance milestone remains open.
-
 - Add a TUF-style local registry verifier with independently installed roots,
   namespace-delegated Ed25519 thresholds, dual-threshold root rotation, exact
   registry/manifest bindings, freshness, rollback and yank checks. Results are
@@ -3678,3 +4135,5 @@ format: `Unreleased` then release buckets, grouped by impact.
 ## Earlier releases
 
 The detailed 0.3.5, 0.2.0, and 0.1.0 history is preserved in the [changelog archive](docs/CHANGELOG-ARCHIVE.md).
+
+- R20 private actual Step successor: fixed same-hold cleanup/transfer/Transition ACKs, actual ordered release receipts and compiler-empty Complete origin; cumulative/public/terminal/recovery acceptance remains pending.

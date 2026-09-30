@@ -113,6 +113,7 @@ impl Emitter<'_> {
                     self.clear_scalar(&value)?;
                 }
             }
+            self.semantic_cleanup_event(action.guard_flag.0)?;
             self.output.extend([0x41, 0x00, 0x21]);
             write_u32(self.output, flag);
             self.output.push(0x0b);

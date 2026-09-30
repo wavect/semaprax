@@ -363,3 +363,7 @@ erasure, or general cross-file ownership composition.
 The frozen Workspace Semantic Graph v1 `nonclaims` bytes above remain
 unchanged: the Project-v7 linked-execution admission does not grant this
 read-only carrier general borrowing or lifetime authority.
+
+## Additive source Agent execution metadata (v070 candidate)
+
+Source Agents with embedded deterministic operations or `model_wait_v1` metadata select `semaprax.workspace-semantic-graph.v4`. The existing graph body is preserved over its actual v1/v2/v3 base; the appended `agent_execution` object records `base_schema`, `authority: "none"`, and module/path-qualified checked Agent rows. Source rows follow the [owning syntax contract](LANGUAGE-NATIVE-AGENT-SYNTAX-V1.md#additive-embedded-execution-metadata-v070-candidate). Facts come only from the selected reachable closure after complete authenticated-source validation. No metadata means unchanged legacy schema and bytes. These descriptive facts grant no execution, storage, or publication authority.

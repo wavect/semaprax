@@ -20,8 +20,16 @@ pub use policy_v6::{
     SourcePolicyQuoteV6, SourcePolicyTotalsV6,
 };
 mod migration;
+mod owned_wait_v8;
+pub(crate) use owned_wait_v8::{
+    checked_owned_wait_journal_context_v8, owned_wait_ready_commitment_v8,
+    CheckedCumulativeEffectPrefixV8, CheckedOwnedWaitJournalContextV8, HeldOwnedWaitStoreV8,
+    SourceOwnedWaitJournalV8,
+};
 mod priced_v4;
+mod sink;
 mod validate;
+mod wait_v7;
 mod wire;
 pub use crate::live_invocation::pricing::ProviderChargeObservation;
 pub(crate) use migration::{
@@ -30,6 +38,10 @@ pub(crate) use migration::{
 };
 pub use priced_v4::{
     PricedAttemptIntentV4, PricedAttemptUsageV4, PricedTotalsV4, SourceUsageObservationV4,
+};
+pub(crate) use wait_v7::{
+    source_model_wait_checkpoint_digest, SourceExecutionEntryV7, SourceModelWaitEntryV7,
+    SourceModelWaitPhaseV7, SourceModelWaitProfileV7, SourceModelWaitStateV7,
 };
 
 #[cfg(test)]
@@ -98,6 +110,8 @@ pub struct SourceInvocationSeed {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SourceInvocationBinding {
     invocation: String,
+    source_revision: String,
+    wait: Option<SourceModelWaitProfileV7>,
     proposal_source: String,
     response_limit: usize,
     max_iterations: u32,
@@ -225,6 +239,8 @@ impl SourceInvocationBinding {
         );
         Ok(Self {
             invocation: digest(ID_DOMAIN, canonical.as_bytes()),
+            source_revision: seed.source_revision.clone(),
+            wait: None,
             proposal_source: proposal_source_digest(
                 &seed.source_revision,
                 &seed.deployment_binding,
@@ -458,6 +474,9 @@ impl SourceInvocationBinding {
         self.max_stages
     }
     pub(crate) fn schema(&self) -> &'static str {
+        if self.wait.is_some() {
+            return wait_v7::SCHEMA;
+        }
         if self.policy_binding().is_some() {
             return SOURCE_POLICY_JOURNAL_SCHEMA;
         }
@@ -924,6 +943,7 @@ pub fn source_prompt_digest(bytes: &[u8]) -> String {
 pub struct SourceJournal {
     binding: SourceInvocationBinding,
     entries: Vec<SourceJournalEntry>,
+    wait_entries: Vec<(u32, SourceModelWaitEntryV7)>,
     last_checked_millis: i64,
 }
 
@@ -933,6 +953,7 @@ impl SourceJournal {
         Self {
             binding,
             entries: Vec::new(),
+            wait_entries: Vec::new(),
             last_checked_millis,
         }
     }
@@ -950,14 +971,14 @@ impl SourceJournal {
         if now < self.last_checked_millis {
             return Err(SourceJournalError::Time);
         }
-        if self.entries.len() >= MAX_SOURCE_ENTRIES {
+        if self.combined_len() >= MAX_SOURCE_ENTRIES {
             return Err(SourceJournalError::Capacity);
         }
         let mut next = self.clone();
         next.entries.push(entry);
         next.last_checked_millis = now;
         if next.binding.is_execution_profile() {
-            execution::validate(&next.binding, &next.entries)?;
+            next.execution_fold()?;
         } else {
             validate::validate(&next.binding, &next.entries)?;
         }
@@ -1050,220 +1071,6 @@ pub struct SourceCheckpointSink<'a> {
     journal: SourceJournal,
     generation: u64,
     poisoned: bool,
-}
-
-impl<'a> SourceCheckpointSink<'a> {
-    pub fn new(store: &'a mut dyn CheckpointStore, binding: SourceInvocationBinding) -> Self {
-        Self {
-            store,
-            journal: SourceJournal::new(binding),
-            generation: 0,
-            poisoned: false,
-        }
-    }
-    pub fn resume(
-        store: &'a mut dyn CheckpointStore,
-        recovered: RecoveredSourceCheckpoint,
-    ) -> Result<Self, SourceJournalError> {
-        if recovered.is_uncertain() {
-            return Err(SourceJournalError::Uncertain);
-        }
-        Ok(Self {
-            store,
-            journal: recovered.journal,
-            generation: recovered.generation,
-            poisoned: false,
-        })
-    }
-    pub fn append_at(
-        &mut self,
-        entry: SourceJournalEntry,
-        now: i64,
-    ) -> Result<(), SourceJournalError> {
-        let (next, generation, document) = self.prepare_append(entry, now)?;
-        if let Err(error) = self.store.commit(generation, &document) {
-            self.poisoned = true;
-            return Err(SourceJournalError::Store(error));
-        }
-        self.journal = next;
-        self.generation = generation;
-        Ok(())
-    }
-
-    /// Checks phase, clock and bounded settlement capacity before a caller
-    /// reserves budget. No store write or dispatch permission is produced;
-    /// `append_at` revalidates and must acknowledge the actual intent first.
-    pub fn preflight_at(
-        &self,
-        entry: &SourceJournalEntry,
-        now: i64,
-    ) -> Result<(), SourceJournalError> {
-        self.prepare_append(entry.clone(), now).map(|_| ())
-    }
-
-    /// Constructs the profile-specific durable model intent.  The caller must
-    /// still append it and await the checkpoint acknowledgement before dispatch.
-    pub fn attempt_intent(
-        &self,
-        turn: u32,
-        attempt: u32,
-        request_digest: String,
-        prompt_digest: String,
-        request_bytes: usize,
-    ) -> Result<SourceJournalEntry, SourceJournalError> {
-        self.journal
-            .attempt_intent(turn, attempt, request_digest, prompt_digest, request_bytes)
-    }
-
-    /// Constructs explicit V4 settlement evidence for a prior priced intent.
-    /// `None` is serialized as `usage: unknown`; callers must pass
-    /// `ProviderChargeObservation::Unknown` unless they hold exact bound
-    /// currency/minor-unit evidence.
-    pub fn priced_attempt_usage(
-        &self,
-        turn: u32,
-        attempt: u32,
-        reported: Option<SourceReportedUsage>,
-        charge: crate::live_invocation::pricing::ProviderChargeObservation,
-    ) -> Result<SourceJournalEntry, SourceJournalError> {
-        self.journal
-            .priced_attempt_usage(turn, attempt, reported, charge)
-    }
-
-    /// Constructs the final v2 event from validated causal commitments.
-    /// The caller still must pass it to `append_at` and await its store ACK.
-    pub fn terminal_snapshot_entry(
-        &self,
-        turn: Option<u32>,
-        status: SourceTerminalStatus,
-        carrier: Option<Vec<u8>>,
-        input: SourceTerminalEvidenceInput,
-    ) -> Result<SourceJournalEntry, SourceJournalError> {
-        if !self.journal.binding.is_execution_profile() {
-            return Err(SourceJournalError::Binding);
-        }
-        let fold = execution::validate(&self.journal.binding, self.journal.entries())?;
-        execution::terminal_entry(&self.journal.binding, &fold, turn, status, carrier, input)
-    }
-
-    fn prepare_append(
-        &self,
-        entry: SourceJournalEntry,
-        now: i64,
-    ) -> Result<(SourceJournal, u64, String), SourceJournalError> {
-        if self.poisoned {
-            return Err(SourceJournalError::Poisoned);
-        }
-        let next = self.journal.candidate(entry, now)?;
-        let generation = self
-            .generation
-            .checked_add(1)
-            .ok_or(SourceJournalError::Generation)?;
-        let document = wire::encode_envelope(&next, generation)?;
-        // An intent is unusable if its worst-case bounded result cannot be
-        // checkpointed. Reserve room before granting a physical dispatch.
-        let (future_bytes, future_entries): (usize, usize) = match next.entries.last() {
-            Some(SourceJournalEntry::MigrationEvaluationIntent { .. }) => (
-                MAX_SOURCE_CARRIER_BYTES
-                    .saturating_mul(2)
-                    .saturating_add(4_096),
-                2,
-            ),
-            Some(SourceJournalEntry::AttemptIntent { response_limit, .. }) => {
-                (response_limit.saturating_mul(2).saturating_add(4_096), 5)
-            }
-            Some(SourceJournalEntry::PricedAttemptIntent(intent)) => (
-                intent
-                    .response_limit
-                    .saturating_mul(2)
-                    .saturating_add(4_096),
-                5,
-            ),
-            Some(SourceJournalEntry::PolicyAttemptIntent(intent)) => (
-                intent
-                    .response_limit
-                    .saturating_mul(2)
-                    .saturating_add(4_096),
-                5,
-            ),
-            Some(SourceJournalEntry::EffectIntent { .. }) => (
-                MAX_SOURCE_EFFECT_BYTES
-                    .saturating_mul(2)
-                    .saturating_add(4_096),
-                3,
-            ),
-            _ => (0, 0),
-        };
-        let (future_bytes, future_entries) = if next.binding.is_execution_profile()
-            && !matches!(
-                next.entries.last(),
-                Some(SourceJournalEntry::TerminalSnapshot { .. })
-            ) {
-            (
-                future_bytes.saturating_add(execution::TERMINAL_ROOM_BYTES),
-                future_entries.saturating_add(2),
-            )
-        } else {
-            (future_bytes, future_entries)
-        };
-        if document
-            .len()
-            .checked_add(future_bytes)
-            .is_none_or(|size| size > MAX_SOURCE_DOCUMENT_BYTES)
-            || next
-                .entries
-                .len()
-                .checked_add(future_entries)
-                .is_none_or(|count| count > MAX_SOURCE_ENTRIES)
-        {
-            return Err(SourceJournalError::Capacity);
-        }
-        Ok((next, generation, document))
-    }
-    pub fn journal(&self) -> &SourceJournal {
-        &self.journal
-    }
-    /// Revalidates this cursor's last ACKed generation. A poisoned cursor may
-    /// have a newer store generation, so this is not a latest-store claim.
-    pub fn checkpoint(&self) -> Result<RecoveredSourceCheckpoint, SourceJournalError> {
-        let document = wire::encode_envelope(&self.journal, self.generation)?;
-        recover_source_checkpoint(&document, &self.journal.binding)
-    }
-    pub fn committed_stage_fuel(&self) -> Result<u64, SourceJournalError> {
-        if self.journal.binding.is_execution_profile() {
-            Ok(execution::validate(&self.journal.binding, self.journal.entries())?.stage_fuel)
-        } else {
-            Ok(0)
-        }
-    }
-    pub fn io_totals(&self) -> Result<Option<SourceIoTotals>, SourceJournalError> {
-        if self.journal.binding.io.is_none() {
-            return Ok(None);
-        }
-        Ok(execution::validate(&self.journal.binding, self.journal.entries())?.io)
-    }
-    pub fn priced_totals(&self) -> Result<Option<PricedTotalsV4>, SourceJournalError> {
-        if !self.journal.binding.is_priced_profile() {
-            return Ok(None);
-        }
-        Ok(execution::validate(&self.journal.binding, self.journal.entries())?.priced)
-    }
-    pub fn policy_totals(&self) -> Result<Option<SourcePolicyTotalsV6>, SourceJournalError> {
-        if self.journal.binding.policy_binding().is_none() {
-            return Ok(None);
-        }
-        Ok(
-            execution::validate(&self.journal.binding, self.journal.entries())?
-                .policy
-                .map(|fold| fold.totals),
-        )
-    }
-    pub const fn generation(&self) -> u64 {
-        self.generation
-    }
-    pub const fn poisoned(&self) -> bool {
-        self.poisoned
-    }
 }
 
 /// Validated, identity-bound source checkpoint. Its private fields prevent a
@@ -1428,7 +1235,7 @@ pub fn recover_source_checkpoint(
         policy_reservations,
         io_totals,
     ) = if expected.is_execution_profile() {
-        let fold = execution::validate(expected, journal.entries())?;
+        let fold = journal.execution_fold()?;
         let (policy_totals, policy_reservations) =
             fold.policy.map_or((None, Vec::new()), |value| {
                 (Some(value.totals), value.reservations)
@@ -1463,3 +1270,51 @@ pub fn recover_source_checkpoint(
         io_totals,
     })
 }
+
+pub(crate) use owned_wait_v8::{
+    LiveInitializePermitV8, LiveObservePermitV8, LiveWaitStartPermitV8,
+};
+
+pub(crate) use owned_wait_v8::{LiveModelIntentPermitV8, LiveWaitResumePermitV8};
+
+pub(crate) use owned_wait_v8::LiveReadyPromotionPermitV8;
+pub(crate) use owned_wait_v8::{LiveAuthorizePermitV8, LiveStateTransferPermitV8};
+pub(crate) use owned_wait_v8::{LiveEffectAuthorizationPermitV8, LiveEffectIntentPermitV8};
+
+pub(crate) use owned_wait_v8::LiveEffectDecisionCleanupPermitV8;
+
+pub(crate) use owned_wait_v8::LiveReduceEvaluationPermitV8;
+
+pub(crate) use owned_wait_v8::{
+    FixedOwnedStepAppendPermitV8, LiveOwnedReduceCleanupPermitV8, LiveOwnedStepTransferPermitV8,
+};
+
+pub(crate) use owned_wait_v8::LiveFailedEffectStateCleanupPermitV8;
+
+pub(crate) use owned_wait_v8::LiveContinueObservePermitV8;
+
+#[cfg(test)]
+pub(crate) use owned_wait_v8::test_initial_observe_entry_v8;
+
+pub(crate) use owned_wait_v8::LiveObserverFailedStateCleanupPermitV8;
+
+pub(crate) use owned_wait_v8::LiveFailedObserveStateCleanupPermitV8;
+
+pub(crate) use owned_wait_v8::{
+    LiveContinuedModelIntentPermitV8, LiveContinuedModelRequestOriginV8,
+    LiveContinuedWaitResumePermitV8,
+};
+
+pub(crate) use owned_wait_v8::{
+    LiveContinuedAuthorizePermitV8, LiveContinuedStateTransferPermitV8,
+};
+
+pub(crate) use owned_wait_v8::LiveContinuedReadyPromotionPermitV8;
+
+pub(crate) use owned_wait_v8::LiveContinuedEffectAuthorizationPermitV8;
+
+pub(crate) use owned_wait_v8::LiveContinuedIntentPermitV8;
+
+pub(crate) use owned_wait_v8::LiveContinuedSettlementPermitV8;
+
+pub(crate) use owned_wait_v8::LiveContinuedDecisionCleanupPermitV8;

@@ -124,6 +124,22 @@ impl fmt::Debug for PreparedHttpDelivery {
     }
 }
 
+impl PreparedHttpDelivery {
+    /// A stable identity marker independent of policy, capacity, or session
+    /// restoration state: unlike the full typed session-checkpoint digest, it
+    /// depends only on the deployment binding, invocation id, and idempotency
+    /// key. A trusted host may use it to maintain its own atomic "an attempt
+    /// for this exact identity already reached the durable store" marker
+    /// before any session or capacity-bearing state exists, so a fresh
+    /// session built with a different capacity or policy -- or simply not
+    /// restored at all -- cannot bypass a durable in-flight or settled
+    /// attempt for the same deployment/invocation/idempotency-key triple.
+    /// This is not a capability or evidence; it is a stable name only.
+    pub fn pending_identity_key(&self) -> &str {
+        &self.session_identity_digest
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct HttpDeliveryReceipt {
     evidence: DeliveryEvidence,

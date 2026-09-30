@@ -12,6 +12,7 @@ use std::panic::{catch_unwind, AssertUnwindSafe};
 use sha2::{Digest, Sha256};
 
 use super::{Authorized, AuthorizedRequest};
+pub(crate) mod owned_wait_v8;
 use crate::agent_runtime::AgentCancellation;
 
 /// Closed, length-framed schema for an admitted target result carrier.
@@ -298,20 +299,15 @@ impl TargetGrant {
         argument: &TypedCarrier,
     ) -> Self {
         let argument_digest = digest(ARGUMENT_DOMAIN, &argument.encode());
-        let mut bytes = Vec::new();
-        frame(&mut bytes, authorization.binding().as_bytes());
-        frame(&mut bytes, authorization.seal());
-        frame(&mut bytes, invocation_root.as_bytes());
-        // The legacy route intentionally has no extra frame, preserving its
-        // established grant and evidence bytes. Explicit target parity binds
-        // a domain-separated execution digest before an opaque grant exists.
-        if let Some(binding) = execution_binding {
-            frame(&mut bytes, binding.as_bytes());
-        }
-        frame(&mut bytes, &turn.to_be_bytes());
-        operation.canonical(&mut bytes);
-        frame(&mut bytes, argument_digest.as_bytes());
-        let grant_id = digest(GRANT_DOMAIN, &bytes);
+        let grant_id = owned_wait_v8::grant_id(
+            authorization.binding(),
+            authorization.seal(),
+            invocation_root,
+            execution_binding,
+            turn,
+            &operation,
+            &argument_digest,
+        );
         Self {
             grant_id,
             authorization_binding: authorization.binding().to_owned(),

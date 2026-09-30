@@ -701,6 +701,14 @@ fn validate_wasm_inventory(wasm: &[u8], exports: &[DataExport]) -> Result<(), Di
             "__spx_data_scratch_capacity_v1".to_owned(),
             ExternalKind::Global,
         ),
+        // Issue #293 P2-1/P2-2: every legacy scalar-core module, including
+        // Public Useful Data Export v1, unconditionally carries the sticky
+        // call-depth-exceeded marker global (never the depth counter itself;
+        // see `wasm::scalar_call_admission`).
+        (
+            crate::wasm::CALL_DEPTH_EXCEEDED_EXPORT.to_owned(),
+            ExternalKind::Global,
+        ),
     ]);
     for export in exports {
         expected.insert(export.wasm_export.clone(), ExternalKind::Func);

@@ -58,3 +58,31 @@ positional checksum rather than print a fixed answer.
 This fixture is held out. Its vectors and repair transcript must not be used
 to tune a language adapter or admitted feature set. This commit supplies
 corpus and oracle evidence only; no coding-agent trial was run or claimed.
+
+## C, Python, Swift, and Java ports
+
+Added under the `runnable_adapter_v2` extension. C, Python, and Java keep
+the same candidate/entry split the Rust and TypeScript ports use
+(`candidate.c`/`candidate.py`/`Candidate.java` hold the unchanged
+`sentinel_checksum` function, copying its input into a private owned
+buffer before mapping in place, mirroring the Rust reference's
+`input.to_vec()`; the hidden overlay replaces only
+`main.c`/`digest.py`/`Main.java`, via `#include`, `import`, and javac's
+same-directory auto-discovery respectively). Java represents each byte as
+an `int` constrained to `0..255` rather than a signed `byte[]`, avoiding
+sign-extension pitfalls for values at or above `0x80`; this is a
+language-idiom choice, not a difference in what is computed. Swift's fixed
+single-file `swiftc main.swift` invocation admits no candidate/entry split,
+so `sentinelChecksum` is repeated verbatim in both the public and hidden
+`main.swift`.
+
+Each port was authored independently against this file's sentinel-mapping
+and positional-checksum contract and the Rust/TypeScript references, not
+transliterated line-by-line, and was independently compiled/run against
+the public and hidden vectors above. None of the three public vectors
+contains a `0x00` byte, so each port was then checked against a
+deliberately mutated candidate that drops the `0x00 -> 0xff` mapping
+(treating `0x00` the same as any other non-`0xff` byte, i.e. `0x01`): the
+mutant passes every public vector unchanged and fails both hidden vectors
+(`8`/`12` instead of the correct `1024`/`1536`) in all four languages,
+confirming the hidden vectors are non-vacuous.

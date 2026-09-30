@@ -209,6 +209,16 @@ impl TcpNetworkProvider {
         provider
     }
 
+    /// Create a provider that serves inbound TLS under `server` and keeps
+    /// the default public-root client policy. Useful for a caller that only
+    /// ever accepts under this exact provider and never dials out through
+    /// it, so it never needs to construct a client policy of its own.
+    pub fn with_server_tls_config(server: Arc<rustls::ServerConfig>) -> Self {
+        let mut provider = Self::default();
+        provider.server_tls_config = Some(server);
+        provider
+    }
+
     /// Select the aggregate deadline every operation runs under. The budget is
     /// clamped to [`super::deadline::MAX_OPERATION_DEADLINE`], so no host
     /// configuration produces an unbounded operation.
@@ -347,6 +357,71 @@ fn classify_wait_error(error: &std::io::Error) -> Result<WaitState, NetworkFailu
         ErrorKind::WouldBlock | ErrorKind::TimedOut => Ok(WaitState::Timeout),
         _ => Err(NetworkFailure::TransferFailed),
     }
+}
+
+/// Stable refusal for building a server TLS policy from raw certificate and
+/// private-key bytes.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ServerTlsConfigFailure {
+    /// The certificate is not valid DER, the key is not a valid PKCS#8 DER
+    /// private key, or the key does not match the certificate.
+    InvalidCertificateOrKey,
+}
+
+/// Build a TLS 1.2/1.3 server policy presenting exactly one leaf certificate
+/// (DER) and its PKCS#8 private key (DER). This is the only way a
+/// [`TcpNetworkProvider`] gains server-side TLS
+/// ([`TcpNetworkProvider::with_tls_configs`],
+/// [`TcpNetworkProvider::with_server_tls_config`]); nothing here reads a
+/// filesystem path, names a secret reference, or mints authority of its own
+/// -- the caller must already hold these exact bytes from operator-granted
+/// material.
+pub fn server_tls_config_from_der(
+    certificate_der: Vec<u8>,
+    private_key_der: Vec<u8>,
+) -> Result<Arc<rustls::ServerConfig>, ServerTlsConfigFailure> {
+    let certificate = rustls::pki_types::CertificateDer::from(certificate_der);
+    let key = rustls::pki_types::PrivatePkcs8KeyDer::from(private_key_der);
+    let config = rustls::ServerConfig::builder_with_provider(Arc::new(
+        rustls::crypto::ring::default_provider(),
+    ))
+    .with_safe_default_protocol_versions()
+    .expect("rustls ring provider has safe protocol versions")
+    .with_no_client_auth()
+    .with_single_cert(vec![certificate], key.into())
+    .map_err(|_| ServerTlsConfigFailure::InvalidCertificateOrKey)?;
+    Ok(Arc::new(config))
+}
+
+/// Stable refusal for building a client TLS policy trusting one additional
+/// root certificate.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ClientTlsConfigFailure {
+    /// The supplied bytes are not a valid DER certificate.
+    InvalidCertificate,
+}
+
+/// Build a client TLS policy that trusts exactly `root_certificate_der`
+/// (DER) and nothing else -- no public root is installed. Hosts and tests
+/// that must validate a private or test certificate authority use this
+/// instead of depending on `rustls` directly.
+pub fn client_tls_config_trusting(
+    root_certificate_der: Vec<u8>,
+) -> Result<Arc<rustls::ClientConfig>, ClientTlsConfigFailure> {
+    let mut roots = rustls::RootCertStore::empty();
+    roots
+        .add(rustls::pki_types::CertificateDer::from(
+            root_certificate_der,
+        ))
+        .map_err(|_| ClientTlsConfigFailure::InvalidCertificate)?;
+    let config = rustls::ClientConfig::builder_with_provider(Arc::new(
+        rustls::crypto::ring::default_provider(),
+    ))
+    .with_safe_default_protocol_versions()
+    .expect("rustls ring provider has safe protocol versions")
+    .with_root_certificates(roots)
+    .with_no_client_auth();
+    Ok(Arc::new(config))
 }
 
 #[cfg(not(any(target_arch = "wasm32", target_arch = "wasm64")))]
@@ -855,5 +930,51 @@ mod tests {
         assert_eq!(server_provider.send(accepted, b"pong"), Ok(4));
         server_provider.settle();
         tls_client.join().unwrap();
+    }
+
+    /// The DER-bytes builders behind server-side TLS for a host that holds
+    /// only raw certificate/key bytes (never a filesystem path, never
+    /// `rustls` itself): the same private test root/leaf as the sibling
+    /// success case, driven through `server_tls_config_from_der` and
+    /// `client_tls_config_trusting` instead of a hand-built `rustls` config.
+    #[test]
+    fn der_bytes_builders_round_trip_and_reject_garbage() {
+        // Test-only self-signed certificate/key material (`CN=localhost`,
+        // issued by a private test CA), the same fixture the sibling test
+        // above carries. It authenticates no production identity.
+        const ROOT: &str = "MIIDJzCCAg+gAwIBAgIUC3kI/KYpwSCFZIOpQLwZZv3fpIUwDQYJKoZIhvcNAQELBQAwGzEZMBcGA1UEAwwQU0VNQVBSQVggVGVzdCBDQTAeFw0yNjA5MDUxNDU3MTlaFw0zNjA5MDIxNDU3MTlaMBsxGTAXBgNVBAMMEFNFTUFQUkFYIFRlc3QgQ0EwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQCtxpzwCk3e4aRY3ozKBTi94gfLHe6yKDfDggOHGiwUGotJ9dVH8e4Hh82JamO+jH694HBmjlbGXF+BY7Gxv/Vz8Z7R9VqS1uND7J4V4pJABLL4H//k/c0WPMopTkQRmVyit34hTob14aL+hPq4DFOtH+FxXiUyPaJp6xP0UH7KTJpSBJfBlTAmJoBuMP7Ara05oozrVuLNzSDaUulGGkA5kUuv2GnPvQjTx8PG14GUfJt6okOD64JJSaoQCrraxyHIG8UmZgnHyoIq3UgFY9gj4haVW6ykKe+bkWVbwCOZcMAffzx+NKDodSahn3Qy2z0eDI0ARMtVFDE+ijtxlG/1AgMBAAGjYzBhMB0GA1UdDgQWBBT4Dg/tRse2xlFPUoKfa/7M5c40VjAfBgNVHSMEGDAWgBT4Dg/tRse2xlFPUoKfa/7M5c40VjAPBgNVHRMBAf8EBTADAQH/MA4GA1UdDwEB/wQEAwIBBjANBgkqhkiG9w0BAQsFAAOCAQEAmEWc71S2305pR9Ps29VDVdwOcVoetWsqEnCsAIHg0qfioQz3mznfxE3gOZ4gm03AOslf2sqq8ev02MnEuZWt7Y7xwstrTyo0EA4mWXzBTz0EX7Qp1PgV4MV7Lifp+Dv5ACDx75bgOziKx+u6VVvR0RoE1tUB3m3ihO7aT0HMXOBvElkuY7Ev+fR7lgSFOPGYV2IIBcfaro0dGJlixyBjP/TLGAr8S6buf0ZFCBKtMriXyfiqcQ8IPeLEOtFGxhrWKoNoRpkYwM5kut27vDkoc5UekFmU4EaGPl0cWEpoky5RMXgrA0hAzKEmgPnbIVplKwdoELQjon+MR1HA9txCeg==";
+        const LEAF: &str = "MIIDSjCCAjKgAwIBAgIUK81c/KylyZTx6OJ/K9lJP7OLzBgwDQYJKoZIhvcNAQELBQAwGzEZMBcGA1UEAwwQU0VNQVBSQVggVGVzdCBDQTAeFw0yNjA5MDUxNDU3MTlaFw0zNjA5MDIxNDU3MTlaMBQxEjAQBgNVBAMMCWxvY2FsaG9zdDCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAM6ibgX7OJCn5nsP0DH497ZCdsxQN23ifpv3ZWWNbKScZi4k5R0nZqJb/asrOa/vgc/An5YBYdsHV/9SqE7CVxhgCj+sYo6W2RfyDV8PF3fztxg+1Varrm0RcI4DaZN2N7fqdxZPvpIl//3n3J2G6J2d919ZPZpog0ahqlHjfvmIh1ESeS2XIu1T4dHlBvW1m3AgoFneNZDHDQs9ziuKte6KShv2I6rOzIRSC5vHM4YsDC64NANbheAV0L98rc/51A6jJxziKQtpFDhBHGvAhag3JkOUyLP7fiIPiHBI0Qxmh70EBj2EgUo5OqV1pNytbH4zBrKlyjQj+R2o8ReNpY8CAwEAAaOBjDCBiTAUBgNVHREEDTALgglsb2NhbGhvc3QwDAYDVR0TAQH/BAIwADAOBgNVHQ8BAf8EBAMCBaAwEwYDVR0lBAwwCgYIKwYBBQUHAwEwHQYDVR0OBBYEFD69svZnO8+sMQfesN19Zk40CBU8MB8GA1UdIwQYMBaAFPgOD+1Gx7bGUU9Sgp9r/szlzjRWMA0GCSqGSIb3DQEBCwUAA4IBAQAwcYsnw9zK+9lMrIN6zSxry26FFIjOP/ZRXSeloNPA2Fd2p+16b7RoHL+tcn4P4NMCKsz2Y+faX6lzSzIi0lydRsM8rH3xY4/Y8UDoLyC6zDQXpZNbEyWQALgKoZjV8l4XEbtmhLx++h2wArD/eEneBW3aCL8QzNgTU6gyobp1y6AqxQPnl+2SpBlFtpnoz0W3CCOGc0UiaobxBNTYydtY37vGQPLs32drQ2E0o9RfD+4/MTTkS380fXI4pEW4XOm/AofuMwVz1zkWXY/CzYp+1czf7/sOLDTsuwt0/QJFhK3IGSBL1wH3lU8BUHC6LMysilY3Eujo+Ya7dHAyM0lb";
+        const LEAF_KEY: &str = "MIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQDOom4F+ziQp+Z7D9Ax+Pe2QnbMUDdt4n6b92VljWyknGYuJOUdJ2aiW/2rKzmv74HPwJ+WAWHbB1f/UqhOwlcYYAo/rGKOltkX8g1fDxd387cYPtVWq65tEXCOA2mTdje36ncWT76SJf/959ydhuidnfdfWT2aaINGoapR4375iIdREnktlyLtU+HR5Qb1tZtwIKBZ3jWQxw0LPc4rirXuikob9iOqzsyEUgubxzOGLAwuuDQDW4XgFdC/fK3P+dQOoycc4ikLaRQ4QRxrwIWoNyZDlMiz+34iD4hwSNEMZoe9BAY9hIFKOTqldaTcrWx+Mwaypco0I/kdqPEXjaWPAgMBAAECggEAS9lKyq5HOq4vB8Aru5Q4lXH7Oo89cXwA3o5m7WqG1TvFtC193oA+h919lW3F/KNNgq2hxsXWHjipYAL+3f4vSzbBvFKyUMXlhYknyFt5UWIoNOGnnOtjGQ0cRDzTbbooxL1vnkSCXxJMz+5iyH4jd+vqyFixKLMxcOVZ6Do6OyzuFK2hq1dp2R+fk0TVyQAFTtqSVC5DR/dxzX+mIkkzJWJvfsTnlBZ19j9q8ft0XnOfEpHDSfxzoOXx1SdF+CvA15kjmWVUQbHTMgcPni90NhomPgdlhqXfHx+N+ar3GJO9+GJ8QGhwPXGRGpa81lkQZMTb0Q+rsbqws3Xvl1Nz4QKBgQDtKB7jWevWtakv6k8i6HVe4iGxBwYAHUKe8IrMZt5HQ0gs4iBU6kwZtgW9c02VeHYHnSf/oEF/2OnXpxyQjiHR5LkcZ87lnuivX0bZo8Ijt1dXfczQFZA/zCfpuoTHSQKD8Mw5MbrQ1XrRZaYZMlZ6f0OBPMN8P1657nVwCg3RIQKBgQDfDXj8HqC2blafwwb2dUvKQSH7J4biz7QFl/ZTCJyEu8SSLNJRnKyrIC5mewdJFM3CT9eqIklNkrxbIqd0URy0i512cVIjQmGTtaD0c3S361N9MStlKwsrCtj7Oy4qBdlq/lG03pMubWntRdXnm6e+l+KG6fZ+h+W5y6MEXLWwrwKBgHsfISoXPQEzPqrJklwlIwonjCZD5zGX/0ZUyzpjDXMh0w66Nt7e5LNUdJZujhDTgTNiu6lSoa6mBoEXGRVTNOurOw8sNZWwckzZwgarpda1EHszrGk7SLBWZUJKuzRbCxtEoEHxN3PD4QdlJl5ea9ccywcFbNfMbnlI+183WQUBAoGAVyqBrC0f6wsFiRuC/g9qldiMOgUBXmOC22i+V0aXO/vQ3rrrWf9bLui9mUjc2P9rRVNEWXVaphkAyLCrNfZ4vEmPOHkieyr2zO1+v+japQEuuE7dwYRnseNkVhGTgdKVW42VSpRseglCCvpulDss+3uJh+WocVwUN15QD2VXj3sCgYAyP2FCNPdfg1r2LcNMn06gwnLz+NHn4HK1PNjrRTQgrKYG9xf8gvM0HgoSdR1mfDjdPqgPMdLFG23jmpOG23waokgIsBl88SGdaCVJ/+Ti4WFHhKkhRwgmNX/4se+JsD5nSGaBwkrZ6uyLs+W39hFa0MQzDdRCQjsuuRWFsn7YpA==";
+
+        let server_config = server_tls_config_from_der(decode64(LEAF), decode64(LEAF_KEY)).unwrap();
+        let client_config = client_tls_config_trusting(decode64(ROOT)).unwrap();
+
+        let reservation = TcpListener::bind(("127.0.0.1", 0)).unwrap();
+        let port = reservation.local_addr().unwrap().port();
+        drop(reservation);
+        let mut server_provider = TcpNetworkProvider::with_server_tls_config(server_config);
+        let server_listener = server_provider.listen("127.0.0.1", port).unwrap();
+
+        let mut client_provider = TcpNetworkProvider::with_tls_config(client_config);
+        let client = std::thread::spawn(move || {
+            let connection = client_provider.connect_tls("localhost", port).unwrap();
+            assert_eq!(client_provider.send(connection, b"ping"), Ok(4));
+            assert_eq!(client_provider.recv(connection, 4), Ok(b"pong".to_vec()));
+            client_provider.settle();
+        });
+        let accepted = server_provider.accept_tls(server_listener).unwrap();
+        assert_eq!(server_provider.recv(accepted, 4), Ok(b"ping".to_vec()));
+        assert_eq!(server_provider.send(accepted, b"pong"), Ok(4));
+        server_provider.settle();
+        client.join().unwrap();
+
+        assert!(matches!(
+            server_tls_config_from_der(vec![1, 2, 3], vec![4, 5, 6]),
+            Err(ServerTlsConfigFailure::InvalidCertificateOrKey)
+        ));
+        assert!(matches!(
+            client_tls_config_trusting(vec![1, 2, 3]),
+            Err(ClientTlsConfigFailure::InvalidCertificate)
+        ));
     }
 }

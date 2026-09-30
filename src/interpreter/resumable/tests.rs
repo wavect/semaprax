@@ -824,7 +824,12 @@ fn every_ordinary_interpreter_lane_still_refuses_a_yield_outright() {
     // `Resumption::Refused` is the default every other evaluator carries, so
     // a `yield` reaching one of them is a guard refusal, never a suspension.
     let mut state = Resumption::Refused;
-    let refused = settle_yield(&mut state, Value::Int(1)).unwrap_err();
+    let site = ExpressionId::new(
+        &hir::FunctionExecutionId::Monomorphic(hir::DeclarationId::new("app.ask")),
+        "body.tail",
+    );
+    let environment = Environment::from(Vec::new());
+    let refused = settle_yield(&mut state, &site, Value::Int(1), &environment).unwrap_err();
     let Flow::Guard(detail) = refused else {
         panic!("an ordinary lane must refuse a yield");
     };

@@ -152,6 +152,7 @@ fn drive(
     // `Copy` enum except for its borrowed source text, and every leg must run
     // the stage that produced its own preceding state carrier.
     let (kind, native_host) = match backend {
+        authorization::StageBackend::Metered { .. } => panic!("scalar fixture is unmetered"),
         authorization::StageBackend::Interpreter => (0, None),
         authorization::StageBackend::Native { host } => (1, Some(host)),
         authorization::StageBackend::NativeAtOptimization { host, .. } => (2, Some(host)),

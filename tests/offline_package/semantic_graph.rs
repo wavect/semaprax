@@ -29,9 +29,62 @@ fn canonical(text: &str, path: &str) -> String {
 /// The provider's exact source.
 const PROVIDER_SOURCE: &str =
     "module libmath;\n@id(\"lib.answer\") fn answer()->i64 {41}\n@id(\"lib.unused\") fn unused()->i64 {99}\n";
+/// The same provider, plus one declared, effect-free session protocol
+/// (issue #297 follow-on: Package Semantic Graph) whose `via` names an
+/// ordinary function of the same module. Exports and interface digest are
+/// unaffected: a declaration is checked and erased, never a function.
+const PROVIDER_SOURCE_WITH_PROTOCOL: &str = concat!(
+    "module libmath;\n",
+    "@id(\"lib.answer\") fn answer()->i64 {41}\n",
+    "@id(\"lib.unused\") fn unused()->i64 {99}\n",
+    "@id(\"lib.session\")\n",
+    "session protocol \"lib-session-v1\" {\n",
+    "states { Idle, Done, Failed }\n",
+    "initial Idle;\n",
+    "terminal Done cleanup { }\n",
+    "terminal Failed cleanup { }\n",
+    "on Idle begin: send BeginRequest via \"lib.answer\" -> Done;\n",
+    "on Idle abort: fail Unit -> Failed;\n",
+    "}\n"
+);
+/// The same protocol-declaring provider, plus one function that opts into
+/// endpoint typestate checking (issue #297 follow-on, R21) with `follows`,
+/// calling the protocol's own `via`-bound function and reaching its declared
+/// terminal state. Still effect-free and scalar, so the package profile
+/// admits it.
+const PROVIDER_SOURCE_WITH_FOLLOWS: &str = concat!(
+    "module libmath;\n",
+    "@id(\"lib.answer\") fn answer()->i64 {41}\n",
+    "@id(\"lib.unused\") fn unused()->i64 {99}\n",
+    "@id(\"lib.session\")\n",
+    "session protocol \"lib-session-v1\" {\n",
+    "states { Idle, Done, Failed }\n",
+    "initial Idle;\n",
+    "terminal Done cleanup { }\n",
+    "terminal Failed cleanup { }\n",
+    "on Idle begin: send BeginRequest via \"lib.answer\" -> Done;\n",
+    "on Idle abort: fail Unit -> Failed;\n",
+    "}\n",
+    "@id(\"lib.checked_call\")\n",
+    "fn checked_call() -> i64\n",
+    "    follows session protocol \"lib.session\"\n",
+    "{\n    answer()\n}\n"
+);
 
 impl Fixture {
     fn new(version: &str) -> Self {
+        Self::build(version, PROVIDER_SOURCE)
+    }
+    /// Same fixture, but the provider package declares one session protocol.
+    fn new_with_session_protocol(version: &str) -> Self {
+        Self::build(version, PROVIDER_SOURCE_WITH_PROTOCOL)
+    }
+    /// Same fixture, but the provider package also has one function that
+    /// opts into endpoint typestate `follows` checking.
+    fn new_with_follows(version: &str) -> Self {
+        Self::build(version, PROVIDER_SOURCE_WITH_FOLLOWS)
+    }
+    fn build(version: &str, provider_source: &str) -> Self {
         let root = std::env::temp_dir().join(format!(
             "spx-package-graph-{}-{}",
             std::process::id(),
@@ -56,7 +109,14 @@ impl Fixture {
             "module app.main;\n@id(\"app.main\") fn main()->i64 {0}\n",
             "app-interface.spx",
         );
-        let provider_interface = canonical("module libmath;\n@id(\"lib.answer\") fn main()->i64 {0}\n@id(\"lib.unused\") fn unused()->i64 {0}\n", "lib-interface.spx");
+        // The follows-fixture provider adds one more exported function
+        // (`lib.checked_call`); its interface must list it too, or Report v2
+        // replay refuses the mismatch (`SPX-PS503`).
+        let provider_interface = if provider_source.contains("lib.checked_call") {
+            canonical("module libmath;\n@id(\"lib.answer\") fn main()->i64 {0}\n@id(\"lib.unused\") fn unused()->i64 {0}\n@id(\"lib.checked_call\") fn checked_call()->i64 {0}\n", "lib-interface.spx")
+        } else {
+            canonical("module libmath;\n@id(\"lib.answer\") fn main()->i64 {0}\n@id(\"lib.unused\") fn unused()->i64 {0}\n", "lib-interface.spx")
+        };
         let reports = [app_interface, provider_interface]
             .iter()
             .zip(["app-interface.spx", "lib-interface.spx"])
@@ -96,7 +156,7 @@ impl Fixture {
         let evidence = package_resolver::generate(&input, &resolution_options).unwrap();
         let sources = vec![
             PackageSource { package:"app.main".into(), report:reports[0].clone(), source:canonical("module app.main;\nuse function @id(\"lib.answer\") from libmath as answer;\nuse function @id(\"lib.unused\") from libmath as unused;\n@id(\"app.main\") fn main()->i64 {answer()+1}\nfn private_helper()->i64 {answer()}\n", "app.spx") },
-            PackageSource { package:"libmath".into(), report:reports[1].clone(), source:canonical(PROVIDER_SOURCE, "lib.spx") },
+            PackageSource { package:"libmath".into(), report:reports[1].clone(), source:canonical(provider_source, "lib.spx") },
         ];
         let capsule_options = SourceCapsuleOptions::default();
         let capsule = package_source_capsule::generate(
@@ -1013,4 +1073,114 @@ fn environment_consumer_review_requires_both_host_selections_and_is_closed_but_n
     );
     assert_eq!(inner["result"]["payload"]["candidate_revision"], candidate);
     mcp.finish().unwrap();
+}
+
+#[test]
+fn a_protocol_free_package_graph_keeps_v1_with_no_session_protocols_key() {
+    let fixture = Fixture::new("1.0.0");
+    let graph = fixture.graph();
+    let value: Value = serde_json::from_str(graph.to_json()).unwrap();
+    assert_eq!(value["schema"], "semaprax.package-semantic-graph.v1");
+    assert!(value.get("session_protocols").is_none());
+}
+
+#[test]
+fn a_declaring_package_graph_selects_v2_and_carries_a_package_bound_fact() {
+    let fixture = Fixture::new_with_session_protocol("1.0.0");
+    let graph = fixture.graph();
+    let value: Value = serde_json::from_str(graph.to_json()).unwrap();
+    assert_eq!(value["schema"], "semaprax.package-semantic-graph.v2");
+    assert_eq!(
+        value["session_protocols"]["base_schema"],
+        "semaprax.package-semantic-graph.v1"
+    );
+    assert_eq!(value["session_protocols"]["authority"], "none");
+    let declarations = value["session_protocols"]["declarations"]
+        .as_array()
+        .unwrap();
+    assert_eq!(declarations.len(), 1);
+    let fact = &declarations[0];
+    assert_eq!(fact["package"], "libmath");
+    assert_eq!(fact["version"], "1.0.0");
+    assert_eq!(fact["stable_id"], "lib.session");
+    assert_eq!(fact["authority"], "none");
+    assert_eq!(fact["static_validation"], "passed");
+    assert_eq!(fact["bounded_reachability"], "passed");
+    // A protocol-free package's own fixture, from the same coordinate space,
+    // keeps the summary in step with the graph it was derived from.
+    let summary: Value =
+        serde_json::from_str(&graph.summary(graph.graph_digest()).unwrap()).unwrap();
+    assert_eq!(
+        summary["session_protocols"]["declarations"],
+        value["session_protocols"]["declarations"]
+    );
+}
+
+#[test]
+fn declaring_package_graph_rendering_is_deterministic_and_drifts_with_the_declaration() {
+    let first = Fixture::new_with_session_protocol("1.0.0");
+    let second = Fixture::new_with_session_protocol("1.0.0");
+    assert_eq!(first.graph().to_json(), second.graph().to_json());
+    assert_eq!(first.graph().graph_digest(), second.graph().graph_digest());
+
+    let mutated = Fixture::build(
+        "1.0.0",
+        &PROVIDER_SOURCE_WITH_PROTOCOL.replace(
+            "on Idle abort: fail Unit -> Failed;",
+            "on Idle abort: cancel Unit -> Failed;",
+        ),
+    );
+    assert_ne!(first.graph().to_json(), mutated.graph().to_json());
+    assert_ne!(first.graph().graph_digest(), mutated.graph().graph_digest());
+
+    // The protocol-free and protocol-declaring graphs disagree on schema and
+    // digest even at the same coordinates -- non-vacuity for the gate.
+    let plain = Fixture::new("1.0.0");
+    assert_ne!(plain.graph().to_json(), first.graph().to_json());
+}
+
+#[test]
+fn a_follows_using_package_graph_selects_v3_and_carries_a_package_bound_binding() {
+    let fixture = Fixture::new_with_follows("1.0.0");
+    let graph = fixture.graph();
+    let value: Value = serde_json::from_str(graph.to_json()).unwrap();
+    assert_eq!(value["schema"], "semaprax.package-semantic-graph.v3");
+    // Still carries the base v2 declaration fact this binding names.
+    assert_eq!(
+        value["session_protocols"]["declarations"][0]["stable_id"],
+        "lib.session"
+    );
+    assert_eq!(
+        value["session_protocol_follows"]["base_schema"],
+        "semaprax.package-semantic-graph.v2"
+    );
+    assert_eq!(value["session_protocol_follows"]["authority"], "none");
+    let bindings = value["session_protocol_follows"]["bindings"]
+        .as_array()
+        .unwrap();
+    assert_eq!(bindings.len(), 1);
+    let fact = &bindings[0];
+    assert_eq!(fact["package"], "libmath");
+    assert_eq!(fact["version"], "1.0.0");
+    assert_eq!(fact["function"], "lib.checked_call");
+    assert_eq!(fact["protocol"], "lib.session");
+    assert_eq!(fact["result"], "typestate_checked");
+    assert_eq!(fact["authority"], "none");
+    // The summary projection stays in step with the graph it was derived
+    // from -- it copies every top-level fact key generically.
+    let summary: Value =
+        serde_json::from_str(&graph.summary(graph.graph_digest()).unwrap()).unwrap();
+    assert_eq!(
+        summary["session_protocol_follows"]["bindings"],
+        value["session_protocol_follows"]["bindings"]
+    );
+}
+
+#[test]
+fn a_declaring_package_graph_without_a_follows_clause_keeps_v2_with_no_follows_key() {
+    let fixture = Fixture::new_with_session_protocol("1.0.0");
+    let graph = fixture.graph();
+    let value: Value = serde_json::from_str(graph.to_json()).unwrap();
+    assert_eq!(value["schema"], "semaprax.package-semantic-graph.v2");
+    assert!(value.get("session_protocol_follows").is_none());
 }

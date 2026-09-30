@@ -231,6 +231,16 @@ fn build_inner(
             .zip(&selected.resolution.packages)
             .zip(&selected.selected_subjects)
         {
+            let session_protocol_facts = modules
+                .get(coordinate.package.as_str())
+                .map(|module| {
+                    module
+                        .session_protocol_facts
+                        .iter()
+                        .map(|fact| crate::bounded_output::budgeted_clone(fact))
+                        .collect::<Vec<_>>()
+                })
+                .unwrap_or_default();
             package_facts.push(LinkedPackageSourceFact {
                 coordinate: Coordinate {
                     package: crate::bounded_output::budgeted_clone(&coordinate.package),
@@ -247,6 +257,7 @@ fn build_inner(
                 ),
                 source_digest: super::wire::source_digest(&source.source),
                 source_bytes: source.source.len(),
+                session_protocol_facts,
             });
         }
         let source_set_rows = package_facts

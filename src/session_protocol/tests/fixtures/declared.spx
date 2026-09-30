@@ -1,0 +1,32 @@
+module session_protocol.fixture.declared;
+
+permit { db.write }
+
+@id("fixture.session.begin")
+fn begin() -> i64 { 1 }
+
+@id("fixture.session.commit")
+fn commit() -> i64
+    uses { db.write }
+{
+    2
+}
+
+@id("fixture.session.main")
+fn main() -> i64
+    uses { db.write }
+{
+    begin() + commit()
+}
+
+@id("fixture.session.transaction")
+session protocol "fixture-transaction-v1" {
+    states { Idle, Open, Committed, Failed }
+    initial Idle;
+    terminal Committed cleanup { release_snapshot }
+    terminal Failed cleanup { discard_snapshot }
+    on Idle begin: send BeginRequest via "fixture.session.begin" -> Open;
+    on Idle misuse: fail Unit -> Failed;
+    on Open commit: send CommitRequest requires capability db.write via "fixture.session.commit" -> choice { committed: Committed, refused: Failed };
+    on Open lost: fail Unit -> Failed;
+}

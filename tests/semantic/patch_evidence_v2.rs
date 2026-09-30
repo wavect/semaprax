@@ -496,7 +496,19 @@ fn v2_cli_arity_and_output_are_exact() {
 ///
 /// Re-take history: `c69b09ed` (zeroed generated C temporaries) and
 /// `ca1b21af` (emitted C 23638 -> 26671 bytes, Wasm core 193 -> 194 bytes;
-/// identity unchanged — issues #80 and #81).
+/// identity unchanged — issues #80 and #81). Re-taken again for issue #293
+/// P2-2, in step with `target_evidence`'s own re-take: only the embedded
+/// Wasm core target row moved (194 -> 258 bytes for `kat-v1`/`kat-v2`, 210
+/// -> 302 bytes for `kat-v3`), because the legacy scalar-core Wasm emitter
+/// gained call-depth admission (`scalar_call_admission`); every identity
+/// field was confirmed byte-identical first. Re-taken a third time in the
+/// same P2-2 change, in step with `target_evidence`'s own third re-take: a
+/// trapped call must not leave the live-frame counter poisoned for later
+/// calls on the same instance, so the reset moved out of `main`'s own
+/// (possibly recursive) body into a dedicated entry wrapper -- the embedded
+/// Wasm core target row grew again, 258 -> 268 bytes for `kat-v1`/`kat-v2`,
+/// 302 -> 313 bytes for `kat-v3`; every identity field was confirmed
+/// byte-identical again first.
 #[test]
 fn capsule_and_receipt_sha_kats_cover_patch_v1_v2_v3() {
     let fixtures = [
@@ -519,7 +531,7 @@ fn capsule_and_receipt_sha_kats_cover_patch_v1_v2_v3() {
         // Reconstruct the prior binding to prove that only validator metadata
         // changed; old capsules must still fail replay before source writes.
         let report = target_evidence::preview(&fixture.source, &fixture.patch).unwrap();
-        let previous_report = report.replace("0.258.0", "0.256.0");
+        let previous_report = report.replace("0.259.0", "0.256.0");
         let report_domain = b"semaprax.semantic-target-evidence.report-digest.v1\0";
         let artifact_domain = b"semaprax.semantic-patch-evidence.artifact-digest.v2\0";
         let report_digest = domain_digest(report_domain, report.as_bytes());
@@ -559,33 +571,33 @@ fn capsule_and_receipt_sha_kats_cover_patch_v1_v2_v3() {
     assert_eq!(
         previous_capsule_hashes,
         [
-            "84c2e562b7ddbf7fd5ea0236878a3a5fd8a67867cb042fd24be28bc0fa9c0913",
-            "204bc2a6f8a2298889b59ae42a5fdad8f3ff69a136396d110949eed4f4501711",
-            "5da895471537d2691847c54c9062aad29d384cc8e47f9cc6335898aaace81029",
+            "54b2900542508d76439a9211ef7e7e330b69f277f5ed151eca0e8f01ae3cdce3",
+            "565786648c2465fa552c98361cf5b9647b5e330f402fdf3834c78d41a07d102a",
+            "cb83859a51048467e0d1408938611ebbf11a2d03f851d129fe1d9b71e200891a",
         ]
     );
     assert_eq!(
         previous_receipt_hashes,
         [
-            "c94809b8155f23607a087dd8843dccb2dfc7d1d413fae382a1dd985107ead6bc",
-            "a963c85c21ec4aa88140843e2c7061a257b338cb52df7d6e79225e4e682db8c2",
-            "16fd21fb2850cbc88923e86513683a30fe231714ac134abcaacbbe499e2e33e6",
+            "a997009e45aa1292e9c313cedce467495d79a50fe96693b35ad97ed0742a8763",
+            "8f3433353180ce80009b94962a581725e817198524df97ad7669a5067e7f09ff",
+            "3e79abe976fc860257c1112b9845def35be14a38dd219f8a50c97807ad224d4a",
         ]
     );
     assert_eq!(
         capsule_hashes,
         [
-            "75d5dd5aea707346fc55a7af6df132eb20238efd80f11b40265f0d76dd050122",
-            "251f8b7f905499bbb3ddb928f0afb5adcc88186de0bdd47ffc18cf9be25a84a6",
-            "10f903affc849ee6ab59c7adbafab8d96ccdcac73f36f19406d79d70e10f6ad9",
+            "d2b34bf6fa788e0e9b98c62cd3eb0f837cfe37c2965e832d68fd384e802a0aa0",
+            "4a1033bd853a1141565617819b5d25aa2dd6687dd0d909fb3b191e52e925e76f",
+            "952a2045ca7aa6fc1268aee57ff44271f4383bb021d1690a55371a7af97216dd",
         ]
     );
     assert_eq!(
         receipt_hashes,
         [
-            "e712bcca63366a0add2fe101ac9f1601fa9a5dc76b28893b29bdcd7c5c53e43f",
-            "bb9b153d470d19f6bd322b86a184cb2ac2b576ed46d516a63bd3108a25768691",
-            "2a73c8fa2574afa59cb1d84e072678dc99cf1880c7cfe0088a07236c016c4d22",
+            "5c2604cc46fc8f359eb88af5ab1a72359273206b673328ef59c760cd95ea2398",
+            "3a7587b524b0ed6c22f16f123fd97a3b3e5416adc41a5c2c46f2508e8903a7f0",
+            "c1aca32372e82fd17a2086436a5ca448301f71d3a1bb83ba9f334b10fdf22ac8",
         ]
     );
 }

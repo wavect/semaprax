@@ -1,10 +1,50 @@
 # ADR 0003: Maintained generated-package support for owned-data-api.v1 (Rust)
 
-Status: scope decision accepted on 2026-09-19. The maintainer delegated the
-eight choices recorded below. Acceptance does not publish a package or prove
-support; evidence gates still apply. Issue #145 has since closed, but this
-historical decision is not a current-head release claim.
+Status: scope decision accepted on 2026-09-19; reaffirmed on 2026-09-30 for
+issue #325. Ordinary owned-data Rust only; npm maintenance deferred.
+Generated packages remain unpublished; formal public promotion remains open.
 Audience: maintainers and generated-package contributors.
+
+## Current maintainer decision
+
+**Decision, 2026-09-30: retain the accepted Rust-only scope and the eight
+recorded answers.** The first maintained generated-package route remains the
+ordinary `owned-data-api.v1` Rust SDK for `semaprax.project.v8`. npm maintenance
+is deferred to a separate ADR with its own identity, version, target/runtime,
+evidence and support decisions. A passing npm consumer test does not make npm
+a maintained package. This reaffirms the existing policy; it neither expands
+support nor reopens excluded profiles.
+
+The package identity, preview-version policy and five maintained target
+boundaries are recorded below. The fixed `0.1.0` is an unpublished preview
+version, not a registry SemVer compatibility promise. Real version assignment
+is required before any separately authorized publication, with the exact API
+descriptor digest retained alongside the version. Publisher identity and the
+choice of a reference package versus per-project registry names remain **not
+yet selected**; they are future publication decisions, not blockers to this
+Rust-only maintenance decision.
+
+This resolves the pending-confirmation status carried from
+[#290's latest decision request](https://github.com/wavect/semaprax/issues/290#issuecomment-5862069497)
+into [#325](https://github.com/wavect/semaprax/issues/325). Those requests
+postdate the accepted 2026-09-19 answers but did not revoke them. This current
+record supersedes their pending status, not their revision-bound evidence.
+The reconciled source baseline is `wavect/v070` at
+`1ae35afe83f62f405b979f57ac90772cfec9daca`; this documentation update is not a
+new compiler, archive-consumer or MSRV execution receipt.
+
+**Decision-ticket closure is separate from support promotion.** No new hosted
+run is required solely to close #325 under its hosted-only waiver. That waiver
+does not choose a support policy, turn local evidence into hosted evidence,
+or waive the existing CI, ownership, refusal and evidence requirements for a
+future public/current-head support claim. Answers 5 and 7 remain the promotion
+and ongoing-regression requirements; neither job isolation nor the existing
+archive/MSRV machinery needs rebuilding for this decision ticket.
+
+No registry publication, publisher credentials, signing, release provenance,
+release/tag creation, external deployment or paid model/training calls are
+authorized by this decision. Source-authority, resource, ownership, oracle and
+refusal requirements remain unchanged.
 
 ## Context
 
@@ -27,7 +67,8 @@ python3 scripts/test-generated-package-release.py
 The earlier [decision draft](../GENERATED-PACKAGE-PUBLICATION-DECISION-DRAFT-V1.md)
 remains background. This ADR records the decision and its dated evidence;
 later support claims must be checked against current gates, not inferred from
-this historical snapshot.
+historical execution snapshots. The publication draft is not the authority for
+the accepted maintenance scope; this ADR is.
 
 ## Decision
 
@@ -37,20 +78,21 @@ Choose one initial profile: the Rust package for `owned-data-api.v1`.
 | --- | --- |
 | Project schema / profile | `semaprax.project.v8` / `owned-data-api.v1` |
 | Generated Rust package identifier | `semaprax.native-rust-owned-data-sdk.v1` |
-| Generated crate name / fixed version | `semaprax-generated-native-rust-owned-data-sdk` / `0.1.0` (constant; see Support matrix) |
+| Generated crate name / preview version | `semaprax-generated-native-rust-owned-data-sdk` / `0.1.0` (unpublished preview only; see Support matrix) |
 | Owning specification | [docs/PUBLIC-OWNED-DATA-API-V1.md](../PUBLIC-OWNED-DATA-API-V1.md) |
-| npm package for the same profile | **Not recommended this round** (see below) |
+| npm package for the same profile | **Maintenance deferred; separate ADR required** (execution evidence retained below) |
 
 The release-preparation script already handles this profile's fixed file and
 archive inventory. It is distinct from the general scalar Native Rust SDK
-and from the excluded generic-ABI packages.
+and from the excluded generic-ABI packages. Project v9-v11 package
+promotion also remains outside this Project-v8 decision.
 
-The npm tarball tests prove a local tool path using a synthetic fixture, not
-execution of a compiler-built package. The two real npm consumer tests were
-ignored pending provisioned Node/npm/TypeScript and were not run in that
-session. Rust has a generation wrapper and dedicated consumer harness, though
-it still needs the hosted evidence described below. Do not promote npm by
-borrowing Rust's evidence.
+Both genuine Rust archive consumption and genuine compiler-built npm
+pack/install/execute evidence are retained below. The synthetic npm fixture
+remains useful wrapper coverage, but is no longer the only npm execution
+evidence. npm is still deferred by the accepted scope decision, not by an
+assertion that its genuine consumer has never run. Do not promote npm by
+borrowing Rust's evidence or by treating npm execution as a maintenance promise.
 
 The general scalar SDK has a different package inventory and evidence. It
 needs a separate support decision rather than being folded into this one.
@@ -59,20 +101,23 @@ needs a separate support decision rather than being folded into this one.
 
 | Claim | Exact value | Notes |
 | --- | --- | --- |
-| Targets (5, fixed) | `x86_64-unknown-linux-gnu`, `aarch64-unknown-linux-gnu`, `x86_64-apple-darwin`, `aarch64-apple-darwin`, `x86_64-pc-windows-msvc` | Per `docs/NATIVE-RUST-INTEROP-V1.md`'s "narrower five targets" rule, shared by the owned-data SDK's compiled-ABI admission (`docs/PUBLIC-OWNED-DATA-API-V1.md`). `aarch64-pc-windows-msvc` is explicitly excluded: its archive tool plan is not frozen. Musl, GNU-Windows, x32, and big-endian configurations are rejected before staging, not silently accepted. |
-| Generated crate declared MSRV | `rust-version = "1.85"` | Literal in every generated `Cargo.toml` (`crates/semaprax-native-rust-owned-data-package/src/render.rs:26`). No exact-1.85.0 end-to-end build of *this* crate has been found; the nearest cited toolchain evidence (1.85.1) is for the separate scalar SDK and is explicitly marked "not exact 1.85.0, repository MSRV, Windows or hosted evidence" in `docs/PUBLIC-OWNED-DATA-API-V1.md`. |
-| Toolchains that actually build/test this repository's own harness for this profile | Rust 1.97.1 (`verify-tests` CI job) | The profile's own test file, `tests/public_native_rust_owned_data_sdk_v1.rs`, is unconditionally selected into the `verify-tests` shard plan (`integration-3`, confirmed via `python3 scripts/ci-msrv.py --plan-only` this session), which pins Rust 1.97.1 and Node 22 -- not 1.85 and not the 1.88 pinned by the unrelated `native-rust-sdk-v1` job. |
-| Package version scheme | Fixed literal `0.1.0` for every generated instance (`crates/semaprax-native-rust-owned-data-package/src/lib.rs:44-45`) | Compatibility is tracked by the exact public-API descriptor SHA-256 digest, not by incrementing this version (see the generated README template, `scripts/generated-package-release.py:262-270`). A registry requires monotonically increasing versions per crate name; publishing more than once under this scheme needs a version-assignment policy that does not exist yet (Open question 2). |
-| Host OS claims | Local only: Linux AArch64/Rust 1.88/Clang 14, macOS AArch64/Rust 1.98 (`docs/PUBLIC-OWNED-DATA-API-V1.md`, "Scoped local execution... on Linux AArch64/Rust 1.88/Clang 14 passes nine selected tests... does not establish... hosted promotion") | The owning spec's own words already mark this local, not hosted, despite the harness now also being CI-selected (see Evidence). |
-| npm package | Not proposed this round | See Decision. |
+| Maintained target boundary (5, fixed) | `x86_64-unknown-linux-gnu`, `aarch64-unknown-linux-gnu`, `x86_64-apple-darwin`, `aarch64-apple-darwin`, `x86_64-pc-windows-msvc` | Per `docs/NATIVE-RUST-INTEROP-V1.md`'s "narrower five targets" rule, shared by the owned-data SDK's compiled-ABI admission (`docs/PUBLIC-OWNED-DATA-API-V1.md`). `aarch64-pc-windows-msvc` is explicitly excluded: its archive tool plan is not frozen. Musl, GNU-Windows, x32, and big-endian configurations are rejected before staging, not silently accepted. |
+| Generated crate declared MSRV | `rust-version = "1.85"` | Literal in every generated `Cargo.toml` (`crates/semaprax-native-rust-owned-data-package/src/render.rs:26`). The genuine archive consumer passed on exactly Cargo/rustc 1.85.0 at `0cdd26d312fd65653d24a46098195484720c78e9`, locally on macOS arm64; see the dated evidence below. This is the generated crate's consumer proof, not repository compiler MSRV or other-target evidence. |
+| Repository harness toolchains | Dedicated `native-rust-owned-data-sdk-v1` job: Rust `1.88`; `verify-tests` shard: Rust `1.97.1` | These are the compiler/harness toolchains pinned in `.github/workflows/ci.yml`, not the generated crate's `1.85.0` consumer claim. The dedicated three-OS job explicitly executes the ignored archive-consumer gate; answer 6's job isolation is implemented. |
+| Package version scheme | Unpublished preview: fixed `0.1.0`; before publication: real, incrementing SemVer plus exact API descriptor digest | Keep `OWNED_CRATE_VERSION` and byte-frozen previews unchanged for local generation. The digest binds the exact API, not registry version ordering. Answer 2 already requires real version assignment before any publish; release-name allocation, version assignment and compatibility/release review belong to that separately authorized publication work. |
+| Execution coverage, not a blanket support receipt | Prior-revision hosted Rust archive-consumer passes on macOS, Windows and Ubuntu; exact `1.85.0` consumer pass locally on `aarch64-apple-darwin` | See retained evidence rows 15-16. The five target triples are the unchanged maintenance/admission boundary, not five measured MSRV passes. No other-target MSRV, current-head hosted-green or whole-run-green claim is inferred. |
+| npm package | Maintenance deferred | Genuine local execution is recorded in row 14; support requires its own separate ADR. |
 
 ## Evidence
 
-Every claim above and every element of Box 2/3 is backed by one of the rows
-below. Each row states what was actually run or found, on what host, at what
-commit, and what kind of evidence that makes it -- per this repository's
-governing rule (AGENTS.md): local, proof-only, or prior-head evidence is
-never described as hosted, current-head, or production support.
+These are retained execution records, not new runs performed by the
+2026-09-30 decision update. Rows 1-13 preserve the original 2026-09-19 review
+and its follow-up snapshots, including their then-current gaps. References in
+those rows to "this session", "current HEAD", missing hosted evidence or
+unimplemented job isolation refer to those historical snapshots, not today's
+status. Rows 14-16 record later evidence; the current decision and support
+matrix above own the present policy/status. Local, proof-only and prior-head
+evidence must never be described as hosted, current-head or production support.
 
 | # | Claim | Evidence | Kind |
 | - | --- | --- | --- |
@@ -89,59 +134,58 @@ never described as hosted, current-head, or production support.
 | 11 | Manual validation against a genuinely compiler-built package | Issue comment for `2ae8a968`: "validated by hand against a genuinely compiler-built package (`examples/frame-payload-project` via `target/debug/semaprax-full`)" | **Local, one-off, prior commit, by hand.** Not re-run this session; not a repeatable gate. |
 | 12 | Row 7's exact `left: 14, right: 10` failure, re-run against current HEAD | Reproduced locally, then fixed in commit `7ef1ada2`: `public_native_rust_sdk_ci_contract` had drifted on two checks -- a pinned Cargo-invocation count stale since `e0c7f192` added four more calls, and an overbroad private-dependency ban that flagged the acyclic `semaprax-oci-package` leaf crate added by `f4d9eba4`. Before the fix (this session, this checkout): 5 passed, 2 failed, matching row 7's cited failure exactly. After: `cargo check --manifest-path examples/calculator-rust/Cargo.toml` exit 0; `public_native_rust_sdk_ci_contract` 7 passed, 0 failed; `public_native_rust_sdk_v1` (env guard armed) 10 passed, 0 failed in 395.40s -- not the 0.01s degraded no-op a missing guard would produce | **Local, current session, this host, current HEAD.** Removes one concrete, previously-hosted-observed cause of red on the *native-rust-sdk-v1* job's ubuntu-latest/macos-latest legs -- a different profile than the one this ADR recommends -- but has not itself been observed green in hosted CI yet (see row 13). Does not touch owned-data-api.v1's own harness or evidence. |
 | 13 | Whether `public_native_rust_owned_data_sdk_v1` -- this ADR's actually-recommended profile's own harness -- passes at all, and whether it has a hosted run at or after this session's fix | Run to completion locally this session, this checkout, at HEAD (`0346ae19`, after both `7ef1ada2` and the row-12 write-up): `cargo test --locked --offline -p semaprax --test public_native_rust_owned_data_sdk_v1 -- --test-threads=1 --nocapture` -> **11 passed, 0 failed, finished in 193.49s** (unconditional harness, no env-var gate to arm). Separately, `gh run list --workflow=ci.yml` checked live during this session: recent runs were queued, in-progress, or cancelled by a subsequent push before completing; none observed to reach a `success` conclusion at or after `7ef1ada2` during this session | **A genuine local pass, current session, this host, current HEAD -- and still, by this ADR's own rule, not the evidence answer 5 asks for.** It shows the harness is not currently broken on at least one machine/toolchain, which is worth recording, but a local pass is explicitly **not sufficient** for any support claim per the Maintainer decision: only a specific, recent, confirmed-green **hosted** run across the pinned three-OS matrix satisfies it, and none exists. Answer 6 (isolate the harness into its own CI job so an unrelated failure cannot hide its result) also remains unimplemented. |
+| 14 | Whether the npm route's own genuinely-compiler-built consumer lane (row 10's caveat: "The genuinely compiler-built package lanes remain ... `npm_installation.rs:60`") actually runs, and whether it withstands the same class of hostile-archive/byte-binding regressions row 9/10 already prove for the Rust and synthetic-npm routes | Issue #290 (P3) session, commit `77d68e49`, this host (macOS arm64, `rustc`/`cargo` 1.98.0, Node 22.12.0, npm 11.6.2, TypeScript 5.8.3 via a pinned local install, Python 3.12.12): `cargo test --locked --offline -p semaprax --test frame_payload_product_v1 npm_installation::installed_owned_npm_package_resolves_and_runs_without_compiler -- --ignored --exact --nocapture` -> **1 passed, 0 failed, finished in 119.49s**, for both the baseline and display-renamed frame projects, exercising the real compiler-produced six-file package end to end (`npm pack`, offline `npm ci`, Node import against real corpus/adversarial data, strict TypeScript). The test now also applies four hostile-byte regressions directly to this genuine package rather than the row-10 synthetic fixture: (a) a tampered payload file and (b) a swapped/tampered `app.wasm` are both refused by the release-preparation script's own preview digest check before packing; (c) a path-traversing archive member is refused by the script's own `_verify_npm_tarball_payload` byte-binding, reused unchanged against a hostile derivative of the real packed tarball; (d) a tarball substituted after the lockfile recorded its integrity is refused by npm's own subresource-integrity check (`EINTEGRITY`) once a fresh cache forces it to re-verify from disk -- a cache already warmed by the earlier lock-only install of the genuine tarball was found, this session, to mask the same substitution instead of catching it, so the test now uses a cache the genuine artifact has never touched for this specific check. | **A genuine local pass, current session, this host, current HEAD, against the actual compiler-generated npm package (not a synthetic fixture).** It answers row 10's open caveat for this one lane: the genuinely-compiler-built npm route is not merely present in source, it runs, and the same hostile-guard classes already proven for the Rust route (tamper, archive-member admission, integrity binding) hold for it too. It does **not** establish hosted CI evidence (this target is not selected into any hosted job today -- confirmed this session by grepping `.github/workflows/ci.yml` and `scripts/ci-msrv.py` for `frame_payload_product_v1`/`npm_installation`, with no hit; `#[ignore]`d tests only run where a job explicitly passes `--ignored`, which no job does for this target), an exact-MSRV build (this ADR's MSRV questions are scoped to the Rust package; no npm-side MSRV claim is made or implied), or any package-identity/version/support decision for npm, which answer 8 already reserves for a separate ADR. Companion `tests/image_packaged_typescript_workflow_v1.rs:715` (a different, `@semaprax/agent-workflow` profile) is out of this scope and was not touched or run. |
+| 15 | Genuine Rust archive/extraction/clean-consumer and hostile-byte checks executed in the isolated three-OS job | [2026-09-24 retained report](https://github.com/wavect/semaprax/issues/290#issuecomment-5806865400), exact source `a7cad038bdf09fca02b818c8753def23a1f943db`, CI run `35948261395`: macOS job `107471367738`, Windows job `107471367761`, Ubuntu job `107471367800`; each reports **9 passed, 0 failed, 0 ignored, 2 filtered**, including the genuine archive consumer. | **Hosted, prior revision, Rust route only.** Not exact 1.85.0, npm execution, a current-head receipt or a whole-CI-run success. Supersedes the historical absence of hosted Rust consumer evidence in rows 6/9/13. |
+| 16 | Exact generated Rust consumer MSRV | [2026-09-28 local evidence](#local-exact-msrv-evidence-2026-09-28) and [retained issue report](https://github.com/wavect/semaprax/issues/290#issuecomment-5862069497): source `0cdd26d312fd65653d24a46098195484720c78e9`, actual Cargo/rustc **1.85.0**, host `aarch64-apple-darwin`; genuine archive consumer **1/1**, configuration negative controls **3/3**. | **Local, unsigned, prior revision.** The exact tool pair applies only to the extracted consumer and settlement exercises, not compiler generation or archive packaging. No remaining technical MSRV blocker for that scoped gate; no other-target or release-provenance claim. |
 
-Row 6 is the one this ADR most wants a maintainer to weigh: the tool that
-would gate publication is solid (rows 1-2), but the profile's own generated
-Rust SDK harness has no recent confirmed hosted pass, and the shard structure
-means one unrelated subsystem's break can silently prevent it from ever
-running. That is a real gap between "the tests exist and are wired in" and
-"the tests are known to pass."
+**Current reading of the retained evidence:** row 14 closes the genuine npm
+execution gap that row 10 identified; rows 15-16 close the specific historical
+Rust hosted/archive and local exact-MSRV gaps. The npm route remains local-only
+in the cited record and unmaintained under this ADR. Its future ADR may cite
+that genuine execution without inheriting Rust's support decision. The current
+confirmation for the Rust-only decision is recorded above; neither old
+"pending" wording nor the absence of a new hosted run reopens #325.
 
 ## Conditions before any support claim
 
-- **Rebuild-and-revalidate cadence.** Nothing here re-runs automatically on a
-  schedule. Every dependency, toolchain, or compiler-output change to
-  owned-data-api.v1 requires someone to re-run `prepare` + `check` and, before
-  trusting the result, confirm `public_native_rust_owned_data_sdk_v1` and the
-  `native-rust-sdk-v1`/`verify-tests` jobs are actually green at that commit
-  -- not merely wired in.
-- **What breaks the claim silently.** Because the crate version is fixed at
-  `0.1.0` and compatibility rides on the descriptor digest instead, a
-  consumer pinning by Cargo semver gets no protection from a breaking change;
-  only the descriptor digest changing signals it. Approving this without
-  requiring real semver (Open question 2) means every future regeneration is,
-  from a semver consumer's point of view, silently "the same version."
-- **CI-ordering obligation.** The `verify-tests` shard aborts at the first
-  failing target, so an unrelated subsystem's regression can prevent this
-  profile's own tests from running at all without failing loudly as *this
-  profile's* failure. Trusting this route going forward means either fixing
-  that ordering (Open question 6) or manually confirming, per release, that
-  the specific target actually executed and passed -- not just that the
-  overall job did not fail for some other reason.
-- **Toolchain honesty.** The generated crate declares `rust-version = "1.85"`
-  but has not been shown to build end to end under exactly 1.85.0 anywhere in
-  this repository. Approving this route without resolving that (Open
-  question 3) means shipping an MSRV claim nothing currently verifies.
-- **Irreversibility once real publication happens.** This ADR proposes no
-  registry write, but if a later, separately approved step does publish, a
-  published version can never be deleted or overwritten on crates.io or
-  npmjs.org; only rollback via a new, superseding version is possible
-  (already the policy drafted in
-  `docs/GENERATED-PACKAGE-PUBLICATION-DECISION-DRAFT-V1.md`).
-- **Registry identity and credentials remain a separate, later decision.**
-  Approving this ADR does not select an npmjs.org scope, a crates.io
-  publisher account, or provision `NPM_TOKEN`/`CARGO_REGISTRY_TOKEN`; those
-  are Open questions 4 and are explicitly out of scope until asked for again.
+- **Rebuild-and-revalidate cadence.** Dependency, toolchain or compiler-output
+  changes require fresh `prepare` + `check` and actual execution of the owning
+  consumer/settlement gates at that revision. Preserve the existing required
+  CI/release gates; a historical pass or a wired-but-unexecuted test is not a
+  new receipt. The #325 closure waiver is not a blanket promotion waiver.
+- **Version honesty.** The fixed `0.1.0` names unpublished previews only. Keep
+  the exact descriptor digest and byte binding; do not infer compatibility
+  from the preview version. Answer 2's real-SemVer requirement is already
+  decided, but its publication-time implementation is neither authorized nor
+  required by this decision ticket.
+- **CI isolation and ongoing regression.** Retain the existing dedicated
+  `native-rust-owned-data-sdk-v1` job, explicit ignored-test selection and
+  fail-closed controls. Answer 6 is implemented, not an open request to add
+  `--no-fail-fast`; answer 7 still requires a CI gate rather than manual-only
+  release checks.
+- **Toolchain and target honesty.** The generated crate declares
+  `rust-version = "1.85"`. Exact Cargo/rustc 1.85.0 passed for the extracted
+  consumer on macOS arm64 at the cited revision. Other targets, regeneration
+  changes and the repository compiler require their own evidence; do not
+  extrapolate that local consumer result to them.
+- **Publication remains separate.** Any future registry release needs explicit
+  publisher/name/version, compatibility and release authorization. The proposed
+  rollback policy is to supersede a broken version, not mutate its bytes; it
+  remains part of the separately reviewed publication draft.
+- **Credentials, signing and provenance remain separate.** No npmjs.org scope,
+  crates.io publisher, `NPM_TOKEN`, `CARGO_REGISTRY_TOKEN`, signing identity or
+  release provenance is selected here. Preview checksums are integrity values,
+  not signatures, provenance attestations or authority to publish.
 
 ## What is explicitly NOT proposed
 
 - **No registry write of any kind**, in any mode. `scripts/generated-package-release.py`
   has no code path that performs one; this ADR does not ask for one to be
   added.
-- **No signing.** Blocked on issue #168 and
-  [docs/RELEASE-SIGNING-POLICY-V1.md](../RELEASE-SIGNING-POLICY-V1.md); this
-  package remains unsigned and its checksum manifest is an integrity value,
-  not a signature or provenance claim.
+- **No signing.** This decision grants no generated-package signing authority.
+  [Release Signing Policy v1](../RELEASE-SIGNING-POLICY-V1.md) remains separate;
+  this package remains unsigned and its checksum manifest is an integrity
+  value, not a signature or provenance claim.
 - **No release or tag creation.** This is release-preparation tooling, not a
   release step.
 - **No generic-ABI packages.** Those remain gated on SPX-AI-042 (#144) per
@@ -149,16 +193,18 @@ running. That is a real gap between "the tests exist and are wired in" and
   is admitted or grants any generic package new authority.
 - **No npm package promotion** in this round, for the reasons given in
   Decision.
-- **Box 3's "clean-install executable evidence" remains uncollected for
-  this profile.** The owned-data package now has a dedicated, ignored local
-  gate that produces the real `.crate`, extracts it, and runs a fresh locked
-  consumer through the extracted package only (row 9). It has not yet been
-  executed in the dedicated hosted job or this follow-up, so it is not itself
-  clean-install evidence. The manual release-root path-dependency check in
-  row 8 remains weaker and separate. Approving this ADR is still a decision
-  to collect and retain that evidence, not a claim that it already exists.
+- **No registry-consumer or new current-head execution claim.** Genuine
+  clean-consumer evidence now exists (rows 14-16); it is no longer an
+  uncollected technical prerequisite. Local `.crate`/`.tgz` consumption is
+  not a registry install, and the historical release-root path dependency
+  in row 8 remains a separate, weaker route. This decision does not rerun
+  any consumer or manufacture a hosted, signed or published receipt.
 
 ## Questions recorded for the scope decision
+
+Historical questions from 2026-09-19, retained with their answers below.
+References to missing evidence describe that review date; the current decision
+and later evidence above supersede those status observations, not the choices.
 
 1. Approve owned-data-api.v1's Rust package as the first maintained
    generated-package route, with npm explicitly deferred? (yes/no)
@@ -189,6 +235,9 @@ running. That is a real gap between "the tests exist and are wired in" and
 
 Recorded 2026-09-19. The maintainer approved the scope and delegated the eight
 choices above. These answers require evidence before any support claim.
+They remain the accepted choices after the 2026-09-30 reaffirmation. The
+following rationale and follow-up paragraphs are historical, not open tasks
+for #325; the ticket's hosted-only closure waiver does not repeal answers 5/7.
 
 1. **Yes — Rust only, npm deferred.** A narrow route that is fully evidenced is
    worth more than a wide one that is half evidenced. A support claim is very
@@ -275,13 +324,12 @@ local session can supply on its own.
 
 ### Recommend Rust and npm together
 
-Rejected because npm's only consumer-execution tests are `#[ignore]`d pending
-provisioned Node/npm/TypeScript. The release wrapper now has automated local
-real-tarball install/import coverage for a synthetic compiler-shaped fixture,
-but no hosted or genuinely compiler-built clean-install execution evidence.
-Bundling npm into this decision would attach box 3's support claim to a
-route whose strongest automated install evidence does not exercise a real
-generated program.
+Rejected as the current support scope. The original review lacked genuine
+npm execution, but that technical reason is superseded by row 14's actual
+compiler-built pack/install/run evidence. The accepted decision still defers
+npm maintenance to its own ADR (answer 8). Execution success alone does not
+select npm package identity/version policy, supported runtimes or maintenance
+obligations, and does not authorize a combined Rust/npm support promise.
 
 ### Recommend the general native-rust-interop-v1 SDK instead of owned-data-api.v1
 
@@ -300,3 +348,36 @@ Rejected because the issue's own guardrails ask that a design like this be
 accept or reject cleanly, and this repository's house convention for that is
 an ADR under `docs/decisions/`, not a standalone spec-shaped draft. The draft
 remains useful background detail and is retained, not deleted.
+
+## Local exact-MSRV evidence, 2026-09-28
+
+At clean source commit `0cdd26d312fd65653d24a46098195484720c78e9`, the genuine
+`packaged_safe_package_builds_offline_and_fail_stops_on_unsettled_handles`
+gate passed **1/1**, with no skipped selected test, in **186.41 seconds**.
+Compiler generation and archive packaging used the current toolchain; only
+the independently extracted generated SDK consumer and settlement exercises
+used exact Cargo/rustc **1.85.0**, host `aarch64-apple-darwin`. The selected
+compiler, disabled wrappers and fixed host target were checked by three
+configuration tests, which also passed **3/3**.
+
+The gate retained the real preview and archive byte-binding checks, hostile
+traversal/link/duplicate/dependency/target controls, and executable substitutions
+refused before Cargo/build/consumer entry. The fresh external consumer ran
+locked and offline, printed `42`, preserved its lockfile, and retained the
+existing ownership/cleanup fail-stop assertions. Generator, package and
+consumer targets were separate temporary directories.
+
+To reproduce after building the owning harness with the current toolchain,
+set `SEMAPRAX_NATIVE_RUST_CONSUMER_CARGO` and
+`SEMAPRAX_NATIVE_RUST_CONSUMER_RUSTC` to actual absolute 1.85.0 binaries, then
+select that exact ignored gate explicitly. Invalid or incomplete tool pairs
+refuse without fallback. These overrides apply only to the consumer route.
+
+This is local, unsigned evidence. It does not create release provenance or
+publish a package. Non-main hosted evidence follows the maintainer's waiver
+when hosted execution is the only missing item. The confirmation requested
+in the later issue discussion is resolved by the
+[current maintainer decision](#current-maintainer-decision): retain ordinary
+owned-data Rust-only maintenance, defer npm to its own ADR, and leave future
+publication and public promotion separately gated. No technical MSRV or
+hosted-only blocker remains for closing the decision-only #325.

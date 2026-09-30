@@ -1,0 +1,925 @@
+use super::*;
+use crate::agent_lifecycle::iterative::effects::{EffectArgument, EffectResult, EffectScalar};
+use crate::live_invocation::source_journal::CheckedOwnedWaitJournalContextV8;
+use crate::project::with_authenticated_project;
+use crate::provider_adapter_sdk::{AdapterInvocationCapability, ProviderAdapter};
+use crate::resumable_effects::owned_frame::v2::compile_owned_agent_wait_v8;
+use std::path::PathBuf;
+use std::sync::atomic::{AtomicU64, Ordering};
+
+struct Fixture(PathBuf);
+impl Drop for Fixture {
+    fn drop(&mut self) {
+        std::fs::remove_dir_all(&self.0).unwrap();
+    }
+}
+#[derive(Clone, Copy)]
+pub(crate) enum TestProspectiveReduceLimitV8 {
+    ExactFuel,
+    FuelOneShort,
+    ExactStages,
+    StagesOneShort,
+}
+impl TestProspectiveReduceLimitV8 {
+    fn total(self) -> usize {
+        match self {
+            Self::ExactFuel => 6000,
+            Self::FuelOneShort => 5999,
+            Self::ExactStages | Self::StagesOneShort => 2_000_000,
+        }
+    }
+    fn stages(self) -> usize {
+        match self {
+            Self::ExactStages => 4,
+            Self::StagesOneShort => 3,
+            Self::ExactFuel | Self::FuelOneShort => IterativeBudget::default().max_stages,
+        }
+    }
+}
+#[derive(Clone, Copy)]
+pub(crate) enum TestContinuedAuthorizeV8 {
+    Requires,
+    Ensures,
+    Arithmetic,
+    Fuel,
+}
+#[derive(Clone, Copy)]
+enum RuntimeFixture {
+    Baseline,
+    ContinuedAuthorize(TestContinuedAuthorizeV8),
+    Complete,
+    EmptyComplete,
+    ReduceFuel,
+    ReduceArithmetic,
+    ReduceEnsures,
+    ContinuedObserveEnsures,
+    InitialObserveEnsures,
+    BaselineTaskZero,
+    ProspectiveReduce(TestProspectiveReduceLimitV8),
+}
+fn fixture() -> Fixture {
+    fixture_for(RuntimeFixture::Baseline)
+}
+fn fixture_for(profile: RuntimeFixture) -> Fixture {
+    static SEQ: AtomicU64 = AtomicU64::new(0);
+    let path = std::env::temp_dir().canonicalize().unwrap().join(format!(
+        "spx-owned-wait-context-{}-{}",
+        std::process::id(),
+        SEQ.fetch_add(1, Ordering::Relaxed)
+    ));
+    std::fs::create_dir(&path).unwrap();
+    std::fs::create_dir(path.join("src")).unwrap();
+    std::fs::write(
+        path.join("semaprax.toml"),
+        include_str!("../../../../examples/offline-repair-project/semaprax.toml"),
+    )
+    .unwrap();
+    std::fs::write(
+        path.join("src/tests.spx"),
+        include_str!("../../../../examples/offline-repair-project/src/tests.spx"),
+    )
+    .unwrap();
+    let source = include_str!("../../../../examples/offline-repair-project/src/app.spx").replace(
+        "    runtime_v1 {",
+        "    model_wait_v1 { propose = \"fixture.agent.fn.park\"; }\n    runtime_v1 {",
+    );
+    let source = match profile {
+        RuntimeFixture::Baseline
+        | RuntimeFixture::BaselineTaskZero
+        | RuntimeFixture::ProspectiveReduce(_) => source,
+        RuntimeFixture::ReduceFuel | RuntimeFixture::ReduceArithmetic => {
+            fn balanced_zero(depth: usize) -> String {
+                if depth == 0 {
+                    "0".into()
+                } else {
+                    let child = balanced_zero(depth - 1);
+                    format!("({child} + {child})")
+                }
+            }
+            let budget = if matches!(profile, RuntimeFixture::ReduceFuel) {
+                balanced_zero(9)
+            } else {
+                "(state.budget / 0)".into()
+            };
+            let original = "if state.epoch < 2 { Step::Continue { objective: state.objective, budget: state.budget, epoch: state.epoch + 1 } } else { Step::Complete { summary: state.objective, budget: state.budget, status: state.epoch } }";
+            assert_eq!(source.matches(original).count(), 1);
+            source.replace(
+                original,
+                &original.replace("budget: state.budget", &format!("budget: {budget}")),
+            )
+        }
+        RuntimeFixture::ContinuedAuthorize(mode) => {
+            let signature="fn authorize(state: borrow State, budget: i64, urgent: bool, sequence: usize) -> Decision\n{";
+            assert_eq!(source.matches(signature).count(), 1);
+            match mode {
+                TestContinuedAuthorizeV8::Requires => source.replace(signature,"fn authorize(state: borrow State, budget: i64, urgent: bool, sequence: usize) -> Decision\n    requires state.epoch == 1\n{"),
+                TestContinuedAuthorizeV8::Ensures => source.replace(signature,"fn authorize(state: borrow State, budget: i64, urgent: bool, sequence: usize) -> Decision\n    ensures state.epoch == 1\n{"),
+                TestContinuedAuthorizeV8::Arithmetic | TestContinuedAuthorizeV8::Fuel => {
+                    fn balanced(depth:usize)->String {if depth==0 {"0".into()} else {let child=balanced(depth-1);format!("({child} + {child})")}}
+                    let original="seal: bytes_copy(array_as_slice(seal)), budget: budget";
+                    assert_eq!(source.matches(original).count(),1);
+                    let budget=match mode {TestContinuedAuthorizeV8::Arithmetic=>"(budget / (2 - state.epoch))".to_owned(),_=>format!("if state.epoch > 1 {{ {} }} else {{ budget }}",balanced(9))};
+                    source.replace(original,&format!("seal: bytes_copy(array_as_slice(seal)), budget: {budget}"))
+                }
+            }
+        }
+        RuntimeFixture::InitialObserveEnsures => {
+            let original = "fn observe(state: borrow State) -> Observation\n{";
+            assert_eq!(source.matches(original).count(), 1);
+            source.replace(
+                original,
+                "fn observe(state: borrow State) -> Observation\n    ensures false\n{",
+            )
+        }
+        RuntimeFixture::ContinuedObserveEnsures => {
+            let original = "fn observe(state: borrow State) -> Observation\n{";
+            assert_eq!(source.matches(original).count(), 1);
+            source.replace(
+                original,
+                "fn observe(state: borrow State) -> Observation\n    ensures state.epoch == 1\n{",
+            )
+        }
+        RuntimeFixture::ReduceEnsures => {
+            let original="fn reduce(state: own State, budget: i64, urgent: bool, sequence: usize, outcome: own Outcome) -> Step\n{";
+            assert_eq!(source.matches(original).count(), 1);
+            source.replace(original,"fn reduce(state: own State, budget: i64, urgent: bool, sequence: usize, outcome: own Outcome) -> Step\n    ensures false\n{")
+        }
+        RuntimeFixture::EmptyComplete => {
+            let report = "    @id(\"fixture.agent.type.result.summary\")\n    summary: Bytes,";
+            let case =
+                "        @id(\"fixture.agent.step.complete.summary\")\n        summary: Bytes,";
+            let body = "if state.epoch < 2 { Step::Continue { objective: state.objective, budget: state.budget, epoch: state.epoch + 1 } } else { Step::Complete { summary: state.objective, budget: state.budget, status: state.epoch } }";
+            assert_eq!(source.matches(report).count(), 1);
+            assert_eq!(source.matches(case).count(), 1);
+            assert_eq!(source.matches(body).count(), 1);
+            source.replace(report, &format!("{report}\n    @id(\"fixture.agent.type.result.receipt\")\n    receipt: Bytes,"))
+                .replace(case, &format!("{case}\n        @id(\"fixture.agent.step.complete.receipt\")\n        receipt: Bytes,"))
+                .replace(body, "Step::Complete { summary: state.objective, receipt: outcome.value, budget: state.budget, status: state.epoch }")
+        }
+        RuntimeFixture::Complete => {
+            let original = "if state.epoch < 2 { Step::Continue { objective: state.objective, budget: state.budget, epoch: state.epoch + 1 } } else { Step::Complete { summary: state.objective, budget: state.budget, status: state.epoch } }";
+            assert_eq!(source.matches(original).count(), 1);
+            source.replace(original, "Step::Complete { summary: state.objective, budget: state.budget, status: state.epoch }")
+        }
+    };
+    std::fs::write(
+        path.join("src/app.spx"),
+        format!(
+            "{source}\n{}",
+            r#"
+@id("fixture.agent.fn.park")
+fn park(state: own State, observation: Observation) -> State yields Observation -> Proposal {
+    let proposal = yield observation;
+    state
+}
+"#
+        ),
+    )
+    .unwrap();
+    let app = path.join("src/app.spx");
+    let parsed = crate::parse(&std::fs::read_to_string(&app).unwrap(), &app).unwrap();
+    std::fs::write(&app, crate::format::canonical(&parsed)).unwrap();
+    Fixture(path)
+}
+fn operations() -> Vec<EffectOperation> {
+    ["fixture.read", "fixture.read.second"]
+        .into_iter()
+        .map(|id| EffectOperation {
+            operation_id: id.into(),
+            effect_id: "read".into(),
+            arguments: vec![EffectArgument {
+                argument_id: "query".into(),
+                proposal_field_id: "fixture.agent.type.proposal.budget".into(),
+                kind: EffectScalar::I64,
+            }],
+            results: vec![EffectResult {
+                result_id: "value".into(),
+                kind: EffectScalar::I64,
+            }],
+        })
+        .collect()
+}
+fn runtime(
+    project: Arc<ProjectRevision>,
+    effects: EffectBudget,
+    reverse_registry: bool,
+    objective: &[u8],
+) -> AgentRuntimeV2 {
+    runtime_for(
+        project,
+        effects,
+        reverse_registry,
+        objective,
+        RuntimeFixture::Baseline,
+    )
+}
+fn runtime_for(
+    project: Arc<ProjectRevision>,
+    effects: EffectBudget,
+    reverse_registry: bool,
+    objective: &[u8],
+    profile: RuntimeFixture,
+) -> AgentRuntimeV2 {
+    let root = project.program_root().unwrap();
+    let (_, deployment) = migrate_agent_definition_v1(
+        project.agent_definitions()[0]
+            .definition()
+            .canonical_source(),
+        "fixture.owned.wait.runtime",
+    )
+    .unwrap();
+    let mut registry = operations();
+    if reverse_registry {
+        registry.reverse();
+    }
+    bind_agent_runtime_v2_live(
+        project,
+        ProgramRootRef::V1(&root),
+        root.program_root_digest(),
+        "src/app.spx",
+        "fixture.agent",
+        "fixture.agent.type.step",
+        "fixture.agent.type.proposal.sequence",
+        registry,
+        &deployment,
+        LifecycleTask {
+            objective: objective.to_vec(),
+            budget: if matches!(profile, RuntimeFixture::BaselineTaskZero) {
+                0
+            } else {
+                12
+            },
+        },
+        match profile {
+            RuntimeFixture::Baseline
+            | RuntimeFixture::BaselineTaskZero
+            | RuntimeFixture::ContinuedAuthorize(_)
+            | RuntimeFixture::ReduceFuel
+            | RuntimeFixture::ReduceArithmetic
+            | RuntimeFixture::ReduceEnsures
+            | RuntimeFixture::ContinuedObserveEnsures
+            | RuntimeFixture::InitialObserveEnsures => IterativeBudget {
+                max_steps_per_stage: 1000,
+                ..IterativeBudget::default()
+            },
+            RuntimeFixture::ProspectiveReduce(limits) => IterativeBudget {
+                max_steps_per_stage: 1000,
+                max_stages: limits.stages(),
+                ..IterativeBudget::default()
+            },
+            RuntimeFixture::Complete | RuntimeFixture::EmptyComplete => IterativeBudget {
+                max_iterations: 2,
+                max_stages: 7,
+                max_steps_per_stage: 1000,
+            },
+        },
+        effects,
+    )
+    .unwrap()
+}
+fn effects() -> EffectBudget {
+    EffectBudget {
+        max_calls: 3,
+        max_argument_bytes: 4096,
+        max_result_bytes: 4096,
+        max_total_bytes: 8192,
+    }
+}
+fn identity() -> SourceModelAdapterIdentity {
+    SourceModelAdapterIdentity {
+        provider_id: "fake.local".into(),
+        model_id: "fake-basic".into(),
+        adapter_identity: "owned-wait-inert-test".into(),
+        adapter_version: "1.0.0".into(),
+        provider_profile: "fixture".into(),
+    }
+}
+fn policy(model: &SourceModelBinding) -> SourceLivePolicy {
+    SourceLivePolicy {
+        deployment_binding: model.digest().into(),
+        response_limit: model.max_response_bytes(),
+        ceiling: 3,
+        reservation_units: 1,
+        unit: "owned_wait_unit".into(),
+        clock_domain: "owned.wait.test".into(),
+        initial_millis: 0,
+        deadline_millis: 1000,
+        max_total_steps: 2_000_000,
+        program_root: None,
+    }
+}
+fn context(
+    runtime: &AgentRuntimeV2,
+    wait: Arc<CheckedOwnedAgentWaitBindingV8>,
+) -> CheckedTypedOwnedWaitExecutionV8 {
+    context_for(runtime, wait, 2_000_000)
+}
+fn context_for(
+    runtime: &AgentRuntimeV2,
+    wait: Arc<CheckedOwnedAgentWaitBindingV8>,
+    total: usize,
+) -> CheckedTypedOwnedWaitExecutionV8 {
+    let model = runtime.source_model_binding(identity()).unwrap();
+    let mut policy = policy(&model);
+    policy.max_total_steps = total;
+    let mut factory = || -> Box<dyn ProviderAdapter> { panic!("pure preflight dispatched") };
+    let source = StreamingSourceProposalAdapter::new_bound_checkpointed(
+        &mut factory,
+        AdapterInvocationCapability::grant("private pure context test"),
+        runtime.proposal_schema(),
+        model.clone(),
+        model.invocation_capability(),
+        SourceProposalPolicy {
+            deployment_binding: model.digest(),
+            response_limit: model.max_response_bytes(),
+            reservation_units: 1,
+        },
+    )
+    .unwrap();
+    runtime
+        .checked_owned_wait_execution_v8(wait, &source, &policy, 1000)
+        .unwrap()
+}
+#[test]
+fn owned_wait_typed_execution_binds_real_registry_task_and_each_effect_ceiling() {
+    let f = fixture();
+    with_authenticated_project(&f.0.join("semaprax.toml"), |snapshot| {
+        let project = snapshot.retain_revision();
+        let source = project
+            .sources()
+            .iter()
+            .find(|s| s.path() == "src/app.spx")
+            .unwrap();
+        let wait = Arc::new(compile_owned_agent_wait_v8(
+            source.source(),
+            std::path::Path::new(source.path()),
+            "fixture.agent",
+            "fixture.agent.type.step",
+        )?);
+        let baseline = runtime(Arc::clone(&project), effects(), false, b"owned task");
+        let c = context(&baseline, Arc::clone(&wait));
+        assert!(std::ptr::eq(
+            baseline.owned_wait_effects_v8(&c).unwrap(),
+            &baseline.lifecycle
+        ));
+        let actual_limits = baseline.owned_wait_effect_limits_v8(&c).unwrap();
+        assert_eq!(
+            (
+                actual_limits.max_calls,
+                actual_limits.max_argument_bytes,
+                actual_limits.max_result_bytes,
+                actual_limits.max_total_bytes
+            ),
+            (
+                baseline.effects.max_calls,
+                baseline.effects.max_argument_bytes,
+                baseline.effects.max_result_bytes,
+                baseline.effects.max_total_bytes
+            )
+        );
+        assert_eq!(c.evaluation_fuel(), 1000);
+        assert_eq!(c.wait().binding(), wait.binding());
+        assert_eq!(
+            c.revision().digest(),
+            baseline.execution_revision().digest()
+        );
+        assert_eq!(c.project().project_revision(), project.project_revision());
+        use crate::agent_lifecycle::iterative::effects::plan_owned_effect_v8;
+        use crate::resumable_effects::owned_frame::v2::bind_owned_wait_proposal_v8;
+        use crate::resumable_effects::source_checkpoint::SourceCheckpointScope;
+        let invocation = crate::live_invocation::identity::digest(b"semaprax.live-invocation.source-id.v8\0",
+            serde_json::to_string(&serde_json::json!({"execution":c.ordinary().invocation(),"owned_wait_binding":wait.binding()})).unwrap().as_bytes());
+        let scope = SourceCheckpointScope::new(wait.lifecycle().source_revision(), invocation, 7).unwrap();
+        let proposal = |sequence: usize| {
+            let document = format!(r#"{{"schema":"semaprax.agent-proposal.v1","agent_id":"fixture.agent","proposal_schema_digest":"{}","value":{{"fields":{{"fixture.agent.type.proposal.budget":"3","fixture.agent.type.proposal.urgent":false,"fixture.agent.type.proposal.sequence":"{}"}}}}}}"#,
+                wait.lifecycle().proposal_schema().schema().digest(), sequence);
+            let decoded = wait.lifecycle().proposal_schema().decode(&format!("{document}\n")).unwrap();
+            bind_owned_wait_proposal_v8(&wait, &scope, &decoded).unwrap()
+        };
+        let checked = proposal(1);
+        let effect_plan = plan_owned_effect_v8(&baseline, &c, &scope, &checked).unwrap_or_else(|e| panic!("{e:?}"));
+        assert_eq!(effect_plan.operation().operation_id(), "fixture.read.second");
+        assert_eq!(effect_plan.operation().effect_id(), "read");
+        assert_eq!(effect_plan.argument().type_id(), effect_plan.operation().argument_type());
+        assert_eq!(effect_plan.argument().payload(), b"{\"schema\":\"semaprax.agent-effect-fields.v1\",\"fields\":[[\"query\",\"3\"]]}\n");
+        let accepted = b"{\"schema\":\"semaprax.agent-effect-fields.v1\",\"fields\":[[\"value\",\"9\"]]}\n";
+        assert_eq!(effect_plan.accepted_result(accepted).unwrap(), accepted);
+        assert!(effect_plan.accepted_result(b"{\"schema\":\"semaprax.agent-effect-fields.v1\",\"fields\":[[\"value\",\"09\"]]}\n").is_none());
+        assert!(effect_plan.accepted_result(b"{\"schema\":\"semaprax.agent-effect-fields.v1\",\"fields\":[[\"other\",\"9\"]]}\n").is_none());
+        assert!(effect_plan.accepted_result(b"{\"schema\":\"semaprax.agent-effect-fields.v1\",\"fields\":[]}\n").is_none());
+        assert_eq!(baseline.effects.max_calls, 3);
+        assert_eq!(effect_plan.limits().max_calls, 2, "actual source tool ceiling intersects retained caller ceiling");
+        assert_eq!(baseline.effects.max_result_bytes, 4096);
+        assert_eq!(effect_plan.target_limits().max_result_bytes, 1024);
+        assert_eq!(effect_plan.target_limits().max_fuel, effect_plan.target_limits().max_calls);
+        assert_eq!(c.ordinary().invocation(), context(&baseline, Arc::clone(&wait)).ordinary().invocation(),
+            "profile intersection leaves the committed typed execution unchanged");
+        assert!(effect_plan.accepted_result(&vec![b'x'; 1025]).is_none());
+        let lower = runtime(Arc::clone(&project), EffectBudget { max_result_bytes: 32, ..effects() }, false, b"owned task");
+        let lower_context = context(&lower, Arc::clone(&wait));
+        assert!(plan_owned_effect_v8(&lower, &lower_context, &scope, &checked).is_err(), "different E cannot reuse the old scoped Proposal");
+        let lower_invocation = crate::live_invocation::identity::digest(b"semaprax.live-invocation.source-id.v8\0",
+            serde_json::to_string(&serde_json::json!({"execution":lower_context.ordinary().invocation(),"owned_wait_binding":wait.binding()})).unwrap().as_bytes());
+        let lower_scope = SourceCheckpointScope::new(wait.lifecycle().source_revision(), lower_invocation, 7).unwrap();
+        let lower_decoded = wait.lifecycle().proposal_schema().decode(checked.canonical_proposal()).unwrap();
+        let lower_proposal = bind_owned_wait_proposal_v8(&wait, &lower_scope, &lower_decoded).unwrap();
+        let lower_plan = plan_owned_effect_v8(&lower, &lower_context, &lower_scope, &lower_proposal).unwrap();
+        assert_eq!(lower_plan.target_limits().max_result_bytes, 32);
+        assert!(lower_plan.accepted_result(accepted).is_none());
+        let wrong_scope = SourceCheckpointScope::new(scope.program_root(), "other", 7).unwrap();
+        assert!(plan_owned_effect_v8(&baseline, &c, &wrong_scope, &checked).is_err());
+        assert!(plan_owned_effect_v8(&baseline, &c, &scope, &proposal(2)).is_err());
+        let e = c.ordinary().invocation();
+        for change in 0..6 {
+            let mut limits = effects();
+            match change {
+                0 => limits.max_calls += 1,
+                1 => limits.max_argument_bytes += 1,
+                2 => limits.max_result_bytes += 1,
+                3 => limits.max_total_bytes += 1,
+                _ => {}
+            }
+            let other = runtime(
+                Arc::clone(&project),
+                limits,
+                change == 4,
+                if change == 5 {
+                    b"other task"
+                } else {
+                    b"owned task"
+                },
+            );
+            assert!(
+                other.owned_wait_effects_v8(&c).is_err(),
+                "foreign actual runtime dimension {change}"
+            );
+            assert!(
+                other.owned_wait_effect_limits_v8(&c).is_err(),
+                "foreign ceilings dimension {change}"
+            );
+            assert!(plan_owned_effect_v8(&other, &c, &scope, &checked).is_err(), "foreign planner dimension {change}");
+            let other = context(&other, Arc::clone(&wait));
+            assert_ne!(other.ordinary().invocation(), e, "dimension {change}");
+            assert_ne!(
+                other.model().digest(),
+                c.model().digest(),
+                "dimension {change}"
+            );
+        }
+        Ok(())
+    })
+    .unwrap();
+}
+#[test]
+fn owned_wait_typed_execution_refuses_cross_runtime_and_profile_before_factory() {
+    let f = fixture();
+    with_authenticated_project(&f.0.join("semaprax.toml"), |snapshot| {
+        let project = snapshot.retain_revision();
+        let source = project
+            .sources()
+            .iter()
+            .find(|s| s.path() == "src/app.spx")
+            .unwrap();
+        let wait = Arc::new(compile_owned_agent_wait_v8(
+            source.source(),
+            std::path::Path::new(source.path()),
+            "fixture.agent",
+            "fixture.agent.type.step",
+        )?);
+        let r = runtime(Arc::clone(&project), effects(), false, b"owned task");
+        let other = runtime(Arc::clone(&project), effects(), false, b"other task");
+        let model = r.source_model_binding(identity())?;
+        let mut p = policy(&model);
+        let mut factory = || -> Box<dyn ProviderAdapter> { panic!("refused preflight dispatched") };
+        let adapter = StreamingSourceProposalAdapter::new_bound_checkpointed(
+            &mut factory,
+            AdapterInvocationCapability::grant("private refusal test"),
+            r.proposal_schema(),
+            model.clone(),
+            model.invocation_capability(),
+            SourceProposalPolicy {
+                deployment_binding: model.digest(),
+                response_limit: model.max_response_bytes(),
+                reservation_units: 1,
+            },
+        )?;
+        assert!(r
+            .checked_owned_wait_execution_v8(Arc::clone(&wait), &adapter, &p, 1000)
+            .is_ok());
+        for fuel in [0, 1001] {
+            assert!(r
+                .checked_owned_wait_execution_v8(Arc::clone(&wait), &adapter, &p, fuel)
+                .is_err());
+        }
+        assert!(other
+            .checked_owned_wait_execution_v8(Arc::clone(&wait), &adapter, &p, 1000)
+            .is_err());
+        let changed_source = source
+            .source()
+            .replace("sequence <= 1usize", "sequence <= 0usize");
+        assert_ne!(changed_source, source.source());
+        let changed_wait = Arc::new(compile_owned_agent_wait_v8(
+            &changed_source,
+            std::path::Path::new(source.path()),
+            "fixture.agent",
+            "fixture.agent.type.step",
+        )?);
+        assert!(r
+            .checked_owned_wait_execution_v8(changed_wait, &adapter, &p, 1000)
+            .is_err());
+        p.program_root = Some("forbidden".into());
+        assert!(r
+            .checked_owned_wait_execution_v8(Arc::clone(&wait), &adapter, &p, 1000)
+            .is_err());
+        p.program_root = None;
+        p.reservation_units += 1;
+        assert!(r
+            .checked_owned_wait_execution_v8(Arc::clone(&wait), &adapter, &p, 1000)
+            .is_err());
+        assert!(adapter.model_evidence().attempts().is_empty());
+        Ok(())
+    })
+    .unwrap();
+}
+
+#[cfg(unix)]
+fn registered_context_store(
+    root: &std::path::Path,
+    label: &str,
+    execution: &CheckedTypedOwnedWaitExecutionV8,
+    change_limit: bool,
+) -> (
+    crate::resumable_effects::owned_frame::SourceOwnedWaitStoreRegistrationV8,
+    crate::resumable_effects::owned_frame::SourceOwnedWaitLeaseV8,
+) {
+    use crate::resumable_effects::owned_frame::*;
+    use std::os::unix::fs::{MetadataExt, PermissionsExt};
+    let path = root.join(label);
+    std::fs::create_dir(&path).unwrap();
+    std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o700)).unwrap();
+    let metadata = std::fs::metadata(&path).unwrap();
+    let ordinary = execution.ordinary();
+    let invocation=crate::live_invocation::identity::digest(b"semaprax.live-invocation.source-id.v8\0",
+        serde_json::to_string(&serde_json::json!({"execution":ordinary.invocation(),"owned_wait_binding":execution.wait().binding()})).unwrap().as_bytes());
+    let facts = FreshSourceOwnedWaitFactsV8 {
+        scope: crate::resumable_effects::source_checkpoint::SourceCheckpointScope::new(
+            execution.wait().lifecycle().source_revision(),
+            invocation,
+            7,
+        )
+        .unwrap(),
+        execution: ordinary.invocation().into(),
+        binding: execution.wait().binding().into(),
+        directory_identity: (metadata.dev(), metadata.ino()),
+        limits: SourceOwnedWaitLimitsV8 {
+            max_steps_per_stage: ordinary.max_steps_per_stage().unwrap(),
+            max_total_steps: ordinary.max_total_steps().unwrap() as u64,
+            max_stages: ordinary.max_stages() as usize,
+            max_attempts: ordinary.max_attempts() as usize,
+            response_limit: ordinary.response_limit() + usize::from(change_limit),
+        },
+    };
+    fresh_source_owned_wait_v8(
+        prepare_fresh_source_owned_wait_v8(
+            std::fs::File::open(&path).unwrap(),
+            facts,
+            ExplicitStoreRegistrationGrant::for_trusted_host(true).unwrap(),
+        )
+        .unwrap(),
+    )
+    .unwrap()
+}
+#[cfg(unix)]
+#[test]
+fn owned_wait_typed_context_joins_actual_execution_and_complete_physical_registration() {
+    use crate::live_invocation::source_journal::checked_owned_wait_journal_context_v8;
+    let f = fixture();
+    with_authenticated_project(&f.0.join("semaprax.toml"), |snapshot| {
+        let project = snapshot.retain_revision();
+        let source = project
+            .sources()
+            .iter()
+            .find(|s| s.path() == "src/app.spx")
+            .unwrap();
+        let wait = Arc::new(compile_owned_agent_wait_v8(
+            source.source(),
+            std::path::Path::new(source.path()),
+            "fixture.agent",
+            "fixture.agent.type.step",
+        )?);
+        let baseline = runtime(Arc::clone(&project), effects(), false, b"owned task");
+        let e = Arc::new(context(&baseline, Arc::clone(&wait)));
+        let (registration, mut lease) = registered_context_store(&f.0, "journal", &e, false);
+        // A context is data-only and does not bypass independent retention ACK.
+        let checked =
+            checked_owned_wait_journal_context_v8(Arc::clone(&e), &lease, &registration).unwrap();
+        assert_eq!(checked.binding(), wait.binding());
+        assert_eq!(checked.generation(), registration.generation());
+        checked.validate_lease(&lease).unwrap();
+        assert_eq!(
+            checked.ordinary().invocation(),
+            registration.expected_facts().scope.invocation_id()
+        );
+        assert_ne!(checked.ordinary().invocation(), e.ordinary().invocation());
+        assert!(lease.append(b"no registration ACK\n").is_err());
+        lease
+            .authorize_fresh_start(
+                registration
+                    .acknowledge_retained_by_trusted_host(true)
+                    .unwrap(),
+            )
+            .unwrap();
+        checked.validate_lease(&lease).unwrap();
+        let key = crate::resumable_effects::source_checkpoint::SourceCheckpointKey::new([73; 32]);
+        let state = serde_json::json!({"declaration":"fixture.agent.type.state","fields":[
+            {"identity":"fixture.agent.type.state.objective","value":{"kind":"bytes","hex":"00"}},
+            {"identity":"fixture.agent.type.state.budget","value":{"tag":"i64","value":10}},
+            {"identity":"fixture.agent.type.state.epoch","value":{"tag":"i64","value":0}}]});
+        let document = checked.test_state_document(&key, state.clone());
+        assert_eq!(
+            checked.test_inventory_len(&lease, &key, &document).unwrap(),
+            3
+        );
+        assert!(checked
+            .test_inventory_len(
+                &lease,
+                &crate::resumable_effects::source_checkpoint::SourceCheckpointKey::new([74; 32]),
+                &document
+            )
+            .is_err());
+        let mut wrong_state = state;
+        wrong_state["declaration"] = serde_json::json!("wrong.state");
+        let wrong_document = checked.test_state_document(&key, wrong_state);
+        assert!(checked
+            .test_inventory_len(&lease, &key, &wrong_document)
+            .is_err());
+        let other = runtime(Arc::clone(&project), effects(), true, b"changed task");
+        let other_e = Arc::new(context(&other, Arc::clone(&wait)));
+        assert!(checked_owned_wait_journal_context_v8(other_e, &lease, &registration).is_err());
+        let (other_registration, other_lease) =
+            registered_context_store(&f.0, "other-journal", &e, false);
+        assert!(
+            checked_owned_wait_journal_context_v8(Arc::clone(&e), &lease, &other_registration)
+                .is_err()
+        );
+        assert!(checked.validate_lease(&other_lease).is_err());
+        assert!(checked
+            .test_inventory_len(&other_lease, &key, &document)
+            .is_err());
+        let (wrong_limit, wrong_lease) = registered_context_store(&f.0, "wrong-limit", &e, true);
+        assert!(
+            checked_owned_wait_journal_context_v8(Arc::clone(&e), &wrong_lease, &wrong_limit)
+                .is_err()
+        );
+        Ok(())
+    })
+    .unwrap();
+}
+
+impl crate::live_invocation::source_journal::CheckedOwnedWaitJournalContextV8 {
+    /// Shared genuine runtime/physical lease fixture; no synthetic E or pins.
+    pub(crate) fn test_with_actual_runtime<T>(
+        callback: impl FnOnce(
+            Self,
+            crate::resumable_effects::owned_frame::SourceOwnedWaitLeaseV8,
+            crate::resumable_effects::source_checkpoint::SourceCheckpointKey,
+        ) -> T,
+    ) -> T {
+        Self::test_with_actual_runtime_store(true, |context, lease, key, _directory| {
+            callback(context, lease, key)
+        })
+    }
+    /// The directory remains scoped to this genuine test fixture callback.
+    pub(crate) fn test_with_actual_runtime_store<T>(
+        retention_ack: bool,
+        callback: impl FnOnce(
+            Self,
+            crate::resumable_effects::owned_frame::SourceOwnedWaitLeaseV8,
+            crate::resumable_effects::source_checkpoint::SourceCheckpointKey,
+            &std::path::Path,
+        ) -> T,
+    ) -> T {
+        Self::test_with_runtime_fixture(RuntimeFixture::Baseline, retention_ack, callback)
+    }
+    pub(crate) fn test_with_actual_continued_authorize_store<T>(
+        mode: TestContinuedAuthorizeV8,
+        callback: impl FnOnce(
+            CheckedOwnedWaitJournalContextV8,
+            crate::resumable_effects::owned_frame::SourceOwnedWaitLeaseV8,
+            crate::resumable_effects::source_checkpoint::SourceCheckpointKey,
+            &std::path::Path,
+        ) -> T,
+    ) -> T {
+        Self::test_with_runtime_fixture(RuntimeFixture::ContinuedAuthorize(mode), true, callback)
+    }
+    pub(crate) fn test_with_actual_initial_observe_ensures_store<T>(
+        callback: impl FnOnce(
+            Self,
+            crate::resumable_effects::owned_frame::SourceOwnedWaitLeaseV8,
+            crate::resumable_effects::source_checkpoint::SourceCheckpointKey,
+            &std::path::Path,
+        ) -> T,
+    ) -> T {
+        Self::test_with_runtime_fixture(RuntimeFixture::InitialObserveEnsures, true, callback)
+    }
+    /// The actual initial epoch passes; the same continued State fails Observe.
+    pub(crate) fn test_with_actual_continued_observe_ensures_store<T>(
+        callback: impl FnOnce(
+            Self,
+            crate::resumable_effects::owned_frame::SourceOwnedWaitLeaseV8,
+            crate::resumable_effects::source_checkpoint::SourceCheckpointKey,
+            &std::path::Path,
+        ) -> T,
+    ) -> T {
+        Self::test_with_runtime_fixture(RuntimeFixture::ContinuedObserveEnsures, true, callback)
+    }
+    /// Limits enter actual runtime/policy/model/E/registration construction.
+    pub(crate) fn test_with_actual_reduce_hold_limits_store<T>(
+        limits: TestProspectiveReduceLimitV8,
+        callback: impl FnOnce(
+            Self,
+            crate::resumable_effects::owned_frame::SourceOwnedWaitLeaseV8,
+            crate::resumable_effects::source_checkpoint::SourceCheckpointKey,
+            &std::path::Path,
+        ) -> T,
+    ) -> T {
+        Self::test_with_runtime_fixture(RuntimeFixture::ProspectiveReduce(limits), true, callback)
+    }
+    /// Authored Task budget is data, not the host iteration ceiling.
+    pub(crate) fn test_with_actual_task_zero_store<T>(
+        callback: impl FnOnce(
+            Self,
+            crate::resumable_effects::owned_frame::SourceOwnedWaitLeaseV8,
+            crate::resumable_effects::source_checkpoint::SourceCheckpointKey,
+            &std::path::Path,
+        ) -> T,
+    ) -> T {
+        Self::test_with_runtime_fixture(RuntimeFixture::BaselineTaskZero, true, callback)
+    }
+    /// Closed Complete source and two-turn execution budget; E/B/model/store
+    /// are rebuilt from the authenticated altered source, not reused proofs.
+    pub(crate) fn test_with_actual_complete_store<T>(
+        callback: impl FnOnce(
+            Self,
+            crate::resumable_effects::owned_frame::SourceOwnedWaitLeaseV8,
+            crate::resumable_effects::source_checkpoint::SourceCheckpointKey,
+            &std::path::Path,
+        ) -> T,
+    ) -> T {
+        Self::test_with_runtime_fixture(RuntimeFixture::Complete, true, callback)
+    }
+    /// Closed two-Bytes Complete source. Both original State/Outcome leaves
+    /// move to Report; zero active success cleanup is proved by the compiler.
+    pub(crate) fn test_with_actual_empty_complete_store<T>(
+        callback: impl FnOnce(
+            Self,
+            crate::resumable_effects::owned_frame::SourceOwnedWaitLeaseV8,
+            crate::resumable_effects::source_checkpoint::SourceCheckpointKey,
+            &std::path::Path,
+        ) -> T,
+    ) -> T {
+        Self::test_with_runtime_fixture(RuntimeFixture::EmptyComplete, true, callback)
+    }
+    /// Closed source variant rebuilt through actual source/B/E/registration;
+    /// the full per-stage allowance remains 1000 in every stage.
+    pub(crate) fn test_with_actual_reduce_fuel_store<T>(
+        callback: impl FnOnce(
+            Self,
+            crate::resumable_effects::owned_frame::SourceOwnedWaitLeaseV8,
+            crate::resumable_effects::source_checkpoint::SourceCheckpointKey,
+            &std::path::Path,
+        ) -> T,
+    ) -> T {
+        Self::test_with_runtime_fixture(RuntimeFixture::ReduceFuel, true, callback)
+    }
+    /// Closed source variant rebuilt through actual source/B/E/registration;
+    /// the full per-stage allowance remains 1000 in every stage.
+    pub(crate) fn test_with_actual_reduce_arithmetic_store<T>(
+        callback: impl FnOnce(
+            Self,
+            crate::resumable_effects::owned_frame::SourceOwnedWaitLeaseV8,
+            crate::resumable_effects::source_checkpoint::SourceCheckpointKey,
+            &std::path::Path,
+        ) -> T,
+    ) -> T {
+        Self::test_with_runtime_fixture(RuntimeFixture::ReduceArithmetic, true, callback)
+    }
+    /// Closed source variant rebuilt through actual source/B/E/registration;
+    /// the full per-stage allowance remains 1000 in every stage.
+    pub(crate) fn test_with_actual_reduce_ensures_store<T>(
+        callback: impl FnOnce(
+            Self,
+            crate::resumable_effects::owned_frame::SourceOwnedWaitLeaseV8,
+            crate::resumable_effects::source_checkpoint::SourceCheckpointKey,
+            &std::path::Path,
+        ) -> T,
+    ) -> T {
+        Self::test_with_runtime_fixture(RuntimeFixture::ReduceEnsures, true, callback)
+    }
+    fn test_with_runtime_fixture<T>(
+        profile: RuntimeFixture,
+        retention_ack: bool,
+        callback: impl FnOnce(
+            Self,
+            crate::resumable_effects::owned_frame::SourceOwnedWaitLeaseV8,
+            crate::resumable_effects::source_checkpoint::SourceCheckpointKey,
+            &std::path::Path,
+        ) -> T,
+    ) -> T {
+        let f = fixture_for(profile);
+        with_authenticated_project(&f.0.join("semaprax.toml"), |snapshot| {
+            let project = snapshot.retain_revision();
+            let source = project
+                .sources()
+                .iter()
+                .find(|s| s.path() == "src/app.spx")
+                .unwrap();
+            let wait = Arc::new(compile_owned_agent_wait_v8(
+                source.source(),
+                std::path::Path::new(source.path()),
+                "fixture.agent",
+                "fixture.agent.type.step",
+            )?);
+            let baseline = Arc::new(runtime_for(
+                Arc::clone(&project),
+                effects(),
+                false,
+                b"owned task",
+                profile,
+            ));
+            let total = match profile {
+                RuntimeFixture::ProspectiveReduce(limits) => limits.total(),
+                _ => 2_000_000,
+            };
+            let e = Arc::new(context_for(&baseline, Arc::clone(&wait), total));
+            if matches!(
+                profile,
+                RuntimeFixture::Complete | RuntimeFixture::EmptyComplete
+            ) {
+                assert_eq!(e.ordinary().max_iterations(), 2);
+                assert_eq!(e.ordinary().max_stages(), 7);
+            }
+            let (registration, mut lease) =
+                registered_context_store(&f.0, "ready-journal", &e, false);
+            let wrong_runtime = Arc::new(runtime_for(
+                Arc::clone(&project),
+                effects(),
+                true,
+                b"changed task",
+                profile,
+            ));
+            let wrong =
+                crate::live_invocation::source_journal::checked_owned_wait_journal_context_v8(
+                    Arc::clone(&e),
+                    &lease,
+                    &registration,
+                )
+                .unwrap();
+            assert!(wrong.with_runtime(wrong_runtime, &lease).is_err());
+            let checked =
+                crate::live_invocation::source_journal::checked_owned_wait_journal_context_v8(
+                    e,
+                    &lease,
+                    &registration,
+                )
+                .unwrap()
+                .with_runtime(baseline, &lease)
+                .unwrap();
+            if retention_ack {
+                lease
+                    .authorize_fresh_start(
+                        registration
+                            .acknowledge_retained_by_trusted_host(true)
+                            .unwrap(),
+                    )
+                    .unwrap();
+            }
+            let key =
+                crate::resumable_effects::source_checkpoint::SourceCheckpointKey::new([73; 32]);
+            Ok(callback(checked, lease, key, &f.0.join("ready-journal")))
+        })
+        .unwrap()
+    }
+}
+
+#[test]
+fn owned_wait_ready_inventory_joins_real_runtime_and_physical_lease_without_authority() {
+    use crate::live_invocation::source_journal::CheckedOwnedWaitJournalContextV8;
+    CheckedOwnedWaitJournalContextV8::test_with_actual_runtime(|checked, mut lease, key| {
+        let (document, wrong_documents) = checked.test_ready_documents(&key);
+        assert_eq!(
+            checked.test_inventory_len(&lease, &key, &document).unwrap(),
+            20
+        );
+        for (index, wrong) in wrong_documents.iter().enumerate() {
+            assert!(
+                checked.test_inventory_len(&lease, &key, wrong).is_err(),
+                "authenticated stale commitment/causal variant {index}"
+            );
+        }
+        assert!(checked
+            .test_ready_without_runtime(&lease, &key, &document)
+            .is_err());
+        assert_eq!(lease.read().unwrap(), b"", "data admission never appends");
+    });
+}

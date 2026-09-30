@@ -7,6 +7,20 @@
 //! arguments, exact caller-owned scope, and the caller's 256-bit HMAC key
 //! again; normal resume replay still recomputes every recorded request before
 //! accepting an answer.
+//!
+//! [`SOURCE_RESUMABLE_CHECKPOINT_SCHEMA`] (this module) and
+//! [`SOURCE_RESUMABLE_CHECKPOINT_SCHEMA_V2`] ([`signature_bound`]) are this
+//! non-durable driver's original wire, and both are the sequential lane
+//! only: they wrap `interpreter::resumable::checkpoint`'s
+//! [`crate::interpreter::resumable::ResumableContinuation`], which has no
+//! representation for a control-dependent continuation, and its decode
+//! refuses (`ProgramMismatch`) any function whose lowering is not purely
+//! sequential. [`control`]'s separate `v3` envelope
+//! ([`SOURCE_RESUMABLE_CHECKPOINT_SCHEMA_V3`]) is this driver's
+//! control-dependent-lane counterpart, added with issue #296's structured
+//! control admission; it is a distinct schema and type, not a variant of
+//! this one. `resumable_effects::continuation`'s durable journal is the
+//! only driver that recovers both lanes through one route.
 
 use crate::hir::ResolvedProgram;
 use crate::interpreter::resumable::{checkpoint, ResumableContinuation};
@@ -16,8 +30,26 @@ use serde_json::{json, Value};
 use sha2::Sha256;
 use zeroize::Zeroize;
 
+mod channel;
+mod control;
+mod control_owned;
 mod migration;
 mod signature_bound;
+pub use channel::{
+    decode_source_checkpoint_v5, decode_source_checkpoint_v6, encode_source_checkpoint_v5,
+    encode_source_checkpoint_v6, SOURCE_RESUMABLE_CHECKPOINT_SCHEMA_V5,
+    SOURCE_RESUMABLE_CHECKPOINT_SCHEMA_V6,
+};
+/// V7 decoding returns inert continuation data and grants no execution authority.
+pub use channel::{
+    decode_source_checkpoint_v7, encode_source_checkpoint_v7, SOURCE_RESUMABLE_CHECKPOINT_SCHEMA_V7,
+};
+pub use control::{
+    decode_source_checkpoint_v3, encode_source_checkpoint_v3, SOURCE_RESUMABLE_CHECKPOINT_SCHEMA_V3,
+};
+pub use control_owned::{
+    decode_source_checkpoint_v4, encode_source_checkpoint_v4, SOURCE_RESUMABLE_CHECKPOINT_SCHEMA_V4,
+};
 pub use migration::{
     migrate_source_checkpoint_v2, SourceCheckpointMigration, SourceCheckpointMigrationBudget,
     SourceCheckpointMigrationError, SourceCheckpointMigrationInput,
@@ -50,6 +82,25 @@ pub struct SourceCheckpointKey([u8; 32]);
 impl SourceCheckpointKey {
     pub fn new(key: [u8; 32]) -> Self {
         Self(key)
+    }
+}
+
+impl SourceCheckpointKey {
+    /// Domain-separated HMAC-SHA256 under this key for sibling authenticated
+    /// carriers (the continuation journal). The key itself never leaves.
+    pub(crate) fn authenticate(&self, domain: &[u8], payload: &[u8]) -> [u8; 32] {
+        let mut mac = Hmac::<Sha256>::new_from_slice(&self.0).expect("HMAC accepts a 32-byte key");
+        mac.update(domain);
+        mac.update(payload);
+        mac.finalize().into_bytes().into()
+    }
+
+    /// Constant-time verification of [`Self::authenticate`].
+    pub(crate) fn verify(&self, domain: &[u8], payload: &[u8], tag: &[u8]) -> bool {
+        let mut mac = Hmac::<Sha256>::new_from_slice(&self.0).expect("HMAC accepts a 32-byte key");
+        mac.update(domain);
+        mac.update(payload);
+        mac.verify_slice(tag).is_ok()
     }
 }
 
@@ -92,6 +143,7 @@ impl SourceCheckpointScope {
 /// Stable refusal classes for public source-continuation recovery.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum SourceCheckpointError {
+    ArgumentsMismatch,
     TooLarge,
     InvalidScope,
     Malformed,

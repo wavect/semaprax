@@ -93,6 +93,12 @@ fn task_owner_authorized(task_owner_account_id: i64, session_account_id: i64, se
     session_usable && task_owner_account_id == session_account_id
 }
 
+@id("task_service.core.session_is_usable")
+fn session_is_usable_for_host(state: usize, now_tick: usize, idle_deadline_tick: usize, absolute_deadline_tick: usize) -> bool
+{
+    session_is_usable(state, now_tick, idle_deadline_tick, absolute_deadline_tick)
+}
+
 @id("task_service.core.enqueue_is_legal")
 fn enqueue_is_legal(pending_state: usize, now_tick: usize, next_run_tick: usize) -> bool
 {

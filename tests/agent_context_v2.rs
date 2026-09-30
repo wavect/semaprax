@@ -739,7 +739,7 @@ fn session_protocol_kernel_is_envelope_level_in_v2_too_and_matches_the_public_fu
     let specs = parsed["session_protocol_kernel"]["specs"]
         .as_array()
         .unwrap();
-    assert_eq!(specs.len(), 3);
+    assert_eq!(specs.len(), 4);
     for fact in parsed["facts"].as_array().unwrap() {
         assert!(fact.get("session_protocol_kernel").is_none());
     }
@@ -758,12 +758,12 @@ fn session_protocol_kernel_is_envelope_level_in_v2_too_and_matches_the_public_fu
     assert!(!bare.contains("session_protocol_kernel"));
 
     // The bounded v1/v2 summary and the unbounded public full-catalog
-    // function report the same three specs with the same verdicts -- they
+    // function report the same four specs with the same verdicts -- they
     // are two views of one kernel, not two disconnected catalogs.
     let full = graph::session_protocol_kernel_json();
     let full: serde_json::Value = serde_json::from_str(&full).unwrap();
     let full_specs = full["specs"].as_array().unwrap();
-    assert_eq!(full_specs.len(), 3);
+    assert_eq!(full_specs.len(), 4);
     for (summary_spec, full_spec) in specs.iter().zip(full_specs) {
         assert_eq!(summary_spec["name"], full_spec["name"]);
         assert_eq!(summary_spec["well_formed"], full_spec["well_formed"]);

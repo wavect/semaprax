@@ -8,9 +8,23 @@
 //! derives the state/binding rather than trusting either from the bytes. The
 //! self-digest detects accidental corruption; exact request values are
 //! independently replay-checked by the existing resume path.
+//!
+//! This driver excludes the control-dependent lane (issue #296: a `yield`
+//! inside an `if`/`else` branch or `while` body). [`decode`]'s
+//! [`checked_plan`] calls [`lowering::lower_sequential`], which itself
+//! refuses any function whose yields are not *all* direct top-level slots
+//! (`"resumable yield is nested instead of occupying a direct top-level
+//! slot"`); that refusal is folded into the generic
+//! [`CheckpointError::ProgramMismatch`] like every other lowering failure,
+//! rather than reported as its own class. A control-dependent function's
+//! non-durable checkpoint is
+//! `resumable_effects::source_checkpoint::control`'s separate v3 envelope;
+//! its durable one is `resumable_effects::continuation`'s journal, which
+//! drives both lanes.
 
 use super::{
-    bind_scalar_arguments, resumable_scalars, typed_resume_value, ArgumentValue,
+    bind_scalar_arguments, channel_to_resumable_scalar, resumable_scalars,
+    typed_resume_channel_value, typed_resume_value, ArgumentValue, ResumableChannelValue,
     ResumableContinuation, ResumableYieldRecord,
 };
 use crate::hir::{self, IdentityOrigin};
@@ -28,6 +42,10 @@ pub(crate) const SEQUENTIAL_CHECKPOINT_SCHEMA: &str =
 /// bound is deliberately much smaller than a general journal: this carrier
 /// contains no source, HIR, effects, or owned state.
 const MAX_CHECKPOINT_BYTES: usize = 16 * 1024;
+// A v6 request may contain eight 1 KiB Bytes leaves. JSON's decimal byte
+// arrays need up to four bytes per element; one-site admission bounds the
+// complete carrier well below this separate cap.
+const MAX_BYTES_CHANNEL_CHECKPOINT_BYTES: usize = 64 * 1024;
 const MAX_CHECKPOINT_FIELD_BYTES: usize = 1024;
 const MAX_HISTORY: usize = MAX_RESUMABLE_YIELDS - 1;
 
@@ -177,6 +195,7 @@ pub(crate) fn decode(
 
     let mut records = Vec::with_capacity(history.len());
     let mut answer_scalars = Vec::with_capacity(history.len());
+    let mut injected_allocations = 0_u32;
     for (index, raw) in history.iter().enumerate() {
         keys(raw, &["request", "answer"])?;
         let request = scalar_from_json(&raw["request"])?;
@@ -220,6 +239,334 @@ pub(crate) fn decode(
     Ok(continuation)
 }
 
+/// Issue #296 R20: a breaking change to this wire shape always gets a new
+/// schema name, exactly like [`SEQUENTIAL_CHECKPOINT_SCHEMA`]; the two never
+/// share a schema tag even though [`encode_channel`]'s document shape is
+/// otherwise identical to [`encode`]'s.
+pub(crate) const SEQUENTIAL_CHANNEL_CHECKPOINT_SCHEMA: &str =
+    "semaprax.source-resumable-sequential-channel-checkpoint.v1";
+pub(crate) const SEQUENTIAL_CHANNEL_BYTES_CHECKPOINT_SCHEMA: &str =
+    "semaprax.source-resumable-sequential-channel-checkpoint.v2";
+
+pub(crate) const SEQUENTIAL_CHANNEL_ARGUMENTS_CHECKPOINT_SCHEMA: &str =
+    "semaprax.source-resumable-sequential-channel-checkpoint.v3";
+
+pub(crate) fn encode_channel_arguments(
+    function_id: &str,
+    continuation: &super::ResumableChannelContinuation,
+) -> Result<Vec<u8>, CheckpointError> {
+    encode_channel_schema(
+        function_id,
+        continuation,
+        SEQUENTIAL_CHANNEL_ARGUMENTS_CHECKPOINT_SCHEMA,
+    )
+}
+
+pub(crate) fn decode_channel_arguments(
+    program: &hir::ResolvedProgram,
+    function_id: &str,
+    arguments: &[ResumableChannelValue],
+    bytes: &[u8],
+) -> Result<super::ResumableChannelContinuation, CheckpointError> {
+    decode_channel_schema(
+        program,
+        function_id,
+        &[],
+        bytes,
+        SEQUENTIAL_CHANNEL_ARGUMENTS_CHECKPOINT_SCHEMA,
+        Some(arguments),
+    )
+}
+
+/// [`encode`] widened to a bounded record/variant request/response channel
+/// ([`super::ResumableChannelContinuation`]). `channel_json` renders a
+/// `Scalar` value byte-for-byte like [`scalar_json`], so this differs from
+/// [`encode`]'s own bytes only in its schema tag and, for a genuinely
+/// aggregate request/history entry, the `"record"`/`"variant"` tagged shape
+/// [`channel_json`] adds.
+pub(crate) fn encode_channel(
+    function_id: &str,
+    continuation: &super::ResumableChannelContinuation,
+) -> Result<Vec<u8>, CheckpointError> {
+    encode_channel_schema(
+        function_id,
+        continuation,
+        SEQUENTIAL_CHANNEL_CHECKPOINT_SCHEMA,
+    )
+}
+
+pub(crate) fn encode_channel_bytes(
+    function_id: &str,
+    continuation: &super::ResumableChannelContinuation,
+) -> Result<Vec<u8>, CheckpointError> {
+    encode_channel_schema(
+        function_id,
+        continuation,
+        SEQUENTIAL_CHANNEL_BYTES_CHECKPOINT_SCHEMA,
+    )
+}
+
+fn encode_channel_schema(
+    function_id: &str,
+    continuation: &super::ResumableChannelContinuation,
+    schema: &str,
+) -> Result<Vec<u8>, CheckpointError> {
+    if function_id.len() > MAX_CHECKPOINT_FIELD_BYTES
+        || continuation.state().as_str().len() > MAX_CHECKPOINT_FIELD_BYTES
+    {
+        return Err(CheckpointError::TooLarge);
+    }
+    let history: Vec<Value> = continuation
+        .history()
+        .map(|(request, answer)| {
+            json!({
+                "request": channel_json(request),
+                "answer": channel_json(answer),
+            })
+        })
+        .collect();
+    if history.len() > MAX_HISTORY {
+        return Err(CheckpointError::SuspensionMismatch);
+    }
+    let payload = payload_json(
+        schema,
+        function_id,
+        continuation.state().as_str(),
+        binding_hex(continuation.binding().as_bytes()),
+        channel_json(continuation.request()),
+        Value::Array(history.clone()),
+    );
+    let digest = checkpoint_digest(&payload);
+    let bytes = format!(
+        "{}\n",
+        json!({
+            "schema": schema,
+            "function": function_id,
+            "state": continuation.state().as_str(),
+            "binding": binding_hex(continuation.binding().as_bytes()),
+            "request": channel_json(continuation.request()),
+            "history": history,
+            "digest": digest,
+        })
+    )
+    .into_bytes();
+    let limit = if schema == SEQUENTIAL_CHANNEL_BYTES_CHECKPOINT_SCHEMA {
+        MAX_BYTES_CHANNEL_CHECKPOINT_BYTES
+    } else {
+        MAX_CHECKPOINT_BYTES
+    };
+    if bytes.len() > limit {
+        return Err(CheckpointError::TooLarge);
+    }
+    Ok(bytes)
+}
+
+/// [`decode`] widened to [`encode_channel`]'s schema. Recovery re-lowers the
+/// program and derives the expected state/binding from the caller's current
+/// facts plus the decoded answer bits, exactly like [`decode`]; it performs
+/// no source evaluation and grants no ability to answer a yield.
+pub(crate) fn decode_channel(
+    program: &hir::ResolvedProgram,
+    function_id: &str,
+    arguments: &[ArgumentValue],
+    bytes: &[u8],
+) -> Result<super::ResumableChannelContinuation, CheckpointError> {
+    decode_channel_schema(
+        program,
+        function_id,
+        arguments,
+        bytes,
+        SEQUENTIAL_CHANNEL_CHECKPOINT_SCHEMA,
+        None,
+    )
+}
+
+pub(crate) fn decode_channel_bytes(
+    program: &hir::ResolvedProgram,
+    function_id: &str,
+    arguments: &[ArgumentValue],
+    bytes: &[u8],
+) -> Result<super::ResumableChannelContinuation, CheckpointError> {
+    decode_channel_schema(
+        program,
+        function_id,
+        arguments,
+        bytes,
+        SEQUENTIAL_CHANNEL_BYTES_CHECKPOINT_SCHEMA,
+        None,
+    )
+}
+
+fn decode_channel_schema(
+    program: &hir::ResolvedProgram,
+    function_id: &str,
+    arguments: &[ArgumentValue],
+    bytes: &[u8],
+    expected_schema: &str,
+    channel_arguments: Option<&[ResumableChannelValue]>,
+) -> Result<super::ResumableChannelContinuation, CheckpointError> {
+    let limit = if expected_schema == SEQUENTIAL_CHANNEL_BYTES_CHECKPOINT_SCHEMA {
+        MAX_BYTES_CHANNEL_CHECKPOINT_BYTES
+    } else {
+        MAX_CHECKPOINT_BYTES
+    };
+    if bytes.len() > limit {
+        return Err(CheckpointError::TooLarge);
+    }
+    let text = std::str::from_utf8(bytes)
+        .map_err(|error| CheckpointError::Malformed(error.to_string()))?;
+    let document: Value = serde_json::from_str(text)
+        .map_err(|error| CheckpointError::Malformed(error.to_string()))?;
+    keys(
+        &document,
+        &[
+            "schema", "function", "state", "binding", "request", "history", "digest",
+        ],
+    )?;
+    let schema = required_str(&document, "schema")?;
+    if schema != expected_schema {
+        return Err(CheckpointError::SchemaMismatch);
+    }
+    let encoded_function = required_str(&document, "function")?;
+    if encoded_function != function_id {
+        return Err(CheckpointError::FunctionMismatch);
+    }
+    let state = required_str(&document, "state")?;
+    let claimed_binding = binding_from_hex(required_str(&document, "binding")?)?;
+    let request_value = document["request"].clone();
+    let history_value = document["history"].clone();
+    let history = history_value
+        .as_array()
+        .ok_or_else(|| CheckpointError::Malformed("history".to_owned()))?;
+    if history.len() > MAX_HISTORY {
+        return Err(CheckpointError::SuspensionMismatch);
+    }
+    let payload = payload_json(
+        schema,
+        encoded_function,
+        state,
+        binding_hex(&claimed_binding),
+        request_value.clone(),
+        history_value.clone(),
+    );
+    let claimed_digest = required_str(&document, "digest")?;
+    if claimed_digest != checkpoint_digest(&payload) {
+        return Err(CheckpointError::DigestMismatch);
+    }
+
+    let (plan, scalar_arguments) = if let Some(arguments) = channel_arguments {
+        checked_channel_arguments_plan(program, function_id, arguments)?
+    } else {
+        checked_plan(program, function_id, arguments)?
+    };
+    let index = plan
+        .suspensions
+        .iter()
+        .position(|site| site.state.id.as_str() == state)
+        .ok_or(CheckpointError::SuspensionMismatch)?;
+    if history.len() != index {
+        return Err(CheckpointError::SuspensionMismatch);
+    }
+
+    let declarations = &program.declarations;
+    let mut records = Vec::with_capacity(history.len());
+    let mut answer_scalars = Vec::with_capacity(history.len());
+    let mut injected_allocations = 0_u32;
+    for (index, raw) in history.iter().enumerate() {
+        keys(raw, &["request", "answer"])?;
+        let request = channel_from_json(&raw["request"])?;
+        let answer = channel_from_json(&raw["answer"])?;
+        let site = &plan.suspensions[index];
+        typed_resume_channel_value(
+            declarations,
+            &site.request_type,
+            &request,
+            "historical request",
+            &mut injected_allocations,
+        )
+        .map_err(|_| CheckpointError::SuspensionMismatch)?;
+        typed_resume_channel_value(
+            declarations,
+            &site.response_type,
+            &answer,
+            "historical answer",
+            &mut injected_allocations,
+        )
+        .map_err(|_| CheckpointError::SuspensionMismatch)?;
+        answer_scalars
+            .push(channel_to_resumable_scalar(&answer).ok_or(CheckpointError::SuspensionMismatch)?);
+        records.push(super::ChannelYieldRecord { request, answer });
+    }
+    let request = channel_from_json(&request_value)?;
+    let current = &plan.suspensions[index];
+    typed_resume_channel_value(
+        declarations,
+        &current.request_type,
+        &request,
+        "request",
+        &mut injected_allocations,
+    )
+    .map_err(|_| CheckpointError::SuspensionMismatch)?;
+    let binding = plan
+        .suspension_binding_at(index, &scalar_arguments, &answer_scalars)
+        .map_err(|_| CheckpointError::ProgramMismatch)?;
+    if binding.as_bytes() != &claimed_binding {
+        return Err(CheckpointError::SuspensionMismatch);
+    }
+    let continuation = super::ResumableChannelContinuation {
+        state: current.state.id.clone(),
+        binding,
+        request,
+        history: records,
+    };
+
+    if encode_channel_schema(function_id, &continuation, expected_schema)?.as_slice() != bytes {
+        return Err(CheckpointError::NonCanonical);
+    }
+    Ok(continuation)
+}
+
+/// Reuses interpreter admission without evaluating source or granting authority.
+pub(crate) fn checked_channel_arguments_plan(
+    program: &hir::ResolvedProgram,
+    function_id: &str,
+    arguments: &[ResumableChannelValue],
+) -> Result<(SequentialResumablePlan, Vec<ResumableScalar>), CheckpointError> {
+    let admitted = super::channel::admit_channel_entry(program, function_id, arguments, 1, true)
+        .map_err(|_| CheckpointError::ProgramMismatch)?;
+    // v7 is selected by a genuine aggregate whole-function boundary, never
+    // by caller-supplied checkpoint bytes. Owned channels remain on v6.
+    let has_aggregate_boundary = admitted
+        .entry
+        .params
+        .iter()
+        .any(|p| !hir::is_scalar_resolved_type(&p.ty))
+        || !hir::is_scalar_resolved_type(&admitted.entry.return_type);
+    let has_owned_bytes = admitted
+        .entry
+        .params
+        .iter()
+        .any(|param| hir::yield_aggregate::has_bytes_leaf(&program.declarations, &param.ty))
+        || hir::yield_aggregate::has_bytes_leaf(&program.declarations, &admitted.entry.return_type)
+        || hir::yield_aggregate::has_bytes_leaf(
+            &program.declarations,
+            &admitted.yields.request_type,
+        )
+        || hir::yield_aggregate::has_bytes_leaf(
+            &program.declarations,
+            &admitted.yields.response_type,
+        );
+    if !has_aggregate_boundary || has_owned_bytes {
+        return Err(CheckpointError::ProgramMismatch);
+    }
+    let plan = lowering::lower_sequential_with_arguments(program, admitted.entry)
+        .map_err(|_| CheckpointError::ProgramMismatch)?;
+    if plan.suspensions.is_empty() {
+        return Err(CheckpointError::ProgramMismatch);
+    }
+    Ok((plan, admitted.arguments))
+}
+
 fn checked_plan(
     program: &hir::ResolvedProgram,
     function_id: &str,
@@ -246,14 +593,14 @@ fn checked_plan(
     hir::validate(program).map_err(|_| CheckpointError::ProgramMismatch)?;
     let plan =
         lowering::lower_sequential(program, entry).map_err(|_| CheckpointError::ProgramMismatch)?;
-    if plan.suspensions.len() <= 1 {
+    if plan.suspensions.is_empty() {
         return Err(CheckpointError::ProgramMismatch);
     }
     let scalars = resumable_scalars(arguments).ok_or(CheckpointError::ProgramMismatch)?;
     Ok((plan, scalars))
 }
 
-fn scalar_json(value: &ArgumentValue) -> Value {
+pub(crate) fn scalar_json(value: &ArgumentValue) -> Value {
     match value {
         ArgumentValue::Int(value) => json!({"tag": "i64", "value": value}),
         ArgumentValue::Int32(value) => json!({"tag": "i32", "value": value}),
@@ -273,7 +620,7 @@ fn scalar_json(value: &ArgumentValue) -> Value {
     }
 }
 
-fn scalar_from_json(value: &Value) -> Result<ArgumentValue, CheckpointError> {
+pub(crate) fn scalar_from_json(value: &Value) -> Result<ArgumentValue, CheckpointError> {
     let tag = required_str(value, "tag")?;
     match tag {
         "i64" => {
@@ -334,6 +681,146 @@ fn scalar_from_json(value: &Value) -> Result<ArgumentValue, CheckpointError> {
         }
         _ => Err(CheckpointError::Malformed("scalar.tag".to_owned())),
     }
+}
+
+/// Issue #296 R20: the wire projection of a [`ResumableChannelValue`].
+/// `Scalar` renders byte-for-byte identically to [`scalar_json`] -- the same
+/// `"tag"` discriminant values a bare scalar always used -- so every
+/// existing scalar-channel checkpoint or journal record stays exactly as it
+/// was; `"record"`/`"variant"` are new tag values only a bounded aggregate
+/// channel ever produces.
+pub(crate) fn channel_json(value: &ResumableChannelValue) -> Value {
+    match value {
+        ResumableChannelValue::Scalar(scalar) => scalar_json(scalar),
+        ResumableChannelValue::Record {
+            declaration,
+            fields,
+        } => json!({
+            "tag": "record",
+            "declaration": declaration.as_str(),
+            "fields": fields.iter().map(scalar_json).collect::<Vec<_>>(),
+        }),
+        ResumableChannelValue::Variant {
+            declaration,
+            case,
+            fields,
+        } => json!({
+            "tag": "variant",
+            "declaration": declaration.as_str(),
+            "case": case.as_str(),
+            "fields": fields.iter().map(scalar_json).collect::<Vec<_>>(),
+        }),
+        ResumableChannelValue::RecordBytes {
+            declaration,
+            fields,
+        } => json!({
+            "tag": "record-bytes",
+            "declaration": declaration.as_str(),
+            "fields": fields.iter().map(channel_field_json).collect::<Vec<_>>(),
+        }),
+        ResumableChannelValue::VariantBytes {
+            declaration,
+            case,
+            fields,
+        } => json!({
+            "tag": "variant-bytes",
+            "declaration": declaration.as_str(),
+            "case": case.as_str(),
+            "fields": fields.iter().map(channel_field_json).collect::<Vec<_>>(),
+        }),
+    }
+}
+
+pub(crate) fn channel_from_json(value: &Value) -> Result<ResumableChannelValue, CheckpointError> {
+    let tag = required_str(value, "tag")?;
+    match tag {
+        "record" => {
+            keys(value, &["tag", "declaration", "fields"])?;
+            let declaration = hir::DeclarationId::new(required_str(value, "declaration")?);
+            let fields = value["fields"]
+                .as_array()
+                .ok_or_else(|| CheckpointError::Malformed("record.fields".to_owned()))?
+                .iter()
+                .map(scalar_from_json)
+                .collect::<Result<Vec<_>, _>>()?;
+            Ok(ResumableChannelValue::Record {
+                declaration,
+                fields,
+            })
+        }
+        "variant" => {
+            keys(value, &["tag", "declaration", "case", "fields"])?;
+            let declaration = hir::DeclarationId::new(required_str(value, "declaration")?);
+            let case = hir::DeclarationId::new(required_str(value, "case")?);
+            let fields = value["fields"]
+                .as_array()
+                .ok_or_else(|| CheckpointError::Malformed("variant.fields".to_owned()))?
+                .iter()
+                .map(scalar_from_json)
+                .collect::<Result<Vec<_>, _>>()?;
+            Ok(ResumableChannelValue::Variant {
+                declaration,
+                case,
+                fields,
+            })
+        }
+        "record-bytes" => {
+            keys(value, &["tag", "declaration", "fields"])?;
+            Ok(ResumableChannelValue::RecordBytes {
+                declaration: hir::DeclarationId::new(required_str(value, "declaration")?),
+                fields: channel_fields(&value["fields"])?,
+            })
+        }
+        "variant-bytes" => {
+            keys(value, &["tag", "declaration", "case", "fields"])?;
+            Ok(ResumableChannelValue::VariantBytes {
+                declaration: hir::DeclarationId::new(required_str(value, "declaration")?),
+                case: hir::DeclarationId::new(required_str(value, "case")?),
+                fields: channel_fields(&value["fields"])?,
+            })
+        }
+        _ => scalar_from_json(value).map(ResumableChannelValue::Scalar),
+    }
+}
+
+fn channel_field_json(value: &super::channel_bytes::ChannelField) -> Value {
+    match value {
+        super::channel_bytes::ChannelField::Scalar(value) => scalar_json(value),
+        super::channel_bytes::ChannelField::Bytes(value) => json!({"tag": "bytes", "value": value}),
+    }
+}
+
+fn channel_fields(
+    value: &Value,
+) -> Result<Vec<super::channel_bytes::ChannelField>, CheckpointError> {
+    let fields = value
+        .as_array()
+        .ok_or_else(|| CheckpointError::Malformed("channel.fields".to_owned()))?;
+    fields
+        .iter()
+        .map(|field| {
+            if required_str(field, "tag")? == "bytes" {
+                keys(field, &["tag", "value"])?;
+                let bytes = field["value"]
+                    .as_array()
+                    .ok_or_else(|| CheckpointError::Malformed("bytes.value".to_owned()))?
+                    .iter()
+                    .map(|value| {
+                        value
+                            .as_u64()
+                            .and_then(|value| u8::try_from(value).ok())
+                            .ok_or_else(|| CheckpointError::Malformed("bytes.value".to_owned()))
+                    })
+                    .collect::<Result<Vec<_>, _>>()?;
+                if bytes.len() > super::channel_bytes::MAX_CHANNEL_BYTES {
+                    return Err(CheckpointError::TooLarge);
+                }
+                Ok(super::channel_bytes::ChannelField::Bytes(bytes))
+            } else {
+                scalar_from_json(field).map(super::channel_bytes::ChannelField::Scalar)
+            }
+        })
+        .collect()
 }
 
 fn parse_bits(text: &str, width: usize) -> Result<u64, CheckpointError> {

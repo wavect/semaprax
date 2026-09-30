@@ -9,6 +9,7 @@
     reason = "sealed validation and test-only replay seams remain non-public"
 )]
 mod builder_bytes_report;
+mod checked_value_retention;
 mod dependency_pruning;
 pub(crate) mod diagnostics;
 mod expected_projection;
@@ -16,12 +17,14 @@ mod generic_type_import;
 mod operation_sidecar;
 mod owned_function_import;
 use owned_function_import::validate_imported_function;
+mod agent_execution;
 mod owned_generics;
 mod package;
 mod prelude_binding;
 mod project_render;
 mod retained_validation;
 mod retained_vectors;
+mod session_protocol_decl;
 pub(crate) mod source_callables;
 mod validation;
 use crate::ast::{
@@ -31,13 +34,11 @@ use crate::ast::{
 use crate::diagnostic::Diagnostic;
 use crate::{format, graph, hir, prelude, workspace};
 use diagnostics::{graph_error, limit_error, project_function_error, use_error};
-#[cfg(test)]
-use expected_projection::dependency_depths;
-#[cfg(test)]
-use expected_projection::synthetic_builder_bytes;
 use expected_projection::{
     collect_expected_edges, synthetic_program, validate_dependency_dag, verify_resolved_call_edges,
 };
+#[cfg(test)]
+use expected_projection::{dependency_depths, synthetic_builder_bytes};
 use operation_sidecar::build_operation_sidecar;
 pub(crate) use operation_sidecar::project_operation_sidecar;
 use project_render::render_project_graph_json;
@@ -420,6 +421,14 @@ pub(crate) struct WorkspaceGraphProjectionModule {
     function_templates: Vec<hir::ResolvedFunctionTemplate>,
     function_instances: Vec<hir::ResolvedFunctionInstance>,
     signature_types: BTreeMap<String, (hir::DeclarationKind, hir::TypeFacts)>,
+    /// Canonical facts of this module's own declared session protocols
+    /// (issue #297) and endpoint typestate `follows` bindings (issue #297
+    /// follow-on, R21), in that order. A declaration fact starts
+    /// `{"stable_id":...`; a `follows` binding fact starts `{"function":...`
+    /// -- the two shapes are distinguished by that leading key alone, so no
+    /// extra discriminator field or second `Vec` is needed
+    /// (`render_graph_json` partitions on it).
+    session_protocol_facts: Vec<String>,
 }
 pub(crate) struct WorkspaceGraphProjectionDeclaration {
     id: String,
@@ -484,6 +493,14 @@ struct WorkspaceResolvedModule {
     function_templates: Vec<hir::ResolvedFunctionTemplate>,
     function_instances: Vec<hir::ResolvedFunctionInstance>,
     signature_types: BTreeMap<String, (hir::DeclarationKind, hir::TypeFacts)>,
+    /// Canonical facts of this module's own declared session protocols
+    /// (issue #297) and endpoint typestate `follows` bindings (issue #297
+    /// follow-on, R21), in that order, bound by `retain_workspace_module`. A
+    /// declaration fact starts `{"stable_id":...`; a `follows` binding fact
+    /// starts `{"function":...` -- the two shapes are distinguished by that
+    /// leading key alone, so no extra discriminator field or second `Vec` is
+    /// needed (`render_graph_json` partitions on it).
+    session_protocol_facts: Vec<String>,
 }
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub(crate) struct WorkspaceEdge {
@@ -1490,19 +1507,7 @@ impl WorkspaceGraphBuild {
         &self,
         linked: &mut hir::ResolvedProgram,
     ) -> Result<(), Vec<Diagnostic>> {
-        let mut agents = self
-            .hir
-            .modules
-            .iter()
-            .flat_map(|module| module.agents.iter().cloned())
-            .collect::<Vec<_>>();
-        agents.sort_by(|left, right| {
-            left.stable_id
-                .as_str()
-                .as_bytes()
-                .cmp(right.stable_id.as_str().as_bytes())
-        });
-        linked.agents = agents;
+        linked.agents = retained_vectors::project_agents(&self.hir.modules, linked)?;
         hir::validate(linked).map_err(|error| vec![error])
     }
     /// Link the entry closure plus exact persistent additional roots.
@@ -1876,6 +1881,7 @@ impl WorkspaceGraphBuild {
                 function_templates: module.function_templates,
                 function_instances: module.function_instances,
                 signature_types: module.signature_types,
+                session_protocol_facts: module.session_protocol_facts,
             });
         }
         modules.sort_by(|left, right| left.path.cmp(&right.path));
@@ -2567,6 +2573,7 @@ impl WorkspaceGraphChangeView {
                 function_templates: Vec::new(),
                 function_instances: Vec::new(),
                 signature_types: BTreeMap::new(),
+                session_protocol_facts: Vec::new(),
             });
         }
         modules.sort_by(|left, right| left.path.cmp(&right.path));
@@ -3096,6 +3103,7 @@ impl AuthenticatedWorkspaceGraphBuild {
                 function_templates: module.function_templates,
                 function_instances: module.function_instances,
                 signature_types: module.signature_types,
+                session_protocol_facts: module.session_protocol_facts,
             });
         }
         modules.sort_by(|left, right| left.path.cmp(&right.path));
@@ -3468,8 +3476,37 @@ fn render_graph_json(
         .find(|module| module.module == projection.entry_module)
         .expect("validated projection has exactly one entry module");
     let mut output = crate::bounded_output::CappedString::new();
+    // A declaration fact and a `follows` binding fact share one per-module
+    // `Vec` (see `WorkspaceResolvedModule::session_protocol_facts`'s own doc
+    // comment) and are told apart here by their own leading JSON key alone,
+    // costing no extra discriminator or second field.
+    let mut session_protocols: Vec<(String, String, String)> = Vec::new();
+    let mut session_protocol_follows: Vec<(String, String, String)> = Vec::new();
+    for module in &projection.modules {
+        for fact in &module.session_protocol_facts {
+            if fact.starts_with("{\"agent\":") {
+                continue;
+            }
+            let row = (module.module.clone(), module.path.clone(), fact.clone());
+            if fact.starts_with("{\"function\":") {
+                session_protocol_follows.push(row);
+            } else {
+                assert!(
+                    fact.starts_with("{\"stable_id\":"),
+                    "unknown private checked fact tag"
+                );
+                session_protocols.push(row);
+            }
+        }
+    }
     output.push_str("{\"schema\":");
-    push_json_string(&mut output, WORKSPACE_GRAPH_SCHEMA);
+    push_json_string(
+        &mut output,
+        agent_execution::schema(
+            session_protocol_decl::schema(&session_protocols, &session_protocol_follows),
+            &projection.modules,
+        ),
+    );
     output.push_str(",\"workspace_manifest_schema\":");
     push_json_string(&mut output, WORKSPACE_MANIFEST_SCHEMA);
     output.push_str(",\"workspace_revision\":");
@@ -3587,7 +3624,16 @@ fn render_graph_json(
         }
         push_json_string(&mut output, nonclaim);
     }
-    output.push_str("]}");
+    output.push(']');
+    output.push_str(&session_protocol_decl::render_trailing(&session_protocols));
+    output.push_str(&session_protocol_decl::render_follows_trailing(
+        &session_protocol_follows,
+    ));
+    output.push_str(&agent_execution::render_trailing(
+        session_protocol_decl::schema(&session_protocols, &session_protocol_follows),
+        &projection.modules,
+    ));
+    output.push('}');
     output.into_string()
 }
 
@@ -4326,6 +4372,16 @@ fn retain_workspace_module(
     authored: &BTreeMap<&str, AuthoredDeclaration<'_>>,
     retained_output_only: bool,
 ) -> Result<(WorkspaceResolvedModule, Vec<hir::ResolvedFunctionInstance>), Vec<Diagnostic>> {
+    hir::replay_agent_source_associations(program, &resolved.agents)
+        .map_err(|error| vec![error])?;
+    // Declaration facts, then `follows` binding facts, in one `Vec`: the two
+    // JSON shapes are distinguished by their own leading key alone
+    // (`{"stable_id":...` vs `{"function":...`), so storing them together
+    // costs no second per-module `Vec` field -- see the field's own doc
+    // comment on `WorkspaceResolvedModule`.
+    let mut session_protocol_facts = session_protocol_decl::declaration_facts(program, &resolved)?;
+    session_protocol_facts.extend(session_protocol_decl::follows_facts(program)?);
+    session_protocol_facts.extend(agent_execution::facts(program)?);
     let types = filter_owned_vec(
         resolved.types,
         |item| {
@@ -4376,6 +4432,7 @@ fn retain_workspace_module(
             function_templates,
             function_instances,
             signature_types,
+            session_protocol_facts,
         },
         imported_instances,
     ))
@@ -4399,7 +4456,7 @@ fn retained_signature_type_facts(
             .map(|parameter| &parameter.ty)
             .chain(std::iter::once(&function.return_type))
         {
-            retain_checked_value_types(
+            checked_value_retention::retain_checked_value_types(
                 CheckedValueNode::Type(ty),
                 declarations,
                 &mut retained,
@@ -4412,7 +4469,7 @@ fn retained_signature_type_facts(
             .chain(std::iter::once(&function.body))
             .chain(&function.ensures)
         {
-            retain_checked_value_types(
+            checked_value_retention::retain_checked_value_types(
                 CheckedValueNode::Expression(expression),
                 declarations,
                 &mut retained,
@@ -4600,100 +4657,6 @@ impl<'a> CheckedValueNode<'a> {
             },
         }
     }
-}
-
-fn retain_checked_value_types(
-    root: CheckedValueNode<'_>,
-    declarations: &hir::DeclarationIndex,
-    retained: &mut BTreeMap<String, (hir::DeclarationKind, hir::TypeFacts)>,
-    visits: &mut usize,
-) -> Result<(), Vec<Diagnostic>> {
-    // One cursor per active ancestor: wide statement/pattern lists cannot
-    // allocate an unbounded sibling queue. This fixed scratch stack is not
-    // retained; its peak storage is charged once by the inventory entry point.
-    let mut stack = [None; MAX_CHECKED_VALUE_DEPTH + 1];
-    stack[0] = Some((root, 0usize));
-    let mut depth = 0usize;
-    loop {
-        let (node, next) = stack[depth].expect("active checked value cursor");
-        if next == 0 {
-            if *visits >= MAX_CHECKED_VALUE_VISITS {
-                return Err(vec![limit_error(
-                    "checked_value_visits",
-                    MAX_CHECKED_VALUE_VISITS,
-                )]);
-            }
-            *visits += 1;
-            if let Some(ty) = node.ty() {
-                retain_checked_nominal_type(ty, declarations, retained)?;
-            }
-        }
-        if let Some(child) = node.child(next) {
-            if depth == MAX_CHECKED_VALUE_DEPTH {
-                return Err(vec![limit_error(
-                    "checked_value_depth",
-                    MAX_CHECKED_VALUE_DEPTH,
-                )]);
-            }
-            stack[depth] = Some((node, next + 1));
-            depth += 1;
-            stack[depth] = Some((child, 0));
-        } else if depth == 0 {
-            break;
-        } else {
-            stack[depth] = None;
-            depth -= 1;
-        }
-    }
-    Ok(())
-}
-
-fn retain_checked_nominal_type(
-    ty: &hir::ResolvedType,
-    declarations: &hir::DeclarationIndex,
-    retained: &mut BTreeMap<String, (hir::DeclarationKind, hir::TypeFacts)>,
-) -> Result<(), Vec<Diagnostic>> {
-    let hir::ResolvedType::Nominal { declaration, .. } = ty else {
-        return Ok(());
-    };
-    let key = ty.identity_key();
-    if retained.contains_key(&key) {
-        return Ok(());
-    }
-    if retained.len() >= MAX_DECLARATIONS {
-        return Err(vec![limit_error("declarations", MAX_DECLARATIONS)]);
-    }
-    let kind = declarations
-        .declaration(declaration)
-        .ok_or_else(|| {
-            vec![graph_error(
-                "SPX-G173",
-                "checked value nominal declaration is absent",
-            )]
-        })?
-        .kind;
-    let facts = declarations.type_facts(ty).ok_or_else(|| {
-        vec![graph_error(
-            "SPX-G173",
-            "checked value type facts are absent",
-        )]
-    })?;
-    let base = if retained.is_empty() {
-        std::mem::size_of::<BTreeMap<String, (hir::DeclarationKind, hir::TypeFacts)>>()
-    } else {
-        0
-    };
-    let bytes = base
-        .checked_add(
-            std::mem::size_of::<(String, hir::DeclarationKind, hir::TypeFacts)>()
-                + 8 * std::mem::size_of::<usize>(),
-        )
-        .and_then(|bytes| bytes.checked_add(key.capacity()))
-        .and_then(|bytes| bytes.checked_add(facts.layout_key.capacity()))
-        .ok_or_else(|| vec![limit_error("builder_bytes", active_builder_limit())])?;
-    reserve_builder_structure(bytes)?;
-    retained.insert(key, (kind, facts));
-    Ok(())
 }
 
 fn resolved_loan_bytes(program: &hir::ResolvedProgram) -> Result<usize, Vec<Diagnostic>> {

@@ -36,8 +36,10 @@ mod ast {
         role,
         kind,
         stable_id,
-        span
+        span,
+        embedded_function_index
     });
+    codec_struct!(AgentModelWaitBinding { helper_id, span });
     codec_struct!(AgentDeclaration {
         stable_id,
         name,
@@ -45,7 +47,8 @@ mod ast {
         types,
         operations,
         runtime_v1_json,
-        span
+        span,
+        model_wait
     });
     codec_struct!(Program {
         path,
@@ -57,7 +60,41 @@ mod ast {
         protocols,
         implementations,
         agents,
-        functions
+        functions,
+        session_protocols
+    });
+    codec_struct!(SessionProtocolName { name, span });
+    codec_enum!(SessionProtocolKind {
+        0 => Send, 1 => Receive, 2 => Call, 3 => Return, 4 => Cancel, 5 => Timeout, 6 => Fail
+    });
+    codec_enum!(SessionProtocolNext { 0 => Then(state), 1 => Choice(branches) });
+    codec_struct!(SessionProtocolTerminal {
+        state,
+        cleanup,
+        span
+    });
+    codec_struct!(SessionProtocolTransition {
+        from,
+        label,
+        kind,
+        payload,
+        capability,
+        consumes_resource,
+        via,
+        next,
+        span
+    });
+    codec_struct!(SessionProtocolDeclaration {
+        stable_id,
+        explicit_id,
+        name,
+        name_span,
+        states,
+        initial,
+        endpoint,
+        terminals,
+        transitions,
+        span
     });
     codec_enum!(ModuleUseKind { 0 => Function, 1 => Type, 2 => Protocol });
     codec_struct!(ModuleUse {
@@ -169,6 +206,7 @@ mod ast {
         return_type,
         effects,
         yields,
+        follows,
         requires,
         ensures,
         body,
@@ -177,6 +215,11 @@ mod ast {
     codec_struct!(YieldsClause {
         request_type,
         response_type,
+        span
+    });
+    codec_struct!(SessionProtocolFollowsClause {
+        protocol_id,
+        protocol_id_span,
         span
     });
     codec_struct!(Param {

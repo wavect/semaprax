@@ -438,3 +438,57 @@ fn main() -> i64 { 0 }
         ))
     );
 }
+
+#[test]
+fn scalar_output_reservation_covers_every_emitted_status_and_preserves_fixed_cap() {
+    const SCHEMA: &str = "semaprax.agent-wasm-stage-outcome.v2";
+    let mut rows = [
+        i64::MIN.to_string(),
+        i64::MAX.to_string(),
+        u64::MAX.to_string(),
+        "true".into(),
+        "false".into(),
+    ]
+    .map(|value| serde_json::json!({"schema": SCHEMA, "kind": "returned", "value": value}))
+    .to_vec();
+    rows.push(serde_json::json!({"schema": SCHEMA, "kind": "call_depth_exceeded"}));
+    for raw in 1..=10 {
+        let arithmetic = raw <= 8;
+        rows.push(serde_json::json!({"schema": SCHEMA, "kind": "language_failure", "raw_status": raw,
+            "status": {"schema": "semaprax.status.v1", "domain_id": if arithmetic { "semaprax.arithmetic.v1" } else { "semaprax.contract.v1" },
+            "code": if arithmetic { raw } else { raw - 8 }, "class": if arithmetic { "arithmetic" } else { "contract" }, "retryable": false}
+        }));
+    }
+    for row in rows {
+        let rendered = format!("{row}\n");
+        assert!(
+            rendered.len() <= MAX_NODE_SCALAR_OUTCOME_ROW_BYTES,
+            "{rendered}"
+        );
+        decode_node_outcomes(&rendered, 1).expect("bounded row must retain exact parser admission");
+    }
+    assert_eq!(MAX_NODE_SCALAR_OUTCOME_ROW_BYTES, 512);
+    assert_eq!(MAX_NODE_OUTCOME_ROW_BYTES, 4096);
+    assert_eq!(MAX_SEMANTIC_ROW_BYTES, 2048);
+    assert_eq!(node_output_budget(1, 0, false).unwrap(), 4096);
+    assert_eq!(node_output_budget(1, 0, true).unwrap(), 512 + 2048);
+    assert_eq!(node_output_budget(1, 1, true).unwrap(), 4096 + 2048);
+    assert_eq!(
+        node_output_budget(11, 3, true).unwrap(),
+        8 * 512 + 3 * 4096 + 11 * 2048
+    );
+    for (calls, bytes) in [
+        (0, 0),
+        (1, 2),
+        (usize::MAX, 0),
+        (usize::MAX, usize::MAX),
+        (16, 16),
+    ] {
+        assert!(node_output_budget(calls, bytes, true).is_err());
+    }
+    assert_eq!(
+        node_output_budget(MAX_NODE_STDOUT_BYTES / 4096, 0, false).unwrap(),
+        MAX_NODE_STDOUT_BYTES / 4096 * 4096
+    );
+    assert!(node_output_budget(MAX_NODE_STDOUT_BYTES / 4096 + 1, 0, false).is_err());
+}

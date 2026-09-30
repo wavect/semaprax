@@ -32,6 +32,22 @@ is absent without its Cargo feature; observations never enter canonical
 products or acquire authority. `benches/workflow_observer.rs` and the performance
 campaign runner own measurement, exact product comparisons, and host metadata.
 
+`benchmarks/cross-language-v1/supported_scope.py` owns the read-only comparison
+support projection. It reuses v3's no-follow source snapshot and fixed correction
+admission, retains every task/adapter slot, and adds support/exclusion metadata.
+It has no toolchain dispatch or scoring path and does not change v1/v2/v3
+execution authority. [Runnable adapter v3](CROSS-LANGUAGE-RUNNABLE-ADAPTER-V3.md)
+owns the actual official TypeScript admission and runtime evidence.
+
+`benchmarks/cross-language-v1/agent/specialization_accounting.py` owns the
+read-only [specialization cell accounting](../benchmarks/cross-language-v1/agent/README.md#issue-326-frozen-cell-accounting-blocked).
+It authenticates retained original protocol/task metadata and selected current
+source bytes with the existing bounded no-follow reader, then invokes the
+unchanged specialization v1 plan builder. It neither imports a provider nor
+reads task trees, executes an oracle, accepts approval or emits model results.
+The original 81 cells and nine later additions remain distinct. Nonzero blocked
+status and missing independent-review/custody records cannot confer authority.
+
 ## System shape
 
 ```text
@@ -81,6 +97,14 @@ lifecycle evidence through opaque consuming producers. These associations grant
 no host authority. The generic collection helper under `hir/generic_collection`
 owns exact private Box/Vec signature admission; source verification and HIR
 materialization independently validate concrete substitutions.
+
+The additive durable target selector in `iterative/effects/durable` and the
+joined Runtime v2/migration wrappers forward only caller-held native compiler
+or Core Wasm runtime capabilities into that same journal driver. The target
+does not enter checkpoint identity or grant effect authority. A linked Project
+without exact retained Wasm source refuses selection before the initial
+migration handoff store commit; accepted replay still checks the ordinary
+identity, limits, grant and observation sequence before further dispatch.
 
 Private generic collection and iterator-helper admission lives in
 `src/source_verify/declared_type/generic_collection.rs` and the independent
@@ -141,6 +165,57 @@ charged replay reservations, optional usage observations, and terminal snapshots
 `source_journal/io_v5` owns additive cumulative request/response reservations
 and their nonrefundable migration carry; [Source Live I/O v5](SOURCE-LIVE-IO-V5.md)
 defines the bound limits and the private CLI v3 projection.
+`source_journal/wait_v7` owns the opt-in combined model-wait inventory, canonical
+wire, replay closure grammar, fuel and phase-specific capacity; `sink` retains
+the one caller-owned checkpoint writer. Frozen v1-v6 profiles remain separate.
+`source_journal/owned_wait_v8` owns the separate private typed owned-wait
+inventory, exact E/B bindings, phase capacity and fixed same-file append
+adapter. Its `inventory/accounting` child retains the exact Context borrow in
+an incremental authenticated accounting prefix; the target protocol's
+`owned_wait_v8/settlement/accounting` child owns shared reservation/result-charge
+verification. Pure entry checking publishes no authenticated history. Its shared journal container retains the exclusive physical lease;
+borrowers keep that container through owned stages. Physical uncertainty
+permanently poisons the container; pure prospective row refusal does not.
+`live_upstream` owns fresh initialization through real reservation and State
+ACKs, followed by one actual Observe and TurnObserved ACK, in an explicitly
+selected initialized profile. Its `wait` child retains the actual helper park;
+`append/checkpoint` seals the frozen v2 frame from the same held session and
+actual witness inventory without exposing the key or restoring an owner. Historical rows cannot
+mint physical owners or permits. `append/owned_effect/intent` owns the actual
+held Intent durable ACK and sealed successor; its callback-free registry
+transition retains the same exclusive future-Reduce hold. The consuming
+`live_upstream/effect/authorization/prepared/intent/activation` adapter owns
+fresh post-ACK checks and the zero-target-call engine activation permit. Its
+`intent/dispatch` sibling consumes that actual Activated owner and carries the
+private invocation accounting ledger with the same hold through one host call;
+`registered_stage/effect/live_append/intent/dispatch` owns the shared legacy
+and live dispatch body.
+`registered_stage/reduce/live_stage` borrows inert full-Step or failure facts
+from the actual physical reducer stage, including canonical cleanup vectors
+and observed evaluator fuel; descriptive facts grant no execution or cleanup
+authority.
+The source, append, and engine `settlement/cleanup` children retain actual
+Recorded ownership through fixed cleanup ACKs, physical Decision release,
+receipt settlement, and guarded one-use Outcome handoff with the same ledger
+and future-Reduce hold. Failed target or observer settlement retains its actual
+State obligation; postmint guard loss retains actual Executed ownership.
+The `observe/settlement/failed_state` and closed continued descendant retain
+actual failed Observe ownership through fixed State-cleanup ACKs. Engine
+`observe/failed_cleanup` captures real per-action outcomes around the existing
+release primitive; postrelease checks use actual released holders and cached
+facts. Append, candidate and fold `failed_observe` children bind the exact
+failure/vector/Started index and current lineage. Continued cleanup retains the
+same ledger and Reduce hold; initial cleanup creates neither. These private
+routes require owning runtime verification before acceptance.
+The source and append `settlement/cleanup/reduce` children consume that actual
+Executed owner through the original full-F reservation ACK, spending the same
+prospective hold under the append marker. `registered_stage/reduce/live_stage`
+then enters the existing evaluator with those same roots and retains Staged
+ownership, observed fuel, accounting, and the fresh charged Reduce lineage.
+Default ObserveOnly remains separate.
+[Source Agent owned wait v1](SOURCE-AGENT-OWNED-WAIT-V1.md) owns these bounded
+private successors; public Agent execution and partial-initialization recovery
+remain unfinished.
 `source_journal/policy_v6` owns independently folded quote reservations, observed
 and unknown exposure, and cumulative policy carry. Its V6 profile composes I/O
 limits and restores reservations before source continuation.
@@ -198,6 +273,13 @@ intent before adapter dispatch, and restores typed effect accounting from exact
 acknowledged observations without redispatch. The source adapter retains raw
 settlement bytes for that journal; canonical decoded proposals alone enter
 source authorization. It adds no provider transport or ambient authority.
+`execution_revision/typed_durable/model_wait` exposes the separate ordinary-v2
+interpreter wait route. `agent_lifecycle/iterative/model_wait` derives its opaque
+checked wrapper binding; `agent_proposal/model_wait` projects decoded Copy
+carriers. The source-live session owns charged preparation/resume/replay inside
+the same journal and retains the existing model-intent dispatch boundary.
+The typed owner joins the actual terminal and ordinary model evidence roots.
+[Source Model Wait v1](SOURCE-MODEL-WAIT-V1.md) owns this bounded profile.
 `agent_lifecycle/iterative/model` owns the separate bounded local target-parity
 model boundary. It projects the lifecycle-owned Proposal request into one
 canonical authority-free request, consumes a private per-turn grant, reserves
@@ -430,6 +512,16 @@ fixed handle closure; only the native adapter performs pidfd and descriptor
 operations. The separate report-delivery module owns bounded writes and final
 standard-pipe closure after collection. Resource-free scripts exercise the same
 state transitions without constructing observations or process authority.
+
+The standalone `doctor/windows_confinement/primitive/image.rs` boundary checks
+one explicit signed image role against a held local NTFS file and its pinned
+volume-GUID path components before process setup. An owned asynchronous read
+oplock remains live through child settlement and detects observed breaks before
+creation/resume. Its breaks are advisory; retained writable-section mutation
+can still race and exact image binding remains unresolved. It supplies the
+checked name to the Windows spawn primitive. This does not implement Windows request/bundle transport or
+ordinary CLI admission; its added native regression cases remain unexecuted.
+See [Windows doctor v1](DOCTOR-PRODUCTION-PROVISIONER-WINDOWS-V1.md).
 
 The retained safe `semaprax-native-rust-interop-platform` facade and platform-sys
 quarantine's separate `doctor/` module are no longer connected to that CLI route.
@@ -718,7 +810,7 @@ inventory; only concrete bodies reach interpreter and backend target tables.
 A graph, report, review, or evidence capsule is descriptive data. It is not a
 capability, signature, approval, or commit token.
 
-Target Evidence reports the pinned wasmparser 0.258.0 validator. Validator
+Target Evidence reports the pinned wasmparser 0.259.0 validator. Validator
 version facts participate in report hashes and Evidence v2 replay; dependency
 updates require capsule regeneration without granting target execution or
 publication authority. See [Target Evidence v1](SEMANTIC-TARGET-EVIDENCE-V1.md).
@@ -787,18 +879,94 @@ closed-wire replay plus revision-bound closure/source checks. This split and
 its focused evidence are authored but unpromoted; the completion matrix remains
 the sole status authority.
 
-`src/resumable_effects/lowering.rs` owns the deterministic ordered-state HIR
+`src/resumable_effects/lowering.rs` and `lowering/sequential.rs` own the deterministic ordered-state HIR
 plan for one to eight direct sequential, Copy-scalar source `yield` sites. It
 derives exactly bound per-site suspension identities and independently
 validated, yield-free start and per-site resume projections;
 `src/interpreter/resumable.rs` consumes the same plan identities plus an opaque
-in-memory scalar request/answer history for source replay. This is not live
+in-memory scalar request/answer history for source replay.
+`src/interpreter/resumable_entry.rs` owns the checked whole-function entry
+binding; the separate sequential channel API admits bounded Copy-only
+record/variant parameters and results on the interpreter and binds their
+canonical leaves to replay. The scalar entry and v1 durable journal retain their
+existing scalar function boundary. This is not live
 frame or liveness lowering. Projection retains the
 selected function and authored-entrypoint direct-call closures in authored
 order, prunes disconnected functions and correlated declaration-index facts,
 and rederives byte provenance. Retained functions must remain explicit,
 effect-free and Copy-scalar with no owned cleanup; authored nominal/authority surfaces,
 generic calls, function references and retained yielding callees fail closed.
+
+The separate `src/resumable_effects/owned_frame/plan.rs` seals a private checked
+whole-owned-record plan. `src/cleanup_plan/owned_liveness/owned_frame.rs` derives
+actual record-field liveness; `src/cleanup_plan/build/owned_frame_finalizers.rs`
+shares the ordinary builder's canonical finalizer order.
+`src/interpreter/resumable/owned_frame.rs` owns the consuming evaluator: it
+validates inert declaration-ordered Bytes and scalar input before creating one
+opaque live root, retains that root through park/resume and staged terminal
+failures, and performs explicit ordered settlement or consuming result handoff.
+Its environments contain Copy observations, and alias checks precede physical
+leaf release. This private foundation is separate from scalar replay. Durable
+checkpoint owner restoration, target emission and public Agent session
+integration remain unfinished. Its `registered_stage/effect` child consumes
+actual State/Decision roots under sealed effect ACK envelopes and retains the
+same held journal container through Decision release, fresh Outcome and Reduce.
+`registered_stage/reduce/physical_step` retains that lineage through ordered
+per-operation cleanup observations and actual mapped Step moves; its
+`continue_observe` child consumes the mapped State through one checked Observe.
+The owned-wait adapter now connects actual live Authorize/Consumed/Intent
+ACKs through zero-call activation and consuming actual dispatch; the subsequent
+settlement and Recorded adapters retain that same Staged owner and ledger
+through actual durable ACKs. Their cleanup and original Reduce children now
+connect actual Decision release, Outcome and original Reduce reservation and
+evaluation. Fixed Step append children connect actual cleanup, transfer and
+frozen Transition ACKs. The failed-State children of the source adapter and
+registered effect/authorize stages consume only actual failed-target State
+through ordered disposal and sticky Stop, preserving the same ledger and hold.
+Context retains immutable checked Reduce proof; current inventory and physical
+guards are recomputed. Cumulative continuation and terminal delivery still
+require actual live obligations. Other ACK constructors remain
+test-only until those obligations are connected;
+unpublished durable holders release backing without claiming semantic cleanup.
+The fixed Continue children carry actual mapped State through State and original
+Observe ACKs, retaining the same ledger and hold. The initial and continued
+Observe settlement children retain actual engine holders through fixed settlement
+and TurnObserved ACKs. Their hold child advances the same registry cursor with
+unchanged R/S; profile-only fold grammar requires sole-evaluator consumption
+and exact full failure cleanup receipt. Failed State cleanup and next exchange
+remain separate live obligations. The observer-terminal child
+owns permanent normal poison plus independent monotonic cleanup-seal retirement;
+its authorize/effect children borrow actual failed full-receipt State provenance.
+The observer State source/append/fold children use that seal through actual
+State disposal, ordered receipt and sticky Stop; ordinary authority stays closed.
+Continuation carry children retain real successful Observe lineage and move its
+State into existing helper preparation without evaluator/model/target entry.
+Their Start and Prepared children bind actual Created/reservation ACKs to the
+existing evaluator and retain its actual Parked/Terminal/Refused owner. Fixed
+append children publish the checkpoint and Prepared witness before advancing
+the same hold cursor; continued SDK and target entry remain separate routes.
+Candidate continued-Prepared inventory checks live in an audited child.
+The continued `prepared/model`, `append/continued_model` and engine
+`wait/continued/model` children retain that actual owner through fixed Intent,
+settlement, Usage, Resume reservation and Completed ACKs. The existing SDK
+dispatcher uses a closed initial/continued request guard; incurred failed
+settlement keeps physical provenance checks while omitting new-work cancellation
+admission. Candidate `continued_model` retains the authenticated accounting proof,
+and `reduce_hold/turn_model` advances the same spent-token cursor only after a
+true durable ACK. Decoded proposal data grants no owner or dispatch authority.
+The continued `model/authorize`, `append/continued_authorize` and engine
+`wait/continued/model/authorize` children consume the actual Completed owner
+through Proposal, Transfer and full-F Authorize ACKs into a real Staged result.
+Candidate `continued_authorize` and `reduce_hold/turn_authorize` bind the actual
+accounting and advance the same registry token. Initial and continued paths
+share the existing checked authorization evaluator; partial source failure
+retains the actual holder and measured consumption. Ready, target dispatch,
+renewal and public recovery remain required.
+Static Reduce capacity templates are privately retained under exact Context and
+checked proof identity; all current fold/prefix/physical checks remain fresh.
+`registered_stage/live_run` consumes the separately bound live initialization
+permit, retaining actual Task Bytes provenance in initialized State.
+
 `src/resumable_effects/target.rs` owns the public, authority-free production
 preparation profile for those already authenticated projections. It emits an
 exact bounded inventory of deterministic native C11 source or Core-Wasm bytes
@@ -826,8 +994,30 @@ untrusted store from rebinding answer history across those scopes. Decode
 rechecks the tag and facts, re-lowers the current checked program and
 reconstructs an inert continuation; the zeroized key grants no effect or resume
 authority, and the codec performs no dispatch or persistence.
+The bounded request-channel extension lives in
+`src/interpreter/resumable/channel_bytes.rs` and the v6 branch of
+`src/resumable_effects/source_checkpoint/channel.rs`. It admits one direct
+sequential suspension with up to eight 1 KiB owned `Bytes` leaves in a flat
+record or variant request. HIR validation and workspace relinking recheck the
+one-site bound; the interpreter and durable journal consume a canonical
+64 KiB-limited v6 checkpoint. A `Bytes` response and an Agent operation binding
+remain outside this profile.
 [Resumable Effects v1](RESUMABLE-EFFECTS-V1.md) owns the bounded contract and
 remaining general-lowering/runtime gaps.
+`src/resumable_effects/continuation.rs` is the public library driver for that
+profile's durable execution: it runs the compiler-owned start/resume plans on
+the interpreter and journals each step in `continuation/journal.rs`, an
+append-only, HMAC-chained, `fsync`-acknowledged store confined to one
+owner-private directory descriptor the host passes in. Answers are bound to
+program digest, invocation, site and envelope digest and require the host's
+capability policy; recovery never redispatches a settled yield or reruns
+cleanup. [Resumable Effects Continuation v1](RESUMABLE-EFFECTS-CONTINUATION-V1.md)
+owns that contract. The separate `continuation/aggregate.rs` facade owns the
+Copy-only aggregate invocation lifecycle. It uses `continuation/journal/channel.rs`
+for the distinct v2 journal and `source_checkpoint/channel.rs` for the v7
+authenticated envelope, revalidating checked argument and answer shapes before
+append. The v1 scalar lifecycle and v5/v6 checkpoint codecs remain separate.
+This adds no Agent operation binding or scheduler.
 
 ### Native bootstrap backend
 
@@ -998,6 +1188,12 @@ own replacements-only evidence and publication. Operations and structural
 change are separate, bounded derivation layers in
 `src/semantic_workspace_operations.rs` and
 `src/semantic_workspace_structural_change.rs`.
+`src/workspace_graph/session_protocol_decl.rs` owns issue #297's follow-on
+(R21) projection of declared `.spx` `session protocol`s into the Workspace
+Semantic Graph: `semaprax.workspace-semantic-graph.v2`, selected only for a
+workspace with at least one declaring module, with one fact per declaration
+bound to its owning module, path, `@id`, span, and checked `via` functions
+(see `docs/SESSION-PROTOCOL-TYPES-V1.md`).
 
 Only the live workspace invocation may publish. Evidence capsules never carry
 reusable authority.
@@ -2649,6 +2845,15 @@ These areas are deliberately outside the public compiler contract:
 
 - `crates/semaprax-native-loader`: unsafe dynamic-loader boundary;
 - `crates/semaprax-native-host`: connected callable and settlement host;
+- `src/host_ownership/session_endpoint.rs`: private bounded fresh-cell
+  acquisition certificates using the existing owner slots and generations;
+  actual backing stays in the registry through rollback or retirement. Its
+  bounded map contributes to the actual registry footprint.
+- `crates/semaprax-native-host/src/session_endpoint.rs`: a new lexical include
+  within private `desktop_api`, retaining actual host ledger and module
+  credential custody around fresh acquisition and local retirement. These
+  foundations supply no source endpoint attachment, interpreter/Wasm endpoint
+  admission or imported-finalizer support; owning runtime verification is pending;
 - `crates/semaprax-native-rust-interop-*`: unpublished deterministic Rust SDK
   builder and platform-specific publication authority;
 - `crates/semaprax-native-rust-interop-platform/src/host_target.rs`: shared
@@ -2719,7 +2924,7 @@ child and exercises the package across the three execution lanes.
 | Verification | `src/verify.rs`, `src/source_verify.rs`, `src/source_verify/` — `declaration/` owns the per-pass declaration checks, `iterative/` the frame machine, `oracle/` the test-only recursive cross-check, `function_value_inventory.rs` the lexical function-value reference/candidate inventory, `hints.rs` the shared fix hints both verifiers attach to unknown-function, generic-argument, literal-suffix, and borrowed-view diagnostics, and `loans.rs`/`place.rs` the loan lifecycle |
 | HIR | `src/hir.rs`, `src/hir/` — `ids.rs`, `nodes.rs`, and `expr_nodes.rs` own the data model; `resolve_*.rs` own AST lowering; `function_value.rs` owns independent callable target/signature validation; `validation.rs` owns core validation |
 | Cleanup and layouts | `src/cleanup.rs`, `src/cleanup_plan.rs`, `src/cleanup_plan/`, `src/aggregate_layout.rs`, `src/variant_layout.rs` |
-| Graph and read-only analysis | `src/graph.rs`, `src/graph_cleanup.rs`, `src/call_index.rs`, `src/impact.rs`, `src/review.rs`, `src/doc.rs`, `src/query.rs`; `src/graph/function_facts.rs` owns per-function agent-context fact rendering (split out of `src/graph.rs` to stay under its module-size budget); `src/graph/session_protocol_facet.rs` owns issue #206's `session_protocol_kernel` projection -- this compiler's built-in `src/session_protocol/` reference-kernel catalog surfaced as declaration-independent reference data, behind `AgentContextFilter::SessionProtocol` in `context` (CLI-reachable via `--filters session_protocol`) and as the standalone `graph::session_protocol_kernel_json()` Rust API with no CLI verb of its own -- explicitly not a fact about any `.spx` declaration, since none is bound to a `ProtocolSpec`, and deliberately not merged into `graph`'s own per-program `to_json` output (see that function's doc comment for the byte-budget regressions that ruled the merge out); `tests/projections/shapes_catalog.rs` generates the Markdown and JSON language-shape catalogs, `tests/documentation.rs::agent_quick_reference` generates the indexed diagnostic-help companion from the compiler-checked language card, and `src/cli/help.rs` selects bounded exact or smallest-exemplar shape, diagnostic, and language-section results from those static projections |
+| Graph and read-only analysis | `src/graph.rs`, `src/graph_cleanup.rs`, `src/call_index.rs`, `src/impact.rs`, `src/review.rs`, `src/doc.rs`, `src/query.rs`; `src/graph/function_facts.rs` owns per-function agent-context fact rendering (split out of `src/graph.rs` to stay under its module-size budget); `src/graph/session_protocol_facet.rs` owns issue #206's `session_protocol_kernel` projection -- this compiler's built-in `src/session_protocol/` reference-kernel catalog surfaced as declaration-independent reference data, behind `AgentContextFilter::SessionProtocol` in `context` (CLI-reachable via `--filters session_protocol`) and as the standalone `graph::session_protocol_kernel_json()` Rust API with no CLI verb of its own -- explicitly not a fact about any `.spx` declaration and deliberately not merged into `graph`'s own per-program `to_json` output (see that function's doc comment for the byte-budget regressions that ruled the merge out); `src/graph/session_protocol_decl.rs` owns issue #297's projection of declared `.spx` `session protocol`s (graph v48, selected only for a declaring program, and `context`'s `session_protocol_kernel.declared`), with lowering, `SPX-K1xx` checks, HIR `via` binding and the shared declaration fact in `src/session_protocol/source.rs`, the bounded affine Bytes endpoint flow checker in `src/session_protocol/typestate/endpoint.rs` (source identity/move/close checking, reusing ordinary HIR ownership and backend byte cleanup), the `protocol_realizers_bound` claim in `src/architecture_claims/session_protocol.rs`, and `session_protocol` obligations in `src/assurance_manifest/session_protocol.rs`; `tests/projections/shapes_catalog.rs` generates the Markdown and JSON language-shape catalogs, `tests/documentation.rs::agent_quick_reference` generates the indexed diagnostic-help companion from the compiler-checked language card, and `src/cli/help.rs` selects bounded exact or smallest-exemplar shape, diagnostic, and language-section results from those static projections |
 | Semantic retention metadata | `src/semantic_retention.rs`, `src/semantic_retention/`, receipt adapter in `src/candidate_archive_store.rs` |
 | Retention metadata persistence | `src/semantic_retention_store.rs`, `src/semantic_retention_store/`, explicit adapter `src/cli/retention_metadata.rs` |
 | Retention registry cursor | `src/semantic_retention_registry.rs`, `src/semantic_retention_registry/` |
@@ -2744,6 +2949,7 @@ child and exercises the package across the three execution lanes.
 | Environment I/O | `src/environment_ops.rs` and `src/environment_snapshot.rs` own the closed operation vocabulary, status domain, immutable snapshot bounds, and canonicalization; `src/interpreter/environment.rs` and `src/project/environment.rs` bind the caller-supplied snapshot; `src/codegen/native_emit/environment_io.rs` and `src/codegen/native_emit/environment_runtime.c` own the native callback ABI; `src/wasm/environment_io.rs` and `src/wasm/aggregate/host_command.rs` own the private Core-Wasm imports and lowering; `src/graph/environment.rs` owns Graph environment facts; `src/project/manifest/` owns private `environment-io.v1` admission; `std/env/` owns the source-authored `std.env` composition. [Bounded Environment I/O v1](BOUNDED-ENVIRONMENT-IO-V1.md) owns the additive snapshot contract and authority boundary. |
 | Process I/O | `src/process_ops.rs` owns the closed `process_run` operation, eight-argument signature, wire bounds, status domain, and Process v1 admission facts; `src/process_provider.rs` owns request/output encoding, reservation accounting, and provider settlement; `src/process_provider/registered.rs` owns held executable/cwd/tool registration and explicit environment/argv policy; `src/process_provider/registered/platform.rs` owns the separate Unix pipe, launch, Darwin vnode/executable attestation, Linux `fexecve`, deadline, group-kill/reap, and settlement quarantine boundary. This provider has no Git process authority. The selected `std.process` example, conformance, and bundled-consumer commands pass locally on the interpreter, native C11 `-O0`/`-O2`, and Core Wasm, with five focused physical Darwin provider cases also passing; Linux physical-provider and hosted/full-profile gates remain open. [Bounded Process I/O v1](BOUNDED-PROCESS-IO-V1.md) owns the additive contract. |
 | Linked Agent lifecycle | `src/project/agent_linked.rs` owns retained Project source replay, deterministic role closure, linked Proposal schema derivation, and `semaprax.agent-linked-source.v1`; `src/agent_lifecycle/iterative.rs` and its effect extension own linked v3 lifecycle/v4 typed-effect schema composition; `src/execution_revision/typed.rs` owns `bind_linked_agent_runtime_v2` and typed v3 roots. The path consumes ordinary checked source data and an injected effect driver; it grants no authority and has no native/Wasm Agent-stage claim. [Project Linked Agent Lifecycle v1](PROJECT-LINKED-AGENT-LIFECYCLE-V1.md) owns the pending additive boundary. |
+| Observed Agent stage work | `src/agent_lifecycle/iterative/effects/metered.rs` owns the opt-in public live target selector, its bounded semantic fuel and ordered cleanup observations. The sealed `StageExecutor` dispatch remains in `src/agent_lifecycle/authorization.rs`; interpreter, native C11 and Core Wasm execute the same selected stage through caller-held target capabilities. Durable checkpoint and migration routes retain reservation accounting and do not use this observed meter. [Agent Target Host Protocol v1](AGENT-TARGET-HOST-PROTOCOL-V1.md) owns the bounded profile and local evidence. |
 | Native backend | `src/codegen.rs`, `src/codegen/native_*`; Project-v13 HTTPS runtime in `src/codegen/native_emit/http_io.rs`, pinned trust data in `src/codegen/mozilla-roots.pem` |
 | WebAssembly backend | `src/wasm.rs`, `src/wasm/` |
 | Reports and offline package graph | the focused `*_report`, `package_lock`, `package_resolver`, `package_resolution_snapshot`, schema, manifest, header, and shim modules; candidate replay/conflict projection in `src/project/candidate/package_consumer_replay.rs` |
@@ -2865,7 +3071,12 @@ checked symbolic calls through authenticated structural paths.
 rechecks old/new retained State schemas and executes the pure migration. Its
 private `MigrationSeed` is the only initial-state entry to the iterative driver;
 `iterative/effects/continuation` carries cumulative usage and binds subsequent
-execution to that seed. `typed_migration/handoff` owns the bounded handoff
+execution to that seed. Its opt-in `run_with_backend` selects a caller-held
+native or Core Wasm stage backend for the in-memory migrated continuation;
+`migrate_suspended_agent_runtime_v2_with_backend` uses the same sealed target
+dispatcher for both pure evaluations, with separately bound semantic fuel and
+target-specific instruction/cleanup receipts. The default migration and
+continuation remain interpreter-selected. `typed_migration/handoff` owns the bounded handoff
 codec, while `typed_migration/durable` commits the handoff before destination
 work and recovers only against caller-trusted snapshots and independently bound
 runtime roots. The recovered object exposes only durable execution.
@@ -2955,3 +3166,17 @@ provider ABI, or allocator authority is introduced. The separate
 [`public-generic-wasm-provider.v1`](PUBLIC-GENERIC-WASM-PROVIDER-TARGET-V1.md)
 profile now owns compiler-derived generic endpoint admission and replay, but
 all artifact routes fail closed until its Core Wasm provider emitter exists.
+
+
+The private source-owned Step adapter lives under `append/owned_effect/settlement/cleanup/reduce/step`, with its consuming source obligations under the matching `live_upstream` child. `registered_stage/reduce/physical_step/live_append` joins sealed live permits to the existing physical cleanup and Step field mover. Both authority inventories include these production children. These adapters preserve the same accounting ledger and charged Reduce hold through exact durable successor ACKs; the public Agent driver and cumulative/terminal routes remain separate unfinished joins.
+
+The continued owned-Agent Decision cleanup child under
+`live_upstream/observe/settlement/carry/start/prepared/model/authorize/effect/prepared/intent/dispatch/settlement/cleanup`
+retains the actual second target holder and selects the existing cleanup rows.
+The original fixed cleanup append adapter owns both first-turn and continued
+ACKs; its hold registry moves the cumulative Recorded phase into the same
+cleanup phases without replacing the token. The continued source permit and
+closed interpreter cleanup-guard sum admit actual physical Decision release
+through the existing release primitive. State and partial-release custody stay
+inside the continued holder. Continued Outcome/Reduce and public/recovered
+execution still require their own consuming joins.

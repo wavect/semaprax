@@ -27,6 +27,8 @@ build/test/leak-check/provenance machinery, unmodified.
 | `fixtures/` | Committed replay fixtures. Each one is a hand-authored script, not a recorded model transcript (see its own `_non_claim` field). |
 | `tests/test_agent_driver.py` | Offline, credential-free self-tests (`python3 -m unittest discover -s benchmarks/cross-language-v1/agent/tests`). |
 | `specialization_protocol.py` | Input-only protocol validator and held-out schedule builder for #147. It never creates a transport or an outcome: all emitted rows remain `not_authorized` / `not_attempted`. |
+| `specialization_accounting.py` | Read-only #326 accounting of the original 81 planned cells and nine later additions. Emits no observations or approvals; exits 3 while blocked. |
+| `provenance/specialization-held-out-v1.{protocol,tasks}.json` | Exact original public JSON input bytes from `ebe4235e`, not a new protocol, adapted model, frozen executable corpus or independent review. |
 
 ## External baseline admission is not execution
 
@@ -186,3 +188,110 @@ or a toolchain. The output deliberately says `status: not_authorized` and
 evaluation. An actual run remains blocked on the explicit authorization list,
 and any outcome must still be scored by the same independent hidden-oracle
 path used by `run.py`.
+
+
+## Issue #326: frozen-cell accounting (blocked)
+
+Status: authorization, real provider execution and independent reviews remain
+outstanding. This accounting is not a completed model experiment and does not
+close [#326](https://github.com/wavect/semaprax/issues/326).
+
+The original [#147 protocol commit](https://github.com/wavect/semaprax/commit/ebe4235ebc2b9621f7fd174f8bf7647744dc88c5)
+contains three controls (`base`, `guided`, `constrained`), nine held-out
+`semaprax-project` tasks and three repeats: **81 cells**. The exact original
+protocol and public task inventory are retained in `agent/provenance/`:
+
+| Original file | Original Git blob | SHA-256 of retained bytes |
+| --- | --- | --- |
+| `agent/specialization-protocol.example.json` | `457e56e77d68155c562068ede4e1f9c5fecd6a6f` | `3165375ffa9ce3b20e650be8dd261263d6d59bcb105868364580cf9b1c35c62a` |
+| `tasks.json` | `ae30aba4943a2e52bf056edcd7bb5f7d680114a8` | `f5cd390280bbdd82533fa6953d114ecf66a67d65c66d6571ccc6acb05a1113f1` |
+
+These bytes reproduce the original schedule through the **unchanged**
+`specialization_protocol.build_plan`. They are historical fixture inputs,
+not a newly approved model, guidance set or adaptation method. Acquisition from
+GitHub and hash checks are source provenance, not independent experiment review.
+The original complete task metadata has 12 tasks: the development and validation
+tasks are not evaluated, and `bounded-counter-repair-v1` has no declared
+`semaprax-project` port. Each omission has an explicit selection reason.
+
+The current example at `6a7a341273c30b81cf53f3fa9ef94dc7930b4c72` instead
+selects ten held-out tasks and **90 cells**, because
+`iterative-repair-workflow-v1` was added after the original freeze. The accounting
+retains all original 81 rows and separately lists its nine extra cells as
+`outside_original_frozen_matrix`. It does not delete any current task, alter the
+13-task/182-slot comparison corpus, or authorize a 90-cell replacement study.
+No `adapted` arm is added to the three-control matrix.
+
+The frozen proposal's oracle SHA-256 starts `4fda2976`; current `run.py` starts
+`29b99551`. This byte mismatch is reported, not silently repaired. Retaining two
+metadata files is **not** reconstruction or approval of the original executable
+source/oracle. Actual execution requires separately reviewed corpus, guidance,
+action-schema and oracle artifacts, including any known semantic corrections;
+new bytes need explicit versioned review rather than inherited approval.
+
+### Emit the complete blocked record
+
+```sh
+python3 benchmarks/cross-language-v1/agent/specialization_accounting.py \
+  > /tmp/specialization-accounting.json
+status=$?
+test "$status" -eq 3
+```
+
+Exit **3** means the complete report was emitted and the experiment remains
+blocked. Exit **2** means source/capability admission failed; stdout is empty
+and stderr contains the refusal. There is no execute, approval, credentials,
+source-root, task-filter or result-import flag. The CLI uses the existing
+bounded no-follow acquisition primitives and fails closed where unavailable.
+Its selected source pins describe the checked branch revision, not a promise
+that later changes can reuse this report without review. Standard repository
+Python modules remain trusted code; this utility is not a new execution sandbox.
+
+The report retains all required metrics for each row as **null**, not false,
+zero tokens, zero cost or zero latency. Every row is `not_attempted` with explicit
+blocker IDs. The three pairwise comparisons are `not_estimable`: no effect,
+confidence interval, winner, equivalence or performance claim can be inferred
+from zero real observations. The original preview budget is not spend authority.
+The report reads public metadata and selected source files, never public/hidden
+task trees; this is not evidence that an eventual model experiment is leak-free.
+
+### Outstanding authorization and independent records
+
+Before a real run, retain an exact plan/source digest and the actual approving
+person's decision for the real base model/revision, the three control artifacts,
+shared sampling/tool/token/retry/latency/cost limits, and any development-only
+adaptation method and dataset. Keep all held-out material outside adaptation and
+tuning; an adapted arm would need its own explicitly approved study amendment.
+Record the frozen split/oracle, allowed provider endpoint and egress content,
+explicit credential-use authority, separate training/inference spend caps and
+cancellation conditions. Do not place secrets in protocol or evidence files.
+
+An independently assigned reviewer/data custodian must retain a dated leakage
+review and a separate control-comparison review, bound to the plan, data and
+outcome artifacts. Missing reviewer identities and record digests remain null.
+A checklist, source-code audit, replay fixture or this report is not an
+independent review or an attestation of the author's own experiment.
+
+Finally, the existing `LiveTransport.complete()` is an inert refusal seam even
+when credentials are supplied. After authority is granted, a real provider
+integration still needs implementation and actual wire/budget/egress verification
+through the existing orchestration and scorer boundaries. No caller may use the
+predecessor `not_authorized` protocol for live training or inference. Local
+provider execution can qualify; a hosted CI receipt is not required by itself.
+
+## Opt-in local execution follow-up for #326
+
+[Local held-out control execution](LOCAL-SPECIALIZATION.md) adds a separate,
+explicitly reviewed local Ollama transport around the existing protocol builder
+and frozen scorer. It preserves all 81 original cells, keeps the unresolved
+Semaprax discount cells unexecuted, and separates actual response/usage receipts
+from fixture tests, reference scoring, missing evidence and independent review.
+The default is local `qwen2.5-coder:7b`, with its installed full digest and daemon
+metadata pinned during preparation; no model download or paid provider call is
+performed. No comparison-adapter support decision or predecessor profile changes.
+
+This is an experimental execution implementation, not evidence that the real
+model experiment ran. It also avoids the legacy prompt builder's inclusion of
+EQUIVALENCE documents containing hidden-vector discussion. Real model/host
+execution, verified local custody/no-egress, and independent pre/post-run reviews
+remain necessary; a unit-test or receipt-audit pass does not close #326.

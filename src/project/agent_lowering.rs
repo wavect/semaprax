@@ -186,6 +186,9 @@ pub fn compile_source_project_agents(programs: &[&Program]) -> Result<CompiledSo
     let mut declarations = Vec::with_capacity(count);
     for program in programs {
         for declaration in &program.agents {
+            declaration
+                .validate_execution_metadata(program)
+                .map_err(invariant)?;
             if occupied_ids.contains(&declaration.stable_id) {
                 return Err(invariant(
                     "source Agent declaration identity collides with an existing declaration",
@@ -197,15 +200,20 @@ pub fn compile_source_project_agents(programs: &[&Program]) -> Result<CompiledSo
                 ));
             }
             occupied_ids.insert(declaration.stable_id.clone());
-            declarations.push(declaration);
+            declarations.push((*program, declaration));
         }
     }
-    declarations.sort_by(|left, right| left.stable_id.as_bytes().cmp(right.stable_id.as_bytes()));
+    declarations.sort_by(|left, right| {
+        left.1
+            .stable_id
+            .as_bytes()
+            .cmp(right.1.stable_id.as_bytes())
+    });
     let mut agents = Vec::with_capacity(declarations.len());
     let mut definitions = Vec::with_capacity(declarations.len());
-    for declaration in declarations {
+    for (program, declaration) in declarations {
         let compiled = compile_source_agent_declaration(declaration)?;
-        agents.push(resolve_source_agent(declaration));
+        agents.push(resolve_source_agent(program, declaration));
         definitions.push(compiled);
     }
     Ok(CompiledSourceAgents {
@@ -214,7 +222,7 @@ pub fn compile_source_project_agents(programs: &[&Program]) -> Result<CompiledSo
     })
 }
 
-fn resolve_source_agent(declaration: &AgentDeclaration) -> ResolvedSourceAgent {
+fn resolve_source_agent(program: &Program, declaration: &AgentDeclaration) -> ResolvedSourceAgent {
     crate::hir::ResolvedAgentDeclaration {
         stable_id: crate::hir::DeclarationId::new(declaration.stable_id.clone()),
         name: declaration.name.clone(),
@@ -267,10 +275,18 @@ fn resolve_source_agent(declaration: &AgentDeclaration) -> ResolvedSourceAgent {
                     AgentOperationKind::Effect => crate::hir::ResolvedAgentOperationKind::Effect,
                 },
                 stable_id: crate::hir::DeclarationId::new(operation.stable_id.clone()),
+                embedded: operation.embedded_function_index.is_some(),
             })
             .collect(),
+        source_association: None,
         runtime_v1_json: declaration.runtime_v1_json.clone(),
+        model_wait: declaration.model_wait.as_ref().map(|binding| {
+            Box::new(crate::hir::ResolvedAgentModelWaitBinding {
+                helper_id: crate::hir::DeclarationId::new(binding.helper_id.clone()),
+            })
+        }),
     }
+    .bind_source_association(&program.module)
 }
 
 fn collect_existing_program_ids(program: &Program, ids: &mut BTreeSet<String>) {

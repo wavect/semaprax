@@ -24,6 +24,154 @@ run was cancelled by an unrelated superseded job. It was the first hosted
 `--lib public_generic_abi` selector run (307 passed); see corrected §2.16 and
 §3 item 4 for the complete citation and counts.
 
+**Third revision, 2026-09-27 (issue #305 audit — local candidate named,
+`public-generic-wasm-provider.v1` hardening, hosted evidence still absent):**
+this revision names the current **local** candidate this lane's own work
+applies to — commit `77d68e49` on the `wavect/v070` integration branch (base
+`f5e8531c` on `main`) — and records local-only fixes and corpora added to the
+separately-scoped `public-generic-wasm-provider.v1` profile
+(`src/wasm/public_generic_provider`, §1.2 row 6/§2.6.2's 2026-09-26 correction)
+since that correction. **This is not a #164 SHA freeze**: no fast-forward
+check, no fresh full local gate run of every section-B selector, no artifact
+digest inventory, no fresh hosted run, and no compatibility/security review
+accompany this revision — see the OPEN list this revision adds to §3 below.
+GitHub Actions credits are exhausted for this account as of this revision, so
+the hosted three-OS job, hosted artifact digests, and hosted security review
+items in §3 cannot be produced locally; they are recorded as explicitly OPEN,
+not skipped-and-called-green.
+
+- **#287 (issue audited 2026-09-26, already reflected in §1.2 row 6/§2.6.2
+  above)**: the generated TypeScript consumer's own ABI hostility against the
+  compiled provider is proven by intercepting the real
+  `WebAssembly.instantiate`, not a hand-written re-implementation; review
+  fixes dropped a vacuous cross-instance case and added a real module-level
+  "call after close" check. Local, proof-only evidence.
+- **#288**: four defects this session's predecessors found in the compiled
+  provider are fixed: the owned-byte runtime (`bytes_copy`/`bytes_zeroed`/
+  `bytes_set`) is a real invocation-local implementation rather than a stub
+  that trapped; `input_prepare` validates the carrier frame before growing
+  linear memory; the input-payload window is a dedicated 128 KiB region
+  (previously 2 KiB below the input aggregate record, silently overwriting
+  combined payloads above that bound while still reporting success); and the
+  provider emits Wasm adapter ABI v2, reporting a semantic carrier-replay
+  failure as its own raw status 14 (`SPX-PG803`) rather than collapsing it to
+  raw 5. `result_export`'s destination pointer/length is now bounds-checked
+  before the memory copy (status 13). Commands quoted from the fix commits:
+  `cargo test --locked --offline -p semaprax --test public_generic_native_adapter_v1 core_wasm`
+  → 4 passed (`wasm_large_payload`, `lifecycle`, `wasm_comparison`,
+  `same_subject`); `cargo test --locked --offline -p semaprax --test public_generic_wasm_adapter_v1 -- compiler_provider_artifact component_artifact`
+  → 7 passed. **Not re-run by this revision** — quoted from the commits that
+  introduced them, exactly as this document's own stated method requires.
+  Local, proof-only evidence.
+- **#301**: one closed, versioned settlement-matrix corpus
+  (`semaprax.public-generic.settlement-matrix.v1`, 14 cases over checked
+  `Pair<Bytes>` identity/refusing/allocating subjects, `tests/public_generic_native_adapter_v1/settlement_matrix.rs`
+  region) runs the retained interpreter, raw authenticated native C11 (O0/O2
+  plus local ASan), this compiled Core Wasm provider, and the generated
+  C11/Rust/C++17/TypeScript callers side by side, asserting an exact,
+  non-vacuous 126-cell split. Before #288's fixes landed, 8 of those cells
+  were one-line known-defect rows citing the four #288 defects above; after
+  #288, `shared_settlement_corpus_matrix_is_complete_and_asserted` asserts
+  the exact closed split **105 pass, 0 known-defect, 21 not-applicable**
+  (not merely a `passes >= N` floor a partially-broken matrix could still
+  clear). Quoted from the flip commit:
+  `cargo test --locked --offline -p semaprax --test public_generic_native_adapter_v1 settlement_matrix::`
+  → 2 passed, 0 failed. Local, proof-only evidence; no provider source is
+  touched by this corpus itself.
+- **#292**: a Wasmtime 47.0.4 differential-conformance submodule in the
+  private Component runner cross-checks the reference interpreter, this
+  standalone compiled provider, and the typed Component on two checked-in
+  projects (a non-identity leaf swap, and `requires false`), including
+  stale-Component/stale-descriptor refusal, Core open refusal of a stale
+  descriptor, resource-arena recovery after success and failure, and an
+  oversized-list trap with recovery. This differential found the #288
+  payload-overlap defect before the fix landed; an ignored selector
+  reproduced it, now un-ignored. After #288 changed the compiled provider's
+  bytes, all four component-runtime fixtures' provider digest, component
+  digest, and raw component SHA-256 were re-pinned (each fixture's
+  **descriptor** digest, a pure function of checked source, is measured
+  unchanged); `component_runtime_ci_contract.rs` independently recomputes and
+  re-verifies every re-pinned value rather than trusting the pinning commit's
+  numbers. Quoted from the re-pin commit:
+  `cargo test --offline --manifest-path platform-tests/component-runtime/Cargo.toml --all-features public_generic`
+  → 7 passed, 0 failed, 0 ignored (was 6 failed, 1 ignored before the re-pin);
+  `cargo test --locked --offline -p semaprax --test component_runtime_ci_contract`
+  → 4 passed, 0 failed. **Not re-run by this revision.** Local, proof-only
+  evidence; note (quoted verbatim from the re-pin commit) that `--locked` on
+  that manifest failed in that session's environment over transitive-dependency
+  registry-cache drift unrelated to this change, and the regenerated lock
+  file was deliberately not committed — this remains an open environment item,
+  not resolved by this revision.
+- **#293's** Core Wasm call-depth admission (issue #293, `wasm::aggregate::call_admission`)
+  was verified by this revision, by reading source rather than quoting another
+  document, **not to touch this provider's compiled bytes**: the provider's
+  lowering entry point (`aggregate::provider_lowering::lower_public_generic_provider_closure`,
+  `src/wasm/aggregate/provider_lowering.rs`) calls `super::emit_function`
+  directly and never calls `aggregate::call_admission::activate`, which is
+  the only thing that adds the depth global and check to a module build; a
+  repository-wide grep of `src/wasm/public_generic_provider/*.rs` for
+  `call_admission`/`activate(` returns no hits. The #292 re-pinned digests
+  above therefore remain current for candidate `77d68e49`, which includes
+  #293's merge.
+
+**Still entirely open after this revision** (in addition to every item §3
+already listed, none of which this revision closes): a fresh hosted run at
+the exact commit named above (or any later one) on Linux, macOS, and Windows;
+an authenticated artifact/corpus digest inventory for that run; a
+compatibility/delta review and a security/trust-boundary review of this
+candidate; and #164's own formal SHA-freeze protocol (fast-forward check,
+uncommitted-changes check, decision-packet template). GitHub Actions credits
+being exhausted is the specific, stated reason the hosted items cannot be
+produced right now — it is not evidence that they were run and passed, and
+it is not a basis for calling any of them green.
+
+### Current scoped provider and R08 evidence facts (2026-09-28)
+
+Source inspection at `6a68fded` corrects the historical universal
+"every adapter is fixture-only/no compiled provider" statements below.
+The legacy reference adapters retain their fixture scope; distinct closed,
+versioned compiler-backed routes now exist:
+
+- Native `semaprax.authenticated-native-identity.v1` and
+  `semaprax.authenticated-native-allocating.v1` receive the selected checked HIR.
+  `native/authenticated.rs:152-169` derives the checked C body and bridge;
+  `:216-237` removes the reversal fixture body and replaces its sole call with
+  that checked endpoint. `codegen/native_emit/public_generic_bridge.rs:143-153,178`
+  uses the ordinary native emitter and invokes the selected function symbol.
+  The allocating owner is `native/authenticated/allocating.rs:22-43`, with the
+  actual symbol invocation in `codegen/native_emit/public_generic_bridge/allocating.rs:105`.
+  These paths are under `src/public_generic_abi` and `src` respectively;
+  descriptor provenance alone is not the execution claim.
+- The `public-generic-wasm-provider.v1` route emits a closed compiled provider
+  from the same admitted endpoint. `src/wasm/public_generic_provider/mod.rs:286-341`
+  binds its descriptor and v2 provider binding and lowers the selected checked
+  closure; `src/wasm/aggregate/provider_lowering.rs:122-145` emits that closure's
+  actual checked function bodies. This does not reinterpret the legacy
+  `WasmProvider` struct or its frozen adapter profile.
+- `tests/public_generic_native_adapter_v1/settlement_matrix/engines.rs:135-156`
+  checks/canonicalizes/resolves each source, derives its admitted endpoint,
+  and feeds the same program to those native/Wasm routes while asserting
+  descriptor equality. Its native runners compile the emitted provider.
+
+The [complete R08 local evidence supplement](evidence/public-generic-settlement-v2/README.md)
+freezes conformance subject `888ac18e416303c3a78544194cf3937d9ff4c5ff`, not a
+public release candidate. It records the owning selector's local **5/5**,
+frozen v1 **105 pass / 0 known defect / 21 N/A**, and additive v2
+**123 pass / 0 known defect / 30 N/A**, including local ASan and the three
+physical commit/result-root-acquisition failure rows. Its complete compressed
+inventory contains 210 artifact entries and three source/descriptor/binding
+subjects, with exact raw/compressed hashes, commands and tool observations.
+This fills that scoped R08 delivery gap; it is not a complete Sections C–H
+release packet or an exact-current-head rerun at `6a68fded`.
+
+No new gate was run for this documentation correction. A formal candidate
+freeze, complete local gate record, candidate-specific compatibility/delta and
+security review, and decision-packet linkage remain separate work. The
+maintainer's hosted-only waiver permits recording hosted execution as waived,
+not passed; it does not waive those local obligations. Historical hosted runs
+remain historical. PG-9 remains **unsupported/unpublished**; neither these
+closed profiles nor this conformance inventory expands that decision.
+
 ## What this document is, and is not
 
 This document assembles the two evidence sections of #164 that are
@@ -112,7 +260,7 @@ its reason is stated instead of a guess.
 | # | Contract | Exact identifier(s) | Verified at |
 | --- | --- | --- | --- |
 | 5 | Native C11 adapter ABI | Header `spx_pg_v1.h`, generated verbatim into every emitted provider translation unit (never hand-edited per provider); binding schema `semaprax.public-generic-native-adapter.v1`; binding digest domain `semaprax.public-generic-native-adapter.v1.binding\0` | Header: `src/public_generic_abi/native/spx_pg_v1.h:1-9` (banner: "Native C11 physical adapter ABI for Public Generic Carrier v1 (issue #154)"); `HEADER_V1` constant `include_str!`s it at `src/public_generic_abi/native/template.rs:19`; schema/domain: `src/public_generic_abi/native/binding.rs:20,23` |
-| 6 | Core Wasm adapter ABI | Binding schema `semaprax.public-generic-wasm-adapter.v1`; binding digest domain `semaprax.public-generic-wasm-adapter.v1.binding\0` | `src/public_generic_abi/wasm/binding.rs:19,21`. **Caveat, load-bearing**: this is the *logical/binding* schema only. No compiled `.wasm` artifact implements the adapter's `open`/`input_prepare`/`call`/`result_export`/`release` ABI anywhere in this repository — `public_generic_abi::wasm::provider::WasmProvider` is an in-process Rust struct (`src/public_generic_abi/wasm/provider.rs:85-86` names its bound endpoint a "fixture"), stated as open blocker #229 in `docs/PUBLIC-GENERIC-OWNERSHIP-MILESTONE-V1.md:554-566` (line numbers as of 2026-09-19; see the disclaimer above). |
+| 6 | Core Wasm adapter ABI | Binding schema `semaprax.public-generic-wasm-adapter.v1`; binding digest domain `semaprax.public-generic-wasm-adapter.v1.binding\0` | `src/public_generic_abi/wasm/binding.rs:19,21`. **Caveat, load-bearing**: this is the *logical/binding* schema only. No compiled `.wasm` artifact implements *this specific* adapter's `open`/`input_prepare`/`call`/`result_export`/`release` ABI — `public_generic_abi::wasm::provider::WasmProvider` is still an in-process Rust struct (`src/public_generic_abi/wasm/provider.rs:85-86` names its bound endpoint a "fixture"), stated as open blocker #229 in `docs/PUBLIC-GENERIC-OWNERSHIP-MILESTONE-V1.md:554-566` (line numbers as of 2026-09-19; see the disclaimer above). **Correction, 2026-09-26 (issue #287 audit):** a genuinely different, genuinely compiled closed Core Wasm provider artifact implementing the same open/input_prepare/call/result_export/release shape (plus value_release/provider_close) now exists elsewhere in this repository (`src/wasm/public_generic_provider`, selected by the `public-generic-wasm-provider.v1` profile; see PUBLIC-GENERIC-WASM-PROVIDER-TARGET-V1.md and the correction in PUBLIC-GENERIC-OWNERSHIP-MILESTONE-V1.md near its #229 bullet); this row's own binding schema and `WasmProvider` remain unchanged by it. |
 
 ### 1.3 Provider binding format(s)
 
@@ -333,7 +481,7 @@ diagnostic/reason range, CI job/step, and support/publication standing.
 #### 2.6.2 Core Wasm physical adapter (issue #155)
 
 - **Owning code module**: `src/public_generic_abi/wasm.rs`, `wasm/binding.rs`, `wasm/provider.rs`, `wasm/memory.rs`, `wasm/registry.rs`, `wasm/probe.rs`, `wasm/reverse_probe.mjs`
-- **Fixture endpoint caveat**: `src/public_generic_abi/wasm/provider.rs:85-86` names `FIXTURE_ENDPOINT_EXPORT_NAME = "spx_pg_wasm_endpoint_reverse_bytes_v1"` and calls it "the one fixture endpoint this round's adapter binds"; no compiled `.wasm` implements the full provider ABI anywhere in the repository (issue #229, open, `docs/PUBLIC-GENERIC-OWNERSHIP-MILESTONE-V1.md:554-566` (line numbers as of 2026-09-19; see the disclaimer above))
+- **Fixture endpoint caveat**: `src/public_generic_abi/wasm/provider.rs:85-86` names `FIXTURE_ENDPOINT_EXPORT_NAME = "spx_pg_wasm_endpoint_reverse_bytes_v1"` and calls it "the one fixture endpoint this round's adapter binds"; no compiled `.wasm` implements *this specific* `WasmProvider` protocol (issue #229's own open/closed tracking status is unaffected, `docs/PUBLIC-GENERIC-OWNERSHIP-MILESTONE-V1.md:554-566`, line numbers as of 2026-09-19; see the disclaimer above). **Correction, 2026-09-26**: a differently-scoped, genuinely compiled closed Core Wasm provider artifact exists elsewhere in the repository since (`src/wasm/public_generic_provider`); see the same correction referenced in row 6 of §1.2 above.
 - **Focused test selector**: `cargo test --locked -p semaprax --test public_generic_wasm_adapter_v1` (`.github/workflows/ci.yml:470`, quoted verbatim)
 - **Canonical golden fixture**: `tests/public_generic_wasm_adapter_v1/reference_wasm_module.rs` — explicitly a "hand-assembled, committed test-only stand-in," not a build of `src/public_generic_abi/wasm/**` — `docs/PUBLIC-GENERIC-OWNERSHIP-MILESTONE-V1.md:170-177` (line numbers as of 2026-09-19; see the disclaimer above)
 - **Support/publication standing**: Local evidence only
@@ -378,7 +526,7 @@ diagnostic/reason range, CI job/step, and support/publication standing.
 - **Generator entry point**: `generate_typescript_calling_consumer(descriptor_bytes, binding, input, output)`
 - **Focused test selector**: `tests/public_generic_wasm_adapter_v1/typescript_calling_consumer.rs`; toolchain pin `tsc` 5.8.3 — `docs/PUBLIC-GENERIC-CONSUMERS-V1.md:594-596`
 - **Canonical golden fixture**: `tests/public_generic_wasm_adapter_v1/reference_wasm_module.rs` (same test-only stand-in named in §2.6.2)
-- **Support/publication standing**: Local, proof-only evidence — `docs/PUBLIC-GENERIC-CONSUMERS-V1.md:465-466`; the document's own "load-bearing honest limitation" states no compiled `.wasm` implements the full provider ABI (`docs/PUBLIC-GENERIC-CONSUMERS-V1.md:474-489`)
+- **Support/publication standing**: Local, proof-only evidence — `docs/PUBLIC-GENERIC-CONSUMERS-V1.md:465-466`; the dated "load-bearing honest limitation" describes this legacy fixture route (`docs/PUBLIC-GENERIC-CONSUMERS-V1.md:474-489`); it is not an absence claim for the separate compiled-provider profile in the current scoped correction above
 
 ### 2.11 Shared hostile corpus (issue #160, #173)
 
@@ -522,8 +670,8 @@ mistaken for the frozen #164 record. The following remain **entirely open**:
    PG-8 beyond their currently-recorded hosted/local evidence states, and
    nothing here was an input the maintainer needed beyond what the milestone
    document itself already cited.
-8. **The two structural blockers under PG-5/PG-6/PG-7 are unresolved and
-   unaddressed by this document**: (a) every physical adapter (interpreter,
+8. **Historical structural blockers under PG-5/PG-6/PG-7 at the original
+   audit baseline** (current scoped correction above): (a) every physical adapter (interpreter,
    native, Wasm) still binds a fixture endpoint, not a function body
    codegenned from a real admitted public-generic `.spx` export
    (`src/public_generic_abi/native.rs:20-30`,

@@ -348,3 +348,188 @@ fn the_smallest_admissible_module_still_renders_a_complete_document() {
         .expect("members")
         .is_empty());
 }
+
+/// R21 (issue #297 follow-on): a declared `session protocol` renders as a
+/// `session_protocol` entry with no members (transitions carry no persistent
+/// identity of their own), a canonical-syntax signature, and the facts a
+/// reader needs without opening the graph.
+const DECLARED_SESSION_PROTOCOL: &str =
+    include_str!("../session_protocol/tests/fixtures/declared.spx");
+
+#[test]
+fn a_declared_session_protocol_renders_as_a_documented_entry() {
+    let (program, comments) = parsed(DECLARED_SESSION_PROTOCOL);
+    let document = document(&program, &comments);
+    let entry = document
+        .entries
+        .iter()
+        .find(|entry| entry.kind == "session_protocol")
+        .expect("declaration is documented");
+    assert_eq!(entry.id, "fixture.session.transaction");
+    assert_eq!(entry.name, "fixture-transaction-v1");
+    assert!(entry.persistent);
+    assert!(entry.members.is_empty());
+    assert!(entry.signature.starts_with(
+        "@id(\"fixture.session.transaction\")\nsession protocol \"fixture-transaction-v1\" {\n"
+    ));
+    assert!(entry
+        .signature
+        .contains("    states { Idle, Open, Committed, Failed }\n"));
+    assert!(entry.signature.contains("    initial Idle;\n"));
+    assert!(entry
+        .signature
+        .contains("    terminal Committed cleanup { release_snapshot }\n"));
+    assert!(entry.signature.contains(
+        "    on Open commit: send CommitRequest requires capability db.write via \"fixture.session.commit\" -> choice { committed: Committed, refused: Failed };\n"
+    ));
+    let fact = |label: &str| {
+        entry
+            .facts
+            .iter()
+            .find(|fact| fact.label == label)
+            .unwrap_or_else(|| panic!("missing `{label}` fact"))
+    };
+    assert_eq!(fact("Initial").values, vec!["Idle".to_owned()]);
+    assert_eq!(
+        fact("Terminals").values,
+        vec!["Committed".to_owned(), "Failed".to_owned()]
+    );
+    assert_eq!(fact("Authority").values, vec!["none".to_owned()]);
+
+    let markdown_rendering = markdown(&program, &comments);
+    assert!(markdown_rendering.contains("## Session protocols\n"));
+    assert!(markdown_rendering.contains("### `fixture-transaction-v1`\n"));
+
+    let json_rendering = json(&program, &comments);
+    let value: serde_json::Value = serde_json::from_str(&json_rendering).unwrap();
+    let declarations = value["declarations"].as_array().unwrap();
+    let session_protocol = declarations
+        .iter()
+        .find(|item| item["kind"] == "session_protocol")
+        .unwrap();
+    assert_eq!(session_protocol["id"], "fixture.session.transaction");
+    assert_eq!(session_protocol["persistent"], true);
+    assert!(session_protocol["members"].as_array().unwrap().is_empty());
+
+    // R21 (issue #297 follow-on): no function of this fixture opts into
+    // `follows`, so the declaration gains no `Following functions` fact and
+    // its `via`-bound functions gain no `Follows`/`Typestate` fact -- byte
+    // for byte the same output the feature had before this follow-on existed.
+    assert!(!entry
+        .facts
+        .iter()
+        .any(|fact| fact.label == "Following functions"));
+    for id in [
+        "fixture.session.begin",
+        "fixture.session.commit",
+        "fixture.session.main",
+    ] {
+        let via_function = document
+            .entries
+            .iter()
+            .find(|entry| entry.id == id)
+            .unwrap_or_else(|| panic!("{id} is documented"));
+        assert!(!via_function
+            .facts
+            .iter()
+            .any(|fact| fact.label == "Follows" || fact.label == "Typestate"));
+    }
+
+    // Determinism: rendering twice from the same parsed program is byte
+    // identical, matching every other documented kind's guarantee.
+    assert_eq!(markdown(&program, &comments), markdown_rendering);
+    assert_eq!(json(&program, &comments), json_rendering);
+}
+
+/// R21 (issue #297 follow-on): a function's `follows session protocol "<id>"`
+/// clause is documented on both sides -- the function's own entry gains a
+/// `Follows`/`Typestate`/`Authority` fact naming the protocol and the fixed,
+/// authority-free result, and the protocol's own entry gains a `Following
+/// functions` fact naming the function -- read from the same canonical fact
+/// every other projection shares
+/// (`crate::session_protocol::source::follows_json`/`follows_facts_json`).
+const FOLLOWS: &str = include_str!("../session_protocol/tests/fixtures/follows.spx");
+
+#[test]
+fn a_follows_clause_documents_the_binding_on_both_the_function_and_the_protocol() {
+    let (program, comments) = parsed(FOLLOWS);
+    let document = document(&program, &comments);
+
+    let main = document
+        .entries
+        .iter()
+        .find(|entry| entry.id == "fixture.follows.main")
+        .expect("following function is documented");
+    let fact = |label: &str| {
+        main.facts
+            .iter()
+            .find(|fact| fact.label == label)
+            .unwrap_or_else(|| panic!("missing `{label}` fact on the following function"))
+    };
+    assert_eq!(
+        fact("Follows").values,
+        vec!["fixture.follows.protocol".to_owned()]
+    );
+    assert_eq!(
+        fact("Typestate").values,
+        vec!["typestate_checked".to_owned()]
+    );
+    assert_eq!(fact("Authority").values, vec!["none".to_owned()]);
+
+    // Neither `via`-bound function opts in itself, so neither gains a
+    // `Follows` fact of its own.
+    for id in ["fixture.follows.begin", "fixture.follows.commit"] {
+        let via_function = document
+            .entries
+            .iter()
+            .find(|entry| entry.id == id)
+            .unwrap_or_else(|| panic!("{id} is documented"));
+        assert!(!via_function
+            .facts
+            .iter()
+            .any(|fact| fact.label == "Follows"));
+    }
+
+    let protocol = document
+        .entries
+        .iter()
+        .find(|entry| entry.kind == "session_protocol")
+        .expect("declaration is documented");
+    assert_eq!(
+        protocol
+            .facts
+            .iter()
+            .find(|fact| fact.label == "Following functions")
+            .expect("missing `Following functions` fact")
+            .values,
+        vec!["fixture.follows.main".to_owned()]
+    );
+
+    let markdown_rendering = markdown(&program, &comments);
+    assert!(markdown_rendering.contains("- Follows: `fixture.follows.protocol`\n"));
+    assert!(markdown_rendering.contains("- Typestate: `typestate_checked`\n"));
+    assert!(markdown_rendering.contains("- Following functions: `fixture.follows.main`\n"));
+
+    let json_rendering = json(&program, &comments);
+    let value: serde_json::Value = serde_json::from_str(&json_rendering).unwrap();
+    let declarations = value["declarations"].as_array().unwrap();
+    let main_json = declarations
+        .iter()
+        .find(|item| item["id"] == "fixture.follows.main")
+        .unwrap();
+    let follows_fact = main_json["facts"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|fact| fact["label"] == "Follows")
+        .expect("missing `Follows` fact in JSON");
+    assert_eq!(
+        follows_fact["values"],
+        serde_json::json!(["fixture.follows.protocol"])
+    );
+
+    // Determinism: rendering twice from the same parsed program is byte
+    // identical, matching every other documented kind's guarantee.
+    assert_eq!(markdown(&program, &comments), markdown_rendering);
+    assert_eq!(json(&program, &comments), json_rendering);
+}

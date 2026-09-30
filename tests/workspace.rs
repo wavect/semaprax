@@ -20,6 +20,8 @@
 
 #[path = "workspace/agent_definitions_association.rs"]
 mod agent_definitions_association;
+#[path = "workspace/agent_execution.rs"]
+mod agent_execution;
 #[path = "workspace/architecture_claims.rs"]
 mod architecture_claims;
 #[path = "workspace/canonical_revision.rs"]

@@ -307,7 +307,7 @@ fn private_ios_swift_hosted_gate_is_mandatory_and_fail_closed() {
         "Private Swift/iOS application + XCFramework runtime",
         "runs-on: macos-26",
         "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7",
-        "dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master",
+        "dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # master",
         "toolchain: 1.97.1",
         "targets: aarch64-apple-ios,aarch64-apple-ios-sim,x86_64-apple-ios",
         "Build and inspect the private device + Simulator XCFramework, then run the arm64 Swift application",

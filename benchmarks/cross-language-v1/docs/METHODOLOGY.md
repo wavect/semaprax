@@ -1,5 +1,14 @@
 # Cross-language benchmark methodology (v1)
 
+Current official comparison scope: **TypeScript only**, under the fixed
+Node.js 22.12.0 Darwin arm64 / TypeScript 5.8.3 v3 profile. The other 13
+adapters remain explicitly not supported for independent official comparison,
+regardless of fixture implementation or local execution. All 182 task/adapter
+slots and original blocked reasons remain. The
+[supported-set decision](../../../docs/CROSS-LANGUAGE-RUNNABLE-ADAPTER-V3.md#9-supported-runnable-set-issue-322)
+and `../supported_scope.py` own the current scope projection; this methodology
+and the original corpus are not altered to create new runtime evidence.
+
 This is the general contract every task, adapter, and comparison in
 `benchmarks/cross-language-v1/` follows. A task's own `EQUIVALENCE.md` owns
 the specific choices for that one task; this file owns the rules that apply
@@ -49,29 +58,56 @@ own `EQUIVALENCE.md` actually measures rather than by relabeling in place:
 | `cold-chain-release-gate-v1` | validation | **security fix** | The realistic wrong candidate joins two safety predicates with `\|\|` instead of `&&` — a fail-open defect in a release/safety gate, the canonical shape of a security bug that lets unsafe data through. |
 | `telemetry-overflow-diagnosis-v1` | diagnosis | **failure recovery** | The task is precisely about recovering from an arithmetic-overflow failure (saturate) instead of panicking, silently leaving the declared range, or raising a fault, across three runtimes that each fail differently for the same root cause. |
 | `clean-install-calculator-v1` | onboarding | **feature change** | Its own `EQUIVALENCE.md` states the distinguishing skill directly: add one new operation to an existing, tool-generated scaffold without disturbing any of it — ordinary feature addition to an existing project, not greenfield authoring. |
+| `iterative-repair-workflow-v1` | repair | **Agent workflow** | Purpose-built for this category (see below): two sequentially-masked defects plus an unrelated sibling function to preserve, and a task statement that narrates a two-round debugging log a solver must read and act on rather than solve in one pass. |
 
-That accounts for ten of the eleven categories through task content. The
-eleventh, **Agent workflow**, is not a content shape a static public/hidden
-fixture can express on its own — it is a claim about *how* a task is solved
-and scored, not what the task's logic does. This corpus demonstrates it
-orthogonally, through the seam `agent/` already implements rather than
-through a twelfth task family: `agent/orchestrator.py`'s
-`evaluate_agent_pair` drives `structured-input-error-handling-v1::rust`
-through the full solver path — prompt construction, budget enforcement,
-retry accounting, a transport-produced candidate, transcript-digest binding,
-and then `run.py`'s own build/test/leak-check/provenance scoring — and
-`agent/tests/test_agent_driver.py::RealToolchainEndToEndTests` exercises
-that path end to end against a real `rustc`, including a wrong-candidate
-control that passes public but fails hidden through the agent path
-specifically (`test_wrong_candidate_from_transport_passes_public_but_fails_hidden`).
-A task's `issue_211_category` therefore names its *content* shape;
-"Agent workflow" is a property of the harness path a task is run through,
-and `structured-input-error-handling-v1` is this corpus's example of both at
-once (content: API evolution; execution path: Agent workflow).
+That now accounts for all eleven categories through task content, closing
+the scope decision this section previously left open (see "Decision"
+immediately below). `agent/orchestrator.py`'s orthogonal execution-path
+demonstration through `structured-input-error-handling-v1` — described in
+full in the paragraph after the decision note — remains true and
+unchanged; it is additional coverage, not the thing that now satisfies the
+category.
 
 This mapping is deliberately additive and reversible: no `category` value
 changed, no task was deleted or renamed, and a future task can carry its own
 `issue_211_category` without touching this table's existing rows.
+
+### Decision: "Agent workflow" needed a dedicated, content-level task
+
+**2026-09-27, maintainer-directed.** This section previously recorded an
+open scope-decision request — whether orthogonal coverage through
+`agent/orchestrator.py` (running `structured-input-error-handling-v1`
+through the full solver path) was sufficient to demonstrate issue #211's
+eleventh category, "Agent workflow", or whether a twelfth, content-level
+task was required. The maintainer decided: **orthogonal coverage is not
+accepted; the benchmark gets a dedicated, content-level task.**
+`iterative-repair-workflow-v1` is that task (issue #298): its
+public/hidden split genuinely exercises multi-step, iterative agent work
+at the content level — a candidate with two interacting defects the
+public tests reveal only the first of at a time, hidden tests that check
+both the fully corrected behavior and preservation of an unrelated sibling
+function, and a task statement (`EQUIVALENCE.md`'s "iterative-repair
+narrative" section) that requires reading an earlier step's redacted
+output to find the second defect at all. The orthogonal demonstration
+below is not removed or narrowed by this decision — it stays in this
+corpus exactly as it already was — but it no longer stands as the sole
+answer for this category.
+
+`agent/orchestrator.py`'s `evaluate_agent_pair` drives
+`structured-input-error-handling-v1::rust` through the full solver path —
+prompt construction, budget enforcement, retry accounting, a
+transport-produced candidate, transcript-digest binding, and then
+`run.py`'s own build/test/leak-check/provenance scoring — and
+`agent/tests/test_agent_driver.py::RealToolchainEndToEndTests` exercises
+that path end to end against a real `rustc`, including a wrong-candidate
+control that passes public but fails hidden through the agent path
+specifically (`test_wrong_candidate_from_transport_passes_public_but_fails_hidden`).
+A task's `issue_211_category` names its *content* shape;
+"Agent workflow" is also, separately, a property some tasks' harness path
+can demonstrate, and `structured-input-error-handling-v1` remains this
+corpus's example of both at once (content: API evolution; execution path:
+Agent workflow) even though it is no longer the category's sole content
+representative.
 
 ## Equivalence contract (what every task must specify)
 
@@ -140,6 +176,33 @@ comparable pass/fail either. This mirrors `benchmarks/performance-v1`'s rule
 that a digest mismatch fails closed before any measurement, not after.
 
 ## Scoring and hidden-test isolation
+
+Before scoring, each implemented task/language pair must have a public
+directory and a non-empty hidden overlay. The overlay must add at least one
+regular file or replace a public file with different bytes. Replacing files
+at the same relative paths is supported; a new filename is not required.
+This is the same structural rule the committed-inventory test enforces,
+now also applied to caller-supplied task trees at evaluation time.
+
+Missing, non-directory, empty, or byte-identical hidden overlays produce
+`failed` with a reason before any version probe, build, or run. The agent
+scorer performs this preflight before calling its transport, so it records
+no usage, transcript, candidate, or scoring evidence for such a refusal.
+Fixture admission precedes digest checks and transport budget/retry outcomes;
+valid fixtures retain those existing checks. A refused pair has no `public`,
+`hidden`, `leak_check`, or `provenance` result because none was produced.
+Observed inspection errors also fail closed without emitting file contents.
+
+`--dry-run` uses the same check for implemented, declared pairs and exits
+nonzero for an invalid overlay. Its plan schema is unchanged: `exists`
+continues to mean that both directories exist, even when an existing overlay
+is empty or changes no bytes. Refusal details are written to standard error.
+
+This is a structural prerequisite, not proof of additional test coverage:
+different bytes can still test the same behavior. Task-specific wrong-candidate
+controls remain necessary. The preflight assumes operator-controlled fixture
+trees that stay unchanged during evaluation; it does not provide filesystem
+sandboxing, race-free snapshots, or secrecy from arbitrary host processes.
 
 Each task/language pair runs in two phases, each in its own scratch
 directory:
@@ -234,6 +297,90 @@ choice, not an oversight to be quietly worked around:
    only for the exact toolchain versions and task equivalence recorded
    beside it.
 
+## Environment pinning: exact local toolchain identity, and reserved-language provisioning decisions
+
+Issue #298's remaining scope asks this suite to record, per admitted
+adapter, "the exact local toolchain identity the runnable adapters now bind
+(path + version + digest)", and, for the six reserved external languages,
+"the exact provisioning each would need". Neither table below is a pin: a
+pin is a byte-identical, network-free artifact the harness refuses to run
+without (`runnable_adapter.py`'s `SnapshotError` family already fails
+closed on drift from an *admitted descriptor*); what follows is an honest,
+dated **observation** of this host, recorded so a future pin has a concrete
+starting point instead of a blank page. Recorded 2026-09-27 on one arm64
+macOS 26.5.1 (build 25F80, Darwin kernel 25.5.0) host; every value below was
+read directly from that host, not copied from a fixture or a comment.
+
+### Admitted adapters: what `runnable_adapter.py`/`runnable_adapter_v2.py` actually bind today
+
+`rust` is admitted by v1; `c`, `python`, `swift`, `java`, and `typescript`
+are admitted by v2 (`V2_ADAPTERS` in `runnable_adapter_v2.py`). `semaprax`
+and `semaprax-project` are not bound by either module — they invoke the
+compiler under test via the caller-supplied `--semaprax` path with no
+admission/digest step, because the compiler is the subject being measured,
+not an external comparison toolchain — so they carry no row here.
+
+| Adapter | Bound tool(s) | Resolved path | Version observed | SHA-256 (binary) | Trust shape |
+| --- | --- | --- | --- | --- | --- |
+| `rust` | `rustc` | `/opt/homebrew/Cellar/rust/1.98.0/bin/rustc` (symlinked from `/opt/homebrew/bin/rustc`) | `rustc 1.98.0 (88d9e12ae 2026-08-18) (Homebrew)` | `b0cf136c59e80f0eb7bafbd772f73a412911a55fb99857dcdc1d1bad2423a0ee` | copied toolchain root (`v1._toolchain_digest` hashes the whole `/opt/homebrew/Cellar/rust/1.98.0` root at admission time; not reproduced by hand here — the digest above is only the `rustc` binary itself, a spot check) |
+| `rust` (linker) | `cc` | `/usr/bin/cc` | n/a (dispatch stub) | `179301dcb41ea78accc3fa0048a7e6f6710d891945a751a34addd622020c1818` | SIP/root-owned, verified in place |
+| `rust` (link editor) | `ld` | `/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld` | n/a | `5897b275efd93b201b6df5832dd541262b3f20f290859ba78f2200a6a66ef38b` | SIP/root-owned, verified in place |
+| `rust` (SDK) | `MacOSX.sdk` | `/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk` | SDK `26.5`, `SystemVersion.plist` `ProductVersion 26.5.1` / `BuildVersion 25F80` | `SDKSettings.plist` `e5c7c40b8c5dc1a9f99f8b9fa51870f8fe180421225b8201d0c4c826aad11bdc`; `SystemVersion.plist` `d90b1755e5dbb837d2ca1e11083c6e36e6219193a0fcf036d0f7cfe5366e031e` | verified in place |
+| `c` | `clang` | `/usr/bin/clang` | `Apple clang version 21.0.0 (clang-2100.1.1.101)` (dispatches to `/Applications/Xcode.app/.../XcodeDefault.xctoolchain/usr/bin`) | `179301dcb41ea78accc3fa0048a7e6f6710d891945a751a34addd622020c1818` | SIP/root-owned, verified in place |
+| `python` | `python3` | `/usr/bin/python3` | `Python 3.9.6` | `179301dcb41ea78accc3fa0048a7e6f6710d891945a751a34addd622020c1818` | SIP/root-owned, verified in place — **note**: this host's shell `PATH` resolves an unrelated `python3` at `~/.local/bin/python3` first; the adapter must invoke the absolute `/usr/bin/python3` path from `adapters.json`, never a bare `python3` off `PATH`, or it binds the wrong interpreter |
+| `swift` | `swiftc` | `/usr/bin/swiftc` | `swift-driver version: 1.148.6`, `Apple Swift version 6.3.3 (swiftlang-6.3.3.1.3 clang-2100.1.1.101)` | `179301dcb41ea78accc3fa0048a7e6f6710d891945a751a34addd622020c1818` | SIP/root-owned, verified in place |
+| `java` | `javac` | `/usr/bin/javac` | `javac 22.0.2` | `d641f84fbed5fcd611d603fe5aa364f152462d7d099e09eeaf36f046be4c3f32` | SIP/root-owned, verified in place |
+| `java` | `java` | `/usr/bin/java` | `java 22.0.2 2024-07-16` (HotSpot 64-Bit Server VM, build `22.0.2+9-70`) | `d641f84fbed5fcd611d603fe5aa364f152462d7d099e09eeaf36f046be4c3f32` | SIP/root-owned, verified in place |
+| `typescript` | `node` | `/Users/kevin/.nvm/versions/node/v24.3.0/bin/node` | `v24.3.0` | `afa8bdc2d587911bd6ec58d568e15611571f06e3902716354541775556074abf` | copied tool, materialized into a private snapshot before launch |
+| `typescript` | `typescript_lib` (`tsc`) | `/Users/kevin/Library/pnpm/global/5/.pnpm/typescript@5.8.3/node_modules/typescript` (dispatch shim at `/Users/kevin/Library/pnpm/tsc`) | `Version 5.8.3` | not spot-checked here (22 MiB package tree; `v2._toolchain_digest`-equivalent copied-root hashing applies at admission time, same as the Rust toolchain root above) | copied root, materialized into a private snapshot before launch |
+
+Two observations worth keeping honest, not silently smoothed over:
+
+- `clang`, `python3`, and `swiftc` are **byte-identical** on this host
+  (`179301dc...`) — all three are the same Xcode `xcrun` dispatch stub, not
+  three different compiler binaries. `javac`/`java` are likewise
+  byte-identical to each other (`d641f84f...`), the JDK launcher stub. This
+  matches `runnable_adapter_v2.py`'s own docstring claim that these tools
+  are "SIP/root-owned executable" dispatch points rather than the actual
+  compiler payloads, and is exactly why v2 verifies path + owner + mode +
+  digest and then references the *original* path rather than copying: the
+  real compiler lives behind the stub, at a location neither this table nor
+  the adapter dereferences further.
+- None of this is an authenticated official-release digest the way a
+  package registry's signed manifest would be — it is **local-host
+  provenance**: the exact path, owner, mode, and byte digest this repository
+  actually observed on this one machine, on this one date, no more and no
+  less. A different host, a Homebrew upgrade, or an Xcode Command Line Tools
+  update changes every value in this table without changing the adapter
+  code; `provenance.adapter_version` in a scored result records whichever
+  version was actually observed at run time for exactly this reason.
+
+### Reserved external languages: availability/equivalence decision table
+
+None of the six languages below can be provisioned by this worker: each
+needs either build-time network access (forbidden by this sandbox's
+invariants) or a maintainer decision this worker cannot make unilaterally
+(reviewing whether a previously-pinned revision is still the right
+comparison subject). No container image was built and no network fetch was
+attempted for any row.
+
+| Language | Official toolchain source | Version to pin | Digest mechanism once fetched | Why blocked offline today |
+| --- | --- | --- | --- | --- |
+| Zero | `github.com/vercel-labs/zerolang`, git checkout at the revision already reserved by `benchmarks/agent-task-comparison-v1/manifest.json` | `vercel-labs/zerolang@eb2ed6c22fe3f6e3152efa0c0d05ffcf1ff4a2c7` (pinned elsewhere in this repo; not yet reviewed as the *current* right comparison subject — see issue #106/#107) | `git verify-commit`/`git rev-parse` against the pinned SHA, then a `sha256:` digest over the built toolchain root exactly as `_toolchain_digest` does for Rust above | `git clone` of that revision needs build-time network access, which this sandbox forbids; separately, issue #106/#107's own review step ("the reserved historical Zero revision is not automatically the appropriate current comparison subject") has not been completed by a maintainer |
+| NTNT | not located: no publicly documented official toolchain distribution was found for this benchmark snapshot | unknown until identified | unknown until identified | no source to fetch from at all, offline or online — this is a naming/identification gap, not only a network gap |
+| Aver | not located: no publicly documented official toolchain distribution was found for this benchmark snapshot | unknown until identified | unknown until identified | same as NTNT |
+| Vera | not located: no publicly documented official toolchain distribution was found for this benchmark snapshot | unknown until identified | unknown until identified | same as NTNT |
+| Hale | not located: no publicly documented official toolchain distribution was found for this benchmark snapshot | unknown until identified | unknown until identified | same as NTNT |
+| MoonBit | `moonbitlang.com`'s official installer script (a `curl`-piped-to-shell installer, per MoonBit's own published install instructions) | latest stable release at pin time (not yet selected) | the installer's own published release checksum, or a `sha256:` digest over the installed toolchain root exactly as `_toolchain_digest` does for Rust above, once a specific release is pinned | the only official distribution path is a network-fetched installer script; this sandbox forbids build-time network access, and no pre-mirrored offline copy of any specific release exists in this repository today |
+
+For every row above, the concrete next step is the same three-part
+maintainer action issue #211/#298 already name: (1) confirm or supply the
+official source and an exact pinned revision/release, (2) provision it as a
+network-free local checkout, install, or container image outside this
+worker's authority, and (3) review the resulting toolchain root's digest the
+same way `runnable_adapter.py` already reviews Rust's. None of the three is
+performed here.
+
 ## Agent driver seam
 
 `run.py` (the harness this whole document otherwise describes) scores a
@@ -326,20 +473,52 @@ Recorded honestly rather than silently assumed:
   reviewable algorithm should add a structural check (e.g., a source-pattern
   scan) rather than rely on this alone.
 - **Containerized/pinned toolchains**: `provenance.adapter_version` records
-  whatever version is installed on the run host; it does not pin one.
-  Building and provisioning pinned, network-free per-language toolchain
-  images (issue #211's "Containerized/pinned environments") needs
-  infrastructure and a network-access decision this repository's
-  invariants forbid making unilaterally — recorded as
+  whatever version is installed on the run host; it does not pin one. The
+  "Environment pinning" section above now records exactly what was actually
+  observed (path, version, digest) for every admitted adapter on one dated
+  host, and an explicit availability/equivalence decision table for the six
+  reserved external languages — but recording an observation is not
+  provisioning a pin. Building and provisioning pinned, network-free
+  per-language toolchain images (issue #211's "Containerized/pinned
+  environments") needs infrastructure and a network-access decision this
+  repository's invariants forbid making unilaterally — recorded as
   `HUMAN_BLOCKED: container image provisioning` rather than attempted here.
-- **A live Agent pilot run**: issue #211 also asks for "at least one pilot
-  task run across all initial languages and two models." That needs a model
-  API budget, credentials, and a publication decision, none of which a
-  bounded implementation worker holds — still recorded as
-  `HUMAN_BLOCKED: model budget and credentials for a live Agent pilot`. What
-  changed is what "the harness that pilot would run through" now includes:
-  beyond `run.py`'s toolchain-conformance scoring (exercised end to end with
-  three real, non-mocked languages —
+- **A live Agent pilot run and second-host reproduction**: issue #211 also
+  asks for "at least one pilot task run across all initial languages and two
+  models," and #298 additionally asks for that pilot's scoring inputs to be
+  reproduced on an actual second physical/virtual host. Both stay explicitly
+  **open** — not attempted, not simulated, and not narrowed — because both
+  need authority no bounded implementation worker holds. The exact operator
+  actions required, so this stays a checklist rather than a vague blocker:
+
+  1. **Two named model identities** (provider, model, revision — never a
+     mutable alias such as `"latest"`, matching `agent/contracts.py`'s
+     `ModelIdentity` constructor rule) for the two-model pilot issue #211
+     asks for.
+  2. **A credential owner**: a human or service account that holds the API
+     key(s) for those two models and is authorized to supply them to
+     `agent/live_transport.py`'s `api_key` constructor argument (never via
+     `os.environ`, per that module's existing refusal-to-construct-without-
+     one behavior).
+  3. **An explicit spend cap**: a `Budget` (max prompt/completion/total
+     tokens, max retries, max cost) the credential owner authorizes in
+     advance, wired through `agent/budget.py`'s `BudgetLedger` exactly as it
+     already enforces for the replay-transport path today.
+  4. **A publication decision**: whether and how the resulting transcripts,
+     candidates, and scores are shared, and under what redaction policy
+     (`run_agent.py`'s existing literal-redaction mechanism is ready to
+     apply one; no policy is chosen here).
+  5. **A second physical or virtual host**, provisioned and reachable
+     independently of the host this table was recorded on, with its own
+     observed toolchain identity recorded the same way the table above
+     records this host's — so a reproduction is measured against its own
+     honest environment record, not assumed identical to the first host's.
+
+  None of these five is authorized here; recording them is what turns
+  "blocked" into an actionable request instead of a closed door. What
+  changed in this corpus, and stays true regardless of when the five items
+  above are supplied: beyond `run.py`'s toolchain-conformance scoring
+  (exercised end to end with three real, non-mocked languages —
   `sequence-digest-v1::semaprax`, `::rust`, `::typescript` — and with
   deterministic mock adapters in
   `tests/documentation/cross_language_benchmark_suite.rs` standing in for
@@ -349,7 +528,9 @@ Recorded honestly rather than silently assumed:
   provenance binding that pilot would need are now implemented and
   exercised too — through `agent/replay_transport.py`, never through
   `agent/live_transport.py`, which stays declared and unexercised for the
-  exact reason named above. A human supplying credentials still only needs
-  to wire a working `LiveTransport.complete()` against a real endpoint and
-  verify it; the request/response contract, budget accounting, and scoring
-  path it plugs into do not need to be invented at that point.
+  exact reason named above. A human supplying items 1-4 above still only
+  needs to wire a working `LiveTransport.complete()` against a real endpoint
+  and verify it; the request/response contract, budget accounting, and
+  scoring path it plugs into do not need to be invented at that point.
+  Recorded as `HUMAN_BLOCKED: model budget, credentials, spend cap, and a
+  second host for a live Agent pilot and its cross-host reproduction`.

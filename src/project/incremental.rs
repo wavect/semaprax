@@ -41,9 +41,9 @@ pub(crate) use snapshot::{decode_snapshot, encode_snapshot};
 mod clone_cost_report;
 
 pub const PROJECT_FRONTEND_CACHE_SCHEMA: &str = "semaprax.project-frontend-cache-work.v1";
-pub const PROJECT_FRONTEND_CACHE_COMPATIBILITY: &str = "semaprax.project-frontend-canonical-ast.v1";
+pub const PROJECT_FRONTEND_CACHE_COMPATIBILITY: &str = "semaprax.project-frontend-canonical-ast.v3";
 pub const PROJECT_SEMANTIC_CACHE_SCHEMA: &str = "semaprax.project-semantic-cache-work.v1";
-pub const PROJECT_SEMANTIC_CACHE_COMPATIBILITY: &str = "semaprax.project-checked-module-hir.v1";
+pub const PROJECT_SEMANTIC_CACHE_COMPATIBILITY: &str = "semaprax.project-checked-module-hir.v5";
 pub const MAX_PROJECT_FRONTEND_CACHE_SOURCE_BYTES: usize = MAX_TOTAL_SOURCE_BYTES;
 /// The frontend retains the complete admitted semantic module closure, which
 /// includes bundled/dependency modules beyond the manifest's sixteen authored
@@ -421,6 +421,11 @@ impl FrontendPass {
         if entry.synthetic != *synthetic {
             return None;
         }
+        crate::hir::replay_agent_source_associations(
+            &self.entries.get(path)?.program,
+            &entry.resolved.agents,
+        )
+        .ok()?;
         self.checked_reused += 1;
         self.functions_reused += entry.resolved.functions.len();
         self.next_checked.insert(path.to_owned(), Arc::clone(entry));

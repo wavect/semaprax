@@ -1,10 +1,13 @@
 # RFC 0005: Compute Kernel Profile v1
 
-- Status: Design-stage; the admission classifier is implemented and tested
-  offline (`src/compute_profile/classifier.rs`), no parser/HIR/backend
-  integration exists, and no accelerator hardware or driver evidence backs
-  any claim in this document
-- Version: 0.1
+- Status: Design-stage; admission classifier and a deterministic CPU
+  reference executor are implemented and tested offline; an optional macOS
+  Metal backend has local evidence on one Apple M3 Pro. See [Executable CPU
+  reference semantics v1](#executable-cpu-reference-semantics-v1) and
+  [Executable Metal backend v1](#executable-metal-backend-v1). No source
+  syntax, compilation route or CLI exists, and no hosted, multi-device or
+  production accelerator evidence backs any claim here
+- Version: 0.3
 - Audience: compiler contributors evaluating an eventual data-parallel
   kernel/GPU target, and reviewers of the admitted grammar and refusal
   vocabulary this profile freezes
@@ -14,10 +17,14 @@
 This RFC specifies a small deterministic data-parallel profile: a closed
 grammar for kernel-safe types, device effects, affine transfer, and bounded
 workgroups/grids, plus refusal codes `SPX-GC001`-`SPX-GC013`. It is a design,
-not a GPU implementation. Today only the admission predicate is executable:
+not a GPU implementation. The admission predicate is executable:
 [`src/compute_profile/classifier.rs`](../src/compute_profile/classifier.rs)
-classifies fixture kernels, so offline tests observe every refusal without
-claiming a kernel compiled, dispatched, or ran.
+classifies fixture kernels, so offline tests observe every refusal. Version
+0.2 adds [Executable CPU reference semantics
+v1](#executable-cpu-reference-semantics-v1) and codes `SPX-GC014`-`SPX-GC021`:
+a library-level CPU reference executor that runs ordinary checked functions
+as map/fold kernels under a typed owned-buffer lifecycle. No kernel has been
+compiled for or dispatched on any accelerator.
 
 ## Why "deterministic" is the load-bearing word
 
@@ -294,20 +301,26 @@ inventing a second one:
 
 The classifier this RFC ships (`src/compute_profile/classifier.rs`) decides
 only whether one candidate *kernel body/signature* is admitted — the
-[Determinism policy](#determinism-policy) rules above. It does **not**
-implement, and this RFC does not claim exists:
+[Determinism policy](#determinism-policy) rules above. The CPU reference
+executor (`src/compute_profile/cpu_reference.rs`) executes a closed subset
+and models the owned device-buffer lifecycle, double release, stale
+artifacts, cancellation, and device loss at library level — see
+[Executable CPU reference semantics
+v1](#executable-cpu-reference-semantics-v1). This RFC does **not** implement,
+and does not claim exists:
 
-- a real device-buffer/queue resource type wired into the resolver's
-  cleanup inventory, so double-release, device-absence, and stale-artifact
-  rejection have no code behind them yet — they are specified here as the
-  shape a future resource-tracker integration must take, reusing RFC 0003's
-  existing machinery, not a new one;
+- a device-buffer/queue resource type in *source*, wired into the
+  resolver's cleanup inventory and cleanup plans — the CPU reference
+  session tracks buffers in a host-side state machine, not as SEMAPRAX
+  values, so the compile-time ownership rules of RFC 0003 do not yet apply
+  to them;
 - a dispatch/evidence report binding kernel source identity, target,
   device/profile, limits, and outputs — the shape [Ownership and
   effects](#ownership-and-effects) describes above is a target for that
   future report, not a schema frozen by this document;
-- cancellation, device loss, or timeout handling;
-- a CPU reference interpreter or any accelerator backend.
+- timeout handling, or cancellation and device loss observed on a real
+  device;
+- any accelerator backend.
 
 Building any of the above requires real front-end integration (parser,
 resolver, HIR, cleanup-plan) that does not exist for a language feature not
@@ -413,7 +426,8 @@ this desk evaluation could find them) sit above every bound here.
 | Implicit device selection (a dispatch effect with no explicit device capability) | **EXCLUDED** | explicit epic-wide non-goal; see [Device-effect vocabulary](#device-effect-vocabulary) |
 | An owned (consuming) or shared-alias kernel parameter mode | **EXCLUDED** | see [Affine device resources](#affine-device-resources) |
 | General arbitrary SEMAPRAX execution on a device | **EXCLUDED** | explicit epic-wide non-goal; only the admitted kernel subset above ever reaches a device |
-| A CPU reference interpreter or accelerator backend adapter | **DEFERRED** | requires real front-end integration and, for the accelerator half, hardware this host does not have; see [What is executable offline vs. what needs hardware](#what-is-executable-offline-vs-what-needs-hardware) |
+| A CPU reference executor for the closed map/fold subset | **IN (library level)** | see [Executable CPU reference semantics v1](#executable-cpu-reference-semantics-v1); not wired into compilation, CLI, or any backend |
+| An accelerator backend adapter | **IN (library level, Metal, macOS, feature `metal-device`)** for both the elementwise-map and sequential-fold shapes, over every `ScalarKind` the CPU reference admits (i64/i32/u8/usize/bool) | see [Executable Metal backend v1](#executable-metal-backend-v1); local evidence on one identified device only; other device APIs remain deferred |
 | Bit-exact floating-point parity claim across devices | **EXCLUDED, permanently, not merely for v1** | no floating-point kernel is admitted at all in v1, and no future version of this profile may claim bit-exact parity where a real platform does not provide one, per the owning issue's own explicit non-goal |
 
 ## Refusal vocabulary
@@ -438,6 +452,14 @@ Compute") is unused elsewhere in this repository as of commit `d45db653`
 | `SPX-GC011` | two or more buffer parameters may alias beyond the profile's checked disjointness rule | yes |
 | `SPX-GC012` | the kernel body performs a host effect directly, independent of its declared effect list | yes |
 | `SPX-GC013` | a buffer parameter's element count exceeds the capacity bound | yes (also the exact-bound positive case) |
+| `SPX-GC014` | CPU reference: the selected declaration is absent, has no explicit persistent `@id`, or lacks the signature the kernel shape requires | yes (CPU reference test) |
+| `SPX-GC015` | CPU reference: stale handle — an artifact or buffer from another session, an artifact whose recorded fingerprint no longer matches its body, or one whose declaration no longer lowers to that fingerprint in the checked program | yes (CPU reference test) |
+| `SPX-GC016` | CPU reference: a buffer used after release, or released twice | yes (CPU reference test) |
+| `SPX-GC017` | CPU reference: a transfer range, zero-length allocation, or dispatch extent is out of bounds | yes (CPU reference test) |
+| `SPX-GC018` | CPU reference: a value or buffer element type disagrees with its buffer or kernel signature | yes (CPU reference test) |
+| `SPX-GC019` | CPU reference: a failure is already selected for the session; only release and settlement remain | yes (CPU reference test) |
+| `SPX-GC020` | CPU reference: the lowered kernel body exceeds its node or depth bound | yes (CPU reference test) |
+| `SPX-GC021` | CPU reference: the session capability does not grant the operation's device effect, or grants allocation without release | yes (CPU reference test) |
 
 Diagnostic precedence (which reason wins when several apply): effect-
 vocabulary closure, explicit device-capability presence, parameter-count
@@ -467,26 +489,161 @@ construction in `classify`'s control flow, not independently re-derived; see
   v1](INSTALLED-DIAGNOSTICS-V1.md)'s static-scan rule) and one rendered-
   diagnostic check.
 
+- the [CPU reference executor](#executable-cpu-reference-semantics-v1)
+  (`cargo test --locked -p semaprax --lib compute_profile::cpu_reference`):
+  differential agreement with the ordinary reference interpreter on the
+  same checked functions, transfer/bounds refusals, cancellation and
+  simulated device-loss settlement, stale-artifact refusal, exactly-once
+  cleanup in canonical order, and a negative-control mutant the
+  differential oracle must reject.
+
 **Needs hardware, a real front end, or both — not built, not claimed, and not
 simulated as if it were evidence:**
 
-- parsing, resolving, or checking any real kernel source — no kernel syntax
-  exists in this compiler;
+- dedicated kernel source syntax — the CPU reference binds ordinary checked
+  functions instead;
 - a device-buffer/queue resource type integrated into the resolver's cleanup
-  inventory, so double-release/device-absence/stale-artifact rejection have
-  no executable check yet;
-- a CPU reference interpreter executing an admitted kernel's semantics;
-- any accelerator backend (WebGPU or otherwise) actually compiling or
-  dispatching a kernel;
-- any driver, toolchain, or device-capability probing;
-- any conformance, parity, cancellation, or device-loss evidence — none of
-  this RFC's claims describe a simulated result as execution evidence, per
-  the assignment's own instruction, and none will until real hardware and a
-  real front end exist.
+  inventory, so the lifecycle checks run at compile time rather than in the
+  CPU reference session's host-side state machine;
+- any accelerator backend other than the Metal one below, and any Metal
+  shape or scalar type beyond the elementwise map and sequential fold over
+  i64/i32/u8/usize/bool;
+- evidence on any device other than the one recorded below, and any hosted
+  or CI device evidence;
+- real device-loss or cancellation on hardware — those outcomes are still
+  exercised only through the session state machine, never as observed GPU
+  events.
+
+## Executable CPU reference semantics v1
+
+Schema: `semaprax.compute-cpu-reference.v1`. Implementation:
+[`src/compute_profile/cpu_reference.rs`](../src/compute_profile/cpu_reference.rs).
+This section freezes the executable meaning every later backend must match
+for the admitted subset. It adds no source syntax.
+
+### Source binding
+
+A kernel is one ordinary checked SEMAPRAX function, selected by its explicit
+persistent `@id`. The executor validates the resolved program
+(`hir::validate`), selects the monomorphic function with that identity, and
+refuses an absent declaration or an automatic identity (`SPX-GC014`). It
+lowers the function's resolved HIR — never source text or names — into a
+closed kernel IR: parameters and immutable `let` bindings addressed by
+their resolved value identity, integer/boolean literals, unary `-` (`i64`,
+`i32`) and `!`, the binary operators `+ - * / % == != < <= > >=`, lazy
+`&&`/`||`, `if`, and blocks of immutable `let` statements. The admitted
+element kinds are `i64`, `i32`, `u8`, `usize` (the checked unsigned 64-bit
+semantic integer, classified as `u64`), and `bool`. `%` applies only to
+`i64`/`usize`, exactly as the language admits it (SPX-T208); any other
+operand type refuses with `SPX-GC012`.
+
+Admission reuses [`classify`](../src/compute_profile/classifier.rs) on a
+candidate built from the checked signature, the kernel shape, the dispatch
+extents, and the lowered body, so refusals keep the classifier's codes and
+precedence: a declared `uses { ... }` effect is `SPX-GC001`; one buffer per
+parameter plus the output above 8 is `SPX-GC003`; a parameter or result
+type outside the element kinds (floating point, `char`, any aggregate) is
+`SPX-GC004`; a non-value parameter mode is `SPX-GC005`; a workgroup or grid
+extent outside the bounds is `SPX-GC006`; an output buffer that is also an
+input is `SPX-GC011`; floating-point body operations are `SPX-GC010`; and
+calls, mutation, loops, `match`, contracts, projections, or any other
+construct are `SPX-GC012`. A lowered body above 4,096 nodes or depth 64 is
+`SPX-GC020`.
+
+A loaded kernel artifact records its declaration identity, its shape, its
+session, and a SHA-256 fingerprint over the schema, identity, shape,
+signature, and lowered body. Every dispatch re-validates the artifact: an
+artifact from another session, one whose body no longer matches its own
+fingerprint, or one whose declaration no longer lowers to that fingerprint
+in the checked program presented at dispatch is stale (`SPX-GC015`).
+
+### Kernel shapes
+
+- **Elementwise map** (`fn(x_0: T_0, ..., x_k: T_k) -> R`, at most seven
+  inputs): `out[i] = f(in_0[i], ..., in_k[i])`. Every input buffer and the
+  output hold the same element count `n` (`SPX-GC017` otherwise); the grid is
+  `[ceil(n / w), 1, 1]` workgroups of `[w, 1, 1]`, and invocations past `n`
+  in the last workgroup are inactive by an explicit bounds guard.
+- **Sequential fold** (`fn(acc: T, element: U) -> T`, `SPX-GC014`
+  otherwise): `acc = f(acc, in[i])` for ascending `i`, from an explicit
+  initial value of kind `T`, published to a one-element output buffer. This
+  is the classifier's `SequentialLeftToRight` reduction order, executed as
+  one invocation per element in that order.
+
+### Numeric semantics
+
+Exactly the language's checked integer semantics, identical to the ordinary
+reference interpreter: `+ - *` overflow, division or remainder by zero, and
+signed `MIN / -1` or `MIN % -1` select the compiler-owned status
+(`semaprax.status.v1` codes 1-8) that the same expression selects in the
+interpreter. There is no wrapping arithmetic and no floating point, so
+exact-equality claims cover only this deterministic integer/boolean
+subset. Evaluation is left to right and lazy boolean operands run only when
+required.
+
+### Invocation order and failure selection
+
+A dispatch's result is defined by ascending invocation order. The selected
+outcome is the first event in that order: a kernel status at the lowest
+failing ordinal, a cancellation, or a device loss. A device may schedule
+invocations in any order, but it must report this same selection. The
+output buffer is written only when every invocation completes; a failed
+dispatch publishes nothing.
+
+### Owned device-buffer lifecycle
+
+A session opens only with an explicit compute capability that names the
+device (only the CPU reference exists) and grants a subset of the six
+device effects. A grant that admits `DeviceAlloc` must admit
+`DeviceRelease`; an operation whose effect is not granted refuses
+(`SPX-GC021`). The lifecycle is:
+
+1. `DeviceAlloc`: a zero-filled buffer of 1 to 16 Mi elements of one kind
+   (`SPX-GC017` for zero, `SPX-GC013` above the bound or above 16 Mi live
+   elements per session).
+2. `DeviceCopyIn`: copy host values into an in-bounds range (`SPX-GC017`,
+   `SPX-GC018` on a kind mismatch).
+3. `DeviceDispatch`: synchronous; buffers are borrowed read-only (inputs)
+   or read-write (output) for the dispatch only.
+4. `DeviceCopyOut`: copy an in-bounds range back to host-owned storage.
+5. `DeviceRelease`: consume the buffer exactly once; a released buffer used
+   again, or released again, refuses (`SPX-GC016`).
+
+Every refused operation happens before any effect: session state is
+unchanged and nothing is journaled. The first failed dispatch selects a
+sticky session failure — kernel status, cancellation, or device loss. After
+selection, allocation, upload, kernel loading, dispatch, and download refuse
+(`SPX-GC019`), so no result is published after a failure; release and
+settlement remain admitted and cannot replace the selected failure. After a
+device loss, releases settle host-side only and journal no device release
+effect.
+
+Settlement consumes the session and releases every still-live buffer in
+reverse allocation order. With explicit releases, every allocated buffer
+appears exactly once in the settlement's release list; the settlement also
+carries the selected failure and the ordered effect journal, and is
+byte-for-byte deterministic for identical inputs.
+
+### Cancellation and device loss
+
+Both are explicit dispatch outcomes carrying the number of completed
+invocations. In the CPU reference they are produced only by deterministic
+injection points observed before a named invocation ordinal (device loss
+wins over cancellation at the same ordinal). They model the outcome
+contract an accelerator backend must report; they are not evidence about
+any real device.
+
+### What this does not claim
+
+The executor is a library-level reference on the host CPU: no source
+syntax, compilation route, CLI, generated artifact, driver call, or device
+dispatch. Its lifecycle is a host-side state machine rather than
+compile-time ownership. No accelerator backend exists, and no statement
+here describes a simulated outcome as hardware conformance.
 
 ## Freeze and change procedure
 
-This is version 0.1, not yet frozen: it precedes the front-end integration
+This is version 0.2, not yet frozen: it precedes the front-end integration
 [What this profile does not implement yet](#what-this-profile-does-not-implement-yet)
 names, and the two dependency issues in [Sequencing](#sequencing) remain
 open. A later revision that narrows or widens the admitted grammar, the
@@ -501,3 +658,96 @@ refusal vocabulary, or any bound must:
 - add or update the corresponding [`src/compute_profile/classifier.rs`](../src/compute_profile/classifier.rs)
   test before or with the change, per this repository's own change
   protocol.
+
+## Executable Metal backend v1
+
+Schema: `semaprax.compute-metal.v1`. Implementation:
+[`src/compute_profile/metal_backend.rs`](../src/compute_profile/metal_backend.rs),
+compiled only with `target_os = "macos"` and the optional `metal-device`
+feature, through the maintained `objc2-metal` bindings. Default and
+non-macOS builds do not contain it.
+
+The backend reuses the CPU reference's admission and lowering unchanged: a
+kernel is the same checked function, bound by `@id`, through the same
+classifier, and anything outside the closed map/fold shapes over
+i64/i32/u8/usize/bool buffers is refused with the existing refusal codes
+rather than falling back. It generates deterministic Metal Shading Language
+from the admitted kernel IR, compiles it at runtime, and binds the resulting
+artifact to the declaration, shape, IR fingerprint and the SHA-256 of the
+generated source, so a kernel bound to a different checked body is refused
+as stale. The generated code has no traps: every checked operation writes a
+per-invocation status, and the lowest failing invocation is selected exactly
+as the CPU reference selects it. Buffers follow the CPU reference session's
+lifecycle: an explicit capability, sticky failure, and release of every live
+buffer exactly once in reverse allocation order.
+
+Both kernel shapes execute:
+
+- **Elementwise map** (`load_kernel`/`dispatch_map`): one GPU thread per
+  element, guarded by `if (gid >= n) return`.
+- **Sequential fold** (`load_fold_kernel`/`dispatch_fold`): `acc = f(acc,
+  in[i])` for `i` in ascending order from an explicit initial value. A fold
+  is inherently sequential — the CPU reference's own fold folds left to
+  right one element at a time, and a checked failure must select the exact
+  same lowest-ordinal element a reordering parallel reduction could not
+  guarantee — so this compiles to one single-thread kernel that loops over
+  every element internally (`generate_fold`), never one GPU thread per
+  element the way the map shape does. This is the simple sequential kernel
+  the owning issue asks for in preference to a parallel reduction whose
+  overflow selection could disagree with the CPU reference's.
+
+Every `ScalarKind` the CPU reference admits (`i64`, `i32`, `u8`, `usize`,
+`bool`) now has a Metal v1 buffer and literal lowering (`msl::msl_type`):
+`usize` lowers to MSL's `ulong` (MSL has no type spelled `usize`). Unsigned
+(`u8`/`usize`) checked arithmetic has no signed-overflow special case (no
+unsigned analogue of `MIN / -1`), only a plain range check for
+add/sub/mul and a division-by-zero check for div/rem — matching the CPU
+reference's own `checked_integer!` macro exactly.
+
+Dispatch-time admission is likewise not re-derived: the load-time classifier
+call binds a *nominal* `GridShape` (single-workgroup for a map, the fixed
+`[1, 1, 1]` grid every fold uses) with a `Disjoint` aliasing claim, but the
+*dispatch-time* grid (from the real buffer length, for a map) and the
+*dispatch-time* aliasing claim (from whether an input handle equals the
+output handle) can only be known when `dispatch_map`/`dispatch_fold` is
+actually called with real buffers. Both backends classify that real shape
+and claim through the identical `cpu_reference::session::classify_map_dispatch`/
+`classify_fold_dispatch` functions immediately before touching any buffer
+for that dispatch, so a grid outside `MAX_GRID_DIM` or an aliased
+input/output buffer is refused with the same `SPX-GC0xx` code and the same
+precedence on the Metal backend as on the CPU reference — never merely
+accepted because a backend never asked.
+
+**Evidence (local, physical device, not hosted):** the
+`compute_profile::metal_backend` suite (29 tests: 5 generator tests and 24
+device tests, including map and fold overflow/division-by-zero/underflow
+selection across every value class the `usize`/`u8` checked division and
+remainder helpers must handle, every admitted `ScalarKind`, bounds refusal,
+stale-artifact refusal, settlement order, both shape-mismatch dispatch
+guards, fold aliasing refusal, and a negative-control mutant for each shape
+the differential oracle must reject) passed on
+`Metal device present: Apple M3 Pro (registryID 4294968899), Version 26.5.1
+(Build 25F80)` on 2026-09-27, comparing every output buffer and selected
+status against the ordinary reference interpreter. This is evidence for that
+one machine only.
+
+**Compiler constraint found on that device:** the system Metal compiler
+service failed with `XPC_ERROR_CONNECTION_INTERRUPTED` on every kernel whose
+generated helpers used 64-bit unsigned division for multiplication overflow
+detection. The generator now detects that overflow with `mulhi` and must keep
+64-bit unsigned division out of generated code. This constraint also governs
+the new `usize` checked division/remainder helpers added for this shape and
+type extension (`checked_div_u64`/`checked_rem_u64`): rather than assume the
+crash was scoped to the one division-based overflow check it was first
+observed at, they never emit a native MSL `/`/`%` on `ulong` operands at
+all, computing the quotient and remainder instead with an ordinary
+bit-at-a-time binary long division (shifts, comparisons, and subtraction
+only). `checked_div_u64`/`checked_rem_u64` themselves — not merely the
+`mulhi`-based multiply guard — were dispatched and compared against the
+interpreter on this device: divisor `1`; a divisor spanning the low/high
+32-bit halves (`2^32`, `2^40`); a divisor at the sign-bit boundary (`2^63`)
+and just past it in `(2^63, 2^64)` (`2^63 + 2^62`), both against
+`u64::MAX`; divisor `u64::MAX` itself against both `u64::MAX` and a small
+dividend; a zero dividend; a divisor exceeding its dividend; and division/
+remainder by zero selecting the lowest-ordinal failing lane — with no
+repeat of the crash on any of them.

@@ -127,6 +127,17 @@ fn argument_token(value: &ResumableScalar) -> String {
         ResumableScalar::F32(bits) => format!("f32:{bits:08x}"),
         ResumableScalar::F64(bits) => format!("f64:{bits:016x}"),
         ResumableScalar::Bool(value) => format!("bool:{}", if *value { "01" } else { "00" }),
+        // Issue #296 R20: an aggregate `yields` channel is admitted only for
+        // the direct top-level (sequential) placement, and this compiler-private
+        // Wasm parity runner only ever executes a Copy-scalar plan's
+        // yield-free projection -- native/Wasm still refuse every
+        // `yields`-declaring function's own emission (`SPX-W126`), so an
+        // aggregate value can never reach this encoder in practice.
+        ResumableScalar::Record(_)
+        | ResumableScalar::Variant { .. }
+        | ResumableScalar::Bytes(_) => unreachable!(
+            "the Wasm resumable-effect parity runner does not encode an aggregate channel value"
+        ),
     }
 }
 

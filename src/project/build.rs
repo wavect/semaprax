@@ -103,6 +103,13 @@ fn finish_build(
         .command()
         .map(|id| vec![id.to_owned()])
         .unwrap_or_default();
+    let provider_agent_schemas = super::agent_contract_facts::prepare_provider_agent_schemas(
+        &graph,
+        manifest.entry(),
+        &files,
+        &program_refs,
+        &agent_definitions,
+    )?;
     let semantic_parts = graph.into_project_semantic_parts(
         &workspace_revision,
         graph_source_facts,
@@ -122,7 +129,11 @@ fn finish_build(
             dependency_anchors: !manifest.dependency_sources().is_empty(),
         },
     )?;
-    if source_agents != semantic_parts.entry_program.agents {
+    let selected_source_agents = source_agents.iter().filter(|agent| {
+        !agent.has_execution_metadata()
+            || agent.execution_functions_present(&semantic_parts.entry_program.functions)
+    });
+    if !selected_source_agents.eq(semantic_parts.entry_program.agents.iter()) {
         return Err(vec![Diagnostic::io(
             "SPX-G559",
             "source Agent lowering disagrees with the retained linked HIR inventory",
@@ -165,6 +176,7 @@ fn finish_build(
             &files,
             &program_refs,
             &agent_definitions,
+            provider_agent_schemas,
         )?)
     };
     // Keep execution bound to the entry-only closure while retaining the

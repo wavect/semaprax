@@ -15,13 +15,13 @@ use semaprax::{
 };
 use std::env;
 
-struct Case {
-    id: &'static str,
-    source: String,
-    raw: u8,
+pub(super) struct Case {
+    pub(super) id: &'static str,
+    pub(super) source: String,
+    pub(super) raw: u8,
 }
 
-fn replace_once(source: &str, from: &str, to: &str) -> String {
+pub(super) fn replace_once(source: &str, from: &str, to: &str) -> String {
     assert_ne!(from, to);
     assert_eq!(
         source.matches(from).count(),
@@ -35,7 +35,30 @@ fn declaration(name: &str, bytes: &[u8]) -> String {
     super::super::array(name, bytes).trim_end().to_owned()
 }
 
-fn cases(descriptor: &VerifiedPublicGenericDescriptor, source: &str) -> Vec<Case> {
+/// One of the seven frozen recipes, independent of the caller language that
+/// projects it; each projection edits only its generated caller's own ticket,
+/// cleanup constant or canonical empty-frame template.
+pub(super) enum Recipe {
+    Generation(Shift),
+    ProviderOwned,
+    Cleanup(&'static [u8]),
+    Empty(Vec<u8>),
+}
+
+pub(super) enum Shift {
+    Stale,
+    Future,
+    Zero,
+}
+
+pub(super) struct Hostile {
+    pub(super) id: &'static str,
+    pub(super) recipe: Recipe,
+    pub(super) raw: u8,
+}
+
+/// Returns the canonical empty input frame and the seven recipes.
+pub(super) fn recipes(descriptor: &VerifiedPublicGenericDescriptor) -> (Vec<u8>, Vec<Hostile>) {
     let plan = CarrierFrameBinding::from_verified_descriptor(descriptor, Direction::Input);
     let empty = plan
         .frame_with_leaves(
@@ -47,52 +70,26 @@ fn cases(descriptor: &VerifiedPublicGenericDescriptor, source: &str) -> Vec<Case
         .encode();
     let mut output = Vec::new();
     for case in hostile_corpus::cases() {
-        let (changed, raw, code) = match (case.ticket, case.mutation) {
+        let (recipe, raw, code) = match (case.ticket, case.mutation) {
             (
                 ticket @ (TicketMutation::StaleGeneration
                 | TicketMutation::FutureGeneration
                 | TicketMutation::ZeroGeneration),
                 CarrierMutation::None,
             ) => {
-                let generation = match ticket {
-                    TicketMutation::StaleGeneration => "generation - 1",
-                    TicketMutation::FutureGeneration => "generation + 1",
-                    TicketMutation::ZeroGeneration => "0",
+                let shift = match ticket {
+                    TicketMutation::StaleGeneration => Shift::Stale,
+                    TicketMutation::FutureGeneration => Shift::Future,
+                    TicketMutation::ZeroGeneration => Shift::Zero,
                     _ => unreachable!(),
                 };
-                (
-                    replace_once(
-                        source,
-                        "(consumer->provider, generation, SPX_PG_AUTH_OWNERSHIP_CALLER,",
-                        &format!(
-                            "(consumer->provider, {generation}, SPX_PG_AUTH_OWNERSHIP_CALLER,"
-                        ),
-                    ),
-                    8,
-                    "SPX-PG805",
-                )
+                (Recipe::Generation(shift), 8, "SPX-PG805")
             }
-            (TicketMutation::ProviderOwned, CarrierMutation::None) => (
-                replace_once(
-                    source,
-                    "generation, SPX_PG_AUTH_OWNERSHIP_CALLER,",
-                    "generation, SPX_PG_AUTH_OWNERSHIP_PROVIDER,",
-                ),
-                7,
-                "SPX-PG804",
-            ),
+            (TicketMutation::ProviderOwned, CarrierMutation::None) => {
+                (Recipe::ProviderOwned, 7, "SPX-PG804")
+            }
             (TicketMutation::AlternateCleanupPlan, CarrierMutation::None) => (
-                replace_once(
-                    source,
-                    &declaration(
-                        "spx_pg_ccc_auth_cleanup",
-                        descriptor.settlement().digest().as_bytes(),
-                    ),
-                    &declaration(
-                        "spx_pg_ccc_auth_cleanup",
-                        hostile_corpus::ALTERNATE_CLEANUP_PLAN_DIGEST.as_bytes(),
-                    ),
-                ),
+                Recipe::Cleanup(hostile_corpus::ALTERNATE_CLEANUP_PLAN_DIGEST.as_bytes()),
                 14,
                 "SPX-PG803",
             ),
@@ -121,22 +118,14 @@ fn cases(descriptor: &VerifiedPublicGenericDescriptor, source: &str) -> Vec<Case
                 assert_eq!(error.code, code);
                 // The production encoder rebuilds the payload-bearing frame and
                 // remints its digest; the injected metadata is not a fake codec.
-                (
-                    replace_once(
-                        source,
-                        &declaration("spx_pg_ccc_auth_empty", &empty),
-                        &declaration("spx_pg_ccc_auth_empty", &changed),
-                    ),
-                    raw,
-                    code,
-                )
+                (Recipe::Empty(changed), raw, code)
             }
             _ => continue,
         };
         assert_eq!(case.expected_code(), Some(code));
-        output.push(Case {
+        output.push(Hostile {
             id: case.id,
-            source: changed,
+            recipe,
             raw,
         });
     }
@@ -145,10 +134,75 @@ fn cases(descriptor: &VerifiedPublicGenericDescriptor, source: &str) -> Vec<Case
         7,
         "five envelope and two logical recipes must execute"
     );
-    output
+    (empty, output)
+}
+
+pub(super) fn cases(descriptor: &VerifiedPublicGenericDescriptor, source: &str) -> Vec<Case> {
+    let (empty, hostile) = recipes(descriptor);
+    hostile
+        .into_iter()
+        .map(|case| {
+            let changed = match &case.recipe {
+                Recipe::Generation(shift) => {
+                    let generation = match shift {
+                        Shift::Stale => "generation - 1",
+                        Shift::Future => "generation + 1",
+                        Shift::Zero => "0",
+                    };
+                    replace_once(
+                        source,
+                        "(consumer->provider, generation, SPX_PG_AUTH_OWNERSHIP_CALLER,",
+                        &format!(
+                            "(consumer->provider, {generation}, SPX_PG_AUTH_OWNERSHIP_CALLER,"
+                        ),
+                    )
+                }
+                Recipe::ProviderOwned => replace_once(
+                    source,
+                    "generation, SPX_PG_AUTH_OWNERSHIP_CALLER,",
+                    "generation, SPX_PG_AUTH_OWNERSHIP_PROVIDER,",
+                ),
+                Recipe::Cleanup(alternate) => replace_once(
+                    source,
+                    &declaration(
+                        "spx_pg_ccc_auth_cleanup",
+                        descriptor.settlement().digest().as_bytes(),
+                    ),
+                    &declaration("spx_pg_ccc_auth_cleanup", alternate),
+                ),
+                Recipe::Empty(changed) => replace_once(
+                    source,
+                    &declaration("spx_pg_ccc_auth_empty", &empty),
+                    &declaration("spx_pg_ccc_auth_empty", changed),
+                ),
+            };
+            Case {
+                id: case.id,
+                source: changed,
+                raw: case.raw,
+            }
+        })
+        .collect()
 }
 
 pub(super) fn run(root: &Path, cxx: bool, opt: &str, expected: i32) {
+    run_sanitized(root, cxx, opt, expected, false);
+}
+
+/// Like [`run`], additionally compiling with Clang AddressSanitizer +
+/// UndefinedBehaviorSanitizer (`-fsanitize=address,undefined
+/// -fno-omit-frame-pointer -fno-sanitize-recover=all`, matching this
+/// harness's own existing `fixture.rs`/`c_calling_consumer.rs` sanitized
+/// pattern) and asserting the exact same stable raw exit status: a genuine
+/// sanitizer violation aborts with a different (nondeterministic-looking,
+/// but never the expected) status, so this is the same pass/fail oracle,
+/// now also proving the compiled path memory/UB-clean under the sanitizer
+/// runtime. LOCAL evidence on macOS arm64 only: `ASAN_OPTIONS=detect_leaks=1`
+/// is unconditionally fatal here ("detect_leaks is not supported on this
+/// platform"), so leak detection is not requested; the existing
+/// live-allocation counters (`auth_live`/`fixture_live`) remain the
+/// leak/settlement oracle, exactly as for the unsanitized runs.
+pub(super) fn run_sanitized(root: &Path, cxx: bool, opt: &str, expected: i32, sanitized: bool) {
     let clang = env::var_os("CLANG").unwrap_or_else(|| "clang".into());
     let executable = root.join(format!("probe{opt}{}", env::consts::EXE_SUFFIX));
     let assert_compiled = |command: &mut Command| {
@@ -159,6 +213,15 @@ pub(super) fn run(root: &Path, cxx: bool, opt: &str, expected: i32) {
             String::from_utf8_lossy(&result.stderr)
         );
     };
+    let sanitizer_flags: &[&str] = if sanitized {
+        &[
+            "-fsanitize=address,undefined",
+            "-fno-omit-frame-pointer",
+            "-fno-sanitize-recover=all",
+        ]
+    } else {
+        &[]
+    };
     if cxx {
         let mut objects = Vec::new();
         for source in ["provider.c", c_calling::CONSUMER_SOURCE_FILE_NAME] {
@@ -166,6 +229,7 @@ pub(super) fn run(root: &Path, cxx: bool, opt: &str, expected: i32) {
             assert_compiled(
                 Command::new(&clang)
                     .args(["-std=c11", opt, "-Wall", "-Wextra", "-Werror", "-c"])
+                    .args(sanitizer_flags)
                     .arg(root.join(source))
                     .arg("-o")
                     .arg(&object),
@@ -175,6 +239,7 @@ pub(super) fn run(root: &Path, cxx: bool, opt: &str, expected: i32) {
         assert_compiled(
             Command::new(env::var_os("CLANGXX").unwrap_or_else(|| "clang++".into()))
                 .args(["-std=c++17", opt, "-Wall", "-Wextra", "-Werror"])
+                .args(sanitizer_flags)
                 .arg("-I")
                 .arg(root)
                 .arg(root.join("driver.cpp"))
@@ -186,13 +251,20 @@ pub(super) fn run(root: &Path, cxx: bool, opt: &str, expected: i32) {
         assert_compiled(
             Command::new(clang)
                 .args(["-std=c11", opt, "-Wall", "-Wextra", "-Werror"])
+                .args(sanitizer_flags)
                 .arg(root.join("provider.c"))
                 .arg(root.join("driver.c"))
                 .arg("-o")
                 .arg(&executable),
         );
     }
-    let result = Command::new(executable).output().unwrap();
+    let mut execute = Command::new(executable);
+    if sanitized {
+        execute
+            .env("ASAN_OPTIONS", "halt_on_error=1")
+            .env("UBSAN_OPTIONS", "halt_on_error=1:print_stacktrace=1");
+    }
+    let result = execute.output().unwrap();
     assert_eq!(
         result.status.code(),
         Some(expected),
@@ -200,13 +272,26 @@ pub(super) fn run(root: &Path, cxx: bool, opt: &str, expected: i32) {
         root.display(),
         String::from_utf8_lossy(&result.stderr)
     );
+    if sanitized {
+        let stderr = String::from_utf8_lossy(&result.stderr);
+        assert!(
+            !stderr.contains("Sanitizer") && !stderr.contains("runtime error:"),
+            "{}: unexpected sanitizer report: {stderr}",
+            root.display()
+        );
+    }
     if cxx && expected == 0 {
         assert_eq!(result.stdout, b"cxx-authenticated-caller-settled");
     }
 }
 
-#[test]
-fn generated_c_and_cxx_reject_subject_bound_hostile_handoffs() {
+/// The identity-v1 hostile corpus AND its own canonical positive control
+/// (the `"canonical"`/raw==0 case below runs at mode 1, the real checked
+/// call, not only a refusal). `sanitized` is `false` for this module's own
+/// test; [`super::sanitizer_evidence`] calls this again with `true` for its
+/// own LOCAL macOS arm64 ASan/UBSan selector, rather than duplicating this
+/// function's shape/descriptor/provider assembly a second time.
+pub(super) fn run_identity_corpus(sanitized: bool) {
     let root = env::temp_dir().join(format!(
         "semaprax-r07-callers-{}-{}",
         std::process::id(),
@@ -358,7 +443,7 @@ fn generated_c_and_cxx_reject_subject_bound_hostile_handoffs() {
                     .unwrap();
                 }
                 for opt in ["-O0", "-O2"] {
-                    run(&directory, cxx, opt, if bypass { 77 } else { 0 });
+                    run_sanitized(&directory, cxx, opt, if bypass { 77 } else { 0 }, sanitized);
                     eprintln!(
                         "R07 caller cxx={cxx} requires={guard} {} {opt}: raw={} oracle={}",
                         case.id,
@@ -370,4 +455,9 @@ fn generated_c_and_cxx_reject_subject_bound_hostile_handoffs() {
         }
     }
     fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn generated_c_and_cxx_reject_subject_bound_hostile_handoffs() {
+    run_identity_corpus(false);
 }

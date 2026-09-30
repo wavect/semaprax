@@ -1,0 +1,7 @@
+module provider.tests;
+
+@id("provider.tests.main")
+fn main() -> i64
+{
+    0
+}

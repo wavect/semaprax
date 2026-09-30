@@ -436,6 +436,7 @@ fn catalog_normalizer_compact_core_fits_production_builder_cap() {
         .module_paths
         .contains_key("catalog_normalizer.app"));
     assert!(built.hir.module_paths.contains_key("std.data.json.dec"));
+    assert!(built.hir.module_paths.contains_key("std.data.json.doc"));
     assert!(built.hir.module_paths.contains_key("std.io"));
     assert!(built.usage.builder_bytes <= MAX_BUILDER_BYTES);
 }

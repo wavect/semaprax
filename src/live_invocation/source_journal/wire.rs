@@ -98,7 +98,7 @@ fn encode_usage(usage: &Option<SourceReportedUsage>) -> String {
     }
 }
 
-fn encode_entry(entry: &SourceJournalEntry, seq: usize) -> String {
+pub(super) fn encode_entry(entry: &SourceJournalEntry, seq: usize) -> String {
     match entry {
         SourceJournalEntry::PricedAttemptIntent(intent) => return intent.render(seq),
         SourceJournalEntry::PricedAttemptUsage(usage) => return usage.render(seq),
@@ -238,12 +238,25 @@ pub(super) fn encode_envelope(
     journal: &SourceJournal,
     generation: u64,
 ) -> Result<String, SourceJournalError> {
-    if generation == 0 || generation != journal.entries.len() as u64 {
+    if generation == 0 || generation != journal.combined_len() as u64 {
         return Err(SourceJournalError::Generation);
     }
-    let entries = encode_entries(journal.entries())?;
+    let entries = if journal.binding.wait.is_some() {
+        let mut rows = Vec::new();
+        for (seq, row) in journal.execution_entries_v7() {
+            rows.push(match row {
+                SourceExecutionEntryV7::Ordinary(entry) => encode_entry(&entry, seq as usize),
+                SourceExecutionEntryV7::Wait(entry) => wait_v7::wire::encode(&entry, seq),
+            });
+        }
+        format!("[{}]", rows.join(","))
+    } else {
+        encode_entries(journal.entries())?
+    };
     let link = digest(
-        if journal.binding.policy_binding().is_some() {
+        if journal.binding.wait.is_some() {
+            b"semaprax.live-invocation.source-chain.v7\0"
+        } else if journal.binding.policy_binding().is_some() {
             POLICY_CHAIN_DOMAIN
         } else if journal.binding.io_limits().is_some() {
             b"semaprax.live-invocation.source-chain.v5\0"
@@ -381,7 +394,7 @@ fn tag<T>(
     .ok_or(SourceJournalError::Malformed)
 }
 
-fn decode_entry(
+pub(super) fn decode_entry(
     value: &Value,
     seq: usize,
     expected: &SourceInvocationBinding,
@@ -648,12 +661,22 @@ pub(super) fn decode_envelope(
         return Err(SourceJournalError::Generation);
     }
     let mut entries = Vec::with_capacity(raw_entries.len());
+    let mut wait_entries = Vec::new();
     for (seq, item) in raw_entries.iter().enumerate() {
-        entries.push(decode_entry(item, seq, expected)?);
+        if expected.wait.is_some()
+            && item["kind"]
+                .as_str()
+                .is_some_and(|kind| kind.starts_with("wait_"))
+        {
+            wait_entries.push((seq as u32, wait_v7::wire::decode(item, seq as u32)?));
+        } else {
+            entries.push(decode_entry(item, seq, expected)?);
+        }
     }
     let journal = SourceJournal {
         binding: expected.clone(),
         entries,
+        wait_entries,
         last_checked_millis,
     };
     let canonical = encode_envelope(&journal, generation)?;

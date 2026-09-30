@@ -5,6 +5,9 @@
 //! its `before_effect` boundary, then uses the same Dispatch as frozen input.
 
 use super::*;
+#[path = "live/model_wait.rs"]
+mod model_wait;
+pub(crate) mod owned_wait_v8;
 use crate::agent_lifecycle::authorization::target_protocol::{
     self, TargetAccounting, TargetGrant, TargetHostHandler, TargetLimits, TargetOperation,
     TypedCarrier,
@@ -21,6 +24,16 @@ pub(super) fn target_backend_identity(
     backend: crate::agent_lifecycle::authorization::StageBackend<'_>,
 ) -> String {
     match backend {
+        crate::agent_lifecycle::authorization::StageBackend::Metered {
+            backend,
+            fuel_limit,
+            ..
+        } => {
+            format!(
+                "semantic-work-v1:{fuel_limit}:{}",
+                target_backend_identity(*backend)
+            )
+        }
         crate::agent_lifecycle::authorization::StageBackend::Interpreter => "interpreter".into(),
         crate::agent_lifecycle::authorization::StageBackend::Native { host } => {
             format!("native:-O0:{}", host.identity())
@@ -120,83 +133,11 @@ impl TargetLiveDispatch<'_> {
             return Err(error("target.selector_type"));
         };
         let index = usize::try_from(*selector).map_err(|_| error("target.selector_range"))?;
-        let operation = self
-            .compiled
-            .operations
-            .get(index)
-            .ok_or_else(|| error("target.selector_range"))?;
-        let mut arguments = Vec::new();
-        for argument in &operation.arguments {
-            let position = lifecycle
-                .inner
-                .binding
-                .proposal
-                .iter()
-                .position(|field| field.field.as_str() == argument.proposal_field_id)
-                .ok_or_else(|| error("target.argument_identity"))?;
-            let value = projected
-                .get(position)
-                .ok_or_else(|| error("target.argument_index"))?;
-            if !argument.kind.accepts(value) {
-                return Err(error("target.argument_type"));
-            }
-            arguments.push((argument.argument_id.clone(), value.clone()));
-        }
-        for ((_, value), limit) in arguments.iter().zip(&self.compiled.field_limits[index].0) {
-            if scalar_bytes(value).is_none_or(|size| size > *limit) {
-                return Err(error("target.argument_field_budget"));
-            }
-        }
-        let argument_type = Self::carrier_type(operation, "argument");
-        let result_type = Self::carrier_type(operation, "result");
-        let operation = TargetOperation::new(
-            operation.operation_id.clone(),
-            operation.effect_id.clone(),
-            argument_type.clone(),
-            result_type,
-        )
-        .map_err(|_| error("target.operation"))?;
-        let carrier = TypedCarrier::new(argument_type, encode_fields(&arguments).into_bytes())
-            .map_err(|_| error("target.argument_carrier"))?;
-        Ok((index, operation, carrier))
+        owned_wait_v8::planned_call_projected(self.compiled, index, projected)
     }
 
     fn accepted_result(&self, index: usize, payload: &[u8]) -> Option<Vec<u8>> {
-        let operation = self.compiled.operations.get(index)?;
-        let value: Value = serde_json::from_slice(payload).ok()?;
-        let object = value.as_object()?;
-        if object.get("schema")?.as_str()? != "semaprax.agent-effect-fields.v1" {
-            return None;
-        }
-        let fields = object.get("fields")?.as_array()?;
-        if fields.len() != operation.results.len() {
-            return None;
-        }
-        let mut decoded = Vec::new();
-        for (field, expected) in fields.iter().zip(&operation.results) {
-            let pair = field.as_array()?;
-            if pair.len() != 2 || pair.first()?.as_str()? != expected.result_id {
-                return None;
-            }
-            let value = match expected.kind {
-                EffectScalar::Bool => RetainedValue::Bool(pair.get(1)?.as_bool()?),
-                EffectScalar::I32 => RetainedValue::I32(pair.get(1)?.as_str()?.parse().ok()?),
-                EffectScalar::I64 => RetainedValue::I64(pair.get(1)?.as_str()?.parse().ok()?),
-                EffectScalar::U8 => RetainedValue::U8(pair.get(1)?.as_str()?.parse().ok()?),
-                EffectScalar::Usize => RetainedValue::Usize(pair.get(1)?.as_str()?.parse().ok()?),
-            };
-            decoded.push((expected.result_id.clone(), value));
-        }
-        let canonical = encode_fields(&decoded);
-        if canonical.as_bytes() != payload
-            || decoded
-                .iter()
-                .zip(&self.compiled.field_limits[index].1)
-                .any(|((_, value), limit)| scalar_bytes(value).is_none_or(|size| size > *limit))
-        {
-            return None;
-        }
-        Some(canonical.into_bytes())
+        owned_wait_v8::accepted_result(self.compiled, index, payload)
     }
 }
 
@@ -472,7 +413,25 @@ impl CompiledTypedEffects {
         cancellation: &AgentCancellation,
         selected: TargetStageBackend<'_>,
     ) -> Result<TargetEffectRun, Vec<Diagnostic>> {
-        let backend = match selected {
+        let backend = self.selected_target_backend(selected)?;
+        let execution_binding = self.target_execution_binding(backend);
+        self.run_target_live_inner(
+            task,
+            source,
+            handler,
+            stages,
+            effects,
+            cancellation,
+            backend,
+            Some(execution_binding),
+        )
+    }
+
+    pub(super) fn selected_target_backend<'a>(
+        &'a self,
+        selected: TargetStageBackend<'a>,
+    ) -> Result<crate::agent_lifecycle::authorization::StageBackend<'a>, Vec<Diagnostic>> {
+        Ok(match selected {
             TargetStageBackend::Interpreter => {
                 crate::agent_lifecycle::authorization::StageBackend::Interpreter
             }
@@ -497,18 +456,7 @@ impl CompiledTypedEffects {
                     source,
                 }
             }
-        };
-        let execution_binding = self.target_execution_binding(backend);
-        self.run_target_live_inner(
-            task,
-            source,
-            handler,
-            stages,
-            effects,
-            cancellation,
-            backend,
-            Some(execution_binding),
-        )
+        })
     }
 
     /// Local parity-only entry. It does not select a production target: the
@@ -538,7 +486,7 @@ impl CompiledTypedEffects {
         )
     }
 
-    fn target_execution_binding(
+    pub(super) fn target_execution_binding(
         &self,
         backend: crate::agent_lifecycle::authorization::StageBackend<'_>,
     ) -> String {
@@ -550,7 +498,7 @@ impl CompiledTypedEffects {
     }
 
     #[allow(clippy::too_many_arguments)]
-    fn run_target_live_inner(
+    pub(super) fn run_target_live_inner(
         &self,
         task: &LifecycleTask,
         source: &mut dyn ProposalSource,

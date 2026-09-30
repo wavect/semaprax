@@ -1,0 +1,122 @@
+{
+  "mutants": [
+    {
+      "hidden_passed": false,
+      "mirror_hidden": true,
+      "path": "index.ts",
+      "public_passed": false,
+      "replacement": "return left < right ? left : right;",
+      "target": "return left > right ? left : right;",
+      "task_id": "sequence-digest-v1"
+    },
+    {
+      "hidden_passed": false,
+      "mirror_hidden": true,
+      "path": "index.ts",
+      "public_passed": true,
+      "replacement": "return clamp(c0 + d1 + d2 + d3 + d4 + d5);",
+      "target": "return step(step(step(step(step(c0, d1), d2), d3), d4), d5);",
+      "task_id": "bounded-counter-repair-v1"
+    },
+    {
+      "hidden_passed": false,
+      "mirror_hidden": false,
+      "path": "validate.ts",
+      "public_passed": true,
+      "replacement": "if (version !== 1) return 2;\n  if (kind !== 7) return 1;",
+      "target": "if (kind !== 7) return 1;\n  if (version !== 1) return 2;",
+      "task_id": "structured-input-error-handling-v1"
+    },
+    {
+      "hidden_passed": false,
+      "mirror_hidden": false,
+      "path": "helper.ts",
+      "public_passed": true,
+      "replacement": "Math.ceil((subtotal * taxRate) / 100)",
+      "target": "Math.floor((subtotal * taxRate) / 100)",
+      "task_id": "module-import-refactor-v1"
+    },
+    {
+      "hidden_passed": false,
+      "mirror_hidden": false,
+      "path": "candidate.ts",
+      "public_passed": true,
+      "replacement": "aStart <= bEnd && bStart <= aEnd",
+      "target": "aStart < bEnd && bStart < aEnd",
+      "task_id": "booking-window-conflict-v1"
+    },
+    {
+      "hidden_passed": false,
+      "mirror_hidden": false,
+      "path": "candidate.ts",
+      "public_passed": true,
+      "replacement": "return Math.max(0, left - right);",
+      "target": "return left - right;",
+      "task_id": "clean-install-calculator-v1"
+    },
+    {
+      "hidden_passed": false,
+      "mirror_hidden": false,
+      "path": "candidate.ts",
+      "public_passed": true,
+      "replacement": "coreTemperature > 2 && coreTemperature < 8 && sealPressure > 95 && sealPressure < 105",
+      "target": "coreTemperature >= 2 && coreTemperature <= 8 && sealPressure >= 95 && sealPressure <= 105",
+      "task_id": "cold-chain-release-gate-v1"
+    },
+    {
+      "hidden_passed": false,
+      "mirror_hidden": false,
+      "path": "candidate.ts",
+      "public_passed": true,
+      "replacement": "const total = Math.max(0, Math.min(1_000_000, base + deltaA)) + deltaB;",
+      "target": "const total = base + deltaA + deltaB;",
+      "task_id": "concurrent-delta-merge-v1"
+    },
+    {
+      "hidden_passed": false,
+      "mirror_hidden": false,
+      "path": "candidate.ts",
+      "public_passed": true,
+      "replacement": "transformed[index] = 0x01;",
+      "target": "transformed[index] = 0xff;",
+      "task_id": "owned-byte-sentinel-balance-v1"
+    },
+    {
+      "hidden_passed": false,
+      "mirror_hidden": false,
+      "path": "candidate.ts",
+      "public_passed": true,
+      "replacement": "aPriority < bPriority && aPriority < cPriority",
+      "target": "aPriority <= bPriority && aPriority <= cPriority",
+      "task_id": "stable-dispatch-order-v1"
+    },
+    {
+      "hidden_passed": false,
+      "mirror_hidden": false,
+      "path": "candidate.ts",
+      "public_passed": true,
+      "replacement": "return raw;",
+      "target": "return raw < 0 ? 0 : raw;",
+      "task_id": "stale-edit-preservation-v1"
+    },
+    {
+      "hidden_passed": false,
+      "mirror_hidden": false,
+      "path": "candidate.ts",
+      "public_passed": true,
+      "replacement": "",
+      "target": "if (deltaB > 0 && deltaA > I32_MAX - deltaB) return I32_MAX;\n  if (deltaB < 0 && deltaA < I32_MIN - deltaB) return I32_MIN;",
+      "task_id": "telemetry-overflow-diagnosis-v1"
+    },
+    {
+      "hidden_passed": false,
+      "mirror_hidden": false,
+      "path": "candidate.ts",
+      "public_passed": true,
+      "replacement": "return clamp(balance + adjustment) - fee(adjustment);",
+      "target": "return clamp(balance + adjustment - fee(adjustment));",
+      "task_id": "iterative-repair-workflow-v1"
+    }
+  ],
+  "schema": "benchmark.cross_language.official_ts_mutants.v1"
+}

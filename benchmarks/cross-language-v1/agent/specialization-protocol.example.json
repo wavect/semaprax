@@ -19,7 +19,7 @@
   },
   "evaluation": {
     "language": "semaprax-project",
-    "task_inventory_sha256": "sha256:f5cd390280bbdd82533fa6953d114ecf66a67d65c66d6571ccc6acb05a1113f1"
+    "task_inventory_sha256": "sha256:cd6cef4d71810f1f1c9187b5750fa2dc8a0c9a1fe4dee32a9a70b51f19e3700f"
   },
   "id": "semaprax-specialization-held-out-v1",
   "metrics": [

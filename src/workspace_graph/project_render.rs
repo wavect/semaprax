@@ -15,7 +15,23 @@ pub(super) fn render_project_graph_json(
 
     let mut output = crate::bounded_output::CappedString::new();
     output.push_str("{\"schema\":");
-    push_json_string(&mut output, PROJECT_GRAPH_SCHEMA);
+    let has_protocols = has_tag(projection, "{\"stable_id\":");
+    let has_follows = has_tag(projection, "{\"function\":");
+    let base = if has_follows {
+        "semaprax.project-semantic-graph.v3"
+    } else if has_protocols {
+        "semaprax.project-semantic-graph.v2"
+    } else {
+        PROJECT_GRAPH_SCHEMA
+    };
+    push_json_string(
+        &mut output,
+        if super::agent_execution::has_facts(&projection.modules) {
+            "semaprax.project-semantic-graph.v4"
+        } else {
+            base
+        },
+    );
     output.push_str(",\"project_schema\":");
     push_json_string(&mut output, project_schema);
     output.push_str(",\"project\":");
@@ -122,6 +138,77 @@ pub(super) fn render_project_graph_json(
         }
         push_json_string(&mut output, nonclaim);
     }
-    output.push_str("]}");
+    output.push(']');
+    append_facts(
+        &mut output,
+        projection,
+        "{\"stable_id\":",
+        "session_protocols",
+        PROJECT_GRAPH_SCHEMA,
+        "declarations",
+    );
+    append_facts(
+        &mut output,
+        projection,
+        "{\"function\":",
+        "session_protocol_follows",
+        "semaprax.project-semantic-graph.v2",
+        "bindings",
+    );
+    output.push_str(&super::agent_execution::render_trailing(
+        base,
+        &projection.modules,
+    ));
+    output.push('}');
     output.into_string()
+}
+
+fn has_tag(projection: &WorkspaceGraphProjection, tag: &str) -> bool {
+    projection.modules.iter().any(|module| {
+        module
+            .session_protocol_facts
+            .iter()
+            .any(|fact| fact.starts_with(tag))
+    })
+}
+
+/// Borrow canonical checked facts directly; preserve their compiler order.
+fn append_facts(
+    output: &mut crate::bounded_output::CappedString,
+    projection: &WorkspaceGraphProjection,
+    tag: &str,
+    section: &str,
+    base: &str,
+    rows: &str,
+) {
+    if !has_tag(projection, tag) {
+        return;
+    }
+    output.push(',');
+    push_json_string(output, section);
+    output.push_str(":{\"base_schema\":");
+    push_json_string(output, base);
+    output.push_str(",\"authority\":\"none\",");
+    push_json_string(output, rows);
+    output.push_str(":[");
+    let mut first = true;
+    for module in &projection.modules {
+        for fact in module
+            .session_protocol_facts
+            .iter()
+            .filter(|fact| fact.starts_with(tag))
+        {
+            if !first {
+                output.push(',');
+            }
+            first = false;
+            output.push_str("{\"module\":");
+            push_json_string(output, &module.module);
+            output.push_str(",\"path\":");
+            push_json_string(output, &module.path);
+            output.push(',');
+            output.push_str(&fact[1..]);
+        }
+    }
+    output.push_str("]}");
 }

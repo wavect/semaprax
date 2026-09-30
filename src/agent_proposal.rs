@@ -25,6 +25,7 @@ use crate::diagnostic::{quote_json, Diagnostic};
 
 mod clients;
 pub(crate) mod decode;
+mod model_wait;
 mod runtime_v1;
 pub(crate) mod shape;
 pub(crate) mod stream_grammar;

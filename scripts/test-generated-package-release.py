@@ -20,6 +20,7 @@ import importlib.util
 import io
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -1084,6 +1085,118 @@ class CheckTests(NpmFixtureMixin, RustFixtureMixin, unittest.TestCase):
         gpr.prepare("rust", package_dir, "frame-payload", "0.1.0", None, prepared)
         report = gpr.check("rust", prepared, publish=False, cargo_bin=cargo_bin)
         self.assertTrue(any("independently refused" in line for line in report))
+
+
+class GeneratedPackageSupportDecisionTests(unittest.TestCase):
+    """Keep #325's policy/evidence split aligned without rebuilding packages."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.adr = (ROOT / "docs/decisions/0003-maintained-generated-package-support.md").read_text(
+            encoding="utf-8"
+        )
+        cls.package = (ROOT / "crates/semaprax-native-rust-owned-data-package/src/lib.rs").read_text(
+            encoding="utf-8"
+        )
+
+    def section(self, heading):
+        marker = f"## {heading}\n"
+        self.assertEqual(self.adr.count(marker), 1, f"missing/duplicate ADR section: {heading}")
+        return self.adr.split(marker, 1)[1].split("\n## ", 1)[0]
+
+    def row(self, section, field):
+        rows = [line for line in self.section(section).splitlines() if line.startswith(f"| {field} |")]
+        self.assertEqual(len(rows), 1, f"missing/duplicate ADR field: {field}")
+        return [cell.strip() for cell in rows[0].strip("|").split("|")]
+
+    def test_current_decision_preserves_rust_only_scope_and_narrow_closure_waiver(self):
+        current = " ".join(self.section("Current maintainer decision").split())
+        self.assertIn("retain the accepted Rust-only scope and the eight recorded answers", current)
+        self.assertIn("npm maintenance is deferred to a separate ADR", current)
+        self.assertIn("No new hosted run is required solely to close #325", current)
+        self.assertIn("does not choose a support policy, turn local evidence into hosted evidence", current)
+        self.assertIn("Answers 5 and 7 remain", current)
+        self.assertNotIn("confirmation remains pending", current)
+        self.assertEqual(
+            self.row("Support matrix", "npm package")[1], "Maintenance deferred"
+        )
+
+    def test_documented_identity_preview_version_and_msrv_match_frozen_generator(self):
+        decision = self.section("Decision")
+        for name in (
+            "PUBLIC_OWNED_DATA_PROJECT_SCHEMA",
+            "NATIVE_RUST_OWNED_DATA_SDK_SCHEMA",
+            "OWNED_CRATE_NAME",
+            "OWNED_CRATE_VERSION",
+        ):
+            with self.subTest(constant=name):
+                match = re.search(rf'pub const {name}: &str = "([^"\n]+)";', self.package)
+                self.assertIsNotNone(match, f"missing generator constant: {name}")
+                self.assertIn(f"`{match.group(1)}`", decision)
+        renderer = (ROOT / "crates/semaprax-native-rust-owned-data-package/src/render.rs").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn(r'rust-version = \"1.85\"', renderer)
+        self.assertIn(r'publish = false', renderer)
+        self.assertEqual(
+            self.row("Support matrix", "Generated crate declared MSRV")[1],
+            '`rust-version = "1.85"`',
+        )
+        version = self.row("Support matrix", "Package version scheme")[1]
+        self.assertIn("Unpublished preview: fixed `0.1.0`", version)
+        self.assertIn("before publication: real, incrementing SemVer plus exact API descriptor digest", version)
+
+    def test_maintained_target_boundary_matches_exact_five_generator_targets(self):
+        triples = self.package.split("pub const fn triple(self) -> &'static str {", 1)[1]
+        triples = triples.split("\n    }", 1)[0]
+        generated = re.findall(r'=> "([^"\n]+)"', triples)
+        documented = re.findall(
+            r"`([^`]+)`", self.row("Support matrix", "Maintained target boundary (5, fixed)")[1]
+        )
+        self.assertEqual(len(generated), 5)
+        self.assertEqual(len(documented), 5)
+        self.assertEqual(set(documented), set(generated))
+        self.assertNotIn("aarch64-pc-windows-msvc", documented)
+
+    def test_retained_evidence_keeps_npm_hosted_rust_and_exact_local_msrv_distinct(self):
+        evidence = " ".join(self.section("Evidence").split())
+        self.assertIn("not new runs performed by the 2026-09-30 decision update", evidence)
+        npm = " ".join(self.row("Evidence", "14"))
+        self.assertIn("77d68e49", npm)
+        self.assertIn("macOS arm64", npm)
+        self.assertIn("1 passed, 0 failed", npm)
+        hosted = " ".join(self.row("Evidence", "15"))
+        self.assertIn("a7cad038bdf09fca02b818c8753def23a1f943db", hosted)
+        self.assertIn("Hosted, prior revision, Rust route only", hosted)
+        self.assertIn("Not exact 1.85.0, npm execution", hosted)
+        msrv = " ".join(self.row("Evidence", "16"))
+        self.assertIn("0cdd26d312fd65653d24a46098195484720c78e9", msrv)
+        self.assertIn("1.85.0", msrv)
+        self.assertIn("aarch64-apple-darwin", msrv)
+        self.assertIn("Local, unsigned, prior revision", msrv)
+        self.assertIn("**1/1**", msrv)
+        self.assertIn("**3/3**", msrv)
+        self.assertIn("not compiler generation or archive packaging", msrv)
+
+    def test_related_status_documents_point_to_accepted_scope_not_publication_draft(self):
+        link = "decisions/0003-maintained-generated-package-support.md#current-maintainer-decision"
+        stale_status = {
+            "PUBLIC-OWNED-DATA-API-V1.md": "The decision remains an [unapproved draft]",
+            "GENERATED-PACKAGE-PUBLICATION-DECISION-DRAFT-V1.md":
+                "Closing that genuinely compiler-built npm gap still needs",
+            "COMPLETION-MATRIX.md": "Make the explicit registry/support decision",
+            "ROADMAP.md": "Promotion still needs a package and browser/runtime support decision",
+        }
+        for name, stale_claim in stale_status.items():
+            with self.subTest(document=name):
+                source = (ROOT / "docs" / name).read_text(encoding="utf-8")
+                self.assertIn(f"]({link})", source)
+                self.assertNotIn(stale_claim, " ".join(source.split()))
+        draft = (ROOT / "docs/GENERATED-PACKAGE-PUBLICATION-DECISION-DRAFT-V1.md").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("Status: **unapproved publication design draft**", draft)
+        self.assertIn("not an approved publication decision", " ".join(draft.split()))
 
 
 class CliEndToEndTests(NpmFixtureMixin, unittest.TestCase):

@@ -8,7 +8,7 @@
 use std::fmt;
 
 use argon2::{
-    password_hash::{PasswordHash, PasswordHasher as _, PasswordVerifier as _, SaltString},
+    password_hash::{phc::PasswordHash, PasswordHasher as _, PasswordVerifier as _},
     Algorithm, Argon2, Params, Version,
 };
 
@@ -138,10 +138,9 @@ impl PasswordHasherHost {
         ensure_password_size(password)?;
         let mut salt_bytes = [0_u8; SALT_BYTES];
         entropy.fill(&mut salt_bytes)?;
-        let salt = SaltString::encode_b64(&salt_bytes).map_err(|_| AuthError::Entropy)?;
         let encoded = self
             .argon2_for(self.policy)?
-            .hash_password(password.as_bytes(), &salt)
+            .hash_password_with_salt(password.as_bytes(), &salt_bytes)
             .map_err(|_| AuthError::Storage)?
             .to_string();
         StoredPasswordHash::parse_for_storage(&encoded).map_err(|_| AuthError::Storage)

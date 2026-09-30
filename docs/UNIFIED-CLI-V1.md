@@ -179,7 +179,7 @@ binds the exact Project and semantic-graph revisions. Filters are a conjunction:
 
 | Filter | Holds when |
 | --- | --- |
-| `--kind` | the declaration's kind is one of the listed kinds: `record`, `variant`, `class`, `method`, `resource`, `interface`, `protocol`, `implementation`, `function` |
+| `--kind` | the declaration's kind is one of the listed kinds: `record`, `variant`, `class`, `method`, `resource`, `interface`, `protocol`, `session_protocol`, `implementation`, `function` |
 | `--name` | the display name contains the text |
 | `--id` | the stable identity starts with the prefix |
 | `--effect` | the declaration's `uses` clause names the effect |

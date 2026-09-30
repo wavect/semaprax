@@ -631,7 +631,8 @@ fn project_v8_is_activated_only_by_manifest_and_profile_admission() {
         include_str!("../../src/wasm/owned_data_public.rs"),
         include_str!("../../src/wasm/aggregate/filesystem_ops.rs"),
         include_str!("../../src/wasm/aggregate/filesystem_v2.rs"),
-        include_str!("../../src/wasm/aggregate/host_command.rs")
+        include_str!("../../src/wasm/aggregate/host_command.rs"),
+        include_str!("../../src/wasm/scalar_call_admission.rs")
     );
 
     assert!(manifest.contains(PUBLIC_OWNED_DATA_PROJECT_SCHEMA));

@@ -72,7 +72,7 @@ macro_rules! format {
 mod native_emit;
 pub(crate) use native_emit::public_generic_bridge::{
     emit_public_generic_allocating_bridge, emit_public_generic_identity_bridge,
-    emit_public_generic_moves_bridge,
+    emit_public_generic_moves_bridge, emit_public_generic_nested_moves_bridge,
 };
 
 #[cfg(test)]
@@ -218,6 +218,21 @@ pub(crate) fn emit_resolved_c_with_source(
 pub fn emit_hir_c(program: &ResolvedProgram) -> Result<String, Diagnostic> {
     reject_native_rust_for_native(program)?;
     emit_hir_c_with_labels(program, &HashMap::new(), NativeOutputProfile::Legacy, None)
+}
+
+pub(crate) use native_emit::{
+    NativeSemanticMetering, SEMANTIC_EVENT_CAPACITY, SEMANTIC_FUEL_STATUS_DOMAIN,
+};
+pub(crate) use native_scalar_runtime::CALL_DEPTH_STATUS_DOMAIN;
+
+/// [`emit_hir_c`] instrumented for Agent Stage Semantic Work v1. Reserved for
+/// the private Agent-stage executor; no public build selects it.
+pub(crate) fn emit_hir_c_semantically_metered(
+    program: &ResolvedProgram,
+    metering: &NativeSemanticMetering,
+) -> Result<String, Diagnostic> {
+    reject_native_rust_for_native(program)?;
+    native_emit::emit_hir_c_semantically_metered(program, metering)
 }
 
 fn emit_hir_c_for_owned_data_provider(program: &ResolvedProgram) -> Result<String, Diagnostic> {

@@ -113,6 +113,8 @@ pub(super) fn descriptor_ts(
     out.push_str(&ts_string_literal(binding.provider_artifact_digest()));
     out.push_str(";\nexport const TRUSTED_ENDPOINT_EXPORT_NAME: string = ");
     out.push_str(&ts_string_literal(binding.exported_endpoint_export_name()));
+    out.push_str(";\nexport const TRUSTED_WASM_ADAPTER_ABI_VERSION: string = ");
+    out.push_str(&ts_string_literal(binding.wasm_adapter_abi_version()));
     out.push_str(";\nexport const TRUSTED_COMPILED_PROVIDER: boolean = ");
     out.push_str(
         if binding.exported_endpoint_export_name() == "spx_pg_v1_call" {

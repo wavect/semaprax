@@ -34,6 +34,8 @@ pub enum CapsuleError {
     InvalidTrustAnchor,
     Signature,
     ArchitectureMismatch,
+    /// The selected signed image cannot be bound to a stable local file.
+    ArtifactBinding,
 }
 
 #[cfg(windows)]
@@ -41,6 +43,20 @@ pub type VerifiedCapsule = semaprax_doctor_capsule::Capsule;
 
 #[cfg(all(test, windows))]
 pub(super) fn signed_test_fixture(architecture: u8) -> (Vec<u8>, String) {
+    signed_test_fixture_with_artifacts(
+        architecture,
+        std::array::from_fn(|index| semaprax_doctor_capsule::Artifact {
+            length: index as u64 + 1,
+            digest: [0x42; 32],
+        }),
+    )
+}
+
+#[cfg(all(test, windows))]
+pub(super) fn signed_test_fixture_with_artifacts(
+    architecture: u8,
+    artifacts: [semaprax_doctor_capsule::Artifact; ARTIFACT_COUNT],
+) -> (Vec<u8>, String) {
     use ed25519_dalek::{Signer as _, SigningKey};
 
     let signing = SigningKey::from_bytes(&[0x6d; 32]);
@@ -48,10 +64,7 @@ pub(super) fn signed_test_fixture(architecture: u8) -> (Vec<u8>, String) {
         architecture,
         target: 0,
         selector: "runtime-test".to_owned(),
-        artifacts: std::array::from_fn(|index| semaprax_doctor_capsule::Artifact {
-            length: index as u64 + 1,
-            digest: [0x42; 32],
-        }),
+        artifacts,
     };
     let mut bytes =
         semaprax_doctor_capsule::encode_body(&specification).expect("test capsule spec is valid");

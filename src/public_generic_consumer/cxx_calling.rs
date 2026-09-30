@@ -152,6 +152,23 @@ fn wrap_authenticated(
     CallingConsumer { files }
 }
 
+/// Private nested-owned-record movement-body profile (issue #292 / #288
+/// follow-on): delegates all codec, admission and settlement work to the
+/// sealed C generator without changing the move-only wrapper. `Input`/
+/// `Output` remain the same flat sequence of owned-`Bytes` leaves the wrapper
+/// has always emitted -- [`super::rust_calling::RecordShape`]'s own leaf
+/// paths are already flat and nesting-agnostic -- so nesting changes neither
+/// this generator nor the wrapper it emits, only the sealed C provider/caller
+/// codec underneath it.
+pub fn generate_authenticated_nested_moves_calling_consumer_v1(
+    descriptor: &crate::public_generic_abi::descriptor::verify::VerifiedPublicGenericDescriptor,
+    artifact: &crate::public_generic_abi::native::authenticated::AuthenticatedNativeNestedMovesArtifact,
+) -> Result<CallingConsumer, crate::diagnostic::Diagnostic> {
+    let c_consumer =
+        c_calling::generate_authenticated_nested_moves_calling_consumer_v1(descriptor, artifact)?;
+    Ok(wrap_authenticated(descriptor, &c_consumer))
+}
+
 /// Private reservation-backed profile, reusing the sealed C caller and the
 /// unchanged move-only C++ wrapper without another framing/ownership codec.
 pub fn generate_authenticated_allocating_calling_consumer_v1(

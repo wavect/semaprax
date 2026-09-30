@@ -32,10 +32,14 @@ pub enum ObligationKind {
     /// checks (`SPX-B107`, `SPX-I403`, `SPX-I404`, `SPX-T268`). See
     /// `derive::generated_interface_obligation`.
     GeneratedInterface,
+    /// One per declared `session protocol` (issue #297); derived from the
+    /// verifier's `SPX-K1xx` static validation and the HIR `via` binding.
+    /// Static validation only: never a model-checking claim.
+    SessionProtocol,
 }
 
 impl ObligationKind {
-    pub const ALL: [Self; 9] = [
+    pub const ALL: [Self; 10] = [
         Self::Precondition,
         Self::Postcondition,
         Self::OwnershipParameter,
@@ -45,6 +49,7 @@ impl ObligationKind {
         Self::ResourceCleanup,
         Self::ArchitectureLaw,
         Self::GeneratedInterface,
+        Self::SessionProtocol,
     ];
 
     #[must_use]
@@ -59,6 +64,7 @@ impl ObligationKind {
             Self::ResourceCleanup => "resource_cleanup",
             Self::ArchitectureLaw => "architecture_law",
             Self::GeneratedInterface => "generated_interface",
+            Self::SessionProtocol => "session_protocol",
         }
     }
 

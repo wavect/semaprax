@@ -12,24 +12,21 @@ pub(crate) const MAX_SERVICE_HOST_ADAPTER_REQUEST_BYTES: usize = 16 * 1024;
 pub(crate) const SERVICE_HOST_ADAPTER_REQUEST_SCHEMA: &str =
     "semaprax.service-host-adapter-request.v1";
 
-const DATABASE_CONNECT: &str = "semaprax.service.database.connect.v1";
 const HTTP_SERVE_TLS: &str = "semaprax.service.http.serve-tls.v1";
 const SECRETS_RESOLVE: &str = "semaprax.service.secrets.resolve.v1";
 const TELEMETRY_EMIT: &str = "semaprax.service.telemetry.emit.v1";
 
 /// One exact declaration the host must satisfy outside SEMAPRAX source.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) enum ServiceHostAdapterCapability {
-    DatabaseConnect,
+pub enum ServiceHostAdapterCapability {
     HttpServeTls,
     SecretsResolve,
     TelemetryEmit,
 }
 
 impl ServiceHostAdapterCapability {
-    pub(crate) const fn name(self) -> &'static str {
+    pub const fn name(self) -> &'static str {
         match self {
-            Self::DatabaseConnect => DATABASE_CONNECT,
             Self::HttpServeTls => HTTP_SERVE_TLS,
             Self::SecretsResolve => SECRETS_RESOLVE,
             Self::TelemetryEmit => TELEMETRY_EMIT,
@@ -37,8 +34,7 @@ impl ServiceHostAdapterCapability {
     }
 }
 
-const HOST_REQUIREMENTS: [ServiceHostAdapterCapability; 4] = [
-    ServiceHostAdapterCapability::DatabaseConnect,
+const HOST_REQUIREMENTS: [ServiceHostAdapterCapability; 3] = [
     ServiceHostAdapterCapability::HttpServeTls,
     ServiceHostAdapterCapability::SecretsResolve,
     ServiceHostAdapterCapability::TelemetryEmit,
@@ -48,82 +44,85 @@ const HOST_REQUIREMENTS: [ServiceHostAdapterCapability; 4] = [
 /// outbound grant: a separately trusted host must still provide a policy whose
 /// allowed origins contain this exact value.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct ServiceTelemetryRequirement {
+pub struct ServiceTelemetryRequirement {
+    adapter: ServiceTelemetryAdapter,
     endpoint_origin: String,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ServiceTelemetryAdapter {
+    SemapraxJsonEvents,
+}
+
 impl ServiceTelemetryRequirement {
-    pub(crate) fn endpoint_origin(&self) -> &str {
+    pub const fn adapter(&self) -> ServiceTelemetryAdapter {
+        self.adapter
+    }
+
+    pub fn endpoint_origin(&self) -> &str {
         &self.endpoint_origin
     }
 }
 
-/// The database connection declaration retained from a host-mode request.
-/// The secret member remains a reference; decoding never resolves it.
+/// The durable state-store profile retained from a host-mode request.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct ServiceDatabaseRequirement {
+pub struct ServiceDatabaseRequirement {
     adapter: ServiceDatabaseAdapter,
-    dsn_secret_reference: String,
     migration_table: String,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) enum ServiceDatabaseAdapter {
-    Sqlite,
-    Postgresql,
+pub enum ServiceDatabaseAdapter {
+    Snapshot,
 }
 
 impl ServiceDatabaseRequirement {
-    pub(crate) const fn adapter(&self) -> ServiceDatabaseAdapter {
+    pub const fn adapter(&self) -> ServiceDatabaseAdapter {
         self.adapter
     }
 
-    pub(crate) fn dsn_secret_reference(&self) -> &str {
-        &self.dsn_secret_reference
-    }
-
-    pub(crate) fn migration_table(&self) -> &str {
+    pub fn migration_table(&self) -> &str {
         &self.migration_table
     }
 }
 
 /// The TLS server declaration retained from a host-mode request.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct ServiceHttpTlsRequirement {
+pub struct ServiceHttpTlsRequirement {
     listen_origin: String,
 }
 
 impl ServiceHttpTlsRequirement {
-    pub(crate) fn listen_origin(&self) -> &str {
+    pub fn listen_origin(&self) -> &str {
         &self.listen_origin
     }
 }
 
 /// The three host-owned secret references a service host must resolve.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct ServiceSecretResolutionRequirement {
+pub struct ServiceSecretResolutionRequirement {
     password_pepper_reference: String,
     session_signing_key_reference: String,
     webhook_signing_key_reference: String,
 }
 
 impl ServiceSecretResolutionRequirement {
-    pub(crate) fn password_pepper_reference(&self) -> &str {
+    pub fn password_pepper_reference(&self) -> &str {
         &self.password_pepper_reference
     }
 
-    pub(crate) fn session_signing_key_reference(&self) -> &str {
+    pub fn session_signing_key_reference(&self) -> &str {
         &self.session_signing_key_reference
     }
 
-    pub(crate) fn webhook_signing_key_reference(&self) -> &str {
+    pub fn webhook_signing_key_reference(&self) -> &str {
         &self.webhook_signing_key_reference
     }
 }
 
 /// A bounded, independently replayed service host-adapter request.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct ServiceHostAdapterRequestV1 {
+pub struct ServiceHostAdapterRequestV1 {
     canonical: Vec<u8>,
     requirements: Vec<ServiceHostAdapterCapability>,
     database: Option<ServiceDatabaseRequirement>,
@@ -134,29 +133,29 @@ pub(crate) struct ServiceHostAdapterRequestV1 {
 
 impl ServiceHostAdapterRequestV1 {
     /// Exact canonical bytes checked by this decoder.
-    pub(crate) fn canonical_bytes(&self) -> &[u8] {
+    pub fn canonical_bytes(&self) -> &[u8] {
         &self.canonical
     }
 
     /// Closed required capabilities. Fixture requests retain an empty set.
-    pub(crate) fn requirements(&self) -> &[ServiceHostAdapterCapability] {
+    pub fn requirements(&self) -> &[ServiceHostAdapterCapability] {
         &self.requirements
     }
 
-    pub(crate) fn database(&self) -> Option<&ServiceDatabaseRequirement> {
+    pub fn database(&self) -> Option<&ServiceDatabaseRequirement> {
         self.database.as_ref()
     }
 
-    pub(crate) fn http(&self) -> Option<&ServiceHttpTlsRequirement> {
+    pub fn http(&self) -> Option<&ServiceHttpTlsRequirement> {
         self.http.as_ref()
     }
 
-    pub(crate) fn secrets(&self) -> Option<&ServiceSecretResolutionRequirement> {
+    pub fn secrets(&self) -> Option<&ServiceSecretResolutionRequirement> {
         self.secrets.as_ref()
     }
 
     /// The host-mode telemetry target intent, if this request declares one.
-    pub(crate) fn telemetry(&self) -> Option<&ServiceTelemetryRequirement> {
+    pub fn telemetry(&self) -> Option<&ServiceTelemetryRequirement> {
         self.telemetry.as_ref()
     }
 }
@@ -166,7 +165,7 @@ impl ServiceHostAdapterRequestV1 {
 /// A success is only a read-only declaration replay. In particular, this API
 /// cannot construct an `OutboundPolicy`, `OutboundCapability`, secret, store,
 /// transport, or any physical adapter.
-pub(crate) fn decode(bytes: &[u8]) -> Result<ServiceHostAdapterRequestV1, String> {
+pub fn decode(bytes: &[u8]) -> Result<ServiceHostAdapterRequestV1, String> {
     if bytes.is_empty() || bytes.len() > MAX_SERVICE_HOST_ADAPTER_REQUEST_BYTES {
         return Err("service host adapter request exceeds its exact byte bound".into());
     }
@@ -227,11 +226,7 @@ pub(crate) fn decode(bytes: &[u8]) -> Result<ServiceHostAdapterRequestV1, String
                 (Vec::new(), None, None, None, None)
             }
             "host" => {
-                let database = closed_member(
-                    root,
-                    "database",
-                    &["adapter", "dsn_secret_ref", "migration_table"],
-                )?;
+                let database = closed_member(root, "database", &["adapter", "migration_table"])?;
                 let http =
                     closed_member(root, "http", &["adapter", "listen_origin", "tls_profile"])?;
                 let secrets = closed_member(
@@ -249,16 +244,15 @@ pub(crate) fn decode(bytes: &[u8]) -> Result<ServiceHostAdapterRequestV1, String
                         .iter()
                         .zip(HOST_REQUIREMENTS)
                         .any(|(actual, expected)| *actual != expected.name())
-                    || !matches!(text(database, "adapter")?, "sqlite" | "postgresql")
+                    || text(database, "adapter")? != "snapshot"
                     || text(database, "migration_table")? != "semaprax_migrations"
                     || text(http, "adapter")? != "native"
                     || text(http, "tls_profile")? != "modern"
-                    || text(telemetry, "adapter")? != "otlp"
+                    || text(telemetry, "adapter")? != "semaprax-json-events"
                 {
                     return Err("service host adapter requirements are not exact".into());
                 }
                 for (object, key) in [
-                    (database, "dsn_secret_ref"),
                     (secrets, "password_pepper_ref"),
                     (secrets, "session_signing_key_ref"),
                     (secrets, "webhook_signing_key_ref"),
@@ -277,12 +271,7 @@ pub(crate) fn decode(bytes: &[u8]) -> Result<ServiceHostAdapterRequestV1, String
                         })?;
                 }
                 let database_requirement = ServiceDatabaseRequirement {
-                    adapter: match text(database, "adapter")? {
-                        "sqlite" => ServiceDatabaseAdapter::Sqlite,
-                        "postgresql" => ServiceDatabaseAdapter::Postgresql,
-                        _ => unreachable!("validated above"),
-                    },
-                    dsn_secret_reference: text(database, "dsn_secret_ref")?.to_owned(),
+                    adapter: ServiceDatabaseAdapter::Snapshot,
                     migration_table: text(database, "migration_table")?.to_owned(),
                 };
                 let http_requirement = ServiceHttpTlsRequirement {
@@ -296,6 +285,7 @@ pub(crate) fn decode(bytes: &[u8]) -> Result<ServiceHostAdapterRequestV1, String
                         .to_owned(),
                 };
                 let telemetry = ServiceTelemetryRequirement {
+                    adapter: ServiceTelemetryAdapter::SemapraxJsonEvents,
                     endpoint_origin: text(telemetry, "endpoint_origin")?.to_owned(),
                 };
                 (
@@ -434,11 +424,11 @@ mod tests {
         let mut value = serde_json::json!({
             "schema": SERVICE_HOST_ADAPTER_REQUEST_SCHEMA,
             "mode": "host",
-            "capabilities": [DATABASE_CONNECT, HTTP_SERVE_TLS, SECRETS_RESOLVE, TELEMETRY_EMIT],
-            "database": {"adapter":"sqlite","dsn_secret_ref":"db.primary","migration_table":"semaprax_migrations"},
+            "capabilities": [HTTP_SERVE_TLS, SECRETS_RESOLVE, TELEMETRY_EMIT],
+            "database": {"adapter":"snapshot","migration_table":"semaprax_migrations"},
             "http": {"adapter":"native","listen_origin":"https://service.example","tls_profile":"modern"},
             "secrets": {"password_pepper_ref":"auth.pepper","session_signing_key_ref":"auth.session","webhook_signing_key_ref":"webhook.signing"},
-            "telemetry": {"adapter":"otlp","endpoint_origin":"https://telemetry.example"},
+            "telemetry": {"adapter":"semaprax-json-events","endpoint_origin":"https://telemetry.example"},
         });
         value.sort_all_objects();
         let mut bytes = serde_json::to_vec(&value).unwrap();
@@ -458,11 +448,7 @@ mod tests {
         assert_eq!(decoded.requirements(), HOST_REQUIREMENTS);
         assert_eq!(
             decoded.database().unwrap().adapter(),
-            ServiceDatabaseAdapter::Sqlite
-        );
-        assert_eq!(
-            decoded.database().unwrap().dsn_secret_reference(),
-            "db.primary"
+            ServiceDatabaseAdapter::Snapshot
         );
         assert_eq!(
             decoded.database().unwrap().migration_table(),
@@ -488,6 +474,10 @@ mod tests {
             decoded.telemetry().unwrap().endpoint_origin(),
             "https://telemetry.example"
         );
+        assert_eq!(
+            decoded.telemetry().unwrap().adapter(),
+            ServiceTelemetryAdapter::SemapraxJsonEvents
+        );
     }
 
     #[test]
@@ -501,12 +491,8 @@ mod tests {
         assert!(decode(&unknown).is_err());
 
         let mut reordered = canonical.clone();
-        reordered["capabilities"] = serde_json::json!([
-            TELEMETRY_EMIT,
-            SECRETS_RESOLVE,
-            HTTP_SERVE_TLS,
-            DATABASE_CONNECT,
-        ]);
+        reordered["capabilities"] =
+            serde_json::json!([TELEMETRY_EMIT, SECRETS_RESOLVE, HTTP_SERVE_TLS,]);
         reordered.sort_all_objects();
         let mut reordered = serde_json::to_vec(&reordered).unwrap();
         reordered.push(b'\n');

@@ -2546,17 +2546,17 @@ impl Resolver<'_> {
                         span,
                     });
                 }
-                // Resumable Effects v1 (issue #204): `ty` is a placeholder
-                // (the request's own type) fixed up to the enclosing
-                // function's declared response type once resolution
-                // finishes -- see `hir::resolve_yield`, which also checks
-                // the request's type against the declared request type.
-                // Neither check has enough context here: this frame runs
-                // before the caller (`resolve_function_in_scope`) has
-                // resolved `function.yields` at all.
+                // Resumable Effects (issues #204, #296): `ty` is the
+                // enclosing function's declared response type, read from
+                // its AST `yields` clause so a yielded binding in a nested
+                // block types later statements correctly (request type if no
+                // clause resolves). `hir::resolve_yield` still checks the
+                // request type and retags every site once resolution
+                // finishes; `resolve_function_in_scope` has not yet
+                // attached the resolved clause when this frame runs.
                 Frame::FinishYield { span, path } => {
                     let request = results.pop().expect("yield request retained");
-                    let ty = request.ty.clone();
+                    let ty = self.yield_answer_type(function, &request.ty);
                     results.push(ResolvedExpr {
                         id: ExpressionId::new(function, &path),
                         ty,

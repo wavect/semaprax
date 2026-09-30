@@ -1,5 +1,6 @@
-//! Private, unsupported/unpublished authenticated native identity caller.
-//! The legacy generated crate, manifests and wire bytes remain unchanged.
+//! Private, unsupported/unpublished authenticated native identity, moves and
+//! allocating callers. The legacy generated crate, manifests and wire bytes
+//! remain unchanged; identity-v1 output is byte-identical to its predecessor.
 use std::fmt::Write as _;
 
 use crate::diagnostic::Diagnostic;
@@ -9,10 +10,47 @@ use crate::public_generic_abi::{
         trace::Direction,
     },
     descriptor::verify::VerifiedPublicGenericDescriptor,
-    native::authenticated::AuthenticatedNativeIdentityArtifact,
+    native::{
+        authenticated::{
+            AuthenticatedNativeAllocatingArtifact, AuthenticatedNativeIdentityArtifact,
+            AuthenticatedNativeMovesArtifact, AuthenticatedNativeNestedMovesArtifact,
+            ALLOCATING_PROFILE, MOVES_PROFILE, NESTED_MOVES_PROFILE, PROFILE,
+        },
+        binding::NativeProviderBindingV1,
+    },
 };
 
 use super::{render, CallingConsumer, OwnedByteField, RecordShape};
+
+/// Package identity of one private authenticated Rust caller profile. Each
+/// profile names itself in the crate docs and the Cargo package/library names,
+/// so no later profile's output can be mistaken for identity-v1's.
+struct ProfileNames {
+    profile: &'static str,
+    package: &'static str,
+    library: &'static str,
+}
+
+const IDENTITY: ProfileNames = ProfileNames {
+    profile: PROFILE,
+    package: "spx-pg-private-authenticated-rust-v1",
+    library: "spx_pg_private_authenticated_rust_v1",
+};
+const MOVES: ProfileNames = ProfileNames {
+    profile: MOVES_PROFILE,
+    package: "spx-pg-private-authenticated-moves-rust-v1",
+    library: "spx_pg_private_authenticated_moves_rust_v1",
+};
+const ALLOCATING: ProfileNames = ProfileNames {
+    profile: ALLOCATING_PROFILE,
+    package: "spx-pg-private-authenticated-allocating-rust-v1",
+    library: "spx_pg_private_authenticated_allocating_rust_v1",
+};
+const NESTED_MOVES: ProfileNames = ProfileNames {
+    profile: NESTED_MOVES_PROFILE,
+    package: "spx-pg-private-authenticated-moves-nested-rust-v1",
+    library: "spx_pg_private_authenticated_moves_nested_rust_v1",
+};
 
 /// Emit a private caller for the exact sealed descriptor/provider pair. No
 /// caller-authored shape, ordinary flat provider, shared ABI change or support
@@ -23,7 +61,68 @@ pub fn generate_authenticated_identity_calling_consumer_v1(
     descriptor: &VerifiedPublicGenericDescriptor,
     artifact: &AuthenticatedNativeIdentityArtifact,
 ) -> Result<CallingConsumer, Diagnostic> {
-    if descriptor.accepted_bytes() != artifact.descriptor_bytes() {
+    generate(
+        descriptor,
+        artifact.descriptor_bytes(),
+        artifact.binding(),
+        &IDENTITY,
+    )
+}
+
+/// Private closed movement-body profile. Framing, admission and settlement are
+/// the identity-v1 caller's; only the independently admitted moves artifact
+/// binds it, and the package is separately named.
+pub fn generate_authenticated_moves_calling_consumer_v1(
+    descriptor: &VerifiedPublicGenericDescriptor,
+    artifact: &AuthenticatedNativeMovesArtifact,
+) -> Result<CallingConsumer, Diagnostic> {
+    generate(
+        descriptor,
+        artifact.descriptor_bytes(),
+        artifact.binding(),
+        &MOVES,
+    )
+}
+
+/// Private movement-body profile admitting a nested owned record (issue
+/// #292 / #288 follow-on). Framing, admission and settlement are identical to
+/// `moves-v1`'s own -- [`RecordShape`]'s leaves are already a flat,
+/// nesting-agnostic sequence of leaf paths -- but only the independently
+/// admitted nested-moves artifact binds this distinct, separately named
+/// package.
+pub fn generate_authenticated_nested_moves_calling_consumer_v1(
+    descriptor: &VerifiedPublicGenericDescriptor,
+    artifact: &AuthenticatedNativeNestedMovesArtifact,
+) -> Result<CallingConsumer, Diagnostic> {
+    generate(
+        descriptor,
+        artifact.descriptor_bytes(),
+        artifact.binding(),
+        &NESTED_MOVES,
+    )
+}
+
+/// Private reservation-backed body profile; only an exact compiler-admitted
+/// allocating artifact binds it. This widens neither predecessor profile.
+pub fn generate_authenticated_allocating_calling_consumer_v1(
+    descriptor: &VerifiedPublicGenericDescriptor,
+    artifact: &AuthenticatedNativeAllocatingArtifact,
+) -> Result<CallingConsumer, Diagnostic> {
+    generate(
+        descriptor,
+        artifact.descriptor_bytes(),
+        artifact.binding(),
+        &ALLOCATING,
+    )
+}
+
+fn generate(
+    descriptor: &VerifiedPublicGenericDescriptor,
+    artifact_descriptor: &[u8],
+    binding: &NativeProviderBindingV1,
+    names: &ProfileNames,
+) -> Result<CallingConsumer, Diagnostic> {
+    if descriptor.accepted_bytes() != artifact_descriptor {
         return Err(Diagnostic::io(
             "SPX-PG803",
             "authenticated Rust caller descriptor/provider mismatch",
@@ -48,14 +147,17 @@ pub fn generate_authenticated_identity_calling_consumer_v1(
     );
     library.insert_str(
         0,
-        "//! Private semaprax.authenticated-native-identity.v1 caller: unsupported, unpublished.\n",
+        &format!(
+            "//! Private {} caller: unsupported, unpublished.\n",
+            names.profile
+        ),
     );
     Ok(CallingConsumer { files: vec![
-        ("Cargo.toml".into(), format!("[package]\nname = \"spx-pg-private-authenticated-rust-v1\"\nversion = \"0.1.0\"\nedition = \"2021\"\nrust-version = \"{}\"\npublish = false\n\n[lib]\nname = \"spx_pg_private_authenticated_rust_v1\"\npath = \"src/lib.rs\"\n\n[dependencies]\nsha2 = \"=0.10.9\"\n\n[lints.rust]\nunsafe_code = \"deny\"\n", super::RUST_VERSION)),
+        ("Cargo.toml".into(), format!("[package]\nname = \"{}\"\nversion = \"0.1.0\"\nedition = \"2021\"\nrust-version = \"{}\"\npublish = false\n\n[lib]\nname = \"{}\"\npath = \"src/lib.rs\"\n\n[dependencies]\nsha2 = \"=0.10.9\"\n\n[lints.rust]\nunsafe_code = \"deny\"\n", names.package, super::RUST_VERSION, names.library)),
         ("build.rs".into(), render::build_rs()),
         ("src/lib.rs".into(), library),
         ("src/error.rs".into(), render::error_rs()),
-        ("src/descriptor.rs".into(), render::descriptor_rs(descriptor.accepted_bytes(), &artifact.binding().encode())),
+        ("src/descriptor.rs".into(), render::descriptor_rs(descriptor.accepted_bytes(), &binding.encode())),
         ("src/types.rs".into(), render::types_rs(&input, &output)),
         ("src/carrier.rs".into(), carrier),
         ("src/provider.rs".into(), provider()),

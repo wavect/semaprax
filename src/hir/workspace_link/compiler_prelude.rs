@@ -20,6 +20,7 @@ pub(super) fn workspace_linker_prelude_program() -> Program {
         interfaces: Vec::new(),
         protocols: Vec::new(),
         implementations: Vec::new(),
+        session_protocols: Vec::new(),
         agents: Vec::new(),
         functions: Vec::new(),
     }

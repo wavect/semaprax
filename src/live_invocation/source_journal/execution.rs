@@ -321,6 +321,14 @@ pub(super) fn validate(
     binding: &SourceInvocationBinding,
     entries: &[SourceJournalEntry],
 ) -> Result<ExecutionFold, SourceJournalError> {
+    validate_with_wait_fuel(binding, entries, 0)
+}
+
+pub(super) fn validate_with_wait_fuel(
+    binding: &SourceInvocationBinding,
+    entries: &[SourceJournalEntry],
+    wait_fuel: u64,
+) -> Result<ExecutionFold, SourceJournalError> {
     let priced = binding.priced_binding();
     let policy = binding.policy_binding();
     let mut projected = Vec::with_capacity(entries.len());
@@ -403,7 +411,7 @@ pub(super) fn validate(
             _ => projected.push(entry.clone()),
         }
     }
-    let mut fold = validate_inner(binding, &projected)?;
+    let mut fold = validate_inner(binding, &projected, wait_fuel)?;
     if priced.is_some() {
         fold.priced = Some(super::priced_v4::fold(binding, entries)?);
     }
@@ -417,6 +425,25 @@ pub(super) fn validate(
 fn validate_inner(
     binding: &SourceInvocationBinding,
     entries: &[SourceJournalEntry],
+    wait_fuel: u64,
+) -> Result<ExecutionFold, SourceJournalError> {
+    validate_inner_seeded(
+        binding,
+        entries,
+        wait_fuel,
+        if binding.migration().is_some() {
+            validate::InitialStage::ObserveOnly
+        } else {
+            validate::InitialStage::InitializeThenObserve
+        },
+    )
+}
+
+pub(super) fn validate_inner_seeded(
+    binding: &SourceInvocationBinding,
+    entries: &[SourceJournalEntry],
+    wait_fuel: u64,
+    initial_stage: validate::InitialStage,
 ) -> Result<ExecutionFold, SourceJournalError> {
     let Some(stage_allowance) = binding.max_steps_per_stage() else {
         return Err(SourceJournalError::Binding);
@@ -430,7 +457,11 @@ fn validate_inner(
     let prefix = migration::prefix(binding, entries)?;
     let mut fold = ExecutionFold {
         model_units: prefix.model_units,
-        stage_fuel: prefix.stage_fuel,
+        stage_fuel: prefix
+            .stage_fuel
+            .checked_add(wait_fuel)
+            .filter(|fuel| *fuel <= max_fuel as u64)
+            .ok_or(SourceJournalError::Capacity)?,
         stages: prefix.stages,
         effects: prefix.effects,
         attempts: prefix.attempts,
@@ -481,7 +512,7 @@ fn validate_inner(
                     .get(pass.next)
                     .filter(|_| pass.next < pass.limit)
                     .ok_or(SourceJournalError::Order)?;
-                let first_role = if binding.migration().is_some() {
+                let first_role = if matches!(initial_stage, validate::InitialStage::ObserveOnly) {
                     SourceStageRole::Observe
                 } else {
                     SourceStageRole::Initialize
@@ -533,7 +564,7 @@ fn validate_inner(
         match entry {
             SourceJournalEntry::RunOpened => {
                 required = Some(RequiredStage {
-                    role: if binding.migration().is_some() {
+                    role: if matches!(initial_stage, validate::InitialStage::ObserveOnly) {
                         SourceStageRole::Observe
                     } else {
                         SourceStageRole::Initialize
@@ -692,13 +723,13 @@ fn validate_inner(
         last_causal = Some(entry);
     }
     if !causal.is_empty()
-        && validate::validate_with_initial(
+        && validate::validate_causal_with_initial(
             binding,
             &causal,
             prefix.turns,
             prefix.stages,
             prefix.model_units,
-            binding.migration().is_some(),
+            initial_stage,
         )? != fold.model_units
     {
         return Err(SourceJournalError::Malformed);

@@ -1,0 +1,19 @@
+module session_protocol.canonical.database_transaction;
+
+@id("session_protocol.canonical.database_transaction.main")
+fn main() -> i64 { 0 }
+
+@id("session_protocol.canonical.database_transaction")
+session protocol "database-transaction-v1" {
+    states { Idle, Open, Committed, RolledBack, Failed }
+    initial Idle;
+    terminal Committed cleanup { release_snapshot }
+    terminal RolledBack cleanup { restore_snapshot }
+    terminal Failed cleanup { discard_uncertain_snapshot }
+    on Idle begin: send BeginRequest -> Open;
+    on Idle misuse: fail Unit -> Failed;
+    on Open commit: send CommitRequest -> Committed;
+    on Open rollback: send RollbackRequest -> RolledBack;
+    on Open connection_lost: fail Unit -> Failed;
+    on Open nested_begin_refused: fail Unit -> Failed;
+}

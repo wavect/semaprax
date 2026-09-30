@@ -326,3 +326,42 @@ fn authentication_and_cleanup_guards_are_emitted_from_fixed_assets() {
     assert!(source("src/errors.ts").contains("secondaryCleanupStatuses"));
     assert!(source("src/carrier.ts").contains("const spans = locateLeaves(checked, expectedCount)"));
 }
+
+#[test]
+fn wasm_adapter_abi_version_gates_the_v2_carrier_replay_mapping() {
+    let source = |consumer: &CallingConsumer, name: &str| {
+        consumer
+            .files()
+            .iter()
+            .find(|(path, _)| path == name)
+            .unwrap()
+            .1
+            .clone()
+    };
+    // The v1 fixture binding keeps its v1 marker, so the generated
+    // consumer never maps a status to the v2-only carrier-replay reason.
+    let consumer = generate();
+    assert!(source(&consumer, "src/descriptor.ts")
+        .contains("export const TRUSTED_WASM_ADAPTER_ABI_VERSION: string = \"v1\";"));
+    let provider = source(&consumer, "src/wasm-provider.ts");
+    assert!(provider.contains("TRUSTED_WASM_ADAPTER_ABI_VERSION"));
+    assert!(provider.contains("=== \"v2\""));
+    assert!(provider.contains("carrier(\"carrier-replay\")"));
+    assert!(source(&consumer, "src/errors.ts").contains("| \"carrier-replay\";"));
+    // The same facts under v2 emit the v2 marker the status-14 branch gates on.
+    let (input, output) = shapes();
+    let v2 = WasmProviderBindingV1::new_v2(
+        CarrierBindingV1::new(
+            "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+            TargetProfile::CoreWasm,
+            "runtime:core-wasm-fixture-issue-157",
+        ),
+        "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+        FIXTURE_ENDPOINT_EXPORT_NAME,
+        "semaprax-0.4.1",
+    );
+    let consumer = generate_typescript_calling_consumer(&descriptor_bytes(), &v2, &input, &output)
+        .expect("a well-formed v2 shape must generate");
+    assert!(source(&consumer, "src/descriptor.ts")
+        .contains("export const TRUSTED_WASM_ADAPTER_ABI_VERSION: string = \"v2\";"));
+}

@@ -8,7 +8,7 @@
 import { FIELD_COUNT, MAX_CARRIER_BYTES, decodeOutput, encodeInput, locateLeaves,
   decodeCanonicalOutput, encodeCanonicalInput } from "./carrier.js";
 import { MAX_MODULE_BYTES, TRUSTED_ENDPOINT_EXPORT_NAME, trustedDescriptorAndBinding,
-  TRUSTED_COMPILED_PROVIDER, verifyDescriptorAndBinding, verifyModuleArtifactDigest } from "./descriptor.js";
+  TRUSTED_COMPILED_PROVIDER, TRUSTED_WASM_ADAPTER_ABI_VERSION, verifyDescriptorAndBinding, verifyModuleArtifactDigest } from "./descriptor.js";
 import { SemapraxPublicGenericException } from "./errors.js";
 import type { CapacityReason, CarrierReason, ProviderReason, SemapraxPublicGenericError } from "./errors.js";
 import type { Input, Output } from "./types.js";
@@ -521,7 +521,10 @@ class CompiledProvider {
     try {
       const bytes = encodeCanonicalInput(input); if (bytes.length > this.#capacity) throw capacity("carrier-bytes");
       let memory = new Uint8Array(this.#memory.buffer); if (this.#scratch + bytes.length > memory.length) throw mismatch("module-memory"); memory.set(bytes, this.#scratch);
-      const inputLane = lane(this.#prepare(this.#provider, this.#scratch, bytes.length)); if (inputLane.status !== 0 || inputLane.value === 0) throw new SemapraxPublicGenericException({ kind: "execution-failed", status: inputLane.status }); prepared = inputLane.value;
+      const inputLane = lane(this.#prepare(this.#provider, this.#scratch, bytes.length));
+      // ABI v2 raw 14 is native's SPX-PG803 carrier refusal; v1 has no such status.
+      if (inputLane.status === 14 && TRUSTED_WASM_ADAPTER_ABI_VERSION === "v2") throw carrier("carrier-replay");
+      if (inputLane.status !== 0 || inputLane.value === 0) throw new SemapraxPublicGenericException({ kind: "execution-failed", status: inputLane.status }); prepared = inputLane.value;
       const callLane = lane(this.#call(this.#provider, prepared));
       if (callLane.status !== 0 || callLane.value === 0) throw new SemapraxPublicGenericException({ kind: "execution-failed", status: callLane.status });
       prepared = 0; result = callLane.value;

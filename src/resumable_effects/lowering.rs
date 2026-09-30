@@ -20,7 +20,11 @@ use crate::hir::{
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
+pub(crate) mod control;
+#[cfg(test)]
+mod control_tests;
 mod projection;
+mod sequential;
 #[cfg(test)]
 mod sequential_tests;
 use projection::{projection_program, resume_projection, start_projection};
@@ -50,6 +54,9 @@ impl ResumableSuspensionBinding {
 
 /// Exact target-neutral scalar bits used to bind one suspension to the
 /// invocation arguments that produced it. Floats are bits, not IEEE equality.
+/// `Record` and `Variant` carry one bounded channel level in declared field
+/// order. Function arguments remain Copy-scalar; only request/answer history
+/// carries these shapes.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ResumableScalar {
     I64(i64),
@@ -60,6 +67,12 @@ pub enum ResumableScalar {
     F32(u32),
     F64(u64),
     Bool(bool),
+    Record(Vec<ResumableScalar>),
+    Variant {
+        case: String,
+        fields: Vec<ResumableScalar>,
+    },
+    Bytes(Vec<u8>),
 }
 
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
@@ -304,118 +317,16 @@ pub fn lower_sequential(
     program: &ResolvedProgram,
     function: &ResolvedFunction,
 ) -> Result<SequentialResumablePlan, Diagnostic> {
-    let canonical = program
-        .functions
-        .iter()
-        .find(|candidate| candidate.id == function.id)
-        .ok_or_else(|| invalid("resumable function is absent from the resolved program"))?;
-    if canonical != function {
-        return Err(invalid(
-            "resumable function disagrees with the resolved program's canonical function",
-        ));
-    }
-    let declaration = program
-        .declarations
-        .declaration(&function.id)
-        .ok_or_else(|| invalid("resumable function lacks a declaration-index entry"))?;
-    if declaration.identity_origin != IdentityOrigin::Explicit {
-        return Err(invalid(
-            "resumable function does not have an explicit persistent identity",
-        ));
-    }
-    if program.entrypoint == function.id {
-        return Err(invalid(
-            "resumable projection cannot replace the program entrypoint",
-        ));
-    }
-    let yields = function
-        .yields
-        .as_ref()
-        .ok_or_else(|| invalid("resumable lowering requires a `yields` clause"))?;
-    if !function.effects.is_empty() {
-        return Err(invalid(
-            "resumable lowering does not admit ordinary effects before suspension",
-        ));
-    }
-    if !hir::is_scalar_resolved_type(&yields.request_type)
-        || !hir::is_scalar_resolved_type(&yields.response_type)
-        || function
-            .params
-            .iter()
-            .any(|parameter| !hir::is_scalar_resolved_type(&parameter.ty))
-    {
-        return Err(invalid(
-            "resumable lowering requires Copy-scalar request, response, and parameter types",
-        ));
-    }
-    if !function.cleanup.slots.is_empty()
-        || !function.cleanup.flags.is_empty()
-        || !function
-            .cleanup
-            .entry_state
-            .live_owned_parameters
-            .is_empty()
-        || !function
-            .cleanup
-            .entry_state
-            .conditional_owned_parameters
-            .is_empty()
-    {
-        return Err(invalid(
-            "resumable lowering found owned cleanup state in the Copy-scalar profile",
-        ));
-    }
+    sequential::lower(program, function, false)
+}
 
-    reject_yield_in_contracts(function)?;
-    let sites = locate_direct_yields(function)?;
-    for (yield_expression, request, _) in &sites {
-        if request.ty != yields.request_type
-            || yield_expression.ty != yields.response_type
-            || request.ownership != OwnershipMode::Value
-            || yield_expression.ownership != OwnershipMode::Value
-        {
-            return Err(invalid(
-                "resumable yield request/response types or ownership disagree with its declaration",
-            ));
-        }
-    }
-    require_scalar_expression_tree(&function.body)?;
-    reject_reachable_resumable_callees(program, function)?;
-
-    let identity = plan_identity(program, function, &sites)?;
-
-    let entry = state(&function.id, ResumableStateKind::Entry, None);
-    let complete = state(&function.id, ResumableStateKind::Complete, None);
-    let start = start_projection(program, function, sites[0].1, sites[0].2)?;
-    let mut suspensions = Vec::with_capacity(sites.len());
-    let mut resumes = Vec::with_capacity(sites.len());
-    for (index, (yield_expression, request, position)) in sites.iter().enumerate() {
-        suspensions.push(ResumableSuspension {
-            state: state(
-                &function.id,
-                ResumableStateKind::Suspended,
-                Some(&yield_expression.id),
-            ),
-            expression: yield_expression.id.clone(),
-            request_expression: request.id.clone(),
-            position: *position,
-            request_type: yields.request_type.clone(),
-            response_type: yields.response_type.clone(),
-        });
-        resumes.push(ResumableProjection {
-            function: resume_projection(program, function, &sites, index)?,
-        });
-    }
-
-    Ok(SequentialResumablePlan {
-        function_id: function.id.clone(),
-        identity,
-        entry,
-        suspensions,
-        complete,
-        start: ResumableProjection { function: start },
-        resumes,
-    })
+/// Lower with the distinct aggregate whole-function carrier. Scalar entry
+/// points, checkpoint codecs, and journals remain on [`lower_sequential`].
+pub(crate) fn lower_sequential_with_arguments(
+    program: &ResolvedProgram,
+    function: &ResolvedFunction,
+) -> Result<SequentialResumablePlan, Diagnostic> {
+    sequential::lower(program, function, true)
 }
 
 fn plan_identity(
@@ -473,6 +384,25 @@ fn hash_scalar(hasher: &mut Sha256, value: &ResumableScalar) {
             hasher.update(bits.to_le_bytes());
         }
         ResumableScalar::Bool(value) => hasher.update([7u8, u8::from(*value)]),
+        ResumableScalar::Record(fields) => {
+            hasher.update([8u8]);
+            hasher.update((fields.len() as u64).to_le_bytes());
+            for field in fields {
+                hash_scalar(hasher, field);
+            }
+        }
+        ResumableScalar::Variant { case, fields } => {
+            hasher.update([9u8]);
+            frame(hasher, case.as_bytes());
+            hasher.update((fields.len() as u64).to_le_bytes());
+            for field in fields {
+                hash_scalar(hasher, field);
+            }
+        }
+        ResumableScalar::Bytes(bytes) => {
+            hasher.update([10u8]);
+            frame(hasher, bytes);
+        }
     }
 }
 
@@ -527,7 +457,15 @@ fn called_functions(function: &ResolvedFunction) -> Result<Vec<DeclarationId>, D
                     "resumable function reaches generic callee `{callee}`; generic call projection is not admitted"
                 )));
             }
-            callees.push(callee.clone());
+            // Issue #296, spec section 11.6: a builtin byte operation (e.g.
+            // `bytes_copy`, `byte_len`) is a `Call` node to a compiler-owned
+            // sentinel id the interpreter dispatches directly; it has no
+            // `ResolvedFunction` of its own in `program.functions` and never
+            // itself yields, so it is not a "reachable callee" this closure
+            // check is about.
+            if crate::byte_ops::by_id(callee.as_str()).is_none() {
+                callees.push(callee.clone());
+            }
         }
         hir::push_resolved_expression_children_in_authored_order(expression, &mut pending);
     }
@@ -645,10 +583,29 @@ fn reject_yield_in_contracts(function: &ResolvedFunction) -> Result<(), Diagnost
     Ok(())
 }
 
-fn require_scalar_expression_tree(root: &ResolvedExpr) -> Result<(), Diagnostic> {
+/// `admitted_boundary_types`, when present, are the exact declared
+/// request/response and whole-function boundary types of a bounded
+/// record/variant `yields` channel
+/// (`hir::yield_aggregate::bounded_aggregate_refusal` already checked its
+/// shape): an intermediate value of *exactly* one of those two types is
+/// admitted alongside the ordinary Copy-scalar profile (issue #296 R20). Only
+/// `lower_sequential` passes one; `lowering::control::lower_control` passes
+/// `None` and so keeps its pre-existing scalar-only re-check unchanged, since
+/// the control-dependent lane has no aggregate-channel runtime support.
+fn require_scalar_expression_tree(
+    root: &ResolvedExpr,
+    allow_owned_bytes: bool,
+    admitted_boundary_types: Option<&[&ResolvedType]>,
+) -> Result<(), Diagnostic> {
     let mut pending = vec![root];
     while let Some(expression) = pending.pop() {
-        if expression.ty != ResolvedType::Unit && !hir::is_scalar_resolved_type(&expression.ty) {
+        let is_admitted_channel_value = admitted_boundary_types
+            .is_some_and(|types| types.iter().any(|ty| expression.ty == **ty));
+        let admitted = expression.ty == ResolvedType::Unit
+            || hir::is_scalar_resolved_type(&expression.ty)
+            || (allow_owned_bytes && expression.ty == ResolvedType::Bytes)
+            || is_admitted_channel_value;
+        if !admitted {
             return Err(invalid(
                 "resumable lowering found a non-scalar intermediate value",
             ));

@@ -1527,19 +1527,21 @@ impl<'a> HirValidator<'a> {
         }
         Ok(())
     }
-
     fn reachable_function_instances(
         &self,
     ) -> Result<Vec<(FunctionInstanceId, DeclarationId, Vec<ResolvedType>)>, Diagnostic> {
         generic_template::reachable_instances(self.program)
     }
-
     fn validate_function(
         &mut self,
         function: &ResolvedFunction,
         execution: &FunctionExecutionId,
     ) -> Result<(), Diagnostic> {
         crate::hir::iterator_loop::validate_function(function)?;
+        super::yield_aggregate::check_bytes_request_site_count(
+            &self.program.declarations,
+            function,
+        )?;
         if function.return_type == ResolvedType::Unit {
             return Err(hir_error(
                 "ordinary resolved functions cannot declare a unit result",
@@ -1713,7 +1715,6 @@ impl<'a> HirValidator<'a> {
                 function.id
             )));
         }
-
         for (index, contract) in function.requires.iter().enumerate() {
             let mut contract_scope = scope.clone();
             self.validate_expr(
@@ -5666,14 +5667,13 @@ impl<'a> HirValidator<'a> {
                     if !matches!(expression.kind, ResolvedExprKind::Yield { .. }) {
                         unreachable!()
                     }
-                    // `hir::resolve_yield` already fixed `expression.ty` up
-                    // to the declared response type and checked it is an
-                    // admitted Copy scalar; re-derive that fact rather than
-                    // trusting it silently.
-                    if !crate::hir::is_scalar_resolved_type(&expression.ty) {
-                        return Err(hir_error(
-                            "resolved `yield` expression type is not an admitted Copy scalar",
-                        ));
+                    // Re-derive `hir::resolve_yield`'s own admission: scalar,
+                    // or (issue #296 R20) a bounded aggregate.
+                    let (d, ty) = (&self.program.declarations, &expression.ty);
+                    let bounded = matches!(ty, ResolvedType::Nominal { .. })
+                        && super::yield_aggregate::bounded_aggregate_refusal(d, ty).is_ok();
+                    if !crate::hir::is_scalar_resolved_type(ty) && !bounded {
+                        return Err(hir_error("resolved `yield` type is not scalar or bounded"));
                     }
                     let ownership =
                         self.expected_ownership(&expression.ty, OwnershipMode::Value)?;

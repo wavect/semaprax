@@ -612,7 +612,13 @@ fn selected_wrapper_wasm_has_exact_types_imports_and_exports() {
     );
     assert!(!inventory.has_memory);
     assert!(!inventory.has_table);
-    assert!(!inventory.has_global);
+    // Issue #293 P2-2: every module this emitter produces now carries one
+    // private, unexported call-depth admission counter global
+    // (`scalar_call_admission`), so this profile is no longer global-free.
+    // Every other row above -- types, imports, function types, and exports
+    // -- is unaffected: the admission is bytecode inside existing function
+    // bodies, not a new type, import, or export.
+    assert!(inventory.has_global);
     assert!(!inventory.has_start);
 }
 

@@ -12,6 +12,51 @@ The v0.4.0 regression corpus has a
 evidence for later changes; ignored or provisioned tests run only when
 explicitly selected.
 
+## Comparison supported-scope gate
+
+For comparison-adapter scope changes, run:
+
+```sh
+python3 -m unittest discover -s benchmarks/cross-language-v1 \
+  -p test_supported_scope.py -v
+```
+
+The same selector is part of the existing `documentation` harness through
+`cross_language_benchmark_suite::supported_scope`. It checks the complete
+182-slot supported-set projection and refusal controls without a toolchain,
+model, credentials or network. Source-reading cases require the existing POSIX
+no-follow acquisition primitives; unsupported hosts run the fail-closed
+capability controls and explicitly skip the source-reading cases. It does not replace the real official
+TypeScript selector in [Runnable adapter v3](CROSS-LANGUAGE-RUNNABLE-ADAPTER-V3.md).
+The supported profile still requires its exact provisioned host and original
+provenance/authority gates. A scope-only #322 reconciliation retains the prior
+corrected 54/54 report; no new hosted run or broader support is implied.
+
+## Specialization cell-accounting gate
+
+For #326 accounting or provenance changes, run:
+
+```sh
+python3 -m unittest discover -s benchmarks/cross-language-v1/agent/tests \
+  -p test_specialization_accounting.py -v
+```
+
+This selector is included in the existing `documentation` harness through
+`cross_language_benchmark_suite::specialization_accounting`. It authenticates
+the original 81-cell denominator, retains the current nine extra cells
+separately, and tests input/refusal, null-outcome and missing-review boundaries.
+Source-reading cases need the existing POSIX no-follow primitives; other hosts
+explicitly skip them and run the fail-closed capability controls. These tests
+are not model trials, a source/oracle approval or an independent leakage review.
+The original specialization protocol and live-transport refusal tests remain
+required and unchanged.
+
+The accounting CLI itself deliberately exits **3** after emitting its complete
+blocked report; input/authentication failures exit **2** with no report on
+stdout. A green accounting self-test never means the experiment is ready or
+issue #326 is closed. See the [operator record](../benchmarks/cross-language-v1/agent/README.md#issue-326-frozen-cell-accounting-blocked)
+for the missing model/authority, frozen-source and independent-review gates.
+
 ## The rule
 
 A change is ready when:

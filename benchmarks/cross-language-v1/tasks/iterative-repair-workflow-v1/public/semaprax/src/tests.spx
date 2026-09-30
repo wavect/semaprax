@@ -1,0 +1,7 @@
+module bench.ledger.tests;
+
+@id("bench.ledger.tests")
+fn main() -> i64
+{
+    0
+}

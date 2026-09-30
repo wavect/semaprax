@@ -8,7 +8,9 @@ use crate::ast::{
 };
 use crate::diagnostic::Diagnostic;
 use crate::lexer::{Token, TokenKind};
-
+#[cfg(test)]
+#[path = "parser/agent_embedded_tests.rs"]
+pub(crate) mod agent_embedded_tests;
 #[cfg(test)]
 #[path = "parser/agent_tests.rs"]
 mod agent_tests;
@@ -21,8 +23,10 @@ mod for_loop;
 mod hints;
 mod lookahead;
 mod patterns;
+pub(crate) mod session_protocol;
 mod signed_minimum;
 mod types;
+use types::expression_path;
 mod yields;
 pub struct Parser {
     tokens: Vec<Token>,
@@ -35,7 +39,6 @@ impl Parser {
         self.module_header()?;
         let (module, _) = self.qualified_ident("module name")?;
         self.take(&TokenKind::Semicolon);
-
         let mut module_uses = Vec::new();
         while self.at_keyword("use") {
             module_uses.push(self.module_use()?);
@@ -47,11 +50,11 @@ impl Parser {
         } else {
             Vec::new()
         };
-
         let mut types = Vec::new();
         let mut interfaces = Vec::new();
         let mut protocols = Vec::new();
         let mut implementations = Vec::new();
+        let mut session_protocols = Vec::new();
         let mut agents = Vec::new();
         let mut functions = Vec::new();
         while !self.at(&TokenKind::Eof) {
@@ -63,7 +66,7 @@ impl Parser {
             }
             let stable_id = self.stable_id_attribute()?;
             if self.at_keyword("agent") {
-                agents.push(self.agent(stable_id)?);
+                agents.push(self.agent(&module, &mut functions, stable_id)?);
             } else if self.at_keyword("resource") {
                 types.push(self.resource(&module, stable_id)?);
             } else if self.at_keyword("record") {
@@ -81,6 +84,13 @@ impl Parser {
                     );
                 }
                 protocols.push(self.protocol(&module, stable_id)?);
+            } else if self.at_keyword("session") {
+                if session_protocols.len() >= session_protocol::MAX_SESSION_PROTOCOLS {
+                    return Err(
+                        self.error_here("SPX-K106", "too many session protocol declarations")
+                    );
+                }
+                session_protocols.push(self.session_protocol(&module, stable_id)?);
             } else if self.at_keyword("impl") {
                 if implementations.len() >= crate::static_protocol::MAX_IMPLEMENTATIONS {
                     return Err(
@@ -108,6 +118,7 @@ impl Parser {
             interfaces,
             protocols,
             implementations,
+            session_protocols,
             agents,
             functions,
         })
@@ -886,6 +897,7 @@ impl Parser {
         } else {
             None
         };
+        let follows = self.session_protocol_follows_clause()?.map(Box::new);
         let mut requires = Vec::new();
         let mut ensures = Vec::new();
         loop {
@@ -911,6 +923,7 @@ impl Parser {
             return_type,
             effects,
             yields,
+            follows,
             requires,
             ensures,
             body,
@@ -1853,18 +1866,5 @@ impl Parser {
     fn error_previous(&self, code: &'static str, message: impl Into<String>) -> Diagnostic {
         let index = self.cursor.saturating_sub(1);
         Diagnostic::error(code, message, self.tokens[index].span).at_path(&self.path)
-    }
-}
-
-fn expression_path(expression: &Expr) -> Option<String> {
-    match &expression.kind {
-        ExprKind::Var(name) => Some(name.clone()),
-        ExprKind::Project { base, field, .. } => {
-            let mut path = expression_path(base)?;
-            path.push('.');
-            path.push_str(field);
-            Some(path)
-        }
-        _ => None,
     }
 }

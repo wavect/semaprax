@@ -10,17 +10,18 @@ fixture mode -- no socket, no file, and no real clock are touched.
 `service.config.json` is its credential-free fixture instance: database, HTTP,
 and telemetry adapters are all explicitly `fixture`, every endpoint is absent,
 and every secret is represented only by a nullable host-owned reference. A
-host deployment may select SQLite or PostgreSQL, native HTTP/TLS, and OTLP only
-by supplying a separately validated configuration and resolving its secret
-references outside Semaprax source. Neither generated file carries credentials
-or grants database, network, telemetry, or secret-store authority.
+host deployment may select the durable `snapshot` store, native HTTP/TLS, and
+`semaprax-json-events` only by supplying a separately validated configuration
+and resolving its secret references outside Semaprax source. SQLite,
+PostgreSQL, and OTLP labels are refused. Neither generated file carries
+credentials or grants database, network, telemetry, or secret-store authority.
 
 `service-host-adapter-request.json` is the canonical bounded handoff derived
 from that fixture configuration. It declares an empty capability list, so it
 cannot ask a host to open a database, serve TLS, resolve a secret, or emit
-telemetry. A valid host-mode configuration instead renders those four named
+telemetry. A valid host-mode configuration instead renders three named
 requirements as a request only; providing and executing an adapter remains an
-explicit host responsibility, and this reference does not implement one.
+explicit host responsibility.
 
 ```sh
 semaprax check examples/task-service-project

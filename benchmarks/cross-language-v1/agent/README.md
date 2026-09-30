@@ -278,3 +278,20 @@ integration still needs implementation and actual wire/budget/egress verificatio
 through the existing orchestration and scorer boundaries. No caller may use the
 predecessor `not_authorized` protocol for live training or inference. Local
 provider execution can qualify; a hosted CI receipt is not required by itself.
+
+## Opt-in local execution follow-up for #326
+
+[Local held-out control execution](LOCAL-SPECIALIZATION.md) adds a separate,
+explicitly reviewed local Ollama transport around the existing protocol builder
+and frozen scorer. It preserves all 81 original cells, keeps the unresolved
+Semaprax discount cells unexecuted, and separates actual response/usage receipts
+from fixture tests, reference scoring, missing evidence and independent review.
+The default is local `qwen2.5-coder:7b`, with its installed full digest and daemon
+metadata pinned during preparation; no model download or paid provider call is
+performed. No comparison-adapter support decision or predecessor profile changes.
+
+This is an experimental execution implementation, not evidence that the real
+model experiment ran. It also avoids the legacy prompt builder's inclusion of
+EQUIVALENCE documents containing hidden-vector discussion. Real model/host
+execution, verified local custody/no-egress, and independent pre/post-run reviews
+remain necessary; a unit-test or receipt-audit pass does not close #326.

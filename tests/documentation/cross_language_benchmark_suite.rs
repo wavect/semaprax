@@ -43,6 +43,8 @@ mod owned_byte_sentinel_balance;
 mod reproducibility;
 #[path = "cross_language_benchmark_suite/specialization_accounting.rs"]
 mod specialization_accounting;
+#[path = "cross_language_benchmark_suite/specialization_local.rs"]
+mod specialization_local;
 #[path = "cross_language_benchmark_suite/stable_dispatch_order.rs"]
 mod stable_dispatch_order;
 #[path = "cross_language_benchmark_suite/stale_edit_preservation.rs"]

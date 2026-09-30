@@ -8,6 +8,12 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Add an opt-in local Ollama specialization runner for #326 around the frozen
+  control schedule and scorer, with public-only prompt projection, exact model
+  pins, explicit independent-review gates and immutable outcome receipts.
+  Keep the unresolved discount cells unavailable; synthetic tests and offline
+  receipt checks are not actual model execution or experiment acceptance.
+
 - Add #326 read-only specialization cell accounting using the existing v1
   protocol. Retain the original 81-cell inputs byte-for-byte from `ebe4235e`,
   distinguish today's nine added cells and oracle drift, and report every

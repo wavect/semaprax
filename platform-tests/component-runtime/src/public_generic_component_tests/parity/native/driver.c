@@ -1,12 +1,13 @@
 /* One checked call over the exact compiler-derived native moves provider,
  * for the R14 (issue #292) interpreter/Core-provider/Component/native
- * differential parity column. Left and right are hex-encoded on argv; the
+ * differential parity column. Left and right arrive as bounded, length-prefixed
+ * binary leaves on stdin (u32 little endian length, then exact bytes); the
  * reported outcome is one line on stdout:
  *   "OK <left-hex> <right-hex>"                -- settled successful call
  *   "CONTRACT_VIOLATION"                        -- checked requires/ensures failed
  *   "REFUSAL <primary_status> <native_status>"  -- provider/codec refusal
  * A nonzero exit code means the driver itself could not perform the call at
- * all (bad argv, allocation failure, open/close refusal); it never reports a
+ * all (bad input, allocation failure, open/close refusal); it never reports a
  * checked outcome that way. INPUT0/INPUT1/OUTPUT0/OUTPUT1 are macro-bound by
  * the Rust harness to this exact descriptor's own generated field names. */
 #include "spx_pg_calling_consumer.c"
@@ -15,25 +16,15 @@
 #include <stdlib.h>
 #include <string.h>
 
-static int hex_nibble(char c) {
-    if (c >= '0' && c <= '9') return c - '0';
-    if (c >= 'a' && c <= 'f') return c - 'a' + 10;
-    if (c >= 'A' && c <= 'F') return c - 'A' + 10;
-    return -1;
-}
-
-static int decode_hex(const char *text, uint8_t **out_data, size_t *out_len) {
-    const size_t text_len = strlen(text);
-    if (text_len % 2 != 0) return 0;
-    const size_t len = text_len / 2;
+static int read_leaf(uint8_t **out_data, size_t *out_len) {
+    uint8_t header[4];
+    if (fread(header, 1, sizeof(header), stdin) != sizeof(header)) return 0;
+    const size_t len = (size_t)header[0] | ((size_t)header[1] << 8)
+        | ((size_t)header[2] << 16) | ((size_t)header[3] << 24);
+    if (len > 65536) return 0;
     uint8_t *data = len ? (uint8_t *)malloc(len) : NULL;
     if (len && !data) return 0;
-    for (size_t i = 0; i < len; ++i) {
-        const int high = hex_nibble(text[2 * i]);
-        const int low = hex_nibble(text[2 * i + 1]);
-        if (high < 0 || low < 0) { free(data); return 0; }
-        data[i] = (uint8_t)((high << 4) | low);
-    }
+    if (len && fread(data, 1, len, stdin) != len) { free(data); return 0; }
     *out_data = data;
     *out_len = len;
     return 1;
@@ -43,12 +34,12 @@ static void print_hex(const uint8_t *data, size_t len) {
     for (size_t i = 0; i < len; ++i) printf("%02x", data[i]);
 }
 
-int main(int argc, char **argv) {
-    if (argc != 3) { fprintf(stderr, "usage: probe <left-hex> <right-hex>\n"); return 90; }
+int main(void) {
     uint8_t *left_data = NULL, *right_data = NULL;
     size_t left_len = 0, right_len = 0;
-    if (!decode_hex(argv[1], &left_data, &left_len) || !decode_hex(argv[2], &right_data, &right_len)) {
-        fprintf(stderr, "malformed hex argv\n");
+    if (!read_leaf(&left_data, &left_len) || !read_leaf(&right_data, &right_len)
+            || fgetc(stdin) != EOF || ferror(stdin)) {
+        fprintf(stderr, "malformed bounded stdin leaves\n");
         free(left_data);
         free(right_data);
         return 91;

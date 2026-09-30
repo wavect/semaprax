@@ -24,6 +24,9 @@ format: `Unreleased` then release buckets, grouped by impact.
   the offline package test harness.
   Resolve native-host rustdoc links on Windows and remove redundant explicit
   targets from the reference-service documentation.
+  Keep the generated TypeScript fixture aligned with its ABI-version field,
+  and send large native parity inputs through bounded stdin framing so the
+  full 64 KiB cases run without exceeding process argument limits.
 
 - Add a closed acceptance-record format for #328's Kernel-0 rung-2 decision.
   It requires every local receipt to bind to one selected revision or an exact

@@ -841,7 +841,7 @@ fn service_scaffold_configuration_is_closed_and_credential_free() {
     }
     assert_eq!(
         schema["properties"]["database"]["properties"]["adapter"]["enum"],
-        serde_json::json!(["fixture", "sqlite", "postgresql"])
+        serde_json::json!(["fixture", "snapshot"])
     );
 
     let fixture: serde_json::Value = serde_json::from_str(file("service.config.json")).unwrap();

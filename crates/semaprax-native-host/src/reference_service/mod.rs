@@ -27,10 +27,11 @@
 //!   through [`secrets::resolve_tls`]) -- configuration intent alone never
 //!   mints it.
 //!
-//! Non-claims: no SQLite/PostgreSQL wire protocol is implemented (state is
-//! canonical snapshots in the durable store), no OTLP protobuf is emitted
-//! (telemetry is an HTTPS POST to the granted origin's fixed `/v1/events`
-//! route), and no hosted, public, or production support is claimed -- TLS
+//! The host accepts the explicit `snapshot` state profile and
+//! `semaprax-json-events` telemetry profile. SQL and OTLP labels are refused
+//! during configuration decoding; telemetry is a canonical JSON HTTPS POST
+//! to the granted origin's fixed `/v1/events` route. No hosted, public, or
+//! production support is claimed -- TLS
 //! serving included: it is loopback and test/local evidence only, and this
 //! host never chains more than the one leaf certificate it holds. Only the
 //! decisions whose signatures the frozen public-invocation vocabulary

@@ -20,7 +20,7 @@ const REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
 /// Canonical host-mode service configuration (sorted keys plus LF, exactly
 /// as `service_config::decode` requires). Origins use the `.invalid` TLD so
 /// no real peer can exist; the delivery attempt fails closed by design.
-const HOST_CONFIG: &str = "{\"database\":{\"adapter\":\"sqlite\",\"dsn_secret_ref\":\"db.primary\",\"migration_table\":\"semaprax_migrations\"},\"http\":{\"adapter\":\"native\",\"listen_origin\":\"https://service.invalid\",\"tls_profile\":\"modern\"},\"mode\":\"host\",\"schema\":\"semaprax.service-config.v1\",\"secrets\":{\"password_pepper_ref\":\"auth.pepper\",\"session_signing_key_ref\":\"auth.session\",\"webhook_signing_key_ref\":\"webhook.signing\"},\"telemetry\":{\"adapter\":\"otlp\",\"endpoint_origin\":\"https://telemetry.invalid:9\"}}\n";
+const HOST_CONFIG: &str = "{\"database\":{\"adapter\":\"snapshot\",\"dsn_secret_ref\":null,\"migration_table\":\"semaprax_migrations\"},\"http\":{\"adapter\":\"native\",\"listen_origin\":\"https://service.invalid\",\"tls_profile\":\"modern\"},\"mode\":\"host\",\"schema\":\"semaprax.service-config.v1\",\"secrets\":{\"password_pepper_ref\":\"auth.pepper\",\"session_signing_key_ref\":\"auth.session\",\"webhook_signing_key_ref\":\"webhook.signing\"},\"telemetry\":{\"adapter\":\"semaprax-json-events\",\"endpoint_origin\":\"https://telemetry.invalid:9\"}}\n";
 
 /// Test-only TLS material for the server's held certificate/key secrets:
 /// `CN=localhost`, issued by a private test CA. Neither authenticates any
@@ -106,11 +106,6 @@ impl Workdir {
         std::fs::write(
             self.root.join("secrets").join("webhook.signing"),
             [3_u8; 32],
-        )
-        .unwrap();
-        std::fs::write(
-            self.root.join("secrets").join("db.primary"),
-            b"held-but-unconnected",
         )
         .unwrap();
     }
@@ -744,7 +739,7 @@ fn bundle_command_writes_verifies_and_rejects_tamper() {
     // Tampering with a bundled file breaks verification on rewrite.
     std::fs::write(
         workdir.path("bundle").join("service.config.json"),
-        HOST_CONFIG.replace("sqlite", "tampered"),
+        HOST_CONFIG.replace("snapshot", "tampered"),
     )
     .unwrap();
     let output = Command::new(SERVER)

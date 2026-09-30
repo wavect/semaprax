@@ -34,10 +34,10 @@ repository's existing machinery and adds no new authority:
 
 | Requirement (decoded intent) | Bound adapter |
 | --- | --- |
-| `sqlite` / `postgresql` + DSN ref | Durable snapshot store under `--state-dir`. No SQL wire protocol is implemented; the DSN value is held but never connected to. |
+| `snapshot` | Durable snapshot store under `--state-dir`. SQL adapter labels and DSN references are refused during configuration decoding. |
 | `native` + `modern` TLS + listen origin | Loopback HTTP/1.1 on `--port`, plaintext by default. The listen origin is intent only and never itself provisions TLS; `--tls-certificate-secret`/`--tls-private-key-secret` opt in (see below). |
 | Three secret refs | Exact files under `--secrets-dir`, resolved before serving. |
-| `otlp` + endpoint origin | HTTPS POST to `<origin>/v1/events` through `deliver_http_durable`. No OTLP protobuf is emitted. |
+| `semaprax-json-events` + endpoint origin | Canonical JSON event HTTPS POST to `<origin>/v1/events` through `deliver_http_durable`. OTLP labels are refused during configuration decoding. |
 
 ## Invocation mapping
 
@@ -122,7 +122,7 @@ material only.
 
 ## Non-claims
 
-No SQLite/PostgreSQL protocol, no OTLP protobuf, no hosted/public/production
+No SQL or OTLP adapter label is accepted, no hosted/public/production
 support, no graceful shutdown, and no per-request decisions outside the
 frozen invocation vocabulary. TLS server provisioning is now available but
 only from operator-held certificate/key material named on the command

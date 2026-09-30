@@ -1,6 +1,6 @@
 //! Host-held secret resolution for the reference service.
 //!
-//! The decoded adapter request names four secret *references*; this module
+//! The decoded adapter request names three secret *references*; this module
 //! resolves them against a directory the host operator explicitly holds.
 //! Each reference names one exact regular file; directory traversal is
 //! impossible because the decoder's reference grammar admits no separator,
@@ -37,17 +37,12 @@ pub enum SecretRefusal {
     Invalid,
 }
 
-/// The four host-held secrets. Debug is redacted; these bytes live only in
+/// The three host-held secrets. Debug is redacted; these bytes live only in
 /// this process and are never logged, rendered, or embedded in snapshots.
 pub struct HeldServiceSecrets {
     password_pepper: Vec<u8>,
     session_key: [u8; HMAC_KEY_BYTES],
     webhook_key: [u8; HMAC_KEY_BYTES],
-    /// The database DSN the decoded host-mode intent names. The reference
-    /// snapshot store takes no DSN, so this value is held but never
-    /// connected to; resolving it proves the host holds every named secret
-    /// before serving, and no silent downgrade to "no DSN" is possible.
-    database_dsn: Vec<u8>,
 }
 
 impl fmt::Debug for HeldServiceSecrets {
@@ -57,7 +52,6 @@ impl fmt::Debug for HeldServiceSecrets {
             .field("password_pepper", &"[REDACTED]")
             .field("session_key", &"[REDACTED]")
             .field("webhook_key", &"[REDACTED]")
-            .field("database_dsn", &"[REDACTED]")
             .finish()
     }
 }
@@ -74,12 +68,6 @@ impl HeldServiceSecrets {
     pub fn webhook_key(&self) -> &[u8; HMAC_KEY_BYTES] {
         &self.webhook_key
     }
-
-    /// The held DSN's length only: this proves the host holds the named
-    /// value without exposing or connecting it.
-    pub fn database_dsn_len(&self) -> usize {
-        self.database_dsn.len()
-    }
 }
 
 /// Resolve every secret the decoded host-mode intent names against the
@@ -88,7 +76,6 @@ impl HeldServiceSecrets {
 pub fn resolve(
     directory: &HeldDirectory,
     secrets: &ServiceSecretResolutionRequirement,
-    dsn_secret_reference: &str,
 ) -> Result<HeldServiceSecrets, SecretRefusal> {
     let password_pepper = read_secret(directory, secrets.password_pepper_reference())?;
     if password_pepper.len() < MIN_PEPPER_BYTES || password_pepper.len() > MAX_PEPPER_BYTES {
@@ -96,12 +83,10 @@ pub fn resolve(
     }
     let session_key = read_key(directory, secrets.session_signing_key_reference())?;
     let webhook_key = read_key(directory, secrets.webhook_signing_key_reference())?;
-    let database_dsn = read_secret(directory, dsn_secret_reference)?;
     Ok(HeldServiceSecrets {
         password_pepper,
         session_key,
         webhook_key,
-        database_dsn,
     })
 }
 
@@ -223,11 +208,9 @@ mod tests {
             password_pepper: b"pepper-marker-7f3a00112233".to_vec(),
             session_key: [7_u8; HMAC_KEY_BYTES],
             webhook_key: [9_u8; HMAC_KEY_BYTES],
-            database_dsn: b"dsn-marker".to_vec(),
         };
         let rendered = format!("{secrets:?}");
         assert!(!rendered.contains("pepper-marker"));
-        assert!(!rendered.contains("dsn-marker"));
         assert!(rendered.contains("[REDACTED]"));
     }
 
@@ -236,7 +219,7 @@ mod tests {
         let (_guard, directory) = hold_temp();
         let requirement = requirement();
         assert!(matches!(
-            resolve(&directory, &requirement, "db.primary"),
+            resolve(&directory, &requirement),
             Err(SecretRefusal::Unavailable)
         ));
     }
@@ -247,19 +230,18 @@ mod tests {
         write_secret(&directory, "auth.pepper", &[1_u8; 32]);
         write_secret(&directory, "auth.session", &[2_u8; 31]);
         write_secret(&directory, "webhook.signing", &[3_u8; 32]);
-        write_secret(&directory, "db.primary", b"dsn");
         let requirement = requirement();
         assert!(matches!(
-            resolve(&directory, &requirement, "db.primary"),
+            resolve(&directory, &requirement),
             Err(SecretRefusal::Invalid)
         ));
         std::fs::remove_file(_guard.join("auth.session")).unwrap();
         write_secret(&directory, "auth.session", &[2_u8; 32]);
-        let resolved = resolve(&directory, &requirement, "db.primary").unwrap();
+        let resolved = resolve(&directory, &requirement).unwrap();
         assert_eq!(resolved.password_pepper(), &[1_u8; 32]);
         assert_eq!(resolved.session_key(), &[2_u8; 32]);
         assert_eq!(resolved.webhook_key(), &[3_u8; 32]);
-        assert_eq!(format!("{resolved:?}").matches("[REDACTED]").count(), 4);
+        assert_eq!(format!("{resolved:?}").matches("[REDACTED]").count(), 3);
     }
 
     fn requirement() -> ServiceSecretResolutionRequirement {
@@ -269,7 +251,7 @@ mod tests {
     }
 
     fn host_request() -> Vec<u8> {
-        let text = r#"{"capabilities":["semaprax.service.database.connect.v1","semaprax.service.http.serve-tls.v1","semaprax.service.secrets.resolve.v1","semaprax.service.telemetry.emit.v1"],"database":{"adapter":"sqlite","dsn_secret_ref":"db.primary","migration_table":"semaprax_migrations"},"http":{"adapter":"native","listen_origin":"https://service.example","tls_profile":"modern"},"mode":"host","schema":"semaprax.service-host-adapter-request.v1","secrets":{"password_pepper_ref":"auth.pepper","session_signing_key_ref":"auth.session","webhook_signing_key_ref":"webhook.signing"},"telemetry":{"adapter":"otlp","endpoint_origin":"https://telemetry.example"}}"#;
+        let text = r#"{"capabilities":["semaprax.service.http.serve-tls.v1","semaprax.service.secrets.resolve.v1","semaprax.service.telemetry.emit.v1"],"database":{"adapter":"snapshot","migration_table":"semaprax_migrations"},"http":{"adapter":"native","listen_origin":"https://service.example","tls_profile":"modern"},"mode":"host","schema":"semaprax.service-host-adapter-request.v1","secrets":{"password_pepper_ref":"auth.pepper","session_signing_key_ref":"auth.session","webhook_signing_key_ref":"webhook.signing"},"telemetry":{"adapter":"semaprax-json-events","endpoint_origin":"https://telemetry.example"}}"#;
         let mut bytes = text.as_bytes().to_vec();
         bytes.push(b'\n');
         bytes

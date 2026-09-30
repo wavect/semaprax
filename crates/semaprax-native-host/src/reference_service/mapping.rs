@@ -21,7 +21,7 @@ use semaprax::authentication::password::{PasswordHasherHost, PasswordPolicy};
 use semaprax::authentication::{OsAuthEntropy, SecretBytes};
 use semaprax::outbound_host_adapter::CheckpointCommit;
 use semaprax::project::service_host_adapter_request::{
-    ServiceDatabaseAdapter, ServiceHostAdapterRequestV1,
+    ServiceDatabaseAdapter, ServiceHostAdapterRequestV1, ServiceTelemetryAdapter,
 };
 use semaprax_native_rust_interop_platform::HeldDirectory;
 use sha2::Sha256;
@@ -158,18 +158,16 @@ pub fn bind<'revision, 'directory>(
     grants: HostGrants<'directory>,
     initial: InitialState,
 ) -> Result<(BoundHost<'revision, 'directory>, CommittedState), BindRefusal> {
-    if intent.requirements().len() != 4 {
+    if intent.requirements().len() != 3 {
         if intent.requirements().is_empty() {
             return Err(BindRefusal::FixtureMode);
         }
         return Err(BindRefusal::IncompleteRequirements);
     }
-    // The reference deployment binds the decoded database requirement to
-    // the durable snapshot store: no SQLite or PostgreSQL wire protocol is
-    // implemented, and the DSN value stays held but unconnected. Matching
-    // the adapter here keeps that substitution explicit instead of silent.
+    // The reference deployment binds the decoded snapshot profile to the
+    // durable snapshot store. It accepts no SQL adapter or DSN.
     match intent.database().map(|database| database.adapter()) {
-        Some(ServiceDatabaseAdapter::Sqlite) | Some(ServiceDatabaseAdapter::Postgresql) => {}
+        Some(ServiceDatabaseAdapter::Snapshot) => {}
         None => return Err(BindRefusal::IncompleteRequirements),
     }
     // The decoded TLS listen origin is intent only: this host binds
@@ -177,10 +175,13 @@ pub fn bind<'revision, 'directory>(
     if intent.http().is_none() || intent.secrets().is_none() {
         return Err(BindRefusal::IncompleteRequirements);
     }
-    let telemetry_origin = intent
+    let telemetry = intent
         .telemetry()
-        .map(|telemetry| telemetry.endpoint_origin().to_owned())
         .ok_or(BindRefusal::IncompleteRequirements)?;
+    if telemetry.adapter() != ServiceTelemetryAdapter::SemapraxJsonEvents {
+        return Err(BindRefusal::IncompleteRequirements);
+    }
+    let telemetry_origin = telemetry.endpoint_origin().to_owned();
     semaprax::outbound_host_adapter::TelemetryCollectorTarget::for_trusted_host(
         telemetry_origin.clone(),
     )

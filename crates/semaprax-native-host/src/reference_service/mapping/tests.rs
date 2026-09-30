@@ -40,14 +40,8 @@ fn fixture() -> Fixture {
     write_secret(&secrets_held, "auth.pepper", &[1_u8; 32]);
     write_secret(&secrets_held, "auth.session", &[2_u8; 32]);
     write_secret(&secrets_held, "webhook.signing", &[3_u8; 32]);
-    write_secret(&secrets_held, "db.primary", b"held-but-unconnected");
     let intent = decode_host_intent();
-    let secrets = super::super::secrets::resolve(
-        &secrets_held,
-        intent.secrets().unwrap(),
-        intent.database().unwrap().dsn_secret_reference(),
-    )
-    .unwrap();
+    let secrets = super::super::secrets::resolve(&secrets_held, intent.secrets().unwrap()).unwrap();
     let decisions =
         DecisionEngine::bind(revision, super::super::decisions::DECISION_MAX_STEPS).unwrap();
     let grants = HostGrants::from_trusted_host(
@@ -75,7 +69,7 @@ fn write_secret(directory: &HeldDirectory, name: &str, bytes: &[u8]) {
 }
 
 fn decode_host_intent() -> ServiceHostAdapterRequestV1 {
-    let text = r#"{"capabilities":["semaprax.service.database.connect.v1","semaprax.service.http.serve-tls.v1","semaprax.service.secrets.resolve.v1","semaprax.service.telemetry.emit.v1"],"database":{"adapter":"sqlite","dsn_secret_ref":"db.primary","migration_table":"semaprax_migrations"},"http":{"adapter":"native","listen_origin":"https://service.example","tls_profile":"modern"},"mode":"host","schema":"semaprax.service-host-adapter-request.v1","secrets":{"password_pepper_ref":"auth.pepper","session_signing_key_ref":"auth.session","webhook_signing_key_ref":"webhook.signing"},"telemetry":{"adapter":"otlp","endpoint_origin":"https://127.0.0.1:9"}}"#;
+    let text = r#"{"capabilities":["semaprax.service.http.serve-tls.v1","semaprax.service.secrets.resolve.v1","semaprax.service.telemetry.emit.v1"],"database":{"adapter":"snapshot","migration_table":"semaprax_migrations"},"http":{"adapter":"native","listen_origin":"https://service.example","tls_profile":"modern"},"mode":"host","schema":"semaprax.service-host-adapter-request.v1","secrets":{"password_pepper_ref":"auth.pepper","session_signing_key_ref":"auth.session","webhook_signing_key_ref":"webhook.signing"},"telemetry":{"adapter":"semaprax-json-events","endpoint_origin":"https://127.0.0.1:9"}}"#;
     let mut bytes = text.as_bytes().to_vec();
     bytes.push(b'\n');
     semaprax::project::service_host_adapter_request::decode(&bytes).unwrap()
@@ -253,14 +247,9 @@ fn fixture_intent_and_bad_deployment_refuse_binding() {
     write_secret(&secrets_dir, "auth.pepper", &[1_u8; 32]);
     write_secret(&secrets_dir, "auth.session", &[2_u8; 32]);
     write_secret(&secrets_dir, "webhook.signing", &[3_u8; 32]);
-    write_secret(&secrets_dir, "db.primary", b"held-but-unconnected");
     let host_intent = decode_host_intent();
-    let secrets = super::super::secrets::resolve(
-        &secrets_dir,
-        host_intent.secrets().unwrap(),
-        host_intent.database().unwrap().dsn_secret_reference(),
-    )
-    .unwrap();
+    let secrets =
+        super::super::secrets::resolve(&secrets_dir, host_intent.secrets().unwrap()).unwrap();
     // Full grants plus fixture-mode intent still refuse: configuration
     // intent never mints a runner.
     let fixture_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -284,12 +273,8 @@ fn fixture_intent_and_bad_deployment_refuse_binding() {
     .unwrap();
     // `grants` is moved by the first bind; rebuild the secrets side for
     // the second attempt below.
-    let secrets = super::super::secrets::resolve(
-        &secrets_dir,
-        host_intent.secrets().unwrap(),
-        host_intent.database().unwrap().dsn_secret_reference(),
-    )
-    .unwrap();
+    let secrets =
+        super::super::secrets::resolve(&secrets_dir, host_intent.secrets().unwrap()).unwrap();
     assert_eq!(
         bind(&fixture_intent, decisions, grants, InitialState::Genesis)
             .err()

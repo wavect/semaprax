@@ -320,15 +320,11 @@ mod real {
                 return 2;
             }
         };
-        let (Some(secret_refs), Some(database)) = (intent.secrets(), intent.database()) else {
+        let Some(secret_refs) = intent.secrets() else {
             eprintln!("refused: host intent lacks secret requirements");
             return 2;
         };
-        let resolved = secrets::resolve(
-            &secrets_directory,
-            secret_refs,
-            database.dsn_secret_reference(),
-        );
+        let resolved = secrets::resolve(&secrets_directory, secret_refs);
         let resolved = match resolved {
             Ok(resolved) => resolved,
             Err(_) => {

@@ -31,6 +31,33 @@ pub struct MeteredTargetEffectRun {
     evidence: String,
     digest: String,
 }
+
+/// A fresh durable run plus the exact observed semantic work for its stages.
+///
+/// The existing durable checkpoint schema does not authenticate semantic-work
+/// receipts. Until it does, resuming a checkpoint through this route is
+/// refused before store access or target dispatch rather than producing
+/// incomplete evidence for historical stages.
+pub struct MeteredDurableTypedRun {
+    run: DurableTypedRun,
+    observations: Vec<StageSemanticObservation>,
+    evidence: String,
+    digest: String,
+}
+impl MeteredDurableTypedRun {
+    pub fn run(&self) -> &DurableTypedRun {
+        &self.run
+    }
+    pub fn observations(&self) -> &[StageSemanticObservation] {
+        &self.observations
+    }
+    pub fn evidence(&self) -> &str {
+        &self.evidence
+    }
+    pub fn evidence_digest(&self) -> &str {
+        &self.digest
+    }
+}
 impl MeteredTargetEffectRun {
     pub fn run(&self) -> &TargetEffectRun {
         &self.run
@@ -56,6 +83,73 @@ pub(crate) struct MeteredTargetRetainedCall {
 }
 
 impl CompiledTypedEffects {
+    /// Run a fresh durable typed-effect lifecycle with a selected semantic
+    /// meter. The checkpoint retains its existing reservation and cleanup
+    /// accounting; this additive receipt describes only stages observed by
+    /// this invocation. Resumption is refused until the checkpoint format
+    /// binds prior semantic receipts.
+    #[allow(clippy::too_many_arguments)]
+    pub fn run_durable_metered_with_backend(
+        &self,
+        task: &LifecycleTask,
+        proposals: &[String],
+        handler: &mut dyn TypedEffectHandler,
+        stages: IterativeBudget,
+        effects: EffectBudget,
+        cancellation: &AgentCancellation,
+        execution_revision_digest: &str,
+        program_root_digest: &str,
+        retained_checkpoint: Option<&str>,
+        store: &mut dyn CheckpointStore,
+        max_reserved_fuel: u64,
+        selected: TargetStageBackend<'_>,
+        semantic_fuel_limit: u64,
+    ) -> Result<MeteredDurableTypedRun, DurableTypedFailure> {
+        if let Some(checkpoint) = retained_checkpoint {
+            return Err(durable::semantic_refusal(
+                "semantic_work.recovery_unsupported",
+                checkpoint,
+            ));
+        }
+        if !cancellation.is_cancelled() && !(1..=1_000_000).contains(&semantic_fuel_limit) {
+            return Err(durable::semantic_refusal("semantic_work.fuel_limit", ""));
+        }
+        let selected = self.durable_backend(selected, None)?;
+        let observations = RefCell::new(Vec::new());
+        let backend = StageBackend::Metered {
+            backend: &selected,
+            fuel_limit: semantic_fuel_limit,
+            observations: &observations,
+        };
+        let run = self.run_durable_inner(
+            task, proposals, handler, stages, effects, cancellation,
+            execution_revision_digest, program_root_digest, None, store,
+            max_reserved_fuel, None, Some(backend),
+        )?;
+        let observations = observations.into_inner();
+        if observations.len() != run.run().lifecycle().stages().len() {
+            return Err(durable::semantic_refusal(
+                "semantic_work.stage_count",
+                run.checkpoint(),
+            ));
+        }
+        let mut document = serde_json::json!({
+            "schema": "semaprax.agent-durable-semantic-work.v1",
+            "checkpoint_digest": run.checkpoint_digest(),
+            "semantic_fuel_limit": semantic_fuel_limit,
+            "stages": observations.iter().map(|observation| serde_json::json!({
+                "function": observation.function_id(),
+                "fuel_used": observation.work().fuel_used,
+                "fuel_limit": observation.work().fuel_limit,
+                "exhausted": observation.work().exhausted,
+            })).collect::<Vec<_>>(),
+        });
+        document.sort_all_objects();
+        let evidence = format!("{document}\n");
+        let digest = digest(b"semaprax.agent-durable-semantic-work.v1\0", evidence.as_bytes());
+        Ok(MeteredDurableTypedRun { run, observations, evidence, digest })
+    }
+
     /// Refuse a selected migration target before that migration reserves fuel
     /// or invokes a compiler/runtime. This is intentionally separate from
     /// execution so migration's existing reservation accounting stays exact.

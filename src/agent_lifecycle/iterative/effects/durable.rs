@@ -115,6 +115,13 @@ struct DurableDriver<'a> {
 fn diagnostic(reason: &str) -> Vec<Diagnostic> {
     error(&format!("durable.{reason}"))
 }
+pub(super) fn semantic_refusal(reason: &str, checkpoint: &str) -> DurableTypedFailure {
+    DurableTypedFailure {
+        diagnostics: diagnostic(reason),
+        terminal: None,
+        checkpoint: checkpoint.to_owned(),
+    }
+}
 fn checked_sum(left: u64, right: usize) -> Result<u64, Vec<Diagnostic>> {
     left.checked_add(u64::try_from(right).map_err(|_| diagnostic("usage.overflow"))?)
         .ok_or_else(|| diagnostic("usage.overflow"))
@@ -442,7 +449,7 @@ impl CompiledTypedEffects {
         )
     }
 
-    fn durable_backend<'a>(
+    pub(super) fn durable_backend<'a>(
         &'a self,
         selected: super::TargetStageBackend<'a>,
         retained_checkpoint: Option<&str>,
@@ -680,7 +687,7 @@ impl CompiledTypedEffects {
     }
 
     #[allow(clippy::too_many_arguments)]
-    fn run_durable_inner<'a>(
+    pub(super) fn run_durable_inner<'a>(
         &self,
         task: &LifecycleTask,
         proposals: &[String],

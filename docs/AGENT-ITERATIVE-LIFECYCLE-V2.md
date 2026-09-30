@@ -127,7 +127,10 @@ checked stage call performs. It adds a metered dispatch to the same sealed
 stage executor seam; it does not change any lifecycle wire, reservation or
 digest above. Existing frozen, migration-seeded, live and checkpoint entries
 retain their unmetered dispatch. The additive public target route below opts
-into the same metered seam.
+into the same metered seam. A fresh durable typed-effect route also records
+the metered stage receipts beside its unchanged authenticated checkpoint;
+resumption through that route refuses before store or target work because the
+current checkpoint schema does not bind historical semantic-work receipts.
 
 **Semantic fuel.** One unit is charged at each of two checked semantic events,
 and at no other point:

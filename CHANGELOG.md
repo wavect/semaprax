@@ -8,6 +8,12 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Bind v4 pure-migration target execution to the metered durable destination
+  route (#327). Missing, unmetered, changed-fuel, and mixed held targets now
+  refuse before destination handoff or host work. Two focused refusal selectors
+  and same-target Interpreter, held native, and held Core Wasm recovery
+  selectors passed locally; sanitizer and full-profile acceptance remain open.
+
 - Advance the real owned-wait v8 next-turn authorization into two durable
   effect ACKs through promotion (#330). The focused real-chain selector
   passed 1/1 locally. Actual effect dispatch and public recovery remain open.

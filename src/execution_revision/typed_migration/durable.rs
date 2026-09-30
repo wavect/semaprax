@@ -262,7 +262,21 @@ fn run(
             checkpoint: None,
         },
     };
+    if selected.is_none() && migrated.seed.target_execution_binding().is_some() {
+        return Err(DurableMigrationFailure {
+            diagnostics: refused("migration.target_requires_metered_durable"),
+            checkpoint: snapshot.canonical_json(),
+            durable: None,
+        });
+    }
     if let Some(selected) = selected {
+        if migrated.seed.target_execution_binding().is_some() {
+            return Err(DurableMigrationFailure {
+                diagnostics: refused("migration.target_requires_metered_durable"),
+                checkpoint: snapshot.canonical_json(),
+                durable: None,
+            });
+        }
         migrated
             .runtime
             .lifecycle
@@ -374,6 +388,24 @@ fn run_metered(
             checkpoint: None,
         },
     };
+    let actual_binding = migrated
+        .runtime
+        .lifecycle
+        .migration_target_execution_binding(selected, semantic_fuel_limit)
+        .map_err(|diagnostics| DurableMigrationFailure {
+            diagnostics,
+            checkpoint: snapshot.canonical_json(),
+            durable: None,
+        })?;
+    if let Some(expected) = migrated.seed.target_execution_binding() {
+        if expected != actual_binding {
+            return Err(DurableMigrationFailure {
+                diagnostics: refused("migration.target_binding"),
+                checkpoint: snapshot.canonical_json(),
+                durable: None,
+            });
+        }
+    }
     migrated
         .runtime
         .lifecycle
@@ -593,6 +625,10 @@ pub fn resume_migrated_agent_runtime_v2(
         iterations: handoff.iterations,
         stages: handoff.stages,
         max_reserved_fuel: handoff.max_reserved_fuel,
+        target_execution_binding: facts["target_execution"]
+            .get("execution_binding")
+            .and_then(Value::as_str)
+            .map(str::to_owned),
     };
     Ok(ResumedMigratedAgentRuntimeV2 {
         migrated: MigratedAgentRuntimeV2 {

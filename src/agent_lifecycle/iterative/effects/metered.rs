@@ -123,6 +123,26 @@ fn metered_durable_evidence(
 }
 
 impl CompiledTypedEffects {
+    /// Derive the exact metered target binding without executing a call. A
+    /// migrated durable handoff uses this before reserving its first stage.
+    pub(crate) fn migration_target_execution_binding(
+        &self,
+        selected: TargetStageBackend<'_>,
+        semantic_fuel_limit: u64,
+    ) -> Result<String, Vec<Diagnostic>> {
+        if !(1..=1_000_000).contains(&semantic_fuel_limit) {
+            return Err(vec![crate::agent_lifecycle::stages::invariant(
+                "semantic_work.fuel_limit",
+            )]);
+        }
+        let backend = self.selected_target_backend(selected)?;
+        let target_binding = self.target_execution_binding(backend);
+        Ok(digest(
+            b"semaprax.agent-migration-target-execution.v1\0",
+            format!("{target_binding}\0{semantic_fuel_limit}").as_bytes(),
+        ))
+    }
+
     /// Run a durable typed-effect lifecycle with authenticated semantic-work
     /// receipts. The explicit metered checkpoint profile binds each completed
     /// stage before recovery may reuse it.

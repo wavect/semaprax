@@ -327,6 +327,18 @@ fn migrated_with_metered_interpreter(
 ) {
     use semaprax::agent_lifecycle::iterative::effects::TargetStageBackend;
 
+    migrated_with_metered_backend(a, b, TargetStageBackend::Interpreter)
+}
+
+fn migrated_with_metered_backend(
+    a: &Fixture,
+    b: &Fixture,
+    selected: semaprax::agent_lifecycle::iterative::effects::TargetStageBackend<'_>,
+) -> (
+    semaprax::execution_revision::typed::MigratedAgentRuntimeV2,
+    String,
+    String,
+) {
     let previous = bind(a, b"chain payload");
     let before = previous.execution_revision().digest().to_owned();
     let suspended = bind(a, b"chain payload")
@@ -350,7 +362,7 @@ fn migrated_with_metered_interpreter(
             "fixture.agent.fn.migrate_b",
             10_000,
             10_000_000,
-            TargetStageBackend::Interpreter,
+            selected,
             10_000,
         )
         .unwrap(),
@@ -522,6 +534,8 @@ fn migrated_durable_complete_and_full_replay_preserve_payload_and_charges() {
 
 #[test]
 fn metered_target_migration_handoff_recovers_without_repeating_the_pure_call() {
+    use semaprax::agent_lifecycle::iterative::effects::TargetStageBackend;
+
     let a = first();
     let b = successor(&a, "State", "StateB", "b", &["marker"], false);
     let (migration, before, after) = migrated_with_metered_interpreter(&a, &b);
@@ -531,10 +545,16 @@ fn metered_target_migration_handoff_recovers_without_repeating_the_pure_call() {
     let mut host = handler();
     let mut store = Store::default();
     let completed = migration
-        .run_durable(&mut host, &AgentCancellation::new(), &mut store)
+        .run_durable_metered_with_backend(
+            &mut host,
+            &AgentCancellation::new(),
+            &mut store,
+            TargetStageBackend::Interpreter,
+            10_000,
+        )
         .unwrap();
     assert_eq!(
-        completed.run().run().lifecycle().status(),
+        completed.run().run().run().lifecycle().status(),
         IterativeStatus::Complete
     );
     assert_eq!(host.calls.len(), 3);
@@ -549,9 +569,15 @@ fn metered_target_migration_handoff_recovers_without_repeating_the_pure_call() {
     )
     .expect("v4 target-migration handoff recovers");
     let replay = resumed
-        .run_durable(&mut host, &AgentCancellation::new(), &mut store)
+        .run_durable_metered_with_backend(
+            &mut host,
+            &AgentCancellation::new(),
+            &mut store,
+            TargetStageBackend::Interpreter,
+            10_000,
+        )
         .unwrap();
-    assert_eq!(replay.run().run().dispatched(), 0);
+    assert_eq!(replay.run().run().run().dispatched(), 0);
     assert_eq!(host.calls.len(), 3);
 }
 
@@ -615,13 +641,104 @@ fn metered_migrated_durable_recovery_replays_same_target_receipts() {
 }
 
 #[test]
+fn target_migration_refuses_missing_or_mixed_metered_durable_target_before_handoff() {
+    use semaprax::agent_lifecycle::iterative::effects::TargetStageBackend;
+
+    let a = first();
+    let b = successor(&a, "State", "StateB", "b", &["marker"], false);
+    let (migration, _, _) = migrated_with_metered_interpreter(&a, &b);
+    let mut host = handler();
+    let mut store = Store::default();
+    let missing = migration
+        .run_durable(&mut host, &AgentCancellation::new(), &mut store)
+        .err()
+        .expect("v4 target migration cannot drop its metered target");
+    assert!(missing.diagnostics()[0]
+        .message
+        .contains("migration.target_requires_metered_durable"));
+    assert_eq!((host.calls.len(), store.commits), (0, 0));
+
+    let (migration, _, _) = migrated_with_metered_interpreter(&a, &b);
+    let unmetered = migration
+        .run_durable_with_backend(
+            &mut host,
+            &AgentCancellation::new(),
+            &mut store,
+            TargetStageBackend::Interpreter,
+        )
+        .err()
+        .expect("v4 target migration cannot use an unmetered selected target");
+    assert!(unmetered.diagnostics()[0]
+        .message
+        .contains("migration.target_requires_metered_durable"));
+    assert_eq!((host.calls.len(), store.commits), (0, 0));
+
+    let (migration, _, _) = migrated_with_metered_interpreter(&a, &b);
+    let mixed = migration
+        .run_durable_metered_with_backend(
+            &mut host,
+            &AgentCancellation::new(),
+            &mut store,
+            TargetStageBackend::Interpreter,
+            9_999,
+        )
+        .err()
+        .expect("changed metered target binding cannot stage a handoff");
+    assert!(mixed.diagnostics()[0]
+        .message
+        .contains("migration.target_binding"));
+    assert_eq!((host.calls.len(), store.commits), (0, 0));
+}
+
+#[test]
+#[cfg(any(target_os = "linux", target_os = "macos"))]
+fn target_migration_refuses_a_mixed_held_native_target_before_handoff() {
+    use semaprax::agent_lifecycle::iterative::effects::{NativeTargetHost, TargetStageBackend};
+
+    let Some(native) = std::env::var_os("SEMAPRAX_TEST_NATIVE_STAGE_CLANG")
+        .map(std::path::PathBuf::from)
+        .into_iter()
+        .chain(
+            [
+                "/usr/bin/clang",
+                "/usr/local/bin/clang",
+                "/opt/homebrew/bin/clang",
+            ]
+            .map(std::path::PathBuf::from),
+        )
+        .find_map(|path| NativeTargetHost::open(path).ok())
+    else {
+        eprintln!("skipping mixed migration target refusal: held clang unavailable");
+        return;
+    };
+    let a = first();
+    let b = successor(&a, "State", "StateB", "b", &["marker"], false);
+    let (migration, _, _) = migrated_with_metered_interpreter(&a, &b);
+    let mut host = handler();
+    let mut store = Store::default();
+    let failure = migration
+        .run_durable_metered_with_backend(
+            &mut host,
+            &AgentCancellation::new(),
+            &mut store,
+            TargetStageBackend::Native(&native),
+            10_000,
+        )
+        .err()
+        .expect("mixed held native target cannot stage a handoff");
+    assert!(failure.diagnostics()[0]
+        .message
+        .contains("migration.target_binding"));
+    assert_eq!((host.calls.len(), store.commits), (0, 0));
+}
+
+#[test]
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 fn metered_migrated_durable_recovery_replays_same_held_wasm_target() {
     use semaprax::agent_lifecycle::iterative::effects::{TargetStageBackend, WasmTargetHost};
 
     let a = first();
     let b = successor(&a, "State", "StateB", "b", &["marker"], false);
-    let (migration, before, after) = migrated_with_metered_interpreter(&a, &b);
     let node = std::env::var_os("SEMAPRAX_TEST_WASM_STAGE_NODE")
         .map(std::path::PathBuf::from)
         .into_iter()
@@ -632,6 +749,8 @@ fn metered_migrated_durable_recovery_replays_same_held_wasm_target() {
         ])
         .find_map(|path| WasmTargetHost::open(path).ok())
         .expect("metered migration recovery requires an explicit held Node runtime");
+    let (migration, before, after) =
+        migrated_with_metered_backend(&a, &b, TargetStageBackend::CoreWasmHeld(&node));
     let handoff = migration.handoff_digest().unwrap();
     let mut host = handler();
     let mut store = Store::default();
@@ -708,7 +827,8 @@ fn metered_migrated_durable_recovery_replays_same_held_native_target() {
     };
     let a = first();
     let b = successor(&a, "State", "StateB", "b", &["marker"], false);
-    let (migration, before, after) = migrated_with_metered_interpreter(&a, &b);
+    let (migration, before, after) =
+        migrated_with_metered_backend(&a, &b, TargetStageBackend::Native(&native));
     let handoff = migration.handoff_digest().unwrap();
     let mut host = handler();
     let mut store = Store::default();

@@ -141,7 +141,9 @@ stage and returns a distinct
 migration handoff, typed-effect evidence, checkpoint and semantic-work digest.
 The ordinary durable migration route and evidence schema remain separate.
 Local same-Interpreter, caller-held Core Wasm, and caller-held native
-migration/recovery selectors
-verify the association, reservation/receipt pairing, and no retained
-host-work redelivery on each selected backend. Mixed target refusal and the
-full acceptance gate remain open.
+migration/recovery selectors verify the association, reservation/receipt
+pairing, and no retained host-work redelivery on each selected backend. A v4
+target migration retains its exact metered target binding in the authenticated
+handoff: the durable facade refuses an absent, unmetered, or differently bound
+target before its destination handoff reservation or host work. The full
+acceptance gate remains open.

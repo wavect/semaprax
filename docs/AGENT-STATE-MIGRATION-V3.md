@@ -140,7 +140,8 @@ stage and returns a distinct
 `semaprax.evidence-root.durable-migration-metered.v1` association binding the
 migration handoff, typed-effect evidence, checkpoint and semantic-work digest.
 The ordinary durable migration route and evidence schema remain separate.
-Local same-Interpreter and caller-held Core Wasm migration/recovery selectors
+Local same-Interpreter, caller-held Core Wasm, and caller-held native
+migration/recovery selectors
 verify the association, reservation/receipt pairing, and no retained
-host-work redelivery on each selected backend. Native-target recovery, mixed
-target refusal, and the full acceptance gate remain open.
+host-work redelivery on each selected backend. Mixed target refusal and the
+full acceptance gate remain open.

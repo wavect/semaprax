@@ -686,6 +686,83 @@ fn metered_migrated_durable_recovery_replays_same_held_wasm_target() {
 }
 
 #[test]
+#[cfg(any(target_os = "linux", target_os = "macos"))]
+fn metered_migrated_durable_recovery_replays_same_held_native_target() {
+    use semaprax::agent_lifecycle::iterative::effects::{NativeTargetHost, TargetStageBackend};
+
+    let Some(native) = std::env::var_os("SEMAPRAX_TEST_NATIVE_STAGE_CLANG")
+        .map(std::path::PathBuf::from)
+        .into_iter()
+        .chain(
+            [
+                "/usr/bin/clang",
+                "/usr/local/bin/clang",
+                "/opt/homebrew/bin/clang",
+            ]
+            .map(std::path::PathBuf::from),
+        )
+        .find_map(|path| NativeTargetHost::open(path).ok())
+    else {
+        eprintln!("skipping metered migration recovery: held clang unavailable");
+        return;
+    };
+    let a = first();
+    let b = successor(&a, "State", "StateB", "b", &["marker"], false);
+    let (migration, before, after) = migrated_with_metered_interpreter(&a, &b);
+    let handoff = migration.handoff_digest().unwrap();
+    let mut host = handler();
+    let mut store = Store::default();
+    let completed = migration
+        .run_durable_metered_with_backend(
+            &mut host,
+            &AgentCancellation::new(),
+            &mut store,
+            TargetStageBackend::Native(&native),
+            10_000,
+        )
+        .expect("held native target records durable migration receipts");
+    assert!(completed.run().observations_complete());
+    assert_eq!(host.calls.len(), 3);
+    let snapshot: serde_json::Value = serde_json::from_str(&store.document).unwrap();
+    let checkpoint: serde_json::Value =
+        serde_json::from_str(snapshot["checkpoint"].as_str().unwrap()).unwrap();
+    let entries = checkpoint["entries"].as_array().unwrap();
+    assert_eq!(
+        entries
+            .iter()
+            .filter(|entry| entry["event"]["kind"] == "stage_reservation")
+            .count(),
+        entries
+            .iter()
+            .filter(|entry| entry["event"]["kind"] == "semantic_work")
+            .count(),
+        "every held-native migration stage reservation has an authenticated receipt",
+    );
+    let retained = store.document.clone();
+    let resumed = resume_migrated_agent_runtime_v2(
+        bind(&a, b"chain payload"),
+        bind(&b, b"destination input ignored"),
+        &retained,
+        &handoff,
+        &before,
+        &after,
+    )
+    .expect("held-native v4 migration handoff recovers");
+    let replay = resumed
+        .run_durable_metered_with_backend(
+            &mut host,
+            &AgentCancellation::new(),
+            &mut store,
+            TargetStageBackend::Native(&native),
+            10_000,
+        )
+        .expect("same held native target replays durable migration receipts");
+    assert!(replay.run().observations_complete());
+    assert_eq!(replay.run().run().run().dispatched(), 0);
+    assert_eq!(host.calls.len(), 3);
+}
+
+#[test]
 fn migrated_genesis_and_effect_lost_acknowledgements_fail_closed_and_recover() {
     let a = first();
     let b = successor(&a, "State", "StateB", "b", &["marker"], false);

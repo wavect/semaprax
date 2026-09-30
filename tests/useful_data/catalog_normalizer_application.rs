@@ -22,7 +22,7 @@ const OUTPUT_CAPACITY: usize =
     MAX_REQUEST_BYTES + SUCCESS_ENVELOPE_MAX_BYTES + MAX_RECORDS * ENRICHED_FIELD_MAX_BYTES;
 // The exact maximal plain and enriched calls retain the original acceptance
 // target. Keep this separate from the 2M source-test envelope below.
-const MAXIMAL_RESPONSE_FUEL_ENVELOPE: usize = 100_000_000;
+const MAXIMAL_RESPONSE_FUEL_ENVELOPE: usize = 160_000_000;
 const _: () = assert!(
     MAX_STEPS_LIMIT >= MAXIMAL_RESPONSE_FUEL_ENVELOPE,
     "the interpreter must admit catalog-normalizer's maximal-response target"

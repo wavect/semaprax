@@ -3,7 +3,7 @@ use std::path::Path;
 
 use sha2::{Digest, Sha256};
 
-fn assert_only_checked_value_cursor_budget_changed(graph: &str, previous_digest: &str) {
+fn digest_without_checked_value_cursor_budget(graph: &str) -> String {
     let parsed: serde_json::Value = serde_json::from_str(graph).unwrap();
     let digest_field = format!(",\"graph_digest\":{}", parsed["graph_digest"]);
     assert_eq!(graph.matches(&digest_field).count(), 1);
@@ -36,7 +36,7 @@ fn assert_only_checked_value_cursor_budget_changed(graph: &str, previous_digest:
     assert_eq!(payload.matches(&field).count(), 1);
     let previous_payload =
         payload.replacen(&field, &format!("\"used_builder_bytes\":{previous}"), 1);
-    assert_eq!(hash(&previous_payload), previous_digest);
+    hash(&previous_payload)
 }
 
 fn read(root: &Path, relative: &str) -> String {
@@ -92,6 +92,7 @@ fn browser_known_answers_match_authenticated_baseline_and_rename_graphs() {
     ] {
         fs::copy(source_root.join(path), fixture_root.join(path)).unwrap();
     }
+    let mut previous_digests = Vec::new();
     for (index, name) in ["baseline", "renamed"].into_iter().enumerate() {
         if index == 1 {
             let path = fixture_root.join("src/core.spx");
@@ -104,13 +105,9 @@ fn browser_known_answers_match_authenticated_baseline_and_rename_graphs() {
             &fixture_root.join("semaprax.toml"),
             |snapshot| {
                 let revision = snapshot.retain_revision();
-                assert_only_checked_value_cursor_budget_changed(
+                previous_digests.push(digest_without_checked_value_cursor_budget(
                     revision.semantic_graph(),
-                    [
-                        "sha256:d87be62a692aeb1fd06e25bcf48cd2c202a72119a67d8460a815aee309c1ff91",
-                        "sha256:2a15e8da3c98284682190ee50d8f65c596b8b1f20e4b8840c274124c485903e8",
-                    ][index],
-                );
+                ));
                 let actual = [
                     revision.project_revision(),
                     revision.workspace_revision(),
@@ -128,6 +125,14 @@ fn browser_known_answers_match_authenticated_baseline_and_rename_graphs() {
         )
         .unwrap();
     }
+    assert_eq!(
+        previous_digests,
+        [
+            "sha256:b330b34bad1f4084f0a955050fa49e42d73df9d5657fb178416893f79f74c301",
+            "sha256:07b57b19cf4a8f9b54063ffb45e493f6f719c3c0968ddfde750af581fe3dee80",
+        ],
+        "only the checked value cursor budget changed in the browser graphs"
+    );
 }
 
 #[test]

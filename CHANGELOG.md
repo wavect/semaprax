@@ -8,6 +8,12 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Gate reference-service completion delivery with the checked source export
+  policy (#336), using the canonical signed-event length and configured
+  telemetry origin before any outbound attempt. Focused refusal and existing
+  successful completion routes passed 1/1 each locally. OCI and remaining
+  service decisions remain open.
+
 - Advance a live owned-wait v8 next-turn Start owner through its sole source
   entry and durable Prepared acknowledgement (#330). A real-owner selector
   passed 1/1 locally, including single-entry and holder-release checks.

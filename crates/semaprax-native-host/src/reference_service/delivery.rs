@@ -370,6 +370,21 @@ pub fn deliver_completion_webhook(
     })
 }
 
+/// Return the exact canonical byte length of the completion envelope that
+/// [`deliver_completion_webhook`] will submit. The checked export policy sees
+/// this fact before a host adapter is prepared; raw event bytes remain local.
+pub fn completion_event_len(
+    job_id: i64,
+    owner: i64,
+    desc: &str,
+    webhook_key: &[u8; 32],
+) -> Result<usize, DeliveryRefusal> {
+    if job_id <= 0 || owner <= 0 {
+        return Err(DeliveryRefusal::InvalidRequest);
+    }
+    Ok(signed_event(job_id, owner, desc, webhook_key).0.len())
+}
+
 fn signed_event(job_id: i64, owner: i64, desc: &str, webhook_key: &[u8; 32]) -> (String, String) {
     let payload = json::render(&JsonValue::Object(vec![
         ("desc".to_owned(), JsonValue::Str(desc.to_owned())),

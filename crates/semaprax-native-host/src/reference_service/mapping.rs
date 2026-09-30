@@ -1087,6 +1087,29 @@ fn complete_job(
     if job.state != JobState::Pending {
         return error(409, "already_completed", Some(&committed.digest));
     }
+    let event_bytes = match delivery::completion_event_len(
+        job.id,
+        job.owner,
+        &job.desc,
+        host.secrets.webhook_key(),
+    ) {
+        Ok(length) => length,
+        Err(_) => return error(500, "decision_failed", None),
+    };
+    let event_bytes = match u64::try_from(event_bytes) {
+        Ok(event_bytes) => event_bytes,
+        Err(_) => return error(500, "decision_failed", None),
+    };
+    match host.decisions.completed_job_export_is_admitted(
+        0,
+        1,
+        event_bytes,
+        host.telemetry_origin.as_bytes(),
+    ) {
+        Ok(true) => {}
+        Ok(false) => return error(403, "export_not_admitted", Some(&committed.digest)),
+        Err(_) => return error(500, "decision_failed", None),
+    }
     // The durable delivery attempt precedes the state commit, and its
     // identity is stable per job: a crash between the two leaves a pending
     // job whose durable marker already exists, so the retry settles

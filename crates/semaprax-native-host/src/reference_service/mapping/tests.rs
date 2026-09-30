@@ -8,7 +8,7 @@ const DEPLOYMENT: &str = "reference-service-test-v1";
 
 struct Fixture {
     _state: TempDir,
-    _outbound: TempDir,
+    outbound: TempDir,
     _secrets: TempDir,
     host: BoundHost<'static, 'static>,
     committed: CommittedState,
@@ -18,6 +18,10 @@ struct Fixture {
 // intentional leaks: this keeps the fixture's lifetimes simple without
 // changing any production signature for tests.
 fn fixture() -> Fixture {
+    fixture_with_telemetry_origin("https://127.0.0.1:9")
+}
+
+fn fixture_with_telemetry_origin(telemetry_origin: &str) -> Fixture {
     // The project loader rejects `.`/`..` components, so the fixture
     // path is canonicalized before loading.
     let manifest = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -40,7 +44,7 @@ fn fixture() -> Fixture {
     write_secret(&secrets_held, "auth.pepper", &[1_u8; 32]);
     write_secret(&secrets_held, "auth.session", &[2_u8; 32]);
     write_secret(&secrets_held, "webhook.signing", &[3_u8; 32]);
-    let intent = decode_host_intent();
+    let intent = decode_host_intent(telemetry_origin);
     let secrets = super::super::secrets::resolve(&secrets_held, intent.secrets().unwrap()).unwrap();
     let decisions =
         DecisionEngine::bind(revision, super::super::decisions::DECISION_MAX_STEPS).unwrap();
@@ -57,7 +61,7 @@ fn fixture() -> Fixture {
     let (host, committed) = bind(&intent, decisions, grants, InitialState::Genesis).unwrap();
     Fixture {
         _state: state_dir,
-        _outbound: outbound_dir,
+        outbound: outbound_dir,
         _secrets: secrets_dir,
         host,
         committed,
@@ -68,9 +72,10 @@ fn write_secret(directory: &HeldDirectory, name: &str, bytes: &[u8]) {
     let _ = platform::write_file_new(directory, OsStr::new(name), bytes, 0o600).unwrap();
 }
 
-fn decode_host_intent() -> ServiceHostAdapterRequestV1 {
+fn decode_host_intent(telemetry_origin: &str) -> ServiceHostAdapterRequestV1 {
     let text = r#"{"capabilities":["semaprax.service.http.serve-tls.v1","semaprax.service.secrets.resolve.v1","semaprax.service.telemetry.emit.v1"],"database":{"adapter":"snapshot","migration_table":"semaprax_migrations"},"http":{"adapter":"native","listen_origin":"https://service.example","tls_profile":"modern"},"mode":"host","schema":"semaprax.service-host-adapter-request.v1","secrets":{"password_pepper_ref":"auth.pepper","session_signing_key_ref":"auth.session","webhook_signing_key_ref":"webhook.signing"},"telemetry":{"adapter":"semaprax-json-events","endpoint_origin":"https://127.0.0.1:9"}}"#;
-    let mut bytes = text.as_bytes().to_vec();
+    let text = text.replace("https://127.0.0.1:9", telemetry_origin);
+    let mut bytes = text.into_bytes();
     bytes.push(b'\n');
     semaprax::project::service_host_adapter_request::decode(&bytes).unwrap()
 }
@@ -413,7 +418,7 @@ fn fixture_intent_and_bad_deployment_refuse_binding() {
     write_secret(&secrets_dir, "auth.pepper", &[1_u8; 32]);
     write_secret(&secrets_dir, "auth.session", &[2_u8; 32]);
     write_secret(&secrets_dir, "webhook.signing", &[3_u8; 32]);
-    let host_intent = decode_host_intent();
+    let host_intent = decode_host_intent("https://127.0.0.1:9");
     let secrets =
         super::super::secrets::resolve(&secrets_dir, host_intent.secrets().unwrap()).unwrap();
     // Full grants plus fixture-mode intent still refuse: configuration
@@ -570,6 +575,75 @@ fn job_enqueue_is_idempotent_and_completion_settles_once() {
     );
     assert_eq!(queried.status, 200);
     assert_eq!(field(&queried.body, "state").as_str().unwrap(), "completed");
+}
+
+#[test]
+fn completion_export_refusal_keeps_job_pending_without_outbound_attempt() {
+    // This is a valid collector origin for the host adapter, but its complete
+    // target identifier exceeds the source policy's fixed byte bound.
+    let telemetry_origin = format!(
+        "https://{}.{}.{}.invalid",
+        "a".repeat(63),
+        "b".repeat(63),
+        "c".repeat(63),
+    );
+    let mut fixture = fixture_with_telemetry_origin(&telemetry_origin);
+    let registered = handle(
+        &mut fixture.host,
+        &mut fixture.committed,
+        &exchange(
+            "POST",
+            "/v1/register",
+            r#"{"username":"carol","password":"correct horse 7"}"#,
+            None,
+        ),
+    );
+    assert_eq!(registered.status, 201, "{}", registered.body);
+    let logged_in = handle(
+        &mut fixture.host,
+        &mut fixture.committed,
+        &exchange(
+            "POST",
+            "/v1/login",
+            r#"{"username":"carol","password":"correct horse 7"}"#,
+            None,
+        ),
+    );
+    assert_eq!(logged_in.status, 200, "{}", logged_in.body);
+    let token = field(&logged_in.body, "token").as_str().unwrap().to_owned();
+    let enqueued = handle(
+        &mut fixture.host,
+        &mut fixture.committed,
+        &exchange(
+            "POST",
+            "/v1/jobs/enqueue",
+            r#"{"key":"job-1","desc":"task-1"}"#,
+            Some(&token),
+        ),
+    );
+    assert_eq!(enqueued.status, 200, "{}", enqueued.body);
+    let digest_before = fixture.committed.digest.clone();
+
+    let refused = handle(
+        &mut fixture.host,
+        &mut fixture.committed,
+        &exchange("POST", "/v1/jobs/1/complete", "", Some(&token)),
+    );
+    assert_eq!(refused.status, 403, "{}", refused.body);
+    assert_eq!(field(&refused.body, "error").as_str(), Some("export_not_admitted"));
+    assert_eq!(field(&refused.body, "state").as_str(), Some(digest_before.as_str()));
+    assert!(std::fs::read_dir(fixture.outbound.path())
+        .unwrap()
+        .next()
+        .is_none());
+
+    let queried = handle(
+        &mut fixture.host,
+        &mut fixture.committed,
+        &exchange("GET", "/v1/jobs/1", "", Some(&token)),
+    );
+    assert_eq!(queried.status, 200, "{}", queried.body);
+    assert_eq!(field(&queried.body, "state").as_str(), Some("pending"));
 }
 
 /// A throwaway project (nothing else depends on it, so nothing else's

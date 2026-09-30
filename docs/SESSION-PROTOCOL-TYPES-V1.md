@@ -4,8 +4,8 @@ Audience: compiler contributors implementing the source-syntax/HIR/backend
 generalization this document specifies, and reviewers auditing what this
 slice of #206 delivered versus what remains.
 
-Status: **reference validator, checked `.spx` declarations, and an authored
-bounded affine source carrier whose execution gate is pending**.
+Status: **reference validator, checked `.spx` declarations, and a bounded
+affine source carrier with local execution evidence (8/8 at `c714e7c6c`)**.
 Issue #206 asked for a bounded session/protocol type model applied to two
 real subsystems. `src/session_protocol/` delivers a Rust-level protocol
 declaration, an affine typed endpoint, and a runtime engine proving the
@@ -26,7 +26,8 @@ the native or Wasm backend, and grants no authority. See
 [Declared session protocols](#declared-session-protocols-issue-297). Typestate
 checking of `.spx` endpoint *values* now has the bounded
 [affine Bytes carrier profile](#affine-source-endpoint-carrier-issue-331).
-Its executable gate is authored; execution evidence is recorded in that section.
+Its eight-test executable gate passed locally; the exact revision and later
+source-equivalence check are recorded in that section.
 
 ## What already exists on `main`
 
@@ -939,8 +940,8 @@ no dedicated query code of their own).
 
 ## Affine source endpoint carrier (issue #331)
 
-Status: implementation and executable gate authored; local compilation/testing
-must be reported separately. This profile reuses the compiler's existing unique
+Status: **local gate passed, 8/8 at `c714e7c6c` on 2026-09-30**; this is no
+hosted or broader-profile claim. This profile reuses the compiler's existing unique
 `Bytes` values, resolved ownership and cleanup plans, interpreter, native C11,
 and generated Wasm byte runtime. A source endpoint is the one actual owner
 passed to the followed function, including its local moves and each successor
@@ -1041,20 +1042,39 @@ fails the gate), run native C11 at O0/O2, compare the interpreter result, and
 repeat real generated Wasm invocations with one owned-byte slot on success and
 terminal postcondition failure to detect missing settlement.
 
-Run the existing `session_protocol` library tests and
-`graph::session_protocol` tests as the erased-profile preservation gate, plus
-`scripts/quality.sh full` for integration. None of these authored cases alone
-establishes executed or hosted evidence.
+### Local execution receipt
 
-Local work on 2026-09-30 (macOS): `cargo check --locked -p semaprax --lib`
-passed with `CARGO_BUILD_JOBS=1`, `CARGO_INCREMENTAL=0`,
-`CARGO_PROFILE_DEV_DEBUG=0`, and the checkout-private
-`CARGO_TARGET_DIR=target/session-331`. This check preceded the final statement
-walk refinement and frontend-cache version adjustment. The focused endpoint
-`cargo test` command, with the same settings plus `CARGO_PROFILE_TEST_DEBUG=0`,
-was stopped during compilation before any test ran, because only about 596 MiB
-of disk remained. The final revision's execution and integration gates remain
-unverified; the implementation is not yet an acceptance or hosted receipt.
+On 2026-09-30, the integrated revision
+[`c714e7c6c164f2b83d4575f8ade318c0ef80aa6b`](https://github.com/wavect/semaprax/commit/c714e7c6c164f2b83d4575f8ade318c0ef80aa6b)
+passed **8 tests, 0 failed** with the checkout-private validation target:
+
+```sh
+CARGO_TARGET_DIR="$PWD/target/v070-validation" cargo test --locked -p semaprax --lib session_protocol::typestate::endpoint -- --test-threads=1
+```
+
+The executed cases include the committed canonical `.spx` example, source
+move/close and refusal checks, HIR/cache/graph assertions, interpreter results,
+native C11 O0/O2 execution, and repeated generated Wasm success and terminal
+postcondition-failure settlement with one owned-byte slot. Clang and Node are
+required by these cases; they do not silently skip missing tools. This receipt
+supersedes the earlier interrupted `target/session-331` build, which ran no
+tests because only approximately 596 MiB of disk remained.
+
+A subsequent Git comparison of that tested revision with
+[`e9019e9e1046e9d3416929f525cc01aa1bfd0c11`](https://github.com/wavect/semaprax/commit/e9019e9e1046e9d3416929f525cc01aa1bfd0c11)
+found changes only in the catalog-normalizer example, its test, and the
+changelog. The endpoint implementation, test module, compiler, interpreter,
+native/Wasm backends, cache and graph paths are unchanged. This is a
+source-equivalence check through `e9019e9e1`, not another execution receipt.
+
+The eight-test receipt does not include a rerun of the existing legacy
+erasure/graph preservation tests or `scripts/quality.sh full`. For the narrow
+preservation check, select
+`session_protocol::typestate::tests::a_follows_clause_is_erased_from_native_and_wasm_output`
+and
+`graph::session_protocol_follows::tests::a_program_without_a_follows_clause_is_byte_identical_to_the_pre_existing_v48_golden`.
+Broader integration or hosted evidence must be reported separately; this local
+receipt does not promote those claims.
 
 ## Scope boundary
 

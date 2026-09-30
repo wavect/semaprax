@@ -28,9 +28,13 @@ format: `Unreleased` then release buckets, grouped by impact.
   order to a unique source carrier through local moves and terminal consumption.
   Refuse stale aliases, use after close, replacement carriers and escapes before
   backend emission; preserve the existing declaration-only profile.
-- Add source/HIR/graph/cache regressions and interpreter/native O0/O2/generated
-  Wasm success and terminal-failure settlement gates. Execution remains pending
-  until the owning specification's gate has run.
+- Pass all eight source/HIR/graph/cache and interpreter/native O0/O2/generated
+  Wasm endpoint success and terminal-failure settlement tests locally at
+  `c714e7c6c` on 2026-09-30. Endpoint/compiler/backend paths remain unchanged
+  through `e9019e9e1`; that later comparison is source equivalence, not a new
+  execution receipt. [Session Protocol Types v1](docs/SESSION-PROTOCOL-TYPES-V1.md#local-execution-receipt)
+  records the command, scope, and separately pending legacy preservation and
+  broader integration evidence.
 
 - Add an opt-in local Ollama specialization runner for #326 around the frozen
   control schedule and scorer, with public-only prompt projection, exact model

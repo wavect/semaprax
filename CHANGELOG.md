@@ -22,6 +22,8 @@ format: `Unreleased` then release buckets, grouped by impact.
   Retain cross-platform settlement test helpers, refresh the browser
   baseline's exact graph digest, and admit the shared workspace fixture in
   the offline package test harness.
+  Resolve native-host rustdoc links on Windows and remove redundant explicit
+  targets from the reference-service documentation.
 
 - Add a closed acceptance-record format for #328's Kernel-0 rung-2 decision.
   It requires every local receipt to bind to one selected revision or an exact

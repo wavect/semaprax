@@ -12,17 +12,17 @@
 //! host must independently grant a directory and select the same store
 //! identity before any store, session, or adapter is constructed. A missing
 //! or mismatched host grant is refused before any filesystem or network
-//! effect ([`bind_service_outbound_store`]). The `HeldDirectory` the host
+//! effect ([`crate::outbound_delivery_store::service_invocation::bind_service_outbound_store`]). The `HeldDirectory` the host
 //! grants is the actual authority; the store-id match is only a consistency
 //! check that decoded configuration cannot silently redirect a host-granted
 //! directory to a different declared purpose.
 //!
-//! [`deliver_http_durable`] is the runnable delivery entry point. Whenever the
+//! [`crate::outbound_delivery_store::service_invocation::deliver_http_durable`] is the runnable delivery entry point. Whenever the
 //! ledger's own in-memory replay check does not already short-circuit --
 //! which covers both a fresh (non-restored) session and a restored session
 //! that meets a new identity its checkpoint never recorded -- it commits a
-//! [`PendingIntentCommit`] marker, named only by
-//! [`PreparedHttpDelivery::pending_identity_key`], before ever entering the
+//! `PendingIntentCommit` marker, named only by
+//! [`semaprax::outbound_host_adapter::PreparedHttpDelivery::pending_identity_key`], before ever entering the
 //! adapter. That key depends only on the deployment binding, invocation id,
 //! and idempotency key: never on capacity, policy, or session-restoration
 //! state. This closes a gap the typed session checkpoint alone does not: its

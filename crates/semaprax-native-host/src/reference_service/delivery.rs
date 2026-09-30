@@ -2,7 +2,7 @@
 //!
 //! Job completion emits one webhook delivery through R17's production entry
 //! point
-//! ([`deliver_http_durable`](crate::outbound_delivery_store::service_invocation::deliver_http_durable)),
+//! ([`deliver_http_durable`]),
 //! making this module its first real (non-test) caller. The delivery target
 //! is the decoded telemetry intent's exact endpoint origin under the fixed
 //! `/v1/events` route -- the same closed route

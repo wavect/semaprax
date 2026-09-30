@@ -8,6 +8,12 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Retain the immutable cumulative v8 fresh-turn capacity forecast under exact
+  context and checked-proof identities (#330), avoiding repeated maximal
+  checkpoint and effect-result template serialization. Current prefix and
+  physical checks still run. Added parity and refusal tests are unrun; no
+  speedup or owned-Agent lifecycle acceptance is claimed.
+
 - Add a closed acceptance-record format for #328's Kernel-0 rung-2 decision.
   It requires every local receipt to bind to one selected revision or an exact
   unchanged subject, keeps all rows pending, and separates an eventual reviewer

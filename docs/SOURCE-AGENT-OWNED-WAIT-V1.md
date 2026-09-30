@@ -689,7 +689,7 @@ After an actual failed target and completed Decision cleanup receipt, the retain
 
 The same actual State, accounting ledger and charged Reduce hold remain bound throughout. All four accounting dimensions remain unchanged. Failed or uncertain ACKs quarantine the owner; unsuccessful physical receipts cannot publish Stop. Genuine owning tests cover handler failure, result limit, ordered release, cancellation, wrong binding and persistence faults. Integrated runtime verification remains required; public lifecycle acceptance and terminal publication remain unfinished.
 
-Immutable checked Reduce proof is retained once per invocation Context. Its accessor verifies the exact binding and helper identity. Capacity and reservation borrow that proof while recomputing current prefix and physical guards; no physical authority or capacity result is cached. Unsupported proof errors retain their original deferred failure boundary.
+Immutable checked Reduce proof is retained once per invocation Context. Its accessor verifies the exact binding and helper identity. Capacity and reservation borrow that proof while recomputing current prefix and physical guards; no physical authority or current-prefix capacity verdict is cached. Unsupported proof errors retain their original deferred failure boundary.
 
 ## 39. Explicit cumulative profile and descriptive turn carry
 
@@ -700,6 +700,8 @@ A descriptive next State commitment is admitted only after the same turn's exact
 The authenticated accounting builder extends the existing four-dimension exchange chain only in the selected cumulative Context; final complete fold validation also checks the profile and Continue lineage before exporting its proof. Pure carrier checking uses preceding checked exchange facts for arithmetic validation but exports no authenticated history. Later target exchange, original Reduce and failure cleanup coordinates use the current admitted turn; the legacy first-turn constructors retain their turn-zero refusal.
 
 Capacity forecasting includes the profile row, checked maximal closure of every remaining turn and retained State cleanup at the iteration ceiling, with checked byte/row multiplication and no increase to frozen global limits. Known terminal or failed branches carry no future turn room. All new positive-turn Reduce templates use the authenticated maximal coordinate width; default capacity templates remain unchanged.
+
+The cumulative forecast retains only the immutable maximal fresh-turn byte/row pair. Its key binds every context input used by that forecast and the exact checked Agent and Reduce proof objects; the checked Reduce identity is revalidated on each access. Initialization and cumulative-profile selection clear the cache. Each invocation still recomputes remaining turns, checked multiplication, retained State closure, current-prefix capacity and physical guards. No inventory, ACK, remaining allowance or successful capacity verdict is reused. Uncached-parity, capacity-edge, changed-bound, crossed-proof and profile-reset tests are supplied; execution and any speedup remain unverified.
 
 This is profile and inert admission machinery plus the actual initializer's profile ACK. It supplies no physical continuation from JSON, owner reconstruction, second live Intent, terminal delivery, public Agent route or crash recovery. Complete actual ledger/owner carry, Observe consumed evidence and public execution remain required before acceptance.
 

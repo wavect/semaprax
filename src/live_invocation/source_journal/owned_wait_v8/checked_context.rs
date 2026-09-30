@@ -43,6 +43,7 @@ impl CheckedOwnedWaitJournalContextV8 {
             )
             .map_err(|_| SourceJournalError::Binding)?;
         self.fold.reduce_templates.reset();
+        self.fold.future_templates.reset();
         self.fold.initialized_task = Some(
             crate::resumable_effects::owned_frame::v2::live_run_plan::runtime_task_document_v8(
                 task,
@@ -73,6 +74,7 @@ impl CheckedOwnedWaitJournalContextV8 {
     ) -> Result<Self, SourceJournalError> {
         let mut context = self.with_initialization(lease)?;
         context.fold.reduce_templates.reset();
+        context.fold.future_templates.reset();
         context.fold.cumulative_initialization = true;
         context.validate_lease(lease)?;
         Ok(context)
@@ -188,6 +190,7 @@ pub(crate) fn checked_owned_wait_journal_context_v8(
         refused: b.authorize().refused().as_str().into(),
         refused_cleanup_empty,
         reduce_templates: capacity::ReduceTemplateCacheV8::default(),
+        future_templates: capacity::FutureTemplateCacheV8::default(),
         checked_reduce: crate::resumable_effects::owned_frame::v2::compile_owned_reduce_v2(b)
             .map(Arc::new)
             .map_err(|_| SourceJournalError::Binding),

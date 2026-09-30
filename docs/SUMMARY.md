@@ -100,6 +100,7 @@ Audience: all documentation readers.
 - [Kernel-0 Rung-2 Formatter Authority v1](KERNEL-ZERO-RUNG-TWO-AUTHORITY-V1.md)
 - [Kernel-0 Rung-2 Owned Handoff v1](KERNEL-ZERO-RUNG-TWO-OWNED-HANDOFF-V1.md)
 - [Kernel-0 Rung-2 Target and Recovery Evidence v1](KERNEL-ZERO-RUNG-TWO-TARGET-RECOVERY-V1.md)
+- [Kernel-0 Accepted-Revision Validation v1](KERNEL-ZERO-ACCEPTED-REVISION-VALIDATION-V1.md)
 - [Standard Library v1](STANDARD-LIBRARY-V1.md)
 - [Workflow Profiling v1](WORKFLOW-PROFILING-V1.md)
 - [Format Writer v1](FORMAT-WRITER-V1.md)

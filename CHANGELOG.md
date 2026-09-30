@@ -31,6 +31,8 @@ format: `Unreleased` then release buckets, grouped by impact.
   macOS arm64 target; the hosted sanitizer lanes keep their separate gates.
   Refresh the browser rename fixture's exact graph digest after hosted
   generation exposed its current known answer.
+  Index the Kernel-0 accepted-revision validation document and highlight the
+  session-protocol `endpoint` keyword in the VS Code grammar.
 
 - Add a closed acceptance-record format for #328's Kernel-0 rung-2 decision.
   It requires every local receipt to bind to one selected revision or an exact

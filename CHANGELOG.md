@@ -8,6 +8,11 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Dispatch a real owned-wait v8 next-turn Model request once and durably ACK
+  its settled response before Usage or Resume (#330). The focused selector
+  passed 1/1 locally with one provider start, one Settled row, and no source
+  resume. Public multi-turn recovery remains open.
+
 - Select completed-job retry refusal through the checked source terminality
   decision (#336), with an explicit mapping from persisted reference-service
   states to durable-job codes. The focused completion selector passed 1/1

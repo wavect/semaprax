@@ -4,10 +4,49 @@ use crate::agent_lifecycle::iterative::source_live::SourceProposalPolicy;
 use crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect::authorization::step::LiveMovedStepV8;
 use crate::agent_runtime::AgentCancellation;
 use crate::live_invocation::{InvocationClock,SourceInvocationClock};
-use crate::provider_adapter_sdk::{AdapterInvocationCapability, StreamingSourceProposalAdapter};
+use crate::provider_adapter_sdk::adapter::{
+    AdapterEvent, AdapterPoll, AdapterRefusal, AdapterRequest, AdapterSettlement,
+};
+use crate::provider_adapter_sdk::capability::AdapterCapabilities;
+use crate::provider_adapter_sdk::fixture_adapters::{base_capabilities, usage};
+use crate::provider_adapter_sdk::{
+    AdapterInvocationCapability, ProviderAdapter, StreamingSourceProposalAdapter,
+};
 use crate::resumable_effects::CapabilityPolicy;
 use std::cell::Cell;
+use std::collections::VecDeque;
+use std::rc::Rc;
 use std::sync::Arc;
+struct DispatchProbe {
+    starts: Rc<Cell<usize>>,
+    polls: VecDeque<AdapterPoll>,
+    capabilities: AdapterCapabilities,
+}
+impl ProviderAdapter for DispatchProbe {
+    fn capabilities(&self) -> &AdapterCapabilities {
+        &self.capabilities
+    }
+    fn start(
+        &mut self,
+        _: &AdapterInvocationCapability,
+        _: &AdapterRequest,
+    ) -> Result<(), AdapterRefusal> {
+        self.starts.set(self.starts.get() + 1);
+        Ok(())
+    }
+    fn poll(&mut self) -> AdapterPoll {
+        self.polls.pop_front().expect("one scripted Model response")
+    }
+    fn cancel(&mut self, _: &str) {}
+}
+fn model_document(context: &CheckedOwnedWaitJournalContextV8) -> Vec<u8> {
+    let (_, execution) = context.test_runtime_execution();
+    format!(
+        "{{\"schema\":\"semaprax.agent-proposal.v1\",\"agent_id\":\"fixture.agent\",\"proposal_schema_digest\":\"{}\",\"value\":{{\"fields\":{{\"fixture.agent.type.proposal.budget\":\"3\",\"fixture.agent.type.proposal.urgent\":false,\"fixture.agent.type.proposal.sequence\":\"1\"}}}}}}\n",
+        execution.wait().lifecycle().proposal_schema().schema().digest()
+    )
+    .into_bytes()
+}
 struct Clock {
     now: Cell<i64>,
 }
@@ -97,7 +136,7 @@ fn owned_continue_driver_advances_one_real_step_into_the_next_turn() {
     });
 }
 #[test]
-fn owned_continue_driver_enters_next_turn_start_once_and_acks_model_without_dispatch() {
+fn owned_continue_driver_dispatches_next_turn_model_once_and_records_settlement() {
     with_moved(|journal, moved, weak, _, _| {
         let observed = advance_live_owned_continue_v8(journal, moved)
             .unwrap_or_else(|_| panic!("actual Continue driver"));
@@ -163,10 +202,27 @@ fn owned_continue_driver_enters_next_turn_start_once_and_acks_model_without_disp
         );
         let (_, execution) = journal.context().test_runtime_execution();
         let model = execution.model();
-        let mut factory = || -> Box<dyn crate::provider_adapter_sdk::ProviderAdapter> {
-            panic!("Model ACK must not construct an SDK provider")
+        let starts = Rc::new(Cell::new(0));
+        let response = model_document(journal.context());
+        let factory_starts = Rc::clone(&starts);
+        let mut factory = move || -> Box<dyn ProviderAdapter> {
+            let mut capabilities = base_capabilities("owned-wait-inert-test", true);
+            capabilities.max_request_bytes = 65_536;
+            Box::new(DispatchProbe {
+                starts: Rc::clone(&factory_starts),
+                polls: vec![
+                    AdapterPoll::Event(AdapterEvent::Delta(response.clone())),
+                    AdapterPoll::Event(AdapterEvent::Completed),
+                    AdapterPoll::Settled(AdapterSettlement {
+                        response_bytes: response.clone(),
+                        usage: usage(2, 3, 1),
+                    }),
+                ]
+                .into(),
+                capabilities,
+            })
         };
-        let adapter = StreamingSourceProposalAdapter::new_bound_checkpointed(
+        let mut adapter = StreamingSourceProposalAdapter::new_bound_checkpointed(
             &mut factory,
             AdapterInvocationCapability::grant("continued Model driver test"),
             execution.wait().lifecycle().proposal_schema(),
@@ -192,6 +248,11 @@ fn owned_continue_driver_enters_next_turn_start_once_and_acks_model_without_disp
             .continued_model_facts()
             .unwrap_or_else(|_| panic!("actual continued Model inventory"));
         assert_eq!(model_turn, 1);
+        let settled_sequence = journal.begin_session().unwrap().sequence();
+        let model = advance_live_owned_continued_dispatch_v8(journal, model, &mut adapter)
+            .unwrap_or_else(|_| panic!("sole SDK dispatch and Settled ACK"));
+        assert_eq!(starts.get(), 1);
+        assert_eq!(journal.begin_session().unwrap().sequence(), settled_sequence + 1);
         assert_eq!(
             crate::interpreter::resumable::owned_frame::registered_stage::live_run::test_continued_resume_entries_v8(),
             resume_entries,

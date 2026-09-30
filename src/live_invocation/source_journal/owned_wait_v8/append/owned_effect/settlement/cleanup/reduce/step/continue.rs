@@ -115,7 +115,7 @@ use crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect
 };
 use crate::live_invocation::source_journal::owned_wait_v8::live_upstream::{
     LiveContinuedModelAcknowledgmentFailureV8, LiveContinuedModelPreparationFailureV8,
-    LiveContinuedModelV8, LiveOwnedContinuedModelAppendV8,
+    LiveContinuedModelFailureV8, LiveContinuedModelV8, LiveOwnedContinuedModelAppendV8,
     LiveContinuedPreparedFailureV8, LiveContinuedPreparedPhaseV8,
     LiveContinuedSourceEntryFailureV8, LiveContinuedStartPhaseV8,
     LiveOwnedContinuedPreparedAppendV8,
@@ -336,6 +336,50 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_live_ow
         .map_err(LiveContinuedModelDriverFailureV8::ModelAppend)?
         .advance_continued_model()
         .map_err(LiveContinuedModelDriverFailureV8::ModelAdvance)
+}
+
+/// Holds the actual dispatched Model owner until its response is durable. A
+/// failed Settled ACK retains that owner and cannot send the SDK request again.
+pub(in crate::live_invocation::source_journal::owned_wait_v8) enum LiveContinuedDispatchDriverFailureV8<
+    'j,
+> {
+    Dispatch(LiveContinuedModelFailureV8<'j>),
+    SettledPrepare(LiveContinuedModelFailureV8<'j>),
+    SettledSession {
+        owner: LiveOwnedContinuedModelAppendV8<'j>,
+        error: SourceJournalError,
+    },
+    SettledAppend(LiveOwnedContinuedModelAppendFailureV8<'j>),
+    SettledAdvance(LiveContinuedModelAcknowledgmentFailureV8<'j>),
+}
+
+/// Dispatches the one already-acknowledged Model request, then records its
+/// settled response before any Usage, Resume, or authorization transition.
+pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_live_owned_continued_dispatch_v8<'j>(
+    journal: &'j SourceOwnedWaitJournalV8,
+    model: LiveContinuedModelV8<'j>,
+    adapter: &mut crate::provider_adapter_sdk::StreamingSourceProposalAdapter<'_>,
+) -> Result<LiveContinuedModelV8<'j>, LiveContinuedDispatchDriverFailureV8<'j>> {
+    let dispatched = model
+        .dispatch_model(adapter)
+        .map_err(LiveContinuedDispatchDriverFailureV8::Dispatch)?;
+    let settled = dispatched
+        .prepare_next()
+        .map_err(LiveContinuedDispatchDriverFailureV8::SettledPrepare)?;
+    let session = match journal.begin_session() {
+        Ok(session) => session,
+        Err(error) => {
+            return Err(LiveContinuedDispatchDriverFailureV8::SettledSession {
+                owner: settled,
+                error,
+            });
+        }
+    };
+    session
+        .append_owned_continued_model(settled)
+        .map_err(LiveContinuedDispatchDriverFailureV8::SettledAppend)?
+        .advance_continued_model()
+        .map_err(LiveContinuedDispatchDriverFailureV8::SettledAdvance)
 }
 impl<'j> AppendSessionV8<'j> {
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn append_owned_continue(

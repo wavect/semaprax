@@ -348,6 +348,101 @@ but executes no Windows code. The corrected sixteen-case Windows gate's
 of the new Windows-only test module. No native Windows acceptance is recorded.
 
 
+### Binding decision and next implementation boundary (#333)
+
+Source/API review on 30 September 2026 retains the current partial primitive
+and leaves exact binding unaccepted. This is a design decision and work plan,
+not a new execution receipt or a claim that the race has been reproduced.
+The affected completion row is WP-05. Its Windows production boundary stays
+unpromoted; the historical ten-case evidence remains attached to its original
+revision, and all sixteen current cases still need native execution.
+
+The proposed repair must establish one continuous invariant: from the first
+authenticated byte read until the loader has consumed the admitted image,
+no untrusted holder can change those bytes or substitute the consumed object.
+The proof must cover an already-created writable section with no current view,
+not just open writers and existing mapped views. A matching native pathname
+and a clean event observation do not establish that invariant.
+
+The following shortcuts are rejected by this review:
+
+- Changing to a Read-Handle, Read-Write or Read-Write-Handle oplock does not
+  supply a writable-section barrier: the documented section-synchronization
+  rule above applies to all four request types and requires no acknowledgment.
+- Adding more hashes or event checks leaves an interval after the last check.
+  Checking a suspended child's name also establishes no byte identity.
+- A byte-range lock cannot close this gap: Microsoft's
+  [LockFileEx contract](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-lockfileex)
+  explicitly permits access through mapped views despite a file lock.
+- A fresh copy followed by closing its writer and reopening read-only needs
+  a separate authority argument for that transition. Keeping the writer open
+  while calling [ReOpenFile](https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-reopenfile)
+  with no write sharing conflicts with the existing write access. Random names
+  or an ACL granting the same effective SID are not themselves a proof against
+  another process with that SID. A new broker identity would change the
+  authority boundary and must be specified and authorized separately.
+
+The next bounded batch is a **native mechanism experiment**, in the existing
+`primitive::tests::binding` harness. It must precede a production guard change:
+
+1. Extend the existing no-view writable-section fixture with bounded event
+   handshakes. Retain the section while closing the original writer; attempt
+   view creation and mutation at each explicit boundary: after image guard
+   acquisition, after digest validation, before process creation, and while
+   the leader remains suspended before its final check/resume. Admission
+   refusal must occur before the mutation hook; if admission succeeds, the
+   test must actually reach the hook and attempt the mutation. Record which
+   path occurred. Do not turn an unavailable setup into a passing skip.
+2. Evaluate a separately owned image-section guard created from the held file
+   with `CreateFileMappingW(PAGE_READONLY | SEC_IMAGE)` and an owned mapped
+   view, retained through settlement. This is an experiment, not an approved
+   repair: the [documented mapping API](https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-createfilemappingw)
+   describes PE-derived page protections, but does not by itself prove that a
+   later pathname launch consumes those exact authenticated bytes. Establish
+   exclusion of retained writable sections, file-cache/image-section
+   coherence, loader object identity and all view/handle lifetimes before
+   proposing `HeldImage` integration. Hash the signed raw file layout; hashing
+   relocated image pages is not the capsule's artifact digest.
+3. Use a valid PE fixture with a known bounded, same-length mutation location;
+   verify the hostile writer changes the intended bytes in an unguarded
+   control. A malformed PE rejected by the loader is not binding evidence.
+   For any successful protected launch, require the authenticated fixture's
+   behavior, observed leader exit, zero job members, exact scratch cleanup,
+   and the warmed parent handle count. For a refusal, require the stable
+   `Capsule(ArtifactBinding)` class and no resumed leader. Retain separate
+   assertions for pre-process refusal and suspended-process settlement.
+4. Add the exact cases to `EXPECTED_TESTS` in
+   `scripts/doctor-provisioned-windows-gate.py`, preserve its existing sixteen
+   names, and update its count/parser controls and the Linux gate's explicit
+   Windows-only exclusion if a new test submodule is added. Keep experiment
+   results and release acceptance separate; repeated stress success alone
+   cannot prove the invariant.
+
+The independent hostile-corpus batch must also address the current broad
+`bInheritHandles` boundary with an explicit startup handle list and a child
+probe of an unrelated inheritable sentinel. Inspecting job flags does not
+exercise resource exhaustion: CPU, committed-memory and output limits need
+specified bounds, actual violating children, selected failure classes, and
+post-failure job/handle settlement. The current `tightened_job` sets an active
+process limit and kill-on-close behavior, not CPU or memory bounds. Add those
+bounds through this owning contract before claiming the resource corpus is
+complete; preserve the existing production one-process and test-only
+two-process descendant distinction.
+
+Finally, `confined_spawn_after_binding` currently receives an executable
+pathname and arguments, not held request/bundle carriers. Image repair cannot
+satisfy the ticket's request/bundle substitution acceptance on its own. A
+follow-on entry point must consume authenticated bounded carrier objects,
+bind their signed slots and selector/role, and expose only the declared child
+handle inventory. Specify that transport and its refusal ordering before
+adding a production route.
+
+Verification required for the implementation batch: the Windows target
+library/test type-check, both provisioned gate self-tests, the complete native
+Windows selector on the changed revision, and the repository full profile.
+This design-only review ran no Cargo, build, test, or native Windows command;
+none of those gates gains new evidence from this section.
+
 ## Settlement contract
 
 The same four-outcome shape this repository's macOS contract uses is now

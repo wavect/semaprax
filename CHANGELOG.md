@@ -8,6 +8,12 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Record the Windows doctor #333 binding decision and native mechanism/corpus
+  plan. Reject advisory oplocks, repeated hashes, byte-range locks and an
+  unproven copy/reopen transition as exact image-binding repairs. Image-section
+  exclusion, request/bundle transport and resource/handle corpus work remain
+  open; this documentation change adds no execution or support evidence.
+
 - Retain the immutable cumulative v8 fresh-turn capacity forecast under exact
   context and checked-proof identities (#330), avoiding repeated maximal
   checkpoint and effect-result template serialization. Current prefix and

@@ -86,7 +86,10 @@ host configuration boundary explicit:
   bounded reference/origin grammar, and paired mode rules: fixture mode admits
   only null/fixture selections, while host mode requires the named snapshot
   store, native modern-TLS HTTP, Semaprax JSON events, HTTPS origins, and nonempty host-owned secret
-  references. JSON Schema guidance is therefore not the compiler's sole check.
+  references. `sqlite`, `postgresql`, and non-null `dsn_secret_ref` values
+  refuse with stable configuration diagnostics; snapshot mode uses the
+  operator-held state directory and never treats a DSN as a path. JSON Schema
+  guidance is therefore not the compiler's sole check.
 - `service-host-adapter-request.json` is the compiler-rendered canonical
   handoff for the fixture configuration. It is bounded to 16 KiB and declares
   no capabilities. From a valid host configuration the same decoder renders a
@@ -148,8 +151,11 @@ selection, empty fixture capability request, and absence of endpoints and
 secret values. Descriptor replay binds all three configuration/adapter files
 byte-for-byte with the other generated assets.
 The decoder's own hostile corpus rejects unknown members, mode/adapter drift,
-credential-shaped DSNs, insecure origins, noncanonical encoding, and max-plus-
-one input before the fixture can enter scaffold derivation.
+explicit `sqlite`/`postgresql` labels, credential-shaped DSNs, insecure
+origins, noncanonical encoding, and max-plus-one input before the fixture can
+enter scaffold derivation. The independent request decoder retains the same
+SQL-label refusals, so a hand-authored request cannot bypass configuration
+admission.
 The independent host-request decoder separately rejects unknown, duplicate,
 reordered-capability, noncanonical, and max-plus-one request bytes. Its
 private-root loopback integration starts from a checked host configuration,

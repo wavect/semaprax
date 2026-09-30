@@ -187,10 +187,10 @@ fn host_service_configuration(telemetry_origin: &str) -> Vec<u8> {
     let mut value = serde_json::json!({
         "schema": "semaprax.service-config.v1",
         "mode": "host",
-        "database": {"adapter":"sqlite","dsn_secret_ref":"db.primary","migration_table":"semaprax_migrations"},
+        "database": {"adapter":"snapshot","dsn_secret_ref":null,"migration_table":"semaprax_migrations"},
         "http": {"adapter":"native","listen_origin":"https://service.example","tls_profile":"modern"},
         "secrets": {"password_pepper_ref":"auth.pepper","session_signing_key_ref":"auth.session","webhook_signing_key_ref":"webhook.signing"},
-        "telemetry": {"adapter":"otlp","endpoint_origin":telemetry_origin},
+        "telemetry": {"adapter":"semaprax-json-events","endpoint_origin":telemetry_origin},
     });
     value.sort_all_objects();
     let mut bytes = serde_json::to_vec(&value).expect("canonical host configuration");

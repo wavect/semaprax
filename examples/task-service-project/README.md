@@ -15,6 +15,11 @@ host deployment may select the durable `snapshot` store, native HTTP/TLS, and
 and resolving its secret references outside Semaprax source. SQLite,
 PostgreSQL, and OTLP labels are refused. Neither generated file carries
 credentials or grants database, network, telemetry, or secret-store authority.
+`sqlite` and `postgresql` fail during checked configuration and independent
+host-request decoding with adapter-specific diagnostics, before the host opens
+or writes a state directory. A non-null `dsn_secret_ref` is likewise refused:
+the `snapshot` profile persists under the operator-provided `--state-dir` and
+does not reinterpret a DSN as a filesystem path.
 
 `service-host-adapter-request.json` is the canonical bounded handoff derived
 from that fixture configuration. It declares an empty capability list, so it

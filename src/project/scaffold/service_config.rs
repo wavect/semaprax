@@ -66,6 +66,28 @@ pub(super) fn decode(bytes: &[u8]) -> Result<ServiceConfigV1, String> {
     }
     let database_adapter = text(database, "adapter")?;
     let dsn = reference(database, "dsn_secret_ref")?;
+    match (mode, database_adapter) {
+        (Mode::Fixture, "fixture") | (Mode::Host, "snapshot") => {}
+        (_, "sqlite") => {
+            return Err(
+                "service database adapter sqlite is unsupported; service-config.v1 admits snapshot only"
+                    .into(),
+            );
+        }
+        (_, "postgresql") => {
+            return Err(
+                "service database adapter postgresql is unsupported; service-config.v1 admits snapshot only"
+                    .into(),
+            );
+        }
+        _ => return Err("service database adapter is not admitted by service-config.v1".into()),
+    }
+    if dsn.is_some() {
+        return Err(
+            "service database dsn_secret_ref is unsupported; snapshot mode stores state under --state-dir"
+                .into(),
+        );
+    }
 
     let http = closed_member(root, "http", &["adapter", "listen_origin", "tls_profile"])?;
     let http_adapter = text(http, "adapter")?;
@@ -170,7 +192,10 @@ fn adapter_request(
         }),
         Mode::Host => {
             if dsn.is_some() {
-                return Err("service snapshot profile must not carry a database reference".into());
+                return Err(
+                    "service database dsn_secret_ref is unsupported; snapshot mode stores state under --state-dir"
+                        .into(),
+                );
             }
             let listen_origin = listen_origin.ok_or("service host request lacks HTTPS origin")?;
             let password = password.ok_or("service host request lacks password reference")?;
@@ -374,21 +399,39 @@ mod tests {
             .any(|window| window == b"secret-value"));
 
         let canonical_host: Value = serde_json::from_slice(&host).unwrap();
-        for (field, legacy_label) in [
-            ("database", "sqlite"),
-            ("database", "postgresql"),
-            ("telemetry", "otlp"),
+        for (field, legacy_label, expected) in [
+            (
+                "database",
+                "sqlite",
+                "service database adapter sqlite is unsupported; service-config.v1 admits snapshot only",
+            ),
+            (
+                "database",
+                "postgresql",
+                "service database adapter postgresql is unsupported; service-config.v1 admits snapshot only",
+            ),
+            ("telemetry", "otlp", "service configuration mode and adapter selections disagree"),
         ] {
             let mut legacy = canonical_host.clone();
             legacy[field]["adapter"] = Value::String(legacy_label.into());
             legacy.sort_all_objects();
             let mut legacy = serde_json::to_vec(&legacy).unwrap();
             legacy.push(b'\n');
-            assert!(
-                decode(&legacy).is_err(),
-                "legacy {legacy_label} adapter label must refuse"
+            assert_eq!(
+                decode(&legacy).unwrap_err(),
+                expected,
+                "legacy {legacy_label} adapter label must refuse with its stable diagnostic"
             );
         }
+        let mut dsn = canonical_host;
+        dsn["database"]["dsn_secret_ref"] = Value::String("db.primary".into());
+        dsn.sort_all_objects();
+        let mut dsn = serde_json::to_vec(&dsn).unwrap();
+        dsn.push(b'\n');
+        assert_eq!(
+            decode(&dsn).unwrap_err(),
+            "service database dsn_secret_ref is unsupported; snapshot mode stores state under --state-dir"
+        );
     }
 
     #[test]

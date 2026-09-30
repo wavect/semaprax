@@ -8,6 +8,13 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Make the reference service's narrower database contract explicit (#336):
+  checked configuration and independent host requests reject SQLite,
+  PostgreSQL, and DSN selections with stable diagnostics. Snapshot remains
+  the named durable state profile. Focused source tests passed 8/8 and the
+  process-level pre-write refusal passed 1/1 locally; SQL support and the
+  runnable OCI route remain open.
+
 - Add a fresh durable typed-effect semantic-metering route (#327) with
   per-stage observations and explicit post-commit completeness counts. Its
   focused success and pre-work recovery-refusal regressions passed 2/2 locally;
@@ -21,8 +28,8 @@ format: `Unreleased` then release buckets, grouped by impact.
   profile to the closed `semaprax.json-event.v1` completion envelope and its
   fixed `/v1/events` route. The generated configuration still admits only
   `snapshot` plus that telemetry profile and refuses SQLite, PostgreSQL, DSN,
-  and OTLP selections. Static format/diff checks passed; focused regressions
-  are unrun, and no hosted, OCI, SQL, or OTLP support is claimed.
+  and OTLP selections. Focused event and scaffold selectors passed 1/1 each
+  locally; no hosted, OCI, SQL, or OTLP support is claimed.
 
 - Record the Windows doctor #333 binding decision and native mechanism/corpus
   plan. Reject advisory oplocks, repeated hashes, byte-range locks and an

@@ -239,6 +239,21 @@ pub fn decode(bytes: &[u8]) -> Result<ServiceHostAdapterRequestV1, String> {
                     ],
                 )?;
                 let telemetry = closed_member(root, "telemetry", &["adapter", "endpoint_origin"])?;
+                match text(database, "adapter")? {
+                    "sqlite" => {
+                        return Err(
+                            "service database adapter sqlite is unsupported; service-config.v1 admits snapshot only"
+                                .into(),
+                        );
+                    }
+                    "postgresql" => {
+                        return Err(
+                            "service database adapter postgresql is unsupported; service-config.v1 admits snapshot only"
+                                .into(),
+                        );
+                    }
+                    _ => {}
+                }
                 if capabilities.len() != HOST_REQUIREMENTS.len()
                     || capabilities
                         .iter()
@@ -522,6 +537,23 @@ mod tests {
             let mut request = serde_json::to_vec(&request).unwrap();
             request.push(b'\n');
             assert!(decode(&request).is_err());
+        }
+        for (adapter, expected) in [
+            (
+                "sqlite",
+                "service database adapter sqlite is unsupported; service-config.v1 admits snapshot only",
+            ),
+            (
+                "postgresql",
+                "service database adapter postgresql is unsupported; service-config.v1 admits snapshot only",
+            ),
+        ] {
+            let mut request = canonical.clone();
+            request["database"]["adapter"] = Value::String(adapter.into());
+            request.sort_all_objects();
+            let mut request = serde_json::to_vec(&request).unwrap();
+            request.push(b'\n');
+            assert_eq!(decode(&request).unwrap_err(), expected);
         }
         assert!(decode(&vec![b' '; MAX_SERVICE_HOST_ADAPTER_REQUEST_BYTES + 1]).is_err());
     }

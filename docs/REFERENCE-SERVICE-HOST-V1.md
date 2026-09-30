@@ -34,7 +34,7 @@ repository's existing machinery and adds no new authority:
 
 | Requirement (decoded intent) | Bound adapter |
 | --- | --- |
-| `snapshot` | Durable snapshot store under `--state-dir`. SQL adapter labels and DSN references are refused during configuration decoding. |
+| `snapshot` | Durable snapshot store under `--state-dir`. `sqlite` and `postgresql` are refused with stable adapter-specific diagnostics during both configuration and independent request decoding; non-null `dsn_secret_ref` is refused rather than reinterpreted as a state path. |
 | `native` + `modern` TLS + listen origin | Loopback HTTP/1.1 on `--port`, plaintext by default. The listen origin is intent only and never itself provisions TLS; `--tls-certificate-secret`/`--tls-private-key-secret` opt in (see below). |
 | Three secret refs | Exact files under `--secrets-dir`, resolved before serving. |
 | `semaprax-json-events` + endpoint origin | Canonical `semaprax.json-event.v1` HTTPS POST to `<origin>/v1/events` through `deliver_http_durable`. The closed completion envelope carries `schema`, `event: "job.completed"`, `job_id`, `owner`, `desc`, and an HMAC commitment; its `x-semaprax-event-schema` header repeats the schema identifier. OTLP labels are refused during configuration decoding. |

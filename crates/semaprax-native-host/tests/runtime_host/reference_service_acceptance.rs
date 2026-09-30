@@ -701,6 +701,58 @@ fn fixture_configuration_is_refused_without_a_runner() {
 }
 
 #[test]
+fn sql_configurations_refuse_before_host_binding() {
+    for (adapter, diagnostic) in [
+        (
+            "sqlite",
+            "service database adapter sqlite is unsupported; service-config.v1 admits snapshot only",
+        ),
+        (
+            "postgresql",
+            "service database adapter postgresql is unsupported; service-config.v1 admits snapshot only",
+        ),
+    ] {
+        let workdir = Workdir::create(adapter);
+        workdir.write_inputs();
+        std::fs::write(
+            workdir.path("service.config.json"),
+            HOST_CONFIG.replace("snapshot", adapter),
+        )
+        .unwrap();
+        let output = Command::new(SERVER)
+            .arg("serve")
+            .arg("--project")
+            .arg(workdir.example_project())
+            .arg("--config")
+            .arg(workdir.path("service.config.json"))
+            .arg("--state-dir")
+            .arg(workdir.path("state"))
+            .arg("--outbound-dir")
+            .arg(workdir.path("outbound"))
+            .arg("--secrets-dir")
+            .arg(workdir.path("secrets"))
+            .arg("--bundle-dir")
+            .arg(workdir.path("bundle"))
+            .arg("--port")
+            .arg("9")
+            .stdin(Stdio::null())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .output()
+            .expect("run reference server");
+        assert_eq!(output.status.code(), Some(2));
+        let stderr = String::from_utf8(output.stderr).unwrap();
+        assert!(stderr.contains(diagnostic), "{stderr}");
+        for directory in ["state", "outbound", "bundle"] {
+            assert!(
+                workdir.census(directory).is_empty(),
+                "{adapter} configuration must refuse before touching {directory}"
+            );
+        }
+    }
+}
+
+#[test]
 fn bundle_command_writes_verifies_and_rejects_tamper() {
     let workdir = Workdir::create("bundle");
     workdir.write_inputs();

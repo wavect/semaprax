@@ -37,7 +37,7 @@ use super::secrets::HeldServiceSecrets;
 use super::serve::HttpExchange;
 use super::state::{
     Account, Job, JobState, ServiceState, Session, Task, TaskStatus, WebhookSettlement,
-    MAX_STATE_BYTES,
+    MAX_ACCOUNTS, MAX_STATE_BYTES,
 };
 
 type HmacSha256 = Hmac<Sha256>;
@@ -604,6 +604,26 @@ fn register(
     }
     if committed.state.account_by_name(username).is_some() {
         return error(409, "username_taken", Some(&committed.digest));
+    }
+    let active_count = match u64::try_from(committed.state.accounts.len()) {
+        Ok(count) => count,
+        Err(_) => return error(500, "decision_failed", None),
+    };
+    let max_accounts = match u64::try_from(MAX_ACCOUNTS) {
+        Ok(limit) => limit,
+        Err(_) => return error(500, "decision_failed", None),
+    };
+    match host.decisions.registration_admitted(
+        username.as_bytes(),
+        active_count,
+        max_accounts,
+        u64::from(PASSWORD_MEMORY_KIB),
+        u64::from(PASSWORD_ITERATIONS),
+        u64::from(PASSWORD_PARALLELISM),
+    ) {
+        Ok(true) => {}
+        Ok(false) => return error(400, "registration_not_admitted", Some(&committed.digest)),
+        Err(_) => return error(500, "decision_failed", None),
     }
     let account_id = committed
         .state

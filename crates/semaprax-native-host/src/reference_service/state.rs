@@ -14,7 +14,9 @@ use super::json::{self, JsonRefusal, JsonValue};
 pub const STATE_SCHEMA: &str = "semaprax.reference-service.state.v3";
 pub const MAX_STATE_BYTES: usize = 192 * 1024;
 
-const MAX_ACCOUNTS: usize = 64;
+/// The persisted account inventory limit supplied to the checked registration
+/// admission decision before the password host performs any work.
+pub(crate) const MAX_ACCOUNTS: usize = 64;
 const MAX_SESSIONS: usize = 256;
 const MAX_TASKS: usize = 256;
 const MAX_JOBS: usize = 256;

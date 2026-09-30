@@ -244,6 +244,36 @@ fn register_login_crud_logout_round_trip() {
 }
 
 #[test]
+fn registration_capacity_refusal_leaves_state_unchanged_before_password_work() {
+    let mut fixture = fixture();
+    for id in 1..=super::super::state::MAX_ACCOUNTS as i64 {
+        fixture.committed.state.accounts.push(Account {
+            id,
+            name: format!("user{id}"),
+            password_phc: "not-used-on-refusal".to_owned(),
+            created_seq: 1,
+        });
+    }
+    let digest_before = fixture.committed.digest.clone();
+
+    let refused = handle(
+        &mut fixture.host,
+        &mut fixture.committed,
+        &exchange(
+            "POST",
+            "/v1/register",
+            r#"{"username":"carol","password":"correct horse 7"}"#,
+            None,
+        ),
+    );
+    assert_eq!(refused.status, 400, "{}", refused.body);
+    assert_eq!(field(&refused.body, "error").as_str(), Some("registration_not_admitted"));
+    assert_eq!(field(&refused.body, "state").as_str(), Some(digest_before.as_str()));
+    assert_eq!(fixture.committed.state.accounts.len(), super::super::state::MAX_ACCOUNTS);
+    assert_eq!(fixture.committed.digest, digest_before);
+}
+
+#[test]
 fn source_selected_expiry_is_persisted_and_sticky() {
     let mut fixture = fixture();
     let registered = handle(

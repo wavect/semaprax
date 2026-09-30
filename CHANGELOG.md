@@ -8,6 +8,11 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Gate reference-service registration through the checked source admission
+  decision (#336) before password work, using the live account count, persisted
+  capacity and selected Argon parameters. Focused capacity refusal and
+  existing successful register/login route passed 1/1 each locally.
+
 - Advance the real owned-wait v8 next-turn Prepared owner through one checked
   Model intent and durable Model acknowledgement (#330). The focused selector
   passed 1/1 locally and proves no provider construction or source resume at

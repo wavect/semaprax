@@ -15,11 +15,12 @@
 //! invocable here: `request_is_admitted`, `identifier_is_valid`,
 //! `method_is_rejected`, `task_owner_authorized`, and the three session
 //! predicates/transitions.
-//! `enqueue_outcome` and `completed_job_export_is_admitted` are invoked
-//! through the checked public-API seam before their corresponding host work.
-//! The remaining scaffold decisions (registration bounds, job terminality,
-//! migration/transaction, log/trace/metric, and webhook policies) retain
-//! fixture-mode coverage until a host route needs them.
+//! `registration_admitted`, `enqueue_outcome`, and
+//! `completed_job_export_is_admitted` are invoked through the checked
+//! public-API seam before their corresponding host work. The remaining
+//! scaffold decisions (job terminality, migration/transaction,
+//! log/trace/metric, and webhook policies) retain fixture-mode coverage
+//! until a host route needs them.
 //!
 //! [`ProjectRevision::evaluate_service_decision_v1`]: semaprax::project::ProjectRevision::evaluate_service_decision_v1
 
@@ -47,14 +48,14 @@ pub enum DecisionRefusal {
 
 /// The scaffold decision identities resolved from one revision. The module
 /// prefix is discovered, never assumed: a scaffolded project carries
-/// `<module>.core.<decision>` for its own module name. All eight must
-/// resolve (proving the exact decision set), but only seven are invoked
-/// (see the module documentation).
+/// `<module>.core.<decision>` for its own module name. Every identity used by
+/// the host resolves from that one family before any route is served.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct DecisionIdentities {
     prefix: String,
     request_is_admitted: String,
     identifier_is_valid: String,
+    registration_admitted: String,
     method_is_rejected: String,
     task_owner_authorized: String,
     session_is_usable: String,
@@ -71,6 +72,7 @@ impl DecisionIdentities {
         let program = revision.entry_program();
         let request_is_admitted = sole(program, "request_is_admitted")?;
         let identifier_is_valid = sole(program, "identifier_is_valid")?;
+        let registration_admitted = sole(program, "registration_admitted")?;
         let method_is_rejected = sole(program, "method_is_rejected")?;
         let task_owner_authorized = sole(program, "task_owner_authorized")?;
         let session_is_usable = sole(program, "session_is_usable")?;
@@ -81,6 +83,7 @@ impl DecisionIdentities {
         let prefix = prefix_of(&request_is_admitted).ok_or(DecisionRefusal::Unresolved)?;
         for identity in [
             &identifier_is_valid,
+            &registration_admitted,
             &method_is_rejected,
             &task_owner_authorized,
             &session_is_usable,
@@ -97,6 +100,7 @@ impl DecisionIdentities {
             prefix: prefix.to_owned(),
             request_is_admitted,
             identifier_is_valid,
+            registration_admitted,
             method_is_rejected,
             task_owner_authorized,
             session_is_usable,
@@ -139,6 +143,7 @@ fn prefix_of(identity: &str) -> Option<&str> {
     identity
         .strip_suffix(".core.request_is_admitted")
         .or_else(|| identity.strip_suffix(".core.identifier_is_valid"))
+        .or_else(|| identity.strip_suffix(".core.registration_admitted"))
         .or_else(|| identity.strip_suffix(".core.method_is_rejected"))
         .or_else(|| identity.strip_suffix(".core.task_owner_authorized"))
         .or_else(|| identity.strip_suffix(".core.session_is_usable"))
@@ -227,6 +232,30 @@ impl<'revision> DecisionEngine<'revision> {
         self.invoke_bool(
             &self.identities.identifier_is_valid,
             &[PublicApiArgument::BorrowSliceU8(name)],
+        )
+    }
+
+    /// Evaluate the checked account-capacity and password-policy admission
+    /// decision before deriving or hashing a registration secret.
+    pub fn registration_admitted(
+        &self,
+        username: &[u8],
+        active_count: u64,
+        max_accounts: u64,
+        password_memory_cost_kib: u64,
+        password_time_cost: u64,
+        password_parallelism: u64,
+    ) -> Result<bool, DecisionRefusal> {
+        self.invoke_bool(
+            &self.identities.registration_admitted,
+            &[
+                PublicApiArgument::BorrowSliceU8(username),
+                PublicApiArgument::Usize(active_count),
+                PublicApiArgument::Usize(max_accounts),
+                PublicApiArgument::Usize(password_memory_cost_kib),
+                PublicApiArgument::Usize(password_time_cost),
+                PublicApiArgument::Usize(password_parallelism),
+            ],
         )
     }
 
@@ -371,6 +400,12 @@ mod tests {
         assert!(!engine.request_is_admitted(b"get", b"/tasks").unwrap());
         assert!(engine.identifier_is_valid(b"alice").unwrap());
         assert!(!engine.identifier_is_valid(b"1task").unwrap());
+        assert!(engine
+            .registration_admitted(b"alice", 0, 64, 19_456, 2, 1)
+            .unwrap());
+        assert!(!engine
+            .registration_admitted(b"alice", 64, 64, 19_456, 2, 1)
+            .unwrap());
         assert!(engine.method_is_rejected(b"get").unwrap());
         assert!(!engine.method_is_rejected(b"GET").unwrap());
         assert!(engine.task_owner_authorized(1, 1, true).unwrap());

@@ -189,6 +189,7 @@ pub(crate) fn checked_owned_wait_journal_context_v8(
         granted: b.authorize().granted().as_str().into(),
         refused: b.authorize().refused().as_str().into(),
         refused_cleanup_empty,
+        maxima_templates: capacity::MaximaTemplateCacheV8::default(),
         reduce_templates: capacity::ReduceTemplateCacheV8::default(),
         future_templates: capacity::FutureTemplateCacheV8::default(),
         checked_reduce: crate::resumable_effects::owned_frame::v2::compile_owned_reduce_v2(b)

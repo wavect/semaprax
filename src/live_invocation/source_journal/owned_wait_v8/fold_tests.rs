@@ -93,6 +93,7 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn context_with_bi
                 .as_ref()
                 .is_some_and(|case| case.case != *authorize.refused())
         }),
+        maxima_templates: capacity::MaximaTemplateCacheV8::default(),
         reduce_templates: capacity::ReduceTemplateCacheV8::default(),
         future_templates: capacity::FutureTemplateCacheV8::default(),
         checked_reduce: crate::resumable_effects::owned_frame::v2::compile_owned_reduce_v2(

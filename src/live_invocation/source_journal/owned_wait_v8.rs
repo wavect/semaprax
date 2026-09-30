@@ -66,6 +66,7 @@ pub(super) struct FoldContextV8 {
     granted: String,
     refused: String,
     refused_cleanup_empty: bool,
+    maxima_templates: capacity::MaximaTemplateCacheV8,
     reduce_templates: capacity::ReduceTemplateCacheV8,
     future_templates: capacity::FutureTemplateCacheV8,
     checked_reduce: Result<

@@ -9,6 +9,7 @@ use super::*;
 use fold::{FoldV8, TailV8};
 use model::{OwnerV8, PhaseV8};
 use serde_json::json;
+pub(super) use templates::MaximaTemplateCacheV8;
 
 pub(super) struct ClosureFactsV8<'a> {
     pub attempt: Option<u32>,

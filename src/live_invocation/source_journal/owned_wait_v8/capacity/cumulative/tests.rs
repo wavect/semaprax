@@ -108,3 +108,27 @@ fn owned_future_template_cache_rejects_crossed_proof_and_resets_at_profile_selec
         },
     );
 }
+
+#[test]
+fn owned_maxima_template_cache_reuses_its_binding_and_preserves_crossed_proof_refusal() {
+    let mut context = super::super::super::fold::tests::context();
+    let expected = templates::maxima(&context).unwrap();
+    for _ in 0..3 {
+        assert_eq!(templates::maxima(&context).unwrap(), expected);
+    }
+    let cached = context.maxima_templates.entry.borrow();
+    let (binding, retained) = cached.as_ref().unwrap();
+    assert!(std::sync::Arc::ptr_eq(binding, &context.checked_binding));
+    assert_eq!(retained.as_ref().unwrap(), &expected);
+    drop(cached);
+
+    // A capacity proof retained for a different checked binding cannot turn a
+    // crossed Reduce proof into an admissible continued profile.
+    let crossed = super::super::super::fold::tests::context();
+    context.checked_binding = std::sync::Arc::clone(&crossed.checked_binding);
+    context.cumulative_initialization = true;
+    assert_eq!(
+        future(&context, &FoldV8::capacity_fresh_turn(0)),
+        Err(SourceJournalError::Binding)
+    );
+}

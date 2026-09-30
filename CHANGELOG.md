@@ -8,6 +8,15 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Add a fresh durable typed-effect semantic-metering route (#327) with
+  per-stage observations and explicit post-commit completeness counts. Its
+  focused success and pre-work recovery-refusal regressions passed 2/2 locally;
+  authenticated historical receipts and complete recovery remain open.
+
+- Cache immutable owned-wait capacity maxima under exact checked-binding
+  identity (#330). The focused cache reuse and crossed-proof refusal regression
+  passed 1/1 locally; continued lifecycle acceptance remains open.
+
 - Record the Windows doctor #333 binding decision and native mechanism/corpus
   plan. Reject advisory oplocks, repeated hashes, byte-range locks and an
   unproven copy/reopen transition as exact image-binding repairs. Image-section

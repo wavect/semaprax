@@ -16,8 +16,10 @@ format: `Unreleased` then release buckets, grouped by impact.
   production or release-trust support is promoted.
 
 - Retain catalog-normalizer's 100,000,000-step maximal-response requirement
-  (#324) in the complete application selector and remove one per-byte phase
-  dispatcher from its scalar writer. Record the 160,000,000-step library
+  (#324) in the complete application selector. Its scalar phase encoder now
+  omits redundant per-byte token-length arguments while retaining the scalar
+  dispatch boundary that keeps mode and raw-control branches outside the owned
+  writer's cleanup-replay skeleton. Record the 160,000,000-step library
   ceiling only as the current execution capacity and retain the separate
   2,000,000-step source-suite bound. The frozen oracle, corpus, response
   capacity, mutation controls and backend lanes are unchanged.

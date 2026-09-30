@@ -106,19 +106,17 @@ fn populate(
     #[cfg(test)] control: &mut Option<&mut TestControl>,
 ) -> Result<DoctorOfflineInput, Error> {
     let fd = file.as_raw_fd();
+    #[cfg(test)]
     if storage == Storage::Executable {
-        #[cfg(test)]
-        {
-            record(control, TestStage::Mode);
-            if fault(control, TestFault::Mode) {
-                return Err(Error::Io);
-            }
-        }
-        // Set owner-only read/execute immediately on the owned unpublished
-        // file. Its original O_RDWR description still permits bounded pwrite.
-        if unsafe { libc::fchmod(fd, 0o500) } != 0 {
+        record(control, TestStage::Mode);
+        if fault(control, TestFault::Mode) {
             return Err(Error::Io);
         }
+    }
+    // Set owner-only read/execute immediately on the owned unpublished
+    // file. Its original O_RDWR description still permits bounded pwrite.
+    if storage == Storage::Executable && unsafe { libc::fchmod(fd, 0o500) } != 0 {
+        return Err(Error::Io);
     }
     let mut offset = 0;
     #[cfg(test)]

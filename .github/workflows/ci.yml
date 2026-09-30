@@ -29,11 +29,15 @@ env:
 
 jobs:
   agent-proposal-clients:
-    name: AGENT-06 lifecycle and clients (${{ matrix.os }})
+    name: AGENT-06 lifecycle and clients (${{ matrix.os }}, ${{ matrix.part }})
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-24.04, macos-15, windows-2025]
+        # `lifecycle` runs the generated clients and the bounded --lib checks;
+        # `revisions` runs the agent_runtime_v1 execution-revision corpus. The
+        # two halves were one job that reached the six-hour ceiling.
+        part: [lifecycle, revisions]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 360
     env:
@@ -70,19 +74,21 @@ jobs:
           cargo fetch --locked
           npm ci --ignore-scripts --prefix platform-tests/wasm-scalar-browser-v1
       - name: Compile and execute every generated client
+        if: matrix.part == 'lifecycle'
         run: python scripts/agent-proposal-clients.py
       - name: Check bounded iterative lifecycle and retained Copy records
+        if: matrix.part == 'lifecycle'
         run: |
           cargo test --locked --offline -p semaprax --lib agent_lifecycle::iterative::
           cargo test --locked --offline -p semaprax --lib agent_runtime_v2::checkpoint::tests
           cargo test --locked --offline -p semaprax --lib execution_revision::typed::migration
           cargo test --locked --offline -p semaprax --lib retained_copy_record_calls_return_exact_fields_and_reject_forged_values
       - name: Check retained Project and iterative runtime root association
-        if: runner.os != 'Windows'
+        if: runner.os != 'Windows' && matrix.part == 'revisions'
         run: |
           cargo test --locked --offline -p semaprax --test agent_runtime_v1 execution_revision::
       - name: Check typed execution revisions on Windows
-        if: runner.os == 'Windows'
+        if: runner.os == 'Windows' && matrix.part == 'revisions'
         shell: pwsh
         run: |
           $clang = (Get-Command clang.exe -ErrorAction Stop).Source
@@ -1773,7 +1779,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        shard: [unit, unit-heavy, integration-0, integration-1, integration-2, integration-3, integration-4]
+        shard: [unit, unit-heavy, integration-0, integration-1, integration-2, integration-3, integration-4, integration-5]
     runs-on: ${{ matrix.os == 'ubuntu-latest' && 'ubuntu-24.04' || matrix.os }}
     steps:
       - name: Allow Windows to check out long evidence paths
@@ -1899,9 +1905,16 @@ jobs:
           if ('${{ matrix.shard }}' -eq 'integration-3') { $split = @('--split-windows-agent-runtime') }
           python3 scripts/ci-msrv.py --label "Rust Windows" --shard "${{ matrix.shard }}" --exclude-package semaprax-native-rust-interop --nocapture @split
 
-  macos-source-repair:
-    name: Rust macOS source repair
-    runs-on: macos-latest
+  unix-source-repair:
+    name: Rust source repair (${{ matrix.os }}, ${{ matrix.shard }}/2)
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        # scripts/ci-msrv.py deals the sorted case list round-robin, so the
+        # shards together run every repair case exactly once.
+        shard: [0, 1]
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 360
     env:
       CARGO_PROFILE_DEV_DEBUG: "0"
@@ -1928,13 +1941,16 @@ jobs:
           set -euo pipefail
           echo "RUSTC=$(rustup which rustc)" >> "$GITHUB_ENV"
           echo "CLANG=$(command -v clang)" >> "$GITHUB_ENV"
-          echo "SEMAPRAX_ARCHIVER=/usr/bin/libtool" >> "$GITHUB_ENV"
+          if [[ "$RUNNER_OS" == "macOS" ]]; then
+            echo "SEMAPRAX_ARCHIVER=/usr/bin/libtool" >> "$GITHUB_ENV"
+          else
+            echo "SEMAPRAX_ARCHIVER=$(readlink -f "$(command -v ar)")" >> "$GITHUB_ENV"
+          fi
           echo "SEMAPRAX_TEST_PYTHON=$(command -v python3)" >> "$GITHUB_ENV"
       - name: Fetch locked dependencies
         run: cargo fetch --locked
-      - name: Run every source-repair unit case once
-        run: |
-          cargo test --locked --offline -p semaprax-toolchain --all-features --lib source_live_cli::repair::tests::
+      - name: Run this shard of the source-repair unit cases once
+        run: python3 scripts/ci-msrv.py --label "Rust source repair" --repair-shard "${{ matrix.shard }}/2"
 
   windows-agent-runtime-rest:
     name: Rust Windows agent runtime remainder
@@ -1995,6 +2011,67 @@ jobs:
       - name: Test Windows agent runtime except the AGENT-06 typed corpus
         run: |
           cargo test --locked --offline --workspace --all-features --exclude semaprax-native-rust-interop --test agent_runtime_v1 -- --skip execution_revision::typed::
+
+  windows-source-repair:
+    name: Rust Windows source repair
+    runs-on: windows-latest
+    timeout-minutes: 360
+    env:
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+      CARGO_PROFILE_TEST_OPT_LEVEL: "1"
+      CARGO_INCREMENTAL: "0"
+      CARGO_BUILD_JOBS: "1"
+    steps:
+      - name: Allow Windows to check out long evidence paths
+        shell: bash
+        run: git config --system core.longpaths true
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 1
+          filter: blob:none
+          fetch-tags: false
+          lfs: false
+      - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master
+        with:
+          toolchain: 1.97.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+      - name: Resolve held compiler images
+        shell: pwsh
+        run: |
+          "RUSTC=$(rustup which rustc)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          $clang = (Get-Command clang.exe -ErrorAction Stop).Source
+          if (-not [System.IO.Path]::IsPathFullyQualified($clang)) { throw "clang path is not absolute" }
+          "CLANG=$clang" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Resolve Windows SDK and MSVC environment
+        shell: cmd
+        run: |
+          for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath`) do set "VSINSTALL=%%i"
+          if not defined VSINSTALL exit /b 1
+          call "%VSINSTALL%\Common7\Tools\VsDevCmd.bat" -no_logo -arch=x64 -host_arch=x64
+          if not defined VCToolsInstallDir exit /b 1
+          set "SEMAPRAX_VCTOOLS=%VCToolsInstallDir%"
+          if "%SEMAPRAX_VCTOOLS:~-1%"=="\" set "SEMAPRAX_VCTOOLS=%SEMAPRAX_VCTOOLS:~0,-1%"
+          set "SEMAPRAX_LINKER=%SEMAPRAX_VCTOOLS%\bin\Hostx64\x64\link.exe"
+          set "SEMAPRAX_ARCHIVER=%SEMAPRAX_VCTOOLS%\bin\Hostx64\x64\lib.exe"
+          if not exist "%SEMAPRAX_LINKER%" exit /b 1
+          if not exist "%SEMAPRAX_ARCHIVER%" exit /b 1
+          echo INCLUDE=%INCLUDE%>>"%GITHUB_ENV%"
+          echo LIB=%LIB%>>"%GITHUB_ENV%"
+          echo SEMAPRAX_VCTOOLS=%SEMAPRAX_VCTOOLS%>>"%GITHUB_ENV%"
+          echo SEMAPRAX_LINKER=%SEMAPRAX_LINKER%>>"%GITHUB_ENV%"
+          echo SEMAPRAX_ARCHIVER=%SEMAPRAX_ARCHIVER%>>"%GITHUB_ENV%"
+          echo CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_LINKER=%SEMAPRAX_LINKER%>>"%GITHUB_ENV%"
+      - name: Fetch locked dependencies
+        run: cargo fetch --locked
+      - name: Run every source-repair unit case once
+        # These cases used to run inside the Windows unit shard; that shard now
+        # skips them, as the Linux and macOS unit shards already did. Most of
+        # them assert the Windows checkpoint-host refusal and return, so one
+        # shard runs the complete set.
+        run: python3 scripts/ci-msrv.py --label "Rust Windows source repair" --repair-shard 0/1
 
   desktop-native-product:
     name: Private desktop + native UI product (${{ matrix.os }})
@@ -2069,7 +2146,14 @@ jobs:
         with:
           toolchain: 1.97.1
       - name: Fetch the locked dependency closure
-        run: cargo fetch --locked
+        run: |
+          for attempt in 1 2 3; do
+            if cargo fetch --locked; then
+              exit 0
+            fi
+            sleep $((attempt * 15))
+          done
+          exit 1
       - name: Prove the confinement primitive denies a real escape
         run: |
           cargo test --locked --offline \
@@ -2406,8 +2490,9 @@ jobs:
       - verify
       - verify-build
       - verify-tests
-      - macos-source-repair
+      - unix-source-repair
       - windows-agent-runtime-rest
+      - windows-source-repair
       - desktop-native-product
       - doctor-macos-confinement
       - ios-static-cross-check
@@ -2433,7 +2518,7 @@ jobs:
           SEMAPRAX_CI_NEEDS: ${{ toJSON(needs) }}
         run: |
           python3 scripts/ci-required-checks.py \
-            --min-jobs 29 \
+            --min-jobs 30 \
             --sha "${{ github.sha }}" \
             --head-sha "$(git rev-parse HEAD)"
 

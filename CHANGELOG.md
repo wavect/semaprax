@@ -173,6 +173,53 @@ format: `Unreleased` then release buckets, grouped by impact.
   source before a migration handoff is staged. Local parity and refusal tests
   cover the new route; hosted target evidence remains open (#293).
 
+- Share cleanup-plan replay skeleton observations behind `Rc`. Sequencing a
+  path prefix with each suffix deep-copied every identity and place, so a
+  function with tens of thousands of paths materialized gigabytes: the
+  catalog-normalizer test's `tests.main` enumerates 65,533 paths and is
+  replayed 37 times per project authentication. Budget charges, sorting and
+  comparison are unchanged. Locally the
+  `catalog_normalizer_application::batch_boundaries_and_string_normalization_agree_across_backends`
+  test drops from 862 s and 6.51 GiB peak to 210 s and 0.71 GiB; on hosted
+  Windows it had exceeded the six-hour job limit.
+- Run all twenty-six AArch64 offline-doctor lifecycle fixtures against real
+  carriers (#334). `doctor-provisioned-linux-aarch64-carriers.sh` provisions
+  pinned Clang 17.0.6, Node 22.23.2 and Rust 1.88.0 and bundles them with the
+  packager's new explicit `--architecture aarch64`; the lifecycle driver now
+  requires those inputs instead of probing for their absence. The AArch64
+  syscall rows gain the traced Node and rustc `fcntl` rules, rustc's `ppoll`
+  and `pipe2`, and its exact pthread `clone`. 26/26 passed locally on native
+  AArch64 (Linux 6.18.35 with `CONFIG_PROC_CHILDREN`); not hosted, not a
+  signed-release gate.
+- Move the isolated Component runtime runner to Wasmtime 48.0.3 for
+  RUSTSEC-2026-0315 and RUSTSEC-2026-0316, which failed its `cargo deny`
+  advisory audit. 49.0.1 carries the same fixes but breaks the runner's
+  same-Store recovery after a refused call, so it is not adopted here.
+- Split the longest CI legs. `verify-tests` gains `integration-5`; the Unix
+  source-repair matrix runs two shards that `ci-msrv.py --repair-shard` fills
+  round-robin from the listed cases; Windows repair cases leave the Windows
+  unit shard for a dedicated `windows-source-repair` blocker; and AGENT-06
+  runs its `lifecycle` and `revisions` halves as separate legs, which together
+  had reached the six-hour job ceiling.
+- Carry `$ORIGIN`-resolved libraries in the doctor bundle's system library
+  directory (#320). The confined root has no `/proc`, so the loader never
+  expands `$ORIGIN` and real rustc exited 127 before `main`; the same
+  inventory now starts `rustc --version` in a `/proc`-less root locally.
+- Let the confined x86-64 rustc doctor role start the Ctrl-C watcher thread
+  that rustc 1.88 requires (#320). Its `clone3` now returns `ENOSYS` so glibc
+  falls back to `clone(2)`, admitted only for the exact pthread flag word;
+  Clang, Node and AArch64 keep denying both. Local evidence is the BPF-oracle
+  suite on Linux; the real-carrier gate has not yet been rerun.
+- Give Linux source-repair tests the same dedicated blocking lane as macOS,
+  preserving once-per-host coverage. Author the UTF-8 capacity fixture from a
+  formatter-pinned canonical template so setup does not replay proof-only
+  scalar renderers for each of its 25,000-plus characters. Keep all three
+  capacity boundaries, Project authentication, artifact replay, publication,
+  and independent Node byte checks; add phase timings for timeout diagnosis.
+  Meter npm recipe String literals under the existing 1 MiB bound so their
+  source writer uses the bounded Rust-authority path without changing bytes
+  or bypassing recipe/HIR replay.
+
 - Repartition slow macOS repair and Windows agent-runtime tests into distinct
   release blockers without duplicating their coverage. Use a real macOS Git
   executable for publication tests, keep unsupported Windows stage hosts

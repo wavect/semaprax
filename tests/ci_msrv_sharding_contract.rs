@@ -3,13 +3,14 @@ use std::collections::BTreeSet;
 use std::path::Path;
 use std::process::Command;
 
-const SHARDS: [&str; 6] = [
+const SHARDS: [&str; 7] = [
     "unit",
     "integration-0",
     "integration-1",
     "integration-2",
     "integration-3",
     "integration-4",
+    "integration-5",
 ];
 
 fn root() -> &'static Path {
@@ -154,7 +155,7 @@ fn msrv_router_fails_closed_and_propagates_the_first_cargo_failure() {
         "{}",
         String::from_utf8_lossy(&output.stderr)
     );
-    assert_eq!(output.stdout, b"MSRV integration-0: 3 workspace targets\n");
+    assert_eq!(output.stdout, b"MSRV integration-0: 2 workspace targets\n");
 }
 
 #[test]
@@ -218,7 +219,7 @@ fn current_rust_matrix_reuses_the_exact_inventory_in_parallel_platform_shards() 
         "name: Rust tests ${{ matrix.os }} (${{ matrix.shard }})",
         "fail-fast: false",
         "os: [ubuntu-latest, macos-latest, windows-latest]",
-        "shard: [unit, unit-heavy, integration-0, integration-1, integration-2, integration-3, integration-4]",
+        "shard: [unit, unit-heavy, integration-0, integration-1, integration-2, integration-3, integration-4, integration-5]",
         "python3 scripts/ci-msrv.py --label \"Rust $RUNNER_OS\" --shard \"${{ matrix.shard }}\"",
         "python3 scripts/ci-msrv.py --label \"Rust Windows\" --shard \"${{ matrix.shard }}\" --exclude-package semaprax-native-rust-interop --nocapture @split",
         "if ('${{ matrix.shard }}' -eq 'integration-3') { $split = @('--split-windows-agent-runtime') }",
@@ -245,7 +246,8 @@ fn current_rust_matrix_reuses_the_exact_inventory_in_parallel_platform_shards() 
         .unwrap()
         .0;
     assert!(release.contains("      - verify-tests\n"));
-    assert!(release.contains("      - macos-source-repair\n"));
+    assert!(release.contains("      - unix-source-repair\n"));
+    assert!(release.contains("      - windows-source-repair\n"));
     assert!(release.contains("      - windows-agent-runtime-rest\n"));
     let router = std::fs::read_to_string(root().join("scripts/ci-msrv.py")).unwrap();
     assert!(router.contains(
@@ -256,14 +258,45 @@ fn current_rust_matrix_reuses_the_exact_inventory_in_parallel_platform_shards() 
     assert!(router
         .contains("test_arguments.extend((\"--skip\", \"source_live_cli::repair::tests::\"))"));
     let repair = workflow
-        .split_once("\n  macos-source-repair:\n")
+        .split_once("\n  unix-source-repair:\n")
         .unwrap()
         .1
         .split_once("\n  windows-agent-runtime-rest:\n")
         .unwrap()
         .0;
-    assert!(repair.contains("cargo test --locked --offline -p semaprax-toolchain --all-features --lib source_live_cli::repair::tests::"));
+    // The exact repair command now lives in the router, which deals the
+    // listed cases across the matrix shards.
+    for required in [
+        "\"cargo\", \"test\", \"--locked\", \"--offline\", \"-p\", \"semaprax-toolchain\", \"--all-features\", \"--lib\",",
+        "\"semaprax/unstable-native-host-internal,semaprax/unstable-wit-component-harness,\"",
+        "\"semaprax/unstable-workflow-profiling\",",
+        "REPAIR_FILTER = \"source_live_cli::repair::tests::\"",
+        "REPAIR_TEST + [REPAIR_FILTER, \"--\", \"--list\", \"--format\", \"terse\"],",
+        "REPAIR_TEST + [\"--\", \"--exact\", \"--test-threads=1\", *names],",
+    ] {
+        assert!(router.contains(required), "missing repair router contract: {required}");
+    }
+    assert!(repair.contains("name: Rust source repair (${{ matrix.os }}, ${{ matrix.shard }}/2)"));
+    assert!(repair.contains("os: [ubuntu-latest, macos-latest]"));
+    assert!(repair.contains("shard: [0, 1]"));
+    assert!(repair.contains(
+        "run: python3 scripts/ci-msrv.py --label \"Rust source repair\" --repair-shard \"${{ matrix.shard }}/2\""
+    ));
+    assert!(repair.contains("fail-fast: false"));
     assert!(!repair.contains("continue-on-error"));
+    let windows_repair = workflow
+        .split_once("\n  windows-source-repair:\n")
+        .unwrap()
+        .1
+        .split_once("\n  desktop-native-product:\n")
+        .unwrap()
+        .0;
+    assert!(windows_repair.contains("name: Rust Windows source repair"));
+    assert!(windows_repair.contains("runs-on: windows-latest"));
+    assert!(windows_repair.contains(
+        "run: python3 scripts/ci-msrv.py --label \"Rust Windows source repair\" --repair-shard 0/1"
+    ));
+    assert!(!windows_repair.contains("continue-on-error"));
 }
 
 #[test]
@@ -334,7 +367,7 @@ metadata = {'workspace_members': ['one', 'two'], 'packages': [
     {'id': 'external', 'name': 'external', 'targets': [target('example', 'not_in_workspace')]},
 ]}
 plan = router['plan'](metadata)
-assert [len(shard['targets']) for shard in plan['shards']] == [4, 3, 1, 1, 1, 1]
+assert [len(shard['targets']) for shard in plan['shards']] == [4, 2, 1, 1, 1, 1, 1]
 assert {'package': 'two', 'kind': 'example', 'name': 'embedding-api'} in plan['shards'][0]['targets']
 assert '--examples' in plan['shards'][0]['command']
 assert router['plan'](dict(metadata, packages=list(reversed(metadata['packages'])))) == plan
@@ -402,6 +435,27 @@ with patch('subprocess.run', side_effect=[
     with contextlib.redirect_stdout(io.StringIO()):
         assert router['main'](['--shard', 'integration-0', '--nocapture']) == 101
     assert run.call_args_list[1].args[0] == plan['shards'][1]['command'] + ['--', '--nocapture']
+for harness in ('project', 'project_candidate'):
+    git_metadata = copy.deepcopy(metadata)
+    git_metadata['packages'][0]['targets'][-1]['name'] = harness
+    git_plan = router['plan'](git_metadata)
+    git_shard = next(shard for shard in git_plan['shards']
+                     if any(row['name'] == harness for row in shard['targets']))
+    selected_git = []
+    def select_git(environment):
+        selected_git.append(True)
+        environment['SEMAPRAX_TEST_GIT'] = sys.executable
+    with patch('sys.platform', 'darwin'), patch.dict(
+        router['main'].__globals__, {'macos_test_git': select_git}
+    ), patch('subprocess.run', side_effect=[
+        subprocess.CompletedProcess([], 0, stdout=json.dumps(git_metadata)),
+        subprocess.CompletedProcess([], 0),
+    ]) as run:
+        with contextlib.redirect_stdout(io.StringIO()):
+            assert router['main'](['--label', 'Rust macOS', '--shard', git_shard['name']]) == 0
+        assert selected_git == [True], harness
+        assert run.call_args_list[1].kwargs['env']['SEMAPRAX_TEST_GIT'] == sys.executable
+        assert run.call_args_list[1].args[0][-2:] == ['--', '--test-threads=1']
 with patch('subprocess.run', side_effect=[
     subprocess.CompletedProcess([], 0, stdout=json.dumps(metadata)),
     subprocess.CompletedProcess([], 0),
@@ -419,5 +473,69 @@ with patch('subprocess.run', side_effect=[
     command = run.call_args_list[1].args[0]
     assert command[:len(plan['shards'][0]['command'])] == plan['shards'][0]['command']
     assert all(command[command.index(test_filter) - 1] == '--skip' for test_filter in router['HEAVY_UNIT_FILTERS'])
+repair_filter = 'source_live_cli::repair::tests::'
+for platform, label, dedicated in (
+    ('linux', 'Rust Linux', True),
+    ('darwin', 'Rust macOS', True),
+    ('win32', 'Rust Windows', True),
+    ('linux', 'MSRV', False),
+):
+    with patch('sys.platform', platform), patch('subprocess.run', side_effect=[
+        subprocess.CompletedProcess([], 0, stdout=json.dumps(metadata)),
+        subprocess.CompletedProcess([], 0),
+    ]) as run:
+        with contextlib.redirect_stdout(io.StringIO()):
+            assert router['main'](['--shard', 'unit', '--label', label]) == 0
+        command = run.call_args_list[1].args[0]
+        assert (repair_filter in command) == dedicated, (platform, label, command)
+        if dedicated:
+            assert command[command.index(repair_filter) - 1] == '--skip'
+listing = ''.join(f'{repair_filter}{name}: test\n' for name in 'edcba') + '5 tests, 0 benchmarks\n'
+select = router['repair_shard_names']
+assert select(listing, 0, 1) == [repair_filter + name for name in 'abcde']
+shards = [select(listing, index, 2) for index in range(2)]
+assert shards == [[repair_filter + n for n in 'ace'], [repair_filter + n for n in 'bd']]
+assert sorted(sum(shards, [])) == select(listing, 0, 1)
+for index, count, message in ((2, 2, 'out of range'), (-1, 2, 'out of range'), (0, 0, 'out of range'), (5, 6, 'no case')):
+    try:
+        select(listing, index, count)
+    except ValueError as error:
+        assert message in str(error), str(error)
+    else:
+        raise AssertionError('invalid repair shard accepted')
+for bad, message in (('', 'no case'), ('other::test: test\n', 'escaped')):
+    try:
+        select(bad, 0, 1)
+    except ValueError as error:
+        assert message in str(error), str(error)
+    else:
+        raise AssertionError('invalid repair listing accepted')
+with patch('subprocess.run', side_effect=[
+    subprocess.CompletedProcess([], 0, stdout=listing),
+    subprocess.CompletedProcess([], 101),
+]) as run:
+    with contextlib.redirect_stdout(io.StringIO()):
+        assert router['main'](['--label', 'Rust source repair', '--repair-shard', '1/2']) == 101
+    assert run.call_args_list[0].args[0] == router['REPAIR_TEST'] + [repair_filter, '--', '--list', '--format', 'terse']
+    assert run.call_args_list[0].kwargs['check'] is True
+    assert run.call_args_list[1].args[0] == router['REPAIR_TEST'] + ['--', '--exact', '--test-threads=1', *shards[1]]
+for arguments in (['--repair-shard', '1'], ['--repair-shard', 'a/2']):
+    with patch('subprocess.run') as run:
+        try:
+            router['main'](arguments)
+        except ValueError as error:
+            assert 'not <index>/<count>' in str(error), str(error)
+        else:
+            raise AssertionError('malformed repair shard accepted')
+        run.assert_not_called()
+with patch('subprocess.run') as run:
+    with contextlib.redirect_stderr(io.StringIO()):
+        try:
+            router['main'](['--repair-shard', '0/2', '--shard', 'unit'])
+        except SystemExit as error:
+            assert error.code == 2
+        else:
+            raise AssertionError('repair shard combined with a workspace shard')
+    run.assert_not_called()
 sys.stdout.buffer.write(router_log.getvalue().encode('utf-8'))
 "#;

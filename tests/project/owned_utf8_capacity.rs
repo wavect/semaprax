@@ -52,8 +52,14 @@ fn inventory(path: &Path, expected: &[&str]) {
 }
 
 fn prepare(root: &Path, byte_len: usize, retained: &mut Vec<(PathBuf, Vec<u8>)>) {
+    let started = std::time::Instant::now();
+    eprintln!("owned UTF-8 capacity {byte_len}: fixture construction started");
     fs::create_dir(root).unwrap();
     let manifest = subject::write_project(root, byte_len);
+    eprintln!(
+        "owned UTF-8 capacity {byte_len}: fixture constructed in {:?}",
+        started.elapsed()
+    );
     for name in ["semaprax.toml", "src/app.spx", "src/tests.spx"] {
         let path = root.join(name);
         retained.push((path.clone(), fs::read(path).unwrap()));
@@ -61,6 +67,10 @@ fn prepare(root: &Path, byte_len: usize, retained: &mut Vec<(PathBuf, Vec<u8>)>)
     let output = root.join("package");
     let mut entered = false;
     let result = with_authenticated_project(&manifest, |snapshot| {
+        eprintln!(
+            "owned UTF-8 capacity {byte_len}: Project authenticated at {:?}",
+            started.elapsed()
+        );
         entered = true;
         assert!(
             byte_len <= 65_536,
@@ -78,11 +88,19 @@ fn prepare(root: &Path, byte_len: usize, retained: &mut Vec<(PathBuf, Vec<u8>)>)
         let build = snapshot.build_npm_inline(MAX_PROJECT_NPM_BUILD_BYTES)?;
         build.verify().unwrap();
         ProjectNpmBuild::inspect_envelope(build.envelope(), MAX_PROJECT_NPM_BUILD_BYTES).unwrap();
+        eprintln!(
+            "owned UTF-8 capacity {byte_len}: build replayed at {:?}",
+            started.elapsed()
+        );
         let envelope: serde_json::Value = serde_json::from_str(build.envelope()).unwrap();
         assert_eq!(envelope["schema"], "semaprax.project-npm-build.v9");
         let rows = envelope["artifacts"].as_array().unwrap();
         assert_eq!(rows.len(), ARTIFACTS.len());
         owned_npm_publication::publish(snapshot, &manifest, &output, false)?;
+        eprintln!(
+            "owned UTF-8 capacity {byte_len}: published at {:?}",
+            started.elapsed()
+        );
         inventory(&output, &ARTIFACTS);
         for (row, name) in rows.iter().zip(ARTIFACTS) {
             assert_eq!(row["path"], name);
@@ -121,6 +139,10 @@ fn prepare(root: &Path, byte_len: usize, retained: &mut Vec<(PathBuf, Vec<u8>)>)
         result.unwrap();
         assert!(entered);
     }
+    eprintln!(
+        "owned UTF-8 capacity {byte_len}: complete in {:?}",
+        started.elapsed()
+    );
 }
 
 #[test]

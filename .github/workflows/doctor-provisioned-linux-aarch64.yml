@@ -2,17 +2,16 @@
 #
 # This is intentionally separate from doctor-provisioned-linux.yml. The
 # x86-64 gate's evidence must never be generalized to a second syscall ABI,
-# and this job must never be treated as a full signed-release gate: it runs
-# only the separately documented 24-case partial lifecycle probe. The two
-# real-distribution cases remain explicit unresolved exclusions until a native
-# real carrier and signed release path are added under their own review.
+# and this job must never be treated as a signed-release gate: it runs the
+# separately documented 26-case AArch64 lifecycle probe, whose two
+# real-distribution fixtures run against real AArch64 Clang, Node and Rust
+# carriers provisioned in the step before the offline run.
 #
 # The workflow is dispatch-only. It must not execute private provisioner work
 # over arbitrary fork input, and any unmet native-host, namespace, dependency,
-# or selected-fixture condition terminates the job nonzero. There is no
-# continue-on-error or unannounced success-by-skip path: the driver carries
-# exactly two documented real-distribution exclusions and two expected
-# missing-precondition probes, each of which must fail.
+# carrier, or selected-fixture condition terminates the job nonzero. There is
+# no continue-on-error or success-by-skip path: the driver runs all
+# twenty-six fixtures and refuses without every real-carrier input.
 name: Doctor AArch64 Linux lifecycle tracking
 
 on:
@@ -34,7 +33,7 @@ env:
 
 jobs:
   doctor-provisioned-linux-aarch64:
-    name: Linux AArch64 offline doctor lifecycle (partial tracking)
+    name: Linux AArch64 offline doctor lifecycle (real carriers)
     # This is the candidate's claimed execution environment, not evidence it
     # has run. The driver independently rejects every other architecture.
     runs-on: ubuntu-24.04-arm
@@ -62,20 +61,23 @@ jobs:
       - name: Acquire the locked dependency closure before offline execution
         run: cargo fetch --locked
 
+      - name: Provision the real AArch64 Clang, Node and Rust carriers
+        run: bash scripts/doctor-provisioned-linux-aarch64-carriers.sh "${{ runner.temp }}/doctor-aarch64-carriers"
+
       - name: Require the source bytes the tracking result binds
         run: |
           set -euo pipefail
           test -z "$(git status --porcelain)"
 
-      - name: Run the AArch64 partial lifecycle tracking probe
+      - name: Run the AArch64 lifecycle probe with real carriers
         env:
           CARGO_NET_OFFLINE: "true"
           CARGO_TARGET_DIR: ${{ runner.temp }}/semaprax-doctor-aarch64-target
-        run: bash scripts/doctor-provisioned-linux-aarch64-local-lifecycle.sh
+        run: bash scripts/doctor-provisioned-linux-aarch64-local-lifecycle.sh "${{ runner.temp }}/doctor-aarch64-carriers/carriers.env"
 
       - name: Preserve the explicit non-promotion boundary
         run: |
           set -euo pipefail
           printf '%s\n' \
-            'This dispatch is a 24-case AArch64 tracking probe, not the full 26-case signed-release gate.' \
-            'A result does not resolve the two real-distribution exclusions or promote WP-05.'
+            'This dispatch is the 26-case AArch64 lifecycle probe with real carriers, not a signed-release gate.' \
+            'A result is AArch64 evidence only; it does not promote WP-05 or cover x86-64.'

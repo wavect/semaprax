@@ -519,7 +519,7 @@ fn render_expr(
         ResolvedExprKind::Float32(bits) => render_float(f64::from(f32::from_bits(*bits)), "f32"),
         ResolvedExprKind::Float64(bits) => render_float(f64::from_bits(*bits), "f64"),
         ResolvedExprKind::Bool(value) => Ok(value.to_string()),
-        ResolvedExprKind::String(value) => Ok(crate::format::canonical_string(value)),
+        ResolvedExprKind::String(value) => bounded_string_literal(value, MAX_RECIPE_BYTES),
         ResolvedExprKind::Place(place) => render_place(place, names, values),
         ResolvedExprKind::BorrowPlace { operation, place } => {
             let operation = crate::byte_ops::by_id(operation.as_str()).ok_or_else(|| {
@@ -894,6 +894,26 @@ fn render_float(value: f64, suffix: &str) -> Result<String, Diagnostic> {
         value.push_str(".0");
     }
     Ok(format!("{value}{suffix}"))
+}
+
+fn bounded_string_literal(value: &str, limit: usize) -> Result<String, Diagnostic> {
+    assert!(limit <= MAX_RECIPE_BYTES);
+    // This is recipe output, not an ordinary unbounded formatter invocation.
+    // Use its existing byte ceiling and the formatter's bounded Rust-authority
+    // path: proof replay must not spend this caller's output-work budget.
+    let (literal, overflowed) = crate::bounded_output::with_limit(limit, || {
+        let mut output = crate::bounded_output::CappedString::new();
+        output.push('"');
+        crate::format::write_string_escaped(&mut output, value);
+        output.push('"');
+        output.into_string()
+    });
+    if overflowed {
+        return Err(package_error(
+            "owned-data semantic recipe exceeds its byte limit",
+        ));
+    }
+    Ok(literal)
 }
 
 fn ensure_bound(output: &str) -> Result<(), Diagnostic> {

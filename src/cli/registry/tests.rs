@@ -36,8 +36,15 @@ const MEANING: &str = "examples.meaning";
 /// One genuinely valid entry: the digest binds the exact Subject-v3 bytes of
 /// a real committed example, which is what `SPX-PKR603` checks.
 fn entry(version: &str, seed: &str) -> PublishedEntry {
+    // This shared driver is tested from both the root and toolchain crates;
+    // Cargo's per-package working directory is not the repository root.
+    let source = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .ancestors()
+        .map(|root| root.join("examples/meaning.spx"))
+        .find(|source| source.is_file())
+        .expect("committed meaning fixture");
     let report = semaprax::package_report_v2::generate(
-        std::path::Path::new("examples/meaning.spx"),
+        &source,
         &semaprax::package_report_v2::PackageReportV2Options::default(),
     )
     .expect("v2 report fixture");

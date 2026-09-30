@@ -1,19 +1,5 @@
 use super::*;
 
-fn fixture_executable() -> PathBuf {
-    static EXECUTABLE: std::sync::OnceLock<PathBuf> = std::sync::OnceLock::new();
-    EXECUTABLE
-        .get_or_init(|| {
-            let path = std::env::temp_dir().join(format!(
-                "semaprax-opencode-fixture-executable-{}",
-                std::process::id()
-            ));
-            std::fs::write(&path, b"fixture executable identity").unwrap();
-            path
-        })
-        .clone()
-}
-
 #[test]
 fn interrupted_staged_executable_cleanup_requires_matching_held_bytes() {
     let root = std::env::temp_dir().join(format!(
@@ -108,6 +94,21 @@ fn config(digest: &str) -> OpenCodeHostConfig {
     .unwrap();
     std::fs::remove_dir(sandbox).unwrap();
     config
+}
+
+#[cfg(unix)]
+#[test]
+fn staged_executable_releases_its_writer_before_dispatch() {
+    let config = config("grammar");
+    std::fs::create_dir(&config.sandbox).unwrap();
+    let mut staged = StagedExecutable::create(&config).unwrap();
+    let flags = rustix::fs::fcntl_getfl(&staged.file).unwrap();
+    assert!(!flags.intersects(rustix::fs::OFlags::WRONLY | rustix::fs::OFlags::RDWR));
+    assert!(staged.authenticate(&config.executable_bytes));
+    let path = staged.path.clone();
+    drop(staged);
+    assert!(!path.exists());
+    std::fs::remove_dir(&config.sandbox).unwrap();
 }
 
 #[test]

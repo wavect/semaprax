@@ -15,39 +15,49 @@
 # docs/COMPLETION-MATRIX.md, changes docs/DOCTOR-PROVISIONED-LINUX-GATE-V1.md,
 # or may be cited as x86-64 evidence.
 #
-# What it DOES cover: a fixed, explicit twenty-four-test subset of the two
-# `#[ignore]`d Rust suites that does not require a signed release capsule or a
-# packaged real-distribution bundle. Every test name is supplied with
-# `--exact`; adding a matching ignored test cannot silently widen this probe.
-# The selected fixtures are built and run as native AArch64 binaries, inside a
-# real (non-emulated) AArch64 Linux kernel, with the fixed namespace
+# What it covers: all twenty-six `#[ignore]`d lifecycle fixtures of the two
+# owning Rust suites, thirteen each, including the two real-distribution
+# fixtures (`provisioned_real_clang_node_rust_distributions` and
+# `real_launched_handoff::production_launcher_reports_all_roles_from_provisioned_real_distributions`)
+# against real AArch64 Clang, Node and Rust carriers. Every test name is
+# supplied with `--exact`; adding a matching ignored test cannot silently
+# widen this probe. The fixtures are built and run as native AArch64 binaries,
+# inside a real (non-emulated) AArch64 Linux kernel, with the fixed namespace
 # acknowledgements the fixtures themselves assert on. It reuses the existing
 # hostile fixtures unmodified; it adds no fixture and weakens none.
 #
-# What it does NOT cover: the two fixtures that need a provisioned real
-# Clang/Node/Rust distribution bundle and selector
-# (`real_launched_handoff::production_launcher_reports_all_roles_from_provisioned_real_distributions`
-# and `provisioned_real_clang_node_rust_distributions`) -- those need
-# SEMAPRAX_DOCTOR_REAL_SELECTOR, SEMAPRAX_DOCTOR_REAL_BUNDLE and matching
-# SEMAPRAX_DOCTOR_EXPECTED_{CLANG,NODE,RUST}_DETAIL, none of which this
-# script invents. Run without them, those two fixtures fail fast on a
-# missing-precondition panic, not a confinement failure, and this script
-# reports that explicitly rather than skipping them silently.
+# The real carriers come from scripts/doctor-provisioned-linux-aarch64-carriers.sh,
+# the only network-using step. Its carriers.env is this script's one argument:
+# SEMAPRAX_DOCTOR_REAL_BUNDLE, SEMAPRAX_DOCTOR_REAL_SELECTOR and the three
+# SEMAPRAX_DOCTOR_EXPECTED_*_DETAIL values. This script invents none of them;
+# without them it refuses before building anything.
 #
-# Usage from a non-Linux development host (e.g. macOS with Docker Desktop,
-# whose Linux VM is native AArch64 on Apple Silicon -- not emulated):
+# What it does NOT cover: a signed AArch64 release package. The twenty-six
+# fixtures consume the current-head worker, launcher and collector directly,
+# so no release capsule is involved and none is claimed.
+#
+# The kernel must provide /proc/<pid>/task/<tid>/children
+# (CONFIG_PROC_CHILDREN); the supervisor-death fixture observes the tool
+# through it. Apple Container's default kernel lacks it, so issue #334 ran on
+# a rebuild of that kernel with only this option changed.
+#
+# Usage from macOS on Apple Silicon (the Linux VM is native AArch64, not
+# emulated), with Docker Desktop:
 #
 #   docker run --rm --privileged --cgroupns=private \
 #     -v "$(pwd)":/repo -v <cargo-registry-cache>:/usr/local/cargo/registry \
-#     rust:1-slim-bookworm bash /repo/scripts/doctor-provisioned-linux-aarch64-local-lifecycle.sh
+#     rust:1-slim-bookworm bash -c '
+#       bash /repo/scripts/doctor-provisioned-linux-aarch64-carriers.sh /carriers &&
+#       bash /repo/scripts/doctor-provisioned-linux-aarch64-local-lifecycle.sh /carriers/carriers.env'
 #
-# Usage directly on a disposable AArch64 Linux host: run this script as-is
-# from the repository root.
+# or with Apple Container: `container run --cap-add ALL -k <kernel-with-PROC_CHILDREN> ...`.
+# Directly on a disposable AArch64 Linux host, run both scripts as-is from the
+# repository root.
 #
-# Refuses (does not skip) unless Linux on AArch64, cargo is on PATH, and
-# unshare(1) can create a private user+mount namespace -- missing
-# provisioning is a failure here too, exactly as issue #61 requires of the
-# x86-64 gate.
+# Refuses (does not skip) unless Linux on AArch64, cargo is on PATH,
+# unshare(1) can create a private user+mount namespace, and every real-carrier
+# input is supplied -- missing provisioning is a failure here too, exactly as
+# issue #61 requires of the x86-64 gate.
 
 set -o errexit
 set -o nounset
@@ -84,9 +94,7 @@ readonly REPOSITORY="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 readonly TARGET_DIR="${CARGO_TARGET_DIR:-${REPOSITORY}/target-aarch64-local}"
 
 # This is deliberately an enumerated plan, rather than a broad libtest filter:
-# the local 24/26 historical result is meaningful only for this exact set.
-# Keep the two omitted real-distribution fixtures in their explicit --skip
-# positions below, even though --exact makes the list closed independently.
+# the result is meaningful only for this exact set of twenty-six fixtures.
 readonly -a PLATFORM_LIFECYCLE_TESTS=(
 	"doctor::offline_root::linux::tests::provisioned_close_uncertainty_is_fail_stop"
 	"doctor::offline_root::linux::tests::provisioned_detached_root_bytes_modes_and_read_only"
@@ -100,6 +108,7 @@ readonly -a PLATFORM_LIFECYCLE_TESTS=(
 	"doctor::offline_worker::tests::provisioned_materializer_exec_and_socket_denial"
 	"doctor::offline_worker::tests::provisioned_missing_role_bad_hash_and_invalid_request_emit_no_frame"
 	"doctor::offline_worker::tests::provisioned_overflow_and_timeout_publish_only_settled_failure"
+	"doctor::offline_worker::tests::provisioned_real_clang_node_rust_distributions"
 )
 readonly -a COLLECTOR_LIFECYCLE_TESTS=(
 	"actual_worker_materializes_executes_and_settles_before_canonical_report"
@@ -114,14 +123,48 @@ readonly -a COLLECTOR_LIFECYCLE_TESTS=(
 	"physical_reports::all_three_roles_settle_and_tool_failure_is_an_ordinary_exit_one_report"
 	"physical_reports::closed_report_sink_fails_after_collection_without_successful_delivery"
 	"prepared_handoff::prepared_native_and_all_role_handoffs_preserve_literal_wire_and_reject_transport_drift"
+	"real_launched_handoff::production_launcher_reports_all_roles_from_provisioned_real_distributions"
 )
-readonly TRACKING_FIXTURE_COUNT=24
+readonly TRACKING_FIXTURE_COUNT=26
+readonly -a REAL_CARRIER_KEYS=(
+	"SEMAPRAX_DOCTOR_REAL_BUNDLE"
+	"SEMAPRAX_DOCTOR_REAL_SELECTOR"
+	"SEMAPRAX_DOCTOR_EXPECTED_CLANG_DETAIL"
+	"SEMAPRAX_DOCTOR_EXPECTED_NODE_DETAIL"
+	"SEMAPRAX_DOCTOR_EXPECTED_RUST_DETAIL"
+)
 
 require_tracking_plan() {
-	[ "${#PLATFORM_LIFECYCLE_TESTS[@]}" -eq 12 ] || fail "platform lifecycle plan is not 12 fixtures"
-	[ "${#COLLECTOR_LIFECYCLE_TESTS[@]}" -eq 12 ] || fail "collector lifecycle plan is not 12 fixtures"
+	[ "${#PLATFORM_LIFECYCLE_TESTS[@]}" -eq 13 ] || fail "platform lifecycle plan is not 13 fixtures"
+	[ "${#COLLECTOR_LIFECYCLE_TESTS[@]}" -eq 13 ] || fail "collector lifecycle plan is not 13 fixtures"
 	[ "$(( ${#PLATFORM_LIFECYCLE_TESTS[@]} + ${#COLLECTOR_LIFECYCLE_TESTS[@]} ))" -eq "${TRACKING_FIXTURE_COUNT}" ] || \
 		fail "AArch64 tracking plan is not ${TRACKING_FIXTURE_COUNT} fixtures"
+}
+
+# carriers.env holds KEY=VALUE lines whose values may contain spaces and
+# parentheses, so it is parsed rather than sourced: exactly the five
+# real-carrier keys, each once, each nonempty, and nothing else.
+load_real_carriers() {
+	local file="$1" line key value seen=""
+	[ -f "${file}" ] || fail "real-carrier file ${file} does not exist"
+	while IFS= read -r line || [ -n "${line}" ]; do
+		key="${line%%=*}"
+		value="${line#*=}"
+		[ "${key}" != "${line}" ] && [ -n "${value}" ] || fail "malformed real-carrier line: ${line}"
+		case " ${REAL_CARRIER_KEYS[*]} " in
+		*" ${key} "*) ;;
+		*) fail "unexpected real-carrier key ${key}" ;;
+		esac
+		case " ${seen} " in
+		*" ${key} "*) fail "duplicate real-carrier key ${key}" ;;
+		esac
+		seen="${seen} ${key}"
+		export "${key}=${value}"
+	done <"${file}"
+	for key in "${REAL_CARRIER_KEYS[@]}"; do
+		[ -n "${!key:-}" ] || fail "real-carrier input ${key} is missing; provision it with doctor-provisioned-linux-aarch64-carriers.sh"
+	done
+	[ -f "${SEMAPRAX_DOCTOR_REAL_BUNDLE}" ] || fail "real bundle ${SEMAPRAX_DOCTOR_REAL_BUNDLE} does not exist"
 }
 
 main() {
@@ -129,6 +172,8 @@ main() {
 	require_user_namespaces
 	require_cargo
 	require_tracking_plan
+	[ "$#" -eq 1 ] || fail "usage: $0 <carriers.env from doctor-provisioned-linux-aarch64-carriers.sh>"
+	load_real_carriers "$1"
 	cd "${REPOSITORY}"
 	export CARGO_TARGET_DIR="${TARGET_DIR}"
 
@@ -143,50 +188,20 @@ main() {
 	export SEMAPRAX_DOCTOR_LAUNCHER="${TARGET_DIR}/debug/semaprax-doctor-launcher"
 	export SEMAPRAX_DOCTOR_COLLECTOR="${TARGET_DIR}/debug/semaprax-doctor-collector"
 
-	echo "== running the platform-sys-lib ignored lifecycle suite =="
-	echo "   (excludes the real-distribution fixture, run separately below)"
+	echo "== running the platform-sys-lib ignored lifecycle suite, real carriers included =="
 	unshare --user --map-root-user --mount --net --ipc --uts -- \
 		cargo test --locked --offline -p semaprax-native-rust-interop-platform-sys --lib -- \
 		--ignored --exact --test-threads=1 \
-		--skip doctor::offline_worker::tests::provisioned_real_clang_node_rust_distributions \
 		"${PLATFORM_LIFECYCLE_TESTS[@]}"
-	echo "== running the doctor-collector 'provisioned' ignored lifecycle suite =="
-	echo "   (excludes the two real-distribution fixtures; see the file header)"
+	echo "== running the doctor-collector 'provisioned' ignored lifecycle suite, real carriers included =="
 	unshare --user --map-root-user --mount --net --ipc --uts -- \
 		cargo test --locked --offline -p semaprax-doctor-collector --test provisioned -- \
 		--ignored --exact --test-threads=1 \
-		--skip real_launched_handoff::production_launcher_reports_all_roles_from_provisioned_real_distributions \
 		"${COLLECTOR_LIFECYCLE_TESTS[@]}"
 
-	echo "== running the platform-sys real-distribution fixture explicitly =="
-	echo "   (expected to fail fast on the missing SEMAPRAX_DOCTOR_REAL_SELECTOR"
-	echo "    precondition unless the caller has provisioned a real bundle)"
-	[ -z "${SEMAPRAX_DOCTOR_REAL_BUNDLE+x}" ] || fail "partial probe requires SEMAPRAX_DOCTOR_REAL_BUNDLE to be absent"
-	[ -z "${SEMAPRAX_DOCTOR_REAL_SELECTOR+x}" ] || fail "partial probe requires SEMAPRAX_DOCTOR_REAL_SELECTOR to be absent"
-	local platform_probe_log collector_probe_log
-	platform_probe_log="$(mktemp)"
-	collector_probe_log="$(mktemp)"
-	trap 'rm -f -- "${platform_probe_log}" "${collector_probe_log}"' EXIT
-	if unshare --user --map-root-user --mount --net --ipc --uts -- \
-		cargo test --locked --offline -p semaprax-native-rust-interop-platform-sys --lib -- \
-		--ignored --exact --test-threads=1 doctor::offline_worker::tests::provisioned_real_clang_node_rust_distributions >"${platform_probe_log}" 2>&1; then
-		fail "platform real-distribution fixture unexpectedly passed without the contracted provisioned bundle"
-	fi
-	grep -Fq 'provision real bundle' "${platform_probe_log}" || fail "platform probe failed for a reason other than missing provisioning"
-	echo "   observed required missing-platform-bundle refusal (not a confinement pass)"
-
-	echo "== running the collector real-distribution fixture explicitly =="
-	if unshare --user --map-root-user --mount --net --ipc --uts -- \
-		cargo test --locked --offline -p semaprax-doctor-collector --test provisioned -- \
-		--ignored --exact --test-threads=1 real_launched_handoff::production_launcher_reports_all_roles_from_provisioned_real_distributions >"${collector_probe_log}" 2>&1; then
-		fail "collector real-distribution fixture unexpectedly passed without the contracted provisioned bundle"
-	fi
-	grep -Fq 'provision real selector' "${collector_probe_log}" || fail "collector probe failed for a reason other than missing provisioning"
-	echo "   observed required missing-collector-bundle refusal (not a confinement pass)"
-
-	echo "== done: this is AArch64-local exploratory evidence only =="
-	echo "   It is not the x86-64 gate, does not change WP-05, and must never"
-	echo "   be cited as x86-64 confinement evidence."
+	echo "== done: ${TRACKING_FIXTURE_COUNT} AArch64 lifecycle fixtures passed with real carriers =="
+	echo "   It is not the x86-64 gate or a signed-release gate, does not change"
+	echo "   WP-05, and must never be cited as x86-64 confinement evidence."
 }
 
 main "$@"

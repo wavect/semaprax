@@ -165,6 +165,9 @@ network, external IPC, tracing, descriptor acquisition, and privilege/resource
 widening. Role-specific allowances are closed tables, not their union. Pointer-
 argument authority such as `clone3` remains denied unless a later versioned
 contract can validate it safely and supplies independent physical evidence.
+The one role-local exception to the floor's `clone(2)` entry is the rustc
+thread rule, on both native ABIs, in the [offline worker](DOCTOR-OFFLINE-WORKER-V1.md), which
+admits only glibc's exact pthread flag word and never a process.
 Tool incompatibility selects an unsupported/failure row; it never retries under
 a wider filter.
 

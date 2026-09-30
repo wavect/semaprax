@@ -260,7 +260,7 @@ exhaustion and the interpreter's own step budget remain unclaimed.
 
 The current local evidence includes deterministic retained-revision
 derivation/replay, tampered component/provider-digest metadata refusal, and one
-successful invocation under the repository-pinned Wasmtime 47.0.4 harness. The
+successful invocation under the repository-pinned Wasmtime 48.0.3 harness. The
 runtime selector checks no ambient imports, ordered two-leaf byte identity at
 the exact 64 KiB per-leaf bound, preservation of an unrelated live resource,
 resource read/drop, 200 maximum-size constructor/read/drop reuse cycles, and a
@@ -269,7 +269,7 @@ uses copied handles to require read and double-drop refusal after an explicit
 close or transfer, then constructs, reads and drops a fresh resource in the
 same instance. This is focused private evidence, not a support claim.
 
-A separate Wasmtime 47.0.4 selector instantiates the exact retained Component
+A separate Wasmtime 48.0.3 selector instantiates the exact retained Component
 twice in one Store, requires the second instance's `read` to refuse the first
 instance's resource with a resource-type mismatch, and proves the first
 resource remains readable/droppable before the second instance successfully
@@ -278,7 +278,7 @@ resource-owner refusal evidence only.
 
 The separate contract-failure selector retains a second checked Project with
 the same two-leaf endpoint and a `requires false` guard. It replays the exact
-derived Component against that revision, invokes it in Wasmtime 47.0.4, and
+derived Component against that revision, invokes it in Wasmtime 48.0.3, and
 requires the typed `contract-violation` result rather than a trap or success.
 It then keeps all 64 fixed-arena resources live at once, proving the two
 consumed input slots were settled before their replacements were constructed.

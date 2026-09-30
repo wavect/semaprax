@@ -67,3 +67,51 @@ fn every_authored_identity_role_uses_source_escapes_not_json_escapes() {
         assert!(error.message.contains("does not parse"));
     }
 }
+
+#[test]
+fn bounded_string_literal_preserves_bytes_and_restores_candidate_selection() {
+    let value = "\u{feff}\0世é🙂\"\\\n\r\t\u{7f}";
+    let expected = concat!("\"\u{feff}", r#"\u{0}世é🙂\"\\\n\r\t\u{7f}"#, "\"");
+    let (literal, counts) = crate::kernel_zero::rung_two_authority::with_counts(|| {
+        bounded_string_literal(value, expected.len())
+    });
+    assert_eq!(literal.unwrap(), expected);
+    assert_eq!(
+        counts, [0; 5],
+        "bounded literal must not run proof candidates"
+    );
+    assert!(crate::bounded_output::active_limit().is_none());
+    let (ordinary, counts) = crate::kernel_zero::rung_two_authority::with_counts(|| {
+        crate::format::canonical_string("a")
+    });
+    assert_eq!(ordinary, "\"a\"");
+    assert_eq!(counts, [0, 0, 0, 0, 1]);
+}
+
+#[test]
+fn bounded_string_literal_refuses_plus_one_and_accounts_for_parent_budget() {
+    let error = bounded_string_literal("\0", 6).unwrap_err();
+    assert_eq!(error.code, "SPX-W120");
+    assert_eq!(
+        error.message,
+        "owned-data semantic recipe exceeds its byte limit"
+    );
+    assert!(crate::bounded_output::active_limit().is_none());
+    assert_eq!(bounded_string_literal("\0", 7).unwrap(), r#""\u{0}""#);
+    let ((literal, remaining), overflowed) = crate::bounded_output::with_limit(8, || {
+        let literal = bounded_string_literal("\0", MAX_RECIPE_BYTES).unwrap();
+        (literal, crate::bounded_output::active_remaining())
+    });
+    assert_eq!(literal, r#""\u{0}""#);
+    assert_eq!(remaining, Some(1));
+    assert!(!overflowed);
+    let ((result, remaining), overflowed) = crate::bounded_output::with_limit(6, || {
+        let result = bounded_string_literal("\0", MAX_RECIPE_BYTES);
+        (result, crate::bounded_output::active_remaining())
+    });
+    assert!(result.is_err());
+    assert_eq!(remaining, Some(0));
+    // The nested writer refuses the seventh byte without overspending its
+    // parent. Its own Result carries the refusal, as with_limit contracts.
+    assert!(!overflowed);
+}

@@ -1,6 +1,8 @@
 # Cross-language runnable adapter v3: official TypeScript lane
 
-Status: local v3 correction implementation awaiting runtime review and fresh clean-head gates; no full R03 acceptance.
+Status: corrected official TypeScript v3 lane has retained local 54/54 evidence;
+supported comparison scope reconciled for #322 on 2026-09-30. No new runtime,
+hosted, model-performance or broader-platform claim.
 Audience: benchmark adapter implementers, independent reviewers and maintainers.
 
 ## 1. Scope and frozen behavior
@@ -12,8 +14,10 @@ public/hidden scorer. It does not change either earlier descriptor, their
 `local_fixture` classifications, or unavailable-only baseline admission.
 
 This is an official-toolchain conformance lane, not an Agent/model result,
-language superiority result, signed release or completion of R03. Other
-actually available language lanes still need their own official provenance.
+language superiority result or signed release. The supported independently
+runnable comparison set is exactly this TypeScript profile. Section 9 resolves
+#322 by explicitly excluding the other 13 adapters, not by promoting their
+local-fixture evidence. No additional official language lane is selected.
 All 182 task/adapter denominator rows remain (13 tasks, 14 adapters), with
 explicit unavailable reasons for every unsupported lane. No caller may
 provide a subset as the complete comparison inventory.
@@ -451,5 +455,111 @@ The initial correction run passed 52/54 and exposed an overly broad phase-byte
 comparison on the two unrelated single-file entry mutants. Restricting that
 comparison to the shared stale-edit candidate restored both focused controls.
 The failed log and complete bounded evidence remain in authorized scratch.
-A fresh clean exact-commit 54-test run and independent runtime review are the
-required successor evidence; prior 48-pass evidence does not satisfy this gate.
+The integrated successor is reported in [PR #314](https://github.com/wavect/semaprax/pull/314),
+"Integrated checkpoint 365d2aa1 (2026-09-28)": the corrected official TypeScript
+v3 selector passed **54/54** locally at `574f46fa`. This retained macOS arm64
+report supersedes the correction-pending status; it does not erase the earlier
+52/54 failure or reclassify the semantically incomplete 45/48-pass runs.
+The [#322 review](https://github.com/wavect/semaprax/issues/322) explicitly treats
+this corrected lane as already delivered. This is prior-revision evidence,
+not a new execution receipt for the 2026-09-30 scope reconciliation.
+
+
+## 9. Supported runnable set (issue #322)
+
+Decision, 2026-09-30: retain the existing independently admitted official
+TypeScript profile and explicitly exclude every other adapter from the
+supported official runnable set. **No additional language/toolchain lane is admitted.**
+This records the existing v3 boundary, not a broader support-policy change.
+Fixture implementation, an executable found on PATH, and an official-looking
+version string are not independent artifact provenance or sandbox admission.
+
+| Adapter ID | Official comparison support | Exact boundary or exclusion |
+| --- | --- | --- |
+| `semaprax` | Not supported | Repository compiler fixture only; no independent official comparison admission. This does not withdraw SEMAPRAX compiler support. |
+| `semaprax-project` | Not supported | Repository Project fixture only; no independent official comparison admission. |
+| `rust` | Not supported | v1 `local_fixture`; no official rustc distribution/runtime/host profile admitted to v3. |
+| `typescript` | Supported, fixed v3 profile | Official Node.js 22.12.0 Darwin arm64 and TypeScript 5.8.3; macOS 26.5.1 build 25F80; the fixed baseline plus approved stale-edit correction. All provenance, extraction, source and authority gates above remain mandatory. |
+| `c` | Not supported | v2 `local_fixture`; no official Clang distribution/runtime/host profile admitted to v3. |
+| `python` | Not supported | v2 `local_fixture`; no official CPython distribution/runtime/host profile admitted to v3. |
+| `swift` | Not supported | v2 `local_fixture`; no official Swift distribution/runtime/host profile admitted to v3. |
+| `java` | Not supported | v2 `local_fixture`; no official JDK distribution/runtime/host profile admitted to v3. |
+| `zero` | Not supported | The historical revision is not an admitted comparison subject; official provenance and runnable ports remain unadmitted. |
+| `ntnt` | Not supported | No official toolchain provenance or runnable task ports admitted to this comparison profile. |
+| `aver` | Not supported | No official toolchain provenance or runnable task ports admitted to this comparison profile. |
+| `vera` | Not supported | No official toolchain provenance or runnable task ports admitted to this comparison profile. |
+| `hale` | Not supported | No official toolchain provenance or runnable task ports admitted to this comparison profile. |
+| `moonbit` | Not supported | No pinned offline official toolchain provenance or runnable task ports admitted to this comparison profile. |
+
+The exclusion statements concern this comparison's admission, not whether a
+language or toolchain exists elsewhere. The original `blocked_reason` values
+remain dated corpus metadata, not newly researched ecosystem claims. Lean is
+not a fifteenth adapter: it remains outside the frozen 14-adapter inventory;
+no toolchain/archive bound is raised to accommodate it or any other lane.
+The stale-edit correction is TypeScript-only; other ports are not silently
+credited with its equivalence repair or runtime evidence.
+
+### Complete, read-only support inventory
+
+`benchmarks/cross-language-v1/supported_scope.py` emits the separate
+`benchmark.cross_language.supported_scope.v1` projection. It reuses the existing
+no-follow source snapshot and fixed correction admission. Hosts without the
+required POSIX no-follow, descriptor-relative acquisition primitives report
+`supported_scope_acquisition_unavailable`; there is no pathname fallback.
+It reads all 298
+pinned baseline files and the approved correction before emitting a result;
+source, inventory, scorer, oracle or correction drift refuses the report.
+It accepts no caller-supplied policy, source root, expected hash, language
+filter, task subset or toolchain path. It never starts a toolchain, probes the
+host, scores a candidate, contacts a provider or changes an execution grant.
+
+```sh
+python3 benchmarks/cross-language-v1/supported_scope.py
+python3 -m unittest discover -s benchmarks/cross-language-v1 \
+  -p test_supported_scope.py -v
+```
+
+The projection retains the original five fields of every comparison row,
+including `declared`, `implemented` and `blocked_reason`, in task declaration
+order then adapter declaration order. It adds `official_support`,
+`support_reason` and `official_profile`. There are exactly **13 supported
+TypeScript slots and 169 explicitly not-supported slots**. An undeclared
+public/hidden port is stated in the additional reason, never dropped from the
+denominator. All 78 original reserved-lane blocked reasons remain verbatim;
+the 91 implemented-but-not-officially-supported slots remain equally visible.
+
+The top-level `status: scope_inventory`, `execution: not_attempted` and
+`runtime_availability: not_probed` are mandatory non-claims. A supported-profile
+label is not a claim that the current host is admitted, a score, a new run,
+or a replacement for v3's original evidence bundle. The projection is canonical
+JSON on stdout and remains within the existing 256-KiB result bound. Failure
+returns exit 2 with an unavailable diagnostic on stderr and no partial stdout.
+The v1/v2/v3 execution/result wire formats remain unchanged.
+
+The new offline tests are selected by the existing `documentation` Rust
+harness's `cross_language_benchmark_suite::supported_scope` module. They pin
+all rows and exclusions, source/correction authority, failure behavior and
+non-execution. Platform-independent fail-closed controls run everywhere;
+source-reading cases explicitly skip when the required POSIX primitives are
+absent. Those skips do not establish source validation or runtime support.
+These tests are not substitutes for the real v3 authority probes or
+its 54-test official-toolchain selector. The original actual execution and
+negative provenance/authority observations remain attached to their original
+revision and host; the #322 change does not manufacture another receipt.
+
+### Closure and future admissions
+
+#322 is resolved through its explicit-exclusion option once this record is
+integrated and reflected in the issue. No new hosted run is required solely
+for this decision. No broader language support, corrected result for another
+port, model performance, publication, signing, credentials, deployment or
+paid model/training call is authorized. Model comparisons remain with the
+pilot tickets.
+
+A future official lane needs a separately reviewed, versioned admission with
+independent origin metadata, exact artifact and runtime bytes, complete source
+and task inventory, independently checked equivalence, bounded sandbox
+contracts, real public/hidden scorer execution and negative provenance and
+authority controls. It must preserve the full denominator and refusal/resource
+boundaries. Local-fixture success or the scope projection cannot satisfy any
+of those requirements by itself.

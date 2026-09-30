@@ -8,6 +8,13 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Resolve comparison-adapter scope #322 through explicit exclusions: retain
+  only the already-admitted official TypeScript v3 lane, without promoting
+  local fixtures. Add a read-only, source/correction-bound support inventory
+  and offline regression gate preserving all 182 task/adapter rows. Correct
+  stale status prose while retaining the original 54/54 execution subject.
+  No executor, scorer, frozen source, wire profile or resource bound changes.
+
 - Reconcile generated-package support decision #325 with ADR 0003: retain
   ordinary owned-data Rust-only maintenance, the fixed unpublished preview
   identity and five-target boundary, and real SemVer before any future publish.

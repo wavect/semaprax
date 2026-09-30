@@ -12,6 +12,26 @@ The v0.4.0 regression corpus has a
 evidence for later changes; ignored or provisioned tests run only when
 explicitly selected.
 
+## Comparison supported-scope gate
+
+For comparison-adapter scope changes, run:
+
+```sh
+python3 -m unittest discover -s benchmarks/cross-language-v1 \
+  -p test_supported_scope.py -v
+```
+
+The same selector is part of the existing `documentation` harness through
+`cross_language_benchmark_suite::supported_scope`. It checks the complete
+182-slot supported-set projection and refusal controls without a toolchain,
+model, credentials or network. Source-reading cases require the existing POSIX
+no-follow acquisition primitives; unsupported hosts run the fail-closed
+capability controls and explicitly skip the source-reading cases. It does not replace the real official
+TypeScript selector in [Runnable adapter v3](CROSS-LANGUAGE-RUNNABLE-ADAPTER-V3.md).
+The supported profile still requires its exact provisioned host and original
+provenance/authority gates. A scope-only #322 reconciliation retains the prior
+corrected 54/54 report; no new hosted run or broader support is implied.
+
 ## The rule
 
 A change is ready when:

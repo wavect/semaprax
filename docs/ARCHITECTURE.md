@@ -32,6 +32,13 @@ is absent without its Cargo feature; observations never enter canonical
 products or acquire authority. `benches/workflow_observer.rs` and the performance
 campaign runner own measurement, exact product comparisons, and host metadata.
 
+`benchmarks/cross-language-v1/supported_scope.py` owns the read-only comparison
+support projection. It reuses v3's no-follow source snapshot and fixed correction
+admission, retains every task/adapter slot, and adds support/exclusion metadata.
+It has no toolchain dispatch or scoring path and does not change v1/v2/v3
+execution authority. [Runnable adapter v3](CROSS-LANGUAGE-RUNNABLE-ADAPTER-V3.md)
+owns the actual official TypeScript admission and runtime evidence.
+
 ## System shape
 
 ```text

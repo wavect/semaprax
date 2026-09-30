@@ -45,6 +45,8 @@ mod reproducibility;
 mod stable_dispatch_order;
 #[path = "cross_language_benchmark_suite/stale_edit_preservation.rs"]
 mod stale_edit_preservation;
+#[path = "cross_language_benchmark_suite/supported_scope.rs"]
+mod supported_scope;
 #[path = "cross_language_benchmark_suite/telemetry_overflow_diagnosis.rs"]
 mod telemetry_overflow_diagnosis;
 

@@ -1,5 +1,14 @@
 # Cross-language benchmark methodology (v1)
 
+Current official comparison scope: **TypeScript only**, under the fixed
+Node.js 22.12.0 Darwin arm64 / TypeScript 5.8.3 v3 profile. The other 13
+adapters remain explicitly not supported for independent official comparison,
+regardless of fixture implementation or local execution. All 182 task/adapter
+slots and original blocked reasons remain. The
+[supported-set decision](../../../docs/CROSS-LANGUAGE-RUNNABLE-ADAPTER-V3.md#9-supported-runnable-set-issue-322)
+and `../supported_scope.py` own the current scope projection; this methodology
+and the original corpus are not altered to create new runtime evidence.
+
 This is the general contract every task, adapter, and comparison in
 `benchmarks/cross-language-v1/` follows. A task's own `EQUIVALENCE.md` owns
 the specific choices for that one task; this file owns the rules that apply

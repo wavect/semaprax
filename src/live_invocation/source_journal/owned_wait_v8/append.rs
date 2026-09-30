@@ -1439,7 +1439,7 @@ impl HeldOwnedWaitStoreV8<'_> {
 }
 
 pub(super) mod continued_prepared;
-pub(in crate::live_invocation::source_journal::owned_wait_v8) use continued_prepared::VerifiedOwnedContinuedPreparedSuccessorV8;
+pub(in crate::live_invocation::source_journal::owned_wait_v8) use continued_prepared::{LiveOwnedContinuedPreparedAppendFailureV8, VerifiedOwnedContinuedPreparedSuccessorV8};
 
 pub(super) mod continued_model;
 pub(in crate::live_invocation::source_journal::owned_wait_v8) use continued_model::VerifiedOwnedContinuedModelSuccessorV8;

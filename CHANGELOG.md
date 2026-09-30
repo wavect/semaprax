@@ -8,6 +8,12 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Advance a live owned-wait v8 next-turn Start owner through its sole source
+  entry and durable Prepared acknowledgement (#330). A real-owner selector
+  passed 1/1 locally, including single-entry and holder-release checks.
+  Model dispatch, later turn completion, and public restart recovery remain
+  open.
+
 - Cover the reference service's source-selected absolute session expiry (#336):
   a focused host regression verifies the checked state transition, persisted
   terminal state, HTTP refusal, and replay stability (1/1 locally).

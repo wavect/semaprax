@@ -113,6 +113,12 @@ use crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect
     advance_verified_continue_v8, LiveContinueAcknowledgedV8, LiveContinueFailureV8,
     LiveObservedContinueV8, LiveOwnedContinueAppendV8,
 };
+use crate::live_invocation::source_journal::owned_wait_v8::live_upstream::{
+    LiveContinuedPreparedFailureV8, LiveContinuedPreparedPhaseV8,
+    LiveContinuedSourceEntryFailureV8, LiveContinuedStartPhaseV8,
+    LiveOwnedContinuedPreparedAppendV8,
+};
+use crate::live_invocation::source_journal::owned_wait_v8::append::LiveOwnedContinuedPreparedAppendFailureV8;
 
 /// The actual unchanged obligation is first. Session/witness never stand alone.
 pub(in crate::live_invocation::source_journal::owned_wait_v8) struct VerifiedOwnedContinueAppendV8<
@@ -241,6 +247,50 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_live_ow
         LiveContinueAcknowledgedV8::Observed(observed) => Ok(observed),
         acknowledged => Err(LiveContinueDriverFailureV8::ObserveAcknowledged(acknowledged)),
     }
+}
+
+/// Moves a next-turn Start owner through its single actual source entry and
+/// durable Prepared acknowledgement. The returned owner can later be given to
+/// the Model boundary, while every failure retains the unique live holder.
+pub(in crate::live_invocation::source_journal::owned_wait_v8) enum LiveContinuedStartDriverFailureV8<
+    'j,
+> {
+    Source(LiveContinuedSourceEntryFailureV8<'j>),
+    Checkpoint(LiveContinuedPreparedFailureV8<'j>),
+    PreparedSession {
+        owner: LiveOwnedContinuedPreparedAppendV8<'j>,
+        error: SourceJournalError,
+    },
+    PreparedAppend(LiveOwnedContinuedPreparedAppendFailureV8<'j>),
+    PreparedAdvance(LiveContinuedPreparedFailureV8<'j>),
+}
+
+/// Consumes only an actual two-ACK Start owner. Receipt bytes cannot invoke
+/// the source evaluator or recover authority for the prepared Model owner.
+pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_live_owned_continued_start_v8<'j>(
+    journal: &'j SourceOwnedWaitJournalV8,
+    start: LiveContinuedStartPhaseV8<'j>,
+) -> Result<LiveContinuedPreparedPhaseV8<'j>, LiveContinuedStartDriverFailureV8<'j>> {
+    let started = start
+        .enter_actual_source()
+        .map_err(LiveContinuedStartDriverFailureV8::Source)?;
+    let prepared = started
+        .prepare_checkpoint()
+        .map_err(LiveContinuedStartDriverFailureV8::Checkpoint)?;
+    let session = match journal.begin_session() {
+        Ok(session) => session,
+        Err(error) => {
+            return Err(LiveContinuedStartDriverFailureV8::PreparedSession {
+                owner: prepared,
+                error,
+            });
+        }
+    };
+    session
+        .append_owned_continued_prepared(prepared)
+        .map_err(LiveContinuedStartDriverFailureV8::PreparedAppend)?
+        .advance_continued_prepared()
+        .map_err(LiveContinuedStartDriverFailureV8::PreparedAdvance)
 }
 impl<'j> AppendSessionV8<'j> {
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn append_owned_continue(

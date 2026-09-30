@@ -95,6 +95,77 @@ fn owned_continue_driver_advances_one_real_step_into_the_next_turn() {
     });
 }
 #[test]
+fn owned_continue_driver_enters_next_turn_start_once_and_parks_a_real_prepared_owner() {
+    with_moved(|journal, moved, weak, _, _| {
+        let observed = advance_live_owned_continue_v8(journal, moved)
+            .unwrap_or_else(|_| panic!("actual Continue driver"));
+        let settled = journal
+            .begin_session()
+            .unwrap()
+            .append_owned_observe_settlement(
+                observed
+                    .prepare_observe_settlement()
+                    .unwrap_or_else(|_| panic!("next-turn Observe settlement")),
+            )
+            .unwrap_or_else(|_| panic!("Observe settlement ACK"))
+            .advance_observe_settlement()
+            .unwrap_or_else(|_| panic!("settled next-turn Observe"));
+        let settled = journal
+            .begin_session()
+            .unwrap()
+            .append_owned_observe_settlement(
+                settled
+                    .prepare_turn_observed()
+                    .unwrap_or_else(|_| panic!("next-turn observed selector")),
+            )
+            .unwrap_or_else(|_| panic!("turn-observed ACK"))
+            .advance_observe_settlement()
+            .unwrap_or_else(|_| panic!("carried next-turn Observe"));
+        let carried = settled
+            .into_continued_wait()
+            .unwrap_or_else(|_| panic!("actual carried owner"));
+        let created = journal
+            .begin_session()
+            .unwrap()
+            .append_owned_continued_start(
+                carried
+                    .prepare_start_created()
+                    .unwrap_or_else(|_| panic!("actual Start Created selector")),
+            )
+            .unwrap_or_else(|_| panic!("Start Created ACK"))
+            .advance_continued_start()
+            .unwrap_or_else(|_| panic!("next-turn Start Created"));
+        let reserved = journal
+            .begin_session()
+            .unwrap()
+            .append_owned_continued_start(
+                created
+                    .prepare_start_reservation()
+                    .unwrap_or_else(|_| panic!("actual Start reservation selector")),
+            )
+            .unwrap_or_else(|_| panic!("Start reservation ACK"))
+            .advance_continued_start()
+            .unwrap_or_else(|_| panic!("next-turn Start Reserved"));
+        let entries = crate::interpreter::resumable::owned_frame::registered_stage::reduce::PreparedHeldContinuedWaitV2::test_start_entries();
+        let sequence = journal.begin_session().unwrap().sequence();
+
+        let prepared = advance_live_owned_continued_start_v8(journal, reserved)
+            .unwrap_or_else(|_| panic!("sole actual Start source entry and Prepared ACK"));
+
+        prepared.validate_live().unwrap();
+        assert_eq!(journal.begin_session().unwrap().sequence(), sequence + 1);
+        assert_eq!(
+            crate::interpreter::resumable::owned_frame::registered_stage::reduce::PreparedHeldContinuedWaitV2::test_start_entries(),
+            entries + 1,
+            "Prepared ACK cannot replay Start source"
+        );
+        assert!(weak.iter().any(|owner| owner.strong_count() == 1));
+
+        drop(prepared);
+        assert!(weak.iter().all(|owner| owner.upgrade().is_none()));
+    });
+}
+#[test]
 fn owned_continue_actual_state_and_observe_acks_preserve_owner_ledger_and_cumulative_funding() {
     with_moved(|journal, moved, weak, _, _| {
         let before = journal.begin_session().unwrap();

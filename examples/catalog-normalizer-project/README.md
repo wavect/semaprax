@@ -19,4 +19,13 @@ The fourteen-case source suite needs the documented bounded interpreter envelope
 semaprax test . --max-steps 2000000 --max-bytes 69710
 ```
 
+The maximal direct `normalize` and `normalize-enriched` calls in the owning
+application selector use the interpreter's **160,000,000-step** ceiling. The
+selector binds that value to `MAX_STEPS_LIMIT`, so a changed library ceiling
+cannot silently widen the application contract. The 100,000,000-step limit
+from the earlier optimization work does not cover the frozen maxima: retained
+measurements consumed 125,137,617 steps for the plain response and 134,325,908
+for the enriched response. The 2,000,000-step source-suite envelope above is
+a separate test-closure bound.
+
 Capacity remains a development constraint. The complete source-test projection forecast 46,202,120 builder bytes but exceeded the intermediate 48 MiB ceiling during live construction, motivating the 64 MiB graph ceiling. The fully scalar writer and source suite separately motivated the 32,000,000-unit global cleanup-replay work ceiling. The per-function 65,536-path refusal remains unchanged. The focused application gate is the executable evidence for this capacity-sensitive shape.

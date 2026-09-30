@@ -8,6 +8,10 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Advance the real owned-wait v8 next-turn authorization into two durable
+  effect ACKs through promotion (#330). The focused real-chain selector
+  passed 1/1 locally. Actual effect dispatch and public recovery remain open.
+
 - Cover the migrated runtime's metered durable recovery on the same
   caller-held native target (#327). The focused selector passed 1/1 locally
   with receipt pairing and zero retained host-work redelivery; mixed target
@@ -24,9 +28,9 @@ format: `Unreleased` then release buckets, grouped by impact.
   locally with no retained host-work redelivery. Cross-target acceptance
   remains open.
 
-- Advance the real owned-wait v8 next-turn Completed owner through four
+- Advance the real owned-wait v8 next-turn Completed owner through five
   durable authorization ACKs (#330), including transfer at the second and
-  guarded stage entry at the fourth. The focused real-chain selector passed
+  guarded stage entry at the fifth. The focused real-chain selector passed
   1/1 locally. Effect execution and public recovery remain open.
 
 - Add a crate-private migration-seeded durable metering route (#327) that

@@ -241,7 +241,10 @@ fn owned_continue_driver_dispatches_next_turn_model_once_and_records_settlement(
         let model = advance_live_owned_continued_model_v8(journal, prepared, &adapter)
             .unwrap_or_else(|_| panic!("actual Model request and ACK"));
 
-        assert_eq!(journal.begin_session().unwrap().sequence(), model_sequence + 1);
+        assert_eq!(
+            journal.begin_session().unwrap().sequence(),
+            model_sequence + 1
+        );
         let (_, _, model_turn, _) = journal
             .begin_session()
             .unwrap()
@@ -252,19 +255,52 @@ fn owned_continue_driver_dispatches_next_turn_model_once_and_records_settlement(
         let model = advance_live_owned_continued_dispatch_v8(journal, model, &mut adapter)
             .unwrap_or_else(|_| panic!("sole SDK dispatch and Settled ACK"));
         assert_eq!(starts.get(), 1);
-        assert_eq!(journal.begin_session().unwrap().sequence(), settled_sequence + 1);
+        assert_eq!(
+            journal.begin_session().unwrap().sequence(),
+            settled_sequence + 1
+        );
         let resume_sequence = journal.begin_session().unwrap().sequence();
         let model = advance_live_owned_continued_resume_v8(journal, model)
             .unwrap_or_else(|_| panic!("Usage and Resume ACKs before actual resumed source"));
-        assert_eq!(journal.begin_session().unwrap().sequence(), resume_sequence + 2);
+        assert_eq!(
+            journal.begin_session().unwrap().sequence(),
+            resume_sequence + 2
+        );
         let completed_sequence = journal.begin_session().unwrap().sequence();
         let model = advance_live_owned_continued_completed_v8(journal, model)
             .unwrap_or_else(|_| panic!("actual Completed ACK"));
-        assert_eq!(journal.begin_session().unwrap().sequence(), completed_sequence + 1);
+        assert_eq!(
+            journal.begin_session().unwrap().sequence(),
+            completed_sequence + 1
+        );
         let authorize_sequence = journal.begin_session().unwrap().sequence();
         let authorization = advance_live_owned_continued_authorize_v8(journal, model)
-            .unwrap_or_else(|_| panic!("four actual authorization ACKs"));
-        assert_eq!(journal.begin_session().unwrap().sequence(), authorize_sequence + 4);
+            .unwrap_or_else(|_| panic!("five actual authorization ACKs"));
+        assert_eq!(
+            journal.begin_session().unwrap().sequence(),
+            authorize_sequence + 5
+        );
+        let effect_sequence = journal.begin_session().unwrap().sequence();
+        let effect = advance_live_owned_continued_effect_v8(journal, authorization)
+            .unwrap_or_else(|failure| match failure {
+                LiveContinuedEffectDriverFailureV8::Prepare(_) => {
+                    panic!("effect admission before Ready ACK")
+                }
+                LiveContinuedEffectDriverFailureV8::Next(_) => {
+                    panic!("effect Consumed selection after promotion")
+                }
+                LiveContinuedEffectDriverFailureV8::Session { .. } => {
+                    panic!("effect append session")
+                }
+                LiveContinuedEffectDriverFailureV8::Append(_) => panic!("effect physical append"),
+                LiveContinuedEffectDriverFailureV8::Advance(_) => {
+                    panic!("effect Ready promotion or Consumed advance")
+                }
+            });
+        assert_eq!(
+            journal.begin_session().unwrap().sequence(),
+            effect_sequence + 2
+        );
         assert_eq!(
             crate::interpreter::resumable::owned_frame::registered_stage::live_run::test_continued_resume_entries_v8(),
             resume_entries + 1,
@@ -272,7 +308,7 @@ fn owned_continue_driver_dispatches_next_turn_model_once_and_records_settlement(
         );
         assert!(weak.iter().any(|owner| owner.strong_count() == 1));
 
-        drop(authorization);
+        drop(effect);
         assert!(weak.iter().all(|owner| owner.upgrade().is_none()));
     });
 }

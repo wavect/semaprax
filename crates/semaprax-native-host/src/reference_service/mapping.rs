@@ -58,6 +58,11 @@ const MAX_DESC_BYTES: usize = 256;
 const MIN_PASSWORD_BYTES: usize = 8;
 const MAX_PASSWORD_BYTES: usize = 256;
 const SESSION_ID_BYTES: usize = 16;
+/// The local reference profile's bounded session policy. Configuration bytes
+/// never select clock policy.
+pub const DEFAULT_SESSION_IDLE_SECONDS: u64 = 15 * 60;
+pub const DEFAULT_SESSION_ABSOLUTE_SECONDS: u64 = 8 * 60 * 60;
+pub const MAX_SESSION_LIFETIME_SECONDS: u64 = 7 * 24 * 60 * 60;
 
 /// Stable refusal categories for binding intent to grants.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -68,6 +73,8 @@ pub enum BindRefusal {
     IncompleteRequirements,
     /// The deployment binding is not a valid outbound identity.
     InvalidDeployment,
+    /// The operator-selected session deadline window is not bounded or ordered.
+    InvalidSessionPolicy,
     /// The decoded telemetry origin is not a usable collector target.
     InvalidTelemetryOrigin,
     /// The password host policy is not admitted.
@@ -84,6 +91,8 @@ pub struct HostGrants<'directory> {
     secrets: HeldServiceSecrets,
     deployment_binding: String,
     sync_mode: OutboundCheckpointSyncMode,
+    session_idle_seconds: u64,
+    session_absolute_seconds: u64,
 }
 
 impl<'directory> HostGrants<'directory> {
@@ -97,9 +106,16 @@ impl<'directory> HostGrants<'directory> {
         secrets: HeldServiceSecrets,
         deployment_binding: String,
         sync_mode: OutboundCheckpointSyncMode,
+        session_idle_seconds: u64,
+        session_absolute_seconds: u64,
     ) -> Result<Self, BindRefusal> {
         if !valid_identity(&deployment_binding) {
             return Err(BindRefusal::InvalidDeployment);
+        }
+        if session_idle_seconds > session_absolute_seconds
+            || session_absolute_seconds > MAX_SESSION_LIFETIME_SECONDS
+        {
+            return Err(BindRefusal::InvalidSessionPolicy);
         }
         Ok(Self {
             state_directory,
@@ -107,6 +123,8 @@ impl<'directory> HostGrants<'directory> {
             secrets,
             deployment_binding,
             sync_mode,
+            session_idle_seconds,
+            session_absolute_seconds,
         })
     }
 }
@@ -128,6 +146,8 @@ pub struct BoundHost<'revision, 'directory> {
     deployment_binding: String,
     telemetry_origin: String,
     password_hasher: PasswordHasherHost,
+    session_idle_seconds: u64,
+    session_absolute_seconds: u64,
 }
 
 /// Bind decoded host-mode intent to host grants and load the starting
@@ -210,6 +230,8 @@ pub fn bind<'revision, 'directory>(
             deployment_binding: grants.deployment_binding,
             telemetry_origin,
             password_hasher,
+            session_idle_seconds: grants.session_idle_seconds,
+            session_absolute_seconds: grants.session_absolute_seconds,
         },
         committed,
     ))
@@ -399,6 +421,18 @@ fn authenticate(
     if session.retired {
         return None;
     }
+    let usable = host
+        .decisions
+        .session_is_usable(
+            0,
+            current_tick()?,
+            u64::try_from(session.idle_deadline_tick).ok()?,
+            u64::try_from(session.absolute_deadline_tick).ok()?,
+        )
+        .ok()?;
+    if !usable {
+        return None;
+    }
     Some(Authenticated {
         account: session.account,
         session: id.to_owned(),
@@ -414,6 +448,13 @@ fn unhex(text: &str) -> Option<Vec<u8>> {
         bytes.push(u8::from_str_radix(std::str::from_utf8(pair).ok()?, 16).ok()?);
     }
     Some(bytes)
+}
+
+fn current_tick() -> Option<u64> {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .ok()
+        .map(|duration| duration.as_secs())
 }
 
 fn hex(bytes: &[u8]) -> String {
@@ -590,11 +631,27 @@ fn login(
         .expect("HMAC accepts the held session key");
     mac.update(&id_bytes);
     let token = format!("{id}.{}", hex(mac.finalize().into_bytes().as_slice()));
+    let now_tick = match current_tick() {
+        Some(tick) => tick,
+        None => return error(500, "clock_unavailable", None),
+    };
+    let idle_deadline_tick = match i64::try_from(now_tick.saturating_add(host.session_idle_seconds))
+    {
+        Ok(tick) => tick,
+        Err(_) => return error(500, "clock_unavailable", None),
+    };
+    let absolute_deadline_tick =
+        match i64::try_from(now_tick.saturating_add(host.session_absolute_seconds)) {
+            Ok(tick) => tick,
+            Err(_) => return error(500, "clock_unavailable", None),
+        };
     let mut state = committed.state.clone();
     state.sessions.push(Session {
         id,
         account: account_id,
         retired: false,
+        idle_deadline_tick,
+        absolute_deadline_tick,
     });
     if let Err(response) = commit(host, committed, state) {
         return response;

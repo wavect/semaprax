@@ -28,7 +28,8 @@ mod real {
     use semaprax_native_host::reference_service::bundle;
     use semaprax_native_host::reference_service::decisions::{DecisionEngine, DECISION_MAX_STEPS};
     use semaprax_native_host::reference_service::mapping::{
-        self, BindRefusal, HostGrants, InitialState,
+        self, BindRefusal, HostGrants, InitialState, DEFAULT_SESSION_ABSOLUTE_SECONDS,
+        DEFAULT_SESSION_IDLE_SECONDS, MAX_SESSION_LIFETIME_SECONDS,
     };
     use semaprax_native_host::reference_service::secrets;
     use semaprax_native_host::reference_service::serve;
@@ -50,7 +51,7 @@ mod real {
 
     fn usage() -> i32 {
         eprintln!(
-            "usage: semaprax-reference-service serve --project <dir> --config <service.config.json> --state-dir <dir> --outbound-dir <dir> --secrets-dir <dir> --bundle-dir <dir> --port <1-65535> [--state <sha256:hex>] [--deployment <id>] [--max-steps <n>] [--sync-namespace] [--tls-certificate-secret <ref> --tls-private-key-secret <ref>]"
+            "usage: semaprax-reference-service serve --project <dir> --config <service.config.json> --state-dir <dir> --outbound-dir <dir> --secrets-dir <dir> --bundle-dir <dir> --port <1-65535> [--state <sha256:hex>] [--deployment <id>] [--max-steps <n>] [--session-idle-seconds <n>] [--session-absolute-seconds <n>] [--sync-namespace] [--tls-certificate-secret <ref> --tls-private-key-secret <ref>]"
         );
         eprintln!(
             "       semaprax-reference-service bundle --config <service.config.json> --bundle-dir <dir>"
@@ -69,6 +70,8 @@ mod real {
         state: Option<String>,
         deployment: String,
         max_steps: usize,
+        session_idle_seconds: u64,
+        session_absolute_seconds: u64,
         sync_mode: OutboundCheckpointSyncMode,
         /// Both-or-neither: naming exactly one of the pair is a usage error.
         /// Naming both requests TLS serving, resolved against `--secrets-dir`
@@ -99,6 +102,8 @@ mod real {
         let mut state = None;
         let mut deployment = DEFAULT_DEPLOYMENT.to_owned();
         let mut max_steps = DECISION_MAX_STEPS;
+        let mut session_idle_seconds = DEFAULT_SESSION_IDLE_SECONDS;
+        let mut session_absolute_seconds = DEFAULT_SESSION_ABSOLUTE_SECONDS;
         let mut sync_mode = OutboundCheckpointSyncMode::FileOnly;
         let mut tls_certificate_secret = None;
         let mut tls_private_key_secret = None;
@@ -129,6 +134,30 @@ mod real {
                         Some(steps) => max_steps = steps,
                         None => {
                             eprintln!("error: --max-steps must be a positive integer");
+                            return None;
+                        }
+                    }
+                }
+                "--session-idle-seconds" => {
+                    let text = take_value(args, &mut index, "--session-idle-seconds")?;
+                    match text.parse::<u64>() {
+                        Ok(seconds) => session_idle_seconds = seconds,
+                        Err(_) => {
+                            eprintln!(
+                                "error: --session-idle-seconds must be a nonnegative integer"
+                            );
+                            return None;
+                        }
+                    }
+                }
+                "--session-absolute-seconds" => {
+                    let text = take_value(args, &mut index, "--session-absolute-seconds")?;
+                    match text.parse::<u64>() {
+                        Ok(seconds) => session_absolute_seconds = seconds,
+                        Err(_) => {
+                            eprintln!(
+                                "error: --session-absolute-seconds must be a nonnegative integer"
+                            );
                             return None;
                         }
                     }
@@ -173,6 +202,12 @@ mod real {
             );
             return None;
         }
+        if session_idle_seconds > session_absolute_seconds
+            || session_absolute_seconds > MAX_SESSION_LIFETIME_SECONDS
+        {
+            eprintln!("error: session deadlines must satisfy idle <= absolute <= 604800 seconds");
+            return None;
+        }
         Some(ServeArgs {
             project: PathBuf::from(project.unwrap()),
             config: PathBuf::from(config.unwrap()),
@@ -184,6 +219,8 @@ mod real {
             state,
             deployment,
             max_steps,
+            session_idle_seconds,
+            session_absolute_seconds,
             sync_mode,
             tls_certificate_secret,
             tls_private_key_secret,
@@ -331,6 +368,8 @@ mod real {
             resolved,
             options.deployment,
             options.sync_mode,
+            options.session_idle_seconds,
+            options.session_absolute_seconds,
         ) {
             Ok(grants) => grants,
             Err(_) => {
@@ -356,6 +395,10 @@ mod real {
             }
             Err(BindRefusal::InvalidDeployment) => {
                 eprintln!("refused: deployment binding is not a valid outbound identity");
+                return 2;
+            }
+            Err(BindRefusal::InvalidSessionPolicy) => {
+                eprintln!("refused: session deadlines are not an admitted host policy");
                 return 2;
             }
             Err(BindRefusal::InvalidTelemetryOrigin) => {

@@ -42,13 +42,13 @@ repository's existing machinery and adds no new authority:
 ## Invocation mapping
 
 Each exchange first passes the scaffold's own `request_is_admitted`
-decision; the four invocable decisions (frozen `i64`/`bool`/borrowed-bytes
-vocabulary plus an effect- and contract-free closure) gate request lines,
-registration names, and row ownership. Idempotent enqueue mirrors the
+decision. The checked invocation vocabulary admits `i64`, `u8`, `usize`,
+`bool`, and borrowed bytes when the selected closure is effect- and
+contract-free. The host invokes the scaffold's request-line, registration
+name, row-ownership, and session-deadline decisions. Idempotent enqueue mirrors the
 checked decision's 0/1/2 truth table host-side because its closure reaches
-a contract-bearing callee. The remaining scaffold decisions take
-`u8`/`usize` parameters the vocabulary does not carry; they keep their
-fixture-mode coverage and are documented as open in
+a contract-bearing callee. The remaining scaffold decisions not required by
+these routes retain their fixture-mode coverage and are documented as open in
 `reference_service::decisions`.
 
 Routes: `GET /v1/health`, `POST /v1/register`, `POST /v1/login`,
@@ -83,6 +83,7 @@ runtime execution remains open.
 semaprax-reference-service serve --project examples/task-service-project \
   --config service.config.json --state-dir <dir> --outbound-dir <dir> \
   --secrets-dir <dir> --bundle-dir <dir> --port <1-65535> [--state <digest>] \
+  [--session-idle-seconds <n> --session-absolute-seconds <n>] \
   [--tls-certificate-secret <ref> --tls-private-key-secret <ref>]
 ```
 
@@ -128,6 +129,11 @@ only from operator-held certificate/key material named on the command
 line, not from configuration intent, and not chained beyond the one leaf
 certificate this host holds. The `.invalid` origins in tests exist so no
 real peer can be contacted; delivery attempts there fail closed by design.
-Sessions never expire; only explicit logout retires one (`POST
-/v1/logout`) -- there is no tick, idle deadline, or absolute deadline
-checked here, unlike the scaffold's own fixture-mode session decision.
+Sessions carry persisted Unix-second idle and absolute deadline facts. At each
+authenticated request, the host invokes the scaffold's checked
+`session_is_usable` decision with those facts and the current host tick; an
+expired token receives the ordinary unauthorized response. The default fixed
+deadlines are 15 minutes and 8 hours from login, with CLI values bounded to
+`idle <= absolute <= 7 days`. Snapshot schema v2 adds these deadline fields;
+v1 snapshots are deliberately refused rather than guessed or silently
+migrated.

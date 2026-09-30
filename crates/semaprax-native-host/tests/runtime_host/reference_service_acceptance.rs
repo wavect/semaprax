@@ -625,6 +625,41 @@ fn login_crud_job_restart_preserves_state_without_redispatch() {
 }
 
 #[test]
+fn expired_session_is_refused_by_the_checked_source_policy() {
+    if loopback_denied() {
+        eprintln!("skipping: sandbox denies loopback bind");
+        return;
+    }
+    let workdir = Workdir::create("expired-session");
+    workdir.write_inputs();
+    // A zero-length configured host window is an intentional test policy:
+    // the persisted deadline equals login's tick, and `session_is_usable`
+    // rejects it on the following exchange.
+    let server = Server::spawn(&workdir, &["--session-idle-seconds", "0"]);
+    let port = server.port;
+    let (status, body) = http(
+        port,
+        "POST",
+        "/v1/register",
+        r#"{"username":"alice","password":"correct horse 7"}"#,
+        None,
+    );
+    assert_eq!(status, 201, "{body}");
+    let (status, body) = http(
+        port,
+        "POST",
+        "/v1/login",
+        r#"{"username":"alice","password":"correct horse 7"}"#,
+        None,
+    );
+    assert_eq!(status, 200, "{body}");
+    let token = field(&body, "token").to_owned();
+    let (status, body) = http(port, "GET", "/v1/tasks/1", "", Some(&token));
+    assert_eq!(status, 401, "{body}");
+    assert_eq!(field(&body, "error"), "unauthorized");
+}
+
+#[test]
 fn fixture_configuration_is_refused_without_a_runner() {
     let workdir = Workdir::create("fixture");
     workdir.write_inputs();

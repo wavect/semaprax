@@ -7,20 +7,21 @@
 //! [`ProjectRevision::evaluate_service_decision_v1`]. Selection authority
 //! stays with the retained authenticated revision: only explicit stable
 //! identities already linked into its entry closure can run, and only with
-//! the frozen public-invocation vocabulary (`i64`, `bool`, borrowed bytes).
+//! the bounded public-invocation vocabulary (`i64`, `u8`, `usize`, `bool`,
+//! borrowed bytes).
 //!
 //! Only the scaffold decisions whose signatures that vocabulary admits,
 //! and whose entire call closure is effect- and contract-free, are
 //! invocable here: `request_is_admitted`, `identifier_is_valid`,
-//! `method_is_rejected`, and `task_owner_authorized`. `enqueue_outcome`
+//! `method_is_rejected`, `task_owner_authorized`, and `session_is_usable`.
+//! `enqueue_outcome`
 //! admits the vocabulary but its closure reaches the contract-bearing
 //! `std.bytes.byte_to_i64`, so the host mirrors its documented 0/1/2 truth
 //! table instead of invoking it (see `mapping`). The remaining scaffold
-//! decisions (registration bounds, session ticks, job terminality,
+//! decisions (registration bounds, job terminality,
 //! migration/transaction, log/trace/metric/export/webhook policies) take
-//! `u8`/`usize` parameters the frozen vocabulary does not carry, so they
-//! keep their existing fixture-mode coverage and are not invoked by this
-//! host. That vocabulary is deliberately not widened here.
+//! `u8`/`usize` parameters. They keep their existing fixture-mode coverage
+//! until a host route needs them.
 //!
 //! [`ProjectRevision::evaluate_service_decision_v1`]: semaprax::project::ProjectRevision::evaluate_service_decision_v1
 
@@ -48,8 +49,8 @@ pub enum DecisionRefusal {
 
 /// The scaffold decision identities resolved from one revision. The module
 /// prefix is discovered, never assumed: a scaffolded project carries
-/// `<module>.core.<decision>` for its own module name. All five must
-/// resolve (proving the exact decision set), but only four are invoked
+/// `<module>.core.<decision>` for its own module name. All six must
+/// resolve (proving the exact decision set), but only five are invoked
 /// (see the module documentation).
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct DecisionIdentities {
@@ -58,6 +59,7 @@ pub struct DecisionIdentities {
     identifier_is_valid: String,
     method_is_rejected: String,
     task_owner_authorized: String,
+    session_is_usable: String,
     enqueue_outcome: String,
 }
 
@@ -70,12 +72,14 @@ impl DecisionIdentities {
         let identifier_is_valid = sole(program, "identifier_is_valid")?;
         let method_is_rejected = sole(program, "method_is_rejected")?;
         let task_owner_authorized = sole(program, "task_owner_authorized")?;
+        let session_is_usable = sole(program, "session_is_usable")?;
         let enqueue_outcome = sole(program, "enqueue_outcome")?;
         let prefix = prefix_of(&request_is_admitted).ok_or(DecisionRefusal::Unresolved)?;
         for identity in [
             &identifier_is_valid,
             &method_is_rejected,
             &task_owner_authorized,
+            &session_is_usable,
             &enqueue_outcome,
         ] {
             if prefix_of(identity) != Some(prefix) {
@@ -88,6 +92,7 @@ impl DecisionIdentities {
             identifier_is_valid,
             method_is_rejected,
             task_owner_authorized,
+            session_is_usable,
             enqueue_outcome,
         })
     }
@@ -132,6 +137,7 @@ fn prefix_of(identity: &str) -> Option<&str> {
         .or_else(|| identity.strip_suffix(".core.identifier_is_valid"))
         .or_else(|| identity.strip_suffix(".core.method_is_rejected"))
         .or_else(|| identity.strip_suffix(".core.task_owner_authorized"))
+        .or_else(|| identity.strip_suffix(".core.session_is_usable"))
         .or_else(|| identity.strip_suffix(".core.enqueue_outcome"))
 }
 
@@ -225,6 +231,26 @@ impl<'revision> DecisionEngine<'revision> {
             ],
         )
     }
+
+    /// Evaluate the scaffold's session deadline predicate. The host supplies
+    /// persisted deadline facts; the checked source selects usability.
+    pub fn session_is_usable(
+        &self,
+        state: u64,
+        now_tick: u64,
+        idle_deadline_tick: u64,
+        absolute_deadline_tick: u64,
+    ) -> Result<bool, DecisionRefusal> {
+        self.invoke_bool(
+            &self.identities.session_is_usable,
+            &[
+                PublicApiArgument::Usize(state),
+                PublicApiArgument::Usize(now_tick),
+                PublicApiArgument::Usize(idle_deadline_tick),
+                PublicApiArgument::Usize(absolute_deadline_tick),
+            ],
+        )
+    }
 }
 
 #[cfg(test)]
@@ -261,6 +287,9 @@ mod tests {
         assert!(engine.task_owner_authorized(1, 1, true).unwrap());
         assert!(!engine.task_owner_authorized(1, 2, true).unwrap());
         assert!(!engine.task_owner_authorized(1, 1, false).unwrap());
+        assert!(engine.session_is_usable(0, 1_000, 1_900, 5_000).unwrap());
+        assert!(!engine.session_is_usable(0, 1_900, 1_900, 5_000).unwrap());
+        assert!(!engine.session_is_usable(0, 5_000, 6_000, 5_000).unwrap());
         // The enqueue identity resolves (proving the exact decision set)
         // but is deliberately never invoked (see below).
         assert_eq!(

@@ -11,7 +11,7 @@
 
 use super::json::{self, JsonRefusal, JsonValue};
 
-pub const STATE_SCHEMA: &str = "semaprax.reference-service.state.v1";
+pub const STATE_SCHEMA: &str = "semaprax.reference-service.state.v2";
 pub const MAX_STATE_BYTES: usize = 192 * 1024;
 
 const MAX_ACCOUNTS: usize = 64;
@@ -155,6 +155,8 @@ pub struct Session {
     pub id: String,
     pub account: i64,
     pub retired: bool,
+    pub idle_deadline_tick: i64,
+    pub absolute_deadline_tick: i64,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -256,7 +258,15 @@ impl ServiceState {
             .map(|session| {
                 JsonValue::Object(vec![
                     ("account".to_owned(), JsonValue::Int(session.account)),
+                    (
+                        "absolute_deadline_tick".to_owned(),
+                        JsonValue::Int(session.absolute_deadline_tick),
+                    ),
                     ("id".to_owned(), JsonValue::Str(session.id.clone())),
+                    (
+                        "idle_deadline_tick".to_owned(),
+                        JsonValue::Int(session.idle_deadline_tick),
+                    ),
                     ("retired".to_owned(), JsonValue::Bool(session.retired)),
                 ])
             })
@@ -414,14 +424,26 @@ fn decode_sessions(root: &JsonValue, accounts: &[Account]) -> Result<Vec<Session
     let mut sessions = Vec::with_capacity(values.len());
     for value in values {
         let row = value
-            .closed(&["account", "id", "retired"])
+            .closed(&[
+                "absolute_deadline_tick",
+                "account",
+                "id",
+                "idle_deadline_tick",
+                "retired",
+            ])
             .ok_or(StateRefusal::Closed)?;
         let id = member_str(row, "id")?;
         if !valid_session_id(id) {
             return Err(StateRefusal::OutOfBounds);
         }
         let account = member_i64(row, "account")?;
-        if !accounts.iter().any(|candidate| candidate.id == account) {
+        let idle_deadline_tick = member_i64(row, "idle_deadline_tick")?;
+        let absolute_deadline_tick = member_i64(row, "absolute_deadline_tick")?;
+        if idle_deadline_tick < 0
+            || absolute_deadline_tick < 0
+            || idle_deadline_tick > absolute_deadline_tick
+            || !accounts.iter().any(|candidate| candidate.id == account)
+        {
             return Err(StateRefusal::UnknownReference);
         }
         if sessions.iter().any(|session: &Session| session.id == id) {
@@ -431,6 +453,8 @@ fn decode_sessions(root: &JsonValue, accounts: &[Account]) -> Result<Vec<Session
             id: id.to_owned(),
             account,
             retired: member_bool(row, "retired")?,
+            idle_deadline_tick,
+            absolute_deadline_tick,
         });
     }
     Ok(sessions)
@@ -532,6 +556,8 @@ mod tests {
                 id: "0123456789abcdef0123456789abcdef".to_owned(),
                 account: 1,
                 retired: false,
+                idle_deadline_tick: 100,
+                absolute_deadline_tick: 200,
             }],
             tasks: vec![Task {
                 id: 1,
@@ -558,7 +584,7 @@ mod tests {
         let rendered = genesis.render();
         assert_eq!(
             rendered,
-            r#"{"accounts":[],"jobs":[],"schema":"semaprax.reference-service.state.v1","seq":0,"sessions":[],"tasks":[]}"#
+            r#"{"accounts":[],"jobs":[],"schema":"semaprax.reference-service.state.v2","seq":0,"sessions":[],"tasks":[]}"#
         );
         assert_eq!(ServiceState::decode(rendered.as_bytes()).unwrap(), genesis);
         let first = ServiceState::digest(&rendered);

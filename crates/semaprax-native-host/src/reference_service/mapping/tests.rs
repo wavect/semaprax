@@ -56,6 +56,8 @@ fn fixture() -> Fixture {
         secrets,
         DEPLOYMENT.to_owned(),
         OutboundCheckpointSyncMode::FileOnly,
+        DEFAULT_SESSION_IDLE_SECONDS,
+        DEFAULT_SESSION_ABSOLUTE_SECONDS,
     )
     .unwrap();
     let (host, committed) = bind(&intent, decisions, grants, InitialState::Genesis).unwrap();
@@ -276,6 +278,8 @@ fn fixture_intent_and_bad_deployment_refuse_binding() {
         secrets,
         DEPLOYMENT.to_owned(),
         OutboundCheckpointSyncMode::FileOnly,
+        DEFAULT_SESSION_IDLE_SECONDS,
+        DEFAULT_SESSION_ABSOLUTE_SECONDS,
     )
     .unwrap();
     // `grants` is moved by the first bind; rebuild the secrets side for
@@ -301,6 +305,8 @@ fn fixture_intent_and_bad_deployment_refuse_binding() {
             secrets,
             "not a valid identity!".to_owned(),
             OutboundCheckpointSyncMode::FileOnly,
+            DEFAULT_SESSION_IDLE_SECONDS,
+            DEFAULT_SESSION_ABSOLUTE_SECONDS,
         )
         .err()
         .unwrap(),

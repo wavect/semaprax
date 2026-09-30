@@ -71,6 +71,14 @@ pub(super) fn public_api_argument_matches(
             hir::OwnershipMode::Value,
             PublicApiArgument::I64(_)
         ) | (
+            ResolvedType::U8,
+            hir::OwnershipMode::Value,
+            PublicApiArgument::U8(_)
+        ) | (
+            ResolvedType::Usize,
+            hir::OwnershipMode::Value,
+            PublicApiArgument::Usize(_)
+        ) | (
             ResolvedType::Bool,
             hir::OwnershipMode::Value,
             PublicApiArgument::Bool(_)
@@ -121,7 +129,10 @@ pub(super) fn validate_public_api_borrowed_input_bound(
         let length = match argument {
             PublicApiArgument::BorrowStr(value) => value.len(),
             PublicApiArgument::BorrowSliceU8(value) => value.len(),
-            PublicApiArgument::I64(_) | PublicApiArgument::Bool(_) => 0,
+            PublicApiArgument::I64(_)
+            | PublicApiArgument::U8(_)
+            | PublicApiArgument::Usize(_)
+            | PublicApiArgument::Bool(_) => 0,
         };
         borrowed_bytes = borrowed_bytes.checked_add(length).ok_or_else(|| {
             vec![argument_error(format!(

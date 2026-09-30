@@ -615,6 +615,8 @@ pub struct OwnedDataEvaluation {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PublicApiArgument<'a> {
     I64(i64),
+    U8(u8),
+    Usize(u64),
     Bool(bool),
     BorrowStr(&'a str),
     BorrowSliceU8(&'a [u8]),
@@ -979,7 +981,10 @@ pub(crate) fn evaluate_resolved_public_api(
         let length = match argument {
             PublicApiArgument::BorrowStr(value) => value.len(),
             PublicApiArgument::BorrowSliceU8(value) => value.len(),
-            PublicApiArgument::I64(_) | PublicApiArgument::Bool(_) => 0,
+            PublicApiArgument::I64(_)
+            | PublicApiArgument::U8(_)
+            | PublicApiArgument::Usize(_)
+            | PublicApiArgument::Bool(_) => 0,
         };
         borrowed_bytes = borrowed_bytes.checked_add(length).ok_or_else(|| {
             vec![argument_error(
@@ -1095,6 +1100,8 @@ pub(crate) fn evaluate_resolved_public_api(
         .map(|(parameter, argument)| {
             let value = match argument {
                 PublicApiArgument::I64(value) => ArgumentValue::Int(*value),
+                PublicApiArgument::U8(value) => ArgumentValue::Uint8(*value),
+                PublicApiArgument::Usize(value) => ArgumentValue::Usize(*value),
                 PublicApiArgument::Bool(value) => ArgumentValue::Bool(*value),
                 PublicApiArgument::BorrowStr(value) => {
                     ArgumentValue::BorrowedStr((*value).to_owned())
@@ -1306,6 +1313,8 @@ pub(crate) fn evaluate_resolved_flat_owned_record_api(
         .map(|(parameter, argument)| {
             let value = match argument {
                 PublicApiArgument::I64(value) => ArgumentValue::Int(*value),
+                PublicApiArgument::U8(value) => ArgumentValue::Uint8(*value),
+                PublicApiArgument::Usize(value) => ArgumentValue::Usize(*value),
                 PublicApiArgument::Bool(value) => ArgumentValue::Bool(*value),
                 PublicApiArgument::BorrowStr(value) => {
                     ArgumentValue::BorrowedStr((*value).to_owned())
@@ -1509,6 +1518,8 @@ pub(crate) fn evaluate_resolved_owned_utf8_api(
         .map(|(parameter, argument)| {
             let value = match argument {
                 PublicApiArgument::I64(value) => ArgumentValue::Int(*value),
+                PublicApiArgument::U8(value) => ArgumentValue::Uint8(*value),
+                PublicApiArgument::Usize(value) => ArgumentValue::Usize(*value),
                 PublicApiArgument::Bool(value) => ArgumentValue::Bool(*value),
                 PublicApiArgument::BorrowStr(value) => {
                     ArgumentValue::BorrowedStr((*value).to_owned())

@@ -86,6 +86,42 @@ pub(crate) struct MeteredTargetRetainedCall {
     pub(crate) execution_binding: String,
 }
 
+fn metered_durable_evidence(
+    run: DurableTypedRun,
+    observations: Vec<StageSemanticObservation>,
+    semantic_fuel_limit: u64,
+) -> MeteredDurableTypedRun {
+    let observations_complete = observations.len() == run.run().lifecycle().stages().len();
+    let mut document = serde_json::json!({
+        "schema": "semaprax.agent-durable-semantic-work.v2",
+        "checkpoint_digest": run.checkpoint_digest(),
+        "semantic_fuel_limit": semantic_fuel_limit,
+        "observations_complete": observations_complete,
+        "observed_stage_count": observations.len(),
+        "committed_stage_count": run.run().lifecycle().stages().len(),
+        "stages": observations.iter().map(|observation| serde_json::json!({
+            "function": observation.function_id(),
+            "fuel_used": observation.work().fuel_used,
+            "fuel_limit": observation.work().fuel_limit,
+            "exhausted": observation.work().exhausted,
+            "finalizer_events": observation.work().finalizer_events.as_ref().map(|events| events.iter().map(|event| serde_json::json!([event.function.as_str(), event.liveness_flag])).collect::<Vec<_>>()),
+        })).collect::<Vec<_>>(),
+    });
+    document.sort_all_objects();
+    let evidence = format!("{document}\n");
+    let digest = digest(
+        b"semaprax.agent-durable-semantic-work.v2\0",
+        evidence.as_bytes(),
+    );
+    MeteredDurableTypedRun {
+        run,
+        observations,
+        observations_complete,
+        evidence,
+        digest,
+    }
+}
+
 impl CompiledTypedEffects {
     /// Run a durable typed-effect lifecycle with authenticated semantic-work
     /// receipts. The explicit metered checkpoint profile binds each completed
@@ -132,36 +168,65 @@ impl CompiledTypedEffects {
             None,
             Some(backend),
         )?;
-        let observations = observations.into_inner();
-        let observations_complete = observations.len() == run.run().lifecycle().stages().len();
-        let mut document = serde_json::json!({
-            "schema": "semaprax.agent-durable-semantic-work.v2",
-            "checkpoint_digest": run.checkpoint_digest(),
-            "semantic_fuel_limit": semantic_fuel_limit,
-            "observations_complete": observations_complete,
-            "observed_stage_count": observations.len(),
-            "committed_stage_count": run.run().lifecycle().stages().len(),
-            "stages": observations.iter().map(|observation| serde_json::json!({
-                "function": observation.function_id(),
-                "fuel_used": observation.work().fuel_used,
-                "fuel_limit": observation.work().fuel_limit,
-                "exhausted": observation.work().exhausted,
-                "finalizer_events": observation.work().finalizer_events.as_ref().map(|events| events.iter().map(|event| serde_json::json!([event.function.as_str(), event.liveness_flag])).collect::<Vec<_>>()),
-            })).collect::<Vec<_>>(),
-        });
-        document.sort_all_objects();
-        let evidence = format!("{document}\n");
-        let digest = digest(
-            b"semaprax.agent-durable-semantic-work.v2\0",
-            evidence.as_bytes(),
-        );
-        Ok(MeteredDurableTypedRun {
+        Ok(metered_durable_evidence(
             run,
-            observations,
-            observations_complete,
-            evidence,
-            digest,
-        })
+            observations.into_inner(),
+            semantic_fuel_limit,
+        ))
+    }
+
+    /// Run a migration-seeded durable typed-effect lifecycle with the same
+    /// authenticated semantic-work receipts as the ordinary metered route.
+    /// This stays crate-private until the migrated Runtime facade exposes its
+    /// distinct evidence association.
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn run_durable_from_seed_metered_with_backend(
+        &self,
+        task: &LifecycleTask,
+        proposals: &[String],
+        handler: &mut dyn TypedEffectHandler,
+        stages: IterativeBudget,
+        effects: EffectBudget,
+        cancellation: &AgentCancellation,
+        execution_revision_digest: &str,
+        program_root_digest: &str,
+        retained_checkpoint: Option<&str>,
+        store: &mut dyn CheckpointStore,
+        max_reserved_fuel: u64,
+        seed: &crate::execution_revision::typed::migration::MigrationSeed,
+        selected: TargetStageBackend<'_>,
+        semantic_fuel_limit: u64,
+    ) -> Result<MeteredDurableTypedRun, DurableTypedFailure> {
+        if !cancellation.is_cancelled() && !(1..=1_000_000).contains(&semantic_fuel_limit) {
+            return Err(durable::semantic_refusal("semantic_work.fuel_limit", ""));
+        }
+        let selected = self.durable_backend(selected, retained_checkpoint)?;
+        let observations = RefCell::new(Vec::new());
+        let backend = StageBackend::Metered {
+            backend: &selected,
+            fuel_limit: semantic_fuel_limit,
+            observations: &observations,
+        };
+        let run = self.run_durable_inner(
+            task,
+            proposals,
+            handler,
+            stages,
+            effects,
+            cancellation,
+            execution_revision_digest,
+            program_root_digest,
+            retained_checkpoint,
+            store,
+            max_reserved_fuel,
+            Some(seed),
+            Some(backend),
+        )?;
+        Ok(metered_durable_evidence(
+            run,
+            observations.into_inner(),
+            semantic_fuel_limit,
+        ))
     }
 
     /// Refuse a selected migration target before that migration reserves fuel

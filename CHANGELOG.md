@@ -8,6 +8,12 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Add a crate-private migration-seeded durable metering route (#327) that
+  retains authenticated per-stage semantic receipts across recovery. The
+  focused seeded interpreter selector passed 1/1 locally and verifies no
+  redelivery of retained host work. Public migrated runtime association
+  remains open.
+
 - Durably ACK the owned-wait v8 next-turn Completed row after the single
   resumed-program entry (#330). The real-chain selector passed 1/1 locally;
   authorization and public multi-turn recovery remain open.

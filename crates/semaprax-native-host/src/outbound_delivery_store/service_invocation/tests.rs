@@ -232,6 +232,46 @@ fn deliver_http_durable_replays_from_a_retained_prior_terminal_reference() {
     );
 }
 
+/// A retained terminal reference is evidence, not permission to reinterpret a
+/// checkpoint at a different capacity. The service entry point must refuse it
+/// before it can construct a dispatchable restored session or enter an
+/// adapter.
+#[test]
+fn retained_prior_terminal_reference_with_wrong_capacity_refuses_before_dispatch() {
+    let temp = TempDirectory::new();
+    let directory = platform::hold_directory(temp.path()).expect("hold caller directory");
+    let mut store = OutboundDeliveryStore::new(&directory);
+    let mut session = HttpDeliverySession::new(2).unwrap();
+    let mut adapter = RecordingAdapter::default();
+    let prepared = prepare_http_delivery(capability(), request()).unwrap();
+    let outcome = session
+        .reconcile_durable(prepared, &mut store, &mut adapter)
+        .unwrap();
+    assert!(matches!(outcome, DurableHttpDeliveryOutcome::Dispatched(_)));
+    assert_eq!(adapter.0.len(), 1);
+    let checkpoint = session.session_checkpoint().unwrap();
+    let digest = checkpoint.digest();
+
+    let mut guard_adapter = PanicOnDispatch;
+    let refusal = deliver_http_durable(
+        &mut store,
+        2,
+        Some(PriorTerminalReference {
+            digest: &digest,
+            capacity: 3,
+        }),
+        capability(),
+        request(),
+        &mut guard_adapter,
+    );
+    assert!(matches!(
+        refusal,
+        Err(ServiceHttpDeliveryRefusal::Restore(
+            HttpDeliverySessionRestoreRefusal::CapacityMismatch
+        ))
+    ));
+}
+
 /// The core guard behavior in one process: once the intent marker for an
 /// exact identity is durably present, a brand-new (restored-vs-fresh
 /// mismatch: not restored at all) session attempting the same call surfaces

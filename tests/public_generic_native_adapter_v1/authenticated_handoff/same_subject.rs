@@ -25,6 +25,7 @@ mod profile_hostility;
 mod profile_rust;
 #[path = "same_subject_rust.rs"]
 mod rust;
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 #[path = "sanitizer_evidence.rs"]
 mod sanitizer_evidence;
 #[path = "same_subject_typescript.rs"]

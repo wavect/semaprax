@@ -660,7 +660,7 @@ fn focused_r05_controls_agree_across_interpreter_native_and_core_wasm() {
 
 #[test]
 fn batch_boundaries_and_string_normalization_agree_across_backends() {
-    assert_eq!(
+    assert!(
         MAX_STEPS_LIMIT >= MAXIMAL_RESPONSE_FUEL_ENVELOPE,
         "the interpreter must admit catalog-normalizer's maximal-response target"
     );

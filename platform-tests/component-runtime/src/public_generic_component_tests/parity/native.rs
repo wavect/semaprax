@@ -97,7 +97,8 @@ impl NativeSubject {
         let write_result = (|| -> std::io::Result<()> {
             let stdin = child.stdin.as_mut().expect("piped native probe stdin");
             for leaf in [left, right] {
-                stdin.write_all(&(leaf.len() as u32).to_le_bytes())?;
+                let length = u32::try_from(leaf.len()).expect("bounded native probe leaf");
+                stdin.write_all(&length.to_le_bytes())?;
                 stdin.write_all(leaf)?;
             }
             Ok(())

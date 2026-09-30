@@ -35,6 +35,8 @@ format: `Unreleased` then release buckets, grouped by impact.
   session-protocol `endpoint` keyword in the VS Code grammar.
   Give the Source Agent owned-wait contract a separate audience field and
   catalog entry so the documentation gate covers it.
+  Use a checked length conversion for the native parity probe's bounded
+  stdin frame on 64-bit hosts.
 
 - Add a closed acceptance-record format for #328's Kernel-0 rung-2 decision.
   It requires every local receipt to bind to one selected revision or an exact

@@ -1457,6 +1457,7 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) use continued_effe
 pub(super) use continued_effect::VerifiedOwnedContinuedEffectSuccessorV8;
 
 mod continued_intent;
+pub(in crate::live_invocation::source_journal::owned_wait_v8) use continued_intent::LiveOwnedContinuedIntentAppendFailureV8;
 pub(super) use continued_intent::VerifiedOwnedContinuedIntentSuccessorV8;
 
 mod continued_settlement;

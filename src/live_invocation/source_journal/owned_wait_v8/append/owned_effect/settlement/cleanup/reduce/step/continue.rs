@@ -594,6 +594,36 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_live_ow
         .map_err(LiveContinuedEffectDriverFailureV8::Next)?;
     ack_continued_effect_v8(journal, second)
 }
+pub(in crate::live_invocation::source_journal::owned_wait_v8) enum LiveContinuedIntentDriverFailureV8<
+    'j,
+> {
+    Prepare(crate::live_invocation::source_journal::owned_wait_v8::live_upstream::LiveContinuedEffectPreparationFailureV8<'j>),
+    Intent(crate::live_invocation::source_journal::owned_wait_v8::live_upstream::LiveContinuedIntentSelectionFailureV8<'j>),
+    Session { owner: crate::live_invocation::source_journal::owned_wait_v8::live_upstream::LiveOwnedContinuedIntentAppendV8<'j>, error: SourceJournalError },
+    Append(crate::live_invocation::source_journal::owned_wait_v8::append::LiveOwnedContinuedIntentAppendFailureV8<'j>),
+    Advance(crate::live_invocation::source_journal::owned_wait_v8::live_upstream::LiveContinuedIntentAcknowledgmentFailureV8<'j>),
+}
+pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_live_owned_continued_intent_v8<'j>(journal: &'j SourceOwnedWaitJournalV8, effect: LiveContinuedEffectV8<'j>) -> Result<crate::live_invocation::source_journal::owned_wait_v8::live_upstream::LiveActivatedContinuedEffectV8<'j>, LiveContinuedIntentDriverFailureV8<'j>>{
+    let intent = effect
+        .prepare_actual_effect()
+        .map_err(LiveContinuedIntentDriverFailureV8::Prepare)?
+        .prepare_intent()
+        .map_err(LiveContinuedIntentDriverFailureV8::Intent)?;
+    let session = match journal.begin_session() {
+        Ok(x) => x,
+        Err(error) => {
+            return Err(LiveContinuedIntentDriverFailureV8::Session {
+                owner: intent,
+                error,
+            })
+        }
+    };
+    session
+        .append_owned_continued_intent(intent)
+        .map_err(LiveContinuedIntentDriverFailureV8::Append)?
+        .advance_intent()
+        .map_err(LiveContinuedIntentDriverFailureV8::Advance)
+}
 impl<'j> AppendSessionV8<'j> {
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn append_owned_continue(
         self,

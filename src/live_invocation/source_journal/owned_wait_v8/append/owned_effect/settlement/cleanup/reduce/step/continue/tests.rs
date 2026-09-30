@@ -137,180 +137,197 @@ fn owned_continue_driver_advances_one_real_step_into_the_next_turn() {
 }
 #[test]
 fn owned_continue_driver_dispatches_next_turn_model_once_and_records_settlement() {
-    with_moved(|journal, moved, weak, _, _| {
-        let observed = advance_live_owned_continue_v8(journal, moved)
-            .unwrap_or_else(|_| panic!("actual Continue driver"));
-        let settled = journal
-            .begin_session()
-            .unwrap()
-            .append_owned_observe_settlement(
-                observed
-                    .prepare_observe_settlement()
-                    .unwrap_or_else(|_| panic!("next-turn Observe settlement")),
-            )
-            .unwrap_or_else(|_| panic!("Observe settlement ACK"))
-            .advance_observe_settlement()
-            .unwrap_or_else(|_| panic!("settled next-turn Observe"));
-        let settled = journal
-            .begin_session()
-            .unwrap()
-            .append_owned_observe_settlement(
-                settled
-                    .prepare_turn_observed()
-                    .unwrap_or_else(|_| panic!("next-turn observed selector")),
-            )
-            .unwrap_or_else(|_| panic!("turn-observed ACK"))
-            .advance_observe_settlement()
-            .unwrap_or_else(|_| panic!("carried next-turn Observe"));
-        let carried = settled
-            .into_continued_wait()
-            .unwrap_or_else(|_| panic!("actual carried owner"));
-        let created = journal
-            .begin_session()
-            .unwrap()
-            .append_owned_continued_start(
-                carried
-                    .prepare_start_created()
-                    .unwrap_or_else(|_| panic!("actual Start Created selector")),
-            )
-            .unwrap_or_else(|_| panic!("Start Created ACK"))
-            .advance_continued_start()
-            .unwrap_or_else(|_| panic!("next-turn Start Created"));
-        let reserved = journal
-            .begin_session()
-            .unwrap()
-            .append_owned_continued_start(
-                created
-                    .prepare_start_reservation()
-                    .unwrap_or_else(|_| panic!("actual Start reservation selector")),
-            )
-            .unwrap_or_else(|_| panic!("Start reservation ACK"))
-            .advance_continued_start()
-            .unwrap_or_else(|_| panic!("next-turn Start Reserved"));
-        let entries = crate::interpreter::resumable::owned_frame::registered_stage::reduce::PreparedHeldContinuedWaitV2::test_start_entries();
-        let sequence = journal.begin_session().unwrap().sequence();
+    let run = || {
+        with_moved(|journal, moved, weak, _, _| {
+            let observed = advance_live_owned_continue_v8(journal, moved)
+                .unwrap_or_else(|_| panic!("actual Continue driver"));
+            let settled = journal
+                .begin_session()
+                .unwrap()
+                .append_owned_observe_settlement(
+                    observed
+                        .prepare_observe_settlement()
+                        .unwrap_or_else(|_| panic!("next-turn Observe settlement")),
+                )
+                .unwrap_or_else(|_| panic!("Observe settlement ACK"))
+                .advance_observe_settlement()
+                .unwrap_or_else(|_| panic!("settled next-turn Observe"));
+            let settled = journal
+                .begin_session()
+                .unwrap()
+                .append_owned_observe_settlement(
+                    settled
+                        .prepare_turn_observed()
+                        .unwrap_or_else(|_| panic!("next-turn observed selector")),
+                )
+                .unwrap_or_else(|_| panic!("turn-observed ACK"))
+                .advance_observe_settlement()
+                .unwrap_or_else(|_| panic!("carried next-turn Observe"));
+            let carried = settled
+                .into_continued_wait()
+                .unwrap_or_else(|_| panic!("actual carried owner"));
+            let created = journal
+                .begin_session()
+                .unwrap()
+                .append_owned_continued_start(
+                    carried
+                        .prepare_start_created()
+                        .unwrap_or_else(|_| panic!("actual Start Created selector")),
+                )
+                .unwrap_or_else(|_| panic!("Start Created ACK"))
+                .advance_continued_start()
+                .unwrap_or_else(|_| panic!("next-turn Start Created"));
+            let reserved = journal
+                .begin_session()
+                .unwrap()
+                .append_owned_continued_start(
+                    created
+                        .prepare_start_reservation()
+                        .unwrap_or_else(|_| panic!("actual Start reservation selector")),
+                )
+                .unwrap_or_else(|_| panic!("Start reservation ACK"))
+                .advance_continued_start()
+                .unwrap_or_else(|_| panic!("next-turn Start Reserved"));
+            let entries = crate::interpreter::resumable::owned_frame::registered_stage::reduce::PreparedHeldContinuedWaitV2::test_start_entries();
+            let sequence = journal.begin_session().unwrap().sequence();
 
-        let prepared = advance_live_owned_continued_start_v8(journal, reserved)
-            .unwrap_or_else(|_| panic!("sole actual Start source entry and Prepared ACK"));
+            let prepared = advance_live_owned_continued_start_v8(journal, reserved)
+                .unwrap_or_else(|_| panic!("sole actual Start source entry and Prepared ACK"));
 
-        prepared.validate_live().unwrap();
-        assert_eq!(journal.begin_session().unwrap().sequence(), sequence + 1);
-        assert_eq!(
+            prepared.validate_live().unwrap();
+            assert_eq!(journal.begin_session().unwrap().sequence(), sequence + 1);
+            assert_eq!(
             crate::interpreter::resumable::owned_frame::registered_stage::reduce::PreparedHeldContinuedWaitV2::test_start_entries(),
             entries + 1,
             "Prepared ACK cannot replay Start source"
         );
-        let (_, execution) = journal.context().test_runtime_execution();
-        let model = execution.model();
-        let starts = Rc::new(Cell::new(0));
-        let response = model_document(journal.context());
-        let factory_starts = Rc::clone(&starts);
-        let mut factory = move || -> Box<dyn ProviderAdapter> {
-            let mut capabilities = base_capabilities("owned-wait-inert-test", true);
-            capabilities.max_request_bytes = 65_536;
-            Box::new(DispatchProbe {
-                starts: Rc::clone(&factory_starts),
-                polls: vec![
-                    AdapterPoll::Event(AdapterEvent::Delta(response.clone())),
-                    AdapterPoll::Event(AdapterEvent::Completed),
-                    AdapterPoll::Settled(AdapterSettlement {
-                        response_bytes: response.clone(),
-                        usage: usage(2, 3, 1),
-                    }),
-                ]
-                .into(),
-                capabilities,
-            })
-        };
-        let mut adapter = StreamingSourceProposalAdapter::new_bound_checkpointed(
-            &mut factory,
-            AdapterInvocationCapability::grant("continued Model driver test"),
-            execution.wait().lifecycle().proposal_schema(),
-            model.clone(),
-            model.invocation_capability(),
-            SourceProposalPolicy {
-                deployment_binding: model.digest(),
-                response_limit: execution.ordinary().response_limit(),
-                reservation_units: execution.ordinary().reservation_units(),
-            },
-        )
-        .unwrap_or_else(|_| panic!("actual checked Model adapter"));
-        let model_sequence = journal.begin_session().unwrap().sequence();
-        let resume_entries = crate::interpreter::resumable::owned_frame::registered_stage::live_run::test_continued_resume_entries_v8();
+            let (_, execution) = journal.context().test_runtime_execution();
+            let model = execution.model();
+            let starts = Rc::new(Cell::new(0));
+            let response = model_document(journal.context());
+            let factory_starts = Rc::clone(&starts);
+            let mut factory = move || -> Box<dyn ProviderAdapter> {
+                let mut capabilities = base_capabilities("owned-wait-inert-test", true);
+                capabilities.max_request_bytes = 65_536;
+                Box::new(DispatchProbe {
+                    starts: Rc::clone(&factory_starts),
+                    polls: vec![
+                        AdapterPoll::Event(AdapterEvent::Delta(response.clone())),
+                        AdapterPoll::Event(AdapterEvent::Completed),
+                        AdapterPoll::Settled(AdapterSettlement {
+                            response_bytes: response.clone(),
+                            usage: usage(2, 3, 1),
+                        }),
+                    ]
+                    .into(),
+                    capabilities,
+                })
+            };
+            let mut adapter = StreamingSourceProposalAdapter::new_bound_checkpointed(
+                &mut factory,
+                AdapterInvocationCapability::grant("continued Model driver test"),
+                execution.wait().lifecycle().proposal_schema(),
+                model.clone(),
+                model.invocation_capability(),
+                SourceProposalPolicy {
+                    deployment_binding: model.digest(),
+                    response_limit: execution.ordinary().response_limit(),
+                    reservation_units: execution.ordinary().reservation_units(),
+                },
+            )
+            .unwrap_or_else(|_| panic!("actual checked Model adapter"));
+            let model_sequence = journal.begin_session().unwrap().sequence();
+            let resume_entries = crate::interpreter::resumable::owned_frame::registered_stage::live_run::test_continued_resume_entries_v8();
 
-        let model = advance_live_owned_continued_model_v8(journal, prepared, &adapter)
-            .unwrap_or_else(|_| panic!("actual Model request and ACK"));
+            let model = advance_live_owned_continued_model_v8(journal, prepared, &adapter)
+                .unwrap_or_else(|_| panic!("actual Model request and ACK"));
 
-        assert_eq!(
-            journal.begin_session().unwrap().sequence(),
-            model_sequence + 1
-        );
-        let (_, _, model_turn, _) = journal
-            .begin_session()
-            .unwrap()
-            .continued_model_facts()
-            .unwrap_or_else(|_| panic!("actual continued Model inventory"));
-        assert_eq!(model_turn, 1);
-        let settled_sequence = journal.begin_session().unwrap().sequence();
-        let model = advance_live_owned_continued_dispatch_v8(journal, model, &mut adapter)
-            .unwrap_or_else(|_| panic!("sole SDK dispatch and Settled ACK"));
-        assert_eq!(starts.get(), 1);
-        assert_eq!(
-            journal.begin_session().unwrap().sequence(),
-            settled_sequence + 1
-        );
-        let resume_sequence = journal.begin_session().unwrap().sequence();
-        let model = advance_live_owned_continued_resume_v8(journal, model)
-            .unwrap_or_else(|_| panic!("Usage and Resume ACKs before actual resumed source"));
-        assert_eq!(
-            journal.begin_session().unwrap().sequence(),
-            resume_sequence + 2
-        );
-        let completed_sequence = journal.begin_session().unwrap().sequence();
-        let model = advance_live_owned_continued_completed_v8(journal, model)
-            .unwrap_or_else(|_| panic!("actual Completed ACK"));
-        assert_eq!(
-            journal.begin_session().unwrap().sequence(),
-            completed_sequence + 1
-        );
-        let authorize_sequence = journal.begin_session().unwrap().sequence();
-        let authorization = advance_live_owned_continued_authorize_v8(journal, model)
-            .unwrap_or_else(|_| panic!("five actual authorization ACKs"));
-        assert_eq!(
-            journal.begin_session().unwrap().sequence(),
-            authorize_sequence + 5
-        );
-        let effect_sequence = journal.begin_session().unwrap().sequence();
-        let effect = advance_live_owned_continued_effect_v8(journal, authorization)
-            .unwrap_or_else(|failure| match failure {
-                LiveContinuedEffectDriverFailureV8::Prepare(_) => {
-                    panic!("effect admission before Ready ACK")
-                }
-                LiveContinuedEffectDriverFailureV8::Next(_) => {
-                    panic!("effect Consumed selection after promotion")
-                }
-                LiveContinuedEffectDriverFailureV8::Session { .. } => {
-                    panic!("effect append session")
-                }
-                LiveContinuedEffectDriverFailureV8::Append(_) => panic!("effect physical append"),
-                LiveContinuedEffectDriverFailureV8::Advance(_) => {
-                    panic!("effect Ready promotion or Consumed advance")
-                }
-            });
-        assert_eq!(
-            journal.begin_session().unwrap().sequence(),
-            effect_sequence + 2
-        );
-        assert_eq!(
+            assert_eq!(
+                journal.begin_session().unwrap().sequence(),
+                model_sequence + 1
+            );
+            let (_, _, model_turn, _) = journal
+                .begin_session()
+                .unwrap()
+                .continued_model_facts()
+                .unwrap_or_else(|_| panic!("actual continued Model inventory"));
+            assert_eq!(model_turn, 1);
+            let settled_sequence = journal.begin_session().unwrap().sequence();
+            let model = advance_live_owned_continued_dispatch_v8(journal, model, &mut adapter)
+                .unwrap_or_else(|_| panic!("sole SDK dispatch and Settled ACK"));
+            assert_eq!(starts.get(), 1);
+            assert_eq!(
+                journal.begin_session().unwrap().sequence(),
+                settled_sequence + 1
+            );
+            let resume_sequence = journal.begin_session().unwrap().sequence();
+            let model = advance_live_owned_continued_resume_v8(journal, model)
+                .unwrap_or_else(|_| panic!("Usage and Resume ACKs before actual resumed source"));
+            assert_eq!(
+                journal.begin_session().unwrap().sequence(),
+                resume_sequence + 2
+            );
+            let completed_sequence = journal.begin_session().unwrap().sequence();
+            let model = advance_live_owned_continued_completed_v8(journal, model)
+                .unwrap_or_else(|_| panic!("actual Completed ACK"));
+            assert_eq!(
+                journal.begin_session().unwrap().sequence(),
+                completed_sequence + 1
+            );
+            let authorize_sequence = journal.begin_session().unwrap().sequence();
+            let authorization = advance_live_owned_continued_authorize_v8(journal, model)
+                .unwrap_or_else(|_| panic!("five actual authorization ACKs"));
+            assert_eq!(
+                journal.begin_session().unwrap().sequence(),
+                authorize_sequence + 5
+            );
+            let effect_sequence = journal.begin_session().unwrap().sequence();
+            let effect = advance_live_owned_continued_effect_v8(journal, authorization)
+                .unwrap_or_else(|failure| match failure {
+                    LiveContinuedEffectDriverFailureV8::Prepare(_) => {
+                        panic!("effect admission before Ready ACK")
+                    }
+                    LiveContinuedEffectDriverFailureV8::Next(_) => {
+                        panic!("effect Consumed selection after promotion")
+                    }
+                    LiveContinuedEffectDriverFailureV8::Session { .. } => {
+                        panic!("effect append session")
+                    }
+                    LiveContinuedEffectDriverFailureV8::Append(_) => {
+                        panic!("effect physical append")
+                    }
+                    LiveContinuedEffectDriverFailureV8::Advance(_) => {
+                        panic!("effect Ready promotion or Consumed advance")
+                    }
+                });
+            assert_eq!(
+                journal.begin_session().unwrap().sequence(),
+                effect_sequence + 2
+            );
+            let intent_sequence = journal.begin_session().unwrap().sequence();
+            let intent = advance_live_owned_continued_intent_v8(journal, effect)
+                .unwrap_or_else(|_| panic!("actual effect preparation and Intent ACK"));
+            assert_eq!(
+                journal.begin_session().unwrap().sequence(),
+                intent_sequence + 1
+            );
+            assert_eq!(
             crate::interpreter::resumable::owned_frame::registered_stage::live_run::test_continued_resume_entries_v8(),
             resume_entries + 1,
             "only the fourth Model ACK may resume source"
         );
-        assert!(weak.iter().any(|owner| owner.strong_count() == 1));
+            assert!(weak.iter().any(|owner| owner.strong_count() == 1));
 
-        drop(effect);
-        assert!(weak.iter().all(|owner| owner.upgrade().is_none()));
-    });
+            drop(intent);
+            assert!(weak.iter().all(|owner| owner.upgrade().is_none()));
+        })
+    };
+    std::thread::Builder::new()
+        .stack_size(16 * 1024 * 1024)
+        .spawn(run)
+        .expect("real-chain test thread")
+        .join()
+        .expect("real-chain test completion");
 }
 #[test]
 fn owned_continue_actual_state_and_observe_acks_preserve_owner_ledger_and_cumulative_funding() {

@@ -12,7 +12,8 @@ format: `Unreleased` then release buckets, grouped by impact.
   fixed append and physical release path (#330). Preserve the same State,
   reservation hold and accounting across Started/Settled, cancellation and
   observed release failure. Continued Outcome/Reduce, public execution and
-  restart recovery remain unfinished; focused execution is pending.
+  restart recovery remain unfinished. Compilation passed; bounded test runs
+  were interrupted without completed results, so this increment is unverified.
 
 - Add partial signed-image checks to the standalone Windows doctor spawn using
   held NTFS file/path guards and a retained advisory read oplock (#333).

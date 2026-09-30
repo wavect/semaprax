@@ -807,6 +807,16 @@ Outcome. These checks add no recovered-owner constructor or second journal.
 Focused owning tests cover genuine second-target success, host failure and
 result-budget failure, exact compiler vectors and coordinates, cancellation,
 observer panic, and both cleanup ACK rows at all four physical fault windows.
-Execution is pending until the focused gate runs. This private cleanup boundary
-ends at the retained actual Settled holder; continued Outcome/Reduce, terminal
-publication, public multi-turn entry and restart recovery remain unfinished.
+Verification remains incomplete. The focused selector compiled at `f16519438`
+with the default test-thread stack, one build job, debug information disabled
+and incremental compilation disabled. Before the cumulative holders were boxed,
+the first test aborted with stack overflow. After boxing, the six-test selector
+was interrupted after 12 minutes of runtime without a completed test; the exact
+single-fixture cancellation-refusal test was then interrupted after 9 minutes
+without a result. No behavioral gate is claimed passed. The full quality profile
+was not run under the bounded-test instruction.
+
+This private cleanup boundary ends at the retained actual Settled holder;
+continued Outcome/Reduce, terminal publication, public multi-turn entry and
+restart recovery remain unfinished. It is an explicitly unverified increment,
+not completion of the public owned-Agent lifecycle criterion.

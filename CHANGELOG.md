@@ -23,13 +23,13 @@ format: `Unreleased` then release buckets, grouped by impact.
   production or release-trust support is promoted.
 
 - Retain catalog-normalizer's 100,000,000-step maximal-response requirement
-  (#324) in the complete application selector. Its phase cursor emits complete
-  output segments, omits redundant per-byte token-length arguments, and keeps
-  byte-level mode/raw-control dispatch separate from record-transition cleanup
-  paths. Record the 160,000,000-step library ceiling only as the current
-  execution capacity and retain the separate 2,000,000-step source-suite
-  bound. The frozen oracle, corpus, response capacity, mutation controls and
-  backend lanes are unchanged.
+  (#324) in the complete application selector. Its scalar phase encoder now
+  omits redundant per-byte token-length arguments while retaining the scalar
+  dispatch boundary that keeps mode and raw-control branches outside the owned
+  writer's cleanup-replay skeleton. Record the 160,000,000-step library
+  ceiling only as the current execution capacity and retain the separate
+  2,000,000-step source-suite bound. The frozen oracle, corpus, response
+  capacity, mutation controls and backend lanes are unchanged.
 
 - Add the explicit `endpoint Bytes` session profile, connecting checked protocol
   order to a unique source carrier through local moves and terminal consumption.

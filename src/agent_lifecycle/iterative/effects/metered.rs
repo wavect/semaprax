@@ -2,7 +2,9 @@
 use super::*;
 use crate::agent_lifecycle::authorization::{target_protocol::TargetHostHandler, StageBackend};
 use crate::agent_lifecycle::iterative::driver::ProposalSource;
-use crate::interpreter::retained_call::SemanticWork;
+use crate::interpreter::retained_call::{
+    PreparedRetainedCall, RetainedCallEvaluation, SemanticWork,
+};
 use std::cell::RefCell;
 
 /// One settled stage's observed work, in lifecycle execution order.
@@ -44,7 +46,69 @@ impl MeteredTargetEffectRun {
     }
 }
 
+/// One selected target evaluation of a retained call used by a durable
+/// migration. The binding identifies the held target and the exact typed
+/// registry; the evaluation keeps instruction steps separate from the
+/// backend-neutral semantic-work receipt.
+pub(crate) struct MeteredTargetRetainedCall {
+    pub(crate) evaluation: RetainedCallEvaluation,
+    pub(crate) execution_binding: String,
+}
+
 impl CompiledTypedEffects {
+    /// Refuse a selected migration target before that migration reserves fuel
+    /// or invokes a compiler/runtime. This is intentionally separate from
+    /// execution so migration's existing reservation accounting stays exact.
+    pub(crate) fn validate_target_retained_call_metered(
+        &self,
+        program: &crate::hir::ResolvedProgram,
+        prepared: &PreparedRetainedCall,
+        selected: TargetStageBackend<'_>,
+        semantic_fuel_limit: u64,
+    ) -> Result<(), Vec<Diagnostic>> {
+        let _ = self.selected_target_backend(selected)?;
+        crate::agent_lifecycle::authorization::StageSemanticProfile::admit(
+            program,
+            prepared.function_id(),
+            semantic_fuel_limit,
+        )
+        .map_err(|error| vec![error])?;
+        Ok(())
+    }
+
+    /// Execute one already-admitted migration call through the same sealed
+    /// target dispatcher as Agent stages. A selected target is always
+    /// semantically metered; there is no unmetered or interpreter fallback.
+    pub(crate) fn execute_target_retained_call_metered(
+        &self,
+        program: &crate::hir::ResolvedProgram,
+        prepared: &PreparedRetainedCall,
+        arguments: &[RetainedValue],
+        max_steps: usize,
+        selected: TargetStageBackend<'_>,
+        semantic_fuel_limit: u64,
+    ) -> Result<MeteredTargetRetainedCall, Vec<Diagnostic>> {
+        let backend = self.selected_target_backend(selected)?;
+        let target_binding = self.target_execution_binding(backend);
+        let execution_binding = digest(
+            b"semaprax.agent-migration-target-execution.v1\0",
+            format!("{target_binding}\0{semantic_fuel_limit}").as_bytes(),
+        );
+        let evaluation = crate::agent_lifecycle::authorization::dispatch_on_metered(
+            backend,
+            program,
+            prepared,
+            arguments,
+            max_steps,
+            semantic_fuel_limit,
+            None,
+        )?;
+        Ok(MeteredTargetRetainedCall {
+            evaluation,
+            execution_binding,
+        })
+    }
+
     /// Run the public target lifecycle with Agent Stage Semantic Work v1.
     ///
     /// Each stage admits its reachable metered profile before target execution.

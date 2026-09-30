@@ -3063,8 +3063,10 @@ private `MigrationSeed` is the only initial-state entry to the iterative driver;
 `iterative/effects/continuation` carries cumulative usage and binds subsequent
 execution to that seed. Its opt-in `run_with_backend` selects a caller-held
 native or Core Wasm stage backend for the in-memory migrated continuation;
-the pure migration call still evaluates on the interpreter, and the default
-continuation remains interpreter-selected. `typed_migration/handoff` owns the bounded handoff
+`migrate_suspended_agent_runtime_v2_with_backend` uses the same sealed target
+dispatcher for both pure evaluations, with separately bound semantic fuel and
+target-specific instruction/cleanup receipts. The default migration and
+continuation remain interpreter-selected. `typed_migration/handoff` owns the bounded handoff
 codec, while `typed_migration/durable` commits the handoff before destination
 work and recovers only against caller-trusted snapshots and independently bound
 runtime roots. The recovered object exposes only durable execution.

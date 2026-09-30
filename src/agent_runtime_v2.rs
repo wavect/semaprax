@@ -24,9 +24,10 @@ pub use source_model::{
 };
 
 pub use crate::execution_revision::typed::{
-    migrate_suspended_agent_runtime_v2, resume_migrated_agent_runtime_v2,
-    AgentRuntimeV2MigrationEvidence, AgentRuntimeV2MigrationFailure, DurableMigrationFailure,
-    MigratedAgentRuntimeV2, ResumedMigratedAgentRuntimeV2,
+    migrate_suspended_agent_runtime_v2, migrate_suspended_agent_runtime_v2_with_backend,
+    resume_migrated_agent_runtime_v2, AgentRuntimeV2MigrationEvidence,
+    AgentRuntimeV2MigrationFailure, DurableMigrationFailure, MigratedAgentRuntimeV2,
+    ResumedMigratedAgentRuntimeV2,
 };
 
 pub use live_smoke::{

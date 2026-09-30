@@ -44,8 +44,10 @@ signature, or a non-deterministic result fails before destination execution.
 
 ## Roots, budgets, and state
 
-The linked migration root is additive `semaprax.agent-state-migration.v3`.
-Its `linked_sources` object contains `previous` and `destination` associations,
+The ordinary linked migration root is additive `semaprax.agent-state-migration.v3`.
+Selected target execution uses additive `semaprax.agent-state-migration.v4` and
+retains the same linked fields plus its two semantic-work target receipts. Its
+`linked_sources` object contains `previous` and `destination` associations,
 with null for a direct source side. The previous linked association is
 `semaprax.agent-linked-source.v1`; the destination migration association is
 `semaprax.agent-linked-migration-source.v1`, which additionally binds

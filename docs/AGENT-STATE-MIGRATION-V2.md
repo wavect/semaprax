@@ -90,5 +90,31 @@ The library refusal gate is
 Held-target tests require explicitly opened `clang` and `node` tools and skip
 when those optional tools are unavailable; skipped legs are not target evidence.
 Executed local legs do not establish hosted evidence. The pure `OldState -> NewState` migration call
-still executes twice on the interpreter during preparation. This addition does
-not add durable semantic metering or a new checkpoint format.
+still executes twice on the interpreter during ordinary preparation.
+
+## Held-target pure migration and durable metering
+
+`migrate_suspended_agent_runtime_v2_with_backend` evaluates the same checked
+pure call twice on the caller-selected Interpreter, held native C11, or held
+Core Wasm target. It requires a separate semantic-fuel limit in the admitted
+`1..=1_000_000` interval. This limit charges the existing semantic events, not
+interpreter instructions: the two compiled backends report zero instruction
+steps while all three targets report the same semantic fuel and termination
+facts. Native and Wasm additionally retain their ordered physical cleanup-plan
+finalizer events; the interpreter reports no physical finalizer sequence.
+
+The selected target and semantic-fuel limit are checked before migration fuel
+is reserved. Missing retained Wasm source or an unsupported semantic closure
+therefore refuses before a compiler, runtime, or destination handoff can run.
+The resulting additive `semaprax.agent-state-migration.v4` root binds both
+metered evaluations, their target-specific instruction and cleanup observations,
+and the target/registry binding. The v4 root becomes part of the existing
+durable handoff, so recovery restores the already charged migration result and
+does not repeat either target evaluation. The ordinary v1-v3 roots, reservation
+accounting, handoff wire, and interpreter-default API remain unchanged.
+
+The focused target gate is
+`cargo test --locked -p semaprax --test agent_runtime_v1 selected_migration_continuation_preserves_state_usage_and_precancellation`.
+It uses a real durable suspension, checks all three held target selections for
+both pure migration and continuation, and distinguishes target instruction
+counts from common semantic charges and target cleanup observations.

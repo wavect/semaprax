@@ -4,7 +4,8 @@ use semaprax::agent_lifecycle::iterative::{
 };
 use semaprax::agent_lifecycle::{CheckpointStore, CheckpointStoreError};
 use semaprax::agent_runtime_v2::{
-    bind_agent_runtime_v2, migrate_suspended_agent_runtime_v2, AgentRuntimeV2,
+    bind_agent_runtime_v2, migrate_suspended_agent_runtime_v2,
+    migrate_suspended_agent_runtime_v2_with_backend, AgentRuntimeV2,
 };
 use semaprax::execution_revision::ProgramRootRef;
 
@@ -408,6 +409,7 @@ fn selected_migration_continuation_preserves_state_usage_and_precancellation() {
     };
     let (old_fixture, new_fixture, effects) = migration_fixtures();
     let mut expected = None;
+    let mut expected_migration_work = None;
     for cancelled in [false, true] {
         for selected in [
             None,
@@ -440,17 +442,81 @@ fn selected_migration_continuation_preserves_state_usage_and_precancellation() {
             let prior_stages = suspended.run().run().lifecycle().stages().len();
             let destination = runtime(&new_fixture, b"fresh destination input", effects).unwrap();
             let after = destination.execution_revision().digest().to_owned();
-            let migration = migrate_suspended_agent_runtime_v2(
-                previous,
-                suspended,
-                destination,
-                &before,
-                &after,
-                "fixture.agent.fn.migrate",
-                10_000,
-                10_000_000,
-            )
+            let migration = match selected {
+                None => migrate_suspended_agent_runtime_v2(
+                    previous,
+                    suspended,
+                    destination,
+                    &before,
+                    &after,
+                    "fixture.agent.fn.migrate",
+                    10_000,
+                    10_000_000,
+                ),
+                Some(selected) => migrate_suspended_agent_runtime_v2_with_backend(
+                    previous,
+                    suspended,
+                    destination,
+                    &before,
+                    &after,
+                    "fixture.agent.fn.migrate",
+                    10_000,
+                    10_000_000,
+                    selected,
+                    10_000,
+                ),
+            }
             .unwrap();
+            let migration_root: serde_json::Value =
+                serde_json::from_str(migration.migration_root().canonical_json()).unwrap();
+            if let Some(selected) = selected {
+                assert_eq!(
+                    migration_root["schema"],
+                    "semaprax.agent-state-migration.v4"
+                );
+                let target = &migration_root["facts"]["target_execution"];
+                assert!(target["execution_binding"]
+                    .as_str()
+                    .is_some_and(|binding| binding.starts_with("sha256:")));
+                assert_eq!(target["semantic_fuel_limit"], 10_000);
+                for evaluation in target["evaluations"].as_array().unwrap() {
+                    let work = &evaluation["semantic_work"];
+                    assert_eq!(work["fuel_limit"], 10_000);
+                    assert!(work["fuel_used"].as_u64().unwrap() > 0);
+                    assert!(!work["exhausted"].as_bool().unwrap());
+                    if matches!(selected, TargetStageBackend::Interpreter) {
+                        assert!(evaluation["instruction_steps"].as_u64().unwrap() > 0);
+                        assert!(work["finalizer_events"].is_null());
+                    } else {
+                        assert_eq!(evaluation["instruction_steps"], 0);
+                        assert!(work["finalizer_events"].is_array());
+                    }
+                }
+                let common_work = target["evaluations"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .map(|evaluation| {
+                        let work = &evaluation["semantic_work"];
+                        (
+                            work["fuel_used"].clone(),
+                            work["fuel_limit"].clone(),
+                            work["exhausted"].clone(),
+                        )
+                    })
+                    .collect::<Vec<_>>();
+                if let Some(expected) = &expected_migration_work {
+                    assert_eq!(&common_work, expected);
+                } else {
+                    expected_migration_work = Some(common_work);
+                }
+            } else {
+                assert_ne!(
+                    migration_root["schema"],
+                    "semaprax.agent-state-migration.v4"
+                );
+                assert!(migration_root["facts"].get("target_execution").is_none());
+            }
             let cancellation = AgentCancellation::new();
             if cancelled {
                 cancellation.cancel();
@@ -522,6 +588,11 @@ fn selected_migration_continuation_preserves_state_usage_and_precancellation() {
                     } else {
                         assert_eq!(instruction_steps, 0);
                     }
+                }
+                {
+                    let facts = lifecycle_facts.as_object_mut().unwrap();
+                    facts.remove("authorizations");
+                    facts.remove("invocation_digest");
                 }
                 let observed = (
                     lifecycle.value().cloned(),

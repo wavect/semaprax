@@ -123,5 +123,12 @@ route continues to select the interpreter. Additive `run_durable_with_backend`
 on fresh and resumed migrated runtimes selects an explicitly held native or
 Core Wasm stage host through the same checked handoff and persisted journal.
 Invalid Core Wasm source selection is refused before the destination handoff
-is staged. The parity evidence above is local; hosted migration evidence and
-full target cleanup-event parity remain open.
+is staged. Additive
+`migrate_suspended_agent_runtime_v2_with_backend` selects that same held target
+for the consuming pure migration before the handoff is created. It records two
+metered migration evaluations in the v4 migration root: instruction steps and
+physical finalizer events remain target-specific, while semantic fuel is the
+common charge. The root is immutable handoff input, so a recovered destination
+does not repeat either evaluation or charge. The parity evidence above is
+local; hosted migration evidence and full target cleanup-event parity remain
+open.

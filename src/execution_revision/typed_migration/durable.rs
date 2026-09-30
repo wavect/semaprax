@@ -324,11 +324,21 @@ pub fn resume_migrated_agent_runtime_v2(
         "previous_state",
         "migrated_state",
     ];
-    let chained = schema == "semaprax.agent-state-migration.v2";
-    let linked_schema = schema == "semaprax.agent-state-migration.v3";
-    if (!chained && !linked_schema && schema != "semaprax.agent-state-migration.v1")
+    let target_schema = schema == "semaprax.agent-state-migration.v4";
+    let linked_schema = schema == "semaprax.agent-state-migration.v3"
+        || (target_schema && facts["linked_sources"].is_object());
+    let chained = schema == "semaprax.agent-state-migration.v2"
+        || (target_schema && !linked_schema && facts["previous_handoff"].is_string());
+    if (!target_schema
+        && !chained
+        && !linked_schema
+        && schema != "semaprax.agent-state-migration.v1")
         || facts.as_object().is_none_or(|map| {
-            map.len() != fields.len() + usize::from(chained) + 2 * usize::from(linked_schema)
+            map.len()
+                != fields.len()
+                    + usize::from(target_schema)
+                    + usize::from(chained)
+                    + 2 * usize::from(linked_schema)
         })
         || fields.iter().any(|field| facts.get(*field).is_none())
         || chained
@@ -340,6 +350,7 @@ pub fn resume_migrated_agent_runtime_v2(
                 || !(facts["previous_handoff"].is_null()
                     || facts["previous_handoff"].as_str().is_some_and(hash_valid))
                 || !facts["linked_sources"].is_object())
+        || target_schema && !target_execution_valid(&facts["target_execution"])
     {
         return Err(refused("migration.handoff.root"));
     }
@@ -420,6 +431,66 @@ pub fn resume_migrated_agent_runtime_v2(
         },
         snapshot,
     })
+}
+
+fn target_execution_valid(value: &Value) -> bool {
+    let Some(target) = value.as_object() else {
+        return false;
+    };
+    if target.len() != 3
+        || !target
+            .get("execution_binding")
+            .and_then(Value::as_str)
+            .is_some_and(hash_valid)
+        || !target
+            .get("semantic_fuel_limit")
+            .and_then(Value::as_u64)
+            .is_some_and(|limit| (1..=1_000_000).contains(&limit))
+    {
+        return false;
+    }
+    let Some(evaluations) = target.get("evaluations").and_then(Value::as_array) else {
+        return false;
+    };
+    evaluations.len() == 2
+        && evaluations.iter().all(|evaluation| {
+            target_evaluation_valid(evaluation, target["semantic_fuel_limit"].as_u64())
+        })
+}
+
+fn target_evaluation_valid(value: &Value, expected_limit: Option<u64>) -> bool {
+    let Some(evaluation) = value.as_object() else {
+        return false;
+    };
+    let Some(work) = evaluation.get("semantic_work").and_then(Value::as_object) else {
+        return false;
+    };
+    evaluation.len() == 3
+        && evaluation
+            .get("instruction_steps")
+            .and_then(Value::as_u64)
+            .is_some()
+        && evaluation
+            .get("copy_out_cleanup_events")
+            .and_then(Value::as_u64)
+            .is_some()
+        && work.len() == 4
+        && work.get("fuel_used").and_then(Value::as_u64).is_some()
+        && work.get("fuel_limit").and_then(Value::as_u64) == expected_limit
+        && work.get("exhausted").and_then(Value::as_bool).is_some()
+        && work
+            .get("finalizer_events")
+            .is_some_and(|events| match events {
+                Value::Null => true,
+                Value::Array(events) => events.iter().all(|event| {
+                    event.as_array().is_some_and(|row| {
+                        row.len() == 2
+                            && row[0].as_str().is_some_and(|function| !function.is_empty())
+                            && row[1].as_u64().is_some()
+                    })
+                }),
+                _ => false,
+            })
 }
 fn hash_valid(value: &str) -> bool {
     value.len() == 71

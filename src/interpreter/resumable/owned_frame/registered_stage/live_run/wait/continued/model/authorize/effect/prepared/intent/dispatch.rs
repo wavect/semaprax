@@ -7,7 +7,7 @@ use crate::interpreter::resumable::owned_frame::registered_stage::effect::{
 use crate::live_invocation::source_journal::LiveContinuedSettlementPermitV8;
 pub(crate) struct LiveContinuedDispatchedEffectV8<'j> {
     owner: Option<StagedOwnedEffectV8<'j>>,
-    released: Option<Result<crate::interpreter::resumable::owned_frame::registered_stage::effect::PendingOwnedEffectReceiptV8<'j>, crate::interpreter::resumable::owned_frame::registered_stage::effect::LiveEffectDecisionReleaseFailureV8<'j>>>,
+    released: Option<Box<Result<crate::interpreter::resumable::owned_frame::registered_stage::effect::PendingOwnedEffectReceiptV8<'j>, crate::interpreter::resumable::owned_frame::registered_stage::effect::LiveEffectDecisionReleaseFailureV8<'j>>>>,
     predecessor: PreparedHeldContinuedWaitV2<'j>,
     helper_consumed: (u64, u64),
     authorize_consumed: u64,
@@ -158,7 +158,7 @@ impl<'j> LiveContinuedDispatchedEffectV8<'j> {
             release_with_guard_v8(owner, DecisionCleanupGuardV8::Continued(permit), observe);
         let success = released.is_ok();
         // Every outcome retains its physical owner, including partial release.
-        self.released = Some(released);
+        self.released = Some(Box::new(released));
         if success {
             permit.validate_cleanup_current()
         } else {
@@ -167,7 +167,7 @@ impl<'j> LiveContinuedDispatchedEffectV8<'j> {
         }
     }
     pub(crate) fn decision_receipt(&self) -> Result<&serde_json::Value, SourceJournalError> {
-        match self.released.as_ref() {
+        match self.released.as_deref() {
             Some(Ok(owner)) => Ok(owner.receipt()),
             _ => Err(SourceJournalError::Order),
         }

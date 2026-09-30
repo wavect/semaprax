@@ -197,7 +197,7 @@ fn started<'j>(
         panic!("continued Started")
     };
     owner.validate_live().unwrap();
-    owner
+    *owner
 }
 #[test]
 fn owned_continued_cleanup_actual_release_and_receipt_keep_state_and_spent_hold() {

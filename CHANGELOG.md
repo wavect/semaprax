@@ -33,6 +33,8 @@ format: `Unreleased` then release buckets, grouped by impact.
   generation exposed its current known answer.
   Index the Kernel-0 accepted-revision validation document and highlight the
   session-protocol `endpoint` keyword in the VS Code grammar.
+  Give the Source Agent owned-wait contract a separate audience field and
+  catalog entry so the documentation gate covers it.
 
 - Add a closed acceptance-record format for #328's Kernel-0 rung-2 decision.
   It requires every local receipt to bind to one selected revision or an exact

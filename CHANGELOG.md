@@ -8,6 +8,11 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Dispatch the real owned-wait v8 next-turn effect through an explicit host
+  handler once, then persist ordinary settlement and settlement-record ACKs
+  (#330). The focused real-chain selector passed 1/1 locally; public entry,
+  durable process recovery, and later cleanup remain open.
+
 - Advance the real owned-wait v8 next-turn effect owner through guarded
   preparation and a durable Intent ACK (#330). The focused real-chain
   selector passed 1/1 locally with no effect host dispatch. Actual effect

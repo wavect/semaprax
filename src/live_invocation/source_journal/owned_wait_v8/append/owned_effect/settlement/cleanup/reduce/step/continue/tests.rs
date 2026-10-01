@@ -2,6 +2,9 @@
 use super::*;
 use crate::agent_lifecycle::iterative::source_live::SourceProposalPolicy;
 use crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect::authorization::step::LiveMovedStepV8;
+use crate::agent_lifecycle::authorization::target_protocol::{
+    TargetHostError, TargetHostHandler, TargetHostRequest, TargetResponseSink, TypedCarrier,
+};
 use crate::agent_runtime::AgentCancellation;
 use crate::live_invocation::{InvocationClock,SourceInvocationClock};
 use crate::provider_adapter_sdk::adapter::{
@@ -17,6 +20,26 @@ use std::cell::Cell;
 use std::collections::VecDeque;
 use std::rc::Rc;
 use std::sync::Arc;
+struct ActualEffectProbe {
+    calls: usize,
+}
+impl TargetHostHandler for ActualEffectProbe {
+    fn dispatch(
+        &mut self,
+        request: &TargetHostRequest,
+        sink: &mut TargetResponseSink,
+    ) -> Result<(), TargetHostError> {
+        self.calls += 1;
+        let payload =
+            b"{\"schema\":\"semaprax.agent-effect-fields.v1\",\"fields\":[[\"value\",\"9\"]]}\n"
+                .to_vec();
+        let wire = TypedCarrier::new(request.operation().result_type(), payload)
+            .unwrap_or_else(|_| panic!("actual effect response"))
+            .encode();
+        sink.write(&wire).map_err(|_| TargetHostError::Failed)
+    }
+}
+
 struct DispatchProbe {
     starts: Rc<Cell<usize>>,
     polls: VecDeque<AdapterPoll>,
@@ -311,6 +334,37 @@ fn owned_continue_driver_dispatches_next_turn_model_once_and_records_settlement(
                 journal.begin_session().unwrap().sequence(),
                 intent_sequence + 1
             );
+            let settlement_sequence = journal.begin_session().unwrap().sequence();
+            let mut host = ActualEffectProbe { calls: 0 };
+            let recorded =
+                advance_live_owned_continued_effect_dispatch_v8(journal, intent, &mut host)
+                    .unwrap_or_else(|_| {
+                        panic!("one actual effect host dispatch and two settlement ACKs")
+                    });
+            assert_eq!(host.calls, 1, "actual effect host dispatch exactly once");
+            assert_eq!(
+                journal.begin_session().unwrap().sequence(),
+                settlement_sequence + 2,
+                "ordinary settlement and owned settlement-record rows"
+            );
+            recorded
+                .validate_live()
+                .unwrap_or_else(|_| panic!("recorded settlement owner"));
+            let settlement_session = journal.begin_session().unwrap();
+            let (_, _, settlement_turn, settlement_row) = settlement_session.continued_settlement_facts()
+                .unwrap_or_else(|_| panic!("recorded continued settlement inventory"));
+            assert_eq!(settlement_turn, 1);
+            assert!(matches!(
+                settlement_row,
+                crate::live_invocation::source_journal::owned_wait_v8::EntryV8::Owned(
+                    crate::live_invocation::source_journal::owned_wait_v8::model::OwnedBodyV8::OwnedEffectSettlementRecorded {
+                        turn: 1,
+                        attempt: 0,
+                        settlement,
+                        ..
+                    }
+                ) if *settlement == u32::try_from(settlement_sequence).unwrap()
+            ));
             assert_eq!(
             crate::interpreter::resumable::owned_frame::registered_stage::live_run::test_continued_resume_entries_v8(),
             resume_entries + 1,
@@ -318,7 +372,7 @@ fn owned_continue_driver_dispatches_next_turn_model_once_and_records_settlement(
         );
             assert!(weak.iter().any(|owner| owner.strong_count() == 1));
 
-            drop(intent);
+            drop(recorded);
             assert!(weak.iter().all(|owner| owner.upgrade().is_none()));
         })
     };

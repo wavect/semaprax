@@ -624,6 +624,87 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_live_ow
         .advance_intent()
         .map_err(LiveContinuedIntentDriverFailureV8::Advance)
 }
+
+pub(in crate::live_invocation::source_journal::owned_wait_v8) enum LiveContinuedEffectDispatchDriverFailureV8<
+    'j,
+> {
+    Dispatch(crate::live_invocation::source_journal::owned_wait_v8::live_upstream::LiveContinuedDispatchFailureV8<'j>),
+    Settlement(crate::live_invocation::source_journal::owned_wait_v8::live_upstream::LiveContinuedSettlementAcknowledgmentFailureV8<'j>),
+    SettlementSession {
+        owner: crate::live_invocation::source_journal::owned_wait_v8::live_upstream::LiveOwnedContinuedSettlementAppendV8<'j>,
+        error: SourceJournalError,
+    },
+    SettlementAppend(crate::live_invocation::source_journal::owned_wait_v8::append::LiveOwnedContinuedSettlementAppendFailureV8<'j>),
+    SettlementAdvance(crate::live_invocation::source_journal::owned_wait_v8::live_upstream::LiveContinuedSettlementAcknowledgmentFailureV8<'j>),
+    SettlementShape(crate::live_invocation::source_journal::owned_wait_v8::live_upstream::LiveContinuedSettlementAcknowledgedV8<'j>),
+    Recorded(crate::live_invocation::source_journal::owned_wait_v8::live_upstream::LiveContinuedSettlementAcknowledgmentFailureV8<'j>),
+    RecordedSession {
+        owner: crate::live_invocation::source_journal::owned_wait_v8::live_upstream::LiveOwnedContinuedSettlementAppendV8<'j>,
+        error: SourceJournalError,
+    },
+    RecordedAppend(crate::live_invocation::source_journal::owned_wait_v8::append::LiveOwnedContinuedSettlementAppendFailureV8<'j>),
+    RecordedAdvance(crate::live_invocation::source_journal::owned_wait_v8::live_upstream::LiveContinuedSettlementAcknowledgmentFailureV8<'j>),
+    RecordedShape(crate::live_invocation::source_journal::owned_wait_v8::live_upstream::LiveContinuedSettlementAcknowledgedV8<'j>),
+}
+
+/// Dispatches the activated continuation once, then durably acknowledges its
+/// ordinary settlement and settlement-record row. Receipt bytes never grant
+/// this authority: the explicit host handler and unique live owner do.
+pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_live_owned_continued_effect_dispatch_v8<'j>(
+    journal: &'j SourceOwnedWaitJournalV8,
+    activated: crate::live_invocation::source_journal::owned_wait_v8::live_upstream::LiveActivatedContinuedEffectV8<'j>,
+    handler: &mut dyn crate::agent_lifecycle::authorization::target_protocol::TargetHostHandler,
+) -> Result<crate::live_invocation::source_journal::owned_wait_v8::live_upstream::LiveRecordedContinuedEffectV8<'j>, LiveContinuedEffectDispatchDriverFailureV8<'j>>{
+    let dispatched = activated
+        .dispatch(handler)
+        .map_err(LiveContinuedEffectDispatchDriverFailureV8::Dispatch)?;
+    let settlement = dispatched
+        .prepare_settlement()
+        .map_err(LiveContinuedEffectDispatchDriverFailureV8::Settlement)?;
+    let session = match journal.begin_session() {
+        Ok(session) => session,
+        Err(error) => {
+            return Err(
+                LiveContinuedEffectDispatchDriverFailureV8::SettlementSession {
+                    owner: settlement,
+                    error,
+                },
+            )
+        }
+    };
+    let settled = match session
+        .append_owned_continued_settlement(settlement)
+        .map_err(LiveContinuedEffectDispatchDriverFailureV8::SettlementAppend)?
+        .advance_settlement()
+        .map_err(LiveContinuedEffectDispatchDriverFailureV8::SettlementAdvance)?
+    {
+        crate::live_invocation::source_journal::owned_wait_v8::live_upstream::LiveContinuedSettlementAcknowledgedV8::Settled(owner) => owner,
+        owner => return Err(LiveContinuedEffectDispatchDriverFailureV8::SettlementShape(owner)),
+    };
+    let recorded = settled
+        .prepare_recorded()
+        .map_err(LiveContinuedEffectDispatchDriverFailureV8::Recorded)?;
+    let session = match journal.begin_session() {
+        Ok(session) => session,
+        Err(error) => {
+            return Err(
+                LiveContinuedEffectDispatchDriverFailureV8::RecordedSession {
+                    owner: recorded,
+                    error,
+                },
+            )
+        }
+    };
+    match session
+        .append_owned_continued_settlement(recorded)
+        .map_err(LiveContinuedEffectDispatchDriverFailureV8::RecordedAppend)?
+        .advance_settlement()
+        .map_err(LiveContinuedEffectDispatchDriverFailureV8::RecordedAdvance)?
+    {
+        crate::live_invocation::source_journal::owned_wait_v8::live_upstream::LiveContinuedSettlementAcknowledgedV8::Recorded(owner) => Ok(owner),
+        owner => Err(LiveContinuedEffectDispatchDriverFailureV8::RecordedShape(owner)),
+    }
+}
 impl<'j> AppendSessionV8<'j> {
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn append_owned_continue(
         self,

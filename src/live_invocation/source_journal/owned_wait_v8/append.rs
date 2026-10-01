@@ -1461,4 +1461,5 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) use continued_inte
 pub(super) use continued_intent::VerifiedOwnedContinuedIntentSuccessorV8;
 
 mod continued_settlement;
+pub(in crate::live_invocation::source_journal::owned_wait_v8) use continued_settlement::LiveOwnedContinuedSettlementAppendFailureV8;
 pub(super) use continued_settlement::VerifiedOwnedContinuedSettlementSuccessorV8;

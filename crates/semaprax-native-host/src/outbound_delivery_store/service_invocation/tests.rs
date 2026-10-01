@@ -558,3 +558,6 @@ fn failing_telemetry_sink_does_not_change_delivery_outcome_and_never_leaks_the_s
         "the telemetry evidence's own Debug rendering must never contain the raw secret"
     );
 }
+
+#[path = "tests/authenticated_intent.rs"]
+mod authenticated_intent;

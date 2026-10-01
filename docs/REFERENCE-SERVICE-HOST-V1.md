@@ -118,6 +118,14 @@ durable marker already exists, so the retry settles `Uncertain` instead of
 redispatching. Fixture mode stays separate: fixture-mode configuration is
 refused here and keeps running on `semaprax run` / `semaprax test`.
 
+The additive authenticated HTTP intent storage primitive is specified in
+[Outbound Host Adapter v1](OUTBOUND-HOST-ADAPTER-V1.md#authenticated-service-http-intent-facts).
+It can retain an authenticated timestamp and actual body commitment under the
+same no-redispatch marker name, including explicit legacy-marker refusal.
+This prerequisite is not yet wired to this host: v1 JSON-event bytes remain
+unchanged, and an opt-in versioned signed-timestamp envelope plus checked
+webhook source-policy invocation remain open.
+
 ## Run bundle
 
 `serve` (and the standalone `bundle` subcommand) writes a digest-bound

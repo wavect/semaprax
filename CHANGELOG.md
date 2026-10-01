@@ -8,6 +8,11 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Retain authenticated HTTP intent facts for checked webhook admission (#336):
+  the native host records an HMAC-bound body digest, signing timestamp, and
+  first-attempt reservation under the existing no-redispatch marker name.
+  Legacy and invalid records cannot supply invented prior facts.
+
 - Append turn-two `OwnedWaitPrepared` from the retained physical Parked owner
   (#330), using the existing fixed writer and cumulative hold. The focused
   success and prewrite-refusal selectors passed locally; later Model and

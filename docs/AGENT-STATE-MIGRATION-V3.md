@@ -154,6 +154,17 @@ handoff: the durable facade refuses an absent, unmetered, or differently bound
 target before its destination handoff reservation or host work. The full
 acceptance gate remains open.
 
+The durable target-cleanup selector also starts the metered destination from
+the migration seed and compares its ordered physical finalizer vector with the
+equivalent fresh durable run and both recoveries. The retained checkpoint and
+durable semantic-work evidence are independent read-only serializations of
+those target observations: recovery retains the verified prior vector before
+appending the newly charged current vector, while its evidence records that
+current suffix. Both focused cases passed locally; their equality is local
+parity evidence only and does not turn
+a migration receipt into authority to execute a finalizer or target stage.
+Hosted migration evidence and the full profile remain open.
+
 On Linux, `sanitized_held_native_migration_and_recovery` opens a test-only held
 clang wrapper which adds ASan and UBSan to every generated native stage compile,
 requires both symbol families from the generated executable, and then exercises

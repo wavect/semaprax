@@ -278,6 +278,22 @@ fn run_migration_seed_metered(
     store: &mut Store,
     retained: Option<&str>,
 ) -> Result<super::super::MeteredDurableTypedRun, DurableTypedFailure> {
+    run_migration_seed_metered_selected(
+        compiled,
+        handler,
+        store,
+        retained,
+        super::super::TargetStageBackend::Interpreter,
+    )
+}
+
+fn run_migration_seed_metered_selected(
+    compiled: &CompiledTypedEffects,
+    handler: &mut Handler,
+    store: &mut Store,
+    retained: Option<&str>,
+    selected: super::super::TargetStageBackend<'_>,
+) -> Result<super::super::MeteredDurableTypedRun, DurableTypedFailure> {
     let seed = migration_seed();
     compiled.run_durable_from_seed_metered_with_backend(
         &task(),
@@ -292,10 +308,12 @@ fn run_migration_seed_metered(
         store,
         10_000_000,
         &seed,
-        super::super::TargetStageBackend::Interpreter,
+        selected,
         100,
     )
 }
+
+mod target_cleanup_parity;
 
 #[test]
 fn fresh_durable_semantic_metering_records_every_committed_stage() {

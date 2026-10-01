@@ -8,6 +8,11 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Assert ordered target cleanup-event parity for durable fresh, ordinary
+  recovery, migration-seeded, and seeded-recovery Agent runs (#327). Checkpoint
+  prefix/current-suffix and independent evidence controls passed locally 2/2;
+  hosted migration and the full target profile remain open.
+
 - Resume the actual turn-two Parked wait after its exact reservation ACK and
   append `OwnedWaitCompleted` only from a checked Resumed State (#330). The
   owning success and Completed-prewrite refusal selectors passed locally;

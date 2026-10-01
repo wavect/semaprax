@@ -8,6 +8,11 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Carry the actual later-turn Observe owner into `OwnedWaitCreated` and Start
+  reservation (#330), retaining its State/Copy observation and two ACKs. The
+  focused success and prewrite-refusal selectors passed locally; later source
+  entry and public recovery remain open.
+
 - Cover lost terminal acknowledgement during metered target migration recovery
   (#327). The integration regression checks paired replay fuel reservations and
   semantic-work receipts, one retained Complete transition, and no host

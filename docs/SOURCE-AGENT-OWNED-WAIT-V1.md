@@ -925,8 +925,13 @@ actual State and Copy result, then append `TurnObserved` through the fixed
 Observe settlement writer and cumulative hold registry. A rejected append
 keeps the physical Observe owner and its exact reservation under quarantine.
 The focused turn-two success and prewrite-refusal selectors passed locally.
-Later failed-Observe cleanup, Start/Model/Effect/Reduce and Step still require
-their physical owner joins.
+The actual two-ACK observed owner can then carry the physical State and checked
+Copy observation into turn-two `OwnedWaitCreated` and original Start
+reservation. Both rows use the fixed ContinuedStart candidate, pending writer,
+same-file reread and cumulative hold registry; a refused append retains the
+later owner. The focused Start success and prewrite-refusal selectors passed
+locally. Later failed-Observe cleanup, physical source entry, Model, Effect,
+Reduce and Step still require their owner joins.
 
 Public multi-turn entry, public Report delivery and physical owner restoration
 after restart remain

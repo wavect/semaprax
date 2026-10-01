@@ -131,4 +131,72 @@ impl<'j> LaterObserveSettlementV8<'j> {
             .hold()?
             .advance_observe_settlement_ack(witness, session)
     }
+
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn guard_start_at(
+        &self,
+        seq: usize,
+        bytes: usize,
+    ) -> Result<(), SourceJournalError> {
+        let journal = self.journal();
+        self.owner
+            .lineage
+            .hold()?
+            .validate_continued_start_guard(journal, seq, bytes)?;
+        let held = journal.hold()?;
+        let (runtime, execution) = journal
+            .context()
+            .ready_runtime()
+            .ok_or(SourceJournalError::Binding)?;
+        let plan = plan_owned_effect_v8(
+            runtime,
+            execution,
+            &held.registration().expected_facts().scope,
+            &self.owner.lineage.proposal,
+        )
+        .map_err(|_| SourceJournalError::Binding)?;
+        if !self
+            .owner
+            .lineage
+            .policy
+            .allows(plan.operation().effect_id())
+        {
+            return Err(SourceJournalError::Binding);
+        }
+        let ordinary = journal.context().ordinary();
+        check_clock_v8(
+            &held,
+            seq,
+            bytes,
+            self.owner.lineage.cancellation,
+            self.owner.lineage.source.continued_model_origin()?.1,
+            ordinary.clock_domain(),
+            ordinary.initial_millis(),
+            ordinary.deadline_millis(),
+        )?;
+        self.data()?;
+        held.validate_prefix(seq, bytes)
+    }
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_start_append_prefix(
+        &self,
+        journal: &SourceOwnedWaitJournalV8,
+        inventory: &crate::live_invocation::source_journal::owned_wait_v8::candidate::InventoryV8<
+            '_,
+        >,
+        selected: &EntryV8,
+    ) -> Result<(), SourceJournalError> {
+        self.owner
+            .lineage
+            .hold()?
+            .validate_continued_start_append_prefix(journal, inventory, selected)
+    }
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_start_registry(
+        &self,
+        witness: &crate::live_invocation::source_journal::owned_wait_v8::append::VerifiedOwnedContinuedStartSuccessorV8<'_>,
+        session: &AppendSessionV8<'_>,
+    ) -> Result<(), SourceJournalError> {
+        self.owner
+            .lineage
+            .hold()?
+            .advance_continued_start_ack(witness, session)
+    }
 }

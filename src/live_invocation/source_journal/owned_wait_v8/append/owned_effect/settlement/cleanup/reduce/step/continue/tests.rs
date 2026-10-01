@@ -953,7 +953,94 @@ fn continued_reduce_chain_step_ack(fault: u8, three_turns: bool) {
                                             })
                                         ));
                                         assert!(weak.iter().any(|owner| owner.strong_count() == 1));
-                                        drop(settled);
+                                        let carried =
+                                            settled.into_later_wait().unwrap_or_else(|_| {
+                                                panic!(
+                                                    "physical turn-2 State and observation carry"
+                                                )
+                                            });
+                                        carried.validate_live().unwrap();
+                                        let created =
+                                            carried.prepare_start_created().unwrap_or_else(|_| {
+                                                panic!("turn-2 Created from actual carry")
+                                            });
+                                        assert!(matches!(created.selected(), EntryV8::Owned(crate::live_invocation::source_journal::owned_wait_v8::model::OwnedBodyV8::OwnedWaitCreated { turn: 2, attempt: 0, .. })));
+                                        let created_before =
+                                            journal.lease.try_borrow_mut().unwrap().read().unwrap();
+                                        if fault == 8 {
+                                            #[cfg(unix)]
+                                            journal
+                                                .lease
+                                                .try_borrow_mut()
+                                                .unwrap()
+                                                .test_fail_before_write(
+                                                    final_session.sequence() + 1,
+                                                );
+                                            #[cfg(not(unix))]
+                                            unreachable!("fault injection is Unix-only");
+                                            let failed = journal
+                                                .begin_session()
+                                                .unwrap()
+                                                .append_owned_later_start(created)
+                                                .err()
+                                                .expect("turn-2 Created prewrite refusal");
+                                            assert!(matches!(&failed, crate::live_invocation::source_journal::owned_wait_v8::append::continued_start::LiveOwnedLaterStartAppendFailureV8::Append { .. }));
+                                            #[cfg(unix)]
+                                            assert_eq!(
+                                                journal
+                                                    .lease
+                                                    .try_borrow()
+                                                    .unwrap()
+                                                    .test_persisted_snapshot()
+                                                    .unwrap(),
+                                                created_before
+                                            );
+                                            assert!(journal.begin_session().is_err());
+                                            assert!(weak
+                                                .iter()
+                                                .any(|owner| owner.strong_count() == 1));
+                                            drop(failed);
+                                        } else {
+                                            let created = journal
+                                                .begin_session()
+                                                .unwrap()
+                                                .append_owned_later_start(created)
+                                                .unwrap_or_else(|_| panic!("turn-2 Created ACK"))
+                                                .advance_later_start()
+                                                .unwrap_or_else(|_| {
+                                                    panic!("retained turn-2 Created owner")
+                                                });
+                                            created.validate_live().unwrap();
+                                            let reserved =
+                                                created.prepare_start_reservation().unwrap_or_else(
+                                                    |_| panic!("turn-2 original Start reservation"),
+                                                );
+                                            let (_, execution) =
+                                                journal.context().ready_runtime().unwrap();
+                                            assert!(
+                                                matches!(reserved.selected(), EntryV8::Owned(crate::live_invocation::source_journal::owned_wait_v8::model::OwnedBodyV8::OwnedWaitReserved { turn: 2, attempt: 0, phase: crate::live_invocation::source_journal::owned_wait_v8::model::PhaseV8::Start, replay_of: None, fuel, .. }) if *fuel == execution.evaluation_fuel() as u64)
+                                            );
+                                            let started = journal
+                                                .begin_session()
+                                                .unwrap()
+                                                .append_owned_later_start(reserved)
+                                                .unwrap_or_else(|_| {
+                                                    panic!("turn-2 Start reservation ACK")
+                                                })
+                                                .advance_later_start()
+                                                .unwrap_or_else(|_| {
+                                                    panic!("retained turn-2 Start owner")
+                                                });
+                                            started.validate_live().unwrap();
+                                            assert_eq!(
+                                                started.sequence(),
+                                                final_session.sequence() + 2
+                                            );
+                                            assert!(weak
+                                                .iter()
+                                                .any(|owner| owner.strong_count() == 1));
+                                            drop(started);
+                                        }
                                     }
                                 }
                             } else {
@@ -1122,6 +1209,11 @@ fn owned_continued_step_turn_two_state_prewrite_refusal_retains_mapped_owner() {
 #[cfg(unix)]
 fn owned_continued_step_turn_two_settlement_prewrite_refusal_retains_observed_owner() {
     continued_reduce_chain_step_ack(7, true);
+}
+#[test]
+#[cfg(unix)]
+fn owned_continued_step_turn_two_created_prewrite_refusal_retains_later_owner() {
+    continued_reduce_chain_step_ack(8, true);
 }
 #[test]
 fn owned_continue_actual_state_and_observe_acks_preserve_owner_ledger_and_cumulative_funding() {

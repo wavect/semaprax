@@ -596,6 +596,7 @@ mod tests;
 pub(crate) use tests::test_initial_observe_entry_v8;
 
 pub(in crate::live_invocation::source_journal::owned_wait_v8) mod carry;
+pub(in crate::live_invocation::source_journal::owned_wait_v8) mod later_carry;
 pub(in crate::live_invocation::source_journal::owned_wait_v8) use carry::{
     LiveContinuedWaitV8, LiveTurnCarryFailureV8,
 };

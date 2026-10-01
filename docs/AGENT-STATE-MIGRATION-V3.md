@@ -138,8 +138,11 @@ Fresh and resumed migrated runtimes also expose
 It retains one authenticated semantic-work receipt per committed destination
 stage and returns a distinct
 `semaprax.evidence-root.durable-migration-metered.v1` association binding the
-migration handoff, typed-effect evidence, checkpoint and semantic-work digest.
-The ordinary durable migration route and evidence schema remain separate.
+migration handoff, selected target-and-fuel binding, typed-effect evidence,
+checkpoint and semantic-work digest. The selected binding identifies the held
+target and fuel profile; its target-specific instruction observations stay
+separate from the common semantic-work receipts. The ordinary durable migration
+route and evidence schema remain separate.
 Local same-Interpreter, caller-held Core Wasm, and caller-held native
 migration/recovery selectors verify the association, reservation/receipt
 pairing, and no retained host-work redelivery on each selected backend. A v4

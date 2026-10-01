@@ -588,6 +588,12 @@ fn metered_migrated_durable_recovery_replays_same_target_receipts() {
     let a = first();
     let b = successor(&a, "State", "StateB", "b", &["marker"], false);
     let (migration, before, after) = migrated_with_metered_interpreter(&a, &b);
+    let migration_root: serde_json::Value =
+        serde_json::from_str(migration.migration_root().canonical_json()).unwrap();
+    let expected_target_binding = migration_root["facts"]["target_execution"]["execution_binding"]
+        .as_str()
+        .unwrap()
+        .to_owned();
     let handoff = migration.handoff_digest().unwrap();
     let mut host = handler();
     let mut store = Store::default();
@@ -616,6 +622,11 @@ fn metered_migrated_durable_recovery_replays_same_target_receipts() {
         evidence["facts"]["semantic_work_evidence"],
         completed.run().evidence_digest()
     );
+    assert_eq!(completed.target_execution_binding(), expected_target_binding);
+    assert_eq!(
+        evidence["facts"]["target_execution_binding"],
+        completed.target_execution_binding()
+    );
     let retained = store.document.clone();
     let resumed = resume_migrated_agent_runtime_v2(
         bind(&a, b"chain payload"),
@@ -637,6 +648,11 @@ fn metered_migrated_durable_recovery_replays_same_target_receipts() {
         .unwrap();
     assert_eq!(replay.run().run().run().dispatched(), 0);
     assert!(replay.run().observations_complete());
+    assert_eq!(
+        replay.target_execution_binding(),
+        completed.target_execution_binding(),
+        "recovery retains the bound target profile while replaying receipts",
+    );
     assert_eq!(host.calls.len(), 3);
 }
 
@@ -744,6 +760,103 @@ fn target_migration_refuses_missing_or_mixed_metered_durable_target_before_hando
         .message
         .contains("migration.target_binding"));
     assert_eq!((host.calls.len(), store.commits), (0, 0));
+}
+
+#[test]
+fn recovered_target_migration_refuses_changed_metered_profile_before_store_or_host_work() {
+    use semaprax::agent_lifecycle::iterative::effects::TargetStageBackend;
+
+    let a = first();
+    let b = successor(&a, "State", "StateB", "b", &["marker"], false);
+    let (migration, before, after) = migrated_with_metered_interpreter(&a, &b);
+    let handoff = migration.handoff_digest().unwrap();
+    let mut host = handler();
+    let mut store = Store::default();
+    migration
+        .run_durable_metered_with_backend(
+            &mut host,
+            &AgentCancellation::new(),
+            &mut store,
+            TargetStageBackend::Interpreter,
+            10_000,
+        )
+        .expect("metered target migration records a recoverable handoff");
+    let retained = store.document.clone();
+    let before_refusal = (host.calls.len(), store.commits);
+
+    let missing = resume_migrated_agent_runtime_v2(
+        bind(&a, b"chain payload"),
+        bind(&b, b"destination input ignored"),
+        &retained,
+        &handoff,
+        &before,
+        &after,
+    )
+    .expect("target-migration handoff recovers")
+    .run_durable(&mut host, &AgentCancellation::new(), &mut store)
+    .err()
+    .expect("recovery cannot drop its metered target profile");
+    assert!(missing.diagnostics()[0]
+        .message
+        .contains("migration.target_requires_metered_durable"));
+    assert_eq!(
+        (host.calls.len(), store.commits),
+        before_refusal,
+        "unmetered recovery must not dispatch host work or commit a checkpoint",
+    );
+
+    let unmetered = resume_migrated_agent_runtime_v2(
+        bind(&a, b"chain payload"),
+        bind(&b, b"destination input ignored"),
+        &retained,
+        &handoff,
+        &before,
+        &after,
+    )
+    .expect("target-migration handoff recovers")
+    .run_durable_with_backend(
+        &mut host,
+        &AgentCancellation::new(),
+        &mut store,
+        TargetStageBackend::Interpreter,
+    )
+    .err()
+    .expect("recovery cannot use an unmetered selected target");
+    assert!(unmetered.diagnostics()[0]
+        .message
+        .contains("migration.target_requires_metered_durable"));
+    assert_eq!(
+        (host.calls.len(), store.commits),
+        before_refusal,
+        "unmetered target recovery must not dispatch host work or commit a checkpoint",
+    );
+
+    let changed = resume_migrated_agent_runtime_v2(
+        bind(&a, b"chain payload"),
+        bind(&b, b"destination input ignored"),
+        &retained,
+        &handoff,
+        &before,
+        &after,
+    )
+    .expect("target-migration handoff recovers")
+    .run_durable_metered_with_backend(
+        &mut host,
+        &AgentCancellation::new(),
+        &mut store,
+        TargetStageBackend::Interpreter,
+        9_999,
+    )
+    .err()
+    .expect("recovery cannot change the target semantic-fuel binding");
+    assert!(changed.diagnostics()[0]
+        .message
+        .contains("migration.target_binding"));
+    assert_eq!(
+        (host.calls.len(), store.commits),
+        before_refusal,
+        "changed target binding must refuse before host work or a checkpoint commit",
+    );
 }
 
 #[test]

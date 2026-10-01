@@ -18,6 +18,7 @@ pub struct MeteredAgentRuntimeV2DurableMigrationEvidence {
     revision: ExecutionRoot,
     handoff: String,
     checkpoint: String,
+    target_execution_binding: String,
 }
 impl MeteredAgentRuntimeV2DurableMigrationEvidence {
     pub fn checkpoint(&self) -> &str {
@@ -34,6 +35,13 @@ impl MeteredAgentRuntimeV2DurableMigrationEvidence {
     }
     pub fn execution_revision(&self) -> &ExecutionRoot {
         &self.revision
+    }
+    /// Exact selected target and semantic-fuel profile for this durable run.
+    /// The same binding appears in the evidence root, so consumers can retain
+    /// it without interpreting target-specific instruction observations as
+    /// common semantic charges.
+    pub fn target_execution_binding(&self) -> &str {
+        &self.target_execution_binding
     }
 }
 
@@ -466,6 +474,7 @@ fn run_metered(
         json!({
             "execution_revision":runtime.revision.digest(), "instance_root":runtime.instance.digest(),
             "migration_root":migrated.seed.binding.digest(), "handoff":handoff,
+            "target_execution_binding":actual_binding,
             "typed_effect_evidence":result.run().run().evidence_digest(),
             "semantic_work_evidence":result.evidence_digest(),
             "checkpoint":result.run().checkpoint_digest(), "iterations":result.run().iterations(),
@@ -478,6 +487,7 @@ fn run_metered(
         revision: runtime.revision,
         handoff,
         checkpoint: store.candidate,
+        target_execution_binding: actual_binding,
     })
 }
 

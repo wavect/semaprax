@@ -46,6 +46,8 @@ format: `Unreleased` then release buckets, grouped by impact.
   supported process hosts, use the current snapshot and JSON-event host
   adapters, retain the source entry in the checked-cache reuse test, and
   refresh the pinned agent skill bundle for the current diagnostic catalog.
+  Resolve the compact CLI's plain-project test fixture from either package
+  manifest so the root and full-toolchain binaries test the same project.
 
 - Add a closed acceptance-record format for #328's Kernel-0 rung-2 decision.
   It requires every local receipt to bind to one selected revision or an exact

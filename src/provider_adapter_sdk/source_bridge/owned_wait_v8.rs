@@ -136,6 +136,7 @@ impl OwnedModelRequestOriginV8<'_, '_> {
 pub(super) enum OwnedModelGuardV8<'p, 'j> {
     Initial(&'p LiveModelIntentPermitV8<'j>),
     Continued(&'p crate::live_invocation::source_journal::LiveContinuedModelIntentPermitV8<'p, 'j>),
+    Later(&'p crate::live_invocation::source_journal::LiveLaterModelIntentPermitV8<'p, 'j>),
 }
 impl OwnedModelGuardV8<'_, '_> {
     pub(super) fn validate_guard(
@@ -144,6 +145,7 @@ impl OwnedModelGuardV8<'_, '_> {
         match self {
             Self::Initial(p) => p.validate_guard(),
             Self::Continued(p) => p.validate_guard(),
+            Self::Later(p) => p.validate_guard(),
         }
     }
     pub(super) fn validate_store(
@@ -152,18 +154,21 @@ impl OwnedModelGuardV8<'_, '_> {
         match self {
             Self::Initial(p) => p.validate_store(),
             Self::Continued(p) => p.validate_store(),
+            Self::Later(p) => p.validate_store(),
         }
     }
     pub(super) fn guard_failure(&self) -> SourceAttemptFailure {
         match self {
             Self::Initial(p) => p.guard_failure(),
             Self::Continued(p) => p.guard_failure(),
+            Self::Later(p) => p.guard_failure(),
         }
     }
     pub(super) fn quarantine(&self) {
         match self {
             Self::Initial(p) => p.quarantine(),
             Self::Continued(p) => p.quarantine(),
+            Self::Later(p) => p.quarantine(),
         }
     }
 }
@@ -385,6 +390,70 @@ impl StreamingSourceProposalAdapter<'_> {
                 SourceAttemptFailure::Cancelled
             } else if outcome.as_ref().err().is_some_and(|ds| {
                 ds.iter()
+                    .any(|d| d.message.contains("source.adapter_timeout"))
+            }) {
+                SourceAttemptFailure::Timeout
+            } else {
+                SourceAttemptFailure::Refused
+            };
+            self.dispatch_failure(failure, 0);
+        }
+        match self.finish_dispatch(outcome) {
+            SourceAdapterDispatch::Settled {
+                decoded,
+                response,
+                usage,
+                ..
+            } => OwnedModelSettlementV8::Settled {
+                decoded,
+                response,
+                usage,
+            },
+            SourceAdapterDispatch::Failed {
+                diagnostics,
+                reason,
+                attempted_bytes,
+            } => OwnedModelSettlementV8::Failed {
+                diagnostics,
+                reason,
+                attempted_bytes,
+                usage: self.last_owned_usage,
+            },
+        }
+    }
+    pub(crate) fn dispatch_later_wait_v8(
+        &mut self,
+        permit: &crate::live_invocation::source_journal::LiveLaterModelIntentPermitV8<'_, '_>,
+    ) -> OwnedModelSettlementV8 {
+        self.last_dispatch = None;
+        self.last_owned_usage = None;
+        let live = OwnedModelGuardV8::Later(permit);
+        let outcome = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            permit
+                .validate_guard()
+                .map_err(|_| Self::refusal("source.owned_wait_guard"))?;
+            permit.request().matches(self)?;
+            let clock = permit.clock();
+            self.check_deadline_live_v8(Some(clock), Some(&live))?;
+            let request = AdapterRequest {
+                request_bytes: permit.request().request.request_bytes.clone(),
+                max_response_bytes: permit.request().request.max_response_bytes,
+            };
+            self.propose_adapter_inner(request, Some(clock), false, Some(&live))
+        }));
+        let outcome = match outcome {
+            Ok(result) => result,
+            Err(_) => {
+                permit.quarantine();
+                Err(Self::refusal("source.owned_wait_callback_panic"))
+            }
+        };
+        if outcome.is_err() && self.last_dispatch.is_none() {
+            let failure = if permit.guard_failure() == SourceAttemptFailure::Cancelled {
+                SourceAttemptFailure::Cancelled
+            } else if outcome.as_ref().err().is_some_and(|diagnostics| {
+                diagnostics
+                    .iter()
                     .any(|d| d.message.contains("source.adapter_timeout"))
             }) {
                 SourceAttemptFailure::Timeout

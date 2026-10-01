@@ -5,6 +5,7 @@ use crate::agent_lifecycle::authorization::target_protocol::TargetAccounting;
 use crate::interpreter::resumable::ResumableChannelValue;
 use crate::live_invocation::source_journal::owned_wait_v8::append::VerifiedOwnedContinuedModelSuccessorV8;
 use crate::live_invocation::source_journal::owned_wait_v8::live_upstream::observe::settlement::later_carry::start::source::prepared::model::LiveOwnedLaterModelIntentAppendV8;
+use crate::live_invocation::source_journal::owned_wait_v8::live_upstream::observe::settlement::later_carry::start::source::prepared::model::settlement::LiveOwnedLaterModelSettlementAppendV8;
 use crate::live_invocation::source_journal::SourceAttemptFailure;
 use crate::provider_adapter_sdk::{CheckedOwnedModelRequestV8, OwnedModelSettlementV8};
 use crate::resumable_effects::owned_frame::v2::CheckedOwnedWaitObservationV8;
@@ -493,6 +494,7 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) struct FixedOwnedC
 enum ModelPermitOwnerV8<'p, 'j> {
     First(&'p LiveOwnedContinuedModelAppendV8<'j>),
     Later(&'p LiveOwnedLaterModelIntentAppendV8<'j>),
+    LaterSettlement(&'p LiveOwnedLaterModelSettlementAppendV8<'j>),
 }
 impl FixedOwnedContinuedModelAppendPermitV8<'_, '_> {
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn later<'p, 'j>(
@@ -502,12 +504,20 @@ impl FixedOwnedContinuedModelAppendPermitV8<'_, '_> {
             owner: ModelPermitOwnerV8::Later(owner),
         }
     }
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn later_settlement<'p, 'j>(
+        owner: &'p LiveOwnedLaterModelSettlementAppendV8<'j>,
+    ) -> FixedOwnedContinuedModelAppendPermitV8<'p, 'j> {
+        FixedOwnedContinuedModelAppendPermitV8 {
+            owner: ModelPermitOwnerV8::LaterSettlement(owner),
+        }
+    }
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn selected_row(
         &self,
     ) -> &EntryV8 {
         match self.owner {
             ModelPermitOwnerV8::First(owner) => owner.selected(),
             ModelPermitOwnerV8::Later(owner) => owner.selected(),
+            ModelPermitOwnerV8::LaterSettlement(owner) => owner.selected(),
         }
     }
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_preflight(
@@ -522,6 +532,12 @@ impl FixedOwnedContinuedModelAppendPermitV8<'_, '_> {
                 owner.validate_live()
             }
             ModelPermitOwnerV8::Later(owner) => {
+                if !owner.belongs_to(journal) {
+                    return Err(SourceJournalError::Binding);
+                }
+                owner.validate_live()
+            }
+            ModelPermitOwnerV8::LaterSettlement(owner) => {
                 if !owner.belongs_to(journal) {
                     return Err(SourceJournalError::Binding);
                 }
@@ -550,6 +566,9 @@ impl FixedOwnedContinuedModelAppendPermitV8<'_, '_> {
                     .validate_append_prefix(journal, inventory, &owner.selected)
             }
             ModelPermitOwnerV8::Later(owner) => owner.validate_selected_prefix(journal, inventory),
+            ModelPermitOwnerV8::LaterSettlement(owner) => {
+                owner.validate_selected_prefix(journal, inventory)
+            }
         }
     }
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_registry(
@@ -562,6 +581,7 @@ impl FixedOwnedContinuedModelAppendPermitV8<'_, '_> {
                 owner.owner.owner.advance_registry(witness, session)
             }
             ModelPermitOwnerV8::Later(owner) => owner.advance_registry(witness, session),
+            ModelPermitOwnerV8::LaterSettlement(owner) => owner.advance_registry(witness, session),
         }
     }
 }

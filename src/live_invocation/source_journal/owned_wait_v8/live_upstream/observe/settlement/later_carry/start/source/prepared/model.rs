@@ -1,9 +1,11 @@
 //! A borrowed turn-two request origin stays inside the acknowledged Parked owner.
+pub(in crate::live_invocation::source_journal::owned_wait_v8) mod dispatch;
+pub(in crate::live_invocation::source_journal::owned_wait_v8) mod settlement;
 use super::*;
 use crate::interpreter::resumable::ResumableChannelValue;
 use crate::live_invocation::source_journal::owned_wait_v8::append::VerifiedOwnedContinuedModelSuccessorV8;
 use crate::live_invocation::source_journal::owned_wait_v8::live_upstream::FixedOwnedContinuedModelAppendPermitV8;
-use crate::provider_adapter_sdk::CheckedOwnedModelRequestV8;
+use crate::provider_adapter_sdk::{CheckedOwnedModelRequestV8, OwnedModelSettlementV8};
 use crate::resumable_effects::owned_frame::v2::CheckedOwnedAgentWaitBindingV8;
 
 pub(crate) struct LiveLaterModelRequestOriginV8<'p, 'j> {
@@ -49,9 +51,10 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) struct LiveOwnedLa
 }
 pub(in crate::live_invocation::source_journal::owned_wait_v8) struct LiveLaterModelIntentV8<'j> {
     owner: LiveLaterPreparedPhaseV8<'j>,
-    _request: CheckedOwnedModelRequestV8,
+    request: CheckedOwnedModelRequestV8,
     session: AppendSessionV8<'j>,
     witness: VerifiedOwnedContinuedModelSuccessorV8<'j>,
+    dispatched: Option<OwnedModelSettlementV8>,
 }
 pub(in crate::live_invocation::source_journal::owned_wait_v8) enum LiveLaterModelIntentFailureV8<'j>
 {
@@ -238,9 +241,10 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_verifie
     }
     Ok(LiveLaterModelIntentV8 {
         owner: obligation.owner,
-        _request: obligation.request,
+        request: obligation.request,
         session,
         witness,
+        dispatched: None,
     })
 }
 impl LiveLaterModelIntentV8<'_> {

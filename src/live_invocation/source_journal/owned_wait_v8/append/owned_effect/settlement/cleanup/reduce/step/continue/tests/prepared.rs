@@ -5,7 +5,7 @@ use crate::live_invocation::source_journal::owned_wait_v8::live_upstream::LiveLa
 pub(super) fn run(
     journal: &SourceOwnedWaitJournalV8,
     entered: LiveLaterStartedPhaseV8<'_>,
-    adapter: &StreamingSourceProposalAdapter<'_>,
+    adapter: &mut StreamingSourceProposalAdapter<'_>,
     fault: u8,
 ) {
     let start_sequence = entered.sequence();
@@ -103,7 +103,70 @@ pub(super) fn run(
             model.validate_live().unwrap();
             assert_eq!(model.sequence(), start_sequence + 2);
             assert_eq!(model.test_accounting(), &accounting);
-            drop(model);
+            let dispatched = model
+                .dispatch_model(adapter)
+                .unwrap_or_else(|_| panic!("turn-two guarded SDK dispatch"));
+            assert!(dispatched.test_dispatched());
+            let settlement = dispatched
+                .prepare_settlement()
+                .unwrap_or_else(|_| panic!("turn-two actual SDK settlement selector"));
+            assert!(matches!(
+                settlement.selected(),
+                EntryV8::Ordinary(SourceJournalEntry::AttemptSettled {
+                    turn: 2,
+                    attempt: 0,
+                    ..
+                })
+            ));
+            let before_settlement = journal.lease.try_borrow_mut().unwrap().read().unwrap();
+            if fault == 12 {
+                journal
+                    .lease
+                    .try_borrow_mut()
+                    .unwrap()
+                    .test_fail_before_write(start_sequence + 3);
+                let failed = journal
+                    .begin_session()
+                    .unwrap()
+                    .append_owned_later_model_settlement(settlement)
+                    .err()
+                    .expect("turn-two SDK settlement prewrite refusal");
+                assert!(matches!(&failed, crate::live_invocation::source_journal::owned_wait_v8::append::continued_model::later_settlement::LiveOwnedLaterModelSettlementAppendFailureV8::Append { .. }));
+                assert_eq!(
+                    journal
+                        .lease
+                        .try_borrow()
+                        .unwrap()
+                        .test_persisted_snapshot()
+                        .unwrap(),
+                    before_settlement
+                );
+                assert!(journal.begin_session().is_err());
+                drop(failed);
+            } else {
+                let acknowledged = journal
+                    .begin_session()
+                    .unwrap()
+                    .append_owned_later_model_settlement(settlement)
+                    .unwrap_or_else(|_| panic!("turn-two SDK settlement physical ACK"))
+                    .advance_continued_model()
+                    .unwrap_or_else(|_| panic!("turn-two settled owner"));
+                acknowledged.validate_live().unwrap();
+                assert_eq!(acknowledged.sequence(), start_sequence + 3);
+                assert_eq!(acknowledged.test_accounting(), &accounting);
+                let current = journal.begin_session().unwrap();
+                let (_, _, turn, row) = current.inventory.continued_model_facts().unwrap();
+                assert_eq!(turn, 2);
+                assert!(matches!(
+                    row,
+                    EntryV8::Ordinary(SourceJournalEntry::AttemptSettled {
+                        turn: 2,
+                        attempt: 0,
+                        ..
+                    })
+                ));
+                drop(acknowledged);
+            }
         }
     }
 }
@@ -117,4 +180,9 @@ fn owned_continued_step_turn_two_prepared_prewrite_refusal_retains_physical_park
 #[cfg(unix)]
 fn owned_continued_step_turn_two_model_intent_prewrite_refusal_retains_physical_park() {
     continued_reduce_chain_step_ack(11, true);
+}
+#[test]
+#[cfg(unix)]
+fn owned_continued_step_turn_two_model_settlement_prewrite_refusal_retains_dispatched_owner() {
+    continued_reduce_chain_step_ack(12, true);
 }

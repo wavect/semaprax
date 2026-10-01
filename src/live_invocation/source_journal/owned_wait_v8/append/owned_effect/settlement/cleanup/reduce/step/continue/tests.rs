@@ -1099,7 +1099,12 @@ fn continued_reduce_chain_step_ack(fault: u8, three_turns: bool) {
                                                 assert!(weak
                                                     .iter()
                                                     .any(|owner| owner.strong_count() == 1));
-                                                prepared::run(journal, entered, &adapter, fault);
+                                                prepared::run(
+                                                    journal,
+                                                    entered,
+                                                    &mut adapter,
+                                                    fault,
+                                                );
                                             }
                                         }
                                     }
@@ -1209,6 +1214,11 @@ fn continued_reduce_chain_step_ack(fault: u8, three_turns: bool) {
                 "Reduce reservation never redispatches the effect host"
             );
             assert_eq!(
+                starts.get(),
+                1 + usize::from(three_turns && matches!(fault, 0 | 12)),
+                "turn-two physical Model dispatch occurs only after its Intent ACK"
+            );
+            assert_eq!(
                 cleanup_actions.get(),
                 1,
                 "Reduce reservation never repeats cleanup"
@@ -1220,7 +1230,7 @@ fn continued_reduce_chain_step_ack(fault: u8, three_turns: bool) {
         );
             assert_eq!(
                 crate::interpreter::resumable::owned_frame::registered_stage::reduce::PreparedHeldContinuedWaitV2::test_start_entries(),
-                start_entries + usize::from(three_turns && matches!(fault, 0 | 10 | 11)),
+                start_entries + usize::from(three_turns && matches!(fault, 0 | 10 | 11 | 12)),
                 "only the turn-two Start ACK may enter the source helper again"
             );
             assert!(weak.iter().all(|owner| owner.upgrade().is_none()));

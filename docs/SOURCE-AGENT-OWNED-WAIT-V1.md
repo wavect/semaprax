@@ -949,8 +949,13 @@ now supplies a borrowed physical State, request, observation and exact
 ordinal to the checked Model request builder. Its ordinary `AttemptIntent`
 uses the existing fixed Model writer and cumulative hold; the retained owner
 validates the exact ACK before any SDK dispatch. The owning Intent success
-and prewrite-refusal regressions passed locally. Later failed-Observe
-cleanup, Model dispatch and Resume, Effect, Reduce and Step still require
+and prewrite-refusal regressions passed locally. The same acknowledged
+turn-two owner now dispatches the checked request through the existing SDK
+guard, selecting one ordinary `AttemptSettled` or `AttemptFailed` row from
+the actual response. Its fixed writer ACKs that row under the cumulative
+hold, while prewrite refusal retains the dispatched owner. The owning
+settlement success and refusal gates passed locally. Later failed-Observe
+cleanup, Model Usage and Resume, Effect, Reduce and Step still require
 their owner joins.
 
 Public multi-turn entry, public Report delivery and physical owner restoration

@@ -8,6 +8,11 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Dispatch turn-two Model work through the retained physical owner (#330),
+  then append its actual settlement ACK with the fixed writer and cumulative
+  hold. Focused success and settlement prewrite-refusal selectors passed
+  locally; later Usage/Resume and public recovery remain open.
+
 - Bind durable metered Agent recovery to the selected execution target (#327).
   Metered checkpoint v2 records the target binding; v1 remains inspectable
   but cannot resume live work under an unbound target. Focused codec,

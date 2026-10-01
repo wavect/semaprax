@@ -9,13 +9,14 @@
 use semaprax_doctor_capsule::{Artifact, MAX_ARTIFACT_BYTES};
 use sha2::{Digest as _, Sha256};
 use windows_sys::Win32::Foundation::{
-    CloseHandle, DuplicateHandle, GetCurrentProcess, GetHandleInformation, HANDLE,
-    HANDLE_FLAG_INHERIT, INVALID_HANDLE_VALUE,
+    CloseHandle, DuplicateHandle, GetHandleInformation, HANDLE, HANDLE_FLAG_INHERIT,
+    INVALID_HANDLE_VALUE,
 };
 use windows_sys::Win32::System::Memory::{
     CreateFileMappingW, MapViewOfFile, UnmapViewOfFile, FILE_MAP_READ, FILE_MAP_WRITE,
     PAGE_READWRITE, SECTION_MAP_READ,
 };
+use windows_sys::Win32::System::Threading::GetCurrentProcess;
 
 struct Mapping(HANDLE);
 

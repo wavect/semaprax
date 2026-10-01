@@ -1,3 +1,6 @@
+#[path = "tests/session_policy.rs"]
+mod session_policy;
+
 use super::*;
 use crate::reference_service::test_support::TempDir;
 use semaprax::project::with_authenticated_project;

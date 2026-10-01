@@ -621,6 +621,23 @@ fn login_crud_job_restart_preserves_state_without_redispatch() {
 
 #[test]
 fn expired_session_is_refused_by_the_checked_source_policy() {
+    expired_session_policy_survives_restart(&["--session-idle-seconds", "0"]);
+}
+
+#[test]
+fn coincident_session_deadlines_refuse_after_restart() {
+    // idle <= absolute makes zero absolute lifetime a coincident boundary.
+    // This process case proves refusal/restart; the deterministic mapping test
+    // separately asserts the source-selected absolute-expired state code.
+    expired_session_policy_survives_restart(&[
+        "--session-idle-seconds",
+        "0",
+        "--session-absolute-seconds",
+        "0",
+    ]);
+}
+
+fn expired_session_policy_survives_restart(policy: &[&str]) {
     if loopback_denied() {
         eprintln!("skipping: sandbox denies loopback bind");
         return;
@@ -630,7 +647,7 @@ fn expired_session_is_refused_by_the_checked_source_policy() {
     // A zero-length configured host window is an intentional test policy:
     // the persisted deadline equals login's tick, and `session_is_usable`
     // rejects it on the following exchange.
-    let server = Server::spawn(&workdir, &["--session-idle-seconds", "0"]);
+    let server = Server::spawn(&workdir, policy);
     let port = server.port;
     let (status, body) = http(
         port,
@@ -652,6 +669,22 @@ fn expired_session_is_refused_by_the_checked_source_policy() {
     let (status, body) = http(port, "GET", "/v1/tasks/1", "", Some(&token));
     assert_eq!(status, 401, "{body}");
     assert_eq!(field(&body, "error"), "unauthorized");
+    let (status, health) = http(port, "GET", "/v1/health", "", None);
+    assert_eq!(status, 200);
+    let digest = field(&health, "state").to_owned();
+    drop(server);
+    let mut restart_args = policy.to_vec();
+    restart_args.extend(["--state", digest.as_str()]);
+    let restarted = Server::spawn(&workdir, &restart_args);
+    let (status, body) = http(restarted.port, "GET", "/v1/tasks/1", "", Some(&token));
+    assert_eq!(status, 401, "{body}");
+    let (status, health) = http(restarted.port, "GET", "/v1/health", "", None);
+    assert_eq!(status, 200);
+    assert_eq!(
+        field(&health, "state"),
+        digest,
+        "terminal replay must not commit again"
+    );
 }
 
 #[test]

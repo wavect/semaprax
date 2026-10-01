@@ -270,6 +270,18 @@ pub fn handle(
     committed: &mut CommittedState,
     exchange: &HttpExchange,
 ) -> PendingResponse {
+    handle_with_clock(host, committed, exchange, &mut current_tick)
+}
+
+// Host-only clock seam: request/configuration bytes cannot provide a clock.
+// Read lazily at the existing login/authentication boundary, so unauthenticated
+// refusals and routes without time policy gain no clock dependency.
+fn handle_with_clock(
+    host: &mut BoundHost<'_, '_>,
+    committed: &mut CommittedState,
+    exchange: &HttpExchange,
+    clock: &mut dyn FnMut() -> Option<u64>,
+) -> PendingResponse {
     // Every exchange passes the scaffold's own request-line admission
     // decision before the host's closed route table is consulted.
     match host
@@ -293,9 +305,9 @@ pub fn handle(
         return register(host, committed, exchange);
     }
     if exchange.method == "POST" && exchange.target == "/v1/login" {
-        return login(host, committed, exchange);
+        return login(host, committed, exchange, clock);
     }
-    let authenticated = match authenticate(host, committed, exchange) {
+    let authenticated = match authenticate(host, committed, exchange, clock) {
         Authentication::Authenticated(value) => value,
         Authentication::Unauthorized => {
             if exchange.method == "POST" && exchange.target == "/v1/logout" {
@@ -405,6 +417,7 @@ fn authenticate(
     host: &mut BoundHost<'_, '_>,
     committed: &mut CommittedState,
     exchange: &HttpExchange,
+    clock: &mut dyn FnMut() -> Option<u64>,
 ) -> Authentication {
     let value = exchange
         .headers
@@ -442,7 +455,7 @@ fn authenticate(
     let Some(session) = committed.state.session_by_id(id) else {
         return Authentication::Unauthorized;
     };
-    let Some(now_tick) = current_tick() else {
+    let Some(now_tick) = clock() else {
         return Authentication::Failed;
     };
     let (state, account, idle_deadline_tick, absolute_deadline_tick) = (
@@ -672,6 +685,7 @@ fn login(
     host: &mut BoundHost<'_, '_>,
     committed: &mut CommittedState,
     exchange: &HttpExchange,
+    clock: &mut dyn FnMut() -> Option<u64>,
 ) -> PendingResponse {
     let Some(body) = parse_body(exchange, &["password", "username"]) else {
         return error(400, "malformed_body", None);
@@ -709,7 +723,7 @@ fn login(
         .expect("HMAC accepts the held session key");
     mac.update(&id_bytes);
     let token = format!("{id}.{}", hex(mac.finalize().into_bytes().as_slice()));
-    let now_tick = match current_tick() {
+    let now_tick = match clock() {
         Some(tick) => tick,
         None => return error(500, "clock_unavailable", None),
     };

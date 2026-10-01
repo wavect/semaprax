@@ -146,3 +146,62 @@ deadlines are 15 minutes and 8 hours from login, with CLI values bounded to
 `idle <= absolute <= 7 days`. Snapshot schema v3 adds the state code; v1 and
 v2 snapshots are deliberately refused rather than guessed or silently
 migrated.
+
+
+## Deterministic session-policy boundary (#336)
+
+The native host observes Unix seconds from its own `SystemTime` clock, after
+credential admission, and passes one tick to the checked session predicates.
+The private `handle_with_clock` seam supports deterministic host tests; HTTP
+requests, configuration bytes and scaffold code cannot choose a clock or gain
+time authority. Health, registration and malformed credentials do not acquire
+a session-clock dependency. An unavailable clock preserves committed state
+and refuses login with `clock_unavailable`, or authenticated work with
+`decision_failed`.
+
+The two login deadlines stay fixed: access does not refresh the idle deadline.
+Equality expires a session, absolute expiry wins when both deadlines have
+passed, and a persisted terminal state cannot become active even if a later
+host observation is earlier. This is not a general wall-clock rollback
+protection claim for a still-active session.
+
+The authored `reference_service::mapping::tests::session_policy` corpus covers
+just-before/equal/after boundaries, reloading exact expiry snapshot bytes,
+terminal replay, unavailable clocks, and parity between actual `std.auth`
+transition execution and both reference/generated scaffold wrappers. The
+normal project interpreter supplies the contract-bearing standard-library
+oracle; the host's public decision seam remains contract-free. The existing
+real-process expiry case now restarts from its retained state digest, alongside
+a coincident idle/absolute-deadline case. That process case establishes
+refusal across restart; the deterministic mapping test separately asserts
+absolute-expiry precedence through the persisted state code.
+
+Local focused execution on 1 October 2026 passed all five selected tests:
+
+- `exact_session_deadlines_persist_and_remain_terminal_after_reload`: 1/1.
+- `unavailable_session_clock_refuses_without_state_changes`: 1/1.
+- `session_transitions_match_std_auth_and_the_generated_scaffold`: 1/1,
+  comparing all 64 oracle rows against both decision engines (286.10 seconds).
+- `expired_session_is_refused_by_the_checked_source_policy`: 1/1,
+  including the real-process idle-expiry restart (23.55 seconds).
+- `coincident_session_deadlines_refuse_after_restart`: 1/1,
+  including real-process coincident-deadline refusal after restart
+  (21.57 seconds).
+
+These are local working-tree results for the session-policy batch, not an
+exact-commit, complete service-suite, full-profile, hosted, installed-container
+or production receipt. The separate unit assertion establishes absolute-expiry
+precedence; the coincident-deadline process result is not isolated
+absolute-only expiry evidence.
+
+Focused verification uses the existing harnesses:
+
+```sh
+cargo test --locked -p semaprax-native-host --lib reference_service::mapping::tests::session_policy -- --test-threads=1
+cargo test --locked -p semaprax-native-host --test runtime_host reference_service_acceptance -- --test-threads=1
+```
+
+The repository full profile and generated-scaffold preservation gates remain
+required. The remaining scaffold decision routes described above, runnable OCI
+packaging and its installed runtime journey remain open; these five passes do
+not establish complete #336 acceptance.

@@ -11,7 +11,7 @@ use std::sync::Arc;
 
 use crate::conformance::{NormalizedStatus, Retryability, StatusClass};
 
-use super::{Flow, Interpreter, OwnedBytesValue, Value};
+use super::{Evaluator, Flow, OwnedBytesValue, Value};
 
 /// The single Owned Bounded Byte Buffer v1 runtime failure. A computed
 /// `bytes_set` index at or above the transferred buffer's length selects this
@@ -117,7 +117,7 @@ pub(super) fn set5(
 
 /// Evaluate one compiler-owned owned-buffer operation after the caller has
 /// evaluated every operand from left to right.
-impl Interpreter {
+impl Evaluator<'_> {
     pub(super) fn evaluate_owned_buffer_operation(
         &mut self,
         op: crate::byte_ops::ByteOp,

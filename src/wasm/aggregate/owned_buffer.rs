@@ -3,7 +3,7 @@
 use super::*;
 
 impl<'a> Emitter<'a> {
-    fn emit_owned_buffer_set5(
+    pub(super) fn emit_owned_buffer_set5(
         &mut self,
         expr: &ResolvedExpr,
         values: &[Value],
@@ -34,7 +34,7 @@ impl<'a> Emitter<'a> {
     /// is at or above the transferred buffer's length. The carrier's low word
     /// is its byte length, which is the same predicate the reference
     /// interpreter and the native backend apply.
-    fn emit_owned_buffer_index_failure(
+    pub(super) fn emit_owned_buffer_index_failure(
         &mut self,
         expression: &ExpressionId,
         buffer: &Value,
@@ -63,7 +63,7 @@ impl<'a> Emitter<'a> {
     /// Select the same owned-buffer failure when a five-byte interval does
     /// not wholly fit. The first predicate preserves failure when subtraction
     /// wraps for `index > length`, so no overflowing endpoint is admitted.
-    fn emit_owned_buffer_set5_failure(
+    pub(super) fn emit_owned_buffer_set5_failure(
         &mut self,
         expression: &ExpressionId,
         buffer: &Value,

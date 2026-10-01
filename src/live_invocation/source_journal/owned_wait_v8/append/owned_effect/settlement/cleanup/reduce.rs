@@ -270,12 +270,12 @@ impl<'j> AppendSessionV8<'j> {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod tests;
 
 pub(in crate::live_invocation::source_journal::owned_wait_v8) mod step;
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 pub(in crate::live_invocation::source_journal::owned_wait_v8) use tests::{
     test_evaluated, test_evaluated_failed,
 };

@@ -482,6 +482,15 @@ mod tests {
             manifest.join("../../examples/banking_ledger.spx")
         }
     }
+    fn calculator_project_path() -> PathBuf {
+        let manifest = Path::new(env!("CARGO_MANIFEST_DIR"));
+        let direct = manifest.join("examples/calculator-project");
+        if direct.exists() {
+            direct
+        } else {
+            manifest.join("../../examples/calculator-project")
+        }
+    }
     #[test]
     fn compact_cli_grammar_is_closed_and_profile_specific() {
         assert_eq!(
@@ -769,7 +778,8 @@ mod tests {
 
     #[test]
     fn api_surface_on_plain_project_points_at_doc_and_query() {
-        let options = parse_inner(&args(&["api-surface", "examples/calculator-project"])).unwrap();
+        let project = calculator_project_path();
+        let options = parse_inner(&args(&["api-surface", project.to_str().unwrap()])).unwrap();
         let errors = encode(&options).expect_err("plain projects have no owned-data api-surface");
         assert_eq!(errors.len(), 1);
         assert_eq!(errors[0].code, "SPX-J105");

@@ -10,8 +10,10 @@ impl InventoryV8<'_> {
         request: &str,
         operation: &str,
     ) -> Result<(), SourceJournalError> {
-        let ContextV8::Checked(context) = self.context else {
-            return Err(SourceJournalError::Binding);
+        let context = match self.context {
+            ContextV8::Checked(context) => context,
+            #[cfg(test)]
+            ContextV8::Synthetic(_) => return Err(SourceJournalError::Binding),
         };
         let proof = self
             .accounting

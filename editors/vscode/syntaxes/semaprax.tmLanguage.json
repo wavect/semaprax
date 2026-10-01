@@ -94,7 +94,7 @@
         },
         {
           "name": "keyword.other.contract.semaprax",
-          "match": "\\b(requires|ensures|uses|effects|permits|failure|infallible|status|consumes|always|yields|follows|states|initial|terminal|cleanup|on|via|choice|capability)\\b"
+          "match": "\\b(requires|ensures|uses|effects|permits|failure|infallible|status|consumes|always|yields|follows|states|initial|endpoint|terminal|cleanup|on|via|choice|capability)\\b"
         },
         {
           "name": "keyword.other.import.semaprax",

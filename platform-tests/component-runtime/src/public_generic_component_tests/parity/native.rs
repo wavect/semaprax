@@ -39,8 +39,9 @@ use std::{
     env,
     fmt::Write as _,
     fs,
+    io::Write as _,
     path::PathBuf,
-    process::Command,
+    process::{Command, Stdio},
     sync::atomic::{AtomicU64, Ordering},
 };
 
@@ -78,17 +79,39 @@ impl NativeSubject {
     /// Run one checked call through the `-O0` or `-O2` binary (an entry of
     /// [`OPT_LEVELS`]) and decode its reported outcome.
     pub(super) fn call(&self, opt: &str, left: &[u8], right: &[u8]) -> HostResult<Outcome> {
+        if left.len() > 65_536 || right.len() > 65_536 {
+            return Err(failure("native probe input exceeds one bounded leaf"));
+        }
         let binary = self
             .binaries
             .iter()
             .find(|(label, _)| *label == opt)
             .map(|(_, path)| path)
             .ok_or_else(|| failure(format!("no compiled native probe for {opt}")))?;
-        let output = Command::new(binary)
-            .arg(hex(left))
-            .arg(hex(right))
-            .output()
+        let mut child = Command::new(binary)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
             .map_err(|error| failure(format!("native probe {opt} failed to run: {error}")))?;
+        let write_result = (|| -> std::io::Result<()> {
+            let stdin = child.stdin.as_mut().expect("piped native probe stdin");
+            for leaf in [left, right] {
+                let length = u32::try_from(leaf.len()).expect("bounded native probe leaf");
+                stdin.write_all(&length.to_le_bytes())?;
+                stdin.write_all(leaf)?;
+            }
+            Ok(())
+        })();
+        drop(child.stdin.take());
+        if let Err(error) = write_result {
+            let _ = child.kill();
+            let _ = child.wait();
+            return Err(failure(format!("native probe {opt} input failed: {error}")));
+        }
+        let output = child
+            .wait_with_output()
+            .map_err(|error| failure(format!("native probe {opt} failed to complete: {error}")))?;
         if !output.status.success() {
             return Err(failure(format!(
                 "native probe {opt} exited with {:?}: {}",
@@ -206,14 +229,6 @@ fn driver_source(
         field_macro(result_right),
         DRIVER_TEMPLATE,
     )
-}
-
-fn hex(bytes: &[u8]) -> String {
-    let mut text = String::with_capacity(bytes.len() * 2);
-    for byte in bytes {
-        write!(text, "{byte:02x}").unwrap();
-    }
-    text
 }
 
 fn decode_hex(text: &str) -> HostResult<Vec<u8>> {

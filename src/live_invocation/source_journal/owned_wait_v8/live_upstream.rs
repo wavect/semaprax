@@ -286,7 +286,7 @@ pub(super) fn initialize_live_actor_v8<'j>(
     }))
 }
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod tests;
 
 pub(in crate::live_invocation::source_journal::owned_wait_v8) use observe::settlement::{
@@ -294,7 +294,7 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) use observe::settl
     LiveObserveSettlementFailureV8, LiveOwnedObserveSettlementAppendV8, LiveSettledObserveV8,
 };
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 pub(crate) use observe::settlement::test_initial_observe_entry_v8;
 
 pub(crate) use observe::settlement::failed_state::LiveFailedObserveStateCleanupPermitV8;
@@ -330,7 +330,7 @@ pub(crate) use effect::authorization::step::r#continue::settlement::start::model
 
 pub(crate) use effect::authorization::step::r#continue::settlement::start::model::authorize::effect::prepared::LiveContinuedEffectAuthorizationPermitV8;
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 pub(in crate::live_invocation::source_journal::owned_wait_v8) use effect::authorization::step::r#continue::settlement::start::model::authorize::effect::prepared::test_continued_preparation_admissions;
 
 pub(in crate::live_invocation::source_journal::owned_wait_v8) use observe::settlement::carry::start::prepared::model::authorize::effect::prepared::intent::{advance_verified_continued_intent_v8,FixedOwnedContinuedIntentAppendPermitV8,LiveContinuedIntentAcknowledgmentFailureV8,LiveActivatedContinuedEffectV8,LiveOwnedContinuedIntentAppendV8};

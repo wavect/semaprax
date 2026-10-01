@@ -25,7 +25,6 @@ VERSION_FILES = (
     "platform-tests/public-scalar-wit-interface/Cargo.toml",
     "tests/cli_version_v1.rs",
     "tests/agent_transport_v1.rs",
-    "tests/component_runtime_ci_contract.rs",
     "tests/public_scalar_wit_interface_external_contract.rs",
     "crates/semaprax-doctor-collector/tests/provisioned.rs",
     "crates/semaprax-doctor-collector/tests/support/report.rs",
@@ -35,9 +34,14 @@ VERSION_FILES = (
     "docs/INSTALL.md",
     "docs/index.md",
 )
+# These files mix current-version guidance with historical release evidence.
+# A maintainer must update them after reviewing the exact claims and links.
+MANUAL_VERSION_FILES = {"docs/INSTALL.md", "docs/index.md"}
+RUNTIME_CONTRACT_TEST = "tests/component_runtime_ci_contract.rs"
 LOCK_MANIFESTS = (
     "Cargo.toml",
     "examples/calculator-rust/Cargo.toml",
+    "examples/embedding-api/Cargo.toml",
     "examples/owned-data-rust/Cargo.toml",
     "platform-tests/component-runtime/Cargo.toml",
     "platform-tests/public-scalar-wit-interface/Cargo.toml",
@@ -78,6 +82,9 @@ def verify(version):
         text = (ROOT / relative).read_text(encoding="utf-8")
         if version not in text and tag not in text:
             reject(f"{relative} does not carry {version}")
+    runtime_contract = (ROOT / RUNTIME_CONTRACT_TEST).read_text(encoding="utf-8")
+    if rf'semaprax = {{ version = \"={version}\", path = \"../..\"' not in runtime_contract:
+        reject(f"{RUNTIME_CONTRACT_TEST} does not pin semaprax {version}")
     date = release_date()
     citation = (ROOT / "CITATION.cff").read_text(encoding="utf-8")
     if f'version: "{version}"' not in citation:
@@ -111,12 +118,28 @@ def write(version, date):
     old_tag, tag = f"v{old}", f"v{version}"
     updates = {}
     for relative in VERSION_FILES:
+        if relative in MANUAL_VERSION_FILES:
+            continue
         text = (ROOT / relative).read_text(encoding="utf-8")
-        if old in text:
+        if relative == "Cargo.toml":
+            text = replace_required(
+                text,
+                f'name = "semaprax"\nversion = "{old}"',
+                f'name = "semaprax"\nversion = "{version}"',
+                relative,
+            )
+        elif old in text:
             text = replace_required(text, old, version, relative)
         if old_tag in text:
             text = replace_required(text, old_tag, tag, relative)
         updates[relative] = text
+    runtime_contract = (ROOT / RUNTIME_CONTRACT_TEST).read_text(encoding="utf-8")
+    updates[RUNTIME_CONTRACT_TEST] = replace_required(
+        runtime_contract,
+        rf'semaprax = {{ version = \"={old}\", path = \"../..\"',
+        rf'semaprax = {{ version = \"={version}\", path = \"../..\"',
+        RUNTIME_CONTRACT_TEST,
+    )
     citation = (ROOT / "CITATION.cff").read_text(encoding="utf-8")
     citation = replace_required(
         citation, f'version: "{old}"', f'version: "{version}"', "CITATION.cff"
@@ -140,24 +163,23 @@ def write(version, date):
     updates["CHANGELOG.md"] = changelog.replace(
         marker, f"{marker}\n## {version} — {date}\n", 1
     )
+    for manifest in LOCK_MANIFESTS:
+        lockfile = ROOT / Path(manifest).parent / "Cargo.lock"
+        lock = lockfile.read_text(encoding="utf-8")
+        packages = (
+            ("semaprax", "semaprax-toolchain")
+            if manifest == "Cargo.toml"
+            else ("semaprax",)
+        )
+        for package in packages:
+            before = f'[[package]]\nname = "{package}"\nversion = "{old}"'
+            after = f'[[package]]\nname = "{package}"\nversion = "{version}"'
+            if lock.count(before) != 1:
+                reject(f"{lockfile} does not have one {package} {old} package row")
+            lock = lock.replace(before, after, 1)
+        updates[str(lockfile.relative_to(ROOT))] = lock
     for relative, text in updates.items():
         (ROOT / relative).write_text(text, encoding="utf-8")
-    for manifest in LOCK_MANIFESTS:
-        subprocess.run(
-            [
-                "cargo",
-                "update",
-                "--offline",
-                "--manifest-path",
-                manifest,
-                "-p",
-                "semaprax",
-                "--precise",
-                version,
-            ],
-            cwd=ROOT,
-            check=True,
-        )
     print(f"prepared mechanical release surfaces for {tag} ({date})")
     print("review release notes and RELEASE-PROCESS.md, run gates, commit, then tag")
 

@@ -1,0 +1,22 @@
+Recorded with semaprax 0.6.0 (commit unknown)
+
+Repository root
+
+$ semaprax check examples/meaning.spx
+verified examples/meaning.spx (sha256:42aeae2650d15b1e44b8fd6d8a7ce6018d61f43e0e7988a58da2426b2f0c1657)
+
+$ semaprax run examples/meaning.spx
+42
+
+$ semaprax query examples/meaning.spx
+function	math.add	fn add(left: i64, right: i64) -> i64
+function	app.main	fn main() -> i64
+
+$ semaprax test examples/calculator-project/semaprax.toml
+project tests passed
+
+$ semaprax build examples/calculator-project/semaprax.toml --target web -o target/handbook-demo-web
+built project web package target/handbook-demo-web
+
+$ node scripts/verify-wasm-scalar-exports.mjs target/handbook-demo-web
+scalar-exports-v1-ok

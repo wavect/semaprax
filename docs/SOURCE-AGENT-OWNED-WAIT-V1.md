@@ -1,6 +1,9 @@
 # Source Agent owned wait v1 — combined SourceLive v8 contract
 
-Status: **reviewed bounded design; implementation in progress; no runtime or R20 completion claim**. Audience: compiler, interpreter, journal, SDK and typed-runtime implementers and reviewers. The [embedded source Agent syntax](LANGUAGE-NATIVE-AGENT-SYNTAX-V1.md#additive-embedded-execution-metadata-v070-candidate) owns the frontend association. Existing owned-frame v1, Copy model-wait v1/source journal v7, public ordinary event enums and all predecessor bytes remain frozen. Sections 8–14 are normative refinements and supersede conflicting shorthand in earlier sections.
+Status: **reviewed bounded design; implementation in progress; no runtime or R20 completion claim**.
+Audience: compiler, interpreter, journal, SDK and typed-runtime implementers and reviewers.
+
+The [embedded source Agent syntax](LANGUAGE-NATIVE-AGENT-SYNTAX-V1.md#additive-embedded-execution-metadata-v070-candidate) owns the frontend association. Existing owned-frame v1, Copy model-wait v1/source journal v7, public ordinary event enums and all predecessor bytes remain frozen. Sections 8–14 are normative refinements and supersede conflicting shorthand in earlier sections.
 
 ## 1. First executable slice and exact checked association
 

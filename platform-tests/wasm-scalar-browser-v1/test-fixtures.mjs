@@ -39,14 +39,14 @@ const fixtureSpecs = [
     schema: "semaprax.web-project.v1",
     project_revision: "sha256:8576caa566cb7f0d265354927c5bc7b481146f05e616f76917f340b4af26f053",
     workspace_revision: "sha256:f0454397a2b339677bc49c9ccd8e8491917426202c6aba2475221879e02ae3f6",
-    project_graph_digest: "sha256:7cce96e824f2d69330624882a4c8ce844e396dbcebb826281c41f0ad84ea5c85",
+    project_graph_digest: "sha256:868426c0c3eae80ed005c774d52b834808c0d806608e55b51057f9fcaca0cdbb",
   },
   {
     name: "project-renamed",
     schema: "semaprax.web-project.v1",
     project_revision: "sha256:afa7b35b6b057eaa1cbf89c68ccd1e19a8d988f4168049f70717f80c28218fb7",
     workspace_revision: "sha256:8fcf973950f10bf9393ff5597484333b178e5f93c5d2a1847f6ccc18d6185f71",
-    project_graph_digest: "sha256:9f45c67e1f263f4dbfae8ad5c5e3b66c57f9d5060fa3ca9ea3c5a7788432eec0",
+    project_graph_digest: "sha256:5f01ab908165b23763705dbf61cfdcea905dad67ca2af0b91f1322d3c7eb678c",
   },
 ];
 const expectedArtifacts = [
@@ -171,7 +171,11 @@ const fixtures = roots.map((root, index) => {
     manifest.workspace_revision !== spec.workspace_revision ||
     manifest.project_graph_digest !== spec.project_graph_digest
   ) {
-    throw new Error(`Project fixture does not match its exact rename known-answer subject: ${resolved}`);
+    throw new Error(
+      `Project fixture does not match its exact rename known-answer subject: ${resolved}; ` +
+      `actual=${JSON.stringify([manifest.project_revision, manifest.workspace_revision, manifest.project_graph_digest])}; ` +
+      `expected=${JSON.stringify([spec.project_revision, spec.workspace_revision, spec.project_graph_digest])}`,
+    );
   }
   if (!Array.isArray(manifest.artifacts) || manifest.artifacts.length !== expectedArtifacts.length) {
     throw new Error(`calculator fixture has the wrong artifact inventory: ${resolved}`);

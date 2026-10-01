@@ -10,17 +10,23 @@ Give coding agents a typed map of your program, not just a pile of files.
 Build runtime agents whose proposals must pass checked code before they can act.
 
 [![CI](https://github.com/wavect/semaprax/actions/workflows/ci.yml/badge.svg)](https://github.com/wavect/semaprax/actions/workflows/ci.yml)
-[![Version](https://img.shields.io/badge/version-0.6.0-7c3aed.svg)](Cargo.toml)
+[![Version](https://img.shields.io/badge/version-0.7.0-7c3aed.svg)](Cargo.toml)
 [![Status](https://img.shields.io/badge/status-alpha-f59e0b.svg)](#project-status)
 [![License](https://img.shields.io/badge/license-Apache--2.0-2563eb.svg)](LICENSE)
 
 [Get started](#get-started) · [Why Semaprax?](#why-semaprax) ·
 [Build agents](#agents-as-programs-not-just-prompts) ·
-[Handbook](https://wavect.github.io/semaprax/) · [Examples](examples/README.md) · [Spec library](docs/index.md)
+[Handbook](handbook/README.md) · [Examples](examples/README.md) · [Spec library](docs/index.md)
 
 </div>
 
-https://github.com/user-attachments/assets/8768f221-86c3-40a8-ad62-e75ee74ee66c
+<div align="center">
+
+[![Recorded Semaprax CLI walkthrough: check a program, run it, inspect its meaning, and test a project](handbook/assets/demo/first-steps.gif)](handbook/getting-started/see-it-in-action.md)
+
+**Meet Ernesto, the official Semaprax mascot.** Follow his [two-minute visual tour](handbook/getting-started/see-it-in-action.md), then try the commands yourself.
+
+</div>
 
 > [!WARNING]
 > Semaprax is **alpha research software**, not a production-ready language.
@@ -31,6 +37,11 @@ https://github.com/user-attachments/assets/8768f221-86c3-40a8-ad62-e75ee74ee66c
 ## Why Semaprax?
 
 **The idea: make meaning, constraints, and change first-class parts of programming.**
+
+Ever asked a coding agent to change one function and wondered whether it found
+the right one? Semaprax gives that conversation a stable starting point: a
+declaration has an identity, a checked contract, and a place in a graph you can
+inspect. You can still open the `.spx` file and read the program yourself.
 
 Semaprax keeps human-readable `.spx` source in Git. The compiler also exposes a
 versioned semantic graph: declarations, types, contracts, effects, and their
@@ -136,9 +147,9 @@ The last expression is the function's result.
 Verification is progressive: the implemented checks and contract machinery
 combine static validation with runtime guards in supported profiles.
 **“Verified” does not mean every program has a full formal proof or is bug-free.**
-The [handbook](handbook/README.md) explains the rules through practical,
-best-practice guides, and the [language tour](docs/LANGUAGE-TOUR.md) covers
-them through committed, compiler-checked examples.
+The [handbook](handbook/README.md) is the friendly path from first program to
+project. The [language tour](docs/LANGUAGE-TOUR.md) covers the rules through
+committed, compiler-checked examples.
 
 ## For AI coding agents: inspect meaning, then change it
 
@@ -363,7 +374,7 @@ build, payment, or publication authority.
 
 ## Project status
 
-**Development version: 0.6.0 · Maturity: alpha · Full product goal: Partial.**
+**Development version: 0.7.0 · Maturity: alpha · Full product goal: Partial.**
 
 There is executable language, graph, semantic-change, runtime, and host-integration
 work to explore today. There is not yet a production application toolchain,
@@ -389,12 +400,13 @@ accuracy. Evidence and future goals stay separate:
 
 | Your next question | Start here |
 | --- | --- |
-| How do I install it and run a project? | [Install](docs/INSTALL.md) · [Quickstart](docs/QUICKSTART.md) |
-| How do I write the language? | [Language tour](docs/LANGUAGE-TOUR.md) · [Examples](examples/README.md) |
+| What does Semaprax look like in use? | [Visual tour](handbook/getting-started/see-it-in-action.md) · [Examples](examples/README.md) |
+| How do I install it and run a project? | [Install](handbook/getting-started/install.md) · [First project](handbook/getting-started/first-project.md) |
+| How do I write the language? | [Handbook](handbook/README.md) · [First program](handbook/getting-started/first-program.md) |
 | What should my coding agent read? | [Agent quick reference](docs/AGENT-QUICK-REFERENCE.md) · [Library catalog](docs/STANDARD-LIBRARY-CATALOG.md) |
 | How do I use the tools? | [CLI guide](docs/CLI-GUIDE.md) · [VS Code extension](editors/vscode/README.md) |
 | How do typed runtime agents work? | [Iterative lifecycle](docs/AGENT-ITERATIVE-LIFECYCLE-V2.md) · [Direct Runtime](docs/AGENT-RUNTIME-V2.md) |
-| Where are the complete docs and exact protocols? | [Documentation home](docs/index.md) · [Book contents](docs/SUMMARY.md) |
+| Where are the exact protocols and audit references? | [Specification library](docs/index.md) · [Reference contents](docs/SUMMARY.md) |
 
 Versioned specifications define precise behavior for integrations; they are
 reference material, not prerequisites for your first program.

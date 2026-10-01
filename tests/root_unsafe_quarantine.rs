@@ -1,4 +1,4 @@
-//! Mechanical boundary for the root crate's sole OS-process quarantine.
+//! Mechanical boundary for the root crate's explicit unsafe authority modules.
 
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -193,7 +193,7 @@ fn relaxing_unsafe_attributes(source: &str) -> Vec<String> {
 }
 
 #[test]
-fn root_unsafe_is_confined_to_the_held_git_process_quarantine() {
+fn root_unsafe_exceptions_are_confined_to_audited_authority_modules() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let manifest = fs::read_to_string(root.join("Cargo.toml")).unwrap();
     assert_eq!(manifest.matches("unsafe_code = \"deny\"").count(), 1);
@@ -203,6 +203,11 @@ fn root_unsafe_is_confined_to_the_held_git_process_quarantine() {
     assert_eq!(quarantine.matches("#![allow(unsafe_code)]").count(), 1);
     assert_eq!(quarantine.matches("unsafe_code").count(), 1);
     assert!(!quarantine.contains("pub fn "));
+    let metal =
+        fs::read_to_string(root.join("src/compute_profile/metal_backend/device.rs")).unwrap();
+    assert!(metal.starts_with("//! The real Apple Metal device session"));
+    assert_eq!(metal.matches("#![allow(unsafe_code)]").count(), 1);
+    assert!(metal.contains("Every unsafe block below carries its own `SAFETY`"));
 
     let mut sources = Vec::new();
     rust_sources(&root.join("src"), &mut sources);
@@ -218,6 +223,7 @@ fn root_unsafe_is_confined_to_the_held_git_process_quarantine() {
     assert_eq!(
         exceptions,
         [
+            PathBuf::from("src/compute_profile/metal_backend/device.rs"),
             PathBuf::from("src/process_provider/registered/platform.rs"),
             PathBuf::from(QUARANTINE)
         ]

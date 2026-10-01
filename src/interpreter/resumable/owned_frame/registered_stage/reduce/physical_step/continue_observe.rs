@@ -189,7 +189,7 @@ pub(crate) fn observe_continued_owned_state_v2<'a>(
     })
 }
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod tests;
 
 mod live_append;

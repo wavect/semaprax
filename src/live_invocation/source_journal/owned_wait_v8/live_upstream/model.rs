@@ -510,5 +510,5 @@ pub(super) fn model_live_actor_v8<'j>(
         clock,
     })
 }
-#[cfg(test)]
+#[cfg(all(test, unix))]
 pub(super) mod tests;

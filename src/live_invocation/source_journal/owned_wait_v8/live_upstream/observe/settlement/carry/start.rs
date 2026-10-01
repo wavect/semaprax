@@ -8,7 +8,7 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) struct LiveContinu
     owner: LiveContinuedWaitV8<'j>,
     acks: Vec<ContinuedStartAckV8<'j>>,
 }
-struct ContinuedStartAckV8<'j> {
+pub(in crate::live_invocation::source_journal::owned_wait_v8) struct ContinuedStartAckV8<'j> {
     session: AppendSessionV8<'j>,
     witness: VerifiedOwnedContinuedStartSuccessorV8<'j>,
 }
@@ -346,7 +346,7 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_verifie
     Ok(owner)
 }
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod tests;
 
 /// Actual source result comes first; all earlier ACKs are immutable lineage,

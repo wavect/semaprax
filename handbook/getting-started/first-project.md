@@ -3,6 +3,10 @@
 Single files are for learning; projects are for building. A project is a
 `semaprax.toml` manifest beside a `src/` directory.
 
+Ernesto's next stop is the generated calculator: one small project with source,
+tests, and a web target. [See the commands in action](see-it-in-action.md)
+before making your own.
+
 ## Scaffold it
 
 Preview the template without writing anything:
@@ -18,7 +22,7 @@ semaprax new first-semaprax
 cd first-semaprax
 ```
 
-v0.6.0 scaffolds three templates — `calculator` (default),
+v0.7.0 scaffolds three templates — `calculator` (default),
 `--template library`, and `--template service` — with `--layout tables`
 (default) or `--layout frozen` for the one-line-per-key manifest. Both flags
 also work on `project-scaffold` for previewing.

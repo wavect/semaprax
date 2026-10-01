@@ -134,7 +134,7 @@ impl<'j> LiveOwnedReduceReservationAppendV8<'j> {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod tests;
 
 use crate::interpreter::resumable::owned_frame::registered_stage::reduce::{

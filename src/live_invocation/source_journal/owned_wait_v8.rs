@@ -125,7 +125,7 @@ pub(crate) use live_upstream::effect::authorization::failed_state::LiveFailedEff
 pub(crate) use live_upstream::effect::authorization::step::r#continue::LiveContinueObserveGuardV8;
 pub(crate) use live_upstream::effect::authorization::step::r#continue::LiveContinueObservePermitV8;
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 pub(crate) use live_upstream::test_initial_observe_entry_v8;
 
 pub(crate) use live_upstream::effect::authorization::observer_failed_state::state::LiveObserverFailedStateCleanupPermitV8;

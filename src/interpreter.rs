@@ -77,6 +77,8 @@ mod owned_buffer;
 mod owned_try;
 mod owned_vec;
 mod prepared;
+mod public_api_argument;
+pub use public_api_argument::PublicApiArgument;
 mod resolved_case;
 pub mod resumable;
 mod resumable_entry;
@@ -607,19 +609,6 @@ pub struct OwnedDataEvaluation {
     pub cleanup_events: Vec<OwnedDataCleanupEvent>,
     pub steps_used: usize,
     pub max_steps: usize,
-}
-
-/// One borrowed Project-v8/v9 public invocation argument. Borrowed host
-/// carriers are snapshotted before evaluation and never become interpreter
-/// ownership.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum PublicApiArgument<'a> {
-    I64(i64),
-    U8(u8),
-    Usize(u64),
-    Bool(bool),
-    BorrowStr(&'a str),
-    BorrowSliceU8(&'a [u8]),
 }
 
 /// One normalized Project-v8 value returned by the reference interpreter.

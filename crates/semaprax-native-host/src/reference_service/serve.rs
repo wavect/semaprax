@@ -1,7 +1,7 @@
 //! Loopback-only HTTP serving for the reference service.
 //!
 //! Transport reuses the existing
-//! [`TcpNetworkProvider`](semaprax::network_provider::TcpNetworkProvider):
+//! [`TcpNetworkProvider`]:
 //! the host binds `127.0.0.1` on an explicit operator-chosen port, accepts
 //! one connection at a time, and speaks a closed subset of HTTP/1.1 (exact
 //! `Content-Length` framing only; no chunked encoding, no keep-alive).

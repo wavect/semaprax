@@ -1,11 +1,23 @@
 # The Semaprax Handbook
 
-> This handbook describes **Semaprax v0.6.0** (workspace version `0.6.0`).
-> v0.6.0 is installable from source; its release gate is not green and no
-> signed v0.6.0 archive is published yet, so install from source to follow
-> along. Semaprax is **alpha research software**: syntax, protocols, and
+<img src="assets/ernesto/ernesto.png" alt="Ernesto, the official Semaprax mascot" width="180">
+
+**Meet Ernesto, Semaprax's official mascot.** He'll accompany your first steps
+from a small `.spx` file to a checked project. You can follow the whole path at
+your own pace.
+
+> This handbook describes **Semaprax v0.7.0** (workspace version `0.7.0`).
+> v0.7.0 is a release candidate available from source; its exact tag gate has
+> not passed and no signed v0.7.0 archive is published yet. Install from source
+> to follow along. Semaprax is **alpha research software**: syntax, protocols, and
 > binary interfaces can change. Experiment and prototype; don't ship
 > production or safety-critical workloads on it yet.
+
+[![Recorded walkthrough of Semaprax commands](assets/demo/first-steps.gif)](getting-started/see-it-in-action.md)
+
+[Watch the steps and read the commands](getting-started/see-it-in-action.md).
+The animation shows output from a source-built Semaprax CLI; the linked page
+includes a still image and a text transcript.
 
 ## Semaprax in 60 seconds
 
@@ -38,6 +50,7 @@ authoritative reference for agents and integrators.
 
 | You want to… | Go to… |
 | --- | --- |
+| See the language and tools before installing | [Semaprax in action](getting-started/see-it-in-action.md) |
 | Install and run something in 5 minutes | [Install](getting-started/install.md) → [First program](getting-started/first-program.md) |
 | Start a real multi-file project | [First project](getting-started/first-project.md) |
 | Learn the language fast | [Essentials](language/essentials.md) → [Types](language/types.md) → [Ownership](language/ownership.md) |
@@ -77,5 +90,6 @@ semaprax check examples/meaning.spx   # verify: types, contracts, effects, owner
 semaprax run examples/meaning.spx     # prints 42
 ```
 
-That's the whole loop: write it, `fmt` it, `check` it, `run` it. The rest of
-this book makes each step idiomatic.
+That's the first loop: write it, `fmt` it, `check` it, `run` it. From here,
+[write your first program](getting-started/first-program.md) or
+[inspect what the compiler knows](getting-started/see-it-in-action.md).

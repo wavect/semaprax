@@ -1,6 +1,7 @@
 # First program
 
-One file is enough. Create `hello.spx`:
+One file is enough. Ernesto can keep an eye on the details while you make a
+program that returns `42`. Create `hello.spx`:
 
 ```semaprax
 module app.hello;
@@ -29,6 +30,11 @@ semaprax run hello.spx           # prints 42
 `fmt` without `--check` rewrites the file into canonical form — let it handle
 layout and never hand-format. `check` prints `verified hello.spx (sha256:…)`
 on success. `run` evaluates `app.main` in the bounded interpreter.
+
+![Recorded terminal output for a checked program returning 42](../assets/demo/check-and-run.png)
+
+The terminal still uses the committed `examples/meaning.spx`; your `hello.spx`
+prints the same result. [See the complete command sequence](see-it-in-action.md).
 
 **Best practice:** fix the *first* diagnostic at its reported line and column,
 then re-run. Diagnostics carry a stable `SPX-…` code; look any code up with

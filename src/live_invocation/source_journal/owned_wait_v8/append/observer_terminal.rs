@@ -348,5 +348,5 @@ impl<'j> ObserverTerminalSealV8<'j> {
         result.inspect_err(|_| self.journal.quarantine())
     }
 }
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod tests;

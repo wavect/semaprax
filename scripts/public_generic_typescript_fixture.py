@@ -84,6 +84,7 @@ def render(count: int, module: bytes) -> dict[str, str]:
     desc += 'export const TRUSTED_BINDING_BYTES: Uint8Array = ' + literal(binding) + ';\n\n'
     desc += 'export const TRUSTED_PROVIDER_ARTIFACT_DIGEST: string = ' + json.dumps(digest(DOMAIN, module)) + ';\n'
     desc += 'export const TRUSTED_ENDPOINT_EXPORT_NAME: string = ' + json.dumps(ENDPOINT) + ';\n'
+    desc += 'export const TRUSTED_WASM_ADAPTER_ABI_VERSION: string = "v1";\n'
     desc += 'export const TRUSTED_COMPILED_PROVIDER: boolean = false;\n'
     desc += asset('descriptor_verify.ts.txt')
     def interface(name: str) -> str:

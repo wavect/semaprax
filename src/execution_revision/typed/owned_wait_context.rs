@@ -150,11 +150,11 @@ impl AgentRuntimeV2 {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 #[path = "owned_wait_context/tests.rs"]
 mod tests;
-#[cfg(test)]
+#[cfg(all(test, unix))]
 pub(crate) use tests::TestProspectiveReduceLimitV8;
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 pub(crate) use tests::TestContinuedAuthorizeV8;

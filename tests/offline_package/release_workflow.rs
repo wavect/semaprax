@@ -195,11 +195,11 @@ fn release_automation_checks_version_surfaces_and_renders_only_one_changelog_buc
     for exact in [
         title.as_str(),
         "## Changes",
-        "Pin the Wavect GmbH release verifier",
-        "Add a deterministic, non-executing cross-language benchmark",
-        "Share one bounded, digest-pinned public-generic settlement manifest",
-        "These unsigned archives are not notarized",
-        "SHA-256 checksums are integrity facts, not signatures.",
+        "Preserve the selected host failure and physical authority-loss retirement",
+        "Compose the local, caller-authorized mirror-to-held flow",
+        "Run a bounded, flat record or variant of Copy scalars",
+        "These archives are not notarized",
+        "SHA-256 checksums alone are integrity facts, not signatures",
     ] {
         assert!(notes.contains(exact), "release notes lost: {exact}");
     }
@@ -420,9 +420,8 @@ fn release_reconcile_agrees_with_the_real_published_v0_4_1_evidence() {
     // `no-candidate` even though the repository does have a published
     // release. Ensure the tag is present before reconciling; this is a
     // read-only `git fetch` and does not mutate any repository file.
-    // After the 0.6.0 bump the current prerelease tag is 0.6.0
-    // (tagged-unpublished), but the real published evidence for 0.4.1 must
-    // remain hosted-green.
+    // The failed historical 0.6.0 tag remains tagged-unpublished. The real
+    // published evidence for 0.4.1 must remain hosted-green.
     for version in ["0.4.1", "0.6.0"] {
         let tag_check = Command::new("git")
             .args(["rev-list", "-n1"])
@@ -438,9 +437,8 @@ fn release_reconcile_agrees_with_the_real_published_v0_4_1_evidence() {
             break;
         }
     }
-    // 0.6.0 is the current prerelease tag (bumped by prepare-release).
-    // Its local state is `tagged-unpublished` until the GitHub Release is
-    // published and `docs/RELEASE-PROCESS.md` gains its evidence section.
+    // The historical 0.6.0 tag remains tagged-unpublished; the v0.7.0
+    // candidate does not alter that exact tag's state or evidence.
     {
         let (version, expected_state) = ("0.6.0", "tagged-unpublished");
         let output = Command::new("python3")
@@ -460,9 +458,9 @@ fn release_reconcile_agrees_with_the_real_published_v0_4_1_evidence() {
             "unexpected state for {version}"
         );
     }
-    // 0.4.1 must remain `published-documented` even after the 0.6.0 bump;
+    // 0.4.1 must remain `published-documented` even after later version bumps;
     // the full `release-reconcile.py --version 0.4.1` would now also check
-    // `docs/CHANGELOG-SUMMARY.md`'s current-tag claim (now 0.6.0) and report a
+    // `docs/CHANGELOG-SUMMARY.md`'s current-version claim and report a
     // stale-summary problem, so we verify the historical evidence directly.
     let check = Command::new("python3")
         .args([

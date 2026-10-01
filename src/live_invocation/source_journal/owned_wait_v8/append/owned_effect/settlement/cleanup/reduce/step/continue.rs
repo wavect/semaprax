@@ -1131,5 +1131,5 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_live_ow
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod tests;

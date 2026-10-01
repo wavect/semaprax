@@ -48,8 +48,8 @@ install, is the usual cause.
 
 ## Alternative: release archive
 
-This handbook describes **v0.6.0**, which is currently available **from source
-only** — its release gate is not green and no signed v0.6.0 archive is
+This handbook describes **v0.7.0**, which is currently available **from source
+only** — its exact tag gate has not passed and no signed v0.7.0 archive is
 published. The last downloadable archives are the
 [v0.5.0 prerelease](https://github.com/wavect/semaprax/releases/tag/v0.5.0)
 (one per host: Linux x86-64, Apple Silicon macOS, Windows x86-64, plus
@@ -61,7 +61,7 @@ shasum -a 256 -c SHA256SUMS
 
 Each archive contains `semaprax`, a smoke program, and a release manifest.
 Prefer the source install above when following this handbook: v0.5.0 predates
-several v0.6.0 commands and templates. Check the
+several v0.7.0 commands and templates. Check the
 [releases page](https://github.com/wavect/semaprax/releases) for the newest
 version and the completion matrix in
 [`docs/`](https://github.com/wavect/semaprax/tree/main/docs) for what each

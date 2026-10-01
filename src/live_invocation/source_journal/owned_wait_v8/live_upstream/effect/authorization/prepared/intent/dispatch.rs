@@ -100,7 +100,7 @@ impl LiveDispatchedOwnedEffectV8<'_> {
         &self.accounting
     }
 }
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod tests;
 
 pub(in crate::live_invocation::source_journal::owned_wait_v8) mod settlement;

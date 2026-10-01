@@ -85,9 +85,10 @@ def main(argv=None):
     out.write("## Changes\n\n")
     out.write(section + "\n")
     out.write(
-        "\nThese unsigned archives are not notarized and make no cross-host "
+        "\nThese archives are not notarized and make no cross-host "
         "reproducible-build claim.\n"
-        "SHA-256 checksums are integrity facts, not signatures.\n"
+        "SHA-256 checksums alone are integrity facts, not signatures; "
+        "check the published signature bundle against the release policy.\n"
     )
 
 

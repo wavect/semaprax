@@ -127,6 +127,7 @@ result below without any `SPX-B104`-style restriction.
 | Example | Teaches | Command (observed) | Reference |
 | --- | --- | --- | --- |
 | `examples/session_protocol.spx` | A declared `session protocol` state machine (`states`, `initial`, `terminal … cleanup { … }`, `send`/`fail` transitions with a `choice` branch and two `via`-bound functions) | `semaprax run examples/session_protocol.spx` → `0` | [Session/protocol types v1](../docs/SESSION-PROTOCOL-TYPES-V1.md) |
+| `examples/session-endpoint.spx` | A reference-service session endpoint with checked expiry behavior | `semaprax check examples/session-endpoint.spx` → `verified …` | [Session/protocol types v1](../docs/SESSION-PROTOCOL-TYPES-V1.md) |
 
 ## Projects and manifests
 

@@ -88,6 +88,7 @@ fn owned_reduce_inventory_maps_actual_nominal_cases_without_target_substitution(
     }
 }
 
+#[cfg(unix)]
 #[test]
 fn owned_reduce_outcome_uses_only_the_actual_checked_recorded_exchange_payload() {
     use super::super::{

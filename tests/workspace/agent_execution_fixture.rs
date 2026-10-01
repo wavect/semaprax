@@ -113,6 +113,10 @@ pub(super) fn protocol(source: &str, follows: bool) -> String {
 
 /// The Project SDK additionally derives genuine Proposal/Observation schemas.
 /// Keep the package's scalar metadata-only fixture unchanged.
+#[allow(
+    dead_code,
+    reason = "shared fixture is also included by offline_package"
+)]
 pub(super) fn workspace_source(embedded: bool, wait: bool) -> String {
     let source = source(embedded, wait);
     let mut declarations = String::new();

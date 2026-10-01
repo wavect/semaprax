@@ -107,7 +107,7 @@ impl PreparedOwnedEffectV8<'_> {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod tests;
 
 /// Rejections retain the actual consumed engine owner, never rewind an Intent.

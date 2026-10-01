@@ -366,6 +366,62 @@ format: `Unreleased` then release buckets, grouped by impact.
   physical checks still run. Added parity and refusal tests are unrun; no
   speedup or owned-Agent lifecycle acceptance is claimed.
 
+## 0.7.0 — 2026-10-01
+
+This alpha candidate gathers development work since v0.5.0: checked session
+endpoints, private owned-Agent continuation and cleanup, local package and
+resolver work, and host/tooling repairs. The completion matrix remains the
+authority for executable support; local or private evidence does not become
+public support through a release tag.
+
+- Preserve the selected host failure and physical authority-loss retirement
+  when cancellation and lease corruption coincide during continued
+  owned-effect dispatch. Keep the
+  refused authorization proposal fixture in canonical wire order, and check
+  failed cleanup against its own reserved capacity edge.
+
+- Repair main CI regressions in the example index, Rust formatting and module
+  budget, Unix-only owned-wait test selection on Windows, the desktop linker
+  pin, generated-package Cargo coverage, generic Wasm entry-wrapper count,
+  and sanitizer omission-control cleanup. Keep the browser fixture's exact
+  revision mismatch visible for the next hosted run. Follow up on hosted Clippy
+  diagnostics for owned-wait context matching and private phase visibility.
+  Restore the owned-wait outcome visibility required by parent modules and
+  accept the three exact linker builds observed on hosted Windows runners.
+  Keep platform-independent owned-wait tests active on Windows while limiting
+  tests that require the Unix physical lease fixture to Unix; resolve the
+  hosted Clippy diagnostics in workspace and catalog acceptance tests.
+  Retain cross-platform settlement test helpers, refresh the browser
+  baseline's exact graph digest, and admit the shared workspace fixture in
+  the offline package test harness.
+  Resolve native-host rustdoc links on Windows and remove redundant explicit
+  targets from the reference-service documentation.
+  Keep the generated TypeScript fixture aligned with its ABI-version field,
+  and send large native parity inputs through bounded stdin framing so the
+  full 64 KiB cases run without exceeding process argument limits.
+  Select the native ASan/UBSan hostile corpus only on its documented local
+  macOS arm64 target; the hosted sanitizer lanes keep their separate gates.
+  Refresh the browser rename fixture's exact graph digest after hosted
+  generation exposed its current known answer.
+  Index the Kernel-0 accepted-revision validation document and highlight the
+  session-protocol `endpoint` keyword in the VS Code grammar.
+  Give the Source Agent owned-wait contract a separate audience field and
+  catalog entry so the documentation gate covers it.
+  Use a checked length conversion for the native parity probe's bounded
+  stdin frame on 64-bit hosts.
+
+- Refresh workspace artifact known answers for the current deterministic
+  projections. Correct the bounded complete Semantic Impact JSON so embedded
+  workspace review evidence matches the direct single-file report exactly.
+
+- Repair Windows unit CI fixtures: gate native stage parity tests on the
+  supported process hosts, use the current snapshot and JSON-event host
+  adapters, retain the source entry in the checked-cache reuse test, and
+  refresh the pinned agent skill bundle for the current diagnostic catalog.
+  Resolve the compact CLI's plain-project test fixture from either package
+  manifest so the root and full-toolchain binaries test the same project.
+
+
 - Add a closed acceptance-record format for #328's Kernel-0 rung-2 decision.
   It requires every local receipt to bind to one selected revision or an exact
   unchanged subject, keeps all rows pending, and separates an eventual reviewer

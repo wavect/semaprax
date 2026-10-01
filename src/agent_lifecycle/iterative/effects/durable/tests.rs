@@ -867,6 +867,9 @@ fn reducer_and_recovery_fuel_reservations_cannot_be_refunded() {
 /// only an idempotent replay of an already-complete run.
 #[test]
 fn checkpoint_bytes_are_target_neutral_across_the_full_backend_matrix() {
+    if !crate::agent_lifecycle::tests::stage_process_host_supported() {
+        return;
+    }
     let native_host = crate::agent_lifecycle::tests::native_stage_host()
         .expect("cross-backend checkpoint parity requires an explicit held compiler");
     let module_source = super::super::tests::typed_effect_source();
@@ -942,6 +945,9 @@ fn checkpoint_bytes_are_target_neutral_across_the_full_backend_matrix() {
 /// test is not vacuous.
 #[test]
 fn hostile_checkpoints_are_refused_identically_on_every_backend() {
+    if !crate::agent_lifecycle::tests::stage_process_host_supported() {
+        return;
+    }
     let native_host = crate::agent_lifecycle::tests::native_stage_host()
         .expect("hostile checkpoint parity requires an explicit held compiler");
     let module_source = super::super::tests::typed_effect_source();

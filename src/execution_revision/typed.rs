@@ -24,7 +24,7 @@ mod model_wait;
 mod owned_wait_context;
 pub use model_wait::SourceModelWaitBinding;
 pub(crate) use owned_wait_context::CheckedTypedOwnedWaitExecutionV8;
-#[cfg(test)]
+#[cfg(all(test, unix))]
 pub(crate) use owned_wait_context::TestProspectiveReduceLimitV8;
 
 pub struct AgentRuntimeV2 {
@@ -677,5 +677,5 @@ pub use migration::{
     ResumedMigratedAgentRuntimeV2,
 };
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 pub(crate) use owned_wait_context::TestContinuedAuthorizeV8;

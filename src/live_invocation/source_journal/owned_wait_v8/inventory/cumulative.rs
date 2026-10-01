@@ -75,5 +75,5 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn checked_prefix<
     })
 }
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod tests;

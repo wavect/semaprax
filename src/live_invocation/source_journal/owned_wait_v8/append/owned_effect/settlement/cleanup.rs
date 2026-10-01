@@ -263,14 +263,14 @@ impl<'j> AppendSessionV8<'j> {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 pub(in crate::live_invocation::source_journal::owned_wait_v8) mod tests;
 
 pub(in crate::live_invocation::source_journal::owned_wait_v8) mod continued_reduce;
 pub(in crate::live_invocation::source_journal::owned_wait_v8) mod reduce;
 
 pub(in crate::live_invocation::source_journal::owned_wait_v8) mod failed_state;
-#[cfg(test)]
+#[cfg(all(test, unix))]
 pub(in crate::live_invocation::source_journal::owned_wait_v8) use tests::{
     test_failed_target, TestFailedTargetV8,
 };

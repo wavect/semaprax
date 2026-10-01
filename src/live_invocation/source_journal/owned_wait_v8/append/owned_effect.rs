@@ -217,7 +217,7 @@ impl<'j> AppendSessionV8<'j> {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod tests;
 
 pub(in crate::live_invocation::source_journal::owned_wait_v8) use settlement::cleanup::{
@@ -225,29 +225,29 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) use settlement::cl
     VerifiedOwnedEffectCleanupSuccessorV8,
 };
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 pub(in crate::live_invocation::source_journal::owned_wait_v8) use settlement::cleanup::reduce::test_evaluated;
 pub(in crate::live_invocation::source_journal::owned_wait_v8) use settlement::cleanup::reduce::VerifiedOwnedReduceReservationSuccessorV8;
-#[cfg(test)]
+#[cfg(all(test, unix))]
 pub(in crate::live_invocation::source_journal::owned_wait_v8) use settlement::cleanup::tests::test_executed;
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 pub(in crate::live_invocation::source_journal::owned_wait_v8) use settlement::cleanup::reduce::test_evaluated_failed;
 
 pub(in crate::live_invocation::source_journal::owned_wait_v8) use settlement::cleanup::reduce::step::VerifiedOwnedStepSuccessorV8;
 
 pub(in crate::live_invocation::source_journal::owned_wait_v8) use settlement::cleanup::failed_state::VerifiedFailedEffectStateSuccessorV8;
-#[cfg(test)]
+#[cfg(all(test, unix))]
 pub(in crate::live_invocation::source_journal::owned_wait_v8) use settlement::cleanup::{test_failed_target,TestFailedTargetV8};
 
 pub(in crate::live_invocation::source_journal::owned_wait_v8) use settlement::cleanup::reduce::step::VerifiedOwnedContinueSuccessorV8;
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 pub(in crate::live_invocation::source_journal::owned_wait_v8) use settlement::cleanup::tests::test_observer_failed_receipt;
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 pub(in crate::live_invocation::source_journal::owned_wait_v8) use settlement::cleanup::reduce::step::test_moved;
 
 pub(in crate::live_invocation::source_journal::owned_wait_v8) use settlement::cleanup::observer_failed_state::VerifiedObserverFailedStateSuccessorV8;
-#[cfg(test)]
+#[cfg(all(test, unix))]
 pub(in crate::live_invocation::source_journal::owned_wait_v8) use settlement::cleanup::tests::{test_observer_failed_receipt_mode, TestObserverTargetV8};

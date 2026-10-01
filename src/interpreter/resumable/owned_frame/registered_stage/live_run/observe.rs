@@ -85,7 +85,7 @@ pub(crate) fn observe_live_owned_run_v8(
     if permit.validate_guard().is_err() {
         budget.cancel();
     }
-    #[cfg(test)]
+    #[cfg(all(test, unix))]
     crate::live_invocation::source_journal::test_initial_observe_entry_v8();
     let step = match observe_owned_agent_state_v2(argument, plan, &mut budget) {
         Ok(step) => step,

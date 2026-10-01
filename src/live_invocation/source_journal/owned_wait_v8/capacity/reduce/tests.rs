@@ -1,4 +1,5 @@
 use super::*;
+#[cfg(unix)]
 #[test]
 fn owned_reduce_capacity_reserves_actual_stage_and_all_checked_case_closures() {
     super::super::super::CheckedOwnedWaitJournalContextV8::test_with_actual_runtime(
@@ -72,6 +73,7 @@ fn owned_reduce_capacity_reserves_actual_stage_and_all_checked_case_closures() {
     );
 }
 
+#[cfg(unix)]
 #[test]
 fn failed_state_started_ack_preserves_exact_reserved_closure_edge() {
     super::super::super::CheckedOwnedWaitJournalContextV8::test_with_actual_runtime(
@@ -160,6 +162,7 @@ fn original_status_multiset(plan: &v2::CheckedOwnedReduceV2) -> Vec<Value> {
     statuses
 }
 
+#[cfg(unix)]
 #[test]
 fn owned_reduce_capacity_status_dedup_preserves_every_original_failure_room() {
     super::super::super::CheckedOwnedWaitJournalContextV8::test_with_actual_reduce_arithmetic_store(
@@ -243,6 +246,7 @@ fn owned_reduce_capacity_status_dedup_preserves_every_original_failure_room() {
     );
 }
 
+#[cfg(unix)]
 #[test]
 fn owned_reduce_cached_proof_matches_fresh_plan_and_every_room_on_genuine_context() {
     super::super::super::CheckedOwnedWaitJournalContextV8::test_with_actual_reduce_arithmetic_store(
@@ -344,6 +348,7 @@ fn owned_reduce_cached_proof_preserves_deferred_refusal_for_real_unsupported_red
     }
 }
 
+#[cfg(unix)]
 #[test]
 fn owned_reduce_template_cache_matches_every_room_and_refuses_crossed_proof() {
     super::super::super::CheckedOwnedWaitJournalContextV8::test_with_actual_reduce_arithmetic_store(
@@ -397,6 +402,7 @@ fn owned_reduce_template_cache_recomputes_changed_inputs_and_reset() {
     assert_eq!(rooms(&context).unwrap(), fresh);
 }
 
+#[cfg(unix)]
 #[test]
 fn owned_reduce_template_cache_cumulative_profile_resets_and_keys_actual_maximum_turn() {
     super::super::super::CheckedOwnedWaitJournalContextV8::test_with_actual_runtime(

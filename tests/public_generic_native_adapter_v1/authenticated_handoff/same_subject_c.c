@@ -55,6 +55,10 @@ int main(void) {
             ? SPX_PG_CONSUMER_EXECUTION_FAILED : SPX_PG_CONSUMER_CARRIER_REJECTED;
         if (status != expected || report.native_status != EXPECT_REFUSAL) {
             assert(auth_calls() == 1 && auth_allocations() > before);
+            spx_pg_output_free(&output);
+            int close_status = -1;
+            assert(spx_pg_consumer_close_checked(&consumer, &close_status) == 0 && close_status == 0);
+            assert(!consumer && auth_live() == 0);
             return 77; /* A check-omission control must actually reach physical work. */
         }
 #else

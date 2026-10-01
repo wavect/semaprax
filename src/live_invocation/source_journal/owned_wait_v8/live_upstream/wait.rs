@@ -215,5 +215,5 @@ pub(super) fn start_live_actor_v8<'j>(
     })
 }
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod tests;

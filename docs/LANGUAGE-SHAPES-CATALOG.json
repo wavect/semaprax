@@ -235,6 +235,12 @@
       "signature": "@id(\"platform.token.host\")\ninterface TokenHost\n    permits { platform.token.release }\n{\n    @id(\"platform.token.finalize\")\n    import fn finalize(token: own Token) -> unit\n        effects { platform.token.release }\n        failure infallible\n        consumes token always;\n}\n"
     },
     {
+      "id": "channel.protocol",
+      "kind": "session_protocol",
+      "path": "examples/session-endpoint.spx",
+      "signature": "@id(\"channel.protocol\")\nsession protocol \"channel-v1\" {\n    states { Ready, Active, Closed }\n    initial Ready;\n    terminal Closed cleanup {}\n    on Ready step: send Unit consumes resource via \"channel.step\" -> Active;\n    on Ready cancel: cancel Unit consumes resource via \"channel.cancel\" -> Closed;\n    on Active close: send Unit consumes resource via \"channel.close\" -> Closed;\n    on Active cancel: cancel Unit consumes resource via \"channel.cancel\" -> Closed;\n}\n"
+    },
+    {
       "id": "checkout.session",
       "kind": "session_protocol",
       "path": "examples/session_protocol.spx",
@@ -983,6 +989,36 @@
       "kind": "function",
       "path": "examples/refutable_match.spx",
       "signature": "@id(\"main\")\nfn main() -> i64\n"
+    },
+    {
+      "id": "channel.step",
+      "kind": "function",
+      "path": "examples/session-endpoint.spx",
+      "signature": "@id(\"channel.step\")\nfn step(value: own Bytes) -> Bytes\n"
+    },
+    {
+      "id": "channel.close",
+      "kind": "function",
+      "path": "examples/session-endpoint.spx",
+      "signature": "@id(\"channel.close\")\nfn close(value: own Bytes) -> i64\n"
+    },
+    {
+      "id": "channel.cancel",
+      "kind": "function",
+      "path": "examples/session-endpoint.spx",
+      "signature": "@id(\"channel.cancel\")\nfn cancel(value: own Bytes) -> i64\n"
+    },
+    {
+      "id": "channel.use",
+      "kind": "function",
+      "path": "examples/session-endpoint.spx",
+      "signature": "@id(\"channel.use\")\nfn use_channel(endpoint: own Bytes) -> i64\n"
+    },
+    {
+      "id": "app.main",
+      "kind": "function",
+      "path": "examples/session-endpoint.spx",
+      "signature": "@id(\"app.main\")\nfn main() -> i64\n"
     },
     {
       "id": "checkout.begin",

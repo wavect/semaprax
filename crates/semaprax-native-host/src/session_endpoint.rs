@@ -1,6 +1,6 @@
 // Included inside desktop_api so actual authority and ledger fields stay private.
 #[cfg_attr(
-    not(test),
+    not(all(test, any(target_os = "linux", target_os = "macos"))),
     allow(
         dead_code,
         reason = "fresh acquisition awaits checked source endpoint plan"

@@ -1441,7 +1441,7 @@ pub(super) fn reserve<'j>(
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod tests;
 
 // Pure already-charged arithmetic. Prospective funding() intentionally adds
@@ -1488,17 +1488,11 @@ mod spent_funding_tests {
     }
 }
 
-mod observe_settlement;
-
 mod failed_observe_cleanup;
-
-mod turn_start;
-
-mod turn_prepared;
-
-mod turn_model;
-
+mod observe_settlement;
 mod turn_authorize;
-
 mod continued_reduce;
 mod turn_effect;
+mod turn_model;
+mod turn_prepared;
+mod turn_start;

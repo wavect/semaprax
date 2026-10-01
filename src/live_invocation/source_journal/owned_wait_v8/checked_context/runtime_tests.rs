@@ -1,4 +1,5 @@
 //! Genuine runtime/lease data checks. These do not attest authorize execution.
+#[cfg(unix)]
 #[path = "reduce_tests.rs"]
 mod reduce_tests;
 use super::*;
@@ -309,5 +310,6 @@ impl FoldContextV8 {
     }
 }
 
+#[cfg(unix)]
 #[path = "effect_tests.rs"]
 mod effect_tests;

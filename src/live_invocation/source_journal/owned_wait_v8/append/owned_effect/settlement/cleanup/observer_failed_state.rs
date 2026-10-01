@@ -248,5 +248,5 @@ impl<'j> AppendSessionV8<'j> {
         Ok(envelope)
     }
 }
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod tests;

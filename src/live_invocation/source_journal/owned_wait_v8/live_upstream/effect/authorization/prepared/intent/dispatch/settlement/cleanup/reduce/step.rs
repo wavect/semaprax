@@ -662,7 +662,9 @@ impl FixedOwnedStepAppendPermitV8<'_, '_> {
         }
         self.obligation.validate_live()
     }
-    pub(crate) fn selected_row(&self) -> &EntryV8 {
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn selected_row(
+        &self,
+    ) -> &EntryV8 {
         self.obligation.selected_row()
     }
     pub(crate) fn sequence(&self) -> usize {
@@ -671,7 +673,7 @@ impl FixedOwnedStepAppendPermitV8<'_, '_> {
     pub(crate) fn acknowledged_bytes(&self) -> usize {
         self.obligation.acknowledged_bytes()
     }
-    pub(crate) fn validate_selected_prefix(
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_selected_prefix(
         &self,
         j: &SourceOwnedWaitJournalV8,
         i: &crate::live_invocation::source_journal::owned_wait_v8::candidate::InventoryV8<'_>,
@@ -690,7 +692,7 @@ impl FixedOwnedStepAppendPermitV8<'_, '_> {
                 .validate_step_append_prefix(j, i, &self.obligation.selected),
         }
     }
-    pub(crate) fn advance_registry(
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_registry(
         &self,
         w: &VerifiedOwnedStepSuccessorV8<'_>,
         s: &AppendSessionV8<'_>,

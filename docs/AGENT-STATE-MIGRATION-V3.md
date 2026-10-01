@@ -131,7 +131,10 @@ physical finalizer events remain target-specific, while semantic fuel is the
 common charge. The root is immutable handoff input, so a recovered destination
 does not repeat either evaluation or charge. The parity evidence above is
 local; hosted migration evidence and full target cleanup-event parity remain
-open.
+open. Recovery accepts finalizer rows only in producer-representable form: a
+bounded ordered sequence of nonempty bounded function identities and `u32`
+liveness flags. It refuses malformed target cleanup evidence before a durable
+destination can treat the handoff as settled.
 
 Fresh and resumed migrated runtimes also expose
 `run_durable_metered_with_backend` for the explicit metered checkpoint profile.

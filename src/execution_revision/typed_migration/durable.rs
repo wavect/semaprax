@@ -8,6 +8,8 @@ use serde_json::Value;
 
 const SCHEMA: &str = "semaprax.agent-migrated-checkpoint.v1";
 const MAX_BYTES: usize = 8 * 1024 * 1024;
+const MAX_FINALIZER_EVENTS: usize = 256;
+const MAX_FINALIZER_FUNCTION_BYTES: usize = 256;
 
 /// A migration-seeded durable run whose evidence also binds target-observed
 /// semantic-work receipts. This is separate from the ordinary durable
@@ -714,13 +716,21 @@ fn target_evaluation_valid(value: &Value, expected_limit: Option<u64>) -> bool {
             .get("finalizer_events")
             .is_some_and(|events| match events {
                 Value::Null => true,
-                Value::Array(events) => events.iter().all(|event| {
-                    event.as_array().is_some_and(|row| {
-                        row.len() == 2
-                            && row[0].as_str().is_some_and(|function| !function.is_empty())
-                            && row[1].as_u64().is_some()
-                    })
-                }),
+                Value::Array(events) => {
+                    events.len() <= MAX_FINALIZER_EVENTS
+                        && events.iter().all(|event| {
+                            event.as_array().is_some_and(|row| {
+                                row.len() == 2
+                                    && row[0].as_str().is_some_and(|function| {
+                                        !function.is_empty()
+                                            && function.len() <= MAX_FINALIZER_FUNCTION_BYTES
+                                    })
+                                    && row[1]
+                                        .as_u64()
+                                        .is_some_and(|flag| u32::try_from(flag).is_ok())
+                            })
+                        })
+                }
                 _ => false,
             })
 }
@@ -766,7 +776,7 @@ mod tests {
     }
 
     #[test]
-    fn target_receipt_rejects_mismatched_common_work_or_copyout_cleanup() {
+    fn target_receipt_rejects_mismatched_or_unrepresentable_cleanup_facts() {
         let receipt = receipt();
         assert!(target_execution_valid(&receipt));
 
@@ -784,7 +794,7 @@ mod tests {
         }
         assert!(!target_execution_valid(&over_limit));
 
-        let mut exhausted_before_limit = receipt;
+        let mut exhausted_before_limit = receipt.clone();
         for evaluation in exhausted_before_limit["evaluations"]
             .as_array_mut()
             .unwrap()
@@ -792,5 +802,31 @@ mod tests {
             evaluation["semantic_work"]["exhausted"] = serde_json::json!(true);
         }
         assert!(!target_execution_valid(&exhausted_before_limit));
+
+        let mut oversized_flag = receipt.clone();
+        for evaluation in oversized_flag["evaluations"].as_array_mut().unwrap() {
+            evaluation["semantic_work"]["finalizer_events"][0][1] =
+                serde_json::json!(u64::from(u32::MAX) + 1);
+        }
+        assert!(!target_execution_valid(&oversized_flag));
+
+        let mut oversized_name = receipt.clone();
+        for evaluation in oversized_name["evaluations"].as_array_mut().unwrap() {
+            evaluation["semantic_work"]["finalizer_events"][0][0] =
+                serde_json::json!("x".repeat(MAX_FINALIZER_FUNCTION_BYTES + 1));
+        }
+        assert!(!target_execution_valid(&oversized_name));
+
+        let mut oversized_inventory = receipt;
+        for evaluation in oversized_inventory["evaluations"].as_array_mut().unwrap() {
+            let events = evaluation["semantic_work"]["finalizer_events"]
+                .as_array_mut()
+                .unwrap();
+            let event = events[0].clone();
+            for _ in 0..MAX_FINALIZER_EVENTS {
+                events.push(event.clone());
+            }
+        }
+        assert!(!target_execution_valid(&oversized_inventory));
     }
 }

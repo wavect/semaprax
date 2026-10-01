@@ -8,6 +8,11 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Reject producer-impossible target cleanup receipts during durable Agent
+  recovery (#327): oversized finalizer inventories, invalid function identities,
+  and liveness flags outside `u32`. The focused negative-control gate passed
+  locally; hosted migration and full target-event parity remain open.
+
 - Extend the selected Windows doctor launch test with post-binding hard-link
   creation and writable-section probes (#333). The native Windows gate has
   not run at this revision; exact launched-image binding remains open.

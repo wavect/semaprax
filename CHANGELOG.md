@@ -8,6 +8,11 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Bind outward durable semantic-work evidence to the selected target (#327).
+  Evidence v3 carries the same target binding as the metered checkpoint;
+  fresh and both recovery paths assert parity. Three focused selectors passed
+  locally.
+
 - Dispatch turn-two Model work through the retained physical owner (#330),
   then append its actual settlement ACK with the fixed writer and cumulative
   hold. Focused success and settlement prewrite-refusal selectors passed

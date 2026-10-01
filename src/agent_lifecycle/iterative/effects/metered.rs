@@ -32,18 +32,16 @@ pub struct MeteredTargetEffectRun {
     digest: String,
 }
 
-/// A fresh durable run plus the exact observed semantic work for its stages.
-///
-/// The existing durable checkpoint schema does not authenticate semantic-work
-/// receipts. Until it does, resuming a checkpoint through this route is
-/// refused before store access or target dispatch rather than producing
-/// incomplete evidence for historical stages.
+/// A durable run plus its exact observed semantic work for every retained and
+/// newly completed stage. The checkpoint and evidence share one selected
+/// target binding, so recovery cannot publish a target-neutral receipt set.
 pub struct MeteredDurableTypedRun {
     run: DurableTypedRun,
     observations: Vec<StageSemanticObservation>,
     observations_complete: bool,
     evidence: String,
     digest: String,
+    target_execution_binding: String,
 }
 impl MeteredDurableTypedRun {
     pub fn run(&self) -> &DurableTypedRun {
@@ -60,6 +58,10 @@ impl MeteredDurableTypedRun {
     }
     pub fn evidence_digest(&self) -> &str {
         &self.digest
+    }
+    /// The selected target bound by both the checkpoint and this evidence.
+    pub fn target_execution_binding(&self) -> &str {
+        &self.target_execution_binding
     }
 }
 impl MeteredTargetEffectRun {
@@ -90,12 +92,14 @@ fn metered_durable_evidence(
     run: DurableTypedRun,
     observations: Vec<StageSemanticObservation>,
     semantic_fuel_limit: u64,
+    target_execution_binding: String,
 ) -> MeteredDurableTypedRun {
     let observations_complete = observations.len() == run.run().lifecycle().stages().len();
     let mut document = serde_json::json!({
-        "schema": "semaprax.agent-durable-semantic-work.v2",
+        "schema": "semaprax.agent-durable-semantic-work.v3",
         "checkpoint_digest": run.checkpoint_digest(),
         "semantic_fuel_limit": semantic_fuel_limit,
+        "target_execution_binding": target_execution_binding,
         "observations_complete": observations_complete,
         "observed_stage_count": observations.len(),
         "committed_stage_count": run.run().lifecycle().stages().len(),
@@ -110,7 +114,7 @@ fn metered_durable_evidence(
     document.sort_all_objects();
     let evidence = format!("{document}\n");
     let digest = digest(
-        b"semaprax.agent-durable-semantic-work.v2\0",
+        b"semaprax.agent-durable-semantic-work.v3\0",
         evidence.as_bytes(),
     );
     MeteredDurableTypedRun {
@@ -119,6 +123,7 @@ fn metered_durable_evidence(
         observations_complete,
         evidence,
         digest,
+        target_execution_binding,
     }
 }
 
@@ -167,6 +172,7 @@ impl CompiledTypedEffects {
             return Err(durable::semantic_refusal("semantic_work.fuel_limit", ""));
         }
         let selected = self.durable_backend(selected, retained_checkpoint)?;
+        let target_execution_binding = self.target_execution_binding(selected);
         let observations = RefCell::new(Vec::new());
         let backend = StageBackend::Metered {
             backend: &selected,
@@ -192,6 +198,7 @@ impl CompiledTypedEffects {
             run,
             observations.into_inner(),
             semantic_fuel_limit,
+            target_execution_binding,
         ))
     }
 
@@ -221,6 +228,7 @@ impl CompiledTypedEffects {
             return Err(durable::semantic_refusal("semantic_work.fuel_limit", ""));
         }
         let selected = self.durable_backend(selected, retained_checkpoint)?;
+        let target_execution_binding = self.target_execution_binding(selected);
         let observations = RefCell::new(Vec::new());
         let backend = StageBackend::Metered {
             backend: &selected,
@@ -246,6 +254,7 @@ impl CompiledTypedEffects {
             run,
             observations.into_inner(),
             semantic_fuel_limit,
+            target_execution_binding,
         ))
     }
 

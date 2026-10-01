@@ -310,6 +310,16 @@ fn fresh_durable_semantic_metering_records_every_committed_stage() {
     );
     let checkpoint: serde_json::Value = serde_json::from_str(metered.run().checkpoint()).unwrap();
     assert_eq!(checkpoint["schema"], "semaprax.agent-operation-checkpoint-metered.v2");
+    let evidence: serde_json::Value = serde_json::from_str(metered.evidence()).unwrap();
+    assert_eq!(evidence["schema"], "semaprax.agent-durable-semantic-work.v3");
+    assert_eq!(
+        evidence["target_execution_binding"],
+        metered.target_execution_binding()
+    );
+    assert_eq!(
+        checkpoint["binding"]["target_execution_binding"],
+        metered.target_execution_binding()
+    );
     let entries = checkpoint["entries"].as_array().unwrap();
     assert_eq!(
         entries
@@ -362,6 +372,11 @@ fn durable_semantic_metering_recovers_authenticated_receipts_without_redelivery(
         .expect("authenticated metered checkpoint recovers");
     assert!(recovered.observations_complete());
     assert_eq!(
+        recovered.target_execution_binding(),
+        fresh.target_execution_binding(),
+        "recovery evidence retains the selected target bound by its checkpoint"
+    );
+    assert_eq!(
         recovered.run().run().lifecycle().status(),
         IterativeStatus::Complete
     );
@@ -382,7 +397,16 @@ fn migration_seeded_durable_semantic_metering_replays_receipts_without_redeliver
     let mut store = Store::default();
     let fresh = run_migration_seed_metered(&compiled, &mut handler, &mut store, None).unwrap();
     assert!(fresh.observations_complete());
+    let fresh_evidence: serde_json::Value = serde_json::from_str(fresh.evidence()).unwrap();
+    assert_eq!(
+        fresh_evidence["target_execution_binding"],
+        fresh.target_execution_binding()
+    );
     let checkpoint: serde_json::Value = serde_json::from_str(fresh.run().checkpoint()).unwrap();
+    assert_eq!(
+        checkpoint["binding"]["target_execution_binding"],
+        fresh.target_execution_binding()
+    );
     let entries = checkpoint["entries"].as_array().unwrap();
     assert_eq!(
         entries
@@ -401,6 +425,11 @@ fn migration_seeded_durable_semantic_metering_replays_receipts_without_redeliver
         run_migration_seed_metered(&compiled, &mut handler, &mut store, Some(&retained))
             .expect("migration-seeded metered checkpoint recovers");
     assert!(recovered.observations_complete());
+    assert_eq!(
+        recovered.target_execution_binding(),
+        fresh.target_execution_binding(),
+        "migration-seeded recovery retains the selected target binding"
+    );
     assert_eq!(
         recovered.run().run().lifecycle().status(),
         IterativeStatus::Complete

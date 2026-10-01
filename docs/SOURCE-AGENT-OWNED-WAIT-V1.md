@@ -920,6 +920,14 @@ The owning success and terminal-prewrite refusal selectors passed locally;
 this route remains private, and
 the recovered terminal evidence still cannot recreate a physical Report.
 
+The later physical Observe owner can select `OwnedObserveSettled` from its
+actual State and Copy result, then append `TurnObserved` through the fixed
+Observe settlement writer and cumulative hold registry. A rejected append
+keeps the physical Observe owner and its exact reservation under quarantine.
+The focused turn-two success and prewrite-refusal selectors passed locally.
+Later failed-Observe cleanup, Start/Model/Effect/Reduce and Step still require
+their physical owner joins.
+
 Public multi-turn entry, public Report delivery and physical owner restoration
 after restart remain
 unfinished. This bounded local result is not completion of the

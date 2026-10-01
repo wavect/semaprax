@@ -867,7 +867,94 @@ fn continued_reduce_chain_step_ack(fault: u8, three_turns: bool) {
                                     assert_eq!(stages, charged_funding.1 + 1);
                                     assert!(matches!(last, EntryV8::Ordinary(SourceJournalEntry::StageReservation { turn: 2, attempt: None, role: crate::live_invocation::source_journal::SourceStageRole::Observe, .. })));
                                     assert!(weak.iter().any(|owner| owner.strong_count() == 1));
-                                    drop(observed);
+                                    let settlement =
+                                        observed.prepare_observe_settlement().unwrap_or_else(
+                                            |_| panic!("turn-2 physical Observe settlement"),
+                                        );
+                                    assert!(matches!(settlement.selected(), EntryV8::Owned(crate::live_invocation::source_journal::owned_wait_v8::model::OwnedBodyV8::OwnedObserveSettled { turn: 2, settlement: crate::live_invocation::source_journal::owned_wait_v8::model::ObserveSettlementV8::Observed { .. }, .. })));
+                                    let settlement_before =
+                                        journal.lease.try_borrow_mut().unwrap().read().unwrap();
+                                    if fault == 7 {
+                                        #[cfg(unix)]
+                                        journal
+                                            .lease
+                                            .try_borrow_mut()
+                                            .unwrap()
+                                            .test_fail_before_write(after.sequence() + 1);
+                                        #[cfg(not(unix))]
+                                        unreachable!("fault injection is Unix-only");
+                                        let failed = journal
+                                            .begin_session()
+                                            .unwrap()
+                                            .append_owned_observe_settlement(settlement)
+                                            .err()
+                                            .expect("turn-2 settlement prewrite refusal");
+                                        assert!(matches!(&failed, crate::live_invocation::source_journal::owned_wait_v8::append::observe_settlement::LiveOwnedObserveSettlementAppendFailureV8::Append { .. }));
+                                        #[cfg(unix)]
+                                        assert_eq!(
+                                            journal
+                                                .lease
+                                                .try_borrow()
+                                                .unwrap()
+                                                .test_persisted_snapshot()
+                                                .unwrap(),
+                                            settlement_before
+                                        );
+                                        assert!(journal.begin_session().is_err());
+                                        assert!(weak.iter().any(|owner| owner.strong_count() == 1));
+                                        drop(failed);
+                                    } else {
+                                        let settled = journal
+                                            .begin_session()
+                                            .unwrap()
+                                            .append_owned_observe_settlement(settlement)
+                                            .unwrap_or_else(|_| {
+                                                panic!("turn-2 Observe settlement ACK")
+                                            })
+                                            .advance_observe_settlement()
+                                            .unwrap_or_else(|_| {
+                                                panic!("retained turn-2 Observe settlement owner")
+                                            });
+                                        let observed_row =
+                                            settled.prepare_turn_observed().unwrap_or_else(|_| {
+                                                panic!("turn-2 TurnObserved candidate")
+                                            });
+                                        assert!(matches!(
+                                            observed_row.selected(),
+                                            EntryV8::Ordinary(SourceJournalEntry::TurnObserved {
+                                                turn: 2,
+                                                ..
+                                            })
+                                        ));
+                                        let settled = journal
+                                            .begin_session()
+                                            .unwrap()
+                                            .append_owned_observe_settlement(observed_row)
+                                            .unwrap_or_else(|_| panic!("turn-2 TurnObserved ACK"))
+                                            .advance_observe_settlement()
+                                            .unwrap_or_else(|_| {
+                                                panic!("retained turn-2 observed owner")
+                                            });
+                                        let final_session = journal.begin_session().unwrap();
+                                        let (final_reserved, final_stages, final_turn, final_row) =
+                                            final_session
+                                                .inventory
+                                                .observe_settlement_facts()
+                                                .unwrap();
+                                        assert_eq!(
+                                            (final_reserved, final_stages, final_turn),
+                                            (reserved, stages, 2)
+                                        );
+                                        assert!(matches!(
+                                            final_row,
+                                            EntryV8::Ordinary(SourceJournalEntry::TurnObserved {
+                                                turn: 2,
+                                                ..
+                                            })
+                                        ));
+                                        assert!(weak.iter().any(|owner| owner.strong_count() == 1));
+                                        drop(settled);
+                                    }
                                 }
                             } else {
                                 let (mapped, refusal) = mapped
@@ -1030,6 +1117,11 @@ fn owned_continued_step_hands_real_state_to_turn_two_and_acks_observe() {
 #[test]
 fn owned_continued_step_turn_two_state_prewrite_refusal_retains_mapped_owner() {
     continued_reduce_chain_step_ack(6, true);
+}
+#[test]
+#[cfg(unix)]
+fn owned_continued_step_turn_two_settlement_prewrite_refusal_retains_observed_owner() {
+    continued_reduce_chain_step_ack(7, true);
 }
 #[test]
 fn owned_continue_actual_state_and_observe_acks_preserve_owner_ledger_and_cumulative_funding() {

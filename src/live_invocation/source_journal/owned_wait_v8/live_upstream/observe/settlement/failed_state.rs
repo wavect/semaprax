@@ -279,6 +279,18 @@ impl<'j> LiveSettledObserveV8<'j> {
                     Err(_) => unreachable!("checked actual continued failure"),
                 }
             }
+            LiveObserveSettlementOwnerV8::Later(later) => {
+                // The later failed-State cleanup producer has not been joined.
+                // Keep the physical Observe outcome and its one actual ACK
+                // together; no modeled cleanup can replace that boundary.
+                let owner = LiveObserveSettlementOwnerV8::Later(later);
+                acks.insert(0, cache.observed);
+                owner.journal().quarantine();
+                return Err(LiveFailedObserveStateFailureV8::Selection {
+                    owner: LiveSettledObserveV8 { owner, acks },
+                    error: SourceJournalError::Order,
+                });
+            }
         };
         match source.started() {
             Ok(selected) => Ok(LiveFailedObserveStateAppendV8 {

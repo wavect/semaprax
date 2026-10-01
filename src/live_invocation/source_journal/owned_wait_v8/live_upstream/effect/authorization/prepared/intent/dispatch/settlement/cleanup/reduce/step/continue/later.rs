@@ -1,5 +1,6 @@
 //! Later Continue handoff. The original turn's lineage remains sealed inside
 //! the actual continued Step; these owners stop at the next physical Observe.
+pub(in crate::live_invocation::source_journal::owned_wait_v8) mod settlement;
 use super::*;
 use crate::interpreter::resumable::owned_frame::registered_stage::reduce::HeldExecutedOwnedStepV2;
 use crate::live_invocation::source_journal::owned_wait_v8::append::owned_effect::ProspectiveOwnedReduceHoldV8;

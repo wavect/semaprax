@@ -1,10 +1,12 @@
 //! Completion derives from the actual successful Resume State and consumption.
 use super::*;
+use crate::live_invocation::source_journal::owned_wait_v8::live_upstream::observe::settlement::carry::start::prepared::model::join::LaterModelHistoryV8;
 use crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect::authorization::step::r#continue::later::settlement::start::resume::LaterResumedWaitV8;
 use crate::live_invocation::source_journal::owned_wait_v8::wire;
 
 pub(in crate::live_invocation::source_journal::owned_wait_v8) struct LiveLaterModelResumedV8<'j> {
     owner: LaterResumedWaitV8<'j>,
+    history: LaterModelHistoryV8<'j>,
     proposal: CheckedOwnedWaitProposalV8,
     wait: String,
     session: AppendSessionV8<'j>,
@@ -63,15 +65,57 @@ impl<'j> LiveLaterModelResumeReservedV8<'j> {
             session,
             witness,
         } = self;
-        let actual = owner
-            .owner
-            .owner
-            .owner
-            .owner
-            .owner
-            .resume_actual(&session, &witness, &proposal);
+        let LiveLaterModelUsageV8 {
+            owner,
+            session: usage_session,
+            witness: usage_witness,
+        } = owner;
+        let LiveLaterModelSettledV8 {
+            owner,
+            session: settled_session,
+            witness: settled_witness,
+        } = owner;
+        let LiveLaterModelIntentV8 {
+            owner,
+            request,
+            ordinal,
+            session: intent_session,
+            witness: intent_witness,
+            dispatched,
+        } = owner;
+        let LiveLaterPreparedPhaseV8 {
+            owner,
+            session: prepared_session,
+            witness: prepared_witness,
+        } = owner;
+        let LiveLaterStartedPhaseV8 {
+            owner,
+            observation,
+            _observe_acks,
+            acks,
+        } = owner;
+        let history = LaterModelHistoryV8::new(
+            observation,
+            _observe_acks,
+            acks.into_iter()
+                .map(|ack| (ack.session, ack.witness))
+                .collect(),
+            prepared_session,
+            prepared_witness,
+            wait.clone(),
+            request,
+            ordinal,
+            dispatched,
+            vec![
+                (intent_session, intent_witness),
+                (settled_session, settled_witness),
+                (usage_session, usage_witness),
+            ],
+        );
+        let actual = owner.resume_actual(&session, &witness, &proposal);
         let resumed = LiveLaterModelResumedV8 {
             owner: actual,
+            history,
             proposal,
             wait,
             session,
@@ -143,6 +187,9 @@ impl<'j> LiveLaterModelResumedV8<'j> {
     }
     fn selected_completed(&self) -> Result<EntryV8, SourceJournalError> {
         self.owner.validate_live(&self.session, &self.witness)?;
+        self.completed_facts()
+    }
+    fn completed_facts(&self) -> Result<EntryV8, SourceJournalError> {
         let execution = self
             .journal()
             .context()
@@ -331,3 +378,5 @@ impl LiveLaterModelCompletedV8<'_> {
         self.owner.accounting()
     }
 }
+
+pub(in crate::live_invocation::source_journal::owned_wait_v8) mod join;

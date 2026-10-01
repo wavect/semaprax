@@ -7,7 +7,7 @@ use crate::interpreter::resumable::owned_frame::registered_stage::reduce::{
 use crate::live_invocation::source_journal::owned_wait_v8::append::owned_effect::VerifiedOwnedContinueSuccessorV8;
 
 pub(in crate::live_invocation::source_journal::owned_wait_v8) struct ContinueLineageV8<'j> {
-    step: StepLineageV8<'j>,
+    step: join::ContinueStepLineageV8<'j>,
     turn: u32,
     acks: Vec<ContinueAckV8<'j>>,
 }
@@ -225,7 +225,7 @@ impl<'j> LiveMovedStepV8<'j> {
                 held,
                 accounting,
                 lineage: ContinueLineageV8 {
-                    step: lineage,
+                    step: join::ContinueStepLineageV8::First(lineage),
                     turn,
                     acks: Vec::new(),
                 },
@@ -620,3 +620,5 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_verifie
 
 pub(in crate::live_invocation::source_journal::owned_wait_v8) mod later;
 pub(in crate::live_invocation::source_journal::owned_wait_v8) mod settlement;
+
+mod join;

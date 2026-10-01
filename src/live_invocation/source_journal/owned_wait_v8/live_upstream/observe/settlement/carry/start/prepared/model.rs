@@ -682,3 +682,5 @@ use resume::ModelOwnerV8;
 mod tests;
 
 pub(in crate::live_invocation::source_journal::owned_wait_v8) mod authorize;
+
+pub(in crate::live_invocation::source_journal::owned_wait_v8) mod join;

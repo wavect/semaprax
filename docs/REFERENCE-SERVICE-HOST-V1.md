@@ -464,7 +464,13 @@ selected service/package inputs (including the canonical host-mode
 then calls the same Python OCI journey directly. It installs only `musl-tools`
 and Podman, uses no registry credentials or image pulls, and uploads the
 bounded identity record whether the journey passes or fails. A workflow
-definition is prepared runtime evidence, not a receipt that it has run.
+definition alone is not runtime evidence. The exact branch checkout
+`c3d5dead84d6d3903410f0b3478d65e6fe6e1b6c` passed the hosted
+[OCI runtime run 36922911236](https://github.com/wavect/semaprax/actions/runs/36922911236):
+the selected static `ET_EXEC` artifact had SHA-256
+`8a0e679a804a48be1466ee74069c306f36d6fc4cb313083be699df0c24fcc015`,
+the imported image completed the refusal and physical-adapter journey, and
+the run retained [its bound evidence artifact](https://github.com/wavect/semaprax/actions/runs/36922911236/artifacts/11193291279).
 
 ```sh
 SEMAPRAX_REFERENCE_SERVICE_OCI_EXECUTABLE=/absolute/static-linux/semaprax-reference-service \
@@ -478,8 +484,9 @@ Linux, and a local Podman runtime. It performs no registry access, publication,
 signing, or release-provenance verification. This macOS host has `wasmtime` but
 no `docker`, `podman`, `nerdctl`, `containerd`, or `runc` on PATH, and no
 supplied trusted static Linux service executable, so this selector is prepared
-but has not been run here. Packaging alone does not establish OCI execution,
-release provenance, or close #336 and the broader scaffold decision gaps above.
+but has not been run on this macOS host. The hosted run establishes only its
+selected Linux/Podman profile; it supplies no release provenance, public
+deployment, SQL adapter, or full scaffold decision closure.
 
 ### Immediate enqueue checked-source parity
 

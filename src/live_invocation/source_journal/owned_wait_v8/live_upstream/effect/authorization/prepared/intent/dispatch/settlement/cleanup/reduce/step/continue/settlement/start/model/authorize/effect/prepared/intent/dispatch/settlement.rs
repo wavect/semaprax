@@ -342,7 +342,7 @@ impl<'j> ContinuedResumedWaitV8<'j> {
 
 impl<'j> ContinuedResumedWaitV8<'j> {
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn cleanup_hold(&self) -> &crate::live_invocation::source_journal::owned_wait_v8::append::owned_effect::ProspectiveOwnedReduceHoldV8<'j>{
-        &self.lineage.step.origin().hold
+        self.lineage.step.origin().hold
     }
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_continued_cleanup_guard(
         &self,

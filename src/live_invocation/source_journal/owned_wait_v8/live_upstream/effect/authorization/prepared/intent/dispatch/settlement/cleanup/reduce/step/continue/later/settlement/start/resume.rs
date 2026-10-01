@@ -202,3 +202,30 @@ impl<'j> LaterResumedWaitV8<'j> {
             .advance_continued_model_ack(witness, session)
     }
 }
+
+impl<'j> LaterResumedWaitV8<'j> {
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn into_continued(
+        self,
+    ) -> Result<
+        super::super::super::super::settlement::start::model::ContinuedResumedWaitV8<'j>,
+        (Self, SourceJournalError),
+    > {
+        if !matches!(
+            &self.outcome,
+            LaterResumeOutcomeV8::Actual(LiveContinuedWaitResumeOutcomeV8::Resumed(_))
+        ) || self.lineage.source.hold().is_err()
+            || self.lineage.source.continued_model_origin().is_err()
+        {
+            return Err((self, SourceJournalError::Binding));
+        }
+        let Self {
+            outcome,
+            accounting,
+            lineage,
+        } = self;
+        let LaterResumeOutcomeV8::Actual(outcome) = outcome else {
+            unreachable!("checked actual Resume")
+        };
+        Ok(super::super::super::super::settlement::start::model::ContinuedResumedWaitV8::from_later_resume(outcome, accounting, lineage.into_joined()))
+    }
+}

@@ -520,6 +520,27 @@ impl<'j> ContinuedStartedWaitV8<'j> {
         &mut self,
         policy: &'j crate::resumable_effects::capability::CapabilityPolicy,
     ) {
-        self.lineage.step.reduce.cleanup.recorded.intent.policy = policy;
+        self.lineage
+            .step
+            .first_mut()
+            .reduce
+            .cleanup
+            .recorded
+            .intent
+            .policy = policy;
+    }
+}
+
+impl<'j> ContinuedResumedWaitV8<'j> {
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn from_later_resume(
+        outcome: LiveContinuedWaitResumeOutcomeV8<'j>,
+        accounting: TargetAccounting,
+        lineage: ContinueLineageV8<'j>,
+    ) -> Self {
+        Self {
+            outcome: ContinuedResumeOutcomeV8::Actual(outcome),
+            accounting,
+            lineage,
+        }
     }
 }

@@ -218,6 +218,11 @@ owner through the existing continued Resume interpreter with a closed lineage
 permit. Its `observe/settlement/later_carry` Completed selector accepts only the
 successful physical Resumed State, retaining failures and exact observed fuel.
 The fixed Model writer owns the Completed ACK and cumulative hold transition.
+Its `completed/join` child checks the exact physical Resume/Completed pair and
+moves the owner into the existing continued authorization/effect/Reduce/Step
+pipeline. The source `model/join` child retains the actual request and ACK
+history; `continue/join` selects the physical hold from either the first Step
+or the retained later Step. No journal fact constructs this lineage.
 [Source Agent owned wait v1](SOURCE-AGENT-OWNED-WAIT-V1.md) owns these bounded
 private successors; public Agent execution and partial-initialization recovery
 remain unfinished.

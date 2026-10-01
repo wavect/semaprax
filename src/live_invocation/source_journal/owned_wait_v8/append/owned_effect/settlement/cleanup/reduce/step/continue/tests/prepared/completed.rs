@@ -1,4 +1,5 @@
 //! A physical later Resume and its Completed ACK preserve the actual State.
+mod join;
 use super::*;
 use crate::agent_lifecycle::authorization::target_protocol::TargetAccounting;
 use crate::live_invocation::source_journal::owned_wait_v8::live_upstream::LiveLaterModelResumeReservedV8;
@@ -82,7 +83,7 @@ pub(super) fn run(
         assert_eq!((after_funding, after_stages, turn), (funding, stages, 2));
         assert_eq!(last, &row);
         assert!(weak.iter().any(|owner| owner.strong_count() == 1));
-        drop(completed);
+        join::run(journal, completed, weak, fault);
     }
     assert_eq!(crate::interpreter::resumable::owned_frame::registered_stage::live_run::test_continued_resume_entries_v8(), entries + 1, "Completed cannot replay source Resume");
 }

@@ -121,7 +121,7 @@ impl<'j> LiveContinuedReduceReservationAppendV8<'j> {
         self.validate_live()?;
         Ok(FixedOwnedContinuedReduceReservationAppendPermitV8 { owner: self })
     }
-    fn hold(&self) -> Result<&ProspectiveOwnedReduceHoldV8<'_>, SourceJournalError> {
+    fn hold(&self) -> Result<&ProspectiveOwnedReduceHoldV8<'j>, SourceJournalError> {
         self.owner.owner.owner.owner.hold()
     }
     fn accounting(&self) -> &TargetAccounting {
@@ -640,7 +640,7 @@ impl<'j> LiveContinuedStagedStepV8<'j> {
     }
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn hold(
         &self,
-    ) -> Result<&ProspectiveOwnedReduceHoldV8<'_>, SourceJournalError> {
+    ) -> Result<&ProspectiveOwnedReduceHoldV8<'j>, SourceJournalError> {
         self.reserved.owner.hold()
     }
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn acknowledge(

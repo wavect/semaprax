@@ -50,6 +50,7 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) struct LiveOwnedLa
     selected: EntryV8,
 }
 pub(in crate::live_invocation::source_journal::owned_wait_v8) struct LiveLaterModelIntentV8<'j> {
+    ordinal: u32,
     owner: LiveLaterPreparedPhaseV8<'j>,
     request: CheckedOwnedModelRequestV8,
     session: AppendSessionV8<'j>,
@@ -240,6 +241,7 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_verifie
         });
     }
     Ok(LiveLaterModelIntentV8 {
+        ordinal: obligation.ordinal,
         owner: obligation.owner,
         request: obligation.request,
         session,

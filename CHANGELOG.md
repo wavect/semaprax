@@ -8,14 +8,27 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Expand the Windows doctor hostile/runtime selector to 22 cases (#333),
+  covering retained writable-section refusal cleanup and anonymous carrier
+  handle lifetimes. All 22 ran and passed on Windows Server 2025 at
+  `e15c16202`; exact launched-image binding remains open.
+
+- Join the private turn-two Completed owner into the existing authorization,
+  effect, Reduce and staged Step pipeline (#330). The join retains its physical
+  Resume, exact ACK history and actual later Step hold. Focused local success
+  and foreign-wait refusal passed 1/1 each; the authorization-prewrite
+  regression awaits execution. Public
+  multi-turn execution and restart restoration remain open.
+
 - Bind recovered target-migration finalizer rows to the exact prepared pure
   migration closure (#327). A structurally valid row for an unrelated source
   function now refuses before the durable destination can use the handoff.
 
 - Add a branch-scoped Ubuntu/Podman reference-service OCI gate (#336) that
   builds the exact static Linux artifact, checks source/artifact identity, and
-  exercises refusal plus login/CRUD/job/restart paths. Runtime evidence is
-  pending from the hosted gate.
+  exercises refusal plus login/CRUD/job/restart paths. Its selected hosted
+  Linux/Podman journey passed at `c3d5dead8` with a retained artifact digest
+  and evidence record; broader deployment and service acceptance remain open.
 
 - Assert ordered target cleanup-event parity for durable fresh, ordinary
   recovery, migration-seeded, and seeded-recovery Agent runs (#327). Checkpoint

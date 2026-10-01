@@ -8,11 +8,14 @@ historical five-test runtime witness on exact checkout `3d4220b6`, extending the
 two-test witness at `c6bf9902`. The historical signed-capsule nine-case exact selector
 (six runtime cases plus three admission refusals) passed on exact checkout
 `c608b8d8`. The historical ten-case selector added a hostile inheritable-parent-ACE
-DACL case and passed on exact checkout `f4d3291f`. The current eighteen-case
+DACL case and passed on exact checkout `f4d3291f`. The prior eighteen-case
 selector preserves those ten and adds signed-image substitution, writable
 mapping, handle-settlement, and read-only request/bundle-carrier regressions;
 all eighteen passed on the provisioned Windows runner at exact checkout
 `06c0090d9` in [run 36911767583](https://github.com/wavect/semaprax/actions/runs/36911767583).
+The expanded twenty-two-case selector adds retained-section refusal settlement
+and anonymous carrier handle-lifetime cases. All 22 passed, with none ignored,
+at `e15c16202` in [run 36919771375](https://github.com/wavect/semaprax/actions/runs/36919771375).
 Exact exclusion of retained writable-section mutation remains unresolved. The
 authoring host remains macOS arm64; the hosted run is the native runtime witness.
 No cross-compilation or emulated substitute is treated as native execution
@@ -441,7 +444,7 @@ The next bounded batch is a **native mechanism experiment**, in the existing
    `Capsule(ArtifactBinding)` class and no resumed leader. Retain separate
    assertions for pre-process refusal and suspended-process settlement.
 4. Add the exact cases to `EXPECTED_TESTS` in
-   `scripts/doctor-provisioned-windows-gate.py`, preserve its existing eighteen
+   `scripts/doctor-provisioned-windows-gate.py`, preserve its existing twenty-two
    names, and update its count/parser controls and the Linux gate's explicit
    Windows-only exclusion if a new test submodule is added. Keep experiment
    results and release acceptance separate; repeated stress success alone
@@ -531,13 +534,13 @@ The dispatch-only
 uses an ephemeral `windows-2025` runner and creates a fresh, explicit scratch
 parent under `RUNNER_TEMP`. The gate fails when the host is not 64-bit Windows,
 the parent is missing, nonempty, or a reparse point, Cargo fails, any named
-test is filtered or ignored, or the test summary does not report all eighteen
+test is filtered or ignored, or the test summary does not report all twenty-two
 selected cases as passed. It never treats an absent prerequisite or a zero-test
 run as a skip/pass.
 
 `scripts/doctor-provisioned-windows-gate.py --self-test` checks the gate's
 refusal and libtest-result parsing on any host; it provides no Windows runtime
-evidence. `--plan` prints the exact eighteen-test selector. The live selection runs
+evidence. `--plan` prints the exact twenty-two-test selector. The live selection runs
 `windows_runtime_launches_restricted_child_inside_acl_scratch_and_settles_it`
 and `windows_runtime_timeout_terminates_the_confined_job_and_settles_cancellation`,
 plus `windows_runtime_timeout_terminates_an_actual_job_descendant`,
@@ -592,11 +595,15 @@ signed-capsule admission. The historical nine-case selector passed at exact
 checkout `c608b8d8`: six live runtime cases (including deterministic test-only
 signed-key launch/settlement) and three signed-admission refusal cases. The
 historical ten-case source added the hostile inheritable-parent-ACE scratch-DACL
-case and passed at `f4d3291f`. The test key is not release trust. The current
+case and passed at `f4d3291f`. The test key is not release trust. The prior
 eighteen-case source, including the held-image probes and carrier experiment,
 passed in [run 36911767583](https://github.com/wavect/semaprax/actions/runs/36911767583)
 at `06c0090d9` (18/18 selected, none ignored). This does not establish exact
 launched-image binding against a retained writable section.
+The expanded selector passed 22/22 with none ignored at `e15c16202` in
+[run 36919771375](https://github.com/wavect/semaprax/actions/runs/36919771375).
+Its new retained-section and carrier cases establish refusal and handle/scratch
+settlement only; they do not establish image-byte binding or child transport.
 
 ## Acceptance criteria status
 
@@ -604,16 +611,16 @@ launched-image binding against a retained writable section.
 |---|---|
 | Versioned Windows contract, cross-referenced from V1 | met |
 | Confinement primitive exists in the owning crate | implemented in `doctor::windows_confinement::primitive`; hosted type-check at exact checkout `7cab8aa8` and historical five selected runtime tests passed at exact checkout `3d4220b6`; see [Nonclaims](#nonclaims) |
-| Sealed-capsule consumption | production path calls shared `parse_signed` with the compile-time release-key input and requires native Windows code 3/4; eighteen selected native cases passed at `06c0090d9`; mapped-section race exclusion and request/bundle child transport remain open |
+| Sealed-capsule consumption | production path calls shared `parse_signed` with the compile-time release-key input and requires native Windows code 3/4; twenty-two selected native cases passed at `e15c16202`; mapped-section race exclusion and request/bundle child transport remain open |
 | Hostile-input tests for the host-independent parts | 29 tests across `capsule`, `refusal`, and `settlement` pass on this authoring host (macOS arm64); `cargo test -p semaprax-native-rust-interop-platform-sys --lib doctor::windows_confinement` |
-| Runtime tests for the Win32 primitive itself | eighteen selected cases, including held-image probes and the read-only carrier case, passed in [run 36911767583](https://github.com/wavect/semaprax/actions/runs/36911767583) on `06c0090d9` |
-| Fail-closed gate authored and run | script self-test and exact eighteen-test selector passed at `06c0090d9` |
+| Runtime tests for the Win32 primitive itself | twenty-two selected cases, including held-image probes and carrier handle settlement, passed in [run 36919771375](https://github.com/wavect/semaprax/actions/runs/36919771375) on `e15c16202` |
+| Fail-closed gate authored and run | script self-test and exact twenty-two-test selector passed at `e15c16202` |
 | Linux, macOS, or existing job-object evidence never cited as Windows proof | met |
 | `docs/COMPLETION-MATRIX.md` WP-05 promoted for Windows | not done; not claimed |
 
 ## Nonclaims
 
-This contract does not claim that the eighteen-test Windows selector is a
+This contract does not claim that the twenty-two-test Windows selector is a
 complete hostile corpus or production-support gate. The two-test run at
 `c6bf9902` and five-test run at `3d4220b6` each bind only their exact checkout
 and selected tests.

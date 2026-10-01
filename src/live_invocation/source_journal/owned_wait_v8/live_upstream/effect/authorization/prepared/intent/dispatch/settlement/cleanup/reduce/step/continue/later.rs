@@ -528,3 +528,32 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_verifie
         }
     }
 }
+
+impl<'j> LaterContinueLineageV8<'j> {
+    pub(super) fn join_journal(&self) -> &'j SourceOwnedWaitJournalV8 {
+        self.journal
+    }
+    pub(super) fn join_origin(&self) -> super::join::ContinueOriginV8<'_, 'j> {
+        // These are structural projections of retained actual owners. The join
+        // checks them before moving; later phases never remove their backing.
+        super::join::ContinueOriginV8 {
+            hold: self.source.hold().expect("joined actual prior Step hold"),
+            proposal: &self.proposal,
+            policy: self.policy,
+            cancellation: self.cancellation,
+            clock: self
+                .source
+                .continued_model_origin()
+                .expect("joined actual prior Step origin")
+                .1,
+        }
+    }
+    fn into_joined(self) -> ContinueLineageV8<'j> {
+        let turn = self.turn;
+        ContinueLineageV8 {
+            step: super::join::ContinueStepLineageV8::Later(self),
+            turn,
+            acks: Vec::new(),
+        }
+    }
+}

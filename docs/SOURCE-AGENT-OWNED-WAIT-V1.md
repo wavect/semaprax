@@ -967,10 +967,52 @@ owners. Only successful Resumed State can select `OwnedWaitCompleted`, using
 its observed consumption and State-bound result digest. The fixed Model writer
 retains that same State after its Completed ACK or prewrite refusal. The owning
 physical Resume success and Completed-prewrite refusal selectors passed locally
-(1/1 each). Later failed-Observe cleanup, Effect, Reduce and
-Step still require their owner joins.
+(1/1 each). The later Effect/Reduce/Step join is specified in section 50;
+later failed-Observe cleanup still requires its owner join.
 
 Public multi-turn entry, public Report delivery and physical owner restoration
 after restart remain
 unfinished. This bounded local result is not completion of the
 public owned-Agent lifecycle criterion.
+
+
+## 50. Private later Completed owner join (#330)
+
+The turn-two Completed holder has one consuming join into the existing
+continued authorization, effect, Decision cleanup, Reduce and staged Step
+pipeline. Its live successful Resume owner moves with the checked Proposal,
+actual request and ordinal, Prepared/Observe/Start history, and all five Model
+acknowledgements. The join does not append a row or reenter Resume.
+
+Before moving, the join validates the retained Resume witness against its
+acknowledged session, the Completed witness against that exact predecessor's
+cursor and authentication, and the current Completed prefix. It recomputes the
+Completed row from the actual Resumed State, checked Proposal, wait identity
+and observed fuel, then compares the cumulative accounting. A mismatched wait
+or other provenance failure retains the reached owner and quarantines the
+journal. History and matching bytes cannot construct the physical owner.
+
+The continuation lineage distinguishes the first Step from the retained actual
+later Step. Its borrowed origin selects that owner's physical Reduce hold,
+policy, cancellation and clock; it cannot substitute the first turn's hold or
+reset accounting. The existing fixed authorization and effect writers retain
+all reservation, ACK, transfer and host-entry guards. First authorization ACK
+failure retains the same State, and successful advancement reaches one physical
+effect dispatch, one Decision cleanup, one original Reduce reservation and the
+actual owned Step ACK. Later Step cleanup, field transfer and terminal closure
+remain outside this packet's executable gate.
+
+The focused gate is:
+
+```sh
+cargo test --locked -p semaprax --lib owned_continued_step_turn_two -- --nocapture
+```
+
+It includes physical Resume/Completed preservation, the actual turn-two
+Effect/Reduce/Step chain, a foreign-wait refusal with unchanged persisted bytes,
+and first-authorization prewrite refusal retaining State. These new join cases
+have focused local success and foreign-wait refusal passes (1/1 each, 817.26
+and 511.94 seconds). The authorization-prewrite refusal remains pending
+execution. Public multi-turn entry, Report
+delivery, restart restoration, broader iteration and native/Wasm owned-wait
+support remain separate completion requirements.

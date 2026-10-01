@@ -8,6 +8,10 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Exercise the reference service from an independently copied development
+  package through local register/login/task/job/restart and refusal paths;
+  canonicalize owned temporary roots before Project v1 checks (#336).
+
 - Reject migrated durable target receipts whose semantic fuel exceeds the
   declared limit or claims exhaustion before consuming that limit (#327).
 

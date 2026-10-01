@@ -143,7 +143,10 @@ def package(args):
     # Stage only bounded copied bytes, then check those exact bytes. Source
     # directory drift cannot substitute unchecked content into this package.
     with tempfile.TemporaryDirectory(prefix="semaprax-service-check-") as temporary:
-        staged = Path(temporary)
+        # macOS commonly returns a /var path here while authenticated project
+        # loading binds the physical /private/var ancestor.  This directory is
+        # freshly created by us; canonicalize it before the checker sees it.
+        staged = Path(temporary).resolve(strict=True)
         for name, (data, _) in files.items():
             if name.startswith("service/"):
                 target = staged / name

@@ -305,11 +305,31 @@ The Python fixtures passed 3/3 using synthetic ELF bytes for format,
 content-addressing, mode, determinism, and refusal checks; they are not runnable
 service evidence. The Rust preflight fixture passed 1/1 against the real service
 project, refusing missing projects and fixture-mode intent without runtime grants.
+
+`reference_service_acceptance::packaged_development_service_runs_from_an_independent_workspace`
+adds a separate local installed-development gate. It passes the harness's
+actual locally built `semaprax-reference-service` binary as both the explicit
+trusted checker and the exact executable whose digest the packager copies. The
+Python journey starts only the resulting `package/bin/semaprax-reference-service`
+from a fresh temporary workspace, with `package/service` as its project. It
+checks missing-secret and unsupported-adapter refusal before runtime state is
+created, then register/login/task CRUD/job completion/restart with no duplicate
+outbound delivery. The focused local journey passed 1/1 on `wavect/v080`.
+It does not establish the binary's provenance, release
+status, OCI execution, or publication.
+
+```sh
+cargo test --locked -p semaprax-native-host --test runtime_host \
+  reference_service_acceptance::packaged_development_service_runs_from_an_independent_workspace \
+  -- --exact --test-threads=1
+```
+
 This macOS host has `wasmtime` but no `docker`,
 `podman`, `nerdctl`, `containerd`, or `runc` on PATH, and no supplied trusted
-static Linux service executable. Installed-development execution and the Linux
-container register/login/CRUD/job/restart journey remain open; packaging alone
-does not close #336 or the broader scaffold decision gaps above.
+static Linux service executable. The installed-development gate remains local;
+the Linux container register/login/CRUD/job/restart journey remains open.
+Packaging alone does not establish OCI execution, release provenance, or close
+#336 and the broader scaffold decision gaps above.
 
 ### Immediate enqueue checked-source parity
 

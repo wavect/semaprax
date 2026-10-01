@@ -1299,6 +1299,46 @@ fn tls_listener_refuses_a_plaintext_client() {
 }
 
 #[test]
+fn packaged_development_service_runs_from_an_independent_workspace() {
+    if loopback_denied() {
+        eprintln!("skipping: sandbox denies loopback bind");
+        return;
+    }
+    let inputs = Workdir::create("installed-development");
+    inputs.write_inputs();
+    let repository = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("..")
+        .join("..");
+    let output = Command::new("python3")
+        .arg(repository.join("scripts/tests/reference_service_installed_development.py"))
+        .arg("--packager")
+        .arg(repository.join("scripts/package-reference-service.py"))
+        .arg("--checker")
+        .arg(SERVER)
+        .arg("--executable")
+        .arg(SERVER)
+        .arg("--project")
+        .arg(inputs.example_project())
+        .arg("--config")
+        .arg(inputs.path("service.config.json"))
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .output()
+        .expect("run packaged installed-development journey");
+    assert!(
+        output.status.success(),
+        "stdout: {}\nstderr: {}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert_eq!(
+        String::from_utf8(output.stdout).unwrap(),
+        "packaged reference-service installed-development journey passed\n"
+    );
+}
+
+#[test]
 fn package_preflight_checks_service_without_runtime_grants() {
     let workdir = Workdir::create("package-preflight");
     std::fs::write(workdir.path("service.config.json"), HOST_CONFIG).unwrap();

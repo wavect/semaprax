@@ -877,7 +877,7 @@ fn helper(value: i64) -> i64 { value }
 @id("fixture.detached")
 fn detached(value: i64) -> i64 { value }
 @id("fixture.migrate")
-fn migrate(old: own Old) -> New { New { count: helper(old.count) } }
+fn migrate(old: Old) -> New { New { count: helper(old.count) } }
 @id("fixture.main")
 fn main() -> i64 { 0 }
 "#;

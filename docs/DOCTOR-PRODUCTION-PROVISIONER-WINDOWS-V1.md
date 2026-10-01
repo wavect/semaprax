@@ -11,9 +11,10 @@ two-test witness at `c6bf9902`. The historical signed-capsule nine-case exact se
 DACL case and passed on exact checkout `f4d3291f`. The current eighteen-case
 selector preserves those ten and adds signed-image substitution, writable
 mapping, handle-settlement, and read-only request/bundle-carrier regressions;
-native execution of the added paths is pending, and exact exclusion of retained
-writable-section mutation remains unresolved. The authoring host remains macOS arm64; the
-continuation has a Windows-target Rust type-check but no native Windows runtime.
+all eighteen passed on the provisioned Windows runner at exact checkout
+`06c0090d9` in [run 36911767583](https://github.com/wavect/semaprax/actions/runs/36911767583).
+Exact exclusion of retained writable-section mutation remains unresolved. The
+authoring host remains macOS arm64; the hosted run is the native runtime witness.
 No cross-compilation or emulated substitute is treated as native execution
 evidence. Host-independent capsule, admission-ordering,
 and settlement logic remains separately testable on non-Windows hosts. See
@@ -292,7 +293,7 @@ settlement. This shows that an explicit future handle-list entry can carry
 read-only authenticated bytes; it does not show that any child inherited the
 handle, received a fixed carrier role, or executed an authenticated image.
 
-### Signed image binding continuation (#333; native execution pending)
+### Signed image binding continuation (#333; partial native runtime evidence)
 
 `primitive/image.rs` implements a bounded pathname bridge because
 [`CreateProcessAsUserW`](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-createprocessasuserw)
@@ -356,10 +357,11 @@ inheritable delete-on-close sentinel that must not reach the child outside its
 three standard handles. The post-binding section request only demonstrates
 that a new read-only handle cannot mint writable-section access; it does not
 address an already retained writable section. The section-without-view case
-requires pre-spawn refusal; its behavior is still unverified on Windows.
+requires pre-spawn refusal; that selected behavior passed on Windows at
+`06c0090d9`.
 Success controls require NTFS/oplock acquisition to work; no unavailable
-prerequisite can pass by skipping. All eighteen native cases still require an
-authorized Windows execution at the changed revision.
+prerequisite can pass by skipping. All eighteen selected native cases passed
+at `06c0090d9`; later source revisions need their own execution receipt.
 
 Local verification on 30 September 2026: the initial `64472c71b` continuation
 and the retained-oplock correction both passed the Windows-target check below
@@ -369,7 +371,8 @@ and the retained-oplock correction both passed the Windows-target check below
 standard library. This type-checks the Windows library and test source
 but executes no Windows code. The corrected sixteen-case Windows gate's
 `--self-test` passed. The initial Linux gate's `--self-test` passed 137/137 checks, including the explicit exclusion
-of the new Windows-only test module. No native Windows acceptance is recorded.
+of the new Windows-only test module. This earlier verification predates the
+eighteen-case [native run](https://github.com/wavect/semaprax/actions/runs/36911767583).
 
 
 ### Binding decision and next implementation boundary (#333)
@@ -379,7 +382,9 @@ and leaves exact binding unaccepted. This is a design decision and work plan,
 not a new execution receipt or a claim that the race has been reproduced.
 The affected completion row is WP-05. Its Windows production boundary stays
 unpromoted; the historical ten-case evidence remains attached to its original
-revision, and all eighteen current cases still need native execution.
+revision. The eighteen-case selector passed at exact checkout `06c0090d9`;
+that narrows the runtime-evidence gap but does not prove atomic exclusion of a
+retained writable section or promote WP-05.
 
 The proposed repair must establish one continuous invariant: from the first
 authenticated byte read until the loader has consumed the admitted image,
@@ -436,7 +441,7 @@ The next bounded batch is a **native mechanism experiment**, in the existing
    `Capsule(ArtifactBinding)` class and no resumed leader. Retain separate
    assertions for pre-process refusal and suspended-process settlement.
 4. Add the exact cases to `EXPECTED_TESTS` in
-   `scripts/doctor-provisioned-windows-gate.py`, preserve its existing sixteen
+   `scripts/doctor-provisioned-windows-gate.py`, preserve its existing eighteen
    names, and update its count/parser controls and the Linux gate's explicit
    Windows-only exclusion if a new test submodule is added. Keep experiment
    results and release acceptance separate; repeated stress success alone
@@ -444,8 +449,8 @@ The next bounded batch is a **native mechanism experiment**, in the existing
 
 This continuation binds `bInheritHandles` to an explicit three-handle startup
 list and adds a child probe of an unrelated inheritable delete-on-close
-sentinel. It checks a single capability boundary and has no native Windows
-execution receipt. Inspecting job flags does not exercise resource exhaustion:
+sentinel. Its selected native case passed at `06c0090d9` but checks only a
+single capability boundary. Inspecting job flags does not exercise resource exhaustion:
 CPU, committed-memory and output limits still need specified bounds, actual
 violating children, selected failure classes, and post-failure job/handle
 settlement. The current `tightened_job` sets an active process limit and
@@ -544,7 +549,7 @@ plus `windows_runtime_timeout_terminates_an_actual_job_descendant`,
 `windows_runtime_signed_linux_architecture_capsule_refuses_before_token_job_or_filesystem`,
 and `windows_runtime_protected_scratch_dacl_blocks_inherited_parent_ace`.
 The nested `primitive::tests::binding` module adds the seven cases described in
-[Signed image binding](#signed-image-binding-continuation-333-native-execution-pending).
+[Signed image binding](#signed-image-binding-continuation-333-partial-native-runtime-evidence).
 Its post-binding launch hook attempts a new hard link, writable open, and
 writable section from a fresh read handle before process creation; each must
 refuse before the authenticated child is allowed to run. Those attempts do not
@@ -588,8 +593,10 @@ checkout `c608b8d8`: six live runtime cases (including deterministic test-only
 signed-key launch/settlement) and three signed-admission refusal cases. The
 historical ten-case source added the hostile inheritable-parent-ACE scratch-DACL
 case and passed at `f4d3291f`. The test key is not release trust. The current
-eighteen-case source, held-image binding, and carrier experiment have no native
-execution receipt.
+eighteen-case source, including the held-image probes and carrier experiment,
+passed in [run 36911767583](https://github.com/wavect/semaprax/actions/runs/36911767583)
+at `06c0090d9` (18/18 selected, none ignored). This does not establish exact
+launched-image binding against a retained writable section.
 
 ## Acceptance criteria status
 
@@ -597,10 +604,10 @@ execution receipt.
 |---|---|
 | Versioned Windows contract, cross-referenced from V1 | met |
 | Confinement primitive exists in the owning crate | implemented in `doctor::windows_confinement::primitive`; hosted type-check at exact checkout `7cab8aa8` and historical five selected runtime tests passed at exact checkout `3d4220b6`; see [Nonclaims](#nonclaims) |
-| Sealed-capsule consumption | production path calls shared `parse_signed` with the compile-time release-key input and requires native Windows code 3/4; nine test-key/admission cases passed at `c608b8d8`; partial signed-image checks exist, but mapped-section race exclusion and native execution remain unresolved; request/bundle transport remains open |
+| Sealed-capsule consumption | production path calls shared `parse_signed` with the compile-time release-key input and requires native Windows code 3/4; eighteen selected native cases passed at `06c0090d9`; mapped-section race exclusion and request/bundle child transport remain open |
 | Hostile-input tests for the host-independent parts | 29 tests across `capsule`, `refusal`, and `settlement` pass on this authoring host (macOS arm64); `cargo test -p semaprax-native-rust-interop-platform-sys --lib doctor::windows_confinement` |
-| Runtime tests for the Win32 primitive itself | ten selected cases, including the hostile-parent-ACE case, passed in [run 35993882814](https://github.com/wavect/semaprax/actions/runs/35993882814) on `f4d3291f` |
-| Fail-closed gate authored and run | script self-test passed locally; exact ten-test selector passed at `f4d3291f` |
+| Runtime tests for the Win32 primitive itself | eighteen selected cases, including held-image probes and the read-only carrier case, passed in [run 36911767583](https://github.com/wavect/semaprax/actions/runs/36911767583) on `06c0090d9` |
+| Fail-closed gate authored and run | script self-test and exact eighteen-test selector passed at `06c0090d9` |
 | Linux, macOS, or existing job-object evidence never cited as Windows proof | met |
 | `docs/COMPLETION-MATRIX.md` WP-05 promoted for Windows | not done; not claimed |
 
@@ -616,8 +623,8 @@ tests give narrow observations only for their exact checkout and assertions.
 Earlier hand-checking against vendored `windows-sys` was diligence, not
 substitute execution evidence. The selector uses a
 deterministic test-only signing key and does not establish release trust. The
-partial image checks have no native execution evidence or atomic exclusion
-proof for retained writable sections, and Windows request/bundle carrier
+partial image checks have no atomic exclusion proof for retained writable
+sections despite their selected native pass, and Windows request/bundle carrier
 transport remains absent. Independent hostile-corpus,
 general descendant-tree, and production-support requirements remain open. Do not claim the existing ordinary-probe
 job-object confinement in `windows.rs` as evidence of production-grade

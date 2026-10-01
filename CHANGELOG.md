@@ -15,8 +15,8 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 - Add an isolated Windows anonymous request/bundle carrier experiment (#333).
   It authenticates signed artifact bytes into read-only inheritable mapping
-  handles and adds a native hostile-write selector. Windows execution and
-  production child transport remain open.
+  handles and adds a native hostile-write selector. The provisioned Windows
+  selector passed 18/18 at `06c0090d9`; production child transport remains open.
 
 - Reject producer-impossible target cleanup receipts during durable Agent
   recovery (#327): oversized finalizer inventories, invalid function identities,
@@ -24,8 +24,9 @@ format: `Unreleased` then release buckets, grouped by impact.
   locally; hosted migration and full target-event parity remain open.
 
 - Extend the selected Windows doctor launch test with post-binding hard-link
-  creation and writable-section probes (#333). The native Windows gate has
-  not run at this revision; exact launched-image binding remains open.
+  creation and writable-section probes (#333). Those selected cases passed in
+  the eighteen-case native run at `06c0090d9`; exact launched-image binding
+  remains open.
 
 - Check optional inbound version-00 trace metadata through the reference
   service's source decision before clock or state work (#336). Five focused

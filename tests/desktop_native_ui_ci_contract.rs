@@ -113,6 +113,10 @@ fn native_ui_source_locks_reject_hostile_gate_removal() {
         ),
         macos.replace("cmd LC_UUID", "cmd LC_SOURCE_VERSION"),
         macos.replace("[NSApp stop:nil];", "[NSApp terminate:nil];"),
+        macos.replace(
+            "[NSApp postEvent:wake atStart:NO];",
+            "removed event-loop wake",
+        ),
         macos.replace("load_commands=$(otool -l \"$binary\")", "load_commands=''"),
         macos.replace(
             "$(printf '%s\\n' \"$load_commands\" | sed -n '1p')",
@@ -302,6 +306,7 @@ fn macos_contract(source: &str) -> Result<(), String> {
             "[self.button performClick:nil]",
             "[application run]",
             "[NSApp stop:nil];",
+            "[NSApp postEvent:wake atStart:NO];",
             "applicationWillTerminate",
             "SemapraxPrivateEngine",
             "SemapraxPrivateEngine.sha256",

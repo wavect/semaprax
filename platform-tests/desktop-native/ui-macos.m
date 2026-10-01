@@ -41,8 +41,20 @@ static NSString *const kUiOutput =
   // `terminate:` exits the process with status zero after notifying the
   // delegate, which would make a rejected hostile engine indistinguishable
   // from a successful application run. Stop the event loop so `main` returns
-  // the controller's stable nonzero status instead.
+  // the controller's stable nonzero status instead. A failure can arrive from
+  // a dispatch callback when no other UI event is pending, so wake the loop
+  // to let it observe the stop request.
   [NSApp stop:nil];
+  NSEvent *wake = [NSEvent otherEventWithType:NSEventTypeApplicationDefined
+                                   location:NSZeroPoint
+                              modifierFlags:0
+                                  timestamp:0
+                               windowNumber:0
+                                    context:nil
+                                    subtype:0
+                                      data1:0
+                                      data2:0];
+  [NSApp postEvent:wake atStart:NO];
 }
 
 - (BOOL)runEngine {

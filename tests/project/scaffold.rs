@@ -897,7 +897,7 @@ fn service_scaffold_configuration_is_closed_and_credential_free() {
     ] {
         assert!(!file("service.config.json").contains(forbidden));
     }
-    for refused in ["sqlite", "postgresql", "otlp"] {
+    for refused in ["sqlite", "postgresql", "otlp-grpc"] {
         assert!(
             !schema.to_string().contains(refused),
             "unsupported adapter label `{refused}` must not enter the generated configuration vocabulary"

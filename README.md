@@ -18,6 +18,8 @@ Build runtime agents whose proposals must pass checked code before they can act.
 [Build agents](#agents-as-programs-not-just-prompts) ·
 [Handbook](handbook/README.md) · [Examples](examples/README.md) · [Spec library](docs/index.md)
 
+https://github.com/user-attachments/assets/a3262e2e-85b0-4b08-8e90-cb6bc7cdcad4
+
 </div>
 
 <div align="center">
@@ -27,12 +29,6 @@ Build runtime agents whose proposals must pass checked code before they can act.
 **Meet Ernesto, the official Semaprax mascot.** Follow his [two-minute visual tour](handbook/getting-started/see-it-in-action.md), then try the commands yourself.
 
 </div>
-
-> [!WARNING]
-> Semaprax is **alpha research software**, not a production-ready language.
-> Syntax, protocols, and binary interfaces can change. Use it to experiment,
-> build prototypes, and help shape the language, not for production or
-> safety-critical workloads.
 
 ## Why Semaprax?
 

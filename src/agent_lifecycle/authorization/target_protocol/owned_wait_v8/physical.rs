@@ -61,3 +61,65 @@ pub(crate) fn dispatch(
         handler,
     )
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn host_failure_stays_selected_when_handler_cancels() {
+        struct FailingHandler<'a>(&'a AgentCancellation);
+        impl TargetHostHandler for FailingHandler<'_> {
+            fn dispatch(
+                &mut self,
+                _: &TargetHostRequest,
+                _: &mut TargetResponseSink,
+            ) -> Result<(), TargetHostError> {
+                self.0.cancel();
+                Err(TargetHostError::Failed)
+            }
+        }
+        let argument = TypedCarrier::new("fixture.Argument", b"request".to_vec()).unwrap();
+        let operation = TargetOperation::new(
+            "fixture.agent.effect.read",
+            "read",
+            "fixture.Argument",
+            "fixture.Result",
+        )
+        .unwrap();
+        let grant = TargetGrant::bind_request(
+            AuthorizedRequest {
+                binding: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                    .into(),
+                budget: 10,
+                seal: b"seal".to_vec(),
+            },
+            "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            None,
+            3,
+            operation,
+            &argument,
+        );
+        let limits = TargetLimits {
+            max_calls: 1,
+            max_request_bytes: 4096,
+            max_result_bytes: 1024,
+            max_total_bytes: 5120,
+            max_fuel: 20,
+        };
+        let cancellation = AgentCancellation::new();
+        let mut accounting = TargetAccounting::default();
+        let run = crate::agent_lifecycle::authorization::target_protocol::dispatch(
+            grant,
+            argument,
+            4,
+            limits,
+            &mut accounting,
+            &cancellation,
+            &mut FailingHandler(&cancellation),
+        );
+        assert_eq!(run.evidence().settlement(), Settlement::HostFailed);
+        assert!(run.evidence().dispatched());
+        assert_eq!(run.evidence().accounting(), accounting);
+    }
+}

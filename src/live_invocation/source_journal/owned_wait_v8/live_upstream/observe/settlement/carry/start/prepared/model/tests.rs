@@ -515,16 +515,12 @@ pub(super) fn test_completed_profile(
             let mut response = original_response.clone();
             let expected_sequence = if granted { 1 } else { 2 };
             if !granted {
-                let mut document: serde_json::Value = serde_json::from_slice(&response).unwrap();
-                let sequence = document
-                    .get_mut("value")
-                    .and_then(|value| value.get_mut("fields"))
-                    .and_then(|fields| fields.get_mut("fixture.agent.type.proposal.sequence"))
-                    .expect("actual stable Proposal sequence field");
-                assert_eq!(sequence.as_str(), Some("1"));
-                *sequence = serde_json::Value::String("2".into());
-                response = serde_json::to_vec(&document).unwrap();
-                response.push(b'\n');
+                let original = std::str::from_utf8(&response).unwrap();
+                let field = "\"fixture.agent.type.proposal.sequence\":\"1\"";
+                assert_eq!(original.matches(field).count(), 1);
+                response = original
+                    .replacen(field, "\"fixture.agent.type.proposal.sequence\":\"2\"", 1)
+                    .into_bytes();
                 assert_ne!(response, original_response, "Refused fixture must change K");
             } else {
                 assert_eq!(response, original_response, "Granted response stays frozen");
@@ -554,11 +550,15 @@ pub(super) fn test_completed_profile(
                 journal,
                 settled.prepare_next().unwrap_or_else(|_| panic!("Usage")),
             );
+            assert!(matches!(
+                usage.dispatched,
+                Some(OwnedModelSettlementV8::Settled { .. })
+            ));
             let resume = acknowledge(
                 journal,
                 usage
                     .prepare_next()
-                    .unwrap_or_else(|_| panic!("full Resume F")),
+                    .unwrap_or_else(|failure| panic!("full Resume F: {:?}", failure.error)),
             );
             let resumed = resume
                 .resume_actual()

@@ -910,7 +910,9 @@ pub(in crate::agent_lifecycle) fn dispatch(
     }
     let raw = response.bytes;
     let result_charge = accounting.charge_result(raw.len(), limits);
-    if cancellation.is_cancelled() {
+    // A handler failure is already selected when the call returns. A
+    // simultaneous cancellation cannot replace that physical outcome.
+    if cancellation.is_cancelled() && matches!(&host_outcome, Ok(Ok(()))) {
         return settled(
             grant,
             request_digest,

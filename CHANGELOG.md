@@ -8,6 +8,12 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Preserve the selected host failure and physical authority-loss retirement
+  when cancellation and lease corruption coincide during continued
+  owned-effect dispatch. Keep the
+  refused authorization proposal fixture in canonical wire order, and check
+  failed cleanup against its own reserved capacity edge.
+
 - Repair main CI regressions in the example index, Rust formatting and module
   budget, Unix-only owned-wait test selection on Windows, the desktop linker
   pin, generated-package Cargo coverage, generic Wasm entry-wrapper count,

@@ -201,9 +201,14 @@ fn effect_actual_authenticated_phase_edges_keep_reserved_room_and_refuse_produce
         .unwrap();
         let folded = fold::fold(context.fold(), checked.entries()).unwrap();
         assert_eq!(folded.tail, fold::TailV8::EffectCleanupFailed);
-        assert_eq!(
-            super::super::outstanding(context.fold(), &folded).unwrap(),
-            room
+        let failed_room = super::super::outstanding(context.fold(), &folded).unwrap();
+        let (_, before_failed) = check(24);
+        let started_bytes = encode(&context, &key, &rows[..24]);
+        let failed_bytes = encode(&context, &key, &failed_receipt);
+        check_edge(
+            before_failed,
+            failed_bytes.len() - started_bytes.len(),
+            failed_room,
         );
     });
 }

@@ -315,6 +315,7 @@ fn guard_status(
     phase: OwnedEffectPhaseV8,
     check: &mut impl FnMut(OwnedEffectPhaseV8) -> bool,
     effect: &str,
+    post_dispatch: bool,
 ) -> LiveGuardV8 {
     let cleanup = matches!(phase, OwnedEffectPhaseV8::CleanupStarted(_));
     if creator != std::process::id()
@@ -323,7 +324,7 @@ fn guard_status(
     {
         return LiveGuardV8::AuthorityLost;
     }
-    if !cleanup && inputs.cancellation.is_cancelled() {
+    if !cleanup && !post_dispatch && inputs.cancellation.is_cancelled() {
         return LiveGuardV8::Cancelled;
     }
     let allowed = check(phase);
@@ -349,7 +350,7 @@ fn current(
     check: &mut impl FnMut(OwnedEffectPhaseV8) -> bool,
     effect: &str,
 ) -> bool {
-    guard_status(inputs, creator, phase, check, effect) == LiveGuardV8::Current
+    guard_status(inputs, creator, phase, check, effect, false) == LiveGuardV8::Current
 }
 pub(super) fn reducer_guard(
     inputs: &OwnedEffectInputsV8<'_>,

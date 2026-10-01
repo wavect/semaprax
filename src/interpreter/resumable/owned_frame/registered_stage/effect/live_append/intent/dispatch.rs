@@ -18,6 +18,7 @@ pub(in crate::interpreter::resumable::owned_frame::registered_stage::effect) fn 
         phase,
         &mut check,
         staged.prepared.plan.operation().effect_id(),
+        false,
     );
     if entry_guard != LiveGuardV8::Current {
         staged.failure = Some(if staged.prepared.inputs.cancellation.is_cancelled() {
@@ -62,6 +63,7 @@ pub(in crate::interpreter::resumable::owned_frame::registered_stage::effect) fn 
         phase,
         &mut check,
         staged.prepared.plan.operation().effect_id(),
+        true,
     );
     if exit_guard != LiveGuardV8::Current {
         let cancelled = staged.prepared.inputs.cancellation.is_cancelled();

@@ -19,9 +19,9 @@
 //! task transaction decisions, `mark_job_succeeded`,
 //! `completed_job_log_is_admitted`, `completed_job_metric_is_admitted`,
 //! `completed_job_export_is_admitted`, and the opt-in v2 webhook decision are invoked through the checked
-//! public-API seam before their corresponding host work. The remaining
-//! scaffold decisions (migration and trace policies)
-//! retain fixture-mode coverage until a host route needs them.
+//! public-API seam before their corresponding host work. The optional
+//! trace-context decision gates incoming traceparent metadata before routing.
+//! Migration decisions retain fixture-mode coverage until a host route needs them.
 //!
 //! [`ProjectRevision::evaluate_service_decision_v1`]: semaprax::project::ProjectRevision::evaluate_service_decision_v1
 
@@ -73,6 +73,7 @@ pub struct DecisionIdentities {
     completed_job_metric_is_admitted: String,
     completed_job_export_is_admitted: String,
     completed_job_webhook_is_admitted: Option<String>,
+    trace_context_is_admitted: Option<String>,
 }
 
 impl DecisionIdentities {
@@ -100,6 +101,7 @@ impl DecisionIdentities {
         let completed_job_export_is_admitted = sole(program, "completed_job_export_is_admitted")?;
         let completed_job_webhook_is_admitted =
             optional_sole(program, "completed_job_webhook_is_admitted")?;
+        let trace_context_is_admitted = optional_sole(program, "trace_context_is_admitted")?;
         let prefix = prefix_of(&request_is_admitted).ok_or(DecisionRefusal::Unresolved)?;
         for identity in [
             &identifier_is_valid,
@@ -124,11 +126,16 @@ impl DecisionIdentities {
                 return Err(DecisionRefusal::Unresolved);
             }
         }
-        if completed_job_webhook_is_admitted
-            .as_deref()
-            .is_some_and(|id| prefix_of(id) != Some(prefix))
-        {
-            return Err(DecisionRefusal::Unresolved);
+        for identity in [
+            &completed_job_webhook_is_admitted,
+            &trace_context_is_admitted,
+        ] {
+            if identity
+                .as_deref()
+                .is_some_and(|id| prefix_of(id) != Some(prefix))
+            {
+                return Err(DecisionRefusal::Unresolved);
+            }
         }
         Ok(Self {
             prefix: prefix.to_owned(),
@@ -151,6 +158,7 @@ impl DecisionIdentities {
             completed_job_metric_is_admitted,
             completed_job_export_is_admitted,
             completed_job_webhook_is_admitted,
+            trace_context_is_admitted,
         })
     }
 
@@ -209,6 +217,7 @@ fn prefix_of(identity: &str) -> Option<&str> {
         .or_else(|| identity.strip_suffix(".core.completed_job_metric_is_admitted"))
         .or_else(|| identity.strip_suffix(".core.completed_job_export_is_admitted"))
         .or_else(|| identity.strip_suffix(".core.completed_job_webhook_is_admitted"))
+        .or_else(|| identity.strip_suffix(".core.trace_context_is_admitted"))
 }
 
 /// One bound decision engine over an operator-retained revision.
@@ -281,6 +290,31 @@ impl<'revision> DecisionEngine<'revision> {
             &[
                 PublicApiArgument::BorrowSliceU8(method),
                 PublicApiArgument::BorrowSliceU8(target),
+            ],
+        )
+    }
+
+    /// Admit actual inbound trace fields. Missing optional identity fails only
+    /// when a request supplies trace metadata; header-free projects remain valid.
+    pub fn trace_context_is_admitted(
+        &self,
+        trace_id: &[u8],
+        parent_id: &[u8],
+        trace_flags: &[u8],
+        carries_secret: bool,
+    ) -> Result<bool, DecisionRefusal> {
+        let identity = self
+            .identities
+            .trace_context_is_admitted
+            .as_deref()
+            .ok_or(DecisionRefusal::Unresolved)?;
+        self.invoke_bool(
+            identity,
+            &[
+                PublicApiArgument::BorrowSliceU8(trace_id),
+                PublicApiArgument::BorrowSliceU8(parent_id),
+                PublicApiArgument::BorrowSliceU8(trace_flags),
+                PublicApiArgument::Bool(carries_secret),
             ],
         )
     }

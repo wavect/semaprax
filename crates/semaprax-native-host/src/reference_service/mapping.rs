@@ -40,6 +40,8 @@ use super::state::{
     MAX_ACCOUNTS, MAX_STATE_BYTES,
 };
 
+mod trace_admission;
+
 type HmacSha256 = Hmac<Sha256>;
 
 /// The host-selected Argon2id floor for stored passwords: the minimum
@@ -313,6 +315,9 @@ fn handle_with_clock(
         Ok(true) => {}
         Ok(false) => return error(400, "request_not_admitted", None),
         Err(_) => return error(500, "decision_failed", None),
+    }
+    if let Err(response) = trace_admission::admit(&host.decisions, exchange) {
+        return response;
     }
     if exchange.method == "GET" && exchange.target == "/v1/health" {
         return json(

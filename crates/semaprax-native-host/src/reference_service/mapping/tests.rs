@@ -10,6 +10,8 @@ mod enqueue_policy;
 mod log_policy;
 #[path = "tests/session_policy.rs"]
 mod session_policy;
+#[path = "tests/trace_policy.rs"]
+mod trace_policy;
 #[path = "tests/update_policy.rs"]
 mod update_policy;
 #[path = "tests/webhook_policy.rs"]

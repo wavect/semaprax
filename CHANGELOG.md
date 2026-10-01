@@ -8,6 +8,11 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Check optional inbound version-00 trace metadata through the reference
+  service's source decision before clock or state work (#336). Five focused
+  success, denial, compatibility, and oracle cases passed locally; no trace
+  propagation is claimed.
+
 - Bind outward durable semantic-work evidence to the selected target (#327).
   Evidence v3 carries the same target binding as the metered checkpoint;
   fresh and both recovery paths assert parity. Three focused selectors passed

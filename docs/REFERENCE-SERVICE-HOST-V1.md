@@ -101,6 +101,34 @@ postcondition is not admitted there. The remaining scaffold decisions not
 required by these routes retain their fixture-mode coverage and are documented
 as open in `reference_service::decisions`.
 
+### Optional inbound trace metadata
+
+After request-line admission and before route selection, clock sampling,
+password work or session/state mutation, a supplied `traceparent` header passes
+`trace_context_is_admitted` in the retained checked source. Header names are
+case-insensitive; duplicates are refused. The host admits only the exact
+55-byte version-`00` framing, splits the actual trace ID, parent ID and flags,
+and lets source judge their lowercase-hex widths and nonzero IDs. The source
+predicate accepts any two lowercase-hex flag digits; it does not negotiate
+sampling or apply the separate typed outbound trace adapter's flag mask.
+
+The source receives `carries_secret=false` because these fields are classified
+as public trace metadata, not held credential fields. This is not secret-content
+scanning. Malformed framing or source denial returns `400 trace_not_admitted`;
+a missing decision or failed evaluation returns `500 decision_failed`. These
+refusals precede durable snapshots and outbound intents. The identity is optional
+for older projects: requests without this header do not invoke the decision.
+
+Admission creates no span, samples no randomness, and stores, echoes or forwards
+no trace headers. `tracestate` remains uninterpreted and unforwarded. Existing
+JSON-event v1/v2 and OTLP completion bytes and delivery identities are unchanged.
+Migration policy still has fixture coverage only: the snapshot adapter supplies
+no SQL migration history. The owning regression selector is
+`reference_service::mapping::tests::trace_policy` (source success, precise facts,
+denial/evaluator nonmutation, framing, missing identity and std.tracing parity).
+The focused local selector passed 5/5; it does not establish trace propagation
+or a physical provider result.
+
 Routes: `GET /v1/health`, `POST /v1/register`, `POST /v1/login`,
 `POST /v1/logout`, `POST /v1/tasks`, `GET/PATCH/DELETE /v1/tasks/<id>`,
 `POST /v1/jobs/enqueue`, `POST /v1/jobs/<id>/complete`, `GET /v1/jobs/<id>`.

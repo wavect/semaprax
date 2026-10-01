@@ -158,9 +158,8 @@ fn owned_continue_driver_advances_one_real_step_into_the_next_turn() {
         assert!(weak.iter().all(|owner| owner.upgrade().is_none()));
     });
 }
-#[test]
-fn owned_continue_driver_dispatches_next_turn_model_once_and_records_settlement() {
-    let run = || {
+fn continued_reduce_chain_step_ack(refuse: bool) {
+    let run = move || {
         with_moved(|journal, moved, weak, _, _| {
             let observed = advance_live_owned_continue_v8(journal, moved)
                 .unwrap_or_else(|_| panic!("actual Continue driver"));
@@ -397,6 +396,11 @@ fn owned_continue_driver_dispatches_next_turn_model_once_and_records_settlement(
             reserved
                 .validate_live()
                 .unwrap_or_else(|_| panic!("turn-1 Reduce reservation owner"));
+            let charged_funding = {
+                let current = journal.begin_session().unwrap();
+                let (r, s, _, _, _) = current.inventory.continued_reduce_facts().unwrap();
+                (r, s)
+            };
             let accounting = *reserved.accounting();
             let evaluated = reserved
                 .evaluate()
@@ -410,11 +414,83 @@ fn owned_continue_driver_dispatches_next_turn_model_once_and_records_settlement(
             );
             assert!(facts.consumed() <= facts.allowance());
             assert_eq!(*evaluated.accounting(), accounting);
-            assert_eq!(
-                journal.begin_session().unwrap().sequence(),
-                reduce_sequence + 1,
-                "physical Reduce evaluation cannot invent a Step ACK"
-            );
+            let selected = evaluated
+                .prepare_step()
+                .unwrap_or_else(|_| panic!("real turn-1 Step"));
+            let selected_row = selected.selected_row().clone();
+            assert!(matches!(&selected_row,
+                EntryV8::Owned(crate::live_invocation::source_journal::owned_wait_v8::model::OwnedBodyV8::OwnedReduceStaged {
+                    turn: 1, attempt: 0, consumed, ..
+                }) if *consumed == u64::try_from(facts.consumed()).unwrap()));
+            let before = journal.lease.try_borrow_mut().unwrap().read().unwrap();
+            let sequence = journal.begin_session().unwrap().sequence();
+            if refuse {
+                #[cfg(unix)]
+                journal
+                    .lease
+                    .try_borrow_mut()
+                    .unwrap()
+                    .test_fail_before_write(sequence + 1);
+                #[cfg(not(unix))]
+                unreachable!("fault injection is Unix-only");
+                let failed = journal
+                    .begin_session()
+                    .unwrap()
+                    .append_owned_step(selected)
+                    .err()
+                    .expect("real append fault must refuse Step ACK");
+                assert!(matches!(&failed, crate::live_invocation::source_journal::owned_wait_v8::append::owned_effect::settlement::cleanup::reduce::step::LiveOwnedStepAppendFailureV8::Append { .. }));
+                assert_eq!(
+                    [weak[0].strong_count(), weak[1].strong_count()],
+                    [1, 0],
+                    "failed append retains the carried State and retires the prior Outcome"
+                );
+                #[cfg(unix)]
+                assert_eq!(
+                    journal
+                        .lease
+                        .try_borrow()
+                        .unwrap()
+                        .test_persisted_snapshot()
+                        .unwrap(),
+                    before,
+                    "the injected prewrite fault left persisted bytes unchanged"
+                );
+                assert!(journal.begin_session().is_err());
+                assert!(journal.hold().is_err());
+                drop(failed);
+            } else {
+                let acknowledged = journal
+                    .begin_session()
+                    .unwrap()
+                    .append_owned_step(selected)
+                    .unwrap_or_else(|_| panic!("durable turn-1 Step ACK"));
+                acknowledged.validate_live().unwrap();
+                let crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect::authorization::step::LiveStepAcknowledgedV8::Continued(staged) = acknowledged
+                    .advance_step().unwrap_or_else(|_| panic!("same evaluated Step owner")) else {panic!("continued owner")};
+                staged.validate_live().unwrap();
+                assert_eq!(journal.begin_session().unwrap().sequence(), sequence + 1);
+                let after = journal.begin_session().unwrap();
+                let (reserved, stages, turn, attempt, last) =
+                    after.inventory.step_reduce_facts().unwrap();
+                assert_eq!((turn, attempt), (1, 0));
+                assert_eq!(last, &selected_row);
+                let spent = staged.hold().unwrap();
+                spent
+                    .validate_step_guard(journal, after.sequence(), after.acknowledged_bytes())
+                    .unwrap();
+                assert_eq!((reserved, stages), charged_funding);
+                assert_ne!(
+                    journal.lease.try_borrow_mut().unwrap().read().unwrap(),
+                    before
+                );
+                assert_eq!(
+                    [weak[0].strong_count(), weak[1].strong_count()],
+                    [1, 0],
+                    "ACKed holder retains the carried State and retires the prior Outcome"
+                );
+                drop(staged);
+            }
             assert_eq!(
                 host.calls, 1,
                 "Reduce reservation never redispatches the effect host"
@@ -429,9 +505,6 @@ fn owned_continue_driver_dispatches_next_turn_model_once_and_records_settlement(
             resume_entries + 1,
             "only the fourth Model ACK may resume source"
         );
-            assert!(weak.iter().any(|owner| owner.strong_count() == 1));
-
-            drop(evaluated);
             assert!(weak.iter().all(|owner| owner.upgrade().is_none()));
         })
     };
@@ -441,6 +514,15 @@ fn owned_continue_driver_dispatches_next_turn_model_once_and_records_settlement(
         .expect("real-chain test thread")
         .join()
         .expect("real-chain test completion");
+}
+#[test]
+fn owned_continue_driver_dispatches_next_turn_model_once_and_records_settlement() {
+    continued_reduce_chain_step_ack(false);
+}
+#[test]
+#[cfg(unix)]
+fn owned_continued_step_real_prewrite_fault_retains_owner_and_poison() {
+    continued_reduce_chain_step_ack(true);
 }
 #[test]
 fn owned_continue_actual_state_and_observe_acks_preserve_owner_ledger_and_cumulative_funding() {

@@ -54,7 +54,11 @@ before constructing candidate state. Source denial returns
 idle transaction fact before constructing candidate state; source denial
 returns `403 delete_not_admitted`, and evaluator failure returns
 `500 decision_failed`. These refusals leave the committed state unchanged. The
-enqueue wrapper compares borrowed descriptor bytes in checked source and
+`POST /v1/tasks` route invokes the checked `create_is_committed` decision with
+its fixed idle transaction fact before allocating a task ID or constructing
+candidate state. Source denial returns `403 create_not_admitted`; evaluator
+failure returns `500 decision_failed`. Both leave committed state unchanged.
+The enqueue wrapper compares borrowed descriptor bytes in checked source and
 returns the 0/1/2 outcome; the host refuses evaluator errors or out-of-range
 outcomes. Before creating a new Pending job, `enqueue_is_legal` receives the
 Pending source code and fixed `now=0, next=0` immediate-schedule facts. This

@@ -8,6 +8,22 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Append the first real continued turn-1 Step ACK under the retained physical
+  owner and spent Reduce hold (#330). The focused success selector passed;
+  the corrected prewrite-fault selector also passed. Later Step phases, public
+  entry and recovery remain separate gates.
+
+- Route reference-service task creation through checked
+  `create_is_committed(0)` before task ID allocation or candidate state (#336).
+  Generated-source parity and denial/evaluator-failure nonmutation passed 2/2
+  focused selectors; broader service acceptance remains open.
+
+- Charge cleanup-replay skeleton preflight by actual reachable block
+  transitions and edges instead of a global widest-transition multiplier
+  (#324). Two focused bounds tests passed and the candidate catalog conversion
+  cleared `SPX-H006`; the unchanged 100M catalog selector still returned
+  `FuelExhausted`, so catalog acceptance remains open.
+
 - Consume the real continued Outcome once after the turn-1 Reduce reservation
   ACK and run the existing checked reducer under the retained spent hold
   (#330). The private real-chain selector passed 1/1 with full Step facts,

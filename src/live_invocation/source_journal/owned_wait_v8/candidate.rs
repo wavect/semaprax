@@ -624,7 +624,7 @@ impl<'a> InventoryV8<'a> {
             }) => (*turn, *attempt),
             _ => return Err(SourceJournalError::Order),
         };
-        if turn != 0 {
+        if turn != folded.current_turn() {
             return Err(SourceJournalError::Binding);
         }
         capacity::outstanding(context, &folded)?.check(self.document.len(), self.entries.len())?;

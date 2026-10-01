@@ -167,6 +167,7 @@ fn session_transitions_match_std_auth_and_the_generated_scaffold() {
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
         std::fs::write(path, file.bytes()).unwrap();
     }
+    install_generated_create_decision(generated.path());
     let generated_revision =
         with_authenticated_project(&generated.join("semaprax.toml"), |snapshot| {
             snapshot.check()?;

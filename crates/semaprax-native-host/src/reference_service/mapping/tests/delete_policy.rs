@@ -16,12 +16,16 @@ fn generated(deny: bool) -> (TempDir, Arc<ProjectRevision>) {
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
         std::fs::write(path, file.bytes()).unwrap();
     }
+    install_generated_create_decision(directory.path());
     if deny {
         let path = directory.join("src/core.spx");
         let original = std::fs::read_to_string(&path).unwrap();
-        let expression = "transaction_state == 0usize";
-        assert_eq!(original.matches(expression).count(), 1);
-        let changed = original.replace(expression, "false");
+        let marker = "fn delete_is_committed(transaction_state: usize) -> bool\n{\n    transaction_state == 0usize\n}";
+        assert_eq!(original.matches(marker).count(), 1);
+        let changed = original.replace(
+            marker,
+            "fn delete_is_committed(transaction_state: usize) -> bool\n{\n    false\n}",
+        );
         let parsed = semaprax::parse(&changed, &path).unwrap();
         std::fs::write(&path, semaprax::format::canonical(&parsed)).unwrap();
     }
@@ -84,12 +88,7 @@ fn source_delete_denial_and_evaluation_failure_preserve_host_state() {
     let digest = fixture.committed.digest.clone();
 
     fixture.host.decisions = DecisionEngine::bind(revision, STEPS).unwrap();
-    let refused = delete_task(
-        &mut fixture.host,
-        &mut fixture.committed,
-        1,
-        &authenticated,
-    );
+    let refused = delete_task(&mut fixture.host, &mut fixture.committed, 1, &authenticated);
     assert_eq!(refused.status, 403, "{}", refused.body);
     assert_eq!(
         field(&refused.body, "error").as_str(),
@@ -97,12 +96,7 @@ fn source_delete_denial_and_evaluation_failure_preserve_host_state() {
     );
 
     fixture.host.decisions = DecisionEngine::bind(revision, 1).unwrap();
-    let failed = delete_task(
-        &mut fixture.host,
-        &mut fixture.committed,
-        1,
-        &authenticated,
-    );
+    let failed = delete_task(&mut fixture.host, &mut fixture.committed, 1, &authenticated);
     assert_eq!(failed.status, 500, "{}", failed.body);
     assert_eq!(
         field(&failed.body, "error").as_str(),

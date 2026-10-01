@@ -2,6 +2,7 @@ module task_service.tests;
 use function @id("task_service.core.enqueue_outcome") from task_service.core as enqueue_outcome;
 use function @id("task_service.core.completed_job_export_is_admitted") from task_service.core as completed_job_export_is_admitted;
 use function @id("task_service.core.completed_job_metric_is_admitted") from task_service.core as completed_job_metric_is_admitted;
+use function @id("task_service.core.create_is_committed") from task_service.core as create_is_committed;
 use function @id("task_service.core.identifier_is_valid") from task_service.core as identifier_is_valid;
 use function @id("task_service.core.job_status_is_complete") from task_service.core as job_status_is_complete;
 use function @id("task_service.core.mark_job_succeeded") from task_service.core as mark_job_succeeded;
@@ -60,7 +61,7 @@ fn invalid_is_rejected() -> bool
 fn migration_and_transaction_are_checked() -> bool
 {
     let applied = [1u8, 2u8];
-    migration_is_admitted(2u8, array_as_slice(applied), 3u8) && !migration_is_admitted(2u8, array_as_slice(applied), 2u8) && !migration_is_admitted(2u8, array_as_slice(applied), 4u8) && update_is_committed(0usize)
+    migration_is_admitted(2u8, array_as_slice(applied), 3u8) && !migration_is_admitted(2u8, array_as_slice(applied), 2u8) && !migration_is_admitted(2u8, array_as_slice(applied), 4u8) && create_is_committed(0usize) && !create_is_committed(1usize) && update_is_committed(0usize)
 }
 
 // A retried enqueue with the same idempotency key is a harmless duplicate

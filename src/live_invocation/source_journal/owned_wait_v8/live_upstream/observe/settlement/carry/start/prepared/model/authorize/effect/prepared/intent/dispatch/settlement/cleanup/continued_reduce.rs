@@ -295,6 +295,7 @@ impl LiveContinuedReduceReservedV8<'_> {
             self.owner.owner.validate_spent_reduce_context(
                 self.session.sequence(),
                 self.session.acknowledged_bytes(),
+                false,
             )?;
             self.witness.validate_current_session(&self.session)
         })();
@@ -445,5 +446,142 @@ impl LiveContinuedEvaluatedReduceV8<'_> {
             .map_err(|_| SourceJournalError::Binding)?;
         self.validate_live()?;
         Ok(facts)
+    }
+}
+
+/// Retains the actual turn-one evaluator and its spent hold across the first
+/// Step ACK. No cleanup or result-move authority is inferred from the row.
+pub(in crate::live_invocation::source_journal::owned_wait_v8) struct LiveContinuedStagedStepV8<'j> {
+    evaluated: LiveContinuedEvaluatedReduceV8<'j>,
+    ack: Option<crate::live_invocation::source_journal::owned_wait_v8::append::owned_effect::VerifiedOwnedStepSuccessorV8<'j>>,
+    session: Option<AppendSessionV8<'j>>,
+}
+
+impl<'j> LiveContinuedEvaluatedReduceV8<'j> {
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn prepare_step(
+        self,
+    ) -> Result<crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect::authorization::step::LiveOwnedStepAppendV8<'j>, (Self, SourceJournalError)>{
+        let checked = (|| {
+            let facts = self.stage_facts()?;
+            let step = facts.step().ok_or(SourceJournalError::Binding)?;
+            let journal = self.reserved.owner.journal();
+            let held = journal.hold()?;
+            let scope = &held.registration().expected_facts().scope;
+            let scope = serde_json::json!({"program_root":scope.program_root(),"invocation":scope.invocation_id(),"policy_epoch":scope.policy_epoch()});
+            let EntryV8::Ordinary(SourceJournalEntry::StageReservation {
+                turn,
+                attempt: Some(attempt),
+                role: SourceStageRole::Reduce,
+                ..
+            }) = &self.reserved.owner.selected
+            else {
+                return Err(SourceJournalError::Binding);
+            };
+            if *turn == 0 || *attempt != 0 {
+                return Err(SourceJournalError::Binding);
+            }
+            let reservation = u32::try_from(
+                self.reserved
+                    .session
+                    .sequence()
+                    .checked_sub(1)
+                    .ok_or(SourceJournalError::Order)?,
+            )
+            .map_err(|_| SourceJournalError::Capacity)?;
+            let plan = self.reserved.owner.plan.binding();
+            let digest = crate::live_invocation::source_journal::owned_wait_v8::reduce_wire::recipe_digest(
+                crate::live_invocation::source_journal::owned_wait_v8::reduce_wire::ReduceRecipeV8::Step,
+                &serde_json::json!({"scope":scope,"binding":plan,"plan":plan,"turn":turn,"attempt":attempt,"stage_reservation":reservation,"step":step}),
+            )?;
+            Ok(EntryV8::Owned(OwnedBodyV8::OwnedReduceStaged {
+                turn: *turn,
+                attempt: *attempt,
+                plan: plan.into(),
+                stage_reservation: reservation,
+                effect_cleanup_settled: facts.effect_settled(),
+                step: step.clone(),
+                step_digest: digest,
+                consumed: u64::try_from(facts.consumed())
+                    .map_err(|_| SourceJournalError::Capacity)?,
+            }))
+        })();
+        let selected = match checked {
+            Ok(row) => row,
+            Err(error) => {
+                self.reserved.owner.journal().quarantine();
+                return Err((self, error));
+            }
+        };
+        Ok(crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect::authorization::step::LiveOwnedStepAppendV8::continued(
+            LiveContinuedStagedStepV8 { evaluated: self, ack: None, session: None }, selected,
+        ))
+    }
+}
+
+impl<'j> LiveContinuedStagedStepV8<'j> {
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn journal(
+        &self,
+    ) -> &SourceOwnedWaitJournalV8 {
+        self.evaluated.reserved.owner.journal()
+    }
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn cursor(
+        &self,
+    ) -> (usize, usize) {
+        self.session.as_ref().map_or(
+            (
+                self.evaluated.reserved.session.sequence(),
+                self.evaluated.reserved.session.acknowledged_bytes(),
+            ),
+            |s| (s.sequence(), s.acknowledged_bytes()),
+        )
+    }
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_live(
+        &self,
+    ) -> Result<(), SourceJournalError> {
+        let result = (|| {
+            if let (Some(w), Some(s)) = (&self.ack, &self.session) {
+                w.validate_current_session(s)?;
+                self.evaluated
+                    .reserved
+                    .owner
+                    .owner
+                    .validate_spent_reduce_context(s.sequence(), s.acknowledged_bytes(), true)
+            } else {
+                self.evaluated.validate_live()
+            }
+        })();
+        result.inspect_err(|_| self.journal().quarantine())
+    }
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_new_prefix(
+        &self,
+        session: &AppendSessionV8<'_>,
+    ) -> Result<(), SourceJournalError> {
+        self.evaluated
+            .reserved
+            .owner
+            .owner
+            .validate_spent_reduce_context(session.sequence(), session.acknowledged_bytes(), true)
+    }
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn hold(
+        &self,
+    ) -> Result<&ProspectiveOwnedReduceHoldV8<'_>, SourceJournalError> {
+        self.evaluated.reserved.owner.hold()
+    }
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn acknowledge(
+        mut self,
+        session: AppendSessionV8<'j>,
+        witness: crate::live_invocation::source_journal::owned_wait_v8::append::owned_effect::VerifiedOwnedStepSuccessorV8<'j>,
+    ) -> Result<Self, (Self, SourceJournalError)> {
+        if self.ack.is_some() || self.session.is_some() {
+            self.journal().quarantine();
+            return Err((self, SourceJournalError::Order));
+        }
+        self.ack = Some(witness);
+        self.session = Some(session);
+        if let Err(error) = self.validate_live() {
+            self.journal().quarantine();
+            return Err((self, error));
+        }
+        Ok(self)
     }
 }

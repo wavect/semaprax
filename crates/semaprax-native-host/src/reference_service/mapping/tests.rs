@@ -1,11 +1,13 @@
+#[path = "tests/create_policy.rs"]
+mod create_policy;
+#[path = "tests/delete_policy.rs"]
+mod delete_policy;
 #[path = "tests/enqueue_policy.rs"]
 mod enqueue_policy;
 #[path = "tests/session_policy.rs"]
 mod session_policy;
 #[path = "tests/update_policy.rs"]
 mod update_policy;
-#[path = "tests/delete_policy.rs"]
-mod delete_policy;
 
 use super::*;
 use crate::reference_service::test_support::TempDir;
@@ -79,6 +81,27 @@ fn fixture_with_telemetry_origin(telemetry_origin: &str) -> Fixture {
 
 fn write_secret(directory: &HeldDirectory, name: &str, bytes: &[u8]) {
     let _ = platform::write_file_new(directory, OsStr::new(name), bytes, 0o600).unwrap();
+}
+
+fn install_generated_create_decision(directory: &std::path::Path) {
+    let path = directory.join("src/core.spx");
+    let original = std::fs::read_to_string(&path).unwrap();
+    let module = original
+        .lines()
+        .find_map(|line| line.strip_prefix("module "))
+        .and_then(|line| line.strip_suffix(';'))
+        .expect("generated core module declaration");
+    let identity = format!("@id(\"{module}.create_is_committed\")");
+    match original.matches(&identity).count() {
+        1 => return,
+        0 => {}
+        count => panic!("generated core has {count} create decision identities"),
+    }
+    let source = format!(
+        "{original}\n@id(\"{module}.create_is_committed\")\nfn create_is_committed(transaction_state: usize) -> bool\n{{\n    transaction_state == 0usize\n}}\n"
+    );
+    let parsed = semaprax::parse(&source, &path).expect("parse generated create decision");
+    std::fs::write(path, semaprax::format::canonical(&parsed)).unwrap();
 }
 
 fn decode_host_intent(telemetry_origin: &str) -> ServiceHostAdapterRequestV1 {

@@ -31,6 +31,7 @@ use super::{
     CLEANUP_PLAN_SCHEMA_V7, CLEANUP_PLAN_SCHEMA_V8, CLEANUP_PLAN_SCHEMA_V9,
 };
 mod path_summary;
+mod skeleton_bound;
 mod skeleton_work;
 use path_summary::{
     cleanup_inert_large_decisions_can_be_summarized, cleanup_inert_path_product_can_be_summarized,
@@ -399,6 +400,7 @@ fn validate_structure_with_budget(
 struct CfgReplayBounds {
     terminal_paths: usize,
     work: usize,
+    skeleton_work: usize,
 }
 
 /// Bound actual CFG traversal work without multiplying every structure item by
@@ -483,6 +485,7 @@ fn branch_sensitive_cfg_bounds(function: &ResolvedFunction) -> Result<CfgReplayB
     let mut incoming = vec![0_usize; plan.blocks.len()];
     incoming[entry] = 1;
     let mut total = 0_usize;
+    let mut skeleton_work = 1_usize; // Initial cleanup-plan queue push.
     let mut terminal_paths = 0_usize;
     let mut visited = 0_usize;
     let ceiling = MAX_REPLAY_WORK_UNITS.saturating_add(1);
@@ -494,6 +497,11 @@ fn branch_sensitive_cfg_bounds(function: &ResolvedFunction) -> Result<CfgReplayB
         let local = block.transitions.len().saturating_add(1);
         total = total
             .saturating_add(local.saturating_mul(paths))
+            .min(ceiling);
+        skeleton_work = skeleton_work
+            .saturating_add(
+                skeleton_bound::plan_skeleton_block_weight(plan, block).saturating_mul(paths),
+            )
             .min(ceiling);
         if terminal[index] {
             terminal_paths = terminal_paths.saturating_add(paths);
@@ -509,6 +517,7 @@ fn branch_sensitive_cfg_bounds(function: &ResolvedFunction) -> Result<CfgReplayB
             return Ok(CfgReplayBounds {
                 terminal_paths: MAX_REPLAY_PATHS.saturating_add(1),
                 work: ceiling,
+                skeleton_work: ceiling,
             });
         }
     }
@@ -518,6 +527,7 @@ fn branch_sensitive_cfg_bounds(function: &ResolvedFunction) -> Result<CfgReplayB
     Ok(CfgReplayBounds {
         terminal_paths,
         work: total,
+        skeleton_work,
     })
 }
 
@@ -992,28 +1002,7 @@ fn skeleton_work_upper(
         Ok(cfg) if cfg.terminal_paths <= MAX_REPLAY_PATHS => cfg,
         Ok(_) | Err(_) => return Ok(0),
     };
-    let mut max_unit_weight = 10usize;
-    for block in &function.cleanup_plan.blocks {
-        for transition in &block.transitions {
-            let weight = match transition {
-                CleanupTransition::Initialize { .. } => 4,
-                CleanupTransition::InitializeVariant { .. } => 6,
-                CleanupTransition::Transfer { .. } | CleanupTransition::Renew { .. } => 5,
-                CleanupTransition::ReserveRenewal { .. } => 5,
-                CleanupTransition::TransferVariant { .. } => 6,
-                CleanupTransition::AuthenticateVariantCase { .. } => 6,
-                CleanupTransition::CallCommit { arguments, .. } => arguments
-                    .len()
-                    .checked_mul(2)
-                    .and_then(|arguments| arguments.checked_add(4))
-                    .ok_or_else(|| skeleton_preflight_overflow(function))?,
-                CleanupTransition::SelectFailure { .. } => 1,
-                CleanupTransition::StageCopyResult { .. } => 3,
-            };
-            max_unit_weight = max_unit_weight.max(weight);
-        }
-    }
-    let plan_expansion = checked_skeleton_mul(function, cfg.work.max(1), max_unit_weight)?;
+    let plan_expansion = cfg.skeleton_work;
     let plan_terminals = checked_skeleton_mul(function, cfg.terminal_paths.max(1), 4)?;
     let comparison = checked_skeleton_mul(function, semantic_paths.max(cfg.terminal_paths), 2)?;
     checked_skeleton_add(

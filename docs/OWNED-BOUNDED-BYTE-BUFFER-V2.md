@@ -75,3 +75,11 @@ native C11 O0/O2, and internal Core-Wasm execution. The frozen catalog oracle
 must then run unchanged under its original 100M fuel envelope. The intrinsic is
 private compiler support until that catalog gate passes; no catalog source
 conversion is currently admitted.
+
+The cleanup-replay skeleton preflight now charges the actual transition and
+edge work for each reachable block visit instead of multiplying every visit by
+the program's widest transition. A hostile widened call still fails before
+materialization. With the candidate tagged catalog conversion this cleared
+`SPX-H006`, but the unchanged catalog selector returned `FuelExhausted` under
+the original 100M envelope. The conversion remains out of the branch pending
+a source/runtime change that meets that envelope.

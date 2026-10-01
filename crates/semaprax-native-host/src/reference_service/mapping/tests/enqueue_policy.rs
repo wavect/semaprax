@@ -16,6 +16,7 @@ fn generated(deny: bool) -> (TempDir, Arc<ProjectRevision>) {
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
         std::fs::write(path, file.bytes()).unwrap();
     }
+    install_generated_create_decision(directory.path());
     if deny {
         let path = directory.join("src/core.spx");
         let original = std::fs::read_to_string(&path).unwrap();

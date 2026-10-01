@@ -806,6 +806,14 @@ fn create_task(
     if title.is_empty() || title.len() > MAX_TITLE_BYTES {
         return error(400, "invalid_title", None);
     }
+    // Task creation starts from the host's fixed idle transaction fact. The
+    // checked source must admit it before this route derives an identifier,
+    // constructs candidate state, or reaches the durable snapshot commit.
+    match host.decisions.create_is_committed(0) {
+        Ok(true) => {}
+        Ok(false) => return error(403, "create_not_admitted", Some(&committed.digest)),
+        Err(_) => return error(500, "decision_failed", None),
+    }
     let id = committed
         .state
         .tasks

@@ -860,8 +860,15 @@ cancellation guard remains valid after that physical owner moves. Pre-entry,
 evaluation, and post-entry failures retain their reached owners and quarantine
 uncertainty. The private real-chain selector passed 1/1 locally, reaching full
 Step facts with unchanged accounting, one durable Reduce reservation row, and
-no second host call or cleanup observation. It writes no Step row.
+no second host call or cleanup observation.
 
-Continued Step, terminal publication, public multi-turn entry and restart
+The evaluated turn-1 holder can now select the exact Step facts and append the
+first durable Step ACK through the fixed Step permit. The successor retains the
+same physical owner and spent Reduce hold; the row gives no cleanup, result
+move, or public continuation authority. A prewrite fault retains that owner
+and quarantines the append path. The focused real-chain success and prewrite
+selectors each exercise one actual continued turn locally.
+
+Continued Step completion, terminal publication, public multi-turn entry and restart
 recovery remain unfinished. This bounded local result is not completion of the
 public owned-Agent lifecycle criterion.

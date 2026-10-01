@@ -308,13 +308,18 @@ impl<'j> ContinuedResumedWaitV8<'j> {
         sequence: usize,
         bytes: usize,
         proposal: &CheckedOwnedWaitProposalV8,
+        step: bool,
     ) -> Result<(), SourceJournalError> {
         let journal = self.lineage.journal();
         let result = (|| {
             let origin = self.lineage.step.origin();
-            origin
-                .hold
-                .validate_continued_spent_reduce_guard(journal, sequence, bytes)?;
+            if step {
+                origin.hold.validate_step_guard(journal, sequence, bytes)?;
+            } else {
+                origin
+                    .hold
+                    .validate_continued_spent_reduce_guard(journal, sequence, bytes)?;
+            }
             let held = journal.hold()?;
             let (runtime, execution) = journal
                 .context()
@@ -341,9 +346,13 @@ impl<'j> ContinuedResumedWaitV8<'j> {
                 ordinary.initial_millis(),
                 ordinary.deadline_millis(),
             )?;
-            origin
-                .hold
-                .validate_continued_spent_reduce_guard(journal, sequence, bytes)
+            if step {
+                origin.hold.validate_step_guard(journal, sequence, bytes)
+            } else {
+                origin
+                    .hold
+                    .validate_continued_spent_reduce_guard(journal, sequence, bytes)
+            }
         })();
         result.inspect_err(|_| journal.quarantine())
     }

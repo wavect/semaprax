@@ -231,8 +231,11 @@ impl HirValidator<'_> {
                                 .rev()
                                 .filter(|(index, _)| {
                                     *index != 0
-                                        && !(operation == crate::byte_ops::ByteOp::Set1Or5
-                                            && *index == 4)
+                                        && !(matches!(
+                                            operation,
+                                            crate::byte_ops::ByteOp::Set1Or5
+                                                | crate::byte_ops::ByteOp::Set1Or6Or48
+                                        ) && *index == 3)
                                 })
                                 .map(|(_, argument)| Item::Expression(argument)),
                         );

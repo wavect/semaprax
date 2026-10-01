@@ -48,6 +48,17 @@ pub(crate) const SET5_ID: &str = "core.bytes.set5";
 pub(crate) const SET5_WIDTH: u64 = 5;
 pub(crate) const SET1_OR5_NAME: &str = "bytes_set1_or5_from_slice";
 pub(crate) const SET1_OR5_ID: &str = "core.bytes.set1_or5_from_slice";
+pub(crate) const SET1_OR6_OR48_NAME: &str = "bytes_set1_or6_or48_from_slice";
+pub(crate) const SET1_OR6_OR48_ID: &str = "core.bytes.set1_or6_or48_from_slice";
+/// The high bit selects the five-byte source-read path. The lower 63 bits are
+/// its source offset. A clear tag selects the one-byte supplied-value path.
+pub(crate) const SET1_OR5_WIDE_TAG: u64 = 1_u64 << 63;
+/// The high bit selects a borrowed-slice copy. Bit 62 distinguishes a
+/// forty-eight-byte control run from a six-byte control escape; low 62 bits
+/// select the source offset. A clear high bit selects the scalar store.
+pub(crate) const SET1_OR6_OR48_COPY_TAG: u64 = 1_u64 << 63;
+pub(crate) const SET1_OR6_OR48_WIDE48_TAG: u64 = 1_u64 << 62;
+pub(crate) const SET1_OR6_OR48_OFFSET_MASK: u64 = (1_u64 << 62) - 1;
 /// Maximum owned `Bytes` payload. This is deliberately larger than one
 /// borrowed external root: an internal producer may return a bounded result
 /// that expands a valid 64 KiB request without widening the input carrier.
@@ -81,13 +92,16 @@ pub(crate) enum ByteOp {
     /// Owned Bounded Byte Buffer v2: consume the buffer, preflight five
     /// contiguous elements, and return the same owner after ordered stores.
     Set5,
-    /// Internal same-owner one-or-five store: the wide path reads five bytes
-    /// from a borrowed slice and zero-fills an absent source byte.
+    /// Internal same-owner tagged one-or-five store: the tag's high bit selects
+    /// a five-byte borrowed-slice read and its low bits select the source offset.
     Set1Or5,
+    /// Internal same-owner tagged source store for canonical six-byte JSON
+    /// control escapes and eight-atom forty-eight-byte control runs.
+    Set1Or6Or48,
 }
 
 impl ByteOp {
-    pub(crate) const ALL: [Self; 12] = [
+    pub(crate) const ALL: [Self; 13] = [
         Self::Len,
         Self::Get,
         Self::Range,
@@ -100,6 +114,7 @@ impl ByteOp {
         Self::Set,
         Self::Set5,
         Self::Set1Or5,
+        Self::Set1Or6Or48,
     ];
 
     pub(crate) const fn name(self) -> &'static str {
@@ -116,6 +131,7 @@ impl ByteOp {
             Self::Set => SET_NAME,
             Self::Set5 => SET5_NAME,
             Self::Set1Or5 => SET1_OR5_NAME,
+            Self::Set1Or6Or48 => SET1_OR6_OR48_NAME,
         }
     }
     pub(crate) const fn id(self) -> &'static str {
@@ -132,6 +148,7 @@ impl ByteOp {
             Self::Set => SET_ID,
             Self::Set5 => SET5_ID,
             Self::Set1Or5 => SET1_OR5_ID,
+            Self::Set1Or6Or48 => SET1_OR6_OR48_ID,
         }
     }
     pub(crate) const fn arity(self) -> usize {
@@ -140,7 +157,7 @@ impl ByteOp {
             Self::Get => 2,
             Self::Range | Self::Set => 3,
             Self::Set5 => 7,
-            Self::Set1Or5 => 6,
+            Self::Set1Or5 | Self::Set1Or6Or48 => 5,
             Self::Copy
             | Self::BytesAsSlice
             | Self::ArrayAsSlice
@@ -177,7 +194,13 @@ impl ByteOp {
             Self::Set1Or5 => &[
                 ResolvedType::Bytes,
                 ResolvedType::Usize,
-                ResolvedType::Bool,
+                ResolvedType::U8,
+                ResolvedType::SliceU8,
+                ResolvedType::Usize,
+            ],
+            Self::Set1Or6Or48 => &[
+                ResolvedType::Bytes,
+                ResolvedType::Usize,
                 ResolvedType::U8,
                 ResolvedType::SliceU8,
                 ResolvedType::Usize,
@@ -192,9 +215,12 @@ impl ByteOp {
                 arguments: vec![ResolvedType::U8],
             },
             Self::Range => ResolvedType::SliceU8,
-            Self::Copy | Self::Zeroed | Self::Set | Self::Set5 | Self::Set1Or5 => {
-                ResolvedType::Bytes
-            }
+            Self::Copy
+            | Self::Zeroed
+            | Self::Set
+            | Self::Set5
+            | Self::Set1Or5
+            | Self::Set1Or6Or48 => ResolvedType::Bytes,
             Self::BytesAsSlice | Self::ArrayAsSlice | Self::StrAsBytes => ResolvedType::SliceU8,
             Self::StringAsStr => ResolvedType::Str,
         }
@@ -207,7 +233,12 @@ impl ByteOp {
                 arguments: vec![Type::U8],
             },
             Self::Range => Type::SliceU8,
-            Self::Copy | Self::Zeroed | Self::Set | Self::Set5 | Self::Set1Or5 => Type::Bytes,
+            Self::Copy
+            | Self::Zeroed
+            | Self::Set
+            | Self::Set5
+            | Self::Set1Or5
+            | Self::Set1Or6Or48 => Type::Bytes,
             Self::BytesAsSlice | Self::ArrayAsSlice | Self::StrAsBytes => Type::SliceU8,
             Self::StringAsStr => Type::Str,
         }
@@ -232,10 +263,13 @@ impl ByteOp {
             (Self::Set5, 1) => *ty == ResolvedType::Usize,
             (Self::Set5, 2..=6) => *ty == ResolvedType::U8,
             (Self::Set1Or5, 0) => *ty == ResolvedType::Bytes,
-            (Self::Set1Or5, 1 | 5) => *ty == ResolvedType::Usize,
-            (Self::Set1Or5, 2) => *ty == ResolvedType::Bool,
-            (Self::Set1Or5, 3) => *ty == ResolvedType::U8,
-            (Self::Set1Or5, 4) => *ty == ResolvedType::SliceU8,
+            (Self::Set1Or5, 1 | 4) => *ty == ResolvedType::Usize,
+            (Self::Set1Or5, 2) => *ty == ResolvedType::U8,
+            (Self::Set1Or5, 3) => *ty == ResolvedType::SliceU8,
+            (Self::Set1Or6Or48, 0) => *ty == ResolvedType::Bytes,
+            (Self::Set1Or6Or48, 1 | 4) => *ty == ResolvedType::Usize,
+            (Self::Set1Or6Or48, 2) => *ty == ResolvedType::U8,
+            (Self::Set1Or6Or48, 3) => *ty == ResolvedType::SliceU8,
             _ => false,
         }
     }
@@ -259,10 +293,13 @@ impl ByteOp {
             (Self::Set5, 1) => *ty == Type::Usize,
             (Self::Set5, 2..=6) => *ty == Type::U8,
             (Self::Set1Or5, 0) => *ty == Type::Bytes,
-            (Self::Set1Or5, 1 | 5) => *ty == Type::Usize,
-            (Self::Set1Or5, 2) => *ty == Type::Bool,
-            (Self::Set1Or5, 3) => *ty == Type::U8,
-            (Self::Set1Or5, 4) => *ty == Type::SliceU8,
+            (Self::Set1Or5, 1 | 4) => *ty == Type::Usize,
+            (Self::Set1Or5, 2) => *ty == Type::U8,
+            (Self::Set1Or5, 3) => *ty == Type::SliceU8,
+            (Self::Set1Or6Or48, 0) => *ty == Type::Bytes,
+            (Self::Set1Or6Or48, 1 | 4) => *ty == Type::Usize,
+            (Self::Set1Or6Or48, 2) => *ty == Type::U8,
+            (Self::Set1Or6Or48, 3) => *ty == Type::SliceU8,
             _ => false,
         }
     }
@@ -276,7 +313,10 @@ impl ByteOp {
 
     /// `true` for the Owned Bounded Byte Buffer v1 write-once chain links.
     pub(crate) const fn is_owned_buffer_chain(self) -> bool {
-        matches!(self, Self::Zeroed | Self::Set | Self::Set5 | Self::Set1Or5)
+        matches!(
+            self,
+            Self::Zeroed | Self::Set | Self::Set5 | Self::Set1Or5 | Self::Set1Or6Or48
+        )
     }
 
     /// `true` for a byte operation one bounded `while` condition or body
@@ -288,7 +328,13 @@ impl ByteOp {
     pub(crate) const fn admitted_in_while(self) -> bool {
         matches!(
             self,
-            Self::Len | Self::Get | Self::Range | Self::Set | Self::Set5 | Self::Set1Or5
+            Self::Len
+                | Self::Get
+                | Self::Range
+                | Self::Set
+                | Self::Set5
+                | Self::Set1Or5
+                | Self::Set1Or6Or48
         )
     }
 
@@ -299,7 +345,10 @@ impl ByteOp {
     /// Every other operation in this family is total after HIR admission, and
     /// physical allocation failure stays invariant fail-stop.
     pub(crate) const fn is_fallible(self) -> bool {
-        matches!(self, Self::Set | Self::Set5 | Self::Set1Or5)
+        matches!(
+            self,
+            Self::Set | Self::Set5 | Self::Set1Or5 | Self::Set1Or6Or48
+        )
     }
 
     /// Source parameter names in left-to-right order. They label diagnostics
@@ -319,7 +368,8 @@ impl ByteOp {
             Self::Set5 => &[
                 "buffer", "index", "first", "second", "third", "fourth", "fifth",
             ],
-            Self::Set1Or5 => &["buffer", "index", "wide", "one", "source", "source_start"],
+            Self::Set1Or5 => &["buffer", "index", "one", "source", "selector"],
+            Self::Set1Or6Or48 => &["buffer", "index", "one", "source", "selector"],
         }
     }
 
@@ -328,9 +378,11 @@ impl ByteOp {
     /// operand is an ordinary copied value.
     pub(crate) const fn param_ownership(self, index: usize) -> OwnershipMode {
         match (self, index) {
-            (Self::Set | Self::Set5 | Self::Set1Or5, 0) => OwnershipMode::Own,
-            (Self::Set1Or5, 4) => OwnershipMode::Borrow,
-            (Self::Zeroed, _) | (Self::Set | Self::Set5 | Self::Set1Or5, _) => OwnershipMode::Value,
+            (Self::Set | Self::Set5 | Self::Set1Or5 | Self::Set1Or6Or48, 0) => OwnershipMode::Own,
+            (Self::Set1Or5 | Self::Set1Or6Or48, 3) => OwnershipMode::Borrow,
+            (Self::Zeroed, _) | (Self::Set | Self::Set5 | Self::Set1Or5 | Self::Set1Or6Or48, _) => {
+                OwnershipMode::Value
+            }
             (_, 0) => OwnershipMode::Borrow,
             _ => OwnershipMode::Value,
         }
@@ -351,6 +403,7 @@ pub(crate) fn by_name(name: &str) -> Option<ByteOp> {
         SET_NAME => Some(ByteOp::Set),
         SET5_NAME => Some(ByteOp::Set5),
         SET1_OR5_NAME => Some(ByteOp::Set1Or5),
+        SET1_OR6_OR48_NAME => Some(ByteOp::Set1Or6Or48),
         _ => None,
     }
 }
@@ -368,6 +421,7 @@ pub(crate) fn by_id(id: &str) -> Option<ByteOp> {
         SET_ID => Some(ByteOp::Set),
         SET5_ID => Some(ByteOp::Set5),
         SET1_OR5_ID => Some(ByteOp::Set1Or5),
+        SET1_OR6_OR48_ID => Some(ByteOp::Set1Or6Or48),
         _ => None,
     }
 }
@@ -553,8 +607,10 @@ pub(crate) fn owned_buffer_chain_capacity(expression: &Expr) -> Option<u64> {
                 };
                 return (*capacity <= MAX_BUFFER_CAPACITY_BYTES).then_some(*capacity);
             }
-            ByteOp::Set | ByteOp::Set5 | ByteOp::Set1Or5 => {
-                links += usize::try_from(if matches!(op, ByteOp::Set5 | ByteOp::Set1Or5) {
+            ByteOp::Set | ByteOp::Set5 | ByteOp::Set1Or5 | ByteOp::Set1Or6Or48 => {
+                links += usize::try_from(if op == ByteOp::Set1Or6Or48 {
+                    48
+                } else if matches!(op, ByteOp::Set5 | ByteOp::Set1Or5) {
                     SET5_WIDTH
                 } else {
                     1
@@ -610,7 +666,7 @@ pub(crate) fn is_same_owner_set_shape(value: &Expr, name: &str) -> bool {
     };
     matches!(
         by_name(callee),
-        Some(ByteOp::Set | ByteOp::Set5 | ByteOp::Set1Or5)
+        Some(ByteOp::Set | ByteOp::Set5 | ByteOp::Set1Or5 | ByteOp::Set1Or6Or48)
     ) && type_arguments.is_empty()
         && args.len() == by_name(callee).expect("matched owned buffer op").arity()
         && matches!(&args[0].kind, ExprKind::Var(source) if source == name)
@@ -622,7 +678,7 @@ pub(crate) fn is_same_owner_set_hir(value: &crate::hir::ResolvedExpr, owner: &Va
     matches!(
         &value.kind,
         crate::hir::ResolvedExprKind::Call { callee, type_arguments, instance: None, args }
-            if matches!(by_id(callee.as_str()), Some(ByteOp::Set | ByteOp::Set5 | ByteOp::Set1Or5))
+            if matches!(by_id(callee.as_str()), Some(ByteOp::Set | ByteOp::Set5 | ByteOp::Set1Or5 | ByteOp::Set1Or6Or48))
                 && type_arguments.is_empty()
                 && args.len() == by_id(callee.as_str()).expect("matched owned buffer op").arity()
                 && matches!(

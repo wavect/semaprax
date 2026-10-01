@@ -35,6 +35,23 @@ function environmentProvider(module, maxOwnedBytes = 65536) {
     return new Uint8Array(memory().buffer,root,length);
   };
   const allocate=data=>{if(!acceptsOwnedLength(data.length)||owned.size>=4096)throw Error('arena capacity');const id=next++;owned.set(id,new Uint8Array(data));return carrier(0x80000000|id,data.length)};
+  const store=(value,index,data)=>{
+    const [root]=split(value);
+    if(!(root&0x80000000))throw Error('write owner');
+    const target=bytes(value),at=BigInt.asUintN(64,index);
+    if(at>BigInt(target.length)||BigInt(data.length)>BigInt(target.length)-at)throw Error('write bounds');
+    if(data.some(byte=>!Number.isInteger(byte)||byte<0||byte>255))throw Error('write byte');
+    target.set(data,Number(at));return value;
+  };
+  const storeSource=(value,index,one,source,selector,wideWidth)=>{
+    const word=BigInt.asUintN(64,selector),copy=(word&(1n<<63n))!==0n;
+    const width=copy?wideWidth(word):1;
+    const offset=word&((1n<<BigInt(wideWidth===width5?63:62))-1n);
+    const data=copy?bytes(source):null;
+    return store(value,index,Array.from({length:width},(_,i)=>copy?(offset+BigInt(i)<BigInt(data.length)?data[Number(offset+BigInt(i))]:0):one));
+  };
+  const width5=()=>5;
+  const width6or48=word=>(word&(1n<<62n))!==0n?48:6;
   const out=(p,value)=>view().setBigInt64(p,BigInt(value),true);
   const entries=[['A','alpha'],['Z','é']];let refs=[];
   const imports={};for(const item of WebAssembly.Module.imports(module)){if(item.kind!=='function')throw Error('unexpected import kind');imports[item.module]??={};imports[item.module][item.name]=()=>{throw Error(`unexpected import ${item.name}`)}}
@@ -49,6 +66,9 @@ function environmentProvider(module, maxOwnedBytes = 65536) {
     spx_bytes_copy:value=>allocate(bytes(value)),spx_bytes_zeroed:size=>allocate(new Uint8Array(ownedLength(size))),
     spx_bytes_get:(value,index)=>{const data=bytes(value);return index<0n||index>=BigInt(data.length)?-1:data[Number(index)]},
     spx_bytes_set:(value,index,byte)=>{const data=bytes(value);if(index<0n||index>=BigInt(data.length))throw Error('write bounds');data[Number(index)]=byte;return value},
+    spx_bytes_set5:(value,index,...data)=>store(value,index,data),
+    spx_bytes_set1_or5:(value,index,one,source,selector)=>storeSource(value,index,one,source,selector,width5),
+    spx_bytes_set1_or6_or48:(value,index,one,source,selector)=>storeSource(value,index,one,source,selector,width6or48),
     spx_bytes_drop:value=>{bytes(value);const [root]=split(value);if(!(root&0x80000000)||!owned.delete(root&0x7fffffff))throw Error('double drop')},
     spx_bytes_as_slice:value=>{bytes(value);return value},
     spx_vec_with_capacity:(tag,capacity)=>{const n=Number(capacity);return Number.isSafeInteger(n)&&n>=0&&n<=8192?vecAlloc(tag,n):0n},

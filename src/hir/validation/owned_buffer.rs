@@ -27,21 +27,25 @@ pub(super) fn require_admitted_chain(
         }
         crate::byte_ops::ByteOp::Set
         | crate::byte_ops::ByteOp::Set5
-        | crate::byte_ops::ByteOp::Set1Or5 => {
+        | crate::byte_ops::ByteOp::Set1Or5
+        | crate::byte_ops::ByteOp::Set1Or6Or48 => {
             let capacity = chain_capacity(args, reopen)?;
-            if op == crate::byte_ops::ByteOp::Set1Or5 {
-                let ResolvedExprKind::Place(source) = &args[4].kind else {
+            if matches!(
+                op,
+                crate::byte_ops::ByteOp::Set1Or5 | crate::byte_ops::ByteOp::Set1Or6Or48
+            ) {
+                let ResolvedExprKind::Place(source) = &args[3].kind else {
                     return Err(hir_error(
-                        "one-or-five byte fill source must be a borrowed slice binding",
+                        "tagged byte fill source must be a borrowed slice binding",
                     ));
                 };
-                if args[4].ty != crate::hir::ResolvedType::SliceU8
-                    || args[4].ownership != OwnershipMode::Borrow
+                if args[3].ty != crate::hir::ResolvedType::SliceU8
+                    || args[3].ownership != OwnershipMode::Borrow
                     || !source.projections.is_empty()
                     || matches!(&args[0].kind, ResolvedExprKind::Place(buffer) if buffer.root == source.root)
                 {
                     return Err(hir_error(
-                        "one-or-five byte fill source must not alias the moved buffer",
+                        "tagged byte fill source must not alias the moved buffer",
                     ));
                 }
             }
@@ -62,9 +66,15 @@ pub(super) fn require_admitted_chain(
             };
             let width = if matches!(
                 op,
-                crate::byte_ops::ByteOp::Set5 | crate::byte_ops::ByteOp::Set1Or5
+                crate::byte_ops::ByteOp::Set5
+                    | crate::byte_ops::ByteOp::Set1Or5
+                    | crate::byte_ops::ByteOp::Set1Or6Or48
             ) {
-                crate::byte_ops::SET5_WIDTH
+                if op == crate::byte_ops::ByteOp::Set1Or6Or48 {
+                    48
+                } else {
+                    crate::byte_ops::SET5_WIDTH
+                }
             } else {
                 1
             };
@@ -145,13 +155,20 @@ fn chain_capacity(args: &[ResolvedExpr], reopen: bool) -> Result<Option<u64>, Di
             crate::byte_ops::ByteOp::Set
                 | crate::byte_ops::ByteOp::Set5
                 | crate::byte_ops::ByteOp::Set1Or5
+                | crate::byte_ops::ByteOp::Set1Or6Or48
         ) {
             links += usize::try_from(
                 if matches!(
                     op,
-                    crate::byte_ops::ByteOp::Set5 | crate::byte_ops::ByteOp::Set1Or5
+                    crate::byte_ops::ByteOp::Set5
+                        | crate::byte_ops::ByteOp::Set1Or5
+                        | crate::byte_ops::ByteOp::Set1Or6Or48
                 ) {
-                    crate::byte_ops::SET5_WIDTH
+                    if op == crate::byte_ops::ByteOp::Set1Or6Or48 {
+                        48
+                    } else {
+                        crate::byte_ops::SET5_WIDTH
+                    }
                 } else {
                     1
                 },
@@ -189,6 +206,7 @@ pub(super) fn require_admitted_while_operation(
         crate::byte_ops::ByteOp::Set
             | crate::byte_ops::ByteOp::Set5
             | crate::byte_ops::ByteOp::Set1Or5
+            | crate::byte_ops::ByteOp::Set1Or6Or48
     ) {
         if args.len() != operation.arity()
             || args
@@ -215,8 +233,11 @@ pub(super) fn require_admitted_while_operation(
                 "while loop byte buffer fill requires one whole owned buffer binding",
             ));
         }
-        if operation == crate::byte_ops::ByteOp::Set1Or5 {
-            let source = &args[4];
+        if matches!(
+            operation,
+            crate::byte_ops::ByteOp::Set1Or5 | crate::byte_ops::ByteOp::Set1Or6Or48
+        ) {
+            let source = &args[3];
             let ResolvedExprKind::Place(source_place) = &source.kind else {
                 return Err(hir_error(
                     "one-or-five byte fill requires an authenticated borrowed source slice binding",

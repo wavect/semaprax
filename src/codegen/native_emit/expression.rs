@@ -316,6 +316,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             crate::byte_ops::ByteOp::Set
                 | crate::byte_ops::ByteOp::Set5
                 | crate::byte_ops::ByteOp::Set1Or5
+                | crate::byte_ops::ByteOp::Set1Or6Or48
         ) {
             let staged = arguments.remove(0);
             let staged = self.stage_bytes_call_argument(
@@ -398,6 +399,9 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             }
             crate::byte_ops::ByteOp::Set1Or5 => {
                 self.emit_owned_buffer_set1_or5(expression, &arguments, &temporary)?;
+            }
+            crate::byte_ops::ByteOp::Set1Or6Or48 => {
+                self.emit_owned_buffer_set1_or6_or48(expression, &arguments, &temporary)?;
             }
             crate::byte_ops::ByteOp::Range => {
                 return Err(backend_error(
@@ -686,7 +690,8 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     | crate::byte_ops::ByteOp::Zeroed
                     | crate::byte_ops::ByteOp::Set
                     | crate::byte_ops::ByteOp::Set5
-                    | crate::byte_ops::ByteOp::Set1Or5 => unreachable!(),
+                    | crate::byte_ops::ByteOp::Set1Or5
+                    | crate::byte_ops::ByteOp::Set1Or6Or48 => unreachable!(),
                 }
                 CValue {
                     code: temporary,

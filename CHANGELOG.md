@@ -8,11 +8,17 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Complete the catalog-normalizer maximal application gate at the original
+  100,000,000-step bound (#324). Bounded owned-buffer stores, a scalar writer
+  cursor, validated quantity lookup, and one-pass label layout preserve the
+  frozen oracle, target parity, and capacity ceilings. The complete local
+  selector passed across interpreter, native C11 `-O0`/`-O2`, and Core Wasm.
+
 - Carry the actual turn-1 Step through transfer reservation, physical field
   move, completion and terminal Transition ACKs (#330). The corrected
-  real-chain transfer selector passed locally. Add a private owner-backed
-  `TerminalSnapshot` writer and fold join; its success and prewrite-fault
-  selectors await the central gate. Public entry, delivery and recovery remain
+  real-chain transfer selector passed locally. A private owner-backed
+  `TerminalSnapshot` writer and fold join passed both the success and
+  prewrite-fault selectors locally. Public entry, delivery and recovery remain
   open.
 
 - Add an opt-in packaged reference-service OCI runtime journey (#336): an

@@ -69,7 +69,7 @@ use crate::wasm::vec_ops::is_wasm_owned_vec_type as owned_vec;
 use scalar_shape::{scalar_local, scalar_size_align, scalar_wasm_type, vec_element_tag};
 
 const BYTE_IMPORT_COUNT: u32 = 4;
-const OWNED_BUFFER_IMPORT_COUNT: u32 = 4;
+const OWNED_BUFFER_IMPORT_COUNT: u32 = 5;
 const VEC_IMPORT_COUNT: u32 = 6;
 const EXTENDED_VEC_IMPORT_COUNT: u32 = 3;
 /// The owned-record element adds exactly one function to the owned-payload
@@ -85,6 +85,7 @@ const BYTE_ZEROED_IMPORT: u32 = SCALAR_IMPORT_COUNT + BYTE_IMPORT_COUNT;
 const BYTE_SET_IMPORT: u32 = BYTE_ZEROED_IMPORT + 1;
 const BYTE_SET5_IMPORT: u32 = BYTE_SET_IMPORT + 1;
 const BYTE_SET1_OR5_IMPORT: u32 = BYTE_SET5_IMPORT + 1;
+const BYTE_SET1_OR6_OR48_IMPORT: u32 = BYTE_SET1_OR5_IMPORT + 1;
 const OWNED_UTF8_LITERAL_BASE: u32 = 196_608;
 #[derive(Default)]
 struct OwnedUtf8Literals {
@@ -1771,6 +1772,7 @@ fn emit_byte_exports_profile(
             (crate::byte_ops::SET_ID, base + 1),
             (crate::byte_ops::SET5_ID, base + 2),
             (crate::byte_ops::SET1_OR5_ID, base + 3),
+            (crate::byte_ops::SET1_OR6_OR48_ID, base + 4),
         ] {
             function_indexes.insert(
                 FunctionExecutionId::Monomorphic(DeclarationId::new(id)),
@@ -1827,31 +1829,7 @@ fn emit_byte_exports_profile(
         super::process_io::emit_imports(&mut imports, types);
     }
     if uses_owned_buffer {
-        function_import(&mut imports, "env", "spx_bytes_zeroed", byte_unary);
-        function_import(
-            &mut imports,
-            "env",
-            "spx_bytes_set",
-            byte_set_types
-                .set
-                .expect("owned buffer has set import type"),
-        );
-        function_import(
-            &mut imports,
-            "env",
-            "spx_bytes_set5",
-            byte_set_types
-                .set5
-                .expect("owned buffer has set5 import type"),
-        );
-        function_import(
-            &mut imports,
-            "env",
-            "spx_bytes_set1_or5",
-            byte_set_types
-                .set1_or5
-                .expect("owned buffer has set1-or-five import type"),
-        );
+        owned_buffer::emit_imports(&mut imports, byte_unary, &byte_set_types);
     }
     if let Some(ty) = owned_utf8_validate {
         function_import(&mut imports, "env", "spx_owned_utf8_validate_v1", ty);
@@ -2637,25 +2615,7 @@ fn emit_profile_with_scalar_exports(
         );
     }
     if uses_owned_buffer {
-        function_import(&mut imports, "env", "spx_bytes_zeroed", byte_unary.unwrap());
-        function_import(
-            &mut imports,
-            "env",
-            "spx_bytes_set",
-            byte_set_types.set.unwrap(),
-        );
-        function_import(
-            &mut imports,
-            "env",
-            "spx_bytes_set5",
-            byte_set_types.set5.unwrap(),
-        );
-        function_import(
-            &mut imports,
-            "env",
-            "spx_bytes_set1_or5",
-            byte_set_types.set1_or5.unwrap(),
-        );
+        owned_buffer::emit_imports(&mut imports, byte_unary.unwrap(), &byte_set_types);
     }
     if uses_vec {
         let names = vec_owned_payload::import_names(program);
@@ -6586,7 +6546,11 @@ impl Emitter<'_> {
         } else if op == crate::byte_ops::ByteOp::Set5 {
             self.emit_owned_buffer_set5_failure(&expr.id, &values[0], &values[1])?;
         } else if op == crate::byte_ops::ByteOp::Set1Or5 {
-            self.emit_owned_buffer_set1_or5_failure(&expr.id, &values[0], &values[1], &values[2])?;
+            self.emit_owned_buffer_set1_or5_failure(&expr.id, &values[0], &values[1], &values[4])?;
+        } else if op == crate::byte_ops::ByteOp::Set1Or6Or48 {
+            self.emit_owned_buffer_set1_or6_or48_failure(
+                &expr.id, &values[0], &values[1], &values[4],
+            )?;
         }
         self.apply_call_commit(&expr.id)?;
         if op != crate::byte_ops::ByteOp::Zeroed {
@@ -6733,6 +6697,9 @@ impl Emitter<'_> {
             }
             crate::byte_ops::ByteOp::Set5 => self.emit_owned_buffer_set5(expr, &values),
             crate::byte_ops::ByteOp::Set1Or5 => self.emit_owned_buffer_set1_or5(expr, &values),
+            crate::byte_ops::ByteOp::Set1Or6Or48 => {
+                self.emit_owned_buffer_set1_or6_or48(expr, &values)
+            }
         }
     }
 

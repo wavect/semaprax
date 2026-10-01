@@ -195,22 +195,24 @@ fn main() -> i64
 }
 "#;
 
-/// The same-owner one-or-five fill reads a borrowed source only for its wide
-/// path. Five reads are left-to-right and missing source positions contribute
-/// zero without introducing a source-bound failure.
+/// The same-owner tagged one-or-five fill reads a borrowed source only when
+/// the high selector bit is set. Five reads are left-to-right from the lower
+/// selector bits, and missing source positions contribute zero without a
+/// source-bound failure.
 const SET1_OR5_LOOP: &str = r#"
 module test.owned_byte_buffer_set1_or5;
 
 @id("buffer.main")
 fn main() -> i64
 {
-    let raw = [65u8, 66u8, 67u8];
+    let raw = [65u8, 66u8, 67u8, 68u8];
     let source = array_as_slice(raw);
     let mut buffer = bytes_zeroed(6usize);
     let mut index = 0usize;
     while index < 2usize {
         let wide = index == 1usize;
-        buffer = bytes_set1_or5_from_slice(buffer, index, wide, 90u8, source, 0usize);
+        let selector = if wide { 9223372036854775809usize } else { 0usize };
+        buffer = bytes_set1_or5_from_slice(buffer, index, 90u8, source, selector);
         index = index + if wide { 5usize } else { 1usize };
         0
     }
@@ -218,7 +220,7 @@ fn main() -> i64
     let first = match byte_get(view, 0usize) { Option::Some { value: byte } => byte, Option::None {} => 0u8, };
     let third = match byte_get(view, 3usize) { Option::Some { value: byte } => byte, Option::None {} => 0u8, };
     let sixth = match byte_get(view, 5usize) { Option::Some { value: byte } => byte, Option::None {} => 1u8, };
-    if first == 90u8 && third == 67u8 && sixth == 0u8 { 7 } else { 1 }
+    if first == 90u8 && third == 68u8 && sixth == 0u8 { 7 } else { 1 }
 }
 "#;
 
@@ -235,9 +237,56 @@ fn main() -> i64
 {
     let raw = [1u8];
     let source = array_as_slice(raw);
-    let buffer = bytes_set1_or5_from_slice(bytes_zeroed(5usize), offset(3usize), true, 1u8, source, 0usize);
+    let buffer = bytes_set1_or5_from_slice(bytes_zeroed(5usize), offset(3usize), 1u8, source, 9223372036854775808usize);
     let view = bytes_as_slice(buffer);
     if byte_len(view) == 5usize { 7 } else { 1 }
+}
+"#;
+
+/// The three-mode append keeps the one-byte path and can copy a six-byte atom
+/// or a forty-eight-byte canonical control run with deterministic zero fill.
+const SET1_OR6_OR48_LOOP: &str = r#"
+module test.owned_byte_buffer_set1_or6_or48;
+
+@id("buffer.main")
+fn main() -> i64
+{
+    let raw = [65u8, 66u8, 67u8, 68u8, 69u8];
+    let source = array_as_slice(raw);
+    let mut buffer = bytes_zeroed(55usize);
+    let mut index = 0usize;
+    while index < 8usize {
+        let wide6 = index == 1usize;
+        let wide48 = index == 7usize;
+        let selector = if wide48 { 13835058055282163713usize } else { if wide6 { 9223372036854775809usize } else { 0usize } };
+        buffer = bytes_set1_or6_or48_from_slice(buffer, index, 90u8, source, selector);
+        index = index + if wide48 { 48usize } else { if wide6 { 6usize } else { 1usize } };
+        0
+    }
+    let view = bytes_as_slice(buffer);
+    let first = match byte_get(view, 0usize) { Option::Some { value: byte } => byte, Option::None {} => 0u8, };
+    let second = match byte_get(view, 1usize) { Option::Some { value: byte } => byte, Option::None {} => 0u8, };
+    let sixth = match byte_get(view, 5usize) { Option::Some { value: byte } => byte, Option::None {} => 1u8, };
+    let eighth = match byte_get(view, 7usize) { Option::Some { value: byte } => byte, Option::None {} => 1u8, };
+    let last = match byte_get(view, 54usize) { Option::Some { value: byte } => byte, Option::None {} => 1u8, };
+    if first == 90u8 && second == 66u8 && sixth == 0u8 && eighth == 66u8 && last == 0u8 { 7 } else { 1 }
+}
+"#;
+
+const SET1_OR6_OR48_COMPUTED_OUT_OF_RANGE: &str = r#"
+module test.owned_byte_buffer_set1_or6_or48_past_end;
+
+@id("buffer.offset")
+fn offset(value: usize) -> usize { value + 1usize }
+
+@id("buffer.main")
+fn main() -> i64
+{
+    let raw = [1u8];
+    let source = array_as_slice(raw);
+    let buffer = bytes_set1_or6_or48_from_slice(bytes_zeroed(48usize), offset(0usize), 1u8, source, 13835058055282163712usize);
+    let view = bytes_as_slice(buffer);
+    if byte_len(view) == 48usize { 7 } else { 1 }
 }
 "#;
 
@@ -525,7 +574,81 @@ fn one_or_five_dynamic_wide_interval_selects_existing_failure_before_owner_commi
 fn one_or_five_literal_wide_interval_past_end_is_spx_t272() {
     assert_rejected(
         &program_source(
-            "    let raw = [1u8];\n    let source = array_as_slice(raw);\n    let buffer = bytes_set1_or5_from_slice(bytes_zeroed(5usize), 1usize, true, 1u8, source, 0usize);\n    let view = bytes_as_slice(buffer);\n    if byte_len(view) == 5usize { 0 } else { 1 }",
+            "    let raw = [1u8];\n    let source = array_as_slice(raw);\n    let buffer = bytes_set1_or5_from_slice(bytes_zeroed(5usize), 1usize, 1u8, source, 9223372036854775808usize);\n    let view = bytes_as_slice(buffer);\n    if byte_len(view) == 5usize { 0 } else { 1 }",
+        ),
+        "SPX-T272",
+    );
+}
+
+#[test]
+fn one_or_six_or_forty_eight_loop_fill_preserves_source_order_zero_fill_and_one_owner_commit() {
+    let program = parse(SET1_OR6_OR48_LOOP, "owned-byte-buffer-set1-or6-or48.spx").unwrap();
+    assert!(verify::verify(&program).is_empty());
+    let canonical = format::canonical(&program);
+    assert_eq!(
+        format::canonical(
+            &parse(&canonical, "owned-byte-buffer-set1-or6-or48-canonical.spx").unwrap()
+        ),
+        canonical
+    );
+    let resolved = hir::resolve(&program).unwrap();
+    hir::validate(&resolved).unwrap();
+    let plan = &main_function(&resolved).cleanup_plan;
+    assert_eq!(
+        plan.status_sources
+            .iter()
+            .filter(|source| matches!(
+                &source.producer,
+                semaprax::cleanup_plan::StatusProducer::PropagatedCall { callee }
+                    if callee.as_str() == "core.bytes.set1_or6_or48_from_slice"
+            ))
+            .count(),
+        1
+    );
+    assert!(graph::to_json(&program)
+        .unwrap()
+        .contains("core.bytes.set1_or6_or48_from_slice"));
+    let interpreted = interpret(SET1_OR6_OR48_LOOP, "set1-or6-or48-interpreter");
+    assert!(
+        interpreted.contains("\"kind\":\"returned\"") && interpreted.contains("\"value\":\"7\"")
+    );
+    let native = codegen::emit_c(&program).unwrap();
+    assert!(native.contains("spx_bytes_set1_or6_or48_check_v1"));
+    assert!(native.contains("spx_bytes_set1_or6_or48(spx_bytes_move"));
+    assert!(wasm::emit_module(&program).unwrap().starts_with(b"\0asm"));
+}
+
+#[test]
+fn one_or_six_or_forty_eight_dynamic_wide_interval_selects_existing_failure_before_owner_commit() {
+    let program = parse(
+        SET1_OR6_OR48_COMPUTED_OUT_OF_RANGE,
+        "owned-byte-buffer-set1-or6-or48-past-end.spx",
+    )
+    .unwrap();
+    assert!(verify::verify(&program).is_empty());
+    let resolved = hir::resolve(&program).unwrap();
+    hir::validate(&resolved).unwrap();
+    let interpreted = interpret(
+        SET1_OR6_OR48_COMPUTED_OUT_OF_RANGE,
+        "set1-or6-or48-past-end-interp",
+    );
+    let parsed: serde_json::Value = serde_json::from_str(&interpreted).unwrap();
+    assert_eq!(
+        parsed["payload"]["outcome"]["kind"], "failed",
+        "{interpreted}"
+    );
+    assert_eq!(
+        parsed["payload"]["outcome"]["status"]["domain_id"],
+        "semaprax.byte-buffer.v1"
+    );
+    assert_eq!(parsed["payload"]["outcome"]["status"]["code"], 1);
+}
+
+#[test]
+fn one_or_six_or_forty_eight_literal_wide_interval_past_end_is_spx_t272() {
+    assert_rejected(
+        &program_source(
+            "    let raw = [1u8];\n    let source = array_as_slice(raw);\n    let buffer = bytes_set1_or6_or48_from_slice(bytes_zeroed(48usize), 1usize, 1u8, source, 13835058055282163712usize);\n    let view = bytes_as_slice(buffer);\n    if byte_len(view) == 48usize { 0 } else { 1 }",
         ),
         "SPX-T272",
     );
@@ -1360,3 +1483,6 @@ fn an_out_of_range_computed_index_selects_the_same_failure_on_every_backend() {
         "the native backend selects the reference interpreter's exact status"
     );
 }
+
+#[path = "owned_byte_buffer_v1/tagged_source.rs"]
+mod tagged_source;

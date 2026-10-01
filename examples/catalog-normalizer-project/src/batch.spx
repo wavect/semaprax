@@ -274,7 +274,7 @@ fn record_failure(body: borrow Slice<u8>, record: usize, start: usize, end: usiz
 @id("catalog_normalizer.batch.indexed-record-failure")
 fn indexed_record_failure(body: borrow Slice<u8>, record: usize, start: usize, end: usize, total: i64, basic: usize, id: usize, duplicate: bool) -> usize
 {
-    if basic != 0usize { basic } else { if duplicate { pack_failure(5usize, record + 1usize, id) } else { let line = byte_range(body, start, end); let quantity = quantity_or(line, record_quantity_value(line), -1); if total_would_overflow(total, quantity) { pack_failure(6usize, record + 1usize, id) } else { 0usize } } }
+    if basic != 0usize { basic } else { if duplicate { pack_failure(5usize, record + 1usize, id) } else { let quantity = valid_record_quantity(body, start, end); if total_would_overflow(total, quantity) { pack_failure(6usize, record + 1usize, id) } else { 0usize } } }
 }
 
 @id("catalog_normalizer.batch.valid-record-quantity")

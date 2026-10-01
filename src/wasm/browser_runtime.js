@@ -256,24 +256,54 @@ function createByteDataRuntime(options = {}) {
       bytes[slot + 4] = fifth;
       return BigInt.asIntN(64, decoded.carrier);
     },
-    spx_bytes_set1_or5: (carrier, index, wide, one, sourceCarrier, sourceStart) => {
+    spx_bytes_set1_or5: (carrier, index, one, sourceCarrier, selector) => {
       const decoded = decode(carrier);
       const bytes = resolve(decoded);
       const source = read(decode(sourceCarrier));
-      if (typeof index !== "bigint" || index < 0n || typeof sourceStart !== "bigint"
-          || sourceStart < 0n || !Number.isInteger(wide) || (wide !== 0 && wide !== 1)
+      if (typeof index !== "bigint" || index < 0n || typeof selector !== "bigint"
           || !Number.isInteger(one) || one < 0 || one > 255) {
         throw new Error("SEMAPRAX owned byte buffer one-or-five invariant");
       }
-      const width = wide === 1 ? 5n : 1n;
+      const selectorBits = BigInt.asUintN(64, selector);
+      const wide = (selectorBits & (1n << 63n)) !== 0n;
+      const sourceStart = selectorBits & ((1n << 63n) - 1n);
+      const width = wide ? 5n : 1n;
       if (index > BigInt(bytes.byteLength) || BigInt(bytes.byteLength) - index < width) {
         throw new Error("SEMAPRAX owned byte buffer one-or-five interval invariant");
       }
       const slot = Number(index);
-      if (wide === 0) {
+      if (!wide) {
         bytes[slot] = one;
       } else {
         for (let offset = 0; offset < 5; offset += 1) {
+          const sourceIndex = sourceStart + BigInt(offset);
+          bytes[slot + offset] = sourceIndex < BigInt(source.byteLength)
+            ? source[Number(sourceIndex)] : 0;
+        }
+      }
+      return BigInt.asIntN(64, decoded.carrier);
+    },
+    spx_bytes_set1_or6_or48: (carrier, index, one, sourceCarrier, selector) => {
+      const decoded = decode(carrier);
+      const bytes = resolve(decoded);
+      const source = read(decode(sourceCarrier));
+      if (typeof index !== "bigint" || index < 0n || typeof selector !== "bigint"
+          || !Number.isInteger(one) || one < 0 || one > 255) {
+        throw new Error("SEMAPRAX owned byte buffer one-or-six-or-forty-eight invariant");
+      }
+      const selectorBits = BigInt.asUintN(64, selector);
+      const copy = (selectorBits & (1n << 63n)) !== 0n;
+      const wide48 = (selectorBits & (1n << 62n)) !== 0n;
+      const sourceStart = selectorBits & ((1n << 62n) - 1n);
+      const width = copy ? (wide48 ? 48n : 6n) : 1n;
+      if (index > BigInt(bytes.byteLength) || BigInt(bytes.byteLength) - index < width) {
+        throw new Error("SEMAPRAX owned byte buffer one-or-six-or-forty-eight interval invariant");
+      }
+      const slot = Number(index);
+      if (!copy) {
+        bytes[slot] = one;
+      } else {
+        for (let offset = 0; offset < Number(width); offset += 1) {
           const sourceIndex = sourceStart + BigInt(offset);
           bytes[slot + offset] = sourceIndex < BigInt(source.byteLength)
             ? source[Number(sourceIndex)] : 0;

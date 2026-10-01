@@ -15,7 +15,10 @@ pub(super) fn validate_propagated_status(
 ) -> Result<(), CleanupExecutionError> {
     if matches!(
         callee.as_str(),
-        crate::byte_ops::SET_ID | crate::byte_ops::SET5_ID | crate::byte_ops::SET1_OR5_ID
+        crate::byte_ops::SET_ID
+            | crate::byte_ops::SET5_ID
+            | crate::byte_ops::SET1_OR5_ID
+            | crate::byte_ops::SET1_OR6_OR48_ID
     ) {
         if status.domain_id() != crate::byte_ops::SET_STATUS_DOMAIN
             || status.code() != crate::byte_ops::SET_INDEX_OUT_OF_BOUNDS_CODE

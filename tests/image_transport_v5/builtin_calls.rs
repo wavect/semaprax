@@ -8,7 +8,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 static SERIAL: AtomicU64 = AtomicU64::new(0);
 /// Every compiler-owned byte operation, with the exact ownership its published
 /// parameters carry in left-to-right order. The arity is the list's length.
-const OPERATIONS: [(&str, &str, &[&str]); 12] = [
+const OPERATIONS: [(&str, &str, &[&str]); 13] = [
     ("core.bytes.len", "byte_len", &["borrow"]),
     ("core.bytes.get", "byte_get", &["borrow", "value"]),
     (
@@ -31,7 +31,12 @@ const OPERATIONS: [(&str, &str, &[&str]); 12] = [
     (
         "core.bytes.set1_or5_from_slice",
         "bytes_set1_or5_from_slice",
-        &["own", "value", "value", "value", "borrow", "value"],
+        &["own", "value", "value", "borrow", "value"],
+    ),
+    (
+        "core.bytes.set1_or6_or48_from_slice",
+        "bytes_set1_or6_or48_from_slice",
+        &["own", "value", "value", "borrow", "value"],
     ),
 ];
 struct Fixture(PathBuf);

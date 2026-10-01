@@ -10,6 +10,7 @@ use function @id("catalog_normalizer.limits.max_id_bytes") from catalog_normaliz
 use function @id("catalog_normalizer.limits.max_label_bytes") from catalog_normalizer.limits as max_label_bytes;
 use function @id("catalog_normalizer.batch.record-count") from catalog_normalizer.batch as record_count;
 use function @id("catalog_normalizer.batch.line-end") from catalog_normalizer.batch as line_end;
+use function @id("catalog_normalizer.batch.valid-record-quantity") from catalog_normalizer.batch as valid_record_quantity;
 use function @id("catalog_normalizer.batch.first-failure") from catalog_normalizer.batch as first_failure;
 use function @id("catalog_normalizer.batch.first-enriched-failure") from catalog_normalizer.batch as first_enriched_failure;
 use function @id("catalog_normalizer.batch.failure-category") from catalog_normalizer.batch as failure_category;
@@ -319,11 +320,33 @@ fn escaped_len(line: borrow Slice<u8>, token: usize, start: usize, end: usize) -
     total
 }
 
-@id("catalog_normalizer.app.escaped-byte-at")
-fn escaped_byte_at(line: borrow Slice<u8>, token: usize, start: usize, end: usize, wanted: usize) -> u8
+// The accepted label's decoded stream is traversed once. The packed scalar
+// carries its leading decoded whitespace count and escaped trimmed length.
+// The maximum 256 decoded bytes need at most 1536 escaped bytes, below 2048.
+@id("catalog_normalizer.app.label-layout")
+fn label_layout(line: borrow Slice<u8>, token: usize, active: bool) -> usize
 {
-    let length = escaped_len(line, token, start, end);
-    if wanted >= length { 0u8 } else { let mut cursor = escape_cursor_start(line, token, start); let mut index = 0usize; while index < wanted { cursor = escape_cursor_next(line, cursor); index = index + 1usize; index < wanted } escape_cursor_byte(line, cursor) }
+    let mut source = token + 1usize;
+    let mut part = 0usize;
+    let mut start = 0usize;
+    let mut leading = true;
+    let mut length = 0usize;
+    let mut trimmed_length = 0usize;
+    let mut raw = if active { match byte_get(line, source) { Option::Some { value } => value, Option::None {} => 34u8, } } else { 34u8 };
+    while raw != 34u8 {
+        let value = if raw == 92u8 { dec_code_byte(emit_at(line, source, part)) } else { raw };
+        let space = is_space(value);
+        leading = leading && space;
+        start = if leading { start + 1usize } else { start };
+        length = if leading { 0usize } else { length + escape_len(value) };
+        trimmed_length = if space { trimmed_length } else { length };
+        let last = part + 1usize >= emit_len(line, source);
+        source = if last { token_end(line, source) } else { source };
+        part = if last { 0usize } else { part + 1usize };
+        raw = match byte_get(line, source) { Option::Some { value } => value, Option::None {} => 34u8, };
+        raw != 34u8
+    }
+    start * 2048usize + trimmed_length
 }
 
 // Response writers carry this compact cursor while emitting an escaped token.
@@ -343,17 +366,38 @@ fn escape_cursor_start(line: borrow Slice<u8>, token: usize, skip: usize) -> usi
         emitted = emitted + 1usize;
         emitted < skip
     }
-    source * 32usize + part * 8usize
+    escape_cursor_tag(line, source * 32usize + part * 8usize)
+}
+
+// A tagged cursor denotes either one source-contiguous canonical `\\u00hh`
+// atom or eight adjacent atoms. The latter commits forty-eight bytes in one
+// bounded append on the maximal escaped-label fixture.
+@id("catalog_normalizer.app.escape-cursor-control")
+fn escape_cursor_control(line: borrow Slice<u8>, source: usize) -> bool
+{
+    let raw = match byte_get(line, source) { Option::Some { value } => value, Option::None {} => 0u8, };
+    let decoded = if raw == 92u8 { dec_code_byte(emit_at(line, source, 0usize)) } else { raw };
+    let low = match byte_get(line, source + 5usize) { Option::Some { value } => value, Option::None {} => 65u8, };
+    raw == 92u8 && escape_len(decoded) == 6usize && (low < 65u8 || low > 70u8)
+}
+
+@id("catalog_normalizer.app.escape-cursor-tag")
+fn escape_cursor_tag(line: borrow Slice<u8>, cursor: usize) -> usize
+{
+    let source = cursor / 32usize;
+    let part = cursor % 32usize / 8usize;
+    let escaped = cursor % 8usize;
+    if part == 0usize && escaped == 0usize && escape_cursor_control(line, source) { let mut length = 6usize; let mut contiguous = true; while length < 48usize && contiguous { contiguous = escape_cursor_control(line, source + length); length = if contiguous { length + 6usize } else { length }; length < 48usize && contiguous } if length == 48usize { 13835058055282163712usize + source } else { 9223372036854775808usize + source } } else { cursor }
 }
 
 @id("catalog_normalizer.app.escape-cursor-byte")
 fn escape_cursor_byte(line: borrow Slice<u8>, cursor: usize) -> u8
 {
-    // The mode bit marks the remainder of a canonical six-byte control atom.
+    // The high bits mark one canonical control atom or an eight-atom run.
     // Ordinary packed cursors stay below it for the bounded 65,536-byte body.
     // Only an unnamed control renders six bytes. Output parts two and three
     // are always ASCII '0', regardless of the accepted source escape.
-    if cursor >= 4194304usize { let source = (cursor - 4194304usize) / 32usize; let offset = (cursor - 4194304usize) % 32usize; match byte_get(line, source + offset) { Option::Some { value } => value, Option::None {} => 0u8, } } else { let source = cursor / 32usize; let part = cursor % 32usize / 8usize; let escaped = cursor % 8usize; if escaped >= 2usize && escaped <= 3usize { 48u8 } else { let raw = match byte_get(line, source) { Option::Some { value } => value, Option::None {} => 0u8, }; let decoded = if raw == 92u8 { dec_code_byte(emit_at(line, source, part)) } else { raw }; escape_byte(decoded, escaped) } }
+    if cursor >= 9223372036854775808usize { let source = if cursor >= 13835058055282163712usize { cursor - 13835058055282163712usize } else { cursor - 9223372036854775808usize }; match byte_get(line, source) { Option::Some { value } => value, Option::None {} => 0u8, } } else { let source = cursor / 32usize; let part = cursor % 32usize / 8usize; let escaped = cursor % 8usize; if escaped >= 2usize && escaped <= 3usize { 48u8 } else { let raw = match byte_get(line, source) { Option::Some { value } => value, Option::None {} => 0u8, }; let decoded = if raw == 92u8 { dec_code_byte(emit_at(line, source, part)) } else { raw }; escape_byte(decoded, escaped) } }
 }
 
 @id("catalog_normalizer.app.escape-cursor-next")
@@ -362,19 +406,7 @@ fn escape_cursor_next(line: borrow Slice<u8>, cursor: usize) -> usize
     // Validation precedes this writer. Only lowercase canonical \u00hh
     // unnamed controls may enter raw-copy mode; every other escape retains
     // the decoded cursor path, including uppercase, named, and surrogate forms.
-    if cursor >= 4194304usize { let source = (cursor - 4194304usize) / 32usize; let offset = (cursor - 4194304usize) % 32usize; if offset < 5usize { cursor + 1usize } else { (source + 6usize) * 32usize } } else { let source = cursor / 32usize; let part = cursor % 32usize / 8usize; let escaped = cursor % 8usize; if escaped >= 2usize && escaped <= 4usize { cursor + 1usize } else { let raw = match byte_get(line, source) { Option::Some { value } => value, Option::None {} => 0u8, }; let decoded = if raw == 92u8 { dec_code_byte(emit_at(line, source, part)) } else { raw }; let canonical_control = if part == 0usize && escaped == 0usize && raw == 92u8 && escape_len(decoded) == 6usize { let low = match byte_get(line, source + 5usize) { Option::Some { value } => value, Option::None {} => 65u8, }; low < 65u8 || low > 70u8 } else { false }; if canonical_control { 4194304usize + source * 32usize + 1usize } else { let more_escape = escaped + 1usize < escape_len(decoded); let last = part + 1usize >= emit_len(line, source); let next_source = if more_escape { source } else { if last { token_end(line, source) } else { source } }; let next_part = if more_escape { part } else { if last { 0usize } else { part + 1usize } }; let next_escape = if more_escape { escaped + 1usize } else { 0usize }; next_source * 32usize + next_part * 8usize + next_escape } } }
-}
-
-@id("catalog_normalizer.app.record-output-len")
-fn record_output_len(line: borrow Slice<u8>) -> usize
-{
-    let id = record_id_value(line);
-    let label = record_label_value(line);
-    let label_start = decoded_trim_start(line, label);
-    let label_end_raw = decoded_trim_end(line, label);
-    let label_end = if label_end_raw > label_start { label_end_raw } else { label_start };
-    let quantity = quantity_or(line, record_quantity_value(line), -1);
-    32usize + escaped_len(line, id, 0usize, decoded_len(line, id)) + escaped_len(line, label, label_start, label_end) + i64_len(quantity)
+    if cursor >= 9223372036854775808usize { if cursor >= 13835058055282163712usize { escape_cursor_tag(line, (cursor - 13835058055282163712usize + 48usize) * 32usize) } else { escape_cursor_tag(line, (cursor - 9223372036854775808usize + 6usize) * 32usize) } } else { let source = cursor / 32usize; let part = cursor % 32usize / 8usize; let escaped = cursor % 8usize; if escaped >= 2usize && escaped <= 4usize { cursor + 1usize } else { let raw = match byte_get(line, source) { Option::Some { value } => value, Option::None {} => 0u8, }; let decoded = if raw == 92u8 { dec_code_byte(emit_at(line, source, part)) } else { raw }; let more_escape = escaped + 1usize < escape_len(decoded); let last = part + 1usize >= emit_len(line, source); let next_source = if more_escape { source } else { if last { token_end(line, source) } else { source } }; let next_part = if more_escape { part } else { if last { 0usize } else { part + 1usize } }; let next_escape = if more_escape { escaped + 1usize } else { 0usize }; escape_cursor_tag(line, next_source * 32usize + next_part * 8usize + next_escape) } }
 }
 
 @id("catalog_normalizer.app.success-total")
@@ -386,39 +418,12 @@ fn success_total(body: borrow Slice<u8>) -> i64
     let mut total = 0;
     while record < count {
         let end = line_end(body, start);
-        let line = byte_range(body, start, end);
-        total = total + quantity_or(line, record_quantity_value(line), -1);
+        total = total + valid_record_quantity(body, start, end);
         record = record + 1usize;
         start = end + 1usize;
         record < count
     }
     total
-}
-
-// The writer already owns `count` and `total`. Keep the public length helper,
-// but avoid re-counting records and re-summing quantities on the hot path.
-@id("catalog_normalizer.app.success-len-known")
-fn success_len_known(body: borrow Slice<u8>, count: usize, total: i64) -> usize
-{
-    let mut length = 23usize + usize_len(count) + 18usize + i64_len(total) + 12usize + 3usize;
-    let mut record = 0usize;
-    let mut start = 0usize;
-    while record < count {
-        let end = line_end(body, start);
-        let line = byte_range(body, start, end);
-        length = length + if record == 0usize { 0usize } else { 1usize } + record_output_len(line);
-        record = record + 1usize;
-        start = end + 1usize;
-        record < count
-    }
-    length
-}
-
-@id("catalog_normalizer.app.success-len")
-fn success_len(body: borrow Slice<u8>) -> usize
-{
-    let count = record_count(body);
-    success_len_known(body, count, success_total(body))
 }
 
 @id("catalog_normalizer.app.enriched-value-len")
@@ -438,34 +443,6 @@ fn output_capacity() -> usize
     69710usize
 }
 
-// CNORM-041's enabled form appends exactly one category field to every
-// record. The source fixture is consulted only after `first_enriched_failure`
-// has accepted the complete batch, so these are projection facts, never
-// provisional provider effects.
-@id("catalog_normalizer.app.enriched-success-len-known")
-fn enriched_success_len_known(body: borrow Slice<u8>, count: usize, total: i64) -> usize
-{
-    let mut length = success_len_known(body, count, total);
-    let mut record = 0usize;
-    let mut start = 0usize;
-    while record < count {
-        let end = line_end(body, start);
-        let line = byte_range(body, start, end);
-        length = length + 12usize + enriched_value_len(enrichment_outcome(line, record_id_value(line)));
-        record = record + 1usize;
-        start = end + 1usize;
-        record < count
-    }
-    length
-}
-
-@id("catalog_normalizer.app.enriched-success-len")
-fn enriched_success_len(body: borrow Slice<u8>) -> usize
-{
-    let count = record_count(body);
-    enriched_success_len_known(body, count, success_total(body))
-}
-
 @id("catalog_normalizer.app.absolute-field")
 fn absolute_field(body: borrow Slice<u8>, start: usize, end: usize, field: usize) -> usize
 {
@@ -479,7 +456,7 @@ fn absolute_field(body: borrow Slice<u8>, start: usize, end: usize, field: usize
 @id("catalog_normalizer.app.response-label-byte")
 fn response_label_byte(body: borrow Slice<u8>, cursor: usize) -> u8
 {
-    if cursor >= 4194304usize { let raw = cursor - 4194304usize; match byte_get(body, raw / 32usize + raw % 32usize) { Option::Some { value } => value, Option::None {} => 0u8, } } else { escape_cursor_byte(body, cursor) }
+    escape_cursor_byte(body, cursor)
 }
 
 // The enriched category outcome (the bounded fixture code 0..7) is carried by
@@ -515,23 +492,10 @@ fn escaped_len_if(body: borrow Slice<u8>, active: bool, token: usize, start: usi
     if active { escaped_len(body, token, start, end) } else { fallback }
 }
 
-@id("catalog_normalizer.app.trim-start-if")
-fn trim_start_if(body: borrow Slice<u8>, active: bool, token: usize, fallback: usize) -> usize
-{
-    if active { decoded_trim_start(body, token) } else { fallback }
-}
-
-@id("catalog_normalizer.app.trim-end-if")
-fn trim_end_if(body: borrow Slice<u8>, active: bool, token: usize, start: usize, fallback: usize) -> usize
-{
-    let end = if active { decoded_trim_end(body, token) } else { fallback };
-    if end > start { end } else { start }
-}
-
 @id("catalog_normalizer.app.quantity-if")
-fn quantity_if(body: borrow Slice<u8>, active: bool, at: usize, fallback: i64) -> i64
+fn quantity_if(body: borrow Slice<u8>, active: bool, start: usize, end: usize, fallback: i64) -> i64
 {
-    if active { quantity_or(body, at, -1) } else { fallback }
+    if active { valid_record_quantity(body, start, end) } else { fallback }
 }
 
 @id("catalog_normalizer.app.outcome-if")
@@ -550,12 +514,6 @@ fn next_record(done: bool, phase: usize, record: usize) -> usize
 fn next_phase(done: bool, phase: usize, count: usize, record: usize) -> usize
 {
     if !done { phase } else { if phase == 4usize && count == 0usize { 12usize } else { if phase == 11usize { if record + 1usize < count { 5usize } else { 12usize } } else { phase + 1usize } } }
-}
-
-@id("catalog_normalizer.app.next-part")
-fn next_part(done: bool, advanced: usize) -> usize
-{
-    if done { 0usize } else { advanced }
 }
 
 @id("catalog_normalizer.app.enriched-phase-len")
@@ -598,12 +556,6 @@ fn error_response(failure: usize) -> Bytes
 // pass is therefore projection only and preserves input record order.
 // Mode dispatch is scalar, so the shared owned writer does not combine
 // independent enriched branches into its cleanup replay paths.
-@id("catalog_normalizer.app.output-len-known")
-fn output_len_known(body: borrow Slice<u8>, count: usize, total: i64, enriched: bool) -> usize
-{
-    if enriched { enriched_success_len_known(body, count, total) } else { success_len_known(body, count, total) }
-}
-
 @id("catalog_normalizer.app.output-phase-len")
 fn output_phase_len(enriched: bool, phase: usize, count: usize, total: i64, record: usize, id_length: usize, label_length: usize, quantity: i64) -> usize
 {
@@ -628,6 +580,33 @@ fn output_phase_after_empty_label(phase: usize, label_length: usize) -> usize
     if phase == 8usize && label_length == 0usize { 9usize } else { phase }
 }
 
+// Keep scalar mode selection in separately checked helpers. Inlining these
+// branches into the owning loop multiplies independent cleanup paths despite
+// there being only one buffer store and one owner transfer per iteration.
+@id("catalog_normalizer.app.output-cursor")
+fn output_cursor(phase: usize, id_cursor: usize, label_cursor: usize) -> usize
+{
+    if phase == 6usize { id_cursor } else { if phase == 8usize { label_cursor } else { 0usize } }
+}
+
+@id("catalog_normalizer.app.output-width")
+fn output_width(cursor: usize) -> usize
+{
+    if cursor >= 13835058055282163712usize { 48usize } else { if cursor >= 9223372036854775808usize { 6usize } else { 1usize } }
+}
+
+@id("catalog_normalizer.app.output-byte")
+fn output_byte(body: borrow Slice<u8>, cursor: usize, phase: usize, part: usize, count: usize, total: i64, id_cursor: usize, quantity: i64) -> u8
+{
+    if cursor >= 9223372036854775808usize { 0u8 } else { if phase == 8usize { response_label_byte(body, cursor) } else { response_phase_byte(body, phase, part, count, total, id_cursor, quantity) } }
+}
+
+@id("catalog_normalizer.app.output-cursor-next")
+fn output_cursor_next(body: borrow Slice<u8>, active: bool, cursor: usize) -> usize
+{
+    if active { escape_cursor_next(body, cursor) } else { cursor }
+}
+
 @id("catalog_normalizer.app.shared-success-response")
 fn shared_success_response(body: borrow Slice<u8>, enriched: bool) -> Bytes
 {
@@ -644,27 +623,27 @@ fn shared_success_response(body: borrow Slice<u8>, enriched: bool) -> Bytes
     let mut record_end = line_end_if(body, active, record_start, 0usize);
     let mut id = field_if(body, active, record_start, record_end, 1usize, 0usize);
     let mut label = field_if(body, active, record_start, record_end, 2usize, 0usize);
-    let mut quantity_at = field_if(body, active, record_start, record_end, 3usize, 0usize);
     let mut id_length = escaped_len_if(body, active, id, 0usize, if active { decoded_len(body, id) } else { 0usize }, 0usize);
-    let mut label_start = trim_start_if(body, active, label, 0usize);
-    let mut label_end = trim_end_if(body, active, label, label_start, label_start);
-    let mut label_length = escaped_len_if(body, active, label, label_start, label_end, 0usize);
+    let layout = label_layout(body, label, active);
+    let mut label_start = layout / 2048usize;
+    let mut label_length = layout % 2048usize;
     let mut id_cursor = escape_cursor_start(body, id, 0usize);
     let mut label_cursor = escape_cursor_start(body, label, label_start);
-    let mut quantity = quantity_if(body, active, quantity_at, 0);
+    let mut quantity = quantity_if(body, active, record_start, record_end, 0);
     let mut outcome = outcome_if(body, active && enriched, id, 0usize);
     let mut segment = 0usize;
     while phase < terminal_phase {
         let _ = if part == 0usize { phase = output_phase_after_empty_label(phase, label_length); segment = output_phase_len(enriched, phase, count, total, record, id_length, label_length, quantity); true } else { false };
-        let label_phase = phase == 8usize;
-        let value = if label_phase { response_label_byte(body, label_cursor) } else { response_phase_byte(body, phase, part, count, total, id_cursor, quantity) };
-        out = bytes_set(out, index, value);
-        index = index + 1usize;
-        let advanced_part = part + 1usize;
+        let cursor = output_cursor(phase, id_cursor, label_cursor);
+        let value = output_byte(body, cursor, phase, part, count, total, id_cursor, quantity);
+        out = bytes_set1_or6_or48_from_slice(out, index, value, body, cursor);
+        let width = output_width(cursor);
+        index = index + width;
+        let advanced_part = part + width;
         let done = advanced_part >= segment;
-        id_cursor = if phase == 6usize { escape_cursor_next(body, id_cursor) } else { id_cursor };
-        label_cursor = if label_phase { escape_cursor_next(body, label_cursor) } else { label_cursor };
-        if done { let next_record_value = output_next_record(enriched, true, phase, record); let changed_record = next_record_value != record && next_record_value < count; phase = output_next_phase(enriched, true, phase, count, record, outcome); part = 0usize; record = next_record_value; if changed_record { record_start = record_end + 1usize; record_end = line_end(body, record_start); id = field_if(body, true, record_start, record_end, 1usize, id); label = field_if(body, true, record_start, record_end, 2usize, label); quantity_at = field_if(body, true, record_start, record_end, 3usize, quantity_at); id_length = escaped_len(body, id, 0usize, decoded_len(body, id)); label_start = decoded_trim_start(body, label); label_end = trim_end_if(body, true, label, label_start, label_end); label_length = escaped_len(body, label, label_start, label_end); id_cursor = escape_cursor_start(body, id, 0usize); label_cursor = escape_cursor_start(body, label, label_start); quantity = quantity_or(body, quantity_at, -1); outcome = outcome_if(body, enriched, id, outcome); phase < terminal_phase } else { phase < terminal_phase } } else { part = advanced_part; phase < terminal_phase }
+        id_cursor = output_cursor_next(body, phase == 6usize, id_cursor);
+        label_cursor = output_cursor_next(body, phase == 8usize, label_cursor);
+        if done { let next_record_value = output_next_record(enriched, true, phase, record); let changed_record = next_record_value != record && next_record_value < count; phase = output_next_phase(enriched, true, phase, count, record, outcome); part = 0usize; record = next_record_value; if changed_record { record_start = record_end + 1usize; record_end = line_end(body, record_start); id = field_if(body, true, record_start, record_end, 1usize, id); label = field_if(body, true, record_start, record_end, 2usize, label); id_length = escaped_len(body, id, 0usize, decoded_len(body, id)); let layout = label_layout(body, label, true); label_start = layout / 2048usize; label_length = layout % 2048usize; id_cursor = escape_cursor_start(body, id, 0usize); label_cursor = escape_cursor_start(body, label, label_start); quantity = valid_record_quantity(body, record_start, record_end); outcome = outcome_if(body, enriched, id, outcome); phase < terminal_phase } else { phase < terminal_phase } } else { part = advanced_part; phase < terminal_phase }
     }
     let view = bytes_as_slice(out);
     bytes_copy(byte_range(view, 0usize, index))

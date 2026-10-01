@@ -116,16 +116,18 @@ pub(super) fn set5(
 }
 
 /// Store either one supplied byte or five ordered bytes read from a borrowed
-/// slice. The wide source read is total: each missing source position supplies
-/// zero after the destination interval has been preflighted.
+/// slice. The selector's high bit chooses the wide path; its remaining bits
+/// give the source offset. The wide source read is total: each missing source
+/// position supplies zero after the destination interval has been preflighted.
 pub(super) fn set1_or5(
     buffer: &OwnedBytesValue,
     index: u64,
-    wide: bool,
     one: u8,
     source: &[u8],
-    source_start: u64,
+    selector: u64,
 ) -> Result<OwnedBytesValue, Flow> {
+    let wide = selector & crate::byte_ops::SET1_OR5_WIDE_TAG != 0;
+    let source_start = selector & !crate::byte_ops::SET1_OR5_WIDE_TAG;
     let width = if wide { 5 } else { 1 };
     let Some(slot) = usize::try_from(index).ok().filter(|slot| {
         buffer
@@ -145,6 +147,57 @@ pub(super) fn set1_or5(
             filled[slot + offset] = start
                 .and_then(|start| start.checked_add(offset))
                 .and_then(|source_index| source.get(source_index))
+                .copied()
+                .unwrap_or(0);
+        }
+    } else {
+        filled[slot] = one;
+    }
+    Ok(OwnedBytesValue {
+        allocation: buffer.allocation,
+        bytes: Arc::from(filled.as_slice()),
+    })
+}
+
+/// Tagged source store. The copy branch preflights its complete six- or
+/// forty-eight-byte destination interval before the owner is moved.
+pub(super) fn set1_or6_or48(
+    buffer: &OwnedBytesValue,
+    index: u64,
+    one: u8,
+    source: &[u8],
+    selector: u64,
+) -> Result<OwnedBytesValue, Flow> {
+    let copy = selector & crate::byte_ops::SET1_OR6_OR48_COPY_TAG != 0;
+    let wide48 = selector & crate::byte_ops::SET1_OR6_OR48_WIDE48_TAG != 0;
+    let source_start = selector & crate::byte_ops::SET1_OR6_OR48_OFFSET_MASK;
+    let width = if copy {
+        if wide48 {
+            48
+        } else {
+            6
+        }
+    } else {
+        1
+    };
+    let Some(slot) = usize::try_from(index).ok().filter(|slot| {
+        buffer
+            .bytes
+            .len()
+            .checked_sub(*slot)
+            .is_some_and(|remaining| remaining >= width)
+    }) else {
+        return Err(Flow::Failure(normalize_byte_buffer(
+            crate::byte_ops::SET_INDEX_OUT_OF_BOUNDS_CODE,
+        )));
+    };
+    let mut filled = buffer.bytes.to_vec();
+    if copy {
+        let start = usize::try_from(source_start).ok();
+        for offset in 0..width {
+            filled[slot + offset] = start
+                .and_then(|start| start.checked_add(offset))
+                .and_then(|at| source.get(at))
                 .copied()
                 .unwrap_or(0);
         }
@@ -182,9 +235,12 @@ impl Evaluator<'_> {
             ) => set5(buffer, *index, [*first, *second, *third, *fourth, *fifth]).map(Value::Bytes),
             (
                 crate::byte_ops::ByteOp::Set1Or5,
-                [Value::Bytes(buffer), Value::Usize(index), Value::Bool(wide), Value::Uint8(one), Value::BorrowedSlice(source), Value::Usize(source_start)],
-            ) => set1_or5(buffer, *index, *wide, *one, source.bytes(), *source_start)
-                .map(Value::Bytes),
+                [Value::Bytes(buffer), Value::Usize(index), Value::Uint8(one), Value::BorrowedSlice(source), Value::Usize(selector)],
+            ) => set1_or5(buffer, *index, *one, source.bytes(), *selector).map(Value::Bytes),
+            (
+                crate::byte_ops::ByteOp::Set1Or6Or48,
+                [Value::Bytes(buffer), Value::Usize(index), Value::Uint8(one), Value::BorrowedSlice(source), Value::Usize(selector)],
+            ) => set1_or6_or48(buffer, *index, *one, source.bytes(), *selector).map(Value::Bytes),
             _ => Err(Flow::Guard("ill-typed borrowed byte operation operand")),
         }
     }

@@ -6,6 +6,7 @@ pub(super) struct ImportTypes {
     pub(super) set: Option<u32>,
     pub(super) set5: Option<u32>,
     pub(super) set1_or5: Option<u32>,
+    pub(super) set1_or6_or48: Option<u32>,
 }
 
 pub(super) fn import_types(
@@ -36,7 +37,17 @@ pub(super) fn import_types(
     let set1_or5 = uses_owned_buffer.then(|| {
         intern_type(
             Signature {
-                params: vec![I64, I64, I32, I32, I64, I64],
+                params: vec![I64, I64, I32, I64, I64],
+                results: vec![I64],
+            },
+            types,
+            type_indexes,
+        )
+    });
+    let set1_or6_or48 = uses_owned_buffer.then(|| {
+        intern_type(
+            Signature {
+                params: vec![I64, I64, I32, I64, I64],
                 results: vec![I64],
             },
             types,
@@ -47,6 +58,19 @@ pub(super) fn import_types(
         set,
         set5,
         set1_or5,
+        set1_or6_or48,
+    }
+}
+
+pub(super) fn emit_imports(imports: &mut Vec<u8>, byte_unary: u32, types: &ImportTypes) {
+    function_import(imports, "env", "spx_bytes_zeroed", byte_unary);
+    for (name, ty) in [
+        ("spx_bytes_set", types.set),
+        ("spx_bytes_set5", types.set5),
+        ("spx_bytes_set1_or5", types.set1_or5),
+        ("spx_bytes_set1_or6_or48", types.set1_or6_or48),
+    ] {
+        function_import(imports, "env", name, ty.expect("owned buffer import type"));
     }
 }
 
@@ -105,21 +129,84 @@ impl<'a> Emitter<'a> {
         })
     }
 
-    /// Select the one-byte or five-byte destination failure before the owner
-    /// transfer commits. The condition is a copied scalar, so it may select
-    /// the matching existing bound predicate without re-evaluating an operand.
+    pub(super) fn emit_owned_buffer_set1_or6_or48(
+        &mut self,
+        expr: &ResolvedExpr,
+        values: &[Value],
+    ) -> Result<Value, Diagnostic> {
+        let local = self.plan.expr_scalar(expr)?;
+        for value in values {
+            self.get_scalar(value);
+        }
+        self.output.push(0x10);
+        write_u32(
+            self.output,
+            self.function_indexes
+                .get(&FunctionExecutionId::Monomorphic(DeclarationId::new(
+                    crate::byte_ops::SET1_OR6_OR48_ID,
+                )))
+                .copied()
+                .unwrap_or(BYTE_SET1_OR6_OR48_IMPORT),
+        );
+        self.output.push(0x21);
+        write_u32(self.output, local);
+        Ok(Value::Scalar {
+            local,
+            ty: ResolvedType::Bytes,
+        })
+    }
+
+    /// Select the one-byte or five-byte destination failure from the selector
+    /// tag before the owner transfer commits.
     pub(super) fn emit_owned_buffer_set1_or5_failure(
         &mut self,
         expression: &ExpressionId,
         buffer: &Value,
         index: &Value,
-        wide: &Value,
+        selector: &Value,
     ) -> Result<(), Diagnostic> {
-        self.get_scalar(wide);
+        self.get_scalar(selector);
+        self.output.push(0x42); // i64.const
+        write_i64(self.output, i64::MIN);
+        self.output.extend([0x83, 0x50, 0x45]); // i64.and, i64.eqz, i32.eqz
         self.output.extend([0x04, 0x40]);
+        // Nested bounds failures must branch past this selector to the status exit.
+        self.control_depth += 1;
         self.emit_owned_buffer_set5_failure(expression, buffer, index)?;
         self.output.push(0x05);
         self.emit_owned_buffer_index_failure(expression, buffer, index)?;
+        self.control_depth -= 1;
+        self.output.push(0x0b);
+        Ok(())
+    }
+
+    pub(super) fn emit_owned_buffer_set1_or6_or48_failure(
+        &mut self,
+        expression: &ExpressionId,
+        buffer: &Value,
+        index: &Value,
+        selector: &Value,
+    ) -> Result<(), Diagnostic> {
+        self.get_scalar(selector);
+        self.output.push(0x42);
+        write_i64(self.output, i64::MIN);
+        self.output.extend([0x83, 0x50, 0x45]);
+        self.output.extend([0x04, 0x40]);
+        self.control_depth += 1;
+        self.get_scalar(selector);
+        self.output.push(0x42);
+        write_i64(self.output, 1_i64 << 62);
+        self.output.extend([0x83, 0x50, 0x45]);
+        self.output.extend([0x04, 0x40]);
+        self.control_depth += 1;
+        self.emit_owned_buffer_set48_failure(expression, buffer, index)?;
+        self.output.push(0x05);
+        self.emit_owned_buffer_set6_failure(expression, buffer, index)?;
+        self.control_depth -= 1;
+        self.output.push(0x0b);
+        self.output.push(0x05);
+        self.emit_owned_buffer_index_failure(expression, buffer, index)?;
+        self.control_depth -= 1;
         self.output.push(0x0b);
         Ok(())
     }
@@ -174,6 +261,74 @@ impl<'a> Emitter<'a> {
         write_i64(self.output, 5);
         self.output.push(0x54); // remaining < five
         self.output.push(0x72); // either condition selects the failure
+        self.output.extend([0x04, 0x40, 0x41]);
+        write_i64(
+            self.output,
+            i64::from(STATUS_BYTE_BUFFER_INDEX_OUT_OF_BOUNDS),
+        );
+        self.output.push(0x21);
+        write_u32(self.output, self.plan.status);
+        self.emit_failure_cleanup(expression, StatusLane::OperationFailure)?;
+        self.output.push(0x0c);
+        write_u32(
+            self.output,
+            self.control_depth + self.status_exit_extra_depth,
+        );
+        self.output.push(0x0b);
+        Ok(())
+    }
+
+    pub(super) fn emit_owned_buffer_set6_failure(
+        &mut self,
+        expression: &ExpressionId,
+        buffer: &Value,
+        index: &Value,
+    ) -> Result<(), Diagnostic> {
+        self.get_scalar(index);
+        self.get_scalar(buffer);
+        self.output.extend([0xa7, 0xad, 0x56]);
+        self.get_scalar(buffer);
+        self.output.extend([0xa7, 0xad]);
+        self.get_scalar(index);
+        self.output.push(0x7d);
+        self.output.push(0x42);
+        write_i64(self.output, 6);
+        self.output.push(0x54);
+        self.output.push(0x72);
+        self.output.extend([0x04, 0x40, 0x41]);
+        write_i64(
+            self.output,
+            i64::from(STATUS_BYTE_BUFFER_INDEX_OUT_OF_BOUNDS),
+        );
+        self.output.push(0x21);
+        write_u32(self.output, self.plan.status);
+        self.emit_failure_cleanup(expression, StatusLane::OperationFailure)?;
+        self.output.push(0x0c);
+        write_u32(
+            self.output,
+            self.control_depth + self.status_exit_extra_depth,
+        );
+        self.output.push(0x0b);
+        Ok(())
+    }
+
+    pub(super) fn emit_owned_buffer_set48_failure(
+        &mut self,
+        expression: &ExpressionId,
+        buffer: &Value,
+        index: &Value,
+    ) -> Result<(), Diagnostic> {
+        self.get_scalar(index);
+        self.get_scalar(buffer);
+        self.output.extend([0xa7, 0xad, 0x56]);
+        self.get_scalar(buffer);
+        self.output.extend([0xa7, 0xad]);
+        self.get_scalar(index);
+        self.output.push(0x7d);
+        self.output.push(0x42);
+        write_i64(self.output, 48);
+        self.output.push(0x54);
+        self.output.push(0x72);
         self.output.extend([0x04, 0x40, 0x41]);
         write_i64(
             self.output,

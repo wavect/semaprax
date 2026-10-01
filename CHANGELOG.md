@@ -8,6 +8,11 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Bind durable metered Agent recovery to the selected execution target (#327).
+  Metered checkpoint v2 records the target binding; v1 remains inspectable
+  but cannot resume live work under an unbound target. Focused codec,
+  cross-target refusal, and migration-replay selectors passed locally.
+
 - Add opt-in signed-timestamp JSON-event v2 completion delivery (#336),
   checked against the scaffold webhook decision using authenticated prior
   intent facts before export, state, or physical delivery. V1 and OTLP remain

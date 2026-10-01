@@ -18,7 +18,8 @@ pub(crate) fn decode_retained_value(value: &Value) -> Result<RetainedValue, Diag
 }
 
 pub const CHECKPOINT_SCHEMA: &str = "semaprax.agent-operation-checkpoint.v2";
-pub const METERED_CHECKPOINT_SCHEMA: &str = "semaprax.agent-operation-checkpoint-metered.v1";
+pub const METERED_CHECKPOINT_SCHEMA_V1: &str = "semaprax.agent-operation-checkpoint-metered.v1";
+pub const METERED_CHECKPOINT_SCHEMA_V2: &str = "semaprax.agent-operation-checkpoint-metered.v2";
 const MAX_BYTES: usize = 2_097_152;
 const MAX_ENTRIES: usize = 4096;
 fn rejected(field: &str) -> Diagnostic {
@@ -63,10 +64,13 @@ pub struct CheckpointLimits {
     pub total_bytes: u64,
     pub reserved_fuel: u64,
 }
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 enum CheckpointProfile {
     Ordinary,
-    Metered { semantic_fuel_limit: u64 },
+    Metered {
+        semantic_fuel_limit: u64,
+        target_execution_binding: Option<String>,
+    },
 }
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct EffectContext {
@@ -158,6 +162,25 @@ impl OperationCheckpoint {
         identity: CheckpointIdentity,
         limits: CheckpointLimits,
         semantic_fuel_limit: u64,
+        target_execution_binding: String,
+    ) -> Result<Self, Diagnostic> {
+        if !(1..=1_000_000).contains(&semantic_fuel_limit) {
+            return Err(rejected("semantic_work.fuel_limit"));
+        }
+        if !hash_valid(&target_execution_binding) {
+            return Err(rejected("semantic_work.target_execution_binding"));
+        }
+        let mut journal = Self::new(identity, limits)?;
+        journal.profile = CheckpointProfile::Metered {
+            semantic_fuel_limit,
+            target_execution_binding: Some(target_execution_binding),
+        };
+        Ok(journal)
+    }
+    fn new_metered_v1(
+        identity: CheckpointIdentity,
+        limits: CheckpointLimits,
+        semantic_fuel_limit: u64,
     ) -> Result<Self, Diagnostic> {
         if !(1..=1_000_000).contains(&semantic_fuel_limit) {
             return Err(rejected("semantic_work.fuel_limit"));
@@ -165,6 +188,7 @@ impl OperationCheckpoint {
         let mut journal = Self::new(identity, limits)?;
         journal.profile = CheckpointProfile::Metered {
             semantic_fuel_limit,
+            target_execution_binding: None,
         };
         Ok(journal)
     }
@@ -175,11 +199,21 @@ impl OperationCheckpoint {
         self.limits
     }
     pub fn semantic_fuel_limit(&self) -> Option<u64> {
-        match self.profile {
+        match &self.profile {
             CheckpointProfile::Ordinary => None,
             CheckpointProfile::Metered {
                 semantic_fuel_limit,
-            } => Some(semantic_fuel_limit),
+                ..
+            } => Some(*semantic_fuel_limit),
+        }
+    }
+    pub fn semantic_target_execution_binding(&self) -> Option<&str> {
+        match &self.profile {
+            CheckpointProfile::Metered {
+                target_execution_binding: Some(binding),
+                ..
+            } => Some(binding),
+            CheckpointProfile::Ordinary | CheckpointProfile::Metered { .. } => None,
         }
     }
     pub fn usage(&self) -> CheckpointUsage {
@@ -220,9 +254,12 @@ impl OperationCheckpoint {
         expected: &CheckpointIdentity,
         limits: CheckpointLimits,
         semantic_fuel_limit: u64,
+        target_execution_binding: &str,
     ) -> Result<Self, Diagnostic> {
         let journal = Self::decode_with_limits(document, expected, limits)?;
-        if journal.semantic_fuel_limit() != Some(semantic_fuel_limit) {
+        if journal.semantic_fuel_limit() != Some(semantic_fuel_limit)
+            || journal.semantic_target_execution_binding() != Some(target_execution_binding)
+        {
             return Err(rejected("semantic_work.profile"));
         }
         Ok(journal)
@@ -363,7 +400,8 @@ impl OperationCheckpoint {
             } => {
                 let CheckpointProfile::Metered {
                     semantic_fuel_limit,
-                } = self.profile
+                    ..
+                } = &self.profile
                 else {
                     return Err(rejected("semantic_work.profile"));
                 };
@@ -387,7 +425,7 @@ impl OperationCheckpoint {
                     || *ordinal >= reservation_count
                     || function.is_empty()
                     || function.len() > 256
-                    || *fuel_limit != semantic_fuel_limit
+                    || *fuel_limit != *semantic_fuel_limit
                     || *fuel_used > *fuel_limit
                     || (*exhausted && *fuel_used != *fuel_limit)
                     || !events_valid

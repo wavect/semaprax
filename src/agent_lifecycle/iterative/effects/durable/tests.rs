@@ -205,6 +205,22 @@ fn run_metered(
     store: &mut Store,
     retained: Option<&str>,
 ) -> Result<super::super::MeteredDurableTypedRun, DurableTypedFailure> {
+    run_metered_selected(
+        compiled,
+        handler,
+        store,
+        retained,
+        super::super::TargetStageBackend::Interpreter,
+    )
+}
+
+fn run_metered_selected(
+    compiled: &CompiledTypedEffects,
+    handler: &mut Handler,
+    store: &mut Store,
+    retained: Option<&str>,
+    selected: super::super::TargetStageBackend<'_>,
+) -> Result<super::super::MeteredDurableTypedRun, DurableTypedFailure> {
     compiled.run_durable_metered_with_backend(
         &task(),
         &proposals(compiled),
@@ -217,7 +233,7 @@ fn run_metered(
         retained,
         store,
         10_000_000,
-        super::super::TargetStageBackend::Interpreter,
+        selected,
         100,
     )
 }
@@ -293,6 +309,7 @@ fn fresh_durable_semantic_metering_records_every_committed_stage() {
         metered.run().run().lifecycle().stages().len()
     );
     let checkpoint: serde_json::Value = serde_json::from_str(metered.run().checkpoint()).unwrap();
+    assert_eq!(checkpoint["schema"], "semaprax.agent-operation-checkpoint-metered.v2");
     let entries = checkpoint["entries"].as_array().unwrap();
     assert_eq!(
         entries
@@ -307,6 +324,30 @@ fn fresh_durable_semantic_metering_records_every_committed_stage() {
     );
     assert!(!metered.evidence().is_empty());
     assert!(metered.evidence_digest().starts_with("sha256:"));
+}
+
+#[test]
+fn durable_semantic_metering_refuses_target_substitution_before_store_or_handler_work() {
+    let compiled = super::super::tests::compile();
+    let mut handler = Handler::default();
+    let mut store = Store::default();
+    let fresh = run_metered(&compiled, &mut handler, &mut store, None).unwrap();
+    let retained = fresh.run().checkpoint().to_owned();
+    let before = (handler.calls, store.commits);
+    let failure = run_metered_selected(
+        &compiled,
+        &mut handler,
+        &mut store,
+        Some(&retained),
+        super::super::TargetStageBackend::CoreWasm,
+    )
+    .err()
+    .expect("metered durable recovery must bind its selected target");
+    assert!(failure
+        .diagnostics()
+        .iter()
+        .any(|diagnostic| diagnostic.message.contains("semantic_work.profile")));
+    assert_eq!((handler.calls, store.commits), before);
 }
 
 #[test]

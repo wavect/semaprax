@@ -46,13 +46,15 @@ objects, exact canonical re-encoding and closed flat typed values reject
 unknown keys, duplicate keys, malformed integers, reminted predecessors,
 substituted identities/limits and byte-counter refunds.
 
-The additive `semaprax.agent-operation-checkpoint-metered.v1` profile retains
-the v2 ordinary wire unchanged. It binds one admitted semantic-fuel limit and
-an ordered receipt for each completed stage. Receipts are chained through the
-caller-trusted store; their digest binds exact bytes and order but grants no
-cryptographic authority. An ordinary route rejects this profile, and the
-metered route rejects ordinary, malformed, changed-limit, or unpaired input
-before stage, store, or handler work.
+The additive `semaprax.agent-operation-checkpoint-metered.v2` profile retains
+the v2 ordinary wire unchanged. It binds one admitted semantic-fuel limit, the
+selected target execution binding, and an ordered receipt for each completed
+stage. Receipts are chained through the caller-trusted store; their digest
+binds exact bytes and order but grants no cryptographic authority. An ordinary
+route rejects this profile, and the metered route rejects ordinary, malformed,
+changed-target, changed-limit, or unpaired input before stage, store, or
+handler work. Metered v1 remains parseable for inspection but cannot resume a
+live metered route because it lacks the selected-target binding.
 
 Each effect has these ordered entries:
 

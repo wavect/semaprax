@@ -776,25 +776,23 @@ impl CompiledTypedEffects {
         if wasm_source_mismatch(self, backend) {
             return Err(fail(diagnostic("backend.wasm_source")));
         }
-        let semantic_fuel_limit = match backend.as_ref() {
-            Some(crate::agent_lifecycle::authorization::StageBackend::Metered {
-                fuel_limit,
-                ..
-            }) => Some(*fuel_limit),
-            _ => None,
-        };
-        let metered_observations = match backend.as_ref() {
-            Some(crate::agent_lifecycle::authorization::StageBackend::Metered {
-                observations,
-                ..
-            }) => Some(*observations),
-            _ => None,
-        };
+        let (semantic_fuel_limit, metered_observations, metered_target_binding) =
+            match backend.as_ref() {
+                Some(crate::agent_lifecycle::authorization::StageBackend::Metered {
+                    backend,
+                    fuel_limit,
+                    observations,
+                }) => (
+                    Some(*fuel_limit),
+                    Some(*observations),
+                    Some(self.target_execution_binding(**backend)),
+                ),
+                _ => (None, None, None),
+            };
         let requested = super::super::invocation_digest(task, proposals, stages);
-        // Checkpoint identity never depends on which backend is selected: the
-        // same canonical bytes decode and continue under any admitted
-        // backend, so a checkpoint saved under one target restores under
-        // another.
+        // Ordinary checkpoint identity remains target-neutral. The metered
+        // profile below separately binds its selected target before recovery
+        // can reuse receipts or reserve fresh stage fuel.
         let invocation = match seed {
             None => digest(
                 b"semaprax.agent-durable-typed-invocation.v2\0",
@@ -873,22 +871,23 @@ impl CompiledTypedEffects {
             total_bytes: remaining_total,
             reserved_fuel: remaining_fuel,
         };
-        let journal = match (retained_checkpoint, semantic_fuel_limit) {
-            (Some(document), Some(fuel_limit)) => OperationCheckpoint::decode_metered_with_limits(
-                document, &identity, limits, fuel_limit,
+        let journal = match (retained_checkpoint, semantic_fuel_limit, metered_target_binding) {
+            (Some(document), Some(fuel_limit), Some(target_binding)) => OperationCheckpoint::decode_metered_with_limits(
+                document, &identity, limits, fuel_limit, &target_binding,
             )
             .map_err(|e| fail(vec![e]))?,
-            (Some(document), None) => {
+            (Some(document), None, None) => {
                 OperationCheckpoint::decode_with_limits(document, &identity, limits)
                     .map_err(|e| fail(vec![e]))?
             }
-            (None, Some(fuel_limit)) => {
-                OperationCheckpoint::new_metered(identity, limits, fuel_limit)
+            (None, Some(fuel_limit), Some(target_binding)) => {
+                OperationCheckpoint::new_metered(identity, limits, fuel_limit, target_binding)
                     .map_err(|e| fail(vec![e]))?
             }
-            (None, None) => {
+            (None, None, None) => {
                 OperationCheckpoint::new(identity, limits).map_err(|e| fail(vec![e]))?
             }
+            _ => return Err(fail(diagnostic("semantic_work.profile"))),
         };
         if journal.limits() != limits {
             return Err(fail(diagnostic("limits.substitution")));

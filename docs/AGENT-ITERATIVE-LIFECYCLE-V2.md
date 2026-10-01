@@ -128,10 +128,12 @@ stage executor seam; it does not change any lifecycle wire, reservation or
 digest above. Existing frozen, migration-seeded, live and checkpoint entries
 retain their unmetered dispatch. The additive public target route below opts
 into the same metered seam. A fresh durable typed-effect route also records
-the metered stage receipts beside its unchanged authenticated checkpoint. Its
-post-commit result carries both observed and committed stage counts plus an
-`observations_complete` fact; a receipt mismatch refuses result publication
-while retaining any selected lifecycle terminal;
+the metered stage receipts beside its authenticated checkpoint. The metered
+checkpoint binds the selected target before its first reservation, so resumed
+work cannot reuse receipts under a substituted backend. Its post-commit result
+carries both observed and committed stage counts plus an `observations_complete`
+fact; a receipt mismatch refuses result publication while retaining any
+selected lifecycle terminal;
 recovery validates retained receipts while it re-executes and newly charges
 deterministic stages, appending a receipt for each new reservation; retained
 observations still prevent host redelivery. An unpaired or malformed receipt

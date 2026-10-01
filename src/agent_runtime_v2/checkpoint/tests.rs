@@ -477,3 +477,55 @@ fn exact_scalar_codec_rejects_nested_duplicate_noncanonical_and_overflow_values(
     duplicate["fields"][1]["field"] = duplicate["fields"][0]["field"].clone();
     assert!(value::decode(&duplicate).is_err());
 }
+
+#[test]
+fn metered_checkpoint_v2_binds_target_and_v1_stays_inspectable_only() {
+    let limits = journal().limits();
+    let target = digest(b"metered-target");
+    let mut journal = OperationCheckpoint::new_metered(identity(), limits, 100, target.clone()).unwrap();
+    let mut store = Store::default();
+    journal
+        .persist(
+            JournalEvent::StageReservation {
+                turn: 0,
+                stage: "initialize".into(),
+                fuel: 100,
+            },
+            CheckpointUsage {
+                reserved_fuel: 100,
+                ..Default::default()
+            },
+            &mut store,
+        )
+        .unwrap();
+    assert!(OperationCheckpoint::decode_metered_with_limits(
+        &store.document,
+        &identity(),
+        limits,
+        100,
+        &target,
+    )
+    .is_ok());
+    assert!(OperationCheckpoint::decode_metered_with_limits(
+        &store.document,
+        &identity(),
+        limits,
+        100,
+        &digest(b"different-target"),
+    )
+    .is_err());
+
+    let mut v1: Value = serde_json::from_str(&store.document).unwrap();
+    v1["schema"] = json!(METERED_CHECKPOINT_SCHEMA_V1);
+    v1["binding"].as_object_mut().unwrap().remove("target_execution_binding");
+    let v1 = remint(&mut v1);
+    assert!(OperationCheckpoint::decode(&v1, &identity()).is_ok());
+    assert!(OperationCheckpoint::decode_metered_with_limits(
+        &v1,
+        &identity(),
+        limits,
+        100,
+        &target,
+    )
+    .is_err());
+}

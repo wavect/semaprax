@@ -334,9 +334,11 @@ fn invalid_semantic_limits_refuse_and_precancellation_has_no_observations() {
         let errors = run(&mut source, &mut handler)
             .err()
             .expect("invalid limit rejected");
-        assert!(errors
-            .iter()
-            .any(|e| e.message.contains("semantic_work.fuel_limit")));
+        assert!(
+            errors
+                .iter()
+                .any(|e| e.message.contains("semantic_work.fuel_limit"))
+        );
         assert_eq!(source.calls, 0);
         assert!(handler.wires.is_empty());
         cancellation.cancel();
@@ -414,9 +416,11 @@ fn semantic_limit_changes_grant_identity_and_refuses_unmetered_profiles() {
             )
             .err()
             .expect("function values must not run unmetered");
-        assert!(errors
-            .iter()
-            .any(|e| e.message.contains("semantic_work.profile.function_value")));
+        assert!(
+            errors
+                .iter()
+                .any(|e| e.message.contains("semantic_work.profile.function_value"))
+        );
         assert_eq!(source.calls, 0);
         assert!(handler.wires.is_empty());
     }

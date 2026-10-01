@@ -424,10 +424,27 @@ class TupleTransportTests(unittest.TestCase):
                 compiler_source.write_text("#!/usr/bin/python3\nprint('compiler stub')\n")
                 compiler_source.chmod(0o700)
                 compiler_before = compiler_source.read_bytes()
+                protocol = {
+                    "schema": workflow.PROTOCOL_SCHEMA,
+                    "id": "stub-transport-v1",
+                    "manifest_sha256": FROZEN_MANIFEST_SHA256,
+                    "runner_revision": "a" * 40,
+                    "budget_policy": "test-budget", "egress_policy": "test-egress",
+                    "models": [
+                        {"id": "stub-model", "provider": "opencode", "model": "muse-spark-1.3-contributor-free",
+                         "revision": "1.3", "configured_model": pilot.MODEL,
+                         "tokenizer": "test-tokenizer", "configuration": "test-config"},
+                        {"id": "other-model", "provider": "other", "model": "other-model",
+                         "revision": "1", "configured_model": "other/other-model",
+                         "tokenizer": "test-tokenizer", "configuration": "test-config"},
+                    ],
+                }
+                protocol_path = root / "protocol.json"
+                protocol_path.write_bytes(json.dumps(protocol, sort_keys=True, separators=(",", ":")).encode() + b"\n")
                 records = {
                     lane: pilot.run_tuple(
                         "signature-migration-v1", lane, 1, stub,
-                        str(compiler_source), evidence_parent / lane, 10,
+                        str(compiler_source), evidence_parent / lane, 10, protocol_path, "stub-model",
                     )
                     for lane in ("semaprax-source-first", "semaprax-graph-operational")
                 }
@@ -1241,6 +1258,82 @@ class RunTupleEligibilityCliTests(unittest.TestCase):
                 evidence = Path(temp); (evidence / "candidate.diff").write_text("diff\n")
                 prepare_review_packet(evidence, evidence / "review-packet.json")
             self.assertFalse(opened.called)
+
+
+class TwoModelProtocolTests(unittest.TestCase):
+    def _protocol(self):
+        return {
+            "schema": workflow.PROTOCOL_SCHEMA,
+            "id": "authorized-pilot-v1",
+            "manifest_sha256": FROZEN_MANIFEST_SHA256,
+            "runner_revision": "a" * 40,
+            "budget_policy": "approved-capped-budget-v1",
+            "egress_policy": "approved-egress-v1",
+            "models": [
+                {
+                    "id": "model-a", "provider": "provider-a", "model": "model-a",
+                    "revision": "2026-10-01", "configured_model": "provider-a/model-a",
+                    "tokenizer": "tokenizer-a@1", "configuration": "temperature-0",
+                },
+                {
+                    "id": "model-b", "provider": "provider-b", "model": "model-b",
+                    "revision": "2026-10-02", "configured_model": "provider-b/model-b",
+                    "tokenizer": "tokenizer-b@1", "configuration": "temperature-0",
+                },
+            ],
+        }
+
+    def _write_protocol(self, directory, protocol=None):
+        path = Path(directory) / "protocol.json"
+        path.write_bytes(json.dumps(protocol or self._protocol(), sort_keys=True, separators=(",", ":")).encode() + b"\n")
+        return path
+
+    def test_protocol_rejects_mutable_model_revision(self):
+        with tempfile.TemporaryDirectory(prefix="spx-protocol-") as temp:
+            protocol = self._protocol()
+            protocol["models"][0]["revision"] = "latest"
+            with self.assertRaisesRegex(ValueError, "mutable"):
+                workflow.load_frozen_protocol(self._write_protocol(temp, protocol))
+
+    def test_protocol_audit_requires_all_thirty_six_model_tuples(self):
+        with tempfile.TemporaryDirectory(prefix="spx-protocol-audit-") as temp:
+            root = Path(temp) / "evidence"; root.mkdir()
+            protocol_path = self._write_protocol(temp)
+            protocol, protocol_digest = workflow.load_frozen_protocol(protocol_path)
+            tasks = sorted(FROZEN_TASK_SHA256)
+            lanes = ("semaprax-graph-operational", "semaprax-source-first")
+            for model in protocol["models"]:
+                for task in tasks:
+                    for lane in lanes:
+                        for trial in range(1, 4):
+                            evidence = root / f"{model['id']}-{task}-{lane}-{trial}"
+                            evidence.mkdir()
+                            record = {
+                                "task": task, "lane": lane, "trial": trial,
+                                "manifest_sha256": FROZEN_MANIFEST_SHA256,
+                                "task_sha256": FROZEN_TASK_SHA256[task],
+                                "fixture_inventory_sha256": FROZEN_FIXTURE_SHA256[task],
+                                "status": "eligible", "outcome": "completed",
+                                "protocol_sha256": protocol_digest, "model_identity": model,
+                            }
+                            (evidence / "record.json").write_text(json.dumps(record, sort_keys=True))
+            audit = audit_cohort(root, ROOT / "benchmarks/agent-task-comparison-v1/manifest.json", protocol_path)
+            self.assertEqual(audit["expected_tuples"], 36)
+            self.assertTrue(audit["complete"])
+            self.assertTrue(audit["eligible_for_scoring"])
+            self.assertFalse(audit["historical_evidence"])
+            (root / "model-b-owned-signature-migration-v1-semaprax-source-first-3" / "record.json").unlink()
+            incomplete = audit_cohort(root, ROOT / "benchmarks/agent-task-comparison-v1/manifest.json", protocol_path)
+            self.assertFalse(incomplete["complete"])
+            self.assertFalse(incomplete["eligible_for_scoring"])
+
+    def test_protocol_free_audit_is_explicitly_historical_and_ineligible(self):
+        with tempfile.TemporaryDirectory(prefix="spx-historical-audit-") as temp:
+            root = Path(temp) / "evidence"; root.mkdir()
+            audit = audit_cohort(root, ROOT / "benchmarks/agent-task-comparison-v1/manifest.json")
+            self.assertTrue(audit["historical_evidence"])
+            self.assertFalse(audit["eligible_for_scoring"])
+            self.assertEqual(audit["claims"]["historical_evidence"], "explicitly_ineligible")
 
 
 if __name__ == "__main__":

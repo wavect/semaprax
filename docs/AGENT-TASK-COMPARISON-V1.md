@@ -169,6 +169,34 @@ separate diagnostics; only archived external MCP frames supply tool traffic
 measurements. The transport uses OpenCode's documented
 [local MCP configuration](https://opencode.ai/docs/mcp-servers/).
 
+### Frozen two-model execution protocol and cohort accounting
+
+An authorized future pilot supplies a canonical
+`semaprax.opencode-agent-task-pilot-protocol.v1` JSON file to every
+`opencode-agent-task-pilot.py run` invocation, together with one selected
+protocol model ID. The protocol has exactly two identities, each with a
+provider, model, immutable revision, OpenCode `provider/model` selector,
+tokenizer and configuration identity. It also binds the canonical manifest,
+runner revision, and non-secret budget and egress policy identifiers. It
+contains no credential value, credential environment-variable name, endpoint,
+or authorization claim.
+
+Each new trial record carries the exact protocol SHA-256 and complete selected
+model identity. `audit-cohort --protocol <path>` therefore requires the full
+`2 models × 3 tasks × 2 available lanes × 3 repetitions = 36` tuple inventory
+per host. It retains completed, failed and aborted rows; an inventory can only
+be `eligible_for_scoring` when every retained record is eligible. The audit
+performs no execution, provider call, score calculation, or second-host
+inference.
+
+`audit-cohort` without `--protocol` remains available only for the historical
+September record layout. Its output labels that input `historical_evidence:
+true` and `eligible_for_scoring: false`; it cannot turn the old 18-tuple
+cohort into a current two-model result. A later two-host verifier must bind
+two independently executed protocol cohorts and preserve the operator's host
+custody evidence. A different hostname, copied record directory, or replayed
+artifact is not evidence of independent physical or virtual host execution.
+
 ### Instrumented eligibility: the four previously missing measurements
 
 Every one of the 18 real-model tuples in the

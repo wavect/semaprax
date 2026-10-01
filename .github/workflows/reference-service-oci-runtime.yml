@@ -88,6 +88,9 @@ jobs:
           CARGO_NET_OFFLINE: "true"
           CARGO_TARGET_DIR: ${{ runner.temp }}/reference-service-oci-target
           CC_x86_64_unknown_linux_musl: musl-gcc
+          # musl can otherwise emit a static PIE (ET_DYN).  The local OCI
+          # packager intentionally admits only a static ET_EXEC binary.
+          RUSTFLAGS: -C relocation-model=static
         run: |
           set -euo pipefail
           cargo build --locked --release --target "$SERVICE_TARGET" \
@@ -97,6 +100,11 @@ jobs:
           install -D -m 755 "$built" "$artifact"
           test "$(stat -c '%h' "$artifact")" = 1
           command -v readelf
+          if ! readelf -h "$artifact" | grep -Eq '^[[:space:]]*Type:[[:space:]]+EXEC[[:space:]]+'; then
+            echo 'refusing a Linux service executable that is not static ET_EXEC' >&2
+            readelf -h "$artifact" >&2
+            exit 1
+          fi
           if readelf -l "$artifact" | grep -q 'INTERP'; then
             echo 'refusing a Linux service executable with a dynamic interpreter' >&2
             exit 1

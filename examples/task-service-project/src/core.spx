@@ -20,6 +20,7 @@ use function @id("std.log.redact.event_is_safe") from std.log.redact as log_even
 use function @id("std.log.redact.field_count_within_budget") from std.log.redact as log_field_count_within_budget;
 use function @id("std.metrics.counter-increment") from std.metrics as counter_increment;
 use function @id("std.metrics.try-admit-labeled-series-guarded") from std.metrics as try_admit_labeled_series_guarded;
+use function @id("std.metrics.label-admitted-guarded") from std.metrics as metric_label_admitted_guarded;
 use function @id("std.tracing.trace_context_fields_admitted_guarded") from std.tracing as trace_context_fields_admitted_guarded;
 use function @id("std.webhook.attempt_admitted") from std.webhook as webhook_attempt_admitted;
 use function @id("std.webhook.delivery_admitted_guarded") from std.webhook as webhook_delivery_admitted_guarded;
@@ -163,7 +164,15 @@ fn job_status_is_complete(state: usize) -> bool
 @id("task_service.core.structured_log_policy_is_admitted")
 fn structured_log_policy_is_admitted(level: u8, threshold: u8, field_count: usize, carries_password: bool, carries_api_key: bool, carries_bearer_token: bool, carries_session_token: bool, carries_webhook_signing_secret: bool, carries_smtp_credential: bool) -> bool
 {
-    level <= 5u8 && threshold <= 5u8 && log_level_enabled(level, threshold) && log_field_count_within_budget(field_count) && log_event_is_safe(carries_password, carries_api_key, carries_bearer_token, carries_session_token, carries_webhook_signing_secret, carries_smtp_credential)
+    level <= 5u8 && threshold <= 5u8 && level >= threshold && log_field_count_within_budget(field_count) && log_event_is_safe(carries_password, carries_api_key, carries_bearer_token, carries_session_token, carries_webhook_signing_secret, carries_smtp_credential)
+}
+
+// The public invocation seam admits eight parameters. This adapter keeps the
+// six secret classifications explicit without widening that frozen boundary.
+@id("task_service.core.completed_job_log_is_admitted")
+fn completed_job_log_is_admitted(level: u8, threshold: u8, field_count: usize, secret_flags: u8) -> bool
+{
+    if secret_flags >= 64u8 { false } else { let carries_smtp = secret_flags >= 32u8; let after_smtp = if carries_smtp { secret_flags - 32u8 } else { secret_flags }; let carries_webhook = after_smtp >= 16u8; let after_webhook = if carries_webhook { after_smtp - 16u8 } else { after_smtp }; let carries_session = after_webhook >= 8u8; let after_session = if carries_session { after_webhook - 8u8 } else { after_webhook }; let carries_bearer = after_session >= 4u8; let after_bearer = if carries_bearer { after_session - 4u8 } else { after_session }; let carries_api = after_bearer >= 2u8; let after_api = if carries_api { after_bearer - 2u8 } else { after_bearer }; let carries_password = after_api != 0u8; structured_log_policy_is_admitted(level, threshold, field_count, carries_password, carries_api, carries_bearer, carries_session, carries_webhook, carries_smtp) }
 }
 
 @id("task_service.core.trace_context_is_admitted")
@@ -172,10 +181,12 @@ fn trace_context_is_admitted(trace_id: borrow Slice<u8>, parent_id: borrow Slice
     trace_context_fields_admitted_guarded(trace_id, parent_id, trace_flags, carries_secret, false, false, false, false, false)
 }
 
+// At counter 0 plus delta 1 and series count 0, the numeric checks select 1.
+// The remaining admission is exactly the guarded label predicate.
 @id("task_service.core.completed_job_metric_is_admitted")
 fn completed_job_metric_is_admitted(label: borrow Slice<u8>, value: borrow Slice<u8>, carries_secret: bool) -> bool
 {
-    counter_increment(0, 1) == 1 && try_admit_labeled_series_guarded(0, label, value, carries_secret, false, false, false, false, false) == 1
+    metric_label_admitted_guarded(label, value, carries_secret, false, false, false, false, false)
 }
 
 @id("task_service.core.completed_job_export_is_admitted")
@@ -220,5 +231,5 @@ fn run_scenario() -> i64
     let export_target = [116u8, 97u8, 115u8, 107u8, 45u8, 115u8, 101u8, 114u8, 118u8, 105u8, 99u8, 101u8, 45u8, 111u8, 98u8, 115u8, 101u8, 114u8, 118u8, 97u8, 98u8, 105u8, 108u8, 105u8, 116u8, 121u8];
     let webhook_signature = [97u8; 64];
     let delivery_descriptor = [116u8, 97u8, 115u8, 107u8, 45u8, 49u8];
-    if registration_admitted(array_as_slice(username), 0usize, 10usize, 65536usize, 3usize, 4usize) { if session_is_usable(active, login_tick, idle_deadline, absolute_deadline) { if identifier_is_valid(array_as_slice(table_name)) { if platform_decisions_admit() { if task_id == 1 { if task_owner_authorized(owner_account_id, owner_account_id, session_is_usable(state_at_update, update_tick, idle_deadline, absolute_deadline)) { if in_progress_status == 1usize { if enqueue_is_legal(0usize, update_tick, update_tick) { if enqueue_outcome_code == 0usize { if job_status_is_complete(finished_job_state) { if !task_owner_authorized(owner_account_id, intruder_account_id, true) { if !session_is_usable(logged_out, logout_tick, idle_deadline, absolute_deadline) { if method_is_rejected(array_as_slice(bad_method)) { if !identifier_is_valid(array_as_slice(bad_identifier)) { if structured_log_policy_is_admitted(2u8, 2u8, 4usize, false, false, false, false, false, false) { if trace_context_is_admitted(array_as_slice(trace_id), array_as_slice(parent_id), array_as_slice(trace_flags), false) { if completed_job_metric_is_admitted(array_as_slice(metric_label), array_as_slice(metric_value), false) { if completed_job_export_is_admitted(0, 1usize, 32usize, array_as_slice(export_target)) { if webhook_delivery_policy_is_admitted(array_as_slice(webhook_signature), 128usize, 1000, 1100, false, array_as_slice(delivery_descriptor), array_as_slice(delivery_descriptor), 1, false) { 0 } else { 1 } } else { 1 } } else { 1 } } else { 1 } } else { 1 } } else { 1 } } else { 1 } } else { 1 } } else { 1 } } else { 1 } } else { 1 } } else { 1 } } else { 1 } } else { 1 } } else { 1 } } else { 1 } } else { 1 } } else { 1 } } else { 1 }
+    if registration_admitted(array_as_slice(username), 0usize, 10usize, 65536usize, 3usize, 4usize) { if session_is_usable(active, login_tick, idle_deadline, absolute_deadline) { if identifier_is_valid(array_as_slice(table_name)) { if platform_decisions_admit() { if task_id == 1 { if task_owner_authorized(owner_account_id, owner_account_id, session_is_usable(state_at_update, update_tick, idle_deadline, absolute_deadline)) { if in_progress_status == 1usize { if enqueue_is_legal(0usize, update_tick, update_tick) { if enqueue_outcome_code == 0usize { if job_status_is_complete(finished_job_state) { if !task_owner_authorized(owner_account_id, intruder_account_id, true) { if !session_is_usable(logged_out, logout_tick, idle_deadline, absolute_deadline) { if method_is_rejected(array_as_slice(bad_method)) { if !identifier_is_valid(array_as_slice(bad_identifier)) { if completed_job_log_is_admitted(2u8, 2u8, 4usize, 0u8) { if trace_context_is_admitted(array_as_slice(trace_id), array_as_slice(parent_id), array_as_slice(trace_flags), false) { if completed_job_metric_is_admitted(array_as_slice(metric_label), array_as_slice(metric_value), false) { if completed_job_export_is_admitted(0, 1usize, 32usize, array_as_slice(export_target)) { if webhook_delivery_policy_is_admitted(array_as_slice(webhook_signature), 128usize, 1000, 1100, false, array_as_slice(delivery_descriptor), array_as_slice(delivery_descriptor), 1, false) { 0 } else { 1 } } else { 1 } } else { 1 } } else { 1 } } else { 1 } } else { 1 } } else { 1 } } else { 1 } } else { 1 } } else { 1 } } else { 1 } } else { 1 } } else { 1 } } else { 1 } } else { 1 } } else { 1 } } else { 1 } } else { 1 } } else { 1 }
 }

@@ -29,6 +29,9 @@ const PROVIDER_CHILD_OUTCOME: &str = "SEMAPRAX_REFERENCE_SERVICE_PROVIDER_CHILD_
 const PROVIDER_SUCCESS_TEST: &str = "reference_service_acceptance::local_provider::completion_delivers_to_local_tls_provider_and_restart_does_not_duplicate";
 const PROVIDER_REFUSAL_TEST: &str = "reference_service_acceptance::local_provider::completion_provider_refusal_persists_across_restart_without_duplicate";
 const PROVIDER_UNCERTAIN_TEST: &str = "reference_service_acceptance::local_provider::completion_provider_close_after_request_is_uncertain_across_restart_without_duplicate";
+const PROVIDER_OTLP_SUCCESS_TEST: &str = "reference_service_acceptance::local_provider::otlp_logs_completion_delivers_to_local_tls_provider_and_restart_does_not_duplicate";
+const PROVIDER_OTLP_PARTIAL_TEST: &str = "reference_service_acceptance::local_provider::otlp_logs_partial_response_persists_failure_across_restart_without_duplicate";
+const PROVIDER_OTLP_MALFORMED_TEST: &str = "reference_service_acceptance::local_provider::otlp_logs_malformed_response_persists_failure_across_restart_without_duplicate";
 
 /// A separate real TLS provider process used by the outbound acceptance
 /// journey. It records each received HTTP request in a file outside the
@@ -47,6 +50,8 @@ enum ProviderOutcome {
     Accepted,
     Rejected,
     ClosedAfterRequest,
+    Partial,
+    Malformed,
 }
 
 impl ProviderOutcome {
@@ -55,6 +60,8 @@ impl ProviderOutcome {
             Self::Accepted => "accepted-v1",
             Self::Rejected => "rejected-v1",
             Self::ClosedAfterRequest => "closed-after-request-v1",
+            Self::Partial => "partial-v1",
+            Self::Malformed => "malformed-v1",
         }
     }
 
@@ -63,6 +70,8 @@ impl ProviderOutcome {
             "accepted-v1" => Self::Accepted,
             "rejected-v1" => Self::Rejected,
             "closed-after-request-v1" => Self::ClosedAfterRequest,
+            "partial-v1" => Self::Partial,
+            "malformed-v1" => Self::Malformed,
             _ => panic!("provider child outcome is unknown"),
         }
     }
@@ -72,6 +81,8 @@ impl ProviderOutcome {
             Self::Accepted => "accepted",
             Self::Rejected => "rejected",
             Self::ClosedAfterRequest => "closed-after-request",
+            Self::Partial => "partial",
+            Self::Malformed => "malformed",
         }
     }
 
@@ -84,8 +95,30 @@ impl ProviderOutcome {
                 assert_eq!(digest.len(), 64, "SHA-256 digest has 64 hex digits");
                 assert!(digest.bytes().all(|byte| byte.is_ascii_hexdigit()));
             }
-            Self::Rejected => assert_eq!(actual, "failed"),
+            Self::Rejected | Self::Partial | Self::Malformed => assert_eq!(actual, "failed"),
             Self::ClosedAfterRequest => assert_eq!(actual, "uncertain"),
+        }
+    }
+
+    fn response(self) -> PendingResponse {
+        match self {
+            Self::Accepted => PendingResponse {
+                status: 200,
+                body: "{}".to_owned(),
+            },
+            Self::Rejected => PendingResponse {
+                status: 409,
+                body: "{}".to_owned(),
+            },
+            Self::Partial => PendingResponse {
+                status: 200,
+                body: r#"{"partialSuccess":{"rejectedLogRecords":"1"}}"#.to_owned(),
+            },
+            Self::Malformed => PendingResponse {
+                status: 200,
+                body: "{".to_owned(),
+            },
+            Self::ClosedAfterRequest => unreachable!("closed provider sends no response"),
         }
     }
 }
@@ -226,13 +259,11 @@ fn run_provider_child() {
     std::io::stdout().flush().expect("flush provider readiness");
 
     let mut count = 0usize;
-    let response_status = match outcome {
-        ProviderOutcome::Accepted => 200,
-        ProviderOutcome::Rejected => 409,
-        ProviderOutcome::ClosedAfterRequest => 0,
-    };
     match outcome {
-        ProviderOutcome::Accepted | ProviderOutcome::Rejected => {
+        ProviderOutcome::Accepted
+        | ProviderOutcome::Rejected
+        | ProviderOutcome::Partial
+        | ProviderOutcome::Malformed => {
             let mut handler = |exchange: &serve::HttpExchange| {
                 count += 1;
                 persist_provider_receipt(
@@ -244,10 +275,7 @@ fn run_provider_child() {
                     &exchange.headers,
                     &exchange.body,
                 );
-                PendingResponse {
-                    status: response_status,
-                    body: "{}".to_owned(),
-                }
+                outcome.response()
             };
             while !done.exists() {
                 serve::serve_one_tls(&mut provider, listener, &mut handler);
@@ -380,6 +408,8 @@ fn completion_delivers_to_local_tls_provider_and_restart_does_not_duplicate() {
         PROVIDER_SUCCESS_TEST,
         "real-provider-restart",
         ProviderOutcome::Accepted,
+        "semaprax-json-events",
+        "/v1/events",
     );
 }
 
@@ -393,6 +423,8 @@ fn completion_provider_refusal_persists_across_restart_without_duplicate() {
         PROVIDER_REFUSAL_TEST,
         "real-provider-refusal",
         ProviderOutcome::Rejected,
+        "semaprax-json-events",
+        "/v1/events",
     );
 }
 
@@ -406,10 +438,63 @@ fn completion_provider_close_after_request_is_uncertain_across_restart_without_d
         PROVIDER_UNCERTAIN_TEST,
         "real-provider-uncertain",
         ProviderOutcome::ClosedAfterRequest,
+        "semaprax-json-events",
+        "/v1/events",
     );
 }
 
-fn completion_provider_case(test_name: &str, label: &str, outcome: ProviderOutcome) {
+#[test]
+fn otlp_logs_completion_delivers_to_local_tls_provider_and_restart_does_not_duplicate() {
+    if std::env::var_os(PROVIDER_CHILD_MODE).is_some() {
+        run_provider_child();
+        return;
+    }
+    completion_provider_case(
+        PROVIDER_OTLP_SUCCESS_TEST,
+        "otlp-provider-restart",
+        ProviderOutcome::Accepted,
+        "otlp-http-json",
+        "/v1/logs",
+    );
+}
+
+#[test]
+fn otlp_logs_partial_response_persists_failure_across_restart_without_duplicate() {
+    if std::env::var_os(PROVIDER_CHILD_MODE).is_some() {
+        run_provider_child();
+        return;
+    }
+    completion_provider_case(
+        PROVIDER_OTLP_PARTIAL_TEST,
+        "otlp-provider-partial",
+        ProviderOutcome::Partial,
+        "otlp-http-json",
+        "/v1/logs",
+    );
+}
+
+#[test]
+fn otlp_logs_malformed_response_persists_failure_across_restart_without_duplicate() {
+    if std::env::var_os(PROVIDER_CHILD_MODE).is_some() {
+        run_provider_child();
+        return;
+    }
+    completion_provider_case(
+        PROVIDER_OTLP_MALFORMED_TEST,
+        "otlp-provider-malformed",
+        ProviderOutcome::Malformed,
+        "otlp-http-json",
+        "/v1/logs",
+    );
+}
+
+fn completion_provider_case(
+    test_name: &str,
+    label: &str,
+    outcome: ProviderOutcome,
+    telemetry_adapter: &str,
+    expected_target: &str,
+) {
     if loopback_denied() {
         eprintln!("skipping: sandbox denies loopback bind");
         return;
@@ -417,7 +502,7 @@ fn completion_provider_case(test_name: &str, label: &str, outcome: ProviderOutco
     let workdir = Workdir::create(label);
     let provider = ProviderChild::spawn(&workdir, test_name, outcome);
     let origin = format!("https://localhost:{}", provider.port);
-    workdir.write_inputs_with_telemetry_origin(&origin);
+    workdir.write_inputs_with_telemetry(&origin, telemetry_adapter);
     workdir.write_telemetry_root_material();
 
     let server = Server::spawn(&workdir, TELEMETRY_ROOT_ARGS);
@@ -481,14 +566,21 @@ fn completion_provider_case(test_name: &str, label: &str, outcome: ProviderOutco
         "{receipt}"
     );
     assert!(receipt.contains("method=POST\n"), "{receipt}");
-    assert!(receipt.contains("target=/v1/events\n"), "{receipt}");
+    assert!(
+        receipt.contains(&format!("target={expected_target}\n")),
+        "{receipt}"
+    );
     assert!(
         receipt.contains("idempotency-key=completion\n"),
         "{receipt}"
     );
-    assert!(
-        receipt.contains(r#""event":"job.completed""#),
-        "{receipt}"
-    );
-    assert!(receipt.contains(r#""job_id":1"#), "{receipt}");
+    if expected_target == "/v1/events" {
+        assert!(receipt.contains(r#""event":"job.completed""#), "{receipt}");
+        assert!(receipt.contains(r#""job_id":1"#), "{receipt}");
+    } else {
+        assert!(receipt.contains(r#""resourceLogs""#), "{receipt}");
+        assert!(receipt.contains(r#""job.completed""#), "{receipt}");
+        assert!(receipt.contains(r#""semaprax.job.id""#), "{receipt}");
+        assert!(!receipt.contains("signature"), "{receipt}");
+    }
 }

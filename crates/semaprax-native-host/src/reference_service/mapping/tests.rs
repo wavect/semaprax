@@ -6,6 +6,8 @@ mod create_policy;
 mod delete_policy;
 #[path = "tests/enqueue_policy.rs"]
 mod enqueue_policy;
+#[path = "tests/log_policy.rs"]
+mod log_policy;
 #[path = "tests/session_policy.rs"]
 mod session_policy;
 #[path = "tests/update_policy.rs"]

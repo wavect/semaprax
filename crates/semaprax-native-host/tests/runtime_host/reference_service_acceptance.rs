@@ -111,7 +111,13 @@ impl Workdir {
     }
 
     fn write_inputs_with_telemetry_origin(&self, telemetry_origin: &str) {
-        let config = HOST_CONFIG.replace("https://telemetry.invalid:9", telemetry_origin);
+        self.write_inputs_with_telemetry(telemetry_origin, "semaprax-json-events");
+    }
+
+    fn write_inputs_with_telemetry(&self, telemetry_origin: &str, telemetry_adapter: &str) {
+        let config = HOST_CONFIG
+            .replace("https://telemetry.invalid:9", telemetry_origin)
+            .replace("semaprax-json-events", telemetry_adapter);
         std::fs::write(self.root.join("service.config.json"), config).unwrap();
         std::fs::write(self.root.join("secrets").join("auth.pepper"), [1_u8; 32]).unwrap();
         std::fs::write(self.root.join("secrets").join("auth.session"), [2_u8; 32]).unwrap();

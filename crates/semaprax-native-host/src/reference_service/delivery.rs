@@ -56,6 +56,14 @@ pub const OTLP_LOGS_PATH: &str = "/v1/logs";
 /// route; it cannot supply another schema or path.
 const EVENT_SCHEMA: &str = "semaprax.json-event.v1";
 const WEBHOOK_EVENT: &str = "job.completed";
+// Shared by pre-serialization policy facts and the actual OTLP encoder.
+const OTLP_LOG_LEVEL: u8 = 2;
+const OTLP_RESOURCE_ATTRIBUTE_KEYS: [&str; 1] = ["service.name"];
+const OTLP_LOG_ATTRIBUTE_KEYS: [&str; 3] = [
+    "semaprax.job.description",
+    "semaprax.job.id",
+    "semaprax.job.owner",
+];
 const WEBHOOK_CONTENT_TYPE: &str = "application/json";
 const EVENT_SCHEMA_HEADER: &str = "x-semaprax-event-schema";
 const DELIVERY_CAPACITY: usize = 64;
@@ -413,6 +421,22 @@ pub fn deliver_completion_telemetry(
     })
 }
 
+/// Return the source log level and total named attributes of the fixed OTLP
+/// completion, before allocating its payload. Count both resource and record
+/// attributes; body, severity and scope are protocol metadata. JSON events do
+/// not emit an OTLP log and have no structured-log policy facts.
+pub(super) fn completion_log_policy_facts(
+    telemetry_adapter: ServiceTelemetryAdapter,
+) -> Option<(u8, u64)> {
+    match telemetry_adapter {
+        ServiceTelemetryAdapter::SemapraxJsonEvents => None,
+        ServiceTelemetryAdapter::OtlpHttpJson => Some((
+            OTLP_LOG_LEVEL,
+            (OTLP_RESOURCE_ATTRIBUTE_KEYS.len() + OTLP_LOG_ATTRIBUTE_KEYS.len()) as u64,
+        )),
+    }
+}
+
 /// Return the exact canonical byte length of the completion envelope that
 /// [`deliver_completion_telemetry`] will submit. The checked export policy sees
 /// this fact before a host adapter is prepared; raw event bytes remain local.
@@ -489,7 +513,7 @@ fn otlp_log_record_value(job_id: i64, owner: i64, desc: &str) -> JsonValue {
                 JsonValue::Object(vec![(
                     "attributes".to_owned(),
                     JsonValue::Array(vec![attribute(
-                        "service.name",
+                        OTLP_RESOURCE_ATTRIBUTE_KEYS[0],
                         string_value("semaprax-reference-service".to_owned()),
                     )]),
                 )]),
@@ -511,18 +535,18 @@ fn otlp_log_record_value(job_id: i64, owner: i64, desc: &str) -> JsonValue {
                                 "attributes".to_owned(),
                                 JsonValue::Array(vec![
                                     attribute(
-                                        "semaprax.job.description",
+                                        OTLP_LOG_ATTRIBUTE_KEYS[0],
                                         string_value(desc.to_owned()),
                                     ),
                                     attribute(
-                                        "semaprax.job.id",
+                                        OTLP_LOG_ATTRIBUTE_KEYS[1],
                                         JsonValue::Object(vec![(
                                             "intValue".to_owned(),
                                             JsonValue::Str(job_id.to_string()),
                                         )]),
                                     ),
                                     attribute(
-                                        "semaprax.job.owner",
+                                        OTLP_LOG_ATTRIBUTE_KEYS[2],
                                         JsonValue::Object(vec![(
                                             "intValue".to_owned(),
                                             JsonValue::Str(owner.to_string()),
@@ -531,7 +555,10 @@ fn otlp_log_record_value(job_id: i64, owner: i64, desc: &str) -> JsonValue {
                                 ]),
                             ),
                             ("body".to_owned(), string_value("job.completed".to_owned())),
-                            ("severityNumber".to_owned(), JsonValue::Int(9)),
+                            (
+                                "severityNumber".to_owned(),
+                                JsonValue::Int(i64::from(OTLP_LOG_LEVEL) * 4 + 1),
+                            ),
                             ("severityText".to_owned(), JsonValue::Str("INFO".to_owned())),
                         ])]),
                     ),
@@ -756,6 +783,25 @@ mod tests {
             .get("attributes")
             .and_then(JsonValue::as_array)
             .unwrap();
+        let resource_attributes = resource_logs[0]
+            .get("resource")
+            .and_then(|resource| resource.get("attributes"))
+            .and_then(JsonValue::as_array)
+            .unwrap();
+        assert_eq!(
+            completion_log_policy_facts(ServiceTelemetryAdapter::OtlpHttpJson),
+            Some((2, (attributes.len() + resource_attributes.len()) as u64))
+        );
+        assert_eq!(attributes.len() + resource_attributes.len(), 4);
+        assert_eq!(
+            record.get("severityText").and_then(JsonValue::as_str),
+            Some("INFO")
+        );
+        assert_eq!(
+            completion_log_policy_facts(ServiceTelemetryAdapter::SemapraxJsonEvents),
+            None
+        );
+
         assert!(attributes.iter().any(|attribute| {
             attribute.get("key").and_then(JsonValue::as_str) == Some("semaprax.job.id")
                 && attribute

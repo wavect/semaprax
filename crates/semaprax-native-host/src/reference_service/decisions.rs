@@ -16,11 +16,11 @@
 //! `method_is_rejected`, `task_owner_authorized`, and the three session
 //! predicates/transitions.
 //! `registration_admitted`, `enqueue_is_legal`, `enqueue_outcome`, the three
-//! task transaction decisions, `mark_job_succeeded`, and
-//! `completed_job_metric_is_admitted` and `completed_job_export_is_admitted`
-//! are invoked through the checked
+//! task transaction decisions, `mark_job_succeeded`,
+//! `completed_job_log_is_admitted`, `completed_job_metric_is_admitted`,
+//! and `completed_job_export_is_admitted` are invoked through the checked
 //! public-API seam before their corresponding host work. The remaining
-//! scaffold decisions (migration, log/trace, and webhook policies)
+//! scaffold decisions (migration, trace, and webhook policies)
 //! retain fixture-mode coverage until a host route needs them.
 //!
 //! [`ProjectRevision::evaluate_service_decision_v1`]: semaprax::project::ProjectRevision::evaluate_service_decision_v1
@@ -69,6 +69,7 @@ pub struct DecisionIdentities {
     delete_is_committed: String,
     mark_job_succeeded: String,
     job_status_is_complete: String,
+    completed_job_log_is_admitted: String,
     completed_job_metric_is_admitted: String,
     completed_job_export_is_admitted: String,
 }
@@ -93,6 +94,7 @@ impl DecisionIdentities {
         let delete_is_committed = sole(program, "delete_is_committed")?;
         let mark_job_succeeded = sole(program, "mark_job_succeeded")?;
         let job_status_is_complete = sole(program, "job_status_is_complete")?;
+        let completed_job_log_is_admitted = sole(program, "completed_job_log_is_admitted")?;
         let completed_job_metric_is_admitted = sole(program, "completed_job_metric_is_admitted")?;
         let completed_job_export_is_admitted = sole(program, "completed_job_export_is_admitted")?;
         let prefix = prefix_of(&request_is_admitted).ok_or(DecisionRefusal::Unresolved)?;
@@ -111,6 +113,7 @@ impl DecisionIdentities {
             &delete_is_committed,
             &mark_job_succeeded,
             &job_status_is_complete,
+            &completed_job_log_is_admitted,
             &completed_job_metric_is_admitted,
             &completed_job_export_is_admitted,
         ] {
@@ -135,6 +138,7 @@ impl DecisionIdentities {
             delete_is_committed,
             mark_job_succeeded,
             job_status_is_complete,
+            completed_job_log_is_admitted,
             completed_job_metric_is_admitted,
             completed_job_export_is_admitted,
         })
@@ -184,6 +188,7 @@ fn prefix_of(identity: &str) -> Option<&str> {
         .or_else(|| identity.strip_suffix(".core.delete_is_committed"))
         .or_else(|| identity.strip_suffix(".core.mark_job_succeeded"))
         .or_else(|| identity.strip_suffix(".core.job_status_is_complete"))
+        .or_else(|| identity.strip_suffix(".core.completed_job_log_is_admitted"))
         .or_else(|| identity.strip_suffix(".core.completed_job_metric_is_admitted"))
         .or_else(|| identity.strip_suffix(".core.completed_job_export_is_admitted"))
 }
@@ -456,6 +461,28 @@ impl<'revision> DecisionEngine<'revision> {
         self.invoke_bool(
             &self.identities.job_status_is_complete,
             &[PublicApiArgument::Usize(state)],
+        )
+    }
+
+    /// Evaluate the checked structured-log policy before serializing an OTLP
+    /// completion. Bits 0..=5 identify password, API key, bearer token, session
+    /// token, webhook signing secret, and SMTP credential. The source adapter
+    /// rejects unknown bits and calls its nine-argument structured-log policy.
+    pub fn completed_job_log_is_admitted(
+        &self,
+        level: u8,
+        threshold: u8,
+        field_count: u64,
+        secret_flags: u8,
+    ) -> Result<bool, DecisionRefusal> {
+        self.invoke_bool(
+            &self.identities.completed_job_log_is_admitted,
+            &[
+                PublicApiArgument::U8(level),
+                PublicApiArgument::U8(threshold),
+                PublicApiArgument::Usize(field_count),
+                PublicApiArgument::U8(secret_flags),
+            ],
         )
     }
 

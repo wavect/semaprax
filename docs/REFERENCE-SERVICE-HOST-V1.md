@@ -75,9 +75,25 @@ host's `Completed` representation; another source-selected status returns
 `403 completion_not_admitted`, and evaluator failure returns
 `500 decision_failed`. The route then invokes
 `completed_job_metric_is_admitted` over the fixed public `job_state=succeeded`
-metric facts before delivery. Source denial returns `403 metric_not_admitted`;
+metric facts before delivery. For its fixed counter `0 + 1` and initially empty
+series set, the source wrapper calls the equivalent contract-free
+`std.metrics.label-admitted-guarded` predicate. The counter and series-registration
+helpers retain their contracts and are exercised by a separate normal-project
+oracle; placing those helpers in the public decision closure would refuse every
+completion. Source denial returns `403 metric_not_admitted`;
 both decision refusals preserve the pending job and avoid an outbound attempt.
-The wrapper is contract-free and explicitly selects the
+For `otlp-http-json`, the route next invokes `structured_log_policy_is_admitted` through its
+four-scalar `completed_job_log_is_admitted` source adapter before serializing the completion payload. Its facts come from the OTLP encoder:
+source INFO level `2`, the host's INFO threshold `2`, and four named attributes
+(the resource's `service.name` plus the record's description, job ID and owner).
+The six credential-field flags are false because this fixed envelope includes
+none of those held credential fields; caller-supplied description bytes remain
+public job data under this profile's existing classification, not content-scanned
+secret detection. Source denial returns `403 log_not_admitted`; evaluator
+failure returns `500 decision_failed`. Both preserve the pending job, state
+snapshot and outbound inventory. The `semaprax-json-events` route does not
+emit this OTLP log and does not invoke its structured-log policy.
+The `mark_job_succeeded` wrapper is contract-free and explicitly selects the
 same successful status as `std.jobs.retry.next_state_after_outcome(0, …)`;
 the standard helper remains outside this public seam because its declared
 postcondition is not admitted there. The remaining scaffold decisions not
@@ -419,8 +435,7 @@ language, snapshot schema, adapter, or standard-library contract. The host still
 supports immediate Pending jobs only. The follow-on completion seam makes
 `mark_job_succeeded` contract-free while preserving its successful `4` result,
 then binds that result before durable delivery or the `Completed` snapshot
-mapping. Migration, structured log, trace, metric, and webhook policy seams
-remain as described above.
+mapping. Migration, trace and webhook policy seams remain as described above.
 
 The new `mapping::tests::enqueue_policy` fixture compares 15 state/due-boundary
 rows across actual `std.jobs` calls, the reference DecisionEngine and a freshly
@@ -444,4 +459,52 @@ at the same pre-delivery boundary.
 cargo test --locked -p semaprax-native-host --lib reference_service::mapping::tests::enqueue_policy -- --test-threads=1
 cargo test --locked -p semaprax-native-host --lib reference_service::mapping::tests::job_enqueue_is_idempotent_and_completion_settles_once -- --exact --test-threads=1
 cargo test --locked -p semaprax-native-host --lib reference_service::mapping::tests::completion_policy -- --test-threads=1
+```
+
+### Checked OTLP structured-log policy (#336)
+
+The source wrapper keeps the guarded `level >= threshold` comparison equivalent
+to `std.log.level-enabled`, whose precondition remains outside the frozen public
+invocation seam. The unchanged `std.log.redact` predicates still enforce the
+32-field budget and all six caller-classified secret flags. The four-scalar
+adapter decodes bits 0 through 5 for password, API key, bearer token, session
+token, webhook signing secret and SMTP credential; higher bits refuse before
+calling the policy. The existing eight-parameter public invocation limit stays
+unchanged, and the nine-argument policy is an internal source call. The reference core
+source also supplies the generated scaffold, so both projections carry the same
+wrapper.
+
+`mapping::tests::log_policy` adds an independent normal-project oracle calling
+contract-bearing `std.log.level-enabled` and the redaction predicates, compared
+with both reference and generated decision engines across level/threshold,
+field-budget and each secret-flag boundary. Unknown-bit cases additionally
+require refusal before an intentionally expensive policy can execute. An alternate checked source accepts
+only the actual INFO/four-attribute facts; another denies or exhausts only the
+log decision and requires unchanged committed bytes, digest, snapshot files and
+outbound inventory. The delivery protocol fixture ties the policy field count
+and level to the emitted OTLP record and resource attributes.
+
+The focused local selectors passed: `log_policy` 5/5 and the delivery protocol
+fixture 1/1. The selectors are:
+
+```sh
+cargo test --locked -p semaprax-native-host --lib reference_service::mapping::tests::log_policy -- --test-threads=1
+cargo test --locked -p semaprax-native-host --lib reference_service::delivery::tests::otlp_http_json_logs_are_protocol_bound_and_not_a_webhook_alias -- --exact --test-threads=1
+```
+
+The completion-policy module also compares the fixed metric wrapper with actual
+contract-bearing `std.metrics.counter-increment` and
+`std.metrics.try-admit-labeled-series-guarded` execution for valid, secret,
+invalid-name, unsafe-value and byte-length-boundary cases. The log-policy module
+requires real completion with the unmodified reference decisions under both
+telemetry adapters, preserving coverage of the earlier metric admission gate.
+The metric oracle passed 1/1. The local TLS-provider acceptance also passed
+6/6, including three JSON-event cases and OTLP full-success, partial-response,
+and malformed-response cases. Each provider process persisted exactly one
+received request across the service restart; the OTLP cases use `/v1/logs`
+and retain failed settlement for partial or malformed responses. These are
+local provider and file-only store observations, not a power-loss claim.
+
+```sh
+cargo test --locked -p semaprax-native-host --lib reference_service::mapping::tests::completion_policy::completion_metric_matches_std_metrics_and_generated_scaffold -- --exact --test-threads=1
 ```

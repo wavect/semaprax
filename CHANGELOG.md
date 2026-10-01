@@ -8,6 +8,12 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Bind actual OTLP completion logs to the checked structured-log policy
+  (#336), with source denial before delivery and six explicit credential flags.
+  Correct the default metric wrapper so successful completion evaluates under
+  the public decision seam. Five log-policy, metric oracle, delivery protocol,
+  and six separate-process provider selectors passed locally.
+
 - Carry the actual later-turn Observe owner into `OwnedWaitCreated` and Start
   reservation (#330), retaining its State/Copy observation and two ACKs. The
   focused success and prewrite-refusal selectors passed locally; later source

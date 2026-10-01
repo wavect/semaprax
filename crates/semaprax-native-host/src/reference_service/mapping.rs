@@ -64,6 +64,8 @@ const REFERENCE_JOB_COMPLETION_ATTEMPT: u8 = 0;
 const REFERENCE_JOB_MAX_ATTEMPTS: u8 = 3;
 const COMPLETED_JOB_METRIC_LABEL: &[u8] = b"job_state";
 const COMPLETED_JOB_METRIC_VALUE: &[u8] = b"succeeded";
+// std.log uses 0 = trace through 5 = fatal; this profile exports INFO logs.
+const COMPLETION_LOG_THRESHOLD: u8 = 2;
 /// The local reference profile's bounded session policy. Configuration bytes
 /// never select clock policy.
 pub const DEFAULT_SESSION_IDLE_SECONDS: u64 = 15 * 60;
@@ -1195,6 +1197,22 @@ fn complete_job(
         Ok(true) => {}
         Ok(false) => return error(403, "metric_not_admitted", Some(&committed.digest)),
         Err(_) => return error(500, "decision_failed", None),
+    }
+    if let Some((level, field_count)) =
+        delivery::completion_log_policy_facts(host.telemetry_adapter)
+    {
+        // The fixed envelope exports public job fields and service identity;
+        // none of the six held credential fields is included.
+        match host.decisions.completed_job_log_is_admitted(
+            level,
+            COMPLETION_LOG_THRESHOLD,
+            field_count,
+            0,
+        ) {
+            Ok(true) => {}
+            Ok(false) => return error(403, "log_not_admitted", Some(&committed.digest)),
+            Err(_) => return error(500, "decision_failed", None),
+        }
     }
     let event_bytes = match delivery::completion_event_len(
         host.telemetry_adapter,

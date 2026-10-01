@@ -8,6 +8,11 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Resume the actual turn-two Parked wait after its exact reservation ACK and
+  append `OwnedWaitCompleted` only from a checked Resumed State (#330). The
+  owning success and Completed-prewrite refusal selectors passed locally;
+  later Effect/Reduce/Step and public recovery remain open.
+
 - ACK actual turn-two Model Usage and a full-fuel Resume reservation from the
   retained physical owner (#330). The owning success and both distinct
   prewrite-refusal selectors passed locally; physical Resume, Completed, and

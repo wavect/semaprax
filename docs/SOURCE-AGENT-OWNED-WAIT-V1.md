@@ -959,9 +959,16 @@ turn-two owner can now select the SDK's reported `AttemptUsage`, ACK it through
 the fixed Model writer, bind the decoded Proposal, and ACK one full-fuel
 `OwnedWaitReserved` Resume row. Prewrite refusals retain the owner at each
 boundary. The owning Usage and Resume reservation success and prewrite-refusal
-gates passed locally. Later
-failed-Observe cleanup, physical Resume and Completed, Effect, Reduce and Step
-still require their owner joins.
+gates passed locally. The later Resume ACK now has a consuming physical join:
+a closed lineage permit checks the exact original full-fuel reservation and
+current registered store before the shared interpreter resumes its actual
+Parked owner. Refused, terminal and guard-lost outcomes retain their physical
+owners. Only successful Resumed State can select `OwnedWaitCompleted`, using
+its observed consumption and State-bound result digest. The fixed Model writer
+retains that same State after its Completed ACK or prewrite refusal. The owning
+physical Resume success and Completed-prewrite refusal selectors passed locally
+(1/1 each). Later failed-Observe cleanup, Effect, Reduce and
+Step still require their owner joins.
 
 Public multi-turn entry, public Report delivery and physical owner restoration
 after restart remain

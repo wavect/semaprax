@@ -371,3 +371,7 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) use effect::author
 
 pub(crate) use effect::authorization::step::r#continue::settlement::start::model::authorize::effect::prepared::intent::dispatch::settlement::cleanup::LiveContinuedDecisionCleanupPermitV8;
 pub(crate) use effect::authorization::step::r#continue::settlement::start::model::authorize::effect::prepared::intent::dispatch::settlement::cleanup::LiveContinuedOutcomePermitV8;
+
+pub(in crate::live_invocation::source_journal::owned_wait_v8) use observe::settlement::later_carry::start::source::prepared::model::settlement::usage::resume::completed::{
+    advance_verified_later_model_completed_v8, LiveLaterModelCompletedV8, LiveLaterModelCompletedFailureV8, LiveOwnedLaterModelCompletedAppendV8,
+};

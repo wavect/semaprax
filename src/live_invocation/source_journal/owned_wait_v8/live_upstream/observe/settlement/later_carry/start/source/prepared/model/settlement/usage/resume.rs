@@ -1,4 +1,5 @@
 //! A checked decoded proposal permits one full-fuel Resume reservation.
+pub(in crate::live_invocation::source_journal::owned_wait_v8) mod completed;
 use super::*;
 use crate::resumable_effects::owned_frame::v2::CheckedOwnedWaitProposalV8;
 

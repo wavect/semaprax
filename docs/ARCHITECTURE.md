@@ -213,6 +213,11 @@ prospective hold under the append marker. `registered_stage/reduce/live_stage`
 then enters the existing evaluator with those same roots and retains Staged
 ownership, observed fuel, accounting, and the fresh charged Reduce lineage.
 Default ObserveOnly remains separate.
+The later `continue/later/settlement/start/resume` child moves the actual Parked
+owner through the existing continued Resume interpreter with a closed lineage
+permit. Its `observe/settlement/later_carry` Completed selector accepts only the
+successful physical Resumed State, retaining failures and exact observed fuel.
+The fixed Model writer owns the Completed ACK and cumulative hold transition.
 [Source Agent owned wait v1](SOURCE-AGENT-OWNED-WAIT-V1.md) owns these bounded
 private successors; public Agent execution and partial-initialization recovery
 remain unfinished.

@@ -1,4 +1,5 @@
 //! Turn-two physical checkpoint and exact Prepared ACK regressions.
+mod completed;
 use super::*;
 use crate::live_invocation::source_journal::owned_wait_v8::live_upstream::LiveLaterStartedPhaseV8;
 
@@ -7,7 +8,9 @@ pub(super) fn run(
     entered: LiveLaterStartedPhaseV8<'_>,
     adapter: &mut StreamingSourceProposalAdapter<'_>,
     fault: u8,
+    weak: &[std::sync::Weak<[u8]>],
 ) {
+    let expected_state = entered.test_ordinary_start().0;
     let start_sequence = entered.sequence();
     let accounting = *entered.test_accounting();
     let prepared = entered
@@ -273,7 +276,14 @@ pub(super) fn run(
                             (reserved_before + fuel as u64, stages_before, 2)
                         );
                         assert!(matches!(row, EntryV8::Owned(crate::live_invocation::source_journal::owned_wait_v8::model::OwnedBodyV8::OwnedWaitReserved { phase: crate::live_invocation::source_journal::owned_wait_v8::model::PhaseV8::Resume, turn: 2, attempt: 0, replay_of: None, .. })));
-                        drop(acknowledged);
+                        completed::run(
+                            journal,
+                            acknowledged,
+                            &expected_state,
+                            &accounting,
+                            weak,
+                            fault,
+                        );
                     }
                 }
             }

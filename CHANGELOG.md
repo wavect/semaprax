@@ -8,6 +8,11 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Include owned record and variant field transfers in cleanup skeleton work
+  reservations (#337), preserving the global replay limit and refusal before
+  unbudgeted materialization. Add nested generic record and owned variant
+  regressions for the derived bound and one-unit-short diagnostic.
+
 - Preserve the frozen public-generic native byte-runtime and generated-package
   bytes by emitting newer buffer-store helpers only for resolved calls that use
   them (#337). The legacy runtime pin and selected-helper regression now run

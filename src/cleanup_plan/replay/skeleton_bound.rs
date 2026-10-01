@@ -7,6 +7,32 @@
 use super::*;
 use crate::cleanup_plan::{CleanupBlock, CleanupPlan};
 
+pub(super) fn constructor_work_upper(
+    program: &ResolvedProgram,
+    function: &ResolvedFunction,
+    fields: &[crate::hir::ResolvedFieldInitializer],
+) -> Result<usize, Diagnostic> {
+    // One continuation and four sequencing operations per field; child
+    // censuses account for their Eval pushes. Root setup and result-place
+    // materialization retain the existing six-unit allowance.
+    let mut weight = checked_skeleton_add(
+        function,
+        checked_skeleton_mul(function, fields.len(), 5)?,
+        6,
+    )?;
+    for field in fields {
+        if field.value.ownership == OwnershipMode::Own
+            && type_needs_drop(program, function, &field.value.ty)?
+        {
+            // RecordField: temporary, field identity, projection push, value
+            // identity, then four completed-transfer operations. VariantField
+            // instead clones two projection identities, for the same total.
+            weight = checked_skeleton_add(function, weight, 8)?;
+        }
+    }
+    Ok(weight)
+}
+
 pub(super) fn plan_skeleton_block_weight(plan: &CleanupPlan, block: &CleanupBlock) -> usize {
     let mut weight = block.transitions.len().saturating_add(1);
     for transition in &block.transitions {

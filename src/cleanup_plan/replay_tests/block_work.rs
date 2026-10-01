@@ -362,3 +362,72 @@ fn valid_resource_bindings_and_block_results_include_transfer_work() {
         assert!(derived < MAX_REPLAY_WORK_UNITS);
     }
 }
+
+#[test]
+fn owned_constructor_census_covers_nested_records_and_variant_fields() {
+    let sources = [
+        r#"module provider.artifact;
+@id("provider.leaf-pair") record LeafPair {
+    @id("provider.leaf-pair.left") left: Bytes,
+    @id("provider.leaf-pair.right") right: Bytes,
+}
+@id("provider.envelope") record Envelope<T> {
+    @id("provider.envelope.payload") payload: T,
+}
+@id("provider.transform")
+fn transform(value: own Envelope<LeafPair>) -> Envelope<LeafPair> {
+    Envelope<LeafPair> { payload: LeafPair { left: value.payload.right, right: value.payload.left } }
+}
+@id("provider.main") fn main() -> i64 { 0 }
+"#,
+        r#"module replay.owned_variant;
+@id("work.packet") variant Packet {
+    @id("work.packet.payload") Payload {
+        @id("work.packet.payload.left") left: Bytes,
+        @id("work.packet.payload.right") right: Bytes,
+    },
+}
+@id("work.wrap") fn wrap(left: own Bytes, right: own Bytes) -> Packet {
+    Packet::Payload { left: left, right: right }
+}
+@id("work.main") fn main() -> i64 { 0 }
+"#,
+    ];
+    for source in sources {
+        let path = Path::new("owned-constructor-work.spx");
+        let parsed = parse(source, path).unwrap();
+        let canonical = crate::format::canonical(&parsed);
+        let reparsed = parse(&canonical, path).unwrap();
+        assert_eq!(crate::format::canonical(&reparsed), canonical);
+        let diagnostics = crate::verify::verify(&reparsed);
+        assert!(diagnostics.is_empty(), "{diagnostics:?}");
+        let program = hir::resolve(&reparsed).unwrap();
+        hir::validate(&program).unwrap();
+        // Each function must fit its own reservation; surplus from a sibling
+        // must not conceal an underestimated constructor.
+        for function in &program.functions {
+            validate_structure(&program, function).unwrap();
+        }
+        assert_program_skeleton_authority(&program);
+
+        let function = &program.functions[0];
+        let derived = expression_skeleton_work_upper(&program, function, &function.body).unwrap();
+        let (result, used, materialized) = measure(&program, &function.body, derived);
+        let paths = result.unwrap();
+        assert_eq!(paths.len(), 1);
+        assert!(paths[0].owned_source.is_some());
+        assert!(!paths[0].observations.is_empty());
+        assert!(used <= derived, "census {derived} < actual {used}");
+        assert_eq!(used, materialized);
+
+        let (result, charged, materialized) = measure(&program, &function.body, used - 1);
+        let error = match result {
+            Err(error) => error,
+            Ok(_) => panic!("short owned constructor budget unexpectedly succeeded"),
+        };
+        assert_eq!(error.code, "SPX-H006");
+        assert!(error.message.contains("work budget exhausted during"));
+        assert_eq!(charged, used - 1);
+        assert_eq!(materialized, used - 1);
+    }
+}

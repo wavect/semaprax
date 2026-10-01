@@ -1089,12 +1089,7 @@ fn expression_skeleton_work_upper(
                 }
                 ResolvedExprKind::ConstructVariant { fields, .. }
                 | ResolvedExprKind::ConstructRecord { fields, .. } => {
-                    // Each field adds two continuation pushes plus the four
-                    // path-sequencing materializations. The child census
-                    // accounts for evaluating the field value itself. Keep
-                    // the root allowance separate so this remains an upper
-                    // bound for both empty and non-empty constructors.
-                    fields.len().saturating_mul(5) + 6
+                    skeleton_bound::constructor_work_upper(program, function, fields)?
                 }
                 ResolvedExprKind::UpdateRecord { record, fields, .. } => checked_skeleton_add(
                     function,

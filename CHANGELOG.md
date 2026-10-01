@@ -8,6 +8,16 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Gate reference-service completed-job delivery through the checked
+  `completed_job_metric_is_admitted` source decision before outbound delivery
+  or snapshot mutation (#336). Source denial preserves the pending job and
+  outbound inventory.
+
+- Settle the later physical Observe result through `OwnedObserveSettled` and
+  `TurnObserved` (#330), retaining the actual owner and reservation on a
+  rejected append. The focused success and prewrite-refusal selectors passed
+  locally; later Start and public recovery still require their owner joins.
+
 - Verify reference-service outbound delivery against a separate local TLS
   provider process (#329). Success, provider refusal, and close-after-request
   settle through the actual service/store and retain one provider-observed

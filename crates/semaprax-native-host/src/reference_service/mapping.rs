@@ -62,6 +62,8 @@ const SESSION_ID_BYTES: usize = 16;
 /// select source semantics only; they neither schedule nor authorize retry.
 const REFERENCE_JOB_COMPLETION_ATTEMPT: u8 = 0;
 const REFERENCE_JOB_MAX_ATTEMPTS: u8 = 3;
+const COMPLETED_JOB_METRIC_LABEL: &[u8] = b"job_state";
+const COMPLETED_JOB_METRIC_VALUE: &[u8] = b"succeeded";
 /// The local reference profile's bounded session policy. Configuration bytes
 /// never select clock policy.
 pub const DEFAULT_SESSION_IDLE_SECONDS: u64 = 15 * 60;
@@ -1183,6 +1185,15 @@ fn complete_job(
     {
         Ok(next_state) if next_state == JobState::Completed.source_status() => {}
         Ok(_) => return error(403, "completion_not_admitted", Some(&committed.digest)),
+        Err(_) => return error(500, "decision_failed", None),
+    }
+    match host.decisions.completed_job_metric_is_admitted(
+        COMPLETED_JOB_METRIC_LABEL,
+        COMPLETED_JOB_METRIC_VALUE,
+        false,
+    ) {
+        Ok(true) => {}
+        Ok(false) => return error(403, "metric_not_admitted", Some(&committed.digest)),
         Err(_) => return error(500, "decision_failed", None),
     }
     let event_bytes = match delivery::completion_event_len(

@@ -17,9 +17,10 @@
 //! predicates/transitions.
 //! `registration_admitted`, `enqueue_is_legal`, `enqueue_outcome`, the three
 //! task transaction decisions, `mark_job_succeeded`, and
-//! `completed_job_export_is_admitted` are invoked through the checked
+//! `completed_job_metric_is_admitted` and `completed_job_export_is_admitted`
+//! are invoked through the checked
 //! public-API seam before their corresponding host work. The remaining
-//! scaffold decisions (migration, log/trace/metric, and webhook policies)
+//! scaffold decisions (migration, log/trace, and webhook policies)
 //! retain fixture-mode coverage until a host route needs them.
 //!
 //! [`ProjectRevision::evaluate_service_decision_v1`]: semaprax::project::ProjectRevision::evaluate_service_decision_v1
@@ -68,6 +69,7 @@ pub struct DecisionIdentities {
     delete_is_committed: String,
     mark_job_succeeded: String,
     job_status_is_complete: String,
+    completed_job_metric_is_admitted: String,
     completed_job_export_is_admitted: String,
 }
 
@@ -91,6 +93,7 @@ impl DecisionIdentities {
         let delete_is_committed = sole(program, "delete_is_committed")?;
         let mark_job_succeeded = sole(program, "mark_job_succeeded")?;
         let job_status_is_complete = sole(program, "job_status_is_complete")?;
+        let completed_job_metric_is_admitted = sole(program, "completed_job_metric_is_admitted")?;
         let completed_job_export_is_admitted = sole(program, "completed_job_export_is_admitted")?;
         let prefix = prefix_of(&request_is_admitted).ok_or(DecisionRefusal::Unresolved)?;
         for identity in [
@@ -108,6 +111,7 @@ impl DecisionIdentities {
             &delete_is_committed,
             &mark_job_succeeded,
             &job_status_is_complete,
+            &completed_job_metric_is_admitted,
             &completed_job_export_is_admitted,
         ] {
             if prefix_of(identity) != Some(prefix) {
@@ -131,6 +135,7 @@ impl DecisionIdentities {
             delete_is_committed,
             mark_job_succeeded,
             job_status_is_complete,
+            completed_job_metric_is_admitted,
             completed_job_export_is_admitted,
         })
     }
@@ -179,6 +184,7 @@ fn prefix_of(identity: &str) -> Option<&str> {
         .or_else(|| identity.strip_suffix(".core.delete_is_committed"))
         .or_else(|| identity.strip_suffix(".core.mark_job_succeeded"))
         .or_else(|| identity.strip_suffix(".core.job_status_is_complete"))
+        .or_else(|| identity.strip_suffix(".core.completed_job_metric_is_admitted"))
         .or_else(|| identity.strip_suffix(".core.completed_job_export_is_admitted"))
 }
 
@@ -450,6 +456,25 @@ impl<'revision> DecisionEngine<'revision> {
         self.invoke_bool(
             &self.identities.job_status_is_complete,
             &[PublicApiArgument::Usize(state)],
+        )
+    }
+
+    /// Evaluate the checked metric policy before the completion route advances
+    /// to outbound delivery. This selects source semantics only; it emits no
+    /// metric by itself.
+    pub fn completed_job_metric_is_admitted(
+        &self,
+        label: &[u8],
+        value: &[u8],
+        carries_secret: bool,
+    ) -> Result<bool, DecisionRefusal> {
+        self.invoke_bool(
+            &self.identities.completed_job_metric_is_admitted,
+            &[
+                PublicApiArgument::BorrowSliceU8(label),
+                PublicApiArgument::BorrowSliceU8(value),
+                PublicApiArgument::Bool(carries_secret),
+            ],
         )
     }
 

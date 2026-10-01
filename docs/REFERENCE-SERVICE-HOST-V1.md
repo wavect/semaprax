@@ -73,8 +73,11 @@ prepares telemetry or constructs a candidate snapshot, it invokes
 facts (`attempt=0`, `max_attempts=3`). Only source status `4` maps to this
 host's `Completed` representation; another source-selected status returns
 `403 completion_not_admitted`, and evaluator failure returns
-`500 decision_failed`. Both refusals preserve the pending job and avoid an
-outbound attempt. The wrapper is contract-free and explicitly selects the
+`500 decision_failed`. The route then invokes
+`completed_job_metric_is_admitted` over the fixed public `job_state=succeeded`
+metric facts before delivery. Source denial returns `403 metric_not_admitted`;
+both decision refusals preserve the pending job and avoid an outbound attempt.
+The wrapper is contract-free and explicitly selects the
 same successful status as `std.jobs.retry.next_state_after_outcome(0, …)`;
 the standard helper remains outside this public seam because its declared
 postcondition is not admitted there. The remaining scaffold decisions not

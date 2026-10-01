@@ -11,7 +11,7 @@ use std::sync::Arc;
 
 use crate::conformance::{NormalizedStatus, Retryability, StatusClass};
 
-use super::{Flow, OwnedBytesValue};
+use super::{Flow, Interpreter, OwnedBytesValue, Value};
 
 /// The single Owned Bounded Byte Buffer v1 runtime failure. A computed
 /// `bytes_set` index at or above the transferred buffer's length selects this
@@ -113,4 +113,32 @@ pub(super) fn set5(
         allocation: buffer.allocation,
         bytes: Arc::from(filled.as_slice()),
     })
+}
+
+/// Evaluate one compiler-owned owned-buffer operation after the caller has
+/// evaluated every operand from left to right.
+impl Interpreter {
+    pub(super) fn evaluate_owned_buffer_operation(
+        &mut self,
+        op: crate::byte_ops::ByteOp,
+        values: &[Value],
+    ) -> Result<Value, Flow> {
+        match (op, values) {
+            (crate::byte_ops::ByteOp::Zeroed, [Value::Usize(capacity)]) => zeroed(
+                *capacity,
+                &mut self.next_byte_allocation,
+                &mut self.allocated_byte_payload,
+            )
+            .map(Value::Bytes),
+            (
+                crate::byte_ops::ByteOp::Set,
+                [Value::Bytes(buffer), Value::Usize(index), Value::Uint8(byte)],
+            ) => set(buffer, *index, *byte).map(Value::Bytes),
+            (
+                crate::byte_ops::ByteOp::Set5,
+                [Value::Bytes(buffer), Value::Usize(index), Value::Uint8(first), Value::Uint8(second), Value::Uint8(third), Value::Uint8(fourth), Value::Uint8(fifth)],
+            ) => set5(buffer, *index, [*first, *second, *third, *fourth, *fifth]).map(Value::Bytes),
+            _ => Err(Flow::Guard("ill-typed borrowed byte operation operand")),
+        }
+    }
 }

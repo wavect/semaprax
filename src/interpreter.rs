@@ -4493,6 +4493,9 @@ impl Evaluator<'_> {
                     for argument in args {
                         values.push(self.evaluate(argument, environment, depth)?);
                     }
+                    if op.is_owned_buffer_chain() {
+                        return self.evaluate_owned_buffer_operation(op, &values);
+                    }
                     return match (op, values.as_slice()) {
                         (crate::byte_ops::ByteOp::Len, [Value::BorrowedSlice(value)]) => {
                             Ok(Value::Usize(value.bytes().len() as u64))
@@ -4547,27 +4550,6 @@ impl Evaluator<'_> {
                                 bytes: Arc::from(value.bytes()),
                             }))
                         }
-                        (crate::byte_ops::ByteOp::Zeroed, [Value::Usize(capacity)]) => {
-                            owned_buffer::zeroed(
-                                *capacity,
-                                &mut self.next_byte_allocation,
-                                &mut self.allocated_byte_payload,
-                            )
-                            .map(Value::Bytes)
-                        }
-                        (
-                            crate::byte_ops::ByteOp::Set,
-                            [Value::Bytes(buffer), Value::Usize(index), Value::Uint8(byte)],
-                        ) => owned_buffer::set(buffer, *index, *byte).map(Value::Bytes),
-                        (
-                            crate::byte_ops::ByteOp::Set5,
-                            [Value::Bytes(buffer), Value::Usize(index), Value::Uint8(first), Value::Uint8(second), Value::Uint8(third), Value::Uint8(fourth), Value::Uint8(fifth)],
-                        ) => owned_buffer::set5(
-                            buffer,
-                            *index,
-                            [*first, *second, *third, *fourth, *fifth],
-                        )
-                        .map(Value::Bytes),
                         (crate::byte_ops::ByteOp::Range, _) => Err(Flow::Guard(
                             "byte_range reached interpreter as an ordinary call",
                         )),

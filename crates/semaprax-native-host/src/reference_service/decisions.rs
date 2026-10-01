@@ -62,6 +62,7 @@ pub struct DecisionIdentities {
     session_next_state_on_logout: String,
     enqueue_outcome: String,
     enqueue_is_legal: String,
+    update_is_committed: String,
     job_status_is_complete: String,
     completed_job_export_is_admitted: String,
 }
@@ -81,6 +82,7 @@ impl DecisionIdentities {
         let session_next_state_on_logout = sole(program, "session_next_state_on_logout")?;
         let enqueue_outcome = sole(program, "enqueue_outcome")?;
         let enqueue_is_legal = sole(program, "enqueue_is_legal")?;
+        let update_is_committed = sole(program, "update_is_committed")?;
         let job_status_is_complete = sole(program, "job_status_is_complete")?;
         let completed_job_export_is_admitted = sole(program, "completed_job_export_is_admitted")?;
         let prefix = prefix_of(&request_is_admitted).ok_or(DecisionRefusal::Unresolved)?;
@@ -94,6 +96,7 @@ impl DecisionIdentities {
             &session_next_state_on_logout,
             &enqueue_outcome,
             &enqueue_is_legal,
+            &update_is_committed,
             &job_status_is_complete,
             &completed_job_export_is_admitted,
         ] {
@@ -113,6 +116,7 @@ impl DecisionIdentities {
             session_next_state_on_logout,
             enqueue_outcome,
             enqueue_is_legal,
+            update_is_committed,
             job_status_is_complete,
             completed_job_export_is_admitted,
         })
@@ -157,6 +161,7 @@ fn prefix_of(identity: &str) -> Option<&str> {
         .or_else(|| identity.strip_suffix(".core.session_next_state_on_logout"))
         .or_else(|| identity.strip_suffix(".core.enqueue_outcome"))
         .or_else(|| identity.strip_suffix(".core.enqueue_is_legal"))
+        .or_else(|| identity.strip_suffix(".core.update_is_committed"))
         .or_else(|| identity.strip_suffix(".core.job_status_is_complete"))
         .or_else(|| identity.strip_suffix(".core.completed_job_export_is_admitted"))
 }
@@ -376,6 +381,16 @@ impl<'revision> DecisionEngine<'revision> {
         )
     }
 
+    /// Evaluate the scaffold's transaction decision before publishing one
+    /// task-status update. The host supplies the fixed idle transaction fact;
+    /// it does not synthesize a source-selected commit after mutation.
+    pub fn update_is_committed(&self, transaction_state: u64) -> Result<bool, DecisionRefusal> {
+        self.invoke_bool(
+            &self.identities.update_is_committed,
+            &[PublicApiArgument::Usize(transaction_state)],
+        )
+    }
+
     /// Evaluate whether the persisted job-status representation is terminal
     /// before the host attempts any completion delivery.
     pub fn job_status_is_complete(&self, state: u64) -> Result<bool, DecisionRefusal> {
@@ -465,6 +480,8 @@ mod tests {
         assert_eq!(engine.enqueue_outcome(false, b"", b"job-1").unwrap(), 0);
         assert_eq!(engine.enqueue_outcome(true, b"job-1", b"job-1").unwrap(), 1);
         assert_eq!(engine.enqueue_outcome(true, b"job-1", b"job-2").unwrap(), 2);
+        assert!(engine.update_is_committed(0).unwrap());
+        assert!(!engine.update_is_committed(1).unwrap());
         assert!(!engine.job_status_is_complete(0).unwrap());
         assert!(engine.job_status_is_complete(4).unwrap());
         assert!(engine

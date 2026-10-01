@@ -2,6 +2,8 @@
 mod enqueue_policy;
 #[path = "tests/session_policy.rs"]
 mod session_policy;
+#[path = "tests/update_policy.rs"]
+mod update_policy;
 
 use super::*;
 use crate::reference_service::test_support::TempDir;

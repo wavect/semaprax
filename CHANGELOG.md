@@ -8,6 +8,16 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Refuse a tampered semantic-work event during metered migrated durable
+  recovery before a new host call or checkpoint commit (#327). The focused
+  Runtime-facade regression passed 1/1 locally; the full parity and sanitizer
+  profile remains open.
+
+- Route reference-service task status updates through the scaffold's checked
+  `update_is_committed` decision before candidate state or snapshot commit
+  (#336). Source denial and evaluator failure leave the committed state
+  untouched; the two focused service selectors passed locally.
+
 - Bind the private owned-wait v8 continued physical State/Outcome handoff to
   its actual successful Decision CleanupSettled ACK (#330). The one-use pending
   effect holder is consumed under fresh source, policy, clock, and cancellation

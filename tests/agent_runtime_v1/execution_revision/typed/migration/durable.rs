@@ -641,6 +641,62 @@ fn metered_migrated_durable_recovery_replays_same_target_receipts() {
 }
 
 #[test]
+fn metered_migrated_durable_recovery_refuses_tampered_receipts_before_store_or_host_work() {
+    use semaprax::agent_lifecycle::iterative::effects::TargetStageBackend;
+
+    let a = first();
+    let b = successor(&a, "State", "StateB", "b", &["marker"], false);
+    let (migration, before, after) = migrated_with_metered_interpreter(&a, &b);
+    let handoff = migration.handoff_digest().unwrap();
+    let mut host = handler();
+    let mut store = Store::default();
+    migration
+        .run_durable_metered_with_backend(
+            &mut host,
+            &AgentCancellation::new(),
+            &mut store,
+            TargetStageBackend::Interpreter,
+            10_000,
+        )
+        .expect("metered migration creates an authenticated durable receipt");
+    let retained = store.document.replacen(
+        r#"\"kind\":\"semantic_work\""#,
+        r#"\"kind\":\"semantic_work_tampered\""#,
+        1,
+    );
+    assert_ne!(
+        retained, store.document,
+        "the outer snapshot encodes its retained checkpoint as a JSON string",
+    );
+    let resumed = resume_migrated_agent_runtime_v2(
+        bind(&a, b"chain payload"),
+        bind(&b, b"destination input ignored"),
+        &retained,
+        &handoff,
+        &before,
+        &after,
+    )
+    .expect("the outer handoff remains canonical while inner receipt replay validates it");
+    let before_refusal = (host.calls.len(), store.commits);
+    let refusal = resumed
+        .run_durable_metered_with_backend(
+            &mut host,
+            &AgentCancellation::new(),
+            &mut store,
+            TargetStageBackend::Interpreter,
+            10_000,
+        )
+        .err()
+        .expect("tampered durable receipt must refuse recovery");
+    assert!(refusal.diagnostics()[0].message.contains("event.kind"));
+    assert_eq!(
+        (host.calls.len(), store.commits),
+        before_refusal,
+        "receipt refusal runs before host work or a new checkpoint commit",
+    );
+}
+
+#[test]
 fn target_migration_refuses_missing_or_mixed_metered_durable_target_before_handoff() {
     use semaprax::agent_lifecycle::iterative::effects::TargetStageBackend;
 

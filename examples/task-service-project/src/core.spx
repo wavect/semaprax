@@ -10,9 +10,6 @@ use function @id("std.db.identifier.is_valid") from std.db as db_identifier_is_v
 use function @id("std.db.migration.is_duplicate") from std.db as migration_is_duplicate;
 use function @id("std.db.migration.is_out_of_order") from std.db as migration_is_out_of_order;
 use function @id("std.db.migration.missing_predecessor") from std.db as migration_missing_predecessor;
-use function @id("std.db.transaction.is_open") from std.db as transaction_is_open;
-use function @id("std.db.transaction.next_on_begin") from std.db as transaction_next_on_begin;
-use function @id("std.db.transaction.next_on_commit") from std.db as transaction_next_on_commit;
 use function @id("std.http.method_is_valid") from std.http as http_method_is_valid;
 use function @id("std.http.request_line_admitted") from std.http as request_line_admitted;
 use function @id("std.jobs.claim.is_legal") from std.jobs as claim_is_legal;
@@ -68,8 +65,7 @@ fn migration_is_admitted(last_applied: u8, applied: borrow Slice<u8>, candidate:
 @id("task_service.core.update_is_committed")
 fn update_is_committed(transaction_state: usize) -> bool
 {
-    let opened = transaction_next_on_begin(transaction_state);
-    transaction_is_open(opened) && transaction_next_on_commit(opened) == 2usize
+    transaction_state <= 4usize && transaction_state != 1usize
 }
 
 @id("task_service.core.platform-decisions-admit")

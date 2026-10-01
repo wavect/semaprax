@@ -657,6 +657,126 @@ fn metered_migrated_durable_recovery_replays_same_target_receipts() {
 }
 
 #[test]
+fn metered_target_migration_terminal_lost_ack_recovers_receipts_without_redispatch() {
+    use semaprax::agent_lifecycle::iterative::effects::TargetStageBackend;
+
+    let a = first();
+    let b = successor(&a, "State", "StateB", "b", &["marker"], false);
+    let (migration, before, after) = migrated_with_metered_interpreter(&a, &b);
+    let expected_target_binding = serde_json::from_str::<serde_json::Value>(
+        migration.migration_root().canonical_json(),
+    )
+    .unwrap()["facts"]["target_execution"]["execution_binding"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let handoff = migration.handoff_digest().unwrap();
+    let mut host = handler();
+    let mut store = Store {
+        fail: Some("terminal"),
+        ..Default::default()
+    };
+    let failure = migration
+        .run_durable_metered_with_backend(
+            &mut host,
+            &AgentCancellation::new(),
+            &mut store,
+            TargetStageBackend::Interpreter,
+            10_000,
+        )
+        .err()
+        .expect("lost terminal acknowledgement remains recoverable");
+    assert_eq!(
+        failure.terminal().unwrap().status(),
+        IterativeStatus::Complete,
+        "the selected terminal result remains sticky across the lost acknowledgement",
+    );
+    let snapshot: serde_json::Value = serde_json::from_str(&store.document).unwrap();
+    let checkpoint: serde_json::Value =
+        serde_json::from_str(snapshot["checkpoint"].as_str().unwrap()).unwrap();
+    let entries = checkpoint["entries"].as_array().unwrap();
+    let count_kind = |entries: &[serde_json::Value], kind: &str| {
+        entries
+            .iter()
+            .filter(|entry| entry["event"]["kind"] == kind)
+            .count()
+    };
+    let count_terminal_complete = |entries: &[serde_json::Value]| {
+        entries
+            .iter()
+            .filter(|entry| {
+                entry["event"]["kind"] == "transition"
+                    && entry["event"]["transition"] == "Complete"
+            })
+            .count()
+    };
+    let retained_reservations = count_kind(entries, "stage_reservation");
+    let retained_receipts = count_kind(entries, "semantic_work");
+    let retained_terminal_completes = count_terminal_complete(entries);
+    assert_eq!(
+        retained_reservations, retained_receipts,
+        "the retained terminal candidate carries one semantic receipt for every reserved stage",
+    );
+    let retained = store.document.clone();
+    let before_recovery = (host.calls.len(), store.commits);
+    let replay = resume_migrated_agent_runtime_v2(
+        bind(&a, b"chain payload"),
+        bind(&b, b"destination input ignored"),
+        &retained,
+        &handoff,
+        &before,
+        &after,
+    )
+    .expect("metered terminal candidate recovers")
+    .run_durable_metered_with_backend(
+        &mut host,
+        &AgentCancellation::new(),
+        &mut store,
+        TargetStageBackend::Interpreter,
+        10_000,
+    )
+    .expect("recovery reuses the retained terminal receipts");
+    assert_eq!(
+        replay.run().run().run().lifecycle().status(),
+        IterativeStatus::Complete
+    );
+    assert!(replay.run().observations_complete());
+    assert_eq!(replay.run().run().run().dispatched(), 0);
+    assert_eq!(replay.target_execution_binding(), expected_target_binding);
+    let recovered_snapshot: serde_json::Value = serde_json::from_str(&store.document).unwrap();
+    let recovered_checkpoint: serde_json::Value =
+        serde_json::from_str(recovered_snapshot["checkpoint"].as_str().unwrap()).unwrap();
+    let recovered_entries = recovered_checkpoint["entries"].as_array().unwrap();
+    let replayed_reservations = count_kind(recovered_entries, "stage_reservation")
+        .checked_sub(retained_reservations)
+        .unwrap();
+    let replayed_receipts = count_kind(recovered_entries, "semantic_work")
+        .checked_sub(retained_receipts)
+        .unwrap();
+    assert!(
+        replayed_reservations > 0,
+        "metered recovery takes fresh grants for the retained deterministic stages",
+    );
+    assert_eq!(
+        replayed_reservations, replayed_receipts,
+        "each replayed stage receives one new metered receipt",
+    );
+    assert_eq!(
+        store.commits - before_recovery.1,
+        replayed_reservations + replayed_receipts,
+        "recovery checkpoints only its fresh stage grants and receipts",
+    );
+    assert_eq!(
+        count_terminal_complete(recovered_entries), retained_terminal_completes,
+        "recovery validates the retained terminal transition without committing another terminal result",
+    );
+    assert_eq!(
+        host.calls.len(), before_recovery.0,
+        "terminal recovery does not redeliver retained host work",
+    );
+}
+
+#[test]
 fn metered_migrated_durable_recovery_refuses_tampered_receipts_before_store_or_host_work() {
     use semaprax::agent_lifecycle::iterative::effects::TargetStageBackend;
 

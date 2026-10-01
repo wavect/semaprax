@@ -8,6 +8,11 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Cover lost terminal acknowledgement during metered target migration recovery
+  (#327). The integration regression checks paired replay fuel reservations and
+  semantic-work receipts, one retained Complete transition, and no host
+  redispatch; its focused selector passed locally.
+
 - Gate reference-service completed-job delivery through the checked
   `completed_job_metric_is_admitted` source decision before outbound delivery
   or snapshot mutation (#336). Source denial preserves the pending job and

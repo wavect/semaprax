@@ -50,7 +50,10 @@ idempotent-enqueue decisions. `PATCH /v1/tasks/<id>` also invokes the checked
 `update_is_committed` decision with the host's fixed idle transaction fact
 before constructing candidate state. Source denial returns
 `403 update_not_admitted`; evaluator failure returns `500 decision_failed`.
-Both leave the committed state unchanged. The
+`DELETE /v1/tasks/<id>` likewise invokes `delete_is_committed` with its fixed
+idle transaction fact before constructing candidate state; source denial
+returns `403 delete_not_admitted`, and evaluator failure returns
+`500 decision_failed`. These refusals leave the committed state unchanged. The
 enqueue wrapper compares borrowed descriptor bytes in checked source and
 returns the 0/1/2 outcome; the host refuses evaluator errors or out-of-range
 outcomes. Before creating a new Pending job, `enqueue_is_legal` receives the

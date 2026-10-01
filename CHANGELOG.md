@@ -8,6 +8,12 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Route reference-service task deletion through checked
+  `delete_is_committed(0)` before candidate state or snapshot commit (#336).
+  Generated-source parity, denial, evaluator failure, and nonmutation passed
+  two focused local selectors; remaining service routes and OCI execution stay
+  open.
+
 - Refuse a tampered semantic-work event during metered migrated durable
   recovery before a new host call or checkpoint commit (#327). The focused
   Runtime-facade regression passed 1/1 locally; the full parity and sanitizer

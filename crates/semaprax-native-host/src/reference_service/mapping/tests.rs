@@ -4,6 +4,8 @@ mod enqueue_policy;
 mod session_policy;
 #[path = "tests/update_policy.rs"]
 mod update_policy;
+#[path = "tests/delete_policy.rs"]
+mod delete_policy;
 
 use super::*;
 use crate::reference_service::test_support::TempDir;

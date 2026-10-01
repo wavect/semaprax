@@ -944,6 +944,14 @@ fn delete_task(
         Ok(false) => return error(403, "forbidden", None),
         Err(response) => return response,
     }
+    // A task deletion starts from the host's fixed idle transaction fact. The
+    // checked source must admit that transition before the host constructs a
+    // candidate state or reaches the durable snapshot commit.
+    match host.decisions.delete_is_committed(0) {
+        Ok(true) => {}
+        Ok(false) => return error(403, "delete_not_admitted", Some(&committed.digest)),
+        Err(_) => return error(500, "decision_failed", None),
+    }
     let mut state = committed.state.clone();
     state.tasks.retain(|candidate| candidate.id != id);
     if let Err(response) = commit(host, committed, state) {

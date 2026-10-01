@@ -68,6 +68,12 @@ fn update_is_committed(transaction_state: usize) -> bool
     transaction_state <= 4usize && transaction_state != 1usize
 }
 
+@id("task_service.core.delete_is_committed")
+fn delete_is_committed(transaction_state: usize) -> bool
+{
+    transaction_state == 0usize
+}
+
 @id("task_service.core.platform-decisions-admit")
 fn platform_decisions_admit() -> bool
 {
@@ -76,7 +82,7 @@ fn platform_decisions_admit() -> bool
     let applied_migrations = [1u8, 2u8];
     let route = request_is_admitted(array_as_slice(get), array_as_slice(task_route));
     let migration = migration_is_admitted(2u8, array_as_slice(applied_migrations), 3u8);
-    route && migration && update_is_committed(0usize)
+    route && migration && update_is_committed(0usize) && delete_is_committed(0usize)
 }
 
 @id("task_service.core.registration_admitted")

@@ -138,13 +138,16 @@ class Podman:
         if found.returncode != 0:
             raise AssertionError(f"OCI import did not create {IMAGE}: {result.stdout} {result.stderr}")
 
-    def start(self, port_number, state=None):
+    def start(self, port_number, state=None, config_override=None):
         command = [
             str(self.executable), "run", "--rm", "--name", self.name,
             "--network", "host", "--user", f"{os.getuid()}:{os.getgid()}",
         ]
-        for name in ("state", "outbound", "secrets", "bundle"):
+        for name in ("state", "outbound", "bundle"):
             command += ["--volume", f"{self.workspace / name}:/{name}:rw"]
+        command += ["--volume", f"{self.workspace / 'secrets'}:/secrets:ro"]
+        if config_override is not None:
+            command += ["--volume", f"{config_override}:/service/service.config.json:ro"]
         command += [IMAGE, "--port", str(port_number)]
         if state is not None:
             command += ["--state", state]
@@ -184,22 +187,51 @@ def wait_ready(process):
     raise AssertionError("OCI service did not print ready before timeout")
 
 
-def expect_missing_secret(runtime, workspace):
-    process = runtime.start(port())
+def expect_refusal(runtime, workspace, label, expected, config_override=None):
+    process = runtime.start(port(), config_override=config_override)
     try:
         result = process.wait(timeout=REQUEST_TIMEOUT)
         stderr = process.stderr.read()
     finally:
         runtime.stop(process)
-    if result != 2 or "cannot resolve every named host secret" not in stderr:
-        raise AssertionError(f"missing secret did not fail closed: exit={result}, stderr={stderr!r}")
+    if result != 2 or expected not in stderr:
+        raise AssertionError(f"{label} did not fail closed: exit={result}, stderr={stderr!r}")
+
+
+def expect_missing_secret(runtime, workspace):
+    expect_refusal(runtime, workspace, "missing secret", "cannot resolve every named host secret")
     if inventory(workspace / "state") or inventory(workspace / "outbound") or inventory(workspace / "bundle"):
         raise AssertionError("missing-secret OCI refusal touched physical runtime adapters")
 
 
-def journey(runtime, workspace):
+def expect_unsupported_adapter(runtime, workspace, configuration):
+    modified = configuration.replace(b'"adapter":"snapshot"', b'"adapter":"sqlite"')
+    if modified == configuration:
+        raise AssertionError("OCI fixture does not carry the expected snapshot adapter")
+    override = workspace / "unsupported-adapter.config.json"
+    override.write_bytes(modified)
+    expect_refusal(runtime, workspace, "unsupported adapter",
+                   "service database adapter sqlite is unsupported", override)
+    if inventory(workspace / "state") or inventory(workspace / "outbound") or inventory(workspace / "bundle"):
+        raise AssertionError("adapter OCI refusal touched physical runtime adapters")
+
+
+def expect_bundle_refusal(runtime, workspace):
+    poison = workspace / "bundle" / "service.config.json"
+    poison.write_bytes(b'{"poisoned":true}\n')
+    expect_refusal(runtime, workspace, "run bundle mismatch", "cannot write the run bundle")
+    if inventory(workspace / "state") or inventory(workspace / "outbound"):
+        raise AssertionError("bundle OCI refusal touched state or outbound adapters")
+    if inventory(workspace / "bundle") != ["service.config.json"] or poison.read_bytes() != b'{"poisoned":true}\n':
+        raise AssertionError("bundle OCI refusal changed the pre-existing bundle input")
+    poison.unlink()
+
+
+def journey(runtime, workspace, configuration):
+    expect_unsupported_adapter(runtime, workspace, configuration)
     expect_missing_secret(runtime, workspace)
     write_secrets(workspace)
+    expect_bundle_refusal(runtime, workspace)
     process = runtime.start(port())
     try:
         wait_ready(process)
@@ -280,7 +312,7 @@ def main():
         runtime.require_available()
         try:
             runtime.load(package(args, workspace))
-            journey(runtime, workspace)
+            journey(runtime, workspace, args.config.read_bytes())
         finally:
             runtime.cleanup()
     print("packaged reference-service OCI runtime journey passed")

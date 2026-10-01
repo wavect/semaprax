@@ -445,12 +445,26 @@ uses `--network host` because the service deliberately listens on loopback, and
 mounts separate host-owned `state`, `outbound`, `secrets`, and `bundle`
 directories as its physical adapters. It never mounts the source project.
 
-Before secrets exist, the imported image must refuse without writing state,
-outbound, or bundle inventory. With the three named secrets supplied, the gate
+The imported image must refuse an unsupported database adapter and missing
+secrets without writing state, outbound, or bundle inventory. After the three
+named secrets are supplied, a pre-existing mismatched run-bundle input must
+also refuse without changing state, outbound, or that input. The gate then
 proves register/login, task create/update/delete, enqueue, an actual outbound
 adapter failure recorded as `uncertain`, and restart from the saved digest with
 no duplicate delivery. The image is removed only if the fixed local name did
 not exist before the gate; a pre-existing image with that name is refused.
+
+`.github/workflows/reference-service-oci-runtime.yml` is a separate
+Ubuntu 24.04 route, scoped to relevant pushes on `wavect/v080` and manual
+dispatch after the workflow reaches the default branch. It fetches the locked dependency closure,
+builds the current checkout's `x86_64-unknown-linux-musl` service binary,
+copies it to a single-link private artifact, records the exact checkout/tree,
+selected service/package inputs (including the canonical host-mode
+`scripts/tests/reference-service-host.config.json`), and artifact SHA-256,
+then calls the same Python OCI journey directly. It installs only `musl-tools`
+and Podman, uses no registry credentials or image pulls, and uploads the
+bounded identity record whether the journey passes or fails. A workflow
+definition is prepared runtime evidence, not a receipt that it has run.
 
 ```sh
 SEMAPRAX_REFERENCE_SERVICE_OCI_EXECUTABLE=/absolute/static-linux/semaprax-reference-service \

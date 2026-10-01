@@ -8,6 +8,11 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Add a branch-scoped Ubuntu/Podman reference-service OCI gate (#336) that
+  builds the exact static Linux artifact, checks source/artifact identity, and
+  exercises refusal plus login/CRUD/job/restart paths. Runtime evidence is
+  pending from the hosted gate.
+
 - Assert ordered target cleanup-event parity for durable fresh, ordinary
   recovery, migration-seeded, and seeded-recovery Agent runs (#327). Checkpoint
   prefix/current-suffix and independent evidence controls passed locally 2/2;

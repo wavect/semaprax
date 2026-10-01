@@ -24,8 +24,6 @@ https://github.com/user-attachments/assets/a3262e2e-85b0-4b08-8e90-cb6bc7cdcad4
 
 <div align="center">
 
-[![Recorded Semaprax CLI walkthrough: check a program, run it, inspect its meaning, and test a project](handbook/assets/demo/first-steps.gif)](handbook/getting-started/see-it-in-action.md)
-
 **Meet Ernesto, the official Semaprax mascot.** Follow his [two-minute visual tour](handbook/getting-started/see-it-in-action.md), then try the commands yourself.
 
 </div>
@@ -55,6 +53,8 @@ callers, and propose a change against the exact revision it inspected.
 This is a language and toolchain, not a prompt wrapper, a natural-language
 compiler, or a requirement to use AI. You can write and run ordinary programs
 without an AI model or API key.
+
+[![Recorded Semaprax CLI walkthrough: check a program, run it, inspect its meaning, and test a project](handbook/assets/demo/first-steps.gif)](handbook/getting-started/see-it-in-action.md)
 
 ## Get started
 

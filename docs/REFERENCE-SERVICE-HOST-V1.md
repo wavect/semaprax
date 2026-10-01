@@ -97,9 +97,14 @@ emit this OTLP log and does not invoke its structured-log policy.
 The `mark_job_succeeded` wrapper is contract-free and explicitly selects the
 same successful status as `std.jobs.retry.next_state_after_outcome(0, …)`;
 the standard helper remains outside this public seam because its declared
-postcondition is not admitted there. The remaining scaffold decisions not
-required by these routes retain their fixture-mode coverage and are documented
-as open in `reference_service::decisions`.
+postcondition is not admitted there. The only scaffold decision that remains
+fixture-only is `migration_is_admitted`: the accepted `snapshot` profile
+supplies no SQL migration history, while every SQL adapter label is refused
+before host binding. It is therefore outside this host's claimed route
+vocabulary. `method_is_rejected` is covered by the checked
+`request_is_admitted` decision on every exchange and by its direct
+decision-engine unit assertion; it does not need a second host route
+invocation.
 
 ### Optional inbound trace metadata
 
@@ -307,10 +312,11 @@ Local focused execution on 1 October 2026 passed all five selected tests:
   (21.57 seconds).
 
 These are local working-tree results for the session-policy batch, not an
-exact-commit, complete service-suite, full-profile, hosted, installed-container
-or production receipt. The separate unit assertion establishes absolute-expiry
-precedence; the coincident-deadline process result is not isolated
-absolute-only expiry evidence.
+exact-commit, complete service-suite, full-profile, hosted, or production
+receipt. The separate unit assertion establishes absolute-expiry precedence;
+the coincident-deadline process result is not isolated absolute-only expiry
+evidence. The separately recorded installed-development and OCI execution
+receipts appear below.
 
 Focused verification uses the existing harnesses:
 
@@ -320,11 +326,15 @@ cargo test --locked -p semaprax-native-host --test runtime_host reference_servic
 ```
 
 The repository full profile and generated-scaffold preservation gates remain
-required. The remaining scaffold decision routes described above, runnable OCI
-packaging and its installed runtime journey remain open; these five passes do
-not establish complete #336 acceptance.
+required. Within the accepted snapshot host profile, every claimed route uses
+its documented checked decision vocabulary; migration remains fixture-only for
+the explicitly refused SQL profiles, and method rejection is included through
+checked request admission. These five passes establish the session-policy
+slice; the later sections record the separate installed-development and OCI
+runtime receipts. They do not establish broader reference-application,
+deployment, release, or production support.
 
-## Offline native service packaging (#336, pending execution gate)
+## Offline native service packaging (#336)
 
 `scripts/package-reference-service.py` adds a separate operator-invoked package
 route. The frozen `semaprax build --target oci` route remains a Wasm artifact;

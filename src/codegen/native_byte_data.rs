@@ -11,6 +11,15 @@ pub(super) fn emit_runtime(output: &mut impl super::COutput) {
     output.push_str(BYTE_DATA_DROP_C);
 }
 
+/// Emit byte-buffer store helpers introduced after the frozen default runtime.
+///
+/// These functions depend only on the default byte runtime. Keeping them in a
+/// separately selected fragment preserves the exact legacy projection used by
+/// existing generated packages.
+pub(super) fn emit_additive_operations(output: &mut impl super::COutput) {
+    output.push_str(BYTE_DATA_ADDITIVE_OPERATIONS_C);
+}
+
 pub(super) fn emit_reserved_runtime(output: &mut impl super::COutput) {
     output.push_str(BYTE_DATA_PREFIX_C);
     output.push_str(include_str!("native_byte_data/reserved_allocators.c"));
@@ -202,7 +211,30 @@ static __attribute__((unused)) spx_bytes_v1 spx_bytes_set(
     return buffer;
 }
 
-/* Five-byte stores use the same status but preflight the whole interval before
+static __attribute__((unused)) spx_slice_u8_v1 spx_bytes_as_slice(
+    const spx_bytes_v1 *value
+) {
+    if (value == NULL) {
+        spx_runtime_invariant_failure("owned byte borrow has a null carrier");
+    }
+    spx_bytes_require_valid(*value);
+    return (spx_slice_u8_v1){ .ptr = value->ptr, .len = value->len };
+}
+
+static __attribute__((unused)) spx_bytes_v1 spx_bytes_move(spx_bytes_v1 *source) {
+    if (source == NULL) {
+        spx_runtime_invariant_failure("owned byte move has a null carrier");
+    }
+    spx_bytes_require_valid(*source);
+    spx_bytes_v1 moved = *source;
+    source->ptr = NULL;
+    source->len = UINT64_C(0);
+    return moved;
+}
+
+"#;
+
+const BYTE_DATA_ADDITIVE_OPERATIONS_C: &str = r#"/* Five-byte stores use the same status but preflight the whole interval before
    ownership commits, so no failed call can publish a partial prefix. */
 static __attribute__((unused)) spx_status_token spx_bytes_set5_check_v1(
     struct spx_context *spx_ctx, spx_bytes_v1 buffer, uint64_t index
@@ -332,27 +364,6 @@ static __attribute__((unused)) spx_bytes_v1 spx_bytes_set5(
     return buffer;
 }
 
-static __attribute__((unused)) spx_slice_u8_v1 spx_bytes_as_slice(
-    const spx_bytes_v1 *value
-) {
-    if (value == NULL) {
-        spx_runtime_invariant_failure("owned byte borrow has a null carrier");
-    }
-    spx_bytes_require_valid(*value);
-    return (spx_slice_u8_v1){ .ptr = value->ptr, .len = value->len };
-}
-
-static __attribute__((unused)) spx_bytes_v1 spx_bytes_move(spx_bytes_v1 *source) {
-    if (source == NULL) {
-        spx_runtime_invariant_failure("owned byte move has a null carrier");
-    }
-    spx_bytes_require_valid(*source);
-    spx_bytes_v1 moved = *source;
-    source->ptr = NULL;
-    source->len = UINT64_C(0);
-    return moved;
-}
-
 "#;
 
 const BYTE_DATA_DROP_C: &str = r#"static __attribute__((unused)) void spx_bytes_drop(spx_bytes_v1 *value) {
@@ -398,5 +409,40 @@ mod tests {
         assert_ne!(digest(&reordered), FROZEN);
         let omitted = [BYTE_DATA_PREFIX_C, BYTE_DATA_ALLOCATORS_C, BYTE_DATA_DROP_C].concat();
         assert_ne!(digest(&omitted), FROZEN);
+    }
+
+    #[test]
+    fn additive_store_helpers_are_emitted_only_for_reachable_operations() {
+        let legacy = crate::check(
+            "module test.byte_runtime_legacy; @id(\"app.main\") fn main() -> i64 { let buffer = bytes_set(bytes_zeroed(1usize), 0usize, 1u8); let view = bytes_as_slice(buffer); if byte_len(view) == 1usize { 0 } else { 1 } }",
+            "byte-runtime-legacy.spx",
+        )
+        .unwrap();
+        let legacy_c = crate::codegen::emit_c(&legacy).unwrap();
+        assert!(!legacy_c.contains("spx_bytes_set5_check_v1"));
+        assert!(!legacy_c.contains("spx_bytes_set1_or5_check_v1"));
+        assert!(!legacy_c.contains("spx_bytes_set1_or6_or48_check_v1"));
+
+        for (source, invoked) in [
+            (
+                "module test.byte_runtime_set5; @id(\"app.main\") fn main() -> i64 { let buffer = bytes_set5(bytes_zeroed(5usize), 0usize, 1u8, 2u8, 3u8, 4u8, 5u8); let view = bytes_as_slice(buffer); if byte_len(view) == 5usize { 0 } else { 1 } }",
+                "spx_bytes_set5(spx_bytes_move",
+            ),
+            (
+                "module test.byte_runtime_set1_or5; @id(\"app.main\") fn main() -> i64 { let raw = [1u8]; let source = array_as_slice(raw); let buffer = bytes_set1_or5_from_slice(bytes_zeroed(5usize), 0usize, 1u8, source, 9223372036854775808usize); let view = bytes_as_slice(buffer); if byte_len(view) == 5usize { 0 } else { 1 } }",
+                "spx_bytes_set1_or5(spx_bytes_move",
+            ),
+            (
+                "module test.byte_runtime_set1_or6_or48; @id(\"app.main\") fn main() -> i64 { let raw = [1u8]; let source = array_as_slice(raw); let buffer = bytes_set1_or6_or48_from_slice(bytes_zeroed(48usize), 0usize, 1u8, source, 13835058055282163712usize); let view = bytes_as_slice(buffer); if byte_len(view) == 48usize { 0 } else { 1 } }",
+                "spx_bytes_set1_or6_or48(spx_bytes_move",
+            ),
+        ] {
+            let program = crate::check(source, "byte-runtime-additive.spx").unwrap();
+            let emitted = crate::codegen::emit_c(&program).unwrap();
+            assert!(emitted.contains(invoked), "missing selected helper for {invoked}");
+            assert!(emitted.contains("spx_bytes_set5_check_v1"));
+            assert!(emitted.contains("spx_bytes_set1_or5_check_v1"));
+            assert!(emitted.contains("spx_bytes_set1_or6_or48_check_v1"));
+        }
     }
 }

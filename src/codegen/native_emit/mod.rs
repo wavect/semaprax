@@ -503,6 +503,9 @@ fn emit_native_prelude_inner(
         } else {
             native_byte_data::emit_runtime(output);
         }
+        if program_uses_additive_byte_operations(program) {
+            native_byte_data::emit_additive_operations(output);
+        }
     }
     if native_vec::program_uses_vec(program) || native_iter::program_uses_iterator(program) {
         native_vec::emit_runtime(output, program);
@@ -555,6 +558,36 @@ fn program_uses_byte_data(program: &ResolvedProgram) -> bool {
     }
     crate::box_ops::resolved_program_uses_owned_payload(program)
         || crate::vec_ops::resolved_program_uses_owned_payload(program)
+}
+
+/// Store helpers added after the frozen byte runtime are emitted only for a
+/// resolved call that can reach them. This keeps legacy native projections and
+/// generated package pins byte exact while retaining the helper definitions
+/// needed by the newer owned-buffer lowering paths.
+fn program_uses_additive_byte_operations(program: &ResolvedProgram) -> bool {
+    let mut pending: Vec<&ResolvedExpr> = Vec::new();
+    for function in &program.functions {
+        pending.push(&function.body);
+        pending.extend(function.requires.iter().chain(&function.ensures));
+    }
+    while let Some(expression) = pending.pop() {
+        if matches!(
+            &expression.kind,
+            ResolvedExprKind::Call { callee, .. }
+                if matches!(
+                    crate::byte_ops::by_id(callee.as_str()),
+                    Some(
+                        crate::byte_ops::ByteOp::Set5
+                            | crate::byte_ops::ByteOp::Set1Or5
+                            | crate::byte_ops::ByteOp::Set1Or6Or48
+                    )
+                )
+        ) {
+            return true;
+        }
+        pending.extend(resolved_expr_children(expression));
+    }
+    false
 }
 /// Whether any resolved signature, body, or contract admits an owned string
 /// value that lowers through the string runtime helpers.

@@ -8,6 +8,11 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Preserve the frozen public-generic native byte-runtime and generated-package
+  bytes by emitting newer buffer-store helpers only for resolved calls that use
+  them (#337). The legacy runtime pin and selected-helper regression now run
+  together.
+
 - Add a private consuming turn-two Complete closure through actual Step cleanup,
   field transfer, terminal ACK and original Report claim (#330). Every refusal
   retains its reached owner and spent funding. Focused local success and

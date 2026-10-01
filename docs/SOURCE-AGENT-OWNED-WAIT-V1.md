@@ -930,8 +930,14 @@ Copy observation into turn-two `OwnedWaitCreated` and original Start
 reservation. Both rows use the fixed ContinuedStart candidate, pending writer,
 same-file reread and cumulative hold registry; a refused append retains the
 later owner. The focused Start success and prewrite-refusal selectors passed
-locally. Later failed-Observe cleanup, physical source entry, Model, Effect,
-Reduce and Step still require their owner joins.
+locally. A later two-ACK Start owner now has a consuming source-entry join:
+it validates the current original Start reservation, cumulative hold, policy
+and clock, then moves the same physical State through the existing continued
+wait preparation and source helper. The returned private owner retains the
+actual Parked outcome and original observation and ACKs. This source-entry
+join passed its owning success and Start-prewrite refusal selectors locally.
+Later failed-Observe cleanup, Prepared checkpoint, Model,
+Effect, Reduce and Step still require their owner joins.
 
 Public multi-turn entry, public Report delivery and physical owner restoration
 after restart remain

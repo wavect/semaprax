@@ -304,6 +304,7 @@ fn continued_reduce_chain_step_ack(fault: u8, three_turns: bool) {
             .unwrap_or_else(|_| panic!("actual checked Model adapter"));
             let model_sequence = journal.begin_session().unwrap().sequence();
             let resume_entries = crate::interpreter::resumable::owned_frame::registered_stage::live_run::test_continued_resume_entries_v8();
+            let start_entries = crate::interpreter::resumable::owned_frame::registered_stage::reduce::PreparedHeldContinuedWaitV2::test_start_entries();
 
             let model = advance_live_owned_continued_model_v8(journal, prepared, &adapter)
                 .unwrap_or_else(|_| panic!("actual Model request and ACK"));
@@ -1020,26 +1021,86 @@ fn continued_reduce_chain_step_ack(fault: u8, three_turns: bool) {
                                             assert!(
                                                 matches!(reserved.selected(), EntryV8::Owned(crate::live_invocation::source_journal::owned_wait_v8::model::OwnedBodyV8::OwnedWaitReserved { turn: 2, attempt: 0, phase: crate::live_invocation::source_journal::owned_wait_v8::model::PhaseV8::Start, replay_of: None, fuel, .. }) if *fuel == execution.evaluation_fuel() as u64)
                                             );
-                                            let started = journal
-                                                .begin_session()
-                                                .unwrap()
-                                                .append_owned_later_start(reserved)
-                                                .unwrap_or_else(|_| {
-                                                    panic!("turn-2 Start reservation ACK")
-                                                })
-                                                .advance_later_start()
-                                                .unwrap_or_else(|_| {
-                                                    panic!("retained turn-2 Start owner")
-                                                });
-                                            started.validate_live().unwrap();
-                                            assert_eq!(
-                                                started.sequence(),
-                                                final_session.sequence() + 2
-                                            );
-                                            assert!(weak
-                                                .iter()
-                                                .any(|owner| owner.strong_count() == 1));
-                                            drop(started);
+                                            if fault == 9 {
+                                                let before = journal
+                                                    .lease
+                                                    .try_borrow_mut()
+                                                    .unwrap()
+                                                    .read()
+                                                    .unwrap();
+                                                #[cfg(unix)]
+                                                journal
+                                                    .lease
+                                                    .try_borrow_mut()
+                                                    .unwrap()
+                                                    .test_fail_before_write(
+                                                        final_session.sequence() + 2,
+                                                    );
+                                                #[cfg(not(unix))]
+                                                unreachable!("fault injection is Unix-only");
+                                                let failed = journal
+                                                    .begin_session()
+                                                    .unwrap()
+                                                    .append_owned_later_start(reserved)
+                                                    .err()
+                                                    .expect("turn-2 Start prewrite refusal");
+                                                assert!(matches!(&failed, crate::live_invocation::source_journal::owned_wait_v8::append::continued_start::LiveOwnedLaterStartAppendFailureV8::Append { .. }));
+                                                #[cfg(unix)]
+                                                assert_eq!(
+                                                    journal
+                                                        .lease
+                                                        .try_borrow()
+                                                        .unwrap()
+                                                        .test_persisted_snapshot()
+                                                        .unwrap(),
+                                                    before
+                                                );
+                                                assert!(journal.begin_session().is_err());
+                                                assert_eq!(crate::interpreter::resumable::owned_frame::registered_stage::reduce::PreparedHeldContinuedWaitV2::test_start_entries(), start_entries);
+                                                assert!(weak
+                                                    .iter()
+                                                    .any(|owner| owner.strong_count() == 1));
+                                                drop(failed);
+                                            } else {
+                                                let started = journal
+                                                    .begin_session()
+                                                    .unwrap()
+                                                    .append_owned_later_start(reserved)
+                                                    .unwrap_or_else(|_| {
+                                                        panic!("turn-2 Start reservation ACK")
+                                                    })
+                                                    .advance_later_start()
+                                                    .unwrap_or_else(|_| {
+                                                        panic!("retained turn-2 Start owner")
+                                                    });
+                                                started.validate_live().unwrap();
+                                                assert_eq!(
+                                                    started.sequence(),
+                                                    final_session.sequence() + 2
+                                                );
+                                                assert!(weak
+                                                    .iter()
+                                                    .any(|owner| owner.strong_count() == 1));
+                                                let entered =
+                                                    started.enter_actual_source().unwrap_or_else(
+                                                        |_| panic!("one-use turn-2 source entry"),
+                                                    );
+                                                entered.validate_live().unwrap();
+                                                let (state, request, ordinary_steps) =
+                                                    entered.test_ordinary_start();
+                                                assert_eq!(
+                                                    entered.consumed(),
+                                                    Some(ordinary_steps as u64)
+                                                );
+                                                assert_eq!(entered.test_accounting(), &accounting);
+                                                assert_eq!(crate::interpreter::resumable::checkpoint::channel_json(&request), entered.test_observation().copy_arguments()[0]["value"]);
+                                                assert_eq!(state, target["state"]);
+                                                assert_eq!(crate::interpreter::resumable::owned_frame::registered_stage::reduce::PreparedHeldContinuedWaitV2::test_start_entries(), start_entries + 1);
+                                                assert!(weak
+                                                    .iter()
+                                                    .any(|owner| owner.strong_count() == 1));
+                                                drop(entered);
+                                            }
                                         }
                                     }
                                 }
@@ -1157,6 +1218,11 @@ fn continued_reduce_chain_step_ack(fault: u8, three_turns: bool) {
             resume_entries + 1,
             "only the fourth Model ACK may resume source"
         );
+            assert_eq!(
+                crate::interpreter::resumable::owned_frame::registered_stage::reduce::PreparedHeldContinuedWaitV2::test_start_entries(),
+                start_entries + usize::from(three_turns && fault == 0),
+                "only the turn-two Start ACK may enter the source helper again"
+            );
             assert!(weak.iter().all(|owner| owner.upgrade().is_none()));
             fault == 0 && !three_turns
         })
@@ -1214,6 +1280,11 @@ fn owned_continued_step_turn_two_settlement_prewrite_refusal_retains_observed_ow
 #[cfg(unix)]
 fn owned_continued_step_turn_two_created_prewrite_refusal_retains_later_owner() {
     continued_reduce_chain_step_ack(8, true);
+}
+#[test]
+#[cfg(unix)]
+fn owned_continued_step_turn_two_start_prewrite_refusal_never_enters_source() {
+    continued_reduce_chain_step_ack(9, true);
 }
 #[test]
 fn owned_continue_actual_state_and_observe_acks_preserve_owner_ledger_and_cumulative_funding() {

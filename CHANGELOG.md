@@ -8,6 +8,11 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Enter the physical turn-two source wait from the retained two-ACK Start owner
+  (#330), preserving the State, Copy observation, fuel accounting, and original
+  Start reservation. The focused success and prewrite-refusal selectors passed
+  locally; later checkpoint and public recovery remain open.
+
 - Bind actual OTLP completion logs to the checked structured-log policy
   (#336), with source denial before delivery and six explicit credential flags.
   Correct the default metric wrapper so successful completion evaluates under

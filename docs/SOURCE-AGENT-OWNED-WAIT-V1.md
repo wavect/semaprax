@@ -878,6 +878,14 @@ This row does not execute physical cleanup or publish a result. The focused
 real-chain success and prewrite-refusal selectors each passed locally; the
 fault retains the staged owner and quarantines the append lease.
 
+From that actual incurred Started holder, the private continued Step now
+passes the existing physical cleanup engine its sealed owner-bound permit,
+releases the compiler's selected cleanup vector once, and appends the actual
+`OwnedReduceCleanupSettled` receipt. A prewrite fault on the receipt append
+retains the released owner and cannot repeat cleanup. The focused success and
+receipt-prewrite real-chain selectors each passed locally. Result transfer,
+terminal publication, public entry, and restart recovery remain separate.
+
 Continued Step completion, terminal publication, public multi-turn entry and restart
 recovery remain unfinished. This bounded local result is not completion of the
 public owned-Agent lifecycle criterion.

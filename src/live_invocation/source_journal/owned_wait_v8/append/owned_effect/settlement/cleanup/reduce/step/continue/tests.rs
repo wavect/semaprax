@@ -489,27 +489,50 @@ fn continued_reduce_chain_step_ack(fault: u8) {
                     [1, 0],
                     "ACKed holder retains the carried State and retires the prior Outcome"
                 );
-                let cleanup = staged.prepare_cleanup().unwrap_or_else(|_| panic!("real turn-1 cleanup basis"));
-                assert!(matches!(cleanup.selected_row(), EntryV8::Owned(crate::live_invocation::source_journal::owned_wait_v8::model::OwnedBodyV8::OwnedReduceCleanupStarted {
+                let cleanup = staged
+                    .prepare_cleanup()
+                    .unwrap_or_else(|_| panic!("real turn-1 cleanup basis"));
+                assert!(
+                    matches!(cleanup.selected_row(), EntryV8::Owned(crate::live_invocation::source_journal::owned_wait_v8::model::OwnedBodyV8::OwnedReduceCleanupStarted {
                     turn: 1, attempt: 0, consumed, operations, ..
-                }) if *consumed == u64::try_from(facts.consumed()).unwrap() && operations == facts.operations()));
+                }) if *consumed == u64::try_from(facts.consumed()).unwrap() && operations == facts.operations())
+                );
                 let cleanup_before = journal.lease.try_borrow_mut().unwrap().read().unwrap();
                 if fault == 2 {
                     #[cfg(unix)]
-                    journal.lease.try_borrow_mut().unwrap().test_fail_before_write(sequence + 2);
+                    journal
+                        .lease
+                        .try_borrow_mut()
+                        .unwrap()
+                        .test_fail_before_write(sequence + 2);
                     #[cfg(not(unix))]
                     unreachable!("fault injection is Unix-only");
-                    let failed = journal.begin_session().unwrap().append_owned_step(cleanup)
-                        .err().expect("cleanup Started must not ACK through a prewrite fault");
+                    let failed = journal
+                        .begin_session()
+                        .unwrap()
+                        .append_owned_step(cleanup)
+                        .err()
+                        .expect("cleanup Started must not ACK through a prewrite fault");
                     assert!(matches!(&failed, crate::live_invocation::source_journal::owned_wait_v8::append::owned_effect::settlement::cleanup::reduce::step::LiveOwnedStepAppendFailureV8::Append { .. }));
                     assert_eq!([weak[0].strong_count(), weak[1].strong_count()], [1, 0]);
                     #[cfg(unix)]
-                    assert_eq!(journal.lease.try_borrow().unwrap().test_persisted_snapshot().unwrap(), cleanup_before);
+                    assert_eq!(
+                        journal
+                            .lease
+                            .try_borrow()
+                            .unwrap()
+                            .test_persisted_snapshot()
+                            .unwrap(),
+                        cleanup_before
+                    );
                     assert!(journal.begin_session().is_err());
                     assert!(journal.hold().is_err());
                     drop(failed);
                 } else {
-                    let acknowledged = journal.begin_session().unwrap().append_owned_step(cleanup)
+                    let acknowledged = journal
+                        .begin_session()
+                        .unwrap()
+                        .append_owned_step(cleanup)
                         .unwrap_or_else(|_| panic!("durable turn-1 cleanup Started ACK"));
                     acknowledged.validate_live().unwrap();
                     let crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect::authorization::step::LiveStepAcknowledgedV8::Continued(started) = acknowledged.advance_step()
@@ -519,7 +542,78 @@ fn continued_reduce_chain_step_ack(fault: u8) {
                     assert!(matches!(journal.begin_session().unwrap().inventory.step_reduce_facts().unwrap().4,
                         EntryV8::Owned(crate::live_invocation::source_journal::owned_wait_v8::model::OwnedBodyV8::OwnedReduceCleanupStarted { turn: 1, attempt: 0, .. })));
                     assert_eq!([weak[0].strong_count(), weak[1].strong_count()], [1, 0]);
-                    drop(started);
+                    let mut step_cleanup_actions = 0;
+                    let released = started
+                        .release(|_| step_cleanup_actions += 1)
+                        .unwrap_or_else(|_| panic!("one physical turn-1 Step cleanup"));
+                    assert_eq!(step_cleanup_actions, 1);
+                    released.validate_live().unwrap();
+                    let receipt = released
+                        .prepare_receipt()
+                        .unwrap_or_else(|_| panic!("actual turn-1 cleanup receipt"));
+                    let selected_receipt = receipt.selected_row().clone();
+                    assert!(matches!(&selected_receipt,
+                        EntryV8::Owned(crate::live_invocation::source_journal::owned_wait_v8::model::OwnedBodyV8::OwnedReduceCleanupSettled {
+                            turn: 1, attempt: 0, receipt, ..
+                        }) if receipt["settlement"] == "completed" && receipt["operations"].as_array().is_some_and(|a| a.len() == 1)));
+                    let receipt_before = journal.lease.try_borrow_mut().unwrap().read().unwrap();
+                    if fault == 3 {
+                        #[cfg(unix)]
+                        journal
+                            .lease
+                            .try_borrow_mut()
+                            .unwrap()
+                            .test_fail_before_write(sequence + 3);
+                        #[cfg(not(unix))]
+                        unreachable!("fault injection is Unix-only");
+                        let failed = journal
+                            .begin_session()
+                            .unwrap()
+                            .append_owned_step(receipt)
+                            .err()
+                            .expect("receipt cannot ACK through a prewrite fault");
+                        assert!(matches!(&failed, crate::live_invocation::source_journal::owned_wait_v8::append::owned_effect::settlement::cleanup::reduce::step::LiveOwnedStepAppendFailureV8::Append { .. }));
+                        assert_eq!(
+                            step_cleanup_actions, 1,
+                            "postrelease fault cannot rerun cleanup"
+                        );
+                        #[cfg(unix)]
+                        assert_eq!(
+                            journal
+                                .lease
+                                .try_borrow()
+                                .unwrap()
+                                .test_persisted_snapshot()
+                                .unwrap(),
+                            receipt_before
+                        );
+                        assert!(journal.begin_session().is_err());
+                        assert!(journal.hold().is_err());
+                        drop(failed);
+                    } else {
+                        let acknowledged = journal
+                            .begin_session()
+                            .unwrap()
+                            .append_owned_step(receipt)
+                            .unwrap_or_else(|_| panic!("turn-1 cleanup receipt ACK"));
+                        acknowledged.validate_live().unwrap();
+                        let crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect::authorization::step::LiveStepAcknowledgedV8::Continued(settled) = acknowledged.advance_step()
+                            .unwrap_or_else(|_| panic!("same released turn-1 owner")) else {panic!("continued receipt owner")};
+                        settled.validate_live().unwrap();
+                        assert_eq!(journal.begin_session().unwrap().sequence(), sequence + 3);
+                        assert_eq!(
+                            journal
+                                .begin_session()
+                                .unwrap()
+                                .inventory
+                                .step_reduce_facts()
+                                .unwrap()
+                                .4,
+                            &selected_receipt
+                        );
+                        assert_eq!(step_cleanup_actions, 1);
+                        drop(settled);
+                    }
                 }
             }
             assert_eq!(
@@ -559,6 +653,11 @@ fn owned_continued_step_real_prewrite_fault_retains_owner_and_poison() {
 #[cfg(unix)]
 fn owned_continued_cleanup_started_prewrite_fault_retains_staged_owner() {
     continued_reduce_chain_step_ack(2);
+}
+#[test]
+#[cfg(unix)]
+fn owned_continued_cleanup_receipt_prewrite_fault_keeps_release_sticky() {
+    continued_reduce_chain_step_ack(3);
 }
 #[test]
 fn owned_continue_actual_state_and_observe_acks_preserve_owner_ledger_and_cumulative_funding() {

@@ -1,9 +1,7 @@
 //! Actual staged/ReadyStep consumers. Only a sealed owner-bound source permit
 //! supplies cleanup/transfer ACK lineage; decoded rows cannot call this route.
 use super::*;
-use crate::live_invocation::source_journal::{
-    LiveOwnedReduceCleanupPermitV8, LiveOwnedStepTransferPermitV8, SourceJournalError,
-};
+use crate::live_invocation::source_journal::{LiveOwnedStepTransferPermitV8, SourceJournalError};
 use serde_json::{json, Value as Json};
 
 pub(crate) enum LiveOwnedReduceCleanupFailureV8<'j> {
@@ -20,9 +18,19 @@ pub(crate) enum LiveOwnedReduceCleanupFailureV8<'j> {
         error: SourceJournalError,
     },
 }
+/// Only source permits bound to a live owner implement the cleanup gate.
+pub(crate) trait LiveOwnedReduceCleanupGuardV8 {
+    fn cleanup_origin(&self) -> Result<OwnedReduceCleanupOriginV8, SourceJournalError>;
+    fn validate_cleanup_current(&self) -> Result<(), SourceJournalError>;
+    fn validate_staged(
+        &self,
+        inputs: &OwnedEffectInputsV8<'_>,
+        facts: &CheckedLiveOwnedReduceStageFactsV8,
+    ) -> Result<(), SourceJournalError>;
+}
 pub(crate) fn settle_live_owned_reduce_v8<'j>(
     staged: StagedExecutedOwnedReduceV2<'j>,
-    permit: &LiveOwnedReduceCleanupPermitV8<'_, 'j>,
+    permit: &impl LiveOwnedReduceCleanupGuardV8,
     observe: impl FnMut(&FinalizeAction),
 ) -> Result<ExecutedOwnedReduceSettledV2<'j>, LiveOwnedReduceCleanupFailureV8<'j>> {
     let checked = (|| {

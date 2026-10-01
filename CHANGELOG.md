@@ -8,6 +8,12 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Carry the real continued Step cleanup-start owner through the existing
+  physical cleanup engine and durably ACK its actual settled receipt (#330).
+  Success and receipt-prewrite fault real-chain selectors each passed locally;
+  a failed append retains the released owner and cannot release twice. Result
+  transfer, public entry, and restart recovery remain open.
+
 - Close the reference-service authenticated-route clock boundary (#336):
   unknown route and method shapes now refuse before acquiring a session clock,
   and exact idle/absolute expiry selects only the checked terminal session

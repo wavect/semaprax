@@ -257,6 +257,23 @@ impl LiveOwnedReduceCleanupPermitV8<'_, '_> {
         self.validate_cleanup_current()
     }
 }
+impl crate::interpreter::resumable::owned_frame::registered_stage::reduce::LiveOwnedReduceCleanupGuardV8
+    for LiveOwnedReduceCleanupPermitV8<'_, '_>
+{
+    fn cleanup_origin(&self) -> Result<OwnedReduceCleanupOriginV8, SourceJournalError> {
+        LiveOwnedReduceCleanupPermitV8::cleanup_origin(self)
+    }
+    fn validate_cleanup_current(&self) -> Result<(), SourceJournalError> {
+        LiveOwnedReduceCleanupPermitV8::validate_cleanup_current(self)
+    }
+    fn validate_staged(
+        &self,
+        inputs: &OwnedEffectInputsV8<'_>,
+        facts: &CheckedLiveOwnedReduceStageFactsV8,
+    ) -> Result<(), SourceJournalError> {
+        LiveOwnedReduceCleanupPermitV8::validate_staged(self, inputs, facts)
+    }
+}
 pub(crate) struct LiveOwnedStepTransferPermitV8<'p, 'j> {
     lineage: &'p StepLineageV8<'j>,
 }

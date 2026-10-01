@@ -8,6 +8,10 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Extend the selected Windows doctor launch test with post-binding hard-link
+  creation and writable-section probes (#333). The native Windows gate has
+  not run at this revision; exact launched-image binding remains open.
+
 - Check optional inbound version-00 trace metadata through the reference
   service's source decision before clock or state work (#336). Five focused
   success, denial, compatibility, and oracle cases passed locally; no trace

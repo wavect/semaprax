@@ -328,16 +328,19 @@ launcher. The deterministic test capsule signs the actual test image's bytes;
 its other slots remain fixture-only inputs and are not transport evidence.
 
 The seven new selected cases exercise signed length/digest/role mismatch before
-launch, denied leaf deletion/write/rename and ancestor rename between admission
-and spawn, pre-existing writable handles and hardlinks, a writable mapping whose
-handles have both closed, a retained PAGE_READWRITE section without any view,
-drop-time process/image handle settlement, and an explicitly inheritable
-delete-on-close sentinel that must not reach the child outside its three
-standard handles. The section-without-view case requires pre-spawn refusal; its
-behavior is still unverified on Windows. Success controls require NTFS/oplock
-acquisition to work; no unavailable prerequisite can pass by skipping. All
-seventeen native cases still require an authorized
-Windows execution at the changed revision.
+launch, denied post-binding leaf deletion/write/rename/hardlink creation and
+ancestor rename, a failed post-binding writable-section request from a newly
+opened read handle, pre-existing writable handles and hardlinks, a writable
+mapping whose handles have both closed, a retained PAGE_READWRITE section
+without any view, drop-time process/image handle settlement, and an explicitly
+inheritable delete-on-close sentinel that must not reach the child outside its
+three standard handles. The post-binding section request only demonstrates
+that a new read-only handle cannot mint writable-section access; it does not
+address an already retained writable section. The section-without-view case
+requires pre-spawn refusal; its behavior is still unverified on Windows.
+Success controls require NTFS/oplock acquisition to work; no unavailable
+prerequisite can pass by skipping. All seventeen native cases still require an
+authorized Windows execution at the changed revision.
 
 Local verification on 30 September 2026: the initial `64472c71b` continuation
 and the retained-oplock correction both passed the Windows-target check below
@@ -523,6 +526,10 @@ plus `windows_runtime_timeout_terminates_an_actual_job_descendant`,
 and `windows_runtime_protected_scratch_dacl_blocks_inherited_parent_ace`.
 The nested `primitive::tests::binding` module adds the seven cases described in
 [Signed image binding](#signed-image-binding-continuation-333-native-execution-pending).
+Its post-binding launch hook attempts a new hard link, writable open, and
+writable section from a fresh read handle before process creation; each must
+refuse before the authenticated child is allowed to run. Those attempts do not
+model a retained writable section and do not establish exact image binding.
 The child-launch cases traverse `confined_spawn_using`; capsule verification
 uses the production release-key path or the explicit test-only key seam. The success case inspects
 the child's disabled privilege set and job membership/limits, reads back the

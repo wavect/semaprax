@@ -107,6 +107,8 @@ fn windows_runtime_signed_image_mismatch_refuses_before_process_effects() {
 #[test]
 #[ignore = "requires the explicitly provisioned Windows runtime gate"]
 fn windows_runtime_signed_image_pins_leaf_and_ancestors_through_launch() {
+    use windows_sys::Win32::System::Memory::{CreateFileMappingW, PAGE_READWRITE};
+
     let fixture = Fixture::new();
     let capsule = test_capsule_body();
     let admitted =
@@ -125,6 +127,14 @@ fn windows_runtime_signed_image_pins_leaf_and_ancestors_through_launch() {
         || Ok(verified(&capsule)),
         || {
             attempted.set(true);
+            let late_alias = fixture.images.join("late-alias.exe");
+            if std::fs::hard_link(&fixture.executable, &late_alias).is_ok() {
+                // Keep the owned fixture removable before reporting the failed
+                // exclusion. A successful post-binding hard link would make
+                // the authenticated leaf multiply linked after admission.
+                std::fs::remove_file(&late_alias).unwrap();
+                panic!("held image admitted a post-binding hard-link substitution");
+            }
             assert!(
                 std::fs::rename(&fixture.executable, fixture.images.join("moved.exe")).is_err()
             );
@@ -134,6 +144,27 @@ fn windows_runtime_signed_image_pins_leaf_and_ancestors_through_launch() {
                 .write(true)
                 .open(&fixture.executable)
                 .is_err());
+            let reader = OpenOptions::new()
+                .read(true)
+                .open(&fixture.executable)
+                .unwrap();
+            // SAFETY: `reader` is a live read-only handle. The requested
+            // writable section must fail: the held-image sharing guard denied
+            // a writer, and this new handle never held write access.
+            let mapping = unsafe {
+                CreateFileMappingW(
+                    reader.as_raw_handle(),
+                    std::ptr::null(),
+                    PAGE_READWRITE,
+                    0,
+                    0,
+                    std::ptr::null(),
+                )
+            };
+            if !mapping.is_null() {
+                drop(Handle::new(mapping));
+                panic!("post-binding read handle unexpectedly created a writable section");
+            }
         },
     )
     .expect("authenticated held image launches after every substitution is denied");

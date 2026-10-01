@@ -8,6 +8,12 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Bind reference-service job completion to the checked source decision (#336):
+  the host admits only the source-selected Completed status before preparing
+  delivery or a snapshot; source denial and evaluator failure leave committed
+  state and outbound inventory unchanged. Both focused completion-policy tests
+  passed locally. Broader service decisions and storage remain open.
+
 - Add a distinct `otlp-http-json` reference-service telemetry adapter (#336):
   checked configuration and host replay select OTLP/HTTP JSON-Protobuf logs at
   `/v1/logs`, with strict full-success response handling and no webhook

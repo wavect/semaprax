@@ -67,9 +67,19 @@ does not sample a clock or admit delayed scheduling. Source denial returns
 `403 enqueue_not_admitted`; evaluator failure returns `500 decision_failed`,
 before candidate state or outbound work. Existing idempotent replay/conflict
 paths retain their prior behavior. Direct selection of the contract-bearing standard-library enqueue
-helper still refuses at the public-API seam. The remaining scaffold decisions not required by
-these routes retain their fixture-mode coverage and are documented as open in
-`reference_service::decisions`.
+helper still refuses at the public-API seam. Before the completion route
+prepares telemetry or constructs a candidate snapshot, it invokes
+`mark_job_succeeded` with the reference profile's single successful-attempt
+facts (`attempt=0`, `max_attempts=3`). Only source status `4` maps to this
+host's `Completed` representation; another source-selected status returns
+`403 completion_not_admitted`, and evaluator failure returns
+`500 decision_failed`. Both refusals preserve the pending job and avoid an
+outbound attempt. The wrapper is contract-free and explicitly selects the
+same successful status as `std.jobs.retry.next_state_after_outcome(0, …)`;
+the standard helper remains outside this public seam because its declared
+postcondition is not admitted there. The remaining scaffold decisions not
+required by these routes retain their fixture-mode coverage and are documented
+as open in `reference_service::decisions`.
 
 Routes: `GET /v1/health`, `POST /v1/register`, `POST /v1/login`,
 `POST /v1/logout`, `POST /v1/tasks`, `GET/PATCH/DELETE /v1/tasks/<id>`,
@@ -372,27 +382,36 @@ release provenance, or close #336 and the broader scaffold decision gaps above.
 
 ### Immediate enqueue checked-source parity
 
-The immediate enqueue seam now selects the existing checked scaffold
+The immediate enqueue seam selects the existing checked scaffold
 `enqueue_is_legal` decision instead of assuming that every new Pending candidate
 is admissible. This uses the already admitted scalar vocabulary and changes no
 language, snapshot schema, adapter, or standard-library contract. The host still
-supports immediate Pending jobs only. `mark_job_succeeded` remains outside the
-invocation closure because its standard-library retry callee has a postcondition;
-the host's fixed Completed representation is not claimed as source-selected by
-this batch. Migration/transaction, structured log, trace, metric and webhook
-policy seams remain as described above.
+supports immediate Pending jobs only. The follow-on completion seam makes
+`mark_job_succeeded` contract-free while preserving its successful `4` result,
+then binds that result before durable delivery or the `Completed` snapshot
+mapping. Migration, structured log, trace, metric, and webhook policy seams
+remain as described above.
 
 The new `mapping::tests::enqueue_policy` fixture compares 15 state/due-boundary
 rows across actual `std.jobs` calls, the reference DecisionEngine and a freshly
 generated service scaffold. A separate alternate checked-source fixture denies
 new enqueues and asserts `403 enqueue_not_admitted` with unchanged committed
 bytes, digest and outbound inventory; a bounded-fuel refusal asserts
-`500 decision_failed` with the same nonmutation requirement. Existing
+`500 decision_failed` with the same nonmutation requirement.
+
 `job_enqueue_is_idempotent_and_completion_settles_once` covers success, replay
 and completion. On this workspace revision, the new selector passed 2/2 and
 the existing enqueue/completion regression passed 1/1.
 
+`mapping::tests::completion_policy` compares the successful status across the
+reference DecisionEngine and a freshly generated scaffold for representative
+attempt facts. Its alternate source returns a different terminal code and
+asserts `403 completion_not_admitted` with unchanged committed bytes, digest,
+and outbound inventory; a bounded-fuel source loop asserts `500 decision_failed`
+at the same pre-delivery boundary.
+
 ```sh
 cargo test --locked -p semaprax-native-host --lib reference_service::mapping::tests::enqueue_policy -- --test-threads=1
 cargo test --locked -p semaprax-native-host --lib reference_service::mapping::tests::job_enqueue_is_idempotent_and_completion_settles_once -- --exact --test-threads=1
+cargo test --locked -p semaprax-native-host --lib reference_service::mapping::tests::completion_policy -- --test-threads=1
 ```

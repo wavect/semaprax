@@ -58,6 +58,10 @@ const MAX_DESC_BYTES: usize = 256;
 const MIN_PASSWORD_BYTES: usize = 8;
 const MAX_PASSWORD_BYTES: usize = 256;
 const SESSION_ID_BYTES: usize = 16;
+/// The reference profile has one successful completion attempt. These facts
+/// select source semantics only; they neither schedule nor authorize retry.
+const REFERENCE_JOB_COMPLETION_ATTEMPT: u8 = 0;
+const REFERENCE_JOB_MAX_ATTEMPTS: u8 = 3;
 /// The local reference profile's bounded session policy. Configuration bytes
 /// never select clock policy.
 pub const DEFAULT_SESSION_IDLE_SECONDS: u64 = 15 * 60;
@@ -1158,6 +1162,14 @@ fn complete_job(
     {
         Ok(false) => {}
         Ok(true) => return error(409, "already_completed", Some(&committed.digest)),
+        Err(_) => return error(500, "decision_failed", None),
+    }
+    match host
+        .decisions
+        .mark_job_succeeded(REFERENCE_JOB_COMPLETION_ATTEMPT, REFERENCE_JOB_MAX_ATTEMPTS)
+    {
+        Ok(next_state) if next_state == JobState::Completed.source_status() => {}
+        Ok(_) => return error(403, "completion_not_admitted", Some(&committed.digest)),
         Err(_) => return error(500, "decision_failed", None),
     }
     let event_bytes = match delivery::completion_event_len(

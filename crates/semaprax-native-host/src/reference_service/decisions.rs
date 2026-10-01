@@ -16,11 +16,11 @@
 //! `method_is_rejected`, `task_owner_authorized`, and the three session
 //! predicates/transitions.
 //! `registration_admitted`, `enqueue_is_legal`, `enqueue_outcome`, the three
-//! task transaction decisions, and `completed_job_export_is_admitted` are
-//! invoked through the checked public-API seam before their corresponding host
-//! work. The remaining scaffold decisions (migration, log/trace/metric, and
-//! webhook policies) retain fixture-mode coverage until a host route needs
-//! them.
+//! task transaction decisions, `mark_job_succeeded`, and
+//! `completed_job_export_is_admitted` are invoked through the checked
+//! public-API seam before their corresponding host work. The remaining
+//! scaffold decisions (migration, log/trace/metric, and webhook policies)
+//! retain fixture-mode coverage until a host route needs them.
 //!
 //! [`ProjectRevision::evaluate_service_decision_v1`]: semaprax::project::ProjectRevision::evaluate_service_decision_v1
 
@@ -66,6 +66,7 @@ pub struct DecisionIdentities {
     create_is_committed: String,
     update_is_committed: String,
     delete_is_committed: String,
+    mark_job_succeeded: String,
     job_status_is_complete: String,
     completed_job_export_is_admitted: String,
 }
@@ -88,6 +89,7 @@ impl DecisionIdentities {
         let create_is_committed = sole(program, "create_is_committed")?;
         let update_is_committed = sole(program, "update_is_committed")?;
         let delete_is_committed = sole(program, "delete_is_committed")?;
+        let mark_job_succeeded = sole(program, "mark_job_succeeded")?;
         let job_status_is_complete = sole(program, "job_status_is_complete")?;
         let completed_job_export_is_admitted = sole(program, "completed_job_export_is_admitted")?;
         let prefix = prefix_of(&request_is_admitted).ok_or(DecisionRefusal::Unresolved)?;
@@ -104,6 +106,7 @@ impl DecisionIdentities {
             &create_is_committed,
             &update_is_committed,
             &delete_is_committed,
+            &mark_job_succeeded,
             &job_status_is_complete,
             &completed_job_export_is_admitted,
         ] {
@@ -126,6 +129,7 @@ impl DecisionIdentities {
             create_is_committed,
             update_is_committed,
             delete_is_committed,
+            mark_job_succeeded,
             job_status_is_complete,
             completed_job_export_is_admitted,
         })
@@ -173,6 +177,7 @@ fn prefix_of(identity: &str) -> Option<&str> {
         .or_else(|| identity.strip_suffix(".core.create_is_committed"))
         .or_else(|| identity.strip_suffix(".core.update_is_committed"))
         .or_else(|| identity.strip_suffix(".core.delete_is_committed"))
+        .or_else(|| identity.strip_suffix(".core.mark_job_succeeded"))
         .or_else(|| identity.strip_suffix(".core.job_status_is_complete"))
         .or_else(|| identity.strip_suffix(".core.completed_job_export_is_admitted"))
 }
@@ -419,6 +424,23 @@ impl<'revision> DecisionEngine<'revision> {
         self.invoke_bool(
             &self.identities.delete_is_committed,
             &[PublicApiArgument::Usize(transaction_state)],
+        )
+    }
+
+    /// Evaluate the source-selected terminal code before the host publishes
+    /// its one completed-job state. The reference profile binds its only
+    /// completion attempt; this decision does not create retry authority.
+    pub fn mark_job_succeeded(
+        &self,
+        attempt: u8,
+        max_attempts: u8,
+    ) -> Result<u64, DecisionRefusal> {
+        self.invoke_usize(
+            &self.identities.mark_job_succeeded,
+            &[
+                PublicApiArgument::U8(attempt),
+                PublicApiArgument::U8(max_attempts),
+            ],
         )
     }
 

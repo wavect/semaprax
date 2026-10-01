@@ -1,3 +1,5 @@
+#[path = "tests/completion_policy.rs"]
+mod completion_policy;
 #[path = "tests/create_policy.rs"]
 mod create_policy;
 #[path = "tests/delete_policy.rs"]

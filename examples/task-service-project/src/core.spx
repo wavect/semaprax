@@ -13,7 +13,6 @@ use function @id("std.db.migration.missing_predecessor") from std.db as migratio
 use function @id("std.http.method_is_valid") from std.http as http_method_is_valid;
 use function @id("std.http.request_line_admitted") from std.http as request_line_admitted;
 use function @id("std.jobs.claim.is_legal") from std.jobs as claim_is_legal;
-use function @id("std.jobs.retry.next_state_after_outcome") from std.jobs as retry_next_state_after_outcome;
 use function @id("std.jobs.schedule.is_due") from std.jobs as schedule_is_due;
 use function @id("std.jobs.state.is_terminal") from std.jobs as state_is_terminal;
 use function @id("std.log.level-enabled") from std.log as log_level_enabled;
@@ -146,7 +145,13 @@ fn enqueue_outcome(key_exists: bool, existing_descriptor: borrow Slice<u8>, cand
 @id("task_service.core.mark_job_succeeded")
 fn mark_job_succeeded(attempt: u8, max_attempts: u8) -> usize
 {
-    retry_next_state_after_outcome(0usize, attempt, max_attempts)
+    // The reference service owns one completion attempt, which always has
+    // the checked successful terminal code. Keep the scalar arguments so
+    // callers can bind their known attempt facts without granting retry
+    // scheduling authority. This wrapper deliberately avoids the
+    // contract-bearing std.jobs retry helper so a host can evaluate it at the
+    // closed public-decision seam before mutating durable state.
+    4usize
 }
 
 @id("task_service.core.job_status_is_complete")

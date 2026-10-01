@@ -8,6 +8,12 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Restrict the Windows doctor confined child to its three declared standard
+  handles through an explicit process handle list (#333). Add a selected
+  inheritable-sentinel child probe, raising the provisioned runtime selector
+  to 17 cases. The gate self-test and source formatting passed locally;
+  native Windows execution and exact launched-byte binding remain open.
+
 - Carry the real continued Step cleanup-start owner through the existing
   physical cleanup engine and durably ACK its actual settled receipt (#330).
   Success and receipt-prewrite fault real-chain selectors each passed locally;

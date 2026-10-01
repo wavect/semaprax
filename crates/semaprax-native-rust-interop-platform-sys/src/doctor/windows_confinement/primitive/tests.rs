@@ -13,6 +13,8 @@ mod binding;
 const TEST_PARENT_ENV: &str = "SEMAPRAX_WINDOWS_CONFINEMENT_TEST_PARENT";
 const TEST_MARKER: &str = "runtime-child-started.bin";
 const DESCENDANT_PERMIT: &str = "runtime-descendant-permit.bin";
+const HANDLE_INVENTORY_PERMIT: &str = "runtime-handle-inventory-permit.bin";
+const INHERITABLE_SENTINEL: &str = "runtime-inheritable-sentinel.bin";
 
 fn runtime_parent() -> PathBuf {
     let parent = std::env::var_os(TEST_PARENT_ENV)
@@ -189,6 +191,31 @@ fn runtime_child_waits_for_job_termination() {
     }
 }
 
+#[test]
+#[ignore = "spawned only by the live confinement runtime tests"]
+fn runtime_child_checks_unrelated_inheritable_handle_is_absent() {
+    let directory = std::env::current_dir().expect("confined current directory");
+    publish_child_marker(b"ready-for-handle-inventory");
+    let permit = directory.join(HANDLE_INVENTORY_PERMIT);
+    let deadline = Instant::now() + Duration::from_secs(10);
+    while !permit.is_file() {
+        assert!(
+            Instant::now() < deadline,
+            "parent did not permit inherited-handle observation"
+        );
+        std::thread::sleep(Duration::from_millis(10));
+    }
+    let sentinel = directory
+        .parent()
+        .expect("confined scratch has the provisioned parent")
+        .join(INHERITABLE_SENTINEL);
+    publish_child_marker(if sentinel.exists() {
+        b"unrelated-inheritable-handle-present"
+    } else {
+        b"unrelated-inheritable-handle-absent"
+    });
+}
+
 fn current_process_handle_count() -> u32 {
     use windows_sys::Win32::System::Threading::{GetCurrentProcess, GetProcessHandleCount};
 
@@ -293,6 +320,7 @@ impl Drop for RuntimeChildCleanupGuard {
             TEST_MARKER,
             "runtime-child-started.bin.tmp",
             DESCENDANT_PERMIT,
+            HANDLE_INVENTORY_PERMIT,
         ] {
             match std::fs::remove_file(self.scratch_dir.join(name)) {
                 Ok(()) => {}

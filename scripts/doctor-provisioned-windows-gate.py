@@ -42,6 +42,7 @@ EXPECTED_TESTS = (
     "doctor::windows_confinement::primitive::tests::binding::windows_runtime_signed_image_refuses_writable_mapping_after_writer_closes",
     "doctor::windows_confinement::primitive::tests::binding::windows_runtime_dropped_child_releases_image_and_process_handles",
     "doctor::windows_confinement::primitive::tests::binding::windows_runtime_signed_image_refuses_retained_writable_section_without_view",
+    "doctor::windows_confinement::primitive::tests::binding::windows_runtime_child_inherits_only_declared_standard_handles",
 )
 REPO_ROOT = Path(__file__).resolve().parents[1]
 TERMINATION_TIMEOUT_SECONDS = 30

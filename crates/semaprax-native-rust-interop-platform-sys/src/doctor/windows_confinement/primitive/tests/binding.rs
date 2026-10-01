@@ -293,3 +293,70 @@ fn windows_runtime_signed_image_refuses_retained_writable_section_without_view()
     // This success control rejects an unavailable-oplock fixture as a failure.
     drop(image::HeldImage::acquire(&fixture.executable, verified(&capsule).worker()).unwrap());
 }
+
+#[test]
+#[ignore = "requires the explicitly provisioned Windows runtime gate"]
+fn windows_runtime_child_inherits_only_declared_standard_handles() {
+    use windows_sys::Win32::Foundation::{SetHandleInformation, HANDLE_FLAG_INHERIT};
+    use windows_sys::Win32::Storage::FileSystem::FILE_FLAG_DELETE_ON_CLOSE;
+
+    let fixture = Fixture::new();
+    let capsule = test_capsule_body();
+    // The confined child starts in a new directory beneath `fixture.scratch`.
+    // Its parent-directory probe must name this exact sentinel.
+    let sentinel_path = fixture.scratch.join(INHERITABLE_SENTINEL);
+    let sentinel = OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .custom_flags(FILE_FLAG_DELETE_ON_CLOSE)
+        .open(&sentinel_path)
+        .unwrap();
+    assert_ne!(
+        unsafe {
+            SetHandleInformation(
+                sentinel.as_raw_handle(),
+                HANDLE_FLAG_INHERIT,
+                HANDLE_FLAG_INHERIT,
+            )
+        },
+        0,
+        "make the unrelated delete-on-close sentinel inheritable in the parent"
+    );
+    let args = child_test_args("runtime_child_checks_unrelated_inheritable_handle_is_absent");
+    let args: Vec<&OsStr> = args.iter().map(OsString::as_os_str).collect();
+    let child = confined_spawn_with_test_key(
+        &fixture.executable,
+        &args,
+        &fixture.scratch,
+        &capsule.bytes,
+        &capsule.public_key_hex,
+    )
+    .expect("authenticated child starts with the exact standard-handle inventory");
+    let mut guard = RuntimeChildCleanupGuard::new(&child);
+    let marker = child._scratch.dir.join(TEST_MARKER);
+    wait_for_marker(&marker);
+    assert_eq!(
+        std::fs::read(&marker).unwrap(),
+        b"ready-for-handle-inventory"
+    );
+    std::fs::remove_file(&marker).unwrap();
+    drop(sentinel);
+    assert!(
+        !sentinel_path.exists(),
+        "parent sentinel closes before the child is allowed to observe it"
+    );
+    std::fs::File::create_new(child._scratch.dir.join(HANDLE_INVENTORY_PERMIT)).unwrap();
+    wait_for_marker(&marker);
+    assert_eq!(
+        std::fs::read(&marker).unwrap(),
+        b"unrelated-inheritable-handle-absent"
+    );
+    std::fs::remove_file(&marker).unwrap();
+    std::fs::remove_file(child._scratch.dir.join(HANDLE_INVENTORY_PERMIT)).unwrap();
+    guard.disarm();
+    assert_eq!(
+        settle(child, Duration::from_secs(30)).status,
+        Settlement::Completed
+    );
+    assert_parent_empty(&fixture.scratch);
+}

@@ -5,7 +5,7 @@
 //!
 //! The historical ten-case native Windows selector passed on `f4d3291f`;
 //! the owning specification retains the earlier exact compilation/runtime
-//! receipts. The signed-image binding continuation and its six additional
+//! receipts. The signed-image binding continuation and its seven additional
 //! cases have no native Windows execution receipt on this macOS authoring
 //! host. A cross-target type-check is not runtime acceptance. Production
 //! release trust, Windows request/bundle transport and broader confinement
@@ -82,9 +82,11 @@ use windows_sys::Win32::System::JobObjects::{
     JOB_OBJECT_UILIMIT_SYSTEMPARAMETERS, JOB_OBJECT_UILIMIT_WRITECLIPBOARD,
 };
 use windows_sys::Win32::System::Threading::{
-    CreateProcessAsUserW, GetCurrentProcess, GetExitCodeProcess, OpenProcessToken, ResumeThread,
-    TerminateProcess, WaitForSingleObject, CREATE_SUSPENDED, CREATE_UNICODE_ENVIRONMENT,
-    PROCESS_INFORMATION, STARTF_USESTDHANDLES, STARTUPINFOW,
+    CreateProcessAsUserW, DeleteProcThreadAttributeList, GetCurrentProcess, GetExitCodeProcess,
+    InitializeProcThreadAttributeList, OpenProcessToken, ResumeThread, TerminateProcess,
+    UpdateProcThreadAttribute, WaitForSingleObject, CREATE_SUSPENDED, CREATE_UNICODE_ENVIRONMENT,
+    EXTENDED_STARTUPINFO_PRESENT, LPPROC_THREAD_ATTRIBUTE_LIST, PROCESS_INFORMATION,
+    PROC_THREAD_ATTRIBUTE_HANDLE_LIST, STARTF_USESTDHANDLES, STARTUPINFOEXW,
 };
 
 const MAX_WIDE: usize = 32767;
@@ -120,6 +122,18 @@ impl Drop for Handle {
             // SAFETY: sole remaining owner of this handle.
             unsafe { CloseHandle(raw) };
         }
+    }
+}
+
+/// Owns the Win32 attribute-list initialization until process creation has
+/// copied the explicit inherited-handle inventory.
+struct AttributeList(LPPROC_THREAD_ATTRIBUTE_LIST);
+
+impl Drop for AttributeList {
+    fn drop(&mut self) {
+        // SAFETY: the list was initialized once over backing storage that
+        // outlives this guard.
+        unsafe { DeleteProcThreadAttributeList(self.0) };
     }
 }
 
@@ -563,12 +577,54 @@ fn confined_spawn_after_binding(
     let cwd = wide(scratch.dir.as_os_str()).map_err(|()| Refusal::Invalid)?;
     let environment = forced_environment(&scratch.dir).map_err(|()| Refusal::Invalid)?;
 
-    let mut startup: STARTUPINFOW = unsafe { std::mem::zeroed() };
-    startup.cb = std::mem::size_of::<STARTUPINFOW>() as u32;
-    startup.dwFlags = STARTF_USESTDHANDLES;
-    startup.hStdInput = stdin.raw();
-    startup.hStdOutput = stdout.raw();
-    startup.hStdError = stderr.raw();
+    // `bInheritHandles` alone would copy every inheritable handle held by the
+    // parent into the restricted child. Bind that broad Win32 switch to the
+    // three standard handles the primitive deliberately creates.
+    let inherited = [stdin.raw(), stdout.raw(), stderr.raw()];
+    let mut attribute_bytes = 0usize;
+    // SAFETY: this sizing invocation has no output list and only reports the
+    // required bounded allocation through `attribute_bytes`.
+    unsafe {
+        InitializeProcThreadAttributeList(std::ptr::null_mut(), 1, 0, &mut attribute_bytes);
+    }
+    if attribute_bytes == 0 || attribute_bytes > 65_536 {
+        return Err(Refusal::Spawn);
+    }
+    let attribute_words = attribute_bytes.div_ceil(std::mem::size_of::<usize>());
+    let mut attribute_backing = vec![0usize; attribute_words];
+    let attribute_pointer = attribute_backing.as_mut_ptr().cast();
+    // SAFETY: the backing allocation has the requested size and remains live
+    // until `attributes` is dropped after process creation.
+    if unsafe { InitializeProcThreadAttributeList(attribute_pointer, 1, 0, &mut attribute_bytes) }
+        == 0
+    {
+        return Err(Refusal::Spawn);
+    }
+    let attributes = AttributeList(attribute_pointer);
+    // SAFETY: every listed handle is live, inheritable, and remains live until
+    // CreateProcessAsUserW returns; the fixed array is the entire intended
+    // child handle inventory.
+    if unsafe {
+        UpdateProcThreadAttribute(
+            attributes.0,
+            0,
+            PROC_THREAD_ATTRIBUTE_HANDLE_LIST as usize,
+            inherited.as_ptr().cast(),
+            std::mem::size_of_val(&inherited),
+            std::ptr::null_mut(),
+            std::ptr::null(),
+        )
+    } == 0
+    {
+        return Err(Refusal::Spawn);
+    }
+    let mut startup = STARTUPINFOEXW::default();
+    startup.StartupInfo.cb = std::mem::size_of::<STARTUPINFOEXW>() as u32;
+    startup.StartupInfo.dwFlags = STARTF_USESTDHANDLES;
+    startup.StartupInfo.hStdInput = stdin.raw();
+    startup.StartupInfo.hStdOutput = stdout.raw();
+    startup.StartupInfo.hStdError = stderr.raw();
+    startup.lpAttributeList = attributes.0;
     let mut process_information = PROCESS_INFORMATION::default();
     if !image.intact() {
         return Err(Refusal::Capsule(
@@ -579,11 +635,8 @@ fn confined_spawn_after_binding(
     // `CreateProcessAsUserW` requires; `application`/`cwd`/`environment` are
     // live NUL-terminated (or double-NUL-terminated) wide buffers; `command`
     // is a live, exclusively-owned mutable buffer as this API requires;
-    // `startup`'s three handles are live and inheritable; `bInheritHandles`
-    // is `1` and no attribute list restricts which handles are inherited, so
-    // this process also inherits any other inheritable handle this process
-    // holds -- the deliberate simplification the module documentation
-    // records.
+    // `startup`'s three handles are live and inheritable. The extended-startup
+    // handle-list attribute limits inheritance to exactly that inventory.
     if unsafe {
         CreateProcessAsUserW(
             token.raw(),
@@ -592,10 +645,10 @@ fn confined_spawn_after_binding(
             std::ptr::null(),
             std::ptr::null(),
             1,
-            CREATE_SUSPENDED | CREATE_UNICODE_ENVIRONMENT,
+            CREATE_SUSPENDED | CREATE_UNICODE_ENVIRONMENT | EXTENDED_STARTUPINFO_PRESENT,
             environment.as_ptr().cast(),
             cwd.as_ptr(),
-            &startup,
+            &startup.StartupInfo,
             &mut process_information,
         )
     } == 0

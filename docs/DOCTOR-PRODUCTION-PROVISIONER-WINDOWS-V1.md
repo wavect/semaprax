@@ -8,7 +8,7 @@ historical five-test runtime witness on exact checkout `3d4220b6`, extending the
 two-test witness at `c6bf9902`. The historical signed-capsule nine-case exact selector
 (six runtime cases plus three admission refusals) passed on exact checkout
 `c608b8d8`. The historical ten-case selector added a hostile inheritable-parent-ACE
-DACL case and passed on exact checkout `f4d3291f`. The current sixteen-case
+DACL case and passed on exact checkout `f4d3291f`. The current seventeen-case
 selector preserves those ten and adds signed-image substitution, writable
 mapping, and handle-settlement regressions; native execution of the added
 binding path is pending, and exact exclusion of retained writable-section
@@ -327,14 +327,16 @@ or Windows request/bundle carrier, and does not modify the Linux sealed-file
 launcher. The deterministic test capsule signs the actual test image's bytes;
 its other slots remain fixture-only inputs and are not transport evidence.
 
-The six new selected cases exercise signed length/digest/role mismatch before
+The seven new selected cases exercise signed length/digest/role mismatch before
 launch, denied leaf deletion/write/rename and ancestor rename between admission
 and spawn, pre-existing writable handles and hardlinks, a writable mapping whose
 handles have both closed, a retained PAGE_READWRITE section without any view,
-and drop-time process/image handle settlement. The section-without-view case
-requires pre-spawn refusal; its behavior is still unverified on Windows. Success
-controls require NTFS/oplock acquisition to work; no unavailable prerequisite
-can pass by skipping. All sixteen native cases still require an authorized
+drop-time process/image handle settlement, and an explicitly inheritable
+delete-on-close sentinel that must not reach the child outside its three
+standard handles. The section-without-view case requires pre-spawn refusal; its
+behavior is still unverified on Windows. Success controls require NTFS/oplock
+acquisition to work; no unavailable prerequisite can pass by skipping. All
+seventeen native cases still require an authorized
 Windows execution at the changed revision.
 
 Local verification on 30 September 2026: the initial `64472c71b` continuation
@@ -355,7 +357,7 @@ and leaves exact binding unaccepted. This is a design decision and work plan,
 not a new execution receipt or a claim that the race has been reproduced.
 The affected completion row is WP-05. Its Windows production boundary stays
 unpromoted; the historical ten-case evidence remains attached to its original
-revision, and all sixteen current cases still need native execution.
+revision, and all seventeen current cases still need native execution.
 
 The proposed repair must establish one continuous invariant: from the first
 authenticated byte read until the loader has consumed the admitted image,
@@ -418,16 +420,17 @@ The next bounded batch is a **native mechanism experiment**, in the existing
    results and release acceptance separate; repeated stress success alone
    cannot prove the invariant.
 
-The independent hostile-corpus batch must also address the current broad
-`bInheritHandles` boundary with an explicit startup handle list and a child
-probe of an unrelated inheritable sentinel. Inspecting job flags does not
-exercise resource exhaustion: CPU, committed-memory and output limits need
-specified bounds, actual violating children, selected failure classes, and
-post-failure job/handle settlement. The current `tightened_job` sets an active
-process limit and kill-on-close behavior, not CPU or memory bounds. Add those
-bounds through this owning contract before claiming the resource corpus is
-complete; preserve the existing production one-process and test-only
-two-process descendant distinction.
+This continuation binds `bInheritHandles` to an explicit three-handle startup
+list and adds a child probe of an unrelated inheritable delete-on-close
+sentinel. It checks a single capability boundary and has no native Windows
+execution receipt. Inspecting job flags does not exercise resource exhaustion:
+CPU, committed-memory and output limits still need specified bounds, actual
+violating children, selected failure classes, and post-failure job/handle
+settlement. The current `tightened_job` sets an active process limit and
+kill-on-close behavior, not CPU or memory bounds. Add those bounds through this
+owning contract before claiming the resource corpus is complete; preserve the
+existing production one-process and test-only two-process descendant
+distinction.
 
 Finally, `confined_spawn_after_binding` currently receives an executable
 pathname and arguments, not held request/bundle carriers. Image repair cannot
@@ -501,13 +504,13 @@ The dispatch-only
 uses an ephemeral `windows-2025` runner and creates a fresh, explicit scratch
 parent under `RUNNER_TEMP`. The gate fails when the host is not 64-bit Windows,
 the parent is missing, nonempty, or a reparse point, Cargo fails, any named
-test is filtered or ignored, or the test summary does not report all sixteen
+test is filtered or ignored, or the test summary does not report all seventeen
 selected cases as passed. It never treats an absent prerequisite or a zero-test
 run as a skip/pass.
 
 `scripts/doctor-provisioned-windows-gate.py --self-test` checks the gate's
 refusal and libtest-result parsing on any host; it provides no Windows runtime
-evidence. `--plan` prints the exact sixteen-test selector. The live selection runs
+evidence. `--plan` prints the exact seventeen-test selector. The live selection runs
 `windows_runtime_launches_restricted_child_inside_acl_scratch_and_settles_it`
 and `windows_runtime_timeout_terminates_the_confined_job_and_settles_cancellation`,
 plus `windows_runtime_timeout_terminates_an_actual_job_descendant`,
@@ -518,7 +521,7 @@ plus `windows_runtime_timeout_terminates_an_actual_job_descendant`,
 `windows_runtime_bad_signature_refuses_before_token_job_or_filesystem`, and
 `windows_runtime_signed_linux_architecture_capsule_refuses_before_token_job_or_filesystem`,
 and `windows_runtime_protected_scratch_dacl_blocks_inherited_parent_ace`.
-The nested `primitive::tests::binding` module adds the six cases described in
+The nested `primitive::tests::binding` module adds the seven cases described in
 [Signed image binding](#signed-image-binding-continuation-333-native-execution-pending).
 The child-launch cases traverse `confined_spawn_using`; capsule verification
 uses the production release-key path or the explicit test-only key seam. The success case inspects
@@ -557,7 +560,7 @@ checkout `c608b8d8`: six live runtime cases (including deterministic test-only
 signed-key launch/settlement) and three signed-admission refusal cases. The
 historical ten-case source added the hostile inheritable-parent-ACE scratch-DACL
 case and passed at `f4d3291f`. The test key is not release trust. The current
-sixteen-case source and its held-image binding have no native execution receipt.
+seventeen-case source and its held-image binding have no native execution receipt.
 
 ## Acceptance criteria status
 
@@ -574,7 +577,7 @@ sixteen-case source and its held-image binding have no native execution receipt.
 
 ## Nonclaims
 
-This contract does not claim that the sixteen-test Windows selector is a
+This contract does not claim that the seventeen-test Windows selector is a
 complete hostile corpus or production-support gate. The two-test run at
 `c6bf9902` and five-test run at `3d4220b6` each bind only their exact checkout
 and selected tests.

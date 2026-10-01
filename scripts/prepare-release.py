@@ -25,7 +25,6 @@ VERSION_FILES = (
     "platform-tests/public-scalar-wit-interface/Cargo.toml",
     "tests/cli_version_v1.rs",
     "tests/agent_transport_v1.rs",
-    "tests/component_runtime_ci_contract.rs",
     "tests/public_scalar_wit_interface_external_contract.rs",
     "crates/semaprax-doctor-collector/tests/provisioned.rs",
     "crates/semaprax-doctor-collector/tests/support/report.rs",
@@ -38,6 +37,7 @@ VERSION_FILES = (
 # These files mix current-version guidance with historical release evidence.
 # A maintainer must update them after reviewing the exact claims and links.
 MANUAL_VERSION_FILES = {"docs/INSTALL.md", "docs/index.md"}
+RUNTIME_CONTRACT_TEST = "tests/component_runtime_ci_contract.rs"
 LOCK_MANIFESTS = (
     "Cargo.toml",
     "examples/calculator-rust/Cargo.toml",
@@ -82,6 +82,9 @@ def verify(version):
         text = (ROOT / relative).read_text(encoding="utf-8")
         if version not in text and tag not in text:
             reject(f"{relative} does not carry {version}")
+    runtime_contract = (ROOT / RUNTIME_CONTRACT_TEST).read_text(encoding="utf-8")
+    if rf'semaprax = {{ version = \"={version}\", path = \"../..\"' not in runtime_contract:
+        reject(f"{RUNTIME_CONTRACT_TEST} does not pin semaprax {version}")
     date = release_date()
     citation = (ROOT / "CITATION.cff").read_text(encoding="utf-8")
     if f'version: "{version}"' not in citation:
@@ -130,6 +133,13 @@ def write(version, date):
         if old_tag in text:
             text = replace_required(text, old_tag, tag, relative)
         updates[relative] = text
+    runtime_contract = (ROOT / RUNTIME_CONTRACT_TEST).read_text(encoding="utf-8")
+    updates[RUNTIME_CONTRACT_TEST] = replace_required(
+        runtime_contract,
+        rf'semaprax = {{ version = \"={old}\", path = \"../..\"',
+        rf'semaprax = {{ version = \"={version}\", path = \"../..\"',
+        RUNTIME_CONTRACT_TEST,
+    )
     citation = (ROOT / "CITATION.cff").read_text(encoding="utf-8")
     citation = replace_required(
         citation, f'version: "{old}"', f'version: "{version}"', "CITATION.cff"

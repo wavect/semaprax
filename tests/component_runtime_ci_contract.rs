@@ -195,7 +195,7 @@ fn main() -> i64 { 0 }
     assert_eq!(checked_in_source_v7, expected_source_v7);
 
     let checked_in_v8 = read("platform-tests/component-runtime/wit/semaprax-private-v8.wit");
-    let expected_v8 = "package semaprax:private@0.7.0;\n\ninterface record-pattern-projections {\n  record status { domain: string, code: u32, class: u8, retryable: option<bool> }\n  record phantom-i64 { marker: bool }\n  record phantom-bool { marker: bool }\n  preserve-phantom-i64: func(input: phantom-i64, control: s64) -> result<bool, status>;\n  invert-phantom-i64: func(input: phantom-i64, control: s64) -> result<bool, status>;\n  preserve-phantom-bool: func(input: phantom-bool, control: s64) -> result<bool, status>;\n  invert-phantom-bool: func(input: phantom-bool, control: s64) -> result<bool, status>;\n}\n\nworld semaprax-private-v8 {\n  export record-pattern-projections;\n}\n";
+    let expected_v8 = "package semaprax:private@0.6.0;\n\ninterface record-pattern-projections {\n  record status { domain: string, code: u32, class: u8, retryable: option<bool> }\n  record phantom-i64 { marker: bool }\n  record phantom-bool { marker: bool }\n  preserve-phantom-i64: func(input: phantom-i64, control: s64) -> result<bool, status>;\n  invert-phantom-i64: func(input: phantom-i64, control: s64) -> result<bool, status>;\n  preserve-phantom-bool: func(input: phantom-bool, control: s64) -> result<bool, status>;\n  invert-phantom-bool: func(input: phantom-bool, control: s64) -> result<bool, status>;\n}\n\nworld semaprax-private-v8 {\n  export record-pattern-projections;\n}\n";
     assert_eq!(checked_in_v8, expected_v8);
 
     let checked_in_source_v8 = read("platform-tests/component-runtime/v8.spx");
@@ -547,7 +547,7 @@ fn capability_and_dependency_policy_are_fail_closed() {
         "semaprax:private/scalar-algebra@0.3.0",
         "semaprax:private/nested-records@0.4.0",
         "semaprax:private/generic-records@0.5.0",
-        "semaprax:private/record-pattern-projections@0.7.0",
+        "semaprax:private/record-pattern-projections@0.6.0",
         "semaprax:private/generic-function-instances@0.7.0",
         "semaprax:private/option-propagation@0.8.0",
         "cabi_transform_nested_record_v6",

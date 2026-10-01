@@ -12,27 +12,24 @@ mod parity;
 
 // Independent known answers for the checked-in, explicitly acquired project.
 // Replay must not accept identity claims supplied by the emitter under test.
-// R07's Core Wasm provider fixes (owned-byte runtime, admission before
-// memory.grow, the 128 KiB payload window, and ABI v2 status 14/SPX-PG803)
-// changed the compiled provider's bytes: only the provider/component
-// digests below moved. The descriptor digests are a pure function of the
-// checked source and are unchanged.
+// The v0.7.0 package identity changes the provider/component bytes and their
+// digests. Descriptor digests remain bound to the unchanged checked source.
 const EXPECTED_PUBLIC_GENERIC_COMPONENT_DIGEST: &str =
-    "sha256:55c42169da109f2a78dd67ea364513adba3d9106924ab9c55fb642a81e6927df";
+    "sha256:db4af551339fa1a7ccd799a8acea3ae6b3281382a4888b695ffae704d75886f6";
 const EXPECTED_PUBLIC_GENERIC_DESCRIPTOR_DIGEST: &str =
     "sha256:52473587274784c87a62e109cd8640bf337306117f8fa943a6b930aeb6a75b1a";
 const EXPECTED_PUBLIC_GENERIC_PROVIDER_DIGEST: &str =
-    "sha256:632afbf2067355cfb41bc8badec7c9e26ed0d3260a3c706925009b32e204af65";
+    "sha256:c19bd3cc4b185399a3b8bf834359a52bc75b8752f8a471b3b069a2171b3da64d";
 const EXPECTED_PUBLIC_GENERIC_COMPONENT_SHA256: &str =
-    "a8d19baea7ed0fe59518d337f3efea54cd00ea3810e8e6ddd9ee39a3b8fde630";
+    "ecd0874cf341240906c025bd6fa664313ae14dd0cceb23cc9dc602554a98affa";
 const EXPECTED_CONTRACT_FAILURE_COMPONENT_DIGEST: &str =
-    "sha256:30f479592233897ca0db6a9371f0014eca58fc3a66ffee59c2d457eb851b9605";
+    "sha256:67cc36a8349b1b74ffe3f5400d965057798809fca4f7c9b332c86802b507dd02";
 const EXPECTED_CONTRACT_FAILURE_DESCRIPTOR_DIGEST: &str =
     "sha256:1cef20213f00dce6e80b9cc1eb977065018986bc5568263d6ab4cd04ba9c5d49";
 const EXPECTED_CONTRACT_FAILURE_PROVIDER_DIGEST: &str =
-    "sha256:7a5b8e2b33133c6963a1b9529b1bed270ad2359be54bb2cd2ff1515236b3ab9e";
+    "sha256:6a29c7cd25005961b64081ead3647d618b07d8dd3f38ebf4c3d8f953826e0571";
 const EXPECTED_CONTRACT_FAILURE_COMPONENT_SHA256: &str =
-    "3b927698a0255f83461bb730c745ba2f92b5b461c09bc0b0e5f7c11003a15810";
+    "3b5dceb0162840c55cb93dbe0509b28fc32a943e7dd5f7837c71e87432487e4a";
 
 const MAX_LIST_BYTES: usize = 65_536;
 const REUSE_CYCLES: usize = 200;

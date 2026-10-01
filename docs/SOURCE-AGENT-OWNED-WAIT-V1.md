@@ -886,6 +886,17 @@ retains the released owner and cannot repeat cleanup. The focused success and
 receipt-prewrite real-chain selectors each passed locally. Result transfer,
 terminal publication, public entry, and restart recovery remain separate.
 
-Continued Step completion, terminal publication, public multi-turn entry and restart
-recovery remain unfinished. This bounded local result is not completion of the
+The same receipt owner now reserves and physically moves the real turn-one
+Step fields, then ACKs `OwnedStepTransferCompleted` and the matching terminal
+`Transition`. The real-chain transfer selector passed locally. For a terminal
+mapped Step, a private successor derives `TerminalSnapshot` from the
+authenticated ordinary execution projection and the actual Step carrier;
+the fixed Step append retains the mapped owner through its ACK. The fold
+accepts this row only after the matching terminal Transition and checks its
+turn, status, carrier digest, committed accounting and canonical evidence.
+The terminal success and prewrite-refusal selectors are pending the central
+gate. Evidence input remains descriptive and cannot mint an owner or ACK.
+
+Public multi-turn entry, terminal delivery/claim and restart recovery remain
+unfinished. This bounded local result is not completion of the
 public owned-Agent lifecycle criterion.

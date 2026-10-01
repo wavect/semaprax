@@ -612,7 +612,163 @@ fn continued_reduce_chain_step_ack(fault: u8) {
                             &selected_receipt
                         );
                         assert_eq!(step_cleanup_actions, 1);
-                        drop(settled);
+                        let ready = settled
+                            .into_ready()
+                            .unwrap_or_else(|_| panic!("one-use ReadyStep after receipt"));
+                        let transfer = ready
+                            .prepare_transfer()
+                            .unwrap_or_else(|_| panic!("actual turn-1 transfer reservation"));
+                        let transfer_row = transfer.selected_row().clone();
+                        assert!(matches!(&transfer_row, EntryV8::Owned(crate::live_invocation::source_journal::owned_wait_v8::model::OwnedBodyV8::OwnedStepTransferReserved { turn: 1, attempt: 0, .. })));
+                        let transfer_before =
+                            journal.lease.try_borrow_mut().unwrap().read().unwrap();
+                        if fault == 4 {
+                            #[cfg(unix)]
+                            journal
+                                .lease
+                                .try_borrow_mut()
+                                .unwrap()
+                                .test_fail_before_write(sequence + 4);
+                            #[cfg(not(unix))]
+                            unreachable!("fault injection is Unix-only");
+                            let failed = journal
+                                .begin_session()
+                                .unwrap()
+                                .append_owned_step(transfer)
+                                .err()
+                                .expect("transfer reservation cannot ACK through prewrite fault");
+                            assert!(matches!(&failed, crate::live_invocation::source_journal::owned_wait_v8::append::owned_effect::settlement::cleanup::reduce::step::LiveOwnedStepAppendFailureV8::Append { .. }));
+                            assert_eq!(step_cleanup_actions, 1);
+                            #[cfg(unix)]
+                            assert_eq!(
+                                journal
+                                    .lease
+                                    .try_borrow()
+                                    .unwrap()
+                                    .test_persisted_snapshot()
+                                    .unwrap(),
+                                transfer_before
+                            );
+                            assert!(journal.begin_session().is_err());
+                            assert!(journal.hold().is_err());
+                            drop(failed);
+                        } else {
+                            let acknowledged = journal
+                                .begin_session()
+                                .unwrap()
+                                .append_owned_step(transfer)
+                                .unwrap_or_else(|_| panic!("turn-1 transfer reservation ACK"));
+                            let crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect::authorization::step::LiveStepAcknowledgedV8::Continued(ready) = acknowledged.advance_step()
+                                .unwrap_or_else(|_| panic!("same ReadyStep after transfer ACK")) else {panic!("continued ReadyStep")};
+                            ready.validate_live().unwrap();
+                            let moved = ready
+                                .move_fields()
+                                .unwrap_or_else(|_| panic!("actual turn-1 Step field move"));
+                            assert_eq!(moved.kind(), Some("complete"));
+                            let completed = moved
+                                .prepare_completed()
+                                .unwrap_or_else(|_| panic!("actual mapped target"));
+                            let completed_row = completed.selected_row().clone();
+                            assert!(matches!(&completed_row, EntryV8::Owned(crate::live_invocation::source_journal::owned_wait_v8::model::OwnedBodyV8::OwnedStepTransferCompleted { turn: 1, attempt: 0, .. })));
+                            let acknowledged = journal
+                                .begin_session()
+                                .unwrap()
+                                .append_owned_step(completed)
+                                .unwrap_or_else(|_| panic!("turn-1 transfer completion ACK"));
+                            let crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect::authorization::step::LiveStepAcknowledgedV8::Continued(moved) = acknowledged.advance_step()
+                                .unwrap_or_else(|_| panic!("same mapped owner after completion")) else {panic!("continued mapped owner")};
+                            let transition = moved
+                                .prepare_transition()
+                                .unwrap_or_else(|_| panic!("actual turn-1 Transition"));
+                            assert!(matches!(transition.selected_row(), EntryV8::Ordinary(SourceJournalEntry::Transition { turn: 1, attempt: 0, case: crate::live_invocation::source_journal::SourceTransitionCase::Complete, .. })));
+                            let acknowledged = journal
+                                .begin_session()
+                                .unwrap()
+                                .append_owned_step(transition)
+                                .unwrap_or_else(|_| panic!("turn-1 Transition ACK"));
+                            let crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect::authorization::step::LiveStepAcknowledgedV8::Continued(mapped) = acknowledged.advance_step()
+                                .unwrap_or_else(|_| panic!("same mapped owner after Transition")) else {panic!("continued Transition owner")};
+                            mapped.validate_live().unwrap();
+                            assert_eq!(journal.begin_session().unwrap().sequence(), sequence + 6);
+                            let after = journal.begin_session().unwrap();
+                            let (r, s, turn, attempt, last) =
+                                after.inventory.step_reduce_facts().unwrap();
+                            assert_eq!(
+                                (r, s, turn, attempt),
+                                (charged_funding.0, charged_funding.1, 1, 0)
+                            );
+                            assert!(matches!(last, EntryV8::Ordinary(SourceJournalEntry::Transition { case: crate::live_invocation::source_journal::SourceTransitionCase::Complete, .. })));
+                            assert_eq!(step_cleanup_actions, 1);
+                            let input = crate::live_invocation::source_journal::SourceTerminalEvidenceInput {
+                                completed_stages: s,
+                                omitted_stage_rows: s,
+                                stage_rows: Vec::new(),
+                                checked_run_evidence: None,
+                            };
+                            let terminal = mapped.prepare_terminal(input).unwrap_or_else(|_| {
+                                panic!("actual terminal publication candidate")
+                            });
+                            assert!(
+                                matches!(terminal.selected_row(), EntryV8::Ordinary(SourceJournalEntry::TerminalSnapshot {
+                                turn: Some(1), status: crate::live_invocation::source_journal::SourceTerminalStatus::Complete,
+                                committed_stage_fuel, stages, carrier: Some(_), ..
+                            }) if *committed_stage_fuel == charged_funding.0 && *stages == s)
+                            );
+                            let terminal_before =
+                                journal.lease.try_borrow_mut().unwrap().read().unwrap();
+                            if fault == 5 {
+                                #[cfg(unix)]
+                                journal
+                                    .lease
+                                    .try_borrow_mut()
+                                    .unwrap()
+                                    .test_fail_before_write(sequence + 7);
+                                #[cfg(not(unix))]
+                                unreachable!("fault injection is Unix-only");
+                                let failed = journal
+                                    .begin_session()
+                                    .unwrap()
+                                    .append_owned_step(terminal)
+                                    .err()
+                                    .expect(
+                                        "terminal publication cannot ACK through prewrite fault",
+                                    );
+                                assert!(matches!(&failed, crate::live_invocation::source_journal::owned_wait_v8::append::owned_effect::settlement::cleanup::reduce::step::LiveOwnedStepAppendFailureV8::Append { .. }));
+                                #[cfg(unix)]
+                                assert_eq!(
+                                    journal
+                                        .lease
+                                        .try_borrow()
+                                        .unwrap()
+                                        .test_persisted_snapshot()
+                                        .unwrap(),
+                                    terminal_before
+                                );
+                                assert!(journal.begin_session().is_err());
+                                assert!(journal.hold().is_err());
+                                assert_eq!(step_cleanup_actions, 1);
+                                drop(failed);
+                            } else {
+                                let acknowledged = journal
+                                    .begin_session()
+                                    .unwrap()
+                                    .append_owned_step(terminal)
+                                    .unwrap_or_else(|_| panic!("terminal publication ACK"));
+                                let crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect::authorization::step::LiveStepAcknowledgedV8::Continued(terminal_owner) = acknowledged.advance_step()
+                                    .unwrap_or_else(|_| panic!("same mapped owner after terminal ACK")) else { panic!("continued terminal owner") };
+                                terminal_owner.validate_live().unwrap();
+                                let final_session = journal.begin_session().unwrap();
+                                assert_eq!(final_session.sequence(), sequence + 7);
+                                let (r, final_stages, turn, attempt, last) =
+                                    final_session.inventory.step_reduce_facts().unwrap();
+                                assert_eq!(
+                                    (r, final_stages, turn, attempt),
+                                    (charged_funding.0, s, 1, 0)
+                                );
+                                assert!(matches!(last, EntryV8::Ordinary(SourceJournalEntry::TerminalSnapshot { status: crate::live_invocation::source_journal::SourceTerminalStatus::Complete, .. })));
+                                drop(terminal_owner);
+                            }
+                        }
                     }
                 }
             }
@@ -658,6 +814,16 @@ fn owned_continued_cleanup_started_prewrite_fault_retains_staged_owner() {
 #[cfg(unix)]
 fn owned_continued_cleanup_receipt_prewrite_fault_keeps_release_sticky() {
     continued_reduce_chain_step_ack(3);
+}
+#[test]
+#[cfg(unix)]
+fn owned_continued_transfer_prewrite_fault_never_moves_ready_fields() {
+    continued_reduce_chain_step_ack(4);
+}
+#[test]
+#[cfg(unix)]
+fn owned_continued_terminal_prewrite_fault_retains_mapped_owner_and_poison() {
+    continued_reduce_chain_step_ack(5);
 }
 #[test]
 fn owned_continue_actual_state_and_observe_acks_preserve_owner_ledger_and_cumulative_funding() {

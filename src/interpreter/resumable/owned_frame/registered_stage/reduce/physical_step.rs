@@ -353,7 +353,7 @@ pub(crate) use continue_observe::{
 mod live_append;
 pub(crate) use live_append::{
     consume_live_owned_step_v8, settle_live_owned_reduce_v8, LiveOwnedReduceCleanupFailureV8,
-    LiveOwnedReduceCleanupGuardV8, LiveOwnedStepTransferFailureV8,
+    LiveOwnedReduceCleanupGuardV8, LiveOwnedStepTransferFailureV8, LiveOwnedStepTransferGuardV8,
 };
 
 pub(crate) use continue_observe::{observe_live_continued_state_v8, LiveContinuedObserveFailureV8};

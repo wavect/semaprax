@@ -457,12 +457,19 @@ impl LiveContinuedEvaluatedReduceV8<'_> {
 pub(in crate::live_invocation::source_journal::owned_wait_v8) struct LiveContinuedStagedStepV8<'j> {
     staged: Option<StagedExecutedOwnedReduceV2<'j>>,
     released: Option<crate::interpreter::resumable::owned_frame::registered_stage::reduce::ExecutedOwnedReduceSettledV2<'j>>,
+    ready: Option<crate::interpreter::resumable::owned_frame::registered_stage::reduce::ReadyExecutedOwnedStepV2<'j>>,
+    held: Option<crate::interpreter::resumable::owned_frame::registered_stage::reduce::HeldExecutedOwnedStepV2<'j>>,
+    receipt: Option<serde_json::Value>,
     reserved: LiveContinuedReduceReservedV8<'j>,
     facts: CheckedLiveOwnedReduceStageFactsV8,
     ack: Option<crate::live_invocation::source_journal::owned_wait_v8::append::owned_effect::VerifiedOwnedStepSuccessorV8<'j>>,
     session: Option<AppendSessionV8<'j>>,
     cleanup_ack: Option<(AppendSessionV8<'j>, crate::live_invocation::source_journal::owned_wait_v8::append::owned_effect::VerifiedOwnedStepSuccessorV8<'j>)>,
     receipt_ack: Option<(AppendSessionV8<'j>, crate::live_invocation::source_journal::owned_wait_v8::append::owned_effect::VerifiedOwnedStepSuccessorV8<'j>)>,
+    transfer_ack: Option<(AppendSessionV8<'j>, crate::live_invocation::source_journal::owned_wait_v8::append::owned_effect::VerifiedOwnedStepSuccessorV8<'j>)>,
+    completed_ack: Option<(AppendSessionV8<'j>, crate::live_invocation::source_journal::owned_wait_v8::append::owned_effect::VerifiedOwnedStepSuccessorV8<'j>)>,
+    transition_ack: Option<(AppendSessionV8<'j>, crate::live_invocation::source_journal::owned_wait_v8::append::owned_effect::VerifiedOwnedStepSuccessorV8<'j>)>,
+    terminal_ack: Option<(AppendSessionV8<'j>, crate::live_invocation::source_journal::owned_wait_v8::append::owned_effect::VerifiedOwnedStepSuccessorV8<'j>)>,
 }
 
 impl<'j> LiveContinuedEvaluatedReduceV8<'j> {
@@ -523,7 +530,7 @@ impl<'j> LiveContinuedEvaluatedReduceV8<'j> {
         };
         let LiveContinuedEvaluatedReduceV8 { staged, reserved } = self;
         Ok(crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect::authorization::step::LiveOwnedStepAppendV8::continued(
-            LiveContinuedStagedStepV8 { staged: Some(staged), released: None, reserved, facts, ack: None, session: None, cleanup_ack: None, receipt_ack: None }, selected,
+            LiveContinuedStagedStepV8 { staged: Some(staged), released: None, ready: None, held: None, receipt: None, reserved, facts, ack: None, session: None, cleanup_ack: None, receipt_ack: None, transfer_ack: None, completed_ack: None, transition_ack: None, terminal_ack: None }, selected,
         ))
     }
 }
@@ -537,6 +544,18 @@ impl<'j> LiveContinuedStagedStepV8<'j> {
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn cursor(
         &self,
     ) -> (usize, usize) {
+        if let Some((session, _)) = &self.terminal_ack {
+            return (session.sequence(), session.acknowledged_bytes());
+        }
+        if let Some((session, _)) = &self.transition_ack {
+            return (session.sequence(), session.acknowledged_bytes());
+        }
+        if let Some((session, _)) = &self.completed_ack {
+            return (session.sequence(), session.acknowledged_bytes());
+        }
+        if let Some((session, _)) = &self.transfer_ack {
+            return (session.sequence(), session.acknowledged_bytes());
+        }
         if let Some((session, _)) = &self.receipt_ack {
             return (session.sequence(), session.acknowledged_bytes());
         }
@@ -555,7 +574,21 @@ impl<'j> LiveContinuedStagedStepV8<'j> {
         &self,
     ) -> Result<(), SourceJournalError> {
         let result = (|| {
-            if let Some((s, w)) = &self.receipt_ack {
+            if let Some((s, w)) = self
+                .terminal_ack
+                .as_ref()
+                .or(self.transition_ack.as_ref())
+                .or(self.completed_ack.as_ref())
+                .or(self.transfer_ack.as_ref())
+            {
+                w.validate_current_session(s)?;
+                self.reserved.owner.owner.validate_spent_reduce_context(
+                    s.sequence(),
+                    s.acknowledged_bytes(),
+                    true,
+                    false,
+                )
+            } else if let Some((s, w)) = &self.receipt_ack {
                 w.validate_current_session(s)?;
                 let EntryV8::Owned(OwnedBodyV8::OwnedReduceCleanupSettled { receipt, .. }) =
                     w.selected_row()
@@ -616,7 +649,7 @@ impl<'j> LiveContinuedStagedStepV8<'j> {
         witness: crate::live_invocation::source_journal::owned_wait_v8::append::owned_effect::VerifiedOwnedStepSuccessorV8<'j>,
         selected: &EntryV8,
     ) -> Result<Self, (Self, SourceJournalError)> {
-        if self.receipt_ack.is_some() {
+        if self.terminal_ack.is_some() {
             self.journal().quarantine();
             return Err((self, SourceJournalError::Order));
         }
@@ -629,9 +662,46 @@ impl<'j> LiveContinuedStagedStepV8<'j> {
         {
             self.ack = Some(witness);
             self.session = Some(session);
+        } else if self.receipt_ack.is_some()
+            && self.transfer_ack.is_none()
+            && self.ready.is_some()
+            && matches!(
+                selected,
+                EntryV8::Owned(OwnedBodyV8::OwnedStepTransferReserved { .. })
+            )
+        {
+            self.transfer_ack = Some((session, witness));
+        } else if self.transfer_ack.is_some()
+            && self.completed_ack.is_none()
+            && self.held.is_some()
+            && matches!(
+                selected,
+                EntryV8::Owned(OwnedBodyV8::OwnedStepTransferCompleted { .. })
+            )
+        {
+            self.completed_ack = Some((session, witness));
+        } else if self.completed_ack.is_some()
+            && self.transition_ack.is_none()
+            && self.held.is_some()
+            && matches!(
+                selected,
+                EntryV8::Ordinary(SourceJournalEntry::Transition { .. })
+            )
+        {
+            self.transition_ack = Some((session, witness));
+        } else if self.transition_ack.is_some()
+            && self.terminal_ack.is_none()
+            && self.held.is_some()
+            && matches!(
+                selected,
+                EntryV8::Ordinary(SourceJournalEntry::TerminalSnapshot { .. })
+            )
+        {
+            self.terminal_ack = Some((session, witness));
         } else if self.ack.is_some()
             && self.session.is_some()
             && self.cleanup_ack.is_some()
+            && self.receipt_ack.is_none()
             && self.released.is_some()
             && matches!(
                 selected,
@@ -756,6 +826,9 @@ impl<'j> LiveContinuedStagedStepV8<'j> {
         Ok(OwnedReduceCleanupOriginV8::Observed { started })
     }
     fn receipt(&self) -> Result<serde_json::Value, SourceJournalError> {
+        if let Some(receipt) = &self.receipt {
+            return Ok(receipt.clone());
+        }
         match self.released.as_ref().ok_or(SourceJournalError::Binding)? {
             crate::interpreter::resumable::owned_frame::registered_stage::reduce::ExecutedOwnedReduceSettledV2::Ready(ready) => ready.live_receipt_v8(),
             crate::interpreter::resumable::owned_frame::registered_stage::reduce::ExecutedOwnedReduceSettledV2::Failed(failed) => failed.live_receipt_v8(),
@@ -918,3 +991,5 @@ impl LiveOwnedReduceCleanupGuardV8 for ContinuedStepCleanupPermitV8<'_, '_> {
         self.validate_cleanup_current()
     }
 }
+
+mod step_transfer;

@@ -1,7 +1,7 @@
 //! Actual staged/ReadyStep consumers. Only a sealed owner-bound source permit
 //! supplies cleanup/transfer ACK lineage; decoded rows cannot call this route.
 use super::*;
-use crate::live_invocation::source_journal::{LiveOwnedStepTransferPermitV8, SourceJournalError};
+use crate::live_invocation::source_journal::SourceJournalError;
 use serde_json::{json, Value as Json};
 
 pub(crate) enum LiveOwnedReduceCleanupFailureV8<'j> {
@@ -95,9 +95,19 @@ pub(crate) enum LiveOwnedStepTransferFailureV8<'j> {
         error: SourceJournalError,
     },
 }
+pub(crate) trait LiveOwnedStepTransferGuardV8 {
+    fn validate_transfer_current(&self) -> Result<(), SourceJournalError>;
+    fn transfer_reserved(&self) -> Result<u32, SourceJournalError>;
+    fn validate_ready(
+        &self,
+        inputs: &OwnedEffectInputsV8<'_>,
+        receipt: &Json,
+        origin: OwnedReduceCleanupOriginV8,
+    ) -> Result<(), SourceJournalError>;
+}
 pub(crate) fn consume_live_owned_step_v8<'j>(
     ready: ReadyExecutedOwnedStepV2<'j>,
-    permit: &LiveOwnedStepTransferPermitV8<'_, 'j>,
+    permit: &impl LiveOwnedStepTransferGuardV8,
 ) -> Result<HeldExecutedOwnedStepV2<'j>, LiveOwnedStepTransferFailureV8<'j>> {
     let checked = (|| {
         let inputs = ready.inputs.as_ref().ok_or(SourceJournalError::Binding)?;

@@ -335,6 +335,24 @@ impl LiveOwnedStepTransferPermitV8<'_, '_> {
         self.validate_transfer_current()
     }
 }
+impl crate::interpreter::resumable::owned_frame::registered_stage::reduce::LiveOwnedStepTransferGuardV8
+    for LiveOwnedStepTransferPermitV8<'_, '_>
+{
+    fn validate_transfer_current(&self) -> Result<(), SourceJournalError> {
+        LiveOwnedStepTransferPermitV8::validate_transfer_current(self)
+    }
+    fn transfer_reserved(&self) -> Result<u32, SourceJournalError> {
+        LiveOwnedStepTransferPermitV8::transfer_reserved(self)
+    }
+    fn validate_ready(
+        &self,
+        inputs: &OwnedEffectInputsV8<'_>,
+        receipt: &Value,
+        origin: OwnedReduceCleanupOriginV8,
+    ) -> Result<(), SourceJournalError> {
+        LiveOwnedStepTransferPermitV8::validate_ready(self, inputs, receipt, origin)
+    }
+}
 
 // Source holders remain private; their only construction will consume the
 // actual evaluated core owner and actual fixed ACK envelopes in this child.

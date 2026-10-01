@@ -8,6 +8,7 @@ mod effect_fold;
 mod initialization;
 mod observe_settlement;
 mod observer;
+mod projection;
 #[path = "fold/reduce.rs"]
 mod reduce;
 
@@ -237,6 +238,9 @@ impl FoldV8 {
     pub(super) fn current_turn(&self) -> u32 {
         self.current_turn
     }
+    pub(super) fn wait_fuel(&self) -> u64 {
+        self.wait_fuel
+    }
     pub(super) fn failure_selected(&self) -> bool {
         self.failure_selected
     }
@@ -373,7 +377,14 @@ pub(super) fn fold(
                             TailV8::EffectDecisionReleased
                                 | TailV8::EffectFailedState
                                 | TailV8::Reduce
-                        )),
+                        ))
+                    || (matches!(
+                        row.entry,
+                        EntryV8::Ordinary(SourceJournalEntry::TerminalSnapshot { .. })
+                    ) && fold.tail == TailV8::Reduce
+                        && fold.reduce_fold().is_some_and(|r| {
+                            r.tail() == super::reduce_fold::ReduceTailV8::TerminalPending
+                        })),
             )?;
         }
         match &row.entry {
@@ -421,19 +432,7 @@ pub(super) fn fold(
     // Reuse the ordinary phase grammar without fake Initialize or migration.
     // Replay references are independently checked at their true combined seqs
     // above, then remapped only inside this inert validation projection.
-    let mut projected = fold.ordinary.clone();
-    observe_settlement::project_initial_failed_stop(&fold, &mut projected)?;
-    for entry in &mut projected {
-        if let SourceJournalEntry::ReplayStageReservation { causal_seq, .. } = entry {
-            *causal_seq = u32::try_from(
-                fold.ordinary_sequences
-                    .iter()
-                    .position(|seq| *seq == *causal_seq)
-                    .ok_or(SourceJournalError::Order)?,
-            )
-            .map_err(|_| SourceJournalError::Capacity)?;
-        }
-    }
+    let projected = fold.ordinary_projection()?;
     let ordinary_fold = super::super::execution::validate_inner_seeded(
         &context.ordinary,
         &projected,

@@ -967,7 +967,7 @@ impl ProspectiveOwnedReduceHoldV8<'_> {
                     |crate::live_invocation::source_journal::owned_wait_v8::model::OwnedBodyV8::OwnedReduceCleanupSettled{..}
                     |crate::live_invocation::source_journal::owned_wait_v8::model::OwnedBodyV8::OwnedStepTransferReserved{..}
                     |crate::live_invocation::source_journal::owned_wait_v8::model::OwnedBodyV8::OwnedStepTransferCompleted{..})
-                |EntryV8::Ordinary(SourceJournalEntry::Transition{..}|SourceJournalEntry::Stop{..})) {
+                |EntryV8::Ordinary(SourceJournalEntry::Transition{..}|SourceJournalEntry::Stop{..}|SourceJournalEntry::TerminalSnapshot{..})) {
                 return Err(SourceJournalError::Binding);
             }
             Ok(())

@@ -47,6 +47,17 @@ pub(super) struct AppendSessionV8<'a> {
     journal: &'a SourceOwnedWaitJournalV8,
     inventory: InventoryV8<'a>,
 }
+impl AppendSessionV8<'_> {
+    pub(super) fn terminal_entry(
+        &self,
+        turn: u32,
+        status: super::super::SourceTerminalStatus,
+        carrier: Vec<u8>,
+        input: super::super::SourceTerminalEvidenceInput,
+    ) -> Result<EntryV8, SourceJournalError> {
+        self.inventory.terminal_entry(turn, status, carrier, input)
+    }
+}
 pub(super) enum AppendFailureV8<'a> {
     PhysicalBeforeCandidate {
         _session: AppendSessionV8<'a>,

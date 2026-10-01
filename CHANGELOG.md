@@ -8,6 +8,13 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Carry the actual turn-1 Step through transfer reservation, physical field
+  move, completion and terminal Transition ACKs (#330). The corrected
+  real-chain transfer selector passed locally. Add a private owner-backed
+  `TerminalSnapshot` writer and fold join; its success and prewrite-fault
+  selectors await the central gate. Public entry, delivery and recovery remain
+  open.
+
 - Add an opt-in packaged reference-service OCI runtime journey (#336): an
   offline layout can be imported into local Podman with explicit state,
   outbound, secret, and bundle mounts, then exercise auth, task/job mutation,

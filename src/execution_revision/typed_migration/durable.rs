@@ -678,6 +678,15 @@ fn target_evaluation_valid(value: &Value, expected_limit: Option<u64>) -> bool {
     let Some(work) = evaluation.get("semantic_work").and_then(Value::as_object) else {
         return false;
     };
+    let Some(fuel_used) = work.get("fuel_used").and_then(Value::as_u64) else {
+        return false;
+    };
+    let Some(fuel_limit) = work.get("fuel_limit").and_then(Value::as_u64) else {
+        return false;
+    };
+    let Some(exhausted) = work.get("exhausted").and_then(Value::as_bool) else {
+        return false;
+    };
     evaluation.len() == 3
         && evaluation
             .get("instruction_steps")
@@ -688,9 +697,9 @@ fn target_evaluation_valid(value: &Value, expected_limit: Option<u64>) -> bool {
             .and_then(Value::as_u64)
             .is_some()
         && work.len() == 4
-        && work.get("fuel_used").and_then(Value::as_u64).is_some()
-        && work.get("fuel_limit").and_then(Value::as_u64) == expected_limit
-        && work.get("exhausted").and_then(Value::as_bool).is_some()
+        && expected_limit == Some(fuel_limit)
+        && fuel_used <= fuel_limit
+        && (!exhausted || fuel_used == fuel_limit)
         && work
             .get("finalizer_events")
             .is_some_and(|events| match events {
@@ -755,8 +764,23 @@ mod tests {
         changed_work["evaluations"][1]["semantic_work"]["fuel_used"] = serde_json::json!(8);
         assert!(!target_execution_valid(&changed_work));
 
-        let mut changed_cleanup = receipt;
+        let mut changed_cleanup = receipt.clone();
         changed_cleanup["evaluations"][1]["copy_out_cleanup_events"] = serde_json::json!(2);
         assert!(!target_execution_valid(&changed_cleanup));
+
+        let mut over_limit = receipt.clone();
+        for evaluation in over_limit["evaluations"].as_array_mut().unwrap() {
+            evaluation["semantic_work"]["fuel_used"] = serde_json::json!(11);
+        }
+        assert!(!target_execution_valid(&over_limit));
+
+        let mut exhausted_before_limit = receipt;
+        for evaluation in exhausted_before_limit["evaluations"]
+            .as_array_mut()
+            .unwrap()
+        {
+            evaluation["semantic_work"]["exhausted"] = serde_json::json!(true);
+        }
+        assert!(!target_execution_valid(&exhausted_before_limit));
     }
 }

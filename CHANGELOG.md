@@ -8,6 +8,9 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Reject migrated durable target receipts whose semantic fuel exceeds the
+  declared limit or claims exhaustion before consuming that limit (#327).
+
 - Route new immediate reference-service job enqueues through the checked
   scaffold's `enqueue_is_legal` decision, with source denial and evaluator
   failure leaving committed state and outbound work untouched (#336).

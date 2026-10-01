@@ -1,4 +1,5 @@
 //! Consuming source entry from the later original Start reservation ACK.
+pub(in crate::live_invocation::source_journal::owned_wait_v8) mod prepared;
 use super::*;
 use crate::agent_lifecycle::authorization::target_protocol::TargetAccounting;
 use crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect::authorization::step::r#continue::later::settlement::start::{

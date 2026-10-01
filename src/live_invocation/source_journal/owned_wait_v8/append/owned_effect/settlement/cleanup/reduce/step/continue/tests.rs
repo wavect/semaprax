@@ -1099,7 +1099,7 @@ fn continued_reduce_chain_step_ack(fault: u8, three_turns: bool) {
                                                 assert!(weak
                                                     .iter()
                                                     .any(|owner| owner.strong_count() == 1));
-                                                drop(entered);
+                                                prepared::run(journal, entered, fault);
                                             }
                                         }
                                     }
@@ -1220,7 +1220,7 @@ fn continued_reduce_chain_step_ack(fault: u8, three_turns: bool) {
         );
             assert_eq!(
                 crate::interpreter::resumable::owned_frame::registered_stage::reduce::PreparedHeldContinuedWaitV2::test_start_entries(),
-                start_entries + usize::from(three_turns && fault == 0),
+                start_entries + usize::from(three_turns && matches!(fault, 0 | 10)),
                 "only the turn-two Start ACK may enter the source helper again"
             );
             assert!(weak.iter().all(|owner| owner.upgrade().is_none()));
@@ -1286,6 +1286,7 @@ fn owned_continued_step_turn_two_created_prewrite_refusal_retains_later_owner() 
 fn owned_continued_step_turn_two_start_prewrite_refusal_never_enters_source() {
     continued_reduce_chain_step_ack(9, true);
 }
+mod prepared;
 #[test]
 fn owned_continue_actual_state_and_observe_acks_preserve_owner_ledger_and_cumulative_funding() {
     with_moved(|journal, moved, weak, _, _| {

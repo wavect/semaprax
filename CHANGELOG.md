@@ -8,6 +8,11 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Append turn-two `OwnedWaitPrepared` from the retained physical Parked owner
+  (#330), using the existing fixed writer and cumulative hold. The focused
+  success and prewrite-refusal selectors passed locally; later Model and
+  public recovery remain open.
+
 - Enter the physical turn-two source wait from the retained two-ACK Start owner
   (#330), preserving the State, Copy observation, fuel accounting, and original
   Start reservation. The focused success and prewrite-refusal selectors passed

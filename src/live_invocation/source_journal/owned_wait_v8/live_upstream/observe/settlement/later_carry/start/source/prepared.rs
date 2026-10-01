@@ -1,47 +1,79 @@
-//! Actual park selects one checkpoint/Prepared row. Older Start ACKs remain
-//! causal facts; only the new Prepared successor validates after its ACK.
+//! The later physical park selects one original Prepared checkpoint and ACK.
 use super::*;
 use crate::live_invocation::source_journal::owned_wait_v8::append::VerifiedOwnedContinuedPreparedSuccessorV8;
-use crate::live_invocation::source_journal::owned_wait_v8::live_upstream::observe::settlement::later_carry::start::source::prepared::LiveOwnedLaterPreparedAppendV8;
+use crate::live_invocation::source_journal::owned_wait_v8::live_upstream::FixedOwnedContinuedPreparedAppendPermitV8;
+use crate::resumable_effects::owned_frame::v2::OwnedWaitCheckpointExpectationV8;
 
-pub(in crate::live_invocation::source_journal::owned_wait_v8) struct LiveOwnedContinuedPreparedAppendV8<
+pub(in crate::live_invocation::source_journal::owned_wait_v8) struct LiveOwnedLaterPreparedAppendV8<
     'j,
 > {
-    owner: LiveContinuedStartedPhaseV8<'j>,
+    owner: LiveLaterStartedPhaseV8<'j>,
     selected: EntryV8,
 }
-pub(in crate::live_invocation::source_journal::owned_wait_v8) struct LiveContinuedPreparedPhaseV8<
-    'j,
-> {
-    owner: LiveContinuedStartedPhaseV8<'j>,
+pub(in crate::live_invocation::source_journal::owned_wait_v8) struct LiveLaterPreparedPhaseV8<'j> {
+    owner: LiveLaterStartedPhaseV8<'j>,
     session: AppendSessionV8<'j>,
     witness: VerifiedOwnedContinuedPreparedSuccessorV8<'j>,
 }
-pub(in crate::live_invocation::source_journal::owned_wait_v8) enum LiveContinuedPreparedFailureV8<
-    'j,
-> {
+pub(in crate::live_invocation::source_journal::owned_wait_v8) enum LiveLaterPreparedFailureV8<'j> {
     Selection {
-        owner: LiveContinuedStartedPhaseV8<'j>,
+        owner: LiveLaterStartedPhaseV8<'j>,
         error: SourceJournalError,
     },
     Acknowledged {
-        owner: LiveOwnedContinuedPreparedAppendV8<'j>,
+        owner: LiveOwnedLaterPreparedAppendV8<'j>,
         session: AppendSessionV8<'j>,
         witness: VerifiedOwnedContinuedPreparedSuccessorV8<'j>,
         error: SourceJournalError,
     },
 }
-impl<'j> LiveContinuedStartedPhaseV8<'j> {
-    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn prepare_checkpoint(
-        self,
-    ) -> Result<LiveOwnedContinuedPreparedAppendV8<'j>, LiveContinuedPreparedFailureV8<'j>> {
-        match self.selected_prepared() {
-            Ok(selected) => Ok(LiveOwnedContinuedPreparedAppendV8 {
-                owner: self,
-                selected,
-            }),
-            Err(error) => Err(LiveContinuedPreparedFailureV8::Selection { owner: self, error }),
+
+impl<'j> LiveLaterStartedPhaseV8<'j> {
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn journal(
+        &self,
+    ) -> &'j SourceOwnedWaitJournalV8 {
+        self.owner.journal()
+    }
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn sequence(&self) -> usize {
+        self.acks
+            .last()
+            .expect("actual Start ACK")
+            .session
+            .sequence()
+    }
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn acknowledged_bytes(
+        &self,
+    ) -> usize {
+        self.acks
+            .last()
+            .expect("actual Start ACK")
+            .session
+            .acknowledged_bytes()
+    }
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn observation(
+        &self,
+    ) -> &CheckedOwnedWaitObservationV8 {
+        &self.observation
+    }
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn encode_current_checkpoint(
+        &self,
+        session: &AppendSessionV8<'_>,
+        key: &crate::resumable_effects::source_checkpoint::SourceCheckpointKey,
+        expected: &OwnedWaitCheckpointExpectationV8<'_>,
+    ) -> Result<(Vec<u8>, String), SourceJournalError> {
+        if !session.belongs_to(self.journal())
+            || session.sequence() != self.sequence()
+            || session.acknowledged_bytes() != self.acknowledged_bytes()
+        {
+            return Err(SourceJournalError::Binding);
         }
+        self.validate_live()?;
+        let current = self.acks.last().ok_or(SourceJournalError::Order)?;
+        let result = self
+            .owner
+            .encode_checkpoint(session, &current.witness, key, expected)?;
+        self.validate_live()?;
+        Ok(result)
     }
     fn selected_prepared(&self) -> Result<EntryV8, SourceJournalError> {
         self.validate_live()?;
@@ -57,7 +89,7 @@ impl<'j> LiveContinuedStartedPhaseV8<'j> {
         else {
             return Err(SourceJournalError::Binding);
         };
-        let (checkpoint, checkpoint_digest) = current.session.continued_parked_checkpoint(self)?;
+        let (checkpoint, checkpoint_digest) = current.session.later_parked_checkpoint(self)?;
         Ok(EntryV8::Owned(
             journal_model::OwnedBodyV8::OwnedWaitPrepared {
                 turn: *turn,
@@ -78,8 +110,20 @@ impl<'j> LiveContinuedStartedPhaseV8<'j> {
             },
         ))
     }
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn prepare_checkpoint(
+        self,
+    ) -> Result<LiveOwnedLaterPreparedAppendV8<'j>, LiveLaterPreparedFailureV8<'j>> {
+        match self.selected_prepared() {
+            Ok(selected) => Ok(LiveOwnedLaterPreparedAppendV8 {
+                owner: self,
+                selected,
+            }),
+            Err(error) => Err(LiveLaterPreparedFailureV8::Selection { owner: self, error }),
+        }
+    }
 }
-impl<'j> LiveOwnedContinuedPreparedAppendV8<'j> {
+
+impl<'j> LiveOwnedLaterPreparedAppendV8<'j> {
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn selected(&self) -> &EntryV8 {
         &self.selected
     }
@@ -112,9 +156,7 @@ impl<'j> LiveOwnedContinuedPreparedAppendV8<'j> {
         &self,
     ) -> Result<FixedOwnedContinuedPreparedAppendPermitV8<'_, 'j>, SourceJournalError> {
         self.validate_live()?;
-        Ok(FixedOwnedContinuedPreparedAppendPermitV8 {
-            owner: PreparedPermitOwnerV8::First(self),
-        })
+        Ok(FixedOwnedContinuedPreparedAppendPermitV8::later(self))
     }
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_successor(
         &self,
@@ -130,60 +172,13 @@ impl<'j> LiveOwnedContinuedPreparedAppendV8<'j> {
             )?;
             witness.validate_current_session(session)?;
             self.owner.owner.validate_prepared_live(session, witness)?;
-            if !matches!(&self.selected,EntryV8::Owned(journal_model::OwnedBodyV8::OwnedWaitPrepared{turn,consumed,..})if *turn==self.owner.owner.turn()&&Some(*consumed)==self.owner.owner.consumed())
+            if !matches!(&self.selected, EntryV8::Owned(journal_model::OwnedBodyV8::OwnedWaitPrepared { turn, consumed, .. }) if *turn == self.owner.owner.turn() && Some(*consumed) == self.owner.owner.consumed())
             {
                 return Err(SourceJournalError::Binding);
             }
             witness.validate_current_session(session)
         })();
         result.inspect_err(|_| self.owner.journal().quarantine())
-    }
-}
-pub(in crate::live_invocation::source_journal::owned_wait_v8) struct FixedOwnedContinuedPreparedAppendPermitV8<
-    'p,
-    'j,
-> {
-    owner: PreparedPermitOwnerV8<'p, 'j>,
-}
-#[derive(Clone, Copy)]
-enum PreparedPermitOwnerV8<'p, 'j> {
-    First(&'p LiveOwnedContinuedPreparedAppendV8<'j>),
-    Later(&'p LiveOwnedLaterPreparedAppendV8<'j>),
-}
-impl FixedOwnedContinuedPreparedAppendPermitV8<'_, '_> {
-    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn later<'p, 'j>(
-        owner: &'p LiveOwnedLaterPreparedAppendV8<'j>,
-    ) -> FixedOwnedContinuedPreparedAppendPermitV8<'p, 'j> {
-        FixedOwnedContinuedPreparedAppendPermitV8 {
-            owner: PreparedPermitOwnerV8::Later(owner),
-        }
-    }
-    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn selected_row(
-        &self,
-    ) -> &EntryV8 {
-        match self.owner {
-            PreparedPermitOwnerV8::First(owner) => owner.selected(),
-            PreparedPermitOwnerV8::Later(owner) => owner.selected(),
-        }
-    }
-    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_preflight(
-        &self,
-        journal: &SourceOwnedWaitJournalV8,
-    ) -> Result<(), SourceJournalError> {
-        match self.owner {
-            PreparedPermitOwnerV8::First(owner) => {
-                if !owner.belongs_to(journal) {
-                    return Err(SourceJournalError::Binding);
-                }
-                owner.validate_live()
-            }
-            PreparedPermitOwnerV8::Later(owner) => {
-                if !owner.belongs_to(journal) {
-                    return Err(SourceJournalError::Binding);
-                }
-                owner.validate_live()
-            }
-        }
     }
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_selected_prefix(
         &self,
@@ -192,61 +187,46 @@ impl FixedOwnedContinuedPreparedAppendPermitV8<'_, '_> {
             '_,
         >,
     ) -> Result<(), SourceJournalError> {
-        match self.owner {
-            PreparedPermitOwnerV8::First(owner) => {
-                if !owner.belongs_to(journal)
-                    || inventory.sequence() != owner.sequence()
-                    || inventory.acknowledged_bytes() != owner.acknowledged_bytes()
-                {
-                    return Err(SourceJournalError::Binding);
-                }
-                owner.owner.owner.validate_prepared_append_prefix(
-                    journal,
-                    inventory,
-                    owner.selected(),
-                )
-            }
-            PreparedPermitOwnerV8::Later(owner) => {
-                owner.validate_selected_prefix(journal, inventory)
-            }
+        if !self.belongs_to(journal)
+            || inventory.sequence() != self.sequence()
+            || inventory.acknowledged_bytes() != self.acknowledged_bytes()
+        {
+            return Err(SourceJournalError::Binding);
         }
+        self.owner
+            .owner
+            .validate_prepared_append_prefix(journal, inventory, &self.selected)
     }
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_registry(
         &self,
         witness: &VerifiedOwnedContinuedPreparedSuccessorV8<'_>,
         session: &AppendSessionV8<'_>,
     ) -> Result<(), SourceJournalError> {
-        match self.owner {
-            PreparedPermitOwnerV8::First(owner) => owner
-                .owner
-                .owner
-                .advance_prepared_registry(witness, session),
-            PreparedPermitOwnerV8::Later(owner) => owner.advance_registry(witness, session),
-        }
+        self.owner.owner.advance_prepared_registry(witness, session)
     }
 }
-pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_verified_continued_prepared_v8<
+pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_verified_later_prepared_v8<
     'j,
 >(
-    obligation: LiveOwnedContinuedPreparedAppendV8<'j>,
+    obligation: LiveOwnedLaterPreparedAppendV8<'j>,
     session: AppendSessionV8<'j>,
     witness: VerifiedOwnedContinuedPreparedSuccessorV8<'j>,
-) -> Result<LiveContinuedPreparedPhaseV8<'j>, LiveContinuedPreparedFailureV8<'j>> {
+) -> Result<LiveLaterPreparedPhaseV8<'j>, LiveLaterPreparedFailureV8<'j>> {
     if let Err(error) = obligation.validate_successor(&witness, &session) {
-        return Err(LiveContinuedPreparedFailureV8::Acknowledged {
+        return Err(LiveLaterPreparedFailureV8::Acknowledged {
             owner: obligation,
             session,
             witness,
             error,
         });
     }
-    Ok(LiveContinuedPreparedPhaseV8 {
+    Ok(LiveLaterPreparedPhaseV8 {
         owner: obligation.owner,
         session,
         witness,
     })
 }
-impl LiveContinuedPreparedPhaseV8<'_> {
+impl LiveLaterPreparedPhaseV8<'_> {
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_live(
         &self,
     ) -> Result<(), SourceJournalError> {
@@ -259,18 +239,13 @@ impl LiveContinuedPreparedPhaseV8<'_> {
         })();
         result.inspect_err(|_| self.owner.journal().quarantine())
     }
-}
-
-#[cfg(test)]
-impl LiveContinuedPreparedPhaseV8<'_> {
-    pub(super) fn test_sequence(&self) -> usize {
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn sequence(&self) -> usize {
         self.session.sequence()
     }
-    pub(super) fn test_accounting(
+    #[cfg(test)]
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn test_accounting(
         &self,
-    ) -> &crate::agent_lifecycle::authorization::target_protocol::TargetAccounting {
+    ) -> &TargetAccounting {
         self.owner.owner.test_accounting()
     }
 }
-
-pub(in crate::live_invocation::source_journal::owned_wait_v8) mod model;

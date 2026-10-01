@@ -1338,6 +1338,55 @@ fn packaged_development_service_runs_from_an_independent_workspace() {
     );
 }
 
+/// This gate needs an operator-supplied static Linux executable and a local
+/// Podman runtime. It imports the exact OCI layout and exercises mounted
+/// physical adapters; keep it opt-in so ordinary macOS/Linux compiler gates do
+/// not infer that every host has a container runtime.
+#[test]
+#[ignore = "requires SEMAPRAX_REFERENCE_SERVICE_OCI_EXECUTABLE and local Podman on Linux"]
+fn packaged_oci_service_runs_with_physical_adapters() {
+    let executable = std::env::var_os("SEMAPRAX_REFERENCE_SERVICE_OCI_EXECUTABLE")
+        .map(PathBuf::from)
+        .expect("set SEMAPRAX_REFERENCE_SERVICE_OCI_EXECUTABLE to a static Linux service binary");
+    let podman = std::env::var_os("SEMAPRAX_REFERENCE_SERVICE_PODMAN")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from("podman"));
+    let inputs = Workdir::create("oci-runtime");
+    inputs.write_inputs();
+    let repository = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("..")
+        .join("..");
+    let output = Command::new("python3")
+        .arg(repository.join("scripts/tests/reference_service_oci_runtime.py"))
+        .arg("--packager")
+        .arg(repository.join("scripts/package-reference-service.py"))
+        .arg("--checker")
+        .arg(&executable)
+        .arg("--executable")
+        .arg(&executable)
+        .arg("--project")
+        .arg(inputs.example_project())
+        .arg("--config")
+        .arg(inputs.path("service.config.json"))
+        .arg("--podman")
+        .arg(podman)
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .output()
+        .expect("run packaged OCI runtime journey");
+    assert!(
+        output.status.success(),
+        "stdout: {}\nstderr: {}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert_eq!(
+        String::from_utf8(output.stdout).unwrap(),
+        "packaged reference-service OCI runtime journey passed\n"
+    );
+}
+
 #[test]
 fn package_preflight_checks_service_without_runtime_grants() {
     let workdir = Workdir::create("package-preflight");

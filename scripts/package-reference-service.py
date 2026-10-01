@@ -118,8 +118,8 @@ def write_oci(output, files, arch):
             "/bin/semaprax-reference-service", "serve",
             "--project", "/service", "--config", "/service/service.config.json",
             "--state-dir", "/state", "--outbound-dir", "/outbound",
-            "--secrets-dir", "/secrets", "--bundle-dir", "/bundle", "--port", "8080",
-        ], "User": "65532:65532",
+            "--secrets-dir", "/secrets", "--bundle-dir", "/bundle",
+        ], "Cmd": ["--port", "8080"], "User": "65532:65532",
                    "WorkingDir": "/service"},
         "rootfs": {"type": "layers", "diff_ids": [layer["digest"]]},
     }), "application/vnd.oci.image.config.v1+json")
@@ -127,6 +127,13 @@ def write_oci(output, files, arch):
         "mediaType": "application/vnd.oci.image.manifest.v1+json",
         "config": config, "layers": [layer]}), "application/vnd.oci.image.manifest.v1+json")
     (output / "oci-layout").write_bytes(encoded({"imageLayoutVersion": "1.0.0"}))
+    # A fixed local reference makes an offline OCI-layout import addressable
+    # without a registry or an ambient tag selection.  It is only a local
+    # operator convenience; the digest-bound receipt remains the package
+    # identity and this annotation makes no publication claim.
+    manifest["annotations"] = {
+        "org.opencontainers.image.ref.name": "semaprax-reference-service:local"
+    }
     (output / "index.json").write_bytes(encoded({"schemaVersion": 2, "manifests": [manifest]}))
 
 

@@ -286,8 +286,8 @@ OCI output contains a deterministic uncompressed rootfs tar layer, standard
 [OCI image configuration](https://github.com/opencontainers/image-spec/blob/v1.1.0/config.md),
 content-addressed config/manifest/layer blobs, index, and layout marker. Its
 entrypoint invokes `/bin/semaprax-reference-service serve` with the fixed paths
-below and port `8080`; working directory is `/service` and default user is
-`65532:65532`. Empty `/state`, `/outbound`,
+below; `Cmd` supplies the default `--port 8080`. Working directory is `/service`
+and default user is `65532:65532`. Empty `/state`, `/outbound`,
 `/bundle`, and `/secrets` mountpoints carry no data or authority. Writable
 state/outbound/bundle mounts must permit the selected UID; secrets should be
 mounted read-only. The image has no shell, loader, downloaded base, registry
@@ -296,12 +296,11 @@ operation, credential embedding, signing, or publication step.
 After explicitly importing the layout into a trusted Linux runtime, the
 configured entrypoint already supplies `serve --project /service --config /service/service.config.json
 --state-dir /state --outbound-dir /outbound --bundle-dir /bundle
---secrets-dir /secrets --port 8080`. The operator must provide the four explicit
-mounts described above; without them startup refuses missing secrets or
-unwritable state. Preserve the returned state digest and append `--state <digest>`
-to the entrypoint for restart. An appended `--port <port>` overrides the default
-through the existing CLI parser; TLS and session-policy flags can likewise be
-supplied explicitly. Loopback serving requires clients
+--secrets-dir /secrets`; its `Cmd` supplies `--port 8080`. The operator must
+provide the four explicit mounts described above; without them startup refuses
+missing secrets or unwritable state. Runtime arguments replace `Cmd`, so append
+`--port <port>` and, for restart, `--state <digest>` together. TLS and
+session-policy flags can likewise be supplied explicitly. Loopback serving requires clients
 in the same network namespace or an explicitly granted Linux host network;
 ordinary published-port forwarding to a container interface does not make the
 loopback listener reachable. Outbound delivery also needs explicitly permitted
@@ -338,12 +337,37 @@ cargo test --locked -p semaprax-native-host --test runtime_host \
   -- --exact --test-threads=1
 ```
 
-This macOS host has `wasmtime` but no `docker`,
-`podman`, `nerdctl`, `containerd`, or `runc` on PATH, and no supplied trusted
-static Linux service executable. The installed-development gate remains local;
-the Linux container register/login/CRUD/job/restart journey remains open.
-Packaging alone does not establish OCI execution, release provenance, or close
-#336 and the broader scaffold decision gaps above.
+### OCI runtime journey
+
+`scripts/tests/reference_service_oci_runtime.py` is the opt-in Linux/Podman
+runtime gate. It packages the explicitly supplied static Linux service binary,
+archives and imports that exact OCI layout under the deterministic local name
+`semaprax-reference-service:local`, and starts only that imported image. It
+uses `--network host` because the service deliberately listens on loopback, and
+mounts separate host-owned `state`, `outbound`, `secrets`, and `bundle`
+directories as its physical adapters. It never mounts the source project.
+
+Before secrets exist, the imported image must refuse without writing state,
+outbound, or bundle inventory. With the three named secrets supplied, the gate
+proves register/login, task create/update/delete, enqueue, an actual outbound
+adapter failure recorded as `uncertain`, and restart from the saved digest with
+no duplicate delivery. The image is removed only if the fixed local name did
+not exist before the gate; a pre-existing image with that name is refused.
+
+```sh
+SEMAPRAX_REFERENCE_SERVICE_OCI_EXECUTABLE=/absolute/static-linux/semaprax-reference-service \
+cargo test --locked -p semaprax-native-host --test runtime_host \
+  reference_service_acceptance::packaged_oci_service_runs_with_physical_adapters \
+  -- --ignored --exact --test-threads=1
+```
+
+The gate requires an operator-supplied trusted static Linux service executable,
+Linux, and a local Podman runtime. It performs no registry access, publication,
+signing, or release-provenance verification. This macOS host has `wasmtime` but
+no `docker`, `podman`, `nerdctl`, `containerd`, or `runc` on PATH, and no
+supplied trusted static Linux service executable, so this selector is prepared
+but has not been run here. Packaging alone does not establish OCI execution,
+release provenance, or close #336 and the broader scaffold decision gaps above.
 
 ### Immediate enqueue checked-source parity
 

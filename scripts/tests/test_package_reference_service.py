@@ -50,6 +50,9 @@ class PackageTests(unittest.TestCase):
                 self.assertEqual(len(data), descriptor["size"])
                 return data
             index = json.loads((roots[0] / "index.json").read_bytes())
+            self.assertEqual(index["manifests"][0]["annotations"], {
+                "org.opencontainers.image.ref.name": "semaprax-reference-service:local"
+            })
             manifest = json.loads(read_blob(index["manifests"][0]))
             config = json.loads(read_blob(manifest["config"]))
             self.assertEqual(config["rootfs"]["diff_ids"], [manifest["layers"][0]["digest"]])
@@ -57,8 +60,9 @@ class PackageTests(unittest.TestCase):
                 "/bin/semaprax-reference-service", "serve",
                 "--project", "/service", "--config", "/service/service.config.json",
                 "--state-dir", "/state", "--outbound-dir", "/outbound",
-                "--secrets-dir", "/secrets", "--bundle-dir", "/bundle", "--port", "8080",
+                "--secrets-dir", "/secrets", "--bundle-dir", "/bundle",
             ])
+            self.assertEqual(config["config"]["Cmd"], ["--port", "8080"])
             with tarfile.open(fileobj=io.BytesIO(read_blob(manifest["layers"][0]))) as archive:
                 self.assertEqual({entry.name for entry in archive if entry.isfile()}, set(files))
                 self.assertEqual(archive.getmember("bin/semaprax-reference-service").mode, 0o755)

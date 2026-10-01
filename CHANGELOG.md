@@ -8,6 +8,14 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Add an opt-in packaged reference-service OCI runtime journey (#336): an
+  offline layout can be imported into local Podman with explicit state,
+  outbound, secret, and bundle mounts, then exercise auth, task/job mutation,
+  restart, and no redispatch. Separate `Entrypoint` and default-port `Cmd` so
+  an operator-selected port replaces the default. Structural packaging tests
+  passed 3/3 locally; the Linux Podman runtime selector still needs a trusted
+  static Linux executable and has not run on this macOS host.
+
 - Restrict the Windows doctor confined child to its three declared standard
   handles through an explicit process handle list (#333). Add a selected
   inheritable-sentinel child probe, raising the provisioned runtime selector

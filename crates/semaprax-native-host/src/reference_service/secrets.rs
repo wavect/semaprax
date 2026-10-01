@@ -182,6 +182,20 @@ pub fn resolve_tls(
     })
 }
 
+/// Resolve one operator-held outbound TLS trust root. The root is an
+/// explicitly selected deployment grant for a private provider; it is not
+/// part of checked service configuration and cannot be inferred from an
+/// endpoint origin.
+pub fn resolve_tls_root_certificate(
+    directory: &HeldDirectory,
+    reference: &str,
+) -> Result<Vec<u8>, SecretRefusal> {
+    if !valid_reference(reference) {
+        return Err(SecretRefusal::Invalid);
+    }
+    read_bounded(directory, reference, MAX_TLS_CERTIFICATE_BYTES)
+}
+
 /// The same closed reference grammar the decoded service host-adapter
 /// request enforces on its own secret references: one exact file per
 /// reference, lowercase-starting, no path separator admitted.

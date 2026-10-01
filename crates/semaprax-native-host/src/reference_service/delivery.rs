@@ -21,7 +21,9 @@
 use std::time::Duration;
 
 use hmac::{Hmac, KeyInit, Mac};
-use semaprax::network_provider::{NetworkProvider, TcpNetworkProvider};
+use semaprax::network_provider::{
+    client_tls_config_trusting, ClientTlsConfigFailure, NetworkProvider, TcpNetworkProvider,
+};
 use semaprax::outbound_host_adapter::{
     AdapterFailure, AdapterObservation, DeliveryDisposition, HttpDeliveryReceipt, HttpHeader,
     HttpMethod, HttpRequest, OutboundAdapter, OutboundCapability, OutboundPolicy, PreparedRequest,
@@ -101,9 +103,34 @@ pub struct ProviderHttpsAdapter {
     provider: TcpNetworkProvider,
 }
 
+/// Refusal while binding an operator-held outbound TLS trust root.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ProviderHttpsAdapterRefusal {
+    /// The held root is not one valid DER certificate.
+    InvalidRootCertificate,
+}
+
 impl ProviderHttpsAdapter {
     pub fn new() -> Self {
         Self::default()
+    }
+
+    /// Build an adapter which trusts exactly the operator-held root.
+    ///
+    /// This is an explicit deployment grant for a private provider or local
+    /// integration peer. It replaces the public-root client policy for this
+    /// adapter; it never disables certificate or hostname verification.
+    pub fn with_trusted_root_certificate(
+        root_certificate_der: Vec<u8>,
+    ) -> Result<Self, ProviderHttpsAdapterRefusal> {
+        let config = client_tls_config_trusting(root_certificate_der).map_err(
+            |ClientTlsConfigFailure::InvalidCertificate| {
+                ProviderHttpsAdapterRefusal::InvalidRootCertificate
+            },
+        )?;
+        Ok(Self {
+            provider: TcpNetworkProvider::with_tls_config(config),
+        })
     }
 }
 

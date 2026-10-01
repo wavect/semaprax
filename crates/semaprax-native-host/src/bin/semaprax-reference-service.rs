@@ -55,7 +55,7 @@ mod real {
             "       semaprax-reference-service check-package --project <dir> --config <file>"
         );
         eprintln!(
-            "usage: semaprax-reference-service serve --project <dir> --config <service.config.json> --state-dir <dir> --outbound-dir <dir> --secrets-dir <dir> --bundle-dir <dir> --port <1-65535> [--state <sha256:hex>] [--deployment <id>] [--max-steps <n>] [--session-idle-seconds <n>] [--session-absolute-seconds <n>] [--sync-namespace] [--tls-certificate-secret <ref> --tls-private-key-secret <ref>]"
+            "usage: semaprax-reference-service serve --project <dir> --config <service.config.json> --state-dir <dir> --outbound-dir <dir> --secrets-dir <dir> --bundle-dir <dir> --port <1-65535> [--state <sha256:hex>] [--deployment <id>] [--max-steps <n>] [--session-idle-seconds <n>] [--session-absolute-seconds <n>] [--sync-namespace] [--tls-certificate-secret <ref> --tls-private-key-secret <ref>] [--telemetry-root-certificate-secret <ref>]"
         );
         eprintln!(
             "       semaprax-reference-service bundle --config <service.config.json> --bundle-dir <dir>"
@@ -120,6 +120,9 @@ mod real {
         /// binds. Neither given keeps loopback plaintext serving, unchanged.
         tls_certificate_secret: Option<String>,
         tls_private_key_secret: Option<String>,
+        /// An optional exact private root for outbound provider TLS. Absent
+        /// keeps the production public-root client policy.
+        telemetry_root_certificate_secret: Option<String>,
     }
 
     fn take_value(args: &[String], index: &mut usize, flag: &str) -> Option<String> {
@@ -147,6 +150,7 @@ mod real {
         let mut sync_mode = OutboundCheckpointSyncMode::FileOnly;
         let mut tls_certificate_secret = None;
         let mut tls_private_key_secret = None;
+        let mut telemetry_root_certificate_secret = None;
         let mut index = 0;
         while index < args.len() {
             match args[index].as_str() {
@@ -211,6 +215,10 @@ mod real {
                     tls_private_key_secret =
                         take_value(args, &mut index, "--tls-private-key-secret")
                 }
+                "--telemetry-root-certificate-secret" => {
+                    telemetry_root_certificate_secret =
+                        take_value(args, &mut index, "--telemetry-root-certificate-secret")
+                }
                 flag => {
                     eprintln!("error: unknown flag {flag}");
                     return None;
@@ -264,6 +272,7 @@ mod real {
             sync_mode,
             tls_certificate_secret,
             tls_private_key_secret,
+            telemetry_root_certificate_secret,
         })
     }
 
@@ -398,10 +407,23 @@ mod real {
             }
             _ => None,
         };
+        let telemetry_root_certificate = match &options.telemetry_root_certificate_secret {
+            Some(reference) => {
+                match secrets::resolve_tls_root_certificate(&secrets_directory, reference) {
+                    Ok(certificate) => Some(certificate),
+                    Err(_) => {
+                        eprintln!("refused: cannot resolve the held telemetry root certificate");
+                        return 2;
+                    }
+                }
+            }
+            None => None,
+        };
         let grants = match HostGrants::from_trusted_host(
             &state_directory,
             &outbound_directory,
             resolved,
+            telemetry_root_certificate,
             options.deployment,
             options.sync_mode,
             options.session_idle_seconds,
@@ -439,6 +461,10 @@ mod real {
             }
             Err(BindRefusal::InvalidTelemetryOrigin) => {
                 eprintln!("refused: telemetry origin is not a usable collector target");
+                return 2;
+            }
+            Err(BindRefusal::InvalidTelemetryRootCertificate) => {
+                eprintln!("refused: held telemetry root is not a usable TLS certificate");
                 return 2;
             }
             Err(BindRefusal::InvalidPasswordPolicy) => {

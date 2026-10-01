@@ -31,7 +31,7 @@ use crate::outbound_delivery_store::{
 };
 
 use super::decisions::DecisionEngine;
-use super::delivery::{self, DeliveryRefusal, ProviderHttpsAdapter};
+use super::delivery::{self, DeliveryRefusal, ProviderHttpsAdapter, ProviderHttpsAdapterRefusal};
 use super::json::{self, JsonValue};
 use super::secrets::HeldServiceSecrets;
 use super::serve::HttpExchange;
@@ -81,6 +81,8 @@ pub enum BindRefusal {
     InvalidSessionPolicy,
     /// The decoded telemetry origin is not a usable collector target.
     InvalidTelemetryOrigin,
+    /// The operator-held outbound TLS trust root is not a DER certificate.
+    InvalidTelemetryRootCertificate,
     /// The password host policy is not admitted.
     InvalidPasswordPolicy,
     /// The operator-retained starting digest is absent or not exactly valid.
@@ -93,6 +95,7 @@ pub struct HostGrants<'directory> {
     state_directory: &'directory HeldDirectory,
     outbound_directory: &'directory HeldDirectory,
     secrets: HeldServiceSecrets,
+    telemetry_root_certificate_der: Option<Vec<u8>>,
     deployment_binding: String,
     sync_mode: OutboundCheckpointSyncMode,
     session_idle_seconds: u64,
@@ -108,6 +111,7 @@ impl<'directory> HostGrants<'directory> {
         state_directory: &'directory HeldDirectory,
         outbound_directory: &'directory HeldDirectory,
         secrets: HeldServiceSecrets,
+        telemetry_root_certificate_der: Option<Vec<u8>>,
         deployment_binding: String,
         sync_mode: OutboundCheckpointSyncMode,
         session_idle_seconds: u64,
@@ -125,6 +129,7 @@ impl<'directory> HostGrants<'directory> {
             state_directory,
             outbound_directory,
             secrets,
+            telemetry_root_certificate_der,
             deployment_binding,
             sync_mode,
             session_idle_seconds,
@@ -198,6 +203,15 @@ pub fn bind<'revision, 'directory>(
         .map_err(|_| BindRefusal::InvalidPasswordPolicy)?,
     )
     .map_err(|_| BindRefusal::InvalidPasswordPolicy)?;
+    let adapter = match grants.telemetry_root_certificate_der {
+        Some(root_certificate_der) => ProviderHttpsAdapter::with_trusted_root_certificate(
+            root_certificate_der,
+        )
+        .map_err(|ProviderHttpsAdapterRefusal::InvalidRootCertificate| {
+            BindRefusal::InvalidTelemetryRootCertificate
+        })?,
+        None => ProviderHttpsAdapter::new(),
+    };
     let state_store =
         OutboundDeliveryStore::with_sync_mode(grants.state_directory, grants.sync_mode);
     let outbound_store =
@@ -229,7 +243,7 @@ pub fn bind<'revision, 'directory>(
             decisions,
             state_store,
             outbound_store,
-            adapter: ProviderHttpsAdapter::new(),
+            adapter,
             secrets: grants.secrets,
             deployment_binding: grants.deployment_binding,
             telemetry_adapter,
@@ -368,8 +382,7 @@ enum Authentication {
 fn route_needs_auth(method: &str, target: &str) -> bool {
     (method == "POST" && target == "/v1/logout")
         || (method == "POST" && target == "/v1/tasks")
-        || (matches!(method, "GET" | "PATCH" | "DELETE")
-            && task_member(target).is_some())
+        || (matches!(method, "GET" | "PATCH" | "DELETE") && task_member(target).is_some())
         || (method == "POST" && target == "/v1/jobs/enqueue")
         || (method == "POST" && job_member(target, "/complete").is_some())
         || (method == "GET" && job_member(target, "").is_some())

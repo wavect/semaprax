@@ -12,6 +12,8 @@ use std::sync::mpsc;
 use std::time::{Duration, Instant};
 
 use semaprax::network_provider::{client_tls_config_trusting, NetworkProvider, TcpNetworkProvider};
+#[path = "reference_service_acceptance/local_provider.rs"]
+mod local_provider;
 
 const SERVER: &str = env!("CARGO_BIN_EXE_semaprax-reference-service");
 const READY_TIMEOUT: Duration = Duration::from_secs(300);
@@ -72,6 +74,11 @@ const TLS_ARGS: &[&str] = &[
     "tls.private-key",
 ];
 
+/// The optional outbound trust root is an exact held DER certificate. It is
+/// deliberately separate from the service listener's TLS flags: inbound
+/// serving never grants outbound provider trust.
+const TELEMETRY_ROOT_ARGS: &[&str] = &["--telemetry-root-certificate-secret", "telemetry.root"];
+
 static NEXT_WORKDIR: AtomicU64 = AtomicU64::new(0);
 
 struct Workdir {
@@ -100,12 +107,25 @@ impl Workdir {
     }
 
     fn write_inputs(&self) {
-        std::fs::write(self.root.join("service.config.json"), HOST_CONFIG).unwrap();
+        self.write_inputs_with_telemetry_origin("https://telemetry.invalid:9");
+    }
+
+    fn write_inputs_with_telemetry_origin(&self, telemetry_origin: &str) {
+        let config = HOST_CONFIG.replace("https://telemetry.invalid:9", telemetry_origin);
+        std::fs::write(self.root.join("service.config.json"), config).unwrap();
         std::fs::write(self.root.join("secrets").join("auth.pepper"), [1_u8; 32]).unwrap();
         std::fs::write(self.root.join("secrets").join("auth.session"), [2_u8; 32]).unwrap();
         std::fs::write(
             self.root.join("secrets").join("webhook.signing"),
             [3_u8; 32],
+        )
+        .unwrap();
+    }
+
+    fn write_telemetry_root_material(&self) {
+        std::fs::write(
+            self.root.join("secrets").join("telemetry.root"),
+            decode64(TLS_ROOT),
         )
         .unwrap();
     }

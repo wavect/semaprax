@@ -37,7 +37,7 @@ repository's existing machinery and adds no new authority:
 | `snapshot` | Durable snapshot store under `--state-dir`. `sqlite` and `postgresql` are refused with stable adapter-specific diagnostics during both configuration and independent request decoding; non-null `dsn_secret_ref` is refused rather than reinterpreted as a state path. |
 | `native` + `modern` TLS + listen origin | Loopback HTTP/1.1 on `--port`, plaintext by default. The listen origin is intent only and never itself provisions TLS; `--tls-certificate-secret`/`--tls-private-key-secret` opt in (see below). |
 | Three secret refs | Exact files under `--secrets-dir`, resolved before serving. |
-| `semaprax-json-events` + endpoint origin | Canonical `semaprax.json-event.v1` HTTPS POST to `<origin>/v1/events` through `deliver_http_durable`. The closed completion envelope carries `schema`, `event: "job.completed"`, `job_id`, `owner`, `desc`, and an HMAC commitment; its `x-semaprax-event-schema` header repeats the schema identifier. |
+| `semaprax-json-events` + endpoint origin | Canonical `semaprax.json-event.v1` HTTPS POST to `<origin>/v1/events` through `deliver_http_durable`. The closed completion envelope carries `schema`, `event: "job.completed"`, `job_id`, `owner`, `desc`, and an HMAC commitment; its `x-semaprax-event-schema` header repeats the schema identifier. An operator may separately select one held private provider root with `--telemetry-root-certificate-secret`; absent that flag, the adapter retains its public-root TLS policy. |
 | `otlp-http-json` + endpoint origin | OTLP/HTTP JSON-Protobuf `ExportLogsServiceRequest` HTTPS POST to `<origin>/v1/logs` through the same durable delivery path. The fixed lower-camel request has one `resourceLogs` row, `service.name = semaprax-reference-service`, one `job.completed` INFO log record, and decimal-string OTLP `intValue` job and owner attributes. It uses `Content-Type: application/json`; it has no webhook schema header or HMAC signature. Only a `200` JSON-Protobuf `ExportLogsServiceResponse` without `partialSuccess` settles delivered; malformed, partial, or other-status responses settle failed and are not redispatched under the completion identity. |
 
 ## Invocation mapping
@@ -114,13 +114,40 @@ semaprax-reference-service serve --project examples/task-service-project \
   --config service.config.json --state-dir <dir> --outbound-dir <dir> \
   --secrets-dir <dir> --bundle-dir <dir> --port <1-65535> [--state <digest>] \
   [--session-idle-seconds <n> --session-absolute-seconds <n>] \
-  [--tls-certificate-secret <ref> --tls-private-key-secret <ref>]
+  [--tls-certificate-secret <ref> --tls-private-key-secret <ref>] \
+  [--telemetry-root-certificate-secret <ref>]
 ```
 
 The server prints `bundle <digest>` then `ready port=... state=... seq=...
 tls=on|off` and serves until stopped. There is no graceful shutdown;
 crash-safety comes from the store. All directories must already exist; all
 secrets must resolve; the port must be explicit and loopback-only.
+
+## Outbound provider TLS trust (optional, operator-held material only)
+
+Outbound delivery uses the platform public-root TLS policy by default. A
+private provider or a local integration peer can instead be selected only by
+naming `--telemetry-root-certificate-secret <ref>`. The reference resolves one
+bounded DER certificate under `--secrets-dir` with the same
+hold/read/recheck discipline as other operator-held material, then constructs
+a client that trusts exactly that root. An invalid or absent root refuses
+startup before the listener binds; the decoded endpoint origin cannot select,
+replace, or suppress certificate verification. This option grants no client
+credential, proxy, redirect, retry, public deployment, or provider authority.
+
+The issue #329 local real-provider selectors are
+`completion_delivers_to_local_tls_provider_and_restart_does_not_duplicate`,
+`completion_provider_refusal_persists_across_restart_without_duplicate`, and
+`completion_provider_close_after_request_is_uncertain_across_restart_without_duplicate`.
+Each starts an independent loopback TLS provider process using the production
+provider abstraction, has that process persist every received method, route,
+idempotency key, and body, then restarts the actual service from the same state
+digest. The provider returns success, an explicit non-2xx refusal, or persists
+the request and closes before sending a response. The provider-side receipt
+must retain count one and the fixed `/v1/events` completion identity; the
+restarted service preserves the corresponding `delivered`, `failed`, or
+`uncertain` settlement. This is local test-provider evidence only: it makes no
+external-provider, hosted, credential, public-service, or power-loss claim.
 
 ## TLS serving (optional, operator-held material only)
 

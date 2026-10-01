@@ -8,6 +8,12 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Verify reference-service outbound delivery against a separate local TLS
+  provider process (#329). Success, provider refusal, and close-after-request
+  settle through the actual service/store and retain one provider-observed
+  request across restart. An optional operator-held DER root enables private
+  provider trust without disabling TLS hostname verification.
+
 - Claim the actual physical Complete Report after its authenticated terminal
   ACK (#330). The private owner keeps the store borrower and checks a borrowed
   delivery projection against the terminal carrier. The owning success and

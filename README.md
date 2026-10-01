@@ -24,7 +24,7 @@ https://github.com/user-attachments/assets/a3262e2e-85b0-4b08-8e90-cb6bc7cdcad4
 
 <div align="center">
 
-**Meet Ernesto, the official Semaprax mascot.** Follow his [two-minute visual tour](handbook/getting-started/see-it-in-action.md), then try the commands yourself.
+Follow his [two-minute visual tour](handbook/getting-started/see-it-in-action.md), then try the commands yourself.
 
 </div>
 

@@ -1215,7 +1215,7 @@ fn continued_reduce_chain_step_ack(fault: u8, three_turns: bool) {
             );
             assert_eq!(
                 starts.get(),
-                1 + usize::from(three_turns && matches!(fault, 0 | 12)),
+                1 + usize::from(three_turns && matches!(fault, 0 | 12 | 13 | 14)),
                 "turn-two physical Model dispatch occurs only after its Intent ACK"
             );
             assert_eq!(
@@ -1230,7 +1230,7 @@ fn continued_reduce_chain_step_ack(fault: u8, three_turns: bool) {
         );
             assert_eq!(
                 crate::interpreter::resumable::owned_frame::registered_stage::reduce::PreparedHeldContinuedWaitV2::test_start_entries(),
-                start_entries + usize::from(three_turns && matches!(fault, 0 | 10 | 11 | 12)),
+                start_entries + usize::from(three_turns && matches!(fault, 0 | 10 | 11 | 12 | 13 | 14)),
                 "only the turn-two Start ACK may enter the source helper again"
             );
             assert!(weak.iter().all(|owner| owner.upgrade().is_none()));

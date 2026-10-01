@@ -8,6 +8,11 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- ACK actual turn-two Model Usage and a full-fuel Resume reservation from the
+  retained physical owner (#330). The owning success and both distinct
+  prewrite-refusal selectors passed locally; physical Resume, Completed, and
+  public recovery remain open.
+
 - Add an isolated Windows anonymous request/bundle carrier experiment (#333).
   It authenticates signed artifact bytes into read-only inheritable mapping
   handles and adds a native hostile-write selector. Windows execution and

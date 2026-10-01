@@ -954,9 +954,14 @@ turn-two owner now dispatches the checked request through the existing SDK
 guard, selecting one ordinary `AttemptSettled` or `AttemptFailed` row from
 the actual response. Its fixed writer ACKs that row under the cumulative
 hold, while prewrite refusal retains the dispatched owner. The owning
-settlement success and refusal gates passed locally. Later failed-Observe
-cleanup, Model Usage and Resume, Effect, Reduce and Step still require
-their owner joins.
+settlement success and refusal gates passed locally. The same physical
+turn-two owner can now select the SDK's reported `AttemptUsage`, ACK it through
+the fixed Model writer, bind the decoded Proposal, and ACK one full-fuel
+`OwnedWaitReserved` Resume row. Prewrite refusals retain the owner at each
+boundary. The owning Usage and Resume reservation success and prewrite-refusal
+gates passed locally. Later
+failed-Observe cleanup, physical Resume and Completed, Effect, Reduce and Step
+still require their owner joins.
 
 Public multi-turn entry, public Report delivery and physical owner restoration
 after restart remain

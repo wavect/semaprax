@@ -1,77 +1,72 @@
-//! The physical SDK outcome selects exactly one turn-two settlement row.
-pub(in crate::live_invocation::source_journal::owned_wait_v8) mod usage;
+//! The actual SDK settlement supplies one reported Usage row.
+pub(in crate::live_invocation::source_journal::owned_wait_v8) mod resume;
 use super::*;
 
-pub(in crate::live_invocation::source_journal::owned_wait_v8) struct LiveOwnedLaterModelSettlementAppendV8<
+pub(in crate::live_invocation::source_journal::owned_wait_v8) struct LiveOwnedLaterModelUsageAppendV8<
     'j,
 > {
-    owner: LiveLaterModelIntentV8<'j>,
+    owner: LiveLaterModelSettledV8<'j>,
     selected: EntryV8,
 }
-pub(in crate::live_invocation::source_journal::owned_wait_v8) struct LiveLaterModelSettledV8<'j> {
-    owner: LiveLaterModelIntentV8<'j>,
+pub(in crate::live_invocation::source_journal::owned_wait_v8) struct LiveLaterModelUsageV8<'j> {
+    owner: LiveLaterModelSettledV8<'j>,
     session: AppendSessionV8<'j>,
     witness: VerifiedOwnedContinuedModelSuccessorV8<'j>,
 }
-pub(in crate::live_invocation::source_journal::owned_wait_v8) enum LiveLaterModelSettlementFailureV8<
-    'j,
-> {
+pub(in crate::live_invocation::source_journal::owned_wait_v8) enum LiveLaterModelUsageFailureV8<'j>
+{
     Selection {
-        owner: LiveLaterModelIntentV8<'j>,
+        owner: LiveLaterModelSettledV8<'j>,
         error: SourceJournalError,
     },
     Acknowledged {
-        owner: LiveOwnedLaterModelSettlementAppendV8<'j>,
+        owner: LiveOwnedLaterModelUsageAppendV8<'j>,
         session: AppendSessionV8<'j>,
         witness: VerifiedOwnedContinuedModelSuccessorV8<'j>,
         error: SourceJournalError,
     },
 }
-impl<'j> LiveLaterModelIntentV8<'j> {
-    fn selected_settlement(&self) -> Result<EntryV8, SourceJournalError> {
-        self.owner
+impl<'j> LiveLaterModelSettledV8<'j> {
+    fn selected_usage(&self) -> Result<EntryV8, SourceJournalError> {
+        self.validate_live()?;
+        let usage = match self
             .owner
-            .owner
-            .validate_model_incurred(&self.session, &self.witness)?;
-        let turn = self.owner.owner.owner.turn();
-        Ok(EntryV8::Ordinary(
-            match self.dispatched.as_ref().ok_or(SourceJournalError::Order)? {
-                OwnedModelSettlementV8::Settled { response, .. } => {
-                    SourceJournalEntry::AttemptSettled {
-                        turn,
-                        attempt: 0,
-                        response_digest:
-                            crate::live_invocation::source_journal::source_response_digest(response),
-                        response: response.clone(),
-                    }
-                }
-                OwnedModelSettlementV8::Failed {
-                    reason,
-                    attempted_bytes,
-                    ..
-                } => SourceJournalEntry::AttemptFailed {
-                    turn,
-                    attempt: 0,
-                    reason: *reason,
-                    attempted_bytes: *attempted_bytes,
-                },
-            },
-        ))
+            .dispatched
+            .as_ref()
+            .ok_or(SourceJournalError::Order)?
+        {
+            OwnedModelSettlementV8::Settled { usage, .. }
+            | OwnedModelSettlementV8::Failed { usage, .. } => *usage,
+        };
+        let reported = usage.map(|(input, output, _)| {
+            crate::live_invocation::source_journal::SourceReportedUsage {
+                total: input.checked_add(output),
+                input: Some(input),
+                output: Some(output),
+                reasoning: None,
+                cache_read: None,
+                cache_write: None,
+            }
+        });
+        Ok(EntryV8::Ordinary(SourceJournalEntry::AttemptUsage {
+            turn: self.turn(),
+            attempt: 0,
+            reported,
+        }))
     }
-    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn prepare_settlement(
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn prepare_usage(
         self,
-    ) -> Result<LiveOwnedLaterModelSettlementAppendV8<'j>, LiveLaterModelSettlementFailureV8<'j>>
-    {
-        match self.selected_settlement() {
-            Ok(selected) => Ok(LiveOwnedLaterModelSettlementAppendV8 {
+    ) -> Result<LiveOwnedLaterModelUsageAppendV8<'j>, LiveLaterModelUsageFailureV8<'j>> {
+        match self.selected_usage() {
+            Ok(selected) => Ok(LiveOwnedLaterModelUsageAppendV8 {
                 owner: self,
                 selected,
             }),
-            Err(error) => Err(LiveLaterModelSettlementFailureV8::Selection { owner: self, error }),
+            Err(error) => Err(LiveLaterModelUsageFailureV8::Selection { owner: self, error }),
         }
     }
 }
-impl<'j> LiveOwnedLaterModelSettlementAppendV8<'j> {
+impl<'j> LiveOwnedLaterModelUsageAppendV8<'j> {
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn selected(&self) -> &EntryV8 {
         &self.selected
     }
@@ -87,14 +82,14 @@ impl<'j> LiveOwnedLaterModelSettlementAppendV8<'j> {
         &self,
         journal: &SourceOwnedWaitJournalV8,
     ) -> bool {
-        std::ptr::eq(self.owner.owner.owner.journal(), journal)
+        std::ptr::eq(self.owner.journal(), journal)
     }
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_live(
         &self,
     ) -> Result<(), SourceJournalError> {
-        let journal = self.owner.owner.owner.journal();
+        let journal = self.owner.journal();
         let result = (|| {
-            if self.owner.selected_settlement()? != self.selected {
+            if self.owner.selected_usage()? != self.selected {
                 return Err(SourceJournalError::Binding);
             }
             Ok(())
@@ -105,9 +100,7 @@ impl<'j> LiveOwnedLaterModelSettlementAppendV8<'j> {
         &self,
     ) -> Result<FixedOwnedContinuedModelAppendPermitV8<'_, 'j>, SourceJournalError> {
         self.validate_live()?;
-        Ok(FixedOwnedContinuedModelAppendPermitV8::later_settlement(
-            self,
-        ))
+        Ok(FixedOwnedContinuedModelAppendPermitV8::later_usage(self))
     }
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_selected_prefix(
         &self,
@@ -122,29 +115,22 @@ impl<'j> LiveOwnedLaterModelSettlementAppendV8<'j> {
         {
             return Err(SourceJournalError::Binding);
         }
-        self.owner.owner.owner.owner.validate_model_append_prefix(
-            journal,
-            inventory,
-            &self.selected,
-        )
+        self.owner
+            .validate_append_prefix(journal, inventory, &self.selected)
     }
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_registry(
         &self,
         witness: &VerifiedOwnedContinuedModelSuccessorV8<'_>,
         session: &AppendSessionV8<'_>,
     ) -> Result<(), SourceJournalError> {
-        self.owner
-            .owner
-            .owner
-            .owner
-            .advance_model_registry(witness, session)
+        self.owner.advance_registry(witness, session)
     }
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_successor(
         &self,
         witness: &VerifiedOwnedContinuedModelSuccessorV8<'_>,
         session: &AppendSessionV8<'_>,
     ) -> Result<(), SourceJournalError> {
-        let journal = self.owner.owner.owner.journal();
+        let journal = self.owner.journal();
         let result = (|| {
             witness.validate_predecessor(
                 journal,
@@ -157,12 +143,12 @@ impl<'j> LiveOwnedLaterModelSettlementAppendV8<'j> {
                 .owner
                 .owner
                 .owner
+                .owner
                 .validate_model_incurred(session, witness)?;
             let (_, _, turn, selected) = session.continued_model_facts()?;
-            if turn != self.owner.owner.owner.owner.turn()
+            if turn != self.owner.turn()
                 || selected != &self.selected
-                || session.continued_model_accounting()?
-                    != *self.owner.owner.owner.owner.model_accounting()
+                || session.continued_model_accounting()? != *self.owner.accounting()
             {
                 return Err(SourceJournalError::Binding);
             }
@@ -171,45 +157,58 @@ impl<'j> LiveOwnedLaterModelSettlementAppendV8<'j> {
         result.inspect_err(|_| journal.quarantine())
     }
 }
-pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_verified_later_model_settlement_v8<
+pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_verified_later_model_usage_v8<
     'j,
 >(
-    obligation: LiveOwnedLaterModelSettlementAppendV8<'j>,
+    obligation: LiveOwnedLaterModelUsageAppendV8<'j>,
     session: AppendSessionV8<'j>,
     witness: VerifiedOwnedContinuedModelSuccessorV8<'j>,
-) -> Result<LiveLaterModelSettledV8<'j>, LiveLaterModelSettlementFailureV8<'j>> {
+) -> Result<LiveLaterModelUsageV8<'j>, LiveLaterModelUsageFailureV8<'j>> {
     if let Err(error) = obligation.validate_successor(&witness, &session) {
-        return Err(LiveLaterModelSettlementFailureV8::Acknowledged {
+        return Err(LiveLaterModelUsageFailureV8::Acknowledged {
             owner: obligation,
             session,
             witness,
             error,
         });
     }
-    Ok(LiveLaterModelSettledV8 {
+    Ok(LiveLaterModelUsageV8 {
         owner: obligation.owner,
         session,
         witness,
     })
 }
-impl LiveLaterModelSettledV8<'_> {
+impl LiveLaterModelUsageV8<'_> {
     fn journal(&self) -> &SourceOwnedWaitJournalV8 {
-        self.owner.owner.owner.owner.journal()
+        self.owner.journal()
     }
     fn turn(&self) -> u32 {
-        self.owner.owner.owner.owner.turn()
+        self.owner.turn()
     }
     fn accounting(
         &self,
     ) -> &crate::agent_lifecycle::authorization::target_protocol::TargetAccounting {
-        self.owner.owner.owner.owner.model_accounting()
+        self.owner.accounting()
     }
-    fn wait(&self) -> Result<&str, SourceJournalError> {
-        match self.owner.owner.witness.selected_row() {
-            EntryV8::Owned(crate::live_invocation::source_journal::owned_wait_v8::model::OwnedBodyV8::OwnedWaitPrepared { wait, turn, attempt: 0, .. })
-                if *turn == self.turn() => Ok(wait),
-            _ => Err(SourceJournalError::Binding),
-        }
+    fn validate_current(
+        &self,
+        session: &AppendSessionV8<'_>,
+        witness: &VerifiedOwnedContinuedModelSuccessorV8<'_>,
+    ) -> Result<(), SourceJournalError> {
+        self.owner
+            .owner
+            .owner
+            .owner
+            .owner
+            .validate_model_incurred(session, witness)
+    }
+    fn validate_model_live(&self) -> Result<(), SourceJournalError> {
+        self.owner
+            .owner
+            .owner
+            .owner
+            .owner
+            .validate_model_live(&self.session, &self.witness)
     }
     fn validate_append_prefix(
         &self,
@@ -220,30 +219,19 @@ impl LiveLaterModelSettledV8<'_> {
         selected: &EntryV8,
     ) -> Result<(), SourceJournalError> {
         self.owner
-            .owner
-            .owner
-            .owner
-            .validate_model_append_prefix(journal, inventory, selected)
+            .validate_append_prefix(journal, inventory, selected)
     }
     fn advance_registry(
         &self,
         witness: &VerifiedOwnedContinuedModelSuccessorV8<'_>,
         session: &AppendSessionV8<'_>,
     ) -> Result<(), SourceJournalError> {
-        self.owner
-            .owner
-            .owner
-            .owner
-            .advance_model_registry(witness, session)
+        self.owner.advance_registry(witness, session)
     }
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_live(
         &self,
     ) -> Result<(), SourceJournalError> {
-        self.owner
-            .owner
-            .owner
-            .owner
-            .validate_model_incurred(&self.session, &self.witness)
+        self.validate_current(&self.session, &self.witness)
     }
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn sequence(&self) -> usize {
         self.session.sequence()
@@ -252,6 +240,6 @@ impl LiveLaterModelSettledV8<'_> {
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn test_accounting(
         &self,
     ) -> &crate::agent_lifecycle::authorization::target_protocol::TargetAccounting {
-        self.owner.owner.owner.owner.model_accounting()
+        self.owner.accounting()
     }
 }

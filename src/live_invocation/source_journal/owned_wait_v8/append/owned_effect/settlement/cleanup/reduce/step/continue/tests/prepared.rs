@@ -165,7 +165,117 @@ pub(super) fn run(
                         ..
                     })
                 ));
-                drop(acknowledged);
+                let usage = acknowledged
+                    .prepare_usage()
+                    .unwrap_or_else(|_| panic!("turn-two actual SDK usage selector"));
+                assert!(
+                    matches!(usage.selected(), EntryV8::Ordinary(SourceJournalEntry::AttemptUsage { turn: 2, attempt: 0, reported: Some(value) }) if value.input == Some(2) && value.output == Some(3) && value.total == Some(5))
+                );
+                let before_usage = journal.lease.try_borrow_mut().unwrap().read().unwrap();
+                if fault == 13 {
+                    journal
+                        .lease
+                        .try_borrow_mut()
+                        .unwrap()
+                        .test_fail_before_write(start_sequence + 4);
+                    let failed = journal
+                        .begin_session()
+                        .unwrap()
+                        .append_owned_later_model_usage(usage)
+                        .err()
+                        .expect("turn-two Usage prewrite refusal");
+                    assert!(matches!(&failed, crate::live_invocation::source_journal::owned_wait_v8::append::continued_model::later_usage::LiveOwnedLaterModelUsageAppendFailureV8::Append { .. }));
+                    assert_eq!(
+                        journal
+                            .lease
+                            .try_borrow()
+                            .unwrap()
+                            .test_persisted_snapshot()
+                            .unwrap(),
+                        before_usage
+                    );
+                    assert!(journal.begin_session().is_err());
+                    drop(failed);
+                } else {
+                    let acknowledged = journal
+                        .begin_session()
+                        .unwrap()
+                        .append_owned_later_model_usage(usage)
+                        .unwrap_or_else(|_| panic!("turn-two Usage physical ACK"))
+                        .advance_continued_model()
+                        .unwrap_or_else(|_| panic!("turn-two Usage owner"));
+                    acknowledged.validate_live().unwrap();
+                    assert_eq!(acknowledged.sequence(), start_sequence + 4);
+                    assert_eq!(acknowledged.test_accounting(), &accounting);
+                    let current = journal.begin_session().unwrap();
+                    let (reserved_before, stages_before, turn, row) =
+                        current.inventory.continued_model_facts().unwrap();
+                    assert_eq!(turn, 2);
+                    assert!(matches!(
+                        row,
+                        EntryV8::Ordinary(SourceJournalEntry::AttemptUsage {
+                            turn: 2,
+                            attempt: 0,
+                            ..
+                        })
+                    ));
+                    let resume = acknowledged
+                        .prepare_resume_reservation()
+                        .unwrap_or_else(|_| {
+                            panic!("turn-two physical Resume reservation selector")
+                        });
+                    let (_, execution) = journal.context().test_runtime_execution();
+                    let fuel = execution.evaluation_fuel();
+                    assert!(
+                        matches!(resume.selected(), EntryV8::Owned(crate::live_invocation::source_journal::owned_wait_v8::model::OwnedBodyV8::OwnedWaitReserved { turn: 2, attempt: 0, phase: crate::live_invocation::source_journal::owned_wait_v8::model::PhaseV8::Resume, replay_of: None, fuel: reserved_fuel, .. }) if *reserved_fuel == fuel as u64)
+                    );
+                    let before_resume = journal.lease.try_borrow_mut().unwrap().read().unwrap();
+                    if fault == 14 {
+                        journal
+                            .lease
+                            .try_borrow_mut()
+                            .unwrap()
+                            .test_fail_before_write(start_sequence + 5);
+                        let failed = journal
+                            .begin_session()
+                            .unwrap()
+                            .append_owned_later_model_resume(resume)
+                            .err()
+                            .expect("turn-two Resume reservation prewrite refusal");
+                        assert!(matches!(&failed, crate::live_invocation::source_journal::owned_wait_v8::append::continued_model::later_resume::LiveOwnedLaterModelResumeAppendFailureV8::Append { .. }));
+                        assert_eq!(
+                            journal
+                                .lease
+                                .try_borrow()
+                                .unwrap()
+                                .test_persisted_snapshot()
+                                .unwrap(),
+                            before_resume
+                        );
+                        assert!(journal.begin_session().is_err());
+                        drop(failed);
+                    } else {
+                        let acknowledged = journal
+                            .begin_session()
+                            .unwrap()
+                            .append_owned_later_model_resume(resume)
+                            .unwrap_or_else(|_| panic!("turn-two Resume reservation physical ACK"))
+                            .advance_continued_model()
+                            .unwrap_or_else(|_| panic!("turn-two Resume reservation owner"));
+                        acknowledged.validate_live().unwrap();
+                        assert_eq!(acknowledged.sequence(), start_sequence + 5);
+                        assert_eq!(acknowledged.test_accounting(), &accounting);
+                        let current = journal.begin_session().unwrap();
+                        let (reserved, stages, turn, row) =
+                            current.inventory.continued_model_facts().unwrap();
+                        assert_eq!(
+                            (reserved, stages, turn),
+                            (reserved_before + fuel as u64, stages_before, 2)
+                        );
+                        assert!(matches!(row, EntryV8::Owned(crate::live_invocation::source_journal::owned_wait_v8::model::OwnedBodyV8::OwnedWaitReserved { phase: crate::live_invocation::source_journal::owned_wait_v8::model::PhaseV8::Resume, turn: 2, attempt: 0, replay_of: None, .. })));
+                        drop(acknowledged);
+                    }
+                }
             }
         }
     }
@@ -185,4 +295,14 @@ fn owned_continued_step_turn_two_model_intent_prewrite_refusal_retains_physical_
 #[cfg(unix)]
 fn owned_continued_step_turn_two_model_settlement_prewrite_refusal_retains_dispatched_owner() {
     continued_reduce_chain_step_ack(12, true);
+}
+#[test]
+#[cfg(unix)]
+fn owned_continued_step_turn_two_model_usage_prewrite_refusal_retains_physical_owner() {
+    continued_reduce_chain_step_ack(13, true);
+}
+#[test]
+#[cfg(unix)]
+fn owned_continued_step_turn_two_resume_reservation_prewrite_refusal_retains_physical_owner() {
+    continued_reduce_chain_step_ack(14, true);
 }

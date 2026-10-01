@@ -359,7 +359,7 @@ fn handle_with_clock(
     }
     if let Some(id) = job_member(&exchange.target, "/complete") {
         if exchange.method == "POST" {
-            return complete_job(host, committed, id, &authenticated);
+            return complete_job_with_clock(host, committed, id, &authenticated, clock);
         }
         return error(404, "unknown_route", None);
     }
@@ -1159,11 +1159,22 @@ fn crash_after_delivery_for_acceptance_test(job_id: i64) {
 #[cfg(not(debug_assertions))]
 fn crash_after_delivery_for_acceptance_test(_job_id: i64) {}
 
+#[cfg(test)]
 fn complete_job(
     host: &mut BoundHost<'_, '_>,
     committed: &mut CommittedState,
     id: i64,
     authenticated: &Authenticated,
+) -> PendingResponse {
+    complete_job_with_clock(host, committed, id, authenticated, &mut current_tick)
+}
+
+fn complete_job_with_clock(
+    host: &mut BoundHost<'_, '_>,
+    committed: &mut CommittedState,
+    id: i64,
+    authenticated: &Authenticated,
+    clock: &mut dyn FnMut() -> Option<u64>,
 ) -> PendingResponse {
     let Some(job) = committed.state.job_by_id(id).cloned() else {
         return error(404, "unknown_job", None);
@@ -1214,15 +1225,47 @@ fn complete_job(
             Err(_) => return error(500, "decision_failed", None),
         }
     }
-    let event_bytes = match delivery::completion_event_len(
-        host.telemetry_adapter,
-        job.id,
-        job.owner,
-        &job.desc,
-        host.secrets.webhook_key(),
-    ) {
-        Ok(length) => length,
-        Err(_) => return error(500, "decision_failed", None),
+    let webhook_v2 = if host.telemetry_adapter == ServiceTelemetryAdapter::SemapraxJsonEventsV2 {
+        let Some(now) = clock().and_then(|value| i64::try_from(value).ok()) else {
+            return error(500, "decision_failed", None);
+        };
+        let prepared = match delivery::webhook_v2::prepare(
+            &host.outbound_store,
+            &host.deployment_binding,
+            &host.telemetry_origin,
+            job.id,
+            job.owner,
+            &job.desc,
+            host.secrets.webhook_key(),
+            now,
+        ) {
+            Ok(prepared) => prepared,
+            Err(DeliveryRefusal::StoreUnavailable) => {
+                return error(503, "delivery_unavailable", Some(&committed.digest));
+            }
+            Err(_) => return error(500, "decision_failed", None),
+        };
+        match prepared.admitted(&host.decisions) {
+            Ok(true) => {}
+            Ok(false) => return error(403, "webhook_not_admitted", Some(&committed.digest)),
+            Err(_) => return error(500, "decision_failed", None),
+        }
+        Some(prepared)
+    } else {
+        None
+    };
+    let event_bytes = match &webhook_v2 {
+        Some(prepared) => prepared.byte_len(),
+        None => match delivery::completion_event_len(
+            host.telemetry_adapter,
+            job.id,
+            job.owner,
+            &job.desc,
+            host.secrets.webhook_key(),
+        ) {
+            Ok(length) => length,
+            Err(_) => return error(500, "decision_failed", None),
+        },
     };
     let event_bytes = match u64::try_from(event_bytes) {
         Ok(event_bytes) => event_bytes,
@@ -1243,17 +1286,25 @@ fn complete_job(
     // job whose durable marker already exists, so the retry settles
     // `Uncertain` instead of redispatching. Either way the job completes
     // exactly once in state.
-    let settlement = match delivery::deliver_completion_telemetry(
-        &mut host.outbound_store,
-        &host.deployment_binding,
-        &host.telemetry_origin,
-        host.telemetry_adapter,
-        job.id,
-        job.owner,
-        &job.desc,
-        host.secrets.webhook_key(),
-        &mut host.adapter,
-    ) {
+    let delivered = match webhook_v2 {
+        Some(prepared) => prepared.deliver(
+            &mut host.outbound_store,
+            host.secrets.webhook_key(),
+            &mut host.adapter,
+        ),
+        None => delivery::deliver_completion_telemetry(
+            &mut host.outbound_store,
+            &host.deployment_binding,
+            &host.telemetry_origin,
+            host.telemetry_adapter,
+            job.id,
+            job.owner,
+            &job.desc,
+            host.secrets.webhook_key(),
+            &mut host.adapter,
+        ),
+    };
+    let settlement = match delivered {
         Ok(settlement) => settlement,
         Err(DeliveryRefusal::InvalidRequest | DeliveryRefusal::InvalidPolicy) => {
             return error(500, "decision_failed", None)

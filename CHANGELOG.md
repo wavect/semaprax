@@ -8,6 +8,12 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Add opt-in signed-timestamp JSON-event v2 completion delivery (#336),
+  checked against the scaffold webhook decision using authenticated prior
+  intent facts before export, state, or physical delivery. V1 and OTLP remain
+  available to older projects. Focused delivery (4/4), policy (6/6), and
+  decoder (1/1 each) selectors passed locally.
+
 - Append the turn-two Model Intent ACK from the retained physical Prepared
   owner (#330). The checked request builder uses its actual State, request,
   observation and ordinal; the fixed writer and cumulative hold retain the

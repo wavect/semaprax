@@ -40,6 +40,8 @@ use crate::outbound_delivery_store::OutboundDeliveryStore;
 use super::json::{self, JsonValue};
 use super::state::WebhookSettlement;
 
+pub(super) mod webhook_v2;
+
 type HmacSha256 = Hmac<Sha256>;
 
 /// The fixed telemetry events route. This duplicates the closed
@@ -374,20 +376,9 @@ pub fn deliver_completion_telemetry(
     if job_id <= 0 || owner <= 0 {
         return Err(DeliveryRefusal::InvalidRequest);
     }
-    let policy = OutboundPolicy::new(
-        POLICY_ID,
-        [endpoint_origin.to_owned()],
-        POLICY_REQUEST_BYTES,
-        POLICY_RESPONSE_BYTES,
-        DELIVERY_DEADLINE_MS,
-        POLICY_EXPORT_FIELDS,
-        POLICY_EXPORT_LABELS,
-    )?;
-    let invocation_id = format!("{INVOCATION_PREFIX}{job_id}");
-    let capability =
-        OutboundCapability::grant_for_trusted_host(deployment_binding, invocation_id, policy)?;
+    let capability = completion_capability(deployment_binding, endpoint_origin, job_id)?;
     let (endpoint_path, content_type, headers, body) =
-        completion_envelope(telemetry_adapter, job_id, owner, desc, webhook_key);
+        completion_envelope(telemetry_adapter, job_id, owner, desc, webhook_key)?;
     let request = HttpRequest {
         method: HttpMethod::Post,
         endpoint: format!("{endpoint_origin}{endpoint_path}"),
@@ -399,6 +390,9 @@ pub fn deliver_completion_telemetry(
         deadline_ms: DELIVERY_DEADLINE_MS,
     };
     let outcome = match telemetry_adapter {
+        ServiceTelemetryAdapter::SemapraxJsonEventsV2 => {
+            return Err(DeliveryRefusal::InvalidRequest)
+        }
         ServiceTelemetryAdapter::SemapraxJsonEvents => {
             deliver_http_durable(store, DELIVERY_CAPACITY, None, capability, request, adapter)?
         }
@@ -421,6 +415,26 @@ pub fn deliver_completion_telemetry(
     })
 }
 
+fn completion_capability(
+    deployment_binding: &str,
+    endpoint_origin: &str,
+    job_id: i64,
+) -> Result<OutboundCapability, DeliveryRefusal> {
+    let policy = OutboundPolicy::new(
+        POLICY_ID,
+        [endpoint_origin.to_owned()],
+        POLICY_REQUEST_BYTES,
+        POLICY_RESPONSE_BYTES,
+        DELIVERY_DEADLINE_MS,
+        POLICY_EXPORT_FIELDS,
+        POLICY_EXPORT_LABELS,
+    )?;
+    let invocation_id = format!("{INVOCATION_PREFIX}{job_id}");
+    let capability =
+        OutboundCapability::grant_for_trusted_host(deployment_binding, invocation_id, policy)?;
+    Ok(capability)
+}
+
 /// Return the source log level and total named attributes of the fixed OTLP
 /// completion, before allocating its payload. Count both resource and record
 /// attributes; body, severity and scope are protocol metadata. JSON events do
@@ -429,7 +443,8 @@ pub(super) fn completion_log_policy_facts(
     telemetry_adapter: ServiceTelemetryAdapter,
 ) -> Option<(u8, u64)> {
     match telemetry_adapter {
-        ServiceTelemetryAdapter::SemapraxJsonEvents => None,
+        ServiceTelemetryAdapter::SemapraxJsonEvents
+        | ServiceTelemetryAdapter::SemapraxJsonEventsV2 => None,
         ServiceTelemetryAdapter::OtlpHttpJson => Some((
             OTLP_LOG_LEVEL,
             (OTLP_RESOURCE_ATTRIBUTE_KEYS.len() + OTLP_LOG_ATTRIBUTE_KEYS.len()) as u64,
@@ -451,7 +466,7 @@ pub fn completion_event_len(
         return Err(DeliveryRefusal::InvalidRequest);
     }
     Ok(
-        completion_envelope(telemetry_adapter, job_id, owner, desc, webhook_key)
+        completion_envelope(telemetry_adapter, job_id, owner, desc, webhook_key)?
             .3
             .len(),
     )
@@ -463,8 +478,11 @@ fn completion_envelope(
     owner: i64,
     desc: &str,
     webhook_key: &[u8; 32],
-) -> (&'static str, &'static str, Vec<HttpHeader>, String) {
-    match telemetry_adapter {
+) -> Result<(&'static str, &'static str, Vec<HttpHeader>, String), DeliveryRefusal> {
+    Ok(match telemetry_adapter {
+        ServiceTelemetryAdapter::SemapraxJsonEventsV2 => {
+            return Err(DeliveryRefusal::InvalidRequest)
+        }
         ServiceTelemetryAdapter::SemapraxJsonEvents => {
             let (body, signature) = signed_event(job_id, owner, desc, webhook_key);
             let headers = vec![
@@ -481,7 +499,7 @@ fn completion_envelope(
             Vec::new(),
             otlp_log_record(job_id, owner, desc),
         ),
-    }
+    })
 }
 
 /// Render one OTLP JSON-Protobuf `ExportLogsServiceRequest`. The fixed
@@ -741,7 +759,8 @@ mod tests {
             1,
             "task-1",
             &[5_u8; 32],
-        );
+        )
+        .unwrap();
         assert_eq!(path, OTLP_LOGS_PATH);
         assert_eq!(path, "/v1/logs");
         assert_eq!(content_type, "application/json");

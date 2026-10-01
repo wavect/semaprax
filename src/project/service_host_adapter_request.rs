@@ -52,6 +52,8 @@ pub struct ServiceTelemetryRequirement {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ServiceTelemetryAdapter {
     SemapraxJsonEvents,
+    /// Signed timestamp JSON events with checked webhook admission.
+    SemapraxJsonEventsV2,
     /// OTLP/HTTP using the JSON Protobuf encoding and the fixed logs route.
     OtlpHttpJson,
 }
@@ -267,7 +269,7 @@ pub fn decode(bytes: &[u8]) -> Result<ServiceHostAdapterRequestV1, String> {
                     || text(http, "tls_profile")? != "modern"
                     || !matches!(
                         text(telemetry, "adapter")?,
-                        "semaprax-json-events" | "otlp-http-json"
+                        "semaprax-json-events" | "semaprax-json-events-v2" | "otlp-http-json"
                     )
                 {
                     return Err("service host adapter requirements are not exact".into());
@@ -307,6 +309,7 @@ pub fn decode(bytes: &[u8]) -> Result<ServiceHostAdapterRequestV1, String> {
                 let telemetry = ServiceTelemetryRequirement {
                     adapter: match text(telemetry, "adapter")? {
                         "semaprax-json-events" => ServiceTelemetryAdapter::SemapraxJsonEvents,
+                        "semaprax-json-events-v2" => ServiceTelemetryAdapter::SemapraxJsonEventsV2,
                         "otlp-http-json" => ServiceTelemetryAdapter::OtlpHttpJson,
                         _ => return Err("service host adapter requirements are not exact".into()),
                     },
@@ -502,6 +505,27 @@ mod tests {
             decoded.telemetry().unwrap().adapter(),
             ServiceTelemetryAdapter::SemapraxJsonEvents
         );
+
+        for (label, expected) in [
+            (
+                "semaprax-json-events-v2",
+                Some(ServiceTelemetryAdapter::SemapraxJsonEventsV2),
+            ),
+            ("semaprax-json-events-v3", None),
+        ] {
+            let mut versioned: Value = serde_json::from_slice(&host).unwrap();
+            versioned["telemetry"]["adapter"] = Value::String(label.into());
+            versioned.sort_all_objects();
+            let mut bytes = serde_json::to_vec(&versioned).unwrap();
+            bytes.push(b'\n');
+            match expected {
+                Some(expected) => assert_eq!(
+                    decode(&bytes).unwrap().telemetry().unwrap().adapter(),
+                    expected
+                ),
+                None => assert!(decode(&bytes).is_err()),
+            }
+        }
 
         let mut otlp: Value = serde_json::from_slice(&host).unwrap();
         otlp["telemetry"]["adapter"] = Value::String("otlp-http-json".into());

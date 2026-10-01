@@ -149,9 +149,9 @@ delivery.
 The additive native-host
 `outbound_delivery_store::service_invocation::authenticated_intent` module
 provides `read_http_intent` and `deliver_http_durable_authenticated`. This is a
-storage prerequisite for checked webhook admission; the reference host still
-uses its existing v1 JSON-event or OTLP route. It does not yet select a new
-event protocol or invoke the scaffold webhook policy.
+storage primitive used by the reference host's opt-in
+[JSON-event v2 route](REFERENCE-SERVICE-JSON-EVENT-V2.md). The original v1
+JSON-event and OTLP routes retain their existing intent marker behavior.
 
 The authenticated marker uses the **same** identity filename as the original
 pending marker. Its bounded (512-byte maximum) canonical UTF-8 wire contains
@@ -173,7 +173,7 @@ independently held 32-byte host key, the domain
 including their newlines. The wire stores no raw payload or key; a body digest
 can still disclose guessable low-entropy inputs. The timestamp is a host-supplied
 fact; this generic primitive does not establish that an event envelope signed
-that timestamp. That binding belongs to the future event encoder and caller.
+that timestamp. That binding belongs to the v2 event encoder and caller.
 
 A read is confined to the caller-held directory and exact identity name.
 `Absent` requires an explicit no-follow absence observation. The original

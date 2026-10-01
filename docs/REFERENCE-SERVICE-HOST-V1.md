@@ -38,6 +38,7 @@ repository's existing machinery and adds no new authority:
 | `native` + `modern` TLS + listen origin | Loopback HTTP/1.1 on `--port`, plaintext by default. The listen origin is intent only and never itself provisions TLS; `--tls-certificate-secret`/`--tls-private-key-secret` opt in (see below). |
 | Three secret refs | Exact files under `--secrets-dir`, resolved before serving. |
 | `semaprax-json-events` + endpoint origin | Canonical `semaprax.json-event.v1` HTTPS POST to `<origin>/v1/events` through `deliver_http_durable`. The closed completion envelope carries `schema`, `event: "job.completed"`, `job_id`, `owner`, `desc`, and an HMAC commitment; its `x-semaprax-event-schema` header repeats the schema identifier. An operator may separately select one held private provider root with `--telemetry-root-certificate-secret`; absent that flag, the adapter retains its public-root TLS policy. |
+| `semaprax-json-events-v2` + endpoint origin | Opt-in signed-timestamp `semaprax.json-event.v2` HTTPS POST to `<origin>/v2/events`. The retained envelope passes checked webhook admission and export admission before the authenticated-intent durable path. [JSON event v2](REFERENCE-SERVICE-JSON-EVENT-V2.md) owns its exact signature, source facts, and restart contract. |
 | `otlp-http-json` + endpoint origin | OTLP/HTTP JSON-Protobuf `ExportLogsServiceRequest` HTTPS POST to `<origin>/v1/logs` through the same durable delivery path. The fixed lower-camel request has one `resourceLogs` row, `service.name = semaprax-reference-service`, one `job.completed` INFO log record, and decimal-string OTLP `intValue` job and owner attributes. It uses `Content-Type: application/json`; it has no webhook schema header or HMAC signature. Only a `200` JSON-Protobuf `ExportLogsServiceResponse` without `partialSuccess` settles delivered; malformed, partial, or other-status responses settle failed and are not redispatched under the completion identity. |
 
 ## Invocation mapping
@@ -118,13 +119,17 @@ durable marker already exists, so the retry settles `Uncertain` instead of
 redispatching. Fixture mode stays separate: fixture-mode configuration is
 refused here and keeps running on `semaprax run` / `semaprax test`.
 
-The additive authenticated HTTP intent storage primitive is specified in
-[Outbound Host Adapter v1](OUTBOUND-HOST-ADAPTER-V1.md#authenticated-service-http-intent-facts).
-It can retain an authenticated timestamp and actual body commitment under the
-same no-redispatch marker name, including explicit legacy-marker refusal.
-This prerequisite is not yet wired to this host: v1 JSON-event bytes remain
-unchanged, and an opt-in versioned signed-timestamp envelope plus checked
-webhook source-policy invocation remain open.
+The opt-in [JSON event v2](REFERENCE-SERVICE-JSON-EVENT-V2.md) route uses the
+[authenticated HTTP intent primitive](OUTBOUND-HOST-ADAPTER-V1.md#authenticated-service-http-intent-facts)
+to recover a retained signing timestamp and actual body commitment under the
+same no-redispatch marker name. It invokes the checked webhook decision before
+durable work: `403 webhook_not_admitted` on source denial and
+`500 decision_failed` on evaluator or clock failure. Legacy/corrupt markers
+supply no prior facts and return `503 delivery_unavailable`. An unchanged
+fresh-enough prior intent can complete with `Uncertain`; a stale timestamp or
+body conflict preserves Pending without redispatch. V1 bytes remain unchanged.
+Older v1/OTLP projects may omit the new source adapter; selecting v2 without
+that decision fails before any delivery mutation.
 
 ## Run bundle
 

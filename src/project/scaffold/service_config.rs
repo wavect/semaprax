@@ -129,7 +129,10 @@ pub(super) fn decode(bytes: &[u8]) -> Result<ServiceConfigV1, String> {
         && password.is_some()
         && session.is_some()
         && webhook.is_some()
-        && matches!(telemetry_adapter, "semaprax-json-events" | "otlp-http-json")
+        && matches!(
+            telemetry_adapter,
+            "semaprax-json-events" | "semaprax-json-events-v2" | "otlp-http-json"
+        )
         && telemetry_origin.is_some();
     if !matches!(
         (mode, fixture, host),
@@ -399,6 +402,24 @@ mod tests {
             .any(|window| window == b"secret-value"));
 
         let canonical_host: Value = serde_json::from_slice(&host).unwrap();
+        for label in ["semaprax-json-events-v2", "semaprax-json-events-v3"] {
+            let mut versioned = canonical_host.clone();
+            versioned["telemetry"]["adapter"] = Value::String(label.into());
+            versioned.sort_all_objects();
+            let mut bytes = serde_json::to_vec(&versioned).unwrap();
+            bytes.push(b'\n');
+            if label.ends_with("v2") {
+                let decoded = decode(&bytes).unwrap();
+                let request = crate::project::service_host_adapter_request::decode(
+                    decoded.adapter_request_bytes(),
+                )
+                .unwrap();
+                assert_eq!(request.telemetry().unwrap().adapter(), crate::project::service_host_adapter_request::ServiceTelemetryAdapter::SemapraxJsonEventsV2);
+            } else {
+                assert!(decode(&bytes).is_err());
+            }
+        }
+
         let mut otlp = canonical_host.clone();
         otlp["telemetry"]["adapter"] = Value::String("otlp-http-json".into());
         otlp.sort_all_objects();

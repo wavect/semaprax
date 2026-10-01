@@ -18,9 +18,9 @@
 //! `registration_admitted`, `enqueue_is_legal`, `enqueue_outcome`, the three
 //! task transaction decisions, `mark_job_succeeded`,
 //! `completed_job_log_is_admitted`, `completed_job_metric_is_admitted`,
-//! and `completed_job_export_is_admitted` are invoked through the checked
+//! `completed_job_export_is_admitted`, and the opt-in v2 webhook decision are invoked through the checked
 //! public-API seam before their corresponding host work. The remaining
-//! scaffold decisions (migration, trace, and webhook policies)
+//! scaffold decisions (migration and trace policies)
 //! retain fixture-mode coverage until a host route needs them.
 //!
 //! [`ProjectRevision::evaluate_service_decision_v1`]: semaprax::project::ProjectRevision::evaluate_service_decision_v1
@@ -72,6 +72,7 @@ pub struct DecisionIdentities {
     completed_job_log_is_admitted: String,
     completed_job_metric_is_admitted: String,
     completed_job_export_is_admitted: String,
+    completed_job_webhook_is_admitted: Option<String>,
 }
 
 impl DecisionIdentities {
@@ -97,6 +98,8 @@ impl DecisionIdentities {
         let completed_job_log_is_admitted = sole(program, "completed_job_log_is_admitted")?;
         let completed_job_metric_is_admitted = sole(program, "completed_job_metric_is_admitted")?;
         let completed_job_export_is_admitted = sole(program, "completed_job_export_is_admitted")?;
+        let completed_job_webhook_is_admitted =
+            optional_sole(program, "completed_job_webhook_is_admitted")?;
         let prefix = prefix_of(&request_is_admitted).ok_or(DecisionRefusal::Unresolved)?;
         for identity in [
             &identifier_is_valid,
@@ -121,6 +124,12 @@ impl DecisionIdentities {
                 return Err(DecisionRefusal::Unresolved);
             }
         }
+        if completed_job_webhook_is_admitted
+            .as_deref()
+            .is_some_and(|id| prefix_of(id) != Some(prefix))
+        {
+            return Err(DecisionRefusal::Unresolved);
+        }
         Ok(Self {
             prefix: prefix.to_owned(),
             request_is_admitted,
@@ -141,6 +150,7 @@ impl DecisionIdentities {
             completed_job_log_is_admitted,
             completed_job_metric_is_admitted,
             completed_job_export_is_admitted,
+            completed_job_webhook_is_admitted,
         })
     }
 
@@ -154,6 +164,13 @@ fn sole(
     program: &semaprax::hir::ResolvedProgram,
     decision: &str,
 ) -> Result<String, DecisionRefusal> {
+    optional_sole(program, decision)?.ok_or(DecisionRefusal::Unresolved)
+}
+
+fn optional_sole(
+    program: &semaprax::hir::ResolvedProgram,
+    decision: &str,
+) -> Result<Option<String>, DecisionRefusal> {
     let suffix = format!(".core.{decision}");
     let mut found: Option<String> = None;
     for function in &program.functions {
@@ -168,7 +185,7 @@ fn sole(
             found = Some(id.to_owned());
         }
     }
-    found.ok_or(DecisionRefusal::Unresolved)
+    Ok(found)
 }
 
 fn prefix_of(identity: &str) -> Option<&str> {
@@ -191,6 +208,7 @@ fn prefix_of(identity: &str) -> Option<&str> {
         .or_else(|| identity.strip_suffix(".core.completed_job_log_is_admitted"))
         .or_else(|| identity.strip_suffix(".core.completed_job_metric_is_admitted"))
         .or_else(|| identity.strip_suffix(".core.completed_job_export_is_admitted"))
+        .or_else(|| identity.strip_suffix(".core.completed_job_webhook_is_admitted"))
 }
 
 /// One bound decision engine over an operator-retained revision.
@@ -507,6 +525,33 @@ impl<'revision> DecisionEngine<'revision> {
 
     /// Evaluate the checked admission policy before one completion event is
     /// handed to the host-created outbound adapter.
+    pub fn completed_job_webhook_is_admitted(
+        &self,
+        signature: &[u8],
+        payload_len: u64,
+        signed_at: i64,
+        now: i64,
+        key_exists: bool,
+        existing_descriptor: &[u8],
+        candidate_descriptor: &[u8],
+    ) -> Result<bool, DecisionRefusal> {
+        self.invoke_bool(
+            self.identities
+                .completed_job_webhook_is_admitted
+                .as_deref()
+                .ok_or(DecisionRefusal::Unresolved)?,
+            &[
+                PublicApiArgument::BorrowSliceU8(signature),
+                PublicApiArgument::Usize(payload_len),
+                PublicApiArgument::I64(signed_at),
+                PublicApiArgument::I64(now),
+                PublicApiArgument::Bool(key_exists),
+                PublicApiArgument::BorrowSliceU8(existing_descriptor),
+                PublicApiArgument::BorrowSliceU8(candidate_descriptor),
+            ],
+        )
+    }
+
     pub fn completed_job_export_is_admitted(
         &self,
         existing_depth: i64,
@@ -598,6 +643,16 @@ mod tests {
             .unwrap());
         assert!(!engine
             .completed_job_export_is_admitted(0, 0, 128, b"https://telemetry.example")
+            .unwrap());
+        assert_eq!(
+            prefix_of("task_service.core.completed_job_webhook_is_admitted"),
+            Some("task_service")
+        );
+        assert!(engine
+            .completed_job_webhook_is_admitted(&[b'a'; 64], 128, 1000, 1100, false, b"", b"body")
+            .unwrap());
+        assert!(!engine
+            .completed_job_webhook_is_admitted(&[b'a'; 64], 128, 1000, 1301, false, b"", b"body")
             .unwrap());
         let overlong_target = [b'a'; 129];
         assert!(!engine

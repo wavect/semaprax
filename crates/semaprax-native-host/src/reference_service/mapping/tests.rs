@@ -12,6 +12,8 @@ mod log_policy;
 mod session_policy;
 #[path = "tests/update_policy.rs"]
 mod update_policy;
+#[path = "tests/webhook_policy.rs"]
+mod webhook_policy;
 
 use super::*;
 use crate::reference_service::test_support::TempDir;

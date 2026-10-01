@@ -243,6 +243,93 @@ fn owned_continued_cleanup_actual_release_and_receipt_keep_state_and_spent_hold(
     }
 }
 #[test]
+fn owned_continued_outcome_requires_live_settled_ack_and_keeps_one_release() {
+    let run = || {
+        for cancel_after_settled in [false, true] {
+            test_staged(
+                |journal, staged, _, _| {
+                    let (owner, leaves) = recorded(journal, staged, 0);
+                    let owner = started(journal, owner);
+                    let mut releases = 0;
+                    let released = owner
+                        .release_decision(|_| releases += 1)
+                        .unwrap_or_else(|_| panic!("actual release"));
+                    let selected = released
+                        .prepare_settled()
+                        .unwrap_or_else(|_| panic!("actual receipt"));
+                    let verified = journal
+                        .begin_session()
+                        .unwrap()
+                        .append_owned_effect_cleanup(selected)
+                        .unwrap_or_else(|_| panic!("Settled ACK"));
+                    let LiveCleanupAcknowledgedV8::ContinuedSettled(owner) = verified
+                        .advance_cleanup()
+                        .unwrap_or_else(|_| panic!("Settled owner"))
+                    else {
+                        panic!("continued Settled")
+                    };
+                    let mut owner = *owner;
+                    let before = journal
+                        .test_observe_lease()
+                        .borrow()
+                        .test_persisted_snapshot()
+                        .unwrap();
+                    if cancel_after_settled {
+                        owner
+                            .owner
+                            .owner
+                            .owner
+                            .owner
+                            .phase
+                            .owner
+                            .phase
+                            .owner
+                            .owner
+                            .authorization
+                            .actual()
+                            .unwrap()
+                            .owner
+                            .test_dispatch_cancellation()
+                            .cancel();
+                        let failure = owner
+                            .mint_outcome()
+                            .err()
+                            .expect("fresh cancellation refuses Outcome");
+                        assert_eq!(failure.error, SourceJournalError::Binding);
+                        owner = failure.owner;
+                        assert!(!owner.outcome_minted().unwrap_or(false));
+                    } else {
+                        owner = owner
+                            .mint_outcome()
+                            .unwrap_or_else(|_| panic!("one physical Outcome"));
+                        assert!(owner.outcome_minted().unwrap());
+                    }
+                    assert_eq!(releases, 1);
+                    assert_eq!(
+                        journal
+                            .test_observe_lease()
+                            .borrow()
+                            .test_persisted_snapshot()
+                            .unwrap(),
+                        before
+                    );
+                    assert_eq!(leaves[1].strong_count(), 0);
+                    assert_eq!(leaves[0].strong_count(), 1);
+                    drop(owner);
+                    assert!(leaves.iter().all(|leaf| leaf.upgrade().is_none()));
+                },
+                true,
+            );
+        }
+    };
+    std::thread::Builder::new()
+        .stack_size(16 * 1024 * 1024)
+        .spawn(run)
+        .expect("continued Outcome test thread")
+        .join()
+        .expect("continued Outcome test completion");
+}
+#[test]
 fn owned_continued_cleanup_incurred_release_survives_cancellation_and_records_observer_panic() {
     for panic_observer in [false, true] {
         test_staged(

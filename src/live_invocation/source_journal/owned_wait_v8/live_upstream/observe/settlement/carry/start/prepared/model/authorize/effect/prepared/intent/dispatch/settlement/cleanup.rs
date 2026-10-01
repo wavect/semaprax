@@ -414,3 +414,53 @@ impl SettledContinuedDecisionCleanupV8<'_> {
         self.owner.owner.owner.accounting()
     }
 }
+pub(in crate::live_invocation::source_journal::owned_wait_v8) struct ContinuedOutcomeFailureV8<'j> {
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) owner:
+        SettledContinuedDecisionCleanupV8<'j>,
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) error: SourceJournalError,
+}
+impl<'j> SettledContinuedDecisionCleanupV8<'j> {
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn mint_outcome(
+        mut self,
+    ) -> Result<Self, ContinuedOutcomeFailureV8<'j>> {
+        let result = (|| {
+            self.validate_live()?;
+            let completed = &mut self
+                .owner
+                .owner
+                .owner
+                .owner
+                .phase
+                .owner
+                .phase
+                .owner
+                .owner
+                .authorization
+                .completed;
+            let ModelOwnerV8::Resumed(resumed) = &mut completed.owner else {
+                return Err(SourceJournalError::Order);
+            };
+            resumed.owner.mint_continued_outcome(
+                &self.session,
+                &self.witness,
+                completed
+                    .proposal
+                    .as_ref()
+                    .ok_or(SourceJournalError::Binding)?,
+            )?;
+            self.validate_live()
+        })();
+        match result {
+            Ok(()) => Ok(self),
+            Err(error) => {
+                self.owner.journal().quarantine();
+                Err(ContinuedOutcomeFailureV8 { owner: self, error })
+            }
+        }
+    }
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn outcome_minted(
+        &self,
+    ) -> Result<bool, SourceJournalError> {
+        Ok(self.owner.owner.owner.actual()?.continued_outcome_minted())
+    }
+}

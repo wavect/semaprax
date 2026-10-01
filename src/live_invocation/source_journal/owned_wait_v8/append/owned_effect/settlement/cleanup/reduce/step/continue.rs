@@ -785,6 +785,7 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_live_ow
 pub(in crate::live_invocation::source_journal::owned_wait_v8) enum LiveContinuedReduceDriverFailureV8<
     'j,
 > {
+    Outcome(crate::live_invocation::source_journal::owned_wait_v8::live_upstream::ContinuedOutcomeFailureV8<'j>),
     Prepare(crate::live_invocation::source_journal::owned_wait_v8::live_upstream::ContinuedReduceReservationRejectionV8<'j>),
     Session {
         owner: crate::live_invocation::source_journal::owned_wait_v8::live_upstream::LiveContinuedReduceReservationAppendV8<'j>,
@@ -800,6 +801,9 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_live_ow
     journal: &'j SourceOwnedWaitJournalV8,
     cleanup: crate::live_invocation::source_journal::owned_wait_v8::live_upstream::SettledContinuedDecisionCleanupV8<'j>,
 ) -> Result<crate::live_invocation::source_journal::owned_wait_v8::live_upstream::LiveContinuedReduceReservedV8<'j>, LiveContinuedReduceDriverFailureV8<'j>>{
+    let cleanup = cleanup
+        .mint_outcome()
+        .map_err(LiveContinuedReduceDriverFailureV8::Outcome)?;
     let reservation = cleanup
         .prepare_continued_reduce()
         .map_err(LiveContinuedReduceDriverFailureV8::Prepare)?;

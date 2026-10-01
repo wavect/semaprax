@@ -837,9 +837,18 @@ failure therefore has no route to invoke cleanup again. The focused real-chain
 selector passed 1/1 locally, asserting one physical cleanup observation and both
 durable rows. This supplies neither a public entry nor restart path.
 
-This private cleanup boundary ends at the retained actual Settled holder.
+The actual successful Settled ACK now also binds a one-use physical
+State/Outcome handoff. A live permit checks the exact continued turn, append
+session and Settled witness against the retained source hold, runtime,
+execution, policy, clock and cancellation. The existing consuming effect
+cleanup ACK transfers the pending holder into its executed turn only after
+those checks. The reached owner stays quarantined on failure, with no route
+back to Decision release. The focused Outcome selector passed 1/1 locally for
+success and fresh cancellation, with one physical release and unchanged
+journal bytes. This is private transport, not public recovery authority.
 
-The private continued Reduce sibling consumes that exact holder to select one
+The private continued Reduce sibling requires that minted Outcome on the exact
+Settled holder before selecting one
 positive-turn `StageReservation(role Reduce)` with the retained typed fuel. Its
 fixed same-file ACK moves the existing hold from `CleanupSettled` to
 `SpentReduce` exactly once, preserving the turn-1 lineage, owner, MAC cursor

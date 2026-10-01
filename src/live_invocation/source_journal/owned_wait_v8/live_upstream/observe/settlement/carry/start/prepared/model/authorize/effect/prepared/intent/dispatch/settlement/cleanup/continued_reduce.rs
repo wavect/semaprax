@@ -20,6 +20,9 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) struct ContinuedRe
 impl<'j> SettledContinuedDecisionCleanupV8<'j> {
     fn continued_reduce_row(&self) -> Result<(CheckedOwnedReduceV2, EntryV8), SourceJournalError> {
         self.validate_live()?;
+        if !self.outcome_minted()? {
+            return Err(SourceJournalError::Binding);
+        }
         let journal = self.owner.owner.owner.journal();
         let (_, execution) = journal
             .context()

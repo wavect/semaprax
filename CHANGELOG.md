@@ -8,6 +8,13 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Bind the private owned-wait v8 continued physical State/Outcome handoff to
+  its actual successful Decision CleanupSettled ACK (#330). The one-use pending
+  effect holder is consumed under fresh source, policy, clock, and cancellation
+  checks before turn-1 Reduce reservation; failure retains the reached owner
+  and cannot repeat Decision release. The focused Outcome selector passed 1/1
+  locally; public entry, Step, and restart recovery remain open.
+
 - Exercise the reference service from an independently copied development
   package through local register/login/task/job/restart and refusal paths;
   canonicalize owned temporary roots before Project v1 checks (#336).

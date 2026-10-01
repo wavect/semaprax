@@ -2,12 +2,20 @@
 use super::*;
 use crate::agent_lifecycle::authorization::target_protocol::{TargetAccounting, TargetHostHandler};
 use crate::interpreter::resumable::owned_frame::registered_stage::effect::{
-    dispatch_continued_owned_effect_v8, CheckedLiveOwnedEffectSettlementV8, StagedOwnedEffectV8,
+    ack_live_continued_effect_cleanup_v8, dispatch_continued_owned_effect_v8,
+    CheckedLiveOwnedEffectSettlementV8, ExecutedOwnedAgentTurnV2, LiveEffectOutcomeFailureV8,
+    StagedOwnedEffectV8,
 };
-use crate::live_invocation::source_journal::LiveContinuedSettlementPermitV8;
+use crate::live_invocation::source_journal::{
+    LiveContinuedOutcomePermitV8, LiveContinuedSettlementPermitV8,
+};
 pub(crate) struct LiveContinuedDispatchedEffectV8<'j> {
     owner: Option<StagedOwnedEffectV8<'j>>,
     released: Option<Box<Result<crate::interpreter::resumable::owned_frame::registered_stage::effect::PendingOwnedEffectReceiptV8<'j>, crate::interpreter::resumable::owned_frame::registered_stage::effect::LiveEffectDecisionReleaseFailureV8<'j>>>>,
+    outcome: Option<Box<Result<ExecutedOwnedAgentTurnV2<'j>, LiveEffectOutcomeFailureV8<'j>>>>,
+    // Inert receipt comparison after Pending is consumed; only `outcome`
+    // retains the physical State/Outcome owner.
+    receipt: Option<serde_json::Value>,
     predecessor: PreparedHeldContinuedWaitV2<'j>,
     helper_consumed: (u64, u64),
     authorize_consumed: u64,
@@ -45,6 +53,8 @@ impl<'j> LiveContinuedEffectActivationV8<'j> {
         let mut actual = LiveContinuedDispatchedEffectV8 {
             owner: Some(owner),
             released: None,
+            outcome: None,
+            receipt: None,
             predecessor,
             helper_consumed,
             authorize_consumed,
@@ -169,7 +179,41 @@ impl<'j> LiveContinuedDispatchedEffectV8<'j> {
     pub(crate) fn decision_receipt(&self) -> Result<&serde_json::Value, SourceJournalError> {
         match self.released.as_deref() {
             Some(Ok(owner)) => Ok(owner.receipt()),
-            _ => Err(SourceJournalError::Order),
+            _ => self.receipt.as_ref().ok_or(SourceJournalError::Order),
         }
+    }
+    /// The genuine Settled ACK consumes the pending physical holder once.
+    /// Failure stays in this object, with no route back to Decision release.
+    pub(crate) fn mint_outcome(
+        &mut self,
+        permit: &LiveContinuedOutcomePermitV8<'_, 'j>,
+    ) -> Result<(), SourceJournalError> {
+        self.predecessor.validate_incurred_context()?;
+        permit.validate_current()?;
+        if self.selected.is_some() || self.outcome.is_some() {
+            return Err(SourceJournalError::Order);
+        }
+        let released = self.released.take().ok_or(SourceJournalError::Order)?;
+        let pending = match *released {
+            Ok(pending) => pending,
+            Err(failure) => {
+                self.released = Some(Box::new(Err(failure)));
+                return Err(SourceJournalError::Order);
+            }
+        };
+        let receipt = pending.receipt().clone();
+        let outcome = ack_live_continued_effect_cleanup_v8(pending, permit);
+        let success = outcome.is_ok();
+        self.receipt = Some(receipt);
+        self.outcome = Some(Box::new(outcome));
+        if success {
+            Ok(())
+        } else {
+            self.selected = Some(SourceJournalError::Binding);
+            Err(SourceJournalError::Binding)
+        }
+    }
+    pub(crate) fn outcome_minted(&self) -> bool {
+        matches!(self.outcome.as_deref(), Some(Ok(_)))
     }
 }

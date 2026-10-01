@@ -149,3 +149,4 @@ pub(crate) use live_upstream::LiveContinuedIntentPermitV8;
 pub(crate) use live_upstream::LiveContinuedSettlementPermitV8;
 
 pub(crate) use live_upstream::LiveContinuedDecisionCleanupPermitV8;
+pub(crate) use live_upstream::LiveContinuedOutcomePermitV8;

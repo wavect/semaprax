@@ -115,6 +115,48 @@ pub(super) fn set5(
     })
 }
 
+/// Store either one supplied byte or five ordered bytes read from a borrowed
+/// slice. The wide source read is total: each missing source position supplies
+/// zero after the destination interval has been preflighted.
+pub(super) fn set1_or5(
+    buffer: &OwnedBytesValue,
+    index: u64,
+    wide: bool,
+    one: u8,
+    source: &[u8],
+    source_start: u64,
+) -> Result<OwnedBytesValue, Flow> {
+    let width = if wide { 5 } else { 1 };
+    let Some(slot) = usize::try_from(index).ok().filter(|slot| {
+        buffer
+            .bytes
+            .len()
+            .checked_sub(*slot)
+            .is_some_and(|remaining| remaining >= width)
+    }) else {
+        return Err(Flow::Failure(normalize_byte_buffer(
+            crate::byte_ops::SET_INDEX_OUT_OF_BOUNDS_CODE,
+        )));
+    };
+    let mut filled = buffer.bytes.to_vec();
+    if wide {
+        let start = usize::try_from(source_start).ok();
+        for offset in 0..5 {
+            filled[slot + offset] = start
+                .and_then(|start| start.checked_add(offset))
+                .and_then(|source_index| source.get(source_index))
+                .copied()
+                .unwrap_or(0);
+        }
+    } else {
+        filled[slot] = one;
+    }
+    Ok(OwnedBytesValue {
+        allocation: buffer.allocation,
+        bytes: Arc::from(filled.as_slice()),
+    })
+}
+
 /// Evaluate one compiler-owned owned-buffer operation after the caller has
 /// evaluated every operand from left to right.
 impl Evaluator<'_> {
@@ -138,6 +180,11 @@ impl Evaluator<'_> {
                 crate::byte_ops::ByteOp::Set5,
                 [Value::Bytes(buffer), Value::Usize(index), Value::Uint8(first), Value::Uint8(second), Value::Uint8(third), Value::Uint8(fourth), Value::Uint8(fifth)],
             ) => set5(buffer, *index, [*first, *second, *third, *fourth, *fifth]).map(Value::Bytes),
+            (
+                crate::byte_ops::ByteOp::Set1Or5,
+                [Value::Bytes(buffer), Value::Usize(index), Value::Bool(wide), Value::Uint8(one), Value::BorrowedSlice(source), Value::Usize(source_start)],
+            ) => set1_or5(buffer, *index, *wide, *one, source.bytes(), *source_start)
+                .map(Value::Bytes),
             _ => Err(Flow::Guard("ill-typed borrowed byte operation operand")),
         }
     }

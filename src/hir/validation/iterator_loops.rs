@@ -221,7 +221,21 @@ impl HirValidator<'_> {
                         owned_buffer::require_admitted_while_operation(
                             self, expression, callee, operation, args,
                         )?;
-                        pending.extend(args[1..].iter().rev().map(Item::Expression));
+                        // Owned-buffer admission authenticates the moved owner
+                        // and, for the one-or-five store, its distinct borrowed
+                        // source. The generic scalar-place rule must not visit
+                        // those two places; every scalar operand is replayed.
+                        pending.extend(
+                            args.iter()
+                                .enumerate()
+                                .rev()
+                                .filter(|(index, _)| {
+                                    *index != 0
+                                        && !(operation == crate::byte_ops::ByteOp::Set1Or5
+                                            && *index == 4)
+                                })
+                                .map(|(_, argument)| Item::Expression(argument)),
+                        );
                         continue;
                     }
                     let target =

@@ -58,6 +58,34 @@ fn run() -> i64 {
 fn main() -> i64 { run() }
 "#;
 
+const SET1_OR5_SUCCESS: &str = r#"
+module test.wasm_owned_buffer_set1_or5;
+
+@id("buffer.run")
+fn run() -> i64 {
+    // A zero-length borrowed source proves the wide source read is total and
+    // zero-fills without introducing array initialization into this focused
+    // no-memory-copy owned-buffer lowering audit.
+    let source_buffer = bytes_zeroed(0usize);
+    let source = bytes_as_slice(source_buffer);
+    let mut buffer = bytes_zeroed(6usize);
+    let mut index = 0usize;
+    while index < 2usize {
+        let wide = index == 1usize;
+        buffer = bytes_set1_or5_from_slice(buffer, index, wide, 90u8, source, 0usize);
+        index = index + if wide { 5usize } else { 1usize };
+        0
+    }
+    let view = bytes_as_slice(buffer);
+    let third = match byte_get(view, 3usize) { Option::Some { value: byte } => byte, Option::None {} => 0u8, };
+    let sixth = match byte_get(view, 5usize) { Option::Some { value: byte } => byte, Option::None {} => 1u8, };
+    if third == 0u8 && sixth == 0u8 { 7 } else { 1 }
+}
+
+@id("app.main")
+fn main() -> i64 { run() }
+"#;
+
 const SET5_OUT_OF_RANGE: &str = r#"
 module test.wasm_owned_buffer_set5_past_end;
 
@@ -407,6 +435,7 @@ fn owned_bounded_byte_buffer_executes_and_reenters_without_memory_copy() {
         ("loop-fill", LOOP_FILL, RETURNS_SEVEN),
         ("loop-past-end", LOOP_PAST_END, BOUND_FAILURE),
         ("set5-success", SET5_SUCCESS, RETURNS_SEVEN),
+        ("set1-or5-success", SET1_OR5_SUCCESS, RETURNS_SEVEN),
         ("set5-past-end", SET5_OUT_OF_RANGE, BOUND_FAILURE),
         ("decoded-string", DECODED_STRING_BUFFER, RETURNS_SEVEN),
         ("failure", FAILURE, CONTRACT_FAILURE),
@@ -421,6 +450,7 @@ fn owned_bounded_byte_buffer_executes_and_reenters_without_memory_copy() {
         let mut zeroed_imports = 0;
         let mut set_imports = 0;
         let mut set5_imports = 0;
+        let mut set1_or5_imports = 0;
         for payload in wasmparser::Parser::new(0).parse_all(&bytes) {
             match payload.unwrap() {
                 wasmparser::Payload::ImportSection(section) => {
@@ -433,6 +463,9 @@ fn owned_bounded_byte_buffer_executes_and_reenters_without_memory_copy() {
                             usize::from(import.module == "env" && import.name == "spx_bytes_set");
                         set5_imports +=
                             usize::from(import.module == "env" && import.name == "spx_bytes_set5");
+                        set1_or5_imports += usize::from(
+                            import.module == "env" && import.name == "spx_bytes_set1_or5",
+                        );
                     }
                 }
                 wasmparser::Payload::CodeSectionEntry(body) => {
@@ -454,7 +487,12 @@ fn owned_bounded_byte_buffer_executes_and_reenters_without_memory_copy() {
         assert_eq!(zeroed_imports, 1);
         assert_eq!(set_imports, 1);
         assert_eq!(set5_imports, 1);
+        assert_eq!(set1_or5_imports, 1);
 
+        // The ordinary cases prove a one-owner buffer under the strict
+        // one-entry host cap. The source-reading case has a distinct live
+        // source owner, so it alone needs two bounded host entries.
+        let max_owned_byte_entries = if label == "set1-or5-success" { 2 } else { 1 };
         let serial = NEXT_ID.fetch_add(1, Ordering::Relaxed);
         let fixture = Fixture(std::env::temp_dir().join(format!(
             "semaprax-owned-buffer-wasm-{}-{serial}-{label}",
@@ -473,7 +511,7 @@ fn owned_bounded_byte_buffer_executes_and_reenters_without_memory_copy() {
                 r#"import {{readFile}} from 'node:fs/promises';
 import {{instantiateBytes,semanticStatus}} from './runtime.mjs';
 const bytes=await readFile('./app.wasm');
-const {{instance}}=await instantiateBytes(bytes,{{maxOwnedByteEntries:1}});
+const {{instance}}=await instantiateBytes(bytes,{{maxOwnedByteEntries:{max_owned_byte_entries}}});
 for(let round=0;round<4;++round){{{expectation}}}
 "#
             ),

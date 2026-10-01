@@ -6,7 +6,7 @@
 //! operations instead check a bound over arguments the caller has already
 //! staged, and must fail *before* the transfer: `vec_push` at full capacity,
 //! `vec_reserve_exact` beyond the bounded capacity, `vec_set` outside the
-//! initialized length, and `bytes_set`/`bytes_set5` outside their buffer interval. Deferring their
+//! initialized length, and `bytes_set`/`bytes_set5`/`bytes_set1_or5_from_slice` outside their buffer interval. Deferring their
 //! commit to the success branch leaves the owner in its canonical call-argument
 //! slot, so ordinary region cleanup destroys it exactly once and no backend has
 //! to invent a destruction of its own.

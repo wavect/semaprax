@@ -8,6 +8,18 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Add offline reference-service packaging for operator-selected development and
+  static Linux OCI executables, with a digest-bound copy, real project/config
+  preflight, deterministic OCI layout, and bounded refusal tests (#336). Runtime
+  installation and container execution remain pending.
+
+- Add the private one-or-five owned byte-buffer primitive for #324. Its wide
+  path reads five ordered bytes from an authenticated distinct borrowed source
+  and zero-fills absent source positions; its one-byte path never reads that
+  source. The catalog source conversion was reverted after it exceeded the
+  replay preflight budget, so the original 100M catalog acceptance remains
+  open.
+
 - Add the private owned-wait v8 continued Decision cleanup driver (#330). It
   durably records Started, executes the explicit cleanup observer once, and
   records the sticky Settled receipt while retaining the reached owner on every

@@ -64,7 +64,7 @@ pub(super) fn check_call(
                 );
             }
         }
-        ByteOp::Set | ByteOp::Set5 => {
+        ByteOp::Set | ByteOp::Set5 | ByteOp::Set1Or5 => {
             // Same-owner re-open: this exact call is the right-hand side of
             // `buffer = bytes_set(buffer, index, value)`, so its buffer operand
             // is that binding. The capacity is not a literal at this call site,
@@ -98,7 +98,7 @@ pub(super) fn check_call(
             // A literal that is already outside the capacity, and every index
             // into an empty buffer, stay compile-time diagnostics, because
             // neither can ever name an element.
-            let width = if op == ByteOp::Set5 {
+            let width = if matches!(op, ByteOp::Set5 | ByteOp::Set1Or5) {
                 byte_ops::SET5_WIDTH
             } else {
                 1

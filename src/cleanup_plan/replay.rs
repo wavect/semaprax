@@ -1819,7 +1819,7 @@ fn collect_expression_statuses(
                         || crate::host_io_ops::by_id(callee.as_str()).is_some())
                 {
                     // Byte-data operations are total after HIR admission, with
-                    // the bounded `bytes_set` and `bytes_set5` stores, whose computed
+                    // the bounded `bytes_set`, `bytes_set5`, and `bytes_set1_or5_from_slice` stores, whose computed
                     // element index is checked at run time. Physical allocation
                     // failure stays invariant fail-stop, not a recoverable
                     // operation status.

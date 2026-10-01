@@ -25,8 +25,26 @@ pub(super) fn require_admitted_chain(
             }
             Ok(())
         }
-        crate::byte_ops::ByteOp::Set | crate::byte_ops::ByteOp::Set5 => {
+        crate::byte_ops::ByteOp::Set
+        | crate::byte_ops::ByteOp::Set5
+        | crate::byte_ops::ByteOp::Set1Or5 => {
             let capacity = chain_capacity(args, reopen)?;
+            if op == crate::byte_ops::ByteOp::Set1Or5 {
+                let ResolvedExprKind::Place(source) = &args[4].kind else {
+                    return Err(hir_error(
+                        "one-or-five byte fill source must be a borrowed slice binding",
+                    ));
+                };
+                if args[4].ty != crate::hir::ResolvedType::SliceU8
+                    || args[4].ownership != OwnershipMode::Borrow
+                    || !source.projections.is_empty()
+                    || matches!(&args[0].kind, ResolvedExprKind::Place(buffer) if buffer.root == source.root)
+                {
+                    return Err(hir_error(
+                        "one-or-five byte fill source must not alias the moved buffer",
+                    ));
+                }
+            }
             if args[1].ty != crate::hir::ResolvedType::Usize {
                 return Err(hir_error(
                     "owned byte buffer element index is not a usize expression",
@@ -42,7 +60,10 @@ pub(super) fn require_admitted_chain(
             let Some(capacity) = capacity else {
                 return Ok(());
             };
-            let width = if op == crate::byte_ops::ByteOp::Set5 {
+            let width = if matches!(
+                op,
+                crate::byte_ops::ByteOp::Set5 | crate::byte_ops::ByteOp::Set1Or5
+            ) {
                 crate::byte_ops::SET5_WIDTH
             } else {
                 1
@@ -121,13 +142,20 @@ fn chain_capacity(args: &[ResolvedExpr], reopen: bool) -> Result<Option<u64>, Di
         }
         if matches!(
             op,
-            crate::byte_ops::ByteOp::Set | crate::byte_ops::ByteOp::Set5
+            crate::byte_ops::ByteOp::Set
+                | crate::byte_ops::ByteOp::Set5
+                | crate::byte_ops::ByteOp::Set1Or5
         ) {
-            links += usize::try_from(if op == crate::byte_ops::ByteOp::Set5 {
-                crate::byte_ops::SET5_WIDTH
-            } else {
-                1
-            })
+            links += usize::try_from(
+                if matches!(
+                    op,
+                    crate::byte_ops::ByteOp::Set5 | crate::byte_ops::ByteOp::Set1Or5
+                ) {
+                    crate::byte_ops::SET5_WIDTH
+                } else {
+                    1
+                },
+            )
             .expect("set width fits usize");
             if links > crate::byte_ops::MAX_BUFFER_FILL_SITES {
                 return Err(hir_error(
@@ -158,7 +186,9 @@ pub(super) fn require_admitted_while_operation(
 ) -> Result<(), Diagnostic> {
     if matches!(
         operation,
-        crate::byte_ops::ByteOp::Set | crate::byte_ops::ByteOp::Set5
+        crate::byte_ops::ByteOp::Set
+            | crate::byte_ops::ByteOp::Set5
+            | crate::byte_ops::ByteOp::Set1Or5
     ) {
         if args.len() != operation.arity()
             || args
@@ -184,6 +214,31 @@ pub(super) fn require_admitted_while_operation(
             return Err(hir_error(
                 "while loop byte buffer fill requires one whole owned buffer binding",
             ));
+        }
+        if operation == crate::byte_ops::ByteOp::Set1Or5 {
+            let source = &args[4];
+            let ResolvedExprKind::Place(source_place) = &source.kind else {
+                return Err(hir_error(
+                    "one-or-five byte fill requires an authenticated borrowed source slice binding",
+                ));
+            };
+            if source.ty != ResolvedType::SliceU8
+                || source.ownership != OwnershipMode::Borrow
+                || !source_place.projections.is_empty()
+                || source_place.root == place.root
+                || (!validator
+                    .byte_slice_aliases
+                    .contains_key(&source_place.root)
+                    && validator
+                        .program
+                        .declarations
+                        .byte_slice_provenance(&source_place.root)
+                        .is_none())
+            {
+                return Err(hir_error(
+                    "one-or-five byte fill source must be a distinct authenticated borrowed slice",
+                ));
+            }
         }
         return Ok(());
     }

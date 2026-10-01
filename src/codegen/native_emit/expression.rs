@@ -313,7 +313,9 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         // plan owns the one remaining transfer out of it.
         if matches!(
             op,
-            crate::byte_ops::ByteOp::Set | crate::byte_ops::ByteOp::Set5
+            crate::byte_ops::ByteOp::Set
+                | crate::byte_ops::ByteOp::Set5
+                | crate::byte_ops::ByteOp::Set1Or5
         ) {
             let staged = arguments.remove(0);
             let staged = self.stage_bytes_call_argument(
@@ -393,6 +395,9 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             }
             crate::byte_ops::ByteOp::Set5 => {
                 self.emit_owned_buffer_set5(expression, &arguments, &temporary)?;
+            }
+            crate::byte_ops::ByteOp::Set1Or5 => {
+                self.emit_owned_buffer_set1_or5(expression, &arguments, &temporary)?;
             }
             crate::byte_ops::ByteOp::Range => {
                 return Err(backend_error(
@@ -680,7 +685,8 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     | crate::byte_ops::ByteOp::Copy
                     | crate::byte_ops::ByteOp::Zeroed
                     | crate::byte_ops::ByteOp::Set
-                    | crate::byte_ops::ByteOp::Set5 => unreachable!(),
+                    | crate::byte_ops::ByteOp::Set5
+                    | crate::byte_ops::ByteOp::Set1Or5 => unreachable!(),
                 }
                 CValue {
                     code: temporary,

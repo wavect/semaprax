@@ -2,6 +2,54 @@
 
 use super::*;
 
+pub(super) struct ImportTypes {
+    pub(super) set: Option<u32>,
+    pub(super) set5: Option<u32>,
+    pub(super) set1_or5: Option<u32>,
+}
+
+pub(super) fn import_types(
+    uses_owned_buffer: bool,
+    types: &mut Vec<Signature>,
+    type_indexes: &mut HashMap<Signature, u32>,
+) -> ImportTypes {
+    let set = uses_owned_buffer.then(|| {
+        intern_type(
+            Signature {
+                params: vec![I64, I64, I32],
+                results: vec![I64],
+            },
+            types,
+            type_indexes,
+        )
+    });
+    let set5 = uses_owned_buffer.then(|| {
+        intern_type(
+            Signature {
+                params: vec![I64, I64, I32, I32, I32, I32, I32],
+                results: vec![I64],
+            },
+            types,
+            type_indexes,
+        )
+    });
+    let set1_or5 = uses_owned_buffer.then(|| {
+        intern_type(
+            Signature {
+                params: vec![I64, I64, I32, I32, I64, I64],
+                results: vec![I64],
+            },
+            types,
+            type_indexes,
+        )
+    });
+    ImportTypes {
+        set,
+        set5,
+        set1_or5,
+    }
+}
+
 impl<'a> Emitter<'a> {
     pub(super) fn emit_owned_buffer_set5(
         &mut self,
@@ -28,6 +76,52 @@ impl<'a> Emitter<'a> {
             local,
             ty: ResolvedType::Bytes,
         })
+    }
+
+    pub(super) fn emit_owned_buffer_set1_or5(
+        &mut self,
+        expr: &ResolvedExpr,
+        values: &[Value],
+    ) -> Result<Value, Diagnostic> {
+        let local = self.plan.expr_scalar(expr)?;
+        for value in values {
+            self.get_scalar(value);
+        }
+        self.output.push(0x10);
+        write_u32(
+            self.output,
+            self.function_indexes
+                .get(&FunctionExecutionId::Monomorphic(DeclarationId::new(
+                    crate::byte_ops::SET1_OR5_ID,
+                )))
+                .copied()
+                .unwrap_or(BYTE_SET1_OR5_IMPORT),
+        );
+        self.output.push(0x21);
+        write_u32(self.output, local);
+        Ok(Value::Scalar {
+            local,
+            ty: ResolvedType::Bytes,
+        })
+    }
+
+    /// Select the one-byte or five-byte destination failure before the owner
+    /// transfer commits. The condition is a copied scalar, so it may select
+    /// the matching existing bound predicate without re-evaluating an operand.
+    pub(super) fn emit_owned_buffer_set1_or5_failure(
+        &mut self,
+        expression: &ExpressionId,
+        buffer: &Value,
+        index: &Value,
+        wide: &Value,
+    ) -> Result<(), Diagnostic> {
+        self.get_scalar(wide);
+        self.output.extend([0x04, 0x40]);
+        self.emit_owned_buffer_set5_failure(expression, buffer, index)?;
+        self.output.push(0x05);
+        self.emit_owned_buffer_index_failure(expression, buffer, index)?;
+        self.output.push(0x0b);
+        Ok(())
     }
 
     /// Select the single owned-buffer failure when the computed element index

@@ -256,6 +256,31 @@ function createByteDataRuntime(options = {}) {
       bytes[slot + 4] = fifth;
       return BigInt.asIntN(64, decoded.carrier);
     },
+    spx_bytes_set1_or5: (carrier, index, wide, one, sourceCarrier, sourceStart) => {
+      const decoded = decode(carrier);
+      const bytes = resolve(decoded);
+      const source = read(decode(sourceCarrier));
+      if (typeof index !== "bigint" || index < 0n || typeof sourceStart !== "bigint"
+          || sourceStart < 0n || !Number.isInteger(wide) || (wide !== 0 && wide !== 1)
+          || !Number.isInteger(one) || one < 0 || one > 255) {
+        throw new Error("SEMAPRAX owned byte buffer one-or-five invariant");
+      }
+      const width = wide === 1 ? 5n : 1n;
+      if (index > BigInt(bytes.byteLength) || BigInt(bytes.byteLength) - index < width) {
+        throw new Error("SEMAPRAX owned byte buffer one-or-five interval invariant");
+      }
+      const slot = Number(index);
+      if (wide === 0) {
+        bytes[slot] = one;
+      } else {
+        for (let offset = 0; offset < 5; offset += 1) {
+          const sourceIndex = sourceStart + BigInt(offset);
+          bytes[slot + offset] = sourceIndex < BigInt(source.byteLength)
+            ? source[Number(sourceIndex)] : 0;
+        }
+      }
+      return BigInt.asIntN(64, decoded.carrier);
+    },
     spx_bytes_get: (carrier, index) => {
       const bytes = read(decode(carrier));
       const unsigned = BigInt.asUintN(64, index);

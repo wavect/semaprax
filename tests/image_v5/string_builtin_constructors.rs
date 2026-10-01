@@ -163,16 +163,16 @@ fn payload(response: Value) -> Value {
 }
 fn metadata(catalog: &Value) {
     let rows = catalog["builtin_calls"].as_array().unwrap();
-    // Eleven byte operations, including the Owned Bounded Byte Buffer v2 fixed-width write,
+    // Twelve byte operations, including the fixed-width and one-or-five owned writes,
     // and nine String-producing or String operations.
-    assert_eq!(rows.len(), 20);
-    assert!(rows[..11]
+    assert_eq!(rows.len(), 21);
+    assert!(rows[..12]
         .iter()
         .all(|row| row["evidence_owner"] == "compiler_byte_operations"));
-    assert!(rows[11..]
+    assert!(rows[12..]
         .iter()
         .all(|row| row["evidence_owner"] == "compiler_string_operations"));
-    // The owned buffer pair publishes its exact arity and the transfer that
+    // The owned buffer operations publish their exact arity and the transfer that
     // makes one filled buffer have a single owner.
     let zeroed = row_for(rows, "core.bytes.zeroed");
     assert_eq!(zeroed["name"], "bytes_zeroed");
@@ -191,8 +191,13 @@ fn metadata(catalog: &Value) {
     assert!(set5["parameters"][1..]
         .iter()
         .all(|parameter| parameter["ownership"] == "value"));
+    let set1_or5 = row_for(rows, "core.bytes.set1_or5_from_slice");
+    assert_eq!(set1_or5["name"], "bytes_set1_or5_from_slice");
+    assert_eq!(set1_or5["arity"], 6);
+    assert_eq!(set1_or5["parameters"][0]["ownership"], "own");
+    assert_eq!(set1_or5["parameters"][4]["ownership"], "borrow");
     for (index, (id, name, arity, ty, ownership, result)) in OPERATIONS.into_iter().enumerate() {
-        let row = &rows[index + 11];
+        let row = &rows[index + 12];
         assert_eq!(row.as_object().unwrap().len(), 9);
         assert_eq!(row["target"], id);
         assert_eq!(row["name"], name);

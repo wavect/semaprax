@@ -195,6 +195,52 @@ fn main() -> i64
 }
 "#;
 
+/// The same-owner one-or-five fill reads a borrowed source only for its wide
+/// path. Five reads are left-to-right and missing source positions contribute
+/// zero without introducing a source-bound failure.
+const SET1_OR5_LOOP: &str = r#"
+module test.owned_byte_buffer_set1_or5;
+
+@id("buffer.main")
+fn main() -> i64
+{
+    let raw = [65u8, 66u8, 67u8];
+    let source = array_as_slice(raw);
+    let mut buffer = bytes_zeroed(6usize);
+    let mut index = 0usize;
+    while index < 2usize {
+        let wide = index == 1usize;
+        buffer = bytes_set1_or5_from_slice(buffer, index, wide, 90u8, source, 0usize);
+        index = index + if wide { 5usize } else { 1usize };
+        0
+    }
+    let view = bytes_as_slice(buffer);
+    let first = match byte_get(view, 0usize) { Option::Some { value: byte } => byte, Option::None {} => 0u8, };
+    let third = match byte_get(view, 3usize) { Option::Some { value: byte } => byte, Option::None {} => 0u8, };
+    let sixth = match byte_get(view, 5usize) { Option::Some { value: byte } => byte, Option::None {} => 1u8, };
+    if first == 90u8 && third == 67u8 && sixth == 0u8 { 7 } else { 1 }
+}
+"#;
+
+/// The selected wide interval is dynamically past the final admissible
+/// destination. It must choose the established bound status before transfer.
+const SET1_OR5_COMPUTED_OUT_OF_RANGE: &str = r#"
+module test.owned_byte_buffer_set1_or5_past_end;
+
+@id("buffer.offset")
+fn offset(value: usize) -> usize { value + 1usize }
+
+@id("buffer.main")
+fn main() -> i64
+{
+    let raw = [1u8];
+    let source = array_as_slice(raw);
+    let buffer = bytes_set1_or5_from_slice(bytes_zeroed(5usize), offset(3usize), true, 1u8, source, 0usize);
+    let view = bytes_as_slice(buffer);
+    if byte_len(view) == 5usize { 7 } else { 1 }
+}
+"#;
+
 /// Owned Bounded Byte Buffer v2 uses one same-owner replacement to write five
 /// contiguous bytes. The buffer is allocated outside the loop and the single
 /// operation still has one owner transfer and one element-bound status source.
@@ -413,6 +459,75 @@ fn write_once_buffer_fills_freezes_and_reads_with_one_owner_and_one_drop() {
         String::from_utf8_lossy(&output.stdout).trim(),
         "7",
         "the native backend agrees with the reference interpreter"
+    );
+}
+
+#[test]
+fn one_or_five_loop_fill_preserves_source_zero_fill_and_one_owner_commit() {
+    let program = parse(SET1_OR5_LOOP, "owned-byte-buffer-set1-or5.spx").unwrap();
+    assert!(verify::verify(&program).is_empty());
+    let canonical = format::canonical(&program);
+    assert_eq!(
+        format::canonical(&parse(&canonical, "owned-byte-buffer-set1-or5-canonical.spx").unwrap()),
+        canonical,
+    );
+    let resolved = hir::resolve(&program).unwrap();
+    hir::validate(&resolved).unwrap();
+    let plan = &main_function(&resolved).cleanup_plan;
+    assert_eq!(
+        plan.status_sources
+            .iter()
+            .filter(|source| matches!(
+                &source.producer,
+                semaprax::cleanup_plan::StatusProducer::PropagatedCall { callee }
+                    if callee.as_str() == "core.bytes.set1_or5_from_slice"
+            ))
+            .count(),
+        1,
+    );
+    assert!(graph::to_json(&program)
+        .unwrap()
+        .contains("core.bytes.set1_or5_from_slice"));
+    let interpreted = interpret(SET1_OR5_LOOP, "set1-or5-interpreter");
+    assert!(
+        interpreted.contains("\"kind\":\"returned\"") && interpreted.contains("\"value\":\"7\"")
+    );
+    let native = codegen::emit_c(&program).unwrap();
+    assert!(native.contains("spx_bytes_set1_or5_check_v1"));
+    assert!(native.contains("spx_bytes_set1_or5(spx_bytes_move"));
+    assert!(wasm::emit_module(&program).unwrap().starts_with(b"\0asm"));
+}
+
+#[test]
+fn one_or_five_dynamic_wide_interval_selects_existing_failure_before_owner_commit() {
+    let program = parse(
+        SET1_OR5_COMPUTED_OUT_OF_RANGE,
+        "owned-byte-buffer-set1-or5-past-end.spx",
+    )
+    .unwrap();
+    assert!(verify::verify(&program).is_empty());
+    let resolved = hir::resolve(&program).unwrap();
+    hir::validate(&resolved).unwrap();
+    let interpreted = interpret(SET1_OR5_COMPUTED_OUT_OF_RANGE, "set1-or5-past-end-interp");
+    let parsed: serde_json::Value = serde_json::from_str(&interpreted).unwrap();
+    assert_eq!(
+        parsed["payload"]["outcome"]["kind"], "failed",
+        "{interpreted}"
+    );
+    assert_eq!(
+        parsed["payload"]["outcome"]["status"]["domain_id"],
+        "semaprax.byte-buffer.v1"
+    );
+    assert_eq!(parsed["payload"]["outcome"]["status"]["code"], 1);
+}
+
+#[test]
+fn one_or_five_literal_wide_interval_past_end_is_spx_t272() {
+    assert_rejected(
+        &program_source(
+            "    let raw = [1u8];\n    let source = array_as_slice(raw);\n    let buffer = bytes_set1_or5_from_slice(bytes_zeroed(5usize), 1usize, true, 1u8, source, 0usize);\n    let view = bytes_as_slice(buffer);\n    if byte_len(view) == 5usize { 0 } else { 1 }",
+        ),
+        "SPX-T272",
     );
 }
 

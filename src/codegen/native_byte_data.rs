@@ -225,6 +225,39 @@ static __attribute__((unused)) spx_status_token spx_bytes_set5_check_v1(
     return token;
 }
 
+/* The one-or-five path has the same destination status as the fixed stores.
+   Its borrowed source is read only after the destination preflight; absent
+   source bytes are deterministic zero rather than a second failure family. */
+static __attribute__((unused)) spx_status_token spx_bytes_set1_or5_check_v1(
+    struct spx_context *spx_ctx, spx_bytes_v1 buffer, uint8_t wide, uint64_t index
+) {
+    return wide ? spx_bytes_set5_check_v1(spx_ctx, buffer, index)
+                : spx_bytes_set_check_v1(spx_ctx, buffer, index);
+}
+
+static __attribute__((unused)) spx_bytes_v1 spx_bytes_set1_or5(
+    spx_bytes_v1 buffer, uint64_t index, uint8_t wide, uint8_t one,
+    spx_slice_u8_v1 source, uint64_t source_start
+) {
+    spx_bytes_require_valid(buffer);
+    spx_slice_u8_require_owned_view_valid(source);
+    uint64_t width = wide ? UINT64_C(5) : UINT64_C(1);
+    if (index > buffer.len || buffer.len - index < width) {
+        spx_runtime_invariant_failure("owned byte buffer one-or-five interval is outside its capacity");
+    }
+    size_t slot = (size_t)index;
+    if (!wide) {
+        buffer.ptr[slot] = one;
+        return buffer;
+    }
+    for (size_t offset = 0U; offset < 5U; offset++) {
+        uint64_t source_index = source_start + (uint64_t)offset;
+        buffer.ptr[slot + offset] = source_index >= source_start && source_index < source.len
+            ? source.ptr[(size_t)source_index] : UINT8_C(0);
+    }
+    return buffer;
+}
+
 static __attribute__((unused)) spx_bytes_v1 spx_bytes_set5(
     spx_bytes_v1 buffer, uint64_t index, uint8_t first, uint8_t second,
     uint8_t third, uint8_t fourth, uint8_t fifth

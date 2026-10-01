@@ -14,6 +14,11 @@ format: `Unreleased` then release buckets, grouped by impact.
   failure. The focused real-chain selector passed 1/1 locally; public entry and
   restart recovery remain open.
 
+- Durably ACK the private owned-wait v8 turn-1 Reduce reservation after
+  continued Decision cleanup (#330), advancing its hold from CleanupSettled to
+  SpentReduce once. The focused real-chain selector passed 1/1 locally with no
+  extra host dispatch or cleanup; Step, public entry, and restart recovery remain open.
+
 - Add the internal Owned Bounded Byte Buffer v2 `bytes_set5` operation (#324).
   It preflights one contiguous five-byte interval before the canonical owner
   transfer. Its focused language and Core Wasm selectors passed locally; the

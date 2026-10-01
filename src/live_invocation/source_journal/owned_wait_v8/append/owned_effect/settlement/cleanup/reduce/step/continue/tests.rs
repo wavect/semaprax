@@ -386,6 +386,26 @@ fn owned_continue_driver_dispatches_next_turn_model_once_and_records_settlement(
             cleanup
                 .validate_live()
                 .unwrap_or_else(|_| panic!("settled continued cleanup owner"));
+            let reduce_sequence = journal.begin_session().unwrap().sequence();
+            let reserved = advance_live_owned_continued_reduce_v8(journal, cleanup)
+                .unwrap_or_else(|_| panic!("one continued Reduce reservation ACK"));
+            assert_eq!(
+                journal.begin_session().unwrap().sequence(),
+                reduce_sequence + 1,
+                "one turn-1 Reduce reservation row"
+            );
+            reserved
+                .validate_live()
+                .unwrap_or_else(|_| panic!("turn-1 Reduce reservation owner"));
+            assert_eq!(
+                host.calls, 1,
+                "Reduce reservation never redispatches the effect host"
+            );
+            assert_eq!(
+                cleanup_actions.get(),
+                1,
+                "Reduce reservation never repeats cleanup"
+            );
             assert_eq!(
             crate::interpreter::resumable::owned_frame::registered_stage::live_run::test_continued_resume_entries_v8(),
             resume_entries + 1,
@@ -393,7 +413,7 @@ fn owned_continue_driver_dispatches_next_turn_model_once_and_records_settlement(
         );
             assert!(weak.iter().any(|owner| owner.strong_count() == 1));
 
-            drop(cleanup);
+            drop(reserved);
             assert!(weak.iter().all(|owner| owner.upgrade().is_none()));
         })
     };

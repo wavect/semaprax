@@ -1,16 +1,17 @@
-//! Fixed Cleanup ACK lineage. The witness is never an owner or dispatch grant.
+//! Continued Reduce reservation ACK lineage. Only the fixed adapter may mint
+//! the witness after a real same-FD ACK; this definition alone mints nothing.
 use super::*;
 
 /// Only the fixed physical adapter constructs this after persisted/reread ACK.
 /// No Clone, public constructor or independently detachable cursor exists.
-pub(in crate::live_invocation::source_journal::owned_wait_v8) struct VerifiedOwnedEffectCleanupSuccessorV8<
+pub(in crate::live_invocation::source_journal::owned_wait_v8) struct VerifiedOwnedContinuedReduceSuccessorV8<
     'j,
 > {
     predecessor: OwnedEffectAppendCursorV8<'j>,
     successor: OwnedEffectAppendCursorV8<'j>,
     selected: EntryV8,
 }
-impl VerifiedOwnedEffectCleanupSuccessorV8<'_> {
+impl VerifiedOwnedContinuedReduceSuccessorV8<'_> {
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_predecessor(
         &self,
         journal: &SourceOwnedWaitJournalV8,
@@ -35,7 +36,7 @@ impl VerifiedOwnedEffectCleanupSuccessorV8<'_> {
             || &self.selected != selected
             || !matches!(
                 selected,
-                EntryV8::Owned(crate::live_invocation::source_journal::owned_wait_v8::model::OwnedBodyV8::OwnedEffectDecisionCleanupStarted { .. } | crate::live_invocation::source_journal::owned_wait_v8::model::OwnedBodyV8::OwnedEffectDecisionCleanupSettled { .. })
+                EntryV8::Ordinary(SourceJournalEntry::StageReservation { turn, attempt: Some(_), role: crate::live_invocation::source_journal::SourceStageRole::Reduce, fuel }) if *turn > 0 && Some(*fuel) == journal.context.ordinary().max_steps_per_stage()
             )
             || self.successor.sequence
                 != sequence
@@ -60,7 +61,7 @@ impl VerifiedOwnedEffectCleanupSuccessorV8<'_> {
             self.predecessor.bytes,
             &self.selected,
         )?;
-        let (_, _, _, _, selected) = session.inventory.effect_cleanup_reduce_facts()?;
+        let (_, _, _, _, selected) = session.inventory.continued_reduce_facts()?;
         if !session
             .inventory
             .belongs_to_context(&session.journal.context)
@@ -109,67 +110,67 @@ impl VerifiedOwnedEffectCleanupSuccessorV8<'_> {
     }
 }
 
-use crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect::authorization::cleanup::{
-    advance_verified_cleanup_v8, LiveCleanupAcknowledgedV8,
-    LiveEffectCleanupFailureV8, LiveOwnedEffectCleanupAppendV8,
+use crate::live_invocation::source_journal::owned_wait_v8::live_upstream::{
+    advance_verified_continued_reduce_v8, LiveContinuedReduceAdvanceFailureV8,
+    LiveContinuedReduceReservationAppendV8, LiveContinuedReduceReservedV8,
 };
 
 /// The actual unchanged obligation is first. Session/witness never stand alone.
-pub(in crate::live_invocation::source_journal::owned_wait_v8) struct VerifiedOwnedEffectCleanupAppendV8<
+pub(in crate::live_invocation::source_journal::owned_wait_v8) struct VerifiedOwnedContinuedReduceAppendV8<
     'j,
 > {
-    obligation: LiveOwnedEffectCleanupAppendV8<'j>,
+    obligation: LiveContinuedReduceReservationAppendV8<'j>,
     session: AppendSessionV8<'j>,
-    witness: VerifiedOwnedEffectCleanupSuccessorV8<'j>,
+    witness: VerifiedOwnedContinuedReduceSuccessorV8<'j>,
 }
-impl<'j> VerifiedOwnedEffectCleanupAppendV8<'j> {
+impl<'j> VerifiedOwnedContinuedReduceAppendV8<'j> {
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_live(
         &self,
     ) -> Result<(), SourceJournalError> {
         self.obligation
-            .validate_cleanup_successor(&self.witness, &self.session)
+            .validate_reduce_successor(&self.witness, &self.session)
             .inspect_err(|_| self.session.journal.quarantine())
     }
     /// Closed move into the actual engine ACK consumer; no host or parts API.
-    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_cleanup(
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_reduce(
         self,
-    ) -> Result<LiveCleanupAcknowledgedV8<'j>, LiveEffectCleanupFailureV8<'j>> {
+    ) -> Result<LiveContinuedReduceReservedV8<'j>, LiveContinuedReduceAdvanceFailureV8<'j>> {
         let Self {
             obligation,
             session,
             witness,
         } = self;
-        advance_verified_cleanup_v8(obligation, session, witness)
+        advance_verified_continued_reduce_v8(obligation, session, witness)
     }
 }
-pub(in crate::live_invocation::source_journal::owned_wait_v8) enum LiveOwnedEffectCleanupAppendFailureV8<
+pub(in crate::live_invocation::source_journal::owned_wait_v8) enum LiveContinuedReduceAppendFailureV8<
     'j,
 > {
     Before {
-        _obligation: LiveOwnedEffectCleanupAppendV8<'j>,
+        _obligation: LiveContinuedReduceReservationAppendV8<'j>,
         _session: AppendSessionV8<'j>,
         error: SourceJournalError,
     },
     Append {
-        _obligation: LiveOwnedEffectCleanupAppendV8<'j>,
+        _obligation: LiveContinuedReduceReservationAppendV8<'j>,
         _failure: AppendFailureV8<'j>,
     },
     Acknowledged {
-        _obligation: LiveOwnedEffectCleanupAppendV8<'j>,
+        _obligation: LiveContinuedReduceReservationAppendV8<'j>,
         _session: AppendSessionV8<'j>,
-        _witness: VerifiedOwnedEffectCleanupSuccessorV8<'j>,
+        _witness: VerifiedOwnedContinuedReduceSuccessorV8<'j>,
         error: SourceJournalError,
     },
     After {
-        _verified: VerifiedOwnedEffectCleanupAppendV8<'j>,
+        _verified: VerifiedOwnedContinuedReduceAppendV8<'j>,
         error: SourceJournalError,
     },
 }
 impl<'j> AppendSessionV8<'j> {
-    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn append_owned_effect_cleanup(
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn append_owned_continued_reduce_reservation(
         self,
-        obligation: LiveOwnedEffectCleanupAppendV8<'j>,
-    ) -> Result<VerifiedOwnedEffectCleanupAppendV8<'j>, LiveOwnedEffectCleanupAppendFailureV8<'j>>
+        obligation: LiveContinuedReduceReservationAppendV8<'j>,
+    ) -> Result<VerifiedOwnedContinuedReduceAppendV8<'j>, LiveContinuedReduceAppendFailureV8<'j>>
     {
         let same_journal = obligation.belongs_to(self.journal);
         let predecessor = match (|| {
@@ -178,7 +179,12 @@ impl<'j> AppendSessionV8<'j> {
                 || obligation.acknowledged_bytes() != self.acknowledged_bytes()
                 || !matches!(
                     obligation.selected_row(),
-                    EntryV8::Owned(crate::live_invocation::source_journal::owned_wait_v8::model::OwnedBodyV8::OwnedEffectDecisionCleanupStarted { .. } | crate::live_invocation::source_journal::owned_wait_v8::model::OwnedBodyV8::OwnedEffectDecisionCleanupSettled { .. })
+                    EntryV8::Ordinary(SourceJournalEntry::StageReservation {
+                        turn,
+                        attempt: Some(_),
+                        role: crate::live_invocation::source_journal::SourceStageRole::Reduce,
+                        ..
+                    })
                 )
             {
                 return Err(SourceJournalError::Binding);
@@ -193,7 +199,7 @@ impl<'j> AppendSessionV8<'j> {
                 if same_journal {
                     self.journal.quarantine();
                 }
-                return Err(LiveOwnedEffectCleanupAppendFailureV8::Before {
+                return Err(LiveContinuedReduceAppendFailureV8::Before {
                     _obligation: obligation,
                     _session: self,
                     error,
@@ -205,7 +211,7 @@ impl<'j> AppendSessionV8<'j> {
             Ok(permit) => permit,
             Err(error) => {
                 self.journal.quarantine();
-                return Err(LiveOwnedEffectCleanupAppendFailureV8::Before {
+                return Err(LiveContinuedReduceAppendFailureV8::Before {
                     _obligation: obligation,
                     _session: self,
                     error,
@@ -213,22 +219,23 @@ impl<'j> AppendSessionV8<'j> {
             }
         };
         let selected = permit.selected_row().clone();
-        let (pending, verified, attempting) = match self.begin_fixed_cleanup_append(&permit) {
-            Ok(completion) => completion,
-            Err(failure) => {
-                return Err(LiveOwnedEffectCleanupAppendFailureV8::Append {
-                    _obligation: obligation,
-                    _failure: failure,
-                })
-            }
-        };
+        let (pending, verified, attempting) =
+            match self.begin_fixed_continued_reduce_append(&permit) {
+                Ok(completion) => completion,
+                Err(failure) => {
+                    return Err(LiveContinuedReduceAppendFailureV8::Append {
+                        _obligation: obligation,
+                        _failure: failure,
+                    })
+                }
+            };
         let session = AppendSessionV8 {
             journal: attempting.journal,
             inventory: pending.acknowledge_verified(verified),
         };
         // Sole literal constructor: actual same-FD write/sync/reread has ACKed
         // this Pending. Recovered inventory never reaches this construction.
-        let witness = VerifiedOwnedEffectCleanupSuccessorV8 {
+        let witness = VerifiedOwnedContinuedReduceSuccessorV8 {
             predecessor,
             successor: OwnedEffectAppendCursorV8::capture(&session),
             selected,
@@ -239,7 +246,7 @@ impl<'j> AppendSessionV8<'j> {
         if let Err(error) = advanced {
             // Attempting remains incomplete and poisons before any return.
             drop(attempting);
-            return Err(LiveOwnedEffectCleanupAppendFailureV8::Acknowledged {
+            return Err(LiveContinuedReduceAppendFailureV8::Acknowledged {
                 _obligation: obligation,
                 _session: session,
                 _witness: witness,
@@ -247,14 +254,14 @@ impl<'j> AppendSessionV8<'j> {
             });
         }
         attempting.complete.set(true);
-        drop(attempting); // incurred cleanup guard deliberately excludes cancel/clock
-        let envelope = VerifiedOwnedEffectCleanupAppendV8 {
+        drop(attempting); // source entry is strict, including cancellation/clock
+        let envelope = VerifiedOwnedContinuedReduceAppendV8 {
             obligation,
             session,
             witness,
         };
         if let Err(error) = envelope.validate_live() {
-            return Err(LiveOwnedEffectCleanupAppendFailureV8::After {
+            return Err(LiveContinuedReduceAppendFailureV8::After {
                 _verified: envelope,
                 error,
             });
@@ -262,17 +269,3 @@ impl<'j> AppendSessionV8<'j> {
         Ok(envelope)
     }
 }
-
-#[cfg(test)]
-pub(in crate::live_invocation::source_journal::owned_wait_v8) mod tests;
-
-pub(in crate::live_invocation::source_journal::owned_wait_v8) mod continued_reduce;
-pub(in crate::live_invocation::source_journal::owned_wait_v8) mod reduce;
-
-pub(in crate::live_invocation::source_journal::owned_wait_v8) mod failed_state;
-#[cfg(test)]
-pub(in crate::live_invocation::source_journal::owned_wait_v8) use tests::{
-    test_failed_target, TestFailedTargetV8,
-};
-
-pub(in crate::live_invocation::source_journal::owned_wait_v8) mod observer_failed_state;

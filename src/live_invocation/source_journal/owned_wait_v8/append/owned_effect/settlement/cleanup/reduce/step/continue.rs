@@ -782,6 +782,43 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_live_ow
     }
 }
 
+pub(in crate::live_invocation::source_journal::owned_wait_v8) enum LiveContinuedReduceDriverFailureV8<
+    'j,
+> {
+    Prepare(crate::live_invocation::source_journal::owned_wait_v8::live_upstream::ContinuedReduceReservationRejectionV8<'j>),
+    Session {
+        owner: crate::live_invocation::source_journal::owned_wait_v8::live_upstream::LiveContinuedReduceReservationAppendV8<'j>,
+        error: SourceJournalError,
+    },
+    Append(crate::live_invocation::source_journal::owned_wait_v8::append::owned_effect::LiveContinuedReduceAppendFailureV8<'j>),
+    Advance(crate::live_invocation::source_journal::owned_wait_v8::live_upstream::LiveContinuedReduceAdvanceFailureV8<'j>),
+}
+
+/// The continued reservation consumes exactly the real cleanup-settled owner.
+/// Its output remains private at SpentReduce; evaluation and Step are separate.
+pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_live_owned_continued_reduce_v8<'j>(
+    journal: &'j SourceOwnedWaitJournalV8,
+    cleanup: crate::live_invocation::source_journal::owned_wait_v8::live_upstream::SettledContinuedDecisionCleanupV8<'j>,
+) -> Result<crate::live_invocation::source_journal::owned_wait_v8::live_upstream::LiveContinuedReduceReservedV8<'j>, LiveContinuedReduceDriverFailureV8<'j>>{
+    let reservation = cleanup
+        .prepare_continued_reduce()
+        .map_err(LiveContinuedReduceDriverFailureV8::Prepare)?;
+    let session = match journal.begin_session() {
+        Ok(session) => session,
+        Err(error) => {
+            return Err(LiveContinuedReduceDriverFailureV8::Session {
+                owner: reservation,
+                error,
+            })
+        }
+    };
+    session
+        .append_owned_continued_reduce_reservation(reservation)
+        .map_err(LiveContinuedReduceDriverFailureV8::Append)?
+        .advance_reduce()
+        .map_err(LiveContinuedReduceDriverFailureV8::Advance)
+}
+
 impl<'j> AppendSessionV8<'j> {
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn append_owned_continue(
         self,

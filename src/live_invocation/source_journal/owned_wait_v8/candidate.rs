@@ -15,7 +15,7 @@ use super::live_upstream::{
 };
 use super::*;
 use crate::resumable_effects::owned_frame::SourceOwnedWaitLeaseV8;
-
+mod continued_reduce;
 enum ProducerV8<'p, 'j> {
     ContinuedSettlement(&'p FixedOwnedContinuedSettlementAppendPermitV8<'p, 'j>),
     ContinuedIntent(&'p super::live_upstream::FixedOwnedContinuedIntentAppendPermitV8<'p, 'j>),
@@ -71,6 +71,7 @@ enum ProducerV8<'p, 'j> {
         &'p SourceOwnedWaitJournalV8,
         &'p FixedOwnedReduceReservationAppendPermitV8<'p, 'j>,
     ),
+    ContinuedReduce(&'p SourceOwnedWaitJournalV8, &'p super::live_upstream::FixedOwnedContinuedReduceReservationAppendPermitV8<'p, 'j>),
     Generic,
     Intent(
         &'p SourceOwnedWaitJournalV8,
@@ -1103,6 +1104,7 @@ impl<'a> InventoryV8<'a> {
                     }
                     permit.validate_selected_prefix(journal, &self)?;
                 }
+                ProducerV8::ContinuedReduce(journal, permit) => { if checked.entry != *permit.selected_row() { return Err(SourceJournalError::Binding); } permit.validate_selected_prefix(journal, &self)?; }
                 ProducerV8::ObserveSettlement(journal, permit) => {
                     if checked.entry != *permit.selected_row() {
                         return Err(SourceJournalError::Binding);
@@ -1487,9 +1489,7 @@ impl TrustedAppendAckV8 {
 }
 
 mod failed_observe_state;
-
 mod continued_prepared;
-
 mod continued_model;
 
 mod continued_authorize;

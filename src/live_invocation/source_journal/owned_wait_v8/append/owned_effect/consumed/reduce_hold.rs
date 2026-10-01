@@ -428,7 +428,6 @@ impl ProspectiveOwnedReduceHoldV8<'_> {
         })();
         result.inspect_err(|_| self.journal.quarantine())
     }
-
     /// Callback-free checked phase/funding match. No cancellation or clock call.
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_cleanup_append_prefix(
         &self,
@@ -449,9 +448,18 @@ impl ProspectiveOwnedReduceHoldV8<'_> {
                     ..
                 }) => {
                     if *turn == 0 {
-                        self.validate_settlement_inventory(inventory, inventory.sequence(), inventory.acknowledged_bytes())?;
+                        self.validate_settlement_inventory(
+                            inventory,
+                            inventory.sequence(),
+                            inventory.acknowledged_bytes(),
+                        )?;
                     } else {
-                        self.validate_continued_settlement_inventory(journal, inventory, inventory.sequence(), inventory.acknowledged_bytes())?;
+                        self.validate_continued_settlement_inventory(
+                            journal,
+                            inventory,
+                            inventory.sequence(),
+                            inventory.acknowledged_bytes(),
+                        )?;
                     }
                     let (_, _, t, a, row) = inventory.effect_settlement_reduce_facts()?;
                     if !matches!(
@@ -1492,4 +1500,5 @@ mod turn_model;
 
 mod turn_authorize;
 
+mod continued_reduce;
 mod turn_effect;

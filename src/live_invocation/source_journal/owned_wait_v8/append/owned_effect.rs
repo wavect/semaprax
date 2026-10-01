@@ -15,6 +15,9 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) use intent::{
     LiveOwnedEffectIntentAppendFailureV8, VerifiedOwnedEffectIntentAppendV8,
     VerifiedOwnedEffectIntentSuccessorV8,
 };
+pub(in crate::live_invocation::source_journal::owned_wait_v8) use settlement::cleanup::continued_reduce::{
+    LiveContinuedReduceAppendFailureV8, VerifiedOwnedContinuedReduceSuccessorV8,
+};
 pub(in crate::live_invocation::source_journal::owned_wait_v8) use settlement::{
     LiveOwnedEffectSettlementAppendFailureV8, VerifiedOwnedEffectSettlementAppendV8,
     VerifiedOwnedEffectSettlementSuccessorV8,

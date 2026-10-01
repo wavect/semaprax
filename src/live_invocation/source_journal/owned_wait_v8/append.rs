@@ -10,6 +10,7 @@ use super::live_upstream::effect::authorization::FixedOwnedEffectSettlementAppen
 use super::live_upstream::FixedOwnedContinuedStartAppendPermitV8;
 use super::live_upstream::FixedOwnedObserveSettlementAppendPermitV8;
 use super::*;
+mod continued_reduce;
 use crate::resumable_effects::owned_frame::{
     SourceOwnedWaitLeaseV8, SourceOwnedWaitStoreRegistrationV8,
 };
@@ -650,6 +651,7 @@ impl<'a> AppendSessionV8<'a> {
             }),
         }
     }
+
     fn begin_fixed_observe_settlement_append(
         self,
         permit: &FixedOwnedObserveSettlementAppendPermitV8<'_, 'a>,
@@ -1225,6 +1227,7 @@ fn physical_append_fixed_original_reduce(
     pending.validate_fixed_original_reduce_prefix(journal, permit)?;
     Ok(AppendVerifiedV8 { _sealed: () })
 }
+
 fn physical_append_fixed_observe_settlement(
     attempting: &Attempting<'_>,
     pending: &PendingV8<'_>,

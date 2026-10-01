@@ -837,7 +837,18 @@ failure therefore has no route to invoke cleanup again. The focused real-chain
 selector passed 1/1 locally, asserting one physical cleanup observation and both
 durable rows. This supplies neither a public entry nor restart path.
 
-This private cleanup boundary ends at the retained actual Settled holder;
-continued Outcome/Reduce, terminal publication, public multi-turn entry and
-restart recovery remain unfinished. This bounded local result is not completion
-of the public owned-Agent lifecycle criterion.
+This private cleanup boundary ends at the retained actual Settled holder.
+
+The private continued Reduce sibling consumes that exact holder to select one
+positive-turn `StageReservation(role Reduce)` with the retained typed fuel. Its
+fixed same-file ACK moves the existing hold from `CleanupSettled` to
+`SpentReduce` exactly once, preserving the turn-1 lineage, owner, MAC cursor
+and accounting. Prewrite, ACK and post-ACK failures retain their unique reached
+owner and quarantine uncertainty; receipt bytes never grant this authority. It
+stops before reducer evaluation and Step. The focused real-chain selector passed
+1/1 locally, asserting the one durable reservation row with no second host call
+or cleanup observation.
+
+Continued Step, terminal publication, public multi-turn entry and restart
+recovery remain unfinished. This bounded local result is not completion of the
+public owned-Agent lifecycle criterion.

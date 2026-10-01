@@ -472,6 +472,21 @@ interface TokenHost
 
 ## Session protocols
 
+### `channel.protocol` (`examples/session-endpoint.spx`)
+
+```semaprax
+@id("channel.protocol")
+session protocol "channel-v1" {
+    states { Ready, Active, Closed }
+    initial Ready;
+    terminal Closed cleanup {}
+    on Ready step: send Unit consumes resource via "channel.step" -> Active;
+    on Ready cancel: cancel Unit consumes resource via "channel.cancel" -> Closed;
+    on Active close: send Unit consumes resource via "channel.close" -> Closed;
+    on Active cancel: cancel Unit consumes resource via "channel.cancel" -> Closed;
+}
+```
+
 ### `checkout.session` (`examples/session_protocol.spx`)
 
 ```semaprax
@@ -1467,6 +1482,41 @@ fn route(code: char) -> i64
 
 ```semaprax
 @id("main")
+fn main() -> i64
+```
+
+### `channel.step` (`examples/session-endpoint.spx`)
+
+```semaprax
+@id("channel.step")
+fn step(value: own Bytes) -> Bytes
+```
+
+### `channel.close` (`examples/session-endpoint.spx`)
+
+```semaprax
+@id("channel.close")
+fn close(value: own Bytes) -> i64
+```
+
+### `channel.cancel` (`examples/session-endpoint.spx`)
+
+```semaprax
+@id("channel.cancel")
+fn cancel(value: own Bytes) -> i64
+```
+
+### `channel.use` (`examples/session-endpoint.spx`)
+
+```semaprax
+@id("channel.use")
+fn use_channel(endpoint: own Bytes) -> i64
+```
+
+### `app.main` (`examples/session-endpoint.spx`)
+
+```semaprax
+@id("app.main")
 fn main() -> i64
 ```
 

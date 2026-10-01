@@ -1489,16 +1489,10 @@ mod spent_funding_tests {
     }
 }
 
-mod observe_settlement;
-
 mod failed_observe_cleanup;
-
-mod turn_start;
-
-mod turn_prepared;
-
-mod turn_model;
-
+mod observe_settlement;
 mod turn_authorize;
-
 mod turn_effect;
+mod turn_model;
+mod turn_prepared;
+mod turn_start;

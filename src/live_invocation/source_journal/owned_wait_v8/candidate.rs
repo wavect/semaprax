@@ -1490,15 +1490,10 @@ impl TrustedAppendAckV8 {
     }
 }
 
-mod failed_observe_state;
-
-mod continued_prepared;
-
-mod continued_model;
-
 mod continued_authorize;
-
 mod continued_effect;
-
 mod continued_intent;
+mod continued_model;
+mod continued_prepared;
 mod continued_settlement;
+mod failed_observe_state;

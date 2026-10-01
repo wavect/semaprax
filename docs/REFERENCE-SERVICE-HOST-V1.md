@@ -27,8 +27,8 @@ repository's existing machinery and adds no new authority:
   client path (`TcpNetworkProvider::connect_tls`);
 - serving: loopback-only HTTP/1.1 over `TcpNetworkProvider`;
 - passwords: the existing Argon2id password host;
-- telemetry target: the decoded endpoint origin under the existing fixed
-  `/v1/events` route.
+- telemetry target: the decoded endpoint origin under the selected fixed
+  JSON-event or OTLP/HTTP route.
 
 ## Adapter selection (explicit)
 
@@ -37,7 +37,8 @@ repository's existing machinery and adds no new authority:
 | `snapshot` | Durable snapshot store under `--state-dir`. `sqlite` and `postgresql` are refused with stable adapter-specific diagnostics during both configuration and independent request decoding; non-null `dsn_secret_ref` is refused rather than reinterpreted as a state path. |
 | `native` + `modern` TLS + listen origin | Loopback HTTP/1.1 on `--port`, plaintext by default. The listen origin is intent only and never itself provisions TLS; `--tls-certificate-secret`/`--tls-private-key-secret` opt in (see below). |
 | Three secret refs | Exact files under `--secrets-dir`, resolved before serving. |
-| `semaprax-json-events` + endpoint origin | Canonical `semaprax.json-event.v1` HTTPS POST to `<origin>/v1/events` through `deliver_http_durable`. The closed completion envelope carries `schema`, `event: "job.completed"`, `job_id`, `owner`, `desc`, and an HMAC commitment; its `x-semaprax-event-schema` header repeats the schema identifier. OTLP labels are refused during configuration decoding. |
+| `semaprax-json-events` + endpoint origin | Canonical `semaprax.json-event.v1` HTTPS POST to `<origin>/v1/events` through `deliver_http_durable`. The closed completion envelope carries `schema`, `event: "job.completed"`, `job_id`, `owner`, `desc`, and an HMAC commitment; its `x-semaprax-event-schema` header repeats the schema identifier. |
+| `otlp-http-json` + endpoint origin | OTLP/HTTP JSON-Protobuf `ExportLogsServiceRequest` HTTPS POST to `<origin>/v1/logs` through the same durable delivery path. The fixed lower-camel request has one `resourceLogs` row, `service.name = semaprax-reference-service`, one `job.completed` INFO log record, and decimal-string OTLP `intValue` job and owner attributes. It uses `Content-Type: application/json`; it has no webhook schema header or HMAC signature. Only a `200` JSON-Protobuf `ExportLogsServiceResponse` without `partialSuccess` settles delivered; malformed, partial, or other-status responses settle failed and are not redispatched under the completion identity. |
 
 ## Invocation mapping
 
@@ -141,8 +142,8 @@ material only.
 
 ## Non-claims
 
-No SQL or OTLP adapter label is accepted, no hosted/public/production
-support, no graceful shutdown, and no per-request decisions outside the
+No SQL adapter label is accepted, no hosted/public/production support, no
+graceful shutdown, and no per-request decisions outside the
 frozen invocation vocabulary. TLS server provisioning is now available but
 only from operator-held certificate/key material named on the command
 line, not from configuration intent, and not chained beyond the one leaf

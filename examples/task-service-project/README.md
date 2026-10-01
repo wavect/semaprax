@@ -11,9 +11,11 @@ fixture mode -- no socket, no file, and no real clock are touched.
 and telemetry adapters are all explicitly `fixture`, every endpoint is absent,
 and every secret is represented only by a nullable host-owned reference. A
 host deployment may select the durable `snapshot` store, native HTTP/TLS, and
-`semaprax-json-events` only by supplying a separately validated configuration
-and resolving its secret references outside Semaprax source. SQLite,
-PostgreSQL, and OTLP labels are refused. Neither generated file carries
+either `semaprax-json-events` or `otlp-http-json` only by supplying a
+separately validated configuration and resolving its secret references outside
+Semaprax source. SQLite and PostgreSQL labels are refused. The former telemetry
+profile emits its signed `semaprax.json-event.v1` body at `/v1/events`; the
+latter emits OTLP/HTTP JSON-Protobuf logs at `/v1/logs`. Neither generated file carries
 credentials or grants database, network, telemetry, or secret-store authority.
 `sqlite` and `postgresql` fail during checked configuration and independent
 host-request decoding with adapter-specific diagnostics, before the host opens

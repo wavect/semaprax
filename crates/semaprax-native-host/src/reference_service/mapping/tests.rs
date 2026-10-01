@@ -33,6 +33,10 @@ fn fixture() -> Fixture {
 }
 
 fn fixture_with_telemetry_origin(telemetry_origin: &str) -> Fixture {
+    fixture_with_telemetry(telemetry_origin, "semaprax-json-events")
+}
+
+fn fixture_with_telemetry(telemetry_origin: &str, telemetry_adapter: &str) -> Fixture {
     // The project loader rejects `.`/`..` components, so the fixture
     // path is canonicalized before loading.
     let manifest = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -55,7 +59,7 @@ fn fixture_with_telemetry_origin(telemetry_origin: &str) -> Fixture {
     write_secret(&secrets_held, "auth.pepper", &[1_u8; 32]);
     write_secret(&secrets_held, "auth.session", &[2_u8; 32]);
     write_secret(&secrets_held, "webhook.signing", &[3_u8; 32]);
-    let intent = decode_host_intent(telemetry_origin);
+    let intent = decode_host_intent(telemetry_origin, telemetry_adapter);
     let secrets = super::super::secrets::resolve(&secrets_held, intent.secrets().unwrap()).unwrap();
     let decisions =
         DecisionEngine::bind(revision, super::super::decisions::DECISION_MAX_STEPS).unwrap();
@@ -104,12 +108,26 @@ fn install_generated_create_decision(directory: &std::path::Path) {
     std::fs::write(path, semaprax::format::canonical(&parsed)).unwrap();
 }
 
-fn decode_host_intent(telemetry_origin: &str) -> ServiceHostAdapterRequestV1 {
+fn decode_host_intent(
+    telemetry_origin: &str,
+    telemetry_adapter: &str,
+) -> ServiceHostAdapterRequestV1 {
     let text = r#"{"capabilities":["semaprax.service.http.serve-tls.v1","semaprax.service.secrets.resolve.v1","semaprax.service.telemetry.emit.v1"],"database":{"adapter":"snapshot","migration_table":"semaprax_migrations"},"http":{"adapter":"native","listen_origin":"https://service.example","tls_profile":"modern"},"mode":"host","schema":"semaprax.service-host-adapter-request.v1","secrets":{"password_pepper_ref":"auth.pepper","session_signing_key_ref":"auth.session","webhook_signing_key_ref":"webhook.signing"},"telemetry":{"adapter":"semaprax-json-events","endpoint_origin":"https://127.0.0.1:9"}}"#;
-    let text = text.replace("https://127.0.0.1:9", telemetry_origin);
+    let text = text
+        .replace("https://127.0.0.1:9", telemetry_origin)
+        .replace("semaprax-json-events", telemetry_adapter);
     let mut bytes = text.into_bytes();
     bytes.push(b'\n');
     semaprax::project::service_host_adapter_request::decode(&bytes).unwrap()
+}
+
+#[test]
+fn otlp_http_json_intent_binds_the_distinct_protocol() {
+    let fixture = fixture_with_telemetry("https://127.0.0.1:9", "otlp-http-json");
+    assert_eq!(
+        fixture.host.telemetry_adapter,
+        ServiceTelemetryAdapter::OtlpHttpJson
+    );
 }
 
 fn exchange(method: &str, target: &str, body: &str, token: Option<&str>) -> HttpExchange {
@@ -492,7 +510,7 @@ fn fixture_intent_and_bad_deployment_refuse_binding() {
     write_secret(&secrets_dir, "auth.pepper", &[1_u8; 32]);
     write_secret(&secrets_dir, "auth.session", &[2_u8; 32]);
     write_secret(&secrets_dir, "webhook.signing", &[3_u8; 32]);
-    let host_intent = decode_host_intent("https://127.0.0.1:9");
+    let host_intent = decode_host_intent("https://127.0.0.1:9", "semaprax-json-events");
     let secrets =
         super::super::secrets::resolve(&secrets_dir, host_intent.secrets().unwrap()).unwrap();
     // Full grants plus fixture-mode intent still refuse: configuration

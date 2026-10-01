@@ -144,6 +144,7 @@ pub struct BoundHost<'revision, 'directory> {
     adapter: ProviderHttpsAdapter,
     secrets: HeldServiceSecrets,
     deployment_binding: String,
+    telemetry_adapter: ServiceTelemetryAdapter,
     telemetry_origin: String,
     password_hasher: PasswordHasherHost,
     session_idle_seconds: u64,
@@ -178,9 +179,7 @@ pub fn bind<'revision, 'directory>(
     let telemetry = intent
         .telemetry()
         .ok_or(BindRefusal::IncompleteRequirements)?;
-    if telemetry.adapter() != ServiceTelemetryAdapter::SemapraxJsonEvents {
-        return Err(BindRefusal::IncompleteRequirements);
-    }
+    let telemetry_adapter = telemetry.adapter();
     let telemetry_origin = telemetry.endpoint_origin().to_owned();
     semaprax::outbound_host_adapter::TelemetryCollectorTarget::for_trusted_host(
         telemetry_origin.clone(),
@@ -229,6 +228,7 @@ pub fn bind<'revision, 'directory>(
             adapter: ProviderHttpsAdapter::new(),
             secrets: grants.secrets,
             deployment_binding: grants.deployment_binding,
+            telemetry_adapter,
             telemetry_origin,
             password_hasher,
             session_idle_seconds: grants.session_idle_seconds,
@@ -1161,6 +1161,7 @@ fn complete_job(
         Err(_) => return error(500, "decision_failed", None),
     }
     let event_bytes = match delivery::completion_event_len(
+        host.telemetry_adapter,
         job.id,
         job.owner,
         &job.desc,
@@ -1188,10 +1189,11 @@ fn complete_job(
     // job whose durable marker already exists, so the retry settles
     // `Uncertain` instead of redispatching. Either way the job completes
     // exactly once in state.
-    let settlement = match delivery::deliver_completion_webhook(
+    let settlement = match delivery::deliver_completion_telemetry(
         &mut host.outbound_store,
         &host.deployment_binding,
         &host.telemetry_origin,
+        host.telemetry_adapter,
         job.id,
         job.owner,
         &job.desc,

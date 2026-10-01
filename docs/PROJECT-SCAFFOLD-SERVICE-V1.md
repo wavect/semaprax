@@ -75,7 +75,8 @@ host configuration boundary explicit:
   cannot cross a scalar-signature function boundary) plus one more section
   naming all ten bundled dependencies and their non-claims.
 - `service-config.schema.json` is a closed Draft 2020-12 schema for fixture,
-  durable `snapshot`, native HTTP/TLS, `semaprax-json-events`, and host-owned secret-reference
+  durable `snapshot`, native HTTP/TLS, `semaprax-json-events` or
+  `otlp-http-json`, and host-owned secret-reference
   selections. Nested database, HTTP, telemetry, and secret objects all refuse
   unknown fields and retain finite string bounds.
 - `service.config.json` selects only credential-free fixture adapters, null
@@ -85,7 +86,7 @@ host configuration boundary explicit:
   under a 16 KiB pre-parse bound, exact closed objects, canonical sorted JSON,
   bounded reference/origin grammar, and paired mode rules: fixture mode admits
   only null/fixture selections, while host mode requires the named snapshot
-  store, native modern-TLS HTTP, Semaprax JSON events, HTTPS origins, and nonempty host-owned secret
+  store, native modern-TLS HTTP, either named telemetry profile, HTTPS origins, and nonempty host-owned secret
   references. `sqlite`, `postgresql`, and non-null `dsn_secret_ref` values
   refuse with stable configuration diagnostics; snapshot mode uses the
   operator-held state directory and never treats a DSN as a path. JSON Schema
@@ -97,9 +98,11 @@ host configuration boundary explicit:
   host-secret resolve, and telemetry emit — plus only
   bounded origins and secret references. A separate closed request-v1 decoder
   replays those bytes for host consumption and retains the telemetry origin as
-  an intent only. The only admitted host telemetry profile is the closed
-  `semaprax-json-events` envelope (`semaprax.json-event.v1`) on `/v1/events`;
-  it is not OTLP and does not accept a caller-defined event schema or path. It
+  an intent only. The admitted host telemetry profiles are the closed
+  `semaprax-json-events` envelope (`semaprax.json-event.v1`) on `/v1/events`
+  and OTLP/HTTP JSON-Protobuf logs (`otlp-http-json`) on `/v1/logs`. Neither
+  accepts a caller-defined event schema or path. The JSON-event profile is not
+  OTLP; the OTLP profile is not a generic JSON webhook. It
   cannot construct an outbound policy or capability: the
   host must separately grant one whose exact allowed-origin set contains that
   target before it can bind an adapter. This is an intent declaration, not a
@@ -151,16 +154,17 @@ selection, empty fixture capability request, and absence of endpoints and
 secret values. Descriptor replay binds all three configuration/adapter files
 byte-for-byte with the other generated assets.
 The decoder's own hostile corpus rejects unknown members, mode/adapter drift,
-explicit `sqlite`/`postgresql` labels, credential-shaped DSNs, insecure
+explicit `sqlite`/`postgresql` labels, unsupported telemetry labels,
+credential-shaped DSNs, insecure
 origins, noncanonical encoding, and max-plus-one input before the fixture can
 enter scaffold derivation. The independent request decoder retains the same
-SQL-label refusals, so a hand-authored request cannot bypass configuration
-admission.
+SQL-label refusals and only the two named telemetry profiles, so a
+hand-authored request cannot bypass configuration admission.
 The independent host-request decoder separately rejects unknown, duplicate,
 reordered-capability, noncanonical, and max-plus-one request bytes. Its
 private-root loopback integration starts from a checked host configuration,
 then proves that only a separately host-granted outbound policy matching the
-decoded Semaprax JSON-event origin can bind the fixed telemetry route. Neither the scaffold
+decoded telemetry origin can bind its selected fixed route. Neither the scaffold
 fixture (which has no requirements) nor request replay grants network I/O.
 
 ## Nonclaims

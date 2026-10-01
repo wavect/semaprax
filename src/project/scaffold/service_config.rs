@@ -129,7 +129,7 @@ pub(super) fn decode(bytes: &[u8]) -> Result<ServiceConfigV1, String> {
         && password.is_some()
         && session.is_some()
         && webhook.is_some()
-        && telemetry_adapter == "semaprax-json-events"
+        && matches!(telemetry_adapter, "semaprax-json-events" | "otlp-http-json")
         && telemetry_origin.is_some();
     if !matches!(
         (mode, fixture, host),
@@ -399,6 +399,15 @@ mod tests {
             .any(|window| window == b"secret-value"));
 
         let canonical_host: Value = serde_json::from_slice(&host).unwrap();
+        let mut otlp = canonical_host.clone();
+        otlp["telemetry"]["adapter"] = Value::String("otlp-http-json".into());
+        otlp.sort_all_objects();
+        let mut otlp = serde_json::to_vec(&otlp).unwrap();
+        otlp.push(b'\n');
+        let decoded = decode(&otlp).unwrap();
+        let request: Value = serde_json::from_slice(decoded.adapter_request_bytes()).unwrap();
+        assert_eq!(request["telemetry"]["adapter"], "otlp-http-json");
+
         for (field, legacy_label, expected) in [
             (
                 "database",

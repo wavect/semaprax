@@ -27,6 +27,7 @@ use semaprax::outbound_host_adapter::{
     HttpMethod, HttpRequest, OutboundAdapter, OutboundCapability, OutboundPolicy, PreparedRequest,
     Refusal,
 };
+use semaprax::project::service_host_adapter_request::ServiceTelemetryAdapter;
 use sha2::Sha256;
 
 use crate::outbound_delivery_store::service_invocation::{
@@ -44,6 +45,8 @@ type HmacSha256 = Hmac<Sha256>;
 /// reference host may post telemetry-shaped webhooks only there, never to a
 /// caller-selected path.
 pub const TELEMETRY_EVENTS_PATH: &str = "/v1/events";
+/// The OTLP/HTTP default route for `ExportLogsServiceRequest` payloads.
+pub const OTLP_LOGS_PATH: &str = "/v1/logs";
 /// The only envelope admitted by the bounded `semaprax-json-events` profile.
 ///
 /// This is a closed event envelope, not an OTLP signal or a caller-defined
@@ -312,7 +315,9 @@ fn split_response(received: &[u8], max_body: usize) -> AdapterObservation {
     AdapterObservation::Response { status, body }
 }
 
-/// Deliver one job-completion webhook through the durable production path.
+/// Deliver one job-completion telemetry record through the durable production
+/// path. `semaprax-json-events` and `otlp-http-json` retain distinct fixed
+/// envelopes and routes; neither label is an alias for the other.
 ///
 /// `deployment_binding` is host operator configuration (never decoded
 /// intent); `endpoint_origin` must be the exact decoded telemetry origin the
@@ -320,10 +325,11 @@ fn split_response(received: &[u8], max_body: usize) -> AdapterObservation {
 /// call for the same job -- including after a process restart -- reconciles
 /// against the durable marker instead of redispatching.
 #[allow(clippy::too_many_arguments)]
-pub fn deliver_completion_webhook(
+pub fn deliver_completion_telemetry(
     store: &mut OutboundDeliveryStore<'_>,
     deployment_binding: &str,
     endpoint_origin: &str,
+    telemetry_adapter: ServiceTelemetryAdapter,
     job_id: i64,
     owner: i64,
     desc: &str,
@@ -345,24 +351,34 @@ pub fn deliver_completion_webhook(
     let invocation_id = format!("{INVOCATION_PREFIX}{job_id}");
     let capability =
         OutboundCapability::grant_for_trusted_host(deployment_binding, invocation_id, policy)?;
-    let (body, signature) = signed_event(job_id, owner, desc, webhook_key);
+    let (endpoint_path, content_type, headers, body) =
+        completion_envelope(telemetry_adapter, job_id, owner, desc, webhook_key);
     let request = HttpRequest {
         method: HttpMethod::Post,
-        endpoint: format!("{endpoint_origin}{TELEMETRY_EVENTS_PATH}"),
+        endpoint: format!("{endpoint_origin}{endpoint_path}"),
         request_id: format!("req-{job_id}-{owner}"),
         idempotency_key: COMPLETION_IDEMPOTENCY_KEY.to_owned(),
-        content_type: Some(WEBHOOK_CONTENT_TYPE.to_owned()),
-        headers: vec![
-            HttpHeader::new(EVENT_SCHEMA_HEADER, EVENT_SCHEMA)
-                .map_err(|_| DeliveryRefusal::InvalidRequest)?,
-            HttpHeader::new("x-webhook-signature", signature)
-                .map_err(|_| DeliveryRefusal::InvalidRequest)?,
-        ],
+        content_type: Some(content_type.to_owned()),
+        headers,
         body: body.into_bytes(),
         deadline_ms: DELIVERY_DEADLINE_MS,
     };
-    let outcome =
-        deliver_http_durable(store, DELIVERY_CAPACITY, None, capability, request, adapter)?;
+    let outcome = match telemetry_adapter {
+        ServiceTelemetryAdapter::SemapraxJsonEvents => {
+            deliver_http_durable(store, DELIVERY_CAPACITY, None, capability, request, adapter)?
+        }
+        ServiceTelemetryAdapter::OtlpHttpJson => {
+            let mut otlp_adapter = OtlpResponseAdapter { inner: adapter };
+            deliver_http_durable(
+                store,
+                DELIVERY_CAPACITY,
+                None,
+                capability,
+                request,
+                &mut otlp_adapter,
+            )?
+        }
+    };
     Ok(match outcome {
         ServiceHttpDeliveryOutcome::Dispatched(receipt)
         | ServiceHttpDeliveryOutcome::Replayed(receipt) => settle_receipt(&receipt),
@@ -371,9 +387,10 @@ pub fn deliver_completion_webhook(
 }
 
 /// Return the exact canonical byte length of the completion envelope that
-/// [`deliver_completion_webhook`] will submit. The checked export policy sees
+/// [`deliver_completion_telemetry`] will submit. The checked export policy sees
 /// this fact before a host adapter is prepared; raw event bytes remain local.
 pub fn completion_event_len(
+    telemetry_adapter: ServiceTelemetryAdapter,
     job_id: i64,
     owner: i64,
     desc: &str,
@@ -382,7 +399,151 @@ pub fn completion_event_len(
     if job_id <= 0 || owner <= 0 {
         return Err(DeliveryRefusal::InvalidRequest);
     }
-    Ok(signed_event(job_id, owner, desc, webhook_key).0.len())
+    Ok(
+        completion_envelope(telemetry_adapter, job_id, owner, desc, webhook_key)
+            .3
+            .len(),
+    )
+}
+
+fn completion_envelope(
+    telemetry_adapter: ServiceTelemetryAdapter,
+    job_id: i64,
+    owner: i64,
+    desc: &str,
+    webhook_key: &[u8; 32],
+) -> (&'static str, &'static str, Vec<HttpHeader>, String) {
+    match telemetry_adapter {
+        ServiceTelemetryAdapter::SemapraxJsonEvents => {
+            let (body, signature) = signed_event(job_id, owner, desc, webhook_key);
+            let headers = vec![
+                HttpHeader::new(EVENT_SCHEMA_HEADER, EVENT_SCHEMA)
+                    .expect("fixed schema header is admitted"),
+                HttpHeader::new("x-webhook-signature", signature)
+                    .expect("fixed signature header is admitted"),
+            ];
+            (TELEMETRY_EVENTS_PATH, WEBHOOK_CONTENT_TYPE, headers, body)
+        }
+        ServiceTelemetryAdapter::OtlpHttpJson => (
+            OTLP_LOGS_PATH,
+            WEBHOOK_CONTENT_TYPE,
+            Vec::new(),
+            otlp_log_record(job_id, owner, desc),
+        ),
+    }
+}
+
+/// Render one OTLP JSON-Protobuf `ExportLogsServiceRequest`. The fixed
+/// lower-camel fields, decimal-string `intValue` values, `application/json`
+/// content type, and `/v1/logs` endpoint follow the OTLP/HTTP JSON encoding;
+/// this is deliberately not the signed Semaprax JSON-event webhook envelope.
+fn otlp_log_record(job_id: i64, owner: i64, desc: &str) -> String {
+    json::render(&otlp_log_record_value(job_id, owner, desc))
+}
+
+/// Construct the OTLP value before rendering. The reference service's own
+/// request parser has an intentionally shallow depth limit for its compact
+/// service API; this protocol value is deeper by design and is never parsed
+/// by that endpoint parser.
+fn otlp_log_record_value(job_id: i64, owner: i64, desc: &str) -> JsonValue {
+    let string_value =
+        |value: String| JsonValue::Object(vec![("stringValue".to_owned(), JsonValue::Str(value))]);
+    let attribute = |key: &str, value: JsonValue| {
+        JsonValue::Object(vec![
+            ("key".to_owned(), JsonValue::Str(key.to_owned())),
+            ("value".to_owned(), value),
+        ])
+    };
+    JsonValue::Object(vec![(
+        "resourceLogs".to_owned(),
+        JsonValue::Array(vec![JsonValue::Object(vec![
+            (
+                "resource".to_owned(),
+                JsonValue::Object(vec![(
+                    "attributes".to_owned(),
+                    JsonValue::Array(vec![attribute(
+                        "service.name",
+                        string_value("semaprax-reference-service".to_owned()),
+                    )]),
+                )]),
+            ),
+            (
+                "scopeLogs".to_owned(),
+                JsonValue::Array(vec![JsonValue::Object(vec![
+                    (
+                        "scope".to_owned(),
+                        JsonValue::Object(vec![(
+                            "name".to_owned(),
+                            JsonValue::Str("semaprax.reference-service".to_owned()),
+                        )]),
+                    ),
+                    (
+                        "logRecords".to_owned(),
+                        JsonValue::Array(vec![JsonValue::Object(vec![
+                            (
+                                "attributes".to_owned(),
+                                JsonValue::Array(vec![
+                                    attribute(
+                                        "semaprax.job.description",
+                                        string_value(desc.to_owned()),
+                                    ),
+                                    attribute(
+                                        "semaprax.job.id",
+                                        JsonValue::Object(vec![(
+                                            "intValue".to_owned(),
+                                            JsonValue::Str(job_id.to_string()),
+                                        )]),
+                                    ),
+                                    attribute(
+                                        "semaprax.job.owner",
+                                        JsonValue::Object(vec![(
+                                            "intValue".to_owned(),
+                                            JsonValue::Str(owner.to_string()),
+                                        )]),
+                                    ),
+                                ]),
+                            ),
+                            ("body".to_owned(), string_value("job.completed".to_owned())),
+                            ("severityNumber".to_owned(), JsonValue::Int(9)),
+                            ("severityText".to_owned(), JsonValue::Str("INFO".to_owned())),
+                        ])]),
+                    ),
+                ])]),
+            ),
+        ])]),
+    )])
+}
+
+/// OTLP/HTTP full success is the protocol's `200` response carrying an empty
+/// `ExportLogsServiceResponse` JSON-Protobuf object. A partial-success payload
+/// is terminally recorded as a rejected durable delivery: this host does not
+/// retry a partially accepted export under the same completion identity.
+struct OtlpResponseAdapter<'adapter, Adapter> {
+    inner: &'adapter mut Adapter,
+}
+
+impl<Adapter: OutboundAdapter> OutboundAdapter for OtlpResponseAdapter<'_, Adapter> {
+    fn send(&mut self, request: &PreparedRequest) -> AdapterObservation {
+        match self.inner.send(request) {
+            AdapterObservation::Response { status: 200, body }
+                if otlp_full_success_response(&body) =>
+            {
+                AdapterObservation::Response { status: 200, body }
+            }
+            AdapterObservation::Response { .. } => AdapterObservation::Response {
+                status: 422,
+                body: Vec::new(),
+            },
+            observation => observation,
+        }
+    }
+}
+
+fn otlp_full_success_response(body: &[u8]) -> bool {
+    match json::parse(body, POLICY_RESPONSE_BYTES) {
+        Ok(JsonValue::Object(members)) => !members.iter().any(|(name, _)| name == "partialSuccess"),
+        Err(_) | Ok(_) => false,
+    }
 }
 
 fn signed_event(job_id: i64, owner: i64, desc: &str, webhook_key: &[u8; 32]) -> (String, String) {
@@ -516,5 +677,83 @@ mod tests {
             reparsed.get("signature").unwrap().as_str(),
             Some(signature.as_str())
         );
+    }
+
+    #[test]
+    fn otlp_http_json_logs_are_protocol_bound_and_not_a_webhook_alias() {
+        let (path, content_type, headers, body) = completion_envelope(
+            ServiceTelemetryAdapter::OtlpHttpJson,
+            7,
+            1,
+            "task-1",
+            &[5_u8; 32],
+        );
+        assert_eq!(path, OTLP_LOGS_PATH);
+        assert_eq!(path, "/v1/logs");
+        assert_eq!(content_type, "application/json");
+        assert!(
+            headers.is_empty(),
+            "OTLP does not carry the webhook signature"
+        );
+        assert!(!body.contains(EVENT_SCHEMA));
+        assert!(!body.contains("signature"));
+
+        let root = otlp_log_record_value(7, 1, "task-1");
+        assert_eq!(json::render(&root), body);
+        let resource_logs = root
+            .closed(&["resourceLogs"])
+            .and_then(|_| root.get("resourceLogs"))
+            .and_then(JsonValue::as_array)
+            .unwrap();
+        let resource_log = resource_logs[0].closed(&["resource", "scopeLogs"]).unwrap();
+        assert_eq!(resource_log.len(), 2);
+        let log_records = resource_logs[0]
+            .get("scopeLogs")
+            .and_then(JsonValue::as_array)
+            .and_then(|scopes| scopes[0].get("logRecords"))
+            .and_then(JsonValue::as_array)
+            .unwrap();
+        let record = &log_records[0];
+        assert_eq!(
+            record.get("severityNumber").and_then(JsonValue::as_i64),
+            Some(9)
+        );
+        assert_eq!(
+            record
+                .get("body")
+                .and_then(|body| body.get("stringValue"))
+                .and_then(JsonValue::as_str),
+            Some("job.completed")
+        );
+        let attributes = record
+            .get("attributes")
+            .and_then(JsonValue::as_array)
+            .unwrap();
+        assert!(attributes.iter().any(|attribute| {
+            attribute.get("key").and_then(JsonValue::as_str) == Some("semaprax.job.id")
+                && attribute
+                    .get("value")
+                    .and_then(|value| value.get("intValue"))
+                    .and_then(JsonValue::as_str)
+                    == Some("7")
+        }));
+        assert_eq!(
+            completion_event_len(
+                ServiceTelemetryAdapter::OtlpHttpJson,
+                7,
+                1,
+                "task-1",
+                &[5_u8; 32],
+            ),
+            Ok(body.len())
+        );
+        assert!(otlp_full_success_response(br#"{}"#));
+        assert!(otlp_full_success_response(
+            br#"{"unknownFutureField":true}"#
+        ));
+        assert!(!otlp_full_success_response(
+            br#"{"partialSuccess":{"rejectedLogRecords":"1"}}"#
+        ));
+        assert!(!otlp_full_success_response(b""));
     }
 }

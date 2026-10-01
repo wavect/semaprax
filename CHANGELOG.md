@@ -8,6 +8,12 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Add a distinct `otlp-http-json` reference-service telemetry adapter (#336):
+  checked configuration and host replay select OTLP/HTTP JSON-Protobuf logs at
+  `/v1/logs`, with strict full-success response handling and no webhook
+  signature alias. Four focused config, mapping and delivery checks passed
+  locally. SQLite/PostgreSQL storage and physical OCI execution remain open.
+
 - Authenticate read-only terminal recovery for source-owned waits (#330):
   reopening the real journal with retained registration and an explicit host
   grant returns copied terminal status and evidence only after the complete

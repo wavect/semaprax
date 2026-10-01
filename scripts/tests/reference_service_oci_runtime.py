@@ -141,7 +141,8 @@ class Podman:
     def start(self, port_number, state=None, config_override=None):
         command = [
             str(self.executable), "run", "--rm", "--name", self.name,
-            "--network", "host", "--user", f"{os.getuid()}:{os.getgid()}",
+            "--network", "host", "--userns", "keep-id",
+            "--user", f"{os.getuid()}:{os.getgid()}",
         ]
         for name in ("state", "outbound", "bundle"):
             command += ["--volume", f"{self.workspace / name}:/{name}:rw"]

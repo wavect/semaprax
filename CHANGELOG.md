@@ -8,6 +8,10 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Bind recovered target-migration finalizer rows to the exact prepared pure
+  migration closure (#327). A structurally valid row for an unrelated source
+  function now refuses before the durable destination can use the handoff.
+
 - Add a branch-scoped Ubuntu/Podman reference-service OCI gate (#336) that
   builds the exact static Linux artifact, checks source/artifact identity, and
   exercises refusal plus login/CRUD/job/restart paths. Runtime evidence is

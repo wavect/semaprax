@@ -629,7 +629,10 @@ pub fn resume_migrated_agent_runtime_v2(
     {
         return Err(refused("migration.result_state"));
     }
-    prepare_migration_call(&new_program, function, &old_state, &new_state)?;
+    let call = prepare_migration_call(&new_program, function, &old_state, &new_state)?;
+    if target_schema && !target_execution_matches_call(&facts["target_execution"], &call) {
+        return Err(refused("migration.handoff.target_cleanup"));
+    }
     let seed = MigrationSeed {
         value: handoff.value.clone(),
         binding,
@@ -681,6 +684,38 @@ fn target_execution_valid(value: &Value) -> bool {
         && evaluations[0]["semantic_work"] == evaluations[1]["semantic_work"]
         && evaluations[0]["copy_out_cleanup_events"]
             == evaluations[1]["copy_out_cleanup_events"]
+}
+
+/// The target receipt is producer input. Its finalizer identities must name a
+/// function retained by the exact checked migration call, rather than merely
+/// being syntactically bounded text from some unrelated source declaration.
+fn target_execution_matches_call(
+    value: &Value,
+    call: &crate::interpreter::retained_call::PreparedRetainedCall,
+) -> bool {
+    let Some(evaluations) = value.get("evaluations").and_then(Value::as_array) else {
+        return false;
+    };
+    evaluations.iter().all(|evaluation| {
+        let Some(events) = evaluation
+            .get("semantic_work")
+            .and_then(Value::as_object)
+            .and_then(|work| work.get("finalizer_events"))
+        else {
+            return false;
+        };
+        match events {
+            Value::Null => true,
+            Value::Array(events) => events.iter().all(|event| {
+                event
+                    .as_array()
+                    .and_then(|row| row.first())
+                    .and_then(Value::as_str)
+                    .is_some_and(|function| call.function_ids().any(|id| id == function))
+            }),
+            _ => false,
+        }
+    })
 }
 
 fn target_evaluation_valid(value: &Value, expected_limit: Option<u64>) -> bool {
@@ -828,5 +863,43 @@ mod tests {
             }
         }
         assert!(!target_execution_valid(&oversized_inventory));
+    }
+
+    #[test]
+    fn target_receipt_rejects_finalizers_outside_the_prepared_migration_closure() {
+        let source = r#"module fixture.migration;
+@id("fixture.old")
+record Old { @id("fixture.old.count") count: i64, }
+@id("fixture.new")
+record New { @id("fixture.new.count") count: i64, }
+@id("fixture.helper")
+fn helper(value: i64) -> i64 { value }
+@id("fixture.detached")
+fn detached(value: i64) -> i64 { value }
+@id("fixture.migrate")
+fn migrate(old: own Old) -> New { New { count: helper(old.count) } }
+@id("fixture.main")
+fn main() -> i64 { 0 }
+"#;
+        let program = crate::hir::resolve(&crate::check(source, "fixture.spx").unwrap()).unwrap();
+        let call = prepare_migration_call(
+            &program,
+            "fixture.migrate",
+            &DeclarationId::new("fixture.old"),
+            &DeclarationId::new("fixture.new"),
+        )
+        .unwrap();
+        let mut receipt = receipt();
+        for evaluation in receipt["evaluations"].as_array_mut().unwrap() {
+            evaluation["semantic_work"]["finalizer_events"][0][0] =
+                serde_json::json!("fixture.helper");
+        }
+        assert!(target_execution_matches_call(&receipt, &call));
+
+        for evaluation in receipt["evaluations"].as_array_mut().unwrap() {
+            evaluation["semantic_work"]["finalizer_events"][0][0] =
+                serde_json::json!("fixture.detached");
+        }
+        assert!(!target_execution_matches_call(&receipt, &call));
     }
 }

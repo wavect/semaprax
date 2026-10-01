@@ -844,9 +844,21 @@ fn service_scaffold_configuration_is_closed_and_credential_free() {
         serde_json::json!(["fixture", "snapshot"])
     );
     assert_eq!(
+        schema["allOf"][1]["then"]["properties"]["database"]["properties"]["adapter"]
+            ["const"],
+        "snapshot",
+        "host configuration selects the named snapshot profile"
+    );
+    assert_eq!(
+        schema["allOf"][1]["then"]["properties"]["database"]["properties"]
+            ["dsn_secret_ref"]["const"],
+        serde_json::Value::Null,
+        "host configuration never interprets a DSN as snapshot storage"
+    );
+    assert_eq!(
         schema["properties"]["telemetry"]["properties"]["adapter"]["enum"],
-        serde_json::json!(["fixture", "semaprax-json-events"]),
-        "the generated contract names the fixed JSON-events profile rather than an unimplemented telemetry protocol"
+        serde_json::json!(["fixture", "semaprax-json-events", "otlp-http-json"]),
+        "the generated contract names each implemented telemetry profile"
     );
 
     let fixture: serde_json::Value = serde_json::from_str(file("service.config.json")).unwrap();

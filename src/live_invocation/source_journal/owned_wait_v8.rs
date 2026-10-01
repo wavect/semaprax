@@ -122,6 +122,7 @@ pub(crate) use live_upstream::effect::authorization::step::{
 
 pub(crate) use live_upstream::effect::authorization::failed_state::LiveFailedEffectStateCleanupPermitV8;
 
+pub(crate) use live_upstream::effect::authorization::step::r#continue::LiveContinueObserveGuardV8;
 pub(crate) use live_upstream::effect::authorization::step::r#continue::LiveContinueObservePermitV8;
 
 #[cfg(test)]

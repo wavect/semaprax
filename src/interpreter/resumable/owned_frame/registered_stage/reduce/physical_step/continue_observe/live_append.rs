@@ -1,7 +1,7 @@
 //! Actual continued State enters Observe only after its live original ACKs.
 //! No raw sequence/budget tuple constructs a committed holder.
 use super::*;
-use crate::live_invocation::source_journal::LiveContinueObservePermitV8;
+use crate::live_invocation::source_journal::LiveContinueObserveGuardV8;
 use crate::live_invocation::source_journal::SourceJournalError;
 
 pub(crate) enum LiveContinuedObserveFailureV8<'j> {
@@ -24,7 +24,7 @@ pub(crate) enum LiveContinuedObserveFailureV8<'j> {
 /// their original held store lifetime, never the short permit or source borrow.
 pub(crate) fn observe_live_continued_state_v8<'j>(
     held: HeldExecutedOwnedStepV2<'j>,
-    permit: &LiveContinueObservePermitV8<'_, 'j>,
+    permit: &impl LiveContinueObserveGuardV8,
 ) -> Result<(ContinuedOwnedObserveV2<'j>, usize), LiveContinuedObserveFailureV8<'j>> {
     let checked = (|| {
         let inputs = held.inputs.as_ref().ok_or(SourceJournalError::Binding)?;

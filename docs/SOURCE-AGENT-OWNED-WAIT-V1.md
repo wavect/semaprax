@@ -894,9 +894,22 @@ authenticated ordinary execution projection and the actual Step carrier;
 the fixed Step append retains the mapped owner through its ACK. The fold
 accepts this row only after the matching terminal Transition and checks its
 turn, status, carrier digest, committed accounting and canonical evidence.
-The terminal success and prewrite-refusal selectors are pending the central
-gate. Evidence input remains descriptive and cannot mint an owner or ACK.
+The terminal success and prewrite-refusal selectors passed the central gate.
+Evidence input remains descriptive and cannot mint an owner or ACK. A separate
+read-only projection reopens the same registered store and authenticates its
+terminal prefix before returning checked status, evidence and carrier bytes;
+the actual store-reopen success and prewrite-refusal selectors passed. This
+projection returns no physical State or Report owner.
 
-Public multi-turn entry, terminal delivery/claim and restart recovery remain
+A separate later-Continue holder takes the actual mapped turn-one Step after
+its Continue Transition ACK. It selects turn-two `OwnedStateCommitted` from
+that State, then ACKs the exact turn-two Observe reservation before the
+physical Observe engine runs. The fixed append shares the existing candidate,
+pending and same-file write/reread path; its spent hold registry remains
+cumulative, and failures retain the phase owner. The owning three-turn success
+and State-prewrite refusal selectors passed the central gate.
+
+Public multi-turn entry, terminal delivery/claim and physical owner restoration
+after restart remain
 unfinished. This bounded local result is not completion of the
 public owned-Agent lifecycle criterion.

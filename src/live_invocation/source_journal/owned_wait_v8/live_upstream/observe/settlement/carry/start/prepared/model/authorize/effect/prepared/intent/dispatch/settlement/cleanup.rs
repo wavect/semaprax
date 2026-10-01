@@ -516,4 +516,36 @@ impl<'j> SettledContinuedDecisionCleanupV8<'j> {
             incurred,
         )
     }
+
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn continued_model_origin(
+        &self,
+    ) -> Result<
+        (
+            &'j SourceOwnedWaitJournalV8,
+            &dyn crate::live_invocation::SourceInvocationClock,
+            TargetAccounting,
+        ),
+        SourceJournalError,
+    > {
+        let completed = &self
+            .owner
+            .owner
+            .owner
+            .owner
+            .phase
+            .owner
+            .phase
+            .owner
+            .owner
+            .authorization
+            .completed;
+        let ModelOwnerV8::Resumed(resumed) = &completed.owner else {
+            return Err(SourceJournalError::Order);
+        };
+        Ok((
+            resumed.owner.model_journal(),
+            resumed.owner.model_clock(),
+            *resumed.owner.model_accounting(),
+        ))
+    }
 }

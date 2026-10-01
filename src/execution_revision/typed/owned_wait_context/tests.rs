@@ -46,6 +46,7 @@ pub(crate) enum TestContinuedAuthorizeV8 {
 #[derive(Clone, Copy)]
 enum RuntimeFixture {
     Baseline,
+    ThreeTurns,
     ContinuedAuthorize(TestContinuedAuthorizeV8),
     Complete,
     EmptyComplete,
@@ -87,6 +88,17 @@ fn fixture_for(profile: RuntimeFixture) -> Fixture {
         RuntimeFixture::Baseline
         | RuntimeFixture::BaselineTaskZero
         | RuntimeFixture::ProspectiveReduce(_) => source,
+        RuntimeFixture::ThreeTurns => {
+            let original = "if state.epoch < 2 { Step::Continue { objective: state.objective, budget: state.budget, epoch: state.epoch + 1 } } else { Step::Complete { summary: state.objective, budget: state.budget, status: state.epoch } }";
+            assert_eq!(source.matches(original).count(), 1);
+            let source = source.replace(
+                original,
+                &original.replace("state.epoch < 2", "state.epoch < 3"),
+            );
+            let old_limit = "\\\"max_tool_calls\\\":2";
+            assert_eq!(source.matches(old_limit).count(), 1);
+            source.replace(old_limit, "\\\"max_tool_calls\\\":3")
+        }
         RuntimeFixture::ReduceFuel | RuntimeFixture::ReduceArithmetic => {
             fn balanced_zero(depth: usize) -> String {
                 if depth == 0 {
@@ -252,6 +264,7 @@ fn runtime_for(
         },
         match profile {
             RuntimeFixture::Baseline
+            | RuntimeFixture::ThreeTurns
             | RuntimeFixture::BaselineTaskZero
             | RuntimeFixture::ContinuedAuthorize(_)
             | RuntimeFixture::ReduceFuel
@@ -700,6 +713,16 @@ impl crate::live_invocation::source_journal::CheckedOwnedWaitJournalContextV8 {
         ) -> T,
     ) -> T {
         Self::test_with_runtime_fixture(RuntimeFixture::Baseline, retention_ack, callback)
+    }
+    pub(crate) fn test_with_actual_three_turn_store<T>(
+        callback: impl FnOnce(
+            Self,
+            crate::resumable_effects::owned_frame::SourceOwnedWaitLeaseV8,
+            crate::resumable_effects::source_checkpoint::SourceCheckpointKey,
+            &std::path::Path,
+        ) -> T,
+    ) -> T {
+        Self::test_with_runtime_fixture(RuntimeFixture::ThreeTurns, true, callback)
     }
     pub(crate) fn test_with_actual_continued_authorize_store<T>(
         mode: TestContinuedAuthorizeV8,

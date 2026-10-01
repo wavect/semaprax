@@ -343,7 +343,9 @@ impl<'j> LiveOwnedContinueAppendV8<'j> {
         &self,
     ) -> Result<FixedOwnedContinueAppendPermitV8<'_, 'j>, SourceJournalError> {
         self.validate_live()?;
-        Ok(FixedOwnedContinueAppendPermitV8 { owner: self })
+        Ok(FixedOwnedContinueAppendPermitV8 {
+            owner: ContinuePermitOwnerV8::First(self),
+        })
     }
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_continue_successor(
         &self,
@@ -408,22 +410,40 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) struct FixedOwnedC
     'p,
     'j,
 > {
-    owner: &'p LiveOwnedContinueAppendV8<'j>,
+    owner: ContinuePermitOwnerV8<'p, 'j>,
+}
+#[derive(Clone, Copy)]
+enum ContinuePermitOwnerV8<'p, 'j> {
+    First(&'p LiveOwnedContinueAppendV8<'j>),
+    Later(&'p later::LiveLaterContinueAppendV8<'j>),
 }
 impl FixedOwnedContinueAppendPermitV8<'_, '_> {
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn selected_row(
         &self,
     ) -> &EntryV8 {
-        &self.owner.selected
+        match self.owner {
+            ContinuePermitOwnerV8::First(owner) => owner.selected_row(),
+            ContinuePermitOwnerV8::Later(owner) => owner.selected_row(),
+        }
     }
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_preflight(
         &self,
         journal: &SourceOwnedWaitJournalV8,
     ) -> Result<(), SourceJournalError> {
-        if !self.owner.belongs_to(journal) {
-            return Err(SourceJournalError::Binding);
+        match self.owner {
+            ContinuePermitOwnerV8::First(owner) => {
+                if !owner.belongs_to(journal) {
+                    return Err(SourceJournalError::Binding);
+                }
+                owner.validate_live()
+            }
+            ContinuePermitOwnerV8::Later(owner) => {
+                if !owner.belongs_to(journal) {
+                    return Err(SourceJournalError::Binding);
+                }
+                owner.validate_live()
+            }
         }
-        self.owner.validate_live()
     }
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_selected_prefix(
         &self,
@@ -432,31 +452,63 @@ impl FixedOwnedContinueAppendPermitV8<'_, '_> {
             '_,
         >,
     ) -> Result<(), SourceJournalError> {
-        self.owner
-            .owner
-            .lineage
-            .step
-            .origin()
-            .hold
-            .validate_continue_append_prefix(journal, inventory, &self.owner.selected)
+        match self.owner {
+            ContinuePermitOwnerV8::First(owner) => owner
+                .owner
+                .lineage
+                .step
+                .origin()
+                .hold
+                .validate_continue_append_prefix(journal, inventory, owner.selected_row()),
+            ContinuePermitOwnerV8::Later(owner) => {
+                owner.validate_selected_prefix(journal, inventory)
+            }
+        }
     }
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_registry(
         &self,
         witness: &VerifiedOwnedContinueSuccessorV8<'_>,
         session: &AppendSessionV8<'_>,
     ) -> Result<(), SourceJournalError> {
-        self.owner
-            .owner
-            .lineage
-            .step
-            .origin()
-            .hold
-            .advance_continue_ack(witness, session)
+        match self.owner {
+            ContinuePermitOwnerV8::First(owner) => owner
+                .owner
+                .lineage
+                .step
+                .origin()
+                .hold
+                .advance_continue_ack(witness, session),
+            ContinuePermitOwnerV8::Later(owner) => owner.advance_registry(witness, session),
+        }
     }
 }
 /// Minted only after the actual StateCommitted and Observe reservation ACKs.
 pub(crate) struct LiveContinueObservePermitV8<'p, 'j> {
     lineage: &'p ContinueLineageV8<'j>,
+}
+pub(crate) trait LiveContinueObserveGuardV8 {
+    fn validate_guard(&self) -> Result<(), SourceJournalError>;
+    fn turn(&self) -> u32;
+    fn fuel(&self) -> Result<usize, SourceJournalError>;
+    fn causal_refs(&self) -> Result<(u32, u32), SourceJournalError>;
+    fn matches_inputs(&self, inputs: &OwnedEffectInputsV8<'_>) -> Result<(), SourceJournalError>;
+}
+impl LiveContinueObserveGuardV8 for LiveContinueObservePermitV8<'_, '_> {
+    fn validate_guard(&self) -> Result<(), SourceJournalError> {
+        LiveContinueObservePermitV8::validate_guard(self)
+    }
+    fn turn(&self) -> u32 {
+        LiveContinueObservePermitV8::turn(self)
+    }
+    fn fuel(&self) -> Result<usize, SourceJournalError> {
+        LiveContinueObservePermitV8::fuel(self)
+    }
+    fn causal_refs(&self) -> Result<(u32, u32), SourceJournalError> {
+        LiveContinueObservePermitV8::causal_refs(self)
+    }
+    fn matches_inputs(&self, inputs: &OwnedEffectInputsV8<'_>) -> Result<(), SourceJournalError> {
+        LiveContinueObservePermitV8::matches_inputs(self, inputs)
+    }
 }
 impl LiveContinueObservePermitV8<'_, '_> {
     pub(crate) fn validate_guard(&self) -> Result<(), SourceJournalError> {
@@ -566,4 +618,5 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_verifie
     }
 }
 
+pub(in crate::live_invocation::source_journal::owned_wait_v8) mod later;
 pub(in crate::live_invocation::source_journal::owned_wait_v8) mod settlement;

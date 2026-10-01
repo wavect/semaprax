@@ -1291,6 +1291,7 @@ pub(crate) use owned_wait_v8::{
 
 pub(crate) use owned_wait_v8::LiveFailedEffectStateCleanupPermitV8;
 
+pub(crate) use owned_wait_v8::LiveContinueObserveGuardV8;
 pub(crate) use owned_wait_v8::LiveContinueObservePermitV8;
 
 #[cfg(test)]

@@ -117,7 +117,10 @@ impl FailedExecutedOwnedReduceV2<'_> {
         self.inputs.store.validate_guard().is_ok()
     }
 }
-impl HeldExecutedOwnedStepV2<'_> {
+impl<'a> HeldExecutedOwnedStepV2<'a> {
+    pub(crate) fn live_inputs(&self) -> Option<&OwnedEffectInputsV8<'a>> {
+        self.inputs.as_ref()
+    }
     pub(crate) fn kind(&self) -> &'static str {
         match self.owner.as_ref().expect("held Step") {
             OwnedStepTransferV2::Continue(_) => "continue",

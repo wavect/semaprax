@@ -14,6 +14,79 @@ fn true_seq(sequence: usize) -> Result<u32, SourceJournalError> {
 }
 
 impl<'j> LiveContinuedStagedStepV8<'j> {
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn continue_transition(
+        &self,
+    ) -> Result<(&AppendSessionV8<'j>, u32), SourceJournalError> {
+        let (session, witness) = self
+            .transition_ack
+            .as_ref()
+            .ok_or(SourceJournalError::Order)?;
+        witness.validate_current_session(session)?;
+        let EntryV8::Ordinary(SourceJournalEntry::Transition {
+            turn,
+            attempt: 0,
+            case: crate::live_invocation::source_journal::SourceTransitionCase::Continue,
+            ..
+        }) = witness.selected_row()
+        else {
+            return Err(SourceJournalError::Binding);
+        };
+        if *turn != self.coordinates()?.0 || self.terminal_ack.is_some() {
+            return Err(SourceJournalError::Binding);
+        }
+        Ok((session, *turn))
+    }
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn continue_session(
+        &self,
+    ) -> Result<&AppendSessionV8<'j>, SourceJournalError> {
+        self.transition_ack
+            .as_ref()
+            .map(|(session, _)| session)
+            .ok_or(SourceJournalError::Order)
+    }
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn continue_transition_seq(
+        &self,
+    ) -> Result<u32, SourceJournalError> {
+        true_seq(self.continue_session()?.sequence())
+    }
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn continue_inputs(
+        &self,
+    ) -> Result<
+        &crate::interpreter::resumable::owned_frame::registered_stage::effect::OwnedEffectInputsV8<
+            'j,
+        >,
+        SourceJournalError,
+    > {
+        self.held
+            .as_ref()
+            .and_then(HeldExecutedOwnedStepV2::live_inputs)
+            .ok_or(SourceJournalError::Binding)
+    }
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn continue_target(
+        &self,
+    ) -> Result<serde_json::Value, SourceJournalError> {
+        self.held
+            .as_ref()
+            .ok_or(SourceJournalError::Binding)?
+            .live_target_v8()
+    }
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn take_continue_held(
+        &mut self,
+    ) -> Result<HeldExecutedOwnedStepV2<'j>, SourceJournalError> {
+        self.held.take().ok_or(SourceJournalError::Binding)
+    }
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn continued_model_origin(
+        &self,
+    ) -> Result<
+        (
+            &'j SourceOwnedWaitJournalV8,
+            &dyn crate::live_invocation::SourceInvocationClock,
+            TargetAccounting,
+        ),
+        SourceJournalError,
+    > {
+        self.reserved.owner.owner.continued_model_origin()
+    }
     fn coordinates(&self) -> Result<(u32, u32), SourceJournalError> {
         let EntryV8::Ordinary(SourceJournalEntry::StageReservation {
             turn,

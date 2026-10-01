@@ -919,5 +919,217 @@ impl<'j> AppendSessionV8<'j> {
     }
 }
 
+use crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect::authorization::step::r#continue::later::{
+    advance_verified_later_continue_v8, LiveLaterContinueAcknowledgedV8,
+    LiveLaterContinueAppendV8, LiveLaterContinueFailureV8, LiveLaterObservedContinueV8,
+};
+
+pub(in crate::live_invocation::source_journal::owned_wait_v8) struct VerifiedOwnedLaterContinueAppendV8<
+    'j,
+> {
+    obligation: LiveLaterContinueAppendV8<'j>,
+    session: AppendSessionV8<'j>,
+    witness: VerifiedOwnedContinueSuccessorV8<'j>,
+}
+impl<'j> VerifiedOwnedLaterContinueAppendV8<'j> {
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_continue(
+        self,
+    ) -> Result<LiveLaterContinueAcknowledgedV8<'j>, LiveLaterContinueFailureV8<'j>> {
+        advance_verified_later_continue_v8(self.obligation, self.session, self.witness)
+    }
+}
+pub(in crate::live_invocation::source_journal::owned_wait_v8) enum LiveOwnedLaterContinueAppendFailureV8<
+    'j,
+> {
+    Before {
+        owner: LiveLaterContinueAppendV8<'j>,
+        session: AppendSessionV8<'j>,
+        error: SourceJournalError,
+    },
+    Append {
+        owner: LiveLaterContinueAppendV8<'j>,
+        failure: AppendFailureV8<'j>,
+    },
+    Acknowledged {
+        owner: LiveLaterContinueAppendV8<'j>,
+        session: AppendSessionV8<'j>,
+        witness: VerifiedOwnedContinueSuccessorV8<'j>,
+        error: SourceJournalError,
+    },
+    After {
+        verified: VerifiedOwnedLaterContinueAppendV8<'j>,
+        error: SourceJournalError,
+    },
+}
+impl<'j> AppendSessionV8<'j> {
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn append_owned_later_continue(
+        self,
+        obligation: LiveLaterContinueAppendV8<'j>,
+    ) -> Result<VerifiedOwnedLaterContinueAppendV8<'j>, LiveOwnedLaterContinueAppendFailureV8<'j>>
+    {
+        let same_journal = obligation.belongs_to(self.journal);
+        let predecessor = match (|| {
+            if !same_journal || obligation.sequence() != self.sequence()
+                || obligation.acknowledged_bytes() != self.acknowledged_bytes()
+                || !matches!(obligation.selected_row(),
+                    EntryV8::Owned(crate::live_invocation::source_journal::owned_wait_v8::model::OwnedBodyV8::OwnedStateCommitted{..})
+                    | EntryV8::Ordinary(SourceJournalEntry::StageReservation{role:crate::live_invocation::source_journal::SourceStageRole::Observe,attempt:None,..})) {
+                return Err(SourceJournalError::Binding);
+            }
+            obligation.validate_live()?;
+            self.effect_cursor()
+        })() {
+            Ok(cursor) => cursor,
+            Err(error) => {
+                if same_journal {
+                    self.journal.quarantine()
+                }
+                return Err(LiveOwnedLaterContinueAppendFailureV8::Before {
+                    owner: obligation,
+                    session: self,
+                    error,
+                });
+            }
+        };
+        let permit = match obligation.fixed_append_permit() {
+            Ok(permit) => permit,
+            Err(error) => {
+                self.journal.quarantine();
+                return Err(LiveOwnedLaterContinueAppendFailureV8::Before {
+                    owner: obligation,
+                    session: self,
+                    error,
+                });
+            }
+        };
+        let selected = permit.selected_row().clone();
+        let (pending, verified, attempting) = match self.begin_fixed_continue_append(&permit) {
+            Ok(completion) => completion,
+            Err(failure) => {
+                return Err(LiveOwnedLaterContinueAppendFailureV8::Append {
+                    owner: obligation,
+                    failure,
+                })
+            }
+        };
+        let session = AppendSessionV8 {
+            journal: attempting.journal,
+            inventory: pending.acknowledge_verified(verified),
+        };
+        let witness = VerifiedOwnedContinueSuccessorV8 {
+            predecessor,
+            successor: OwnedEffectAppendCursorV8::capture(&session),
+            selected,
+        };
+        let advanced = witness
+            .validate_against_acknowledged_session(&session)
+            .and_then(|_| permit.advance_registry(&witness, &session));
+        if let Err(error) = advanced {
+            drop(attempting);
+            return Err(LiveOwnedLaterContinueAppendFailureV8::Acknowledged {
+                owner: obligation,
+                session,
+                witness,
+                error,
+            });
+        }
+        attempting.complete.set(true);
+        drop(attempting);
+        let envelope = VerifiedOwnedLaterContinueAppendV8 {
+            obligation,
+            session,
+            witness,
+        };
+        if let Err(error) = envelope
+            .obligation
+            .validate_successor(&envelope.witness, &envelope.session)
+        {
+            return Err(LiveOwnedLaterContinueAppendFailureV8::After {
+                verified: envelope,
+                error,
+            });
+        }
+        Ok(envelope)
+    }
+}
+
+pub(in crate::live_invocation::source_journal::owned_wait_v8) enum LiveLaterContinueDriverFailureV8<
+    'j,
+> {
+    Prepare(LiveLaterContinueFailureV8<'j>),
+    StateSession {
+        owner: LiveLaterContinueAppendV8<'j>,
+        error: SourceJournalError,
+    },
+    StateAppend(LiveOwnedLaterContinueAppendFailureV8<'j>),
+    StateAdvance(LiveLaterContinueFailureV8<'j>),
+    StateAcknowledged(LiveLaterContinueAcknowledgedV8<'j>),
+    ObservePrepare(LiveLaterContinueFailureV8<'j>),
+    ObserveSession {
+        owner: LiveLaterContinueAppendV8<'j>,
+        error: SourceJournalError,
+    },
+    ObserveAppend(LiveOwnedLaterContinueAppendFailureV8<'j>),
+    ObserveAdvance(LiveLaterContinueFailureV8<'j>),
+    ObserveAcknowledged(LiveLaterContinueAcknowledgedV8<'j>),
+}
+pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_live_owned_later_continue_v8<
+    'j,
+>(
+    journal: &'j SourceOwnedWaitJournalV8,
+    moved: crate::live_invocation::source_journal::owned_wait_v8::live_upstream::LiveContinuedStagedStepV8<'j>,
+) -> Result<LiveLaterObservedContinueV8<'j>, LiveLaterContinueDriverFailureV8<'j>> {
+    let state_append = moved
+        .prepare_later_continue()
+        .map_err(LiveLaterContinueDriverFailureV8::Prepare)?;
+    let state_session = match journal.begin_session() {
+        Ok(session) => session,
+        Err(error) => {
+            return Err(LiveLaterContinueDriverFailureV8::StateSession {
+                owner: state_append,
+                error,
+            })
+        }
+    };
+    let state_ack = state_session
+        .append_owned_later_continue(state_append)
+        .map_err(LiveLaterContinueDriverFailureV8::StateAppend)?;
+    let state = match state_ack
+        .advance_continue()
+        .map_err(LiveLaterContinueDriverFailureV8::StateAdvance)?
+    {
+        LiveLaterContinueAcknowledgedV8::State(state) => state,
+        acknowledged => {
+            return Err(LiveLaterContinueDriverFailureV8::StateAcknowledged(
+                acknowledged,
+            ))
+        }
+    };
+    let observe_append = state
+        .prepare_observe()
+        .map_err(LiveLaterContinueDriverFailureV8::ObservePrepare)?;
+    let observe_session = match journal.begin_session() {
+        Ok(session) => session,
+        Err(error) => {
+            return Err(LiveLaterContinueDriverFailureV8::ObserveSession {
+                owner: observe_append,
+                error,
+            })
+        }
+    };
+    let observe_ack = observe_session
+        .append_owned_later_continue(observe_append)
+        .map_err(LiveLaterContinueDriverFailureV8::ObserveAppend)?;
+    match observe_ack
+        .advance_continue()
+        .map_err(LiveLaterContinueDriverFailureV8::ObserveAdvance)?
+    {
+        LiveLaterContinueAcknowledgedV8::Observed(observed) => Ok(observed),
+        acknowledged => Err(LiveLaterContinueDriverFailureV8::ObserveAcknowledged(
+            acknowledged,
+        )),
+    }
+}
+
 #[cfg(test)]
 mod tests;

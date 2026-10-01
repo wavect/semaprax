@@ -92,57 +92,74 @@ fn with_moved(
         &'j Clock,
     ) -> bool,
 ) {
-    CheckedOwnedWaitJournalContextV8::test_with_actual_runtime_store(
-        true,
-        |context, lease, key, directory| {
-            let context = context.with_cumulative_initialization(&lease).unwrap();
-            let crate::live_invocation::source_journal::owned_wait_v8::model::OwnedBodyV8::OwnedRunCreated { execution, .. } = &context.fold().created else {
+    with_moved_profile(false, callback)
+}
+fn with_moved_profile(
+    three_turns: bool,
+    callback: impl for<'j> FnOnce(
+        &'j SourceOwnedWaitJournalV8,
+        LiveMovedStepV8<'j>,
+        Vec<std::sync::Weak<[u8]>>,
+        &'j AgentCancellation,
+        &'j Clock,
+    ) -> bool,
+) {
+    let run = |context: CheckedOwnedWaitJournalContextV8,
+               lease,
+               key,
+               directory: &std::path::Path| {
+        let context = context.with_cumulative_initialization(&lease).unwrap();
+        let crate::live_invocation::source_journal::owned_wait_v8::model::OwnedBodyV8::OwnedRunCreated { execution, .. } = &context.fold().created else {
                 panic!("actual Created execution");
             };
-            assert_eq!(
-                execution,
-                context.ready_runtime().unwrap().1.ordinary().invocation()
-            );
-            assert_ne!(
-                execution,
-                context.ordinary().invocation(),
-                "E and derived I8 are distinct"
-            );
-            let context = Arc::new(context);
-            let retained = Arc::clone(&context);
-            let journal = SourceOwnedWaitJournalV8::open(context, key, lease).unwrap();
-            let cancel = AgentCancellation::new();
-            let policy = CapabilityPolicy::new(vec!["read".into()]).unwrap();
-            let clock = Clock { now: Cell::new(1) };
-            let reopen_terminal = Cell::new(false);
-            super::super::tests::test_moved(&journal, &cancel, &policy, &clock, |moved, weak| {
-                reopen_terminal.set(callback(&journal, moved, weak, &cancel, &clock));
-            });
-            drop(journal);
-            if reopen_terminal.get() {
-                let registration = retained.registration().clone();
-                let lease = crate::resumable_effects::owned_frame::recover_source_owned_wait_v8(
+        assert_eq!(
+            execution,
+            context.ready_runtime().unwrap().1.ordinary().invocation()
+        );
+        assert_ne!(
+            execution,
+            context.ordinary().invocation(),
+            "E and derived I8 are distinct"
+        );
+        let context = Arc::new(context);
+        let retained = Arc::clone(&context);
+        let journal = SourceOwnedWaitJournalV8::open(context, key, lease).unwrap();
+        let cancel = AgentCancellation::new();
+        let policy = CapabilityPolicy::new(vec!["read".into()]).unwrap();
+        let clock = Clock { now: Cell::new(1) };
+        let reopen_terminal = Cell::new(false);
+        super::super::tests::test_moved(&journal, &cancel, &policy, &clock, |moved, weak| {
+            reopen_terminal.set(callback(&journal, moved, weak, &cancel, &clock));
+        });
+        drop(journal);
+        if reopen_terminal.get() {
+            let registration = retained.registration().clone();
+            let lease = crate::resumable_effects::owned_frame::recover_source_owned_wait_v8(
                     std::fs::File::open(directory).unwrap(),
                     &registration,
                     registration.expected_facts().clone(),
                     crate::resumable_effects::owned_frame::ExplicitStoreRegistrationGrant::for_trusted_host(true).unwrap(),
                 ).unwrap();
-                let recovered = SourceOwnedWaitJournalV8::open(
-                    retained,
-                    crate::resumable_effects::source_checkpoint::SourceCheckpointKey::new([73; 32]),
-                    lease,
-                )
-                .unwrap();
-                let terminal = recovered.terminal_evidence().unwrap();
-                assert_eq!(
-                    terminal.status(),
-                    crate::live_invocation::source_journal::SourceTerminalStatus::Complete
-                );
-                assert!(!terminal.evidence().is_empty());
-                assert!(terminal.carrier().is_some());
-            }
-        },
-    );
+            let recovered = SourceOwnedWaitJournalV8::open(
+                retained,
+                crate::resumable_effects::source_checkpoint::SourceCheckpointKey::new([73; 32]),
+                lease,
+            )
+            .unwrap();
+            let terminal = recovered.terminal_evidence().unwrap();
+            assert_eq!(
+                terminal.status(),
+                crate::live_invocation::source_journal::SourceTerminalStatus::Complete
+            );
+            assert!(!terminal.evidence().is_empty());
+            assert!(terminal.carrier().is_some());
+        }
+    };
+    if three_turns {
+        CheckedOwnedWaitJournalContextV8::test_with_actual_three_turn_store(run)
+    } else {
+        CheckedOwnedWaitJournalContextV8::test_with_actual_runtime_store(true, run)
+    }
 }
 fn ack<'j>(
     journal: &'j SourceOwnedWaitJournalV8,
@@ -185,9 +202,9 @@ fn owned_continue_driver_advances_one_real_step_into_the_next_turn() {
         false
     });
 }
-fn continued_reduce_chain_step_ack(fault: u8) {
+fn continued_reduce_chain_step_ack(fault: u8, three_turns: bool) {
     let run = move || {
-        with_moved(|journal, moved, weak, _, _| {
+        with_moved_profile(three_turns, |journal, moved, weak, _, _| {
             let observed = advance_live_owned_continue_v8(journal, moved)
                 .unwrap_or_else(|_| panic!("actual Continue driver"));
             let settled = journal
@@ -691,7 +708,10 @@ fn continued_reduce_chain_step_ack(fault: u8) {
                             let moved = ready
                                 .move_fields()
                                 .unwrap_or_else(|_| panic!("actual turn-1 Step field move"));
-                            assert_eq!(moved.kind(), Some("complete"));
+                            assert_eq!(
+                                moved.kind(),
+                                Some(if three_turns { "continue" } else { "complete" })
+                            );
                             let completed = moved
                                 .prepare_completed()
                                 .unwrap_or_else(|_| panic!("actual mapped target"));
@@ -707,7 +727,9 @@ fn continued_reduce_chain_step_ack(fault: u8) {
                             let transition = moved
                                 .prepare_transition()
                                 .unwrap_or_else(|_| panic!("actual turn-1 Transition"));
-                            assert!(matches!(transition.selected_row(), EntryV8::Ordinary(SourceJournalEntry::Transition { turn: 1, attempt: 0, case: crate::live_invocation::source_journal::SourceTransitionCase::Complete, .. })));
+                            assert!(
+                                matches!(transition.selected_row(), EntryV8::Ordinary(SourceJournalEntry::Transition { turn: 1, attempt: 0, case, .. }) if *case == if three_turns { crate::live_invocation::source_journal::SourceTransitionCase::Continue } else { crate::live_invocation::source_journal::SourceTransitionCase::Complete })
+                            );
                             let acknowledged = journal
                                 .begin_session()
                                 .unwrap()
@@ -724,36 +746,159 @@ fn continued_reduce_chain_step_ack(fault: u8) {
                                 (r, s, turn, attempt),
                                 (charged_funding.0, charged_funding.1, 1, 0)
                             );
-                            assert!(matches!(last, EntryV8::Ordinary(SourceJournalEntry::Transition { case: crate::live_invocation::source_journal::SourceTransitionCase::Complete, .. })));
+                            assert!(
+                                matches!(last, EntryV8::Ordinary(SourceJournalEntry::Transition { case, .. }) if *case == if three_turns { crate::live_invocation::source_journal::SourceTransitionCase::Continue } else { crate::live_invocation::source_journal::SourceTransitionCase::Complete })
+                            );
                             assert_eq!(step_cleanup_actions, 1);
-                            assert!(journal.terminal_evidence().is_err(), "a terminal Transition alone cannot be recovered as a terminal receipt");
-                            let input = crate::live_invocation::source_journal::SourceTerminalEvidenceInput {
+                            if three_turns {
+                                let before =
+                                    journal.lease.try_borrow_mut().unwrap().read().unwrap();
+                                if fault == 6 {
+                                    #[cfg(unix)]
+                                    journal
+                                        .lease
+                                        .try_borrow_mut()
+                                        .unwrap()
+                                        .test_fail_before_write(sequence + 7);
+                                    #[cfg(not(unix))]
+                                    unreachable!("fault injection is Unix-only");
+                                }
+                                mapped.validate_live().unwrap_or_else(|error| {
+                                    panic!(
+                                        "mapped turn-1 Step became stale before handoff: {error:?}"
+                                    )
+                                });
+                                let (_, old_turn) =
+                                    mapped.continue_transition().unwrap_or_else(|error| {
+                                        panic!("turn-1 Continue transition cursor: {error:?}")
+                                    });
+                                assert_eq!(old_turn, 1);
+                                let target = mapped.continue_target().unwrap_or_else(|error| {
+                                    panic!("turn-1 mapped target: {error:?}")
+                                });
+                                assert_eq!(target["kind"], "continue");
+                                assert!(target.get("state").is_some());
+                                let inputs = mapped.continue_inputs().unwrap_or_else(|error| {
+                                    panic!("turn-1 physical inputs: {error:?}")
+                                });
+                                assert_eq!(
+                                    (inputs.turn, inputs.attempt),
+                                    (old_turn, 0),
+                                    "mapped Step must retain the current effect coordinates"
+                                );
+                                let (_, execution) = journal.context().ready_runtime().unwrap();
+                                assert!(old_turn + 1 < execution.ordinary().max_iterations());
+                                mapped.continued_model_origin().unwrap_or_else(|error| {
+                                    panic!("turn-1 model origin: {error:?}")
+                                });
+                                let advanced =
+                                    super::advance_live_owned_later_continue_v8(journal, mapped);
+                                if fault == 6 {
+                                    let failed =
+                                        advanced.err().expect("turn-2 State prewrite refusal");
+                                    assert!(matches!(
+                                        &failed,
+                                        super::LiveLaterContinueDriverFailureV8::StateAppend(_)
+                                    ));
+                                    #[cfg(unix)]
+                                    assert_eq!(
+                                        journal
+                                            .lease
+                                            .try_borrow()
+                                            .unwrap()
+                                            .test_persisted_snapshot()
+                                            .unwrap(),
+                                        before
+                                    );
+                                    assert!(weak.iter().any(|owner| owner.strong_count() == 1));
+                                    assert!(journal.begin_session().is_err());
+                                    drop(failed);
+                                } else {
+                                    let observed = advanced.unwrap_or_else(|failure| {
+                                        use super::LiveLaterContinueDriverFailureV8 as D;
+                                        use super::LiveOwnedLaterContinueAppendFailureV8 as A;
+                                        use crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect::authorization::step::r#continue::later::LiveLaterContinueFailureV8 as L;
+                                        let append = |failure: &A<'_>| match failure {
+                                            A::Before { error, .. } => format!("before: {error:?}"),
+                                            A::Append { failure, .. } => match failure {
+                                                crate::live_invocation::source_journal::owned_wait_v8::append::AppendFailureV8::PhysicalBeforeCandidate { error, .. } => format!("physical before candidate: {error:?}"),
+                                                crate::live_invocation::source_journal::owned_wait_v8::append::AppendFailureV8::CandidateRefused { error, .. } => format!("candidate refused: {error:?}"),
+                                                crate::live_invocation::source_journal::owned_wait_v8::append::AppendFailureV8::PrewriteRefused { error, .. } => format!("prewrite refused: {error:?}"),
+                                                crate::live_invocation::source_journal::owned_wait_v8::append::AppendFailureV8::InDoubt { error, .. } => format!("in doubt: {error:?}"),
+                                            },
+                                            A::Acknowledged { error, .. } => format!("acknowledged: {error:?}"),
+                                            A::After { error, .. } => format!("after: {error:?}"),
+                                        };
+                                        let later = |failure: &L<'_>| match failure {
+                                            L::Before { error, .. } => format!("before: {error:?}"),
+                                            L::State { error, .. } => format!("state: {error:?}"),
+                                            L::Acknowledged { error, .. } => format!("acknowledged: {error:?}"),
+                                            L::Observe { owner, .. } => match owner {
+                                                crate::interpreter::resumable::owned_frame::registered_stage::reduce::LiveContinuedObserveFailureV8::Before { error, .. } => format!("physical Observe before: {error:?}"),
+                                                crate::interpreter::resumable::owned_frame::registered_stage::reduce::LiveContinuedObserveFailureV8::Committed { error, .. } => format!("physical Observe committed: {error:?}"),
+                                                crate::interpreter::resumable::owned_frame::registered_stage::reduce::LiveContinuedObserveFailureV8::After { error, .. } => format!("physical Observe after: {error:?}"),
+                                            },
+                                            L::After { error, .. } => format!("after: {error:?}"),
+                                        };
+                                        let detail = match &failure {
+                                            D::Prepare(f) => format!("prepare {}", later(f)),
+                                            D::StateSession { error, .. } => format!("State session: {error:?}"),
+                                            D::StateAppend(f) => format!("State append {}", append(f)),
+                                            D::StateAdvance(f) => format!("State advance {}", later(f)),
+                                            D::StateAcknowledged(_) => "State ACK phase mismatch".to_owned(),
+                                            D::ObservePrepare(f) => format!("Observe prepare {}", later(f)),
+                                            D::ObserveSession { error, .. } => format!("Observe session: {error:?}"),
+                                            D::ObserveAppend(f) => format!("Observe append {}", append(f)),
+                                            D::ObserveAdvance(f) => format!("Observe advance {}", later(f)),
+                                            D::ObserveAcknowledged(_) => "Observe ACK phase mismatch".to_owned(),
+                                        };
+                                        panic!("turn-2 physical Observe and two exact ACKs: {detail}")
+                                    });
+                                    assert!(observed.is_observed());
+                                    assert_eq!(observed.turn(), 2);
+                                    let after = journal.begin_session().unwrap();
+                                    let (reserved, stages, turn, last) =
+                                        after.inventory.continuation_facts().unwrap();
+                                    let fuel =
+                                        journal.context().ordinary().max_steps_per_stage().unwrap()
+                                            as u64;
+                                    assert_eq!(turn, 2);
+                                    assert_eq!(reserved, charged_funding.0 + fuel);
+                                    assert_eq!(stages, charged_funding.1 + 1);
+                                    assert!(matches!(last, EntryV8::Ordinary(SourceJournalEntry::StageReservation { turn: 2, attempt: None, role: crate::live_invocation::source_journal::SourceStageRole::Observe, .. })));
+                                    assert!(weak.iter().any(|owner| owner.strong_count() == 1));
+                                    drop(observed);
+                                }
+                            } else {
+                                assert!(journal.terminal_evidence().is_err(), "a terminal Transition alone cannot be recovered as a terminal receipt");
+                                let input = crate::live_invocation::source_journal::SourceTerminalEvidenceInput {
                                 completed_stages: s,
                                 omitted_stage_rows: s,
                                 stage_rows: Vec::new(),
                                 checked_run_evidence: None,
                             };
-                            let terminal = mapped.prepare_terminal(input).unwrap_or_else(|_| {
-                                panic!("actual terminal publication candidate")
-                            });
-                            assert!(
-                                matches!(terminal.selected_row(), EntryV8::Ordinary(SourceJournalEntry::TerminalSnapshot {
+                                let terminal =
+                                    mapped.prepare_terminal(input).unwrap_or_else(|_| {
+                                        panic!("actual terminal publication candidate")
+                                    });
+                                assert!(
+                                    matches!(terminal.selected_row(), EntryV8::Ordinary(SourceJournalEntry::TerminalSnapshot {
                                 turn: Some(1), status: crate::live_invocation::source_journal::SourceTerminalStatus::Complete,
                                 committed_stage_fuel, stages, carrier: Some(_), ..
                             }) if *committed_stage_fuel == charged_funding.0 && *stages == s)
-                            );
-                            let terminal_before =
-                                journal.lease.try_borrow_mut().unwrap().read().unwrap();
-                            if fault == 5 {
-                                #[cfg(unix)]
-                                journal
-                                    .lease
-                                    .try_borrow_mut()
-                                    .unwrap()
-                                    .test_fail_before_write(sequence + 7);
-                                #[cfg(not(unix))]
-                                unreachable!("fault injection is Unix-only");
-                                let failed = journal
+                                );
+                                let terminal_before =
+                                    journal.lease.try_borrow_mut().unwrap().read().unwrap();
+                                if fault == 5 {
+                                    #[cfg(unix)]
+                                    journal
+                                        .lease
+                                        .try_borrow_mut()
+                                        .unwrap()
+                                        .test_fail_before_write(sequence + 7);
+                                    #[cfg(not(unix))]
+                                    unreachable!("fault injection is Unix-only");
+                                    let failed = journal
                                     .begin_session()
                                     .unwrap()
                                     .append_owned_step(terminal)
@@ -761,45 +906,46 @@ fn continued_reduce_chain_step_ack(fault: u8) {
                                     .expect(
                                         "terminal publication cannot ACK through prewrite fault",
                                     );
-                                assert!(matches!(&failed, crate::live_invocation::source_journal::owned_wait_v8::append::owned_effect::settlement::cleanup::reduce::step::LiveOwnedStepAppendFailureV8::Append { .. }));
-                                #[cfg(unix)]
-                                assert_eq!(
-                                    journal
-                                        .lease
-                                        .try_borrow()
+                                    assert!(matches!(&failed, crate::live_invocation::source_journal::owned_wait_v8::append::owned_effect::settlement::cleanup::reduce::step::LiveOwnedStepAppendFailureV8::Append { .. }));
+                                    #[cfg(unix)]
+                                    assert_eq!(
+                                        journal
+                                            .lease
+                                            .try_borrow()
+                                            .unwrap()
+                                            .test_persisted_snapshot()
+                                            .unwrap(),
+                                        terminal_before
+                                    );
+                                    assert!(journal.begin_session().is_err());
+                                    assert!(journal.hold().is_err());
+                                    assert!(journal.terminal_evidence().is_err());
+                                    assert_eq!(step_cleanup_actions, 1);
+                                    drop(failed);
+                                } else {
+                                    let acknowledged = journal
+                                        .begin_session()
                                         .unwrap()
-                                        .test_persisted_snapshot()
-                                        .unwrap(),
-                                    terminal_before
-                                );
-                                assert!(journal.begin_session().is_err());
-                                assert!(journal.hold().is_err());
-                                assert!(journal.terminal_evidence().is_err());
-                                assert_eq!(step_cleanup_actions, 1);
-                                drop(failed);
-                            } else {
-                                let acknowledged = journal
-                                    .begin_session()
-                                    .unwrap()
-                                    .append_owned_step(terminal)
-                                    .unwrap_or_else(|_| panic!("terminal publication ACK"));
-                                let crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect::authorization::step::LiveStepAcknowledgedV8::Continued(terminal_owner) = acknowledged.advance_step()
+                                        .append_owned_step(terminal)
+                                        .unwrap_or_else(|_| panic!("terminal publication ACK"));
+                                    let crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect::authorization::step::LiveStepAcknowledgedV8::Continued(terminal_owner) = acknowledged.advance_step()
                                     .unwrap_or_else(|_| panic!("same mapped owner after terminal ACK")) else { panic!("continued terminal owner") };
-                                terminal_owner.validate_live().unwrap();
-                                let final_session = journal.begin_session().unwrap();
-                                assert_eq!(final_session.sequence(), sequence + 7);
-                                let (r, final_stages, turn, attempt, last) =
-                                    final_session.inventory.step_reduce_facts().unwrap();
-                                assert_eq!(
-                                    (r, final_stages, turn, attempt),
-                                    (charged_funding.0, s, 1, 0)
-                                );
-                                assert!(matches!(last, EntryV8::Ordinary(SourceJournalEntry::TerminalSnapshot { status: crate::live_invocation::source_journal::SourceTerminalStatus::Complete, .. })));
-                                let recovered = journal.terminal_evidence().unwrap();
-                                assert_eq!(recovered.status(), crate::live_invocation::source_journal::SourceTerminalStatus::Complete);
-                                assert!(!recovered.evidence().is_empty());
-                                assert!(recovered.carrier().is_some());
-                                drop(terminal_owner);
+                                    terminal_owner.validate_live().unwrap();
+                                    let final_session = journal.begin_session().unwrap();
+                                    assert_eq!(final_session.sequence(), sequence + 7);
+                                    let (r, final_stages, turn, attempt, last) =
+                                        final_session.inventory.step_reduce_facts().unwrap();
+                                    assert_eq!(
+                                        (r, final_stages, turn, attempt),
+                                        (charged_funding.0, s, 1, 0)
+                                    );
+                                    assert!(matches!(last, EntryV8::Ordinary(SourceJournalEntry::TerminalSnapshot { status: crate::live_invocation::source_journal::SourceTerminalStatus::Complete, .. })));
+                                    let recovered = journal.terminal_evidence().unwrap();
+                                    assert_eq!(recovered.status(), crate::live_invocation::source_journal::SourceTerminalStatus::Complete);
+                                    assert!(!recovered.evidence().is_empty());
+                                    assert!(recovered.carrier().is_some());
+                                    drop(terminal_owner);
+                                }
                             }
                         }
                     }
@@ -820,7 +966,7 @@ fn continued_reduce_chain_step_ack(fault: u8) {
             "only the fourth Model ACK may resume source"
         );
             assert!(weak.iter().all(|owner| owner.upgrade().is_none()));
-            fault == 0
+            fault == 0 && !three_turns
         })
     };
     std::thread::Builder::new()
@@ -832,32 +978,40 @@ fn continued_reduce_chain_step_ack(fault: u8) {
 }
 #[test]
 fn owned_continue_driver_dispatches_next_turn_model_once_and_records_settlement() {
-    continued_reduce_chain_step_ack(0);
+    continued_reduce_chain_step_ack(0, false);
 }
 #[test]
 #[cfg(unix)]
 fn owned_continued_step_real_prewrite_fault_retains_owner_and_poison() {
-    continued_reduce_chain_step_ack(1);
+    continued_reduce_chain_step_ack(1, false);
 }
 #[test]
 #[cfg(unix)]
 fn owned_continued_cleanup_started_prewrite_fault_retains_staged_owner() {
-    continued_reduce_chain_step_ack(2);
+    continued_reduce_chain_step_ack(2, false);
 }
 #[test]
 #[cfg(unix)]
 fn owned_continued_cleanup_receipt_prewrite_fault_keeps_release_sticky() {
-    continued_reduce_chain_step_ack(3);
+    continued_reduce_chain_step_ack(3, false);
 }
 #[test]
 #[cfg(unix)]
 fn owned_continued_transfer_prewrite_fault_never_moves_ready_fields() {
-    continued_reduce_chain_step_ack(4);
+    continued_reduce_chain_step_ack(4, false);
 }
 #[test]
 #[cfg(unix)]
 fn owned_continued_terminal_prewrite_fault_retains_mapped_owner_and_poison() {
-    continued_reduce_chain_step_ack(5);
+    continued_reduce_chain_step_ack(5, false);
+}
+#[test]
+fn owned_continued_step_hands_real_state_to_turn_two_and_acks_observe() {
+    continued_reduce_chain_step_ack(0, true);
+}
+#[test]
+fn owned_continued_step_turn_two_state_prewrite_refusal_retains_mapped_owner() {
+    continued_reduce_chain_step_ack(6, true);
 }
 #[test]
 fn owned_continue_actual_state_and_observe_acks_preserve_owner_ledger_and_cumulative_funding() {

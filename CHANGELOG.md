@@ -8,6 +8,12 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Carry the real continued Step into turn-two State and Observe (#330):
+  a separate later owner selects the State row, ACKs the exact Observe
+  reservation, and enters physical Observe through the existing engine. The
+  owning three-turn success and State-prewrite refusal selectors passed locally.
+  Public multi-turn entry, terminal delivery and owner restoration remain open.
+
 - Bind reference-service job completion to the checked source decision (#336):
   the host admits only the source-selected Completed status before preparing
   delivery or a snapshot; source denial and evaluator failure leave committed

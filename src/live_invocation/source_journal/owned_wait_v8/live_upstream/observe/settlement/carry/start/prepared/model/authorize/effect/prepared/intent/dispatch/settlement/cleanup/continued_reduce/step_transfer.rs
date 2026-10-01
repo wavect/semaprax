@@ -87,7 +87,7 @@ impl<'j> LiveContinuedStagedStepV8<'j> {
     > {
         self.reserved.owner.owner.continued_model_origin()
     }
-    fn coordinates(&self) -> Result<(u32, u32), SourceJournalError> {
+    pub(super) fn coordinates(&self) -> Result<(u32, u32), SourceJournalError> {
         let EntryV8::Ordinary(SourceJournalEntry::StageReservation {
             turn,
             attempt: Some(attempt),
@@ -102,7 +102,7 @@ impl<'j> LiveContinuedStagedStepV8<'j> {
         }
         Ok((*turn, *attempt))
     }
-    fn checked_step(&self) -> Result<crate::live_invocation::source_journal::owned_wait_v8::reduce_inventory::CheckedReduceStepV8, SourceJournalError>{
+    pub(super) fn checked_step(&self) -> Result<crate::live_invocation::source_journal::owned_wait_v8::reduce_inventory::CheckedReduceStepV8, SourceJournalError>{
         let (_, execution) = self
             .journal()
             .context()

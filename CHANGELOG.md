@@ -8,6 +8,12 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Claim the actual physical Complete Report after its authenticated terminal
+  ACK (#330). The private owner keeps the store borrower and checks a borrowed
+  delivery projection against the terminal carrier. The owning success and
+  prewrite-refusal selectors passed locally. Public Report delivery and
+  restart owner restoration remain open.
+
 - Carry the real continued Step into turn-two State and Observe (#330):
   a separate later owner selects the State row, ACKs the exact Observe
   reservation, and enters physical Observe through the existing engine. The

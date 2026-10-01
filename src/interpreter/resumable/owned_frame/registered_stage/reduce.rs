@@ -383,7 +383,7 @@ pub(crate) use owned_execute::{
 
 mod physical_step;
 pub(crate) use physical_step::{
-    consume_executed_owned_step_v2, settle_executed_owned_reduce_v2,
+    consume_executed_owned_step_v2, settle_executed_owned_reduce_v2, ClaimedExecutedOwnedReportV2,
     CommittedExecutedOwnedReduceCleanupV2, CommittedExecutedOwnedStepTransferV2,
     ExecutedOwnedReduceSettledV2, HeldExecutedOwnedStepV2, ReadyExecutedOwnedStepV2,
 };

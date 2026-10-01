@@ -67,6 +67,13 @@ pub(crate) struct HeldExecutedOwnedStepV2<'a> {
     effect_settled: u32,
     transfer_reserved: u32,
 }
+/// The original mapped Report after a consuming terminal claim. The retained
+/// store borrower stays with the physical root until delivery or disposal.
+pub(crate) struct ClaimedExecutedOwnedReportV2<'a> {
+    report: OwnedReducedReportV2,
+    inputs: OwnedEffectInputsV8<'a>,
+    creator: u32,
+}
 
 fn physical_guard(
     inputs: &OwnedEffectInputsV8<'_>,
@@ -118,6 +125,23 @@ impl FailedExecutedOwnedReduceV2<'_> {
     }
 }
 impl<'a> HeldExecutedOwnedStepV2<'a> {
+    pub(crate) fn claim_complete_report(
+        mut self,
+    ) -> Result<ClaimedExecutedOwnedReportV2<'a>, Self> {
+        if !self.validate_store()
+            || !matches!(self.owner.as_ref(), Some(OwnedStepTransferV2::Complete(_)))
+        {
+            return Err(self);
+        }
+        let Some(OwnedStepTransferV2::Complete(report)) = self.owner.take() else {
+            unreachable!("checked complete owner")
+        };
+        Ok(ClaimedExecutedOwnedReportV2 {
+            report,
+            inputs: self.inputs.take().expect("checked held inputs"),
+            creator: self.creator,
+        })
+    }
     pub(crate) fn live_inputs(&self) -> Option<&OwnedEffectInputsV8<'a>> {
         self.inputs.as_ref()
     }
@@ -138,6 +162,19 @@ impl<'a> HeldExecutedOwnedStepV2<'a> {
     }
     pub(crate) fn causal_refs(&self) -> (u32, u32) {
         (self.effect_settled, self.transfer_reserved)
+    }
+}
+impl ClaimedExecutedOwnedReportV2<'_> {
+    pub(crate) fn validate_store(&self) -> bool {
+        self.creator == std::process::id() && self.inputs.store.validate_guard().is_ok()
+    }
+}
+impl Drop for ClaimedExecutedOwnedReportV2<'_> {
+    fn drop(&mut self) {
+        if !self.validate_store() {
+            // No semantic result disposal under a stale or foreign guard.
+            drop(self.report.root.take());
+        }
     }
 }
 impl ReadyExecutedOwnedStepV2<'_> {

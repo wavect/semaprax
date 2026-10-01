@@ -189,17 +189,42 @@ impl HeldExecutedOwnedStepV2<'_> {
             OwnedStepTransferV2::Complete(s) => ("complete", "report", s.root.as_ref()),
             OwnedStepTransferV2::Fail(code) => return Ok(json!({"kind":"fail","code":code})),
         };
-        let Some(Value::Record(record)) = root else {
-            return Err(SourceJournalError::Binding);
-        };
-        let declarations = &inputs.execution.wait().helper().program().declarations;
-        let fields = declarations
-            .record_fields(&record.record)
-            .ok_or(SourceJournalError::Binding)?;
-        if fields.len() != record.fields.len() {
+        project_owned_target_v8(inputs, kind, key, root)
+    }
+}
+
+impl ClaimedExecutedOwnedReportV2<'_> {
+    /// A borrowed delivery projection; the physical Report remains held here.
+    pub(crate) fn live_report_v8(&self) -> Result<Json, SourceJournalError> {
+        if !self.validate_store() {
             return Err(SourceJournalError::Binding);
         }
-        let fields = fields.iter().map(|field| {
+        project_owned_target_v8(
+            &self.inputs,
+            "complete",
+            "report",
+            self.report.root.as_ref(),
+        )
+    }
+}
+
+fn project_owned_target_v8(
+    inputs: &OwnedEffectInputsV8<'_>,
+    kind: &str,
+    key: &str,
+    root: Option<&Value>,
+) -> Result<Json, SourceJournalError> {
+    let Some(Value::Record(record)) = root else {
+        return Err(SourceJournalError::Binding);
+    };
+    let declarations = &inputs.execution.wait().helper().program().declarations;
+    let fields = declarations
+        .record_fields(&record.record)
+        .ok_or(SourceJournalError::Binding)?;
+    if fields.len() != record.fields.len() {
+        return Err(SourceJournalError::Binding);
+    }
+    let fields = fields.iter().map(|field| {
             let actual = record.fields.get(&field.id).ok_or(SourceJournalError::Binding)?;
             let value = match actual {
                 Value::Bytes(bytes) => json!({"kind":"bytes","hex":crate::live_invocation::identity::hex(&bytes.bytes)}),
@@ -208,12 +233,11 @@ impl HeldExecutedOwnedStepV2<'_> {
             };
             Ok(json!({"identity":field.id.as_str(),"value":value}))
         }).collect::<Result<Vec<_>,SourceJournalError>>()?;
-        let mut target = serde_json::Map::new();
-        target.insert("kind".into(), kind.into());
-        target.insert(
-            key.into(),
-            json!({"declaration":record.record.as_str(),"fields":fields}),
-        );
-        Ok(Json::Object(target))
-    }
+    let mut target = serde_json::Map::new();
+    target.insert("kind".into(), kind.into());
+    target.insert(
+        key.into(),
+        json!({"declaration":record.record.as_str(),"fields":fields}),
+    );
+    Ok(Json::Object(target))
 }

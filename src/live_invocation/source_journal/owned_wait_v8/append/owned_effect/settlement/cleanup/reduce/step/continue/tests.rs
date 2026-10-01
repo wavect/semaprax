@@ -870,6 +870,12 @@ fn continued_reduce_chain_step_ack(fault: u8, three_turns: bool) {
                                     drop(observed);
                                 }
                             } else {
+                                let (mapped, refusal) = mapped
+                                    .claim_complete_report()
+                                    .err()
+                                    .expect("Transition alone cannot claim the physical Report");
+                                assert_eq!(refusal, crate::live_invocation::source_journal::SourceJournalError::Order);
+                                mapped.validate_live().unwrap();
                                 assert!(journal.terminal_evidence().is_err(), "a terminal Transition alone cannot be recovered as a terminal receipt");
                                 let input = crate::live_invocation::source_journal::SourceTerminalEvidenceInput {
                                 completed_stages: s,
@@ -944,7 +950,19 @@ fn continued_reduce_chain_step_ack(fault: u8, three_turns: bool) {
                                     assert_eq!(recovered.status(), crate::live_invocation::source_journal::SourceTerminalStatus::Complete);
                                     assert!(!recovered.evidence().is_empty());
                                     assert!(recovered.carrier().is_some());
-                                    drop(terminal_owner);
+                                    let claimed = terminal_owner
+                                        .claim_complete_report()
+                                        .unwrap_or_else(|_| {
+                                            panic!("one-use actual Report claim after terminal ACK")
+                                        });
+                                    let delivered = claimed.delivery_projection().unwrap();
+                                    assert_eq!(delivered["kind"], "complete");
+                                    assert!(delivered["report"]["fields"].as_array().is_some());
+                                    assert!(
+                                        weak.iter().any(|owner| owner.strong_count() == 1),
+                                        "claimed Report retains an original physical leaf"
+                                    );
+                                    drop(claimed);
                                 }
                             }
                         }

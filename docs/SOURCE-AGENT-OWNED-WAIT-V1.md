@@ -909,7 +909,18 @@ pending and same-file write/reread path; its spent hold registry remains
 cumulative, and failures retain the phase owner. The owning three-turn success
 and State-prewrite refusal selectors passed the central gate.
 
-Public multi-turn entry, terminal delivery/claim and physical owner restoration
+The private Complete terminal owner now has a consuming Report claim after the
+exact `TerminalSnapshot` ACK. Claim verifies the current registered prefix,
+Complete status, turn, carrier bytes and digest against the live mapped Step,
+then moves the original physical Report into a claimed owner retaining its
+store borrower. A borrowed delivery projection is checked again against the
+terminal carrier; stale store authority drains backing without asserting
+semantic result disposal. Transition alone returns the same unclaimed owner.
+The owning success and terminal-prewrite refusal selectors passed locally;
+this route remains private, and
+the recovered terminal evidence still cannot recreate a physical Report.
+
+Public multi-turn entry, public Report delivery and physical owner restoration
 after restart remain
 unfinished. This bounded local result is not completion of the
 public owned-Agent lifecycle criterion.

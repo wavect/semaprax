@@ -1,5 +1,5 @@
 //! Turn-one Reduce reservation after actual continued cleanup settlement.
-//! This stops at the durable reservation ACK; it neither evaluates nor Steps.
+//! The ACK holder evaluates the real reducer but does not write a Step row.
 use super::*;
 use crate::live_invocation::source_journal::SourceStageRole;
 use crate::resumable_effects::owned_frame::v2::{compile_owned_reduce_v2, CheckedOwnedReduceV2};
@@ -268,5 +268,182 @@ impl LiveContinuedReduceReservedV8<'_> {
         &self,
     ) -> &TargetAccounting {
         self.owner.accounting()
+    }
+}
+
+use crate::interpreter::resumable::owned_frame::registered_stage::reduce::{
+    evaluate_live_executed_owned_reduce_v2, CheckedLiveOwnedReduceStageFactsV8,
+    LiveReduceEvaluationFailureV8, LiveReduceEvaluationGuardV8, StagedExecutedOwnedReduceV2,
+};
+
+impl LiveContinuedReduceReservedV8<'_> {
+    fn validate_evaluation_current(&self) -> Result<(), SourceJournalError> {
+        let result = (|| {
+            let journal = self.owner.journal();
+            self.witness.validate_predecessor(
+                journal,
+                self.owner.sequence(),
+                self.owner.acknowledged_bytes(),
+                &self.owner.selected,
+            )?;
+            self.witness.validate_current_session(&self.session)?;
+            self.owner.hold()?.validate_continued_spent_reduce_guard(
+                journal,
+                self.session.sequence(),
+                self.session.acknowledged_bytes(),
+            )?;
+            self.owner.owner.validate_spent_reduce_context(
+                self.session.sequence(),
+                self.session.acknowledged_bytes(),
+            )?;
+            self.witness.validate_current_session(&self.session)
+        })();
+        result.inspect_err(|_| self.owner.journal().quarantine())
+    }
+}
+struct ContinuedReduceEvaluationPermitV8<'p, 'j> {
+    reserved: &'p LiveContinuedReduceReservedV8<'j>,
+}
+impl LiveReduceEvaluationGuardV8 for ContinuedReduceEvaluationPermitV8<'_, '_> {
+    fn validate_current(&self) -> Result<(), SourceJournalError> {
+        self.reserved.validate_evaluation_current()
+    }
+    fn fuel(&self) -> Result<usize, SourceJournalError> {
+        let (_, execution) = self
+            .reserved
+            .owner
+            .journal()
+            .context()
+            .ready_runtime()
+            .ok_or(SourceJournalError::Binding)?;
+        let EntryV8::Ordinary(SourceJournalEntry::StageReservation {
+            turn,
+            attempt: Some(0),
+            role: SourceStageRole::Reduce,
+            fuel,
+        }) = &self.reserved.owner.selected
+        else {
+            return Err(SourceJournalError::Binding);
+        };
+        if *turn == 0 || *fuel != execution.evaluation_fuel() {
+            return Err(SourceJournalError::Binding);
+        }
+        Ok(*fuel)
+    }
+    fn validate_plan(&self, plan: &CheckedOwnedReduceV2) -> Result<(), SourceJournalError> {
+        self.validate_current()?;
+        let (_, execution) = self
+            .reserved
+            .owner
+            .journal()
+            .context()
+            .ready_runtime()
+            .ok_or(SourceJournalError::Binding)?;
+        if plan.binding() != execution.wait().binding()
+            || !plan.helper().same_helper(execution.wait().helper())
+        {
+            return Err(SourceJournalError::Binding);
+        }
+        Ok(())
+    }
+}
+pub(in crate::live_invocation::source_journal::owned_wait_v8) struct LiveContinuedEvaluatedReduceV8<
+    'j,
+> {
+    staged: StagedExecutedOwnedReduceV2<'j>,
+    reserved: LiveContinuedReduceReservedV8<'j>,
+}
+pub(in crate::live_invocation::source_journal::owned_wait_v8) enum LiveContinuedReduceEvaluationFailureV8<
+    'j,
+> {
+    Before {
+        _owner: LiveContinuedReduceReservedV8<'j>,
+        error: SourceJournalError,
+    },
+    Evaluation {
+        _owner: LiveReduceEvaluationFailureV8<'j>,
+        _reserved: LiveContinuedReduceReservedV8<'j>,
+    },
+    After {
+        _owner: LiveContinuedEvaluatedReduceV8<'j>,
+        error: SourceJournalError,
+    },
+}
+impl<'j> LiveContinuedReduceReservedV8<'j> {
+    /// Only this consuming ACK holder can move the genuine Outcome into the
+    /// existing reducer. Its selected row alone has no such authority.
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn evaluate(
+        mut self,
+    ) -> Result<LiveContinuedEvaluatedReduceV8<'j>, LiveContinuedReduceEvaluationFailureV8<'j>>
+    {
+        if let Err(error) = self.validate_live() {
+            return Err(LiveContinuedReduceEvaluationFailureV8::Before {
+                _owner: self,
+                error,
+            });
+        }
+        let executed = match self.owner.owner.take_reduce_outcome() {
+            Ok(owner) => owner,
+            Err(error) => {
+                self.owner.journal().quarantine();
+                return Err(LiveContinuedReduceEvaluationFailureV8::Before {
+                    _owner: self,
+                    error,
+                });
+            }
+        };
+        let permit = ContinuedReduceEvaluationPermitV8 { reserved: &self };
+        let staged =
+            match evaluate_live_executed_owned_reduce_v2(executed, &self.owner.plan, &permit) {
+                Ok(staged) => staged,
+                Err(owner) => {
+                    self.owner.journal().quarantine();
+                    return Err(LiveContinuedReduceEvaluationFailureV8::Evaluation {
+                        _owner: owner,
+                        _reserved: self,
+                    });
+                }
+            };
+        let evaluated = LiveContinuedEvaluatedReduceV8 {
+            staged,
+            reserved: self,
+        };
+        if let Err(error) = evaluated.validate_live() {
+            return Err(LiveContinuedReduceEvaluationFailureV8::After {
+                _owner: evaluated,
+                error,
+            });
+        }
+        Ok(evaluated)
+    }
+}
+impl LiveContinuedEvaluatedReduceV8<'_> {
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_live(
+        &self,
+    ) -> Result<(), SourceJournalError> {
+        self.reserved.validate_evaluation_current()
+    }
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn accounting(
+        &self,
+    ) -> &TargetAccounting {
+        self.reserved.accounting()
+    }
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn stage_facts(
+        &self,
+    ) -> Result<CheckedLiveOwnedReduceStageFactsV8, SourceJournalError> {
+        self.validate_live()?;
+        let (_, execution) = self
+            .reserved
+            .owner
+            .journal()
+            .context()
+            .ready_runtime()
+            .ok_or(SourceJournalError::Binding)?;
+        let facts = self
+            .staged
+            .live_stage_facts(execution.wait())
+            .map_err(|_| SourceJournalError::Binding)?;
+        self.validate_live()?;
+        Ok(facts)
     }
 }

@@ -161,7 +161,13 @@ fn status(failure: &OwnedFrameFailure) -> Result<Json, Diagnostic> {
 mod tests;
 
 use super::super::effect::ExecutedOwnedAgentTurnV2;
-use crate::live_invocation::source_journal::{LiveReduceEvaluationPermitV8, SourceJournalError};
+use crate::live_invocation::source_journal::SourceJournalError;
+
+pub(crate) trait LiveReduceEvaluationGuardV8 {
+    fn validate_current(&self) -> Result<(), SourceJournalError>;
+    fn fuel(&self) -> Result<usize, SourceJournalError>;
+    fn validate_plan(&self, plan: &CheckedOwnedReduceV2) -> Result<(), SourceJournalError>;
+}
 
 /// Every failure preserves the physical owner at the actual boundary. A guard
 /// error is separate from the source's already selected sticky failure.
@@ -184,7 +190,7 @@ pub(crate) enum LiveReduceEvaluationFailureV8<'j> {
 pub(crate) fn evaluate_live_executed_owned_reduce_v2<'j>(
     executed: ExecutedOwnedAgentTurnV2<'j>,
     plan: &CheckedOwnedReduceV2,
-    permit: &LiveReduceEvaluationPermitV8<'_, 'j>,
+    permit: &impl LiveReduceEvaluationGuardV8,
 ) -> Result<StagedExecutedOwnedReduceV2<'j>, LiveReduceEvaluationFailureV8<'j>> {
     let fuel = match permit.validate_plan(plan).and_then(|_| permit.fuel()) {
         Ok(fuel) => fuel,

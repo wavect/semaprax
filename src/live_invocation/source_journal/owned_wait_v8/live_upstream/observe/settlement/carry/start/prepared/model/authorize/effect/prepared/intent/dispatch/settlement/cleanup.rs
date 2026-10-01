@@ -463,4 +463,53 @@ impl<'j> SettledContinuedDecisionCleanupV8<'j> {
     ) -> Result<bool, SourceJournalError> {
         Ok(self.owner.owner.owner.actual()?.continued_outcome_minted())
     }
+    fn take_reduce_outcome(
+        &mut self,
+    ) -> Result<crate::interpreter::resumable::owned_frame::registered_stage::effect::ExecutedOwnedAgentTurnV2<'j>, SourceJournalError>{
+        let completed = &mut self
+            .owner
+            .owner
+            .owner
+            .owner
+            .phase
+            .owner
+            .phase
+            .owner
+            .owner
+            .authorization
+            .completed;
+        let ModelOwnerV8::Resumed(resumed) = &mut completed.owner else {
+            return Err(SourceJournalError::Order);
+        };
+        resumed.owner.take_continued_reduce_outcome()
+    }
+    fn validate_spent_reduce_context(
+        &self,
+        sequence: usize,
+        bytes: usize,
+    ) -> Result<(), SourceJournalError> {
+        let completed = &self
+            .owner
+            .owner
+            .owner
+            .owner
+            .phase
+            .owner
+            .phase
+            .owner
+            .owner
+            .authorization
+            .completed;
+        let ModelOwnerV8::Resumed(resumed) = &completed.owner else {
+            return Err(SourceJournalError::Order);
+        };
+        resumed.owner.validate_spent_reduce_context(
+            sequence,
+            bytes,
+            completed
+                .proposal
+                .as_ref()
+                .ok_or(SourceJournalError::Binding)?,
+        )
+    }
 }

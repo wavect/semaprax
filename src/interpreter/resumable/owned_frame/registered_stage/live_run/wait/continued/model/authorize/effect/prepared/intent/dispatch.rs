@@ -216,4 +216,20 @@ impl<'j> LiveContinuedDispatchedEffectV8<'j> {
     pub(crate) fn outcome_minted(&self) -> bool {
         matches!(self.outcome.as_deref(), Some(Ok(_)))
     }
+    /// The charged Reduce owner consumes the physical Outcome once. Failed
+    /// outcomes stay in this holder and cannot be converted into an owner.
+    pub(crate) fn take_reduce_outcome(
+        &mut self,
+    ) -> Result<ExecutedOwnedAgentTurnV2<'j>, SourceJournalError> {
+        if !self.outcome_minted() {
+            return Err(SourceJournalError::Order);
+        }
+        match *self.outcome.take().ok_or(SourceJournalError::Order)? {
+            Ok(owner) => Ok(owner),
+            Err(failure) => {
+                self.outcome = Some(Box::new(Err(failure)));
+                Err(SourceJournalError::Order)
+            }
+        }
+    }
 }

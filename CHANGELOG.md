@@ -8,6 +8,12 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Consume the real continued Outcome once after the turn-1 Reduce reservation
+  ACK and run the existing checked reducer under the retained spent hold
+  (#330). The private real-chain selector passed 1/1 with full Step facts,
+  unchanged accounting, one host call, and no synthetic Step row. Durable Step
+  ACK, public entry, and restart recovery remain open.
+
 - Route reference-service task deletion through checked
   `delete_is_committed(0)` before candidate state or snapshot commit (#336).
   Generated-source parity, denial, evaluator failure, and nonmutation passed

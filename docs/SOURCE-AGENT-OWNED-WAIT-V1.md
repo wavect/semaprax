@@ -853,10 +853,14 @@ positive-turn `StageReservation(role Reduce)` with the retained typed fuel. Its
 fixed same-file ACK moves the existing hold from `CleanupSettled` to
 `SpentReduce` exactly once, preserving the turn-1 lineage, owner, MAC cursor
 and accounting. Prewrite, ACK and post-ACK failures retain their unique reached
-owner and quarantine uncertainty; receipt bytes never grant this authority. It
-stops before reducer evaluation and Step. The focused real-chain selector passed
-1/1 locally, asserting the one durable reservation row with no second host call
-or cleanup observation.
+owner and quarantine uncertainty; receipt bytes never grant this authority.
+The reserved holder now consumes the actual executed Outcome once into the
+existing checked reducer. A fresh spent-hold, source, policy, clock, and
+cancellation guard remains valid after that physical owner moves. Pre-entry,
+evaluation, and post-entry failures retain their reached owners and quarantine
+uncertainty. The private real-chain selector passed 1/1 locally, reaching full
+Step facts with unchanged accounting, one durable Reduce reservation row, and
+no second host call or cleanup observation. It writes no Step row.
 
 Continued Step, terminal publication, public multi-turn entry and restart
 recovery remain unfinished. This bounded local result is not completion of the

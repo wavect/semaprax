@@ -288,6 +288,65 @@ impl<'j> ContinuedResumedWaitV8<'j> {
                 ContinuedEffectOutcomeV8::Dispatch(owner, _)
             )) if owner.outcome_minted())
     }
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn take_continued_reduce_outcome(
+        &mut self,
+    ) -> Result<crate::interpreter::resumable::owned_frame::registered_stage::effect::ExecutedOwnedAgentTurnV2<'j>, SourceJournalError>{
+        let ContinuedResumeOutcomeV8::Authorization(ContinuedAuthorizationOutcomeV8::Effect(
+            ContinuedEffectOutcomeV8::Dispatch(owner, _),
+        )) = &mut self.outcome
+        else {
+            return Err(SourceJournalError::Order);
+        };
+        owner
+            .take_reduce_outcome()
+            .inspect_err(|_| self.lineage.journal().quarantine())
+    }
+    /// Remains valid after the physical Outcome moves into Reduce. No old
+    /// cleanup cursor or in-place Outcome field is used as authority.
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_spent_reduce_context(
+        &self,
+        sequence: usize,
+        bytes: usize,
+        proposal: &CheckedOwnedWaitProposalV8,
+    ) -> Result<(), SourceJournalError> {
+        let journal = self.lineage.journal();
+        let result = (|| {
+            let origin = self.lineage.step.origin();
+            origin
+                .hold
+                .validate_continued_spent_reduce_guard(journal, sequence, bytes)?;
+            let held = journal.hold()?;
+            let (runtime, execution) = journal
+                .context()
+                .ready_runtime()
+                .ok_or(SourceJournalError::Binding)?;
+            let plan = plan_owned_effect_v8(
+                runtime,
+                execution,
+                &held.registration().expected_facts().scope,
+                proposal,
+            )
+            .map_err(|_| SourceJournalError::Binding)?;
+            if !origin.policy.allows(plan.operation().effect_id()) {
+                return Err(SourceJournalError::Binding);
+            }
+            let ordinary = journal.context().ordinary();
+            check_clock_v8(
+                &held,
+                sequence,
+                bytes,
+                origin.cancellation,
+                origin.clock,
+                ordinary.clock_domain(),
+                ordinary.initial_millis(),
+                ordinary.deadline_millis(),
+            )?;
+            origin
+                .hold
+                .validate_continued_spent_reduce_guard(journal, sequence, bytes)
+        })();
+        result.inspect_err(|_| journal.quarantine())
+    }
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn release_continued_decision(
         &mut self,
         session: &AppendSessionV8<'j>,

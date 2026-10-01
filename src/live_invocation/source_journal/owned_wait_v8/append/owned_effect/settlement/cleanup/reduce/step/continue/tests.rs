@@ -397,6 +397,24 @@ fn owned_continue_driver_dispatches_next_turn_model_once_and_records_settlement(
             reserved
                 .validate_live()
                 .unwrap_or_else(|_| panic!("turn-1 Reduce reservation owner"));
+            let accounting = *reserved.accounting();
+            let evaluated = reserved
+                .evaluate()
+                .unwrap_or_else(|_| panic!("actual turn-1 physical reducer evaluation"));
+            let facts = evaluated
+                .stage_facts()
+                .unwrap_or_else(|_| panic!("actual turn-1 reducer facts"));
+            assert!(
+                facts.step().is_some(),
+                "the real reducer produced a full Step"
+            );
+            assert!(facts.consumed() <= facts.allowance());
+            assert_eq!(*evaluated.accounting(), accounting);
+            assert_eq!(
+                journal.begin_session().unwrap().sequence(),
+                reduce_sequence + 1,
+                "physical Reduce evaluation cannot invent a Step ACK"
+            );
             assert_eq!(
                 host.calls, 1,
                 "Reduce reservation never redispatches the effect host"
@@ -413,7 +431,7 @@ fn owned_continue_driver_dispatches_next_turn_model_once_and_records_settlement(
         );
             assert!(weak.iter().any(|owner| owner.strong_count() == 1));
 
-            drop(reserved);
+            drop(evaluated);
             assert!(weak.iter().all(|owner| owner.upgrade().is_none()));
         })
     };

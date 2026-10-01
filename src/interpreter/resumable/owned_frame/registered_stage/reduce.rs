@@ -399,7 +399,7 @@ mod tests;
 mod live_stage;
 pub(crate) use live_stage::{
     evaluate_live_executed_owned_reduce_v2, CheckedLiveOwnedReduceStageFactsV8,
-    LiveReduceEvaluationFailureV8,
+    LiveReduceEvaluationFailureV8, LiveReduceEvaluationGuardV8,
 };
 
 pub(crate) use physical_step::{

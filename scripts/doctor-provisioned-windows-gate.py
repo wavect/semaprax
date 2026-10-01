@@ -42,8 +42,12 @@ EXPECTED_TESTS = (
     "doctor::windows_confinement::primitive::tests::binding::windows_runtime_signed_image_refuses_writable_mapping_after_writer_closes",
     "doctor::windows_confinement::primitive::tests::binding::windows_runtime_dropped_child_releases_image_and_process_handles",
     "doctor::windows_confinement::primitive::tests::binding::windows_runtime_signed_image_refuses_retained_writable_section_without_view",
+    "doctor::windows_confinement::primitive::tests::binding::windows_runtime_retained_writable_section_refusals_settle_handles_and_scratch",
     "doctor::windows_confinement::primitive::tests::binding::windows_runtime_child_inherits_only_declared_standard_handles",
     "doctor::windows_confinement::carrier::tests::windows_runtime_authenticated_request_bundle_carriers_are_read_only",
+    "doctor::windows_confinement::carrier::tests::windows_runtime_authenticated_carrier_rejects_invalid_artifacts_without_handles",
+    "doctor::windows_confinement::carrier::tests::windows_runtime_authenticated_carrier_repeated_create_drop_settles_one_handle",
+    "doctor::windows_confinement::carrier::tests::windows_runtime_authenticated_carriers_settle_independent_live_handles",
 )
 REPO_ROOT = Path(__file__).resolve().parents[1]
 TERMINATION_TIMEOUT_SECONDS = 30

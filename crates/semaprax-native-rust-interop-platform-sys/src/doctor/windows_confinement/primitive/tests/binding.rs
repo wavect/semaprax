@@ -327,6 +327,51 @@ fn windows_runtime_signed_image_refuses_retained_writable_section_without_view()
 
 #[test]
 #[ignore = "requires the explicitly provisioned Windows runtime gate"]
+fn windows_runtime_retained_writable_section_refusals_settle_handles_and_scratch() {
+    use windows_sys::Win32::System::Memory::{CreateFileMappingW, PAGE_READWRITE};
+
+    let fixture = Fixture::new();
+    let capsule = test_capsule_body();
+    let before_mapping = current_process_handle_count();
+    let file = OpenOptions::new()
+        .read(true)
+        .write(true)
+        .open(&fixture.executable)
+        .unwrap();
+    // Keep only the hostile section capability. This deliberately does not
+    // claim to exclude a later writable view or mutation; it checks that each
+    // refusal settles the primitive's own temporary handles and scratch state.
+    let mapping = unsafe {
+        CreateFileMappingW(
+            file.as_raw_handle(),
+            std::ptr::null(),
+            PAGE_READWRITE,
+            0,
+            0,
+            std::ptr::null(),
+        )
+    };
+    assert!(!mapping.is_null());
+    let mapping = Handle::new(mapping);
+    drop(file);
+
+    let baseline = current_process_handle_count();
+    for _ in 0..4 {
+        assert_refused(&fixture, &capsule, ImageRole::Worker);
+        assert_eq!(
+            current_process_handle_count(),
+            baseline,
+            "retained hostile section leaves no confinement setup handles behind"
+        );
+        assert_parent_empty(&fixture.scratch);
+    }
+    drop(mapping);
+    drop(image::HeldImage::acquire(&fixture.executable, verified(&capsule).worker()).unwrap());
+    assert_eq!(current_process_handle_count(), before_mapping);
+}
+
+#[test]
+#[ignore = "requires the explicitly provisioned Windows runtime gate"]
 fn windows_runtime_child_inherits_only_declared_standard_handles() {
     use windows_sys::Win32::Foundation::{SetHandleInformation, HANDLE_FLAG_INHERIT};
     use windows_sys::Win32::Storage::FileSystem::FILE_FLAG_DELETE_ON_CLOSE;

@@ -159,6 +159,26 @@ mod tests {
     use windows_sys::Win32::System::Memory::{MapViewOfFile, FILE_MAP_WRITE};
     use windows_sys::Win32::System::Threading::GetProcessHandleCount;
 
+    fn artifact(bytes: &[u8]) -> Artifact {
+        Artifact {
+            length: bytes.len() as u64,
+            digest: Sha256::digest(bytes).into(),
+        }
+    }
+
+    fn assert_read_only(carrier: &AuthenticatedCarrier) {
+        // SAFETY: the carrier retains an inheritable mapping handle that was
+        // duplicated with SECTION_MAP_READ only. A writable view is the
+        // hostile operation this test requires the kernel to refuse.
+        let writable =
+            unsafe { MapViewOfFile(carrier.child_handle(), FILE_MAP_WRITE, 0, 0, carrier.length) };
+        assert!(
+            writable.Value.is_null(),
+            "downscoped inheritable carrier mapped writable"
+        );
+        assert!(carrier.matches_artifact());
+    }
+
     fn handle_count() -> u32 {
         let mut count = 0;
         // SAFETY: the pseudo handle names this process and `count` is writable.
@@ -174,14 +194,8 @@ mod tests {
     fn windows_runtime_authenticated_request_bundle_carriers_are_read_only() {
         let request = b"SPXDWK1\0request-carrier";
         let bundle: Vec<u8> = (0..257).map(|index| (index & 0xff) as u8).collect();
-        let request_artifact = Artifact {
-            length: request.len() as u64,
-            digest: Sha256::digest(request).into(),
-        };
-        let bundle_artifact = Artifact {
-            length: bundle.len() as u64,
-            digest: Sha256::digest(&bundle).into(),
-        };
+        let request_artifact = artifact(request);
+        let bundle_artifact = artifact(&bundle);
         let mut forged = request_artifact;
         forged.digest[0] ^= 1;
         assert!(AuthenticatedCarrier::create(request, forged).is_err());
@@ -190,20 +204,98 @@ mod tests {
         let request = AuthenticatedCarrier::create(request, request_artifact).unwrap();
         let bundle = AuthenticatedCarrier::create(&bundle, bundle_artifact).unwrap();
         for carrier in [&request, &bundle] {
-            // SAFETY: the carrier retains an inheritable mapping handle that
-            // was duplicated with SECTION_MAP_READ only. A writable view is
-            // the hostile operation this test requires the kernel to refuse.
-            let writable = unsafe {
-                MapViewOfFile(carrier.child_handle(), FILE_MAP_WRITE, 0, 0, carrier.length)
-            };
-            assert!(
-                writable.Value.is_null(),
-                "downscoped inheritable carrier mapped writable"
-            );
-            assert!(carrier.matches_artifact());
+            assert_read_only(carrier);
         }
         drop(bundle);
         drop(request);
         assert_eq!(handle_count(), baseline);
+    }
+
+    #[test]
+    #[ignore = "requires the explicitly provisioned Windows runtime gate"]
+    fn windows_runtime_authenticated_carrier_rejects_invalid_artifacts_without_handles() {
+        let bytes = b"authenticated-carrier";
+        let baseline = handle_count();
+        let cases = [
+            (&b""[..], artifact(b"")),
+            (
+                &bytes[..],
+                Artifact {
+                    length: bytes.len() as u64 + 1,
+                    digest: Sha256::digest(bytes).into(),
+                },
+            ),
+            (
+                &bytes[..],
+                Artifact {
+                    length: bytes.len() as u64,
+                    digest: [0x55; 32],
+                },
+            ),
+            (
+                &bytes[..],
+                Artifact {
+                    length: MAX_ARTIFACT_BYTES + 1,
+                    digest: Sha256::digest(bytes).into(),
+                },
+            ),
+        ];
+        for (input, expected) in cases {
+            assert!(AuthenticatedCarrier::create(input, expected).is_err());
+            assert_eq!(
+                handle_count(),
+                baseline,
+                "invalid carrier artifact created or leaked a mapping handle"
+            );
+        }
+    }
+
+    #[test]
+    #[ignore = "requires the explicitly provisioned Windows runtime gate"]
+    fn windows_runtime_authenticated_carrier_repeated_create_drop_settles_one_handle() {
+        let baseline = handle_count();
+        for length in [1usize, 257, 4096] {
+            let bytes: Vec<u8> = (0..length).map(|index| (index & 0xff) as u8).collect();
+            for _ in 0..4 {
+                let carrier = AuthenticatedCarrier::create(&bytes, artifact(&bytes)).unwrap();
+                assert_eq!(
+                    handle_count(),
+                    baseline + 1,
+                    "carrier retains exactly its downscoped inheritable mapping handle"
+                );
+                assert_read_only(&carrier);
+                drop(carrier);
+                assert_eq!(
+                    handle_count(),
+                    baseline,
+                    "carrier drop settles its retained mapping handle"
+                );
+            }
+        }
+    }
+
+    #[test]
+    #[ignore = "requires the explicitly provisioned Windows runtime gate"]
+    fn windows_runtime_authenticated_carriers_settle_independent_live_handles() {
+        let baseline = handle_count();
+        let payloads = [&b"one"[..], &b"two-carrier"[..], &b"three-carrier"[..]];
+        let carriers: Vec<_> = payloads
+            .iter()
+            .map(|bytes| AuthenticatedCarrier::create(bytes, artifact(bytes)).unwrap())
+            .collect();
+        assert_eq!(
+            handle_count(),
+            baseline + carriers.len() as u32,
+            "each independently authenticated carrier owns one retained mapping handle"
+        );
+        for carrier in &carriers {
+            assert_read_only(carrier);
+        }
+        drop(carriers);
+        assert_eq!(
+            handle_count(),
+            baseline,
+            "independent carrier drops settle every retained mapping handle"
+        );
     }
 }

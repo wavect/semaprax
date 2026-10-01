@@ -296,6 +296,7 @@ impl LiveContinuedReduceReservedV8<'_> {
                 self.session.sequence(),
                 self.session.acknowledged_bytes(),
                 false,
+                false,
             )?;
             self.witness.validate_current_session(&self.session)
         })();
@@ -453,8 +454,10 @@ impl LiveContinuedEvaluatedReduceV8<'_> {
 /// Step ACK. No cleanup or result-move authority is inferred from the row.
 pub(in crate::live_invocation::source_journal::owned_wait_v8) struct LiveContinuedStagedStepV8<'j> {
     evaluated: LiveContinuedEvaluatedReduceV8<'j>,
+    facts: CheckedLiveOwnedReduceStageFactsV8,
     ack: Option<crate::live_invocation::source_journal::owned_wait_v8::append::owned_effect::VerifiedOwnedStepSuccessorV8<'j>>,
     session: Option<AppendSessionV8<'j>>,
+    cleanup_ack: Option<(AppendSessionV8<'j>, crate::live_invocation::source_journal::owned_wait_v8::append::owned_effect::VerifiedOwnedStepSuccessorV8<'j>)>,
 }
 
 impl<'j> LiveContinuedEvaluatedReduceV8<'j> {
@@ -493,7 +496,7 @@ impl<'j> LiveContinuedEvaluatedReduceV8<'j> {
                 crate::live_invocation::source_journal::owned_wait_v8::reduce_wire::ReduceRecipeV8::Step,
                 &serde_json::json!({"scope":scope,"binding":plan,"plan":plan,"turn":turn,"attempt":attempt,"stage_reservation":reservation,"step":step}),
             )?;
-            Ok(EntryV8::Owned(OwnedBodyV8::OwnedReduceStaged {
+            let row = EntryV8::Owned(OwnedBodyV8::OwnedReduceStaged {
                 turn: *turn,
                 attempt: *attempt,
                 plan: plan.into(),
@@ -503,17 +506,18 @@ impl<'j> LiveContinuedEvaluatedReduceV8<'j> {
                 step_digest: digest,
                 consumed: u64::try_from(facts.consumed())
                     .map_err(|_| SourceJournalError::Capacity)?,
-            }))
+            });
+            Ok((facts, row))
         })();
-        let selected = match checked {
-            Ok(row) => row,
+        let (facts, selected) = match checked {
+            Ok(pair) => pair,
             Err(error) => {
                 self.reserved.owner.journal().quarantine();
                 return Err((self, error));
             }
         };
         Ok(crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect::authorization::step::LiveOwnedStepAppendV8::continued(
-            LiveContinuedStagedStepV8 { evaluated: self, ack: None, session: None }, selected,
+            LiveContinuedStagedStepV8 { evaluated: self, facts, ack: None, session: None, cleanup_ack: None }, selected,
         ))
     }
 }
@@ -527,6 +531,9 @@ impl<'j> LiveContinuedStagedStepV8<'j> {
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn cursor(
         &self,
     ) -> (usize, usize) {
+        if let Some((session, _)) = &self.cleanup_ack {
+            return (session.sequence(), session.acknowledged_bytes());
+        }
         self.session.as_ref().map_or(
             (
                 self.evaluated.reserved.session.sequence(),
@@ -539,13 +546,16 @@ impl<'j> LiveContinuedStagedStepV8<'j> {
         &self,
     ) -> Result<(), SourceJournalError> {
         let result = (|| {
-            if let (Some(w), Some(s)) = (&self.ack, &self.session) {
+            if let Some((s, w)) = &self.cleanup_ack {
+                w.validate_current_session(s)?;
+                self.evaluated.reserved.owner.owner.validate_spent_reduce_context(s.sequence(), s.acknowledged_bytes(), true, true)
+            } else if let (Some(w), Some(s)) = (&self.ack, &self.session) {
                 w.validate_current_session(s)?;
                 self.evaluated
                     .reserved
                     .owner
                     .owner
-                    .validate_spent_reduce_context(s.sequence(), s.acknowledged_bytes(), true)
+                    .validate_spent_reduce_context(s.sequence(), s.acknowledged_bytes(), true, false)
             } else {
                 self.evaluated.validate_live()
             }
@@ -555,12 +565,13 @@ impl<'j> LiveContinuedStagedStepV8<'j> {
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_new_prefix(
         &self,
         session: &AppendSessionV8<'_>,
+        incurred: bool,
     ) -> Result<(), SourceJournalError> {
         self.evaluated
             .reserved
             .owner
             .owner
-            .validate_spent_reduce_context(session.sequence(), session.acknowledged_bytes(), true)
+            .validate_spent_reduce_context(session.sequence(), session.acknowledged_bytes(), true, incurred)
     }
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn hold(
         &self,
@@ -571,17 +582,78 @@ impl<'j> LiveContinuedStagedStepV8<'j> {
         mut self,
         session: AppendSessionV8<'j>,
         witness: crate::live_invocation::source_journal::owned_wait_v8::append::owned_effect::VerifiedOwnedStepSuccessorV8<'j>,
+        selected: &EntryV8,
     ) -> Result<Self, (Self, SourceJournalError)> {
-        if self.ack.is_some() || self.session.is_some() {
+        if self.cleanup_ack.is_some() {
             self.journal().quarantine();
             return Err((self, SourceJournalError::Order));
         }
-        self.ack = Some(witness);
-        self.session = Some(session);
+        if self.ack.is_none() && self.session.is_none()
+            && matches!(selected, EntryV8::Owned(OwnedBodyV8::OwnedReduceStaged { .. })) {
+            self.ack = Some(witness);
+            self.session = Some(session);
+        } else if self.ack.is_some() && self.session.is_some()
+            && matches!(selected, EntryV8::Owned(OwnedBodyV8::OwnedReduceCleanupStarted { .. })) {
+            self.cleanup_ack = Some((session, witness));
+        } else {
+            self.journal().quarantine();
+            return Err((self, SourceJournalError::Order));
+        }
         if let Err(error) = self.validate_live() {
             self.journal().quarantine();
             return Err((self, error));
         }
         Ok(self)
+    }
+
+    /// Selects only the compiler's active cleanup vector while retaining the
+    /// genuine staged reducer. Physical cleanup awaits this row's ACK.
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn prepare_cleanup(
+        self,
+    ) -> Result<crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect::authorization::step::LiveOwnedStepAppendV8<'j>, (Self, SourceJournalError)> {
+        let selected = (|| {
+            self.validate_live()?;
+            let staged = self.ack.as_ref().ok_or(SourceJournalError::Order)?;
+            if self.cleanup_ack.is_some() {
+                return Err(SourceJournalError::Order);
+            }
+            let facts = &self.facts;
+            let staged_sequence = u32::try_from(staged.sequence().checked_sub(1).ok_or(SourceJournalError::Order)?)
+                .map_err(|_| SourceJournalError::Capacity)?;
+            let reservation = u32::try_from(self.evaluated.reserved.session.sequence().checked_sub(1).ok_or(SourceJournalError::Order)?)
+                .map_err(|_| SourceJournalError::Capacity)?;
+            let EntryV8::Ordinary(SourceJournalEntry::StageReservation { turn, attempt: Some(attempt), role: SourceStageRole::Reduce, .. }) = &self.evaluated.reserved.owner.selected else {
+                return Err(SourceJournalError::Binding);
+            };
+            let (_, execution) = self.journal().context().ready_runtime().ok_or(SourceJournalError::Binding)?;
+            let plan = execution.wait().binding();
+            let held = self.journal().hold()?;
+            let s = &held.registration().expected_facts().scope;
+            let scope = serde_json::json!({"program_root":s.program_root(),"invocation":s.invocation_id(),"policy_epoch":s.policy_epoch()});
+            let raw = facts.cleanup_basis(Some(staged_sequence)).map_err(|_| SourceJournalError::Binding)?;
+            let digest = crate::live_invocation::source_journal::owned_wait_v8::reduce_wire::recipe_digest(
+                crate::live_invocation::source_journal::owned_wait_v8::reduce_wire::ReduceRecipeV8::Basis,
+                &serde_json::json!({"scope":scope,"binding":plan,"plan":plan,"turn":turn,"attempt":attempt,"stage_reservation":reservation,"basis":raw}),
+            )?;
+            let basis = serde_json::from_value(raw).map_err(|_| SourceJournalError::Binding)?;
+            Ok(EntryV8::Owned(OwnedBodyV8::OwnedReduceCleanupStarted {
+                turn: *turn,
+                attempt: *attempt,
+                plan: plan.into(),
+                stage_reservation: reservation,
+                effect_cleanup_settled: facts.effect_settled(),
+                basis,
+                basis_digest: digest,
+                consumed: u64::try_from(facts.consumed()).map_err(|_| SourceJournalError::Capacity)?,
+                operations: facts.operations().clone(),
+            }))
+        })();
+        match selected {
+            Ok(row) => Ok(crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect::authorization::step::LiveOwnedStepAppendV8::continued(self, row)),
+            Err(error) => {
+                self.journal().quarantine();
+                Err((self, error))
+            }
+        }
     }
 }

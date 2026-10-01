@@ -309,6 +309,7 @@ impl<'j> ContinuedResumedWaitV8<'j> {
         bytes: usize,
         proposal: &CheckedOwnedWaitProposalV8,
         step: bool,
+        incurred: bool,
     ) -> Result<(), SourceJournalError> {
         let journal = self.lineage.journal();
         let result = (|| {
@@ -336,16 +337,18 @@ impl<'j> ContinuedResumedWaitV8<'j> {
                 return Err(SourceJournalError::Binding);
             }
             let ordinary = journal.context().ordinary();
-            check_clock_v8(
-                &held,
-                sequence,
-                bytes,
-                origin.cancellation,
-                origin.clock,
-                ordinary.clock_domain(),
-                ordinary.initial_millis(),
-                ordinary.deadline_millis(),
-            )?;
+            if !incurred {
+                check_clock_v8(
+                    &held,
+                    sequence,
+                    bytes,
+                    origin.cancellation,
+                    origin.clock,
+                    ordinary.clock_domain(),
+                    ordinary.initial_millis(),
+                    ordinary.deadline_millis(),
+                )?;
+            }
             if step {
                 origin.hold.validate_step_guard(journal, sequence, bytes)
             } else {

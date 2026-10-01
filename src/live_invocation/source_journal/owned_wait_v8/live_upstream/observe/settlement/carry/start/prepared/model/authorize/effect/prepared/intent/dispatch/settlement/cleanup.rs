@@ -488,6 +488,7 @@ impl<'j> SettledContinuedDecisionCleanupV8<'j> {
         sequence: usize,
         bytes: usize,
         step: bool,
+        incurred: bool,
     ) -> Result<(), SourceJournalError> {
         let completed = &self
             .owner
@@ -512,6 +513,7 @@ impl<'j> SettledContinuedDecisionCleanupV8<'j> {
                 .as_ref()
                 .ok_or(SourceJournalError::Binding)?,
             step,
+            incurred,
         )
     }
 }

@@ -158,7 +158,7 @@ fn owned_continue_driver_advances_one_real_step_into_the_next_turn() {
         assert!(weak.iter().all(|owner| owner.upgrade().is_none()));
     });
 }
-fn continued_reduce_chain_step_ack(refuse: bool) {
+fn continued_reduce_chain_step_ack(fault: u8) {
     let run = move || {
         with_moved(|journal, moved, weak, _, _| {
             let observed = advance_live_owned_continue_v8(journal, moved)
@@ -424,7 +424,7 @@ fn continued_reduce_chain_step_ack(refuse: bool) {
                 }) if *consumed == u64::try_from(facts.consumed()).unwrap()));
             let before = journal.lease.try_borrow_mut().unwrap().read().unwrap();
             let sequence = journal.begin_session().unwrap().sequence();
-            if refuse {
+            if fault == 1 {
                 #[cfg(unix)]
                 journal
                     .lease
@@ -489,7 +489,38 @@ fn continued_reduce_chain_step_ack(refuse: bool) {
                     [1, 0],
                     "ACKed holder retains the carried State and retires the prior Outcome"
                 );
-                drop(staged);
+                let cleanup = staged.prepare_cleanup().unwrap_or_else(|_| panic!("real turn-1 cleanup basis"));
+                assert!(matches!(cleanup.selected_row(), EntryV8::Owned(crate::live_invocation::source_journal::owned_wait_v8::model::OwnedBodyV8::OwnedReduceCleanupStarted {
+                    turn: 1, attempt: 0, consumed, operations, ..
+                }) if *consumed == u64::try_from(facts.consumed()).unwrap() && operations == facts.operations()));
+                let cleanup_before = journal.lease.try_borrow_mut().unwrap().read().unwrap();
+                if fault == 2 {
+                    #[cfg(unix)]
+                    journal.lease.try_borrow_mut().unwrap().test_fail_before_write(sequence + 2);
+                    #[cfg(not(unix))]
+                    unreachable!("fault injection is Unix-only");
+                    let failed = journal.begin_session().unwrap().append_owned_step(cleanup)
+                        .err().expect("cleanup Started must not ACK through a prewrite fault");
+                    assert!(matches!(&failed, crate::live_invocation::source_journal::owned_wait_v8::append::owned_effect::settlement::cleanup::reduce::step::LiveOwnedStepAppendFailureV8::Append { .. }));
+                    assert_eq!([weak[0].strong_count(), weak[1].strong_count()], [1, 0]);
+                    #[cfg(unix)]
+                    assert_eq!(journal.lease.try_borrow().unwrap().test_persisted_snapshot().unwrap(), cleanup_before);
+                    assert!(journal.begin_session().is_err());
+                    assert!(journal.hold().is_err());
+                    drop(failed);
+                } else {
+                    let acknowledged = journal.begin_session().unwrap().append_owned_step(cleanup)
+                        .unwrap_or_else(|_| panic!("durable turn-1 cleanup Started ACK"));
+                    acknowledged.validate_live().unwrap();
+                    let crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect::authorization::step::LiveStepAcknowledgedV8::Continued(started) = acknowledged.advance_step()
+                        .unwrap_or_else(|_| panic!("same staged reducer after cleanup Started")) else {panic!("continued cleanup owner")};
+                    started.validate_live().unwrap();
+                    assert_eq!(journal.begin_session().unwrap().sequence(), sequence + 2);
+                    assert!(matches!(journal.begin_session().unwrap().inventory.step_reduce_facts().unwrap().4,
+                        EntryV8::Owned(crate::live_invocation::source_journal::owned_wait_v8::model::OwnedBodyV8::OwnedReduceCleanupStarted { turn: 1, attempt: 0, .. })));
+                    assert_eq!([weak[0].strong_count(), weak[1].strong_count()], [1, 0]);
+                    drop(started);
+                }
             }
             assert_eq!(
                 host.calls, 1,
@@ -517,12 +548,17 @@ fn continued_reduce_chain_step_ack(refuse: bool) {
 }
 #[test]
 fn owned_continue_driver_dispatches_next_turn_model_once_and_records_settlement() {
-    continued_reduce_chain_step_ack(false);
+    continued_reduce_chain_step_ack(0);
 }
 #[test]
 #[cfg(unix)]
 fn owned_continued_step_real_prewrite_fault_retains_owner_and_poison() {
-    continued_reduce_chain_step_ack(true);
+    continued_reduce_chain_step_ack(1);
+}
+#[test]
+#[cfg(unix)]
+fn owned_continued_cleanup_started_prewrite_fault_retains_staged_owner() {
+    continued_reduce_chain_step_ack(2);
 }
 #[test]
 fn owned_continue_actual_state_and_observe_acks_preserve_owner_ledger_and_cumulative_funding() {

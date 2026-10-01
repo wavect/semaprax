@@ -869,6 +869,15 @@ move, or public continuation authority. A prewrite fault retains that owner
 and quarantines the append path. The focused real-chain success and prewrite
 selectors each exercise one actual continued turn locally.
 
+The acknowledged staged owner can next select `OwnedReduceCleanupStarted`
+from the same evaluated cleanup basis and append it through the fixed Step
+permit. Its ACK marks cleanup as incurred and retains the owner and spent
+hold. The post-ACK guard still checks physical provenance, source, plan, and
+policy; cancellation or clock expiry can no longer erase incurred cleanup.
+This row does not execute physical cleanup or publish a result. The focused
+real-chain success and prewrite-refusal selectors each passed locally; the
+fault retains the staged owner and quarantines the append lease.
+
 Continued Step completion, terminal publication, public multi-turn entry and restart
 recovery remain unfinished. This bounded local result is not completion of the
 public owned-Agent lifecycle criterion.

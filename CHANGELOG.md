@@ -8,6 +8,11 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Append the real turn-1 `OwnedReduceCleanupStarted` row after the continued
+  Step ACK while retaining its evaluated owner and spent Reduce hold (#330).
+  Focused success and prewrite-fault real-chain selectors passed locally;
+  physical Step cleanup, result publication, public entry, and recovery remain.
+
 - Append the first real continued turn-1 Step ACK under the retained physical
   owner and spent Reduce hold (#330). The focused success selector passed;
   the corrected prewrite-fault selector also passed. Later Step phases, public

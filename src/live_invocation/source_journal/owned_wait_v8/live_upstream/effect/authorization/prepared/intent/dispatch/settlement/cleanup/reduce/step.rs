@@ -609,7 +609,7 @@ impl<'j> LiveOwnedStepAppendV8<'j> {
             )
         );
         match &self.owner {
-            StepAppendOwnerV8::Continued(o) => o.validate_new_prefix(s),
+            StepAppendOwnerV8::Continued(o) => o.validate_new_prefix(s, incurred),
             _ => self.owner.lineage().validate_new_prefix(s, incurred),
         }
     }
@@ -786,7 +786,7 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_verifie
             unreachable!()
         };
         return owner
-            .acknowledge(session, witness)
+            .acknowledge(session, witness, &obligation.selected)
             .map(LiveStepAcknowledgedV8::Continued)
             .map_err(|(owner, error)| LiveStepAdvanceFailureV8::Before {
                 _owner: LiveOwnedStepAppendV8::continued(owner, obligation.selected),

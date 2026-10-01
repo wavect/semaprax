@@ -121,7 +121,7 @@ class Podman:
                               **kwargs)
 
     def require_available(self):
-        result = self.command("info", "--format", "{{.Host.Os}}", timeout=REQUEST_TIMEOUT)
+        result = self.command("info", "--format", "{{.Host.OS}}", timeout=REQUEST_TIMEOUT)
         if result.returncode != 0 or result.stdout.strip() != "linux":
             raise RuntimeError("Podman must be available with a Linux OCI runtime")
         existing = self.command("image", "exists", IMAGE, timeout=REQUEST_TIMEOUT)

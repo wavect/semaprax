@@ -51,15 +51,6 @@ jobs:
           toolchain: 1.97.1
           targets: x86_64-unknown-linux-musl
 
-      - name: Provision only the selected local runtime and linker
-        run: |
-          set -euo pipefail
-          sudo apt-get update
-          sudo apt-get install --yes --no-install-recommends musl-tools podman
-          podman info --format '{{.Host.Os}}'
-          test "$(podman info --format '{{.Host.Os}}')" = linux
-          cargo fetch --locked
-
       - name: Bind the selected checkout and source inputs
         run: |
           set -euo pipefail
@@ -81,6 +72,16 @@ jobs:
               examples/task-service-project/src/tests.spx
           } > "$evidence"
           echo "REFERENCE_SERVICE_OCI_EVIDENCE=$evidence" >> "$GITHUB_ENV"
+
+      - name: Provision only the selected local runtime and linker
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends musl-tools podman
+          runtime_os="$(podman info --format '{{.Host.OS}}')"
+          test "$runtime_os" = linux
+          printf 'podman_host_os=%s\n' "$runtime_os" >> "$REFERENCE_SERVICE_OCI_EVIDENCE"
+          cargo fetch --locked
 
       - name: Build and install the exact static service artifact
         env:

@@ -42,6 +42,11 @@ format: `Unreleased` then release buckets, grouped by impact.
   projections. Correct the bounded complete Semantic Impact JSON so embedded
   workspace review evidence matches the direct single-file report exactly.
 
+- Repair Windows unit CI fixtures: gate native stage parity tests on the
+  supported process hosts, use the current snapshot and JSON-event host
+  adapters, retain the source entry in the checked-cache reuse test, and
+  refresh the pinned agent skill bundle for the current diagnostic catalog.
+
 - Add a closed acceptance-record format for #328's Kernel-0 rung-2 decision.
   It requires every local receipt to bind to one selected revision or an exact
   unchanged subject, keeps all rows pending, and separates an eventual reviewer

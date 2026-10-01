@@ -631,7 +631,13 @@ mod semantic_tests {
             }),
         )]);
         let mut pass = FrontendPass {
-            entries: BTreeMap::new(),
+            entries: BTreeMap::from([(
+                "local.spx".to_owned(),
+                Arc::new(CachedModule {
+                    source: source.to_owned(),
+                    program: Arc::new(synthetic.clone()),
+                }),
+            )]),
             parsed: 0,
             reused: 0,
             canonicalizations: 0,

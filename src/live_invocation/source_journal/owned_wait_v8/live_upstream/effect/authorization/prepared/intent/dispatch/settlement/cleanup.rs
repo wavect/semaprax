@@ -2,7 +2,6 @@
 //! cleanup checks PID/pins/E/B/policy, not cancellation or fresh clock callbacks.
 //! Outcome handoff restores full guards. No Reduce or recovered owner producer.
 use super::*;
-use crate::live_invocation::source_journal::owned_wait_v8::live_upstream::{PreparedContinuedDecisionCleanupV8, StartedContinuedDecisionCleanupV8, ReleasedContinuedDecisionCleanupV8, SettledContinuedDecisionCleanupV8};
 use crate::cleanup_plan::FinalizeAction;
 use crate::interpreter::resumable::owned_frame::registered_stage::effect::{
     ack_live_owned_effect_cleanup_v8, release_live_owned_effect_decision_v8,
@@ -10,6 +9,10 @@ use crate::interpreter::resumable::owned_frame::registered_stage::effect::{
     OwnedEffectFailureV8, OwnedEffectInputsV8, PendingOwnedEffectReceiptV8,
 };
 use crate::live_invocation::source_journal::owned_wait_v8::append::owned_effect::VerifiedOwnedEffectCleanupSuccessorV8;
+use crate::live_invocation::source_journal::owned_wait_v8::live_upstream::{
+    PreparedContinuedDecisionCleanupV8, ReleasedContinuedDecisionCleanupV8,
+    SettledContinuedDecisionCleanupV8, StartedContinuedDecisionCleanupV8,
+};
 use crate::live_invocation::source_journal::owned_wait_v8::wire;
 use crate::live_invocation::source_journal::SourceEffectFailure;
 use serde_json::{json, Value};
@@ -561,11 +564,24 @@ impl LiveFailedOwnedEffectV8<'_> {
     }
 }
 impl<'j> LiveOwnedEffectCleanupAppendV8<'j> {
-    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn from_continued(owner: PreparedContinuedDecisionCleanupV8<'j>) -> Self {
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn from_continued(
+        owner: PreparedContinuedDecisionCleanupV8<'j>,
+    ) -> Self {
         let selected = owner.selected().clone();
-        Self { owner: CleanupOwnerV8::Continued(Box::new(owner)), selected }
+        Self {
+            owner: CleanupOwnerV8::Continued(Box::new(owner)),
+            selected,
+        }
     }
-    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn from_continued_released(owner: ReleasedContinuedDecisionCleanupV8<'j>, selected: EntryV8) -> Self { Self { owner: CleanupOwnerV8::ContinuedReleased(Box::new(owner)), selected } }
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn from_continued_released(
+        owner: ReleasedContinuedDecisionCleanupV8<'j>,
+        selected: EntryV8,
+    ) -> Self {
+        Self {
+            owner: CleanupOwnerV8::ContinuedReleased(Box::new(owner)),
+            selected,
+        }
+    }
     fn journal(&self) -> &'j SourceOwnedWaitJournalV8 {
         match &self.owner {
             CleanupOwnerV8::Continued(o) => o.journal(),
@@ -607,8 +623,20 @@ impl<'j> LiveOwnedEffectCleanupAppendV8<'j> {
         &self,
     ) -> Result<(), SourceJournalError> {
         let result = match &self.owner {
-            CleanupOwnerV8::ContinuedReleased(o) => o.selected().and_then(|row| if row == self.selected {Ok(())}else{Err(SourceJournalError::Binding)}),
-            CleanupOwnerV8::Continued(o) => o.validate_live().and_then(|_| if o.selected() == &self.selected { Ok(()) } else { Err(SourceJournalError::Binding) }),
+            CleanupOwnerV8::ContinuedReleased(o) => o.selected().and_then(|row| {
+                if row == self.selected {
+                    Ok(())
+                } else {
+                    Err(SourceJournalError::Binding)
+                }
+            }),
+            CleanupOwnerV8::Continued(o) => o.validate_live().and_then(|_| {
+                if o.selected() == &self.selected {
+                    Ok(())
+                } else {
+                    Err(SourceJournalError::Binding)
+                }
+            }),
             CleanupOwnerV8::Recorded(o) => started_row(o).and_then(|row| {
                 if row == self.selected {
                     Ok(())
@@ -732,8 +760,14 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_verifie
     let LiveOwnedEffectCleanupAppendV8 { owner, selected: _ } = obligation;
     let ack = CleanupAckV8 { session, witness };
     match owner {
-        CleanupOwnerV8::Continued(owner) => Ok(LiveCleanupAcknowledgedV8::ContinuedStarted(Box::new((*owner).acknowledge(ack.session, ack.witness)))),
-        CleanupOwnerV8::ContinuedReleased(owner) => Ok(LiveCleanupAcknowledgedV8::ContinuedSettled(Box::new((*owner).acknowledge(ack.session, ack.witness)))),
+        CleanupOwnerV8::Continued(owner) => Ok(LiveCleanupAcknowledgedV8::ContinuedStarted(
+            Box::new((*owner).acknowledge(ack.session, ack.witness)),
+        )),
+        CleanupOwnerV8::ContinuedReleased(owner) => {
+            Ok(LiveCleanupAcknowledgedV8::ContinuedSettled(Box::new(
+                (*owner).acknowledge(ack.session, ack.witness),
+            )))
+        }
         CleanupOwnerV8::Recorded(owner) => {
             let actual = LiveStartedOwnedEffectV8 { owner, ack };
             if let Err(error) = actual.validate_live() {

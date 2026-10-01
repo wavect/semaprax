@@ -351,7 +351,8 @@ fn owned_continue_driver_dispatches_next_turn_model_once_and_records_settlement(
                 .validate_live()
                 .unwrap_or_else(|_| panic!("recorded settlement owner"));
             let settlement_session = journal.begin_session().unwrap();
-            let (_, _, settlement_turn, settlement_row) = settlement_session.continued_settlement_facts()
+            let (_, _, settlement_turn, settlement_row) = settlement_session
+                .continued_settlement_facts()
                 .unwrap_or_else(|_| panic!("recorded continued settlement inventory"));
             assert_eq!(settlement_turn, 1);
             assert!(matches!(
@@ -365,6 +366,26 @@ fn owned_continue_driver_dispatches_next_turn_model_once_and_records_settlement(
                     }
                 ) if *settlement == u32::try_from(settlement_sequence).unwrap()
             ));
+            let cleanup_sequence = journal.begin_session().unwrap().sequence();
+            let cleanup_actions = Rc::new(Cell::new(0));
+            let observed_cleanup_actions = Rc::clone(&cleanup_actions);
+            let cleanup = advance_live_owned_continued_cleanup_v8(journal, recorded, move |_| {
+                observed_cleanup_actions.set(observed_cleanup_actions.get() + 1);
+            })
+            .unwrap_or_else(|_| panic!("continued cleanup Started and Settled ACKs"));
+            assert_eq!(
+                cleanup_actions.get(),
+                1,
+                "the recorded continuation releases its physical cleanup exactly once"
+            );
+            assert_eq!(
+                journal.begin_session().unwrap().sequence(),
+                cleanup_sequence + 2,
+                "cleanup Started and sticky-receipt Settled rows"
+            );
+            cleanup
+                .validate_live()
+                .unwrap_or_else(|_| panic!("settled continued cleanup owner"));
             assert_eq!(
             crate::interpreter::resumable::owned_frame::registered_stage::live_run::test_continued_resume_entries_v8(),
             resume_entries + 1,
@@ -372,7 +393,7 @@ fn owned_continue_driver_dispatches_next_turn_model_once_and_records_settlement(
         );
             assert!(weak.iter().any(|owner| owner.strong_count() == 1));
 
-            drop(recorded);
+            drop(cleanup);
             assert!(weak.iter().all(|owner| owner.upgrade().is_none()));
         })
     };

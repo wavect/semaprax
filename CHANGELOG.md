@@ -8,6 +8,18 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Add the private owned-wait v8 continued Decision cleanup driver (#330). It
+  durably records Started, executes the explicit cleanup observer once, and
+  records the sticky Settled receipt while retaining the reached owner on every
+  failure. The focused real-chain selector passed 1/1 locally; public entry and
+  restart recovery remain open.
+
+- Add the internal Owned Bounded Byte Buffer v2 `bytes_set5` operation (#324).
+  It preflights one contiguous five-byte interval before the canonical owner
+  transfer. Its focused language and Core Wasm selectors passed locally; the
+  unchanged 100M catalog application gate remains open because the attempted
+  source conversion exceeded the fixed workspace graph builder budget.
+
 - Dispatch the real owned-wait v8 next-turn effect through an explicit host
   handler once, then persist ordinary settlement and settlement-record ACKs
   (#330). The focused real-chain selector passed 1/1 locally; public entry,

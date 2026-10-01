@@ -829,7 +829,15 @@ single-fixture cancellation-refusal test was then interrupted after 9 minutes
 without a result. No behavioral gate is claimed passed. The full quality profile
 was not run under the bounded-test instruction.
 
+The private driver now composes this exact pair from a real continued
+Recorded holder: it writes Started, invokes the explicit cleanup observer once,
+and writes Settled. Its failure carrier keeps the Prepared, Started, released,
+or append owner that actually reached the failed boundary. A post-release
+failure therefore has no route to invoke cleanup again. The focused real-chain
+selector passed 1/1 locally, asserting one physical cleanup observation and both
+durable rows. This supplies neither a public entry nor restart path.
+
 This private cleanup boundary ends at the retained actual Settled holder;
 continued Outcome/Reduce, terminal publication, public multi-turn entry and
-restart recovery remain unfinished. It is an explicitly unverified increment,
-not completion of the public owned-Agent lifecycle criterion.
+restart recovery remain unfinished. This bounded local result is not completion
+of the public owned-Agent lifecycle criterion.

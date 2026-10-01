@@ -705,6 +705,83 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_live_ow
         owner => Err(LiveContinuedEffectDispatchDriverFailureV8::RecordedShape(owner)),
     }
 }
+pub(in crate::live_invocation::source_journal::owned_wait_v8) enum LiveContinuedCleanupDriverFailureV8<
+    'j,
+> {
+    Prepare(crate::live_invocation::source_journal::owned_wait_v8::live_upstream::ContinuedDecisionCleanupRejectionV8<'j>),
+    StartedSession {
+        owner: crate::live_invocation::source_journal::owned_wait_v8::live_upstream::PreparedContinuedDecisionCleanupV8<'j>,
+        error: SourceJournalError,
+    },
+    StartedAppend(crate::live_invocation::source_journal::owned_wait_v8::append::owned_effect::LiveOwnedEffectCleanupAppendFailureV8<'j>),
+    StartedAdvance(crate::live_invocation::source_journal::owned_wait_v8::live_upstream::LiveEffectCleanupFailureV8<'j>),
+    StartedShape(crate::live_invocation::source_journal::owned_wait_v8::live_upstream::LiveCleanupAcknowledgedV8<'j>),
+    Release(crate::live_invocation::source_journal::owned_wait_v8::live_upstream::ContinuedDecisionReleaseFailureV8<'j>),
+    SettledPrepare(crate::live_invocation::source_journal::owned_wait_v8::live_upstream::ReleasedContinuedDecisionCleanupV8<'j>),
+    SettledSession {
+        owner: crate::live_invocation::source_journal::owned_wait_v8::live_upstream::LiveOwnedEffectCleanupAppendV8<'j>,
+        error: SourceJournalError,
+    },
+    SettledAppend(crate::live_invocation::source_journal::owned_wait_v8::append::owned_effect::LiveOwnedEffectCleanupAppendFailureV8<'j>),
+    SettledAdvance(crate::live_invocation::source_journal::owned_wait_v8::live_upstream::LiveEffectCleanupFailureV8<'j>),
+    SettledShape(crate::live_invocation::source_journal::owned_wait_v8::live_upstream::LiveCleanupAcknowledgedV8<'j>),
+}
+
+/// Records the cleanup boundary before releasing physical finalizers, then
+/// records their sticky receipt. A post-release failure retains the released
+/// owner and deliberately has no route back to the cleanup callback.
+pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_live_owned_continued_cleanup_v8<'j>(
+    journal: &'j SourceOwnedWaitJournalV8,
+    recorded: crate::live_invocation::source_journal::owned_wait_v8::live_upstream::LiveRecordedContinuedEffectV8<'j>,
+    observe: impl FnMut(&crate::cleanup_plan::FinalizeAction),
+) -> Result<crate::live_invocation::source_journal::owned_wait_v8::live_upstream::SettledContinuedDecisionCleanupV8<'j>, LiveContinuedCleanupDriverFailureV8<'j>>{
+    let prepared = recorded
+        .prepare_decision_cleanup()
+        .map_err(LiveContinuedCleanupDriverFailureV8::Prepare)?;
+    let session = match journal.begin_session() {
+        Ok(session) => session,
+        Err(error) => {
+            return Err(LiveContinuedCleanupDriverFailureV8::StartedSession {
+                owner: prepared,
+                error,
+            })
+        }
+    };
+    let started = match session
+        .append_owned_effect_cleanup(prepared.into_append())
+        .map_err(LiveContinuedCleanupDriverFailureV8::StartedAppend)?
+        .advance_cleanup()
+        .map_err(LiveContinuedCleanupDriverFailureV8::StartedAdvance)?
+    {
+        crate::live_invocation::source_journal::owned_wait_v8::live_upstream::LiveCleanupAcknowledgedV8::ContinuedStarted(owner) => *owner,
+        owner => return Err(LiveContinuedCleanupDriverFailureV8::StartedShape(owner)),
+    };
+    let released = started
+        .release_decision(observe)
+        .map_err(LiveContinuedCleanupDriverFailureV8::Release)?;
+    let settled = released
+        .prepare_settled()
+        .map_err(LiveContinuedCleanupDriverFailureV8::SettledPrepare)?;
+    let session = match journal.begin_session() {
+        Ok(session) => session,
+        Err(error) => {
+            return Err(LiveContinuedCleanupDriverFailureV8::SettledSession {
+                owner: settled,
+                error,
+            })
+        }
+    };
+    match session
+        .append_owned_effect_cleanup(settled)
+        .map_err(LiveContinuedCleanupDriverFailureV8::SettledAppend)?
+        .advance_cleanup()
+        .map_err(LiveContinuedCleanupDriverFailureV8::SettledAdvance)?
+    {
+        crate::live_invocation::source_journal::owned_wait_v8::live_upstream::LiveCleanupAcknowledgedV8::ContinuedSettled(owner) => Ok(*owner),
+        owner => Err(LiveContinuedCleanupDriverFailureV8::SettledShape(owner)),
+    }
+}
+
 impl<'j> AppendSessionV8<'j> {
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn append_owned_continue(
         self,

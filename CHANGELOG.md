@@ -8,6 +8,12 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Add a private consuming turn-two Complete closure through actual Step cleanup,
+  field transfer, terminal ACK and original Report claim (#330). Every refusal
+  retains its reached owner and spent funding. Focused local success and
+  terminal-prewrite refusal passed 1/1 each; the receipt-prewrite case remains
+  unrun. Public delivery and physical owner restoration remain open.
+
 - Expand the Windows doctor hostile/runtime selector to 22 cases (#333),
   covering retained writable-section refusal cleanup and anonymous carrier
   handle lifetimes. All 22 ran and passed on Windows Server 2025 at

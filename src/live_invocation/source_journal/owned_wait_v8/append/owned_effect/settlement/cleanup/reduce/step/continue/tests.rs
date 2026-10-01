@@ -1216,7 +1216,7 @@ fn continued_reduce_chain_step_ack(fault: u8, three_turns: bool) {
             );
             assert_eq!(
                 starts.get(),
-                1 + usize::from(three_turns && matches!(fault, 0 | 12 | 13 | 14 | 15 | 16 | 17)),
+                1 + usize::from(three_turns && matches!(fault, 0 | 12..=20)),
                 "turn-two physical Model dispatch occurs only after its Intent ACK"
             );
             assert_eq!(
@@ -1226,16 +1226,16 @@ fn continued_reduce_chain_step_ack(fault: u8, three_turns: bool) {
             );
             assert_eq!(
             crate::interpreter::resumable::owned_frame::registered_stage::live_run::test_continued_resume_entries_v8(),
-            resume_entries + 1 + usize::from(three_turns && matches!(fault, 0 | 15 | 16 | 17)),
+            resume_entries + 1 + usize::from(three_turns && matches!(fault, 0 | 15..=20)),
             "only each exact Resume ACK may consume its own physical park"
         );
             assert_eq!(
                 crate::interpreter::resumable::owned_frame::registered_stage::reduce::PreparedHeldContinuedWaitV2::test_start_entries(),
-                start_entries + usize::from(three_turns && matches!(fault, 0 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17)),
+                start_entries + usize::from(three_turns && matches!(fault, 0 | 10..=20)),
                 "only the turn-two Start ACK may enter the source helper again"
             );
             assert!(weak.iter().all(|owner| owner.upgrade().is_none()));
-            fault == 0 && !three_turns
+            (fault == 0 && !three_turns) || fault == 18
         })
     };
     std::thread::Builder::new()

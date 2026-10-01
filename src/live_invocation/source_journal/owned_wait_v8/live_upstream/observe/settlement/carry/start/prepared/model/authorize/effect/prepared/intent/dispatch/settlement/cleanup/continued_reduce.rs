@@ -452,7 +452,7 @@ impl LiveContinuedEvaluatedReduceV8<'_> {
     }
 }
 
-/// Retains the actual turn-one evaluator and its spent hold across the first
+/// Retains the actual continued evaluator and its spent hold across the first
 /// Step ACK. No cleanup or result-move authority is inferred from the row.
 pub(in crate::live_invocation::source_journal::owned_wait_v8) struct LiveContinuedStagedStepV8<'j> {
     staged: Option<StagedExecutedOwnedReduceV2<'j>>,
@@ -994,3 +994,7 @@ impl LiveOwnedReduceCleanupGuardV8 for ContinuedStepCleanupPermitV8<'_, '_> {
 
 mod step_transfer;
 mod terminal_report;
+
+pub(in crate::live_invocation::source_journal::owned_wait_v8) use terminal_report::{
+    LiveContinuedTerminalDriverFailureV8, LiveContinuedTerminalPhaseV8,
+};

@@ -999,8 +999,8 @@ reset accounting. The existing fixed authorization and effect writers retain
 all reservation, ACK, transfer and host-entry guards. First authorization ACK
 failure retains the same State, and successful advancement reaches one physical
 effect dispatch, one Decision cleanup, one original Reduce reservation and the
-actual owned Step ACK. Later Step cleanup, field transfer and terminal closure
-remain outside this packet's executable gate.
+actual owned Step ACK. The later Step terminal successor and its separate
+executable gate are specified in section 51.
 
 The focused gate is:
 
@@ -1016,3 +1016,47 @@ and 511.94 seconds). The authorization-prewrite refusal remains pending
 execution. Public multi-turn entry, Report
 delivery, restart restoration, broader iteration and native/Wasm owned-wait
 support remain separate completion requirements.
+
+
+## 51. Private later Complete terminal and Report closure (#330)
+
+The physical turn-two Complete Step has a private consuming closure through
+its existing six fixed ACK boundaries: compiler cleanup Started, actual
+cleanup receipt, field-transfer reservation, completed field transfer,
+ordinary Transition, and TerminalSnapshot. Entry checks the same journal,
+current live owner and full Complete Step before the first append. Each
+successor retains the same spent Reduce hold, cumulative accounting and
+original physical fields. The closure does not supply fresh fuel or repeat
+Model, Resume, authorization, effect, or Reduce execution.
+
+The cleanup engine visits the compiler's canonical vector once. A failed
+receipt cannot yield Ready or result transfer. Every failed selection, session,
+physical append, ACK advancement, cleanup or field move returns its actual
+reached owner, with its selected failure and already incurred release intact.
+There is no driver retry path. In particular, receipt prewrite refusal retains
+the released Step, and terminal prewrite refusal retains the mapped Report;
+neither can claim delivery or derive a replacement physical owner from rows.
+
+Only the authentic terminal ACK enables the existing consuming Complete Report
+claim. Its borrowed delivery projection checks the live Report against that
+exact terminal carrier. The success fixture also reopens the registered store
+and authenticates terminal evidence after dropping the physical holder; this
+recovered evidence remains descriptive and cannot restore a Report owner.
+
+The focused gate is:
+
+```sh
+cargo test --locked -p semaprax --lib owned_continued_step_turn_two_terminal_report -- --test-threads=1
+```
+
+The three owning cases cover original Report retention and claim, cleanup
+receipt prewrite refusal, and terminal prewrite refusal. They assert one
+physical cleanup, exact cumulative funding and turn, no terminal evidence on
+refusal, and no cleanup retry on drop. Focused local success and terminal
+prewrite refusal passed 1/1 each on 2 October 2026 (811.35 and 808.97
+seconds). The nominal-case mapping regression passed 1/1. The receipt
+prewrite case and repository full quality profile remain unrun. This is a
+private Complete successor, not public multi-turn
+entry, public Report delivery, failed-Observe cleanup, or physical owner
+restoration after restart. Broader iteration and native/Wasm owned-wait support
+remain separate completion requirements.

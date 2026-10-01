@@ -234,7 +234,9 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) use settlement::cl
 #[cfg(all(test, unix))]
 pub(in crate::live_invocation::source_journal::owned_wait_v8) use settlement::cleanup::reduce::test_evaluated_failed;
 
-pub(in crate::live_invocation::source_journal::owned_wait_v8) use settlement::cleanup::reduce::step::VerifiedOwnedStepSuccessorV8;
+pub(in crate::live_invocation::source_journal::owned_wait_v8) use settlement::cleanup::reduce::step::{
+    LiveOwnedStepAppendFailureV8, VerifiedOwnedStepSuccessorV8,
+};
 
 pub(in crate::live_invocation::source_journal::owned_wait_v8) use settlement::cleanup::failed_state::VerifiedFailedEffectStateSuccessorV8;
 #[cfg(all(test, unix))]

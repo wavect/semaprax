@@ -21,6 +21,11 @@ impl CheckedReduceStepV8 {
     pub(super) fn target(&self) -> &Value {
         &self.target
     }
+    /// The case is a persistent declaration ID. Terminal role comes from the
+    /// target already derived and validated against the compiler mapping.
+    pub(super) fn is_complete(&self) -> bool {
+        self.target["kind"] == "complete"
+    }
     pub(super) fn ordinary_carrier_bytes(
         &self,
         plan: &v2::CheckedOwnedReduceV2,

@@ -1,5 +1,9 @@
 //! A terminal ACK can claim only the actual mapped Complete Report once.
 //! The terminal row and recovered evidence remain proof data, never owners.
+mod driver;
+pub(in crate::live_invocation::source_journal::owned_wait_v8) use driver::{
+    LiveContinuedTerminalDriverFailureV8, LiveContinuedTerminalPhaseV8,
+};
 use super::*;
 use crate::interpreter::resumable::owned_frame::registered_stage::reduce::ClaimedExecutedOwnedReportV2;
 use crate::resumable_effects::owned_frame::v2::compile_owned_reduce_v2;

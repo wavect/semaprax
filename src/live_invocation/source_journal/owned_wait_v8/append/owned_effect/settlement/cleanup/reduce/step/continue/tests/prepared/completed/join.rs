@@ -1,4 +1,5 @@
 //! Later Completed joins the actual authorization/effect/reducer owner chain.
+mod terminal;
 use super::*;
 use crate::live_invocation::source_journal::owned_wait_v8::live_upstream::LiveLaterModelCompletedV8;
 
@@ -116,7 +117,11 @@ pub(super) fn run<'j>(
     let crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect::authorization::step::LiveStepAcknowledgedV8::Continued(staged) = acknowledged.advance_step().unwrap_or_else(|_| panic!("later retained Step")) else { panic!("continued Step") };
     staged.validate_live().unwrap();
     assert_eq!(host.calls, 1);
-    drop(staged);
+    if matches!(fault, 18..=20) {
+        terminal::run(journal, staged, weak, fault);
+    } else {
+        drop(staged);
+    }
 }
 #[test]
 fn owned_continued_step_turn_two_completed_joins_actual_effect_reduce_step() {

@@ -68,6 +68,11 @@ fn owned_reduce_inventory_maps_actual_nominal_cases_without_target_substitution(
         checked.matches_target(checked.target()).unwrap();
         assert_eq!(checked.step(), &step);
         assert_eq!(checked.case(), mapping.case.as_str());
+        assert_eq!(
+            checked.is_complete(),
+            mapping.role == "Complete",
+            "persistent case identity must not be mistaken for the terminal role"
+        );
         let mut hostile = checked.target().clone();
         if mapping.role == "Fail" {
             hostile["code"] = 4.into();

@@ -1,6 +1,6 @@
 # Release process
 
-Status: tag-release procedure and historical evidence; v0.7.0 is a candidate.
+Status: tag-release procedure and historical evidence; v0.7.0 is tagged but unpublished.
 
 Audience: maintainers and release reviewers.
 

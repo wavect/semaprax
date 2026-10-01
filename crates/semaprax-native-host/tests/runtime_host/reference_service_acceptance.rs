@@ -1297,3 +1297,43 @@ fn tls_listener_refuses_a_plaintext_client() {
          (a raw TLS alert record, or nothing, is fine): {response:?}"
     );
 }
+
+#[test]
+fn package_preflight_checks_service_without_runtime_grants() {
+    let workdir = Workdir::create("package-preflight");
+    std::fs::write(workdir.path("service.config.json"), HOST_CONFIG).unwrap();
+    let check = |project: PathBuf| {
+        Command::new(SERVER)
+            .arg("check-package")
+            .arg("--project")
+            .arg(project)
+            .arg("--config")
+            .arg(workdir.path("service.config.json"))
+            .output()
+            .unwrap()
+    };
+    let accepted = check(workdir.example_project());
+    assert!(accepted.status.success(), "{:?}", accepted);
+    assert_eq!(
+        String::from_utf8(accepted.stdout).unwrap(),
+        "checked reference-service package inputs\n"
+    );
+    for directory in ["state", "outbound", "secrets", "bundle"] {
+        assert_eq!(
+            std::fs::read_dir(workdir.path(directory)).unwrap().count(),
+            0
+        );
+    }
+    // Host intent alone does not authorize an invalid or absent project.
+    assert_eq!(
+        check(workdir.path("missing-project")).status.code(),
+        Some(2)
+    );
+    let fixture = workdir.example_project().join("service.config.json");
+    std::fs::copy(fixture, workdir.path("service.config.json")).unwrap();
+    let refused = check(workdir.example_project());
+    assert_eq!(refused.status.code(), Some(2));
+    assert!(String::from_utf8(refused.stderr)
+        .unwrap()
+        .contains("package needs valid host-mode configuration"));
+}

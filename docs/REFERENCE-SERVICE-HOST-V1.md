@@ -205,3 +205,102 @@ The repository full profile and generated-scaffold preservation gates remain
 required. The remaining scaffold decision routes described above, runnable OCI
 packaging and its installed runtime journey remain open; these five passes do
 not establish complete #336 acceptance.
+
+## Offline native service packaging (#336, pending execution gate)
+
+`scripts/package-reference-service.py` adds a separate operator-invoked package
+route. The frozen `semaprax build --target oci` route remains a Wasm artifact;
+it cannot start this native service. This new route consumes an explicitly
+selected executable, its expected `sha256:<hex>` digest, a trusted host-native
+checker, the service project, and host-mode configuration. It copies only
+`semaprax.toml` and `src/{app,core,tests}.spx` plus the separate configuration;
+projects requiring other source paths refuse during the copied-project check.
+Secrets, snapshots, delivery records, and incidental project files are excluded.
+
+The checker is `semaprax-reference-service check-package --project <dir>
+--config <file>`. It authenticates the staged project and binds its service
+decision set, then validates host-mode configuration without resolving secrets,
+writing a bundle, or binding a listener. The packager executes the explicitly
+trusted checker, never the supplied runtime executable. The digest binds the
+copied executable bytes; it does not prove that they implement this service.
+The operator must supply a trusted build from the intended revision. Startup
+repeats project/configuration validation and acquires ordinary runtime grants.
+
+Example development package, after building/installing a trusted host binary:
+
+```sh
+python3 scripts/package-reference-service.py --format development \
+  --checker /absolute/path/semaprax-reference-service \
+  --executable /absolute/path/semaprax-reference-service \
+  --executable-sha256 sha256:<expected-hex> \
+  --project examples/task-service-project --config /absolute/path/host.config.json \
+  --output /absolute/path/new-service-package
+```
+
+The destination must not exist; its parent must be operator-controlled. The
+packager checks bounded copied input bytes before creating it. On publication
+I/O failure a partial directory may remain; only the final
+`service-package.json` receipt indicates completion. Receipts and digests are
+unsigned evidence and grant no authority. Development format admits only a
+host-architecture thin macOS executable or host-architecture static Linux ELF;
+Windows, cross-host development executables, and Linux dynamic executables
+refuse. The macOS package relies on the operator's compatible system libraries.
+
+Run the development executable as `new-service-package/bin/semaprax-reference-service
+serve`, using `--project new-service-package/service` and
+`--config new-service-package/service/service.config.json`, plus the existing
+explicit port and four held-directory flags. Installation can independently use
+`cargo install --locked --offline --path crates/semaprax-native-host
+--bin semaprax-reference-service --root <private-install-root>` when all locked
+dependencies are available locally; installation is not performed by packaging.
+
+For `--format oci`, supply a trusted static Linux executable instead. The
+bounded admission accepts little-endian ELF64 `ET_EXEC` for amd64 or arm64,
+requires an executable load segment, and rejects `PT_INTERP`, `PT_DYNAMIC`,
+truncation, and unsupported headers. Static PIE is deliberately outside this
+first format. This is structural admission, not an executable correctness or
+provenance proof. Packaging may happen on macOS; the resulting image requires
+a matching Linux execution environment.
+
+OCI output contains a deterministic uncompressed rootfs tar layer, standard
+[OCI image configuration](https://github.com/opencontainers/image-spec/blob/v1.1.0/config.md),
+content-addressed config/manifest/layer blobs, index, and layout marker. Its
+entrypoint invokes `/bin/semaprax-reference-service serve` with the fixed paths
+below and port `8080`; working directory is `/service` and default user is
+`65532:65532`. Empty `/state`, `/outbound`,
+`/bundle`, and `/secrets` mountpoints carry no data or authority. Writable
+state/outbound/bundle mounts must permit the selected UID; secrets should be
+mounted read-only. The image has no shell, loader, downloaded base, registry
+operation, credential embedding, signing, or publication step.
+
+After explicitly importing the layout into a trusted Linux runtime, the
+configured entrypoint already supplies `serve --project /service --config /service/service.config.json
+--state-dir /state --outbound-dir /outbound --bundle-dir /bundle
+--secrets-dir /secrets --port 8080`. The operator must provide the four explicit
+mounts described above; without them startup refuses missing secrets or
+unwritable state. Preserve the returned state digest and append `--state <digest>`
+to the entrypoint for restart. An appended `--port <port>` overrides the default
+through the existing CLI parser; TLS and session-policy flags can likewise be
+supplied explicitly. Loopback serving requires clients
+in the same network namespace or an explicitly granted Linux host network;
+ordinary published-port forwarding to a container interface does not make the
+loopback listener reachable. Outbound delivery also needs explicitly permitted
+DNS/network access to the configured HTTPS peer. Runtime OCI import and mount
+syntax is tool-specific and has not been exercised here.
+
+Focused gates on the current `wavect/v080` workspace:
+
+```sh
+python3 -m unittest discover -s scripts/tests -p 'test_package_reference_service.py'
+cargo test --locked -p semaprax-native-host --test runtime_host reference_service_acceptance::package_preflight_checks_service_without_runtime_grants -- --exact --test-threads=1
+```
+
+The Python fixtures passed 3/3 using synthetic ELF bytes for format,
+content-addressing, mode, determinism, and refusal checks; they are not runnable
+service evidence. The Rust preflight fixture passed 1/1 against the real service
+project, refusing missing projects and fixture-mode intent without runtime grants.
+This macOS host has `wasmtime` but no `docker`,
+`podman`, `nerdctl`, `containerd`, or `runc` on PATH, and no supplied trusted
+static Linux service executable. Installed-development execution and the Linux
+container register/login/CRUD/job/restart journey remain open; packaging alone
+does not close #336 or the broader scaffold decision gaps above.

@@ -45,11 +45,15 @@ mod real {
         match args[1].as_str() {
             "serve" => serve_command(&args[2..]),
             "bundle" => bundle_command(&args[2..]),
+            "check-package" => check_package(&args[2..]),
             _ => usage(),
         }
     }
 
     fn usage() -> i32 {
+        eprintln!(
+            "       semaprax-reference-service check-package --project <dir> --config <file>"
+        );
         eprintln!(
             "usage: semaprax-reference-service serve --project <dir> --config <service.config.json> --state-dir <dir> --outbound-dir <dir> --secrets-dir <dir> --bundle-dir <dir> --port <1-65535> [--state <sha256:hex>] [--deployment <id>] [--max-steps <n>] [--session-idle-seconds <n>] [--session-absolute-seconds <n>] [--sync-namespace] [--tls-certificate-secret <ref> --tls-private-key-secret <ref>]"
         );
@@ -57,6 +61,42 @@ mod real {
             "       semaprax-reference-service bundle --config <service.config.json> --bundle-dir <dir>"
         );
         2
+    }
+
+    /// Packaging preflight only: no secret resolution, listener, persistence,
+    /// or outbound grants. The eventual serve invocation repeats these checks.
+    fn check_package(args: &[String]) -> i32 {
+        if args.len() != 4 || args[0] != "--project" || args[2] != "--config" {
+            return usage();
+        }
+        let Some(configuration) = read_config(&PathBuf::from(&args[3])) else {
+            return 2;
+        };
+        match semaprax::project::derive_service_host_adapter_request_v1(&configuration) {
+            Ok(intent) if !intent.requirements().is_empty() => {}
+            _ => {
+                eprintln!("refused: package needs valid host-mode configuration");
+                return 2;
+            }
+        }
+        let manifest = PathBuf::from(&args[1]).join("semaprax.toml");
+        let revision = match with_authenticated_project(&manifest, |snapshot| {
+            Ok(snapshot.retain_revision())
+        }) {
+            Ok(revision) => revision,
+            Err(diagnostics) => {
+                for diagnostic in diagnostics.iter().take(5) {
+                    eprintln!("refused: {diagnostic}");
+                }
+                return 2;
+            }
+        };
+        if DecisionEngine::bind(&revision, DECISION_MAX_STEPS).is_err() {
+            eprintln!("refused: project carries no unambiguous service decision set");
+            return 2;
+        }
+        println!("checked reference-service package inputs");
+        0
     }
 
     struct ServeArgs {

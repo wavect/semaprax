@@ -8,7 +8,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 static SERIAL: AtomicU64 = AtomicU64::new(0);
 /// Every compiler-owned byte operation, with the exact ownership its published
 /// parameters carry in left-to-right order. The arity is the list's length.
-const OPERATIONS: [(&str, &str, &[&str]); 10] = [
+const OPERATIONS: [(&str, &str, &[&str]); 11] = [
     ("core.bytes.len", "byte_len", &["borrow"]),
     ("core.bytes.get", "byte_get", &["borrow", "value"]),
     (
@@ -23,6 +23,11 @@ const OPERATIONS: [(&str, &str, &[&str]); 10] = [
     ("core.string.as-str", "string_as_str", &["borrow"]),
     ("core.bytes.zeroed", "bytes_zeroed", &["value"]),
     ("core.bytes.set", "bytes_set", &["own", "value", "value"]),
+    (
+        "core.bytes.set5",
+        "bytes_set5",
+        &["own", "value", "value", "value", "value", "value", "value"],
+    ),
 ];
 struct Fixture(PathBuf);
 impl Fixture {
@@ -105,8 +110,8 @@ fn place(name: &str) -> Value {
 }
 fn assert_metadata(value: &Value) {
     let rows = value["builtin_calls"].as_array().unwrap();
-    // Ten byte operations and nine String operations.
-    assert_eq!(rows.len(), 19);
+    // Eleven byte operations and nine String operations.
+    assert_eq!(rows.len(), 20);
     let rows = rows
         .iter()
         .filter(|row| row["evidence_owner"] == "compiler_byte_operations")

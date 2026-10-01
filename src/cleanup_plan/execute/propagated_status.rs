@@ -13,7 +13,10 @@ pub(super) fn validate_propagated_status(
     callee: &DeclarationId,
     status: &NormalizedStatus,
 ) -> Result<(), CleanupExecutionError> {
-    if callee.as_str() == crate::byte_ops::SET_ID {
+    if matches!(
+        callee.as_str(),
+        crate::byte_ops::SET_ID | crate::byte_ops::SET5_ID
+    ) {
         if status.domain_id() != crate::byte_ops::SET_STATUS_DOMAIN
             || status.code() != crate::byte_ops::SET_INDEX_OUT_OF_BOUNDS_CODE
             || status.class() != StatusClass::Adapter

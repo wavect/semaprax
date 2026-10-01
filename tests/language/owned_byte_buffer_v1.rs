@@ -195,6 +195,52 @@ fn main() -> i64
 }
 "#;
 
+/// Owned Bounded Byte Buffer v2 uses one same-owner replacement to write five
+/// contiguous bytes. The buffer is allocated outside the loop and the single
+/// operation still has one owner transfer and one element-bound status source.
+const SET5_LOOP: &str = r#"
+module test.owned_byte_buffer_set5;
+
+@id("buffer.main")
+fn main() -> i64
+{
+    let mut buffer = bytes_zeroed(5usize);
+    let mut index = 0usize;
+    while index < 1usize {
+        buffer = bytes_set5(buffer, index, 65u8, 66u8, 67u8, 68u8, 69u8);
+        index = index + 1usize;
+        0
+    }
+    let view = bytes_as_slice(buffer);
+    let first = match byte_get(view, 0usize) {
+        Option::Some { value: byte } => byte,
+        Option::None {} => 0u8,
+    };
+    let last = match byte_get(view, 4usize) {
+        Option::Some { value: byte } => byte,
+        Option::None {} => 0u8,
+    };
+    if byte_len(view) == 5usize && first == 65u8 && last == 69u8 { 7 } else { 1 }
+}
+"#;
+
+/// A dynamic five-byte start past the final admissible interval. Source cannot
+/// prove the offset, so every backend must select the owned-buffer status.
+const SET5_COMPUTED_OUT_OF_RANGE: &str = r#"
+module test.owned_byte_buffer_set5_past_end;
+
+@id("buffer.offset")
+fn offset(base: usize) -> usize { base + 1usize }
+
+@id("buffer.main")
+fn main() -> i64
+{
+    let buffer = bytes_set5(bytes_zeroed(5usize), offset(4usize), 1u8, 2u8, 3u8, 4u8, 5u8);
+    let view = bytes_as_slice(buffer);
+    if byte_len(view) == 5usize { 7 } else { 1 }
+}
+"#;
+
 const LOOP_PAST_END: &str = r#"
 module test.owned_byte_buffer_loop_past_end;
 
@@ -367,6 +413,104 @@ fn write_once_buffer_fills_freezes_and_reads_with_one_owner_and_one_drop() {
         String::from_utf8_lossy(&output.stdout).trim(),
         "7",
         "the native backend agrees with the reference interpreter"
+    );
+}
+
+#[test]
+fn five_byte_loop_fill_preserves_one_owner_and_one_atomic_interval_check() {
+    let program = parse(SET5_LOOP, "owned-byte-buffer-set5.spx").unwrap();
+    assert!(verify::verify(&program).is_empty());
+
+    let canonical = format::canonical(&program);
+    assert_eq!(
+        format::canonical(&parse(&canonical, "owned-byte-buffer-set5-canonical.spx").unwrap()),
+        canonical,
+        "the intrinsic uses ordinary canonical call formatting"
+    );
+
+    let resolved = hir::resolve(&program).unwrap();
+    hir::validate(&resolved).unwrap();
+    let plan = &main_function(&resolved).cleanup_plan;
+    assert_eq!(
+        plan.status_sources
+            .iter()
+            .filter(|source| matches!(
+                &source.producer,
+                semaprax::cleanup_plan::StatusProducer::PropagatedCall { callee }
+                    if callee.as_str() == "core.bytes.set5"
+            ))
+            .count(),
+        1,
+        "the five-byte operation has one replay-proven operation failure source"
+    );
+    assert!(plan
+        .exits
+        .iter()
+        .all(|exit| exit.finalize_in_order.len() <= 1));
+
+    let graph = graph::to_json(&program).unwrap();
+    assert!(graph.contains("core.bytes.set5"));
+    let interpreted = interpret(SET5_LOOP, "set5-interpreter");
+    assert!(
+        interpreted.contains("\"kind\":\"returned\"") && interpreted.contains("\"value\":\"7\"")
+    );
+
+    let native = codegen::emit_c(&program).unwrap();
+    assert!(native.contains("spx_bytes_set5_check_v1"));
+    assert!(native.contains("spx_bytes_set5(spx_bytes_move"));
+    let emitted = wasm::emit_module(&program).unwrap();
+    assert!(emitted.starts_with(b"\0asm"));
+}
+
+#[test]
+fn five_byte_dynamic_interval_selects_the_existing_failure_before_owner_commit() {
+    let program = parse(
+        SET5_COMPUTED_OUT_OF_RANGE,
+        "owned-byte-buffer-set5-past-end.spx",
+    )
+    .unwrap();
+    assert!(verify::verify(&program).is_empty());
+    let resolved = hir::resolve(&program).unwrap();
+    hir::validate(&resolved).unwrap();
+
+    let interpreted = interpret(SET5_COMPUTED_OUT_OF_RANGE, "set5-past-end-interp");
+    let parsed: serde_json::Value = serde_json::from_str(&interpreted).unwrap();
+    let outcome = &parsed["payload"]["outcome"];
+    assert_eq!(outcome["kind"], "failed", "{interpreted}");
+    assert_eq!(outcome["status"]["domain_id"], "semaprax.byte-buffer.v1");
+    assert_eq!(outcome["status"]["code"], 1);
+
+    let generated = codegen::emit_c(&program).unwrap();
+    assert!(generated.contains("spx_bytes_set5_check_v1(spx_ctx,"));
+    let emitted = wasm::emit_module(&program).unwrap();
+    assert!(emitted.starts_with(b"\0asm"));
+
+    if !command_available("clang") {
+        return;
+    }
+    let native = std::env::temp_dir().join(format!(
+        "semaprax-owned-byte-buffer-set5-past-end-{}.native{}",
+        std::process::id(),
+        std::env::consts::EXE_SUFFIX
+    ));
+    codegen::build(&program, &native).unwrap();
+    let output = Command::new(&native).output().unwrap();
+    let _ = std::fs::remove_file(&native);
+    assert_eq!(output.status.code(), Some(73));
+    assert!(output.stdout.is_empty());
+    assert_eq!(
+        String::from_utf8_lossy(&output.stderr).trim(),
+        "SEMAPRAX operation failure: semaprax.byte-buffer.v1/1"
+    );
+}
+
+#[test]
+fn five_byte_literal_interval_past_end_is_spx_t272() {
+    assert_rejected(
+        &program_source(
+            "    let buffer = bytes_set5(bytes_zeroed(5usize), 1usize, 1u8, 2u8, 3u8, 4u8, 5u8);\n    let view = bytes_as_slice(buffer);\n    if byte_len(view) == 5usize { 0 } else { 1 }",
+        ),
+        "SPX-T272",
     );
 }
 

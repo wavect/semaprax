@@ -310,7 +310,10 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         // epoch. A write-once chain link has already transferred into that
         // exact slot; a loop-carried fill names the binding instead, and the
         // plan owns the one remaining transfer out of it.
-        if op == crate::byte_ops::ByteOp::Set {
+        if matches!(
+            op,
+            crate::byte_ops::ByteOp::Set | crate::byte_ops::ByteOp::Set5
+        ) {
             let staged = arguments.remove(0);
             let staged = self.stage_bytes_call_argument(
                 expression,
@@ -410,6 +413,32 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 // owns the buffer, exactly as an ordinary owned call argument
                 // stops owning it at its commit boundary. A loop-carried fill
                 // reuses this one slot on every iteration.
+                self.line(&format!("{buffer_live} = false;"));
+            }
+            crate::byte_ops::ByteOp::Set5 => {
+                let plan = self.bytes_plan.ok_or_else(|| {
+                    backend_error("owned byte store has no canonical cleanup plan")
+                })?;
+                let (buffer, buffer_live, _) = plan.call_argument(expression, 0)?;
+                if arguments[0].code != buffer {
+                    return Err(backend_error(
+                        "owned byte store argument was not staged in its canonical epoch",
+                    ));
+                }
+                self.line(&format!(
+                    "spx_status = spx_bytes_set5_check_v1(spx_ctx, {}, {});",
+                    buffer, arguments[1].code
+                ));
+                self.line("if (spx_status != SPX_STATUS_SUCCESS) goto spx_epilogue;");
+                self.line(&format!(
+                    "{temporary} = spx_bytes_set5(spx_bytes_move(&{buffer}), {}, {}, {}, {}, {}, {});",
+                    arguments[1].code,
+                    arguments[2].code,
+                    arguments[3].code,
+                    arguments[4].code,
+                    arguments[5].code,
+                    arguments[6].code
+                ));
                 self.line(&format!("{buffer_live} = false;"));
             }
             crate::byte_ops::ByteOp::Range => {
@@ -697,7 +726,8 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     | crate::byte_ops::ByteOp::Range
                     | crate::byte_ops::ByteOp::Copy
                     | crate::byte_ops::ByteOp::Zeroed
-                    | crate::byte_ops::ByteOp::Set => unreachable!(),
+                    | crate::byte_ops::ByteOp::Set
+                    | crate::byte_ops::ByteOp::Set5 => unreachable!(),
                 }
                 CValue {
                     code: temporary,

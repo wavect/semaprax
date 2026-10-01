@@ -84,3 +84,33 @@ pub(super) fn set(buffer: &OwnedBytesValue, index: u64, byte: u8) -> Result<Owne
         bytes: Arc::from(filled.as_slice()),
     })
 }
+
+/// Store five consecutive bytes after one all-or-nothing bounds preflight.
+///
+/// The preflight deliberately happens before cloning or writing, so this is
+/// observationally the same as five successful `bytes_set` calls while a
+/// failed store selects the existing operation status without publishing a
+/// partially updated owner.
+pub(super) fn set5(
+    buffer: &OwnedBytesValue,
+    index: u64,
+    bytes: [u8; 5],
+) -> Result<OwnedBytesValue, Flow> {
+    let Some(slot) = usize::try_from(index).ok().filter(|slot| {
+        buffer
+            .bytes
+            .len()
+            .checked_sub(*slot)
+            .is_some_and(|remaining| remaining >= 5)
+    }) else {
+        return Err(Flow::Failure(normalize_byte_buffer(
+            crate::byte_ops::SET_INDEX_OUT_OF_BOUNDS_CODE,
+        )));
+    };
+    let mut filled = buffer.bytes.to_vec();
+    filled[slot..slot + 5].copy_from_slice(&bytes);
+    Ok(OwnedBytesValue {
+        allocation: buffer.allocation,
+        bytes: Arc::from(filled.as_slice()),
+    })
+}

@@ -202,6 +202,46 @@ static __attribute__((unused)) spx_bytes_v1 spx_bytes_set(
     return buffer;
 }
 
+/* Five-byte stores use the same status but preflight the whole interval before
+   ownership commits, so no failed call can publish a partial prefix. */
+static __attribute__((unused)) spx_status_token spx_bytes_set5_check_v1(
+    struct spx_context *spx_ctx, spx_bytes_v1 buffer, uint64_t index
+) {
+    spx_bytes_require_valid(buffer);
+    if (index <= buffer.len && buffer.len - index >= UINT64_C(5)) {
+        return SPX_STATUS_SUCCESS;
+    }
+    spx_status_token token = SPX_STATUS_SUCCESS;
+    if (!spx_status_record_adapter(
+        spx_ctx,
+        "semaprax.byte-buffer.v1",
+        UINT32_C(1),
+        SPX_STATUS_CLASS_ADAPTER,
+        SPX_RETRYABILITY_FALSE,
+        &token
+    )) {
+        spx_runtime_invariant_failure("owned byte buffer status could not be recorded");
+    }
+    return token;
+}
+
+static __attribute__((unused)) spx_bytes_v1 spx_bytes_set5(
+    spx_bytes_v1 buffer, uint64_t index, uint8_t first, uint8_t second,
+    uint8_t third, uint8_t fourth, uint8_t fifth
+) {
+    spx_bytes_require_valid(buffer);
+    if (index > buffer.len || buffer.len - index < UINT64_C(5)) {
+        spx_runtime_invariant_failure("owned byte buffer five-byte interval is outside its capacity");
+    }
+    size_t slot = (size_t)index;
+    buffer.ptr[slot] = first;
+    buffer.ptr[slot + 1U] = second;
+    buffer.ptr[slot + 2U] = third;
+    buffer.ptr[slot + 3U] = fourth;
+    buffer.ptr[slot + 4U] = fifth;
+    return buffer;
+}
+
 static __attribute__((unused)) spx_slice_u8_v1 spx_bytes_as_slice(
     const spx_bytes_v1 *value
 ) {

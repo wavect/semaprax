@@ -127,7 +127,7 @@ Audience: all documentation readers.
 - [Native owned-data internal String settlement](NATIVE-OWNED-DATA-STRING-SETTLEMENT-V1.md)
 - [Class inheritance](CLASS-INHERITANCE-V1.md)
 - [Portable indexed byte data](PORTABLE-INDEXED-BYTE-DATA-V1.md)
-- [Owned Bounded Byte Buffer](OWNED-BOUNDED-BYTE-BUFFER-V1.md)
+- [Owned Bounded Byte Buffer v1](OWNED-BOUNDED-BYTE-BUFFER-V1.md) and [v2](OWNED-BOUNDED-BYTE-BUFFER-V2.md)
 - [Owned Bounded Vec](OWNED-BOUNDED-VEC-V1.md)
 - [Owned Bounded Vec v2](OWNED-BOUNDED-VEC-V2.md)
 - [Owned Bounded Vec For Traversal](OWNED-BOUNDED-VEC-FOR-TRAVERSAL-V1.md)

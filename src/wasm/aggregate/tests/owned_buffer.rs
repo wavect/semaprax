@@ -36,6 +36,45 @@ fn run() -> i64 {
 fn main() -> i64 { run() }
 "#;
 
+const SET5_SUCCESS: &str = r#"
+module test.wasm_owned_buffer_set5;
+
+@id("buffer.run")
+fn run() -> i64 {
+    let buffer = bytes_set5(bytes_zeroed(5usize), 0usize, 65u8, 66u8, 67u8, 68u8, 69u8);
+    let view = bytes_as_slice(buffer);
+    let first = match byte_get(view, 0usize) {
+        Option::Some { value: byte } => byte,
+        Option::None {} => 0u8,
+    };
+    let last = match byte_get(view, 4usize) {
+        Option::Some { value: byte } => byte,
+        Option::None {} => 0u8,
+    };
+    if first == 65u8 && last == 69u8 { 7 } else { 1 }
+}
+
+@id("app.main")
+fn main() -> i64 { run() }
+"#;
+
+const SET5_OUT_OF_RANGE: &str = r#"
+module test.wasm_owned_buffer_set5_past_end;
+
+@id("buffer.offset")
+fn offset(base: usize) -> usize { base + 1usize }
+
+@id("buffer.run")
+fn run() -> i64 {
+    let buffer = bytes_set5(bytes_zeroed(5usize), offset(4usize), 1u8, 2u8, 3u8, 4u8, 5u8);
+    let view = bytes_as_slice(buffer);
+    if byte_len(view) == 5usize { 7 } else { 1 }
+}
+
+@id("app.main")
+fn main() -> i64 { run() }
+"#;
+
 fn owned_buffer_host_probe_module() -> Vec<u8> {
     let signatures = [
         Signature {
@@ -367,6 +406,8 @@ fn owned_bounded_byte_buffer_executes_and_reenters_without_memory_copy() {
         ("computed-past-end", COMPUTED_OUT_OF_RANGE, BOUND_FAILURE),
         ("loop-fill", LOOP_FILL, RETURNS_SEVEN),
         ("loop-past-end", LOOP_PAST_END, BOUND_FAILURE),
+        ("set5-success", SET5_SUCCESS, RETURNS_SEVEN),
+        ("set5-past-end", SET5_OUT_OF_RANGE, BOUND_FAILURE),
         ("decoded-string", DECODED_STRING_BUFFER, RETURNS_SEVEN),
         ("failure", FAILURE, CONTRACT_FAILURE),
     ] {
@@ -379,6 +420,7 @@ fn owned_bounded_byte_buffer_executes_and_reenters_without_memory_copy() {
 
         let mut zeroed_imports = 0;
         let mut set_imports = 0;
+        let mut set5_imports = 0;
         for payload in wasmparser::Parser::new(0).parse_all(&bytes) {
             match payload.unwrap() {
                 wasmparser::Payload::ImportSection(section) => {
@@ -389,6 +431,8 @@ fn owned_bounded_byte_buffer_executes_and_reenters_without_memory_copy() {
                         );
                         set_imports +=
                             usize::from(import.module == "env" && import.name == "spx_bytes_set");
+                        set5_imports +=
+                            usize::from(import.module == "env" && import.name == "spx_bytes_set5");
                     }
                 }
                 wasmparser::Payload::CodeSectionEntry(body) => {
@@ -409,6 +453,7 @@ fn owned_bounded_byte_buffer_executes_and_reenters_without_memory_copy() {
         }
         assert_eq!(zeroed_imports, 1);
         assert_eq!(set_imports, 1);
+        assert_eq!(set5_imports, 1);
 
         let serial = NEXT_ID.fetch_add(1, Ordering::Relaxed);
         let fixture = Fixture(std::env::temp_dir().join(format!(

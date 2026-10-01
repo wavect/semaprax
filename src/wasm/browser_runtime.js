@@ -237,6 +237,25 @@ function createByteDataRuntime(options = {}) {
       bytes[Number(index)] = value;
       return BigInt.asIntN(64, decoded.carrier);
     },
+    spx_bytes_set5: (carrier, index, first, second, third, fourth, fifth) => {
+      const decoded = decode(carrier);
+      const bytes = resolve(decoded);
+      if (typeof index !== "bigint" || index < 0n
+          || index > BigInt(bytes.byteLength)
+          || BigInt(bytes.byteLength) - index < 5n
+          || ![first, second, third, fourth, fifth].every(
+            value => Number.isInteger(value) && value >= 0 && value <= 255
+          )) {
+        throw new Error("SEMAPRAX owned byte buffer five-byte interval invariant");
+      }
+      const slot = Number(index);
+      bytes[slot] = first;
+      bytes[slot + 1] = second;
+      bytes[slot + 2] = third;
+      bytes[slot + 3] = fourth;
+      bytes[slot + 4] = fifth;
+      return BigInt.asIntN(64, decoded.carrier);
+    },
     spx_bytes_get: (carrier, index) => {
       const bytes = read(decode(carrier));
       const unsigned = BigInt.asUintN(64, index);

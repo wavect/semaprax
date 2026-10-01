@@ -4559,6 +4559,15 @@ impl Evaluator<'_> {
                             crate::byte_ops::ByteOp::Set,
                             [Value::Bytes(buffer), Value::Usize(index), Value::Uint8(byte)],
                         ) => owned_buffer::set(buffer, *index, *byte).map(Value::Bytes),
+                        (
+                            crate::byte_ops::ByteOp::Set5,
+                            [Value::Bytes(buffer), Value::Usize(index), Value::Uint8(first), Value::Uint8(second), Value::Uint8(third), Value::Uint8(fourth), Value::Uint8(fifth)],
+                        ) => owned_buffer::set5(
+                            buffer,
+                            *index,
+                            [*first, *second, *third, *fourth, *fifth],
+                        )
+                        .map(Value::Bytes),
                         (crate::byte_ops::ByteOp::Range, _) => Err(Flow::Guard(
                             "byte_range reached interpreter as an ordinary call",
                         )),

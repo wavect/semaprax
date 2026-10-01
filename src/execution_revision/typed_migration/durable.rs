@@ -8,8 +8,10 @@ use serde_json::Value;
 
 const SCHEMA: &str = "semaprax.agent-migrated-checkpoint.v1";
 const MAX_BYTES: usize = 8 * 1024 * 1024;
-const MAX_FINALIZER_EVENTS: usize = 256;
-const MAX_FINALIZER_FUNCTION_BYTES: usize = 256;
+/// Bound shared with the target-migration producer. A generated handoff must
+/// be recoverable under this same bounded target-receipt vocabulary.
+pub(super) const MAX_FINALIZER_EVENTS: usize = 256;
+pub(super) const MAX_FINALIZER_FUNCTION_BYTES: usize = 256;
 
 /// A migration-seeded durable run whose evidence also binds target-observed
 /// semantic-work receipts. This is separate from the ordinary durable

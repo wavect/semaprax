@@ -103,6 +103,11 @@ command -v semaprax
 
 ## Route 2: install from a release archive
 
+The v0.7.0 source version is a release candidate. Its archive is unavailable
+until the exact-tag gate publishes it; check the
+[current release status](RELEASE-0.7.0-STATUS.md) before choosing an archive.
+The following note preserves the prior v0.6.0 gate observation.
+
 At this document's 2026-09-24 update, the
 [v0.6.0 tag gate](https://github.com/wavect/semaprax/actions/runs/36047757697)
 was still running; v0.6.0 had no published archive or signature. The last
@@ -164,17 +169,17 @@ semaprax run examples/meaning.spx
 semaprax graph examples/meaning.spx
 ```
 
-Expected shapes, from a local `0.6.0` standalone build:
+Expected shapes, from a local `0.7.0` standalone build:
 
 ```text
-semaprax 0.6.0 (commit unknown)
+semaprax 0.7.0 (commit unknown)
 ```
 
 A CLI built from a tag archive reports its injected commit instead of
 `unknown`. The JSON form is the machine-readable version of the same identity:
 
 ```text
-{"schema":"semaprax.version.v1","version":"0.6.0","commit":null,"maturity":"alpha","rust_min":"1.88"}
+{"schema":"semaprax.version.v1","version":"0.7.0","commit":null,"maturity":"alpha","rust_min":"1.88"}
 ```
 
 `check` prints the verified path and its source digest, and `run` prints `42`:

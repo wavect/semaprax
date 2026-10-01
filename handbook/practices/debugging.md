@@ -17,7 +17,7 @@ message, a line:column location, and usually a `help` line with the fix.
 
 ```sh
 semaprax help diagnostic SPX-T208
-semaprax explain SPX-T208 --json   # structured explanation, v0.6.0
+semaprax explain SPX-T208 --json   # structured explanation, v0.7.0
 ```
 
 ## The top fixes

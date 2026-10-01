@@ -488,6 +488,7 @@ Audience: all documentation readers.
 - [Required CI checks](CI-REQUIRED-CHECKS-V1.md)
 - [Release process and tag evidence](RELEASE-PROCESS.md)
 - [Release signing and provenance policy v1](RELEASE-SIGNING-POLICY-V1.md)
+- [v0.7.0 release candidate status](RELEASE-0.7.0-STATUS.md)
 - [v0.6.0 partial hosted gate evidence](RELEASE-0.6.0-STATUS.md)
 - [v0.4.0 implementation and evidence baseline](RELEASE-0.4.0-STATUS.md)
 - [Roadmap](ROADMAP.md)

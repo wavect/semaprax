@@ -15,8 +15,9 @@ target behavior sound before widening public APIs.
 ## Current release baseline
 
 v0.4.0 is the last accepted hosted-green release baseline. The full product is
-still Partial. The later v0.5.0 prerelease is downloadable; the v0.6.0 tag is
-not yet a certified release. See [release status](RELEASE-0.6.0-STATUS.md).
+still Partial. The later v0.5.0 prerelease is downloadable; v0.7.0 is a
+release candidate. See [current release status](RELEASE-0.7.0-STATUS.md) and
+the [historical v0.6.0 gate record](RELEASE-0.6.0-STATUS.md).
 
 The [persistent semantic cache](PERSISTENT-SEMANTIC-CACHE-V1.md) already reuses
 checked HIR across processes under authenticated source/HIR validation. It is

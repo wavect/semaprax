@@ -6,10 +6,10 @@
 from a small `.spx` file to a checked project. You can follow the whole path at
 your own pace.
 
-> This handbook describes **Semaprax v0.6.0** (workspace version `0.6.0`).
-> v0.6.0 is installable from source; its release gate is not green and no
-> signed v0.6.0 archive is published yet, so install from source to follow
-> along. Semaprax is **alpha research software**: syntax, protocols, and
+> This handbook describes **Semaprax v0.7.0** (workspace version `0.7.0`).
+> v0.7.0 is a release candidate available from source; its exact tag gate has
+> not passed and no signed v0.7.0 archive is published yet. Install from source
+> to follow along. Semaprax is **alpha research software**: syntax, protocols, and
 > binary interfaces can change. Experiment and prototype; don't ship
 > production or safety-critical workloads on it yet.
 

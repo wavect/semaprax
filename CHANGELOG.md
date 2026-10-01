@@ -8,6 +8,14 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+## 0.7.0 — 2026-10-01
+
+This alpha candidate gathers development work since v0.5.0: checked session
+endpoints, private owned-Agent continuation and cleanup, local package and
+resolver work, and host/tooling repairs. The completion matrix remains the
+authority for executable support; local or private evidence does not become
+public support through a release tag.
+
 - Preserve the selected host failure and physical authority-loss retirement
   when cancellation and lease corruption coincide during continued
   owned-effect dispatch. Keep the

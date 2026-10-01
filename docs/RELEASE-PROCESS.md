@@ -1,14 +1,15 @@
 # Release process
 
-Status: tag-release procedure and historical evidence; v0.6.0 is not published.
+Status: tag-release procedure and historical evidence; v0.7.0 is a candidate.
 
 Audience: maintainers and release reviewers.
 
 Only the repository CI workflow can publish a tag release, and only after the
 exact tag commit passes every job in `release-gate`. A local archive can test
 packaging, but cannot certify a release. This page combines the procedure with
-historical v0.4.x evidence; use [v0.6.0 status](RELEASE-0.6.0-STATUS.md) for
-the current tag.
+historical v0.4.x evidence; use [v0.7.0 status](RELEASE-0.7.0-STATUS.md) for
+the current candidate. The [v0.6.0 gate record](RELEASE-0.6.0-STATUS.md)
+remains historical evidence.
 
 For a new release:
 
@@ -77,7 +78,8 @@ python3 scripts/prepare-release.py --check --version "$RELEASE_VERSION"
 ```
 
 The write mode requires a clean worktree, updates the declared current-version
-surfaces, and regenerates every repository-owned lockfile offline. Check mode
+surfaces, and changes only the workspace package rows in repository-owned
+lockfiles. It leaves unrelated dependency pins intact. Check mode
 also runs locked Cargo metadata against the root, example, and platform-test
 manifests. Review its diff and complete the human-owned items below.
 

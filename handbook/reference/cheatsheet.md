@@ -1,6 +1,6 @@
 # Cheatsheet
 
-One page: the v0.6.0 commands and syntax you'll reach for daily.
+One page: the v0.7.0 commands and syntax you'll reach for daily.
 
 ## Commands
 

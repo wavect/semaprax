@@ -8,6 +8,11 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Add an isolated Windows anonymous request/bundle carrier experiment (#333).
+  It authenticates signed artifact bytes into read-only inheritable mapping
+  handles and adds a native hostile-write selector. Windows execution and
+  production child transport remain open.
+
 - Reject producer-impossible target cleanup receipts during durable Agent
   recovery (#327): oversized finalizer inventories, invalid function identities,
   and liveness flags outside `u32`. The focused negative-control gate passed

@@ -8,11 +8,11 @@ historical five-test runtime witness on exact checkout `3d4220b6`, extending the
 two-test witness at `c6bf9902`. The historical signed-capsule nine-case exact selector
 (six runtime cases plus three admission refusals) passed on exact checkout
 `c608b8d8`. The historical ten-case selector added a hostile inheritable-parent-ACE
-DACL case and passed on exact checkout `f4d3291f`. The current seventeen-case
+DACL case and passed on exact checkout `f4d3291f`. The current eighteen-case
 selector preserves those ten and adds signed-image substitution, writable
-mapping, and handle-settlement regressions; native execution of the added
-binding path is pending, and exact exclusion of retained writable-section
-mutation remains unresolved. The authoring host remains macOS arm64; the
+mapping, handle-settlement, and read-only request/bundle-carrier regressions;
+native execution of the added paths is pending, and exact exclusion of retained
+writable-section mutation remains unresolved. The authoring host remains macOS arm64; the
 continuation has a Windows-target Rust type-check but no native Windows runtime.
 No cross-compilation or emulated substitute is treated as native execution
 evidence. Host-independent capsule, admission-ordering,
@@ -270,8 +270,27 @@ not a release anchor. The standalone spawn now requires an explicit `ImageRole`
 (launcher, worker, collector), checks the selected signed length and SHA-256 against held executable
 bytes, and retains file/path handles and an advisory oplock through settlement.
 Exact binding under retained writable-section mutation remains unresolved.
-Request/bundle carriers, selector/role handoff and Windows production transport remain unimplemented;
+Request/bundle carrier transport, selector/role handoff and Windows production transport remain unimplemented;
 this is not complete signed-carrier admission or production support.
+
+### Anonymous request/bundle carrier experiment
+
+`windows_confinement::carrier` is an isolated Windows-only experiment. It
+accepts explicit bytes only when they match a signed capsule `Artifact`'s exact
+nonzero bounded length and SHA-256 digest. It copies the authenticated bytes to
+an unnamed paging-file mapping, unmaps its sole writable view, duplicates only
+`SECTION_MAP_READ` into an inheritable handle, drops the writable handle, and
+rehashes from the retained read-only handle before returning. The mapping name
+is `NULL`; no path, named-object lookup, child input selection, process launch,
+or production transport is involved.
+
+The selected native case makes both request-shaped and bundle-shaped bytes,
+rejects a forged artifact digest, asks the kernel for `FILE_MAP_WRITE` through
+each retained inheritable handle, and requires that request to fail while a
+read-only rehash still succeeds. It also requires exact warmed handle-count
+settlement. This shows that an explicit future handle-list entry can carry
+read-only authenticated bytes; it does not show that any child inherited the
+handle, received a fixed carrier role, or executed an authenticated image.
 
 ### Signed image binding continuation (#333; native execution pending)
 
@@ -323,7 +342,7 @@ cancel-before-hash/pre-spawn design did not establish this guarantee either.
 These partial checks rely on the ordinary NTFS sharing and oplock contract and
 the trusted Windows kernel/volume namespace. It does not authenticate imported DLLs or
 protect against administrator/kernel mutation. It adds no ordinary CLI route
-or Windows request/bundle carrier, and does not modify the Linux sealed-file
+or Windows request/bundle carrier transport, and does not modify the Linux sealed-file
 launcher. The deterministic test capsule signs the actual test image's bytes;
 its other slots remain fixture-only inputs and are not transport evidence.
 
@@ -339,7 +358,7 @@ that a new read-only handle cannot mint writable-section access; it does not
 address an already retained writable section. The section-without-view case
 requires pre-spawn refusal; its behavior is still unverified on Windows.
 Success controls require NTFS/oplock acquisition to work; no unavailable
-prerequisite can pass by skipping. All seventeen native cases still require an
+prerequisite can pass by skipping. All eighteen native cases still require an
 authorized Windows execution at the changed revision.
 
 Local verification on 30 September 2026: the initial `64472c71b` continuation
@@ -360,7 +379,7 @@ and leaves exact binding unaccepted. This is a design decision and work plan,
 not a new execution receipt or a claim that the race has been reproduced.
 The affected completion row is WP-05. Its Windows production boundary stays
 unpromoted; the historical ten-case evidence remains attached to its original
-revision, and all seventeen current cases still need native execution.
+revision, and all eighteen current cases still need native execution.
 
 The proposed repair must establish one continuous invariant: from the first
 authenticated byte read until the loader has consumed the admitted image,
@@ -507,13 +526,13 @@ The dispatch-only
 uses an ephemeral `windows-2025` runner and creates a fresh, explicit scratch
 parent under `RUNNER_TEMP`. The gate fails when the host is not 64-bit Windows,
 the parent is missing, nonempty, or a reparse point, Cargo fails, any named
-test is filtered or ignored, or the test summary does not report all seventeen
+test is filtered or ignored, or the test summary does not report all eighteen
 selected cases as passed. It never treats an absent prerequisite or a zero-test
 run as a skip/pass.
 
 `scripts/doctor-provisioned-windows-gate.py --self-test` checks the gate's
 refusal and libtest-result parsing on any host; it provides no Windows runtime
-evidence. `--plan` prints the exact seventeen-test selector. The live selection runs
+evidence. `--plan` prints the exact eighteen-test selector. The live selection runs
 `windows_runtime_launches_restricted_child_inside_acl_scratch_and_settles_it`
 and `windows_runtime_timeout_terminates_the_confined_job_and_settles_cancellation`,
 plus `windows_runtime_timeout_terminates_an_actual_job_descendant`,
@@ -530,6 +549,8 @@ Its post-binding launch hook attempts a new hard link, writable open, and
 writable section from a fresh read handle before process creation; each must
 refuse before the authenticated child is allowed to run. Those attempts do not
 model a retained writable section and do not establish exact image binding.
+The independent `carrier` case supplies the bounded anonymous mapping experiment
+above; it is not a request/bundle child transport case.
 The child-launch cases traverse `confined_spawn_using`; capsule verification
 uses the production release-key path or the explicit test-only key seam. The success case inspects
 the child's disabled privilege set and job membership/limits, reads back the
@@ -567,7 +588,8 @@ checkout `c608b8d8`: six live runtime cases (including deterministic test-only
 signed-key launch/settlement) and three signed-admission refusal cases. The
 historical ten-case source added the hostile inheritable-parent-ACE scratch-DACL
 case and passed at `f4d3291f`. The test key is not release trust. The current
-seventeen-case source and its held-image binding have no native execution receipt.
+eighteen-case source, held-image binding, and carrier experiment have no native
+execution receipt.
 
 ## Acceptance criteria status
 
@@ -584,7 +606,7 @@ seventeen-case source and its held-image binding have no native execution receip
 
 ## Nonclaims
 
-This contract does not claim that the seventeen-test Windows selector is a
+This contract does not claim that the eighteen-test Windows selector is a
 complete hostile corpus or production-support gate. The two-test run at
 `c6bf9902` and five-test run at `3d4220b6` each bind only their exact checkout
 and selected tests.
@@ -595,8 +617,8 @@ Earlier hand-checking against vendored `windows-sys` was diligence, not
 substitute execution evidence. The selector uses a
 deterministic test-only signing key and does not establish release trust. The
 partial image checks have no native execution evidence or atomic exclusion
-proof for retained writable sections, and Windows request/bundle carriers
-remain absent. Independent hostile-corpus,
+proof for retained writable sections, and Windows request/bundle carrier
+transport remains absent. Independent hostile-corpus,
 general descendant-tree, and production-support requirements remain open. Do not claim the existing ordinary-probe
 job-object confinement in `windows.rs` as evidence of production-grade
 sandboxing (it confines process *lifetime*, not filesystem or network access,

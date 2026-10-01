@@ -16,7 +16,7 @@
 //! token / tightened job object / ACL'd scratch root / sealed-capsule
 //! consumption wiring, is `#[cfg(windows)]`. The historical ten-case native
 //! selector passed at `f4d3291f`; the signed-image binding continuation and
-//! six additional cases have no native execution receipt. See the owning
+//! anonymous carrier experiment have no native execution receipt. See the owning
 //! specification for the retained historical evidence and remaining nonclaims.
 //!
 //! [doc]: https://github.com/wavect/semaprax/blob/main/docs/DOCTOR-PRODUCTION-PROVISIONER-WINDOWS-V1.md
@@ -26,6 +26,8 @@
 //! route. Its contract and tests remain available inside the owning crate.
 #![allow(dead_code)]
 pub mod capsule;
+#[cfg(windows)]
+pub mod carrier;
 #[cfg(windows)]
 pub mod primitive;
 pub mod refusal;

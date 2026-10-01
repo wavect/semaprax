@@ -307,17 +307,15 @@ fn handle_with_clock(
     if exchange.method == "POST" && exchange.target == "/v1/login" {
         return login(host, committed, exchange, clock);
     }
+    // Only the closed set of protected route shapes reaches the session
+    // boundary. Unknown paths must not turn a bearer-looking header into a
+    // clock dependency or a durable session transition.
+    if !route_needs_auth(&exchange.method, &exchange.target) {
+        return error(404, "unknown_route", None);
+    }
     let authenticated = match authenticate(host, committed, exchange, clock) {
         Authentication::Authenticated(value) => value,
-        Authentication::Unauthorized => {
-            if exchange.method == "POST" && exchange.target == "/v1/logout" {
-                return error(401, "unauthorized", None);
-            }
-            if route_needs_auth(&exchange.method, &exchange.target) {
-                return error(401, "unauthorized", None);
-            }
-            return error(404, "unknown_route", None);
-        }
+        Authentication::Unauthorized => return error(401, "unauthorized", None),
         Authentication::Failed => return error(500, "decision_failed", None),
     };
     if exchange.method == "POST" && exchange.target == "/v1/logout" {
@@ -366,10 +364,11 @@ enum Authentication {
 fn route_needs_auth(method: &str, target: &str) -> bool {
     (method == "POST" && target == "/v1/logout")
         || (method == "POST" && target == "/v1/tasks")
-        || task_member(target).is_some()
+        || (matches!(method, "GET" | "PATCH" | "DELETE")
+            && task_member(target).is_some())
         || (method == "POST" && target == "/v1/jobs/enqueue")
-        || job_member(target, "/complete").is_some()
-        || job_member(target, "").is_some()
+        || (method == "POST" && job_member(target, "/complete").is_some())
+        || (method == "GET" && job_member(target, "").is_some())
 }
 
 fn task_member(target: &str) -> Option<i64> {

@@ -172,7 +172,9 @@ credential admission, and passes one tick to the checked session predicates.
 The private `handle_with_clock` seam supports deterministic host tests; HTTP
 requests, configuration bytes and scaffold code cannot choose a clock or gain
 time authority. Health, registration and malformed credentials do not acquire
-a session-clock dependency. An unavailable clock preserves committed state
+a session-clock dependency. Unknown routes likewise stop before the protected
+route boundary, even when they carry a valid bearer. An unavailable clock
+preserves committed state
 and refuses login with `clock_unavailable`, or authenticated work with
 `decision_failed`.
 
@@ -184,8 +186,9 @@ protection claim for a still-active session.
 
 The authored `reference_service::mapping::tests::session_policy` corpus covers
 just-before/equal/after boundaries, reloading exact expiry snapshot bytes,
-terminal replay, unavailable clocks, and parity between actual `std.auth`
-transition execution and both reference/generated scaffold wrappers. The
+terminal replay, unavailable clocks, unknown-route clock refusal, every
+protected route's expiry refusal before route mutation, and parity between
+actual `std.auth` transition execution and both reference/generated scaffold wrappers. The
 normal project interpreter supplies the contract-bearing standard-library
 oracle; the host's public decision seam remains contract-free. The existing
 real-process expiry case now restarts from its retained state digest, alongside

@@ -8,6 +8,12 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Close the reference-service authenticated-route clock boundary (#336):
+  unknown route and method shapes now refuse before acquiring a session clock,
+  and exact idle/absolute expiry selects only the checked terminal session
+  transition before any protected route mutation. The five-case focused
+  session selector passed locally; broader service acceptance remains open.
+
 - Append the real turn-1 `OwnedReduceCleanupStarted` row after the continued
   Step ACK while retaining its evaluated owner and spent Reduce hold (#330).
   Focused success and prewrite-fault real-chain selectors passed locally;

@@ -156,6 +156,95 @@ fn unavailable_session_clock_refuses_without_state_changes() {
 }
 
 #[test]
+fn unknown_routes_do_not_acquire_a_session_clock_or_mutate_state() {
+    let (mut fixture, token) = login_fixture();
+    let state = fixture.committed.state.render();
+    let digest = fixture.committed.digest.clone();
+    for request in [
+        exchange("GET", "/v1/not-a-route", "", Some(&token)),
+        exchange("POST", "/v1/tasks/not-an-id", "{}", Some(&token)),
+        exchange("GET", "/v1/jobs/1/not-a-route", "", Some(&token)),
+        exchange("POST", "/v1/tasks/1", "{}", Some(&token)),
+        exchange("PATCH", "/v1/jobs/1", "{}", Some(&token)),
+        exchange("GET", "/v1/jobs/1/complete", "", Some(&token)),
+    ] {
+        let response = handle_with_clock(
+            &mut fixture.host,
+            &mut fixture.committed,
+            &request,
+            &mut || panic!("unknown routes must not acquire the session clock"),
+        );
+        assert_eq!(response.status, 404, "{}", response.body);
+        assert_eq!(fixture.committed.state.render(), state);
+        assert_eq!(fixture.committed.digest, digest);
+    }
+}
+
+#[test]
+fn expiry_refuses_every_protected_route_before_route_mutation() {
+    let (mut fixture, token) = login_fixture();
+    let session_id = &token[..SESSION_ID_BYTES * 2];
+    let session = fixture
+        .committed
+        .state
+        .sessions
+        .iter_mut()
+        .find(|session| session.id == session_id)
+        .unwrap();
+    // Coincident deadlines make the source-selected absolute expiry observable
+    // at every protected boundary.
+    session.idle_deadline_tick = 100;
+    session.absolute_deadline_tick = 100;
+    let initial = fixture.committed.state.clone();
+    let initial_digest = ServiceState::digest(&initial.render());
+
+    for request in [
+        exchange("POST", "/v1/logout", "", Some(&token)),
+        exchange(
+            "POST",
+            "/v1/tasks",
+            r#"{"title":"must not exist"}"#,
+            Some(&token),
+        ),
+        exchange("GET", "/v1/tasks/1", "", Some(&token)),
+        exchange("PATCH", "/v1/tasks/1", r#"{"status":"done"}"#, Some(&token)),
+        exchange("DELETE", "/v1/tasks/1", "", Some(&token)),
+        exchange(
+            "POST",
+            "/v1/jobs/enqueue",
+            r#"{"key":"must-not-exist"}"#,
+            Some(&token),
+        ),
+        exchange("GET", "/v1/jobs/1", "", Some(&token)),
+        exchange("POST", "/v1/jobs/1/complete", "", Some(&token)),
+    ] {
+        fixture.committed = CommittedState {
+            state: initial.clone(),
+            digest: initial_digest.clone(),
+        };
+        let response = at(&mut fixture, &request, Some(100));
+        assert_eq!(response.status, 401, "{}", response.body);
+        assert_eq!(fixture.committed.state.seq, initial.seq + 1);
+        assert_eq!(fixture.committed.state.accounts, initial.accounts);
+        assert_eq!(fixture.committed.state.tasks, initial.tasks);
+        assert_eq!(fixture.committed.state.jobs, initial.jobs);
+        let session = fixture.committed.state.session_by_id(session_id).unwrap();
+        assert_eq!(session.state, 4, "{}", request.target);
+        assert_eq!(
+            (session.idle_deadline_tick, session.absolute_deadline_tick),
+            (100, 100),
+            "{}",
+            request.target
+        );
+
+        let terminal_digest = fixture.committed.digest.clone();
+        let replay = at(&mut fixture, &request, Some(99));
+        assert_eq!(replay.status, 401, "{}", replay.body);
+        assert_eq!(fixture.committed.digest, terminal_digest);
+    }
+}
+
+#[test]
 fn session_transitions_match_std_auth_and_the_generated_scaffold() {
     use semaprax::project::{derive_project_scaffold_v1_with_layout, ScaffoldLayout};
     let (generated, _held) = TempDir::hold("session-policy-generated");

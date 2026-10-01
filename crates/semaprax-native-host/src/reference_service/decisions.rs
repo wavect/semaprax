@@ -15,7 +15,7 @@
 //! invocable here: `request_is_admitted`, `identifier_is_valid`,
 //! `method_is_rejected`, `task_owner_authorized`, and the three session
 //! predicates/transitions.
-//! `registration_admitted`, `enqueue_outcome`, and
+//! `registration_admitted`, `enqueue_is_legal`, `enqueue_outcome`, and
 //! `completed_job_export_is_admitted` are invoked through the checked
 //! public-API seam before their corresponding host work. The remaining
 //! scaffold decisions (migration/transaction, log/trace/metric, and webhook
@@ -61,6 +61,7 @@ pub struct DecisionIdentities {
     session_next_state_on_access: String,
     session_next_state_on_logout: String,
     enqueue_outcome: String,
+    enqueue_is_legal: String,
     job_status_is_complete: String,
     completed_job_export_is_admitted: String,
 }
@@ -79,6 +80,7 @@ impl DecisionIdentities {
         let session_next_state_on_access = sole(program, "session_next_state_on_access")?;
         let session_next_state_on_logout = sole(program, "session_next_state_on_logout")?;
         let enqueue_outcome = sole(program, "enqueue_outcome")?;
+        let enqueue_is_legal = sole(program, "enqueue_is_legal")?;
         let job_status_is_complete = sole(program, "job_status_is_complete")?;
         let completed_job_export_is_admitted = sole(program, "completed_job_export_is_admitted")?;
         let prefix = prefix_of(&request_is_admitted).ok_or(DecisionRefusal::Unresolved)?;
@@ -91,6 +93,7 @@ impl DecisionIdentities {
             &session_next_state_on_access,
             &session_next_state_on_logout,
             &enqueue_outcome,
+            &enqueue_is_legal,
             &job_status_is_complete,
             &completed_job_export_is_admitted,
         ] {
@@ -109,6 +112,7 @@ impl DecisionIdentities {
             session_next_state_on_access,
             session_next_state_on_logout,
             enqueue_outcome,
+            enqueue_is_legal,
             job_status_is_complete,
             completed_job_export_is_admitted,
         })
@@ -118,7 +122,6 @@ impl DecisionIdentities {
     pub fn prefix(&self) -> &str {
         &self.prefix
     }
-
 }
 
 fn sole(
@@ -153,6 +156,7 @@ fn prefix_of(identity: &str) -> Option<&str> {
         .or_else(|| identity.strip_suffix(".core.session_next_state_on_access"))
         .or_else(|| identity.strip_suffix(".core.session_next_state_on_logout"))
         .or_else(|| identity.strip_suffix(".core.enqueue_outcome"))
+        .or_else(|| identity.strip_suffix(".core.enqueue_is_legal"))
         .or_else(|| identity.strip_suffix(".core.job_status_is_complete"))
         .or_else(|| identity.strip_suffix(".core.completed_job_export_is_admitted"))
 }
@@ -337,6 +341,24 @@ impl<'revision> DecisionEngine<'revision> {
         )
     }
 
+    /// Evaluate source admission using explicit scheduling facts. This method
+    /// does not read a clock or create scheduling authority.
+    pub fn enqueue_is_legal(
+        &self,
+        state: u64,
+        now_tick: u64,
+        next_run_tick: u64,
+    ) -> Result<bool, DecisionRefusal> {
+        self.invoke_bool(
+            &self.identities.enqueue_is_legal,
+            &[
+                PublicApiArgument::Usize(state),
+                PublicApiArgument::Usize(now_tick),
+                PublicApiArgument::Usize(next_run_tick),
+            ],
+        )
+    }
+
     /// Evaluate the scaffold's contract-free idempotent-enqueue decision.
     pub fn enqueue_outcome(
         &self,
@@ -472,8 +494,8 @@ mod tests {
                 DECISION_MAX_STEPS
             )
             .is_err());
-        // A decision outside the frozen vocabulary (usize parameter) is not
-        // invocable, even though it is linked and checked.
+        // Scalar usize is admitted, but an i64 argument cannot stand in for
+        // its declared type, even though the function is linked and checked.
         assert!(revision
             .evaluate_service_decision_v1(
                 "task_service.core.job_status_is_complete",

@@ -980,6 +980,17 @@ fn enqueue_job(
             if existing.is_some() {
                 return error(500, "decision_failed", None);
             }
+            // This route creates immediate Pending jobs only. Zero/zero are
+            // explicit immediate-schedule facts, not a sampled wall clock;
+            // scheduled jobs and clock authority are outside this route.
+            match host
+                .decisions
+                .enqueue_is_legal(JobState::Pending.source_status(), 0, 0)
+            {
+                Ok(true) => {}
+                Ok(false) => return error(403, "enqueue_not_admitted", Some(&committed.digest)),
+                Err(_) => return error(500, "decision_failed", None),
+            }
             let id = committed
                 .state
                 .jobs
@@ -1118,7 +1129,10 @@ fn complete_job(
         Ok(false) => return error(403, "forbidden", None),
         Err(response) => return response,
     }
-    match host.decisions.job_status_is_complete(job.state.source_status()) {
+    match host
+        .decisions
+        .job_status_is_complete(job.state.source_status())
+    {
         Ok(false) => {}
         Ok(true) => return error(409, "already_completed", Some(&committed.digest)),
         Err(_) => return error(500, "decision_failed", None),

@@ -8,6 +8,10 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Route new immediate reference-service job enqueues through the checked
+  scaffold's `enqueue_is_legal` decision, with source denial and evaluator
+  failure leaving committed state and outbound work untouched (#336).
+
 - Add offline reference-service packaging for operator-selected development and
   static Linux OCI executables, with a digest-bound copy, real project/config
   preflight, deterministic OCI layout, and bounded refusal tests (#336). Runtime

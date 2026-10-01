@@ -1,3 +1,5 @@
+#[path = "tests/enqueue_policy.rs"]
+mod enqueue_policy;
 #[path = "tests/session_policy.rs"]
 mod session_policy;
 
@@ -270,9 +272,18 @@ fn registration_capacity_refusal_leaves_state_unchanged_before_password_work() {
         ),
     );
     assert_eq!(refused.status, 400, "{}", refused.body);
-    assert_eq!(field(&refused.body, "error").as_str(), Some("registration_not_admitted"));
-    assert_eq!(field(&refused.body, "state").as_str(), Some(digest_before.as_str()));
-    assert_eq!(fixture.committed.state.accounts.len(), super::super::state::MAX_ACCOUNTS);
+    assert_eq!(
+        field(&refused.body, "error").as_str(),
+        Some("registration_not_admitted")
+    );
+    assert_eq!(
+        field(&refused.body, "state").as_str(),
+        Some(digest_before.as_str())
+    );
+    assert_eq!(
+        fixture.committed.state.accounts.len(),
+        super::super::state::MAX_ACCOUNTS
+    );
     assert_eq!(fixture.committed.digest, digest_before);
 }
 
@@ -390,7 +401,10 @@ fn source_selected_absolute_expiry_is_persisted_and_sticky() {
         .decisions
         .session_next_state_on_access(0, 1, i64::MAX as u64, 0)
         .unwrap();
-    assert_eq!(source_state, 4, "checked source prioritizes absolute expiry");
+    assert_eq!(
+        source_state, 4,
+        "checked source prioritizes absolute expiry"
+    );
     assert!(!fixture
         .host
         .decisions
@@ -593,9 +607,7 @@ fn job_enqueue_is_idempotent_and_completion_settles_once() {
         field(&completed.body, "webhook").as_str().unwrap(),
         "uncertain"
     );
-    let outbound_entries_before_retry = std::fs::read_dir(fixture.outbound.path())
-        .unwrap()
-        .count();
+    let outbound_entries_before_retry = std::fs::read_dir(fixture.outbound.path()).unwrap().count();
     assert!(outbound_entries_before_retry > 0);
 
     let again = handle(
@@ -672,8 +684,14 @@ fn completion_export_refusal_keeps_job_pending_without_outbound_attempt() {
         &exchange("POST", "/v1/jobs/1/complete", "", Some(&token)),
     );
     assert_eq!(refused.status, 403, "{}", refused.body);
-    assert_eq!(field(&refused.body, "error").as_str(), Some("export_not_admitted"));
-    assert_eq!(field(&refused.body, "state").as_str(), Some(digest_before.as_str()));
+    assert_eq!(
+        field(&refused.body, "error").as_str(),
+        Some("export_not_admitted")
+    );
+    assert_eq!(
+        field(&refused.body, "state").as_str(),
+        Some(digest_before.as_str())
+    );
     assert!(std::fs::read_dir(fixture.outbound.path())
         .unwrap()
         .next()

@@ -8,6 +8,12 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Authenticate read-only terminal recovery for source-owned waits (#330):
+  reopening the real journal with retained registration and an explicit host
+  grant returns copied terminal status and evidence only after the complete
+  terminal row. The real-chain success and terminal-prewrite refusal selectors
+  passed locally. Multi-turn public delivery remains open.
+
 - Complete the catalog-normalizer maximal application gate at the original
   100,000,000-step bound (#324). Bounded owned-buffer stores, a scalar writer
   cursor, validated quantity lookup, and one-pass label layout preserve the

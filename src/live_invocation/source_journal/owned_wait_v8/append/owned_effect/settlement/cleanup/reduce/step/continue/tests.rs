@@ -90,11 +90,11 @@ fn with_moved(
         Vec<std::sync::Weak<[u8]>>,
         &'j AgentCancellation,
         &'j Clock,
-    ),
+    ) -> bool,
 ) {
     CheckedOwnedWaitJournalContextV8::test_with_actual_runtime_store(
         true,
-        |context, lease, key, _| {
+        |context, lease, key, directory| {
             let context = context.with_cumulative_initialization(&lease).unwrap();
             let crate::live_invocation::source_journal::owned_wait_v8::model::OwnedBodyV8::OwnedRunCreated { execution, .. } = &context.fold().created else {
                 panic!("actual Created execution");
@@ -108,13 +108,39 @@ fn with_moved(
                 context.ordinary().invocation(),
                 "E and derived I8 are distinct"
             );
-            let journal = SourceOwnedWaitJournalV8::open(Arc::new(context), key, lease).unwrap();
+            let context = Arc::new(context);
+            let retained = Arc::clone(&context);
+            let journal = SourceOwnedWaitJournalV8::open(context, key, lease).unwrap();
             let cancel = AgentCancellation::new();
             let policy = CapabilityPolicy::new(vec!["read".into()]).unwrap();
             let clock = Clock { now: Cell::new(1) };
+            let reopen_terminal = Cell::new(false);
             super::super::tests::test_moved(&journal, &cancel, &policy, &clock, |moved, weak| {
-                callback(&journal, moved, weak, &cancel, &clock)
+                reopen_terminal.set(callback(&journal, moved, weak, &cancel, &clock));
             });
+            drop(journal);
+            if reopen_terminal.get() {
+                let registration = retained.registration().clone();
+                let lease = crate::resumable_effects::owned_frame::recover_source_owned_wait_v8(
+                    std::fs::File::open(directory).unwrap(),
+                    &registration,
+                    registration.expected_facts().clone(),
+                    crate::resumable_effects::owned_frame::ExplicitStoreRegistrationGrant::for_trusted_host(true).unwrap(),
+                ).unwrap();
+                let recovered = SourceOwnedWaitJournalV8::open(
+                    retained,
+                    crate::resumable_effects::source_checkpoint::SourceCheckpointKey::new([73; 32]),
+                    lease,
+                )
+                .unwrap();
+                let terminal = recovered.terminal_evidence().unwrap();
+                assert_eq!(
+                    terminal.status(),
+                    crate::live_invocation::source_journal::SourceTerminalStatus::Complete
+                );
+                assert!(!terminal.evidence().is_empty());
+                assert!(terminal.carrier().is_some());
+            }
         },
     );
 }
@@ -156,6 +182,7 @@ fn owned_continue_driver_advances_one_real_step_into_the_next_turn() {
 
         drop(observed);
         assert!(weak.iter().all(|owner| owner.upgrade().is_none()));
+        false
     });
 }
 fn continued_reduce_chain_step_ack(fault: u8) {
@@ -699,6 +726,7 @@ fn continued_reduce_chain_step_ack(fault: u8) {
                             );
                             assert!(matches!(last, EntryV8::Ordinary(SourceJournalEntry::Transition { case: crate::live_invocation::source_journal::SourceTransitionCase::Complete, .. })));
                             assert_eq!(step_cleanup_actions, 1);
+                            assert!(journal.terminal_evidence().is_err(), "a terminal Transition alone cannot be recovered as a terminal receipt");
                             let input = crate::live_invocation::source_journal::SourceTerminalEvidenceInput {
                                 completed_stages: s,
                                 omitted_stage_rows: s,
@@ -746,6 +774,7 @@ fn continued_reduce_chain_step_ack(fault: u8) {
                                 );
                                 assert!(journal.begin_session().is_err());
                                 assert!(journal.hold().is_err());
+                                assert!(journal.terminal_evidence().is_err());
                                 assert_eq!(step_cleanup_actions, 1);
                                 drop(failed);
                             } else {
@@ -766,6 +795,10 @@ fn continued_reduce_chain_step_ack(fault: u8) {
                                     (charged_funding.0, s, 1, 0)
                                 );
                                 assert!(matches!(last, EntryV8::Ordinary(SourceJournalEntry::TerminalSnapshot { status: crate::live_invocation::source_journal::SourceTerminalStatus::Complete, .. })));
+                                let recovered = journal.terminal_evidence().unwrap();
+                                assert_eq!(recovered.status(), crate::live_invocation::source_journal::SourceTerminalStatus::Complete);
+                                assert!(!recovered.evidence().is_empty());
+                                assert!(recovered.carrier().is_some());
                                 drop(terminal_owner);
                             }
                         }
@@ -787,6 +820,7 @@ fn continued_reduce_chain_step_ack(fault: u8) {
             "only the fourth Model ACK may resume source"
         );
             assert!(weak.iter().all(|owner| owner.upgrade().is_none()));
+            fault == 0
         })
     };
     std::thread::Builder::new()
@@ -869,6 +903,7 @@ fn owned_continue_actual_state_and_observe_acks_preserve_owner_ledger_and_cumula
         assert!(weak.iter().any(|w| w.strong_count() == 1));
         drop(observed);
         assert!(weak.iter().all(|w| w.upgrade().is_none()));
+        false
     });
 }
 #[test]
@@ -906,6 +941,7 @@ fn owned_continue_cancel_or_expired_clock_before_ack_keeps_real_state_and_zero_n
             assert!(seq > 0);
             drop(failure);
             assert!(weak.iter().all(|w| w.upgrade().is_none()));
+            false
         });
     }
 }
@@ -951,6 +987,7 @@ fn owned_continue_state_and_observe_real_append_faults_never_evaluate_or_remint(
                 assert!(journal.begin_session().is_err());
                 drop(failure);
                 assert!(weak.iter().all(|w| w.upgrade().is_none()));
+                false
             });
         }
     }

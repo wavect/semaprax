@@ -98,6 +98,14 @@ impl Drop for Attempting<'_> {
     }
 }
 impl SourceOwnedWaitJournalV8 {
+    /// Reopens and authenticates the current bytes on every read. A terminal
+    /// projection never reconstructs the physical State/Report owner.
+    pub(crate) fn terminal_evidence(
+        &self,
+    ) -> Result<super::candidate::terminal::CheckedOwnedTerminalEvidenceV8, SourceJournalError>
+    {
+        self.begin_session()?.inventory.terminal_evidence()
+    }
     pub(crate) fn open(
         context: Arc<CheckedOwnedWaitJournalContextV8>,
         key: SourceCheckpointKey,

@@ -479,7 +479,7 @@ Only the original parked owner and that reservation may enter Resume. Successful
 
 This section defines the closed private proof-data grammar. The admitted implementation checks compiler plans, nominal values, causal references, ordered cleanup observations, original aggregate reservation accounting and phase-specific serialized closure capacity. It does not evaluate Reduce, restore owners, dispatch a target, perform cleanup, deliver an Agent result or mint a production physical ACK from decoded rows. Generic append refuses the seven new owned bodies and ordinary Reduce/Transition/Stop advances of an active Reduce obligation.
 
-The prospective hold, physical producer, physical transfer, cumulative next-turn driver and terminal mapping requirements below are required successor boundaries. They are not implemented by the inert codec/fold. In particular, the current fold refuses TerminalSnapshot, replay Reduce, and next-turn execution; a checked Continue or held terminal Transition is proof data only. A failure Stop records the selected failure after its successful whole receipt without granting terminal delivery.
+The prospective hold, physical producer, physical transfer, cumulative next-turn driver and terminal mapping requirements below are separate authority boundaries from the inert codec/fold. The current private path authenticates a terminal `TerminalSnapshot` after the matching mapped Step and Transition; the row remains proof data and grants no Report delivery or owner reconstruction. Replay Reduce and execution beyond the reached continued turn remain separate gates. A failure Stop records the selected failure after its successful whole receipt without granting terminal delivery.
 
 ### 23.1 Admission and start boundary
 

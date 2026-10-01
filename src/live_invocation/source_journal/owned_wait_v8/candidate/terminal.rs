@@ -1,7 +1,52 @@
 //! Authenticated terminal construction and terminal Step cursor facts.
 use super::*;
 
+/// Copies checked terminal data only. It carries no physical owner, append
+/// cursor, effect grant, or result-delivery right.
+pub(crate) struct CheckedOwnedTerminalEvidenceV8 {
+    status: super::super::super::SourceTerminalStatus,
+    evidence: Vec<u8>,
+    carrier: Option<Vec<u8>>,
+}
+impl CheckedOwnedTerminalEvidenceV8 {
+    pub(crate) fn status(&self) -> super::super::super::SourceTerminalStatus {
+        self.status
+    }
+    pub(crate) fn evidence(&self) -> &[u8] {
+        &self.evidence
+    }
+    pub(crate) fn carrier(&self) -> Option<&[u8]> {
+        self.carrier.as_deref()
+    }
+}
+
 impl<'a> InventoryV8<'a> {
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn terminal_evidence(
+        &self,
+    ) -> Result<CheckedOwnedTerminalEvidenceV8, SourceJournalError> {
+        let folded = fold::fold(self.context.fold(), &self.entries)?;
+        if folded.tail != fold::TailV8::Terminal {
+            return Err(SourceJournalError::Order);
+        }
+        let Some(ValidatedEntryV8 {
+            entry:
+                EntryV8::Ordinary(SourceJournalEntry::TerminalSnapshot {
+                    status,
+                    evidence,
+                    carrier,
+                    ..
+                }),
+            ..
+        }) = self.entries.last()
+        else {
+            return Err(SourceJournalError::Order);
+        };
+        Ok(CheckedOwnedTerminalEvidenceV8 {
+            status: *status,
+            evidence: evidence.clone(),
+            carrier: carrier.clone(),
+        })
+    }
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn terminal_entry(
         &self,
         turn: u32,

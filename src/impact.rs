@@ -967,7 +967,7 @@ fn render_complete_report(
     }
     let _ = write!(
         output,
-        "],\"query\":{{\"direction\":\"reverse\",\"depth\":{},\"max_bytes\":{},\"max_nodes\":{}}},\"budget\":{{\"used_bytes\":{used_bytes},\"used_nodes\":{},\"max_depth_used\":{max_depth_used}}},\"truncation\":{{\"truncated\":false,\"reasons\":[],\"omitted_known_nodes\":0,\"deferred_known_nodes\":0}},\"frontier\":[],\"affected_functions\":[",
+        ",\"query\":{{\"direction\":\"reverse\",\"depth\":{},\"max_bytes\":{},\"max_nodes\":{}}},\"budget\":{{\"used_bytes\":{used_bytes},\"used_nodes\":{},\"max_depth_used\":{max_depth_used}}},\"truncation\":{{\"truncated\":false,\"reasons\":[],\"omitted_known_nodes\":0,\"deferred_known_nodes\":0}},\"frontier\":[],\"affected_functions\":[",
         inputs.options.depth,
         inputs.options.max_bytes,
         inputs.options.max_nodes,

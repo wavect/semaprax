@@ -543,7 +543,7 @@ fn public_api_cli_bytes_getters_and_read_only_locking_are_exact() {
         // `budget.used_builder_bytes` and this digest move; this fixture
         // declares no session protocol, so nothing else in the document
         // moves.
-        "sha256:f4afed9689f8efd4d117cace00b9acaf853d42830f4f88b49c89f49fe276fda7"
+        "sha256:c2d3393662749691f2d650e35b91c23f4dd6b897fa5e819cd3551ec178678bb9"
     );
 
     let output = Command::new(env!("CARGO_BIN_EXE_semaprax"))
@@ -967,14 +967,14 @@ fn public_workspace_analysis_api_cli_kats_and_locking_are_exact() {
             document_digest(capability_review.as_bytes()),
         ],
         [
-            "sha256:4aba0ca61e5d0105f3731b2e7a595d6100f0dd136d33f5c06d8de97c2cfcf519",
-            "sha256:75fd3f2c66fb1f2bf3108d0fd67dbb997d0c5108cbdee6b5f28b34b20bff6eec",
-            "sha256:a3a5e4c6e99e9bca58bea8efc885170b5b58bda36027b2c1421f44a260b89cf8",
-            "sha256:46ae8f8e0cd7bbf76303eab80bc6a0218c8b6313d28e340ea8c49a3315018b69",
-            "sha256:5143b57665701c39f88efaea7c82d13c8998cacba5904129c3179fa326ca4b4f",
-            "sha256:b1d99e07df11d95c1eb518aeb1d643acc47c3358bc1eeaf3ac6c3f2196a1a22a",
-            "sha256:d2c6357dc74c329488fb600cd04bb5d9e62b3bc9783c45ba5942225b41e86033",
-            "sha256:e80e04c7dda3978c6b36d2f68f92a933e38d95723375ee725b7b63576e0dcdb7",
+            "sha256:bfa136767d49a59bf7a8bb187fd79d3013288d14aac6053867e82552e5ba9f7f",
+            "sha256:b1d50c937e6be902438f125b7320f67f66308e5df2fb03ec2f99653353b3504f",
+            "sha256:ac7ad3f96ac8cc4cf5ad345c7ef61559b3b49e00940ca3905d9ac1ebbc179be6",
+            "sha256:304aab6ee37e77978c9e02b37860060046684e9bb57a2c9ab2b8ed8a22da2f7a",
+            "sha256:03243980f9defc9042f3e2bab591bd0091f8e4c23bb88e5e715d158e8ef927ac",
+            "sha256:d2cc58da151b0ae854e072bacc001ce6ce8411abfacdfb8f74fa32f3d7789ede",
+            "sha256:bd4a2ca0eeee7e838357bca2bd4cb40ff48e7f8715aff3153faa532f84f6a019",
+            "sha256:9c0b497bfbb39ba4387d47ee5ff1bf23e83677ba860d3f1b4e1ac6ccea16d90a",
         ]
     );
 

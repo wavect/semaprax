@@ -296,7 +296,11 @@ fn capsule_and_receipt_v1_v2_v3_mixed_literal_kats_and_no_write() {
             assert_eq!(outer["candidate_revision"], direct["candidate_revision"]);
             assert_eq!(outer["base_source"], direct["source"]);
             assert_eq!(outer["patch"], direct["patch"]);
-            assert_eq!(outer["review"], direct["review"]);
+            assert_eq!(
+                outer["review"], direct["review"],
+                "{label}: {}",
+                outer["path"]
+            );
             assert_eq!(outer["assessments"], direct["assessments"]);
             assert_eq!(outer["supporting_evidence"], direct["supporting_evidence"]);
         }

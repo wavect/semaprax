@@ -93,6 +93,26 @@ fn patch_path_mutation_after_one_read_does_not_change_processed_digest() {
 }
 
 #[test]
+fn bounded_complete_report_matches_unbounded_json_exactly() {
+    let program = parse(SOURCE, Path::new("impact-complete.spx")).unwrap();
+    let patch_source = format!(
+        "base {}\nrename helper.answer to computed\n",
+        graph::revision(&program)
+    );
+    let preflight = patch::preflight_review_owned(
+        SOURCE.to_owned(),
+        patch_source,
+        Path::new("impact-complete.spx").to_path_buf(),
+        4096,
+    )
+    .unwrap();
+    let direct = complete_review_evidence(&preflight).unwrap();
+    let bounded = complete_review_evidence_bounded(&preflight, 1024, 16 * 1024 * 1024).unwrap();
+    assert_eq!(bounded.report(), direct.report());
+    serde_json::from_str::<serde_json::Value>(bounded.report()).unwrap();
+}
+
+#[test]
 fn exhausted_complete_node_budget_stops_before_wide_frontier_materialization() {
     let mut source = String::from(
             "module impact.aggregate_bound;\n@id(\"generic.marker\") fn marker<T>()->bool{true}\n@id(\"impact.seed\") fn seed()->bool{marker<i64>()}\n",

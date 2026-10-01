@@ -38,6 +38,10 @@ format: `Unreleased` then release buckets, grouped by impact.
   Use a checked length conversion for the native parity probe's bounded
   stdin frame on 64-bit hosts.
 
+- Refresh workspace artifact known answers for the current deterministic
+  projections. Correct the bounded complete Semantic Impact JSON so embedded
+  workspace review evidence matches the direct single-file report exactly.
+
 - Add a closed acceptance-record format for #328's Kernel-0 rung-2 decision.
   It requires every local receipt to bind to one selected revision or an exact
   unchanged subject, keeps all rows pending, and separates an eventual reviewer

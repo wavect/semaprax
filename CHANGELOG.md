@@ -8,6 +8,12 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Append the turn-two Model Intent ACK from the retained physical Prepared
+  owner (#330). The checked request builder uses its actual State, request,
+  observation and ordinal; the fixed writer and cumulative hold retain the
+  parked owner before SDK dispatch. Focused success and prewrite-refusal
+  selectors passed locally.
+
 - Retain authenticated HTTP intent facts for checked webhook admission (#336):
   the native host records an HMAC-bound body digest, signing timestamp, and
   first-attempt reservation under the existing no-redispatch marker name.

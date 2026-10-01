@@ -86,6 +86,7 @@ enum OwnedModelRequestOriginV8<'p, 'j> {
     Continued(
         &'p crate::live_invocation::source_journal::LiveContinuedModelRequestOriginV8<'p, 'j>,
     ),
+    Later(&'p crate::live_invocation::source_journal::LiveLaterModelRequestOriginV8<'p, 'j>),
 }
 impl OwnedModelRequestOriginV8<'_, '_> {
     fn checked_facts(
@@ -95,24 +96,33 @@ impl OwnedModelRequestOriginV8<'_, '_> {
         match self {
             Self::Initial { parked, .. } => parked.checked_facts(b),
             Self::Continued(o) => o.checked_facts(b),
+            Self::Later(o) => o.checked_facts(b),
         }
     }
     fn request(&self) -> Option<&crate::interpreter::resumable::ResumableChannelValue> {
         match self {
             Self::Initial { parked, .. } => Some(parked.request()),
             Self::Continued(o) => o.request(),
+            Self::Later(o) => o.request(),
         }
     }
     fn observation(&self) -> &CheckedOwnedWaitObservationV8 {
         match self {
             Self::Initial { observation, .. } => observation,
             Self::Continued(o) => o.observation(),
+            Self::Later(o) => o.observation(),
         }
     }
     fn prompt_coordinates(&self) -> Result<(u32, Option<Vec<u8>>), Vec<Diagnostic>> {
         match self {
             Self::Initial { .. } => Ok((0, None)),
             Self::Continued(o) => {
+                let (_, previous) = o.coordinates().map_err(|_| {
+                    StreamingSourceProposalAdapter::refusal("source.owned_wait_history")
+                })?;
+                Ok((o.turn(), previous))
+            }
+            Self::Later(o) => {
                 let (_, previous) = o.coordinates().map_err(|_| {
                     StreamingSourceProposalAdapter::refusal("source.owned_wait_history")
                 })?;
@@ -191,6 +201,27 @@ impl StreamingSourceProposalAdapter<'_> {
             execution,
             scope,
             &OwnedModelRequestOriginV8::Continued(origin),
+        );
+        origin
+            .validate_guard()
+            .map_err(|_| Self::refusal("source.owned_wait_guard"))?;
+        result
+    }
+    pub(crate) fn checked_later_model_request_v8(
+        &self,
+        runtime: &AgentRuntimeV2,
+        execution: &CheckedTypedOwnedWaitExecutionV8,
+        scope: &SourceCheckpointScope,
+        origin: &crate::live_invocation::source_journal::LiveLaterModelRequestOriginV8<'_, '_>,
+    ) -> Result<CheckedOwnedModelRequestV8, Vec<Diagnostic>> {
+        origin
+            .validate_guard()
+            .map_err(|_| Self::refusal("source.owned_wait_guard"))?;
+        let result = self.checked_model_request_origin_v8(
+            runtime,
+            execution,
+            scope,
+            &OwnedModelRequestOriginV8::Later(origin),
         );
         origin
             .validate_guard()

@@ -1,4 +1,5 @@
 //! The later physical park selects one original Prepared checkpoint and ACK.
+pub(in crate::live_invocation::source_journal::owned_wait_v8) mod model;
 use super::*;
 use crate::live_invocation::source_journal::owned_wait_v8::append::VerifiedOwnedContinuedPreparedSuccessorV8;
 use crate::live_invocation::source_journal::owned_wait_v8::live_upstream::FixedOwnedContinuedPreparedAppendPermitV8;

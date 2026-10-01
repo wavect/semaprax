@@ -134,7 +134,7 @@ pub(crate) use live_upstream::LiveFailedObserveStateCleanupPermitV8;
 
 pub(crate) use live_upstream::{
     LiveContinuedModelIntentPermitV8, LiveContinuedModelRequestOriginV8,
-    LiveContinuedWaitResumePermitV8,
+    LiveContinuedWaitResumePermitV8, LiveLaterModelRequestOriginV8,
 };
 
 pub(crate) use live_upstream::{

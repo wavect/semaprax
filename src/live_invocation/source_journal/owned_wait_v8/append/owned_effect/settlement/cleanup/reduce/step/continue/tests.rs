@@ -1099,7 +1099,7 @@ fn continued_reduce_chain_step_ack(fault: u8, three_turns: bool) {
                                                 assert!(weak
                                                     .iter()
                                                     .any(|owner| owner.strong_count() == 1));
-                                                prepared::run(journal, entered, fault);
+                                                prepared::run(journal, entered, &adapter, fault);
                                             }
                                         }
                                     }
@@ -1220,7 +1220,7 @@ fn continued_reduce_chain_step_ack(fault: u8, three_turns: bool) {
         );
             assert_eq!(
                 crate::interpreter::resumable::owned_frame::registered_stage::reduce::PreparedHeldContinuedWaitV2::test_start_entries(),
-                start_entries + usize::from(three_turns && matches!(fault, 0 | 10)),
+                start_entries + usize::from(three_turns && matches!(fault, 0 | 10 | 11)),
                 "only the turn-two Start ACK may enter the source helper again"
             );
             assert!(weak.iter().all(|owner| owner.upgrade().is_none()));

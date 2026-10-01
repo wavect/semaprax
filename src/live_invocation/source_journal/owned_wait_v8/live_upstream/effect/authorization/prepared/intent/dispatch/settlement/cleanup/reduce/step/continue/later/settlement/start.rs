@@ -1,4 +1,5 @@
 //! Sole later-turn source entry from two exact Start ACKs and the moved State.
+pub(in crate::live_invocation::source_journal::owned_wait_v8) mod model;
 pub(in crate::live_invocation::source_journal::owned_wait_v8) mod prepared;
 use super::*;
 use crate::interpreter::resumable::owned_frame::registered_stage::live_run::{

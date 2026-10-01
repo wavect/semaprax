@@ -944,8 +944,14 @@ request under the original Start ACK, then offers the exact
 `OwnedWaitPrepared` row to the existing fixed writer and cumulative hold.
 The later Prepared ACK retains the same Parked owner and accounting; a
 prewrite refusal keeps that owner under quarantine. Its owning success and
-refusal regressions passed locally. Later failed-Observe cleanup,
-Model, Effect, Reduce and Step still require their owner joins.
+refusal regressions passed locally. The acknowledged later Prepared owner
+now supplies a borrowed physical State, request, observation and exact
+ordinal to the checked Model request builder. Its ordinary `AttemptIntent`
+uses the existing fixed Model writer and cumulative hold; the retained owner
+validates the exact ACK before any SDK dispatch. The owning Intent success
+and prewrite-refusal regressions passed locally. Later failed-Observe
+cleanup, Model dispatch and Resume, Effect, Reduce and Step still require
+their owner joins.
 
 Public multi-turn entry, public Report delivery and physical owner restoration
 after restart remain

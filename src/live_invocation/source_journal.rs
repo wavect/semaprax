@@ -1303,7 +1303,7 @@ pub(crate) use owned_wait_v8::LiveFailedObserveStateCleanupPermitV8;
 
 pub(crate) use owned_wait_v8::{
     LiveContinuedModelIntentPermitV8, LiveContinuedModelRequestOriginV8,
-    LiveContinuedWaitResumePermitV8,
+    LiveContinuedWaitResumePermitV8, LiveLaterModelRequestOriginV8,
 };
 
 pub(crate) use owned_wait_v8::{

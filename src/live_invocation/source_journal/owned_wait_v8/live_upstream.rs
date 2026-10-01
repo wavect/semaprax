@@ -310,6 +310,11 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) use observe::settl
     advance_verified_later_prepared_v8, LiveLaterPreparedFailureV8,
     LiveLaterPreparedPhaseV8, LiveOwnedLaterPreparedAppendV8,
 };
+pub(crate) use observe::settlement::later_carry::start::source::prepared::model::LiveLaterModelRequestOriginV8;
+pub(in crate::live_invocation::source_journal::owned_wait_v8) use observe::settlement::later_carry::start::source::prepared::model::{
+    advance_verified_later_model_intent_v8, LiveLaterModelIntentFailureV8,
+    LiveLaterModelIntentV8, LiveOwnedLaterModelIntentAppendV8,
+};
 
 impl LiveWaitStartPermitV8<'_> {
     pub(crate) fn matches_held_store(&self, held: &HeldOwnedWaitStoreV8<'_>) -> bool {

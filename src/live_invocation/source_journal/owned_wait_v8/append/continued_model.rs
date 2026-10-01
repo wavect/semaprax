@@ -261,6 +261,7 @@ impl<'j> AppendSessionV8<'j> {
 }
 
 mod funnel;
+pub(in crate::live_invocation::source_journal::owned_wait_v8) mod later;
 
 impl AppendSessionV8<'_> {
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn continued_model_facts(

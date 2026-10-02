@@ -42,6 +42,7 @@ use windows_sys::Win32::System::IO::{
 /// are observations only: callers cannot waive a failed image check.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(super) enum ImageBindingBoundary {
+    FileOpened,
     GuardAcquired,
     DigestVerified,
 }
@@ -86,6 +87,9 @@ impl HeldImage {
             return Err(());
         }
         let original = open(path, FILE_FLAG_OVERLAPPED)?;
+        // Distinguish sharing admission from later metadata/oplock refusal.
+        // Reaching this observation grants no authenticated-image authority.
+        observe(ImageBindingBoundary::FileOpened);
         let identity = information(&original, false)?;
         require_ntfs(&original)?;
         let application = final_name(&original, VOLUME_NAME_GUID)?;

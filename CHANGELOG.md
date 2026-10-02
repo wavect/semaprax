@@ -18,6 +18,13 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Distinguish initial file-open admission from later oplock refusal in the
+  Windows doctor #333 binding corpus. The retained writable-section and
+  surviving-view cases now require refusal before the first successful open;
+  the launch control requires all five checkpoints in order. The existing
+  24-case selector is unchanged. This source-only tightening needs native
+  execution and does not close exact image/request/bundle binding.
+
 - Retire the failed exploratory Windows OWNER RIGHTS image experiment (#333),
   preserving the 24 established native cases and every production guard.
   Native run 36983893062 observed `SetSecurityInfo` access denial; Microsoft's

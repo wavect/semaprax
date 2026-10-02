@@ -96,6 +96,34 @@ fn retained_writable_section(executable: &Path) -> Handle {
     Handle::new(mapping)
 }
 
+fn assert_refused_before_file_open(fixture: &Fixture, capsule: &TestCapsule) {
+    let mut reached = Vec::with_capacity(5);
+    let result = confined_spawn_observing(
+        &fixture.executable,
+        ImageRole::Worker,
+        &[],
+        &fixture.scratch,
+        || Ok(verified(capsule)),
+        |boundary| {
+            reached.push(boundary);
+            assert_ne!(
+                boundary,
+                BindingBoundary::BeforeProcessCreation,
+                "hostile image must not reach process creation"
+            );
+        },
+    );
+    assert_eq!(
+        result.err(),
+        Some(Refusal::Capsule(CapsuleError::ArtifactBinding))
+    );
+    assert!(
+        reached.is_empty(),
+        "initial no-write-sharing open must refuse before metadata or oplock acquisition; reached {reached:?}"
+    );
+    assert_parent_empty(&fixture.scratch);
+}
+
 #[test]
 #[ignore = "requires the explicitly provisioned Windows runtime gate"]
 fn windows_runtime_signed_image_mismatch_refuses_before_process_effects() {
@@ -272,10 +300,11 @@ fn windows_runtime_signed_image_refuses_writable_mapping_after_writer_closes() {
     let view = View(view);
     drop(file);
     drop(mapping);
-    // A view survives closure of both handles; a sharing-only guard is unsound.
+    // A view survives closure of both handles. Require the initial open itself
+    // to refuse: a later oplock refusal cannot establish sharing exclusion.
     let baseline = current_process_handle_count();
     for _ in 0..4 {
-        assert_refused(&fixture, &capsule, ImageRole::Worker);
+        assert_refused_before_file_open(&fixture, &capsule);
         assert_eq!(current_process_handle_count(), baseline);
     }
     drop(view);
@@ -354,7 +383,7 @@ fn windows_runtime_signed_image_refuses_retained_writable_section_without_view()
     let mapping = Handle::new(mapping);
     drop(file);
     let baseline = current_process_handle_count();
-    assert_refused(&fixture, &capsule, ImageRole::Worker);
+    assert_refused_before_file_open(&fixture, &capsule);
     assert_eq!(current_process_handle_count(), baseline);
     // Prove the no-view capability was real: after the guard refuses, the
     // retained section must be able to create a writable view and change the
@@ -429,7 +458,7 @@ fn windows_runtime_retained_writable_section_refuses_before_every_launch_boundar
     let fixture = Fixture::new();
     let capsule = test_capsule_body();
     let mapping = retained_writable_section(&fixture.executable);
-    let mut reached = Vec::with_capacity(4);
+    let mut reached = Vec::with_capacity(5);
     let result = confined_spawn_observing(
         &fixture.executable,
         ImageRole::Worker,
@@ -444,7 +473,7 @@ fn windows_runtime_retained_writable_section_refuses_before_every_launch_boundar
     );
     assert!(
         reached.is_empty(),
-        "a retained writable section must refuse before every launch boundary; reached {reached:?}"
+        "a retained writable section must refuse at the initial file open before every launch boundary; reached {reached:?}"
     );
     assert_parent_empty(&fixture.scratch);
 
@@ -496,7 +525,7 @@ fn windows_runtime_signed_image_reaches_every_launch_boundary() {
     let capsule = test_capsule_body();
     let args = child_test_args("runtime_child_exits_with_nonzero_status");
     let args: Vec<&OsStr> = args.iter().map(OsString::as_os_str).collect();
-    let mut reached = Vec::with_capacity(4);
+    let mut reached = Vec::with_capacity(5);
     let child = confined_spawn_observing(
         &fixture.executable,
         ImageRole::Worker,
@@ -509,6 +538,7 @@ fn windows_runtime_signed_image_reaches_every_launch_boundary() {
     assert_eq!(
         reached,
         [
+            BindingBoundary::Image(image::ImageBindingBoundary::FileOpened),
             BindingBoundary::Image(image::ImageBindingBoundary::GuardAcquired),
             BindingBoundary::Image(image::ImageBindingBoundary::DigestVerified),
             BindingBoundary::BeforeProcessCreation,

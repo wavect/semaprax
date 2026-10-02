@@ -367,14 +367,29 @@ writable view after refusal, change an observed file byte, and then restore
 the fixture before its success control. This stronger hostile control has not
 yet executed on Windows at this revision; the earlier receipt does not cover it.
 Success controls require NTFS/oplock acquisition to work; no unavailable
-prerequisite can pass by skipping. The later checkpoint cases require a clean
-signed launch to visit image-guard acquisition, digest verification, the
-pre-creation boundary, and the suspended-leader boundary in that exact order.
+prerequisite can pass by skipping. The checkpoint cases require a clean
+signed launch to visit the initial file open, image-guard acquisition, digest
+verification, the pre-creation boundary, and the suspended-leader boundary in
+that exact order.
 Their retained-writable-section counterpart records no reachable checkpoint,
 then proves the retained section can still mutate and restore the fixture.
 Those tests demonstrate where this primitive refuses; they do not establish an
 atomic writable-section exclusion proof. All eighteen selected native cases passed
 at `06c0090d9`; later source revisions need their own execution receipt.
+
+The initial-file-open observation is emitted immediately after the first
+`FILE_SHARE_READ` open succeeds, before metadata checks or oplock acquisition.
+Both the section-without-view fixture and the surviving-view fixture now require
+`Capsule(ArtifactBinding)` with no observation reached. This separates refusal
+at the original open from later advisory-oplock refusal; the earlier checkpoint
+began only after the oplock request. The named twenty-four-case selector is
+unchanged, but these stronger assertions need a new native execution receipt.
+Microsoft's [CreateFile sharing contract](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilea)
+states that omission of `FILE_SHARE_WRITE` refuses existing writable mappings.
+The new cases test that admission behavior for both retained-capability shapes.
+If either reaches the file-open observation, the sharing-only exclusion argument
+is rejected even if the oplock later refuses. This source-only change does not
+accept exact launched-image binding, request/bundle transport, or WP-05 promotion.
 
 Local verification on 30 September 2026: the initial `64472c71b` continuation
 and the retained-oplock correction both passed the Windows-target check below

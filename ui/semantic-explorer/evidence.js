@@ -140,7 +140,13 @@ function envelope(value, expected) {
 function stateFor(error) {
   const code = error && typeof error === 'object' ? error.code : null;
   if (STATES.includes(code)) return code;
-  if (error && /not bundled/i.test(String(error.message || error))) return 'not_bundled';
+  const message = String(error && error.message || error);
+  // The VS Code message bridge retains an error's text but not its structured
+  // code. Keep the compiler's ordinary closed refusals distinct at that edge.
+  if (/not bundled/i.test(message)) return 'not_bundled';
+  if (/not requested/i.test(message)) return 'not_requested';
+  if (/\bstale\b/i.test(message)) return 'stale';
+  if (/\bunsupported\b|not selected|host permission|capability.*(?:absent|denied|required)/i.test(message)) return 'unsupported';
   return 'error';
 }
 function status(state, reason, request = null) { return Object.freeze({ state, reason, request, compact: null, omitted: Object.freeze([]), nonclaims: Object.freeze([]) }); }

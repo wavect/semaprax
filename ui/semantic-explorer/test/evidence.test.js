@@ -54,6 +54,16 @@ test('offline, stale, unsupported, and error evidence states remain distinct', a
     const result = await evidence.createEvidenceInspector(host, subject('current'), functionDeclaration).inspect('declaration');
     assert.equal(result.state, code);
   }
+  for (const [message, expected] of [
+    ['Explorer evidence subject is stale', 'stale'],
+    ['unsupported evidence payload schema', 'unsupported'],
+    ['candidate/contract-delta is not selected', 'unsupported'],
+    ['host permission required', 'unsupported'],
+    ['detail not requested', 'not_requested']
+  ]) {
+    const host = { async readEvidence() { throw new Error(message); } };
+    assert.equal((await evidence.createEvidenceInspector(host, subject('current'), functionDeclaration).inspect('declaration')).state, expected);
+  }
 });
 
 test('candidate identity is part of the cache binding and source-bearing compact fields are refused', async () => {

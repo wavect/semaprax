@@ -55,9 +55,10 @@ HOME, evidence root, candidate and private host state must be canonical and
 pairwise disjoint. Use a private directory outside HOME for execution evidence;
 after all work stops, preserve it at a durable private location with a hash/path
 mapping. The native CLI alone receives the explicit subscription HOME. It has no
-built-in tools, uses safe-mode/restricted/strict-MCP flags, refuses managed
-settings, and receives only the named compiler MCP tool. Those flags suppress
-user/project settings, hooks and other customizations. A real metadata-only
+built-in tools, uses restricted/strict-MCP flags with empty setting sources, disabled slash
+commands, and explicit hook/memory/CLAUDE.md suppression, refuses managed
+settings, and receives only the named compiler MCP tool. Those settings suppress
+user/project settings, hooks, skills, auto-memory and CLAUDE.md discovery. A real metadata-only
 positive/negative gate verifies that a hostile SessionStart hook executes
 without these flags and is suppressed with them, using zero user/model turns.
 The MCP subtree receives a closed private environment and the existing physically
@@ -99,3 +100,10 @@ lanes) in 3.850s. These gates are transport fixtures, not trial results.
 Any native response admission failure halts later dispatch even when the provider
 reported an in-cap cost. The private ledger retains that reported cost and the
 selected admission failure; raw response evidence remains available.
+
+Native safe-mode is deliberately absent: CLI 2.1.286 disables explicit MCP
+servers in that mode. A zero-user-turn physical gate requires the confined
+`semaprax` server to connect and advertise only `command`, with no slash commands
+or hostile SessionStart execution. `--tools ""` disables built-ins while this
+explicit MCP server remains admitted. Use canonical `TMPDIR=/private/tmp` on
+macOS. The earlier two-position packet remains an aborted cohort.

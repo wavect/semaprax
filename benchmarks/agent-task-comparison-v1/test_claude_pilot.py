@@ -5,6 +5,9 @@ import importlib.util
 import json
 import os
 import shlex
+import selectors
+import subprocess
+import time
 from pathlib import Path
 import tempfile
 import unittest
@@ -85,7 +88,7 @@ class NativePilotTests(unittest.TestCase):
             self.assertEqual(json.loads((b/'dispatch-budget.json').read_bytes())['cells'],['sonnet55-01'])
 
     @unittest.skipUnless(os.environ.get('SEMAPRAX_PILOT_CLAUDE'), 'explicit native metadata probe required')
-    def test_native_safe_mode_physically_suppresses_hostile_session_hook(self):
+    def test_native_isolation_physically_suppresses_hostile_session_hook(self):
         with tempfile.TemporaryDirectory(prefix='pilot-customization-') as temporary:
             root=Path(temporary).resolve();home=root/'home';home.mkdir();(home/'.claude').mkdir();work=root/'work';work.mkdir()
             marker=root/'hook-ran'
@@ -95,7 +98,7 @@ class NativePilotTests(unittest.TestCase):
                          'DISABLE_AUTOUPDATER':'1','CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC':'1'}
             request=b'{"type":"control_request","request_id":"init","request":{"subtype":"initialize"}}\n'
             results=[]
-            for flags,expected in (([],True),(['--safe-mode','--restricted','--strict-mcp-config'],False)):
+            for flags,expected in (([],True),(m.ISOLATION_FLAGS,False)):
                 marker.unlink(missing_ok=True)
                 command=[os.environ['SEMAPRAX_PILOT_CLAUDE'],'--print','--input-format','stream-json','--output-format','stream-json',
                          '--verbose','--tools','','--no-session-persistence','--permission-prompts','none',*flags]
@@ -107,6 +110,51 @@ class NativePilotTests(unittest.TestCase):
                 results.append({'flags':flags,'hook_executed':marker.exists(),'capture':result})
             if os.environ.get('SEMAPRAX_PILOT_METADATA_EVIDENCE'):
                 m.write(os.environ['SEMAPRAX_PILOT_METADATA_EVIDENCE'],{'user_messages':0,'model_result_messages':0,'observations':results})
+
+    @unittest.skipUnless(os.environ.get('SEMAPRAX_PILOT_CLAUDE'), 'explicit native metadata probe required')
+    def test_native_isolation_preserves_only_explicit_confined_mcp_discovery(self):
+        with tempfile.TemporaryDirectory(dir='/private/tmp',prefix='pilot-mcp-') as temporary:
+            root=Path(temporary).resolve()
+            for name in ('home','state','candidate'):(root/name).mkdir(mode=0o700)
+            home=root/'home';state=root/'state';candidate=root/'candidate'
+            (home/'.claude').mkdir();marker=root/'hook-ran'
+            (home/'.claude/settings.json').write_text(json.dumps({'hooks':{'SessionStart':[{'hooks':[{'type':'command','command':'/usr/bin/touch '+str(marker)}]}]}}))
+            (state/'mcp.py').write_bytes((m.ROOT/'scripts/opencode_agent_task_pilot/mcp_gateway.py').read_bytes())
+            gateway=state/'gateway';gateway.write_text('#!/bin/sh\nexit 17\n');gateway.chmod(0o700)
+            profile=state/'policy.sb';profile.write_text(m.pilot.seatbelt_profile(candidate,(m.ROOT,home),state))
+            confined=m.pilot.sandboxed('/usr/bin/env',profile,['-i','PATH=/usr/bin:/bin','HOME='+str(state),'/usr/bin/python3',str(state/'mcp.py'),str(gateway)])
+            config=state/'mcp.json';config.write_text(json.dumps({'mcpServers':{'semaprax':{'type':'stdio','command':confined[0],'args':confined[1:]}}}))
+            env={'HOME':str(home),'USER':'fixture','LOGNAME':'fixture','PATH':'/usr/bin:/bin','TMPDIR':str(state),
+                 'DISABLE_AUTOUPDATER':'1','CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC':'1','ENABLE_TOOL_SEARCH':'false'}
+            argv=[os.environ['SEMAPRAX_PILOT_CLAUDE'],'--print','--input-format','stream-json','--output-format','stream-json',
+                  '--verbose','--tools','','--allowedTools','mcp__semaprax__command','--no-session-persistence','--permission-prompts','none',
+                  '--mcp-config',str(config),*m.ISOLATION_FLAGS]
+            process=subprocess.Popen(argv,cwd=candidate,env=env,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
+            selector=selectors.DefaultSelector();selector.register(process.stdout,selectors.EVENT_READ)
+            messages=[];connected=None;last=0;end=time.monotonic()+10
+            def send(identity,subtype):
+                process.stdin.write(json.dumps({'type':'control_request','request_id':identity,'request':{'subtype':subtype}})+'\n');process.stdin.flush()
+            try:
+                send('init','initialize')
+                while time.monotonic()<end and process.poll() is None and connected is None:
+                    if time.monotonic()-last>1:send('status','mcp_status');last=time.monotonic()
+                    for key,_ in selector.select(.1):
+                        line=key.fileobj.readline()
+                        if line:
+                            value=json.loads(line);messages.append(value)
+                            servers=value.get('response',{}).get('response',{}).get('mcpServers',[])
+                            if servers and all(server.get('status')=='connected' for server in servers):connected=servers
+                self.assertIsNotNone(connected)
+                self.assertEqual([server['name'] for server in connected],['semaprax'])
+                self.assertEqual([tool['name'] for tool in connected[0]['tools']],['command'])
+                self.assertFalse(marker.exists())
+                self.assertFalse(any(value.get('type')=='result' for value in messages))
+                self.assertTrue(any(value.get('response',{}).get('response',{}).get('commands')==[] for value in messages))
+            finally:
+                process.stdin.close()
+                try:process.wait(timeout=5)
+                except subprocess.TimeoutExpired:process.kill();process.wait()
+                selector.close();process.stdout.close();process.stderr.close()
 
     def test_transport_closes_environment_and_confines_only_mcp_gateway(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -123,7 +171,8 @@ class NativePilotTests(unittest.TestCase):
                 self.assertNotIn('ANTHROPIC_API_KEY',env)
                 if argv[-1]=='--version':return version
                 self.assertIn('--strict-mcp-config',argv);self.assertIn('--max-turns',argv)
-                self.assertIn('--safe-mode',argv);self.assertIn('--restricted',argv)
+                self.assertNotIn('--safe-mode',argv);self.assertIn('--restricted',argv)
+                self.assertNotIn('CLAUDE_CODE_SAFE_MODE',env);self.assertIn('--disable-slash-commands',argv)
                 self.assertEqual(argv[argv.index('--tools')+1],'')
                 self.assertEqual(argv[argv.index('--allowedTools')+1],'mcp__semaprax__command')
                 kwargs['on_started']();return response

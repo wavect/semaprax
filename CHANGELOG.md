@@ -1,5 +1,10 @@
 # Changelog
 
+- Preserve the #321 native compiler MCP under explicit isolated settings;
+  native safe-mode had disabled even the explicitly supplied server. Add a
+  zero-user-turn confined MCP discovery gate alongside hostile-hook refusal.
+  Retain the first two-position packet as aborted evidence without retries.
+
 - Add an explicitly authorized Claude Team coding-agent pilot transport with
   18 frozen positions per model, separate native receipts, confined compiler
   gateway, private disjoint authority roots, and durable aggregate reservations.

@@ -38,6 +38,9 @@ MODELS = [
 CAPS = {'seconds': 90, 'max_turns': 16, 'max_prompt_bytes': 65536,
         'max_stream_bytes': 1048576, 'max_reported_tokens': 65536,
         'max_estimated_api_usd': 0.05, 'cohort_max_estimated_api_usd': 2.0, 'agent_retries': 0}
+ISOLATION_FLAGS = ['--restricted', '--strict-mcp-config', '--setting-sources', '',
+                   '--disable-slash-commands', '--settings',
+                   json.dumps({'disableAllHooks': True, 'claudeMdExcludes': ['**'], 'autoMemoryEnabled': False}, sort_keys=True)]
 SYSTEM = ('Complete the supplied task only through mcp__semaprax__command. '
           'Use its --help first for the exact admitted command syntax. No shell or other tools. '
           'Preserve stable identities, evaluation order and unrelated edits. Do not publish. '
@@ -252,7 +255,7 @@ class Transport:
         staged.write_bytes(binary); staged.chmod(0o500)
         env = {'HOME': authority['home'], 'USER': authority['login'], 'LOGNAME': authority['login'],
                'PATH': '/usr/bin:/bin', 'TMPDIR': str(state), 'DISABLE_AUTOUPDATER': '1',
-               'CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC': '1', 'CLAUDE_CODE_SAFE_MODE': '1', 'ENABLE_TOOL_SEARCH': 'false'}
+               'CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC': '1', 'ENABLE_TOOL_SEARCH': 'false'}
         for path in native.MANAGED:
             if os.path.lexists(path):
                 raise pilot.PilotFailure('managed_claude_settings_refused')
@@ -268,8 +271,8 @@ class Transport:
         config = state / 'claude-mcp.json'
         config.write_bytes(canonical({'mcpServers': {'semaprax': {'type': 'stdio', 'command': confined[0], 'args': confined[1:]}}}))
         argv = [str(staged), '--print', '--output-format', 'json', '--tools', '',
-                '--allowedTools', 'mcp__semaprax__command', '--no-session-persistence', '--safe-mode',
-                '--restricted', '--strict-mcp-config', '--mcp-config', str(config), '--permission-prompts', 'none',
+                '--allowedTools', 'mcp__semaprax__command', '--no-session-persistence', *ISOLATION_FLAGS,
+                '--mcp-config', str(config), '--permission-prompts', 'none',
                 '--prompt-suggestions', 'false', '--max-turns', str(caps['max_turns']),
                 '--max-budget-usd', str(caps['max_estimated_api_usd']), '--model', model['model'], '--system-prompt', SYSTEM]
         self.receipt = {'dispatches': 0, 'argv': argv[1:], 'native_host': protocol['host'],

@@ -2,10 +2,12 @@
 
 Audience: compiler and self-hosting contributors.
 
-Status: private implementation for R16 / #294 with the bounded local evidence
-recorded below. This is not accepted-head, hosted, full-gate, or self-hosting-rung
-evidence. [Accepted-Revision Validation v1](KERNEL-ZERO-ACCEPTED-REVISION-VALIDATION-V1.md)
-owns the remaining receipt inventory and exact accepted-revision record.
+Status: private implementation for R16 / #294. The exact accepted-profile
+record at `f99c76dc2` completes the six focused receipts and explicitly retains
+rung 1; the local full profile is user-waived, not passed.
+[Accepted-Revision Validation v1](KERNEL-ZERO-ACCEPTED-REVISION-VALIDATION-V1.md)
+owns that decision and receipt inventory. Historical evidence below retains
+its original revision; no hosted result or rung promotion is inferred.
 
 ## Closed subject and proof boundary
 
@@ -27,7 +29,7 @@ requires observed last-owner release and the existing
 output; it does not make the scalar Kernel-0 renderer own a buffer or extend
 its ownership proof. Rust retains byte authority, refusal/cleanup and re-entry.
 The accepted-revision ledger now records the 2 October rung-1 retention
-decision and the exact focused receipt gap. This historical source-fact
+decision and completed exact focused receipts. This historical source-fact
 record grants no rung promotion or authority transfer.
 
 ## Synchronous admission and settlement
@@ -124,14 +126,16 @@ public ABI, support policy, whole-compiler self-hosting or verification claim.
 Issue #294 asks for the existing Kernel-0 specification/proof assumptions and
 the self-hosting-rung ladder (`docs/SEMANTIC-KERNEL-V1.md`, "Self-hosting gate
 ladder") to be mapped against current executable evidence, without rebuilding
-any already-proved or already-reference piece. This table is that map; it
-records status only, and promotes nothing by itself.
+any already-proved or already-reference piece. This table retains that
+earlier evidence map; slice-relative execution notes are historical. The
+2 October accepted-profile decision below supersedes its pending-receipt
+notes without converting earlier executions into later-head results.
 
 | # | Assumption / criterion | Status | Evidence |
 |---|---|---|---|
 | 1 | Kernel-0 type safety (Progress, Preservation) over the whole grammar, including `Let` and non-recursive `Call` | **Proved** (Lean 4, zero `sorry`/`admit`/custom axiom; `#print axioms` reports only `propext`/`Quot.sound`) | `docs/KERNEL-PROOF-MECHANIZATION-V1.md`; `docs/SEMANTIC-KERNEL-V1.md` "Paper safety proof". Wired into `quality.sh full` as `kernel0-lean-proof-gate`; a **hosted** verdict is still pending (not re-run this slice; no Actions credits). |
 | 2 | HIR-to-Kernel-0 reification predicate is real, mechanically checked code, not prose | **Tested** | `src/kernel_zero.rs` (`reifies_into_kernel_zero`) and its `tests` submodule. Deliberately inert: it narrows nothing it does not already reject. |
-| 3 | Reference interpreter agrees with the compiler's interpreter over a finite corpus | **Historical finite-corpus evidence**, not a proof; accepted-head gate pending | `kernel_zero::differential::reference_interpreter_agrees_with_the_compiler_over_the_kernel_zero_corpus`. The earlier over-four-hour interrupted attempt remains incomplete. Later retained local branch evidence records 854 comparisons with zero disagreements after renderer caching; see "Later historical cached run". Neither observation is a fresh accepted-head full-profile result. |
+| 3 | Reference interpreter agrees with the compiler's interpreter over a finite corpus | **Finite-corpus evidence**, not a proof; exact `f99c76dc2` receipt accepted | `kernel_zero::differential::reference_interpreter_agrees_with_the_compiler_over_the_kernel_zero_corpus`. The earlier over-four-hour interrupted attempt remains incomplete. Later retained local branch evidence records 854 comparisons with zero disagreements after renderer caching; see "Later historical cached run". Neither observation is a fresh accepted-head full-profile result. |
 | 4 | Native C11 (`-O0`/`-O2`) and Core Wasm agree with the reference interpreter over the same corpus | **Tested**, partial (finite corpus, not a proof); **reran to completion this slice** | `kernel_zero::differential::cross_backend::native_c11_and_core_wasm_agree_with_the_kernel_zero_reference_interpreter_over_the_corpus`: 2,562 comparisons, 0 disagreements, this slice. |
 | 5 | Rung 0 (one concrete program, same result on interpreter/native/Wasm) | **Reached** | `docs/SEMANTIC-KERNEL-V1.md` "Rung 0 evidence". Not rebuilt here. |
 | 6 | Rung 1 (kernel-sized pure computation, cross-backend agreement) | **Reached** | `rung_one_capacity_classifier_reifies_and_matches_reference_and_compiler_interpreters` and `...cross_backend::rung_one_capacity_classifier_agrees_across_native_o0_o2_and_core_wasm` (72 fixtures, 216 native/Wasm comparisons). Not rebuilt here. |
@@ -141,7 +145,7 @@ records status only, and promotes nothing by itself.
 | 10 | Owned `Bytes` boundary: a refused, exhausted, mismatched, or panicking candidate falls back to the authoritative Rust bytes, and a later invocation re-enters without double-applying effects | **Tested** | `tests.rs::owned_handoff_exhaustion_has_no_candidate_and_next_invocation_recovers` (fuel-exhaustion refusal, then a fresh successful call); `tests.rs::reminted_owned_handoff_substitutions_refuse_before_owner_allocation`'s final assertion (re-entry with `b"reentry"` after every mutation refusal); `targets.rs` native/Wasm hostile handle/copy-refusal-then-reentry rows. |
 | 11 | Owned `Bytes` boundary: physical native (`-O0`/`-O2`) and Core-Wasm execution over real allocator/arena lifetimes | **Tested** (prior session; not rerun this slice, per instruction to avoid whole-module reruns) | `targets.rs::owned_handoff_native_and_wasm_settle_refuse_and_reenter`, 13 rows (empty/NUL/non-UTF-8 bytes, `i64::MIN`'s 20-byte output, all five renderer lanes). |
 | 12 | The binding-authentication check in criterion 8 is load-bearing, not incidental | **Demonstrated once, reverted this slice** (negative control) | `deliver` in `rung_two_owned_handoff.rs` was temporarily changed to `let _ = Binding::authenticate(...)` (ignoring the result). Rerunning `kernel_zero::rung_two_owned_handoff::tests::reminted_owned_handoff_substitutions_refuse_before_owner_allocation --exact` under that mutant **failed** immediately on the first mutation case (panicked asserting `"source"`, 0 passed/1 failed) instead of refusing all nine mutation classes as it does normally — proof the check is load-bearing. The mutant was reverted (`git diff` on the file is empty) and the same exact selector was rerun once more, passing cleanly (`1 passed; 0 failed`). Not committed at any point. |
-| 13 | Rung-2 promotion / owned-buffer formatter authority transfer | **Assumed open**, explicitly not decided here | Per issue #294's own boundary: "Rung promotion itself stays an explicit reviewed decision." This slice states evidence, not a promotion. |
+| 13 | Rung-2 promotion / owned-buffer formatter authority transfer | **Reviewed: rung 1 retained** | The 2 October [accepted-profile decision](KERNEL-ZERO-ACCEPTED-REVISION-VALIDATION-V1.md) accepts six focused receipts at `f99c76dc2` and declines rung-2 promotion because Rust still assembles the scalar output and retains formatter authority. |
 | 14 | Hosted acceptance (CI-run Lean gate, hosted differential, release-blocker set) | **Open** | Actions credits exhausted this session (see `docs/DEVELOPMENT.md`/coordinator notes); no hosted claim is made anywhere in this document. |
 | 15 | Whole-compiler self-hosting or formal verification (issue #212) | **Out of scope** | Not imported into this slice; #294 explicitly excludes it. |
 
@@ -204,9 +208,9 @@ result, not `scripts/quality.sh full` or a current-subject formal receipt.
 The handoff identifies two default-stack overflow tests as skipped; that
 qualification remains part of its record.
 
-The source-fact snapshot for this correction is `27d8d8c`. Its required
-owned-handoff, renderer/authority/bootstrap, real-target differential and Lean
-gates, plus the full profile, must be bound to the independently accepted exact
-revision. Those receipts are pending here. Existing Lean/proof assumptions,
-Rust formatter authority and the rung-1 status are unchanged; no maintainer
-promotion decision is inferred from this documentation update.
+The historical source-fact snapshot for that correction was `27d8d8c`, when
+accepted-revision receipts remained pending. The 2 October
+[accepted-profile record](KERNEL-ZERO-ACCEPTED-REVISION-VALIDATION-V1.md) now
+binds the complete focused gates to `f99c76dc2` and records the user's explicit
+local full-profile waiver. Its reviewed outcome retains rung 1 and Rust
+formatter authority; no ownership theorem or rung-2 promotion is inferred.

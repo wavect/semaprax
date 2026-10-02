@@ -1,0 +1,5 @@
+Execution revision: f99c76dc2d26dd57c81f4fdd5f26fe91d50118e4
+Execution checkout: /Users/kevin/Documents/ChatGPT/AI-Lang-v070
+Command: python3 scripts/kernel0-lean-gate.py --require-kernel
+Environment: CARGO_NET_OFFLINE=true CARGO_BUILD_JOBS=1 CARGO_INCREMENTAL=0 CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 CARGO_TARGET_DIR=/Users/kevin/Documents/ChatGPT/AI-Lang-v070/target/kernel0-host-f99 RUST_TEST_THREADS=1
+Provenance: coordinator observed the exact clean f99 checkout during execution and retained lean-gate.log. This text records that execution context retrospectively; it is not a signed runner attestation.

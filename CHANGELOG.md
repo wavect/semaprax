@@ -34,11 +34,12 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
-- Record the reviewed Kernel-0 rung-1 retention boundary for #328 and the
-  exact 124-case/proof evidence at `f99c76dc2`. The accepted-record gate now
-  represents the user's local full-profile waiver only in the baseline row,
-  never as a passing receipt or a waiver of focused tests. The omitted
-  retained-call handoff selector and final provenance binding remain explicit.
+- Complete #328's exact `f99c76dc2` Kernel-0 accepted-profile record: the
+  124-case Kernel selector, 10-case owned-handoff selector and required Lean
+  gate passed locally. Record the reviewed rung-1 retention decision, raw
+  receipts and bounded proof/authority claims. The baseline alone carries the
+  user's local full-profile waiver; no full-profile pass or rung-2 promotion
+  is claimed.
 
 - Establish the Windows doctor image-binding argument from continuous NTFS
   deny-write/deny-delete sharing and the existing native retained-section

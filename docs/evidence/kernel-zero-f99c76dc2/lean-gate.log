@@ -1,0 +1,15 @@
+KERNEL0-LEAN-GATE: transaction replay exact-source pin and hole scan OK
+KERNEL0-LEAN-GATE: graph projection exact-source pin and hole scan OK
+KERNEL0-LEAN-GATE: hostile gate self-tests OK (commented signature, forged report/removal, constant declaration, Steps.teleport, universal FaultRedex, local-notation FaultRedex rebinding, let initializer scope capture)
+KERNEL0-LEAN-GATE: source-presence-and-signature OK (48/48 headline theorems present with unchanged pinned statements)
+KERNEL0-LEAN-GATE: sorry/admit/axiom/constant token scan OK (0 found outside comments and string literals)
+KERNEL0-LEAN-GATE: semantic-boundary pins OK (15/15 exact code regions)
+KERNEL0-LEAN-GATE: complete live-source environment pin OK (sha256 exact)
+KERNEL0-LEAN-GATE: `lake build` OK (exit 0 in /Users/kevin/Documents/ChatGPT/AI-Lang-v070/proofs/kernel0-lean)
+KERNEL0-LEAN-GATE: gate-owned axiom-set audit OK for 53/53 headline theorems (each a subset of ['Classical.choice', 'Quot.sound', 'propext'])
+KERNEL0-LEAN-GATE: transaction replay real-fixture Lean gate OK (1 passed)
+KERNEL0-LEAN-GATE: recursive-call negative control OK (forged rank rejected)
+KERNEL0-LEAN-GATE: normalization-fuel negative control OK (one-step forgery rejected)
+KERNEL0-LEAN-GATE: structural-decrease negative control OK (false size decrease rejected)
+KERNEL0-LEAN-GATE: named-scope negative control OK (captured outer identity rejected)
+KERNEL0-LEAN-GATE: RESULT: PASS (source checks + lake build + axiom audit)

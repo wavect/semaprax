@@ -4,7 +4,7 @@ Audience: the reviewer resolving issue #328.
 
 Status: a closed acceptance-record format, read-only validation gate, and
 receipt inventory. The reviewed component decision is to retain rung 1.
-The exact candidate and remaining narrow receipt are recorded below; no
+The six focused receipts at the exact candidate are complete; no
 rung promotion, hosted result or full-profile pass is claimed.
 
 ## Purpose and boundary
@@ -111,12 +111,12 @@ duplicate `quality.sh`'s full-route command sequence.
 
 | Receipt | Owner and required subject | Acceptance state |
 |---|---|---|
-| Lean proof | [Kernel-0 proof mechanization](KERNEL-PROOF-MECHANIZATION-V1.md) and the `kernel0-lean-proof-gate`, including source pins, hostile controls, build, and axiom audit when the pinned toolchain is available | Pending |
-| Renderer and formatter authority | [Formatter Authority v1](KERNEL-ZERO-RUNG-TWO-AUTHORITY-V1.md), the five embedded renderer sources, `src/format/kernel_zero_tokens.rs`, and their broad byte-oracle/shadow and production traversal cases | Pending |
-| Bootstrap artifact | [Bootstrap v2](KERNEL-ZERO-RUNG-TWO-BOOTSTRAP-V2.md), including exact regeneration, v1 refusal, decoding, and hostile wire cases | Pending |
-| Scalar targets and recovery | [Target and Recovery Evidence v1](KERNEL-ZERO-RUNG-TWO-TARGET-RECOVERY-V1.md), including C11 `-O0`/`-O2`, Node/Core-Wasm, candidate corruption, Rust-byte recovery, and re-entry | Pending |
-| Differential corpus | `kernel_zero::differential`, including reference/interpreter agreement and native C11 `-O0`/`-O2` plus Core-Wasm agreement with required target tools | Pending |
-| Owned handoff | [Owned Handoff v1](KERNEL-ZERO-RUNG-TWO-OWNED-HANDOFF-V1.md), including binding authentication, graph replay, zero-owner mutation refusal, settlement, panic recovery, and the 13-row native/Wasm wrapper evidence | Pending |
+| Lean proof | [Kernel-0 proof mechanization](KERNEL-PROOF-MECHANIZATION-V1.md) and the `kernel0-lean-proof-gate`, including source pins, hostile controls, build, and axiom audit when the pinned toolchain is available | Executed at `f99c76dc2`; see retained receipt inventory below |
+| Renderer and formatter authority | [Formatter Authority v1](KERNEL-ZERO-RUNG-TWO-AUTHORITY-V1.md), the five embedded renderer sources, `src/format/kernel_zero_tokens.rs`, and their broad byte-oracle/shadow and production traversal cases | Executed at `f99c76dc2`; see retained receipt inventory below |
+| Bootstrap artifact | [Bootstrap v2](KERNEL-ZERO-RUNG-TWO-BOOTSTRAP-V2.md), including exact regeneration, v1 refusal, decoding, and hostile wire cases | Executed at `f99c76dc2`; see retained receipt inventory below |
+| Scalar targets and recovery | [Target and Recovery Evidence v1](KERNEL-ZERO-RUNG-TWO-TARGET-RECOVERY-V1.md), including C11 `-O0`/`-O2`, Node/Core-Wasm, candidate corruption, Rust-byte recovery, and re-entry | Executed at `f99c76dc2`; see retained receipt inventory below |
+| Differential corpus | `kernel_zero::differential`, including reference/interpreter agreement and native C11 `-O0`/`-O2` plus Core-Wasm agreement with required target tools | Executed at `f99c76dc2`; see retained receipt inventory below |
+| Owned handoff | [Owned Handoff v1](KERNEL-ZERO-RUNG-TWO-OWNED-HANDOFF-V1.md), including binding authentication, graph replay, zero-owner mutation refusal, settlement, panic recovery, and the 13-row native/Wasm wrapper evidence | Executed at `f99c76dc2`; see retained receipt inventory below |
 | Baseline preservation | [Quality gates](QUALITY-GATES.md)'s `full` profile; the focused Lean gate remains required independently | Waived locally by the explicit 2 October user instruction; delegated to hosted CI, not passed |
 
 Historical counts and partial local receipts can remain cited as background,
@@ -143,51 +143,48 @@ the finite differential corpus, Lean proof boundary, Rust formatter authority,
 and whole-compiler verification claims at the limits stated by their owning
 specifications.
 
-## Reviewed component decision and current receipt status
+## Reviewed component decision and completed record
 
-The canonical [candidate record](evidence/kernel-zero-accepted-revision-f99c76dc2.json)
-selects the exact candidate and records the user's baseline waiver. Focused
-rows stay pending until the retained logs and tool provenance are assembled
-into complete executed receipts; a passing log alone does not silently update
-the machine-readable record.
+The canonical [accepted-profile record](evidence/kernel-zero-accepted-revision-f99c76dc2.json)
+selects `f99c76dc2d26dd57c81f4fdd5f26fe91d50118e4`. All six focused rows
+are `executed` at that exact revision, the baseline row is explicitly `waived`,
+and the reviewed outcome is **`rung-1-retained`**.
 
-Reviewed on 2 October 2026 against candidate
-`f99c76dc2d26dd57c81f4fdd5f26fe91d50118e4`: **retain rung 1; do not promote
-rung 2**. The five scalar lanes still return individual bytes/lengths; Rust
-assembles the candidate and retains the authoritative output. The ordinary
-checked `own Bytes -> Bytes` wrapper then transfers that Rust-assembled token.
-It does not make the Kernel-0 renderer own its output, transfer formatter
-component authority, or extend the Kernel-0 theorem to ownership. This is the
-concrete unmet component boundary, not a missing hosted badge.
+Reviewed on 2 October 2026: **retain rung 1; do not promote rung 2**. The five
+scalar lanes still return individual bytes/lengths; Rust assembles the
+candidate and retains the authoritative output. The ordinary checked
+`own Bytes -> Bytes` wrapper transfers that Rust-assembled token. It does not
+make the Kernel-0 renderer own its output, transfer formatter component
+authority, or extend the Kernel-0 theorem to ownership. This is the concrete
+unmet component boundary, not a missing hosted badge. No further implementation
+or proof development is required to resolve #328 with this explicit
+non-promotion outcome.
 
-The local receipt directory is
-`semaprax-evidence/issue328/f99c76dc2` beside the repository checkouts. Its
-`run-focused.sh` requires the exact clean candidate before executing
-`cargo test --locked --offline -p semaprax --lib kernel_zero -- --test-threads=2`
-inside the retained Linux container. Both target-required environment flags
-are set. `kernel-focused.log` records **124 passed, 0 failed, 0 ignored**, with
-all renderer, authority, bootstrap, scalar-target/recovery, differential and
-Kernel handoff cases named individually. `lean-gate.log` records the source
-pins/hostile controls, successful `lake build`, gate-owned 53-theorem axiom
-audit and all four negative controls, ending in `RESULT: PASS`.
+The [retained receipt inventory](evidence/kernel-zero-f99c76dc2/README.md)
+links raw logs, exact runner scripts, execution-context/tool metadata, byte
+hashes and a requirement-by-requirement coverage map. The Kernel-0 selector
+passed **124 tests, 0 failed, 0 ignored**, with required native O0/O2 and
+Node/Core-Wasm tools. The separate `owned_handoff` selector passed **10 tests,
+0 failed, 0 ignored**, including the four retained-call lifetime/alias/panic
+cases omitted by the first filter. Six tests overlap the two selectors;
+these counts are execution totals, not 134 distinct cases.
 
-These results substantiate the focused Kernel-0 behavior at their actual
-revision. They are not a full-profile result and do not establish a fresh
-execution at a later commit. External tool versions and the exact Lean
-invocation/revision provenance must accompany the final canonical record.
+The Lean gate used `--require-kernel`, passed its source pins and hostile
+controls, built the pinned Lean 4.34.0 project, audited all 53 selected
+headline theorem axiom sets, executed the real transaction fixture, and
+rejected each negative control. Its log ends in full `RESULT: PASS`.
+The Linux runtime corpus used Rust/Cargo 1.97.1, Clang 14.0.6 and Node 22.23.3;
+the macOS Lean fixture used host Rust/Cargo 1.98.0. The receipt inventory
+identifies contemporaneous versus retrospective version observations.
 
-One narrow owned-handoff receipt remains necessary: the `kernel_zero` filter
-does not select the four
-`interpreter::retained_call::owned_handoff::tests` cases that verify actual
-last-owner release, retained-alias refusal, zero-owner admission, exhaustion,
-panic cleanup and the two-MiB stack. Run the `owned_handoff` library selector
-with required physical targets, or reconcile an existing complete receipt's
-exact committed subject. The Kernel wrapper target case's success alone does
-not cover those omitted tests. The canonical validation outcome remains
-`validation-incomplete` until this focused gap and receipt provenance are
-resolved; the reviewed rung-1 non-promotion decision is already explicit.
+All evidence remains bound to the stated execution revision. The commit that
+stores this review does not gain a fresh runtime result. Hashes identify the
+retained bytes and do not authenticate their execution. No whole-compiler
+verification, general backend-equivalence theorem, new ownership theorem,
+owned Kernel-0 renderer, formatter-authority transfer, full-profile pass,
+hosted result or support promotion follows from this acceptance.
 
-No additional proof development or whole-compiler ownership theorem is needed
-for this non-promotion outcome. Once the narrow receipt and provenance are
-bound, record `rung-1-retained` with the baseline row explicitly `waived` and
-resolve #328 without waiting for the full profile or a hosted badge.
+The full profile is excluded from local #328 acceptance by the explicit user
+instruction above and delegated to hosted CI. The existing full quality gate
+remains intact. The six focused receipts and reviewed non-promotion outcome
+complete this issue's bounded validation and decision requirements.

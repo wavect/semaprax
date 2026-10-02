@@ -47,26 +47,45 @@ function safeCompact(value, depth = 0) {
   }
   return Object.freeze(result);
 }
+function read(key, method, target, facet = null) { return Object.freeze({ key, method, target, facet }); }
 function plan(selected, declaration, tab, detail, offline = false) {
   if (!TABS.includes(tab)) fail('tab');
   const functionTarget = declaration.kind === 'function';
   if (tab === 'declaration') {
     if (!functionTarget) return { state: 'not_applicable', reason: 'function_summary_applies_only_to_retained_resolved_functions' };
-    return { method: functionMethod(selected, 'image/function-summary', 'candidate/function-summary'), target: declaration.id, facet: null };
+    return { requests: [read('declaration', functionMethod(selected, 'image/function-summary', 'candidate/function-summary'), declaration.id)] };
   }
-  if (tab === 'dependencies') return { method: imageMethod(selected, 'image/dependency-summary', 'candidate/dependency-summary'), target: declaration.id, facet: null };
+  if (tab === 'dependencies') return { requests: [read('dependencies', imageMethod(selected, 'image/dependency-summary', 'candidate/dependency-summary'), declaration.id)] };
   if (tab === 'contracts_effects') {
     if (!functionTarget) return { state: 'not_applicable', reason: 'function_contract_facet_not_applicable_to_this_declaration' };
-    if (candidateFinal(selected)) return { method: 'candidate/contract-delta', target: offline ? declaration.id : null, facet: null };
-    return { method: 'image/facet', target: declaration.id, facet: 'contracts' };
+    if (candidateFinal(selected)) {
+      // Deltas are whole-candidate reports and therefore never take a target.
+      // Offline bundles deliberately retain only the compact delta inventory.
+      if (offline) return { requests: [read('contract_changes', 'candidate/contract-delta', null)] };
+      return { requests: [
+        read('contract_changes', 'candidate/contract-delta', null),
+        read('declared_effects', 'candidate/function-summary', declaration.id),
+        read('checked_contracts', 'candidate/function-facet', declaration.id, 'contracts')
+      ] };
+    }
+    return { requests: [
+      read('declared_effects', 'image/function-summary', declaration.id),
+      read('checked_contracts', 'image/facet', declaration.id, 'contracts')
+    ] };
   }
   if (tab === 'ownership_cleanup') {
     if (!functionTarget) return { state: 'not_applicable', reason: 'function_ownership_facets_not_applicable_to_this_declaration' };
-    if (candidateFinal(selected)) return { method: 'candidate/ownership-delta', target: offline ? declaration.id : null, facet: null };
     if (!['ownership', 'loans', 'cleanup'].includes(detail)) fail('ownership detail');
-    return { method: 'image/facet', target: declaration.id, facet: detail };
+    const method = functionMethod(selected, 'image/facet', 'candidate/function-facet');
+    if (candidateFinal(selected) && offline) return { requests: [read('ownership_changes', 'candidate/ownership-delta', null)] };
+    const facts = [
+      read('ownership', method, declaration.id, 'ownership'),
+      read('loan_plan', method, declaration.id, 'loans'),
+      read('cleanup_plan', method, declaration.id, 'cleanup')
+    ];
+    return { requests: candidateFinal(selected) ? [read('ownership_changes', 'candidate/ownership-delta', null), ...facts] : facts };
   }
-  return { method: imageMethod(selected, 'image/analysis-coverage', 'candidate/analysis-coverage'), target: offline ? declaration.id : null, facet: null };
+  return { requests: [read('analysis_coverage', imageMethod(selected, 'image/analysis-coverage', 'candidate/analysis-coverage'), offline ? declaration.id : null)] };
 }
 function envelope(value, expected) {
   if (!plain(value) || Object.keys(value).length !== 11) fail('evidence envelope');
@@ -83,6 +102,17 @@ function stateFor(error) {
   return 'error';
 }
 function status(state, reason, request = null) { return Object.freeze({ state, reason, request, compact: null, omitted: Object.freeze([]), nonclaims: Object.freeze([]) }); }
+function combined(subject, reads, results) {
+  if (reads.length === 1) return results[0];
+  const compact = {}, omissions = new Set(), nonclaims = new Set();
+  for (let index = 0; index < reads.length; index++) {
+    compact[reads[index].key] = results[index].compact;
+    for (const item of results[index].omitted) omissions.add(item);
+    for (const item of results[index].nonclaims) nonclaims.add(item);
+  }
+  return Object.freeze({ state: 'available', method: 'combined_read_only_evidence', target: null, facet: null,
+    subject, compact: Object.freeze(compact), omitted: Object.freeze([...omissions].sort()), nonclaims: Object.freeze([...nonclaims].sort()) });
+}
 
 // Offline bundles can carry only this compact, source-free index. Entries are
 // closed over a subject already present in the snapshot, so a row cannot be
@@ -93,7 +123,7 @@ function offlineIndex(value, knownSubjects) {
   const rows = new Map();
   for (const entry of value.entries) {
     if (!plain(entry) || Object.keys(entry).length !== 5 || !Object.hasOwn(entry, 'subject') || !Object.hasOwn(entry, 'target') || !Object.hasOwn(entry, 'states') || !Object.hasOwn(entry, 'compact') || !Object.hasOwn(entry, 'omitted')) fail('offline entry');
-    const checkedSubject = subject(entry.subject), subjectKey = key(checkedSubject), target = text(entry.target, 'offline target');
+    const checkedSubject = subject(entry.subject), subjectKey = key(checkedSubject), target = entry.target === null ? null : text(entry.target, 'offline target');
     if (!known.has(subjectKey) || !plain(entry.states) || !plain(entry.compact) || !Array.isArray(entry.omitted)) fail('offline binding');
     const stateKeys = Object.keys(entry.states);
     if (!['function_summary', 'dependency_summary', 'analysis_coverage'].every(name => Object.hasOwn(entry.states, name)) || stateKeys.some(name => !INDEX_SLOTS.includes(name))) fail('offline states');
@@ -126,7 +156,8 @@ function offlineSlot(request) {
 }
 
 function offlineEnvelope(index, request) {
-  const row = index.get(key({ subject: subject(request.subject), target: text(request.target === null ? '' : request.target, 'offline request target', true) }));
+  const target = request.target === null ? null : text(request.target, 'offline request target');
+  const row = index.get(key({ subject: subject(request.subject), target }));
   const slot = offlineSlot(request);
   if (!row || !slot) return null;
   if (!Object.hasOwn(row.states, slot)) {
@@ -145,13 +176,17 @@ function createEvidenceInspector(host, selected, declaration) {
   return Object.freeze({
     async inspect(tab, options = {}) {
       const detail = options.detail || 'ownership';
-      const request = plan(checkedSubject, declaration, tab, detail, host.offline === true);
-      if (request.state) return status(request.state, request.reason);
-      const cacheKey = key({ subject: checkedSubject, declaration: declaration.id, tab, detail, request });
+      const requested = plan(checkedSubject, declaration, tab, detail, host.offline === true);
+      if (requested.state) return status(requested.state, requested.reason);
+      const cacheKey = key({ subject: checkedSubject, declaration: declaration.id, tab, detail, requested });
       if (!cache.has(cacheKey)) cache.set(cacheKey, Promise.resolve().then(async () => {
-        try {
-          return envelope(await host.readEvidence(Object.freeze({ method: request.method, subject: checkedSubject, target: request.target, facet: request.facet })), { ...request, subject: checkedSubject });
-        } catch (error) { return status(stateFor(error), String(error && error.message || error), request); }
+        const results = [];
+        for (const request of requested.requests) {
+          try {
+            results.push(envelope(await host.readEvidence(Object.freeze({ method: request.method, subject: checkedSubject, target: request.target, facet: request.facet })), { ...request, subject: checkedSubject }));
+          } catch (error) { return status(stateFor(error), String(error && error.message || error), request); }
+        }
+        return combined(checkedSubject, requested.requests, results);
       }));
       return cache.get(cacheKey);
     }

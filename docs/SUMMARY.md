@@ -178,6 +178,7 @@ Audience: all documentation readers.
 - [Project Test Cases and Runtime Failure Report v1](PROJECT-TEST-CASES-V1.md)
 - [Project Dependency Resolution v1](PROJECT-DEPENDENCY-RESOLUTION-V1.md)
 - [Project Dependencies v1](PROJECT-DEPENDENCIES-V1.md)
+- [Native Rust Rich Cargo Preparation v1](NATIVE-RUST-RICH-CARGO-PREPARATION-V1.md)
 - [Public Project Scaffold Capsule v3](PROJECT-SCAFFOLD-V3.md)
 - [Project Scaffold Service Template v1](PROJECT-SCAFFOLD-SERVICE-V1.md)
 - [Reference Service Host v1](REFERENCE-SERVICE-HOST-V1.md)

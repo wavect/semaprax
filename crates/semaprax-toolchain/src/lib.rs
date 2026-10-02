@@ -32,6 +32,12 @@ pub mod claude_host;
 /// Explicit durable source-agent sessions in the private host.
 pub mod source_live_cli;
 
+/// Explicit, replayable Cargo closure preparation for rich Native Rust interop.
+///
+/// This module records already-collected Cargo metadata; it has no process,
+/// network, package-acquisition, or build-script authority.
+pub mod rich_cargo_preparation;
+
 /// Run ordinary doctor policy without discovering or spawning a worker.
 pub fn run_doctor(arguments: &[String]) -> Result<(String, u8), String> {
     semaprax::doctor::run(arguments)

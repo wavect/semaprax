@@ -8,6 +8,11 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Run the Linux held-native migration sanitizer gate through a test-only ELF
+  compiler launcher, preserving exact ASan/UBSan flags and symbol checks when
+  the process provider refuses held shebang scripts (#327). Add a physical
+  refusal regression; production held-executable rules are unchanged.
+
 - Include owned record and variant field transfers in cleanup skeleton work
   reservations (#337), preserving the global replay limit and refusal before
   unbudgeted materialization. Add nested generic record and owned variant

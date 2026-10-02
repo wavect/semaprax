@@ -1,0 +1,100 @@
+.spx-explorer {
+  --paper: #f3f5f4;
+  --plate: #ffffff;
+  --ink: #162b36;
+  --muted: #526a74;
+  --line: #bed0d4;
+  --accent: #2d6b83;
+  --accent-quiet: #dcecf0;
+  --site: #ad6042;
+  --focus: #9e5138;
+  box-sizing: border-box;
+  min-height: 100vh;
+  padding: clamp(16px, 2.2vw, 36px);
+  background: var(--paper);
+  color: var(--ink);
+  font-family: "Avenir Next", "Segoe UI", sans-serif;
+  line-height: 1.45;
+}
+.spx-explorer *, .spx-explorer *::before, .spx-explorer *::after { box-sizing: border-box; }
+.spx-explorer[data-theme="dark"] {
+  --paper: #13232c; --plate: #1b313c; --ink: #ebf4f5; --muted: #abc2c9;
+  --line: #47616d; --accent: #9dd0df; --accent-quiet: #284855; --site: #e2a58c; --focus: #f0b398;
+}
+@media (prefers-color-scheme: dark) {
+  .spx-explorer[data-theme="system"] {
+    --paper: #13232c; --plate: #1b313c; --ink: #ebf4f5; --muted: #abc2c9;
+    --line: #47616d; --accent: #9dd0df; --accent-quiet: #284855; --site: #e2a58c; --focus: #f0b398;
+  }
+}
+.spx-head { display: flex; align-items: end; justify-content: space-between; gap: 24px; border-bottom: 2px solid var(--ink); padding-bottom: 16px; }
+.spx-kicker { margin: 0 0 6px; color: var(--accent); font: 700 11px/1.3 ui-monospace, "SFMono-Regular", monospace; letter-spacing: .1em; text-transform: uppercase; }
+.spx-head h1 { margin: 0; font: 600 clamp(26px, 3vw, 42px)/1.07 "Iowan Old Style", "Georgia", serif; letter-spacing: -.025em; }
+.spx-identity { margin: 0 0 4px; max-width: 42ch; color: var(--muted); font: 12px/1.4 ui-monospace, "SFMono-Regular", monospace; overflow-wrap: anywhere; text-align: right; }
+.spx-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 16px 0 9px; }
+.spx-search, .spx-select, .spx-button { min-height: 38px; border: 1px solid var(--line); border-radius: 6px; background: var(--plate); color: var(--ink); font: inherit; font-size: 13px; }
+.spx-search { flex: 1 1 240px; max-width: 480px; padding: 7px 12px; }
+.spx-select { padding: 6px 30px 6px 10px; }
+.spx-button { padding: 6px 13px; cursor: pointer; white-space: nowrap; }
+.spx-button:hover, .spx-row:hover { border-color: var(--accent); background: var(--accent-quiet); }
+.spx-button:focus-visible, .spx-select:focus-visible, .spx-search:focus-visible, .spx-row:focus-visible, .spx-node:focus-visible, .spx-edge:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.spx-primary { background: var(--accent); color: var(--plate); border-color: var(--accent); }
+.spx-filters { display: flex; flex-wrap: wrap; gap: 5px 15px; border-bottom: 1px solid var(--line); padding: 4px 0 12px; }
+.spx-filter { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12px; white-space: nowrap; }
+.spx-filter input { accent-color: var(--accent); }
+.spx-main { display: grid; grid-template-columns: minmax(0, 1fr) minmax(270px, 330px); gap: 16px; align-items: start; }
+.spx-canvas-panel, .spx-inspector { min-width: 0; border: 1px solid var(--line); border-radius: 9px; background: var(--plate); box-shadow: 0 9px 28px rgba(17, 46, 57, .055); }
+.spx-graph-bar { display: flex; justify-content: space-between; gap: 16px; align-items: baseline; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+.spx-breadcrumb { font-weight: 700; font-size: 13px; overflow-wrap: anywhere; }
+.spx-coverage { color: var(--muted); font: 11px/1.4 ui-monospace, "SFMono-Regular", monospace; text-align: right; }
+.spx-graph-viewport { height: clamp(300px, 48vh, 580px); overflow: hidden; touch-action: none; background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px); background-size: 32px 32px; background-position: -1px -1px; background-color: var(--plate); }
+.spx-graph-viewport svg { display: block; width: 100%; height: 100%; transform-origin: center center; }
+.spx-edge { fill: none; stroke: var(--accent); stroke-width: 2; opacity: .72; cursor: pointer; }
+.spx-edge:hover, .spx-edge:focus-visible { stroke: var(--site); stroke-width: 4; opacity: 1; }
+.spx-site-count { fill: var(--site); font: 700 12px ui-monospace, monospace; paint-order: stroke fill; stroke: var(--plate); stroke-width: 5; pointer-events: none; }
+.spx-node { cursor: pointer; }
+.spx-node rect { fill: var(--plate); stroke: var(--accent); stroke-width: 1.5; }
+.spx-node.is-boundary rect { stroke-dasharray: 5 4; }
+.spx-node:hover rect, .spx-node.is-selected rect { fill: var(--accent-quiet); stroke-width: 2.5; }
+.spx-node-name { fill: var(--ink); font: 700 13px "Avenir Next", "Segoe UI", sans-serif; }
+.spx-node-sub { fill: var(--muted); font: 11px ui-monospace, "SFMono-Regular", monospace; }
+.spx-list { border-top: 1px solid var(--line); max-height: 240px; overflow: auto; padding: 10px 12px; }
+.spx-list h3 { margin: 0 0 8px; font: 700 11px ui-monospace, monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.spx-row { display: flex; width: 100%; gap: 12px; justify-content: space-between; align-items: baseline; padding: 7px 9px; border: 1px solid transparent; border-radius: 4px; background: transparent; color: var(--ink); text-align: left; cursor: pointer; font: 12px/1.35 "Avenir Next", "Segoe UI", sans-serif; }
+.spx-row strong, .spx-row span { overflow-wrap: anywhere; }
+.spx-row span { color: var(--muted); }
+.spx-more { margin: 10px 12px 12px; }
+.spx-inspector { position: sticky; top: 16px; padding: 20px; max-height: calc(100vh - 32px); overflow: auto; }
+.spx-inspector h2 { margin: 0 0 16px; font: 600 23px/1.2 "Iowan Old Style", Georgia, serif; overflow-wrap: anywhere; }
+.spx-inspector h3 { margin: 20px 0 8px; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; }
+.spx-detail { font: 12px/1.6 ui-monospace, monospace; overflow-wrap: anywhere; }
+.spx-muted { color: var(--muted); font-size: 12px; }
+.spx-facts { display: grid; grid-template-columns: 90px minmax(0, 1fr); gap: 8px 10px; margin: 0 0 18px; font-size: 12px; }
+.spx-facts dt { color: var(--muted); }
+.spx-facts dd { margin: 0; overflow-wrap: anywhere; }
+.spx-sites { margin: 0; padding-left: 19px; }
+.spx-sites li { margin-bottom: 9px; font-size: 12px; overflow-wrap: anywhere; }
+.spx-sites span { display: block; color: var(--muted); }
+.spx-status { min-height: 20px; margin: 12px 0 0; color: var(--muted); font-size: 12px; }
+@media (max-width: 900px) {
+  .spx-main { grid-template-columns: minmax(0, 1fr); }
+  .spx-inspector { position: static; max-height: none; }
+  .spx-graph-viewport { height: 340px; }
+}
+@media (max-width: 600px) {
+  .spx-explorer { padding: 12px; }
+  .spx-head { align-items: start; flex-direction: column; gap: 8px; }
+  .spx-identity { text-align: left; }
+  .spx-controls > * { flex: 1 1 auto; }
+  .spx-search { max-width: none; flex-basis: 100%; }
+  .spx-graph-bar { flex-direction: column; gap: 4px; }
+  .spx-coverage { text-align: left; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .spx-button, .spx-row, .spx-node rect, .spx-edge { transition: background-color .16s, border-color .16s, stroke .16s, fill .16s; }
+}
+@media (forced-colors: active) {
+  .spx-node rect, .spx-edge { stroke: CanvasText; }
+  .spx-node.is-selected rect { stroke-width: 4; }
+  .spx-button, .spx-search, .spx-select, .spx-canvas-panel, .spx-inspector { border-color: CanvasText; }
+}

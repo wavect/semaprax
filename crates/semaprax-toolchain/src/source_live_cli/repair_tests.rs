@@ -5,10 +5,10 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use super::*;
 use crate::opencode_host::{OpenCodeHostConfig, OpenCodeRunner, OpenCodeRunnerFailure};
-
 #[path = "repair_tests/fixed_candidate_test.rs"]
 mod fixed_candidate_test;
-
+#[path = "repair_tests/post_settled_barrier.rs"]
+mod post_settled_barrier;
 static NEXT: AtomicU64 = AtomicU64::new(0);
 
 struct Fixture(PathBuf);
@@ -439,6 +439,7 @@ fn v2_command(verb: &str, config: PathBuf, checkpoint: PathBuf, scratch: PathBuf
     let provider = OpenCodeOperands {
         executable,
         scratch,
+        pause_after_settled: false,
     };
     match verb {
         "run" => Command::Run {

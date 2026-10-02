@@ -19,6 +19,9 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
+#[path = "repair/barrier.rs"]
+mod barrier;
+
 use semaprax::agent_deployment::migrate_agent_definition_v1;
 use semaprax::agent_lifecycle::canonical_retained_value_json;
 use semaprax::agent_lifecycle::iterative::compile_source_agent_lifecycle_v2;
@@ -55,6 +58,7 @@ use crate::opencode_host::{
 
 use super::checkpoint::{bounded_read, CheckpointDir};
 use super::CliError;
+use barrier::PostSettledBarrierStore;
 
 const FIXTURE_CLOCK_DOMAIN: &str = "semaprax.source-live-cli.repair.v1";
 const UNIX_CLOCK_DOMAIN: &str = "unix_epoch_millis.v1";
@@ -481,6 +485,7 @@ pub(super) enum Command {
 pub(super) struct OpenCodeOperands {
     executable: PathBuf,
     scratch: PathBuf,
+    pause_after_settled: bool,
 }
 
 impl Command {
@@ -497,12 +502,29 @@ impl Command {
                     Some(OpenCodeOperands {
                         executable: absolute_operand(executable)?,
                         scratch: absolute_operand(scratch)?,
+                        pause_after_settled: false,
+                    }),
+                )
+            }
+            [verb, config, checkpoint, executable_flag, executable, scratch_flag, scratch, barrier]
+                if executable_flag == "--opencode"
+                    && scratch_flag == "--scratch"
+                    && barrier == "--pause-after-settled" =>
+            {
+                (
+                    verb,
+                    config,
+                    checkpoint,
+                    Some(OpenCodeOperands {
+                        executable: absolute_operand(executable)?,
+                        scratch: absolute_operand(scratch)?,
+                        pause_after_settled: true,
                     }),
                 )
             }
             _ => {
                 return Err(CliError::usage(
-                    "repair requires run|resume <config.json> <checkpoint-dir> [--opencode ABS --scratch EMPTY_ABS]",
+                    "repair requires run|resume <config.json> <checkpoint-dir> [--opencode ABS --scratch EMPTY_ABS [--pause-after-settled]]",
                 ));
             }
         };
@@ -867,6 +889,9 @@ pub(super) fn execute_with_runner_and_candidate_test<
             provider,
         } => (config, checkpoint, false, provider),
     };
+    let pause_after_settled = provider_operands
+        .as_ref()
+        .is_some_and(|operands| operands.pause_after_settled);
     let config = RepairConfig::load(&config_path)?;
 
     // --- Ordinary lock/authority is acquired first, before any evidence
@@ -1094,6 +1119,7 @@ pub(super) fn execute_with_runner_and_candidate_test<
     };
 
     let mut scripted_starts = None;
+    let mut pause_marker_host = None;
     let mut factory: Box<dyn FnMut() -> Box<dyn ProviderAdapter>> = match &config.provider {
         RepairProvider::Scripted(turns) => {
             let scripts = RefCell::new(VecDeque::from(
@@ -1150,6 +1176,9 @@ pub(super) fn execute_with_runner_and_candidate_test<
                     "repair OpenCode executable changed while binding the host",
                 ));
             }
+            if pause_after_settled {
+                pause_marker_host = Some(host.clone());
+            }
             let runner = Rc::new(RefCell::new(runner));
             let bound_adapter_identity = bound_adapter_identity.clone();
             Box::new(move || -> Box<dyn ProviderAdapter> {
@@ -1176,6 +1205,10 @@ pub(super) fn execute_with_runner_and_candidate_test<
     )
     .map_err(|diagnostics| diagnostic_error("repair source adapter refused", diagnostics))?;
     let retained_checkpoint = latest.as_deref();
+    // This host-local wrapper has no journal authority of its own. It only
+    // observes a successful physical checkpoint commit and, when explicitly
+    // selected by the operator, parks after one settled provider response.
+    let mut barrier_store = PostSettledBarrierStore::new(&mut store, pause_marker_host);
     let complete = runtime
         .run_live_bound_model_durable(
             &mut source,
@@ -1184,7 +1217,7 @@ pub(super) fn execute_with_runner_and_candidate_test<
             clock.as_ref(),
             &cancellation,
             retained_checkpoint,
-            &mut store,
+            &mut barrier_store,
         )
         .map_err(|failure| {
             diagnostic_error(

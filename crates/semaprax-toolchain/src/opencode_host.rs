@@ -41,6 +41,8 @@ const MAX_EXECUTABLE_BINDING_BYTES: u64 = 160 * 1024 * 1024;
 /// It must not allocate another executable-sized buffer while dispatching.
 const EXECUTABLE_REAUTH_BUFFER_BYTES: usize = 64 * 1024;
 const STAGED_EXECUTABLE: &str = ".semaprax-opencode-executable";
+const REPAIR_POST_SETTLED_MARKER: &str = ".semaprax-repair-post-settled-pause.json";
+const MAX_REPAIR_POST_SETTLED_MARKER_BYTES: u64 = 512;
 
 /// Host-owned process settings. Constructing this value is distinct from
 /// granting the per-call `ModelInvokeCapability`; both are required to invoke.
@@ -155,6 +157,11 @@ impl OpenCodeHostConfig {
         {
             return Err("OpenCode host could not clear its interrupted session state".into());
         }
+        if scratch_inventory_is_repair_post_settled_marker(&sandbox)
+            && !cleanup_repair_post_settled_marker(&sandbox)
+        {
+            return Err("OpenCode host could not clear its post-settlement pause marker".into());
+        }
         if !scratch_inventory_is_admitted(&sandbox, policy.as_bytes()) {
             return Err(
                 "OpenCode host sandbox must be empty or contain only its exact policy".into(),
@@ -176,6 +183,29 @@ impl OpenCodeHostConfig {
     #[must_use]
     pub fn cancellation(&self) -> OpenCodeCancellation {
         self.cancellation.clone()
+    }
+
+    /// Records the private repair-smoke interruption point in the already
+    /// selected scratch directory. The marker grants no host capability and
+    /// is authenticated and removed when this exact scratch host is reopened.
+    pub(crate) fn write_repair_post_settled_marker(&self, marker: &[u8]) -> Result<(), String> {
+        if !repair_post_settled_marker_is_valid(marker)
+            || !scratch_inventory_is_empty(&self.sandbox)
+        {
+            return Err("OpenCode repair pause marker is not admissible".into());
+        }
+        let path = self.sandbox.join(REPAIR_POST_SETTLED_MARKER);
+        let mut file = std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(path)
+            .map_err(|_| "OpenCode repair pause marker cannot be created".to_owned())?;
+        file.write_all(marker)
+            .and_then(|_| file.sync_all())
+            .map_err(|_| "OpenCode repair pause marker cannot be acknowledged".to_owned())?;
+        std::fs::File::open(&self.sandbox)
+            .and_then(|directory| directory.sync_all())
+            .map_err(|_| "OpenCode repair pause marker directory cannot be acknowledged".to_owned())
     }
 }
 
@@ -546,6 +576,93 @@ fn scratch_inventory_is_empty(sandbox: &std::path::Path) -> bool {
         .read_dir()
         .map(|mut entries| entries.next().is_none())
         .unwrap_or(false)
+}
+
+fn scratch_inventory_is_repair_post_settled_marker(sandbox: &std::path::Path) -> bool {
+    let Ok(mut entries) = sandbox.read_dir() else {
+        return false;
+    };
+    let Some(Ok(entry)) = entries.next() else {
+        return false;
+    };
+    if entries.next().is_some() || entry.file_name() != REPAIR_POST_SETTLED_MARKER {
+        return false;
+    }
+    let path = entry.path();
+    path.symlink_metadata()
+        .map(|metadata| {
+            metadata.file_type().is_file() && metadata.len() <= MAX_REPAIR_POST_SETTLED_MARKER_BYTES
+        })
+        .unwrap_or(false)
+        && std::fs::read(path)
+            .map(|bytes| repair_post_settled_marker_is_valid(&bytes))
+            .unwrap_or(false)
+}
+
+fn cleanup_repair_post_settled_marker(sandbox: &std::path::Path) -> bool {
+    let path = sandbox.join(REPAIR_POST_SETTLED_MARKER);
+    let Ok(before) = path.symlink_metadata() else {
+        return false;
+    };
+    let Ok(bytes) = std::fs::read(&path) else {
+        return false;
+    };
+    if !before.file_type().is_file()
+        || before.len() > MAX_REPAIR_POST_SETTLED_MARKER_BYTES
+        || !repair_post_settled_marker_is_valid(&bytes)
+    {
+        return false;
+    }
+    let Ok(after) = path.symlink_metadata() else {
+        return false;
+    };
+    #[cfg(unix)]
+    let same_inode = before.dev() == after.dev() && before.ino() == after.ino();
+    #[cfg(not(unix))]
+    let same_inode = before.len() == after.len();
+    same_inode
+        && std::fs::remove_file(path).is_ok()
+        && std::fs::File::open(sandbox)
+            .and_then(|directory| directory.sync_all())
+            .is_ok()
+        && scratch_inventory_is_empty(sandbox)
+}
+
+fn repair_post_settled_marker_is_valid(bytes: &[u8]) -> bool {
+    let Ok(value) = serde_json::from_slice::<serde_json::Value>(bytes) else {
+        return false;
+    };
+    let Some(object) = value.as_object() else {
+        return false;
+    };
+    const KEYS: [&str; 5] = [
+        "schema",
+        "checkpoint_generation",
+        "turn",
+        "attempt",
+        "response_digest",
+    ];
+    object.len() == KEYS.len()
+        && KEYS.iter().all(|key| object.contains_key(*key))
+        && object.get("schema").and_then(serde_json::Value::as_str)
+            == Some("semaprax.source-live-cli.repair-post-settled-pause.v1")
+        && object
+            .get("checkpoint_generation")
+            .and_then(serde_json::Value::as_u64)
+            .is_some_and(|value| value > 0)
+        && object
+            .get("turn")
+            .and_then(serde_json::Value::as_u64)
+            .is_some_and(|value| u32::try_from(value).is_ok())
+        && object
+            .get("attempt")
+            .and_then(serde_json::Value::as_u64)
+            .is_some_and(|value| u32::try_from(value).is_ok())
+        && object
+            .get("response_digest")
+            .and_then(serde_json::Value::as_str)
+            .is_some_and(|value| !value.is_empty() && value.len() <= 96)
+        && serde_json::to_vec(&value).is_ok_and(|canonical| canonical == bytes)
 }
 
 fn scratch_inventory_is_admitted(sandbox: &std::path::Path, policy: &[u8]) -> bool {

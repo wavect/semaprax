@@ -126,7 +126,8 @@ run_registered_authorize(&mut RegisteredAgentState, CheckedProposal,
 
 `CompletedOwnedWait` is an internal postcondition/cleanup-settled result holder; public owned-frame claim is NOT called. Prepare binds exact State/Proposal facts and source authorize ID. TransferReserved ACK precedes taking its root; move into destination RegisteredAgentState once, then TransferCompleted ACK precedes any authorize evaluator or consumer exposure. The receiver owns the actual original backing; while appending Completed it is private/poisonable and lease-held. Stage borrowed aliases/contract temporaries are drained before exclusivity checks/physical cleanup. This needs a narrow interpreter registered-root borrowed evaluator seam, not a public Arc/Value conversion.
 
-Recovery classifications:
+Target recovery classifications for a later owner-restoration packet (not
+implemented by the current recovered lease):
 - committed/prepared/answered: authenticated legal fold + held lease grants one sealed restoration permit; charged historical observe/start/resume compare exact recorded facts; no additional caller Argument.
 - AttemptIntent without recorded settlement: model in doubt, no redispatch/root transfer/effects.
 - failed terminal before cleanup start: one registered failure owner may perform acknowledged compiler cleanup.
@@ -245,7 +246,7 @@ Rows refer to the current attempt's stage/transfer/decision basis; all later cle
 | Decision cleanup Started without Settled | CleanupInDoubt; ZERO owner restoration or physical retry. Explicit failed host confirmation may close THAT cleanup receipt, but first profile does not restore the leftover State; terminal recovery reports in-doubt, never a ready turn. |
 | Decision cleanup Settled, before State cleanup Started | ZERO Decision restoration; one failed State holder may perform its acknowledged compiler cleanup, then terminal. Its active State basis is separately retained by fold and not derived from the disposed Decision. |
 | State cleanup Started without Settled | CleanupInDoubt; ZERO owner restoration/release retry. Only explicit scoped failed host confirmation receipt/evidence; no ready turn. |
-| State cleanup Settled, terminal absent or present | Evidence/status only, ZERO State/Decision/grant restoration. Remaining ordinary Stop/TerminalSnapshot metadata may be appended only from validated fold, without evaluator/physical cleanup. |
+| State cleanup Settled, terminal absent or present | Evidence/status only, ZERO State/Decision/grant restoration. A future restoration packet may append remaining ordinary Stop/TerminalSnapshot metadata only from the validated fold, without evaluator/physical cleanup. |
 | Any host-confirmed failed receipt | No confirmed owner restoration or physical retry; only the exact still-live separate-owner basis permitted by this table can be considered. Decision-confirmation case is conservatively terminal/in-doubt in this first profile. |
 | Any later effect intent, state handoff, failure cleanup or ordinary terminal | No earlier Ready/TransferCompleted/Staged restoration. Future effect packet must add its own exact current-owner phase table; first API refuses those unsupported phases. |
 
@@ -295,6 +296,14 @@ Fresh expected facts are exactly `{scope,execution,binding,limits,directory_iden
 Caller retains the complete registration OUT OF BAND under its protected-history/lifetime assurance before passing lease to the owned run constructor. Start requires an explicit current host registration-retained grant paired with the exact complete registration/lease identity. This is a physical host authority acknowledgement, not evidence or a hash that grants authority. If retention fails, close the empty held lease; no owner was admitted/transferred and no history was committed. The host may not recover from journal-derived file IDs or generation.
 
 Recovery requires independently retained complete four pins and generation, plus current independently expected scope/execution/binding/limits/directory facts and registration grant. It compares expected facts, recomputes generation from those RETAINED full pins (never from opened file or journal) before file opening, verifies held directory pins, opens only the computed v8 filename, then verifies opened file equals retained file pins and all safety/PID/fullscope/profile checks. Authenticate legal v8 history afterward. An alternate/copied/rollback registration is outside protected caller assurance, never legitimized by a matching MAC.
+
+The current recovery lease is read-only after that authentication. It can expose
+the authenticated inventory and terminal evidence, but cannot append any
+successor row. Retained registration, matching pins, and a valid MAC are proof
+data; they do not restore the physical State, wait, or Report owner required
+to advance a phase. A later restoration packet must introduce one sealed
+owner-bound permit and explicitly lift this fence only while materializing the
+exact owner allowed by its reviewed recovery table.
 
 The profile-specific constructor/delegation and narrow store lease paths in §9.3 remain; only the impossible pre-create file-identity requirement/signatures are replaced by this exact ordering. V1 constructors/public signatures/name/generation recipes remain frozen.
 
@@ -1058,5 +1067,7 @@ seconds). The nominal-case mapping regression passed 1/1. The receipt
 prewrite case and repository full quality profile remain unrun. This is a
 private Complete successor, not public multi-turn
 entry, public Report delivery, failed-Observe cleanup, or physical owner
-restoration after restart. Broader iteration and native/Wasm owned-wait support
+restoration after restart. Restart currently exposes only authenticated
+read-only evidence: it cannot append a successor from terminal bytes or a
+retained registration. Broader iteration and native/Wasm owned-wait support
 remain separate completion requirements.

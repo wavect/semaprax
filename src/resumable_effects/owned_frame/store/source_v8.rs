@@ -138,6 +138,10 @@ pub(crate) struct SourceOwnedWaitLeaseV8 {
     inner: RegisteredJournalLease,
     registration: SourceOwnedWaitStoreRegistrationV8,
     start_authorized: bool,
+    /// Recovery authenticates history but cannot recreate a live State, wait,
+    /// or Report owner. A future sealed restoration permit must cross this
+    /// boundary while materializing its exact physical owner.
+    recovery_read_only: bool,
 }
 impl SourceOwnedWaitLeaseV8 {
     pub(crate) fn validate_registration(
@@ -201,7 +205,7 @@ impl SourceOwnedWaitLeaseV8 {
         registration: &SourceOwnedWaitStoreRegistrationV8,
     ) -> Result<(), Error> {
         self.validate_registration(registration)?;
-        if !self.start_authorized {
+        if !self.start_authorized || self.recovery_read_only {
             return Err(Error::Policy);
         }
         Ok(())
@@ -211,7 +215,7 @@ impl SourceOwnedWaitLeaseV8 {
             .validate_profile(StoreProfile::SourceOwnedWaitV8)?;
         self.inner
             .validate_scope(&self.registration.expected.scope)?;
-        if !self.start_authorized {
+        if !self.start_authorized || self.recovery_read_only {
             return Err(Error::Policy);
         }
         self.inner.append(bytes)
@@ -259,6 +263,7 @@ pub(crate) fn fresh_source_owned_wait_v8(
             inner,
             registration,
             start_authorized: false,
+            recovery_read_only: false,
         },
     ))
 }
@@ -293,12 +298,14 @@ pub(crate) fn recover_source_owned_wait_v8(
         expected.name(),
     )?;
     inner.validate_profile(StoreProfile::SourceOwnedWaitV8)?;
-    // Recovery authorizes physical history append only. The v8 codec/fold must
-    // authenticate and validate legal phases before evaluator/owner operations.
+    // Recovery admits authenticated read-only history only. Until a sealed
+    // restoration path materializes the exact physical owner, no recovered
+    // lease can append a successor row from proof data alone.
     Ok(SourceOwnedWaitLeaseV8 {
         inner,
         registration: registration.clone(),
         start_authorized: true,
+        recovery_read_only: true,
     })
 }
 #[cfg(unix)]

@@ -8,6 +8,13 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Fence recovered source-owned-wait v8 leases to authenticated read-only
+  history (#330). Retained registration, matching pins and the MAC chain can
+  inspect evidence but cannot append a successor before a sealed physical
+  owner-restoration permit exists. The store regression proves the bytes stay
+  unchanged after a rejected restart append; physical owner restoration and
+  public multi-turn entry remain open.
+
 - Reconcile the full-profile rustfmt gate and two private-interface visibility
   warnings exposed while validating the #327 Linux migration sanitizer. The
   formatter changes only Rust layout; stage and cleanup behavior is unchanged.

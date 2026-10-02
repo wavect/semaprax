@@ -33,7 +33,7 @@ function createExplorer(root, host, options = {}) {
     loaded: new Set(), selected: null, selectedModule: null, selectedRelation: null, localFocus: null,
     search: '', direction: 'both', depth: 1, families: new Set(semapraxExplorerModel.FAMILIES),
     scale: 1, panX: 0, panY: 0, pins: new Map(), theme: 'system', busy: false,
-    changes: { state: 'not_requested', list: null, selectedTarget: null, details: new Map(), error: null },
+    changes: { state: 'not_requested', list: null, selectedTarget: null, details: new Map(), impacts: new Map(), view: 'changes', comparison: false, witness: null, error: null },
     evidence: { key: null, inspector: null, tab: 'declaration', result: null, loading: false }
   };
 
@@ -136,6 +136,59 @@ function createExplorer(root, host, options = {}) {
     return list && state.changes.selectedTarget ? list.rows.find(row => row.target === state.changes.selectedTarget) || null : null;
   }
 
+  function changeProjection(side, selected) {
+    const projection = selected && selected[side];
+    const panel = element(document, 'section', `spx-change-projection spx-change-projection-${side}`);
+    panel.append(element(document, 'h4', '', side === 'base' ? 'Base' : 'Candidate'));
+    if (!projection) {
+      panel.append(element(document, 'p', 'spx-evidence-state', side === 'base' ? 'Base-side declaration not present for this addition.' : 'Candidate-side declaration not present for this removal.'));
+      return panel;
+    }
+    panel.append(element(document, 'p', 'spx-detail', projection.name));
+    const facts = [['Stable ID', projection.id], ['Kind', projection.kind], ['Module', projection.module], ['Path', projection.path]];
+    const dl = element(document, 'dl', 'spx-facts');
+    for (const [name, value] of facts) dl.append(element(document, 'dt', '', name), element(document, 'dd', '', value));
+    panel.append(dl);
+    return panel;
+  }
+
+  function renderImpact(selected) {
+    const impact = state.changes.impacts.get(selected.target);
+    const panel = element(document, 'section', 'spx-impact-panel');
+    panel.append(element(document, 'h3', '', 'Potential structural impact'));
+    if (impact === 'loading') { panel.append(element(document, 'p', 'spx-muted', 'Loading base and candidate structural inventories…')); return panel; }
+    if (impact && impact.error) { panel.append(element(document, 'p', 'spx-evidence-state', `Impact unavailable: ${impact.error}`)); return panel; }
+    if (!impact) { panel.append(element(document, 'p', 'spx-evidence-state', 'Impact not requested.')); return panel; }
+    const stateText = {
+      loaded: 'Base and candidate inventories are loaded separately; displayed edges are their structural union.',
+      analysis_incomplete: 'Witness not loaded/analysis incomplete. Returned edges are only a partial structural inventory.',
+      base_only: 'Base-only structural impact for this removed declaration.',
+      candidate_only: 'Candidate-only structural impact for this added declaration.'
+    }[impact.witness_state] || 'Witness not loaded/analysis incomplete.';
+    panel.append(element(document, 'p', impact.witness_state === 'loaded' ? 'spx-muted' : 'spx-evidence-state', stateText));
+    panel.append(element(document, 'p', 'spx-muted', `${impact.nodes.length} returned declaration${impact.nodes.length === 1 ? '' : 's'} · ${impact.edges.length} returned structural edge${impact.edges.length === 1 ? '' : 's'}. A structural path does not prove execution reaches it.`));
+    const rows = element(document, 'div', 'spx-impact-list');
+    for (const node of impact.nodes) {
+      const row = element(document, 'div', 'spx-impact-row');
+      row.append(element(document, 'span', 'spx-impact-side', node.side), element(document, 'strong', '', node.display_name || node.id || node.node_key));
+      const why = element(document, 'button', 'spx-button', 'Why affected?'); why.type = 'button';
+      why.addEventListener('click', () => { state.changes.witness = { target: selected.target, side: node.side, nodeKey: node.node_key }; showInspector(); });
+      row.append(why); rows.append(row);
+    }
+    panel.append(rows);
+    const requested = state.changes.witness;
+    if (requested && requested.target === selected.target) {
+      const witness = semapraxExplorerChanges.whyAffected(impact, requested.side, requested.nodeKey);
+      if (witness.state !== 'loaded_structural_witness') panel.append(element(document, 'p', 'spx-evidence-state', 'Witness not loaded/analysis incomplete.'));
+      else {
+        const path = element(document, 'ol', 'spx-witness-path');
+        for (const edge of witness.edges) path.append(element(document, 'li', '', `${edge.side} · ${edge.from} → ${edge.to} · ${label(edge.family)}`));
+        panel.append(element(document, 'p', 'spx-muted', 'Returned structural witness path:'), path);
+      }
+    }
+    return panel;
+  }
+
   function renderChanges() {
     if (!candidateRevision()) return;
     const panel = element(document, 'section', 'spx-change-panel');
@@ -148,6 +201,12 @@ function createExplorer(root, host, options = {}) {
       panel.append(element(document, 'p', 'spx-muted', state.changes.list.nonclaim));
       return panel;
     }
+    const navigation = element(document, 'div', 'spx-change-tabs');
+    for (const view of ['base', 'candidate', 'changes']) {
+      const button = element(document, 'button', state.changes.view === view ? 'spx-active-tab' : '', view === 'base' ? 'Base' : view === 'candidate' ? 'Candidate' : 'Changes'); button.type = 'button';
+      button.addEventListener('click', () => { state.changes.view = view; state.changes.comparison = false; showInspector(); }); navigation.append(button);
+    }
+    panel.append(navigation);
     const rows = element(document, 'div', 'spx-change-list');
     for (const row of state.changes.list.rows) {
       const button = element(document, 'button', `spx-change-row${row.target === state.changes.selectedTarget ? ' is-selected' : ''}`); button.type = 'button';
@@ -159,11 +218,22 @@ function createExplorer(root, host, options = {}) {
     const selected = selectedChange();
     if (selected) {
       const detail = state.changes.details.get(selected.target);
-      panel.append(element(document, 'p', 'spx-muted', detail === 'loading' ? 'Loading target delta…' : detail && detail.error ? `Target delta unavailable: ${detail.error}` : detail ? `Target delta: ${detail.evidence}` : 'Target delta not requested.'));
-      const facts = [['Declaration', selected.declaration_status], ['Facets', detail && detail.facets ? detail.facet_status : 'not loaded'], ['Identity', selected.identity_status], ['Base', selected.base_ghost ? 'base-only ghost' : selected.base ? selected.base.path : 'not present'], ['Candidate', selected.candidate_only ? 'candidate-only' : selected.candidate ? selected.candidate.path : 'not present']];
-      const dl = element(document, 'dl', 'spx-facts');
-      for (const [name, value] of facts) dl.append(element(document, 'dt', '', name), element(document, 'dd', '', value));
-      panel.append(dl, element(document, 'p', 'spx-muted', selected.nonclaim));
+      if (state.changes.comparison && selected.base && selected.candidate) {
+        const comparison = element(document, 'div', 'spx-change-comparison');
+        comparison.append(changeProjection('base', selected), changeProjection('candidate', selected)); panel.append(comparison);
+      } else if (state.changes.view === 'base') panel.append(changeProjection('base', selected));
+      else if (state.changes.view === 'candidate') panel.append(changeProjection('candidate', selected));
+      else {
+        panel.append(element(document, 'p', 'spx-muted', detail === 'loading' ? 'Loading target delta…' : detail && detail.error ? `Target delta unavailable: ${detail.error}` : detail ? `Target delta: ${detail.evidence}` : 'Target delta not requested.'));
+        const facts = [['Declaration', selected.declaration_status], ['Facets', detail && detail.facets ? detail.facet_status : 'not loaded'], ['Identity', selected.identity_status], ['Base', selected.base_ghost ? 'base-only ghost' : selected.base ? selected.base.path : 'not present'], ['Candidate', selected.candidate_only ? 'candidate-only' : selected.candidate ? selected.candidate.path : 'not present']];
+        const dl = element(document, 'dl', 'spx-facts');
+        for (const [name, value] of facts) dl.append(element(document, 'dt', '', name), element(document, 'dd', '', value));
+        panel.append(dl, element(document, 'p', 'spx-muted', selected.nonclaim), renderImpact(selected));
+      }
+      if (selected.base && selected.candidate) {
+        const compare = element(document, 'button', 'spx-button', state.changes.comparison ? 'Single panel' : 'Compare Base and Candidate'); compare.type = 'button';
+        compare.addEventListener('click', () => { state.changes.comparison = !state.changes.comparison; showInspector(); }); panel.append(compare);
+      }
     }
     return panel;
   }
@@ -360,7 +430,7 @@ function createExplorer(root, host, options = {}) {
       state.rows = Object.fromEntries(semapraxExplorerModel.VIEWS.map(view => [view, []]));
       state.cursors = Object.fromEntries(semapraxExplorerModel.VIEWS.map(view => [view, null]));
       state.loaded.clear(); state.selectedRelation = null;
-      state.changes = { state: 'not_requested', list: null, selectedTarget: null, details: new Map(), error: null }; resetEvidence();
+      state.changes = { state: 'not_requested', list: null, selectedTarget: null, details: new Map(), impacts: new Map(), view: 'changes', comparison: false, witness: null, error: null }; resetEvidence();
       for (const view of semapraxExplorerModel.VIEWS) await fetchPage(view, null, generation);
       if (generation !== state.generation) return;
       status.textContent = 'Project view ready'; draw();
@@ -376,7 +446,7 @@ function createExplorer(root, host, options = {}) {
     try {
       const list = semapraxExplorerChanges.changeList(await host.deltaCatalog(revision));
       if (generation !== state.generation) return;
-      state.changes = { state: 'available', list, selectedTarget: null, details: new Map(), error: null };
+      state.changes = { state: 'available', list, selectedTarget: null, details: new Map(), impacts: new Map(), view: 'changes', comparison: false, witness: null, error: null };
     } catch (error) {
       if (generation !== state.generation) return;
       state.changes.state = 'error'; state.changes.error = String(error && error.message || error);
@@ -388,13 +458,31 @@ function createExplorer(root, host, options = {}) {
     const list = state.changes.list;
     const row = list && list.rows.find(candidate => candidate.target === target);
     if (!row) return;
-    state.changes.selectedTarget = target; resetEvidence(); showInspector();
+    state.changes.selectedTarget = target; state.changes.comparison = false; state.changes.witness = null; resetEvidence(); showInspector();
+    if (!state.changes.impacts.has(target)) loadSelectedImpact(row, target);
     if (state.changes.details.has(target) || typeof host.semanticDelta !== 'function') return;
     state.changes.details.set(target, 'loading'); showInspector();
     try {
       const detail = semapraxExplorerChanges.changeRow({ target: row.target, change: row.declaration_status, base: row.base, candidate: row.candidate }, await host.semanticDelta(candidateRevision(), target));
       state.changes.details.set(target, detail);
     } catch (error) { state.changes.details.set(target, { error: String(error && error.message || error) }); }
+    showInspector();
+  }
+
+  async function loadSelectedImpact(row, target) {
+    if (!semapraxExplorerChanges || state.changes.impacts.has(target)) return;
+    const sides = [row.base && 'base', row.candidate && 'candidate'].filter(Boolean);
+    if (!sides.length) return;
+    const generation = state.generation;
+    state.changes.impacts.set(target, 'loading'); showInspector();
+    try {
+      const impact = await semapraxExplorerChanges.loadChangeImpact(host, target, { sides });
+      if (generation !== state.generation || state.changes.selectedTarget !== target) return;
+      state.changes.impacts.set(target, impact);
+    } catch (error) {
+      if (generation !== state.generation || state.changes.selectedTarget !== target) return;
+      state.changes.impacts.set(target, { error: String(error && error.message || error) });
+    }
     showInspector();
   }
 
@@ -451,7 +539,7 @@ function createExplorer(root, host, options = {}) {
     state.cursors = Object.fromEntries(semapraxExplorerModel.VIEWS.map(view => [view, null]));
     state.loaded.clear(); state.pins.clear(); state.selected = null; state.selectedModule = null;
     state.selectedRelation = null; state.localFocus = null;
-    state.changes = { state: 'not_requested', list: null, selectedTarget: null, details: new Map(), error: null }; resetEvidence();
+    state.changes = { state: 'not_requested', list: null, selectedTarget: null, details: new Map(), impacts: new Map(), view: 'changes', comparison: false, witness: null, error: null }; resetEvidence();
     host.dispose?.(); shell.remove();
   } };
 }

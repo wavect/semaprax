@@ -72,3 +72,13 @@ test('missing or truncated witness stays explicitly qualified', () => {
   const impact = changes.unionImpact(base, candidate);
   assert.equal(changes.whyAffected(impact, 'base', 'base:outside').state, 'witness_not_loaded_or_analysis_incomplete');
 });
+
+test('removed and added roots retain their one-sided structural inventory state', async () => {
+  const reports = { base: summary('base', 'removed'), candidate: summary('candidate', 'added') };
+  const host = { async summary(query) { return reports[query.side]; }, async page(request) { const side = request.summary.subject.side; const items = request.view === 'declarations' ? [declaration(side, request.summary.target), declaration(side, 'caller')] : request.view === 'relations' ? [edge(side, 'caller', request.summary.target)] : []; return page(request.summary, request.view, items); } };
+  const removed = await changes.loadChangeImpact(host, 'removed', { sides: ['base'] });
+  const added = await changes.loadChangeImpact(host, 'added', { sides: ['candidate'] });
+  assert.equal(removed.witness_state, 'base_only'); assert.equal(removed.candidate, null);
+  assert.equal(added.witness_state, 'candidate_only'); assert.equal(added.base, null);
+  assert.equal(changes.whyAffected(removed, 'candidate', 'candidate:removed').state, 'witness_not_loaded_or_analysis_incomplete');
+});

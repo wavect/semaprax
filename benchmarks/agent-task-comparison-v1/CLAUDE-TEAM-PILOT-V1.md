@@ -41,16 +41,47 @@ no API-key, endpoint, secret environment or billing-configuration argument.
 The provider CLI is trusted for subscription authentication and reported usage;
 its counters are not invoice proof or cryptographic provider attestation.
 
-Limits are fixed: 300 seconds per CLI trial, 32 agentic turns, 65,536 prompt
-bytes, 1 MiB captured output, 131,072 fresh input/output/cache-creation tokens and
-1,048,576 cached-read tokens (post-response admission),
-$0.25 CLI API-equivalent budget per trial, and $9 aggregate reserved budget.
-The provider's budget enforcement is not a guarantee about invoice charges.
-A locked, fsynced before-spawn reservation consumes the full per-trial amount;
-failed/ambiguous attempts never refund it. A pending, unknown or overrun cost
-blocks further dispatch. Calls are sequential and trial directories are
-create-new. There are no agent retries. Failed and unattempted positions stay
-visible in the final inventory.
+The current guarded profile fixes 120 seconds, eight tool-use turns plus the
+CLI's terminal turn, 65,536 prompt bytes, 1 MiB captured output, and the existing
+post-response token bounds. A separate forwarding guard enforces at most nine
+requests, 32 KiB per serialized request, 64 KiB total serialized request bytes,
+and `max_tokens <= 512` on every request. It requires the exact model and sole
+compiler MCP tool, rejects images/documents/server tools/cache writes and
+unrecognized request fields, and charges every forward before network delivery.
+The destination is fixed to verified TLS at `api.anthropic.com:443/v1/messages`;
+redirects are refused. The explicit public macOS CA bundle is hash-pinned.
+Authorization is forwarded in memory; credential values never enter receipts.
+
+The CLI is confined to the guard's loopback port by an OS network policy. Its
+MCP process starts separately under the original stricter seatbelt profile and
+connects through a one-use, bounded-buffer FIFO bridge. This avoids macOS's
+prohibition on nested sandbox application. Explicit default permission mode
+avoids an inherited auto-mode classifier policy; the guard rejects the ambient
+`safeguards` field rather than stripping it. Hooks, memory and settings remain
+suppressed. A missing compiler MCP tool refuses before provider forwarding.
+
+`MAX_THINKING_TOKENS=0` requests thinking suppression within the same output
+request bound; the exact native request controls remain visible through the
+private guard request hash and bounded metadata, without inferred usage.
+
+The CLI still receives a $0.25 API-equivalent budget, and the durable ledger
+reserves $0.25 before each trial, up to $9 for 36 positions, without refunds.
+These are reservations and reported-cost checks, not a proved provider billing
+ceiling. A conservative estimate using one input token per ASCII JSON byte plus
+2,048 framing tokens per request gives $0.214016 for Sonnet and $0.107008 for
+Haiku, or $5.778432 for the cohort. The framing allowance is an assumption:
+Anthropic does not publish a contractual upper bound for all provider-added
+subscription framing. No invoice cost or mathematically hard dollar cap is
+claimed. Actual reported usage is retained independently of this estimate.
+See the provider [pricing](https://platform.claude.com/docs/en/about-claude/pricing)
+and [token-counting limitations](https://platform.claude.com/docs/en/build-with-claude/token-counting).
+
+A pre-forward work-limit refusal or bounded timeout ends that trial as
+incomplete, retains its full reservation and unknown observed cost, and allows
+the next scheduled trial. Identity, schema, auth, admitted-work overrun,
+observed-cost overrun and receipt-integrity failures halt the cohort. Calls are
+sequential, directories are create-new, and there are no trial retries. Earlier
+cohorts remain separate aborted evidence and supply no completion records.
 
 HOME, evidence root, candidate and private host state must be canonical and
 pairwise disjoint. Use a private directory outside HOME for execution evidence;
@@ -91,7 +122,7 @@ hashes and re-derives observed native usage. It does not execute missing trials,
 repair old receipts, infer model tokens from bytes, or claim human review.
 
 Focused gate: `python3 -m unittest discover -s
-benchmarks/agent-task-comparison-v1 -p test_claude_pilot.py -v`.
+benchmarks/agent-task-comparison-v1 -p 'test_claude*.py' -v`.
 `SEMAPRAX_PILOT_CLAUDE` opts into the real zero-inference customization probe;
 `SEMAPRAX_PILOT_METADATA_EVIDENCE` optionally preserves it at a create-new path.
 The initial six-selector run passed in 0.723s, including that physical metadata
@@ -133,3 +164,16 @@ counts its final non-tool answer in `num_turns`. Admit at most `max_turns + 1`
 for that exact terminal success shape as well as exact turn exhaustion. Other
 shapes retain the original ceiling. Cohort05 remains aborted under its original
 admission; the corrected full cohort starts all36 positions under a new digest.
+
+## Guard evidence scope
+
+The focused guard gate uses fake upstream responses, never provider inference.
+It covers serialized bounds, exact model and tool, duplicate JSON keys, forbidden
+modalities and ambient policy, atomic forward limits, nonrefunded ambiguous
+forwards, header redaction, fixed verified TLS and redirect rejection, physical
+allowed/denied loopback ports, and one-use byte-preserving MCP bridging. The
+native zero-user-turn gate checks real compiler MCP discovery through both
+separate sandboxes and real hostile-hook suppression. A separate private probe
+used signed-in Claude 2.1.286 against only a local fake upstream: the exact sole
+MCP tool was admitted, default permission mode omitted ambient safeguards, and
+no request reached Anthropic. These are transport gates, not benchmark records.

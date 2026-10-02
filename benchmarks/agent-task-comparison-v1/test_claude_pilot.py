@@ -11,6 +11,7 @@ import time
 from pathlib import Path
 import tempfile
 import unittest
+import urllib.request
 from unittest import mock
 
 spec = importlib.util.spec_from_file_location('native_task_pilot', Path(__file__).with_name('claude_pilot.py'))
@@ -25,7 +26,20 @@ def envelope():
             'usage': {'input_tokens': 10, 'output_tokens': 12, 'cache_creation_input_tokens': 0, 'cache_read_input_tokens': 0}}
 
 
+def fixture_forward(environment):
+    request={'model':m.MODELS[0]['model'],'max_tokens':512,
+             'messages':[{'role':'user','content':'fixture'}],
+             'tools':[{'name':'mcp__semaprax__command','input_schema':{'type':'object'}}]}
+    message=urllib.request.Request(environment['ANTHROPIC_BASE_URL']+'/v1/messages',
+        data=json.dumps(request).encode(),headers={'Authorization':'Bearer nonsecret-fixture'})
+    with urllib.request.urlopen(message,timeout=3) as response:response.read()
+
+
 class NativePilotTests(unittest.TestCase):
+    def setUp(self):
+        patcher=mock.patch.object(m.guard_module,'_tls_forward',return_value=(200,'application/json',b'{}'))
+        patcher.start();self.addCleanup(patcher.stop)
+
     def test_exact_usage_key_and_canonical_identity_are_distinct(self):
         result = m.usage(m.canonical(envelope()), m.MODELS[0], m.CAPS)
         self.assertEqual(result['usage']['input_tokens'], 10)
@@ -94,6 +108,20 @@ class NativePilotTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'halted'):m.reserve(protocol,'a'*64,'sonnet55-02')
             self.assertEqual(json.loads((b/'dispatch-budget.json').read_bytes())['cells'],['sonnet55-01'])
 
+    def test_guarded_unknown_cost_retains_full_reservation_and_can_continue(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root=Path(temporary).resolve()
+            protocol={'authority':{'evidence_root':str(root)},'models':m.MODELS,'caps':m.CAPS}
+            first=m.reserve(protocol,'a'*64,'haiku45-01')
+            m.settle_cost(protocol,'a'*64,'haiku45-01',None,bounded_incomplete=True)
+            second=m.reserve(protocol,'a'*64,'sonnet55-01')
+            self.assertEqual(first['reserved_api_equivalent_micro_usd'],250000)
+            self.assertEqual(second['cohort_reserved_micro_usd'],500000)
+            ledger=json.loads((root/'dispatch-budget.json').read_bytes())
+            self.assertIsNone(ledger['reported_costs']['haiku45-01']);self.assertIsNone(ledger['halted'])
+            m.settle_cost(protocol,'a'*64,'sonnet55-01',.26,bounded_incomplete=True)
+            with self.assertRaisesRegex(ValueError,'halted'):m.reserve(protocol,'a'*64,'haiku45-02')
+
     @unittest.skipUnless(os.environ.get('SEMAPRAX_PILOT_CLAUDE'), 'explicit native metadata probe required')
     def test_native_isolation_physically_suppresses_hostile_session_hook(self):
         with tempfile.TemporaryDirectory(prefix='pilot-customization-') as temporary:
@@ -130,13 +158,16 @@ class NativePilotTests(unittest.TestCase):
             gateway=state/'gateway';gateway.write_text('#!/bin/sh\nexit 17\n');gateway.chmod(0o700)
             profile=state/'policy.sb';profile.write_text(m.pilot.seatbelt_profile(candidate,(m.ROOT,home),state))
             confined=m.pilot.sandboxed('/usr/bin/env',profile,['-i','PATH=/usr/bin:/bin','HOME='+str(state),'/usr/bin/python3',str(state/'mcp.py'),str(gateway)])
-            config=state/'mcp.json';config.write_text(json.dumps({'mcpServers':{'semaprax':{'type':'stdio','command':confined[0],'args':confined[1:]}}}))
+            bridge=state/'bridge.py';bridge.write_bytes(Path(__file__).with_name('claude_mcp_bridge.py').read_bytes())
+            config=state/'mcp.json';config.write_text(json.dumps({'mcpServers':{'semaprax':{'type':'stdio','command':'/usr/bin/python3','args':[str(bridge),str(state/'mcp-from-server'),str(state/'mcp-to-server'),str(state/'claimed')]}}}))
+            outer=state/'network.sb';outer.write_text(m.guard_module.network_profile(65534))
             env={'HOME':str(home),'USER':'fixture','LOGNAME':'fixture','PATH':'/usr/bin:/bin','TMPDIR':str(state),
                  'DISABLE_AUTOUPDATER':'1','CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC':'1','ENABLE_TOOL_SEARCH':'false'}
             argv=[os.environ['SEMAPRAX_PILOT_CLAUDE'],'--print','--input-format','stream-json','--output-format','stream-json',
                   '--verbose','--tools','','--allowedTools','mcp__semaprax__command','--no-session-persistence','--permission-prompts','none',
                   '--mcp-config',str(config),*m.ISOLATION_FLAGS]
-            process=subprocess.Popen(argv,cwd=candidate,env=env,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
+            broker=m.guard_module.McpProcess(state,confined,candidate);broker.__enter__()
+            process=subprocess.Popen(['/usr/bin/sandbox-exec','-f',str(outer),*argv],cwd=candidate,env=env,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
             selector=selectors.DefaultSelector();selector.register(process.stdout,selectors.EVENT_READ)
             messages=[];connected=None;last=0;end=time.monotonic()+10
             def send(identity,subtype):
@@ -161,7 +192,7 @@ class NativePilotTests(unittest.TestCase):
                 process.stdin.close()
                 try:process.wait(timeout=5)
                 except subprocess.TimeoutExpired:process.kill();process.wait()
-                selector.close();process.stdout.close();process.stderr.close()
+                selector.close();process.stdout.close();process.stderr.close();broker.__exit__()
 
     def test_transport_closes_environment_and_confines_only_mcp_gateway(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -182,16 +213,19 @@ class NativePilotTests(unittest.TestCase):
                 self.assertNotIn('CLAUDE_CODE_SAFE_MODE',env);self.assertIn('--disable-slash-commands',argv)
                 self.assertEqual(argv[argv.index('--tools')+1],'')
                 self.assertEqual(argv[argv.index('--allowedTools')+1],'mcp__semaprax__command')
-                kwargs['on_started']();return response
+                fixture_forward(env);kwargs['on_started']();return response
             transport=m.Transport('0'*64)
             with mock.patch.object(m.native,'capture',side_effect=capture),mock.patch.object(m.native,'MANAGED',[]), \
                     mock.patch.object(m,'reserve',return_value={}),mock.patch.object(m,'settle_cost'):
                 out,err,raw,session,usage=transport.execute(protocol,m.MODELS[0],root/'state',root/'candidate',root/'policy.sb',mcp,'task','semaprax-source-first',m.CAPS['seconds'])
             self.assertEqual(out,raw);self.assertEqual(session,'fixture');self.assertEqual(transport.receipt['dispatches'],1)
             server=transport.receipt['mcp_config']['mcpServers']['semaprax']
-            self.assertTrue(server['command'].endswith('sandbox-exec'))
-            self.assertIn('TMPDIR='+str(root/'state'),server['args'])
-            self.assertIn('-i',server['args']);self.assertNotIn('ANTHROPIC_API_KEY',' '.join(server['args']))
+            self.assertEqual(server['command'],'/usr/bin/python3')
+            confined=transport.receipt['confined_mcp_command']
+            self.assertTrue(confined[0].endswith('sandbox-exec'))
+            self.assertIn('TMPDIR='+str(root/'state'),confined)
+            self.assertIn('-i',confined);self.assertNotIn('ANTHROPIC_API_KEY',' '.join(confined))
+            self.assertEqual(transport.receipt['mcp_process_starts'],1)
 
     def test_wrong_canonical_model_with_valid_cost_halts_next_dispatch(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -207,7 +241,7 @@ class NativePilotTests(unittest.TestCase):
             response={'failure':None,'exit_code':0,'stdout_base64':base64.b64encode(m.canonical(bad)).decode(),'stderr_base64':''}
             def capture(argv,*args,**kwargs):
                 if argv[-1]=='--version':return version
-                kwargs['on_started']();return response
+                fixture_forward(args[1]);kwargs['on_started']();return response
             with mock.patch.object(m.native,'capture',side_effect=capture),mock.patch.object(m.native,'MANAGED',[]):
                 with self.assertRaisesRegex(m.pilot.PilotFailure,'provenance_mismatch'):
                     m.Transport('a'*64,'haiku45-01').execute(protocol,m.MODELS[0],root/'state',root/'candidate',root/'policy.sb',mcp,'task','semaprax-source-first',m.CAPS['seconds'])
@@ -238,7 +272,7 @@ class NativePilotTests(unittest.TestCase):
             response={'failure':None,'exit_code':1,'stdout_base64':base64.b64encode(m.canonical(value)).decode(),'stderr_base64':''}
             def capture(argv,*args,**kwargs):
                 if argv[-1]=='--version':return version
-                kwargs['on_started']();return response
+                fixture_forward(args[1]);kwargs['on_started']();return response
             transport=m.Transport('a'*64,'haiku45-01')
             with mock.patch.object(m.native,'capture',side_effect=capture),mock.patch.object(m.native,'MANAGED',[]):
                 observed=transport.execute(protocol,m.MODELS[0],root/'state',root/'candidate',root/'policy.sb',mcp,'task','semaprax-source-first',m.CAPS['seconds'])[-1]

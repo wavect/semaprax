@@ -15,6 +15,10 @@ import sys
 import stat
 import tempfile
 
+guard_spec = importlib.util.spec_from_file_location('claude_forward_guard', Path(__file__).with_name('claude_forward_guard.py'))
+guard_module = importlib.util.module_from_spec(guard_spec)
+guard_spec.loader.exec_module(guard_module)
+
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'scripts'))
 sys.path.insert(0, str(ROOT / 'benchmarks/cross-language-v1'))
@@ -35,10 +39,11 @@ MODELS = [
      'revision': 'claude-sonnet-5-5', 'configured_model': 'anthropic/claude-sonnet-5-5',
      'usage_key': 'claude-sonnet-5-5', 'canonical_model': 'claude-sonnet-5-5'},
 ]
-CAPS = {'seconds': 300, 'max_turns': 32, 'max_prompt_bytes': 65536,
+CAPS = {'seconds': 120, 'max_turns': 8, 'max_prompt_bytes': 65536,
         'max_stream_bytes': 1048576, 'max_reported_tokens': 131072, 'max_cache_read_tokens': 1048576,
         'max_estimated_api_usd': 0.25, 'cohort_max_estimated_api_usd': 9.0, 'agent_retries': 0}
 ISOLATION_FLAGS = ['--restricted', '--strict-mcp-config', '--setting-sources', '',
+                   '--permission-mode', 'default',
                    '--disable-slash-commands', '--settings',
                    json.dumps({'disableAllHooks': True, 'claudeMdExcludes': ['**'], 'autoMemoryEnabled': False}, sort_keys=True)]
 SYSTEM = ('Complete the supplied task only through mcp__semaprax__command. '
@@ -61,7 +66,8 @@ def write(path, value):
 
 def implementation():
     files = [ROOT / 'scripts/opencode-agent-task-pilot.py', ROOT / 'scripts/agent-task-comparison-runner.py',
-             ROOT / 'scripts/agent-task-comparison.py', Path(__file__).resolve()]
+             ROOT / 'scripts/agent-task-comparison.py', Path(__file__).resolve(),
+             Path(__file__).with_name('claude_forward_guard.py'), Path(__file__).with_name('claude_mcp_bridge.py')]
     files += sorted((ROOT / 'scripts/opencode_agent_task_pilot').glob('*.py'))
     files += [ROOT / 'benchmarks/cross-language-v1/agent' / name for name in ('claude_subscription.py', 'pilot_protocol.py')]
     return {str(path.relative_to(ROOT)): sha(_read_regular(path, 1024 * 1024)) for path in files}
@@ -130,7 +136,7 @@ def reserve(protocol, digest, cell_id):
         os.close(lock)
 
 
-def settle_cost(protocol, digest, cell_id, cost, admission_failure=None):
+def settle_cost(protocol, digest, cell_id, cost, admission_failure=None, *, bounded_incomplete=False):
     root = Path(protocol['authority']['evidence_root']); require_private_directory(root)
     lock = os.open(root / 'dispatch-budget.lock', os.O_RDWR | os.O_NOFOLLOW)
     try:
@@ -142,7 +148,7 @@ def settle_cost(protocol, digest, cell_id, cost, admission_failure=None):
         ledger['reported_costs'][cell_id] = cost if valid else None
         if admission_failure is not None:
             ledger['halted'] = 'native_admission_failed_no_further_dispatch:' + admission_failure
-        elif not valid:
+        elif not valid and not (bounded_incomplete and cost is None):
             ledger['halted'] = 'unobserved_or_overrun_provider_cost_no_further_dispatch'
         fd, pending = tempfile.mkstemp(prefix='.budget-', dir=root)
         try:
@@ -187,10 +193,10 @@ def freeze(authority):
     return {'schema': SCHEMA, 'authority': authority, 'pins': pins, 'host': identity,
             'runner_revision': common.runner_revision(), 'manifest_sha256': FROZEN_MANIFEST_SHA256,
             'implementation': implementation(), 'models': MODELS, 'cli_version': '2.1.286',
-            'caps': CAPS, 'system_prompt': SYSTEM, 'schedule': schedule,
+            'caps': CAPS, 'request_guard': guard_module.LIMITS, 'system_prompt': SYSTEM, 'schedule': schedule,
             'positions_per_model': 18, 'required_records': 36,
             'egress': 'frozen task plus lane-enforced compiler MCP responses; no native tools',
-            'cost_kind': 'provider API-equivalent estimate; subscription invoice unknown; no billing changes'}
+            'cost_kind': 'provider API-equivalent estimate; full reservation, no proved tokenizer/invoice bound; subscription invoice unknown; no billing changes'}
 
 
 def load(path, expected=None):
@@ -262,6 +268,9 @@ class Transport:
         env = {'HOME': authority['home'], 'USER': authority['login'], 'LOGNAME': authority['login'],
                'PATH': '/usr/bin:/bin', 'TMPDIR': str(state), 'DISABLE_AUTOUPDATER': '1',
                'CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC': '1', 'ENABLE_TOOL_SEARCH': 'false'}
+        env.update(CLAUDE_CODE_MAX_OUTPUT_TOKENS=str(guard_module.LIMITS['max_tokens']),
+                   CLAUDE_CODE_MAX_RETRIES='0', DISABLE_PROMPT_CACHING='1', DISABLE_COMPACT='1',
+                   CLAUDE_CODE_DISABLE_TERMINAL_TITLE='1', MAX_THINKING_TOKENS='0')
         for path in native.MANAGED:
             if os.path.lexists(path):
                 raise pilot.PilotFailure('managed_claude_settings_refused')
@@ -274,8 +283,13 @@ class Transport:
                  'SEMAPRAX_PILOT_GATEWAY=' + entry['environment']['SEMAPRAX_PILOT_GATEWAY'],
                  *entry['command']]
         confined = pilot.sandboxed(clean[0], profile, clean[1:])
+        bridge = state / 'mcp-bridge.py'
+        bridge.write_bytes(Path(__file__).with_name('claude_mcp_bridge.py').read_bytes())
         config = state / 'claude-mcp.json'
-        config.write_bytes(canonical({'mcpServers': {'semaprax': {'type': 'stdio', 'command': confined[0], 'args': confined[1:]}}}))
+        bridge_command = ['/usr/bin/python3', str(bridge), str(state / 'mcp-from-server'),
+                          str(state / 'mcp-to-server'), str(state / 'mcp-bridge-claimed')]
+        config.write_bytes(canonical({'mcpServers': {'semaprax': {'type': 'stdio',
+                                      'command': bridge_command[0], 'args': bridge_command[1:]}}}))
         argv = [str(staged), '--print', '--output-format', 'json', '--tools', '',
                 '--allowedTools', 'mcp__semaprax__command', '--no-session-persistence', *ISOLATION_FLAGS,
                 '--mcp-config', str(config), '--permission-prompts', 'none',
@@ -284,21 +298,62 @@ class Transport:
         self.receipt = {'dispatches': 0, 'argv': argv[1:], 'native_host': protocol['host'],
                         'binary_sha256': protocol['pins']['claude'], 'prompt_sha256': sha(prompt.encode()),
                         'system_prompt_sha256': sha(SYSTEM.encode()), 'mcp_config': json.loads(config.read_bytes()),
-                        'version_receipt': version, 'internal_provider_retries': 'not_observable'}
+                        'confined_mcp_command': confined, 'mcp_process_starts': 0,
+                        'version_receipt': version, 'internal_provider_retries': 'all network forwards guarded'}
         def started():
             self.receipt['dispatches'] = 1
         self.receipt['budget_reservation'] = reserve(protocol, self.expected_digest, self.cell_id)
-        captured = native.capture(argv, candidate, env, prompt.encode(), timeout,
-                                  maximum=caps['max_stream_bytes'], on_started=started)
+        with guard_module.McpProcess(state, confined, candidate), guard_module.Guard(model['model'], timeout) as guard:
+            self.receipt['mcp_process_starts'] = 1
+            env['ANTHROPIC_BASE_URL'] = guard.base_url
+            network_policy = guard_module.network_profile(guard.server.server_port)
+            network_path = state / 'claude-network.sb'; network_path.write_text(network_policy)
+            self.receipt['network_policy'] = network_policy
+            self.receipt['network_policy_sha256'] = sha(network_policy.encode())
+            confined_native = ['/usr/bin/sandbox-exec', '-f', str(network_path), *argv]
+            captured = native.capture(confined_native, candidate, env, prompt.encode(), timeout,
+                                      maximum=caps['max_stream_bytes'], on_started=started)
+        self.receipt['request_guard'] = guard.receipt()
         self.receipt.update(captured)
         try:
             observed_cost = common.strict_json(base64.b64decode(captured['stdout_base64'])).get('total_cost_usd')
         except (ValueError, TypeError, AttributeError):
             observed_cost = None
         out = base64.b64decode(captured['stdout_base64']); err = base64.b64decode(captured['stderr_base64'])
+        guard_receipt = self.receipt['request_guard']
+        guard_module.validate_receipt(guard_receipt, model['model'])
+        bounded_reasons = {'request_bound', 'canonical_request_bound', 'aggregate_request_bound',
+                           'guard_closed_or_deadline', 'guard_transport_failure'}
+        refused = [event['reason'] for event in guard_receipt['events'] if event['status'] == 'refused']
+        # Bounds are enforced before excess delivery. A timeout or guard refusal
+        # is an incomplete trial with the full reservation retained, never zero
+        # inferred usage. Identity/schema/auth mismatches still halt the cohort.
+        incomplete = (captured['failure'] == 'provider_deadline'
+                      or bool(refused))
+        if incomplete and all(reason in bounded_reasons for reason in refused):
+            if observed_cost is not None and (type(observed_cost) not in (int, float)
+                    or not math.isfinite(observed_cost) or not 0 <= observed_cost <= caps['max_estimated_api_usd']):
+                settle_cost(protocol, self.expected_digest, self.cell_id, observed_cost, 'native_cost_bound')
+                raise pilot.PilotFailure('native_cost_bound', out, err)
+            if out:
+                try:
+                    partial = common.strict_json(out)
+                    if partial.get('modelUsage'):
+                        usage(out, model, caps)
+                    else:
+                        observed_cost = None
+                except (ValueError, KeyError, TypeError, AttributeError) as error:
+                    settle_cost(protocol, self.expected_digest, self.cell_id, observed_cost, str(error))
+                    raise pilot.PilotFailure(str(error), out, err) from error
+            settle_cost(protocol, self.expected_digest, self.cell_id, observed_cost, bounded_incomplete=True)
+            raise pilot.PilotFailure('native_guarded_incomplete:' + (captured['failure'] or refused[-1]), out, err)
         try:
+            if refused:
+                raise ValueError('native_guard_integrity:' + refused[-1])
             if captured['failure']:
                 raise ValueError(captured['failure'])
+            if not guard_receipt['forward_count']:
+                raise ValueError('native_result_without_guarded_forward')
             counters = usage(out, model, caps)
             result = common.strict_json(out)
             exhausted = (result.get('subtype') == 'error_max_turns' and result.get('is_error') is True
@@ -356,6 +411,16 @@ def audit(protocol_path, expected):
                           'reviewer_id':None,'active_ms':None}
                 if value.get('human_review') != waiver:
                     raise ValueError('native_review_claim_mismatch')
+                receipt = value.get('native_transport_receipt')
+                if receipt and receipt.get('dispatches') == 1:
+                    guard_module.validate_receipt(receipt['request_guard'], model['model'])
+                    reservation = receipt['budget_reservation']
+                    if (reservation['cell_id'] != path.parent.name
+                            or reservation['reserved_api_equivalent_micro_usd'] != 250000
+                            or reservation['cohort_cap_micro_usd'] != 9000000
+                            or receipt['mcp_process_starts'] != 1
+                            or receipt['binary_sha256'] != protocol['pins']['claude']):
+                        raise ValueError('native_guard_reservation_binding')
                 for name, field in (('stdout.jsonl','stdout_sha256'),('stderr.txt','stderr_sha256'),
                                     ('session.json','session_sha256'),('gateway.jsonl','gateway_sha256'),('mcp-wire.jsonl','mcp_wire_sha256')):
                     if sha(_read_regular(path.parent/name, 32*1024*1024)) != value.get(field):

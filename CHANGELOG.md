@@ -1,5 +1,10 @@
 # Changelog
 
+- Add the #321 fixed-TLS request guard and one-use MCP FIFO bridge, with physical
+  network confinement and exact-model/work bounds. Keep unknown-cost incomplete
+  trials under full reservations while preserving integrity/overrun halts; state
+  the provider framing limitation without claiming an invoice ceiling.
+
 - Account for the pinned Claude CLI final non-tool turn on exact terminal
   success, retaining the same model-request turn/cost limits. Preserve the
   prior eight-position packet and require a fresh full protocol cohort.

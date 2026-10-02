@@ -57,6 +57,19 @@ class NativePilotTests(unittest.TestCase):
         value['num_turns']+=1
         with self.assertRaisesRegex(ValueError,'turn_bound'):m.usage(m.canonical(value),m.MODELS[0],m.CAPS)
 
+    def test_guarded_forwards_bound_dispatch_while_cli_turns_remain_metadata(self):
+        with m.guard_module.Guard(m.MODELS[0]['model']) as guard:
+            fixture_forward({'ANTHROPIC_BASE_URL':guard.base_url})
+        receipt=guard.receipt()
+        value=envelope();value.update(num_turns=13,is_error=True,terminal_reason='api_error')
+        self.assertEqual(m.usage(m.canonical(value),m.MODELS[0],m.CAPS,receipt)['num_turns'],13)
+        drift=copy.deepcopy(receipt);drift['forward_count']=10
+        with self.assertRaisesRegex(ValueError,'guard_receipt_aggregate'):
+            m.usage(m.canonical(value),m.MODELS[0],m.CAPS,drift)
+        value['modelUsage']['claude-haiku-4-5-20251001']['canonicalModel']='wrong'
+        with self.assertRaisesRegex(ValueError,'provenance_mismatch'):
+            m.usage(m.canonical(value),m.MODELS[0],m.CAPS,receipt)
+
     def test_review_waiver_preserves_historical_ineligibility_and_other_failures(self):
         protocol = {'authority': {'review': {'authorization': 'explicit user fixture waiver'}}, 'runner_revision': 'a' * 40}
         record = {'status': 'ineligible', 'provider_usage': {'status': 'observed'}, 'eligibility': {'reasons': ['blinded active review time: absent']}}

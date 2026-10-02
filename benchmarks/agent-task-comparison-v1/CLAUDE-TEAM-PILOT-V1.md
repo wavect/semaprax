@@ -72,7 +72,10 @@ ceiling. A conservative estimate using one input token per ASCII JSON byte plus
 Haiku, or $5.778432 for the cohort. The framing allowance is an assumption:
 Anthropic does not publish a contractual upper bound for all provider-added
 subscription framing. No invoice cost or mathematically hard dollar cap is
-claimed. Actual reported usage is retained independently of this estimate.
+claimed. Actual reported usage is retained independently of this estimate. The CLI
+`num_turns` value remains observed metadata: local/error handling can increment
+it without a network request. Validated guard forward receipts are the hard
+dispatch authority, including for terminal API-error envelopes.
 See the provider [pricing](https://platform.claude.com/docs/en/about-claude/pricing)
 and [token-counting limitations](https://platform.claude.com/docs/en/build-with-claude/token-counting).
 

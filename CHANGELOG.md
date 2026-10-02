@@ -1,5 +1,9 @@
 # Changelog
 
+- Use verified #321 guard forwards as dispatch authority while retaining native
+  CLI turn counts as metadata. Preserve cohort07's two trials separately; its
+  guard correctly refused excess bytes before a legacy turn check halted it.
+
 - Add the #321 fixed-TLS request guard and one-use MCP FIFO bridge, with physical
   network confinement and exact-model/work bounds. Keep unknown-cost incomplete
   trials under full reservations while preserving integrity/overrun halts; state

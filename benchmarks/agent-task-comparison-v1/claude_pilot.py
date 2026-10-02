@@ -207,7 +207,7 @@ def load(path, expected=None):
     return value, sha(raw)
 
 
-def usage(body, model, caps):
+def usage(body, model, caps, guard_receipt=None):
     result = common.strict_json(body)
     if not isinstance(result, dict) or result.get('type') != 'result':
         raise ValueError('native_result_required')
@@ -231,7 +231,14 @@ def usage(body, model, caps):
                  and result.get('terminal_reason') == 'max_turns')
     completed = (result.get('subtype') == 'success' and result.get('is_error') is False
                  and result.get('terminal_reason') == 'completed')
-    if type(turns) is not int or not 0 < turns <= caps['max_turns'] + int(exhausted or completed):
+    if guard_receipt is not None:
+        guard_module.validate_receipt(guard_receipt, model['model'])
+        if not guard_receipt['forward_count']:
+            raise ValueError('native_result_without_guarded_forward')
+    # CLI turns also count local/error handling. The validated local guard
+    # receipt bounds actual forwards; preserve the CLI number as metadata.
+    if (type(turns) is not int or turns <= 0
+            or (guard_receipt is None and turns > caps['max_turns'] + int(exhausted or completed))):
         raise ValueError('native_turn_bound')
     if result.get('subagent_stats', {}).get('spawned') != 0 or result.get('queued_turn_count') != 0:
         raise ValueError('native_extra_dispatch_refused')
@@ -339,7 +346,7 @@ class Transport:
                 try:
                     partial = common.strict_json(out)
                     if partial.get('modelUsage'):
-                        usage(out, model, caps)
+                        usage(out, model, caps, guard_receipt)
                     else:
                         observed_cost = None
                 except (ValueError, KeyError, TypeError, AttributeError) as error:
@@ -354,7 +361,7 @@ class Transport:
                 raise ValueError(captured['failure'])
             if not guard_receipt['forward_count']:
                 raise ValueError('native_result_without_guarded_forward')
-            counters = usage(out, model, caps)
+            counters = usage(out, model, caps, guard_receipt)
             result = common.strict_json(out)
             exhausted = (result.get('subtype') == 'error_max_turns' and result.get('is_error') is True
                          and result.get('terminal_reason') == 'max_turns')
@@ -426,7 +433,7 @@ def audit(protocol_path, expected):
                     if sha(_read_regular(path.parent/name, 32*1024*1024)) != value.get(field):
                         raise ValueError('native_primary_evidence_drift')
                 if value.get('provider_usage',{}).get('status') == 'observed':
-                    if usage(_read_regular(path.parent/'session.json',1048576),model,protocol['caps']) != value['provider_usage']:
+                    if usage(_read_regular(path.parent/'session.json',1048576),model,protocol['caps'],receipt['request_guard']) != value['provider_usage']:
                         raise ValueError('native_provider_usage_drift')
                 row.update(status=value['outcome'], failure=value['failure'], record_sha256=sha(raw),
                            acceptance=value['acceptance'], provider_usage=value['provider_usage'],

@@ -330,6 +330,9 @@ mod tests {
     #[test]
     #[ignore = "requires the explicitly provisioned Windows runtime gate"]
     fn windows_runtime_authenticated_carrier_repeated_create_drop_settles_one_handle() {
+        // Initialize the Windows SDDL conversion path before measuring the
+        // carrier's handle delta; its first use may load process-wide state.
+        drop(MappingSecurity::create().unwrap());
         let baseline = handle_count();
         for length in [1usize, 257, 4096] {
             let bytes: Vec<u8> = (0..length).map(|index| (index & 0xff) as u8).collect();

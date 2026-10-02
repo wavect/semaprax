@@ -737,51 +737,80 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_live_ow
     recorded: crate::live_invocation::source_journal::owned_wait_v8::live_upstream::LiveRecordedContinuedEffectV8<'j>,
     observe: impl FnMut(&crate::cleanup_plan::FinalizeAction),
 ) -> Result<crate::live_invocation::source_journal::owned_wait_v8::live_upstream::SettledContinuedDecisionCleanupV8<'j>, LiveContinuedCleanupDriverFailureV8<'j>>{
-    let prepared = recorded
-        .prepare_decision_cleanup()
-        .map_err(LiveContinuedCleanupDriverFailureV8::Prepare)?;
-    let session = match journal.begin_session() {
-        Ok(session) => session,
-        Err(error) => {
-            return Err(LiveContinuedCleanupDriverFailureV8::StartedSession {
-                owner: prepared,
-                error,
-            })
-        }
-    };
-    let started = match session
-        .append_owned_effect_cleanup(prepared.into_append())
-        .map_err(LiveContinuedCleanupDriverFailureV8::StartedAppend)?
-        .advance_cleanup()
-        .map_err(LiveContinuedCleanupDriverFailureV8::StartedAdvance)?
-    {
-        crate::live_invocation::source_journal::owned_wait_v8::live_upstream::LiveCleanupAcknowledgedV8::ContinuedStarted(owner) => *owner,
-        owner => return Err(LiveContinuedCleanupDriverFailureV8::StartedShape(owner)),
-    };
-    let released = started
-        .release_decision(observe)
-        .map_err(LiveContinuedCleanupDriverFailureV8::Release)?;
-    let settled = released
-        .prepare_settled()
-        .map_err(LiveContinuedCleanupDriverFailureV8::SettledPrepare)?;
-    let session = match journal.begin_session() {
-        Ok(session) => session,
-        Err(error) => {
-            return Err(LiveContinuedCleanupDriverFailureV8::SettledSession {
-                owner: settled,
-                error,
-            })
-        }
-    };
-    match session
-        .append_owned_effect_cleanup(settled)
-        .map_err(LiveContinuedCleanupDriverFailureV8::SettledAppend)?
-        .advance_cleanup()
-        .map_err(LiveContinuedCleanupDriverFailureV8::SettledAdvance)?
-    {
-        crate::live_invocation::source_journal::owned_wait_v8::live_upstream::LiveCleanupAcknowledgedV8::ContinuedSettled(owner) => Ok(*owner),
-        owner => Err(LiveContinuedCleanupDriverFailureV8::SettledShape(owner)),
+    advance_live_owned_continued_cleanup_boxed_v8(journal, Box::new(recorded), observe)
+        .map(|owner| *owner)
+        .map_err(|failure| *failure)
+}
+
+// Both success and failure cross each physical cleanup boundary on the heap.
+// The outer adapter preserves the existing typed API while this composition
+// avoids retaining every large Result temporary in one nested stack frame.
+#[inline(never)]
+fn advance_live_owned_continued_cleanup_boxed_v8<'j>(
+    journal: &'j SourceOwnedWaitJournalV8,
+    recorded: Box<crate::live_invocation::source_journal::owned_wait_v8::live_upstream::LiveRecordedContinuedEffectV8<'j>>,
+    observe: impl FnMut(&crate::cleanup_plan::FinalizeAction),
+) -> Result<Box<crate::live_invocation::source_journal::owned_wait_v8::live_upstream::SettledContinuedDecisionCleanupV8<'j>>, Box<LiveContinuedCleanupDriverFailureV8<'j>>>{
+    use crate::live_invocation::source_journal::owned_wait_v8::live_upstream::LiveCleanupAcknowledgedV8;
+
+    macro_rules! join {
+        ($operation:expr, $variant:ident) => {
+            run::run_phase(|| {
+                $operation
+                    .map_err(|owner| Box::new(LiveContinuedCleanupDriverFailureV8::$variant(owner)))
+            })?
+        };
     }
+    let prepared = join!((*recorded).prepare_decision_cleanup(), Prepare);
+    let appended = run::run_phase(|| {
+        let session = match journal.begin_session() {
+            Ok(session) => session,
+            Err(error) => {
+                return Err(Box::new(
+                    LiveContinuedCleanupDriverFailureV8::StartedSession {
+                        owner: *prepared,
+                        error,
+                    },
+                ))
+            }
+        };
+        session
+            .append_owned_effect_cleanup((*prepared).into_append())
+            .map_err(|owner| Box::new(LiveContinuedCleanupDriverFailureV8::StartedAppend(owner)))
+    })?;
+    let acknowledged = join!((*appended).advance_cleanup(), StartedAdvance);
+    let started = *run::run_phase(|| match *acknowledged {
+        LiveCleanupAcknowledgedV8::ContinuedStarted(owner) => Ok(owner),
+        owner => Err(Box::new(LiveContinuedCleanupDriverFailureV8::StartedShape(
+            owner,
+        ))),
+    })?;
+    let released = join!((*started).release_decision(observe), Release);
+    let settled = join!((*released).prepare_settled(), SettledPrepare);
+    let appended = run::run_phase(|| {
+        let session = match journal.begin_session() {
+            Ok(session) => session,
+            Err(error) => {
+                return Err(Box::new(
+                    LiveContinuedCleanupDriverFailureV8::SettledSession {
+                        owner: *settled,
+                        error,
+                    },
+                ))
+            }
+        };
+        session
+            .append_owned_effect_cleanup(*settled)
+            .map_err(|owner| Box::new(LiveContinuedCleanupDriverFailureV8::SettledAppend(owner)))
+    })?;
+    let acknowledged = join!((*appended).advance_cleanup(), SettledAdvance);
+    let settled = *run::run_phase(|| match *acknowledged {
+        LiveCleanupAcknowledgedV8::ContinuedSettled(owner) => Ok(owner),
+        owner => Err(Box::new(LiveContinuedCleanupDriverFailureV8::SettledShape(
+            owner,
+        ))),
+    })?;
+    Ok(settled)
 }
 
 pub(in crate::live_invocation::source_journal::owned_wait_v8) enum LiveContinuedReduceDriverFailureV8<

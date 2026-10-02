@@ -40,44 +40,52 @@ fn quarantine<'j, T: 'j>(
     }
 }
 
-// Each phase returns its physical successor on the heap before the next phase
-// starts. Keeping this call boundary prevents unoptimized builds from retaining
-// every large consuming Result temporary in one driver stack frame.
+// The driver carries only heap owners between consuming operations. Keep the
+// call boundary even in optimized builds so Result temporaries cannot combine
+// into a frame spanning the entire second turn.
 #[inline(never)]
-fn run_phase<'j, T>(
-    run: impl FnOnce() -> Result<T, ContinuedRunQuarantineV8<'j>>,
-) -> Result<Box<T>, ContinuedRunQuarantineV8<'j>> {
+pub(super) fn run_phase<T, E>(run: impl FnOnce() -> Result<T, E>) -> Result<Box<T>, E> {
     run().map(Box::new)
 }
 
 fn acknowledge_observe<'j>(
     journal: &'j SourceOwnedWaitJournalV8,
-    owner: LiveOwnedObserveSettlementAppendV8<'j>,
-) -> Result<LiveSettledObserveV8<'j>, ContinuedRunQuarantineV8<'j>> {
-    let session = match journal.begin_session() {
-        Ok(session) => session,
-        Err(error) => return Err(quarantine(journal, "observe-session", (owner, error))),
-    };
-    session
-        .append_owned_observe_settlement(owner)
-        .map_err(|owner| quarantine(journal, "observe-append", owner))?
-        .advance_observe_settlement()
-        .map_err(|owner| quarantine(journal, "observe-advance", owner))
+    owner: Box<LiveOwnedObserveSettlementAppendV8<'j>>,
+) -> Result<Box<LiveSettledObserveV8<'j>>, ContinuedRunQuarantineV8<'j>> {
+    let appended = run_phase(|| {
+        let session = match journal.begin_session() {
+            Ok(session) => session,
+            Err(error) => return Err(quarantine(journal, "observe-session", (owner, error))),
+        };
+        session
+            .append_owned_observe_settlement(*owner)
+            .map_err(|owner| quarantine(journal, "observe-append", owner))
+    })?;
+    run_phase(|| {
+        (*appended)
+            .advance_observe_settlement()
+            .map_err(|owner| quarantine(journal, "observe-advance", owner))
+    })
 }
 
 fn acknowledge_start<'j>(
     journal: &'j SourceOwnedWaitJournalV8,
-    owner: LiveOwnedContinuedStartAppendV8<'j>,
-) -> Result<LiveContinuedStartPhaseV8<'j>, ContinuedRunQuarantineV8<'j>> {
-    let session = match journal.begin_session() {
-        Ok(session) => session,
-        Err(error) => return Err(quarantine(journal, "start-session", (owner, error))),
-    };
-    session
-        .append_owned_continued_start(owner)
-        .map_err(|owner| quarantine(journal, "start-append", owner))?
-        .advance_continued_start()
-        .map_err(|owner| quarantine(journal, "start-advance", owner))
+    owner: Box<LiveOwnedContinuedStartAppendV8<'j>>,
+) -> Result<Box<LiveContinuedStartPhaseV8<'j>>, ContinuedRunQuarantineV8<'j>> {
+    let appended = run_phase(|| {
+        let session = match journal.begin_session() {
+            Ok(session) => session,
+            Err(error) => return Err(quarantine(journal, "start-session", (owner, error))),
+        };
+        session
+            .append_owned_continued_start(*owner)
+            .map_err(|owner| quarantine(journal, "start-append", owner))
+    })?;
+    run_phase(|| {
+        (*appended)
+            .advance_continued_start()
+            .map_err(|owner| quarantine(journal, "start-advance", owner))
+    })
 }
 
 /// Consumes the actual first Continue Step and completes one further turn.
@@ -112,91 +120,86 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn finish_second_t
         return Err(quarantine(journal, "admission", (moved, error)));
     }
 
+    macro_rules! join {
+        ($operation:expr, $phase:literal) => {
+            run_phase(|| $operation.map_err(|owner| quarantine(journal, $phase, owner)))?
+        };
+    }
     let moved = Box::new(moved);
-    let settled = run_phase(|| {
-        let moved = *moved;
-        let observed = advance_live_owned_continue_v8(journal, moved)
-            .map_err(|owner| quarantine(journal, "continue", owner))?;
-        let selected = observed
-            .prepare_observe_settlement()
-            .map_err(|owner| quarantine(journal, "observe-select", owner))?;
-        let settled = acknowledge_observe(journal, selected)?;
-        Ok(settled)
-    })?;
+    let observed = join!(advance_live_owned_continue_v8(journal, *moved), "continue");
+    let selected = join!((*observed).prepare_observe_settlement(), "observe-select");
+    let settled = acknowledge_observe(journal, selected)?;
     match settled.failed() {
         Ok(true) => return Ok(ContinuedRunOutcomeV8::FailedObserve(*settled)),
         Ok(false) => {}
         Err(error) => return Err(quarantine(journal, "observe-outcome", (settled, error))),
     }
-    let prepared = run_phase(|| {
-        let settled = *settled;
-        let selected = settled
-            .prepare_turn_observed()
-            .map_err(|owner| quarantine(journal, "turn-observed-select", owner))?;
-        let carried = acknowledge_observe(journal, selected)?
-            .into_continued_wait()
-            .map_err(|owner| quarantine(journal, "observe-carry", owner))?;
-        let created = carried
-            .prepare_start_created()
-            .map_err(|owner| quarantine(journal, "start-created", owner))?;
-        let reserved = acknowledge_start(journal, created)?
-            .prepare_start_reservation()
-            .map_err(|owner| quarantine(journal, "start-reservation", owner))?;
-        let reserved = acknowledge_start(journal, reserved)?;
-        let prepared = advance_live_owned_continued_start_v8(journal, reserved)
-            .map_err(|owner| quarantine(journal, "start", owner))?;
-        Ok(prepared)
-    })?;
-    let completed = run_phase(|| {
-        let prepared = *prepared;
-        let model = advance_live_owned_continued_model_v8(journal, prepared, adapter)
-            .map_err(|owner| quarantine(journal, "model-intent", owner))?;
-        let model = advance_live_owned_continued_dispatch_v8(journal, model, adapter)
-            .map_err(|owner| quarantine(journal, "model-dispatch", owner))?;
-        let model = advance_live_owned_continued_resume_v8(journal, model)
-            .map_err(|owner| quarantine(journal, "resume", owner))?;
-        let completed = advance_live_owned_continued_completed_v8(journal, model)
-            .map_err(|owner| quarantine(journal, "completed", owner))?;
-        Ok(completed)
-    })?;
-    let cleanup = run_phase(|| {
-        let completed = *completed;
-        let authorized = advance_live_owned_continued_authorize_v8(journal, completed)
-            .map_err(|owner| quarantine(journal, "authorize", owner))?;
-        let effect = advance_live_owned_continued_effect_v8(journal, authorized)
-            .map_err(|owner| quarantine(journal, "effect", owner))?;
-        let activated = advance_live_owned_continued_intent_v8(journal, effect)
-            .map_err(|owner| quarantine(journal, "effect-intent", owner))?;
-        let recorded = advance_live_owned_continued_effect_dispatch_v8(journal, activated, handler)
-            .map_err(|owner| quarantine(journal, "effect-dispatch", owner))?;
-        let cleanup =
-            advance_live_owned_continued_cleanup_v8(journal, recorded, &mut observe_cleanup)
-                .map_err(|owner| quarantine(journal, "decision-cleanup", owner))?;
-        Ok(cleanup)
-    })?;
-    let staged = run_phase(|| {
-        let cleanup = *cleanup;
-        let reserved = advance_live_owned_continued_reduce_v8(journal, cleanup)
-            .map_err(|owner| quarantine(journal, "reduce-reservation", owner))?;
-        let evaluated = reserved
-            .evaluate()
-            .map_err(|owner| quarantine(journal, "reduce", owner))?;
-        let selected = evaluated
-            .prepare_step()
-            .map_err(|owner| quarantine(journal, "step-select", owner))?;
+    let selected = join!((*settled).prepare_turn_observed(), "turn-observed-select");
+    let settled = acknowledge_observe(journal, selected)?;
+    let carried = join!((*settled).into_continued_wait(), "observe-carry");
+    let created = join!((*carried).prepare_start_created(), "start-created");
+    let created = acknowledge_start(journal, created)?;
+    let reserved = join!((*created).prepare_start_reservation(), "start-reservation");
+    let reserved = acknowledge_start(journal, reserved)?;
+    let prepared = join!(
+        advance_live_owned_continued_start_v8(journal, *reserved),
+        "start"
+    );
+    let model = join!(
+        advance_live_owned_continued_model_v8(journal, *prepared, adapter),
+        "model-intent"
+    );
+    let model = join!(
+        advance_live_owned_continued_dispatch_v8(journal, *model, adapter),
+        "model-dispatch"
+    );
+    let model = join!(
+        advance_live_owned_continued_resume_v8(journal, *model),
+        "resume"
+    );
+    let completed = join!(
+        advance_live_owned_continued_completed_v8(journal, *model),
+        "completed"
+    );
+    let authorized = join!(
+        advance_live_owned_continued_authorize_v8(journal, *completed),
+        "authorize"
+    );
+    let effect = join!(
+        advance_live_owned_continued_effect_v8(journal, *authorized),
+        "effect"
+    );
+    let activated = join!(
+        advance_live_owned_continued_intent_v8(journal, *effect),
+        "effect-intent"
+    );
+    let recorded = join!(
+        advance_live_owned_continued_effect_dispatch_v8(journal, *activated, handler),
+        "effect-dispatch"
+    );
+    let cleanup = join!(
+        advance_live_owned_continued_cleanup_v8(journal, *recorded, &mut observe_cleanup),
+        "decision-cleanup"
+    );
+    let reserved = join!(
+        advance_live_owned_continued_reduce_v8(journal, *cleanup),
+        "reduce-reservation"
+    );
+    let evaluated = join!((*reserved).evaluate(), "reduce");
+    let selected = join!((*evaluated).prepare_step(), "step-select");
+    let appended = run_phase(|| {
         let session = match journal.begin_session() {
             Ok(session) => session,
             Err(error) => return Err(quarantine(journal, "step-session", (selected, error))),
         };
-        let acknowledged = session
-            .append_owned_step(selected)
-            .map_err(|owner| quarantine(journal, "step-append", owner))?
-            .advance_step()
-            .map_err(|owner| quarantine(journal, "step-advance", owner))?;
-        let LiveStepAcknowledgedV8::Continued(staged) = acknowledged else {
-            return Err(quarantine(journal, "step-shape", acknowledged));
-        };
-        Ok(staged)
+        session
+            .append_owned_step(*selected)
+            .map_err(|owner| quarantine(journal, "step-append", owner))
+    })?;
+    let acknowledged = join!((*appended).advance_step(), "step-advance");
+    let staged = run_phase(|| match *acknowledged {
+        LiveStepAcknowledgedV8::Continued(staged) => Ok(staged),
+        owner => Err(quarantine(journal, "step-shape", owner)),
     })?;
     // Stage counts come from the authenticated current prefix. The initial
     // composition deliberately emits the existing omitted-detail projection,

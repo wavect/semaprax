@@ -12,7 +12,12 @@
   an opaque custody handle whose terminal projection carries only checked
   Report data. A real public two-turn regression is authored; its default-stack
   run overflowed and the corrected fixture rerun hit local disk exhaustion.
-  Broader failure shutdown and recovered public execution remain pending (#330).
+  Broader failure shutdown remains pending (#330).
+- Extend owned-Agent heap transfer boundaries through each second-turn join
+  and each Decision-cleanup append/ACK, preserving typed failure custody and
+  cleanup order. This addresses a late 2 MiB worker-stack overflow; executable
+  validation of this follow-up remains pending (#330).
+
 - Reduce owned-Agent two-turn driver stack retention by transferring physical
   owners between short heap-backed phases. Preserve existing consuming joins and
   failure custody, and pin process-restart regression children to a 2 MiB Rust

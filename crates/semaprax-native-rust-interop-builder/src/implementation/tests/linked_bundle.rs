@@ -30,11 +30,24 @@ fn rich_fixture_plan_is_canonical_and_rejects_a_generated_method_injection() {
             .code,
         "SPX-B118"
     );
+    let mut fixture_callback_entries = 0;
+    let target_admission = plan.validate_target("wasm32-unknown-unknown");
+    if target_admission.is_ok() {
+        fixture_callback_entries += 1;
+    }
+    assert!(target_admission.is_err());
+    assert_eq!(fixture_callback_entries, 0);
+    let signature_admission = plan.validate_signature(&[ScalarType::Bool], ScalarType::Bool);
+    if signature_admission.is_ok() {
+        fixture_callback_entries += 1;
+    }
+    assert!(signature_admission.is_err());
+    assert_eq!(fixture_callback_entries, 0);
     let profile = crate::TrustedNativeProfile::admit(
         plan.canonical().as_bytes(),
         b"ri01-fixture-math",
         b"ri01-native-c11",
-        &["host.math"],
+        crate::NativeEffectContract::Audited(&["host.math"]),
         crate::NativeBuildPolicy::StrictDenyExecution,
     )
     .unwrap();

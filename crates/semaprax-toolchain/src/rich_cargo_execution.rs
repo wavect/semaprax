@@ -347,6 +347,7 @@ mod tests {
             .collect::<Vec<_>>();
         let mut sources = sources;
         sources.sort_by(|left, right| left.package_id().cmp(right.package_id()));
+        let target_name = native_target();
         let prepared = prepare_with_cargo_metadata(
             &invocation,
             CargoPreparationInput {
@@ -356,9 +357,9 @@ mod tests {
                 cargo_lock: fs::read(fixture.join("Cargo.lock")).unwrap(),
                 cargo_config: b"[net]\noffline=true\n".to_vec(),
                 toolchain_identity: b"explicit-cargo-and-rustc".to_vec(),
-                target_spec_identity: env!("TARGET").as_bytes().to_vec(),
+                target_spec_identity: target_name.as_bytes().to_vec(),
                 generator_revision: "sha256:rich-fixture".into(),
-                target: env!("TARGET").into(),
+                target: target_name.into(),
                 panic_strategy: "unwind".into(),
                 profile: "dev".into(),
                 selected_features: Vec::new(),
@@ -375,7 +376,39 @@ mod tests {
         std::env::var_os(name)
             .map(PathBuf::from)
             .and_then(|path| path.canonicalize().ok())
+            .or_else(|| {
+                // Test-only discovery constructs the explicit absolute input
+                // required by the production invocation API. The API itself
+                // never resolves a tool from PATH.
+                std::env::var_os("PATH").and_then(|paths| {
+                    std::env::split_paths(&paths)
+                        .map(|directory| {
+                            directory.join(format!(
+                                "{}{}",
+                                name.to_ascii_lowercase(),
+                                std::env::consts::EXE_SUFFIX
+                            ))
+                        })
+                        .find_map(|path| path.canonicalize().ok())
+                })
+            })
             .filter(|path| path.is_absolute() && path.is_file())
             .expect("Cargo test harness must provide an absolute tool")
+    }
+
+    fn native_target() -> &'static str {
+        if cfg!(all(target_arch = "aarch64", target_os = "macos")) {
+            "aarch64-apple-darwin"
+        } else if cfg!(all(target_arch = "x86_64", target_os = "macos")) {
+            "x86_64-apple-darwin"
+        } else if cfg!(all(target_arch = "x86_64", target_os = "linux")) {
+            "x86_64-unknown-linux-gnu"
+        } else if cfg!(all(target_arch = "aarch64", target_os = "linux")) {
+            "aarch64-unknown-linux-gnu"
+        } else if cfg!(all(target_arch = "x86_64", target_os = "windows")) {
+            "x86_64-pc-windows-msvc"
+        } else {
+            panic!("focused rich Cargo fixture has no admitted native target")
+        }
     }
 }

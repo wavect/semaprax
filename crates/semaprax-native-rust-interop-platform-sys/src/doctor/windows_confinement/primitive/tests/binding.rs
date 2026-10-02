@@ -677,3 +677,206 @@ fn windows_runtime_child_inherits_only_declared_standard_handles() {
     );
     assert_parent_empty(&fixture.scratch);
 }
+
+#[test]
+#[ignore = "requires the explicitly provisioned Windows runtime gate"]
+fn windows_runtime_image_sharing_race_preserves_authenticated_bytes() {
+    use std::sync::{Arc, Barrier, mpsc};
+    use windows_sys::Win32::Foundation::ERROR_SHARING_VIOLATION;
+    use windows_sys::Win32::System::Memory::{
+        FILE_MAP_WRITE, FlushViewOfFile, MapViewOfFile, UnmapViewOfFile,
+    };
+
+    let fixture = Fixture::new();
+    let capsule = test_capsule_body();
+    // Warm std's thread bookkeeping before asserting exact handle settlement.
+    std::thread::spawn(|| {}).join().unwrap();
+    let baseline = current_process_handle_count();
+    // Deterministic controls exercise both orderings; the remaining rounds
+    // race the kernel opens. Stress is coverage, not the sharing proof.
+    for ordering in 0..10 {
+        let barrier = Arc::new(Barrier::new(2));
+        let (ready_tx, ready_rx) = mpsc::sync_channel(1);
+        let (release_tx, release_rx) = mpsc::sync_channel(1);
+        let path = fixture.executable.clone();
+        let worker_barrier = Arc::clone(&barrier);
+        let worker = std::thread::spawn(move || {
+            worker_barrier.wait();
+            let writer = OpenOptions::new().read(true).write(true).open(&path);
+            let section = match writer {
+                Ok(writer) => {
+                    use windows_sys::Win32::System::Memory::{CreateFileMappingW, PAGE_READWRITE};
+                    // SAFETY: owned nonempty PE fixture, live writable file.
+                    let raw = unsafe {
+                        CreateFileMappingW(
+                            writer.as_raw_handle(),
+                            std::ptr::null(),
+                            PAGE_READWRITE,
+                            0,
+                            0,
+                            std::ptr::null(),
+                        )
+                    };
+                    assert!(!raw.is_null(), "winner creates a writable section");
+                    drop(writer);
+                    Some(Handle::new(raw))
+                }
+                Err(error) => {
+                    assert_eq!(error.raw_os_error(), Some(ERROR_SHARING_VIOLATION as i32));
+                    None
+                }
+            };
+            // No view exists and the writer is already closed at this point.
+            ready_tx.send(section.is_some()).unwrap();
+            if release_rx.recv_timeout(Duration::from_secs(30)).is_err() {
+                return;
+            }
+            if let Some(section) = section {
+                // A refused admission must leave a genuinely writable hostile
+                // capability. Change/observe/restore one same-length PE byte.
+                let view = unsafe { MapViewOfFile(section.raw(), FILE_MAP_WRITE, 0, 0, 0) };
+                assert!(!view.Value.is_null());
+                let last = std::fs::metadata(&path).unwrap().len() as usize - 1;
+                let byte = unsafe { view.Value.cast::<u8>().add(last) };
+                let original = unsafe { byte.read() };
+                unsafe { byte.write(original ^ 1) };
+                let changed_flush = unsafe { FlushViewOfFile(view.Value, 0) };
+                let observed = std::fs::read(&path).map(|bytes| bytes[last]);
+                // Restore before assertions, so a failed probe cannot corrupt
+                // a subsequent test's signed fixture.
+                unsafe { byte.write(original) };
+                let restored_flush = unsafe { FlushViewOfFile(view.Value, 0) };
+                let unmapped = unsafe { UnmapViewOfFile(view) };
+                assert_ne!(changed_flush, 0);
+                assert_ne!(restored_flush, 0);
+                assert_ne!(unmapped, 0);
+                assert_eq!(observed.unwrap(), original ^ 1);
+            }
+        });
+        let (image, writer_won) = if ordering == 0 {
+            // Retained section wins before any authenticated image byte read.
+            barrier.wait();
+            let writer_won = ready_rx.recv_timeout(Duration::from_secs(30)).unwrap();
+            (
+                image::HeldImage::acquire(&fixture.executable, verified(&capsule).worker()),
+                writer_won,
+            )
+        } else if ordering == 1 {
+            // The immutable-image open wins before a hostile writer starts.
+            let image = image::HeldImage::acquire(&fixture.executable, verified(&capsule).worker());
+            barrier.wait();
+            let writer_won = ready_rx.recv_timeout(Duration::from_secs(30)).unwrap();
+            (image, writer_won)
+        } else {
+            barrier.wait();
+            let image = image::HeldImage::acquire(&fixture.executable, verified(&capsule).worker());
+            let writer_won = ready_rx.recv_timeout(Duration::from_secs(30)).unwrap();
+            (image, writer_won)
+        };
+        let admitted = image.is_ok();
+        // Settle the hostile thread before assertions, retaining a successful
+        // guard throughout. A failed assertion must not strand a writable
+        // section and contaminate fixture cleanup or the following case.
+        release_tx.send(()).unwrap();
+        worker.join().unwrap();
+        drop(image);
+        drop((release_tx, ready_rx, barrier));
+        if ordering == 0 {
+            assert!(writer_won, "retained-section control must be available");
+        }
+        if ordering == 1 {
+            assert!(admitted, "clean signed-image control must be available");
+        }
+        assert_ne!(admitted, writer_won, "exactly one conflicting open wins");
+        drop(image::HeldImage::acquire(&fixture.executable, verified(&capsule).worker()).unwrap());
+        assert_parent_empty(&fixture.scratch);
+        assert_eq!(current_process_handle_count(), baseline);
+    }
+}
+
+#[test]
+#[ignore = "requires the explicitly provisioned Windows runtime gate"]
+fn windows_runtime_image_sharing_excludes_writers_at_every_launch_boundary() {
+    use windows_sys::Win32::Foundation::ERROR_SHARING_VIOLATION;
+
+    let fixture = Fixture::new();
+    let capsule = test_capsule_body();
+    let args = child_test_args("runtime_child_exits_with_nonzero_status");
+    let args: Vec<&OsStr> = args.iter().map(OsString::as_os_str).collect();
+    let mut reached = Vec::new();
+    let child = confined_spawn_observing(
+        &fixture.executable,
+        ImageRole::Worker,
+        &args,
+        &fixture.scratch,
+        TEST_REQUEST_BYTES,
+        TEST_BUNDLE_BYTES,
+        || Ok(verified(&capsule)),
+        |boundary| {
+            let path = fixture.executable.clone();
+            // The attempt is completed while the launch thread is held at the
+            // boundary, including after CreateProcess while still suspended.
+            let error = std::thread::spawn(move || {
+                use windows_sys::Win32::Foundation::{
+                    DuplicateHandle, GENERIC_READ, GENERIC_WRITE,
+                };
+                use windows_sys::Win32::System::Threading::GetCurrentProcess;
+                let reader = OpenOptions::new().read(true).open(&path).unwrap();
+                let mut upgraded = std::ptr::null_mut();
+                // Files, unlike pagefile sections, cannot gain writable file
+                // access by duplicating a read-only handle. Probe that path as
+                // well as the ordinary fresh writer open at every boundary.
+                let duplicated = unsafe {
+                    DuplicateHandle(
+                        GetCurrentProcess(),
+                        reader.as_raw_handle(),
+                        GetCurrentProcess(),
+                        &mut upgraded,
+                        GENERIC_READ | GENERIC_WRITE,
+                        0,
+                        0,
+                    )
+                };
+                if duplicated != 0 {
+                    drop(Handle::new(upgraded));
+                }
+                assert_eq!(
+                    duplicated, 0,
+                    "read-only file handle cannot gain write access"
+                );
+                OpenOptions::new()
+                    .read(true)
+                    .write(true)
+                    .open(path)
+                    .err()
+                    .and_then(|error| error.raw_os_error())
+            })
+            .join()
+            .unwrap();
+            assert_eq!(error, Some(ERROR_SHARING_VIOLATION as i32), "{boundary:?}");
+            reached.push(boundary);
+        },
+    )
+    .expect("all hostile writer attempts refuse while signed launch succeeds");
+    let mut guard = RuntimeChildCleanupGuard::new(&child);
+    assert_eq!(
+        reached,
+        [
+            BindingBoundary::Image(image::ImageBindingBoundary::FileOpened),
+            BindingBoundary::Image(image::ImageBindingBoundary::GuardAcquired),
+            BindingBoundary::Image(image::ImageBindingBoundary::DigestVerified),
+            BindingBoundary::BeforeProcessCreation,
+            BindingBoundary::SuspendedLeader,
+        ]
+    );
+    let marker = child._scratch.dir.join(TEST_MARKER);
+    wait_for_marker(&marker);
+    assert_eq!(std::fs::read(&marker).unwrap(), b"exit-37");
+    std::fs::remove_file(marker).unwrap();
+    guard.disarm();
+    assert_eq!(
+        settle(child, Duration::from_secs(30)).status,
+        Settlement::Failed(FailureReason::ExitCode(37))
+    );
+    assert_parent_empty(&fixture.scratch);
+}

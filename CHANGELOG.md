@@ -34,6 +34,13 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Establish the Windows doctor image-binding argument from continuous NTFS
+  deny-write/deny-delete sharing and the existing native retained-section
+  initial-open receipts. Preserve every production guard; add concurrent
+  section/open races and hostile writer attempts at all five launch boundaries
+  to the native selector. The two new cases still require native execution;
+  production Windows support and release trust remain unpromoted.
+
 - Harden the Windows doctor request/bundle carriers against duplicated write
   access and owner-mediated DACL changes using a protected OWNER RIGHTS deny
   policy. The existing native child handoff case now rejects `FILE_MAP_WRITE`,

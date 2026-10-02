@@ -16,8 +16,11 @@ all eighteen passed on the provisioned Windows runner at exact checkout
 The expanded twenty-two-case selector adds retained-section refusal settlement
 and anonymous carrier handle-lifetime cases. All 22 passed, with none ignored,
 at `e15c16202` in [run 36919771375](https://github.com/wavect/semaprax/actions/runs/36919771375).
-Exact exclusion of retained writable-section mutation remains unresolved. The
-authoring host remains macOS arm64; the hosted run is the native runtime witness.
+The subsequent 24-case native receipt establishes initial-open exclusion of
+retained writable sections; the 26-case receipt adds authenticated child
+request/bundle transport. The continuous sharing argument and two new
+concurrent cases are specified below. The authoring host is macOS arm64;
+native Windows evidence remains attached to its exact hosted revision.
 No cross-compilation or emulated substitute is treated as native execution
 evidence. Host-independent capsule, admission-ordering,
 and settlement logic remains separately testable on non-Windows hosts. See
@@ -155,7 +158,7 @@ import `doctor::unix::launch::darwin`'s private types):
 - `primitive.rs` -- `#[cfg(windows)]` restricted token, tightened job object,
   ACL'd scratch root, sealed-capsule-gated suspended spawn, and settlement
   observation. Never compiled or executed on this authoring host; it has the
-  historical Windows witnesses above; the new image binding is unexecuted. See its
+  native Windows witnesses below; new concurrent cases await execution. See its
   own module documentation for the exact simplifications it makes and the
   specific claims it does and does not make about itself.
 
@@ -273,14 +276,15 @@ utility; production does not fall back to it. The deterministic test key is
 not a release anchor. The standalone spawn now requires an explicit `ImageRole`
 (launcher, worker, collector), checks the selected signed length and SHA-256 against held executable
 bytes, and retains file/path handles and an advisory oplock through settlement.
-Exact binding under retained writable-section mutation remains unresolved.
+The continuous no-write-sharing barrier and its native retained-section
+controls are specified below.
 Before token, job, scratch-root, or process effects, the standalone spawn also
 copies the capsule's exact request and bundle slots into those two carriers.
 It passes only the request-then-bundle pair with standard I/O through the
 startup handle list, supplies their inherited handle values with the signed
 selector and chosen image role in its closed child environment, and retains the
-parent copies through settlement. This is an internal primitive handoff with no
-ordinary CLI route or native receipt, and is not production support.
+parent copies through settlement. This is an internal primitive handoff with the native receipt below and no
+ordinary CLI route; it is not production support.
 
 ### Authenticated request/bundle handoff
 
@@ -312,236 +316,143 @@ same child also requires `ERROR_ACCESS_DENIED` when duplicating either section
 with `FILE_MAP_WRITE`, `WRITE_DAC`, or `WRITE_OWNER`, covering direct write
 escalation and owner-mediated permission changes while preserving its exact-byte
 read control. These assertions extend the existing handoff case, keeping all
-26 selected cases. The gate has not run this source revision, so these are test
-obligations rather than Windows execution evidence.
+26 cases in the native `2c9695f5d` receipt below. The further two image-sharing
+cases require a new native receipt.
 
-### Signed image binding continuation (#333; partial native runtime evidence)
+### Signed image binding (#333): continuous sharing exclusion
 
-`primitive/image.rs` implements a bounded pathname bridge because
+`primitive/image.rs` bridges the pathname required by
 [`CreateProcessAsUserW`](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-createprocessasuserw)
-requires an application name. After signed capsule/OS admission and before any
-token, job, scratch creation or process effect, it:
+to the authenticated file using one continuously held NTFS sharing barrier.
+The security argument is based on
+[`CreateFileW`'s `FILE_SHARE_WRITE` contract](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilew),
+which rejects an open without write sharing when the existing file has a
+writable mapping. This includes the retained section capability before any
+view is mapped. The native initial-open controls below test that exact
+interpretation, independently of the subsequent oplock.
 
-1. Opens the selected image without write/delete sharing, rejects nonregular,
-   reparse or multiply linked files, and requires NTFS.
-2. Acquires its normalized volume-GUID path, avoiding drive-letter lookup, and
-   holds every ancestor open without write/delete sharing or reparse traversal.
-   It reopens the leaf through those pinned components and compares the held
-   volume/file identity to the original before reading any image bytes.
-3. Requires a Read oplock grant on the original asynchronous handle. Microsoft's
-   [grant conditions](https://learn.microsoft.com/en-us/windows-hardware/drivers/ifs/granting-oplocks)
-   exclude writable user-mapped sections at grant time. The pending request,
-   original file, event and stable boxed buffers now stay owned through
-   suspended process creation and child settlement. The guard checks for an
-   observed break after hashing, before creation and before resume. Drop
-   cancels and drains that exact request before releasing its buffers;
-   cancellation alone is never treated as I/O completion. Unsupported
-   filesystems, absent oplock support, or an observed break refuse with
-   `Capsule(ArtifactBinding)`. An unexpected wait/handle error without observed
-   I/O completion terminates the host process instead of returning with live
-   kernel pointers into released buffers.
-4. Streams exactly the signed bounded length through SHA-256 from the held
-   synchronous reader. Mismatched length/digest refuses with the same stable
-   class. The final application name is the pinned GUID path, and the image and
-   ancestor handles remain held until the child's settlement/drop completes.
-5. Checks the still-suspended child's `QueryFullProcessImageNameW` native name
-   against the admitted held file's native name before `ResumeThread`. A
-   redirected image (including a host IFEO debugger policy) or query failure
-   causes job termination and observed leader exit before return. This check
-   follows suspended process creation but precedes target code execution; it
-   does not reopen or trust the child's reported pathname.
+The production ordering is:
 
-**Exact race-resistant image binding remains unresolved.** A retained writable
-section object whose file handle has closed needs separate admission and race
-coverage, including the state before any writable view exists. Microsoft's
+1. Open the selected image for data read with only `FILE_SHARE_READ`. Reject
+   nonregular, reparse and multiply linked files and require NTFS. Existing
+   write handles and writable mappings conflict at this first open. This is
+   data-read access, not the metadata-only access whose sharing behavior is
+   insufficient.
+2. Retain the original open continuously. New data-write/append/delete opens
+   conflict with it. Creating a writable section requires a writable file
+   handle, as specified by
+   [CreateFileMappingW](https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-createfilemappingw).
+   There is consequently no later transition from accepted image to writable
+   section capability. Same-user DACL modification cannot relax the held
+   handle's sharing restrictions. Unlike pagefile sections,
+   [file-handle duplication](https://learn.microsoft.com/en-us/windows/win32/api/handleapi/nf-handleapi-duplicatehandle)
+   cannot upgrade a read-only file handle to read/write access. The trusted
+   kernel/administrator boundary remains explicit.
+3. Acquire the normalized volume-GUID pathname, pin each ancestor without
+   following reparse points or permitting write/delete sharing, and reopen
+   the leaf through those pinned components. Compare its volume/file identity
+   with the original. No signed byte read precedes this identity check.
+   Keep every ancestor and both data-read file handles through child lifetime.
+4. Hash the exact signed bounded raw-file length through the synchronous
+   reader. Reject differing length, digest or role with
+   `Capsule(ArtifactBinding)` before token, job, scratch or process creation.
+   There is no close/reopen interval between authentication and loading.
+5. Create the child suspended using that pinned pathname and verify its native
+   image name before resume. A redirected image, including IFEO debugger
+   redirection, or a query failure selects refusal and terminates/observes the
+   suspended leader. The name check identifies the pinned file; the sharing
+   barrier establishes the stability of its authenticated bytes.
+6. Retain the complete image guard through settlement/drop, so deferred loader
+   reads remain covered. Release it only after the leader/job settlement path.
+
+The read oplock, its event checks after hashing/before creation/before resume,
+and its cancellation/drain discipline remain additional refusal checks. They
+are not the exclusion mechanism: Microsoft's
 [section-synchronization rules](https://learn.microsoft.com/en-us/windows-hardware/drivers/ifs/fs-filter-acquire-for-section-synchronization2)
-say writable-section operations can break Read/Read-Handle/Read-Write oplocks
-without acknowledgment and proceed immediately. Keeping the request alive and
-checking its event therefore provides detection and defense in depth, not an
-atomic exclusion proof. Writable-section mutation can still race these checks;
-#333's exact binding acceptance remains open. The initial continuation's
-cancel-before-hash/pre-spawn design did not establish this guarantee either.
+allow advisory writable-section oplock breaks without acknowledgment. The
+prior review incorrectly treated that limitation as the only relevant
+barrier after separately identifying the no-write-sharing contract. Its
+outstanding empirical question was whether a retained no-view section is
+rejected at the initial open. The native checkpoint receipt resolves that
+question for the admitted NTFS host profile.
 
-These partial checks rely on the ordinary NTFS sharing and oplock contract and
-the trusted Windows kernel/volume namespace. It does not authenticate imported DLLs or
-protect against administrator/kernel mutation. It adds no ordinary CLI route
-and does not modify the Linux sealed-file launcher. Its standalone request and
-bundle handoff is bound only to this primitive; it is not a Windows production
-transport claim. The deterministic test capsule signs the actual test image and
-the exact test carrier slots; it is not release trust evidence.
+This design does not authenticate imported DLLs or defend against kernel,
+volume-administrator or process-handle injection authority. It does not change
+the Linux launcher, create a broker identity, add an ordinary Windows CLI
+route, provision a production signing key or promote WP-05 Windows support.
+The separately authenticated request/bundle carriers remain part of the same
+standalone primitive's explicit five-handle child inventory.
 
-The selected cases exercise signed length/digest/role mismatch before
-launch, denied post-binding leaf deletion/write/rename/hardlink creation and
-ancestor rename, a failed post-binding writable-section request from a newly
-opened read handle, pre-existing writable handles and hardlinks, a writable
-mapping whose handles have both closed, a retained PAGE_READWRITE section
-without any view, drop-time process/image handle settlement, and an explicitly
-inheritable delete-on-close sentinel that must not reach the child outside its
-three standard handles. The post-binding section request only demonstrates
-that a new read-only handle cannot mint writable-section access; it does not
-address an already retained writable section. The section-without-view case
-requires pre-spawn refusal; that selected behavior passed on Windows at
-`06c0090d9`.
-The current source additionally requires that retained section to map a
-writable view after refusal, change an observed file byte, and then restore
-the fixture before its success control. This stronger hostile control has not
-yet executed on Windows at this revision; the earlier receipt does not cover it.
-Success controls require NTFS/oplock acquisition to work; no unavailable
-prerequisite can pass by skipping. The checkpoint cases require a clean
-signed launch to visit the initial file open, image-guard acquisition, digest
-verification, the pre-creation boundary, and the suspended-leader boundary in
-that exact order.
-Their retained-writable-section counterpart records no reachable checkpoint,
-then proves the retained section can still mutate and restore the fixture.
-Those tests demonstrate where this primitive refuses; they do not establish an
-atomic writable-section exclusion proof. All eighteen selected native cases passed
-at `06c0090d9`; later source revisions need their own execution receipt.
+### Native binding evidence and selected hostile cases
 
-The initial-file-open observation is emitted immediately after the first
-`FILE_SHARE_READ` open succeeds, before metadata checks or oplock acquisition.
-Both the section-without-view fixture and the surviving-view fixture now require
-`Capsule(ArtifactBinding)` with no observation reached. This separates refusal
-at the original open from later advisory-oplock refusal; the earlier checkpoint
-began only after the oplock request. The source now names a twenty-six-case
-selector, including two request/bundle handoff cases; all additions need a new
-native execution receipt.
-Microsoft's [CreateFile sharing contract](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilea)
-states that omission of `FILE_SHARE_WRITE` refuses existing writable mappings.
-The new cases test that admission behavior for both retained-capability shapes.
-If either reaches the file-open observation, the sharing-only exclusion argument
-is rejected even if the oplock later refuses. This source-only change does not
-accept exact launched-image binding, ordinary Windows CLI transport, or WP-05
-promotion.
+The initial-open observation immediately follows the first successful
+`FILE_SHARE_READ` open, before metadata checks or oplock acquisition. Both a
+retained writable section with no view and a surviving writable view whose
+original handles have closed require `Capsule(ArtifactBinding)` with no
+observation reached. A retained no-view section must still map writable after
+refusal and observably change/restore a same-length byte of the valid PE
+fixture. The clean fixture must subsequently acquire the complete image guard.
+Unavailable prerequisites never count as passing skips.
 
-Local verification on 30 September 2026: the initial `64472c71b` continuation
-and the retained-oplock correction both passed the Windows-target check below
-(the correction additionally used `--offline`):
-`cargo check --locked -p semaprax-native-rust-interop-platform-sys --tests
---target x86_64-pc-windows-msvc` passed on macOS using the preinstalled target
-standard library. This type-checks the Windows library and test source
-but executes no Windows code. The corrected sixteen-case Windows gate's
-`--self-test` passed. The initial Linux gate's `--self-test` passed 137/137 checks, including the explicit exclusion
-of the new Windows-only test module. This earlier verification predates the
-eighteen-case [native run](https://github.com/wavect/semaprax/actions/runs/36911767583).
+Those tests, the exact five-checkpoint successful child launch, and the earlier
+substitution/settlement corpus passed 24/24 at `d0b42ce3d` in
+[run 36988402356](https://github.com/wavect/semaprax/actions/runs/36988402356).
+The request/bundle child handoff and protected carrier duplication corpus then
+passed 26/26 at `2c9695f5d` in
+[run 36991582065](https://github.com/wavect/semaprax/actions/runs/36991582065).
+These are native Windows Server 2025 receipts using deterministic test keys.
+They substantiate the selected primitives and do not establish release trust.
 
+Two further selected native cases in this revision require their own receipt:
 
-### Binding decision and next implementation boundary (#333)
+- `windows_runtime_image_sharing_race_preserves_authenticated_bytes` runs a
+  retained no-view section winner control, a clean image-guard winner control,
+  and eight concurrent kernel-open races. Exactly one conflicting open may
+  win. When the section wins, admission refuses and the section must
+  observably mutate then restore the signed file. When the guard wins, the
+  hostile writer must receive `ERROR_SHARING_VIOLATION` while the guard stays
+  held. Every iteration requires successful authenticated reacquisition,
+  empty scratch and the warmed parent handle count.
+- `windows_runtime_image_sharing_excludes_writers_at_every_launch_boundary`
+  synchronously joins another thread's hostile writer attempt at the initial
+  open, guard acquisition, digest validation, pre-process and suspended-leader
+  checkpoints. At each checkpoint a fresh read-only file handle must also
+  refuse duplication with read/write access. Every writer open must return
+  `ERROR_SHARING_VIOLATION`; the child
+  must exhibit the authenticated fixture behavior and settle with exact exit
+  37 and an empty scratch parent. No checkpoint may be omitted.
 
-Source/API review on 30 September 2026 retains the current partial primitive
-and leaves exact binding unaccepted. This is a design decision and work plan,
-not a new execution receipt or a claim that the race has been reproduced.
-The affected completion row is WP-05. Its Windows production boundary stays
-unpromoted; the historical ten-case evidence remains attached to its original
-revision. The eighteen-case selector passed at exact checkout `06c0090d9`;
-that narrows the runtime-evidence gap but does not prove atomic exclusion of a
-retained writable section or promote WP-05.
+The concurrent cases exercise the implementation ordering; repeated race
+success alone is not the proof. The proof combines the documented sharing and
+mapping-access contracts, continuous handle ownership in the implementation,
+and native no-view/surviving-view initial-open observations. The existing
+length/digest/role mismatch, leaf deletion/write/rename/hardlink, ancestor
+rename, fresh-read-handle mapping, image-handle settlement and undeclared
+inherited-handle cases remain selected.
 
-The exploratory OWNER RIGHTS fresh-image experiment at `f9ddd4fdd` failed
-in native [run 36983893062](https://github.com/wavect/semaprax/actions/runs/36983893062):
-creation and copying passed, but `SetSecurityInfo` returned
-`ERROR_ACCESS_DENIED` (5) when changing the creator-held file's DACL. Its
-unsettled fixture then contaminated later cases; those cascaded failures are
-not independent failures of the established confinement cases. The exploratory
-case is retired, preserving the prior twenty-four-case selector and every
-production guard. It was never accepted binding coverage.
+### Retired experiments and remaining issue boundary
 
-A proposed replacement using a `READ_CONTROL`-only handle to bridge writer
-closure is also rejected. Microsoft's [MS-FSA sharing algorithm](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-fsa/8c0e3f4f-0729-49f4-a14d-7f7add593819)
-and [deletion-sharing checks](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-fsa/82b364ce-6d7b-422f-8d88-4db32eea809a)
-only enforce these sharing conflicts for opens holding data-read, execute,
-data-write, append or delete access. A metadata-only handle therefore cannot
-establish the required deletion/substitution barrier. Exact signed-image
-binding remains open; neither the failed experiment nor this source review
-provides a production binding guarantee.
+The OWNER RIGHTS fresh-image experiment at `f9ddd4fdd` failed its
+`SetSecurityInfo` transition with `ERROR_ACCESS_DENIED` in
+[run 36983893062](https://github.com/wavect/semaprax/actions/runs/36983893062).
+It was retired at `16e14488ed`; no accepted behavior depends on it. A
+metadata-only bridge also remains rejected by the
+[MS-FSA sharing algorithm](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-fsa/8c0e3f4f-0729-49f4-a14d-7f7add593819).
+No ACL transition, copy/close/reopen scheme, image-section experiment or
+byte-range lock is required by the continuous data-read sharing design.
 
-The proposed repair must establish one continuous invariant: from the first
-authenticated byte read until the loader has consumed the admitted image,
-no untrusted holder can change those bytes or substitute the consumed object.
-The proof must cover an already-created writable section with no current view,
-not just open writers and existing mapped views. A matching native pathname
-and a clean event observation do not establish that invariant.
+The broader resource corpus still requires actual CPU, committed-memory and
+output exhaustion with sticky failure and job/handle settlement. Inspecting
+job flags alone does not meet that obligation. Preserve the production
+one-process limit and separately authorized test-only descendant fixture.
+Ordinary provisioner integration and production support remain separate from
+#333's signed binding and hostile-runtime acceptance.
 
-The following shortcuts are rejected by this review:
-
-- Changing to a Read-Handle, Read-Write or Read-Write-Handle oplock does not
-  supply a writable-section barrier: the documented section-synchronization
-  rule above applies to all four request types and requires no acknowledgment.
-- Adding more hashes or event checks leaves an interval after the last check.
-  Checking a suspended child's name also establishes no byte identity.
-- A byte-range lock cannot close this gap: Microsoft's
-  [LockFileEx contract](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-lockfileex)
-  explicitly permits access through mapped views despite a file lock.
-- A fresh copy followed by closing its writer and reopening read-only needs
-  a separate authority argument for that transition. Keeping the writer open
-  while calling [ReOpenFile](https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-reopenfile)
-  with no write sharing conflicts with the existing write access. Random names
-  or an ACL granting the same effective SID are not themselves a proof against
-  another process with that SID. A new broker identity would change the
-  authority boundary and must be specified and authorized separately.
-
-The next bounded batch is a **native mechanism experiment**, in the existing
-`primitive::tests::binding` harness. It must precede a production guard change:
-
-1. Extend the existing no-view writable-section fixture with bounded event
-   handshakes. Retain the section while closing the original writer; attempt
-   view creation and mutation at each explicit boundary: after image guard
-   acquisition, after digest validation, before process creation, and while
-   the leader remains suspended before its final check/resume. Admission
-   refusal must occur before the mutation hook; if admission succeeds, the
-   test must actually reach the hook and attempt the mutation. Record which
-   path occurred. Do not turn an unavailable setup into a passing skip.
-2. Evaluate a separately owned image-section guard created from the held file
-   with `CreateFileMappingW(PAGE_READONLY | SEC_IMAGE)` and an owned mapped
-   view, retained through settlement. This is an experiment, not an approved
-   repair: the [documented mapping API](https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-createfilemappingw)
-   describes PE-derived page protections, but does not by itself prove that a
-   later pathname launch consumes those exact authenticated bytes. Establish
-   exclusion of retained writable sections, file-cache/image-section
-   coherence, loader object identity and all view/handle lifetimes before
-   proposing `HeldImage` integration. Hash the signed raw file layout; hashing
-   relocated image pages is not the capsule's artifact digest.
-3. Use a valid PE fixture with a known bounded, same-length mutation location;
-   verify the hostile writer changes the intended bytes in an unguarded
-   control. A malformed PE rejected by the loader is not binding evidence.
-   For any successful protected launch, require the authenticated fixture's
-   behavior, observed leader exit, zero job members, exact scratch cleanup,
-   and the warmed parent handle count. For a refusal, require the stable
-   `Capsule(ArtifactBinding)` class and no resumed leader. Retain separate
-   assertions for pre-process refusal and suspended-process settlement.
-4. Add the exact cases to `EXPECTED_TESTS` in
-   `scripts/doctor-provisioned-windows-gate.py`, preserve its existing twenty-two
-   names, and update its count/parser controls and the Linux gate's explicit
-   Windows-only exclusion if a new test submodule is added. Keep experiment
-   results and release acceptance separate; repeated stress success alone
-   cannot prove the invariant.
-
-The earlier continuation bound `bInheritHandles` to an explicit three-handle
-startup list and added a child probe of an unrelated inheritable delete-on-close
-sentinel. The current source extends that fixed list with only the authenticated
-request and bundle carriers and adds a real child read-only mapping check. The
-historical receipt covers only the prior three-handle boundary. Inspecting job
-flags does not exercise resource exhaustion:
-CPU, committed-memory and output limits still need specified bounds, actual
-violating children, selected failure classes, and post-failure job/handle
-settlement. The current `tightened_job` sets an active process limit and
-kill-on-close behavior, not CPU or memory bounds. Add those bounds through this
-owning contract before claiming the resource corpus is complete; preserve the
-existing production one-process and test-only two-process descendant
-distinction.
-
-`confined_spawn` now receives request and bundle bytes, creates their
-authenticated bounded carriers as part of the signed-capsule admission stage,
-binds the signed slots and selector/role, and exposes only the declared five
-handle child inventory. The test-only image checkpoint helper continues to use
-fixed signed test carriers. This does not add a production route: any ordinary
-Windows provisioner integration still needs its own protocol, authority review,
-and native evidence.
-
-Verification required for the implementation batch: the Windows target
-library/test type-check, both provisioned gate self-tests, the complete native
-Windows selector on the changed revision, and the repository full profile.
-This design-only review ran no Cargo, build, test, or native Windows command;
-none of those gates gains new evidence from this section.
+For this batch, run the Windows library/test type-check, both provisioned gate
+self-tests and the complete native Windows selector on the changed revision.
+The user has explicitly delegated the full quality profile to hosted CI; it
+is not a local issue-closure prerequisite. This source revision adds two
+selected tests but does not claim they have executed yet.
 
 ## Settlement contract
 
@@ -601,14 +512,14 @@ The dispatch-only
 uses an ephemeral `windows-2025` runner and creates a fresh, explicit scratch
 parent under `RUNNER_TEMP`. The gate fails when the host is not 64-bit Windows,
 the parent is missing, nonempty, or a reparse point, Cargo fails, any named
-test is filtered or ignored, or the test summary does not report all twenty-six
+test is filtered or ignored, or the test summary does not report all twenty-eight
 selected cases as passed. It never treats an absent prerequisite or a zero-test
 run as a skip/pass. The historical receipt below covers the earlier twenty-two
 case selector only.
 
 `scripts/doctor-provisioned-windows-gate.py --self-test` checks the gate's
 refusal and libtest-result parsing on any host; it provides no Windows runtime
-evidence. `--plan` prints the exact twenty-six-test selector. The live selection runs
+evidence. `--plan` prints the exact twenty-eight-test selector. The live selection runs
 `windows_runtime_launches_restricted_child_inside_acl_scratch_and_settles_it`
 and `windows_runtime_timeout_terminates_the_confined_job_and_settles_cancellation`,
 plus `windows_runtime_timeout_terminates_an_actual_job_descendant`,
@@ -620,7 +531,7 @@ plus `windows_runtime_timeout_terminates_an_actual_job_descendant`,
 `windows_runtime_signed_linux_architecture_capsule_refuses_before_token_job_or_filesystem`,
 and `windows_runtime_protected_scratch_dacl_blocks_inherited_parent_ace`.
 The nested `primitive::tests::binding` module adds the image-binding cases described in
-[Signed image binding](#signed-image-binding-continuation-333-partial-native-runtime-evidence).
+[Signed image binding](#signed-image-binding-333-continuous-sharing-exclusion).
 Its post-binding launch hook attempts a new hard link, writable open, and
 writable section from a fresh read handle before process creation; each must
 refuse before the authenticated child is allowed to run. Those attempts do not
@@ -674,9 +585,9 @@ The earlier expanded selector passed 22/22 with none ignored at `e15c16202` in
 [run 36919771375](https://github.com/wavect/semaprax/actions/runs/36919771375).
 Its new retained-section and carrier cases establish refusal and handle/scratch
 settlement only; they do not establish image-byte binding or child transport.
-The two later checkpoint cases and two request/bundle handoff cases are included
-in this source's twenty-six-case selector and require their own native Windows
-execution receipt.
+The later checkpoint and request/bundle handoff cases passed in the exact
+24/26-case native receipts above. The two concurrent sharing cases extend the
+selector to twenty-eight and require a new native Windows receipt.
 
 ## Acceptance criteria status
 
@@ -684,16 +595,16 @@ execution receipt.
 |---|---|
 | Versioned Windows contract, cross-referenced from V1 | met |
 | Confinement primitive exists in the owning crate | implemented in `doctor::windows_confinement::primitive`; hosted type-check at exact checkout `7cab8aa8` and historical five selected runtime tests passed at exact checkout `3d4220b6`; see [Nonclaims](#nonclaims) |
-| Sealed-capsule consumption | standalone primitive calls shared `parse_signed` with the compile-time release-key input and requires native Windows code 3/4; it now carries exact signed request/bundle slots to a fixed child inventory, but the twenty-six-case source has no native receipt; mapped-section race exclusion and ordinary Windows CLI transport remain open |
+| Sealed-capsule consumption | standalone primitive calls shared `parse_signed` with the compile-time release-key input and requires native Windows code 3/4; it now carries exact signed request/bundle slots to a fixed child inventory, with a 26-case native receipt at `2c9695f5d`; the two additional concurrent sharing cases need a native receipt; ordinary Windows CLI transport remains open |
 | Hostile-input tests for the host-independent parts | 29 tests across `capsule`, `refusal`, and `settlement` pass on this authoring host (macOS arm64); `cargo test -p semaprax-native-rust-interop-platform-sys --lib doctor::windows_confinement` |
-| Runtime tests for the Win32 primitive itself | twenty-two selected cases, including held-image probes and carrier handle settlement, passed in [run 36919771375](https://github.com/wavect/semaprax/actions/runs/36919771375) on `e15c16202` |
-| Fail-closed gate authored and run | script self-test and exact twenty-two-test selector passed at `e15c16202` |
+| Runtime tests for the Win32 primitive itself | 26 selected cases passed in [run 36991582065](https://github.com/wavect/semaprax/actions/runs/36991582065) at `2c9695f5d`; two additional concurrent sharing cases await native execution |
+| Fail-closed gate authored and run | exact 26-case selector passed at `2c9695f5d`; the 28-case selector requires a new receipt |
 | Linux, macOS, or existing job-object evidence never cited as Windows proof | met |
 | `docs/COMPLETION-MATRIX.md` WP-05 promoted for Windows | not done; not claimed |
 
 ## Nonclaims
 
-This contract does not claim that the twenty-six-test Windows selector is a
+This contract does not claim that the twenty-eight-test Windows selector is a
 complete hostile corpus or production-support gate. The two-test run at
 `c6bf9902` and five-test run at `3d4220b6` each bind only their exact checkout
 and selected tests.
@@ -703,10 +614,9 @@ tests give narrow observations only for their exact checkout and assertions.
 Earlier hand-checking against vendored `windows-sys` was diligence, not
 substitute execution evidence. The selector uses a
 deterministic test-only signing key and does not establish release trust. The
-partial image checks have no atomic exclusion proof for retained writable
-sections despite their earlier selected native pass, and the newer checkpoint
-cases have no native execution receipt. The standalone request/bundle handoff
-has no native receipt and ordinary Windows transport remains absent. Independent hostile-corpus,
+continuous image-sharing argument and exact prior native receipts are recorded
+above; the two new concurrent sharing cases still require execution. Ordinary
+Windows transport remains absent. Independent hostile-corpus,
 general descendant-tree, and production-support requirements remain open. Do not claim the existing ordinary-probe
 job-object confinement in `windows.rs` as evidence of production-grade
 sandboxing (it confines process *lifetime*, not filesystem or network access,
@@ -724,7 +634,6 @@ observations of the restricted token, protected DACL, production job limits,
 descendant launch refusal, test-owned descendant timeout, normal/nonzero
 settlement, cancellation, and repeated filesystem-stage refusal/handle cleanup.
 The remaining work includes restricted-token refinement,
-closing the retained writable-section mutation race, native validation of the
-selected-image checks, native validation of the standalone handoff, ordinary
+native validation of the new concurrent image-sharing cases, ordinary
 Windows request/bundle transport, and a broader hostile/resource corpus across
 supported Windows runners.

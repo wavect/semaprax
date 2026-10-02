@@ -2,9 +2,11 @@
 //!
 //! Require local NTFS, hold a read-only/no-write/no-delete file open, and pin
 //! every component of its normalized volume-GUID name without following
-//! reparse points. A retained read oplock detects observed section changes.
-//! Oplock breaks for writable sections are advisory: this does not establish
-//! atomic exclusion of mutation through every retained writable section.
+//! reparse points. CreateFile's no-write-sharing contract rejects an existing
+//! writable mapping even after its writer handle closes. The continuously held
+//! data-read handle then prevents obtaining the write access needed to create
+//! another writable section. A retained read oplock is defense in depth, not
+//! the exclusion mechanism. See the owning Windows provisioner specification.
 //! This image binding module supplies one part of the primitive's separate
 //! request/bundle handoff; it does not validate DLL closure or protect against
 //! kernel/administrator mutation.
@@ -169,8 +171,12 @@ impl HeldImage {
 }
 
 fn open(path: &Path, flags: u32) -> Result<File, ()> {
-    // All handles are non-inheritable. FILE_SHARE_READ denies new write/delete
-    // opens; it does not by itself exclude retained writable sections.
+    // All handles are non-inheritable. Do not add FILE_SHARE_WRITE or replace
+    // the data-read access with metadata-only access: CreateFile documents
+    // refusal for existing writable mappings when write sharing is absent.
+    // Keeping this successful open alive excludes subsequent writable opens
+    // and therefore new writable mappings, including no-view sections.
+    // https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilew
     // OPEN_REPARSE_POINT authenticates
     // the opened component itself rather than a substituted link target.
     let _ = wide(path.as_os_str())?;

@@ -27,6 +27,8 @@ PACKAGE = "semaprax-native-rust-interop-platform-sys"
 PARENT_ENV = "SEMAPRAX_WINDOWS_CONFINEMENT_TEST_PARENT"
 FILTER = "windows_runtime_"
 EXPECTED_TESTS = (
+    "doctor::windows_confinement::primitive::tests::binding::windows_runtime_image_sharing_race_preserves_authenticated_bytes",
+    "doctor::windows_confinement::primitive::tests::binding::windows_runtime_image_sharing_excludes_writers_at_every_launch_boundary",
     "doctor::windows_confinement::primitive::tests::windows_runtime_launches_restricted_child_inside_acl_scratch_and_settles_it",
     "doctor::windows_confinement::primitive::tests::windows_runtime_timeout_terminates_the_confined_job_and_settles_cancellation",
     "doctor::windows_confinement::primitive::tests::windows_runtime_timeout_terminates_an_actual_job_descendant",

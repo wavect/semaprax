@@ -81,6 +81,19 @@ observer. It emits aggregate coverage and totals grouped by tokenizer and
 fingerprint, boundary, and reference kind without retaining event/session IDs,
 source revisions, subjects, or digests.
 
+`show` reads either report offline; it needs neither a tokenizer nor a compiler:
+
+```sh
+python3 scripts/token_report.py show ./token-report.json --format text
+python3 scripts/token_report.py show ./session-report.json --format markdown --output ./token-summary.md
+```
+
+The output labels a reduction, growth, and unavailable model tokens separately;
+it is a report snapshot, never provider spending or task-quality evidence.
+**SEMAPRAX: Show Token Report** offers the same optional read-only local view
+in the existing VS Code extension. Issues #237, #309, and #340 remain outside
+this measurement and rendering work.
+
 ## Local measurements
 
 The committed [measurement report](../benchmarks/compact-semantic-projection-v2/local-token-measurements.json)

@@ -25,10 +25,21 @@ MAX_EXECUTABLE_BYTES = 512 * 1024 * 1024
 MAX_STDERR_BYTES = 4096
 DEFAULT_TIMEOUT = 30.0
 SCHEMA = "semaprax.token-comparison.v1"
+MAX_SAFE_INTEGER = 9007199254740991
 
 
 class ReportError(RuntimeError):
     pass
+
+
+def checked_count(value: Any) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool) and 0 <= value <= MAX_SAFE_INTEGER
+
+
+def checked_add(left: int, right: int, label: str) -> int:
+    if left > MAX_SAFE_INTEGER - right:
+        raise ReportError(f"{label} exceeds the supported numeric range")
+    return left + right
 
 
 def bounded_read(path: pathlib.Path, label: str) -> bytes:
@@ -224,6 +235,33 @@ def write_report(path: pathlib.Path, document: dict[str, Any], overwrite: bool) 
         raise ReportError(f"cannot write report: {error}") from error
 
 
+def write_rendered(path: pathlib.Path, rendered: str, overwrite: bool) -> None:
+    """Write an explicitly requested human export without an overwrite race."""
+    if path.exists() and not overwrite:
+        raise ReportError(f"refusing to overwrite existing report: {path}")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary: pathlib.Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(prefix=".token-summary-", dir=path.parent, delete=False) as handle:
+            temporary = pathlib.Path(handle.name)
+            handle.write(rendered.encode("utf-8"))
+            handle.flush()
+            os.fsync(handle.fileno())
+        if overwrite:
+            os.replace(temporary, path)
+        else:
+            os.link(temporary, path)
+            temporary.unlink()
+    except FileExistsError as error:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
+        raise ReportError(f"refusing to overwrite existing report: {path}") from error
+    except OSError as error:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
+        raise ReportError(f"cannot write report: {error}") from error
+
+
 def projection(args: argparse.Namespace) -> dict[str, Any]:
     cli = args.semaprax.resolve()
     root = pathlib.Path.cwd().resolve()
@@ -307,44 +345,154 @@ def session(args: argparse.Namespace) -> dict[str, Any]:
     raw = bounded_read(args.events, "event stream")
     groups: dict[tuple[Any, ...], dict[str, Any]] = {}
     total = malformed = 0
+    seen: dict[str, dict[str, Any]] = {}
     for number, line in enumerate(raw.splitlines(), 1):
         if not line:
             continue
-        total += 1
         try:
-            event = json.loads(line)
-        except json.JSONDecodeError as error:
+            event = json.loads(line, object_pairs_hook=lambda pairs: dict(pairs) if len({key for key, _ in pairs}) == len(pairs) else (_ for _ in ()).throw(ValueError("duplicate key")))
+        except (ValueError, json.JSONDecodeError) as error:
             raise ReportError(f"event stream line {number} is not JSON") from error
-        required = ("schema", "boundary", "outcome", "status", "bytes", "digest")
+        required = ("schema", "eventId", "sessionId", "attemptSequence", "deliverySequence", "method", "boundary", "subjectRevision", "outcome", "status", "bytes", "digest", "tokenizer", "tokenizerFingerprint", "tokens", "referenceKind", "baselineTokens")
         if not isinstance(event, dict) or any(field not in event for field in required):
             malformed += 1
             continue
         if event["schema"] != "semaprax.token-observation.v1":
             malformed += 1
             continue
+        identifiers = ("eventId", "sessionId", "method", "boundary")
+        nullable_text = ("subjectRevision", "digest", "tokenizer", "tokenizerFingerprint", "referenceKind")
+        nullable_count = ("bytes", "tokens", "baselineTokens")
+        if any(not isinstance(event[key], str) or not event[key] or len(event[key].encode("utf-8")) > 4096 for key in identifiers) or any(event[key] is not None and (not isinstance(event[key], str) or len(event[key].encode("utf-8")) > 4096) for key in nullable_text) or any(not checked_count(event[key]) for key in ("attemptSequence", "deliverySequence")) or any(event[key] is not None and not checked_count(event[key]) for key in nullable_count) or event["outcome"] not in ("success", "error", "malformed", "timeout", "incomplete") or event["status"] not in ("measured", "tokenizer_unavailable", "tokenizer_failed", "baseline_unavailable", "incomplete"):
+            malformed += 1
+            continue
+        previous = seen.get(event["eventId"])
+        if previous is not None:
+            if previous != event:
+                raise ReportError(f"event stream repeats eventId with conflicting metadata: {event['eventId']}")
+            continue
+        seen[event["eventId"]] = event
+        total += 1
         key = (
             event.get("tokenizer"), event.get("tokenizerFingerprint"), event["boundary"],
             event.get("referenceKind"),
         )
         group = groups.setdefault(key, {
             "tokenizer": key[0], "tokenizer_fingerprint": key[1], "boundary": key[2],
-            "reference_kind": key[3], "coverage": {"events": 0, "token_measured": 0, "baseline_available": 0},
+            "reference_kind": key[3], "coverage": {"events": 0, "token_measured": 0, "baseline_available": 0, "paired": 0},
             "outcomes": {}, "statuses": {}, "bytes": 0, "tokens": 0, "baseline_tokens": 0,
+            "paired_actual_tokens": 0, "paired_baseline_tokens": 0,
         })
         group["coverage"]["events"] += 1
         group["outcomes"][str(event["outcome"])] = group["outcomes"].get(str(event["outcome"]), 0) + 1
         group["statuses"][str(event["status"])] = group["statuses"].get(str(event["status"]), 0) + 1
         if isinstance(event["bytes"], int) and not isinstance(event["bytes"], bool) and event["bytes"] >= 0:
-            group["bytes"] += event["bytes"]
-        if isinstance(event.get("tokens"), int) and not isinstance(event["tokens"], bool) and event["tokens"] >= 0:
+            group["bytes"] = checked_add(group["bytes"], event["bytes"], "observed bytes")
+        actual_measured = isinstance(event.get("tokens"), int) and not isinstance(event["tokens"], bool) and event["tokens"] >= 0
+        baseline_available = isinstance(event.get("baselineTokens"), int) and not isinstance(event["baselineTokens"], bool) and event["baselineTokens"] >= 0
+        if actual_measured:
             group["coverage"]["token_measured"] += 1
-            group["tokens"] += event["tokens"]
-        if isinstance(event.get("baselineTokens"), int) and not isinstance(event["baselineTokens"], bool) and event["baselineTokens"] >= 0:
+            group["tokens"] = checked_add(group["tokens"], event["tokens"], "observed tokens")
+        if baseline_available:
             group["coverage"]["baseline_available"] += 1
-            group["baseline_tokens"] += event["baselineTokens"]
+            group["baseline_tokens"] = checked_add(group["baseline_tokens"], event["baselineTokens"], "observed baseline tokens")
+        if actual_measured and baseline_available and event["outcome"] == "success" and event["status"] == "measured":
+            group["coverage"]["paired"] += 1
+            group["paired_actual_tokens"] = checked_add(group["paired_actual_tokens"], event["tokens"], "paired actual tokens")
+            group["paired_baseline_tokens"] = checked_add(group["paired_baseline_tokens"], event["baselineTokens"], "paired baseline tokens")
     ordered = [groups[key] for key in sorted(groups, key=lambda key: tuple("" if value is None else str(value) for value in key))]
     identity_fields = {"report_kind": "session", "event_stream_sha256": sha256(raw), "groups": ordered, "malformed_events": malformed}
     return {"schema": "semaprax.token-comparison-session.v1", "comparison_identity": identity(identity_fields), **identity_fields, "events": total}
+
+
+def strict_json(data: bytes, label: str) -> dict[str, Any]:
+    def unique_pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+        result: dict[str, Any] = {}
+        for key, value in pairs:
+            if key in result:
+                raise ReportError(f"{label} has duplicate JSON key `{key}`")
+            result[key] = value
+        return result
+    try:
+        value = json.loads(data, object_pairs_hook=unique_pairs)
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise ReportError(f"{label} is not valid JSON") from error
+    if not isinstance(value, dict):
+        raise ReportError(f"{label} must be a JSON object")
+    return value
+
+
+def show_counts(counts: Any) -> list[str]:
+    if not isinstance(counts, dict) or counts.get("measurement_status") != "measured":
+        return ["Model tokens unavailable; byte measurements remain separate."]
+    baseline, actual, delta = counts.get("baseline_tokens"), counts.get("actual_tokens"), counts.get("delta_tokens")
+    if not all(isinstance(value, int) and not isinstance(value, bool) and value >= 0 for value in (baseline, actual)) or not isinstance(delta, int) or delta != baseline - actual:
+        raise ReportError("token report has invalid measured token counts")
+    result = [f"Baseline tokens: {baseline}", f"Actual payload tokens: {actual}"]
+    result.append(f"{delta} tokens saved versus reference." if delta > 0 else f"+{-delta} tokens used versus reference." if delta < 0 else "No token difference versus reference.")
+    percentage = counts.get("delta_percentage")
+    if percentage is not None:
+        if not isinstance(percentage, (int, float)) or isinstance(percentage, bool):
+            raise ReportError("token report has invalid percentage")
+        result.append(f"Reported percentage: {percentage}%")
+    return result
+
+
+def show_text(value: dict[str, Any]) -> str:
+    schema = value.get("schema")
+    if schema == SCHEMA:
+        if value.get("report_kind") not in ("projection", "compare") or not isinstance(value.get("baseline"), dict) or not isinstance(value.get("actual"), dict):
+            raise ReportError("unsupported token comparison report")
+        baseline, actual = value["baseline"], value["actual"]
+        if not all(isinstance(row.get("utf8_bytes"), int) and not isinstance(row.get("utf8_bytes"), bool) and row["utf8_bytes"] >= 0 for row in (baseline, actual)):
+            raise ReportError("token report has invalid byte counts")
+        kind = value.get("baseline_kind") if value["report_kind"] == "projection" else value.get("reference_kind")
+        if not isinstance(kind, str):
+            raise ReportError("token report has invalid comparison type")
+        lines = ["SEMAPRAX token report snapshot", "Current revision not verified. This local report is not live monitoring or a billed counter.", "", f"Comparison type: {kind}"]
+        if value["report_kind"] == "projection":
+            if not isinstance(value.get("source_revision"), str) or not isinstance(value.get("actual_kind"), str):
+                raise ReportError("projection report lacks revision or boundary")
+            lines.extend([f"Subject revision: {value['source_revision']}", f"Measured boundary: {value['actual_kind']}"])
+        lines.extend([f"Baseline payload bytes: {baseline['utf8_bytes']}", f"Actual payload bytes: {actual['utf8_bytes']}"])
+        lines.extend(show_counts(value.get("counts")))
+        lines.extend(["", "Provider usage is not present in this report."])
+        return "\n".join(lines) + "\n"
+    if schema == "semaprax.token-comparison-session.v1":
+        groups = value.get("groups")
+        if value.get("report_kind") != "session" or not isinstance(value.get("events"), int) or not isinstance(groups, list):
+            raise ReportError("unsupported token session report")
+        lines = ["SEMAPRAX session token report snapshot", "Current revision not verified. This local report is not live monitoring or a billed counter.", "", f"Observed events: {value['events']}", "", "Grouped measurements"]
+        for position, group in enumerate(groups, 1):
+            if not isinstance(group, dict) or not isinstance(group.get("coverage"), dict):
+                raise ReportError("session report has invalid group")
+            coverage = group["coverage"]
+            if not all(isinstance(coverage.get(key), int) and not isinstance(coverage[key], bool) and coverage[key] >= 0 for key in ("events", "paired")):
+                raise ReportError("session report has invalid coverage")
+            lines.extend(["", f"Group {position}", f"Tokenizer: {group.get('tokenizer') if group.get('tokenizer') is not None else 'model tokens unavailable'}", f"Measured boundary: {group.get('boundary') if group.get('boundary') is not None else 'unavailable'}", f"Comparison type: {group.get('reference_kind') if group.get('reference_kind') is not None else 'unavailable'}", f"Measured pairs: {coverage['paired']}/{coverage['events']} responses"])
+            paired_actual, paired_baseline = group.get("paired_actual_tokens"), group.get("paired_baseline_tokens")
+            if group.get("tokenizer") is None or coverage["paired"] == 0:
+                lines.append("Paired token reduction unavailable for this group.")
+            elif not all(isinstance(item, int) and not isinstance(item, bool) and item >= 0 for item in (paired_actual, paired_baseline)):
+                raise ReportError("session report has invalid paired token totals")
+            else:
+                delta = paired_baseline - paired_actual
+                lines.extend([f"Paired actual payload tokens: {paired_actual}", f"Paired reference tokens: {paired_baseline}", f"{delta} tokens saved versus reference." if delta > 0 else f"+{-delta} tokens used versus reference." if delta < 0 else "No token difference versus reference."])
+        lines.extend(["", "Provider usage is not present in this report."])
+        return "\n".join(lines) + "\n"
+    raise ReportError("unsupported token report schema")
+
+
+def markdown(text: str) -> str:
+    # The renderer is deliberately a fenced text alternative: report strings
+    # cannot become links, HTML, or Markdown instructions.
+    return "# SEMAPRAX token report snapshot\n\n```text\n" + text.rstrip("\n") + "\n```\n"
+
+
+def show(args: argparse.Namespace) -> str:
+    value = strict_json(bounded_read(args.report, "token report"), "token report")
+    rendered = show_text(value)
+    return markdown(rendered) if args.format == "markdown" else rendered
 
 
 def parser() -> argparse.ArgumentParser:
@@ -371,11 +519,23 @@ def parser() -> argparse.ArgumentParser:
     session_parser.add_argument("--events", required=True, type=pathlib.Path)
     session_parser.add_argument("--output", required=True, type=pathlib.Path)
     session_parser.add_argument("--overwrite", action="store_true")
+    show_parser = commands.add_parser("show")
+    show_parser.add_argument("report", type=pathlib.Path)
+    show_parser.add_argument("--format", choices=("text", "markdown"), default="text")
+    show_parser.add_argument("--output", type=pathlib.Path)
+    show_parser.add_argument("--overwrite", action="store_true")
     return result
 
 
 def main() -> int:
     args = parser().parse_args()
+    if args.command == "show":
+        rendered = show(args)
+        if args.output is None:
+            sys.stdout.write(rendered)
+        else:
+            write_rendered(args.output, rendered, args.overwrite)
+        return 0
     document = projection(args) if args.command == "projection" else compare(args) if args.command == "compare" else session(args)
     write_report(args.output, document, args.overwrite)
     return 0

@@ -60,7 +60,8 @@
     "onCommand:semaprax.checkProject",
     "onCommand:semaprax.openExplorer",
     "onCommand:semaprax.exploreSelection",
-    "onCommand:semaprax.reviewCandidateGraph"
+    "onCommand:semaprax.reviewCandidateGraph",
+    "onCommand:semaprax.showTokenReport"
   ],
   "scripts": {
     "test": "node --test test/*.test.js",
@@ -128,6 +129,7 @@
       ,{ "command": "semaprax.openExplorer", "title": "SEMAPRAX: Open Semantic Explorer" }
       ,{ "command": "semaprax.exploreSelection", "title": "SEMAPRAX: Explore Selected Declaration" }
       ,{ "command": "semaprax.reviewCandidateGraph", "title": "SEMAPRAX: Review Candidate Graph" }
+      ,{ "command": "semaprax.showTokenReport", "title": "SEMAPRAX: Show Token Report" }
     ],
     "configuration": {
       "title": "SEMAPRAX",

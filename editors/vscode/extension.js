@@ -15,6 +15,7 @@ const navigation = require('./navigation');
 const { SourceIndex } = require('./positions');
 const { openExplorer, stableId } = require('./explorer');
 const { revealCurrentSource } = require('./explorer-reveal');
+const tokenReport = require('./token-report');
 let stopActive = () => {};
 // Check-on-save: run the user-selected compiler's read-only `check --json` on
 // the saved file's project and publish the result as editor diagnostics. It
@@ -424,7 +425,7 @@ function activate(context) {
   let watchers = [];
   const testMode = context.extensionMode === vscode.ExtensionMode.Test;
   const checking = activateChecks(context, testMode);
-  const testInputs = [], testPicks = [];
+  const testInputs = [], testPicks = [], testReports = [];
   const input = options => testMode && testInputs.length ? Promise.resolve(testInputs.shift()) : vscode.window.showInputBox(options);
   const pick = (items, options) => {
     if (!testMode || !testPicks.length) return vscode.window.showQuickPick(items, options);
@@ -434,6 +435,7 @@ function activate(context) {
     return Promise.resolve(selected);
   };
   const documents = new Map(), scratch = new Set(), changed = new vscode.EventEmitter();
+  const tokenDocuments = new Map(), tokenChanged = new vscode.EventEmitter();
   const holeScratch = new Map();
   const holeReports = new Set();
   const attemptReports = new Set();
@@ -611,6 +613,34 @@ function activate(context) {
       await vscode.languages.setTextDocumentLanguage(doc, language); ensureEpoch(current); return uri;
     } catch (error) { documents.delete(uri.toString()); changed.fire(uri); throw error; }
   }
+  function readSelectedTokenReport(uri) {
+    if (!uri || uri.scheme !== 'file') throw new Error('Select one local token report file');
+    let handle;
+    try {
+      const before = fs.lstatSync(uri.fsPath);
+      if (!before.isFile() || before.isSymbolicLink() || before.size > tokenReport.MAX_REPORT_BYTES) throw new Error('Token report must be a bounded regular local file');
+      handle = fs.openSync(uri.fsPath, 'r');
+      const checked = fs.fstatSync(handle);
+      if (!checked.isFile() || checked.size !== before.size || checked.size > tokenReport.MAX_REPORT_BYTES) throw new Error('Token report changed while opening');
+      const bytes = Buffer.alloc(checked.size); let offset = 0;
+      while (offset < bytes.length) { const read = fs.readSync(handle, bytes, offset, bytes.length - offset, offset); if (!read) throw new Error('Token report changed while reading'); offset += read; }
+      return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+    } catch (error) {
+      if (error instanceof Error && /Token report/.test(error.message)) throw error;
+      throw new Error(`Cannot read selected token report: ${String(error.message || error)}`);
+    } finally { if (handle !== undefined) fs.closeSync(handle); }
+  }
+  async function showTokenReport() {
+    const uri = testMode && testReports.length ? testReports.shift() : (await vscode.window.showOpenDialog({ canSelectFiles: true, canSelectFolders: false, canSelectMany: false, openLabel: 'Open Token Report', filters: { 'Token reports': ['json'] } }))?.[0];
+    if (!uri) return;
+    const report = tokenReport.validate(readSelectedTokenReport(uri));
+    const text = tokenReport.render(report);
+    const view = vscode.Uri.from({ scheme: 'semaprax-token-report', path: '/' + crypto.randomUUID() + '/report.txt' });
+    tokenDocuments.set(view.toString(), text);
+    const doc = await vscode.workspace.openTextDocument(view);
+    await vscode.window.showTextDocument(doc, { preview: true });
+    return report;
+  }
   async function catalog(selectedTarget = target) {
     requireCandidate(); if (!selectedTarget) throw new Error('Select a stable target ID first');
     const response = await invoke('change/catalog', { image_revision: image, candidate_revision: candidate, target: selectedTarget });
@@ -618,6 +648,7 @@ function activate(context) {
     return response.payload;
   }
   const commands = {
+    async showTokenReport() { return showTokenReport(); },
     async openExplorer() {
       if (!await requireExplorerSession()) return;
       return showExplorer({ mode: 'overview', target: null, direction: 'both', depth: 1, side: 'current' });
@@ -961,9 +992,12 @@ function activate(context) {
       clear('saved source refreshed'); image = response.image_revision; imageProject = response.project_revision; stale = false;
     }
   };
-  context.subscriptions.push(status, changed, vscode.workspace.registerTextDocumentContentProvider('semaprax-review', {
+  context.subscriptions.push(status, changed, tokenChanged, vscode.workspace.registerTextDocumentContentProvider('semaprax-review', {
     onDidChange: changed.event,
     provideTextDocumentContent(uri) { if (!documents.has(uri.toString())) throw new Error('Unknown virtual source reference'); return documents.get(uri.toString()); }
+  }), vscode.workspace.registerTextDocumentContentProvider('semaprax-token-report', {
+    onDidChange: tokenChanged.event,
+    provideTextDocumentContent(uri) { if (!tokenDocuments.has(uri.toString())) throw new Error('Unknown token report reference'); return tokenDocuments.get(uri.toString()); }
   }), vscode.workspace.onDidChangeTextDocument(event => {
     if (event.document.isDirty && (event.document.uri.path.endsWith('.spx') || path.basename(event.document.uri.path) === 'semaprax.toml')) clear('unsaved source');
   }), vscode.workspace.onDidCloseTextDocument(doc => {
@@ -982,6 +1016,7 @@ function activate(context) {
   if (testMode) return Object.freeze({
     enqueueInput(value) { testInputs.push(value); },
     enqueuePick(label) { testPicks.push(label); },
+    enqueueReport(uri) { testReports.push(uri); },
     async execute(name) {
       if (!Object.prototype.hasOwnProperty.call(commands, name)) throw new Error(`Unknown SEMAPRAX test command: ${name}`);
       return commands[name]();

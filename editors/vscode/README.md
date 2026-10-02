@@ -23,6 +23,7 @@ Semaprax is an experimental AI-agent-native systems programming language built a
 - Typed-hole workflows with checked fill suggestions
 - Candidate interpreter-test tasks with explicit cancellation and bounded authority
 - Agent-definition inspection and trace/evidence transcript viewing
+- Read-only local token-report snapshots
 
 The extension does not silently discover or download a compiler, and it does not grant itself build, commit, approval, publication, or network authority.
 
@@ -112,6 +113,8 @@ Open the VS Code command palette and search for `SEMAPRAX:`. The extension curre
 - documentation, ownership, contracts, effects, and cleanup-plan inspection
 - safe rename
 - agent inspection and trace/evidence transcripts
+- **SEMAPRAX: Show Token Report**, which opens one user-selected local report
+  snapshot without starting a session, calling the compiler, or refreshing source
 
 ## Settings
 

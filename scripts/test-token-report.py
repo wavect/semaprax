@@ -96,16 +96,66 @@ class BoundaryTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             events = Path(directory) / "events.jsonl"
             events.write_text(
-                '{"schema":"semaprax.token-observation.v1","eventId":"one","sessionId":"secret","attemptSequence":1,"deliverySequence":1,"method":"compact","boundary":"envelope","subjectRevision":"rev","outcome":"ok","status":0,"bytes":10,"digest":"sha256:a","tokenizer":"cl100k_base","tokenizerFingerprint":"sha256:t","tokens":8,"referenceKind":"same_selected_json","baselineTokens":10}\n'
-                '{"schema":"semaprax.token-observation.v1","eventId":"two","sessionId":"secret","attemptSequence":2,"deliverySequence":2,"method":"compact","boundary":"envelope","subjectRevision":"rev","outcome":"ok","status":0,"bytes":12,"digest":"sha256:b","tokenizer":"cl100k_base","tokenizerFingerprint":"sha256:t","tokens":9,"referenceKind":"same_selected_json","baselineTokens":10}\n',
+                '{"schema":"semaprax.token-observation.v1","eventId":"one","sessionId":"secret","attemptSequence":1,"deliverySequence":1,"method":"compact","boundary":"envelope","subjectRevision":"rev","outcome":"success","status":"measured","bytes":10,"digest":"sha256:a","tokenizer":"cl100k_base","tokenizerFingerprint":"sha256:t","tokens":8,"referenceKind":"same_selected_json","baselineTokens":10}\n'
+                '{"schema":"semaprax.token-observation.v1","eventId":"two","sessionId":"secret","attemptSequence":2,"deliverySequence":2,"method":"compact","boundary":"envelope","subjectRevision":"rev","outcome":"success","status":"measured","bytes":12,"digest":"sha256:b","tokenizer":"cl100k_base","tokenizerFingerprint":"sha256:t","tokens":9,"referenceKind":"same_selected_json","baselineTokens":10}\n',
                 encoding="utf-8",
             )
             args = report.parser().parse_args(["session", "--events", str(events), "--output", str(Path(directory) / "out.json")])
             document = report.session(args)
         self.assertEqual(document["events"], 2)
         self.assertNotIn("secret", json.dumps(document))
-        self.assertEqual(document["groups"][0]["coverage"], {"events": 2, "token_measured": 2, "baseline_available": 2})
+        self.assertEqual(document["groups"][0]["coverage"], {"events": 2, "token_measured": 2, "baseline_available": 2, "paired": 2})
         self.assertEqual(document["groups"][0]["tokens"], 17)
+
+    def test_session_uses_only_successful_paired_events_for_reduction_and_deduplicates_delivery(self):
+        with tempfile.TemporaryDirectory() as directory:
+            events = Path(directory) / "events.jsonl"
+            common = {"schema": "semaprax.token-observation.v1", "sessionId": "session", "attemptSequence": 1, "deliverySequence": 1, "method": "tool", "boundary": "response", "subjectRevision": None, "status": "measured", "bytes": 1, "tokenizer": "t", "tokenizerFingerprint": "sha256:t", "referenceKind": "paired"}
+            rows = [
+                {**common, "eventId": "one", "outcome": "success", "digest": "sha256:a", "tokens": 800, "baselineTokens": 1000},
+                {**common, "eventId": "two", "outcome": "success", "digest": "sha256:b", "tokens": 120, "baselineTokens": 100},
+                {**common, "eventId": "three", "outcome": "error", "digest": "sha256:c", "tokens": 1, "baselineTokens": 999},
+            ]
+            events.write_text("\n".join(json.dumps(row) for row in rows + [rows[0]]) + "\n", encoding="utf-8")
+            document = report.session(report.parser().parse_args(["session", "--events", str(events), "--output", str(Path(directory) / "out.json")]))
+        group = document["groups"][0]
+        self.assertEqual(document["events"], 3)
+        self.assertEqual(group["coverage"]["paired"], 2)
+        self.assertEqual((group["paired_baseline_tokens"], group["paired_actual_tokens"]), (1100, 920))
+        self.assertEqual(group["tokens"], 921, "all observed totals remain separate from paired totals")
+
+
+class ShowTests(unittest.TestCase):
+    def projection(self):
+        return {
+            "schema": report.SCHEMA, "report_kind": "projection", "baseline_kind": "same_selected_json",
+            "source_revision": "rev-1", "actual_kind": "compact_model-text",
+            "baseline": {"utf8_bytes": 1000}, "actual": {"utf8_bytes": 1200},
+            "counts": {"measurement_status": "measured", "baseline_tokens": 100, "actual_tokens": 120, "delta_tokens": -20, "delta_percentage": -20.0},
+        }
+
+    def test_show_renders_negative_counts_and_markdown_as_literal_text(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "token-report.json"
+            path.write_text(json.dumps(self.projection()), encoding="utf-8")
+            args = report.parser().parse_args(["show", str(path), "--format", "markdown"])
+            shown = report.show(args)
+        self.assertIn("+20 tokens used versus reference.", shown)
+        self.assertIn("Current revision not verified.", shown)
+        self.assertTrue(shown.startswith("# SEMAPRAX token report snapshot\n\n```text\n"))
+
+    def test_show_rejects_duplicate_keys_and_refuses_an_unrequested_overwrite(self):
+        with tempfile.TemporaryDirectory() as directory:
+            directory = Path(directory)
+            path = directory / "token-report.json"
+            path.write_text('{"schema":"x","schema":"y"}', encoding="utf-8")
+            with self.assertRaisesRegex(report.ReportError, "duplicate JSON key"):
+                report.show(report.parser().parse_args(["show", str(path)]))
+            path.write_text(json.dumps(self.projection()), encoding="utf-8")
+            output = directory / "summary.md"
+            output.write_text("keep", encoding="utf-8")
+            with self.assertRaisesRegex(report.ReportError, "refusing to overwrite"):
+                report.main_with_args if False else report.write_rendered(output, "new", False)
 
 
 if __name__ == "__main__":

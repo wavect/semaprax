@@ -21,7 +21,7 @@ const CONTRIBUTED = [
   'semaprax.checkProject', 'semaprax.goToDeclaration', 'semaprax.showReferences',
   'semaprax.showDocumentation', 'semaprax.showOwnership', 'semaprax.inspectAgent',
   'semaprax.safeRename', 'semaprax.showCleanupPlan', 'semaprax.runAgentTranscript'
-  ,'semaprax.openExplorer', 'semaprax.exploreSelection', 'semaprax.reviewCandidateGraph'
+  ,'semaprax.openExplorer', 'semaprax.exploreSelection', 'semaprax.reviewCandidateGraph', 'semaprax.showTokenReport'
 ];
 // Authority this extension must never contribute or register, whatever a host
 // selects. Build, commit and publication stay outside the editor entirely.
@@ -90,6 +90,35 @@ async function run() {
   // Every registered `semaprax.` command must be one this manifest declares:
   // an unlisted registration is as much an inventory break as a missing one.
   assert.deepEqual([...registered].filter(name => name.startsWith('semaprax.')).sort(), [...CONTRIBUTED].sort());
+
+  // Token reports are selected local snapshots. This path deliberately runs
+  // before any compiler session exists, proving it neither starts one nor
+  // asks the MCP host to refresh, test, or otherwise inspect source.
+  const reportDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'semaprax-token-report-host-'));
+  try {
+    const reportSourceBefore = fs.readFileSync(source);
+    const sha = character => 'sha256:' + character.repeat(64);
+    const projection = counts => ({
+      schema: 'semaprax.token-comparison.v1', comparison_identity: sha('a'), report_kind: 'projection', profile: 'graph', root_sha256: sha('b'), selection_sha256: sha('c'), source_revision: '<script>old-revision</script>', producer_options_sha256: sha('d'), baseline: { sha256: sha('e'), utf8_bytes: 100 }, actual: { sha256: sha('f'), utf8_bytes: 120 }, tokenizer: counts.measurement_status === 'measured' ? { name: 'cl100k_base' } : null, counts, baseline_kind: 'same_selected_json', actual_kind: 'compact_model-text', display_lf_in_measurement: false, compiler: {}
+    });
+    const write = (name, value) => { const file = path.join(reportDirectory, name); fs.writeFileSync(file, JSON.stringify(value)); return vscode.Uri.file(file); };
+    const measured = write('growth.json', projection({ measurement_status: 'measured', baseline_tokens: 10, actual_tokens: 12, delta_tokens: -2, delta_fraction: { numerator: -2, denominator: 10 }, delta_percentage: -20 }));
+    api.enqueueReport(measured); await api.execute('showTokenReport');
+    assert.match(vscode.window.activeTextEditor.document.getText(), /\+2 tokens used versus reference/);
+    assert.match(vscode.window.activeTextEditor.document.getText(), /Current revision not verified/);
+    assert.match(vscode.window.activeTextEditor.document.getText(), /<script>old-revision<\/script>/, 'untrusted strings stay literal text');
+    const unavailable = write('unavailable.json', projection({ measurement_status: 'tokenizer_unavailable', baseline_tokens: null, actual_tokens: null, delta_tokens: null, delta_fraction: null, delta_percentage: null }));
+    api.enqueueReport(unavailable); await api.execute('showTokenReport');
+    assert.match(vscode.window.activeTextEditor.document.getText(), /Model tokens unavailable/);
+    const partial = write('partial.json', { schema: 'semaprax.token-comparison-session.v1', comparison_identity: sha('a'), report_kind: 'session', event_stream_sha256: sha('b'), malformed_events: 0, events: 3, groups: [{ tokenizer: 'cl100k_base', tokenizer_fingerprint: sha('c'), boundary: 'response', reference_kind: 'paired', coverage: { events: 3, token_measured: 2, baseline_available: 2, paired: 1 }, outcomes: { success: 1, error: 1 }, statuses: { measured: 2 }, bytes: 20, tokens: 999, baseline_tokens: 999, paired_actual_tokens: 8, paired_baseline_tokens: 10 }] });
+    api.enqueueReport(partial); await api.execute('showTokenReport');
+    assert.match(vscode.window.activeTextEditor.document.getText(), /Measured pairs: 1\/3 responses/);
+    assert.match(vscode.window.activeTextEditor.document.getText(), /2 tokens saved versus reference/);
+    const hostile = path.join(reportDirectory, 'hostile.json'); fs.writeFileSync(hostile, '{"schema":"x","schema":"y"}');
+    api.enqueueReport(vscode.Uri.file(hostile)); await assert.rejects(api.execute('showTokenReport'), /Duplicate JSON key/);
+    assert.equal(api.state().running, false, 'report snapshots must not start a compiler or MCP session');
+    assert.deepEqual(fs.readFileSync(source), reportSourceBefore, 'report snapshots must not write source');
+  } finally { fs.rmSync(reportDirectory, { recursive: true, force: true }); }
 
   // Check-on-save and navigation by meaning, against the real compiler. The
   // probe file lives outside the fixture workspace so the workspace bytes stay

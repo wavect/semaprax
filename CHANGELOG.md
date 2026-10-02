@@ -18,6 +18,13 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Add a native-only OWNER RIGHTS fresh-image mechanism experiment for #333.
+  It requires atomic creator access, protected same-owner write/ACL refusal
+  across writer closure, signed-byte preservation and exact handle settlement;
+  a retained writable-section control must still mutate the file. No process
+  is launched and production binding is unchanged. The expanded twenty-five
+  case Windows selector remains unexecuted for this revision.
+
 - Add source-only process-restart regression coverage for the private prepared
   owned-wait continuation (#330). An exited preparer and independently rebuilt
   relaunch use the original pinned directory plus test-held registration facts;

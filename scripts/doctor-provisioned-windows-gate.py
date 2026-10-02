@@ -46,6 +46,7 @@ EXPECTED_TESTS = (
     "doctor::windows_confinement::primitive::tests::binding::windows_runtime_signed_image_reaches_every_launch_boundary",
     "doctor::windows_confinement::primitive::tests::binding::windows_runtime_retained_writable_section_refusals_settle_handles_and_scratch",
     "doctor::windows_confinement::primitive::tests::binding::windows_runtime_child_inherits_only_declared_standard_handles",
+    "doctor::windows_confinement::primitive::tests::binding::windows_runtime_owner_rights_fresh_image_transition_and_retained_section_control",
     "doctor::windows_confinement::carrier::tests::windows_runtime_authenticated_request_bundle_carriers_are_read_only",
     "doctor::windows_confinement::carrier::tests::windows_runtime_authenticated_carrier_rejects_invalid_artifacts_without_handles",
     "doctor::windows_confinement::carrier::tests::windows_runtime_authenticated_carrier_repeated_create_drop_settles_one_handle",

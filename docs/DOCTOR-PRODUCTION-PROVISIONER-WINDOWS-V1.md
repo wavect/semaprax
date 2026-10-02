@@ -460,6 +460,47 @@ The next bounded batch is a **native mechanism experiment**, in the existing
    results and release acceptance separate; repeated stress success alone
    cannot prove the invariant.
 
+### Fresh-image OWNER RIGHTS mechanism experiment (#333)
+
+The native-only `windows_runtime_owner_rights_fresh_image_transition_and_retained_section_control`
+case evaluates a different prerequisite without changing `HeldImage` or the
+spawn primitive. Microsoft's [Owner Rights documentation](https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/manage/understand-special-identities-groups#owner-rights)
+states that an OWNER RIGHTS (`S-1-3-4`) ACE suppresses the owner's implicit
+`READ_CONTROL` and `WRITE_DAC`. A protected DACL containing this ACE can therefore
+restrict subsequent opens by the same owner; an ordinary allow ACE for that
+owner would not provide this property.
+
+The experiment creates a fresh file with `CREATE_NEW` and an atomic protected
+owner-deny DACL. It requires the returned creator handle to retain its requested
+read/write/ACL rights and every subsequent same-owner read/write/ACL open to be
+denied. No passing skip is permitted if this creator-access premise fails.
+It copies the current valid PE fixture's signed bytes, flushes them, then uses
+only that original creator handle to install an owner-read/execute-only DACL.
+A read handle denying deletion bridges the writer-close transition. After
+closing the writer, write-data and write-DACL opens must return access denied,
+even with every file-sharing flag enabled. The case inspects the actual owner,
+protected DACL, sole explicit OWNER RIGHTS ACE and exact access mask, verifies
+the copied bytes, and requires writable-section creation through the reader
+to fail. Both iterations require exact file and handle settlement.
+
+A negative-control iteration deliberately creates a writable section through
+the creator handle before closing it. After the DACL transition it maps that
+retained section, changes a bounded byte, and requires the held reader to see
+the mutation. This is essential: ACL changes govern future opens and cannot
+be treated as revoking an already granted section capability. A future fresh
+image producer would have to prevent any such capability from being minted
+or escaping, and prevent image-section creation over partially written bytes.
+
+This is an unexecuted mechanism experiment, not accepted production binding.
+It launches no process and proves neither pathname pinning nor loader section
+identity. A complete implementation would additionally retain exact parent and
+leaf identity through creation and settlement, prevent a stale section over
+partial bytes, bind the signed raw bytes to that immutable fresh object, and
+preserve the suspended-child job/token/handle checks. The current signed-image
+primitive and WP-05 status are unchanged. The new case expands the explicit
+Windows selector to twenty-five tests; historical receipts remain attached to
+their original selections and revisions.
+
 This continuation binds `bInheritHandles` to an explicit three-handle startup
 list and adds a child probe of an unrelated inheritable delete-on-close
 sentinel. Its selected native case passed at `06c0090d9` but checks only a
@@ -544,14 +585,14 @@ The dispatch-only
 uses an ephemeral `windows-2025` runner and creates a fresh, explicit scratch
 parent under `RUNNER_TEMP`. The gate fails when the host is not 64-bit Windows,
 the parent is missing, nonempty, or a reparse point, Cargo fails, any named
-test is filtered or ignored, or the test summary does not report all twenty-four
+test is filtered or ignored, or the test summary does not report all twenty-five
 selected cases as passed. It never treats an absent prerequisite or a zero-test
 run as a skip/pass. The historical receipt below covers the earlier twenty-two
 case selector only.
 
 `scripts/doctor-provisioned-windows-gate.py --self-test` checks the gate's
 refusal and libtest-result parsing on any host; it provides no Windows runtime
-evidence. `--plan` prints the exact twenty-four-test selector. The live selection runs
+evidence. `--plan` prints the exact twenty-five-test selector. The live selection runs
 `windows_runtime_launches_restricted_child_inside_acl_scratch_and_settles_it`
 and `windows_runtime_timeout_terminates_the_confined_job_and_settles_cancellation`,
 plus `windows_runtime_timeout_terminates_an_actual_job_descendant`,
@@ -615,8 +656,9 @@ The earlier expanded selector passed 22/22 with none ignored at `e15c16202` in
 [run 36919771375](https://github.com/wavect/semaprax/actions/runs/36919771375).
 Its new retained-section and carrier cases establish refusal and handle/scratch
 settlement only; they do not establish image-byte binding or child transport.
-The two later checkpoint cases are included in this source's twenty-four-case
-selector and require their own native Windows execution receipt.
+The two later checkpoint cases are included in the prior twenty-four-case
+selector and require their own native Windows execution receipt. The fresh-image
+OWNER RIGHTS experiment adds the twenty-fifth selected case and is unexecuted.
 
 ## Acceptance criteria status
 
@@ -633,7 +675,7 @@ selector and require their own native Windows execution receipt.
 
 ## Nonclaims
 
-This contract does not claim that the twenty-four-test Windows selector is a
+This contract does not claim that the twenty-five-test Windows selector is a
 complete hostile corpus or production-support gate. The two-test run at
 `c6bf9902` and five-test run at `3d4220b6` each bind only their exact checkout
 and selected tests.

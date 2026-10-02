@@ -3,12 +3,12 @@
 - Define the public owned-Agent entry contract for #330. It records the
   authenticated two-step fresh-registration boundary, the required ownership
   transfers, and the conditions for a future bounded two-turn SourceLive-v8
-  driver. A private driver now joins initial and continued failed Observe
-  through State cleanup, receipt, and Stop while returning a private opaque
-  owner-bearing error at incomplete boundaries. No executable public entry is
-  exposed: later failed Observe,
-  other failure cleanup/quarantine, Report projection, and recovery still need
-  their owning contracts, so this source-only work does not close #330.
+  driver. Private drivers now join initial, continued, and later failed Observe
+  plus initial failed-target cleanup through acknowledged receipt and sticky
+  Stop, retaining reached owners on incomplete boundaries. A private terminal
+  path consumes the live Report claim into a bounded projection with exact
+  authenticated evidence. Public multi-turn entry, remaining failure tails,
+  and recovery remain open, so this source-only work does not close #330.
 
 Project log follows a compact [Keep a Changelog](https://keepachangelog.com/)
 format: `Unreleased` then release buckets, grouped by impact.
@@ -44,6 +44,10 @@ format: `Unreleased` then release buckets, grouped by impact.
   owner-restoration permit exists. The store regression proves the bytes stay
   unchanged after a rejected restart append; physical owner restoration and
   public multi-turn entry remain open.
+- Strengthen the #333 Windows no-view writable-section regression: a retained
+  section must actually mutate an observed signed-image byte after the expected
+  pre-spawn refusal, then restore the fixture. Native Windows execution remains
+  required; exact image/request/bundle binding remains open.
 
 - Reconcile the full-profile rustfmt gate and two private-interface visibility
   warnings exposed while validating the #327 Linux migration sanitizer. The

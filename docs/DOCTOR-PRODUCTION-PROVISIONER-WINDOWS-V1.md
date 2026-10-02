@@ -362,6 +362,10 @@ that a new read-only handle cannot mint writable-section access; it does not
 address an already retained writable section. The section-without-view case
 requires pre-spawn refusal; that selected behavior passed on Windows at
 `06c0090d9`.
+The current source additionally requires that retained section to map a
+writable view after refusal, change an observed file byte, and then restore
+the fixture before its success control. This stronger hostile control has not
+yet executed on Windows at this revision; the earlier receipt does not cover it.
 Success controls require NTFS/oplock acquisition to work; no unavailable
 prerequisite can pass by skipping. All eighteen selected native cases passed
 at `06c0090d9`; later source revisions need their own execution receipt.

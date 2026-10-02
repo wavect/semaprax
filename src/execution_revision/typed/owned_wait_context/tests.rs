@@ -48,6 +48,7 @@ pub(crate) enum TestContinuedAuthorizeV8 {
 #[derive(Clone, Copy)]
 enum RuntimeFixture {
     Baseline,
+    TwoTurn,
     ThreeTurns,
     ThreeTurnsObserveEnsures,
     ContinuedAuthorize(TestContinuedAuthorizeV8),
@@ -89,6 +90,7 @@ fn fixture_for(profile: RuntimeFixture) -> Fixture {
     );
     let source = match profile {
         RuntimeFixture::Baseline
+        | RuntimeFixture::TwoTurn
         | RuntimeFixture::BaselineTaskZero
         | RuntimeFixture::ProspectiveReduce(_) => source,
         RuntimeFixture::ThreeTurns | RuntimeFixture::ThreeTurnsObserveEnsures => {
@@ -294,11 +296,13 @@ fn runtime_for(
                 max_stages: limits.stages(),
                 ..IterativeBudget::default()
             },
-            RuntimeFixture::Complete | RuntimeFixture::EmptyComplete => IterativeBudget {
-                max_iterations: 2,
-                max_stages: 7,
-                max_steps_per_stage: 1000,
-            },
+            RuntimeFixture::TwoTurn | RuntimeFixture::Complete | RuntimeFixture::EmptyComplete => {
+                IterativeBudget {
+                    max_iterations: 2,
+                    max_stages: 7,
+                    max_steps_per_stage: 1000,
+                }
+            }
         },
         effects,
     )
@@ -874,6 +878,18 @@ impl crate::live_invocation::source_journal::CheckedOwnedWaitJournalContextV8 {
     ) -> T {
         Self::test_with_runtime_fixture(RuntimeFixture::Complete, true, callback)
     }
+    /// The authored Reduce continues from initialized epoch one and completes
+    /// after the next Observe, under the exact two-iteration ceiling.
+    pub(crate) fn test_with_actual_two_turn_store<T>(
+        callback: impl FnOnce(
+            Self,
+            crate::resumable_effects::owned_frame::SourceOwnedWaitLeaseV8,
+            crate::resumable_effects::source_checkpoint::SourceCheckpointKey,
+            &std::path::Path,
+        ) -> T,
+    ) -> T {
+        Self::test_with_runtime_fixture(RuntimeFixture::TwoTurn, true, callback)
+    }
     /// Closed two-Bytes Complete source. Both original State/Outcome leaves
     /// move to Report; zero active success cleanup is proved by the compiler.
     pub(crate) fn test_with_actual_empty_complete_store<T>(
@@ -960,7 +976,7 @@ impl crate::live_invocation::source_journal::CheckedOwnedWaitJournalContextV8 {
             let e = Arc::new(context_for(&baseline, Arc::clone(&wait), total));
             if matches!(
                 profile,
-                RuntimeFixture::Complete | RuntimeFixture::EmptyComplete
+                RuntimeFixture::TwoTurn | RuntimeFixture::Complete | RuntimeFixture::EmptyComplete
             ) {
                 assert_eq!(e.ordinary().max_iterations(), 2);
                 assert_eq!(e.ordinary().max_stages(), 7);

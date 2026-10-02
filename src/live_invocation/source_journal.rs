@@ -26,6 +26,10 @@ pub(crate) use owned_wait_v8::{
     CheckedCumulativeEffectPrefixV8, CheckedOwnedWaitJournalContextV8, HeldOwnedWaitStoreV8,
     SourceOwnedWaitJournalV8,
 };
+pub use owned_wait_v8::{
+    SourceOwnedAgentJournalV1, SourceOwnedAgentOpenErrorV1, SourceOwnedAgentRunV1,
+    SourceOwnedAgentStatusV1,
+};
 mod priced_v4;
 mod sink;
 mod validate;

@@ -183,6 +183,15 @@ explicit environment flag; repeating the entire Agent Runtime harness there
 previously consumed the six-hour job limit. The `project` and
 `agent_runtime_v1` harnesses occupy different integration shards.
 
+The fresh public owned-Agent v1 selector is
+`public_owned_agent_fresh_entry_runs_two_real_turns_and_projects_report` in
+the existing library harness. It must prove retained Project/source binding,
+full fresh registration acknowledgement, two real model and target dispatches,
+ordered cleanup, checked terminal Report projection, and pre-effect wrong
+source/replay refusal. The private `owned_runtime_two_turn_` and
+`owned_runtime_restart_prepared_` matrices remain separate #330 gates; a local
+selector pass alone does not establish full shutdown or recovery support.
+
 The Rust 1.88 minimum-version lane checks every workspace target and feature
 combination once with the locked dependency graph. Runtime suites run on the
 current compiler across Linux, macOS, and Windows; repeating all of them on

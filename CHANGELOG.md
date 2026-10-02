@@ -1,5 +1,13 @@
 # Changelog
 
+- Add an authored fresh public Source owned-Agent entry around the existing
+  checked two-turn runtime. It derives the binding from retained Project source,
+  requires complete physical registration retention before append, and returns
+  an opaque custody handle whose terminal projection carries only checked
+  Report data. A real public two-turn regression is authored; its default-stack
+  run overflowed and the corrected fixture rerun hit local disk exhaustion.
+  Broader failure shutdown and recovered public execution remain pending (#330).
+
 - Fix first Prepared restart admission to compare the authenticated request
   digest written by the live wait, preserving the frozen wire format. The
   process regression now explicitly distinguishes that digest from the ordinary

@@ -210,6 +210,13 @@ mod runtime_tests;
 
 #[cfg(test)]
 impl CheckedOwnedWaitJournalContextV8 {
+    pub(crate) fn test_runtime_arc(&self) -> Arc<AgentRuntimeV2> {
+        Arc::clone(
+            self.runtime
+                .as_ref()
+                .expect("genuine retained runtime fixture"),
+        )
+    }
     pub(crate) fn test_runtime_execution(
         &self,
     ) -> (&AgentRuntimeV2, &CheckedTypedOwnedWaitExecutionV8) {

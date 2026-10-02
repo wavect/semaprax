@@ -478,3 +478,199 @@ fn owned_runtime_observer_failure_state_panic_and_cancellation_never_retry() {
     exercise(Scenario::ObserverStatePanic);
     exercise(Scenario::ObserverCancelled);
 }
+
+#[test]
+fn public_owned_agent_fresh_entry_runs_two_real_turns_and_projects_report() {
+    use crate::agent_lifecycle::iterative::source_live::SourceLivePolicy;
+    use crate::live_invocation::source_journal::{
+        SourceOwnedAgentJournalV1, SourceOwnedAgentOpenErrorV1, SourceOwnedAgentStatusV1,
+    };
+    use std::os::unix::fs::PermissionsExt;
+    CheckedOwnedWaitJournalContextV8::test_with_actual_two_turn_store(
+        |context, _lease, _key, directory| {
+            let (_, execution) = context.test_runtime_execution();
+            let ordinary = execution.ordinary();
+            let live_policy = SourceLivePolicy {
+                deployment_binding: execution.model().digest().into(),
+                response_limit: ordinary.response_limit(),
+                ceiling: ordinary.ceiling(),
+                reservation_units: ordinary.reservation_units(),
+                unit: ordinary.unit().into(),
+                clock_domain: ordinary.clock_domain().into(),
+                initial_millis: ordinary.initial_millis(),
+                deadline_millis: ordinary.deadline_millis(),
+                max_total_steps: ordinary.max_total_steps().unwrap(),
+                program_root: None,
+            };
+            let path = directory.parent().unwrap().join("public-owned-agent");
+            std::fs::create_dir(&path).unwrap();
+            std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o700)).unwrap();
+            let counts = Rc::new(RefCell::new(Counts::default()));
+            let mut first_factory = factory(
+                Rc::clone(&counts),
+                script(&document(&context)),
+                Rc::new(|_| {}),
+            );
+            let mut adapter = source(&context, &mut first_factory);
+            let mut retention_calls = 0;
+            let cancel = crate::agent_runtime::AgentCancellation::new();
+            assert!(matches!(
+                SourceOwnedAgentJournalV1::create_fresh(
+                    context.test_runtime_arc(),
+                    "src/missing.spx",
+                    "fixture.agent",
+                    "fixture.agent.type.step",
+                    &adapter,
+                    &live_policy,
+                    &cancel,
+                    &Clock,
+                    execution.evaluation_fuel(),
+                    File::open(&path).unwrap(),
+                    7,
+                    crate::resumable_effects::source_checkpoint::SourceCheckpointKey::new([73; 32]),
+                    true,
+                    |_| {
+                        retention_calls += 1;
+                        true
+                    },
+                ),
+                Err(SourceOwnedAgentOpenErrorV1::Compiler(_))
+            ));
+            assert_eq!(retention_calls, 0);
+            let opened = SourceOwnedAgentJournalV1::create_fresh(
+                context.test_runtime_arc(),
+                "src/app.spx",
+                "fixture.agent",
+                "fixture.agent.type.step",
+                &adapter,
+                &live_policy,
+                &cancel,
+                &Clock,
+                execution.evaluation_fuel(),
+                File::open(&path).unwrap(),
+                7,
+                crate::resumable_effects::source_checkpoint::SourceCheckpointKey::new([73; 32]),
+                true,
+                |facts| {
+                    retention_calls += 1;
+                    assert_eq!(facts["scope"]["policy_epoch"], 7);
+                    assert!(facts["store_identity"]["file_inode"].as_u64().is_some());
+                    assert!(facts["generation"].as_str().is_some());
+                    true
+                },
+            )
+            .unwrap();
+            assert_eq!(retention_calls, 1);
+            assert!(matches!(
+                SourceOwnedAgentJournalV1::create_fresh(
+                    context.test_runtime_arc(),
+                    "src/app.spx",
+                    "fixture.agent",
+                    "fixture.agent.type.step",
+                    &adapter,
+                    &live_policy,
+                    &cancel,
+                    &Clock,
+                    execution.evaluation_fuel(),
+                    File::open(&path).unwrap(),
+                    7,
+                    crate::resumable_effects::source_checkpoint::SourceCheckpointKey::new([73; 32]),
+                    true,
+                    |_| panic!("nonempty store cannot obtain a new registration ACK"),
+                ),
+                Err(SourceOwnedAgentOpenErrorV1::Store(_))
+            ));
+            assert_eq!(counts.borrow().starts, 0);
+            let policy = CapabilityPolicy::new(vec!["read".into()]).unwrap();
+            let mut host = Host {
+                calls: 0,
+                fail: false,
+            };
+            let mut releases = 0;
+            let run = opened
+                .run(&policy, &cancel, &Clock, &mut adapter, &mut host, |_| {
+                    releases += 1;
+                })
+                .unwrap();
+            assert_eq!(run.status(), SourceOwnedAgentStatusV1::Complete);
+            assert_eq!(run.delivery_projection().unwrap()["kind"], "complete");
+            assert_eq!((counts.borrow().starts, host.calls, releases), (2, 2, 4));
+            let projection = match run.try_close() {
+                Ok(projection) => projection,
+                Err(_) => panic!("terminal run must close"),
+            };
+            assert!(projection.unwrap()["report"]["fields"].as_array().is_some());
+            assert!(opened
+                .run(
+                    &policy,
+                    &cancel,
+                    &Clock,
+                    &mut adapter,
+                    &mut host,
+                    |_| panic!("no replay")
+                )
+                .is_err());
+            assert_eq!((counts.borrow().starts, host.calls, releases), (2, 2, 4));
+            drop(adapter);
+            let failed_path = directory
+                .parent()
+                .unwrap()
+                .join("public-owned-agent-failed");
+            std::fs::create_dir(&failed_path).unwrap();
+            std::fs::set_permissions(&failed_path, std::fs::Permissions::from_mode(0o700)).unwrap();
+            let failed_counts = Rc::new(RefCell::new(Counts::default()));
+            let mut failed_factory = factory(
+                Rc::clone(&failed_counts),
+                script(&document(&context)),
+                Rc::new(|_| {}),
+            );
+            let mut failed_adapter = source(&context, &mut failed_factory);
+            let failed_journal = SourceOwnedAgentJournalV1::create_fresh(
+                context.test_runtime_arc(),
+                "src/app.spx",
+                "fixture.agent",
+                "fixture.agent.type.step",
+                &failed_adapter,
+                &live_policy,
+                &cancel,
+                &Clock,
+                execution.evaluation_fuel(),
+                File::open(&failed_path).unwrap(),
+                7,
+                crate::resumable_effects::source_checkpoint::SourceCheckpointKey::new([73; 32]),
+                true,
+                |_| true,
+            )
+            .unwrap();
+            let mut failed_host = Host {
+                calls: 0,
+                fail: true,
+            };
+            let mut failed_releases = 0;
+            let failed = failed_journal
+                .run(
+                    &policy,
+                    &cancel,
+                    &Clock,
+                    &mut failed_adapter,
+                    &mut failed_host,
+                    |_| failed_releases += 1,
+                )
+                .unwrap();
+            assert_eq!(
+                failed.status(),
+                SourceOwnedAgentStatusV1::FailedEffectStopped
+            );
+            assert!(failed.delivery_projection().is_none());
+            assert_eq!(
+                (
+                    failed_counts.borrow().starts,
+                    failed_host.calls,
+                    failed_releases
+                ),
+                (1, 1, 2)
+            );
+            assert!(matches!(failed.try_close(), Ok(None)));
+        },
+    );
+}

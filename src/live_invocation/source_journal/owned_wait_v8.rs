@@ -101,6 +101,10 @@ pub(crate) use checked_context::{
 
 mod live_upstream;
 pub(crate) use live_upstream::effect::authorization::LiveReadyPromotionPermitV8;
+pub use live_upstream::runtime::{
+    OwnedLifecycleStatusV8 as SourceOwnedAgentStatusV1, SourceOwnedAgentJournalV1,
+    SourceOwnedAgentOpenErrorV1, SourceOwnedAgentRunV1,
+};
 pub(crate) use live_upstream::{
     LiveInitializePermitV8, LiveObservePermitV8, LiveWaitStartPermitV8,
 };

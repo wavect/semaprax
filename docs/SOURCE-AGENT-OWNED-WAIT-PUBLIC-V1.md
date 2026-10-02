@@ -1,11 +1,11 @@
 # Source Agent owned wait public v1 — fresh two-turn session
 
-Status: **normative design only; no public API or executable driver is exposed.**
+Status: **fresh public two-turn entry authored; default-stack local execution gate pending.**
 Audience: SourceLive host, interpreter, journal, SDK, and runtime implementers and reviewers.
 
-This document owns the proposed public construction boundary for the SourceLive
+This document owns the public construction boundary for the SourceLive
 v8 owned-Agent route. It is intentionally smaller than issue #330: it specifies
-one future fresh, interpreter-selected, cumulative run with two turns and a
+one fresh, interpreter-selected, cumulative run with two turns and a
 `Complete` terminal. It does not claim restart, recovery, hosted support,
 native/Wasm execution, external report delivery, or the whole issue.
 
@@ -50,7 +50,7 @@ generation do not exist before exclusive file creation:
    explicit retained-registration acknowledgement authorizes the fresh lease
    to append.
 
-The future session will own the resulting registered lease and journal. It must
+The public journal wrapper owns the resulting registered lease and journal. It must
 never expose the lease, `File`, registration grant, checkpoint key, append
 witness, or an owner. The existing same-FD, PID, uid/mode/nlink, no-follow,
 flock, scope, generation, prefix-byte, sequence, and MAC checks must remain in
@@ -62,7 +62,7 @@ phase-specific restoration contract materializes the exact physical owner.
 
 ## 3. Success path
 
-The future session must compose only existing consuming joins, in this order:
+The run composes only existing consuming joins, in this order:
 
 ```text
 Initialize -> Observe -> Start -> Prepared -> Model -> Resume -> Completed
@@ -82,7 +82,7 @@ holds, consumption, cleanup vectors, and physical owner transfers are used
 unchanged; no snapshot, decoded checkpoint, receipt, evidence, or terminal
 carrier enters this chain as authority.
 
-Only after the terminal ACK may a future session copy the existing checked
+Only after the terminal ACK may the run copy the existing checked
 `delivery_projection`. The projection must be bounded canonical data plus
 terminal evidence. It must contain no Report owner and confer no store, model,
 target, cleanup, append, or recovery authority. Returning that projection is
@@ -112,10 +112,15 @@ has not reached a State cleanup boundary. The first-turn failed-target State
 tail enters its private acknowledged cleanup/receipt/Stop join from runtime
 custody, retaining incomplete owners in runtime quarantine. Several other
 post-effect tails still lack a terminal join.
-Consequently no public session or executable `run` method is exposed. Recovery
-and terminal/report delivery from reopened bytes remain unsupported. An executable
-method is admitted only with the complete failure dispatch and its regression
-matrix.
+The fresh public entry now returns an opaque run handle that borrows the locked
+journal and owns the private runtime. The handle exposes status and the checked
+terminal projection, and `try_close` returns the same handle if any physical
+obligation remains. Known failed Observe, failed target, and observer-failure
+State tails enter their existing acknowledged settlement drivers. Other tails
+stay in runtime quarantine; dropping that handle retires append authority, but
+does not claim semantic cleanup. Recovery and terminal/report delivery from
+reopened bytes remain unsupported. The broader failure and shutdown matrix is
+still required for #330 closure.
 
 ## 5. Required evidence before promotion
 
@@ -133,13 +138,17 @@ it returns the checked canonical Report projection with the exact authenticated
 terminal evidence bytes and consumes the Report owner. The evidence is kept as
 a bounded UTF-8 string, including its original LF, rather than parsed and
 reserialized. A failed projection check retains that same owner in the sealed
-private failure path. This does not expose a public session, lease, report,
-State, recovery route, or finalizer authority.
+private failure path. This exposes no lease, report owner, State, recovery
+route, or finalizer authority.
 
 The public recovery matrix remains separate: process restart at every durable
 phase, no redispatch, no uncharged work, phase-specific restoration permits,
 hostile registrations/tails, and Report recovery/delivery all remain required
 to close #330.
+
+The following private joins are predecessors consumed by the fresh public
+entry in section 12. Their historical gate notes do not extend that entry to
+general restart or public shutdown.
 
 ## 6. Private second-turn composition
 
@@ -157,9 +166,9 @@ Every unsuccessful join retires that journal and retains the exact reached
 owner-bearing failure inside a private opaque quarantine. Its only observation
 is a phase label; it exposes no owner extraction, downcast, retry, journal,
 cleanup or dispatch method. The caller must retain the quarantine while its
-obligation remains pending. This is not the runtime-owned quarantine lifetime
-required for a public session. Failed Observe and target paths currently stop
-in this quarantine rather than selecting their separate cleanup/Stop drivers.
+obligation remains pending. The runtime in section 7 owns that lifetime for
+the fresh public route and selects the known failed Observe and target
+cleanup/Stop drivers.
 
 Terminal evidence uses the authenticated current stage count with the existing
 omitted-detail representation. The driver accepts no host-supplied count or
@@ -170,8 +179,9 @@ The `owned_composed_second_turn_` regression family covers real terminal
 success and store reopen, Model-settlement and terminal prewrite faults,
 cancelled admission, and refusal of a three-iteration profile. These tests are
 authored but unexecuted at this change. This private composition closes a
-substantial driver join; the runtime composition in section 9 joins first-turn authorization/effect/Step orchestration. Public request construction,
-complete runtime shutdown settlement, and general restart acceptance remain open.
+substantial driver join; the runtime composition in section 9 joins first-turn
+authorization/effect/Step orchestration. Complete runtime shutdown settlement
+and general restart acceptance remain open.
 
 
 ## 7. Private runtime custody across caller sessions
@@ -200,8 +210,8 @@ shutdown protocol. A successful State or quarantined owner still needs its
 phase-specific continuation or recovery/settlement route. Consequently this
 runtime is private and is not exported as a public session constructor. The
 caller-handle lifetime is now enforced structurally, while complete runtime
-shutdown, public request construction and general restart acceptance remain
-required. Section 9 owns the subsequent first-turn bridge and second-turn
+shutdown and general restart acceptance remain required. Section 9 owns the
+subsequent first-turn bridge and second-turn
 runtime join.
 
 The `owned_runtime_` owning selectors exercise real first-turn Model completion,
@@ -269,9 +279,9 @@ close, and checks that no dispatch, cleanup or append is retried. These tests
 are authored and unexecuted in this source-only batch.
 
 This closes the private first-turn orchestration and second-turn custody gaps.
-Public request construction, complete runtime shutdown settlement, the broader
-failure cleanup matrix and general restart acceptance remain required;
-no public lifecycle support or issue #330 closure is claimed.
+The fresh public construction in section 12 consumes this runtime. Complete
+runtime shutdown settlement, the broader failure cleanup matrix and general
+restart acceptance remain required; issue #330 closure is not claimed.
 
 ## 10. Private Prepared restart into runtime custody
 
@@ -303,7 +313,7 @@ separate process independently rebuilds the checked runtime and completes both
 turns. The process gate also checks cancellation before restoration, terminal
 history refusal in a third process, hostile trailing bytes, original cumulative
 funding, two Model dispatches, two target dispatches and four cleanup callbacks.
-Public construction, complete failure settlement, post-Intent restoration,
+Complete failure settlement, post-Intent restoration,
 Report restoration and the other durable phase classifications remain open.
 
 ## 11. First-turn failed-target runtime settlement
@@ -320,5 +330,37 @@ The `owned_runtime_two_turn_failed_target_checked_stop_and_faults` regression
 is authored but unexecuted. It exercises the real failed target, one State
 cleanup callback, no redispatch, normal close after Stop, and each of three
 prewrite faults without retry. Other first-turn failure phases, the later
-failed-target path, public construction, and general shutdown/recovery remain
+failed-target path, and general shutdown/recovery remain
 open.
+
+## 12. Fresh public entry and custody
+
+`SourceOwnedAgentJournalV1::create_fresh` derives the owned-wait binding from
+the selected source in the retained `AgentRuntimeV2` Project revision. It binds
+the caller's already checked model adapter and SourceLive policy to that
+runtime, requires the exact two-iteration profile, and validates the caller's
+explicit cancellation and clock before creating a store. The host supplies an
+open directory descriptor, protected-history assertion, checkpoint key and
+registration-retention callback.
+The callback receives complete inert registration facts after the exclusive
+fresh file has been created, and must durably retain those facts before
+acknowledging. Refusal leaves the empty file without append authority.
+
+`run` derives the initialized Task input from the same checked source and
+runtime and composes both private consuming turns. It accepts only a matching
+unused adapter, current clock, caller-held capability policy and target host.
+It returns `SourceOwnedAgentRunV1`, which owns the reached physical custody
+while borrowing the opaque journal. A terminal `Complete` exposes a bounded
+checked Report projection; an acknowledged Stop may close without a projection.
+An unresolved phase remains in the handle and refuses `try_close`. Dropping a
+handle with unresolved ownership retires journal authority before releasing
+process backing; it is not semantic cleanup or a durable recovery permit.
+
+The `public_owned_agent_fresh_entry_runs_two_real_turns_and_projects_report`
+regression exercises the public constructor and run with a source-retained
+nontrivial Agent, wrong-source preflight, full retention facts, two model calls,
+two target calls, four cleanup observations, terminal projection and replay
+refusal. Its first local compile passed, but the default worker stack overflowed.
+A larger-stack diagnostic exposed an unconditional-Complete test fixture; the
+corrected two-turn fixture rerun was blocked by local disk exhaustion. Failure,
+shutdown and recovery matrices remain open; this entry does not close issue #330.

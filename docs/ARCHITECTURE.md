@@ -3242,3 +3242,15 @@ cannot reopen normal journal authority. The continued-run composition returns
 actual failed Observe ownership to runtime custody before any next wait, and
 runtime uses the existing failed-Observe cleanup/Stop consumer. Public shutdown
 and general recovery remain separate admission boundaries.
+
+`live_upstream/runtime/public.rs` owns the fresh public v1 entry. It compiles
+the selected Agent from the retained runtime Project, checks the typed model
+binding and two-turn ceiling, opens the caller-held directory through the v8
+registration protocol under an explicit protected-history assertion, and
+requires complete registration facts to be retained before authorizing the
+fresh lease. The public journal wrapper owns the lock;
+the borrowed run handle owns private runtime custody through both turns. Only
+status and a checked terminal Report projection leave this boundary. Unresolved
+physical owners cannot close normally, and dropping their handle retires append
+authority. General semantic shutdown and recovered public execution remain
+separate work.

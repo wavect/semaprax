@@ -129,6 +129,14 @@ pub(crate) struct TestRetainedSourceOwnedWaitRegistrationV8 {
     generation: String,
 }
 impl SourceOwnedWaitStoreRegistrationV8 {
+    /// Complete inert facts for the host's independent durable retention ACK.
+    /// These bytes are descriptive and cannot authorize append or recovery.
+    pub(crate) fn retained_facts(&self) -> Value {
+        json!({"scope":self.expected.scope_json(),"execution":self.expected.execution,
+            "binding":self.expected.binding,"limits":self.expected.limits.json().expect("validated limits"),
+            "directory_identity":self.expected.directory_identity,
+            "store_identity":self.identity.json(),"generation":self.generation})
+    }
     pub(crate) fn expected_facts(&self) -> &FreshSourceOwnedWaitFactsV8 {
         &self.expected
     }

@@ -13,6 +13,7 @@ use crate::provider_adapter_sdk::StreamingSourceProposalAdapter;
 
 mod continue_run;
 mod observer_failure;
+mod public;
 mod restart;
 use super::effect::authorization::cleanup::failed_state::{
     stop_failed_effect_state_v8, LiveFailedEffectStateQuarantinedV8, LiveFailedEffectStateStoppedV8,
@@ -20,9 +21,10 @@ use super::effect::authorization::cleanup::failed_state::{
 use super::effect::authorization::cleanup::LiveFailedOwnedEffectV8;
 use continue_run::{RunOutcomeV8, RunQuarantineV8};
 use observer_failure::{ObserverFailureQuarantineV8, ObserverFailureStoppedV8};
+pub use public::{SourceOwnedAgentJournalV1, SourceOwnedAgentOpenErrorV1, SourceOwnedAgentRunV1};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(super) enum OwnedLifecycleStatusV8 {
+pub enum OwnedLifecycleStatusV8 {
     Ready,
     ModelCompleted,
     Complete,

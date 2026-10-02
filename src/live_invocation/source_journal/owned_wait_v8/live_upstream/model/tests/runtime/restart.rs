@@ -288,7 +288,8 @@ fn owned_runtime_restart_prepared_process_child() {
                     SourceOwnedWaitJournalV8::open(Arc::clone(&context), key, lease).unwrap();
                 let cancellation = crate::agent_runtime::AgentCancellation::new();
                 let parked = park(&journal, &cancellation);
-                assert_eq!(parked.session.sequence(), 10);
+                // Start stages Created and Reserved after the committed sequence 10.
+                assert_eq!(parked.session.sequence(), 12);
                 let metadata = PreparedRestartProcessMeta {
                     directory: directory.to_owned(),
                     registration: context.registration().test_retained_restart_facts(),

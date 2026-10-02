@@ -178,9 +178,13 @@ borrowers keep that container through owned stages. Physical uncertainty
 permanently poisons the container; pure prospective row refusal does not.
 `live_upstream` owns fresh initialization through real reservation and State
 ACKs, followed by one actual Observe and TurnObserved ACK, in an explicitly
-selected initialized profile. Its private `runtime` child owns typed initial-turn
-custody independently of disposable borrowed session handles and dispatches the
-existing acknowledged failed-Observe cleanup/Stop tail. Pending physical phases
+selected initialized profile. Its private `runtime` child owns lifecycle custody independently of disposable
+borrowed session handles and dispatches the existing acknowledged failed-Observe
+cleanup/Stop tail. Its `continue_run` child consumes the retained first Model
+through the original Authorize/effect/Reduce/Step ACK joins into the existing
+second-turn driver. Success retains only the consumed Report projection; each
+incomplete join retains its physical owner in runtime quarantine. Normal close
+is admitted after authenticated Complete Report consumption. Pending physical phases
 refuse normal runtime close; forced host teardown retires journal authority
 before backing release and does not claim semantic settlement. Complete runtime
 shutdown and public session construction remain unfinished.

@@ -162,3 +162,5 @@ fn owned_runtime_observe_stop_fault_cannot_retry_cleanup_or_close() {
 fn owned_runtime_observe_panicking_observer_stays_unsettled() {
     failed_observe_runtime(None, true);
 }
+
+mod two_turn;

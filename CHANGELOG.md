@@ -49,6 +49,16 @@ format: `Unreleased` then release buckets, grouped by impact.
   above their shared cap. This source-only change has no Windows runtime
   receipt and does not wire an ordinary Windows provisioner route.
 
+- Connect private owned-Agent runtime custody across the complete two-turn
+  lifecycle: first Model completion through authorization, target execution,
+  Decision cleanup, Reduce/Continue, the second turn and authenticated Report
+  consumption. Reopened session handles cannot repeat dispatch, cleanup or
+  append; incomplete joins retain their exact owner and refuse runtime close.
+  Add success/store-reopen, all 19 first-bridge prewrite boundaries, later
+  Model/terminal faults, cancellation, policy, target and observer regressions.
+  These tests are authored but unexecuted. Public construction, complete
+  shutdown settlement and general restart recovery remain open (#330).
+
 - Harden the Windows doctor request/bundle carriers against duplicated write
   access and owner-mediated DACL changes using a protected OWNER RIGHTS deny
   policy. The existing native child handoff case now rejects `FILE_MAP_WRITE`,

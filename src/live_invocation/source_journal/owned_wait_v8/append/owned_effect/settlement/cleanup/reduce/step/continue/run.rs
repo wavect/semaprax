@@ -183,3 +183,14 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn finish_second_t
         .finish_complete_projection(journal, observe_cleanup, evidence)
         .map_err(|owner| quarantine(journal, "terminal", owner))
 }
+
+impl<'j> LiveMovedStepV8<'j> {
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn finish_second_turn(
+        self,
+        adapter: &mut StreamingSourceProposalAdapter<'_>,
+        handler: &mut dyn TargetHostHandler,
+        observe: impl FnMut(&FinalizeAction),
+    ) -> Result<serde_json::Value, ContinuedRunQuarantineV8<'j>> {
+        finish_second_turn_v8(self, adapter, handler, observe)
+    }
+}

@@ -1,4 +1,4 @@
-//! Runtime custody for the initial owned turn. A session is only a mutable
+//! Runtime custody for a fresh two-turn owned run. A session is only a mutable
 //! borrow; closing it never destroys the reached physical owner. This remains
 //! private until every pending phase has a shutdown/recovery settlement.
 use super::model::{model_live_actor_v8, CompletedLiveOwnedRunV8, LiveModelQuarantinedV8};
@@ -11,10 +11,14 @@ use crate::cleanup_plan::FinalizeAction;
 use crate::live_invocation::SourceInvocationClock;
 use crate::provider_adapter_sdk::StreamingSourceProposalAdapter;
 
+mod continue_run;
+use continue_run::RunQuarantineV8;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) enum OwnedLifecycleStatusV8 {
     Ready,
     ModelCompleted,
+    Complete,
     ObserveCleanupPending,
     ObserveStopped,
     Quarantined(&'static str),
@@ -27,6 +31,8 @@ enum CustodyV8<'j> {
     Ready,
     InFlight,
     ModelCompleted(Box<CompletedLiveOwnedRunV8<'j>>),
+    Complete(serde_json::Value),
+    Run(Box<RunQuarantineV8<'j>>),
     ObserveCleanupPending(Box<LiveSettledObserveV8<'j>>),
     ObserveStopped(Box<LiveFailedObserveStateStoppedV8<'j>>),
     Admission(LiveRunAdmissionRefusalV8),
@@ -95,6 +101,8 @@ impl<'j> OwnedLifecycleRuntimeV8<'j> {
             CustodyV8::Ready => OwnedLifecycleStatusV8::Ready,
             CustodyV8::InFlight => OwnedLifecycleStatusV8::Quarantined("runtime-unwind"),
             CustodyV8::ModelCompleted(_) => OwnedLifecycleStatusV8::ModelCompleted,
+            CustodyV8::Complete(_) => OwnedLifecycleStatusV8::Complete,
+            CustodyV8::Run(failure) => OwnedLifecycleStatusV8::Quarantined(failure.phase()),
             CustodyV8::ObserveCleanupPending(_) => OwnedLifecycleStatusV8::ObserveCleanupPending,
             CustodyV8::ObserveStopped(_) => OwnedLifecycleStatusV8::ObserveStopped,
             CustodyV8::Admission(_) => OwnedLifecycleStatusV8::Quarantined("initialize-admission"),
@@ -106,13 +114,26 @@ impl<'j> OwnedLifecycleRuntimeV8<'j> {
         }
     }
 
-    /// Only a never-entered runtime or an acknowledged Stop can be closed.
+    /// Only a never-entered runtime, acknowledged Stop, or consumed Complete
+    /// Report can be closed.
     /// An unresolved return retains the exact same runtime, including its
     /// physical owner. Admission failures have admitted no physical State.
     pub(super) fn try_close(self) -> Result<(), Self> {
         match self.custody {
-            CustodyV8::Ready | CustodyV8::Admission(_) | CustodyV8::ObserveStopped(_) => Ok(()),
+            CustodyV8::Ready
+            | CustodyV8::Admission(_)
+            | CustodyV8::ObserveStopped(_)
+            | CustodyV8::Complete(_) => Ok(()),
             _ => Err(self),
+        }
+    }
+
+    /// A copied, terminal-ACK-bound data projection. It grants no owner,
+    /// dispatch, cleanup, store, or restoration authority.
+    pub(super) fn delivery_projection(&self) -> Option<&serde_json::Value> {
+        match &self.custody {
+            CustodyV8::Complete(projection) => Some(projection),
+            _ => None,
         }
     }
 
@@ -154,6 +175,39 @@ impl<'j> OwnedLifecycleRuntimeV8<'j> {
 impl<'j> OwnedLifecycleSessionV8<'_, 'j> {
     pub(super) fn status(&self) -> OwnedLifecycleStatusV8 {
         self.runtime.status()
+    }
+
+    /// Continue the one retained first Model owner through both actual effects
+    /// and the second Model into terminal Report consumption. Reopened handles
+    /// only observe the reached status; neither success nor failure is retryable.
+    pub(super) fn finish_two_turn_run(
+        &mut self,
+        policy: &'j crate::resumable_effects::CapabilityPolicy,
+        adapter: &mut StreamingSourceProposalAdapter<'_>,
+        handler: &mut dyn crate::agent_lifecycle::authorization::target_protocol::TargetHostHandler,
+        observe: impl FnMut(&FinalizeAction),
+    ) -> OwnedLifecycleStatusV8 {
+        let runtime = &mut self.runtime;
+        if !matches!(runtime.custody, CustodyV8::ModelCompleted(_)) {
+            return runtime.status();
+        }
+        let CustodyV8::ModelCompleted(owner) =
+            std::mem::replace(&mut runtime.custody, CustodyV8::InFlight)
+        else {
+            unreachable!("matched runtime phase")
+        };
+        runtime.custody = match continue_run::finish_run(
+            runtime.journal,
+            *owner,
+            policy,
+            adapter,
+            handler,
+            observe,
+        ) {
+            Ok(projection) => CustodyV8::Complete(projection),
+            Err(failure) => CustodyV8::Run(Box::new(failure)),
+        };
+        runtime.status()
     }
 
     /// Initialize through the first Model/Resume ACK using the existing
@@ -214,7 +268,10 @@ impl Drop for OwnedLifecycleRuntimeV8<'_> {
     fn drop(&mut self) {
         if !matches!(
             self.custody,
-            CustodyV8::Ready | CustodyV8::Admission(_) | CustodyV8::ObserveStopped(_)
+            CustodyV8::Ready
+                | CustodyV8::Admission(_)
+                | CustodyV8::ObserveStopped(_)
+                | CustodyV8::Complete(_)
         ) {
             // Forced host runtime teardown is not a semantic settlement. Retire
             // authority before fields release backing, so the remaining journal

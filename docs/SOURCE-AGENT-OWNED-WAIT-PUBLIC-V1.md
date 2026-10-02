@@ -169,7 +169,7 @@ The `owned_composed_second_turn_` regression family covers real terminal
 success and store reopen, Model-settlement and terminal prewrite faults,
 cancelled admission, and refusal of a three-iteration profile. These tests are
 authored but unexecuted at this change. This private composition closes a
-substantial driver join; first-turn authorization/effect/Step orchestration, public request construction,
+substantial driver join; the runtime composition in section 9 joins first-turn authorization/effect/Step orchestration. Public request construction,
 complete runtime shutdown settlement, and general restart acceptance remain open.
 
 
@@ -199,8 +199,9 @@ shutdown protocol. A successful State or quarantined owner still needs its
 phase-specific continuation or recovery/settlement route. Consequently this
 runtime is private and is not exported as a public session constructor. The
 caller-handle lifetime is now enforced structurally, while complete runtime
-shutdown, first-turn Authorize/Effect/Reduce/Step, the second-turn runtime join,
-public request construction and general restart acceptance remain required.
+shutdown, public request construction and general restart acceptance remain
+required. Section 9 owns the subsequent first-turn bridge and second-turn
+runtime join.
 
 The `owned_runtime_` owning selectors exercise real first-turn Model completion,
 handle disposal and reopening without redispatch, runtime close refusal with the
@@ -235,3 +236,38 @@ that registry membership survives quarantine. The later terminal Report tests
 also check retirement on success and retained membership on projection refusal.
 These strengthened regressions are authored but unexecuted in this source-only
 change.
+
+
+## 9. Private runtime-owned full two-turn composition
+
+The runtime session can now consume its retained first `ModelCompleted` owner
+through `finish_two_turn_run`. The `runtime/continue_run` child composes the
+original Authorize, Ready/Consumed, target Intent/dispatch/settlement, Decision
+cleanup/receipt, Outcome, original Reduce, Step cleanup/receipt/transfer and
+Transition joins. The actual first Continue then enters the existing second-turn
+driver. Each session acquisition, append, witness advance and shape refusal
+retains its exact reached physical owner in the enclosing runtime; no owner,
+raw journal, retry method or downcast is returned through the session.
+
+Success consumes the actual terminal Report and retains only its checked
+canonical delivery projection. The runtime exposes that inert data by shared
+borrow and permits normal close after Complete. A new handle observes the same
+Complete or quarantine status without a new append, dispatch or cleanup. Failed
+target and cleanup-observer paths remain quarantined and refuse close; this
+composition does not pretend those failures reached a cleanup/Stop terminal.
+The existing failed-Observe settlement entry remains separately available.
+
+The `owned_runtime_two_turn_` regression family enters through genuine
+Initialize and first Model, exercises both model and target calls, observes four
+canonical physical cleanup callbacks, consumes the Report, closes the runtime,
+and reopens authenticated terminal evidence. It covers every one of the 19
+first-turn bridge prewrite boundaries, the second Model settlement and terminal
+prewrite, cancellation, denied capability policy, target failure and observer
+panic. Each failure also drops and reopens a session handle, refuses runtime
+close, and checks that no dispatch, cleanup or append is retried. These tests
+are authored and unexecuted in this source-only batch.
+
+This closes the private first-turn orchestration and second-turn custody gaps.
+Public request construction, complete runtime shutdown settlement, the broader
+failure cleanup matrix and restart-to-terminal restoration remain required;
+no public lifecycle support or issue #330 closure is claimed.

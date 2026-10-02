@@ -61,6 +61,52 @@ impl RichBindingPlan {
             self.binding.rust_method, self.binding.rust_path
         )
     }
+
+    /// Refuses a descriptor that cannot be the plan's selected declaration
+    /// before the generated adapter can be entered.
+    pub(super) fn validate_descriptor(&self, descriptor: &str) -> Result<(), Diagnostic> {
+        if descriptor.contains(&self.binding.semaprax_id) {
+            Ok(())
+        } else {
+            Err(Diagnostic::io(
+                "SPX-B120",
+                "Native Rust rich descriptor disagrees with BindingPlan",
+            ))
+        }
+    }
+
+    /// The bootstrap is a native static profile only.  Other targets fail
+    /// during admission, before any generated callback exists.
+    pub(super) fn validate_target(&self, target: &str) -> Result<(), Diagnostic> {
+        if target
+            == current_target()
+                .map(|target| target.triple)
+                .as_deref()
+                .unwrap_or("")
+        {
+            Ok(())
+        } else {
+            Err(Diagnostic::io(
+                "SPX-B118",
+                "Native Rust rich BindingPlan target is unsupported",
+            ))
+        }
+    }
+
+    pub(super) fn validate_signature(
+        &self,
+        parameters: &[ScalarType],
+        result: ScalarType,
+    ) -> Result<(), Diagnostic> {
+        if parameters == [ScalarType::I64, ScalarType::I64] && result == ScalarType::I64 {
+            Ok(())
+        } else {
+            Err(Diagnostic::io(
+                "SPX-B118",
+                "Native Rust rich BindingPlan signature is unsupported",
+            ))
+        }
+    }
 }
 
 fn is_rust_identifier(value: &str) -> bool {

@@ -11,5 +11,8 @@ pub fn add(left: i64, right: i64) -> i64 {
 }
 
 pub fn checked_div(left: i64, right: i64) -> Result<i64, DivisionError> {
+    if right == 13 {
+        panic!("fixture panic remains distinct from DivisionError");
+    }
     left.checked_div(right).ok_or(DivisionError::Zero)
 }

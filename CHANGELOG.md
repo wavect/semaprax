@@ -1,5 +1,10 @@
 # Changelog
 
+- Add RI-01 bootstrap negative controls for plan/descriptor disagreement,
+  unsupported target/signature refusal, stable-ID source facts, Rust Result
+  failure, and a caught fixture unwind. Bind missing-effect refusal to RI-11's
+  profile dispatch before callback entry.
+
 - Implement RI-01's local generated scalar round trip: a canonical
   BindingPlan now renders the Rust callback adapter for an ordinary fixture
   crate, and the native harness compiles and runs it through the existing C11

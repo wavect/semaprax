@@ -12,6 +12,56 @@ fn rich_fixture_plan_is_canonical_and_rejects_a_generated_method_injection() {
     );
     let error = bootstrap_fixture_plan("host_add;panic!()").unwrap_err();
     assert_eq!(error.code, "SPX-B117");
+    assert_eq!(
+        plan.validate_descriptor("{\"imports\":[\"host.other\"]}")
+            .unwrap_err()
+            .code,
+        "SPX-B120"
+    );
+    assert_eq!(
+        plan.validate_target("wasm32-unknown-unknown")
+            .unwrap_err()
+            .code,
+        "SPX-B118"
+    );
+    assert_eq!(
+        plan.validate_signature(&[ScalarType::Bool], ScalarType::Bool)
+            .unwrap_err()
+            .code,
+        "SPX-B118"
+    );
+    let profile = crate::TrustedNativeProfile::admit(
+        plan.canonical().as_bytes(),
+        b"ri01-fixture-math",
+        b"ri01-native-c11",
+        &["host.math"],
+        crate::NativeBuildPolicy::StrictDenyExecution,
+    )
+    .unwrap();
+    let grant = profile.grant(&[]).unwrap();
+    let mut callback_entries = 0;
+    assert_eq!(
+        profile.dispatch(&grant, &["host.math"], || {
+            callback_entries += 1;
+        }),
+        Err(crate::NativeDispatchError::MissingCapability)
+    );
+    assert_eq!(callback_entries, 0);
+}
+
+#[test]
+fn rich_fixture_preserves_canonical_source_and_selected_stable_id_facts() {
+    let (program, spec) = fixture();
+    let canonical = crate::format::canonical(&program);
+    let reparsed = crate::parse(&canonical, Path::new("rich-fixture.spx")).unwrap();
+    assert_eq!(crate::format::canonical(&reparsed), canonical);
+    let prepared = prepare_native_rust_interop(&program, spec.as_bytes()).unwrap();
+    assert_eq!(prepared.exports.len(), 1);
+    assert_eq!(prepared.exports[0].id, "interop.add");
+    assert_eq!(prepared.imports.len(), 1);
+    assert_eq!(prepared.imports[0].id, "host.add");
+    assert!(prepared.closure.contains(&"interop.add".to_owned()));
+    assert!(prepared.closure.contains(&"host.add".to_owned()));
 }
 
 #[test]
@@ -711,6 +761,7 @@ if !matches!(bridge.{export_method}(0,0),Ok(0)){{std::process::exit(12)}}
 if !matches!(bridge.{export_method}(-20,-22),Ok(-64)){{std::process::exit(13)}}
 assert_eq!(fixture_math::checked_div(42,2),Ok(21));
 assert_eq!(fixture_math::checked_div(1,0),Err(fixture_math::DivisionError::Zero));
+assert!(std::panic::catch_unwind(||fixture_math::checked_div(1,13)).is_err());
 }}
 "#,
         adapter = plan.render_adapter(),

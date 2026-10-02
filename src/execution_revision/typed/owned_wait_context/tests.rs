@@ -10,7 +10,9 @@ use std::sync::atomic::{AtomicU64, Ordering};
 struct Fixture(PathBuf);
 impl Drop for Fixture {
     fn drop(&mut self) {
-        std::fs::remove_dir_all(&self.0).unwrap();
+        if std::env::var_os("SEMAPRAX_KEEP_OWNED_WAIT_CONTEXT_FIXTURE").is_none() {
+            std::fs::remove_dir_all(&self.0).unwrap();
+        }
     }
 }
 #[derive(Clone, Copy)]
@@ -713,6 +715,65 @@ impl crate::live_invocation::source_journal::CheckedOwnedWaitJournalContextV8 {
         ) -> T,
     ) -> T {
         Self::test_with_runtime_fixture(RuntimeFixture::Baseline, retention_ack, callback)
+    }
+    /// A relaunch rebuilds the checked runtime from independent source fixture
+    /// bytes, while the caller supplies only a test transport of host-retained
+    /// physical registration facts from the exited preparer process.
+    pub(crate) fn test_with_actual_recovered_runtime_store<T>(
+        directory: &std::path::Path,
+        registration: crate::resumable_effects::owned_frame::SourceOwnedWaitStoreRegistrationV8,
+        callback: impl FnOnce(
+            Self,
+            crate::resumable_effects::owned_frame::SourceOwnedWaitLeaseV8,
+            crate::resumable_effects::source_checkpoint::SourceCheckpointKey,
+        ) -> T,
+    ) -> T {
+        use crate::resumable_effects::owned_frame::{
+            recover_source_owned_wait_v8, ExplicitStoreRegistrationGrant,
+        };
+        let f = fixture();
+        with_authenticated_project(&f.0.join("semaprax.toml"), |snapshot| {
+            let project = snapshot.retain_revision();
+            let source = project
+                .sources()
+                .iter()
+                .find(|source| source.path() == "src/app.spx")
+                .unwrap();
+            let wait = Arc::new(compile_owned_agent_wait_v8(
+                source.source(),
+                std::path::Path::new(source.path()),
+                "fixture.agent",
+                "fixture.agent.type.step",
+            )?);
+            let baseline = Arc::new(runtime_for(
+                Arc::clone(&project),
+                effects(),
+                false,
+                b"owned task",
+                RuntimeFixture::Baseline,
+            ));
+            let execution = Arc::new(context_for(&baseline, Arc::clone(&wait), 2_000_000));
+            let lease = recover_source_owned_wait_v8(
+                std::fs::File::open(directory).unwrap(),
+                &registration,
+                registration.expected_facts().clone(),
+                ExplicitStoreRegistrationGrant::for_trusted_host(true).unwrap(),
+            )
+            .unwrap();
+            let checked =
+                crate::live_invocation::source_journal::checked_owned_wait_journal_context_v8(
+                    execution,
+                    &lease,
+                    &registration,
+                )
+                .unwrap()
+                .with_runtime(baseline, &lease)
+                .unwrap();
+            let key =
+                crate::resumable_effects::source_checkpoint::SourceCheckpointKey::new([73; 32]);
+            Ok(callback(checked, lease, key))
+        })
+        .unwrap()
     }
     pub(crate) fn test_with_actual_three_turn_store<T>(
         callback: impl FnOnce(

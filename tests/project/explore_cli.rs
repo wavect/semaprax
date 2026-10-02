@@ -84,6 +84,7 @@ fn explorer_json_is_canonical_source_free_and_carries_its_payload_digest() {
     let snapshot: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
     assert_eq!(snapshot["schema"], "semaprax.explorer-snapshot.v1");
     assert_eq!(snapshot["source_included"], false);
+    assert!(snapshot.get("source_files").is_none());
     assert_eq!(snapshot["focus_sides"], serde_json::json!([]));
     assert_eq!(snapshot["snapshot_digest"], digest(&snapshot));
     assert!(!bytes
@@ -117,15 +118,6 @@ fn explorer_rejects_invalid_flags_and_preserves_existing_destination() {
             "missing-capsule.json",
             "--candidate-capsule",
             "candidate.json",
-        ],
-        vec![
-            "explore",
-            "semaprax.toml",
-            "--format",
-            "json",
-            "--output",
-            "source.json",
-            "--include-source",
         ],
         vec![
             "explore",
@@ -167,4 +159,74 @@ fn explorer_rejects_invalid_flags_and_preserves_existing_destination() {
         0,
         "failed publication must remove its temporary artifact"
     );
+}
+
+#[test]
+fn include_source_is_explicit_bounded_and_visible_in_json_and_html() {
+    let fixture = Fixture::new();
+    let secret = "918273645";
+    let core = fixture.0.join("src/core.spx");
+    let original = std::fs::read_to_string(&core).unwrap();
+    let source = format!(
+        "{}\n// </pre><script>window.__injected=1</script>\n",
+        original.replace("left + right", &format!("left + {secret}"))
+    );
+    let source = semaprax::parse_canonical(&source, &core).unwrap().1;
+    std::fs::write(&core, &source).unwrap();
+
+    let json = fixture.cli(&[
+        "explore",
+        "semaprax.toml",
+        "--format",
+        "json",
+        "--output",
+        "included.json",
+        "--include-source",
+    ]);
+    assert!(json.status.success(), "{json:?}");
+    let bytes = std::fs::read(fixture.0.join("included.json")).unwrap();
+    let snapshot: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+    assert_eq!(snapshot["source_included"], true);
+    assert_eq!(snapshot["snapshot_digest"], digest(&snapshot));
+    let files = snapshot["source_files"].as_array().unwrap();
+    assert!(files.iter().any(|file| {
+        file["side"] == "current"
+            && file["path"] == "src/core.spx"
+            && file["text"].as_str().is_some_and(|text| text.contains(secret))
+    }));
+
+    let html = fixture.cli(&[
+        "explore",
+        "semaprax.toml",
+        "--format",
+        "html",
+        "--output",
+        "included.html",
+        "--include-source",
+    ]);
+    assert!(html.status.success(), "{html:?}");
+    let html = std::fs::read_to_string(fixture.0.join("included.html")).unwrap();
+    assert!(html.contains("Source included"));
+    assert!(html.contains("complete source text"));
+    assert!(html.contains(secret));
+    assert!(html.contains("&lt;/pre&gt;&lt;script&gt;window.__injected=1&lt;/script&gt;"));
+    assert!(!html.contains("</pre><script>window.__injected=1"));
+}
+
+#[test]
+fn include_source_is_rejected_for_non_standalone_formats() {
+    let fixture = Fixture::new();
+    for format in ["markdown", "svg"] {
+        let output = fixture.cli(&[
+            "explore",
+            "semaprax.toml",
+            "--format",
+            format,
+            "--output",
+            "source.out",
+            "--include-source",
+        ]);
+        assert_eq!(output.status.code(), Some(2), "{output:?}");
+        assert!(!fixture.0.join("source.out").exists());
+    }
 }

@@ -105,8 +105,8 @@ pub(crate) fn parse(args: &[String]) -> Result<Options, u8> {
         );
         return Err(2);
     }
-    if include_source {
-        eprintln!("--include-source is not yet supported by this explorer exporter");
+    if include_source && export_format.is_some() {
+        eprintln!("--include-source is supported only with --format html or json");
         return Err(2);
     }
     Ok(Options {
@@ -162,6 +162,38 @@ pub(crate) fn run(options: Options) -> Result<(), Vec<Diagnostic>> {
             None
         };
         let focus_sides = focus_sides(options.target.as_deref(), catalog.as_ref())?;
+        let source_files = if options.include_source {
+            let mut files = Vec::new();
+            if let Some(candidate) = &candidate {
+                for (side, revision) in [
+                    ("base", candidate.base_revision()),
+                    ("candidate", candidate.revision()),
+                ] {
+                    for source in revision.sources() {
+                        files.push(json!({
+                            "side": side,
+                            "path": source.path(),
+                            "source_revision": source.source_revision(),
+                            "source_digest": source.source_digest(),
+                            "text": source.source(),
+                        }));
+                    }
+                }
+            } else {
+                for source in snapshot.sources() {
+                    files.push(json!({
+                        "side": "current",
+                        "path": source.path(),
+                        "source_revision": source.source_revision(),
+                        "source_digest": source.source_digest(),
+                        "text": source.source(),
+                    }));
+                }
+            }
+            files
+        } else {
+            Vec::new()
+        };
         let mut views = Vec::new();
         let sides: &[ExplorerSide] = if candidate.is_some() {
             &[ExplorerSide::Candidate, ExplorerSide::Base]
@@ -263,6 +295,9 @@ pub(crate) fn run(options: Options) -> Result<(), Vec<Diagnostic>> {
             }
         }
         let mut v = json!({"schema":"semaprax.explorer-snapshot.v1","generator":"semaprax explore","views":views,"focus":options.target,"focus_sides":focus_sides,"source_included":options.include_source,"evidence_availability":"not_bundled","confidentiality":"names_ids_and_paths_may_be_confidential"});
+        if options.include_source {
+            v["source_files"] = json!(source_files);
+        }
         if let Some(catalog) = catalog {
             v["changes"] = json!({"catalog":catalog,"details":[]});
         }
@@ -410,6 +445,33 @@ fn html(snapshot: &[u8]) -> String {
         .collect::<Vec<_>>();
     bodies.push("(function(){const data=JSON.parse(document.getElementById('snapshot').textContent);SemapraxExplorerView.createExplorer(document.getElementById('app'),SemapraxExplorerHosts.snapshotHost(data),{side:data.views[0].query.side});})();".to_owned());
     let css = include_str!("../../ui/semantic-explorer/explorer.css");
+    let source_section = serde_json::from_slice::<Value>(snapshot)
+        .ok()
+        .filter(|value| value["source_included"] == true)
+        .map(|value| {
+            let files = value["source_files"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .map(|file| {
+                    let side = file["side"].as_str().unwrap_or("");
+                    let path = file["path"].as_str().unwrap_or("");
+                    let source_revision = file["source_revision"].as_str().unwrap_or("");
+                    let text = file["text"].as_str().unwrap_or("");
+                    format!(
+                        "<details><summary>{} · {} · {}</summary><pre>{}</pre></details>",
+                        html_text(side),
+                        html_text(path),
+                        html_text(source_revision),
+                        html_text(text)
+                    )
+                })
+                .collect::<String>();
+            format!(
+                "<section aria-label=\"Source-inclusive review\"><h2>Source included</h2><p>This local review contains complete source text. Names, IDs, paths, and source may be confidential; review before sharing.</p>{files}</section>"
+            )
+        })
+        .unwrap_or_default();
     let hashes = bodies
         .iter()
         .map(|body| {
@@ -425,7 +487,15 @@ fn html(snapshot: &[u8]) -> String {
         .iter()
         .map(|body| format!("<script>{body}</script>"))
         .collect::<String>();
-    format!("<!doctype html><html><head><meta charset=utf-8><meta name=viewport content=\"width=device-width,initial-scale=1\"><meta http-equiv=\"Content-Security-Policy\" content=\"{csp}\"><style>{css}</style></head><body><div id=app></div><script id=snapshot type=application/json>{esc}</script>{scripts}</body></html>")
+    format!("<!doctype html><html><head><meta charset=utf-8><meta name=viewport content=\"width=device-width,initial-scale=1\"><meta http-equiv=\"Content-Security-Policy\" content=\"{csp}\"><style>{css}</style></head><body><div id=app></div>{source_section}<script id=snapshot type=application/json>{esc}</script>{scripts}</body></html>")
+}
+fn html_text(value: &str) -> String {
+    value
+        .replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+        .replace('\'', "&#39;")
 }
 fn base64(bytes: &[u8]) -> String {
     const TABLE: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";

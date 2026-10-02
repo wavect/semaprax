@@ -303,7 +303,7 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) use observe::settl
 pub(crate) use observe::settlement::test_initial_observe_entry_v8;
 
 pub(crate) use observe::settlement::failed_state::LiveFailedObserveStateCleanupPermitV8;
-pub(in crate::live_invocation::source_journal::owned_wait_v8) use observe::settlement::failed_state::{FailedObserveCacheV8, FailedObserveContextV8, FailedObserveOwnerV8, FailedObserveSourceV8, FixedFailedObserveStateAppendPermitV8, LiveFailedObserveStateAppendV8, LiveFailedObserveStateFailureV8, LiveFailedObserveStateAcknowledgedV8, LiveFailedObserveStateStoppedV8, advance_verified_failed_observe_state_v8, stop_failed_observe_state_v8};
+pub(in crate::live_invocation::source_journal::owned_wait_v8) use observe::settlement::failed_state::{FailedObserveCacheV8, FailedObserveContextV8, FailedObserveOwnerV8, FailedObserveSourceV8, FixedFailedObserveStateAppendPermitV8, LiveFailedObserveStateAppendV8, LiveFailedObserveStateFailureV8, LiveFailedObserveStateAcknowledgedV8, LiveFailedObserveStateStoppedV8, LiveFailedObserveStateQuarantinedV8, advance_verified_failed_observe_state_v8, stop_failed_observe_state_v8};
 
 pub(in crate::live_invocation::source_journal::owned_wait_v8) use observe::settlement::carry::start::{advance_verified_continued_start_v8,FixedOwnedContinuedStartAppendPermitV8,LiveContinuedSourceEntryFailureV8,LiveContinuedStartFailureV8,LiveContinuedStartPhaseV8,LiveOwnedContinuedStartAppendV8};
 pub(in crate::live_invocation::source_journal::owned_wait_v8) use observe::settlement::later_carry::start::{

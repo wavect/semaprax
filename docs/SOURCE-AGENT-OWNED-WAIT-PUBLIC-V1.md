@@ -101,11 +101,13 @@ recovery authority.
 
 The initial and continued failed-Observe paths now have a private driver that
 performs the acknowledged State cleanup, receipt, and sticky Stop sequence and
-seals its released State inside the runtime. It quarantines the journal at each
-incomplete boundary. The later-turn failed-Observe producer is still not
-joined, and several post-effect tails still lack this terminal. Consequently no
-public session or executable `run` method is exposed. Recovery and
-terminal/report delivery from reopened bytes remain unsupported. An executable
+seals its released State inside the runtime. At each incomplete boundary it
+retires the journal and returns a private opaque error holding the reached
+physical owner. Its caller must retain that error; a public runtime-held
+quarantine is still unfinished. The later-turn failed-Observe producer is still
+not joined, and several post-effect tails still lack this terminal.
+Consequently no public session or executable `run` method is exposed. Recovery
+and terminal/report delivery from reopened bytes remain unsupported. An executable
 method is admitted only with the complete failure dispatch and its regression
 matrix.
 

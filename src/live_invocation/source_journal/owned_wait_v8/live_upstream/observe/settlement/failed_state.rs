@@ -10,6 +10,7 @@ use crate::interpreter::resumable::owned_frame::registered_stage::reduce::{
 };
 use crate::interpreter::resumable::owned_frame::registered_stage::reduce::FailedHeldOwnedObserveV2;
 use crate::live_invocation::source_journal::owned_wait_v8::append::VerifiedFailedObserveStateSuccessorV8;
+use crate::live_invocation::source_journal::owned_wait_v8::append::LiveFailedObserveStateAppendFailureV8;
 use crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect::authorization::step::r#continue::settlement::failed_state::ContinuedFailedObserveContextV8;
 use crate::live_invocation::source_journal::{SourceStopReason,SourceStopStatus};
 use crate::resumable_effects::owned_frame::v2::CheckedOwnedFrameHelperV2;
@@ -627,56 +628,114 @@ pub(crate) struct LiveFailedObserveStateStoppedV8<'j> {
     _released: LiveReleasedFailedObserveStateV8<'j>,
 }
 
-fn quarantine_failed_observe_state<T>(
+enum QuarantinedFailedObserveOwnerV8<'j> {
+    Failure { _owner: LiveFailedObserveStateFailureV8<'j> },
+    Pending { _owner: LiveFailedObserveStateAppendV8<'j> },
+    AppendFault { _owner: LiveFailedObserveStateAppendFailureV8<'j> },
+    Acknowledged { _owner: LiveFailedObserveStateAcknowledgedV8<'j> },
+}
+
+/// Keeps the exact reached physical owner alive while the caller retains this
+/// private error. It has no retry, extraction, append, or cleanup method.
+pub(crate) struct LiveFailedObserveStateQuarantinedV8<'j> {
+    _owner: QuarantinedFailedObserveOwnerV8<'j>,
+}
+
+impl LiveFailedObserveStateQuarantinedV8<'_> {
+    pub(crate) fn status(&self) -> SourceJournalError {
+        SourceJournalError::Poisoned
+    }
+}
+
+fn quarantine_failed_observe_state<'j>(
     journal: &SourceOwnedWaitJournalV8,
-) -> Result<T, SourceJournalError> {
+    owner: QuarantinedFailedObserveOwnerV8<'j>,
+) -> LiveFailedObserveStateQuarantinedV8<'j> {
     journal.quarantine();
-    Err(SourceJournalError::Poisoned)
+    LiveFailedObserveStateQuarantinedV8 { _owner: owner }
 }
 
 /// Drive one failed initial or continued Observe through its acknowledged State
-/// cleanup, receipt, and sticky Stop rows. Any incomplete boundary seals the
-/// journal and drops the private owner rather than returning it to a caller.
+/// cleanup, receipt, and sticky Stop rows. An incomplete boundary seals the
+/// journal and returns the reached physical owner in an opaque private error.
 pub(crate) fn stop_failed_observe_state_v8<'j>(
     failed: LiveSettledObserveV8<'j>,
     observe: impl FnMut(&crate::cleanup_plan::FinalizeAction),
-) -> Result<LiveFailedObserveStateStoppedV8<'j>, SourceJournalError> {
+) -> Result<LiveFailedObserveStateStoppedV8<'j>, LiveFailedObserveStateQuarantinedV8<'j>> {
     let journal = failed.owner.journal();
     let cleanup = match failed.prepare_failed_state_cleanup() {
         Ok(cleanup) => cleanup,
-        Err(_) => return quarantine_failed_observe_state(journal),
+        Err(owner) => return Err(quarantine_failed_observe_state(
+            journal,
+            QuarantinedFailedObserveOwnerV8::Failure { _owner: owner },
+        )),
     };
     let started = match journal.begin_session() {
         Ok(session) => match session.append_failed_observe_state(cleanup) {
             Ok(append) => match append.advance_failed_observe_state() {
                 Ok(LiveFailedObserveStateAcknowledgedV8::Started(started)) => started,
-                Ok(_) | Err(_) => return quarantine_failed_observe_state(journal),
+                Ok(owner) => return Err(quarantine_failed_observe_state(
+                    journal,
+                    QuarantinedFailedObserveOwnerV8::Acknowledged { _owner: owner },
+                )),
+                Err(owner) => return Err(quarantine_failed_observe_state(
+                    journal,
+                    QuarantinedFailedObserveOwnerV8::Failure { _owner: owner },
+                )),
             },
-            Err(_) => return quarantine_failed_observe_state(journal),
+            Err(owner) => return Err(quarantine_failed_observe_state(
+                journal,
+                QuarantinedFailedObserveOwnerV8::AppendFault { _owner: owner },
+            )),
         },
-        Err(_) => return quarantine_failed_observe_state(journal),
+        Err(_) => return Err(quarantine_failed_observe_state(
+            journal,
+            QuarantinedFailedObserveOwnerV8::Pending { _owner: cleanup },
+        )),
     };
     let released = match started.release(observe) {
         Ok(released) => released,
-        Err(_) => return quarantine_failed_observe_state(journal),
+        Err(owner) => return Err(quarantine_failed_observe_state(
+            journal,
+            QuarantinedFailedObserveOwnerV8::Failure { _owner: owner },
+        )),
     };
     let receipt = match released.prepare_receipt() {
         Ok(receipt) => receipt,
-        Err(_) => return quarantine_failed_observe_state(journal),
+        Err(owner) => return Err(quarantine_failed_observe_state(
+            journal,
+            QuarantinedFailedObserveOwnerV8::Failure { _owner: owner },
+        )),
     };
     let released = match journal.begin_session() {
         Ok(session) => match session.append_failed_observe_state(receipt) {
             Ok(append) => match append.advance_failed_observe_state() {
                 Ok(LiveFailedObserveStateAcknowledgedV8::Released(released)) => released,
-                Ok(_) | Err(_) => return quarantine_failed_observe_state(journal),
+                Ok(owner) => return Err(quarantine_failed_observe_state(
+                    journal,
+                    QuarantinedFailedObserveOwnerV8::Acknowledged { _owner: owner },
+                )),
+                Err(owner) => return Err(quarantine_failed_observe_state(
+                    journal,
+                    QuarantinedFailedObserveOwnerV8::Failure { _owner: owner },
+                )),
             },
-            Err(_) => return quarantine_failed_observe_state(journal),
+            Err(owner) => return Err(quarantine_failed_observe_state(
+                journal,
+                QuarantinedFailedObserveOwnerV8::AppendFault { _owner: owner },
+            )),
         },
-        Err(_) => return quarantine_failed_observe_state(journal),
+        Err(_) => return Err(quarantine_failed_observe_state(
+            journal,
+            QuarantinedFailedObserveOwnerV8::Pending { _owner: receipt },
+        )),
     };
     let stop = match released.prepare_stop() {
         Ok(stop) => stop,
-        Err(_) => return quarantine_failed_observe_state(journal),
+        Err(owner) => return Err(quarantine_failed_observe_state(
+            journal,
+            QuarantinedFailedObserveOwnerV8::Failure { _owner: owner },
+        )),
     };
     match journal.begin_session() {
         Ok(session) => match session.append_failed_observe_state(stop) {
@@ -686,11 +745,24 @@ pub(crate) fn stop_failed_observe_state_v8<'j>(
                         _released: released,
                     })
                 }
-                Ok(_) | Err(_) => quarantine_failed_observe_state(journal),
+                Ok(owner) => Err(quarantine_failed_observe_state(
+                    journal,
+                    QuarantinedFailedObserveOwnerV8::Acknowledged { _owner: owner },
+                )),
+                Err(owner) => Err(quarantine_failed_observe_state(
+                    journal,
+                    QuarantinedFailedObserveOwnerV8::Failure { _owner: owner },
+                )),
             },
-            Err(_) => quarantine_failed_observe_state(journal),
+            Err(owner) => Err(quarantine_failed_observe_state(
+                journal,
+                QuarantinedFailedObserveOwnerV8::AppendFault { _owner: owner },
+            )),
         },
-        Err(_) => quarantine_failed_observe_state(journal),
+        Err(_) => Err(quarantine_failed_observe_state(
+            journal,
+            QuarantinedFailedObserveOwnerV8::Pending { _owner: stop },
+        )),
     }
 }
 

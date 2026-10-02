@@ -4,8 +4,9 @@
   authenticated two-step fresh-registration boundary, the required ownership
   transfers, and the conditions for a future bounded two-turn SourceLive-v8
   driver. A private driver now joins initial and continued failed Observe
-  through State cleanup, receipt, and Stop while quarantining incomplete
-  boundaries. No executable public entry is exposed: later failed Observe,
+  through State cleanup, receipt, and Stop while returning a private opaque
+  owner-bearing error at incomplete boundaries. No executable public entry is
+  exposed: later failed Observe,
   other failure cleanup/quarantine, Report projection, and recovery still need
   their owning contracts, so this source-only work does not close #330.
 

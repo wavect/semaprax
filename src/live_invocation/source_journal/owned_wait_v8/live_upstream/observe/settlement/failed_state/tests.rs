@@ -249,7 +249,7 @@ fn failed_observe_state_cleanup_cancellation_before_started_has_zero_state_work(
             })
             .err()
             .expect("private Stop driver seals pre-Started cancellation");
-            assert_eq!(actual, SourceJournalError::Poisoned);
+            assert_eq!(actual.status(), SourceJournalError::Poisoned);
             assert_eq!(
                 journal
                     .test_observe_lease()
@@ -262,6 +262,30 @@ fn failed_observe_state_cleanup_cancellation_before_started_has_zero_state_work(
             assert!(weak.iter().any(|w| w.strong_count() == 1));
             assert!(journal.hold().is_err());
             drop(actual);
+            assert!(weak.iter().all(|w| w.upgrade().is_none()));
+        });
+    }
+}
+#[test]
+#[cfg(unix)]
+fn failed_observe_state_driver_prewrite_fault_retains_actual_owner() {
+    for initial_route in [true, false] {
+        with_failed(initial_route, |journal, failed, weak, _, _, _| {
+            let next = journal.begin_session().unwrap().sequence() + 1;
+            journal
+                .test_observe_lease()
+                .borrow_mut()
+                .test_fail_before_write(next);
+            let quarantined = stop_failed_observe_state_v8(failed, |_| {
+                panic!("prewrite fault cannot release State")
+            })
+            .err()
+            .expect("opaque quarantine retains actual failed Observe owner");
+            assert_eq!(quarantined.status(), SourceJournalError::Poisoned);
+            assert!(weak.iter().any(|w| w.strong_count() == 1));
+            assert!(journal.hold().is_err());
+            assert!(journal.begin_session().is_err());
+            drop(quarantined);
             assert!(weak.iter().all(|w| w.upgrade().is_none()));
         });
     }

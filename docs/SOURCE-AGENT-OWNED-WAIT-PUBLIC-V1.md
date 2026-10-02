@@ -99,11 +99,15 @@ it in a sealed runtime-held quarantine object that admits only its prescribed
 cleanup. A quarantined object exposes no retry, extraction, raw journal, or
 recovery authority.
 
-This is currently incomplete for failed Observe and several post-effect
-failure tails. Consequently no public session or executable `run` method is
-exposed. Recovery and terminal/report delivery from reopened bytes remain
-unsupported. An executable method is admitted only with the complete failure
-dispatch and its regression matrix.
+The initial and continued failed-Observe paths now have a private driver that
+performs the acknowledged State cleanup, receipt, and sticky Stop sequence and
+seals its released State inside the runtime. It quarantines the journal at each
+incomplete boundary. The later-turn failed-Observe producer is still not
+joined, and several post-effect tails still lack this terminal. Consequently no
+public session or executable `run` method is exposed. Recovery and
+terminal/report delivery from reopened bytes remain unsupported. An executable
+method is admitted only with the complete failure dispatch and its regression
+matrix.
 
 ## 5. Required evidence before promotion
 

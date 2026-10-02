@@ -3,9 +3,11 @@
 - Define the public owned-Agent entry contract for #330. It records the
   authenticated two-step fresh-registration boundary, the required ownership
   transfers, and the conditions for a future bounded two-turn SourceLive-v8
-  driver. No executable public entry is exposed: failure cleanup/quarantine,
-  Report projection, and recovery still need their owning contracts, so this
-  source-only specification work does not close #330.
+  driver. A private driver now joins initial and continued failed Observe
+  through State cleanup, receipt, and Stop while quarantining incomplete
+  boundaries. No executable public entry is exposed: later failed Observe,
+  other failure cleanup/quarantine, Report projection, and recovery still need
+  their owning contracts, so this source-only work does not close #330.
 
 Project log follows a compact [Keep a Changelog](https://keepachangelog.com/)
 format: `Unreleased` then release buckets, grouped by impact.

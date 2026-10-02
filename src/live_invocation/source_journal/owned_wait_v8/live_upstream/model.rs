@@ -127,7 +127,7 @@ pub(super) enum LiveModelFailureOwnerV8 {
     ),
     Resume(LiveWaitResumeOutcomeV8),
 }
-pub(super) struct LiveModelFailureV8<'j> {
+pub(in crate::live_invocation::source_journal::owned_wait_v8) struct LiveModelFailureV8<'j> {
     owner: LiveModelFailureOwnerV8,
     held: HeldOwnedWaitStoreV8<'j>,
     error: SourceJournalError,

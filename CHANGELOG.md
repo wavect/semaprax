@@ -1,5 +1,11 @@
 # Changelog
 
+- Provision the #332 Linux provider guest with exact CPython 3.12.14 and a
+  credential-free committed source projection, retaining archive/file hashes
+  without guest Git claims. Add exclusive interactive-login custody and orphan
+  auth cleanup. Pure provider/runtime gates passed 6/6 and 4/4; native Python
+  metadata matched the pin. No model calls or guest restart were performed.
+
 - Admit #332 guest-native generation from an externally pinned controller
   source snapshot without requiring a guest Git executable. Recompute exact
   implementation/source/prompt and plan fields, record controller revision

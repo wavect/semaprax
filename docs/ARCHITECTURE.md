@@ -50,6 +50,11 @@ explicit image/toolchain pins, Landlock/seccomp confinement, physical denial
 probes and reuse of the same candidate/assertion bridge. The controller remains
 Darwin; native guest model generation is a separate transport grant. Receipt
 accounting grants no execution or independent-review authority.
+`agent/pilot_linux_provider.py` and `agent/pilot_linux_runtime.py` own
+[provider guest provisioning](CROSS-LANGUAGE-PILOT-LINUX-PROVIDER-V1.md): signed
+native CLI admission, private interactive login, pinned isolated CPython and
+credential-free committed source projection. They grant no model-dispatch
+authority; the frozen native transport remains the sole dispatch route.
 
 `benchmarks/cross-language-v1/agent/specialization_accounting.py` owns the
 read-only [specialization cell accounting](../benchmarks/cross-language-v1/agent/README.md#issue-326-frozen-cell-accounting-blocked).

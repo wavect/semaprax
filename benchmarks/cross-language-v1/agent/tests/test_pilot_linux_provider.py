@@ -68,7 +68,7 @@ class LinuxProviderTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "login_requires_user_terminal"):
                 provider.login("/unused", "0" * 64)
         with tempfile.TemporaryDirectory() as temporary:
-            root = pathlib.Path(temporary)
+            root = pathlib.Path(temporary).resolve()
             provider.write_login_launcher(root, "0" * 64)
             script = root / "login.sh"
             self.assertEqual(script.stat().st_mode & 0o777, 0o700)
@@ -76,6 +76,30 @@ class LinuxProviderTests(unittest.TestCase):
             self.assertNotIn("setup-token", script.read_text())
             with self.assertRaises(FileExistsError):
                 provider.write_login_launcher(root, "0" * 64)
+
+
+    def test_one_login_flow_and_interrupt_cleanup(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = pathlib.Path(temporary).resolve()
+            (root / "scratch").mkdir()
+            (root / "guest-observation.json").write_text('{"boot_id":"fixture-boot"}')
+            facts = (provider.BINARY_SHA256 + "  /opt/claude/claude\nfixture-boot\n").encode()
+            response = mock.Mock(stdout=facts)
+            def interrupt(*args, **kwargs):
+                with self.assertRaisesRegex(ValueError, "login_already_active"):
+                    provider.login(root, "0" * 64)
+                raise KeyboardInterrupt
+            with mock.patch.object(provider, "checked_root", return_value=(root, {}, pathlib.Path("/container"), {})), \
+                    mock.patch.object(provider.sys.stdin, "isatty", return_value=True), \
+                    mock.patch.object(provider.sys.stdout, "isatty", return_value=True), \
+                    mock.patch.object(provider.subprocess, "run", return_value=response) as run, \
+                    mock.patch.object(provider.subprocess, "call", side_effect=interrupt) as call:
+                with self.assertRaises(KeyboardInterrupt):
+                    provider.login(root, "0" * 64)
+                self.assertEqual(call.call_count, 1)
+                cleanup = [row for row in run.call_args_list if "kill -TERM" in str(row)]
+                self.assertEqual(len(cleanup), 2)
+                self.assertTrue(all("auth login --claudeai" in str(row) for row in cleanup))
 
 
 if __name__ == "__main__":

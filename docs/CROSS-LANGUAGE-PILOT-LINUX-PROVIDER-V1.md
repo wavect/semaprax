@@ -87,7 +87,10 @@ script in your own interactive terminal:
 
 The wrapper rechecks provision/binary/control-plane identities and the live
 guest's executable hash and recorded boot ID. It refuses noninteractive stdin
-or stdout, then attaches directly to `claude auth login --claudeai`. It does not
+or stdout. A private exclusive lock admits only one wrapper; exact orphaned
+`auth login --claudeai` processes are retired before a fresh flow and after
+interruption. It changes to the existing scratch directory before dispatch,
+avoiding a deleted caller working directory. It then attaches directly to `claude auth login --claudeai`. It does not
 capture or retain the authentication stream. Open the link shown in your own
 terminal, sign in to the intended subscription, and paste any returned code
 **only into that terminal, never into chat or evidence**. No setup token is
@@ -117,10 +120,66 @@ python3 -m unittest discover -s benchmarks/cross-language-v1/agent/tests \
   -p test_pilot_linux_provider.py -v
 ```
 
-On 2026-10-02 it passed 5/5 in 0.004s. Separate physical provisioning verified the
+On 2026-10-02 it passed 6/6 in 0.004s, including concurrent-login refusal
+and interrupt cleanup. Separate physical provisioning verified the
 signed release, binary checksum and guest-native `2.1.286 (Claude Code)` output.
 Fresh guest auth status was `loggedIn: false`, `authMethod: none`. A bounded
 15-second login probe reached the OAuth URL and waited for authentication before
 timing out;
 only boolean readiness was retained, and its temporary raw output was deleted.
 No provider model call occurred. User sign-in remains pending.
+
+
+## Provider-only Python and source snapshot
+
+`agent/pilot_linux_runtime.py` extends the existing public read-only mount
+without restarting the guest. It admits the official Astral
+`python-build-standalone` release `20260901`, archive
+`cpython-3.12.14+20260901-aarch64-unknown-linux-gnu-install_only_stripped.tar.gz`,
+length `29199399`, SHA-256
+`577b4bec0793ad1ff0cbff9adbd0df078eddde38a4c41bf5d83ad381a85ee39d`.
+The compressed digest is checked before extraction. Bounded manual extraction
+retains the exact interpreter, libpython and standard library, excluding unused
+share/man/terminfo files (including case-colliding terminfo aliases).
+Only the exact internal libpython symlink is admitted. The selected file hashes,
+modes and metadata-only guest observations are written to `provider-runtime.json`.
+
+```sh
+PYTHONPATH=benchmarks/cross-language-v1 python3 -m agent.pilot_linux_runtime \
+  --root /absolute/provider-root --receipt-sha256 REVIEWED_PROVIDER_RECEIPT_SHA256 \
+  python --archive /absolute/pinned-python-archive.tar.gz
+```
+
+After all implementation commits are pushed, project a clean exact controller
+HEAD through genuine `git archive` into `public/source`. Only tracked regular
+files are admitted; links, path escapes, case collisions and `.git` metadata
+are refused. The guest receives no host Git configuration, credentials,
+worktree pointer or common Git directory. `source-receipt.json` records the
+controller-observed HEAD, archive hash and complete extracted inventory; it
+explicitly disclaims guest Git observation.
+
+```sh
+PYTHONPATH=benchmarks/cross-language-v1 python3 -m agent.pilot_linux_runtime \
+  --root /absolute/provider-root --receipt-sha256 REVIEWED_PROVIDER_RECEIPT_SHA256 \
+  source --repository /absolute/clean/repository --head EXACT_COMMITTED_HEAD
+```
+
+Both destinations are create-new and read-only after staging. A failure leaves
+an incomplete destination that cannot be retried as admitted evidence. The
+provider home is untouched. Source and runtime receipts are supplementary
+public provisioning evidence; the frozen plan and independently supplied plan
+digest still control `generate-guest` admission. Use isolated Python:
+
+```sh
+/opt/claude/python/bin/python3.12 -I -S -B -c \
+  "import sys,runpy;sys.path.insert(0,'/opt/claude/source/benchmarks/cross-language-v1');runpy.run_module('agent.pilot_run',run_name='__main__')" \
+  generate-guest --plan /work/plan.json --plan-sha256 REVIEWED_PLAN_SHA256 \
+  --host-id FROZEN_LINUX_HOST --model-id FROZEN_MODEL --directory /work/fresh-cell
+```
+
+That final command performs inference and requires the separately authorized,
+frozen cell. Provisioning only invokes runtime metadata. The owning pure
+runtime gate (`test_pilot_linux_runtime.py`) passed 4/4 in 0.007s; physical
+provisioning admitted 1,232 files and observed CPython 3.12.14 on aarch64 with
+isolated mode, site disabled and bytecode writes disabled. Zero model calls
+were made by provisioning.

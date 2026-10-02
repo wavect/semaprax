@@ -97,7 +97,7 @@ def write_login_launcher(root, receipt_digest):
                "login", "--root", str(root), "--receipt-sha256", receipt_digest]
     path = pathlib.Path(root) / "login.sh"
     with path.open("x") as output:
-        output.write("#!/bin/sh\nexec " + shlex.join(command) + "\n")
+        output.write("#!/bin/sh\ncd " + shlex.quote(str(pathlib.Path(root) / "scratch")) + " || exit 1\nexec " + shlex.join(command) + "\n")
     path.chmod(0o700)
 
 
@@ -150,7 +150,7 @@ def checked_root(root, expected_receipt_sha256):
 def start(root, expected_receipt_sha256, name=NAME):
     root, pins, cli, environment = checked_root(root, expected_receipt_sha256)
     def run(args):
-        return subprocess.run([str(cli), *args], env=environment, capture_output=True, timeout=30, check=True)
+        return subprocess.run([str(cli), *args], env=environment, cwd=root / "scratch", capture_output=True, timeout=30, check=True)
     image = json.loads(run(["image", "inspect", pins["image"]]).stdout)
     if len(image) != 1 or image[0]["configuration"]["descriptor"]["digest"] != pins["image"].split("@")[1]:
         raise ValueError("provider_image_refused")
@@ -181,10 +181,35 @@ def login(root, expected_receipt_sha256):
     observed = p.strict_json(p.provenance.read_regular(root / "guest-observation.json", 65536))
     facts = subprocess.run([str(cli), "exec", NAME, "/bin/sh", "-c",
                             "sha256sum /opt/claude/claude; cat /proc/sys/kernel/random/boot_id"],
-                           env=environment, capture_output=True, timeout=15, check=True).stdout.decode().splitlines()
+                           env=environment, cwd=root / "scratch", capture_output=True, timeout=15, check=True).stdout.decode().splitlines()
     if facts != [BINARY_SHA256 + "  /opt/claude/claude", observed["boot_id"]]:
         raise ValueError("login_guest_identity_drifted")
-    return subprocess.call([str(cli), *exec_arguments(["auth", "login", "--claudeai"], interactive=True)], env=environment)
+    # A held host lock owns this interactive flow. If an earlier wrapper died,
+    # retire only its exact auth-login command before admitting a fresh flow.
+    import fcntl
+    lock = os.open(root / ".login.lock", os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW | os.O_CLOEXEC, 0o600)
+    cleanup = (
+        'for file in /proc/[0-9]*/comm; do read -r name < "$file" 2>/dev/null || continue; '
+        'case "$name" in claude*) pid=${file#/proc/}; pid=${pid%/comm}; '
+        'args=$(tr "\\000" " " < /proc/$pid/cmdline); '
+        'case "$args" in "/opt/claude/claude auth login --claudeai ") kill -TERM "$pid";; esac;; esac; done'
+    )
+    def retire_auth():
+        subprocess.run([str(cli), "exec", NAME, "/bin/sh", "-c", cleanup], env=environment,
+                       cwd=root / "scratch", capture_output=True, timeout=15, check=True)
+    try:
+        try:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError as error:
+            raise ValueError("login_already_active_in_another_terminal") from error
+        retire_auth()
+        try:
+            return subprocess.call([str(cli), *exec_arguments(["auth", "login", "--claudeai"], interactive=True)],
+                                   env=environment, cwd=root / "scratch")
+        finally:
+            retire_auth()
+    finally:
+        os.close(lock)
 
 
 def main():

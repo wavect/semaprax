@@ -21,6 +21,8 @@ semaprax-full source-live repair run REPAIR_CONFIG REPAIR_CHECKPOINT
 semaprax-full source-live repair resume REPAIR_CONFIG REPAIR_CHECKPOINT
 semaprax-full source-live repair run REPAIR_CONFIG REPAIR_CHECKPOINT --opencode ABS --scratch EMPTY_ABS
 semaprax-full source-live repair resume REPAIR_CONFIG REPAIR_CHECKPOINT --opencode ABS --scratch EMPTY_ABS
+semaprax-full source-live repair-tested run REPAIR_CONFIG REPAIR_CHECKPOINT --opencode ABS --scratch EMPTY_ABS
+semaprax-full source-live repair-tested resume REPAIR_CONFIG REPAIR_CHECKPOINT --opencode ABS --scratch EMPTY_ABS
 ```
 
 All operands are absolute except the stable migration function identity and
@@ -99,6 +101,17 @@ environment, process handle, publication grant, or Git authority. It returns one
 bounded `passed`, `failed`, or `refused` outcome. The host rejects malformed,
 oversized, foreign-candidate, stale-base, stale-source, or wrong-capability
 documents. There is deliberately no JSON operand that selects a test runner.
+
+`repair-tested` is the one separate private CLI startup profile that supplies
+that embedding boundary itself. It accepts the same V2 OpenCode operands as
+`repair`, fixes capability identity to `semaprax.source-live-cli.repair-tested.v1`,
+and fixes the reference-interpreter policy to 100,000 steps, 65,536 execution
+bytes, and 262,144 report bytes. It calls `ProjectCandidate::execute_tests`
+against the immutable candidate and records only the bound pass/fail/refused
+observation plus the canonical candidate-test report digest. It accepts neither
+a test command nor policy/configuration overrides. Scripted V1 repair is
+refused before checkpoint creation, so this profile cannot turn fixture input
+into live test authority.
 
 When an embedding observes a candidate, it converts the canonical outcome to a
 deterministic typed `i64` feedback code bound to the complete observation. The

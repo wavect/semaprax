@@ -6,6 +6,9 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use super::*;
 use crate::opencode_host::{OpenCodeHostConfig, OpenCodeRunner, OpenCodeRunnerFailure};
 
+#[path = "repair_tests/fixed_candidate_test.rs"]
+mod fixed_candidate_test;
+
 static NEXT: AtomicU64 = AtomicU64::new(0);
 
 struct Fixture(PathBuf);

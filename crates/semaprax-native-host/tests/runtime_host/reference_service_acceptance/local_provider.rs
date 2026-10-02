@@ -360,9 +360,9 @@ fn serve_one_provider_connection_then_close(
     let _ = provider.close(connection);
 }
 
-fn complete_provider_request(
-    bytes: &[u8],
-) -> Option<(String, String, Vec<(String, String)>, Vec<u8>)> {
+type ProviderRequest = (String, String, Vec<(String, String)>, Vec<u8>);
+
+fn complete_provider_request(bytes: &[u8]) -> Option<ProviderRequest> {
     let head_end = bytes.windows(4).position(|window| window == b"\r\n\r\n")? + 4;
     let head = std::str::from_utf8(&bytes[..head_end]).ok()?;
     let mut lines = head.split("\r\n");

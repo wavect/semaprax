@@ -1,5 +1,10 @@
 # Changelog
 
+- Freeze a separately authorized #321 cohort at 120 seconds, 32 turns,
+  131,072 reported tokens, $0.25 per trial and $9 aggregate API-equivalent
+  reservations. Preserve both earlier halted/aborted packets and unchanged
+  no-refund/admission-halt rules; subscription invoice cost remains unknown.
+
 - Preserve the #321 native compiler MCP under explicit isolated settings;
   native safe-mode had disabled even the explicitly supplied server. Add a
   zero-user-turn confined MCP discovery gate alongside hostile-hook refusal.

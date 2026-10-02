@@ -35,9 +35,9 @@ MODELS = [
      'revision': 'claude-sonnet-5-5', 'configured_model': 'anthropic/claude-sonnet-5-5',
      'usage_key': 'claude-sonnet-5-5', 'canonical_model': 'claude-sonnet-5-5'},
 ]
-CAPS = {'seconds': 90, 'max_turns': 16, 'max_prompt_bytes': 65536,
-        'max_stream_bytes': 1048576, 'max_reported_tokens': 65536,
-        'max_estimated_api_usd': 0.05, 'cohort_max_estimated_api_usd': 2.0, 'agent_retries': 0}
+CAPS = {'seconds': 120, 'max_turns': 32, 'max_prompt_bytes': 65536,
+        'max_stream_bytes': 1048576, 'max_reported_tokens': 131072,
+        'max_estimated_api_usd': 0.25, 'cohort_max_estimated_api_usd': 9.0, 'agent_retries': 0}
 ISOLATION_FLAGS = ['--restricted', '--strict-mcp-config', '--setting-sources', '',
                    '--disable-slash-commands', '--settings',
                    json.dumps({'disableAllHooks': True, 'claudeMdExcludes': ['**'], 'autoMemoryEnabled': False}, sort_keys=True)]

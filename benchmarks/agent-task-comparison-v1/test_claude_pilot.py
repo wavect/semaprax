@@ -31,7 +31,7 @@ class NativePilotTests(unittest.TestCase):
         self.assertEqual(result['usage']['input_tokens'], 10)
         self.assertIsNone(result['subscription_invoice_cost_usd'])
         for change in (lambda x: x['modelUsage']['claude-haiku-4-5-20251001'].update(canonicalModel='other'),
-                       lambda x: x.update(num_turns=17), lambda x: x.update(total_cost_usd=2),
+                       lambda x: x.update(num_turns=33), lambda x: x.update(total_cost_usd=2),
                        lambda x: x['usage'].update(input_tokens=True), lambda x: x.update(queued_turn_count=1)):
             value = envelope(); change(value)
             with self.assertRaises(ValueError):m.usage(m.canonical(value), m.MODELS[0], m.CAPS)
@@ -74,7 +74,7 @@ class NativePilotTests(unittest.TestCase):
             a=root/'a';a.mkdir(mode=0o700);b=root/'b';b.mkdir(mode=0o700)
             m.require_disjoint(a,b)
             protocol={'authority':{'evidence_root':str(a)},'models':m.MODELS,
-                      'caps':dict(m.CAPS,cohort_max_estimated_api_usd=.1)}
+                      'caps':dict(m.CAPS,max_estimated_api_usd=.05,cohort_max_estimated_api_usd=.1)}
             first=m.reserve(protocol,'a'*64,'haiku45-01')
             self.assertEqual(first['cohort_reserved_micro_usd'],50000)
             with self.assertRaisesRegex(ValueError,'already_reserved'):m.reserve(protocol,'a'*64,'haiku45-01')
@@ -179,7 +179,7 @@ class NativePilotTests(unittest.TestCase):
             transport=m.Transport('0'*64)
             with mock.patch.object(m.native,'capture',side_effect=capture),mock.patch.object(m.native,'MANAGED',[]), \
                     mock.patch.object(m,'reserve',return_value={}),mock.patch.object(m,'settle_cost'):
-                out,err,raw,session,usage=transport.execute(protocol,m.MODELS[0],root/'state',root/'candidate',root/'policy.sb',mcp,'task','semaprax-source-first',90)
+                out,err,raw,session,usage=transport.execute(protocol,m.MODELS[0],root/'state',root/'candidate',root/'policy.sb',mcp,'task','semaprax-source-first',m.CAPS['seconds'])
             self.assertEqual(out,raw);self.assertEqual(session,'fixture');self.assertEqual(transport.receipt['dispatches'],1)
             server=transport.receipt['mcp_config']['mcpServers']['semaprax']
             self.assertTrue(server['command'].endswith('sandbox-exec'))
@@ -202,7 +202,7 @@ class NativePilotTests(unittest.TestCase):
                 kwargs['on_started']();return response
             with mock.patch.object(m.native,'capture',side_effect=capture),mock.patch.object(m.native,'MANAGED',[]):
                 with self.assertRaisesRegex(m.pilot.PilotFailure,'provenance_mismatch'):
-                    m.Transport('a'*64,'haiku45-01').execute(protocol,m.MODELS[0],root/'state',root/'candidate',root/'policy.sb',mcp,'task','semaprax-source-first',90)
+                    m.Transport('a'*64,'haiku45-01').execute(protocol,m.MODELS[0],root/'state',root/'candidate',root/'policy.sb',mcp,'task','semaprax-source-first',m.CAPS['seconds'])
             ledger=json.loads((root/'evidence'/'dispatch-budget.json').read_bytes())
             self.assertEqual(ledger['reported_costs']['haiku45-01'],.01)
             self.assertIn('native_admission_failed',ledger['halted'])

@@ -41,9 +41,9 @@ no API-key, endpoint, secret environment or billing-configuration argument.
 The provider CLI is trusted for subscription authentication and reported usage;
 its counters are not invoice proof or cryptographic provider attestation.
 
-Limits are fixed: 90 seconds per CLI trial, 16 agentic turns, 65,536 prompt
-bytes, 1 MiB captured output, 65,536 reported tokens (post-response admission),
-$0.05 CLI API-equivalent budget per trial, and $2 aggregate reserved budget.
+Limits are fixed: 120 seconds per CLI trial, 32 agentic turns, 65,536 prompt
+bytes, 1 MiB captured output, 131,072 reported tokens (post-response admission),
+$0.25 CLI API-equivalent budget per trial, and $9 aggregate reserved budget.
 The provider's budget enforcement is not a guarantee about invoice charges.
 A locked, fsynced before-spawn reservation consumes the full per-trial amount;
 failed/ambiguous attempts never refund it. A pending, unknown or overrun cost
@@ -107,3 +107,8 @@ servers in that mode. A zero-user-turn physical gate requires the confined
 or hostile SessionStart execution. `--tools ""` disables built-ins while this
 explicit MCP server remains admitted. Use canonical `TMPDIR=/private/tmp` on
 macOS. The earlier two-position packet remains an aborted cohort.
+
+The first MCP-enabled cohort halted after one genuine 15-tool trial reported
+$0.0509904 against its frozen $0.05 CLI limit. It remains immutable failed
+evidence. The explicitly authorized next cohort uses the larger bounds above,
+with a distinct protocol digest; the halt and no-refund rules are unchanged.

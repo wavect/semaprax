@@ -293,7 +293,18 @@ fn windows_runtime_dropped_child_releases_image_and_process_handles() {
 #[test]
 #[ignore = "requires the explicitly provisioned Windows runtime gate"]
 fn windows_runtime_signed_image_refuses_retained_writable_section_without_view() {
-    use windows_sys::Win32::System::Memory::{CreateFileMappingW, PAGE_READWRITE};
+    use std::io::Read as _;
+    use windows_sys::Win32::System::Memory::{
+        CreateFileMappingW, FlushViewOfFile, MapViewOfFile, UnmapViewOfFile, FILE_MAP_WRITE,
+        MEMORY_MAPPED_VIEW_ADDRESS, PAGE_READWRITE,
+    };
+    struct View(MEMORY_MAPPED_VIEW_ADDRESS);
+    impl Drop for View {
+        fn drop(&mut self) {
+            // SAFETY: this wrapper owns one successfully mapped view.
+            assert_ne!(unsafe { UnmapViewOfFile(self.0) }, 0);
+        }
+    }
     let fixture = Fixture::new();
     let capsule = test_capsule_body();
     let file = OpenOptions::new()
@@ -320,7 +331,57 @@ fn windows_runtime_signed_image_refuses_retained_writable_section_without_view()
     let baseline = current_process_handle_count();
     assert_refused(&fixture, &capsule, ImageRole::Worker);
     assert_eq!(current_process_handle_count(), baseline);
+    // Prove the no-view capability was real: after the guard refuses, the
+    // retained section must be able to create a writable view and change the
+    // exact file bytes. Otherwise this case could pass without exercising the
+    // section-mutation gap it is intended to witness.
+    let view = unsafe { MapViewOfFile(mapping.raw(), FILE_MAP_WRITE, 0, 0, 0) };
+    assert!(
+        !view.Value.is_null(),
+        "retained section cannot map writable"
+    );
+    let view = View(view);
+    let last = usize::try_from(std::fs::metadata(&fixture.executable).unwrap().len()).unwrap() - 1;
+    // SAFETY: a zero-length MapViewOfFile request maps the entire existing
+    // file, and `last` is its final valid byte. The view is exclusively owned
+    // by this test while the hostile byte is changed.
+    let byte = unsafe { view.0.Value.cast::<u8>().add(last) };
+    let original = unsafe { byte.read() };
+    unsafe { byte.write(original ^ 1) };
+    assert_ne!(unsafe { FlushViewOfFile(view.0.Value, 0) }, 0);
+    drop(view);
     drop(mapping);
+    // ReadFile and mapped views are not guaranteed coherent while the view
+    // is live; observe the changed file only after closing the hostile view.
+    let mut reader = OpenOptions::new()
+        .read(true)
+        .open(&fixture.executable)
+        .unwrap();
+    reader.seek(SeekFrom::Start(last as u64)).unwrap();
+    let mut observed = [0];
+    reader.read_exact(&mut observed).unwrap();
+    assert_eq!(
+        observed[0],
+        original ^ 1,
+        "hostile mapped write did not change the signed file"
+    );
+    drop(reader);
+    let mut writer = OpenOptions::new()
+        .write(true)
+        .open(&fixture.executable)
+        .unwrap();
+    writer.seek(SeekFrom::Start(last as u64)).unwrap();
+    writer.write_all(&[original]).unwrap();
+    writer.sync_all().unwrap();
+    drop(writer);
+    let mut reader = OpenOptions::new()
+        .read(true)
+        .open(&fixture.executable)
+        .unwrap();
+    reader.seek(SeekFrom::Start(last as u64)).unwrap();
+    reader.read_exact(&mut observed).unwrap();
+    assert_eq!(observed[0], original);
+    drop(reader);
     // This success control rejects an unavailable-oplock fixture as a failure.
     drop(image::HeldImage::acquire(&fixture.executable, verified(&capsule).worker()).unwrap());
 }

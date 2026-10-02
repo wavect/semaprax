@@ -8,6 +8,11 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Strengthen the #333 Windows no-view writable-section regression: a retained
+  section must actually mutate an observed signed-image byte after the expected
+  pre-spawn refusal, then restore the fixture. Native Windows execution remains
+  required; exact image/request/bundle binding remains open.
+
 - Reconcile the full-profile rustfmt gate and two private-interface visibility
   warnings exposed while validating the #327 Linux migration sanitizer. The
   formatter changes only Rust layout; stage and cleanup behavior is unchanged.

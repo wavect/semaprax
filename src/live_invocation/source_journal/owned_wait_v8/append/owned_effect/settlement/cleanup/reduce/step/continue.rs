@@ -779,13 +779,14 @@ fn advance_live_owned_continued_cleanup_boxed_v8<'j>(
             .map_err(|owner| Box::new(LiveContinuedCleanupDriverFailureV8::StartedAppend(owner)))
     })?;
     let acknowledged = join!((*appended).advance_cleanup(), StartedAdvance);
-    let started = *run::run_phase(|| match *acknowledged {
-        LiveCleanupAcknowledgedV8::ContinuedStarted(owner) => Ok(owner),
+    let released = run::run_phase(|| match *acknowledged {
+        LiveCleanupAcknowledgedV8::ContinuedStarted(owner) => owner
+            .release_decision(observe)
+            .map_err(|owner| Box::new(LiveContinuedCleanupDriverFailureV8::Release(owner))),
         owner => Err(Box::new(LiveContinuedCleanupDriverFailureV8::StartedShape(
             owner,
         ))),
     })?;
-    let released = join!((*started).release_decision(observe), Release);
     let settled = join!((*released).prepare_settled(), SettledPrepare);
     let appended = run::run_phase(|| {
         let session = match journal.begin_session() {

@@ -88,6 +88,45 @@ test('change navigation keeps the selected identity and renders the separate imp
   assert.ok(find(root, 'Why affected?'));
 });
 
+test('a removed compiler root keeps its base-only ghost and never asks the absent candidate side for impact', async () => {
+  const calls = [];
+  const removed = {
+    schema: changes.CATALOG_SCHEMA,
+    candidate_digest: 'candidate-1',
+    base_project_revision: 'base-project',
+    project_revision: 'candidate-project',
+    roots: [{
+      target: 'calculator.explorer-unused',
+      change: 'removed',
+      base: { id: 'calculator.explorer-unused', name: 'explorer_unused', kind: 'function', path: 'm/old.spx', module: 'm', fragment_digest: 'c'.repeat(64) },
+      candidate: null
+    }],
+    selection_basis: 'authored_declaration_identity_origin_and_canonical_fragment_changes',
+    source_changes: [],
+    nonclaims: ['not_complete_dynamic_impact']
+  };
+  const host = {
+    async summary(query) {
+      calls.push(`summary:${query.mode}:${query.side}:${query.target || ''}`);
+      if (query.mode === 'impact' && query.side === 'candidate') throw new Error('removed target is absent from candidate');
+      return query.mode === 'impact' ? impactSummary(query.side, query.target) : summary();
+    },
+    async page(request) { return request.summary.mode === 'impact' ? impactPage(request.summary, request.view) : page(request.summary, request.view); },
+    async deltaCatalog() { return removed; },
+    async semanticDelta() { return { ...delta(), target: 'calculator.explorer-unused', presence: 'removed' }; },
+    async readEvidence(request) { return { schema: evidence.SCHEMA, subject: request.subject, method: request.method, target: request.target, facet: request.facet, state: 'not_requested', compact: {}, omitted: [], nonclaims: [], source_authority: false, execution: false }; }
+  };
+  const document = new Document(); const root = new Node(document, 'root');
+  createExplorer(root, host, { side: 'candidate' });
+  await tick(); await tick(); await tick();
+  find(root, 'explorer_unused').parentNode.listeners.get('click')();
+  for (let index = 0; index < 16; index += 1) await tick();
+  assert.ok(calls.includes('summary:impact:base:calculator.explorer-unused'));
+  assert.ok(!calls.some(call => call.startsWith('summary:impact:candidate:')));
+  assert.ok(find(root, 'base-only ghost'));
+  assert.ok(find(root, 'Base-only structural impact for this removed declaration.'));
+});
+
 test('unbundled source review stays explicitly unavailable', async () => {
   const host = { async summary() { return summary(); }, async page(request) { return page(request.summary, request.view); }, async deltaCatalog() { return catalog(); }, async semanticDelta() { return delta(); }, async readEvidence(request) { return { schema: evidence.SCHEMA, subject: request.subject, method: request.method, target: request.target, facet: request.facet, state: 'available', compact: {}, omitted: [], nonclaims: [], source_authority: false, execution: false }; } };
   const document = new Document(); const root = new Node(document, 'root');

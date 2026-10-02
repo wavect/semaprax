@@ -150,7 +150,7 @@ fn validate_recovered_first_turn_prepared_continuation_v8(
 /// path. The authenticated prefix contains no AttemptIntent, so this is the
 /// single original dispatch, never a redispatch. No cleanup/finalizer path is
 /// reachable here because the resulting model path still carries the owner.
-pub(super) fn continue_recovered_first_turn_prepared_v8<'j>(
+pub(in crate::live_invocation::source_journal::owned_wait_v8) fn continue_recovered_first_turn_prepared_v8<'j>(
     owner: RecoveredFirstTurnPreparedOwnerV8<'j>,
     grant: FirstTurnPreparedContinuationHostGrantV8,
     adapter: &mut crate::provider_adapter_sdk::StreamingSourceProposalAdapter<'_>,

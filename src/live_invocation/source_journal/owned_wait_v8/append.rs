@@ -27,7 +27,7 @@ pub(crate) struct SourceOwnedWaitJournalV8 {
     prospective_reduce_identity: Cell<u64>,
     #[cfg(test)]
     panic_after_append: Cell<bool>,
-    lease: RefCell<SourceOwnedWaitLeaseV8>,
+    pub(super) lease: RefCell<SourceOwnedWaitLeaseV8>,
 }
 struct ProspectiveReduceRegistryV8 {
     phase: owned_effect::OwnedReduceHoldPhaseV8,
@@ -45,7 +45,7 @@ pub(crate) struct HeldOwnedWaitStoreV8<'a> {
 }
 pub(super) struct AppendSessionV8<'a> {
     journal: &'a SourceOwnedWaitJournalV8,
-    inventory: InventoryV8<'a>,
+    pub(super) inventory: InventoryV8<'a>,
 }
 impl AppendSessionV8<'_> {
     pub(super) fn terminal_entry(
@@ -1446,7 +1446,6 @@ mod observer_state;
 
 mod failed_observe_funnel;
 mod failed_observe_state;
-#[cfg(test)]
 pub(super) use failed_observe_state::LiveFailedObserveStateAppendFailureV8;
 pub(in crate::live_invocation::source_journal::owned_wait_v8) use failed_observe_state::VerifiedFailedObserveStateSuccessorV8;
 

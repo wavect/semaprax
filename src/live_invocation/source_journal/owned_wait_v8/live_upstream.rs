@@ -69,7 +69,7 @@ pub(super) mod effect;
 pub(super) mod model;
 mod observe;
 mod wait;
-pub(super) use wait::continue_recovered_first_turn_prepared_v8;
+pub(in crate::live_invocation::source_journal::owned_wait_v8) use wait::continue_recovered_first_turn_prepared_v8;
 pub(crate) use wait::{
     recover_first_turn_prepared_owner_v8, FirstTurnPreparedContinuationHostGrantV8,
     FirstTurnPreparedRecoveryHostGrantV8, RecoveredFirstTurnPreparedOwnerV8,

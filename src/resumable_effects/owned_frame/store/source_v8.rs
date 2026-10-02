@@ -308,7 +308,7 @@ impl SourceOwnedWaitLeaseV8 {
     /// continuation only after that continuation has reauthenticated the exact
     /// live prefix and retained its fresh physical owner. This deliberately
     /// does not create a general recovery append capability.
-    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn authorize_recovered_first_prepared_continuation(
+    pub(crate) fn authorize_recovered_first_prepared_continuation(
         &mut self,
         registration: &SourceOwnedWaitStoreRegistrationV8,
     ) -> Result<(), Error> {

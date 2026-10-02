@@ -177,14 +177,22 @@ changes the profile digest and requires a fresh maintainer admission. A hash
 binds identity; it neither verifies the Rust implementation nor grants build
 or execution authority.
 
-The profile's effect list is a conservative maintainer assertion. It is kept
-separate from each `NativeExecutionGrant`: a grant names only a sorted subset
-of the acknowledged effects and binds the admitting profile digest. Generated
-adapter dispatch checks both the matching profile and every required capability
-before entering the Rust callback. A failure has no callback entry. This is a
-Semaprax dispatch gate; same-process Rust remains able to use any authority
-already available to it, so the profile never describes arbitrary native code
-as pure, deterministic, replay-safe, contract-safe, or syscall-confined.
+The profile accepts either an `Opaque` effect contract or an explicit
+`Audited` contract. Metadata, docs, a package name, or a hash select only
+`Opaque`: they yield no execution grant, including an empty grant, and cannot
+enter the generated adapter. An audited adapter or stronger execution boundary
+may select `Audited`; its canonical effect list is then a conservative
+maintainer assertion. This makes an empty audited effect set an explicit
+decision rather than the default interpretation of absent metadata.
+
+An `Audited` profile keeps the effect list separate from each
+`NativeExecutionGrant`: a grant names only a sorted subset of the acknowledged
+effects and binds the admitting profile digest. Generated adapter dispatch
+checks both the matching profile and every required capability before entering
+the Rust callback. A failure has no callback entry. This is a Semaprax dispatch
+gate; same-process Rust remains able to use any authority already available to
+it, so the profile never describes arbitrary native code as pure,
+deterministic, replay-safe, contract-safe, or syscall-confined.
 
 Build policy is displayed with one of these exact disclosures:
 

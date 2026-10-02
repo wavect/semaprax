@@ -29,6 +29,17 @@ pub enum NativeBuildPolicy {
     TrustedHost,
 }
 
+/// The source of an effect contract for native code.
+///
+/// Metadata alone must select `Opaque`. Only an audited adapter or a stronger
+/// execution boundary may select `Audited`, including when the audited effect
+/// set is empty.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum NativeEffectContract<'a> {
+    Opaque,
+    Audited(&'a [&'a str]),
+}
+
 impl NativeBuildPolicy {
     pub const fn permits_build_code(self) -> bool {
         !matches!(self, Self::StrictDenyExecution)
@@ -59,6 +70,7 @@ pub enum NativeTrustError {
     InvalidEffect,
     EffectsNotCanonical,
     CapabilityNotDeclared,
+    OpaqueNativeBehavior,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -76,6 +88,7 @@ pub enum NativeDispatchError {
 pub struct TrustedNativeProfile {
     digest: [u8; 32],
     effects: Box<[String]>,
+    effects_are_audited: bool,
     build_policy: NativeBuildPolicy,
 }
 
@@ -94,7 +107,7 @@ impl TrustedNativeProfile {
         binding_plan: &[u8],
         crate_identity: &[u8],
         tool_identity: &[u8],
-        declared_effects: &[&str],
+        effect_contract: NativeEffectContract<'_>,
         build_policy: NativeBuildPolicy,
     ) -> Result<Self, NativeTrustError> {
         for identity in [binding_plan, crate_identity, tool_identity] {
@@ -105,7 +118,10 @@ impl TrustedNativeProfile {
                 return Err(NativeTrustError::IdentityTooLarge);
             }
         }
-        let effects = canonical_effects(declared_effects)?;
+        let (effects, effects_are_audited) = match effect_contract {
+            NativeEffectContract::Opaque => (Vec::new(), false),
+            NativeEffectContract::Audited(effects) => (canonical_effects(effects)?, true),
+        };
         let mut hasher = Sha256::new();
         hasher.update(PROFILE_DOMAIN);
         hasher.update(TRUSTED_NATIVE_PROFILE_SCHEMA.as_bytes());
@@ -119,6 +135,7 @@ impl TrustedNativeProfile {
         Ok(Self {
             digest: hasher.finalize().into(),
             effects: effects.into_boxed_slice(),
+            effects_are_audited,
             build_policy,
         })
     }
@@ -135,8 +152,15 @@ impl TrustedNativeProfile {
         self.build_policy
     }
 
+    pub const fn effects_are_audited(&self) -> bool {
+        self.effects_are_audited
+    }
+
     /// Grants only capabilities listed in this admitted conservative contract.
     pub fn grant(&self, capabilities: &[&str]) -> Result<NativeExecutionGrant, NativeTrustError> {
+        if !self.effects_are_audited {
+            return Err(NativeTrustError::OpaqueNativeBehavior);
+        }
         let capabilities = canonical_effects(capabilities)?;
         if capabilities
             .iter()
@@ -214,7 +238,7 @@ mod tests {
             b"binding-plan-v1",
             b"crate-index-v1",
             b"cargo-and-rustc-v1",
-            &["host.filesystem", "host.network"],
+            NativeEffectContract::Audited(&["host.filesystem", "host.network"]),
             NativeBuildPolicy::StrictDenyExecution,
         )
         .unwrap()
@@ -244,7 +268,7 @@ mod tests {
                 plan,
                 crate_identity,
                 tool,
-                &["host.filesystem", "host.network"],
+                NativeEffectContract::Audited(&["host.filesystem", "host.network"]),
                 NativeBuildPolicy::StrictDenyExecution,
             )
             .unwrap();
@@ -271,7 +295,7 @@ mod tests {
             b"binding-plan-v2",
             b"crate-index-v1",
             b"cargo-and-rustc-v1",
-            &["host.filesystem", "host.network"],
+            NativeEffectContract::Audited(&["host.filesystem", "host.network"]),
             NativeBuildPolicy::StrictDenyExecution,
         )
         .unwrap();
@@ -303,7 +327,7 @@ mod tests {
                 b"plan",
                 b"crate",
                 b"tool",
-                &["host.network", "host.filesystem"],
+                NativeEffectContract::Audited(&["host.network", "host.filesystem"]),
                 NativeBuildPolicy::StrictDenyExecution,
             ),
             Err(NativeTrustError::EffectsNotCanonical)
@@ -311,6 +335,24 @@ mod tests {
         assert_eq!(
             profile().grant(&["host.process"]),
             Err(NativeTrustError::CapabilityNotDeclared)
+        );
+    }
+
+    #[test]
+    fn metadata_only_native_code_is_opaque_and_never_enters_dispatch() {
+        let profile = TrustedNativeProfile::admit(
+            b"safe-looking-plan",
+            b"metadata-claims-no-effects",
+            b"cargo-and-rustc-v1",
+            NativeEffectContract::Opaque,
+            NativeBuildPolicy::StrictDenyExecution,
+        )
+        .unwrap();
+        assert!(!profile.effects_are_audited());
+        assert!(profile.declared_effects().is_empty());
+        assert_eq!(
+            profile.grant(&[]),
+            Err(NativeTrustError::OpaqueNativeBehavior)
         );
     }
 }

@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64
 import os
 import pathlib
+import platform
 import re
 import selectors
 import signal
@@ -127,17 +128,40 @@ def decode(wire, model, limits):
             "requested_model": model["requested_model"], "requested_snapshot_observed_directly": model["requested_model"] == model["reported_model"]}
 
 
+def native_identity():
+    machine = platform.machine().lower()
+    system = platform.system().lower()
+    native = "darwin-arm64" if system == "darwin" and machine == "arm64" else (
+        "linux-arm64" if system == "linux" and machine in ("arm64", "aarch64") else "unsupported")
+    boot_id = None
+    if native == "linux-arm64":
+        boot_id = p.provenance.read_regular(pathlib.Path("/proc/sys/kernel/random/boot_id"), 64).decode().strip()
+    return {"native_platform": native, "kernel_release": platform.release(), "boot_id": boot_id}
+
+
+def model_arguments(plan, model):
+    return ["--print", "--output-format", "json", "--tools", "",
+            "--no-session-persistence", "--safe-mode", "--restricted", "--strict-mcp-config",
+            "--permission-prompts", "none", "--prompt-suggestions", "false",
+            "--max-budget-usd", str(plan["configuration"]["limits"]["max_estimated_usd"]),
+            "--model", model["requested_model"], "--system-prompt", plan["system_prompt"]]
+
+
 class ClaudeSubscription:
-    """Home/login are caller grants. No keys, endpoints or settings inherited."""
-    def __init__(self, executable, home, login, scratch):
-        self.executable = pathlib.Path(executable)
-        self.home = pathlib.Path(home)
+    """Per-host home/login grants; a host label can never redirect native dispatch."""
+    def __init__(self, host, scratch):
+        self.host = dict(host)
+        self.observation = native_identity()
+        if any(self.observation[key] != host[key] for key in self.observation):
+            raise ValueError("provider_native_host_mismatch")
+        self.executable = pathlib.Path(host["executable"])
+        self.home = pathlib.Path(host["home"])
         self.scratch = pathlib.Path(scratch)
         if any(not x.is_absolute() or x != x.resolve() for x in (self.executable, self.home, self.scratch)):
             raise ValueError("explicit_canonical_paths_required")
-        if not self.home.is_dir() or not self.scratch.is_dir() or not re.fullmatch(r"[A-Za-z0-9_.-]{1,256}", login):
+        if not self.home.is_dir() or not self.scratch.is_dir() or not re.fullmatch(r"[A-Za-z0-9_.-]{1,256}", host["login"]):
             raise ValueError("subscription_identity_refused")
-        self.login = login
+        self.login = host["login"]
         self.used = False
 
     def complete(self, plan, model, on_started=lambda: None):
@@ -151,7 +175,7 @@ class ClaudeSubscription:
                 continue
             raise ValueError("managed_claude_settings_refused")
         binary = p.provenance.read_regular(self.executable, 256 * 1024 * 1024)
-        if p.digest(binary) != plan["configuration"]["claude_sha256"]:
+        if p.digest(binary) != self.host["claude_sha256"]:
             raise ValueError("claude_executable_digest_mismatch")
         limits = plan["configuration"]["limits"]
         prompt = plan["prompt"].encode()
@@ -166,15 +190,18 @@ class ClaudeSubscription:
             env = {"HOME": str(self.home), "USER": self.login, "LOGNAME": self.login,
                    "PATH": "/usr/bin:/bin", "TMPDIR": str(root), "DISABLE_AUTOUPDATER": "1",
                    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1", "CLAUDE_CODE_SAFE_MODE": "1"}
-            argv = [str(staged), "--print", "--output-format", "json", "--tools", "",
-                    "--no-session-persistence", "--safe-mode", "--restricted", "--strict-mcp-config",
-                    "--permission-prompts", "none", "--prompt-suggestions", "false",
-                    "--max-budget-usd", str(limits["max_estimated_usd"]),
-                    "--model", model["requested_model"], "--system-prompt", plan["system_prompt"]]
+            version = capture([str(staged), "--version"], root, env, b"", 5)
+            expected = plan["configuration"]["cli_version"] + " (Claude Code)"
+            if (version["failure"] or version["exit_code"] != 0
+                    or base64.b64decode(version["stdout_base64"]).decode().strip() != expected):
+                raise Failure("claude_version_mismatch", dict(version, dispatches=0))
+            argv = [str(staged), *model_arguments(plan, model)]
             receipt = capture(argv, root, env, prompt, limits["deadline_seconds"], on_started=on_started)
             receipt.update(transport="claude-subscription-print-json.pilot.v1", dispatches=1,
-                           cli_sha256=plan["configuration"]["claude_sha256"], prompt_sha256=p.digest(prompt),
+                           cli_sha256=self.host["claude_sha256"], prompt_sha256=p.digest(prompt),
                            requested_model=model["requested_model"], argv=argv[1:],
+                           provider_host=self.observation, host_authority_sha256=p.digest(p.canonical(self.host)),
+                           cli_version=plan["configuration"]["cli_version"], cli_version_receipt=version,
                            token_cap_kind="post_response_admission_not_provider_hard_limit",
                            internal_provider_retries="not_observable")
             try:

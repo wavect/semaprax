@@ -51,7 +51,7 @@ class CandidateSession(v3.OfficialSession):
         result = super()._stage(directory)
         if result["passed"]:
             observed = self.authority.commands[-1]["stdout"]
-            if observed != "ok\n\n" + COMPLETION + "\n":
+            if observed != "\n" + COMPLETION + "\n":
                 return {"passed": False, "phase": "run", "detail": ["host_harness_completion_missing"]}
         return result
 
@@ -62,7 +62,8 @@ class CandidateSession(v3.OfficialSession):
         if manifest != self.manifest or sources != self.sources:
             raise ValueError("pilot_source_drifted")
         p.admit_paths(public, hidden, plan["candidate_paths"])
-        if plan["profile"] != p.PROFILE or plan["task_id"] != p.TASK:
+        if (plan["profile"] != p.PROFILE or plan["task_id"] != p.TASK
+                or plan["execution_profiles"]["darwin-arm64"]["profile"] != p.DARWIN_PROFILE):
             raise ValueError("pilot_profile_not_admitted")
         return task, public, hidden
 
@@ -106,5 +107,5 @@ class CandidateSession(v3.OfficialSession):
     def evidence(self):
         bundle = super().evidence()
         bundle["result"].update(schema="benchmark.cross_language.live_pilot_scoring.v1",
-                                 status="candidate_execution_observed", profile=p.PROFILE)
+                                 status="candidate_execution_observed", profile=p.DARWIN_PROFILE)
         return bundle

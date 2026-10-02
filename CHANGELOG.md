@@ -1,5 +1,13 @@
 # Changelog
 
+- Bind the #332 frozen pilot to distinct native host executable digests, auth
+  homes, kernel/boot identity and shared Claude CLI version/models/caps. Split
+  native generation from controller scoring, revalidate exact provider bytes
+  and consume one create-new ledger entry per model/host cell before scoring.
+  Correct completion evidence for the silent frozen validation harness. The
+  focused protocol/transport/handoff/bridge gate passed 11/11 in 2.231s; no
+  provider inference was run and independent generation remains required.
+
 - Admit only the exact undated Sonnet 5.5 model version ID alongside dated
   snapshots in the #332 pilot. Preserve family-alias and guessed-version
   refusal, with a focused protocol regression; no model request was made.

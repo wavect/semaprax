@@ -17,7 +17,9 @@ import supported_scope
 SCHEMA = "benchmark.cross_language.live_pilot.v1"
 TASK = "structured-input-error-handling-v1"
 CANDIDATE = "validate.ts"
-PROFILE = "darwin-arm64-official-typescript-pilot.v1"
+PROFILE = "typescript-live-pilot.v1"
+DARWIN_PROFILE = "darwin-arm64-official-typescript-pilot.v1"
+LINUX_PROFILE = "apple-container-linux-arm64-typescript-pilot.v1"
 SYSTEM = ('Return only one JSON object mapping "validate.ts" to its complete TypeScript source string. '
           'Do not use tools, prose, or additional files. Implement the supplied equivalence contract. '
           'Export the numeric validate function. It runs with numeric arguments in an isolated context '
@@ -92,6 +94,7 @@ def implementation_identity():
     names = ["agent/pilot_protocol.py", "agent/claude_subscription.py", "agent/pilot_score.py", "agent/pilot_run.py",
              "runnable_adapter.py", "runnable_adapter_v2.py", "runnable_adapter_v3.py", "supported_scope.py"]
     names += [path.name for path in sorted(SUITE.glob("runnable_v3_*.py"))]
+    names += ["agent/" + path.name for path in sorted((SUITE / "agent").glob("pilot_linux_*")) if path.suffix in (".py", ".c")]
     return {name: digest(provenance.read_regular(SUITE / name, 256 * 1024)) for name in names}
 
 
@@ -105,7 +108,11 @@ def runner_revision():
 
 
 def freeze(configuration):
-    exact(configuration, ("models", "limits", "claude_sha256", "approval", "host_ids"), "pilot_configuration_shape")
+    exact(configuration, ("models", "limits", "approval", "hosts", "cli_version", "execution_profiles", "controller_ledger"), "pilot_configuration_shape")
+    ledger = configuration["controller_ledger"]
+    if (not isinstance(ledger, str) or not ledger.startswith("/") or "\x00" in ledger
+            or str(pathlib.PurePosixPath(ledger)) != ledger or ".." in pathlib.PurePosixPath(ledger).parts):
+        raise ValueError("canonical_controller_ledger_required")
     models = configuration["models"]
     if not isinstance(models, list) or len(models) != 2:
         raise ValueError("exactly_two_models_required")
@@ -124,14 +131,47 @@ def freeze(configuration):
     if (len({row["id"] for row in models}) != 2 or len({row["requested_model"] for row in models}) != 2
             or len({row["reported_model"] for row in models}) != 2):
         raise ValueError("distinct_models_required")
-    hosts = configuration["host_ids"]
-    if (not isinstance(hosts, list) or len(hosts) != 2 or len(set(hosts)) != 2
+    hosts = configuration["hosts"]
+    if (not isinstance(hosts, dict) or len(hosts) != 2
             or any(not isinstance(x, str) or not re.fullmatch(r"[a-z0-9][a-z0-9_-]{0,63}", x) for x in hosts)):
         raise ValueError("two_host_ids_required")
+    for host in hosts.values():
+        exact(host, ("native_platform", "kernel_release", "boot_id", "executable", "claude_sha256", "home", "login"), "host_authority_shape")
+        if host["native_platform"] not in ("darwin-arm64", "linux-arm64"):
+            raise ValueError("native_platform_refused")
+        if not isinstance(host["kernel_release"], str) or not 1 <= len(host["kernel_release"]) <= 256:
+            raise ValueError("kernel_release_required")
+        if host["native_platform"] == "linux-arm64":
+            if not isinstance(host["boot_id"], str) or not re.fullmatch(r"[0-9a-f-]{36}", host["boot_id"]):
+                raise ValueError("guest_boot_identity_required")
+        elif host["boot_id"] is not None:
+            raise ValueError("darwin_boot_identity_must_be_null")
+        for name in ("executable", "home"):
+            value = host[name]
+            if (not isinstance(value, str) or not value.startswith("/") or "\x00" in value
+                    or str(pathlib.PurePosixPath(value)) != value or ".." in pathlib.PurePosixPath(value).parts):
+                raise ValueError("canonical_host_authority_path_required")
+        if not re.fullmatch(r"[0-9a-f]{64}", host["claude_sha256"]):
+            raise ValueError("claude_executable_pin_required")
+        if not re.fullmatch(r"[A-Za-z0-9_.-]{1,256}", host["login"]):
+            raise ValueError("host_login_refused")
+    if {host["native_platform"] for host in hosts.values()} != {"darwin-arm64", "linux-arm64"}:
+        raise ValueError("distinct_native_hosts_required")
+    if configuration["cli_version"] != "2.1.286":
+        raise ValueError("unreviewed_cli_version")
+    profiles = configuration["execution_profiles"]
+    exact(profiles, ("darwin-arm64", "linux-arm64"), "execution_profiles_shape")
+    for platform, profile in profiles.items():
+        exact(profile, ("profile", "provision_sha256"), "execution_profile_shape")
+        if profile["profile"] != (DARWIN_PROFILE if platform == "darwin-arm64" else LINUX_PROFILE):
+            raise ValueError("unreviewed_scoring_profile")
+        if platform == "darwin-arm64":
+            if profile["provision_sha256"] is not None:
+                raise ValueError("darwin_uses_fixed_v3_provenance")
+        elif not isinstance(profile["provision_sha256"], str) or not re.fullmatch(r"[0-9a-f]{64}", profile["provision_sha256"]):
+            raise ValueError("linux_provision_pin_required")
     if not isinstance(configuration["approval"], str) or not 1 <= len(configuration["approval"]) <= 4096:
         raise ValueError("explicit_approval_reference_required")
-    if not re.fullmatch(r"[0-9a-f]{64}", configuration["claude_sha256"]):
-        raise ValueError("claude_executable_pin_required")
     limits = configuration["limits"]
     exact(limits, ("deadline_seconds", "max_request_bytes", "max_result_bytes", "max_reported_tokens", "max_estimated_usd"), "limits_shape")
     for key, cap in (("deadline_seconds", 90), ("max_request_bytes", 65536), ("max_result_bytes", 65536), ("max_reported_tokens", 65536)):
@@ -154,6 +194,7 @@ def freeze(configuration):
     return {"schema": SCHEMA, "configuration": configuration, "task_id": TASK, "split": "validation",
             "candidate_paths": [CANDIDATE], "profile": PROFILE, "runner_revision": runner_revision(), "source_manifest_sha256": provenance.SOURCE_HASH,
             "source_correction_sha256": corrections.HASH, "implementation": implementation_identity(),
+            "execution_profiles": configuration["execution_profiles"],
             "comparison_inventory": inventory, "trials_per_host": trials, "repetitions": 1,
             "prompt": prompt, "prompt_sha256": digest(prompt.encode()), "system_prompt": SYSTEM,
             "sampling": {"temperature": None, "top_p": None, "seed": None, "control": "provider_default_not_exposed"},

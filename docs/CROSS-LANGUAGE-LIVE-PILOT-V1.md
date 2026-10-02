@@ -29,18 +29,23 @@ same-path candidate. The new admission does not reinterpret that older route.
 
 The plan binds the independently pinned v3 baseline, approved correction,
 current runner revision, implementation/dependency file digests, exact public
-prompt/system prompt, CLI executable digest, limits, approval reference, and
-both host labels. Admission regenerates the plan from authenticated inputs and
+prompt/system prompt, per-host CLI executable digests and authentication-home
+grants, shared CLI version/limits/models, approval reference, native host
+identities, both execution profiles and the fixed controller ledger. Admission regenerates the plan from authenticated inputs and
 requires exact canonical bytes and an operator-supplied plan digest. Neither a
 plan digest nor an approval string proves an independent review happened.
 
 ## Model transport and limits
 
-`agent/claude_subscription.py` requires explicit canonical executable, home,
-login and scratch paths. The home/login grant permits the installed Claude
+`agent/claude_subscription.py` uses each frozen host entry's canonical executable,
+home and login, plus a private per-trial scratch directory. CLI arguments cannot
+replace those grants. The actual OS/architecture and kernel release must match;
+Linux additionally requires the exact generation guest boot UUID. The home/login grant permits the installed Claude
 subscription authentication route; it does not copy credentials into evidence.
 The executable is acquired no-follow, checked against the frozen digest, then
-staged privately. Known managed-settings routes refuse. The closed environment
+staged privately. A bounded `--version` metadata check must report the same
+reviewed CLI 2.1.286 on both hosts before any model request. Mach-O and Linux ELF
+artifacts have separate digest/path pins. Known managed-settings routes refuse. The closed environment
 contains only the listed login/home, system PATH, scratch TMPDIR and the three
 safe-mode/update/traffic switches used by the existing native subscription host.
 Native tools, persistence, permission prompts and MCP discovery are disabled.
@@ -92,20 +97,35 @@ bridge before loading it into the assertion harness. It runs in a fresh null-
 prototype Node VM context with no injected host objects, no Node `process` or
 `require`, disabled string/Wasm code generation, and 100 ms initialization/call
 timeouts. Only safe integer arguments/results cross into the fixed assertions.
-The fixed harness must emit its host-appended completion marker in addition to
-exiting successfully. Early `process.exit(0)` therefore cannot pass by skipping
+The frozen validation harnesses are silent. Each must emit exactly its
+host-appended completion marker and LF framing, in addition to exiting
+successfully; no invented `ok` output is required. Early `process.exit(0)` therefore cannot pass by skipping
 assertions. Original emitted candidate, bridge and completed harness bytes are
 retained. This is assertion isolation; Node VM is not claimed as a security
 sandbox. The existing OS confinement remains mandatory. This bounded numeric
 execution profile is explicit in the frozen model prompt. Tests remain empirical correctness checks,
 not a proof of arbitrary generated program semantics.
 
-Linux/Apple Container is **not admitted by this version**. The inherited host
-check refuses before provider dispatch. A later reviewed profile must pin its
-own official Node/TypeScript artifacts, loader/runtime/image and observed guest
-identity, and prove filesystem/process/network boundaries with actual positive
-and negative probes. A container label, copied macOS receipt, copied candidate,
-or replayed scorer output cannot meet independent second-host execution.
+The shared protocol now distinguishes the Darwin profile from the independently
+reviewed `apple-container-linux-arm64-typescript-pilot.v1` profile. The latter's
+separate `pilot_linux_host.py` owner must authenticate its exact provision digest,
+official runtime and real guest authority probes; a profile entry is not an
+admission receipt. Linux candidate scoring uses macOS only as the control plane.
+Actual provider generation must run the pinned native Linux Claude binary in
+the separately identified/authenticated generation guest. The guest-native
+`generate` command refuses a Mac process using the Linux host label. Each host
+uses the same model IDs, CLI version, prompt and caps.
+
+`score` accepts the exact canonical generation file plus its independently
+retained SHA-256. It revalidates plan/model/host identity, CLI binary/version,
+arguments, prompt, raw provider envelope, usage, candidate contents and digest.
+It then consumes a create-new key for the exact plan/host/model cell in the
+frozen private controller ledger before constructing the scorer. A duplicate
+receipt, copied receipt or changed outer nonce for that cell cannot score again.
+Failures/interruption consume the cell too. Raw receipts remain evidence, not
+an attestation or a new runtime grant: each scoring session acquires its ordinary
+host authority. Independent review must still establish custody and actual
+separate guest execution; no receipt format is a cryptographic provider signature.
 
 ## Operator interface and confidential custody
 
@@ -120,32 +140,51 @@ shape and are not a availability claim or spend approval):
     {"id":"b","requested_model":"claude-sonnet-5-5","reported_model":"claude-sonnet-5-5"}
   ],
   "limits": {"deadline_seconds":90,"max_request_bytes":65536,"max_result_bytes":65536,"max_reported_tokens":16384,"max_estimated_usd":1.0},
-  "claude_sha256":"REPLACE_WITH_EXPLICIT_EXECUTABLE_SHA256",
-  "approval":"REPLACE_WITH_ACTUAL_AUTHORITY_AND_CUSTODY_REFERENCE",
-  "host_ids":["first-host","second-host"]
+  "cli_version":"2.1.286",
+  "hosts": {
+    "first-host": {"native_platform":"darwin-arm64","kernel_release":"ACTUAL_DARWIN_KERNEL","boot_id":null,"executable":"/absolute/resolved/claude","claude_sha256":"ACTUAL_MACHO_SHA256","home":"/absolute/authorized/home","login":"LOGIN"},
+    "second-host": {"native_platform":"linux-arm64","kernel_release":"ACTUAL_GUEST_KERNEL","boot_id":"ACTUAL_GENERATION_GUEST_BOOT_UUID","executable":"/absolute/guest/claude","claude_sha256":"ACTUAL_ELF_SHA256","home":"/absolute/private/guest/home","login":"GUEST_LOGIN"}
+  },
+  "execution_profiles": {
+    "darwin-arm64":{"profile":"darwin-arm64-official-typescript-pilot.v1","provision_sha256":null},
+    "linux-arm64":{"profile":"apple-container-linux-arm64-typescript-pilot.v1","provision_sha256":"ACTUAL_REVIEWED_LINUX_PROVISION_SHA256"}
+  },
+  "controller_ledger":"/absolute/private/controller-ledger",
+  "approval":"ACTUAL_AUTHORITY_AND_CUSTODY_REFERENCE"
 }
 ```
 
+Provision the private controller ledger (0700) before freezing. Authenticate the
+generation guest through native `claude auth login --claudeai`; its private home
+and native CLI are separate from the scoring guests. Do not mount subscription
+credentials into candidate execution guests. The older single-binary/host-label
+configuration refuses instead of silently acquiring new authority.
+
 ```sh
+# Freeze only after BOTH host identities/artifact pins/profiles are ready.
 python3 -m agent.pilot_run freeze --configuration /absolute/config.json --output /absolute/plan.json
-python3 -m agent.pilot_run run --plan /absolute/plan.json --plan-sha256 APPROVED_DIGEST \
-  --host-id first-host --model-id a --directory /absolute/new-trial-a \
-  --provenance-directory /absolute/original-v3-provenance \
-  --executable /absolute/resolved/claude --home /absolute/authorized/home --login LOGIN
+# Run on the actual selected generation host, from the same frozen source.
+python3 -m agent.pilot_run generate --plan /absolute/plan.json --plan-sha256 APPROVED_DIGEST \
+  --host-id second-host --model-id a --directory /absolute/new-trial-a
+# Transfer private trial evidence intact, then score from the admitted controller.
+python3 -m agent.pilot_run score --plan /absolute/plan.json --plan-sha256 APPROVED_DIGEST \
+  --generation /absolute/copied-trial-a/generation.json --generation-sha256 RETAINED_GENERATION_DIGEST \
+  --provenance-directory /absolute/reviewed-provenance
 python3 -m agent.pilot_run account --plan /absolute/plan.json --plan-sha256 APPROVED_DIGEST \
-  --host-id first-host --trial-directory /absolute/new-trial-a --output /absolute/accounting.json
+  --host-id second-host --trial-directory /absolute/copied-trial-a --output /absolute/accounting.json
 ```
 
-Each new trial directory is private (0700); intent/result/scoring files use
-0600 create-new publication with fsync. An existing directory is not retried.
-A durable intent without a terminal result remains interrupted. Bounded raw
-stdout/stderr, model metadata and source candidates are confidential local
-evidence: no automatic publication or redaction claim is made. The process
-start marker reports CLI dispatch, not individual hidden provider requests.
-Accounting rejects duplicate/unplanned cells and mismatched plan/host/invocation
-receipts, but is explicitly receipt accounting rather than an independent
-review or second-host attestation. External review must verify evidence custody,
-actual separate host execution, observed model identities and correctness.
+Each new generation directory is private (0700); intent/generation/result/scoring
+files use 0600 create-new publication with file and parent-directory fsync. An
+existing generation directory is not retried. Successful generation is not yet
+a successful scored trial. Missing terminal scoring remains interrupted in the
+inventory. Bounded raw stdout/stderr, model metadata and source candidates are
+confidential local evidence: no automatic publication or redaction claim is
+made. The process-start marker reports native CLI dispatch, not unobservable
+internal provider retries. Accounting rejects duplicate/unplanned cells and
+mismatched plan/host/invocation receipts; it does not independently attest review
+or second-host identity. Preserve guest provider receipts and separate Linux
+scoring receipts for external review.
 
 ## Focused gate and remaining closure cells
 
@@ -185,3 +224,15 @@ versions and suffix variants still refuse. CLI 2.1.286 initialization metadata
 listed Sonnet 5.5 and Haiku 4.5 on the signed-in Team account using zero user
 messages and zero model turns. That metadata is provider readiness evidence,
 not a generated candidate or a real model-usage receipt.
+
+### Native generation and scoring handoff follow-up
+
+The focused pilot gate passed 11/11 in 2.231s after adding per-host native
+identity/version admission, exact provider-byte revalidation and one-use
+controller cell custody. Tampered candidates, usage, host identity, argv and
+receipt digests refuse; changing the outer invocation nonce cannot reuse a
+model/host cell. The actual frozen validation harness is silent: completion
+requires only the trusted marker after its assertions. Local fixtures cover
+that shape and early exit, incorrect results and generated-code negatives.
+No provider inference or independent guest generation was executed by this
+follow-up; Linux runtime admission has its own evidence and gate.

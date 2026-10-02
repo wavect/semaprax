@@ -1482,5 +1482,6 @@ fn owned_continued_step_turn_two_failed_observe_stop_prewrite_retains_released_s
     continued_reduce_chain_step_ack(23, true, true);
 }
 mod actual_state;
+mod composed;
 mod faults;
 mod prepared;

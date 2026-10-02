@@ -223,6 +223,11 @@ moves the owner into the existing continued authorization/effect/Reduce/Step
 pipeline. The source `model/join` child retains the actual request and ACK
 history; `continue/join` selects the physical hold from either the first Step
 or the retained later Step. No journal fact constructs this lineage.
+The append `step/continue/run` child composes the actual first Continue owner
+through the second turn and terminal Report projection. It derives the journal
+from that physical owner, delegates every ACK and effect to the existing fixed
+joins, and seals each incomplete owner in a private opaque quarantine while
+retiring the store. It is not a public session or a runtime quarantine registry.
 [Source Agent owned wait v1](SOURCE-AGENT-OWNED-WAIT-V1.md) owns these bounded
 private successors. Its restart child may reauthenticate only a first-turn
 Prepared prefix, materialize fresh Bytes backing, and consume that owner once

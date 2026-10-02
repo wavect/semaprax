@@ -25,6 +25,15 @@ format: `Unreleased` then release buckets, grouped by impact.
   24-case selector is unchanged. This source-only tightening needs native
   execution and does not close exact image/request/bundle binding.
 
+- Compose the private owned-Agent second turn from the actual first Continue
+  Step through Observe, Model, authorization, target dispatch, Reduce, and
+  authenticated terminal Report projection (#330). Every failed join retains
+  its physical owner in an opaque quarantine and retires the same journal;
+  cancelled and unsupported iteration admission performs no new effect.
+  Add owning success, prewrite, cancellation and profile-refusal regressions,
+  unexecuted at this change. Public construction, initial-turn orchestration,
+  runtime quarantine lifetime and general restart recovery remain open.
+
 - Retire the failed exploratory Windows OWNER RIGHTS image experiment (#333),
   preserving the 24 established native cases and every production guard.
   Native run 36983893062 observed `SetSecurityInfo` access denial; Microsoft's

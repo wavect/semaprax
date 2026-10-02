@@ -1,6 +1,8 @@
 //! Fixed Continue ACK lineage. The witness is never an owner or dispatch grant.
 use super::*;
 
+pub(in crate::live_invocation::source_journal::owned_wait_v8) mod run;
+
 /// Only the fixed physical adapter constructs this after persisted/reread ACK.
 /// No Clone, public constructor or independently detachable cursor exists.
 pub(in crate::live_invocation::source_journal::owned_wait_v8) struct VerifiedOwnedContinueSuccessorV8<

@@ -1193,7 +1193,14 @@ impl<'j> LiveMovedStepV8<'j> {
     }
 }
 
-impl LiveMovedStepV8<'_> {
+impl<'j> LiveMovedStepV8<'j> {
+    /// The consuming turn driver derives its store from the physical owner.
+    /// Callers cannot pair an owner with a different registered journal.
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn journal(
+        &self,
+    ) -> &'j SourceOwnedWaitJournalV8 {
+        self.lineage.journal()
+    }
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn kind(&self) -> &'static str {
         self.held.kind()
     }

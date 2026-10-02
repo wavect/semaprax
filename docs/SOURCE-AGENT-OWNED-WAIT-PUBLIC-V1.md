@@ -139,3 +139,35 @@ The public recovery matrix remains separate: process restart at every durable
 phase, no redispatch, no uncharged work, phase-specific restoration permits,
 hostile registrations/tails, and Report recovery/delivery all remain required
 to close #330.
+
+## 6. Private second-turn composition
+
+The private `finish_second_turn_v8` driver now consumes the actual first
+Continue Step and composes the whole second turn through Observe settlement,
+Start, Model Intent/dispatch/Usage, Resume/Completed, authorization, target
+Intent/dispatch, Decision cleanup, Reduce, Step cleanup/transfer, terminal ACK,
+and the consuming Report projection. It obtains its journal directly from the
+physical predecessor, so callers cannot substitute another causal store. Entry
+requires the cumulative initialized profile, turn zero, a physical Continue,
+and an authenticated two-iteration ceiling. Cancellation and unsupported
+iteration profiles refuse before another append or external dispatch.
+
+Every unsuccessful join retires that journal and retains the exact reached
+owner-bearing failure inside a private opaque quarantine. Its only observation
+is a phase label; it exposes no owner extraction, downcast, retry, journal,
+cleanup or dispatch method. The caller must retain the quarantine while its
+obligation remains pending. This is not the runtime-owned quarantine lifetime
+required for a public session. Failed Observe and target paths currently stop
+in this quarantine rather than selecting their separate cleanup/Stop drivers.
+
+Terminal evidence uses the authenticated current stage count with the existing
+omitted-detail representation. The driver accepts no host-supplied count or
+checked-run evidence. Only the final authenticated terminal ACK and physical
+Report claim can produce the copied projection.
+
+The `owned_composed_second_turn_` regression family covers real terminal
+success and store reopen, Model-settlement and terminal prewrite faults,
+cancelled admission, and refusal of a three-iteration profile. These tests are
+authored but unexecuted at this change. This private composition closes a
+substantial driver join; initial-turn orchestration, public request construction,
+runtime quarantine retention, and general restart acceptance remain open.

@@ -1,5 +1,15 @@
 # Changelog
 
+- Add the #332 laboratory pilot route: freeze the full 182-row inventory and
+  two-model/14-adapter pilot dispositions; require disjoint candidate/hidden
+  paths; bind native Claude subscription calls to explicit executable/model
+  authority with bounded capture and truthful usage/cost receipts. The new
+  Darwin candidate session isolates numeric evaluation from fixed assertions
+  and rejects early-exit success forgery. Local fixtures passed 8/8, supported
+  scope preservation 29/29, and existing v3 pure provenance 11/11. No provider
+  trial or second-host admission is claimed; the fixed-source v3 route remains
+  unchanged.
+
 - Pin unsupported native/C11 and Core-Wasm admission for the checked source
   Agent owned-wait fixture: SPX-B116/SPX-W126, with both scalar artifact
   projections refusing SPX-H006 before an artifact or effect. The focused gate

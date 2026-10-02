@@ -32,6 +32,21 @@ The supported profile still requires its exact provisioned host and original
 provenance/authority gates. A scope-only #322 reconciliation retains the prior
 corrected 54/54 report; no new hosted run or broader support is implied.
 
+## Live laboratory pilot fixture gate
+
+For the additive #332 protocol, transport or candidate-session changes, run:
+
+```sh
+python3 -m unittest discover -s benchmarks/cross-language-v1/agent/tests -p test_live_pilot.py -v
+```
+
+The existing `documentation` harness owns the `cross_language_benchmark_suite::live_pilot`
+wrapper. A local Node is required for the assertion-isolation positive/hostile
+fixtures. This gate makes no provider call and does not admit the official
+runtime or a second host. [Live pilot v1](CROSS-LANGUAGE-LIVE-PILOT-V1.md) owns
+its scope, operator interface and remaining real-execution gates. Preserve the
+existing supported-scope and v3 pure-provenance selectors when changing admission.
+
 ## Specialization cell-accounting gate
 
 For #326 accounting or provenance changes, run:

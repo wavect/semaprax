@@ -39,6 +39,14 @@ It has no toolchain dispatch or scoring path and does not change v1/v2/v3
 execution authority. [Runnable adapter v3](CROSS-LANGUAGE-RUNNABLE-ADAPTER-V3.md)
 owns the actual official TypeScript admission and runtime evidence.
 
+`benchmarks/cross-language-v1/agent/pilot_{protocol,run,score}.py` and
+`claude_subscription.py` own the additive [live laboratory pilot](CROSS-LANGUAGE-LIVE-PILOT-V1.md).
+The protocol binds all inventory rows; transport owns explicit subscription
+and bounded process authority; the candidate session reuses independent v3
+Darwin admission with a disjoint candidate overlay. It does not widen the
+fixed-source v3 route or admit a Linux host. Receipt accounting grants no
+execution or independent-review authority.
+
 `benchmarks/cross-language-v1/agent/specialization_accounting.py` owns the
 read-only [specialization cell accounting](../benchmarks/cross-language-v1/agent/README.md#issue-326-frozen-cell-accounting-blocked).
 It authenticates retained original protocol/task metadata and selected current

@@ -295,3 +295,11 @@ model experiment ran. It also avoids the legacy prompt builder's inclusion of
 EQUIVALENCE documents containing hidden-vector discussion. Real model/host
 execution, verified local custody/no-egress, and independent pre/post-run reviews
 remain necessary; a unit-test or receipt-audit pass does not close #326.
+
+## Additive two-model laboratory pilot (#332)
+
+[Live pilot v1](../../../docs/CROSS-LANGUAGE-LIVE-PILOT-V1.md) provides a separate
+explicit Claude subscription route, frozen full inventory and disjoint candidate
+scoring session for one validation task. The legacy `live_transport.py` refusal
+and replay protocols above remain unchanged. Fixtures do not establish real
+model trials or Linux/second-host admission.

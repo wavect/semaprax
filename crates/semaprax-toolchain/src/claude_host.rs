@@ -10,13 +10,18 @@ use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
 pub const MODEL: &str = "claude-haiku-4-5";
-const ADAPTER_VERSION: &str = "1.0.1";
+const ADAPTER_VERSION: &str = "1.0.2";
 const SYSTEM_PROMPT: &str = "The user message is a checked source-adapter request. Decode task_hex as UTF-8 for the task and previous_effect_hex for feedback. Return only the requested canonical proposal JSON, with one actual trailing LF byte and no Markdown fences. Follow proposal_schema exactly. No tools are available.";
 const PROFILE: &str = "claude-code-subscription-print-json.v1";
 const MAX_EXECUTABLE: u64 = 256 * 1024 * 1024;
 const MAX_WIRE: usize = 1_048_576;
+const MAX_CALL_MILLIS: i64 = 90_000;
 const MAX_REQUEST: usize = 65_536;
 const MAX_RESPONSE: usize = 65_536;
+
+pub(crate) fn deadline_for_remaining(remaining_millis: i64) -> Duration {
+    Duration::from_millis(remaining_millis.clamp(1, MAX_CALL_MILLIS) as u64)
+}
 
 pub(crate) fn identity(
     executable: &Path,
@@ -78,6 +83,9 @@ impl Config {
         scratch: PathBuf,
         deadline: Duration,
     ) -> Result<Self, String> {
+        if deadline.is_zero() || deadline > Duration::from_millis(MAX_CALL_MILLIS as u64) {
+            return Err("Claude deadline must be positive and at most 90 seconds".into());
+        }
         if std::fs::read_dir(&scratch)
             .map_err(|_| "Claude scratch is unavailable")?
             .next()

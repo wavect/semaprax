@@ -1,5 +1,10 @@
 # Changelog
 
+- Raise the native Claude repair V3 per-call ceiling to 90 seconds, bounded by
+  remaining configuration time and checked cumulative deployment budgets.
+  Preserve OpenCode limits and test native ceiling admission, shorter deadlines,
+  timeout termination, output limits and cancellation with local processes (#323).
+
 - Supply native Claude response guidance from the compiled proposal schema,
   including the exact envelope identity and digest omitted from the frozen
   source request. Keep provider result bytes and the canonical decoder

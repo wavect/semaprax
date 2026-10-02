@@ -30,7 +30,7 @@ pub(super) fn factory(
     let config = Config::new(
         operands.executable,
         operands.scratch,
-        Duration::from_millis(remaining.clamp(1, MAX_ONE_PROVIDER_CALL_MS) as u64),
+        crate::claude_host::deadline_for_remaining(remaining),
     )
     .and_then(|config| config.with_proposal_schema(proposal_schema))
     .map_err(|_| CliError::refused("repair Claude host configuration refused"))?;

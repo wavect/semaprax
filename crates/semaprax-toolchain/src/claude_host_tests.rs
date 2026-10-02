@@ -98,6 +98,24 @@ mod process {
     }
     #[test]
     fn claude_capture_enforces_deadline_output_cap_and_cancellation() {
+        assert_eq!(deadline_for_remaining(180_000), Duration::from_secs(90));
+        assert_eq!(deadline_for_remaining(90_000), Duration::from_secs(90));
+        assert_eq!(
+            deadline_for_remaining(12_345),
+            Duration::from_millis(12_345)
+        );
+        assert_eq!(deadline_for_remaining(0), Duration::from_millis(1));
+        let (_fixture, config) = Fixture::new("printf bounded", deadline_for_remaining(180_000));
+        assert_eq!(config.deadline, Duration::from_secs(90));
+        assert_eq!(invoke(&config, "fixture").unwrap(), b"bounded");
+        for deadline in [Duration::ZERO, Duration::from_millis(90_001)] {
+            assert!(Config::new(
+                config.host.executable.clone(),
+                config.host.sandbox.clone(),
+                deadline
+            )
+            .is_err());
+        }
         for (script, duration, expected) in [
             ("sleep 60", Duration::from_millis(80), ModelFailure::Timeout),
             ("while :; do printf '0123456789012345678901234567890123456789012345678901234567890123456789'; done", Duration::from_secs(5), ModelFailure::MalformedResponse),

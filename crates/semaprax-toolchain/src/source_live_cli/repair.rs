@@ -1061,7 +1061,7 @@ pub(super) fn execute_with_runner_and_candidate_test<
     // derived by the existing typed runtime and the retained document is
     // admitted by the existing journal decoder; this preflight neither
     // recreates either trust calculation nor treats the evidence as authority.
-    if !fresh {
+    let retained_pause_marker = if !fresh {
         let recovered = runtime
             .preflight_source_live_checkpoint(
                 &model_binding,
@@ -1096,7 +1096,10 @@ pub(super) fn execute_with_runner_and_candidate_test<
                 0,
             );
         }
-    }
+        barrier::marker_for_recovered_checkpoint(&recovered)
+    } else {
+        None
+    };
 
     let envelope = OfflineRepairEnvelope::new(Arc::clone(&project), config.target.clone())
         .map_err(|diagnostics| diagnostic_error("repair target envelope refused", diagnostics))?;
@@ -1176,6 +1179,12 @@ pub(super) fn execute_with_runner_and_candidate_test<
                     "repair OpenCode executable changed while binding the host",
                 ));
             }
+            host.clear_repair_post_settled_marker(retained_pause_marker.as_deref())
+                .map_err(|_| {
+                    CliError::refused(
+                        "repair OpenCode post-settlement pause marker does not match authenticated checkpoint",
+                    )
+                })?;
             if pause_after_settled {
                 pause_marker_host = Some(host.clone());
             }

@@ -107,8 +107,8 @@ EMPTY_ABS/.semaprax-repair-post-settled-pause.json
 ```
 
 Its schema is `semaprax.source-live-cli.repair-post-settled-pause.v1`; it
-contains only `checkpoint_generation`, `turn`, `attempt`, and the retained
-`response_digest`. The marker is synced before the process parks. It carries
+contains the authenticated journal `invocation`, `checkpoint_generation`, `turn`,
+`attempt`, and retained `response_digest`. The marker is synced before the process parks. It carries
 no raw response, credentials, candidate, effect result, capability, or new
 authority. A marker write or acknowledgement failure stops the invocation
 before decode, authorization, an effect, or another stage.
@@ -117,10 +117,12 @@ For the local interruption/recovery smoke, an operator runs the explicit V2
 command with this flag, observes that exact marker in the configured scratch
 directory, and sends `SIGKILL` while the process is parked. The controller
 then resumes with the same `REPAIR_CONFIG`, checkpoint directory, executable,
-and scratch directory, but omits `--pause-after-settled`. On startup the
-OpenCode scratch host validates and removes only this exact owned marker; a
-foreign or malformed scratch entry still refuses. Normal source-journal
-recovery then rebinds the checkpoint and replays the settled response without
+and scratch directory, but omits `--pause-after-settled`. The repair resume
+first rebinds and validates the retained journal; only then does the OpenCode
+scratch host remove a marker whose canonical bytes exactly match that recovered
+invocation, generation, turn, attempt, and response digest. A foreign,
+malformed, or mismatched marker remains in place and the resume refuses.
+Normal source-journal recovery then replays the settled response without
 redispatching that provider attempt. A following effect or later provider
 attempt is performed only by the resumed checked execution.
 

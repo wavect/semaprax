@@ -4,6 +4,7 @@
 //! no source, provider, effect, candidate, or publication authority.
 
 use semaprax::agent_lifecycle::{CheckpointStore, CheckpointStoreError};
+use semaprax::live_invocation::source_journal::{RecoveredSourceCheckpoint, SourceJournalEntry};
 use serde_json::Value;
 
 use super::super::checkpoint::CheckpointDir;
@@ -13,6 +14,7 @@ const MARKER_SCHEMA: &str = "semaprax.source-live-cli.repair-post-settled-pause.
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(super) struct SettledAttemptMarker {
+    pub(super) invocation: String,
     pub(super) generation: u64,
     pub(super) turn: u32,
     pub(super) attempt: u32,
@@ -71,6 +73,12 @@ fn settled_attempt_marker(
     document: &str,
 ) -> Result<Option<SettledAttemptMarker>, CheckpointStoreError> {
     let document: Value = serde_json::from_str(document).map_err(|_| CheckpointStoreError)?;
+    let invocation = document
+        .get("invocation")
+        .and_then(Value::as_str)
+        .filter(|value| !value.is_empty())
+        .ok_or(CheckpointStoreError)?
+        .to_owned();
     let entries = document
         .get("entries")
         .and_then(Value::as_array)
@@ -98,6 +106,7 @@ fn settled_attempt_marker(
         .ok_or(CheckpointStoreError)?
         .to_owned();
     Ok(Some(SettledAttemptMarker {
+        invocation,
         generation,
         turn,
         attempt,
@@ -108,12 +117,36 @@ fn settled_attempt_marker(
 fn marker_document(marker: &SettledAttemptMarker) -> Vec<u8> {
     serde_json::to_vec(&serde_json::json!({
         "schema": MARKER_SCHEMA,
+        "invocation": marker.invocation,
         "checkpoint_generation": marker.generation,
         "turn": marker.turn,
         "attempt": marker.attempt,
         "response_digest": marker.response_digest,
     }))
     .expect("repair pause marker is bounded canonical JSON")
+}
+
+/// Derives the only marker a resumed invocation may remove. The checkpoint
+/// decoder has already authenticated this binding and its causal chain.
+pub(super) fn marker_for_recovered_checkpoint(
+    recovered: &RecoveredSourceCheckpoint,
+) -> Option<Vec<u8>> {
+    let SourceJournalEntry::AttemptSettled {
+        turn,
+        attempt,
+        response_digest,
+        ..
+    } = recovered.entries().last()?
+    else {
+        return None;
+    };
+    Some(marker_document(&SettledAttemptMarker {
+        invocation: recovered.invocation().to_owned(),
+        generation: recovered.generation(),
+        turn: *turn,
+        attempt: *attempt,
+        response_digest: response_digest.clone(),
+    }))
 }
 
 #[cfg(test)]

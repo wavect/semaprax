@@ -138,6 +138,7 @@ fn repair_v2_post_settled_barrier_precedes_effect_and_resume_never_redispatches_
         markers[0].response_digest,
         settled["response_digest"].as_str().unwrap()
     );
+    assert_eq!(marker["invocation"], paused["invocation"]);
     assert_eq!(marker["turn"], settled["turn"]);
     assert_eq!(marker["attempt"], settled["attempt"]);
     assert_eq!(marker["response_digest"], settled["response_digest"]);
@@ -167,4 +168,83 @@ fn repair_v2_post_settled_barrier_precedes_effect_and_resume_never_redispatches_
         "resume replays the settled attempt and dispatches only the later one"
     );
     assert_eq!(test_effect_handler_calls(), 2);
+}
+
+/// A scratch occupant with the right marker shape cannot make resume delete
+/// controller-owned bytes. Only the authenticated checkpoint's exact settled
+/// entry supplies the canonical marker that may be removed.
+#[test]
+fn repair_v2_post_settled_resume_preserves_a_forged_marker() {
+    unix_checkpoint_host!();
+    let fixture = Fixture::new();
+    let (config, checkpoint, digest) = setup_v2(&fixture, "test.repair.v2.post-settled.forged.v1");
+    let scratch = fixture.0.join("scratch");
+    fs::create_dir(&scratch).unwrap();
+    let calls = Rc::new(Cell::new(0));
+    let prompts = Rc::new(RefCell::new(Vec::new()));
+    let marker_path = scratch.join(".semaprax-repair-post-settled-pause.json");
+    reset_test_effect_handler_calls();
+    super::barrier::set_test_post_settled_hook(|_| {
+        panic!("test interruption immediately after durable attempt_settled ACK");
+    });
+
+    let mut command = v2_command("run", config.clone(), checkpoint.clone(), scratch.clone());
+    let Command::Run {
+        provider: Some(provider),
+        ..
+    } = &mut command
+    else {
+        panic!("V2 helper supplies the explicit provider operands");
+    };
+    provider.pause_after_settled = true;
+    let interrupted = catch_unwind(AssertUnwindSafe(|| {
+        execute_with_runner(
+            command,
+            RecordedOpenCodeRunner {
+                answers: VecDeque::from([proposal(&digest, "0", "0")]),
+                last_answer: None,
+                prompts: Rc::clone(&prompts),
+                calls: Rc::clone(&calls),
+            },
+        )
+    }));
+    assert!(interrupted.is_err());
+    assert_eq!(calls.get(), 1);
+    assert_eq!(test_effect_handler_calls(), 0);
+
+    let mut forged: serde_json::Value =
+        serde_json::from_slice(&fs::read(&marker_path).unwrap()).unwrap();
+    forged["response_digest"] = serde_json::Value::String("f".repeat(64));
+    let forged = serde_json::to_vec(&forged).unwrap();
+    fs::write(&marker_path, &forged).unwrap();
+
+    let refusal = execute_with_runner(
+        v2_command("resume", config, checkpoint, scratch),
+        RecordedOpenCodeRunner {
+            answers: VecDeque::from([proposal(&digest, "7", "1")]),
+            last_answer: None,
+            prompts,
+            calls: Rc::clone(&calls),
+        },
+    )
+    .expect_err("mismatched pause marker must refuse before provider or effect work");
+    assert_eq!(
+        refusal.reason,
+        "repair OpenCode post-settlement pause marker does not match authenticated checkpoint"
+    );
+    assert_eq!(
+        fs::read(&marker_path).unwrap(),
+        forged,
+        "the mismatched scratch bytes remain available to their controller"
+    );
+    assert_eq!(
+        calls.get(),
+        1,
+        "refusal cannot redispatch the settled attempt"
+    );
+    assert_eq!(
+        test_effect_handler_calls(),
+        0,
+        "refusal cannot invoke an effect"
+    );
 }

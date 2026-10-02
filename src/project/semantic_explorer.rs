@@ -344,10 +344,27 @@ fn overview(subject: &ExplorerSubject<'_>) -> Result<Value> {
         let relation_count = source_edges.iter().filter(|row| row["caller_path"] == path || row["target_path"] == path).count();
         Ok(json!({"module":name,"path":path,"declaration_count":declaration_count,"relation_count":relation_count,"source_reference":{"path":path,"source_revision":module["source_revision"],"source_digest":module["source_digest"]}}))
     }).collect::<Result<Vec<_>>>()?;
-    let declarations = source_declarations
+    let mut declarations = source_declarations
         .iter()
         .map(|row| declaration_row(subject, row))
         .collect::<Result<Vec<_>>>()?;
+    // Capability endpoints are checked graph nodes without source files. Keep
+    // them explicit so authority edges never point at an invented file row.
+    for edge in source_edges
+        .iter()
+        .filter(|row| row["kind"] == "capability_authority")
+    {
+        let capability = edge["target"]
+            .as_str()
+            .ok_or_else(|| invalid("held capability edge has no target identity"))?;
+        if declarations
+            .iter()
+            .any(|row| row["kind"] == "capability" && row["id"] == capability)
+        {
+            continue;
+        }
+        declarations.push(json!({"node_key":node_key(subject,&format!("capability:{capability}")),"id":capability,"identity_origin":null,"kind":"capability","display_name":capability,"owner_id":null,"module":null,"path":null,"source_reference":{"kind":"non_file_node"}}));
+    }
     let relations = source_edges
         .iter()
         .map(|row| relation_row(subject, row))
@@ -397,8 +414,57 @@ fn declaration_row(subject: &ExplorerSubject<'_>, value: &Value) -> Result<Value
     let path = value.get("path").cloned().unwrap_or(Value::Null);
     let source_reference = declaration_source_reference(subject, value, id, &path);
     Ok(
-        json!({"node_key":node_key(subject,id),"id":id,"identity_origin":value.get("identity_origin").cloned().unwrap_or_else(||Value::String("unknown_in_analysis_projection".into())),"kind":value.get("kind").cloned().unwrap_or_else(||Value::String("declaration".into())),"display_name":value.get("name").or_else(||value.get("display_name")).cloned().unwrap_or_else(||Value::String(id.rsplit('.').next().unwrap_or(id).to_owned())),"owner_id":value.get("owner").cloned().unwrap_or(Value::Null),"module":value.get("module").cloned().unwrap_or(Value::Null),"path":path,"source_reference":source_reference}),
+        json!({"node_key":node_key(subject,id),"id":id,"identity_origin":value.get("identity_origin").cloned().unwrap_or_else(||Value::String("unknown_in_analysis_projection".into())),"kind":value.get("kind").cloned().unwrap_or_else(||Value::String("declaration".into())),"display_name":value.get("name").or_else(||value.get("display_name")).cloned().or_else(||checked_display_name(subject,value,id).map(Value::String)).unwrap_or_else(||Value::String(id.rsplit('.').next().unwrap_or(id).to_owned())),"owner_id":value.get("owner").cloned().unwrap_or(Value::Null),"module":value.get("module").cloned().unwrap_or(Value::Null),"path":path,"source_reference":source_reference}),
     )
+}
+fn checked_display_name(subject: &ExplorerSubject<'_>, value: &Value, id: &str) -> Option<String> {
+    let path = value.get("path")?.as_str()?;
+    let module_name = value.get("module")?.as_str()?;
+    let module = subject
+        .revision
+        .semantic
+        .image_modules()
+        .iter()
+        .find(|module| module.path() == path && module.module() == module_name)?;
+    if let Some(function) = module
+        .functions()
+        .iter()
+        .find(|function| function.id.as_str() == id)
+    {
+        return Some(function.name.clone());
+    }
+    if let Some(template) = module
+        .function_templates()
+        .iter()
+        .find(|template| template.id.as_str() == id)
+    {
+        return Some(template.name.clone());
+    }
+    for declaration in module.types() {
+        if declaration.id.as_str() == id {
+            return Some(declaration.name.clone());
+        }
+        match &declaration.kind {
+            crate::hir::ResolvedTypeDeclarationKind::Record { fields }
+            | crate::hir::ResolvedTypeDeclarationKind::Class { fields, .. } => {
+                if let Some(field) = fields.iter().find(|field| field.id.as_str() == id) {
+                    return Some(field.name.clone());
+                }
+            }
+            crate::hir::ResolvedTypeDeclarationKind::Variant { cases } => {
+                for case in cases {
+                    if case.id.as_str() == id {
+                        return Some(case.name.clone());
+                    }
+                    if let Some(field) = case.fields.iter().find(|field| field.id.as_str() == id) {
+                        return Some(field.name.clone());
+                    }
+                }
+            }
+            crate::hir::ResolvedTypeDeclarationKind::Resource { .. } => {}
+        }
+    }
+    None
 }
 fn declaration_source_reference(
     subject: &ExplorerSubject<'_>,
@@ -531,8 +597,13 @@ fn relation_row(subject: &ExplorerSubject<'_>, value: &Value) -> Result<Value> {
         .or_else(|| value.get("site"))
         .and_then(Value::as_str)
         .ok_or_else(|| invalid("held relation row has no site identity"))?;
+    let target_key = if family == "capability_authority" {
+        node_key(subject, &format!("capability:{to}"))
+    } else {
+        node_key(subject, to)
+    };
     Ok(
-        json!({"family":family,"from":node_key(subject,from),"to":node_key(subject,to),"direction":"forward","site_id":site,"provenance":value.clone()}),
+        json!({"family":family,"from":node_key(subject,from),"to":target_key,"direction":"forward","site_id":site,"provenance":value.clone()}),
     )
 }
 fn items<'a>(artifact: &'a Value, view: ExplorerView) -> &'a Vec<Value> {

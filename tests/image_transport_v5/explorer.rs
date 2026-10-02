@@ -185,6 +185,14 @@ fn explorer_rejects_wrong_handles_and_overview_targets() {
             "{missing}"
         );
     }
+    let unknown = call(
+        &mut session,
+        "image/explorer-summary",
+        json!({
+            "image_revision":image_revision,"mode":"overview","unexpected":true
+        }),
+    );
+    assert_eq!(unknown["error"]["code"], -32602, "{unknown}");
     session.finish().unwrap();
 }
 
@@ -707,6 +715,18 @@ fn explorer_pages_reconstruct_inventory_and_bind_view_query_options_and_subject(
         }),
     ));
     assert_eq!(full["items"], json!(rows));
+    let too_small = call(
+        &mut session,
+        "image/explorer-page",
+        json!({
+            "image_revision":image_revision,"mode":"overview","view":"declarations", "handle":handle,
+            "page_size":128,"max_bytes":1024
+        }),
+    );
+    assert_eq!(
+        too_small["error"]["data"]["diagnostics"][0]["code"], "SPX-G328",
+        "{too_small}"
+    );
     let mut wrong_view = base.clone();
     wrong_view["view"] = json!("relations");
     assert_eq!(
@@ -895,4 +915,118 @@ fn overview_keeps_same_display_names_distinct_by_explicit_identity() {
     assert_ne!(same[0]["node_key"], same[1]["node_key"]);
     assert_ne!(same[0]["module"], same[1]["module"]);
     session.finish().unwrap();
+}
+
+#[test]
+fn overview_keeps_capability_as_a_non_file_node() {
+    let fixture = Fixture::new();
+    std::fs::write(fixture.manifest(), "schema = \"semaprax.project.v4\"\nname = \"explorer-cap\"\nversion = \"0.1.0\"\nprofile = \"useful-data-command.v1\"\nentry = \"explorer_cap.app\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\nweb_exports = [\"explorer-cap.command\"]\ncommand = \"explorer-cap.command\"\ncapabilities = [\"process.stdout.write\"]\ntests = [\"explorer_cap.tests\"]\n").unwrap();
+    for (path, text) in [
+        ("src/app.spx", "module explorer_cap.app; permit { process.stdout.write } @id(\"explorer-cap.command\") fn command(input: borrow Slice<u8>) -> bool { byte_len(input) == byte_len(input) } @id(\"explorer-cap.app.main\") fn main() -> i64 { 0 }"),
+        ("src/tests.spx", "module explorer_cap.tests; @id(\"explorer-cap.tests.main\") fn main() -> i64 { 0 }"),
+    ] {
+        let program = semaprax::parse(text, path).unwrap();
+        std::fs::write(fixture.0.join(path), semaprax::format::canonical(&program)).unwrap();
+    }
+    let mut session = VNextSession::open(&fixture.manifest(), VNextPolicy::default()).unwrap();
+    let image_revision = session.image_revision().to_owned();
+    let summary = payload(call(
+        &mut session,
+        "image/explorer-summary",
+        json!({
+            "image_revision":image_revision,"mode":"overview"
+        }),
+    ));
+    let page = payload(call(
+        &mut session,
+        "image/explorer-page",
+        json!({
+            "image_revision":image_revision,"mode":"overview",
+            "view":"declarations","handle":inventory(&summary,"declarations")["handle"]
+        }),
+    ));
+    assert!(
+        page["items"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|row| row["id"] == "process.stdout.write"
+                && row["source_reference"]["kind"] == "non_file_node"),
+        "{page}"
+    );
+    session.finish().unwrap();
+}
+
+#[test]
+fn explicit_identity_aligns_across_rename_and_move_while_side_keys_differ() {
+    let fixture = Fixture::new();
+    let source = fixture.0.join("src/core.spx");
+    let text = format!("{}\n@id(\"calculator.explorer-helper\") fn explorer_helper(value: i64) -> i64 {{ value }}\n", std::fs::read_to_string(&source).unwrap());
+    let program = semaprax::parse(&text, "src/core.spx").unwrap();
+    std::fs::write(&source, semaprax::format::canonical(&program)).unwrap();
+    let image = fixture.image();
+    let opened = ProjectCandidate::open(
+        Arc::clone(image.revision()),
+        image.revision().project_revision(),
+    )
+    .unwrap();
+    let rename = SemanticChange::new(opened.revision().project_revision(), &json!({
+        "kind":"rename_declaration","target":"calculator.explorer-helper","name":"renamed_helper"
+    })).unwrap();
+    let renamed = opened.apply(opened.candidate_digest(), &rename).unwrap();
+    let movement = SemanticChange::new(renamed.revision().project_revision(), &json!({
+        "kind":"move_declaration","target":"calculator.explorer-helper","destination":"calculator.app.main"
+    })).unwrap();
+    let moved = renamed
+        .apply(renamed.candidate_digest(), &movement)
+        .unwrap();
+    let row = |side| {
+        let summary: Value = serde_json::from_str(
+            &moved
+                .explorer_summary(
+                    moved.candidate_digest(),
+                    side,
+                    ExplorerMode::Overview,
+                    None,
+                    ExplorerQuery::default(),
+                )
+                .unwrap(),
+        )
+        .unwrap();
+        let handle = inventory(&summary, "declarations")["handle"]
+            .as_str()
+            .unwrap();
+        let page: Value = serde_json::from_str(
+            &moved
+                .explorer_page(
+                    moved.candidate_digest(),
+                    side,
+                    ExplorerMode::Overview,
+                    None,
+                    ExplorerQuery::default(),
+                    ExplorerView::Declarations,
+                    handle,
+                    None,
+                    ExplorerPageOptions::new(128, 524288).unwrap(),
+                )
+                .unwrap(),
+        )
+        .unwrap();
+        page["items"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|row| row["id"] == "calculator.explorer-helper")
+            .unwrap()
+            .clone()
+    };
+    let base = row(ExplorerSide::Base);
+    let candidate = row(ExplorerSide::Candidate);
+    assert_eq!(base["identity_origin"], "explicit");
+    assert_eq!(candidate["identity_origin"], "explicit");
+    assert_eq!(base["display_name"], "explorer_helper");
+    assert_eq!(candidate["display_name"], "renamed_helper");
+    assert_eq!(base["path"], "src/core.spx");
+    assert_eq!(candidate["path"], "src/app.spx");
+    assert_ne!(base["node_key"], candidate["node_key"]);
 }

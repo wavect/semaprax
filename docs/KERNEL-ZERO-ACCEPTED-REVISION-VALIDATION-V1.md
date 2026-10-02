@@ -3,8 +3,9 @@
 Audience: the reviewer resolving issue #328.
 
 Status: a closed acceptance-record format, read-only validation gate, and
-pending gate inventory. It records no accepted revision, completed gate,
-reviewer decision, hosted result, or rung promotion.
+receipt inventory. The reviewed component decision is to retain rung 1.
+The exact candidate and remaining narrow receipt are recorded below; no
+rung promotion, hosted result or full-profile pass is claimed.
 
 ## Purpose and boundary
 
@@ -47,7 +48,8 @@ of a broader profile.
 without running a receipt command, writing any input, selecting a candidate
 revision, or changing the current outcome. It requires full lowercase 40-hex
 commits and resolves each as a commit object. Its fixed ordered inventory is the
-seven rows below.
+seven rows below. The baseline row alone also permits the explicit user waiver
+described below; the other six rows must still execute or reconcile.
 
 An `executed` receipt must have passed at `candidate_revision`. A `reconciled`
 receipt records its earlier execution commit plus a complete declared inventory
@@ -77,6 +79,14 @@ The final list is exactly `["Cargo.lock"]`, and paths may not overlap. Both
 completed forms retain the same `command`, `passed`, `execution_revision`, and
 `tool_versions` fields. Unknown or omitted keys refuse.
 
+A waived row is exactly `id`, `state`, `authority`, `scope`, and `reason`.
+It is admitted only for `id: baseline-preservation`, `state: waived`,
+`authority: user`, and `scope: local-full-profile-delegated-to-hosted-ci`,
+with a nonempty reason. It has no `passed`, command or execution revision: a
+waiver is not execution evidence. The gate checks this closed declaration;
+the accompanying review must identify the actual user instruction. No waiver
+can satisfy any of the six focused receipt rows or hide a pending row.
+
 Focused regression selector:
 
 ```sh
@@ -90,7 +100,12 @@ summary on success and a stable `SPX-K328-*` diagnostic on refusal.
 ## Required local receipt inventory
 
 The accepted-profile review must contain one passing receipt or an exact-subject
-reconciliation for every row. The named owner remains the source of truth for
+reconciliation for each focused row. On 2 October 2026 the user instructed:
+“skip the full profile as acceptance criteria, the hosted ci runs will handle
+that later.” Accordingly, `baseline-preservation` is explicitly waived for
+local #328 closure; hosted CI remains responsible for the full profile.
+This instruction changes no focused receipt or implementation requirement.
+The named owner remains the source of truth for
 the focused selector and hostile cases; this table intentionally does not
 duplicate `quality.sh`'s full-route command sequence.
 
@@ -102,7 +117,7 @@ duplicate `quality.sh`'s full-route command sequence.
 | Scalar targets and recovery | [Target and Recovery Evidence v1](KERNEL-ZERO-RUNG-TWO-TARGET-RECOVERY-V1.md), including C11 `-O0`/`-O2`, Node/Core-Wasm, candidate corruption, Rust-byte recovery, and re-entry | Pending |
 | Differential corpus | `kernel_zero::differential`, including reference/interpreter agreement and native C11 `-O0`/`-O2` plus Core-Wasm agreement with required target tools | Pending |
 | Owned handoff | [Owned Handoff v1](KERNEL-ZERO-RUNG-TWO-OWNED-HANDOFF-V1.md), including binding authentication, graph replay, zero-owner mutation refusal, settlement, panic recovery, and the 13-row native/Wasm wrapper evidence | Pending |
-| Baseline preservation | [Quality gates](QUALITY-GATES.md)'s `full` profile, including its Kernel-0 Lean gate | Pending |
+| Baseline preservation | [Quality gates](QUALITY-GATES.md)'s `full` profile; the focused Lean gate remains required independently | Waived locally by the explicit 2 October user instruction; delegated to hosted CI, not passed |
 
 Historical counts and partial local receipts can remain cited as background,
 but cannot fill a pending cell without the preceding candidate/reconciliation
@@ -117,9 +132,9 @@ outcome with the candidate revision and links to every receipt:
 
 | Outcome | Meaning |
 |---|---|
-| `rung-1-retained` | The required local validation completed, but the rung-2 criterion remains unmet or is intentionally not promoted. Name the narrow technical reason. |
+| `rung-1-retained` | The six focused local receipts are complete and the baseline is either complete or explicitly waived as above, but the rung-2 criterion remains unmet or intentionally unpromoted. Name the narrow technical reason. |
 | `rung-2-promoted` | The reviewer accepts that the stated rung-2 criterion is met. This requires a separate explicit decision that the five scalar lanes meet the component boundary; wrapper evidence alone cannot supply it. |
-| `validation-incomplete` | At least one row is pending, failed, or lacks an exact-subject reconciliation. This is the current outcome. |
+| `validation-incomplete` | At least one required focused row is pending, failed, or lacks an exact-subject reconciliation. The explicit baseline waiver is not a pending focused gate. |
 
 The decision must state whether the remaining reason is a technical boundary,
 an intentionally deferred promotion, or a failed/missing local receipt. It must
@@ -128,11 +143,51 @@ the finite differential corpus, Lean proof boundary, Rust formatter authority,
 and whole-compiler verification claims at the limits stated by their owning
 specifications.
 
-## Current record
+## Reviewed component decision and current receipt status
 
-`candidate_revision`: unselected.
+The canonical [candidate record](evidence/kernel-zero-accepted-revision-f99c76dc2.json)
+selects the exact candidate and records the user's baseline waiver. Focused
+rows stay pending until the retained logs and tool provenance are assembled
+into complete executed receipts; a passing log alone does not silently update
+the machine-readable record.
 
-All seven receipt rows are pending. The current outcome is
-`validation-incomplete`; rung 1 remains the only accepted rung. This is a
-planning and provenance increment for #328, not evidence that any required
-gate has run at a later revision.
+Reviewed on 2 October 2026 against candidate
+`f99c76dc2d26dd57c81f4fdd5f26fe91d50118e4`: **retain rung 1; do not promote
+rung 2**. The five scalar lanes still return individual bytes/lengths; Rust
+assembles the candidate and retains the authoritative output. The ordinary
+checked `own Bytes -> Bytes` wrapper then transfers that Rust-assembled token.
+It does not make the Kernel-0 renderer own its output, transfer formatter
+component authority, or extend the Kernel-0 theorem to ownership. This is the
+concrete unmet component boundary, not a missing hosted badge.
+
+The local receipt directory is
+`semaprax-evidence/issue328/f99c76dc2` beside the repository checkouts. Its
+`run-focused.sh` requires the exact clean candidate before executing
+`cargo test --locked --offline -p semaprax --lib kernel_zero -- --test-threads=2`
+inside the retained Linux container. Both target-required environment flags
+are set. `kernel-focused.log` records **124 passed, 0 failed, 0 ignored**, with
+all renderer, authority, bootstrap, scalar-target/recovery, differential and
+Kernel handoff cases named individually. `lean-gate.log` records the source
+pins/hostile controls, successful `lake build`, gate-owned 53-theorem axiom
+audit and all four negative controls, ending in `RESULT: PASS`.
+
+These results substantiate the focused Kernel-0 behavior at their actual
+revision. They are not a full-profile result and do not establish a fresh
+execution at a later commit. External tool versions and the exact Lean
+invocation/revision provenance must accompany the final canonical record.
+
+One narrow owned-handoff receipt remains necessary: the `kernel_zero` filter
+does not select the four
+`interpreter::retained_call::owned_handoff::tests` cases that verify actual
+last-owner release, retained-alias refusal, zero-owner admission, exhaustion,
+panic cleanup and the two-MiB stack. Run the `owned_handoff` library selector
+with required physical targets, or reconcile an existing complete receipt's
+exact committed subject. The Kernel wrapper target case's success alone does
+not cover those omitted tests. The canonical validation outcome remains
+`validation-incomplete` until this focused gap and receipt provenance are
+resolved; the reviewed rung-1 non-promotion decision is already explicit.
+
+No additional proof development or whole-compiler ownership theorem is needed
+for this non-promotion outcome. Once the narrow receipt and provenance are
+bound, record `rung-1-retained` with the baseline row explicitly `waived` and
+resolve #328 without waiting for the full profile or a hosted badge.

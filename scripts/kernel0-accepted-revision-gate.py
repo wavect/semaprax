@@ -120,6 +120,14 @@ def validate_receipt(repository: Path, candidate: str, value: Any) -> str:
     if state == "pending":
         exact_keys(value, ("id", "state"), f"receipt {identifier}")
         return state
+    if state == "waived":
+        exact_keys(value, ("authority", "id", "reason", "scope", "state"), f"receipt {identifier}")
+        if identifier != "baseline-preservation" or value["authority"] != "user" or value["scope"] != "local-full-profile-delegated-to-hosted-ci":
+            fail("SPX-K328-WAIVER", "only the user's local full-profile baseline waiver is admitted")
+        text(value["reason"], f"receipt {identifier}.reason")
+        # A waiver is an explicit review input, never a passing test receipt.
+        # This validator checks the declaration, not who authorized it.
+        return state
     common = ("command", "execution_revision", "id", "passed", "state", "tool_versions")
     if state == "executed":
         exact_keys(value, common, f"receipt {identifier}")
@@ -203,6 +211,43 @@ class GateTests(unittest.TestCase):
 
     def test_accepts_exact_reconciliation_with_complete_pending_inventory(self) -> None:
         self.assertEqual(validate(self.record(), self.repo)["states"][0], "reconciled")
+
+    def test_explicit_baseline_waiver_does_not_claim_execution(self) -> None:
+        record = self.record()
+        record["receipts"] = [
+            {"command": "focused selector", "execution_revision": self.head,
+             "id": identifier, "passed": True, "state": "executed", "tool_versions": {}}
+            for identifier in RECEIPTS
+        ]
+        record["receipts"][-1] = {
+            "authority": "user", "id": "baseline-preservation",
+            "reason": "User delegates the full profile to hosted CI.",
+            "scope": "local-full-profile-delegated-to-hosted-ci", "state": "waived",
+        }
+        record["outcome"] = "rung-1-retained"
+        self.assertEqual(validate(record, self.repo)["states"][-1], "waived")
+        record["receipts"][-1]["passed"] = True
+        with self.assertRaisesRegex(Refusal, "SPX-K328-KEYS"):
+            validate(record, self.repo)
+
+    def test_baseline_waiver_cannot_waive_a_focused_gate(self) -> None:
+        record = self.record()
+        record["receipts"][0] = {
+            "authority": "user", "id": "lean-proof", "reason": "not run",
+            "scope": "local-full-profile-delegated-to-hosted-ci", "state": "waived",
+        }
+        with self.assertRaisesRegex(Refusal, "SPX-K328-WAIVER"):
+            validate(record, self.repo)
+
+    def test_baseline_waiver_does_not_hide_pending_focused_gates(self) -> None:
+        record = self.record()
+        record["receipts"][-1] = {
+            "authority": "user", "id": "baseline-preservation", "reason": "delegated",
+            "scope": "local-full-profile-delegated-to-hosted-ci", "state": "waived",
+        }
+        record["outcome"] = "rung-1-retained"
+        with self.assertRaisesRegex(Refusal, "SPX-K328-OUTCOME"):
+            validate(record, self.repo)
 
     def test_refuses_declared_subject_drift(self) -> None:
         record = self.record()

@@ -26,8 +26,9 @@ requires observed last-owner release and the existing
 `CopyOutAndSettleBytes` event. The wrapper transfers Rust-assembled scalar
 output; it does not make the scalar Kernel-0 renderer own a buffer or extend
 its ownership proof. Rust retains byte authority, refusal/cleanup and re-entry.
-Required accepted-head gates are pending; this source-fact correction reports
-no new test result, rung promotion or authority transfer.
+The accepted-revision ledger now records the 2 October rung-1 retention
+decision and the exact focused receipt gap. This historical source-fact
+record grants no rung promotion or authority transfer.
 
 ## Synchronous admission and settlement
 

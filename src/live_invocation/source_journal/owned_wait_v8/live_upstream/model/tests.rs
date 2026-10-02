@@ -480,11 +480,7 @@ fn owned_wait_recovered_first_prepared_requires_process_exit_and_relaunch() {
         let prepared = read_prepared_restart_meta();
         assert_ne!(prepared.preparer_pid, std::process::id());
         if mode == "hostile" {
-            let journal = std::fs::read_dir(&prepared.directory)
-                .unwrap()
-                .map(|entry| entry.unwrap().path())
-                .next()
-                .unwrap();
+            let journal = prepared.directory.clone();
             let before = std::fs::read(&journal).unwrap();
             std::fs::OpenOptions::new()
                 .append(true)

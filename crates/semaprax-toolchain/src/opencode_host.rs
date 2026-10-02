@@ -34,7 +34,12 @@ const MAX_PROMPT_BYTES: usize = 65_536;
 const MAX_EVENTS_BYTES: usize = 1_048_576;
 const MAX_EXPORT_BYTES: usize = 1_048_576;
 const MAX_GRAMMAR_BYTES: usize = 65_536;
-const MAX_EXECUTABLE_BINDING_BYTES: u64 = 64 * 1024 * 1024;
+/// The private host admits one complete frozen executable snapshot up to 160 MiB.
+/// This is deliberately independent from the much smaller provider wire limits.
+const MAX_EXECUTABLE_BINDING_BYTES: u64 = 160 * 1024 * 1024;
+/// Staged-executable reauthentication compares the frozen bytes incrementally.
+/// It must not allocate another executable-sized buffer while dispatching.
+const EXECUTABLE_REAUTH_BUFFER_BYTES: usize = 64 * 1024;
 const STAGED_EXECUTABLE: &str = ".semaprax-opencode-executable";
 
 /// Host-owned process settings. Constructing this value is distinct from
@@ -661,13 +666,21 @@ fn held_file_matches(file: &mut std::fs::File, expected: &[u8]) -> bool {
     if file.seek(SeekFrom::Start(0)).is_err() {
         return false;
     }
-    let mut actual = Vec::with_capacity(expected.len());
-    let read = Read::by_ref(file)
-        .take(MAX_EXECUTABLE_BINDING_BYTES + 1)
-        .read_to_end(&mut actual)
-        .is_ok();
+    let read = frozen_bytes_match(file, expected);
     let rewound = file.seek(SeekFrom::Start(0)).is_ok();
-    read && rewound && actual == expected
+    read && rewound
+}
+
+fn frozen_bytes_match(reader: &mut impl Read, expected: &[u8]) -> bool {
+    let mut actual = [0_u8; EXECUTABLE_REAUTH_BUFFER_BYTES];
+    let read = expected
+        .chunks(EXECUTABLE_REAUTH_BUFFER_BYTES)
+        .all(|expected| {
+            reader.read_exact(&mut actual[..expected.len()]).is_ok()
+                && actual[..expected.len()] == expected[..]
+        });
+    let mut trailing = [0_u8; 1];
+    read && matches!(reader.read(&mut trailing), Ok(0))
 }
 
 fn executable_snapshot(path: &std::path::Path) -> Option<(String, Vec<u8>, std::fs::Permissions)> {

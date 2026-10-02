@@ -111,6 +111,76 @@ fn staged_executable_releases_its_writer_before_dispatch() {
     std::fs::remove_dir(&config.sandbox).unwrap();
 }
 
+#[cfg(unix)]
+#[test]
+fn maximum_frozen_snapshot_stages_with_fixed_reauthentication_memory() {
+    static NEXT: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+    let root = std::env::temp_dir().join(format!(
+        "semaprax-opencode-maximum-snapshot-{}-{}",
+        std::process::id(),
+        NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+    ));
+    std::fs::create_dir(&root).unwrap();
+    let executable = root.join("executable");
+    std::fs::File::create(&executable)
+        .unwrap()
+        .set_len(MAX_EXECUTABLE_BINDING_BYTES)
+        .unwrap();
+    let sandbox = root.join("sandbox");
+    std::fs::create_dir(&sandbox).unwrap();
+
+    let config = OpenCodeHostConfig::new(
+        executable.clone(),
+        sandbox.clone(),
+        Duration::from_secs(1),
+        OpenCodeGrammar {
+            digest: "g".into(),
+            canonical_schema: "{}".into(),
+            provider_schema: "{}".into(),
+        },
+    )
+    .expect("the exact documented executable ceiling is admitted");
+    assert_eq!(
+        config.executable_bytes.len() as u64,
+        MAX_EXECUTABLE_BINDING_BYTES
+    );
+    assert!(EXECUTABLE_REAUTH_BUFFER_BYTES < config.executable_bytes.len());
+    let mut staged = StagedExecutable::create(&config)
+        .expect("the exact frozen snapshot stages and reauthenticates");
+    assert!(staged.authenticate(&config.executable_bytes));
+    drop(staged);
+
+    std::fs::File::create(&executable)
+        .unwrap()
+        .set_len(MAX_EXECUTABLE_BINDING_BYTES + 1)
+        .unwrap();
+    assert!(OpenCodeHostConfig::new(
+        executable,
+        sandbox.clone(),
+        Duration::from_secs(1),
+        OpenCodeGrammar {
+            digest: "g".into(),
+            canonical_schema: "{}".into(),
+            provider_schema: "{}".into(),
+        },
+    )
+    .is_err());
+
+    drop(config);
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn bounded_reauthentication_refuses_a_trailing_byte_after_frozen_contents() {
+    let expected = vec![b'f'; EXECUTABLE_REAUTH_BUFFER_BYTES + 1];
+    let mut staged = expected.clone();
+    staged.push(b'x');
+    assert!(!frozen_bytes_match(
+        &mut std::io::Cursor::new(staged),
+        &expected
+    ));
+}
+
 #[test]
 fn configured_handler_returns_only_validated_raw_text_for_the_existing_decoder() {
     let request = ModelInvocationRequest {

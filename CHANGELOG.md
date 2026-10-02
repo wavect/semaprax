@@ -1,5 +1,14 @@
 # Changelog
 
+- Owned Agent v8 now has private typed runtime custody for Initialize through
+  Model/Resume, independent of disposable caller session handles. Runtime-driven
+  failed-Observe cleanup uses the existing acknowledged cleanup/receipt/Stop
+  chain, retains exact failures, and admits no cleanup or dispatch retry.
+  Pending owners refuse normal runtime close; forced teardown retires the
+  journal before backing release without claiming semantic settlement. Six
+  owning regressions are authored, unrun; public lifecycle and restart remain
+  incomplete (#330).
+
 - Define the public owned-Agent entry contract for #330. It records the
   authenticated two-step fresh-registration boundary, the required ownership
   transfers, and the conditions for a future bounded two-turn SourceLive-v8

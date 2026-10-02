@@ -169,5 +169,42 @@ The `owned_composed_second_turn_` regression family covers real terminal
 success and store reopen, Model-settlement and terminal prewrite faults,
 cancelled admission, and refusal of a three-iteration profile. These tests are
 authored but unexecuted at this change. This private composition closes a
-substantial driver join; initial-turn orchestration, public request construction,
-runtime quarantine retention, and general restart acceptance remain open.
+substantial driver join; first-turn authorization/effect/Step orchestration, public request construction,
+complete runtime shutdown settlement, and general restart acceptance remain open.
+
+
+## 7. Private runtime custody across caller sessions
+
+`live_upstream/runtime` now owns one typed lifecycle slot for an exact fresh
+cumulative two-turn journal. Its short-lived session handle borrows that slot;
+dropping the handle cannot destroy, extract, or retry the physical owner.
+Initialize, Observe, Start and Model/Resume run through the original consuming
+joins. A completed first Model remains in runtime custody for the next lifecycle
+transfer. Reopening a handle returns the existing status without dispatch or
+append. No new checkpoint or evidence format is introduced.
+
+Failures retain distinct admission, Initialize, Observe, Start, Model, and
+failed-Observe cleanup owner types. An acknowledged failed Observe stays in its
+cleanup-capable phase; it is not erased or prematurely poisoned. The runtime
+can consume that exact phase after the caller handle disappears, selecting the
+existing fixed State CleanupStarted, physical cleanup, receipt, and sticky Stop
+path. Only the acknowledged Stop permits ordinary runtime close. An append
+failure or observer failure retains the actual reached phase and cannot retry
+cleanup. No supplied row or copied diagnostic can request this transfer.
+
+`try_close` returns the same runtime for every unresolved physical obligation.
+Forced destruction of the private runtime retires the journal before releasing
+process backing; this is not language cleanup, a successful Stop, or a public
+shutdown protocol. A successful State or quarantined owner still needs its
+phase-specific continuation or recovery/settlement route. Consequently this
+runtime is private and is not exported as a public session constructor. The
+caller-handle lifetime is now enforced structurally, while complete runtime
+shutdown, first-turn Authorize/Effect/Reduce/Step, the second-turn runtime join,
+public request construction and general restart acceptance remain required.
+
+The `owned_runtime_` owning selectors exercise real first-turn Model completion,
+handle disposal and reopening without redispatch, runtime close refusal with the
+same original backing retained, successful failed-Observe cleanup after handle
+disposal, failures at each of the three cleanup append boundaries, and observer
+panic. They are authored but unexecuted in this source-only batch. No public
+support or issue-closure claim is made from these authored tests.

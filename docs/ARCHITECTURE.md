@@ -178,7 +178,13 @@ borrowers keep that container through owned stages. Physical uncertainty
 permanently poisons the container; pure prospective row refusal does not.
 `live_upstream` owns fresh initialization through real reservation and State
 ACKs, followed by one actual Observe and TurnObserved ACK, in an explicitly
-selected initialized profile. Its `wait` child retains the actual helper park;
+selected initialized profile. Its private `runtime` child owns typed initial-turn
+custody independently of disposable borrowed session handles and dispatches the
+existing acknowledged failed-Observe cleanup/Stop tail. Pending physical phases
+refuse normal runtime close; forced host teardown retires journal authority
+before backing release and does not claim semantic settlement. Complete runtime
+shutdown and public session construction remain unfinished.
+Its `wait` child retains the actual helper park;
 `append/checkpoint` seals the frozen v2 frame from the same held session and
 actual witness inventory without exposing the key or restoring an owner. Historical rows cannot
 mint physical owners or permits. `append/owned_effect/intent` owns the actual

@@ -8,8 +8,12 @@
 - Bound owned-Agent terminal driver stack retention by carrying owners and
   typed failures on the heap between each selection, append, ACK, release,
   transfer and Report claim. Pin the fresh public regression to a 2 MiB worker
-  independently of suite stack settings. Default-stack execution remains
-  pending; the prior terminal frame alone reserved 1.77 MiB (#330).
+  independently of suite stack settings. At `46d99ddfb`, the local macOS fresh
+  public gate passed 1/1 in 395.90s and the independent prepared-process restart
+  plus hostile-tail gate passed 1/1 in 445.90s with 2 MiB workers. The terminal
+  body frame fell from 1,860,528 to 1,280 bytes; its ACK driver fell from 690,192
+  to 240 bytes. Linux and broader failure/shutdown evidence remain separate
+  (#330).
 
 - Add a private native Claude print-JSON repair V3 route with exact model
   binding, bounded shared process capture and provider-reported usage. Preserve

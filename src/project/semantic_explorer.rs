@@ -524,9 +524,11 @@ fn relation_row(subject: &ExplorerSubject<'_>, value: &Value) -> Result<Value> {
         .get("target")
         .and_then(Value::as_str)
         .ok_or_else(|| invalid("held relation row has no target identity"))?;
+    // The broad site label (for example `body`) is shared by parallel calls.
+    // The retained expression identity selects the actual edge site.
     let site = value
-        .get("site")
-        .or_else(|| value.get("expression"))
+        .get("expression")
+        .or_else(|| value.get("site"))
         .and_then(Value::as_str)
         .ok_or_else(|| invalid("held relation row has no site identity"))?;
     Ok(

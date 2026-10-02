@@ -5,6 +5,7 @@ use semaprax::project::{
     ExplorerView, ProjectCandidate, ProjectSemanticImage, SemanticChange,
 };
 use serde_json::{json, Value};
+use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
@@ -171,6 +172,19 @@ fn explorer_rejects_wrong_handles_and_overview_targets() {
         json!({"image_revision":image_revision,"mode":"overview","target":"calculator.add"}),
     );
     assert!(target.get("error").is_some());
+    for mode in ["context", "impact"] {
+        let missing = call(
+            &mut session,
+            "image/explorer-summary",
+            json!({
+                "image_revision":image_revision,"mode":mode,"target":"calculator.absent"
+            }),
+        );
+        assert_eq!(
+            missing["error"]["data"]["diagnostics"][0]["code"], "SPX-G177",
+            "{missing}"
+        );
+    }
     session.finish().unwrap();
 }
 
@@ -237,6 +251,28 @@ fn candidate_explorer_binds_side_handle_cursor_and_rejects_source_drift() {
     ));
     assert_eq!(base_summary["subject"]["side"], "base");
     assert_eq!(candidate_summary["subject"]["side"], "candidate");
+    let context_handle = inventory(&base_summary, "declarations")["handle"]
+        .as_str()
+        .unwrap();
+    let context_page = json!({
+        "image_revision":image_revision,"candidate_revision":candidate_revision,
+        "side":"base","mode":"context","target":"calculator.add",
+        "view":"declarations","handle":context_handle
+    });
+    let mut foreign_target = context_page.clone();
+    foreign_target["target"] = json!("calculator.subtract");
+    assert_eq!(
+        call(&mut session, "candidate/explorer-page", foreign_target)["error"]["data"]
+            ["diagnostics"][0]["code"],
+        "SPX-G327"
+    );
+    let mut foreign_candidate = context_page;
+    foreign_candidate["candidate_revision"] = root["candidate_revision"].clone();
+    assert!(
+        call(&mut session, "candidate/explorer-page", foreign_candidate)
+            .get("error")
+            .is_some()
+    );
     let overview = json!({
         "image_revision":image_revision,
         "candidate_revision":candidate_revision,
@@ -634,6 +670,7 @@ fn explorer_pages_reconstruct_inventory_and_bind_view_query_options_and_subject(
     let base = json!({"image_revision":image_revision,"mode":"overview", "view":"declarations",
         "handle":handle,"page_size":1,"max_bytes":65536});
     let mut cursor: Option<String> = None;
+    let mut seen_cursors = HashSet::new();
     let mut rows = Vec::new();
     let mut first_cursor = None;
     loop {
@@ -650,7 +687,13 @@ fn explorer_pages_reconstruct_inventory_and_bind_view_query_options_and_subject(
             first_cursor = next.clone();
         }
         match next {
-            Some(value) => cursor = Some(value),
+            Some(value) => {
+                assert!(
+                    seen_cursors.insert(value.clone()),
+                    "pagination must advance"
+                );
+                cursor = Some(value);
+            }
             None => break,
         }
     }
@@ -725,6 +768,83 @@ fn explorer_pages_reconstruct_inventory_and_bind_view_query_options_and_subject(
         "SPX-G327"
     );
     other.finish().unwrap();
+    session.finish().unwrap();
+}
+
+#[test]
+fn overview_preserves_automatic_type_member_and_parallel_call_identities() {
+    let fixture = Fixture::new();
+    let core = fixture.0.join("src/core.spx");
+    let mut source = std::fs::read_to_string(&core).unwrap();
+    source.push_str("\nrecord Point { @id(\"calculator.point.x\") x: i64, }\n@id(\"calculator.choice\") variant Choice { @id(\"calculator.choice.one\") One { @id(\"calculator.choice.one.flag\") flag: bool, }, @id(\"calculator.choice.none\") None, }\nfn helper() -> i64 { 1 }\n");
+    let program = semaprax::parse(&source, "src/core.spx").unwrap();
+    std::fs::write(&core, semaprax::format::canonical(&program)).unwrap();
+    let app = fixture.0.join("src/app.spx");
+    let source = std::fs::read_to_string(&app).unwrap();
+    let source = source.replace(
+        "add(multiply(6, 7), subtract(divide(4, 2), 2))",
+        "add(add(1, 2), subtract(divide(4, 2), 2))",
+    );
+    let program = semaprax::parse(&source, "src/app.spx").unwrap();
+    std::fs::write(&app, semaprax::format::canonical(&program)).unwrap();
+    let mut session = VNextSession::open(&fixture.manifest(), VNextPolicy::default()).unwrap();
+    let image_revision = session.image_revision().to_owned();
+    let summary = payload(call(
+        &mut session,
+        "image/explorer-summary",
+        json!({"image_revision":image_revision,"mode":"overview"}),
+    ));
+    let declarations = payload(call(
+        &mut session,
+        "image/explorer-page",
+        json!({
+            "image_revision":image_revision,"mode":"overview","view":"declarations",
+            "handle":inventory(&summary,"declarations")["handle"],"page_size":128,"max_bytes":524288
+        }),
+    ));
+    let rows = declarations["items"].as_array().unwrap();
+    let automatic = rows
+        .iter()
+        .find(|row| row["display_name"] == "helper")
+        .unwrap();
+    assert_eq!(automatic["identity_origin"], "automatic");
+    assert!(automatic["source_reference"]["span"]["end"]
+        .as_u64()
+        .is_some());
+    for id in [
+        "calculator.point.x",
+        "calculator.choice",
+        "calculator.choice.one",
+        "calculator.choice.one.flag",
+        "calculator.choice.none",
+    ] {
+        let row = rows.iter().find(|row| row["id"] == id).unwrap();
+        assert_eq!(row["identity_origin"], "explicit");
+        assert!(
+            row["source_reference"]["span"]["end"].as_u64().is_some(),
+            "{row}"
+        );
+    }
+    let relations = payload(call(
+        &mut session,
+        "image/explorer-page",
+        json!({
+            "image_revision":image_revision,"mode":"overview","view":"relations",
+            "handle":inventory(&summary,"relations")["handle"],"page_size":128,"max_bytes":524288
+        }),
+    ));
+    let calls = relations["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|row| {
+            row["family"] == "call"
+                && row["provenance"]["caller"] == "calculator.app.main"
+                && row["provenance"]["target"] == "calculator.add"
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(calls.len(), 2);
+    assert_ne!(calls[0]["site_id"], calls[1]["site_id"]);
     session.finish().unwrap();
 }
 

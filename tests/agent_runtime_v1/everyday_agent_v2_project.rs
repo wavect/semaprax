@@ -4,7 +4,8 @@
 use std::path::{Path, PathBuf};
 
 use semaprax::agent_lifecycle::iterative::compile_project_agent_lifecycle_v2;
-use semaprax::project::with_authenticated_project;
+use semaprax::agent_runtime_v2::OfflineRepairEnvelope;
+use semaprax::project::{with_authenticated_project, CandidateTestPolicy, ProjectExecutionOptions};
 
 const AGENT_ID: &str = "everyday.v2.agent";
 const SOURCE_PATH: &str = "src/agent.spx";
@@ -46,6 +47,23 @@ fn everyday_v2_agent_is_authenticated_and_compiles_as_a_linked_project_lifecycle
             .schema()
             .digest()
             .starts_with("sha256:"));
+
+        let baseline = project.execute_test(&ProjectExecutionOptions::default())?;
+        assert!(
+            !baseline.command_succeeded(),
+            "the committed target is the intentionally failing repair subject"
+        );
+
+        let preview = OfflineRepairEnvelope::new(project.clone(), "everyday.v2.repair.target")?
+            .preview(42, false)?;
+        let policy = CandidateTestPolicy::new(100_000, 65_536, 262_144).unwrap();
+        let candidate = preview
+            .candidate()
+            .execute_tests(preview.candidate().candidate_digest(), &policy)?;
+        assert!(
+            candidate.passed(),
+            "the fixed target passes the immutable manifest test closure"
+        );
         Ok(())
     })
     .unwrap();

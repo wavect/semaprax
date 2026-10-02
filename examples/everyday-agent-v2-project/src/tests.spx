@@ -4,5 +4,5 @@ use function @id("everyday.v2.repair.target") from everyday.v2.repair as target;
 @id("everyday.v2.tests.main")
 fn main() -> i64
 {
-    target()
+    if target() == 42 { 0 } else { 1 }
 }

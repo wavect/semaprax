@@ -183,6 +183,7 @@ class NativePilotTests(unittest.TestCase):
             self.assertEqual(out,raw);self.assertEqual(session,'fixture');self.assertEqual(transport.receipt['dispatches'],1)
             server=transport.receipt['mcp_config']['mcpServers']['semaprax']
             self.assertTrue(server['command'].endswith('sandbox-exec'))
+            self.assertIn('TMPDIR='+str(root/'state'),server['args'])
             self.assertIn('-i',server['args']);self.assertNotIn('ANTHROPIC_API_KEY',' '.join(server['args']))
 
     def test_wrong_canonical_model_with_valid_cost_halts_next_dispatch(self):

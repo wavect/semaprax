@@ -41,7 +41,7 @@ no API-key, endpoint, secret environment or billing-configuration argument.
 The provider CLI is trusted for subscription authentication and reported usage;
 its counters are not invoice proof or cryptographic provider attestation.
 
-Limits are fixed: 120 seconds per CLI trial, 32 agentic turns, 65,536 prompt
+Limits are fixed: 300 seconds per CLI trial, 32 agentic turns, 65,536 prompt
 bytes, 1 MiB captured output, 131,072 fresh input/output/cache-creation tokens and
 1,048,576 cached-read tokens (post-response admission),
 $0.25 CLI API-equivalent budget per trial, and $9 aggregate reserved budget.
@@ -122,3 +122,8 @@ acceptance on the retained partial candidate and records a failed task, without
 halting other trials. Other provider errors, unknown cost, timeout, identity
 mismatch and overrun retain the global halt. This does not reinterpret any
 previous halted protocol or record; fresh/cache-read counts are retained exactly.
+
+The final separately frozen profile allows 300 seconds for the unchanged
+32-turn and token/cost limits. The prior 120-second timeout packet remains
+immutable and halted. MCP receives explicit `TMPDIR` equal to its private state
+root, avoiding ambient xcrun cache attempts without enlarging file authority.

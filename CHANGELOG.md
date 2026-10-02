@@ -1,5 +1,9 @@
 # Changelog
 
+- Freeze a final #321 300-second wall profile while retaining 32 turns and
+  existing token/cost ceilings. Bind MCP temporary files to its private state
+  root; retain the earlier timeout packet and unknown-cost halt unchanged.
+
 - Distinguish exactly observed native turn exhaustion from integrity failures
   in a new #321 protocol: score the retained partial candidate as a failed task,
   preserve max-plus-one terminal turn accounting, and bound cached-read tokens

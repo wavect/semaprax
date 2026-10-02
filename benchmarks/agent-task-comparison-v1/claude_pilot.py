@@ -35,7 +35,7 @@ MODELS = [
      'revision': 'claude-sonnet-5-5', 'configured_model': 'anthropic/claude-sonnet-5-5',
      'usage_key': 'claude-sonnet-5-5', 'canonical_model': 'claude-sonnet-5-5'},
 ]
-CAPS = {'seconds': 120, 'max_turns': 32, 'max_prompt_bytes': 65536,
+CAPS = {'seconds': 300, 'max_turns': 32, 'max_prompt_bytes': 65536,
         'max_stream_bytes': 1048576, 'max_reported_tokens': 131072, 'max_cache_read_tokens': 1048576,
         'max_estimated_api_usd': 0.25, 'cohort_max_estimated_api_usd': 9.0, 'agent_retries': 0}
 ISOLATION_FLAGS = ['--restricted', '--strict-mcp-config', '--setting-sources', '',
@@ -268,7 +268,7 @@ class Transport:
                 base64.b64decode(version['stdout_base64']).decode().strip() != protocol['cli_version'] + ' (Claude Code)'):
             raise pilot.PilotFailure('native_cli_version_mismatch')
         entry = mcp['semaprax']
-        clean = ['/usr/bin/env', '-i', 'PATH=/usr/bin:/bin', 'HOME=' + str(state),
+        clean = ['/usr/bin/env', '-i', 'PATH=/usr/bin:/bin', 'HOME=' + str(state), 'TMPDIR=' + str(state),
                  'SEMAPRAX_PILOT_GATEWAY=' + entry['environment']['SEMAPRAX_PILOT_GATEWAY'],
                  *entry['command']]
         confined = pilot.sandboxed(clean[0], profile, clean[1:])

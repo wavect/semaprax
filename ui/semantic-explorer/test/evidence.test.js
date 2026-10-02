@@ -93,10 +93,10 @@ test('offline evidence index binds a selected subject and exposes only its compa
     subject: selected, target: 'f',
     states: { function_summary: 'available', dependency_summary: 'available', analysis_coverage: 'available', contract_delta: 'available', ownership_delta: 'not applicable' },
     compact: {
-      function_summary: { schema: 'summary', id: 'f', parameter_count: 1 },
-      dependency_summary: { schema: 'dependencies', target: 'f', facets: [{ view: 'callers', total_items: 1 }] },
-      analysis_coverage: { schema: 'coverage', areas: [{ area: 'workspace', status: 'complete' }] },
-      contract_delta: { schema: 'contract', inventory: { affected: 1 }, selected: { change: 'modified', comparison: { exact_equal: false }, reason: 'reported' } }
+      function_summary: { id: 'f', parameter_count: 1, return_type_id: 'Int', effects: [], requires_count: 0, ensures_count: 0, facets: [] },
+      dependency_summary: { target: 'f', kind: 'function', facets: [{ view: 'callers', total_items: 1 }], test_reachable: false },
+      analysis_coverage: { inventory: { functions: 1 }, areas: [{ area: 'workspace', status: 'not_inspected' }] },
+      contract_delta: { inventory: { affected_functions: 1 }, changed: [{ id: 'helper', change: 'modified' }] }
     }, omitted: ['source bodies', 'raw facet items']
   }] }, [selected]);
   const host = { offline: true, async readEvidence(request) {
@@ -122,6 +122,12 @@ test('offline evidence index binds a selected subject and exposes only its compa
   const deltaInspector = evidence.createEvidenceInspector(offlineDelta, selected, functionDeclaration);
   assert.equal((await deltaInspector.inspect('contracts_effects')).state, 'available');
   assert.equal((await deltaInspector.inspect('ownership_cleanup')).state, 'not_applicable');
+  const sourceBearing = { schema: evidence.INDEX_SCHEMA, entries: [{
+    subject: selected, target: 'f',
+    states: { function_summary: 'available', dependency_summary: 'error', analysis_coverage: 'error' },
+    compact: { function_summary: { id: 'f', parameter_count: 0, return_type_id: 'Int', effects: [], requires_count: 0, ensures_count: 0, facets: [], predicate: 'literal source text' } }, omitted: []
+  }] };
+  assert.throws(() => evidence.offlineIndex(sourceBearing, [selected]), /function_summary/);
   const foreign = { ...selected, project_revision: 'other-project' };
   assert.throws(() => evidence.offlineIndex({ schema: evidence.INDEX_SCHEMA, entries: [{ subject: foreign, target: 'f', states: { function_summary: 'error', dependency_summary: 'error', analysis_coverage: 'error' }, compact: {}, omitted: [] }] }, [selected]), /offline binding/);
 });

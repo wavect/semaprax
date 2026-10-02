@@ -55,7 +55,10 @@ test('offline host returns only exact-subject compact evidence', async () => {
   const evidence = { schema: 'semaprax.explorer-evidence-index.v1', entries: [{
     subject: selected.subject, target: 'core.fn',
     states: { function_summary: 'available', dependency_summary: 'error', analysis_coverage: 'available' },
-    compact: { function_summary: { schema: 'summary', id: 'core.fn' }, analysis_coverage: { schema: 'coverage', areas: [] } },
+    compact: {
+      function_summary: { id: 'core.fn', parameter_count: 0, return_type_id: 'Int', effects: [], requires_count: 0, ensures_count: 0, facets: [] },
+      analysis_coverage: { inventory: {}, areas: [] }
+    },
     omitted: ['source bodies']
   }] };
   const offline = snapshotHost({ views: [{ query, summary: selected, pages }], evidence });

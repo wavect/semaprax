@@ -47,6 +47,48 @@ function safeCompact(value, depth = 0) {
   }
   return Object.freeze(result);
 }
+function count(value, name) { if (!Number.isSafeInteger(value) || value < 0) fail(`invalid ${name}`); return value; }
+function exact(value, names, name) {
+  if (!plain(value) || Object.keys(value).length !== names.length || names.some(key => !Object.hasOwn(value, key))) fail(`invalid ${name}`);
+  return value;
+}
+function strings(value, name) {
+  if (!Array.isArray(value) || value.length > 128) fail(`invalid ${name}`);
+  return Object.freeze(value.map(item => text(item, name)));
+}
+function inventory(value, names, name) {
+  if (!plain(value) || Object.keys(value).some(key => !names.includes(key))) fail(`invalid ${name}`);
+  const result = {};
+  for (const key of names) if (Object.hasOwn(value, key)) result[key] = count(value[key], `${name} ${key}`);
+  return Object.freeze(result);
+}
+const COVERAGE_COUNTS = Object.freeze(['functions', 'templates', 'instances', 'nominal_types', 'interfaces', 'interface_imports']);
+const DELTA_COUNTS = Object.freeze(['base_functions', 'candidate_functions', 'base_predicates', 'candidate_predicates', 'base_functions_with_contracts', 'candidate_functions_with_contracts', 'unchanged_functions', 'affected_functions', 'base_source_only_functions', 'candidate_source_only_functions', 'base_types', 'candidate_types', 'affected_types']);
+function offlineCompact(slot, value) {
+  // Offline exports carry only the source-free shapes created by explorer.js.
+  // This allowlist deliberately excludes generic nested report values, even
+  // when they happen not to use a source-looking key.
+  if (slot === 'function_summary') {
+    exact(value, ['id', 'parameter_count', 'return_type_id', 'effects', 'requires_count', 'ensures_count', 'facets'], slot);
+    return Object.freeze({ id: text(value.id, 'summary id'), parameter_count: count(value.parameter_count, 'parameter count'), return_type_id: text(value.return_type_id, 'return type'), effects: strings(value.effects, 'effect'), requires_count: count(value.requires_count, 'requires count'), ensures_count: count(value.ensures_count, 'ensures count'), facets: strings(value.facets, 'facet') });
+  }
+  if (slot === 'dependency_summary') {
+    exact(value, ['target', 'kind', 'facets', 'test_reachable'], slot);
+    if (!Array.isArray(value.facets) || value.facets.length > 128 || typeof value.test_reachable !== 'boolean') fail('invalid dependency summary');
+    return Object.freeze({ target: text(value.target, 'dependency target'), kind: text(value.kind, 'dependency kind'), facets: Object.freeze(value.facets.map(row => { exact(row, ['view', 'total_items'], 'dependency facet'); return Object.freeze({ view: text(row.view, 'dependency view'), total_items: count(row.total_items, 'dependency count') }); })), test_reachable: value.test_reachable });
+  }
+  if (slot === 'analysis_coverage') {
+    exact(value, ['inventory', 'areas'], slot);
+    if (!Array.isArray(value.areas) || value.areas.length > 128) fail('invalid coverage areas');
+    return Object.freeze({ inventory: inventory(value.inventory, COVERAGE_COUNTS, 'coverage inventory'), areas: Object.freeze(value.areas.map(row => { exact(row, ['area', 'status'], 'coverage area'); return Object.freeze({ area: text(row.area, 'coverage area'), status: text(row.status, 'coverage status') }); })) });
+  }
+  if (slot === 'contract_delta' || slot === 'ownership_delta') {
+    exact(value, ['inventory', 'changed'], slot);
+    if (!Array.isArray(value.changed) || value.changed.length > 65536) fail('invalid delta changes');
+    return Object.freeze({ inventory: inventory(value.inventory, DELTA_COUNTS, 'delta inventory'), changed: Object.freeze(value.changed.map(row => { exact(row, ['id', 'change'], 'delta change'); return Object.freeze({ id: text(row.id, 'change id'), change: text(row.change, 'change kind') }); })) });
+  }
+  fail('offline compact slot');
+}
 function read(key, method, target, facet = null) { return Object.freeze({ key, method, target, facet }); }
 function plan(selected, declaration, tab, detail, offline = false) {
   if (!TABS.includes(tab)) fail('tab');
@@ -130,7 +172,7 @@ function offlineIndex(value, knownSubjects) {
     const compact = {};
     for (const [slot, value] of Object.entries(entry.compact)) {
       if (!INDEX_SLOTS.includes(slot)) fail('offline compact slot');
-      compact[slot] = safeCompact(value);
+      compact[slot] = offlineCompact(slot, value);
     }
     const states = {};
     for (const [slot, value] of Object.entries(entry.states)) {

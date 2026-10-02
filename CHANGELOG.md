@@ -1,5 +1,12 @@
 # Changelog
 
+- Add an explicitly authorized Claude Team coding-agent pilot transport with
+  18 frozen positions per model, separate native receipts, confined compiler
+  gateway, private disjoint authority roots, and durable aggregate reservations.
+  Preserve existing OpenCode evidence and distinguish technical scoring from
+  operator-recorded review waiver metadata. Native admission failures halt
+  further dispatch; no provider inference was needed for the focused gates.
+
 - Provision the #332 Linux provider guest with exact CPython 3.12.14 and a
   credential-free committed source projection, retaining archive/file hashes
   without guest Git claims. Add exclusive interactive-login custody and orphan

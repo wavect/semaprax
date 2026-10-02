@@ -676,7 +676,7 @@ def private_environment(state, config, compiler_bin):
     }
 
 
-def run_tuple(task, lane, trial, opencode, semaprax, evidence, timeout=600, protocol_path=None, model_id=None):
+def run_tuple(task, lane, trial, opencode, semaprax, evidence, timeout=600, protocol_path=None, model_id=None, transport=None):
     if lane not in ("semaprax-source-first", "semaprax-graph-operational"):
         raise PilotFailure("pilot lane is not available")
     if trial < 1 or timeout <= 0:
@@ -689,7 +689,8 @@ def run_tuple(task, lane, trial, opencode, semaprax, evidence, timeout=600, prot
     evidence = evidence.parent.resolve(strict=True) / evidence.name
     if protocol_path is None:
         raise PilotFailure("new pilot execution requires a canonical two-model protocol")
-    protocol, protocol_digest = load_frozen_protocol(protocol_path)
+    protocol, protocol_digest = (load_frozen_protocol(protocol_path) if transport is None
+                                 else transport.load_protocol(protocol_path))
     model_identity = next((item for item in protocol["models"] if item["id"] == model_id), None)
     if model_identity is None:
         raise PilotFailure("execution protocol does not contain the selected model id")
@@ -770,70 +771,86 @@ def run_tuple(task, lane, trial, opencode, semaprax, evidence, timeout=600, prot
                 compiler, host, candidate, lane, drift
             )
             mcp, wire = graph_mcp_config(host, compiler, gateway_config)
-            config.write_text(json.dumps(policy(lane, mcp, configured_model), sort_keys=True))
-            env = private_environment(host, config, compiler.parent)
-            env["SEMAPRAX_PILOT_GATEWAY"] = gateway_config
-            start = time.monotonic_ns()
-            try:
-                out, err, _ = bounded(
-                    sandboxed(
-                        opencode,
-                        profile,
-                        [
-                            "run", "--pure", "--agent", AGENT, "--model", configured_model,
-                            "--format", "json", "--dir", str(candidate), prompt,
-                        ],
-                    ),
-                    host,
-                    timeout,
-                    env,
-                )
-            except PilotFailure as error:
-                out, err = error.stdout, error.stderr
-                gateway_log = gateway.read_bytes() if gateway.exists() else b""
-                mcp_wire = wire.read_bytes() if wire.exists() else b""
-                raise
-            finally:
-                elapsed = time.monotonic_ns() - start
-                if drift is not None:
-                    drift_applications = int(
-                        json.loads(drift.read_text(encoding="utf-8"))["applied"]
+            if transport is not None:
+                start = time.monotonic_ns()
+                try:
+                    out, err, exported, session, model_counters = transport.execute(
+                        protocol, model_identity, host, candidate, profile, mcp, prompt, lane, timeout
                     )
-            gateway_log = gateway.read_bytes() if gateway.exists() else b""
-            mcp_wire = wire.read_bytes() if wire.exists() else b""
-            try:
-                mcp_metrics = mcp_tool_metrics(mcp_wire)
-            except ValueError as error:
-                mcp_metrics = {"status": "unavailable", "reason": str(error)}
-            try:
-                gateway_diagnostic = gateway_diagnostics(gateway_log)
-            except ValueError as error:
-                gateway_diagnostic = {"status": "unavailable", "reason": str(error)}
-            try:
-                session = next(
-                    (
-                        json.loads(x).get("sessionID")
-                        for x in out.decode().splitlines()
-                        if x
-                    ),
-                    None,
-                )
-            except (UnicodeError, json.JSONDecodeError) as error:
-                raise PilotFailure("raw stream is not valid JSONL") from error
-            if not isinstance(session, str) or not session:
-                raise PilotFailure("raw stream lacks session id")
-            try:
-                exported, _, _ = bounded(
-                    sandboxed(opencode, profile, ["export", session, "--pure"]),
-                    host, timeout, env,
-                )
-            except PilotFailure as error:
-                if not err:
-                    err = error.stderr
+                except PilotFailure as error:
+                    out, err = error.stdout, error.stderr
+                    raise
+                finally:
+                    elapsed = time.monotonic_ns() - start
+                    gateway_log = gateway.read_bytes() if gateway.exists() else b""
+                    mcp_wire = wire.read_bytes() if wire.exists() else b""
+                    if drift is not None:
+                        drift_applications = int(json.loads(drift.read_text(encoding="utf-8"))["applied"])
+            else:
+                config.write_text(json.dumps(policy(lane, mcp, configured_model), sort_keys=True))
+                env = private_environment(host, config, compiler.parent)
+                env["SEMAPRAX_PILOT_GATEWAY"] = gateway_config
+                start = time.monotonic_ns()
+                try:
+                    out, err, _ = bounded(
+                        sandboxed(
+                            opencode,
+                            profile,
+                            [
+                                "run", "--pure", "--agent", AGENT, "--model", configured_model,
+                                "--format", "json", "--dir", str(candidate), prompt,
+                            ],
+                        ),
+                        host,
+                        timeout,
+                        env,
+                    )
+                except PilotFailure as error:
+                    out, err = error.stdout, error.stderr
+                    gateway_log = gateway.read_bytes() if gateway.exists() else b""
+                    mcp_wire = wire.read_bytes() if wire.exists() else b""
+                    raise
+                finally:
+                    elapsed = time.monotonic_ns() - start
+                    if drift is not None:
+                        drift_applications = int(
+                            json.loads(drift.read_text(encoding="utf-8"))["applied"]
+                        )
                 gateway_log = gateway.read_bytes() if gateway.exists() else b""
                 mcp_wire = wire.read_bytes() if wire.exists() else b""
-                raise
-            model_counters = provider_usage(exported, configured_model)
+                try:
+                    mcp_metrics = mcp_tool_metrics(mcp_wire)
+                except ValueError as error:
+                    mcp_metrics = {"status": "unavailable", "reason": str(error)}
+                try:
+                    gateway_diagnostic = gateway_diagnostics(gateway_log)
+                except ValueError as error:
+                    gateway_diagnostic = {"status": "unavailable", "reason": str(error)}
+                try:
+                    session = next(
+                        (
+                            json.loads(x).get("sessionID")
+                            for x in out.decode().splitlines()
+                            if x
+                        ),
+                        None,
+                    )
+                except (UnicodeError, json.JSONDecodeError) as error:
+                    raise PilotFailure("raw stream is not valid JSONL") from error
+                if not isinstance(session, str) or not session:
+                    raise PilotFailure("raw stream lacks session id")
+                try:
+                    exported, _, _ = bounded(
+                        sandboxed(opencode, profile, ["export", session, "--pure"]),
+                        host, timeout, env,
+                    )
+                except PilotFailure as error:
+                    if not err:
+                        err = error.stderr
+                    gateway_log = gateway.read_bytes() if gateway.exists() else b""
+                    mcp_wire = wire.read_bytes() if wire.exists() else b""
+                    raise
+                model_counters = provider_usage(exported, configured_model)
             after = snapshot(candidate)
             gateway_log = gateway.read_bytes() if gateway.exists() else b""
             mcp_wire = wire.read_bytes() if wire.exists() else b""
@@ -925,6 +942,8 @@ def run_tuple(task, lane, trial, opencode, semaprax, evidence, timeout=600, prot
             "outcome": "failed" if failure else "completed",
             "failure": failure,
         }
+        if transport is not None:
+            record = transport.classify_record(record, protocol)
         exclusive_write(evidence / "record.json", (json.dumps(record, sort_keys=True) + "\n").encode())
         if sandbox is not None:
             shutil.rmtree(sandbox, ignore_errors=True)

@@ -1,4 +1,5 @@
 //! First live model wait: actual source park follows its ACKed Start reservation.
+use super::model::CompletedLiveOwnedRunV8;
 use super::observe::ObservedLiveOwnedRunV8;
 use super::*;
 use crate::interpreter::resumable::owned_frame::registered_stage::live_run::{
@@ -223,7 +224,9 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn continue_recove
 /// `Recovery` has no materialized physical owner. `Continuation` retains the
 /// reached owner in its existing sealed failure shape; callers can retain it
 /// for the prescribed private cleanup without extracting a State or lease.
-pub(super) enum FirstTurnPreparedRestartFailureV8<'j> {
+pub(in crate::live_invocation::source_journal::owned_wait_v8) enum FirstTurnPreparedRestartFailureV8<
+    'j,
+> {
     Recovery(SourceJournalError),
     Continuation(RecoveredFirstTurnPreparedContinuationFailureV8<'j>),
 }
@@ -234,7 +237,9 @@ pub(super) enum FirstTurnPreparedRestartFailureV8<'j> {
 /// host. Authenticated rows, retained registration data and checkpoint bytes
 /// cannot replace either grant. The continuation reaches the original model
 /// path exactly once; it never opens a fresh State or redispatches an intent.
-pub(super) fn restart_first_turn_prepared_v8<'j>(
+pub(in crate::live_invocation::source_journal::owned_wait_v8) fn restart_first_turn_prepared_v8<
+    'j,
+>(
     journal: &'j SourceOwnedWaitJournalV8,
     recovery: FirstTurnPreparedRecoveryHostGrantV8,
     continuation: FirstTurnPreparedContinuationHostGrantV8,

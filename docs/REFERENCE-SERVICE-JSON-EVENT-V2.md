@@ -3,6 +3,8 @@
 Status: implemented opt-in route; focused regressions authored, pending execution.
 This is local host behavior, not hosted or production-provider evidence.
 
+Audience: operators configuring the reference service's JSON event v2 telemetry adapter
+
 ## Selection and envelope
 
 `semaprax-json-events-v2` is an additive telemetry adapter label in both the

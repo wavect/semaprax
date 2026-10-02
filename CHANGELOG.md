@@ -1,5 +1,10 @@
 # Changelog
 
+- Preserve validated USER/LOGNAME login metadata in the native Claude host
+  so its existing keychain subscription login survives environment clearing.
+  A local auth-status diagnostic and credential-free executable regression
+  distinguish this from inherited credential or endpoint variables (#323).
+
 - Bound owned-Agent terminal driver stack retention by carrying owners and
   typed failures on the heap between each selection, append, ACK, release,
   transfer and Report claim. Pin the fresh public regression to a 2 MiB worker

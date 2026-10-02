@@ -40,15 +40,17 @@ and captured output at most 1 MiB. The checked deployment's narrower response
 and cumulative budgets still apply.
 
 The child gets a cleared environment with explicit host HOME for the operator's
-existing subscription authentication, system PATH, scratch TMPDIR, disabled
+existing subscription authentication and a bounded ASCII login identity from
+USER, explicitly mapped to child USER and LOGNAME, plus system PATH, scratch TMPDIR, disabled
 updates and nonessential traffic, and safe mode. The nonessential-traffic control follows the
 [CLI environment reference](https://code.claude.com/docs/en/env-vars). It inherits no API-key,
 endpoint, cloud-provider or proxy environment values. Known system managed
 settings files, fragment directories and managed MCP files cause refusal.
 [Managed policy](https://code.claude.com/docs/en/managed-settings) still applies
 in safe/restricted modes. [Server-managed policy](https://code.claude.com/docs/en/server-managed-settings)
-for Team/Enterprise accounts is outside this personal-subscription host profile;
-the host does not authenticate the subscription tier or remote policy. These CLI controls are not an OS sandbox,
+can still apply to Team/Enterprise subscription accounts; the operator
+selects a trusted CLI host and the adapter does not authenticate remote policy
+or claim that these flags isolate an account from its organizational policy. These CLI controls are not an OS sandbox,
 billing proof, an assertion that no internal transport retries occur, or proof
 of exclusive physical network execution. They authorize the selected CLI's
 ordinary subscription authentication; credentials are not copied into prompts
@@ -75,3 +77,13 @@ them before removing the marker. Evidence cannot authorize a new model call.
 Focused gates are the existing toolchain library harness selectors
 `claude_host`, `source_live_cli::repair::tests::claude`, and preservation selector
 `opencode_host`. Full and hosted quality evidence remain separate requirements.
+
+## Login-identity correction
+
+A local CLI 2.1.286 authentication-status diagnostic found that the cleared
+environment without USER could not find the operator's existing keychain
+login. Restoring USER alone made the same local auth-status command report a
+login; LOGNAME alone did not. The host now retains validated login metadata
+as USER/LOGNAME while keeping all credential, endpoint and provider environment
+variables cleared. The executable fixture checks these exact environment
+properties without reading credentials or making a model call.

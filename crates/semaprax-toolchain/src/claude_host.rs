@@ -329,15 +329,30 @@ fn configure(command: &mut std::process::Command, scratch: &Path) -> Result<(), 
         .map(PathBuf::from)
         .filter(|path| path.is_absolute())
         .ok_or(ModelFailure::Refused)?;
+    let login = std::env::var("USER")
+        .ok()
+        .filter(|value| valid_login(value))
+        .ok_or(ModelFailure::Refused)?;
     command
         .env_clear()
         .env("HOME", home)
+        .env("USER", &login)
+        .env("LOGNAME", &login)
         .env("PATH", "/usr/bin:/bin")
         .env("TMPDIR", scratch)
         .env("DISABLE_AUTOUPDATER", "1")
         .env("CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC", "1")
         .env("CLAUDE_CODE_SAFE_MODE", "1");
     Ok(())
+}
+
+/// Login metadata only: this never copies a credential or endpoint setting.
+fn valid_login(value: &str) -> bool {
+    !value.is_empty()
+        && value.len() <= 256
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'-' | b'.'))
 }
 
 #[cfg(test)]

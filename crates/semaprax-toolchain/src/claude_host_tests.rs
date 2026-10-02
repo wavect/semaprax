@@ -90,7 +90,7 @@ mod process {
     fn claude_capture_drains_more_than_pipe_capacity_before_child_exit() {
         let mut value = envelope("unchanged\n");
         value["padding"] = json!("x".repeat(200_000));
-        let script = format!("test \"$1\" = --print || exit 91\ntest \"$4\" = --tools || exit 92\ntest -z \"$5\" || exit 93\ntest -z \"${{ANTHROPIC_API_KEY+x}}\" || exit 94\nprintf '%s' '{}'", value);
+        let script = format!("test \"$1\" = --print || exit 91\ntest \"$4\" = --tools || exit 92\ntest -z \"$5\" || exit 93\ntest -z \"${{ANTHROPIC_API_KEY+x}}\" || exit 94\ntest -n \"$USER\" || exit 95\ntest \"$LOGNAME\" = \"$USER\" || exit 96\nprintf '%s' '{}'", value);
         let (_fixture, config) = Fixture::new(&script, Duration::from_secs(5));
         let bytes = invoke(&config, "bounded fixture prompt").unwrap();
         assert!(bytes.len() > 200_000);

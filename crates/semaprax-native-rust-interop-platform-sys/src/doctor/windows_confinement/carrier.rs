@@ -1,11 +1,11 @@
-//! Windows-only request/bundle carrier experiment.
+//! Windows-only authenticated request/bundle carriers.
 //!
 //! This module authenticates one signed-capsule artifact into an unnamed
 //! paging-file mapping, then drops every writable mapping handle and view
-//! before retaining one inheritable `SECTION_MAP_READ` duplicate. It is not
-//! connected to process creation, request/bundle transport, or image launch.
-//! In particular, an inheritable handle alone does not select a child input or
-//! bind any launched image.
+//! before retaining one inheritable `SECTION_MAP_READ` duplicate. The
+//! confinement primitive binds the two resulting handles into its fixed child
+//! inventory together with the signed selector and image role. This module
+//! itself neither starts a child nor selects an image.
 use semaprax_doctor_capsule::{Artifact, MAX_ARTIFACT_BYTES};
 use sha2::{Digest as _, Sha256};
 use windows_sys::Win32::Foundation::{
@@ -13,8 +13,8 @@ use windows_sys::Win32::Foundation::{
     INVALID_HANDLE_VALUE,
 };
 use windows_sys::Win32::System::Memory::{
-    CreateFileMappingW, MapViewOfFile, UnmapViewOfFile, FILE_MAP_READ, FILE_MAP_WRITE,
-    PAGE_READWRITE, SECTION_MAP_READ,
+    CreateFileMappingW, FILE_MAP_READ, FILE_MAP_WRITE, MapViewOfFile, PAGE_READWRITE,
+    SECTION_MAP_READ, UnmapViewOfFile,
 };
 use windows_sys::Win32::System::Threading::GetCurrentProcess;
 
@@ -42,6 +42,37 @@ pub(super) struct AuthenticatedCarrier {
     mapping: Mapping,
     length: usize,
     digest: [u8; 32],
+}
+
+/// The two authenticated inputs whose order is fixed by the signed capsule.
+///
+/// Keeping them in one owner prevents a caller from accidentally supplying a
+/// request carrier from one capsule alongside a bundle carrier from another.
+pub(super) struct AuthenticatedRequestBundle {
+    request: AuthenticatedCarrier,
+    bundle: AuthenticatedCarrier,
+}
+
+impl AuthenticatedRequestBundle {
+    /// Copy the exact signed request and bundle bytes into separate anonymous,
+    /// read-only child carriers. Both artifacts are authenticated before any
+    /// token, job, scratch-root, or process effect is attempted.
+    pub(super) fn create(
+        request: &[u8],
+        bundle: &[u8],
+        capsule: &super::capsule::VerifiedCapsule,
+    ) -> Result<Self, ()> {
+        Ok(Self {
+            request: AuthenticatedCarrier::create(request, capsule.request())?,
+            bundle: AuthenticatedCarrier::create(bundle, capsule.bundle())?,
+        })
+    }
+
+    /// The fixed request-then-bundle child inventory. These are the only
+    /// carrier handles the confinement primitive may inherit into a child.
+    pub(super) fn child_handles(&self) -> [HANDLE; 2] {
+        [self.request.child_handle(), self.bundle.child_handle()]
+    }
 }
 
 impl AuthenticatedCarrier {
@@ -156,7 +187,7 @@ impl AuthenticatedCarrier {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use windows_sys::Win32::System::Memory::{MapViewOfFile, FILE_MAP_WRITE};
+    use windows_sys::Win32::System::Memory::{FILE_MAP_WRITE, MapViewOfFile};
     use windows_sys::Win32::System::Threading::GetProcessHandleCount;
 
     fn artifact(bytes: &[u8]) -> Artifact {

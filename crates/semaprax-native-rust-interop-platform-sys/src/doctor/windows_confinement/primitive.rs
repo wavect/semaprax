@@ -8,7 +8,7 @@
 //! receipts. The signed-image binding continuation and its seven additional
 //! cases have no native Windows execution receipt on this macOS authoring
 //! host. A cross-target type-check is not runtime acceptance. Production
-//! release trust, Windows request/bundle transport and broader confinement
+//! release trust, ordinary Windows CLI transport and broader confinement
 //! remain separate requirements. Retained writable-section mutation can still
 //! race advisory oplock checks; exact image-binding acceptance remains open.
 //!
@@ -51,7 +51,8 @@
 //!    session's file lease).
 //!
 //! [doc]: https://github.com/wavect/semaprax/blob/main/docs/DOCTOR-PRODUCTION-PROVISIONER-WINDOWS-V1.md
-use super::refusal::{admit, Refusal};
+use super::carrier::AuthenticatedRequestBundle;
+use super::refusal::{Refusal, admit};
 use super::settlement::{FailureReason, Settlement, StickySettlement, UncertainReason};
 use std::ffi::OsStr;
 use std::os::windows::ffi::OsStrExt;
@@ -61,35 +62,46 @@ use windows_sys::Win32::Foundation::{
     CloseHandle, HANDLE, INVALID_HANDLE_VALUE, WAIT_OBJECT_0, WAIT_TIMEOUT,
 };
 use windows_sys::Win32::Security::{
-    AddAccessAllowedAceEx, CreateRestrictedToken, GetTokenInformation, InitializeAcl,
-    InitializeSecurityDescriptor, SetSecurityDescriptorControl, SetSecurityDescriptorDacl,
-    TokenUser, ACL, ACL_REVISION, DISABLE_MAX_PRIVILEGE, SECURITY_ATTRIBUTES, SECURITY_DESCRIPTOR,
-    SE_DACL_PROTECTED, TOKEN_ASSIGN_PRIMARY, TOKEN_DUPLICATE, TOKEN_QUERY, TOKEN_USER,
+    ACL, ACL_REVISION, AddAccessAllowedAceEx, CreateRestrictedToken, DISABLE_MAX_PRIVILEGE,
+    GetTokenInformation, InitializeAcl, InitializeSecurityDescriptor, SE_DACL_PROTECTED,
+    SECURITY_ATTRIBUTES, SECURITY_DESCRIPTOR, SetSecurityDescriptorControl,
+    SetSecurityDescriptorDacl, TOKEN_ASSIGN_PRIMARY, TOKEN_DUPLICATE, TOKEN_QUERY, TOKEN_USER,
+    TokenUser,
 };
 use windows_sys::Win32::Storage::FileSystem::{
-    CreateDirectoryW, CreateFileW, CREATE_NEW, DELETE, FILE_ATTRIBUTE_NORMAL, FILE_GENERIC_READ,
+    CREATE_NEW, CreateDirectoryW, CreateFileW, DELETE, FILE_ATTRIBUTE_NORMAL, FILE_GENERIC_READ,
     FILE_GENERIC_WRITE, FILE_SHARE_READ, FILE_SHARE_WRITE, OPEN_EXISTING,
 };
 use windows_sys::Win32::System::JobObjects::{
-    AssignProcessToJobObject, CreateJobObjectW, JobObjectBasicAccountingInformation,
-    JobObjectBasicUIRestrictions, JobObjectExtendedLimitInformation, QueryInformationJobObject,
-    SetInformationJobObject, TerminateJobObject, JOBOBJECT_BASIC_ACCOUNTING_INFORMATION,
-    JOBOBJECT_BASIC_UI_RESTRICTIONS, JOBOBJECT_EXTENDED_LIMIT_INFORMATION,
-    JOB_OBJECT_LIMIT_ACTIVE_PROCESS, JOB_OBJECT_LIMIT_DIE_ON_UNHANDLED_EXCEPTION,
-    JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE, JOB_OBJECT_UILIMIT_DESKTOP,
-    JOB_OBJECT_UILIMIT_DISPLAYSETTINGS, JOB_OBJECT_UILIMIT_EXITWINDOWS,
+    AssignProcessToJobObject, CreateJobObjectW, JOB_OBJECT_LIMIT_ACTIVE_PROCESS,
+    JOB_OBJECT_LIMIT_DIE_ON_UNHANDLED_EXCEPTION, JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE,
+    JOB_OBJECT_UILIMIT_DESKTOP, JOB_OBJECT_UILIMIT_DISPLAYSETTINGS, JOB_OBJECT_UILIMIT_EXITWINDOWS,
     JOB_OBJECT_UILIMIT_GLOBALATOMS, JOB_OBJECT_UILIMIT_HANDLES, JOB_OBJECT_UILIMIT_READCLIPBOARD,
     JOB_OBJECT_UILIMIT_SYSTEMPARAMETERS, JOB_OBJECT_UILIMIT_WRITECLIPBOARD,
+    JOBOBJECT_BASIC_ACCOUNTING_INFORMATION, JOBOBJECT_BASIC_UI_RESTRICTIONS,
+    JOBOBJECT_EXTENDED_LIMIT_INFORMATION, JobObjectBasicAccountingInformation,
+    JobObjectBasicUIRestrictions, JobObjectExtendedLimitInformation, QueryInformationJobObject,
+    SetInformationJobObject, TerminateJobObject,
 };
 use windows_sys::Win32::System::Threading::{
-    CreateProcessAsUserW, DeleteProcThreadAttributeList, GetCurrentProcess, GetExitCodeProcess,
-    InitializeProcThreadAttributeList, OpenProcessToken, ResumeThread, TerminateProcess,
-    UpdateProcThreadAttribute, WaitForSingleObject, CREATE_SUSPENDED, CREATE_UNICODE_ENVIRONMENT,
-    EXTENDED_STARTUPINFO_PRESENT, LPPROC_THREAD_ATTRIBUTE_LIST, PROCESS_INFORMATION,
-    PROC_THREAD_ATTRIBUTE_HANDLE_LIST, STARTF_USESTDHANDLES, STARTUPINFOEXW,
+    CREATE_SUSPENDED, CREATE_UNICODE_ENVIRONMENT, CreateProcessAsUserW,
+    DeleteProcThreadAttributeList, EXTENDED_STARTUPINFO_PRESENT, GetCurrentProcess,
+    GetExitCodeProcess, InitializeProcThreadAttributeList, LPPROC_THREAD_ATTRIBUTE_LIST,
+    OpenProcessToken, PROC_THREAD_ATTRIBUTE_HANDLE_LIST, PROCESS_INFORMATION, ResumeThread,
+    STARTF_USESTDHANDLES, STARTUPINFOEXW, TerminateProcess, UpdateProcThreadAttribute,
+    WaitForSingleObject,
 };
 
 const MAX_WIDE: usize = 32767;
+const REQUEST_CARRIER_HANDLE_ENV: &str = "SEMAPRAX_DOCTOR_REQUEST_CARRIER_HANDLE";
+const BUNDLE_CARRIER_HANDLE_ENV: &str = "SEMAPRAX_DOCTOR_BUNDLE_CARRIER_HANDLE";
+const CARRIER_ROLE_ENV: &str = "SEMAPRAX_DOCTOR_CARRIER_ROLE";
+const CARRIER_SELECTOR_ENV: &str = "SEMAPRAX_DOCTOR_CARRIER_SELECTOR";
+
+#[cfg(test)]
+const TEST_REQUEST_BYTES: &[u8] = b"SPXDWK1\0windows-request-carrier";
+#[cfg(test)]
+const TEST_BUNDLE_BYTES: &[u8] = b"windows-bundle-carrier";
 
 mod image;
 
@@ -456,6 +468,49 @@ fn forced_environment(scratch_dir: &Path) -> Result<Vec<u16>, ()> {
     Ok(output)
 }
 
+/// Build the closed child environment for an authenticated request/bundle
+/// handoff. The handle values are process-local labels for the exact mapping
+/// handles in the startup list; the signed selector and image role make their
+/// request-then-bundle ordering explicit to the child protocol.
+fn carrier_environment(
+    scratch_dir: &Path,
+    role: ImageRole,
+    selector: &str,
+    carriers: &AuthenticatedRequestBundle,
+) -> Result<Vec<u16>, ()> {
+    if selector.is_empty() || selector.len() > 64 || selector.as_bytes().contains(&0) {
+        return Err(());
+    }
+    let handles = carriers.child_handles();
+    // Windows requires case-insensitive ordering. The `SEMAPRAX_*` names sort
+    // before `TEMP` and `TMP`, and the four handoff names are already ordered.
+    let values = [
+        format!("{BUNDLE_CARRIER_HANDLE_ENV}={}", handles[1] as usize),
+        format!("{CARRIER_ROLE_ENV}={}", role.wire()),
+        format!("{CARRIER_SELECTOR_ENV}={selector}"),
+        format!("{REQUEST_CARRIER_HANDLE_ENV}={}", handles[0] as usize),
+    ];
+    let scratch = wide(scratch_dir.as_os_str())?;
+    let mut environment = Vec::new();
+    for value in values {
+        if value.len() >= MAX_WIDE || value.as_bytes().contains(&0) {
+            return Err(());
+        }
+        environment.extend(value.encode_utf16());
+        environment.push(0);
+    }
+    for name in ["TEMP", "TMP"] {
+        environment.extend(name.encode_utf16());
+        environment.push(u16::from(b'='));
+        environment.extend_from_slice(&scratch[..scratch.len() - 1]);
+        environment.push(0);
+    }
+    environment.push(0);
+    (environment.len() < MAX_WIDE)
+        .then_some(environment)
+        .ok_or(())
+}
+
 pub struct ConfinedProcess {
     process: Handle,
     thread: Handle,
@@ -466,6 +521,9 @@ pub struct ConfinedProcess {
     _stdin: Handle,
     _stdout: Handle,
     _stderr: Handle,
+    // Retain both parent handles until the child has settled. The child sees
+    // only these two mappings, bound in the explicit startup handle list.
+    _carriers: AuthenticatedRequestBundle,
     _scratch: ScratchRoot,
     // Retain the authenticated file and its namespace guards until settlement.
     _image: image::HeldImage,
@@ -498,8 +556,10 @@ pub fn confined_spawn(
     args: &[&OsStr],
     scratch_root: &Path,
     capsule_bytes: &[u8],
+    request: &[u8],
+    bundle: &[u8],
 ) -> Result<ConfinedProcess, Refusal> {
-    confined_spawn_using(exe, role, args, scratch_root, || {
+    confined_spawn_using(exe, role, args, scratch_root, request, bundle, || {
         super::capsule::parse_with_release_anchor(capsule_bytes)
     })
 }
@@ -515,9 +575,36 @@ fn confined_spawn_with_test_key(
     capsule_bytes: &[u8],
     public_key_hex: &str,
 ) -> Result<ConfinedProcess, Refusal> {
-    confined_spawn_using(exe, ImageRole::Worker, args, scratch_root, || {
-        super::capsule::parse_windows_signed_with_key(capsule_bytes, public_key_hex)
-    })
+    confined_spawn_using(
+        exe,
+        ImageRole::Worker,
+        args,
+        scratch_root,
+        TEST_REQUEST_BYTES,
+        TEST_BUNDLE_BYTES,
+        || super::capsule::parse_windows_signed_with_key(capsule_bytes, public_key_hex),
+    )
+}
+
+#[cfg(test)]
+fn confined_spawn_with_test_key_carriers(
+    exe: &Path,
+    args: &[&OsStr],
+    scratch_root: &Path,
+    capsule_bytes: &[u8],
+    public_key_hex: &str,
+    request: &[u8],
+    bundle: &[u8],
+) -> Result<ConfinedProcess, Refusal> {
+    confined_spawn_using(
+        exe,
+        ImageRole::Worker,
+        args,
+        scratch_root,
+        request,
+        bundle,
+        || super::capsule::parse_windows_signed_with_key(capsule_bytes, public_key_hex),
+    )
 }
 
 fn confined_spawn_using(
@@ -525,10 +612,21 @@ fn confined_spawn_using(
     role: ImageRole,
     args: &[&OsStr],
     scratch_root: &Path,
+    request: &[u8],
+    bundle: &[u8],
     parse_capsule: impl FnOnce()
         -> Result<super::capsule::VerifiedCapsule, super::capsule::CapsuleError>,
 ) -> Result<ConfinedProcess, Refusal> {
-    confined_spawn_observing_inner(exe, role, args, scratch_root, parse_capsule, |_| {})
+    confined_spawn_observing_inner(
+        exe,
+        role,
+        args,
+        scratch_root,
+        request,
+        bundle,
+        parse_capsule,
+        |_| {},
+    )
 }
 
 #[cfg(test)]
@@ -542,11 +640,20 @@ fn confined_spawn_after_binding(
     after_binding: impl FnOnce(),
 ) -> Result<ConfinedProcess, Refusal> {
     let mut after_binding = Some(after_binding);
-    confined_spawn_observing(exe, role, args, scratch_root, parse_capsule, |boundary| {
-        if boundary == BindingBoundary::BeforeProcessCreation {
-            after_binding.take().expect("binding callback runs once")();
-        }
-    })
+    confined_spawn_observing(
+        exe,
+        role,
+        args,
+        scratch_root,
+        TEST_REQUEST_BYTES,
+        TEST_BUNDLE_BYTES,
+        parse_capsule,
+        |boundary| {
+            if boundary == BindingBoundary::BeforeProcessCreation {
+                after_binding.take().expect("binding callback runs once")();
+            }
+        },
+    )
 }
 
 #[cfg(test)]
@@ -555,11 +662,22 @@ fn confined_spawn_observing(
     role: ImageRole,
     args: &[&OsStr],
     scratch_root: &Path,
+    request: &[u8],
+    bundle: &[u8],
     parse_capsule: impl FnOnce()
         -> Result<super::capsule::VerifiedCapsule, super::capsule::CapsuleError>,
     observe: impl FnMut(BindingBoundary),
 ) -> Result<ConfinedProcess, Refusal> {
-    confined_spawn_observing_inner(exe, role, args, scratch_root, parse_capsule, observe)
+    confined_spawn_observing_inner(
+        exe,
+        role,
+        args,
+        scratch_root,
+        request,
+        bundle,
+        parse_capsule,
+        observe,
+    )
 }
 
 fn confined_spawn_observing_inner(
@@ -567,11 +685,13 @@ fn confined_spawn_observing_inner(
     role: ImageRole,
     args: &[&OsStr],
     scratch_root: &Path,
+    request: &[u8],
+    bundle: &[u8],
     parse_capsule: impl FnOnce()
         -> Result<super::capsule::VerifiedCapsule, super::capsule::CapsuleError>,
     mut observe: impl FnMut(BindingBoundary),
 ) -> Result<ConfinedProcess, Refusal> {
-    let (_host, image, token, job, scratch) = admit(
+    let (_host, (image, carriers, selector), token, job, scratch) = admit(
         || {
             if cfg!(all(
                 windows,
@@ -589,6 +709,11 @@ fn confined_spawn_observing_inner(
                 observe(BindingBoundary::Image(boundary));
             })
             .map_err(|()| super::capsule::CapsuleError::ArtifactBinding)
+            .and_then(|image| {
+                let carriers = AuthenticatedRequestBundle::create(request, bundle, &capsule)
+                    .map_err(|()| super::capsule::CapsuleError::ArtifactBinding)?;
+                Ok((image, carriers, capsule.selector))
+            })
         },
         restricted_token,
         tightened_job,
@@ -617,12 +742,21 @@ fn confined_spawn_observing_inner(
     }
     command.push(0);
     let cwd = wide(scratch.dir.as_os_str()).map_err(|()| Refusal::Invalid)?;
-    let environment = forced_environment(&scratch.dir).map_err(|()| Refusal::Invalid)?;
+    let environment = carrier_environment(&scratch.dir, role, &selector, &carriers)
+        .map_err(|()| Refusal::Invalid)?;
 
     // `bInheritHandles` alone would copy every inheritable handle held by the
     // parent into the restricted child. Bind that broad Win32 switch to the
-    // three standard handles the primitive deliberately creates.
-    let inherited = [stdin.raw(), stdout.raw(), stderr.raw()];
+    // three standard handles plus the exact request-then-bundle carrier pair
+    // authenticated from this capsule.
+    let [request_carrier, bundle_carrier] = carriers.child_handles();
+    let inherited = [
+        stdin.raw(),
+        stdout.raw(),
+        stderr.raw(),
+        request_carrier,
+        bundle_carrier,
+    ];
     let mut attribute_bytes = 0usize;
     // SAFETY: this sizing invocation has no output list and only reports the
     // required bounded allocation through `attribute_bytes`.
@@ -741,6 +875,7 @@ fn confined_spawn_observing_inner(
         _stdin: stdin,
         _stdout: stdout,
         _stderr: stderr,
+        _carriers: carriers,
         _image: image,
         settled: false,
     })

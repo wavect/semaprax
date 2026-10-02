@@ -537,8 +537,11 @@ volume-GUID path components before process setup. An owned asynchronous read
 oplock remains live through child settlement and detects observed breaks before
 creation/resume. Its breaks are advisory; retained writable-section mutation
 can still race and exact image binding remains unresolved. It supplies the
-checked name to the Windows spawn primitive. This does not implement Windows request/bundle transport or
-ordinary CLI admission; its added native regression cases remain unexecuted.
+checked name to the Windows spawn primitive. That primitive now copies the
+signed request/bundle slots into read-only inherited mapping handles, binds
+their fixed order with the signed selector and chosen image role, and retains
+them through child settlement. It does not implement ordinary CLI admission;
+its added native regression cases remain unexecuted.
 See [Windows doctor v1](DOCTOR-PRODUCTION-PROVISIONER-WINDOWS-V1.md).
 
 The retained safe `semaprax-native-rust-interop-platform` facade and platform-sys

@@ -253,13 +253,13 @@ to keep the new unsafe surface reviewable without a toolchain, recorded in
 
 ## Sealed input and process handoff
 
-[DOCTOR-SEALED-INPUT-V1](DOCTOR-SEALED-INPUT-V1.md)'s sealed-carrier concept
-(`F_SEAL_*` on a Linux memfd) has no Windows equivalent primitive at the OS
-level; the closest analog remains an anonymous, unnamed file mapping
-(`CreateFileMappingW` with `NULL` name and no `FILE_MAP_WRITE` reopen path
-after initial population), and this revision does not implement it -- that
-half of the sealed-input contract (the immutable carrier itself) is still
-open, exactly as the first revision left it.
+[DOCTOR-SEALED-INPUT-V1](DOCTOR-SEALED-INPUT-V1.md)'s `F_SEAL_*` memfd has no
+Windows equivalent. The standalone primitive instead copies each authenticated
+request and bundle into a separate unnamed paging-file mapping, releases its
+only writable view and handle, and retains a `SECTION_MAP_READ` duplicate. The
+kernel object has no lookup name and its surviving handle cannot create a
+writable view. This is a bounded carrier mechanism, not an equivalence claim
+for Linux seals or a general Windows immutability primitive.
 
 Production Windows admission uses shared `semaprax-doctor-capsule::parse_signed`
 with the compile-time `SEMAPRAX_DOCTOR_RELEASE_PUBLIC_KEY_HEX` anchor, then
@@ -274,27 +274,30 @@ not a release anchor. The standalone spawn now requires an explicit `ImageRole`
 (launcher, worker, collector), checks the selected signed length and SHA-256 against held executable
 bytes, and retains file/path handles and an advisory oplock through settlement.
 Exact binding under retained writable-section mutation remains unresolved.
-Request/bundle carrier transport, selector/role handoff and Windows production transport remain unimplemented;
-this is not complete signed-carrier admission or production support.
+Before token, job, scratch-root, or process effects, the standalone spawn also
+copies the capsule's exact request and bundle slots into those two carriers.
+It passes only the request-then-bundle pair with standard I/O through the
+startup handle list, supplies their inherited handle values with the signed
+selector and chosen image role in its closed child environment, and retains the
+parent copies through settlement. This is an internal primitive handoff with no
+ordinary CLI route or native receipt, and is not production support.
 
-### Anonymous request/bundle carrier experiment
+### Authenticated request/bundle handoff
 
-`windows_confinement::carrier` is an isolated Windows-only experiment. It
-accepts explicit bytes only when they match a signed capsule `Artifact`'s exact
-nonzero bounded length and SHA-256 digest. It copies the authenticated bytes to
-an unnamed paging-file mapping, unmaps its sole writable view, duplicates only
+`windows_confinement::carrier` accepts explicit bytes only when they match the
+signed request or bundle `Artifact`'s exact nonzero bounded length and SHA-256
+digest. The pair has one owner, so a caller cannot combine a request carrier
+from one capsule with a bundle carrier from another. It copies each input to an
+unnamed paging-file mapping, unmaps its sole writable view, duplicates only
 `SECTION_MAP_READ` into an inheritable handle, drops the writable handle, and
-rehashes from the retained read-only handle before returning. The mapping name
-is `NULL`; no path, named-object lookup, child input selection, process launch,
-or production transport is involved.
+rehashes from the retained read-only handle before returning.
 
-The selected native case makes both request-shaped and bundle-shaped bytes,
-rejects a forged artifact digest, asks the kernel for `FILE_MAP_WRITE` through
-each retained inheritable handle, and requires that request to fail while a
-read-only rehash still succeeds. It also requires exact warmed handle-count
-settlement. This shows that an explicit future handle-list entry can carry
-read-only authenticated bytes; it does not show that any child inherited the
-handle, received a fixed carrier role, or executed an authenticated image.
+The new selected native cases reject same-length request and bundle substitutions
+before process creation and verify a real restricted child can map exactly the
+two inherited signed payloads read-only. The child checks its signed selector
+and image role binding and cannot map either inherited carrier writable. The
+gate has not run this source revision, so these are test obligations rather
+than Windows execution evidence.
 
 ### Signed image binding continuation (#333; partial native runtime evidence)
 
@@ -346,9 +349,10 @@ cancel-before-hash/pre-spawn design did not establish this guarantee either.
 These partial checks rely on the ordinary NTFS sharing and oplock contract and
 the trusted Windows kernel/volume namespace. It does not authenticate imported DLLs or
 protect against administrator/kernel mutation. It adds no ordinary CLI route
-or Windows request/bundle carrier transport, and does not modify the Linux sealed-file
-launcher. The deterministic test capsule signs the actual test image's bytes;
-its other slots remain fixture-only inputs and are not transport evidence.
+and does not modify the Linux sealed-file launcher. Its standalone request and
+bundle handoff is bound only to this primitive; it is not a Windows production
+transport claim. The deterministic test capsule signs the actual test image and
+the exact test carrier slots; it is not release trust evidence.
 
 The selected cases exercise signed length/digest/role mismatch before
 launch, denied post-binding leaf deletion/write/rename/hardlink creation and
@@ -382,14 +386,16 @@ The initial-file-open observation is emitted immediately after the first
 Both the section-without-view fixture and the surviving-view fixture now require
 `Capsule(ArtifactBinding)` with no observation reached. This separates refusal
 at the original open from later advisory-oplock refusal; the earlier checkpoint
-began only after the oplock request. The named twenty-four-case selector is
-unchanged, but these stronger assertions need a new native execution receipt.
+began only after the oplock request. The source now names a twenty-six-case
+selector, including two request/bundle handoff cases; all additions need a new
+native execution receipt.
 Microsoft's [CreateFile sharing contract](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilea)
 states that omission of `FILE_SHARE_WRITE` refuses existing writable mappings.
 The new cases test that admission behavior for both retained-capability shapes.
 If either reaches the file-open observation, the sharing-only exclusion argument
 is rejected even if the oplock later refuses. This source-only change does not
-accept exact launched-image binding, request/bundle transport, or WP-05 promotion.
+accept exact launched-image binding, ordinary Windows CLI transport, or WP-05
+promotion.
 
 Local verification on 30 September 2026: the initial `64472c71b` continuation
 and the retained-oplock correction both passed the Windows-target check below
@@ -493,10 +499,12 @@ The next bounded batch is a **native mechanism experiment**, in the existing
    results and release acceptance separate; repeated stress success alone
    cannot prove the invariant.
 
-This continuation binds `bInheritHandles` to an explicit three-handle startup
-list and adds a child probe of an unrelated inheritable delete-on-close
-sentinel. Its selected native case passed at `06c0090d9` but checks only a
-single capability boundary. Inspecting job flags does not exercise resource exhaustion:
+The earlier continuation bound `bInheritHandles` to an explicit three-handle
+startup list and added a child probe of an unrelated inheritable delete-on-close
+sentinel. The current source extends that fixed list with only the authenticated
+request and bundle carriers and adds a real child read-only mapping check. The
+historical receipt covers only the prior three-handle boundary. Inspecting job
+flags does not exercise resource exhaustion:
 CPU, committed-memory and output limits still need specified bounds, actual
 violating children, selected failure classes, and post-failure job/handle
 settlement. The current `tightened_job` sets an active process limit and
@@ -505,13 +513,13 @@ owning contract before claiming the resource corpus is complete; preserve the
 existing production one-process and test-only two-process descendant
 distinction.
 
-Finally, `confined_spawn_after_binding` currently receives an executable
-pathname and arguments, not held request/bundle carriers. Image repair cannot
-satisfy the ticket's request/bundle substitution acceptance on its own. A
-follow-on entry point must consume authenticated bounded carrier objects,
-bind their signed slots and selector/role, and expose only the declared child
-handle inventory. Specify that transport and its refusal ordering before
-adding a production route.
+`confined_spawn` now receives request and bundle bytes, creates their
+authenticated bounded carriers as part of the signed-capsule admission stage,
+binds the signed slots and selector/role, and exposes only the declared five
+handle child inventory. The test-only image checkpoint helper continues to use
+fixed signed test carriers. This does not add a production route: any ordinary
+Windows provisioner integration still needs its own protocol, authority review,
+and native evidence.
 
 Verification required for the implementation batch: the Windows target
 library/test type-check, both provisioned gate self-tests, the complete native
@@ -577,14 +585,14 @@ The dispatch-only
 uses an ephemeral `windows-2025` runner and creates a fresh, explicit scratch
 parent under `RUNNER_TEMP`. The gate fails when the host is not 64-bit Windows,
 the parent is missing, nonempty, or a reparse point, Cargo fails, any named
-test is filtered or ignored, or the test summary does not report all twenty-four
+test is filtered or ignored, or the test summary does not report all twenty-six
 selected cases as passed. It never treats an absent prerequisite or a zero-test
 run as a skip/pass. The historical receipt below covers the earlier twenty-two
 case selector only.
 
 `scripts/doctor-provisioned-windows-gate.py --self-test` checks the gate's
 refusal and libtest-result parsing on any host; it provides no Windows runtime
-evidence. `--plan` prints the exact twenty-four-test selector. The live selection runs
+evidence. `--plan` prints the exact twenty-six-test selector. The live selection runs
 `windows_runtime_launches_restricted_child_inside_acl_scratch_and_settles_it`
 and `windows_runtime_timeout_terminates_the_confined_job_and_settles_cancellation`,
 plus `windows_runtime_timeout_terminates_an_actual_job_descendant`,
@@ -601,8 +609,10 @@ Its post-binding launch hook attempts a new hard link, writable open, and
 writable section from a fresh read handle before process creation; each must
 refuse before the authenticated child is allowed to run. Those attempts do not
 model a retained writable section and do not establish exact image binding.
-The independent `carrier` case supplies the bounded anonymous mapping experiment
-above; it is not a request/bundle child transport case.
+The request/bundle cases reject substitution before process effects, then make a
+real child map only its two declared authenticated carriers read-only while
+checking the signed selector and selected role. The existing independent
+`carrier` cases continue to cover mapping refusal and handle settlement.
 The child-launch cases traverse `confined_spawn_using`; capsule verification
 uses the production release-key path or the explicit test-only key seam. The success case inspects
 the child's disabled privilege set and job membership/limits, reads back the
@@ -648,8 +658,9 @@ The earlier expanded selector passed 22/22 with none ignored at `e15c16202` in
 [run 36919771375](https://github.com/wavect/semaprax/actions/runs/36919771375).
 Its new retained-section and carrier cases establish refusal and handle/scratch
 settlement only; they do not establish image-byte binding or child transport.
-The two later checkpoint cases are included in this source's twenty-four-case
-selector and require their own native Windows execution receipt.
+The two later checkpoint cases and two request/bundle handoff cases are included
+in this source's twenty-six-case selector and require their own native Windows
+execution receipt.
 
 ## Acceptance criteria status
 
@@ -657,7 +668,7 @@ selector and require their own native Windows execution receipt.
 |---|---|
 | Versioned Windows contract, cross-referenced from V1 | met |
 | Confinement primitive exists in the owning crate | implemented in `doctor::windows_confinement::primitive`; hosted type-check at exact checkout `7cab8aa8` and historical five selected runtime tests passed at exact checkout `3d4220b6`; see [Nonclaims](#nonclaims) |
-| Sealed-capsule consumption | production path calls shared `parse_signed` with the compile-time release-key input and requires native Windows code 3/4; twenty-two selected native cases passed at `e15c16202`; mapped-section race exclusion and request/bundle child transport remain open |
+| Sealed-capsule consumption | standalone primitive calls shared `parse_signed` with the compile-time release-key input and requires native Windows code 3/4; it now carries exact signed request/bundle slots to a fixed child inventory, but the twenty-six-case source has no native receipt; mapped-section race exclusion and ordinary Windows CLI transport remain open |
 | Hostile-input tests for the host-independent parts | 29 tests across `capsule`, `refusal`, and `settlement` pass on this authoring host (macOS arm64); `cargo test -p semaprax-native-rust-interop-platform-sys --lib doctor::windows_confinement` |
 | Runtime tests for the Win32 primitive itself | twenty-two selected cases, including held-image probes and carrier handle settlement, passed in [run 36919771375](https://github.com/wavect/semaprax/actions/runs/36919771375) on `e15c16202` |
 | Fail-closed gate authored and run | script self-test and exact twenty-two-test selector passed at `e15c16202` |
@@ -666,7 +677,7 @@ selector and require their own native Windows execution receipt.
 
 ## Nonclaims
 
-This contract does not claim that the twenty-four-test Windows selector is a
+This contract does not claim that the twenty-six-test Windows selector is a
 complete hostile corpus or production-support gate. The two-test run at
 `c6bf9902` and five-test run at `3d4220b6` each bind only their exact checkout
 and selected tests.
@@ -678,8 +689,8 @@ substitute execution evidence. The selector uses a
 deterministic test-only signing key and does not establish release trust. The
 partial image checks have no atomic exclusion proof for retained writable
 sections despite their earlier selected native pass, and the newer checkpoint
-cases have no native execution receipt. Windows request/bundle carrier
-transport remains absent. Independent hostile-corpus,
+cases have no native execution receipt. The standalone request/bundle handoff
+has no native receipt and ordinary Windows transport remains absent. Independent hostile-corpus,
 general descendant-tree, and production-support requirements remain open. Do not claim the existing ordinary-probe
 job-object confinement in `windows.rs` as evidence of production-grade
 sandboxing (it confines process *lifetime*, not filesystem or network access,
@@ -698,4 +709,6 @@ descendant launch refusal, test-owned descendant timeout, normal/nonzero
 settlement, cancellation, and repeated filesystem-stage refusal/handle cleanup.
 The remaining work includes restricted-token refinement,
 closing the retained writable-section mutation race, native validation of the
-selected-image checks, Windows request/bundle transport, and a broader hostile/resource corpus across supported Windows runners.
+selected-image checks, native validation of the standalone handoff, ordinary
+Windows request/bundle transport, and a broader hostile/resource corpus across
+supported Windows runners.

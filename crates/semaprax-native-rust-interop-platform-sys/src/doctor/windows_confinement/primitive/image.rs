@@ -5,9 +5,10 @@
 //! reparse points. A retained read oplock detects observed section changes.
 //! Oplock breaks for writable sections are advisory: this does not establish
 //! atomic exclusion of mutation through every retained writable section.
-//! This is an image binding primitive, not Windows request/bundle transport,
-//! DLL closure validation, or protection from kernel/administrator mutation.
-use super::{wide, Handle, MAX_WIDE};
+//! This image binding module supplies one part of the primitive's separate
+//! request/bundle handoff; it does not validate DLL closure or protect against
+//! kernel/administrator mutation.
+use super::{Handle, MAX_WIDE, wide};
 use semaprax_doctor_capsule::{Artifact, Capsule, MAX_ARTIFACT_BYTES};
 use sha2::{Digest as _, Sha256};
 use std::cell::UnsafeCell;
@@ -19,23 +20,23 @@ use std::os::windows::fs::OpenOptionsExt as _;
 use std::os::windows::io::AsRawHandle as _;
 use std::path::{Path, PathBuf};
 use windows_sys::Win32::Foundation::{
-    GetLastError, ERROR_IO_PENDING, ERROR_OPERATION_ABORTED, HANDLE, WAIT_TIMEOUT,
+    ERROR_IO_PENDING, ERROR_OPERATION_ABORTED, GetLastError, HANDLE, WAIT_TIMEOUT,
 };
 use windows_sys::Win32::Storage::FileSystem::{
-    GetFileInformationByHandle, GetFileType, GetFinalPathNameByHandleW,
-    GetVolumeInformationByHandleW, BY_HANDLE_FILE_INFORMATION, FILE_ATTRIBUTE_DIRECTORY,
-    FILE_ATTRIBUTE_REPARSE_POINT, FILE_FLAG_BACKUP_SEMANTICS, FILE_FLAG_OPEN_REPARSE_POINT,
-    FILE_FLAG_OVERLAPPED, FILE_SHARE_READ, FILE_TYPE_DISK, VOLUME_NAME_GUID, VOLUME_NAME_NT,
+    BY_HANDLE_FILE_INFORMATION, FILE_ATTRIBUTE_DIRECTORY, FILE_ATTRIBUTE_REPARSE_POINT,
+    FILE_FLAG_BACKUP_SEMANTICS, FILE_FLAG_OPEN_REPARSE_POINT, FILE_FLAG_OVERLAPPED,
+    FILE_SHARE_READ, FILE_TYPE_DISK, GetFileInformationByHandle, GetFileType,
+    GetFinalPathNameByHandleW, GetVolumeInformationByHandleW, VOLUME_NAME_GUID, VOLUME_NAME_NT,
+};
+use windows_sys::Win32::System::IO::{
+    CancelIoEx, DeviceIoControl, GetOverlappedResult, OVERLAPPED,
 };
 use windows_sys::Win32::System::Ioctl::{
     FSCTL_REQUEST_OPLOCK, OPLOCK_LEVEL_CACHE_READ, REQUEST_OPLOCK_CURRENT_VERSION,
     REQUEST_OPLOCK_INPUT_BUFFER, REQUEST_OPLOCK_INPUT_FLAG_REQUEST, REQUEST_OPLOCK_OUTPUT_BUFFER,
 };
 use windows_sys::Win32::System::Threading::{
-    CreateEventW, QueryFullProcessImageNameW, WaitForSingleObject, PROCESS_NAME_NATIVE,
-};
-use windows_sys::Win32::System::IO::{
-    CancelIoEx, DeviceIoControl, GetOverlappedResult, OVERLAPPED,
+    CreateEventW, PROCESS_NAME_NATIVE, QueryFullProcessImageNameW, WaitForSingleObject,
 };
 
 /// Test-visible checkpoints in the image admission half of a launch. These
@@ -61,6 +62,14 @@ impl ImageRole {
             Self::Launcher => capsule.launcher(),
             Self::Worker => capsule.worker(),
             Self::Collector => capsule.collector(),
+        }
+    }
+
+    pub(super) fn wire(self) -> &'static str {
+        match self {
+            Self::Launcher => "launcher",
+            Self::Worker => "worker",
+            Self::Collector => "collector",
         }
     }
 }

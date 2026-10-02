@@ -55,6 +55,8 @@ struct Projection<'a> {
     relations: Vec<&'a Value>,
     frontier_count: usize,
     changed_roots: Vec<&'a Value>,
+    evidence_availability: &'a str,
+    evidence_states: Vec<String>,
 }
 
 impl<'a> Projection<'a> {
@@ -71,6 +73,9 @@ impl<'a> Projection<'a> {
             "evidence_availability",
             "confidentiality",
         ];
+        if snapshot.get("evidence").is_some() {
+            fields.push("evidence");
+        }
         if snapshot.get("changes").is_some() {
             fields.push("changes");
         }
@@ -105,12 +110,15 @@ impl<'a> Projection<'a> {
             "semaprax explore",
             "explorer snapshot generator is invalid",
         )?;
-        required_str(
-            snapshot,
-            "evidence_availability",
-            "not_bundled",
-            "explorer snapshot evidence availability is invalid",
-        )?;
+        match snapshot
+            .get("evidence_availability")
+            .and_then(Value::as_str)
+        {
+            Some("not_bundled") if snapshot.get("evidence").is_none() => {}
+            Some("not_requested") if snapshot.get("evidence").is_some() => {}
+            Some("available") if snapshot.get("evidence").is_some() => {}
+            _ => return Err("explorer snapshot evidence availability is invalid"),
+        }
         let focus = snapshot.get("focus").and_then(Value::as_str);
         if !snapshot
             .get("focus")
@@ -122,6 +130,9 @@ impl<'a> Projection<'a> {
             .get("views")
             .and_then(Value::as_array)
             .ok_or("explorer snapshot views are invalid")?;
+        if let Some(evidence) = snapshot.get("evidence") {
+            validate_evidence(evidence, focus, views)?;
+        }
         let focus_sides = snapshot
             .get("focus_sides")
             .and_then(Value::as_array)
@@ -532,6 +543,30 @@ impl<'a> Projection<'a> {
         }
         validate_display_data(&declarations)?;
         validate_display_data(&relations)?;
+        let evidence_availability = snapshot["evidence_availability"]
+            .as_str()
+            .ok_or("explorer snapshot evidence availability is invalid")?;
+        let evidence_states = snapshot["evidence"]["entries"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .map(|entry| {
+                let side = entry["subject"]["side"].as_str().unwrap_or("unknown");
+                let states = [
+                    "function_summary",
+                    "dependency_summary",
+                    "analysis_coverage",
+                    "contract_delta",
+                    "ownership_delta",
+                ]
+                .into_iter()
+                .filter_map(|key| entry["states"][key].as_str().map(|state| (key, state)))
+                .map(|(key, state)| format!("{key}={state}"))
+                .collect::<Vec<_>>()
+                .join(", ");
+                format!("{side}: {states}")
+            })
+            .collect();
         Ok(Self {
             snapshot_digest: snapshot_digest(snapshot),
             subject,
@@ -544,6 +579,8 @@ impl<'a> Projection<'a> {
             relations,
             frontier_count,
             changed_roots,
+            evidence_availability,
+            evidence_states,
         })
     }
 
@@ -625,6 +662,19 @@ impl<'a> Projection<'a> {
             self.frontier_count
         ));
         out.push_str(&format!("- Tests run: unavailable in this snapshot\n\n"));
+        out.push_str("## Bundled evidence\n\n");
+        out.push_str(&format!(
+            "- Evidence availability: `{}`\n",
+            markdown_escape(self.evidence_availability)
+        ));
+        if self.evidence_states.is_empty() {
+            out.push_str("- Focused compiler reports: not requested or not bundled\n\n");
+        } else {
+            for state in &self.evidence_states {
+                out.push_str(&format!("- {}\n", markdown_escape(state)));
+            }
+            out.push('\n');
+        }
         if self.base_subject.is_some() {
             let mut counts = BTreeMap::new();
             for row in &self.changed_roots {
@@ -686,10 +736,18 @@ impl<'a> Projection<'a> {
             xml_escape(target),
             xml_escape(inline(self.subject, "side")),
             xml_escape(&self.snapshot_digest),
-            if self.truncated { "incomplete selected scope" } else { "complete within retained compiler view" },
+            if self.truncated {
+                "incomplete selected scope"
+            } else {
+                "complete within retained compiler view"
+            },
             xml_escape(target),
             xml_escape(inline(self.subject, "side")),
-            if self.truncated { "incomplete" } else { "complete within retained compiler view" },
+            if self.truncated {
+                "incomplete"
+            } else {
+                "complete within retained compiler view"
+            },
             xml_escape(&self.snapshot_digest),
             xml_escape(inline(self.subject, "project_revision")),
             xml_escape(inline(self.subject, "candidate_revision")),
@@ -735,6 +793,119 @@ fn closed_keys(
     let actual = value.keys().map(String::as_str).collect::<BTreeSet<_>>();
     let expected = expected.iter().copied().collect::<BTreeSet<_>>();
     (actual == expected).then_some(()).ok_or(error)
+}
+
+fn validate_evidence(
+    evidence: &Value,
+    focus: Option<&str>,
+    views: &[Value],
+) -> Result<(), &'static str> {
+    let fields = object(evidence, "explorer evidence index is invalid")?;
+    closed_keys(
+        fields,
+        &["schema", "entries"],
+        "explorer evidence index has unsupported fields",
+    )?;
+    required_str(
+        evidence,
+        "schema",
+        "semaprax.explorer-evidence-index.v1",
+        "explorer evidence schema is invalid",
+    )?;
+    let entries = evidence
+        .get("entries")
+        .and_then(Value::as_array)
+        .ok_or("explorer evidence entries are invalid")?;
+    let contexts = views
+        .iter()
+        .filter(|view| view["query"]["mode"] == "context")
+        .collect::<Vec<_>>();
+    if entries.len() > 2
+        || (focus.is_none() && !entries.is_empty())
+        || (focus.is_some() && entries.len() != contexts.len())
+    {
+        return Err("explorer evidence entry count is invalid");
+    }
+    for entry in entries {
+        let fields = object(entry, "explorer evidence entry is invalid")?;
+        closed_keys(
+            fields,
+            &["subject", "target", "states", "compact", "omitted"],
+            "explorer evidence entry has unsupported fields",
+        )?;
+        if entry.get("target").and_then(Value::as_str) != focus || focus.is_none() {
+            return Err("explorer evidence target does not bind focus");
+        }
+        let subject = entry
+            .get("subject")
+            .filter(|value| value.is_object())
+            .ok_or("explorer evidence subject is invalid")?;
+        if !contexts.iter().any(|view| {
+            view["query"]["target"] == entry["target"] && view["summary"]["subject"] == *subject
+        }) {
+            return Err("explorer evidence subject is not bound to a selected context view");
+        }
+        let states = object(
+            entry
+                .get("states")
+                .ok_or("explorer evidence states are missing")?,
+            "explorer evidence states are invalid",
+        )?;
+        let compact = object(
+            entry
+                .get("compact")
+                .ok_or("explorer evidence compact record is missing")?,
+            "explorer evidence compact record is invalid",
+        )?;
+        let allowed = [
+            "function_summary",
+            "dependency_summary",
+            "analysis_coverage",
+            "contract_delta",
+            "ownership_delta",
+        ];
+        let allowed = allowed.into_iter().collect::<BTreeSet<_>>();
+        if states.keys().any(|key| !allowed.contains(key.as_str())) {
+            return Err("explorer evidence states have unsupported fields");
+        }
+        if compact.keys().any(|key| !allowed.contains(key.as_str())) {
+            return Err("explorer evidence compact record has unsupported fields");
+        }
+        for slot in [
+            "function_summary",
+            "dependency_summary",
+            "analysis_coverage",
+        ] {
+            if !states.contains_key(slot) || !compact.contains_key(slot) {
+                return Err("explorer evidence required slot is missing");
+            }
+        }
+        for (slot, state) in states {
+            if !matches!(
+                state.as_str(),
+                Some("available" | "not applicable" | "error")
+            ) || !compact.contains_key(slot)
+            {
+                return Err("explorer evidence state or compact slot is invalid");
+            }
+            if (state == "available" && !compact[slot].is_object())
+                || (state != "available" && !compact[slot].is_null())
+            {
+                return Err("explorer evidence state does not match its compact slot");
+            }
+        }
+        if states.len() != compact.len() {
+            return Err("explorer evidence state and compact slots differ");
+        }
+        if !entry
+            .get("omitted")
+            .and_then(Value::as_array)
+            .is_some_and(|omitted| omitted.iter().all(Value::is_string))
+        {
+            return Err("explorer evidence omission inventory is invalid");
+        }
+    }
+    Ok(())
 }
 
 fn string<'a>(value: &'a Value, key: &str, error: &'static str) -> Result<&'a str, &'static str> {

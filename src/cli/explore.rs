@@ -3,7 +3,7 @@ use semaprax::project::{
     self, ExplorerMode, ExplorerPageOptions, ExplorerQuery, ExplorerSide, ExplorerView,
     ProjectCandidate, ProjectSemanticImage,
 };
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::fs::{self, OpenOptions};
 use std::io::Write;
@@ -294,7 +294,13 @@ pub(crate) fn run(options: Options) -> Result<(), Vec<Diagnostic>> {
                 views.push(json!({"query":{"mode":mode.name(),"target":target,"direction":"both","depth":depth,"side":side.name()},"summary":summary,"pages":pages}));
             }
         }
-        let mut v = json!({"schema":"semaprax.explorer-snapshot.v1","generator":"semaprax explore","views":views,"focus":options.target,"focus_sides":focus_sides,"source_included":options.include_source,"evidence_availability":"not_bundled","confidentiality":"names_ids_and_paths_may_be_confidential"});
+        let evidence = focused_evidence(
+            options.target.as_deref(),
+            &views,
+            image.as_ref(),
+            candidate.as_ref(),
+        );
+        let mut v = json!({"schema":"semaprax.explorer-snapshot.v1","generator":"semaprax explore","views":views,"focus":options.target,"focus_sides":focus_sides,"source_included":options.include_source,"evidence_availability":if options.target.is_some() { "available" } else { "not_requested" },"evidence":evidence,"confidentiality":"names_ids_and_paths_may_be_confidential"});
         if options.include_source {
             v["source_files"] = json!(source_files);
             if let Some(candidate) = &candidate {
@@ -372,6 +378,239 @@ pub(crate) fn run(options: Options) -> Result<(), Vec<Diagnostic>> {
 fn invalid(message: &'static str) -> Vec<Diagnostic> {
     vec![Diagnostic::io("SPX-G328", message)]
 }
+
+fn focused_evidence(
+    target: Option<&str>,
+    views: &[Value],
+    image: Option<&ProjectSemanticImage>,
+    candidate: Option<&ProjectCandidate>,
+) -> Value {
+    let Some(target) = target.filter(|target| !target.is_empty()) else {
+        return json!({"schema":"semaprax.explorer-evidence-index.v1","entries":[]});
+    };
+    let mut entries = Vec::new();
+    for view in views
+        .iter()
+        .filter(|view| view["query"]["mode"] == "context")
+    {
+        let side = view["query"]["side"].as_str().unwrap_or("");
+        let subject = view["summary"]["subject"].clone();
+        if subject.is_null() {
+            continue;
+        }
+        let is_function = view["pages"].as_array().is_some_and(|pages| {
+            pages.iter().any(|page| {
+                page["view"] == "declarations"
+                    && page["items"].as_array().is_some_and(|items| {
+                        items
+                            .iter()
+                            .any(|item| item["id"] == target && item["kind"] == "function")
+                    })
+            })
+        });
+        let candidate_side = side == "candidate";
+        let base_image = if !candidate_side {
+            candidate.filter(|_| side == "base").and_then(|candidate| {
+                ProjectSemanticImage::derive(
+                    std::sync::Arc::clone(candidate.base_revision()),
+                    candidate.base_revision().project_revision(),
+                )
+                .ok()
+            })
+        } else {
+            None
+        };
+        let function = if let Some(candidate) = candidate.filter(|_| candidate_side) {
+            candidate
+                .function_summary(candidate.candidate_digest(), target)
+                .ok()
+                .and_then(|text| serde_json::from_str::<Value>(&text).ok())
+        } else {
+            base_image
+                .as_ref()
+                .or(image)
+                .and_then(|image| image.function_summary(image.image_digest(), target).ok())
+                .and_then(|text| serde_json::from_str::<Value>(&text).ok())
+        };
+        let dependency = if let Some(candidate) = candidate.filter(|_| candidate_side) {
+            candidate
+                .dependency_summary(candidate.candidate_digest(), target)
+                .ok()
+                .and_then(|text| serde_json::from_str::<Value>(&text).ok())
+        } else {
+            base_image
+                .as_ref()
+                .or(image)
+                .and_then(|image| image.dependency_summary(image.image_digest(), target).ok())
+                .and_then(|text| serde_json::from_str::<Value>(&text).ok())
+        };
+        let coverage = if let Some(candidate) = candidate.filter(|_| candidate_side) {
+            candidate
+                .analysis_coverage(candidate.candidate_digest())
+                .ok()
+                .and_then(|text| serde_json::from_str::<Value>(&text).ok())
+        } else {
+            base_image
+                .as_ref()
+                .or(image)
+                .and_then(|image| image.analysis_coverage(image.image_digest()).ok())
+                .and_then(|text| serde_json::from_str::<Value>(&text).ok())
+        };
+        let mut states = json!({
+            "function_summary": if function.is_some() { "available" } else if !is_function { "not applicable" } else { "error" },
+            "dependency_summary": if dependency.is_some() { "available" } else { "error" },
+            "analysis_coverage": if coverage.is_some() { "available" } else { "error" },
+        });
+        let compact = json!({
+            "function_summary": function.as_ref().map(compact_function),
+            "dependency_summary": dependency.as_ref().map(compact_dependencies),
+            "analysis_coverage": coverage.as_ref().map(compact_coverage),
+        });
+        let mut compact = compact;
+        if candidate_side {
+            let contract = candidate
+                .and_then(|candidate| candidate.contract_delta(candidate.candidate_digest()).ok())
+                .and_then(|text| serde_json::from_str::<Value>(&text).ok());
+            let ownership = candidate
+                .and_then(|candidate| candidate.ownership_delta(candidate.candidate_digest()).ok())
+                .and_then(|text| serde_json::from_str::<Value>(&text).ok());
+            states["contract_delta"] = json!(if contract.is_some() {
+                "available"
+            } else {
+                "error"
+            });
+            states["ownership_delta"] = json!(if ownership.is_some() {
+                "available"
+            } else {
+                "error"
+            });
+            compact["contract_delta"] = contract
+                .as_ref()
+                .map(|report| compact_delta(report, target, true))
+                .unwrap_or(Value::Null);
+            compact["ownership_delta"] = ownership
+                .as_ref()
+                .map(|report| compact_delta(report, target, false))
+                .unwrap_or(Value::Null);
+        }
+        entries.push(json!({"subject":subject,"target":target,"states":states,"compact":compact,"omitted":["source bodies","raw facet items","spans","literal-bearing report fields"]}));
+    }
+    json!({"schema":"semaprax.explorer-evidence-index.v1","entries":entries})
+}
+
+fn compact_function(report: &Value) -> Value {
+    pick(
+        report,
+        &[
+            "schema",
+            "id",
+            "name",
+            "path",
+            "module",
+            "source_revision",
+            "parameter_count",
+            "return_type_id",
+            "effects",
+            "requires_count",
+            "ensures_count",
+        ],
+    )
+}
+
+fn compact_dependencies(report: &Value) -> Value {
+    let mut value = pick(
+        report,
+        &[
+            "schema",
+            "target",
+            "name",
+            "kind",
+            "declared_test_root",
+            "test_reachable",
+        ],
+    );
+    value["facets"] = Value::Array(
+        report["facets"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .map(|row| pick(row, &["view", "total_items"]))
+            .collect(),
+    );
+    value
+}
+
+fn compact_coverage(report: &Value) -> Value {
+    json!({"schema":report["schema"],"areas":report["areas"].as_array().into_iter().flatten().map(|row|pick(row,&["area","status"])).collect::<Vec<_>>()})
+}
+
+fn compact_delta(report: &Value, target: &str, contract: bool) -> Value {
+    let inventory = &report["inventory"];
+    let fields: &[&str] = if contract {
+        &[
+            "base_functions",
+            "candidate_functions",
+            "base_predicates",
+            "candidate_predicates",
+            "base_functions_with_contracts",
+            "candidate_functions_with_contracts",
+            "unchanged_functions",
+            "affected_functions",
+            "base_source_only_functions",
+            "candidate_source_only_functions",
+        ]
+    } else {
+        &[
+            "base_functions",
+            "candidate_functions",
+            "base_instances",
+            "candidate_instances",
+            "unchanged_functions",
+            "affected_functions",
+            "base_types",
+            "candidate_types",
+            "unchanged_types",
+            "affected_types",
+        ]
+    };
+    let selected = report["functions"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .find(|row| row["id"] == target);
+    let comparison_fields: &[&str] = if contract {
+        &[
+            "exact_equal",
+            "predicate_projection_equal",
+            "dependency_equal",
+            "source_equal",
+            "reasons",
+        ]
+    } else {
+        &[
+            "signature_equal",
+            "cleanup_inventory_equal",
+            "loan_plan_equal",
+            "cleanup_plan_equal",
+            "instances_equal",
+            "source_equal",
+            "exact_equal",
+            "reasons",
+        ]
+    };
+    json!({"schema":report["schema"],"inventory":pick(inventory,fields),"selected_target":selected.map(|row|json!({"change":row["change"],"comparison":pick(&row["comparison"],comparison_fields)})),"selected_target_state":if selected.is_some(){"changed_row"}else{"not_in_changed_inventory"}})
+}
+
+fn pick(value: &Value, fields: &[&str]) -> Value {
+    let mut result = serde_json::Map::new();
+    for field in fields {
+        if let Some(value) = value.get(*field) {
+            result.insert((*field).to_owned(), value.clone());
+        }
+    }
+    Value::Object(result)
+}
+
 fn reject_existing_output(output: &Path) -> Result<(), Vec<Diagnostic>> {
     match fs::symlink_metadata(output) {
         Ok(_) => Err(invalid(
@@ -487,12 +726,17 @@ fn html(snapshot: &[u8]) -> String {
         })
         .collect::<Vec<_>>()
         .join(" ");
-    let csp = format!("default-src 'none'; script-src {hashes}; style-src-elem 'sha256-{}'; style-src-attr 'unsafe-inline'; img-src data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'", base64(Sha256::digest(css.as_bytes()).as_slice()));
+    let csp = format!(
+        "default-src 'none'; script-src {hashes}; style-src-elem 'sha256-{}'; style-src-attr 'unsafe-inline'; img-src data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'",
+        base64(Sha256::digest(css.as_bytes()).as_slice())
+    );
     let scripts = bodies
         .iter()
         .map(|body| format!("<script>{body}</script>"))
         .collect::<String>();
-    format!("<!doctype html><html><head><meta charset=utf-8><meta name=viewport content=\"width=device-width,initial-scale=1\"><meta http-equiv=\"Content-Security-Policy\" content=\"{csp}\"><style>{css}</style></head><body><div id=app></div>{source_section}<script id=snapshot type=application/json>{esc}</script>{scripts}</body></html>")
+    format!(
+        "<!doctype html><html><head><meta charset=utf-8><meta name=viewport content=\"width=device-width,initial-scale=1\"><meta http-equiv=\"Content-Security-Policy\" content=\"{csp}\"><style>{css}</style></head><body><div id=app></div>{source_section}<script id=snapshot type=application/json>{esc}</script>{scripts}</body></html>"
+    )
 }
 fn html_text(value: &str) -> String {
     value

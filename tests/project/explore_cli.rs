@@ -1,7 +1,7 @@
 //! Standalone explorer CLI output remains source-free and never clobbers a destination.
 
-use semaprax::project::{with_authenticated_project, ProjectCandidate, SemanticChange};
-use serde_json::{json, Value};
+use semaprax::project::{ProjectCandidate, SemanticChange, with_authenticated_project};
+use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
@@ -128,14 +128,20 @@ fn explorer_json_is_canonical_source_free_and_carries_its_payload_digest() {
     assert_eq!(snapshot["schema"], "semaprax.explorer-snapshot.v1");
     assert_eq!(snapshot["source_included"], false);
     assert!(snapshot.get("source_files").is_none());
+    assert!(snapshot.get("source_review").is_none());
+    assert_eq!(snapshot["evidence"]["entries"], json!([]));
     assert_eq!(snapshot["focus_sides"], serde_json::json!([]));
     assert_eq!(snapshot["snapshot_digest"], digest(&snapshot));
-    assert!(!bytes
-        .windows(secret.len())
-        .any(|window| window == secret.as_bytes()));
-    assert!(!bytes
-        .windows(b"fn add".len())
-        .any(|window| window == b"fn add"));
+    assert!(
+        !bytes
+            .windows(secret.len())
+            .any(|window| window == secret.as_bytes())
+    );
+    assert!(
+        !bytes
+            .windows(b"fn add".len())
+            .any(|window| window == b"fn add")
+    );
 }
 
 #[test]
@@ -306,19 +312,33 @@ fn replayed_candidate_capsules_export_rename_and_move_source_sides() {
         serde_json::from_slice(&std::fs::read(renamed.0.join("rename.json")).unwrap()).unwrap();
     assert_eq!(rename["source_included"], true);
     assert_eq!(rename["focus_sides"], json!(["candidate", "base"]));
-    assert!(rename["views"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .any(|view| view["query"]["side"] == "candidate"));
+    assert!(
+        rename["views"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|view| view["query"]["side"] == "candidate")
+    );
     let rename_sources = rename["source_files"].as_array().unwrap();
     let source_review = &rename["source_review"];
-    assert_eq!(source_review["schema"], "semaprax.project-candidate-source-review.v1");
+    assert_eq!(
+        source_review["schema"],
+        "semaprax.project-candidate-source-review.v1"
+    );
     assert_eq!(source_review["candidate_revision"], rename_digest);
     assert_eq!(source_review["source_authority"], false);
-    assert!(source_review["files"].as_array().unwrap().iter().any(|file| {
-        file["path"] == "src/core.spx" && file["source_diff"].as_str().is_some_and(|diff| diff.contains("plus"))
-    }));
+    assert!(
+        source_review["files"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|file| {
+                file["path"] == "src/core.spx"
+                    && file["source_diff"]
+                        .as_str()
+                        .is_some_and(|diff| diff.contains("plus"))
+            })
+    );
     assert!(rename_sources.iter().any(|file| file["side"] == "candidate"
         && file["path"] == "src/core.spx"
         && file["text"].as_str().unwrap().contains("fn plus(")));
@@ -551,6 +571,50 @@ fn candidate_html_json_markdown_and_svg_share_exact_scope_and_change_identity() 
     }
     let json: Value =
         serde_json::from_slice(&std::fs::read(fixture.0.join("review.json")).unwrap()).unwrap();
+    let evidence = &json["evidence"];
+    assert_eq!(evidence["schema"], "semaprax.explorer-evidence-index.v1");
+    let entries = evidence["entries"].as_array().unwrap();
+    assert_eq!(entries.len(), 2);
+    let candidate_entry = entries
+        .iter()
+        .find(|entry| entry["subject"]["side"] == "candidate")
+        .unwrap();
+    assert_eq!(candidate_entry["target"], "calculator.add");
+    assert_eq!(candidate_entry["states"]["function_summary"], "available");
+    assert_eq!(candidate_entry["states"]["dependency_summary"], "available");
+    assert_eq!(candidate_entry["states"]["analysis_coverage"], "available");
+    assert_eq!(candidate_entry["states"]["contract_delta"], "available");
+    assert_eq!(candidate_entry["states"]["ownership_delta"], "available");
+    assert_eq!(
+        candidate_entry["subject"],
+        json["views"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|view| view["query"]["mode"] == "context" && view["query"]["side"] == "candidate")
+            .unwrap()["summary"]["subject"]
+    );
+    assert!(
+        candidate_entry["compact"]["function_summary"]
+            .get("span")
+            .is_none()
+    );
+    assert!(
+        candidate_entry["compact"]["dependency_summary"]["facets"][0]
+            .get("handle")
+            .is_none()
+    );
+    assert!(
+        candidate_entry["compact"]["contract_delta"]
+            .get("source_bindings")
+            .is_none()
+    );
+    assert!(
+        candidate_entry["compact"]["ownership_delta"]
+            .get("functions")
+            .is_none()
+    );
+    assert_eq!(json["source_review"], Value::Null);
     let html = std::fs::read_to_string(fixture.0.join("review.html")).unwrap();
     let prefix = "<script id=snapshot type=application/json>";
     let embedded = html
@@ -569,6 +633,27 @@ fn candidate_html_json_markdown_and_svg_share_exact_scope_and_change_identity() 
         .len();
     let markdown = std::fs::read_to_string(fixture.0.join("review.md")).unwrap();
     let svg = std::fs::read_to_string(fixture.0.join("review.svg")).unwrap();
+    assert!(markdown.contains("Evidence availability: `available`"));
+    assert!(markdown.contains("candidate: function_summary=available"));
+    let truncated = json["views"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|view| view["query"]["mode"] == "context" && view["query"]["side"] == "candidate")
+        .unwrap()["summary"]["truncation"]["truncated"]
+        .as_bool()
+        .unwrap();
+    let completeness = if truncated {
+        "incomplete"
+    } else {
+        "complete within the retained compiler view"
+    };
+    assert!(markdown.contains(&format!("Scope status: {completeness}")));
+    assert!(svg.contains(if truncated {
+        "incomplete selected scope"
+    } else {
+        "complete within retained compiler view"
+    }));
     assert!(markdown.contains(identity));
     assert!(svg.contains(identity));
     assert!(markdown.contains(&candidate));

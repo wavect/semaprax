@@ -25,6 +25,7 @@ MAX_EXECUTABLE_BYTES = 512 * 1024 * 1024
 MAX_STDERR_BYTES = 4096
 DEFAULT_TIMEOUT = 30.0
 SCHEMA = "semaprax.token-comparison.v1"
+SESSION_SCHEMA = "semaprax.token-comparison-session.v2"
 MAX_SAFE_INTEGER = 9007199254740991
 
 
@@ -344,6 +345,8 @@ def session(args: argparse.Namespace) -> dict[str, Any]:
     """Aggregate metadata-only #356 observations without retaining events."""
     raw = bounded_read(args.events, "event stream")
     groups: dict[tuple[Any, ...], dict[str, Any]] = {}
+    method_rows: dict[tuple[tuple[Any, ...], str], dict[str, Any]] = {}
+    observations: dict[tuple[Any, ...], list[dict[str, Any]]] = {}
     total = malformed = 0
     seen: dict[str, dict[str, Any]] = {}
     for number, line in enumerate(raw.splitlines(), 1):
@@ -363,7 +366,7 @@ def session(args: argparse.Namespace) -> dict[str, Any]:
         identifiers = ("eventId", "sessionId", "method", "boundary")
         nullable_text = ("subjectRevision", "digest", "tokenizer", "tokenizerFingerprint", "referenceKind")
         nullable_count = ("bytes", "tokens", "baselineTokens")
-        if any(not isinstance(event[key], str) or not event[key] or len(event[key].encode("utf-8")) > 4096 for key in identifiers) or any(event[key] is not None and (not isinstance(event[key], str) or len(event[key].encode("utf-8")) > 4096) for key in nullable_text) or any(not checked_count(event[key]) for key in ("attemptSequence", "deliverySequence")) or any(event[key] is not None and not checked_count(event[key]) for key in nullable_count) or event["outcome"] not in ("success", "error", "malformed", "timeout", "incomplete") or event["status"] not in ("measured", "tokenizer_unavailable", "tokenizer_failed", "baseline_unavailable", "incomplete"):
+        if any(not isinstance(event[key], str) or not event[key] or len(event[key].encode("utf-8")) > 4096 for key in identifiers) or len(event["method"].encode("utf-8")) > 128 or any(ord(char) < 32 or ord(char) == 127 for char in event["method"]) or any(event[key] is not None and (not isinstance(event[key], str) or len(event[key].encode("utf-8")) > 4096) for key in nullable_text) or any(not checked_count(event[key]) for key in ("attemptSequence", "deliverySequence")) or any(event[key] is not None and not checked_count(event[key]) for key in nullable_count) or event["outcome"] not in ("success", "error", "malformed", "timeout", "incomplete") or event["status"] not in ("measured", "tokenizer_unavailable", "tokenizer_failed", "baseline_unavailable", "incomplete"):
             malformed += 1
             continue
         previous = seen.get(event["eventId"])
@@ -384,6 +387,15 @@ def session(args: argparse.Namespace) -> dict[str, Any]:
             "paired_actual_tokens": 0, "paired_baseline_tokens": 0,
         })
         group["coverage"]["events"] += 1
+        method = event["method"]
+        method_group = method_rows.setdefault((key, method), {
+            "method": method,
+            "events": 0,
+            "paired": 0,
+            "paired_actual_tokens": 0,
+            "paired_baseline_tokens": 0,
+        })
+        method_group["events"] += 1
         group["outcomes"][str(event["outcome"])] = group["outcomes"].get(str(event["outcome"]), 0) + 1
         group["statuses"][str(event["status"])] = group["statuses"].get(str(event["status"]), 0) + 1
         if isinstance(event["bytes"], int) and not isinstance(event["bytes"], bool) and event["bytes"] >= 0:
@@ -400,9 +412,25 @@ def session(args: argparse.Namespace) -> dict[str, Any]:
             group["coverage"]["paired"] += 1
             group["paired_actual_tokens"] = checked_add(group["paired_actual_tokens"], event["tokens"], "paired actual tokens")
             group["paired_baseline_tokens"] = checked_add(group["paired_baseline_tokens"], event["baselineTokens"], "paired baseline tokens")
+            method_group["paired"] += 1
+            method_group["paired_actual_tokens"] = checked_add(method_group["paired_actual_tokens"], event["tokens"], "method paired actual tokens")
+            method_group["paired_baseline_tokens"] = checked_add(method_group["paired_baseline_tokens"], event["baselineTokens"], "method paired baseline tokens")
+            observations.setdefault(key, []).append({"method": method, "delta_tokens": event["baselineTokens"] - event["tokens"]})
     ordered = [groups[key] for key in sorted(groups, key=lambda key: tuple("" if value is None else str(value) for value in key))]
+    for group in ordered:
+        key = (group["tokenizer"], group["tokenizer_fingerprint"], group["boundary"], group["reference_kind"])
+        group["methods"] = [method_rows[(key, method)] for method in sorted(m for group_key, m in method_rows if group_key == key)]
+        rows = observations.get(key, [])
+        group["largest_reductions"] = sorted(
+            (row for row in rows if row["delta_tokens"] > 0),
+            key=lambda row: (-row["delta_tokens"], row["method"]),
+        )[:3]
+        group["largest_regressions"] = sorted(
+            (row for row in rows if row["delta_tokens"] < 0),
+            key=lambda row: (row["delta_tokens"], row["method"]),
+        )[:3]
     identity_fields = {"report_kind": "session", "event_stream_sha256": sha256(raw), "groups": ordered, "malformed_events": malformed}
-    return {"schema": "semaprax.token-comparison-session.v1", "comparison_identity": identity(identity_fields), **identity_fields, "events": total}
+    return {"schema": SESSION_SCHEMA, "comparison_identity": identity(identity_fields), **identity_fields, "events": total}
 
 
 def strict_json(data: bytes, label: str) -> dict[str, Any]:
@@ -454,15 +482,23 @@ def show_text(value: dict[str, Any]) -> str:
             if not isinstance(value.get("source_revision"), str) or not isinstance(value.get("actual_kind"), str):
                 raise ReportError("projection report lacks revision or boundary")
             lines.extend([f"Subject revision: {value['source_revision']}", f"Measured boundary: {value['actual_kind']}"])
+        tokenizer = value.get("tokenizer")
+        if isinstance(tokenizer, dict):
+            lines.append(f"Tokenizer: {tokenizer.get('name', 'unavailable')}")
+            fingerprint = tokenizer.get("vocabulary_fingerprint", tokenizer.get("fingerprint"))
+            if isinstance(fingerprint, str):
+                lines.append(f"Tokenizer fingerprint: {fingerprint}")
+        else:
+            lines.append("Tokenizer: unavailable")
         lines.extend([f"Baseline payload bytes: {baseline['utf8_bytes']}", f"Actual payload bytes: {actual['utf8_bytes']}"])
         lines.extend(show_counts(value.get("counts")))
         lines.extend(["", "Provider usage is not present in this report."])
         return "\n".join(lines) + "\n"
-    if schema == "semaprax.token-comparison-session.v1":
+    if schema in ("semaprax.token-comparison-session.v1", SESSION_SCHEMA):
         groups = value.get("groups")
         if value.get("report_kind") != "session" or not isinstance(value.get("events"), int) or not isinstance(groups, list):
             raise ReportError("unsupported token session report")
-        lines = ["SEMAPRAX session token report snapshot", "Current revision not verified. This local report is not live monitoring or a billed counter.", "", f"Observed events: {value['events']}", "", "Grouped measurements"]
+        lines = ["SEMAPRAX session token report snapshot", "Current revision not verified. This local report is not live monitoring or a billed counter.", "", f"Observed events: {value['events']}", f"Malformed events excluded: {value.get('malformed_events', 0)}", "", "Grouped measurements"]
         for position, group in enumerate(groups, 1):
             if not isinstance(group, dict) or not isinstance(group.get("coverage"), dict):
                 raise ReportError("session report has invalid group")
@@ -487,6 +523,29 @@ def show_text(value: dict[str, Any]) -> str:
             else:
                 delta = paired_baseline - paired_actual
                 lines.extend([f"Paired actual payload tokens: {paired_actual}", f"Paired reference tokens: {paired_baseline}", f"{delta} tokens saved versus reference." if delta > 0 else f"+{-delta} tokens used versus reference." if delta < 0 else "No token difference versus reference."])
+            if schema == SESSION_SCHEMA:
+                methods = group.get("methods")
+                if not isinstance(methods, list):
+                    raise ReportError("session report has invalid method totals")
+                lines.append("Method totals:")
+                if not methods:
+                    lines.append("  none")
+                for method in methods:
+                    if not isinstance(method, dict) or not isinstance(method.get("method"), str):
+                        raise ReportError("session report has invalid method total")
+                    lines.append(f"  {method['method']}: {method.get('paired_actual_tokens')} actual / {method.get('paired_baseline_tokens')} reference tokens; {method.get('paired')}/{method.get('events')} paired")
+                for label, key in (("Largest reductions", "largest_reductions"), ("Largest regressions", "largest_regressions")):
+                    rows = group.get(key)
+                    if not isinstance(rows, list):
+                        raise ReportError("session report has invalid extrema")
+                    lines.append(label + ":")
+                    if not rows:
+                        lines.append("  none")
+                    for row in rows:
+                        if not isinstance(row, dict) or not isinstance(row.get("method"), str) or not isinstance(row.get("delta_tokens"), int):
+                            raise ReportError("session report has invalid extreme")
+                        change = f"{row['delta_tokens']} tokens saved" if row["delta_tokens"] > 0 else f"+{-row['delta_tokens']} tokens used"
+                        lines.append(f"  {row['method']}: {change}")
         lines.extend(["", "Provider usage is not present in this report."])
         return "\n".join(lines) + "\n"
     raise ReportError("unsupported token report schema")

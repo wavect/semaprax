@@ -25,7 +25,22 @@ test('the snapshot view renders a measured reduction from the shared report coun
   assert.match(text, /Subject revision: rev-123/);
   assert.match(text, /Baseline tokens: 100/);
   assert.match(text, /20 tokens saved versus reference/);
+  assert.match(text, /Tokenizer: cl100k_base/);
+  assert.match(text, /Tokenizer fingerprint: sha256:1{64}/);
   assert.match(text, /Current revision not verified/);
+});
+test('versioned session snapshots render per-method totals and largest changes', () => {
+  const value = session({
+    schema: 'semaprax.token-comparison-session.v2',
+    groups: [{ ...session().groups[0], methods: [
+      { method: 'compact', events: 8, paired: 8, paired_actual_tokens: 120, paired_baseline_tokens: 100 },
+    ], largest_reductions: [{ method: 'compact', delta_tokens: 20 }], largest_regressions: [{ method: 'context', delta_tokens: -5 }] }],
+  });
+  const text = render(validate(JSON.stringify(value)));
+  assert.match(text, /Method totals:/);
+  assert.match(text, /compact: 120 actual \/ 100 reference tokens; 8\/8 paired/);
+  assert.match(text, /Largest reductions:[\s\S]*compact: 20 tokens saved/);
+  assert.match(text, /Largest regressions:[\s\S]*context: \+5 tokens used/);
 });
 test('negative savings are words and a plus count, never a saved badge', () => {
   const value = projection({ counts: { measurement_status: 'measured', baseline_tokens: 80, actual_tokens: 100, delta_tokens: -20, delta_fraction: { numerator: -20, denominator: 80 }, delta_percentage: -25 } });

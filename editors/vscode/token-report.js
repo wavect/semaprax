@@ -7,6 +7,7 @@ const { parse, exact } = require('./protocol');
 const MAX_REPORT_BYTES = 16 * 1024 * 1024;
 const COMPARISON_SCHEMA = 'semaprax.token-comparison.v1';
 const SESSION_SCHEMA = 'semaprax.token-comparison-session.v1';
+const SESSION_SCHEMA_V2 = 'semaprax.token-comparison-session.v2';
 const DIGEST = /^sha256:[0-9a-f]{64}$/;
 const text = (value, limit = 4096) => typeof value === 'string' && Buffer.byteLength(value) <= limit && !/[\u0000-\u001f\u007f]/.test(value);
 const count = value => Number.isSafeInteger(value) && value >= 0;
@@ -54,22 +55,34 @@ function projection(value) {
   fact(value.baseline); fact(value.actual); tokenizer(value.tokenizer); counts(value.counts);
 }
 function sessionGroup(value) {
-  exact(value, ['tokenizer', 'tokenizer_fingerprint', 'boundary', 'reference_kind', 'coverage', 'outcomes', 'statuses', 'bytes', 'tokens', 'baseline_tokens', 'paired_actual_tokens', 'paired_baseline_tokens']);
+  const version2 = Object.hasOwn(value, 'methods');
+  exact(value, ['tokenizer', 'tokenizer_fingerprint', 'boundary', 'reference_kind', 'coverage', 'outcomes', 'statuses', 'bytes', 'tokens', 'baseline_tokens', 'paired_actual_tokens', 'paired_baseline_tokens', ...(version2 ? ['methods', 'largest_reductions', 'largest_regressions'] : [])]);
   if (![value.tokenizer, value.tokenizer_fingerprint, value.boundary, value.reference_kind].every(item => item === null || text(item, 4096)) || !count(value.bytes) || !count(value.tokens) || !count(value.baseline_tokens) || !count(value.paired_actual_tokens) || !count(value.paired_baseline_tokens) || !object(value.coverage) || !object(value.outcomes) || !object(value.statuses)) throw new Error('Invalid session token-report group');
   exact(value.coverage, ['events', 'token_measured', 'baseline_available', 'paired']);
   if (![value.coverage.events, value.coverage.token_measured, value.coverage.baseline_available, value.coverage.paired].every(count) || value.coverage.token_measured > value.coverage.events || value.coverage.baseline_available > value.coverage.events || value.coverage.paired > value.coverage.token_measured || value.coverage.paired > value.coverage.baseline_available) throw new Error('Invalid session token-report coverage');
   for (const table of [value.outcomes, value.statuses]) if (Object.entries(table).some(([key, item]) => !text(key, 128) || !count(item))) throw new Error('Invalid session token-report table');
+  if (version2) {
+    if (!Array.isArray(value.methods) || !Array.isArray(value.largest_reductions) || !Array.isArray(value.largest_regressions)) throw new Error('Invalid session token-report method details');
+    for (const method of value.methods) {
+      exact(method, ['method', 'events', 'paired', 'paired_actual_tokens', 'paired_baseline_tokens']);
+      if (!text(method.method, 128) || !count(method.events) || !count(method.paired) || method.paired > method.events || !count(method.paired_actual_tokens) || !count(method.paired_baseline_tokens)) throw new Error('Invalid session token-report method total');
+    }
+    for (const rows of [value.largest_reductions, value.largest_regressions]) for (const row of rows) {
+      exact(row, ['method', 'delta_tokens']);
+      if (!text(row.method, 128) || !Number.isSafeInteger(row.delta_tokens) || row.delta_tokens === 0) throw new Error('Invalid session token-report extreme');
+    }
+  }
 }
 function session(value) {
   exact(value, ['schema', 'comparison_identity', 'report_kind', 'event_stream_sha256', 'groups', 'malformed_events', 'events']);
-  if (value.schema !== SESSION_SCHEMA || value.report_kind !== 'session' || !digest(value.comparison_identity) || !digest(value.event_stream_sha256) || !Array.isArray(value.groups) || value.groups.length > 1024 || !count(value.malformed_events) || !count(value.events)) throw new Error('Invalid session token report');
+  if (![SESSION_SCHEMA, SESSION_SCHEMA_V2].includes(value.schema) || value.report_kind !== 'session' || !digest(value.comparison_identity) || !digest(value.event_stream_sha256) || !Array.isArray(value.groups) || value.groups.length > 1024 || !count(value.malformed_events) || !count(value.events)) throw new Error('Invalid session token report');
   value.groups.forEach(sessionGroup);
 }
 function validate(textValue) {
   const value = parse(textValue, MAX_REPORT_BYTES, true);
   if (!object(value)) throw new Error('Token report must be a JSON object');
   if (value.schema === COMPARISON_SCHEMA) projection(value);
-  else if (value.schema === SESSION_SCHEMA) session(value);
+  else if ([SESSION_SCHEMA, SESSION_SCHEMA_V2].includes(value.schema)) session(value);
   else throw new Error('Unsupported token report schema');
   return value;
 }
@@ -87,6 +100,8 @@ function renderComparison(value) {
     out.push(line('Subject revision', value.source_revision));
     out.push(line('Measured boundary', value.actual_kind));
   }
+  out.push(line('Tokenizer', value.tokenizer === null ? 'unavailable' : (value.tokenizer.name || 'unavailable')));
+  if (value.tokenizer !== null && (value.tokenizer.vocabulary_fingerprint !== undefined || value.tokenizer.fingerprint !== undefined)) out.push(line('Tokenizer fingerprint', value.tokenizer.vocabulary_fingerprint || value.tokenizer.fingerprint));
   out.push(line('Baseline payload bytes', value.baseline.utf8_bytes));
   out.push(line('Actual payload bytes', value.actual.utf8_bytes));
   if (value.counts.measurement_status === 'measured') {
@@ -121,6 +136,16 @@ function renderSession(value) {
       out.push(delta > 0 ? `${delta} tokens saved versus reference.\n` : delta < 0 ? `+${-delta} tokens used versus reference.\n` : 'No token difference versus reference.\n');
     }
     out.push(line('Payload bytes', group.bytes));
+    if (value.schema === SESSION_SCHEMA_V2) {
+      out.push('Method totals:\n');
+      if (!group.methods.length) out.push('  none\n');
+      for (const method of group.methods) out.push(`  ${method.method}: ${method.paired_actual_tokens} actual / ${method.paired_baseline_tokens} reference tokens; ${method.paired}/${method.events} paired\n`);
+      for (const [label, rows, reduction] of [['Largest reductions', group.largest_reductions, true], ['Largest regressions', group.largest_regressions, false]]) {
+        out.push(label + ':\n');
+        if (!rows.length) out.push('  none\n');
+        for (const row of rows) out.push(`  ${row.method}: ${reduction ? `${row.delta_tokens} tokens saved` : `+${-row.delta_tokens} tokens used`}\n`);
+      }
+    }
   }
   out.push('\nProvider usage is not present in this report.\n');
   return out.join('');

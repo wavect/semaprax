@@ -79,7 +79,10 @@ replacement without `--overwrite`.
 metadata-only `semaprax.token-observation.v1` JSONL from the optional session
 observer. It emits aggregate coverage and totals grouped by tokenizer and
 fingerprint, boundary, and reference kind without retaining event/session IDs,
-source revisions, subjects, or digests.
+source revisions, subjects, or digests. The additive
+`semaprax.token-comparison-session.v2` report also includes paired totals by
+method and the three largest successful paired reductions and regressions in
+each compatible group. It retains method names, but no event or session IDs.
 
 `show` reads either report offline; it needs neither a tokenizer nor a compiler:
 
@@ -93,6 +96,23 @@ it is a report snapshot, never provider spending or task-quality evidence.
 **SEMAPRAX: Show Token Report** offers the same optional read-only local view
 in the existing VS Code extension. Issues #237, #309, and #340 remain outside
 this measurement and rendering work.
+
+### Observed comparison examples
+
+These are measured local compact-projection results from the committed
+[`local-token-measurements.json`](../benchmarks/compact-semantic-projection-v2/local-token-measurements.json),
+using cl100k_base over the complete wire envelope. They describe one local
+corpus and do not predict another project or model's billed usage.
+
+| Scope | Reference tokens | Actual payload tokens | Rendered interpretation |
+| --- | ---: | ---: | --- |
+| `examples/http_app_routing.spx` full graph | 161,861 | 134,165 | 27,696 tokens saved versus reference |
+| `ledger.apply` task context | 1,679 | 1,802 | +123 tokens used versus reference |
+
+When the local tokenizer is unavailable and the report was explicitly made
+with `--allow-bytes-only`, the renderer reports the measured byte counts and
+`Model tokens unavailable; byte measurements remain separate.` Token counts,
+delta, and percentage are null in that state; it does not imply zero change.
 
 ## Local measurements
 

@@ -106,6 +106,25 @@ class BoundaryTests(unittest.TestCase):
         self.assertNotIn("secret", json.dumps(document))
         self.assertEqual(document["groups"][0]["coverage"], {"events": 2, "token_measured": 2, "baseline_available": 2, "paired": 2})
         self.assertEqual(document["groups"][0]["tokens"], 17)
+        self.assertEqual(document["schema"], report.SESSION_SCHEMA)
+        self.assertEqual(document["groups"][0]["methods"], [{"method": "compact", "events": 2, "paired": 2, "paired_actual_tokens": 17, "paired_baseline_tokens": 20}])
+        self.assertEqual(document["groups"][0]["largest_reductions"], [{"method": "compact", "delta_tokens": 2}, {"method": "compact", "delta_tokens": 1}])
+
+    def test_session_tracks_regressions_per_method_without_retaining_event_identity(self):
+        with tempfile.TemporaryDirectory() as directory:
+            events = Path(directory) / "events.jsonl"
+            common = {"schema": "semaprax.token-observation.v1", "sessionId": "private", "attemptSequence": 1, "deliverySequence": 1, "boundary": "response", "subjectRevision": "rev", "outcome": "success", "status": "measured", "bytes": 10, "digest": "sha256:a", "tokenizer": "cl100k_base", "tokenizerFingerprint": "sha256:t", "referenceKind": "paired"}
+            rows = [
+                {**common, "eventId": "private-a", "method": "toolA", "tokens": 120, "baselineTokens": 100},
+                {**common, "eventId": "private-b", "method": "toolB", "tokens": 80, "baselineTokens": 100},
+            ]
+            events.write_text("\n".join(json.dumps(row) for row in rows) + "\n", encoding="utf-8")
+            document = report.session(report.parser().parse_args(["session", "--events", str(events), "--output", str(Path(directory) / "out.json")]))
+        group = document["groups"][0]
+        self.assertEqual([(row["method"], row["paired_actual_tokens"]) for row in group["methods"]], [("toolA", 120), ("toolB", 80)])
+        self.assertEqual(group["largest_reductions"], [{"method": "toolB", "delta_tokens": 20}])
+        self.assertEqual(group["largest_regressions"], [{"method": "toolA", "delta_tokens": -20}])
+        self.assertNotIn("private", json.dumps(document))
 
     def test_session_uses_only_successful_paired_events_for_reduction_and_deduplicates_delivery(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -131,6 +150,7 @@ class ShowTests(unittest.TestCase):
             "schema": report.SCHEMA, "report_kind": "projection", "baseline_kind": "same_selected_json",
             "source_revision": "rev-1", "actual_kind": "compact_model-text",
             "baseline": {"utf8_bytes": 1000}, "actual": {"utf8_bytes": 1200},
+            "tokenizer": {"name": "cl100k_base", "vocabulary_fingerprint": "sha256:" + "a" * 64},
             "counts": {"measurement_status": "measured", "baseline_tokens": 100, "actual_tokens": 120, "delta_tokens": -20, "delta_percentage": -20.0},
         }
 
@@ -142,6 +162,7 @@ class ShowTests(unittest.TestCase):
             shown = report.show(args)
         self.assertIn("+20 tokens used versus reference.", shown)
         self.assertIn("Current revision not verified.", shown)
+        self.assertIn("Tokenizer fingerprint: sha256:" + "a" * 64, shown)
         self.assertTrue(shown.startswith("# SEMAPRAX token report snapshot\n\n```text\n"))
 
     def test_show_rejects_duplicate_keys_and_refuses_an_unrequested_overwrite(self):

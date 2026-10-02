@@ -35,7 +35,7 @@ use semaprax::agent_lifecycle::{
     Reconciliation, Retention,
 };
 use semaprax::agent_runtime::AgentCancellation;
-use semaprax::project::compile_source_agent_declaration;
+use semaprax::project::{compile_source_agent_declaration, with_authenticated_project};
 
 const AGENT_ID: &str = "everyday.agent";
 const DEPLOYMENT_ID: &str = "everyday.deployment.local";
@@ -169,7 +169,24 @@ impl Memory {
 }
 
 #[test]
-fn source_declared_agent_compiles_standalone_and_is_selected_by_stable_id() {
+fn source_declared_agent_is_admitted_as_an_authenticated_project_source() {
+    let manifest = project_root().join("semaprax.toml");
+    with_authenticated_project(&manifest, |snapshot| {
+        let project = snapshot.retain_revision();
+        let source = project
+            .sources()
+            .iter()
+            .find(|source| source.path() == "src/agent.spx")
+            .expect("the Agent module is an authenticated Project source");
+        assert_eq!(source.source(), agent_module_source());
+        assert!(project
+            .agent_definitions()
+            .iter()
+            .any(|definition| definition.definition().agent_id() == AGENT_ID));
+        Ok(())
+    })
+    .unwrap();
+
     let source = agent_module_source();
     let checked = semaprax::check(&source, "agent.spx").unwrap();
     assert!(checked

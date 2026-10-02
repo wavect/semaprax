@@ -45,8 +45,9 @@ This project combines two already-shipped foundations, but they are
 
 ## What it proves
 
-Verified by `semaprax check`/`semaprax test` on the project, `semaprax check`
-on the Agent module standalone, and
+Verified by `semaprax check`/`semaprax test` on the project (including the
+Agent module in the authenticated source set), `semaprax check` on the Agent
+module standalone, and
 `cargo test --locked -p semaprax --test agent_runtime_v1 everyday_agent`
 (13 of 126 tests in that binary; see [Evidence](#evidence)):
 
@@ -59,8 +60,9 @@ on the Agent module standalone, and
 - bounded JSON validation, member lookup, and classification over a fixed
   flat manifest;
 - a canonical, bounded, deterministic report;
-- a source-declared Agent (`@id("everyday.agent")`), compiled and selected
-  by stable ID (`compile_source_agent_lifecycle`);
+- a source-declared Agent (`@id("everyday.agent")`), admitted by the
+  authenticated Project source set and compiled/selected by stable ID
+  (`compile_source_agent_lifecycle`);
 - explicit authorization before the external boundary
   (`everyday.agent.fn.authorize`), proven to stop **before** the boundary
   (`read.calls == 0` on refusal, not merely a refused status);
@@ -178,9 +180,13 @@ This product does **not** deliver, and does not claim to deliver:
   themselves performing `fs.read`/`fs.write`. Only `execute` is an
   `effect fn`, realized by the host — this is the existing Agent-runtime
   authority boundary, not a limit this product introduces.
-- The iterative, multi-turn `AGENT-ITERATIVE-LIFECYCLE-V2` profile or
-  `AGENT-STATE-MIGRATION-V3` (both are iterative-lifecycle (V2) facilities;
-  this product uses the non-iterative Lifecycle v1 durable machine).
+- The iterative, multi-turn `AGENT-ITERATIVE-LIFECYCLE-V2` profile,
+  source-live repair, or `AGENT-STATE-MIGRATION-V3`. The Agent source is an
+  authenticated Project source and therefore available to the repair route's
+  checked-source lookup, but it remains a Lifecycle v1 Agent: `reduce`
+  returns `Report`. V2 requires an authored `Step` variant and a `reduce`
+  operation returning that `Step`. Converting this product needs a real
+  V1-to-V2 lifecycle and checkpoint-evidence migration.
 - Hostile cross-paired-provider rejection, since there is no real provider
   pairing here to cross.
 - The Agent's own `.spx` operations reading real JSON — the manifest is
@@ -195,7 +201,7 @@ This product does **not** deliver, and does not claim to deliver:
 - `semaprax test examples/everyday-agent-project` — project tests passed,
   exit 0.
 - `semaprax check examples/everyday-agent-project/src/agent.spx` — verified
-  standalone, exit 0.
+  standalone, exit 0; the same source is also admitted by the Project check.
 - `cargo test --locked -p semaprax --test agent_runtime_v1 everyday_agent`
   — 13 passed, 0 failed (all cases named above).
 - `cargo test --locked -p semaprax --test agent_runtime_v1` (full binary,

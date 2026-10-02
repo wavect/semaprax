@@ -55,6 +55,15 @@ def fixture_waiver(plan_hash, operator):
     return record
 
 
+def fixture_post_run_waiver(summary_hash, operator):
+    record = local.post_run_waiver_template(summary_hash, operator)
+    record.update(decision="operator_attested_review_waiver", attested_at="2000-01-01T00:00:00Z",
+                  notes="Synthetic unit-test post-run attestation; never real authorization.")
+    for check in record["checks"].values():
+        check.update(passed=True, evidence="Synthetic post-run fixture; no actual verification.")
+    return record
+
+
 @unittest.skipUnless(local.accounting.acquisition_available(), "POSIX no-follow acquisition required")
 class LocalSpecializationTests(unittest.TestCase):
     @classmethod
@@ -224,6 +233,15 @@ class LocalSpecializationTests(unittest.TestCase):
             with patch.object(local, "NativeScorer") as score, self.assertRaisesRegex(LocalTransportError, "explicit_cli_acceptance"):
                 local.execute(plan_path, plan_hash, review_path, review_hash, self.root / "run")
             score.assert_not_called()
+
+    def test_post_run_waiver_is_summary_bound_and_never_an_independent_review(self):
+        digest_value = "sha256:" + "a" * 64
+        record = fixture_post_run_waiver(digest_value, "fixture-operator")
+        authorization = local.validate_post_run_waiver(record, digest_value, "fixture-operator")
+        self.assertEqual(authorization["independent_human_review"], "waived_by_user")
+        record["subject_sha256"] = "sha256:" + "b" * 64
+        with self.assertRaisesRegex(LocalTransportError, "post_run_operator_review_waiver"):
+            local.validate_post_run_waiver(record, digest_value, "fixture-operator")
 
     def test_each_preflight_check_and_review_subject_is_required(self):
         phash = "sha256:" + "a" * 64

@@ -125,6 +125,14 @@ same six checks and plan digest, but reports an operator technical attestation
 with `independent_human_review: waived_by_user`; it never names or invents an
 independent reviewer or data custodian.
 
+After a complete run, the waiver path emits a separate summary-digest-bound
+post-run operator-attestation template. Its receipt audit, control comparison
+with uncertainty, and leakage/data-custody checks must all carry retained
+evidence references. `finalize` accepts only that completed exact record and
+only when all 72 eligible generations and nine explicit oracle exclusions are
+accounted for. The closure record remains an operator technical review under
+the waiver; it is not an independent-human review claim.
+
 ## Execute only after real preflight review
 
 Set `PLAN_SHA256` to the preparation receipt and `REVIEW_SHA256` to the approved

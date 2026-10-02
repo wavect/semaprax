@@ -104,10 +104,12 @@ performs the acknowledged State cleanup, receipt, and sticky Stop sequence and
 seals its released State inside the runtime. At each incomplete boundary it
 retires the journal and returns a private opaque error holding the reached
 physical owner. Its caller must retain that error; a public runtime-held
-quarantine is still unfinished. The failed-target State tail now has the same
-private acknowledged cleanup/receipt/Stop join and owner-bearing quarantine.
-The later-turn failed-Observe producer is still not joined, and several other
-post-effect tails still lack this terminal.
+quarantine is still unfinished. A first-turn model failure can now be consumed
+into a private opaque quarantine that retires its journal and retains the
+exact parked or Resume owner; it has no retry or extraction API because Model
+has not reached a State cleanup boundary. The failed-target State tail now has
+the same private acknowledged cleanup/receipt/Stop join and owner-bearing
+quarantine. Several other post-effect tails still lack a terminal join.
 Consequently no public session or executable `run` method is exposed. Recovery
 and terminal/report delivery from reopened bytes remain unsupported. An executable
 method is admitted only with the complete failure dispatch and its regression

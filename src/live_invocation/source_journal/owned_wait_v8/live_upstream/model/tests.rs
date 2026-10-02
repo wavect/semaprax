@@ -611,6 +611,7 @@ fn owned_wait_live_model_malformed_sdk_is_exact_failed_settlement_without_resume
         let journal = SourceOwnedWaitJournalV8::open(Arc::new(context), key, lease).unwrap();
         let cancel = crate::agent_runtime::AgentCancellation::new();
         let parked = park(&journal, &cancel);
+        let weak = parked.owner.test_weak();
         let counts = Rc::new(RefCell::new(Counts::default()));
         let mut factory = factory(Rc::clone(&counts), script(b"malformed"), Rc::new(|_| {}));
         let mut source = source(journal.context(), &mut factory);
@@ -626,6 +627,13 @@ fn owned_wait_live_model_malformed_sdk_is_exact_failed_settlement_without_resume
         assert_eq!(journal.begin_session().unwrap().sequence(), 13);
         assert_eq!(failed.diagnostics.len(), 1);
         assert_eq!(failed.diagnostics[0].code, "source.adapter_decode");
+        let quarantined = failed.quarantine();
+        assert_eq!(quarantined.status(), SourceJournalError::Poisoned);
+        assert!(journal.hold().is_err());
+        assert!(journal.begin_session().is_err());
+        assert!(weak.iter().all(|w| w.strong_count() == 1));
+        drop(quarantined);
+        assert!(weak.iter().all(|w| w.upgrade().is_none()));
     });
 }
 #[test]
@@ -748,7 +756,11 @@ fn owned_wait_live_model_noncheckpointed_profile_refuses_before_intent_and_facto
         assert_eq!(journal.begin_session().unwrap().sequence(), 10);
         assert_eq!(counts.borrow().factories, 0);
         assert!(weak.iter().all(|w| w.strong_count() == 1));
-        drop(failed);
+        let quarantined = failed.quarantine();
+        assert_eq!(quarantined.status(), SourceJournalError::Poisoned);
+        assert!(journal.hold().is_err());
+        assert!(journal.begin_session().is_err());
+        drop(quarantined);
         assert!(weak.iter().all(|w| w.upgrade().is_none()));
     });
 }

@@ -66,8 +66,12 @@ runtime and guest loader-library reads and only phase writes. No phase executabl
 symlink, socket, FIFO or device creation is granted. Seccomp denies sockets,
 non-thread process cloning, namespace changes, mounts, ptrace, BPF and cross-
 process memory access. `clone3` returns `ENOSYS` so glibc uses the checked `clone`
-path; `CLONE_THREAD` is required for allowed Node worker threads. Node remains
-the only application entry executable. This is OS enforcement; the numeric VM
+path; `CLONE_THREAD` is required for allowed Node worker threads. This is a
+syscall denylist: `execve` and `io_uring` are not denied by this filter. The
+controller selects Node as the application entry, while Landlock and the outer
+network-free VM retain their separate constraints. Evidence claims the tested
+`fork()` and `socket()` denials, not universal process-execution denial or a
+syscall allowlist. This is OS enforcement; the numeric VM
 bridge only protects the assertion harness and is not the security boundary.
 
 Each session physically verifies positive guest canary-open, fork/wait and

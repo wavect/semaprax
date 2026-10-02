@@ -113,6 +113,18 @@ When the local tokenizer is unavailable and the report was explicitly made
 with `--allow-bytes-only`, the renderer reports the measured byte counts and
 `Model tokens unavailable; byte measurements remain separate.` Token counts,
 delta, and percentage are null in that state; it does not imply zero change.
+For a concrete unavailable run, `python3 -S` below intentionally omits
+site-installed packages, including tiktoken. This is a byte-only comparison of
+two documentation files, explicitly `user_reference` and not an equivalence
+claim:
+
+```text
+Comparison type: user_reference
+Tokenizer: unavailable
+Baseline payload bytes: 5648
+Actual payload bytes: 8726
+Model tokens unavailable; byte measurements remain separate.
+```
 
 ## Local measurements
 

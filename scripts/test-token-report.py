@@ -51,6 +51,12 @@ class BoundaryTests(unittest.TestCase):
         payload = "SEMAPRAX-MODEL-TEXT 2\nprofile 5 graph\nroot 5 é id\nsource_revision 3 rev\n".encode("utf-8")
         self.assertEqual(report.framed_metadata(payload), {"profile": "graph", "root": "é id", "source_revision": "rev"})
 
+    def test_executable_hash_accepts_non_utf8_bytes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            executable = Path(directory) / "compiler"
+            executable.write_bytes(b"\xff\x00compiler")
+            self.assertEqual(report.executable_sha256(executable), report.sha256(b"\xff\x00compiler"))
+
     def test_projection_report_uses_replay_and_does_not_copy_input_text_or_path(self):
         with tempfile.TemporaryDirectory() as directory:
             directory = Path(directory)

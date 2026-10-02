@@ -21,6 +21,7 @@ from token_measurement import SUPPORTED_ENCODINGS, TokenizerUnavailable, measure
 
 
 MAX_TEXT_BYTES = 64 * 1024 * 1024
+MAX_EXECUTABLE_BYTES = 512 * 1024 * 1024
 MAX_STDERR_BYTES = 4096
 DEFAULT_TIMEOUT = 30.0
 SCHEMA = "semaprax.token-comparison.v1"
@@ -43,6 +44,22 @@ def bounded_read(path: pathlib.Path, label: str) -> bytes:
     except UnicodeDecodeError as error:
         raise ReportError(f"{label} must be UTF-8") from error
     return data
+
+
+def executable_sha256(path: pathlib.Path) -> str:
+    """Hash a compiler executable as bytes without treating it as text."""
+    digest = hashlib.sha256()
+    total = 0
+    try:
+        with path.open("rb") as handle:
+            while chunk := handle.read(1024 * 1024):
+                total += len(chunk)
+                if total > MAX_EXECUTABLE_BYTES:
+                    raise ReportError(f"compiler executable exceeds {MAX_EXECUTABLE_BYTES} bytes")
+                digest.update(chunk)
+    except OSError as error:
+        raise ReportError(f"cannot read compiler executable: {error}") from error
+    return "sha256:" + digest.hexdigest()
 
 
 def run_bounded(command: list[str], cwd: pathlib.Path, timeout: float) -> bytes:
@@ -177,7 +194,7 @@ def executable_fact(cli: pathlib.Path, root: pathlib.Path, timeout: float) -> di
     return {
         "version": parsed["version"],
         "commit": commit,
-        "executable_sha256": sha256(bounded_read(cli, "compiler executable")),
+        "executable_sha256": executable_sha256(cli),
     }
 
 

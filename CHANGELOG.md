@@ -1,5 +1,10 @@
 # Changelog
 
+- Select live candidate-test evidence when an interrupted repair resumes and
+  executes tests; derive replay-only evidence only when no live observation
+  exists. Avoid reporting one observation twice as a receipt conflict, while
+  terminal replay still performs zero provider and effect dispatches (#323).
+
 - Keep the physical repair post-settlement pause parked through queued tokens
   and spurious or explicit wakes. A process regression exercises the durable
   ACK/marker path and repeated unpark signals without crossing into subsequent

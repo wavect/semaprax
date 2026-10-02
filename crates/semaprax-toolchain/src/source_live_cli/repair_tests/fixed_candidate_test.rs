@@ -84,3 +84,96 @@ fn repair_tested_refuses_a_scripted_configuration_before_a_checkpoint_exists() {
     );
     assert!(!checkpoint.exists());
 }
+
+#[test]
+fn interrupted_resume_reports_live_candidate_test_then_terminal_replay() {
+    use std::panic::{catch_unwind, AssertUnwindSafe};
+    unix_checkpoint_host!();
+    let fixture = Fixture::new();
+    let (config, checkpoint, digest) = setup_v2(&fixture, "test.repair-tested.interrupted.v1");
+    let before = project_tree(&fixture.0.join("project"));
+    let scratch = fixture.0.join("scratch");
+    fs::create_dir(&scratch).unwrap();
+    let calls = Rc::new(Cell::new(0));
+    let prompts = Rc::new(RefCell::new(Vec::new()));
+    let mut observer = FixedCandidateTestObserver::new();
+    let mut host = CandidateTestHost::new(
+        CandidateTestCapability::host_selected(REPAIR_TEST_CAPABILITY_ID).unwrap(),
+        &mut observer,
+    );
+    super::barrier::set_test_post_settled_hook(|_| {
+        panic!("interrupt after settled ACK before candidate test");
+    });
+    let interrupted = catch_unwind(AssertUnwindSafe(|| {
+        execute_with_runner_and_candidate_test(
+            v2_command("run", config.clone(), checkpoint.clone(), scratch.clone()),
+            RecordedOpenCodeRunner {
+                answers: VecDeque::from([proposal(&digest, "0", "0")]),
+                last_answer: None,
+                prompts: Rc::clone(&prompts),
+                calls: Rc::clone(&calls),
+            },
+            Some(&mut host),
+        )
+    }));
+    assert!(interrupted.is_err());
+    assert_eq!(calls.get(), 1);
+    let paused: Value =
+        serde_json::from_slice(&fs::read(checkpoint.join("checkpoint.json")).unwrap()).unwrap();
+    assert_eq!(
+        paused["entries"].as_array().unwrap().last().unwrap()["kind"],
+        "attempt_settled"
+    );
+    let live = execute_with_runner_and_candidate_test(
+        v2_command(
+            "resume",
+            config.clone(),
+            checkpoint.clone(),
+            scratch.clone(),
+        ),
+        RecordedOpenCodeRunner {
+            answers: VecDeque::from([proposal(&digest, "7", "1")]),
+            last_answer: None,
+            prompts: Rc::clone(&prompts),
+            calls: Rc::clone(&calls),
+        },
+        Some(&mut host),
+    )
+    .unwrap();
+    let live: Value = serde_json::from_str(&live).unwrap();
+    assert_eq!(live["status"], "complete");
+    assert_eq!(live["model_dispatches"], 1);
+    assert_eq!(live["effect_dispatches"], 2);
+    assert_eq!(live["candidate_test_execution"]["status"], "passed");
+    assert_eq!(live["candidate_test_execution"]["replayed"], false);
+    assert!(live["candidate_test_execution"]["observation"].is_object());
+    assert_eq!(
+        calls.get(),
+        2,
+        "settled first attempt is never redispatched"
+    );
+    let completed = fs::read(checkpoint.join("checkpoint.json")).unwrap();
+    let replay = execute_with_runner_and_candidate_test(
+        v2_command("resume", config, checkpoint.clone(), scratch),
+        RecordedOpenCodeRunner {
+            answers: VecDeque::new(),
+            last_answer: None,
+            prompts,
+            calls: Rc::clone(&calls),
+        },
+        Some(&mut host),
+    )
+    .unwrap();
+    let replay: Value = serde_json::from_str(&replay).unwrap();
+    assert_eq!(replay["model_dispatches"], 0);
+    assert_eq!(replay["effect_dispatches"], 0);
+    assert_eq!(replay["candidate_test_execution"]["status"], "passed");
+    assert_eq!(replay["candidate_test_execution"]["replayed"], true);
+    assert!(replay["candidate_test_execution"]["observation"].is_null());
+    assert_eq!(calls.get(), 2);
+    assert_eq!(
+        fs::read(checkpoint.join("checkpoint.json")).unwrap(),
+        completed
+    );
+    assert_eq!(project_tree(&fixture.0.join("project")), before);
+}

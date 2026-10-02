@@ -1127,7 +1127,10 @@ pub(super) fn execute_with_runner_and_candidate_test<
     let preview = handler.latest_preview();
     let rejection_count = handler.rejection_count();
     let candidate_test_evidence = handler.candidate_test_evidence();
-    let replayed_candidate_test_evidence = if fresh {
+    // A resumed invocation may execute new candidate tests. Its live evidence
+    // owns this receipt; deriving replay evidence from the just-written journal
+    // would count that same observation twice. Replay-only runs use the journal.
+    let replayed_candidate_test_evidence = if fresh || candidate_test_evidence.is_some() {
         None
     } else {
         replayed_candidate_test_evidence(

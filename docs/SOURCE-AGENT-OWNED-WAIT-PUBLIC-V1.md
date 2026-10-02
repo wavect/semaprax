@@ -1,12 +1,12 @@
 # Source Agent owned wait public v1 — fresh two-turn session
 
-Status: **fresh public two-turn entry authored; default-stack local execution gate pending.**
+Status: **fresh and first-Prepared public entries authored; default-stack local execution gates pending.**
 Audience: SourceLive host, interpreter, journal, SDK, and runtime implementers and reviewers.
 
 This document owns the public construction boundary for the SourceLive
 v8 owned-Agent route. It is intentionally smaller than issue #330: it specifies
 one fresh, interpreter-selected, cumulative run with two turns and a
-`Complete` terminal. It does not claim restart, recovery, hosted support,
+`Complete` terminal, plus the exact first-turn Prepared process restart. It does not claim general restart, hosted support,
 native/Wasm execution, external report delivery, or the whole issue.
 
 ## 1. Admission and scope
@@ -141,9 +141,9 @@ reserialized. A failed projection check retains that same owner in the sealed
 private failure path. This exposes no lease, report owner, State, recovery
 route, or finalizer authority.
 
-The public recovery matrix remains separate: process restart at every durable
-phase, no redispatch, no uncharged work, phase-specific restoration permits,
-hostile registrations/tails, and Report recovery/delivery all remain required
+The broader public recovery matrix remains separate: process restart at every
+durable phase, no redispatch, no uncharged work, phase-specific restoration permits,
+hostile registrations/tails across all phases, and Report recovery/delivery remain required
 to close #330.
 
 The following private joins are predecessors consumed by the fresh public
@@ -363,4 +363,30 @@ two target calls, four cleanup observations, terminal projection and replay
 refusal. Its first local compile passed, but the default worker stack overflowed.
 A larger-stack diagnostic exposed an unconditional-Complete test fixture; the
 corrected two-turn fixture rerun was blocked by local disk exhaustion. Failure,
-shutdown and recovery matrices remain open; this entry does not close issue #330.
+shutdown and broader recovery matrices remain open; this entry does not close issue #330.
+
+## 13. Public first Prepared process recovery
+
+`SourceOwnedAgentJournalV1::recover` imports the exact complete inert registration
+projection retained by the host at fresh creation. It recompiles the selected
+Agent from the retained Project, checks the model adapter, SourceLive policy,
+two-turn ceiling, source revision, epoch, directory identity, execution and
+binding, then passes the registration to the existing physical recovery route.
+That route checks the registered generation and directory/file pins before
+opening the locked read-only lease. JSON import is strict: omitted, extra or
+altered facts refuse. The registration remains evidence, not a host grant.
+
+`restart_first_prepared` consumes separate one-use trusted-host recovery and
+continuation grants. The existing authenticated first-Prepared validator must
+reconstruct the precise physical parked owner before the original Model path
+can dispatch. The same runtime custody then finishes the first and second
+turns. Fresh, answered, terminal and hostile tails cannot request this entry;
+failed continuation retains its owner in runtime quarantine.
+
+`public_owned_agent_prepared_relaunch_completes_and_hostile_tail_refuses`
+starts a preparer process, retains its registration outside that process, and
+exits before a separate process rebuilds the checked runtime and resumes the
+original first Model. It checks two model calls, two targets, four cleanup
+observations, terminal Report projection, forged generation refusal, fresh
+history refusal and hostile tail refusal before dispatch. This regression is
+authored but unexecuted while the constrained build slot is unavailable.

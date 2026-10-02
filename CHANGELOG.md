@@ -1,5 +1,11 @@
 # Changelog
 
+- Author a public first-Prepared process recovery entry for Source owned-Agent
+  runs. Strictly parse complete host-retained registration facts, recheck the
+  compiled Project binding and physical store pins, and consume separate
+  recovery and continuation host grants into the existing two-turn runtime.
+  A preparer/relauncher regression covers Report completion and pre-effect
+  refusal for fresh, forged and hostile histories; it awaits execution (#330).
 - Add an authored fresh public Source owned-Agent entry around the existing
   checked two-turn runtime. It derives the binding from retained Project source,
   requires complete physical registration retention before append, and returns

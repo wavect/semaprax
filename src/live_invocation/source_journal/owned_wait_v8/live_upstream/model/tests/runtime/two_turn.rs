@@ -674,3 +674,299 @@ fn public_owned_agent_fresh_entry_runs_two_real_turns_and_projects_report() {
         },
     );
 }
+
+const PUBLIC_RESTART_MODE: &str = "SEMAPRAX_PUBLIC_OWNED_RESTART_MODE";
+const PUBLIC_RESTART_META: &str = "SEMAPRAX_PUBLIC_OWNED_RESTART_META";
+#[derive(serde::Serialize, serde::Deserialize)]
+struct PublicRestartMeta {
+    directory: std::path::PathBuf,
+    journal_file: std::path::PathBuf,
+    retained_registration: serde_json::Value,
+    preparer_pid: u32,
+    resumed_pid_marker: std::path::PathBuf,
+}
+
+fn public_restart_policy(
+    context: &CheckedOwnedWaitJournalContextV8,
+) -> crate::agent_lifecycle::iterative::source_live::SourceLivePolicy {
+    use crate::agent_lifecycle::iterative::source_live::SourceLivePolicy;
+    let (_, execution) = context.test_runtime_execution();
+    let ordinary = execution.ordinary();
+    SourceLivePolicy {
+        deployment_binding: execution.model().digest().into(),
+        response_limit: ordinary.response_limit(),
+        ceiling: ordinary.ceiling(),
+        reservation_units: ordinary.reservation_units(),
+        unit: ordinary.unit().into(),
+        clock_domain: ordinary.clock_domain().into(),
+        initial_millis: ordinary.initial_millis(),
+        deadline_millis: ordinary.deadline_millis(),
+        max_total_steps: ordinary.max_total_steps().unwrap(),
+        program_root: None,
+    }
+}
+
+#[test]
+fn public_owned_agent_prepared_relaunch_child() {
+    use crate::live_invocation::source_journal::{
+        SourceOwnedAgentJournalV1, SourceOwnedAgentStatusV1,
+    };
+    use crate::resumable_effects::source_checkpoint::SourceCheckpointKey;
+    use std::os::unix::fs::PermissionsExt;
+    let Some(mode) = std::env::var_os(PUBLIC_RESTART_MODE) else {
+        return;
+    };
+    let metadata_path = std::path::PathBuf::from(std::env::var_os(PUBLIC_RESTART_META).unwrap());
+    match mode.to_str() {
+        Some("prepare") => {
+            CheckedOwnedWaitJournalContextV8::test_with_actual_two_turn_store(
+                |context, _lease, _key, fixture_directory| {
+                    let directory = fixture_directory.parent().unwrap().join("public-restart");
+                    std::fs::create_dir(&directory).unwrap();
+                    std::fs::set_permissions(&directory, std::fs::Permissions::from_mode(0o700))
+                        .unwrap();
+                    let counts = Rc::new(RefCell::new(Counts::default()));
+                    let mut factory = factory(
+                        Rc::clone(&counts),
+                        script(&document(&context)),
+                        Rc::new(|_| {}),
+                    );
+                    let mut adapter = source(&context, &mut factory);
+                    let cancel = crate::agent_runtime::AgentCancellation::new();
+                    let mut retained_registration = None;
+                    let opened = SourceOwnedAgentJournalV1::create_fresh(
+                        context.test_runtime_arc(),
+                        "src/app.spx",
+                        "fixture.agent",
+                        "fixture.agent.type.step",
+                        &adapter,
+                        &public_restart_policy(&context),
+                        &cancel,
+                        &Clock,
+                        context.test_runtime_execution().1.evaluation_fuel(),
+                        File::open(&directory).unwrap(),
+                        7,
+                        SourceCheckpointKey::new([73; 32]),
+                        true,
+                        |facts| {
+                            retained_registration = Some(facts.clone());
+                            true
+                        },
+                    )
+                    .unwrap();
+                    let policy = CapabilityPolicy::new(vec!["read".into()]).unwrap();
+                    let mut host = Host {
+                        calls: 0,
+                        fail: false,
+                    };
+                    assert!(
+                        opened
+                            .restart_first_prepared(
+                                &policy,
+                                &cancel,
+                                &Clock,
+                                &mut adapter,
+                                &mut host,
+                                |_| {},
+                                true,
+                                true,
+                            )
+                            .is_err(),
+                        "fresh history is not Prepared recovery"
+                    );
+                    assert_eq!((counts.borrow().starts, host.calls), (0, 0));
+                    let parked = super::super::park(opened.test_journal(), &cancel);
+                    drop(parked);
+                    let journal_file = std::fs::read_dir(&directory)
+                        .unwrap()
+                        .next()
+                        .unwrap()
+                        .unwrap()
+                        .path();
+                    let meta = PublicRestartMeta {
+                        directory,
+                        journal_file,
+                        retained_registration: retained_registration.unwrap(),
+                        preparer_pid: std::process::id(),
+                        resumed_pid_marker: metadata_path.with_extension("resumed-pid"),
+                    };
+                    drop(adapter);
+                    drop(opened);
+                    std::fs::write(&metadata_path, serde_json::to_vec(&meta).unwrap()).unwrap();
+                },
+            );
+        }
+        Some("resume") | Some("hostile") => {
+            let meta: PublicRestartMeta =
+                serde_json::from_slice(&std::fs::read(&metadata_path).unwrap()).unwrap();
+            CheckedOwnedWaitJournalContextV8::test_with_actual_two_turn_store(
+                |context, _lease, _key, _fixture_directory| {
+                    let counts = Rc::new(RefCell::new(Counts::default()));
+                    let mut factory = factory(
+                        Rc::clone(&counts),
+                        script(&document(&context)),
+                        Rc::new(|_| {}),
+                    );
+                    let mut adapter = source(&context, &mut factory);
+                    let cancel = crate::agent_runtime::AgentCancellation::new();
+                    let open = || {
+                        SourceOwnedAgentJournalV1::recover(
+                            context.test_runtime_arc(),
+                            "src/app.spx",
+                            "fixture.agent",
+                            "fixture.agent.type.step",
+                            &adapter,
+                            &public_restart_policy(&context),
+                            &cancel,
+                            &Clock,
+                            context.test_runtime_execution().1.evaluation_fuel(),
+                            File::open(&meta.directory).unwrap(),
+                            7,
+                            SourceCheckpointKey::new([73; 32]),
+                            true,
+                            &meta.retained_registration,
+                        )
+                    };
+                    if mode.to_str() == Some("hostile") {
+                        if let Ok(opened) = open() {
+                            drop(open);
+                            let policy = CapabilityPolicy::new(vec!["read".into()]).unwrap();
+                            let mut host = Host {
+                                calls: 0,
+                                fail: false,
+                            };
+                            assert!(
+                                opened
+                                    .restart_first_prepared(
+                                        &policy,
+                                        &cancel,
+                                        &Clock,
+                                        &mut adapter,
+                                        &mut host,
+                                        |_| {},
+                                        true,
+                                        true,
+                                    )
+                                    .is_err(),
+                                "hostile tail must refuse before Model"
+                            );
+                            assert_eq!(host.calls, 0);
+                        }
+                        assert_eq!(counts.borrow().starts, 0);
+                        return;
+                    }
+                    let mut wrong = meta.retained_registration.clone();
+                    wrong["generation"] = serde_json::Value::String("forged".into());
+                    assert!(
+                        SourceOwnedAgentJournalV1::recover(
+                            context.test_runtime_arc(),
+                            "src/app.spx",
+                            "fixture.agent",
+                            "fixture.agent.type.step",
+                            &adapter,
+                            &public_restart_policy(&context),
+                            &cancel,
+                            &Clock,
+                            context.test_runtime_execution().1.evaluation_fuel(),
+                            File::open(&meta.directory).unwrap(),
+                            7,
+                            SourceCheckpointKey::new([73; 32]),
+                            true,
+                            &wrong,
+                        )
+                        .is_err(),
+                        "foreign retained generation must refuse"
+                    );
+                    let opened = open().unwrap();
+                    drop(open);
+                    let policy = CapabilityPolicy::new(vec!["read".into()]).unwrap();
+                    let mut host = Host {
+                        calls: 0,
+                        fail: false,
+                    };
+                    let mut releases = 0;
+                    let run = opened
+                        .restart_first_prepared(
+                            &policy,
+                            &cancel,
+                            &Clock,
+                            &mut adapter,
+                            &mut host,
+                            |_| releases += 1,
+                            true,
+                            true,
+                        )
+                        .unwrap();
+                    assert_eq!(run.status(), SourceOwnedAgentStatusV1::Complete);
+                    assert_eq!(run.delivery_projection().unwrap()["kind"], "complete");
+                    assert_eq!((counts.borrow().starts, host.calls, releases), (2, 2, 4));
+                    match run.try_close() {
+                        Ok(Some(_)) => {}
+                        _ => panic!("recovered Complete must close with Report projection"),
+                    }
+                    std::fs::write(meta.resumed_pid_marker, std::process::id().to_string())
+                        .unwrap();
+                },
+            );
+        }
+        _ => panic!("unknown public restart child mode"),
+    }
+}
+
+#[test]
+fn public_owned_agent_prepared_relaunch_completes_and_hostile_tail_refuses() {
+    for mode in ["resume", "hostile"] {
+        let root = std::env::temp_dir().join(format!(
+            "spx-public-owned-restart-{}-{mode}",
+            std::process::id(),
+        ));
+        std::fs::create_dir(&root).unwrap();
+        let metadata = root.join("retained.json");
+        for (child_mode, keep_fixture) in [("prepare", true), (mode, false)] {
+            if child_mode == "hostile" {
+                let meta: PublicRestartMeta =
+                    serde_json::from_slice(&std::fs::read(&metadata).unwrap()).unwrap();
+                std::fs::OpenOptions::new()
+                    .append(true)
+                    .open(&meta.journal_file)
+                    .unwrap()
+                    .write_all(b"hostile")
+                    .unwrap();
+            }
+            let module = module_path!();
+            let child = module
+                .strip_prefix(concat!(env!("CARGO_PKG_NAME"), "::"))
+                .unwrap_or(module);
+            let test_name = format!("{child}::public_owned_agent_prepared_relaunch_child");
+            let mut command = std::process::Command::new(std::env::current_exe().unwrap());
+            command
+                .args(["--exact", test_name.as_str(), "--nocapture"])
+                .env(PUBLIC_RESTART_MODE, child_mode)
+                .env(PUBLIC_RESTART_META, &metadata)
+                .stdin(std::process::Stdio::null())
+                .stdout(std::process::Stdio::null())
+                .stderr(std::process::Stdio::null());
+            if keep_fixture {
+                command.env("SEMAPRAX_KEEP_OWNED_WAIT_CONTEXT_FIXTURE", "1");
+            } else {
+                command.env_remove("SEMAPRAX_KEEP_OWNED_WAIT_CONTEXT_FIXTURE");
+            }
+            assert!(
+                command.status().unwrap().success(),
+                "public restart child {child_mode} failed"
+            );
+        }
+        let meta: PublicRestartMeta =
+            serde_json::from_slice(&std::fs::read(&metadata).unwrap()).unwrap();
+        assert_ne!(meta.preparer_pid, std::process::id());
+        if mode == "resume" {
+            let resumed = std::fs::read_to_string(&meta.resumed_pid_marker)
+                .unwrap()
+                .parse::<u32>()
+                .unwrap();
+            assert_ne!(meta.preparer_pid, resumed);
+        }
+        std::fs::remove_dir_all(meta.directory.parent().unwrap()).unwrap();
+        std::fs::remove_dir_all(root).unwrap();
+    }
+}

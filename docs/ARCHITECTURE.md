@@ -3243,14 +3243,17 @@ actual failed Observe ownership to runtime custody before any next wait, and
 runtime uses the existing failed-Observe cleanup/Stop consumer. Public shutdown
 and general recovery remain separate admission boundaries.
 
-`live_upstream/runtime/public.rs` owns the fresh public v1 entry. It compiles
+`live_upstream/runtime/public.rs` owns the fresh and first-Prepared public v1 entries. It compiles
 the selected Agent from the retained runtime Project, checks the typed model
 binding and two-turn ceiling, opens the caller-held directory through the v8
 registration protocol under an explicit protected-history assertion, and
 requires complete registration facts to be retained before authorizing the
-fresh lease. The public journal wrapper owns the lock;
+fresh lease. Its recovered constructor strictly imports those inert facts,
+rechecks them against the compiled runtime and registered physical store, and
+holds a read-only lease until the exact first-Prepared restoration consumes
+two distinct trusted-host grants. The public journal wrapper owns the lock;
 the borrowed run handle owns private runtime custody through both turns. Only
 status and a checked terminal Report projection leave this boundary. Unresolved
 physical owners cannot close normally, and dropping their handle retires append
-authority. General semantic shutdown and recovered public execution remain
-separate work.
+authority. General semantic shutdown and other recovered phases remain
+separate work; the public process-relaunch gate has not yet executed.

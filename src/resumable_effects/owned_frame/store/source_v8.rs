@@ -106,8 +106,8 @@ pub(crate) struct SourceOwnedWaitStoreRegistrationV8 {
     identity: OwnedFrameStoreIdentity,
     generation: String,
 }
-/// Test-only representation of facts a trusted restart host retains outside
-/// the process. Production code has no registration serialization route.
+/// Legacy test transport for the private restart harness. The public route
+/// imports and exports the same complete inert facts as strict JSON instead.
 #[cfg(test)]
 #[derive(serde::Serialize, serde::Deserialize)]
 pub(crate) struct TestRetainedSourceOwnedWaitRegistrationV8 {
@@ -129,6 +129,107 @@ pub(crate) struct TestRetainedSourceOwnedWaitRegistrationV8 {
     generation: String,
 }
 impl SourceOwnedWaitStoreRegistrationV8 {
+    /// Parse only the complete registration projection emitted at fresh
+    /// creation. Parsed facts remain inert until the physical recovery checks
+    /// compare the held directory/file pins and authenticated generation.
+    pub(crate) fn from_retained_facts(value: &Value) -> Result<Self, Error> {
+        let scope = value.get("scope").ok_or(Error::Binding)?;
+        let scope = SourceCheckpointScope::new(
+            scope
+                .get("program_root")
+                .and_then(Value::as_str)
+                .ok_or(Error::Binding)?,
+            scope
+                .get("invocation_id")
+                .and_then(Value::as_str)
+                .ok_or(Error::Binding)?,
+            scope
+                .get("policy_epoch")
+                .and_then(Value::as_u64)
+                .ok_or(Error::Binding)?,
+        )
+        .map_err(|_| Error::Binding)?;
+        let limits = value.get("limits").ok_or(Error::Binding)?;
+        let integer = |field: &str| -> Result<usize, Error> {
+            usize::try_from(
+                limits
+                    .get(field)
+                    .and_then(Value::as_u64)
+                    .ok_or(Error::Binding)?,
+            )
+            .map_err(|_| Error::Binding)
+        };
+        let limits = SourceOwnedWaitLimitsV8 {
+            max_steps_per_stage: integer("max_steps_per_stage")?,
+            max_total_steps: value["limits"]["max_total_steps"]
+                .as_u64()
+                .ok_or(Error::Binding)?,
+            max_stages: integer("max_stages")?,
+            max_attempts: integer("max_attempts")?,
+            response_limit: integer("response_limit")?,
+        };
+        let directory_identity = value
+            .get("directory_identity")
+            .and_then(Value::as_array)
+            .filter(|parts| parts.len() == 2)
+            .ok_or(Error::Binding)?;
+        let directory_identity = (
+            directory_identity[0].as_u64().ok_or(Error::Binding)?,
+            directory_identity[1].as_u64().ok_or(Error::Binding)?,
+        );
+        let identity = value.get("store_identity").ok_or(Error::Binding)?;
+        let identity = OwnedFrameStoreIdentity {
+            directory_device: identity
+                .get("directory_device")
+                .and_then(Value::as_u64)
+                .ok_or(Error::Binding)?,
+            directory_inode: identity
+                .get("directory_inode")
+                .and_then(Value::as_u64)
+                .ok_or(Error::Binding)?,
+            file_device: identity
+                .get("file_device")
+                .and_then(Value::as_u64)
+                .ok_or(Error::Binding)?,
+            file_inode: identity
+                .get("file_inode")
+                .and_then(Value::as_u64)
+                .ok_or(Error::Binding)?,
+        };
+        let expected = FreshSourceOwnedWaitFactsV8 {
+            scope,
+            execution: value
+                .get("execution")
+                .and_then(Value::as_str)
+                .ok_or(Error::Binding)?
+                .to_owned(),
+            binding: value
+                .get("binding")
+                .and_then(Value::as_str)
+                .ok_or(Error::Binding)?
+                .to_owned(),
+            limits,
+            directory_identity,
+        };
+        expected.validate()?;
+        let generation = value
+            .get("generation")
+            .and_then(Value::as_str)
+            .ok_or(Error::Binding)?
+            .to_owned();
+        if generation != expected.generation(identity)? {
+            return Err(Error::Binding);
+        }
+        let registration = Self {
+            expected,
+            identity,
+            generation,
+        };
+        if registration.retained_facts() != *value {
+            return Err(Error::Binding);
+        }
+        Ok(registration)
+    }
     /// Complete inert facts for the host's independent durable retention ACK.
     /// These bytes are descriptive and cannot authorize append or recovery.
     pub(crate) fn retained_facts(&self) -> Value {

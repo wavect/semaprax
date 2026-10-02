@@ -296,13 +296,16 @@ fn runtime_for(
                 max_stages: limits.stages(),
                 ..IterativeBudget::default()
             },
-            RuntimeFixture::TwoTurn | RuntimeFixture::Complete | RuntimeFixture::EmptyComplete => {
-                IterativeBudget {
-                    max_iterations: 2,
-                    max_stages: 7,
-                    max_steps_per_stage: 1000,
-                }
-            }
+            RuntimeFixture::TwoTurn => IterativeBudget {
+                max_iterations: 2,
+                max_stages: 12,
+                max_steps_per_stage: 1000,
+            },
+            RuntimeFixture::Complete | RuntimeFixture::EmptyComplete => IterativeBudget {
+                max_iterations: 2,
+                max_stages: 7,
+                max_steps_per_stage: 1000,
+            },
         },
         effects,
     )
@@ -974,9 +977,13 @@ impl crate::live_invocation::source_journal::CheckedOwnedWaitJournalContextV8 {
                 _ => 2_000_000,
             };
             let e = Arc::new(context_for(&baseline, Arc::clone(&wait), total));
+            if matches!(profile, RuntimeFixture::TwoTurn) {
+                assert_eq!(e.ordinary().max_iterations(), 2);
+                assert_eq!(e.ordinary().max_stages(), 12);
+            }
             if matches!(
                 profile,
-                RuntimeFixture::TwoTurn | RuntimeFixture::Complete | RuntimeFixture::EmptyComplete
+                RuntimeFixture::Complete | RuntimeFixture::EmptyComplete
             ) {
                 assert_eq!(e.ordinary().max_iterations(), 2);
                 assert_eq!(e.ordinary().max_stages(), 7);

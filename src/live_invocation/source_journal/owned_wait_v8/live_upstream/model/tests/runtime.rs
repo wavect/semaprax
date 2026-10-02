@@ -163,4 +163,5 @@ fn owned_runtime_observe_panicking_observer_stays_unsettled() {
     failed_observe_runtime(None, true);
 }
 
+mod restart;
 mod two_turn;

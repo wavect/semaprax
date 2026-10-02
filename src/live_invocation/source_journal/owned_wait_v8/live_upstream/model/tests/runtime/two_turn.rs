@@ -14,9 +14,9 @@ enum Scenario {
     TargetFailure,
     ObserverPanic,
 }
-struct Host {
-    calls: usize,
-    fail: bool,
+pub(super) struct Host {
+    pub(super) calls: usize,
+    pub(super) fail: bool,
 }
 impl TargetHostHandler for Host {
     fn dispatch(

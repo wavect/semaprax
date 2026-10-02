@@ -247,6 +247,12 @@ Prepared prefix, materialize fresh Bytes backing, and consume that owner once
 through the original model path under a separate trusted-host grant; later,
 uncertain and post-intent prefixes remain closed. Public Agent execution and
 the remaining recovery classifications remain unfinished.
+The `live_upstream/runtime/restart` child consumes that exact Prepared owner
+directly into the existing runtime slot before Model continuation. Completed
+Model owners enter the same full two-turn chain as fresh runs; continuation
+failures retain their reached physical owner in a distinct restart quarantine.
+No caller session receives a restored owner, new reservation ledger, or store
+authority. The source-added process and append-fault gates remain unexecuted.
 `source_journal/policy_v6` owns independently folded quote reservations, observed
 and unknown exposure, and cumulative policy carry. Its V6 profile composes I/O
 limits and restores reservations before source continuation.

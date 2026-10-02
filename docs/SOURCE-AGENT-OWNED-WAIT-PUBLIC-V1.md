@@ -269,5 +269,38 @@ are authored and unexecuted in this source-only batch.
 
 This closes the private first-turn orchestration and second-turn custody gaps.
 Public request construction, complete runtime shutdown settlement, the broader
-failure cleanup matrix and restart-to-terminal restoration remain required;
+failure cleanup matrix and general restart acceptance remain required;
 no public lifecycle support or issue #330 closure is claimed.
+
+## 10. Private Prepared restart into runtime custody
+
+The runtime now has a consuming `restart_first_prepared` entry for the exact
+cumulative two-turn profile. It accepts the existing authenticated recovered
+journal and separate one-use restoration and continuation host grants. The
+existing recovery validator admits only the current first-turn Prepared tail
+under its read-only registered lease. The runtime takes the restored physical
+owner before the existing continuation crosses into original Model execution;
+no restored State or completed Model owner escapes to the caller.
+
+Successful Model completion occupies the same runtime slot as fresh execution
+and enters the existing `finish_two_turn_run` chain. Reservations, consumption,
+source association and journal identity remain those authenticated from the
+original run. Initialize, Observe and Start are not run again. The original
+Model Intent is appended once; a current Intent, answered or terminal history
+cannot be admitted by searching backward for a historical Prepared row.
+
+A continuation failure retains its exact Parked or Resume owner inside the
+runtime, reports `restart-model` quarantine, and refuses normal close. Reopening
+the caller handle does not retry dispatch, append or cleanup. Forced runtime
+destruction still only retires authority and releases process backing; it
+does not record semantic cleanup or a successful shutdown.
+
+The `owned_runtime_restart_prepared_` gates are authored and unexecuted. They
+cover five original Model append prewrite boundaries, physical backing custody,
+fresh/non-cumulative refusal, and a preparer process that exits before a
+separate process independently rebuilds the checked runtime and completes both
+turns. The process gate also checks cancellation before restoration, terminal
+history refusal in a third process, hostile trailing bytes, original cumulative
+funding, two Model dispatches, two target dispatches and four cleanup callbacks.
+Public construction, complete failure settlement, post-Intent restoration,
+Report restoration and the other durable phase classifications remain open.

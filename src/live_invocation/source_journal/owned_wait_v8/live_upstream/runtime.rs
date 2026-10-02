@@ -1,4 +1,4 @@
-//! Runtime custody for a fresh two-turn owned run. A session is only a mutable
+//! Runtime custody for a fresh or recovered two-turn owned run. A session is a mutable
 //! borrow; closing it never destroys the reached physical owner. This remains
 //! private until every pending phase has a shutdown/recovery settlement.
 use super::model::{model_live_actor_v8, CompletedLiveOwnedRunV8, LiveModelQuarantinedV8};
@@ -12,6 +12,7 @@ use crate::live_invocation::SourceInvocationClock;
 use crate::provider_adapter_sdk::StreamingSourceProposalAdapter;
 
 mod continue_run;
+mod restart;
 use continue_run::RunQuarantineV8;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -40,6 +41,7 @@ enum CustodyV8<'j> {
     Observe(Box<LiveObserveFailureV8<'j>>),
     Start(Box<LiveWaitFailureV8<'j>>),
     Model(Box<LiveModelQuarantinedV8<'j>>),
+    Restart(Box<super::wait::RecoveredFirstTurnPreparedContinuationFailureV8<'j>>),
     ObserveCleanup(Box<LiveFailedObserveStateQuarantinedV8<'j>>),
 }
 
@@ -110,6 +112,7 @@ impl<'j> OwnedLifecycleRuntimeV8<'j> {
             CustodyV8::Observe(_) => OwnedLifecycleStatusV8::Quarantined("observe"),
             CustodyV8::Start(_) => OwnedLifecycleStatusV8::Quarantined("start"),
             CustodyV8::Model(_) => OwnedLifecycleStatusV8::Quarantined("model"),
+            CustodyV8::Restart(_) => OwnedLifecycleStatusV8::Quarantined("restart-model"),
             CustodyV8::ObserveCleanup(_) => OwnedLifecycleStatusV8::Quarantined("observe-cleanup"),
         }
     }

@@ -1,5 +1,13 @@
 # Changelog
 
+- Join the exact authenticated first Prepared restart into private owned-Agent
+  runtime custody before Model execution. The restored owner can continue
+  through the existing two-turn terminal path; continuation failures retain
+  their actual owner and refuse close or retry. Add process-relaunch,
+  terminal/no-redispatch, cancellation, hostile-tail and append-fault regressions,
+  authored but unexecuted. Public construction and full shutdown settlement
+  remain open (#330).
+
 - Fix successful owned-Agent Report projection poisoning its journal when the
   inherited Reduce hold was dropped. The physical claimed Report now permits
   one checked retirement of the matching authenticated terminal registry entry;

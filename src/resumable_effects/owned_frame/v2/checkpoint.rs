@@ -33,6 +33,55 @@ impl CheckedOwnedWaitCheckpointV8 {
     pub(crate) fn outer_digest(&self) -> &str {
         &self.outer_digest
     }
+    /// Materializes fresh process-local input only after the caller has bound
+    /// this checked checkpoint to a live held lease. The persisted JSON itself
+    /// remains inert and this function exposes neither a root nor a key.
+    pub(crate) fn fresh_owned_input(
+        &self,
+    ) -> Result<crate::interpreter::resumable::owned_frame::OwnedFrameInput, Error> {
+        use crate::interpreter::resumable::owned_frame::{
+            OwnedFrameInput, OwnedFrameInputField, OwnedFrameInputValue,
+        };
+        let root = &self.payload["frame"]["owned_root"];
+        codec::keys(
+            root,
+            &[
+                "declaration",
+                "fields",
+                "storage",
+                "leaf_flags",
+                "suspension_cleanup",
+                "failure_cleanup",
+                "completion_cleanup",
+            ],
+        )?;
+        let declaration = root["declaration"].as_str().ok_or(Error::Malformed)?;
+        let fields = root["fields"].as_array().ok_or(Error::Malformed)?;
+        let fields = fields
+            .iter()
+            .map(|field| {
+                codec::keys(field, &["identity", "value"])?;
+                let identity = field["identity"].as_str().ok_or(Error::Malformed)?;
+                let value = if field["value"]["kind"] == "bytes" {
+                    codec::keys(&field["value"], &["kind", "hex"])?;
+                    OwnedFrameInputValue::Bytes(codec::unhex(
+                        field["value"]["hex"].as_str().ok_or(Error::Malformed)?,
+                        1024,
+                    )?)
+                } else {
+                    OwnedFrameInputValue::Scalar(codec::decode_scalar(&field["value"])?)
+                };
+                Ok(OwnedFrameInputField {
+                    identity: crate::hir::DeclarationId::new(identity),
+                    value,
+                })
+            })
+            .collect::<Result<Vec<_>, Error>>()?;
+        Ok(OwnedFrameInput {
+            declaration: crate::hir::DeclarationId::new(declaration),
+            fields,
+        })
+    }
 }
 fn frame(
     binding: &CheckedOwnedAgentWaitBindingV8,

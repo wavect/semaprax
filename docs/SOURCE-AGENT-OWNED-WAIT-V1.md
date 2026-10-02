@@ -301,9 +301,22 @@ The current recovery lease is read-only after that authentication. It can expose
 the authenticated inventory and terminal evidence, but cannot append any
 successor row. Retained registration, matching pins, and a valid MAC are proof
 data; they do not restore the physical State, wait, or Report owner required
-to advance a phase. A later restoration packet must introduce one sealed
-owner-bound permit and explicitly lift this fence only while materializing the
-exact owner allowed by its reviewed recovery table.
+to advance a phase. A restoration packet must introduce one sealed owner-bound
+permit and may lift this fence only in the exact continuation that consumes an
+owner allowed by its reviewed recovery table.
+
+The first implemented restoration packet is narrower: after close/reopen, one
+non-clone trusted-host grant can materialize a fresh process-local parked Bytes
+owner only for the exact current first-turn `OwnedWaitPrepared` tail. It binds
+the retained registration and generation, held exclusive lease, authenticated
+MAC tail, checked source binding, protected checkpoint key and the exact
+checkpoint/observation/reservation facts. It revalidates the checkpoint before
+allocating fresh Bytes backing and leaves the recovered lease read-only. Later
+turns, any tail other than first-turn Prepared, and a StartReserved prefix with
+no Prepared ACK refuse before owner materialization; uncertain append prefixes
+therefore have no retry, model dispatch or successor append route. The owner
+has no continuation entry yet, so this packet does not claim model restart,
+public execution, delivery, or general physical-owner recovery.
 
 The profile-specific constructor/delegation and narrow store lease paths in §9.3 remain; only the impossible pre-create file-identity requirement/signatures are replaced by this exact ordering. V1 constructors/public signatures/name/generation recipes remain frozen.
 

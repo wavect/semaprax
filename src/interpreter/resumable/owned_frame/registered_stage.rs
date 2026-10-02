@@ -86,6 +86,36 @@ pub(crate) fn prepare_owned_copy_wait_v2(
         observation,
     })
 }
+/// Rebuilds a parked owner only from a checkpoint that a sealed caller already
+/// authenticated. This never evaluates Start or accepts a public snapshot.
+pub(crate) fn restore_owned_copy_wait_parked_v2(
+    binding: &crate::resumable_effects::owned_frame::v2::CheckedOwnedAgentWaitBindingV8,
+    input: OwnedFrameInput,
+    observation: ResumableChannelValue,
+) -> Result<OwnedCopyWaitParkedV2, ()> {
+    let argument = admit_owned_agent_state_input(binding.helper(), input).map_err(|_| ())?;
+    let prepared = prepare_owned_copy_wait_v2(argument, observation).map_err(|_| ())?;
+    let PreparedOwnedCopyWaitV2 {
+        mut argument,
+        observation,
+    } = prepared;
+    let allocations = argument.allocations.take().ok_or(())?;
+    let root = argument.root.take();
+    if argument.creator != std::process::id()
+        || !root
+            .as_ref()
+            .is_some_and(|root| allocations.validate(&[root]))
+    {
+        return Err(());
+    }
+    Ok(OwnedCopyWaitParkedV2 {
+        allocations,
+        plan: argument.plan.clone(),
+        root,
+        observation,
+        creator: argument.creator,
+    })
+}
 pub(crate) struct OwnedCopyWaitParkedV2 {
     allocations: OwnedAllocationProvenanceV2,
     plan: CheckedOwnedFrameHelperV2,

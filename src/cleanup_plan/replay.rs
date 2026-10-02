@@ -970,7 +970,14 @@ fn skeleton_work_upper(
     if semantic_paths > MAX_REPLAY_PATHS {
         return Ok(0);
     }
-    let mut hir_upper = checked_skeleton_mul(function, 4, semantic_paths)?;
+    // Root path, four body-sequencing operations, and completed path;
+    // an owned result also clones its identity and performs four transfers.
+    let root_work = if type_needs_drop(program, function, &function.return_type)? {
+        11
+    } else {
+        6
+    };
+    let mut hir_upper = checked_skeleton_mul(function, root_work, semantic_paths)?;
     for expression in function
         .requires
         .iter()
@@ -1027,6 +1034,9 @@ fn expression_skeleton_work_upper(
             .expect("skeleton census frame retained");
         if *next == 0 {
             let local = match &expression.kind {
+                // Eval plus strings::paths: temporary, two identities,
+                // initialization observation, and the singleton path.
+                _ if strings::owns_clone(expression) => 6,
                 ResolvedExprKind::Closure { .. }
                 | ResolvedExprKind::FunctionReference { .. }
                 | ResolvedExprKind::Int(_)
@@ -1091,17 +1101,11 @@ fn expression_skeleton_work_upper(
                 | ResolvedExprKind::ConstructRecord { fields, .. } => {
                     skeleton_bound::constructor_work_upper(program, function, fields)?
                 }
-                ResolvedExprKind::UpdateRecord { record, fields, .. } => checked_skeleton_add(
-                    function,
-                    fields
-                        .len()
-                        .checked_mul(5)
-                        .and_then(|fields| fields.checked_add(8))
-                        .ok_or_else(|| skeleton_preflight_overflow(function))?,
-                    untouched_update_field_work_upper(
+                ResolvedExprKind::UpdateRecord { record, fields, .. } => {
+                    skeleton_bound::update_work_upper(
                         program, function, expression, record, fields,
-                    )?,
-                )?,
+                    )?
+                }
                 ResolvedExprKind::Try { .. } | ResolvedExprKind::TryOption { .. } => 10,
                 ResolvedExprKind::Project { .. } | ResolvedExprKind::Upcast { .. } => 6,
                 ResolvedExprKind::Yield { .. } => 6,
@@ -1138,47 +1142,6 @@ fn expression_skeleton_work_upper(
         }
     }
     Ok(weight)
-}
-
-fn untouched_update_field_work_upper(
-    program: &ResolvedProgram,
-    function: &ResolvedFunction,
-    expression: &ResolvedExpr,
-    record: &DeclarationId,
-    replacements: &[crate::hir::ResolvedFieldInitializer],
-) -> Result<usize, Diagnostic> {
-    if expression.ownership != OwnershipMode::Own
-        || !type_needs_drop(program, function, &expression.ty)?
-    {
-        return Ok(0);
-    }
-    let declarations = program.declarations.record_fields(record).ok_or_else(|| {
-        replay_error(
-            function,
-            format!("record update has unknown record `{record}`"),
-        )
-    })?;
-    let arguments = record_destructure::update::concrete_arguments(function, expression, record)?;
-    let mut untouched_droppable = 0usize;
-    for field in declarations {
-        let field_ty = crate::hir::substitute_type(&field.ty, record, arguments)?;
-        if replacements
-            .iter()
-            .any(|replacement| replacement.field == field.id)
-            || !type_needs_drop(program, function, &field_ty)?
-        {
-            continue;
-        }
-        untouched_droppable = untouched_droppable
-            .checked_add(1)
-            .ok_or_else(|| skeleton_preflight_overflow(function))?;
-    }
-    let active_paths = expression_path_counts(function, expression)?.normal;
-    checked_skeleton_mul(
-        function,
-        checked_skeleton_mul(function, untouched_droppable, active_paths)?,
-        8,
-    )
 }
 
 fn checked_skeleton_add(

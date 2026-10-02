@@ -33,6 +33,84 @@ pub(super) fn constructor_work_upper(
     Ok(weight)
 }
 
+pub(super) fn update_work_upper(
+    program: &ResolvedProgram,
+    function: &ResolvedFunction,
+    expression: &ResolvedExpr,
+    record: &DeclarationId,
+    fields: &[crate::hir::ResolvedFieldInitializer],
+) -> Result<usize, Diagnostic> {
+    // Eval + UpdateBase. Each replacement adds its continuation, set clone
+    // and insertion, and four sequencing operations; children own Eval.
+    let mut weight = checked_skeleton_add(
+        function,
+        2,
+        checked_skeleton_mul(function, fields.len(), 7)?,
+    )?;
+    if expression.ownership == OwnershipMode::Own
+        && type_needs_drop(program, function, &expression.ty)?
+    {
+        // UpdateBase: one temporary and at most four staging operations.
+        // Finish: two temporaries, then result temporary and source clone.
+        weight = checked_skeleton_add(function, weight, 9)?;
+        for field in fields {
+            if field.value.ownership == OwnershipMode::Own
+                && type_needs_drop(program, function, &field.value.ty)?
+            {
+                // Same destination construction and completed transfer as
+                // RecordField, plus the set work already counted above.
+                weight = checked_skeleton_add(function, weight, 8)?;
+            }
+        }
+    }
+    checked_skeleton_add(
+        function,
+        weight,
+        untouched_update_field_work_upper(program, function, expression, record, fields)?,
+    )
+}
+
+fn untouched_update_field_work_upper(
+    program: &ResolvedProgram,
+    function: &ResolvedFunction,
+    expression: &ResolvedExpr,
+    record: &DeclarationId,
+    replacements: &[crate::hir::ResolvedFieldInitializer],
+) -> Result<usize, Diagnostic> {
+    if expression.ownership != OwnershipMode::Own
+        || !type_needs_drop(program, function, &expression.ty)?
+    {
+        return Ok(0);
+    }
+    let declarations = program.declarations.record_fields(record).ok_or_else(|| {
+        replay_error(
+            function,
+            format!("record update has unknown record `{record}`"),
+        )
+    })?;
+    let arguments = record_destructure::update::concrete_arguments(function, expression, record)?;
+    let mut untouched_droppable = 0usize;
+    for field in declarations {
+        let field_ty = crate::hir::substitute_type(&field.ty, record, arguments)?;
+        if replacements
+            .iter()
+            .any(|replacement| replacement.field == field.id)
+            || !type_needs_drop(program, function, &field_ty)?
+        {
+            continue;
+        }
+        untouched_droppable = untouched_droppable
+            .checked_add(1)
+            .ok_or_else(|| skeleton_preflight_overflow(function))?;
+    }
+    let active_paths = expression_path_counts(function, expression)?.normal;
+    checked_skeleton_mul(
+        function,
+        checked_skeleton_mul(function, untouched_droppable, active_paths)?,
+        8,
+    )
+}
+
 pub(super) fn plan_skeleton_block_weight(plan: &CleanupPlan, block: &CleanupBlock) -> usize {
     let mut weight = block.transitions.len().saturating_add(1);
     for transition in &block.transitions {

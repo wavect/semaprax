@@ -26,6 +26,7 @@ Audience: all documentation readers.
 - [Source Model Wait v1](SOURCE-MODEL-WAIT-V1.md)
 - [Source owned frame v1](SOURCE-OWNED-FRAME-V1.md)
 - [Source Agent owned wait v1](SOURCE-AGENT-OWNED-WAIT-V1.md)
+- [Source Agent owned wait public v1](SOURCE-AGENT-OWNED-WAIT-PUBLIC-V1.md)
 - [Live Repair Smoke v1](LIVE-REPAIR-SMOKE-V1.md)
 - [Project Linked Agent Lifecycle v1](PROJECT-LINKED-AGENT-LIFECYCLE-V1.md)
 - [Project Linked Agent Migration v1](PROJECT-LINKED-AGENT-MIGRATION-V1.md)

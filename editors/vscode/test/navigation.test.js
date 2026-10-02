@@ -86,7 +86,7 @@ test('code lenses name the identity, effects, and contract counts of each declar
 
 class Child extends EventEmitter {
   constructor() { super(); this.stdout = new EventEmitter(); this.stderr = new EventEmitter(); this.killed = false; }
-  kill() { this.killed = true; }
+  kill() { this.killed = true; queueMicrotask(() => this.emit('close', null)); }
 }
 const spawnInto = (calls, child) => (command, args, options) => { calls.push({ command, args, options }); return child; };
 

@@ -218,6 +218,36 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn continue_recove
     })
 }
 
+/// Failure from the closed first-turn Prepared restart entry.
+///
+/// `Recovery` has no materialized physical owner. `Continuation` retains the
+/// reached owner in its existing sealed failure shape; callers can retain it
+/// for the prescribed private cleanup without extracting a State or lease.
+pub(super) enum FirstTurnPreparedRestartFailureV8<'j> {
+    Recovery(SourceJournalError),
+    Continuation(RecoveredFirstTurnPreparedContinuationFailureV8<'j>),
+}
+
+/// Restore and consume the sole admitted first-turn Prepared restart tail.
+///
+/// Both host grants are one-use values supplied independently by the trusted
+/// host. Authenticated rows, retained registration data and checkpoint bytes
+/// cannot replace either grant. The continuation reaches the original model
+/// path exactly once; it never opens a fresh State or redispatches an intent.
+pub(super) fn restart_first_turn_prepared_v8<'j>(
+    journal: &'j SourceOwnedWaitJournalV8,
+    recovery: FirstTurnPreparedRecoveryHostGrantV8,
+    continuation: FirstTurnPreparedContinuationHostGrantV8,
+    adapter: &mut crate::provider_adapter_sdk::StreamingSourceProposalAdapter<'_>,
+    clock: &'j dyn crate::live_invocation::SourceInvocationClock,
+    cancellation: &'j crate::agent_runtime::AgentCancellation,
+) -> Result<CompletedLiveOwnedRunV8<'j>, FirstTurnPreparedRestartFailureV8<'j>> {
+    let owner = recover_first_turn_prepared_owner_v8(journal, recovery, cancellation)
+        .map_err(FirstTurnPreparedRestartFailureV8::Recovery)?;
+    continue_recovered_first_turn_prepared_v8(owner, continuation, adapter, clock)
+        .map_err(FirstTurnPreparedRestartFailureV8::Continuation)
+}
+
 pub(crate) fn recover_first_turn_prepared_owner_v8<'j>(
     journal: &'j SourceOwnedWaitJournalV8,
     grant: FirstTurnPreparedRecoveryHostGrantV8,

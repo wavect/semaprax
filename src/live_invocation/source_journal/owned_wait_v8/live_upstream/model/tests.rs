@@ -303,26 +303,22 @@ fn owned_wait_recovered_first_prepared_continues_once_after_close_reopen() {
             let reopened =
                 SourceOwnedWaitJournalV8::open(Arc::clone(&context), restart_key, recovered)
                     .unwrap();
-            let owner = super::super::recover_first_turn_prepared_owner_v8(
-                &reopened,
-                super::super::FirstTurnPreparedRecoveryHostGrantV8::for_trusted_host(true).unwrap(),
-                &cancel,
-            )
-            .unwrap();
             assert_eq!(std::fs::read(&path).unwrap(), before);
             let response = document(&context);
             let counts = Rc::new(RefCell::new(Counts::default()));
             let mut factory = factory(Rc::clone(&counts), script(&response), Rc::new(|_| {}));
             let mut source = source(reopened.context(), &mut factory);
-            let completed = match super::super::continue_recovered_first_turn_prepared_v8(
-                owner,
+            let completed = match super::super::restart_first_turn_prepared_v8(
+                &reopened,
+                super::super::FirstTurnPreparedRecoveryHostGrantV8::for_trusted_host(true).unwrap(),
                 super::super::FirstTurnPreparedContinuationHostGrantV8::for_trusted_host(true)
                     .unwrap(),
                 &mut source,
                 &Clock,
+                &cancel,
             ) {
                 Ok(completed) => completed,
-                Err(_) => panic!("authenticated Prepared tail enters original model once"),
+                Err(_) => panic!("opaque restart entry reaches the original model once"),
             };
             assert_eq!(completed.completed, 14);
             assert_eq!(completed.session.sequence(), 15);
@@ -399,28 +395,26 @@ fn owned_wait_recovered_first_prepared_process_child() {
                     let journal =
                         SourceOwnedWaitJournalV8::open(Arc::clone(&context), key, lease).unwrap();
                     let cancellation = crate::agent_runtime::AgentCancellation::new();
-                    let owner = super::super::recover_first_turn_prepared_owner_v8(
-                        &journal,
-                        super::super::FirstTurnPreparedRecoveryHostGrantV8::for_trusted_host(true)
-                            .unwrap(),
-                        &cancellation,
-                    )
-                    .unwrap();
                     let response = document(&context);
                     let counts = Rc::new(RefCell::new(Counts::default()));
                     let mut factory =
                         factory(Rc::clone(&counts), script(&response), Rc::new(|_| {}));
                     let mut adapter = source(journal.context(), &mut factory);
-                    let completed = super::super::continue_recovered_first_turn_prepared_v8(
-                        owner,
+                    let completed = super::super::restart_first_turn_prepared_v8(
+                        &journal,
+                        super::super::FirstTurnPreparedRecoveryHostGrantV8::for_trusted_host(true)
+                            .unwrap(),
                         super::super::FirstTurnPreparedContinuationHostGrantV8::for_trusted_host(
                             true,
                         )
                         .unwrap(),
                         &mut adapter,
                         &Clock,
+                        &cancellation,
                     )
-                    .unwrap_or_else(|_| panic!("relaunch continues the exact Prepared owner"));
+                    .unwrap_or_else(|_| {
+                        panic!("opaque relaunch consumes the exact Prepared owner")
+                    });
                     assert_eq!(completed.session.sequence(), 15);
                     assert_eq!(
                         (
@@ -447,17 +441,37 @@ fn owned_wait_recovered_first_prepared_process_child() {
                     let journal =
                         SourceOwnedWaitJournalV8::open(Arc::clone(&context), key, lease).unwrap();
                     let cancellation = crate::agent_runtime::AgentCancellation::new();
+                    let response = document(&context);
+                    let counts = Rc::new(RefCell::new(Counts::default()));
+                    let mut factory =
+                        factory(Rc::clone(&counts), script(&response), Rc::new(|_| {}));
+                    let mut adapter = source(journal.context(), &mut factory);
                     assert!(
-                        super::super::recover_first_turn_prepared_owner_v8(
+                        super::super::restart_first_turn_prepared_v8(
                             &journal,
                             super::super::FirstTurnPreparedRecoveryHostGrantV8::for_trusted_host(
                                 true,
                             )
                             .unwrap(),
+                            super::super::FirstTurnPreparedContinuationHostGrantV8::for_trusted_host(
+                                true,
+                            )
+                            .unwrap(),
+                            &mut adapter,
+                            &Clock,
                             &cancellation,
                         )
                         .is_err(),
-                        "hostile bytes cannot mint a restart owner or reach an adapter",
+                        "hostile bytes cannot enter the opaque restart route",
+                    );
+                    assert_eq!(
+                        (
+                            counts.borrow().factories,
+                            counts.borrow().starts,
+                            counts.borrow().polls
+                        ),
+                        (0, 0, 0),
+                        "hostile tail cannot reach a model adapter through restart",
                     );
                     assert!(journal.begin_session().is_err());
                 },

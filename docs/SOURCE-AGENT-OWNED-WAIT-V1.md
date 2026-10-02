@@ -1116,3 +1116,25 @@ restoration after restart. Restart currently exposes only authenticated
 read-only evidence: it cannot append a successor from terminal bytes or a
 retained registration. Broader iteration and native/Wasm owned-wait support
 remain separate completion requirements.
+
+## 52. Opaque first-turn Prepared restart entry (#330)
+
+The one admitted restartable tail now has one consuming internal entry. It
+accepts the authenticated reopened journal, two separate one-use trusted-host
+grants, the already bound model adapter, clock, and cancellation token. It
+first materializes only the exact first-turn `OwnedWaitPrepared` owner, then
+consumes that owner directly into the existing original-model continuation.
+Neither the restored State nor the parked owner is returned to the caller.
+
+The entry returns the existing completed first-turn owner on success. A
+pre-materialization refusal has no physical owner. A continuation refusal
+retains the existing owner-bearing sealed failure, including the reached
+quarantined journal state; it does not recreate an owner from authenticated
+rows or retry dispatch. Retained registration data, checkpoints, and journal
+bytes remain descriptive and cannot replace either grant.
+
+The owning close/reopen and two-subprocess regressions enter this façade. The
+success case proves the relaunch invokes exactly one original model adapter;
+the hostile-tail child proves the façade reaches neither adapter construction
+nor polling. This is a private recovery composition, not the public two-turn
+run method, Report restoration or terminal delivery.

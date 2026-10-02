@@ -74,6 +74,7 @@ pub(crate) use wait::{
     recover_first_turn_prepared_owner_v8, FirstTurnPreparedContinuationHostGrantV8,
     FirstTurnPreparedRecoveryHostGrantV8, RecoveredFirstTurnPreparedOwnerV8,
 };
+pub(super) use wait::restart_first_turn_prepared_v8;
 pub(super) struct InitializedLiveOwnedRunV8<'j> {
     // Backing roots must be disposed while the held container still exists.
     owner: LiveInitializedStateV8,

@@ -108,6 +108,11 @@ function renderSession(value) {
     out.push(line('Measured boundary', group.boundary === null ? 'unavailable' : group.boundary));
     out.push(line('Comparison type', group.reference_kind === null ? 'unavailable' : group.reference_kind));
     out.push(line('Measured pairs', `${group.coverage.paired}/${group.coverage.events} responses`));
+    out.push(line('Token-measured observations', `${group.coverage.token_measured}/${group.coverage.events}`));
+    out.push(line('Unpaired observations', group.coverage.events - group.coverage.paired));
+    out.push(line('Outcome counts', Object.entries(group.outcomes).sort(([a], [b]) => a.localeCompare(b)).map(([key, count]) => `${key}=${count}`).join(', ') || 'none'));
+    out.push(line('Status counts', Object.entries(group.statuses).sort(([a], [b]) => a.localeCompare(b)).map(([key, count]) => `${key}=${count}`).join(', ') || 'none'));
+    if (group.coverage.paired !== group.coverage.events) out.push('Partial group: only paired successful measurements contribute to its reduction.\n');
     if (group.tokenizer === null || group.coverage.paired === 0) out.push('Paired token reduction unavailable for this group.\n');
     else {
       out.push(line('Paired actual payload tokens', group.paired_actual_tokens));

@@ -470,6 +470,15 @@ def show_text(value: dict[str, Any]) -> str:
             if not all(isinstance(coverage.get(key), int) and not isinstance(coverage[key], bool) and coverage[key] >= 0 for key in ("events", "paired")):
                 raise ReportError("session report has invalid coverage")
             lines.extend(["", f"Group {position}", f"Tokenizer: {group.get('tokenizer') if group.get('tokenizer') is not None else 'model tokens unavailable'}", f"Measured boundary: {group.get('boundary') if group.get('boundary') is not None else 'unavailable'}", f"Comparison type: {group.get('reference_kind') if group.get('reference_kind') is not None else 'unavailable'}", f"Measured pairs: {coverage['paired']}/{coverage['events']} responses"])
+            token_measured = coverage.get("token_measured")
+            if not checked_count(token_measured):
+                raise ReportError("session report has invalid token coverage")
+            outcomes, statuses = group.get("outcomes"), group.get("statuses")
+            if not isinstance(outcomes, dict) or not isinstance(statuses, dict) or any(not isinstance(key, str) or not checked_count(item) for table in (outcomes, statuses) for key, item in table.items()):
+                raise ReportError("session report has invalid outcome/status counts")
+            lines.extend([f"Token-measured observations: {token_measured}/{coverage['events']}", f"Unpaired observations: {coverage['events'] - coverage['paired']}", "Outcome counts: " + ", ".join(f"{key}={outcomes[key]}" for key in sorted(outcomes)) if outcomes else "Outcome counts: none", "Status counts: " + ", ".join(f"{key}={statuses[key]}" for key in sorted(statuses)) if statuses else "Status counts: none"])
+            if coverage["paired"] != coverage["events"]:
+                lines.append("Partial group: only paired successful measurements contribute to its reduction.")
             paired_actual, paired_baseline = group.get("paired_actual_tokens"), group.get("paired_baseline_tokens")
             if group.get("tokenizer") is None or coverage["paired"] == 0:
                 lines.append("Paired token reduction unavailable for this group.")

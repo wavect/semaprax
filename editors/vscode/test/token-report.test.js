@@ -38,6 +38,9 @@ test('bytes-only reports explicitly leave model tokens unavailable', () => {
 test('session snapshots keep paired coverage next to group totals and regressions', () => {
   const text = render(validate(JSON.stringify(session())));
   assert.match(text, /Measured pairs: 8\/12 responses/);
+  assert.match(text, /Token-measured observations: 10\/12/);
+  assert.match(text, /Unpaired observations: 4/);
+  assert.match(text, /Partial group: only paired successful measurements/);
   assert.match(text, /\+20 tokens used versus reference/);
   assert.match(text, /Provider usage is not present/);
 });

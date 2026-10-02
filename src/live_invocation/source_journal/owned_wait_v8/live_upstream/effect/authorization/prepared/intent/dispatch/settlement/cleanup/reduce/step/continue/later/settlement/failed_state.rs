@@ -15,9 +15,9 @@ impl<'j> LaterObserveSettlementV8<'j> {
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn into_failed_state_cleanup(
         self,
         cache: FailedObserveCacheV8<'j>,
-    ) -> Result<FailedObserveSourceV8<'j>, Self> {
+    ) -> Result<FailedObserveSourceV8<'j>, (Self, FailedObserveCacheV8<'j>)> {
         if !matches!(self.owner.outcome, ContinuedOwnedObserveV2::Failed(_)) {
-            return Err(self);
+            return Err((self, cache));
         }
         let LiveLaterObservedContinueV8 {
             outcome,
@@ -28,15 +28,18 @@ impl<'j> LaterObserveSettlementV8<'j> {
         let ContinuedOwnedObserveV2::Failed(failed) = outcome else {
             unreachable!("closed actual variant")
         };
-        if failed.consumed() != consumed || lineage.acks.len() != 2 || lineage.turn != cache.turn {
-            return Err(Self {
-                owner: LiveLaterObservedContinueV8 {
-                    outcome: ContinuedOwnedObserveV2::Failed(failed),
-                    accounting,
-                    lineage,
-                    consumed,
+        if failed.consumed() != consumed || lineage.acks.len() != 2 || lineage.turn != cache.turn() {
+            return Err((
+                Self {
+                    owner: LiveLaterObservedContinueV8 {
+                        outcome: ContinuedOwnedObserveV2::Failed(failed),
+                        accounting,
+                        lineage,
+                        consumed,
+                    },
                 },
-            });
+                cache,
+            ));
         }
         Ok(FailedObserveSourceV8 {
             owner: FailedObserveOwnerV8::Continued { failed, accounting },

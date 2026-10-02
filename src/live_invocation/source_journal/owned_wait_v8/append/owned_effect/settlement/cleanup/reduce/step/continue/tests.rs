@@ -875,7 +875,10 @@ fn continued_reduce_chain_step_ack(fault: u8, three_turns: bool, later_observe_e
                                         observed.prepare_observe_settlement().unwrap_or_else(
                                             |_| panic!("turn-2 physical Observe settlement"),
                                         );
-                                    assert!(matches!(settlement.selected(), EntryV8::Owned(crate::live_invocation::source_journal::owned_wait_v8::model::OwnedBodyV8::OwnedObserveSettled { turn: 2, settlement: crate::live_invocation::source_journal::owned_wait_v8::model::ObserveSettlementV8::Observed { .. }, .. })));
+                                    assert_eq!(
+                                        matches!(settlement.selected(), EntryV8::Owned(crate::live_invocation::source_journal::owned_wait_v8::model::OwnedBodyV8::OwnedObserveSettled { turn: 2, settlement: crate::live_invocation::source_journal::owned_wait_v8::model::ObserveSettlementV8::Failed { .. }, .. })),
+                                        later_observe_ensures,
+                                    );
                                     let settlement_before =
                                         journal.lease.try_borrow_mut().unwrap().read().unwrap();
                                     if fault == 7 {

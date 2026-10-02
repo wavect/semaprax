@@ -83,6 +83,11 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) struct FailedObser
     basis: u32,
     turn: u32,
 }
+impl FailedObserveCacheV8<'_> {
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn turn(&self) -> u32 {
+        self.turn
+    }
+}
 pub(in crate::live_invocation::source_journal::owned_wait_v8) struct FailedObserveAckV8<'j> {
     session: AppendSessionV8<'j>,
     witness: VerifiedFailedObserveStateSuccessorV8<'j>,
@@ -287,7 +292,7 @@ impl<'j> LiveSettledObserveV8<'j> {
             LiveObserveSettlementOwnerV8::Later(later) => {
                 match later.into_failed_state_cleanup(cache) {
                     Ok(x) => x,
-                    Err(later) => {
+                    Err((later, cache)) => {
                         let owner = LiveObserveSettlementOwnerV8::Later(later);
                         acks.insert(0, cache.observed);
                         owner.journal().quarantine();

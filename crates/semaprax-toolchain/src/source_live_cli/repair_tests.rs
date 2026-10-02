@@ -5,10 +5,6 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use super::*;
 use crate::opencode_host::{OpenCodeHostConfig, OpenCodeRunner, OpenCodeRunnerFailure};
-#[path = "repair_tests/fixed_candidate_test.rs"]
-mod fixed_candidate_test;
-#[path = "repair_tests/post_settled_barrier.rs"]
-mod post_settled_barrier;
 static NEXT: AtomicU64 = AtomicU64::new(0);
 
 struct Fixture(PathBuf);
@@ -43,6 +39,11 @@ macro_rules! unix_checkpoint_host {
         }
     };
 }
+
+#[path = "repair_tests/fixed_candidate_test.rs"]
+mod fixed_candidate_test;
+#[path = "repair_tests/post_settled_barrier.rs"]
+mod post_settled_barrier;
 
 const MANIFEST: &str = include_str!("../../../../examples/offline-repair-project/semaprax.toml");
 const APP: &str = include_str!("../../../../examples/offline-repair-project/src/app.spx");

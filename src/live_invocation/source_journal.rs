@@ -1325,6 +1325,7 @@ pub(crate) use owned_wait_v8::LiveContinuedSettlementPermitV8;
 pub(crate) use owned_wait_v8::LiveContinuedDecisionCleanupPermitV8;
 pub(crate) use owned_wait_v8::LiveContinuedOutcomePermitV8;
 
+pub(crate) use owned_wait_v8::LiveCompletedStateShutdownPermitV8;
 pub(crate) use owned_wait_v8::LiveRefusedStateCleanupPermitV8;
 
 pub(crate) use owned_wait_v8::LiveRecoveredStateTransferPermitV8;

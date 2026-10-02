@@ -5,6 +5,7 @@ use super::super::wait::{
     TransferredStateRecoveryHostGrantV8,
 };
 use super::*;
+mod shutdown;
 use crate::agent_lifecycle::authorization::target_protocol::TargetHostHandler;
 use crate::agent_lifecycle::iterative::source_live::SourceLivePolicy;
 use crate::agent_lifecycle::iterative::source_live::SourceProposalPolicy;
@@ -265,37 +266,9 @@ impl SourceOwnedAgentJournalV1 {
         handler: &mut dyn TargetHostHandler,
         mut observe: impl FnMut(&FinalizeAction),
     ) -> Result<SourceOwnedAgentRunV1<'j>, SourceJournalError> {
-        self.validate_run_entry(cancellation, clock, adapter)?;
-        let mut runtime = OwnedLifecycleRuntimeV8::open(&self.journal, cancellation)?;
-        let context = self.journal.context();
-        let (bound, execution) = context.ready_runtime().ok_or(SourceJournalError::Binding)?;
-        let task = bound.owned_wait_task_v8(execution)?;
-        let metadata = execution.wait().lifecycle().owned_wait_task_v8();
-        let input = OwnedFrameInput {
-            declaration: metadata.id.clone(),
-            fields: metadata
-                .fields()
-                .map(|(identity, _)| OwnedFrameInputField {
-                    identity: identity.clone(),
-                    value: if identity == metadata.objective_field {
-                        OwnedFrameInputValue::Bytes(task.objective.clone())
-                    } else {
-                        OwnedFrameInputValue::Scalar(ArgumentValue::Int(task.budget))
-                    },
-                })
-                .collect(),
-        };
-        if runtime
-            .session()
-            .run_first_turn_model(input, adapter, clock)
-            == OwnedLifecycleStatusV8::ModelCompleted
-        {
-            runtime
-                .session()
-                .finish_two_turn_run(policy, adapter, handler, &mut observe);
-        }
-        settle_known_failures(&mut runtime, &mut observe);
-        Ok(SourceOwnedAgentRunV1 { runtime })
+        let mut run = self.prepare_first_model(cancellation, clock, adapter, &mut observe)?;
+        run.finish(policy, adapter, handler, &mut observe);
+        Ok(run)
     }
 
     /// Continue the sole authenticated first-turn Prepared owner after a real

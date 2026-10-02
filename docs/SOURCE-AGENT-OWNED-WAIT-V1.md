@@ -1223,3 +1223,31 @@ route adds no restoration authority and does not settle other shutdown phases.
 The public Refused success, public observer-panic/hostile Stop and runtime
 Started-before/after-write retention regressions use 2 MiB workers; they are
 authored and await execution at this source update.
+
+
+## 56. Eligible Completed-State shutdown
+
+The public prepare/finish boundary preserves the actual first-model Completed
+State before Authorize. Explicit shutdown or cancellation observed before
+Authorize selects existing `OwnedWaitFailed` HostAbandoned with no open
+reservation and zero consumed fuel. The current Completed row is the State
+basis. Exact actual State, original wait argument and checked Proposal/result
+digests bind the private live cleanup permit; no retained bytes recreate an
+owner in this route.
+
+CleanupStarted ACK precedes canonical physical State disposal. The observed
+receipt precedes Cancelled Stop; failed receipt or append uncertainty retains
+the reached holder without retry or close. Cancellation is the selected reason
+for shutdown and does not erase the incurred cleanup, while each append and
+physical release retains exact held-prefix/source/registration/generation
+checks. No evaluator, target, new reservation or accounting credit is introduced.
+The public `ShutdownStopped` status permits close only after successful receipt
+and Stop ACK. Other statuses are preserved by shutdown. Ordinary Drop remains
+process backing release rather than semantic finalization.
+
+The owning public 2 MiB regression family covers explicit and cancelled
+shutdown, before/after persistence faults at all four new row boundaries, and
+observer failure with failed-receipt Stop refusal. All four public selectors
+and the existing cancellation/denied-policy preservation selector passed locally
+on macOS with 2 MiB workers; exact scenario counts and elapsed times are recorded
+in public v1 section 17. This evidence does not claim a full profile run.

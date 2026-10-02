@@ -13,6 +13,7 @@ use crate::resumable_effects::source_checkpoint::{SourceCheckpointKey, SourceChe
 use serde_json::Value;
 mod accounting;
 mod refusal;
+mod shutdown;
 pub(super) use accounting::CheckedAccountingPrefixV8;
 pub(super) mod cumulative;
 pub(crate) use cumulative::CheckedCumulativeEffectPrefixV8;
@@ -424,6 +425,14 @@ fn check_entries_with_runtime<'a>(
                 super::reduce_inventory::checked_outcome(b, facts)?;
             }
             EntryV8::Owned(Body::OwnedWaitFailed { status, .. }) => {
+                if status == &serde_json::json!({"failure":"host_abandoned","language_status":null})
+                    && matches!(
+                        rows.last().map(|r| &r.entry),
+                        Some(EntryV8::Owned(Body::OwnedWaitCompleted { .. }))
+                    )
+                {
+                    shutdown::validate_failure(context, &rows, &entry)?;
+                }
                 typed(v2::validate_owned_wait_failure_v8(
                     b,
                     &b.helper().function().id,
@@ -458,9 +467,14 @@ fn check_entries_with_runtime<'a>(
                             && attempt.is_none()
                             && wait.is_none(),
                     )?;
+                } else if shutdown::selected(&rows) {
+                    shutdown::validate(context, &rows, &entry)?;
                 } else {
                     refusal::validate(context, &rows, &entry, staged_decision.as_ref())?;
                 }
+            }
+            EntryV8::Ordinary(Ordinary::Stop { .. }) if shutdown::stop_selected(&rows) => {
+                shutdown::validate_stop(context, &rows, &entry)?;
             }
             EntryV8::Ordinary(Ordinary::Stop { .. })
                 if staged_decision.as_ref().is_some_and(|(_, _, _, d)| {

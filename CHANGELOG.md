@@ -1,5 +1,16 @@
 # Changelog
 
+- Add an opaque public first-model prepare/finish/shutdown boundary. Explicit
+  abandonment and cancellation before Authorize settle the same actual State
+  through HostAbandoned, Started, observed receipt and Cancelled Stop ACKs,
+  without evaluator work, target dispatch or new funding. Uncertainty retains
+  custody and cannot retry. Local macOS 2 MiB gates passed explicit/cancel
+  success 1/1 (two scenarios, 64.84s), failure/Started faults 1/1 (four scenarios,
+  129.71s), receipt/Stop faults 1/1 (four scenarios, 129.87s), observer-failure
+  Stop refusal 1/1 (32.75s), and existing cancel/denied-policy preservation 1/1
+  (two scenarios, 52.96s). No full profile was run; current-head Linux process
+  evidence remains a separate closure gate (#330).
+
 - Settle actual first-turn source Refused through its original State, exact
   compiler cleanup vector and acknowledged State receipt before sticky
   StageRefused Stop. Empty scalar-only Decision cleanup stays empty; uncertain

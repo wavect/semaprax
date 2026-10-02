@@ -19,6 +19,7 @@ mod authorization_recovery;
 mod continued_reduce;
 mod prepared_recovery;
 mod refusal;
+mod shutdown;
 pub(super) mod terminal;
 enum ProducerV8<'p, 'j> {
     ContinuedSettlement(&'p FixedOwnedContinuedSettlementAppendPermitV8<'p, 'j>),

@@ -17,6 +17,7 @@ mod observer_failure;
 mod public;
 mod recovered_authorize;
 mod restart;
+pub(in crate::live_invocation::source_journal::owned_wait_v8) mod shutdown;
 use super::effect::authorization::cleanup::failed_state::{
     stop_failed_effect_state_v8, LiveFailedEffectStateQuarantinedV8, LiveFailedEffectStateStoppedV8,
 };
@@ -31,6 +32,7 @@ pub enum OwnedLifecycleStatusV8 {
     ModelCompleted,
     Complete,
     AuthorizationRefusedStopped,
+    ShutdownStopped,
     ObserveCleanupPending,
     ObserveStopped,
     FailedEffectCleanupPending,
@@ -44,6 +46,7 @@ pub enum OwnedLifecycleStatusV8 {
 // particular an ACKed failed Observe is still cleanup-capable, not erased into
 // a methodless box and prematurely poisoned with unrelated model failures.
 enum CustodyV8<'j> {
+    ShutdownStopped(Box<shutdown::ShutdownStoppedV8<'j>>),
     AuthorizationRefusedStopped(Box<abandonment::RefusedStoppedV8<'j>>),
     Ready,
     InFlight,
@@ -73,8 +76,8 @@ enum CustodyV8<'j> {
 ///
 /// `try_close` refuses outstanding obligations and returns the entire runtime.
 /// This internal type is deliberately not a public constructor: forced runtime
-/// destruction still releases backing without a semantic cleanup receipt, so
-/// public shutdown remains a separate required contract.
+/// destruction still releases backing without a semantic cleanup receipt.
+/// Explicit shutdown settles only the current completed first-model State.
 pub(super) struct OwnedLifecycleRuntimeV8<'j> {
     custody: CustodyV8<'j>,
     journal: &'j SourceOwnedWaitJournalV8,
@@ -123,6 +126,7 @@ impl<'j> OwnedLifecycleRuntimeV8<'j> {
 
     pub(super) fn status(&self) -> OwnedLifecycleStatusV8 {
         match &self.custody {
+            CustodyV8::ShutdownStopped(_) => OwnedLifecycleStatusV8::ShutdownStopped,
             CustodyV8::AuthorizationRefusedStopped(_) => {
                 OwnedLifecycleStatusV8::AuthorizationRefusedStopped
             }
@@ -168,6 +172,7 @@ impl<'j> OwnedLifecycleRuntimeV8<'j> {
             CustodyV8::Ready
             | CustodyV8::Admission(_)
             | CustodyV8::AuthorizationRefusedStopped(_)
+            | CustodyV8::ShutdownStopped(_)
             | CustodyV8::ObserveStopped(_)
             | CustodyV8::ObserverFailureStopped(_)
             | CustodyV8::ContinuedFailedEffectStopped(_)
@@ -283,6 +288,9 @@ impl<'j> OwnedLifecycleSessionV8<'_, 'j> {
         if !matches!(runtime.custody, CustodyV8::ModelCompleted(_)) {
             return runtime.status();
         }
+        if runtime.cancellation.is_cancelled() {
+            return runtime.shutdown_completed(observe);
+        }
         let CustodyV8::ModelCompleted(owner) =
             std::mem::replace(&mut runtime.custody, CustodyV8::InFlight)
         else {
@@ -379,6 +387,7 @@ impl Drop for OwnedLifecycleRuntimeV8<'_> {
             CustodyV8::Ready
                 | CustodyV8::Admission(_)
                 | CustodyV8::AuthorizationRefusedStopped(_)
+                | CustodyV8::ShutdownStopped(_)
                 | CustodyV8::ObserveStopped(_)
                 | CustodyV8::ObserverFailureStopped(_)
                 | CustodyV8::FailedEffectStopped(_)

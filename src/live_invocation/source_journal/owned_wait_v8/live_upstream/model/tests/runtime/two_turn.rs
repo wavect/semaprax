@@ -332,6 +332,29 @@ fn exercise(scenario: Scenario) {
                     );
                     assert!(runtime.try_close().is_err());
                 }
+            } else if matches!(scenario, Scenario::Cancel) {
+                assert_eq!(status, OwnedLifecycleStatusV8::ShutdownStopped);
+                assert_eq!(actions, (1, 0, 1));
+                assert!(runtime.delivery_projection().is_none());
+                assert!(persisted.starts_with(&prefix));
+                assert_eq!(journal.begin_session().unwrap().sequence(), before + 4);
+                let session = journal.begin_session().unwrap();
+                assert!(matches!(
+                    session
+                        .inventory
+                        .test_observe_entries()
+                        .last()
+                        .map(|r| &r.entry),
+                    Some(EntryV8::Ordinary(SourceJournalEntry::Stop {
+                        status: crate::live_invocation::source_journal::SourceStopStatus::Cancelled,
+                        reason: crate::live_invocation::source_journal::SourceStopReason::Cancelled,
+                        ..
+                    }))
+                ));
+                drop(session);
+                assert!(weak.iter().all(|root| root.upgrade().is_none()));
+                assert!(runtime.try_close().is_ok());
+                assert!(journal.begin_fresh_session().is_err());
             } else if matches!(scenario, Scenario::Complete) {
                 assert_eq!(status, OwnedLifecycleStatusV8::Complete);
                 assert_eq!(actions, (2, 2, 4));
@@ -406,14 +429,6 @@ fn exercise(scenario: Scenario) {
                             2
                         }
                     );
-                }
-                if matches!(scenario, Scenario::Cancel) {
-                    assert_eq!(
-                        status,
-                        OwnedLifecycleStatusV8::Quarantined("first-authorize")
-                    );
-                    assert_eq!(persisted, prefix);
-                    assert_eq!(actions, (1, 0, 0));
                 }
                 if matches!(scenario, Scenario::DeniedPolicy) {
                     assert_eq!(status, OwnedLifecycleStatusV8::Quarantined("first-ready"));
@@ -982,5 +997,6 @@ fn public_owned_agent_prepared_relaunch_completes_and_hostile_tail_refuses() {
 mod later_target;
 
 mod refusal;
+mod shutdown;
 
 mod transferred;

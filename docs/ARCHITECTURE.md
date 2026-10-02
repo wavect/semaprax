@@ -211,7 +211,13 @@ recovery. `candidate/authorization_recovery` derives inert current-tail facts;
 when a subsequent guard fails. The physical `store/source_v8/recovery_grant`
 child binds the one recovered append transition to exact prefix pins. Recovery
 then reuses charged source Authorize and the existing two-turn owner chain.
-General runtime shutdown remains unfinished; public construction is owned by
+The `runtime/shutdown` child owns eligible first-model Completed State
+abandonment: its private Started-ACK permit enables the interpreter
+`registered_stage/live_run/shutdown` child to release the original State.
+Candidate/inventory `shutdown` children validate exact Completed basis, wait,
+proposal, compiler operations and observed receipt before Cancelled Stop.
+`runtime/public/shutdown` exposes the opaque prepare/finish/shutdown boundary;
+other quarantined phases retain custody. Public construction is owned by
 the `runtime/public` child described below.
 Its `wait` child retains the actual helper park;
 `append/checkpoint` seals the frozen v2 frame from the same held session and

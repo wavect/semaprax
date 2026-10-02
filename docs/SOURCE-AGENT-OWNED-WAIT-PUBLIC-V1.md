@@ -118,9 +118,11 @@ terminal projection, and `try_close` returns the same handle if any physical
 obligation remains. Known failed Observe, failed target, and observer-failure
 State tails enter their existing acknowledged settlement drivers. Other tails
 stay in runtime quarantine; dropping that handle retires append authority, but
-does not claim semantic cleanup. Recovery and terminal/report delivery from
-reopened bytes remain unsupported. The broader failure and shutdown matrix is
-still required for #330 closure.
+does not claim semantic cleanup. The admitted Prepared and transferred-owner recovery entries are specified in
+sections 11, 13 and 16; Report delivery from reopened bytes remains unsupported.
+Sections 14–17 close the required later-target failure, actual Refused and
+eligible cancellation/abandonment joins for this bounded public profile. Other
+unsupported phases remain quarantined without retry or reminted authority.
 
 ## 5. Required evidence before promotion
 
@@ -497,3 +499,41 @@ scenarios); settled-without-transfer refusal passed 1/1 in 65.97s. These are
 local macOS results for this bounded recovery packet, not broader destination
 phase restoration. The final wrapper also applies the existing known-failure
 settlement used by fresh and first-Prepared public runs.
+
+## 17. Completed-State cancellation and explicit shutdown
+
+`prepare_first_model` retains the actual completed first-model State in the
+opaque public run before Authorize. `finish` continues that same owner through
+the existing checked path. `shutdown` explicitly abandons this eligible
+Completed custody through existing v8 rows. Cancellation observed by `finish`
+at this boundary selects the same shutdown path before any Authorize reservation
+or target dispatch. Closing a still-completed run refuses and returns its owner.
+
+Shutdown authenticates the current first-turn Completed tail, original wait
+argument digest, exact actual State, checked proposal and completed result
+digest. It acknowledges `OwnedWaitFailed` with `host_abandoned`, no reservation
+and zero consumed fuel, then acknowledges canonical State CleanupStarted using
+the Completed basis. Only this live ACK creates the private physical permit.
+The interpreter releases the actual State once in compiler cleanup order,
+records the observed receipt and acknowledges `Cancelled` Stop. No evaluator,
+transfer, target dispatch, new funding or restored owner enters this route.
+
+The already selected cancellation does not invalidate the incurred cleanup:
+each physical action and append still checks the exact held source, registration,
+generation and acknowledged prefix. Observer panic records failure and keeps
+quarantine. Append uncertainty preserves the reached owner; repeated `finish`,
+`shutdown` and fresh-entry attempts cannot release, append or dispatch again.
+Only successful receipt and Stop yield `ShutdownStopped` and permit close.
+
+This public shutdown entry is intentionally restricted to the current actual
+first-model Completed owner. Unknown or quarantined phases retain their status
+and custody; ordinary Drop remains process-backing teardown and does not invoke
+semantic cleanup. It does not recover Report or post-Intent effect ownership.
+
+The local macOS 2 MiB public success selector passed 1/1 (explicit and cancelled
+scenarios) in 64.84s. Failure-selection/Started prewrite and postwrite faults
+passed 1/1 (four scenarios) in 129.71s; receipt/Stop faults passed 1/1 (four
+scenarios) in 129.87s. Observer panic plus authenticated failed-receipt Stop
+refusal passed 1/1 in 32.75s. The existing cancellation/denied-policy preservation
+selector passed 1/1 (two scenarios) in 52.96s. These five focused selectors used
+the same emitted binary for this shutdown packet; no full profile was run.

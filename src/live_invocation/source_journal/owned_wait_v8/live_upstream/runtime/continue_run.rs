@@ -2,7 +2,7 @@
 //! predecessor in runtime custody; no serialized row can select this entry.
 use super::super::authorize::authorize_live_actor_v8;
 use super::super::effect::authorization::{
-    cleanup::{LiveCleanupAcknowledgedV8, LiveOutcomeV8},
+    cleanup::{LiveCleanupAcknowledgedV8, LiveFailedOwnedEffectV8, LiveOutcomeV8},
     step::LiveStepAcknowledgedV8,
     LiveEffectSettlementAcknowledgedV8,
 };
@@ -17,6 +17,10 @@ impl<T> RetainedFailure for T {}
 pub(super) struct RunQuarantineV8<'j> {
     phase: &'static str,
     _owner: Box<dyn RetainedFailure + 'j>,
+}
+pub(super) enum RunOutcomeV8<'j> {
+    Complete(serde_json::Value),
+    FailedEffect(LiveFailedOwnedEffectV8<'j>),
 }
 impl RunQuarantineV8<'_> {
     pub(super) fn phase(&self) -> &'static str {
@@ -42,7 +46,7 @@ pub(super) fn finish_run<'j>(
     adapter: &mut StreamingSourceProposalAdapter<'_>,
     handler: &mut dyn TargetHostHandler,
     mut observe: impl FnMut(&FinalizeAction),
-) -> Result<serde_json::Value, RunQuarantineV8<'j>> {
+) -> Result<RunOutcomeV8<'j>, RunQuarantineV8<'j>> {
     macro_rules! join {
         ($operation:expr, $phase:literal) => {
             $operation.map_err(|owner| quarantine(journal, $phase, owner))?
@@ -134,11 +138,12 @@ pub(super) fn finish_run<'j>(
         LiveCleanupAcknowledgedV8::Settled,
         "first-cleanup-receipt-shape"
     );
-    let executed = shape!(
-        join!(cleaned.advance_outcome(), "first-outcome"),
-        LiveOutcomeV8::Executed,
-        "first-outcome-shape"
-    );
+    let executed = match join!(cleaned.advance_outcome(), "first-outcome") {
+        LiveOutcomeV8::Executed(owner) => owner,
+        // The actual failed target has a distinct checked State cleanup and
+        // sticky Stop tail. Preserve that owner type in runtime custody.
+        LiveOutcomeV8::Failed(owner) => return Ok(RunOutcomeV8::FailedEffect(owner)),
+    };
     let selected = join!(executed.prepare_reduce(), "first-reduce");
     let evaluated = ack!(
         selected,
@@ -214,5 +219,6 @@ pub(super) fn finish_run<'j>(
     // cumulative two-turn ceiling before another reservation or dispatch.
     moved
         .finish_second_turn(adapter, handler, observe)
+        .map(RunOutcomeV8::Complete)
         .map_err(|owner| quarantine(journal, owner.phase(), owner))
 }

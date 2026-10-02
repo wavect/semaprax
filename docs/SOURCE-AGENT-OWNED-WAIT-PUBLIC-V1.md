@@ -108,9 +108,10 @@ physical owner. Its caller must retain that error; a public runtime-held
 quarantine is still unfinished. A first-turn model failure can now be consumed
 into a private opaque quarantine that retires its journal and retains the
 exact parked or Resume owner; it has no retry or extraction API because Model
-has not reached a State cleanup boundary. The failed-target State tail now has
-the same private acknowledged cleanup/receipt/Stop join and owner-bearing
-quarantine. Several other post-effect tails still lack a terminal join.
+has not reached a State cleanup boundary. The first-turn failed-target State
+tail enters its private acknowledged cleanup/receipt/Stop join from runtime
+custody, retaining incomplete owners in runtime quarantine. Several other
+post-effect tails still lack a terminal join.
 Consequently no public session or executable `run` method is exposed. Recovery
 and terminal/report delivery from reopened bytes remain unsupported. An executable
 method is admitted only with the complete failure dispatch and its regression
@@ -252,9 +253,9 @@ raw journal, retry method or downcast is returned through the session.
 Success consumes the actual terminal Report and retains only its checked
 canonical delivery projection. The runtime exposes that inert data by shared
 borrow and permits normal close after Complete. A new handle observes the same
-Complete or quarantine status without a new append, dispatch or cleanup. Failed
-target and cleanup-observer paths remain quarantined and refuse close; this
-composition does not pretend those failures reached a cleanup/Stop terminal.
+Complete or quarantine status without a new append, dispatch or cleanup. A
+first-turn failed target can now enter its separate checked cleanup/Stop driver;
+cleanup-observer and other failure paths remain quarantined and refuse close.
 The existing failed-Observe settlement entry remains separately available.
 
 The `owned_runtime_two_turn_` regression family enters through genuine
@@ -304,3 +305,20 @@ history refusal in a third process, hostile trailing bytes, original cumulative
 funding, two Model dispatches, two target dispatches and four cleanup callbacks.
 Public construction, complete failure settlement, post-Intent restoration,
 Report restoration and the other durable phase classifications remain open.
+
+## 11. First-turn failed-target runtime settlement
+
+The private first-turn bridge now returns the actual `Failed` outcome as a
+typed State owner to the same runtime slot. A later runtime call consumes that
+owner through the existing checked failed-target State CleanupStarted,
+physical cleanup, receipt, and sticky Stop driver. The caller session cannot
+extract or retry the owner. Only an acknowledged Stop permits normal runtime
+close; a failure at any cleanup append boundary retains the reached owner in
+runtime quarantine and refuses close. This applies to the first turn only.
+
+The `owned_runtime_two_turn_failed_target_checked_stop_and_faults` regression
+is authored but unexecuted. It exercises the real failed target, one State
+cleanup callback, no redispatch, normal close after Stop, and each of three
+prewrite faults without retry. Other first-turn failure phases, the later
+failed-target path, public construction, and general shutdown/recovery remain
+open.

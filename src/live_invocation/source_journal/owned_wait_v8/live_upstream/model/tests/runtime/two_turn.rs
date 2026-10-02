@@ -12,6 +12,7 @@ enum Scenario {
     Cancel,
     DeniedPolicy,
     TargetFailure,
+    TargetFailureStopFault(usize),
     ObserverPanic,
 }
 pub(super) struct Host {
@@ -81,7 +82,10 @@ fn exercise(scenario: Scenario) {
             }
             let mut host = Host {
                 calls: 0,
-                fail: matches!(scenario, Scenario::TargetFailure),
+                fail: matches!(
+                    scenario,
+                    Scenario::TargetFailure | Scenario::TargetFailureStopFault(_)
+                ),
             };
             let mut releases = 0;
             let status =
@@ -117,7 +121,74 @@ fn exercise(scenario: Scenario) {
                     .unwrap(),
                 persisted
             );
-            if matches!(scenario, Scenario::Complete) {
+            if matches!(
+                scenario,
+                Scenario::TargetFailure | Scenario::TargetFailureStopFault(_)
+            ) {
+                assert_eq!(status, OwnedLifecycleStatusV8::FailedEffectCleanupPending);
+                assert_eq!(actions, (1, 1, 1));
+                assert!(runtime.delivery_projection().is_none());
+                let mut runtime = runtime
+                    .try_close()
+                    .err()
+                    .expect("failed target retains State owner");
+                let cleanup_start = journal.begin_session().unwrap().sequence();
+                if let Scenario::TargetFailureStopFault(offset) = scenario {
+                    journal
+                        .test_observe_lease()
+                        .borrow_mut()
+                        .test_fail_before_write(cleanup_start + offset);
+                }
+                let mut state_releases = 0;
+                let stopped = runtime.settle_failed_effect(|_| state_releases += 1);
+                let after = journal
+                    .test_observe_lease()
+                    .borrow()
+                    .test_persisted_snapshot()
+                    .unwrap();
+                assert_eq!(
+                    state_releases,
+                    if matches!(scenario, Scenario::TargetFailureStopFault(1)) {
+                        0
+                    } else {
+                        1
+                    }
+                );
+                assert_eq!(
+                    runtime.settle_failed_effect(|_| panic!("State cleanup cannot retry")),
+                    stopped
+                );
+                assert_eq!(
+                    journal
+                        .test_observe_lease()
+                        .borrow()
+                        .test_persisted_snapshot()
+                        .unwrap(),
+                    after
+                );
+                assert_eq!((counts.borrow().starts, host.calls, releases), actions);
+                if matches!(scenario, Scenario::TargetFailure) {
+                    assert_eq!(stopped, OwnedLifecycleStatusV8::FailedEffectStopped);
+                    let current = journal.begin_session().unwrap();
+                    assert_eq!(current.sequence(), cleanup_start + 3);
+                    assert!(matches!(
+                        current.inventory.failed_effect_state_facts().unwrap().4,
+                        EntryV8::Ordinary(SourceJournalEntry::Stop {
+                            status: crate::live_invocation::source_journal::SourceStopStatus::EffectFailed,
+                            reason: crate::live_invocation::source_journal::SourceStopReason::EffectFailed,
+                            ..
+                        })
+                    ));
+                    assert!(weak.iter().all(|root| root.upgrade().is_none()));
+                    assert!(runtime.try_close().is_ok());
+                } else {
+                    assert_eq!(
+                        stopped,
+                        OwnedLifecycleStatusV8::Quarantined("failed-effect-cleanup")
+                    );
+                    assert!(runtime.try_close().is_err());
+                }
+            } else if matches!(scenario, Scenario::Complete) {
                 assert_eq!(status, OwnedLifecycleStatusV8::Complete);
                 assert_eq!(actions, (2, 2, 4));
                 assert_eq!(journal.begin_session().unwrap().sequence(), before + 51);
@@ -204,7 +275,7 @@ fn exercise(scenario: Scenario) {
                     assert_eq!(status, OwnedLifecycleStatusV8::Quarantined("first-ready"));
                     assert_eq!(actions, (1, 0, 0));
                 }
-                if matches!(scenario, Scenario::TargetFailure | Scenario::ObserverPanic) {
+                if matches!(scenario, Scenario::ObserverPanic) {
                     assert_eq!((actions.0, actions.1), (1, 1));
                 }
                 drop(runtime);
@@ -240,4 +311,10 @@ fn owned_runtime_two_turn_cancelled_and_denied_policy_do_not_dispatch_targets() 
 fn owned_runtime_two_turn_target_and_cleanup_failures_cannot_retry_or_close() {
     exercise(Scenario::TargetFailure);
     exercise(Scenario::ObserverPanic);
+}
+#[test]
+fn owned_runtime_two_turn_failed_target_checked_stop_and_faults() {
+    for offset in 1..=3 {
+        exercise(Scenario::TargetFailureStopFault(offset));
+    }
 }

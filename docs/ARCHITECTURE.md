@@ -183,8 +183,12 @@ borrowed session handles and dispatches the existing acknowledged failed-Observe
 cleanup/Stop tail. Its `continue_run` child consumes the retained first Model
 through the original Authorize/effect/Reduce/Step ACK joins into the existing
 second-turn driver. Success retains only the consumed Report projection; each
-incomplete join retains its physical owner in runtime quarantine. Normal close
-is admitted after authenticated Complete Report consumption. Pending physical phases
+incomplete join retains its physical owner in runtime quarantine. An actual
+first-turn failed target retains its typed State owner in runtime custody and
+can enter the existing acknowledged State cleanup, receipt, and sticky Stop
+driver; a failed cleanup boundary retains the reached owner without retry.
+Normal close is admitted after authenticated Complete Report consumption or
+the acknowledged first-turn failed-target Stop. Pending physical phases
 refuse normal runtime close; forced host teardown retires journal authority
 before backing release and does not claim semantic settlement. Complete runtime
 shutdown and public session construction remain unfinished.

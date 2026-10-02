@@ -13,7 +13,11 @@ use crate::provider_adapter_sdk::StreamingSourceProposalAdapter;
 
 mod continue_run;
 mod restart;
-use continue_run::RunQuarantineV8;
+use super::effect::authorization::cleanup::failed_state::{
+    stop_failed_effect_state_v8, LiveFailedEffectStateQuarantinedV8, LiveFailedEffectStateStoppedV8,
+};
+use super::effect::authorization::cleanup::LiveFailedOwnedEffectV8;
+use continue_run::{RunOutcomeV8, RunQuarantineV8};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) enum OwnedLifecycleStatusV8 {
@@ -22,6 +26,8 @@ pub(super) enum OwnedLifecycleStatusV8 {
     Complete,
     ObserveCleanupPending,
     ObserveStopped,
+    FailedEffectCleanupPending,
+    FailedEffectStopped,
     Quarantined(&'static str),
 }
 
@@ -36,6 +42,9 @@ enum CustodyV8<'j> {
     Run(Box<RunQuarantineV8<'j>>),
     ObserveCleanupPending(Box<LiveSettledObserveV8<'j>>),
     ObserveStopped(Box<LiveFailedObserveStateStoppedV8<'j>>),
+    FailedEffectCleanupPending(Box<LiveFailedOwnedEffectV8<'j>>),
+    FailedEffectStopped(Box<LiveFailedEffectStateStoppedV8<'j>>),
+    FailedEffectCleanup(Box<LiveFailedEffectStateQuarantinedV8<'j>>),
     Admission(LiveRunAdmissionRefusalV8),
     Initialize(Box<LiveRunFailureV8<'j>>),
     Observe(Box<LiveObserveFailureV8<'j>>),
@@ -107,6 +116,13 @@ impl<'j> OwnedLifecycleRuntimeV8<'j> {
             CustodyV8::Run(failure) => OwnedLifecycleStatusV8::Quarantined(failure.phase()),
             CustodyV8::ObserveCleanupPending(_) => OwnedLifecycleStatusV8::ObserveCleanupPending,
             CustodyV8::ObserveStopped(_) => OwnedLifecycleStatusV8::ObserveStopped,
+            CustodyV8::FailedEffectCleanupPending(_) => {
+                OwnedLifecycleStatusV8::FailedEffectCleanupPending
+            }
+            CustodyV8::FailedEffectStopped(_) => OwnedLifecycleStatusV8::FailedEffectStopped,
+            CustodyV8::FailedEffectCleanup(_) => {
+                OwnedLifecycleStatusV8::Quarantined("failed-effect-cleanup")
+            }
             CustodyV8::Admission(_) => OwnedLifecycleStatusV8::Quarantined("initialize-admission"),
             CustodyV8::Initialize(_) => OwnedLifecycleStatusV8::Quarantined("initialize"),
             CustodyV8::Observe(_) => OwnedLifecycleStatusV8::Quarantined("observe"),
@@ -126,6 +142,7 @@ impl<'j> OwnedLifecycleRuntimeV8<'j> {
             CustodyV8::Ready
             | CustodyV8::Admission(_)
             | CustodyV8::ObserveStopped(_)
+            | CustodyV8::FailedEffectStopped(_)
             | CustodyV8::Complete(_) => Ok(()),
             _ => Err(self),
         }
@@ -173,6 +190,28 @@ impl<'j> OwnedLifecycleRuntimeV8<'j> {
         };
         self.status()
     }
+
+    /// Consume only the actual first-turn failed-target owner. Cleanup and
+    /// Stop use their existing acknowledged rows; a failed boundary remains
+    /// in runtime custody and cannot be dispatched or cleaned up again.
+    pub(super) fn settle_failed_effect(
+        &mut self,
+        observe: impl FnMut(&FinalizeAction),
+    ) -> OwnedLifecycleStatusV8 {
+        if !matches!(self.custody, CustodyV8::FailedEffectCleanupPending(_)) {
+            return self.status();
+        }
+        let CustodyV8::FailedEffectCleanupPending(owner) =
+            std::mem::replace(&mut self.custody, CustodyV8::InFlight)
+        else {
+            unreachable!("matched runtime phase")
+        };
+        self.custody = match stop_failed_effect_state_v8(*owner, observe) {
+            Ok(stopped) => CustodyV8::FailedEffectStopped(Box::new(stopped)),
+            Err(failure) => CustodyV8::FailedEffectCleanup(Box::new(failure)),
+        };
+        self.status()
+    }
 }
 
 impl<'j> OwnedLifecycleSessionV8<'_, 'j> {
@@ -207,7 +246,10 @@ impl<'j> OwnedLifecycleSessionV8<'_, 'j> {
             handler,
             observe,
         ) {
-            Ok(projection) => CustodyV8::Complete(projection),
+            Ok(RunOutcomeV8::Complete(projection)) => CustodyV8::Complete(projection),
+            Ok(RunOutcomeV8::FailedEffect(owner)) => {
+                CustodyV8::FailedEffectCleanupPending(Box::new(owner))
+            }
             Err(failure) => CustodyV8::Run(Box::new(failure)),
         };
         runtime.status()
@@ -274,6 +316,7 @@ impl Drop for OwnedLifecycleRuntimeV8<'_> {
             CustodyV8::Ready
                 | CustodyV8::Admission(_)
                 | CustodyV8::ObserveStopped(_)
+                | CustodyV8::FailedEffectStopped(_)
                 | CustodyV8::Complete(_)
         ) {
             // Forced host runtime teardown is not a semantic settlement. Retire

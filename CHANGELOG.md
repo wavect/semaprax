@@ -1,5 +1,11 @@
 # Changelog
 
+- Route an actual first-turn owned-Agent failed target from private runtime
+  custody through its checked State cleanup, receipt and sticky Stop. Failed
+  cleanup boundaries retain the reached owner without retry; owning success
+  and three append-fault regressions are authored but unexecuted. Public entry
+  and full failure/recovery settlement remain open (#330).
+
 - Join the exact authenticated first Prepared restart into private owned-Agent
   runtime custody before Model execution. The restored owner can continue
   through the existing two-turn terminal path; continuation failures retain

@@ -6,7 +6,7 @@ fn envelope(document: &str) -> String {
     json!({"type":"result","subtype":"success","is_error":false,"num_turns":1,
         "stop_reason":"end_turn","terminal_reason":"completed","queued_turn_count":0,
         "result_index":0,"permission_denials":[],"subagent_stats":{"spawned":0},
-        "result":serde_json::to_string(document).unwrap(),"usage":{"input_tokens":1,"output_tokens":1},
+        "result":format!("```json\n{}\n```", serde_json::to_string(document).unwrap()),"usage":{"input_tokens":1,"output_tokens":1},
         "modelUsage":{"claude-haiku-4-5":{"canonicalModel":"claude-haiku-4-5","provider":"firstParty","webSearchRequests":0}}}).to_string()
 }
 

@@ -1,5 +1,10 @@
 # Changelog
 
+- Admit the exact observed `json` fence around a native Claude JSON-string
+  proposal as explicit transport framing. Reject other labels, nested fences,
+  prose and trailing bytes; preserve decoded proposal bytes and strict compiler
+  validation. Private diagnostic08 establishes the framing mismatch (#323).
+
 - Frame native Claude proposal results as one explicit JSON string, preserving
   the provider-authored escaped final LF through CLI output. Reject unframed
   objects and trailing JSON; keep exact decoded bytes and the strict compiler

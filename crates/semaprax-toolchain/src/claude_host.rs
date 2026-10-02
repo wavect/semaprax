@@ -10,7 +10,7 @@ use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
 pub const MODEL: &str = "claude-haiku-4-5";
-const ADAPTER_VERSION: &str = "1.0.3";
+const ADAPTER_VERSION: &str = "1.0.4";
 const SYSTEM_PROMPT: &str = "The user message is a checked source-adapter request. Decode task_hex as UTF-8 for the task and previous_effect_hex for feedback. Return exactly one JSON STRING encoding the complete canonical proposal document. The decoded string must end with one LF byte: encode that byte as \\n inside the string, before its closing quote. No Markdown fences, bare object, prose or tools. Follow proposal_schema exactly.";
 const PROFILE: &str = "claude-code-subscription-print-json.v1";
 const MAX_EXECUTABLE: u64 = 256 * 1024 * 1024;
@@ -264,8 +264,20 @@ fn parse(wire: &[u8], maximum: usize) -> Result<AdapterSettlement, ModelFailure>
     }
     // Explicit JSON-string transport framing preserves an encoded final LF.
     // Never append, trim or canonicalize the decoded proposal bytes.
-    let result: String =
-        serde_json::from_str(value["result"].as_str().ok_or(fail)?).map_err(|_| fail)?;
+    let text = value["result"].as_str().ok_or(fail)?;
+    let framed = if text.starts_with("```") {
+        let inner = text
+            .strip_prefix("```json\n")
+            .and_then(|body| body.strip_suffix("\n```"))
+            .ok_or(fail)?;
+        if !inner.starts_with('"') || !inner.ends_with('"') {
+            return Err(fail);
+        }
+        inner
+    } else {
+        text
+    };
+    let result: String = serde_json::from_str(framed).map_err(|_| fail)?;
     if result.is_empty() || result.len() > maximum {
         return Err(fail);
     }

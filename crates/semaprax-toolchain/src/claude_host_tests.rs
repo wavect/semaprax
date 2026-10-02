@@ -172,6 +172,30 @@ fn compiler_derived_guidance_supplies_an_exact_decoder_valid_envelope() {
     assert!(schema
         .decode(std::str::from_utf8(&decoded).unwrap())
         .is_ok());
+    let string = serde_json::to_string(&document).unwrap();
+    let fence = format!("```json\n{string}\n```");
+    let mut fenced = envelope(&document);
+    fenced["result"] = json!(fence);
+    let fenced_decoded = parse(&serde_json::to_vec(&fenced).unwrap(), 4096).unwrap();
+    assert_eq!(fenced_decoded.response_bytes, document.as_bytes());
+    assert!(schema
+        .decode(std::str::from_utf8(&fenced_decoded.response_bytes).unwrap())
+        .is_ok());
+    for invalid in [
+        format!("```JSON\n{string}\n```"),
+        format!("```\n{string}\n```"),
+        format!("prose{fence}"),
+        format!("{fence}\n"),
+        format!("```json\n{fence}\n```"),
+        format!("```json\n{document}\n```"),
+        format!("```json\n{string} {{}}\n```"),
+    ] {
+        fenced["result"] = json!(invalid);
+        assert_eq!(
+            parse(&serde_json::to_vec(&fenced).unwrap(), 4096),
+            Err(ModelFailure::MalformedResponse)
+        );
+    }
     let without_lf = parse(
         &serde_json::to_vec(&envelope(document.trim_end())).unwrap(),
         4096,

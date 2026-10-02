@@ -32,7 +32,7 @@ Non-Unix native Claude dispatch refuses before spawning.
 One adapter instance starts one CLI process with `--print --output-format json`,
 `--tools ''`, `--no-session-persistence`, `--safe-mode`, `--restricted`,
 `--strict-mcp-config`, `--permission-prompts none`, `--prompt-suggestions false`,
-and the exact model. Adapter version 1.0.3 supplies a system prompt bounded to
+and the exact model. Adapter version 1.0.4 supplies a system prompt bounded to
 4096 bytes, replacing dynamic workspace system context. Its response guidance
 is derived from the same compiled proposal schema used by the decoder: the
 exact envelope prefix includes the agent identity and schema digest, with
@@ -70,7 +70,11 @@ permission denials, no spawned subagents, and exactly one `modelUsage` row for
 `claude-haiku-4-5` with matching canonical model, firstParty provider and no
 web search requests. A nonempty string result and integer input/output usage
 are required. The result text must itself be a single JSON string encoding the
-complete proposal document. Decoding this explicit transport framing preserves
+complete proposal document. A second admitted framing has exactly three opening
+backticks, `json`, LF, one JSON string, LF and three closing backticks, with no
+bytes before or after that fence. Other labels, prose, nested fences and
+trailing content refuse.
+Decoding this explicit transport framing preserves
 exact document bytes, including the provider-authored escaped final LF. Bare
 objects and extra JSON content refuse. The adapter never appends a newline,
 trims, repairs or canonicalizes the decoded document; the existing strict
@@ -99,3 +103,13 @@ login; LOGNAME alone did not. The host now retains validated login metadata
 as USER/LOGNAME while keeping all credential, endpoint and provider environment
 variables cleared. The executable fixture checks these exact environment
 properties without reading credentials or making a model call.
+
+## Observed fenced-string framing
+
+A single private diagnostic call (diagnostic08, excluded from qualifying repair
+evidence) observed a successful exact-model native envelope whose result was
+one JSON string inside a literal `json` Markdown fence. The decoded string
+contained the required final LF. Adapter 1.0.4 admits this exact second transport
+framing; it does not add LF, change proposal values, relax compiler decoding,
+or reinterpret ordinary receipts. The diagnostic wrapper is disabled and is
+not part of the native adapter path.

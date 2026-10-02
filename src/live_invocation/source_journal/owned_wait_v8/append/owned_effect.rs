@@ -5,6 +5,7 @@ mod consumed;
 mod intent;
 mod settlement;
 pub(in crate::live_invocation::source_journal::owned_wait_v8) enum ContinuedRunOutcomeV8<'j> {
+    FailedEffectStopped(Box<crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect::authorization::failed_state::continued::StoppedContinuedStateV8<'j>>),
     Complete(serde_json::Value),
     FailedObserve(
         crate::live_invocation::source_journal::owned_wait_v8::live_upstream::LiveSettledObserveV8<

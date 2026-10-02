@@ -19,6 +19,7 @@ pub(super) struct RunQuarantineV8<'j> {
     _owner: Box<dyn RetainedFailure + 'j>,
 }
 pub(super) enum RunOutcomeV8<'j> {
+    ContinuedFailedEffectStopped(Box<crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect::authorization::failed_state::continued::StoppedContinuedStateV8<'j>>),
     Complete(serde_json::Value),
     FailedEffect(LiveFailedOwnedEffectV8<'j>),
     FailedObserve(LiveSettledObserveV8<'j>),
@@ -239,6 +240,7 @@ pub(super) fn finish_run<'j>(
         .map(|outcome| {
             use crate::live_invocation::source_journal::owned_wait_v8::append::owned_effect::ContinuedRunOutcomeV8;
             match outcome {
+                ContinuedRunOutcomeV8::FailedEffectStopped(owner) => RunOutcomeV8::ContinuedFailedEffectStopped(owner),
                 ContinuedRunOutcomeV8::Complete(projection) => RunOutcomeV8::Complete(projection),
                 ContinuedRunOutcomeV8::FailedObserve(owner) => RunOutcomeV8::FailedObserve(owner),
             }

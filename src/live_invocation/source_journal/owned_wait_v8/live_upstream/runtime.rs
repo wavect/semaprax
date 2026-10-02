@@ -44,6 +44,7 @@ enum CustodyV8<'j> {
     Ready,
     InFlight,
     ModelCompleted(Box<CompletedLiveOwnedRunV8<'j>>),
+    ContinuedFailedEffectStopped(Box<crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect::authorization::failed_state::continued::StoppedContinuedStateV8<'j>>),
     Complete(serde_json::Value),
     Run(Box<RunQuarantineV8<'j>>),
     ObserveCleanupPending(Box<LiveSettledObserveV8<'j>>),
@@ -128,7 +129,9 @@ impl<'j> OwnedLifecycleRuntimeV8<'j> {
             CustodyV8::FailedEffectCleanupPending(_) => {
                 OwnedLifecycleStatusV8::FailedEffectCleanupPending
             }
-            CustodyV8::FailedEffectStopped(_) => OwnedLifecycleStatusV8::FailedEffectStopped,
+            CustodyV8::ContinuedFailedEffectStopped(_) | CustodyV8::FailedEffectStopped(_) => {
+                OwnedLifecycleStatusV8::FailedEffectStopped
+            }
             CustodyV8::FailedEffectCleanup(_) => {
                 OwnedLifecycleStatusV8::Quarantined("failed-effect-cleanup")
             }
@@ -159,6 +162,7 @@ impl<'j> OwnedLifecycleRuntimeV8<'j> {
             | CustodyV8::Admission(_)
             | CustodyV8::ObserveStopped(_)
             | CustodyV8::ObserverFailureStopped(_)
+            | CustodyV8::ContinuedFailedEffectStopped(_)
             | CustodyV8::FailedEffectStopped(_)
             | CustodyV8::Complete(_) => Ok(()),
             _ => Err(self),
@@ -284,6 +288,9 @@ impl<'j> OwnedLifecycleSessionV8<'_, 'j> {
             handler,
             observe,
         ) {
+            Ok(RunOutcomeV8::ContinuedFailedEffectStopped(owner)) => {
+                CustodyV8::ContinuedFailedEffectStopped(owner)
+            }
             Ok(RunOutcomeV8::Complete(projection)) => CustodyV8::Complete(projection),
             Ok(RunOutcomeV8::FailedObserve(owner)) => {
                 CustodyV8::ObserveCleanupPending(Box::new(owner))
@@ -363,6 +370,7 @@ impl Drop for OwnedLifecycleRuntimeV8<'_> {
                 | CustodyV8::ObserveStopped(_)
                 | CustodyV8::ObserverFailureStopped(_)
                 | CustodyV8::FailedEffectStopped(_)
+                | CustodyV8::ContinuedFailedEffectStopped(_)
                 | CustodyV8::Complete(_)
         ) {
             // Forced host runtime teardown is not a semantic settlement. Retire

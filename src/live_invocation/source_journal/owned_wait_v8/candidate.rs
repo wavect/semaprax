@@ -636,9 +636,6 @@ impl<'a> InventoryV8<'a> {
             ) if folded.failed_effect_state_fold().is_some() => (*turn, *attempt),
             _ => return Err(SourceJournalError::Order),
         };
-        if turn != 0 {
-            return Err(SourceJournalError::Binding);
-        }
         capacity::outstanding(context, &folded)?.check(self.document.len(), self.entries.len())?;
         Ok((
             folded.reserved_total,

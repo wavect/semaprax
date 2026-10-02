@@ -1,5 +1,14 @@
 # Changelog
 
+- Settle a real second-turn target failure through the original State owner,
+  shared physical CleanupStarted/receipt/Stop ACK adapter and cumulative funding
+  registry. Public `FailedEffectStopped` admits close only after the checked Stop;
+  uncertainty retains custody without redispatch or repeated cleanup. The public
+  2 MiB success gate passed 1/1 in 316.81s; State Started before/after-write faults
+  passed 1/1 (two scenarios) in 615.61s. Receipt/Stop fault, State-observer panic
+  and cancelled-Stop selectors are authored and still pending. Required
+  transferred-owner recovery and broader shutdown remain open (#330).
+
 - Admit the exact observed `json` fence around a native Claude JSON-string
   proposal as explicit transport framing. Reject other labels, nested fences,
   prose and trailing bytes; preserve decoded proposal bytes and strict compiler

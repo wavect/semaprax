@@ -397,3 +397,52 @@ impl<'j> ContinuedResumedWaitV8<'j> {
         owner.decision_receipt()
     }
 }
+
+impl<'j> ContinuedResumedWaitV8<'j> {
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn failed_state_origin<'p>(
+        &'p self, proposal: &'p CheckedOwnedWaitProposalV8,
+    ) -> crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect::authorization::failed_state::continued::OriginV8<'p, 'j>{
+        let origin = self.lineage.step.origin();
+        crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect::authorization::failed_state::continued::OriginV8 {
+            journal: self.lineage.journal(), hold: origin.hold, policy: origin.policy,
+            cancellation: origin.cancellation, clock: origin.clock, proposal, turn: self.lineage.turn,
+        }
+    }
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn continued_failed_state_facts(
+        &self,
+        session: &AppendSessionV8<'j>,
+        witness: &VerifiedOwnedEffectCleanupSuccessorV8<'j>,
+        proposal: &CheckedOwnedWaitProposalV8,
+    ) -> Result<(SourceEffectFailure, Value), SourceJournalError> {
+        let permit = LiveContinuedOutcomePermitV8 {
+            lineage: &self.lineage,
+            session,
+            witness,
+            proposal,
+        };
+        let ContinuedResumeOutcomeV8::Authorization(ContinuedAuthorizationOutcomeV8::Effect(
+            ContinuedEffectOutcomeV8::Dispatch(owner, _),
+        )) = &self.outcome
+        else {
+            return Err(SourceJournalError::Order);
+        };
+        owner.failed_state_facts(&permit)
+    }
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn take_continued_failed_state(
+        &mut self, session: &AppendSessionV8<'j>, witness: &VerifiedOwnedEffectCleanupSuccessorV8<'j>, proposal: &CheckedOwnedWaitProposalV8,
+    ) -> Result<crate::interpreter::resumable::owned_frame::registered_stage::effect::PendingOwnedEffectReceiptV8<'j>, SourceJournalError>{
+        let permit = LiveContinuedOutcomePermitV8 {
+            lineage: &self.lineage,
+            session,
+            witness,
+            proposal,
+        };
+        let ContinuedResumeOutcomeV8::Authorization(ContinuedAuthorizationOutcomeV8::Effect(
+            ContinuedEffectOutcomeV8::Dispatch(owner, _),
+        )) = &mut self.outcome
+        else {
+            return Err(SourceJournalError::Order);
+        };
+        owner.take_failed_state(&permit)
+    }
+}

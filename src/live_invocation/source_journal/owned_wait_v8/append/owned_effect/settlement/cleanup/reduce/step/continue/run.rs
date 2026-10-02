@@ -181,6 +181,11 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn finish_second_t
         advance_live_owned_continued_cleanup_v8(journal, *recorded, &mut observe_cleanup),
         "decision-cleanup"
     );
+    if cleanup.failed_target() {
+        return crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect::authorization::failed_state::continued::stop_failed_continued_state(journal, cleanup, observe_cleanup)
+            .map(ContinuedRunOutcomeV8::FailedEffectStopped)
+            .map_err(|owner| quarantine(journal, "continued-failed-effect-cleanup", owner));
+    }
     let reserved = join!(
         advance_live_owned_continued_reduce_v8(journal, *cleanup),
         "reduce-reservation"

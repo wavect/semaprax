@@ -1,6 +1,6 @@
 # Source Agent owned wait public v1 — fresh two-turn session
 
-Status: **fresh and first-Prepared public entries authored; default-stack local execution gates pending.**
+Status: **fresh and first-Prepared public entries passed local 2 MiB gates at `46d99ddfb`; continued-target success and Started-ACK uncertainty passed locally; remaining focused gates pending.**
 Audience: SourceLive host, interpreter, journal, SDK, and runtime implementers and reviewers.
 
 This document owns the public construction boundary for the SourceLive
@@ -141,10 +141,14 @@ reserialized. A failed projection check retains that same owner in the sealed
 private failure path. This exposes no lease, report owner, State, recovery
 route, or finalizer authority.
 
-The broader public recovery matrix remains separate: process restart at every
-durable phase, no redispatch, no uncharged work, phase-specific restoration permits,
-hostile registrations/tails across all phases, and Report recovery/delivery remain required
-to close #330.
+The required recovery matrix follows the admitted authority classifications in
+[owned-wait v1](SOURCE-AGENT-OWNED-WAIT-V1.md), especially sections 7–9:
+transferred-owner recovery, no duplicate dispatch or uncharged reconstruction,
+one-use phase-specific permits, and hostile registration/tail refusal. Required
+transferred-owner recovery is still open. The broader restoration packet in
+section 5, unsupported effect phases in section 9, and deferred Report
+restoration in sections 51–52 are not promoted by this public profile. Report
+delivery from recovered bytes remains outside its admitted scope.
 
 The following private joins are predecessors consumed by the fresh public
 entry in section 12. Their historical gate notes do not extend that entry to
@@ -360,10 +364,11 @@ The `public_owned_agent_fresh_entry_runs_two_real_turns_and_projects_report`
 regression exercises the public constructor and run with a source-retained
 nontrivial Agent, wrong-source preflight, full retention facts, two model calls,
 two target calls, four cleanup observations, terminal projection and replay
-refusal. Its first local compile passed, but the default worker stack overflowed.
-A larger-stack diagnostic exposed an unconditional-Complete test fixture; the
-corrected two-turn fixture rerun was blocked by local disk exhaustion. Failure,
-shutdown and broader recovery matrices remain open; this entry does not close issue #330.
+refusal. At `46d99ddfb`, this regression passed 1/1 locally on macOS in 395.90s on an
+explicit 2 MiB worker after the terminal driver and ACK handoffs were heap
+staged. Its real first-target failure also reaches acknowledged State cleanup
+and Stop. Broader failure, shutdown and required recovery evidence remain
+separate; this entry does not close issue #330.
 
 ## 13. Public first Prepared process recovery
 
@@ -388,5 +393,39 @@ starts a preparer process, retains its registration outside that process, and
 exits before a separate process rebuilds the checked runtime and resumes the
 original first Model. It checks two model calls, two targets, four cleanup
 observations, terminal Report projection, forged generation refusal, fresh
-history refusal and hostile tail refusal before dispatch. This regression is
-authored but unexecuted while the constrained build slot is unavailable.
+history refusal and hostile tail refusal before dispatch. At `46d99ddfb`, this
+regression passed 1/1 locally on macOS in 445.90s with
+`RUST_MIN_STACK=2097152`, inherited by the independent child processes. This
+is exact first-Prepared recovery evidence, not general durable-phase recovery.
+
+## 14. Continued-target failed State settlement
+
+After the second target records an actual supported `EffectFailed` outcome and
+acknowledges successful Decision cleanup, the runtime retains the original
+`PendingOwnedEffectReceiptV8` State owner. It does not attempt to mint a success
+Outcome or enter Reduce. A continued-turn failure lineage binds that owner to
+the exact same journal, proposal, policy, cancellation token, current turn,
+settlement/recorded/cleanup rows and inherited funding registry.
+
+The existing fixed failed-State append adapter acknowledges State
+CleanupStarted before physical release, then acknowledges the observed receipt
+and sticky `EffectFailed` Stop. The fold already admits these existing v8 rows
+for checked cumulative turns; no new wire shape or restored owner is introduced.
+Only an acknowledged successful receipt and Stop produce `FailedEffectStopped`
+and permit normal public `try_close`. Cancellation before a fresh boundary,
+failed append ACK, observer failure or source/pin/registry mismatch retains the
+reached physical owner in `continued-failed-effect-cleanup` quarantine. Incurred
+release/receipt guards still exclude fresh clock/cancellation checks; Stop
+restores them. Drop only releases backing after authority retirement.
+
+The `public_owned_agent_second_target_failure_` family uses the genuine public
+constructor and run on explicit 2 MiB workers. It authors success, before/after
+persistence faults at State Started/receipt/Stop, State observer panic and
+cancellation after State release. Every scenario checks two Model calls, two
+target calls, exact physical cleanup counts, no Report projection and no retry
+or further append. The public success selector passed 1/1 in 316.81s and
+Started-ACK before/after-write faults passed 1/1 (two scenarios) in 615.61s on
+local macOS. Receipt/Stop ACK faults, State observer panic and cancelled Stop
+are authored but remain unexecuted at this source update.
+This bounded settlement does not restore a post-Intent, transferred or Report
+owner after a process restart, or settle unrelated quarantined phases.

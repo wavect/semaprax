@@ -11,6 +11,8 @@ use crate::live_invocation::source_journal::{
 };
 use crate::resumable_effects::owned_frame::v2::CheckedOwnedFrameHelperV2;
 
+pub(in crate::live_invocation::source_journal::owned_wait_v8) mod continued;
+
 struct FailedStateAckV8<'j> {
     session: AppendSessionV8<'j>,
     witness: VerifiedFailedEffectStateSuccessorV8<'j>,
@@ -121,6 +123,7 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) struct LiveRelease
     lineage: FailedStateLineageV8<'j>,
 }
 enum FailedStateOwnerV8<'j> {
+    Continued(Box<continued::FailedContinuedStateV8<'j>>),
     Failed(LiveFailedOwnedEffectV8<'j>),
     Released(LiveReleasedFailedEffectStateV8<'j>),
 }
@@ -133,6 +136,7 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) struct LiveFailedE
 pub(in crate::live_invocation::source_journal::owned_wait_v8) enum LiveFailedEffectStateAcknowledgedV8<
     'j,
 > {
+    Continued(Box<continued::FailedContinuedStateV8<'j>>),
     Started(LiveStartedFailedEffectStateV8<'j>),
     Released(LiveReleasedFailedEffectStateV8<'j>),
 }
@@ -237,10 +241,10 @@ impl<'j> LiveFailedOwnedEffectV8<'j> {
     }
 }
 /// Only an actual Started owner supplies this borrowed, nonconstructible permit.
-pub(crate) struct LiveFailedEffectStateCleanupPermitV8<'p, 'j> {
+pub(crate) struct InitialFailedEffectStateCleanupPermitV8<'p, 'j> {
     lineage: &'p FailedStateLineageV8<'j>,
 }
-impl LiveFailedEffectStateCleanupPermitV8<'_, '_> {
+impl InitialFailedEffectStateCleanupPermitV8<'_, '_> {
     pub(crate) fn validate_cleanup_current(&self) -> Result<(), SourceJournalError> {
         if !matches!(
             self.lineage.current()?.witness.selected_row(),
@@ -320,7 +324,9 @@ impl<'j> LiveStartedFailedEffectStateV8<'j> {
         } = self;
         match release_live_failed_effect_state_v8(
             pending,
-            &LiveFailedEffectStateCleanupPermitV8 { lineage: &lineage },
+            &LiveFailedEffectStateCleanupPermitV8::Initial(
+                InitialFailedEffectStateCleanupPermitV8 { lineage: &lineage },
+            ),
             observe,
         ) {
             Ok(released) => Ok(LiveReleasedFailedEffectStateV8 {
@@ -422,12 +428,18 @@ impl<'j> LiveReleasedFailedEffectStateV8<'j> {
 impl<'j> LiveFailedEffectStateAppendV8<'j> {
     fn cleanup(&self) -> &CleanupLineageV8<'j> {
         match &self.owner {
+            FailedStateOwnerV8::Continued(_) => {
+                unreachable!("continued lineage is dispatched separately")
+            }
             FailedStateOwnerV8::Failed(o) => &o.lineage,
             FailedStateOwnerV8::Released(o) => &o.lineage.cleanup,
         }
     }
     fn journal(&self) -> &'j SourceOwnedWaitJournalV8 {
-        self.cleanup().recorded.intent.journal
+        match &self.owner {
+            FailedStateOwnerV8::Continued(o) => o.journal(),
+            _ => self.cleanup().recorded.intent.journal,
+        }
     }
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn belongs_to(
         &self,
@@ -437,6 +449,7 @@ impl<'j> LiveFailedEffectStateAppendV8<'j> {
     }
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn sequence(&self) -> usize {
         match &self.owner {
+            FailedStateOwnerV8::Continued(o) => o.session().sequence(),
             FailedStateOwnerV8::Failed(o) => o.lineage.current().session.sequence(),
             FailedStateOwnerV8::Released(o) => {
                 o.lineage.current().expect("actual ACK").session.sequence()
@@ -447,6 +460,7 @@ impl<'j> LiveFailedEffectStateAppendV8<'j> {
         &self,
     ) -> usize {
         match &self.owner {
+            FailedStateOwnerV8::Continued(o) => o.session().acknowledged_bytes(),
             FailedStateOwnerV8::Failed(o) => o.lineage.current().session.acknowledged_bytes(),
             FailedStateOwnerV8::Released(o) => o
                 .lineage
@@ -465,6 +479,7 @@ impl<'j> LiveFailedEffectStateAppendV8<'j> {
         &self,
     ) -> Result<(), SourceJournalError> {
         let result = match &self.owner {
+            FailedStateOwnerV8::Continued(o) => o.validate_selected(&self.selected),
             FailedStateOwnerV8::Failed(o) => {
                 if started(o)? != self.selected {
                     Err(SourceJournalError::Binding)
@@ -505,6 +520,9 @@ impl<'j> LiveFailedEffectStateAppendV8<'j> {
         witness: &VerifiedFailedEffectStateSuccessorV8<'_>,
         session: &AppendSessionV8<'_>,
     ) -> Result<(), SourceJournalError> {
+        if let FailedStateOwnerV8::Continued(o) = &self.owner {
+            return o.validate_successor(&self.selected, witness, session);
+        }
         witness.validate_predecessor(
             self.journal(),
             self.sequence(),
@@ -595,24 +613,37 @@ impl FixedFailedEffectStateAppendPermitV8<'_, '_> {
         journal: &SourceOwnedWaitJournalV8,
         inventory: &InventoryV8<'_>,
     ) -> Result<(), SourceJournalError> {
-        self.owner
-            .cleanup()
-            .recorded
-            .intent
-            .hold
-            .validate_failed_state_append_prefix(journal, inventory, &self.owner.selected)
+        match &self.owner.owner {
+            FailedStateOwnerV8::Continued(o) => o
+                .origin()?
+                .hold
+                .validate_failed_state_append_prefix(journal, inventory, &self.owner.selected),
+            _ => self
+                .owner
+                .cleanup()
+                .recorded
+                .intent
+                .hold
+                .validate_failed_state_append_prefix(journal, inventory, &self.owner.selected),
+        }
     }
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_registry(
         &self,
         witness: &VerifiedFailedEffectStateSuccessorV8<'_>,
         session: &AppendSessionV8<'_>,
     ) -> Result<(), SourceJournalError> {
-        self.owner
-            .cleanup()
-            .recorded
-            .intent
-            .hold
-            .advance_failed_state_ack(witness, session)
+        match &self.owner.owner {
+            FailedStateOwnerV8::Continued(o) => {
+                o.origin()?.hold.advance_failed_state_ack(witness, session)
+            }
+            _ => self
+                .owner
+                .cleanup()
+                .recorded
+                .intent
+                .hold
+                .advance_failed_state_ack(witness, session),
+        }
     }
 }
 pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_verified_failed_state_v8<
@@ -632,6 +663,10 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_verifie
         });
     }
     match owner.owner {
+        FailedStateOwnerV8::Continued(mut o) => {
+            o.acknowledge(session, witness);
+            Ok(LiveFailedEffectStateAcknowledgedV8::Continued(o))
+        }
         FailedStateOwnerV8::Failed(o) => {
             let state = match o.pending.live_failed_state_facts_v8() {
                 Ok(state) => state,
@@ -838,5 +873,38 @@ pub(crate) fn stop_failed_effect_state_v8<'j>(
             journal,
             QuarantinedFailedEffectStateOwnerV8::Pending { _owner: stop },
         )),
+    }
+}
+
+/// Closed dispatch over the original and continued physical State holders.
+pub(crate) enum LiveFailedEffectStateCleanupPermitV8<'p, 'j> {
+    Initial(InitialFailedEffectStateCleanupPermitV8<'p, 'j>),
+    Continued(&'p continued::ContinuedFailureLineageV8<'j>),
+}
+impl LiveFailedEffectStateCleanupPermitV8<'_, '_> {
+    pub(crate) fn validate_cleanup_current(&self) -> Result<(), SourceJournalError> {
+        match self {
+            Self::Initial(p) => p.validate_cleanup_current(),
+            Self::Continued(p) => p.validate_cleanup_current(),
+        }
+    }
+    pub(crate) fn validate_actual_state(
+        &self,
+        helper: &CheckedOwnedFrameHelperV2,
+        state: &Value,
+    ) -> Result<(), SourceJournalError> {
+        match self {
+            Self::Initial(p) => p.validate_actual_state(helper, state),
+            Self::Continued(p) => p.validate_actual_state(helper, state),
+        }
+    }
+    pub(crate) fn validate_guard(
+        &self,
+        inputs: &OwnedEffectInputsV8<'_>,
+    ) -> Result<(), SourceJournalError> {
+        match self {
+            Self::Initial(p) => p.validate_guard(inputs),
+            Self::Continued(p) => p.validate_guard(inputs),
+        }
     }
 }

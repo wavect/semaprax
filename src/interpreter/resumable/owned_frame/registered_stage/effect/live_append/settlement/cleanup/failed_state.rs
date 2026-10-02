@@ -137,3 +137,17 @@ pub(crate) fn release_live_failed_effect_state_v8<'j>(
         }),
     }
 }
+
+impl PendingOwnedEffectReceiptV8<'_> {
+    pub(crate) fn continued_failure_facts_v8(
+        &self,
+        permit: &crate::live_invocation::source_journal::LiveContinuedOutcomePermitV8<'_, '_>,
+    ) -> Result<(SourceEffectFailure, serde_json::Value), SourceJournalError> {
+        permit.validate_guard(&self.inputs)?;
+        Ok((
+            self.live_failed_state_reason_v8()
+                .ok_or(SourceJournalError::Binding)?,
+            self.live_failed_state_facts_v8()?,
+        ))
+    }
+}

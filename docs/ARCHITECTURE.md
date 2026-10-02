@@ -192,11 +192,15 @@ incomplete join retains its physical owner in runtime quarantine. An actual
 first-turn failed target retains its typed State owner in runtime custody and
 can enter the existing acknowledged State cleanup, receipt, and sticky Stop
 driver; a failed cleanup boundary retains the reached owner without retry.
-Normal close is admitted after authenticated Complete Report consumption or
-the acknowledged first-turn failed-target Stop. Pending physical phases
-refuse normal runtime close; forced host teardown retires journal authority
-before backing release and does not claim semantic settlement. Complete runtime
-shutdown and public session construction remain unfinished.
+The `failed_state/continued` child retains the actual second-turn failed-target
+State through the same fixed State cleanup/receipt/Stop adapter. Its distinct
+continued lineage borrows the original funding hold and checked proposal; it
+cannot reconstruct owners from journal evidence. Normal close is admitted after
+authenticated Complete Report consumption or acknowledged failure Stop. Pending
+physical phases refuse normal runtime close; forced host teardown retires
+journal authority before backing release and does not claim semantic settlement.
+General runtime shutdown remains unfinished; public construction is owned by
+the `runtime/public` child described below.
 Its `wait` child retains the actual helper park;
 `append/checkpoint` seals the frozen v2 frame from the same held session and
 actual witness inventory without exposing the key or restoring an owner. Historical rows cannot
@@ -3261,4 +3265,6 @@ the borrowed run handle owns private runtime custody through both turns. Only
 status and a checked terminal Report projection leave this boundary. Unresolved
 physical owners cannot close normally, and dropping their handle retires append
 authority. General semantic shutdown and other recovered phases remain
-separate work; the public process-relaunch gate has not yet executed.
+separate work. The exact public first-Prepared process-relaunch gate passed
+locally on macOS with 2 MiB workers at `46d99ddfb`; this does not admit other
+recovered phases.

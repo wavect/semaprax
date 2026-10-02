@@ -1172,3 +1172,29 @@ once, and all three cleanup/receipt/Stop before/after-write boundaries. These
 regressions are authored but unexecuted in this source batch. Public constructor,
 complete shutdown, other failure phases, broader iteration and durable recovery
 remain required; these private joins do not widen any public executor profile.
+
+## 54. Continued target-failure State settlement (#330)
+
+The actual second-turn target failure now branches after acknowledged Decision
+cleanup into the existing failed-State cleanup grammar. The same physical
+`PendingOwnedEffectReceiptV8` moves once into continued failure custody; no
+success Outcome, Reduce reservation, caller State argument or restored backing
+is created. Its original continued lineage preserves the exact proposal,
+policy, source binding, cumulative funding hold and settlement references.
+
+The shared fixed physical adapter consumes State CleanupStarted, receipt and
+sticky EffectFailed Stop obligations. Each actual ACK advances the same
+inherited registry; the matching nonconstructible continued permit alone
+allows the physical State release. The existing fold already admits these
+rows for cumulative initialized turns below the checked iteration ceiling.
+The inventory now accepts those checked later-turn facts without a separate
+turn-zero restriction. Only successful receipt plus Stop ACK admits normal
+close. Any failed or uncertain boundary retains the reached owner and retires
+normal append authority; release and dispatch cannot retry.
+
+The public two-turn entry consumes this route directly. Its
+`public_owned_agent_second_target_failure_` selectors cover the 2 MiB success
+path, the three before/after-persistence ACK windows, State observer panic and
+cancellation after release. Execution evidence is recorded in the changelog.
+This packet adds no process-restoration permit and does not widen executor or
+iteration profiles, Report recovery, or unrelated shutdown settlement.

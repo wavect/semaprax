@@ -233,3 +233,41 @@ impl<'j> LiveContinuedDispatchedEffectV8<'j> {
         }
     }
 }
+
+impl<'j> LiveContinuedDispatchedEffectV8<'j> {
+    pub(crate) fn failed_state_facts(
+        &self,
+        permit: &LiveContinuedOutcomePermitV8<'_, 'j>,
+    ) -> Result<
+        (
+            crate::live_invocation::source_journal::SourceEffectFailure,
+            serde_json::Value,
+        ),
+        SourceJournalError,
+    > {
+        self.predecessor.validate_incurred_context()?;
+        permit.validate_current()?;
+        if self.selected.is_some() || self.outcome.is_some() {
+            return Err(SourceJournalError::Order);
+        }
+        match self.released.as_deref() {
+            Some(Ok(pending)) => pending.continued_failure_facts_v8(permit),
+            _ => Err(SourceJournalError::Order),
+        }
+    }
+    pub(crate) fn take_failed_state(
+        &mut self, permit: &LiveContinuedOutcomePermitV8<'_, 'j>,
+    ) -> Result<crate::interpreter::resumable::owned_frame::registered_stage::effect::PendingOwnedEffectReceiptV8<'j>, SourceJournalError>{
+        self.failed_state_facts(permit)?;
+        match *self.released.take().ok_or(SourceJournalError::Order)? {
+            Ok(pending) => {
+                self.receipt = Some(pending.receipt().clone());
+                Ok(pending)
+            }
+            Err(failure) => {
+                self.released = Some(Box::new(Err(failure)));
+                Err(SourceJournalError::Order)
+            }
+        }
+    }
+}

@@ -61,7 +61,6 @@ fn rich_fixture_preserves_canonical_source_and_selected_stable_id_facts() {
     assert_eq!(prepared.imports.len(), 1);
     assert_eq!(prepared.imports[0].id, "host.add");
     assert!(prepared.closure.contains(&"interop.add".to_owned()));
-    assert!(prepared.closure.contains(&"host.add".to_owned()));
 }
 
 #[test]

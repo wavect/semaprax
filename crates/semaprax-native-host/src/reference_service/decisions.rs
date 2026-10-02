@@ -559,6 +559,10 @@ impl<'revision> DecisionEngine<'revision> {
 
     /// Evaluate the checked admission policy before one completion event is
     /// handed to the host-created outbound adapter.
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "mirrors the fixed seven-input checked webhook admission policy"
+    )]
     pub fn completed_job_webhook_is_admitted(
         &self,
         signature: &[u8],

@@ -113,6 +113,10 @@ impl<'directory> HostGrants<'directory> {
     /// held directory; the deployment binding names this deployment for
     /// outbound-delivery identities and must match the outbound identity
     /// grammar.
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "the public constructor accepts the complete fixed set of operator-held grants"
+    )]
     pub fn from_trusted_host(
         state_directory: &'directory HeldDirectory,
         outbound_directory: &'directory HeldDirectory,

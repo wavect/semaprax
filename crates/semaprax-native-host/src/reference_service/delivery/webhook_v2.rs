@@ -67,6 +67,10 @@ impl PreparedCompletion {
     }
 }
 
+#[expect(
+    clippy::too_many_arguments,
+    reason = "accepts the fixed fields required to construct an authenticated completion delivery"
+)]
 pub(in crate::reference_service) fn prepare(
     store: &OutboundDeliveryStore<'_>,
     deployment_binding: &str,

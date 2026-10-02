@@ -1,6 +1,7 @@
 'use strict';
 
 const semapraxExplorerHostModel = typeof module !== 'undefined' && module.exports ? require('./model.js') : globalThis.SemapraxExplorerModel;
+const semapraxExplorerHostEvidence = typeof module !== 'undefined' && module.exports ? require('./evidence.js') : globalThis.SemapraxExplorerEvidence;
 
 function queryKey(query) {
   return JSON.stringify({ mode: query.mode, target: query.target || null, direction: query.direction || 'both', depth: query.depth === undefined ? 1 : query.depth, side: query.side || 'current' });
@@ -35,6 +36,7 @@ function snapshotHost(bundle) {
   let active = null;
   const changes = bundle.changes || null;
   const sourceReview = Object.hasOwn(bundle, 'source_review') ? bundle.source_review : null;
+  const evidence = Object.hasOwn(bundle, 'evidence') ? semapraxExplorerHostEvidence.offlineIndex(bundle.evidence, [...views.values()].map(view => view.selected.subject)) : null;
   if (changes && (!changes.catalog || !Array.isArray(changes.details) || changes.details.length > 256)) throw new TypeError('invalid bundled changes');
   return Object.freeze({
     offline: true,
@@ -52,7 +54,14 @@ function snapshotHost(bundle) {
       if (!value) throw new Error('not bundled');
       return value;
     },
-    async readEvidence(request) { evidenceRequest(request); throw new Error('not bundled'); },
+    async readEvidence(request) {
+      const checked = evidenceRequest(request);
+      if (!evidence) throw new Error('not bundled');
+      const value = semapraxExplorerHostEvidence.offlineEnvelope(evidence, checked);
+      if (!value) throw new Error('not bundled');
+      if (value.state && value.state !== 'available') { const error = new Error(value.reason); error.code = value.state; throw error; }
+      return value;
+    },
     async evidence() { throw new Error('not bundled'); },
     async deltaCatalog(candidateRevision) {
       if (!changes || changes.catalog.candidate_digest !== candidateRevision) throw new Error('not bundled');

@@ -4,9 +4,11 @@
 // named compiler report into the closed envelope below; this module neither
 // parses source nor sends an executable, apply, test, or publication request.
 const SCHEMA = 'semaprax.explorer-evidence-read.v1';
+const INDEX_SCHEMA = 'semaprax.explorer-evidence-index.v1';
 const TABS = Object.freeze(['declaration', 'dependencies', 'contracts_effects', 'ownership_cleanup', 'evidence_limits']);
 const STATES = Object.freeze(['available', 'not_applicable', 'not_bundled', 'not_requested', 'unsupported', 'stale', 'error']);
-const UNSAFE_KEYS = new Set(['body', 'literal', 'raw', 'raw_report', 'report', 'chunk', 'snippet', 'source_body']);
+const INDEX_SLOTS = Object.freeze(['function_summary', 'dependency_summary', 'analysis_coverage', 'contract_delta', 'ownership_delta']);
+const UNSAFE_KEYS = new Set(['body', 'literal', 'raw', 'raw_report', 'report', 'chunk', 'snippet', 'source_body', 'source', 'source_text', 'source_files', 'base_source', 'candidate_source', 'source_diff', 'text']);
 
 function fail(reason) { throw new TypeError(`explorer evidence ${reason}`); }
 function plain(value) { return value !== null && typeof value === 'object' && !Array.isArray(value) && (Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null); }
@@ -45,7 +47,7 @@ function safeCompact(value, depth = 0) {
   }
   return Object.freeze(result);
 }
-function plan(selected, declaration, tab, detail) {
+function plan(selected, declaration, tab, detail, offline = false) {
   if (!TABS.includes(tab)) fail('tab');
   const functionTarget = declaration.kind === 'function';
   if (tab === 'declaration') {
@@ -55,16 +57,16 @@ function plan(selected, declaration, tab, detail) {
   if (tab === 'dependencies') return { method: imageMethod(selected, 'image/dependency-summary', 'candidate/dependency-summary'), target: declaration.id, facet: null };
   if (tab === 'contracts_effects') {
     if (!functionTarget) return { state: 'not_applicable', reason: 'function_contract_facet_not_applicable_to_this_declaration' };
-    if (candidateFinal(selected)) return { method: 'candidate/contract-delta', target: null, facet: null };
+    if (candidateFinal(selected)) return { method: 'candidate/contract-delta', target: offline ? declaration.id : null, facet: null };
     return { method: 'image/facet', target: declaration.id, facet: 'contracts' };
   }
   if (tab === 'ownership_cleanup') {
     if (!functionTarget) return { state: 'not_applicable', reason: 'function_ownership_facets_not_applicable_to_this_declaration' };
-    if (candidateFinal(selected)) return { method: 'candidate/ownership-delta', target: null, facet: null };
+    if (candidateFinal(selected)) return { method: 'candidate/ownership-delta', target: offline ? declaration.id : null, facet: null };
     if (!['ownership', 'loans', 'cleanup'].includes(detail)) fail('ownership detail');
     return { method: 'image/facet', target: declaration.id, facet: detail };
   }
-  return { method: imageMethod(selected, 'image/analysis-coverage', 'candidate/analysis-coverage'), target: null, facet: null };
+  return { method: imageMethod(selected, 'image/analysis-coverage', 'candidate/analysis-coverage'), target: offline ? declaration.id : null, facet: null };
 }
 function envelope(value, expected) {
   if (!plain(value) || Object.keys(value).length !== 11) fail('evidence envelope');
@@ -82,6 +84,59 @@ function stateFor(error) {
 }
 function status(state, reason, request = null) { return Object.freeze({ state, reason, request, compact: null, omitted: Object.freeze([]), nonclaims: Object.freeze([]) }); }
 
+// Offline bundles can carry only this compact, source-free index. Entries are
+// closed over a subject already present in the snapshot, so a row cannot be
+// repurposed for another revision or side.
+function offlineIndex(value, knownSubjects) {
+  if (!plain(value) || Object.keys(value).length !== 2 || value.schema !== INDEX_SCHEMA || !Array.isArray(value.entries) || value.entries.length > 8192 || !Array.isArray(knownSubjects)) fail('offline index');
+  const known = new Set(knownSubjects.map(item => key(subject(item))));
+  const rows = new Map();
+  for (const entry of value.entries) {
+    if (!plain(entry) || Object.keys(entry).length !== 5 || !Object.hasOwn(entry, 'subject') || !Object.hasOwn(entry, 'target') || !Object.hasOwn(entry, 'states') || !Object.hasOwn(entry, 'compact') || !Object.hasOwn(entry, 'omitted')) fail('offline entry');
+    const checkedSubject = subject(entry.subject), subjectKey = key(checkedSubject), target = text(entry.target, 'offline target');
+    if (!known.has(subjectKey) || !plain(entry.states) || !plain(entry.compact) || !Array.isArray(entry.omitted)) fail('offline binding');
+    const stateKeys = Object.keys(entry.states);
+    if (!['function_summary', 'dependency_summary', 'analysis_coverage'].every(name => Object.hasOwn(entry.states, name)) || stateKeys.some(name => !INDEX_SLOTS.includes(name))) fail('offline states');
+    const compact = {};
+    for (const [slot, value] of Object.entries(entry.compact)) {
+      if (!INDEX_SLOTS.includes(slot)) fail('offline compact slot');
+      compact[slot] = safeCompact(value);
+    }
+    const states = {};
+    for (const [slot, value] of Object.entries(entry.states)) {
+      if (!['available', 'not applicable', 'error'].includes(value)) fail('offline state');
+      if (value === 'available' && !Object.hasOwn(compact, slot)) fail('offline available compact');
+      states[slot] = value === 'not applicable' ? 'not_applicable' : value;
+    }
+    const omitted = entry.omitted.map(item => text(item, 'offline omission'));
+    const rowKey = key({ subject: checkedSubject, target });
+    if (rows.has(rowKey)) fail('duplicate offline entry');
+    rows.set(rowKey, Object.freeze({ subject: checkedSubject, target, states: Object.freeze(states), compact: Object.freeze(compact), omitted: Object.freeze(omitted) }));
+  }
+  return rows;
+}
+
+function offlineSlot(request) {
+  if (request.method.endsWith('function-summary')) return 'function_summary';
+  if (request.method.endsWith('dependency-summary')) return 'dependency_summary';
+  if (request.method.endsWith('analysis-coverage')) return 'analysis_coverage';
+  if (request.method === 'candidate/contract-delta') return 'contract_delta';
+  if (request.method === 'candidate/ownership-delta') return 'ownership_delta';
+  return null;
+}
+
+function offlineEnvelope(index, request) {
+  const row = index.get(key({ subject: subject(request.subject), target: text(request.target === null ? '' : request.target, 'offline request target', true) }));
+  const slot = offlineSlot(request);
+  if (!row || !slot) return null;
+  if (!Object.hasOwn(row.states, slot)) {
+    if (slot === 'contract_delta' || slot === 'ownership_delta') return Object.freeze({ state: 'not_applicable', reason: `offline_${slot}_not_applicable` });
+    return null;
+  }
+  if (row.states[slot] !== 'available') return Object.freeze({ state: row.states[slot], reason: `offline_${slot}_${row.states[slot]}` });
+  return Object.freeze({ schema: SCHEMA, subject: row.subject, method: request.method, target: request.target, facet: request.facet, state: 'available', compact: row.compact[slot], omitted: row.omitted, nonclaims: Object.freeze(['offline bundled compact evidence']), source_authority: false, execution: false });
+}
+
 function createEvidenceInspector(host, selected, declaration) {
   if (!host || typeof host.readEvidence !== 'function') fail('closed evidence host');
   const checkedSubject = subject(selected);
@@ -90,7 +145,7 @@ function createEvidenceInspector(host, selected, declaration) {
   return Object.freeze({
     async inspect(tab, options = {}) {
       const detail = options.detail || 'ownership';
-      const request = plan(checkedSubject, declaration, tab, detail);
+      const request = plan(checkedSubject, declaration, tab, detail, host.offline === true);
       if (request.state) return status(request.state, request.reason);
       const cacheKey = key({ subject: checkedSubject, declaration: declaration.id, tab, detail, request });
       if (!cache.has(cacheKey)) cache.set(cacheKey, Promise.resolve().then(async () => {
@@ -103,6 +158,6 @@ function createEvidenceInspector(host, selected, declaration) {
   });
 }
 
-const api = { SCHEMA, TABS, STATES, createEvidenceInspector };
+const api = { SCHEMA, INDEX_SCHEMA, TABS, STATES, offlineIndex, offlineEnvelope, createEvidenceInspector };
 if (typeof module !== 'undefined' && module.exports) module.exports = api;
 else globalThis.SemapraxExplorerEvidence = api;

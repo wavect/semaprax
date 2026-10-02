@@ -1,0 +1,22 @@
+module everyday.v2.repair;
+
+@id("everyday.v2.repair.export-payload")
+record ExportPayload {
+    @id("everyday.v2.repair.export-payload.bytes")
+    bytes: Bytes,
+}
+
+@id("everyday.v2.repair.build")
+fn build(input: borrow Slice<u8>) -> ExportPayload
+{
+    ExportPayload { bytes: bytes_copy(input) }
+}
+
+// A checked target declaration for an authorized repair session to bind. It is
+// intentionally passing: #323 still needs an operator-selected genuinely
+// failing target and its independently observed before/after checks.
+@id("everyday.v2.repair.target")
+fn target() -> i64
+{
+    0
+}

@@ -1,0 +1,8 @@
+schema = "semaprax.project.v11"
+name = "everyday-agent-v2"
+version = "1.0.0"
+profile = "nested-owned-record-api.v1"
+entry = "everyday.v2.agent.lifecycle"
+sources = ["src/agent.spx", "src/repair_target.spx", "src/tests.spx"]
+web_exports = ["everyday.v2.repair.build"]
+tests = ["everyday.v2.tests"]

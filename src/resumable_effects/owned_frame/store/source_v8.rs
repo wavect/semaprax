@@ -106,6 +106,28 @@ pub(crate) struct SourceOwnedWaitStoreRegistrationV8 {
     identity: OwnedFrameStoreIdentity,
     generation: String,
 }
+/// Test-only representation of facts a trusted restart host retains outside
+/// the process. Production code has no registration serialization route.
+#[cfg(test)]
+#[derive(serde::Serialize, serde::Deserialize)]
+pub(crate) struct TestRetainedSourceOwnedWaitRegistrationV8 {
+    program_root: String,
+    invocation: String,
+    policy_epoch: u64,
+    execution: String,
+    binding: String,
+    max_steps_per_stage: usize,
+    max_total_steps: u64,
+    max_stages: usize,
+    max_attempts: usize,
+    response_limit: usize,
+    directory_identity: (u64, u64),
+    identity_directory_device: u64,
+    identity_directory_inode: u64,
+    identity_file_device: u64,
+    identity_file_inode: u64,
+    generation: String,
+}
 impl SourceOwnedWaitStoreRegistrationV8 {
     pub(crate) fn expected_facts(&self) -> &FreshSourceOwnedWaitFactsV8 {
         &self.expected
@@ -115,6 +137,27 @@ impl SourceOwnedWaitStoreRegistrationV8 {
     }
     pub(crate) fn identity(&self) -> OwnedFrameStoreIdentity {
         self.identity
+    }
+    #[cfg(test)]
+    pub(crate) fn test_retained_restart_facts(&self) -> TestRetainedSourceOwnedWaitRegistrationV8 {
+        TestRetainedSourceOwnedWaitRegistrationV8 {
+            program_root: self.expected.scope.program_root().into(),
+            invocation: self.expected.scope.invocation_id().into(),
+            policy_epoch: self.expected.scope.policy_epoch(),
+            execution: self.expected.execution.clone(),
+            binding: self.expected.binding.clone(),
+            max_steps_per_stage: self.expected.limits.max_steps_per_stage,
+            max_total_steps: self.expected.limits.max_total_steps,
+            max_stages: self.expected.limits.max_stages,
+            max_attempts: self.expected.limits.max_attempts,
+            response_limit: self.expected.limits.response_limit,
+            directory_identity: self.expected.directory_identity,
+            identity_directory_device: self.identity.directory_device,
+            identity_directory_inode: self.identity.directory_inode,
+            identity_file_device: self.identity.file_device,
+            identity_file_inode: self.identity.file_inode,
+            generation: self.generation.clone(),
+        }
     }
     pub(crate) fn acknowledge_retained_by_trusted_host(
         &self,
@@ -126,6 +169,44 @@ impl SourceOwnedWaitStoreRegistrationV8 {
         Ok(RetainedSourceOwnedWaitRegistrationGrantV8 {
             registration: self.clone(),
             creator: std::process::id(),
+        })
+    }
+}
+#[cfg(test)]
+impl TestRetainedSourceOwnedWaitRegistrationV8 {
+    pub(crate) fn registration(self) -> Result<SourceOwnedWaitStoreRegistrationV8, Error> {
+        let expected = FreshSourceOwnedWaitFactsV8 {
+            scope: SourceCheckpointScope::new(
+                self.program_root,
+                self.invocation,
+                self.policy_epoch,
+            )
+            .map_err(|_| Error::Binding)?,
+            execution: self.execution,
+            binding: self.binding,
+            limits: SourceOwnedWaitLimitsV8 {
+                max_steps_per_stage: self.max_steps_per_stage,
+                max_total_steps: self.max_total_steps,
+                max_stages: self.max_stages,
+                max_attempts: self.max_attempts,
+                response_limit: self.response_limit,
+            },
+            directory_identity: self.directory_identity,
+        };
+        expected.validate()?;
+        let identity = OwnedFrameStoreIdentity {
+            directory_device: self.identity_directory_device,
+            directory_inode: self.identity_directory_inode,
+            file_device: self.identity_file_device,
+            file_inode: self.identity_file_inode,
+        };
+        if self.generation != expected.generation(identity)? {
+            return Err(Error::Binding);
+        }
+        Ok(SourceOwnedWaitStoreRegistrationV8 {
+            expected,
+            identity,
+            generation: self.generation,
         })
     }
 }

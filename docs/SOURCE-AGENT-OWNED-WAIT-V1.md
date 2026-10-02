@@ -331,6 +331,18 @@ append prefixes therefore have no retry, model dispatch or successor append
 route. This remains a private first-model continuation, not general physical
 owner recovery.
 
+The owning restart regression uses two separate libtest subprocesses. The
+preparer creates and parks the actual first-turn owner, records only a
+test-only representation of the trusted host's retained registration facts,
+then exits. The relaunch rebuilds the checked runtime independently, reopens
+the original pinned directory with those retained facts, materializes fresh
+backing and observes exactly one factory/start plus three adapter polls. A
+separate relaunch appends hostile tail bytes after the preparer exits and
+refuses before owner or adapter creation. The test transport is compiled only
+under `cfg(test)` and is not a production registration serialization or a new
+recovery authority. These regressions are source-added and remain unexecuted
+until the required profile runs.
+
 The profile-specific constructor/delegation and narrow store lease paths in §9.3 remain; only the impossible pre-create file-identity requirement/signatures are replaced by this exact ordering. V1 constructors/public signatures/name/generation recipes remain frozen.
 
 ## 10. Exact replay reference types (normative clarification)

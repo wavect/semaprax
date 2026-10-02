@@ -8,6 +8,13 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Add source-only process-restart regression coverage for the private prepared
+  owned-wait continuation (#330). An exited preparer and independently rebuilt
+  relaunch use the original pinned directory plus test-held registration facts;
+  the relaunch dispatches once, while hostile tail bytes refuse before any
+  owner or adapter. This test transport is unavailable outside `cfg(test)` and
+  its new regressions are unexecuted.
+
 - Add the sealed first-turn Prepared restart continuation (#330). A second
   trusted-host grant rechecks the exact source/checkpoint/tail/lease facts
   before it consumes fresh restored backing into the original model path. The

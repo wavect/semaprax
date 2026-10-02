@@ -10,8 +10,12 @@ use semaprax_doctor_capsule::{Artifact, MAX_ARTIFACT_BYTES};
 use sha2::{Digest as _, Sha256};
 use windows_sys::Win32::Foundation::{
     CloseHandle, DuplicateHandle, GetHandleInformation, HANDLE, HANDLE_FLAG_INHERIT,
-    INVALID_HANDLE_VALUE,
+    INVALID_HANDLE_VALUE, LocalFree,
 };
+use windows_sys::Win32::Security::Authorization::{
+    ConvertStringSecurityDescriptorToSecurityDescriptorW, SDDL_REVISION_1,
+};
+use windows_sys::Win32::Security::{PSECURITY_DESCRIPTOR, SECURITY_ATTRIBUTES};
 use windows_sys::Win32::System::Memory::{
     CreateFileMappingW, FILE_MAP_READ, FILE_MAP_WRITE, MapViewOfFile, PAGE_READWRITE,
     SECTION_MAP_READ, UnmapViewOfFile,
@@ -19,6 +23,41 @@ use windows_sys::Win32::System::Memory::{
 use windows_sys::Win32::System::Threading::GetCurrentProcess;
 
 struct Mapping(HANDLE);
+
+struct MappingSecurity(PSECURITY_DESCRIPTOR);
+
+impl MappingSecurity {
+    fn create() -> Result<Self, ()> {
+        // No allow ACE grants a new handle any access. OWNER RIGHTS also
+        // suppresses the owner's implicit WRITE_DAC: an empty DACL alone
+        // would still let the same-user child regain permission to rewrite it.
+        // The original creation handle receives full access to the new section;
+        // its later read-only duplicate only reduces those existing rights.
+        let sddl: Vec<u16> = "D:P(D;;GA;;;OW)\0".encode_utf16().collect();
+        let mut descriptor = std::ptr::null_mut();
+        // SAFETY: SDDL is a fixed, terminated string; the API allocates the
+        // complete descriptor, which this owner releases with LocalFree.
+        if unsafe {
+            ConvertStringSecurityDescriptorToSecurityDescriptorW(
+                sddl.as_ptr(),
+                SDDL_REVISION_1,
+                &mut descriptor,
+                std::ptr::null_mut(),
+            )
+        } == 0
+        {
+            return Err(());
+        }
+        Ok(Self(descriptor))
+    }
+}
+
+impl Drop for MappingSecurity {
+    fn drop(&mut self) {
+        // SAFETY: conversion allocated this descriptor and this owner is sole.
+        unsafe { LocalFree(self.0) };
+    }
+}
 
 impl Mapping {
     fn raw(&self) -> HANDLE {
@@ -88,13 +127,20 @@ impl AuthenticatedCarrier {
         }
         let length = bytes.len();
         let length_u64 = u64::try_from(length).map_err(|_| ())?;
+        let descriptor = MappingSecurity::create()?;
+        let security = SECURITY_ATTRIBUTES {
+            nLength: std::mem::size_of::<SECURITY_ATTRIBUTES>() as u32,
+            lpSecurityDescriptor: descriptor.0,
+            bInheritHandle: 0,
+        };
         // SAFETY: an unnamed paging-file mapping has an exact nonzero bounded
-        // size. The null security descriptor and name create no ambient named
-        // lookup path; later transport must pass the retained handle directly.
+        // size. The live protected descriptor denies access escalation through
+        // DuplicateHandle, including owner-mediated DACL changes. The null name
+        // creates no ambient lookup path; transport passes the retained handle.
         let writable_raw = unsafe {
             CreateFileMappingW(
                 INVALID_HANDLE_VALUE,
-                std::ptr::null(),
+                &security,
                 PAGE_READWRITE,
                 (length_u64 >> 32) as u32,
                 length_u64 as u32,

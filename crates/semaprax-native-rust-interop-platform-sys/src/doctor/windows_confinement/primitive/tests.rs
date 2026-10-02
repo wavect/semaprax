@@ -227,7 +227,10 @@ fn runtime_child_checks_unrelated_inheritable_handle_is_absent() {
 #[test]
 #[ignore = "requires the explicitly provisioned Windows runtime gate"]
 fn runtime_child_reads_authenticated_request_bundle_carriers() {
-    use windows_sys::Win32::Foundation::HANDLE;
+    use windows_sys::Win32::Foundation::{
+        DuplicateHandle, ERROR_ACCESS_DENIED, GetLastError, HANDLE,
+    };
+    use windows_sys::Win32::Storage::FileSystem::{WRITE_DAC, WRITE_OWNER};
     use windows_sys::Win32::System::Memory::{
         FILE_MAP_READ, FILE_MAP_WRITE, MapViewOfFile, UnmapViewOfFile,
     };
@@ -260,6 +263,35 @@ fn runtime_child_reads_authenticated_request_bundle_carriers() {
             writable.Value.is_null(),
             "child inherited a writable request/bundle carrier"
         );
+        // A read-only handle is insufficient if the section's DACL lets this
+        // same-user child obtain a more powerful duplicate. Owner rights must
+        // not let it rewrite that DACL and then obtain a writable duplicate.
+        for access in [FILE_MAP_WRITE, WRITE_DAC, WRITE_OWNER] {
+            let mut duplicate = std::ptr::null_mut();
+            // SAFETY: this process owns the live inherited section handle;
+            // the duplicate output is closed even if the hostile attempt wins.
+            let duplicated = unsafe {
+                DuplicateHandle(
+                    GetCurrentProcess(),
+                    handle,
+                    GetCurrentProcess(),
+                    &mut duplicate,
+                    access,
+                    0,
+                    0,
+                )
+            };
+            // SAFETY: capture the error before any other Win32 call.
+            let error = unsafe { GetLastError() };
+            if !duplicate.is_null() {
+                drop(Handle::new(duplicate));
+            }
+            assert_eq!(duplicated, 0, "carrier duplicate gained access {access:#x}");
+            assert_eq!(
+                error, ERROR_ACCESS_DENIED,
+                "carrier access escalation must fail through access control"
+            );
+        }
         // SAFETY: unmap the exact successful read view before returning.
         assert_ne!(unsafe { UnmapViewOfFile(view) }, 0);
     }

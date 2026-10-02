@@ -540,7 +540,10 @@ can still race and exact image binding remains unresolved. It supplies the
 checked name to the Windows spawn primitive. That primitive now copies the
 signed request/bundle slots into read-only inherited mapping handles, binds
 their fixed order with the signed selector and chosen image role, and retains
-them through child settlement. It does not implement ordinary CLI admission;
+them through child settlement. Each section's protected DACL has no access
+grants and an OWNER RIGHTS denial, preventing a same-user child from obtaining
+writable duplicates or restoring access through the owner's DACL permission.
+It does not implement ordinary CLI admission;
 its added native regression cases remain unexecuted.
 See [Windows doctor v1](DOCTOR-PRODUCTION-PROVISIONER-WINDOWS-V1.md).
 

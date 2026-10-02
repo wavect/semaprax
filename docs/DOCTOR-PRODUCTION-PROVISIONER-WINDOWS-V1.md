@@ -292,12 +292,28 @@ unnamed paging-file mapping, unmaps its sole writable view, duplicates only
 `SECTION_MAP_READ` into an inheritable handle, drops the writable handle, and
 rehashes from the retained read-only handle before returning.
 
+Each section is created with the protected, deny-only DACL
+`D:P(D;;GA;;;OW)`: no allow ACE grants a new handle access, and the OWNER RIGHTS
+ACE suppresses the owner's implicit permission to rewrite the DACL. A merely
+read-only duplicate with the creator's default DACL is insufficient because
+[`DuplicateHandle`](https://learn.microsoft.com/en-us/windows/win32/api/handleapi/nf-handleapi-duplicatehandle)
+can request greater access. A completely empty DACL also leaves the owner's
+implicit `WRITE_DAC` permission; Microsoft's
+[OWNER RIGHTS definition](https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/manage/understand-security-identifiers)
+specifies why an explicit owner-rights ACE is necessary. The creator's initial
+handle fills the new section before it is reduced to read access; no later
+permission transition is needed.
+
 The new selected native cases reject same-length request and bundle substitutions
 before process creation and verify a real restricted child can map exactly the
 two inherited signed payloads read-only. The child checks its signed selector
 and image role binding and cannot map either inherited carrier writable. The
-gate has not run this source revision, so these are test obligations rather
-than Windows execution evidence.
+same child also requires `ERROR_ACCESS_DENIED` when duplicating either section
+with `FILE_MAP_WRITE`, `WRITE_DAC`, or `WRITE_OWNER`, covering direct write
+escalation and owner-mediated permission changes while preserving its exact-byte
+read control. These assertions extend the existing handoff case, keeping all
+26 selected cases. The gate has not run this source revision, so these are test
+obligations rather than Windows execution evidence.
 
 ### Signed image binding continuation (#333; partial native runtime evidence)
 

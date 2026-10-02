@@ -18,6 +18,12 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Harden the Windows doctor request/bundle carriers against duplicated write
+  access and owner-mediated DACL changes using a protected OWNER RIGHTS deny
+  policy. The existing native child handoff case now rejects `FILE_MAP_WRITE`,
+  `WRITE_DAC`, and `WRITE_OWNER` duplication. This source-only correction keeps
+  all 26 selected Windows cases and still requires native execution evidence.
+
 - Distinguish initial file-open admission from later oplock refusal in the
   Windows doctor #333 binding corpus. The retained writable-section and
   surviving-view cases now require refusal before the first successful open;

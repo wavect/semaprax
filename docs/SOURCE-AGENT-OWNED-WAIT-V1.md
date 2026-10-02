@@ -802,9 +802,9 @@ An actual successful continued Observe holder and both authentic settlement/Turn
 
 ## 45. Actual failed-Observe State cleanup writer
 
-Only an actual failed initial or continued Observe holder with its authentic OwnedObserveSettled ACK can select State cleanup. Started is bound to the actual failure, State provenance, original full Observe failure-cleanup vector and exact retained prefix. Its fixed durable ACK incurs one physical release through the existing failed-Observe settlement primitive. Preallocated canonical slots capture each actual observer outcome; the returned physical receipt and all action outcomes must agree. Partial release, capture mismatch or later guard loss retains the actual boundary holder and permanently quarantines it. No retry, synthetic aggregate receipt or restored owner is admitted.
+Only an actual failed initial, continued, or later-turn Observe holder with its authentic OwnedObserveSettled ACK can select State cleanup. The later-turn bridge consumes the exact retained LaterContinueLineage, including its physical failed State, cumulative accounting, policy, cancellation, and original Reduce hold; journal rows cannot reconstruct it. Started is bound to the actual failure, State provenance, original full Observe failure-cleanup vector and exact retained prefix. Its fixed durable ACK incurs one physical release through the existing failed-Observe settlement primitive. Preallocated canonical slots capture each actual observer outcome; the returned physical receipt and all action outcomes must agree. Partial release, capture mismatch or later guard loss retains the actual boundary holder and permanently quarantines it. No retry, synthetic aggregate receipt or restored owner is admitted.
 
-The receipt row references the actual Started row index. After release, guards use the actual released engine holder and descriptive facts cached before release, never the old State root. Only a full successful receipt and its true Settled ACK can select the sticky Stop: Fuel/Depth exhaustion keeps BudgetExhausted; other admitted Observe failures select Rejected/StageRefused. Full current guards apply before Started and Stop. Incurred release and receipt may finish after cancellation or clock expiry while retaining physical store, PID, schema, exclusivity and applicable policy checks. Initial cleanup adds no policy/clock or accounting authority; continued cleanup retains the unchanged ledger and same Reduce hold without debit, refund or reservation reset.
+The receipt row references the actual Started row index. After release, guards use the actual released engine holder and descriptive facts cached before release, never the old State root. Only a full successful receipt and its true Settled ACK can select the sticky Stop: Fuel/Depth exhaustion keeps BudgetExhausted; other admitted Observe failures select Rejected/StageRefused. Full current guards apply before Started and Stop. Incurred release and receipt may finish after cancellation or clock expiry while retaining physical store, PID, schema, exclusivity and applicable policy checks. Initial cleanup adds no policy/clock or accounting authority; continued and later-turn cleanup retain the unchanged ledger and same Reduce hold without debit, refund or reservation reset.
 
 The generic append classifier denies all State cleanup and Stop spellings at a checked failed cumulative Observe prefix. Only sealed actual-owner permits can advance this writer.
 
@@ -1015,7 +1015,9 @@ its observed consumption and State-bound result digest. The fixed Model writer
 retains that same State after its Completed ACK or prewrite refusal. The owning
 physical Resume success and Completed-prewrite refusal selectors passed locally
 (1/1 each). The later Effect/Reduce/Step join is specified in section 50;
-later failed-Observe cleanup still requires its owner join.
+The later failed-Observe owner has a closed consuming cleanup bridge; it retains
+the exact LaterContinueLineage through the existing fixed State cleanup and Stop
+writer.
 
 Public multi-turn entry, public Report delivery and physical owner restoration
 after restart remain

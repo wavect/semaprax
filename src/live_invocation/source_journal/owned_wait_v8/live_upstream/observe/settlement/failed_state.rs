@@ -12,6 +12,7 @@ use crate::interpreter::resumable::owned_frame::registered_stage::reduce::Failed
 use crate::live_invocation::source_journal::owned_wait_v8::append::VerifiedFailedObserveStateSuccessorV8;
 use crate::live_invocation::source_journal::owned_wait_v8::append::LiveFailedObserveStateAppendFailureV8;
 use crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect::authorization::step::r#continue::settlement::failed_state::ContinuedFailedObserveContextV8;
+use crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect::authorization::step::r#continue::later::settlement::failed_state::LaterFailedObserveContextV8;
 use crate::live_invocation::source_journal::{SourceStopReason,SourceStopStatus};
 use crate::resumable_effects::owned_frame::v2::CheckedOwnedFrameHelperV2;
 use serde_json::{json,Value as Json};
@@ -35,12 +36,14 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) struct InitialFail
 pub(in crate::live_invocation::source_journal::owned_wait_v8) enum FailedObserveContextV8<'j> {
     Initial(InitialFailedObserveContextV8<'j>),
     Continued(ContinuedFailedObserveContextV8<'j>),
+    Later(LaterFailedObserveContextV8<'j>),
 }
 impl<'j> FailedObserveContextV8<'j> {
     fn journal(&self) -> &'j SourceOwnedWaitJournalV8 {
         match self {
             Self::Initial(c) => c.journal,
             Self::Continued(c) => c.journal(),
+            Self::Later(c) => c.journal(),
         }
     }
     fn guard(
@@ -65,6 +68,7 @@ impl<'j> FailedObserveContextV8<'j> {
                 c.held.validate_prefix(sequence, bytes)
             })(),
             Self::Continued(c) => c.guard_at(sequence, bytes, incurred),
+            Self::Later(c) => c.guard_at(sequence, bytes, incurred),
         };
         result.inspect_err(|_| self.journal().quarantine())
     }
@@ -281,16 +285,18 @@ impl<'j> LiveSettledObserveV8<'j> {
                 }
             }
             LiveObserveSettlementOwnerV8::Later(later) => {
-                // The later failed-State cleanup producer has not been joined.
-                // Keep the physical Observe outcome and its one actual ACK
-                // together; no modeled cleanup can replace that boundary.
-                let owner = LiveObserveSettlementOwnerV8::Later(later);
-                acks.insert(0, cache.observed);
-                owner.journal().quarantine();
-                return Err(LiveFailedObserveStateFailureV8::Selection {
-                    owner: LiveSettledObserveV8 { owner, acks },
-                    error: SourceJournalError::Order,
-                });
+                match later.into_failed_state_cleanup(cache) {
+                    Ok(x) => x,
+                    Err(later) => {
+                        let owner = LiveObserveSettlementOwnerV8::Later(later);
+                        acks.insert(0, cache.observed);
+                        owner.journal().quarantine();
+                        return Err(LiveFailedObserveStateFailureV8::Selection {
+                            owner: LiveSettledObserveV8 { owner, acks },
+                            error: SourceJournalError::Binding,
+                        });
+                    }
+                }
             }
         };
         match source.started() {
@@ -348,6 +354,7 @@ impl LiveFailedObserveStateCleanupPermitV8<'_, '_> {
     ) -> Result<(), SourceJournalError> {
         match &self.lineage.context {
             FailedObserveContextV8::Continued(c) => c.matches_context(r, e, store, policy),
+            FailedObserveContextV8::Later(c) => c.matches_context(r, e, store, policy),
             _ => Err(SourceJournalError::Binding),
         }
     }
@@ -894,6 +901,7 @@ impl FixedFailedObserveStateAppendPermitV8<'_, '_> {
                 i.validate_failed_observe_cleanup_prefix(self.owner.selected_row())
             }
             FailedObserveContextV8::Continued(c) => c.append_prefix(i, self.owner.selected_row()),
+            FailedObserveContextV8::Later(c) => c.append_prefix(i, self.owner.selected_row()),
         }
     }
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_registry(
@@ -907,6 +915,7 @@ impl FixedFailedObserveStateAppendPermitV8<'_, '_> {
                 w.validate_against_acknowledged_session(s)
             }
             FailedObserveContextV8::Continued(c) => c.advance_ack(w, s),
+            FailedObserveContextV8::Later(c) => c.advance_ack(w, s),
         }
     }
 }

@@ -92,10 +92,11 @@ fn with_moved(
         &'j Clock,
     ) -> bool,
 ) {
-    with_moved_profile(false, callback)
+    with_moved_profile(false, false, callback)
 }
 fn with_moved_profile(
     three_turns: bool,
+    later_observe_ensures: bool,
     callback: impl for<'j> FnOnce(
         &'j SourceOwnedWaitJournalV8,
         LiveMovedStepV8<'j>,
@@ -155,7 +156,9 @@ fn with_moved_profile(
             assert!(terminal.carrier().is_some());
         }
     };
-    if three_turns {
+    if later_observe_ensures {
+        CheckedOwnedWaitJournalContextV8::test_with_actual_three_turn_observe_ensures_store(run)
+    } else if three_turns {
         CheckedOwnedWaitJournalContextV8::test_with_actual_three_turn_store(run)
     } else {
         CheckedOwnedWaitJournalContextV8::test_with_actual_runtime_store(true, run)
@@ -202,9 +205,9 @@ fn owned_continue_driver_advances_one_real_step_into_the_next_turn() {
         false
     });
 }
-fn continued_reduce_chain_step_ack(fault: u8, three_turns: bool) {
+fn continued_reduce_chain_step_ack(fault: u8, three_turns: bool, later_observe_ensures: bool) {
     let run = move || {
-        with_moved_profile(three_turns, |journal, moved, weak, _, _| {
+        with_moved_profile(three_turns, later_observe_ensures, |journal, moved, weak, _, _| {
             let observed = advance_live_owned_continue_v8(journal, moved)
                 .unwrap_or_else(|_| panic!("actual Continue driver"));
             let settled = journal
@@ -855,7 +858,7 @@ fn continued_reduce_chain_step_ack(fault: u8, three_turns: bool) {
                                         };
                                         panic!("turn-2 physical Observe and two exact ACKs: {detail}")
                                     });
-                                    assert!(observed.is_observed());
+                                    assert_eq!(observed.is_observed(), !later_observe_ensures);
                                     assert_eq!(observed.turn(), 2);
                                     let after = journal.begin_session().unwrap();
                                     let (reserved, stages, turn, last) =
@@ -916,6 +919,16 @@ fn continued_reduce_chain_step_ack(fault: u8, three_turns: bool) {
                                             .unwrap_or_else(|_| {
                                                 panic!("retained turn-2 Observe settlement owner")
                                             });
+                                        if later_observe_ensures {
+                                            let stopped = crate::live_invocation::source_journal::owned_wait_v8::live_upstream::observe::settlement::failed_state::stop_failed_observe_state_v8(settled, |_| {})
+                                                .unwrap_or_else(|_| panic!("later failed Observe cleanup and sticky Stop"));
+                                            let current = journal.begin_session().unwrap();
+                                            assert!(matches!(current.test_observe_inventory().test_observe_entries().last().unwrap().entry,
+                                                EntryV8::Ordinary(SourceJournalEntry::Stop { turn: Some(2), attempt: None, status: crate::live_invocation::source_journal::SourceStopStatus::Rejected, reason: crate::live_invocation::source_journal::SourceStopReason::StageRefused })
+                                            ));
+                                            drop(stopped);
+                                            return false;
+                                        }
                                         let observed_row =
                                             settled.prepare_turn_observed().unwrap_or_else(|_| {
                                                 panic!("turn-2 TurnObserved candidate")
@@ -1247,55 +1260,59 @@ fn continued_reduce_chain_step_ack(fault: u8, three_turns: bool) {
 }
 #[test]
 fn owned_continue_driver_dispatches_next_turn_model_once_and_records_settlement() {
-    continued_reduce_chain_step_ack(0, false);
+    continued_reduce_chain_step_ack(0, false, false);
 }
 #[test]
 #[cfg(unix)]
 fn owned_continued_step_real_prewrite_fault_retains_owner_and_poison() {
-    continued_reduce_chain_step_ack(1, false);
+    continued_reduce_chain_step_ack(1, false, false);
 }
 #[test]
 #[cfg(unix)]
 fn owned_continued_cleanup_started_prewrite_fault_retains_staged_owner() {
-    continued_reduce_chain_step_ack(2, false);
+    continued_reduce_chain_step_ack(2, false, false);
 }
 #[test]
 #[cfg(unix)]
 fn owned_continued_cleanup_receipt_prewrite_fault_keeps_release_sticky() {
-    continued_reduce_chain_step_ack(3, false);
+    continued_reduce_chain_step_ack(3, false, false);
 }
 #[test]
 #[cfg(unix)]
 fn owned_continued_transfer_prewrite_fault_never_moves_ready_fields() {
-    continued_reduce_chain_step_ack(4, false);
+    continued_reduce_chain_step_ack(4, false, false);
 }
 #[test]
 #[cfg(unix)]
 fn owned_continued_terminal_prewrite_fault_retains_mapped_owner_and_poison() {
-    continued_reduce_chain_step_ack(5, false);
+    continued_reduce_chain_step_ack(5, false, false);
 }
 #[test]
 fn owned_continued_step_hands_real_state_to_turn_two_and_acks_observe() {
-    continued_reduce_chain_step_ack(0, true);
+    continued_reduce_chain_step_ack(0, true, false);
 }
 #[test]
 fn owned_continued_step_turn_two_state_prewrite_refusal_retains_mapped_owner() {
-    continued_reduce_chain_step_ack(6, true);
+    continued_reduce_chain_step_ack(6, true, false);
 }
 #[test]
 #[cfg(unix)]
 fn owned_continued_step_turn_two_settlement_prewrite_refusal_retains_observed_owner() {
-    continued_reduce_chain_step_ack(7, true);
+    continued_reduce_chain_step_ack(7, true, false);
 }
 #[test]
 #[cfg(unix)]
 fn owned_continued_step_turn_two_created_prewrite_refusal_retains_later_owner() {
-    continued_reduce_chain_step_ack(8, true);
+    continued_reduce_chain_step_ack(8, true, false);
 }
 #[test]
 #[cfg(unix)]
 fn owned_continued_step_turn_two_start_prewrite_refusal_never_enters_source() {
-    continued_reduce_chain_step_ack(9, true);
+    continued_reduce_chain_step_ack(9, true, false);
+}
+#[test]
+fn owned_continued_step_turn_two_failed_observe_cleans_state_and_stops() {
+    continued_reduce_chain_step_ack(0, true, true);
 }
 mod prepared;
 #[test]

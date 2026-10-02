@@ -1,6 +1,7 @@
 # Source Agent owned wait public v1 — fresh two-turn session
 
 Status: **normative design only; no public API or executable driver is exposed.**
+Audience: SourceLive host, interpreter, journal, SDK, and runtime implementers and reviewers.
 
 This document owns the proposed public construction boundary for the SourceLive
 v8 owned-Agent route. It is intentionally smaller than issue #330: it specifies

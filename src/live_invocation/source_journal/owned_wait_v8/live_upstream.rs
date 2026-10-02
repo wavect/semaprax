@@ -67,7 +67,7 @@ impl LiveWaitStartPermitV8<'_> {
 pub(super) mod authorize;
 pub(super) mod effect;
 pub(super) mod model;
-mod observe;
+pub(in crate::live_invocation::source_journal::owned_wait_v8) mod observe;
 mod wait;
 pub(in crate::live_invocation::source_journal::owned_wait_v8) use wait::continue_recovered_first_turn_prepared_v8;
 pub(super) use wait::restart_first_turn_prepared_v8;

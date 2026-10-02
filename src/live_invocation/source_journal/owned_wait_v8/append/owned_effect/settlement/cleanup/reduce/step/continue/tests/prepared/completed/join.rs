@@ -125,13 +125,13 @@ pub(super) fn run<'j>(
 }
 #[test]
 fn owned_continued_step_turn_two_completed_joins_actual_effect_reduce_step() {
-    continued_reduce_chain_step_ack(0, true);
+    continued_reduce_chain_step_ack(0, true, false);
 }
 #[test]
 fn owned_continued_step_turn_two_completed_join_rejects_foreign_wait() {
-    continued_reduce_chain_step_ack(16, true);
+    continued_reduce_chain_step_ack(16, true, false);
 }
 #[test]
 fn owned_continued_step_turn_two_join_authorization_ack_failure_retains_state() {
-    continued_reduce_chain_step_ack(17, true);
+    continued_reduce_chain_step_ack(17, true, false);
 }

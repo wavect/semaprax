@@ -232,7 +232,7 @@ fn failed_observe_state_cleanup_initial_and_continued_actual_receipt_sticky_stop
                     attempt: None,
                     status: SourceStopStatus::Rejected,
                     reason: SourceStopReason::StageRefused,
-                }) if *actual_turn == turn
+                }) if actual_turn == turn
             ));
             drop(stopped);
         });

@@ -185,20 +185,20 @@ fn failure_detail(failure: &LiveContinuedTerminalDriverFailureV8<'_>) -> String 
 
 #[test]
 fn owned_continued_step_turn_two_terminal_report_claims_original_owner() {
-    continued_reduce_chain_step_ack(18, true);
+    continued_reduce_chain_step_ack(18, true, false);
 }
 
 #[test]
 fn owned_continued_step_turn_two_terminal_report_receipt_refusal_keeps_release_sticky() {
-    continued_reduce_chain_step_ack(19, true);
+    continued_reduce_chain_step_ack(19, true, false);
 }
 
 #[test]
 fn owned_continued_step_turn_two_terminal_report_terminal_refusal_retains_report() {
-    continued_reduce_chain_step_ack(20, true);
+    continued_reduce_chain_step_ack(20, true, false);
 }
 
 #[test]
 fn owned_continued_step_turn_two_terminal_report_projection_refusal_retains_report() {
-    continued_reduce_chain_step_ack(21, true);
+    continued_reduce_chain_step_ack(21, true, false);
 }

@@ -90,10 +90,10 @@ pub(super) fn run(
 #[test]
 #[cfg(unix)]
 fn owned_continued_step_turn_two_physical_resume_and_completed_ack() {
-    continued_reduce_chain_step_ack(0, true);
+    continued_reduce_chain_step_ack(0, true, false);
 }
 #[test]
 #[cfg(unix)]
 fn owned_continued_step_turn_two_completed_prewrite_refusal_retains_resumed_owner() {
-    continued_reduce_chain_step_ack(15, true);
+    continued_reduce_chain_step_ack(15, true, false);
 }

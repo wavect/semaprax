@@ -1042,8 +1042,9 @@ fn classify(
             "add_contract" if signature_changed || effects_changed => return Err(conflict("contract addition conflicts with concurrent target signature or effects")),
             "replace_contract_expression" if signature_changed || contracts_changed || effects_changed => return Err(conflict("contract replacement conflicts with concurrent target signature, contracts or effects")),
             "add_declaration" if signature_changed || effects_changed => return Err(conflict("declaration addition conflicts with concurrent target signature or effects")),
+            "delete_declaration" if signature_changed || body_changed || contracts_changed || display_changed || effects_changed => return Err(conflict("declaration deletion conflicts with concurrent target changes")),
             "move_declaration" if signature_changed || effects_changed => return Err(conflict("declaration move conflicts with concurrent target signature or effects")),
-            "rename_declaration" | "replace_function_body" | "replace_expression" | "replace_contract_expression" | "change_function_signature" | "add_contract" | "add_declaration" | "extract_function" | "add_record_field" | "add_variant_case" | "move_declaration" | "implement_interface" => {},
+            "rename_declaration" | "replace_function_body" | "replace_expression" | "replace_contract_expression" | "change_function_signature" | "add_contract" | "add_declaration" | "delete_declaration" | "extract_function" | "add_record_field" | "add_variant_case" | "move_declaration" | "implement_interface" => {},
             _ => return Err(grammar("candidate rebase does not admit this intention kind")),
         }
         if kind == "move_declaration" {

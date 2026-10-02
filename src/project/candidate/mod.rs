@@ -26,6 +26,7 @@ mod catalog;
 mod cleanup_dependencies;
 mod contract_delta;
 mod declaration;
+mod deletion;
 mod delta;
 mod dependency_navigation;
 mod deployment_contract_evidence;
@@ -419,6 +420,7 @@ impl ProjectCandidate {
         let mut movement = None;
         let mut implementation_addition = None;
         let mut type_addition = None;
+        let mut deletion = None;
         let mut nominal_rename = None;
         let mut replacement_preview = None;
         let generic_rename = generic_rename::plan(&self.revision, &programs, &change.intent)?;
@@ -480,6 +482,12 @@ impl ProjectCandidate {
                     (summary, Some(addition))
                 }
             }
+            Some("delete_declaration") => {
+                let (summary, removed) =
+                    deletion::apply(&self.revision, &mut programs, &change.intent)?;
+                deletion = Some(removed);
+                (summary, None)
+            }
             Some("extract_function") => {
                 let (summary, addition) =
                     extraction::apply(&self.revision, &mut programs, &change.intent)?;
@@ -531,6 +539,14 @@ impl ProjectCandidate {
                 "effects":addition.effects, "requires":addition.requires_count, "ensures":addition.ensures_count,
             })).is_some() {
                 return Err(invalid("declaration addition replaced an existing identity"));
+            }
+        }
+        if let Some(removed) = &deletion {
+            let functions = before[&removed.path]["functions"]
+                .as_object_mut()
+                .ok_or_else(|| invalid("deletion owner is absent from source inventory"))?;
+            if functions.remove(&removed.id).is_none() {
+                return Err(invalid("deleted function is absent from source inventory"));
             }
         }
         if summary.kind == "add_contract" {
@@ -601,6 +617,7 @@ impl ProjectCandidate {
             variant_case_addition.as_ref(),
             movement.as_ref(),
             type_addition.as_ref(),
+            deletion.as_ref(),
         )?;
         if let Some(addition) = addition.as_ref() {
             declaration::validate_added_signature(&candidate, addition)?;
@@ -819,6 +836,11 @@ impl ProjectCandidate {
                     .filter_map(|identity| identity["id"].as_str()),
             )
             .collect::<BTreeSet<_>>();
+        let deleted = summaries
+            .iter()
+            .filter(|summary| summary["kind"] == "delete_declaration")
+            .filter_map(|summary| summary["target"].as_str())
+            .collect::<BTreeSet<_>>();
         let selected = summaries
             .iter()
             .filter_map(|s| s["target"].as_str())
@@ -850,6 +872,8 @@ impl ProjectCandidate {
                 .map_err(|_| invalid("invalid candidate impact"))?
             } else if let Some(binding) = interface::binding(&revision, id)? {
                 json!({"availability":"source_static_conformance_only","binding":binding,"cross_file_impact_available":false})
+            } else if deleted.contains(id) {
+                json!({"availability":"deleted_declaration","cross_file_impact_available":false})
             } else {
                 return Err(invalid(
                     "candidate impact target is absent from runtime and source inventories",
@@ -1041,6 +1065,7 @@ fn preserve_explicit_identities(
     variant_case: Option<&variant_case::VariantCaseAddition>,
     movement: Option<&movement::DeclarationMove>,
     type_addition: Option<&type_declaration::TypeAddition>,
+    deletion: Option<&deletion::DeclarationDeletion>,
 ) -> Result<(), Vec<Diagnostic>> {
     fn identities(revision: &ProjectRevision) -> Result<BTreeMap<String, Value>, Vec<Diagnostic>> {
         let graph: Value = serde_json::from_str(revision.semantic_graph())
@@ -1113,6 +1138,20 @@ fn preserve_explicit_identities(
         }
         fact["path"] = json!(moved.destination_path);
         fact["module"] = json!(moved.destination_module);
+    }
+    if let Some(removed) = deletion {
+        let fact = before
+            .remove(&removed.id)
+            .ok_or_else(|| invalid("deleted identity is absent from original graph"))?;
+        if fact["kind"] != "function"
+            || !fact["owner"].is_null()
+            || fact["path"] != removed.path
+            || after.contains_key(&removed.id)
+        {
+            return Err(invalid(
+                "deleted identity does not match its exact original owner",
+            ));
+        }
     }
     if before != after {
         return Err(invalid(

@@ -1,10 +1,10 @@
 //! Compiler-owned explorer projection regressions.
 use semaprax::image_transport::{VNextPolicy, VNextSession};
 use semaprax::project::{
-    ExplorerMode, ExplorerPageOptions, ExplorerQuery, ExplorerView, ProjectSemanticImage,
-    with_authenticated_project,
+    with_authenticated_project, ExplorerMode, ExplorerPageOptions, ExplorerQuery, ExplorerView,
+    ProjectSemanticImage,
 };
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -186,7 +186,11 @@ fn candidate_explorer_binds_side_handle_cursor_and_rejects_source_drift() {
     )
     .unwrap();
     let image_revision = session.image_revision().to_owned();
-    let root = payload(call(&mut session, "candidate/open", json!({"image_revision":image_revision})));
+    let root = payload(call(
+        &mut session,
+        "candidate/open",
+        json!({"image_revision":image_revision}),
+    ));
     let intent = json!({
         "kind":"replace_function_body",
         "target":"calculator.add",
@@ -266,18 +270,14 @@ fn candidate_explorer_binds_side_handle_cursor_and_rejects_source_drift() {
         .expect("overview page has a continuation");
     let mut wrong_side = page_params.clone();
     wrong_side["side"] = json!("candidate");
-    assert!(
-        call(&mut session, "candidate/explorer-page", wrong_side)
-            .get("error")
-            .is_some()
-    );
+    assert!(call(&mut session, "candidate/explorer-page", wrong_side)
+        .get("error")
+        .is_some());
     let mut wrong_cursor = page_params;
     wrong_cursor["cursor"] = json!(format!("{cursor}x"));
-    assert!(
-        call(&mut session, "candidate/explorer-page", wrong_cursor)
-            .get("error")
-            .is_some()
-    );
+    assert!(call(&mut session, "candidate/explorer-page", wrong_cursor)
+        .get("error")
+        .is_some());
 
     let source = fixture.0.join("src/core.spx");
     let text = std::fs::read(&source).unwrap();
@@ -296,4 +296,143 @@ fn candidate_explorer_binds_side_handle_cursor_and_rejects_source_drift() {
             assert_eq!(std::fs::read(fixture.0.join(path)).unwrap(), bytes);
         }
     }
+}
+
+#[test]
+fn deleted_declaration_keeps_base_context_and_impact_but_is_absent_on_candidate_side() {
+    let fixture = Fixture::new();
+    let source = fixture.0.join("src/core.spx");
+    let mut bytes = std::fs::read(&source).unwrap();
+    let original = b"    left + right\n";
+    let at = bytes
+        .windows(original.len())
+        .position(|part| part == original)
+        .unwrap();
+    bytes.splice(
+        at..at + original.len(),
+        b"    explorer_unused(left) + right\n".iter().copied(),
+    );
+    let insertion = b"@id(\"calculator.explorer-unused\")\nfn explorer_unused(value: i64) -> i64\n{\n    value\n}\n\n";
+    let before_add = b"@id(\"calculator.add\")";
+    let at = bytes
+        .windows(before_add.len())
+        .position(|part| part == before_add)
+        .unwrap();
+    bytes.splice(at..at, insertion.iter().copied());
+    std::fs::write(&source, bytes).unwrap();
+    let mut session = VNextSession::open(
+        &fixture.manifest(),
+        VNextPolicy {
+            candidate_prepare: true,
+            ..VNextPolicy::default()
+        },
+    )
+    .unwrap();
+    let image_revision = session.image_revision().to_owned();
+    let root = payload(call(
+        &mut session,
+        "candidate/open",
+        json!({"image_revision":image_revision}),
+    ));
+    let still_consumed = call(
+        &mut session,
+        "candidate/apply-intent",
+        json!({
+            "image_revision":image_revision,
+            "candidate_revision":root["candidate_revision"],
+            "intent":{"kind":"delete_declaration","target":"calculator.explorer-unused"}
+        }),
+    );
+    assert_eq!(
+        still_consumed["error"]["data"]["diagnostics"][0]["code"], "SPX-T203",
+        "{still_consumed}"
+    );
+    let severed = payload(call(
+        &mut session,
+        "candidate/apply-intent",
+        json!({
+            "image_revision":image_revision,
+            "candidate_revision":root["candidate_revision"],
+            "intent":{"kind":"replace_function_body","target":"calculator.add","body":{"kind":"place","name":"left"}}
+        }),
+    ));
+    let delete = json!({"kind":"delete_declaration","target":"calculator.explorer-unused"});
+    let deleted = payload(call(
+        &mut session,
+        "candidate/apply-intent",
+        json!({
+            "image_revision":image_revision,
+            "candidate_revision":severed["candidate_revision"],
+            "intent":delete
+        }),
+    ));
+    let candidate_revision = deleted["candidate_revision"].as_str().unwrap();
+    for mode in ["context", "impact"] {
+        let base = payload(call(
+            &mut session,
+            "candidate/explorer-summary",
+            json!({
+                "image_revision":image_revision,
+                "candidate_revision":candidate_revision,
+                "side":"base","mode":mode,"target":"calculator.explorer-unused"
+            }),
+        ));
+        assert_eq!(base["subject"]["side"], "base");
+        assert_eq!(base["coverage"]["complete_within_query"], true);
+        let declarations = base["inventories"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|row| row["view"] == "declarations")
+            .unwrap();
+        assert!(declarations["total_items"].as_u64().unwrap() > 0);
+        let candidate = call(
+            &mut session,
+            "candidate/explorer-summary",
+            json!({
+                "image_revision":image_revision,
+                "candidate_revision":candidate_revision,
+                "side":"candidate","mode":mode,"target":"calculator.explorer-unused"
+            }),
+        );
+        assert_eq!(
+            candidate["error"]["data"]["diagnostics"][0]["code"], "SPX-G177",
+            "{candidate}"
+        );
+    }
+    session.finish().unwrap();
+}
+
+#[test]
+fn deletion_rejects_exported_declaration_without_changing_candidate() {
+    let fixture = Fixture::new();
+    let mut session = VNextSession::open(
+        &fixture.manifest(),
+        VNextPolicy {
+            candidate_prepare: true,
+            ..VNextPolicy::default()
+        },
+    )
+    .unwrap();
+    let image_revision = session.image_revision().to_owned();
+    let root = payload(call(
+        &mut session,
+        "candidate/open",
+        json!({"image_revision":image_revision}),
+    ));
+    let rejected = call(
+        &mut session,
+        "candidate/apply-intent",
+        json!({
+            "image_revision":image_revision,
+            "candidate_revision":root["candidate_revision"],
+            "intent":{"kind":"delete_declaration","target":"calculator.add"}
+        }),
+    );
+    assert!(rejected.get("error").is_some());
+    assert_eq!(
+        rejected["error"]["data"]["diagnostics"][0]["code"], "SPX-G225",
+        "{rejected}"
+    );
+    session.finish().unwrap();
 }

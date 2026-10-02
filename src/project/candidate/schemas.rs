@@ -448,6 +448,7 @@ fn intent_schema() -> Value {
         closed(&[("kind",json!({"const":"implement_interface"})),("target",protocol_binding()),("protocol",protocol_binding()),("id",protocol_binding()),("members",json!({"type":"array","minItems":1,"maxItems":64,"items":closed(&[("method",protocol_binding()),("implementation",protocol_binding())])}))]),
         closed(&[("kind",json!({"const":"implement_interface"})),("target",protocol_binding()),("protocol",protocol_binding()),("id",protocol_binding()),("destination",text(240)),("members",json!({"type":"array","minItems":1,"maxItems":64,"items":closed(&[("method",protocol_binding()),("implementation",protocol_binding())])}))]),
         base("add_declaration",vec![("declaration",declaration_schema())]),
+        base("delete_declaration",vec![]),
         extraction,
         base("move_declaration",vec![("destination",text(MAX_ID_BYTES))]),
         base("add_record_field",vec![("field",json!({"oneOf":record_fields}))]),

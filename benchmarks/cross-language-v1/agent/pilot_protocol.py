@@ -113,10 +113,12 @@ def freeze(configuration):
         exact(model, ("id", "requested_model", "reported_model"), "model_shape")
         if not re.fullmatch(r"[a-z0-9][a-z0-9_-]{0,63}", model["id"]):
             raise ValueError("model_id_refused")
-        # Immutable requested snapshots; the receipt preserves the provider's
+        # Dated snapshots plus the explicitly reviewed Sonnet 5.5 version ID.
+        # No family alias or guessed undated version is admitted. The receipt preserves the provider's
         # possibly canonicalized key separately, never calls it a snapshot.
-        if not re.fullmatch(r"claude-[a-z0-9-]+-[0-9]{8}", model["requested_model"]):
-            raise ValueError("dated_claude_snapshot_required")
+        if (model["requested_model"] != "claude-sonnet-5-5"
+                and not re.fullmatch(r"claude-[a-z0-9-]+-[0-9]{8}", model["requested_model"])):
+            raise ValueError("exact_claude_snapshot_required")
         if not re.fullmatch(r"claude-[a-z0-9-]+", model["reported_model"]):
             raise ValueError("reported_model_refused")
     if (len({row["id"] for row in models}) != 2 or len({row["requested_model"] for row in models}) != 2

@@ -1,5 +1,9 @@
 # Changelog
 
+- Admit only the exact undated Sonnet 5.5 model version ID alongside dated
+  snapshots in the #332 pilot. Preserve family-alias and guessed-version
+  refusal, with a focused protocol regression; no model request was made.
+
 - Add the #332 laboratory pilot route: freeze the full 182-row inventory and
   two-model/14-adapter pilot dispositions; require disjoint candidate/hidden
   paths; bind native Claude subscription calls to explicit executable/model

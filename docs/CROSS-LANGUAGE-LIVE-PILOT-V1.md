@@ -9,7 +9,8 @@ This belongs to `benchmarks/cross-language-v1`, the laboratory inherited from
 #298/#211. It is separate from the source/graph 36-tuple Agent-task protocol.
 The existing v3 fixed-source conformance CLI remains unchanged.
 
-`agent/pilot_protocol.py` freezes two distinct requested dated Claude snapshots,
+`agent/pilot_protocol.py` freezes two distinct exact requested Claude versions (dated snapshots or the
+explicitly admitted `claude-sonnet-5-5` version ID),
 two distinct expected provider-reported model identities, one repetition, and
 the existing **validation** task `structured-input-error-handling-v1`. There is
 no adaptation, prompt tuning, or held-out task selection. The only writable
@@ -116,7 +117,7 @@ shape and are not a availability claim or spend approval):
 {
   "models": [
     {"id":"a","requested_model":"claude-haiku-4-5-20251001","reported_model":"claude-haiku-4-5"},
-    {"id":"b","requested_model":"claude-sonnet-4-5-20250929","reported_model":"claude-sonnet-4-5"}
+    {"id":"b","requested_model":"claude-sonnet-5-5","reported_model":"claude-sonnet-5-5"}
   ],
   "limits": {"deadline_seconds":90,"max_request_bytes":65536,"max_result_bytes":65536,"max_reported_tokens":16384,"max_estimated_usd":1.0},
   "claude_sha256":"REPLACE_WITH_EXPLICIT_EXECUTABLE_SHA256",
@@ -172,3 +173,15 @@ Recorded local fixture gates for this implementation batch: new pilot 8/8,
 supported-scope preservation 29/29, and existing v3 PureProvenanceTests 11/11.
 The bridge fixtures used installed local Node v24.3.0; this is not the official
 Node 22.12.0 runtime admission or a real provider result.
+
+### Sonnet 5.5 model pin follow-up
+
+Anthropic's [model overview](https://platform.claude.com/docs/en/models/overview)
+lists `claude-sonnet-5-5` as its full API model ID, and the
+[model configuration](https://code.claude.com/docs/en/model-config) documentation
+distinguishes full version IDs from moving family aliases. Only this exact
+undated version ID is added to dated-snapshot admission; `sonnet`, guessed future
+versions and suffix variants still refuse. CLI 2.1.286 initialization metadata
+listed Sonnet 5.5 and Haiku 4.5 on the signed-in Team account using zero user
+messages and zero model turns. That metadata is provider readiness evidence,
+not a generated candidate or a real model-usage receipt.

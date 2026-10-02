@@ -59,6 +59,21 @@ class PilotTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 p.freeze(config)
 
+    def test_sonnet_55_exact_version_pin_is_not_a_family_alias(self):
+        config = configuration()
+        config["models"][1].update(requested_model="claude-sonnet-5-5", reported_model="claude-sonnet-5-5")
+        plan = p.freeze(config)
+        self.assertEqual(plan["configuration"]["models"][1]["requested_model"], "claude-sonnet-5-5")
+        for value in ("sonnet", "claude-sonnet", "claude-sonnet-5", "claude-sonnet-5-6", "claude-sonnet-5-5-latest"):
+            bad = copy.deepcopy(config)
+            bad["models"][1]["requested_model"] = value
+            with self.assertRaisesRegex(ValueError, "exact_claude_snapshot_required"):
+                p.freeze(bad)
+        same = copy.deepcopy(config)
+        same["models"][1]["reported_model"] = same["models"][0]["reported_model"]
+        with self.assertRaisesRegex(ValueError, "distinct_models_required"):
+            p.freeze(same)
+
     def test_candidate_hidden_collision_and_extra_file_refuse(self):
         with self.assertRaisesRegex(ValueError, "candidate_hidden_overlay_collision"):
             p.admit_paths({"index.ts": b"candidate"}, {"index.ts": b"oracle"}, ("index.ts",))

@@ -14,6 +14,7 @@ const checks = require('./diagnostics');
 const navigation = require('./navigation');
 const { SourceIndex } = require('./positions');
 const { openExplorer, stableId } = require('./explorer');
+const { revealCurrentSource } = require('./explorer-reveal');
 let stopActive = () => {};
 // Check-on-save: run the user-selected compiler's read-only `check --json` on
 // the saved file's project and publish the result as editor diagnostics. It
@@ -497,7 +498,11 @@ function activate(context) {
     return openExplorer(vscode, context, {
       get panel() { return explorerPanel; }, set panel(value) { explorerPanel = value; },
       get panelGeneration() { return explorerGeneration; }, set panelGeneration(value) { explorerGeneration = value; },
-      invoke, live: () => Boolean(client && !client.closed && !stale && image), image: () => image, candidate: () => candidate
+      invoke, live: () => Boolean(client && !client.closed && !stale && image), image: () => image, candidate: () => candidate,
+      reveal: reference => {
+        if (!config?.manifest) throw new Error('Explorer manifest root is unavailable');
+        return revealCurrentSource(vscode, path.dirname(config.manifest), reference, () => Boolean(client && !client.closed && !stale && image));
+      }
     }, query);
   }
   const requireCandidate = () => { saved(); if (stale || !candidate) throw new Error('Open a current candidate first'); };

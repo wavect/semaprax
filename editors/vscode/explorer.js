@@ -50,6 +50,19 @@ function pageRequest(value, summary, cursors) {
   if (!inventory || inventory.handle !== value.handle || cursors.get(value.view) !== value.cursor) return null;
   return { view: value.view, handle: value.handle, cursor: value.cursor, page_size: value.page_size, max_bytes: value.max_bytes };
 }
+function sourceReference(value) {
+  if (!plain(value) || Object.keys(value).length !== 4 || typeof value.path !== 'string' || !value.path || !DIGEST.test(value.source_revision) || !DIGEST.test(value.source_digest) || !plain(value.span) || Object.keys(value.span).length !== 4) return null;
+  for (const name of ['start', 'end', 'line', 'column']) if (!Number.isSafeInteger(value.span[name]) || value.span[name] < 0) return null;
+  if (value.span.end < value.span.start || value.span.line < 1 || value.span.column < 1) return null;
+  return value;
+}
+function retainSourceReferences(result, subject, references) {
+  if (subject?.side !== 'current' || result?.view !== 'declarations' || !Array.isArray(result.items)) return;
+  for (const row of result.items) {
+    const reference = sourceReference(row?.source_reference);
+    if (reference) references.set(JSON.stringify(reference), reference);
+  }
+}
 function summaryQuery(value, allowedSide) {
   if (!plain(value) || !['overview', 'context', 'impact'].includes(value.mode) || value.side !== allowedSide ||
       !(value.target === undefined || value.target === null || stableId(value.target)) ||
@@ -219,7 +232,7 @@ function openExplorer(vscode, context, state, query) {
   const generation = ++state.panelGeneration;
   state.panel?.dispose();
   const panel = vscode.window.createWebviewPanel('semapraxExplorer', 'SEMAPRAX Explorer', vscode.ViewColumn.Beside, { enableScripts: true, retainContextWhenHidden: false, localResourceRoots: [context.extensionUri.with({ path: context.extensionUri.path + '/explorer-assets' })] });
-  state.panel = panel; const scheduler = new ExplorerScheduler(state.invoke); let summary = null; const cursors = new Map();
+  state.panel = panel; const scheduler = new ExplorerScheduler(state.invoke); let summary = null; const cursors = new Map(); const sourceReferences = new Map();
   panel.webview.html = html(panel.webview, context.extensionUri, generation, `${query.mode} · ${query.side}`);
   let selectedQuery = null;
   const reply = (requestId, ok, value) => panel.webview.postMessage({ type: 'semaprax-explorer-response', generation, requestId, ok, ...(ok ? { value } : { error: String(value?.message || value).slice(0, 1024) }) });
@@ -233,13 +246,13 @@ function openExplorer(vscode, context, state, query) {
         const params = next.side === 'current' ? { image_revision: state.image(), mode: next.mode, target: next.target, direction: next.direction, depth: next.depth, max_nodes: 256, analysis_max_bytes: 65536 } : { image_revision: state.image(), candidate_revision: state.candidate(), side: next.side, mode: next.mode, target: next.target, direction: next.direction, depth: next.depth, max_nodes: 256, analysis_max_bytes: 65536 };
         const result = (await scheduler.read(key, () => state.invoke(method, params))).payload;
         if (!plain(result) || result.schema !== 'semaprax.explorer-view.v1' || result.kind !== 'summary' || result.mode !== next.mode || result.target !== next.target || result.subject?.side !== next.side || (next.side !== 'current' && result.subject?.candidate_revision !== state.candidate()) || !Array.isArray(result.inventories)) throw new Error('Explorer summary binding mismatch');
-        summary = result; selectedQuery = next; cursors.clear(); for (const row of summary.inventories) cursors.set(row.view, null); reply(request.requestId, true, summary);
+        summary = result; selectedQuery = next; cursors.clear(); sourceReferences.clear(); for (const row of summary.inventories) cursors.set(row.view, null); reply(request.requestId, true, summary);
       } else if (request.action === 'page') {
         const page = pageRequest(request.value, summary, cursors); if (!page) throw new Error('Invalid explorer page request');
         if (!selectedQuery) throw new Error('Explorer summary required before page');
         const method = selectedQuery.side === 'current' ? 'image/explorer-page' : 'candidate/explorer-page';
         const params = selectedQuery.side === 'current' ? { image_revision: state.image(), mode: selectedQuery.mode, target: selectedQuery.target, direction: selectedQuery.direction, depth: selectedQuery.depth, max_nodes: 256, analysis_max_bytes: 65536, ...page } : { image_revision: state.image(), candidate_revision: state.candidate(), side: selectedQuery.side, mode: selectedQuery.mode, target: selectedQuery.target, direction: selectedQuery.direction, depth: selectedQuery.depth, max_nodes: 256, analysis_max_bytes: 65536, ...page };
-        const result = (await scheduler.read(JSON.stringify([method, params]), () => state.invoke(method, params))).payload; cursors.set(page.view, result.next_cursor); reply(request.requestId, true, result);
+        const result = (await scheduler.read(JSON.stringify([method, params]), () => state.invoke(method, params))).payload; cursors.set(page.view, result.next_cursor); retainSourceReferences(result, summary.subject, sourceReferences); reply(request.requestId, true, result);
       } else if (request.action === 'readEvidence') {
         if (!summary) throw new Error('Explorer summary required before evidence');
         const result = await scheduler.read(JSON.stringify(['evidence', request.value]), () => readEvidence(state.invoke, state, summary.subject, request.value));
@@ -253,10 +266,17 @@ function openExplorer(vscode, context, state, query) {
         if (!summary || summary.subject?.kind !== 'candidate' || request.value?.candidateRevision !== state.candidate() || !stableId(target)) throw new Error('Invalid candidate change request');
         const result = await scheduler.read(JSON.stringify(['delta', state.image(), state.candidate(), target]), () => readChangeReport(state.invoke, state.image(), state.candidate(), target));
         reply(request.requestId, true, result);
-      } else throw new Error('Source reveal is unavailable until the host can retain the exact source bytes');
+      } else if (request.action === 'reveal') {
+        if (!summary || summary.subject?.side !== 'current') throw new Error('Explorer source reveal is unavailable for base or candidate revisions');
+        const reference = sourceReference(request.value?.sourceReference);
+        const retained = reference && sourceReferences.get(JSON.stringify(reference));
+        if (!retained || !same(retained, reference)) throw new Error('Explorer source reference was not retained from this current view');
+        if (typeof state.reveal !== 'function') throw new Error('Explorer source reveal is unavailable until the host can retain the exact source bytes');
+        await state.reveal(reference); reply(request.requestId, true, { state: 'revealed' });
+      } else throw new Error('Unsupported explorer action');
     } catch (error) { reply(request.requestId, false, error); }
   });
   panel.onDidDispose(() => { subscription.dispose(); scheduler.clear(); if (state.panel === panel) state.panel = null; });
   return panel;
 }
-module.exports = { ExplorerScheduler, message, pageRequest, readChangeReport, readEvidence, openExplorer, stableId };
+module.exports = { ExplorerScheduler, message, pageRequest, sourceReference, retainSourceReferences, readChangeReport, readEvidence, openExplorer, stableId };

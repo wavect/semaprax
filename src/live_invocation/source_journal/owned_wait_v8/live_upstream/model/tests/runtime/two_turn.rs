@@ -131,7 +131,10 @@ fn exercise(scenario: Scenario) {
                 );
                 let evidence = terminal.evidence().to_vec();
                 assert!(weak.iter().all(|root| root.upgrade().is_none()));
-                assert!(journal.prospective_reduce.borrow().is_none());
+                assert!(
+                    journal.begin_fresh_session().is_err(),
+                    "settled terminal history cannot initialize another run"
+                );
                 assert!(runtime.try_close().is_ok());
                 journal
                     .hold()

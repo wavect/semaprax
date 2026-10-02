@@ -7,6 +7,10 @@
   Report data. A real public two-turn regression is authored; its default-stack
   run overflowed and the corrected fixture rerun hit local disk exhaustion.
   Broader failure shutdown and recovered public execution remain pending (#330).
+- Reduce owned-Agent two-turn driver stack retention by transferring physical
+  owners between short heap-backed phases. Preserve existing consuming joins and
+  failure custody, and pin process-restart regression children to a 2 MiB Rust
+  worker stack so larger suite settings cannot hide a regression (#330).
 
 - Fix first Prepared restart admission to compare the authenticated request
   digest written by the live wait, preserving the frozen wire format. The

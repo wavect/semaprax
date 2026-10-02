@@ -263,6 +263,9 @@ fn child(mode: &str, metadata: &std::path::Path, keep: bool) {
         .args(["--exact", &selector, "--nocapture"])
         .env(RESTART_MODE, mode)
         .env(RESTART_META, metadata)
+        // Pin the ordinary Rust worker budget even when the full test suite
+        // requests a larger stack for unrelated compiler fixtures.
+        .env("RUST_MIN_STACK", "2097152")
         .stdin(Stdio::null())
         .stdout(Stdio::null());
     if keep {

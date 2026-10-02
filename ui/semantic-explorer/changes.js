@@ -39,6 +39,29 @@ function sourceBytes(value) {
   return value;
 }
 
+function canonical(value) {
+  if (Array.isArray(value)) return `[${value.map(canonical).join(',')}]`;
+  if (plain(value)) return `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${canonical(value[key])}`).join(',')}}`;
+  return JSON.stringify(value);
+}
+
+async function hash(domain, value) {
+  const text = new TextEncoder();
+  const domainBytes = text.encode(domain), valueBytes = text.encode(value);
+  const bytes = new Uint8Array(domainBytes.length + 8 + valueBytes.length);
+  bytes.set(domainBytes); new DataView(bytes.buffer).setBigUint64(domainBytes.length, BigInt(valueBytes.length), true); bytes.set(valueBytes, domainBytes.length + 8);
+  const subtle = globalThis.crypto && globalThis.crypto.subtle;
+  if (subtle) {
+    const digestBytes = new Uint8Array(await subtle.digest('SHA-256', bytes));
+    return `sha256:${Array.from(digestBytes, byte => byte.toString(16).padStart(2, '0')).join('')}`;
+  }
+  if (typeof require === 'function') {
+    const crypto = require('node:crypto');
+    return `sha256:${crypto.createHash('sha256').update(bytes).digest('hex')}`;
+  }
+  fail('source review digest verification unavailable');
+}
+
 // Source text is admitted only through the immutable compiler source-review
 // report. The viewer never reads a path, produces a diff, or treats text as
 // executable input.
@@ -61,6 +84,20 @@ function sourceReview(value, candidateRevision, baseProjectRevision, candidatePr
     return Object.freeze({ path, base_source, candidate_source, base_digest: file.base_digest, candidate_digest: file.candidate_digest, source_diff, source_diff_digest: file.source_diff_digest });
   });
   return Object.freeze({ base_project_revision: value.base_project_revision, candidate_project_revision: value.candidate_project_revision, candidate_revision: value.candidate_revision, report_revision: value.report_revision, files: Object.freeze(files) });
+}
+
+async function verifySourceReview(value, candidateRevision, baseProjectRevision, candidateProjectRevision) {
+  const review = sourceReview(value, candidateRevision, baseProjectRevision, candidateProjectRevision);
+  for (const file of review.files) {
+    for (const [field, digestField, domain] of [
+      ['base_source', 'base_digest', 'semaprax.semantic-review.source-digest.v1\0'],
+      ['candidate_source', 'candidate_digest', 'semaprax.semantic-review.source-digest.v1\0'],
+      ['source_diff', 'source_diff_digest', 'semaprax.candidate.source-diff.v1\0']
+    ]) if (await hash(domain, file[field]) !== file[digestField]) fail('source review file digest');
+  }
+  const core = { schema: SOURCE_REVIEW_SCHEMA, base_project_revision: review.base_project_revision, candidate_project_revision: review.candidate_project_revision, candidate_revision: review.candidate_revision, source_authority: false, files: review.files };
+  if (await hash(`${SOURCE_REVIEW_SCHEMA}\0`, `${canonical(core)}\n`) !== review.report_revision) fail('source review report digest');
+  return review;
 }
 
 function catalog(value) {
@@ -244,12 +281,14 @@ function whyAffected(impact, side, nodeKey) {
   const queue = [{ node: root.node_key, path: [] }], visited = new Set([root.node_key]);
   while (queue.length) {
     const current = queue.shift();
-    if (current.node === nodeKey) return Object.freeze({ state: 'loaded_structural_witness', edges: Object.freeze(current.path) });
+    if (current.node === nodeKey) return current.path.length
+      ? Object.freeze({ state: 'loaded_structural_witness', edges: Object.freeze(current.path) })
+      : Object.freeze({ state: 'no_returned_structural_witness', edges: [] });
     for (const next of adjacency.get(current.node) || []) if (!visited.has(next.to)) { visited.add(next.to); queue.push({ node: next.to, path: [...current.path, next.edge] }); }
   }
   return Object.freeze({ state: impact.witness_state === 'analysis_incomplete' ? 'witness_not_loaded_or_analysis_incomplete' : 'no_returned_structural_witness', edges: [] });
 }
 
-const api = { CATALOG_SCHEMA, DELTA_SCHEMA, SOURCE_REVIEW_SCHEMA, catalog, delta, sourceReview, changeRow, changeList, loadImpact, unionImpact, loadChangeImpact, whyAffected };
+const api = { CATALOG_SCHEMA, DELTA_SCHEMA, SOURCE_REVIEW_SCHEMA, catalog, delta, sourceReview, verifySourceReview, changeRow, changeList, loadImpact, unionImpact, loadChangeImpact, whyAffected };
 if (typeof module !== 'undefined' && module.exports) module.exports = api;
 else globalThis.SemapraxExplorerChanges = api;

@@ -1,17 +1,27 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const crypto = require('node:crypto');
 const changes = require('../changes.js');
 const model = require('../model.js');
 
 const hex = value => `sha256:${value.repeat(64)}`;
 const digest = hex('a');
+function canonical(value) { if (Array.isArray(value)) return `[${value.map(canonical).join(',')}]`; if (value && typeof value === 'object') return `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${canonical(value[key])}`).join(',')}}`; return JSON.stringify(value); }
+function hash(domain, value) { const bytes = Buffer.from(value), length = Buffer.alloc(8); length.writeBigUInt64LE(BigInt(bytes.length)); return `sha256:${crypto.createHash('sha256').update(domain).update(length).update(bytes).digest('hex')}`; }
 const compact = (id, name, path, fragment = 'f') => ({ id, name, kind: 'function', path, module: path.split('/')[0], fragment_digest: `${fragment}${'0'.repeat(63)}` });
 function root(target, change, base, candidate) { return { target, change, base, candidate }; }
 function catalog(roots) { return { schema: changes.CATALOG_SCHEMA, candidate_digest: 'candidate-1', base_project_revision: 'base-1', project_revision: 'candidate-1', roots, selection_basis: 'authored_declaration_identity_origin_and_canonical_fragment_changes', source_changes: [], nonclaims: [] }; }
 function delta(target, facets) { return { schema: changes.DELTA_SCHEMA, candidate_digest: 'candidate-1', target, base_project_revision: 'base-1', project_revision: 'candidate-1', base_workspace_revision: 'base-workspace-1', workspace_revision: 'candidate-workspace-1', base_image_digest: digest, image_digest: digest, presence: 'modified', source_bindings: {}, facets, target_artifacts: {}, test_plan: {}, evidence_class: 'descriptive_recomputable_compiler_projection', comparison: 'exact_values_plus_separate_provenance_insensitive_projection_equality', omitted_equal_payloads: true, limits: {}, nonclaims: [] }; }
 function facet(name, change, exact, projection) { const result = { facet: name, change, exact_equal: exact, projection_equal_without_provenance: projection, base_digest: digest, candidate_digest: digest, base_bytes: 0, candidate_bytes: 0 }; if (!projection) { result.base = null; result.candidate = null; } return result; }
-function sourceReview(candidate = 'candidate-1', base = 'base-1') { return { schema: changes.SOURCE_REVIEW_SCHEMA, base_project_revision: base, candidate_project_revision: 'candidate-project-1', candidate_revision: candidate, source_authority: false, files: [{ path: 'm/main.spx', base_source: 'fn old() {}\n', candidate_source: 'fn new() {}\n', base_digest: digest, candidate_digest: digest, source_diff: '--- m/main.spx\n+++ m/main.spx\n', source_diff_digest: digest }], report_revision: digest }; }
+function sourceReview(candidate = 'candidate-1', base = 'base-1') {
+  const file = { path: 'm/main.spx', base_source: 'fn old() {}\n', candidate_source: 'fn new() {}\n', source_diff: '--- m/main.spx\n+++ m/main.spx\n' };
+  file.base_digest = hash('semaprax.semantic-review.source-digest.v1\0', file.base_source);
+  file.candidate_digest = hash('semaprax.semantic-review.source-digest.v1\0', file.candidate_source);
+  file.source_diff_digest = hash('semaprax.candidate.source-diff.v1\0', file.source_diff);
+  const review = { schema: changes.SOURCE_REVIEW_SCHEMA, base_project_revision: base, candidate_project_revision: 'candidate-project-1', candidate_revision: candidate, source_authority: false, files: [file] };
+  return { ...review, report_revision: hash(`${changes.SOURCE_REVIEW_SCHEMA}\0`, `${canonical(review)}\n`) };
+}
 
 test('catalog rows preserve move plus modification, ghosts, additions, and identity caution', () => {
   const moved = root('rename', 'moved', compact('rename', 'old_name', 'old/a.spx'), compact('rename', 'new_name', 'new/b.spx', 'g'));
@@ -89,6 +99,7 @@ test('base and candidate impact are loaded separately, unioned by side, and witn
   assert.ok(impact.nodes.some(row => row.side === 'base' && row.node_key === 'base:caller'));
   const witness = changes.whyAffected(impact, 'base', 'base:caller');
   assert.equal(witness.state, 'loaded_structural_witness'); assert.equal(witness.edges.length, 1); assert.equal(witness.edges[0].side, 'base');
+  assert.equal(changes.whyAffected(impact, 'base', 'base:root').state, 'no_returned_structural_witness');
 });
 
 test('missing or truncated witness stays explicitly qualified', () => {
@@ -108,8 +119,8 @@ test('removed and added roots retain their one-sided structural inventory state'
   assert.equal(changes.whyAffected(removed, 'candidate', 'candidate:removed').state, 'witness_not_loaded_or_analysis_incomplete');
 });
 
-test('source review accepts only the exact bound compiler report and never derives a diff', () => {
-  const review = changes.sourceReview(sourceReview(), 'candidate-1', 'base-1', 'candidate-project-1');
+test('source review verifies the exact bound compiler report and never derives a diff', async () => {
+  const review = await changes.verifySourceReview(sourceReview(), 'candidate-1', 'base-1', 'candidate-project-1');
   assert.equal(review.files[0].source_diff, '--- m/main.spx\n+++ m/main.spx\n');
   assert.throws(() => changes.sourceReview(sourceReview('other'), 'candidate-1', 'base-1', 'candidate-project-1'), /source review binding/);
   assert.throws(() => changes.sourceReview(sourceReview(), 'candidate-1', 'base-1', 'other-project'), /source review binding/);
@@ -117,4 +128,8 @@ test('source review accepts only the exact bound compiler report and never deriv
   assert.throws(() => changes.sourceReview(forged, 'candidate-1', 'base-1', 'candidate-project-1'), /source path/);
   const untrusted = sourceReview(); untrusted.source_authority = true;
   assert.throws(() => changes.sourceReview(untrusted, 'candidate-1', 'base-1', 'candidate-project-1'), /source review schema/);
+  const forgedDigest = sourceReview(); forgedDigest.files[0].source_diff = 'forged';
+  await assert.rejects(changes.verifySourceReview(forgedDigest, 'candidate-1', 'base-1', 'candidate-project-1'), /source review file digest/);
+  const forgedReport = sourceReview(); forgedReport.report_revision = digest;
+  await assert.rejects(changes.verifySourceReview(forgedReport, 'candidate-1', 'base-1', 'candidate-project-1'), /source review report digest/);
 });

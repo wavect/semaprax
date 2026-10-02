@@ -1,12 +1,15 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const crypto = require('node:crypto');
 const model = require('../model.js');
 const changes = require('../changes.js');
 const evidence = require('../evidence.js');
 const { createExplorer } = require('../view.js');
 
 const digest = `sha256:${'a'.repeat(64)}`;
+function canonical(value) { if (Array.isArray(value)) return `[${value.map(canonical).join(',')}]`; if (value && typeof value === 'object') return `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${canonical(value[key])}`).join(',')}}`; return JSON.stringify(value); }
+function hash(domain, value) { const bytes = Buffer.from(value), length = Buffer.alloc(8); length.writeBigUInt64LE(BigInt(bytes.length)); return `sha256:${crypto.createHash('sha256').update(domain).update(length).update(bytes).digest('hex')}`; }
 class Node {
   constructor(ownerDocument, tag) { this.ownerDocument = ownerDocument; this.tag = tag; this.children = []; this.listeners = new Map(); this.dataset = {}; this.style = {}; this.hidden = false; this.textContent = ''; }
   append(...nodes) { for (const node of nodes) { this.children.push(node); node.parentNode = this; } }
@@ -36,7 +39,14 @@ function catalog() { return { schema: changes.CATALOG_SCHEMA, candidate_digest: 
 function delta() { return { schema: changes.DELTA_SCHEMA, candidate_digest: 'candidate-1', target: 'stable-id', base_project_revision: 'base-project', project_revision: 'candidate-project', base_workspace_revision: 'base-workspace', workspace_revision: 'candidate-workspace', base_image_digest: digest, image_digest: digest, presence: 'modified', source_bindings: {}, facets: [], target_artifacts: {}, test_plan: {}, evidence_class: 'descriptive_recomputable_compiler_projection', comparison: 'exact_values_plus_separate_provenance_insensitive_projection_equality', omitted_equal_payloads: true, limits: {}, nonclaims: [] }; }
 function impactSummary(side, target) { return { schema: model.SCHEMA, kind: 'summary', subject: { ...subject(), side, project_revision: `${side}-project`, workspace_revision: `${side}-workspace` }, mode: 'impact', target, query: { direction: 'both', depth: 1, max_nodes: 256, max_bytes: 262144 }, artifact_digest: digest, truncation: { truncated: false, reason: null }, coverage: { owner: 'workspace_analysis', mode: 'impact', complete_within_query: true }, inventories: [{ view: 'modules', total_items: 0, handle: digest }, { view: 'declarations', total_items: 2, handle: digest }, { view: 'relations', total_items: 1, handle: digest }, { view: 'frontier', total_items: 0, handle: digest }], source_authority: false, execution: false, publication_authority: false, nonclaims: [] }; }
 function impactPage(selected, view) { const side = selected.subject.side; const declaration = id => ({ node_key: `${side}:${id}`, id, identity_origin: 'explicit', kind: 'function', display_name: id, owner_id: null, module: 'm', path: 'm/a.spx', source_reference: { kind: 'authenticated_source_reference_unavailable_in_analysis_projection' } }); const relation = { family: 'call', from: `${side}:caller`, to: `${side}:stable-id`, direction: 'reverse', site_id: `${side}:caller:stable-id`, provenance: { retained: true } }; const items = view === 'declarations' ? [declaration('stable-id'), declaration('caller')] : view === 'relations' ? [relation] : []; return { schema: model.SCHEMA, kind: 'page', subject: selected.subject, mode: selected.mode, target: selected.target, query: selected.query, artifact_digest: digest, truncation: selected.truncation, coverage: selected.coverage, view, handle: digest, cursor: null, offset: 0, total_items: items.length, page_size: 32, max_bytes: 65536, next_cursor: null, items, source_authority: false, execution: false, publication_authority: false, nonclaims: [] }; }
-function sourceReview() { return { schema: changes.SOURCE_REVIEW_SCHEMA, base_project_revision: 'base-project', candidate_project_revision: 'candidate-project', candidate_revision: 'candidate-1', source_authority: false, files: [{ path: 'm/new.spx', base_source: 'fn old_name() {}\n', candidate_source: 'fn new_name() {}\n', base_digest: digest, candidate_digest: digest, source_diff: '--- m/new.spx\n+++ m/new.spx\n', source_diff_digest: digest }], report_revision: digest }; }
+function sourceReview() {
+  const file = { path: 'm/new.spx', base_source: 'fn old_name() {}\n', candidate_source: 'fn new_name() {}\n', source_diff: '--- m/new.spx\n+++ m/new.spx\n' };
+  file.base_digest = hash('semaprax.semantic-review.source-digest.v1\0', file.base_source);
+  file.candidate_digest = hash('semaprax.semantic-review.source-digest.v1\0', file.candidate_source);
+  file.source_diff_digest = hash('semaprax.candidate.source-diff.v1\0', file.source_diff);
+  const review = { schema: changes.SOURCE_REVIEW_SCHEMA, base_project_revision: 'base-project', candidate_project_revision: 'candidate-project', candidate_revision: 'candidate-1', source_authority: false, files: [file] };
+  return { ...review, report_revision: hash(`${changes.SOURCE_REVIEW_SCHEMA}\0`, `${canonical(review)}\n`) };
+}
 
 test('candidate catalog, target delta, and selected evidence remain separate lazy reads', async () => {
   const calls = [];
@@ -49,7 +59,7 @@ test('candidate catalog, target delta, and selected evidence remain separate laz
   };
   const document = new Document(); const root = new Node(document, 'root');
   createExplorer(root, host, { side: 'candidate' });
-  await tick(); await tick(); await tick();
+  for (let index = 0; index < 16; index += 1) await tick();
   assert.ok(calls.includes('catalog:candidate-1'));
   assert.ok(!calls.some(call => call.startsWith('delta:') || call.startsWith('evidence:')));
   find(root, 'new_name').parentNode.listeners.get('click')();
@@ -73,9 +83,9 @@ test('change navigation keeps the selected identity and renders the separate imp
   };
   const document = new Document(); const root = new Node(document, 'root');
   createExplorer(root, host, { side: 'candidate' });
-  await tick(); await tick(); await tick();
-  find(root, 'new_name').parentNode.listeners.get('click')();
   for (let index = 0; index < 16; index += 1) await tick();
+  find(root, 'new_name').parentNode.listeners.get('click')();
+  for (let index = 0; index < 32; index += 1) await tick();
   assert.ok(calls.includes('summary:impact:base')); assert.ok(calls.includes('summary:impact:candidate'));
   assert.ok(find(root, 'Potential structural impact'));
   assert.ok(find(root, 'Compiler-provided source diff:'));

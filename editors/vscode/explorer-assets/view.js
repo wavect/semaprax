@@ -171,9 +171,12 @@ function createExplorer(root, host, options = {}) {
     for (const node of impact.nodes) {
       const row = element(document, 'div', 'spx-impact-row');
       row.append(element(document, 'span', 'spx-impact-side', node.side), element(document, 'strong', '', node.display_name || node.id || node.node_key));
-      const why = element(document, 'button', 'spx-button', 'Why affected?'); why.type = 'button';
-      why.addEventListener('click', () => { state.changes.witness = { target: selected.target, side: node.side, nodeKey: node.node_key }; showInspector(); });
-      row.append(why); rows.append(row);
+      if (node.id !== impact.target) {
+        const why = element(document, 'button', 'spx-button', 'Why affected?'); why.type = 'button';
+        why.addEventListener('click', () => { state.changes.witness = { target: selected.target, side: node.side, nodeKey: node.node_key }; showInspector(); });
+        row.append(why);
+      }
+      rows.append(row);
     }
     panel.append(rows);
     const requested = state.changes.witness;
@@ -481,7 +484,7 @@ function createExplorer(root, host, options = {}) {
       if (generation !== state.generation) return;
       let sourceReview = null, sourceReviewError = null;
       if (typeof host.sourceReview === 'function') {
-        try { sourceReview = semapraxExplorerChanges.sourceReview(await host.sourceReview(), list.candidate_revision, list.base_project_revision, list.candidate_project_revision); }
+        try { sourceReview = await semapraxExplorerChanges.verifySourceReview(await host.sourceReview(), list.candidate_revision, list.base_project_revision, list.candidate_project_revision); }
         catch (error) { if (!/not bundled/i.test(String(error && error.message || error))) sourceReviewError = String(error && error.message || error); }
       }
       state.changes = { state: 'available', list, selectedTarget: null, details: new Map(), impacts: new Map(), view: 'changes', comparison: false, witness: null, sourceReview, sourceReviewError, sourcePath: null, error: null };

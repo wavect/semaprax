@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
-const { ExplorerScheduler, message, pageRequest, readChangeReport } = require('../explorer');
+const { ExplorerScheduler, message, pageRequest, readChangeReport, readEvidence } = require('../explorer');
 
 test('the packaged viewer is an exact, hashed copy of the shared viewer assets', () => {
   const root = path.join(__dirname, '..');
@@ -55,4 +55,48 @@ test('candidate change reports are reassembled only from the selected immutable 
   assert.deepEqual(await readChangeReport(invoke, 'sha256:' + 'a'.repeat(64), candidate, null), JSON.parse(report));
   assert.ok(calls.length > 1);
   await assert.rejects(readChangeReport(async () => ({ payload: { schema: 'semaprax.image-semantic-delta-chunk.v1', candidate_revision: candidate, target: 'forged', report_schema: 'semaprax.project-candidate-semantic-delta-catalog.v1', offset: 0, total_bytes: 0, chunk: '', next_offset: null } }), 'sha256:' + 'a'.repeat(64), candidate, null), /chunk/);
+});
+
+test('evidence reads are closed, exact-subject-bound, and source-free', async () => {
+  const image = 'sha256:' + 'a'.repeat(64), project = 'sha256:' + 'b'.repeat(64), workspace = 'sha256:' + 'c'.repeat(64), graph = 'sha256:' + 'd'.repeat(64);
+  const subject = { kind: 'image', image_revision: image, project_revision: project, workspace_revision: workspace, project_graph_digest: graph, candidate_revision: null, side: 'current' };
+  const calls = [];
+  const invoke = async (method, params) => {
+    calls.push([method, params]);
+    return { image_revision: image, project_revision: project, payload: {
+      schema: 'semaprax.image-function-summary.v1', image_revision: image, project_revision: project, workspace_revision: workspace, project_graph_digest: graph,
+      id: 'calculator.add', parameter_count: 2, return_type_id: 'Int', effects: ['pure'], requires_count: 1, ensures_count: 0,
+      facets: [{ facet: 'contracts', handle: image }], source_authority: false, target_execution: false, source_body: 'must never escape'
+    } };
+  };
+  const result = await readEvidence(invoke, { image: () => image, candidate: () => null }, subject, { method: 'image/function-summary', subject, target: 'calculator.add', facet: null });
+  assert.deepEqual(calls, [['image/function-summary', { image_revision: image, target: 'calculator.add' }]]);
+  assert.deepEqual(result.compact, { id: 'calculator.add', parameter_count: 2, return_type_id: 'Int', effects: ['pure'], requires_count: 1, ensures_count: 0, facets: ['contracts'] });
+  assert.equal(JSON.stringify(result).includes('must never escape'), false);
+  await assert.rejects(readEvidence(invoke, { image: () => image, candidate: () => null }, subject, { method: 'candidate/function-summary', subject, target: 'calculator.add', facet: null }), /stale|binding|candidate/);
+});
+
+test('candidate evidence deltas retain only inventories and persistent IDs', async () => {
+  const image = 'sha256:' + 'a'.repeat(64), base = 'sha256:' + 'b'.repeat(64), project = 'sha256:' + 'c'.repeat(64), workspace = 'sha256:' + 'd'.repeat(64), graph = 'sha256:' + 'e'.repeat(64), candidate = 'sha256:' + 'f'.repeat(64);
+  const subject = { kind: 'candidate', image_revision: image, project_revision: project, workspace_revision: workspace, project_graph_digest: graph, candidate_revision: candidate, side: 'candidate' };
+  const report = JSON.stringify({ schema: 'semaprax.project-candidate-contract-delta.v1', candidate_digest: candidate, base_project_revision: base, project_revision: project, base_workspace_revision: base, workspace_revision: workspace, inventory: { base_functions: 2, candidate_functions: 2, affected_functions: 1 }, functions: [{ id: 'calculator.helper', change: 'modified', candidate: { predicates: ['literal source text'] } }], execution: false, source_authority: false, nonclaims: ['no_source_authority'] });
+  const calls = [];
+  const invoke = async (method, params) => {
+    calls.push([method, params]);
+    return { image_revision: image, project_revision: base, payload: { schema: 'semaprax.image-contract-delta-chunk.v1', report_schema: 'semaprax.project-candidate-contract-delta.v1', image_revision: image, candidate_revision: candidate, offset: 0, total_bytes: Buffer.byteLength(report), chunk: report, next_offset: null, source_authority: false } };
+  };
+  const result = await readEvidence(invoke, { image: () => image, candidate: () => candidate }, subject, { method: 'candidate/contract-delta', subject, target: null, facet: null });
+  assert.equal(calls.length, 1);
+  assert.equal(result.compact.changed[0].id, 'calculator.helper');
+  assert.equal(JSON.stringify(result).includes('literal source text'), false);
+  assert.deepEqual(result.omitted, ['source bodies', 'raw report payloads', 'literal-bearing checked expressions', 'source spans']);
+});
+
+test('candidate function summary accepts its derived image while binding the selected candidate', async () => {
+  const image = 'sha256:' + 'a'.repeat(64), derived = 'sha256:' + 'b'.repeat(64), candidate = 'sha256:' + 'c'.repeat(64);
+  const project = 'sha256:' + 'd'.repeat(64), workspace = 'sha256:' + 'e'.repeat(64), graph = 'sha256:' + 'f'.repeat(64);
+  const subject = { kind: 'candidate', image_revision: image, project_revision: project, workspace_revision: workspace, project_graph_digest: graph, candidate_revision: candidate, side: 'candidate' };
+  const invoke = async () => ({ image_revision: image, payload: { schema: 'semaprax.project-candidate-function-summary.v1', image_revision: derived, project_revision: project, workspace_revision: workspace, project_graph_digest: graph, candidate_revision: candidate, id: 'calculator.add', parameter_count: 2, return_type_id: 'Int', effects: [], requires_count: 0, ensures_count: 0, facets: [], source_authority: false } });
+  const result = await readEvidence(invoke, { image: () => image, candidate: () => candidate }, subject, { method: 'candidate/function-summary', subject, target: 'calculator.add', facet: null });
+  assert.equal(result.state, 'available');
 });

@@ -49,6 +49,18 @@ impl LiveClaimedReportV8<'_> {
         }
         Ok(actual)
     }
+
+    /// Consumes the terminal Report owner after deriving its checked delivery
+    /// value. A delivery consumer can retain only canonical projection data;
+    /// a failed check returns the same physical owner to its sealed caller.
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn into_delivery_projection(
+        self,
+    ) -> Result<serde_json::Value, (Self, SourceJournalError)> {
+        match self.delivery_projection() {
+            Ok(projection) => Ok(projection),
+            Err(error) => Err((self, error)),
+        }
+    }
 }
 
 impl<'j> LiveContinuedStagedStepV8<'j> {

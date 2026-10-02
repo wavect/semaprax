@@ -561,6 +561,10 @@ impl<'a> Projection<'a> {
                 "- Base project revision: `{}`\n",
                 inline(base, "project_revision")
             ));
+            out.push_str(&format!(
+                "- Candidate revision: `{}`\n",
+                inline(self.subject, "candidate_revision")
+            ));
         }
         out.push_str(&format!(
             "- Workspace revision: `{}`\n",
@@ -668,7 +672,7 @@ impl<'a> Projection<'a> {
             .target
             .ok_or("SVG export requires a declaration target")?;
         let width = 1100usize;
-        let height = 160usize
+        let height = 190usize
             .checked_add(
                 self.declarations
                     .len()
@@ -677,7 +681,7 @@ impl<'a> Projection<'a> {
             )
             .ok_or("SVG export size overflow")?;
         let mut out = format!(
-            "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"{width}\" height=\"{height}\" viewBox=\"0 0 {width} {height}\" role=\"img\" aria-labelledby=\"title desc\"><title id=\"title\">SEMAPRAX dependency slice for {}</title><desc id=\"desc\">Target {}, side {}, integrity identity {}. {}</desc><rect width=\"100%\" height=\"100%\" fill=\"#ffffff\"/><text x=\"28\" y=\"34\" font-family=\"sans-serif\" font-size=\"20\" fill=\"#17202a\">SEMAPRAX dependency slice</text><text x=\"28\" y=\"60\" font-family=\"sans-serif\" font-size=\"13\" fill=\"#34495e\">target: {} · side: {} · scope: {}</text><text x=\"28\" y=\"84\" font-family=\"sans-serif\" font-size=\"11\" fill=\"#566573\">integrity identity: {}</text><text x=\"28\" y=\"108\" font-family=\"sans-serif\" font-size=\"11\" fill=\"#566573\">blue: declaration · gray: potential relationship · {} hidden frontier entries</text>",
+            "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"{width}\" height=\"{height}\" viewBox=\"0 0 {width} {height}\" role=\"img\" aria-labelledby=\"title desc\"><title id=\"title\">SEMAPRAX dependency slice for {}</title><desc id=\"desc\">Target {}, side {}, integrity identity {}. {}</desc><rect width=\"100%\" height=\"100%\" fill=\"#ffffff\"/><text x=\"28\" y=\"34\" font-family=\"sans-serif\" font-size=\"20\" fill=\"#17202a\">SEMAPRAX dependency slice</text><text x=\"28\" y=\"60\" font-family=\"sans-serif\" font-size=\"13\" fill=\"#34495e\">target: {} · side: {} · scope: {}</text><text x=\"28\" y=\"84\" font-family=\"sans-serif\" font-size=\"11\" fill=\"#566573\">integrity identity: {}</text><text x=\"28\" y=\"108\" font-family=\"sans-serif\" font-size=\"11\" fill=\"#566573\">project revision: {} · candidate revision: {}</text><text x=\"28\" y=\"130\" font-family=\"sans-serif\" font-size=\"11\" fill=\"#566573\">changed declarations: {} · blue: declaration · gray: potential relationship · {} hidden frontier entries</text>",
             xml_escape(target),
             xml_escape(target),
             xml_escape(inline(self.subject, "side")),
@@ -687,6 +691,9 @@ impl<'a> Projection<'a> {
             xml_escape(inline(self.subject, "side")),
             if self.truncated { "incomplete" } else { "complete within retained compiler view" },
             xml_escape(&self.snapshot_digest),
+            xml_escape(inline(self.subject, "project_revision")),
+            xml_escape(inline(self.subject, "candidate_revision")),
+            self.changed_roots.len(),
             self.frontier_count,
         );
         let mut keys = BTreeMap::new();
@@ -697,13 +704,13 @@ impl<'a> Projection<'a> {
             let from = optional_display(relation, "from");
             let to = optional_display(relation, "to");
             if let (Some(from), Some(to)) = (keys.get(from), keys.get(to)) {
-                let y1 = 146 + from * 72 + 28;
-                let y2 = 146 + to * 72 + 28;
+                let y1 = 176 + from * 72 + 28;
+                let y2 = 176 + to * 72 + 28;
                 out.push_str(&format!("<path d=\"M 840 {y1} L 930 {y2}\" stroke=\"#95a5a6\" stroke-width=\"1\" fill=\"none\"/>"));
             }
         }
         for (index, declaration) in self.declarations.iter().enumerate() {
-            let y = 146 + index * 72;
+            let y = 176 + index * 72;
             out.push_str(&format!("<rect x=\"28\" y=\"{y}\" width=\"812\" height=\"54\" rx=\"5\" fill=\"#eaf2f8\" stroke=\"#2874a6\"/><text x=\"44\" y=\"{}\" font-family=\"sans-serif\" font-size=\"14\" fill=\"#17202a\">{}</text><text x=\"44\" y=\"{}\" font-family=\"sans-serif\" font-size=\"11\" fill=\"#34495e\">{} · {}</text>", y + 22, xml_escape(required_display(declaration, "display_name")), y + 41, xml_escape(required_display(declaration, "kind")), xml_escape(optional_display(declaration, "path"))));
         }
         out.push_str("</svg>");
@@ -890,6 +897,8 @@ mod tests {
             String::from_utf8(render(&value, Format::Svg).unwrap()).unwrap()
         );
         assert!(markdown.contains("source-free"));
+        assert!(svg.contains("changed declarations: 0"));
+        assert!(svg.contains("project revision: sha256:project"));
         assert!(svg.contains("&lt;script&gt;alert(1)&lt;/script&gt;"));
         assert!(!svg.contains("<script>alert"));
         assert!(!svg.contains("foreignObject"));

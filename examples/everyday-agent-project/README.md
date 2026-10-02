@@ -27,8 +27,8 @@ pipeline. See "Scope and nonclaims" for exactly why, with reproductions.
 semaprax check examples/everyday-agent-project
 semaprax test  examples/everyday-agent-project
 
-# The source-declared Agent alone, checked standalone (it has no imports,
-# so it needs no project resolution):
+# The source-declared Agent is also admitted by the Project. This standalone
+# check remains useful when inspecting the Agent module on its own:
 semaprax check examples/everyday-agent-project/src/agent.spx
 ```
 
@@ -104,8 +104,8 @@ This product delivers, for real and verified by the commands above:
 - bounded JSON validation, member lookup, and classification over a fixed
   flat manifest (`everyday.manifest.flat-object-valid`/`member`/`token-is`);
 - a canonical, bounded, deterministic report;
-- a source-declared Agent, compiled and selected by stable ID
-  (`compile_source_agent_lifecycle`);
+- a source-declared Agent, admitted through the authenticated Project source
+  set and compiled/selected by stable ID (`compile_source_agent_lifecycle`);
 - explicit authorization before the external boundary
   (`everyday.agent.fn.authorize`, refused in
   `everyday_agent_refuses_before_the_external_read_when_authorization_is_refused`);
@@ -160,13 +160,15 @@ It does **not** deliver, and does not claim to deliver:
   an `effect fn`, and it is realized by the host, not by compiled `.spx`
   code with `uses { fs.* }` — this is the existing Agent-runtime authority
   boundary, not a limit this product introduces.
-- The iterative, multi-turn `AGENT-ITERATIVE-LIFECYCLE-V2` profile (`Step`
-  variants, `compile_agent_lifecycle_v2`/`run_durable`'s step form). This
-  product uses the non-iterative Agent Lifecycle v1 durable machine
-  (`bind_durable_agent`/`DurableAgent`), which already has its own full
-  five-boundary crash-injection contract; extending to the iterative V2
-  profile is future work, not something this product's language admits and
-  leaves undone.
+- The iterative, multi-turn `AGENT-ITERATIVE-LIFECYCLE-V2` profile and the
+  source-live repair route. `src/agent.spx` is now an authenticated Project
+  source, satisfying repair's exact-source admission prerequisite, but its
+  `reduce` operation returns the Lifecycle v1 `Report`. V2 requires one
+  authored `Step` variant and a `reduce` operation returning that `Step`; one
+  declared Agent operation cannot have both result contracts. Converting this
+  product therefore requires a real V1-to-V2 lifecycle migration, including
+  replacement of its durable V1 checkpoint evidence, rather than treating the
+  existing V1 fixture as a repair-ready V2 source.
 - State migration across a retained ProgramRoot revision.
   `AGENT-STATE-MIGRATION-V3` is an iterative-lifecycle (V2) facility
   (`src/agent_lifecycle/iterative/source_live/migration.rs`); this product

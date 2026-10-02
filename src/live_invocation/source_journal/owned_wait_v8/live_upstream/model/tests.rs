@@ -7,7 +7,65 @@ use crate::provider_adapter_sdk::adapter::{
 use crate::provider_adapter_sdk::capability::AdapterCapabilities;
 use crate::provider_adapter_sdk::fixture_adapters::{base_capabilities, usage};
 use crate::provider_adapter_sdk::{AdapterInvocationCapability, ProviderAdapter};
-use std::{cell::RefCell, collections::VecDeque, rc::Rc, sync::Arc};
+use std::{
+    cell::RefCell,
+    collections::VecDeque,
+    fs::File,
+    io::Write,
+    path::PathBuf,
+    process::{Command, Stdio},
+    rc::Rc,
+    sync::{
+        atomic::{AtomicU64, Ordering},
+        Arc,
+    },
+};
+
+const PREPARED_RESTART_MODE: &str = "SEMAPRAX_OWNED_WAIT_PREPARED_RESTART_MODE";
+const PREPARED_RESTART_META: &str = "SEMAPRAX_OWNED_WAIT_PREPARED_RESTART_META";
+const PREPARED_RESTART_KEEP_FIXTURE: &str = "SEMAPRAX_KEEP_OWNED_WAIT_CONTEXT_FIXTURE";
+static PREPARED_RESTART_SEQUENCE: AtomicU64 = AtomicU64::new(0);
+
+#[derive(serde::Serialize, serde::Deserialize)]
+struct PreparedRestartProcessMeta {
+    directory: PathBuf,
+    registration: crate::resumable_effects::owned_frame::TestRetainedSourceOwnedWaitRegistrationV8,
+    preparer_pid: u32,
+    resumed_pid_marker: PathBuf,
+}
+
+fn prepared_restart_meta() -> PathBuf {
+    PathBuf::from(std::env::var_os(PREPARED_RESTART_META).expect("restart metadata path"))
+}
+
+fn read_prepared_restart_meta() -> PreparedRestartProcessMeta {
+    serde_json::from_slice(&std::fs::read(prepared_restart_meta()).unwrap()).unwrap()
+}
+
+fn spawn_prepared_restart_child(mode: &str, metadata: &std::path::Path, keep_fixture: bool) {
+    let module = module_path!();
+    let child = module
+        .strip_prefix(concat!(env!("CARGO_PKG_NAME"), "::"))
+        .unwrap_or(module);
+    let child = format!("{child}::owned_wait_recovered_first_prepared_process_child");
+    let mut command = Command::new(std::env::current_exe().unwrap());
+    command
+        .args(["--exact", child.as_str(), "--nocapture"])
+        .env(PREPARED_RESTART_MODE, mode)
+        .env(PREPARED_RESTART_META, metadata)
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null());
+    if keep_fixture {
+        command.env(PREPARED_RESTART_KEEP_FIXTURE, "1");
+    } else {
+        command.env_remove(PREPARED_RESTART_KEEP_FIXTURE);
+    }
+    assert!(
+        command.status().unwrap().success(),
+        "prepared restart child {mode} failed"
+    );
+}
 #[derive(Default)]
 struct Counts {
     factories: usize,
@@ -211,6 +269,239 @@ fn owned_wait_live_model_real_sdk_settlement_usage_and_resume_keep_same_owner() 
         drop(completed);
         assert!(weak.iter().all(|w| w.upgrade().is_none()));
     });
+}
+#[test]
+fn owned_wait_recovered_first_prepared_continues_once_after_close_reopen() {
+    CheckedOwnedWaitJournalContextV8::test_with_actual_runtime_store(
+        true,
+        |context, lease, key, directory| {
+            let restart_key =
+                crate::resumable_effects::source_checkpoint::SourceCheckpointKey::new([73; 32]);
+            let context = Arc::new(context.with_initialization(&lease).unwrap());
+            let journal = SourceOwnedWaitJournalV8::open(Arc::clone(&context), key, lease).unwrap();
+            let cancel = crate::agent_runtime::AgentCancellation::new();
+            let parked = park(&journal, &cancel);
+            let original = parked.owner.test_weak();
+            let path = std::fs::read_dir(directory)
+                .unwrap()
+                .map(|entry| entry.unwrap().path())
+                .next()
+                .unwrap();
+            let before = std::fs::read(&path).unwrap();
+            drop(parked);
+            assert!(original.iter().all(|weak| weak.upgrade().is_none()));
+            drop(journal);
+
+            let recovered = crate::resumable_effects::owned_frame::recover_source_owned_wait_v8(
+                File::open(directory).unwrap(),
+                context.registration(),
+                context.registration().expected_facts().clone(),
+                crate::resumable_effects::owned_frame::ExplicitStoreRegistrationGrant::for_trusted_host(true)
+                    .unwrap(),
+            )
+            .unwrap();
+            let reopened =
+                SourceOwnedWaitJournalV8::open(Arc::clone(&context), restart_key, recovered)
+                    .unwrap();
+            let owner = super::super::recover_first_turn_prepared_owner_v8(
+                &reopened,
+                super::super::FirstTurnPreparedRecoveryHostGrantV8::for_trusted_host(true).unwrap(),
+                &cancel,
+            )
+            .unwrap();
+            assert_eq!(std::fs::read(&path).unwrap(), before);
+            let response = document(&context);
+            let counts = Rc::new(RefCell::new(Counts::default()));
+            let mut factory = factory(Rc::clone(&counts), script(&response), Rc::new(|_| {}));
+            let mut source = source(reopened.context(), &mut factory);
+            let completed = match super::super::continue_recovered_first_turn_prepared_v8(
+                owner,
+                super::super::FirstTurnPreparedContinuationHostGrantV8::for_trusted_host(true)
+                    .unwrap(),
+                &mut source,
+                &Clock,
+            ) {
+                Ok(completed) => completed,
+                Err(_) => panic!("authenticated Prepared tail enters original model once"),
+            };
+            assert_eq!(completed.completed, 14);
+            assert_eq!(completed.session.sequence(), 15);
+            assert!(completed.owner.consumed() > 0);
+            let fresh = completed.owner.test_weak();
+            assert!(fresh.iter().all(|weak| weak.strong_count() == 1));
+            assert!(fresh.iter().all(|new| original
+                .iter()
+                .all(|old| !std::sync::Weak::ptr_eq(new, old))));
+            assert_eq!(
+                (
+                    counts.borrow().factories,
+                    counts.borrow().starts,
+                    counts.borrow().polls,
+                ),
+                (1, 1, 3),
+                "only the original, not a repeated, model dispatch occurs",
+            );
+            let folded = completed.session.fold_for_live_test();
+            assert_eq!(
+                folded.reserved_total,
+                4 * reopened
+                    .context()
+                    .test_runtime_execution()
+                    .1
+                    .evaluation_fuel() as u64,
+            );
+            assert_eq!(folded.stages, 2);
+            drop(completed);
+            assert!(fresh.iter().all(|weak| weak.upgrade().is_none()));
+        },
+    );
+}
+#[test]
+fn owned_wait_recovered_first_prepared_process_child() {
+    let Some(mode) = std::env::var_os(PREPARED_RESTART_MODE) else {
+        return;
+    };
+    match mode.to_str() {
+        Some("prepare") => {
+            CheckedOwnedWaitJournalContextV8::test_with_actual_runtime_store(
+                true,
+                |context, lease, key, directory| {
+                    let context = Arc::new(context.with_initialization(&lease).unwrap());
+                    let journal =
+                        SourceOwnedWaitJournalV8::open(Arc::clone(&context), key, lease).unwrap();
+                    let cancellation = crate::agent_runtime::AgentCancellation::new();
+                    let parked = park(&journal, &cancellation);
+                    let registration = context.registration().test_retained_restart_facts();
+                    let metadata = PreparedRestartProcessMeta {
+                        directory: directory.to_owned(),
+                        registration,
+                        preparer_pid: std::process::id(),
+                        resumed_pid_marker: prepared_restart_meta().with_extension("resumed-pid"),
+                    };
+                    drop(parked);
+                    drop(journal);
+                    std::fs::write(
+                        prepared_restart_meta(),
+                        serde_json::to_vec(&metadata).unwrap(),
+                    )
+                    .unwrap();
+                },
+            );
+        }
+        Some("resume") => {
+            let metadata = read_prepared_restart_meta();
+            let registration = metadata.registration.registration().unwrap();
+            CheckedOwnedWaitJournalContextV8::test_with_actual_recovered_runtime_store(
+                &metadata.directory,
+                registration,
+                |context, lease, key| {
+                    let context = Arc::new(context.with_initialization(&lease).unwrap());
+                    let journal =
+                        SourceOwnedWaitJournalV8::open(Arc::clone(&context), key, lease).unwrap();
+                    let cancellation = crate::agent_runtime::AgentCancellation::new();
+                    let owner = super::super::recover_first_turn_prepared_owner_v8(
+                        &journal,
+                        super::super::FirstTurnPreparedRecoveryHostGrantV8::for_trusted_host(true)
+                            .unwrap(),
+                        &cancellation,
+                    )
+                    .unwrap();
+                    let response = document(&context);
+                    let counts = Rc::new(RefCell::new(Counts::default()));
+                    let mut factory =
+                        factory(Rc::clone(&counts), script(&response), Rc::new(|_| {}));
+                    let mut adapter = source(journal.context(), &mut factory);
+                    let completed = super::super::continue_recovered_first_turn_prepared_v8(
+                        owner,
+                        super::super::FirstTurnPreparedContinuationHostGrantV8::for_trusted_host(
+                            true,
+                        )
+                        .unwrap(),
+                        &mut adapter,
+                        &Clock,
+                    )
+                    .unwrap_or_else(|_| panic!("relaunch continues the exact Prepared owner"));
+                    assert_eq!(completed.session.sequence(), 15);
+                    assert_eq!(
+                        (
+                            counts.borrow().factories,
+                            counts.borrow().starts,
+                            counts.borrow().polls,
+                        ),
+                        (1, 1, 3),
+                        "the relaunch performs one original model dispatch",
+                    );
+                    std::fs::write(metadata.resumed_pid_marker, std::process::id().to_string())
+                        .unwrap();
+                },
+            );
+        }
+        Some("hostile") => {
+            let metadata = read_prepared_restart_meta();
+            let registration = metadata.registration.registration().unwrap();
+            CheckedOwnedWaitJournalContextV8::test_with_actual_recovered_runtime_store(
+                &metadata.directory,
+                registration,
+                |context, lease, key| {
+                    let context = Arc::new(context.with_initialization(&lease).unwrap());
+                    let journal =
+                        SourceOwnedWaitJournalV8::open(Arc::clone(&context), key, lease).unwrap();
+                    let cancellation = crate::agent_runtime::AgentCancellation::new();
+                    assert!(
+                        super::super::recover_first_turn_prepared_owner_v8(
+                            &journal,
+                            super::super::FirstTurnPreparedRecoveryHostGrantV8::for_trusted_host(
+                                true,
+                            )
+                            .unwrap(),
+                            &cancellation,
+                        )
+                        .is_err(),
+                        "hostile bytes cannot mint a restart owner or reach an adapter",
+                    );
+                    assert!(journal.begin_session().is_err());
+                },
+            );
+        }
+        _ => panic!("unknown prepared restart child mode"),
+    }
+}
+#[test]
+fn owned_wait_recovered_first_prepared_requires_process_exit_and_relaunch() {
+    for mode in ["resume", "hostile"] {
+        let serial = PREPARED_RESTART_SEQUENCE.fetch_add(1, Ordering::Relaxed);
+        let root = std::env::temp_dir().join(format!(
+            "spx-owned-wait-prepared-restart-{}-{serial}",
+            std::process::id()
+        ));
+        std::fs::create_dir(&root).unwrap();
+        let metadata = root.join("retained-registration.json");
+        spawn_prepared_restart_child("prepare", &metadata, true);
+        let prepared = read_prepared_restart_meta();
+        assert_ne!(prepared.preparer_pid, std::process::id());
+        if mode == "hostile" {
+            let journal = prepared.directory.clone();
+            let before = std::fs::read(&journal).unwrap();
+            std::fs::OpenOptions::new()
+                .append(true)
+                .open(&journal)
+                .unwrap()
+                .write_all(b"hostile")
+                .unwrap();
+            spawn_prepared_restart_child(mode, &metadata, false);
+            assert_ne!(std::fs::read(journal).unwrap(), before);
+        } else {
+            spawn_prepared_restart_child(mode, &metadata, false);
+            let resumed = std::fs::read_to_string(&prepared.resumed_pid_marker)
+                .unwrap()
+                .parse::<u32>()
+                .unwrap();
+            assert_ne!(prepared.preparer_pid, resumed);
+        }
+        let fixture = prepared.directory.parent().unwrap().to_owned();
+        std::fs::remove_dir_all(fixture).unwrap();
+        std::fs::remove_dir_all(root).unwrap();
+    }
 }
 #[test]
 fn owned_wait_live_model_ack_faults_never_dispatch_before_intent_or_resume_before_reservation() {

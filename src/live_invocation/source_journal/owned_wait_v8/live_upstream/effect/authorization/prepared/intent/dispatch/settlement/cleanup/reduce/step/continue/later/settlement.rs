@@ -1,4 +1,5 @@
 //! Turn-two Observe settlement from the retained physical State and Copy result.
+pub(in crate::live_invocation::source_journal::owned_wait_v8) mod failed_state;
 pub(in crate::live_invocation::source_journal::owned_wait_v8) mod start;
 use super::*;
 use crate::interpreter::resumable::owned_frame::registered_stage::reduce::checked_continued_observe_facts_v8;

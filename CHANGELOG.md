@@ -1,5 +1,15 @@
 # Changelog
 
+- Define the public owned-Agent entry contract for #330. It records the
+  authenticated two-step fresh-registration boundary, the required ownership
+  transfers, and the conditions for a future bounded two-turn SourceLive-v8
+  driver. A private driver now joins initial and continued failed Observe
+  through State cleanup, receipt, and Stop while returning a private opaque
+  owner-bearing error at incomplete boundaries. No executable public entry is
+  exposed: later failed Observe,
+  other failure cleanup/quarantine, Report projection, and recovery still need
+  their owning contracts, so this source-only work does not close #330.
+
 Project log follows a compact [Keep a Changelog](https://keepachangelog.com/)
 format: `Unreleased` then release buckets, grouped by impact.
 
@@ -7,6 +17,33 @@ format: `Unreleased` then release buckets, grouped by impact.
 > [docs/CHANGELOG-ARCHIVE.md](docs/CHANGELOG-ARCHIVE.md).
 
 ## Unreleased
+
+- Add source-only process-restart regression coverage for the private prepared
+  owned-wait continuation (#330). An exited preparer and independently rebuilt
+  relaunch use the original pinned directory plus test-held registration facts;
+  the relaunch dispatches once, while hostile tail bytes refuse before any
+  owner or adapter. This test transport is unavailable outside `cfg(test)` and
+  its new regressions are unexecuted.
+
+- Add the sealed first-turn Prepared restart continuation (#330). A second
+  trusted-host grant rechecks the exact source/checkpoint/tail/lease facts
+  before it consumes fresh restored backing into the original model path. The
+  Prepared prefix has no AttemptIntent, so the path cannot redispatch; refusal
+  or model failure quarantines the reopened journal. Cleanup, effects and
+  public Agent execution remain outside this private route.
+
+- Add a sealed first-turn prepared owned-wait v8 restart owner (#330). After
+  close/reopen, one trusted-host grant can authenticate the exact registered
+  Prepared tail and checkpoint before allocating fresh process-local Bytes
+  backing. The recovered lease stays read-only; later turns and StartReserved
+  uncertainty refuse without model dispatch or append authority.
+
+- Fence recovered source-owned-wait v8 leases to authenticated read-only
+  history (#330). Retained registration, matching pins and the MAC chain can
+  inspect evidence but cannot append a successor before a sealed physical
+  owner-restoration permit exists. The store regression proves the bytes stay
+  unchanged after a rejected restart append; physical owner restoration and
+  public multi-turn entry remain open.
 
 - Reconcile the full-profile rustfmt gate and two private-interface visibility
   warnings exposed while validating the #327 Linux migration sanitizer. The

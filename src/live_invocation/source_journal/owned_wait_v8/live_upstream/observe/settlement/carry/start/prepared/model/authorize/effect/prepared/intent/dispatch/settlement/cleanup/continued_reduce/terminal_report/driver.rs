@@ -44,6 +44,10 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) enum LiveContinued
         phase: LiveContinuedTerminalPhaseV8,
         owner: LiveStepAcknowledgedV8<'j>,
     },
+    Delivery {
+        owner: LiveClaimedReportV8<'j>,
+        error: SourceJournalError,
+    },
     Release(LiveContinuedStepCleanupFailureV8<'j>),
     Move(LiveContinuedStepMoveFailureV8<'j>),
 }
@@ -164,5 +168,20 @@ impl<'j> LiveContinuedStagedStepV8<'j> {
                 owner,
                 error,
             })
+    }
+
+    /// Completes the authenticated physical terminal path and releases only
+    /// its canonical Report projection and exact terminal evidence bytes. No
+    /// State, Report, journal lease, or terminal owner crosses this boundary.
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn finish_complete_projection(
+        self,
+        journal: &'j SourceOwnedWaitJournalV8,
+        observe: impl FnMut(&crate::cleanup_plan::FinalizeAction),
+        input: crate::live_invocation::source_journal::SourceTerminalEvidenceInput,
+    ) -> Result<serde_json::Value, Failure<'j>> {
+        let claimed = self.finish_complete_report(journal, observe, input)?;
+        claimed
+            .into_delivery_projection()
+            .map_err(|(owner, error)| Failure::Delivery { owner, error })
     }
 }

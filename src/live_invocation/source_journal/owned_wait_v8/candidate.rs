@@ -16,6 +16,7 @@ use super::live_upstream::{
 use super::*;
 use crate::resumable_effects::owned_frame::SourceOwnedWaitLeaseV8;
 mod continued_reduce;
+mod prepared_recovery;
 pub(super) mod terminal;
 enum ProducerV8<'p, 'j> {
     ContinuedSettlement(&'p FixedOwnedContinuedSettlementAppendPermitV8<'p, 'j>),

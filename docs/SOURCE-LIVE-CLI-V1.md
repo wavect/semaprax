@@ -19,8 +19,10 @@ semaprax-full source-live migrate OLD_CONFIG OLD_CHECKPOINT NEW_CONFIG NEW_CHECK
 semaprax-full source-live offline-repair
 semaprax-full source-live repair run REPAIR_CONFIG REPAIR_CHECKPOINT
 semaprax-full source-live repair resume REPAIR_CONFIG REPAIR_CHECKPOINT
-semaprax-full source-live repair run REPAIR_CONFIG REPAIR_CHECKPOINT --opencode ABS --scratch EMPTY_ABS
-semaprax-full source-live repair resume REPAIR_CONFIG REPAIR_CHECKPOINT --opencode ABS --scratch EMPTY_ABS
+semaprax-full source-live repair run REPAIR_CONFIG REPAIR_CHECKPOINT --opencode ABS --scratch EMPTY_ABS [--pause-after-settled]
+semaprax-full source-live repair resume REPAIR_CONFIG REPAIR_CHECKPOINT --opencode ABS --scratch EMPTY_ABS [--pause-after-settled]
+semaprax-full source-live repair-tested run REPAIR_CONFIG REPAIR_CHECKPOINT --opencode ABS --scratch EMPTY_ABS [--pause-after-settled]
+semaprax-full source-live repair-tested resume REPAIR_CONFIG REPAIR_CHECKPOINT --opencode ABS --scratch EMPTY_ABS [--pause-after-settled]
 ```
 
 All operands are absolute except the stable migration function identity and
@@ -73,7 +75,8 @@ bytes, proving that the correction did not proceed blind. Version 2
 operands. `ABS` names the operator-selected executable; `EMPTY_ABS` is a
 host-selected, non-symlink scratch directory that is empty or contains only the
 exact deny-all policy and private session directory left by an interrupted
-run-before-export boundary. The configured executable is retained as an exact
+run-before-export boundary, or the exact post-settlement pause marker described
+below. The configured executable is retained as an exact
 bounded byte snapshot, copied to a create-new staged file for each attempt, and
 re-authenticated before spawn. Host construction removes a crash-left staged
 file only when its held inode and bytes match that snapshot, then clears the
@@ -87,6 +90,46 @@ configuration. The selected source Agent deployment must already admit that
 exact provider/model row; a V2 host binding against a source deployment that
 only admits another model fails before checkpoint or provider work.
 
+### Operator interruption point for repair smoke (#323)
+
+`--pause-after-settled` is a one-shot, private operator control for a V2
+`repair` or `repair-tested` smoke. It is an operand outside `REPAIR_CONFIG`,
+so it changes neither the authenticated repair configuration nor the bound
+executable/provider identity. It is admitted only after explicit
+`--opencode ABS --scratch EMPTY_ABS`; there is no environment-variable control.
+
+After the physical checkpoint host has synced, renamed, and acknowledged a
+generation whose final causal entry is `attempt_settled`, the wrapper writes
+one canonical marker through that already selected scratch host:
+
+```
+EMPTY_ABS/.semaprax-repair-post-settled-pause.json
+```
+
+Its schema is `semaprax.source-live-cli.repair-post-settled-pause.v1`; it
+contains the authenticated journal `invocation`, `checkpoint_generation`, `turn`,
+`attempt`, and retained `response_digest`. The marker is synced before the process parks. It carries
+no raw response, credentials, candidate, effect result, capability, or new
+authority. A marker write or acknowledgement failure stops the invocation
+before decode, authorization, an effect, or another stage.
+
+For the local interruption/recovery smoke, an operator runs the explicit V2
+command with this flag, observes that exact marker in the configured scratch
+directory, and sends `SIGKILL` while the process is parked. The controller
+then resumes with the same `REPAIR_CONFIG`, checkpoint directory, executable,
+and scratch directory, but omits `--pause-after-settled`. The repair resume
+first rebinds and validates the retained journal; only then does the OpenCode
+scratch host remove a marker whose canonical bytes exactly match that recovered
+invocation, generation, turn, attempt, and response digest. A foreign,
+malformed, or mismatched marker remains in place and the resume refuses.
+Normal source-journal recovery then replays the settled response without
+redispatching that provider attempt. A following effect or later provider
+attempt is performed only by the resumed checked execution.
+
+The marker is a timing observation tied to the held local scratch directory.
+It is not evidence of provider delivery, exactly-once behavior, physical
+power-loss recovery, hosted support, or production readiness.
+
 The ordinary V2 CLI still has **no candidate-test authority**. An embedding host
 may instead call the public `source_live_cli::run_repair_with_candidate_test`
 entry with one opaque candidate-test capability together
@@ -99,6 +142,17 @@ environment, process handle, publication grant, or Git authority. It returns one
 bounded `passed`, `failed`, or `refused` outcome. The host rejects malformed,
 oversized, foreign-candidate, stale-base, stale-source, or wrong-capability
 documents. There is deliberately no JSON operand that selects a test runner.
+
+`repair-tested` is the one separate private CLI startup profile that supplies
+that embedding boundary itself. It accepts the same V2 OpenCode operands as
+`repair`, fixes capability identity to `semaprax.source-live-cli.repair-tested.v1`,
+and fixes the reference-interpreter policy to 100,000 steps, 65,536 execution
+bytes, and 262,144 report bytes. It calls `ProjectCandidate::execute_tests`
+against the immutable candidate and records only the bound pass/fail/refused
+observation plus the canonical candidate-test report digest. It accepts neither
+a test command nor policy/configuration overrides. Scripted V1 repair is
+refused before checkpoint creation, so this profile cannot turn fixture input
+into live test authority.
 
 When an embedding observes a candidate, it converts the canonical outcome to a
 deterministic typed `i64` feedback code bound to the complete observation. The
@@ -351,4 +405,10 @@ are diagnostic-only and do not authenticate freshness, grant provider
 authority, or approve a candidate. This is local injected-host evidence only;
 it is neither a real
 test-command execution claim nor the operator-approved live-provider smoke
-required by issue #116.
+required by issue #116. The #323 interruption regression uses the same
+credential-free recorded OpenCode runner and actual physical checkpoint host:
+it observes the persisted scratch marker while the latest journal ends at
+`attempt_settled`, verifies that no effect ran, then resumes without the pause
+operand and verifies that only the later provider attempt dispatches. It is
+local timing and recovery evidence for the host seam, not real-provider
+evidence.

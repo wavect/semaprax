@@ -7,7 +7,7 @@ profile = "filesystem-io.v3"
 
 [modules]
 entry = "everyday.manifest"
-sources = ["src/manifest_json.spx", "src/tests.spx"]
+sources = ["src/agent.spx", "src/manifest_json.spx", "src/tests.spx"]
 tests = ["everyday.tests"]
 
 [exports]

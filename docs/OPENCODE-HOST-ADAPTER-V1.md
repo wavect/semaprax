@@ -37,6 +37,13 @@ opencode run --pure --agent semaprax-live \
   --model opencode/muse-spark-1.3-contributor-free --format json --dir WORKSPACE PROMPT
 ```
 
+Executable admission reads one complete regular-file snapshot with a **160 MiB
+maximum**. Dispatch stages only those frozen bytes in the private workspace,
+then reauthenticates the held staged file against the snapshot in fixed 64 KiB
+chunks before execution. A file one byte over the ceiling is refused before its
+contents are read. The configured executable pathname is rechecked before
+staging, so later pathname or byte drift cannot change the dispatched image.
+
 It writes an `opencode.json` agent policy with `"*":"deny"` and
 `"snapshot":false` before the call. Filesystem snapshot tracking is disabled.
 The child receives a cleared environment with private home, configuration,

@@ -162,7 +162,10 @@ mod observe;
 pub(crate) use observe::{observe_live_owned_run_v8, LiveObserveOutcomeV8, LiveObservedStateV8};
 
 mod wait;
-pub(crate) use wait::{begin_live_owned_wait_v8, LiveParkedStateV8, LiveWaitStartOutcomeV8};
+pub(crate) use wait::{
+    begin_live_owned_wait_v8, restore_live_parked_state_v8, LiveParkedStateV8,
+    LiveWaitStartOutcomeV8,
+};
 
 mod resume;
 pub(crate) use resume::{resume_live_owned_wait_v8, LiveResumedStateV8, LiveWaitResumeOutcomeV8};

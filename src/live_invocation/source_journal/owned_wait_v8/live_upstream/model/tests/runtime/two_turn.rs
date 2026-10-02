@@ -829,7 +829,6 @@ fn public_owned_agent_prepared_relaunch_child() {
                     };
                     if mode.to_str() == Some("hostile") {
                         if let Ok(opened) = open() {
-                            drop(open);
                             let policy = CapabilityPolicy::new(vec!["read".into()]).unwrap();
                             let mut host = Host {
                                 calls: 0,
@@ -878,7 +877,6 @@ fn public_owned_agent_prepared_relaunch_child() {
                         "foreign retained generation must refuse"
                     );
                     let opened = open().unwrap();
-                    drop(open);
                     let policy = CapabilityPolicy::new(vec!["read".into()]).unwrap();
                     let mut host = Host {
                         calls: 0,

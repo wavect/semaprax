@@ -371,7 +371,7 @@ impl SourceOwnedAgentJournalV1 {
 
 fn settle_known_failures(
     runtime: &mut OwnedLifecycleRuntimeV8<'_>,
-    observe: &mut impl FnMut(&FinalizeAction),
+    mut observe: &mut impl FnMut(&FinalizeAction),
 ) {
     match runtime.status() {
         OwnedLifecycleStatusV8::ObserveCleanupPending => {

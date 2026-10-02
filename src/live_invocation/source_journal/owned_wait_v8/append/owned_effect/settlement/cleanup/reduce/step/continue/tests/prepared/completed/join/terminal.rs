@@ -16,7 +16,7 @@ pub(super) fn run<'j>(
     assert_eq!((turn, attempt), (2, 0));
     let before = journal.lease.try_borrow_mut().unwrap().read().unwrap();
     let offset = match fault {
-        18 => None,
+        18 | 21 => None,
         19 => Some((2, LiveContinuedTerminalPhaseV8::CleanupSettled)),
         20 => Some((6, LiveContinuedTerminalPhaseV8::Terminal)),
         _ => unreachable!("bounded terminal driver fault"),
@@ -30,24 +30,42 @@ pub(super) fn run<'j>(
     }
     assert!(journal.terminal_evidence().is_err());
     let releases = Cell::new(0);
-    let result = staged.finish_complete_report(
-        journal,
-        |_| releases.set(releases.get() + 1),
-        crate::live_invocation::source_journal::SourceTerminalEvidenceInput {
-            completed_stages: stages,
-            omitted_stage_rows: stages,
-            stage_rows: Vec::new(),
-            checked_run_evidence: None,
-        },
-    );
-    assert!(
-        weak.iter().any(|root| root.strong_count() == 1),
-        "the reached owner retains an original physical Report leaf"
-    );
+    let input = crate::live_invocation::source_journal::SourceTerminalEvidenceInput {
+        completed_stages: stages,
+        omitted_stage_rows: stages,
+        stage_rows: Vec::new(),
+        checked_run_evidence: None,
+    };
+    if fault == 21 {
+        let claimed = staged
+            .finish_complete_report(journal, |_| releases.set(releases.get() + 1), input)
+            .unwrap_or_else(|failure| panic!("{}", failure_detail(&failure)));
+        journal.quarantine();
+        let (owner, error) = claimed
+            .into_delivery_projection()
+            .err()
+            .expect("lost live authority must refuse delivery");
+        assert_eq!(
+            error,
+            crate::live_invocation::source_journal::SourceJournalError::Poisoned
+        );
+        assert!(weak.iter().any(|root| root.strong_count() == 1));
+        assert_eq!(releases.get(), 1);
+        drop(owner);
+        assert!(weak.iter().all(|root| root.upgrade().is_none()));
+        assert_eq!(releases.get(), 1, "refusal cannot retry cleanup");
+        return;
+    }
+    let result =
+        staged.finish_complete_projection(journal, |_| releases.set(releases.get() + 1), input);
     if let Some((offset, expected_phase)) = offset {
         let failure = result
             .err()
             .expect("physical prewrite must refuse the closure");
+        assert!(
+            weak.iter().any(|root| root.strong_count() == 1),
+            "a refused closure retains an original physical Report leaf"
+        );
         assert!(
             matches!(&failure, LiveContinuedTerminalDriverFailureV8::Append { phase, .. } if *phase == expected_phase),
             "expected {expected_phase:?} prewrite refusal: {}",
@@ -78,7 +96,7 @@ pub(super) fn run<'j>(
         );
         drop(failure);
     } else {
-        let claimed = result.unwrap_or_else(|failure| panic!("{}", failure_detail(&failure)));
+        let delivered = result.unwrap_or_else(|failure| panic!("{}", failure_detail(&failure)));
         assert_eq!(
             releases.get(),
             1,
@@ -99,7 +117,6 @@ pub(super) fn run<'j>(
             committed_stage_fuel, stages: actual_stages, carrier: Some(_), ..
         }) if *committed_stage_fuel == fuel && *actual_stages == stages)
         );
-        let delivered = claimed.delivery_projection().unwrap();
         assert_eq!(delivered["kind"], "complete");
         assert!(delivered["report"]["fields"].as_array().is_some());
         let recovered = journal.terminal_evidence().unwrap();
@@ -109,17 +126,26 @@ pub(super) fn run<'j>(
         );
         assert!(recovered.carrier().is_some());
         assert!(!recovered.evidence().is_empty());
-        let final_bytes = journal.lease.try_borrow_mut().unwrap().read().unwrap();
         assert_eq!(
-            claimed.delivery_projection().unwrap(),
-            delivered,
-            "projection only borrows the claimed owner"
+            delivered["terminal_evidence"].as_str().map(str::as_bytes),
+            Some(recovered.evidence()),
+            "delivery retains the exact authenticated evidence bytes"
         );
+        assert!(
+            serde_json::to_vec(&delivered).unwrap().len()
+                <= crate::live_invocation::source_journal::MAX_SOURCE_CARRIER_BYTES
+                    + 2 * crate::live_invocation::source_journal::MAX_SOURCE_TERMINAL_EVIDENCE_BYTES
+                    + 128
+        );
+        let final_bytes = journal.lease.try_borrow_mut().unwrap().read().unwrap();
         assert_eq!(
             journal.lease.try_borrow_mut().unwrap().read().unwrap(),
             final_bytes
         );
-        drop(claimed);
+        assert!(
+            weak.iter().all(|root| root.upgrade().is_none()),
+            "the consuming delivery boundary leaves no Report owner behind"
+        );
     }
     assert_eq!(
         releases.get(),
@@ -149,6 +175,9 @@ fn failure_detail(failure: &LiveContinuedTerminalDriverFailureV8<'_>) -> String 
         LiveContinuedTerminalDriverFailureV8::Shape { phase, .. } => {
             format!("terminal closure {phase:?}: unexpected owner shape")
         }
+        LiveContinuedTerminalDriverFailureV8::Delivery { error, .. } => {
+            format!("terminal delivery projection refused: {error:?}")
+        }
         LiveContinuedTerminalDriverFailureV8::Release(_) => "physical Step cleanup refused".into(),
         LiveContinuedTerminalDriverFailureV8::Move(_) => "physical Report transfer refused".into(),
     }
@@ -167,4 +196,9 @@ fn owned_continued_step_turn_two_terminal_report_receipt_refusal_keeps_release_s
 #[test]
 fn owned_continued_step_turn_two_terminal_report_terminal_refusal_retains_report() {
     continued_reduce_chain_step_ack(20, true);
+}
+
+#[test]
+fn owned_continued_step_turn_two_terminal_report_projection_refusal_retains_report() {
+    continued_reduce_chain_step_ack(21, true);
 }

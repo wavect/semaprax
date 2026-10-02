@@ -14,8 +14,9 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) struct LiveClaimed
 }
 
 impl LiveClaimedReportV8<'_> {
-    /// Borrows a delivery projection while retaining the original Report and
-    /// the authenticated terminal owner. No JSON value can recreate either.
+    /// Borrows a bounded Report projection and exact terminal evidence while
+    /// retaining the original Report and authenticated terminal owner. No JSON
+    /// value can recreate either owner.
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn delivery_projection(
         &self,
     ) -> Result<serde_json::Value, SourceJournalError> {
@@ -29,6 +30,8 @@ impl LiveClaimedReportV8<'_> {
         let EntryV8::Ordinary(SourceJournalEntry::TerminalSnapshot {
             status: crate::live_invocation::source_journal::SourceTerminalStatus::Complete,
             carrier: Some(carrier),
+            evidence,
+            evidence_digest,
             ..
         }) = witness.selected_row()
         else {
@@ -47,7 +50,51 @@ impl LiveClaimedReportV8<'_> {
         if step.ordinary_carrier_bytes(&plan)? != *carrier {
             return Err(SourceJournalError::Binding);
         }
+        // Keep the exact authenticated terminal evidence bytes. Parsing and
+        // reserializing them would change their canonical byte identity.
+        if evidence.len()
+            > crate::live_invocation::source_journal::MAX_SOURCE_TERMINAL_EVIDENCE_BYTES
+            || crate::live_invocation::identity::digest(
+                b"semaprax.agent-source-terminal-evidence.v2\0",
+                evidence,
+            ) != *evidence_digest
+        {
+            return Err(SourceJournalError::Binding);
+        }
+        let evidence = std::str::from_utf8(evidence)
+            .map_err(|_| SourceJournalError::Binding)?
+            .to_owned();
+        let mut actual = actual;
+        actual
+            .as_object_mut()
+            .ok_or(SourceJournalError::Binding)?
+            .insert("terminal_evidence".into(), evidence.into());
+        // The carrier and evidence each have independent on-wire caps. The
+        // outer JSON only adds one key and can at most double evidence escaping.
+        let delivery_limit = crate::live_invocation::source_journal::MAX_SOURCE_CARRIER_BYTES
+            + 2 * crate::live_invocation::source_journal::MAX_SOURCE_TERMINAL_EVIDENCE_BYTES
+            + 128;
+        if serde_json::to_vec(&actual)
+            .map_err(|_| SourceJournalError::Binding)?
+            .len()
+            > delivery_limit
+        {
+            return Err(SourceJournalError::Capacity);
+        }
         Ok(actual)
+    }
+
+    /// Consumes the terminal Report owner after deriving its checked delivery
+    /// value. A delivery consumer can retain only canonical projection data
+    /// and exact authenticated terminal evidence bytes;
+    /// a failed check returns the same physical owner to its sealed caller.
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn into_delivery_projection(
+        self,
+    ) -> Result<serde_json::Value, (Self, SourceJournalError)> {
+        match self.delivery_projection() {
+            Ok(projection) => Ok(projection),
+            Err(error) => Err((self, error)),
+        }
     }
 }
 

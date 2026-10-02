@@ -121,6 +121,15 @@ wrong source binding and recovered/non-empty store, one model dispatch per
 turn, one target dispatch per turn, canonical cleanup order, no owner escape,
 and refusal before effects for unsupported phase selection.
 
+The private terminal predecessor now has a consuming projection seam: after an
+authenticated `Complete` terminal ACK and the existing physical Report claim,
+it returns the checked canonical Report projection with the exact authenticated
+terminal evidence bytes and consumes the Report owner. The evidence is kept as
+a bounded UTF-8 string, including its original LF, rather than parsed and
+reserialized. A failed projection check retains that same owner in the sealed
+private failure path. This does not expose a public session, lease, report,
+State, recovery route, or finalizer authority.
+
 The public recovery matrix remains separate: process restart at every durable
 phase, no redispatch, no uncharged work, phase-specific restoration permits,
 hostile registrations/tails, and Report recovery/delivery all remain required

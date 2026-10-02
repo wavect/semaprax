@@ -1091,6 +1091,9 @@ claim. Its borrowed delivery projection checks the live Report against that
 exact terminal carrier. The success fixture also reopens the registered store
 and authenticates terminal evidence after dropping the physical holder; this
 recovered evidence remains descriptive and cannot restore a Report owner.
+The private consuming successor now adds the exact authenticated terminal
+evidence bytes to the bounded Report projection before releasing the physical
+owner. Projection refusal returns that same owner; it does not retry cleanup.
 
 The focused gate is:
 
@@ -1098,13 +1101,15 @@ The focused gate is:
 cargo test --locked -p semaprax --lib owned_continued_step_turn_two_terminal_report -- --test-threads=1
 ```
 
-The three owning cases cover original Report retention and claim, cleanup
-receipt prewrite refusal, and terminal prewrite refusal. They assert one
-physical cleanup, exact cumulative funding and turn, no terminal evidence on
+The four owning cases cover original Report retention and claim, cleanup
+receipt prewrite refusal, terminal prewrite refusal, and post-claim projection
+refusal with the original Report retained. They assert one physical cleanup,
+exact cumulative funding and turn, no terminal evidence on preterminal
 refusal, and no cleanup retry on drop. Focused local success and terminal
 prewrite refusal passed 1/1 each on 2 October 2026 (811.35 and 808.97
-seconds). The nominal-case mapping regression passed 1/1. The receipt
-prewrite case and repository full quality profile remain unrun. This is a
+seconds). The nominal-case mapping regression passed 1/1. Receipt prewrite,
+post-claim projection refusal, and the repository full quality profile remain
+unrun. This is a
 private Complete successor, not public multi-turn
 entry, public Report delivery, failed-Observe cleanup, or physical owner
 restoration after restart. Restart currently exposes only authenticated

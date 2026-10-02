@@ -3,7 +3,7 @@ use super::super::live_upstream::FixedOwnedContinuedReduceReservationAppendPermi
 use super::*;
 
 impl<'a> AppendSessionV8<'a> {
-    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn begin_fixed_continued_reduce_append(
+    pub(super) fn begin_fixed_continued_reduce_append(
         self,
         permit: &FixedOwnedContinuedReduceReservationAppendPermitV8<'_, 'a>,
     ) -> Result<(PendingV8<'a>, AppendVerifiedV8, Attempting<'a>), AppendFailureV8<'a>> {

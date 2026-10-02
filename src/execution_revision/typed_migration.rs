@@ -655,21 +655,24 @@ fn target_evaluation_facts(evaluation: &RetainedCallEvaluation) -> Result<serde_
         .semantic_work
         .as_ref()
         .ok_or_else(|| refused("migration.semantic_work"))?;
-    let finalizers = work.finalizer_events.as_ref().map(|events| {
-        if events.len() > durable::MAX_FINALIZER_EVENTS
-            || events.iter().any(|event| {
-                event.function.as_str().is_empty()
-                    || event.function.as_str().len() > durable::MAX_FINALIZER_FUNCTION_BYTES
-            })
-        {
-            return Err(refused("migration.target_cleanup"));
-        }
-        Ok(events
-            .iter()
-            .map(|event| json!([event.function.as_str(), event.liveness_flag]))
-            .collect::<Vec<_>>())
-    })
-    .transpose()?;
+    let finalizers = work
+        .finalizer_events
+        .as_ref()
+        .map(|events| {
+            if events.len() > durable::MAX_FINALIZER_EVENTS
+                || events.iter().any(|event| {
+                    event.function.as_str().is_empty()
+                        || event.function.as_str().len() > durable::MAX_FINALIZER_FUNCTION_BYTES
+                })
+            {
+                return Err(refused("migration.target_cleanup"));
+            }
+            Ok(events
+                .iter()
+                .map(|event| json!([event.function.as_str(), event.liveness_flag]))
+                .collect::<Vec<_>>())
+        })
+        .transpose()?;
     Ok(json!({
         "instruction_steps": evaluation.steps_used,
         "semantic_work": {

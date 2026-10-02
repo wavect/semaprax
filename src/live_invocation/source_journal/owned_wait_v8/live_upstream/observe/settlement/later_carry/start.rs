@@ -9,7 +9,7 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) struct LiveLaterSt
     owner: LiveLaterWaitV8<'j>,
     acks: Vec<LaterStartAckV8<'j>>,
 }
-struct LaterStartAckV8<'j> {
+pub(in crate::live_invocation::source_journal::owned_wait_v8) struct LaterStartAckV8<'j> {
     session: AppendSessionV8<'j>,
     witness: VerifiedOwnedContinuedStartSuccessorV8<'j>,
 }

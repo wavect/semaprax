@@ -871,11 +871,21 @@ impl CompiledTypedEffects {
             total_bytes: remaining_total,
             reserved_fuel: remaining_fuel,
         };
-        let journal = match (retained_checkpoint, semantic_fuel_limit, metered_target_binding) {
-            (Some(document), Some(fuel_limit), Some(target_binding)) => OperationCheckpoint::decode_metered_with_limits(
-                document, &identity, limits, fuel_limit, &target_binding,
-            )
-            .map_err(|e| fail(vec![e]))?,
+        let journal = match (
+            retained_checkpoint,
+            semantic_fuel_limit,
+            metered_target_binding,
+        ) {
+            (Some(document), Some(fuel_limit), Some(target_binding)) => {
+                OperationCheckpoint::decode_metered_with_limits(
+                    document,
+                    &identity,
+                    limits,
+                    fuel_limit,
+                    &target_binding,
+                )
+                .map_err(|e| fail(vec![e]))?
+            }
             (Some(document), None, None) => {
                 OperationCheckpoint::decode_with_limits(document, &identity, limits)
                     .map_err(|e| fail(vec![e]))?

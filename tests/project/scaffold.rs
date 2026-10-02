@@ -844,14 +844,13 @@ fn service_scaffold_configuration_is_closed_and_credential_free() {
         serde_json::json!(["fixture", "snapshot"])
     );
     assert_eq!(
-        schema["allOf"][1]["then"]["properties"]["database"]["properties"]["adapter"]
-            ["const"],
+        schema["allOf"][1]["then"]["properties"]["database"]["properties"]["adapter"]["const"],
         "snapshot",
         "host configuration selects the named snapshot profile"
     );
     assert_eq!(
-        schema["allOf"][1]["then"]["properties"]["database"]["properties"]
-            ["dsn_secret_ref"]["const"],
+        schema["allOf"][1]["then"]["properties"]["database"]["properties"]["dsn_secret_ref"]
+            ["const"],
         serde_json::Value::Null,
         "host configuration never interprets a DSN as snapshot storage"
     );

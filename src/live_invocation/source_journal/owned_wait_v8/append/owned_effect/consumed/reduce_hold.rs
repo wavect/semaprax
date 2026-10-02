@@ -1488,10 +1488,10 @@ mod spent_funding_tests {
     }
 }
 
+mod continued_reduce;
 mod failed_observe_cleanup;
 mod observe_settlement;
 mod turn_authorize;
-mod continued_reduce;
 mod turn_effect;
 mod turn_model;
 mod turn_prepared;

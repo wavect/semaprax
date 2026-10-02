@@ -327,9 +327,15 @@ fn fresh_durable_semantic_metering_records_every_committed_stage() {
         metered.run().run().lifecycle().stages().len()
     );
     let checkpoint: serde_json::Value = serde_json::from_str(metered.run().checkpoint()).unwrap();
-    assert_eq!(checkpoint["schema"], "semaprax.agent-operation-checkpoint-metered.v2");
+    assert_eq!(
+        checkpoint["schema"],
+        "semaprax.agent-operation-checkpoint-metered.v2"
+    );
     let evidence: serde_json::Value = serde_json::from_str(metered.evidence()).unwrap();
-    assert_eq!(evidence["schema"], "semaprax.agent-durable-semantic-work.v3");
+    assert_eq!(
+        evidence["schema"],
+        "semaprax.agent-durable-semantic-work.v3"
+    );
     assert_eq!(
         evidence["target_execution_binding"],
         metered.target_execution_binding()

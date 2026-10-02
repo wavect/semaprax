@@ -8,6 +8,10 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Reconcile the full-profile rustfmt gate and two private-interface visibility
+  warnings exposed while validating the #327 Linux migration sanitizer. The
+  formatter changes only Rust layout; stage and cleanup behavior is unchanged.
+
 - Run the Linux held-native migration sanitizer gate through a test-only ELF
   compiler launcher, preserving exact ASan/UBSan flags and symbol checks when
   the process provider refuses held shebang scripts (#327). Add a physical

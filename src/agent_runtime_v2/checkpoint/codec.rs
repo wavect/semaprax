@@ -226,9 +226,17 @@ pub(super) fn decode(
     };
     let b = &v["binding"];
     match metered {
-        Some(true) => keys(b, &["identity", "limits", "semantic_fuel_limit", "target_execution_binding"])? ,
-        Some(false) => keys(b, &["identity", "limits", "semantic_fuel_limit"])? ,
-        None => keys(b, &["identity", "limits"])? ,
+        Some(true) => keys(
+            b,
+            &[
+                "identity",
+                "limits",
+                "semantic_fuel_limit",
+                "target_execution_binding",
+            ],
+        )?,
+        Some(false) => keys(b, &["identity", "limits", "semantic_fuel_limit"])?,
+        None => keys(b, &["identity", "limits"])?,
     }
     let i = &b["identity"];
     keys(

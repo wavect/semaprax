@@ -482,7 +482,8 @@ fn exact_scalar_codec_rejects_nested_duplicate_noncanonical_and_overflow_values(
 fn metered_checkpoint_v2_binds_target_and_v1_stays_inspectable_only() {
     let limits = journal().limits();
     let target = digest(b"metered-target");
-    let mut journal = OperationCheckpoint::new_metered(identity(), limits, 100, target.clone()).unwrap();
+    let mut journal =
+        OperationCheckpoint::new_metered(identity(), limits, 100, target.clone()).unwrap();
     let mut store = Store::default();
     journal
         .persist(
@@ -517,7 +518,10 @@ fn metered_checkpoint_v2_binds_target_and_v1_stays_inspectable_only() {
 
     let mut v1: Value = serde_json::from_str(&store.document).unwrap();
     v1["schema"] = json!(METERED_CHECKPOINT_SCHEMA_V1);
-    v1["binding"].as_object_mut().unwrap().remove("target_execution_binding");
+    v1["binding"]
+        .as_object_mut()
+        .unwrap()
+        .remove("target_execution_binding");
     let v1 = remint(&mut v1);
     assert!(OperationCheckpoint::decode(&v1, &identity()).is_ok());
     assert!(OperationCheckpoint::decode_metered_with_limits(

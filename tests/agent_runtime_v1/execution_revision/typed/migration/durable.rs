@@ -626,7 +626,10 @@ fn metered_migrated_durable_recovery_replays_same_target_receipts() {
         evidence["facts"]["semantic_work_evidence"],
         completed.run().evidence_digest()
     );
-    assert_eq!(completed.target_execution_binding(), expected_target_binding);
+    assert_eq!(
+        completed.target_execution_binding(),
+        expected_target_binding
+    );
     assert_eq!(
         evidence["facts"]["target_execution_binding"],
         completed.target_execution_binding()
@@ -667,13 +670,12 @@ fn metered_target_migration_terminal_lost_ack_recovers_receipts_without_redispat
     let a = first();
     let b = successor(&a, "State", "StateB", "b", &["marker"], false);
     let (migration, before, after) = migrated_with_metered_interpreter(&a, &b);
-    let expected_target_binding = serde_json::from_str::<serde_json::Value>(
-        migration.migration_root().canonical_json(),
-    )
-    .unwrap()["facts"]["target_execution"]["execution_binding"]
-        .as_str()
-        .unwrap()
-        .to_owned();
+    let expected_target_binding =
+        serde_json::from_str::<serde_json::Value>(migration.migration_root().canonical_json())
+            .unwrap()["facts"]["target_execution"]["execution_binding"]
+            .as_str()
+            .unwrap()
+            .to_owned();
     let handoff = migration.handoff_digest().unwrap();
     let mut host = handler();
     let mut store = Store {
@@ -709,8 +711,7 @@ fn metered_target_migration_terminal_lost_ack_recovers_receipts_without_redispat
         entries
             .iter()
             .filter(|entry| {
-                entry["event"]["kind"] == "transition"
-                    && entry["event"]["transition"] == "Complete"
+                entry["event"]["kind"] == "transition" && entry["event"]["transition"] == "Complete"
             })
             .count()
     };
@@ -775,7 +776,8 @@ fn metered_target_migration_terminal_lost_ack_recovers_receipts_without_redispat
         "recovery validates the retained terminal transition without committing another terminal result",
     );
     assert_eq!(
-        host.calls.len(), before_recovery.0,
+        host.calls.len(),
+        before_recovery.0,
         "terminal recovery does not redeliver retained host work",
     );
 }

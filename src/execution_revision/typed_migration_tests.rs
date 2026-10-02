@@ -162,9 +162,8 @@ fn target_migration_refuses_cleanup_receipts_that_recovery_cannot_represent() {
         durable::MAX_FINALIZER_EVENTS
     ]))
     .is_ok());
-    assert!(target_evaluation_facts(&evaluation(vec![
-        event;
-        durable::MAX_FINALIZER_EVENTS + 1
-    ]))
-    .is_err());
+    assert!(
+        target_evaluation_facts(&evaluation(vec![event; durable::MAX_FINALIZER_EVENTS + 1]))
+            .is_err()
+    );
 }

@@ -7,8 +7,11 @@ const explorer = typeof module !== 'undefined' && module.exports ? require('./mo
 
 const CATALOG_SCHEMA = 'semaprax.project-candidate-semantic-delta-catalog.v1';
 const DELTA_SCHEMA = 'semaprax.project-candidate-semantic-delta.v1';
+const SOURCE_REVIEW_SCHEMA = 'semaprax.project-candidate-source-review.v1';
 const MAX_ROOTS = 65536;
 const MAX_PAGES = 1024;
+const MAX_SOURCE_FILES = 16;
+const MAX_SOURCE_REVIEW_BYTES = 16 * 1024 * 1024;
 
 function fail(reason) { throw new TypeError(`explorer changes ${reason}`); }
 function plain(value) { return value !== null && typeof value === 'object' && !Array.isArray(value) && (Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null); }
@@ -22,6 +25,42 @@ function compact(value) {
   exact(value, ['id', 'name', 'kind', 'path', 'module', 'fragment_digest']);
   for (const key of ['id', 'name', 'kind', 'path', 'module', 'fragment_digest']) string(value[key], `compact ${key}`);
   return value;
+}
+
+function sourcePath(value) {
+  string(value, 'source path');
+  if (value.length > 240 || !value.endsWith('.spx') || value.startsWith('/') || value.startsWith('\\') || /^[A-Za-z]:/.test(value) || value.split('/').some(part => !part || part === '.' || part === '..')) fail('source path');
+  return value;
+}
+
+function sourceBytes(value) {
+  string(value, 'source text');
+  if (value.includes('\u0000') || new TextEncoder().encode(value).length > MAX_SOURCE_REVIEW_BYTES) fail('source text');
+  return value;
+}
+
+// Source text is admitted only through the immutable compiler source-review
+// report. The viewer never reads a path, produces a diff, or treats text as
+// executable input.
+function sourceReview(value, candidateRevision, baseProjectRevision, candidateProjectRevision) {
+  exact(value, ['schema', 'base_project_revision', 'candidate_project_revision', 'candidate_revision', 'source_authority', 'files', 'report_revision']);
+  if (value.schema !== SOURCE_REVIEW_SCHEMA || value.source_authority !== false) fail('source review schema');
+  for (const key of ['base_project_revision', 'candidate_project_revision', 'candidate_revision', 'report_revision']) string(value[key], `source review ${key}`);
+  if (value.candidate_revision !== candidateRevision || value.base_project_revision !== baseProjectRevision || value.candidate_project_revision !== candidateProjectRevision || !Array.isArray(value.files) || value.files.length > MAX_SOURCE_FILES) fail('source review binding');
+  let used = 0, previous = null;
+  const files = value.files.map(file => {
+    exact(file, ['path', 'base_source', 'candidate_source', 'base_digest', 'candidate_digest', 'source_diff', 'source_diff_digest']);
+    const path = sourcePath(file.path);
+    if (previous !== null && previous >= path) fail('source review order');
+    previous = path;
+    const base_source = sourceBytes(file.base_source), candidate_source = sourceBytes(file.candidate_source), source_diff = sourceBytes(file.source_diff);
+    for (const key of ['base_digest', 'candidate_digest', 'source_diff_digest']) string(file[key], `source review ${key}`);
+    if (base_source === candidate_source || !source_diff) fail('source review diff');
+    used += new TextEncoder().encode(base_source).length + new TextEncoder().encode(candidate_source).length + new TextEncoder().encode(source_diff).length;
+    if (used > MAX_SOURCE_REVIEW_BYTES) fail('source review capacity');
+    return Object.freeze({ path, base_source, candidate_source, base_digest: file.base_digest, candidate_digest: file.candidate_digest, source_diff, source_diff_digest: file.source_diff_digest });
+  });
+  return Object.freeze({ base_project_revision: value.base_project_revision, candidate_project_revision: value.candidate_project_revision, candidate_revision: value.candidate_revision, report_revision: value.report_revision, files: Object.freeze(files) });
 }
 
 function catalog(value) {
@@ -211,6 +250,6 @@ function whyAffected(impact, side, nodeKey) {
   return Object.freeze({ state: impact.witness_state === 'analysis_incomplete' ? 'witness_not_loaded_or_analysis_incomplete' : 'no_returned_structural_witness', edges: [] });
 }
 
-const api = { CATALOG_SCHEMA, DELTA_SCHEMA, catalog, delta, changeRow, changeList, loadImpact, unionImpact, loadChangeImpact, whyAffected };
+const api = { CATALOG_SCHEMA, DELTA_SCHEMA, SOURCE_REVIEW_SCHEMA, catalog, delta, sourceReview, changeRow, changeList, loadImpact, unionImpact, loadChangeImpact, whyAffected };
 if (typeof module !== 'undefined' && module.exports) module.exports = api;
 else globalThis.SemapraxExplorerChanges = api;

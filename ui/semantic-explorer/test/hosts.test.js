@@ -43,6 +43,14 @@ test('offline and editor adapters deliver the same checked identities', async ()
   await assert.rejects(offline.evidence('unbundled'), /not bundled/);
 });
 
+test('offline source review is available only when explicitly bundled', async () => {
+  const report = { schema: 'semaprax.project-candidate-source-review.v1', files: [] };
+  const bundled = snapshotHost({ views: [{ query, summary: selected, pages }], source_review: report });
+  assert.equal(await bundled.sourceReview(), report);
+  const absent = snapshotHost({ views: [{ query, summary: selected, pages }] });
+  await assert.rejects(absent.sourceReview(), /not bundled/);
+});
+
 test('disposing an editor host rejects retained calls and releases their timers', async () => {
   let listener;
   const port = {

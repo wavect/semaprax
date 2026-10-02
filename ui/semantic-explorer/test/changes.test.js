@@ -11,6 +11,7 @@ function root(target, change, base, candidate) { return { target, change, base, 
 function catalog(roots) { return { schema: changes.CATALOG_SCHEMA, candidate_digest: 'candidate-1', base_project_revision: 'base-1', project_revision: 'candidate-1', roots, selection_basis: 'authored_declaration_identity_origin_and_canonical_fragment_changes', source_changes: [], nonclaims: [] }; }
 function delta(target, facets) { return { schema: changes.DELTA_SCHEMA, candidate_digest: 'candidate-1', target, base_project_revision: 'base-1', project_revision: 'candidate-1', base_workspace_revision: 'base-workspace-1', workspace_revision: 'candidate-workspace-1', base_image_digest: digest, image_digest: digest, presence: 'modified', source_bindings: {}, facets, target_artifacts: {}, test_plan: {}, evidence_class: 'descriptive_recomputable_compiler_projection', comparison: 'exact_values_plus_separate_provenance_insensitive_projection_equality', omitted_equal_payloads: true, limits: {}, nonclaims: [] }; }
 function facet(name, change, exact, projection) { const result = { facet: name, change, exact_equal: exact, projection_equal_without_provenance: projection, base_digest: digest, candidate_digest: digest, base_bytes: 0, candidate_bytes: 0 }; if (!projection) { result.base = null; result.candidate = null; } return result; }
+function sourceReview(candidate = 'candidate-1', base = 'base-1') { return { schema: changes.SOURCE_REVIEW_SCHEMA, base_project_revision: base, candidate_project_revision: 'candidate-project-1', candidate_revision: candidate, source_authority: false, files: [{ path: 'm/main.spx', base_source: 'fn old() {}\n', candidate_source: 'fn new() {}\n', base_digest: digest, candidate_digest: digest, source_diff: '--- m/main.spx\n+++ m/main.spx\n', source_diff_digest: digest }], report_revision: digest }; }
 
 test('catalog rows preserve move plus modification, ghosts, additions, and identity caution', () => {
   const moved = root('rename', 'moved', compact('rename', 'old_name', 'old/a.spx'), compact('rename', 'new_name', 'new/b.spx', 'g'));
@@ -81,4 +82,15 @@ test('removed and added roots retain their one-sided structural inventory state'
   assert.equal(removed.witness_state, 'base_only'); assert.equal(removed.candidate, null);
   assert.equal(added.witness_state, 'candidate_only'); assert.equal(added.base, null);
   assert.equal(changes.whyAffected(removed, 'candidate', 'candidate:removed').state, 'witness_not_loaded_or_analysis_incomplete');
+});
+
+test('source review accepts only the exact bound compiler report and never derives a diff', () => {
+  const review = changes.sourceReview(sourceReview(), 'candidate-1', 'base-1', 'candidate-project-1');
+  assert.equal(review.files[0].source_diff, '--- m/main.spx\n+++ m/main.spx\n');
+  assert.throws(() => changes.sourceReview(sourceReview('other'), 'candidate-1', 'base-1', 'candidate-project-1'), /source review binding/);
+  assert.throws(() => changes.sourceReview(sourceReview(), 'candidate-1', 'base-1', 'other-project'), /source review binding/);
+  const forged = sourceReview(); forged.files[0].path = '../outside.spx';
+  assert.throws(() => changes.sourceReview(forged, 'candidate-1', 'base-1', 'candidate-project-1'), /source path/);
+  const untrusted = sourceReview(); untrusted.source_authority = true;
+  assert.throws(() => changes.sourceReview(untrusted, 'candidate-1', 'base-1', 'candidate-project-1'), /source review schema/);
 });

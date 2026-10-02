@@ -36,6 +36,7 @@ function catalog() { return { schema: changes.CATALOG_SCHEMA, candidate_digest: 
 function delta() { return { schema: changes.DELTA_SCHEMA, candidate_digest: 'candidate-1', target: 'stable-id', base_project_revision: 'base-project', project_revision: 'candidate-project', base_workspace_revision: 'base-workspace', workspace_revision: 'candidate-workspace', base_image_digest: digest, image_digest: digest, presence: 'modified', source_bindings: {}, facets: [], target_artifacts: {}, test_plan: {}, evidence_class: 'descriptive_recomputable_compiler_projection', comparison: 'exact_values_plus_separate_provenance_insensitive_projection_equality', omitted_equal_payloads: true, limits: {}, nonclaims: [] }; }
 function impactSummary(side, target) { return { schema: model.SCHEMA, kind: 'summary', subject: { ...subject(), side, project_revision: `${side}-project`, workspace_revision: `${side}-workspace` }, mode: 'impact', target, query: { direction: 'both', depth: 1, max_nodes: 256, max_bytes: 262144 }, artifact_digest: digest, truncation: { truncated: false, reason: null }, coverage: { owner: 'workspace_analysis', mode: 'impact', complete_within_query: true }, inventories: [{ view: 'modules', total_items: 0, handle: digest }, { view: 'declarations', total_items: 2, handle: digest }, { view: 'relations', total_items: 1, handle: digest }, { view: 'frontier', total_items: 0, handle: digest }], source_authority: false, execution: false, publication_authority: false, nonclaims: [] }; }
 function impactPage(selected, view) { const side = selected.subject.side; const declaration = id => ({ node_key: `${side}:${id}`, id, identity_origin: 'explicit', kind: 'function', display_name: id, owner_id: null, module: 'm', path: 'm/a.spx', source_reference: { kind: 'authenticated_source_reference_unavailable_in_analysis_projection' } }); const relation = { family: 'call', from: `${side}:caller`, to: `${side}:stable-id`, direction: 'reverse', site_id: `${side}:caller:stable-id`, provenance: { retained: true } }; const items = view === 'declarations' ? [declaration('stable-id'), declaration('caller')] : view === 'relations' ? [relation] : []; return { schema: model.SCHEMA, kind: 'page', subject: selected.subject, mode: selected.mode, target: selected.target, query: selected.query, artifact_digest: digest, truncation: selected.truncation, coverage: selected.coverage, view, handle: digest, cursor: null, offset: 0, total_items: items.length, page_size: 32, max_bytes: 65536, next_cursor: null, items, source_authority: false, execution: false, publication_authority: false, nonclaims: [] }; }
+function sourceReview() { return { schema: changes.SOURCE_REVIEW_SCHEMA, base_project_revision: 'base-project', candidate_project_revision: 'candidate-project', candidate_revision: 'candidate-1', source_authority: false, files: [{ path: 'm/new.spx', base_source: 'fn old_name() {}\n', candidate_source: 'fn new_name() {}\n', base_digest: digest, candidate_digest: digest, source_diff: '--- m/new.spx\n+++ m/new.spx\n', source_diff_digest: digest }], report_revision: digest }; }
 
 test('candidate catalog, target delta, and selected evidence remain separate lazy reads', async () => {
   const calls = [];
@@ -67,6 +68,7 @@ test('change navigation keeps the selected identity and renders the separate imp
     async page(request) { return request.summary.mode === 'impact' ? impactPage(request.summary, request.view) : page(request.summary, request.view); },
     async deltaCatalog() { return catalog(); },
     async semanticDelta() { return delta(); },
+    async sourceReview() { return sourceReview(); },
     async readEvidence(request) { return { schema: evidence.SCHEMA, subject: request.subject, method: request.method, target: request.target, facet: request.facet, state: 'available', compact: {}, omitted: [], nonclaims: [], source_authority: false, execution: false }; }
   };
   const document = new Document(); const root = new Node(document, 'root');
@@ -76,10 +78,22 @@ test('change navigation keeps the selected identity and renders the separate imp
   for (let index = 0; index < 16; index += 1) await tick();
   assert.ok(calls.includes('summary:impact:base')); assert.ok(calls.includes('summary:impact:candidate'));
   assert.ok(find(root, 'Potential structural impact'));
+  assert.ok(find(root, 'Compiler-provided source diff:'));
+  assert.ok(find(root, 'fn old_name() {}\n'));
   find(root, 'caller').parentNode.children[2].listeners.get('click')();
   assert.ok(find(root, 'Returned structural witness path:'));
   find(root, 'Base').listeners.get('click')();
   assert.ok(find(root, 'old_name'));
   find(root, 'Changes').listeners.get('click')();
   assert.ok(find(root, 'Why affected?'));
+});
+
+test('unbundled source review stays explicitly unavailable', async () => {
+  const host = { async summary() { return summary(); }, async page(request) { return page(request.summary, request.view); }, async deltaCatalog() { return catalog(); }, async semanticDelta() { return delta(); }, async readEvidence(request) { return { schema: evidence.SCHEMA, subject: request.subject, method: request.method, target: request.target, facet: request.facet, state: 'available', compact: {}, omitted: [], nonclaims: [], source_authority: false, execution: false }; } };
+  const document = new Document(); const root = new Node(document, 'root');
+  createExplorer(root, host, { side: 'candidate' });
+  await tick(); await tick(); await tick();
+  find(root, 'new_name').parentNode.listeners.get('click')();
+  await tick(); await tick();
+  assert.ok(find(root, 'Source diff not bundled.'));
 });

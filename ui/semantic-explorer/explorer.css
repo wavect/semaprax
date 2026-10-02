@@ -85,7 +85,7 @@
 .spx-evidence-tabs button, .spx-change-tabs button { padding: 5px 7px; }
 .spx-evidence-state { margin: 0; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
 .spx-change-row:focus-visible, .spx-evidence-tabs button:focus-visible, .spx-change-tabs button:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
-.spx-change-projection, .spx-impact-panel { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+.spx-change-projection, .spx-impact-panel, .spx-source-diff-panel { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
 .spx-change-projection h4 { margin: 0 0 6px; font-size: 13px; }
 .spx-change-comparison { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .spx-change-comparison .spx-change-projection { margin-top: 0; }
@@ -95,12 +95,20 @@
 .spx-impact-side { border: 1px solid var(--line); border-radius: 99px; padding: 1px 5px; color: var(--muted); font: 10px ui-monospace, monospace; }
 .spx-impact-row .spx-button { min-height: 28px; padding: 3px 7px; font-size: 11px; }
 .spx-witness-path { margin: 6px 0 0; padding-left: 19px; font: 11px/1.5 ui-monospace, monospace; overflow-wrap: anywhere; }
+.spx-source-diff-files { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px; }
+.spx-source-diff-files .spx-button { min-height: 28px; padding: 3px 7px; font-size: 11px; overflow-wrap: anywhere; }
+.spx-source-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.spx-source-column { min-width: 0; }
+.spx-source-column h4 { margin: 0 0 5px; font-size: 12px; }
+.spx-source-text { max-height: 280px; margin: 0; overflow: auto; padding: 9px; border: 1px solid var(--line); border-radius: 5px; background: var(--paper); color: var(--ink); font: 11px/1.45 ui-monospace, "SFMono-Regular", monospace; white-space: pre; }
+.spx-source-patch { max-height: 340px; }
 .spx-status { min-height: 20px; margin: 12px 0 0; color: var(--muted); font-size: 12px; }
 @media (max-width: 900px) {
   .spx-main { grid-template-columns: minmax(0, 1fr); }
   .spx-inspector { position: static; max-height: none; }
   .spx-graph-viewport { height: 340px; }
   .spx-change-comparison { grid-template-columns: minmax(0, 1fr); }
+  .spx-source-columns { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 600px) {
   .spx-explorer { padding: 12px; }

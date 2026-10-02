@@ -117,7 +117,7 @@ pub(super) fn run<'j>(
     let crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect::authorization::step::LiveStepAcknowledgedV8::Continued(staged) = acknowledged.advance_step().unwrap_or_else(|_| panic!("later retained Step")) else { panic!("continued Step") };
     staged.validate_live().unwrap();
     assert_eq!(host.calls, 1);
-    if matches!(fault, 18..=20) {
+    if matches!(fault, 18..=21) {
         terminal::run(journal, staged, weak, fault);
     } else {
         drop(staged);

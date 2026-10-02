@@ -123,8 +123,10 @@ and refusal before effects for unsupported phase selection.
 
 The private terminal predecessor now has a consuming projection seam: after an
 authenticated `Complete` terminal ACK and the existing physical Report claim,
-it returns only the checked canonical delivery projection and consumes the
-Report owner. A failed projection check retains that same owner in the sealed
+it returns the checked canonical Report projection with the exact authenticated
+terminal evidence bytes and consumes the Report owner. The evidence is kept as
+a bounded UTF-8 string, including its original LF, rather than parsed and
+reserialized. A failed projection check retains that same owner in the sealed
 private failure path. This does not expose a public session, lease, report,
 State, recovery route, or finalizer authority.
 

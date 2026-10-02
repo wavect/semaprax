@@ -171,8 +171,8 @@ impl<'j> LiveContinuedStagedStepV8<'j> {
     }
 
     /// Completes the authenticated physical terminal path and releases only
-    /// its canonical delivery projection. No State, Report, journal lease, or
-    /// terminal owner crosses this boundary.
+    /// its canonical Report projection and exact terminal evidence bytes. No
+    /// State, Report, journal lease, or terminal owner crosses this boundary.
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn finish_complete_projection(
         self,
         journal: &'j SourceOwnedWaitJournalV8,

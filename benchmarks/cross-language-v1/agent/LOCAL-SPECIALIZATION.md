@@ -15,7 +15,7 @@ The 81 original slots remain: `base`, `guided`, `constrained`, nine task IDs and
 three repetitions. The later iterative-repair task's nine extra slots stay outside
 this study; the prior accounting command retains their classification.
 
-The default proposed local model is `qwen2.5-coder:7b`. Preparation binds the full
+The default proposed local model is `qwen2.5-coder:3b`. Preparation binds the full
 installed manifest digest, complete `/api/show` metadata digest and daemon version;
 execution checks them before and after each generation. A mutable tag by itself
 is insufficient. No command pulls a model, installs a package, reads an API key or
@@ -38,7 +38,7 @@ All 298 comparison-source files and predecessor wire profiles remain unchanged.
 
 | Item | Local execution choice |
 | --- | --- |
-| Model | Explicit installed Qwen2-family GGUF completion model; default `qwen2.5-coder:7b`; full digest required |
+| Model | Explicit installed Qwen2-family GGUF completion model; default `qwen2.5-coder:3b`; full digest required |
 | Model connection | Only literal `http://127.0.0.1:<port>`; default port 11434; no DNS, proxy lookup, credentials, redirects, cloud model references, pulls or installation hooks |
 | Adaptation | None; generic versioned language guidance only for `guided` and `constrained` |
 | Prompt construction | Public requirements, candidate interfaces, manifest and unchanged public scaffolds; no candidate implementations, EQUIVALENCE documents, README/AGENTS text or hidden trees |
@@ -95,7 +95,7 @@ COMPILER="$(python3 -c 'import pathlib; print(pathlib.Path("target/debug/semapra
 python3 benchmarks/cross-language-v1/agent/specialization_local.py prepare \
   --compiler "$COMPILER" \
   --endpoint http://127.0.0.1:11434 \
-  --model qwen2.5-coder:7b \
+  --model qwen2.5-coder:3b \
   --operator "Kevin Riedl" \
   --output "$EVIDENCE/plan.json"
 ```
@@ -117,6 +117,13 @@ cryptographically authenticated by this program.
 Retain the completed review as `preflight-review.json`. Obtain its expected digest
 from that independently reviewed record; do not replace the pin with the hash of
 an arbitrary file merely to bypass a mismatch.
+
+If the user has explicitly waived independent human review for this issue, add
+`--review-waiver` to `prepare`, complete the resulting operator-attestation
+record, and add `--accept-review-waiver` to `run`. That distinct record binds the
+same six checks and plan digest, but reports an operator technical attestation
+with `independent_human_review: waived_by_user`; it never names or invents an
+independent reviewer or data custodian.
 
 ## Execute only after real preflight review
 

@@ -286,7 +286,7 @@ explicitly reviewed local Ollama transport around the existing protocol builder
 and frozen scorer. It preserves all 81 original cells, keeps the unresolved
 Semaprax discount cells unexecuted, and separates actual response/usage receipts
 from fixture tests, reference scoring, missing evidence and independent review.
-The default is local `qwen2.5-coder:7b`, with its installed full digest and daemon
+The default is local `qwen2.5-coder:3b`, with its installed full digest and daemon
 metadata pinned during preparation; no model download or paid provider call is
 performed. No comparison-adapter support decision or predecessor profile changes.
 
@@ -295,6 +295,14 @@ model experiment ran. It also avoids the legacy prompt builder's inclusion of
 EQUIVALENCE documents containing hidden-vector discussion. Real model/host
 execution, verified local custody/no-egress, and independent pre/post-run reviews
 remain necessary; a unit-test or receipt-audit pass does not close #326.
+
+Where the issue operator has an explicit user waiver of independent human
+review, `specialization_local.py prepare --review-waiver` emits a distinct
+operator-attestation record. `run --accept-review-waiver` requires an explicit
+second opt-in before it accepts that exact record. The receipt labels this mode
+as `operator_technical_attestation_with_explicit_review_waiver`; it never
+manufactures a reviewer, data custodian, or independent-review claim. The same
+source, split, oracle, sandbox, receipt, and outcome controls still apply.
 
 ## Additive two-model laboratory pilot (#332)
 

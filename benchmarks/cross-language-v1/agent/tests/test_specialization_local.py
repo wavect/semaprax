@@ -46,6 +46,15 @@ def fixture_review(plan_hash, operator):
     return review
 
 
+def fixture_waiver(plan_hash, operator):
+    record = local.waiver_template(plan_hash, operator)
+    record.update(decision="operator_attested_review_waiver", attested_at="2000-01-01T00:00:00Z",
+                  notes="Synthetic unit-test attestation; never real authorization.")
+    for check in record["checks"].values():
+        check.update(passed=True, evidence="Synthetic attestation fixture; no actual verification.")
+    return record
+
+
 @unittest.skipUnless(local.accounting.acquisition_available(), "POSIX no-follow acquisition required")
 class LocalSpecializationTests(unittest.TestCase):
     @classmethod
@@ -63,10 +72,10 @@ class LocalSpecializationTests(unittest.TestCase):
     def prepare(self, daemon):
         return local.prepare(self.compiler, daemon.endpoint, NAME, "fixture-operator")
 
-    def files(self, plan):
+    def files(self, plan, authorization=None):
         plan_path, review_path = self.root / "plan.json", self.root / "review.json"
         plan_hash = local.write_json(plan_path, plan)
-        review = fixture_review(plan_hash, plan["operator"])
+        review = authorization or fixture_review(plan_hash, plan["operator"])
         review_hash = local.write_json(review_path, review)
         return plan_path, plan_hash, review_path, review_hash, self.root / "run"
 
@@ -189,6 +198,32 @@ class LocalSpecializationTests(unittest.TestCase):
             approved["reviewer"] = name
             with self.subTest(name=name), self.assertRaisesRegex(LocalTransportError, "not_independent"):
                 local.validate_review(approved, phash, "fixture-operator")
+
+    def test_explicit_user_waiver_is_an_operator_attestation_not_independent_review(self):
+        phash = "sha256:" + "a" * 64
+        waiver = fixture_waiver(phash, "fixture-operator")
+        with self.assertRaisesRegex(LocalTransportError, "explicit_cli_acceptance"):
+            local.validate_preflight(waiver, phash, "fixture-operator", accept_review_waiver=False)
+        authorization = local.validate_preflight(waiver, phash, "fixture-operator", accept_review_waiver=True)
+        self.assertEqual(authorization, {
+            "mode": "operator_technical_attestation_with_explicit_review_waiver",
+            "independent_human_review": "waived_by_user"})
+        self.assertNotIn("reviewer", waiver)
+        waiver["review_waiver"] = "synthetic alternate waiver"
+        with self.assertRaisesRegex(LocalTransportError, "unbound_or_ambiguous_review_waiver"):
+            local.validate_preflight(waiver, phash, "fixture-operator", accept_review_waiver=True)
+
+    def test_waived_record_is_refused_before_scorer_without_explicit_run_opt_in(self):
+        with FakeDaemon() as daemon:
+            plan = self.prepare(daemon)
+            plan_path = self.root / "plan.json"
+            plan_hash = local.write_json(plan_path, plan)
+            waiver = fixture_waiver(plan_hash, plan["operator"])
+            review_path = self.root / "waiver.json"
+            review_hash = local.write_json(review_path, waiver)
+            with patch.object(local, "NativeScorer") as score, self.assertRaisesRegex(LocalTransportError, "explicit_cli_acceptance"):
+                local.execute(plan_path, plan_hash, review_path, review_hash, self.root / "run")
+            score.assert_not_called()
 
     def test_each_preflight_check_and_review_subject_is_required(self):
         phash = "sha256:" + "a" * 64
@@ -404,7 +439,8 @@ class LocalSpecializationTests(unittest.TestCase):
     def test_cli_prepare_has_no_generation_and_emits_pending_template(self):
         with FakeDaemon() as daemon, contextlib.redirect_stdout(io.StringIO()) as out:
             code = local.main(["prepare", "--compiler", str(self.compiler), "--endpoint", daemon.endpoint,
-                               "--operator", "fixture-operator", "--output", str(self.root / "prepared.json")])
+                               "--model", NAME, "--operator", "fixture-operator",
+                               "--output", str(self.root / "prepared.json")])
             self.assertEqual(code, 0)
             result = json.loads(out.getvalue())
             self.assertEqual(result["execution"], "not_attempted")

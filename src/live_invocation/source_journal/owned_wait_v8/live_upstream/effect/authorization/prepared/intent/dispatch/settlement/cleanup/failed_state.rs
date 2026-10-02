@@ -672,3 +672,171 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_verifie
         }
     }
 }
+
+pub(crate) struct LiveFailedEffectStateStoppedV8<'j> {
+    _released: LiveReleasedFailedEffectStateV8<'j>,
+}
+
+enum QuarantinedFailedEffectStateOwnerV8<'j> {
+    Failure { _owner: LiveFailedEffectStateFailureV8<'j> },
+    Pending { _owner: LiveFailedEffectStateAppendV8<'j> },
+    AppendFault {
+        _owner: crate::live_invocation::source_journal::owned_wait_v8::append::owned_effect::LiveFailedEffectStateAppendFailureV8<'j>,
+    },
+    Acknowledged { _owner: LiveFailedEffectStateAcknowledgedV8<'j> },
+}
+
+/// Keeps the exact reached target-failure owner alive while the caller retains
+/// this private error. It has no retry, extraction, append, or cleanup method.
+pub(crate) struct LiveFailedEffectStateQuarantinedV8<'j> {
+    _owner: QuarantinedFailedEffectStateOwnerV8<'j>,
+}
+
+impl LiveFailedEffectStateQuarantinedV8<'_> {
+    pub(crate) fn status(&self) -> SourceJournalError {
+        SourceJournalError::Poisoned
+    }
+}
+
+fn quarantine_failed_effect_state<'j>(
+    journal: &SourceOwnedWaitJournalV8,
+    owner: QuarantinedFailedEffectStateOwnerV8<'j>,
+) -> LiveFailedEffectStateQuarantinedV8<'j> {
+    journal.quarantine();
+    LiveFailedEffectStateQuarantinedV8 { _owner: owner }
+}
+
+/// Drive one actual failed target through its acknowledged State cleanup,
+/// receipt, and sticky Stop rows. An incomplete boundary seals the journal and
+/// returns the reached physical owner in an opaque private error.
+pub(crate) fn stop_failed_effect_state_v8<'j>(
+    failed: LiveFailedOwnedEffectV8<'j>,
+    observe: impl FnMut(&FinalizeAction),
+) -> Result<LiveFailedEffectStateStoppedV8<'j>, LiveFailedEffectStateQuarantinedV8<'j>> {
+    let journal = failed.lineage.recorded.intent.journal;
+    let cleanup = match failed.prepare_failed_state() {
+        Ok(cleanup) => cleanup,
+        Err(owner) => {
+            return Err(quarantine_failed_effect_state(
+                journal,
+                QuarantinedFailedEffectStateOwnerV8::Failure { _owner: owner },
+            ))
+        }
+    };
+    let started = match journal.begin_session() {
+        Ok(session) => match session.append_failed_effect_state(cleanup) {
+            Ok(append) => match append.advance_failed_state() {
+                Ok(LiveFailedEffectStateAcknowledgedV8::Started(started)) => started,
+                Ok(owner) => {
+                    return Err(quarantine_failed_effect_state(
+                        journal,
+                        QuarantinedFailedEffectStateOwnerV8::Acknowledged { _owner: owner },
+                    ))
+                }
+                Err(owner) => {
+                    return Err(quarantine_failed_effect_state(
+                        journal,
+                        QuarantinedFailedEffectStateOwnerV8::Failure { _owner: owner },
+                    ))
+                }
+            },
+            Err(owner) => {
+                return Err(quarantine_failed_effect_state(
+                    journal,
+                    QuarantinedFailedEffectStateOwnerV8::AppendFault { _owner: owner },
+                ))
+            }
+        },
+        Err(_) => {
+            return Err(quarantine_failed_effect_state(
+                journal,
+                QuarantinedFailedEffectStateOwnerV8::Pending { _owner: cleanup },
+            ))
+        }
+    };
+    let released = match started.release(observe) {
+        Ok(released) => released,
+        Err(owner) => {
+            return Err(quarantine_failed_effect_state(
+                journal,
+                QuarantinedFailedEffectStateOwnerV8::Failure { _owner: owner },
+            ))
+        }
+    };
+    let receipt = match released.prepare_receipt() {
+        Ok(receipt) => receipt,
+        Err(owner) => {
+            return Err(quarantine_failed_effect_state(
+                journal,
+                QuarantinedFailedEffectStateOwnerV8::Failure { _owner: owner },
+            ))
+        }
+    };
+    let released = match journal.begin_session() {
+        Ok(session) => match session.append_failed_effect_state(receipt) {
+            Ok(append) => match append.advance_failed_state() {
+                Ok(LiveFailedEffectStateAcknowledgedV8::Released(released)) => released,
+                Ok(owner) => {
+                    return Err(quarantine_failed_effect_state(
+                        journal,
+                        QuarantinedFailedEffectStateOwnerV8::Acknowledged { _owner: owner },
+                    ))
+                }
+                Err(owner) => {
+                    return Err(quarantine_failed_effect_state(
+                        journal,
+                        QuarantinedFailedEffectStateOwnerV8::Failure { _owner: owner },
+                    ))
+                }
+            },
+            Err(owner) => {
+                return Err(quarantine_failed_effect_state(
+                    journal,
+                    QuarantinedFailedEffectStateOwnerV8::AppendFault { _owner: owner },
+                ))
+            }
+        },
+        Err(_) => {
+            return Err(quarantine_failed_effect_state(
+                journal,
+                QuarantinedFailedEffectStateOwnerV8::Pending { _owner: receipt },
+            ))
+        }
+    };
+    let stop = match released.prepare_stop() {
+        Ok(stop) => stop,
+        Err(owner) => {
+            return Err(quarantine_failed_effect_state(
+                journal,
+                QuarantinedFailedEffectStateOwnerV8::Failure { _owner: owner },
+            ))
+        }
+    };
+    match journal.begin_session() {
+        Ok(session) => match session.append_failed_effect_state(stop) {
+            Ok(append) => match append.advance_failed_state() {
+                Ok(LiveFailedEffectStateAcknowledgedV8::Released(released)) => {
+                    Ok(LiveFailedEffectStateStoppedV8 {
+                        _released: released,
+                    })
+                }
+                Ok(owner) => Err(quarantine_failed_effect_state(
+                    journal,
+                    QuarantinedFailedEffectStateOwnerV8::Acknowledged { _owner: owner },
+                )),
+                Err(owner) => Err(quarantine_failed_effect_state(
+                    journal,
+                    QuarantinedFailedEffectStateOwnerV8::Failure { _owner: owner },
+                )),
+            },
+            Err(owner) => Err(quarantine_failed_effect_state(
+                journal,
+                QuarantinedFailedEffectStateOwnerV8::AppendFault { _owner: owner },
+            )),
+        },
+        Err(_) => Err(quarantine_failed_effect_state(
+            journal,
+            QuarantinedFailedEffectStateOwnerV8::Pending { _owner: stop },
+        )),
+    }
+}

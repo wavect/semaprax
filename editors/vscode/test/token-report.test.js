@@ -29,6 +29,12 @@ test('the snapshot view renders a measured reduction from the shared report coun
   assert.match(text, /Tokenizer fingerprint: sha256:1{64}/);
   assert.match(text, /Current revision not verified/);
 });
+test('a projection is bound to an active project revision only when the exact revision matches', () => {
+  const value = validate(JSON.stringify(projection()));
+  assert.match(render(value, { activeProjectRevision: 'rev-123' }), /Report subject revision matches the active project revision/);
+  assert.match(render(value, { activeProjectRevision: 'rev-other' }), /Stale\/mismatched report: its subject revision differs from the active project revision/);
+  assert.match(render(value, { activeProjectRevision: undefined }), /Current revision not verified/);
+});
 test('versioned session snapshots render per-method totals and largest changes', () => {
   const value = session({
     schema: 'semaprax.token-comparison-session.v2',

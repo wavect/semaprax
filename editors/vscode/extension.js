@@ -420,6 +420,7 @@ function activate(context) {
   let client, config, image, candidate, target, stale = true, epoch = 0, busy = false;
   let holes, selectedHole, holeNavigation;
   let imageProject, candidateHandle, repairs;
+  let reportBindingOverride;
   let testTask, testTaskUsed = false;
   let explorerPanel = null, explorerGeneration = 0;
   let watchers = [];
@@ -630,11 +631,15 @@ function activate(context) {
       throw new Error(`Cannot read selected token report: ${String(error.message || error)}`);
     } finally { if (handle !== undefined) fs.closeSync(handle); }
   }
+  function activeTokenReportProjectRevision() {
+    if (testMode && reportBindingOverride !== undefined) return reportBindingOverride;
+    return client && !client.closed && !stale && imageProject ? imageProject : undefined;
+  }
   async function showTokenReport() {
     const uri = testMode && testReports.length ? testReports.shift() : (await vscode.window.showOpenDialog({ canSelectFiles: true, canSelectFolders: false, canSelectMany: false, openLabel: 'Open Token Report', filters: { 'Token reports': ['json'] } }))?.[0];
     if (!uri) return;
     const report = tokenReport.validate(readSelectedTokenReport(uri));
-    const text = tokenReport.render(report);
+    const text = tokenReport.render(report, { activeProjectRevision: activeTokenReportProjectRevision() });
     const view = vscode.Uri.from({ scheme: 'semaprax-token-report', path: '/' + crypto.randomUUID() + '/report.txt' });
     tokenDocuments.set(view.toString(), text);
     const doc = await vscode.workspace.openTextDocument(view);
@@ -1017,6 +1022,7 @@ function activate(context) {
     enqueueInput(value) { testInputs.push(value); },
     enqueuePick(label) { testPicks.push(label); },
     enqueueReport(uri) { testReports.push(uri); },
+    setReportBinding(projectRevision) { reportBindingOverride = projectRevision; },
     async execute(name) {
       if (!Object.prototype.hasOwnProperty.call(commands, name)) throw new Error(`Unknown SEMAPRAX test command: ${name}`);
       return commands[name]();

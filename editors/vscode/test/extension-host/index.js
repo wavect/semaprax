@@ -107,6 +107,11 @@ async function run() {
     assert.match(vscode.window.activeTextEditor.document.getText(), /\+2 tokens used versus reference/);
     assert.match(vscode.window.activeTextEditor.document.getText(), /Current revision not verified/);
     assert.match(vscode.window.activeTextEditor.document.getText(), /<script>old-revision<\/script>/, 'untrusted strings stay literal text');
+    api.setReportBinding(sha('9'));
+    api.enqueueReport(measured); await api.execute('showTokenReport');
+    assert.match(vscode.window.activeTextEditor.document.getText(), /Stale\/mismatched report/);
+    assert.match(vscode.window.activeTextEditor.document.getText(), /not current-session savings/);
+    api.setReportBinding(undefined);
     const unavailable = write('unavailable.json', projection({ measurement_status: 'tokenizer_unavailable', baseline_tokens: null, actual_tokens: null, delta_tokens: null, delta_fraction: null, delta_percentage: null }));
     api.enqueueReport(unavailable); await api.execute('showTokenReport');
     assert.match(vscode.window.activeTextEditor.document.getText(), /Model tokens unavailable/);

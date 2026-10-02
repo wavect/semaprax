@@ -95,8 +95,14 @@ function signed(countsValue) {
   if (countsValue.delta_tokens < 0) return `+${-countsValue.delta_tokens} tokens used versus reference.`;
   return 'No token difference versus reference.';
 }
-function renderComparison(value) {
-  const out = ['SEMAPRAX token report snapshot\n', 'Current revision not verified. This local report is not live monitoring or a billed counter.\n\n'];
+function comparisonBinding(value, activeProjectRevision) {
+  if (typeof activeProjectRevision !== 'string' || activeProjectRevision.length === 0 || value.report_kind !== 'projection') return 'Current revision not verified.';
+  return value.source_revision === activeProjectRevision
+    ? 'Report subject revision matches the active project revision.'
+    : 'Stale/mismatched report: its subject revision differs from the active project revision. This snapshot is not current-session savings.';
+}
+function renderComparison(value, activeProjectRevision) {
+  const out = ['SEMAPRAX token report snapshot\n', `${comparisonBinding(value, activeProjectRevision)} This local report is not live monitoring or a billed counter.\n\n`];
   out.push(line('Comparison type', value.report_kind === 'projection' ? value.baseline_kind : value.reference_kind));
   if (value.report_kind === 'projection') {
     out.push(line('Subject revision', value.source_revision));
@@ -153,5 +159,5 @@ function renderSession(value) {
   out.push('\nProvider usage is not present in this report.\n');
   return out.join('');
 }
-function render(value) { return value.schema === COMPARISON_SCHEMA ? renderComparison(value) : renderSession(value); }
+function render(value, context = {}) { return value.schema === COMPARISON_SCHEMA ? renderComparison(value, context.activeProjectRevision) : renderSession(value); }
 module.exports = { MAX_REPORT_BYTES, validate, render, signed };

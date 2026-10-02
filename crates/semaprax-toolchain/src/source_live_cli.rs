@@ -47,7 +47,7 @@ impl CliError {
 }
 
 /// Executes durable source-live verbs or the fixed offline repair demonstration.
-/// Neither route publishes source or selects a paid provider.
+/// Source publication is separate; provider dispatch requires explicit host operands.
 pub fn run(arguments: &[String]) -> Result<String, (String, u8)> {
     let result = match arguments.split_first() {
         Some((verb, rest)) if verb == "offline-repair" => offline_repair_cli::run(rest),
@@ -61,7 +61,7 @@ pub fn run(arguments: &[String]) -> Result<String, (String, u8)> {
     result.map_err(|error| (error.reason, error.code))
 }
 
-/// Run the durable V2 repair route with an explicitly injected candidate-test
+/// Run the durable V2/V3 repair route with an explicitly injected candidate-test
 /// observer. Ordinary [`run`] calls never acquire this capability.
 pub fn run_repair_with_candidate_test(
     arguments: &[String],

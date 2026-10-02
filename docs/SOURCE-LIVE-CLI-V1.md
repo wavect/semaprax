@@ -412,3 +412,9 @@ it observes the persisted scratch marker while the latest journal ends at
 operand and verifies that only the later provider attempt dispatches. It is
 local timing and recovery evidence for the host seam, not real-provider
 evidence.
+
+## Additive native Claude repair profile
+
+[Claude print repair v1](CLAUDE-PRINT-REPAIR-V1.md) defines config/receipt V3
+and the explicit `--claude` operand. It preserves the frozen V1/V2 meanings
+and shares the existing checked candidate, journal and replay routes.

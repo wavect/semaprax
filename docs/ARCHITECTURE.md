@@ -145,7 +145,12 @@ standalone `new` route (`src/project/create.rs`), and both share one grammar and
 one scaffold. The toolchain also owns the
 Project Native Rust package publication adapter, and safe Windows revision-store
 host. Its `opencode_host` module owns the explicit fixed-provider process,
-nonblocking output bounds and transport receipt binding. Its source adapter
+transport receipt binding. `bounded_capture` owns shared Unix nonblocking
+process-group capture; `claude_host` owns the separate native Claude print-JSON
+transport and reported-usage validation for [repair V3](CLAUDE-PRINT-REPAIR-V1.md).
+The private repair host keeps config parsing and receipt rendering in
+`source_live_cli/repair/config.rs` and `receipt.rs`; both transports retain the
+same compiler-owned lifecycle, proposal decoder and checkpoint recovery. Its source adapter
 implements the existing lifecycle `ProposalSource`; compiler-owned `run_live`
 retains canonical proposal admission and checked deterministic stages. The
 core exposes only the existing read-only retained-value encoding for context.

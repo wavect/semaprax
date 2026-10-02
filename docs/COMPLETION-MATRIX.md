@@ -93,7 +93,10 @@ policy accounting remains separate #113 work. The private `repair-tested`
 source-live profile additionally fixes one interpreter candidate-test policy and
 replays its settled observation without new model/effect dispatch; its focused
 injected-provider regressions are local only, and no real-provider execution is
-claimed. A durable source CLI remains pending. Distributed coordination, broader provider
+claimed. The additive [native Claude repair V3](CLAUDE-PRINT-REPAIR-V1.md) has
+local print-JSON parser/process and checked feedback/terminal-resume fixture
+gates (`claude_host` and `source_live_cli::repair::tests::claude`), with no live
+repair or hosted claim. A durable source CLI remains pending. Distributed coordination, broader provider
 profiles remain separate functionality. Native C11 and Core Wasm Agent-stage
 execution now exist behind the sealed `StageExecutor` seam and agree with the
 interpreter on the bound deterministic stages of one fixture and, through a

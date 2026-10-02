@@ -58,7 +58,7 @@ impl OpenCodeCancellation {
     pub fn cancel(&self) {
         self.0.store(true, Ordering::Release);
     }
-    fn is_cancelled(&self) -> bool {
+    pub(crate) fn is_cancelled(&self) -> bool {
         self.0.load(Ordering::Acquire)
     }
 }
@@ -91,11 +91,11 @@ impl OpenCodeGrammar {
 
 #[derive(Clone, Debug)]
 pub struct OpenCodeHostConfig {
-    executable: PathBuf,
+    pub(crate) executable: PathBuf,
     executable_bytes: Arc<[u8]>,
     executable_permissions: std::fs::Permissions,
-    sandbox: PathBuf,
-    executable_binding: String,
+    pub(crate) sandbox: PathBuf,
+    pub(crate) executable_binding: String,
     deadline: Duration,
     cancellation: OpenCodeCancellation,
     grammar: OpenCodeGrammar,
@@ -116,6 +116,42 @@ impl OpenCodeHostConfig {
         deadline: Duration,
         grammar: OpenCodeGrammar,
     ) -> Result<Self, String> {
+        Self::new_with_limit(
+            executable,
+            sandbox,
+            deadline,
+            grammar,
+            MAX_EXECUTABLE_BINDING_BYTES,
+        )
+    }
+
+    /// Internal image admission for a transport that does not use an OpenCode grammar.
+    pub(crate) fn new_process_image(
+        executable: PathBuf,
+        sandbox: PathBuf,
+        deadline: Duration,
+        limit: u64,
+    ) -> Result<Self, String> {
+        Self::new_with_limit(
+            executable,
+            sandbox,
+            deadline,
+            OpenCodeGrammar {
+                digest: String::new(),
+                canonical_schema: String::new(),
+                provider_schema: String::new(),
+            },
+            limit,
+        )
+    }
+
+    fn new_with_limit(
+        executable: PathBuf,
+        sandbox: PathBuf,
+        deadline: Duration,
+        grammar: OpenCodeGrammar,
+        executable_limit: u64,
+    ) -> Result<Self, String> {
         if !is_absolute_like(&executable) || !is_absolute_like(&sandbox) || deadline.is_zero() {
             return Err("OpenCode host requires absolute paths and a positive deadline".into());
         }
@@ -123,7 +159,7 @@ impl OpenCodeHostConfig {
             .canonicalize()
             .map_err(|_| "OpenCode executable must be a readable regular file".to_owned())?;
         let (executable_binding, executable_bytes, executable_permissions) =
-            executable_snapshot(&executable)
+            executable_snapshot_with_limit(&executable, executable_limit)
                 .ok_or_else(|| "OpenCode executable must be a readable regular file".to_owned())?;
         if sandbox
             .symlink_metadata()
@@ -302,14 +338,14 @@ pub trait OpenCodeRunner {
 pub struct ProcessOpenCodeRunner;
 
 #[cfg(unix)]
-struct StagedExecutable {
-    path: PathBuf,
+pub(crate) struct StagedExecutable {
+    pub(crate) path: PathBuf,
     file: std::fs::File,
 }
 
 #[cfg(unix)]
 impl StagedExecutable {
-    fn create(config: &OpenCodeHostConfig) -> Result<Self, OpenCodeRunnerFailure> {
+    pub(crate) fn create(config: &OpenCodeHostConfig) -> Result<Self, OpenCodeRunnerFailure> {
         let path = config.sandbox.join(STAGED_EXECUTABLE);
         let file = std::fs::OpenOptions::new()
             .read(true)
@@ -389,20 +425,6 @@ impl Drop for StagedExecutable {
 }
 
 impl ProcessOpenCodeRunner {
-    #[cfg(unix)]
-    fn kill_group(child: &mut std::process::Child) {
-        if let Some(group) = rustix::process::Pid::from_raw(child.id() as i32) {
-            let _ = rustix::process::kill_process_group(group, rustix::process::Signal::KILL);
-        }
-    }
-
-    #[cfg(unix)]
-    fn terminate(child: &mut std::process::Child) {
-        Self::kill_group(child);
-        let _ = child.kill();
-        let _ = child.wait();
-    }
-
     fn capture(
         config: &OpenCodeHostConfig,
         args: &[String],
@@ -439,85 +461,15 @@ impl ProcessOpenCodeRunner {
                 .stdin(Stdio::null())
                 .stdout(Stdio::piped())
                 .stderr(Stdio::null());
-            command.process_group(0);
-            let mut child = command
-                .spawn()
-                .map_err(|_| OpenCodeRunnerFailure::Refused)?;
-            let Some(stdout) = child.stdout.take() else {
-                Self::terminate(&mut child);
-                return Err(OpenCodeRunnerFailure::Provider);
-            };
-            let flags = match rustix::fs::fcntl_getfl(&stdout) {
-                Ok(flags) => flags,
-                Err(_) => {
-                    Self::terminate(&mut child);
-                    return Err(OpenCodeRunnerFailure::Provider);
-                }
-            };
-            if rustix::fs::fcntl_setfl(&stdout, flags | rustix::fs::OFlags::NONBLOCK).is_err() {
-                Self::terminate(&mut child);
-                return Err(OpenCodeRunnerFailure::Provider);
-            }
-            let mut output = Vec::new();
-            let mut eof = false;
-            let mut status = None;
-            let mut chunk = [0u8; 8192];
-            loop {
-                if config.cancellation.is_cancelled() {
-                    Self::terminate(&mut child);
-                    return Err(OpenCodeRunnerFailure::Cancelled);
-                }
-                if Instant::now() >= deadline {
-                    Self::terminate(&mut child);
-                    return Err(OpenCodeRunnerFailure::Timeout);
-                }
-                loop {
-                    match rustix::io::read(&stdout, &mut chunk[..]) {
-                        Ok(0) => {
-                            eof = true;
-                            break;
-                        }
-                        Ok(count) if output.len().saturating_add(count) <= limit => {
-                            output.extend_from_slice(&chunk[..count])
-                        }
-                        Ok(_) => {
-                            Self::terminate(&mut child);
-                            return Err(OpenCodeRunnerFailure::Malformed);
-                        }
-                        Err(rustix::io::Errno::AGAIN) => break,
-                        Err(_) => {
-                            Self::terminate(&mut child);
-                            return Err(OpenCodeRunnerFailure::Provider);
-                        }
-                    }
-                }
-                if status.is_none() {
-                    match child.try_wait() {
-                        Ok(Some(exit)) => {
-                            status = Some(exit);
-                            // The leader may have exited while a descendant still
-                            // owns stdout. Group kill forces the pipe to EOF.
-                            Self::kill_group(&mut child);
-                        }
-                        Ok(None) => {}
-                        Err(_) => {
-                            Self::terminate(&mut child);
-                            return Err(OpenCodeRunnerFailure::Provider);
-                        }
-                    }
-                }
-                if let Some(exit) = status {
-                    if eof {
-                        return if exit.success() && !output.is_empty() {
-                            Ok(output)
-                        } else {
-                            Err(provider_error::classify_provider_failure(&output)
-                                .map(OpenCodeRunnerFailure::ProviderStatus)
-                                .unwrap_or(OpenCodeRunnerFailure::Provider))
-                        };
-                    }
-                }
-                std::thread::sleep(Duration::from_millis(5));
+            let (exit, output) = crate::bounded_capture::capture(command, deadline, limit, || {
+                config.cancellation.is_cancelled()
+            })?;
+            if exit.success() && !output.is_empty() {
+                Ok(output)
+            } else {
+                Err(provider_error::classify_provider_failure(&output)
+                    .map(OpenCodeRunnerFailure::ProviderStatus)
+                    .unwrap_or(OpenCodeRunnerFailure::Provider))
             }
         }
     }
@@ -640,7 +592,7 @@ fn scratch_inventory_is_empty(sandbox: &std::path::Path) -> bool {
         .unwrap_or(false)
 }
 
-fn scratch_inventory_is_repair_post_settled_marker(sandbox: &std::path::Path) -> bool {
+pub(crate) fn scratch_inventory_is_repair_post_settled_marker(sandbox: &std::path::Path) -> bool {
     let Ok(mut entries) = sandbox.read_dir() else {
         return false;
     };
@@ -839,20 +791,27 @@ fn frozen_bytes_match(reader: &mut impl Read, expected: &[u8]) -> bool {
 }
 
 fn executable_snapshot(path: &std::path::Path) -> Option<(String, Vec<u8>, std::fs::Permissions)> {
+    executable_snapshot_with_limit(path, MAX_EXECUTABLE_BINDING_BYTES)
+}
+
+pub(crate) fn executable_snapshot_with_limit(
+    path: &std::path::Path,
+    limit: u64,
+) -> Option<(String, Vec<u8>, std::fs::Permissions)> {
     if !path.symlink_metadata().ok()?.file_type().is_file() {
         return None;
     }
     let mut file = std::fs::File::open(path).ok()?;
     let metadata = file.metadata().ok()?;
-    if !metadata.is_file() || metadata.len() > MAX_EXECUTABLE_BINDING_BYTES {
+    if !metadata.is_file() || metadata.len() > limit {
         return None;
     }
     let mut bytes = Vec::with_capacity(metadata.len() as usize);
     Read::by_ref(&mut file)
-        .take(MAX_EXECUTABLE_BINDING_BYTES + 1)
+        .take(limit + 1)
         .read_to_end(&mut bytes)
         .ok()?;
-    if bytes.len() as u64 > MAX_EXECUTABLE_BINDING_BYTES {
+    if bytes.len() as u64 > limit {
         return None;
     }
     let mut hasher = Sha256::new();

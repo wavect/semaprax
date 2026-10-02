@@ -1,5 +1,10 @@
 # Changelog
 
+- Add a private native Claude print-JSON repair V3 route with exact model
+  binding, bounded shared process capture and provider-reported usage. Preserve
+  V1/V2 config meanings and checked source/candidate/journal authority; local
+  fixture gates do not establish live-provider or hosted repair evidence (#323).
+
 - Author a public first-Prepared process recovery entry for Source owned-Agent
   runs. Strictly parse complete host-retained registration facts, recheck the
   compiled Project binding and physical store pins, and consume separate

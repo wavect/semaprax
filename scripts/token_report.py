@@ -503,20 +503,27 @@ def show_text(value: dict[str, Any]) -> str:
             if not isinstance(group, dict) or not isinstance(group.get("coverage"), dict):
                 raise ReportError("session report has invalid group")
             coverage = group["coverage"]
-            if not all(isinstance(coverage.get(key), int) and not isinstance(coverage[key], bool) and coverage[key] >= 0 for key in ("events", "paired")):
+            has_pair_coverage = "paired" in coverage
+            coverage_fields = ("events", "paired") if has_pair_coverage else ("events", "token_measured", "baseline_available")
+            if not all(isinstance(coverage.get(key), int) and not isinstance(coverage[key], bool) and coverage[key] >= 0 for key in coverage_fields):
                 raise ReportError("session report has invalid coverage")
-            lines.extend(["", f"Group {position}", f"Tokenizer: {group.get('tokenizer') if group.get('tokenizer') is not None else 'model tokens unavailable'}", f"Measured boundary: {group.get('boundary') if group.get('boundary') is not None else 'unavailable'}", f"Comparison type: {group.get('reference_kind') if group.get('reference_kind') is not None else 'unavailable'}", f"Measured pairs: {coverage['paired']}/{coverage['events']} responses"])
+            pair_coverage = f"{coverage['paired']}/{coverage['events']} responses" if has_pair_coverage else f"unavailable in this v1 snapshot ({coverage['events']} responses)"
+            lines.extend(["", f"Group {position}", f"Tokenizer: {group.get('tokenizer') if group.get('tokenizer') is not None else 'model tokens unavailable'}", f"Measured boundary: {group.get('boundary') if group.get('boundary') is not None else 'unavailable'}", f"Comparison type: {group.get('reference_kind') if group.get('reference_kind') is not None else 'unavailable'}", f"Measured pairs: {pair_coverage}"])
+            fingerprint = group.get("tokenizer_fingerprint")
+            lines.append(f"Tokenizer fingerprint: {fingerprint if isinstance(fingerprint, str) else 'unavailable'}")
             token_measured = coverage.get("token_measured")
             if not checked_count(token_measured):
                 raise ReportError("session report has invalid token coverage")
             outcomes, statuses = group.get("outcomes"), group.get("statuses")
             if not isinstance(outcomes, dict) or not isinstance(statuses, dict) or any(not isinstance(key, str) or not checked_count(item) for table in (outcomes, statuses) for key, item in table.items()):
                 raise ReportError("session report has invalid outcome/status counts")
-            lines.extend([f"Token-measured observations: {token_measured}/{coverage['events']}", f"Unpaired observations: {coverage['events'] - coverage['paired']}", "Outcome counts: " + ", ".join(f"{key}={outcomes[key]}" for key in sorted(outcomes)) if outcomes else "Outcome counts: none", "Status counts: " + ", ".join(f"{key}={statuses[key]}" for key in sorted(statuses)) if statuses else "Status counts: none"])
-            if coverage["paired"] != coverage["events"]:
+            lines.extend([f"Token-measured observations: {token_measured}/{coverage['events']}", f"Unpaired observations: {coverage['events'] - coverage['paired']}" if has_pair_coverage else "Unpaired observations: unavailable in this v1 snapshot", "Outcome counts: " + ", ".join(f"{key}={outcomes[key]}" for key in sorted(outcomes)) if outcomes else "Outcome counts: none", "Status counts: " + ", ".join(f"{key}={statuses[key]}" for key in sorted(statuses)) if statuses else "Status counts: none"])
+            if has_pair_coverage and coverage["paired"] != coverage["events"]:
                 lines.append("Partial group: only paired successful measurements contribute to its reduction.")
             paired_actual, paired_baseline = group.get("paired_actual_tokens"), group.get("paired_baseline_tokens")
-            if group.get("tokenizer") is None or coverage["paired"] == 0:
+            if not has_pair_coverage:
+                lines.append("Paired token reduction unavailable; this v1 snapshot has no paired totals.")
+            elif group.get("tokenizer") is None or coverage["paired"] == 0:
                 lines.append("Paired token reduction unavailable for this group.")
             elif not all(isinstance(item, int) and not isinstance(item, bool) and item >= 0 for item in (paired_actual, paired_baseline)):
                 raise ReportError("session report has invalid paired token totals")

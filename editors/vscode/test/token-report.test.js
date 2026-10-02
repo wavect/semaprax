@@ -42,6 +42,20 @@ test('versioned session snapshots render per-method totals and largest changes',
   assert.match(text, /Largest reductions:[\s\S]*compact: 20 tokens saved/);
   assert.match(text, /Largest regressions:[\s\S]*context: \+5 tokens used/);
 });
+test('persisted v1 session shape remains readable without invented paired coverage', () => {
+  const value = {
+    schema: 'semaprax.token-comparison-session.v1', report_kind: 'session', events: 1, malformed_events: 0,
+    comparison_identity: digest('a'), event_stream_sha256: digest('b'),
+    groups: [{ tokenizer: 'cl100k_base', tokenizer_fingerprint: digest('c'), boundary: 'mcp_content_0_text', reference_kind: null,
+      coverage: { events: 1, token_measured: 1, baseline_available: 0 }, outcomes: { success: 1 }, statuses: { measured: 1 },
+      bytes: 658, tokens: 267, baseline_tokens: 0 }],
+  };
+  const text = render(validate(JSON.stringify(value)));
+  assert.match(text, /Measured pairs: unavailable in this v1 snapshot \(1 responses\)/);
+  assert.match(text, /Tokenizer fingerprint: sha256:c{64}/);
+  assert.match(text, /Paired token reduction unavailable; this v1 snapshot has no paired totals/);
+  assert.doesNotMatch(text, /No token difference versus reference/);
+});
 test('negative savings are words and a plus count, never a saved badge', () => {
   const value = projection({ counts: { measurement_status: 'measured', baseline_tokens: 80, actual_tokens: 100, delta_tokens: -20, delta_fraction: { numerator: -20, denominator: 80 }, delta_percentage: -25 } });
   assert.match(render(validate(JSON.stringify(value))), /\+20 tokens used versus reference/);

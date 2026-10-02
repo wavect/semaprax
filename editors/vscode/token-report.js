@@ -54,12 +54,14 @@ function projection(value) {
   if (value.schema !== COMPARISON_SCHEMA || !digest(value.comparison_identity)) throw new Error('Invalid token comparison report identity');
   fact(value.baseline); fact(value.actual); tokenizer(value.tokenizer); counts(value.counts);
 }
-function sessionGroup(value) {
-  const version2 = Object.hasOwn(value, 'methods');
-  exact(value, ['tokenizer', 'tokenizer_fingerprint', 'boundary', 'reference_kind', 'coverage', 'outcomes', 'statuses', 'bytes', 'tokens', 'baseline_tokens', 'paired_actual_tokens', 'paired_baseline_tokens', ...(version2 ? ['methods', 'largest_reductions', 'largest_regressions'] : [])]);
-  if (![value.tokenizer, value.tokenizer_fingerprint, value.boundary, value.reference_kind].every(item => item === null || text(item, 4096)) || !count(value.bytes) || !count(value.tokens) || !count(value.baseline_tokens) || !count(value.paired_actual_tokens) || !count(value.paired_baseline_tokens) || !object(value.coverage) || !object(value.outcomes) || !object(value.statuses)) throw new Error('Invalid session token-report group');
-  exact(value.coverage, ['events', 'token_measured', 'baseline_available', 'paired']);
-  if (![value.coverage.events, value.coverage.token_measured, value.coverage.baseline_available, value.coverage.paired].every(count) || value.coverage.token_measured > value.coverage.events || value.coverage.baseline_available > value.coverage.events || value.coverage.paired > value.coverage.token_measured || value.coverage.paired > value.coverage.baseline_available) throw new Error('Invalid session token-report coverage');
+function sessionGroup(value, schema) {
+  const version2 = schema === SESSION_SCHEMA_V2;
+  const legacyV1 = schema === SESSION_SCHEMA && !Object.hasOwn(value.coverage || {}, 'paired');
+  const baseKeys = ['tokenizer', 'tokenizer_fingerprint', 'boundary', 'reference_kind', 'coverage', 'outcomes', 'statuses', 'bytes', 'tokens', 'baseline_tokens'];
+  exact(value, [...baseKeys, ...(legacyV1 ? [] : ['paired_actual_tokens', 'paired_baseline_tokens']), ...(version2 ? ['methods', 'largest_reductions', 'largest_regressions'] : [])]);
+  if (![value.tokenizer, value.tokenizer_fingerprint, value.boundary, value.reference_kind].every(item => item === null || text(item, 4096)) || !count(value.bytes) || !count(value.tokens) || !count(value.baseline_tokens) || (!legacyV1 && (!count(value.paired_actual_tokens) || !count(value.paired_baseline_tokens))) || !object(value.coverage) || !object(value.outcomes) || !object(value.statuses)) throw new Error('Invalid session token-report group');
+  exact(value.coverage, legacyV1 ? ['events', 'token_measured', 'baseline_available'] : ['events', 'token_measured', 'baseline_available', 'paired']);
+  if (![value.coverage.events, value.coverage.token_measured, value.coverage.baseline_available].every(count) || value.coverage.token_measured > value.coverage.events || value.coverage.baseline_available > value.coverage.events || (!legacyV1 && (!count(value.coverage.paired) || value.coverage.paired > value.coverage.token_measured || value.coverage.paired > value.coverage.baseline_available))) throw new Error('Invalid session token-report coverage');
   for (const table of [value.outcomes, value.statuses]) if (Object.entries(table).some(([key, item]) => !text(key, 128) || !count(item))) throw new Error('Invalid session token-report table');
   if (version2) {
     if (!Array.isArray(value.methods) || !Array.isArray(value.largest_reductions) || !Array.isArray(value.largest_regressions)) throw new Error('Invalid session token-report method details');
@@ -76,7 +78,7 @@ function sessionGroup(value) {
 function session(value) {
   exact(value, ['schema', 'comparison_identity', 'report_kind', 'event_stream_sha256', 'groups', 'malformed_events', 'events']);
   if (![SESSION_SCHEMA, SESSION_SCHEMA_V2].includes(value.schema) || value.report_kind !== 'session' || !digest(value.comparison_identity) || !digest(value.event_stream_sha256) || !Array.isArray(value.groups) || value.groups.length > 1024 || !count(value.malformed_events) || !count(value.events)) throw new Error('Invalid session token report');
-  value.groups.forEach(sessionGroup);
+  value.groups.forEach(group => sessionGroup(group, value.schema));
 }
 function validate(textValue) {
   const value = parse(textValue, MAX_REPORT_BYTES, true);
@@ -122,14 +124,15 @@ function renderSession(value) {
     out.push(line('Tokenizer fingerprint', group.tokenizer_fingerprint === null ? 'unavailable' : group.tokenizer_fingerprint));
     out.push(line('Measured boundary', group.boundary === null ? 'unavailable' : group.boundary));
     out.push(line('Comparison type', group.reference_kind === null ? 'unavailable' : group.reference_kind));
-    out.push(line('Measured pairs', `${group.coverage.paired}/${group.coverage.events} responses`));
+    out.push(line('Measured pairs', group.coverage.paired === undefined ? `unavailable in this v1 snapshot (${group.coverage.events} responses)` : `${group.coverage.paired}/${group.coverage.events} responses`));
     out.push(line('Token-measured observations', `${group.coverage.token_measured}/${group.coverage.events}`));
-    out.push(line('Unpaired observations', group.coverage.events - group.coverage.paired));
+    out.push(line('Unpaired observations', group.coverage.paired === undefined ? 'unavailable in this v1 snapshot' : group.coverage.events - group.coverage.paired));
     out.push(line('Outcome counts', Object.entries(group.outcomes).sort(([a], [b]) => a.localeCompare(b)).map(([key, count]) => `${key}=${count}`).join(', ') || 'none'));
     out.push(line('Status counts', Object.entries(group.statuses).sort(([a], [b]) => a.localeCompare(b)).map(([key, count]) => `${key}=${count}`).join(', ') || 'none'));
-    if (group.coverage.paired !== group.coverage.events) out.push('Partial group: only paired successful measurements contribute to its reduction.\n');
-    if (group.tokenizer === null || group.coverage.paired === 0) out.push('Paired token reduction unavailable for this group.\n');
+    if (group.coverage.paired === undefined) out.push('Paired token reduction unavailable; this v1 snapshot has no paired totals.\n');
+    else if (group.tokenizer === null || group.coverage.paired === 0) out.push('Paired token reduction unavailable for this group.\n');
     else {
+      if (group.coverage.paired !== group.coverage.events) out.push('Partial group: only paired successful measurements contribute to its reduction.\n');
       out.push(line('Paired actual payload tokens', group.paired_actual_tokens));
       out.push(line('Paired reference tokens', group.paired_baseline_tokens));
       const delta = group.paired_baseline_tokens - group.paired_actual_tokens;

@@ -165,6 +165,25 @@ class ShowTests(unittest.TestCase):
         self.assertIn("Tokenizer fingerprint: sha256:" + "a" * 64, shown)
         self.assertTrue(shown.startswith("# SEMAPRAX token report snapshot\n\n```text\n"))
 
+    def test_legacy_v1_session_shape_without_paired_fields_remains_readable(self):
+        value = {
+            "schema": "semaprax.token-comparison-session.v1", "report_kind": "session",
+            "events": 1, "malformed_events": 0, "comparison_identity": "sha256:" + "a" * 64,
+            "event_stream_sha256": "sha256:" + "b" * 64,
+            "groups": [{
+                "tokenizer": "cl100k_base", "tokenizer_fingerprint": "sha256:" + "c" * 64,
+                "boundary": "mcp_content_0_text", "reference_kind": None,
+                "coverage": {"events": 1, "token_measured": 1, "baseline_available": 0},
+                "outcomes": {"success": 1}, "statuses": {"measured": 1},
+                "bytes": 658, "tokens": 267, "baseline_tokens": 0,
+            }],
+        }
+        shown = report.show_text(value)
+        self.assertIn("Measured pairs: unavailable in this v1 snapshot (1 responses)", shown)
+        self.assertIn("Tokenizer fingerprint: sha256:" + "c" * 64, shown)
+        self.assertIn("Paired token reduction unavailable; this v1 snapshot has no paired totals.", shown)
+        self.assertNotIn("No token difference versus reference", shown)
+
     def test_show_rejects_duplicate_keys_and_refuses_an_unrequested_overwrite(self):
         with tempfile.TemporaryDirectory() as directory:
             directory = Path(directory)

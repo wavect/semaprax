@@ -10,15 +10,13 @@ only from locally cached ``tiktoken`` encodings and are reported as evidence.
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import os
 import pathlib
-import socket
 import subprocess
 import sys
 import tempfile
-from typing import Any
+from token_measurement import sha256, tokenize_all
 
 MAX_OUTPUT = 64 * 1024 * 1024
 CASES = (
@@ -31,13 +29,6 @@ TASK_CONTEXT_CASES = {
     "examples/banking_ledger.spx": "ledger.apply",
     "examples/http_app_routing.spx": "app.main",
 }
-ENCODINGS = ("cl100k_base", "o200k_base")
-
-
-def sha256(data: bytes) -> str:
-    return "sha256:" + hashlib.sha256(data).hexdigest()
-
-
 def run_bounded(command: list[str], cwd: pathlib.Path, timeout: float) -> bytes:
     with tempfile.TemporaryFile() as output:
         try:
@@ -59,49 +50,6 @@ def run_bounded(command: list[str], cwd: pathlib.Path, timeout: float) -> bytes:
             raise RuntimeError(f"CLI output exceeded {MAX_OUTPUT} bytes")
         output.seek(0)
         return output.read()
-
-
-def tokenizer_fingerprint(encoding: Any) -> str:
-    ranks = getattr(encoding, "_mergeable_ranks", None)
-    specials = getattr(encoding, "_special_tokens", None)
-    pat_str = getattr(encoding, "_pat_str", None)
-    if ranks is None or specials is None or pat_str is None:
-        raise RuntimeError(f"encoding {encoding.name} does not expose stable rank tables")
-    rows = [[key.hex(), int(value)] for key, value in sorted(ranks.items())]
-    special_rows = [[key, int(value)] for key, value in sorted(specials.items())]
-    payload = json.dumps([pat_str, rows, special_rows], separators=(",", ":"), ensure_ascii=True).encode()
-    return sha256(payload)
-
-
-def tokenize_all(payloads: dict[str, bytes]) -> dict[str, dict[str, Any]]:
-    original_socket = socket.socket
-    class OfflineSocket(original_socket):
-        def connect(self, address: Any) -> None:
-            raise RuntimeError("network access is disabled for tokenizer loading")
-        def connect_ex(self, address: Any) -> int:
-            raise RuntimeError("network access is disabled for tokenizer loading")
-    socket.socket = OfflineSocket
-    try:
-        try:
-            import tiktoken
-        except ImportError as error:
-            raise RuntimeError("tiktoken is required and must already be installed") from error
-        result: dict[str, dict[str, Any]] = {}
-        for name in ENCODINGS:
-            try:
-                encoding = tiktoken.get_encoding(name)
-            except Exception as error:
-                raise RuntimeError(f"cached tokenizer asset unavailable for {name}: {error}") from error
-            result[name] = {
-                "version": getattr(tiktoken, "__version__", "unknown"),
-                "encoding": name,
-                "vocab_size": encoding.n_vocab,
-                "vocab_fingerprint": tokenizer_fingerprint(encoding),
-                "tokens": {label: len(encoding.encode(data.decode("utf-8"), disallowed_special=())) for label, data in payloads.items()},
-            }
-        return result
-    finally:
-        socket.socket = original_socket
 
 
 def main() -> int:

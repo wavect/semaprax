@@ -57,6 +57,30 @@ binary. It counts the whole envelope. Small inputs can grow from fixed metadata;
 this format claims neither universal savings nor token/billing authority.
 Results record exact bytes, hashes, tokenizer versions, and vocabulary fingerprints.
 
+`scripts/token_report.py` is the additive per-input measurement helper. Its
+`projection` route invokes an explicitly named local compiler for `graph`,
+`context`, or `task-context`, replays the selected wire against that producer,
+and compares `same_selected_json` with the complete text or model-text
+envelope. It reruns the producer to refuse a changing source or selected
+revision. `compare` measures two caller-supplied UTF-8 files and labels that
+relationship `reference_only_not_verified`; it establishes no task-quality or
+semantic equivalence. The report's deterministic comparison identity binds
+profile, hashed root/selection/options, selected source revision, exact byte
+facts, tokenizer fingerprint and arithmetic. It records no source text, raw
+wire payload, absolute path, model/billing count, money, or telemetry.
+
+Only cached `cl100k_base` and `o200k_base` are admitted. Missing assets fail
+unless `--allow-bytes-only` is selected; that report sets every token and
+savings field to null. Tokenizer selection is separate from task-context's
+existing selection-budget tokenizer. Reports are atomically created and refuse
+replacement without `--overwrite`.
+
+`token_report.py session --events events.jsonl --output report.json` consumes
+metadata-only `semaprax.token-observation.v1` JSONL from the optional session
+observer. It emits aggregate coverage and totals grouped by tokenizer and
+fingerprint, boundary, and reference kind without retaining event/session IDs,
+source revisions, subjects, or digests.
+
 ## Local measurements
 
 The committed [measurement report](../benchmarks/compact-semantic-projection-v2/local-token-measurements.json)

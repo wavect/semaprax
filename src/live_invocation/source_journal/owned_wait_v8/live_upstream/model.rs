@@ -145,10 +145,10 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) struct LiveModelFa
 pub(in crate::live_invocation::source_journal::owned_wait_v8) struct LiveModelQuarantinedV8<'j> {
     _failure: LiveModelFailureV8<'j>,
 }
-impl LiveModelFailureV8<'_> {
+impl<'j> LiveModelFailureV8<'j> {
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn quarantine(
         self,
-    ) -> LiveModelQuarantinedV8<'_> {
+    ) -> LiveModelQuarantinedV8<'j> {
         self.journal.quarantine();
         LiveModelQuarantinedV8 { _failure: self }
     }

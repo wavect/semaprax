@@ -404,3 +404,44 @@ fn candidate_explore_refuses_foreign_tampered_and_wrong_digest_capsules_before_o
     assert_eq!(wrong_output.status.code(), Some(1), "{wrong_output:?}");
     assert!(!wrong_digest.0.join("wrong.json").exists());
 }
+
+#[test]
+fn candidate_html_json_markdown_and_svg_share_exact_scope_and_change_identity() {
+    let fixture = Fixture::new();
+    let (candidate, capsule) = recovery_capsule(
+        &fixture,
+        json!({"kind":"rename_declaration","target":"calculator.add","name":"plus"}),
+    );
+    std::fs::write(fixture.0.join("candidate.capsule"), capsule).unwrap();
+    for (format, output) in [
+        ("json", "review.json"),
+        ("html", "review.html"),
+        ("markdown", "review.md"),
+        ("svg", "review.svg"),
+    ] {
+        let result = fixture.cli(&[
+            "explore", "semaprax.toml", "--candidate-capsule", "candidate.capsule",
+            "--expect-candidate", &candidate, "--target", "calculator.add",
+            "--format", format, "--output", output,
+        ]);
+        assert!(result.status.success(), "{format}: {result:?}");
+    }
+    let json: Value = serde_json::from_slice(&std::fs::read(fixture.0.join("review.json")).unwrap()).unwrap();
+    let html = std::fs::read_to_string(fixture.0.join("review.html")).unwrap();
+    let prefix = "<script id=snapshot type=application/json>";
+    let embedded = html.split_once(prefix).unwrap().1.split_once("</script>").unwrap().0;
+    let embedded: Value = serde_json::from_str(embedded).unwrap();
+    assert_eq!(embedded, json);
+    let identity = json["snapshot_digest"].as_str().unwrap();
+    let changed = json["changes"]["catalog"]["roots"].as_array().unwrap().len();
+    let markdown = std::fs::read_to_string(fixture.0.join("review.md")).unwrap();
+    let svg = std::fs::read_to_string(fixture.0.join("review.svg")).unwrap();
+    assert!(markdown.contains(identity));
+    assert!(svg.contains(identity));
+    assert!(markdown.contains(&candidate));
+    assert!(svg.contains(&candidate));
+    assert!(markdown.contains(&format!("Changed declarations: {changed}")));
+    assert!(svg.contains(&format!("changed declarations: {changed}")));
+    assert!(markdown.contains("calculator.add"));
+    assert!(svg.contains("calculator.add"));
+}

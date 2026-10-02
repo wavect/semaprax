@@ -1,5 +1,10 @@
 # Changelog
 
+- Frame native Claude proposal results as one explicit JSON string, preserving
+  the provider-authored escaped final LF through CLI output. Reject unframed
+  objects and trailing JSON; keep exact decoded bytes and the strict compiler
+  decoder unchanged. One private diagnostic observed a missing final LF (#323).
+
 - Raise the native Claude repair V3 per-call ceiling to 90 seconds, bounded by
   remaining configuration time and checked cumulative deployment budgets.
   Preserve OpenCode limits and test native ceiling admission, shorter deadlines,

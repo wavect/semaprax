@@ -10,8 +10,8 @@ use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
 pub const MODEL: &str = "claude-haiku-4-5";
-const ADAPTER_VERSION: &str = "1.0.2";
-const SYSTEM_PROMPT: &str = "The user message is a checked source-adapter request. Decode task_hex as UTF-8 for the task and previous_effect_hex for feedback. Return only the requested canonical proposal JSON, with one actual trailing LF byte and no Markdown fences. Follow proposal_schema exactly. No tools are available.";
+const ADAPTER_VERSION: &str = "1.0.3";
+const SYSTEM_PROMPT: &str = "The user message is a checked source-adapter request. Decode task_hex as UTF-8 for the task and previous_effect_hex for feedback. Return exactly one JSON STRING encoding the complete canonical proposal document. The decoded string must end with one LF byte: encode that byte as \\n inside the string, before its closing quote. No Markdown fences, bare object, prose or tools. Follow proposal_schema exactly.";
 const PROFILE: &str = "claude-code-subscription-print-json.v1";
 const MAX_EXECUTABLE: u64 = 256 * 1024 * 1024;
 const MAX_WIRE: usize = 1_048_576;
@@ -68,7 +68,9 @@ fn proposal_prefix(schema: &semaprax::agent_proposal::CompiledAgentProposalSchem
 }
 
 fn proposal_guidance(schema: &semaprax::agent_proposal::CompiledAgentProposalSchema) -> String {
-    format!("{SYSTEM_PROMPT}\nYou must output the COMPLETE semaprax.agent-proposal.v1 document, not only a record or its values. Start with this exact prefix (the digest is supplied by the compiler; do not invent or recompute it):\n{}\nThen write the value object and close the outer document. For a record the value object is {{\"fields\":{{...}}}}. For a variant it is {{\"case\":\"selected stable case ID\",\"fields\":{{...}}}}. Use field stable_id strings from proposal_schema.shape as keys, in the schema's declaration order, never display names. Every integer, including usize, is a quoted decimal string; booleans are JSON true or false. Use compact JSON with no spaces or line breaks except exactly one actual LF after the final closing brace. Choose field VALUES from the task, state, observation and feedback; this format guidance does not supply a repair answer.", proposal_prefix(schema))
+    let mut prefix = serde_json::to_string(&proposal_prefix(schema)).expect("string serialization");
+    prefix.pop(); // Keep the opening quote and escaped document prefix, not the closing quote.
+    format!("{SYSTEM_PROMPT}\nStart your response with this exact JSON-string prefix (the digest is supplied by the compiler; do not invent or recompute it):\n{prefix}\nContinue the STRING with the escaped value object and closing document brace, then literal backslash-n and the closing string quote. The decoded document must be the COMPLETE semaprax.agent-proposal.v1 envelope. For a record its value is {{\"fields\":{{...}}}}; for a variant it is {{\"case\":\"selected stable case ID\",\"fields\":{{...}}}}. Use field stable_id strings from proposal_schema.shape as keys, in declaration order, never display names. Every integer, including usize, is a quoted decimal string; booleans are JSON true or false. The decoded document must be compact JSON with no spaces or line breaks except its final LF. Choose field VALUES from task, state, observation and feedback; this format guidance supplies no repair answer.")
 }
 
 #[derive(Clone)]
@@ -260,7 +262,10 @@ fn parse(wire: &[u8], maximum: usize) -> Result<AdapterSettlement, ModelFailure>
     {
         return Err(fail);
     }
-    let result = value["result"].as_str().ok_or(fail)?;
+    // Explicit JSON-string transport framing preserves an encoded final LF.
+    // Never append, trim or canonicalize the decoded proposal bytes.
+    let result: String =
+        serde_json::from_str(value["result"].as_str().ok_or(fail)?).map_err(|_| fail)?;
     if result.is_empty() || result.len() > maximum {
         return Err(fail);
     }

@@ -6,7 +6,7 @@ fn envelope(document: &str) -> String {
     json!({"type":"result","subtype":"success","is_error":false,"num_turns":1,
         "stop_reason":"end_turn","terminal_reason":"completed","queued_turn_count":0,
         "result_index":0,"permission_denials":[],"subagent_stats":{"spawned":0},
-        "result":document,"usage":{"input_tokens":1,"output_tokens":1},
+        "result":serde_json::to_string(document).unwrap(),"usage":{"input_tokens":1,"output_tokens":1},
         "modelUsage":{"claude-haiku-4-5":{"canonicalModel":"claude-haiku-4-5","provider":"firstParty","webSearchRequests":0}}}).to_string()
 }
 
@@ -32,7 +32,8 @@ fn repair_v3_native_claude_wire_runs_checked_feedback_and_zero_dispatch_resume()
     fs::create_dir(&scratch).unwrap();
     let executable = fixture.0.join("claude-fixture");
     let count = fixture.0.join("calls");
-    let script = format!("#!/bin/sh\ncase \"${{17}}\" in *'\"proposal_schema_digest\":\"{digest}\"'*) ;; *) exit 43 ;; esac\nprintf 'call\\n' >> '{}'\nfor arg; do prompt=\"$arg\"; done\ncase \"$prompt\" in\n *'\"turn\":0,'*) printf '%s' '{}' ;;\n *'\"turn\":1,'*) printf '%s' '{}' ;;\n *) exit 42 ;;\nesac\n", count.display(), envelope(&proposal(&digest, "0", "0")), envelope(&proposal(&digest, "7", "1")));
+    let framed_digest = format!(r#"\"proposal_schema_digest\":\"{digest}\""#);
+    let script = format!("#!/bin/sh\ncase \"${{17}}\" in *'{framed_digest}'*) ;; *) exit 43 ;; esac\nprintf 'call\\n' >> '{}'\nfor arg; do prompt=\"$arg\"; done\ncase \"$prompt\" in\n *'\"turn\":0,'*) printf '%s' '{}' ;;\n *'\"turn\":1,'*) printf '%s' '{}' ;;\n *) exit 42 ;;\nesac\n", count.display(), envelope(&proposal(&digest, "0", "0")), envelope(&proposal(&digest, "7", "1")));
     fs::write(&executable, script).unwrap();
     fs::set_permissions(&executable, fs::Permissions::from_mode(0o700)).unwrap();
     let checkpoint = fixture.0.join("checkpoint");

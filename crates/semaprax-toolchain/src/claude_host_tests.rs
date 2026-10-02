@@ -5,7 +5,7 @@ pub(crate) fn envelope(result: &str) -> Value {
     json!({"type":"result", "subtype":"success", "is_error":false, "num_turns":1,
         "stop_reason":"end_turn", "terminal_reason":"completed", "queued_turn_count":0,
         "result_index":0, "permission_denials":[], "subagent_stats":{"spawned":0},
-        "result":result, "usage":{"input_tokens":17,"output_tokens":23},
+        "result":serde_json::to_string(result).unwrap(), "usage":{"input_tokens":17,"output_tokens":23},
         "modelUsage":{MODEL:{"canonicalModel":MODEL,"provider":"firstParty","webSearchRequests":0}}})
 }
 #[test]
@@ -159,13 +159,40 @@ fn compiler_derived_guidance_supplies_an_exact_decoder_valid_envelope() {
     let schema = compiled.proposal_schema();
     let prefix = proposal_prefix(schema);
     let guidance = proposal_guidance(schema);
-    assert!(guidance.contains(&prefix));
+    let framed_prefix = serde_json::to_string(&prefix).unwrap();
+    assert!(guidance.contains(framed_prefix.strip_suffix('"').unwrap()));
     assert!(guidance.contains(schema.schema().digest()));
     // Values remain chosen by the provider. These test-only values exercise
     // the unchanged production decoder against the actual supplied prefix.
     let body = r#"{"fields":{"fixture.agent.type.proposal.budget":"9","fixture.agent.type.proposal.urgent":false,"fixture.agent.type.proposal.sequence":"0"}}"#;
     let document = format!("{prefix}{body}}}\n");
-    assert!(schema.decode(&document).is_ok());
+    let wire = serde_json::to_vec(&envelope(&document)).unwrap();
+    let decoded = parse(&wire, 4096).unwrap().response_bytes;
+    assert_eq!(decoded, document.as_bytes());
+    assert!(schema
+        .decode(std::str::from_utf8(&decoded).unwrap())
+        .is_ok());
+    let without_lf = parse(
+        &serde_json::to_vec(&envelope(document.trim_end())).unwrap(),
+        4096,
+    )
+    .unwrap();
+    assert_eq!(without_lf.response_bytes, document.trim_end().as_bytes());
+    assert!(schema
+        .decode(std::str::from_utf8(&without_lf.response_bytes).unwrap())
+        .is_err());
+    for invalid in [
+        document.clone(),
+        format!("{} {{}}", serde_json::to_string(&document).unwrap()),
+        "null".into(),
+    ] {
+        let mut unframed = envelope(&document);
+        unframed["result"] = json!(invalid);
+        assert_eq!(
+            parse(&serde_json::to_vec(&unframed).unwrap(), 4096),
+            Err(ModelFailure::MalformedResponse)
+        );
+    }
     assert!(schema.decode(&format!("{body}\n")).is_err());
     assert!(schema.decode(&document.replace("\"9\"", "9")).is_err());
     assert!(schema.decode(document.trim_end()).is_err());

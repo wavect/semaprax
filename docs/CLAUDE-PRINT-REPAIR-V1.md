@@ -32,7 +32,7 @@ Non-Unix native Claude dispatch refuses before spawning.
 One adapter instance starts one CLI process with `--print --output-format json`,
 `--tools ''`, `--no-session-persistence`, `--safe-mode`, `--restricted`,
 `--strict-mcp-config`, `--permission-prompts none`, `--prompt-suggestions false`,
-and the exact model. Adapter version 1.0.2 supplies a system prompt bounded to
+and the exact model. Adapter version 1.0.3 supplies a system prompt bounded to
 4096 bytes, replacing dynamic workspace system context. Its response guidance
 is derived from the same compiled proposal schema used by the decoder: the
 exact envelope prefix includes the agent identity and schema digest, with
@@ -69,9 +69,13 @@ one turn, end_turn/completed, result index and queued-turn count zero, no
 permission denials, no spawned subagents, and exactly one `modelUsage` row for
 `claude-haiku-4-5` with matching canonical model, firstParty provider and no
 web search requests. A nonempty string result and integer input/output usage
-are required. The raw result is forwarded unchanged to the existing compiler
-proposal decoder. Usage preserves the provider's `input_tokens` and
-`output_tokens`; cost remains unknown. These fields are self-reports, not
+are required. The result text must itself be a single JSON string encoding the
+complete proposal document. Decoding this explicit transport framing preserves
+exact document bytes, including the provider-authored escaped final LF. Bare
+objects and extra JSON content refuse. The adapter never appends a newline,
+trims, repairs or canonicalizes the decoded document; the existing strict
+compiler proposal decoder receives those exact bytes. Usage preserves the
+provider's `input_tokens` and `output_tokens`; cost remains unknown. These fields are self-reports, not
 independent provider identity or billing evidence. No OpenCode events, export,
 session receipt or claimed zero cost are synthesized.
 

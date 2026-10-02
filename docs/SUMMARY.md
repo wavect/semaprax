@@ -180,6 +180,7 @@ Audience: all documentation readers.
 - [Public Project Scaffold Capsule v3](PROJECT-SCAFFOLD-V3.md)
 - [Project Scaffold Service Template v1](PROJECT-SCAFFOLD-SERVICE-V1.md)
 - [Reference Service Host v1](REFERENCE-SERVICE-HOST-V1.md)
+- [Reference service JSON event v2](REFERENCE-SERVICE-JSON-EVENT-V2.md)
 - [Semantic Workspace Image v1](SEMANTIC-WORKSPACE-IMAGE-V1.md)
 - [Canonical Semantic Workspace Revision v1](CANONICAL-SEMANTIC-WORKSPACE-REVISION-V1.md)
 - [ProgramRoot v1](PROGRAM-ROOT-V1.md)

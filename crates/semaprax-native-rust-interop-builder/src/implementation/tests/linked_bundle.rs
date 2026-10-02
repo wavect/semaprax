@@ -8,7 +8,7 @@ fn rich_fixture_plan_is_canonical_and_rejects_a_generated_method_injection() {
     let plan = bootstrap_fixture_plan("spx_host_dot_add").unwrap();
     assert_eq!(
         plan.canonical(),
-        "{\"schema\":\"semaprax.native-rust-rich-binding-plan.v1\",\"bindings\":[{\"semaprax_id\":\"host.add\",\"rust_path\":\"fixture_math::add\",\"receiver\":\"none\",\"arguments\":[{\"type\":\"i64\",\"mode\":\"copy\"},{\"type\":\"i64\",\"mode\":\"copy\"}],\"result\":{\"type\":\"i64\",\"mode\":\"copy\"},\"substitutions\":[],\"effects\":[],\"failure\":\"infallible\"}],\"nonclaims\":[\"no_ambient_authority\",\"no_rust_abi\"]}\n"
+        "{\"schema\":\"semaprax.native-rust-rich-binding-plan.v1\",\"bindings\":[{\"semaprax_id\":\"host.add\",\"rust_path\":\"fixture_math::add\",\"receiver\":\"none\",\"arguments\":[{\"type\":\"i64\",\"mode\":\"copy\"},{\"type\":\"i64\",\"mode\":\"copy\"}],\"result\":{\"type\":\"i64\",\"mode\":\"copy\"},\"substitutions\":[],\"effects\":[\"host.math\"],\"failure\":\"infallible\"}],\"nonclaims\":[\"no_ambient_authority\",\"no_rust_abi\"]}\n"
     );
     let error = bootstrap_fixture_plan("host_add;panic!()").unwrap_err();
     assert_eq!(error.code, "SPX-B117");
@@ -51,16 +51,55 @@ fn rich_fixture_plan_is_canonical_and_rejects_a_generated_method_injection() {
 
 #[test]
 fn rich_fixture_preserves_canonical_source_and_selected_stable_id_facts() {
-    let (program, spec) = fixture();
+    let (program, spec) = rich_fixture();
     let canonical = crate::format::canonical(&program);
     let reparsed = crate::parse(&canonical, Path::new("rich-fixture.spx")).unwrap();
     assert_eq!(crate::format::canonical(&reparsed), canonical);
     let prepared = prepare_native_rust_interop(&program, spec.as_bytes()).unwrap();
-    assert_eq!(prepared.exports.len(), 1);
-    assert_eq!(prepared.exports[0].id, "interop.add");
-    assert_eq!(prepared.imports.len(), 1);
-    assert_eq!(prepared.imports[0].id, "host.add");
-    assert!(prepared.closure.contains(&"interop.add".to_owned()));
+    assert_eq!(
+        prepared
+            .exports
+            .iter()
+            .map(|export| export.id.as_str())
+            .collect::<Vec<_>>(),
+        [
+            "interop.rich.add",
+            "interop.rich.checked_div",
+            "interop.rich.semantic_div",
+        ]
+    );
+    assert_eq!(
+        prepared
+            .imports
+            .iter()
+            .map(|import| import.id.as_str())
+            .collect::<Vec<_>>(),
+        ["host.add", "host.checked_div"]
+    );
+    assert_eq!(
+        prepared.closure,
+        vec![
+            "interop.rich.add".to_owned(),
+            "interop.rich.checked_div".to_owned(),
+            "interop.rich.semantic_div".to_owned(),
+        ]
+    );
+    let plan = bootstrap_rich_fixture_plan(
+        &prepared.imports[0].rust_method,
+        &prepared.imports[1].rust_method,
+    )
+    .unwrap();
+    plan.validate_descriptor(&prepared.descriptor).unwrap();
+    assert_eq!(
+        plan.validate_descriptor(
+            &prepared
+                .descriptor
+                .replace("host.checked_div", "host.other")
+        )
+        .unwrap_err()
+        .code,
+        "SPX-B120"
+    );
 }
 
 #[test]
@@ -696,11 +735,36 @@ fn main(){sibling::forge();}
 
 #[test]
 fn generated_rich_fixture_adapter_round_trips_without_a_handwritten_host() {
-    let (program, spec) = fixture();
+    let (program, spec) = rich_fixture();
     let prepared = prepare_native_rust_interop(&program, spec.as_bytes()).unwrap();
-    let import = &prepared.imports[0];
-    let export = &prepared.exports[0];
-    let plan = bootstrap_fixture_plan(&import.rust_method).unwrap();
+    let add_import = prepared
+        .imports
+        .iter()
+        .find(|import| import.id == "host.add")
+        .unwrap();
+    let checked_div_import = prepared
+        .imports
+        .iter()
+        .find(|import| import.id == "host.checked_div")
+        .unwrap();
+    let add_export = prepared
+        .exports
+        .iter()
+        .find(|export| export.id == "interop.rich.add")
+        .unwrap();
+    let checked_div_export = prepared
+        .exports
+        .iter()
+        .find(|export| export.id == "interop.rich.checked_div")
+        .unwrap();
+    let semantic_div_export = prepared
+        .exports
+        .iter()
+        .find(|export| export.id == "interop.rich.semantic_div")
+        .unwrap();
+    let plan =
+        bootstrap_rich_fixture_plan(&add_import.rust_method, &checked_div_import.rust_method)
+            .unwrap();
     let canonical_plan = plan.canonical();
     assert_eq!(
         plan.digest(),
@@ -709,6 +773,7 @@ fn generated_rich_fixture_adapter_round_trips_without_a_handwritten_host() {
     assert!(canonical_plan.ends_with('\n'));
     assert!(canonical_plan.contains(RICH_BINDING_PLAN_SCHEMA));
     assert!(canonical_plan.contains("\"rust_path\":\"fixture_math::add\""));
+    assert!(canonical_plan.contains("\"rust_path\":\"fixture_math::checked_div\""));
     let root = std::fs::canonicalize(std::env::temp_dir())
         .unwrap()
         .join(format!(
@@ -754,17 +819,22 @@ use semaprax_native_rust_interop::*;
 {adapter}
 fn bridge()->NativeRustBridge<GeneratedFixtureAdapter>{{let capabilities=NativeRustCapabilities::new(&["host.math"]).unwrap_or_else(|_|std::process::exit(10));NativeRustBridge::new(GeneratedFixtureAdapter,capabilities)}}
 fn main(){{
+std::panic::set_hook(Box::new(|_|{{}}));
 let mut bridge=bridge();
-if !matches!(bridge.{export_method}(20,22),Ok(64)){{std::process::exit(11)}}
-if !matches!(bridge.{export_method}(0,0),Ok(0)){{std::process::exit(12)}}
-if !matches!(bridge.{export_method}(-20,-22),Ok(-64)){{std::process::exit(13)}}
-assert_eq!(fixture_math::checked_div(42,2),Ok(21));
-assert_eq!(fixture_math::checked_div(1,0),Err(fixture_math::DivisionError::Zero));
-assert!(std::panic::catch_unwind(||fixture_math::checked_div(1,13)).is_err());
+if !matches!(bridge.{add_export_method}(20,22),Ok(64)){{std::process::exit(11)}}
+if !matches!(bridge.{add_export_method}(0,0),Ok(0)){{std::process::exit(12)}}
+if !matches!(bridge.{add_export_method}(-20,-22),Ok(-64)){{std::process::exit(13)}}
+if !matches!(bridge.{checked_div_export_method}(42,2),Ok(21)){{std::process::exit(14)}}
+match bridge.{checked_div_export_method}(1,0){{Err(NativeRustCallError::Semantic{{domain_id:"fixture.math.v1",code,class:NativeRustStatusClass::Import,retryable:false}}) if code.get()==7=>{{}},_=>std::process::exit(15)}}
+match bridge.{checked_div_export_method}(1,13){{Err(NativeRustCallError::HostPanicked)=>{{}},_=>std::process::exit(16)}}
+match bridge.{semantic_div_export_method}(1,0){{Err(NativeRustCallError::Semantic{{domain_id:"semaprax.native-rust-semantics.v1",class:NativeRustStatusClass::Semantic,..}})=>{{}},_=>std::process::exit(17)}}
+if !matches!(bridge.{checked_div_export_method}(84,2),Ok(42)){{std::process::exit(18)}}
 }}
 "#,
         adapter = plan.render_adapter(),
-        export_method = export.rust_method,
+        add_export_method = add_export.rust_method,
+        checked_div_export_method = checked_div_export.rust_method,
+        semantic_div_export_method = semantic_div_export.rust_method,
     );
     std::fs::write(output.join("rich_roundtrip.rs"), harness).unwrap();
     let object = if cfg!(windows) {

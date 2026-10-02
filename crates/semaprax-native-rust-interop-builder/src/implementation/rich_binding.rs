@@ -11,7 +11,7 @@ pub(super) const RICH_BINDING_PLAN_DOMAIN: &[u8] = b"semaprax.native-rust-rich-i
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(super) struct RichBindingPlan {
-    binding: RichBinding,
+    bindings: Vec<RichBinding>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -19,6 +19,13 @@ struct RichBinding {
     semaprax_id: String,
     rust_path: String,
     rust_method: String,
+    failure: RichFailure,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum RichFailure {
+    Infallible,
+    ImportStatus,
 }
 
 /// Produces the checked-in RI-01 fixture plan.  Automatic package indexing is
@@ -32,40 +39,109 @@ pub(super) fn bootstrap_fixture_plan(rust_method: &str) -> Result<RichBindingPla
         ));
     }
     Ok(RichBindingPlan {
-        binding: RichBinding {
-            semaprax_id: "host.add".to_owned(),
-            rust_path: "fixture_math::add".to_owned(),
-            rust_method: rust_method.to_owned(),
-        },
+        bindings: vec![binding(
+            "host.add",
+            "fixture_math::add",
+            rust_method,
+            RichFailure::Infallible,
+        )],
+    })
+}
+
+/// Produces the complete fixture plan used by the physical rich round trip.
+pub(super) fn bootstrap_rich_fixture_plan(
+    add_method: &str,
+    checked_div_method: &str,
+) -> Result<RichBindingPlan, Diagnostic> {
+    for method in [add_method, checked_div_method] {
+        if !is_rust_identifier(method) {
+            return Err(Diagnostic::io(
+                "SPX-B117",
+                "Native Rust rich BindingPlan contains an invalid generated import method",
+            ));
+        }
+    }
+    Ok(RichBindingPlan {
+        bindings: vec![
+            binding(
+                "host.add",
+                "fixture_math::add",
+                add_method,
+                RichFailure::Infallible,
+            ),
+            binding(
+                "host.checked_div",
+                "fixture_math::checked_div",
+                checked_div_method,
+                RichFailure::ImportStatus,
+            ),
+        ],
     })
 }
 
 impl RichBindingPlan {
     pub(super) fn canonical(&self) -> String {
-        format!(
-            "{{\"schema\":\"{RICH_BINDING_PLAN_SCHEMA}\",\"bindings\":[{{\"semaprax_id\":\"{}\",\"rust_path\":\"{}\",\"receiver\":\"none\",\"arguments\":[{{\"type\":\"i64\",\"mode\":\"copy\"}},{{\"type\":\"i64\",\"mode\":\"copy\"}}],\"result\":{{\"type\":\"i64\",\"mode\":\"copy\"}},\"substitutions\":[],\"effects\":[],\"failure\":\"infallible\"}}],\"nonclaims\":[\"no_ambient_authority\",\"no_rust_abi\"]}}\n",
-            self.binding.semaprax_id, self.binding.rust_path
-        )
+        let mut canonical = format!("{{\"schema\":\"{RICH_BINDING_PLAN_SCHEMA}\",\"bindings\":[");
+        for (index, binding) in self.bindings.iter().enumerate() {
+            if index != 0 {
+                canonical.push(',');
+            }
+            canonical.push_str("{\"semaprax_id\":\"");
+            canonical.push_str(&binding.semaprax_id);
+            canonical.push_str("\",\"rust_path\":\"");
+            canonical.push_str(&binding.rust_path);
+            canonical.push_str("\",\"receiver\":\"none\",\"arguments\":[{\"type\":\"i64\",\"mode\":\"copy\"},{\"type\":\"i64\",\"mode\":\"copy\"}],\"result\":{\"type\":\"i64\",\"mode\":\"copy\"},\"substitutions\":[],\"effects\":[\"host.math\"],\"failure\":\"");
+            canonical.push_str(match binding.failure {
+                RichFailure::Infallible => "infallible",
+                RichFailure::ImportStatus => "status:fixture.math.v1",
+            });
+            canonical.push_str("\"}");
+        }
+        canonical.push_str("],\"nonclaims\":[\"no_ambient_authority\",\"no_rust_abi\"]}\n");
+        canonical
     }
 
     pub(super) fn digest(&self) -> String {
         domain_digest(RICH_BINDING_PLAN_DOMAIN, self.canonical().as_bytes())
     }
 
-    /// Renders the sole bootstrap adapter.  Its trait implementation is the
-    /// generated physical route from the C11-produced Semaprax bridge to an
-    /// ordinary Rust function; it does not expose an FFI item from the fixture.
+    /// Renders the bootstrap adapter from every selected binding. Its trait
+    /// implementation is the generated physical route from the C11-produced
+    /// Semaprax bridge to ordinary Rust functions; it exposes no fixture FFI.
     pub(super) fn render_adapter(&self) -> String {
-        format!(
-            "struct GeneratedFixtureAdapter;\nimpl NativeRustImports for GeneratedFixtureAdapter{{fn {}(&mut self,left:i64,right:i64)->NativeRustImportResult<i64>{{NativeRustImportResult::Success({}(left,right))}}}}\n",
-            self.binding.rust_method, self.binding.rust_path
-        )
+        let mut adapter = String::from(
+            "struct GeneratedFixtureAdapter;\nimpl NativeRustImports for GeneratedFixtureAdapter{",
+        );
+        for binding in &self.bindings {
+            adapter.push_str("fn ");
+            adapter.push_str(&binding.rust_method);
+            adapter.push_str("(&mut self,left:i64,right:i64)->NativeRustImportResult<i64>{");
+            match binding.failure {
+                RichFailure::Infallible => {
+                    adapter.push_str("NativeRustImportResult::Success(");
+                    adapter.push_str(&binding.rust_path);
+                    adapter.push_str("(left,right))");
+                }
+                RichFailure::ImportStatus => {
+                    adapter.push_str("match ");
+                    adapter.push_str(&binding.rust_path);
+                    adapter.push_str("(left,right){Ok(value)=>NativeRustImportResult::Success(value),Err(_)=>NativeRustImportResult::Status{code:core::num::NonZeroU32::new(7).unwrap(),class:NativeRustStatusClass::Import,retryable:false}}");
+                }
+            }
+            adapter.push('}');
+        }
+        adapter.push_str("}\n");
+        adapter
     }
 
     /// Refuses a descriptor that cannot be the plan's selected declaration
     /// before the generated adapter can be entered.
     pub(super) fn validate_descriptor(&self, descriptor: &str) -> Result<(), Diagnostic> {
-        if descriptor.contains(&self.binding.semaprax_id) {
+        if self
+            .bindings
+            .iter()
+            .all(|binding| descriptor.contains(&binding.semaprax_id))
+        {
             Ok(())
         } else {
             Err(Diagnostic::io(
@@ -106,6 +182,20 @@ impl RichBindingPlan {
                 "Native Rust rich BindingPlan signature is unsupported",
             ))
         }
+    }
+}
+
+fn binding(
+    semaprax_id: &str,
+    rust_path: &str,
+    rust_method: &str,
+    failure: RichFailure,
+) -> RichBinding {
+    RichBinding {
+        semaprax_id: semaprax_id.to_owned(),
+        rust_path: rust_path.to_owned(),
+        rust_method: rust_method.to_owned(),
+        failure,
     }
 }
 

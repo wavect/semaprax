@@ -179,15 +179,20 @@ revision:
    only the admitted profile, while interpreter and Wasm refuse before the
    foreign call.
 
-The implemented bootstrap test is
-generated_rich_fixture_adapter_round_trips_without_a_handwritten_host in the
+The bootstrap physical test is
+`generated_rich_fixture_adapter_round_trips_without_a_handwritten_host` in the
 native-Rust builder harness. It compiles the ordinary fixture crate, generated
 adapter, generated C11 bundle, and a fresh Rust consumer; that consumer proves
-positive, zero, and negative add calls through Rust → Semaprax → generated
-adapter → Rust. The fixture's checked_div exists as the next selected Result
-shape, but it is not yet imported through the generated plan. The
-semantic-division, Rust-Err, panic, descriptor-disagreement, and target refusal
-rows above remain required before this profile can be called complete.
+positive, zero, and negative `add` calls through Rust → Semaprax → generated
+adapter → Rust. The same generated adapter maps the fixture's selected
+`checked_div` `Result::Err` to the declared import status, lets the v1 bridge
+report a caught adapter panic, and keeps semantic division inside Semaprax.
+`rich_fixture_plan_is_canonical_and_rejects_a_generated_method_injection` and
+`rich_fixture_preserves_canonical_source_and_selected_stable_id_facts` cover
+the canonical plan/source, declaration identities, descriptor disagreement,
+unsupported target/signature, and pre-callback refusal rows. These are local
+bootstrap gates; automatic indexing and any general Rust package workflow
+remain outside this profile.
 
 This does not make any target, generated package, Rust ABI, Cargo integration,
 or ecosystem binding supported.

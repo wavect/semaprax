@@ -38,6 +38,14 @@ use windows_sys::Win32::System::IO::{
     CancelIoEx, DeviceIoControl, GetOverlappedResult, OVERLAPPED,
 };
 
+/// Test-visible checkpoints in the image admission half of a launch. These
+/// are observations only: callers cannot waive a failed image check.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) enum ImageBindingBoundary {
+    GuardAcquired,
+    DigestVerified,
+}
+
 /// The capsule's executable slot must be selected explicitly by the caller.
 #[derive(Clone, Copy)]
 pub enum ImageRole {
@@ -66,6 +74,14 @@ pub(super) struct HeldImage {
 
 impl HeldImage {
     pub(super) fn acquire(path: &Path, artifact: Artifact) -> Result<Self, ()> {
+        Self::acquire_observing(path, artifact, |_| {})
+    }
+
+    pub(super) fn acquire_observing(
+        path: &Path,
+        artifact: Artifact,
+        mut observe: impl FnMut(ImageBindingBoundary),
+    ) -> Result<Self, ()> {
         if !path.is_absolute() || artifact.length == 0 || artifact.length > MAX_ARTIFACT_BYTES {
             return Err(());
         }
@@ -83,6 +99,7 @@ impl HeldImage {
         // creation and settlement. An observed break refuses; an unobserved
         // advisory break is not proof that concurrent writes are excluded.
         let oplock = ImageOplock::acquire(original)?;
+        observe(ImageBindingBoundary::GuardAcquired);
         let length = (u64::from(identity.nFileSizeHigh) << 32) | u64::from(identity.nFileSizeLow);
         if length != artifact.length {
             return Err(());
@@ -102,6 +119,7 @@ impl HeldImage {
         {
             return Err(());
         }
+        observe(ImageBindingBoundary::DigestVerified);
         let mut terminated = application;
         terminated.push(0);
         Ok(Self {

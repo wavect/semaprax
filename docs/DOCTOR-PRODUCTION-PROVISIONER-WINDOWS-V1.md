@@ -350,7 +350,7 @@ or Windows request/bundle carrier transport, and does not modify the Linux seale
 launcher. The deterministic test capsule signs the actual test image's bytes;
 its other slots remain fixture-only inputs and are not transport evidence.
 
-The seven new selected cases exercise signed length/digest/role mismatch before
+The selected cases exercise signed length/digest/role mismatch before
 launch, denied post-binding leaf deletion/write/rename/hardlink creation and
 ancestor rename, a failed post-binding writable-section request from a newly
 opened read handle, pre-existing writable handles and hardlinks, a writable
@@ -367,7 +367,13 @@ writable view after refusal, change an observed file byte, and then restore
 the fixture before its success control. This stronger hostile control has not
 yet executed on Windows at this revision; the earlier receipt does not cover it.
 Success controls require NTFS/oplock acquisition to work; no unavailable
-prerequisite can pass by skipping. All eighteen selected native cases passed
+prerequisite can pass by skipping. The later checkpoint cases require a clean
+signed launch to visit image-guard acquisition, digest verification, the
+pre-creation boundary, and the suspended-leader boundary in that exact order.
+Their retained-writable-section counterpart records no reachable checkpoint,
+then proves the retained section can still mutate and restore the fixture.
+Those tests demonstrate where this primitive refuses; they do not establish an
+atomic writable-section exclusion proof. All eighteen selected native cases passed
 at `06c0090d9`; later source revisions need their own execution receipt.
 
 Local verification on 30 September 2026: the initial `64472c71b` continuation
@@ -538,13 +544,14 @@ The dispatch-only
 uses an ephemeral `windows-2025` runner and creates a fresh, explicit scratch
 parent under `RUNNER_TEMP`. The gate fails when the host is not 64-bit Windows,
 the parent is missing, nonempty, or a reparse point, Cargo fails, any named
-test is filtered or ignored, or the test summary does not report all twenty-two
+test is filtered or ignored, or the test summary does not report all twenty-four
 selected cases as passed. It never treats an absent prerequisite or a zero-test
-run as a skip/pass.
+run as a skip/pass. The historical receipt below covers the earlier twenty-two
+case selector only.
 
 `scripts/doctor-provisioned-windows-gate.py --self-test` checks the gate's
 refusal and libtest-result parsing on any host; it provides no Windows runtime
-evidence. `--plan` prints the exact twenty-two-test selector. The live selection runs
+evidence. `--plan` prints the exact twenty-four-test selector. The live selection runs
 `windows_runtime_launches_restricted_child_inside_acl_scratch_and_settles_it`
 and `windows_runtime_timeout_terminates_the_confined_job_and_settles_cancellation`,
 plus `windows_runtime_timeout_terminates_an_actual_job_descendant`,
@@ -555,7 +562,7 @@ plus `windows_runtime_timeout_terminates_an_actual_job_descendant`,
 `windows_runtime_bad_signature_refuses_before_token_job_or_filesystem`, and
 `windows_runtime_signed_linux_architecture_capsule_refuses_before_token_job_or_filesystem`,
 and `windows_runtime_protected_scratch_dacl_blocks_inherited_parent_ace`.
-The nested `primitive::tests::binding` module adds the seven cases described in
+The nested `primitive::tests::binding` module adds the image-binding cases described in
 [Signed image binding](#signed-image-binding-continuation-333-partial-native-runtime-evidence).
 Its post-binding launch hook attempts a new hard link, writable open, and
 writable section from a fresh read handle before process creation; each must
@@ -604,10 +611,12 @@ eighteen-case source, including the held-image probes and carrier experiment,
 passed in [run 36911767583](https://github.com/wavect/semaprax/actions/runs/36911767583)
 at `06c0090d9` (18/18 selected, none ignored). This does not establish exact
 launched-image binding against a retained writable section.
-The expanded selector passed 22/22 with none ignored at `e15c16202` in
+The earlier expanded selector passed 22/22 with none ignored at `e15c16202` in
 [run 36919771375](https://github.com/wavect/semaprax/actions/runs/36919771375).
 Its new retained-section and carrier cases establish refusal and handle/scratch
 settlement only; they do not establish image-byte binding or child transport.
+The two later checkpoint cases are included in this source's twenty-four-case
+selector and require their own native Windows execution receipt.
 
 ## Acceptance criteria status
 
@@ -624,7 +633,7 @@ settlement only; they do not establish image-byte binding or child transport.
 
 ## Nonclaims
 
-This contract does not claim that the twenty-two-test Windows selector is a
+This contract does not claim that the twenty-four-test Windows selector is a
 complete hostile corpus or production-support gate. The two-test run at
 `c6bf9902` and five-test run at `3d4220b6` each bind only their exact checkout
 and selected tests.
@@ -635,7 +644,8 @@ Earlier hand-checking against vendored `windows-sys` was diligence, not
 substitute execution evidence. The selector uses a
 deterministic test-only signing key and does not establish release trust. The
 partial image checks have no atomic exclusion proof for retained writable
-sections despite their selected native pass, and Windows request/bundle carrier
+sections despite their earlier selected native pass, and the newer checkpoint
+cases have no native execution receipt. Windows request/bundle carrier
 transport remains absent. Independent hostile-corpus,
 general descendant-tree, and production-support requirements remain open. Do not claim the existing ordinary-probe
 job-object confinement in `windows.rs` as evidence of production-grade

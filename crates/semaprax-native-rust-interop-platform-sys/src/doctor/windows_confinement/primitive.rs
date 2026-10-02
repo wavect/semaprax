@@ -92,6 +92,15 @@ use windows_sys::Win32::System::Threading::{
 const MAX_WIDE: usize = 32767;
 
 mod image;
+
+/// Test-visible checkpoints from image admission through the suspended-child
+/// verification. They do not grant authority or alter a failed binding.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum BindingBoundary {
+    Image(image::ImageBindingBoundary),
+    BeforeProcessCreation,
+    SuspendedLeader,
+}
 pub use image::ImageRole;
 /// Denies every UI-affecting capability a confined batch tool has no
 /// legitimate use for, per this contract's job-limit tightening.
@@ -519,9 +528,10 @@ fn confined_spawn_using(
     parse_capsule: impl FnOnce()
         -> Result<super::capsule::VerifiedCapsule, super::capsule::CapsuleError>,
 ) -> Result<ConfinedProcess, Refusal> {
-    confined_spawn_after_binding(exe, role, args, scratch_root, parse_capsule, || {})
+    confined_spawn_observing_inner(exe, role, args, scratch_root, parse_capsule, |_| {})
 }
 
+#[cfg(test)]
 fn confined_spawn_after_binding(
     exe: &Path,
     role: ImageRole,
@@ -530,6 +540,35 @@ fn confined_spawn_after_binding(
     parse_capsule: impl FnOnce()
         -> Result<super::capsule::VerifiedCapsule, super::capsule::CapsuleError>,
     after_binding: impl FnOnce(),
+) -> Result<ConfinedProcess, Refusal> {
+    confined_spawn_observing(exe, role, args, scratch_root, parse_capsule, |boundary| {
+        if boundary == BindingBoundary::BeforeProcessCreation {
+            after_binding();
+        }
+    })
+}
+
+#[cfg(test)]
+fn confined_spawn_observing(
+    exe: &Path,
+    role: ImageRole,
+    args: &[&OsStr],
+    scratch_root: &Path,
+    parse_capsule: impl FnOnce()
+        -> Result<super::capsule::VerifiedCapsule, super::capsule::CapsuleError>,
+    observe: impl FnMut(BindingBoundary),
+) -> Result<ConfinedProcess, Refusal> {
+    confined_spawn_observing_inner(exe, role, args, scratch_root, parse_capsule, observe)
+}
+
+fn confined_spawn_observing_inner(
+    exe: &Path,
+    role: ImageRole,
+    args: &[&OsStr],
+    scratch_root: &Path,
+    parse_capsule: impl FnOnce()
+        -> Result<super::capsule::VerifiedCapsule, super::capsule::CapsuleError>,
+    mut observe: impl FnMut(BindingBoundary),
 ) -> Result<ConfinedProcess, Refusal> {
     let (_host, image, token, job, scratch) = admit(
         || {
@@ -545,8 +584,10 @@ fn confined_spawn_after_binding(
         },
         || {
             let capsule = parse_capsule()?;
-            image::HeldImage::acquire(exe, role.artifact(&capsule))
-                .map_err(|()| super::capsule::CapsuleError::ArtifactBinding)
+            image::HeldImage::acquire_observing(exe, role.artifact(&capsule), |boundary| {
+                observe(BindingBoundary::Image(boundary));
+            })
+            .map_err(|()| super::capsule::CapsuleError::ArtifactBinding)
         },
         restricted_token,
         tightened_job,
@@ -557,7 +598,7 @@ fn confined_spawn_after_binding(
             confined_scratch_root(scratch_root, &sid_buffer)
         },
     )?;
-    after_binding();
+    observe(BindingBoundary::BeforeProcessCreation);
     let stdin = open_inheritable_null().map_err(|()| Refusal::FilesystemConfinement)?;
     let stdout =
         create_inheritable_log(&scratch.stdout_log).map_err(|()| Refusal::FilesystemConfinement)?;
@@ -670,6 +711,7 @@ fn confined_spawn_after_binding(
         }
         return Err(Refusal::Spawn);
     }
+    observe(BindingBoundary::SuspendedLeader);
     // CreateProcess can be redirected by host policy (for example IFEO).
     // Require the suspended process's native image name to name the held
     // authenticated file before its first thread may execute any code.

@@ -6,6 +6,7 @@ use std::process::ExitCode;
 pub(crate) enum CommandId {
     Check,
     Graph,
+    Explore,
     Compact,
     Doc,
     Verify,
@@ -156,6 +157,7 @@ static COMMANDS: &[CommandSpec] = &[
     CommandSpec { id: CommandId::Check, canonical: "check", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax check [<file>|<dir>|semaprax.toml|--manifest-path path] [--json]"] },
     CommandSpec { id: CommandId::Compact, canonical: "compact", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax compact graph|agent-definition <file> [--encoding text|binary|model-text] [--replay <encoded>]", "semaprax compact context <file> <stable-id> [--max-bytes N] [--encoding text|binary|model-text] [--replay <encoded>]", "semaprax compact task-context <file> <stable-id> [--goal text] [--priority N] [--reason text] [--seed stable-id [--priority N] [--reason text]]... [--revision digest] [--tokenizer byte-v1|lexical-v1] [--max-bytes N] [--max-tokens N] [--encoding text|binary|model-text] [--replay <encoded>]", "semaprax compact api-surface <project> [--encoding text|binary|model-text] [--replay <encoded>]", "semaprax compact candidate-diff <project> <capsule> [--encoding text|binary|model-text] [--replay <encoded>]"] },
     CommandSpec { id: CommandId::Graph, canonical: "graph", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax graph <file>"] },
+    CommandSpec { id: CommandId::Explore, canonical: "explore", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax explore <manifest> --format html|json --output <path>"] },
     CommandSpec { id: CommandId::Doc, canonical: "doc", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax doc <file> [--json]"] },
     CommandSpec { id: CommandId::Verify, canonical: "verify", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax verify <file> <patch.spatch> <evidence.json>", "semaprax verify <root> <patch.wspatch>|<proposal.json> <evidence.json>", "semaprax verify <definition.json> <profile.json> <graph.json>", "semaprax verify <manifest> <image.json>"] },
     CommandSpec { id: CommandId::Agent, canonical: "agent", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax agent inspect <definition.json> [--profile]", "semaprax agent run <definition.json> <task.json> <transcript.json> [--evidence|--trace]", "semaprax agent replay <definition.json> <task.json> <transcript.json> <evidence.json>", "semaprax agent skill [--require-schema <schema>]"] },

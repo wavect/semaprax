@@ -364,6 +364,10 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
                     1
                 })
         }
+        CommandId::Explore => {
+            let options = cli::explore::parse(&args[1..])?;
+            cli::explore::run(options).map_err(|e| report(&e, false))
+        }
         CommandId::Graph => {
             let path = cli::graph::parse(&args[1..])?;
             if let Some(output) =

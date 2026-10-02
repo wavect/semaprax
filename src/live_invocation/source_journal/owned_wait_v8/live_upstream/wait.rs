@@ -2,7 +2,8 @@
 use super::observe::ObservedLiveOwnedRunV8;
 use super::*;
 use crate::interpreter::resumable::owned_frame::registered_stage::live_run::{
-    begin_live_owned_wait_v8, LiveParkedStateV8, LiveWaitStartOutcomeV8,
+    begin_live_owned_wait_v8, restore_live_parked_state_v8, LiveParkedStateV8,
+    LiveWaitStartOutcomeV8,
 };
 pub(super) struct ParkedLiveOwnedRunV8<'j> {
     pub(super) owner: LiveParkedStateV8,
@@ -15,6 +16,135 @@ pub(super) struct ParkedLiveOwnedRunV8<'j> {
     pub(super) reservation: u32,
     pub(super) prepared: u32,
     pub(super) cancellation: &'j crate::agent_runtime::AgentCancellation,
+}
+/// One held restart owner for the exact first-turn Prepared tail. It deliberately
+/// has no append/effect entry point yet: the recovered lease remains read-only
+/// until a later reviewed model-restart packet consumes this owner.
+pub(crate) struct RecoveredFirstTurnPreparedOwnerV8<'j> {
+    owner: LiveParkedStateV8,
+    held: HeldOwnedWaitStoreV8<'j>,
+    session: AppendSessionV8<'j>,
+    wait: String,
+    reservation: u32,
+    prepared: u32,
+    _authentication: String,
+}
+impl RecoveredFirstTurnPreparedOwnerV8<'_> {
+    #[cfg(test)]
+    pub(crate) fn test_metadata(&self) -> (u32, u32, usize, usize, String) {
+        (
+            self.reservation,
+            self.prepared,
+            self.session.sequence(),
+            self.session.acknowledged_bytes(),
+            self.wait.clone(),
+        )
+    }
+    #[cfg(test)]
+    pub(crate) fn test_fresh_backings(&self) -> Vec<std::sync::Weak<[u8]>> {
+        self.owner.test_weak()
+    }
+    #[cfg(test)]
+    pub(crate) fn test_guard(&self) -> Result<(), SourceJournalError> {
+        self.held
+            .validate_prefix(self.session.sequence(), self.session.acknowledged_bytes())
+    }
+}
+/// Explicit trusted-host authority for one restart materialization. It is not
+/// derived from a checkpoint, journal row, registration or source fact.
+pub(crate) struct FirstTurnPreparedRecoveryHostGrantV8 {
+    creator: u32,
+}
+impl FirstTurnPreparedRecoveryHostGrantV8 {
+    pub(crate) fn for_trusted_host(
+        protected_checkpoint_key_available: bool,
+    ) -> Result<Self, SourceJournalError> {
+        if !protected_checkpoint_key_available {
+            return Err(SourceJournalError::Binding);
+        }
+        Ok(Self {
+            creator: std::process::id(),
+        })
+    }
+    fn check(&self) -> Result<(), SourceJournalError> {
+        if self.creator != std::process::id() {
+            return Err(SourceJournalError::Binding);
+        }
+        Ok(())
+    }
+}
+
+pub(crate) fn recover_first_turn_prepared_owner_v8<'j>(
+    journal: &'j SourceOwnedWaitJournalV8,
+    grant: FirstTurnPreparedRecoveryHostGrantV8,
+    cancellation: &'j crate::agent_runtime::AgentCancellation,
+) -> Result<RecoveredFirstTurnPreparedOwnerV8<'j>, SourceJournalError> {
+    grant.check()?;
+    if cancellation.is_cancelled() {
+        return Err(SourceJournalError::Binding);
+    }
+    {
+        let lease = journal
+            .lease
+            .try_borrow()
+            .map_err(|_| SourceJournalError::Order)?;
+        lease
+            .validate_recovery_read_only(journal.context().registration())
+            .map_err(|_| SourceJournalError::Binding)?;
+    }
+    let held = journal.hold()?;
+    let session = journal.begin_session()?;
+    let facts = session.inventory.first_turn_prepared_recovery()?;
+    held.validate_prefix(facts.sequence, facts.bytes)?;
+    if cancellation.is_cancelled()
+        || facts.sequence != session.sequence()
+        || facts.bytes != session.acknowledged_bytes()
+        || facts.authentication != session.inventory.authentication_tail()
+    {
+        journal.quarantine();
+        return Err(SourceJournalError::Binding);
+    }
+    let context = journal.context();
+    let (_, execution) = context.ready_runtime().ok_or(SourceJournalError::Binding)?;
+    if held.registration() != context.registration() || held.generation() != context.generation() {
+        journal.quarantine();
+        return Err(SourceJournalError::Binding);
+    }
+    let observation = facts
+        .observation
+        .copy_arguments()
+        .as_array()
+        .and_then(|values| values.first())
+        .and_then(|value| value.get("value"))
+        .ok_or(SourceJournalError::Binding)
+        .and_then(|value| {
+            crate::interpreter::resumable::checkpoint::channel_from_json(value)
+                .map_err(|_| SourceJournalError::Binding)
+        })?;
+    let owner = restore_live_parked_state_v8(
+        execution.wait(),
+        facts
+            .checkpoint
+            .fresh_owned_input()
+            .map_err(|_| SourceJournalError::Binding)?,
+        observation,
+        facts.consumed,
+    )
+    .map_err(|_| SourceJournalError::Binding)?;
+    held.validate_prefix(facts.sequence, facts.bytes)?;
+    if cancellation.is_cancelled() {
+        journal.quarantine();
+        return Err(SourceJournalError::Binding);
+    }
+    Ok(RecoveredFirstTurnPreparedOwnerV8 {
+        owner,
+        held,
+        session,
+        wait: facts.wait,
+        reservation: facts.reservation,
+        prepared: facts.prepared,
+        _authentication: facts.authentication,
+    })
 }
 pub(super) enum LiveWaitFailureOwnerV8 {
     Observed(

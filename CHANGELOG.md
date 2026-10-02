@@ -8,6 +8,12 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Add a sealed first-turn prepared owned-wait v8 restart owner (#330). After
+  close/reopen, one trusted-host grant can authenticate the exact registered
+  Prepared tail and checkpoint before allocating fresh process-local Bytes
+  backing. The recovered lease stays read-only; later turns and StartReserved
+  uncertainty refuse without model dispatch or append authority.
+
 - Fence recovered source-owned-wait v8 leases to authenticated read-only
   history (#330). Retained registration, matching pins and the MAC chain can
   inspect evidence but cannot append a successor before a sealed physical

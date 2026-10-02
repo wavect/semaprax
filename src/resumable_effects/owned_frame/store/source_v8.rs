@@ -210,6 +210,19 @@ impl SourceOwnedWaitLeaseV8 {
         }
         Ok(())
     }
+    /// The restoration packet may only run after a close/reopen recovery. A
+    /// live fresh lease has its own process-local owner and cannot claim this
+    /// restart-only route.
+    pub(crate) fn validate_recovery_read_only(
+        &self,
+        registration: &SourceOwnedWaitStoreRegistrationV8,
+    ) -> Result<(), Error> {
+        self.validate_registration(registration)?;
+        if !self.recovery_read_only {
+            return Err(Error::Policy);
+        }
+        Ok(())
+    }
     pub(crate) fn append(&mut self, bytes: &[u8]) -> Result<(), Error> {
         self.inner
             .validate_profile(StoreProfile::SourceOwnedWaitV8)?;

@@ -10,6 +10,8 @@ use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
 pub const MODEL: &str = "claude-haiku-4-5";
+const ADAPTER_VERSION: &str = "1.0.1";
+const SYSTEM_PROMPT: &str = "The user message is a checked source-adapter request. Decode task_hex as UTF-8 for the task and previous_effect_hex for feedback. Return only the requested canonical proposal JSON, with one actual trailing LF byte and no Markdown fences. Follow proposal_schema exactly. No tools are available.";
 const PROFILE: &str = "claude-code-subscription-print-json.v1";
 const MAX_EXECUTABLE: u64 = 256 * 1024 * 1024;
 const MAX_WIRE: usize = 1_048_576;
@@ -48,15 +50,27 @@ fn identity_with_binding(
             "claude-print-adapter:sha256:{:x}",
             LowerHex(hash.finalize())
         ),
-        adapter_version: "1.0.0".into(),
+        adapter_version: ADAPTER_VERSION.into(),
         provider_profile: PROFILE.into(),
     }
+}
+
+/// Read-only wire guidance derived from the same compiled schema the runtime decodes.
+/// It supplies identities missing from the frozen source-adapter request, never values.
+fn proposal_prefix(schema: &semaprax::agent_proposal::CompiledAgentProposalSchema) -> String {
+    use semaprax::diagnostic::quote_json;
+    format!("{{\"schema\":\"semaprax.agent-proposal.v1\",\"agent_id\":{},\"proposal_schema_digest\":{},\"value\":", quote_json(schema.schema().agent_id()), quote_json(schema.schema().digest()))
+}
+
+fn proposal_guidance(schema: &semaprax::agent_proposal::CompiledAgentProposalSchema) -> String {
+    format!("{SYSTEM_PROMPT}\nYou must output the COMPLETE semaprax.agent-proposal.v1 document, not only a record or its values. Start with this exact prefix (the digest is supplied by the compiler; do not invent or recompute it):\n{}\nThen write the value object and close the outer document. For a record the value object is {{\"fields\":{{...}}}}. For a variant it is {{\"case\":\"selected stable case ID\",\"fields\":{{...}}}}. Use field stable_id strings from proposal_schema.shape as keys, in the schema's declaration order, never display names. Every integer, including usize, is a quoted decimal string; booleans are JSON true or false. Use compact JSON with no spaces or line breaks except exactly one actual LF after the final closing brace. Choose field VALUES from the task, state, observation and feedback; this format guidance does not supply a repair answer.", proposal_prefix(schema))
 }
 
 #[derive(Clone)]
 pub(crate) struct Config {
     host: OpenCodeHostConfig,
     deadline: Duration,
+    guidance: String,
 }
 impl Config {
     pub(crate) fn new(
@@ -75,7 +89,21 @@ impl Config {
         // Shares bounded image admission only. No OpenCode policy or transport is run.
         let host =
             OpenCodeHostConfig::new_process_image(executable, scratch, deadline, MAX_EXECUTABLE)?;
-        Ok(Self { host, deadline })
+        Ok(Self {
+            host,
+            deadline,
+            guidance: SYSTEM_PROMPT.into(),
+        })
+    }
+    pub(crate) fn with_proposal_schema(
+        mut self,
+        schema: &semaprax::agent_proposal::CompiledAgentProposalSchema,
+    ) -> Result<Self, String> {
+        self.guidance = proposal_guidance(schema);
+        if self.guidance.len() > 4096 {
+            return Err("Claude proposal guidance exceeds bounds".into());
+        }
+        Ok(self)
     }
     pub(crate) fn marker_host(&self) -> &OpenCodeHostConfig {
         &self.host
@@ -103,7 +131,7 @@ impl ClaudeAdapter {
             config,
             capabilities: AdapterCapabilities {
                 adapter_identity,
-                adapter_version: "1.0.0".into(),
+                adapter_version: ADAPTER_VERSION.into(),
                 provider_profile: PROFILE.into(),
                 structured_output_modes: vec![StructuredOutputMode::RawText],
                 supports_streaming: true,
@@ -288,7 +316,7 @@ fn invoke(config: &Config, prompt: &str) -> Result<Vec<u8>, ModelFailure> {
             "--model",
             MODEL,
             "--system-prompt",
-            "The user message is a checked source-adapter request. Decode task_hex as UTF-8 for the task and previous_effect_hex for feedback. Return only the requested canonical proposal JSON, with one actual trailing LF byte and no Markdown fences. Follow proposal_schema exactly. No tools are available.",
+            &config.guidance,
             "--",
             prompt,
         ])

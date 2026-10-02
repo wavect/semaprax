@@ -1019,6 +1019,7 @@ pub(super) fn execute_with_runner_and_candidate_test<
                 .as_deref()
                 .expect("Claude identity checked"),
             bound_adapter_identity.clone(),
+            compiled.proposal_schema(),
             retained_pause_marker.as_deref(),
             &mut pause_marker_host,
         )?,

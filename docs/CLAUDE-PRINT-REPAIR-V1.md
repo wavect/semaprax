@@ -32,9 +32,14 @@ Non-Unix native Claude dispatch refuses before spawning.
 One adapter instance starts one CLI process with `--print --output-format json`,
 `--tools ''`, `--no-session-persistence`, `--safe-mode`, `--restricted`,
 `--strict-mcp-config`, `--permission-prompts none`, `--prompt-suggestions false`,
-and the exact model. A fixed minimal system prompt replaces dynamic workspace
-system context. The canonical checked source-adapter prompt remains the sole
-user prompt; proposal bytes are never repaired or appended by the transport.
+and the exact model. Adapter version 1.0.1 supplies a system prompt bounded to
+4096 bytes, replacing dynamic workspace system context. Its response guidance
+is derived from the same compiled proposal schema used by the decoder: the
+exact envelope prefix includes the agent identity and schema digest, with
+stable field IDs, declaration order and decimal-string integer encoding
+explained. It supplies no field values or repair answer. The frozen canonical
+source-adapter request contains the schema but not its digest and remains the
+sole user prompt; proposal bytes are never repaired or appended by the transport.
 The deadline is at most 30 seconds per invocation, the request at most 64 KiB,
 and captured output at most 1 MiB. The checked deployment's narrower response
 and cumulative budgets still apply.

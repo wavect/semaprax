@@ -1,5 +1,10 @@
 # Changelog
 
+- Supply native Claude response guidance from the compiled proposal schema,
+  including the exact envelope identity and digest omitted from the frozen
+  source request. Keep provider result bytes and the canonical decoder
+  unchanged; local decoder and executable fixtures cover this boundary (#323).
+
 - Preserve validated USER/LOGNAME login metadata in the native Claude host
   so its existing keychain subscription login survives environment clearing.
   A local auth-status diagnostic and credential-free executable regression

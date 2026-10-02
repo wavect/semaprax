@@ -22,6 +22,7 @@ pub(super) fn factory(
     remaining: i64,
     expected: &str,
     bound: String,
+    proposal_schema: &semaprax::agent_proposal::CompiledAgentProposalSchema,
     retained_marker: Option<&[u8]>,
     pause_host: &mut Option<OpenCodeHostConfig>,
 ) -> Result<Box<dyn FnMut() -> Box<dyn ProviderAdapter>>, CliError> {
@@ -31,6 +32,7 @@ pub(super) fn factory(
         operands.scratch,
         Duration::from_millis(remaining.clamp(1, MAX_ONE_PROVIDER_CALL_MS) as u64),
     )
+    .and_then(|config| config.with_proposal_schema(proposal_schema))
     .map_err(|_| CliError::refused("repair Claude host configuration refused"))?;
     if config.identity().adapter_identity != expected {
         return Err(CliError::refused(

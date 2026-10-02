@@ -127,3 +127,28 @@ mod process {
         assert!(adapter.start(&capability, &request).is_err());
     }
 }
+
+#[test]
+fn compiler_derived_guidance_supplies_an_exact_decoder_valid_envelope() {
+    let source = include_str!("../../../examples/offline-repair-project/src/app.spx");
+    let compiled = semaprax::agent_lifecycle::iterative::compile_source_agent_lifecycle_v2(
+        source,
+        "src/app.spx",
+        "fixture.agent",
+        "fixture.agent.type.step",
+    )
+    .unwrap();
+    let schema = compiled.proposal_schema();
+    let prefix = proposal_prefix(schema);
+    let guidance = proposal_guidance(schema);
+    assert!(guidance.contains(&prefix));
+    assert!(guidance.contains(schema.schema().digest()));
+    // Values remain chosen by the provider. These test-only values exercise
+    // the unchanged production decoder against the actual supplied prefix.
+    let body = r#"{"fields":{"fixture.agent.type.proposal.budget":"9","fixture.agent.type.proposal.urgent":false,"fixture.agent.type.proposal.sequence":"0"}}"#;
+    let document = format!("{prefix}{body}}}\n");
+    assert!(schema.decode(&document).is_ok());
+    assert!(schema.decode(&format!("{body}\n")).is_err());
+    assert!(schema.decode(&document.replace("\"9\"", "9")).is_err());
+    assert!(schema.decode(document.trim_end()).is_err());
+}

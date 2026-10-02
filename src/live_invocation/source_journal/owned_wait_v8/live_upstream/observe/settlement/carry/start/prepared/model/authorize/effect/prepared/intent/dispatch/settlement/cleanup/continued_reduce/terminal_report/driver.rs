@@ -55,55 +55,124 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) enum LiveContinued
 type Failure<'j> = LiveContinuedTerminalDriverFailureV8<'j>;
 type Phase = LiveContinuedTerminalPhaseV8;
 
-fn select<'j>(
-    phase: Phase,
-    result: Result<
-        LiveContinuedStagedStepV8<'j>,
-        (LiveContinuedStagedStepV8<'j>, SourceJournalError),
-    >,
-) -> Result<LiveContinuedStagedStepV8<'j>, Failure<'j>> {
-    result.map_err(|(owner, error)| Failure::Select {
-        phase,
-        owner,
-        error,
-    })
+// A terminal owner includes the complete acknowledged run. Moving each owner
+// and failure through a separate call keeps debug-build Result temporaries out
+// of the enclosing terminal frame, which must fit an ordinary 2 MiB stack.
+#[inline(never)]
+fn phase<'j, T>(run: impl FnOnce() -> Result<T, Failure<'j>>) -> Result<Box<T>, Box<Failure<'j>>> {
+    run().map(Box::new).map_err(Box::new)
 }
 
 fn acknowledge<'j>(
     journal: &'j SourceOwnedWaitJournalV8,
-    phase: Phase,
-    selected: Result<
-        LiveOwnedStepAppendV8<'j>,
-        (LiveContinuedStagedStepV8<'j>, SourceJournalError),
-    >,
-) -> Result<LiveContinuedStagedStepV8<'j>, Failure<'j>> {
-    let owner = selected.map_err(|(owner, error)| Failure::Select {
-        phase,
-        owner,
-        error,
-    })?;
-    let session = match journal.begin_session() {
-        Ok(session) => session,
-        Err(error) => {
-            return Err(Failure::Session {
-                phase,
+    current: Phase,
+    selected: Box<LiveOwnedStepAppendV8<'j>>,
+) -> Result<Box<LiveContinuedStagedStepV8<'j>>, Box<Failure<'j>>> {
+    let appended = phase(|| {
+        let session = match journal.begin_session() {
+            Ok(session) => session,
+            Err(error) => {
+                return Err(Failure::Session {
+                    phase: current,
+                    owner: *selected,
+                    error,
+                })
+            }
+        };
+        session
+            .append_owned_step(*selected)
+            .map_err(|owner| Failure::Append {
+                phase: current,
                 owner,
-                error,
             })
-        }
-    };
-    let acknowledged = session
-        .append_owned_step(owner)
-        .map_err(|owner| Failure::Append { phase, owner })?
-        .advance_step()
-        .map_err(|owner| Failure::Advance { phase, owner })?;
-    match acknowledged {
+    })?;
+    let acknowledged = phase(|| {
+        (*appended)
+            .advance_step()
+            .map_err(|owner| Failure::Advance {
+                phase: current,
+                owner,
+            })
+    })?;
+    phase(|| match *acknowledged {
         LiveStepAcknowledgedV8::Continued(owner) => Ok(owner),
         owner => {
             journal.quarantine();
-            Err(Failure::Shape { phase, owner })
+            Err(Failure::Shape {
+                phase: current,
+                owner,
+            })
         }
+    })
+}
+
+#[inline(never)]
+fn finish_complete_report_boxed<'j>(
+    owner: Box<LiveContinuedStagedStepV8<'j>>,
+    journal: &'j SourceOwnedWaitJournalV8,
+    observe: impl FnMut(&crate::cleanup_plan::FinalizeAction),
+    input: crate::live_invocation::source_journal::SourceTerminalEvidenceInput,
+) -> Result<Box<LiveClaimedReportV8<'j>>, Box<Failure<'j>>> {
+    let owner = phase(|| {
+        let admission = (|| {
+            if !std::ptr::eq(journal, owner.journal()) {
+                return Err(SourceJournalError::Binding);
+            }
+            owner.validate_live()?;
+            if owner.staged.is_none()
+                || owner.cleanup_ack.is_some()
+                || !owner.checked_step()?.is_complete()
+            {
+                return Err(SourceJournalError::Order);
+            }
+            Ok(())
+        })();
+        match admission {
+            Ok(()) => Ok(*owner),
+            Err(error) => {
+                owner.journal().quarantine();
+                Err(Failure::Select {
+                    phase: Phase::Admission,
+                    owner: *owner,
+                    error,
+                })
+            }
+        }
+    })?;
+    macro_rules! select {
+        ($operation:expr, $current:ident) => {
+            phase(|| {
+                $operation.map_err(|(owner, error)| Failure::Select {
+                    phase: Phase::$current,
+                    owner,
+                    error,
+                })
+            })?
+        };
     }
+    macro_rules! ack {
+        ($operation:expr, $current:ident) => {
+            acknowledge(journal, Phase::$current, select!($operation, $current))?
+        };
+    }
+    let started = ack!((*owner).prepare_cleanup(), CleanupStarted);
+    let released = phase(|| (*started).release(observe).map_err(Failure::Release))?;
+    let settled = ack!((*released).prepare_receipt(), CleanupSettled);
+    let ready = select!((*settled).into_ready(), Ready);
+    let reserved = ack!((*ready).prepare_transfer(), TransferReserved);
+    let moved = phase(|| (*reserved).move_fields().map_err(Failure::Move))?;
+    let completed = ack!((*moved).prepare_completed(), TransferCompleted);
+    let transitioned = ack!((*completed).prepare_transition(), Transition);
+    let terminal = ack!((*transitioned).prepare_terminal(input), Terminal);
+    phase(|| {
+        (*terminal)
+            .claim_complete_report()
+            .map_err(|(owner, error)| Failure::Select {
+                phase: Phase::Claim,
+                owner,
+                error,
+            })
+    })
 }
 
 impl<'j> LiveContinuedStagedStepV8<'j> {
@@ -121,53 +190,16 @@ impl<'j> LiveContinuedStagedStepV8<'j> {
     /// Completes the actual continued Complete Step through the existing six
     /// physical ACKs. No failure reconstructs an owner or replays a finalizer.
     /// The result remains private and borrowed from this registered store.
+    #[cfg(test)]
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn finish_complete_report(
         self,
         journal: &'j SourceOwnedWaitJournalV8,
         observe: impl FnMut(&crate::cleanup_plan::FinalizeAction),
         input: crate::live_invocation::source_journal::SourceTerminalEvidenceInput,
     ) -> Result<LiveClaimedReportV8<'j>, Failure<'j>> {
-        let admission = (|| {
-            if !std::ptr::eq(journal, self.journal()) {
-                return Err(SourceJournalError::Binding);
-            }
-            self.validate_live()?;
-            if self.staged.is_none()
-                || self.cleanup_ack.is_some()
-                || !self.checked_step()?.is_complete()
-            {
-                return Err(SourceJournalError::Order);
-            }
-            Ok(())
-        })();
-        if let Err(error) = admission {
-            self.journal().quarantine();
-            return Err(Failure::Select {
-                phase: Phase::Admission,
-                owner: self,
-                error,
-            });
-        }
-        let started = acknowledge(journal, Phase::CleanupStarted, self.prepare_cleanup())?;
-        let released = started.release(observe).map_err(Failure::Release)?;
-        let settled = acknowledge(journal, Phase::CleanupSettled, released.prepare_receipt())?;
-        let ready = select(Phase::Ready, settled.into_ready())?;
-        let reserved = acknowledge(journal, Phase::TransferReserved, ready.prepare_transfer())?;
-        let moved = reserved.move_fields().map_err(Failure::Move)?;
-        let completed = acknowledge(journal, Phase::TransferCompleted, moved.prepare_completed())?;
-        let transitioned = acknowledge(journal, Phase::Transition, completed.prepare_transition())?;
-        let terminal = acknowledge(
-            journal,
-            Phase::Terminal,
-            transitioned.prepare_terminal(input),
-        )?;
-        terminal
-            .claim_complete_report()
-            .map_err(|(owner, error)| Failure::Select {
-                phase: Phase::Claim,
-                owner,
-                error,
-            })
+        finish_complete_report_boxed(Box::new(self), journal, observe, input)
+            .map(|owner| *owner)
+            .map_err(|failure| *failure)
     }
 
     /// Completes the authenticated physical terminal path and releases only
@@ -179,9 +211,14 @@ impl<'j> LiveContinuedStagedStepV8<'j> {
         observe: impl FnMut(&crate::cleanup_plan::FinalizeAction),
         input: crate::live_invocation::source_journal::SourceTerminalEvidenceInput,
     ) -> Result<serde_json::Value, Failure<'j>> {
-        let claimed = self.finish_complete_report(journal, observe, input)?;
-        claimed
-            .into_delivery_projection()
-            .map_err(|(owner, error)| Failure::Delivery { owner, error })
+        let claimed = finish_complete_report_boxed(Box::new(self), journal, observe, input)
+            .map_err(|failure| *failure)?;
+        phase(|| {
+            (*claimed)
+                .into_delivery_projection()
+                .map_err(|(owner, error)| Failure::Delivery { owner, error })
+        })
+        .map(|projection| *projection)
+        .map_err(|failure| *failure)
     }
 }

@@ -1,5 +1,11 @@
 # Changelog
 
+- Bound owned-Agent terminal driver stack retention by carrying owners and
+  typed failures on the heap between each selection, append, ACK, release,
+  transfer and Report claim. Pin the fresh public regression to a 2 MiB worker
+  independently of suite stack settings. Default-stack execution remains
+  pending; the prior terminal frame alone reserved 1.77 MiB (#330).
+
 - Add a private native Claude print-JSON repair V3 route with exact model
   binding, bounded shared process capture and provider-reported usage. Preserve
   V1/V2 config meanings and checked source/candidate/journal authority; local

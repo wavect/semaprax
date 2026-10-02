@@ -481,6 +481,16 @@ fn owned_runtime_observer_failure_state_panic_and_cancellation_never_retry() {
 
 #[test]
 fn public_owned_agent_fresh_entry_runs_two_real_turns_and_projects_report() {
+    std::thread::Builder::new()
+        .name("public-owned-agent-default-stack".into())
+        .stack_size(2 * 1024 * 1024)
+        .spawn(public_owned_agent_fresh_entry_on_default_stack)
+        .unwrap()
+        .join()
+        .unwrap();
+}
+
+fn public_owned_agent_fresh_entry_on_default_stack() {
     use crate::agent_lifecycle::iterative::source_live::SourceLivePolicy;
     use crate::live_invocation::source_journal::{
         SourceOwnedAgentJournalV1, SourceOwnedAgentOpenErrorV1, SourceOwnedAgentStatusV1,

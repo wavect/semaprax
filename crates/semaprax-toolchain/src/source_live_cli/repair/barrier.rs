@@ -51,8 +51,8 @@ impl CheckpointStore for PostSettledBarrierStore<'_> {
         let Some(marker) = settled_attempt_marker(generation, document)? else {
             return Ok(());
         };
-        // Consume before emitting or parking. A spurious thread unpark cannot
-        // create a second pause later in the same invocation.
+        // Consume before emitting or parking. Physical pauses end only with
+        // process termination; a wake token is not authority to continue.
         self.armed = false;
         if let Some(host) = self.marker_host.as_ref() {
             host.write_repair_post_settled_marker(&marker_document(&marker))
@@ -62,7 +62,11 @@ impl CheckpointStore for PostSettledBarrierStore<'_> {
         }
         run_test_hook(marker);
         if self.marker_host.is_some() {
-            std::thread::park();
+            loop {
+                // park may return spuriously or consume a preexisting token.
+                // Neither permits proposal admission or effect dispatch.
+                std::thread::park();
+            }
         }
         Ok(())
     }

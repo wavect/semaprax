@@ -1,5 +1,10 @@
 # Changelog
 
+- Keep the physical repair post-settlement pause parked through queued tokens
+  and spurious or explicit wakes. A process regression exercises the durable
+  ACK/marker path and repeated unpark signals without crossing into subsequent
+  work; interrupted effect intents remain refused on recovery (#323).
+
 - Settle a real second-turn target failure through the original State owner,
   shared physical CleanupStarted/receipt/Stop ACK adapter and cumulative funding
   registry. Public `FailedEffectStopped` admits close only after the checked Stop;

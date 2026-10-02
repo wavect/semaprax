@@ -88,7 +88,10 @@ existing checked prerequisites, journal binding, model attempts, candidate
 review and explicit authority limits. Terminal resume replays without creating
 an adapter or candidate. The optional post-settlement barrier reuses the
 ordinary acknowledged checkpoint and exact retained marker; resume authenticates
-them before removing the marker. Evidence cannot authorize a new model call.
+them before removing the marker. The physical pause loops across spurious or
+explicit thread wakes and can end only by process termination. A retained marker
+does not authorize continuation in the paused process. Evidence cannot authorize
+a new model call.
 
 Focused gates are the existing toolchain library harness selectors
 `claude_host`, `source_live_cli::repair::tests::claude`, and preservation selector

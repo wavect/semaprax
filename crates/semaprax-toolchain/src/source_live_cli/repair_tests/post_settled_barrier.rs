@@ -248,3 +248,86 @@ fn repair_v2_post_settled_resume_preserves_a_forged_marker() {
         "refusal cannot invoke an effect"
     );
 }
+
+/// Exercise the real physical ACK/marker path in a killable child process.
+/// A queued token and repeated explicit wakes must never admit the next stage.
+#[cfg(unix)]
+#[test]
+fn physical_post_settled_pause_survives_unpark() {
+    use semaprax::agent_lifecycle::CheckpointStore;
+    use std::os::unix::fs::PermissionsExt;
+    use std::process::{Child, Command as ProcessCommand, Stdio};
+    use std::time::Instant;
+    const CHILD_ROOT: &str = "SEMAPRAX_TEST_POST_SETTLED_UNPARK_ROOT";
+    if let Some(root) = std::env::var_os(CHILD_ROOT) {
+        let root = PathBuf::from(root);
+        let scratch = root.join("scratch");
+        fs::create_dir(&scratch).unwrap();
+        let executable = root.join("never-dispatched");
+        fs::write(&executable, "#!/bin/sh\nexit 99\n").unwrap();
+        fs::set_permissions(&executable, fs::Permissions::from_mode(0o700)).unwrap();
+        let host = OpenCodeHostConfig::new_process_image(
+            executable,
+            scratch,
+            Duration::from_secs(1),
+            4096,
+        )
+        .unwrap();
+        let mut store =
+            CheckpointDir::fresh(&root.join("checkpoint"), &root.join("project")).unwrap();
+        let hook_root = root.clone();
+        super::barrier::set_test_post_settled_hook(move |_| {
+            let paused = std::thread::current();
+            paused.unpark(); // Queue a token before the first park.
+            std::thread::spawn(move || {
+                for _ in 0..32 {
+                    paused.unpark();
+                    std::thread::sleep(Duration::from_millis(2));
+                }
+                fs::write(hook_root.join("unparks-finished"), b"done").unwrap();
+            });
+        });
+        let mut barrier = super::barrier::PostSettledBarrierStore::new(&mut store, Some(host));
+        let document = r#"{"invocation":"pause-fixture","entries":[{"kind":"attempt_settled","turn":0,"attempt":0,"response_digest":"fixture-digest"}]}"#;
+        barrier.commit(1, document).unwrap();
+        fs::write(root.join("escaped-pause"), b"unsafe continuation").unwrap();
+        return;
+    }
+    struct KillChild(Child);
+    impl Drop for KillChild {
+        fn drop(&mut self) {
+            let _ = self.0.kill();
+            let _ = self.0.wait();
+        }
+    }
+    let fixture = Fixture::new();
+    let mut child = KillChild(ProcessCommand::new(std::env::current_exe().unwrap())
+        .args(["--exact", "source_live_cli::repair::tests::post_settled_barrier::physical_post_settled_pause_survives_unpark", "--nocapture"])
+        .env(CHILD_ROOT, &fixture.0)
+        .stdout(Stdio::null()).stderr(Stdio::inherit()).spawn().unwrap());
+    let deadline = Instant::now() + Duration::from_secs(10);
+    while !fixture.0.join("unparks-finished").exists() {
+        assert!(
+            child.0.try_wait().unwrap().is_none(),
+            "pause child exited before wake attempts completed"
+        );
+        assert!(
+            Instant::now() < deadline,
+            "pause child did not publish bounded wake evidence"
+        );
+        std::thread::sleep(Duration::from_millis(5));
+    }
+    assert!(fixture
+        .0
+        .join("scratch/.semaprax-repair-post-settled-pause.json")
+        .is_file());
+    assert!(fixture.0.join("checkpoint/checkpoint.json").is_file());
+    assert!(
+        child.0.try_wait().unwrap().is_none(),
+        "physical pause returned after unpark"
+    );
+    assert!(
+        !fixture.0.join("escaped-pause").exists(),
+        "pause cannot authorize subsequent work"
+    );
+}

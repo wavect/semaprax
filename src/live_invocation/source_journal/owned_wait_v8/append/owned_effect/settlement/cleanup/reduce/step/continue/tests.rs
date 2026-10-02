@@ -923,13 +923,46 @@ fn continued_reduce_chain_step_ack(fault: u8, three_turns: bool, later_observe_e
                                                 panic!("retained turn-2 Observe settlement owner")
                                             });
                                         if later_observe_ensures {
-                                            let stopped = crate::live_invocation::source_journal::owned_wait_v8::live_upstream::observe::settlement::failed_state::stop_failed_observe_state_v8(settled, |_| {})
-                                                .unwrap_or_else(|_| panic!("later failed Observe cleanup and sticky Stop"));
-                                            let current = journal.begin_session().unwrap();
-                                            assert!(matches!(current.test_observe_inventory().test_observe_entries().last().unwrap().entry,
-                                                EntryV8::Ordinary(SourceJournalEntry::Stop { turn: Some(2), attempt: None, status: crate::live_invocation::source_journal::SourceStopStatus::Rejected, reason: crate::live_invocation::source_journal::SourceStopReason::StageRefused })
-                                            ));
-                                            drop(stopped);
+                                            let before_cleanup = journal.begin_session().unwrap();
+                                            let (reserved, stages, turn, _, _, _, _) = before_cleanup
+                                                .failed_observe_cleanup_facts()
+                                                .unwrap();
+                                            assert_eq!((reserved, stages, turn), (charged_funding.0 + fuel, charged_funding.1 + 1, 2));
+                                            #[cfg(unix)]
+                                            let persisted_before_cleanup = journal.lease.try_borrow_mut().unwrap().read().unwrap();
+                                            if fault == 21 {
+                                                #[cfg(unix)]
+                                                journal.lease.try_borrow_mut().unwrap().test_fail_before_write(before_cleanup.sequence() + 1);
+                                            }
+                                            let mut failed_cleanup_actions = 0;
+                                            let result = crate::live_invocation::source_journal::owned_wait_v8::live_upstream::observe::settlement::failed_state::stop_failed_observe_state_v8(settled, |_| failed_cleanup_actions += 1);
+                                            if fault == 21 {
+                                                let quarantined = result.err().expect("Started prewrite refusal retains later failed State");
+                                                assert_eq!(failed_cleanup_actions, 0, "prewrite refusal cannot enter physical cleanup");
+                                                assert!(weak.iter().any(|owner| owner.strong_count() == 1));
+                                                assert!(journal.begin_session().is_err());
+                                                #[cfg(unix)]
+                                                assert_eq!(journal.lease.try_borrow().unwrap().test_persisted_snapshot().unwrap(), persisted_before_cleanup);
+                                                drop(quarantined);
+                                            } else {
+                                                let stopped = result.unwrap_or_else(|_| panic!("later failed Observe cleanup and sticky Stop"));
+                                                let expected_actions = journal.context().ready_runtime().unwrap().1.wait().observe().helper().liveness().failure_cleanup.len();
+                                                assert_eq!(failed_cleanup_actions, expected_actions);
+                                                let current = journal.begin_session().unwrap();
+                                                let (r, s, t, _) = current.test_observe_inventory().failed_observe_cleanup_current_facts().unwrap();
+                                                assert_eq!((r, s, t), (reserved, stages, turn), "State cleanup cannot recharge a stage");
+                                                assert!(matches!(current.test_observe_inventory().test_observe_entries().last().unwrap().entry,
+                                                    EntryV8::Ordinary(SourceJournalEntry::Stop { turn: Some(2), attempt: None, status: crate::live_invocation::source_journal::SourceStopStatus::Rejected, reason: crate::live_invocation::source_journal::SourceStopReason::StageRefused })
+                                                ));
+                                                drop(stopped);
+                                            }
+                                            assert_eq!(host.calls, 1);
+                                            assert_eq!(starts.get(), 2);
+                                            assert_eq!(cleanup_actions.get(), 1);
+                                            assert_eq!(step_cleanup_actions, 1);
+                                            assert_eq!(crate::interpreter::resumable::owned_frame::registered_stage::live_run::test_continued_resume_entries_v8(), resume_entries + 2);
+                                            assert_eq!(crate::interpreter::resumable::owned_frame::registered_stage::reduce::PreparedHeldContinuedWaitV2::test_start_entries(), start_entries + 1);
+                                            assert!(weak.iter().all(|owner| owner.upgrade().is_none()));
                                             return false;
                                         }
                                         let observed_row =
@@ -1317,93 +1350,13 @@ fn owned_continued_step_turn_two_start_prewrite_refusal_never_enters_source() {
 fn owned_continued_step_turn_two_failed_observe_cleans_state_and_stops() {
     continued_reduce_chain_step_ack(0, true, true);
 }
+#[test]
+#[cfg(unix)]
+fn owned_continued_step_turn_two_failed_observe_started_prewrite_retains_state() {
+    continued_reduce_chain_step_ack(21, true, true);
+}
 mod prepared;
-#[test]
-fn owned_continue_actual_state_and_observe_acks_preserve_owner_ledger_and_cumulative_funding() {
-    with_moved(|journal, moved, weak, _, _| {
-        let before = journal.begin_session().unwrap();
-        let (r, s, turn, _) = before.inventory.continuation_facts().unwrap();
-        let (ordinary_observation, ordinary_consumed) = moved.test_observe_oracle();
-        let ledger = *moved.accounting();
-        let fuel = journal.context().ordinary().max_steps_per_stage().unwrap() as u64;
-        let selected = moved
-            .prepare_continue()
-            .unwrap_or_else(|_| panic!("actual Continue selection"));
-        let current = ack(journal, selected)
-            .advance_continue()
-            .unwrap_or_else(|_| panic!("actual StateCommitted"));
-        let LiveContinueAcknowledgedV8::State(state) = current else {
-            panic!("State owner")
-        };
-        let after_state = journal.begin_session().unwrap();
-        let (nr, ns, next, _) = after_state.inventory.continuation_facts().unwrap();
-        assert_eq!((nr, ns, next), (r, s, turn + 1));
-        assert!(weak.iter().any(|w| w.strong_count() == 1));
-        let observed = ack(
-            journal,
-            state
-                .prepare_observe()
-                .unwrap_or_else(|_| panic!("fullF Observe obligation")),
-        )
-        .advance_continue()
-        .unwrap_or_else(|_| panic!("sole actual Observe"));
-        let LiveContinueAcknowledgedV8::Observed(observed) = observed else {
-            panic!("actual observed/failed owner")
-        };
-        assert!(observed.is_observed());
-        assert_eq!(observed.test_observation(), &ordinary_observation);
-        assert_eq!(observed.consumed(), ordinary_consumed);
-        assert_eq!(observed.turn(), turn + 1);
-        assert_eq!(observed.accounting(), &ledger);
-        assert!(observed.consumed() > 0 && observed.consumed() <= fuel as usize);
-        let after = journal.begin_session().unwrap();
-        let (nr, ns, _, _) = after.inventory.continuation_facts().unwrap();
-        assert_eq!((nr, ns), (r + fuel, s + 1));
-        assert!(weak.iter().any(|w| w.strong_count() == 1));
-        drop(observed);
-        assert!(weak.iter().all(|w| w.upgrade().is_none()));
-        false
-    });
-}
-#[test]
-fn owned_continue_cancel_or_expired_clock_before_ack_keeps_real_state_and_zero_new_stage() {
-    for expired in [false, true] {
-        with_moved(|journal, moved, weak, cancel, clock| {
-            let before = journal.begin_session().unwrap();
-            let seq = before.sequence();
-            let original = moved
-                .prepare_continue()
-                .unwrap_or_else(|_| panic!("live selector"));
-            if expired {
-                clock.now.set(
-                    journal
-                        .context()
-                        .ordinary()
-                        .deadline_millis()
-                        .checked_add(1)
-                        .unwrap(),
-                );
-            } else {
-                cancel.cancel();
-            }
-            let failure = before
-                .append_owned_continue(original)
-                .err()
-                .expect("actual prewrite guard refusal");
-            assert!(matches!(
-                failure,
-                LiveOwnedContinueAppendFailureV8::Before { .. }
-            ));
-            assert!(weak.iter().any(|w| w.strong_count() == 1));
-            assert!(journal.hold().is_err());
-            assert!(journal.begin_session().is_err());
-            assert!(seq > 0);
-            drop(failure);
-            assert!(weak.iter().all(|w| w.upgrade().is_none()));
-            false
-        });
-    }
-}
+mod actual_state;
 #[test]
 #[cfg(unix)]
 fn owned_continue_state_and_observe_real_append_faults_never_evaluate_or_remint() {

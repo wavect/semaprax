@@ -208,3 +208,30 @@ same original backing retained, successful failed-Observe cleanup after handle
 disposal, failures at each of the three cleanup append boundaries, and observer
 panic. They are authored but unexecuted in this source-only batch. No public
 support or issue-closure claim is made from these authored tests.
+
+
+## 8. Complete Report consumption retires the inherited Reduce hold
+
+The consuming private Report projection now settles its inherited prospective
+Reduce registry membership before normal owner destruction. This transition
+requires the actual claimed Report, pointer equality with that Report's unique
+hold, the current authenticated Complete TerminalSnapshot witness, the same
+journal container, exact hold identity, Step phase, turn, charged funding,
+sequence, acknowledged bytes and authentication tail. Copying a delivery view,
+claiming a Report, or reopening terminal evidence does not retire the hold.
+
+The callback-free retirement clears only the matched registry record and marks
+that unique hold completed. It does not refund funding, construct another hold,
+append a row or grant another turn. Normal Drop then releases the physical
+Report and inherited lineage without poisoning a completed journal. Any
+validation or projection failure leaves the hold's quarantine Drop active and
+returns the actual Report owner. All earlier failure phases preserve their
+existing quarantine behavior.
+
+The composed two-turn regression now checks the settled registry, usable held
+store after projection, refusal of fresh reinitialization, and actual store
+close/reopen. Its Model-settlement and terminal-prewrite refusal cases check
+that registry membership survives quarantine. The later terminal Report tests
+also check retirement on success and retained membership on projection refusal.
+These strengthened regressions are authored but unexecuted in this source-only
+change.

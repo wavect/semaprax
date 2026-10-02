@@ -996,5 +996,5 @@ mod step_transfer;
 mod terminal_report;
 
 pub(in crate::live_invocation::source_journal::owned_wait_v8) use terminal_report::{
-    LiveContinuedTerminalDriverFailureV8, LiveContinuedTerminalPhaseV8,
+    LiveClaimedReportV8, LiveContinuedTerminalDriverFailureV8, LiveContinuedTerminalPhaseV8,
 };

@@ -1,5 +1,12 @@
 # Changelog
 
+- Fix successful owned-Agent Report projection poisoning its journal when the
+  inherited Reduce hold was dropped. The physical claimed Report now permits
+  one checked retirement of the matching authenticated terminal registry entry;
+  incomplete and failed paths keep quarantine armed. Composed success/reopen
+  and failure-retention regressions are strengthened, unrun in this source-only
+  change (#330).
+
 - Owned Agent v8 now has private typed runtime custody for Initialize through
   Model/Resume, independent of disposable caller session handles. Runtime-driven
   failed-Observe cleanup uses the existing acknowledged cleanup/receipt/Stop

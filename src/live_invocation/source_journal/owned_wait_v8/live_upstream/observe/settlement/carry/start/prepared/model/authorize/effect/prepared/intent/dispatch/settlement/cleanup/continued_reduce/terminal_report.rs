@@ -13,7 +13,7 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) struct LiveClaimed
     report: ClaimedExecutedOwnedReportV2<'j>,
 }
 
-impl LiveClaimedReportV8<'_> {
+impl<'j> LiveClaimedReportV8<'j> {
     /// Borrows a bounded Report projection and exact terminal evidence while
     /// retaining the original Report and authenticated terminal owner. No JSON
     /// value can recreate either owner.
@@ -84,6 +84,26 @@ impl LiveClaimedReportV8<'_> {
         Ok(actual)
     }
 
+    /// A physical claimed Report supplies the terminal retirement capability.
+    /// The caller's hold must be this Report lineage's actual inherited hold;
+    /// an authenticated row or a different live Report cannot substitute for it.
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_reduce_retirement(
+        &self,
+        hold: &ProspectiveOwnedReduceHoldV8<'_>,
+    ) -> Result<(&AppendSessionV8<'j>, &EntryV8), SourceJournalError> {
+        if !std::ptr::eq(self.owner.hold()?, hold) {
+            return Err(SourceJournalError::Binding);
+        }
+        self.delivery_projection()?;
+        let (session, witness) = self
+            .owner
+            .terminal_ack
+            .as_ref()
+            .ok_or(SourceJournalError::Order)?;
+        witness.validate_current_session(session)?;
+        Ok((session, witness.selected_row()))
+    }
+
     /// Consumes the terminal Report owner after deriving its checked delivery
     /// value. A delivery consumer can retain only canonical projection data
     /// and exact authenticated terminal evidence bytes;
@@ -91,8 +111,16 @@ impl LiveClaimedReportV8<'_> {
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn into_delivery_projection(
         self,
     ) -> Result<serde_json::Value, (Self, SourceJournalError)> {
-        match self.delivery_projection() {
-            Ok(projection) => Ok(projection),
+        let projection = match self.delivery_projection() {
+            Ok(projection) => projection,
+            Err(error) => return Err((self, error)),
+        };
+        let retired = self
+            .owner
+            .hold()
+            .and_then(|hold| hold.complete_claimed_report(&self));
+        match retired {
+            Ok(()) => Ok(projection),
             Err(error) => Err((self, error)),
         }
     }

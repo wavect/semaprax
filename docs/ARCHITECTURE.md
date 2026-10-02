@@ -187,7 +187,10 @@ shutdown and public session construction remain unfinished.
 Its `wait` child retains the actual helper park;
 `append/checkpoint` seals the frozen v2 frame from the same held session and
 actual witness inventory without exposing the key or restoring an owner. Historical rows cannot
-mint physical owners or permits. `append/owned_effect/intent` owns the actual
+mint physical owners or permits. The `append/owned_effect/consumed/reduce_hold/terminal`
+child owns final registry retirement: only consumption of the actual claimed
+Complete Report can settle its same inherited hold against the exact current
+terminal ACK. All incomplete holds retain quarantine on Drop. `append/owned_effect/intent` owns the actual
 held Intent durable ACK and sealed successor; its callback-free registry
 transition retains the same exclusive future-Reduce hold. The consuming
 `live_upstream/effect/authorization/prepared/intent/activation` adapter owns

@@ -95,8 +95,17 @@ fn exercise(fault: Option<(usize, &'static str)>, cancel_before: bool, three_tur
                 assert_eq!(host.calls, 0);
                 assert_eq!(releases.get(), 0);
             }
+            assert!(
+                journal.prospective_reduce.borrow().is_some(),
+                "failed composition cannot retire the inherited Reduce hold"
+            );
             let released = releases.get();
             drop(failure);
+            assert!(journal.prospective_reduce.borrow().is_some());
+            assert!(
+                journal.begin_session().is_err(),
+                "failure Drop stays quarantined"
+            );
             assert!(weak.iter().all(|root| root.upgrade().is_none()));
             assert_eq!(
                 releases.get(),
@@ -114,7 +123,18 @@ fn exercise(fault: Option<(usize, &'static str)>, cancel_before: bool, three_tur
                 2,
                 "Decision and non-result Step cleanup each run once"
             );
+            assert!(
+                journal.prospective_reduce.borrow().is_none(),
+                "actual terminal Report consumption settles the inherited registry"
+            );
+            journal
+                .hold()
+                .expect("normal success Drop must preserve the registered store guard");
             assert_eq!(journal.begin_session().unwrap().sequence(), sequence + 32);
+            assert!(
+                journal.begin_fresh_session().is_err(),
+                "retirement cannot reinitialize a completed history"
+            );
             assert_eq!(delivered["kind"], "complete");
             assert!(delivered["report"]["fields"].as_array().is_some());
             let terminal = journal.terminal_evidence().unwrap();

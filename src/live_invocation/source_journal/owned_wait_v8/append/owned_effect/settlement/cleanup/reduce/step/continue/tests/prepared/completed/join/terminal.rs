@@ -40,6 +40,10 @@ pub(super) fn run<'j>(
         let claimed = staged
             .finish_complete_report(journal, |_| releases.set(releases.get() + 1), input)
             .unwrap_or_else(|failure| panic!("{}", failure_detail(&failure)));
+        assert!(
+            journal.prospective_reduce.borrow().is_some(),
+            "claim alone does not retire the hold"
+        );
         journal.quarantine();
         let (owner, error) = claimed
             .into_delivery_projection()
@@ -51,7 +55,12 @@ pub(super) fn run<'j>(
         );
         assert!(weak.iter().any(|root| root.strong_count() == 1));
         assert_eq!(releases.get(), 1);
+        assert!(
+            journal.prospective_reduce.borrow().is_some(),
+            "failed projection retains hold obligation"
+        );
         drop(owner);
+        assert!(journal.begin_session().is_err());
         assert!(weak.iter().all(|root| root.upgrade().is_none()));
         assert_eq!(releases.get(), 1, "refusal cannot retry cleanup");
         return;
@@ -101,6 +110,10 @@ pub(super) fn run<'j>(
             releases.get(),
             1,
             "the canonical non-result cleanup runs once"
+        );
+        assert!(
+            journal.prospective_reduce.borrow().is_none(),
+            "later lineage settles the same inherited hold"
         );
         let after = journal.begin_session().unwrap();
         assert_eq!(after.sequence(), sequence + 6);

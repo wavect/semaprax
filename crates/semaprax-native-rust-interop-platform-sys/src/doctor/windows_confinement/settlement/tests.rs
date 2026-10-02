@@ -34,12 +34,15 @@ fn sticky_settlement_lets_a_pending_completed_be_overridden_by_a_later_terminal_
 #[test]
 fn sticky_settlement_never_lets_a_later_completed_override_an_earlier_terminal_status() {
     for first in [
+        Settlement::Failed(FailureReason::OutputLimit),
+        Settlement::Failed(FailureReason::CpuTimeLimit),
         Settlement::Failed(FailureReason::JobLimitViolation),
         Settlement::Cancelled,
         Settlement::Uncertain(UncertainReason::WaitFailed),
         Settlement::Uncertain(UncertainReason::QueryFailed),
         Settlement::Uncertain(UncertainReason::KillAmbiguous),
         Settlement::Uncertain(UncertainReason::KillWaitTimedOut),
+        Settlement::Uncertain(UncertainReason::OutputReadFailed),
     ] {
         let mut state = StickySettlement::default();
         state.select(first);

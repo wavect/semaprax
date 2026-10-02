@@ -158,6 +158,59 @@ fn runtime_child_marks_start_then_waits_for_job_termination() {
 
 #[test]
 #[ignore = "spawned only by the live confinement runtime tests"]
+fn runtime_child_exhausts_cpu_time_limit() {
+    publish_child_marker(b"cpu-limit-started");
+    let mut state = 0x9e37_79b9_7f4a_7c15_u64;
+    loop {
+        state = std::hint::black_box(
+            state
+                .wrapping_mul(0xbf58_476d_1ce4_e5b9)
+                .rotate_left(17)
+                .wrapping_add(0x94d0_49bb_1331_11eb),
+        );
+    }
+}
+
+#[test]
+#[ignore = "spawned only by the live confinement runtime tests"]
+fn runtime_child_exhausts_committed_memory_limit() {
+    const CHUNK_BYTES: usize = 8 * 1024 * 1024;
+    let required_chunks = PROCESS_MEMORY_LIMIT_BYTES.div_ceil(CHUNK_BYTES) + 8;
+    let mut chunks = Vec::with_capacity(required_chunks);
+    for _ in 0..required_chunks {
+        let mut chunk = Vec::new();
+        if chunk.try_reserve_exact(CHUNK_BYTES).is_err() {
+            publish_child_marker(b"committed-memory-limit-refused");
+            return;
+        }
+        // Commit every page rather than merely reserving virtual address space.
+        // With the configured job bound this must fail before the hostile
+        // control can retain its requested `required_chunks` allocation.
+        chunk.resize(CHUNK_BYTES, 0xa5);
+        chunks.push(chunk);
+    }
+    publish_child_marker(b"committed-memory-limit-not-enforced");
+}
+
+#[test]
+#[ignore = "spawned only by the live confinement runtime tests"]
+fn runtime_child_exceeds_combined_output_limit() {
+    use std::io::Write as _;
+
+    publish_child_marker(b"output-limit-started");
+    let chunk = [b'o'; 8192];
+    let stdout = std::io::stdout();
+    let mut stdout = stdout.lock();
+    loop {
+        stdout
+            .write_all(&chunk)
+            .expect("write confined stdout flood");
+        stdout.flush().expect("flush confined stdout flood");
+    }
+}
+
+#[test]
+#[ignore = "spawned only by the live confinement runtime tests"]
 fn runtime_child_exits_with_nonzero_status() {
     publish_child_marker(b"exit-37");
     std::process::exit(37);
@@ -446,6 +499,7 @@ fn windows_runtime_launches_restricted_child_inside_acl_scratch_and_settles_it()
     use windows_sys::Win32::System::JobObjects::{
         IsProcessInJob, JOB_OBJECT_LIMIT_ACTIVE_PROCESS,
         JOB_OBJECT_LIMIT_DIE_ON_UNHANDLED_EXCEPTION, JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE,
+        JOB_OBJECT_LIMIT_PROCESS_MEMORY, JOB_OBJECT_LIMIT_PROCESS_TIME,
         JOBOBJECT_BASIC_UI_RESTRICTIONS, JOBOBJECT_EXTENDED_LIMIT_INFORMATION,
         JobObjectBasicUIRestrictions, JobObjectExtendedLimitInformation, QueryInformationJobObject,
     };
@@ -551,12 +605,19 @@ fn windows_runtime_launches_restricted_child_inside_acl_scratch_and_settles_it()
     );
     let required_limits = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
         | JOB_OBJECT_LIMIT_ACTIVE_PROCESS
+        | JOB_OBJECT_LIMIT_PROCESS_TIME
+        | JOB_OBJECT_LIMIT_PROCESS_MEMORY
         | JOB_OBJECT_LIMIT_DIE_ON_UNHANDLED_EXCEPTION;
     assert_eq!(
         limits.BasicLimitInformation.LimitFlags & required_limits,
         required_limits
     );
     assert_eq!(limits.BasicLimitInformation.ActiveProcessLimit, 1);
+    assert_eq!(
+        limits.BasicLimitInformation.PerProcessUserTimeLimit,
+        CPU_TIME_LIMIT_100NS
+    );
+    assert_eq!(limits.ProcessMemoryLimit, PROCESS_MEMORY_LIMIT_BYTES);
     let mut ui = JOBOBJECT_BASIC_UI_RESTRICTIONS::default();
     assert_ne!(
         unsafe {
@@ -677,6 +738,112 @@ fn windows_runtime_timeout_terminates_the_confined_job_and_settles_cancellation(
     assert!(
         !scratch_dir.exists(),
         "settlement removes the now-empty per-child scratch directory"
+    );
+    assert_parent_empty(&parent);
+}
+
+#[test]
+#[ignore = "requires the explicitly provisioned Windows runtime gate"]
+fn windows_runtime_cpu_time_limit_terminates_and_settles_the_confined_job() {
+    let parent = runtime_parent();
+    let executable = std::env::current_exe().expect("current test executable exists");
+    let args = child_test_args("runtime_child_exhausts_cpu_time_limit");
+    let borrowed_args: Vec<&OsStr> = args.iter().map(OsString::as_os_str).collect();
+    let capsule = test_capsule_body();
+    let child = confined_spawn_with_test_key(
+        &executable,
+        &borrowed_args,
+        &parent,
+        &capsule.bytes,
+        &capsule.public_key_hex,
+    )
+    .expect("restricted child enters the CPU-limited job");
+    let mut cleanup_guard = RuntimeChildCleanupGuard::new(&child);
+    let marker = child._scratch.dir.join(TEST_MARKER);
+    let scratch_dir = child._scratch.dir.clone();
+    wait_for_marker(&marker);
+    assert_eq!(std::fs::read(&marker).unwrap(), b"cpu-limit-started");
+    std::fs::remove_file(&marker).expect("remove exact child marker before scratch settlement");
+    cleanup_guard.disarm();
+    assert_eq!(
+        settle(child, Duration::from_secs(12)).status,
+        Settlement::Failed(FailureReason::CpuTimeLimit)
+    );
+    assert!(
+        !scratch_dir.exists(),
+        "CPU-limit settlement removes the now-empty per-child scratch directory"
+    );
+    assert_parent_empty(&parent);
+}
+
+#[test]
+#[ignore = "requires the explicitly provisioned Windows runtime gate"]
+fn windows_runtime_committed_memory_limit_refuses_the_hostile_allocation() {
+    let parent = runtime_parent();
+    let executable = std::env::current_exe().expect("current test executable exists");
+    let args = child_test_args("runtime_child_exhausts_committed_memory_limit");
+    let borrowed_args: Vec<&OsStr> = args.iter().map(OsString::as_os_str).collect();
+    let capsule = test_capsule_body();
+    let child = confined_spawn_with_test_key(
+        &executable,
+        &borrowed_args,
+        &parent,
+        &capsule.bytes,
+        &capsule.public_key_hex,
+    )
+    .expect("restricted child enters the committed-memory-limited job");
+    let mut cleanup_guard = RuntimeChildCleanupGuard::new(&child);
+    let marker = child._scratch.dir.join(TEST_MARKER);
+    let scratch_dir = child._scratch.dir.clone();
+    wait_for_marker(&marker);
+    assert_eq!(
+        std::fs::read(&marker).unwrap(),
+        b"committed-memory-limit-refused",
+        "the hostile allocation must fail under the configured committed-memory cap"
+    );
+    std::fs::remove_file(&marker).expect("remove exact child marker before scratch settlement");
+    cleanup_guard.disarm();
+    assert_eq!(
+        settle(child, Duration::from_secs(30)).status,
+        Settlement::Completed
+    );
+    assert!(
+        !scratch_dir.exists(),
+        "memory-limit settlement removes the now-empty per-child scratch directory"
+    );
+    assert_parent_empty(&parent);
+}
+
+#[test]
+#[ignore = "requires the explicitly provisioned Windows runtime gate"]
+fn windows_runtime_output_limit_terminates_and_settles_the_confined_job() {
+    let parent = runtime_parent();
+    let executable = std::env::current_exe().expect("current test executable exists");
+    let args = child_test_args("runtime_child_exceeds_combined_output_limit");
+    let borrowed_args: Vec<&OsStr> = args.iter().map(OsString::as_os_str).collect();
+    let capsule = test_capsule_body();
+    let child = confined_spawn_with_test_key(
+        &executable,
+        &borrowed_args,
+        &parent,
+        &capsule.bytes,
+        &capsule.public_key_hex,
+    )
+    .expect("restricted child enters the output-accounted job");
+    let mut cleanup_guard = RuntimeChildCleanupGuard::new(&child);
+    let marker = child._scratch.dir.join(TEST_MARKER);
+    let scratch_dir = child._scratch.dir.clone();
+    wait_for_marker(&marker);
+    assert_eq!(std::fs::read(&marker).unwrap(), b"output-limit-started");
+    std::fs::remove_file(&marker).expect("remove exact child marker before scratch settlement");
+    cleanup_guard.disarm();
+    assert_eq!(
+        settle(child, Duration::from_secs(12)).status,
+        Settlement::Failed(FailureReason::OutputLimit)
+    );
+    assert!(
+        !scratch_dir.exists(),
+        "output-limit settlement removes the now-empty per-child scratch directory"
     );
     assert_parent_empty(&parent);
 }

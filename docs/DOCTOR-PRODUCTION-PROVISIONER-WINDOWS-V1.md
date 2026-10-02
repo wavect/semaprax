@@ -18,9 +18,10 @@ and anonymous carrier handle-lifetime cases. All 22 passed, with none ignored,
 at `e15c16202` in [run 36919771375](https://github.com/wavect/semaprax/actions/runs/36919771375).
 The subsequent 24-case native receipt establishes initial-open exclusion of
 retained writable sections; the 26-case receipt adds authenticated child
-request/bundle transport. The continuous sharing argument and two new
-concurrent cases are specified below. The authoring host is macOS arm64;
-native Windows evidence remains attached to its exact hosted revision.
+request/bundle transport. The continuous sharing argument, two new concurrent
+image cases, and three resource-limit cases are specified below. The authoring
+host is macOS arm64; native Windows evidence remains attached to its exact
+hosted revision.
 No cross-compilation or emulated substitute is treated as native execution
 evidence. Host-independent capsule, admission-ordering,
 and settlement logic remains separately testable on non-Windows hosts. See
@@ -189,12 +190,23 @@ above) and sets:
   set to a small fixed bound (one, for a tool invocation with no expected
   descendants; the doctor collector's existing hostile-input philosophy would
   treat a tool that spawns a second process as something to *observe and
-  reject*, not silently accommodate). A limit violation terminates the whole
-  job, which is the Windows analog of the Linux contract's
-  `memory.oom.group = 1`: an overshoot kills the whole scope rather than
-  refusing cleanly mid-invocation.
+  reject*, not silently accommodate). When adding a process would exceed the
+  bound, Windows terminates that new process and the association fails; the
+  existing leader remains subject to the job.
 - `JOB_OBJECT_LIMIT_DIE_ON_UNHANDLED_EXCEPTION`, so a crashing tool cannot
   leave a debugger-attachable faulted process alive inside the job.
+- `JOB_OBJECT_LIMIT_PROCESS_TIME` with a two-second
+  `PerProcessUserTimeLimit`. The CPU-burn fixture must make the leader exit
+  nonzero rather than relying on the caller's wall-clock deadline. Settlement
+  preserves that raw `ExitCode`: aggregate job CPU accounting does not prove
+  that the periodic Windows limit check caused a particular exit.
+- `JOB_OBJECT_LIMIT_PROCESS_MEMORY` with a 256 MiB committed-memory cap. The
+  hostile child allocates and touches 8 MiB chunks past that ceiling and must
+  report an allocation refusal before settlement; reserving address space is
+  not the hostile control.
+- Two anonymous output pipes with 4 KiB pending buffers. The parent-only
+  readers account stdout and stderr together and terminate the owned job once
+  their total exceeds 64 KiB.
 - A `JOBOBJECT_BASIC_UI_RESTRICTIONS` call (`SetInformationJobObject` with
   `JobObjectBasicUIRestrictions`) denying `JOB_OBJECT_UILIMIT_HANDLES`,
   `JOB_OBJECT_UILIMIT_READCLIPBOARD`, `JOB_OBJECT_UILIMIT_WRITECLIPBOARD`,
@@ -441,18 +453,22 @@ metadata-only bridge also remains rejected by the
 No ACL transition, copy/close/reopen scheme, image-section experiment or
 byte-range lock is required by the continuous data-read sharing design.
 
-The broader resource corpus still requires actual CPU, committed-memory and
-output exhaustion with sticky failure and job/handle settlement. Inspecting
-job flags alone does not meet that obligation. Preserve the production
-one-process limit and separately authorized test-only descendant fixture.
-Ordinary provisioner integration and production support remain separate from
-#333's signed binding and hostile-runtime acceptance.
+The resource corpus adds a CPU burn that must settle as
+`Failed(ExitCode(_))`, an allocation-and-touch fixture that must receive a
+committed-memory refusal, and an alternating stdout/stderr flood with each
+stream below 64 KiB but their total above it. The flood must settle as
+`Failed(OutputLimit)` after terminating the owned job. Each case requires
+job/handle/scratch settlement; inspecting job flags alone does not meet that
+obligation. Preserve the production one-process limit and separately
+authorized test-only descendant fixture. Ordinary provisioner integration and
+production support remain separate from #333's signed binding and
+hostile-runtime acceptance.
 
 For this batch, run the Windows library/test type-check, both provisioned gate
 self-tests and the complete native Windows selector on the changed revision.
 The user has explicitly delegated the full quality profile to hosted CI; it
-is not a local issue-closure prerequisite. This source revision adds two
-selected tests but does not claim they have executed yet.
+is not a local issue-closure prerequisite. This source revision adds five
+selected tests and does not claim they have executed yet.
 
 ## Settlement contract
 
@@ -512,16 +528,18 @@ The dispatch-only
 uses an ephemeral `windows-2025` runner and creates a fresh, explicit scratch
 parent under `RUNNER_TEMP`. The gate fails when the host is not 64-bit Windows,
 the parent is missing, nonempty, or a reparse point, Cargo fails, any named
-test is filtered or ignored, or the test summary does not report all twenty-eight
+test is filtered or ignored, or the test summary does not report all thirty-one
 selected cases as passed. It never treats an absent prerequisite or a zero-test
 run as a skip/pass. The historical receipt below covers the earlier twenty-two
 case selector only.
 
 `scripts/doctor-provisioned-windows-gate.py --self-test` checks the gate's
 refusal and libtest-result parsing on any host; it provides no Windows runtime
-evidence. `--plan` prints the exact twenty-eight-test selector. The live selection runs
+evidence. `--plan` prints the exact thirty-one-test selector. The live selection runs
 `windows_runtime_launches_restricted_child_inside_acl_scratch_and_settles_it`
 and `windows_runtime_timeout_terminates_the_confined_job_and_settles_cancellation`,
+the CPU-time and committed-memory fixtures, and
+`windows_runtime_combined_output_limit_terminates_and_settles_the_confined_job`,
 plus `windows_runtime_timeout_terminates_an_actual_job_descendant`,
 `windows_runtime_nonzero_exit_settles_failed_and_cleans_resources` and
 `windows_runtime_scratch_refusal_closes_setup_handles`,
@@ -586,8 +604,9 @@ The earlier expanded selector passed 22/22 with none ignored at `e15c16202` in
 Its new retained-section and carrier cases establish refusal and handle/scratch
 settlement only; they do not establish image-byte binding or child transport.
 The later checkpoint and request/bundle handoff cases passed in the exact
-24/26-case native receipts above. The two concurrent sharing cases extend the
-selector to twenty-eight and require a new native Windows receipt.
+24/26-case native receipts above. The two concurrent sharing cases and three
+resource-limit cases extend the selector to thirty-one and require a new native
+Windows receipt.
 
 ## Acceptance criteria status
 
@@ -595,16 +614,16 @@ selector to twenty-eight and require a new native Windows receipt.
 |---|---|
 | Versioned Windows contract, cross-referenced from V1 | met |
 | Confinement primitive exists in the owning crate | implemented in `doctor::windows_confinement::primitive`; hosted type-check at exact checkout `7cab8aa8` and historical five selected runtime tests passed at exact checkout `3d4220b6`; see [Nonclaims](#nonclaims) |
-| Sealed-capsule consumption | standalone primitive calls shared `parse_signed` with the compile-time release-key input and requires native Windows code 3/4; it now carries exact signed request/bundle slots to a fixed child inventory, with a 26-case native receipt at `2c9695f5d`; the two additional concurrent sharing cases need a native receipt; ordinary Windows CLI transport remains open |
+| Sealed-capsule consumption | standalone primitive calls shared `parse_signed` with the compile-time release-key input and requires native Windows code 3/4; it now carries exact signed request/bundle slots to a fixed child inventory, with a 26-case native receipt at `2c9695f5d`; two image-sharing and three resource-limit cases need a native receipt; ordinary Windows CLI transport remains open |
 | Hostile-input tests for the host-independent parts | 29 tests across `capsule`, `refusal`, and `settlement` pass on this authoring host (macOS arm64); `cargo test -p semaprax-native-rust-interop-platform-sys --lib doctor::windows_confinement` |
-| Runtime tests for the Win32 primitive itself | 26 selected cases passed in [run 36991582065](https://github.com/wavect/semaprax/actions/runs/36991582065) at `2c9695f5d`; two additional concurrent sharing cases await native execution |
-| Fail-closed gate authored and run | exact 26-case selector passed at `2c9695f5d`; the 28-case selector requires a new receipt |
+| Runtime tests for the Win32 primitive itself | 26 selected cases passed in [run 36991582065](https://github.com/wavect/semaprax/actions/runs/36991582065) at `2c9695f5d`; two additional concurrent sharing cases and three resource-limit cases await native execution |
+| Fail-closed gate authored and run | exact 26-case selector passed at `2c9695f5d`; the 31-case selector requires a new receipt |
 | Linux, macOS, or existing job-object evidence never cited as Windows proof | met |
 | `docs/COMPLETION-MATRIX.md` WP-05 promoted for Windows | not done; not claimed |
 
 ## Nonclaims
 
-This contract does not claim that the twenty-eight-test Windows selector is a
+This contract does not claim that the thirty-one-test Windows selector is a
 complete hostile corpus or production-support gate. The two-test run at
 `c6bf9902` and five-test run at `3d4220b6` each bind only their exact checkout
 and selected tests.
@@ -634,6 +653,6 @@ observations of the restricted token, protected DACL, production job limits,
 descendant launch refusal, test-owned descendant timeout, normal/nonzero
 settlement, cancellation, and repeated filesystem-stage refusal/handle cleanup.
 The remaining work includes restricted-token refinement,
-native validation of the new concurrent image-sharing cases, ordinary
-Windows request/bundle transport, and a broader hostile/resource corpus across
+native validation of the new concurrent image-sharing and resource-limit cases,
+ordinary Windows request/bundle transport, and a broader hostile corpus across
 supported Windows runners.

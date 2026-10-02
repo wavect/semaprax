@@ -41,6 +41,14 @@ format: `Unreleased` then release buckets, grouped by impact.
   to the native selector. The two new cases still require native execution;
   production Windows support and release trust remain unpromoted.
 
+- Extend the standalone Windows doctor confinement primitive with a two-second
+  per-process CPU ceiling, a 256 MiB committed-memory ceiling, and 64 KiB
+  combined anonymous-pipe output accounting. The 31-case selector preserves a
+  CPU-limit nonzero exit code without unsupported attribution, requires an
+  allocation refusal, and floods both streams below their individual cap but
+  above their shared cap. This source-only change has no Windows runtime
+  receipt and does not wire an ordinary Windows provisioner route.
+
 - Harden the Windows doctor request/bundle carriers against duplicated write
   access and owner-mediated DACL changes using a protected OWNER RIGHTS deny
   policy. The existing native child handoff case now rejects `FILE_MAP_WRITE`,

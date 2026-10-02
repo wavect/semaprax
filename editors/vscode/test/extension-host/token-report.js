@@ -14,10 +14,15 @@ async function run() {
   const write = (name, value) => { const file = path.join(directory, name); fs.writeFileSync(file, typeof value === 'string' ? value : JSON.stringify(value)); return vscode.Uri.file(file); };
   const projection = counts => ({ schema: 'semaprax.token-comparison.v1', comparison_identity: sha('a'), report_kind: 'projection', profile: 'graph', root_sha256: sha('b'), selection_sha256: sha('c'), source_revision: '<script>old</script>', producer_options_sha256: sha('d'), baseline: { sha256: sha('e'), utf8_bytes: 100 }, actual: { sha256: sha('f'), utf8_bytes: 120 }, tokenizer: counts.measurement_status === 'measured' ? { name: 'cl100k_base' } : null, counts, baseline_kind: 'same_selected_json', actual_kind: 'compact_model-text', display_lf_in_measurement: false, compiler: {} });
   try {
-    api.enqueueReport(write('growth.json', projection({ measurement_status: 'measured', baseline_tokens: 10, actual_tokens: 12, delta_tokens: -2, delta_fraction: { numerator: -2, denominator: 10 }, delta_percentage: -20 })));
+    const growth = write('growth.json', projection({ measurement_status: 'measured', baseline_tokens: 10, actual_tokens: 12, delta_tokens: -2, delta_fraction: { numerator: -2, denominator: 10 }, delta_percentage: -20 }));
+    api.enqueueReport(growth);
     await api.execute('showTokenReport');
     assert.match(vscode.window.activeTextEditor.document.getText(), /\+2 tokens used versus reference/);
     assert.match(vscode.window.activeTextEditor.document.getText(), /<script>old<\/script>/);
+    api.setReportBinding(sha('9'));
+    api.enqueueReport(growth); await api.execute('showTokenReport');
+    assert.match(vscode.window.activeTextEditor.document.getText(), /Stale\/mismatched report/);
+    api.setReportBinding(undefined);
     api.enqueueReport(write('unavailable.json', projection({ measurement_status: 'tokenizer_unavailable', baseline_tokens: null, actual_tokens: null, delta_tokens: null, delta_fraction: null, delta_percentage: null })));
     await api.execute('showTokenReport'); assert.match(vscode.window.activeTextEditor.document.getText(), /Model tokens unavailable/);
     api.enqueueReport(write('partial.json', { schema: 'semaprax.token-comparison-session.v1', comparison_identity: sha('a'), report_kind: 'session', event_stream_sha256: sha('b'), malformed_events: 0, events: 3, groups: [{ tokenizer: 'cl100k_base', tokenizer_fingerprint: sha('c'), boundary: 'response', reference_kind: 'paired', coverage: { events: 3, token_measured: 2, baseline_available: 2, paired: 1 }, outcomes: { success: 1, error: 1 }, statuses: { measured: 2 }, bytes: 20, tokens: 999, baseline_tokens: 999, paired_actual_tokens: 8, paired_baseline_tokens: 10 }] }));

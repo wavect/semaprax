@@ -14,20 +14,11 @@
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum FailureReason {
-    /// The leader process exited on its own with this nonzero code.
+    /// The leader process exited with this nonzero code.
     ExitCode(u32),
     /// The bounded pipe reader observed more stdout/stderr bytes than the
     /// primitive admits and selected failure before terminating its owned job.
     OutputLimit,
-    /// The job's observed user-mode CPU accounting reached its configured
-    /// process-time ceiling before the terminated leader became signaled.
-    CpuTimeLimit,
-    /// A job-object limit (`JOB_OBJECT_LIMIT_ACTIVE_PROCESS`,
-    /// `JOB_OBJECT_LIMIT_DIE_ON_UNHANDLED_EXCEPTION`, or a UI restriction)
-    /// terminated the whole job. This is the Windows analog of the Linux
-    /// contract's `memory.oom.group = 1`: an overshoot kills the whole scope
-    /// rather than refusing cleanly mid-invocation.
-    JobLimitViolation,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

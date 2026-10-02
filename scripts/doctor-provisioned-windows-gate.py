@@ -33,7 +33,7 @@ EXPECTED_TESTS = (
     "doctor::windows_confinement::primitive::tests::windows_runtime_timeout_terminates_the_confined_job_and_settles_cancellation",
     "doctor::windows_confinement::primitive::tests::windows_runtime_cpu_time_limit_terminates_and_settles_the_confined_job",
     "doctor::windows_confinement::primitive::tests::windows_runtime_committed_memory_limit_refuses_the_hostile_allocation",
-    "doctor::windows_confinement::primitive::tests::windows_runtime_output_limit_terminates_and_settles_the_confined_job",
+    "doctor::windows_confinement::primitive::tests::windows_runtime_combined_output_limit_terminates_and_settles_the_confined_job",
     "doctor::windows_confinement::primitive::tests::windows_runtime_timeout_terminates_an_actual_job_descendant",
     "doctor::windows_confinement::primitive::tests::windows_runtime_nonzero_exit_settles_failed_and_cleans_resources",
     "doctor::windows_confinement::primitive::tests::windows_runtime_scratch_refusal_closes_setup_handles",

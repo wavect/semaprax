@@ -1120,9 +1120,6 @@ fn settle_confined(confined: &mut ConfinedProcess, deadline: Instant) -> Settlem
             } else if !output_limited {
                 match exit_code {
                     Some(0) => state.select(Settlement::Completed),
-                    Some(_) if accounting.TotalUserTime >= CPU_TIME_LIMIT_100NS => {
-                        state.select(Settlement::Failed(FailureReason::CpuTimeLimit));
-                    }
                     Some(code) => state.select(Settlement::Failed(FailureReason::ExitCode(code))),
                     None => {}
                 }

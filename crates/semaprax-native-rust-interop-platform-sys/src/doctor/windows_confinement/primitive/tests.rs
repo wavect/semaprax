@@ -197,15 +197,28 @@ fn runtime_child_exhausts_committed_memory_limit() {
 fn runtime_child_exceeds_combined_output_limit() {
     use std::io::Write as _;
 
+    const CHUNK_BYTES: usize = 8 * 1024;
+    const CHUNKS_PER_STREAM: usize = 5;
+    const STREAM_BYTES: usize = CHUNK_BYTES * CHUNKS_PER_STREAM;
+    assert!(STREAM_BYTES < OUTPUT_LIMIT_BYTES);
+    assert!(STREAM_BYTES * 2 > OUTPUT_LIMIT_BYTES);
+
     publish_child_marker(b"output-limit-started");
-    let chunk = [b'o'; 8192];
+    let stdout_chunk = [b'o'; CHUNK_BYTES];
+    let stderr_chunk = [b'e'; CHUNK_BYTES];
     let stdout = std::io::stdout();
     let mut stdout = stdout.lock();
-    loop {
+    let stderr = std::io::stderr();
+    let mut stderr = stderr.lock();
+    for _ in 0..CHUNKS_PER_STREAM {
         stdout
-            .write_all(&chunk)
-            .expect("write confined stdout flood");
+            .write_all(&stdout_chunk)
+            .expect("write combined-limit stdout stream");
         stdout.flush().expect("flush confined stdout flood");
+        stderr
+            .write_all(&stderr_chunk)
+            .expect("write combined-limit stderr stream");
+        stderr.flush().expect("flush confined stderr flood");
     }
 }
 
@@ -765,9 +778,12 @@ fn windows_runtime_cpu_time_limit_terminates_and_settles_the_confined_job() {
     assert_eq!(std::fs::read(&marker).unwrap(), b"cpu-limit-started");
     std::fs::remove_file(&marker).expect("remove exact child marker before scratch settlement");
     cleanup_guard.disarm();
-    assert_eq!(
-        settle(child, Duration::from_secs(12)).status,
-        Settlement::Failed(FailureReason::CpuTimeLimit)
+    assert!(
+        matches!(
+            settle(child, Duration::from_secs(12)).status,
+            Settlement::Failed(FailureReason::ExitCode(_))
+        ),
+        "without a leader-correlated process-time notification, preserve the nonzero exit code"
     );
     assert!(
         !scratch_dir.exists(),
@@ -816,7 +832,7 @@ fn windows_runtime_committed_memory_limit_refuses_the_hostile_allocation() {
 
 #[test]
 #[ignore = "requires the explicitly provisioned Windows runtime gate"]
-fn windows_runtime_output_limit_terminates_and_settles_the_confined_job() {
+fn windows_runtime_combined_output_limit_terminates_and_settles_the_confined_job() {
     let parent = runtime_parent();
     let executable = std::env::current_exe().expect("current test executable exists");
     let args = child_test_args("runtime_child_exceeds_combined_output_limit");

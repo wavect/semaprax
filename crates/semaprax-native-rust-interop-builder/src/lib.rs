@@ -125,6 +125,7 @@ use semaprax_native_rust_interop_platform as platform;
 use std::path::Path;
 
 mod public_sdk;
+mod trusted_native;
 
 pub use public_sdk::{
     build_authenticated_project_native_rust_sdk, build_native_rust_owned_data_sdk,
@@ -132,6 +133,10 @@ pub use public_sdk::{
     NativeRustSdkBundle, NativeRustSdkOptions, ProjectNativeRustSdkBundle,
     NATIVE_RUST_OWNED_DATA_SDK_SCHEMA, PROJECT_NATIVE_RUST_SDK_SCHEMA,
     PROJECT_NATIVE_RUST_SUBJECT_SCHEMA,
+};
+pub use trusted_native::{
+    NativeBuildPolicy, NativeDispatchError, NativeExecutionGrant, NativeTrustError,
+    TrustedNativeProfile, TRUSTED_NATIVE_PROFILE_SCHEMA,
 };
 
 pub(crate) mod workspace {

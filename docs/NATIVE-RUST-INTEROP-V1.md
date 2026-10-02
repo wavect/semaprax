@@ -166,6 +166,46 @@ inventory.
 There is no dylib, loader, symbol lookup, network, CLI, or public execution
 surface.
 
+### Trusted native preparation boundary (RI-11)
+
+Rich Rust bindings use a separate `semaprax.trusted-native-profile.v1`
+preparation boundary. A profile binds three opaque, exact byte inputs: the
+selected binding plan, crate/index identity, and build-tool identity. They are
+length framed under the profile domain with the acknowledged, canonical effect
+contract and selected build policy. Changing any of the three input bytes
+changes the profile digest and requires a fresh maintainer admission. A hash
+binds identity; it neither verifies the Rust implementation nor grants build
+or execution authority.
+
+The profile's effect list is a conservative maintainer assertion. It is kept
+separate from each `NativeExecutionGrant`: a grant names only a sorted subset
+of the acknowledged effects and binds the admitting profile digest. Generated
+adapter dispatch checks both the matching profile and every required capability
+before entering the Rust callback. A failure has no callback entry. This is a
+Semaprax dispatch gate; same-process Rust remains able to use any authority
+already available to it, so the profile never describes arbitrary native code
+as pure, deterministic, replay-safe, contract-safe, or syscall-confined.
+
+Build policy is displayed with one of these exact disclosures:
+
+- `StrictDenyExecution`: build scripts and proc macros are denied before Cargo
+  can execute them.
+- `EnforcedSandbox`: build scripts and proc macros run in an actually enforced
+  selected sandbox.
+- `TrustedHost`: build scripts and proc macros run with trusted host authority.
+
+The third policy is never represented as confinement. `cargo --offline` only
+affects dependency acquisition and cannot by itself confine a build script or
+proc macro. The reusable boundary exposes distinct errors for malformed or
+noncanonical effect metadata, undeclared requested capability, a grant/profile
+identity mismatch, and a missing per-call capability. Higher UI and CLI routes
+must preserve those distinctions from unsupported APIs and missing tools.
+
+This preparation boundary is additive and does not yet admit arbitrary Cargo
+metadata into the v1 scalar SDK path. RI-01 binding-plan bytes are compiler
+input only until a caller explicitly creates a trusted-native profile and a
+separate caller supplies a matching dispatch grant.
+
 This direct-image policy closes ordinary rustup-launcher indirection. It does
 not claim provenance for the selected compiler sysroot, dynamically loaded
 libraries or backends, or arbitrary descendants. The configured Visual C++

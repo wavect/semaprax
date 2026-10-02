@@ -77,6 +77,8 @@ mod developer_loop;
 mod draft_expression_catalog;
 #[path = "project/draft_field_display_rebase.rs"]
 mod draft_field_display_rebase;
+#[path = "project/explore_cli.rs"]
+mod explore_cli;
 #[path = "project/flat_owned_record_api.rs"]
 mod flat_owned_record_api;
 #[path = "project/flat_owned_record_interpreter.rs"]

@@ -13,3 +13,16 @@ A summary has `mode`, `target`, `query`, an artifact digest, truncation and cove
 Node keys are `project_name:project_revision:side:stable_id`, so the same identity on base and candidate sides cannot collide. A declaration without a file path has `source_reference.kind: "non_file_node"`; an analysis row whose source binding is not carried by its owning kernel uses the explicit `authenticated_source_reference_unavailable_in_analysis_projection` state rather than a fabricated reference. Relation rows preserve their original family and provenance, including parallel sites. The only admitted structural families are `function_import`, `type_import`, `call`, `type_reference`, `effect_requirement`, and `capability_authority`; an unfamiliar retained family is never rewritten as a call. Module totals are presentation facts. Capability/prelude nodes without paths remain non-file nodes. Loans and cleanup plans remain function facets and are not relations.
 
 A response supplies no source, execution, test, or publication authority. It does not claim runtime liveness, coverage, external/dynamic absence, or a complete result when the kernel reports truncation. Source drift stays absorbing at the enclosing v5 session boundary.
+
+## Local review exports
+
+The public `semaprax explore` command reads an authenticated manifest and writes an explicit, no-clobber output path. A source-free overview can be generated with:
+
+```sh
+semaprax explore ./semaprax.toml --format html --output ./semantic-explorer.html
+semaprax explore ./semaprax.toml --target app.main --depth 2 --format svg --output ./app-main.svg
+```
+
+Open the HTML file locally or attach the SVG to a review manually. The HTML embeds its data and viewer assets, so viewing it does not require an editor, Node.js, or a local server. Markdown and JSON are also available through `--format markdown|json`; none of these commands posts to GitHub or uploads the output. Candidate review additionally requires both `--candidate-capsule` and `--expect-candidate`, and restores the capsule against the held project source before emitting base or candidate views.
+
+The default snapshot contains compiler-owned declaration names, stable IDs, relative paths and structural relationships. These can be confidential even though full source bodies and capsule bytes are omitted. Detail absent from a snapshot is **not bundled**; absence is not a finding. `snapshot_digest` identifies canonical snapshot content for consistency checks, not external provenance, freshness or approval. HTML, JSON, Markdown and SVG remain display artifacts and cannot be replayed as candidate authority. `--include-source` is reserved until a source-inclusive implementation is admitted; the CLI currently rejects it explicitly.

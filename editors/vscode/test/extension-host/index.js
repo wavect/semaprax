@@ -21,6 +21,7 @@ const CONTRIBUTED = [
   'semaprax.checkProject', 'semaprax.goToDeclaration', 'semaprax.showReferences',
   'semaprax.showDocumentation', 'semaprax.showOwnership', 'semaprax.inspectAgent',
   'semaprax.safeRename', 'semaprax.showCleanupPlan', 'semaprax.runAgentTranscript'
+  ,'semaprax.openExplorer', 'semaprax.exploreSelection', 'semaprax.reviewCandidateGraph'
 ];
 // Authority this extension must never contribute or register, whatever a host
 // selects. Build, commit and publication stay outside the editor entirely.

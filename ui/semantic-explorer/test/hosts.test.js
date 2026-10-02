@@ -42,3 +42,17 @@ test('offline and editor adapters deliver the same checked identities', async ()
   assert.equal(model.page(editorPage, editorSummary).items[0].module, 'core');
   await assert.rejects(offline.evidence('unbundled'), /not bundled/);
 });
+
+test('disposing an editor host rejects retained calls and releases their timers', async () => {
+  let listener;
+  const port = {
+    addEventListener(type, fn) { assert.equal(type, 'message'); listener = fn; },
+    postMessage() {}
+  };
+  const editor = vscodeHost(port, 9);
+  const pending = editor.summary(query);
+  editor.dispose();
+  await assert.rejects(pending, /disposed/);
+  await assert.rejects(editor.summary(query), /disposed/);
+  listener({ data: { type: 'semaprax-explorer-response', generation: 9, requestId: 1, ok: true, value: selected } });
+});

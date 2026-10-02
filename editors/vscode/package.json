@@ -57,10 +57,14 @@
   "activationEvents": [
     "onCommand:semaprax.start",
     "onLanguage:semaprax",
-    "onCommand:semaprax.checkProject"
+    "onCommand:semaprax.checkProject",
+    "onCommand:semaprax.openExplorer",
+    "onCommand:semaprax.exploreSelection",
+    "onCommand:semaprax.reviewCandidateGraph"
   ],
   "scripts": {
-    "test": "node --test test/*.test.js"
+    "test": "node --test test/*.test.js",
+    "sync-explorer-assets": "node scripts/sync-explorer-assets.js"
   },
   "contributes": {
     "languages": [
@@ -121,6 +125,9 @@
       { "command": "semaprax.safeRename", "title": "SEMAPRAX: Safe Rename by Stable ID" },
       { "command": "semaprax.showCleanupPlan", "title": "SEMAPRAX: Show Cleanup Plan" },
       { "command": "semaprax.runAgentTranscript", "title": "SEMAPRAX: Run Agent Transcript (Trace/Evidence)" }
+      ,{ "command": "semaprax.openExplorer", "title": "SEMAPRAX: Open Semantic Explorer" }
+      ,{ "command": "semaprax.exploreSelection", "title": "SEMAPRAX: Explore Selected Declaration" }
+      ,{ "command": "semaprax.reviewCandidateGraph", "title": "SEMAPRAX: Review Candidate Graph" }
     ],
     "configuration": {
       "title": "SEMAPRAX",

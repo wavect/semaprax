@@ -1,10 +1,10 @@
 //! Compiler-owned explorer projection regressions.
 use semaprax::image_transport::{VNextPolicy, VNextSession};
 use semaprax::project::{
-    with_authenticated_project, ExplorerMode, ExplorerPageOptions, ExplorerQuery, ExplorerView,
-    ProjectSemanticImage,
+    ExplorerMode, ExplorerPageOptions, ExplorerQuery, ExplorerView, ProjectSemanticImage,
+    with_authenticated_project,
 };
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -141,4 +141,137 @@ fn explorer_rejects_wrong_handles_and_overview_targets() {
     );
     assert!(target.get("error").is_some());
     session.finish().unwrap();
+}
+
+#[test]
+fn candidate_explorer_binds_side_handle_cursor_and_rejects_source_drift() {
+    let fixture = Fixture::new();
+    let disk = FILES
+        .iter()
+        .map(|path| {
+            (
+                path.to_string(),
+                std::fs::read(fixture.0.join(path)).unwrap(),
+            )
+        })
+        .collect::<Vec<_>>();
+    let mut session = VNextSession::open(
+        &fixture.manifest(),
+        VNextPolicy {
+            candidate_prepare: true,
+            ..VNextPolicy::default()
+        },
+    )
+    .unwrap();
+    let image_revision = session.image_revision().to_owned();
+    let root = payload(call(&mut session, "candidate/open", json!({"image_revision":image_revision})));
+    let intent = json!({
+        "kind":"replace_function_body",
+        "target":"calculator.add",
+        "body":{"kind":"place","name":"left"}
+    });
+    let candidate = payload(call(
+        &mut session,
+        "candidate/apply-intent",
+        json!({"image_revision":image_revision,"candidate_revision":root["candidate_revision"],"intent":intent}),
+    ));
+    let candidate_revision = candidate["candidate_revision"].as_str().unwrap();
+    let query = json!({
+        "image_revision":image_revision,
+        "candidate_revision":candidate_revision,
+        "mode":"context",
+        "target":"calculator.add",
+        "direction":"both",
+        "depth":1,
+        "max_nodes":256,
+        "analysis_max_bytes":262144
+    });
+    let mut base_params = query.clone();
+    base_params["side"] = json!("base");
+    let base_summary = payload(call(
+        &mut session,
+        "candidate/explorer-summary",
+        base_params,
+    ));
+    let mut candidate_params = query.clone();
+    candidate_params["side"] = json!("candidate");
+    let candidate_summary = payload(call(
+        &mut session,
+        "candidate/explorer-summary",
+        candidate_params,
+    ));
+    assert_eq!(base_summary["subject"]["side"], "base");
+    assert_eq!(candidate_summary["subject"]["side"], "candidate");
+    let overview = json!({
+        "image_revision":image_revision,
+        "candidate_revision":candidate_revision,
+        "side":"base",
+        "mode":"overview",
+        "direction":"both",
+        "depth":1,
+        "max_nodes":256,
+        "analysis_max_bytes":262144
+    });
+    let overview_summary = payload(call(&mut session, "candidate/explorer-summary", overview));
+    let inventory = overview_summary["inventories"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|row| row["view"] == "declarations")
+        .unwrap();
+    let handle = inventory["handle"].as_str().unwrap();
+    let page_params = json!({
+        "image_revision":image_revision,
+        "candidate_revision":candidate_revision,
+        "side":"base",
+        "mode":"overview",
+        "direction":"both",
+        "depth":1,
+        "max_nodes":256,
+        "analysis_max_bytes":262144,
+        "view":"declarations",
+        "handle":handle,
+        "page_size":1,
+        "max_bytes":65536
+    });
+    let first = payload(call(
+        &mut session,
+        "candidate/explorer-page",
+        page_params.clone(),
+    ));
+    let cursor = first["next_cursor"]
+        .as_str()
+        .expect("overview page has a continuation");
+    let mut wrong_side = page_params.clone();
+    wrong_side["side"] = json!("candidate");
+    assert!(
+        call(&mut session, "candidate/explorer-page", wrong_side)
+            .get("error")
+            .is_some()
+    );
+    let mut wrong_cursor = page_params;
+    wrong_cursor["cursor"] = json!(format!("{cursor}x"));
+    assert!(
+        call(&mut session, "candidate/explorer-page", wrong_cursor)
+            .get("error")
+            .is_some()
+    );
+
+    let source = fixture.0.join("src/core.spx");
+    let text = std::fs::read(&source).unwrap();
+    let mut changed = text.clone();
+    changed.extend_from_slice(b"\n// external editor change\n");
+    std::fs::write(&source, changed).unwrap();
+    let drifted = std::fs::read(&source).unwrap();
+    let mut stale_params = query;
+    stale_params["side"] = json!("base");
+    let stale = call(&mut session, "candidate/explorer-summary", stale_params);
+    assert!(stale.get("error").is_some());
+    assert!(session.finish().is_err());
+    assert_eq!(std::fs::read(&source).unwrap(), drifted);
+    for (path, bytes) in disk {
+        if path != "src/core.spx" {
+            assert_eq!(std::fs::read(fixture.0.join(path)).unwrap(), bytes);
+        }
+    }
 }

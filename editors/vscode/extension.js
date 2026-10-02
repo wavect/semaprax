@@ -13,6 +13,7 @@ const { CandidateTestTask, METHODS: TEST_TASK_METHODS } = require('./tasks');
 const checks = require('./diagnostics');
 const navigation = require('./navigation');
 const { SourceIndex } = require('./positions');
+const { openExplorer, stableId } = require('./explorer');
 let stopActive = () => {};
 // Check-on-save: run the user-selected compiler's read-only `check --json` on
 // the saved file's project and publish the result as editor diagnostics. It
@@ -418,6 +419,7 @@ function activate(context) {
   let holes, selectedHole, holeNavigation;
   let imageProject, candidateHandle, repairs;
   let testTask, testTaskUsed = false;
+  let explorerPanel = null, explorerGeneration = 0;
   let watchers = [];
   const testMode = context.extensionMode === vscode.ExtensionMode.Test;
   const checking = activateChecks(context, testMode);
@@ -483,6 +485,20 @@ function activate(context) {
       }
       return response;
     } catch (error) { if (invalidates(error)) clear(error.semantic ? 'source binding rejected; refresh required' : 'request failed'); throw error; }
+  }
+  async function requireExplorerSession() {
+    saved();
+    if (client && !client.closed && !stale && image) return true;
+    const choice = await vscode.window.showInformationMessage('Start a saved-source session before opening the explorer.', 'Start Session');
+    if (choice === 'Start Session') await commands.start();
+    return Boolean(client && !client.closed && !stale && image);
+  }
+  function showExplorer(query) {
+    return openExplorer(vscode, context, {
+      get panel() { return explorerPanel; }, set panel(value) { explorerPanel = value; },
+      get panelGeneration() { return explorerGeneration; }, set panelGeneration(value) { explorerGeneration = value; },
+      invoke, live: () => Boolean(client && !client.closed && !stale && image), image: () => image, candidate: () => candidate
+    }, query);
   }
   const requireCandidate = () => { saved(); if (stale || !candidate) throw new Error('Open a current candidate first'); };
   const requireNoDraft = () => { if (holes?.draftRevision) throw new Error('Complete or discard the typed-hole draft before changing or reviewing a candidate'); };
@@ -597,6 +613,23 @@ function activate(context) {
     return response.payload;
   }
   const commands = {
+    async openExplorer() {
+      if (!await requireExplorerSession()) return;
+      return showExplorer({ mode: 'overview', target: null, direction: 'both', depth: 1, side: 'current' });
+    },
+    async exploreSelection() {
+      if (!await requireExplorerSession()) return;
+      const selected = target || await input({ prompt: 'Exact declaration stable ID', ignoreFocusOut: true });
+      if (selected === undefined) return;
+      if (!stableId(selected)) throw new Error('Invalid stable declaration ID');
+      return showExplorer({ mode: 'context', target: selected, direction: 'both', depth: 1, side: 'current' });
+    },
+    async reviewCandidateGraph() {
+      if (!await requireExplorerSession()) return;
+      requireCandidate();
+      if (!client.tools.has('candidate/explorer-summary') || !client.tools.has('candidate/explorer-page')) throw new Error('This host policy does not permit candidate explorer reads');
+      return showExplorer({ mode: 'overview', target: null, direction: 'both', depth: 1, side: 'candidate' });
+    },
     async start() {
       saved(); stop(); config = configured(); saved();
       const child = spawn(config.compiler, ['serve-workspace-mcp', config.manifest, config.policy], { shell: false, windowsHide: true, cwd: path.dirname(config.manifest), stdio: ['pipe', 'pipe', 'pipe'] });

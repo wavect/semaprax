@@ -224,8 +224,11 @@ pipeline. The source `model/join` child retains the actual request and ACK
 history; `continue/join` selects the physical hold from either the first Step
 or the retained later Step. No journal fact constructs this lineage.
 [Source Agent owned wait v1](SOURCE-AGENT-OWNED-WAIT-V1.md) owns these bounded
-private successors; public Agent execution and partial-initialization recovery
-remain unfinished.
+private successors. Its restart child may reauthenticate only a first-turn
+Prepared prefix, materialize fresh Bytes backing, and consume that owner once
+through the original model path under a separate trusted-host grant; later,
+uncertain and post-intent prefixes remain closed. Public Agent execution and
+the remaining recovery classifications remain unfinished.
 `source_journal/policy_v6` owns independently folded quote reservations, observed
 and unknown exposure, and cumulative policy carry. Its V6 profile composes I/O
 limits and restores reservations before source continuation.

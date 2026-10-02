@@ -17,17 +17,20 @@ pub(super) struct ParkedLiveOwnedRunV8<'j> {
     pub(super) prepared: u32,
     pub(super) cancellation: &'j crate::agent_runtime::AgentCancellation,
 }
-/// One held restart owner for the exact first-turn Prepared tail. It deliberately
-/// has no append/effect entry point yet: the recovered lease remains read-only
-/// until a later reviewed model-restart packet consumes this owner.
+/// One held restart owner for the exact first-turn Prepared tail. It can enter
+/// only the reviewed original-model continuation when a separate host grant
+/// consumes it; it has no effect or finalization entry point.
 pub(crate) struct RecoveredFirstTurnPreparedOwnerV8<'j> {
     owner: LiveParkedStateV8,
     held: HeldOwnedWaitStoreV8<'j>,
     session: AppendSessionV8<'j>,
+    journal: &'j SourceOwnedWaitJournalV8,
+    observation: crate::resumable_effects::owned_frame::v2::CheckedOwnedWaitObservationV8,
     wait: String,
     reservation: u32,
     prepared: u32,
-    _authentication: String,
+    authentication: String,
+    cancellation: &'j crate::agent_runtime::AgentCancellation,
 }
 impl RecoveredFirstTurnPreparedOwnerV8<'_> {
     #[cfg(test)]
@@ -72,6 +75,143 @@ impl FirstTurnPreparedRecoveryHostGrantV8 {
         }
         Ok(())
     }
+}
+
+/// Explicit trusted-host authority for one continuation of an already restored
+/// first-turn Prepared owner. It has no checkpoint, row, registration or
+/// source-derived constructor and is consumed by the continuation call.
+pub(crate) struct FirstTurnPreparedContinuationHostGrantV8 {
+    creator: u32,
+}
+impl FirstTurnPreparedContinuationHostGrantV8 {
+    pub(crate) fn for_trusted_host(
+        protected_checkpoint_key_available: bool,
+    ) -> Result<Self, SourceJournalError> {
+        if !protected_checkpoint_key_available {
+            return Err(SourceJournalError::Binding);
+        }
+        Ok(Self {
+            creator: std::process::id(),
+        })
+    }
+    fn check(&self) -> Result<(), SourceJournalError> {
+        if self.creator != std::process::id() {
+            return Err(SourceJournalError::Binding);
+        }
+        Ok(())
+    }
+}
+
+/// Refusal before the one-way append transition retains the fresh physical
+/// parked owner. A model failure is the existing opaque model failure owner;
+/// both paths quarantine the recovered journal after the transition.
+pub(super) enum RecoveredFirstTurnPreparedContinuationFailureV8<'j> {
+    Refused {
+        owner: RecoveredFirstTurnPreparedOwnerV8<'j>,
+        error: SourceJournalError,
+    },
+    Model(super::model::LiveModelFailureV8<'j>),
+}
+
+fn validate_recovered_first_turn_prepared_continuation_v8(
+    owner: &RecoveredFirstTurnPreparedOwnerV8<'_>,
+) -> Result<(), SourceJournalError> {
+    if owner.cancellation.is_cancelled() {
+        return Err(SourceJournalError::Binding);
+    }
+    owner
+        .held
+        .validate_prefix(owner.session.sequence(), owner.session.acknowledged_bytes())?;
+    if owner.held.registration() != owner.journal.context().registration()
+        || owner.held.generation() != owner.journal.context().generation()
+    {
+        return Err(SourceJournalError::Binding);
+    }
+    let current = owner.journal.begin_session()?;
+    let facts = current.inventory.first_turn_prepared_recovery()?;
+    if facts.sequence != owner.session.sequence()
+        || facts.bytes != owner.session.acknowledged_bytes()
+        || facts.authentication != owner.authentication
+        || facts.wait != owner.wait
+        || facts.reservation != owner.reservation
+        || facts.prepared != owner.prepared
+        || facts.observation.ordinary_digest() != owner.observation.ordinary_digest()
+        || facts.observation.ordinary_bytes() != owner.observation.ordinary_bytes()
+        || facts.observation.request_digest() != owner.observation.request_digest()
+        || facts.observation.copy_arguments() != owner.observation.copy_arguments()
+        || current.inventory.authentication_tail() != owner.authentication
+    {
+        return Err(SourceJournalError::Binding);
+    }
+    owner.held.validate_prefix(facts.sequence, facts.bytes)
+}
+
+/// Consume one recovered first-turn Prepared owner into the original model
+/// path. The authenticated prefix contains no AttemptIntent, so this is the
+/// single original dispatch, never a redispatch. No cleanup/finalizer path is
+/// reachable here because the resulting model path still carries the owner.
+pub(super) fn continue_recovered_first_turn_prepared_v8<'j>(
+    owner: RecoveredFirstTurnPreparedOwnerV8<'j>,
+    grant: FirstTurnPreparedContinuationHostGrantV8,
+    adapter: &mut crate::provider_adapter_sdk::StreamingSourceProposalAdapter<'_>,
+    clock: &'j dyn crate::live_invocation::SourceInvocationClock,
+) -> Result<
+    super::model::CompletedLiveOwnedRunV8<'j>,
+    RecoveredFirstTurnPreparedContinuationFailureV8<'j>,
+> {
+    if let Err(error) = grant
+        .check()
+        .and_then(|_| validate_recovered_first_turn_prepared_continuation_v8(&owner))
+    {
+        owner.journal.quarantine();
+        return Err(RecoveredFirstTurnPreparedContinuationFailureV8::Refused { owner, error });
+    }
+    let registration = owner.held.registration().clone();
+    if owner
+        .journal
+        .lease
+        .try_borrow_mut()
+        .map_err(|_| SourceJournalError::Order)
+        .and_then(|mut lease| {
+            lease
+                .authorize_recovered_first_prepared_continuation(&registration)
+                .map_err(|_| SourceJournalError::Binding)
+        })
+        .is_err()
+    {
+        owner.journal.quarantine();
+        return Err(RecoveredFirstTurnPreparedContinuationFailureV8::Refused {
+            owner,
+            error: SourceJournalError::Binding,
+        });
+    }
+    let RecoveredFirstTurnPreparedOwnerV8 {
+        owner,
+        held,
+        session,
+        journal,
+        observation,
+        wait,
+        reservation,
+        prepared,
+        cancellation,
+        ..
+    } = owner;
+    let parked = ParkedLiveOwnedRunV8 {
+        owner,
+        held,
+        session,
+        journal,
+        observation,
+        wait,
+        reservation,
+        prepared,
+        cancellation,
+    };
+    super::model::model_live_actor_v8(parked, adapter, clock).map_err(|failure| {
+        journal.quarantine();
+        RecoveredFirstTurnPreparedContinuationFailureV8::Model(failure)
+    })
 }
 
 pub(crate) fn recover_first_turn_prepared_owner_v8<'j>(
@@ -140,10 +280,13 @@ pub(crate) fn recover_first_turn_prepared_owner_v8<'j>(
         owner,
         held,
         session,
+        journal,
+        observation: facts.observation,
         wait: facts.wait,
         reservation: facts.reservation,
         prepared: facts.prepared,
-        _authentication: facts.authentication,
+        authentication: facts.authentication,
+        cancellation,
     })
 }
 pub(super) enum LiveWaitFailureOwnerV8 {

@@ -8,6 +8,13 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Add the sealed first-turn Prepared restart continuation (#330). A second
+  trusted-host grant rechecks the exact source/checkpoint/tail/lease facts
+  before it consumes fresh restored backing into the original model path. The
+  Prepared prefix has no AttemptIntent, so the path cannot redispatch; refusal
+  or model failure quarantines the reopened journal. Cleanup, effects and
+  public Agent execution remain outside this private route.
+
 - Add a sealed first-turn prepared owned-wait v8 restart owner (#330). After
   close/reopen, one trusted-host grant can authenticate the exact registered
   Prepared tail and checkpoint before allocating fresh process-local Bytes

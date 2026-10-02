@@ -297,6 +297,11 @@ pub(crate) fn run(options: Options) -> Result<(), Vec<Diagnostic>> {
         let mut v = json!({"schema":"semaprax.explorer-snapshot.v1","generator":"semaprax explore","views":views,"focus":options.target,"focus_sides":focus_sides,"source_included":options.include_source,"evidence_availability":"not_bundled","confidentiality":"names_ids_and_paths_may_be_confidential"});
         if options.include_source {
             v["source_files"] = json!(source_files);
+            if let Some(candidate) = &candidate {
+                let report = candidate.source_review(candidate.candidate_digest())?;
+                v["source_review"] = serde_json::from_str::<Value>(&report)
+                    .map_err(|_| invalid("invalid authenticated candidate source review"))?;
+            }
         }
         if let Some(catalog) = catalog {
             v["changes"] = json!({"catalog":catalog,"details":[]});

@@ -40,17 +40,22 @@ def write_new(path, value):
     sync_directory(path.parent)
 
 
-def binding(plan, model_id, host_id):
-    p.admit(plan, p.digest(p.canonical(plan)))
+def binding(plan, model_id, host_id, *, guest_plan_sha256=None):
+    if guest_plan_sha256 is None:
+        p.admit(plan, p.digest(p.canonical(plan)))
+    else:
+        p.admit_guest(plan, guest_plan_sha256)
     host = plan["configuration"]["hosts"].get(host_id)
     model = next((row for row in plan["configuration"]["models"] if row["id"] == model_id), None)
     if host is None or model is None:
         raise ValueError("model_or_host_not_in_frozen_plan")
+    if guest_plan_sha256 is not None and host["native_platform"] != "linux-arm64":
+        raise ValueError("guest_snapshot_requires_linux_host")
     return host, model
 
 
-def generate_cell(plan, model_id, host_id, directory):
-    host, model = binding(plan, model_id, host_id)
+def generate_cell(plan, model_id, host_id, directory, *, guest_plan_sha256=None):
+    host, model = binding(plan, model_id, host_id, guest_plan_sha256=guest_plan_sha256)
     directory = pathlib.Path(directory)
     if not directory.is_absolute() or directory.parent != directory.parent.resolve():
         raise ValueError("trial_directory_must_be_canonical_absolute")
@@ -59,7 +64,8 @@ def generate_cell(plan, model_id, host_id, directory):
     receipt = {"schema": "benchmark.cross_language.live_pilot_trial.v1", "plan_sha256": p.digest(p.canonical(plan)),
                "invocation_id": uuid.uuid4().hex, "host_id": host_id, "model_id": model_id,
                "task_id": p.TASK, "adapter_id": "typescript", "status": "started", "model_dispatches": 0,
-               "score": None, "response": None, "reason": None}
+               "score": None, "response": None, "reason": None,
+               "source_admission": p.source_admission(plan, "controller_frozen_snapshot" if guest_plan_sha256 is not None else "local_git_checkout")}
     write_new(directory / "intent.json", receipt)
     try:
         # Metadata and platform are checked on the actual provider machine;
@@ -92,6 +98,11 @@ def admit_generation(plan, generation, expected_digest):
             or generation["model_dispatches"] != 1
             or generation.get("task_id") != p.TASK or generation.get("adapter_id") != "typescript"):
         raise ValueError("generation_binding_refused")
+    source = generation.get("source_admission", {})
+    kind = source.get("kind")
+    if (source != p.source_admission(plan, kind)
+            or (kind == "controller_frozen_snapshot" and host["native_platform"] != "linux-arm64")):
+        raise ValueError("generation_source_admission_refused")
     response = generation["response"]
     transport = response["transport_receipt"]
     expected_host = {key: host[key] for key in ("native_platform", "kernel_release", "boot_id")}
@@ -200,11 +211,11 @@ def main(argv=None):
     freeze = commands.add_parser("freeze")
     freeze.add_argument("--configuration", required=True)
     freeze.add_argument("--output", required=True)
-    for name in ("generate", "score", "account"):
+    for name in ("generate", "generate-guest", "score", "account"):
         child = commands.add_parser(name)
         child.add_argument("--plan", required=True)
         child.add_argument("--plan-sha256", required=True)
-        if name == "generate":
+        if name in ("generate", "generate-guest"):
             for arg in ("host-id", "model-id", "directory"):
                 child.add_argument("--" + arg, required=True)
         elif name == "score":
@@ -221,12 +232,14 @@ def main(argv=None):
             write_new(args.output, plan)
             print(p.digest(p.canonical(plan)))
             return 0
-        plan = p.admit(read_json(args.plan), args.plan_sha256)
+        guest = args.command == "generate-guest"
+        plan = (p.admit_guest if guest else p.admit)(read_json(args.plan), args.plan_sha256)
         if args.command == "account":
             write_new(args.output, account(plan, args.host_id, args.trial_directory))
             return 0
-        if args.command == "generate":
-            result = generate_cell(plan, args.model_id, args.host_id, args.directory)
+        if args.command in ("generate", "generate-guest"):
+            result = generate_cell(plan, args.model_id, args.host_id, args.directory,
+                                   guest_plan_sha256=args.plan_sha256 if guest else None)
         else:
             result = score_generation(plan, args.generation, args.generation_sha256, args.provenance_directory)
         print(json.dumps({"status": result["status"], "reason": result["reason"], "model_dispatches": result["model_dispatches"],

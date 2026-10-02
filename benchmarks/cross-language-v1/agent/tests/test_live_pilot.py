@@ -61,7 +61,8 @@ def generation_fixture(plan):
             "invocation_id": "fixture-invocation", "host_id": "mac-fixture", "model_id": "a",
             "task_id": p.TASK, "adapter_id": "typescript", "status": "generated", "model_dispatches": 1,
             "score": None, "response": response, "reason": None,
-            "candidate_files_sha256": p.digest(p.canonical(response["candidate_files"]))}
+            "candidate_files_sha256": p.digest(p.canonical(response["candidate_files"])),
+            "source_admission": p.source_admission(plan, "local_git_checkout")}
 
 
 class PilotTests(unittest.TestCase):
@@ -85,6 +86,46 @@ class PilotTests(unittest.TestCase):
             config["models"][0][field] = value
             with self.assertRaises(ValueError):
                 p.freeze(config)
+
+    def test_guest_snapshot_requires_external_pin_and_exact_local_bytes_without_git(self):
+        plan = p.freeze(configuration())
+        expected = p.digest(p.canonical(plan))
+        with mock.patch.object(p, "runner_revision", side_effect=AssertionError("guest must not execute Git")):
+            self.assertEqual(p.admit_guest(plan, expected), plan)
+            for field, value in (("runner_revision", "0" * 40), ("prompt", "forged prompt"),
+                                 ("source_manifest_sha256", "0" * 64), ("implementation", {})):
+                changed = copy.deepcopy(plan)
+                changed[field] = value
+                with self.assertRaisesRegex(ValueError, "guest_plan_digest"):
+                    p.admit_guest(changed, expected)
+                if field != "runner_revision":
+                    with self.assertRaisesRegex(ValueError, "guest_source_snapshot"):
+                        p.admit_guest(changed, p.digest(p.canonical(changed)))
+            with mock.patch.object(p, "implementation_identity", return_value={}):
+                with self.assertRaisesRegex(ValueError, "guest_source_snapshot"):
+                    p.admit_guest(plan, expected)
+            with tempfile.TemporaryDirectory() as temporary:
+                root = pathlib.Path(temporary).resolve()
+                with mock.patch.object(runner, "ClaudeSubscription", side_effect=ValueError("fixture_no_dispatch")) as transport:
+                    with self.assertRaisesRegex(ValueError, "guest_plan_digest"):
+                        runner.generate_cell(plan, "a", "second-fixture", root / "bad", guest_plan_sha256="0" * 64)
+                    with self.assertRaisesRegex(ValueError, "requires_linux"):
+                        runner.generate_cell(plan, "a", "mac-fixture", root / "mac", guest_plan_sha256=expected)
+                    transport.assert_not_called()
+                    result = runner.generate_cell(plan, "a", "second-fixture", root / "linux", guest_plan_sha256=expected)
+                    self.assertEqual(result["source_admission"], p.source_admission(plan, "controller_frozen_snapshot"))
+                    self.assertEqual(result["model_dispatches"], 0)
+                    self.assertEqual(result["status"], "failed")
+                    transport.assert_called_once()
+        # The controller retains ordinary Git-based admission and rejects a
+        # snapshot label moved to the wrong host or a substituted source claim.
+        receipt = generation_fixture(plan)
+        for field, value in (("kind", "controller_frozen_snapshot"), ("controller_runner_revision", "0" * 40),
+                             ("prompt_sha256", "0" * 64)):
+            changed = copy.deepcopy(receipt)
+            changed["source_admission"][field] = value
+            with self.assertRaisesRegex(ValueError, "source_admission"):
+                runner.admit_generation(plan, changed, p.digest(p.canonical(changed)))
 
     def test_sonnet_55_exact_version_pin_is_not_a_family_alias(self):
         config = configuration()

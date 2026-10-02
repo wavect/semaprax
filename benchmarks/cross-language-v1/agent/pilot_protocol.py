@@ -108,6 +108,10 @@ def runner_revision():
 
 
 def freeze(configuration):
+    return _freeze(configuration, runner_revision())
+
+
+def _freeze(configuration, revision):
     exact(configuration, ("models", "limits", "approval", "hosts", "cli_version", "execution_profiles", "controller_ledger"), "pilot_configuration_shape")
     ledger = configuration["controller_ledger"]
     if (not isinstance(ledger, str) or not ledger.startswith("/") or "\x00" in ledger
@@ -192,7 +196,7 @@ def freeze(configuration):
                                "disposition": "planned" if row["adapter_id"] == "typescript" else "unavailable",
                                "reason": None if row["adapter_id"] == "typescript" else row["support_reason"]})
     return {"schema": SCHEMA, "configuration": configuration, "task_id": TASK, "split": "validation",
-            "candidate_paths": [CANDIDATE], "profile": PROFILE, "runner_revision": runner_revision(), "source_manifest_sha256": provenance.SOURCE_HASH,
+            "candidate_paths": [CANDIDATE], "profile": PROFILE, "runner_revision": revision, "source_manifest_sha256": provenance.SOURCE_HASH,
             "source_correction_sha256": corrections.HASH, "implementation": implementation_identity(),
             "execution_profiles": configuration["execution_profiles"],
             "comparison_inventory": inventory, "trials_per_host": trials, "repetitions": 1,
@@ -206,3 +210,29 @@ def admit(plan, expected_digest):
     if digest(canonical(plan)) != expected_digest or plan != freeze(plan["configuration"]):
         raise ValueError("frozen_pilot_binding_refused")
     return plan
+
+
+def admit_guest(plan, expected_digest):
+    """Authenticate a controller snapshot; never claim a guest Git observation."""
+    if (not isinstance(expected_digest, str) or not re.fullmatch(r"[0-9a-f]{64}", expected_digest)
+            or digest(canonical(plan)) != expected_digest):
+        raise ValueError("guest_plan_digest_refused")
+    revision = plan.get("runner_revision")
+    if not isinstance(revision, str) or not re.fullmatch(r"[0-9a-f]{40}", revision):
+        raise ValueError("guest_controller_revision_refused")
+    # Everything except the externally pinned controller revision is derived
+    # again from this machine's exact implementation and frozen source bytes.
+    if plan != _freeze(plan["configuration"], revision):
+        raise ValueError("guest_source_snapshot_refused")
+    return plan
+
+
+def source_admission(plan, kind):
+    if kind not in ("local_git_checkout", "controller_frozen_snapshot"):
+        raise ValueError("source_admission_kind_refused")
+    return {"kind": kind, "plan_sha256": digest(canonical(plan)),
+            "controller_runner_revision": plan["runner_revision"],
+            "implementation_sha256": digest(canonical(plan["implementation"])),
+            "source_manifest_sha256": plan["source_manifest_sha256"],
+            "source_correction_sha256": plan["source_correction_sha256"],
+            "prompt_sha256": plan["prompt_sha256"]}

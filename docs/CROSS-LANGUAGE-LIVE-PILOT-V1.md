@@ -113,8 +113,21 @@ official runtime and real guest authority probes; a profile entry is not an
 admission receipt. Linux candidate scoring uses macOS only as the control plane.
 Actual provider generation must run the pinned native Linux Claude binary in
 the separately identified/authenticated generation guest. The guest-native
-`generate` command refuses a Mac process using the Linux host label. Each host
+`generate-guest` command refuses a Mac process using the Linux host label. Each host
 uses the same model IDs, CLI version, prompt and caps.
+
+`generate-guest` is restricted to the frozen Linux host. Its externally retained
+`--plan-sha256` authenticates the controller's exact plan, including the controller
+HEAD. It recomputes the entire plan from the guest's implementation hashes,
+fixed source manifest/correction, public prompt, inventory, models and caps;
+only the pinned controller revision is provenance supplied by that packet.
+It never executes or fabricates `git rev-parse`. Its `source_admission` receipt
+explicitly says `controller_frozen_snapshot`, and does not claim that the guest
+observed Git HEAD. Stage the final committed source archive read-only, without
+`.git`, credentials or caches, and retain the independent archive/tree receipt.
+The ordinary `freeze`, `generate`, `score` and `account` paths continue to require
+local Git admission. The controller verifies the guest source-admission fields
+against that ordinary admission before consuming the scoring cell.
 
 `score` accepts the exact canonical generation file plus its independently
 retained SHA-256. It revalidates plan/model/host identity, CLI binary/version,
@@ -163,8 +176,8 @@ configuration refuses instead of silently acquiring new authority.
 ```sh
 # Freeze only after BOTH host identities/artifact pins/profiles are ready.
 python3 -m agent.pilot_run freeze --configuration /absolute/config.json --output /absolute/plan.json
-# Run on the actual selected generation host, from the same frozen source.
-python3 -m agent.pilot_run generate --plan /absolute/plan.json --plan-sha256 APPROVED_DIGEST \
+# Run on Linux from the controller-staged snapshot; no Git executable required.
+python3 -m agent.pilot_run generate-guest --plan /absolute/plan.json --plan-sha256 APPROVED_DIGEST \
   --host-id second-host --model-id a --directory /absolute/new-trial-a
 # Transfer private trial evidence intact, then score from the admitted controller.
 python3 -m agent.pilot_run score --plan /absolute/plan.json --plan-sha256 APPROVED_DIGEST \
@@ -236,3 +249,13 @@ requires only the trusted marker after its assertions. Local fixtures cover
 that shape and early exit, incorrect results and generated-code negatives.
 No provider inference or independent guest generation was executed by this
 follow-up; Linux runtime admission has its own evidence and gate.
+
+### Git-free guest snapshot gate
+
+The local focused gate passed 12/12 in 3.479s after adding `generate-guest`.
+It verifies successful exact snapshot admission while Git access is disabled,
+rejects wrong external pins and changed source/prompt/implementation fields,
+refuses a Darwin host through this route before dispatch, and rejects changed
+source-admission claims at the controller. Existing provider-byte validation
+and one-use scoring tests remain in that gate. These are local fixtures with
+zero provider inference; the staged guest archive has separate custody evidence.

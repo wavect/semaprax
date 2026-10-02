@@ -1,5 +1,12 @@
 # Changelog
 
+- Admit #332 guest-native generation from an externally pinned controller
+  source snapshot without requiring a guest Git executable. Recompute exact
+  implementation/source/prompt and plan fields, record controller revision
+  provenance explicitly, and preserve ordinary Git-based controller scoring
+  plus one-use cell custody. Focused local fixtures passed 12/12 in 3.479s;
+  no provider inference was performed.
+
 - Add explicit #332 Linux arm64 Apple Container scoring admission with official
   Node/TypeScript provenance, immutable image and launcher pins, Landlock and
   seccomp confinement, and physical read/write/fork/socket denial controls.

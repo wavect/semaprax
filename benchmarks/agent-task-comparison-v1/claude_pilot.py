@@ -36,7 +36,7 @@ MODELS = [
      'usage_key': 'claude-sonnet-5-5', 'canonical_model': 'claude-sonnet-5-5'},
 ]
 CAPS = {'seconds': 120, 'max_turns': 32, 'max_prompt_bytes': 65536,
-        'max_stream_bytes': 1048576, 'max_reported_tokens': 131072,
+        'max_stream_bytes': 1048576, 'max_reported_tokens': 131072, 'max_cache_read_tokens': 1048576,
         'max_estimated_api_usd': 0.25, 'cohort_max_estimated_api_usd': 9.0, 'agent_retries': 0}
 ISOLATION_FLAGS = ['--restricted', '--strict-mcp-config', '--setting-sources', '',
                    '--disable-slash-commands', '--settings',
@@ -213,13 +213,17 @@ def usage(body, model, caps):
         raise ValueError('native_model_provenance_mismatch')
     counters = result.get('usage', {})
     tokens = {name: counters.get(name) for name in ('input_tokens', 'output_tokens', 'cache_creation_input_tokens', 'cache_read_input_tokens')}
-    if any(type(value) is not int or value < 0 for value in tokens.values()) or sum(tokens.values()) > caps['max_reported_tokens']:
+    if (any(type(value) is not int or value < 0 for value in tokens.values())
+            or sum(tokens[name] for name in ('input_tokens', 'output_tokens', 'cache_creation_input_tokens')) > caps['max_reported_tokens']
+            or tokens['cache_read_input_tokens'] > caps['max_cache_read_tokens']):
         raise ValueError('native_usage_bound')
     cost = result.get('total_cost_usd')
     if type(cost) not in (int, float) or not math.isfinite(cost) or not 0 <= cost <= caps['max_estimated_api_usd']:
         raise ValueError('native_cost_bound')
     turns = result.get('num_turns')
-    if type(turns) is not int or not 0 < turns <= caps['max_turns']:
+    exhausted = (result.get('subtype') == 'error_max_turns' and result.get('is_error') is True
+                 and result.get('terminal_reason') == 'max_turns')
+    if type(turns) is not int or not 0 < turns <= caps['max_turns'] + int(exhausted):
         raise ValueError('native_turn_bound')
     if result.get('subagent_stats', {}).get('spawned') != 0 or result.get('queued_turn_count') != 0:
         raise ValueError('native_extra_dispatch_refused')
@@ -291,11 +295,15 @@ class Transport:
             observed_cost = None
         out = base64.b64decode(captured['stdout_base64']); err = base64.b64decode(captured['stderr_base64'])
         try:
-            if captured['failure'] or captured['exit_code']:
-                raise ValueError(captured['failure'] or 'native_cli_failed')
+            if captured['failure']:
+                raise ValueError(captured['failure'])
             counters = usage(out, model, caps)
             result = common.strict_json(out)
-            if result.get('subtype') != 'success' or result.get('is_error') is not False:
+            exhausted = (result.get('subtype') == 'error_max_turns' and result.get('is_error') is True
+                         and result.get('terminal_reason') == 'max_turns')
+            if captured['exit_code'] != (1 if exhausted else 0):
+                raise ValueError('native_cli_failed')
+            if not exhausted and (result.get('subtype') != 'success' or result.get('is_error') is not False):
                 raise ValueError('native_provider_' + str(result.get('subtype')))
         except (ValueError, KeyError, TypeError, AttributeError) as error:
             settle_cost(protocol, self.expected_digest, self.cell_id, observed_cost, str(error))
@@ -313,6 +321,9 @@ class Transport:
             reasons.append('native provider usage: unavailable')
         result['eligible_for_technical_scoring_under_waiver'] = not reasons
         result['technical_ineligibility_reasons'] = reasons
+        if record.get('provider_usage', {}).get('result_subtype') == 'error_max_turns':
+            result['outcome'] = 'failed'
+            result['failure'] = record.get('failure') or 'native_provider_error_max_turns'
         # Preserve historical eligibility/status. A waiver is not a measurement.
         return result
 

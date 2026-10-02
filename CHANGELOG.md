@@ -1,5 +1,10 @@
 # Changelog
 
+- Distinguish exactly observed native turn exhaustion from integrity failures
+  in a new #321 protocol: score the retained partial candidate as a failed task,
+  preserve max-plus-one terminal turn accounting, and bound cached-read tokens
+  separately. Unknown/overrun cost, timeout and model drift still halt dispatch.
+
 - Freeze a separately authorized #321 cohort at 120 seconds, 32 turns,
   131,072 reported tokens, $0.25 per trial and $9 aggregate API-equivalent
   reservations. Preserve both earlier halted/aborted packets and unchanged

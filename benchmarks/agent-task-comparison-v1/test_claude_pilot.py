@@ -208,5 +208,40 @@ class NativePilotTests(unittest.TestCase):
             self.assertIn('native_admission_failed',ledger['halted'])
             with self.assertRaisesRegex(ValueError,'halted'):m.reserve(protocol,'a'*64,'haiku45-02')
 
+    def test_bounded_turn_exhaustion_is_failed_task_without_integrity_halt(self):
+        value=envelope();value.update(subtype='error_max_turns',is_error=True,terminal_reason='max_turns',num_turns=m.CAPS['max_turns']+1)
+        value['usage']['cache_read_input_tokens']=321221
+        counters=m.usage(m.canonical(value),m.MODELS[0],m.CAPS)
+        for change in (lambda x:x.update(num_turns=m.CAPS['max_turns']+2),
+                       lambda x:x['usage'].update(cache_read_input_tokens=m.CAPS['max_cache_read_tokens']+1),
+                       lambda x:x['usage'].update(input_tokens=m.CAPS['max_reported_tokens'])):
+            invalid=copy.deepcopy(value);change(invalid)
+            with self.assertRaises(ValueError):m.usage(m.canonical(invalid),m.MODELS[0],m.CAPS)
+        with tempfile.TemporaryDirectory() as temporary:
+            root=Path(temporary).resolve();exe=root/'exe';exe.write_bytes(b'fixture')
+            for name in ('home','evidence','state','candidate'):(root/name).mkdir(mode=0o700)
+            protocol={'authority':{'claude':str(exe),'home':str(root/'home'),'evidence_root':str(root/'evidence'),'login':'fixture',
+                                  'review':{'authorization':'fixture waiver'}},'runner_revision':'a'*40,
+                      'pins':{'claude':m.sha(exe.read_bytes())},'host':{'native_platform':'darwin-arm64'},
+                      'caps':m.CAPS,'models':m.MODELS,'cli_version':'2.1.286'}
+            mcp={'semaprax':{'command':['/usr/bin/python3','server.py','gateway','wire'],
+                            'environment':{'SEMAPRAX_PILOT_GATEWAY':'fixture-config'}}}
+            version={'failure':None,'exit_code':0,'stdout_base64':base64.b64encode(b'2.1.286 (Claude Code)\n').decode()}
+            response={'failure':None,'exit_code':1,'stdout_base64':base64.b64encode(m.canonical(value)).decode(),'stderr_base64':''}
+            def capture(argv,*args,**kwargs):
+                if argv[-1]=='--version':return version
+                kwargs['on_started']();return response
+            transport=m.Transport('a'*64,'haiku45-01')
+            with mock.patch.object(m.native,'capture',side_effect=capture),mock.patch.object(m.native,'MANAGED',[]):
+                observed=transport.execute(protocol,m.MODELS[0],root/'state',root/'candidate',root/'policy.sb',mcp,'task','semaprax-source-first',m.CAPS['seconds'])[-1]
+            self.assertEqual(observed,counters)
+            ledger=json.loads((root/'evidence'/'dispatch-budget.json').read_bytes());self.assertIsNone(ledger['halted'])
+            m.reserve(protocol,'a'*64,'sonnet55-01')
+            record={'status':'ineligible','outcome':'completed','failure':None,'provider_usage':observed,
+                    'eligibility':{'reasons':['blinded active review time: absent']}}
+            classified=transport.classify_record(record,protocol)
+            self.assertEqual(classified['outcome'],'failed');self.assertEqual(classified['failure'],'native_provider_error_max_turns')
+            self.assertEqual(classified['status'],'ineligible');self.assertIsNone(classified['human_review']['active_ms'])
+
 
 if __name__ == '__main__':unittest.main()

@@ -42,7 +42,8 @@ The provider CLI is trusted for subscription authentication and reported usage;
 its counters are not invoice proof or cryptographic provider attestation.
 
 Limits are fixed: 120 seconds per CLI trial, 32 agentic turns, 65,536 prompt
-bytes, 1 MiB captured output, 131,072 reported tokens (post-response admission),
+bytes, 1 MiB captured output, 131,072 fresh input/output/cache-creation tokens and
+1,048,576 cached-read tokens (post-response admission),
 $0.25 CLI API-equivalent budget per trial, and $9 aggregate reserved budget.
 The provider's budget enforcement is not a guarantee about invoice charges.
 A locked, fsynced before-spawn reservation consumes the full per-trial amount;
@@ -97,7 +98,7 @@ The initial six-selector run passed in 0.723s, including that physical metadata
 probe. The unchanged OpenCode source/graph boundary selector passed 1/1 (both
 lanes) in 3.850s. These gates are transport fixtures, not trial results.
 
-Any native response admission failure halts later dispatch even when the provider
+Any native integrity/admission failure halts later dispatch even when the provider
 reported an in-cap cost. The private ledger retains that reported cost and the
 selected admission failure; raw response evidence remains available.
 
@@ -112,3 +113,12 @@ The first MCP-enabled cohort halted after one genuine 15-tool trial reported
 $0.0509904 against its frozen $0.05 CLI limit. It remains immutable failed
 evidence. The explicitly authorized next cohort uses the larger bounds above,
 with a distinct protocol digest; the halt and no-refund rules are unchanged.
+
+A separately frozen continuation profile admits only the pinned CLI's observed
+`error_max_turns` / `is_error=true` / `terminal_reason=max_turns`, exit 1, with
+`num_turns <= max_turns + 1` (the CLI's terminal exhaustion count). Exact model,
+provenance, counters and cost must still pass admission. It runs independent
+acceptance on the retained partial candidate and records a failed task, without
+halting other trials. Other provider errors, unknown cost, timeout, identity
+mismatch and overrun retain the global halt. This does not reinterpret any
+previous halted protocol or record; fresh/cache-read counts are retained exactly.

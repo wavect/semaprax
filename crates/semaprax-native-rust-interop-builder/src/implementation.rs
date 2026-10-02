@@ -38,6 +38,7 @@ mod observability;
 mod phase_a;
 mod phase_b;
 mod platform_stage;
+mod rich_binding;
 mod stages;
 mod toolchain;
 
@@ -51,6 +52,8 @@ use manifest::*;
 use observability::*;
 use phase_b::*;
 use platform_stage::*;
+#[cfg(test)]
+use rich_binding::*;
 use stages::*;
 use toolchain::*;
 

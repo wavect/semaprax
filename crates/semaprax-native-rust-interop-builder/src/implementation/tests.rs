@@ -53,6 +53,7 @@ const IMPLEMENTATION_SOURCE: &str = concat!(
     include_str!("stages.rs"),
     include_str!("authority.rs"),
     include_str!("platform_stage.rs"),
+    include_str!("rich_binding.rs"),
 );
 
 /// The complete capacity module, root first.

@@ -1,5 +1,11 @@
 # Changelog
 
+- Implement RI-01's local generated scalar round trip: a canonical
+  BindingPlan now renders the Rust callback adapter for an ordinary fixture
+  crate, and the native harness compiles and runs it through the existing C11
+  bridge. Preserve the v1 bridge and leave Result/panic, automatic indexing,
+  Cargo preparation, and target promotion to their separate gates.
+
 - Define RI-01's additive rich-Rust BindingPlan contract and generated
   C-compatible bootstrap boundary. Reserve its schemas and diagnostics, retain
   the scalar v1 bridge unchanged, and defer automatic indexing, Rust-source

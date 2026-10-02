@@ -1,8 +1,9 @@
 # Native Rust Rich Interoperability v1
 
-Status: planned additive contract for [RI-01](https://github.com/wavect/semaprax/issues/359).
-It defines compiler input and generated artifacts; it does not claim an
-implemented callable profile or public Rust support.
+Status: local additive bootstrap for [RI-01](https://github.com/wavect/semaprax/issues/359).
+It defines compiler input and generated artifacts. The checked-in scalar
+fixture proves one generated native round trip; it does not claim public Rust
+support or completion of this contract's broader evidence gates.
 
 ## Scope and relationship to Native Rust Interoperability v1
 
@@ -178,6 +179,15 @@ revision:
    only the admitted profile, while interpreter and Wasm refuse before the
    foreign call.
 
-This is a specification and decision record only until those gates execute.
-It does not make any target, generated package, Rust ABI, Cargo integration,
+The implemented bootstrap test is
+generated_rich_fixture_adapter_round_trips_without_a_handwritten_host in the
+native-Rust builder harness. It compiles the ordinary fixture crate, generated
+adapter, generated C11 bundle, and a fresh Rust consumer; that consumer proves
+positive, zero, and negative add calls through Rust → Semaprax → generated
+adapter → Rust. The fixture's checked_div exists as the next selected Result
+shape, but it is not yet imported through the generated plan. The
+semantic-division, Rust-Err, panic, descriptor-disagreement, and target refusal
+rows above remain required before this profile can be called complete.
+
+This does not make any target, generated package, Rust ABI, Cargo integration,
 or ecosystem binding supported.

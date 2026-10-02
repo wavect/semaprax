@@ -75,6 +75,7 @@ fn read_private_implementation() -> String {
             "stages",
             "authority",
             "platform_stage",
+            "rich_binding",
         ],
     )
 }

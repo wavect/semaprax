@@ -1,0 +1,11 @@
+[package]
+name = "fixture-vendor"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+[lints.rust]
+unsafe_code = "forbid"

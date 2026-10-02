@@ -39,7 +39,7 @@ pub enum LockedCargoSource {
 }
 
 impl LockedCargoSource {
-    fn package_id(&self) -> &str {
+    pub fn package_id(&self) -> &str {
         match self {
             Self::Registry { package_id, .. } | Self::Local { package_id, .. } => package_id,
         }

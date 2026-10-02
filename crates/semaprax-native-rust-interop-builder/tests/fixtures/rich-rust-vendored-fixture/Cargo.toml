@@ -1,0 +1,11 @@
+[package]
+name = "semaprax-ri02-vendored-fixture"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+fixture-vendor = "=0.1.0"
+
+[lints.rust]
+unsafe_code = "forbid"

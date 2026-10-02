@@ -94,6 +94,26 @@ closure.
 
 ## Later effectful stages
 
+`semaprax-toolchain::rich_cargo_execution` provides the only current
+effectful entry points. `collect_cargo_metadata` and
+`prepare_with_cargo_metadata` require absolute regular-file paths for Cargo
+and `rustc`, an absolute workspace containing the exact `Cargo.toml`, and an
+existing absolute target directory. They clear the inherited environment and
+set only the explicit `RUSTC`, `CARGO_TARGET_DIR`, and Cargo offline setting.
+Metadata runs as `cargo metadata --format-version=1 --locked --offline`; the
+caller then supplies the held source facts required by the pure record.
+
+`build_locked_offline` runs `cargo build --locked --offline` only for
+`TrustedHost`. It reports that build scripts and proc macros have ordinary host
+authority. `StrictDenyExecution` refuses before Cargo is spawned. The current
+toolchain has no verified sandbox runner, so `EnforcedSandbox` also refuses
+before Cargo is spawned instead of labeling an unenforced process as confined.
+The focused strict and sandbox negative controls use a marker-writing Cargo
+stub and prove that neither policy enters it. A local no-dependency Cargo
+fixture and a checked-in vendored registry fixture supply explicit offline
+metadata/pure-record cases; the vendored fixture also proves a trusted-host
+`--locked --offline` build without registry access.
+
 Acquisition is separately authorized. A future acquisition host must retain
 the exact executable, configuration, source facts, and output directory while
 obtaining the admitted vendored registry closure or local source trees. It may

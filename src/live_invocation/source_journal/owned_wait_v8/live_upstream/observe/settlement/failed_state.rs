@@ -641,10 +641,18 @@ pub(crate) struct LiveFailedObserveStateStoppedV8<'j> {
 }
 
 enum QuarantinedFailedObserveOwnerV8<'j> {
-    Failure { _owner: LiveFailedObserveStateFailureV8<'j> },
-    Pending { _owner: LiveFailedObserveStateAppendV8<'j> },
-    AppendFault { _owner: LiveFailedObserveStateAppendFailureV8<'j> },
-    Acknowledged { _owner: LiveFailedObserveStateAcknowledgedV8<'j> },
+    Failure {
+        _owner: LiveFailedObserveStateFailureV8<'j>,
+    },
+    Pending {
+        _owner: LiveFailedObserveStateAppendV8<'j>,
+    },
+    AppendFault {
+        _owner: LiveFailedObserveStateAppendFailureV8<'j>,
+    },
+    Acknowledged {
+        _owner: LiveFailedObserveStateAcknowledgedV8<'j>,
+    },
 }
 
 /// Keeps the exact reached physical owner alive while the caller retains this
@@ -677,77 +685,101 @@ pub(crate) fn stop_failed_observe_state_v8<'j>(
     let journal = failed.owner.journal();
     let cleanup = match failed.prepare_failed_state_cleanup() {
         Ok(cleanup) => cleanup,
-        Err(owner) => return Err(quarantine_failed_observe_state(
-            journal,
-            QuarantinedFailedObserveOwnerV8::Failure { _owner: owner },
-        )),
+        Err(owner) => {
+            return Err(quarantine_failed_observe_state(
+                journal,
+                QuarantinedFailedObserveOwnerV8::Failure { _owner: owner },
+            ))
+        }
     };
     let started = match journal.begin_session() {
         Ok(session) => match session.append_failed_observe_state(cleanup) {
             Ok(append) => match append.advance_failed_observe_state() {
                 Ok(LiveFailedObserveStateAcknowledgedV8::Started(started)) => started,
-                Ok(owner) => return Err(quarantine_failed_observe_state(
-                    journal,
-                    QuarantinedFailedObserveOwnerV8::Acknowledged { _owner: owner },
-                )),
-                Err(owner) => return Err(quarantine_failed_observe_state(
-                    journal,
-                    QuarantinedFailedObserveOwnerV8::Failure { _owner: owner },
-                )),
+                Ok(owner) => {
+                    return Err(quarantine_failed_observe_state(
+                        journal,
+                        QuarantinedFailedObserveOwnerV8::Acknowledged { _owner: owner },
+                    ))
+                }
+                Err(owner) => {
+                    return Err(quarantine_failed_observe_state(
+                        journal,
+                        QuarantinedFailedObserveOwnerV8::Failure { _owner: owner },
+                    ))
+                }
             },
-            Err(owner) => return Err(quarantine_failed_observe_state(
-                journal,
-                QuarantinedFailedObserveOwnerV8::AppendFault { _owner: owner },
-            )),
+            Err(owner) => {
+                return Err(quarantine_failed_observe_state(
+                    journal,
+                    QuarantinedFailedObserveOwnerV8::AppendFault { _owner: owner },
+                ))
+            }
         },
-        Err(_) => return Err(quarantine_failed_observe_state(
-            journal,
-            QuarantinedFailedObserveOwnerV8::Pending { _owner: cleanup },
-        )),
+        Err(_) => {
+            return Err(quarantine_failed_observe_state(
+                journal,
+                QuarantinedFailedObserveOwnerV8::Pending { _owner: cleanup },
+            ))
+        }
     };
     let released = match started.release(observe) {
         Ok(released) => released,
-        Err(owner) => return Err(quarantine_failed_observe_state(
-            journal,
-            QuarantinedFailedObserveOwnerV8::Failure { _owner: owner },
-        )),
+        Err(owner) => {
+            return Err(quarantine_failed_observe_state(
+                journal,
+                QuarantinedFailedObserveOwnerV8::Failure { _owner: owner },
+            ))
+        }
     };
     let receipt = match released.prepare_receipt() {
         Ok(receipt) => receipt,
-        Err(owner) => return Err(quarantine_failed_observe_state(
-            journal,
-            QuarantinedFailedObserveOwnerV8::Failure { _owner: owner },
-        )),
+        Err(owner) => {
+            return Err(quarantine_failed_observe_state(
+                journal,
+                QuarantinedFailedObserveOwnerV8::Failure { _owner: owner },
+            ))
+        }
     };
     let released = match journal.begin_session() {
         Ok(session) => match session.append_failed_observe_state(receipt) {
             Ok(append) => match append.advance_failed_observe_state() {
                 Ok(LiveFailedObserveStateAcknowledgedV8::Released(released)) => released,
-                Ok(owner) => return Err(quarantine_failed_observe_state(
-                    journal,
-                    QuarantinedFailedObserveOwnerV8::Acknowledged { _owner: owner },
-                )),
-                Err(owner) => return Err(quarantine_failed_observe_state(
-                    journal,
-                    QuarantinedFailedObserveOwnerV8::Failure { _owner: owner },
-                )),
+                Ok(owner) => {
+                    return Err(quarantine_failed_observe_state(
+                        journal,
+                        QuarantinedFailedObserveOwnerV8::Acknowledged { _owner: owner },
+                    ))
+                }
+                Err(owner) => {
+                    return Err(quarantine_failed_observe_state(
+                        journal,
+                        QuarantinedFailedObserveOwnerV8::Failure { _owner: owner },
+                    ))
+                }
             },
-            Err(owner) => return Err(quarantine_failed_observe_state(
-                journal,
-                QuarantinedFailedObserveOwnerV8::AppendFault { _owner: owner },
-            )),
+            Err(owner) => {
+                return Err(quarantine_failed_observe_state(
+                    journal,
+                    QuarantinedFailedObserveOwnerV8::AppendFault { _owner: owner },
+                ))
+            }
         },
-        Err(_) => return Err(quarantine_failed_observe_state(
-            journal,
-            QuarantinedFailedObserveOwnerV8::Pending { _owner: receipt },
-        )),
+        Err(_) => {
+            return Err(quarantine_failed_observe_state(
+                journal,
+                QuarantinedFailedObserveOwnerV8::Pending { _owner: receipt },
+            ))
+        }
     };
     let stop = match released.prepare_stop() {
         Ok(stop) => stop,
-        Err(owner) => return Err(quarantine_failed_observe_state(
-            journal,
-            QuarantinedFailedObserveOwnerV8::Failure { _owner: owner },
-        )),
+        Err(owner) => {
+            return Err(quarantine_failed_observe_state(
+                journal,
+                QuarantinedFailedObserveOwnerV8::Failure { _owner: owner },
+            ))
+        }
     };
     match journal.begin_session() {
         Ok(session) => match session.append_failed_observe_state(stop) {

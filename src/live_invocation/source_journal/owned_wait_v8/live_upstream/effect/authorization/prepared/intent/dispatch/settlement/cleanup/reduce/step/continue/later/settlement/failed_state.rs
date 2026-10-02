@@ -28,7 +28,8 @@ impl<'j> LaterObserveSettlementV8<'j> {
         let ContinuedOwnedObserveV2::Failed(failed) = outcome else {
             unreachable!("closed actual variant")
         };
-        if failed.consumed() != consumed || lineage.acks.len() != 2 || lineage.turn != cache.turn() {
+        if failed.consumed() != consumed || lineage.acks.len() != 2 || lineage.turn != cache.turn()
+        {
             return Err((
                 Self {
                     owner: LiveLaterObservedContinueV8 {

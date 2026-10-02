@@ -428,17 +428,27 @@ export async function connectMcpWorkflowTransport(wire: McpWireTransport, observ
       if (!same(Object.keys(content).sort(), ['type', 'text'].sort()) || content.type !== 'text' || typeof content.text !== 'string') {
         throw new Error('MCP tools/call content is not one text item');
       }
-      // This is the decoded MCP text before JSON parsing or correlation-ID rewriting.
-      // It is the only primary tool-payload boundary and is charged once per delivery.
-      observer?.observe({ method: request.method, boundary: 'mcp_content_0_text', subjectRevision: requestSubjectRevision(request), outcome: callResult.isError ? 'error' : 'success' }, content.text);
-      const inner = parseObjectFrame(content.text, 'MCP inner v5 response');
-      const resultResponse = Object.hasOwn(inner, 'result');
-      const errorResponse = Object.hasOwn(inner, 'error');
-      if (inner.jsonrpc !== '2.0' || inner.id !== 0 || resultResponse === errorResponse ||
-          callResult.isError !== errorResponse ||
-          !same(Object.keys(inner).sort(), ['jsonrpc', 'id', resultResponse ? 'result' : 'error'].sort())) {
-        throw new Error('MCP inner v5 response is not exactly correlated');
+      let inner: Record<string, unknown>;
+      let resultResponse: boolean;
+      let errorResponse: boolean;
+      try {
+        inner = parseObjectFrame(content.text, 'MCP inner v5 response') as Record<string, unknown>;
+        resultResponse = Object.hasOwn(inner, 'result');
+        errorResponse = Object.hasOwn(inner, 'error');
+        if (inner.jsonrpc !== '2.0' || inner.id !== 0 || resultResponse === errorResponse ||
+            callResult.isError !== errorResponse ||
+            !same(Object.keys(inner).sort(), ['jsonrpc', 'id', resultResponse ? 'result' : 'error'].sort())) {
+          throw new Error('MCP inner v5 response is not exactly correlated');
+        }
+      } catch (error) {
+        // The decoded tool text exists even though it is malformed; retain its
+        // measurement without changing the original protocol failure.
+        observer?.observe({ method: request.method, boundary: 'mcp_content_0_text', subjectRevision: requestSubjectRevision(request), outcome: 'malformed' }, content.text);
+        throw error;
       }
+      // This is the decoded MCP text before correlation-ID rewriting. It is the
+      // only primary tool-payload boundary and is charged once per delivery.
+      observer?.observe({ method: request.method, boundary: 'mcp_content_0_text', subjectRevision: requestSubjectRevision(request), outcome: callResult.isError ? 'error' : 'success' }, content.text);
       inner.id = innerId;
       return JSON.stringify(inner);
     },

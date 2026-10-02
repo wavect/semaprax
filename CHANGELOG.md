@@ -1,5 +1,13 @@
 # Changelog
 
+- Pin unsupported native/C11 and Core-Wasm admission for the checked source
+  Agent owned-wait fixture: SPX-B116/SPX-W126, with both scalar artifact
+  projections refusing SPX-H006 before an artifact or effect. The focused gate
+  passed 1/1 in 6.61s on local macOS. Record three narrow cached preservation
+  passes from a62101c84: exact SDK prompt (0.02s), shared Copy/scalar ABI
+  spellings (0.04s), and inert observation SDK refusal/usize bounds (0.00s).
+  These results do not claim native execution or a broader wire suite (#330).
+
 - Add an opaque public first-model prepare/finish/shutdown boundary. Explicit
   abandonment and cancellation before Authorize settle the same actual State
   through HostAbandoned, Started, observed receipt and Cancelled Stop ACKs,

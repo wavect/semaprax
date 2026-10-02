@@ -537,3 +537,27 @@ scenarios) in 129.87s. Observer panic plus authenticated failed-receipt Stop
 refusal passed 1/1 in 32.75s. The existing cancellation/denied-policy preservation
 selector passed 1/1 (two scenarios) in 52.96s. These five focused selectors used
 the same emitted binary for this shutdown packet; no full profile was run.
+
+## 18. Backend refusal and preserved scalar boundaries
+
+The checked source Agent owned-wait binding remains interpreter-only. The
+`owned_agent_wait_profile_refuses_native_c11_and_core_wasm_before_artifacts`
+selector reuses the source-associated owned State / Copy Observation / Proposal
+fixture, verifies its owned/copy signature and owned liveness, and passes that
+same checked program to the ordinary emitters. Native C11 must return
+`SPX-B116`; Core Wasm must return `SPX-W126`. Both return an error before any C
+source or Wasm module artifact is published. The separate scalar resumable
+artifact projection must refuse this owned helper with `SPX-H006` for both
+targets. The focused selector passed 1/1 in 6.61s on local macOS. This is
+unsupported-target refusal evidence, not native execution.
+
+Three narrow preservation gates also passed 1/1 each from the cached macOS
+binary for `a62101c84`, with `RUST_MIN_STACK=2097152`:
+
+- `provider_adapter_sdk::source_bridge::owned_wait_v8::tests::owned_wait_sdk_borrowed_prompt_has_exact_frozen_legacy_bytes` (0.02s).
+- `wasm::scalar_exports::tests::abi_spellings_equal_the_shared_copy_scalar_vocabulary` (0.04s).
+- `resumable_effects::owned_frame::v2::observation_binding::tests::inert_copy_projection_keeps_existing_sdk_refusals_and_usize_bound` (0.00s).
+
+These results preserve the exact SDK prompt, shared scalar ABI spellings and
+existing Copy observation refusal/usize limits; they do not claim execution of
+a broader wire suite or current-head Linux evidence.

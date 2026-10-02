@@ -50,6 +50,30 @@ test('same-name declarations retain separate compiler identities and selected si
   assert.deepEqual(selected.facets.map(row => row.facet), ['typed_declaration', 'contracts', 'effect_requirements']);
 });
 
+test('compiler identities distinguish rename and move-plus-body from additions, removals, and same-name replacements', () => {
+  const renamed = root('explicit.rename', 'modified', compact('explicit.rename', 'before_name', 'src/core.spx'), compact('explicit.rename', 'after_name', 'src/core.spx', 'g'));
+  const movedAndEdited = root('explicit.move', 'moved', compact('explicit.move', 'helper', 'src/core.spx'), compact('explicit.move', 'helper', 'src/support.spx', 'h'));
+  const added = root('new.same-name', 'added', null, compact('new.same-name', 'helper', 'src/support.spx'));
+  const removed = root('old.same-name', 'removed', compact('old.same-name', 'helper', 'src/core.spx'), null);
+  const automatic = root('auto:revision-scoped', 'modified', compact('auto:revision-scoped', 'temporary', 'src/core.spx'), compact('auto:revision-scoped', 'temporary', 'src/core.spx', 'i'));
+  const rows = changes.changeList(catalog([renamed, movedAndEdited, added, removed, automatic])).rows;
+  assert.deepEqual(rows.map(row => row.target), ['explicit.rename', 'explicit.move', 'new.same-name', 'old.same-name', 'auto:revision-scoped']);
+  assert.equal(rows[0].declaration_status, 'modified');
+  assert.equal(rows[1].declaration_status, 'moved');
+  assert.equal(rows[2].candidate_only, true);
+  assert.equal(rows[3].base_ghost, true);
+  assert.equal(rows[4].identity_status, 'persistence_not_reported');
+  const detail = changes.changeRow(movedAndEdited, delta('explicit.move', [
+    facet('authored_declaration', 'modified', false, false),
+    facet('contract_helpers', 'modified', false, false),
+    facet('contracts', 'modified', false, false),
+    facet('effect_requirements', 'modified', false, false)
+  ]));
+  assert.equal(detail.declaration_status, 'moved');
+  assert.equal(detail.facet_status, 'modified');
+  assert.deepEqual(detail.facets.map(row => row.facet), ['authored_declaration', 'contract_helpers', 'contracts', 'effect_requirements']);
+});
+
 function summary(side, target, relationCount = 1, truncated = false) {
   return { schema: model.SCHEMA, kind: 'summary', subject: { kind: 'candidate', image_revision: 'image', project_revision: `${side}-project`, workspace_revision: `${side}-workspace`, project_graph_digest: digest, candidate_revision: 'candidate-1', side }, mode: 'impact', target, query: { direction: 'both', depth: 1, max_nodes: 256, max_bytes: 262144 }, artifact_digest: digest, truncation: { truncated, reason: truncated ? 'bound' : null }, coverage: { owner: 'workspace_analysis', mode: 'impact', complete_within_query: !truncated }, inventories: [{ view: 'modules', total_items: 0, handle: digest }, { view: 'declarations', total_items: 2, handle: digest }, { view: 'relations', total_items: relationCount, handle: digest }, { view: 'frontier', total_items: 0, handle: digest }], source_authority: false, execution: false, publication_authority: false, nonclaims: [] };
 }

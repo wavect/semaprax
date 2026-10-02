@@ -7,7 +7,7 @@ use crate::provider_adapter_sdk::adapter::{
 use crate::provider_adapter_sdk::capability::AdapterCapabilities;
 use crate::provider_adapter_sdk::fixture_adapters::{base_capabilities, usage};
 use crate::provider_adapter_sdk::{AdapterInvocationCapability, ProviderAdapter};
-use std::{cell::RefCell, collections::VecDeque, rc::Rc, sync::Arc};
+use std::{cell::RefCell, collections::VecDeque, fs::File, rc::Rc, sync::Arc};
 #[derive(Default)]
 struct Counts {
     factories: usize,
@@ -211,6 +211,92 @@ fn owned_wait_live_model_real_sdk_settlement_usage_and_resume_keep_same_owner() 
         drop(completed);
         assert!(weak.iter().all(|w| w.upgrade().is_none()));
     });
+}
+#[test]
+fn owned_wait_recovered_first_prepared_continues_once_after_close_reopen() {
+    CheckedOwnedWaitJournalContextV8::test_with_actual_runtime_store(
+        true,
+        |context, lease, key, directory| {
+            let restart_key =
+                crate::resumable_effects::source_checkpoint::SourceCheckpointKey::new([73; 32]);
+            let context = Arc::new(context.with_initialization(&lease).unwrap());
+            let journal = SourceOwnedWaitJournalV8::open(Arc::clone(&context), key, lease).unwrap();
+            let cancel = crate::agent_runtime::AgentCancellation::new();
+            let parked = park(&journal, &cancel);
+            let original = parked.owner.test_weak();
+            let path = std::fs::read_dir(directory)
+                .unwrap()
+                .map(|entry| entry.unwrap().path())
+                .next()
+                .unwrap();
+            let before = std::fs::read(&path).unwrap();
+            drop(parked);
+            assert!(original.iter().all(|weak| weak.upgrade().is_none()));
+            drop(journal);
+
+            let recovered = crate::resumable_effects::owned_frame::recover_source_owned_wait_v8(
+                File::open(directory).unwrap(),
+                context.registration(),
+                context.registration().expected_facts().clone(),
+                crate::resumable_effects::owned_frame::ExplicitStoreRegistrationGrant::for_trusted_host(true)
+                    .unwrap(),
+            )
+            .unwrap();
+            let reopened =
+                SourceOwnedWaitJournalV8::open(Arc::clone(&context), restart_key, recovered)
+                    .unwrap();
+            let owner = super::super::recover_first_turn_prepared_owner_v8(
+                &reopened,
+                super::super::FirstTurnPreparedRecoveryHostGrantV8::for_trusted_host(true).unwrap(),
+                &cancel,
+            )
+            .unwrap();
+            assert_eq!(std::fs::read(&path).unwrap(), before);
+            let response = document(&context);
+            let counts = Rc::new(RefCell::new(Counts::default()));
+            let mut factory = factory(Rc::clone(&counts), script(&response), Rc::new(|_| {}));
+            let mut source = source(reopened.context(), &mut factory);
+            let completed = match super::super::continue_recovered_first_turn_prepared_v8(
+                owner,
+                super::super::FirstTurnPreparedContinuationHostGrantV8::for_trusted_host(true)
+                    .unwrap(),
+                &mut source,
+                &Clock,
+            ) {
+                Ok(completed) => completed,
+                Err(_) => panic!("authenticated Prepared tail enters original model once"),
+            };
+            assert_eq!(completed.completed, 14);
+            assert_eq!(completed.session.sequence(), 15);
+            assert!(completed.owner.consumed() > 0);
+            let fresh = completed.owner.test_weak();
+            assert!(fresh.iter().all(|weak| weak.strong_count() == 1));
+            assert!(fresh.iter().all(|new| original
+                .iter()
+                .all(|old| !std::sync::Weak::ptr_eq(new, old))));
+            assert_eq!(
+                (
+                    counts.borrow().factories,
+                    counts.borrow().starts,
+                    counts.borrow().polls,
+                ),
+                (1, 1, 3),
+                "only the original, not a repeated, model dispatch occurs",
+            );
+            let folded = completed.session.fold_for_live_test();
+            assert_eq!(
+                folded.reserved_total,
+                4 * reopened
+                    .context()
+                    .test_runtime_execution()
+                    .1
+                    .evaluation_fuel() as u64,
+            );
+            assert_eq!(folded.stages, 2);
+            drop(completed);
+            assert!(fresh.iter().all(|weak| weak.upgrade().is_none()));
+        },
+    );
 }
 #[test]
 fn owned_wait_live_model_ack_faults_never_dispatch_before_intent_or_resume_before_reservation() {

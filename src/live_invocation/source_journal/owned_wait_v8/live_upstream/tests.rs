@@ -266,6 +266,15 @@ fn owned_wait_recovered_first_prepared_refuses_start_reserved_uncertain_prefix()
             ));
             assert_eq!(std::fs::read(path).unwrap(), bytes);
             assert_eq!(reopened.begin_session().unwrap().sequence(), 9);
+            assert_eq!(
+                reopened
+                    .lease
+                    .try_borrow()
+                    .unwrap()
+                    .validate_append_authorized(context.registration()),
+                Err(crate::resumable_effects::owned_frame::OwnedFrameError::Policy),
+                "an uncertain pre-Prepared tail cannot open a successor append route",
+            );
         },
     );
 }

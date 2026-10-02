@@ -697,6 +697,7 @@ impl<'a> Projection<'a> {
             self.frontier_count,
         );
         let mut keys = BTreeMap::new();
+        out.push_str("<defs><marker id=\"spx-arrow\" markerWidth=\"8\" markerHeight=\"8\" refX=\"7\" refY=\"4\" orient=\"auto\"><path d=\"M 0 0 L 8 4 L 0 8\" fill=\"none\" stroke=\"#566573\"/></marker></defs>");
         for (index, declaration) in self.declarations.iter().enumerate() {
             keys.insert(required_display(declaration, "node_key").to_owned(), index);
         }
@@ -706,7 +707,8 @@ impl<'a> Projection<'a> {
             if let (Some(from), Some(to)) = (keys.get(from), keys.get(to)) {
                 let y1 = 176 + from * 72 + 28;
                 let y2 = 176 + to * 72 + 28;
-                out.push_str(&format!("<path d=\"M 840 {y1} L 930 {y2}\" stroke=\"#95a5a6\" stroke-width=\"1\" fill=\"none\"/>"));
+                let family = xml_escape(optional_display(relation, "family"));
+                out.push_str(&format!("<path d=\"M 840 {y1} L 930 {y2}\" stroke=\"#566573\" stroke-width=\"1\" fill=\"none\" marker-end=\"url(#spx-arrow)\"><title>Potential {family} relationship</title></path>"));
             }
         }
         for (index, declaration) in self.declarations.iter().enumerate() {

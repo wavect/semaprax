@@ -51,7 +51,7 @@ impl InventoryV8<'_> {
         let Some(observation) = prepared.observation.clone() else {
             return Err(SourceJournalError::Binding);
         };
-        if observation.ordinary_digest() != observation_digest {
+        if observation.request_digest() != observation_digest {
             return Err(SourceJournalError::Binding);
         }
         let created = self

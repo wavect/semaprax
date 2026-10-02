@@ -1,5 +1,12 @@
 # Changelog
 
+- Fix first Prepared restart admission to compare the authenticated request
+  digest written by the live wait, preserving the frozen wire format. The
+  process regression now explicitly distinguishes that digest from the ordinary
+  observation digest; its Model ACK assertions and fault injection are bound
+  to the actual Prepared sequence. This correction is source-checked, with
+  behavioral rerun pending (#330).
+
 - Preserve real second-turn failed Observe and first-turn Decision-observer
   failure in private owned-Agent runtime custody, with distinct checked State
   cleanup/receipt/Stop tails. Earlier target failure remains sticky, normal

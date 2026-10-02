@@ -40,13 +40,15 @@ fn finish(
     counts: &Rc<RefCell<Counts>>,
 ) -> Vec<u8> {
     let policy = CapabilityPolicy::new(vec!["read".into()]).unwrap();
+    let prepared_sequence = journal.begin_session().unwrap().sequence();
     let mut runtime = restart(journal, cancellation, adapter).unwrap();
     assert_eq!(runtime.status(), OwnedLifecycleStatusV8::ModelCompleted);
     let weak = runtime.test_backings();
     assert!(!weak.is_empty());
     assert!(weak.iter().all(|root| root.strong_count() == 1));
     let before = journal.begin_session().unwrap();
-    assert_eq!(before.sequence(), 15);
+    // Intent, settlement, Usage, Resume reservation and Completed each ACK once.
+    assert_eq!(before.sequence(), prepared_sequence + 5);
     let accounting = before.fold_for_live_test();
     let fuel = journal
         .context()
@@ -109,7 +111,7 @@ fn finish(
 
 #[test]
 fn owned_runtime_restart_prepared_model_faults_retain_custody_without_retry() {
-    for append in [11, 12, 13, 14, 15] {
+    for offset in 1..=5 {
         CheckedOwnedWaitJournalContextV8::test_with_actual_runtime_store(
             true,
             |context, lease, key, directory| {
@@ -119,6 +121,7 @@ fn owned_runtime_restart_prepared_model_faults_retain_custody_without_retry() {
                 let cancellation = crate::agent_runtime::AgentCancellation::new();
                 let parked = park(&journal, &cancellation);
                 let original = parked.owner.test_weak();
+                let append = parked.session.sequence() + offset;
                 drop(parked);
                 drop(journal);
                 assert!(original.iter().all(|root| root.upgrade().is_none()));
@@ -150,7 +153,7 @@ fn owned_runtime_restart_prepared_model_faults_retain_custody_without_retry() {
                 let weak = runtime.test_backings();
                 assert!(!weak.is_empty());
                 assert!(weak.iter().all(|root| root.strong_count() == 1));
-                assert_eq!(counts.borrow().starts, usize::from(append > 11));
+                assert_eq!(counts.borrow().starts, usize::from(offset > 1));
                 assert!(weak.iter().all(|new| original
                     .iter()
                     .all(|old| !std::sync::Weak::ptr_eq(new, old))));
@@ -185,7 +188,7 @@ fn owned_runtime_restart_prepared_model_faults_retain_custody_without_retry() {
                 );
                 assert_eq!(
                     (counts.borrow().starts, host.calls, releases),
-                    (usize::from(append > 11), 0, 0)
+                    (usize::from(offset > 1), 0, 0)
                 );
                 assert_eq!(
                     journal
@@ -290,6 +293,20 @@ fn owned_runtime_restart_prepared_process_child() {
                 let parked = park(&journal, &cancellation);
                 // Start stages Created and Reserved after the committed sequence 10.
                 assert_eq!(parked.session.sequence(), 12);
+                assert_ne!(
+                    parked.observation.request_digest(),
+                    parked.observation.ordinary_digest(),
+                    "Prepared binds the request domain, distinct from TurnObserved"
+                );
+                let facts = parked
+                    .session
+                    .inventory
+                    .first_turn_prepared_recovery()
+                    .expect("the real Prepared row uses its authenticated request digest");
+                assert_eq!(
+                    facts.observation.request_digest(),
+                    parked.observation.request_digest()
+                );
                 let metadata = PreparedRestartProcessMeta {
                     directory: directory.to_owned(),
                     registration: context.registration().test_retained_restart_facts(),

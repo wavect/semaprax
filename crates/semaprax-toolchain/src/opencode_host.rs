@@ -107,8 +107,9 @@ fn is_absolute_like(path: &std::path::Path) -> bool {
 
 impl OpenCodeHostConfig {
     /// Accepts only an absolute executable and an existing, non-symlink
-    /// workspace containing no foreign state. Exact interrupted host-owned
-    /// state is authenticated and removed before admission.
+    /// workspace containing no foreign state. A retained post-settlement
+    /// marker is admitted only so repair can bind it to an authenticated
+    /// checkpoint before removing it.
     pub fn new(
         executable: PathBuf,
         sandbox: PathBuf,
@@ -157,12 +158,9 @@ impl OpenCodeHostConfig {
         {
             return Err("OpenCode host could not clear its interrupted session state".into());
         }
-        if scratch_inventory_is_repair_post_settled_marker(&sandbox)
-            && !cleanup_repair_post_settled_marker(&sandbox)
+        if !scratch_inventory_is_repair_post_settled_marker(&sandbox)
+            && !scratch_inventory_is_admitted(&sandbox, policy.as_bytes())
         {
-            return Err("OpenCode host could not clear its post-settlement pause marker".into());
-        }
-        if !scratch_inventory_is_admitted(&sandbox, policy.as_bytes()) {
             return Err(
                 "OpenCode host sandbox must be empty or contain only its exact policy".into(),
             );
@@ -186,8 +184,9 @@ impl OpenCodeHostConfig {
     }
 
     /// Records the private repair-smoke interruption point in the already
-    /// selected scratch directory. The marker grants no host capability and
-    /// is authenticated and removed when this exact scratch host is reopened.
+    /// selected scratch directory. The marker grants no host capability.
+    /// Repair removes it only after a recovered checkpoint authenticates its
+    /// exact settled attempt.
     pub(crate) fn write_repair_post_settled_marker(&self, marker: &[u8]) -> Result<(), String> {
         if !repair_post_settled_marker_is_valid(marker)
             || !scratch_inventory_is_empty(&self.sandbox)
@@ -206,6 +205,59 @@ impl OpenCodeHostConfig {
         std::fs::File::open(&self.sandbox)
             .and_then(|directory| directory.sync_all())
             .map_err(|_| "OpenCode repair pause marker directory cannot be acknowledged".to_owned())
+    }
+
+    /// Removes the retained marker only if its bytes equal the canonical marker
+    /// derived from an already authenticated checkpoint. A mismatch remains in
+    /// place so the caller cannot erase another controller's evidence.
+    pub(crate) fn clear_repair_post_settled_marker(
+        &self,
+        expected: Option<&[u8]>,
+    ) -> Result<bool, String> {
+        if scratch_inventory_is_empty(&self.sandbox) {
+            return Ok(false);
+        }
+        let expected = expected.ok_or_else(|| {
+            "OpenCode repair post-settlement pause marker does not match authenticated checkpoint"
+                .to_owned()
+        })?;
+        if !repair_post_settled_marker_is_valid(expected) {
+            return Err("OpenCode repair checkpoint pause marker is invalid".into());
+        }
+        let path = self.sandbox.join(REPAIR_POST_SETTLED_MARKER);
+        let before = path.symlink_metadata().map_err(|_| {
+            "OpenCode repair post-settlement pause marker is unavailable".to_owned()
+        })?;
+        let bytes = std::fs::read(&path).map_err(|_| {
+            "OpenCode repair post-settlement pause marker is unavailable".to_owned()
+        })?;
+        if !before.file_type().is_file()
+            || before.len() > MAX_REPAIR_POST_SETTLED_MARKER_BYTES
+            || !repair_post_settled_marker_is_valid(&bytes)
+            || bytes != expected
+        {
+            return Err(
+                "OpenCode repair post-settlement pause marker does not match authenticated checkpoint"
+                    .into(),
+            );
+        }
+        let after = path.symlink_metadata().map_err(|_| {
+            "OpenCode repair post-settlement pause marker changed during validation".to_owned()
+        })?;
+        #[cfg(unix)]
+        let same_inode = before.dev() == after.dev() && before.ino() == after.ino();
+        #[cfg(not(unix))]
+        let same_inode = before.len() == after.len();
+        if !same_inode
+            || std::fs::remove_file(path).is_err()
+            || std::fs::File::open(&self.sandbox)
+                .and_then(|directory| directory.sync_all())
+                .is_err()
+            || !scratch_inventory_is_empty(&self.sandbox)
+        {
+            return Err("OpenCode repair post-settlement pause marker could not be cleared".into());
+        }
+        Ok(true)
     }
 }
 
@@ -599,35 +651,6 @@ fn scratch_inventory_is_repair_post_settled_marker(sandbox: &std::path::Path) ->
             .unwrap_or(false)
 }
 
-fn cleanup_repair_post_settled_marker(sandbox: &std::path::Path) -> bool {
-    let path = sandbox.join(REPAIR_POST_SETTLED_MARKER);
-    let Ok(before) = path.symlink_metadata() else {
-        return false;
-    };
-    let Ok(bytes) = std::fs::read(&path) else {
-        return false;
-    };
-    if !before.file_type().is_file()
-        || before.len() > MAX_REPAIR_POST_SETTLED_MARKER_BYTES
-        || !repair_post_settled_marker_is_valid(&bytes)
-    {
-        return false;
-    }
-    let Ok(after) = path.symlink_metadata() else {
-        return false;
-    };
-    #[cfg(unix)]
-    let same_inode = before.dev() == after.dev() && before.ino() == after.ino();
-    #[cfg(not(unix))]
-    let same_inode = before.len() == after.len();
-    same_inode
-        && std::fs::remove_file(path).is_ok()
-        && std::fs::File::open(sandbox)
-            .and_then(|directory| directory.sync_all())
-            .is_ok()
-        && scratch_inventory_is_empty(sandbox)
-}
-
 fn repair_post_settled_marker_is_valid(bytes: &[u8]) -> bool {
     let Ok(value) = serde_json::from_slice::<serde_json::Value>(bytes) else {
         return false;
@@ -635,8 +658,9 @@ fn repair_post_settled_marker_is_valid(bytes: &[u8]) -> bool {
     let Some(object) = value.as_object() else {
         return false;
     };
-    const KEYS: [&str; 5] = [
+    const KEYS: [&str; 6] = [
         "schema",
+        "invocation",
         "checkpoint_generation",
         "turn",
         "attempt",
@@ -646,6 +670,10 @@ fn repair_post_settled_marker_is_valid(bytes: &[u8]) -> bool {
         && KEYS.iter().all(|key| object.contains_key(*key))
         && object.get("schema").and_then(serde_json::Value::as_str)
             == Some("semaprax.source-live-cli.repair-post-settled-pause.v1")
+        && object
+            .get("invocation")
+            .and_then(serde_json::Value::as_str)
+            .is_some_and(|value| !value.is_empty() && value.len() <= 256)
         && object
             .get("checkpoint_generation")
             .and_then(serde_json::Value::as_u64)

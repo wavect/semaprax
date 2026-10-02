@@ -34,6 +34,7 @@ function snapshotHost(bundle) {
   }
   let active = null;
   const changes = bundle.changes || null;
+  const sourceReview = Object.hasOwn(bundle, 'source_review') ? bundle.source_review : null;
   if (changes && (!changes.catalog || !Array.isArray(changes.details) || changes.details.length > 256)) throw new TypeError('invalid bundled changes');
   return Object.freeze({
     offline: true,
@@ -62,6 +63,10 @@ function snapshotHost(bundle) {
       const detail = changes.details.find(row => row.target === target);
       if (!detail) throw new Error('not bundled');
       return detail.report;
+    },
+    async sourceReview() {
+      if (sourceReview === null) throw new Error('not bundled');
+      return sourceReview;
     },
     async exportReport() { throw new Error('not bundled'); }
   });

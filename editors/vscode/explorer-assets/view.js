@@ -33,7 +33,7 @@ function createExplorer(root, host, options = {}) {
     loaded: new Set(), selected: null, selectedModule: null, selectedRelation: null, localFocus: null,
     search: '', direction: 'both', depth: 1, families: new Set(semapraxExplorerModel.FAMILIES),
     scale: 1, panX: 0, panY: 0, pins: new Map(), theme: 'system', busy: false,
-    changes: { state: 'not_requested', list: null, selectedTarget: null, details: new Map(), impacts: new Map(), view: 'changes', comparison: false, witness: null, error: null },
+    changes: { state: 'not_requested', list: null, selectedTarget: null, details: new Map(), impacts: new Map(), view: 'changes', comparison: false, witness: null, sourceReview: null, sourceReviewError: null, sourcePath: null, error: null },
     evidence: { key: null, inspector: null, tab: 'declaration', result: null, loading: false }
   };
 
@@ -189,6 +189,39 @@ function createExplorer(root, host, options = {}) {
     return panel;
   }
 
+  function sourceReviewFiles(selected) {
+    const review = state.changes.sourceReview;
+    if (!review) return [];
+    const paths = new Set([selected.base?.path, selected.candidate?.path].filter(Boolean));
+    return review.files.filter(file => paths.has(file.path));
+  }
+
+  function renderSourceDiff(selected) {
+    const panel = element(document, 'section', 'spx-source-diff-panel');
+    panel.append(element(document, 'h3', '', 'Source diff'));
+    if (state.changes.sourceReviewError) { panel.append(element(document, 'p', 'spx-evidence-state', `Source diff unavailable: ${state.changes.sourceReviewError}`)); return panel; }
+    if (!state.changes.sourceReview) { panel.append(element(document, 'p', 'spx-evidence-state', 'Source diff not bundled.')); return panel; }
+    const files = sourceReviewFiles(selected);
+    if (!files.length) { panel.append(element(document, 'p', 'spx-evidence-state', 'Source diff not bundled for this declaration. No bundled source pair matches its compiler-reported base or candidate path.')); return panel; }
+    const selectedFile = files.find(file => file.path === state.changes.sourcePath) || files[0];
+    if (files.length > 1) {
+      const picker = element(document, 'div', 'spx-source-diff-files');
+      for (const file of files) {
+        const button = element(document, 'button', `spx-button${file.path === selectedFile.path ? ' spx-primary' : ''}`, file.path); button.type = 'button';
+        button.addEventListener('click', () => { state.changes.sourcePath = file.path; showInspector(); }); picker.append(button);
+      }
+      panel.append(picker);
+    }
+    panel.append(element(document, 'p', 'spx-muted', `Compiler-provided source pair: ${selectedFile.path}. This display is read-only and does not execute source.`));
+    const columns = element(document, 'div', 'spx-source-columns');
+    for (const [title, text] of [['Base', selectedFile.base_source], ['Candidate', selectedFile.candidate_source]]) {
+      const column = element(document, 'section', 'spx-source-column');
+      column.append(element(document, 'h4', '', title), element(document, 'pre', 'spx-source-text', text)); columns.append(column);
+    }
+    panel.append(columns, element(document, 'p', 'spx-muted', 'Compiler-provided source diff:'), element(document, 'pre', 'spx-source-text spx-source-patch', selectedFile.source_diff));
+    return panel;
+  }
+
   function renderChanges() {
     if (!candidateRevision()) return;
     const panel = element(document, 'section', 'spx-change-panel');
@@ -228,7 +261,7 @@ function createExplorer(root, host, options = {}) {
         const facts = [['Declaration', selected.declaration_status], ['Facets', detail && detail.facets ? detail.facet_status : 'not loaded'], ['Identity', selected.identity_status], ['Base', selected.base_ghost ? 'base-only ghost' : selected.base ? selected.base.path : 'not present'], ['Candidate', selected.candidate_only ? 'candidate-only' : selected.candidate ? selected.candidate.path : 'not present']];
         const dl = element(document, 'dl', 'spx-facts');
         for (const [name, value] of facts) dl.append(element(document, 'dt', '', name), element(document, 'dd', '', value));
-        panel.append(dl, element(document, 'p', 'spx-muted', selected.nonclaim), renderImpact(selected));
+        panel.append(dl, element(document, 'p', 'spx-muted', selected.nonclaim), renderImpact(selected), renderSourceDiff(selected));
       }
       if (selected.base && selected.candidate) {
         const compare = element(document, 'button', 'spx-button', state.changes.comparison ? 'Single panel' : 'Compare Base and Candidate'); compare.type = 'button';
@@ -430,7 +463,7 @@ function createExplorer(root, host, options = {}) {
       state.rows = Object.fromEntries(semapraxExplorerModel.VIEWS.map(view => [view, []]));
       state.cursors = Object.fromEntries(semapraxExplorerModel.VIEWS.map(view => [view, null]));
       state.loaded.clear(); state.selectedRelation = null;
-      state.changes = { state: 'not_requested', list: null, selectedTarget: null, details: new Map(), impacts: new Map(), view: 'changes', comparison: false, witness: null, error: null }; resetEvidence();
+      state.changes = { state: 'not_requested', list: null, selectedTarget: null, details: new Map(), impacts: new Map(), view: 'changes', comparison: false, witness: null, sourceReview: null, sourceReviewError: null, sourcePath: null, error: null }; resetEvidence();
       for (const view of semapraxExplorerModel.VIEWS) await fetchPage(view, null, generation);
       if (generation !== state.generation) return;
       status.textContent = 'Project view ready'; draw();
@@ -446,7 +479,12 @@ function createExplorer(root, host, options = {}) {
     try {
       const list = semapraxExplorerChanges.changeList(await host.deltaCatalog(revision));
       if (generation !== state.generation) return;
-      state.changes = { state: 'available', list, selectedTarget: null, details: new Map(), impacts: new Map(), view: 'changes', comparison: false, witness: null, error: null };
+      let sourceReview = null, sourceReviewError = null;
+      if (typeof host.sourceReview === 'function') {
+        try { sourceReview = semapraxExplorerChanges.sourceReview(await host.sourceReview(), list.candidate_revision, list.base_project_revision, list.candidate_project_revision); }
+        catch (error) { if (!/not bundled/i.test(String(error && error.message || error))) sourceReviewError = String(error && error.message || error); }
+      }
+      state.changes = { state: 'available', list, selectedTarget: null, details: new Map(), impacts: new Map(), view: 'changes', comparison: false, witness: null, sourceReview, sourceReviewError, sourcePath: null, error: null };
     } catch (error) {
       if (generation !== state.generation) return;
       state.changes.state = 'error'; state.changes.error = String(error && error.message || error);
@@ -458,7 +496,7 @@ function createExplorer(root, host, options = {}) {
     const list = state.changes.list;
     const row = list && list.rows.find(candidate => candidate.target === target);
     if (!row) return;
-    state.changes.selectedTarget = target; state.changes.comparison = false; state.changes.witness = null; resetEvidence(); showInspector();
+    state.changes.selectedTarget = target; state.changes.comparison = false; state.changes.witness = null; state.changes.sourcePath = null; resetEvidence(); showInspector();
     if (!state.changes.impacts.has(target)) loadSelectedImpact(row, target);
     if (state.changes.details.has(target) || typeof host.semanticDelta !== 'function') return;
     state.changes.details.set(target, 'loading'); showInspector();
@@ -539,7 +577,7 @@ function createExplorer(root, host, options = {}) {
     state.cursors = Object.fromEntries(semapraxExplorerModel.VIEWS.map(view => [view, null]));
     state.loaded.clear(); state.pins.clear(); state.selected = null; state.selectedModule = null;
     state.selectedRelation = null; state.localFocus = null;
-    state.changes = { state: 'not_requested', list: null, selectedTarget: null, details: new Map(), impacts: new Map(), view: 'changes', comparison: false, witness: null, error: null }; resetEvidence();
+    state.changes = { state: 'not_requested', list: null, selectedTarget: null, details: new Map(), impacts: new Map(), view: 'changes', comparison: false, witness: null, sourceReview: null, sourceReviewError: null, sourcePath: null, error: null }; resetEvidence();
     host.dispose?.(); shell.remove();
   } };
 }

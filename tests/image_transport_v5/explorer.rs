@@ -113,6 +113,28 @@ fn image_overview_pages_match_the_held_library_subject() {
         )
         .unwrap();
         assert_eq!(page, expected);
+        if view == ExplorerView::Declarations {
+            let declaration = page["items"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|row| row["id"] == "calculator.add")
+                .unwrap();
+            let source = &declaration["source_reference"];
+            assert_eq!(source["path"], "src/core.spx");
+            assert!(source["source_revision"]
+                .as_str()
+                .unwrap()
+                .starts_with("sha256:"));
+            assert!(source["source_digest"]
+                .as_str()
+                .unwrap()
+                .starts_with("sha256:"));
+            assert!(source["span"]["start"].as_u64().is_some());
+            let start = source["span"]["start"].as_u64().unwrap();
+            let end = source["span"]["end"].as_u64().unwrap();
+            assert!(end > start);
+        }
     }
     session.finish().unwrap();
 }

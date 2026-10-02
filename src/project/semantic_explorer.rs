@@ -344,13 +344,10 @@ fn overview(subject: &ExplorerSubject<'_>) -> Result<Value> {
         let relation_count = source_edges.iter().filter(|row| row["caller_path"] == path || row["target_path"] == path).count();
         Ok(json!({"module":name,"path":path,"declaration_count":declaration_count,"relation_count":relation_count,"source_reference":{"path":path,"source_revision":module["source_revision"],"source_digest":module["source_digest"]}}))
     }).collect::<Result<Vec<_>>>()?;
-    let declarations = source_declarations.iter().map(|row| {
-        let mut result = declaration_row(subject, row)?;
-        if let Some(module) = row["module"].as_str().and_then(|name| source_modules.iter().find(|module| module["module"] == name)) {
-            result["source_reference"] = json!({"path":module["path"],"source_revision":module["source_revision"],"source_digest":module["source_digest"]});
-        }
-        Ok(result)
-    }).collect::<Result<Vec<_>>>()?;
+    let declarations = source_declarations
+        .iter()
+        .map(|row| declaration_row(subject, row))
+        .collect::<Result<Vec<_>>>()?;
     let relations = source_edges
         .iter()
         .map(|row| relation_row(subject, row))
@@ -398,16 +395,106 @@ fn declaration_row(subject: &ExplorerSubject<'_>, value: &Value) -> Result<Value
         .and_then(Value::as_str)
         .ok_or_else(|| invalid("held declaration row has no identity"))?;
     let path = value.get("path").cloned().unwrap_or(Value::Null);
-    let source_reference = value.get("source_binding").cloned().unwrap_or_else(|| {
-        if path.is_null() {
-            json!({"kind":"non_file_node"})
-        } else {
-            json!({"kind":"authenticated_source_reference_unavailable_in_analysis_projection"})
-        }
-    });
+    let source_reference = declaration_source_reference(subject, value, id, &path);
     Ok(
         json!({"node_key":node_key(subject,id),"id":id,"identity_origin":value.get("identity_origin").cloned().unwrap_or_else(||Value::String("unknown_in_analysis_projection".into())),"kind":value.get("kind").cloned().unwrap_or_else(||Value::String("declaration".into())),"display_name":value.get("name").or_else(||value.get("display_name")).cloned().unwrap_or_else(||Value::String(id.rsplit('.').next().unwrap_or(id).to_owned())),"owner_id":value.get("owner").cloned().unwrap_or(Value::Null),"module":value.get("module").cloned().unwrap_or(Value::Null),"path":path,"source_reference":source_reference}),
     )
+}
+fn declaration_source_reference(
+    subject: &ExplorerSubject<'_>,
+    value: &Value,
+    id: &str,
+    path: &Value,
+) -> Value {
+    let Some(path) = path.as_str() else {
+        return json!({"kind":"non_file_node"});
+    };
+    let Some(module_name) = value.get("module").and_then(Value::as_str) else {
+        return json!({"kind":"authenticated_source_reference_unavailable_in_analysis_projection"});
+    };
+    let mut modules = subject
+        .revision
+        .semantic
+        .image_modules()
+        .iter()
+        .filter(|module| module.path() == path && module.module() == module_name);
+    let Some(module) = modules.next() else {
+        return json!({"kind":"authenticated_source_reference_unavailable_in_analysis_projection"});
+    };
+    if modules.next().is_some() || !source_binding_matches(value.get("source_binding"), module) {
+        return json!({"kind":"authenticated_source_reference_unavailable_in_analysis_projection"});
+    }
+    let Some(span) = declaration_span(module, id) else {
+        return json!({"kind":"authenticated_source_reference_unavailable_in_analysis_projection"});
+    };
+    json!({"path":module.path(),"source_revision":module.source_revision(),"source_digest":module.source_digest(),"span":{"start":span.start,"end":span.end,"line":span.line,"column":span.column}})
+}
+fn source_binding_matches(
+    binding: Option<&Value>,
+    module: &crate::workspace_graph::WorkspaceGraphProjectionModule,
+) -> bool {
+    let Some(binding) = binding else {
+        return true;
+    };
+    binding.get("path").and_then(Value::as_str) == Some(module.path())
+        && binding.get("source_revision").and_then(Value::as_str) == Some(module.source_revision())
+        && binding.get("source_digest").and_then(Value::as_str) == Some(module.source_digest())
+}
+fn declaration_span(
+    module: &crate::workspace_graph::WorkspaceGraphProjectionModule,
+    id: &str,
+) -> Option<crate::ast::Span> {
+    if let Some(function) = module
+        .functions()
+        .iter()
+        .find(|function| function.id.as_str() == id)
+    {
+        return Some(function.span);
+    }
+    if let Some(template) = module
+        .function_templates()
+        .iter()
+        .find(|template| template.id.as_str() == id)
+    {
+        return Some(template.span);
+    }
+    for declaration in module.types() {
+        if declaration.id.as_str() == id {
+            return Some(declaration.span);
+        }
+        match &declaration.kind {
+            crate::hir::ResolvedTypeDeclarationKind::Record { fields }
+            | crate::hir::ResolvedTypeDeclarationKind::Class { fields, .. } => {
+                if let Some(field) = fields.iter().find(|field| field.id.as_str() == id) {
+                    return Some(field.span);
+                }
+            }
+            crate::hir::ResolvedTypeDeclarationKind::Variant { cases } => {
+                for case in cases {
+                    if case.id.as_str() == id {
+                        return Some(case.span);
+                    }
+                    if let Some(field) = case.fields.iter().find(|field| field.id.as_str() == id) {
+                        return Some(field.span);
+                    }
+                }
+            }
+            crate::hir::ResolvedTypeDeclarationKind::Resource { .. } => {}
+        }
+    }
+    for interface in module.interfaces() {
+        if interface.id.as_str() == id {
+            return Some(interface.span);
+        }
+        if let Some(import) = interface
+            .imports
+            .iter()
+            .find(|import| import.id.as_str() == id)
+        {
+            return Some(import.span);
+        }
+    }
+    None
 }
 fn relation_row(subject: &ExplorerSubject<'_>, value: &Value) -> Result<Value> {
     let family = value

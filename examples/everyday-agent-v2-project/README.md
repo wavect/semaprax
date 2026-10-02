@@ -3,8 +3,8 @@
 This sibling preserves `examples/everyday-agent-project` as the Lifecycle V1
 durable-checkpoint product. It supplies an independently authenticated,
 multi-module Project whose source-declared Agent has the checked V2 `Step`
-shape and uses the exact OpenCode provider/model identity admitted by the
-private source-live repair route:
+shape and declares the candidate OpenCode provider/model identity expected by
+the private source-live repair route:
 
 ```
 opencode/muse-spark-1.3-contributor-free
@@ -19,18 +19,21 @@ Agent lifecycle, checks the v3 Project-associated lifecycle document and the
 compiler-derived proposal schema, proves the committed test fails, then proves
 the bounded scalar candidate `42` passes the exact manifest test closure.
 
-This is a genuine checked repair subject, not real-provider evidence. #323
-still requires an operator-authorized OpenCode run, an interrupt after a
+This seeded deterministic subject exercises the checked repair path. It does
+not establish #323's genuine-project acceptance or real-provider evidence.
+That acceptance still requires verified provider authorization and availability,
+an operator-authorized run on a qualifying project, an interrupt after a
 retained settlement, a resumed run with zero duplicate dispatch for that
 settled attempt, and the repair-tested host's independently observed passing
 candidate check. The route produces an ephemeral candidate only: it does not
 modify source or publish a change.
 
-When an authorized operator selects a real failing Project, they must use the
-private `source-live repair-tested` route and its absolute config, checkpoint,
+After an operator separately verifies authorization and availability, the
+private `source-live repair-tested` route takes an absolute config, checkpoint,
 OpenCode executable, and empty scratch operands as specified in
-[`SOURCE-LIVE-CLI-V1`](../../docs/SOURCE-LIVE-CLI-V1.md). Start from a clean
-checkout, then create a canonical V2 config with the selected absolute paths:
+[`SOURCE-LIVE-CLI-V1`](../../docs/SOURCE-LIVE-CLI-V1.md). The following
+controlled-subject commands create a canonical V2 config with selected absolute
+paths; they do not grant provider, spend, or egress authority:
 
 ```sh
 project_root="$(pwd)/examples/everyday-agent-v2-project"
@@ -62,7 +65,7 @@ semaprax-full source-live repair-tested resume "$run_root/repair.json" "$checkpo
 
 The later resume uses the same config and checkpoint with `resume` in place of
 `run`; it must occur after an intentional interruption that leaves a settled
-attempt. The command needs `semaprax-full` on `PATH`, `jq`, and an
-absolute OpenCode executable already authenticated and able to use the fixed
-free `opencode/muse-spark-1.3-contributor-free` profile. No credential is put
-in the config or repository; OpenCode supplies its own configured credential.
+attempt. The command needs `semaprax-full` on `PATH`, `jq`, and an absolute
+OpenCode executable whose credential and availability for the candidate free
+`opencode/muse-spark-1.3-contributor-free` profile have been independently
+verified. No credential is put in the config or repository.

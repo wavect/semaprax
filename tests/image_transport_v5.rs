@@ -39,6 +39,8 @@ mod draft_merge;
 mod draft_rebase;
 #[path = "image_transport_v5/draft_recovery.rs"]
 mod draft_recovery;
+#[path = "image_transport_v5/explorer.rs"]
+mod explorer;
 #[path = "image_transport_v5/field_place.rs"]
 mod field_place;
 #[path = "image_transport_v5/function_reference.rs"]

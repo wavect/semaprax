@@ -55,6 +55,7 @@ mod scaffold;
 mod scalar_wit;
 mod scalar_wit_compare;
 mod semantic;
+mod semantic_explorer;
 mod semantic_query;
 mod semantic_query_facts;
 mod semantic_service;
@@ -436,6 +437,10 @@ pub use project_lock::{
 };
 pub use scalar_wit_compare::{
     classify_scalar_wit_change, ScalarWitCompatibility, SCALAR_WIT_COMPATIBILITY_SCHEMA,
+};
+pub use semantic_explorer::{
+    ExplorerDirection, ExplorerMode, ExplorerPageOptions, ExplorerQuery, ExplorerSide,
+    ExplorerView, EXPLORER_VIEW_SCHEMA, MAX_EXPLORER_PAGE_BYTES, MAX_EXPLORER_SUMMARY_BYTES,
 };
 pub use semantic_query::{
     AgentDefinitionsQuery, AgentDefinitionsQueryResult, SemanticQuery, SemanticQueryResult,

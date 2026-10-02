@@ -77,6 +77,8 @@ Project, graph and source identities describe the candidate. It preserves all
 uninspected areas and creates no additional candidate or derived-image entry.
 See [Candidate Analysis Coverage](PROJECT-CANDIDATE-ANALYSIS-COVERAGE-V1.md).
 
+The default read policy also selects `image/explorer-summary` and `image/explorer-page`. Candidate preparation selects their candidate-bound counterparts. They expose compiler-owned module, declaration, relation and frontier inventories for a held image or an exact candidate base/candidate side; they neither accept graph JSON nor add a semantic database, source, execution or publication authority. See [Semantic Explorer View v1](SEMANTIC-EXPLORER-V1.md).
+
 Agents can instead request `image/dependency-summary` and expand selected
 `image/dependency-page` handles. These structured read-only methods expose
 counts and bounded sites/callers/calls/members pages without transferring the

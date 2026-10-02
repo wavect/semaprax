@@ -105,7 +105,7 @@ impl FirstTurnPreparedContinuationHostGrantV8 {
 /// Refusal before the one-way append transition retains the fresh physical
 /// parked owner. A model failure is the existing opaque model failure owner;
 /// both paths quarantine the recovered journal after the transition.
-pub(super) enum RecoveredFirstTurnPreparedContinuationFailureV8<'j> {
+pub(in crate::live_invocation::source_journal::owned_wait_v8) enum RecoveredFirstTurnPreparedContinuationFailureV8<'j> {
     Refused {
         owner: RecoveredFirstTurnPreparedOwnerV8<'j>,
         error: SourceJournalError,

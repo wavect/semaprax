@@ -136,7 +136,7 @@ pub(super) struct LiveModelFailureV8<'j> {
     usage: Option<SourceReportedUsage>,
 }
 /// Same physical State remains staged. Transfer/Authorize have not occurred.
-pub(super) struct CompletedLiveOwnedRunV8<'j> {
+pub(in crate::live_invocation::source_journal::owned_wait_v8) struct CompletedLiveOwnedRunV8<'j> {
     pub(super) owner: LiveResumedStateV8,
     pub(super) session: AppendSessionV8<'j>,
     pub(super) held: HeldOwnedWaitStoreV8<'j>,

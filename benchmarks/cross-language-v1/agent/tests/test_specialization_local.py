@@ -377,12 +377,15 @@ class LocalSpecializationTests(unittest.TestCase):
     def test_native_policy_does_not_authorize_parent_or_other_phase_or_network(self):
         tool, public, hidden = self.root / "tool", self.root / "public", self.root / "hidden"
         policy = native.sandbox_policy(tool, public)
-        self.assertIn("(deny default)", policy)
-        self.assertNotIn("allow network", policy)
+        self.assertIn("(allow default)", policy)
+        self.assertIn("(deny network*)", policy)
+        self.assertIn("(deny process-fork)", policy)
+        self.assertIn("(deny process-exec)", policy)
+        self.assertIn("(deny file-read*)", policy)
+        self.assertIn("(deny file-write*)", policy)
         self.assertNotIn(str(hidden), policy)
         self.assertNotIn('(subpath "' + str(self.root) + '")', policy)
         self.assertIn('(literal "' + str(tool) + '")', policy)
-        self.assertNotIn("allow process-fork", policy)
 
     def test_unprovisioned_native_host_refuses_before_any_process(self):
         with patch.object(native.provenance, "host_identity", side_effect=LocalTransportError("fixture_wrong_host")), \

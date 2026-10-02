@@ -31,11 +31,17 @@ def sandbox_policy(tool: pathlib.Path, phase: pathlib.Path) -> str:
     literal = lambda p: "(literal " + json.dumps(str(p)) + ")"
     subtree = lambda p: "(subpath " + json.dumps(str(p)) + ")"
     ancestors = sorted({str(x) for path in (tool, phase) for x in path.parents})
-    return ("(version 1)(deny default)(allow process-exec " + literal(tool) + ")"
-            "(allow file-read* " + literal(tool) + " " + subtree(phase) +
+    # Rust's primary-thread stack guard uses anonymous fixed-address mapping.
+    # On current Darwin, a deny-default profile turns that required VM primitive
+    # into EINVAL before `main`. Start from the OS VM baseline, then explicitly
+    # withdraw every file, process and network authority this scorer must not
+    # have. The later narrow allows are the complete execution authority.
+    return ("(version 1)(allow default)(deny network*)(deny process-fork)"
+            "(deny process-exec)(allow process-exec " + literal(tool) + ")"
+            "(deny file-read*)(allow file-read* " + literal(tool) + " " + subtree(phase) +
             ' (subpath "/usr/lib") (subpath "/System/Library"))'
             "(allow file-read-metadata " + " ".join(literal(x) for x in ancestors) + ")"
-            "(allow file-write* " + subtree(phase) + ")"
+            "(deny file-write*)(allow file-write* " + subtree(phase) + ")"
             '(allow file-read* file-write* (literal "/dev/null"))'
             '(allow sysctl-read (sysctl-name "hw.memsize") (sysctl-name "hw.ncpu")'
             ' (sysctl-name "hw.activecpu") (sysctl-name "hw.logicalcpu")'

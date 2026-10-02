@@ -50,7 +50,7 @@ All 298 comparison-source files and predecessor wire profiles remain unchanged.
 | Scoring bounds | Existing 120-second process-group deadline, existing per-stream output limits, 512 MiB maximum compiler snapshot, existing source/result limits; no increased archive limits |
 | Cost | Zero incremental provider charges; electricity, hardware and operator/reviewer cost are **not measured** |
 | Native execution | Existing Darwin arm64 / macOS 26.5.1 build 25F80 host check; explicitly supplied compiler bytes copied privately and hash-checked; no fallback on another host |
-| Native isolation | Deny-default `sandbox-exec` profile; only the exact compiler may execute, only the current public or hidden phase is writable, protected system libraries are readable, network/fork and sibling-phase authority are not granted |
+| Native isolation | An inverted `sandbox-exec` profile retains Darwin's required anonymous VM setup, then denies network, forks, non-tool execution, external reads and external writes; only the exact compiler may execute, only the current public or hidden phase is writable, and protected system libraries are readable |
 
 The localhost client **does not sandbox an independently running Ollama daemon**.
 The operator must provision and isolate that daemon, disable Ollama cloud features

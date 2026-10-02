@@ -55,3 +55,29 @@ test('candidate identity is part of the cache binding and source-bearing compact
   const result = await evidence.createEvidenceInspector(unsafe, subject('current'), functionDeclaration).inspect('declaration');
   assert.equal(result.state, 'error');
 });
+
+test('offline evidence index binds a selected subject and exposes only its compact states', async () => {
+  const selected = subject('candidate');
+  const index = evidence.offlineIndex({ schema: evidence.INDEX_SCHEMA, entries: [{
+    subject: selected, target: 'f',
+    states: { function_summary: 'available', dependency_summary: 'available', analysis_coverage: 'available', contract_delta: 'available', ownership_delta: 'not applicable' },
+    compact: {
+      function_summary: { schema: 'summary', id: 'f', parameter_count: 1 },
+      dependency_summary: { schema: 'dependencies', target: 'f', facets: [{ view: 'callers', total_items: 1 }] },
+      analysis_coverage: { schema: 'coverage', areas: [{ area: 'workspace', status: 'complete' }] },
+      contract_delta: { schema: 'contract', inventory: { affected: 1 }, selected: { change: 'modified', comparison: { exact_equal: false }, reason: 'reported' } }
+    }, omitted: ['source bodies', 'raw facet items']
+  }] }, [selected]);
+  const host = { offline: true, async readEvidence(request) {
+    const value = evidence.offlineEnvelope(index, request);
+    if (!value || value.state !== 'available') { const error = new Error(value?.reason || 'not bundled'); error.code = value?.state || 'not_bundled'; throw error; }
+    return value;
+  } };
+  const inspector = evidence.createEvidenceInspector(host, selected, functionDeclaration);
+  assert.equal((await inspector.inspect('declaration')).state, 'available');
+  assert.equal((await inspector.inspect('evidence_limits')).state, 'available');
+  assert.equal((await inspector.inspect('contracts_effects')).state, 'available');
+  assert.equal((await inspector.inspect('ownership_cleanup')).state, 'not_applicable');
+  const foreign = { ...selected, project_revision: 'other-project' };
+  assert.throws(() => evidence.offlineIndex({ schema: evidence.INDEX_SCHEMA, entries: [{ subject: foreign, target: 'f', states: { function_summary: 'error', dependency_summary: 'error', analysis_coverage: 'error' }, compact: {}, omitted: [] }] }, [selected]), /offline binding/);
+});

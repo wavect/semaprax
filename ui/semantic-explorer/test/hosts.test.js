@@ -51,6 +51,21 @@ test('offline source review is available only when explicitly bundled', async ()
   await assert.rejects(absent.sourceReview(), /not bundled/);
 });
 
+test('offline host returns only exact-subject compact evidence', async () => {
+  const evidence = { schema: 'semaprax.explorer-evidence-index.v1', entries: [{
+    subject: selected.subject, target: 'core.fn',
+    states: { function_summary: 'available', dependency_summary: 'error', analysis_coverage: 'available' },
+    compact: { function_summary: { schema: 'summary', id: 'core.fn' }, analysis_coverage: { schema: 'coverage', areas: [] } },
+    omitted: ['source bodies']
+  }] };
+  const offline = snapshotHost({ views: [{ query, summary: selected, pages }], evidence });
+  const summary = await offline.summary(query);
+  const functionEvidence = await offline.readEvidence({ method: 'image/function-summary', subject: summary.subject, target: 'core.fn', facet: null });
+  assert.equal(functionEvidence.compact.id, 'core.fn');
+  await assert.rejects(offline.readEvidence({ method: 'image/dependency-summary', subject: summary.subject, target: 'core.fn', facet: null }), error => error.code === 'error');
+  await assert.rejects(offline.readEvidence({ method: 'image/function-summary', subject: { ...summary.subject, project_revision: 'foreign' }, target: 'core.fn', facet: null }), /not bundled/);
+});
+
 test('disposing an editor host rejects retained calls and releases their timers', async () => {
   let listener;
   const port = {

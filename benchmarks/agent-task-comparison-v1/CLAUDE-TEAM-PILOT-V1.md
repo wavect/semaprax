@@ -127,3 +127,9 @@ The final separately frozen profile allows 300 seconds for the unchanged
 32-turn and token/cost limits. The prior 120-second timeout packet remains
 immutable and halted. MCP receives explicit `TMPDIR` equal to its private state
 root, avoiding ambient xcrun cache attempts without enlarging file authority.
+
+Pinned CLI success with `is_error=false` and `terminal_reason=completed` also
+counts its final non-tool answer in `num_turns`. Admit at most `max_turns + 1`
+for that exact terminal success shape as well as exact turn exhaustion. Other
+shapes retain the original ceiling. Cohort05 remains aborted under its original
+admission; the corrected full cohort starts all36 positions under a new digest.

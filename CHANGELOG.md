@@ -1,5 +1,9 @@
 # Changelog
 
+- Account for the pinned Claude CLI final non-tool turn on exact terminal
+  success, retaining the same model-request turn/cost limits. Preserve the
+  prior eight-position packet and require a fresh full protocol cohort.
+
 - Freeze a final #321 300-second wall profile while retaining 32 turns and
   existing token/cost ceilings. Bind MCP temporary files to its private state
   root; retain the earlier timeout packet and unknown-cost halt unchanged.

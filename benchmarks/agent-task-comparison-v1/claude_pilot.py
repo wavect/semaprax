@@ -223,7 +223,9 @@ def usage(body, model, caps):
     turns = result.get('num_turns')
     exhausted = (result.get('subtype') == 'error_max_turns' and result.get('is_error') is True
                  and result.get('terminal_reason') == 'max_turns')
-    if type(turns) is not int or not 0 < turns <= caps['max_turns'] + int(exhausted):
+    completed = (result.get('subtype') == 'success' and result.get('is_error') is False
+                 and result.get('terminal_reason') == 'completed')
+    if type(turns) is not int or not 0 < turns <= caps['max_turns'] + int(exhausted or completed):
         raise ValueError('native_turn_bound')
     if result.get('subagent_stats', {}).get('spawned') != 0 or result.get('queued_turn_count') != 0:
         raise ValueError('native_extra_dispatch_refused')

@@ -36,6 +36,13 @@ class NativePilotTests(unittest.TestCase):
             value = envelope(); change(value)
             with self.assertRaises(ValueError):m.usage(m.canonical(value), m.MODELS[0], m.CAPS)
 
+    def test_terminal_success_includes_the_final_non_tool_turn(self):
+        value=envelope();value.update(num_turns=m.CAPS['max_turns']+1,terminal_reason='completed')
+        observed=m.usage(m.canonical(value),m.MODELS[0],m.CAPS)
+        self.assertEqual(observed['num_turns'],m.CAPS['max_turns']+1)
+        value['num_turns']+=1
+        with self.assertRaisesRegex(ValueError,'turn_bound'):m.usage(m.canonical(value),m.MODELS[0],m.CAPS)
+
     def test_review_waiver_preserves_historical_ineligibility_and_other_failures(self):
         protocol = {'authority': {'review': {'authorization': 'explicit user fixture waiver'}}, 'runner_revision': 'a' * 40}
         record = {'status': 'ineligible', 'provider_usage': {'status': 'observed'}, 'eligibility': {'reasons': ['blinded active review time: absent']}}

@@ -3234,3 +3234,11 @@ closed interpreter cleanup-guard sum admit actual physical Decision release
 through the existing release primitive. State and partial-release custody stay
 inside the continued holder. Continued Outcome/Reduce and public/recovered
 execution still require their own consuming joins.
+
+The private owned-Agent runtime's `live_upstream/runtime/observer_failure.rs`
+composes the existing failed Decision-receipt seal, fixed State cleanup writer,
+physical release and sticky Stop. It retains every incomplete obligation; it
+cannot reopen normal journal authority. The continued-run composition returns
+actual failed Observe ownership to runtime custody before any next wait, and
+runtime uses the existing failed-Observe cleanup/Stop consumer. Public shutdown
+and general recovery remain separate admission boundaries.

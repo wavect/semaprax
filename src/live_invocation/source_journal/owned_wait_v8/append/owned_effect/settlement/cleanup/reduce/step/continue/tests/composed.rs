@@ -116,6 +116,9 @@ fn exercise(fault: Option<(usize, &'static str)>, cancel_before: bool, three_tur
         } else {
             let delivered =
                 result.unwrap_or_else(|failure| panic!("composed phase {}", failure.phase()));
+            let ContinuedRunOutcomeV8::Complete(delivered) = delivered else {
+                panic!("successful fixture cannot select failed Observe");
+            };
             assert_eq!(starts.get(), 1);
             assert_eq!(host.calls, 1);
             assert_eq!(

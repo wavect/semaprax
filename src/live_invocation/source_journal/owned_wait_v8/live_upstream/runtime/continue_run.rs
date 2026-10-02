@@ -21,6 +21,7 @@ pub(super) struct RunQuarantineV8<'j> {
 pub(super) enum RunOutcomeV8<'j> {
     Complete(serde_json::Value),
     FailedEffect(LiveFailedOwnedEffectV8<'j>),
+    FailedObserve(LiveSettledObserveV8<'j>),
 }
 impl RunQuarantineV8<'_> {
     pub(super) fn phase(&self) -> &'static str {
@@ -219,6 +220,12 @@ pub(super) fn finish_run<'j>(
     // cumulative two-turn ceiling before another reservation or dispatch.
     moved
         .finish_second_turn(adapter, handler, observe)
-        .map(RunOutcomeV8::Complete)
+        .map(|outcome| {
+            use crate::live_invocation::source_journal::owned_wait_v8::append::owned_effect::ContinuedRunOutcomeV8;
+            match outcome {
+                ContinuedRunOutcomeV8::Complete(projection) => RunOutcomeV8::Complete(projection),
+                ContinuedRunOutcomeV8::FailedObserve(owner) => RunOutcomeV8::FailedObserve(owner),
+            }
+        })
         .map_err(|owner| quarantine(journal, owner.phase(), owner))
 }

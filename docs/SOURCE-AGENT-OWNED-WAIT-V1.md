@@ -1144,3 +1144,31 @@ success case proves the relaunch invokes exactly one original model adapter;
 the hostile-tail child proves the façade reaches neither adapter construction
 nor polling. This is a private recovery composition, not the public two-turn
 run method, Report restoration or terminal delivery.
+
+## 53. Runtime custody for failed Observe and Decision observation (#330)
+
+The private two-turn runtime preserves the actual second-turn failed Observe
+settlement as `ObserveCleanupPending`. It does not select TurnObserved, prepare
+another wait, or enter another model. The existing consuming failed-Observe
+State cleanup, receipt and sticky Stop route accepts this same owner after the
+caller session is gone. A failed append retains the reached physical obligation
+and refuses normal close or a second cleanup invocation.
+
+An acknowledged failed Decision cleanup receipt selects the distinct
+`ObserverFailureCleanupPending` runtime phase. The actual failed-receipt seal
+selects its State cleanup append session while normal journal authority remains
+poisoned. Physical State release follows the Started ACK; the actual complete
+receipt precedes Stop. Stop preserves an earlier target failure, or selects
+Rejected/StageRefused when the target succeeded and Decision observation failed.
+The runtime admits close only after the Stop ACK. Cancellation, State-observer
+failure, and before/after-write uncertainty retain their reached obligation and
+never retry target dispatch or cleanup. Dropping a stopped holder does not reopen
+ordinary authority.
+
+The owning runtime selectors are `owned_runtime_continued_observe_failure` and
+`owned_runtime_observer_failure`. They cover the original physical State,
+no second model/target, sticky status, normal-close refusal, cleanup exactly
+once, and all three cleanup/receipt/Stop before/after-write boundaries. These
+regressions are authored but unexecuted in this source batch. Public constructor,
+complete shutdown, other failure phases, broader iteration and durable recovery
+remain required; these private joins do not widen any public executor profile.

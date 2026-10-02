@@ -79,7 +79,7 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn finish_second_t
     adapter: &mut StreamingSourceProposalAdapter<'_>,
     handler: &mut dyn TargetHostHandler,
     mut observe_cleanup: impl FnMut(&FinalizeAction),
-) -> Result<serde_json::Value, ContinuedRunQuarantineV8<'j>> {
+) -> Result<ContinuedRunOutcomeV8<'j>, ContinuedRunQuarantineV8<'j>> {
     let journal = moved.journal();
     let admission = (|| {
         moved.validate_live()?;
@@ -108,6 +108,11 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn finish_second_t
         .prepare_observe_settlement()
         .map_err(|owner| quarantine(journal, "observe-select", owner))?;
     let settled = acknowledge_observe(journal, selected)?;
+    match settled.failed() {
+        Ok(true) => return Ok(ContinuedRunOutcomeV8::FailedObserve(settled)),
+        Ok(false) => {}
+        Err(error) => return Err(quarantine(journal, "observe-outcome", (settled, error))),
+    }
     let selected = settled
         .prepare_turn_observed()
         .map_err(|owner| quarantine(journal, "turn-observed-select", owner))?;
@@ -181,6 +186,7 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn finish_second_t
     };
     staged
         .finish_complete_projection(journal, observe_cleanup, evidence)
+        .map(ContinuedRunOutcomeV8::Complete)
         .map_err(|owner| quarantine(journal, "terminal", owner))
 }
 
@@ -190,7 +196,7 @@ impl<'j> LiveMovedStepV8<'j> {
         adapter: &mut StreamingSourceProposalAdapter<'_>,
         handler: &mut dyn TargetHostHandler,
         observe: impl FnMut(&FinalizeAction),
-    ) -> Result<serde_json::Value, ContinuedRunQuarantineV8<'j>> {
+    ) -> Result<ContinuedRunOutcomeV8<'j>, ContinuedRunQuarantineV8<'j>> {
         finish_second_turn_v8(self, adapter, handler, observe)
     }
 }

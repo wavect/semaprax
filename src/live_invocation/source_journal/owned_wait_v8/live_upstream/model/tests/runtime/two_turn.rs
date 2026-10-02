@@ -14,6 +14,10 @@ enum Scenario {
     TargetFailure,
     TargetFailureStopFault(usize),
     ObserverPanic,
+    ObserverTargetFailure,
+    ObserverStopFault(usize, bool),
+    ObserverStatePanic,
+    ObserverCancelled,
 }
 pub(super) struct Host {
     pub(super) calls: usize,
@@ -39,6 +43,14 @@ impl TargetHostHandler for Host {
     }
 }
 fn exercise(scenario: Scenario) {
+    let observer_failure = matches!(
+        scenario,
+        Scenario::ObserverPanic
+            | Scenario::ObserverTargetFailure
+            | Scenario::ObserverStopFault(..)
+            | Scenario::ObserverStatePanic
+            | Scenario::ObserverCancelled
+    );
     CheckedOwnedWaitJournalContextV8::test_with_actual_runtime_store(
         true,
         |context, lease, key, directory| {
@@ -84,7 +96,9 @@ fn exercise(scenario: Scenario) {
                 calls: 0,
                 fail: matches!(
                     scenario,
-                    Scenario::TargetFailure | Scenario::TargetFailureStopFault(_)
+                    Scenario::TargetFailure
+                        | Scenario::TargetFailureStopFault(_)
+                        | Scenario::ObserverTargetFailure
                 ),
             };
             let mut releases = 0;
@@ -93,10 +107,7 @@ fn exercise(scenario: Scenario) {
                     .session()
                     .finish_two_turn_run(&policy, &mut adapter, &mut host, |_| {
                         releases += 1;
-                        assert!(
-                            !matches!(scenario, Scenario::ObserverPanic),
-                            "injected cleanup observer panic"
-                        );
+                        assert!(!observer_failure, "injected cleanup observer panic");
                     });
             let actions = (counts.borrow().starts, host.calls, releases);
             let persisted = journal
@@ -121,7 +132,140 @@ fn exercise(scenario: Scenario) {
                     .unwrap(),
                 persisted
             );
-            if matches!(
+            if observer_failure {
+                assert_eq!(
+                    status,
+                    OwnedLifecycleStatusV8::ObserverFailureCleanupPending
+                );
+                assert_eq!(actions, (1, 1, 1));
+                assert!(weak.iter().all(|root| root.strong_count() == 1));
+                assert!(runtime.delivery_projection().is_none());
+                assert!(
+                    journal.begin_session().is_err(),
+                    "ordinary authority stays poisoned"
+                );
+                let mut runtime = runtime
+                    .try_close()
+                    .err()
+                    .expect("same State stays in custody");
+                let cleanup_start = persisted.iter().filter(|b| **b == b'\n').count();
+                if let Scenario::ObserverStopFault(offset, after_write) = scenario {
+                    let lease = journal.test_observe_lease();
+                    let mut lease = lease.borrow_mut();
+                    if after_write {
+                        lease.test_fail_after_write(cleanup_start + offset);
+                    } else {
+                        lease.test_fail_before_write(cleanup_start + offset);
+                    }
+                }
+                if matches!(scenario, Scenario::ObserverCancelled) {
+                    cancel.cancel();
+                }
+                let mut state_releases = 0;
+                let stopped = runtime.settle_failed_observer(|_| {
+                    state_releases += 1;
+                    assert!(
+                        !matches!(scenario, Scenario::ObserverStatePanic),
+                        "injected State observer panic"
+                    );
+                });
+                let after = journal
+                    .test_observe_lease()
+                    .borrow()
+                    .test_persisted_snapshot()
+                    .unwrap();
+                assert_eq!(
+                    state_releases,
+                    if matches!(
+                        scenario,
+                        Scenario::ObserverStopFault(1, _) | Scenario::ObserverCancelled
+                    ) {
+                        0
+                    } else {
+                        1
+                    }
+                );
+                assert_eq!(
+                    runtime.settle_failed_observer(|_| panic!("State cleanup cannot retry")),
+                    stopped
+                );
+                assert_eq!(
+                    runtime.settle_failed_effect(|_| panic!("wrong failure tail")),
+                    stopped
+                );
+                assert_eq!(
+                    runtime.session().finish_two_turn_run(
+                        &policy,
+                        &mut adapter,
+                        &mut host,
+                        |_| panic!("no redispatch")
+                    ),
+                    stopped
+                );
+                assert_eq!(
+                    journal
+                        .test_observe_lease()
+                        .borrow()
+                        .test_persisted_snapshot()
+                        .unwrap(),
+                    after
+                );
+                assert_eq!((counts.borrow().starts, host.calls, releases), actions);
+                assert!(journal.hold().is_err());
+                if matches!(
+                    scenario,
+                    Scenario::ObserverPanic | Scenario::ObserverTargetFailure
+                ) {
+                    assert_eq!(stopped, OwnedLifecycleStatusV8::ObserverFailureStopped);
+                    assert_eq!(
+                        after.iter().filter(|b| **b == b'\n').count(),
+                        cleanup_start + 3
+                    );
+                    let row: serde_json::Value = serde_json::from_slice(
+                        after
+                            .split(|b| *b == b'\n')
+                            .filter(|row| !row.is_empty())
+                            .last()
+                            .unwrap(),
+                    )
+                    .unwrap();
+                    assert_eq!(row["kind"], "stop");
+                    let effect_failed = matches!(scenario, Scenario::ObserverTargetFailure);
+                    assert_eq!(
+                        row["status"],
+                        if effect_failed {
+                            "effect_failed"
+                        } else {
+                            "rejected"
+                        }
+                    );
+                    assert_eq!(
+                        row["reason"],
+                        if effect_failed {
+                            "effect_failed"
+                        } else {
+                            "stage_refused"
+                        }
+                    );
+                    assert!(weak.iter().all(|root| root.upgrade().is_none()));
+                    assert!(runtime.try_close().is_ok());
+                } else {
+                    assert_eq!(
+                        stopped,
+                        OwnedLifecycleStatusV8::Quarantined("observer-failure-cleanup")
+                    );
+                    let runtime = runtime
+                        .try_close()
+                        .err()
+                        .expect("unsettled boundary refuses close");
+                    assert_eq!(
+                        weak.iter().any(|root| root.strong_count() == 1),
+                        state_releases == 0
+                    );
+                    drop(runtime);
+                    assert!(weak.iter().all(|root| root.upgrade().is_none()));
+                }
+            } else if matches!(
                 scenario,
                 Scenario::TargetFailure | Scenario::TargetFailureStopFault(_)
             ) {
@@ -275,9 +419,6 @@ fn exercise(scenario: Scenario) {
                     assert_eq!(status, OwnedLifecycleStatusV8::Quarantined("first-ready"));
                     assert_eq!(actions, (1, 0, 0));
                 }
-                if matches!(scenario, Scenario::ObserverPanic) {
-                    assert_eq!((actions.0, actions.1), (1, 1));
-                }
                 drop(runtime);
                 assert!(weak.iter().all(|root| root.upgrade().is_none()));
                 assert_eq!((counts.borrow().starts, host.calls, releases), actions);
@@ -317,4 +458,23 @@ fn owned_runtime_two_turn_failed_target_checked_stop_and_faults() {
     for offset in 1..=3 {
         exercise(Scenario::TargetFailureStopFault(offset));
     }
+}
+
+#[test]
+fn owned_runtime_observer_failure_preserves_target_failure_and_closes_once() {
+    exercise(Scenario::ObserverPanic);
+    exercise(Scenario::ObserverTargetFailure);
+}
+#[test]
+fn owned_runtime_observer_failure_every_append_fault_retains_custody() {
+    for offset in 1..=3 {
+        for after_write in [false, true] {
+            exercise(Scenario::ObserverStopFault(offset, after_write));
+        }
+    }
+}
+#[test]
+fn owned_runtime_observer_failure_state_panic_and_cancellation_never_retry() {
+    exercise(Scenario::ObserverStatePanic);
+    exercise(Scenario::ObserverCancelled);
 }

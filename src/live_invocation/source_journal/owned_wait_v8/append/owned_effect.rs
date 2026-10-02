@@ -4,6 +4,14 @@ use super::*;
 mod consumed;
 mod intent;
 mod settlement;
+pub(in crate::live_invocation::source_journal::owned_wait_v8) enum ContinuedRunOutcomeV8<'j> {
+    Complete(serde_json::Value),
+    FailedObserve(
+        crate::live_invocation::source_journal::owned_wait_v8::live_upstream::LiveSettledObserveV8<
+            'j,
+        >,
+    ),
+}
 use crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect::LiveOwnedEffectAppendV8;
 pub(super) use consumed::OwnedReduceHoldPhaseV8;
 pub(in crate::live_invocation::source_journal::owned_wait_v8) use consumed::{

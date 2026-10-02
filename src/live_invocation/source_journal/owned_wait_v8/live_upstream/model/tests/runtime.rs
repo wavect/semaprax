@@ -165,3 +165,5 @@ fn owned_runtime_observe_panicking_observer_stays_unsettled() {
 
 mod restart;
 mod two_turn;
+
+mod continued_observe;

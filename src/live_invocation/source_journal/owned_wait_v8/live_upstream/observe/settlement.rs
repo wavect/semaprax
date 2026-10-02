@@ -419,6 +419,14 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_verifie
 }
 
 impl<'j> LiveSettledObserveV8<'j> {
+    /// Data-only classification of the retained actual Observe outcome. Cleanup
+    /// admission independently rechecks its acknowledged lineage and owner.
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn failed(
+        &self,
+    ) -> Result<bool, SourceJournalError> {
+        self.owner.data().map(|data| data.failure.is_some())
+    }
+
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn prepare_turn_observed(
         self,
     ) -> Result<LiveOwnedObserveSettlementAppendV8<'j>, LiveObserveSettlementFailureV8<'j>> {

@@ -12,12 +12,14 @@ use crate::live_invocation::SourceInvocationClock;
 use crate::provider_adapter_sdk::StreamingSourceProposalAdapter;
 
 mod continue_run;
+mod observer_failure;
 mod restart;
 use super::effect::authorization::cleanup::failed_state::{
     stop_failed_effect_state_v8, LiveFailedEffectStateQuarantinedV8, LiveFailedEffectStateStoppedV8,
 };
 use super::effect::authorization::cleanup::LiveFailedOwnedEffectV8;
 use continue_run::{RunOutcomeV8, RunQuarantineV8};
+use observer_failure::{ObserverFailureQuarantineV8, ObserverFailureStoppedV8};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) enum OwnedLifecycleStatusV8 {
@@ -28,6 +30,8 @@ pub(super) enum OwnedLifecycleStatusV8 {
     ObserveStopped,
     FailedEffectCleanupPending,
     FailedEffectStopped,
+    ObserverFailureCleanupPending,
+    ObserverFailureStopped,
     Quarantined(&'static str),
 }
 
@@ -45,6 +49,9 @@ enum CustodyV8<'j> {
     FailedEffectCleanupPending(Box<LiveFailedOwnedEffectV8<'j>>),
     FailedEffectStopped(Box<LiveFailedEffectStateStoppedV8<'j>>),
     FailedEffectCleanup(Box<LiveFailedEffectStateQuarantinedV8<'j>>),
+    ObserverFailureCleanupPending(Box<LiveFailedOwnedEffectV8<'j>>),
+    ObserverFailureStopped(Box<ObserverFailureStoppedV8<'j>>),
+    ObserverFailureCleanup(Box<ObserverFailureQuarantineV8<'j>>),
     Admission(LiveRunAdmissionRefusalV8),
     Initialize(Box<LiveRunFailureV8<'j>>),
     Observe(Box<LiveObserveFailureV8<'j>>),
@@ -123,6 +130,13 @@ impl<'j> OwnedLifecycleRuntimeV8<'j> {
             CustodyV8::FailedEffectCleanup(_) => {
                 OwnedLifecycleStatusV8::Quarantined("failed-effect-cleanup")
             }
+            CustodyV8::ObserverFailureCleanupPending(_) => {
+                OwnedLifecycleStatusV8::ObserverFailureCleanupPending
+            }
+            CustodyV8::ObserverFailureStopped(_) => OwnedLifecycleStatusV8::ObserverFailureStopped,
+            CustodyV8::ObserverFailureCleanup(_) => {
+                OwnedLifecycleStatusV8::Quarantined("observer-failure-cleanup")
+            }
             CustodyV8::Admission(_) => OwnedLifecycleStatusV8::Quarantined("initialize-admission"),
             CustodyV8::Initialize(_) => OwnedLifecycleStatusV8::Quarantined("initialize"),
             CustodyV8::Observe(_) => OwnedLifecycleStatusV8::Quarantined("observe"),
@@ -142,6 +156,7 @@ impl<'j> OwnedLifecycleRuntimeV8<'j> {
             CustodyV8::Ready
             | CustodyV8::Admission(_)
             | CustodyV8::ObserveStopped(_)
+            | CustodyV8::ObserverFailureStopped(_)
             | CustodyV8::FailedEffectStopped(_)
             | CustodyV8::Complete(_) => Ok(()),
             _ => Err(self),
@@ -212,6 +227,27 @@ impl<'j> OwnedLifecycleRuntimeV8<'j> {
         };
         self.status()
     }
+    /// Finish a failed Decision observer's distinct sealed State tail. Ordinary
+    /// journal entry stays poisoned; only this actual owner can obtain the
+    /// narrowly scoped cleanup append session.
+    pub(super) fn settle_failed_observer(
+        &mut self,
+        observe: impl FnMut(&FinalizeAction),
+    ) -> OwnedLifecycleStatusV8 {
+        if !matches!(self.custody, CustodyV8::ObserverFailureCleanupPending(_)) {
+            return self.status();
+        }
+        let CustodyV8::ObserverFailureCleanupPending(owner) =
+            std::mem::replace(&mut self.custody, CustodyV8::InFlight)
+        else {
+            unreachable!("matched runtime phase")
+        };
+        self.custody = match observer_failure::settle(self.journal, *owner, observe) {
+            Ok(stopped) => CustodyV8::ObserverFailureStopped(Box::new(stopped)),
+            Err(failure) => CustodyV8::ObserverFailureCleanup(Box::new(failure)),
+        };
+        self.status()
+    }
 }
 
 impl<'j> OwnedLifecycleSessionV8<'_, 'j> {
@@ -247,8 +283,15 @@ impl<'j> OwnedLifecycleSessionV8<'_, 'j> {
             observe,
         ) {
             Ok(RunOutcomeV8::Complete(projection)) => CustodyV8::Complete(projection),
+            Ok(RunOutcomeV8::FailedObserve(owner)) => {
+                CustodyV8::ObserveCleanupPending(Box::new(owner))
+            }
             Ok(RunOutcomeV8::FailedEffect(owner)) => {
-                CustodyV8::FailedEffectCleanupPending(Box::new(owner))
+                if owner.observer_cleanup_pending() {
+                    CustodyV8::ObserverFailureCleanupPending(Box::new(owner))
+                } else {
+                    CustodyV8::FailedEffectCleanupPending(Box::new(owner))
+                }
             }
             Err(failure) => CustodyV8::Run(Box::new(failure)),
         };
@@ -316,6 +359,7 @@ impl Drop for OwnedLifecycleRuntimeV8<'_> {
             CustodyV8::Ready
                 | CustodyV8::Admission(_)
                 | CustodyV8::ObserveStopped(_)
+                | CustodyV8::ObserverFailureStopped(_)
                 | CustodyV8::FailedEffectStopped(_)
                 | CustodyV8::Complete(_)
         ) {

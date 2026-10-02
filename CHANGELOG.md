@@ -1,5 +1,13 @@
 # Changelog
 
+- Preserve real second-turn failed Observe and first-turn Decision-observer
+  failure in private owned-Agent runtime custody, with distinct checked State
+  cleanup/receipt/Stop tails. Earlier target failure remains sticky, normal
+  authority stays poisoned after observer failure, and incomplete boundaries
+  refuse close and retries. Add owning runtime success, cancellation, callback
+  panic and all cleanup before/after-write fault regressions; authored but
+  unexecuted. Public constructor and full shutdown remain open (#330).
+
 - Route an actual first-turn owned-Agent failed target from private runtime
   custody through its checked State cleanup, receipt and sticky Stop. Failed
   cleanup boundaries retain the reached owner without retry; owning success

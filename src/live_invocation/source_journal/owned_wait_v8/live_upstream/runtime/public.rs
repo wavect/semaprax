@@ -2,6 +2,7 @@
 //! opaque runtime status leave this module; the journal and physical owners do not.
 use super::super::wait::{
     FirstTurnPreparedContinuationHostGrantV8, FirstTurnPreparedRecoveryHostGrantV8,
+    TransferredStateRecoveryHostGrantV8,
 };
 use super::*;
 use crate::agent_lifecycle::authorization::target_protocol::TargetHostHandler;
@@ -203,7 +204,7 @@ impl SourceOwnedAgentJournalV1 {
     /// Reopen only a host-retained, complete registration for this exact
     /// compiled Project, runtime, policy epoch, directory and checkpoint key.
     /// This constructor does not grant fresh execution or append authority;
-    /// only `restart_first_prepared` may restore its one admitted owner.
+    /// only the exact phase-specific restart methods may restore an owner.
     #[cfg(unix)]
     pub fn recover(
         runtime: Arc<AgentRuntimeV2>,
@@ -336,6 +337,36 @@ impl SourceOwnedAgentJournalV1 {
         Ok(SourceOwnedAgentRunV1 { runtime })
     }
 
+    /// Restore the exact State authenticated by the first TransferCompleted
+    /// row, spend ordinary Authorize fuel once, then use the public two-turn
+    /// continuation. Every other tail refuses before owner restoration.
+    pub fn restart_first_transferred_state<'j>(
+        &'j self,
+        policy: &'j crate::resumable_effects::CapabilityPolicy,
+        cancellation: &'j AgentCancellation,
+        clock: &'j dyn SourceInvocationClock,
+        adapter: &mut StreamingSourceProposalAdapter<'_>,
+        handler: &mut dyn TargetHostHandler,
+        mut observe: impl FnMut(&FinalizeAction),
+        protected_history_available: bool,
+    ) -> Result<SourceOwnedAgentRunV1<'j>, SourceJournalError> {
+        self.validate_run_entry(cancellation, clock, adapter)?;
+        let recovery =
+            TransferredStateRecoveryHostGrantV8::for_trusted_host(protected_history_available)?;
+        let mut runtime = OwnedLifecycleRuntimeV8::restart_first_transferred_state(
+            &self.journal,
+            recovery,
+            policy,
+            cancellation,
+            clock,
+            adapter,
+            handler,
+            &mut observe,
+        )?;
+        settle_known_failures(&mut runtime, &mut observe);
+        Ok(SourceOwnedAgentRunV1 { runtime })
+    }
+
     fn validate_run_entry(
         &self,
         cancellation: &AgentCancellation,
@@ -388,6 +419,11 @@ fn settle_known_failures(
 }
 
 impl SourceOwnedAgentRunV1<'_> {
+    #[cfg(test)]
+    pub(crate) fn test_backings(&self) -> Vec<std::sync::Weak<[u8]>> {
+        self.runtime.test_backings()
+    }
+
     pub fn status(&self) -> OwnedLifecycleStatusV8 {
         self.runtime.status()
     }

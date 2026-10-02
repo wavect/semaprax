@@ -1,5 +1,10 @@
 //! Profile-specific physical registration; no codec, restoration or model authority.
 use super::*;
+mod recovery_grant;
+pub(crate) use recovery_grant::{
+    decode_recovered_authorization_state_v8, recovered_authorization_append_grant_v8,
+    RecoveredAuthorizationAppendGrantV8,
+};
 
 const ID_DOMAIN: &[u8] = b"semaprax.live-invocation.source-id.v8\0";
 const GENERATION_DOMAIN: &[u8] = b"semaprax.source-agent-owned-wait.generation.v1\0";
@@ -334,6 +339,14 @@ pub(crate) struct SourceOwnedWaitLeaseV8 {
     recovery_read_only: bool,
 }
 impl SourceOwnedWaitLeaseV8 {
+    pub(crate) fn decode_recovered_authorization_state(
+        &self,
+        binding: &crate::resumable_effects::owned_frame::v2::CheckedOwnedAgentWaitBindingV8,
+        state: &Value,
+    ) -> Result<crate::interpreter::resumable::owned_frame::OwnedFrameInput, Error> {
+        recovery_grant::decode_recovered_authorization_state_v8(binding, state)
+    }
+
     pub(crate) fn validate_registration(
         &self,
         registration: &SourceOwnedWaitStoreRegistrationV8,
@@ -422,6 +435,56 @@ impl SourceOwnedWaitLeaseV8 {
         registration: &SourceOwnedWaitStoreRegistrationV8,
     ) -> Result<(), Error> {
         self.validate_recovery_read_only(registration)?;
+        self.recovery_read_only = false;
+        Ok(())
+    }
+    /// Permit the exact restored first-turn State tail to append its charged
+    /// Authorize reservation. The grant is one-use and pins the full prefix.
+    pub(crate) fn authorize_recovered_authorization(
+        &mut self,
+        sequence: usize,
+        acknowledged_bytes: usize,
+        authentication: &str,
+        document_digest: &str,
+        protected_history_available: bool,
+    ) -> Result<(), Error> {
+        let grant = recovered_authorization_append_grant_v8(
+            &self.registration,
+            sequence,
+            acknowledged_bytes,
+            authentication,
+            document_digest,
+            protected_history_available,
+        )?;
+        self.validate_recovery_read_only(&grant.registration)?;
+        if grant.creator != std::process::id() {
+            return Err(Error::Policy);
+        }
+        let bytes = self.read()?;
+        let digest = crate::live_invocation::identity::digest(
+            b"semaprax.source-agent-owned-wait.recovery-prefix.v1\0",
+            &bytes,
+        );
+        let mut rows = 0usize;
+        let mut tail_authentication = None;
+        for row in bytes
+            .split(|byte| *byte == b'\n')
+            .filter(|row| !row.is_empty())
+        {
+            rows = rows.checked_add(1).ok_or(Error::Capacity)?;
+            let value: Value = serde_json::from_slice(row).map_err(|_| Error::Malformed)?;
+            tail_authentication = value
+                .get("authentication")
+                .and_then(Value::as_str)
+                .map(str::to_owned);
+        }
+        if rows != grant.sequence
+            || bytes.len() != grant.acknowledged_bytes
+            || digest != grant.document_digest
+            || tail_authentication.as_deref() != Some(grant.authentication.as_str())
+        {
+            return Err(Error::Binding);
+        }
         self.recovery_read_only = false;
         Ok(())
     }

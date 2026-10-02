@@ -39,7 +39,9 @@ pub(crate) use checkpoint::{
     CheckedOwnedWaitCheckpointV8, OwnedWaitCheckpointExpectationV8,
 };
 
-pub(crate) use proposal_binding::{bind_owned_wait_proposal_v8, CheckedOwnedWaitProposalV8};
+pub(crate) use proposal_binding::{
+    bind_owned_wait_proposal_v8, bind_recovered_owned_wait_proposal_v8, CheckedOwnedWaitProposalV8,
+};
 
 #[cfg(test)]
 pub(crate) use checkpoint::test_encode_owned_wait_checkpoint_v8;

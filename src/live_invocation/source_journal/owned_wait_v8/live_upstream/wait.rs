@@ -328,6 +328,157 @@ pub(crate) fn recover_first_turn_prepared_owner_v8<'j>(
         cancellation,
     })
 }
+
+/// Trusted host authority to materialize exactly one State for the first
+/// TransferCompleted/Authorize tail. It cannot be inferred from journal rows.
+pub(crate) struct TransferredStateRecoveryHostGrantV8 {
+    creator: u32,
+}
+impl TransferredStateRecoveryHostGrantV8 {
+    pub(crate) fn for_trusted_host(
+        protected_history_available: bool,
+    ) -> Result<Self, SourceJournalError> {
+        if !protected_history_available {
+            return Err(SourceJournalError::Binding);
+        }
+        Ok(Self {
+            creator: std::process::id(),
+        })
+    }
+}
+
+pub(super) enum TransferredStateRecoveryFailureV8<'j> {
+    BeforeRestore(SourceJournalError),
+    Retained(super::runtime::continue_run::RunQuarantineV8<'j>),
+}
+impl From<SourceJournalError> for TransferredStateRecoveryFailureV8<'_> {
+    fn from(error: SourceJournalError) -> Self {
+        Self::BeforeRestore(error)
+    }
+}
+
+pub(super) fn recover_first_turn_transferred_state_v8<'j>(
+    journal: &'j SourceOwnedWaitJournalV8,
+    grant: TransferredStateRecoveryHostGrantV8,
+    cancellation: &'j crate::agent_runtime::AgentCancellation,
+    clock: &'j dyn crate::live_invocation::SourceInvocationClock,
+) -> Result<super::authorize::StagedLiveOwnedRunV8<'j>, TransferredStateRecoveryFailureV8<'j>> {
+    use crate::interpreter::resumable::owned_frame::registered_stage::authorize::restore_transferred_state_v8;
+    use crate::live_invocation::source_journal::owned_wait_v8::live_upstream::authorize::{
+        authorize_recovered_actor_v8, LiveRecoveredStateTransferPermitV8,
+    };
+    if grant.creator != std::process::id() || cancellation.is_cancelled() {
+        return Err(SourceJournalError::Binding.into());
+    }
+    {
+        let lease = journal
+            .lease
+            .try_borrow()
+            .map_err(|_| SourceJournalError::Order)?;
+        lease
+            .validate_recovery_read_only(journal.context().registration())
+            .map_err(|_| SourceJournalError::Binding)?;
+    }
+    let held = journal.hold()?;
+    let session = journal.begin_session()?;
+    let facts = session
+        .inventory
+        .first_turn_transfer_completed_authorization_recovery()?;
+    held.validate_prefix(facts.sequence, facts.bytes)?;
+    if facts.sequence != session.sequence()
+        || facts.bytes != session.acknowledged_bytes()
+        || facts.authentication != session.inventory.authentication_tail()
+        || cancellation.is_cancelled()
+    {
+        journal.quarantine();
+        return Err(SourceJournalError::Binding.into());
+    }
+    let context = journal.context();
+    let (_, execution) = context.ready_runtime().ok_or(SourceJournalError::Binding)?;
+    if held.registration() != context.registration() || held.generation() != context.generation() {
+        journal.quarantine();
+        return Err(SourceJournalError::Binding.into());
+    }
+    let lease = journal
+        .lease
+        .try_borrow()
+        .map_err(|_| SourceJournalError::Order)?;
+    let input = lease
+        .decode_recovered_authorization_state(execution.wait(), &facts.state)
+        .map_err(|_| SourceJournalError::Binding)?;
+    drop(lease);
+    let permit = LiveRecoveredStateTransferPermitV8::new(
+        &held,
+        execution.wait(),
+        facts.sequence,
+        facts.bytes,
+        cancellation,
+        clock,
+        context.ordinary().clock_domain(),
+        context.ordinary().initial_millis(),
+        context.ordinary().deadline_millis(),
+        facts.state.clone(),
+        facts.state_digest.clone(),
+        facts.proposal.clone(),
+    );
+    let owner = match restore_transferred_state_v8(permit, input) {
+        Ok(owner) => owner,
+        Err(failure) => {
+            return Err(TransferredStateRecoveryFailureV8::Retained(
+                super::runtime::continue_run::quarantine(
+                    journal,
+                    "restore-transferred-state",
+                    (failure, held),
+                ),
+            ))
+        }
+    };
+    let authorize_lease = (|| {
+        let mut lease = journal
+            .lease
+            .try_borrow_mut()
+            .map_err(|_| SourceJournalError::Order)?;
+        lease
+            .authorize_recovered_authorization(
+                facts.sequence,
+                facts.bytes,
+                &facts.authentication,
+                &facts.document_digest,
+                true,
+            )
+            .map_err(|_| SourceJournalError::Binding)?;
+        drop(lease);
+        held.validate_prefix(facts.sequence, facts.bytes)
+    })();
+    if let Err(error) = authorize_lease {
+        return Err(TransferredStateRecoveryFailureV8::Retained(
+            super::runtime::continue_run::quarantine(
+                journal,
+                "restore-transferred-lease",
+                (owner, held, error),
+            ),
+        ));
+    }
+    authorize_recovered_actor_v8(
+        owner,
+        session,
+        held,
+        journal,
+        facts.proposal,
+        facts.transfer,
+        cancellation,
+        clock,
+    )
+    .map_err(|failure| {
+        #[cfg(test)]
+        let backings = failure.recovered_test_backings();
+        let retained =
+            super::runtime::continue_run::quarantine(journal, "restored-first-authorize", failure);
+        #[cfg(test)]
+        let retained = retained.with_backings(backings);
+        TransferredStateRecoveryFailureV8::Retained(retained)
+    })
+}
 pub(super) enum LiveWaitFailureOwnerV8 {
     Observed(
         crate::interpreter::resumable::owned_frame::registered_stage::live_run::LiveObservedStateV8,

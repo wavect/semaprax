@@ -1,5 +1,21 @@
 # Changelog
 
+- Settle actual first-turn source Refused through its original State, exact
+  compiler cleanup vector and acknowledged State receipt before sticky
+  StageRefused Stop. Empty scalar-only Decision cleanup stays empty; uncertain
+  append or observer failure retains custody without retry. Local macOS 2 MiB
+  gates passed public success 1/1 (33.85s), Started pre/postwrite faults 1/1
+  with two scenarios (54.97s), and observer failure plus failed-receipt Stop
+  refusal 1/1 (33.62s). Broader shutdown remains separate work (#330).
+
+- Add exact first-TransferCompleted public recovery with a consuming State
+  restoration permit, authenticated current-prefix pins and ordinary charged
+  Authorize. Post-restoration failures retain actual State/Decision custody;
+  fresh, terminal and missing-authority recovery refuse before new work. Public
+  subprocess success passed 1/1 (366.52s), State/Decision ACK-fault custody
+  passed 1/1 with two scenarios (131.30s), and settled-without-transfer refusal
+  passed 1/1 (65.97s), all on explicit 2 MiB workers on local macOS (#330).
+
 - Select live candidate-test evidence when an interrupted repair resumes and
   executes tests; derive replay-only evidence only when no live observation
   exists. Avoid reporting one observation twice as a receipt conflict, while
@@ -15,8 +31,10 @@
   registry. Public `FailedEffectStopped` admits close only after the checked Stop;
   uncertainty retains custody without redispatch or repeated cleanup. The public
   2 MiB success gate passed 1/1 in 316.81s; State Started before/after-write faults
-  passed 1/1 (two scenarios) in 615.61s. Receipt/Stop fault, State-observer panic
-  and cancelled-Stop selectors are authored and still pending. Required
+  passed 1/1 (two scenarios) in 615.61s. Receipt and Stop before/after-write
+  selectors passed 1/1 each in 629.13s and 632.35s; State-observer panic and
+  cancelled Stop passed 1/1 each in 317.10s and 315.94s. These six selectors
+  used the same emitted macOS binary for the e97bd0828 core packet. Required
   transferred-owner recovery and broader shutdown remain open (#330).
 
 - Admit the exact observed `json` fence around a native Claude JSON-string

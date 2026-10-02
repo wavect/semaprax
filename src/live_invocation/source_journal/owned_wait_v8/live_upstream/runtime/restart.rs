@@ -4,8 +4,23 @@ use super::super::wait::{
     FirstTurnPreparedContinuationHostGrantV8, FirstTurnPreparedRecoveryHostGrantV8,
 };
 use super::*;
+use crate::live_invocation::source_journal::owned_wait_v8::live_upstream::wait::{
+    recover_first_turn_transferred_state_v8, TransferredStateRecoveryHostGrantV8,
+};
 
 impl<'j> OwnedLifecycleRuntimeV8<'j> {
+    pub(in crate::live_invocation::source_journal::owned_wait_v8::live_upstream) fn restore_first_transferred_state(
+        journal: &'j SourceOwnedWaitJournalV8,
+        recovery: TransferredStateRecoveryHostGrantV8,
+        cancellation: &'j AgentCancellation,
+        clock: &'j dyn SourceInvocationClock,
+    ) -> Result<
+        super::super::authorize::StagedLiveOwnedRunV8<'j>,
+        super::super::wait::TransferredStateRecoveryFailureV8<'j>,
+    > {
+        recover_first_turn_transferred_state_v8(journal, recovery, cancellation, clock)
+    }
+
     /// Consume two independent one-use host grants into the same two-turn
     /// runtime as fresh execution. An error precedes continuation; once a
     /// physical owner enters Model, success and failure both stay in this slot.

@@ -11,9 +11,11 @@ use crate::cleanup_plan::FinalizeAction;
 use crate::live_invocation::SourceInvocationClock;
 use crate::provider_adapter_sdk::StreamingSourceProposalAdapter;
 
-mod continue_run;
+pub(in crate::live_invocation::source_journal::owned_wait_v8) mod abandonment;
+pub(super) mod continue_run;
 mod observer_failure;
 mod public;
+mod recovered_authorize;
 mod restart;
 use super::effect::authorization::cleanup::failed_state::{
     stop_failed_effect_state_v8, LiveFailedEffectStateQuarantinedV8, LiveFailedEffectStateStoppedV8,
@@ -28,6 +30,7 @@ pub enum OwnedLifecycleStatusV8 {
     Ready,
     ModelCompleted,
     Complete,
+    AuthorizationRefusedStopped,
     ObserveCleanupPending,
     ObserveStopped,
     FailedEffectCleanupPending,
@@ -41,6 +44,7 @@ pub enum OwnedLifecycleStatusV8 {
 // particular an ACKed failed Observe is still cleanup-capable, not erased into
 // a methodless box and prematurely poisoned with unrelated model failures.
 enum CustodyV8<'j> {
+    AuthorizationRefusedStopped(Box<abandonment::RefusedStoppedV8<'j>>),
     Ready,
     InFlight,
     ModelCompleted(Box<CompletedLiveOwnedRunV8<'j>>),
@@ -119,6 +123,9 @@ impl<'j> OwnedLifecycleRuntimeV8<'j> {
 
     pub(super) fn status(&self) -> OwnedLifecycleStatusV8 {
         match &self.custody {
+            CustodyV8::AuthorizationRefusedStopped(_) => {
+                OwnedLifecycleStatusV8::AuthorizationRefusedStopped
+            }
             CustodyV8::Ready => OwnedLifecycleStatusV8::Ready,
             CustodyV8::InFlight => OwnedLifecycleStatusV8::Quarantined("runtime-unwind"),
             CustodyV8::ModelCompleted(_) => OwnedLifecycleStatusV8::ModelCompleted,
@@ -160,6 +167,7 @@ impl<'j> OwnedLifecycleRuntimeV8<'j> {
         match self.custody {
             CustodyV8::Ready
             | CustodyV8::Admission(_)
+            | CustodyV8::AuthorizationRefusedStopped(_)
             | CustodyV8::ObserveStopped(_)
             | CustodyV8::ObserverFailureStopped(_)
             | CustodyV8::ContinuedFailedEffectStopped(_)
@@ -291,6 +299,9 @@ impl<'j> OwnedLifecycleSessionV8<'_, 'j> {
             Ok(RunOutcomeV8::ContinuedFailedEffectStopped(owner)) => {
                 CustodyV8::ContinuedFailedEffectStopped(owner)
             }
+            Ok(RunOutcomeV8::AuthorizationRefusedStopped(owner)) => {
+                CustodyV8::AuthorizationRefusedStopped(owner)
+            }
             Ok(RunOutcomeV8::Complete(projection)) => CustodyV8::Complete(projection),
             Ok(RunOutcomeV8::FailedObserve(owner)) => {
                 CustodyV8::ObserveCleanupPending(Box::new(owner))
@@ -367,6 +378,7 @@ impl Drop for OwnedLifecycleRuntimeV8<'_> {
             self.custody,
             CustodyV8::Ready
                 | CustodyV8::Admission(_)
+                | CustodyV8::AuthorizationRefusedStopped(_)
                 | CustodyV8::ObserveStopped(_)
                 | CustodyV8::ObserverFailureStopped(_)
                 | CustodyV8::FailedEffectStopped(_)

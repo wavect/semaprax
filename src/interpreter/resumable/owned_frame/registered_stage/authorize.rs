@@ -2,6 +2,9 @@
 use super::*;
 use crate::interpreter::OwnedVariantValue;
 use crate::resumable_effects::owned_frame::v2::CheckedOwnedAuthorizeV2;
+mod abandonment;
+mod recovery;
+pub(crate) use recovery::restore_transferred_state_v8;
 
 pub(crate) struct StagedOwnedAuthorizeV2 {
     state: CompletedOwnedAgentStateV2,

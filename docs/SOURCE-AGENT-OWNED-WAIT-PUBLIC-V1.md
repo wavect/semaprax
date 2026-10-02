@@ -145,7 +145,8 @@ The required recovery matrix follows the admitted authority classifications in
 [owned-wait v1](SOURCE-AGENT-OWNED-WAIT-V1.md), especially sections 7–9:
 transferred-owner recovery, no duplicate dispatch or uncharged reconstruction,
 one-use phase-specific permits, and hostile registration/tail refusal. Required
-transferred-owner recovery is still open. The broader restoration packet in
+transferred-owner recovery now has the exact first TransferCompleted entry in
+section 16. Other destination phases, the broader restoration packet in
 section 5, unsupported effect phases in section 9, and deferred Report
 restoration in sections 51–52 are not promoted by this public profile. Report
 delivery from recovered bytes remains outside its admitted scope.
@@ -425,7 +426,74 @@ cancellation after State release. Every scenario checks two Model calls, two
 target calls, exact physical cleanup counts, no Report projection and no retry
 or further append. The public success selector passed 1/1 in 316.81s and
 Started-ACK before/after-write faults passed 1/1 (two scenarios) in 615.61s on
-local macOS. Receipt/Stop ACK faults, State observer panic and cancelled Stop
-are authored but remain unexecuted at this source update.
+local macOS. Receipt-ACK faults passed 1/1 (two scenarios) in 629.13s and
+Stop-ACK faults passed 1/1 (two scenarios) in 632.35s from the same emitted
+2 MiB binary. State observer panic passed 1/1 in 317.10s and cancelled Stop
+passed 1/1 in 315.94s. All six selectors are evidence for the e97bd0828 core
+packet on local macOS, not an unexecuted later source revision.
 This bounded settlement does not restore a post-Intent, transferred or Report
 owner after a process restart, or settle unrelated quarantined phases.
+
+
+## 15. Actual first-turn Refused State cleanup
+
+The post-Authorize driver branches on the actual checked source Refused
+Decision. The admitted Refused case owns only its scalar code; both the actual
+root and compiler disposal proof establish an empty Decision vector. No empty
+Decision cleanup receipt is invented. The runtime acknowledges the ordinary
+`AuthorizationRefused` row and exact State `OwnedCleanupStarted` before it
+consumes the original State. The observed State receipt precedes sticky
+`Rejected` / `StageRefused` Stop and `AuthorizationRefusedStopped` status.
+
+Authenticated inventory admits this narrow existing-wire route only for the
+current first-turn Refused snapshot, original transfer basis and wait identity,
+exact source Decision terminal facts, and canonical compiler State operations.
+The private physical permit can be constructed only by the live Started ACK
+path. Descriptive replay does not reconstruct State or authorize disposal.
+Observer panic still records the actual failed receipt and retains quarantine;
+append uncertainty keeps the actual reached holder without a cleanup retry.
+
+The public 2 MiB success regression passed 1/1 locally on macOS in 33.85s.
+The runtime Started-before/after-write retention selector passed 1/1 (two
+scenarios) in 54.97s. The public observer-failure selector passed 1/1 in 33.62s:
+it validates the authenticated failed receipt, rejects a candidate completed
+Stop, and checks unchanged persisted bytes after refused retry and forced
+teardown. All three ran from the same emitted binary as this Refused/recovery
+packet. General cancellation and explicit shutdown of other eligible owners
+remain separate work.
+
+## 16. Exact first TransferCompleted recovery
+
+`restart_first_transferred_state` is a separate trusted-host entry for an
+otherwise read-only recovered journal. It admits only the authenticated current
+first-turn `OwnedStateTransferCompleted` tail, with the adjacent admitted
+proposal and transfer reservation, exact State and proposal digests, source
+binding, registration, generation, wait identity and full-prefix pins. An
+explicit protected-history assertion is required; journal data alone grants no
+restoration authority. Earlier snapshots and later tails cannot select it.
+
+A non-cloneable permit is consumed by reconstruction of that one State. A
+post-materialization guard failure retains the owner in an opaque quarantined
+run. Every recovered Authorize failure likewise retains its actual transferred
+State or staged State/Decision; closing or retrying cannot release it or append
+new work. Forced host destruction retires authority and frees process backing
+without invoking a semantic finalizer or manufacturing a cleanup receipt.
+
+Successful restoration crosses the exact pinned read-only lease boundary once,
+then acknowledges the ordinary Authorize fuel reservation before invoking the
+same checked source evaluator as the live route. It does not rerun Initialize,
+Observe, the first Model call or the helper. The existing two-turn continuation
+owns all later target work, cleanup and terminal Report projection. This entry
+does not restore a staged Decision, post-Intent effect, or Report from bytes.
+
+The `public_transferred_relaunch_` gates use separate preparer and recovery
+processes and explicit 2 MiB workers. Success checks one remaining Model call,
+two target calls and terminal close. Prewrite Authorize-reservation and
+postwrite staged-Decision faults check zero downstream Model/target/cleanup,
+retained physical backing, refused close/retry and unchanged durable bytes on
+forced teardown. The separate-process success selector passed 1/1 in 366.52s (33.76s
+preparation and 332.74s recovery) on local macOS. Authorize fault custody passed 1/1 in 131.30s (two separate-process
+scenarios); settled-without-transfer refusal passed 1/1 in 65.97s. These are
+local macOS results for this bounded recovery packet, not broader destination
+phase restoration. The final wrapper also applies the existing known-failure
+settlement used by fresh and first-Prepared public runs.

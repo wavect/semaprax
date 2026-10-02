@@ -1198,3 +1198,28 @@ path, the three before/after-persistence ACK windows, State observer panic and
 cancellation after release. Execution evidence is recorded in the changelog.
 This packet adds no process-restoration permit and does not widen executor or
 iteration profiles, Report recovery, or unrelated shutdown settlement.
+
+## 55. First-turn actual Refused settlement (#330)
+
+The public post-Authorize join now retains the actual first-turn Refused
+Decision and State through the existing refusal grammar. The admitted scalar
+Refused case has an empty compiler disposal vector; the physical path checks
+that exact case and actual scalar root before structurally retiring it. It does
+not emit fictional empty Decision cleanup rows.
+
+The existing AuthorizationRefused row precedes State CleanupStarted, whose
+terminal facts are `{authorization_refused:D}` for that exact checked full
+Decision snapshot. The State basis is its original TransferCompleted row;
+operations are the helper's exact canonical State result-disposal vector.
+Only the live acknowledged Started path constructs the physical permit. The
+actual State release precedes the observed receipt, and only a successful
+receipt permits `Rejected` / `StageRefused` Stop and normal runtime close.
+Inert inventory checks the same exact source Decision, wait, basis, operations,
+receipt and causal adjacency. A failed receipt cannot be reminted into Stop.
+
+Every failed append, observation or guard retains the reached actual holder in
+runtime quarantine without dispatch, evaluation or cleanup retry. This bounded
+route adds no restoration authority and does not settle other shutdown phases.
+The public Refused success, public observer-panic/hostile Stop and runtime
+Started-before/after-write retention regressions use 2 MiB workers; they are
+authored and await execution at this source update.

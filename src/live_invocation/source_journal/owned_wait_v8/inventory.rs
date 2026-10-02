@@ -12,6 +12,7 @@ use crate::resumable_effects::owned_frame::{
 use crate::resumable_effects::source_checkpoint::{SourceCheckpointKey, SourceCheckpointScope};
 use serde_json::Value;
 mod accounting;
+mod refusal;
 pub(super) use accounting::CheckedAccountingPrefixV8;
 pub(super) mod cumulative;
 pub(crate) use cumulative::CheckedCumulativeEffectPrefixV8;
@@ -450,15 +451,23 @@ fn check_entries_with_runtime<'a>(
                 // its exact compiler vector/receipt and causal row references.
                 require(context.cumulative_initialization)?;
                 let previous = fold::fold(context, &rows)?;
-                let cleanup_turn = previous
-                    .failed_observe_cleanup_turn()
-                    .map_err(|_| Error::Binding)?;
-                require(
-                    cleanup_turn == *turn
-                        && *owner == super::model::OwnerV8::State
-                        && attempt.is_none()
-                        && wait.is_none(),
-                )?;
+                if let Ok(cleanup_turn) = previous.failed_observe_cleanup_turn() {
+                    require(
+                        cleanup_turn == *turn
+                            && *owner == super::model::OwnerV8::State
+                            && attempt.is_none()
+                            && wait.is_none(),
+                    )?;
+                } else {
+                    refusal::validate(context, &rows, &entry, staged_decision.as_ref())?;
+                }
+            }
+            EntryV8::Ordinary(Ordinary::Stop { .. })
+                if staged_decision.as_ref().is_some_and(|(_, _, _, d)| {
+                    d["case"].as_str() == Some(b.authorize().refused().as_str())
+                }) =>
+            {
+                refusal::validate_stop(&rows, &entry)?;
             }
             EntryV8::Ordinary(Ordinary::ProposalRefused { turn, attempt, .. }) => {
                 let (rt, ra, response) = raw.as_ref().ok_or(Error::Binding)?;

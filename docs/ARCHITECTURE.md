@@ -199,6 +199,18 @@ cannot reconstruct owners from journal evidence. Normal close is admitted after
 authenticated Complete Report consumption or acknowledged failure Stop. Pending
 physical phases refuse normal runtime close; forced host teardown retires
 journal authority before backing release and does not claim semantic settlement.
+The `runtime/abandonment` child owns the bounded actual Refused route: its
+private ACK-created permit allows `registered_stage/authorize/abandonment` to
+consume the original scalar-only Refused Decision and State. The candidate and
+inventory `refusal` children validate exact inert refusal coordinates, canonical
+State operations and successful receipt before Stop; they cannot create owners.
+The `runtime/recovered_authorize` child owns exact first-TransferCompleted
+recovery. `candidate/authorization_recovery` derives inert current-tail facts;
+`live_upstream/authorize` issues a consuming reconstruction permit, and
+`registered_stage/live_run/authorize/recovery` retains materialized State even
+when a subsequent guard fails. The physical `store/source_v8/recovery_grant`
+child binds the one recovered append transition to exact prefix pins. Recovery
+then reuses charged source Authorize and the existing two-turn owner chain.
 General runtime shutdown remains unfinished; public construction is owned by
 the `runtime/public` child described below.
 Its `wait` child retains the actual helper park;

@@ -1,6 +1,6 @@
 //! Consuming first-turn bridge. Every failed join keeps its exact physical
 //! predecessor in runtime custody; no serialized row can select this entry.
-use super::super::authorize::authorize_live_actor_v8;
+use super::super::authorize::{authorize_live_actor_v8, StagedLiveOwnedRunV8};
 use super::super::effect::authorization::{
     cleanup::{LiveCleanupAcknowledgedV8, LiveFailedOwnedEffectV8, LiveOutcomeV8},
     step::LiveStepAcknowledgedV8,
@@ -14,22 +14,42 @@ use crate::resumable_effects::CapabilityPolicy;
 trait RetainedFailure {}
 impl<T> RetainedFailure for T {}
 
-pub(super) struct RunQuarantineV8<'j> {
+pub(in crate::live_invocation::source_journal::owned_wait_v8::live_upstream) struct RunQuarantineV8<
+    'j,
+> {
     phase: &'static str,
     _owner: Box<dyn RetainedFailure + 'j>,
+    #[cfg(test)]
+    backings: Vec<std::sync::Weak<[u8]>>,
 }
 pub(super) enum RunOutcomeV8<'j> {
+    AuthorizationRefusedStopped(Box<super::abandonment::RefusedStoppedV8<'j>>),
     ContinuedFailedEffectStopped(Box<crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect::authorization::failed_state::continued::StoppedContinuedStateV8<'j>>),
     Complete(serde_json::Value),
     FailedEffect(LiveFailedOwnedEffectV8<'j>),
     FailedObserve(LiveSettledObserveV8<'j>),
 }
 impl RunQuarantineV8<'_> {
+    #[cfg(test)]
+    pub(in crate::live_invocation::source_journal::owned_wait_v8::live_upstream) fn with_backings(
+        mut self,
+        backings: Vec<std::sync::Weak<[u8]>>,
+    ) -> Self {
+        self.backings = backings;
+        self
+    }
+    #[cfg(test)]
+    pub(super) fn test_backings(&self) -> Vec<std::sync::Weak<[u8]>> {
+        self.backings.clone()
+    }
     pub(super) fn phase(&self) -> &'static str {
         self.phase
     }
 }
-fn quarantine<'j, T: 'j>(
+pub(in crate::live_invocation::source_journal::owned_wait_v8::live_upstream) fn quarantine<
+    'j,
+    T: 'j,
+>(
     journal: &'j SourceOwnedWaitJournalV8,
     phase: &'static str,
     owner: T,
@@ -38,6 +58,8 @@ fn quarantine<'j, T: 'j>(
     RunQuarantineV8 {
         phase,
         _owner: Box::new(owner),
+        #[cfg(test)]
+        backings: Vec::new(),
     }
 }
 
@@ -54,6 +76,22 @@ fn run_phase<'j, T>(
 pub(super) fn finish_run<'j>(
     journal: &'j SourceOwnedWaitJournalV8,
     completed: CompletedLiveOwnedRunV8<'j>,
+    policy: &'j CapabilityPolicy,
+    adapter: &mut StreamingSourceProposalAdapter<'_>,
+    handler: &mut dyn TargetHostHandler,
+    observe: impl FnMut(&FinalizeAction),
+) -> Result<RunOutcomeV8<'j>, RunQuarantineV8<'j>> {
+    let completed = Box::new(completed);
+    let staged = run_phase(|| {
+        authorize_live_actor_v8(*completed)
+            .map_err(|owner| quarantine(journal, "first-authorize", owner))
+    })?;
+    finish_staged_run(journal, *staged, policy, adapter, handler, observe)
+}
+
+pub(super) fn finish_staged_run<'j>(
+    journal: &'j SourceOwnedWaitJournalV8,
+    staged: StagedLiveOwnedRunV8<'j>,
     policy: &'j CapabilityPolicy,
     adapter: &mut StreamingSourceProposalAdapter<'_>,
     handler: &mut dyn TargetHostHandler,
@@ -89,8 +127,11 @@ pub(super) fn finish_run<'j>(
             })?
         };
     }
-    let completed = Box::new(completed);
-    let staged = join!(authorize_live_actor_v8(*completed), "first-authorize");
+    let staged = Box::new(staged);
+    if super::abandonment::is_refused(&staged) {
+        return super::abandonment::stop_refused(staged, observe)
+            .map(RunOutcomeV8::AuthorizationRefusedStopped);
+    }
     let ready = join!(prepare_live_effect_ready_v8(*staged, policy), "first-ready");
     let consumed = ack!(ready, append_owned_effect, advance_ready, "first-ready");
     let held = ack!(

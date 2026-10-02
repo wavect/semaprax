@@ -1,5 +1,10 @@
 # Changelog
 
+- Define RI-01's additive rich-Rust BindingPlan contract and generated
+  C-compatible bootstrap boundary. Reserve its schemas and diagnostics, retain
+  the scalar v1 bridge unchanged, and defer automatic indexing, Rust-source
+  lowering, and patched-rustc monomorphization to their separate issues.
+
 - Use verified #321 guard forwards as dispatch authority while retaining native
   CLI turn counts as metadata. Preserve cohort07's two trials separately; its
   guard correctly refused excess bytes before a legacy turn check halted it.

@@ -551,6 +551,7 @@ Audience: all documentation readers.
 - [Owned resource vertical slice](OWNED-RESOURCE-VERTICAL-V1.md)
 - [Native module loader quarantine](NATIVE-MODULE-LOADER.md)
 - [Native Rust interoperability](NATIVE-RUST-INTEROP-V1.md)
+- [Native Rust rich interoperability](NATIVE-RUST-RICH-INTEROP-V1.md)
 - [Rust-host sanitizer evidence](RUST-HOST-SANITIZERS.md)
 - [Private WIT boundary](WIT-COMPONENT-BOUNDARY-V1.md)
 - [Public Generic Wasm Provider Target v1](PUBLIC-GENERIC-WASM-PROVIDER-TARGET-V1.md)

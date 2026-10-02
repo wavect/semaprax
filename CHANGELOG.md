@@ -63,6 +63,12 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Disable implicit OpenCode title, summary and compaction model work in the
+  private fixed-model host policy, and pin its default, small and selected-agent
+  models. The process-stub regression checks the policy actually staged before
+  dispatch. A refused local #323 attempt exposed title-model selection outside
+  checked attempt accounting; this fix is not successful live-provider evidence.
+
 - Complete #328's exact `f99c76dc2` Kernel-0 accepted-profile record: the
   124-case Kernel selector, 10-case owned-handoff selector and required Lean
   gate passed locally. Record the reviewed rung-1 retention decision, raw

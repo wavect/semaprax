@@ -15,6 +15,16 @@ live-kernel source/HIR integration remains tracked in #177.
 The only admitted profile is `opencode/muse-spark-1.3-contributor-free`. There
 is no fallback model, provider, endpoint or paid route. The adapter adds no
 automatic transport retry; OpenCode subprocess work remains deadline-bounded.
+The fixed policy pins the default, small and selected-agent model, admits only
+the OpenCode provider, and disables the built-in title, summary and compaction
+agents plus automatic compaction. The title disable is required: OpenCode
+1.18.33 otherwise starts a separate small-model request before the selected
+agent, outside the checked attempt accounting. The tagged
+[agent loader](https://github.com/anomalyco/opencode/blob/v1.18.33/packages/opencode/src/agent/agent.ts)
+removes disabled agents, and the
+[title path](https://github.com/anomalyco/opencode/blob/v1.18.33/packages/opencode/src/session/prompt.ts)
+returns before model selection when the title agent is absent. These controls
+do not establish a billing guarantee or exclusive physical network execution.
 Host credentials are not added to model context or runtime journals. Provider
 error bodies and headers are discarded from the closed diagnostic categories.
 

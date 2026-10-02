@@ -381,6 +381,15 @@ fn process_runner_uses_a_local_stub_without_provider_access() {
         serde_json::from_slice(&std::fs::read(config.sandbox.join("opencode.json")).unwrap())
             .unwrap();
     assert_eq!(policy["snapshot"], false);
+    assert_eq!(policy["model"], OPENCODE_MODEL);
+    assert_eq!(policy["small_model"], OPENCODE_MODEL);
+    assert_eq!(policy["enabled_providers"], serde_json::json!(["opencode"]));
+    assert_eq!(policy["agent"][OPENCODE_AGENT]["model"], OPENCODE_MODEL);
+    for auxiliary in ["title", "summary", "compaction"] {
+        assert_eq!(policy["agent"][auxiliary]["disable"], true);
+    }
+    assert_eq!(policy["compaction"]["auto"], false);
+    assert_eq!(policy["compaction"]["prune"], false);
     assert_eq!(policy["agent"][OPENCODE_AGENT]["permission"]["*"], "deny");
     assert!(config.sandbox.join(environment::PRIVATE).is_dir());
     std::fs::remove_dir_all(root).unwrap();

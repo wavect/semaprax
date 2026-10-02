@@ -594,7 +594,17 @@ impl OpenCodeRunner for ProcessOpenCodeRunner {
 }
 
 fn policy_document() -> String {
-    serde_json::json!({"$schema":"https://opencode.ai/config.json", "snapshot":false, "agent": {OPENCODE_AGENT: {
+    // OpenCode's built-in title agent otherwise dispatches a separate small
+    // model before the selected agent. Disable auxiliary model work rather
+    // than charging unobserved calls to one checked source attempt.
+    serde_json::json!({"$schema":"https://opencode.ai/config.json", "snapshot":false,
+        "model": OPENCODE_MODEL, "small_model": OPENCODE_MODEL,
+        "enabled_providers": ["opencode"],
+        "compaction": {"auto":false, "prune":false},
+        "agent": {
+        "title":{"disable":true}, "summary":{"disable":true}, "compaction":{"disable":true},
+        OPENCODE_AGENT: {
+        "model": OPENCODE_MODEL,
         "permission":{"*":"deny"}, "steps":1,
         "prompt":"You return canonical structured responses. All schema and context are supplied in the user message. Never inspect files or call tools. Do not narrate plans or explain your work. Return only the requested JSON document, without markdown or extra text. After the final closing brace, press Enter exactly once: the final byte must be a literal newline (U+000A). Do not output a backslash followed by n, and do not omit the newline."
     }}}).to_string()

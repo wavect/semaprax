@@ -1,5 +1,13 @@
 # Changelog
 
+- Add explicit #332 Linux arm64 Apple Container scoring admission with official
+  Node/TypeScript provenance, immutable image and launcher pins, Landlock and
+  seccomp confinement, and physical read/write/fork/socket denial controls.
+  All five focused checks passed in 42.296s, including real guest success and
+  wrong-result/early-exit failures in both phases. This is a local VM scoring
+  fixture with zero provider calls, not independent physical hardware or a
+  second-environment model-generation claim.
+
 - Bind the #332 frozen pilot to distinct native host executable digests, auth
   homes, kernel/boot identity and shared Claude CLI version/models/caps. Split
   native generation from controller scoring, revalidate exact provider bytes

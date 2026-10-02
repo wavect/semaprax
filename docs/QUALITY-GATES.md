@@ -47,6 +47,19 @@ runtime or a second host. [Live pilot v1](CROSS-LANGUAGE-LIVE-PILOT-V1.md) owns
 its scope, operator interface and remaining real-execution gates. Preserve the
 existing supported-scope and v3 pure-provenance selectors when changing admission.
 
+The Linux admission/authority owner also requires its focused pure gate:
+
+```sh
+python3 -m unittest discover -s benchmarks/cross-language-v1/agent/tests -p test_pilot_linux_host.py -v
+```
+
+The same `documentation::cross_language_benchmark_suite::live_pilot` module owns
+this wrapper and clears physical-provision environment variables. Its three
+pure cases do not replace the two explicitly provisioned physical selectors in
+[Linux pilot host v1](CROSS-LANGUAGE-PILOT-LINUX-HOST-V1.md). Those selectors
+exercise actual OS denials and official Node/TypeScript candidate scoring;
+neither pure nor physical fixture evidence implies a provider model trial.
+
 ## Specialization cell-accounting gate
 
 For #326 accounting or provenance changes, run:

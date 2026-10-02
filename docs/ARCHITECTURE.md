@@ -44,8 +44,12 @@ owns the actual official TypeScript admission and runtime evidence.
 The protocol binds all inventory rows; transport owns explicit subscription
 and bounded process authority; the candidate session reuses independent v3
 Darwin admission with a disjoint candidate overlay. It does not widen the
-fixed-source v3 route or admit a Linux host. Receipt accounting grants no
-execution or independent-review authority.
+fixed-source v3 route. `agent/pilot_linux_host.py` and
+`agent/pilot_linux_launcher.c` separately own the [Linux VM scoring profile](CROSS-LANGUAGE-PILOT-LINUX-HOST-V1.md):
+explicit image/toolchain pins, Landlock/seccomp confinement, physical denial
+probes and reuse of the same candidate/assertion bridge. The controller remains
+Darwin; native guest model generation is a separate transport grant. Receipt
+accounting grants no execution or independent-review authority.
 
 `benchmarks/cross-language-v1/agent/specialization_accounting.py` owns the
 read-only [specialization cell accounting](../benchmarks/cross-language-v1/agent/README.md#issue-326-frozen-cell-accounting-blocked).

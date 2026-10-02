@@ -964,21 +964,41 @@ fn continued_reduce_chain_step_ack(fault: u8, three_turns: bool, later_observe_e
                                                     .unwrap()
                                                     .read()
                                                     .unwrap();
-                                                if fault == 21 {
+                                                if matches!(fault, 21..=23) {
                                                     #[cfg(unix)]
                                                     journal
                                                         .lease
                                                         .try_borrow_mut()
                                                         .unwrap()
                                                         .test_fail_before_write(
-                                                            before_cleanup.sequence() + 1,
+                                                            before_cleanup.sequence()
+                                                                + usize::from(fault - 20),
                                                         );
                                                 }
                                                 let mut failed_cleanup_actions = 0;
                                                 let result = crate::live_invocation::source_journal::owned_wait_v8::live_upstream::observe::settlement::failed_state::stop_failed_observe_state_v8(settled, |_| failed_cleanup_actions += 1);
-                                                if fault == 21 {
-                                                    let quarantined = result.err().expect("Started prewrite refusal retains later failed State");
-                                                    assert_eq!(failed_cleanup_actions, 0, "prewrite refusal cannot enter physical cleanup");
+                                                if matches!(fault, 21..=23) {
+                                                    let quarantined = result.err().expect("later failed Observe persistence refusal retains the reached State owner");
+                                                    assert_eq!(
+                                                        quarantined.status(),
+                                                        SourceJournalError::Poisoned
+                                                    );
+                                                    let expected_actions = journal
+                                                        .context()
+                                                        .ready_runtime()
+                                                        .unwrap()
+                                                        .1
+                                                        .wait()
+                                                        .observe()
+                                                        .helper()
+                                                        .liveness()
+                                                        .failure_cleanup
+                                                        .len();
+                                                    assert_eq!(
+                                                        failed_cleanup_actions,
+                                                        if fault == 21 { 0 } else { expected_actions },
+                                                        "only the Started prewrite refusal can avoid the one physical cleanup",
+                                                    );
                                                     assert!(weak
                                                         .iter()
                                                         .any(|owner| owner.strong_count() == 1));
@@ -1450,6 +1470,16 @@ fn owned_continued_step_turn_two_failed_observe_cleans_state_and_stops() {
 #[cfg(unix)]
 fn owned_continued_step_turn_two_failed_observe_started_prewrite_retains_state() {
     continued_reduce_chain_step_ack(21, true, true);
+}
+#[test]
+#[cfg(unix)]
+fn owned_continued_step_turn_two_failed_observe_receipt_prewrite_keeps_cleanup_sticky() {
+    continued_reduce_chain_step_ack(22, true, true);
+}
+#[test]
+#[cfg(unix)]
+fn owned_continued_step_turn_two_failed_observe_stop_prewrite_retains_released_state() {
+    continued_reduce_chain_step_ack(23, true, true);
 }
 mod actual_state;
 mod faults;

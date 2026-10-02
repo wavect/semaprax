@@ -804,6 +804,12 @@ An actual successful continued Observe holder and both authentic settlement/Turn
 
 Only an actual failed initial, continued, or later-turn Observe holder with its authentic OwnedObserveSettled ACK can select State cleanup. The later-turn bridge consumes the exact retained LaterContinueLineage, including its physical failed State, cumulative accounting, policy, cancellation, and original Reduce hold; journal rows cannot reconstruct it. Started is bound to the actual failure, State provenance, original full Observe failure-cleanup vector and exact retained prefix. Its fixed durable ACK incurs one physical release through the existing failed-Observe settlement primitive. Preallocated canonical slots capture each actual observer outcome; the returned physical receipt and all action outcomes must agree. Partial release, capture mismatch or later guard loss retains the actual boundary holder and permanently quarantines it. No retry, synthetic aggregate receipt or restored owner is admitted.
 
+The later-turn owning harness separately injects prewrite refusal at Started,
+receipt, and Stop. Started refusal performs no release; receipt and Stop
+refusal retain the post-release physical owner after exactly one canonical
+cleanup pass. Every boundary quarantines the journal before it could retry the
+cleanup or append a successor. These focused regressions remain unexecuted.
+
 The receipt row references the actual Started row index. After release, guards use the actual released engine holder and descriptive facts cached before release, never the old State root. Only a full successful receipt and its true Settled ACK can select the sticky Stop: Fuel/Depth exhaustion keeps BudgetExhausted; other admitted Observe failures select Rejected/StageRefused. Full current guards apply before Started and Stop. Incurred release and receipt may finish after cancellation or clock expiry while retaining physical store, PID, schema, exclusivity and applicable policy checks. Initial cleanup adds no policy/clock or accounting authority; continued and later-turn cleanup retain the unchanged ledger and same Reduce hold without debit, refund or reservation reset.
 
 The generic append classifier denies all State cleanup and Stop spellings at a checked failed cumulative Observe prefix. Only sealed actual-owner permits can advance this writer.

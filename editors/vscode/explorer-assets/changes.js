@@ -156,24 +156,31 @@ async function loadImpact(host, target, side, query = {}) {
 
 function edgeKey(side, edge) { return JSON.stringify([side, edge.from, edge.to, edge.family, edge.direction, edge.site_id]); }
 function unionImpact(base, candidate) {
-  if (!base || !candidate || base.side !== 'base' || candidate.side !== 'candidate' || base.target !== candidate.target) fail('impact pair');
+  if (base !== null && (!base || base.side !== 'base')) fail('base impact');
+  if (candidate !== null && (!candidate || candidate.side !== 'candidate')) fail('candidate impact');
+  if (!base && !candidate) fail('missing impact');
+  if (base && candidate && base.target !== candidate.target) fail('impact pair');
+  const target = (base || candidate).target;
   const nodes = [];
-  for (const result of [base, candidate]) for (const row of result.declarations) nodes.push(Object.freeze({ ...row, side: result.side }));
+  for (const result of [base, candidate].filter(Boolean)) for (const row of result.declarations) nodes.push(Object.freeze({ ...row, side: result.side }));
   const edges = [];
   const seen = new Set();
-  for (const result of [base, candidate]) for (const row of result.relations) {
+  for (const result of [base, candidate].filter(Boolean)) for (const row of result.relations) {
     const key = edgeKey(result.side, row);
     if (!seen.has(key)) { seen.add(key); edges.push(Object.freeze({ ...row, side: result.side })); }
   }
   edges.sort((left, right) => edgeKey(left.side, left).localeCompare(edgeKey(right.side, right)));
-  const incomplete = [base, candidate].some(result => result.truncation.truncated || result.coverage.complete_within_query !== true);
-  return Object.freeze({ target: base.target, base, candidate, nodes: Object.freeze(nodes), edges: Object.freeze(edges), witness_state: incomplete ? 'analysis_incomplete' : 'loaded' });
+  const incomplete = [base, candidate].filter(Boolean).some(result => result.truncation.truncated || result.coverage.complete_within_query !== true);
+  const witness_state = incomplete ? 'analysis_incomplete' : !candidate ? 'base_only' : !base ? 'candidate_only' : 'loaded';
+  return Object.freeze({ target, base, candidate, nodes: Object.freeze(nodes), edges: Object.freeze(edges), witness_state });
 }
 
-async function loadChangeImpact(host, target, query) {
+async function loadChangeImpact(host, target, query = {}) {
   // Sequential loads preserve the snapshot host's active-view binding.
-  const base = await loadImpact(host, target, 'base', query);
-  const candidate = await loadImpact(host, target, 'candidate', query);
+  const sides = query.sides === undefined ? ['base', 'candidate'] : query.sides;
+  if (!Array.isArray(sides) || !sides.length || sides.some(side => !['base', 'candidate'].includes(side)) || new Set(sides).size !== sides.length) fail('impact sides');
+  const base = sides.includes('base') ? await loadImpact(host, target, 'base', query) : null;
+  const candidate = sides.includes('candidate') ? await loadImpact(host, target, 'candidate', query) : null;
   return unionImpact(base, candidate);
 }
 
@@ -187,6 +194,7 @@ function whyAffected(impact, side, nodeKey) {
   if (!impact || !['base', 'candidate'].includes(side)) fail('witness request');
   string(nodeKey, 'witness node');
   const selected = impact[side];
+  if (!selected) return Object.freeze({ state: 'witness_not_loaded_or_analysis_incomplete', edges: [] });
   const root = selected.declarations.find(row => row.id === impact.target);
   if (!root) return Object.freeze({ state: 'witness_not_loaded_or_analysis_incomplete', edges: [] });
   const adjacency = new Map();

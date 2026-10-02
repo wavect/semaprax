@@ -381,8 +381,12 @@ class LocalSpecializationTests(unittest.TestCase):
         self.assertIn("(deny network*)", policy)
         self.assertIn("(deny process-fork)", policy)
         self.assertIn("(deny process-exec)", policy)
-        self.assertIn("(deny file-read*)", policy)
+        self.assertIn("(deny file-read-data", policy)
         self.assertIn("(deny file-write*)", policy)
+        self.assertNotIn("(deny file-read*)", policy)
+        self.assertIn('(subpath "' + str(pathlib.Path.home().resolve()) + '")', policy)
+        for root in ("/Volumes", "/opt", "/Library", "/usr/local"):
+            self.assertIn('(subpath "' + root + '")', policy)
         self.assertNotIn(str(hidden), policy)
         self.assertNotIn('(subpath "' + str(self.root) + '")', policy)
         self.assertIn('(literal "' + str(tool) + '")', policy)

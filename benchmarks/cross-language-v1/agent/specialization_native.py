@@ -30,22 +30,24 @@ def sandbox_policy(tool: pathlib.Path, phase: pathlib.Path) -> str:
             raise LocalTransportError("noncanonical_sandbox_authority")
     literal = lambda p: "(literal " + json.dumps(str(p)) + ")"
     subtree = lambda p: "(subpath " + json.dumps(str(p)) + ")"
-    ancestors = sorted({str(x) for path in (tool, phase) for x in path.parents})
     # Rust's primary-thread stack guard uses anonymous fixed-address mapping.
     # On current Darwin, a deny-default profile turns that required VM primitive
-    # into EINVAL before `main`. Start from the OS VM baseline, then explicitly
-    # withdraw every file, process and network authority this scorer must not
-    # have. The later narrow allows are the complete execution authority.
+    # into EINVAL before `main`. Keep that VM baseline, then withdraw network,
+    # process, write, and user-content read authority. This confines the
+    # checked-out source, hidden oracle, home data, mounted volumes and local
+    # third-party data. Darwin system-content reads outside these roots remain
+    # available for runtime startup and must not be described as global
+    # filesystem confinement.
     return ("(version 1)(allow default)(deny network*)(deny process-fork)"
             "(deny process-exec)(allow process-exec " + literal(tool) + ")"
-            "(deny file-read*)(allow file-read* " + literal(tool) + " " + subtree(phase) +
-            ' (subpath "/usr/lib") (subpath "/System/Library"))'
-            "(allow file-read-metadata " + " ".join(literal(x) for x in ancestors) + ")"
+            "(deny file-read-data " + subtree(pathlib.Path.home().resolve()) + ")"
+            '(deny file-read-data (subpath "/Volumes"))'
+            '(deny file-read-data (subpath "/opt"))'
+            '(deny file-read-data (subpath "/Library"))'
+            '(deny file-read-data (subpath "/usr/local"))'
             "(deny file-write*)(allow file-write* " + subtree(phase) + ")"
             '(allow file-read* file-write* (literal "/dev/null"))'
-            '(allow sysctl-read (sysctl-name "hw.memsize") (sysctl-name "hw.ncpu")'
-            ' (sysctl-name "hw.activecpu") (sysctl-name "hw.logicalcpu")'
-            ' (sysctl-name "kern.osrelease"))')
+            )
 
 
 class NativeScorer:

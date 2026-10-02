@@ -541,9 +541,10 @@ fn confined_spawn_after_binding(
         -> Result<super::capsule::VerifiedCapsule, super::capsule::CapsuleError>,
     after_binding: impl FnOnce(),
 ) -> Result<ConfinedProcess, Refusal> {
+    let mut after_binding = Some(after_binding);
     confined_spawn_observing(exe, role, args, scratch_root, parse_capsule, |boundary| {
         if boundary == BindingBoundary::BeforeProcessCreation {
-            after_binding();
+            after_binding.take().expect("binding callback runs once")();
         }
     })
 }

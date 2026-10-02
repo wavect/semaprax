@@ -188,7 +188,7 @@ fn metadata(catalog: &Value) {
     assert_eq!(set5["name"], "bytes_set5");
     assert_eq!(set5["arity"], 7);
     assert_eq!(set5["parameters"][0]["ownership"], "own");
-    assert!(set5["parameters"][1..]
+    assert!(set5["parameters"].as_array().unwrap()[1..]
         .iter()
         .all(|parameter| parameter["ownership"] == "value"));
     let set1_or5 = row_for(rows, "core.bytes.set1_or5_from_slice");

@@ -1,5 +1,7 @@
 //! Standalone explorer CLI output remains source-free and never clobbers a destination.
 
+use semaprax::project::{with_authenticated_project, ProjectCandidate, SemanticChange};
+use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
@@ -38,6 +40,20 @@ impl Fixture {
             .output()
             .unwrap()
     }
+}
+
+fn recovery_capsule(fixture: &Fixture, intent: Value) -> (String, String) {
+    with_authenticated_project(&fixture.0.join("semaprax.toml"), |snapshot| {
+        let base = snapshot.retain_revision();
+        let candidate = ProjectCandidate::open(base, snapshot.project_revision())?;
+        let change = SemanticChange::new(candidate.revision().project_revision(), &intent)?;
+        let candidate = candidate.apply(candidate.candidate_digest(), &change)?;
+        Ok((
+            candidate.candidate_digest().to_owned(),
+            candidate.recovery_capsule()?,
+        ))
+    })
+    .unwrap()
 }
 
 impl Drop for Fixture {
@@ -192,7 +208,9 @@ fn include_source_is_explicit_bounded_and_visible_in_json_and_html() {
     assert!(files.iter().any(|file| {
         file["side"] == "current"
             && file["path"] == "src/core.spx"
-            && file["text"].as_str().is_some_and(|text| text.contains(secret))
+            && file["text"]
+                .as_str()
+                .is_some_and(|text| text.contains(secret))
     }));
 
     let html = fixture.cli(&[
@@ -229,4 +247,160 @@ fn include_source_is_rejected_for_non_standalone_formats() {
         assert_eq!(output.status.code(), Some(2), "{output:?}");
         assert!(!fixture.0.join("source.out").exists());
     }
+}
+
+#[test]
+fn replayed_candidate_capsules_export_rename_and_move_source_sides() {
+    let renamed = Fixture::new();
+    let (rename_digest, rename_capsule) = recovery_capsule(
+        &renamed,
+        json!({"kind":"rename_declaration","target":"calculator.add","name":"plus"}),
+    );
+    std::fs::write(renamed.0.join("rename.capsule"), rename_capsule).unwrap();
+    let output = renamed.cli(&[
+        "explore",
+        "semaprax.toml",
+        "--candidate-capsule",
+        "rename.capsule",
+        "--expect-candidate",
+        &rename_digest,
+        "--target",
+        "calculator.add",
+        "--format",
+        "json",
+        "--output",
+        "rename.json",
+        "--include-source",
+    ]);
+    assert!(output.status.success(), "{output:?}");
+    let rename: Value =
+        serde_json::from_slice(&std::fs::read(renamed.0.join("rename.json")).unwrap()).unwrap();
+    assert_eq!(rename["source_included"], true);
+    assert_eq!(rename["focus_sides"], json!(["candidate", "base"]));
+    assert!(rename["views"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|view| view["query"]["side"] == "candidate"));
+    let rename_sources = rename["source_files"].as_array().unwrap();
+    assert!(rename_sources.iter().any(|file| file["side"] == "candidate"
+        && file["path"] == "src/core.spx"
+        && file["text"].as_str().unwrap().contains("fn plus(")));
+    assert!(rename_sources.iter().any(|file| file["side"] == "base"
+        && file["path"] == "src/core.spx"
+        && file["text"].as_str().unwrap().contains("fn add(")));
+
+    let moved = Fixture::new();
+    let manifest_path = moved.0.join("semaprax.toml");
+    let manifest = std::fs::read_to_string(&manifest_path)
+        .unwrap()
+        .replace("\"calculator.add\", ", "")
+        .replace(
+            "\"src/tests.spx\"]",
+            "\"src/support.spx\", \"src/tests.spx\"]",
+        );
+    std::fs::write(manifest_path, manifest).unwrap();
+    let support =
+        "module calculator.support;\n@id(\"calculator.support.anchor\") fn anchor() -> i64 { 0 }\n";
+    let (_, support) = semaprax::parse_canonical(support, "src/support.spx").unwrap();
+    std::fs::write(moved.0.join("src/support.spx"), support).unwrap();
+    let (move_digest, move_capsule) = recovery_capsule(
+        &moved,
+        json!({"kind":"move_declaration","target":"calculator.add","destination":"calculator.support.anchor"}),
+    );
+    std::fs::write(moved.0.join("move.capsule"), move_capsule).unwrap();
+    let output = moved.cli(&[
+        "explore",
+        "semaprax.toml",
+        "--candidate-capsule",
+        "move.capsule",
+        "--expect-candidate",
+        &move_digest,
+        "--target",
+        "calculator.add",
+        "--format",
+        "json",
+        "--output",
+        "move.json",
+        "--include-source",
+    ]);
+    assert!(output.status.success(), "{output:?}");
+    let moved: Value =
+        serde_json::from_slice(&std::fs::read(moved.0.join("move.json")).unwrap()).unwrap();
+    let move_sources = moved["source_files"].as_array().unwrap();
+    assert!(move_sources.iter().any(|file| file["side"] == "base"
+        && file["path"] == "src/core.spx"
+        && file["text"].as_str().unwrap().contains("fn add(")));
+    assert!(move_sources.iter().any(|file| file["side"] == "candidate"
+        && file["path"] == "src/support.spx"
+        && file["text"].as_str().unwrap().contains("fn add(")));
+}
+
+#[test]
+fn candidate_explore_refuses_foreign_tampered_and_wrong_digest_capsules_before_output() {
+    let origin = Fixture::new();
+    let (candidate_digest, capsule) = recovery_capsule(
+        &origin,
+        json!({"kind":"rename_declaration","target":"calculator.add","name":"plus"}),
+    );
+
+    let foreign = Fixture::new();
+    let foreign_core = foreign.0.join("src/core.spx");
+    let source = std::fs::read_to_string(&foreign_core).unwrap();
+    std::fs::write(&foreign_core, source.replace("left + right", "left + 2")).unwrap();
+    std::fs::write(foreign.0.join("foreign.capsule"), &capsule).unwrap();
+    let foreign_output = foreign.cli(&[
+        "explore",
+        "semaprax.toml",
+        "--candidate-capsule",
+        "foreign.capsule",
+        "--expect-candidate",
+        &candidate_digest,
+        "--format",
+        "json",
+        "--output",
+        "foreign.json",
+    ]);
+    assert_eq!(foreign_output.status.code(), Some(1), "{foreign_output:?}");
+    assert!(!foreign.0.join("foreign.json").exists());
+
+    let tampered = Fixture::new();
+    let corrupted = capsule.replacen("calculator.add", "calculator.bad", 1);
+    std::fs::write(tampered.0.join("tampered.capsule"), corrupted).unwrap();
+    let tampered_output = tampered.cli(&[
+        "explore",
+        "semaprax.toml",
+        "--candidate-capsule",
+        "tampered.capsule",
+        "--expect-candidate",
+        &candidate_digest,
+        "--format",
+        "json",
+        "--output",
+        "tampered.json",
+    ]);
+    assert_eq!(
+        tampered_output.status.code(),
+        Some(1),
+        "{tampered_output:?}"
+    );
+    assert!(!tampered.0.join("tampered.json").exists());
+
+    let wrong_digest = Fixture::new();
+    std::fs::write(wrong_digest.0.join("candidate.capsule"), capsule).unwrap();
+    let wrong = format!("sha256:{}", "0".repeat(64));
+    let wrong_output = wrong_digest.cli(&[
+        "explore",
+        "semaprax.toml",
+        "--candidate-capsule",
+        "candidate.capsule",
+        "--expect-candidate",
+        &wrong,
+        "--format",
+        "json",
+        "--output",
+        "wrong.json",
+    ]);
+    assert_eq!(wrong_output.status.code(), Some(1), "{wrong_output:?}");
+    assert!(!wrong_digest.0.join("wrong.json").exists());
 }

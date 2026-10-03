@@ -71,6 +71,13 @@ pub fn prepare_scalar_binding(
             span,
         ));
     }
+    if import.index_selected && import.selected_index_digest.as_deref() != Some(item.index_digest) {
+        return Err(error(
+            "SPX-B146",
+            "Rust API index digest disagrees with the checked import",
+            span,
+        ));
+    }
     if !valid_alias(item.cargo_alias)
         || item.package_name.is_empty()
         || item.package_version.is_empty()

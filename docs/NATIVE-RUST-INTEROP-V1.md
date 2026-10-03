@@ -189,10 +189,15 @@ function pointer to the selected crate item. A stable Rust compile of that
 generated code must agree with the actual crate signature before the private
 C bridge can call it. Its local execution fixture observes a result from a
 real Rust crate through the Semaprax export, rejects a flipped result, and
-refuses a wrong-type crate at compile time. The adapter is still a private
-test route: it does not authenticate held crate bytes at the build boundary,
-publish the generated adapter as a contracted bundle artifact, or expose a
-supported source-import callable route.
+refuses a wrong-type crate at compile time. The narrow public
+`build_indexed_scalar_native_rust` route checks source and HIR, exact replayed
+index/package/alias/target/feature/compiler identity, and caller-supplied
+package source bytes before private A+B publication. It returns bounded
+generated adapter source and its digest with the inner bundle's manifest
+digest. That adapter is caller-held: this route does not retain crate bytes
+through stable compilation, publish adapter bytes in the authenticated bundle,
+or expose a supported source-import callable package. The physical fixture
+compiles and runs the returned adapter against a local Rust crate.
 
 An indexed declaration may now write `from "alias::path"` between its result
 and `effects` clauses. The parser and canonical formatter preserve that exact

@@ -2,7 +2,7 @@
 //! Rust adapter -> C bridge -> Semaprax export -> selected Rust crate API.
 
 use super::*;
-use semaprax::native_rust_binding::{prepare_scalar_binding, SelectedRustItem};
+use semaprax_rust_api_index::RustApiIndex;
 
 #[test]
 fn indexed_scalar_adapter_executes_and_rejects_flipped_rust_result() {
@@ -18,23 +18,44 @@ fn indexed_scalar_adapter_executes_and_rejects_flipped_rust_result() {
     let import = &resolved.interfaces[0].imports[0];
     let target = current_target().unwrap();
     let crate_source = "pub fn add(left:i64,right:i64)->i64{left+right}\n";
-    let plan = prepare_scalar_binding(
+    let crate_source_digest = raw_digest(crate_source.as_bytes());
+    let mut envelope: serde_json::Value = serde_json::from_slice(include_bytes!(
+        "../../../../semaprax-rust-api-index/fixtures/local-api-fixture-v2-envelope.json"
+    ))
+    .unwrap();
+    let index_value = &mut envelope["index"];
+    index_value["package"]["name"] = "fixture_math".into();
+    index_value["package"]["version"] = "0.0.1".into();
+    index_value["package"]["source_sha256"] = crate_source_digest.clone().into();
+    index_value["target"] = target.triple.clone().into();
+    let mut item = index_value["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|item| item["path"] == "local_api_fixture::cfg_selected")
+        .unwrap()
+        .clone();
+    item["path"] = "fixture_math::add".into();
+    item["signature"] = "fn add(left: i64, right: i64) -> i64".into();
+    index_value["items"] = serde_json::json!([item]);
+    index_value["types"] = serde_json::json!([]);
+    let admitted =
+        RustApiIndex::admit_extractor_output(&serde_json::to_vec(&envelope).unwrap()).unwrap();
+    let index_bytes = admitted.canonical_json().as_bytes();
+    let package = crate::indexed_binding::SelectedPackage {
+        cargo_alias: "fixture_math",
+        name: "fixture_math",
+        version: "0.0.1",
+        source_sha256: &crate_source_digest,
+        target: &target.triple,
+        feature_digest: admitted.feature_digest(),
+        stable_rustc_version: admitted.stable_rustc_version(),
+    };
+    let plan = crate::indexed_binding::prepare_indexed_scalar_binding(
         import,
-        SelectedRustItem {
-            cargo_alias: "fixture_math",
-            package_name: "fixture_math",
-            package_version: "0.0.1",
-            package_source_sha256: &raw_digest(crate_source.as_bytes()),
-            index_digest: "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-            target: &target.triple,
-            feature_digest:
-                "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-            path: "fixture_math::add",
-            kind: "function",
-            receiver: "none",
-            signature: "fn add(left: i64, right: i64) -> i64",
-            supported: true,
-        },
+        index_bytes,
+        package,
+        "fixture_math::add",
     )
     .unwrap();
     let collision_source = source.replacen("@id(\"host.add\")", "@id(\"host.add_2\")", 1);
@@ -42,22 +63,11 @@ fn indexed_scalar_adapter_executes_and_rejects_flipped_rust_result() {
         crate::parse(&collision_source, Path::new("indexed-scalar-collision.spx")).unwrap();
     let collision_hir = hir::resolve(&collision_program).unwrap();
     let collision_import = &collision_hir.interfaces[0].imports[0];
-    let collision_plan = prepare_scalar_binding(
+    let collision_plan = crate::indexed_binding::prepare_indexed_scalar_binding(
         collision_import,
-        SelectedRustItem {
-            cargo_alias: "fixture_math",
-            package_name: "fixture_math",
-            package_version: "0.0.1",
-            package_source_sha256: &raw_digest(crate_source.as_bytes()),
-            index_digest: plan.index_digest.as_str(),
-            target: &target.triple,
-            feature_digest: plan.feature_digest.as_str(),
-            path: "fixture_math::add",
-            kind: "function",
-            receiver: "none",
-            signature: "fn add(left: i64, right: i64) -> i64",
-            supported: true,
-        },
+        index_bytes,
+        package,
+        "fixture_math::add",
     )
     .unwrap();
     assert_ne!(plan.physical_symbol, collision_plan.physical_symbol);
@@ -100,7 +110,7 @@ fn indexed_scalar_adapter_executes_and_rejects_flipped_rust_result() {
     let stale_error = stale_result.err().unwrap();
     assert_eq!(stale_error.code, "SPX-B142");
     assert_eq!(stale_error.span, Some(import.span));
-    let adapter = crate::indexed_binding::render_checked_scalar_adapter(
+    let expected_adapter = crate::indexed_binding::render_checked_scalar_adapter(
         import,
         &plan,
         &prepared.imports[0].rust_method,
@@ -114,8 +124,8 @@ fn indexed_scalar_adapter_executes_and_rejects_flipped_rust_result() {
     .unwrap_err();
     assert_eq!(bad_method.code, "SPX-B145");
     assert_eq!(bad_method.span, Some(import.span));
-    assert!(adapter.contains(&plan.physical_symbol));
-    assert!(adapter.contains("let target:fn(i64,i64)->i64=fixture_math::add"));
+    assert!(expected_adapter.contains(&plan.physical_symbol));
+    assert!(expected_adapter.contains("let target:fn(i64,i64)->i64=fixture_math::add"));
 
     let root = std::fs::canonicalize(std::env::temp_dir())
         .unwrap()
@@ -123,7 +133,28 @@ fn indexed_scalar_adapter_executes_and_rejects_flipped_rust_result() {
     let _ = std::fs::remove_dir_all(&root);
     std::fs::create_dir(&root).unwrap();
     let output = root.join("bundle");
-    build_indexed_native_rust_interop_bundle(&program, spec.as_bytes(), &[plan], &output).unwrap();
+    let built = crate::build_indexed_scalar_native_rust(
+        &source,
+        Path::new("indexed-scalar.spx"),
+        crate::NativeRustSdkOptions {
+            exports: vec!["interop.add".to_owned()],
+            imports: vec!["host.add".to_owned()],
+            capabilities: vec!["host.math".to_owned()],
+        },
+        index_bytes,
+        package,
+        crate_source.as_bytes(),
+        &output,
+    )
+    .unwrap();
+    assert_eq!(built.output_directory(), output);
+    assert_eq!(built.adapter_source(), expected_adapter);
+    assert_eq!(
+        built.adapter_sha256(),
+        raw_digest(expected_adapter.as_bytes())
+    );
+    assert_eq!(built.physical_symbol(), plan.physical_symbol);
+    let adapter = built.adapter_source();
     let rustc = configured_tool("RUSTC").unwrap();
     let clang = configured_tool("CLANG").unwrap();
     let object = if cfg!(windows) {

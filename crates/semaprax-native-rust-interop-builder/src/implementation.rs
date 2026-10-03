@@ -460,6 +460,30 @@ pub(crate) fn build_indexed_native_rust_interop_bundle(
     finish_bounded_bundle(result, overflowed)
 }
 
+pub(crate) fn indexed_scalar_rust_method(
+    program: &Program,
+    spec_bytes: &[u8],
+    plan: &semaprax::native_rust_binding::ScalarBindingPlan,
+) -> Result<String, Vec<Diagnostic>> {
+    let (result, overflowed) = crate::bounded_output::with_limit(MAX_BUILDER_BYTES, || {
+        let prepared = phase_a::prepare_indexed_native_rust_interop_bounded(
+            program,
+            spec_bytes,
+            std::slice::from_ref(plan),
+        )?;
+        prepared
+            .imports
+            .iter()
+            .find(|import| import.id == plan.import_id)
+            .map(|import| import.rust_method.clone())
+            .ok_or_else(|| b107("indexed Rust API import selection missing"))
+    });
+    if overflowed {
+        return Err(vec![b109("max_builder_bytes", MAX_BUILDER_BYTES)]);
+    }
+    result.map_err(|error| vec![error])
+}
+
 pub(crate) fn build_project_native_rust_interop_bundle(
     program: &ResolvedProgram,
     project_subject_bytes: &[u8],

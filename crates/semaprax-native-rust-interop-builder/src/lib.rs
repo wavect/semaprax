@@ -124,20 +124,20 @@ pub(crate) mod kernel_zero {
 use semaprax_native_rust_interop_platform as platform;
 use std::path::Path;
 
+pub mod indexed_binding;
 mod public_sdk;
 mod trusted_native;
-pub mod indexed_binding;
 
 pub use public_sdk::{
-    build_authenticated_project_native_rust_sdk, build_native_rust_owned_data_sdk,
-    build_native_rust_sdk, build_project_native_rust_sdk, NativeRustOwnedDataSdkBundle,
-    NativeRustSdkBundle, NativeRustSdkOptions, ProjectNativeRustSdkBundle,
-    NATIVE_RUST_OWNED_DATA_SDK_SCHEMA, PROJECT_NATIVE_RUST_SDK_SCHEMA,
+    build_authenticated_project_native_rust_sdk, build_indexed_scalar_native_rust,
+    build_native_rust_owned_data_sdk, build_native_rust_sdk, build_project_native_rust_sdk,
+    IndexedScalarBuild, NativeRustOwnedDataSdkBundle, NativeRustSdkBundle, NativeRustSdkOptions,
+    ProjectNativeRustSdkBundle, NATIVE_RUST_OWNED_DATA_SDK_SCHEMA, PROJECT_NATIVE_RUST_SDK_SCHEMA,
     PROJECT_NATIVE_RUST_SUBJECT_SCHEMA,
 };
 pub use trusted_native::{
-    NativeBuildAuthority, NativeBuildPolicy, NativeDispatchError, NativeEffectContract, NativeExecutionGrant,
-    NativeTrustError, TrustedNativeProfile, TRUSTED_NATIVE_PROFILE_SCHEMA,
+    NativeBuildAuthority, NativeBuildPolicy, NativeDispatchError, NativeEffectContract,
+    NativeExecutionGrant, NativeTrustError, TrustedNativeProfile, TRUSTED_NATIVE_PROFILE_SCHEMA,
 };
 
 pub(crate) mod workspace {

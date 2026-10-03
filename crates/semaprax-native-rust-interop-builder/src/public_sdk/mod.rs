@@ -603,11 +603,13 @@ mod authentication;
 mod authority;
 mod build;
 mod descriptor;
+mod indexed;
 mod owned_data;
 mod package;
 mod project;
 
 pub use build::build_native_rust_sdk;
+pub use indexed::{build_indexed_scalar_native_rust, IndexedScalarBuild};
 pub use owned_data::build_native_rust_owned_data_sdk;
 pub use project::{build_authenticated_project_native_rust_sdk, build_project_native_rust_sdk};
 

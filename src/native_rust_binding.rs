@@ -337,6 +337,7 @@ fn result_text(kind: &ResolvedImportResultKind) -> &'static str {
         ResolvedImportResultKind::Unit => "()",
         ResolvedImportResultKind::I64 => "i64",
         ResolvedImportResultKind::Bool => "bool",
+        ResolvedImportResultKind::ResultI64I64 => "core::result::Result<i64, i64>",
     }
 }
 
@@ -357,7 +358,10 @@ fn parse_scalar_signature(value: &str) -> Option<ScalarSignature<'_>> {
         return None;
     }
     let (parameters, result) = rest.split_once(") -> ")?;
-    if !matches!(result, "()" | "i64" | "bool") {
+    if !matches!(
+        result,
+        "()" | "i64" | "bool" | "core::result::Result<i64, i64>"
+    ) {
         return None;
     }
     let (receiver, parameters) = if parameters == "&self" {
@@ -455,6 +459,7 @@ pub fn bind_selected_scalar_signature(
     import.result = match parsed.result {
         "i64" => ImportResult::I64,
         "bool" => ImportResult::Bool,
+        "core::result::Result<i64, i64>" => ImportResult::ResultI64I64,
         _ => ImportResult::Unit,
     };
     import.selected_signature = Some(signature.to_owned());

@@ -342,7 +342,10 @@ impl<'a> HirValidator<'a> {
                         ResolvedImportResultKind::Unit
                             | ResolvedImportResultKind::I64
                             | ResolvedImportResultKind::Bool
-                    );
+                            | ResolvedImportResultKind::ResultI64I64
+                    )
+                    && (import.result.kind != ResolvedImportResultKind::ResultI64I64
+                        || (import.index_selected && import.selected_index_digest.is_some()));
                 let lifecycle_shape = !import.native_rust
                     && import.parameters.len() == 1
                     && import.parameters[0].ownership == OwnershipMode::Own
@@ -3329,6 +3332,17 @@ impl<'a> HirValidator<'a> {
                                 ResolvedImportResultKind::Unit => ResolvedType::Unit,
                                 ResolvedImportResultKind::I64 => ResolvedType::I64,
                                 ResolvedImportResultKind::Bool => ResolvedType::Bool,
+                                ResolvedImportResultKind::ResultI64I64 => ResolvedType::Nominal {
+                                    declaration: self
+                                        .program
+                                        .declarations
+                                        .type_id("Result")
+                                        .cloned()
+                                        .ok_or_else(|| {
+                                            hir_error("compiler-owned Result type is absent")
+                                        })?,
+                                    arguments: vec![ResolvedType::I64, ResolvedType::I64],
+                                },
                             };
                             frames.push(Frame::NativeNext {
                                 expression,
@@ -6457,6 +6471,15 @@ impl<'a> HirValidator<'a> {
                     ResolvedImportResultKind::Unit => ResolvedType::Unit,
                     ResolvedImportResultKind::I64 => ResolvedType::I64,
                     ResolvedImportResultKind::Bool => ResolvedType::Bool,
+                    ResolvedImportResultKind::ResultI64I64 => ResolvedType::Nominal {
+                        declaration: self
+                            .program
+                            .declarations
+                            .type_id("Result")
+                            .cloned()
+                            .ok_or_else(|| hir_error("compiler-owned Result type is absent"))?,
+                        arguments: vec![ResolvedType::I64, ResolvedType::I64],
+                    },
                 };
                 (result, OwnershipMode::Value)
             }

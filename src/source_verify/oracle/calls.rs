@@ -431,14 +431,7 @@ pub(super) fn oracle_call(
             }
         }
         let native_unit = import.result == ImportResult::Unit;
-        let mut checked = CheckedValue::value(match import.result {
-            ImportResult::Unit => Type::Named {
-                name: "\0native-rust-unit".to_owned(),
-                arguments: Vec::new(),
-            },
-            ImportResult::I64 => Type::I64,
-            ImportResult::Bool => Type::Bool,
-        });
+        let mut checked = CheckedValue::value(import.result.value_type());
         checked.native_unit = native_unit;
         return Some(checked);
     }

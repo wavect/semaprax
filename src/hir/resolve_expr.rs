@@ -825,11 +825,17 @@ impl Resolver<'_> {
                         crate::ast::ImportResult::Unit => ResolvedImportResultKind::Unit,
                         crate::ast::ImportResult::I64 => ResolvedImportResultKind::I64,
                         crate::ast::ImportResult::Bool => ResolvedImportResultKind::Bool,
+                        crate::ast::ImportResult::ResultI64I64 => {
+                            ResolvedImportResultKind::ResultI64I64
+                        }
                     };
                     let ty = match result {
                         ResolvedImportResultKind::Unit => ResolvedType::Unit,
                         ResolvedImportResultKind::I64 => ResolvedType::I64,
                         ResolvedImportResultKind::Bool => ResolvedType::Bool,
+                        ResolvedImportResultKind::ResultI64I64 => {
+                            self.resolve_type(&source_import.result.value_type(), span)?
+                        }
                     };
                     results.push(ResolvedExpr {
                         id: ExpressionId::new(function, &path),

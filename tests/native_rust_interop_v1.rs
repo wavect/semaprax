@@ -5,7 +5,7 @@ use semaprax::hir::{
     self, DeclarationId, ResolvedExprKind, ResolvedImportFailure, ResolvedImportResultKind,
     ResolvedType,
 };
-use semaprax::native_rust_binding::{SelectedRustItem, prepare_scalar_binding};
+use semaprax::native_rust_binding::{prepare_scalar_binding, SelectedRustItem};
 use semaprax::{graph, parse, wasm};
 
 const SOURCE: &str = r#"module test.native_rust;
@@ -59,7 +59,8 @@ fn selected_item<'a>(alias: &'a str, path: &'a str, signature: &'a str) -> Selec
         cargo_alias: alias,
         package_name: "fixture-api",
         package_version: "1.0.0",
-        package_source_sha256: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        package_source_sha256:
+            "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         index_digest: "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
         target: "x86_64-unknown-linux-gnu",
         feature_digest: "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
@@ -127,6 +128,76 @@ fn selected_scalar_binding_uses_exact_package_and_import_identity() {
         prepare_scalar_binding(import, other_index)
             .unwrap()
             .physical_symbol
+    );
+}
+
+#[test]
+fn selected_rust_result_is_a_domain_value_with_distinct_graph_identity() {
+    let source = r#"module result.fixture;
+@id("result.host") interface Host permits {  } {
+    @id("result.divide") import rust selected fn divide from "fixture::divide"
+        effects {  } failure status "result.bridge";
+}
+@id("result.project") fn project(left: i64, right: i64) -> i64 {
+    match divide(left, right) {
+        Result::Ok { value: value } => value,
+        Result::Err { error: error } => error + 100,
+    }
+}
+@id("result.main") fn main() -> i64 { project(8, 2) }
+"#;
+    let path = Path::new("selected-result.spx");
+    let mut parsed = parse(source, path).unwrap();
+    let import = &mut parsed.interfaces[0].imports[0];
+    let signature = "fn divide(left: i64, right: i64) -> core::result::Result<i64, i64>";
+    semaprax::native_rust_binding::bind_selected_scalar_signature(
+        import,
+        signature,
+        "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "none",
+    )
+    .unwrap();
+    assert_eq!(import.result, semaprax::ast::ImportResult::ResultI64I64);
+    let errors = semaprax::verify::verify(&parsed);
+    assert!(errors.is_empty(), "{errors:?}");
+    let resolved = hir::resolve(&parsed).unwrap();
+    assert_eq!(
+        resolved.interfaces[0].imports[0].result.kind,
+        ResolvedImportResultKind::ResultI64I64
+    );
+    let binding = prepare_scalar_binding(
+        &resolved.interfaces[0].imports[0],
+        selected_item("fixture", "fixture::divide", signature),
+    )
+    .unwrap();
+    assert_eq!(binding.receiver, "none");
+    let mut drifted = selected_item("fixture", "fixture::divide", signature);
+    drifted.index_digest =
+        "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc";
+    assert_eq!(
+        prepare_scalar_binding(&resolved.interfaces[0].imports[0], drifted)
+            .unwrap_err()
+            .code,
+        "SPX-B146"
+    );
+    let json = graph::to_json(&parsed).unwrap();
+    assert!(json.contains("\"schema\":\"semaprax.graph.v55\""));
+    assert!(json.contains("\"result\":\"Result<i64, i64>\""));
+    assert!(json.contains("\"selected_index_digest\":\"sha256:bbbb"));
+    let canonical = format::canonical(&parsed);
+    let mut reparsed = parse(&canonical, path).unwrap();
+    assert!(reparsed.interfaces[0].imports[0].index_selected);
+    semaprax::native_rust_binding::bind_selected_scalar_signature(
+        &mut reparsed.interfaces[0].imports[0],
+        signature,
+        "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "none",
+    )
+    .unwrap();
+    assert_eq!(graph::to_json(&reparsed).unwrap(), json);
+    assert_eq!(
+        semaprax::check(source, path).unwrap_err()[0].code,
+        "SPX-B147"
     );
 }
 
@@ -242,17 +313,15 @@ fn indexed_rust_source_path_round_trips_and_selects_graph_v52() {
     forged.interfaces[0].imports[0].rust_path = Some("combine".to_owned());
     assert_eq!(hir::validate(&forged).unwrap_err().code, "SPX-H006");
     let import = &resolved.interfaces[0].imports[0];
-    assert!(
-        prepare_scalar_binding(
-            import,
-            selected_item(
-                "api",
-                "api::combine",
-                "fn combine(left: i64, selected: bool) -> i64"
-            )
+    assert!(prepare_scalar_binding(
+        import,
+        selected_item(
+            "api",
+            "api::combine",
+            "fn combine(left: i64, selected: bool) -> i64"
         )
-        .is_ok()
-    );
+    )
+    .is_ok());
     let unindexed_source = parse(SOURCE, Path::new("unindexed.spx")).unwrap();
     let unindexed = hir::resolve(&unindexed_source).unwrap();
     assert_eq!(

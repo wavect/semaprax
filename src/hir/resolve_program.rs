@@ -385,6 +385,9 @@ impl Resolver<'_> {
                                     crate::ast::ImportResult::Bool => {
                                         ResolvedImportResultKind::Bool
                                     }
+                                    crate::ast::ImportResult::ResultI64I64 => {
+                                        ResolvedImportResultKind::ResultI64I64
+                                    }
                                 },
                                 ownership: OwnershipMode::Value,
                                 producer: "callee",

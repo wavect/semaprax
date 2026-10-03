@@ -495,7 +495,7 @@ fn indexed_shared_method_executes_and_refuses_inaccessible_or_unsupported_receiv
         "fixture_math",
         "shared",
         true,
-        Some("fn add(&self, delta: i64) -> core::result::Result<i64, i64>"),
+        Some("fn add(&self, delta: i64) -> core::result::Result<i64, bool>"),
     );
     let domain_result_failure = indexed::prepare_indexed_scalar(
         &source,

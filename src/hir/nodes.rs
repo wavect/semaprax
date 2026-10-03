@@ -620,6 +620,7 @@ pub enum ResolvedImportResultKind {
     Unit,
     I64,
     Bool,
+    ResultI64I64,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

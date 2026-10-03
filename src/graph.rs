@@ -1293,6 +1293,11 @@ pub(crate) fn reject_while_loop_evidence_schema(schema: &str) -> Result<(), Diag
             "SPX-G410",
             "selected Rust method programs select `semaprax.graph.v54`, which is outside this evidence flow's admission",
         ))
+    } else if schema == native_import::SELECTED_RUST_RESULT_SCHEMA {
+        Err(Diagnostic::io(
+            "SPX-G410",
+            "selected Rust Result programs select `semaprax.graph.v55`, which is outside this evidence flow's admission",
+        ))
     } else if schema == "semaprax.graph.v25" {
         Err(Diagnostic::io(
             "SPX-G410",
@@ -1512,6 +1517,9 @@ pub(crate) fn graph_schema_from_parts_without_loans(
                 "native Rust import Graph v25 cannot mask nested owned-record Graph v26-v31 semantics"
             },
         ));
+    }
+    if native_import::declares_selected_rust_result(interfaces) {
+        return Ok(native_import::SELECTED_RUST_RESULT_SCHEMA);
     }
     if native_import::declares_selected_rust_method(interfaces) {
         return Ok(native_import::SELECTED_RUST_METHOD_SCHEMA);

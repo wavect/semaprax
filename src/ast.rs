@@ -805,22 +805,9 @@ pub struct ImportDeclaration {
     pub span: Span,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum ImportResult {
-    Unit,
-    I64,
-    Bool,
-}
-
-impl fmt::Display for ImportResult {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(match self {
-            Self::Unit => "unit",
-            Self::I64 => "i64",
-            Self::Bool => "bool",
-        })
-    }
-}
+#[path = "ast/import_result.rs"]
+mod import_result;
+pub use import_result::ImportResult;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ImportFailure {

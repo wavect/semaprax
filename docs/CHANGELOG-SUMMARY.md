@@ -20,8 +20,8 @@ For implementation status and required evidence, use the
 
 - RI-05 adds authenticated owner admission before atomic argument transfer.
   CleanupPlan v14 and Graph v60 retain canonical rollback on carrier refusal,
-  including two-owner and sticky cleanup-failure controls. Full RI-05 remains
-  open.
+  including two-owner and sticky cleanup-failure controls. RI-05 acceptance
+  is complete for the bounded profile; the full quality profile is deferred.
 
 - RI-05 pins frozen owned-data v1 generated-file digests to a pre-owner baseline
   and executes counted host-copy/provider-free controls, including a compiled
@@ -46,7 +46,7 @@ was not published. See [v0.7.0 status](RELEASE-0.7.0-STATUS.md) and the
   Result<String,i64> values through checked helpers and consuming imports,
   including the closed nested Result<String,Option<i64>> domain-error shape.
   Focused physical cleanup and failure controls pass; selected container
-  packaging and full RI-05 acceptance remain open.
+  packaging remains outside this renderer profile.
 - Native law declarations now select exact Project law modules through manifest
   v2. Contract and independent scalar relational propositions have stable IDs,
   canonical graph/query projections, and explicit open coverage until verified

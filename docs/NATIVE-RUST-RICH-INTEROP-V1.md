@@ -273,7 +273,7 @@ same consumer assertions. The source/HIR harness retains move and tampered
 call-commit regressions. The pure renderer alone does not establish Project
 publication; the indexed package route below adds that separate boundary.
 Standard Rust crate coverage, borrowed owners, general resource methods, hosted coverage, full quality-gate
-passage, and RI-05 completion remain open.
+passage remain outside this local bounded acceptance.
 
 The focused `owner_return_` selector additionally covers constructor → checked
 owner-returning helper → forwarding helper → consuming import, both in the pure
@@ -341,8 +341,7 @@ must fail the same consumer, stale package bytes refused before publication,
 and an indexed/actual signature mismatch refused by rustc. Source/graph tests
 retain repeatability and a stable use-after-move diagnostic. This extends the
 experimental Project and CLI seam; arbitrary owner signatures, real-world
-crate families, borrowed methods, hosted coverage, and full RI-05 completion
-remain open.
+crate families, borrowed methods and hosted coverage are separate claims.
 
 ### Bounded native String rendering (experimental)
 
@@ -382,10 +381,10 @@ A compiled missing-cleanup control must fail the same consumer assertions.
 These programs select graph v57, which adds native `string` result/parameter
 meaning to v56. Older programs retain their prior schema and bytes; evidence
 routes without this admission refuse v57. This String renderer does not publish
-a Project/CLI package. Public owner-valued exports, owned Option/Result payload
-conversion, exhaustive failure injection, allocator abort recovery, and full
-RI-05 completion remain open. Existing scalar and owned-data v1 contracts are
-unchanged.
+a Project/CLI package. Later sections add owned Option/Result payload conversion
+and focused failure injection. General public owner-valued exports and graceful
+allocator-abort recovery are outside this bounded profile. Existing scalar and
+owned-data v1 contracts are unchanged.
 
 ### Scoped generated borrowed views (private RI-06 seam)
 
@@ -664,3 +663,19 @@ injected allocation failure and a compiled accepting-invalid-input control.
 Every refusal retains the output sentinel and makes no target constructor call.
 This is native C ingress evidence; 32-bit execution, Rust sanitizer instrumentation
 and Miri execution are not claimed.
+
+### RI-05 acceptance record
+
+Issue #363 is accepted for the explicit bounded native owner profile. Pushed
+implementation/evidence includes selected opaque Project publication
+(`af647c97a`), owner-returning checked helpers (`319c97160`), flat and nested
+owned containers (`728233398`, `4d9f6b49b`), hostile/sanitizer controls
+(`cf38444a3`), canonical admission rollback (`efe569912`), public Rust context
+lifetimes and real archive compatibility (`6c54dfd94`), and native UTF-8 ingress
+(`d14060e4a`). Each section records its actual executable scope.
+
+The user authorized deferring the full quality profile as a closure blocker.
+Miri is unavailable on the configured toolchain; prior sanitizer evidence is C
+ASan/UBSan only, with Rust/std uninstrumented and leak sanitizer disabled. No
+hosted, general Rust ABI, arbitrary container instantiation, new Semaprax
+context-close syntax, or cross-target execution claim follows from this closure.

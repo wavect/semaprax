@@ -10,6 +10,11 @@ For implementation status and required evidence, use the
 
 ## v0.7.0 candidate
 
+- RI-07 adds checked Semaprax call routing through concrete Rust const/type
+  specializations, source-mapped trait diagnostics, and fallible Serde wire
+  conversion with counted rollback and explicit payload-copy metrics. The
+  bounded physical gate passed; broader RI-07 acceptance remains open.
+
 - LAW-06 adds versioned, live-replayed checked-summary certificates for pure
   scalar calls and an installed Z3 proof route that joins selected Project and
   strict managed-Workspace laws. The bounded profile preserves runtime guards;

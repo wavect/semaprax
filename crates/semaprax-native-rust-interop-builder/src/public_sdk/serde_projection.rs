@@ -3,6 +3,12 @@
 use super::*;
 use semaprax::hir::{ResolvedProgram, ResolvedType, ResolvedTypeDeclarationKind};
 
+#[path = "serde_wire.rs"]
+mod wire;
+#[cfg(test)]
+#[path = "serde_wire_tests.rs"]
+mod wire_tests;
+
 const MAX_MIRROR_FIELDS: usize = 16;
 const MAX_MIRROR_SOURCE_BYTES: usize = 65_536;
 
@@ -109,6 +115,7 @@ pub fn prepare_serde_record_projection(
         source.push_str(".clone(),");
     }
     source.push_str("};::serde_json::to_string(&mirror)}\n");
+    source.push_str(&wire::render(&record.name, &mirror_name, fields)?);
     if source.len() > MAX_MIRROR_SOURCE_BYTES {
         return Err(sdk_error("Serde projection source exceeds its bound"));
     }

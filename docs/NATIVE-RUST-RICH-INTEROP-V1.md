@@ -679,3 +679,65 @@ Miri is unavailable on the configured toolchain; prior sanitizer evidence is C
 ASan/UBSan only, with Rust/std uninstrumented and leak sanitizer disabled. No
 hosted, general Rust ABI, arbitrary container instantiation, new Semaprax
 context-close syntax, or cross-target execution claim follows from this closure.
+
+
+## RI-07 concrete demand routing and fallible Serde wire conversion
+
+The additive `prepare_demanded_native_rust` API renders an inert binding plan,
+ordinary checked scalar C, and a generated Rust adapter. Explicit requests bind
+existing monomorphic Semaprax import IDs to an exactly replayed API index,
+package/source identity, Cargo alias, target, features, and selected stable
+compiler. Concrete type/const arguments follow declaration order. Equal
+requests and carrier signatures share one wrapper; different instantiations
+retain distinct physical identities. Public nongeneric nominal type arguments
+and the listed scalar primitives are admitted. Private, sealed, unsafe,
+ambiguous, nested, or noncanonical requests fail closed.
+
+The generated function-pointer assignment instantiates the exact Rust function.
+An associated-result annotation additionally requires rustc to prove the trait
+implementation and equality to the declared Semaprax scalar result. The bounded
+mapper attaches captured primary wrapper errors to checked Semaprax call spans,
+retaining the Rust item, indexed signature/bound, and compiler code/message.
+Captured diagnostics carry no compilation or execution authority.
+
+This generation API does not execute tools or publish a Project/CLI package.
+The caller that subsequently compiles and links must hold the selected Rust
+crate bytes. The physical owning gate compiles the unchanged selected fixture
+crate and runs the generated Semaprax body through C O0/O2. It executes two
+const specializations and an associated result, repeated-request reuse, a
+compiled flipped-specialization control, an actual `Iterator` bound refusal
+mapped to its source call, valid-index private/sealed/unsafe refusals, and
+malformed-const/nested-request/package-drift controls. Existing scalar and
+public-generic descriptor/admission code is unchanged.
+
+The local Serde record renderer also emits an owned wire type with explicit
+boolean tags and UTF-8 byte fields. Its fallible field-wise conversion publishes
+`Ok(record)` only after all fields validate. Late refusal drops both converted
+locals and untouched wire fields through normal Rust ownership. Wire and mirror
+identity imply no storage layout compatibility. Reverse conversion reports
+explicitly copied owned payload bytes; this count excludes scalar stores, Serde
+parsing, other allocator activity, and JSON output.
+
+The two `demanded_` tests passed 2/2, zero failed/ignored, 197 filtered, on arm64
+macOS using Rust 1.98.0 and Apple Clang 21. In addition to the native binding
+cases, the offline pinned Serde consumer counted both buffer frees for invalid
+UTF-8 and a late invalid boolean, retained no partial record, and rejected a
+compiled accepting-invalid control. Its 1,000-iteration two-String conversion
+reported 12,000 explicit payload-copy bytes and 765,209 ns for this local run;
+this is an observation, not a performance guarantee. The owning command was:
+
+```sh
+env RUSTC=/opt/homebrew/bin/rustc CLANG=/usr/bin/clang \
+  SEMAPRAX_ARCHIVER=/usr/bin/libtool CARGO_TARGET_DIR=target/ri05-owner \
+  CARGO_BUILD_JOBS=1 CARGO_INCREMENTAL=0 \
+  CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 \
+  cargo test --offline --locked -p semaprax-native-rust-interop --lib \
+  demanded_ -- --nocapture --test-threads=1
+```
+
+Prior JSON/Vec evidence remains attributed to `56ba81928`, and the index-level
+expansion/const/associated evidence to `43d060b9c`. RI-07 remains open for its
+explicit orphan/coherence refusal and non-opt-in JSON/public-generic separation
+owning gates. No arbitrary trait implementation, inference, HRTB/GAT/unsized
+obligation, generalized recursive expansion, complete Rust solver, hosted
+support, or full-profile pass is inferred from this bounded gate.

@@ -134,11 +134,12 @@ pub use public_sdk::{
     build_authenticated_project_native_rust_sdk, build_indexed_project_native_rust_sdk,
     build_indexed_scalar_native_rust, build_indexed_scalar_native_rust_sdk,
     build_indexed_scalars_native_rust_sdk, build_native_rust_owned_data_sdk, build_native_rust_sdk,
-    build_project_native_rust_sdk, prepare_opaque_owner_native, prepare_owned_container_native,
-    prepare_owned_string_native, prepare_serde_record_projection, IndexedProjectScalarSelection,
-    IndexedScalarBuild, IndexedScalarSelection, NativeRustOwnedDataSdkBundle, NativeRustSdkBundle,
-    NativeRustSdkOptions, OpaqueOwnerNative, ProjectNativeRustSdkBundle, SerdeRecordProjection,
-    NATIVE_RUST_OWNED_DATA_SDK_SCHEMA, PROJECT_NATIVE_RUST_SDK_SCHEMA,
+    build_project_native_rust_sdk, prepare_demanded_native_rust, prepare_opaque_owner_native,
+    prepare_owned_container_native, prepare_owned_string_native, prepare_serde_record_projection,
+    ConcreteRustBindingPlan, DemandedNativeRust, IndexedProjectScalarSelection, IndexedScalarBuild,
+    IndexedScalarSelection, NativeRustOwnedDataSdkBundle, NativeRustSdkBundle,
+    NativeRustSdkOptions, OpaqueOwnerNative, ProjectNativeRustSdkBundle, RustDemandSelection,
+    SerdeRecordProjection, NATIVE_RUST_OWNED_DATA_SDK_SCHEMA, PROJECT_NATIVE_RUST_SDK_SCHEMA,
     PROJECT_NATIVE_RUST_SUBJECT_SCHEMA,
 };
 pub use trusted_native::{

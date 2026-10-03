@@ -2960,6 +2960,14 @@ These areas are deliberately outside the public compiler contract:
   admission or imported-finalizer support; owning runtime verification is pending;
 - `crates/semaprax-native-rust-interop-*`: unpublished deterministic Rust SDK
   builder and platform-specific publication authority;
+- `crates/semaprax-native-rust-interop-builder/src/public_sdk/demanded.rs`:
+  inert RI-07 concrete type/const demand plans, generated Rust specializations
+  over the checked scalar C bridge, and captured trait-error mapping to exact
+  Semaprax call spans. Index/package identity is replayed here; tool execution
+  and package publication remain with the later authority-owning caller.
+  `public_sdk/serde_projection.rs` and its `serde_wire.rs` child own nominal
+  local Serde mirrors, fallible field-wise wire admission, and explicit payload
+  copy accounting; they never equate Rust and Semaprax record layouts;
 - `crates/semaprax-native-rust-interop-builder/src/public_sdk/indexed.rs`:
   narrow public RI-04 admission for one checked scalar Rust import. It replays
   the selected RI-03 index and exact caller-supplied package source bytes

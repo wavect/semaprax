@@ -606,7 +606,11 @@ mod authentication;
 mod authority;
 mod borrowed_input;
 mod build;
+mod demanded;
 mod descriptor;
+pub use demanded::{
+    prepare_demanded_native_rust, ConcreteRustBindingPlan, DemandedNativeRust, RustDemandSelection,
+};
 mod indexed;
 mod indexed_multiple;
 mod indexed_owner;
@@ -642,9 +646,9 @@ mod indexed_tests;
 #[cfg(test)]
 mod owned_string_tests;
 #[cfg(test)]
-mod owner_return_tests;
-#[cfg(test)]
 mod owner_borrowed_result_tests;
+#[cfg(test)]
+mod owner_return_tests;
 #[cfg(test)]
 mod owner_sdk_tests;
 

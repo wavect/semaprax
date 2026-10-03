@@ -16,6 +16,13 @@ pub struct IndexedScalarSelection<'a> {
     pub package_source_bytes: &'a [u8],
 }
 
+type PreparedIndexedScalars<'a> = (
+    crate::ast::Program,
+    semaprax::hir::ResolvedProgram,
+    Vec<ScalarBindingPlan>,
+    Vec<&'a str>,
+);
+
 /// Publishes a callable SDK for 1–32 independently selected scalar imports.
 /// Sources retain the single-file, dependency-free profile; no Cargo resolution
 /// or foreign invocation occurs during admission or signature compilation.
@@ -45,15 +52,7 @@ pub(super) fn prepare_indexed_scalars<'a>(
     source_path: &Path,
     options: &NativeRustSdkOptions,
     selections: &[IndexedScalarSelection<'a>],
-) -> Result<
-    (
-        crate::ast::Program,
-        semaprax::hir::ResolvedProgram,
-        Vec<ScalarBindingPlan>,
-        Vec<&'a str>,
-    ),
-    Vec<Diagnostic>,
-> {
+) -> Result<PreparedIndexedScalars<'a>, Vec<Diagnostic>> {
     if source.len() > MAX_SOURCE_BYTES
         || selections.is_empty()
         || selections.len() > MAX_IMPORTS

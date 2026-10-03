@@ -200,8 +200,8 @@ fn runtime_child_exceeds_combined_output_limit() {
     const CHUNK_BYTES: usize = 8 * 1024;
     const CHUNKS_PER_STREAM: usize = 5;
     const STREAM_BYTES: usize = CHUNK_BYTES * CHUNKS_PER_STREAM;
-    assert!(STREAM_BYTES < OUTPUT_LIMIT_BYTES);
-    assert!(STREAM_BYTES * 2 > OUTPUT_LIMIT_BYTES);
+    const { assert!(STREAM_BYTES < OUTPUT_LIMIT_BYTES) };
+    const { assert!(STREAM_BYTES * 2 > OUTPUT_LIMIT_BYTES) };
 
     publish_child_marker(b"output-limit-started");
     let stdout_chunk = [b'o'; CHUNK_BYTES];

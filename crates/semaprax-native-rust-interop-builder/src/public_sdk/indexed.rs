@@ -156,7 +156,7 @@ pub fn build_indexed_scalar_native_rust(
     let facts = crate::implementation::build_indexed_native_rust_interop_bundle(
         &program,
         spec.as_bytes(),
-        &[plan.clone()],
+        std::slice::from_ref(&plan),
         output,
     )?;
     Ok(IndexedScalarBuild {

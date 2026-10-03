@@ -92,7 +92,7 @@ fn indexed_scalar_adapter_executes_and_rejects_flipped_rust_result() {
         phase_a::prepare_indexed_native_rust_interop_bounded(
             &program,
             spec.as_bytes(),
-            &[plan.clone()],
+            std::slice::from_ref(&plan),
         )
     });
     assert!(!overflowed);

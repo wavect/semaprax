@@ -19,6 +19,12 @@ pub struct IndexedProjectScalarSelection<'a> {
     pub selection: IndexedScalarSelection<'a>,
 }
 
+type IndexedProjectBuild = (
+    ProjectNativeRustSdkBundle,
+    Option<ForeignLawFrontier>,
+    Option<(super::GuardedForeignCallerEvidence, String)>,
+);
+
 /// Publish a native SDK from held Project files and exact selected package
 /// instances. All ordinary Project checks and final source rechecks remain in
 /// force; the Rust compiler verifies the real selected implementations.
@@ -101,14 +107,7 @@ fn build_indexed_project_native_rust_sdk_inner(
     guard: Option<GuardedForeignLawSelection<'_>>,
     selected_policy: Option<(&str, &LawSet, &StrictLawPolicy)>,
     output: &Path,
-) -> Result<
-    (
-        ProjectNativeRustSdkBundle,
-        Option<ForeignLawFrontier>,
-        Option<(super::GuardedForeignCallerEvidence, String)>,
-    ),
-    Vec<Diagnostic>,
-> {
+) -> Result<IndexedProjectBuild, Vec<Diagnostic>> {
     let bindings = prepare_project_bindings(selections)?;
     semaprax::project::with_authenticated_indexed_rust_project(
         manifest_path,

@@ -54,7 +54,7 @@ pub fn prepare_serde_record_projection(
     let mut source = String::with_capacity(4096);
     source.push_str("#[derive(Clone,Debug,PartialEq)]\npub struct ");
     source.push_str(&record.name);
-    source.push_str("{");
+    source.push('{');
     for field in fields {
         source.push_str("pub ");
         source.push_str(&field.name);
@@ -64,7 +64,7 @@ pub fn prepare_serde_record_projection(
     }
     source.push_str("}\n#[derive(::serde::Serialize,::serde::Deserialize)]\npub struct ");
     source.push_str(&mirror_name);
-    source.push_str("{");
+    source.push('{');
     for field in fields {
         source.push_str("pub ");
         source.push_str(&field.name);
@@ -111,7 +111,7 @@ pub fn prepare_serde_record_projection(
     source.push_str(&record.name);
     source.push_str(")->Result<String,::serde_json::Error>{let mirror=");
     source.push_str(&mirror_name);
-    source.push_str("{");
+    source.push('{');
     for field in fields {
         source.push_str(&field.name);
         source.push_str(":value.");

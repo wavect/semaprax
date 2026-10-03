@@ -271,6 +271,17 @@ fn proved_add_zero_identity_yields_only_a_revalidated_candidate() {
         wasmparser::Validator::new().validate_all(&bytes).unwrap();
         std::fs::write(project.root.join(format!("{name}.wasm")), bytes).unwrap();
     }
+    // Seed a wrong-value transformation to prove the target comparison catches
+    // a changed result rather than merely exercising two successful modules.
+    std::fs::write(&app, changed.replace("let n = 40", "let n = 41")).unwrap();
+    let mutant_revision = project.revision();
+    let mutant_bytes =
+        semaprax::wasm::emit_resolved_module(mutant_revision.entry_program()).unwrap();
+    wasmparser::Validator::new()
+        .validate_all(&mutant_bytes)
+        .unwrap();
+    std::fs::write(project.root.join("mutant.wasm"), mutant_bytes).unwrap();
+    std::fs::write(&app, &changed).unwrap();
     let script = r#"
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -282,9 +293,11 @@ const env = { spx_add: (a,b) => checked(a+b), spx_sub: fail, spx_mul: fail,
 async function loaded(file) {
   return (await WebAssembly.instantiate(readFileSync(file), {env})).instance.exports;
 }
-const [before, rewritten, guarded] = await Promise.all(process.argv.slice(1).map(loaded));
+const [before, rewritten, guarded, mutant] = await Promise.all(process.argv.slice(1).map(loaded));
 assert.equal(before.semaprax_main(), 40n);
 assert.equal(rewritten.semaprax_main(), 40n);
+assert.equal(mutant.semaprax_main(), 41n);
+assert.notEqual(mutant.semaprax_main(), before.semaprax_main());
 function failure(exports) {
   try { exports.semaprax_guarded(); }
   catch (error) { return [error.constructor.name, error.message]; }
@@ -311,6 +324,7 @@ console.log(JSON.stringify({target: 'emitted_core_wasm_node', calls_per_sample: 
         .arg(project.root.join("before.wasm"))
         .arg(project.root.join("rewritten.wasm"))
         .arg(project.root.join("guarded.wasm"))
+        .arg(project.root.join("mutant.wasm"))
         .output()
         .expect("Node is required for the LAW-17 emitted-Wasm comparison");
     assert!(

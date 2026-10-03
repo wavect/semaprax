@@ -33,8 +33,9 @@ not claim a GPU speedup or alter the CPU/Metal sequential fold.
 
 The installed-Z3 gate emits and validates actual Core Wasm before and after
 the candidate rewrite. Node executes both emitted modules with checked `i64`
-imports: the normal entry returns the same value, and an independent guarded
-overflow entry fails with the same error before and after its rewrite. This
+imports: the normal entry returns the same value, an independent guarded
+overflow entry fails with the same error before and after its rewrite, and a
+seeded wrong-value module produces a distinct result. This
 covers the admitted target behavior but does not establish a general lowering
 theorem. The same gate times five samples of 100,000 calls on each emitted
 module. One local arm64 run with Node v24.3.0 measured median 25.91 ns/call

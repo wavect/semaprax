@@ -1,0 +1,272 @@
+use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
+
+use semaprax::assurance_manifest::model_checking::source_protocol::{
+    check_authenticated_snapshot, check_project_source_protocol, replay, ProtocolSafetyOutcome,
+};
+use semaprax::assurance_manifest::model_checking::Bounds;
+use semaprax::project::with_authenticated_project;
+
+static SERIAL: AtomicU64 = AtomicU64::new(0);
+const MANIFEST: &str = "schema = \"semaprax.project.v1\"\nname = \"payment-machine\"\nentry = \"payment.machine\"\nsources = [\"src/helper.spx\", \"src/machine.spx\"]\nweb_exports = [\"payment.status\"]\ntests = [\"payment.tests\"]\n";
+const BOUNDS: Bounds = Bounds {
+    max_states: 64,
+    max_depth: 32,
+    max_transitions: 128,
+};
+
+struct Fixture(PathBuf);
+impl Drop for Fixture {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_dir_all(&self.0);
+    }
+}
+impl Fixture {
+    fn new(source: &str) -> Self {
+        let root = std::env::temp_dir().join(format!(
+            "semaprax-source-protocol-law-{}-{}",
+            std::process::id(),
+            SERIAL.fetch_add(1, Ordering::Relaxed)
+        ));
+        std::fs::create_dir_all(root.join("src")).unwrap();
+        std::fs::write(root.join("semaprax.toml"), MANIFEST).unwrap();
+        let helper = semaprax::parse(
+            "module payment.tests;\n@id(\"payment.tests.main\") fn main() -> i64 { 0 }\n",
+            Path::new("src/helper.spx"),
+        )
+        .unwrap();
+        std::fs::write(
+            root.join("src/helper.spx"),
+            semaprax::format::canonical(&helper),
+        )
+        .unwrap();
+        let program = semaprax::parse(source, Path::new("src/machine.spx")).unwrap();
+        std::fs::write(
+            root.join("src/machine.spx"),
+            semaprax::format::canonical(&program),
+        )
+        .unwrap();
+        Self(root.canonicalize().unwrap())
+    }
+    fn manifest(&self) -> PathBuf {
+        self.0.join("semaprax.toml")
+    }
+}
+
+fn source(repeated_charge: bool) -> String {
+    let mut branches = vec![
+        ("state == 0 && event == 0", 3),
+        ("state == 1 && event == 1", 4),
+        ("state == 1 && event == 2", 6),
+        ("state == 3 && event == 3", 0),
+        ("state == 3 && event == 4", 8),
+    ];
+    if repeated_charge {
+        branches.push(("state == 2 && event == 5", 3));
+    }
+    branches.push((
+        if repeated_charge {
+            "state == 0 && event == 6"
+        } else {
+            "state == 0 && event == 5"
+        },
+        8,
+    ));
+    branches.push((
+        if repeated_charge {
+            "state == 1 && event == 7"
+        } else {
+            "state == 1 && event == 6"
+        },
+        8,
+    ));
+    if repeated_charge {
+        branches.push(("state == 2 && event == 8", 8));
+    }
+    let mut dispatch = "-1".to_owned();
+    for (condition, result) in branches.into_iter().rev() {
+        dispatch = format!("if {condition} {{ {result} }} else {{ {dispatch} }}");
+    }
+    let succeeded_terminal = if repeated_charge {
+        ""
+    } else {
+        "terminal Succeeded cleanup { release_receipt }"
+    };
+    let extra_transition = if repeated_charge {
+        "on Succeeded charge: call ChargeCommand via \"payment.dispatch\" -> Pending;"
+    } else {
+        ""
+    };
+    let succeeded_escape = if repeated_charge {
+        "on Succeeded escaped: fail Unit via \"payment.dispatch\" -> Failed;"
+    } else {
+        ""
+    };
+    format!(
+        r#"module payment.machine;
+@id("payment.dispatch") fn dispatch(state: i64, event: i64) -> i64 {{
+    {dispatch}
+}}
+@id("payment.main") fn main() -> i64 {{ 0 }}
+@id("payment.status") fn status() -> i64 {{ 0 }}
+@id("payment.protocol") session protocol "payment-command-v1" {{
+    states {{ Idle, Pending, Succeeded, Retry, Failed }}
+    initial Idle;
+    {succeeded_terminal}
+    terminal Failed cleanup {{ release_receipt }}
+    on Idle charge: call ChargeCommand via "payment.dispatch" -> Pending;
+    on Pending success: receive ChargeAccepted via "payment.dispatch" -> Succeeded;
+    on Pending failure: receive ChargeRejected via "payment.dispatch" -> Retry;
+    on Retry retry: call RetryDecision via "payment.dispatch" -> Idle;
+    on Retry abort: fail Unit via "payment.dispatch" -> Failed;
+    {extra_transition}
+    on Idle cancel: cancel Unit via "payment.dispatch" -> Failed;
+    on Pending timeout: timeout Unit via "payment.dispatch" -> Failed;
+    {succeeded_escape}
+}}
+"#
+    )
+}
+
+fn checked(
+    fixture: &Fixture,
+    bounds: Bounds,
+) -> semaprax::assurance_manifest::model_checking::source_protocol::SourceProtocolReport {
+    with_authenticated_project(&fixture.manifest(), |snapshot| {
+        let report = check_project_source_protocol(
+            &snapshot.retain_revision(),
+            "payment.protocol",
+            "payment.dispatch",
+            "Succeeded",
+            "charge",
+            bounds,
+        )
+        .map_err(|error| vec![error])?;
+        Ok(report)
+    })
+    .unwrap()
+}
+
+#[test]
+fn legal_retry_model_is_source_bound_and_finitely_checked() {
+    let fixture = Fixture::new(&source(false));
+    let report = checked(&fixture, BOUNDS);
+    assert_eq!(report.outcome, ProtocolSafetyOutcome::ModelChecked);
+    assert!(report.model_checked());
+    assert_eq!(report.coverage.len(), 7);
+    assert_eq!(report.state_domain.len(), 5);
+    assert_eq!(report.initial_state, "Idle");
+    assert_eq!(report.fairness, "none");
+    assert!(report.explored_states >= 5);
+    let view: serde_json::Value = serde_json::from_str(&report.to_json()).unwrap();
+    assert_eq!(view["status"], "model_checked");
+    assert_eq!(
+        view["claim"],
+        "finite_pure_dispatcher_safety_only_no_external_exactly_once"
+    );
+    let diagnostic = with_authenticated_project(&fixture.manifest(), |snapshot| {
+        check_authenticated_snapshot(
+            snapshot,
+            "payment.protocol",
+            "payment.dispatch",
+            "Succeeded",
+            "charge",
+            BOUNDS,
+        )
+    })
+    .unwrap();
+    assert_eq!(diagnostic, report.to_json());
+    with_authenticated_project(&fixture.manifest(), |snapshot| {
+        replay(&report, &snapshot.retain_revision()).map_err(|error| vec![error])
+    })
+    .unwrap();
+
+    let tiny = checked(
+        &fixture,
+        Bounds {
+            max_states: 1,
+            max_depth: 1,
+            max_transitions: 1,
+        },
+    );
+    assert_eq!(tiny.outcome, ProtocolSafetyOutcome::BoundsExhausted);
+    assert!(!tiny.model_checked());
+    let mut stale = report.clone();
+    stale.bounds.max_depth = 1;
+    let refusal = with_authenticated_project(&fixture.manifest(), |snapshot| {
+        replay(&stale, &snapshot.retain_revision()).map_err(|error| vec![error])
+    })
+    .unwrap_err();
+    assert_eq!(refusal[0].code, "SPX-LP407");
+}
+
+#[test]
+fn repeated_charge_has_minimal_source_replayed_counterexample() {
+    let fixture = Fixture::new(&source(true));
+    let report = checked(&fixture, BOUNDS);
+    let ProtocolSafetyOutcome::ConcreteCounterexample { trace } = &report.outcome else {
+        panic!("expected concrete counterexample: {:?}", report.outcome)
+    };
+    assert_eq!(trace.len(), 3);
+    assert_eq!(
+        trace
+            .iter()
+            .map(|row| row.label.as_str())
+            .collect::<Vec<_>>(),
+        vec!["charge", "success", "charge"]
+    );
+    assert_eq!(trace.last().unwrap().from, "Succeeded");
+    assert!(trace.last().unwrap().charge_command);
+    assert_eq!(trace.last().unwrap().via, "payment.dispatch");
+    let view: serde_json::Value = serde_json::from_str(&report.to_json()).unwrap();
+    assert_eq!(view["trace_replay"], "concrete_source_replay");
+    assert_eq!(view["status"], "violated");
+    assert!(!report.model_checked());
+}
+
+#[test]
+fn source_mutation_and_missing_protocol_coverage_refuse() {
+    let legal = Fixture::new(&source(false));
+    let verified = checked(&legal, BOUNDS);
+    let changed_source =
+        Fixture::new(&source(false).replace("event == 1 { 4 }", "event == 1 { 6 }"));
+    let refusal = with_authenticated_project(&changed_source.manifest(), |snapshot| {
+        replay(&verified, &snapshot.retain_revision()).map_err(|error| vec![error])
+    })
+    .unwrap_err();
+    assert_eq!(refusal[0].code, "SPX-LP406");
+    let out_of_domain =
+        Fixture::new(&source(false).replace("event == 1 { 4 }", "event == 1 { 100 }"));
+    let refusal = with_authenticated_project(&out_of_domain.manifest(), |snapshot| {
+        check_project_source_protocol(
+            &snapshot.retain_revision(),
+            "payment.protocol",
+            "payment.dispatch",
+            "Succeeded",
+            "charge",
+            BOUNDS,
+        )
+        .map(|_| ())
+        .map_err(|error| vec![error])
+    })
+    .unwrap_err();
+    assert_eq!(refusal[0].code, "SPX-LP405");
+    let missing = Fixture::new(&source(false).replace(
+        "on Retry retry: call RetryDecision via \"payment.dispatch\" -> Idle;",
+        "",
+    ));
+    let refusal = with_authenticated_project(&missing.manifest(), |snapshot| {
+        check_project_source_protocol(
+            &snapshot.retain_revision(),
+            "payment.protocol",
+            "payment.dispatch",
+            "Succeeded",
+            "charge",
+            BOUNDS,
+        )
+        .map(|_| ())
+        .map_err(|error| vec![error])
+    })
+    .unwrap_err();
+    assert_eq!(refusal[0].code, "SPX-LP406");
+}

@@ -22,6 +22,7 @@ pub mod authorization_model;
 pub mod digest;
 pub mod engine;
 pub mod handle_model;
+pub mod source_protocol;
 
 #[cfg(test)]
 mod tests;

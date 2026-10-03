@@ -270,6 +270,17 @@ pub(crate) fn run(options: Options) -> Result<(), Vec<Diagnostic>> {
             &[ExplorerSide::Current]
         };
         for &side in sides {
+            // An offline report uses one immutable image/index per selected
+            // candidate side. Keep it through all summaries and pages instead
+            // of deriving it again for every page request.
+            let candidate_view = if let Some(candidate) = &candidate {
+                let started = Instant::now();
+                let view = candidate.explorer_view(candidate.candidate_digest(), side)?;
+                timing.projection(started.elapsed());
+                Some(view)
+            } else {
+                None
+            };
             for (mode, target, depth) in [
                 (ExplorerMode::Overview, None, 1),
                 (
@@ -293,14 +304,8 @@ pub(crate) fn run(options: Options) -> Result<(), Vec<Diagnostic>> {
                     256 * 1024,
                 )?;
                 let started = Instant::now();
-                let summary_text = if let Some(candidate) = &candidate {
-                    candidate.explorer_summary(
-                        candidate.candidate_digest(),
-                        side,
-                        mode,
-                        target,
-                        query,
-                    )?
+                let summary_text = if let Some(candidate_view) = &candidate_view {
+                    candidate_view.summary(mode, target, query)?
                 } else {
                     let image = image.as_ref().unwrap();
                     image.explorer_summary(image.image_digest(), mode, target, query)?
@@ -327,10 +332,8 @@ pub(crate) fn run(options: Options) -> Result<(), Vec<Diagnostic>> {
                     let mut cursor: Option<String> = None;
                     loop {
                         let started = Instant::now();
-                        let page_text = if let Some(candidate) = &candidate {
-                            candidate.explorer_page(
-                                candidate.candidate_digest(),
-                                side,
+                        let page_text = if let Some(candidate_view) = &candidate_view {
+                            candidate_view.page(
                                 mode,
                                 target,
                                 query,

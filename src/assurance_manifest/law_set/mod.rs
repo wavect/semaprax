@@ -5,6 +5,7 @@ pub mod native_proof;
 pub mod protected;
 pub mod strict;
 mod wire;
+pub mod workflow;
 
 use crate::diagnostic::Diagnostic;
 use crate::project::ProjectRevision;

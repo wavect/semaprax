@@ -164,6 +164,60 @@ fn law_clause_and_module_omissions_cannot_shrink_expected_inventory() {
     );
 }
 #[test]
+fn workflow_views_replay_full_inventory_and_keep_failure_verdict_across_pages() {
+    let fixture = Fixture::new("laws-workflow-view");
+    let baseline = inventory(&fixture, vec![module()]);
+    let policy = LawPolicy::strict(baseline).unwrap();
+    let candidate = inventory(&fixture, vec![]);
+    with_authenticated_project(&fixture.manifest(), |snapshot| {
+        let revision = snapshot.retain_revision();
+        let document = laws::derive_report(&revision, &candidate, &policy)?;
+        let first = wire(&laws::workflow::summary(
+            &document, &revision, &candidate, &policy, 0, 1, 8192,
+        )?);
+        assert_eq!(first["accepted"], false);
+        assert_eq!(first["counts"]["required"], 1);
+        assert_eq!(first["counts"]["missing"], 1);
+        assert_eq!(first["laws"][0]["law_id"], "calculator.divide.nonzero");
+        assert_eq!(first["laws"][0]["status"], "missing");
+        let past_end = wire(&laws::workflow::summary(
+            &document, &revision, &candidate, &policy, 1, 1, 8192,
+        )?);
+        assert_eq!(past_end["accepted"], false);
+        assert_eq!(past_end["counts"], first["counts"]);
+        assert_eq!(past_end["returned"], 0);
+        let detail = wire(&laws::workflow::detail(
+            &document,
+            &revision,
+            &candidate,
+            &policy,
+            "calculator.divide.nonzero",
+            8192,
+        )?);
+        assert_eq!(detail["law"]["status"], "missing");
+        assert_eq!(detail["repair_target"], "implementation_or_proof");
+        assert_eq!(detail["specification_change_path"], "protected_law_review");
+        assert_code(
+            laws::workflow::summary(&document, &revision, &candidate, &policy, 0, 0, 8192),
+            "SPX-LW130",
+        );
+        let forged = document.replace("law_definition_missing", "required_evidence_available");
+        assert_code(
+            laws::workflow::detail(
+                &forged,
+                &revision,
+                &candidate,
+                &policy,
+                "calculator.divide.nonzero",
+                8192,
+            ),
+            "SPX-LW101",
+        );
+        Ok(())
+    })
+    .unwrap();
+}
+#[test]
 fn semantic_changes_and_alias_retargeting_are_refused_by_protected_baseline() {
     let fixture = Fixture::new("laws-retarget");
     let baseline = inventory(&fixture, vec![module()]);

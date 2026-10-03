@@ -98,6 +98,24 @@ independently derived Project assurance digest. Dependencies are settled in
 bounded topological order. An empty candidate “all passed” document cannot
 replace any of these independently derived facts.
 
+### Bounded workflow projection
+
+`law_set::workflow::summary` and `detail` rederive and replay the complete
+selected report before projecting it. A summary page contains at most 64 stable
+law IDs with their status, reason, and obligation ID. Every page repeats the
+complete acceptance verdict and required/covered/missing/unsupported/open
+counts; an empty final page cannot hide a failure. `detail` selects one exact
+law row with provenance and the existing evidence record. Both use a caller
+selected 256..65536 byte output bound and refuse rather than truncate.
+
+The detail's repair target is implementation or proof. A proposed change to
+the protected law, domain, or inventory still goes through
+`ProtectedLawBaseline::review` and its separate specification approval route.
+These views are read-only and do not grant source or publication authority.
+The first profile replays reports derived without attached installed proof
+tokens; proof-bearing reports need their own exact installed-tool replay before
+they can use this projection.
+
 ## Canonical wire and capacities
 
 The envelope schema is `semaprax.law-set.v1`, with exactly `payload`,

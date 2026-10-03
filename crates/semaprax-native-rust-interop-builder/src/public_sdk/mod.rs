@@ -626,7 +626,13 @@ mod indexed;
 mod indexed_multiple;
 mod indexed_owner;
 mod indexed_project;
-pub use indexed_project::{build_indexed_project_native_rust_sdk, IndexedProjectScalarSelection};
+mod regex_project_package;
+mod regex_project_native;
+pub use indexed_project::{
+    build_indexed_project_native_rust_sdk, prepare_indexed_regex_project_package,
+    IndexedProjectRegexRegistrySelection, IndexedProjectScalarSelection,
+};
+pub use regex_project_package::PreparedRegexProjectPackage;
 mod owned_data;
 mod owner_borrowed_result;
 mod owner_sdk;

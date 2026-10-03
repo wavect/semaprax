@@ -231,7 +231,7 @@ fn derive(
                                         arguments: arguments.clone(),
                                     };
                                     if crate::cleanup::variant_leaf_lifecycle(
-                                        &container, &case.id, &field.id, &ty,
+                                        program, &container, &case.id, &field.id, &ty,
                                     )
                                     .is_none()
                                     {

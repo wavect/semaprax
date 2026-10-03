@@ -180,16 +180,21 @@ pub fn bind_selected_regex_result_signature(
             import.span,
         ));
     }
-    let expected_result = format!(
-        "core::result::Result<{type_path}, {}::Error>",
+    let index_type_path = if type_path == "regex_alias::Regex" {
+        "regex::Regex"
+    } else {
         type_path
+    };
+    let expected_result = format!(
+        "core::result::Result<{index_type_path}, {}::Error>",
+        index_type_path
             .rsplit_once("::")
             .map(|(prefix, _)| prefix)
             .unwrap_or("")
     );
     let valid = match (method, receiver) {
         ("new", "none") => signature == format!("fn new(re: &str) -> {expected_result}"),
-        ("is_match", "shared") => signature == "fn is_match(&self, text: &str) -> bool",
+        ("is_match", "shared") => signature == "fn is_match(&self, haystack: &str) -> bool",
         _ => false,
     };
     if !valid {
@@ -236,4 +241,30 @@ pub fn bind_selected_regex_result_signature(
     import.selected_index_digest = Some(index_digest.into());
     import.selected_receiver = (receiver == "shared").then(|| "shared".into());
     Ok(true)
+}
+
+/// Closed source-side borrowed Result profile, after selected declarations have
+/// been bound and independently checked. This grants no backend or tool authority.
+pub(crate) fn admitted_regex_result(program: &crate::ast::Program, ty: &Type) -> bool {
+    let imports = || program.interfaces.iter().flat_map(|i| &i.imports);
+    let Some(constructor) = imports().find(|i| {
+        i.native_rust
+            && i.index_selected
+            && i.rust_path.as_deref() == Some("regex_alias::Regex::new")
+            && i.selected_index_digest.as_deref().is_some_and(valid_digest)
+            && i.selected_signature.as_deref()
+                == Some("fn new(re: &str) -> core::result::Result<regex::Regex, regex::Error>")
+            && matches!(&i.result, ImportResult::OwnedResultResourceI64 { name } if name=="Regex")
+            && i.result.value_type() == *ty
+    }) else {
+        return false;
+    };
+    imports().any(|i| {
+        i.native_rust
+            && i.index_selected
+            && i.rust_path.as_deref() == Some("regex_alias::Regex::is_match")
+            && i.selected_index_digest == constructor.selected_index_digest
+            && i.selected_signature.as_deref() == Some("fn is_match(&self, haystack: &str) -> bool")
+            && i.selected_receiver.as_deref() == Some("shared")
+    })
 }

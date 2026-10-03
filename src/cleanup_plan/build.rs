@@ -3388,6 +3388,11 @@ impl<'a> PlanBuilder<'a> {
                         )?);
                     } else {
                         let argument = &args[index];
+                        let lend = super::native_rust::lends_string_place(
+                            expression,
+                            argument,
+                            params[index].ownership,
+                        );
                         frames.push(Frame::CallAfterArg {
                             expression,
                             callee,
@@ -3396,11 +3401,20 @@ impl<'a> PlanBuilder<'a> {
                             index,
                             commits,
                         });
-                        frames.push(Frame::Enter {
-                            expression: argument,
-                            block: flow.block,
-                            state: flow.state,
-                        });
+                        if lend {
+                            self.expression_slot(argument, active_region)?;
+                            results.push(EvalResult {
+                                block: flow.block,
+                                state: flow.state,
+                                owned_source: None,
+                            });
+                        } else {
+                            frames.push(Frame::Enter {
+                                expression: argument,
+                                block: flow.block,
+                                state: flow.state,
+                            });
+                        }
                     }
                 }
                 Frame::CallAfterArg {

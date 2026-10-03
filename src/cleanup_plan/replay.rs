@@ -3515,6 +3515,11 @@ fn expression_skeleton(
                         work.charge(1, "owned native call skeleton root state")?;
                         let states = vec![(empty_expr_path(), Vec::new())];
                         if let Some(argument) = call.args.first() {
+                            let lend = super::native_rust::lends_string_place(
+                                expression,
+                                argument,
+                                params[0].ownership,
+                            );
                             push_frame!(
                                 frames,
                                 Frame::CallArgument {
@@ -3525,7 +3530,13 @@ fn expression_skeleton(
                                     states,
                                 }
                             );
-                            push_frame!(frames, Frame::Eval(argument));
+                            if lend {
+                                produced = Some(
+                                    work.singleton_path(empty_expr_path(), "native String loan")?,
+                                );
+                            } else {
+                                push_frame!(frames, Frame::Eval(argument));
+                            }
                         } else {
                             produced = Some(finish_call_states(
                                 program, function, expression, states, work,
@@ -3835,6 +3846,11 @@ fn expression_skeleton(
                 )?;
                 let next = index + 1;
                 if call_states_have_active(&states) && next < args.len() {
+                    let lend = super::native_rust::lends_string_place(
+                        expression,
+                        &args[next],
+                        params[next].ownership,
+                    );
                     push_frame!(
                         frames,
                         Frame::CallArgument {
@@ -3845,7 +3861,12 @@ fn expression_skeleton(
                             states,
                         }
                     );
-                    push_frame!(frames, Frame::Eval(&args[next]));
+                    if lend {
+                        produced =
+                            Some(work.singleton_path(empty_expr_path(), "native String loan")?);
+                    } else {
+                        push_frame!(frames, Frame::Eval(&args[next]));
+                    }
                 } else {
                     produced = Some(finish_call_states(
                         program, function, expression, states, work,

@@ -107,6 +107,7 @@ impl HirValidator<'_> {
                                                 .value_type(&self.program.declarations)
                                                 .is_ok_and(|actual| &actual == ty)
                                     }))
+                                && !crate::hir::workspace_link::native_owner::admitted_ri06_regex_result(self.program, ty)
                                 && !admitted_owned_record
                                 && !admitted_nested_owned_record
                                 && !admitted_owned_variant

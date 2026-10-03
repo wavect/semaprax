@@ -3,6 +3,7 @@
 //! Validates HIR meaning; source resolution remains in
 //! the parent module.
 
+use super::workspace_link::native_owner::admitted_ri06_regex_result as regex_result;
 use super::*;
 use crate::loan_plan::{LoanCause, LoanId, LoanPointPhase};
 
@@ -272,7 +273,20 @@ impl<'a> HirValidator<'a> {
             for import in &interface.imports {
                 if import.selected_receiver.as_deref().is_some_and(|receiver| {
                     !import.index_selected || match receiver {
-                        "shared" => !matches!(import.parameters.first(), Some(p) if p.ty == ResolvedType::I64 && p.ownership == OwnershipMode::Value),
+                        "shared" => {
+                            let scalar = matches!(import.parameters.first(), Some(p)
+                                if p.ty == ResolvedType::I64 && p.ownership == OwnershipMode::Value);
+                            let regex_loan = import.rust_path.as_deref()
+                                == Some("regex_alias::Regex::is_match")
+                                && matches!(import.parameters.as_slice(), [receiver, text]
+                                    if receiver.ownership == OwnershipMode::Borrow
+                                        && matches!(receiver.ty, ResolvedType::Nominal { ref declaration, ref arguments }
+                                            if arguments.is_empty() && self.program.declarations.declaration(declaration)
+                                                .is_some_and(|item| item.kind == DeclarationKind::Resource && item.name == "Regex"))
+                                        && text.ownership == OwnershipMode::Borrow
+                                        && text.ty == ResolvedType::String);
+                            !scalar && !regex_loan
+                        },
                         "owned" => !matches!(import.parameters.first(), Some(p) if matches!(p.ty, ResolvedType::Nominal { .. }) && p.ownership == OwnershipMode::Own),
                         _ => true,
                     }
@@ -333,12 +347,24 @@ impl<'a> HirValidator<'a> {
                     }
                 }
                 let ri06_regex_borrow_shape = import.index_selected
-                    && match (&import.result.kind, import.parameters.as_slice()) {
-                        (ResolvedImportResultKind::OwnedResultResourceI64 { .. }, [parameter]) => {
+                    && match (
+                        import.rust_path.as_deref(),
+                        &import.result.kind,
+                        import.parameters.as_slice(),
+                    ) {
+                        (
+                            Some("regex_alias::Regex::new"),
+                            ResolvedImportResultKind::OwnedResultResourceI64 { .. },
+                            [parameter],
+                        ) => {
                             parameter.ownership == OwnershipMode::Borrow
                                 && parameter.ty == ResolvedType::String
                         }
-                        (ResolvedImportResultKind::Bool, [receiver, text]) => {
+                        (
+                            Some("regex_alias::Regex::is_match"),
+                            ResolvedImportResultKind::Bool,
+                            [receiver, text],
+                        ) => {
                             receiver.ownership == OwnershipMode::Borrow
                                 && matches!(receiver.ty, ResolvedType::Nominal { ref declaration, ref arguments }
                                     if arguments.is_empty() && self.program.declarations.declaration(declaration)
@@ -3835,7 +3861,11 @@ impl<'a> HirValidator<'a> {
                     let argument = &args[index];
                     let parameter = &params[index];
                     self.require_type(&argument.ty, &parameter.ty, "native Rust import argument")?;
-                    if argument.ownership != parameter.ownership {
+                    if argument.ownership != parameter.ownership
+                        && !(parameter.ownership == OwnershipMode::Borrow
+                            && argument.ownership == OwnershipMode::Own
+                            && matches!(&argument.kind, ResolvedExprKind::Place(place) if place.projections.is_empty()))
+                    {
                         return Err(hir_error(
                             "native Rust import argument ownership disagrees with its declaration",
                         ));
@@ -5131,7 +5161,8 @@ impl<'a> HirValidator<'a> {
                                 ) || resolved_type_is_flat_owned_string_variant(
                                     self.program,
                                     &scrutinee.ty,
-                                )) && facts.needs_drop
+                                ) || regex_result(self.program, &scrutinee.ty))
+                                    && facts.needs_drop
                                     && !facts.copy
                                     && matches!(
                                         scrutinee.ownership,
@@ -6483,7 +6514,11 @@ impl<'a> HirValidator<'a> {
                         allowed_effects,
                     )?;
                     self.require_type(&argument.ty, &parameter.ty, "native Rust import argument")?;
-                    if argument.ownership != parameter.ownership {
+                    if argument.ownership != parameter.ownership
+                        && !(parameter.ownership == OwnershipMode::Borrow
+                            && argument.ownership == OwnershipMode::Own
+                            && matches!(&argument.kind, ResolvedExprKind::Place(place) if place.projections.is_empty()))
+                    {
                         return Err(hir_error(
                             "native Rust import argument ownership disagrees with its declaration",
                         ));
@@ -7432,7 +7467,8 @@ impl<'a> HirValidator<'a> {
                         ) || resolved_type_is_flat_owned_string_variant(
                             self.program,
                             &scrutinee.ty,
-                        )) && facts.needs_drop
+                        ) || regex_result(self.program, &scrutinee.ty))
+                            && facts.needs_drop
                             && !facts.copy
                             && matches!(
                                 scrutinee.ownership,

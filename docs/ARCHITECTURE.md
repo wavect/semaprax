@@ -2968,6 +2968,15 @@ These areas are deliberately outside the public compiler contract:
   `public_sdk/serde_projection.rs` and its `serde_wire.rs` child own nominal
   local Serde mirrors, fallible field-wise wire admission, and explicit payload
   copy accounting; they never equate Rust and Semaprax record layouts;
+- `crates/semaprax-native-rust-interop-builder/src/public_sdk/regex_project_package.rs`
+  authenticates the exact indexed Regex Project, registry checksum, compiler,
+  target and pinned Cargo lock before returning inert package bytes.
+  `regex_project_native.rs` lowers its checked scalar export body through the
+  canonical cleanup CFG to C, with ordinary String storage and Result-owned
+  Regex finalizers. Native String loans suppress value cloning in both planner
+  and independent replay. The existing Rust Result-owner carrier creates the
+  actual Regex and scoped references; caller-held tools execute the artifacts.
+  This route grants no publication authority and does not implement Url views;
 - `crates/semaprax-native-rust-interop-builder/src/public_sdk/callback.rs` and
   `registered_callback.rs`: inert RI-08 checked scalar-snapshot closure and
   explicit next-state projections, plus authored registry-export admission.

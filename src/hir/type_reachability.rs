@@ -86,6 +86,13 @@ fn reachable_types(
                 if workspace_link::native_owner::admitted_resource(
                     declaration,
                     owner_interfaces,
+                ) || workspace_link::native_owner::admitted_ri06_regex_resource(
+                    declaration,
+                    if owner_interfaces.is_empty() {
+                        interfaces
+                    } else {
+                        owner_interfaces
+                    },
                 ) =>
             {
                 Vec::new()

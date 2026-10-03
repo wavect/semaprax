@@ -49,7 +49,14 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         self.diagnostics,
                     );
                     if !actual.native_unit
-                        && (actual.ty != parameter.ty || actual.mode != parameter.mode)
+                        && (actual.ty != parameter.ty
+                            || (actual.mode != parameter.mode
+                                && !(parameter.mode == ParamMode::Borrow
+                                    && actual.mode == ParamMode::Own
+                                    && matches!(
+                                        &argument.kind,
+                                        crate::ast::ExprKind::Var(_)
+                                    ))))
                     {
                         self.diagnostics.push(error(
                             self.program,

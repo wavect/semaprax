@@ -1,4 +1,4 @@
-//! Ownership-bearing Rust imports use the ordinary atomic call protocol.
+//! Ownership-bearing and scoped borrowed Rust imports use the ordinary call protocol.
 //! Scalar imports retain their existing cleanup projection.
 use crate::diagnostic::Diagnostic;
 use crate::hir::{
@@ -6,10 +6,13 @@ use crate::hir::{
     ResolvedParam, ResolvedProgram, ResolvedType, ValueId,
 };
 
+// A borrowed native target can refuse its dynamic loan guard or panic. Its
+// status must select the canonical failure exit before any owner finalizer;
+// the older scalar-only branch has no such operation-failure edge.
 pub(super) fn owns(expression: &ResolvedExpr) -> bool {
     matches!(&expression.kind, ResolvedExprKind::NativeRustImportCall(call)
         if expression.ownership == OwnershipMode::Own
-            || call.args.iter().any(|arg| arg.ownership == OwnershipMode::Own))
+            || call.args.iter().any(|arg| matches!(arg.ownership, OwnershipMode::Own | OwnershipMode::Borrow)))
 }
 
 pub(super) fn params(
@@ -64,4 +67,18 @@ pub(super) fn parts(expression: &ResolvedExpr) -> Option<CallParts<'_>> {
         }),
         _ => None,
     }
+}
+
+/// A declared native borrow observes a named String in place. Evaluating it as
+/// an ordinary owned String expression would allocate an implicit clone.
+pub(super) fn lends_string_place(
+    call: &ResolvedExpr,
+    argument: &ResolvedExpr,
+    mode: OwnershipMode,
+) -> bool {
+    matches!(call.kind, ResolvedExprKind::NativeRustImportCall(_))
+        && mode == OwnershipMode::Borrow
+        && argument.ty == ResolvedType::String
+        && argument.ownership == OwnershipMode::Own
+        && matches!(&argument.kind, ResolvedExprKind::Place(place) if place.projections.is_empty())
 }

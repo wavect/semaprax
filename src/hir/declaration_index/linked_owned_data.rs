@@ -81,8 +81,12 @@ impl DeclarationIndex {
                     DeclarationKind::Class
                 }
                 ResolvedTypeDeclarationKind::Resource { .. }
-                    if admit_classes
+                    if (admit_classes
                         && workspace_link::native_owner::admitted_resource(
+                            declaration,
+                            interfaces,
+                        ))
+                        || workspace_link::native_owner::admitted_ri06_regex_resource(
                             declaration,
                             interfaces,
                         ) =>

@@ -1,5 +1,7 @@
 # Changelog
 
+- Add an inert authenticated Project-to-native Regex package route that executes the checked Semaprax body and canonical cleanup plan. Pinned real Regex consumers pass at O0/O2, including authored-result changes, domain errors, zero adapter copies, exact String construction counts, and missing-finalizer controls. Url returned-view integration and the remaining RI-06 safety criteria stay open.
+
 - Complete the bounded LAW-07 structured proof profile with a selected
   four-module Project and managed Workspace. A private record-body law
   executes under exact installed Z3 evidence; a fresh candidate proof permits

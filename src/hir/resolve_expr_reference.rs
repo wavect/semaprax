@@ -1411,7 +1411,11 @@ impl Resolver<'_> {
                             && !facts.copy
                             && scrutinee.ownership == OwnershipMode::Own => {}
                     (DeclarationKind::Variant, ResolvedMatchMode::Borrow)
-                        if resolver_admits_owned_variant(&self.declarations, &scrutinee.ty)
+                        if (resolver_admits_owned_variant(&self.declarations, &scrutinee.ty)
+                            || super::workspace_link::native_owner::resolver_ri06_regex_result(
+                                self.program,
+                                &scrutinee.ty,
+                            ))
                             && facts.needs_drop
                             && !facts.copy
                             && matches!(

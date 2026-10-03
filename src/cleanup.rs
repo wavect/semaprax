@@ -981,7 +981,7 @@ impl InventoryBuilder<'_> {
                                         arguments,
                                     )?;
                                     let shape = if self.needs_drop(&field_ty)? {
-                                        let leaf_lifecycle = variant_leaf_lifecycle(ty, &case.id, &field.id, &field_ty)
+                                        let leaf_lifecycle = variant_leaf_lifecycle(self.program, ty, &case.id, &field.id, &field_ty)
                                             .ok_or_else(|| cleanup_error("droppable variant field is outside its admitted cleanup profile"))?;
                                         let flag_index =
                                             u32::try_from(self.flags.len()).map_err(|_| {

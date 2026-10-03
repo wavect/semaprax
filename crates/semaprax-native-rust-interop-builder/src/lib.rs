@@ -325,3 +325,5 @@ pub(crate) mod bounded_output {
     reason = "private A+B has no externally callable surface before evidence-gated public phase C"
 )]
 mod implementation;
+
+pub use public_sdk::{prepare_indexed_regex_project_package, IndexedProjectRegexRegistrySelection, PreparedRegexProjectPackage};

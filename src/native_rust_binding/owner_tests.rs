@@ -48,7 +48,7 @@ fn selected_regex_result_binding_is_narrow_and_borrowed() {
 
     let matcher = bind(
         "regex.match",
-        "fn is_match(&self, text: &str) -> bool",
+        "fn is_match(&self, haystack: &str) -> bool",
         "shared",
     );
     assert!(matcher

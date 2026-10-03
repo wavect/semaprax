@@ -260,3 +260,175 @@ pub(super) fn prepare_project_bindings(
     }
     Ok(bindings)
 }
+
+/// Registry-backed selected import facts. Unlike `IndexedProjectScalarSelection`,
+/// this intentionally carries no embedded crate source: the registry closure is
+/// authenticated by RI-11's lock/source records.
+#[derive(Clone, Copy)]
+pub struct IndexedProjectRegexRegistrySelection<'a> {
+    pub source_path: &'a str,
+    pub source: &'a str,
+    pub import_id: &'a str,
+    pub index_bytes: &'a [u8],
+    pub package: crate::indexed_binding::SelectedPackage<'a>,
+}
+
+pub fn prepare_indexed_regex_project_package(
+    manifest_path: &std::path::Path,
+    selections: &[IndexedProjectRegexRegistrySelection<'_>],
+    cargo_lock: &[u8],
+) -> Result<PreparedRegexProjectPackage, Vec<semaprax::diagnostic::Diagnostic>> {
+    use semaprax::project::ProjectIndexedRustImport;
+    use semaprax_rust_api_index::RustApiIndex;
+    if selections.len() != 2
+        || selections
+            .iter()
+            .any(|selection| selection.source.len() > MAX_SOURCE_BYTES)
+    {
+        return Err(vec![sdk_error(
+            "selected Regex Project requires exactly constructor and matcher bindings",
+        )]);
+    }
+    let first = selections[0];
+    if selections.iter().any(|selection| {
+        selection.package.cargo_alias != first.package.cargo_alias
+            || selection.package.name != first.package.name
+            || selection.package.version != first.package.version
+            || selection.package.source_sha256 != first.package.source_sha256
+            || selection.package.target != first.package.target
+            || selection.package.feature_digest != first.package.feature_digest
+            || selection.package.stable_rustc_version != first.package.stable_rustc_version
+            || selection.index_bytes != first.index_bytes
+    }) {
+        return Err(vec![sdk_error(
+            "selected Regex Project bindings must share one exact registry package",
+        )]);
+    }
+    let index = RustApiIndex::replay(first.index_bytes)
+        .map_err(|_| vec![sdk_error("selected Regex Project index replay failed")])?;
+    index
+        .require_package_identity(
+            first.package.name,
+            first.package.version,
+            first.package.source_sha256,
+            first.package.target,
+            first.package.feature_digest,
+        )
+        .and_then(|_| index.require_cargo_alias_identity(first.package.cargo_alias))
+        .and_then(|_| index.require_stable_compiler_identity(first.package.stable_rustc_version))
+        .map_err(|_| {
+            vec![sdk_error(
+                "selected Regex Project registry identity drifted",
+            )]
+        })?;
+    let mut bindings = Vec::with_capacity(2);
+    let mut ids = Vec::with_capacity(2);
+    for selection in selections {
+        let program = semaprax::parse(
+            selection.source,
+            std::path::Path::new(selection.source_path),
+        )
+        .map_err(|error| vec![error])?;
+        let import = program
+            .interfaces
+            .iter()
+            .flat_map(|interface| &interface.imports)
+            .find(|import| import.stable_id == selection.import_id)
+            .ok_or_else(|| {
+                vec![sdk_error(
+                    "selected Regex Project import declaration is missing",
+                )]
+            })?;
+        let located = |code, message| {
+            vec![
+                semaprax::diagnostic::Diagnostic::error(code, message, import.span)
+                    .at_path(selection.source_path),
+            ]
+        };
+        if !import.index_selected || import.rust_path.is_none() {
+            return Err(located(
+                "SPX-B140",
+                "selected Regex Project import must name an indexed Rust declaration",
+            ));
+        }
+        let path = import.rust_path.as_deref().expect("checked");
+        let item = match path {
+            "regex_alias::Regex::new" => index.select_closed_owner_result(
+                "regex::Regex::new",
+                "regex::Regex",
+                "regex::Error",
+            ),
+            "regex_alias::Regex::is_match" => index
+                .select_supported(&["regex::Regex::is_match"])
+                .map(|items| items[0]),
+            _ => {
+                return Err(located(
+                    "SPX-B141",
+                    "selected Regex Project API is outside the RI-06 profile",
+                ))
+            }
+        }
+        .map_err(|_| located("SPX-B141", "selected Regex Project API is unavailable"))?;
+        let expected = if path.ends_with("::new") {
+            "fn new(re: &str) -> core::result::Result<regex::Regex, regex::Error>"
+        } else {
+            "fn is_match(&self, haystack: &str) -> bool"
+        };
+        if item.signature != expected {
+            return Err(located(
+                "SPX-B145",
+                "selected Regex Project signature is outside the RI-06 profile",
+            ));
+        }
+        ids.push(selection.import_id.to_owned());
+        bindings.push(ProjectIndexedRustImport {
+            source_path: selection.source_path.into(),
+            source_sha256: raw_digest(selection.source.as_bytes()),
+            import_id: selection.import_id.into(),
+            rust_path: path.into(),
+            signature: item.signature.clone(),
+            index_digest: index.digest().into(),
+            receiver: if path.ends_with("::new") {
+                "none"
+            } else {
+                "shared"
+            }
+            .into(),
+        });
+    }
+    ids.sort();
+    semaprax::project::with_authenticated_indexed_rust_project(
+        manifest_path,
+        &bindings,
+        |snapshot| {
+            snapshot.with_authenticated_native_rust_sdk_subject(|input| {
+                let subject = project::ProjectSdkSubject::from_authenticated(&input)?;
+                project::verify_project_subject(subject.canonical.as_bytes(), &subject)
+                    .map_err(|error| vec![error])?;
+                if subject.imports != ids {
+                    return Err(vec![sdk_error(
+                        "selected Regex Project bindings do not cover the authenticated import set",
+                    )]);
+                }
+                if subject.exports.len() != 1 {
+                    return Err(vec![sdk_error(
+                        "selected Regex Project requires one exact scalar export",
+                    )]);
+                }
+                regex_project_package::prepare_regex_project_package(
+                    input.program(),
+                    &subject.exports[0].id,
+                    subject.canonical.as_bytes(),
+                    &subject.digest,
+                    &subject.manifest,
+                    first.index_bytes,
+                    first.package.cargo_alias,
+                    first.package.source_sha256,
+                    first.package.target,
+                    first.package.stable_rustc_version,
+                    cargo_lock,
+                )
+            })
+        },
+    )
+}

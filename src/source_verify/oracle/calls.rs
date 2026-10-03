@@ -433,7 +433,11 @@ pub(super) fn oracle_call(
                     diagnostics,
                 );
                 if !actual.native_unit
-                    && (actual.ty != parameter.ty || actual.mode != parameter.mode)
+                    && (actual.ty != parameter.ty
+                        || (actual.mode != parameter.mode
+                            && !(parameter.mode == ParamMode::Borrow
+                                && actual.mode == ParamMode::Own
+                                && matches!(&argument.kind, crate::ast::ExprKind::Var(_)))))
                 {
                     diagnostics.push(error(
                         program,

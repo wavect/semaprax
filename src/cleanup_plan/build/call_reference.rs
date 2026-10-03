@@ -69,8 +69,20 @@ impl PlanBuilder<'_> {
         let mut commits = Vec::new();
 
         for (index, (argument, parameter)) in args.iter().zip(&params).enumerate() {
-            let evaluated =
-                self.lower_expr_recursive_reference(argument, current, current_state, region)?;
+            let evaluated = if super::super::native_rust::lends_string_place(
+                expression,
+                argument,
+                parameter.ownership,
+            ) {
+                self.expression_slot(argument, region)?;
+                EvalResult {
+                    block: current,
+                    state: current_state,
+                    owned_source: None,
+                }
+            } else {
+                self.lower_expr_recursive_reference(argument, current, current_state, region)?
+            };
             current = evaluated.block;
             current_state = evaluated.state;
             if parameter.ownership == OwnershipMode::Own && self.needs_drop(&parameter.ty)? {

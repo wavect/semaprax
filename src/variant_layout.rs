@@ -122,7 +122,7 @@ impl VariantLayout {
             crate::hir::ResolvedImportResultKind::is_owned_container_type(
                 instance,
                 &program.declarations,
-            );
+            ) || crate::hir::admitted_ri06_regex_result(program, instance);
         let compiler_iterator_step = crate::iterator_ops::is_step(instance);
         let authored_generic_owned =
             crate::hir::is_admitted_concrete_owned_byte_variant(&program.declarations, instance);

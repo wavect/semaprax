@@ -5,6 +5,7 @@
 //! grants execution authority nor turns an index signature into Rust code.
 
 mod owner;
+pub(crate) use owner::admitted_regex_result;
 pub use owner::{bind_selected_owner_signature, bind_selected_regex_result_signature};
 #[cfg(test)]
 mod owner_tests;

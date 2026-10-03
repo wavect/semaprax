@@ -107,7 +107,7 @@ impl PlanBuilder<'_> {
                         let field_ty =
                             crate::hir::substitute_type(&field.ty, declaration, arguments)?;
                         let shape = if self.needs_drop(&field_ty)? {
-                            let leaf_lifecycle = crate::cleanup::variant_leaf_lifecycle(ty, &case.id, &field.id, &field_ty)
+                            let leaf_lifecycle = crate::cleanup::variant_leaf_lifecycle(self.program, ty, &case.id, &field.id, &field_ty)
                                 .ok_or_else(|| plan_error("droppable variant field is outside its admitted cleanup profile"))?;
                             let flag = LivenessFlagId(self.next_flag);
                             self.next_flag = self

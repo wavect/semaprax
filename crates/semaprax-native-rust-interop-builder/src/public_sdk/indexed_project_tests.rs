@@ -169,3 +169,319 @@ fn indexed_project_rebinds_graph_and_executes_authenticated_package() {
     assert!(!refused_output.exists());
     std::fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn indexed_real_regex_project_generates_and_executes_locked_offline_owner_loan() {
+    let cargo = std::env::var("CARGO").expect("Cargo supplies its executable");
+    assert!(Path::new(&cargo).is_absolute());
+    let index_bytes = include_bytes!(
+        "../../../semaprax-rust-api-index/fixtures/regex-1.13.1-index-envelope.json"
+    );
+    let index = RustApiIndex::admit_extractor_output(index_bytes).unwrap();
+    let index_bytes = index.canonical_json().as_bytes();
+    let source = canonical(
+        r#"module regex.fixture;
+@id("regex.resource") resource Regex { @id("regex.resource.drop") drop import "regex.drop"; }
+@id("regex.host") interface Host permits { } {
+ @id("regex.drop") import fn drop_regex(regex: own Regex) -> unit effects { } failure infallible consumes regex always;
+ @id("regex.new") import rust selected fn regex_new from "regex_alias::Regex::new" effects { } failure infallible;
+ @id("regex.match") import rust selected fn regex_match from "regex_alias::Regex::is_match" effects { } failure infallible;
+}
+@id("regex.run") fn run() -> i64 {
+ let pattern = "example";
+ let input = "https://example.invalid/path";
+ let created = regex_new(pattern);
+ match borrow created {
+  Result::Ok { value: owner } => if regex_match(owner, input) { 41 } else { 7 },
+  Result::Err { error: error } => 9,
+ }
+}
+@id("regex.main") fn main() -> i64 { 0 }
+"#,
+        "src/app.spx",
+    );
+    let root = std::fs::canonicalize(std::env::temp_dir())
+        .unwrap()
+        .join(format!(
+            "semaprax-indexed-real-regex-project-{}",
+            std::process::id()
+        ));
+    struct Cleanup {
+        root: std::path::PathBuf,
+        target: std::path::PathBuf,
+    }
+    impl Drop for Cleanup {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.root);
+            let _ = std::fs::remove_dir_all(&self.target);
+        }
+    }
+    let target = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .and_then(Path::parent)
+        .unwrap()
+        .join("target")
+        .join(format!("ri06-registry-project-{}", std::process::id()));
+    let _cleanup = Cleanup {
+        root: root.clone(),
+        target: target.clone(),
+    };
+    let _ = std::fs::remove_dir_all(&root);
+    std::fs::create_dir_all(root.join("src")).unwrap();
+    std::fs::write(root.join("src/app.spx"), &source).unwrap();
+    std::fs::write(
+        root.join("src/tests.spx"),
+        canonical(
+            "module regex.tests; @id(\"regex.tests.main\") fn main() -> i64 { 0 }",
+            "src/tests.spx",
+        ),
+    )
+    .unwrap();
+    std::fs::write(
+        root.join("semaprax.toml"),
+        "schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"regex\"\nversion = \"0.1.0\"\n\n[modules]\nentry = \"regex.fixture\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\ntests = [\"regex.tests\"]\n\n[exports]\nweb = [\"regex.run\"]\n\n[rust-dependencies]\nregex = [\"=1.13.1\"]\n",
+    )
+    .unwrap();
+    let package = SelectedPackage {
+        cargo_alias: "regex_alias",
+        name: "regex",
+        version: "1.13.1",
+        source_sha256: index.package().source_sha256.as_str(),
+        target: index.target(),
+        feature_digest: index.feature_digest(),
+        stable_rustc_version: index.stable_rustc_version(),
+    };
+    let selected =
+        ["regex.new", "regex.match"].map(|import_id| IndexedProjectRegexRegistrySelection {
+            source_path: "src/app.spx",
+            source: &source,
+            import_id,
+            index_bytes,
+            package,
+        });
+    let lock =
+        include_bytes!("../../../semaprax-toolchain/src/fixtures/ri06-regex-1.13.1.Cargo.lock");
+    let plan = prepare_indexed_regex_project_package(&root.join("semaprax.toml"), &selected, lock)
+        .unwrap();
+    assert_eq!(plan.cargo_lock(), lock);
+    let sdk = root.join("sdk");
+    std::fs::create_dir_all(sdk.join("src")).unwrap();
+    for (name, bytes) in [
+        ("Cargo.toml", plan.cargo_toml()),
+        ("Cargo.lock", plan.cargo_lock()),
+        ("src/lib.rs", plan.lib_rs()),
+        ("src/regex_project.c", plan.c_source()),
+        ("src/regex_project.h", plan.header()),
+        ("binding-plan.json", plan.binding_plan()),
+        ("descriptor.json", plan.descriptor()),
+    ] {
+        std::fs::write(sdk.join(name), bytes).unwrap();
+    }
+    std::fs::write(
+        sdk.join("src/main.rs"),
+        r#"fn main() {
+    assert_eq!(ri06_regex_owner::run(), Ok(41));
+    assert!(ri06_regex_owner::projected_borrow_matches_target());
+    assert_eq!(ri06_regex_owner::spx_result_owner_adapter_copies(), 0);
+    assert_eq!(ri06_regex_owner::string_constructions(), 2);
+    assert_eq!(ri06_regex_owner::live_string_count(), 0);
+    assert_eq!(ri06_regex_owner::live_owner_count(), 0);
+}
+"#,
+    )
+    .unwrap();
+    let object = sdk.join("regex_project.o");
+    let clang = std::env::var("CLANG").expect("explicit CLANG for native Regex Project");
+    let compiled = Command::new(&clang)
+        .args(["-std=c11", "-O0", "-c"])
+        .arg(sdk.join("src/regex_project.c"))
+        .arg("-o")
+        .arg(&object)
+        .output()
+        .unwrap();
+    assert!(
+        compiled.status.success(),
+        "{}",
+        String::from_utf8_lossy(&compiled.stderr)
+    );
+    let run = Command::new(&cargo)
+        .args(["run", "--locked", "--offline", "--quiet"])
+        .current_dir(&sdk)
+        .env("CARGO_TARGET_DIR", &target)
+        .env("RUSTFLAGS", format!("-C link-arg={}", object.display()))
+        .env("CARGO_INCREMENTAL", "0")
+        .env("CARGO_PROFILE_DEV_DEBUG", "0")
+        .env("CARGO_BUILD_JOBS", "1")
+        .output()
+        .unwrap();
+    assert!(
+        run.status.success(),
+        "{}",
+        String::from_utf8_lossy(&run.stderr)
+    );
+    // A canonical authored-body change must alter executable output; the SDK
+    // cannot satisfy this gate by running a source-independent Rust facade.
+    let flipped = source.replace("{ 41 }", "{ 42 }");
+    assert_ne!(flipped, source);
+    std::fs::write(root.join("src/app.spx"), &flipped).unwrap();
+    let flipped_selection =
+        ["regex.new", "regex.match"].map(|import_id| IndexedProjectRegexRegistrySelection {
+            source_path: "src/app.spx",
+            source: &flipped,
+            import_id,
+            index_bytes,
+            package,
+        });
+    let changed = prepare_indexed_regex_project_package(
+        &root.join("semaprax.toml"),
+        &flipped_selection,
+        lock,
+    )
+    .unwrap();
+    assert_ne!(changed.c_source(), plan.c_source());
+    std::fs::write(sdk.join("src/regex_project.c"), changed.c_source()).unwrap();
+    let compiled = Command::new(&clang)
+        .args(["-std=c11", "-O2", "-c"])
+        .arg(sdk.join("src/regex_project.c"))
+        .arg("-o")
+        .arg(&object)
+        .output()
+        .unwrap();
+    assert!(
+        compiled.status.success(),
+        "{}",
+        String::from_utf8_lossy(&compiled.stderr)
+    );
+    std::fs::write(sdk.join("src/lib.rs"), changed.lib_rs()).unwrap();
+    std::fs::write(sdk.join("src/main.rs"), "fn main(){assert_eq!(ri06_regex_owner::run(),Ok(42));assert_eq!(ri06_regex_owner::live_owner_count(),0);}").unwrap();
+    let changed_run = Command::new(&cargo)
+        .args(["run", "--locked", "--offline", "--quiet"])
+        .current_dir(&sdk)
+        .env("CARGO_TARGET_DIR", &target)
+        .env("RUSTFLAGS", format!("-C link-arg={}", object.display()))
+        .env("CARGO_BUILD_JOBS", "1")
+        .env("CARGO_INCREMENTAL", "0")
+        .env("CARGO_PROFILE_DEV_DEBUG", "0")
+        .output()
+        .unwrap();
+    assert!(
+        changed_run.status.success(),
+        "{}",
+        String::from_utf8_lossy(&changed_run.stderr)
+    );
+    let domain_source = source.replace("\"example\"", "\"(\"");
+    assert_ne!(domain_source, source);
+    std::fs::write(root.join("src/app.spx"), &domain_source).unwrap();
+    let domain_selection =
+        ["regex.new", "regex.match"].map(|import_id| IndexedProjectRegexRegistrySelection {
+            source_path: "src/app.spx",
+            source: &domain_source,
+            import_id,
+            index_bytes,
+            package,
+        });
+    let domain =
+        prepare_indexed_regex_project_package(&root.join("semaprax.toml"), &domain_selection, lock)
+            .unwrap();
+    std::fs::write(sdk.join("src/regex_project.c"), domain.c_source()).unwrap();
+    let compiled = Command::new(&clang)
+        .args(["-std=c11", "-O2", "-c"])
+        .arg(sdk.join("src/regex_project.c"))
+        .arg("-o")
+        .arg(&object)
+        .output()
+        .unwrap();
+    assert!(
+        compiled.status.success(),
+        "{}",
+        String::from_utf8_lossy(&compiled.stderr)
+    );
+    std::fs::write(sdk.join("src/main.rs"), "fn main(){assert_eq!(ri06_regex_owner::run(),Ok(9));assert_eq!(ri06_regex_owner::live_owner_count(),0);}").unwrap();
+    let domain_run = Command::new(&cargo)
+        .args(["run", "--locked", "--offline", "--quiet"])
+        .current_dir(&sdk)
+        .env("CARGO_TARGET_DIR", &target)
+        .env("RUSTFLAGS", format!("-C link-arg={}", object.display()))
+        .env("CARGO_BUILD_JOBS", "1")
+        .env("CARGO_INCREMENTAL", "0")
+        .env("CARGO_PROFILE_DEV_DEBUG", "0")
+        .output()
+        .unwrap();
+    assert!(
+        domain_run.status.success(),
+        "{}",
+        String::from_utf8_lossy(&domain_run.stderr)
+    );
+    // Removing a canonical finalizer must fail the unchanged SDK consumer.
+    let c = std::str::from_utf8(changed.c_source()).unwrap();
+    let needle = "int32_t dropped=spx_result_owner_drop(context,f->owners[";
+    assert!(c.contains(needle));
+    let lines = c
+        .lines()
+        .map(|line| {
+            if line.contains(needle) {
+                let start = line.find("int32_t dropped=").unwrap();
+                let end = start + line[start..].find(';').unwrap() + 1;
+                format!("{}int32_t dropped=0;{}", &line[..start], &line[end..])
+            } else {
+                line.to_owned()
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+    std::fs::write(sdk.join("src/regex_project.c"), lines).unwrap();
+    let compiled = Command::new(&clang)
+        .args(["-std=c11", "-O2", "-c"])
+        .arg(sdk.join("src/regex_project.c"))
+        .arg("-o")
+        .arg(&object)
+        .output()
+        .unwrap();
+    assert!(
+        compiled.status.success(),
+        "{}",
+        String::from_utf8_lossy(&compiled.stderr)
+    );
+    std::fs::write(sdk.join("src/main.rs"), "fn main(){assert_eq!(ri06_regex_owner::run(),Ok(42));assert_eq!(ri06_regex_owner::live_owner_count(),0);} // finalizer control").unwrap();
+    let mutant = Command::new(&cargo)
+        .args(["run", "--locked", "--offline", "--quiet"])
+        .current_dir(&sdk)
+        .env("CARGO_TARGET_DIR", &target)
+        .env("RUSTFLAGS", format!("-C link-arg={}", object.display()))
+        .env("CARGO_BUILD_JOBS", "1")
+        .env("CARGO_INCREMENTAL", "0")
+        .env("CARGO_PROFILE_DEV_DEBUG", "0")
+        .output()
+        .unwrap();
+    assert!(!mutant.status.success());
+    assert!(String::from_utf8_lossy(&mutant.stderr).contains("Err(5)"));
+    std::fs::write(root.join("src/app.spx"), &source).unwrap();
+    let corrupt_lock = std::str::from_utf8(lock)
+        .unwrap()
+        .replace(
+            index
+                .package()
+                .source_sha256
+                .strip_prefix("sha256:")
+                .unwrap(),
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        )
+        .into_bytes();
+    assert!(prepare_indexed_regex_project_package(
+        &root.join("semaprax.toml"),
+        &selected,
+        &corrupt_lock,
+    )
+    .is_err());
+    std::fs::write(
+        root.join("src/app.spx"),
+        source.replace("fn run()", "fn run_changed()"),
+    )
+    .unwrap();
+    assert!(
+        prepare_indexed_regex_project_package(&root.join("semaprax.toml"), &selected, lock,)
+            .is_err()
+    );
+    std::fs::remove_dir_all(root).unwrap();
+    std::fs::remove_dir_all(target).unwrap();
+}

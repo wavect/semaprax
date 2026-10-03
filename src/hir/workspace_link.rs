@@ -220,7 +220,14 @@ fn link_scalar_workspace_impl(
                 .map(|instance| &instance.function),
         )
         .any(resolved_function_uses_iterator);
-    let uses_owned_result = functions.iter().any(generic_result::concrete_signature)
+    // Selected native Result owners may occur only inside a scalar body.
+    // Retain their compiler-owned Result declaration before rebuilding cleanup.
+    let uses_owned_result = parts.as_ref().is_some_and(|parts| {
+        parts
+            .types
+            .iter()
+            .any(|ty| native_owner::admitted_ri06_regex_resource(ty, &parts.interfaces))
+    }) || functions.iter().any(generic_result::concrete_signature)
         || parts.as_ref().is_some_and(|parts| {
             functions
                 .iter()

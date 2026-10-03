@@ -863,3 +863,48 @@ cargo test --offline --locked -p semaprax-native-rust-interop --lib \
   public_sdk::registered_callback::tests::registered_callback_nested_c_rust_round_trip_and_uncertain_teardown \
   -- --exact --nocapture --test-threads=1
 ```
+
+
+### Authenticated Project Regex body execution (RI-06 partial)
+
+`prepare_indexed_regex_project_package` returns inert Cargo, Rust, C, header,
+BindingPlan and descriptor bytes for one exact indexed `regex =1.13.1` closure.
+It authenticates both selected imports, the Project source, registry checksum,
+compiler/target identity and byte-exact committed Cargo lock. The caller owns
+file creation, Clang/Cargo execution and any later publication.
+
+The closed export is an effect-free `fn() -> i64` using bounded literal String
+bindings, `Regex::new`, borrowed Result matching, `Regex::is_match` and scalar
+conditionals. C executes the checked expression body and the canonical cleanup
+vectors; the Rust wrapper does not substitute a separate implementation for
+that body. The selected Result owner retains its resource/drop identities in
+source, HIR, linked declaration facts and cleanup replay. Literal Strings have
+ordinary allocated storage and canonical finalizers. Lending a named String to
+a native borrowed parameter does not create an owned-value clone. Allocation
+failure for literal construction remains fail-stop.
+
+Focused local evidence on aarch64 macOS, Rust 1.98.0 and Apple Clang 21:
+
+```sh
+RUSTC=/opt/homebrew/bin/rustc CLANG=/usr/bin/clang \
+SEMAPRAX_ARCHIVER=/usr/bin/libtool CARGO_TARGET_DIR=target/ri05-owner \
+CARGO_BUILD_JOBS=1 CARGO_INCREMENTAL=0 CARGO_PROFILE_DEV_DEBUG=0 \
+CARGO_PROFILE_TEST_DEBUG=0 cargo test --offline --locked \
+-p semaprax-native-rust-interop --lib \
+public_sdk::indexed_tests::indexed_project::indexed_real_regex_project_generates_and_executes_locked_offline_owner_loan \
+-- --exact --nocapture --test-threads=1
+```
+
+The owning selector passed 1/1, zero failed/ignored (204 filtered). Real pinned
+Regex consumers built and ran with locked/offline Cargo and C at O0/O2. Controls
+cover a checked authored result changing 41 to 42, invalid-pattern domain Err
+returning 9, pointer/length identity across the borrow, zero adapter copies,
+exactly two source String constructions with no live String/Regex owners after
+success, removed finalization failing the unchanged consumer, and stale source
+or changed lock refusal.
+
+This is a local bounded native route, not general borrowed ABI support, CLI
+publication or a hosted gate. Url inspection/owner-tied returned-view integration,
+remaining source escape/exclusivity controls and complete RI-06 safety acceptance
+remain open. This selector does not add new Miri or sanitizer evidence, and the
+full quality profile was not rerun for this slice.

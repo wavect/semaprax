@@ -11,6 +11,11 @@ directory, builds `generated-sdk` there, and runs the consumer with Cargo in
 locked offline mode. The repository intentionally does not contain generated
 SDK artifacts.
 
+`build-script-consumer/` is the RI-10 prepared-only ordinary Cargo route. Its
+build script stages one explicitly prepared SDK in `OUT_DIR` and never starts
+the SEMAPRAX compiler or nested Cargo. Its own README records the clean
+consumer command and the tracked-input rebuild contract.
+
 The same gate builds `callback-sdk` from `callback.spx` and runs the separate
 callback consumer. Its host implements only the stable-ID-derived callback
 method and returns the generated closed import-result type.

@@ -1,0 +1,12 @@
+[package]
+name = "semaprax-calculator-build-script-consumer"
+version = "0.0.0"
+edition = "2021"
+rust-version = "1.85"
+publish = false
+build = "build.rs"
+
+[workspace]
+
+[lints.rust]
+unsafe_code = "forbid"

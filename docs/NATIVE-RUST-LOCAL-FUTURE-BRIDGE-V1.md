@@ -120,5 +120,7 @@ leave a half-consumed handle available for another poll.
 An opt-in [Project source local Future](PROJECT-SOURCE-LOCAL-FUTURE-V1.md)
 profile separately binds this interpreter route to one authenticated Project
 selection. It keeps Rust-only async export inventory outside Web exports and
-refuses ordinary target emission. This still does not produce a generated Rust
-SDK or admit a source-authored async Rust import.
+refuses ordinary target emission. It can render a generated Rust module that
+pins the selected source yield and checks one-shot callback registration at
+runtime. A published Rust SDK package and source-authored `import rust fn`
+declaration remain open.

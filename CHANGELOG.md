@@ -1,5 +1,11 @@
 # Changelog
 
+- Render an exact Project-selected Rust async module and compile its one-shot
+  source-yield callback registration in a locked local consumer. The generated
+  code pins Project revision, function identity and suspension plan, and
+  refuses a changed source before invoking the callback. Public SDK package
+  publication and authored native Rust import syntax remain open.
+
 - Bind the LAW-15 foreign-boundary pack to the real guarded indexed Project
   SDK harness. Saved canonical source and explicit versioned assumptions drive
   correct, bad-return and repaired native consumers under one unchanged range

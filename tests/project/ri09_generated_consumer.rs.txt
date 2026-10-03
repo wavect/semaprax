@@ -1,0 +1,43 @@
+mod generated {
+    include!("generated.rs");
+}
+
+use semaprax::project::with_authenticated_project;
+use std::cell::Cell;
+use std::path::Path;
+use std::rc::Rc;
+
+fn main() {
+    let mut args = std::env::args().skip(1);
+    let manifest = args.next().expect("Project manifest");
+    let expect_stale = args.next().as_deref() == Some("expect-stale");
+    let revision = with_authenticated_project(Path::new(&manifest), |snapshot| {
+        snapshot.check()?;
+        Ok(snapshot.retain_revision())
+    })
+    .unwrap();
+    let calls = Rc::new(Cell::new(0));
+    let observed = Rc::clone(&calls);
+    let registered = generated::register(revision, move |request| {
+        observed.set(observed.get() + 1);
+        async move {
+            assert_eq!(request, 42);
+            Ok::<i64, ()>(request + 1)
+        }
+    });
+    if expect_stale {
+        assert_eq!(registered.err().unwrap()[0].code, "SPX-H006");
+        assert_eq!(calls.get(), 0);
+        println!("ri09-generated-stale-refused");
+        return;
+    }
+    let future = registered.unwrap().call(41, 10_000).unwrap();
+    assert_eq!(calls.get(), 0, "registration does not start the callback");
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+    assert_eq!(runtime.block_on(future), Ok(84));
+    assert_eq!(calls.get(), 1);
+    println!("ri09-generated-source-ok");
+}

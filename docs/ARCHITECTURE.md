@@ -3097,6 +3097,11 @@ These areas are deliberately outside the public compiler contract:
   `ProjectRevision` retains the admitted signature and the local Future
   constructor replays it against the selected linked HIR. This route has no
   Web/npm/native publication target and grants no host effect authority;
+- `src/project/revision/source_local_future_sdk.rs` renders an inert Rust
+  module from the admitted revision and compiler-owned source plan. Its
+  one-shot registration checks those exact facts before accepting a callback;
+  execution still uses the ephemeral source-interpreter Future. The host owns
+  package staging, compilation, executor and network authority;
 - `src/project/indexed_rust.rs` and
   `crates/semaprax-native-rust-interop-builder/src/public_sdk/indexed_project.rs`:
   explicit source-bound indexed Project admission and authenticated SDK

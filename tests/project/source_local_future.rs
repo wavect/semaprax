@@ -7,6 +7,7 @@ use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::path::{Path, PathBuf};
 use std::pin::Pin;
+use std::process::Command;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use std::task::{Context, Poll, Wake, Waker};
@@ -225,4 +226,106 @@ fn selected_project_future_awaits_locked_reqwest_and_cancel_does_not_undo_reques
         release_tx.send(()).unwrap();
     });
     server.join().unwrap();
+}
+
+fn exact_cargo() -> PathBuf {
+    let cargo = PathBuf::from(
+        std::env::var_os("CARGO").unwrap_or_else(|| "/opt/homebrew/bin/cargo".into()),
+    );
+    assert!(cargo.is_absolute() && cargo.is_file());
+    let output = Command::new(&cargo).arg("--version").output().unwrap();
+    assert!(output.status.success());
+    assert!(String::from_utf8_lossy(&output.stdout).starts_with("cargo 1."));
+    cargo
+}
+
+#[test]
+#[ignore = "compiles an exact generated module in a private locked Cargo consumer"]
+fn generated_project_future_module_registers_source_import_and_refuses_stale_project() {
+    let target = PathBuf::from(
+        std::env::var_os("SEMAPRAX_RI09_TARGET_DIR")
+            .expect("set SEMAPRAX_RI09_TARGET_DIR to a checkout-private target"),
+    )
+    .canonicalize()
+    .unwrap();
+    let checkout = Path::new(env!("CARGO_MANIFEST_DIR"));
+    assert!(target.starts_with(checkout.join("target")));
+    let cargo = exact_cargo();
+
+    let fixture = Fixture::new();
+    let rendered = with_authenticated_project(&fixture.manifest(), |snapshot| {
+        let generated = snapshot.render_source_local_future_rust_module()?;
+        assert_eq!(
+            generated,
+            snapshot
+                .retain_revision()
+                .render_source_local_future_rust_module()?
+        );
+        Ok(generated)
+    })
+    .unwrap();
+    assert!(rendered.contains("pub const SOURCE_FUNCTION_ID: &str = \"local_future.ask\";"));
+    let consumer = fixture.0.join("consumer");
+    std::fs::create_dir_all(consumer.join("src")).unwrap();
+    let checkout_toml = serde_json::to_string(&checkout.display().to_string()).unwrap();
+    let manifest = format!(
+        "[package]\nname = \"semaprax-ri09-generated-project-sdk\"\nversion = \"0.1.0\"\nedition = \"2021\"\npublish = false\n\n[workspace]\n\n[dependencies]\nsemaprax = {{ path = {checkout_toml}, version = \"=0.7.0\" }}\ntokio = {{ version = \"=1.53.1\", features = [\"rt\", \"time\"] }}\n"
+    );
+    std::fs::write(consumer.join("Cargo.toml"), manifest).unwrap();
+    let consumer_lock = include_str!("ri09_generated_consumer.Cargo.lock");
+    std::fs::write(consumer.join("Cargo.lock"), &consumer_lock).unwrap();
+    std::fs::write(
+        consumer.join("src/main.rs"),
+        include_str!("ri09_generated_consumer.rs.txt"),
+    )
+    .unwrap();
+    std::fs::write(consumer.join("src/generated.rs"), rendered).unwrap();
+
+    let run = |expect_stale: bool| {
+        let mut command = Command::new(&cargo);
+        command
+            .args(["run", "--quiet", "--locked", "--offline", "--manifest-path"])
+            .arg(consumer.join("Cargo.toml"))
+            .arg("--")
+            .arg(fixture.manifest());
+        if expect_stale {
+            command.arg("expect-stale");
+        }
+        let output = command
+            .current_dir(&consumer)
+            .env("CARGO_TARGET_DIR", &target)
+            .env("CARGO_BUILD_JOBS", "1")
+            .env("CARGO_INCREMENTAL", "0")
+            .env("CARGO_PROFILE_DEV_DEBUG", "0")
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "stdout={} stderr={}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert_eq!(
+            output.stdout,
+            if expect_stale {
+                b"ri09-generated-stale-refused\n".as_slice()
+            } else {
+                b"ri09-generated-source-ok\n".as_slice()
+            }
+        );
+        assert_eq!(
+            std::fs::read(consumer.join("Cargo.lock")).unwrap(),
+            consumer_lock.as_bytes()
+        );
+    };
+    run(false);
+
+    let changed = APP.replace("answer + seed", "answer - seed");
+    let parsed = semaprax::parse(&changed, Path::new("app.spx")).unwrap();
+    std::fs::write(
+        fixture.0.join("src/app.spx"),
+        semaprax::format::canonical(&parsed),
+    )
+    .unwrap();
+    run(true);
 }

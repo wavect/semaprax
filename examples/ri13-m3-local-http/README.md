@@ -37,6 +37,15 @@ generated module. The exact physical Project selector is
 `ri13_m3::saved_m3_application_runs_offline_and_refuses_timeout_and_stale_binding_mutants`
 in `--test project` with `--ignored --exact`.
 
+Local evidence on 2026-10-04: Darwin arm64, Cargo/rustc 1.98.0. The exact
+Project selector passed 1/1. Both locked offline commands above exited zero;
+`prepare` printed `ri13-m3-prepared` and `consumer` printed
+`ri13-m3-local-http-ok`. Running the built consumer with `omit-timeout`
+exited 101 at the timeout assertion. Changing `response + seed` to
+`response - seed` without regenerating, then running `expect-stale`, printed
+`ri13-m3-stale-refused`; the source was restored afterward. These are local
+receipts from the detached checkout, not fresh-checkout or Linux evidence.
+
 Developer friction in this subprofile: two `.spx` files, one Project manifest,
 one pinned Cargo manifest/lock, one 21-line preparation command, and one Rust
 consumer with a caller-authored HTTP effect handler and server. There are zero

@@ -144,7 +144,7 @@ fn main() {
     .expect("admitted held Project");
     let mode = std::env::args().nth(1);
     if mode.as_deref() == Some("expect-stale") {
-        let result = generated::register(revision, |_request| async { Ok::<i64, ()>(43) });
+        let result = generated::register(revision, |_request: i64| async { Ok::<i64, ()>(43) });
         assert_eq!(result.err().unwrap()[0].code, "SPX-H006");
         println!("ri13-m3-stale-refused");
         return;

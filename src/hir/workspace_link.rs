@@ -6,6 +6,7 @@
 use super::*;
 
 mod compiler_prelude;
+pub(in crate::hir) mod native_owner;
 
 pub(crate) use compiler_prelude::compiler_prelude_declarations;
 use compiler_prelude::{
@@ -77,7 +78,11 @@ fn link_scalar_workspace_impl(
     let mut import_effects = BTreeSet::new();
     for interface in parts.iter().flat_map(|parts| &parts.interfaces) {
         for import in &interface.imports {
-            if !import.native_rust {
+            if !import.native_rust
+                && !parts
+                    .as_ref()
+                    .is_some_and(|parts| native_owner::admitted_finalizer(parts, import))
+            {
                 return Err(link_error(format!(
                     "workspace interface import `{}` is outside the pure scalar linker profile",
                     import.id

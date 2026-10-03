@@ -259,10 +259,10 @@ constructor panic and method panic, and retains poisoned result slots on
 failure. Stale and foreign-context carriers are rejected without taking the
 live value. Compiled missing-drop and flipped-method controls must fail the
 same consumer assertions. The source/HIR harness retains move and tampered
-call-commit regressions. This local experimental seam does not establish a
-Project or CLI owner build, index-selected resource binding, standard Rust
-crate coverage, borrowed owners, general resource methods, hosted coverage,
-full quality-gate passage, or RI-05 completion.
+call-commit regressions. The pure renderer alone does not establish Project
+publication; the indexed package route below adds that separate boundary.
+Standard Rust crate coverage, borrowed owners, general resource methods, hosted coverage, full quality-gate
+passage, and RI-05 completion remain open.
 
 Graph v56 is selected by an ownership-bearing native Rust import. Its import
 result `type` is the resource's persistent declaration ID and its
@@ -271,3 +271,54 @@ identity in `result`, alongside the ordinary nominal `type_id`. It includes
 v52-v55's native-path and selected-index/receiver fields (null when absent).
 Scalar-only modules keep their prior schema and bytes. Graph evidence routes
 that do not admit this projection refuse v56 explicitly.
+
+### Indexed owner Project package (experimental)
+
+The existing explicit `indexed-project` builder/CLI route also admits the closed
+owner profile above. Two short `import rust selected` declarations name a
+public nongeneric Rust struct's `(i64) -> Self` constructor and consuming
+`(self, i64) -> bool` method. The source declares a resource with that Rust
+struct's final name and an imported infallible destructor. Both imports must
+select the same exact package, Cargo alias, index, target, source bytes, and
+stable compiler. The index must include the public struct in each method's
+complete type closure. The linked resource ID and full Rust type path must
+agree across both imports. Other owner signatures still refuse.
+
+Binding facts enter ordinary Project source checking, HIR, cleanup replay,
+and graphing before generation. The linker retains the resource and lifecycle
+declaration facts and admits only the destructor attached to the matching
+selected constructor/method pair; unrelated ordinary imports still refuse.
+Resource retention follows the exact selected function closure and leaves the
+record/variant-only owned-data and Wasm type closure unchanged. Package
+preparation checks the exact selected signatures against HIR again. Stable
+rustc then checks explicit function types against the unchanged selected Rust source; matching metadata alone cannot
+admit a method with a different actual result type. The source remains within
+the existing bounded self-contained single-file Rust profile, so this is not
+general Cargo dependency compilation or a claim of real `regex` crate support.
+
+The additive package schema is
+`semaprax.native-rust-opaque-owner-sdk.experimental.v1`; scalar SDK and
+owned-data v1 formats are unchanged. A package contains `Cargo.toml`, `build.rs`,
+`lib.rs`, `owner.h`, the current-target native archive, `descriptor.json`, and
+`semaprax.native-rust-sdk.json`. The descriptor binds the authenticated Project
+subject, resource and Rust type identities, selected package/index/imports,
+and exact generated C, header and Rust hashes. The manifest binds all six other
+files. `spx_owner_call` is the generated safe call entry for the single selected
+export. No user-written Rust wrapper implements constructor or method glue.
+
+The publisher acquires explicit compiler and archiver authority, verifies the
+selected stable compiler through held direct-rustc discovery, compiles the
+Rust signatures before publication, and reuses the existing held C archive
+and seven-file no-clobber publisher. It verifies the complete published
+inventory through the original parent handle. Uncertain compiler output
+retains its private stage for reconciliation. The authenticated Project route
+performs its final source recheck on success and refusal.
+
+The focused `indexed_owner_` selector exercises an actual generated Project
+package and Rust consumer, a freshly rebound flipped Rust implementation that
+must fail the same consumer, stale package bytes refused before publication,
+and an indexed/actual signature mismatch refused by rustc. Source/graph tests
+retain repeatability and a stable use-after-move diagnostic. This extends the
+experimental Project and CLI seam; arbitrary owner signatures, real-world
+crate families, borrowed methods, hosted coverage, and full RI-05 completion
+remain open.

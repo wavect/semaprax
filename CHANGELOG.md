@@ -5,6 +5,12 @@
   compiler detail and mark external captures unverified; generic context,
   impact, and review still refuse native Rust imports.
 
+- Add experimental selected-index opaque-owner Project packages over the
+  existing explicit indexed-project route. Bind resource/type/package identity,
+  compile exact Rust signatures, and publish generated owner glue through the
+  held archive and no-clobber package publisher. The scalar and owned-data v1
+  package contracts remain unchanged; general RI-05 support remains open.
+
 - Expose replayed prepared Rust API index facts through a 4 KiB bounded CLI
   context and candidate projection. VS Code reads the same pure compiler
   metadata for selected-import hover, completion, declaration navigation, and

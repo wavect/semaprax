@@ -47,7 +47,7 @@ pub(super) fn validate(
             || !selection.index_digest[7..]
                 .bytes()
                 .all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase())
-            || !matches!(selection.receiver.as_str(), "none" | "shared")
+            || !matches!(selection.receiver.as_str(), "none" | "shared" | "owned")
         {
             return Err(error(
                 "indexed Project import identity is invalid or duplicated",
@@ -106,6 +106,17 @@ pub(crate) fn bind_program(
                 import.span,
             )
             .at_path(&program.path)]);
+        }
+        if crate::native_rust_binding::bind_selected_owner_signature(
+            import,
+            &program.types,
+            &selection.signature,
+            &selection.index_digest,
+            &selection.receiver,
+        )
+        .map_err(|error| vec![error.at_path(&program.path)])?
+        {
+            continue;
         }
         bind_selected_scalar_signature(
             import,

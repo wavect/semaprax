@@ -608,6 +608,7 @@ mod build;
 mod descriptor;
 mod indexed;
 mod indexed_multiple;
+mod indexed_owner;
 mod indexed_project;
 pub use indexed_project::{build_indexed_project_native_rust_sdk, IndexedProjectScalarSelection};
 mod owned_data;
@@ -634,3 +635,6 @@ mod owner_sdk_tests;
 
 #[cfg(test)]
 mod target_tests;
+
+#[cfg(test)]
+mod indexed_owner_tests;

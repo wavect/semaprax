@@ -2980,6 +2980,16 @@ These areas are deliberately outside the public compiler contract:
   for canonical argument epochs and atomic call settlement; scalar native
   imports retain their existing plan projection. `replay/supplemental.rs`
   independently reconstructs their argument slots.
+- `src/hir/workspace_link/native_owner.rs` admits only the destructor of a
+  resource tied to an indexed constructor/consuming-method pair in one Rust
+  type and index. Linked declaration reconstruction retains its resource/drop
+  facts before ordinary cleanup-plan rebuilding and independent validation.
+- `src/native_rust_binding/owner.rs` owns the closed selected-owner signature
+  projection into declared source resources. `public_sdk/indexed_owner.rs` in
+  the native Rust builder replays package/type identity against linked HIR. The
+  lower owned-data package crate owns additive `opaque_owner.rs` packaging and
+  `publication/opaque_rust.rs` held compiler authentication; existing scalar and
+  owned-data package schemas remain separate.
 - `crates/semaprax-native-rust-interop-builder/src/public_sdk/owner_sdk.rs`
   owns the experimental pure opaque-owner renderer. `owner_sdk_c.rs` consumes
   validated cleanup CFG vectors directly; `owner_runtime.rs.txt` retains real

@@ -27,6 +27,30 @@ pub(crate) fn reachable_authored_types_with_roots(
     available: &BTreeMap<DeclarationId, ResolvedTypeDeclaration>,
     roots: &[DeclarationId],
 ) -> Result<Vec<ResolvedTypeDeclaration>, Diagnostic> {
+    reachable_types(functions, instances, interfaces, available, roots, &[])
+}
+
+/// Scalar Project roots may retain a checked selected-native owner internally.
+/// The supporting interfaces authorize that resource but do not seed extra
+/// types into the exact function-reachable inventory. Owned-data and Wasm
+/// callers continue using the record/variant-only wrappers above.
+pub(crate) fn reachable_scalar_authored_types(
+    functions: &[LinkedScalarFunction],
+    instances: &[ResolvedFunctionInstance],
+    available: &BTreeMap<DeclarationId, ResolvedTypeDeclaration>,
+    owner_interfaces: &[ResolvedInterface],
+) -> Result<Vec<ResolvedTypeDeclaration>, Diagnostic> {
+    reachable_types(functions, instances, &[], available, &[], owner_interfaces)
+}
+
+fn reachable_types(
+    functions: &[LinkedScalarFunction],
+    instances: &[ResolvedFunctionInstance],
+    interfaces: &[ResolvedInterface],
+    available: &BTreeMap<DeclarationId, ResolvedTypeDeclaration>,
+    roots: &[DeclarationId],
+    owner_interfaces: &[ResolvedInterface],
+) -> Result<Vec<ResolvedTypeDeclaration>, Diagnostic> {
     let mut selected = roots.iter().cloned().collect::<BTreeSet<_>>();
     for linked in functions {
         collect_function(&linked.function, &mut selected);
@@ -57,6 +81,14 @@ pub(crate) fn reachable_authored_types_with_roots(
             ResolvedTypeDeclarationKind::Record { fields } => fields.iter().collect::<Vec<_>>(),
             ResolvedTypeDeclarationKind::Variant { cases } => {
                 cases.iter().flat_map(|case| &case.fields).collect()
+            }
+            ResolvedTypeDeclarationKind::Resource { .. }
+                if workspace_link::native_owner::admitted_resource(
+                    declaration,
+                    owner_interfaces,
+                ) =>
+            {
+                Vec::new()
             }
             ResolvedTypeDeclarationKind::Class { .. }
             | ResolvedTypeDeclarationKind::Resource { .. } => {

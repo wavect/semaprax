@@ -20,7 +20,12 @@ mod flat_descriptor;
 mod flat_render;
 mod nested_descriptor;
 mod nested_render;
+mod opaque_owner;
 mod owned_ffi_runtime;
+pub use opaque_owner::{
+    build_opaque_owner_package, OpaqueOwnerPackageBundle, OpaqueOwnerPackagePlan,
+    OPAQUE_OWNER_PACKAGE_SCHEMA,
+};
 mod project_publication;
 mod publication;
 mod render;

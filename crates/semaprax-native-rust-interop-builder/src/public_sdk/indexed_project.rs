@@ -43,6 +43,26 @@ pub fn build_indexed_project_native_rust_sdk(
                         "indexed Project selections must cover the exact linked import set",
                     )]);
                 }
+                if input
+                    .program()
+                    .interfaces
+                    .iter()
+                    .flat_map(|i| &i.imports)
+                    .any(|i| {
+                        matches!(
+                            i.result.kind,
+                            semaprax::hir::ResolvedImportResultKind::OwnedResource { .. }
+                        )
+                    })
+                {
+                    let sdk = indexed_owner::build(input.program(), &subject, selections, output)?;
+                    return Ok(ProjectNativeRustSdkBundle {
+                        sdk,
+                        project_revision: subject.project_revision.clone(),
+                        workspace_revision: subject.workspace_revision.clone(),
+                        subject_digest: subject.digest.clone(),
+                    });
+                }
                 let mut plans = Vec::with_capacity(ordered.len());
                 let mut sources = Vec::with_capacity(ordered.len());
                 for selected in ordered {
@@ -186,12 +206,22 @@ pub(super) fn prepare_project_bindings(
             (
                 ItemKind::Function | ItemKind::InherentMethod,
                 Receiver::None
-            ) | (ItemKind::InherentMethod, Receiver::Shared)
+            ) | (ItemKind::InherentMethod, Receiver::Shared | Receiver::Owned)
         ) {
             return Err(located(
                 "SPX-B144",
                 "selected Project Rust receiver is unsupported",
             ));
+        }
+        let owner_result = item
+            .signature
+            .rsplit_once(") -> ")
+            .is_some_and(|(_, result)| {
+                result == "Self" || Some(result) == path.rsplit_once("::").map(|p| p.0)
+            });
+        if item.receiver == Receiver::Owned || owner_result {
+            indexed_owner::require_owner_type(&index, item)
+                .map_err(|message| located("SPX-B145", message))?;
         }
         bindings.push(ProjectIndexedRustImport {
             source_path: selected.source_path.into(),
@@ -200,7 +230,9 @@ pub(super) fn prepare_project_bindings(
             rust_path: path.into(),
             signature: item.signature.clone(),
             index_digest: index.digest().into(),
-            receiver: if item.receiver == Receiver::Shared {
+            receiver: if item.receiver == Receiver::Owned {
+                "owned"
+            } else if item.receiver == Receiver::Shared {
                 "shared"
             } else {
                 "none"

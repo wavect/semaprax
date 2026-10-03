@@ -39,8 +39,18 @@ pub(super) fn reachable_scalar_types(
             )]);
         }
     }
-    hir::reachable_authored_types(functions, function_instances, &[], &available)
-        .map_err(|error| vec![error])
+    let owner_interfaces = modules
+        .iter()
+        .flat_map(|module| &module.interfaces)
+        .cloned()
+        .collect::<Vec<_>>();
+    hir::reachable_scalar_authored_types(
+        functions,
+        function_instances,
+        &available,
+        &owner_interfaces,
+    )
+    .map_err(|error| vec![error])
 }
 
 pub(super) fn program_imports_vec_wrapper(program: &Program, programs: &[Program]) -> bool {

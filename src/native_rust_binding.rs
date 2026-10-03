@@ -4,6 +4,9 @@
 //! record with checked HIR and produces an inert binding plan. It neither
 //! grants execution authority nor turns an index signature into Rust code.
 
+mod owner;
+pub use owner::bind_selected_owner_signature;
+
 use sha2::{Digest, Sha256};
 use std::fmt::Write as _;
 

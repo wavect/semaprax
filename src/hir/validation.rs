@@ -271,12 +271,14 @@ impl<'a> HirValidator<'a> {
             }
             for import in &interface.imports {
                 if import.selected_receiver.as_deref().is_some_and(|receiver| {
-                    receiver != "shared"
-                        || !import.index_selected
-                        || !matches!(import.parameters.first(), Some(parameter) if parameter.ty == ResolvedType::I64 && parameter.ownership == OwnershipMode::Value)
+                    !import.index_selected || match receiver {
+                        "shared" => !matches!(import.parameters.first(), Some(p) if p.ty == ResolvedType::I64 && p.ownership == OwnershipMode::Value),
+                        "owned" => !matches!(import.parameters.first(), Some(p) if matches!(p.ty, ResolvedType::Nominal { .. }) && p.ownership == OwnershipMode::Own),
+                        _ => true,
+                    }
                 }) {
                     return Err(hir_error(
-                        "selected Rust method receiver has an invalid scalar projection",
+                        "selected Rust method receiver has an invalid ownership projection",
                     ));
                 }
                 if import.index_selected

@@ -24,7 +24,10 @@ pub fn prepare_opaque_owner_native(
     render(&resolved, function_id)
 }
 
-fn render(program: &ResolvedProgram, function_id: &str) -> Result<OpaqueOwnerNative, Diagnostic> {
+pub(super) fn render(
+    program: &ResolvedProgram,
+    function_id: &str,
+) -> Result<OpaqueOwnerNative, Diagnostic> {
     semaprax::hir::validate(program)?;
     let imports = program
         .interfaces

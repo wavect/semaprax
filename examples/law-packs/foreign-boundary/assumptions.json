@@ -1,0 +1,11 @@
+{
+  "law_id": "law09.add.range",
+  "law_version": 1,
+  "semantics": "checked-v1",
+  "assumption_id": "law09.add.behavior",
+  "assumes_no_effects": true,
+  "assumes_no_callbacks": true,
+  "assumes_no_panics": true,
+  "assumes_no_shared_state": true,
+  "return_i64_range": [0, 50]
+}

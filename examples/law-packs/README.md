@@ -58,6 +58,17 @@ instead of `held`; restoring the body repairs the claim. The
 [README](architecture/README.md) gives the exact CLI and owning test commands
 and the static-graph trust boundary.
 
-The collection and Rust-boundary packs are separate LAW-15 work.
+## Foreign boundary v1
+
+[`foreign-boundary/`](foreign-boundary/) binds a saved canonical Project and
+four reviewed assumptions to a real guarded indexed native SDK. Correct,
+bad-return and repaired Rust bodies execute under the unchanged range law;
+a fourth body returning zero passes that weak law and demonstrates why a
+signature and a range guard do not prove addition. The
+[README](foreign-boundary/README.md) gives the exact owning physical command,
+and its [report walkthrough](foreign-boundary/REPORT.md) separates conditional
+source evidence from observed calls and unproved foreign behavior.
+
+The collection pack remains separate LAW-15 work.
 A collection pack requires LAW-08's source-authenticated structural induction
 and cannot be represented by bounded tests alone.

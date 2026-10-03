@@ -1,8 +1,11 @@
 # Foreign Law Trust Frontier v1
 
-Status: bounded LAW-09 implementation tranche. The completion matrix records the
-executable gate and remaining source/proof integration. This report does not
-certify a foreign implementation.
+Status: implemented bounded LAW-09 profile. The admitted route is one exact
+scalar i64 return guard and a checked direct-forwarding Project caller, with
+explicit conditional host policy. The completion matrix records its executable
+gates. Managed Workspace `ACTIVE` integration and externally checked foreign
+theorem tokens are outside this profile; theorem-required requests refuse. This
+report does not certify a foreign implementation.
 
 `native_rust_binding::foreign_law::derive` consumes one existing
 `ScalarBindingPlan`, checks it again against the exact resolved Rust import,
@@ -99,3 +102,13 @@ theorem requirements continue to refuse until a separately checked semantic
 association exists. Exact published-package replay does not claim an OS
 sandbox against concurrent same-principal mutation. Tests and signatures
 alone never establish the foreign implementation's behavior.
+
+## First-user foreign-boundary law pack
+
+The [versioned saved example](../examples/law-packs/foreign-boundary/README.md)
+is bound directly to the guarded indexed Project SDK owning physical test.
+It keeps the range law and four assumptions unchanged while executing correct,
+bad-return and repaired Rust implementations. A zero-return control passes the
+range guard to expose the law's limited strength. Its report walkthrough states
+which source fact is proved, which foreign conditions are assumed, and which
+native calls are observed separately from static report derivation.

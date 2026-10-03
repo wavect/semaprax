@@ -1,0 +1,6 @@
+schema = "semaprax.project.v1"
+name = "foreign-boundary-law-v1"
+entry = "interop.fixture"
+sources = ["src/app.spx", "src/tests.spx"]
+web_exports = ["interop.add"]
+tests = ["interop.tests"]

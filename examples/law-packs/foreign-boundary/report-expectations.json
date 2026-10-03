@@ -1,0 +1,11 @@
+{
+  "accepted": true,
+  "foreign_internals_proved": false,
+  "runtime_call_observed": false,
+  "accepted_conditions": [
+    "law09.add.behavior:no_callbacks",
+    "law09.add.behavior:no_effects",
+    "law09.add.behavior:no_panics",
+    "law09.add.behavior:no_shared_state"
+  ]
+}

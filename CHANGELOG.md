@@ -1,5 +1,15 @@
 # Changelog
 
+- Bind the LAW-15 foreign-boundary pack to the real guarded indexed Project
+  SDK harness. Saved canonical source and explicit versioned assumptions drive
+  correct, bad-return and repaired native consumers under one unchanged range
+  law; a zero-return control exposes that law's limited strength. The report
+  walkthrough separates checked caller routing, accepted foreign assumptions
+  and observed native results without claiming a foreign-body theorem. The
+  exact physical gate passed 1/1; the bounded LAW-09 profile satisfies its
+  stated frontier criteria, with managed ACTIVE and foreign theorem tokens
+  outside its admitted route.
+
 - Exercise the selected interpreter-backed Project async export through a
   real locked local `reqwest` request under an explicit Tokio current-thread
   runtime. The resumed checked source computes `84` from a server-returned

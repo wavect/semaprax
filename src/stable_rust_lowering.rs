@@ -410,6 +410,40 @@ mod tests {
     }
 
     #[test]
+    fn refuses_a_forged_same_fixture_cleanup_plan_before_emitting_rust() {
+        let parsed = crate::parse(
+            OWNED_IDENTITY_DIFFERENTIAL,
+            Path::new("ri14-forged-cleanup.spx"),
+        )
+        .unwrap();
+        let mut forged = hir::resolve(&parsed).unwrap();
+        let function = forged
+            .functions
+            .iter_mut()
+            .find(|function| function.id.as_str() == "ri14.transfer.identity")
+            .unwrap();
+        let removed = function
+            .cleanup_plan
+            .blocks
+            .iter_mut()
+            .find(|block| !block.transitions.is_empty())
+            .unwrap()
+            .transitions
+            .pop();
+        assert!(removed.is_some());
+
+        assert!(hir::validate(&forged).is_err());
+        assert_eq!(
+            lower_noninert_cleanup_plan(
+                &forged,
+                &DeclarationId::new("ri14.transfer.identity"),
+                &binding(),
+            ),
+            Err(StableRustLoweringError::InvalidHir)
+        );
+    }
+
+    #[test]
     fn generated_owned_identity_matches_interpreter_and_c11_when_explicitly_enabled() {
         let Some(rustc) = std::env::var_os("SEMAPRAX_RI14_RUSTC") else {
             eprintln!("RI-14 generated Rust differential disabled; set SEMAPRAX_RI14_RUSTC");
@@ -444,19 +478,48 @@ mod tests {
             &expected,
         )
         .unwrap();
+        println!(
+            "RI-14 artifact: function={} cleanup_schema={} digest={} target={} rustc_commit={}",
+            artifact.function().as_str(),
+            artifact.cleanup_schema(),
+            artifact.digest(),
+            artifact.target(),
+            artifact.rustc_commit(),
+        );
 
         let root = temporary_root("owned-identity");
         std::fs::create_dir(&root).unwrap();
         let generated = root.join("generated.rs");
         let driver = root.join("main.rs");
-        let rust_binary = root.join(format!("generated{}", std::env::consts::EXE_SUFFIX));
         std::fs::write(&generated, artifact.source()).unwrap();
         std::fs::write(
             &driver,
             r#"include!("generated.rs");
+fn invoke_generated_from_generic_callback<T, F>(value: T, mut callback: F) -> Vec<u8>
+where
+    F: FnMut(T) -> Vec<u8>,
+{
+    std::iter::once(value)
+        .map(callback)
+        .next()
+        .expect("one-item iterator invokes the generated callback once")
+}
+
 fn main() {
     let mut trace = Vec::new();
-    let value = spx_entry(Some(vec![0, 255, 7, 0]), &mut trace);
+    let mut callback_invocations = 0usize;
+    // `spx_entry` is included from the artifact generated from the checked
+    // `ri14.transfer.identity` HIR below.  The generic callback is therefore
+    // a real stable-Rust call into generated source, rather than a separate
+    // handwritten witness.
+    let value = invoke_generated_from_generic_callback(
+        Some(vec![0, 255, 7, 0]),
+        |input| {
+            callback_invocations += 1;
+            spx_entry(input, &mut trace)
+        },
+    );
+    assert_eq!(callback_invocations, 1);
     assert_eq!(value, vec![0, 255, 7, 0]);
     assert_eq!(trace.as_slice(), SPX_CLEANUP_ACTIONS);
     assert_eq!(spx_lexical_drop_negative_control(), vec!["lexical.second", "lexical.first"]);
@@ -465,21 +528,27 @@ fn main() {
 "#,
         )
         .unwrap();
-        command_output(
-            Command::new(&rustc)
-                .arg("--edition=2021")
-                .arg(&driver)
-                .arg("-o")
-                .arg(&rust_binary),
-            "generated stable Rust compilation",
-        );
-        assert_eq!(
+        for (label, opt_level) in [("O0", "0"), ("O3", "3")] {
+            let rust_binary =
+                root.join(format!("generated-{label}{}", std::env::consts::EXE_SUFFIX));
             command_output(
-                &mut Command::new(&rust_binary),
-                "generated stable Rust execution"
-            ),
-            b"[0, 255, 7, 0]|[\"Transfer(parameter -> temporary)\", \"Transfer(temporary -> provisional-result)\"]\n"
-        );
+                Command::new(&rustc)
+                    .arg("--edition=2021")
+                    .arg("-C")
+                    .arg(format!("opt-level={opt_level}"))
+                    .arg(&driver)
+                    .arg("-o")
+                    .arg(&rust_binary),
+                &format!("generated stable Rust {label} compilation"),
+            );
+            assert_eq!(
+                command_output(
+                    &mut Command::new(&rust_binary),
+                    &format!("generated stable Rust {label} execution"),
+                ),
+                b"[0, 255, 7, 0]|[\"Transfer(parameter -> temporary)\", \"Transfer(temporary -> provisional-result)\"]\n"
+            );
+        }
 
         let source_path = root.join("identity.spx");
         std::fs::write(&source_path, OWNED_IDENTITY_DIFFERENTIAL).unwrap();
@@ -495,23 +564,28 @@ fn main() {
         assert_eq!(envelope["payload"]["outcome"]["value"], "42");
 
         let c_source = root.join("identity.c");
-        let c_binary = root.join(format!("identity{}", std::env::consts::EXE_SUFFIX));
         std::fs::write(&c_source, crate::codegen::emit_c(&parsed).unwrap()).unwrap();
-        assert_eq!(
-            command_output(
-                Command::new(&clang)
-                    .args(["-std=c11", "-Wall", "-Wextra", "-Werror"])
-                    .arg(&c_source)
-                    .arg("-o")
-                    .arg(&c_binary),
-                "C11 identity compilation",
-            ),
-            b""
-        );
-        assert_eq!(
-            command_output(&mut Command::new(&c_binary), "C11 identity execution"),
-            b"42\n"
-        );
+        for opt in ["-O0", "-O2"] {
+            let c_binary = root.join(format!("identity-{opt}{}", std::env::consts::EXE_SUFFIX));
+            assert_eq!(
+                command_output(
+                    Command::new(&clang)
+                        .args(["-std=c11", "-Wall", "-Wextra", "-Werror", opt])
+                        .arg(&c_source)
+                        .arg("-o")
+                        .arg(&c_binary),
+                    &format!("C11 identity {opt} compilation"),
+                ),
+                b""
+            );
+            assert_eq!(
+                command_output(
+                    &mut Command::new(&c_binary),
+                    &format!("C11 identity {opt} execution"),
+                ),
+                b"42\n"
+            );
+        }
         std::fs::remove_dir_all(root).unwrap();
     }
 

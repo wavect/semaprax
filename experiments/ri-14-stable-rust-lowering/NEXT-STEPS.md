@@ -10,16 +10,20 @@ requires all of the following executable evidence at one source revision:
    checked artifact digest bound to each executable fixture.
 2. The same bounded corpus must execute through interpreter, native C11, and
    Rust-source lowering, comparing value, selected status, effects, and cleanup
-   traces. The owned-`Bytes` identity selector now compares the shared value
-   and proves the generated Rust transfer trace and lexical-`Drop` control,
-   but interpreter and C11 still expose no cleanup trace to compare. The
-   lexical-`Drop` control must fail a common-trace differential gate.
+   traces. The owned-`Bytes` identity selector compares the shared value across
+   generated Rust `-C opt-level=0`/`3` and C11 `-O0`/`2`, proves the generated
+   Rust transfer trace and lexical-`Drop` control, and refuses a forged version
+   of that fixture's cleanup plan before source emission. Interpreter and C11
+   still expose no cleanup trace to compare. The lexical-`Drop` control must
+   fail a common-trace differential gate.
 3. The admitted type/effect/ownership island must be explicit.  Borrowing,
    contracts, resources, async, unadmitted aggregates, and foreign owners need
    a deterministic rejection or an explicit existing boundary.
-4. A real generic Rust library call plus callback must run from generated Rust,
-   and its stable diagnostics must bind the generated source digest, target,
-   toolchain identity, and selected HIR revision.
+4. A real generic Rust library call plus callback now invokes the generated,
+   checked-HIR owned-identity artifact in the focused selector. This proves
+   source provenance at that boundary, but not generic Semaprax callback
+   lowering. Stable diagnostics still need to bind the generated source digest,
+   target, toolchain identity, and selected HIR revision.
 5. The experiment must measure wrapper count, type-check fidelity, diagnostics,
    build time, allocations, optimized-call overhead, C11 coupling, and
    maintenance cost against the RI-01 bridge.  Default targets and the stable

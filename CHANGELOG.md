@@ -1,5 +1,13 @@
 # Changelog
 
+- Complete the RI-14 stable Rust-source experiment with a no-go promotion
+  decision. The feature-gated checked-HIR owned-Bytes island executed through
+  pinned stable Rust at O0/O3, while the same source's scalar entry ran in the
+  interpreter and C11 at O0/O2. Six focused cases passed, including a generic
+  Rust callback and forged-cleanup refusal. Shared physical cleanup traces and
+  matched allocation/overhead measurements are unavailable, so default targets
+  and support claims remain unchanged.
+
 - Extend private generated Regex/Url adapters with invocation-scoped owner-tied
   string views. Keep re-entry guards through forgotten views and unwind, reject
   moves/mutation/escaping views at Rust compile time, and execute pinned-library

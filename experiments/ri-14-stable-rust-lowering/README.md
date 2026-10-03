@@ -52,11 +52,14 @@ selected by the normal compiler.
 
 The feature test `generated_owned_identity_matches_interpreter_and_c11_when_explicitly_enabled`
 is the executable selector for the admitted island. It writes generated Rust,
-its driver, and C11 output beneath a unique temporary directory; the generated
-Rust driver proves the `Option::take` trace and the lexical-`Drop` reverse-order
-control, while the interpreter and C11 entrypoint both produce `42` from the
-same checked Semaprax source. It runs only when both held tools are explicitly
-bound:
+its driver, and C11 output beneath a unique temporary directory. The driver
+includes the `spx_entry` artifact derived from checked
+`ri14.transfer.identity` HIR, then invokes that artifact through a real stable
+Rust `Iterator::map` generic callback. It proves the `Option::take` trace and
+the lexical-`Drop` reverse-order control, while the interpreter and C11
+entrypoint both produce `42` from the same checked Semaprax source. The
+generated Rust runs at `-C opt-level=0` and `-C opt-level=3`; C11 runs at
+`-O0` and `-O2`. It runs only when both held tools are explicitly bound:
 
 ```sh
 SEMAPRAX_RI14_RUSTC=/absolute/path/to/rustc \
@@ -66,6 +69,13 @@ cargo test --locked --features unstable-rust-source-lowering \
 ```
 
 Before compiling, the selector verifies `rustc --version --verbose` against
-the target and commit in `toolchain.lock`. It does not claim a common physical
-cleanup trace from interpreter and C11, because those routes expose no such
-trace for this island.
+the target and commit in `toolchain.lock`. It does not claim a generic
+Semaprax callback lowering: the callback belongs to the generated Rust driver.
+It also does not claim a common physical cleanup trace from interpreter and
+C11, because those routes expose no such trace for this island.
+
+[`MEASURED-REPORT.md`](MEASURED-REPORT.md) is the required fill-in record for
+the focused execution. It fixes the tool, target, optimization-level, output,
+negative-control, timing, diagnostic, wrapper, allocation, and call-overhead
+fields before a go/no-go decision is recorded. Empty or unavailable fields do
+not support promotion.

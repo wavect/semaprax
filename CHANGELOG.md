@@ -1,5 +1,10 @@
 # Changelog
 
+- Add a private CLI integration negative control: check, format check, query,
+  and graph run beside a hostile Rust build script and proc macro with Cargo
+  and rustc marker shims, leaving every marker and source byte unchanged. No
+  rich Native Rust index replay CLI route exists in this profile.
+
 - Add a read-only private `native-authority-check` CLI route over explicit plan,
   crate, and selected tool files. It exercises the native profile's build or
   dispatch admission and reports actual unsupported target, missing tool,

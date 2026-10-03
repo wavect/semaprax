@@ -3,6 +3,9 @@ use std::process::{Command, Output};
 use std::sync::atomic::{AtomicU64, Ordering};
 
 static NEXT: AtomicU64 = AtomicU64::new(0);
+#[cfg(unix)]
+#[path = "cli_help_surface_v1/native_pure_routes.rs"]
+mod native_pure_routes;
 const SHAPES_CATALOG_PATH: &str = "../../docs/LANGUAGE-SHAPES-CATALOG.md";
 const DOCTOR_LINE: &str = "semaprax doctor [--profile <id>] [--target native|web|all] [--json]\n";
 const NEW_LINE: &str =

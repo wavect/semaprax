@@ -1,11 +1,16 @@
 //! RI-14's deliberately tiny, nondefault stable-Rust lowering seam.
 //!
 //! It consumes only validated HIR and its attached canonical cleanup plan.
-//! The admitted island is one parameter-free `i64` literal function with an
-//! inert ownership plan.  Every other shape is rejected before source exists.
+//! The admitted islands are one parameter-free `i64` literal with an inert
+//! plan and one whole-value owned-`Bytes` transfer. Every other shape is
+//! rejected before source exists.
 
-use crate::hir::{
-    self, DeclarationId, ResolvedExprKind, ResolvedFunction, ResolvedProgram, ResolvedType,
+use crate::{
+    cleanup_plan::{CleanupTransition, StorageId},
+    hir::{
+        self, DeclarationId, OwnershipMode, ResolvedExprKind, ResolvedFunction, ResolvedProgram,
+        ResolvedType,
+    },
 };
 use sha2::{Digest, Sha256};
 
@@ -106,8 +111,13 @@ pub fn lower_i64_literal(
     Ok(artifact(source, function, binding))
 }
 
-/// Emit the exact canonical cleanup action order as Rust fixture data.
-/// The execution lowerer must consume this projection rather than rely on Drop.
+/// Lower one verified owned-`Bytes` return through its canonical transfer.
+///
+/// The only admitted non-inert plan has exactly one `Transfer`, from the
+/// whole owned parameter to the whole provisional result, and no finalizers.
+/// The generated `Option::take` is deliberately placed at that action. This
+/// is a physical move in generated stable Rust, rather than a reconstruction
+/// from lexical `Drop`. Every other cleanup plan remains refused.
 pub fn lower_noninert_cleanup_plan(
     program: &ResolvedProgram,
     function_id: &DeclarationId,
@@ -120,35 +130,90 @@ pub fn lower_noninert_cleanup_plan(
         .iter()
         .find(|candidate| candidate.id == *function_id)
         .ok_or(StableRustLoweringError::FunctionMissing)?;
+    if function.params.len() != 1
+        || function.params[0].ownership != OwnershipMode::Own
+        || function.params[0].ty != ResolvedType::Bytes
+        || function.return_type != ResolvedType::Bytes
+    {
+        return Err(StableRustLoweringError::UnsupportedSignature);
+    }
+    if !function.requires.is_empty()
+        || !function.ensures.is_empty()
+        || !function.effects.is_empty()
+        || function.yields.is_some()
+    {
+        return Err(StableRustLoweringError::UnsupportedContractsOrEffects);
+    }
+    let returned = match &function.body.kind {
+        ResolvedExprKind::Place(place) => place,
+        ResolvedExprKind::Block { statements, tail } if statements.is_empty() => match &tail.kind {
+            ResolvedExprKind::Place(place) => place,
+            _ => return Err(StableRustLoweringError::UnsupportedExpression),
+        },
+        _ => return Err(StableRustLoweringError::UnsupportedExpression),
+    };
+    if returned.root != function.params[0].id || !returned.projections.is_empty() {
+        return Err(StableRustLoweringError::UnsupportedExpression);
+    }
     let transitions = function
         .cleanup_plan
         .blocks
         .iter()
         .flat_map(|block| block.transitions.iter())
-        .map(|transition| format!("{transition:?}"))
         .collect::<Vec<_>>();
-    let finalizers = function
+    let has_finalizer = function
         .cleanup_plan
         .exits
         .iter()
-        .flat_map(|exit| exit.finalize_in_order.iter())
-        .map(|action| format!("{action:?}"))
-        .collect::<Vec<_>>();
-    if transitions.is_empty() && finalizers.is_empty() {
+        .any(|exit| !exit.finalize_in_order.is_empty());
+    if transitions.is_empty() && !has_finalizer {
         return Err(StableRustLoweringError::InertCleanupPlan);
+    }
+    let parameter = &function.params[0];
+    let admitted_transfer = match transitions.as_slice() {
+        [CleanupTransition::Transfer {
+            source,
+            destination,
+            ..
+        }] => {
+            matches!(
+                (&source.storage, &destination.storage),
+                (StorageId::Value(value), StorageId::ProvisionalResult)
+                    if value == &parameter.id
+            ) && source.projections.is_empty()
+                && destination.projections.is_empty()
+        }
+        _ => false,
+    };
+    if !admitted_transfer || has_finalizer {
+        return Err(StableRustLoweringError::UnsupportedOwnershipPlan);
     }
     let mut source = format!(
         "// RI-14 validated HIR function: {}\n// cleanup-plan schema: {}\n",
         function.id.as_str(),
         function.cleanup_plan.schema
     );
-    source.push_str("pub const SPX_CLEANUP_ACTIONS: &[&str] = &[\n");
-    for action in transitions.iter().chain(finalizers.iter()) {
-        source.push_str("    ");
-        source.push_str(&format!("{:?}", action));
-        source.push_str(",\n");
-    }
-    source.push_str("];\n");
+    source.push_str(
+        "pub const SPX_CLEANUP_ACTIONS: &[&str] = &[\"Transfer(parameter -> provisional-result)\"];\n\
+pub fn spx_entry(mut value: Option<Vec<u8>>, trace: &mut Vec<&'static str>) -> Vec<u8> {\n\
+    trace.push(SPX_CLEANUP_ACTIONS[0]);\n\
+    let result = value.take().expect(\"verified owned parameter is live at transfer\");\n\
+    result\n\
+}\n\n\
+pub fn spx_lexical_drop_negative_control() -> Vec<&'static str> {\n\
+    use std::{cell::RefCell, rc::Rc};\n\
+    struct LexicalDrop(Rc<RefCell<Vec<&'static str>>>, &'static str);\n\
+    impl Drop for LexicalDrop {\n\
+        fn drop(&mut self) { self.0.borrow_mut().push(self.1); }\n\
+    }\n\
+    let trace = Rc::new(RefCell::new(Vec::new()));\n\
+    {\n\
+        let _first = LexicalDrop(trace.clone(), \"lexical.first\");\n\
+        let _second = LexicalDrop(trace.clone(), \"lexical.second\");\n\
+    }\n\
+    Rc::try_unwrap(trace).expect(\"lexical controls released\").into_inner()\n\
+}\n",
+    );
     Ok(artifact(source, function, binding))
 }
 
@@ -264,6 +329,28 @@ mod tests {
             ),
             Err(StableRustLoweringError::UnsupportedExpression)
         );
+    }
+
+    #[test]
+    fn lowers_verified_owned_bytes_identity_through_its_single_transfer() {
+        let source = "module ri14.transfer;\n@id(\"ri14.transfer.identity\") fn identity(value: own Bytes) -> Bytes { value }\n@id(\"ri14.transfer.main\") fn main() -> i64 { 0 }\n";
+        let parsed = crate::parse(source, Path::new("ri14-transfer.spx")).unwrap();
+        let resolved = hir::resolve(&parsed).unwrap();
+        let artifact = lower_noninert_cleanup_plan(
+            &resolved,
+            &DeclarationId::new("ri14.transfer.identity"),
+            &binding(),
+        )
+        .unwrap();
+        assert!(artifact
+            .source()
+            .contains("Transfer(parameter -> provisional-result)"));
+        assert!(artifact.source().contains("value.take()"));
+        assert!(artifact
+            .source()
+            .contains("spx_lexical_drop_negative_control"));
+        assert!(artifact.source().contains("lexical.second"));
+        assert!(artifact.source().contains("lexical.first"));
     }
 
     #[test]

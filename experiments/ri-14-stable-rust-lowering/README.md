@@ -36,10 +36,16 @@ semantics.  It does not compare C11 and Rust traces from the same checked HIR,
 measure a bridge, or make any target or support claim.  Those gaps are listed
 in [`NEXT-STEPS.md`](NEXT-STEPS.md).
 
-The nondefault `unstable-rust-source-lowering` feature now exposes
-`stable_rust_lowering::lower_i64_literal`.  It validates a real
-`ResolvedProgram`, retains its canonical cleanup-plan schema, and emits Rust
-only for a parameter-free `i64` literal with an inert ownership plan.  It
-explicitly rejects every other signature, contract/effect, ownership action,
-and expression shape.  The module is an emitter seam for the fixture, not a
-route selected by the normal compiler.
+The nondefault `unstable-rust-source-lowering` feature exposes
+`stable_rust_lowering::lower_i64_literal` and
+`stable_rust_lowering::lower_noninert_cleanup_plan`. Both validate a real
+`ResolvedProgram` before inspecting it. The latter admits exactly one owned
+`Bytes` identity: its entire canonical plan must be a single transfer from the
+whole parameter to the provisional result and have no finalizers. Its emitted
+stable Rust performs `Option::take` at that transfer and exposes the recorded
+action in its trace. It also emits an executable lexical-`Drop` control whose
+reverse declaration order differs from the Semaprax transfer trace.
+
+The lowerer refuses every other signature, contract/effect, ownership action,
+and expression shape. It is an emitter seam for the fixture, not a route
+selected by the normal compiler.

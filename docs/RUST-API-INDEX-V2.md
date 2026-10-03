@@ -88,9 +88,17 @@ requires an explicit prior source acquisition; no build-time network access is
 allowed.
 
 An index provides discovery only. Rust remains authoritative for the selected
-signature and call on the stable target. The current scalar adapter admits
-only its narrow receiver-free scalar ABI; regex methods such as `&self` and
-`&str` remain outside that ABI. RI-03 still needs stable generated-signature
-validation integrated with the binding construction boundary and an explicit
-over-limit extractor regression. The v2 regex envelope is compiler-resolved
-index evidence only, not adapter support.
+signature and call on the stable target. The RI-04 indexed scalar integration
+gate starts from a v2 extractor envelope, calls the public indexed builder,
+then compiles and runs its generated adapter with stable rustc. The gate covers
+a successful typed provider, a wrong return type rejected by rustc, and a
+same-signature provider whose result is rejected before publication. It is an
+owning-builder integration test; this replay crate itself never launches a
+compiler. The builder binds its selected compiler identity to the index; it returns
+adapter source and does not launch rustc during index replay. The integration
+test compiles and executes that source with stable rustc, while the test suite
+is adding an explicit equality check between the actual rustc version and the
+indexed compiler identity. The current scalar adapter admits only its narrow
+receiver-free scalar ABI; regex methods such as `&self` and `&str` remain
+outside that ABI. The v2 regex envelope is compiler-resolved index evidence
+only, not adapter support.

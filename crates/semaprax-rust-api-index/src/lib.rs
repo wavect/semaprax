@@ -1178,6 +1178,24 @@ mod tests {
             Err(IndexError::IdentityMismatch)
         );
         assert_eq!(
+            index.require_identity(
+                &index.package().source_sha256,
+                "x86_64-unknown-linux-gnu",
+                index.feature_digest()
+            ),
+            Err(IndexError::IdentityMismatch),
+            "a stale target must be rejected"
+        );
+        assert_eq!(
+            index.require_identity(
+                &index.package().source_sha256,
+                index.target(),
+                "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            ),
+            Err(IndexError::IdentityMismatch),
+            "stale features must be rejected"
+        );
+        assert_eq!(
             RustApiIndex::admit_extractor_output(b"{\"schema\":\"missing\",\"index\":{}}\n"),
             Err(IndexError::SetupRequired)
         );

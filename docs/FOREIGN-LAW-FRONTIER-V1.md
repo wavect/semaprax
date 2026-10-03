@@ -74,9 +74,15 @@ its expected digest is supplied by the caller. The guarded builder now retains
 the exact frontier in its private `ProjectNativeRustSdkBundle` and can issue
 `GuardedForeignCallerEvidence` only after matching the caller, source, target,
 manifest digest and all package bytes. Its replay repeats those checks. This
-is a builder-owned publication token, but no core LawSet or strict route yet
-consumes it; protected coverage remains open. Guard source authentication is
-not evidence that a call executed.
+is a builder-owned publication token. An explicit builder-only conditional
+strict route consumes it for exactly one protected `foreign_guarded_caller` law
+with a uniquely identified Project source owner. It replays the ordinary open inventory, exact source
+owner and law scope, the host's `ForeignConditionalGuard` adapter/summary pins,
+and every accepted condition before deriving a distinct versioned report.
+Submitted report bytes are rederived at `require`. The ordinary core LawSet and
+strict routes stay open, and this conditional route grants no Project run or
+publication authority. Guard source authentication is not evidence that a
+call executed.
 
 No externally validated theorem identity is provisioned in this profile;
 theorem requirements continue to refuse until a separately checked semantic

@@ -1,5 +1,11 @@
 # Changelog
 
+- Add an explicit builder-owned LAW-09 conditional strict report for one
+  protected foreign law with a unique Project source owner. It requires the
+  guarded SDK publication token, exact host-pinned adapter/summary and all named
+  assumptions; forged report bytes and narrower condition policies refuse.
+  The ordinary core strict route stays open, and no foreign theorem is claimed.
+
 - Add a selected-host LAW-12 CLI failure and repair workflow. The additive
   `project-proof-check --workflow` route replays the complete strict law verdict
   after protected-baseline admission, reports bounded summary/detail views,

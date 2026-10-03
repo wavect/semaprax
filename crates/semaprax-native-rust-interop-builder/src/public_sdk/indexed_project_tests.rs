@@ -586,6 +586,12 @@ fn guarded_indexed_project_sdk_checks_physical_return_before_semantic_publicatio
         &root.join("semaprax.toml"),
         &bindings,
         |snapshot| {
+            use semaprax::assurance_manifest::law_set::{
+                self,
+                strict::{self, RequiredLawEvidence, StrictLawPolicy},
+                EvidenceRequirement, LawDefinition, LawModule, LawSelector, LawSet,
+            };
+            use std::collections::BTreeMap;
             let revision = snapshot.retain_revision();
             let import = revision
                 .entry_program()
@@ -651,6 +657,94 @@ fn guarded_indexed_project_sdk_checks_physical_return_before_semantic_publicatio
             evidence.replay(&revision)?;
             assert_eq!(evidence.manifest_digest(), bundle.manifest_digest());
             assert_eq!(evidence.caller().conditions().len(), 4);
+            let conditions = evidence.caller().conditions().to_vec();
+            let laws = LawSet::derive(
+                &revision,
+                "checked-v1",
+                vec![LawModule {
+                    module_id: "interop.foreign.laws".into(),
+                    source_path: "src/app.spx".into(),
+                    assumptions: conditions.clone(),
+                    laws: vec![LawDefinition {
+                        law_id: law.law_id.clone(),
+                        selector: LawSelector::ForeignGuardedCaller {
+                            caller_id: "interop.add".into(),
+                            import_id: "host.add".into(),
+                            minimum: 0,
+                            maximum: 50,
+                        },
+                        assumption_ids: conditions.clone(),
+                        requires_laws: vec![],
+                        evidence: EvidenceRequirement::RuntimeGuarded,
+                    }],
+                }],
+            )?;
+            let policy = StrictLawPolicy::new(
+                laws.clone(),
+                BTreeMap::from([(
+                    law.law_id.clone(),
+                    RequiredLawEvidence::ForeignConditionalGuard {
+                        adapter_digest: bundle.manifest_digest().into(),
+                        summary_digest: evidence.caller().frontier().summary_digest().into(),
+                        accepted_conditions: conditions.clone(),
+                    },
+                )]),
+            )?;
+            let ordinary = law_set::derive_report(
+                &revision,
+                &laws,
+                &law_set::LawPolicy::strict(laws.clone())?,
+            )?;
+            let ordinary: Value = serde_json::from_str(&ordinary).unwrap();
+            assert_eq!(ordinary["payload"]["accepted"], false);
+            let core_strict = strict::derive(&revision, &laws, &policy, &[])?;
+            let core_strict: Value = serde_json::from_str(&core_strict).unwrap();
+            assert_eq!(core_strict["accepted"], false);
+            let conditional =
+                evidence.derive_conditional_strict_law_report(&revision, &laws, &policy)?;
+            let view: Value = serde_json::from_str(&conditional).unwrap();
+            assert_eq!(view["accepted"], true);
+            assert_eq!(view["foreign_internals_proved"], false);
+            assert_eq!(view["runtime_call_observed"], false);
+            assert_eq!(view["accepted_conditions"].as_array().unwrap().len(), 4);
+            evidence.require_conditional_strict_law_report(
+                &conditional,
+                &revision,
+                &laws,
+                &policy,
+            )?;
+            let mut forged_report = conditional.clone();
+            forged_report.push(' ');
+            assert_eq!(
+                evidence
+                    .require_conditional_strict_law_report(
+                        &forged_report,
+                        &revision,
+                        &laws,
+                        &policy,
+                    )
+                    .unwrap_err()[0]
+                    .code,
+                "SPX-FL311"
+            );
+            let narrow = StrictLawPolicy::new(
+                laws.clone(),
+                BTreeMap::from([(
+                    law.law_id.clone(),
+                    RequiredLawEvidence::ForeignConditionalGuard {
+                        adapter_digest: bundle.manifest_digest().into(),
+                        summary_digest: evidence.caller().frontier().summary_digest().into(),
+                        accepted_conditions: conditions[..3].to_vec(),
+                    },
+                )]),
+            )?;
+            assert_eq!(
+                evidence
+                    .derive_conditional_strict_law_report(&revision, &laws, &narrow)
+                    .unwrap_err()[0]
+                    .code,
+                "SPX-FL311"
+            );
             Ok((evidence, revision))
         },
     )

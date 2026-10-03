@@ -78,8 +78,10 @@ must name the caller's source owner and every foreign condition as a declared
 assumption. Its protected coverage stays open. The source-derived caller
 certificate and published SDK guard verifier are read-only diagnostics. The
 guarded SDK builder can retain their exact identity in an opaque publication
-token, but no LawSet route currently consumes it. They do not prove
-hidden foreign effects, callbacks, panics or shared state.
+token. Its explicit one-law, source-owned conditional strict route consumes the
+protected baseline, exact selector, source owner, and all host-accepted
+conditions under replay. Ordinary core LawSet reports remain open. This route
+does not prove hidden foreign effects, callbacks, panics or shared state.
 
 ## Inventory, report, and policy
 

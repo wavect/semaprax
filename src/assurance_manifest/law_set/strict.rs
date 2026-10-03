@@ -36,6 +36,13 @@ pub enum RequiredLawEvidence {
         minimum_depth: usize,
         minimum_transitions: usize,
     },
+    /// Conditional foreign policy is consumed only with builder-owned
+    /// publication evidence. This core route deliberately remains open.
+    ForeignConditionalGuard {
+        adapter_digest: String,
+        summary_digest: String,
+        accepted_conditions: Vec<String>,
+    },
     /// Unpinned legacy request: use the explicit pinned SMT trust profile.
     SmtSource,
     /// Exact installed Z3 version and the frozen checked-arithmetic source
@@ -329,6 +336,9 @@ fn check_requirement(
                 return Some("source_protocol_source_or_domain_identity_mismatch");
             }
             None
+        }
+        RequiredLawEvidence::ForeignConditionalGuard { .. } => {
+            Some("builder_owned_foreign_publication_evidence_required")
         }
         RequiredLawEvidence::SmtSource => Some("solver_confirmed_project_attachment_unavailable"),
         RequiredLawEvidence::PinnedSmtSource {

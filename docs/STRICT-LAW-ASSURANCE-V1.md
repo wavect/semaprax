@@ -66,6 +66,14 @@ The profiles are deliberately separate, not a total evidence ordering:
   model, missing caller association, an unreplayed abstract trace, and bound
   exhaustion cannot satisfy this method. The report is rederived from retained
   Project source at strict replay; it grants no payment or publication authority.
+- `foreign_conditional_guard`: exact adapter and summary digests plus every
+  accepted foreign condition. Core `strict::derive` stays open. The guarded SDK
+  builder's distinct conditional route accepts only one protected foreign law
+  with a unique Project source owner and its private publication token. It replays the
+  Project caller, published guard and package bytes, protected law inventory,
+  source owner and complete condition set at both derive and require. The
+  report keeps foreign internals unproved and runtime observation false; it
+  grants no execution or publication authority.
 - `pinned_smt_source`: exact installed Z3 Project evidence, pinned version and
   explicitly accepted checked-arithmetic translation profile. A structurally
   valid SMT certificate is insufficient. Unpinned `smt_source` still refuses.

@@ -12,7 +12,6 @@ serde_json = "=1.0.151"
 sha2 = "=0.11.0"
 
 [dev-dependencies]
-regex = "=1.13.1"
 regex_alias = { package = "regex", version = "=1.13.1" }
 
 [lints.rust]

@@ -9,8 +9,15 @@ installed `nightly-2026-10-02` extractor. It records a selected stable compiler
 identity (`rustc 1.98.0 (88d9e12ae 2026-08-18) (Homebrew)`) and a selected
 `aarch64-apple-darwin` target plus fixture feature digest. The separate
 `local-api-fixture-prepared-v2.json` is a stable prepared projection for replay
-tests. The old regex v1 fixture is not admitted by v2 and must be regenerated
-before it can demonstrate package-index support.
+tests. `regex-1.13.1-index-envelope.json` is also a genuine v2 extraction from
+the locked registry source, using the `regex_alias` Cargo name, default feature,
+`aarch64-apple-darwin`, the pinned nightly rustdoc JSON format 61, and the
+selected stable rustc identity. It contains five selected methods and six
+reachable type records: `is_match` and `is_match_at` have complete public
+closures; `captures`, `find`, and `new` are rejected with
+`incomplete_type_closure` because their selected types reach unresolved public
+API dependencies. This is local evidence for that exact package build, not
+general crate or cross-target support.
 
 The Rust crate accepts a bounded canonical `semaprax.rust-api-index.v2`
 document. It never invokes Cargo, rustc, rustdoc, macro expansion, or foreign
@@ -83,8 +90,7 @@ allowed.
 An index provides discovery only. Rust remains authoritative for the selected
 signature and call on the stable target. The current scalar adapter admits
 only its narrow receiver-free scalar ABI; regex methods such as `&self` and
-`&str` remain outside that ABI. RI-03 acceptance still requires a genuine v2
-pinned regex index, stable generated-signature integration with binding
-construction, and focused boundary tests for type depth, expansion, and
-malformed output. Keep those gaps visible; do not treat the legacy v1 regex
-fixture as v2 evidence.
+`&str` remain outside that ABI. RI-03 still needs stable generated-signature
+validation integrated with the binding construction boundary and an explicit
+over-limit extractor regression. The v2 regex envelope is compiler-resolved
+index evidence only, not adapter support.

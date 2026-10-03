@@ -972,11 +972,8 @@ fn associated_type_value(metadata: &AssociatedTypeMetadata) -> Value {
     })
 }
 
-fn parse_fragments_value(fragments: &[String]) -> Vec<Value> {
-    fragments
-        .iter()
-        .map(|fragment| serde_json::from_str(fragment).expect("validated canonical JSON fragment"))
-        .collect()
+fn parse_fragments_value(fragments: &[String]) -> Vec<String> {
+    fragments.to_vec()
 }
 
 fn span_value(span: &SourceSpan) -> Value {
@@ -1321,15 +1318,22 @@ mod tests {
         index
             .require_package_identity("regex", "1.13.1", SOURCE, "aarch64-apple-darwin", FEATURES)
             .unwrap();
-        let selected = index
-            .select_supported(&[
-                "regex::Regex::captures",
-                "regex::Regex::find",
-                "regex::Regex::is_match",
-                "regex::Regex::new",
-            ])
+        index.require_cargo_alias_identity("regex_alias").unwrap();
+        assert_eq!(
+            index.require_cargo_alias_identity("regex"),
+            Err(IndexError::IdentityMismatch)
+        );
+        index
+            .require_stable_compiler_identity(&index.stable_rustc_version())
             .unwrap();
-        assert_eq!(selected.len(), 4);
+        assert_eq!(
+            index.require_stable_compiler_identity("rustc 1.97.1"),
+            Err(IndexError::IdentityMismatch)
+        );
+        let selected = index
+            .select_supported(&["regex::Regex::is_match", "regex::Regex::is_match_at"])
+            .unwrap();
+        assert_eq!(selected.len(), 2);
         assert!(selected
             .iter()
             .all(|item| item.kind == ItemKind::InherentMethod));
@@ -1337,10 +1341,29 @@ mod tests {
             .iter()
             .all(|item| item.support == Support::Supported));
 
-        let _: for<'h> fn(&regex::Regex, &'h str) -> Option<regex::Captures<'h>> =
-            regex::Regex::captures;
-        let _: for<'h> fn(&regex::Regex, &'h str) -> Option<regex::Match<'h>> = regex::Regex::find;
-        let _: fn(&regex::Regex, &str) -> bool = regex::Regex::is_match;
-        let _: fn(&str) -> Result<regex::Regex, regex::Error> = regex::Regex::new;
+        for (path, reason) in [
+            (
+                "regex::Regex::captures",
+                RejectionReason::IncompleteTypeClosure,
+            ),
+            ("regex::Regex::find", RejectionReason::IncompleteTypeClosure),
+            ("regex::Regex::new", RejectionReason::IncompleteTypeClosure),
+        ] {
+            let item = index.items().iter().find(|item| item.path == path).unwrap();
+            assert_eq!(item.support, Support::Rejected { reason });
+            assert!(!item.closure_complete);
+            assert_eq!(
+                index.select_supported(&[path]),
+                Err(IndexError::ItemUnavailable)
+            );
+        }
+
+        let _: fn(&regex_alias::Regex, &str) -> bool = regex_alias::Regex::is_match;
+        let _: fn(&regex_alias::Regex, &str, usize) -> bool = regex_alias::Regex::is_match_at;
+        let _: for<'h> fn(&regex_alias::Regex, &'h str) -> Option<regex_alias::Captures<'h>> =
+            regex_alias::Regex::captures;
+        let _: for<'h> fn(&regex_alias::Regex, &'h str) -> Option<regex_alias::Match<'h>> =
+            regex_alias::Regex::find;
+        let _: fn(&str) -> Result<regex_alias::Regex, regex_alias::Error> = regex_alias::Regex::new;
     }
 }

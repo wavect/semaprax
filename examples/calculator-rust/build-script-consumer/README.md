@@ -54,3 +54,24 @@ Rust-to-SEMAPRAX `cargo test` case; it invokes the generated facade rather than
 merely compiling it.
 The crate denies handwritten unsafe code while the generated private FFI module
 contains its own narrowly scoped unsafe allowance.
+
+## Extracted-package gate
+
+`scripts/ri10-extracted-package-consumer.sh` creates a fresh SDK through the
+explicit route, changes the copied Semaprax source to establish that stale
+output cannot remain usable, then copies only this consumer and the generated
+SDK to a second directory outside the repository. It runs that copy with
+`cargo test --locked --offline` in prepared-only mode, without
+`SEMAPRAX_RI10_BUILDER` or a Project manifest.
+
+The gate rejects stale output paired with the fresh descriptor identity, a
+wrong generated target, and a mismatched API digest. It scans only the shipped
+consumer and SDK text inventory for the developer repository path, absolute
+home paths, Cargo path dependencies, and Git dependencies; configured tools
+and generator-only inputs are intentionally outside that scan.
+
+The calculator route crosses scalar ABI values only. It exports no direct Rust
+package type, so this evidence makes an explicit opaque-boundary claim instead
+of claiming that separately linked Rust crates share an opaque type identity.
+Rich direct Rust type crossings remain closed until their exact
+package/source identity has a dedicated consumer gate.

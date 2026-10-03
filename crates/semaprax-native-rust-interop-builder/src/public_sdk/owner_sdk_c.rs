@@ -12,6 +12,8 @@ use semaprax::hir::{
 };
 use std::collections::{BTreeMap, BTreeSet};
 
+#[path = "owner_sdk_admission.rs"]
+mod admission;
 #[path = "owner_sdk_calls.rs"]
 mod calls;
 #[path = "owner_sdk_container.rs"]
@@ -246,7 +248,9 @@ impl<'a> Emitter<'a> {
         } else {
             ""
         };
-        writeln!(out, "typedef struct {{ spx_value values[{}]; int64_t args[8];{owner_args} spx_owner owners[{}]; uint8_t live[{}]; }} spx_frame;", self.expressions.len(), self.function.cleanup_plan.slots.len().max(1), self.function.cleanup_plan.slots.len().max(1)).unwrap();
+        let admission_fields = self.admission_fields();
+        writeln!(out, "typedef struct {{ spx_value values[{}]; int64_t args[8];{owner_args} spx_owner owners[{}]; uint8_t live[{}];{admission_fields} }} spx_frame;", self.expressions.len(), self.function.cleanup_plan.slots.len().max(1), self.function.cleanup_plan.slots.len().max(1)).unwrap();
+        self.render_admission(&mut out)?;
         for index in 0..self.expressions.len() {
             writeln!(
                 out,
@@ -463,14 +467,10 @@ impl<'a> Emitter<'a> {
                                 if *selected { "" } else { "!" },
                                 self.index(id)?
                             ),
-                            EdgeCondition::StatusZero(source) => format!(
-                                "!spx_eval_{}(context,f).status",
-                                self.index(&source.expression)?
-                            ),
-                            EdgeCondition::StatusNonzero(source) => format!(
-                                "spx_eval_{}(context,f).status",
-                                self.index(&source.expression)?
-                            ),
+                            EdgeCondition::StatusZero(source) => {
+                                format!("!{}", self.status_value(source)?)
+                            }
+                            EdgeCondition::StatusNonzero(source) => self.status_value(source)?,
                             _ => {
                                 return Err(sdk_error("opaque owner cleanup branch is unsupported"))
                             }
@@ -614,12 +614,7 @@ impl<'a> Emitter<'a> {
                 }
             }
             CleanupTransition::SelectFailure { source } => {
-                writeln!(
-                    out,
-                    "if(!status) status=spx_eval_{}(context,f).status;",
-                    self.index(&source.expression)?
-                )
-                .unwrap();
+                writeln!(out, "if(!status) status={};", self.status_value(source)?).unwrap();
             }
             _ => return Err(sdk_error("opaque owner cleanup transition is unsupported")),
         }

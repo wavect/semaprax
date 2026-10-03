@@ -108,7 +108,7 @@ fn owned_string_source_graph_and_move_checks() {
     let round = semaprax::check(&canonical, "native-string.spx").unwrap();
     let graph = semaprax::graph::to_json(&p).unwrap();
     assert_eq!(semaprax::graph::to_json(&round).unwrap(), graph);
-    assert!(graph.contains("semaprax.graph.v57"));
+    assert!(graph.contains("semaprax.graph.v60"));
     assert!(graph.contains("core.string.drop"));
     let moved = SOURCE.replace(
         "-> string {text}",

@@ -1495,7 +1495,7 @@ pub(crate) fn graph_schema_from_parts_without_loans(
             },
         ));
     }
-    if let Some(schema) = native_import::selected_schema(interfaces) {
+    if let Some(schema) = native_import::selected_schema(interfaces, functions) {
         return Ok(schema);
     }
     if functions

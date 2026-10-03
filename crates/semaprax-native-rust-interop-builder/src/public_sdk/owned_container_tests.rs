@@ -40,7 +40,7 @@ fn owned_container_source_graph_move_and_closed_type_checks() {
         let graph = semaprax::graph::to_json(&checked).unwrap();
         assert_eq!(graph, semaprax::graph::to_json(&round).unwrap());
         for expected in [
-            "semaprax.graph.v58",
+            "semaprax.graph.v60",
             "initialize_variant",
             "transfer_variant",
             "core.string.drop",

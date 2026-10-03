@@ -2976,6 +2976,11 @@ These areas are deliberately outside the public compiler contract:
   it does not transport an owned Rust object through the C ABI. The compiler-owned
   `src/native_rust_binding.rs` keeps the source/identity-bound plan and stable
   physical symbol separate from the persistent import ID;
+- `src/cleanup_plan/owner_admission.rs` classifies checked native owner calls;
+  `build/finish_call.rs` inserts the ordinary precommit failure exit, and
+  independent replay authenticates its v14 status/commit order. The generated
+  `owner_sdk_admission.rs` C bridge caches immutable validation results and
+  follows that exact exit on refusal.
 - `src/cleanup_plan/native_rust.rs` selects ownership-bearing native imports
   for canonical argument epochs and atomic call settlement; scalar native
   imports retain their existing plan projection. `replay/supplemental.rs`

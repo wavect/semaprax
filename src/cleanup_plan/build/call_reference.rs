@@ -97,6 +97,9 @@ impl PlanBuilder<'_> {
             }
         }
 
+        (current, current_state) =
+            self.admit_owners(expression, callee, current, current_state, region)?;
+
         // This boundary lists every owned parameter epoch in signature
         // order; once emitted, even a nonzero call status cannot restore them.
         let (vec_op, defer_commit) = super::super::deferred_commit::call_behavior(expression);

@@ -68,7 +68,7 @@ pub fn prepare_owned_string_native(
             _ => None,
         })
         .ok_or_else(|| sdk_error("native String cleanup lifecycle is absent"))?;
-    let header = "#ifndef SPX_OWNER_V1_H\n#define SPX_OWNER_V1_H\n#include <stdint.h>\ntypedef struct { uint64_t context, generation, slot; } spx_owner;\nint32_t spx_owner_new(uint64_t, int64_t, spx_owner*);\nint32_t spx_owner_consume(uint64_t, spx_owner, int64_t, uint8_t*);\nint32_t spx_owner_drop(uint64_t, spx_owner);\nint32_t spx_owner_string_clone(uint64_t, spx_owner, spx_owner*);\n#endif\n".to_owned();
+    let header = "#ifndef SPX_OWNER_V1_H\n#define SPX_OWNER_V1_H\n#include <stdint.h>\ntypedef struct { uint64_t context, generation, slot; } spx_owner;\nint32_t spx_owner_new(uint64_t, int64_t, spx_owner*);\nint32_t spx_owner_consume(uint64_t, spx_owner, int64_t, uint8_t*);\nint32_t spx_owner_validate(uint64_t, spx_owner);\nint32_t spx_owner_drop(uint64_t, spx_owner);\nint32_t spx_owner_string_clone(uint64_t, spx_owner, spx_owner*);\n#endif\n".to_owned();
     let c_source = c::render_program(
         &program,
         function,

@@ -1144,7 +1144,19 @@ impl<'a> Executor<'a> {
             }
             StatusProducer::PropagatedCall { callee } => {
                 let status = self.failure_outcome(&source)?;
-                validate_propagated_status(&callee, &status)?;
+                if source.lane == StatusLane::OwnerAdmission {
+                    if status.domain_id() != super::owner_admission::STATUS_DOMAIN
+                        || status.code() != super::owner_admission::REFUSED
+                        || status.class() != crate::conformance::StatusClass::Adapter
+                        || status.retryability() != crate::conformance::Retryability::Known(false)
+                    {
+                        return Err(invariant(
+                            "owner admission supplied a status outside its exact refusal domain",
+                        ));
+                    }
+                } else {
+                    validate_propagated_status(&callee, &status)?;
+                }
                 status
             }
         };

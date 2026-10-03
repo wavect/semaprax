@@ -26,9 +26,9 @@ use super::{
     CleanupTransition, ConditionalVariantCase, ConditionalVariantEntry, EdgeCondition, EdgeId,
     ExitContinuation, ExitTarget, StagedCopyResultSource, StatusCase, StatusLane, StatusProducer,
     StatusSource, StatusSourceId, StorageId, CLEANUP_PLAN_SCHEMA_V10, CLEANUP_PLAN_SCHEMA_V11,
-    CLEANUP_PLAN_SCHEMA_V12, CLEANUP_PLAN_SCHEMA_V13, CLEANUP_PLAN_SCHEMA_V2,
-    CLEANUP_PLAN_SCHEMA_V3, CLEANUP_PLAN_SCHEMA_V4, CLEANUP_PLAN_SCHEMA_V5, CLEANUP_PLAN_SCHEMA_V6,
-    CLEANUP_PLAN_SCHEMA_V7, CLEANUP_PLAN_SCHEMA_V8, CLEANUP_PLAN_SCHEMA_V9,
+    CLEANUP_PLAN_SCHEMA_V12, CLEANUP_PLAN_SCHEMA_V13, CLEANUP_PLAN_SCHEMA_V14,
+    CLEANUP_PLAN_SCHEMA_V2, CLEANUP_PLAN_SCHEMA_V3, CLEANUP_PLAN_SCHEMA_V4, CLEANUP_PLAN_SCHEMA_V5,
+    CLEANUP_PLAN_SCHEMA_V6, CLEANUP_PLAN_SCHEMA_V7, CLEANUP_PLAN_SCHEMA_V8, CLEANUP_PLAN_SCHEMA_V9,
 };
 mod path_summary;
 mod skeleton_bound;
@@ -1637,6 +1637,18 @@ fn collect_expression_statuses(
             len += 2;
             continue;
         }
+        if super::owner_admission::required(program, expression) {
+            let call = super::native_rust::parts(expression).expect("admitted owner call");
+            statuses.push(StatusSource {
+                id: StatusSourceId {
+                    expression: expression.id.clone(),
+                    lane: StatusLane::OwnerAdmission,
+                },
+                producer: StatusProducer::PropagatedCall {
+                    callee: call.callee.clone(),
+                },
+            });
+        }
         match &expression.kind {
             ResolvedExprKind::Closure { .. } | ResolvedExprKind::FunctionReference { .. } => {}
             ResolvedExprKind::ByteRange { operation, .. } => {
@@ -2075,7 +2087,10 @@ fn validate_status_sources(
             ));
         }
         match (&source.id.lane, &source.producer) {
-            (StatusLane::OperationFailure, StatusProducer::PropagatedCall { callee }) => {
+            (
+                StatusLane::OperationFailure | StatusLane::OwnerAdmission,
+                StatusProducer::PropagatedCall { callee },
+            ) => {
                 let Some(Some(call)) = expressions.get(&source.id.expression) else {
                     return Err(replay_error(
                         function,
@@ -2540,6 +2555,7 @@ fn validate_blocks_and_edges(
                             | CLEANUP_PLAN_SCHEMA_V11
                             | CLEANUP_PLAN_SCHEMA_V12
                             | CLEANUP_PLAN_SCHEMA_V13
+                            | CLEANUP_PLAN_SCHEMA_V14
                     ) && matches!(
                         plan.edges[edge.0 as usize].condition,
                         EdgeCondition::VariantCase { matches: true, .. }
@@ -5915,6 +5931,32 @@ fn finish_call_states(
         if path.failed || path.residual {
             work.push_expr_path(&mut results, path, "short-circuited call path")?;
             continue;
+        }
+        if super::owner_admission::required(program, expression) {
+            let admission = StatusSourceId {
+                expression: work.clone_owned(&expression.id, "owner-admission identity clone")?,
+                lane: StatusLane::OwnerAdmission,
+            };
+            let mut refused = work.clone_expr_path(&path, "owner-admission failure path")?;
+            work.push_observation(
+                &mut refused,
+                SkeletonObservation::Status {
+                    source: admission.clone(),
+                    success: false,
+                },
+                "owner-admission failure",
+            )?;
+            refused.failed = true;
+            refused.owned_source = None;
+            work.push_expr_path(&mut results, refused, "owner-admission failed path")?;
+            work.push_observation(
+                &mut path,
+                SkeletonObservation::Status {
+                    source: admission,
+                    success: true,
+                },
+                "owner-admission success",
+            )?;
         }
         if !defer_commit {
             let call = work.clone_owned(&expression.id, "call-commit identity clone")?;

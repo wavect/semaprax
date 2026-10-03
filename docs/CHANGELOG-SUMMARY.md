@@ -10,9 +10,10 @@ For implementation status and required evidence, use the
 
 ## v0.7.0 candidate
 
-- RI-05 executes two-owned-argument staging and failure controls, including a
-  deliberately premature transfer. Defensive validation refusal still lacks
-  an authenticated precommit rollback edge and keeps the issue open.
+- RI-05 adds authenticated owner admission before atomic argument transfer.
+  CleanupPlan v14 and Graph v60 retain canonical rollback on carrier refusal,
+  including two-owner and sticky cleanup-failure controls. Full RI-05 remains
+  open.
 
 - RI-05 pins frozen owned-data v1 generated-file digests to a pre-owner baseline
   and executes counted host-copy/provider-free controls, including a compiled

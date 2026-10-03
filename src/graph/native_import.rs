@@ -26,7 +26,17 @@ pub(crate) const STRING_RUST_IMPORT_SCHEMA: &str = "semaprax.graph.v57";
 pub(crate) const CONTAINER_RUST_IMPORT_SCHEMA: &str = "semaprax.graph.v58";
 pub(crate) const NESTED_CONTAINER_RUST_IMPORT_SCHEMA: &str = "semaprax.graph.v59";
 
-pub(crate) fn selected_schema(interfaces: &[ResolvedInterface]) -> Option<&'static str> {
+pub(crate) const OWNER_ADMISSION_SCHEMA: &str = "semaprax.graph.v60";
+
+pub(crate) fn selected_schema(
+    interfaces: &[ResolvedInterface],
+    functions: &[crate::hir::ResolvedFunction],
+) -> Option<&'static str> {
+    if functions.iter().any(|function| {
+        function.cleanup_plan.schema == crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V14
+    }) {
+        return Some(OWNER_ADMISSION_SCHEMA);
+    }
     if interfaces.iter().flat_map(|i| &i.imports).any(|i| i.native_rust && i.result.kind == ResolvedImportResultKind::OwnedResultStringOptionI64) { Some(NESTED_CONTAINER_RUST_IMPORT_SCHEMA) } else if interfaces.iter().flat_map(|i| &i.imports).any(|i| i.native_rust &&
         (matches!(i.result.kind, ResolvedImportResultKind::OwnedOptionString | ResolvedImportResultKind::OwnedResultStringI64)
         || i.parameters.iter().any(|p| matches!(&p.ty, crate::hir::ResolvedType::Nominal { arguments, .. } if arguments.first() == Some(&crate::hir::ResolvedType::String))))) {
@@ -71,6 +81,7 @@ pub(crate) fn selected_schema(interfaces: &[ResolvedInterface]) -> Option<&'stat
 
 pub(crate) fn evidence_refusal(schema: &str) -> Option<Diagnostic> {
     let message = match schema {
+        OWNER_ADMISSION_SCHEMA => "native owner admission programs select `semaprax.graph.v60`, outside this evidence flow admission",
         INDEXED_RUST_IMPORT_SCHEMA => "indexed Rust import programs select `semaprax.graph.v52`, which is outside this evidence flow's admission",
         SELECTED_RUST_IMPORT_SCHEMA => "selected Rust import programs select `semaprax.graph.v53`, which is outside this evidence flow's admission",
         SELECTED_RUST_METHOD_SCHEMA => "selected Rust method programs select `semaprax.graph.v54`, which is outside this evidence flow's admission",

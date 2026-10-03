@@ -114,7 +114,7 @@ fn native_rust_opaque_owner_result_is_affine_in_source_and_hir() {
     hir::validate(&resolved).unwrap();
     let graph = graph::to_json(&program).unwrap();
     let graph: serde_json::Value = serde_json::from_str(&graph).unwrap();
-    assert_eq!(graph["schema"], "semaprax.graph.v56");
+    assert_eq!(graph["schema"], "semaprax.graph.v60");
     let constructor = graph["nodes"]
         .as_array()
         .unwrap()

@@ -548,26 +548,50 @@ drop, and close counts. A successfully compiled skipped-copy control must fail
 the copy-count assertion. Local rustc 1.98 evidence passed 1/1, zero ignored.
 This adds compatibility evidence without changing v1 renderer/runtime bytes.
 
-### Two-owned-argument transfer evidence and remaining refusal gap
+### Authenticated owner admission before transfer
+
+Calls carrying a native opaque owner, String, or an admitted owned container
+stage every argument left to right. CleanupPlan v14 adds a distinct
+`owner_admission` status lane for the exact checked call, before its existing
+atomic `CallCommit`. Admission performs only immutable carrier validation; it
+cannot invoke target code, allocate a result, or consume an owner. A refusal
+selects adapter status 7 in `semaprax.native-rust-owner-admission.v1`, with
+retryability false, and follows the ordinary planner exit from the still-owned
+argument epochs. The exact canonical finalizer vector is retained and replayed;
+the C renderer neither reconstructs nor reorders it. A cleanup error cannot
+replace that selected refusal. No result is published on this path.
+
+On admission success, the original atomic commit and target operation status
+remain separate. A target that consumes its arguments and then panics does not
+restore their ownership to the caller. Defensive checks remaining at commit
+protect compiler invariants; no target code or state mutation runs between
+admission success and the all-at-once live-bit transition.
+
+Independent HIR replay authenticates the admission source, callee, branch,
+precommit position, and rollback finalizers. Programs with this protocol select
+Graph v60; constructor-only programs and profiles without owner admission keep
+their prior graph/cleanup identities. Frozen owned-data v1 artifacts and closed
+trace/evidence routes do not gain implicit admission of the new lane.
 
 `owned_transfer_two_arguments_staging_atomicity_and_failures` executes checked
 Semaprax helpers with two owned Option<String> or Result<String,i64> arguments.
-The source roundtrip preserves the graph, whose CallCommit names two distinct
-source slots. Physical O0/O2 cases count consumption and allocation finalization
-for success, inactive payloads, first/second constructor panic or reservation
-failure, oversized second output, and a scalar argument failure after both
-owners were staged. These ordinary failure paths replay the plan's canonical
-cleanup order and preserve the output sentinel.
+The source roundtrip preserves the graph and one commit names both source
+slots. Physical O0/O2 cases count consumption and finalization for success,
+inactive payloads, first/second constructor panic or reservation failure,
+oversized second output, and a late scalar argument failure.
 
-Test instrumentation at each validation point observes that neither source
-live bit is cleared until both arguments validate. A compiled control clearing
-the first bit before the second validation must fail the atomic-live-bits
-assertion. This is an executed ordering control, not a textual-only check.
+Injected refusal at either carrier validation must produce the canonical
+`[second, first]` drop order, zero target calls, unchanged output, and successful
+context closure without test-side token release. An injected cleanup status
+must leave refusal status 7 selected. A compiled premature-transfer control
+must fail this finalizer oracle. Forged status removal, branch replacement,
+and swapped rollback finalizers are rejected by independent HIR validation.
+This bounded gate does not establish full RI-05 acceptance.
 
-Defensive carrier-validation refusal is still a separate acceptance gap:
-CallCommit has no authenticated precommit rollback edge. Its invariant guard
-returns status 7, leaves both table owners retained, and context closure returns
-5. The test explicitly releases its captured tokens afterward; that release is
-**test-only**, not source-generated cleanup. A production fix must add and replay
-authenticated rollback metadata rather than infer or reorder finalizers in the
-C renderer. Local focused evidence passed 1/1, zero ignored. RI-05 remains open.
+Local focused evidence: 1 passed, 0 failed/ignored, 191 filtered, on arm64 macOS
+with Rust 1.98.0 and Apple Clang 21. The exact builder lib selector above used
+one Cargo job, debug info disabled, incremental compilation disabled, offline
+locked resolution, and `SEMAPRAX_ARCHIVER=/usr/bin/libtool`. The first compile
+identified a missing cache-codec lane arm; the additive tag-2 correction was
+included in the passing retry. No hosted, full-profile, Rust sanitizer, or Miri
+coverage is claimed by this gate.

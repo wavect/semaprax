@@ -105,6 +105,7 @@ pub(super) fn render(
         let body = body
             .replace("spx_owner_entry", &symbols[&function.id])
             .replace("spx_eval_", &format!("spx_helper_{ordinal}_eval_"))
+            .replace("spx_admit_", &format!("spx_helper_{ordinal}_admit_"))
             .replace("spx_frame", &format!("spx_helper_{ordinal}_frame"));
         out.push_str(&body);
     }

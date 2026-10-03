@@ -9,6 +9,7 @@ mod build;
 mod deferred_commit;
 mod execute;
 mod native_rust;
+mod owner_admission;
 // Owned-value-across-a-yield liveness query (issue #296, spec section 11.6).
 // `admit_owned_bytes_profile` is the second increment's real caller: the HIR
 // resolve pipeline calls it once a `yields`-declaring function's cleanup plan
@@ -49,6 +50,8 @@ pub const CLEANUP_PLAN_SCHEMA_V11: &str = "semaprax.cleanup-plan.v11";
 pub const CLEANUP_PLAN_SCHEMA_V12: &str = "semaprax.cleanup-plan.v12";
 /// Owned iterator items and the detached-prefix remainder are independent owners.
 pub const CLEANUP_PLAN_SCHEMA_V13: &str = "semaprax.cleanup-plan.v13";
+/// Native owner admission has an authenticated precommit failure exit.
+pub const CLEANUP_PLAN_SCHEMA_V14: &str = "semaprax.cleanup-plan.v14";
 
 macro_rules! numeric_id {
     ($name:ident) => {
@@ -65,6 +68,8 @@ numeric_id!(CleanupSlotId);
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum StatusLane {
+    /// Callee-scoped owner validation before atomic argument commitment.
+    OwnerAdmission,
     OperationFailure,
     ContractFalse,
 }

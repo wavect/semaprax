@@ -8,7 +8,7 @@ pub(super) fn validate_binding(
 ) -> Result<(), Diagnostic> {
     if !matches!(
         function.cleanup_plan.schema,
-        CLEANUP_PLAN_SCHEMA_V12 | CLEANUP_PLAN_SCHEMA_V13
+        CLEANUP_PLAN_SCHEMA_V12 | CLEANUP_PLAN_SCHEMA_V13 | CLEANUP_PLAN_SCHEMA_V14
     ) || !crate::hir::iterator_loop::renewal_binding(function, at)
         .is_some_and(|binding| *place == CleanupPlace::whole(StorageId::Value(binding.id.clone())))
     {

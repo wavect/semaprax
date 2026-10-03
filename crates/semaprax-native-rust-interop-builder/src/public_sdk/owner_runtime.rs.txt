@@ -70,6 +70,18 @@ pub unsafe extern "C" fn spx_owner_consume(context: u64, owner: SpxOwner, arg: i
     }
 }
 #[no_mangle]
+pub extern "C" fn spx_owner_validate(context: u64, owner: SpxOwner) -> i32 {
+    CONTEXTS.with(|contexts| {
+        let Ok(contexts) = contexts.try_borrow() else { return 6; };
+        if owner.context != context { return 3; }
+        let Some(context) = contexts.iter().find(|c| c.id == context) else { return 3; };
+        let Ok(index) = usize::try_from(owner.slot) else { return 3; };
+        let Some(slot) = context.slots.get(index) else { return 3; };
+        if slot.generation != owner.generation || slot.value.is_none() { return 3; }
+        0
+    })
+}
+#[no_mangle]
 pub extern "C" fn spx_owner_drop(context: u64, owner: SpxOwner) -> i32 {
     let value = match take(context, owner) { Ok(value) => value, Err(status) => return status };
     match caught(|| drop(value)) { Ok(()) => 0, Err(status) => status }

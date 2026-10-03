@@ -385,6 +385,11 @@ fn emit_select_failure_trace(
     )
     .expect("writing to a string cannot fail");
     let lane = match source.lane {
+        StatusLane::OwnerAdmission => {
+            return Err(cleanup_error(
+                "owner admission is outside the native trace profile",
+            ))
+        }
         StatusLane::OperationFailure => "SPX_TRACE_STATUS_OPERATION_FAILURE",
         StatusLane::ContractFalse => "SPX_TRACE_STATUS_CONTRACT_FALSE",
     };

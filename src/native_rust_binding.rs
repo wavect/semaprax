@@ -116,13 +116,8 @@ pub fn prepare_scalar_binding(
             span,
         ));
     }
-    let signature = parse_scalar_signature(item.signature).ok_or_else(|| {
-        error(
-            "SPX-B145",
-            "Rust API signature is unsupported by the scalar bridge",
-            span,
-        )
-    })?;
+    let signature = parse_scalar_signature(item.signature)
+        .ok_or_else(|| error("SPX-B145", scalar_signature_refusal(item.signature), span))?;
     let receiver_parameters = usize::from(item.receiver == "shared");
     if signature.name != *path_segments.last().unwrap()
         || signature.receiver != item.receiver
@@ -392,6 +387,46 @@ fn parse_scalar_signature(value: &str) -> Option<ScalarSignature<'_>> {
     })
 }
 
+/// Describe the first reference rule that prevents this index item from
+/// entering the scalar bridge. Metadata is still discovery data: these
+/// classifications grant no loan, lifetime, or execution authority.
+fn scalar_signature_refusal(signature: &str) -> &'static str {
+    if signature.contains("for<") {
+        return "higher-ranked Rust reference requires an unsupported lifetime relation";
+    }
+    if signature.contains("Pin<") || signature.contains("pin::Pin<") {
+        return "pinned Rust reference requires an unsupported stable owner relation";
+    }
+    if signature.contains("UnsafeCell<")
+        || signature.contains("Cell<")
+        || signature.contains("RefCell<")
+    {
+        return "interior-mutable Rust reference requires an exclusive loan model";
+    }
+    if signature.contains("*const ") || signature.contains("*mut ") {
+        return "raw Rust pointer has no verified provenance or initialized extent";
+    }
+    if signature.contains("&mut self") || signature.contains("&mut ") {
+        return "mutable Rust reference requires a verified exclusive loan";
+    }
+    if let Some((_, result)) = signature.split_once(") -> ") {
+        if result.starts_with('&') || result.starts_with("&'") {
+            return if signature.contains("&self") {
+                "returned Rust reference requires an owner-bound live view"
+            } else {
+                "returned Rust reference has no representable owner relation"
+            };
+        }
+    }
+    if signature.contains("&str") || (signature.contains("&'") && signature.contains(" str")) {
+        return "borrowed Rust text requires an authenticated invocation loan";
+    }
+    if signature.contains("&[u8]") || (signature.contains("&'") && signature.contains(" [u8]")) {
+        return "borrowed Rust bytes require an authenticated invocation loan";
+    }
+    "Rust API signature is unsupported by the scalar bridge"
+}
+
 /// Fills the short indexed import declaration from an already replayed and
 /// selected API item. The caller must bind the returned declaration to the
 /// selected index and package identity before it can reach code generation.
@@ -409,13 +444,8 @@ pub fn bind_selected_scalar_signature(
             import.span,
         ));
     }
-    let parsed = parse_scalar_signature(signature).ok_or_else(|| {
-        error(
-            "SPX-B145",
-            "Rust API signature is unsupported by the scalar bridge",
-            import.span,
-        )
-    })?;
+    let parsed = parse_scalar_signature(signature)
+        .ok_or_else(|| error("SPX-B145", scalar_signature_refusal(signature), import.span))?;
     if parsed.receiver != receiver || !matches!(receiver, "none" | "shared") {
         return Err(error(
             "SPX-B144",

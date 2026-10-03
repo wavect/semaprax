@@ -276,6 +276,15 @@ non-scalar method arguments and results, fail before invocation. This
 projection does not claim a persistent Rust object or borrowed ownership
 across calls.
 
+Selected reference signatures remain outside the callable scalar profile.
+Source-located `SPX-B145` identifies the specific missing rule for borrowed
+text or bytes, exclusive loans, returned owner-bound views, returned views
+without an owner relation, higher-ranked lifetimes, pinned references,
+interior mutability, and raw-pointer provenance. These diagnostics classify
+selected metadata only; they do not construct a live loan or authorize a Rust
+reference. RI-06 must bind an invocation loan to verified HIR and enforce its
+runtime scope before admitting those signatures.
+
 The selected indexed profile admits the exact receiver-free Rust return shape
 `core::result::Result<i64, i64>` as a direct pass-through Semaprax export. Its
 tagged C carrier has a zeroed seven-byte reserved field, tag 0 for `Ok(i64)`,

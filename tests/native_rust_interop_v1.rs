@@ -132,6 +132,64 @@ fn selected_scalar_binding_uses_exact_package_and_import_identity() {
 }
 
 #[test]
+fn selected_borrowed_rust_shapes_refuse_with_source_located_reasons() {
+    let path = Path::new("borrowed-rust.spx");
+    let program = hir::resolve(&parse(SOURCE, path).unwrap()).unwrap();
+    let import = &program.interfaces[0].imports[0];
+    for (signature, reason) in [
+        (
+            "fn combine(value: &str) -> bool",
+            "borrowed Rust text requires an authenticated invocation loan",
+        ),
+        (
+            "fn combine<'h>(value: &'h str) -> bool",
+            "borrowed Rust text requires an authenticated invocation loan",
+        ),
+        (
+            "fn combine(value: &[u8]) -> bool",
+            "borrowed Rust bytes require an authenticated invocation loan",
+        ),
+        (
+            "fn combine(value: &mut [u8]) -> bool",
+            "mutable Rust reference requires a verified exclusive loan",
+        ),
+        (
+            "fn combine(value: &str) -> &str",
+            "returned Rust reference has no representable owner relation",
+        ),
+        (
+            "fn combine(&self) -> &str",
+            "returned Rust reference requires an owner-bound live view",
+        ),
+        (
+            "fn combine(value: Pin<&mut [u8]>) -> bool",
+            "pinned Rust reference requires an unsupported stable owner relation",
+        ),
+        (
+            "fn combine(value: &UnsafeCell<u8>) -> bool",
+            "interior-mutable Rust reference requires an exclusive loan model",
+        ),
+        (
+            "fn combine(value: *const u8) -> bool",
+            "raw Rust pointer has no verified provenance or initialized extent",
+        ),
+        (
+            "for<'a> fn combine(value: &'a str) -> bool",
+            "higher-ranked Rust reference requires an unsupported lifetime relation",
+        ),
+    ] {
+        let error = prepare_scalar_binding(
+            import,
+            selected_item("fixture", "fixture::combine", signature),
+        )
+        .unwrap_err();
+        assert_eq!(error.code, "SPX-B145", "{signature}");
+        assert_eq!(error.message, reason, "{signature}");
+        assert_eq!(error.span, Some(import.span), "{signature}");
+    }
+}
+
+#[test]
 fn selected_rust_result_is_a_domain_value_with_distinct_graph_identity() {
     let source = r#"module result.fixture;
 @id("result.host") interface Host permits {  } {

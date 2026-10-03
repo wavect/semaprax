@@ -297,7 +297,11 @@ impl OwnerContext {
     }
 
     /// Invoke a Rust operation with a scoped `&str` into an admitted String.
-    /// The higher-ranked closure cannot return a view tied to this call.
+    /// The higher-ranked closure can return owned data, but cannot return a
+    /// view tied to this invocation. This helper models the loan boundary; it
+    /// does not provide a generated C-ABI borrowed view. Rust APIs such as
+    /// `Url::as_str` remain unsupported until a returned view carries a
+    /// checked borrow of its owner through the generated ABI.
     pub(crate) fn with_borrowed_str<R>(
         &self,
         owner: &Owner<String>,
@@ -739,6 +743,48 @@ mod tests {
         assert_eq!(
             destination.borrow(&moved).unwrap().as_ptr(),
             original_pointer
+        );
+    }
+
+    #[test]
+    fn invocation_scoped_str_type_cannot_return_a_borrowed_view() {
+        // Compile the exact higher-ranked callback shape used by
+        // `with_borrowed_str`. The returned `&str` must not be able to borrow
+        // from the invocation-only argument.
+        let root = std::env::temp_dir().join(format!(
+            "semaprax-ri06-borrow-escape-{}",
+            std::process::id()
+        ));
+        std::fs::create_dir(&root).expect("create private rustc fixture directory");
+        let source = root.join("borrow_escape.rs");
+        std::fs::write(
+            &source,
+            r#"
+fn with_borrowed_str<R>(invoke: impl for<'loan> FnOnce(&'loan str) -> R) -> R {
+    invoke("invocation")
+}
+
+pub fn escape_view(input: &str) -> &str {
+    with_borrowed_str(|view| view)
+}
+"#,
+        )
+        .expect("write compile-fail fixture");
+        let rustc = std::env::var_os("RUSTC").unwrap_or_else(|| "rustc".into());
+        let output = std::process::Command::new(rustc)
+            .arg("--crate-type=lib")
+            .arg("--emit=metadata")
+            .arg("--out-dir")
+            .arg(&root)
+            .arg(&source)
+            .output()
+            .expect("run the selected Rust compiler");
+        let _ = std::fs::remove_dir_all(&root);
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        assert!(!output.status.success(), "borrowed view escaped: {stderr}");
+        assert!(
+            stderr.contains("lifetime") || stderr.contains("FnOnce"),
+            "expected a lifetime-boundary rejection, got: {stderr}"
         );
     }
 

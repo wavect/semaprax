@@ -535,6 +535,7 @@ pub(in crate::implementation) fn hash_expr(
                                 ResolvedImportResultKind::Unit => b"unit",
                                 ResolvedImportResultKind::I64 => b"i64",
                                 ResolvedImportResultKind::Bool => b"bool",
+                                ResolvedImportResultKind::ResultI64I64 => b"result<i64,i64>",
                             },
                         );
                         hash_count(hasher, "arguments", call.args.len());

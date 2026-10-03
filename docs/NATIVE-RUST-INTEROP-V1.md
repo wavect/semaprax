@@ -274,13 +274,17 @@ non-scalar method arguments and results, fail before invocation. This
 projection does not claim a persistent Rust object or borrowed ownership
 across calls.
 
-The indexed scalar profile rejects a selected Rust `Result<T, E>` signature
-with source-located `SPX-B145` before adapter compilation. Rust `Err(E)` is a
-domain value and must never be encoded as `NativeRustImportResult::Status`,
-which means a refused bridge call, or as `HostFailure` or a panic. Supporting
-Rust `Result` requires a separately admitted tagged value carrier through the
-Semaprax import type, HIR, graph, C boundary, and generated SDK. This profile
-only admits the stated scalar result types.
+The selected indexed profile admits the exact receiver-free Rust return shape
+`core::result::Result<i64, i64>` as a direct pass-through Semaprax export. Its
+tagged C carrier has a zeroed seven-byte reserved field, tag 0 for `Ok(i64)`,
+and tag 1 for `Err(i64)`. Generated safe Rust returns the nested type
+`Result<Result<i64, i64>, NativeRustCallError>`: Rust `Err` remains a domain
+value, while a refused bridge call, host failure, panic, or contract failure
+occupies the outer error. Bound Graph v55 records this Result identity without
+changing earlier graph profiles. Result parameters, other Result type shapes,
+and Match/Try in the native scalar closure remain refused. Those operations
+require a separately verified native lowering; the compiler can still check
+and graph their Semaprax source.
 
 Rich Rust bindings use a separate `semaprax.trusted-native-profile.v1`
 preparation boundary. A profile binds three opaque, exact byte inputs: the

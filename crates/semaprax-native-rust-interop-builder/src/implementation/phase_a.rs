@@ -262,7 +262,8 @@ fn prepare_native_rust_interop_from_input<'a>(
             || function.name == "main"
             || function.params.len() > MAX_PARAMETERS
             || function.params.iter().any(|parameter| {
-                parameter.ownership != OwnershipMode::Value || scalar_type(&parameter.ty).is_none()
+                parameter.ownership != OwnershipMode::Value
+                    || !matches!(scalar_type(&parameter.ty), Some(ScalarType::I64 | ScalarType::Bool))
             })
             || scalar_type(&function.return_type).is_none()
         {
@@ -355,6 +356,16 @@ fn prepare_native_rust_interop_from_input<'a>(
             ResolvedImportResultKind::Unit => ScalarType::Unit,
             ResolvedImportResultKind::I64 => ScalarType::I64,
             ResolvedImportResultKind::Bool => ScalarType::Bool,
+            ResolvedImportResultKind::ResultI64I64 => {
+                if import.rust_path.is_none() {
+                    return Err(Diagnostic::error(
+                        "SPX-B145",
+                        "tagged Rust Result requires a selected indexed import",
+                        import.span,
+                    ));
+                }
+                ScalarType::ResultI64I64
+            }
         };
         let failure = match &import.failure {
             ResolvedImportFailure::Infallible => None,
@@ -1160,7 +1171,7 @@ pub(super) fn validate_selected_scalar_closure(
         if function.params.len() > MAX_PARAMETERS
             || function.params.iter().any(|parameter| {
                 parameter.ownership != hir::OwnershipMode::Value
-                    || scalar_type(&parameter.ty).is_none()
+                    || !matches!(scalar_type(&parameter.ty), Some(ScalarType::I64 | ScalarType::Bool))
             })
             || scalar_type(&function.return_type).is_none()
             || !function.cleanup.slots.is_empty()

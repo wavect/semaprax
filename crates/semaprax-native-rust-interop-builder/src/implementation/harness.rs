@@ -84,6 +84,7 @@ fn render_rust_harness(
                 ScalarType::I64 => "0",
                 ScalarType::Bool => "false",
                 ScalarType::Unit => "()",
+                ScalarType::ResultI64I64 => "Ok(0)",
             })?;
         }
         output.write_str(");")?;

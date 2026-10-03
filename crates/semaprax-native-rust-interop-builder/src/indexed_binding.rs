@@ -145,6 +145,7 @@ fn render_checked_scalar_adapter_parts(
         ResolvedImportResultKind::Unit => "()",
         ResolvedImportResultKind::I64 => "i64",
         ResolvedImportResultKind::Bool => "bool",
+        ResolvedImportResultKind::ResultI64I64 => "core::result::Result<i64,i64>",
     };
     let arguments = (0..parameters.len())
         .map(|index| format!("arg_{index}"))

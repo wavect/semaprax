@@ -230,6 +230,7 @@ enum Scalar {
     Unit,
     I64,
     Bool,
+    ResultI64I64,
 }
 
 impl Scalar {
@@ -238,6 +239,7 @@ impl Scalar {
             Self::Unit => "()",
             Self::I64 => "i64",
             Self::Bool => "bool",
+            Self::ResultI64I64 => "core::result::Result<i64,i64>",
         }
     }
 
@@ -246,6 +248,7 @@ impl Scalar {
             Self::Unit => "unit",
             Self::I64 => "i64",
             Self::Bool => "bool",
+            Self::ResultI64I64 => "result<i64,i64>",
         }
     }
 }

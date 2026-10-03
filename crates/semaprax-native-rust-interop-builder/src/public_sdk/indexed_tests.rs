@@ -698,3 +698,108 @@ fn indexed_shared_method_executes_and_refuses_inaccessible_or_unsupported_receiv
 
 #[path = "indexed_multiple_tests.rs"]
 mod indexed_multiple;
+
+#[test]
+fn indexed_result_domain_round_trips_ok_and_err_separately_from_bridge_failure() {
+    let rustc = std::env::var("RUSTC").expect("configure absolute RUSTC");
+    let clang = std::env::var("CLANG").expect("configure absolute CLANG");
+    let _archiver = std::env::var("SEMAPRAX_ARCHIVER").expect("configure absolute archiver");
+    let actual_version = Command::new(&rustc).arg("--version").output().unwrap();
+    assert!(actual_version.status.success());
+    let actual_version = std::str::from_utf8(&actual_version.stdout).unwrap().trim();
+    let crate_source = b"pub fn divide(left:i64,right:i64)->core::result::Result<i64,i64>{if right==0{Err(7)}else{Ok(left/right)}}\n";
+    let mut envelope: Value = serde_json::from_slice(include_bytes!(
+        "../../../semaprax-rust-api-index/fixtures/local-api-fixture-v2-envelope.json"
+    ))
+    .unwrap();
+    let index_row = &mut envelope["index"];
+    index_row["package"]["name"] = "fixture_math".into();
+    index_row["package"]["version"] = "0.0.1".into();
+    index_row["package"]["source_sha256"] = raw_digest(crate_source).into();
+    index_row["target"] = target_triple().unwrap().into();
+    index_row["stable_rustc_version"] = actual_version.into();
+    let mut item = index_row["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|item| item["path"] == "local_api_fixture::cfg_selected")
+        .unwrap()
+        .clone();
+    item["path"] = "fixture_math::divide".into();
+    item["signature"] =
+        "fn divide(left: i64, right: i64) -> core::result::Result<i64, i64>".into();
+    index_row["items"] = serde_json::json!([item]);
+    index_row["types"] = serde_json::json!([]);
+    let mut extractor_bytes = serde_json::to_vec(&envelope).unwrap();
+    extractor_bytes.push(b'\n');
+    let index = RustApiIndex::admit_extractor_output(&extractor_bytes)
+        .unwrap()
+        .canonical_json()
+        .as_bytes()
+        .to_vec();
+    let replay = RustApiIndex::replay(&index).unwrap();
+    let source_digest = raw_digest(crate_source);
+    let package = SelectedPackage {
+        cargo_alias: "fixture_math",
+        name: "fixture_math",
+        version: "0.0.1",
+        source_sha256: &source_digest,
+        target: target_triple().unwrap(),
+        feature_digest: replay.feature_digest(),
+        stable_rustc_version: actual_version,
+    };
+    let source = r#"module result.fixture;
+permit { host.math }
+@id("host.math") interface HostMath permits { host.math } {
+    @id("host.divide") import rust selected fn divide from "fixture_math::divide"
+        effects { host.math } failure status "host.math.v1";
+}
+@id("result.forward") fn forward(left: i64, right: i64) -> Result<i64, i64> uses { host.math } {
+    divide(left, right)
+}
+@id("result.main") fn main() -> i64 { 0 }
+"#;
+    let options = NativeRustSdkOptions {
+        exports: vec!["result.forward".into()],
+        imports: vec!["host.divide".into()],
+        capabilities: vec!["host.math".into()],
+    };
+    let root = std::fs::canonicalize(std::env::temp_dir())
+        .unwrap()
+        .join(format!("semaprax-ri04-result-sdk-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&root);
+    std::fs::create_dir(&root).unwrap();
+    let output = root.join("sdk");
+    build_indexed_scalar_native_rust_sdk(
+        source,
+        Path::new("result-sdk.spx"),
+        options,
+        &index,
+        package,
+        crate_source,
+        &output,
+    )
+    .unwrap_or_else(|error| panic!("Result SDK build failed: {error:?}"));
+    let lib = std::fs::read_to_string(output.join("src/lib.rs")).unwrap();
+    assert!(lib.contains("let target:fn(i64,i64)->core::result::Result<i64,i64>=fixture_math::divide"));
+    let mut library = Command::new(&rustc);
+    library.current_dir(&output).args([
+        "--edition=2021", "--crate-name", "indexed_sdk", "--crate-type=rlib", "src/lib.rs",
+        "-o", "libindexed_sdk.rlib",
+    ]);
+    assert!(library.status().unwrap().success());
+    std::fs::write(root.join("consumer.rs"),
+        "fn main(){let mut sdk=indexed_sdk::indexed_scalar_sdk(&[\"host.math\"]).unwrap();if !matches!(sdk.spx_result_dot_forward(8,2),Ok(Ok(4))){std::process::exit(11)}if !matches!(sdk.spx_result_dot_forward(8,0),Ok(Err(7))){std::process::exit(12)}if indexed_sdk::indexed_scalar_sdk(&[]).is_ok(){std::process::exit(13)}}\n").unwrap();
+    let archive = if cfg!(windows) { "semaprax_native_rust_sdk.lib" } else { "libsemaprax_native_rust_sdk.a" };
+    let executable = if cfg!(windows) { "consumer.exe" } else { "consumer" };
+    let status = Command::new(&rustc)
+        .current_dir(&root)
+        .args(["--edition=2021", "-C", &format!("linker={clang}"), "--extern",
+            &format!("indexed_sdk={}", output.join("libindexed_sdk.rlib").display()),
+            "-C", &format!("link-arg={}", output.join("native").join(archive).display()),
+            "consumer.rs", "-o", executable])
+        .status().unwrap();
+    assert!(status.success());
+    assert!(Command::new(root.join(executable)).status().unwrap().success());
+    std::fs::remove_dir_all(root).unwrap();
+}

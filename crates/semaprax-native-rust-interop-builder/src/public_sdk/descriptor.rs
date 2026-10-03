@@ -62,6 +62,7 @@ fn descriptor_scalar(value: &Value, allow_unit: bool) -> Result<Scalar, Diagnost
         Some("unit") if allow_unit => Scalar::Unit,
         Some("i64") => Scalar::I64,
         Some("bool") => Scalar::Bool,
+        Some("result<i64,i64>") => Scalar::ResultI64I64,
         _ => return Err(sdk_error("Native Rust SDK descriptor replay failed")),
     };
     if row.get("out_slot").and_then(Value::as_bool) != Some(scalar != Scalar::Unit) {

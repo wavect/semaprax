@@ -6,12 +6,13 @@
 from a small `.spx` file to a checked project. You can follow the whole path at
 your own pace.
 
-> This handbook describes **Semaprax v0.7.0** (workspace version `0.7.0`).
-> v0.7.0 is a release candidate available from source; its exact tag gate has
-> not passed and no signed v0.7.0 archive is published yet. Install from source
-> to follow along. Semaprax is **alpha research software**: syntax, protocols, and
-> binary interfaces can change. Experiment and prototype; don't ship
-> production or safety-critical workloads on it yet.
+> This edition follows `main` at `508b851a5fda`. The workspace version is
+> **0.7.0**. The **v0.7.0 prerelease** was published on October 1, 2026;
+> the source commit reviewed here includes later changes. Use the
+> [installation guide](getting-started/install.md) to choose your build.
+> Semaprax is **alpha research software**: syntax, protocols, and binary
+> interfaces can change. Experiment and prototype; don't ship production or
+> safety-critical workloads on it yet.
 
 [![Recorded walkthrough of Semaprax commands](assets/demo/first-steps.gif)](getting-started/see-it-in-action.md)
 
@@ -40,26 +41,39 @@ Five ideas explain the whole language:
 A program is verified before it ever runs: `check` proves it, `run` executes
 `main`, `test` runs its test module, `build` targets native or web.
 
-## How to use this handbook
+## Build your understanding one working program at a time
 
-This book is **task-oriented best practice**: short pages, copy-paste examples,
-and do/don't guidance. It is not the exact contract — when you need the
-letter of the law, each page links down to the versioned specification in
-[`docs/`](https://github.com/wavect/semaprax/tree/main/docs), which remains the
-authoritative reference for agents and integrators.
+You only need basic experience with variables and functions to start. The
+first lessons explain each new term before using it. You will run a file,
+split code into modules, add tests, and build a package another application
+can call.
 
-| You want to… | Go to… |
+Start with [First program](getting-started/first-program.md) after installing.
+Keep the [glossary](reference/glossary.md) nearby for words such as *borrow*,
+*profile*, and *semantic graph*. Each later chapter begins with a practical
+reason to use the feature.
+
+| What you want to do | Read next |
 | --- | --- |
-| See the language and tools before installing | [Semaprax in action](getting-started/see-it-in-action.md) |
-| Install and run something in 5 minutes | [Install](getting-started/install.md) → [First program](getting-started/first-program.md) |
-| Start a real multi-file project | [First project](getting-started/first-project.md) |
-| Learn the language fast | [Essentials](language/essentials.md) → [Types](language/types.md) → [Ownership](language/ownership.md) |
-| Go deeper on one topic | [Functions](language/functions.md) · [Loops](language/loops.md) · [Collections](language/collections.md) · [Classes](language/classes.md) · [Matching](language/matching.md) · [I/O](language/io.md) · [Resources](language/resources.md) |
-| Ship a project | [Manifests](projects/manifests.md) → [Targets](projects/targets.md) → [Shipping](projects/shipping.md) |
-| Write correct, idiomatic code | [Style](practices/style.md) and the [Cookbook](practices/cookbook.md) |
-| Fix a compiler error | [Debugging](practices/debugging.md) → [Diagnostics reference](reference/diagnostics.md) |
-| Drive Semaprax from an AI agent | [Agents](practices/agents.md) |
-| Look something up | [Cheatsheet](reference/cheatsheet.md) · [Stdlib](reference/stdlib.md) · [Built-ins](reference/builtins.md) |
+| Install and return your first result | [Install](getting-started/install.md) → [First program](getting-started/first-program.md) |
+| See the tools before trying them | [Recorded walkthrough](getting-started/see-it-in-action.md) |
+| Create a project and understand its files | [First project](getting-started/first-project.md) → [Modules and imports](projects/modules.md) |
+| Learn the language | [Essentials](language/essentials.md) → [Types](language/types.md) → [Ownership](language/ownership.md) |
+| Work with collections and reusable functions | [Functions](language/functions.md) · [Loops](language/loops.md) · [Collections](language/collections.md) |
+| Model behavior and external operations | [Classes](language/classes.md) · [Matching](language/matching.md) · [Contracts and effects](language/contracts-effects.md) · [I/O](language/io.md) · [Resources](language/resources.md) |
+| Use project data and choose a target | [Manifests](projects/manifests.md) → [Profiles](projects/profiles.md) → [Targets](projects/targets.md) |
+| Reuse code in an existing application | [Rust and other integrations](projects/integrations.md) |
+| Write and inspect laws | [Laws and proofs](language/laws.md) |
+| Build an agent with typed decisions | [Agent programs](agents/programs.md) → [Recovery and budgets](agents/recovery.md) |
+| Work in VS Code | [Editor setup](getting-started/editor.md) |
+| Let a coding agent inspect and change code | [Agent workflow](practices/agents.md) → [Semantic explorer](practices/explorer.md) |
+| Measure context size and reuse checked work | [Token reports and caches](practices/context-performance.md) |
+| Test, debug, and prepare a release | [Testing](practices/testing.md) · [Debugging](practices/debugging.md) · [Shipping](projects/shipping.md) |
+| Look something up | [Cheatsheet](reference/cheatsheet.md) · [Standard library](reference/stdlib.md) · [Built-ins](reference/builtins.md) · [Cookbook](practices/cookbook.md) |
+
+The handbook teaches everyday use. For implementation details, use the
+[source map](reference/source-map.md) and the linked specifications. They
+connect each workflow to the code that implements it.
 
 ## The 2-minute tour
 

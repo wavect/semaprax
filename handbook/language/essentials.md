@@ -1,120 +1,153 @@
 # Essentials
 
-The core language on one page: files, scalars, bindings, and control flow.
+Learn the pieces that appear in almost every Semaprax program: values,
+functions, bindings, branches, and loops. The complete examples below can be
+saved as separate `.spx` files and run with `semaprax run` after formatting
+and checking them.
 
-## File anatomy
+## Functions return the last expression
 
+<!-- handbook-smoke: {"stdout":"42\n"} -->
 ```semaprax
-module app.flow;
+module app.basics;
 
-permit { clock.read }
-
-@id("flow.digit_sum")
-fn digit_sum(value: i64) -> i64
-    requires value >= 0
-    ensures result >= 0
+@id("basics.double")
+fn double(value: i64) -> i64
 {
-    let mut remaining = value;
-    let mut total = 0;
-    while remaining > 0 {
-        total = total + remaining % 10;
-        remaining = remaining / 10;
-        remaining > 0
-    }
-    total
+    value * 2
 }
 
 @id("app.main")
 fn main() -> i64
 {
-    digit_sum(98765)
+    double(21)
 }
 ```
 
-- One `module dotted.name;` per file, always first.
-- Optional `permit { … }` lists the effects this file may use.
-- Every declaration gets an `@id("dotted.stable.name")`. Without one the
-  compiler warns (`SPX-S103`) — and renames silently change identity.
-- A function body is zero or more statements plus one **tail expression**.
-  That expression is the return value. There is no `return`.
+`value` is the function's input. `-> i64` is its output type. The expression
+`value * 2` produces the result. A caller writes `double(21)`.
 
-## Scalars
+The ID `basics.double` identifies the declaration for tools and imports.
+The display name `double` is what you type at this call site. Giving the
+function an explicit ID lets a later display rename keep the same identity.
 
-| Type | Literals | Notes |
+## Choose the right type
+
+A **scalar** holds one basic value, such as a number or a boolean. These are
+Copy values: using one does not consume it.
+
+| Type | Write a value as | Use it for |
 | --- | --- | --- |
-| `i64` | `42`, `-1` | Default integer; checked overflow |
-| `i32` | `42i32` | Suffix required, no implicit widening |
-| `u8` | `255u8` | Byte value |
-| `usize` | `3usize` | Lengths and indices; compare only with `usize` |
-| `f64`, `f32` | `1.5`, `1.5f32` | Floats |
-| `bool` | `true`, `false` | `&&`, `||`, `!` (lazy, left to right) |
-| `char` | `'a'`, `'\n'` | Single scalar value |
-| `string` | `"text"` | Owned UTF-8; content equality with `==` |
+| `i64` | `42`, `-1` | Ordinary integer calculations. Unsuffixed integers use this type. |
+| `i32` | `42i32` | Explicit 32-bit integer values. |
+| `u8` | `255u8` | Individual bytes. |
+| `usize` | `3usize` | Collection lengths and indexes. |
+| `f64`, `f32` | `1.5`, `1.5f32` | Floating-point calculations. |
+| `bool` | `true`, `false` | Conditions. |
+| `char` | `'a'`, `'\n'` | One Unicode scalar value. |
 
-**Operators never mix types.** If `n` is `usize`, `n < 5` fails — write
-`n < 5usize`. Integer literals are `i64` unless suffixed, so
-`let a: i32 = 5` fails; write `5i32`.
+Owned text uses `string`, written as `"hello"`. Its ownership and borrowed
+views have their own rules; see [Ownership](ownership.md).
 
-## Bindings and mutation
+Operators do not silently mix numeric types. Write `index < 5usize` when
+`index` is a `usize`. Writing `index < 5` compares different types and fails.
+Likewise, an `i32` literal is `5i32`, even beside an `i32` annotation.
 
-- `let x = …;` is immutable. `let mut x = …;` allows `x = x + 1;`.
-- Assignment is a statement, never an expression. No `+=`, no shadowing
-  (`let x = 1; let x = x + 1;` fails — pick a new name).
-- Parameters are always immutable.
+## Bind a value, then change it explicitly
 
-## Control flow
+`let count = 3;` creates an immutable binding. `let mut count = 3;` lets you
+assign a new value to that binding. Function parameters remain immutable.
 
-**`if` is an expression and always has `else`.** Nest `if` inside `else`
-instead of `else if`. Every branch yields a value — a branch that only
-assigns still needs a trailing expression:
+A statement such as `count = count + 1;` performs work and ends with `;`.
+A block still needs a final expression to supply its value. Semaprax does not
+use `+=`, and a second `let` with the same local name is not a replacement for
+assignment.
 
+## Choose a value with if
+
+<!-- handbook-smoke: {"stdout":"42\n"} -->
 ```semaprax
 module app.branch;
 
 @id("app.main")
 fn main() -> i64
 {
-    let mut x = 0;
-    let y = if x == 0 { x = 1; x } else { x };
-    y
+    let score = 42;
+    let accepted = if score >= 40 { score } else { 0 };
+    accepted
 }
 ```
 
-**`while` repeats while its tail expression is `true`.** The condition is
-checked before every iteration, and the body's final expression is the
-continuation condition — a body ending in an assignment fails (`SPX-P203`).
-While bodies admit Copy-scalar operations; building records or variants
-inside one fails (`SPX-T252`) — compute scalars in the loop, construct after.
+Both branches produce the same type. `if` always has an `else`. To express a
+second condition, nest another `if` inside the `else` block.
 
-**`match` needs a final catch-all** (`_` or a binding, no guard):
+For booleans, use `&&`, `||`, and `!`. The right side of `&&` or `||` is only
+evaluated when needed. This is useful when the first condition protects an
+operation in the second.
 
+## Repeat work with while
+
+<!-- handbook-smoke: {"stdout":"6\n"} -->
 ```semaprax
-module app.flow;
-
-@id("flow.classify")
-fn classify(value: i64) -> i64
-{
-    match value { 0 => 0, -1 | -2 => -9, n if n < 0 => -1, _ => 1, }
-}
+module app.counting;
 
 @id("app.main")
 fn main() -> i64
 {
-    classify(-2)
+    let mut next = 1;
+    let mut total = 0;
+    while next <= 3 {
+        total = total + next;
+        next = next + 1;
+        0
+    }
+    total
 }
 ```
 
-## What doesn't exist (and what to write instead)
+The condition `next <= 3` is checked before each iteration. The loop adds
+`1`, `2`, and `3`, then stops. The result is `6`.
 
-| Instead of… | Write… |
+The final `0` supplies the body's required expression, but the loop discards
+that value. **The condition after `while` controls repetition.** Update the
+state used by that condition so the loop can finish.
+
+For vectors, the language also has `for item in values` and consuming
+`for own item in iterator`. See [Loops](loops.md) for complete examples. A
+Rust-style numeric range such as `0..n` is not this traversal syntax.
+
+## Select a case with match
+
+<!-- handbook-smoke: {"stdout":"-9\n"} -->
+```semaprax
+module app.classification;
+
+@id("app.main")
+fn main() -> i64
+{
+    let value = -2;
+    match value { 0 => 0, -1 | -2 => -9, n if n < 0 => -1, _ => 1, }
+}
+```
+
+The first matching arm supplies the result. `|` combines patterns, `if` adds
+a condition to an arm, and `_` matches anything left. Scalar matches need an
+unguarded final catch-all. Matching variants is explained in [Matching](matching.md).
+
+## Habits to learn early
+
+| You might try | Write this instead |
 | --- | --- |
-| `return x;` | `x` as the tail expression |
-| `else if` | `else { if … }` |
-| `for i in 0..n` | `while` with a `let mut` counter |
-| `f(x);` as a statement | `let _ = f(x);` or make it the tail |
-| tuples, `struct`, `enum` | `record` / `variant` (see [Types](types.md)) |
-| `fn f()` / `-> ()` | Every function returns a value; `main` returns `i64` (`0` = success) |
+| `return value;` | Put `value` at the end of the block. |
+| `else if condition` | Put a nested `if` inside `else { ... }`. |
+| `do_work();` as a standalone statement | Bind the result, for example `let ignored = do_work();`. |
+| `fn work() -> ()` | Choose a supported result type; functions return a value. |
+| `struct` or `enum` | Use `record` or `variant`. |
+| String concatenation with `+` | Use `string_concat`. |
 
-Every declaration, field, and match arm ends with `,` — including the last
-one. When in doubt, run `fmt` and read the diagnostic: the fix is usually in
-the `help` line. Full rulebook: [RFC 0001](https://github.com/wavect/semaprax/blob/main/docs/RFC-0001.md).
+Fields, variant cases, and match arms use their required commas. Ordinary
+function declarations do not end with a comma. Let `semaprax fmt` handle the
+standard layout after the parser accepts the source.
+
+**Next:** [Group values with records, variants, and classes](types.md).
+Exact rules: [RFC 0001](https://github.com/wavect/semaprax/blob/main/docs/RFC-0001.md).

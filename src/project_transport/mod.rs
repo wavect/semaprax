@@ -8,6 +8,8 @@ pub(crate) mod codec;
 mod config;
 pub(crate) mod framing;
 mod sdk;
+mod selected_law;
+mod selected_law_mcp;
 mod session;
 
 pub use sdk::{
@@ -27,6 +29,8 @@ pub const PROJECT_WORKFLOW_TRANSPORT_SCHEMA: &str = "semaprax.agent-transport.v4
 pub const PROJECT_OWNED_DATA_TRANSPORT_SCHEMA: &str = "semaprax.agent-transport.v5";
 /// Explicit opt-in read-only profile for Project v8-v11 public API inspection and npm builds.
 pub const PROJECT_PUBLIC_API_TRANSPORT_SCHEMA: &str = "semaprax.agent-transport.v6";
+/// Opt-in read-only selected-law diagnostic profile with a host-pinned tool.
+pub const PROJECT_LAW_WORKFLOW_TRANSPORT_SCHEMA: &str = "semaprax.agent-transport.v7";
 
 /// Parse daemon startup authority and serve exactly one sequential stdio
 /// session. Human-readable startup/I/O failures are returned to the tiny
@@ -35,5 +39,13 @@ pub fn run_from_args(arguments: impl IntoIterator<Item = OsString>) -> Result<()
     let config = config::ServerConfig::parse(arguments)?;
     let stdin = std::io::stdin();
     let stdout = std::io::stdout();
+    if config.profile() == config::ServerProfile::ProjectLawWorkflowV1 {
+        if config.mcp() {
+            return selected_law_mcp::serve(stdin.lock(), stdout.lock(), config)
+                .map_err(|error| error.to_string());
+        }
+        return selected_law::serve(stdin.lock(), stdout.lock(), config)
+            .map_err(|error| error.to_string());
+    }
     session::serve(stdin.lock(), stdout.lock(), config).map_err(|error| error.to_string())
 }

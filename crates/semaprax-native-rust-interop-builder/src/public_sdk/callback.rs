@@ -6,7 +6,7 @@ use semaprax::ast::{ExprKind, Param, ParamMode, Type};
 use semaprax::hir::{ResolvedExprKind, ResolvedType};
 
 #[path = "callback_runtime.rs"]
-mod runtime;
+pub(super) mod runtime;
 #[cfg(test)]
 #[path = "callback_tests.rs"]
 mod tests;

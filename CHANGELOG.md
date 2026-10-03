@@ -1,5 +1,65 @@
 # Changelog
 
+- Start LAW-15 with a checked money/state example used directly by the
+  finite-structured-law Z3 harness. The pack proves exact debit, credit,
+  conservation, and insufficient-funds behavior on bounded checked integers;
+  a no-op transfer still proves conservation but refutes both amount clauses.
+  The structured proof lowering now selects same-record conditional results
+  field by field under their original execution guards. The focused real-Z3
+  positive/mutant selector passed 2/2.
+
+- Add an ephemeral checked-source `Future` adapter for one direct scalar
+  suspension. A caller-owned Rust Future answers the request; the interpreter
+  resumes under its exact in-memory binding. Focused pending/wake/ready,
+  source-refusal and cancellation-drop controls pass. Project-authenticated
+  async SDK admission and external rollback remain open.
+
+- Exercise a real locked reqwest response through the generated local Future
+  bridge and an authenticated Project v8 owned-Bytes SDK. The checked `.spx`
+  body transforms `hello` to `ello`; an over-limit second response cannot
+  reach that body. Rust still owns the await point and source-level async
+  import/export remain open.
+
+- Add checked named Result callbacks to the experimental native Rust adapter. Real O0/O2 iterator and safe-trait consumers preserve signed domain errors, contract/semantic/panic separation and state rollback; forged-success and authored-body controls fail as intended. Source mutable/retained capture semantics remain open.
+
+- Exercise LAW-12 `unknown`, `timeout`, `unsupported`, and `stale` diagnostic
+  states through held local process fixtures in both selected-law summary and
+  detail without losing strict required counts. The existing agent-workflow MCP
+  adapter and token observer carry a failed law as one measured tool payload;
+  successful delivery does not mark the law valid or create a reward stream.
+
+- Make the bounded RI-09 local Rust Future handle directly awaitable by an
+  explicit caller executor, including shared local waiting for cancellation.
+  The locked reqwest fixture now awaits the generated bridge directly; this
+  does not admit source-level Semaprax async import or reverse export.
+
+- Finish bounded LAW-17 acceptance with an emitted-Core-Wasm Node benchmark
+  for the proved add-zero rewrite, plus call-operand, numeric-kind, and stale
+  artifact refusals. The installed-Z3 focused gate passed 1/1; the read-only
+  reduction report continues to state that no parallel execution occurred.
+
+- Add a fixed two-tool MCP stdio catalog over the selected-law Project agent
+  route. It shares current-revision and host-policy replay with direct JSON-RPC,
+  requires MCP initialization, and cannot select an executable or root from a
+  request. A real installed-Z3 selector exercises failure, stale revision,
+  body repair, recheck, and protected-law drift through the MCP wrapper.
+
+- Complete the bounded RI-06 native loan acceptance with precise unchanged-import refusals for unsupported Url reference/lifetime shapes. The owning source/rejection matrix passes alongside retained real Regex/Url, callback, sanitizer and Miri evidence; broader mutable source syntax and hosted support remain outside the claim.
+
+- Compare actual emitted Core Wasm before and after the LAW-17 proved add-zero
+  candidate in the focused installed-Z3 gate. Node confirms the same return
+  value and checked-overflow failure; the test moves into the owning nested
+  workspace harness to keep its Rust module within the size budget.
+
+- Complete the bounded RI-06 native loan acceptance with precise unchanged-import refusals for unsupported Url reference/lifetime shapes. The owning source/rejection matrix passes alongside retained real Regex/Url, callback, sanitizer and Miri evidence; broader mutable source syntax and hosted support remain outside the claim.
+
+- Add an opt-in selected-law Project v7 stdio agent route using the existing
+  bounded JSON-RPC codec. `law/status` returns the authenticated current
+  revision and policy digests; `law/check` shares one strict-report evaluator
+  with the CLI and refuses stale candidate revisions without a proof query.
+  An installed Z3 gate covers direct-library use and a persistent daemon's
+  edit, failure, stale request, repair, recheck, and protected-law drift. An
+  MCP catalog and editor delivery remain separate work.
 - Repair the follow-up main CI failures: package Rust API index replay with the
   public compiler, add the full toolchain's direct index dependency, update the
   embedding example lockfile, and complete the Node Wasm owned-byte harness.

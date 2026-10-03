@@ -73,8 +73,37 @@ pub struct InstalledProofTool {
     limits: Limits,
     cancellation: AgentCancellation,
     budget: RefCell<ProcessInvocationBudget>,
+    reserved_solver_queries: RefCell<usize>,
     #[cfg(any(target_os = "linux", target_os = "macos"))]
     provider: RefCell<RegisteredProcessProvider>,
+}
+
+/// Monotone host reservations for one held installed proof tool. These are
+/// attempted process calls, not a bill, proof, or claim of completed execution.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct InstalledProofWork {
+    pub reserved_process_invocations: usize,
+    pub reserved_solver_queries: usize,
+    pub reserved_io_bytes: usize,
+}
+
+impl InstalledProofWork {
+    pub fn since(self, earlier: Self) -> Self {
+        Self {
+            reserved_process_invocations: self
+                .reserved_process_invocations
+                .checked_sub(earlier.reserved_process_invocations)
+                .expect("held process reservations are monotone"),
+            reserved_solver_queries: self
+                .reserved_solver_queries
+                .checked_sub(earlier.reserved_solver_queries)
+                .expect("held solver reservations are monotone"),
+            reserved_io_bytes: self
+                .reserved_io_bytes
+                .checked_sub(earlier.reserved_io_bytes)
+                .expect("held process byte reservations are monotone"),
+        }
+    }
 }
 
 fn refused(reason: &str) -> Diagnostic {
@@ -122,6 +151,14 @@ impl InstalledProofTool {
     }
     pub fn proof_timeout_ms(&self) -> u64 {
         self.limits.proof_timeout_ms
+    }
+    pub fn work_snapshot(&self) -> InstalledProofWork {
+        let budget = self.budget.borrow();
+        InstalledProofWork {
+            reserved_process_invocations: budget.runs(),
+            reserved_solver_queries: *self.reserved_solver_queries.borrow(),
+            reserved_io_bytes: budget.total_bytes(),
+        }
     }
     /// Complete pinned process options included in logical proof-task keys.
     pub(crate) fn proof_cache_active(&self) -> bool {
@@ -216,6 +253,7 @@ impl InstalledProofTool {
                 limits,
                 cancellation,
                 budget: RefCell::new(ProcessInvocationBudget::new()),
+                reserved_solver_queries: RefCell::new(0),
                 provider: RefCell::new(
                     RegisteredProcessProvider::new([(1, tool)])
                         .map_err(|_| refused("held registry unavailable"))?,
@@ -280,6 +318,11 @@ impl InstalledProofTool {
             .borrow_mut()
             .reserve(&request)
             .map_err(|_| RunFailure::Diagnostic(refused("invocation process budget exhausted")))?;
+        if (matches!(self.kind, ToolKind::Z3) && args == [b"-in".as_slice(), b"-smt2".as_slice()])
+            || (matches!(self.kind, ToolKind::Lean) && args == [b"--stdin".as_slice()])
+        {
+            *self.reserved_solver_queries.borrow_mut() += 1;
+        }
         #[cfg(any(target_os = "linux", target_os = "macos"))]
         {
             let output = self

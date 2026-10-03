@@ -2,7 +2,7 @@
 pub enum SpxCallbackError {
     WrongThread, Reentered, DepthLimit, AfterTeardown, UncertainTeardown,
     Contract(u32), Semantic(u32), Domain{domain:&'static str,code:u32},
-    HostFailed, RustPanicked, AdapterRejected,
+    HostFailed, RustPanicked, AdapterRejected, $SOURCE_DOMAIN_ERROR
 }
 fn spx_callback_error(error:NativeRustCallError)->SpxCallbackError {
     match error {
@@ -17,8 +17,7 @@ fn spx_callback_error(error:NativeRustCallError)->SpxCallbackError {
         NativeRustCallError::AdapterRejected=>SpxCallbackError::AdapterRejected,
     }
 }
-struct SpxCallbackHost;
-impl NativeRustImports for SpxCallbackHost {}
+$HOST
 struct SpxCallbackDomainState {
     owner:std::thread::ThreadId,depth:std::cell::Cell<usize>,
     live:std::cell::Cell<usize>,limit:usize,
@@ -40,6 +39,7 @@ impl SpxCallbackDomain {
 struct SpxCallbackEnvironment {
     bridge:std::cell::RefCell<NativeRustBridge<SpxCallbackHost>>,
     capture:std::cell::Cell<i64>,
+    $ENV_FIELDS
 }
 pub struct SpxCallback {
     domain:SpxCallbackDomain,environment:Option<Box<SpxCallbackEnvironment>>,
@@ -57,10 +57,12 @@ impl SpxCallback {
     pub fn new(domain:SpxCallbackDomain,capture:i64)->Result<Self,SpxCallbackError> {
         if domain.0.owner!=std::thread::current().id(){return Err(SpxCallbackError::WrongThread)}
         if domain.0.live.get()>=64{return Err(SpxCallbackError::AdapterRejected)}
-        let caps=NativeRustCapabilities::new(&[]).map_err(|_|SpxCallbackError::AdapterRejected)?;
+        let caps=NativeRustCapabilities::new($CAPABILITIES).map_err(|_|SpxCallbackError::AdapterRejected)?;
+        $HOST_SETUP
         let environment=Box::new(SpxCallbackEnvironment {
-            bridge:std::cell::RefCell::new(NativeRustBridge::new(SpxCallbackHost,caps)),
+            bridge:std::cell::RefCell::new(NativeRustBridge::new($HOST_VALUE,caps)),
             capture:std::cell::Cell::new(capture),
+            $ENV_INIT
         });
         domain.0.live.set(domain.0.live.get()+1);
         Ok(Self{domain,environment:Some(environment),active:std::cell::Cell::new(false),lifecycle:std::cell::Cell::new(0)})
@@ -91,7 +93,7 @@ impl SpxCallback {
             let environment=self.environment.as_ref().unwrap();
             let capture=environment.capture.get();
             let mut bridge=environment.bridge.try_borrow_mut().map_err(|_|SpxCallbackError::Reentered)?;
-            let output=if transition{bridge.$TRANSITION(capture,value)}else{bridge.$SNAPSHOT(capture,value)}.map_err(spx_callback_error)?;
+            $CALL_RESULT
             // Publication and state commit occur only after checked C success.
             if transition {environment.capture.set(output)}
             Ok(output)

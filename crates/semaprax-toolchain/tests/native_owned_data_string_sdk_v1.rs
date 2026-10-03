@@ -12,6 +12,9 @@ use semaprax_native_rust_owned_data_package::{
 mod native_rust_cargo;
 #[path = "../../../tests/native_owned_data_string_settlement_v1/subject.rs"]
 mod subject;
+#[cfg(target_os = "macos")]
+#[path = "native_owned_data_string_sdk_v1/ri09_async.rs"]
+mod ri09_async;
 
 const MANIFEST: &str = r#"[package]
 name = "standalone-string-consumer"

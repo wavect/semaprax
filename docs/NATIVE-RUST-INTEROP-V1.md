@@ -817,11 +817,33 @@ sysroot setup and the test itself run offline in private targets. Select
 It does not interpret native C, callback FFI or the separately exercised
 panic-payload quarantine path.
 
-This remains a bounded local checked-body and generated Rust witness. It does
+The exact Url binder also preserves precise `SPX-B145` refusal reasons for
+higher-ranked, pinned, escaping, mutable, interior-mutable and raw-pointer
+references, unmodeled lifetime relations and incorrect receiver modes. A
+constructor with borrowed or self-referential result storage is refused because
+this profile admits only the exact owned Url Result; no self-reference is
+inferred from a nominal type name. Failed binding leaves the import unchanged.
+The `indexed_url_loan_` owning filter passed locally (2 passed, 0 failed/ignored,
+208 filtered; 0.02s runtime), including both the source loan matrix and nine
+unsupported-shape controls. These reasons classify rejection only; they do not
+relax exact indexed signature admission.
+
+The bounded native M1 acceptance is covered by these separate gates:
+
+| Acceptance | Owning executable evidence |
+| --- | --- |
+| Real owned receivers and eligible zero-copy input | `indexed_real_regex_project_generates_and_executes_locked_offline_owner_loan`; `indexed_real_url_project_executes_receiver_tied_view_and_cleanup`, with pointer/copy/allocation and authored-body controls |
+| Owner-tied view and static lifetime errors | `indexed_url_loan_source_negative_matrix`, plus the Url Project cross-crate return/store/mutation/async compile-fail controls |
+| Dynamic exclusive callback re-entry | Actual C/Rust relay, per-owner refusal-before-target counter, independent-owner success and lease restoration in the Url Project gate |
+| Hostile inputs and memory safety | Removed-guard controls, deterministic carrier corpus, C ASan/UBSan success and detected-overflow control, and `indexed_url_miri_carrier_and_exclusive_loan_corpus` |
+| Precise unsupported shapes | `indexed_url_loan_unsupported_shape_reasons` and the existing selected borrowed-signature source diagnostics |
+
+This remains bounded local checked-body and generated Rust evidence. It does
 not establish general mutable/exclusive returned-view source syntax, arbitrary
-lifetimes, cross-thread use or a hosted profile. Remaining
-RI-06 acceptance claims require their own evidence; the Rust callback primitive
-is not source callback syntax.
+lifetimes, cross-thread use or a hosted profile. The Rust callback primitive
+is not source callback syntax; other selected `&mut` signatures remain refused.
+The full repository quality profile was not rerun for this completion; the
+focused gates above are the claimed evidence.
 
 ## Diagnostics and nonclaims
 

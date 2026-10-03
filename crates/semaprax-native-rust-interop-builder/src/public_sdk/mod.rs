@@ -689,3 +689,9 @@ mod target_tests;
 
 #[cfg(test)]
 mod indexed_owner_tests;
+
+mod result_callback;
+pub use result_callback::{
+    prepare_native_rust_result_callback, NativeResultCallbackProjection,
+    NativeResultCallbackSelection,
+};

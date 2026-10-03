@@ -37,6 +37,13 @@ remainder, calls, mutation, iteration, guarded match arms, and non-value
 matches refuse. The existing typed scalar VC then owns binding, operation
 order, checked integer ranges, and path-sensitive discharge.
 
+An `if` whose two branches produce the same admitted immutable record can be
+lowered field by field. Each branch is first checked under its own execution
+guard, then each corresponding scalar leaf is selected by that same condition.
+This supports a bounded before/after money decision with unchanged balances on
+an insufficient-funds branch. A conditional aggregate with different nominal
+records or variants remains outside this exact profile.
+
 SMT and Lean coverage are distinct. Z3 can discharge scalarized aggregate
 result clauses and conditional match paths under the bounded `QF_LIA`
 profile. Lean's additive structured profile admits scalar-result record and

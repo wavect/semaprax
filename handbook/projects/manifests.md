@@ -1,10 +1,12 @@
 # Project manifests
 
-`semaprax.toml` is the project's identity: what it is, what it contains,
-what it needs, and what it exposes. Two layouts are admitted — prefer the
-extensible table layout.
+A manifest answers four questions: which files belong to this project, where
+execution starts, which tests run, and what other code may call. Keep it open
+beside your source when learning a multi-file project.
 
-## The table layout (preferred)
+## Start with the generated layout
+
+This complete example uses the extensible table layout:
 
 ```toml
 schema = "semaprax.manifest.v1"
@@ -25,18 +27,82 @@ web = ["calculator.add"]
 std.num = "^0.1.0"
 ```
 
-- `entry` names the one module declaring `main`.
-- `sources` lists every file, in order. `tests` lists test modules.
-- `[exports]` names stable ids per target (`web`, …).
-- `[dependencies]` links dotted package identities with `^`/`~`/`=` ranges
-  against the compiler's closed bundled inventory (`0.1.0`).
+The names refer to matching source files and declarations. Use this manifest
+with that project, not beside an unrelated `hello.spx`.
 
-**Manifest bytes are canonical**: table order as shown, one blank line
-between tables, one-line arrays, no comments. Violations fail with `SPX-J100`
-(its `help` names the first differing line); unknown tables or keys fail
-with `SPX-J120`; unknown packages or unsatisfied ranges with `SPX-J121`.
+| Field | What you put there |
+| --- | --- |
+| `schema` | The manifest format understood by the loader. |
+| `[package] name` and `version` | Your package's identity and version. |
+| `entry` | The module containing the application's `main`. |
+| `sources` | Project-relative paths to the source files the loader should read. |
+| `tests` | Module names containing the project's test functions. |
+| `[exports] web` | Stable function IDs to expose through the selected web build. |
+| `[dependencies]` | Declared package identities and accepted version ranges. |
 
-## The frozen layout (also admitted)
+A filename is not a module name, and a module name is not a declaration ID.
+The [modules tutorial](modules.md) shows the relationship in a working project.
+
+## Preserve canonical formatting
+
+**Canonical** means the loader expects one accepted representation. Preserve
+the generated table order, one blank line between tables, and one-line arrays.
+Do not add comments or arbitrary TOML tables to a canonical manifest.
+
+`SPX-J100` identifies a formatting mismatch and gives a location to fix.
+Unknown tables or keys use `SPX-J120`; an unknown bundled dependency or an
+unsatisfied range uses `SPX-J121`.
+
+When adding a source file, put its path in `sources`. When adding a test
+module, include it in both `sources` and `tests`. A file merely existing in
+`src/` does not automatically include it in the project.
+
+## Three different kinds of version
+
+Do not treat all version numbers in the repository as the same thing:
+
+| Version | Example | Meaning |
+| --- | --- | --- |
+| Compiler package | `0.7.0` | The installed Semaprax workspace/package version. |
+| Manifest schema | `semaprax.manifest.v1` | The grammar of this configuration file. |
+| Your package | `version = "0.1.0"` | The version assigned to the application or library. |
+
+A specification filename such as `PROJECT-MANIFEST-V18.md` names a particular
+project profile. It is not an instruction to change your compiler version or
+to replace every manifest's schema string.
+
+## Select a profile when your data needs it
+
+The optional `[package] profile` chooses an admitted consumer profile.
+Start with the default for the calculator. Move to an explicit data or command
+profile when the interface you are building needs it.
+
+| Profile choice | Starting use case |
+| --- | --- |
+| Omit `profile` | Scalar project interfaces and bundled scalar helpers. |
+| `owned-data-api.v1` | The selected owned-data API and collection workflows. |
+| `useful-data-command.v1` | The command-I/O workflow. Follow its target-specific example. |
+
+The [profiles guide](profiles.md) explains why a helper that checks on its own
+may need a different project boundary. A profile is more than a label: it
+selects concrete type, ownership, execution, and packaging rules.
+
+`[targets] matrix = ["wasm32"]`, in the schema that admits it, restricts the
+allowed target set. A conflicting build request reports `SPX-J122`.
+
+## Add laws explicitly
+
+Projects that select native law files use `semaprax.manifest.v2` and
+`[modules] law_sources`. A selected law file also appears in `sources`.
+
+The complete [native-law example](https://github.com/wavect/semaprax/tree/main/examples/native-law-project)
+shows the exact ordering. Naming a file `LAWS.spx` alone does not add it to a
+project. See [Laws and proofs](../language/laws.md) for the declaration syntax
+and inspection commands.
+
+## Recognize the older frozen layout
+
+Existing projects may use this six-line layout:
 
 ```toml
 schema = "semaprax.project.v1"
@@ -47,35 +113,11 @@ web_exports = ["calculator.add"]
 tests = ["calculator.tests"]
 ```
 
-One line per key, six lines in this order. The committed
-`calculator-project` uses it. New projects should use the table layout;
-`scaffold --layout frozen|tables` and `new --layout` select either.
+It is still useful to recognize this format when opening committed examples.
+Keep its fields in the required order. For a new ordinary project, let
+`semaprax new` produce the table layout rather than translating by hand.
 
-## Profiles and targets
-
-`[package] profile` selects the admitted consumer profile for the project's
-dependencies:
-
-| Profile | For |
-| --- | --- |
-| `scalar` (omit the key) | Plain scalar code, `std.num`, `std.core` |
-| `owned-data-api.v1` | Bounded `Vec`/`Box`/bytes via `std.collections` |
-| `useful-data-command.v1` | `args`/`stdin`/`stderr` command I/O, native target only |
-
-`[targets] matrix = ["wasm32"]` restricts builds to Wasm; a native build
-against it fails with `SPX-J122`.
-
-## Modules and imports
-
-- Import by stable identity, directly after the `module` line:
-  `use function @id("calculator.add") from calculator.core as add;`
-- Project function signatures are **Copy scalars only**. Records, variants,
-  `Option`/`Result`, and classes work as module-local implementation
-  details, but crossing a function boundary with one is `SPX-G174`.
-
-Exact rules: [Package Manifest v1](https://github.com/wavect/semaprax/blob/main/docs/PACKAGE-MANIFEST-V1.md),
-[Project Manifest v1](https://github.com/wavect/semaprax/blob/main/docs/PROJECT-MANIFEST-V1.md)
-(frozen), and the specialized profiles
-([v16](https://github.com/wavect/semaprax/blob/main/docs/PROJECT-MANIFEST-V16.md),
-[v18](https://github.com/wavect/semaprax/blob/main/docs/PROJECT-MANIFEST-V18.md),
-[v19](https://github.com/wavect/semaprax/blob/main/docs/PROJECT-MANIFEST-V19.md)).
+**Next:** [Choose a project profile](profiles.md), then [build a target](targets.md).
+References: [Package Manifest v1](https://github.com/wavect/semaprax/blob/main/docs/PACKAGE-MANIFEST-V1.md),
+[Package Manifest v2](https://github.com/wavect/semaprax/blob/main/docs/PACKAGE-MANIFEST-V2.md),
+and [Project Manifest v1](https://github.com/wavect/semaprax/blob/main/docs/PROJECT-MANIFEST-V1.md).

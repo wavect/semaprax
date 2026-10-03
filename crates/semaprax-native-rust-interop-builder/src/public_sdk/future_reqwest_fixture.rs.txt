@@ -17,13 +17,7 @@ fn receive_request(stream: &mut TcpStream) {
 }
 
 async fn drive(handle: Rc<LocalFuture<Vec<u8>>>) -> Result<Vec<u8>, FutureBridgeError> {
-    std::future::poll_fn(|cx| match handle.poll(cx) {
-        Ok(Poll::Pending) => Poll::Pending,
-        Ok(Poll::Ready(())) => Poll::Ready(Ok(())),
-        Err(error) => Poll::Ready(Err(error)),
-    })
-    .await?;
-    handle.take_output()
+    (&*handle).await
 }
 
 fn main() {

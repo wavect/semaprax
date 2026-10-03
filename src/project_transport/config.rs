@@ -2,6 +2,7 @@ use std::ffi::OsString;
 use std::path::PathBuf;
 
 use super::framing::StdioLimits;
+use crate::proof_export::installed::ToolKind;
 
 const DEFAULT_MANIFEST: &str = "semaprax.toml";
 
@@ -10,6 +11,15 @@ pub(crate) struct ServerConfig {
     manifest_path: PathBuf,
     limits: StdioLimits,
     profile: ServerProfile,
+    law_tool: Option<LawToolConfig>,
+    mcp: bool,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct LawToolConfig {
+    pub(crate) kind: ToolKind,
+    pub(crate) executable: PathBuf,
+    pub(crate) version_line: String,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -19,6 +29,7 @@ pub(crate) enum ServerProfile {
     ProjectWorkflowV1,
     ProjectOwnedDataV1,
     ProjectPublicApiV1,
+    ProjectLawWorkflowV1,
 }
 
 impl ServerProfile {
@@ -37,7 +48,10 @@ impl ServerProfile {
                     | crate::project::ProjectProfile::OwnedUtf8ApiV1
                     | crate::project::ProjectProfile::NestedOwnedRecordApiV1
             ),
-            Self::ReadOnlyV2 | Self::ProjectRenameV1 | Self::ProjectWorkflowV1 => true,
+            Self::ReadOnlyV2
+            | Self::ProjectRenameV1
+            | Self::ProjectWorkflowV1
+            | Self::ProjectLawWorkflowV1 => true,
         }
     }
 }
@@ -47,6 +61,7 @@ impl ServerConfig {
         let mut arguments = arguments.into_iter();
         let _program = arguments.next();
         let mut stdio = false;
+        let mut mcp = false;
         let mut manifest_path = None;
         let mut max_request_bytes = None;
         let mut max_response_bytes = None;
@@ -54,6 +69,10 @@ impl ServerConfig {
         let mut allow_project_workflow = false;
         let mut allow_project_owned_data = false;
         let mut allow_project_public_api = false;
+        let mut allow_project_law_workflow = false;
+        let mut law_tool = None;
+        let mut law_executable = None;
+        let mut law_version_line = None;
 
         while let Some(argument) = arguments.next() {
             let Some(option) = argument.to_str() else {
@@ -62,6 +81,8 @@ impl ServerConfig {
             match option {
                 "--stdio" if !stdio => stdio = true,
                 "--stdio" => return Err("--stdio may not be repeated".to_owned()),
+                "--mcp" if !mcp => mcp = true,
+                "--mcp" => return Err("--mcp may not be repeated".to_owned()),
                 "--manifest-path" if manifest_path.is_none() => {
                     manifest_path = Some(required_path(&mut arguments, option)?);
                 }
@@ -104,11 +125,63 @@ impl ServerConfig {
                 "--allow-project-public-api" => {
                     return Err("--allow-project-public-api may not be repeated".to_owned());
                 }
+                "--allow-project-law-workflow" if !allow_project_law_workflow => {
+                    allow_project_law_workflow = true;
+                }
+                "--allow-project-law-workflow" => {
+                    return Err("--allow-project-law-workflow may not be repeated".to_owned());
+                }
+                "--law-tool" if law_tool.is_none() => {
+                    let value = required_text(&mut arguments, option)?;
+                    law_tool = Some(match value.as_str() {
+                        "z3" => ToolKind::Z3,
+                        "lean" => ToolKind::Lean,
+                        _ => return Err("--law-tool must be z3 or lean".to_owned()),
+                    });
+                }
+                "--law-executable" if law_executable.is_none() => {
+                    law_executable = Some(required_path(&mut arguments, option)?);
+                }
+                "--law-version-line" if law_version_line.is_none() => {
+                    law_version_line = Some(required_text(&mut arguments, option)?);
+                }
                 unknown => return Err(format!("unknown semapraxd option `{unknown}`")),
             }
         }
         if !stdio {
             return Err("semapraxd requires --stdio".to_owned());
+        }
+        if mcp && !allow_project_law_workflow {
+            return Err("--mcp requires --allow-project-law-workflow".to_owned());
+        }
+        if allow_project_law_workflow {
+            if allow_project_rename
+                || allow_project_workflow
+                || allow_project_owned_data
+                || allow_project_public_api
+            {
+                return Err(
+                    "--allow-project-law-workflow is exclusive to the selected-law profile"
+                        .to_owned(),
+                );
+            }
+            if law_tool.is_none() || law_executable.is_none() || law_version_line.is_none() {
+                return Err("selected-law workflow requires --law-tool, --law-executable and --law-version-line".to_owned());
+            }
+            if !manifest_path
+                .as_ref()
+                .is_some_and(|path: &PathBuf| path.is_absolute())
+                || !law_executable
+                    .as_ref()
+                    .is_some_and(|path: &PathBuf| path.is_absolute())
+            {
+                return Err(
+                    "selected-law workflow requires absolute manifest and executable paths"
+                        .to_owned(),
+                );
+            }
+        } else if law_tool.is_some() || law_executable.is_some() || law_version_line.is_some() {
+            return Err("law tool options require --allow-project-law-workflow".to_owned());
         }
         let defaults = StdioLimits::default();
         let limits = StdioLimits::new(
@@ -140,6 +213,8 @@ impl ServerConfig {
             limits,
             profile: if allow_project_public_api {
                 ServerProfile::ProjectPublicApiV1
+            } else if allow_project_law_workflow {
+                ServerProfile::ProjectLawWorkflowV1
             } else if allow_project_owned_data {
                 ServerProfile::ProjectOwnedDataV1
             } else if allow_project_workflow {
@@ -149,6 +224,16 @@ impl ServerConfig {
             } else {
                 ServerProfile::ReadOnlyV2
             },
+            law_tool: if allow_project_law_workflow {
+                Some(LawToolConfig {
+                    kind: law_tool.expect("checked law tool"),
+                    executable: law_executable.expect("checked law executable"),
+                    version_line: law_version_line.expect("checked version pin"),
+                })
+            } else {
+                None
+            },
+            mcp,
         })
     }
 
@@ -163,6 +248,30 @@ impl ServerConfig {
     pub(crate) const fn profile(&self) -> ServerProfile {
         self.profile
     }
+
+    pub(crate) fn law_tool(&self) -> Option<&LawToolConfig> {
+        self.law_tool.as_ref()
+    }
+
+    pub(crate) const fn mcp(&self) -> bool {
+        self.mcp
+    }
+}
+
+fn required_text(
+    arguments: &mut impl Iterator<Item = OsString>,
+    option: &str,
+) -> Result<String, String> {
+    let value = arguments
+        .next()
+        .ok_or_else(|| format!("{option} requires a value"))?;
+    let value = value
+        .into_string()
+        .map_err(|_| format!("{option} must be UTF-8"))?;
+    if value.is_empty() || value.len() > 1024 {
+        return Err(format!("{option} requires 1..=1024 bytes"));
+    }
+    Ok(value)
 }
 
 fn required_path(
@@ -291,6 +400,7 @@ mod tests {
     fn startup_authority_is_closed_and_nonrepeating() {
         assert!(parse(&["semapraxd"]).is_err());
         assert!(parse(&["semapraxd", "--stdio", "--stdio"]).is_err());
+        assert!(parse(&["semapraxd", "--stdio", "--mcp"]).is_err());
         assert!(parse(&["semapraxd", "--stdio", "--manifest-path"]).is_err());
         assert!(parse(&[
             "semapraxd",

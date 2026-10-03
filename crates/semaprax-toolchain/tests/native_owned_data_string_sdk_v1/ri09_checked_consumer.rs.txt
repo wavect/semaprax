@@ -1,0 +1,102 @@
+use semaprax_generated_native_rust_owned_data_sdk::NativeRustOwnedDataSdk;
+use std::io::{Read, Write};
+use std::net::{TcpListener, TcpStream};
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::time::{Duration, Instant};
+
+fn receive_request(stream: &mut TcpStream) {
+    stream.set_read_timeout(Some(Duration::from_secs(10))).unwrap();
+    let mut bytes = [0u8; 2048];
+    let mut used = 0;
+    while !bytes[..used].windows(4).any(|window| window == b"\r\n\r\n") {
+        let count = stream.read(&mut bytes[used..]).unwrap();
+        assert!(count > 0 && used + count < bytes.len());
+        used += count;
+    }
+}
+
+fn main() {
+    rustls::crypto::ring::default_provider()
+        .install_default()
+        .expect("install explicit rustls provider");
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    listener.set_nonblocking(true).unwrap();
+    let endpoint = format!("http://{}", listener.local_addr().unwrap());
+    let count = Arc::new(AtomicUsize::new(0));
+    let observed = count.clone();
+    let server = std::thread::spawn(move || {
+        let deadline = Instant::now() + Duration::from_secs(10);
+        while observed.load(Ordering::SeqCst) < 2 {
+            match listener.accept() {
+                Ok((mut socket, _)) => {
+                    receive_request(&mut socket);
+                    observed.fetch_add(1, Ordering::SeqCst);
+                    socket
+                        .write_all(
+                            b"HTTP/1.1 200 OK\r\nContent-Length: 5\r\nConnection: close\r\n\r\nhello",
+                        )
+                        .unwrap();
+                }
+                Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
+                    assert!(Instant::now() < deadline, "local request deadline");
+                    std::thread::sleep(Duration::from_millis(5));
+                }
+                Err(error) => panic!("local accept: {error}"),
+            }
+        }
+    });
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+    let local = tokio::task::LocalSet::new();
+    local.block_on(&runtime, async move {
+        let limit = LocalFutureLimit::new(1);
+        let first_url = format!("{endpoint}/checked");
+        let first = limit
+            .start(
+                async move {
+                    reqwest::get(first_url)
+                        .await
+                        .unwrap()
+                        .bytes()
+                        .await
+                        .unwrap()
+                        .to_vec()
+                },
+                16,
+                Vec::len,
+            )
+            .unwrap();
+        let raw = first.await.unwrap();
+        assert_eq!(raw, b"hello");
+        assert_eq!(limit.live(), 0);
+        let mut sdk = NativeRustOwnedDataSdk::new().unwrap();
+        let checked = sdk.spx_asyncchecked_dot_payload(&raw).unwrap();
+        // The authored Semaprax body removes the first byte. The result is
+        // therefore an executed checked value, not the raw HTTP response.
+        assert_eq!(checked, b"ello");
+
+        let second_url = format!("{endpoint}/too-large");
+        let second = limit
+            .start(
+                async move {
+                    reqwest::get(second_url)
+                        .await
+                        .unwrap()
+                        .bytes()
+                        .await
+                        .unwrap()
+                        .to_vec()
+                },
+                4,
+                Vec::len,
+            )
+            .unwrap();
+        assert_eq!(second.await, Err(FutureBridgeError::OutputTooLarge));
+        assert_eq!(limit.live(), 0);
+    });
+    server.join().unwrap();
+    assert_eq!(count.load(Ordering::SeqCst), 2);
+    println!("ri09-checked-bytes-ok");
+}

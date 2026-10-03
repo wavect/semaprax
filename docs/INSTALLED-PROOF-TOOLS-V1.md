@@ -123,9 +123,14 @@ one selected law and a repair target. Both replay the complete protected
 inventory against the current authenticated Project and repeat its whole
 acceptance verdict and counts. The JSON envelope binds the candidate revision,
 law semantics, policy, dependency IDs, failed obligation IDs, evidence profile,
-and source location where available. A failure exits with status 1 after
-printing bounded JSON. `--max-bytes` refuses an oversized envelope rather
-than truncating counts or the verdict.
+and source location where available. The v2 envelope adds `validity` copied
+from the independently replayed strict verdict and full required counts, plus
+`work` from the held tool's monotone process/query and reserved-byte ledger.
+That work is attempted local process reservation, including version probes;
+it is neither a completed-query count nor provider spend. Model tokens and
+provider cost are explicitly unavailable here. A failure exits with status 1
+after printing bounded JSON. `--max-bytes` refuses an oversized envelope
+rather than truncating counts or the verdict.
 
 For an admitted Z3 postcondition failure, a separate bounded model query is
 checked with the independent source evaluator. Only a reproduced checked trap
@@ -136,6 +141,54 @@ only with `detail` for a trusted local caller. An implementation edit changes
 the candidate revision and must be reproved. An edit to protected law intent
 requires the separate host specification-review route and cannot be counted
 as a successful repair by this command.
+
+### Opt-in selected-law agent transport
+
+`semapraxd --stdio --manifest-path /absolute/semaprax.toml
+--allow-project-law-workflow --law-tool z3|lean
+--law-executable /absolute/tool --law-version-line "exact output"` selects the
+additive `semaprax.agent-transport.v7` profile. It uses the existing bounded
+Project NDJSON/JSON-RPC codec. Startup pins the manifest and tool; requests
+cannot choose another root, executable, version, host profile, source write,
+or publication route. Existing v2-v6 profiles and methods are unchanged.
+
+The four methods are `protocol`, `law/status`, `law/check`, and `shutdown`.
+`law/status` returns the authenticated current candidate revision, selected
+law inventory digest, and host policy digest. `law/check` requires the exact
+`candidate_revision`, `law_id`, and `view` (`summary` or `detail`); a source
+postcondition also supplies `source`, `declaration`, and `ensures_index`.
+Optional `offset`, `limit`, and `max_bytes` use the owning workflow bounds.
+Both CLI and daemon call the same library evaluator after independently
+reloading the host-selected policy. A stale requested revision yields a
+`stale` nonproof attempt with complete current counts and no solver invocation.
+The daemon never retains a prior proof token across edits. Law intent drift
+refuses through the existing protected review boundary.
+
+`--mcp` is an additional exclusive startup switch for this selected-law
+profile. It retains the same manifest/tool pins and bounded stdio framing,
+then exposes a fixed MCP 2025-11-25 catalog with `law__status` and
+`law__check`. After `initialize` and `notifications/initialized`, each
+`tools/call` returns one text item containing the complete v7 JSON-RPC
+response with inner ID zero and `isError` matching its error envelope. The
+same authenticated selected-law dispatch checks current source/policy on
+every call. Unknown tool names and request-supplied tool/root fields refuse;
+MCP does not add edit or publication authority. The direct v7 JSON-RPC mode
+remains the default without `--mcp`.
+
+This is a local stdio MCP tool surface, not a hosted service or editor plugin.
+
+The exact LAW-12 status selector
+`workspace selected_law_status_test::selected_law_unknown_timeout_unsupported_and_stale_preserve_summary_and_detail_counts`
+uses explicitly compiled local process fixtures to exercise diagnostic
+classification in summary and detail. Those fixtures do not establish a proof;
+the installed-Z3 selectors above own the real counterexample and repair gates.
+The existing agent-workflow `connectMcpWorkflowTransport` adapter carries
+`law/status` and `law/check` through the two MCP tool names. Its
+`ToolPayloadObserver` records the one delivered tool text in the existing
+`semaprax.token-observation.v1` envelope. Observer `success` denotes payload
+delivery only; the strict `view.accepted` and complete required count remain
+the independent law-validity result. No model billing or provider cost is
+inferred from tool-payload bytes.
 
 ## Focused physical gate
 

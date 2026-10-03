@@ -30,11 +30,15 @@ fn main() -> i64
 }
 ```
 
-The profile, in full:
+The example returns `6`: it multiplies `3 × 2 × 1`. Save it in its own file,
+then format, check, and run it. `factorial(4)` returns `24`.
 
-- The condition is checked before every iteration; the body's **last
-  expression** is the continuation condition (a body ending in an assignment
-  is `SPX-P203`).
+The loop's rules:
+
+- The condition after `while` is checked before every iteration. The body's
+  last expression is required, but its value is discarded. In this example,
+  replacing the body's final `remaining > 1` with `0` does not change the
+  repetition. Ending with an assignment and no expression is `SPX-P203`.
 - Bodies admit Copy-scalar operations, scalar-returning calls, and the exact
   `byte_get`/`Option<u8>` inspection profile. Constructing records/variants
   or calling aggregate-returning functions inside is `SPX-T252` — compute
@@ -44,6 +48,13 @@ The profile, in full:
   replacement is the one buffer write a body admits (see
   [Ownership](ownership.md)).
 - Owned results like `net_recv` are not admitted in bodies (`SPX-T270`).
+
+## Choose a loop
+
+Use `while` when you update a counter or another scalar state. Use `for` when
+you want to visit a vector and keep it afterwards. Use `for own` when you want
+to hand the input to an iterator and consume it. Here, *consume* means that
+ownership transfers; you cannot use the old binding again.
 
 ## for: borrow-traverse a vector
 
@@ -117,6 +128,26 @@ fn main() -> i64
 `rest` to the next step or let scope cleanup settle it. Reusing a consumed
 iterator is an ownership error. All eight Copy scalars are admitted; owned
 items and lazy adapters beyond the bounded profile are separate work.
+
+## Transform and combine iterator values
+
+The current tree also includes generic iterator operations and bounded lazy
+adapters. A **map** changes each item, a **filter** chooses which items to keep,
+and a **fold** combines items into one result. A lazy adapter performs its work
+as the iterator is consumed rather than eagerly building another vector.
+
+From the repository root, try the complete examples:
+
+```sh
+semaprax check examples/iterator-operations.spx
+semaprax run examples/iterator-operations.spx
+semaprax check examples/lazy-iterator-adapters.spx
+semaprax run examples/lazy-iterator-adapters.spx
+```
+
+Both examples use `1` as their successful demonstration result. Read their
+named helpers to see the accepted `map`/`filter`/`fold` combinations. Keep the
+explicit type arguments and ownership modes when adapting them.
 
 ## Best practices
 

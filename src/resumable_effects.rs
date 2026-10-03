@@ -114,6 +114,7 @@ pub mod owned_frame;
 pub mod signature;
 pub mod source_checkpoint;
 pub mod source_driver;
+pub mod source_local_future;
 pub mod source_signature;
 pub mod target;
 #[cfg(test)]

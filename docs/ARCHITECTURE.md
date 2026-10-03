@@ -2635,6 +2635,19 @@ environment direct children and compiles the exact generated Rust codec into
 the owning Rust harness. This is local codec evidence, not a general process,
 tool-provenance, registry, or hosted-client authority claim.
 
+The opt-in selected-law v7 stdio profile lives in
+`src/project_transport/selected_law.rs`. It uses the existing bounded framing
+and JSON-RPC codec, but reloads host-selected law policy and the current Project
+revision for each request. Its startup config pins the installed proof tool;
+request fields cannot select a root, executable, or host profile. The shared
+`src/assurance_manifest/law_set/installed_workflow.rs` evaluator owns exact
+strict-report replay, candidate binding, bounded views, and concrete model
+checks for both this profile and the CLI. Neither surface owns source edits or
+publication. `src/project_transport/selected_law_mcp.rs` is an opt-in MCP
+stdio wrapper around that same selected-law dispatch. Its two fixed tools
+preserve complete v7 result/error text and add no root, process, source-edit,
+or publication grant. The direct v7 JSON-RPC mode remains available.
+
 ## Reports and projections
 
 Read-only commands live in focused modules such as
@@ -3003,7 +3016,11 @@ These areas are deliberately outside the public compiler contract:
   leases; two scalar C bridge instances share depth and receiver guards. An
   uncertain foreign teardown quarantines the lease. These renderers grant no
   execution/publication authority and do not admit mutable or owned source
-  captures;
+  captures. The sibling `result_callback.rs` authenticates checked pure named
+  Result bodies, projects terminal constructors into private scalar result
+  staging, and publishes the tag/payload only after boundary/postcondition
+  success. `callback_runtime.rs` shares lifecycle guards while keeping authored
+  signed domain errors distinct from native status failures;
 - `crates/semaprax-native-rust-interop-builder/src/public_sdk/indexed.rs`:
   narrow public RI-04 admission for one checked scalar Rust import. It replays
   the selected RI-03 index and exact caller-supplied package source bytes
@@ -3064,6 +3081,13 @@ These areas are deliberately outside the public compiler contract:
   Rust builder own the pure, same-thread Rust Future adapter source. The caller
   supplies the executor and build authority. This seam grants no Project
   selection, Semaprax async import/export, network effect, or checkpoint route;
+  the toolchain's local HTTP Project-v8 fixture separately checks response
+  bytes through an authenticated synchronous Semaprax export after the Rust
+  await point, without moving suspension into Semaprax source;
+- `src/resumable_effects/source_local_future.rs` owns a separate ephemeral
+  source-interpreter Future adapter for one checked scalar yield. It retains
+  only an in-memory suspension binding and caller-owned host Future. It has
+  no Project lock admission, native SDK emission, journal or effect authority;
 - `src/project/indexed_rust.rs` and
   `crates/semaprax-native-rust-interop-builder/src/public_sdk/indexed_project.rs`:
   explicit source-bound indexed Project admission and authenticated SDK
@@ -3171,7 +3195,7 @@ child and exercises the package across the three execution lanes.
 | Foreign Rust law trust frontier | `src/native_rust_binding/foreign_law.rs` rechecks selected scalar import plans and carries declared behavior as exact conditional evidence, never as a theorem. `src/project/revision/foreign_law.rs` derives the canonical lock identity from retained Project HIR, checks a narrow public direct-forwarding caller and can read-only replay a published SDK manifest, file inventory and generated guard against a host-held digest. `crates/semaprax-native-rust-interop-builder/src/public_sdk/foreign_law.rs` issues an opaque token only from the guarded builder's private publication bundle after exact replay and owns a distinct one-law conditional strict report; `public_sdk/indexed_project.rs` rechecks the selected policy before package staging and its exact rendered digest before no-clobber publication. Ordinary core LawSet/strict and managed Workspace `ACTIVE` routes remain open; `src/assurance_manifest/law_set/evaluate.rs` keeps the foreign selector open without the builder token. [Foreign Law Trust Frontier v1](FOREIGN-LAW-FRONTIER-V1.md) owns this bounded profile. |
 | Source-bound protocol safety | `src/assurance_manifest/model_checking/source_protocol.rs` derives a complete finite transition table by executing checked pure HIR for every protocol state/event pair, compares it with retained session `via` declarations, and reuses the bounded model-checker with concrete source replay of found traces. The authenticated Project diagnostic route stays read-only. [Source-bound protocol safety v1](SOURCE-BOUND-PROTOCOL-SAFETY-V1.md) owns the finite claim and nonclaims. |
 | Project assurance evidence | `src/project/` owns authenticated Project snapshot, canonical workspace revision, ProgramRoot, complete source inventory, shared entry/public/test HIR obligation derivation, and exact architecture-claim result binding for the additive Project Assurance Manifest v1; [Project Assurance Manifest v1](PROJECT-ASSURANCE-MANIFEST-V1.md) owns the schema and replay boundary, while [Assurance Manifest v1](ASSURANCE-MANIFEST-V1.md) remains the unchanged single-file profile. |
-| Protected law inventory | `src/assurance_manifest/law_set/` owns explicit typed law-module admission, persistent law identities, versioned semantic digests, immutable Project/ProgramRoot/profile binding, independent protected-baseline policy, complete expected rows and counts, and exact canonical replay. It reuses existing assurance obligation IDs, architecture evaluation and bounded reference-model checking; reference-model results describe only those models. [LawSet v1](LAW-SET-V1.md) owns selection, capacities and nonclaims. `law_set/protected.rs` owns independently held intent baselines, conservative specification closure and opaque host-approved change binding; `project/candidate/protected_laws.rs` joins the review to the existing publication lock through `publication.rs`. [Protected Law Intent v1](PROTECTED-LAW-INTENT-V1.md) owns the additive review schema and host boundary. `law_set/strict.rs` joins the independent inventory to derived Project evidence and method-specific requirements; `project/candidate/strict_law_assurance.rs` binds exact candidate/policy/proof reports to managed publication under the ordinary lock. `law_vc.rs` owns the backend-neutral typed scalar subject and operation/path inventory lowered directly by SMT and Lean without granting solver authority; `law_set/native_proof.rs` owns opaque exact-inventory typed scalar evidence; `proof_export/installed.rs` uses the bounded registered process provider for explicit installed Lean/Z3 execution, while `installed_project.rs` binds selected postconditions and `cli/project_proof.rs` exposes read-only checks. The additive `cli/project_proof_workflow.rs` route obtains the host-selected protected baseline through `project/host_policy.rs` before acquiring an installed tool, derives complete strict summary/detail views, and labels a concrete Z3 failure only after checked source replay; no diagnostic view or solver model grants proof, source, or publication authority. [Strict Law Assurance v1](STRICT-LAW-ASSURANCE-V1.md) records the remaining protected-route matrix; [Installed Proof Tools v1](INSTALLED-PROOF-TOOLS-V1.md) owns explicit tool authority, bounds and confinement refusal. |
+| Protected law inventory | `src/assurance_manifest/law_set/` owns explicit typed law-module admission, persistent law identities, versioned semantic digests, immutable Project/ProgramRoot/profile binding, independent protected-baseline policy, complete expected rows and counts, and exact canonical replay. It reuses existing assurance obligation IDs, architecture evaluation and bounded reference-model checking; reference-model results describe only those models. [LawSet v1](LAW-SET-V1.md) owns selection, capacities and nonclaims. `law_set/protected.rs` owns independently held intent baselines, conservative specification closure and opaque host-approved change binding; `project/candidate/protected_laws.rs` joins the review to the existing publication lock through `publication.rs`. [Protected Law Intent v1](PROTECTED-LAW-INTENT-V1.md) owns the additive review schema and host boundary. `law_set/strict.rs` joins the independent inventory to derived Project evidence and method-specific requirements; `project/candidate/strict_law_assurance.rs` binds exact candidate/policy/proof reports to managed publication under the ordinary lock. `law_vc.rs` owns the backend-neutral typed scalar subject and operation/path inventory lowered directly by SMT and Lean without granting solver authority; `law_set/native_proof.rs` owns opaque exact-inventory typed scalar evidence; `proof_export/installed.rs` uses the bounded registered process provider for explicit installed Lean/Z3 execution, while `installed_project.rs` binds selected postconditions and `cli/project_proof.rs` exposes read-only checks. The additive `cli/project_proof_workflow.rs` route obtains the host-selected protected baseline through `project/host_policy.rs` before acquiring an installed tool. `law_set/installed_workflow.rs` shares complete strict summary/detail and checked Z3 model replay with CLI and selected-law transport; `proof_export/installed.rs` exposes monotone held-process reservation counts for the v2 diagnostic envelope. A local work count or diagnostic view grants no proof, source, publication, model-cost, or billing authority. [Strict Law Assurance v1](STRICT-LAW-ASSURANCE-V1.md) records the remaining protected-route matrix; [Installed Proof Tools v1](INSTALLED-PROOF-TOOLS-V1.md) owns explicit tool authority, bounds and confinement refusal. |
 | Project dependency admission | `src/project/external_dependencies.rs` for exact ordinary Subject-v3 closure replay, including cross-package evidence for the provenance-independent ScalarV1 internal generic-owned body profile behind scalar calls/exports, and `src/project/standard_dependencies.rs` for compiler-bundled packages |
 | Effect-free package build and fixed-inventory publication | `src/package_build.rs`, `src/package_build/`, `src/package_build_v2.rs`, `src/package_build_v2/`, `crates/semaprax-offline-wasm-package/` |
 | Private host/runtime evidence | `crates/semaprax-native-*`, `platform-tests/` |

@@ -1,7 +1,7 @@
 use super::*;
 use crate::assurance_manifest::law_set::{
     strict::{RequiredLawEvidence, StrictLawPolicy},
-    LawSet,
+    EvidenceRequirement, LawDefinition, LawModule, LawSelector, LawSet,
 };
 
 fn native_fixture() -> PathBuf {
@@ -55,6 +55,56 @@ fn install_selected_native_policy(root: &Path) {
     )
     .unwrap();
     install_host_strict_law_policy(&manifest, &policy, vec![]).unwrap();
+}
+
+#[test]
+fn host_strict_installation_refuses_typed_foreign_law_without_native_source_inventory() {
+    let root = native_fixture();
+    let manifest = root.join(MANIFEST_FILE);
+    let revision =
+        with_authenticated_project(&manifest, |snapshot| Ok(snapshot.retain_revision())).unwrap();
+    let laws = LawSet::derive(
+        &revision,
+        "foreign-host-v1",
+        vec![LawModule {
+            module_id: "host.foreign.laws".into(),
+            source_path: "src/app.spx".into(),
+            assumptions: vec![],
+            laws: vec![LawDefinition {
+                law_id: "host.foreign.caller".into(),
+                selector: LawSelector::ForeignGuardedCaller {
+                    caller_id: "calculator.main".into(),
+                    import_id: "host.foreign.import".into(),
+                    minimum: 0,
+                    maximum: 100,
+                },
+                assumption_ids: vec![],
+                requires_laws: vec![],
+                evidence: EvidenceRequirement::RuntimeGuarded,
+            }],
+        }],
+    )
+    .unwrap();
+    let policy = StrictLawPolicy::new(
+        laws,
+        BTreeMap::from([(
+            "host.foreign.caller".into(),
+            RequiredLawEvidence::ForeignConditionalGuard {
+                adapter_digest:
+                    "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                        .into(),
+                summary_digest:
+                    "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                        .into(),
+                accepted_conditions: vec![],
+            },
+        )]),
+    )
+    .unwrap();
+    let error = install_host_strict_law_policy(&manifest, &policy, vec![]).unwrap_err();
+    assert_eq!(error[0].code, "SPX-LW150");
+    assert!(!root.join(HOST_STRICT_LAW_DIRECTORY).exists());
+    std::fs::remove_dir_all(root).unwrap();
 }
 
 #[test]

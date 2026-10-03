@@ -66,6 +66,21 @@ They are not evidence that a provider read the payload, provider billing,
 prompt replay frequency, cached pricing, output-token reduction, task
 equivalence, or money saved.
 
+The opt-in selected-law Project v7 MCP profile uses this existing transport
+adapter and observer with `law/status` and `law/check` (the MCP tool names are
+`law__status` and `law__check`). Its tool text carries the complete candidate-
+bound law result, including strict verdict, required count, and proof attempt.
+The observer's `success` means a well-formed tool payload was delivered; a
+failed law still has `validity.accepted: false` and `view.accepted: false` and
+is never a success reward. The selected-law v2 result adds local process/query
+reservation counts and explicitly unavailable provider cost. Tool-payload
+tokens remain the observer's separate, existing measurement; neither field
+asserts model consumption or provider billing.
+`runReview` and `runPublish` remain scoped to the separate image v5 workflow.
+`node scripts/test-law12-selected-mcp.mjs` checks the v7 method mapping and
+one observation per delivered tool text without starting a second telemetry
+stream; the installed Z3 Workspace gate exercises the physical MCP server.
+
 The review and publish transports must have different nonempty `sessionId`
 values. `runReview`
 uses exactly the thirteen methods frozen by the workflow, reconstructs bounded

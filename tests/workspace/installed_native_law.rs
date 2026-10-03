@@ -7,6 +7,12 @@ use semaprax::assurance_manifest::law_set::native_proof::prove_scalar_law_z3_cac
 use semaprax::assurance_manifest::law_set::work_inventory;
 use semaprax::assurance_manifest::modular_law::cache::ProofTaskCache;
 
+#[path = "installed_native_law/selected_law_mcp_test.rs"]
+mod selected_law_mcp_test;
+#[path = "installed_native_law/selected_law_status_test.rs"]
+#[cfg(unix)]
+mod selected_law_status_test;
+
 fn native_project(label: &str, proposition: &str) -> Project {
     let project = Project::new(label, false);
     let text = format!("module fresh.laws;\n@id(\"fresh.law.identity\")\nlaw relational (n: i64)\n {proposition}\n evidence smt_proved;\n");
@@ -23,7 +29,12 @@ fn native_project(label: &str, proposition: &str) -> Project {
 #[test]
 #[ignore = "requires explicitly provisioned installed Z3"]
 fn selected_law_cli_workflow_replays_failure_then_rechecks_repaired_body() {
-    use semaprax::project::install_host_strict_law_policy;
+    use semaprax::assurance_manifest::law_set::installed_workflow::{
+        self, Request, SourceGoal, View,
+    };
+    use semaprax::project::{install_host_strict_law_policy, with_selected_law_diagnostics};
+    use std::io::{BufRead, Write};
+    use std::process::{Command, Stdio};
     let project = native_project("law12-cli-repair", "n + 0 == n");
     let law_source = "module fresh.laws;\n@id(\"fresh.law.seventeen\")\nlaw contract \"fresh.seventeen\" ensures (a: i64, result: i64)\n result == a + 17\n evidence smt_proved;\n";
     let canonical_law = semaprax::native_law_source::canonical(
@@ -90,6 +101,10 @@ fn selected_law_cli_workflow_replays_failure_then_rechecks_repaired_body() {
     let failure: serde_json::Value = serde_json::from_slice(&failed.stdout).unwrap();
     assert_eq!(failure["view"]["accepted"], false);
     assert_eq!(failure["proof_attempt"]["outcome"], "disproved_concrete");
+    assert_eq!(failure["validity"]["accepted"], false);
+    assert_eq!(failure["validity"]["counts"]["required"], 1);
+    assert!(failure["work"]["reserved_solver_queries"].as_u64().unwrap() > 0);
+    assert_eq!(failure["work"]["cost_status"], "unavailable");
     assert_eq!(
         failure["proof_attempt"]["counterexample"]["validated"],
         true
@@ -118,6 +133,7 @@ fn selected_law_cli_workflow_replays_failure_then_rechecks_repaired_body() {
     assert!(!summary_output.status.success());
     let summary: serde_json::Value = serde_json::from_slice(&summary_output.stdout).unwrap();
     assert_eq!(summary["view"]["accepted"], false);
+    assert_eq!(summary["proof_attempt"]["outcome"], "disproved_concrete");
     assert_eq!(summary["view"]["counts"], failure["view"]["counts"]);
     assert_eq!(summary["view"]["total"], 1);
     assert_eq!(summary["view"]["returned"], 1);
@@ -129,6 +145,93 @@ fn selected_law_cli_workflow_replays_failure_then_rechecks_repaired_body() {
         "int"
     );
     assert_eq!(shown["candidate_revision"], failure["candidate_revision"]);
+    let library = with_selected_law_diagnostics(&manifest, |revision, laws, policy| {
+        let tool = provisioned(&project, ToolKind::Z3);
+        installed_workflow::check(
+            revision,
+            laws,
+            policy,
+            &tool,
+            &Request {
+                law_id: "fresh.law.seventeen",
+                source_goal: Some(SourceGoal {
+                    path: "src/app.spx",
+                    declaration: "fresh.seventeen",
+                    ensures_index: 0,
+                }),
+                view: View::Detail,
+                max_bytes: 65_536,
+                show_witness_values: false,
+                expected_candidate_revision: Some(revision.project_revision()),
+            },
+        )
+    })
+    .unwrap();
+    assert!(!library.accepted);
+    let library: serde_json::Value = serde_json::from_str(&library.document).unwrap();
+    assert_eq!(library["proof_attempt"]["outcome"], "disproved_concrete");
+    assert_eq!(library["view"]["counts"], failure["view"]["counts"]);
+
+    // The opt-in agent profile uses the same checked library evaluator. Its
+    // tool pin is startup authority; requests can only name a law and exact
+    // current candidate, and each request reloads the selected host policy.
+    let mut daemon = Command::new(env!("CARGO_BIN_EXE_semapraxd"))
+        .args(["--stdio", "--allow-project-law-workflow", "--manifest-path"])
+        .arg(&manifest)
+        .args(["--law-tool", "z3", "--law-executable"])
+        .arg(std::env::var("SEMAPRAX_LAW_Z3").unwrap())
+        .arg("--law-version-line")
+        .arg(std::env::var("SEMAPRAX_LAW_Z3_VERSION").unwrap())
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap();
+    let mut input = daemon.stdin.take().unwrap();
+    let mut output = std::io::BufReader::new(daemon.stdout.take().unwrap());
+    let mut call = |id: u64, method: &str, params: serde_json::Value| {
+        let request = serde_json::json!({"jsonrpc":"2.0","id":id,"method":method,"params":params});
+        input
+            .write_all(serde_json::to_string(&request).unwrap().as_bytes())
+            .unwrap();
+        input.write_all(b"\n").unwrap();
+        input.flush().unwrap();
+        let mut line = String::new();
+        assert!(
+            output.read_line(&mut line).unwrap() > 0,
+            "selected law daemon exited"
+        );
+        serde_json::from_str::<serde_json::Value>(&line).unwrap()
+    };
+    let protocol = call(1, "protocol", serde_json::json!({}));
+    assert_eq!(
+        protocol["result"]["protocol"],
+        "semaprax.agent-transport.v7"
+    );
+    let status = call(2, "law/status", serde_json::json!({}));
+    assert_eq!(
+        status["result"]["candidate_revision"],
+        failure["candidate_revision"]
+    );
+    let agent_params = |candidate: &serde_json::Value| {
+        serde_json::json!({
+            "candidate_revision":candidate,"law_id":"fresh.law.seventeen","view":"detail",
+            "source":"src/app.spx","declaration":"fresh.seventeen","ensures_index":0
+        })
+    };
+    let agent_failed = call(3, "law/check", agent_params(&failure["candidate_revision"]));
+    assert_eq!(
+        agent_failed["result"]["proof_attempt"]["outcome"],
+        "disproved_concrete"
+    );
+    assert_eq!(
+        agent_failed["result"]["view"]["counts"],
+        failure["view"]["counts"]
+    );
+    assert_eq!(
+        agent_failed["result"]["proof_attempt"]["counterexample"]["redacted"],
+        true
+    );
 
     // A body repair preserves the selected law intent and changes the bound
     // candidate revision. Only fresh checked evidence can satisfy it.
@@ -143,11 +246,25 @@ fn selected_law_cli_workflow_replays_failure_then_rechecks_repaired_body() {
     let checked: serde_json::Value = serde_json::from_slice(&fixed.stdout).unwrap();
     assert_eq!(checked["view"]["accepted"], true);
     assert_eq!(checked["proof_attempt"]["outcome"], "proved");
+    assert_eq!(checked["validity"]["accepted"], true);
+    assert!(checked["work"]["reserved_solver_queries"].as_u64().unwrap() > 0);
     assert_ne!(checked["candidate_revision"], failure["candidate_revision"]);
     assert_eq!(
         checked["view"]["protected_baseline_digest"],
         failure["view"]["protected_baseline_digest"]
     );
+    let stale = call(4, "law/check", agent_params(&failure["candidate_revision"]));
+    assert_eq!(stale["result"]["proof_attempt"]["outcome"], "stale");
+    assert_eq!(stale["result"]["view"]["accepted"], false);
+    assert_eq!(stale["result"]["view"]["counts"]["required"], 1);
+    let refreshed = call(5, "law/status", serde_json::json!({}));
+    assert_eq!(
+        refreshed["result"]["candidate_revision"],
+        checked["candidate_revision"]
+    );
+    let agent_fixed = call(6, "law/check", agent_params(&checked["candidate_revision"]));
+    assert_eq!(agent_fixed["result"]["proof_attempt"]["outcome"], "proved");
+    assert_eq!(agent_fixed["result"]["view"]["accepted"], true);
     // A source edit to the law's own evidence requirement cannot be reported
     // as a successful implementation repair, even if the function now proves.
     let changed_law = law_source.replace("evidence smt_proved", "evidence runtime_guarded");
@@ -159,6 +276,15 @@ fn selected_law_cli_workflow_replays_failure_then_rechecks_repaired_body() {
     assert!(!weakened.status.success());
     assert!(weakened.stdout.is_empty());
     assert!(String::from_utf8_lossy(&weakened.stderr).contains("SPX-LW120"));
+    let agent_weakened = call(7, "law/status", serde_json::json!({}));
+    assert!(agent_weakened["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("SPX-LW120"));
+    let shutdown = call(8, "shutdown", serde_json::json!({}));
+    assert_eq!(shutdown["result"]["ok"], true);
+    drop(call);
+    assert!(daemon.wait().unwrap().success());
 }
 
 #[test]
@@ -1162,210 +1288,5 @@ fn installed_native_law_law14_adversarial_gate() {
     assert!(!project.root.join(".git").exists());
 }
 
-#[test]
-#[ignore = "requires explicitly provisioned installed Z3"]
-fn proved_add_zero_identity_yields_only_a_revalidated_candidate() {
-    use semaprax::compute_profile::cpu_reference::{
-        ComputeCapability, CpuReferenceSession, KernelShape, ReductionDomain, ReductionSchedule,
-        Scalar, ScalarKind,
-    };
-    use semaprax::project::ProjectCandidate;
-    let project = native_project("law-add-zero-rewrite", "n + 0 == n");
-    let app = project.root.join("src/app.spx");
-    let original = std::fs::read_to_string(&app).unwrap();
-    let raw = original
-        .replacen("seventeen(0)", "let n = 40; n + 0", 1)
-        .replacen(
-            "@id(\"fresh.main\")",
-            "@id(\"fresh.combine\") fn combine(acc: i64, item: i64) -> i64 { acc + item }\n@id(\"fresh.main\")",
-            1,
-        );
-    assert_ne!(original, raw);
-    let changed = semaprax::format::canonical(&semaprax::parse(&raw, &app).unwrap());
-    std::fs::write(&app, &changed).unwrap();
-    let revision = project.revision();
-    let laws = LawSet::derive(
-        &revision,
-        "native-proof-v1",
-        revision.law_modules().to_vec(),
-    )
-    .unwrap();
-    let tool = provisioned(&project, ToolKind::Z3);
-    let proof = prove_scalar_law(&revision, &laws, "fresh.law.identity", &tool).unwrap();
-    let mut session = CpuReferenceSession::open(ComputeCapability::cpu_reference_all());
-    let fold = session
-        .load_kernel(
-            revision.entry_program(),
-            "fresh.combine",
-            KernelShape::SequentialFold,
-        )
-        .unwrap();
-    let input = session.alloc(ScalarKind::I64, 3).unwrap();
-    let output = session.alloc(ScalarKind::I64, 1).unwrap();
-    session
-        .upload(input, 0, &[Scalar::I64(1), Scalar::I64(2), Scalar::I64(3)])
-        .unwrap();
-    for (schedule, requires_commutativity) in [
-        (ReductionSchedule::Regroup, false),
-        (ReductionSchedule::Reorder, true),
-    ] {
-        let report = session
-            .checked_add_reduction_eligibility(
-                &revision,
-                &fold,
-                input,
-                output,
-                &laws,
-                "fresh.law.identity",
-                &proof,
-                ReductionDomain {
-                    minimum: 0,
-                    maximum: 100,
-                    maximum_elements: 3,
-                },
-                schedule,
-            )
-            .unwrap();
-        let report: serde_json::Value = serde_json::from_str(&report).unwrap();
-        assert_eq!(report["eligible"], true, "{report}");
-        assert_eq!(report["commutativity_required"], requires_commutativity);
-        assert_eq!(report["parallel_execution_occurred"], false);
-        assert_eq!(report["transformation_applied"], false);
-        assert_eq!(report["operation_id"], "fresh.combine");
-    }
-    let unsafe_bound = session
-        .checked_add_reduction_eligibility(
-            &revision,
-            &fold,
-            input,
-            output,
-            &laws,
-            "fresh.law.identity",
-            &proof,
-            ReductionDomain {
-                minimum: 0,
-                maximum: i64::MAX,
-                maximum_elements: 3,
-            },
-            ReductionSchedule::Regroup,
-        )
-        .unwrap();
-    let unsafe_bound: serde_json::Value = serde_json::from_str(&unsafe_bound).unwrap();
-    assert_eq!(unsafe_bound["eligible"], false);
-    assert_eq!(
-        unsafe_bound["reason"],
-        "some_grouping_may_overflow_checked_i64"
-    );
-    for values in [[i64::MIN, i64::MAX, 1], [i64::MAX, 1, -1]] {
-        session.upload(input, 0, &values.map(Scalar::I64)).unwrap();
-        let report = session
-            .checked_add_reduction_eligibility(
-                &revision,
-                &fold,
-                input,
-                output,
-                &laws,
-                "fresh.law.identity",
-                &proof,
-                ReductionDomain {
-                    minimum: 0,
-                    maximum: i64::MAX,
-                    maximum_elements: 3,
-                },
-                ReductionSchedule::Reorder,
-            )
-            .unwrap();
-        let report: serde_json::Value = serde_json::from_str(&report).unwrap();
-        assert_eq!(report["eligible"], false);
-    }
-    let alias = session
-        .checked_add_reduction_eligibility(
-            &revision,
-            &fold,
-            input,
-            input,
-            &laws,
-            "fresh.law.identity",
-            &proof,
-            ReductionDomain {
-                minimum: 0,
-                maximum: 100,
-                maximum_elements: 3,
-            },
-            ReductionSchedule::Regroup,
-        )
-        .unwrap();
-    let alias: serde_json::Value = serde_json::from_str(&alias).unwrap();
-    assert_eq!(alias["eligible"], false);
-    assert_eq!(
-        alias["reason"],
-        "buffer_alias_or_type_outside_admitted_fold"
-    );
-    let candidate = ProjectCandidate::open(revision.clone(), revision.project_revision()).unwrap();
-    let catalogue: serde_json::Value =
-        serde_json::from_str(&candidate.expression_catalog("fresh.main").unwrap()).unwrap();
-    let source = revision
-        .sources()
-        .iter()
-        .find(|source| source.path() == "src/app.spx")
-        .unwrap()
-        .source();
-    let selected = catalogue["expressions"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .find(|entry| {
-            let span = &entry["source_span"];
-            source.get(
-                span["start"].as_u64().unwrap() as usize..span["end"].as_u64().unwrap() as usize,
-            ) == Some("n + 0")
-        })
-        .unwrap();
-    let expression_id = selected["expression_id"].as_str().unwrap();
-    let rewritten = candidate
-        .propose_checked_i64_add_zero(
-            candidate.candidate_digest(),
-            "fresh.main",
-            expression_id,
-            &laws,
-            "fresh.law.identity",
-            &proof,
-        )
-        .unwrap();
-    assert!(rewritten
-        .revision()
-        .sources()
-        .iter()
-        .any(|source| source.path() == "src/app.spx"
-            && source.source().contains("let n = 40")
-            && !source.source().contains("n + 0")));
-    assert_eq!(std::fs::read_to_string(&app).unwrap(), changed);
-    assert!(candidate
-        .propose_checked_i64_add_zero(
-            "sha256:0000000000000000000000000000000000000000000000000000000000000000",
-            "fresh.main",
-            expression_id,
-            &laws,
-            "fresh.law.identity",
-            &proof,
-        )
-        .is_err());
-    let other = native_project("law-add-zero-stale", "n + 0 == n");
-    let other_revision = other.revision();
-    let other_laws = LawSet::derive(
-        &other_revision,
-        "native-proof-v1",
-        other_revision.law_modules().to_vec(),
-    )
-    .unwrap();
-    assert!(candidate
-        .propose_checked_i64_add_zero(
-            candidate.candidate_digest(),
-            "fresh.main",
-            expression_id,
-            &other_laws,
-            "fresh.law.identity",
-            &proof,
-        )
-        .is_err());
-}
+#[path = "installed_native_law/law_optimization.rs"]
+mod law_optimization;

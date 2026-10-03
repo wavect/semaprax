@@ -29,11 +29,12 @@ import rust fn add(left: i64, right: i64) -> i64
 Every native Rust import must end with an explicit `failure status "domain";`
 or `failure infallible;` clause; omission rejects rather than silently choosing
 a failure model. Parameters are 0–8 value-mode `i64`/`bool`; results are unit,
-`i64`, or `bool`. IDs are explicit, effects are sorted and selected, failure
+`i64`, or `bool` in the base profile. IDs are explicit, effects are sorted and selected, failure
 domains are closed, and calls retain the distinct HIR kind
 `NativeRustImportCall`. Selected exports are 1–32 explicit-ID,
-non-entry, monomorphic scalar functions whose result is `i64` or `bool`; `unit`
-is admitted only as a Rust-import result. Their acyclic transitive closure is at
+non-entry, monomorphic scalar functions whose result is `i64` or `bool`; the
+selected indexed profile also admits direct `Result<i64, i64>` pass-through.
+`unit` is admitted only as a Rust-import result. Their acyclic transitive closure is at
 most 256 functions and may reach only selected Rust imports. Calls from a
 contract, including through a helper, are rejected. The agent context, review,
 impact, and target-evidence projections still reject `SPX-G218` because each
@@ -179,8 +180,9 @@ normalization collisions. `SPX-B140`–`SPX-B148` are source-located selection
 diagnostics for wrong declaration kind, unavailable item, identity drift,
 alias/path mismatch, unsupported receiver or item kind, unsupported signature,
 signature disagreement, malformed index, and extractor setup respectively.
-This seam admits only receiver-free `fn` signatures with up to eight `i64` or
-`bool` value parameters and `()`, `i64`, or `bool` results. A selected index
+This seam admits receiver-free `fn` signatures with up to eight `i64` or
+`bool` value parameters and `()`, `i64`, `bool`, or exact
+`core::result::Result<i64, i64>` results. A selected index
 record is discovery data; this plan cannot execute or validate the actual
 Rust crate. The private RI-04 scalar adapter rechecks a retained plan against
 current checked HIR at Phase A, requires its target to equal the selected

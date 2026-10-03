@@ -21,6 +21,14 @@ and its private FFI owns the explicit physical boundary.  It does not claim to
 implement arbitrary Rust traits, preserve Rust borrows, or treat matching
 layouts as interchangeable.
 
+The [Valen article](https://verdagon.dev/blog/golden-spike-reviving-vale-valen)
+reports a compiler-cooperation prototype: Valen structs implementing Rust
+traits work there only when zero-sized; filled structs were in a separate
+prototype, while closure borrowing and generational references remained
+limited or disabled. Those observations are not Semaprax features. This
+experiment has not produced a Semaprax trait implementation, cross-language
+borrow proof, or cooperative monomorphization.
+
 ## Reproducible blocker
 
 The fixture pins the only compiler observed for this evaluation:
@@ -66,6 +74,12 @@ new cross-toolchain trust boundary while stable generated adapters remain the
 supported route.  RI-14 remains separately responsible for evaluating an
 admitted Semaprax-to-stable-Rust lowering; it is not evidence for arbitrary
 Rust trait or borrowing support.
+
+No maintainer owns a patched rustc distribution or its recurring private-API
+rebases. That work would require a pinned build, artifact publication and
+audit for each compiler update, in addition to the fixed-point and ownership
+proofs below. This cost is incurred before any supported signature beyond the
+stable generated-adapter path is demonstrated.
 
 No SEMAPRAX compiler, backend, generated package, default toolchain, or
 release requirement changes under this decision.  The fixture is intentionally

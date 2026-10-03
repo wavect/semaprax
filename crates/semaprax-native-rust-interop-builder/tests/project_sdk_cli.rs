@@ -643,7 +643,7 @@ fn configured_project_rust_dependency_compiles_offline_from_an_exact_lock() {
 }
 
 #[test]
-fn arbitrary_exact_crate_is_invoked_by_semaprax_through_the_typed_adapter() {
+fn ordinary_cargo_consumer_shares_exact_rust_type_identity_with_generated_sdk() {
     if !effectful_tools_available() || std::env::var_os("CARGO").is_none() {
         return;
     }
@@ -681,7 +681,7 @@ fn arbitrary_exact_crate_is_invoked_by_semaprax_through_the_typed_adapter() {
     fs::create_dir_all(consumer.join("src")).unwrap();
     fs::write(
         consumer.join("Cargo.toml"),
-        "[package]\nname = \"arbitrary-crate-callback\"\nversion = \"0.0.0\"\nedition = \"2021\"\npublish = false\n\n[workspace]\n\n[dependencies]\nsemaprax-generated-native-rust-sdk = { path = \"../generated-sdk\" }\n\n[lints.rust]\nunsafe_code = \"forbid\"\n",
+        "[package]\nname = \"arbitrary-crate-callback\"\nversion = \"0.0.0\"\nedition = \"2021\"\npublish = false\n\n[workspace]\n\n[dependencies]\nsame-file = \"=1.0.6\"\nsemaprax-generated-native-rust-sdk = { path = \"../generated-sdk\" }\n\n[lints.rust]\nunsafe_code = \"forbid\"\n",
     )
     .unwrap();
     fs::write(
@@ -691,6 +691,8 @@ fn arbitrary_exact_crate_is_invoked_by_semaprax_through_the_typed_adapter() {
 };
 
 struct Host;
+
+fn require_generated_handle(_: &rust_dependency_same_file::Handle) {}
 
 impl NativeRustSdkImports for Host {
     fn spx_callback_dot_host_dot_adjust(
@@ -706,6 +708,8 @@ impl NativeRustSdkImports for Host {
 }
 
 fn main() {
+    let direct = same_file::Handle::from_path(".").unwrap();
+    require_generated_handle(&direct);
     let mut sdk = NativeRustSdk::new(Host, &["host.adjust"]).unwrap();
     assert_eq!(sdk.spx_callback_dot_apply(19, 22), Ok(42));
 }
@@ -720,13 +724,69 @@ fn main() {
         .output()
         .unwrap();
     assert!(lock.status.success(), "{}", stderr(&lock));
-    let run = Command::new(cargo)
+    let run = Command::new(&cargo)
         .args(["run", "--locked", "--offline", "--manifest-path"])
         .arg(consumer.join("Cargo.toml"))
         .env("CARGO_TARGET_DIR", root.0.join("cargo-target"))
         .output()
         .unwrap();
     assert!(run.status.success(), "{}", stderr(&run));
+
+    // A path source with the same package name and version is still a
+    // different Cargo package identity. The generated SDK keeps its registry
+    // dependency, so Rust must reject an attempted type handoff instead of
+    // treating two independently linked `Handle` definitions as identical.
+    let conflicting_dependency = root.0.join("conflicting-same-file");
+    fs::create_dir_all(conflicting_dependency.join("src")).unwrap();
+    fs::write(
+        conflicting_dependency.join("Cargo.toml"),
+        "[package]\nname = \"same-file\"\nversion = \"1.0.6\"\nedition = \"2021\"\n",
+    )
+    .unwrap();
+    fs::write(
+        conflicting_dependency.join("src/lib.rs"),
+        "pub struct Handle;\nimpl Handle { pub fn from_path<P: AsRef<std::path::Path>>(_: P) -> std::io::Result<Self> { Ok(Self) } }\n",
+    )
+    .unwrap();
+    let conflicting_consumer = root.0.join("conflicting-consumer");
+    fs::create_dir_all(conflicting_consumer.join("src")).unwrap();
+    fs::write(
+        conflicting_consumer.join("Cargo.toml"),
+        "[package]\nname = \"conflicting-arbitrary-crate-callback\"\nversion = \"0.0.0\"\nedition = \"2021\"\npublish = false\n\n[workspace]\n\n[dependencies]\nsame-file = { path = \"../conflicting-same-file\" }\nsemaprax-generated-native-rust-sdk = { path = \"../generated-sdk\" }\n",
+    )
+    .unwrap();
+    fs::write(
+        conflicting_consumer.join("src/main.rs"),
+        r#"use semaprax_generated_native_rust_sdk::rust_dependency_same_file;
+
+fn require_generated_handle(_: &rust_dependency_same_file::Handle) {}
+
+fn main() {
+    let direct = same_file::Handle::from_path(".").unwrap();
+    require_generated_handle(&direct);
+}
+"#,
+    )
+    .unwrap();
+    let lock = Command::new(&cargo)
+        .args(["generate-lockfile", "--offline", "--manifest-path"])
+        .arg(conflicting_consumer.join("Cargo.toml"))
+        .output()
+        .unwrap();
+    assert!(lock.status.success(), "{}", stderr(&lock));
+    let conflict = Command::new(cargo)
+        .args(["check", "--locked", "--offline", "--manifest-path"])
+        .arg(conflicting_consumer.join("Cargo.toml"))
+        .env("CARGO_TARGET_DIR", root.0.join("conflicting-cargo-target"))
+        .output()
+        .unwrap();
+    assert!(!conflict.status.success());
+    let conflict_stderr = stderr(&conflict);
+    assert!(
+        conflict_stderr.contains("mismatched types")
+            && conflict_stderr.contains("same_file::Handle"),
+        "{conflict_stderr}"
+    );
 }
 
 const CALLBACK_MANIFEST: &str = "schema = \"semaprax.project.v1\"\nname = \"callback\"\nentry = \"callback.app\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\nweb_exports = [\"callback.apply\"]\ntests = [\"callback.tests\"]\n";

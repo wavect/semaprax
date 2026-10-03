@@ -197,11 +197,17 @@ prepared_inputs() {
 assert_shipped_text_is_relocatable() {
     local sdk=$1
     local extracted_consumer=$2
+    local ordinary_consumer=$3
     local text_files=(
         "$extracted_consumer/Cargo.toml"
         "$extracted_consumer/Cargo.lock"
         "$extracted_consumer/build.rs"
         "$extracted_consumer/src/main.rs"
+        "$ordinary_consumer/Cargo.toml"
+        "$ordinary_consumer/Cargo.lock"
+        "$ordinary_consumer/src/main.rs"
+        "$sdk/Cargo.toml"
+        "$sdk/build.rs"
         "$sdk/src/lib.rs"
         "$sdk/src/semaprax_native_rust_interop.rs"
         "$sdk/src/semaprax_native_rust_interop_ffi.rs"
@@ -220,11 +226,19 @@ assert_shipped_text_is_relocatable() {
             if grep -Eq '(^|[[:space:]])path[[:space:]]*=' "$file"; then
                 fail "extracted consumer has a path dependency: $file"
             fi
+        fi
+        if [[ "$file" == "$extracted_consumer/Cargo.toml" || "$file" == "$sdk/Cargo.toml" ]]; then
             if grep -Eq '(^|[[:space:]])git[[:space:]]*=' "$file"; then
-                fail "extracted consumer has a Git dependency: $file"
+                fail "extracted package has a Git dependency: $file"
             fi
         fi
     done
+    grep -Fqx 'semaprax-generated-native-rust-sdk = { path = "../semaprax-sdk" }' \
+        "$ordinary_consumer/Cargo.toml" || \
+        fail "ordinary consumer does not have its one extracted SDK dependency"
+    if grep -Eq '(^|[[:space:]])git[[:space:]]*=' "$ordinary_consumer/Cargo.toml"; then
+        fail "ordinary consumer has a Git dependency: $ordinary_consumer/Cargo.toml"
+    fi
 }
 
 run_prepared() (
@@ -243,6 +257,18 @@ run_prepared() (
     export SEMAPRAX_RI10_BUNDLE_DIGEST="$(manifest_value "$sdk" inner.bundle_digest)"
     "$SEMAPRAX_RI10_CARGO" test --locked --offline \
         --manifest-path "$extracted_consumer/Cargo.toml" -- --test-threads=1
+)
+
+run_ordinary_dependency() (
+    local ordinary_consumer=$1
+    cd "$ordinary_consumer"
+    unset SEMAPRAX_RI10_BUILDER SEMAPRAX_RI10_PROJECT_MANIFEST
+    unset SEMAPRAX_RI10_PREPARED_SDK SEMAPRAX_RI10_INPUTS
+    unset SEMAPRAX_RI10_SDK_VERSION SEMAPRAX_RI10_DESCRIPTOR_DIGEST
+    unset SEMAPRAX_RI10_BUNDLE_DIGEST
+    export CARGO_TARGET_DIR="$scratch/ordinary-dependency-target"
+    "$SEMAPRAX_RI10_CARGO" test --locked --offline \
+        --manifest-path "$ordinary_consumer/Cargo.toml" -- --test-threads=1
 )
 
 expect_prepared_refusal() {
@@ -310,10 +336,47 @@ run_required accepted-source-drift
 extracted="$scratch/extracted-package"
 extracted_consumer="$extracted/consumer"
 extracted_sdk="$extracted/semaprax-sdk"
-mkdir -p "$extracted"
+ordinary_consumer="$extracted/ordinary-cargo-consumer"
+mkdir -p "$extracted" "$ordinary_consumer/src"
 cp -R "$consumer" "$extracted_consumer"
 capture_sdk "$extracted_sdk"
-assert_shipped_text_is_relocatable "$extracted_sdk" "$extracted_consumer"
+
+# This consumer names the extracted generated SDK in Cargo.toml. Cargo owns
+# the dependency graph and the SDK's generated build.rs owns native linking;
+# no source is copied into OUT_DIR and no manual linker flags are supplied.
+cat > "$ordinary_consumer/Cargo.toml" <<'EOF'
+[package]
+name = "semaprax-ri10-extracted-ordinary-consumer"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[dependencies]
+semaprax-generated-native-rust-sdk = { path = "../semaprax-sdk" }
+
+[lints.rust]
+unsafe_code = "forbid"
+EOF
+cat > "$ordinary_consumer/src/main.rs" <<'EOF'
+use semaprax_generated_native_rust_sdk::{NativeRustSdk, NativeRustSdkImports};
+
+struct Host;
+impl NativeRustSdkImports for Host {}
+
+#[test]
+fn generated_sdk_executes_through_an_ordinary_cargo_dependency() {
+    let mut calculator = NativeRustSdk::new(Host, &[]).expect("admit extracted SDK");
+    assert_eq!(calculator.spx_calculator_dot_add(19, 23), Ok(43));
+}
+EOF
+(cd "$ordinary_consumer" && "$SEMAPRAX_RI10_CARGO" generate-lockfile --offline \
+    --manifest-path "$ordinary_consumer/Cargo.toml")
+assert_shipped_text_is_relocatable "$extracted_sdk" "$extracted_consumer" "$ordinary_consumer"
+run_ordinary_dependency "$ordinary_consumer"
+[[ $(builder_count) == 2 ]] || fail "ordinary dependency consumer invoked the builder"
+assert_no_nested_cargo
 
 fresh_descriptor=$(manifest_value "$extracted_sdk" inner.descriptor_digest)
 run_prepared relocated "$extracted_consumer" "$extracted_sdk" "$fresh_descriptor" "$scratch/prepared-target"
@@ -350,6 +413,6 @@ expect_prepared_refusal wrong-api-digest "$extracted_consumer" "$extracted_sdk" 
 [[ $(builder_count) == 2 ]] || fail "prepared negative controls invoked the builder"
 assert_no_nested_cargo
 
-printf 'RI10 extracted-package gate passed: locked offline prepared-only consumer relocated without path dependencies; stale output, target, and API digest refused; builder calls=%s; nested Cargo calls=0\n' \
+printf 'RI10 extracted-package gate passed: locked offline ordinary Cargo dependency and prepared-only consumer relocated; stale output, target, and API digest refused; builder calls=%s; nested Cargo calls=0\n' \
     "$(builder_count)"
 finished=1

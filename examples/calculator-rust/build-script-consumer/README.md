@@ -60,15 +60,19 @@ contains its own narrowly scoped unsafe allowance.
 `scripts/ri10-extracted-package-consumer.sh` creates a fresh SDK through the
 explicit route, changes the copied Semaprax source to establish that stale
 output cannot remain usable, then copies only this consumer and the generated
-SDK to a second directory outside the repository. It runs that copy with
-`cargo test --locked --offline` in prepared-only mode, without
-`SEMAPRAX_RI10_BUILDER` or a Project manifest.
+SDK to a second directory outside the repository. It writes a second ordinary
+Cargo consumer there whose sole dependency is the extracted SDK package, then
+runs it with `cargo test --locked --offline`; Cargo invokes the SDK package's
+own build script to link its native archive. It also runs the copied
+prepared-only consumer without `SEMAPRAX_RI10_BUILDER` or a Project manifest.
 
 The gate rejects stale output paired with the fresh descriptor identity, a
 wrong generated target, and a mismatched API digest. It scans only the shipped
-consumer and SDK text inventory for the developer repository path, absolute
-home paths, Cargo path dependencies, and Git dependencies; configured tools
-and generator-only inputs are intentionally outside that scan.
+prepared-only consumer and SDK text inventory for the developer repository
+path, absolute home paths, and Git dependencies. The ordinary consumer has
+one deliberate relative path dependency to its sibling extracted SDK; it has
+no developer-repository or Git dependency. Configured tools and generator-only
+inputs are intentionally outside that scan.
 
 The calculator route crosses scalar ABI values only. It exports no direct Rust
 package type, so this evidence makes an explicit opaque-boundary claim instead

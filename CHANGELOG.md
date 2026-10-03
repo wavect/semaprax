@@ -1,5 +1,11 @@
 # Changelog
 
+- Add a bounded HR-01 prepared-Project hot reload session with checked candidate
+  admission, read-only compatibility planning, opaque generation-bound plans,
+  and activation through the existing whole-state worker pivot. This is a
+  partial local profile: source-Agent checkpoint handoff and complete
+  compiler-derived closure/state compatibility remain open.
+
 - Add an internal persistent `Nil`/`Cons` list value with immutable shared tails,
   a failure-before-commit 8192-element limit, and iterative cleanup. Its exact
   unit gate passed 1/1. This is a LAW-08 source-carrier prerequisite; `.spx`

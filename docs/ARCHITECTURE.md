@@ -959,6 +959,12 @@ to retained HIR and authenticated source facts. It does not independently
 re-execute the dynamic path and grants no debugger, target, I/O, build, or
 publication authority.
 
+`src/project/hot_reload.rs` owns the bounded local session above that worker:
+one checked active revision, one checked pending candidate, a generation-bound
+opaque plan and a terminal-uncertainty state. It reads compiler-owned Project
+facts and delegates the whole-state pivot to prepared interpreter replacement.
+It does not own source observation, Agent checkpoint migration or target swap.
+
 Within the retained Project lane, `model.rs` owns the public prepared options,
 outcomes, cancellation handle, and worker-slot model; `origin.rs` owns exact
 entry/test source-origin indexing and duplicate-fact disagreement checks; and

@@ -29,10 +29,15 @@ mod external_dependencies;
 mod filesystem;
 mod flat_owned_record;
 pub(crate) mod host_policy;
+mod hot_reload;
 pub use host_policy::{
     install_host_strict_law_policy, with_authenticated_project_inspection,
     with_selected_law_diagnostics, with_strict_authenticated_project, ProjectInspection,
     StrictProjectSession, HOST_STRICT_LAW_DIRECTORY, HOST_STRICT_LAW_SCHEMA,
+};
+pub use hot_reload::{
+    HotReloadDecision, HotReloadFailure, HotReloadPlan, HotReloadReason, HotReloadSession,
+    HOT_RELOAD_PLAN_SCHEMA,
 };
 mod image;
 mod image_coverage;

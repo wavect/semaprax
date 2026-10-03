@@ -33,13 +33,25 @@ The fixture pins the only compiler observed for this evaluation:
 | host target | `aarch64-apple-darwin` |
 | required private crates | `rustc_driver`, `rustc_interface` |
 
-The observed Homebrew distribution exposes `librustc_driver` but no
-`librustc_interface` artifact under its sysroot.  The fixture's `reproduce.sh`
+The pinned Homebrew distribution cannot resolve `rustc_driver` or
+`rustc_interface` from its sysroot. The fixture's `reproduce.sh`
 checks the exact commit and host, then invokes `rustc` directly with a scoped
 `RUSTC_BOOTSTRAP=1`; it expects resolution of `rustc_interface` to fail.  It
 uses neither Cargo nor rustup, downloads nothing, and writes only to a
-temporary directory.  This ADR records the source observation and the
-reproduction procedure; no compilation was run for this decision.
+temporary directory. At `10bf59b6e` on the named host, the command exited
+zero after observing `E0463` for both private crates. This is a reproduced
+toolchain blocker, not a successful compiler-integration fixture.
+A mismatched `rustc -Vv` shim was rejected before the fixture invoked a
+compiler, so a different commit cannot silently reuse this observation.
+
+An independent default-toolchain check at the same revision passed:
+`CARGO_BUILD_JOBS=1 CARGO_INCREMENTAL=0 CARGO_PROFILE_DEV_DEBUG=0
+CARGO_PROFILE_TEST_DEBUG=0 CARGO_TARGET_DIR=$PWD/target/ri03 cargo check
+--offline --locked -p semaprax` (exit zero, 55 seconds). The experimental
+fixture has no Cargo manifest and is absent from that build. The two focused
+native interop compiler projections also passed 1/1 each before this
+documentation-only commit. No patched compiler, rustc-private component, or
+generated binding artifact was installed.
 
 The unavailable compiler component is an honest precondition failure.  A
 patched compiler checkout could remove this immediate blocker, but would add a

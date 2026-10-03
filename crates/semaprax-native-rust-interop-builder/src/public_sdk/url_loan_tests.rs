@@ -80,3 +80,33 @@ fn indexed_url_loan_source_negative_matrix() {
         "checkpoint escape: {diagnostics:?}"
     );
 }
+
+#[test]
+fn indexed_url_loan_unsupported_shape_reasons() {
+    let program = bound("fn inspect(owner: own Url) -> i64 { 0 }");
+    for (id, signature, receiver, reason) in [
+        ("url.view", "for<'a> fn as_str(&'a self) -> &'a str", "shared", "higher-ranked Rust reference requires an unsupported lifetime relation"),
+        ("url.view", "fn as_str(self: Pin<&Self>) -> &str", "shared", "pinned Rust reference requires an unsupported stable owner relation"),
+        ("url.view", "fn as_str(&self) -> &'static str", "shared", "escaping Rust reference is outside the invocation-scoped Url owner relation"),
+        ("url.view", "fn as_str(&mut self) -> &str", "exclusive", "mutable Rust reference requires a verified exclusive loan"),
+        ("url.view", "fn as_str(&self) -> &UnsafeCell<str>", "shared", "interior-mutable Rust reference requires an exclusive loan model"),
+        ("url.view", "fn as_str(&self) -> *const u8", "shared", "raw Rust pointer has no verified provenance or initialized extent"),
+        ("url.view", "fn as_str(&'a self) -> &'b str", "shared", "selected Url view requires the exact receiver-tied &str result; other lifetime or reference relations are not admitted"),
+        ("url.view", "fn as_str(&self) -> &str", "none", "selected Url text view requires a shared receiver loan"),
+        // This nominal borrowed result is deliberately outside the exact closed
+        // constructor. The binder does not infer a self-reference from a name.
+        ("url.new", "fn parse(input: &'a str) -> UrlWithBorrowedStorage<'a>", "none", "selected Url constructor requires the exact owned Url Result; borrowed or self-referential result storage has no admitted owner relation"),
+    ] {
+        let mut import = program.interfaces.iter().flat_map(|i| &i.imports)
+            .find(|i| i.stable_id == id).unwrap().clone();
+        let digest = import.selected_index_digest.clone().unwrap();
+        let before = format!("{import:?}");
+        let diagnostic = semaprax::native_rust_binding::bind_selected_url_signature(
+            &mut import, &program.types, signature, &digest, receiver,
+        ).unwrap_err();
+        assert_eq!(diagnostic.code, "SPX-B145", "{signature}");
+        assert_eq!(diagnostic.message, reason, "{signature}");
+        assert!(diagnostic.span.is_some(), "{signature}: source-located refusal");
+        assert_eq!(format!("{import:?}"), before, "failed binding is immutable");
+    }
+}

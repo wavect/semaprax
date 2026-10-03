@@ -44,7 +44,7 @@ pub fn bind_selected_url_signature(
     } {
         return Err(error(
             "SPX-B145",
-            "selected Url signature is outside the receiver-tied view profile",
+            url_signature_refusal(signature, receiver, parse),
             import.span,
         ));
     }
@@ -72,6 +72,32 @@ pub fn bind_selected_url_signature(
     import.selected_index_digest = Some(index_digest.into());
     import.selected_receiver = (!parse).then(|| "shared".into());
     Ok(true)
+}
+
+// This classifies refusal only. Exact signature/receiver equality above remains
+// the admission authority; recognizing a lifetime spelling never grants a loan.
+fn url_signature_refusal(signature: &str, receiver: &str, parse: bool) -> &'static str {
+    if signature.contains("for<")
+        || signature.contains("Pin<")
+        || signature.contains("UnsafeCell<")
+        || signature.contains("Cell<")
+        || signature.contains("RefCell<")
+        || signature.contains("*const ")
+        || signature.contains("*mut ")
+        || signature.contains("&mut ")
+    {
+        return scalar_signature_refusal(signature);
+    }
+    if signature.contains("'static") {
+        return "escaping Rust reference is outside the invocation-scoped Url owner relation";
+    }
+    if parse {
+        return "selected Url constructor requires the exact owned Url Result; borrowed or self-referential result storage has no admitted owner relation";
+    }
+    if receiver != "shared" {
+        return "selected Url text view requires a shared receiver loan";
+    }
+    "selected Url view requires the exact receiver-tied &str result; other lifetime or reference relations are not admitted"
 }
 
 pub(crate) fn admitted_url_view(import: &ImportDeclaration) -> bool {

@@ -1,5 +1,7 @@
 # Changelog
 
+- Complete the bounded RI-06 native loan acceptance with precise unchanged-import refusals for unsupported Url reference/lifetime shapes. The owning source/rejection matrix passes alongside retained real Regex/Url, callback, sanitizer and Miri evidence; broader mutable source syntax and hosted support remain outside the claim.
+
 - Add an opt-in selected-law Project v7 stdio agent route using the existing
   bounded JSON-RPC codec. `law/status` returns the authenticated current
   revision and policy digests; `law/check` shares one strict-report evaluator

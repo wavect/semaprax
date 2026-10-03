@@ -144,11 +144,12 @@ fn digest(snapshot: &serde_json::Value) -> String {
 }
 
 fn timing_fields(output: &Output) -> std::collections::BTreeMap<String, String> {
-    let line = std::str::from_utf8(&output.stderr)
-        .unwrap()
-        .trim_end()
-        .strip_prefix("semaprax-explorer-timing-v1 ")
-        .expect("one opt-in timing line");
+    let stderr = std::str::from_utf8(&output.stderr).unwrap();
+    let mut lines = stderr
+        .lines()
+        .filter_map(|line| line.strip_prefix("semaprax-explorer-timing-v1 "));
+    let line = lines.next().expect("one opt-in timing line");
+    assert!(lines.next().is_none(), "duplicate timing line");
     line.split_whitespace()
         .map(|field| field.split_once('=').expect("timing key=value"))
         .map(|(key, value)| (key.to_owned(), value.to_owned()))

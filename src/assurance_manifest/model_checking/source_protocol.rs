@@ -330,6 +330,45 @@ fn require_caller_route(
         revision.public_api_program(),
         revision.test_program(),
     ] {
+        for template in &program.function_templates {
+            let mut calls_dispatcher = false;
+            for expression in template
+                .requires
+                .iter()
+                .chain(std::iter::once(&template.body))
+                .chain(&template.ensures)
+            {
+                crate::hir::visit_resolved_calls(expression, &mut |callee, _, _| {
+                    calls_dispatcher |= callee.as_str() == dispatcher_id;
+                });
+            }
+            if calls_dispatcher {
+                return Err(refusal(
+                    "SPX-LP408",
+                    "checked generic template calls or references the selected dispatcher outside the public route",
+                ));
+            }
+        }
+        for instance in &program.function_instances {
+            let mut calls_dispatcher = false;
+            for expression in instance
+                .function
+                .requires
+                .iter()
+                .chain(std::iter::once(&instance.function.body))
+                .chain(&instance.function.ensures)
+            {
+                crate::hir::visit_resolved_calls(expression, &mut |callee, _, _| {
+                    calls_dispatcher |= callee.as_str() == dispatcher_id;
+                });
+            }
+            if calls_dispatcher {
+                return Err(refusal(
+                    "SPX-LP408",
+                    "checked generic instance calls or references the selected dispatcher outside the public route",
+                ));
+            }
+        }
         for function in &program.functions {
             if function.id.as_str() == caller_id {
                 found = true;

@@ -298,12 +298,30 @@ fn source_mutation_and_missing_protocol_coverage_refuse() {
 
 #[test]
 fn caller_bypass_or_reordered_arguments_refuse_source_association() {
-    for altered in [
-        source(false).replace(
-            "@id(\"payment.step\")",
-            "@id(\"payment.bypass\") fn bypass(state: i64, event: i64) -> i64 { dispatch(state, event) }\n@id(\"payment.step\")",
+    for (altered, expected_code) in [
+        (
+            source(false).replace(
+                "@id(\"payment.step\")",
+                "@id(\"payment.bypass\") fn bypass(state: i64, event: i64) -> i64 { dispatch(state, event) }\n@id(\"payment.step\")",
+            ),
+            "SPX-LP408",
         ),
-        source(false).replace("dispatch(state, event) }", "dispatch(event, state) }"),
+        (
+            source(false)
+            .replace(
+                "@id(\"payment.step\")",
+                "@id(\"payment.generic-bypass\") fn bypass<T>(state: i64, event: i64, unused: T) -> i64 { dispatch(state, event) }\n@id(\"payment.step\")",
+            )
+            .replace(
+                "@id(\"payment.main\") fn main() -> i64 { 0 }",
+                "@id(\"payment.main\") fn main() -> i64 { bypass(0, 0, 0) }",
+            ),
+            "SPX-W115",
+        ),
+        (
+            source(false).replace("dispatch(state, event) }", "dispatch(event, state) }"),
+            "SPX-LP408",
+        ),
     ] {
         let fixture = Fixture::new(&altered);
         let refusal = with_authenticated_project(&fixture.manifest(), |snapshot| {
@@ -320,7 +338,7 @@ fn caller_bypass_or_reordered_arguments_refuse_source_association() {
             .map_err(|error| vec![error])
         })
         .unwrap_err();
-        assert_eq!(refusal[0].code, "SPX-LP408");
+        assert_eq!(refusal[0].code, expected_code, "{refusal:?}");
     }
 }
 

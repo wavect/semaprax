@@ -1,5 +1,11 @@
 # Changelog
 
+- Add LawSet v1's independently protected inventory of named scalar contract,
+  architecture, protocol-realizer and reference-model laws. Bind exact Project,
+  ProgramRoot, proof profile and provenance; reject ambiguous or retargeted
+  identities and replay missing/open coverage without shrinking expected laws.
+  Existing assurance report bytes and obligation identities remain unchanged.
+
 - Extend the experimental native owner renderer and indexed Project package with
   checked owner-returning Semaprax helpers. Replay each helper cleanup plan,
   preserve provisional-result guards and sticky failures, and exercise counted

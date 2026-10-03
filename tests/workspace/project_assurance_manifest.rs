@@ -311,3 +311,6 @@ fn snapshot_source_drift_and_obligation_or_output_budgets_fail_closed() {
         );
     }
 }
+
+#[path = "law_set.rs"]
+mod law_set;

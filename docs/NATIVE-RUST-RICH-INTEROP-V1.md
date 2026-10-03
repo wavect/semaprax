@@ -527,3 +527,23 @@ that collapses Some(error) into None must fail the same assertions. The older
 container fixture also retains empty/bound checks and constructor/consumer
 panic paths. This remains an experimental renderer, not selected container
 Project publication or complete RI-05 acceptance.
+
+### Frozen owned-data v1 compatibility evidence
+
+The owning package test `owned_v1_frozen_bytes_and_physical_output_copy` pins
+complete generated text, descriptor, and manifest lengths/SHA-256 digests to
+pre-RI-05 commit `4dd73795021564dcc6d90ac6505b2814c1818cd1`. The checked-in fixture
+was captured by compiling that commit's unchanged renderer sources, not by
+recording the current renderer's output. It covers five declared target
+renderings and the owned-bytes, Option-owned-bytes, and Result-owned-bytes-i64
+v1 results. The manifest uses fixed archive input; these checks do not establish
+reproducible native archive machine code or physical execution on five targets.
+
+The same focused test physically runs the local generated SDK at O0/O2 with a
+provider owning real Vec allocations. The copy destination must differ from the
+provider allocation. The provider overwrites and frees its storage before the
+host observes success; the host's returned bytes must remain intact. Empty and
+65536-byte payloads, non-UTF-8 bytes, None, and domain Err are exercised with copy,
+drop, and close counts. A successfully compiled skipped-copy control must fail
+the copy-count assertion. Local rustc 1.98 evidence passed 1/1, zero ignored.
+This adds compatibility evidence without changing v1 renderer/runtime bytes.

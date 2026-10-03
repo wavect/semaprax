@@ -10,6 +10,10 @@ For implementation status and required evidence, use the
 
 ## v0.7.0 candidate
 
+- RI-05 pins frozen owned-data v1 generated-file digests to a pre-owner baseline
+  and executes counted host-copy/provider-free controls, including a compiled
+  skipped-copy negative, without changing the v1 runtime.
+
 `v0.7.0` is the current source version. Its exact release commit, tag gate, and
 archives have not yet been accepted. The v0.6.0 tag gate failed, and v0.6.0
 was not published. See [v0.7.0 status](RELEASE-0.7.0-STATUS.md) and the

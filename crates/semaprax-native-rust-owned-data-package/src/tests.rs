@@ -7,6 +7,7 @@ mod auto_traits;
 pub(crate) mod ffi_boundaries;
 mod flat_input_bounds;
 mod strict_sources;
+mod v1_compatibility;
 
 fn descriptor_bytes(result: &str) -> Vec<u8> {
     format!(

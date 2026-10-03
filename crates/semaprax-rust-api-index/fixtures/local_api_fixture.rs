@@ -70,6 +70,10 @@ pub fn opaque_output() -> impl Iterator<Item = u8> {
     [1, 2, 3].into_iter()
 }
 
+pub fn const_repeat<const N: usize>(value: u8) -> [u8; N] {
+    [value; N]
+}
+
 pub fn generic_output<T: Clone>(value: T) -> T {
     value
 }

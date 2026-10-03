@@ -86,6 +86,22 @@ pub struct DemandedInstantiation {
     pub identity: String,
 }
 
+/// A public associated type projected through one explicit concrete Rust type.
+/// The generated wrapper still asks rustc to prove the trait implementation.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AssociatedTypeRequest {
+    pub associated_type_path: String,
+    pub implementor: ConcreteType,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct DemandedAssociatedType {
+    pub associated_type_path: String,
+    pub implementor: ConcreteType,
+    pub projection: String,
+    pub identity: String,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum DemandError {
     Index(IndexError),
@@ -105,7 +121,7 @@ pub fn resolve_demanded_instantiations(
     index: &RustApiIndex,
     requests: &[InstantiationRequest],
 ) -> Result<Vec<DemandedInstantiation>, DemandError> {
-    if requests.is_empty() || requests.len() > MAX_DEMANDED_INSTANTIATIONS {
+    if requests.is_empty() {
         return Err(DemandError::ExpansionLimit);
     }
     let mut demanded = BTreeMap::new();
@@ -173,6 +189,67 @@ pub fn resolve_demanded_instantiations(
             const_arguments: request.const_arguments.clone(),
             identity,
         });
+        if demanded.len() > MAX_DEMANDED_INSTANTIATIONS {
+            return Err(DemandError::ExpansionLimit);
+        }
+    }
+    Ok(demanded.into_values().collect())
+}
+
+/// Resolves public, non-generic associated-type projections for explicit
+/// implementors. Rust trait solving remains a generated-wrapper obligation.
+pub fn resolve_demanded_associated_types(
+    index: &RustApiIndex,
+    requests: &[AssociatedTypeRequest],
+) -> Result<Vec<DemandedAssociatedType>, DemandError> {
+    if requests.is_empty() {
+        return Err(DemandError::ExpansionLimit);
+    }
+    let mut demanded = BTreeMap::new();
+    for request in requests {
+        let item = index
+            .items()
+            .iter()
+            .find(|item| item.path == request.associated_type_path)
+            .ok_or(DemandError::ItemUnavailable)?;
+        if item.visibility != Visibility::Public || !item.closure_complete {
+            return Err(DemandError::ItemUnavailable);
+        }
+        if item.kind != ItemKind::AssociatedType || item.associated_type.is_none() {
+            return Err(DemandError::UnsupportedItem);
+        }
+        if !item.generics.parameters.is_empty()
+            || !item.generics.where_predicates.is_empty()
+            || !matches!(
+                item.support,
+                Support::Supported
+                    | Support::Rejected {
+                        reason: RejectionReason::UnsupportedSignature
+                    }
+            )
+        {
+            return Err(DemandError::UnsupportedGeneric);
+        }
+        let (trait_path, name) = request
+            .associated_type_path
+            .rsplit_once("::")
+            .ok_or(DemandError::UnsupportedItem)?;
+        let projection = format!("<{} as {trait_path}>::{name}", request.implementor.as_str());
+        let key = format!(
+            "assoc:{}<{}>",
+            request.associated_type_path,
+            request.implementor.as_str()
+        );
+        let identity = instantiation_identity(index.digest(), &key);
+        demanded.entry(key).or_insert(DemandedAssociatedType {
+            associated_type_path: request.associated_type_path.clone(),
+            implementor: request.implementor.clone(),
+            projection,
+            identity,
+        });
+        if demanded.len() > MAX_DEMANDED_INSTANTIATIONS {
+            return Err(DemandError::ExpansionLimit);
+        }
     }
     Ok(demanded.into_values().collect())
 }
@@ -294,6 +371,7 @@ fn validate_record(record: &ProjectedRecord) -> Result<(), ProjectionError> {
 mod tests {
     use super::*;
     use serde_json::Value;
+    use std::process::Command;
 
     const INDEX: &[u8] = include_bytes!("../fixtures/protocol-envelope-example.json");
 
@@ -323,6 +401,65 @@ mod tests {
         let mut bytes = serde_json::to_vec(&value).unwrap();
         bytes.push(b'\n');
         RustApiIndex::replay(&bytes).unwrap()
+    }
+
+    fn const_and_associated_index() -> RustApiIndex {
+        let mut value: Value = serde_json::from_slice(INDEX).unwrap();
+        let generic = value["items"]
+            .as_array_mut()
+            .unwrap()
+            .iter_mut()
+            .find(|item| item["path"] == "local_api_fixture::generic_output")
+            .unwrap();
+        generic["path"] = Value::String("local_api_fixture::const_repeat".into());
+        generic["signature"] =
+            Value::String("fn const_repeat<const N: usize>(value: u8) -> [u8; N]".into());
+        generic["closure_complete"] = Value::Bool(true);
+        generic["reachable_types"] = Value::Array(Vec::new());
+        generic["type_roots"] = Value::Array(Vec::new());
+        generic["type_closure_depth"] = Value::from(0);
+        generic["generics"] = serde_json::json!({"parameters":[{"bounds":[],"const_type":"usize","default":null,"kind":"const","name":"N"}],"where_predicates":[]});
+        value["items"]
+            .as_array_mut()
+            .unwrap()
+            .sort_by(|left, right| {
+                left["path"]
+                    .as_str()
+                    .unwrap()
+                    .cmp(right["path"].as_str().unwrap())
+            });
+        let mut bytes = serde_json::to_vec(&value).unwrap();
+        bytes.push(b'\n');
+        RustApiIndex::replay(&bytes).unwrap()
+    }
+
+    fn compile_and_run(source: &str, label: &str) -> std::process::Output {
+        let root = std::env::temp_dir().join(format!(
+            "semaprax-ri07-demand-{label}-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        std::fs::create_dir_all(&root).unwrap();
+        let path = root.join("main.rs");
+        let executable = root.join("fixture");
+        std::fs::write(&path, source).unwrap();
+        let rustc = std::env::var_os("RUSTC").unwrap_or_else(|| "rustc".into());
+        let output = Command::new(rustc)
+            .args(["--edition=2021"])
+            .arg(&path)
+            .arg("-o")
+            .arg(&executable)
+            .output()
+            .unwrap();
+        if output.status.success() {
+            let run = Command::new(&executable).output().unwrap();
+            assert!(run.status.success(), "physical generated fixture failed");
+        }
+        std::fs::remove_dir_all(root).unwrap();
+        output
     }
 
     #[test]
@@ -391,6 +528,76 @@ mod tests {
         assert_eq!(
             projected_records_from_json("not-json"),
             Err(ProjectionError::Json)
+        );
+    }
+    #[test]
+    fn const_and_associated_demands_compile_and_execute_with_trait_bound_refusal() {
+        let index = const_and_associated_index();
+        let const_request = InstantiationRequest {
+            item_path: "local_api_fixture::const_repeat".into(),
+            type_arguments: Vec::new(),
+            const_arguments: vec![ConstArgument::decimal("usize", "3").unwrap()],
+        };
+        let repeated =
+            resolve_demanded_instantiations(&index, &[const_request.clone(), const_request])
+                .unwrap();
+        assert_eq!(repeated.len(), 1);
+        let associated = resolve_demanded_associated_types(
+            &index,
+            &[AssociatedTypeRequest {
+                associated_type_path: "local_api_fixture::Measures::Output".into(),
+                implementor: ConcreteType::parse("local_api_fixture::ReExported").unwrap(),
+            }],
+        )
+        .unwrap();
+        assert_eq!(
+            associated[0].projection,
+            "<local_api_fixture::ReExported as local_api_fixture::Measures>::Output"
+        );
+
+        let fixture =
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("fixtures/local_api_fixture.rs");
+        let fixture = fixture.display().to_string().replace('\\', "\\\\");
+        let projection = &associated[0].projection;
+        let positive = format!(
+            "#[path=\"{fixture}\"] mod local_api_fixture;\nfn demand_const<const N:usize>(value:u8)->[u8;N]{{local_api_fixture::const_repeat::<N>(value)}}\nfn demand_associated(value:&local_api_fixture::ReExported)->{projection}{{local_api_fixture::Measures::measure(value)}}\nfn main(){{assert_eq!(demand_const::<3>(7),[7,7,7]);assert_eq!(demand_associated(&local_api_fixture::ReExported(9)),9);}}\n"
+        );
+        assert!(compile_and_run(&positive, "positive").status.success());
+
+        let negative = format!(
+            "#[path=\"{fixture}\"] mod local_api_fixture;\nstruct NotClone;\nfn main(){{let _=local_api_fixture::generic_output(NotClone);}}\n"
+        );
+        let failure = compile_and_run(&negative, "trait-bound");
+        assert!(!failure.status.success());
+        let stderr = String::from_utf8_lossy(&failure.stderr);
+        assert!(
+            stderr.contains("Clone") && stderr.contains("generic_output"),
+            "{stderr}"
+        );
+
+        let sealed = resolve_demanded_associated_types(
+            &index,
+            &[AssociatedTypeRequest {
+                associated_type_path: "local_api_fixture::SealedApi::HiddenOutput".into(),
+                implementor: ConcreteType::parse("local_api_fixture::SealedType").unwrap(),
+            }],
+        );
+        assert_eq!(sealed, Err(DemandError::ItemUnavailable));
+    }
+
+    #[test]
+    fn distinct_demand_expansion_limit_is_deterministic() {
+        let index = generic_index();
+        let requests = (0..=MAX_DEMANDED_INSTANTIATIONS)
+            .map(|value| InstantiationRequest {
+                item_path: "local_api_fixture::generic_output".into(),
+                type_arguments: vec![ConcreteType::parse(&format!("T{value}")).unwrap()],
+                const_arguments: Vec::new(),
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(
+            resolve_demanded_instantiations(&index, &requests),
+            Err(DemandError::ExpansionLimit)
         );
     }
 }

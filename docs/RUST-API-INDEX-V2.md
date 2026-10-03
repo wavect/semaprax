@@ -49,6 +49,15 @@ rustc positive and negative control in `stable_signature_check.rs` and
 `stable_signature_mismatch.rs`. The fixture is local evidence, not upstream
 package or cross-target support.
 
+RI-07's additive demand layer accepts canonical concrete `usize` const arguments
+and public, non-generic associated-type projections for an explicit concrete
+implementor. It deduplicates identical requests before enforcing the fixed
+64-entry expansion bound. A generated local `rustc` fixture executes a real
+const-generic call and an associated-type projection; a `Clone` bound failure
+remains an actual compiler refusal. The resolver carries no trait solver or
+coherence authority: private/sealed items refuse from index facts, while trait
+satisfaction remains a generated-wrapper compiler check.
+
 Canonical replay requires sorted paths, exact fields and canonical JSON bytes,
 a terminal LF, lowercase digests, no NUL, at most 1 MiB, at most 512 API items
 and 512 type records, at most 32 type depth, at most 256 references per item,

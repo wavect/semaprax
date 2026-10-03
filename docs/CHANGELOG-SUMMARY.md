@@ -10,6 +10,10 @@ For implementation status and required evidence, use the
 
 ## v0.7.0 candidate
 
+- The experimental native String bridge now accepts bounded UTF-8 byte input
+  through an explicit C factory, with checked signed/unsigned lengths, Rust-side
+  allocation, and executed malformed-input/allocation-failure controls.
+
 - RI-05 adds a generated Rust context lifetime facade with cross-crate
   compile-fail controls and isolated Drop-panic/abort execution. Actual native
   archive and complete package bytes match a pre-RI05 capture on arm64 macOS.

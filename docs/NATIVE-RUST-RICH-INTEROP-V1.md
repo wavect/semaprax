@@ -633,3 +633,34 @@ compiled flipped provider changes the archive and fails the payload oracle.
 The earlier five-target generated-text fixture remains unchanged. This new
 archive fixture is selected only on arm64 macOS; it adds no runtime v1 changes.
 Historical direct-rustc capture also passed 1/1, zero ignored, 60 filtered.
+
+### Bounded native UTF-8 ingress
+
+The experimental generated String adapter exports
+`spx_owner_string_from_utf8(context, data, u64_length, out_owner)` and a signed
+length entry. These are explicit native C conversion services, not additional
+Semaprax syntax or a general Rust layout projection. The caller supplies valid
+input/output ranges under the documented unsafe pointer contract. Nonempty
+null input and malformed UTF-8 refuse with status 3. Negative signed lengths,
+lengths above 4096, failed host-width conversion, full owner tables and fallible
+allocation refuse with status 4, without publishing an output owner.
+
+Admitted input is copied into a Rust-owned String allocation. Table reservation
+and String allocation are fallible; the slot is initialized only after complete
+validation and copying. The original C input can then be overwritten. Allocation
+and deallocation remain on Rust's side, using the same context/generation and
+consuming-method protocol as existing String owners. No UTF-8 transmute or
+unchecked decoding is used.
+
+`owned_utf8_native_ingress_widths_allocation_and_hostile_controls` passed 1/1,
+zero failed/ignored, 194 filtered, on arm64 macOS with the configured Rust
+1.98.0/Apple Clang 21 tools. O0/O2 C callers exercise empty input, a multibyte
+scalar, the 4096-byte limit, overlong/surrogate/out-of-range/truncated UTF-8,
+null input, i64 signed extrema and u64 upper limits. The consuming native Rust
+method observes the original content after input overwrite and a distinct
+allocation; the large allocation's deallocation is counted once. The gate also
+executes 512 deterministic bounded byte samples, full-table refusal/reclamation,
+injected allocation failure and a compiled accepting-invalid-input control.
+Every refusal retains the output sentinel and makes no target constructor call.
+This is native C ingress evidence; 32-bit execution, Rust sanitizer instrumentation
+and Miri execution are not claimed.

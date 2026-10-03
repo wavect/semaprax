@@ -294,3 +294,6 @@ fn owned_string_generated_execution_and_allocation_controls() {
 
 #[path = "owned_container_tests.rs"]
 mod container;
+
+#[path = "owned_string_input_tests.rs"]
+mod input;

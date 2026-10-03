@@ -68,7 +68,7 @@ pub fn prepare_owned_string_native(
             _ => None,
         })
         .ok_or_else(|| sdk_error("native String cleanup lifecycle is absent"))?;
-    let header = "#ifndef SPX_OWNER_V1_H\n#define SPX_OWNER_V1_H\n#include <stdint.h>\ntypedef struct { uint64_t context, generation, slot; } spx_owner;\nint32_t spx_owner_new(uint64_t, int64_t, spx_owner*);\nint32_t spx_owner_consume(uint64_t, spx_owner, int64_t, uint8_t*);\nint32_t spx_owner_validate(uint64_t, spx_owner);\nint32_t spx_owner_drop(uint64_t, spx_owner);\nint32_t spx_owner_string_clone(uint64_t, spx_owner, spx_owner*);\n#endif\n".to_owned();
+    let header = "#ifndef SPX_OWNER_V1_H\n#define SPX_OWNER_V1_H\n#include <stdint.h>\ntypedef struct { uint64_t context, generation, slot; } spx_owner;\nint32_t spx_owner_new(uint64_t, int64_t, spx_owner*);\nint32_t spx_owner_consume(uint64_t, spx_owner, int64_t, uint8_t*);\nint32_t spx_owner_validate(uint64_t, spx_owner);\nint32_t spx_owner_drop(uint64_t, spx_owner);\nint32_t spx_owner_string_clone(uint64_t, spx_owner, spx_owner*);\nint32_t spx_owner_string_from_utf8(uint64_t, const uint8_t*, uint64_t, spx_owner*);\nint32_t spx_owner_string_from_utf8_signed(uint64_t, const uint8_t*, int64_t, spx_owner*);\n#endif\n".to_owned();
     let c_source = c::render_program(
         &program,
         function,
@@ -91,6 +91,7 @@ pub fn prepare_owned_string_native(
     let bounded = format!("if free.is_none() {{ context.slots.try_reserve(1).map_err(|_|4)?; }}\n        {call}\n        if value.len()>4096 || value.capacity()>4096 {{ return Err(4); }}");
     rust_adapter = rust_adapter.replace(&call, &bounded);
     rust_adapter.push_str(include_str!("owned_string_runtime.rs.txt"));
+    rust_adapter.push_str(include_str!("owned_string_input.rs.txt"));
     let params = (0..function.params.len())
         .map(|i| format!(", arg_{i}:i64"))
         .collect::<String>();

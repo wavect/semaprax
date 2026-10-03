@@ -9,16 +9,16 @@
 use semaprax_doctor_capsule::{Artifact, MAX_ARTIFACT_BYTES};
 use sha2::{Digest as _, Sha256};
 use windows_sys::Win32::Foundation::{
-    CloseHandle, DuplicateHandle, GetHandleInformation, HANDLE, HANDLE_FLAG_INHERIT,
-    INVALID_HANDLE_VALUE, LocalFree,
+    CloseHandle, DuplicateHandle, GetHandleInformation, LocalFree, HANDLE, HANDLE_FLAG_INHERIT,
+    INVALID_HANDLE_VALUE,
 };
 use windows_sys::Win32::Security::Authorization::{
     ConvertStringSecurityDescriptorToSecurityDescriptorW, SDDL_REVISION_1,
 };
 use windows_sys::Win32::Security::{PSECURITY_DESCRIPTOR, SECURITY_ATTRIBUTES};
 use windows_sys::Win32::System::Memory::{
-    CreateFileMappingW, FILE_MAP_READ, FILE_MAP_WRITE, MapViewOfFile, PAGE_READWRITE,
-    SECTION_MAP_READ, UnmapViewOfFile,
+    CreateFileMappingW, MapViewOfFile, UnmapViewOfFile, FILE_MAP_READ, FILE_MAP_WRITE,
+    PAGE_READWRITE, SECTION_MAP_READ,
 };
 use windows_sys::Win32::System::Threading::GetCurrentProcess;
 
@@ -233,7 +233,7 @@ impl AuthenticatedCarrier {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use windows_sys::Win32::System::Memory::{FILE_MAP_WRITE, MapViewOfFile};
+    use windows_sys::Win32::System::Memory::{MapViewOfFile, FILE_MAP_WRITE};
     use windows_sys::Win32::System::Threading::GetProcessHandleCount;
 
     fn artifact(bytes: &[u8]) -> Artifact {

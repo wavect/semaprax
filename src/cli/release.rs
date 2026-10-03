@@ -1166,12 +1166,14 @@ mod tests {
         ))
         .unwrap();
         sigstore_verify::Verifier::new(&trusted)
+            .expect("fixture trusted root must construct a verifier")
             .verify(
                 include_bytes!("../../tests/fixtures/release_sigstore/cosign-v3-blob.txt"),
                 &bundle,
-                &sigstore_verify::VerificationPolicy::default()
-                    .require_identity("w.vollprecht@gmail.com")
-                    .require_issuer("https://github.com/login/oauth"),
+                &sigstore_verify::VerificationPolicy::new(
+                    "w.vollprecht@gmail.com",
+                    "https://github.com/login/oauth",
+                ),
             )
             .expect("substituted root must be a working cryptographic trust root");
         let directory = signed_directory("doctor-valid-root-substitution");

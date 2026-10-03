@@ -35,10 +35,10 @@ mod cold_chain_release_gate;
 mod concurrent_delta_merge;
 #[path = "cross_language_benchmark_suite/hidden_overlay_admission.rs"]
 mod hidden_overlay_admission;
-#[path = "cross_language_benchmark_suite/live_pilot.rs"]
-mod live_pilot;
 #[path = "cross_language_benchmark_suite/iterative_repair_workflow.rs"]
 mod iterative_repair_workflow;
+#[path = "cross_language_benchmark_suite/live_pilot.rs"]
+mod live_pilot;
 #[path = "cross_language_benchmark_suite/owned_byte_sentinel_balance.rs"]
 mod owned_byte_sentinel_balance;
 #[path = "cross_language_benchmark_suite/reproducibility.rs"]

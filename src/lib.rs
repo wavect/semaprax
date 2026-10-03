@@ -81,7 +81,6 @@ pub(crate) mod filesystem_ops;
 pub mod format;
 pub mod freestanding_object;
 pub mod graph;
-pub mod rust_api_context;
 pub mod hir;
 pub mod hosted_interpreter;
 #[cfg(not(any(target_arch = "wasm32", target_arch = "wasm64")))]
@@ -166,8 +165,7 @@ pub mod requirement_traceability;
 pub mod resumable_effects;
 pub mod review;
 pub mod runtime_status;
-#[cfg(feature = "unstable-rust-source-lowering")]
-pub mod stable_rust_lowering;
+pub mod rust_api_context;
 pub mod scoped_tasks;
 pub mod semantic_cache_store;
 pub mod semantic_discovery;
@@ -181,6 +179,8 @@ pub mod semantic_service_transport;
 pub mod semantic_task_context;
 pub mod semantic_trace;
 pub mod simd_report;
+#[cfg(feature = "unstable-rust-source-lowering")]
+pub mod stable_rust_lowering;
 pub mod static_protocol;
 pub(crate) mod str_ops;
 pub mod streaming_proposal_decode;

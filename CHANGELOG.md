@@ -1,5 +1,11 @@
 # Changelog
 
+- Restore `main` CI after the Rust API index and Sigstore dependency updates:
+  pin the local index dependency for cargo-deny, refresh the three standalone
+  Cargo locks, adapt offline release verification to Sigstore 0.14, and keep
+  the Unix-only owned-wait fixture out of Windows tests. Apply the repository
+  formatter to the affected workspace.
+
 - Add a read-only LAW-17 reduction-eligibility report for one exact checked
   `i64` CPU fold. It replays the bound artifact and installed identity proof,
   checks live disjoint buffers and a no-overflow nonnegative domain, and

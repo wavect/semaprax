@@ -81,6 +81,7 @@ fn owned_future_template_cache_recomputes_changed_response_bound_and_preserves_r
     assert!(context.future_templates.entry.borrow().is_none());
 }
 
+#[cfg(unix)]
 #[test]
 fn owned_future_template_cache_rejects_crossed_proof_and_resets_at_profile_selection() {
     super::super::super::CheckedOwnedWaitJournalContextV8::test_with_actual_runtime(

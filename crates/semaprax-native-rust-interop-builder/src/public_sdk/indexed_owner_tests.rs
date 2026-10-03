@@ -500,12 +500,9 @@ fn selected_regex_shared_receiver_refuses_before_package_creation_without_ri06_l
     let root = root("shared-receiver-refusal");
     write_project(&root, &source);
     let output = root.join("sdk");
-    let errors = build_indexed_project_native_rust_sdk(
-        &root.join("semaprax.toml"),
-        &selections,
-        &output,
-    )
-    .unwrap_err();
+    let errors =
+        build_indexed_project_native_rust_sdk(&root.join("semaprax.toml"), &selections, &output)
+            .unwrap_err();
     assert_eq!(errors[0].code, "SPX-B145");
     assert!(
         errors[0].message.contains("RI-06 loan routing"),

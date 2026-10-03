@@ -294,11 +294,11 @@ fn runtime_child_checks_unrelated_inheritable_handle_is_absent() {
 #[ignore = "requires the explicitly provisioned Windows runtime gate"]
 fn runtime_child_reads_authenticated_request_bundle_carriers() {
     use windows_sys::Win32::Foundation::{
-        DuplicateHandle, ERROR_ACCESS_DENIED, GetLastError, HANDLE,
+        DuplicateHandle, GetLastError, ERROR_ACCESS_DENIED, HANDLE,
     };
     use windows_sys::Win32::Storage::FileSystem::{WRITE_DAC, WRITE_OWNER};
     use windows_sys::Win32::System::Memory::{
-        FILE_MAP_READ, FILE_MAP_WRITE, MapViewOfFile, UnmapViewOfFile,
+        MapViewOfFile, UnmapViewOfFile, FILE_MAP_READ, FILE_MAP_WRITE,
     };
 
     fn inherited_handle(name: &str) -> HANDLE {
@@ -421,8 +421,8 @@ impl Drop for RuntimeChildCleanupGuard {
     fn drop(&mut self) {
         use windows_sys::Win32::Foundation::WAIT_OBJECT_0;
         use windows_sys::Win32::System::JobObjects::{
-            JOBOBJECT_BASIC_ACCOUNTING_INFORMATION, JobObjectBasicAccountingInformation,
-            QueryInformationJobObject, TerminateJobObject,
+            JobObjectBasicAccountingInformation, QueryInformationJobObject, TerminateJobObject,
+            JOBOBJECT_BASIC_ACCOUNTING_INFORMATION,
         };
         use windows_sys::Win32::System::Threading::WaitForSingleObject;
 
@@ -504,17 +504,17 @@ fn windows_runtime_launches_restricted_child_inside_acl_scratch_and_settles_it()
     use windows_sys::Win32::Foundation::LocalFree;
     use windows_sys::Win32::Security::Authorization::{GetNamedSecurityInfoW, SE_FILE_OBJECT};
     use windows_sys::Win32::Security::{
-        ACCESS_ALLOWED_ACE, DACL_SECURITY_INFORMATION, EqualSid, GetSecurityDescriptorControl,
-        GetTokenInformation, LookupPrivilegeValueW, SE_CHANGE_NOTIFY_NAME, SE_DACL_PROTECTED,
-        SE_PRIVILEGE_ENABLED, TOKEN_PRIVILEGES, TOKEN_QUERY, TOKEN_USER, TokenPrivileges,
+        EqualSid, GetSecurityDescriptorControl, GetTokenInformation, LookupPrivilegeValueW,
+        TokenPrivileges, ACCESS_ALLOWED_ACE, DACL_SECURITY_INFORMATION, SE_CHANGE_NOTIFY_NAME,
+        SE_DACL_PROTECTED, SE_PRIVILEGE_ENABLED, TOKEN_PRIVILEGES, TOKEN_QUERY, TOKEN_USER,
     };
     use windows_sys::Win32::Storage::FileSystem::{DELETE, FILE_GENERIC_READ, FILE_GENERIC_WRITE};
     use windows_sys::Win32::System::JobObjects::{
-        IsProcessInJob, JOB_OBJECT_LIMIT_ACTIVE_PROCESS,
+        IsProcessInJob, JobObjectBasicUIRestrictions, JobObjectExtendedLimitInformation,
+        QueryInformationJobObject, JOBOBJECT_BASIC_UI_RESTRICTIONS,
+        JOBOBJECT_EXTENDED_LIMIT_INFORMATION, JOB_OBJECT_LIMIT_ACTIVE_PROCESS,
         JOB_OBJECT_LIMIT_DIE_ON_UNHANDLED_EXCEPTION, JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE,
         JOB_OBJECT_LIMIT_PROCESS_MEMORY, JOB_OBJECT_LIMIT_PROCESS_TIME,
-        JOBOBJECT_BASIC_UI_RESTRICTIONS, JOBOBJECT_EXTENDED_LIMIT_INFORMATION,
-        JobObjectBasicUIRestrictions, JobObjectExtendedLimitInformation, QueryInformationJobObject,
     };
     use windows_sys::Win32::System::Threading::OpenProcessToken;
 
@@ -1013,8 +1013,8 @@ fn windows_runtime_signed_request_bundle_carriers_reach_child_with_fixed_binding
 #[ignore = "requires the explicitly provisioned Windows runtime gate"]
 fn windows_runtime_timeout_terminates_an_actual_job_descendant() {
     use windows_sys::Win32::System::JobObjects::{
-        JOB_OBJECT_LIMIT_ACTIVE_PROCESS, JOBOBJECT_EXTENDED_LIMIT_INFORMATION,
         JobObjectExtendedLimitInformation, QueryInformationJobObject, SetInformationJobObject,
+        JOBOBJECT_EXTENDED_LIMIT_INFORMATION, JOB_OBJECT_LIMIT_ACTIVE_PROCESS,
     };
 
     let parent = runtime_parent();
@@ -1209,13 +1209,12 @@ fn windows_runtime_scratch_refusal_closes_setup_handles() {
 fn windows_runtime_protected_scratch_dacl_blocks_inherited_parent_ace() {
     use windows_sys::Win32::Foundation::LocalFree;
     use windows_sys::Win32::Security::Authorization::{
-        GetNamedSecurityInfoW, SE_FILE_OBJECT, SetNamedSecurityInfoW,
+        GetNamedSecurityInfoW, SetNamedSecurityInfoW, SE_FILE_OBJECT,
     };
     use windows_sys::Win32::Security::{
-        ACCESS_ALLOWED_ACE, ACE_HEADER, ACL, ACL_REVISION, AddAccessAllowedAceEx,
-        CONTAINER_INHERIT_ACE, DACL_SECURITY_INFORMATION, EqualSid, GetAce, InitializeAcl,
-        OBJECT_INHERIT_ACE, PROTECTED_DACL_SECURITY_INFORMATION, SE_DACL_PROTECTED, TOKEN_QUERY,
-        TOKEN_USER,
+        AddAccessAllowedAceEx, EqualSid, GetAce, InitializeAcl, ACCESS_ALLOWED_ACE, ACE_HEADER,
+        ACL, ACL_REVISION, CONTAINER_INHERIT_ACE, DACL_SECURITY_INFORMATION, OBJECT_INHERIT_ACE,
+        PROTECTED_DACL_SECURITY_INFORMATION, SE_DACL_PROTECTED, TOKEN_QUERY, TOKEN_USER,
     };
     use windows_sys::Win32::Storage::FileSystem::{DELETE, FILE_ALL_ACCESS};
     use windows_sys::Win32::System::Threading::{GetCurrentProcess, OpenProcessToken};

@@ -7,7 +7,7 @@
 //! has not occurred.
 
 use sigstore_verify::trust_root::TrustedRoot;
-use sigstore_verify::types::bundle::VerificationMaterialContent;
+use sigstore_verify::types::bundle::{MediaType, VerificationMaterialContent};
 use sigstore_verify::types::Bundle;
 use sigstore_verify::{VerificationPolicy, Verifier};
 use x509_cert::der::asn1::Utf8StringRef;
@@ -16,7 +16,6 @@ use x509_cert::Certificate;
 
 use super::{Diagnostic, ExpectedReleaseIdentity, OfflineBundleVerificationCapability};
 
-const SIGSTORE_BUNDLE_MEDIA_TYPE: &str = "application/vnd.dev.sigstore.bundle.v0.3+json";
 const MAX_SIGSTORE_BUNDLE_BYTES: usize = 2 * 1024 * 1024;
 const MAX_TRUSTED_ROOT_BYTES: usize = 4 * 1024 * 1024;
 const MAX_TRUSTED_ROOT_RECORDS: usize = 128;
@@ -24,7 +23,7 @@ const VERIFICATION_REFUSAL: &str = "offline Sigstore cryptographic verification 
 
 /// Pure, network-free verifier for Sigstore v0.3 bundles.
 ///
-/// Verification uses the dependency's strict default policy: transparency-log
+/// Verification uses the dependency's strict verification policy: transparency-log
 /// inclusion, certificate-chain validation, and SCT validation all remain
 /// enabled. The certificate identity and OIDC issuer must exactly match the
 /// release identity derived from SEMAPRAX's already-bound provenance.
@@ -64,7 +63,7 @@ fn verify_bound_bundle(
 
     let bundle_text = std::str::from_utf8(bundle_bytes).map_err(|_| verification_refusal())?;
     let bundle = Bundle::from_json(bundle_text).map_err(|_| verification_refusal())?;
-    if bundle.media_type != SIGSTORE_BUNDLE_MEDIA_TYPE {
+    if bundle.media_type != MediaType::Bundle0_3 {
         return Err(verification_refusal());
     }
 
@@ -134,9 +133,7 @@ fn verify_bundle_with_certificate_identity(
     bundle: &Bundle,
     trusted_root_text: &str,
 ) -> Result<(), Diagnostic> {
-    let policy = VerificationPolicy::default()
-        .require_identity(certificate_identity)
-        .require_issuer(issuer);
+    let policy = VerificationPolicy::new(certificate_identity, issuer);
 
     let mut record_count = 0usize;
     let mut successful_roots = 0usize;
@@ -155,7 +152,7 @@ fn verify_bundle_with_certificate_identity(
             continue;
         };
         if Verifier::new(&trusted_root)
-            .verify(subject_bytes, bundle, &policy)
+            .and_then(|verifier| verifier.verify(subject_bytes, bundle, &policy))
             .is_ok()
         {
             successful_roots += 1;

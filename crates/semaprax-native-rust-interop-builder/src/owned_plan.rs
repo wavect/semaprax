@@ -795,7 +795,9 @@ mod tests {
     #[test]
     fn returned_str_view_retains_its_owner_loan_and_rejects_reentry() {
         let mut context = OwnerContext::new();
-        let owner = context.admit("url", String::from("https://example.invalid/🦀")).unwrap();
+        let owner = context
+            .admit("url", String::from("https://example.invalid/🦀"))
+            .unwrap();
         let calls = Cell::new(0);
         let owner_pointer = context.borrow(&owner).unwrap().as_ptr();
         let view = context.borrowed_str_view(&owner).unwrap();
@@ -821,7 +823,10 @@ mod tests {
             .with_callback(&owner, || calls.set(calls.get() + 1))
             .unwrap();
         assert_eq!(calls.get(), 1);
-        assert_eq!(context.consume(owner).unwrap(), "https://example.invalid/🦀");
+        assert_eq!(
+            context.consume(owner).unwrap(),
+            "https://example.invalid/🦀"
+        );
     }
 
     #[test]

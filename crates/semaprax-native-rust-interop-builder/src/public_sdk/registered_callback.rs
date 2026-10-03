@@ -1,8 +1,8 @@
 //! Source-authored registry calls using a separate scalar bridge instance.
 //! Kept as the follow-up to callback.rs; requires its physical gate first.
 use super::*;
-use semaprax::ast::{ImportFailure, ImportResult, ParamMode, Type};
 use semaprax::ast::Span;
+use semaprax::ast::{ImportFailure, ImportResult, ParamMode, Type};
 use semaprax::hir::{ResolvedExprKind, ResolvedType};
 const REGISTRY_DOMAIN: &str = "semaprax.rich-callback-registry.v1";
 const REGISTRY_EFFECT: &str = "callback.registry";

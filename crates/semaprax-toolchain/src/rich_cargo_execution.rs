@@ -1110,8 +1110,14 @@ mod tests {
             ),
             Err(CargoExecutionError::PublicationFailed)
         );
-        assert_eq!(fs::read(output.join("receipt.json")).unwrap(), bundle_receipt);
-        assert_eq!(fs::read(output.join("artifacts.bin")).unwrap(), bundle_payload);
+        assert_eq!(
+            fs::read(output.join("receipt.json")).unwrap(),
+            bundle_receipt
+        );
+        assert_eq!(
+            fs::read(output.join("artifacts.bin")).unwrap(),
+            bundle_payload
+        );
         fs::remove_dir_all(target).unwrap();
     }
 

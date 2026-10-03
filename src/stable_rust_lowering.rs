@@ -113,9 +113,9 @@ pub fn lower_i64_literal(
 
 /// Lower one verified owned-`Bytes` return through its canonical transfer.
 ///
-/// The only admitted non-inert plan has exactly one `Transfer`, from the
-/// whole owned parameter to the whole provisional result, and no finalizers.
-/// The generated `Option::take` is deliberately placed at that action. This
+/// The only admitted non-inert plan transfers the whole owned parameter to a
+/// temporary, then that same temporary to the provisional result, with no
+/// finalizers. The generated `Option::take` occurs at the first action. This
 /// is a physical move in generated stable Rust, rather than a reconstruction
 /// from lexical `Drop`. Every other cleanup plan remains refused.
 pub fn lower_noninert_cleanup_plan(
@@ -172,16 +172,25 @@ pub fn lower_noninert_cleanup_plan(
     let parameter = &function.params[0];
     let admitted_transfer = match transitions.as_slice() {
         [CleanupTransition::Transfer {
-            source,
-            destination,
-            ..
+            at: first_at,
+            source: first_source,
+            destination: first_destination,
+        }, CleanupTransition::Transfer {
+            at: second_at,
+            source: second_source,
+            destination: second_destination,
         }] => {
-            matches!(
-                (&source.storage, &destination.storage),
-                (StorageId::Value(value), StorageId::ProvisionalResult)
-                    if value == &parameter.id
-            ) && source.projections.is_empty()
-                && destination.projections.is_empty()
+            matches!(&first_source.storage, StorageId::Value(value) if value == &parameter.id)
+                && matches!(
+                    (&first_destination.storage, &second_source.storage),
+                    (StorageId::Temporary(first), StorageId::Temporary(second))
+                        if first == second && first == first_at && second == second_at
+                )
+                && second_destination.storage == StorageId::ProvisionalResult
+                && first_source.projections.is_empty()
+                && first_destination.projections.is_empty()
+                && second_source.projections.is_empty()
+                && second_destination.projections.is_empty()
         }
         _ => false,
     };
@@ -194,10 +203,12 @@ pub fn lower_noninert_cleanup_plan(
         function.cleanup_plan.schema
     );
     source.push_str(
-        "pub const SPX_CLEANUP_ACTIONS: &[&str] = &[\"Transfer(parameter -> provisional-result)\"];\n\
+        "pub const SPX_CLEANUP_ACTIONS: &[&str] = &[\"Transfer(parameter -> temporary)\", \"Transfer(temporary -> provisional-result)\"];\n\
 pub fn spx_entry(mut value: Option<Vec<u8>>, trace: &mut Vec<&'static str>) -> Vec<u8> {\n\
     trace.push(SPX_CLEANUP_ACTIONS[0]);\n\
-    let result = value.take().expect(\"verified owned parameter is live at transfer\");\n\
+    let temporary = value.take().expect(\"verified owned parameter is live at transfer\");\n\
+    trace.push(SPX_CLEANUP_ACTIONS[1]);\n\
+    let result = temporary;\n\
     result\n\
 }\n\n\
 pub fn spx_lexical_drop_negative_control() -> Vec<&'static str> {\n\
@@ -374,7 +385,7 @@ mod tests {
     }
 
     #[test]
-    fn lowers_verified_owned_bytes_identity_through_its_single_transfer() {
+    fn lowers_verified_owned_bytes_identity_through_its_canonical_transfers() {
         let source = "module ri14.transfer;\n@id(\"ri14.transfer.identity\") fn identity(value: own Bytes) -> Bytes { value }\n@id(\"ri14.transfer.main\") fn main() -> i64 { 0 }\n";
         let parsed = crate::parse(source, Path::new("ri14-transfer.spx")).unwrap();
         let resolved = hir::resolve(&parsed).unwrap();
@@ -386,7 +397,10 @@ mod tests {
         .unwrap();
         assert!(artifact
             .source()
-            .contains("Transfer(parameter -> provisional-result)"));
+            .contains("Transfer(parameter -> temporary)"));
+        assert!(artifact
+            .source()
+            .contains("Transfer(temporary -> provisional-result)"));
         assert!(artifact.source().contains("value.take()"));
         assert!(artifact
             .source()
@@ -461,10 +475,10 @@ fn main() {
         );
         assert_eq!(
             command_output(
-                Command::new(&rust_binary),
+                &mut Command::new(&rust_binary),
                 "generated stable Rust execution"
             ),
-            b"[0, 255, 7, 0]|[\"Transfer(parameter -> provisional-result)\"]\n"
+            b"[0, 255, 7, 0]|[\"Transfer(parameter -> temporary)\", \"Transfer(temporary -> provisional-result)\"]\n"
         );
 
         let source_path = root.join("identity.spx");
@@ -495,7 +509,7 @@ fn main() {
             b""
         );
         assert_eq!(
-            command_output(Command::new(&c_binary), "C11 identity execution"),
+            command_output(&mut Command::new(&c_binary), "C11 identity execution"),
             b"42\n"
         );
         std::fs::remove_dir_all(root).unwrap();

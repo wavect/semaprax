@@ -5,8 +5,8 @@ requires all of the following executable evidence at one source revision:
 
 1. The feature-gated `stable_rust_lowering` seam validates real HIR for a
    parameter-free i64 literal and one owned-`Bytes` identity. The latter emits
-   a physical `Option::take` for its sole canonical transfer. It still needs a
-   deterministic generated Rust corpus beyond this one-action plan, with a
+   a physical `Option::take` for its two canonical transfers through a temporary.
+   It still needs a deterministic generated Rust corpus beyond this plan, with a
    checked artifact digest bound to each executable fixture.
 2. The same bounded corpus must execute through interpreter, native C11, and
    Rust-source lowering, comparing value, selected status, effects, and cleanup

@@ -40,10 +40,10 @@ The nondefault `unstable-rust-source-lowering` feature exposes
 `stable_rust_lowering::lower_i64_literal` and
 `stable_rust_lowering::lower_noninert_cleanup_plan`. Both validate a real
 `ResolvedProgram` before inspecting it. The latter admits exactly one owned
-`Bytes` identity: its entire canonical plan must be a single transfer from the
-whole parameter to the provisional result and have no finalizers. Its emitted
-stable Rust performs `Option::take` at that transfer and exposes the recorded
-action in its trace. It also emits an executable lexical-`Drop` control whose
+`Bytes` identity: its canonical plan must transfer the whole parameter to a
+temporary and that temporary to the provisional result, with no finalizers.
+Its emitted stable Rust performs `Option::take` at the first transfer and
+exposes both recorded actions in order. It also emits a lexical-`Drop` control whose
 reverse declaration order differs from the Semaprax transfer trace.
 
 The lowerer refuses every other signature, contract/effect, ownership action,

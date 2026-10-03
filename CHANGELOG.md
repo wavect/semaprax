@@ -1,5 +1,12 @@
 # Changelog
 
+- Repair main CI after the toolchain action update: align the AArch64 tracking
+  contract with the pinned action, remove redundant borrows in the shared Rust
+  API index tests, and update the isolated Component runner and its locks to
+  patched Wasmtime 48.0.5. Include the private index crate in the runner's
+  exact workspace inventory. Supply the owned-byte imports in the JSON Wasm
+  round-trip fixture.
+
 - Start LAW-15 with a checked money/state example used directly by the
   finite-structured-law Z3 harness. The pack proves exact debit, credit,
   conservation, and insufficient-funds behavior on bounded checked integers;

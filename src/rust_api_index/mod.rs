@@ -1024,7 +1024,7 @@ mod tests {
             .require_cargo_alias_identity("local_api_fixture")
             .unwrap();
         first
-            .require_stable_compiler_identity(&first.stable_rustc_version())
+            .require_stable_compiler_identity(first.stable_rustc_version())
             .unwrap();
         assert_eq!(
             first.require_stable_compiler_identity("rustc 1.97.1"),
@@ -1085,7 +1085,7 @@ mod tests {
             );
         }
         index
-            .require_stable_compiler_identity(&index.stable_rustc_version())
+            .require_stable_compiler_identity(index.stable_rustc_version())
             .unwrap();
         assert_eq!(
             index.require_stable_compiler_identity("rustc 1.97.1"),
@@ -1427,7 +1427,7 @@ mod tests {
             Err(IndexError::IdentityMismatch)
         );
         index
-            .require_stable_compiler_identity(&index.stable_rustc_version())
+            .require_stable_compiler_identity(index.stable_rustc_version())
             .unwrap();
         assert_eq!(
             index.require_stable_compiler_identity("rustc 1.97.1"),

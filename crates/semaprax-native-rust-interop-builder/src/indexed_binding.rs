@@ -141,11 +141,18 @@ fn render_checked_scalar_adapter_parts(
             )),
         })
         .collect::<Result<Vec<_>, _>>()?;
-    let result = match import.result.kind {
+    let result = match &import.result.kind {
         ResolvedImportResultKind::Unit => "()",
         ResolvedImportResultKind::I64 => "i64",
         ResolvedImportResultKind::Bool => "bool",
         ResolvedImportResultKind::ResultI64I64 => "core::result::Result<i64,i64>",
+        ResolvedImportResultKind::OwnedResource { .. } => {
+            return Err(Diagnostic::error(
+                "SPX-B145",
+                "Rust API signature is unsupported by the scalar bridge",
+                import.span,
+            ));
+        }
     };
     let arguments = (0..parameters.len())
         .map(|index| format!("arg_{index}"))

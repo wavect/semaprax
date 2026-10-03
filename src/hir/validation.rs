@@ -333,16 +333,21 @@ impl<'a> HirValidator<'a> {
                 let native_shape = import.native_rust
                     && import.parameters.len() <= 8
                     && import.parameters.iter().all(|parameter| {
-                        parameter.ownership == OwnershipMode::Value
-                            && !parameter.consumes_on_failure
-                            && matches!(parameter.ty, ResolvedType::I64 | ResolvedType::Bool)
+                        !parameter.consumes_on_failure
+                            && ((parameter.ownership == OwnershipMode::Value
+                                && matches!(parameter.ty, ResolvedType::I64 | ResolvedType::Bool))
+                                || (parameter.ownership == OwnershipMode::Own
+                                    && matches!(parameter.ty, ResolvedType::Nominal { ref declaration, ref arguments }
+                                        if arguments.is_empty() && self.program.declarations.declaration(declaration)
+                                            .is_some_and(|item| item.kind == DeclarationKind::Resource))))
                     })
                     && matches!(
-                        import.result.kind,
+                        &import.result.kind,
                         ResolvedImportResultKind::Unit
                             | ResolvedImportResultKind::I64
                             | ResolvedImportResultKind::Bool
                             | ResolvedImportResultKind::ResultI64I64
+                            | ResolvedImportResultKind::OwnedResource { .. }
                     )
                     && (import.result.kind != ResolvedImportResultKind::ResultI64I64
                         || (import.index_selected && import.selected_index_digest.is_some()));
@@ -352,7 +357,15 @@ impl<'a> HirValidator<'a> {
                     && import.parameters[0].consumes_on_failure
                     && import.result.kind == ResolvedImportResultKind::Unit;
                 if (!native_shape && !lifecycle_shape)
-                    || import.result.ownership != OwnershipMode::Value
+                    || import.result.ownership
+                        != if matches!(
+                            &import.result.kind,
+                            ResolvedImportResultKind::OwnedResource { .. }
+                        ) {
+                            OwnershipMode::Own
+                        } else {
+                            OwnershipMode::Value
+                        }
                     || import.result.producer != "callee"
                     || import.result.out_slot_initialization != "success_only"
                     || import.result.ownership_transfer != "final_zero_status_commit"
@@ -3328,7 +3341,7 @@ impl<'a> HirValidator<'a> {
                                 }
                                 _ => {}
                             }
-                            let result = match call.result {
+                            let result = match &call.result {
                                 ResolvedImportResultKind::Unit => ResolvedType::Unit,
                                 ResolvedImportResultKind::I64 => ResolvedType::I64,
                                 ResolvedImportResultKind::Bool => ResolvedType::Bool,
@@ -3343,6 +3356,12 @@ impl<'a> HirValidator<'a> {
                                         })?,
                                     arguments: vec![ResolvedType::I64, ResolvedType::I64],
                                 },
+                                ResolvedImportResultKind::OwnedResource { resource } => {
+                                    ResolvedType::Nominal {
+                                        declaration: resource.clone(),
+                                        arguments: Vec::new(),
+                                    }
+                                }
                             };
                             frames.push(Frame::NativeNext {
                                 expression,
@@ -6467,7 +6486,7 @@ impl<'a> HirValidator<'a> {
                         ));
                     }
                 }
-                let result = match call.result {
+                let result = match &call.result {
                     ResolvedImportResultKind::Unit => ResolvedType::Unit,
                     ResolvedImportResultKind::I64 => ResolvedType::I64,
                     ResolvedImportResultKind::Bool => ResolvedType::Bool,
@@ -6479,6 +6498,10 @@ impl<'a> HirValidator<'a> {
                             .cloned()
                             .ok_or_else(|| hir_error("compiler-owned Result type is absent"))?,
                         arguments: vec![ResolvedType::I64, ResolvedType::I64],
+                    },
+                    ResolvedImportResultKind::OwnedResource { resource } => ResolvedType::Nominal {
+                        declaration: resource.clone(),
+                        arguments: Vec::new(),
                     },
                 };
                 (result, OwnershipMode::Value)

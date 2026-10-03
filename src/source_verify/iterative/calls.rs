@@ -35,12 +35,12 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                 {
                     reject_native_unit_value(self.program, argument, actual, self.diagnostics);
                     if !actual.native_unit
-                        && (actual.ty != parameter.ty || actual.mode != ParamMode::Value)
+                        && (actual.ty != parameter.ty || actual.mode != parameter.mode)
                     {
                         self.diagnostics.push(error(
                             self.program,
                             "SPX-B107",
-                            "Native Rust Interop declaration set is unsupported: scalar value signature required",
+                        "Native Rust Interop declaration set is unsupported: scalar value signature required",
                             argument.span,
                         ));
                     }

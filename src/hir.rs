@@ -103,6 +103,7 @@ mod resolve_expr_frame;
 mod resolve_expr_reference;
 mod resolve_for;
 mod resolve_for_own;
+mod resolve_native_rust_result;
 mod resolve_pattern;
 mod resolve_program;
 mod resolve_statement;

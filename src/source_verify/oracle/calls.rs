@@ -419,7 +419,7 @@ pub(super) fn oracle_call(
             if let (Some(actual), Some(parameter)) = (actual, import.params.get(index)) {
                 reject_native_unit_value(program, argument, &actual, diagnostics);
                 if !actual.native_unit
-                    && (actual.ty != parameter.ty || actual.mode != ParamMode::Value)
+                    && (actual.ty != parameter.ty || actual.mode != parameter.mode)
                 {
                     diagnostics.push(error(
                         program,

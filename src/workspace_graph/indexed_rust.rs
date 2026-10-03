@@ -76,11 +76,12 @@ pub(super) fn append(
             output.push_str(",\"result\":");
             push_json_string(
                 output,
-                match import.result.kind {
+                match &import.result.kind {
                     hir::ResolvedImportResultKind::Unit => "unit",
                     hir::ResolvedImportResultKind::I64 => "i64",
                     hir::ResolvedImportResultKind::Bool => "bool",
                     hir::ResolvedImportResultKind::ResultI64I64 => "Result<i64, i64>",
+                    hir::ResolvedImportResultKind::OwnedResource { .. } => "opaque resource",
                 },
             );
             output.push_str(",\"effects\":[");

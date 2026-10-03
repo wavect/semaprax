@@ -18,7 +18,7 @@ use super::byte_slice_provenance::derive_byte_slice_provenance;
 use super::ids::{DeclarationId, FunctionExecutionId, FunctionInstanceId, ValueId};
 use super::monomorphize::materialize_function_template;
 use super::nodes::{
-    admitted_owned_byte_prelude_instance, OwnershipMode, ResolvedFunction,
+    admitted_owned_byte_prelude_instance, DeclarationKind, OwnershipMode, ResolvedFunction,
     ResolvedFunctionInstance, ResolvedFunctionTemplate, ResolvedImport, ResolvedImportFailure,
     ResolvedImportParameter, ResolvedImportResult, ResolvedImportResultKind, ResolvedInterface,
     ResolvedParam, ResolvedProgram, ResolvedResourceDrop, ResolvedResourceDropKind, ResolvedType,
@@ -377,7 +377,7 @@ impl Resolver<'_> {
                             rust_path: import.rust_path.clone(),
                             parameters,
                             result: ResolvedImportResult {
-                                kind: match import.result {
+                                kind: match &import.result {
                                     crate::ast::ImportResult::Unit => {
                                         ResolvedImportResultKind::Unit
                                     }
@@ -388,8 +388,42 @@ impl Resolver<'_> {
                                     crate::ast::ImportResult::ResultI64I64 => {
                                         ResolvedImportResultKind::ResultI64I64
                                     }
+                                    crate::ast::ImportResult::OwnedResource { name } => {
+                                        let ty = self.resolve_type(
+                                            &crate::ast::Type::Named {
+                                                name: name.clone(),
+                                                arguments: Vec::new(),
+                                            },
+                                            import.span,
+                                        )?;
+                                        let ResolvedType::Nominal { declaration, arguments } = ty else {
+                                            return Err(self.error(
+                                                "SPX-H006",
+                                                "native Rust owned result did not resolve to a resource",
+                                                import.span,
+                                            ));
+                                        };
+                                        if !arguments.is_empty()
+                                            || self.declarations.declaration(&declaration)
+                                                .is_none_or(|item| item.kind != DeclarationKind::Resource)
+                                        {
+                                            return Err(self.error(
+                                                "SPX-H006",
+                                                "native Rust owned result did not resolve to a resource",
+                                                import.span,
+                                            ));
+                                        }
+                                        ResolvedImportResultKind::OwnedResource { resource: declaration }
+                                    }
                                 },
-                                ownership: OwnershipMode::Value,
+                                ownership: if matches!(
+                                    &import.result,
+                                    crate::ast::ImportResult::OwnedResource { .. }
+                                ) {
+                                    OwnershipMode::Own
+                                } else {
+                                    OwnershipMode::Value
+                                },
                                 producer: "callee",
                                 out_slot_initialization: "success_only",
                                 ownership_transfer: "final_zero_status_commit",

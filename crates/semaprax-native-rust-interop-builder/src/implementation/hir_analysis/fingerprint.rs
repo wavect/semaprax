@@ -531,11 +531,14 @@ pub(in crate::implementation) fn hash_expr(
                         frame(hasher, call.import.as_str().as_bytes());
                         frame(
                             hasher,
-                            match call.result {
+                            match &call.result {
                                 ResolvedImportResultKind::Unit => b"unit",
                                 ResolvedImportResultKind::I64 => b"i64",
                                 ResolvedImportResultKind::Bool => b"bool",
                                 ResolvedImportResultKind::ResultI64I64 => b"result<i64,i64>",
+                                ResolvedImportResultKind::OwnedResource { resource } => {
+                                    resource.as_str().as_bytes()
+                                }
                             },
                         );
                         hash_count(hasher, "arguments", call.args.len());

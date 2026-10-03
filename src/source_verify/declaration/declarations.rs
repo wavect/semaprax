@@ -270,13 +270,28 @@ pub(super) fn check_native_rust_imports<'p>(
                     diagnostics,
                 );
             }
+            let native_result_is_valid = match &import.result {
+                crate::ast::ImportResult::Unit
+                | crate::ast::ImportResult::I64
+                | crate::ast::ImportResult::Bool
+                | crate::ast::ImportResult::ResultI64I64 => true,
+                crate::ast::ImportResult::OwnedResource { name } => {
+                    types.is_opaque_resource(&Type::Named {
+                        name: name.clone(),
+                        arguments: Vec::new(),
+                    })
+                }
+            };
             let valid_shape = if import.native_rust {
                 import.params.len() <= 8
                     && import.consumes.is_empty()
                     && import.params.iter().all(|parameter| {
-                        parameter.mode == ParamMode::Value
-                            && matches!(parameter.ty, Type::I64 | Type::Bool)
+                        (parameter.mode == ParamMode::Value
+                            && matches!(parameter.ty, Type::I64 | Type::Bool))
+                            || (parameter.mode == ParamMode::Own
+                                && types.is_opaque_resource(&parameter.ty))
                     })
+                    && native_result_is_valid
             } else {
                 import.result == crate::ast::ImportResult::Unit
                     && import.params.len() == 1

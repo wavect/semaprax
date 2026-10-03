@@ -627,6 +627,7 @@ pub enum ResolvedImportResultKind {
     I64,
     Bool,
     ResultI64I64,
+    OwnedResource { resource: DeclarationId },
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

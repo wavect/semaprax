@@ -178,7 +178,7 @@ codec_struct!(ResolvedImportResult {
     out_slot_initialization,
     ownership_transfer
 });
-codec_enum!(ResolvedImportResultKind {0=>Unit,1=>I64,2=>Bool,3=>ResultI64I64});
+codec_enum!(ResolvedImportResultKind {0=>Unit,1=>I64,2=>Bool,3=>ResultI64I64,4=>OwnedResource{resource}});
 codec_enum!(ResolvedImportFailure {0=>Infallible,1=>Status{domain_id,normalization}});
 codec_struct!(ResolvedFieldDeclaration {
     id,

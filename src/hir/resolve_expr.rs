@@ -822,11 +822,18 @@ impl Resolver<'_> {
                         }
                     }
                     let (result, ty) =
-                        self.resolve_native_rust_result(source_import.result, span)?;
+                        self.resolve_native_rust_result(&source_import.result, span)?;
                     results.push(ResolvedExpr {
                         id: ExpressionId::new(function, &path),
                         ty,
-                        ownership: OwnershipMode::Value,
+                        ownership: if matches!(
+                            result,
+                            ResolvedImportResultKind::OwnedResource { .. }
+                        ) {
+                            OwnershipMode::Own
+                        } else {
+                            OwnershipMode::Value
+                        },
                         kind: ResolvedExprKind::NativeRustImportCall(
                             ResolvedNativeRustImportCall {
                                 expression: ExpressionId::new(function, &path),
@@ -3123,22 +3130,6 @@ impl Resolver<'_> {
                 "iterative expression resolver lost its root result",
                 expr.span,
             )
-        })
-    }
-
-    fn resolve_native_rust_result(
-        &self,
-        result: crate::ast::ImportResult,
-        span: crate::ast::Span,
-    ) -> Result<(ResolvedImportResultKind, ResolvedType), Diagnostic> {
-        Ok(match result {
-            crate::ast::ImportResult::Unit => (ResolvedImportResultKind::Unit, ResolvedType::Unit),
-            crate::ast::ImportResult::I64 => (ResolvedImportResultKind::I64, ResolvedType::I64),
-            crate::ast::ImportResult::Bool => (ResolvedImportResultKind::Bool, ResolvedType::Bool),
-            crate::ast::ImportResult::ResultI64I64 => (
-                ResolvedImportResultKind::ResultI64I64,
-                self.resolve_type(&result.value_type(), span)?,
-            ),
         })
     }
 }

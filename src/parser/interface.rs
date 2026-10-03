@@ -1,4 +1,5 @@
 use super::*;
+use crate::ast::Type;
 
 impl Parser {
     pub(super) fn interface(
@@ -80,6 +81,19 @@ impl Parser {
             } else if native_rust && self.at_keyword("bool") {
                 self.bump();
                 ImportResult::Bool
+            } else if native_rust {
+                let ty = self.ty()?;
+                match ty {
+                    Type::Named { name, arguments } if arguments.is_empty() => {
+                        ImportResult::OwnedResource { name }
+                    }
+                    _ => {
+                        return Err(self.error_previous(
+                            "SPX-P106",
+                            "expected an opaque resource name as native Rust import result",
+                        ))
+                    }
+                }
             } else {
                 return Err(self.error_here("SPX-P106", "expected admitted import result type"));
             };

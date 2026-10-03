@@ -54,6 +54,73 @@ fn main() -> i64
 }
 "#;
 
+const OPAQUE_OWNER_SOURCE: &str = r#"module test.native_rust_owner;
+
+@id("owner.regex") resource Regex {
+    @id("owner.regex.drop") drop trivial;
+}
+
+@id("owner.host") interface RegexHost permits {  } {
+    @id("owner.new")
+    import rust fn regex_new(pattern: i64) -> Regex from "fixture_regex::Regex::new"
+        effects {  }
+        failure infallible;
+    @id("owner.matches")
+    import rust fn regex_matches(regex: own Regex, value: i64) -> bool from "fixture_regex::Regex::consume_matches"
+        effects {  }
+        failure infallible;
+}
+
+@id("owner.run") fn run(pattern: i64, value: i64) -> bool {
+    let regex = regex_new(pattern);
+    regex_matches(regex, value)
+}
+
+@id("owner.main") fn main() -> i64 {
+    if run(7, 7) { 1 } else { 0 }
+}
+"#;
+
+#[test]
+fn native_rust_opaque_owner_result_is_affine_in_source_and_hir() {
+    let path = Path::new("native-rust-owner.spx");
+    let program = parse(OPAQUE_OWNER_SOURCE, path).unwrap();
+    let diagnostics = semaprax::verify::verify(&program);
+    assert!(diagnostics.is_empty(), "{diagnostics:?}");
+    let resolved = hir::resolve(&program).unwrap();
+    let imports = &resolved.interfaces[0].imports;
+    assert!(matches!(
+        &imports[0].result.kind,
+        ResolvedImportResultKind::OwnedResource { ref resource } if resource.as_str() == "owner.regex"
+    ));
+    assert_eq!(imports[0].result.ownership, hir::OwnershipMode::Own);
+    assert_eq!(imports[1].parameters[0].ownership, hir::OwnershipMode::Own);
+    let run = resolved
+        .functions
+        .iter()
+        .find(|function| function.name == "run")
+        .unwrap();
+    let ResolvedExprKind::Block { statements, .. } = &run.body.kind else {
+        panic!("owner function body")
+    };
+    let hir::ResolvedStatement::Let { value, .. } = &statements[0] else {
+        panic!("owner constructor binding")
+    };
+    assert_eq!(value.ownership, hir::OwnershipMode::Own);
+    hir::validate(&resolved).unwrap();
+    let graph = graph::to_json(&program).unwrap();
+    assert!(graph.contains("\"type\":\"Regex\""));
+
+    let moved = OPAQUE_OWNER_SOURCE.replace(
+        "regex_matches(regex, value)",
+        "let first = regex_matches(regex, value);\n    regex_matches(regex, value)",
+    );
+    let diagnostics = semaprax::check(&moved, path).unwrap_err();
+    assert!(diagnostics
+        .iter()
+        .any(|diagnostic| diagnostic.code == "SPX-O101"));
+}
+
 fn selected_item<'a>(alias: &'a str, path: &'a str, signature: &'a str) -> SelectedRustItem<'a> {
     SelectedRustItem {
         cargo_alias: alias,

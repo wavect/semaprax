@@ -363,7 +363,7 @@ fn prepare_native_rust_interop_from_input<'a>(
             selected_effects.insert(effect.as_str());
         }
         let parameters = import_parameter_facts(import)?;
-        let result = match import.result.kind {
+        let result = match &import.result.kind {
             ResolvedImportResultKind::Unit => ScalarType::Unit,
             ResolvedImportResultKind::I64 => ScalarType::I64,
             ResolvedImportResultKind::Bool => ScalarType::Bool,
@@ -376,6 +376,9 @@ fn prepare_native_rust_interop_from_input<'a>(
                     ));
                 }
                 ScalarType::ResultI64I64
+            }
+            ResolvedImportResultKind::OwnedResource { .. } => {
+                return Err(b107("opaque Rust owners require the owner bridge profile"));
             }
         };
         let failure = match &import.failure {

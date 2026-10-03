@@ -333,6 +333,7 @@ fn result_text(kind: &ResolvedImportResultKind) -> &'static str {
         ResolvedImportResultKind::I64 => "i64",
         ResolvedImportResultKind::Bool => "bool",
         ResolvedImportResultKind::ResultI64I64 => "core::result::Result<i64, i64>",
+        ResolvedImportResultKind::OwnedResource { .. } => "opaque resource",
     }
 }
 

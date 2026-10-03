@@ -76,7 +76,7 @@ pub fn build_authenticated_project_native_rust_sdk(
 }
 
 impl ProjectSdkSubject {
-    fn from_authenticated(
+    pub(super) fn from_authenticated(
         input: &semaprax::project::ProjectNativeSdkSubject<'_>,
     ) -> Result<Self, Vec<Diagnostic>> {
         let manifest = input.canonical_manifest();

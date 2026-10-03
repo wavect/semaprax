@@ -26,11 +26,15 @@ pub(super) fn render_project_graph_json(
     };
     push_json_string(
         &mut output,
-        if super::agent_execution::has_facts(&projection.modules) {
-            "semaprax.project-semantic-graph.v4"
-        } else {
-            base
-        },
+        super::indexed_rust::schema(
+            if super::agent_execution::has_facts(&projection.modules) {
+                "semaprax.project-semantic-graph.v4"
+            } else {
+                base
+            },
+            &projection.modules,
+            true,
+        ),
     );
     output.push_str(",\"project_schema\":");
     push_json_string(&mut output, project_schema);
@@ -159,6 +163,7 @@ pub(super) fn render_project_graph_json(
         base,
         &projection.modules,
     ));
+    super::indexed_rust::append(&mut output, &projection.modules);
     output.push('}');
     output.into_string()
 }

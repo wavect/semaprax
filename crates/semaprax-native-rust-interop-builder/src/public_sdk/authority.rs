@@ -541,6 +541,13 @@ fn fail_before_publish(
     PublicBuildError::One(primary)
 }
 
+#[derive(Clone, Copy)]
+struct IndexedProjectSources<'a> {
+    plans: &'a [semaprax::native_rust_binding::ScalarBindingPlan],
+    sources: &'a [&'a str],
+    rustc: &'a str,
+}
+
 enum SdkInput<'a> {
     Source(&'a crate::ast::Program),
     IndexedSource {
@@ -558,6 +565,7 @@ enum SdkInput<'a> {
     Project {
         program: &'a crate::hir::ResolvedProgram,
         subject: &'a ProjectSdkSubject,
+        indexed: Option<IndexedProjectSources<'a>>,
     },
 }
 
@@ -619,7 +627,43 @@ pub(super) fn build_project_native_rust_sdk_inner(
         imports: subject.imports.clone(),
         capabilities: subject.capabilities.clone(),
     };
-    build_sdk_inner(SdkInput::Project { program, subject }, options, output)
+    build_sdk_inner(
+        SdkInput::Project {
+            program,
+            subject,
+            indexed: None,
+        },
+        options,
+        output,
+    )
+}
+
+pub(super) fn build_indexed_project_sdk_inner(
+    program: &crate::hir::ResolvedProgram,
+    subject: &ProjectSdkSubject,
+    plans: &[semaprax::native_rust_binding::ScalarBindingPlan],
+    sources: &[&str],
+    rustc: &str,
+    output: &Path,
+) -> Result<NativeRustSdkBundle, PublicBuildError> {
+    let options = NativeRustSdkOptions {
+        exports: subject.exports.iter().map(|fact| fact.id.clone()).collect(),
+        imports: subject.imports.clone(),
+        capabilities: subject.capabilities.clone(),
+    };
+    build_sdk_inner(
+        SdkInput::Project {
+            program,
+            subject,
+            indexed: Some(IndexedProjectSources {
+                plans,
+                sources,
+                rustc,
+            }),
+        },
+        options,
+        output,
+    )
 }
 
 fn build_sdk_inner(
@@ -651,7 +695,9 @@ fn build_sdk_inner(
             let spec = canonical_spec(&program.module, &revision, target, &options)?;
             (program.module.as_str(), revision, spec)
         }
-        SdkInput::Project { program, subject } => {
+        SdkInput::Project {
+            program, subject, ..
+        } => {
             if program.module != subject.entry_module {
                 return Err(sdk_error("Native Rust Project SDK subject replay failed").into());
             }
@@ -828,6 +874,18 @@ fn build_sdk_inner(
             selected_rustc,
             &inner_path,
         ),
+        SdkInput::Project {
+            program,
+            indexed: Some(indexed),
+            ..
+        } => crate::implementation::build_indexed_project_native_rust_interop_bundle_checked(
+            program,
+            spec.as_bytes(),
+            indexed.plans,
+            indexed.sources,
+            indexed.rustc,
+            &inner_path,
+        ),
         SdkInput::Project { program, .. } => {
             crate::implementation::build_project_native_rust_interop_bundle(
                 program,
@@ -938,6 +996,13 @@ fn build_sdk_inner(
                 package_sources,
                 ..
             } => Some(package::IndexedSources::Multiple(plans, package_sources)),
+            SdkInput::Project {
+                indexed: Some(indexed),
+                ..
+            } => Some(package::IndexedSources::Multiple(
+                indexed.plans,
+                indexed.sources,
+            )),
             _ => None,
         };
         let sources = render_package_sources(

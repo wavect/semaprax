@@ -55,6 +55,14 @@ pub(super) fn prepare_project_native_rust_interop_bounded(
     prepare_native_rust_interop_from_input(None, Some(program), subject_bytes, &[])
 }
 
+pub(super) fn prepare_indexed_project_native_rust_interop_bounded(
+    program: &ResolvedProgram,
+    subject_bytes: &[u8],
+    plans: &[semaprax::native_rust_binding::ScalarBindingPlan],
+) -> Result<PreparedNativeRustInterop, Diagnostic> {
+    prepare_native_rust_interop_from_input(None, Some(program), subject_bytes, plans)
+}
+
 fn prepare_native_rust_interop_from_input<'a>(
     source_program: Option<&'a Program>,
     project_program: Option<&'a ResolvedProgram>,

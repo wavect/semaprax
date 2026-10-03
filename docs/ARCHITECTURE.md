@@ -2975,6 +2975,13 @@ These areas are deliberately outside the public compiler contract:
   it does not transport an owned Rust object through the C ABI. The compiler-owned
   `src/native_rust_binding.rs` keeps the source/identity-bound plan and stable
   physical symbol separate from the persistent import ID;
+- `src/project/indexed_rust.rs` and
+  `crates/semaprax-native-rust-interop-builder/src/public_sdk/indexed_project.rs`:
+  explicit source-bound indexed Project admission and authenticated SDK
+  publication. The shared workspace frontend binds signatures before checking;
+  `src/workspace_graph/indexed_rust.rs` owns authority-free selected-import
+  graph projection. Prepared index facts change cache identity, while held
+  Project files and the selected native compiler retain publication authority;
 - `crates/semaprax-native-rust-interop-platform/src/host_target.rs`: shared
   compile-time native target classification; scalar and owned-data package
   callers retain their narrower publication allowlist, separate from private

@@ -608,6 +608,8 @@ mod build;
 mod descriptor;
 mod indexed;
 mod indexed_multiple;
+mod indexed_project;
+pub use indexed_project::{build_indexed_project_native_rust_sdk, IndexedProjectScalarSelection};
 mod owned_data;
 mod package;
 mod project;

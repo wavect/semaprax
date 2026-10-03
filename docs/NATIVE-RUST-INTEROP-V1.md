@@ -241,6 +241,29 @@ package identity, and refuses signature and source-byte drift before
 publication. This remains the bounded embedded-source profile, without Cargo
 package discovery or general dependency compilation.
 
+The additive `build_indexed_project_native_rust_sdk` route accepts explicit
+`IndexedProjectScalarSelection` rows with a canonical Project source path,
+exact source bytes, and a selected index/package input. The authenticated
+Project loader compares those bytes with its held files, then binds generated
+signatures through the shared workspace frontend before linking and HIR
+validation. Its frontend cache context includes every selection field; changed
+index/signature/receiver facts invalidate parsed and checked reuse even when
+source text is unchanged. The linked public import set must exactly match the
+selections. Project Phase A verifies the binding plans, Phase B compiles the
+selected implementations, and ordinary Project publication and final held-file
+rechecks remain authoritative. Source files are never rewritten.
+
+Selected imports add `indexed_rust_imports` to retained Project/workspace
+projections and select their respective semantic-graph v5 schemas. Each row
+carries the persistent ID, source path, Rust path, selected index digest,
+receiver, result, effects, and failure domain. Older graphs retain their exact
+schemas and bytes. These facts grant no execution authority; ordinary checking,
+legacy Project loading, and managed `ACTIVE` snapshot admission do not infer
+selections. The physical
+`indexed_project_rebinds_graph_and_executes_authenticated_package` regression
+checks the Project route, source/metadata drift, graph/cache rebinding, and a
+real package round trip whose changed Rust result fails the consumer assertion.
+
 An indexed declaration may now write `from "alias::path"` between its result
 and `effects` clauses. The parser and canonical formatter preserve that exact
 source selection; checked HIR retains it separately from the persistent import

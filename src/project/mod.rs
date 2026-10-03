@@ -32,6 +32,8 @@ mod image_reference;
 mod image_store;
 mod image_targets;
 pub(crate) mod incremental;
+pub(crate) mod indexed_rust;
+pub use indexed_rust::{with_authenticated_indexed_rust_project, ProjectIndexedRustImport};
 mod interface_artifact_facts;
 mod manifest;
 mod native_publication;
@@ -1172,7 +1174,13 @@ pub fn with_authenticated_project<T>(
     manifest_path: &Path,
     operation: impl FnOnce(&mut ProjectSnapshot) -> Result<T, Vec<Diagnostic>>,
 ) -> Result<T, Vec<Diagnostic>> {
-    let mut snapshot = load_snapshot(manifest_path)?;
+    with_snapshot_operation(load_snapshot(manifest_path)?, operation)
+}
+
+fn with_snapshot_operation<T>(
+    mut snapshot: ProjectSnapshot,
+    operation: impl FnOnce(&mut ProjectSnapshot) -> Result<T, Vec<Diagnostic>>,
+) -> Result<T, Vec<Diagnostic>> {
     let result = operation(&mut snapshot);
     let recheck = snapshot
         .recheck()

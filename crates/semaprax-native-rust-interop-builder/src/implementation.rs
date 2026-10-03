@@ -542,6 +542,48 @@ pub(crate) fn build_indexed_native_rust_interop_bundles_checked(
     selected_rustc: &str,
     output: &Path,
 ) -> Result<NativeRustInteropBundleFacts, Vec<Diagnostic>> {
+    build_indexed_program_bundle_checked(
+        IndexedProgram::Source(program),
+        spec_bytes,
+        plans,
+        package_sources,
+        selected_rustc,
+        output,
+    )
+}
+
+pub(crate) fn build_indexed_project_native_rust_interop_bundle_checked(
+    program: &ResolvedProgram,
+    spec_bytes: &[u8],
+    plans: &[semaprax::native_rust_binding::ScalarBindingPlan],
+    package_sources: &[&str],
+    selected_rustc: &str,
+    output: &Path,
+) -> Result<NativeRustInteropBundleFacts, Vec<Diagnostic>> {
+    build_indexed_program_bundle_checked(
+        IndexedProgram::Project(program),
+        spec_bytes,
+        plans,
+        package_sources,
+        selected_rustc,
+        output,
+    )
+}
+
+#[derive(Clone, Copy)]
+enum IndexedProgram<'a> {
+    Source(&'a Program),
+    Project(&'a ResolvedProgram),
+}
+
+fn build_indexed_program_bundle_checked(
+    input: IndexedProgram<'_>,
+    spec_bytes: &[u8],
+    plans: &[semaprax::native_rust_binding::ScalarBindingPlan],
+    package_sources: &[&str],
+    selected_rustc: &str,
+    output: &Path,
+) -> Result<NativeRustInteropBundleFacts, Vec<Diagnostic>> {
     reset_phase_b_error_materialization_observer();
     let (result, overflowed) = crate::bounded_output::with_limit(MAX_BUILDER_BYTES, || {
         if plans.is_empty() || plans.len() > MAX_IMPORTS || plans.len() != package_sources.len() {
@@ -558,10 +600,25 @@ pub(crate) fn build_indexed_native_rust_interop_bundles_checked(
             }
             debit(source.len().saturating_add(8_192))?;
         }
-        let prepared =
-            phase_a::prepare_indexed_native_rust_interop_bounded(program, spec_bytes, plans)?;
-        let resolved = hir::resolve(program)
-            .map_err(|_| b107("indexed Rust API source no longer resolves"))?;
+        let prepared = match input {
+            IndexedProgram::Source(program) => {
+                phase_a::prepare_indexed_native_rust_interop_bounded(program, spec_bytes, plans)?
+            }
+            IndexedProgram::Project(program) => {
+                phase_a::prepare_indexed_project_native_rust_interop_bounded(
+                    program, spec_bytes, plans,
+                )?
+            }
+        };
+        let source_resolved;
+        let resolved = match input {
+            IndexedProgram::Source(program) => {
+                source_resolved = hir::resolve(program)
+                    .map_err(|_| b107("indexed Rust API source no longer resolves"))?;
+                &source_resolved
+            }
+            IndexedProgram::Project(program) => program,
+        };
         let mut imports = Vec::with_capacity(plans.len());
         let mut modules = String::new();
         let mut aliases = BTreeSet::new();

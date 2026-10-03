@@ -169,6 +169,18 @@ impl ProjectFrontendCache {
         manifest: &ProjectManifest,
         sources: &[ProjectFrontendSource],
     ) -> Result<ProjectFrontendBuild> {
+        self.build_indexed_rust(manifest, sources, &[])
+    }
+
+    /// Bind exact source-bound prepared Rust signatures before ordinary
+    /// Project verification. Metadata changes invalidate both AST/HIR caches.
+    pub fn build_indexed_rust(
+        &mut self,
+        manifest: &ProjectManifest,
+        sources: &[ProjectFrontendSource],
+        selections: &[super::ProjectIndexedRustImport],
+    ) -> Result<ProjectFrontendBuild> {
+        let indexed_identity = super::indexed_rust::validate(selections, sources)?;
         if sources.len() > MAX_PROJECT_FRONTEND_CACHE_MODULES {
             return Err(capacity(
                 "frontend source inventory exceeds its module bound",
@@ -190,7 +202,7 @@ impl ProjectFrontendCache {
                 return Err(invalid("frontend sources contain duplicate paths"));
             }
         }
-        let context = format!(
+        let mut context = format!(
             "{}\0{}\0{}\0{}",
             env!("CARGO_PKG_NAME"),
             env!("CARGO_PKG_VERSION"),
@@ -201,6 +213,9 @@ impl ProjectFrontendCache {
             },
             manifest.to_canonical_toml()
         );
+        if !selections.is_empty() {
+            context.push_str(&indexed_identity);
+        }
         let reset = context != self.context;
         let mut invalidated = BTreeSet::new();
         for (path, entry) in &self.entries {
@@ -254,6 +269,7 @@ impl ProjectFrontendCache {
             .map(|(path, entry)| (path.clone(), Arc::clone(entry)))
             .collect();
         let mut pass = FrontendPass {
+            indexed_imports: selections.to_vec(),
             entries: retained,
             parsed: 0,
             reused: 0,
@@ -342,6 +358,7 @@ impl ProjectFrontendCache {
 /// Private compiler seam. Only workspace_graph can fill it with freshly parsed
 /// canonical ASTs; the public cache commits it after complete Project admission.
 pub(crate) struct FrontendPass {
+    pub(crate) indexed_imports: Vec<super::ProjectIndexedRustImport>,
     entries: BTreeMap<String, Arc<CachedModule>>,
     parsed: usize,
     reused: usize,
@@ -631,6 +648,7 @@ mod semantic_tests {
             }),
         )]);
         let mut pass = FrontendPass {
+            indexed_imports: Vec::new(),
             entries: BTreeMap::from([(
                 "local.spx".to_owned(),
                 Arc::new(CachedModule {

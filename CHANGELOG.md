@@ -1,5 +1,11 @@
 # Changelog
 
+- Bind explicit indexed Rust imports before Project/workspace frontend
+  checking, include selected facts in additive graph v5 projections, and
+  invalidate frontend reuse on metadata drift. The authenticated Project SDK
+  now verifies selected plans and compiles generated package adapters; a
+  physical Project regression retains success and a flipped-result control.
+
 - Disclose the consequences of a later trusted native build separately from
   read-only CLI inspection: build scripts and proc macros have host filesystem
   and network access, Cargo's offline flag is not confinement, and the later

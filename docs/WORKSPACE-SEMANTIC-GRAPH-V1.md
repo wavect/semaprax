@@ -367,3 +367,17 @@ read-only carrier general borrowing or lifetime authority.
 ## Additive source Agent execution metadata (v070 candidate)
 
 Source Agents with embedded deterministic operations or `model_wait_v1` metadata select `semaprax.workspace-semantic-graph.v4`. The existing graph body is preserved over its actual v1/v2/v3 base; the appended `agent_execution` object records `base_schema`, `authority: "none"`, and module/path-qualified checked Agent rows. Source rows follow the [owning syntax contract](LANGUAGE-NATIVE-AGENT-SYNTAX-V1.md#additive-embedded-execution-metadata-v070-candidate). Facts come only from the selected reachable closure after complete authenticated-source validation. No metadata means unchanged legacy schema and bytes. These descriptive facts grant no execution, storage, or publication authority.
+
+### Selected native Rust imports in Project frontend projections
+
+Explicit indexed Project frontend admission selects
+`semaprax.workspace-semantic-graph.v5` and
+`semaprax.project-semantic-graph.v5` when retained modules contain selected Rust
+imports. The additive `indexed_rust_imports` object has `authority: "none"`
+and an `imports` array ordered by module path and persistent import ID. Rows
+record `id`, `path`, `rust_path`, `selected_index_digest`, `receiver`, `result`,
+`effects`, and `failure_domain` (`null` for infallible imports). The existing
+module/declaration/edge projection remains intact. Source and selected index
+facts are checked by the [indexed native Rust Project route](NATIVE-RUST-INTEROP-V1.md).
+No selected import means unchanged graph schema and bytes. This addition does
+not add selected-index inputs to managed `ACTIVE` snapshot admission.

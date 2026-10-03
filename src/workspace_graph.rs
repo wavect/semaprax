@@ -18,6 +18,7 @@ mod operation_sidecar;
 mod owned_function_import;
 use owned_function_import::validate_imported_function;
 mod agent_execution;
+mod indexed_rust;
 mod owned_generics;
 mod package;
 mod prelude_binding;
@@ -3502,9 +3503,13 @@ fn render_graph_json(
     output.push_str("{\"schema\":");
     push_json_string(
         &mut output,
-        agent_execution::schema(
-            session_protocol_decl::schema(&session_protocols, &session_protocol_follows),
+        indexed_rust::schema(
+            agent_execution::schema(
+                session_protocol_decl::schema(&session_protocols, &session_protocol_follows),
+                &projection.modules,
+            ),
             &projection.modules,
+            false,
         ),
     );
     output.push_str(",\"workspace_manifest_schema\":");
@@ -3633,6 +3638,7 @@ fn render_graph_json(
         session_protocol_decl::schema(&session_protocols, &session_protocol_follows),
         &projection.modules,
     ));
+    indexed_rust::append(&mut output, &projection.modules);
     output.push('}');
     output.into_string()
 }
@@ -3892,7 +3898,7 @@ fn build_owned_inner(
             .as_deref_mut()
             .and_then(|cache| cache.lookup(&source.path, &source.source));
         let reused = cached.is_some();
-        let (program, comments) = if let Some(program) = cached {
+        let (mut program, comments) = if let Some(program) = cached {
             (program, None)
         } else {
             let (program, comments) =
@@ -3903,6 +3909,9 @@ fn build_owned_inner(
             }
             (program, Some(comments))
         };
+        if let Some(frontend) = frontend.as_deref() {
+            crate::project::indexed_rust::bind_program(&mut program, &frontend.indexed_imports)?;
+        }
         // Check source-local conformance before imported declarations become
         // synthetic stubs. A stub must never acquire local implementation
         // authority merely because it has an authenticated imported identity.

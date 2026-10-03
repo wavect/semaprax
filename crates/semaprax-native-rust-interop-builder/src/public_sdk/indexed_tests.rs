@@ -834,3 +834,6 @@ permit { host.math }
         .success());
     std::fs::remove_dir_all(root).unwrap();
 }
+
+#[path = "indexed_project_tests.rs"]
+mod indexed_project;

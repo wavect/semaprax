@@ -5,6 +5,9 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 static SERIAL: AtomicU64 = AtomicU64::new(0);
 
+#[path = "project_sdk_cli/indexed_diagnostics.rs"]
+mod indexed_diagnostics;
+
 struct TestRoot(PathBuf);
 
 impl TestRoot {
@@ -223,7 +226,9 @@ fn valid_grammar_reaches_project_authentication_without_tool_activity() {
 
 #[test]
 fn command_surface_is_single_call_bounded_and_has_no_tool_or_process_defaults() {
-    let source = include_str!("../src/bin/semaprax-native-rust-sdk.rs");
+    let root_source = include_str!("../src/bin/semaprax-native-rust-sdk.rs");
+    let indexed_source = include_str!("../src/bin/semaprax-native-rust-sdk/indexed_project_cli.rs");
+    let source = format!("{root_source}{indexed_source}");
     assert_eq!(source.matches("build_project_native_rust_sdk(").count(), 1);
     for required in [
         "semaprax.project-native-rust-sdk-result.v1",
@@ -252,8 +257,24 @@ fn command_surface_is_single_call_bounded_and_has_no_tool_or_process_defaults() 
         "SEMAPRAX_ARCHIVER",
     ] {
         assert!(
-            !source.contains(forbidden),
+            !root_source.contains(forbidden),
             "CLI surface admitted forbidden authority/default `{forbidden}`"
+        );
+    }
+    for forbidden in ["Command::new", "std::process::Command", "std::env::set_var"] {
+        assert!(
+            !indexed_source.contains(forbidden),
+            "indexed CLI admitted forbidden tool authority `{forbidden}`"
+        );
+    }
+    for required in [
+        "read_bounded(",
+        "MAX_RUSTC_JSON_BYTES",
+        "indexed-diagnostics",
+    ] {
+        assert!(
+            indexed_source.contains(required),
+            "indexed CLI lost bounded diagnostic admission `{required}`"
         );
     }
 }

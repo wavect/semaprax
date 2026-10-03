@@ -8,6 +8,9 @@ use semaprax::hir::{
 use semaprax::native_rust_binding::{prepare_scalar_binding, SelectedRustItem};
 use semaprax::{graph, parse, wasm};
 
+#[path = "native_rust_interop_v1/rust_import_projections.rs"]
+mod rust_import_projections;
+
 const SOURCE: &str = r#"module test.native_rust;
 
 @id("rust.host")

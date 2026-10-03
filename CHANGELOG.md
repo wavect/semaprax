@@ -1,5 +1,10 @@
 # Changelog
 
+- Map captured generated-wrapper rustc trait, feature, and lifetime errors to
+  the selected `.spx` import with bounded, read-only diagnostics. Keep raw
+  compiler detail and mark external captures unverified; generic context,
+  impact, and review still refuse native Rust imports.
+
 - Expose replayed prepared Rust API index facts through a 4 KiB bounded CLI
   context and candidate projection. VS Code reads the same pure compiler
   metadata for selected-import hover, completion, declaration navigation, and

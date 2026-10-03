@@ -180,6 +180,11 @@ normalization collisions. `SPX-B140`–`SPX-B148` are source-located selection
 diagnostics for wrong declaration kind, unavailable item, identity drift,
 alias/path mismatch, unsupported receiver or item kind, unsupported signature,
 signature disagreement, malformed index, and extractor setup respectively.
+`SPX-B149` rejects an ambiguous or malformed captured rustc diagnostic;
+`SPX-B150` maps a generated-wrapper trait-bound error, `SPX-B151` an
+unavailable item or feature, and `SPX-B152` a lifetime requirement to the
+selected `.spx` import span. The original rustc code, message, and rendered
+detail remain in the report.
 This seam admits receiver-free `fn` signatures with up to eight `i64` or
 `bool` value parameters and `()`, `i64`, `bool`, or exact
 `core::result::Result<i64, i64>` results. A selected index
@@ -594,6 +599,18 @@ editor/context query. A CLI-only workflow is: prepare and save the index
 with a pinned extractor, write the selection file, run `indexed-project`,
 then build and test the generated Cargo package from its fresh output path.
 
+For a failed generated-wrapper build, capture rustc JSON diagnostics and run
+`semaprax-native-rust-sdk indexed-diagnostics --manifest-path <absolute-path>
+--selections <absolute-json-path> --rustc-json <absolute-jsonl-path>
+--generated-file <absolute-wrapper-path>`. The command accepts one selected
+import and maps only errors whose primary span names that exact generated
+wrapper. It replays the selected index and checks the saved `.spx` declaration,
+then emits `semaprax.indexed-rustc-diagnostics.v1` with its source span, index
+identity, mapped diagnostic, and original rustc detail. Captured output is
+labelled `external_unverified`: this read-only route does not attest who ran
+rustc, invoke tools, build a package, or publish an artifact. Empty,
+oversized, foreign-file, and ambiguous captures fail with `SPX-B149`.
+
 The prepared-index inspection route is `semaprax context <saved-file.spx>
 <import-stable-id> --rust-index <index.json> --max-bytes 4096`. To inspect
 candidate public paths before writing an import, use `semaprax context
@@ -610,6 +627,10 @@ item paths, and output arguments. Save that output as `index.json`; the
 `indexed-project` selection file points to its absolute path and the exact
 package source file. A replay/identity diagnostic means those recorded facts
 must be refreshed; the CLI does not silently rebuild the index.
+The targeted selected-import context is an additive read-only view. Generic
+agent context, semantic impact, and review still refuse native Rust imports
+with `SPX-G218` (or the source-located missing-index `SPX-B147` for an
+unprepared selected import); they never silently omit an import node.
 
 Focused local evidence builds and runs the six-export calculator Project as
 both Web/Node and generated Rust consumers, applies the opt-in daemon display

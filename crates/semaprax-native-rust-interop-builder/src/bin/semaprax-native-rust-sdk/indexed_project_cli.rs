@@ -116,8 +116,8 @@ fn field<'a>(object: &'a serde_json::Map<String, Value>, key: &str) -> Result<&'
         .ok_or_else(|| refusal("SPX-B112", "indexed Project selection field is invalid"))
 }
 
-fn selections(command: &Command) -> Result<Vec<Selection>, ExitCode> {
-    let bytes = read_bounded(&command.selections_path, MAX_SELECTION_BYTES)?;
+fn selections(manifest_path: &Path, selections_path: &Path) -> Result<Vec<Selection>, ExitCode> {
+    let bytes = read_bounded(selections_path, MAX_SELECTION_BYTES)?;
     let value: Value = serde_json::from_slice(&bytes)
         .map_err(|_| refusal("SPX-B112", "indexed Project selection JSON is invalid"))?;
     let root = value
@@ -136,10 +136,7 @@ fn selections(command: &Command) -> Result<Vec<Selection>, ExitCode> {
         .as_array()
         .filter(|rows| !rows.is_empty() && rows.len() <= 32)
         .ok_or_else(|| refusal("SPX-B112", "indexed Project selection count is invalid"))?;
-    let project_root = command
-        .manifest_path
-        .parent()
-        .unwrap_or_else(|| Path::new("."));
+    let project_root = manifest_path.parent().unwrap_or_else(|| Path::new("."));
     let mut result = Vec::with_capacity(rows.len());
     for row in rows {
         let row = row
@@ -190,7 +187,7 @@ pub(super) fn run(arguments: impl IntoIterator<Item = OsString>) -> ExitCode {
         Ok(command) => command,
         Err(code) => return code,
     };
-    let rows = match selections(&command) {
+    let rows = match selections(&command.manifest_path, &command.selections_path) {
         Ok(rows) => rows,
         Err(code) => return code,
     };
@@ -252,4 +249,109 @@ pub(super) fn run(arguments: impl IntoIterator<Item = OsString>) -> ExitCode {
         }
         Err(_) => refusal("SPX-I233", "indexed Project SDK result publication failed"),
     }
+}
+
+/// Interpret explicitly captured rustc JSON without invoking Cargo or rustc.
+/// The projection is limited to one selected import so a wrapper diagnostic
+/// cannot be attributed to the wrong Semaprax source declaration.
+pub(super) fn run_diagnostics(arguments: impl IntoIterator<Item = OsString>) -> ExitCode {
+    let mut manifest_path = None;
+    let mut selections_path = None;
+    let mut rustc_json = None;
+    let mut generated_file = None;
+    let mut arguments = arguments.into_iter();
+    while let Some(option) = arguments.next() {
+        let slot = if option == OsStr::new("--manifest-path") {
+            &mut manifest_path
+        } else if option == OsStr::new("--selections") {
+            &mut selections_path
+        } else if option == OsStr::new("--rustc-json") {
+            &mut rustc_json
+        } else if option == OsStr::new("--generated-file") {
+            &mut generated_file
+        } else {
+            return refusal("SPX-B149", "unknown indexed rustc diagnostics option");
+        };
+        if slot.is_some() {
+            return refusal("SPX-B149", "indexed rustc diagnostics option is repeated");
+        }
+        let Some(value) = arguments.next() else {
+            return refusal(
+                "SPX-B149",
+                "indexed rustc diagnostics option requires a value",
+            );
+        };
+        if value.is_empty() || value.to_str().is_some_and(|text| text.starts_with('-')) {
+            return refusal(
+                "SPX-B149",
+                "indexed rustc diagnostics option requires a value",
+            );
+        }
+        *slot = Some(PathBuf::from(value));
+    }
+    let (Some(manifest_path), Some(selections_path), Some(rustc_json), Some(generated_file)) =
+        (manifest_path, selections_path, rustc_json, generated_file)
+    else {
+        return refusal("SPX-B149", "expected `indexed-diagnostics --manifest-path <path> --selections <file> --rustc-json <file> --generated-file <rustc-span-file>`");
+    };
+    if !manifest_path.is_absolute()
+        || !selections_path.is_absolute()
+        || !rustc_json.is_absolute()
+        || !generated_file.is_absolute()
+    {
+        return refusal(
+            "SPX-B149",
+            "indexed rustc diagnostic input paths must be absolute",
+        );
+    }
+    let rows = match selections(&manifest_path, &selections_path) {
+        Ok(rows) if rows.len() == 1 => rows,
+        Ok(_) => {
+            return refusal(
+                "SPX-B149",
+                "indexed rustc diagnostic mapping requires exactly one selection",
+            )
+        }
+        Err(code) => return code,
+    };
+    let captured = match std::fs::File::open(&rustc_json) {
+        Ok(file) => {
+            let mut bytes = Vec::new();
+            if file
+                .take(
+                    semaprax_native_rust_interop::rustc_diagnostics::MAX_RUSTC_JSON_BYTES as u64
+                        + 1,
+                )
+                .read_to_end(&mut bytes)
+                .is_err()
+                || bytes.len()
+                    > semaprax_native_rust_interop::rustc_diagnostics::MAX_RUSTC_JSON_BYTES
+            {
+                return refusal(
+                    "SPX-B149",
+                    "captured rustc diagnostics cannot be read within their bound",
+                );
+            }
+            bytes
+        }
+        Err(_) => return refusal("SPX-B149", "captured rustc diagnostics cannot be read"),
+    };
+    let row = &rows[0];
+    let generated_file = generated_file.to_string_lossy();
+    let report = match semaprax_native_rust_interop::rustc_diagnostics::map_captured_wrapper_errors(
+        &row.index,
+        &row.source_path,
+        &row.source,
+        &row.import_id,
+        &generated_file,
+        &captured,
+    ) {
+        Ok(report) => report,
+        Err(error) => return refusal(error.code, &error.message),
+    };
+    let mut stdout = std::io::stdout().lock();
+    if writeln!(stdout, "{report}").is_err() {
+        return refusal("SPX-I233", "indexed rustc diagnostics publication failed");
+    }
+    ExitCode::SUCCESS
 }

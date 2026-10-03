@@ -17,6 +17,7 @@ pub(crate) mod private_capacity_contract;
 #[allow(dead_code, clippy::all, unexpected_cfgs)]
 #[path = "../../../src/format.rs"]
 pub(crate) mod private_format;
+pub mod rustc_diagnostics;
 
 /// The builder path-includes the canonical formatter to retain its private
 /// allocation accounting, but it does not embed or execute Kernel-0 renderer

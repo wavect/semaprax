@@ -346,6 +346,9 @@ fn result_text(kind: &ResolvedImportResultKind) -> &'static str {
         ResolvedImportResultKind::OwnedOptionString => {
             "core::option::Option<alloc::string::String>"
         }
+        ResolvedImportResultKind::OwnedResultStringOptionI64 => {
+            "core::result::Result<alloc::string::String, core::option::Option<i64>>"
+        }
         ResolvedImportResultKind::OwnedResultStringI64 => {
             "core::result::Result<alloc::string::String, i64>"
         }

@@ -349,7 +349,7 @@ impl<'a> HirValidator<'a> {
                             | ResolvedImportResultKind::I64
                             | ResolvedImportResultKind::Bool
                             | ResolvedImportResultKind::ResultI64I64
-                            | ResolvedImportResultKind::OwnedResource { .. } | ResolvedImportResultKind::OwnedString | ResolvedImportResultKind::OwnedOptionString | ResolvedImportResultKind::OwnedResultStringI64
+                            | ResolvedImportResultKind::OwnedResource { .. } | ResolvedImportResultKind::OwnedString | ResolvedImportResultKind::OwnedOptionString | ResolvedImportResultKind::OwnedResultStringI64 | ResolvedImportResultKind::OwnedResultStringOptionI64
                     )
                     && (import.result.kind != ResolvedImportResultKind::ResultI64I64
                         || (import.index_selected && import.selected_index_digest.is_some()));

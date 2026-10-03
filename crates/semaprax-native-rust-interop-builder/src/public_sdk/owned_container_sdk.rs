@@ -21,10 +21,12 @@ pub fn prepare_owned_container_native(
                 i.result.kind,
                 ResolvedImportResultKind::OwnedOptionString
                     | ResolvedImportResultKind::OwnedResultStringI64
+                    | ResolvedImportResultKind::OwnedResultStringOptionI64
             )
         })
         .ok_or_else(|| sdk_error("native container constructor is absent"))?;
     let option = constructor.result.kind == ResolvedImportResultKind::OwnedOptionString;
+    let nested = constructor.result.kind == ResolvedImportResultKind::OwnedResultStringOptionI64;
     let ty = constructor.result.kind.value_type(&program.declarations)?;
     let method = imports
         .iter()
@@ -70,6 +72,14 @@ pub fn prepare_owned_container_native(
         &layout,
     )?;
     let header="#ifndef SPX_CONTAINER_V1_H\n#define SPX_CONTAINER_V1_H\n#include <stdint.h>\ntypedef struct { uint64_t context,generation,slot; } spx_payload_owner;\ntypedef struct { uint8_t tag,reserved[7]; int64_t error; spx_payload_owner payload; } spx_container;\nint32_t spx_container_new(uint64_t,int64_t,spx_container*);\nint32_t spx_container_consume(uint64_t,spx_container,int64_t,uint8_t*);\nint32_t spx_container_validate(uint64_t,spx_container);\nint32_t spx_container_drop(uint64_t,spx_container);\n#endif\n".to_owned();
+    let header = if nested {
+        header.replace(
+            "uint8_t tag,reserved[7]",
+            "uint8_t tag,domain_tag,reserved[6]",
+        )
+    } else {
+        header
+    };
     // Reuse the existing String owner quarantine and its panic policy. This
     // profile replaces construction/consumption with typed enum matches only.
     let template = include_str!("owner_runtime.rs.txt");
@@ -91,6 +101,8 @@ pub fn prepare_owned_container_native(
             "Some(payload)",
             "None",
         )
+    } else if nested {
+        ("core::result::Result<std::string::String,core::option::Option<i64>>", "Ok(value)=>(0,0,0,Some(value)),Err(None)=>(1,0,0,None),Err(Some(error))=>(1,1,error,None)", "Ok(payload)", "Err(if wire.domain_tag==0 {None} else {Some(wire.error)})")
     } else {
         (
             "core::result::Result<std::string::String,i64>",
@@ -99,8 +111,39 @@ pub fn prepare_owned_container_native(
             "Err(wire.error)",
         )
     };
+    let mut runtime = include_str!("owned_container_runtime.rs.txt").to_owned();
+    if nested {
+        // The nested domain tag is explicit, and never a Rust enum-layout cast.
+        // Older flat-carrier bytes and validation stay unchanged.
+        runtime = runtime
+            .replace(
+                "tag:u8, reserved:[u8;7]",
+                "tag:u8, domain_tag:u8, reserved:[u8;6]",
+            )
+            .replace(
+                "value.reserved!=[0;7]",
+                "value.reserved!=[0;6] || value.domain_tag>1",
+            )
+            .replace(
+                "value.error!=0 {return 3;}",
+                "value.error!=0 || value.domain_tag!=0 {return 3;}",
+            )
+            .replace(
+                "(OPTION && value.error!=0)",
+                "(value.domain_tag==0 && value.error!=0)",
+            )
+            .replace(
+                "let (tag,error,payload)",
+                "let (tag,domain_tag,error,payload)",
+            )
+            .replace(
+                "SpxContainer{tag,reserved:[0;7],error",
+                "SpxContainer{tag,domain_tag,reserved:[0;6],error",
+            )
+            .replace("const OPTION:bool=@OPTION@;", "");
+    }
     rust_adapter.push_str(
-        &include_str!("owned_container_runtime.rs.txt")
+        &runtime
             .replace("@NATIVE_TYPE@", native)
             .replace("@ACTIVE_TAG@", &layout.active_tag.to_string())
             .replace("@OPTION@", if option { "true" } else { "false" })

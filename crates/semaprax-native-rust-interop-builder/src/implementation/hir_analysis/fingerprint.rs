@@ -538,6 +538,7 @@ pub(in crate::implementation) fn hash_expr(
                                 ResolvedImportResultKind::OwnedString => b"string",
         ResolvedImportResultKind::OwnedOptionString => b"Option<string>",
         ResolvedImportResultKind::OwnedResultStringI64 => b"Result<string,i64>",
+                ResolvedImportResultKind::OwnedResultStringOptionI64 => b"Result<string,Option<i64>>",
                                 ResolvedImportResultKind::ResultI64I64 => b"result<i64,i64>",
                                 ResolvedImportResultKind::OwnedResource { resource } => {
                                     resource.as_str().as_bytes()

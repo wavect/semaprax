@@ -380,7 +380,8 @@ fn prepare_native_rust_interop_from_input<'a>(
             ResolvedImportResultKind::OwnedResource { .. }
             | ResolvedImportResultKind::OwnedString
             | ResolvedImportResultKind::OwnedOptionString
-            | ResolvedImportResultKind::OwnedResultStringI64 => {
+            | ResolvedImportResultKind::OwnedResultStringI64
+            | ResolvedImportResultKind::OwnedResultStringOptionI64 => {
                 return Err(b107("opaque Rust owners require the owner bridge profile"));
             }
         };

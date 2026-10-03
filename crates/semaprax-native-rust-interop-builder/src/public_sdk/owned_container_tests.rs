@@ -311,3 +311,6 @@ fn main(){
 
 #[path = "owned_container_safety.rs"]
 mod safety;
+
+#[path = "owned_nested_tests.rs"]
+mod nested;

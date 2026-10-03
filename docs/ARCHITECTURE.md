@@ -3004,6 +3004,8 @@ These areas are deliberately outside the public compiler contract:
   `owned_container_sdk.rs`, `owned_container_runtime.rs.txt`, and
   `owner_sdk_container.rs` own the closed Option<String>/Result<String,i64>
   renderer, explicit tagged C carrier, and canonical active-case cleanup.
+  The closed `Result<String, Option<i64>>` extension has an explicit nested
+  domain tag and retains the same single outer String cleanup guard.
   Its source/HIR admission requires a matching native constructor; it grants
   no selected container binding or Project publication authority;
 - `public_sdk/borrowed_input.rs` in the native Rust builder owns private

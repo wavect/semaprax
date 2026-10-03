@@ -494,5 +494,36 @@ runtime is active. This gate explicitly links the runtime reported by that
 same Clang because rustc uses `-nodefaultlibs`. Rust code and its standard
 library are not sanitizer-instrumented. LeakSanitizer is disabled; existing
 exact allocation/deallocation assertions remain active. Local Apple Clang 21
-and Homebrew rustc 1.98 evidence passed 2/2 without ignored cases. Miri is not
-installed on that host and no Miri result is claimed.
+and Homebrew rustc 1.98 evidence passed 2/2 without ignored cases. Miri is unavailable
+in the configured toolchain and no Miri result is claimed.
+
+### Closed nested domain result (experimental)
+
+The native container renderer additionally admits exactly
+`Result<string, Option<i64>>` when a matching native constructor import is
+present. This is an owned outer Result with a nested drop-free domain error.
+It does not admit a String owner below multiple active-case guards, or general
+recursive container types.
+
+The C carrier remains 40 bytes and explicitly names an outer tag and a domain
+tag, followed by six zero reserved bytes, an i64 error value, and the opaque
+String owner token. Outer Ok=0 requires domain_tag=0/error=0 and a live payload.
+Outer Err=1 requires a zero payload; domain None=0 requires error=0, and domain
+Some=1 carries the full i64. Other tags and noncanonical inactive fields refuse
+before target effects. The Rust adapter reconstructs the actual nested enum
+with typed matches. No Rust enum layout crosses the C boundary.
+
+Canonical cleanup still has exactly the outer Ok String obligation. Err(None)
+and Err(Some(value)) allocate no owner-table payload. The nested error changes
+neither transfer order nor result publication, and never becomes a bridge
+status. These source programs select graph v59. Earlier flat carrier generation
+and all frozen v1 package contracts retain their existing paths.
+
+The `owned_nested_` source/graph and physical gates cover roundtrip, move refusal,
+unsupported shapes, Ok(String), Err(None), Err(Some), signed error extremes,
+invalid nested tags and noncanonical None, real generated C at O0/O2, exact
+payload deallocation traces, and a late argument failure. A compiled control
+that collapses Some(error) into None must fail the same assertions. The older
+container fixture also retains empty/bound checks and constructor/consumer
+panic paths. This remains an experimental renderer, not selected container
+Project publication or complete RI-05 acceptance.

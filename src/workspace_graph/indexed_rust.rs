@@ -84,6 +84,9 @@ pub(super) fn append(
                     hir::ResolvedImportResultKind::OwnedOptionString => {
                         "core::option::Option<alloc::string::String>"
                     }
+                    hir::ResolvedImportResultKind::OwnedResultStringOptionI64 => {
+                        "core::result::Result<alloc::string::String, core::option::Option<i64>>"
+                    }
                     hir::ResolvedImportResultKind::OwnedResultStringI64 => {
                         "core::result::Result<alloc::string::String, i64>"
                     }

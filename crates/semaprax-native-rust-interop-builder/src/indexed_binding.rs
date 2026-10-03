@@ -149,7 +149,8 @@ fn render_checked_scalar_adapter_parts(
         ResolvedImportResultKind::OwnedResource { .. }
         | ResolvedImportResultKind::OwnedString
         | ResolvedImportResultKind::OwnedOptionString
-        | ResolvedImportResultKind::OwnedResultStringI64 => {
+        | ResolvedImportResultKind::OwnedResultStringI64
+        | ResolvedImportResultKind::OwnedResultStringOptionI64 => {
             return Err(Diagnostic::error(
                 "SPX-B145",
                 "Rust API signature is unsupported by the scalar bridge",

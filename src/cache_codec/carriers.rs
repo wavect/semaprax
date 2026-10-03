@@ -191,7 +191,7 @@ mod ast {
         consumes_span,
         span
     });
-    codec_enum!(ImportResult { 0 => Unit, 1 => I64, 2 => Bool, 3 => ResultI64I64, 4 => OwnedResource { name }, 5 => OwnedString, 6 => OwnedOptionString, 7 => OwnedResultStringI64 });
+    codec_enum!(ImportResult { 0 => Unit, 1 => I64, 2 => Bool, 3 => ResultI64I64, 4 => OwnedResource { name }, 5 => OwnedString, 6 => OwnedOptionString, 7 => OwnedResultStringI64, 8 => OwnedResultStringOptionI64 });
     codec_enum!(ImportFailure { 0 => Infallible, 1 => Status { domain_id } });
     codec_struct!(FieldDeclaration {
         stable_id,

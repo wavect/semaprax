@@ -277,7 +277,8 @@ pub(super) fn check_native_rust_imports<'p>(
                 | crate::ast::ImportResult::ResultI64I64
                 | crate::ast::ImportResult::OwnedString
                 | crate::ast::ImportResult::OwnedOptionString
-                | crate::ast::ImportResult::OwnedResultStringI64 => true,
+                | crate::ast::ImportResult::OwnedResultStringI64
+                | crate::ast::ImportResult::OwnedResultStringOptionI64 => true,
                 crate::ast::ImportResult::OwnedResource { name } => {
                     types.is_opaque_resource(&Type::Named {
                         name: name.clone(),

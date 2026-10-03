@@ -14,6 +14,7 @@ pub enum ImportResult {
     OwnedString,
     OwnedOptionString,
     OwnedResultStringI64,
+    OwnedResultStringOptionI64,
     /// An opaque resource returned by a native Rust constructor. The source
     /// verifier resolves `name` to an authored `resource` declaration.
     OwnedResource {
@@ -30,6 +31,7 @@ impl fmt::Display for ImportResult {
             Self::OwnedString => "string",
             Self::OwnedOptionString => "Option<string>",
             Self::OwnedResultStringI64 => "Result<string, i64>",
+            Self::OwnedResultStringOptionI64 => "Result<string, Option<i64>>",
             Self::ResultI64I64 => "Result<i64, i64>",
             Self::OwnedResource { name } => name,
         })
@@ -44,6 +46,7 @@ impl ImportResult {
                 | Self::OwnedString
                 | Self::OwnedOptionString
                 | Self::OwnedResultStringI64
+                | Self::OwnedResultStringOptionI64
         )
     }
     pub fn container_for_type(ty: &Type) -> Option<Self> {
@@ -55,6 +58,12 @@ impl ImportResult {
                 if name == "Result" && arguments == &[Type::String, Type::I64] =>
             {
                 Some(Self::OwnedResultStringI64)
+            }
+            Type::Named { name, arguments }
+                if name == "Result"
+                    && matches!(arguments.as_slice(), [Type::String, Type::Named { name, arguments }] if name == "Option" && arguments == &[Type::I64]) =>
+            {
+                Some(Self::OwnedResultStringOptionI64)
             }
             _ => None,
         }
@@ -88,6 +97,16 @@ impl ImportResult {
             Self::OwnedResultStringI64 => Type::Named {
                 name: "Result".into(),
                 arguments: vec![Type::String, Type::I64],
+            },
+            Self::OwnedResultStringOptionI64 => Type::Named {
+                name: "Result".into(),
+                arguments: vec![
+                    Type::String,
+                    Type::Named {
+                        name: "Option".into(),
+                        arguments: vec![Type::I64],
+                    },
+                ],
             },
             Self::ResultI64I64 => Type::Named {
                 name: "Result".to_owned(),

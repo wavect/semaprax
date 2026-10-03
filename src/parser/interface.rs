@@ -94,7 +94,7 @@ impl Parser {
                     _ => {
                         return Err(self.error_previous(
                             "SPX-P106",
-                            "native Rust result requires an opaque resource, string, Option<string>, or Result<string, i64>",
+                            "native Rust result requires an opaque resource, string, Option<string>, Result<string, i64>, or Result<string, Option<i64>>",
                         ))
                     }
                 }

@@ -630,6 +630,7 @@ pub enum ResolvedImportResultKind {
     OwnedString,
     OwnedOptionString,
     OwnedResultStringI64,
+    OwnedResultStringOptionI64,
     OwnedResource { resource: DeclarationId },
 }
 
@@ -641,6 +642,7 @@ impl ResolvedImportResultKind {
                 | Self::OwnedString
                 | Self::OwnedOptionString
                 | Self::OwnedResultStringI64
+                | Self::OwnedResultStringOptionI64
         ) {
             OwnershipMode::Own
         } else {
@@ -678,6 +680,13 @@ impl ResolvedImportResultKind {
             Self::OwnedResultStringI64 => {
                 nominal("Result", vec![ResolvedType::String, ResolvedType::I64])?
             }
+            Self::OwnedResultStringOptionI64 => nominal(
+                "Result",
+                vec![
+                    ResolvedType::String,
+                    nominal("Option", vec![ResolvedType::I64])?,
+                ],
+            )?,
             Self::OwnedResource { resource } => ResolvedType::Nominal {
                 declaration: resource.clone(),
                 arguments: Vec::new(),
@@ -685,12 +694,16 @@ impl ResolvedImportResultKind {
         })
     }
     pub fn is_owned_container_type(ty: &ResolvedType, declarations: &DeclarationIndex) -> bool {
-        [Self::OwnedOptionString, Self::OwnedResultStringI64]
-            .iter()
-            .any(|kind| {
-                kind.value_type(declarations)
-                    .is_ok_and(|actual| &actual == ty)
-            })
+        [
+            Self::OwnedOptionString,
+            Self::OwnedResultStringI64,
+            Self::OwnedResultStringOptionI64,
+        ]
+        .iter()
+        .any(|kind| {
+            kind.value_type(declarations)
+                .is_ok_and(|actual| &actual == ty)
+        })
     }
 }
 

@@ -148,6 +148,13 @@ fn indexed_scalar_adapter_executes_and_rejects_flipped_rust_result() {
                 ..package
             },
         ),
+        (
+            "compiler",
+            crate::indexed_binding::SelectedPackage {
+                stable_rustc_version: "rustc 1.97.1",
+                ..package
+            },
+        ),
     ] {
         let error = crate::build_indexed_scalar_native_rust(
             &source,
@@ -190,6 +197,19 @@ fn indexed_scalar_adapter_executes_and_rejects_flipped_rust_result() {
     assert_eq!(built.physical_symbol(), plan.physical_symbol);
     let adapter = built.adapter_source();
     let rustc = configured_tool("RUSTC").unwrap();
+    let selected_compiler = Command::new(&rustc.path)
+        .env_clear()
+        .arg("--version")
+        .output()
+        .unwrap();
+    assert!(selected_compiler.status.success());
+    assert_eq!(
+        std::str::from_utf8(&selected_compiler.stdout)
+            .unwrap()
+            .trim(),
+        package.stable_rustc_version,
+        "the physical adapter must use the selected stable compiler"
+    );
     let clang = configured_tool("CLANG").unwrap();
     let object = if cfg!(windows) {
         "module.obj"
@@ -295,6 +315,18 @@ fn indexed_scalar_adapter_executes_and_rejects_flipped_rust_result() {
     ]);
     bind_test_tool_environment(&mut wrong_harness);
     bind_test_rust_linker(&mut wrong_harness, &clang);
-    assert!(!wrong_harness.output().unwrap().status.success());
+    let rejected_signature = wrong_harness.output().unwrap();
+    assert!(!rejected_signature.status.success());
+    assert!(
+        String::from_utf8_lossy(&rejected_signature.stderr).contains("mismatched types"),
+        "stable rustc must reject the selected generated function-pointer type"
+    );
+    assert!(!output
+        .join(if cfg!(windows) {
+            "roundtrip_wrong_type.exe"
+        } else {
+            "roundtrip_wrong_type"
+        })
+        .exists());
     std::fs::remove_dir_all(&root).unwrap();
 }

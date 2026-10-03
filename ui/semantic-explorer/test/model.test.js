@@ -32,6 +32,11 @@ const rel = site_id => ({ family: 'call', from: 'image-1:auth', to: 'image-1:pay
 test('closed summary and bound page preserve compiler identities', () => {
   const selected = model.summary(summary());
   assert.equal(model.page(page(selected, 'declarations', [decl]), selected).items[0].display_name, '<script>alert(1)</script>');
+  const withSpan = structuredClone(decl);
+  withSpan.source_reference.span = { start: 47, end: 104, line: 4, column: 1 };
+  assert.deepEqual(model.page(page(selected, 'declarations', [withSpan]), selected).items[0].source_reference.span, withSpan.source_reference.span);
+  withSpan.source_reference.span.command = 'run';
+  assert.throws(() => model.page(page(selected, 'declarations', [withSpan]), selected), /unexpected fields/);
   const foreign = structuredClone(page(selected, 'declarations', [decl])); foreign.subject.image_revision = 'image-2';
   assert.throws(() => model.page(foreign, selected), /foreign page/);
   const unknown = structuredClone(selected); unknown.command = 'run';

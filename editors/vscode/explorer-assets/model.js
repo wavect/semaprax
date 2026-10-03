@@ -120,8 +120,15 @@ function sourceReference(value) {
     choice(value.kind, ['non_file_node', 'authenticated_source_reference_unavailable_in_analysis_projection']);
     return;
   }
-  keys(value, ['path', 'source_revision', 'source_digest']);
+  keys(value, ['path', 'source_revision', 'source_digest'], ['span']);
   string(value.path); string(value.source_revision); string(value.source_digest);
+  if (value.span !== undefined) {
+    keys(value.span, ['start', 'end', 'line', 'column']);
+    integer(value.span.start);
+    integer(value.span.end, value.span.start);
+    integer(value.span.line, 1);
+    integer(value.span.column, 1);
+  }
 }
 
 function page(value, selected) {

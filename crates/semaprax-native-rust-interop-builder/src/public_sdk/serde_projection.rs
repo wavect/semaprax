@@ -9,6 +9,10 @@ mod wire;
 #[path = "serde_wire_tests.rs"]
 mod wire_tests;
 
+#[cfg(test)]
+#[path = "serde_coherence.rs"]
+mod coherence;
+
 const MAX_MIRROR_FIELDS: usize = 16;
 const MAX_MIRROR_SOURCE_BYTES: usize = 65_536;
 
@@ -211,14 +215,20 @@ mod tests {
 
     #[test]
     fn generated_mirror_round_trips_with_real_serde_json_and_vec() {
-        if std::env::var_os("SEMAPRAX_RI07_REAL_SERDE").as_deref()
-            != Some(std::ffi::OsStr::new("1"))
-        {
-            eprintln!("RI-07 real Serde consumer is opt-in; set SEMAPRAX_RI07_REAL_SERDE=1");
-            return;
+        let source = "module ri07.projection; @id(\"ri07.record\") record Projected { @id(\"ri07.record.id\") id: i64, @id(\"ri07.record.label\") label: string, @id(\"ri07.record.enabled\") enabled: bool, } @id(\"ri07.shadow\") record Shadow { @id(\"ri07.shadow.value\") value: string, @id(\"ri07.shadow.enabled\") enabled: bool, } @id(\"app.main\") fn main() -> i64 { 0 }";
+        let parsed = semaprax::check(source, Path::new("ri07-real-serde.spx")).unwrap();
+        let canonical = semaprax::format::canonical(&parsed);
+        let reparsed = semaprax::check(&canonical, Path::new("ri07-real-serde.spx")).unwrap();
+        let graph = semaprax::graph::to_json(&parsed).unwrap();
+        assert_eq!(graph, semaprax::graph::to_json(&reparsed).unwrap());
+        for identity in [
+            "ri07.record",
+            "ri07.record.id",
+            "ri07.record.label",
+            "ri07.record.enabled",
+        ] {
+            assert!(graph.contains(&format!("\"{identity}\"")));
         }
-        let source = "module ri07.projection; @id(\"ri07.record\") record Projected { @id(\"ri07.record.id\") id: i64, @id(\"ri07.record.label\") label: string, @id(\"ri07.record.enabled\") enabled: bool, } @id(\"app.main\") fn main() -> i64 { 0 }";
-        let parsed = semaprax::parse(source, Path::new("ri07-real-serde.spx")).unwrap();
         let resolved = semaprax::hir::resolve(&parsed).unwrap();
         let projection = prepare_serde_record_projection(&resolved, "ri07.record").unwrap();
         let root = std::env::temp_dir().join(format!(
@@ -235,6 +245,11 @@ mod tests {
         .unwrap();
         let mut consumer = projection.rust_source;
         consumer.push_str(
+            &prepare_serde_record_projection(&resolved, "ri07.shadow")
+                .unwrap()
+                .rust_source,
+        );
+        consumer.push_str(
             r##"
 fn main() {
     let record = Projected { id: 7, label: String::from("bounded"), enabled: true };
@@ -247,10 +262,18 @@ fn main() {
     let malformed: Result<Projected, serde_json::Error> =
         deserialize_spxmirrorri07record(r#"{"id":"bad","label":"bounded","enabled":true}"#);
     assert!(malformed.unwrap_err().is_data());
+    let shadow = Shadow { value: String::from("kept"), enabled: true };
+    let (wire, copied) = shadow.to_owned_wire();
+    assert_eq!(copied, 4);
+    assert_eq!(Shadow::try_from(wire).unwrap(), shadow);
+    let invalid = SpxMirrorri07shadowWire { value: vec![255], enabled: 1 };
+    assert_eq!(Shadow::try_from(invalid).unwrap_err(), SpxMirrorri07shadowConversionError::InvalidUtf8("value"));
+    let invalid = SpxMirrorri07shadowWire { value: b"kept".to_vec(), enabled: 2 };
+    assert_eq!(Shadow::try_from(invalid).unwrap_err(), SpxMirrorri07shadowConversionError::InvalidBool("enabled"));
 }
 "##,
         );
-        std::fs::write(root.join("src/main.rs"), consumer).unwrap();
+        std::fs::write(root.join("src/main.rs"), &consumer).unwrap();
         let cargo = std::env::var_os("CARGO").unwrap_or_else(|| "cargo".into());
         let lock = Command::new(&cargo)
             .args(["generate-lockfile", "--offline", "--manifest-path"])
@@ -273,5 +296,6 @@ fn main() {
             .unwrap();
         let stderr = String::from_utf8_lossy(&run.stderr);
         assert!(run.status.success(), "real Serde consumer: {stderr}");
+        super::coherence::verify(&root, &cargo, &consumer);
     }
 }

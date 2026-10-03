@@ -736,8 +736,48 @@ env RUSTC=/opt/homebrew/bin/rustc CLANG=/usr/bin/clang \
 ```
 
 Prior JSON/Vec evidence remains attributed to `56ba81928`, and the index-level
-expansion/const/associated evidence to `43d060b9c`. RI-07 remains open for its
-explicit orphan/coherence refusal and non-opt-in JSON/public-generic separation
-owning gates. No arbitrary trait implementation, inference, HRTB/GAT/unsized
-obligation, generalized recursive expansion, complete Rust solver, hosted
-support, or full-profile pass is inferred from this bounded gate.
+expansion/const/associated evidence to `43d060b9c`.
+
+### RI-07 focused acceptance completion
+
+The real JSON/Vec mirror test now runs without an environment opt-in. It starts
+from fully checked Semaprax records, pins canonical source/graph round-trip,
+executes serialization/deserialization and an actual collection operation, and
+retains malformed JSON as `serde_json::Error`. A legal field named `value` is
+covered: generated conversion locals use numbered names so they cannot shadow
+the owned wire input. Success, invalid UTF-8, and a late invalid boolean execute
+through that generated conversion.
+
+The same isolated offline consumer then asks rustc to compile deliberate
+foreign-target and overlapping-local Serde implementations. It requires actual
+`E0117` and `E0119` errors respectively. These are downstream refusal controls;
+the generator emits derives only for its local mirror and exposes no arbitrary
+trait-implementation facility. The exact physical test passed 1/1, zero failed
+or ignored, 198 filtered, in 9.99 seconds on arm64 macOS with Rust 1.98.0.
+
+The existing public-generic ownership separation module passed 5/5, zero failed
+or ignored. It checks admitted source, exact ABI report and C-header exclusions,
+Wasm scalar rejection, and the conservative unsupported/unpublished charter.
+This complements the native calls and owner controls above; a descriptor alone
+does not establish callable generic support.
+
+Both commands used the same compiler/tool paths, private target, single job,
+zero debug information, disabled incremental compilation, and offline/locked
+settings shown above, serially:
+
+```sh
+cargo test --offline --locked -p semaprax-native-rust-interop --lib \
+  public_sdk::serde_projection::tests::generated_mirror_round_trips_with_real_serde_json_and_vec \
+  -- --exact --nocapture --test-threads=1
+cargo test --offline --locked -p semaprax --test projections \
+  public_generic_ownership_milestone:: -- --nocapture --test-threads=1
+```
+
+Together with `f1d61d0ac` and the prior index-demand evidence at `43d060b9c`,
+these gates complete the bounded RI-07 acceptance. Nested type syntax refuses
+before compilation, and the fixed 64-distinct-demand budget refuses expansion;
+general recursive generic expansion is not admitted. No Project/CLI generic
+publication, arbitrary trait implementation, inference, HRTB/GAT/unsized
+obligation, complete Rust solver, storage-layout identity, or hosted support is
+claimed. The full quality profile was deferred under the user's explicit
+instruction; no full-profile pass is claimed.

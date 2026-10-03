@@ -22,7 +22,7 @@ pub(super) fn render(
         write!(out, "pub {}:{ty},", field.name).unwrap();
     }
     write!(out,"}}\nimpl core::convert::TryFrom<{wire}> for {record}{{type Error={error};fn try_from(value:{wire})->Result<Self,Self::Error>{{").unwrap();
-    for field in fields {
+    for (index, field) in fields.iter().enumerate() {
         let name = &field.name;
         let conversion=match &field.ty {
             ResolvedType::I64|ResolvedType::Bytes=>format!("value.{name}"),
@@ -30,11 +30,11 @@ pub(super) fn render(
             ResolvedType::String=>format!("String::from_utf8(value.{name}).map_err(|_|{error}::InvalidUtf8({name:?}))?"),
             _=>return Err(sdk_error("Serde wire field is unsupported")),
         };
-        write!(out, "let {name}={conversion};").unwrap();
+        write!(out, "let _spx_wire_field_{index}={conversion};").unwrap();
     }
     out.push_str("Ok(Self{");
-    for field in fields {
-        write!(out, "{},", field.name).unwrap();
+    for (index, field) in fields.iter().enumerate() {
+        write!(out, "{}:_spx_wire_field_{index},", field.name).unwrap();
     }
     out.push_str("})}}\n");
     // Copy counts describe explicit owned payload copies only, not total

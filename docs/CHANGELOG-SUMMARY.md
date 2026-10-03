@@ -12,8 +12,11 @@ For implementation status and required evidence, use the
 
 - RI-07 adds checked Semaprax call routing through concrete Rust const/type
   specializations, source-mapped trait diagnostics, and fallible Serde wire
-  conversion with counted rollback and explicit payload-copy metrics. The
-  bounded physical gate passed; broader RI-07 acceptance remains open.
+  conversion with counted rollback and explicit payload-copy metrics. Bounded
+  acceptance includes non-opt-in JSON/Vec execution, rustc orphan/coherence
+  refusals, field-name hygiene, and the unchanged public-generic separation
+  gates. Generalized Rust trait solving and layout compatibility remain outside
+  this profile.
 
 - LAW-06 adds versioned, live-replayed checked-summary certificates for pure
   scalar calls and an installed Z3 proof route that joins selected Project and

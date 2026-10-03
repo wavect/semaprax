@@ -1,6 +1,7 @@
 //! Bounded, authority-neutral planning for a prepared Project interpreter.
 //! A plan is a private in-memory value; its JSON is diagnostic evidence only.
 
+use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use sha2::{Digest as _, Sha256};
@@ -397,23 +398,27 @@ fn compatible_program(old: &ResolvedProgram, candidate: &ResolvedProgram) -> boo
     {
         return false;
     }
-    let old_ids = old
+    let old_functions = old
         .functions
         .iter()
-        .map(|function| function.id.as_str())
-        .collect::<Vec<_>>();
-    let new_ids = candidate
+        .map(|function| (function.id.as_str(), function))
+        .collect::<BTreeMap<_, _>>();
+    let new_functions = candidate
         .functions
         .iter()
-        .map(|function| function.id.as_str())
-        .collect::<Vec<_>>();
-    if old_ids != new_ids {
+        .map(|function| (function.id.as_str(), function))
+        .collect::<BTreeMap<_, _>>();
+    if old_functions.len() != old.functions.len()
+        || new_functions.len() != candidate.functions.len()
+        || old_functions.len() != new_functions.len()
+    {
         return false;
     }
-    old.functions
-        .iter()
-        .zip(&candidate.functions)
-        .all(|(left, right)| compatible_function(left, right))
+    old_functions.iter().all(|(id, left)| {
+        new_functions
+            .get(id)
+            .is_some_and(|right| compatible_function(left, right))
+    })
 }
 
 fn compatible_function(left: &ResolvedFunction, right: &ResolvedFunction) -> bool {
@@ -625,6 +630,79 @@ mod tests {
             session.activate(plan).unwrap_err().reason,
             HotReloadReason::GenerationExhausted
         );
+        assert_eq!(
+            observed(&session),
+            ProjectPreparedExecutionOutcome::Returned(42)
+        );
+    }
+
+    #[test]
+    fn checked_identity_cases_and_first_over_bound_submission_preserve_active_code() {
+        for (name, file, old, new, expected) in [
+            (
+                "display-rename",
+                "src/core.spx",
+                "fn multiply(",
+                "fn productX(",
+                Some(HotReloadDecision::EligibleCodeReplacement),
+            ),
+            (
+                "entry-identity",
+                "src/app.spx",
+                "@id(\"calculator.app.main\")",
+                "@id(\"calculator.app.other\")",
+                Some(HotReloadDecision::UnsupportedRestartRequired),
+            ),
+            (
+                "missing-import-identity",
+                "src/core.spx",
+                "@id(\"calculator.multiply\")",
+                "@id(\"calculator.productX\")",
+                None,
+            ),
+        ] {
+            let fixture = Fixture::new();
+            let mut session = HotReloadSession::new(
+                fixture.revision(),
+                PreparedProjectInterpreterOptions::default(),
+            )
+            .unwrap();
+            fixture.rewrite(file, old, new);
+            match expected {
+                Some(decision) => {
+                    session.admit_candidate(fixture.revision()).unwrap();
+                    assert_eq!(session.plan().unwrap().decision(), decision, "{name}");
+                }
+                None => {
+                    let diagnostics =
+                        crate::project::load_snapshot(&fixture.0.join("semaprax.toml"))
+                            .err()
+                            .expect("missing stable import must refuse Project admission");
+                    assert_eq!(diagnostics[0].code, "SPX-G172", "{name}");
+                }
+            }
+            assert_eq!(
+                observed(&session),
+                ProjectPreparedExecutionOutcome::Returned(42)
+            );
+        }
+
+        let fixture = Fixture::new();
+        let mut session = HotReloadSession::new(
+            fixture.revision(),
+            PreparedProjectInterpreterOptions::default(),
+        )
+        .unwrap();
+        fixture.rewrite("src/app.spx", "multiply(6, 7)", "multiply(6, 8)");
+        session.submission = u64::MAX;
+        assert_eq!(
+            session
+                .admit_candidate(fixture.revision())
+                .unwrap_err()
+                .reason,
+            HotReloadReason::GenerationExhausted
+        );
+        assert!(session.pending.is_none());
         assert_eq!(
             observed(&session),
             ProjectPreparedExecutionOutcome::Returned(42)

@@ -28,7 +28,7 @@ whole-state pivot to `PreparedProjectInterpreter::replace_revision`.
 
 The local prepared-interpreter lane admits a changed code body only when the
 checked entry and test programs retain their selected entrypoints, permit set,
-type and interface records, ordered function IDs, return/parameter types and
+type and interface records, the exact function stable-ID set, return/parameter types and
 ownership, declared effects and yields, and checked pre/postconditions.
 Source-Agent candidates require an explicit restart in this version. This
 rule is conservative and incomplete: it does not yet compute a reachable
@@ -62,7 +62,7 @@ The session emits `SPX-HR400` for its own typed refusals and preserves the
 underlying Project and prepared-interpreter diagnostics for those owners'
 failures. A caller must inspect the typed reason as well as the diagnostic.
 
-The focused local gate at `project::hot_reload::tests::` passed 2/2 with
+The focused local gate at `project::hot_reload::tests::` passed 3/3 with
 `CARGO_TARGET_DIR=target/hr01 CARGO_BUILD_JOBS=1 CARGO_INCREMENTAL=0
 CARGO_PROFILE_TEST_DEBUG=0 cargo test --locked --offline -p semaprax --lib
 project::hot_reload::tests:: -- --nocapture`. This is local library evidence,

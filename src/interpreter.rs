@@ -68,6 +68,7 @@ mod function_values;
 mod generic_owned;
 pub mod internal_strings;
 mod iterator;
+mod list;
 mod nested_owned;
 pub(crate) mod network;
 pub(crate) mod process;
@@ -2301,12 +2302,13 @@ fn variant_pattern_is_admitted(
     ty: &ResolvedType,
     arms: &[hir::ResolvedMatchArm],
 ) -> bool {
-    if !is_admitted_owned_variant(declarations, ty)
+    let list_step = crate::list_ops::step_shape(declarations, ty);
+    if !(is_admitted_owned_variant(declarations, ty) || list_step)
         || !(matches!(
             mode,
             hir::ResolvedMatchMode::Own | hir::ResolvedMatchMode::Borrow
         ) || (mode == hir::ResolvedMatchMode::Value
-            && is_admitted_fieldless_variant(declarations, ty)))
+            && (is_admitted_fieldless_variant(declarations, ty) || list_step)))
         || arms.is_empty()
     {
         return false;
@@ -2554,6 +2556,7 @@ fn scan_closure(
                     || crate::vec_ops::by_id(callee.as_str()).is_some()
                     || crate::box_ops::by_id(callee.as_str()).is_some()
                     || crate::iterator_ops::by_id(callee.as_str()).is_some()
+                    || crate::list_ops::by_id(callee.as_str()).is_some()
                     || crate::host_io_ops::by_id(callee.as_str()).is_some();
                 let execution = instance
                     .as_ref()
@@ -2800,6 +2803,7 @@ fn resolved_data_parameter_is_admitted(
     match (ty, ownership) {
         (ty, hir::OwnershipMode::Value)
             if is_admitted_resolved_scalar(ty)
+                || crate::list_ops::is_list(ty)
                 || hir::function_value::is_signature(ty)
                 || matches!(ty, ResolvedType::ArrayU8(_)) =>
         {
@@ -2833,6 +2837,7 @@ fn resolved_data_result_is_admitted(
     declarations: &hir::DeclarationIndex,
 ) -> bool {
     is_admitted_resolved_scalar(ty)
+        || crate::list_ops::is_list(ty)
         || hir::function_value::is_signature(ty)
         || matches!(ty, ResolvedType::ArrayU8(_) | ResolvedType::Bytes)
         || owned_vec::is_collection_type(ty)
@@ -3119,6 +3124,7 @@ enum Value {
     Bytes(OwnedBytesValue),
     Vec(Arc<owned_vec::OwnedVecValue>),
     Iter(Arc<iterator::IteratorValue>),
+    List(crate::immutable_list::ImmutableList),
     Box(Arc<owned_box::OwnedBoxValue>),
     String(String),
     BorrowedStr(BorrowedStrValue),
@@ -3759,6 +3765,7 @@ impl Evaluator<'_> {
                 crate::iterator_ops::is_iter(expected)
                     && crate::iterator_ops::element(expected) == Some(&carrier.vector.element)
             }
+            (Value::List(_), expected) => crate::list_ops::is_list(expected),
             (Value::Record(carrier), ResolvedType::Nominal { declaration, .. }) => {
                 &carrier.record == declaration
                     && (is_admitted_owned_byte_record(self.declarations, ty)
@@ -4548,6 +4555,9 @@ impl Evaluator<'_> {
                 if let Some(op) = crate::iterator_ops::by_id(callee.as_str()) {
                     return self.evaluate_iterator_op(op, type_arguments, args, environment, depth);
                 }
+                if let Some(op) = crate::list_ops::by_id(callee.as_str()) {
+                    return self.evaluate_list_op(op, type_arguments, args, environment, depth);
+                }
                 if let Some(op) = crate::vec_ops::by_id(callee.as_str()) {
                     return self.evaluate_vec_op(op, type_arguments, args, environment, depth);
                 }
@@ -4807,7 +4817,8 @@ impl Evaluator<'_> {
                     return outcome;
                 }
                 if let Value::Variant(variant) = staged {
-                    let agg = nested_owned::bc_match(self.declarations, *mode, &scrutinee.ty, arms);
+                    let agg = nested_owned::bc_match(self.declarations, *mode, &scrutinee.ty, arms)
+                        || crate::list_ops::is_step(&scrutinee.ty);
                     if !nested_owned::variant_ok(self.declarations, *mode, &scrutinee.ty, arms) {
                         return Err(Flow::Guard(
                             "owned byte variant match is outside the authenticated profile",

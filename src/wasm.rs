@@ -712,7 +712,6 @@ impl ByteOutput for crate::bounded_output::CappedVec {
         self.extend_from_slice(values);
     }
 }
-
 pub fn emit_module(program: &Program) -> Result<Vec<u8>, Diagnostic> {
     reject_native_rust_imports(program)?;
     // SPX-AI-021 bounded owning closures: same pre-resolution substitution the
@@ -950,14 +949,15 @@ pub(crate) fn emit_resolved_line_command_io_v1(
     let plan = command_io::prepare(program, command_id, CommandOperationProfile::LineV1)?;
     aggregate::emit_language_command_io(program, &plan)
 }
-
 pub use network_io::emit_language_network_io_v1;
-
 fn emit_resolved_module_internal(
     program: &ResolvedProgram,
     scalar_exports: &[scalar_exports::ScalarExportPlan],
     text_exports: &[text_exports::TextExportPlan],
 ) -> Result<Vec<u8>, Diagnostic> {
+    if crate::list_ops::resolved_program_uses_list(program) {
+        return Err(Diagnostic::io("SPX-W130", "List lowering unavailable"));
+    }
     if !scalar_exports.is_empty() && !text_exports.is_empty() {
         return Err(Diagnostic::io(
             "SPX-W119",

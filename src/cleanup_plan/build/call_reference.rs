@@ -28,6 +28,11 @@ impl PlanBuilder<'_> {
                 crate::host_io_ops::resolved_params(op)
             } else if let Some(op) = crate::command_io_ops::by_id(callee.as_str()) {
                 crate::command_io_ops::resolved_params(op)
+            } else if let Some(op) = crate::list_ops::by_id(callee.as_str()) {
+                if !type_arguments.is_empty() || args.len() != op.argument_count() {
+                    return Err(plan_error("cleanup immutable list call has incorrect shape"));
+                }
+                op.resolved_params()
             } else if let Some(op) = crate::iterator_ops::by_id(callee.as_str()) {
                 iterator::resolved_params(op, false, args.len(), type_arguments, &expression.id)?
             } else if let Some(op) = crate::vec_ops::by_id(callee.as_str()) {

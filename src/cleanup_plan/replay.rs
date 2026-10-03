@@ -1709,6 +1709,7 @@ fn collect_expression_statuses(
                         || crate::str_ops::by_id(callee.as_str()).is_some()
                         || crate::vec_ops::by_id(callee.as_str()).is_some()
                         || crate::iterator_ops::by_id(callee.as_str()).is_some()
+                        || crate::list_ops::by_id(callee.as_str()).is_some()
                         || crate::box_ops::by_id(callee.as_str()).is_some()
                         || crate::byte_ops::by_id(callee.as_str()).is_some())
                 {
@@ -3457,7 +3458,8 @@ fn expression_skeleton(
                         } else if let Some(op) = host_io_intrinsic {
                             crate::host_io_ops::resolved_params(op)
                         } else if instance.is_none()
-                            && crate::iterator_ops::by_id(callee.as_str()).is_some()
+                            && (crate::iterator_ops::by_id(callee.as_str()).is_some()
+                                || crate::list_ops::by_id(callee.as_str()).is_some())
                         {
                             resolved_call_params(program, function, callee, None, type_arguments)?
                         } else if let Some(op) = vec_intrinsic {

@@ -19,6 +19,7 @@ impl Evaluator<'_> {
             Value::Bytes(value) => Value::Bytes(value.clone()),
             Value::Vec(value) => Value::Vec(Arc::clone(value)),
             Value::Iter(value) => Value::Iter(Arc::clone(value)),
+            Value::List(value) => Value::List(value.clone()),
             Value::Box(value) => Value::Box(Arc::clone(value)),
             Value::String(value) => Value::String(self.materialize_utf8_copy(value)?),
             Value::BorrowedStr(value) => Value::BorrowedStr(value.clone()),

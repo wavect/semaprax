@@ -23,6 +23,13 @@ pub(crate) struct ImmutableList {
     root: Option<Arc<Node>>,
 }
 
+impl PartialEq for ImmutableList {
+    fn eq(&self, other: &Self) -> bool {
+        self.len() == other.len() && self.iter().eq(other.iter())
+    }
+}
+impl Eq for ImmutableList {}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum ListError {
     LengthLimit,

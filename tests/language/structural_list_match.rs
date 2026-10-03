@@ -1,13 +1,73 @@
 //! The monomorphic iterator tail is the source carrier for LAW-08's list lane.
 const REVERSE: &str = include_str!("../fixtures/law08-structural-list.spx");
 
+const IMMUTABLE_LIST: &str = r#"module test.immutable_list;
+@id("list.sum") fn sum(input: List<i64>) -> i64 {
+    match list_uncons(input) {
+        ListStep::Nil {} => 0,
+        ListStep::Cons { head, tail } => head + sum(tail),
+    }
+}
+@id("app.main") fn main() -> i64 {
+    sum(list_cons(1, list_cons(2, list_nil())))
+}
+"#;
+
+#[test]
+fn immutable_list_source_matches_real_cons_tail_in_graph_and_interpreter() {
+    let program = semaprax::check(IMMUTABLE_LIST, "immutable-list.spx").unwrap();
+    let canonical = semaprax::format::canonical(&program);
+    let reparsed = semaprax::check(&canonical, "immutable-list-canonical.spx").unwrap();
+    assert_eq!(canonical, semaprax::format::canonical(&reparsed));
+    let resolved = semaprax::hir::resolve(&reparsed).unwrap();
+    semaprax::hir::validate(&resolved).unwrap();
+    let graph = semaprax::graph::to_json(&reparsed).unwrap();
+    semaprax::graph::verify_json(&reparsed, &graph).unwrap();
+    assert!(graph.contains("core.list.cons"));
+    assert!(graph.contains("core.list-step.cons.tail"));
+    let wrong_element = IMMUTABLE_LIST.replace("List<i64>", "List<bool>");
+    assert!(
+        semaprax::check(&wrong_element, "unsupported-list-element.spx")
+            .unwrap_err()
+            .iter()
+            .any(|diagnostic| diagnostic.code == "SPX-T291")
+    );
+    let path = std::env::temp_dir().join(format!(
+        "semaprax-law08-immutable-list-{}.spx",
+        std::process::id()
+    ));
+    std::fs::write(&path, &canonical).unwrap();
+    let options = semaprax::interpreter::InterpreterOptions::new(
+        65_536,
+        semaprax::interpreter::DEFAULT_MAX_STEPS,
+    )
+    .unwrap();
+    let outcome = semaprax::interpreter::interpret(&path, "app.main", &[], &options).unwrap();
+    let result: serde_json::Value = serde_json::from_str(&outcome.envelope).unwrap();
+    assert_eq!(result["payload"]["outcome"]["kind"], "returned");
+    assert_eq!(result["payload"]["outcome"]["value"], "3");
+    let _ = std::fs::remove_file(path);
+    assert_eq!(
+        semaprax::codegen::emit_c(&reparsed).unwrap_err().code,
+        "SPX-B110"
+    );
+    assert_eq!(
+        semaprax::wasm::emit_module(&reparsed).unwrap_err().code,
+        "SPX-W130"
+    );
+}
+
 #[test]
 fn wrong_reverse_bodies_keep_this_length_but_cannot_inherit_order_or_involution() {
     use semaprax::proof_export::list_induction::{self, ProofModule};
-    let proofs: ProofModule = serde_json::from_str(include_str!("../../proofs/law08/list-lemmas.json")).unwrap();
+    let proofs: ProofModule =
+        serde_json::from_str(include_str!("../../proofs/law08/list-lemmas.json")).unwrap();
     for (replacement, observed) in [
         ("vec_push<i64>(reverse(rest), 0)", "7"),
-        ("append(vec_push<i64>(vec_with_capacity<i64>(8192usize), item), rest)", "8"),
+        (
+            "append(vec_push<i64>(vec_with_capacity<i64>(8192usize), item), rest)",
+            "8",
+        ),
     ] {
         let source = REVERSE.replace("vec_push<i64>(reverse(rest), item)", replacement);
         let program = semaprax::check(&source, "wrong-reverse-law08.spx").unwrap();
@@ -16,7 +76,8 @@ fn wrong_reverse_bodies_keep_this_length_but_cannot_inherit_order_or_involution(
         let options = semaprax::interpreter::InterpreterOptions::new(
             65_536,
             semaprax::interpreter::DEFAULT_MAX_STEPS,
-        ).unwrap();
+        )
+        .unwrap();
         let result = semaprax::interpreter::interpret(&path, "app.main", &[], &options).unwrap();
         let envelope: serde_json::Value = serde_json::from_str(&result.envelope).unwrap();
         assert_eq!(envelope["payload"]["outcome"]["value"], observed);
@@ -31,7 +92,10 @@ fn wrong_reverse_bodies_keep_this_length_but_cannot_inherit_order_or_involution(
 
 struct NoKernel;
 impl semaprax::proof_export::LeanKernel for NoKernel {
-    fn check(&self, _: &str) -> Result<semaprax::proof_export::KernelRun, semaprax::diagnostic::Diagnostic> {
+    fn check(
+        &self,
+        _: &str,
+    ) -> Result<semaprax::proof_export::KernelRun, semaprax::diagnostic::Diagnostic> {
         panic!("unsupported source must refuse before kernel authority")
     }
 }
@@ -111,8 +175,12 @@ fn pinned_lean_replays_source_bound_unbounded_list_laws() {
     let mut stale_current_module = proofs.clone();
     stale_current_module.append_eq.push_str("\n  simp");
     let stale = list_induction::verify_against_module(
-        &program, &stale_current_module, &certificate, &NoKernel,
-    ).unwrap_err();
+        &program,
+        &stale_current_module,
+        &certificate,
+        &NoKernel,
+    )
+    .unwrap_err();
     assert_eq!(stale.code, "SPX-LI001");
 
     let mut wrong_association = certificate.clone();
@@ -229,10 +297,8 @@ fn recursive_list_match_executes_in_core_wasm_with_owned_vec_host() {
     let program = semaprax::check(REVERSE, "structural-list-wasm.spx").unwrap();
     let bytes = semaprax::wasm::emit_module(&program).unwrap();
     wasmparser::Validator::new().validate_all(&bytes).unwrap();
-    let path = std::env::temp_dir().join(format!(
-        "semaprax-law08-wasm-{}.wasm",
-        std::process::id()
-    ));
+    let path =
+        std::env::temp_dir().join(format!("semaprax-law08-wasm-{}.wasm", std::process::id()));
     std::fs::write(&path, bytes).unwrap();
     let script = r#"
 import { readFileSync } from 'node:fs';

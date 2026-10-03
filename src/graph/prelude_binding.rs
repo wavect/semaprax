@@ -191,6 +191,12 @@ pub(super) fn uses_iterator(program: &ResolvedProgram) -> bool {
         })
 }
 
+/// The v9 prelude is selected only when the resolver retained the exact
+/// compiler-owned List declaration. Older programs keep their frozen digest.
+pub(super) fn uses_list(program: &ResolvedProgram) -> bool {
+    crate::list_ops::resolved_program_uses_list(program)
+}
+
 fn uses_vec_v3(program: &ResolvedProgram) -> bool {
     fn is_v3_id(id: &crate::hir::DeclarationId) -> bool {
         crate::vec_ops::by_id(id.as_str()).is_some_and(|op| {
@@ -232,7 +238,9 @@ fn uses_vec_v3(program: &ResolvedProgram) -> bool {
 }
 
 pub(super) fn schema(program: &ResolvedProgram) -> &'static str {
-    if super::owned_iterator::requires(program) {
+    if uses_list(program) {
+        prelude::SCHEMA_V9
+    } else if super::owned_iterator::requires(program) {
         prelude::SCHEMA_V8
     } else if uses_iterator(program) {
         prelude::SCHEMA_V7
@@ -252,7 +260,9 @@ pub(super) fn schema(program: &ResolvedProgram) -> &'static str {
 }
 
 pub(super) fn digest(program: &ResolvedProgram) -> String {
-    if super::owned_iterator::requires(program) {
+    if uses_list(program) {
+        prelude::digest_text_v9()
+    } else if super::owned_iterator::requires(program) {
         prelude::digest_text_v8()
     } else if uses_iterator(program) {
         prelude::digest_text_v7()

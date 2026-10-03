@@ -375,6 +375,15 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             implicit_unique_ownership: false,
                         }
                     }))
+                } else if let Some(op) = crate::list_ops::by_name(name) {
+                    if !type_arguments.is_empty() || args.len() != op.argument_count() {
+                        self.diagnostics.push(error(self.program, "SPX-T291", format!("immutable list operation `{name}` requires {} arguments and no type arguments", op.argument_count()), expression.span));
+                    }
+                    VerifierCallTarget::Ordinary(Some(VerifierFunctionSignature::Specialized {
+                        params: op.ast_params(),
+                        return_type: op.ast_return_type(),
+                        implicit_unique_ownership: false,
+                    }))
                 } else if let Some(op) = crate::iterator_ops::by_name(name) {
                     let element = type_arguments.first();
                     if type_arguments.len() != 1

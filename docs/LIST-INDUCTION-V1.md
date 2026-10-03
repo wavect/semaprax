@@ -6,14 +6,20 @@ mathematical list.
 
 ## Admitted source and denotation
 
-The compiler now also has an **internal** persistent cons-cell reference value
-in `src/immutable_list.rs`: `Nil` or immutable `Cons { head, tail }`, with a
-bounded physical length, a failure-before-commit constructor, and iterative
-release of long unique spines. The exact unit gate checks shared-tail
-immutability, case selection and the length refusal. This value has no `.spx`
-type, constructor or match admission yet and is not lowered to native C or
-Core Wasm. It is a prerequisite for the literal algebraic-list source profile,
-not evidence that the profile is implemented.
+The compiler now has a checked **interpreter-only** persistent `List<i64>`
+source value with `list_nil`, `list_cons(head, tail)` and
+`list_uncons(list) -> ListStep<i64>`. `ListStep::Nil` and
+`ListStep::Cons { head, tail }` are ordinary explicit match cases. The v9
+prelude contract binds constructor/case IDs and a maximum physical length of
+8192. Both operations receive immutable values; a retained tail cannot be
+modified, and constructor refusal leaves the input value live. The reference
+carrier in `src/immutable_list.rs` uses shared immutable cons nodes and
+iterative release of long unique spines. HIR and graph preserve the exact
+declaration identities; the interpreter executes them. Native C and Core
+Wasm explicitly refuse this source profile until their physical carriers are
+admitted. The existing source-bound Lean exporter below still authenticates
+the older `Iter`/`Vec` program, so its theorem is not yet bound to this new
+`List<i64>` source profile.
 
 The initial carrier is the existing compiler-owned `Iter<i64>` and
 `IterStep<i64>` pair over a `Vec<i64>`. `iter_next` consumes one iterator and
@@ -109,3 +115,10 @@ refusals. Separate native C O0/O2 and real Node Core Wasm selectors
 execute the bounded list program and check owner cleanup; emission alone is
 not runtime evidence. Broader source forms and public ABI
 remain separate admissions.
+
+The distinct `language structural_list_match::immutable_list_source_matches_real_cons_tail_in_graph_and_interpreter`
+gate runs the checked `List<i64>` constructor and match source through
+canonical formatting, HIR validation, graph replay and the interpreter. It
+also refuses a `List<bool>` element and confirms the named native/Core Wasm
+backend refusals. This gate does not attach the older Lean theorem to the new
+List definitions or claim executable backend support.

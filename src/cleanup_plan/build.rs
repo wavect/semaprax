@@ -2719,6 +2719,11 @@ impl<'a> PlanBuilder<'a> {
                                 )));
                             }
                             crate::host_io_ops::resolved_params(op)
+                        } else if let Some(op) = crate::list_ops::by_id(callee.as_str()) {
+                            if instance.is_some() || !type_arguments.is_empty() || args.len() != op.argument_count() {
+                                return Err(plan_error(format!("cleanup immutable list call `{}` has inconsistent shape", expression.id)));
+                            }
+                            op.resolved_params()
                         } else if let Some(op) = crate::iterator_ops::by_id(callee.as_str()) {
                             iterator::resolved_params(
                                 op,

@@ -105,6 +105,12 @@ fn emit_hir_c_with_options(
     semantic: Option<&NativeSemanticMetering>,
 ) -> Result<String, Diagnostic> {
     hir::validate(program)?;
+    if crate::list_ops::resolved_program_uses_list(program) {
+        return Err(Diagnostic::io(
+            "SPX-B110",
+            "immutable List<i64> lowering is not admitted by this native profile",
+        ));
+    }
     if program.types.iter().any(|declaration| {
         matches!(
             declaration.kind,

@@ -216,7 +216,19 @@ pub(super) fn check_declared_type(
             name: name.clone(),
             arguments: arguments.clone(),
         };
-        if crate::iterator_ops::ast_is_iterator(&instance)
+        if matches!(name.as_str(), "List" | "ListStep") && !crate::list_ops::ast_is_list(&instance)
+        {
+            diagnostics.push(error(
+                program,
+                "SPX-T291",
+                "immutable list profile admits only `List<i64>` and `ListStep<i64>`",
+                span,
+            ));
+            pending.extend(arguments.iter().rev());
+            continue;
+        }
+        if crate::list_ops::ast_is_list(&instance)
+            || crate::iterator_ops::ast_is_iterator(&instance)
             || (matches!(
                 (name.as_str(), declaration.stable_id.as_str()),
                 ("Iter", crate::iterator_ops::ITER_ID) | ("IterStep", crate::iterator_ops::STEP_ID)

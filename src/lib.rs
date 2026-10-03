@@ -93,6 +93,7 @@ pub mod installed_fix_plan;
 pub mod installed_guidance;
 pub mod interpreter;
 mod immutable_list;
+mod list_ops;
 pub(crate) mod iterator_ops;
 pub(crate) mod kernel_zero;
 pub mod lexer;

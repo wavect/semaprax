@@ -1024,6 +1024,11 @@ impl<'a> HirValidator<'a> {
                                     &declaration.id,
                                     &case.id,
                                     field,
+                                )
+                                || crate::list_ops::is_step_tail_field(
+                                    &declaration.id,
+                                    &case.id,
+                                    field,
                                 ))
                         {
                             return Err(hir_error(format!(
@@ -1051,6 +1056,11 @@ impl<'a> HirValidator<'a> {
                         if owned_byte_variant
                             || owned_string_variant
                             || crate::iterator_ops::is_step_rest_field(
+                                &declaration.id,
+                                &case.id,
+                                field,
+                            )
+                            || crate::list_ops::is_step_tail_field(
                                 &declaration.id,
                                 &case.id,
                                 field,
@@ -3410,7 +3420,9 @@ impl<'a> HirValidator<'a> {
                             });
                         }
                         ResolvedExprKind::ConstructRecord { record, fields } => {
-                            if record.as_str() == crate::iterator_ops::ITER_ID {
+                            if record.as_str() == crate::iterator_ops::ITER_ID
+                                || record.as_str() == crate::list_ops::LIST_ID
+                            {
                                 return Err(hir_error(
                                     "iterator owner cannot be authored as a record",
                                 ));
@@ -6912,7 +6924,9 @@ impl<'a> HirValidator<'a> {
                 (then_branch.ty.clone(), then_branch.ownership)
             }
             ResolvedExprKind::ConstructRecord { record, fields } => {
-                if record.as_str() == crate::iterator_ops::ITER_ID {
+                if record.as_str() == crate::iterator_ops::ITER_ID
+                    || record.as_str() == crate::list_ops::LIST_ID
+                {
                     return Err(hir_error("iterator owner cannot be authored as a record"));
                 }
                 let declaration = self

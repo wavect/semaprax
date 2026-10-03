@@ -3975,6 +3975,10 @@ fn render_graph_json(
         selected_types.remove(&DeclarationId::new(crate::iterator_ops::ITER_ID));
         selected_types.remove(&DeclarationId::new(crate::iterator_ops::STEP_ID));
     }
+    if !prelude_binding::uses_list(program) {
+        selected_types.remove(&DeclarationId::new(crate::list_ops::LIST_ID));
+        selected_types.remove(&DeclarationId::new(crate::list_ops::STEP_ID));
+    }
     let mut selected_interfaces = match view {
         GraphView::Module => program
             .interfaces

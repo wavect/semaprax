@@ -1,5 +1,11 @@
 # Changelog
 
+- Admit a narrow checked `List<i64>` / `ListStep<i64>` immutable source profile
+  through a versioned prelude, HIR, graph and interpreter. Exact `list_nil`,
+  `list_cons` and `list_uncons` calls use a persistent cons carrier. Native C
+  and Core Wasm explicitly refuse until physical lowering is implemented;
+  the existing LAW-08 Lean theorems remain bound to the older `Iter` source.
+
 - Save a bounded RI-13 M3 local HTTP application with canonical checked
   Project source, a generated Rust Future registration module, pinned offline
   Cargo inputs, and an explicit Tokio/reqwest host effect. The focused Project

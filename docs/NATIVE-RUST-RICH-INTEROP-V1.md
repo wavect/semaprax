@@ -882,7 +882,7 @@ with a private target. No hosted or whole-repository full-profile run is claimed
 
 RI-08 remains open for source-level mutable/once receiver modes, RI-06-proven
 borrowed Semaprax capture scopes and retained affine owned captures, broader
-callback Result shapes, and automatic selected-index trait admission. Explicit
+callback Result shapes. Bounded selected-index trait admission is described below. Explicit
 next-state functions and a borrowed generated Rust closure do not establish
 those broader source semantics.
 
@@ -944,3 +944,51 @@ publication or a hosted gate. Url inspection/owner-tied returned-view integratio
 remaining source escape/exclusivity controls and complete RI-06 safety acceptance
 remain open. This selector does not add new Miri or sanitizer evidence, and the
 full quality profile was not rerun for this slice.
+
+### Selected-index Result callback trait adapter
+
+`prepare_indexed_native_rust_result_callback` adds exact index selection for the
+named Result callback route. The caller supplies the checked source identity,
+method and associated-error paths, expected canonical index digest, and exact
+package/alias/target/features/stable-compiler identity. Replay precedes trait
+selection. Both selected members must belong to one public monomorphic trait;
+the method must have `&mut self`, one i64 argument, and `Result<i64, Self::Error>`.
+The sole associated type must have no bounds or default. Known extra members,
+generic obligations, private/sealed items, unknown incomplete closure, incompatible
+receivers and signature shapes fail with source-located `SPX-B154`.
+
+The general index still marks external standard `Result` incomplete. This route
+admits only the exact `Result<i64, Self::Error>` signature with the retained
+trait/error graph and one standard Result leaf; it does not rewrite index facts
+or widen ordinary index support.
+
+The adapter derives its Rust impl tokens from those selected members and binds
+the source revision plus selected index/member identities into a deterministic
+binding digest. This is inert metadata and generated source, with no loader,
+compiler, publication or host authority. The selected index can be partial and
+does not encode every Rust trait property: the real stable compiler must still
+prove the local **safe** impl against the actual crate. An unsafe trait, sealed
+supertrait or missing method therefore cannot acquire an implementation merely
+by presenting misleading metadata. Scalar ABI admission is unchanged.
+
+The owning `indexed_trait_callback_` gate uses a genuine pinned nightly rustdoc
+capture of the unchanged safe-trait fixture, verifies its source digest, then
+compiles the actual fixture and generated adapter as separate Rust crates.
+Its C O2 consumer retains a non-zero-sized proxy beyond the installer return,
+invokes it through a real iterator and trait object, preserves a domain failure
+without committing state, and returns the live environment count to zero on
+teardown. Exact identity/shape refusals and real unsafe/sealed/extra-method/wrong
+signature compiler controls accompany affine once, mutable-borrow and thread
+transfer compile failures. This adds selected-trait admission; it does not
+reinterpret scalar state transitions as source mutable/owned captures. Source
+borrowed and retained affine capture modes remain open under RI-08.
+
+Local evidence: the physical safe-impl/retention case passed in the two-case
+selector; after correcting only canonical JSON in a negative metadata fixture,
+the exact `indexed_trait_callback_exact_identity_and_shape_refusals` retry
+passed 1/1 (0 failed/ignored, 213 filtered; 0.30s). Production code and the
+physical fixture were unchanged for that retry. Tools were stable Rust 1.98.0,
+Apple Clang 21.0.0 and pinned rustdoc 1.101.0-nightly (2026-10-01 commit,
+nightly-2026-10-02 toolchain; JSON format 61). Cargo was offline/locked, jobs1,
+debug0/incremental0, with a private target. No full-profile or hosted gate is
+claimed.

@@ -695,3 +695,9 @@ pub use result_callback::{
     prepare_native_rust_result_callback, NativeResultCallbackProjection,
     NativeResultCallbackSelection,
 };
+
+mod indexed_callback;
+pub use indexed_callback::{
+    prepare_indexed_native_rust_result_callback, IndexedResultCallbackProjection,
+    IndexedResultCallbackSelection,
+};

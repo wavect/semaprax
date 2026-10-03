@@ -3020,7 +3020,11 @@ These areas are deliberately outside the public compiler contract:
   Result bodies, projects terminal constructors into private scalar result
   staging, and publishes the tag/payload only after boundary/postcondition
   success. `callback_runtime.rs` shares lifecycle guards while keeping authored
-  signed domain errors distinct from native status failures;
+  signed domain errors distinct from native status failures. `indexed_callback.rs`
+  replays exact selected package/index identities and derives the local safe
+  Result trait impl from a bounded mutable method and associated Error; actual
+  rustc compilation remains mandatory for safety/coherence obligations absent
+  from partial metadata;
 - `crates/semaprax-native-rust-interop-builder/src/public_sdk/indexed.rs`:
   narrow public RI-04 admission for one checked scalar Rust import. It replays
   the selected RI-03 index and exact caller-supplied package source bytes

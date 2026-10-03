@@ -1,5 +1,11 @@
 # Changelog
 
+- Bind the experimental Result callback adapter to exact selected Rust
+  trait/index/package identities. A captured rustdoc fixture and a separately
+  compiled safe implementation exercise retained state; unsafe, sealed,
+  incomplete and mismatched trait obligations refuse. Source mutable and
+  owned capture modes remain open.
+
 - Start LAW-15 with a checked money/state example used directly by the
   finite-structured-law Z3 harness. The pack proves exact debit, credit,
   conservation, and insufficient-funds behavior on bounded checked integers;

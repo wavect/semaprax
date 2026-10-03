@@ -11,8 +11,8 @@ use super::ids::{DeclarationId, ExpressionId, FunctionExecutionId, ValueId};
 use super::monomorphize::substitute_type;
 use super::nodes::{
     is_scalar_resolved_type, resolver_admits_owned_variant, DeclarationKind, OwnershipMode,
-    ResolvedBinding, ResolvedHostCommandCall, ResolvedMatchMode, ResolvedNativeRustImportCall,
-    ResolvedType,
+    ResolvedBinding, ResolvedHostCommandCall, ResolvedImportResultKind, ResolvedMatchMode,
+    ResolvedNativeRustImportCall, ResolvedType,
 };
 use super::type_reachability::record_args_ok;
 use super::{Binding, Place, PlaceProjection, Resolver};

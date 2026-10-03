@@ -220,6 +220,15 @@ fn link_scalar_workspace_impl(
                 .map(|instance| &instance.function),
         )
         .any(resolved_function_uses_iterator);
+    let uses_list = functions
+        .iter()
+        .chain(
+            parts
+                .iter()
+                .flat_map(|parts| &parts.function_instances)
+                .map(|instance| &instance.function),
+        )
+        .any(resolved_function_uses_list);
     // Selected native Result owners may occur only inside a scalar body.
     // Retain their compiler-owned Result declaration before rebuilding cleanup.
     let uses_owned_result = parts.as_ref().is_some_and(|parts| {
@@ -238,8 +247,8 @@ fn link_scalar_workspace_impl(
             .flat_map(|parts| &parts.function_templates)
             .any(generic_result::profile);
     let (mut declarations, mut compiler_types) =
-        if uses_vec || uses_box || uses_iterator || uses_owned_result {
-            workspace_compiler_prelude_for(uses_vec, uses_box, uses_iterator)?
+        if uses_vec || uses_box || uses_iterator || uses_list || uses_owned_result {
+            workspace_compiler_prelude_for(uses_vec, uses_box, uses_iterator, uses_list)?
         } else {
             (DeclarationIndex::default(), Vec::new())
         };
@@ -530,8 +539,17 @@ pub(crate) fn link_owned_data_api_workspace(
                 .map(|instance| &instance.function),
         )
         .any(resolved_function_uses_iterator);
+    let uses_list = functions
+        .iter()
+        .chain(
+            parts
+                .function_instances
+                .iter()
+                .map(|instance| &instance.function),
+        )
+        .any(resolved_function_uses_list);
     let (mut declarations, mut types) =
-        workspace_compiler_prelude_for(uses_vec, uses_box, uses_iterator)?;
+        workspace_compiler_prelude_for(uses_vec, uses_box, uses_iterator, uses_list)?;
     declarations.extend_linked_owned_data(
         &parts.types,
         &parts.interfaces,
@@ -1155,6 +1173,27 @@ fn resolved_function_uses_iterator(function: &ResolvedFunction) -> bool {
             .chain(function.ensures.iter())
             .chain(std::iter::once(&function.body))
             .any(crate::iterator_ops::resolved_expression_uses_iterator)
+}
+
+fn resolved_function_uses_list(function: &ResolvedFunction) -> bool {
+    crate::list_ops::is_list(&function.return_type)
+        || crate::list_ops::is_step(&function.return_type)
+        || function
+            .params
+            .iter()
+            .any(|param| crate::list_ops::is_list(&param.ty) || crate::list_ops::is_step(&param.ty))
+        || function
+            .requires
+            .iter()
+            .chain(function.ensures.iter())
+            .chain(std::iter::once(&function.body))
+            .any(|expression| {
+                let mut found = false;
+                visit_resolved_calls(expression, &mut |callee, _, _| {
+                    found |= crate::list_ops::by_id(callee.as_str()).is_some();
+                });
+                found
+            })
 }
 
 #[cfg(test)]

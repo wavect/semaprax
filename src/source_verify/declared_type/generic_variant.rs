@@ -155,6 +155,26 @@ pub(in crate::source_verify) fn match_result(
     ty: &Type,
     ownership: ParamMode,
 ) -> bool {
+    // The immutable LAW-08 carrier may return a List from a value-mode
+    // ListStep match. Keep this monomorphic and effect-free; the source-bound
+    // Lean exporter further authenticates the exact structural bodies.
+    if mode == crate::ast::MatchMode::Value
+        && ownership == ParamMode::Value
+        && matches!(ty, Type::Named { name, arguments }
+            if name == "List" && arguments.as_slice() == [Type::I64])
+        && template.is_some_and(|function| {
+            function.type_parameters.is_empty()
+                && function.effects.is_empty()
+                && &function.return_type == ty
+                && (1..=2).contains(&function.params.len())
+                && function
+                    .params
+                    .iter()
+                    .all(|parameter| parameter.mode == ParamMode::Value && &parameter.ty == ty)
+        })
+    {
+        return true;
+    }
     // LAW-08's monomorphic list carrier is the consuming Iter<i64> tail.
     // Restrict aggregate arm results to a pure function that owns that exact
     // carrier and returns its compiler-owned Vec<i64> sequence result.

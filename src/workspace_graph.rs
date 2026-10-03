@@ -5625,8 +5625,13 @@ fn reconstruct_workspace_declaration_facts(
     let uses_vec = prelude_binding::uses_vec(programs);
     let uses_box = prelude_binding::uses_box(programs);
     let uses_iterator = prelude_binding::uses_iterator(programs);
-    let expected_compiler =
-        prelude_binding::expected_declaration_facts_for(uses_vec, uses_box, uses_iterator)?;
+    let uses_list = prelude_binding::uses_list(programs);
+    let expected_compiler = prelude_binding::expected_declaration_facts_for(
+        uses_vec,
+        uses_box,
+        uses_iterator,
+        uses_list,
+    )?;
     let mut actual = BTreeMap::new();
     for (module, resolved) in modules {
         let source = programs
@@ -5639,6 +5644,7 @@ fn reconstruct_workspace_declaration_facts(
             prelude::program_uses_vec(source) || imports_vec_wrapper,
             prelude::program_uses_box(source) || imports_box_wrapper,
             crate::iterator_ops::program_uses_iterator(source),
+            crate::list_ops::program_uses_list(source),
         )?;
         let direct_targets = source
             .module_uses

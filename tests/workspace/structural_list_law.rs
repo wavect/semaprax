@@ -16,6 +16,8 @@ use std::{collections::BTreeMap, path::PathBuf, sync::Arc};
 
 const SOURCE: &str = include_str!("../fixtures/law08-structural-list.spx");
 const PROOFS: &str = include_str!("../../proofs/law08/list-lemmas.json");
+const IMMUTABLE_SOURCE: &str = include_str!("../fixtures/law08-immutable-list.spx");
+const IMMUTABLE_PROOFS: &str = include_str!("../../proofs/law08/immutable-list-lemmas.json");
 const LAW_ID: &str = "law08.reverse.involution";
 
 struct Fixture {
@@ -91,6 +93,77 @@ fn law_module() -> LawModule {
             evidence: EvidenceRequirement::TheoremProved,
         }],
     }
+}
+
+#[test]
+#[ignore = "requires explicitly provisioned pinned Lean 4.34.0 executable"]
+fn installed_immutable_list_source_proves_and_replays_selected_project_law() {
+    let fixture = Fixture::new("immutable", IMMUTABLE_SOURCE);
+    let revision = fixture.revision();
+    let tool = fixture.tool();
+    let proofs: ProofModule = serde_json::from_str(IMMUTABLE_PROOFS).unwrap();
+    let laws = LawSet::derive(&revision, "law08-immutable-list-v1", vec![law_module()]).unwrap();
+    let (document, proof) =
+        prove_list_induction_law(&revision, &laws, LAW_ID, &proofs, &tool).unwrap();
+    let certificate: Certificate = serde_json::from_str(&document).unwrap();
+    assert_eq!(
+        certificate.profile,
+        semaprax::proof_export::list_induction::IMMUTABLE_PROFILE
+    );
+    let policy = StrictLawPolicy::new(
+        laws.clone(),
+        BTreeMap::from([(
+            LAW_ID.into(),
+            RequiredLawEvidence::PinnedListInductionLean {
+                toolchain: semaprax::proof_export::PINNED_TOOLCHAIN.into(),
+                proof_module_sha256: certificate.proof_module_sha256.clone(),
+                accepted_axioms: semaprax::proof_export::kernel_report::STANDARD_AXIOMS
+                    .iter()
+                    .map(|name| (*name).into())
+                    .collect(),
+            },
+        )]),
+    )
+    .unwrap();
+    let report =
+        strict::derive_with_native_proofs(&revision, &laws, &policy, &[], &[proof]).unwrap();
+    let replay =
+        replay_list_induction_law(&document, &revision, &laws, LAW_ID, &proofs, &tool).unwrap();
+    strict::require_with_native_proofs(&report, &revision, &laws, &policy, &[], &[replay]).unwrap();
+
+    let wrong = IMMUTABLE_SOURCE.replace(
+        "append(reverse(tail), list_cons(head, list_nil()))",
+        "list_cons(head, reverse(tail))",
+    );
+    let wrong_program = semaprax::check(&wrong, "wrong-immutable-reverse.spx").unwrap();
+    struct NoKernel;
+    impl semaprax::proof_export::LeanKernel for NoKernel {
+        fn check(
+            &self,
+            _: &str,
+        ) -> Result<semaprax::proof_export::KernelRun, semaprax::diagnostic::Diagnostic> {
+            panic!("wrong source must refuse before the kernel")
+        }
+    }
+    assert_eq!(
+        semaprax::proof_export::list_induction::prove(&wrong_program, &proofs, &NoKernel)
+            .unwrap_err()
+            .code,
+        "SPX-LI001"
+    );
+    assert!(replay_list_induction_law(
+        &document,
+        &revision,
+        &laws,
+        LAW_ID,
+        &{
+            let mut stale = proofs.clone();
+            stale.reverse_eq.push_str("\n  simp");
+            stale
+        },
+        &tool
+    )
+    .is_err());
 }
 
 #[test]

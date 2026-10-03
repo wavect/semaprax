@@ -13,9 +13,14 @@ pub(super) fn uses_iterator(programs: &[Program]) -> bool {
         .iter()
         .any(crate::iterator_ops::program_uses_iterator)
 }
+pub(super) fn uses_list(programs: &[Program]) -> bool {
+    programs.iter().any(crate::list_ops::program_uses_list)
+}
 
 pub(super) fn ids(programs: &[Program]) -> BTreeSet<&'static str> {
-    if uses_iterator(programs) {
+    if uses_list(programs) {
+        prelude::all_type_ids_v9().into_iter().collect()
+    } else if uses_iterator(programs) {
         prelude::all_type_ids_v7().into_iter().collect()
     } else if uses_box(programs) {
         prelude::all_type_ids_v4().into_iter().collect()
@@ -29,6 +34,7 @@ pub(super) fn ids(programs: &[Program]) -> BTreeSet<&'static str> {
 pub(super) fn expected_declaration_facts(
     include_vec: bool,
     include_iterator: bool,
+    include_list: bool,
 ) -> Result<BTreeMap<String, WorkspaceDeclarationFact>, Vec<Diagnostic>> {
     let mut facts = BTreeMap::new();
     for declaration in prelude::declarations().iter().filter(|declaration| {
@@ -38,6 +44,11 @@ pub(super) fn expected_declaration_facts(
                 || !matches!(
                     declaration.stable_id.as_str(),
                     crate::iterator_ops::ITER_ID | crate::iterator_ops::STEP_ID
+                ))
+            && (include_list
+                || !matches!(
+                    declaration.stable_id.as_str(),
+                    crate::list_ops::LIST_ID | crate::list_ops::STEP_ID
                 ))
     }) {
         let kind = match &declaration.kind {
@@ -91,14 +102,16 @@ pub(super) fn expected_declaration_facts_for(
     include_vec: bool,
     include_box: bool,
     include_iterator: bool,
+    include_list: bool,
 ) -> Result<BTreeMap<String, WorkspaceDeclarationFact>, Vec<Diagnostic>> {
     // Prelude v4 is additive over the Vec-bearing v2/v3 predecessors, so a
     // Box-selected module retains the exact Vec declaration as well.
     let mut facts = expected_declaration_facts(
-        include_vec || include_box || include_iterator,
-        include_iterator,
+        include_vec || include_box || include_iterator || include_list,
+        include_iterator || include_list,
+        include_list,
     )?;
-    if include_box || include_iterator {
+    if include_box || include_iterator || include_list {
         let declaration = prelude::declarations()
             .iter()
             .find(|d| d.stable_id == prelude::BOX_ID)

@@ -56,6 +56,7 @@ impl WorkspaceValidationIndex {
             prelude_binding::uses_vec(programs),
             prelude_binding::uses_box(programs),
             prelude_binding::uses_iterator(programs),
+            prelude_binding::uses_list(programs),
         )?;
         Ok(Self {
             expected,
@@ -163,6 +164,7 @@ impl WorkspaceValidationIndex {
             prelude::program_uses_vec(source) || imports_vec_wrapper,
             prelude::program_uses_box(source) || imports_box_wrapper,
             crate::iterator_ops::program_uses_iterator(source),
+            crate::list_ops::program_uses_list(source),
         )?;
         let synthetic_main = crate::bounded_output::budgeted_format(format_args!(
             "workspace.synthetic.main.{module}"

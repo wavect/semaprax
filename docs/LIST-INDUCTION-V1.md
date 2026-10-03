@@ -15,14 +15,32 @@ prelude contract binds constructor/case IDs and a maximum physical length of
 modified, and constructor refusal leaves the input value live. The reference
 carrier in `src/immutable_list.rs` uses shared immutable cons nodes and
 iterative release of long unique spines. HIR and graph preserve the exact
-declaration identities; the interpreter and native C execute them. The native
+declaration identities; the interpreter, native C and closed pure Core Wasm
+execute them. The native
 carrier allocates immutable cons nodes for the duration of one root invocation,
 so copied lists share tails and all nodes are released at the root return.
 Each constructed spine is limited to 8192 nodes; this is not a total
-allocation limit across several shared lists. Core Wasm still gives the named
-`SPX-W130` refusal. The existing source-bound Lean exporter below still authenticates
-the older `Iter`/`Vec` program, so its theorem is not yet bound to this new
-`List<i64>` source profile.
+allocation limit across several shared lists. Core Wasm uses private immutable
+16-byte cells, enforces the same per-list bound, and resets its heap at each
+root invocation. Public adapters, effects and mixed profiles retain the named
+`SPX-W130` refusal.
+
+The additive `semaprax.immutable-list-induction-i64.v1` proof profile accepts
+only the exact checked pure `List<i64>` `append(left, suffix)` and
+`reverse(input)` definitions in
+[`law08-immutable-list.spx`](../tests/fixtures/law08-immutable-list.spx).
+`append` matches the left list and constructs `head :: append(tail, suffix)`;
+`reverse` matches its input and calls `append(reverse(tail), [head])`.
+Every constructor, case, recursive argument and call is authenticated against
+the checked source before Lean is invoked. The generated definitions use
+structural recursion on the visibly smaller tail and translate exact `i64`
+elements to Lean `Int`. The separate
+[`immutable-list-lemmas.json`](../proofs/law08/immutable-list-lemmas.json)
+proves the same five fixed append/reverse laws under this distinct profile.
+Source drift, a changed proof module, or a theorem association mismatch refuses
+replay. The selected Project/LawSet route records this profile in its method
+evidence and requires a real pinned Lean run. Neither the mathematical theorem
+nor native C execution proves backend lowering correspondence.
 
 The initial carrier is the existing compiler-owned `Iter<i64>` and
 `IterStep<i64>` pair over a `Vec<i64>`. `iter_next` consumes one iterator and
@@ -99,9 +117,10 @@ a source denotation under successful execution, with `proved_lowering=false`.
 
 ## Boundaries
 
-The kernel theorem is over mathematical lists. Runtime `Vec` capacity is at
-most 8192 elements, `vec_push` may fail at capacity or allocation, and the
-ordinary interpreter/native call-depth limit is 256. A runtime length or
+The kernel theorem is over mathematical lists. Runtime `Vec` capacity and
+immutable `List<i64>` spine length are each at most 8192 elements; a push or
+cons may fail at capacity or allocation, and the ordinary interpreter/native
+call-depth limit is 256. A runtime length or
 index is checked `usize`, whereas Lean `List.length` is `Nat`. Consequently
 the theorem does not establish successful execution for every mathematical
 list, overflow freedom of unrelated element arithmetic, backend lowering
@@ -119,12 +138,12 @@ execute the bounded list program and check owner cleanup; emission alone is
 not runtime evidence. Broader source forms and public ABI
 remain separate admissions.
 
-The distinct `language structural_list_match::immutable_list_source_matches_real_cons_tail_in_graph_and_interpreter`
-gate runs the checked `List<i64>` constructor and match source through
-canonical formatting, HIR validation, graph replay and the interpreter. It
-also refuses a `List<bool>` element, checks deterministic native C emission,
-and confirms the named Core Wasm refusal. The paired ignored
-`immutable_list_source_executes_in_native_c_at_o0_and_o2` gate runs real C11
-O0/O2 output and checks the root release, shared-tail preservation, and exact
-8192-node success/refusal boundary. Neither gate attaches the older Lean
-theorem to the new List definitions or claims Core Wasm support.
+The `language structural_list_match::immutable_list_source` selector passed
+3/3: source/formatter/HIR/graph/interpreter checks, real C11 O0/O2 execution
+with the root release and 8192-node boundary, and real Node Core Wasm execution
+with a private carrier and root reset. The selected Project/LawSet
+`installed_immutable_list_source_proves_and_replays_selected_project_law`
+gate passed 1/1 with installed Lean 4.34.0. It also refuses a wrong reverse
+source and a stale authored proof module before kernel authority. The new
+certificate binds the actual `List<i64>` source; both source-to-Lean profiles
+remain success-denotation claims, not runtime/lowering proofs.

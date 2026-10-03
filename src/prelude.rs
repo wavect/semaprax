@@ -171,6 +171,21 @@ pub(crate) fn all_type_ids_v7() -> [&'static str; 17] {
     ]
 }
 
+pub(crate) fn all_type_ids_v9() -> [&'static str; 23] {
+    let mut ids = [""; 23];
+    let earlier = all_type_ids_v7();
+    ids[..17].copy_from_slice(&earlier);
+    ids[17..].copy_from_slice(&[
+        crate::list_ops::LIST_ID,
+        crate::list_ops::STEP_ID,
+        crate::list_ops::NIL_CASE_ID,
+        crate::list_ops::CONS_CASE_ID,
+        crate::list_ops::HEAD_ID,
+        crate::list_ops::TAIL_ID,
+    ]);
+    ids
+}
+
 pub(crate) fn all_reserved_ids() -> [&'static str; 39] {
     [
         OPTION_ID,

@@ -1,0 +1,24 @@
+module test.structural_list;
+@id("list.append")
+fn append(left: List<i64>, suffix: List<i64>) -> List<i64> {
+    match list_uncons(left) {
+        ListStep::Nil {} => suffix,
+        ListStep::Cons { head, tail } => list_cons(head, append(tail, suffix)),
+    }
+}
+@id("list.reverse")
+fn reverse(input: List<i64>) -> List<i64> {
+    match list_uncons(input) {
+        ListStep::Nil {} => list_nil(),
+        ListStep::Cons { head, tail } => append(reverse(tail), list_cons(head, list_nil())),
+    }
+}
+@id("app.main")
+fn main() -> i64 {
+    let original = list_cons(1, list_cons(2, list_cons(3, list_nil())));
+    let reversed = reverse(original);
+    match list_uncons(reversed) {
+        ListStep::Nil {} => -1,
+        ListStep::Cons { head, tail } => head,
+    }
+}

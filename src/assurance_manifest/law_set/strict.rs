@@ -465,7 +465,9 @@ fn check_requirement(
                     method["class"] == "theorem_proved"
                         && method["tool"] == crate::proof_export::KERNEL_IDENTITY
                         && method["tool_version"] == *toolchain
-                        && method["bounds"] == crate::proof_export::list_induction::PROFILE
+                        && (method["bounds"] == crate::proof_export::list_induction::PROFILE
+                            || method["bounds"]
+                                == crate::proof_export::list_induction::IMMUTABLE_PROFILE)
                 })
             });
             (!confirmed).then_some("list_induction_installed_kernel_evidence_missing")

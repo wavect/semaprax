@@ -1,5 +1,7 @@
 # Changelog
 
+- Bind LAW-08 structural induction to checked immutable `List<i64>` append/reverse source and a separate authored Lean proof module. A selected Project/LawSet gate replays exact v9 prelude, source, proof, theorem association and strict evidence through installed Lean 4.34.0 (1/1); wrong reverse and stale proof controls refuse. The workspace linker now retains List compiler-owned declarations and operations without treating proof as lowering authority.
+
 - Save an RI-13 M2 record/iterator Rust application. An opt-in native builder
   projects one checked record and scalar callback from the same source revision;
   the locked offline consumer parses and serializes generated Serde records and

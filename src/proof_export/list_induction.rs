@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest as _, Sha256};
 
 pub const PROFILE: &str = "semaprax.list-induction-i64.v1";
+pub const IMMUTABLE_PROFILE: &str = "semaprax.immutable-list-induction-i64.v1";
 pub const CERTIFICATE_SCHEMA: &str = "semaprax.list-induction-certificate.v1";
 pub const PROOF_MODULE_SCHEMA: &str = "semaprax.list-induction-proof-module.v1";
 const NAMESPACE: &str = "SemapraxLaw08";
@@ -192,6 +193,112 @@ fn list_match<'a>(
     ))
 }
 
+fn immutable_match<'a>(
+    function: &'a Function,
+    input: &str,
+) -> Option<(&'a Expr, &'a Expr, String, String)> {
+    let ExprKind::Match {
+        mode: MatchMode::Value,
+        scrutinee,
+        arms,
+    } = &tail(&function.body)?.kind
+    else {
+        return None;
+    };
+    if !call1(scrutinee, "list_uncons", &[], |value| {
+        variable(value, input)
+    }) || arms.len() != 2
+        || arms.iter().any(|arm| arm.guard.is_some())
+    {
+        return None;
+    }
+    let MatchPattern::Variant {
+        type_name: nil_type,
+        case_name: nil_case,
+        fields: nil_fields,
+        ..
+    } = &arms[0].pattern
+    else {
+        return None;
+    };
+    let MatchPattern::Variant {
+        type_name: cons_type,
+        case_name: cons_case,
+        fields,
+        ..
+    } = &arms[1].pattern
+    else {
+        return None;
+    };
+    if nil_type != "ListStep"
+        || nil_case != "Nil"
+        || !nil_fields.is_empty()
+        || cons_type != "ListStep"
+        || cons_case != "Cons"
+        || fields.len() != 2
+        || fields[0].name != "head"
+        || fields[1].name != "tail"
+        || fields[0].binding == fields[1].binding
+    {
+        return None;
+    }
+    Some((
+        &arms[0].value,
+        &arms[1].value,
+        fields[0].binding.clone(),
+        fields[1].binding.clone(),
+    ))
+}
+
+fn immutable_append_shape(function: &Function) -> bool {
+    if function.stable_id != "list.append"
+        || !pure(function)
+        || function.params.len() != 2
+        || !sequence(&function.return_type, "List")
+        || function
+            .params
+            .iter()
+            .any(|param| param.mode != ParamMode::Value || !sequence(&param.ty, "List"))
+    {
+        return false;
+    }
+    let Some((nil, cons, head, rest)) = immutable_match(function, &function.params[0].name) else {
+        return false;
+    };
+    variable(nil, &function.params[1].name)
+        && call(cons, "list_cons", &[]).is_some_and(|args| {
+            matches!(args, [item, tail]
+                if variable(item, &head)
+                    && call(tail, &function.name, &[]).is_some_and(|args|
+                        matches!(args, [left, suffix]
+                            if variable(left, &rest) && variable(suffix, &function.params[1].name))))
+        })
+}
+
+fn immutable_reverse_shape(function: &Function) -> bool {
+    if function.stable_id != "list.reverse"
+        || !pure(function)
+        || function.params.len() != 1
+        || function.params[0].mode != ParamMode::Value
+        || !sequence(&function.params[0].ty, "List")
+        || !sequence(&function.return_type, "List")
+    {
+        return false;
+    }
+    let Some((nil, cons, head, rest)) = immutable_match(function, &function.params[0].name) else {
+        return false;
+    };
+    call(nil, "list_nil", &[]).is_some_and(|args| args.is_empty())
+        && call(cons, "append", &[]).is_some_and(|args| {
+            matches!(args, [reversed, singleton]
+                if call1(reversed, &function.name, &[], |value| variable(value, &rest))
+                    && call(singleton, "list_cons", &[]).is_some_and(|args|
+                        matches!(args, [item, empty]
+                            if variable(item, &head)
+                                && call(empty, "list_nil", &[]).is_some_and(|args| args.is_empty()))))
+        })
+}
+
 fn pure(function: &Function) -> bool {
     function.explicit_id
         && function.type_parameters.is_empty()
@@ -264,7 +371,7 @@ fn checked_source(program: &Program) -> Result<(), Diagnostic> {
     crate::hir::validate(&hir).map_err(|_| refused("HIR replay failed"))
 }
 
-fn definitions(program: &Program) -> Result<(String, Vec<CoverageRow>), Diagnostic> {
+fn definitions(program: &Program) -> Result<(String, String, Vec<CoverageRow>), Diagnostic> {
     checked_source(program)?;
     let reverse = program
         .functions
@@ -276,7 +383,9 @@ fn definitions(program: &Program) -> Result<(String, Vec<CoverageRow>), Diagnost
         .iter()
         .find(|function| function.stable_id == "list.append")
         .ok_or_else(|| refused("source append declaration absent"))?;
-    if !reverse_shape(reverse) || !append_shape(append) {
+    let old_profile = reverse_shape(reverse) && append_shape(append);
+    let immutable_profile = immutable_reverse_shape(reverse) && immutable_append_shape(append);
+    if !old_profile && !immutable_profile {
         return Err(refused(
             "source list definition is outside the direct-tail profile",
         ));
@@ -286,7 +395,11 @@ fn definitions(program: &Program) -> Result<(String, Vec<CoverageRow>), Diagnost
         coverage.push(CoverageRow {
             stable_id: function.stable_id.clone(),
             outcome: if matches!(function.stable_id.as_str(), "list.append" | "list.reverse") {
-                "exported_direct_tail".into()
+                if immutable_profile {
+                    "exported_structural_list".into()
+                } else {
+                    "exported_direct_tail".into()
+                }
             } else {
                 "unsupported_function".into()
             },
@@ -329,8 +442,18 @@ fn definitions(program: &Program) -> Result<(String, Vec<CoverageRow>), Diagnost
         });
     }
     coverage.sort_by(|left, right| left.stable_id.cmp(&right.stable_id));
-    let source = format!("import Init\n/- {PROFILE}; source bodies authenticated as direct Iter<i64> tail recursion.\n   Elements are exact i64 values modeled as Lean Int. Runtime capacity, call depth,\n   checked usize arithmetic, lowering, and public ABI are NOT kernel theorems. -/\nnamespace {NAMESPACE}\ndef append (left suffix : List Int) : List Int :=\n  match suffix with\n  | [] => left\n  | item :: rest => append (left ++ [item]) rest\ntermination_by suffix.length\ndef reverse (input : List Int) : List Int :=\n  match input with\n  | [] => []\n  | item :: rest => (reverse rest) ++ [item]\ntermination_by input.length\n");
-    Ok((source, coverage))
+    let (profile, definitions) = if immutable_profile {
+        (
+            IMMUTABLE_PROFILE,
+            format!("import Init\n/- {IMMUTABLE_PROFILE}; exact immutable List<i64> source bodies.\n   Successful runtime executions are modeled by Lean List Int. The physical 8192\n   element bound, call depth, lowering, and public ABI are not kernel theorems. -/\nnamespace {NAMESPACE}\ndef append (left suffix : List Int) : List Int :=\n  match left with\n  | [] => suffix\n  | item :: rest => item :: append rest suffix\ntermination_by left.length\ndef reverse (input : List Int) : List Int :=\n  match input with\n  | [] => []\n  | item :: rest => append (reverse rest) [item]\ntermination_by input.length\n"),
+        )
+    } else {
+        (
+            PROFILE,
+            format!("import Init\n/- {PROFILE}; source bodies authenticated as direct Iter<i64> tail recursion.\n   Elements are exact i64 values modeled as Lean Int. Runtime capacity, call depth,\n   checked usize arithmetic, lowering, and public ABI are NOT kernel theorems. -/\nnamespace {NAMESPACE}\ndef append (left suffix : List Int) : List Int :=\n  match suffix with\n  | [] => left\n  | item :: rest => append (left ++ [item]) rest\ntermination_by suffix.length\ndef reverse (input : List Int) : List Int :=\n  match input with\n  | [] => []\n  | item :: rest => (reverse rest) ++ [item]\ntermination_by input.length\n"),
+        )
+    };
+    Ok((profile.into(), definitions, coverage))
 }
 
 fn admissible_tactic(body: &str) -> bool {
@@ -371,7 +494,7 @@ fn admissible_tactic(body: &str) -> bool {
 fn render(
     program: &Program,
     proofs: &ProofModule,
-) -> Result<(String, String, Vec<CoverageRow>), Diagnostic> {
+) -> Result<(String, String, String, Vec<CoverageRow>), Diagnostic> {
     if proofs.schema != PROOF_MODULE_SCHEMA
         || proofs.bodies().iter().any(|body| !admissible_tactic(body))
     {
@@ -379,7 +502,7 @@ fn render(
             "proof module has an unsupported declaration or tactic",
         ));
     }
-    let (definitions, coverage) = definitions(program)?;
+    let (profile, definitions, coverage) = definitions(program)?;
     let mut source = definitions.clone();
     for ((name, _, statement), body) in THEOREMS.iter().zip(proofs.bodies()) {
         let parameters = if name.starts_with("append_") {
@@ -411,7 +534,7 @@ fn render(
         source.push_str(&format!("#print axioms {name}\n"));
     }
     source.push_str(&format!("end {NAMESPACE}\n"));
-    Ok((source, definitions, coverage))
+    Ok((source, profile, definitions, coverage))
 }
 
 pub fn prove(
@@ -419,7 +542,7 @@ pub fn prove(
     proofs: &ProofModule,
     kernel: &impl LeanKernel,
 ) -> Result<Certificate, Diagnostic> {
-    let (lean_source, definitions, coverage) = render(program, proofs)?;
+    let (lean_source, profile, definitions, coverage) = render(program, proofs)?;
     let run = kernel.check(&lean_source)?;
     let expected = THEOREMS
         .iter()
@@ -436,7 +559,7 @@ pub fn prove(
     let proof_bytes = serde_json::to_vec(proofs).expect("closed proof module JSON");
     Ok(Certificate {
         schema: CERTIFICATE_SCHEMA.into(),
-        profile: PROFILE.into(),
+        profile,
         source_sha256: digest(canonical.as_bytes()),
         definitions_sha256: digest(definitions.as_bytes()),
         proof_module_sha256: digest(&proof_bytes),
@@ -464,13 +587,14 @@ pub fn verify(
     certificate: &Certificate,
     kernel: &impl LeanKernel,
 ) -> Result<(), Diagnostic> {
-    if certificate.schema != CERTIFICATE_SCHEMA || certificate.profile != PROFILE {
+    if certificate.schema != CERTIFICATE_SCHEMA {
         return Err(refused("certificate schema or profile drift"));
     }
-    let (lean_source, definitions, coverage) = render(program, &certificate.proof_module)?;
+    let (lean_source, profile, definitions, coverage) = render(program, &certificate.proof_module)?;
     let proof_bytes =
         serde_json::to_vec(&certificate.proof_module).expect("closed proof module JSON");
-    if certificate.source_sha256 != digest(crate::format::canonical(program).as_bytes())
+    if certificate.profile != profile
+        || certificate.source_sha256 != digest(crate::format::canonical(program).as_bytes())
         || certificate.definitions_sha256 != digest(definitions.as_bytes())
         || certificate.proof_module_sha256 != digest(&proof_bytes)
         || certificate.lean_source_sha256 != digest(lean_source.as_bytes())

@@ -120,7 +120,7 @@ fn attached_list_proof(
         crate::proof_export::PINNED_TOOLCHAIN,
     );
     method.proof_ref = Some(evidence_digest.clone());
-    method.bounds = Some(list_induction::PROFILE.into());
+    method.bounds = Some(certificate.profile.clone());
     method.inputs = vec![
         laws.digest().into(),
         row.semantic_digest.clone(),
@@ -141,6 +141,7 @@ fn attached_list_proof(
             "schema":"semaprax.list-induction-law-proof.v1",
             "proof_digest":evidence_digest,
             "proof_module_sha256":certificate.proof_module_sha256,
+            "profile":certificate.profile,
             "source_sha256":certificate.source_sha256,
             "theorem":name,
             "coverage":certificate.coverage,

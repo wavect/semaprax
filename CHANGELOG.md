@@ -1,5 +1,7 @@
 # Changelog
 
+- Run the production Url carrier and exclusive lease under strict-provenance Miri with live backing reads, the bounded hostile-carrier corpus and owner/view cleanup. The explicit offline Rust-only gate passes with default leak checks; native C and panic quarantine remain separate evidence.
+
 - Gate selected guarded Project SDK publication on a host-held LAW-09
   conditional strict policy. The builder replays source and law before package
   staging, checks the actual staged manifest digest before the no-clobber

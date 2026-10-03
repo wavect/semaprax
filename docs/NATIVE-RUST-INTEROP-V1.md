@@ -798,11 +798,28 @@ consumer links the exact configured Clang sanitizer runtime, avoiding
 instrumented proc-macro loading inside rustc. Rust dependencies are not
 instrumented, and leak detection is disabled for this C boundary run. The
 exact physical selector passed locally (1 passed, 0 failed/ignored, 207
-filtered; 37.26s runtime). This adds C ASan/UBSan evidence, not Miri evidence.
+filtered; 37.26s runtime). This is C ASan/UBSan evidence.
+
+The separately selected `indexed_url_miri_carrier_and_exclusive_loan_corpus`
+owning test builds the unmodified production Rust carrier and exclusive-lease
+templates with real locked Url 2.5.8, without generated C or native FFI. It
+runs the same fixed-seed corpus, dereferences the authenticated live backing
+across carrier revalidation, refuses conflicting exclusive entry while a
+shared slice remains live, and checks exclusive re-entry, mutation, restored
+views and complete owner/lease cleanup. The local gate passed (1 passed, 0
+failed/ignored, 208 filtered; 30.23s runtime) on `aarch64-apple-darwin` with
+Miri `0.1.0 (c36f145719 2026-10-01)`, nightly `2026-10-02`,
+`-Zmiri-strict-provenance -Zmiri-seed=1` and default leak checking. Toolchain
+components and the pinned std lock dependencies were explicitly prefetched;
+sysroot setup and the test itself run offline in private targets. Select
+`SEMAPRAX_MIRI_CARGO` (absolute rustup Cargo path) and
+`SEMAPRAX_MIRI_TOOLCHAIN`, then explicitly run this ignored owning test.
+It does not interpret native C, callback FFI or the separately exercised
+panic-payload quarantine path.
 
 This remains a bounded local checked-body and generated Rust witness. It does
 not establish general mutable/exclusive returned-view source syntax, arbitrary
-lifetimes, cross-thread use, a hosted profile or a Miri result. Remaining
+lifetimes, cross-thread use or a hosted profile. Remaining
 RI-06 acceptance claims require their own evidence; the Rust callback primitive
 is not source callback syntax.
 

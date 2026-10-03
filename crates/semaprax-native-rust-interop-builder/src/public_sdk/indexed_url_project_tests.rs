@@ -484,3 +484,6 @@ mod url_loan;
 
 #[path = "url_safety_tests.rs"]
 mod url_safety;
+
+#[path = "url_miri_tests.rs"]
+mod url_miri;

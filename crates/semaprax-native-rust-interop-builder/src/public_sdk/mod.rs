@@ -604,8 +604,8 @@ fn full_hash(value: &str) -> String {
 
 mod authentication;
 mod authority;
-mod build;
 mod borrowed_input;
+mod build;
 mod descriptor;
 mod indexed;
 mod indexed_multiple;
@@ -614,6 +614,7 @@ mod indexed_project;
 pub use indexed_project::{build_indexed_project_native_rust_sdk, IndexedProjectScalarSelection};
 mod owned_data;
 mod owner_sdk;
+mod serde_projection;
 pub use owner_sdk::{prepare_opaque_owner_native, prepare_owned_string_native, OpaqueOwnerNative};
 mod package;
 mod project;
@@ -625,10 +626,13 @@ pub use indexed::{
 pub use indexed_multiple::{build_indexed_scalars_native_rust_sdk, IndexedScalarSelection};
 pub use owned_data::build_native_rust_owned_data_sdk;
 pub use project::{build_authenticated_project_native_rust_sdk, build_project_native_rust_sdk};
+pub use serde_projection::{prepare_serde_record_projection, SerdeRecordProjection};
 
 #[cfg(test)]
 mod tests;
 
+#[cfg(test)]
+mod borrowed_input_tests;
 #[cfg(test)]
 mod indexed_tests;
 #[cfg(test)]
@@ -637,8 +641,6 @@ mod owned_string_tests;
 mod owner_return_tests;
 #[cfg(test)]
 mod owner_sdk_tests;
-#[cfg(test)]
-mod borrowed_input_tests;
 
 #[cfg(test)]
 mod target_tests;

@@ -1,10 +1,9 @@
 //! Imported migration roots retain the same Suspend and durable accounting rules.
 use super::super::migration::durable;
 use super::*;
-use semaprax::agent_runtime_v2::{
-    migrate_suspended_agent_runtime_v2, migrate_suspended_agent_runtime_v2_with_backend,
-    AgentRuntimeV2,
-};
+#[cfg(any(target_os = "linux", target_os = "macos"))]
+use semaprax::agent_runtime_v2::migrate_suspended_agent_runtime_v2_with_backend;
+use semaprax::agent_runtime_v2::{migrate_suspended_agent_runtime_v2, AgentRuntimeV2};
 use semaprax::execution_revision::typed::resume_migrated_agent_runtime_v2;
 
 fn link(fixture: &Fixture, migration: bool) {

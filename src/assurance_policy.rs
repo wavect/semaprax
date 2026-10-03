@@ -409,6 +409,24 @@ pub fn evaluate(envelope_json: &str, profile: PolicyProfile) -> Result<String> {
     )
 }
 
+/// Protected-law advisory surface: never recommends changing a contract to make
+/// a gate pass. Specification changes require the separate host approval route.
+pub fn evaluate_protected(envelope_json: &str, profile: PolicyProfile) -> Result<String> {
+    let mut report: Value = serde_json::from_str(&evaluate(envelope_json, profile)?)
+        .map_err(|_| invalid("invalid derived assurance report"))?;
+    report["schema"] = json!("semaprax.protected-assurance-policy.v1");
+    for obligation in report["obligations"]
+        .as_array_mut()
+        .ok_or_else(|| invalid("missing obligations"))?
+    {
+        if !obligation["suggested_next_action"].is_null() {
+            obligation["suggested_next_action"] = json!("repair_implementation_or_supply_proof");
+        }
+    }
+    report["specification_change_path"] = json!("request_specification_change");
+    render(report, MAX_POLICY_REPORT_BYTES)
+}
+
 fn classification_of_id<'a>(
     obligations: &'a [ObligationView],
     id: &str,
@@ -540,6 +558,20 @@ mod tests {
             assumptions: Vec::new(),
         });
         assurance_manifest::generate(&fixture.0, &options).unwrap()
+    }
+
+    #[test]
+    fn protected_laws_never_suggest_weakening_repairs() {
+        for kind in [ObligationKind::Precondition, ObligationKind::Postcondition] {
+            let obligation = Obligation::new(kind, "app.f", "contract:0")
+                .with_method(MethodRecord::new(AssuranceClass::RuntimeGuarded, "t", "1"));
+            let report =
+                evaluate_protected(&envelope(&[obligation]), PolicyProfile::RequireStatic).unwrap();
+            assert!(!report.contains("weaken_postcondition"));
+            assert!(!report.contains("strengthen_precondition"));
+            assert!(report.contains("repair_implementation_or_supply_proof"));
+            assert!(report.contains("request_specification_change"));
+        }
     }
 
     #[test]

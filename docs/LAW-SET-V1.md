@@ -133,3 +133,8 @@ The existing Project and single-file assurance envelopes, obligation IDs, source
 syntax, formatter, graph, native backend, and Wasm backend are unchanged. This
 surface does not invoke a theorem prover, certify runtime conformance, mutate
 source, grant publication permission, or select its own protected baseline.
+
+The additive [Protected Law Intent v1](PROTECTED-LAW-INTENT-V1.md) profile binds
+an independently held base revision and the conservative specification closure,
+separates editable implementation bodies, and requires exact host approval for
+unknown intent changes at configured managed publication boundaries.

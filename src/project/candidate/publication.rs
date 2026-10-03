@@ -119,7 +119,52 @@ fn apply_with_hook(
     project_manifest: &Path,
     expected_workspace_revision: &str,
     submitted_publication: &[u8],
+    hook: impl FnMut(SemanticChangeApplyPoint) -> std::io::Result<()>,
+) -> Result<String> {
+    apply_with_gate(
+        candidate,
+        approved_candidate_digest,
+        workspace_root,
+        project_manifest,
+        expected_workspace_revision,
+        submitted_publication,
+        hook,
+        || Ok(()),
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+pub(super) fn apply_with_law_gate(
+    candidate: &ProjectCandidate,
+    approved_candidate_digest: &str,
+    workspace_root: &Path,
+    project_manifest: &Path,
+    expected_workspace_revision: &str,
+    submitted_publication: &[u8],
+    gate: impl FnMut() -> Result<()>,
+) -> Result<String> {
+    apply_with_gate(
+        candidate,
+        approved_candidate_digest,
+        workspace_root,
+        project_manifest,
+        expected_workspace_revision,
+        submitted_publication,
+        |_| Ok(()),
+        gate,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn apply_with_gate(
+    candidate: &ProjectCandidate,
+    approved_candidate_digest: &str,
+    workspace_root: &Path,
+    project_manifest: &Path,
+    expected_workspace_revision: &str,
+    submitted_publication: &[u8],
     mut hook: impl FnMut(SemanticChangeApplyPoint) -> std::io::Result<()>,
+    mut gate: impl FnMut() -> Result<()>,
 ) -> Result<String> {
     if submitted_publication.len() > MAX_PROJECT_CANDIDATE_PUBLICATION_BYTES {
         return Err(capacity(
@@ -138,6 +183,7 @@ fn apply_with_hook(
     let result = change::apply_project_candidate_change(
         workspace_root,
         |actual, sources| {
+            gate()?;
             derive(
                 candidate,
                 approved_candidate_digest,

@@ -1,6 +1,7 @@
 //! Revision-bound mandatory law inventory. Evidence is data and grants no authority.
 //! See docs/LAW-SET-V1.md for policy selection and exact nonclaims.
 mod evaluate;
+pub mod protected;
 mod wire;
 
 use crate::diagnostic::Diagnostic;

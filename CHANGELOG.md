@@ -1,5 +1,11 @@
 # Changelog
 
+- Protect law intent with independently held revision-bound baselines, conservative
+  specification closure, explicit editable implementation bodies, and exact
+  host-approved specification-change proposals. Candidate review reports unknown
+  semantic changes and protected publication rechecks approval under the ordinary
+  Workspace lock; protected advisory repairs never suggest weakening contracts.
+
 - Add LawSet v1's independently protected inventory of named scalar contract,
   architecture, protocol-realizer and reference-model laws. Bind exact Project,
   ProgramRoot, proof profile and provenance; reject ambiguous or retargeted

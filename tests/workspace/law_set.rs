@@ -407,3 +407,6 @@ fn unsupported_selectors_and_selector_injection_are_refused() {
     })
     .unwrap();
 }
+
+#[path = "protected_law.rs"]
+mod protected_law;

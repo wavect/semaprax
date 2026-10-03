@@ -150,16 +150,10 @@ def main():
         installed = extensions / "wavect.semaprax-0.1.0"
         if not installed.is_dir() or installed.is_symlink(): raise Failure("exact VSIX was not installed into the isolated extension directory")
         # VS Code only discovers an extension test path when a development
-        # extension is selected.  This inert harness is deliberately a
-        # different extension and declares the installed subject as its sole
-        # dependency, so it cannot shadow `wavect.semaprax` with the checkout.
-        harness = area/"host-test-harness"; harness.mkdir()
-        (harness/"package.json").write_bytes(canonical({
-          "name":"semaprax-host-evidence","publisher":"wavect","version":"0.0.0",
-          "engines":{"vscode":"^1.85.0"},"main":"./extension.js",
-          "extensionDependencies":["wavect.semaprax"]
-        }))
-        (harness/"extension.js").write_text("exports.activate = () => {}; exports.deactivate = () => {};\n")
+        # extension is selected.  Select the directory extracted from the
+        # installed VSIX itself: the host therefore runs the installed bytes
+        # in test mode, never the checkout, and the test-only API remains
+        # unavailable to ordinary installed production sessions.
         settings={"semaprax.compilerPath":str(compiler),"semaprax.manifestPath":str(workspace/"semaprax.toml"),"semaprax.hostPolicyPath":str(policy)}
         (user/"User/settings.json").write_bytes(canonical(settings))
         source=workspace/"src/core.spx"; fixture_before={str(p.relative_to(workspace)):sha(p.read_bytes()) for p in sorted(workspace.rglob("*")) if p.is_file()}
@@ -169,7 +163,7 @@ def main():
           "SEMAPRAX_VSCODE_EXPECTED_EXTENSION_PATH":str(installed.resolve(strict=True))})
         args=[str(code),f"--user-data-dir={user}",f"--extensions-dir={extensions}",
           "--disable-workspace-trust","--disable-gpu","--disable-updates","--skip-welcome","--skip-release-notes",
-          f"--extensionDevelopmentPath={harness}",
+          f"--extensionDevelopmentPath={installed}",
           f"--extensionTestsPath={ROOT/'editors/vscode/test/extension-host/index.js'}",str(workspace)]
         host_log=command(args,"VS Code Extension Host",env=env)
         matches=MARKER.findall(host_log)

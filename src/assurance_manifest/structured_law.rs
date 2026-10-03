@@ -119,6 +119,55 @@ fn scalar_value(value: Value) -> Result<(Expr, Type), Refusal> {
     }
 }
 
+/// Preserve a checked conditional record result field by field. The caller
+/// lowers each arm under its own path guard before selecting its values, so
+/// checked arithmetic obligations remain attached to the arm that executes.
+fn select_value(
+    condition: &Expr,
+    then_value: Value,
+    else_value: Value,
+    span: Span,
+) -> Result<Value, Refusal> {
+    match (then_value, else_value) {
+        (Value::Scalar(then_branch, then_ty), Value::Scalar(else_branch, else_ty))
+            if then_ty == else_ty =>
+        {
+            Ok(Value::Scalar(
+                expression(
+                    ExprKind::If {
+                        condition: Box::new(condition.clone()),
+                        then_branch: Box::new(then_branch),
+                        else_branch: Box::new(else_branch),
+                    },
+                    span,
+                ),
+                then_ty,
+            ))
+        }
+        (
+            Value::Record {
+                declaration_id: then_id,
+                fields: then_fields,
+            },
+            Value::Record {
+                declaration_id: else_id,
+                mut fields,
+            },
+        ) if then_id == else_id && then_fields.keys().eq(fields.keys()) => {
+            let mut selected = BTreeMap::new();
+            for (id, then_field) in then_fields {
+                let else_field = fields.remove(&id).ok_or(Refusal::TypeMismatch)?;
+                selected.insert(id, select_value(condition, then_field, else_field, span)?);
+            }
+            Ok(Value::Record {
+                declaration_id: then_id,
+                fields: selected,
+            })
+        }
+        _ => Err(Refusal::TypeMismatch),
+    }
+}
+
 impl<'a> Lowerer<'a> {
     fn fresh(&mut self) -> String {
         loop {
@@ -583,22 +632,7 @@ impl<'a> Lowerer<'a> {
                 ));
                 let else_value = self.lower(else_branch)?;
                 self.guards.pop();
-                let (then_branch, then_ty) = scalar_value(then_value)?;
-                let (else_branch, else_ty) = scalar_value(else_value)?;
-                if then_ty != else_ty {
-                    return Err(Refusal::TypeMismatch);
-                }
-                Ok(Value::Scalar(
-                    expression(
-                        ExprKind::If {
-                            condition: Box::new(condition),
-                            then_branch: Box::new(then_branch),
-                            else_branch: Box::new(else_branch),
-                        },
-                        span,
-                    ),
-                    then_ty,
-                ))
+                select_value(&condition, then_value, else_value, span)
             }
             ExprKind::Block { statements, tail } => {
                 let depth = self.scope.len();
@@ -1045,87 +1079,7 @@ mod tests {
         discharge_postcondition, provision_from_env, DischargeOutcome, RunLimits,
     };
 
-    const SOURCE: &str = r#"
-module law07.accounting;
-
-@id("law07.account")
-record Account {
-    @id("law07.account.balance") balance: i64,
-}
-
-@id("law07.accounts")
-record Accounts {
-    @id("law07.accounts.debit") debit: Account,
-    @id("law07.accounts.credit") credit: Account,
-}
-
-@id("law07.outcome")
-variant Outcome {
-    @id("law07.outcome.success") Success {
-        @id("law07.outcome.success.credited") credited: i64,
-    },
-    @id("law07.outcome.failure") Failure {
-        @id("law07.outcome.failure.code") code: i64,
-    },
-}
-
-@id("law07.sum")
-fn sum(input: Accounts) -> i64
-    requires input.debit.balance >= 0
-    requires input.debit.balance <= 1000
-    requires input.credit.balance >= 0
-    requires input.credit.balance <= 1000
-    ensures result == input.debit.balance + input.credit.balance
-{
-    input.debit.balance + input.credit.balance
-}
-
-@id("law07.transfer")
-fn transfer(before: Accounts, amount: i64) -> Accounts
-    requires before.debit.balance >= 0
-    requires before.debit.balance <= 1000
-    requires before.credit.balance >= 0
-    requires before.credit.balance <= 1000
-    requires amount >= 0
-    requires amount <= before.debit.balance
-    ensures result.debit.balance == before.debit.balance - amount
-    ensures result.credit.balance == before.credit.balance + amount
-    ensures result.debit.balance + result.credit.balance == before.debit.balance + before.credit.balance
-{
-    Accounts {
-        debit: Account { balance: before.debit.balance - amount },
-        credit: Account { balance: before.credit.balance + amount },
-    }
-}
-
-@id("law07.failure")
-fn failure(code: i64) -> Outcome
-    requires code >= 0
-    requires code <= 10
-    ensures match result {
-        Outcome::Success { credited } => false,
-        Outcome::Failure { code: observed } => observed == code,
-    }
-{
-    Outcome::Failure { code: code }
-}
-
-@id("law07.outcome-zero")
-fn outcome_zero(outcome: Outcome) -> i64
-    ensures result == 0
-{
-    match outcome {
-        Outcome::Success { credited } => credited - credited,
-        Outcome::Failure { code } => code - code,
-    }
-}
-
-@id("law07.main")
-fn main() -> i64
-{
-    0
-}
-"#;
+    const SOURCE: &str = include_str!("../../examples/law-packs/money-state.spx");
 
     fn checked() -> Program {
         crate::check(SOURCE, "law07_accounting.spx").expect("checked aggregate law source")
@@ -1189,6 +1143,14 @@ fn main() -> i64
                 DischargeOutcome::Proved { .. }
             ));
         }
+        let attempted = selected(&program, "law15.attempt-transfer");
+        for index in 0..attempted.ensures.len() {
+            let lowered = lower_aggregate_clause(&program, attempted, index).unwrap();
+            assert!(matches!(
+                discharge_postcondition(&lowered.scalar, 0, Some(&solver), &RunLimits::default()),
+                DischargeOutcome::Proved { .. }
+            ));
+        }
         let failure = selected(&program, "law07.failure");
         let lowered = lower_aggregate_clause(&program, failure, 0).unwrap();
         assert!(matches!(
@@ -1207,6 +1169,13 @@ fn main() -> i64
     fn real_z3_seeded_transfer_and_failure_mutants_refute() {
         let solver = provision_from_env().expect("explicit Z3");
         for (label, original, replacement, target, clause) in [
+            (
+                "no-op debit",
+                "debit: Account { balance: before.debit.balance - amount },",
+                "debit: Account { balance: before.debit.balance },",
+                "law07.transfer",
+                0,
+            ),
             (
                 "duplicate debit",
                 "debit: Account { balance: before.debit.balance - amount },",
@@ -1242,6 +1211,13 @@ fn main() -> i64
                 "law07.failure",
                 0,
             ),
+            (
+                "insufficient funds reports success",
+                "TransferDecision { debit: before.debit.balance, credit: before.credit.balance, code: 1 }",
+                "TransferDecision { debit: before.debit.balance, credit: before.credit.balance, code: 0 }",
+                "law15.attempt-transfer",
+                0,
+            ),
         ] {
             let source = SOURCE.replacen(original, replacement, 1);
             assert_ne!(source, SOURCE, "{label}: seeded source mutation missing");
@@ -1253,6 +1229,32 @@ fn main() -> i64
             assert!(
                 matches!(result, DischargeOutcome::Refuted { .. }),
                 "{label}: {result:?}"
+            );
+        }
+        let no_op = SOURCE
+            .replacen(
+                "debit: Account { balance: before.debit.balance - amount },",
+                "debit: Account { balance: before.debit.balance },",
+                1,
+            )
+            .replacen(
+                "credit: Account { balance: before.credit.balance + amount },",
+                "credit: Account { balance: before.credit.balance },",
+                1,
+            );
+        let program = crate::check(&no_op, "law15_no_op_transfer.spx").unwrap();
+        let transfer = selected(&program, "law07.transfer");
+        for (index, passes) in [(0, false), (1, false), (2, true)] {
+            let lowered = lower_aggregate_clause(&program, transfer, index).unwrap();
+            let result =
+                discharge_postcondition(&lowered.scalar, 0, Some(&solver), &RunLimits::default());
+            assert!(
+                if passes {
+                    matches!(result, DischargeOutcome::Proved { .. })
+                } else {
+                    matches!(result, DischargeOutcome::Refuted { .. })
+                },
+                "no-op transfer clause {index}: {result:?}"
             );
         }
     }

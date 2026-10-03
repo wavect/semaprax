@@ -1,5 +1,13 @@
 # Changelog
 
+- Start LAW-15 with a checked money/state example used directly by the
+  finite-structured-law Z3 harness. The pack proves exact debit, credit,
+  conservation, and insufficient-funds behavior on bounded checked integers;
+  a no-op transfer still proves conservation but refutes both amount clauses.
+  The structured proof lowering now selects same-record conditional results
+  field by field under their original execution guards. The focused real-Z3
+  positive/mutant selector passed 2/2.
+
 - Exercise a real locked reqwest response through the generated local Future
   bridge and an authenticated Project v8 owned-Bytes SDK. The checked `.spx`
   body transforms `hello` to `ello`; an over-limit second response cannot

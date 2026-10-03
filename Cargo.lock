@@ -1952,6 +1952,7 @@ version = "0.7.0"
 dependencies = [
  "ed25519-dalek",
  "fs2",
+ "getrandom 0.4.3",
  "rustix",
  "same-file",
  "semaprax",

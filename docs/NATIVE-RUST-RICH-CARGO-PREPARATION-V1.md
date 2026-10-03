@@ -157,8 +157,16 @@ or successful compilation.
 | `SPX-B123` | Resolved package IDs and held registry/local source facts disagree. |
 | `SPX-B124` | A preparation byte or package-inventory bound is exceeded. |
 
-Focused unit coverage proves deterministic closure recording and independent
-replay, then uses custom-source and missing-source-fact negative controls. An
-end-to-end closure, physical offline build, unauthorized build-script/proc-macro
-refusal, and publication remain separate gates; absence of those observations
-is not a support claim.
+Focused coverage proves deterministic closure recording, replay, and closure
+invalidation when the lock, configuration, Rust/native toolchain, host/target,
+build-script, proc-macro, or local source-tree facts change. The execution
+harness collects metadata from checked-in local and vendored fixtures, performs
+a trusted-host locked/offline vendored build, and refuses strict, unenforced
+sandbox, and stale-admission build entry before Cargo runs.
+
+The vendored shape fixture records a renamed dependency, a different library
+target name, disabled default features with an explicit feature, a Unix target
+dependency, and two versions of one package. The missing-vendor fixture keeps
+the required package name in Cargo's locked/offline diagnostic. RI-11 owns the
+separate hostile build-script/proc-macro enforcement evidence; publication and
+artifact-cache ownership remain outside this preparation record.

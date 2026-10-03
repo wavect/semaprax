@@ -3,15 +3,87 @@ use super::*;
 use semaprax::{
     agent_runtime::AgentCancellation,
     assurance_manifest::law_set::strict::{self, RequiredLawEvidence, StrictLawPolicy},
+    assurance_manifest::modular_law::cache::ProofTaskCache,
     proof_export::{
         installed::{HostProfile, InstalledProofTool, Limits, ToolKind},
-        installed_project::prove_postcondition,
+        installed_project::{prove_postcondition, prove_postcondition_z3_cached},
     },
 };
 use std::{collections::BTreeMap, path::PathBuf, sync::Arc};
 
 struct Project {
     root: PathBuf,
+}
+
+#[test]
+#[ignore = "requires explicitly provisioned installed Z3"]
+fn installed_project_postcondition_cache_reuses_proof_query_with_fresh_domain_witness() {
+    let project = Project::new("direct-cache", false);
+    let revision = project.revision();
+    let tool = provisioned(&project, ToolKind::Z3);
+    let mut cache = ProofTaskCache::for_project(&project.root).unwrap();
+    let original = std::fs::read_to_string(project.root.join("src/app.spx")).unwrap();
+    let (cold, cold_work) = prove_postcondition_z3_cached(
+        &project.root,
+        &revision,
+        "src/app.spx",
+        "fresh.seventeen",
+        0,
+        &tool,
+        &mut cache,
+    )
+    .unwrap();
+    assert_eq!((cold_work.fresh, cold_work.reused), (1, 0));
+    let (warm, warm_work) = prove_postcondition_z3_cached(
+        &project.root,
+        &revision,
+        "src/app.spx",
+        "fresh.seventeen",
+        0,
+        &tool,
+        &mut cache,
+    )
+    .unwrap();
+    assert_eq!((warm_work.fresh, warm_work.reused), (0, 1));
+    let laws = laws(&revision, ToolKind::Z3);
+    let policy = StrictLawPolicy::new(
+        laws.clone(),
+        BTreeMap::from([("fresh.law.seventeen".into(), requirement(&tool))]),
+    )
+    .unwrap();
+    let cold_report = strict::derive(&revision, &laws, &policy, &[cold]).unwrap();
+    let warm_report = strict::derive(&revision, &laws, &policy, &[warm.clone()]).unwrap();
+    assert_eq!(cold_report, warm_report);
+    strict::require(&warm_report, &revision, &laws, &policy, &[warm.clone()]).unwrap();
+
+    let changed = original.replace("result == a + 17", "result == a + 18");
+    assert_ne!(changed, original);
+    std::fs::write(project.root.join("src/app.spx"), changed).unwrap();
+    let false_revision = project.revision();
+    assert!(prove_postcondition_z3_cached(
+        &project.root,
+        &false_revision,
+        "src/app.spx",
+        "fresh.seventeen",
+        0,
+        &tool,
+        &mut cache,
+    )
+    .is_err());
+    assert!(strict::derive(&false_revision, &laws, &policy, &[warm]).is_err());
+    std::fs::write(project.root.join("src/app.spx"), original).unwrap();
+    let restored = project.revision();
+    let (_, restored_work) = prove_postcondition_z3_cached(
+        &project.root,
+        &restored,
+        "src/app.spx",
+        "fresh.seventeen",
+        0,
+        &tool,
+        &mut cache,
+    )
+    .unwrap();
+    assert_eq!((restored_work.fresh, restored_work.reused), (0, 1));
 }
 impl Project {
     fn new(label: &str, false_law: bool) -> Self {

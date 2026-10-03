@@ -2,8 +2,9 @@
 
 Status: bounded installed Z3 and pinned Lean implementation. This is logical
 query reuse for the admitted LAW-06 straight-line, direct, monomorphic, pure
-scalar call profile, LAW-07 finite immutable aggregate scalarization, and
-native LAW-04 scalar relational Z3 laws. It is not yet a general law cache or a
+scalar call profile, LAW-07 finite immutable aggregate scalarization, native
+LAW-04 scalar relational Z3 laws, and direct scalar Project postconditions.
+It is not yet a general law cache or a
 replacement for source-bound certificates, strict LAW-04 policy, or
 Project/Workspace publication checks.
 
@@ -54,6 +55,15 @@ statement or assumption change invalidates its dependent closure while an
 independent law may reuse its success. Lean relational laws retain their fresh
 kernel route in this version.
 
+For a direct scalar Project postcondition, the compiler rebuilds current HIR,
+the complete proof script and the satisfiable-domain script. Each invocation
+runs and checked-replays a fresh domain model because that witness is included
+in the exact current source-bound receipt. The cached task skips only the
+postcondition proof query. Its key binds both current scripts, the selected
+declaration and clause, the scalar translator profile, installed Z3 identity,
+and process limits. The direct scalar subset admits no calls; unsupported call
+graphs are refused by translation before lookup.
+
 ## Storage and replay
 
 `ProofTaskCache::for_project` binds a cache to one canonical local Project
@@ -86,8 +96,9 @@ law inventory must match; `fresh`, `reused`, and `stale` are work metrics only.
 
 ## Boundaries
 
-Only the installed LAW-06 modular scalar, LAW-07 structured aggregate, and
-native LAW-04 scalar relational Z3 profiles are cached here. Separately
+Only the installed LAW-06 modular scalar, LAW-07 structured aggregate,
+native LAW-04 scalar relational Z3, and direct scalar Project postcondition
+profiles are cached here. Separately
 authored library lemmas, foreign or dynamic calls, effects, generic instances, unsupported
 branches/lazy calls, and target-artifact claims have no cache admission under
 these profiles. LAW-07 Lean reuse binds its explicit export assumptions;

@@ -1,9 +1,11 @@
 //! Real installed proofs for exact retained Project postconditions.
 use super::installed::{InstalledProofTool, ToolKind};
+use crate::assurance_manifest::modular_law::cache::{self, ProofTaskCache, WorkMetrics};
 use crate::assurance_manifest::{
     smt_discharge as smt, AssuranceClass, MethodRecord, VerifiedProjectProof,
 };
 use crate::{diagnostic::Diagnostic, project::ProjectRevision};
+use std::path::Path;
 
 /// The returned evidence cannot be retargeted, serialized into authority or
 /// attached to another source/Project. No application entry point is executed.
@@ -14,6 +16,44 @@ pub fn prove_postcondition(
     index: usize,
     tool: &InstalledProofTool,
 ) -> Result<VerifiedProjectProof, Vec<Diagnostic>> {
+    prove_postcondition_with_cache(revision, source_path, declaration, index, tool, None)
+        .map(|(proof, _)| proof)
+}
+
+/// The exact selected Project and checked source are rederived on every call.
+/// A fresh satisfiable-domain model is still obtained and replayed because it
+/// is part of the newly source-bound proof receipt. Only the complete Z3
+/// postcondition query may reuse an authenticated checked-success task.
+pub fn prove_postcondition_z3_cached(
+    project_root: &Path,
+    revision: &ProjectRevision,
+    source_path: &str,
+    declaration: &str,
+    index: usize,
+    tool: &InstalledProofTool,
+    cache: &mut ProofTaskCache,
+) -> Result<(VerifiedProjectProof, WorkMetrics), Vec<Diagnostic>> {
+    if tool.kind() != ToolKind::Z3 {
+        return Err(error("source postcondition cache requires installed Z3"));
+    }
+    prove_postcondition_with_cache(
+        revision,
+        source_path,
+        declaration,
+        index,
+        tool,
+        Some((project_root, cache)),
+    )
+}
+
+fn prove_postcondition_with_cache(
+    revision: &ProjectRevision,
+    source_path: &str,
+    declaration: &str,
+    index: usize,
+    tool: &InstalledProofTool,
+    mut cached: Option<(&Path, &mut ProofTaskCache)>,
+) -> Result<(VerifiedProjectProof, WorkMetrics), Vec<Diagnostic>> {
     let selected = [
         revision.entry_program(),
         revision.public_api_program(),
@@ -53,8 +93,9 @@ pub fn prove_postcondition(
         )?;
         let binding = super::bind_certificate_to_program_root(&certificate, revision, source_path)
             .map_err(|error| vec![error])?;
-        return super::assurance_method_attachment(&certificate, &binding, revision, tool)
-            .map_err(|error| vec![error]);
+        let proof = super::assurance_method_attachment(&certificate, &binding, revision, tool)
+            .map_err(|error| vec![error])?;
+        return Ok((proof, WorkMetrics::default()));
     }
     let function = program
         .functions
@@ -88,7 +129,35 @@ pub fn prove_postcondition(
     let script = rendered
         .strip_suffix("(get-model)\n")
         .ok_or_else(|| error("unexpected SMT translator response grammar"))?;
-    tool.confirm_smt(script).map_err(|error| vec![error])?;
+    let work = if let Some((project_root, cache)) = cached.as_mut() {
+        // The admitted direct scalar subset has no calls. Complete current
+        // domain and proof scripts therefore describe every implementation,
+        // contract, overflow, range, and branch dependency of this query.
+        let logical = cache::logical_subject_digest(&[
+            "direct-project-postcondition-z3",
+            declaration,
+            &domain_script,
+            script,
+        ]);
+        cache::check_bound_task(
+            cache,
+            project_root,
+            tool,
+            "direct-project-z3",
+            &format!("{declaration}:{index}"),
+            &logical,
+            &smt::script_digest(script),
+            smt::BOUNDS_V1,
+            "none",
+            || tool.confirm_smt(script).map_err(|error| vec![error]),
+        )?
+    } else {
+        tool.confirm_smt(script).map_err(|error| vec![error])?;
+        WorkMetrics {
+            fresh: 1,
+            ..WorkMetrics::default()
+        }
+    };
     let version = tool.expected_version();
     let root = revision.program_root()?;
     let obligation = smt::postcondition_obligation_id(declaration, index);
@@ -110,7 +179,7 @@ pub fn prove_postcondition(
     method.bounds = Some(smt::BOUNDS_V1.into());
     method.inputs = vec![root.program_root().into(), source.source_digest().into()];
     method.detail = Some("Exact retained source checked by explicitly authorized installed Z3; trusted translation and local host, no proved lowering or execution authority".into());
-    Ok(VerifiedProjectProof::kernel_confirmed(
+    let proof = VerifiedProjectProof::kernel_confirmed(
         obligation,
         declaration.into(),
         method,
@@ -120,7 +189,8 @@ pub fn prove_postcondition(
         source.source_revision().into(),
         source.source_digest().into(),
         digest,
-    ))
+    );
+    Ok((proof, work))
 }
 
 fn error(message: &str) -> Vec<Diagnostic> {

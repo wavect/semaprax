@@ -21,6 +21,8 @@ impl Fixture {
         std::fs::create_dir_all(root.join("src")).unwrap();
         let main_body = if extra.contains("fn repeat(") {
             "total(1) + repeat(1)"
+        } else if extra.contains("fn lazy(") {
+            "if lazy(1) { total(1) } else { 0 }"
         } else {
             "total(1)"
         };
@@ -48,7 +50,12 @@ impl Fixture {
         plan(&revision, "accounting.total")
     }
 
-
+    fn rewrite_app(&self, change: impl FnOnce(String) -> String) {
+        let path = self.root.join("src/app.spx");
+        let changed = change(std::fs::read_to_string(&path).unwrap());
+        let canonical = semaprax::format::canonical(&semaprax::parse(&changed, &path).unwrap());
+        std::fs::write(path, canonical).unwrap();
+    }
 }
 
 impl Drop for Fixture {
@@ -93,6 +100,30 @@ fn callee_change_stales_transitive_summary_but_unrelated_function_does_not() {
     .unwrap();
     assert_eq!(baseline.summaries[2].digest, unrelated.summaries[2].digest);
     assert_ne!(baseline.project_revision, unrelated.project_revision);
+}
+
+#[test]
+fn callee_precondition_and_summary_contract_changes_stale_caller_identity() {
+    let baseline = Fixture::new("contract-baseline", CORE, "").plan().unwrap();
+    for (label, index, core) in [
+        (
+            "changed-requires",
+            0,
+            CORE.replacen("requires value <= 100", "requires value <= 99", 1),
+        ),
+        (
+            "changed-ensures",
+            1,
+            CORE.replace("ensures result == value + 2", "ensures result >= value + 2"),
+        ),
+    ] {
+        let changed = Fixture::new(label, &core, "").plan().unwrap();
+        assert_ne!(
+            baseline.summaries[index].digest,
+            changed.summaries[index].digest
+        );
+        assert_ne!(baseline.summaries[2].digest, changed.summaries[2].digest);
+    }
 }
 
 #[test]
@@ -177,6 +208,48 @@ fn self_and_mutual_summary_cycles_refuse() {
         .replace("{ value + 2 }", "{ base(value) }");
     let fixture = Fixture::new("mutual-cycle", &mutual, "");
     assert_eq!(fixture.plan().unwrap_err().code(), "cyclic_summary");
+}
+
+#[test]
+fn dynamic_and_generic_summary_calls_refuse_before_solver_invocation() {
+    let dynamic = Fixture::new("dynamic-refusal", CORE, "");
+    dynamic.rewrite_app(|source| {
+        source.replace(
+            "    tax(base(value))",
+            "    let callback = local; tax(callback(value))",
+        )
+    });
+    dynamic.rewrite_app(|source| {
+        source + "\n@id(\"accounting.local\") fn local(value: i64) -> i64 { value }\n"
+    });
+    assert_eq!(dynamic.plan().unwrap_err().code(), "dynamic_call");
+
+    let generic = Fixture::new(
+        "generic-refusal",
+        CORE,
+        "@id(\"accounting.identity\") fn identity<T>(value: T) -> T { value }\n",
+    );
+    generic.rewrite_app(|source| {
+        source.replace(
+            "    tax(base(value))",
+            "    tax(identity<i64>(base(value)))",
+        )
+    });
+    assert_eq!(generic.plan().unwrap_err().code(), "generic_function");
+}
+
+#[test]
+fn foreign_summary_call_refuses_before_solver_invocation() {
+    let fixture = Fixture::new("foreign-refusal", CORE, "");
+    fixture.rewrite_app(|source| {
+        source
+            .replace(
+                "@id(\"accounting.total\")",
+                "@id(\"accounting.host\") interface Host permits {} { @id(\"accounting.echo\") import rust fn echo(value: i64) -> i64 effects {} failure infallible; }\n@id(\"accounting.total\")",
+            )
+            .replace("    tax(base(value))", "    echo(value)")
+    });
+    assert_eq!(fixture.plan().unwrap_err().code(), "foreign_call");
 }
 
 #[test]
@@ -353,6 +426,22 @@ fn branching_summary_profile_refuses_before_solver_invocation() {
     match prove_straight_line(&revision, "accounting.total", None, &RunLimits::default()) {
         Err(ModularFailure::Refused(Refusal::BranchingSummary { .. })) => {}
         other => panic!("expected named branch refusal: {other:?}"),
+    }
+}
+
+#[test]
+fn lazy_summary_profile_refuses_before_solver_invocation() {
+    use semaprax::assurance_manifest::modular_law::summary::{prove_straight_line, ModularFailure};
+    use semaprax::assurance_manifest::smt_discharge::RunLimits;
+    let extra = "@id(\"accounting.lazy\")\nfn lazy(value: i64) -> bool\n requires value >= 0\n requires value <= 100\n ensures result == true\n{ value >= 0 && base(value) >= 1 }\n";
+    let fixture = Fixture::new("lazy-refusal", CORE, extra);
+    let revision = with_authenticated_project(&fixture.root.join("semaprax.toml"), |snapshot| {
+        Ok(snapshot.retain_revision())
+    })
+    .unwrap();
+    match prove_straight_line(&revision, "accounting.lazy", None, &RunLimits::default()) {
+        Err(ModularFailure::Refused(Refusal::LazySummary { .. })) => {}
+        other => panic!("expected named lazy summary refusal: {other:?}"),
     }
 }
 

@@ -134,6 +134,16 @@ fn collect(
     owner: &str,
     calls: &mut Vec<CallOccurrence>,
 ) -> Result<(), Refusal> {
+    if matches!(
+        &expr.kind,
+        ResolvedExprKind::Invoke { .. }
+            | ResolvedExprKind::FunctionReference { .. }
+            | ResolvedExprKind::Closure { .. }
+    ) {
+        return Err(Refusal::DynamicCall {
+            owner: owner.to_owned(),
+        });
+    }
     if !scalar(&expr.ty) || expr.ownership != OwnershipMode::Value {
         return Err(Refusal::NonScalar {
             id: owner.to_owned(),
@@ -194,10 +204,10 @@ fn collect(
                         owner: owner.into(),
                     });
                 };
+                collect(value, owner, calls)?;
                 if !scalar(&binding.ty) || binding.ownership != OwnershipMode::Value {
                     return Err(Refusal::NonScalar { id: owner.into() });
                 }
-                collect(value, owner, calls)?;
             }
             collect(tail, owner, calls)
         }

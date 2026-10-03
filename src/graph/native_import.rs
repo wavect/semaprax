@@ -18,6 +18,14 @@ use crate::hir::{ResolvedImportResultKind, ResolvedInterface, ResolvedProgram};
 /// The schema selected by any program declaring a native Rust import.
 pub(crate) const NATIVE_RUST_IMPORT_SCHEMA: &str = "semaprax.graph.v25";
 pub(crate) const INDEXED_RUST_IMPORT_SCHEMA: &str = "semaprax.graph.v52";
+pub(crate) const SELECTED_RUST_IMPORT_SCHEMA: &str = "semaprax.graph.v53";
+
+pub(crate) fn declares_selected_rust_import(interfaces: &[ResolvedInterface]) -> bool {
+    interfaces
+        .iter()
+        .flat_map(|interface| &interface.imports)
+        .any(|import| import.index_selected)
+}
 
 pub(crate) fn declares_indexed_rust_import(interfaces: &[ResolvedInterface]) -> bool {
     interfaces
@@ -83,15 +91,27 @@ pub(crate) fn append_import_tail(
     schema: &str,
     native_rust: bool,
     rust_path: Option<&str>,
+    selected_index_digest: Option<&str>,
 ) {
-    if schema == NATIVE_RUST_IMPORT_SCHEMA || schema == INDEXED_RUST_IMPORT_SCHEMA {
+    if schema == NATIVE_RUST_IMPORT_SCHEMA
+        || schema == INDEXED_RUST_IMPORT_SCHEMA
+        || schema == SELECTED_RUST_IMPORT_SCHEMA
+    {
         output.push_str(",\"native_rust\":");
         output.push_str(if native_rust { "true" } else { "false" });
     }
-    if schema == INDEXED_RUST_IMPORT_SCHEMA {
+    if schema == INDEXED_RUST_IMPORT_SCHEMA || schema == SELECTED_RUST_IMPORT_SCHEMA {
         output.push_str(",\"rust_path\":");
         output.push_str(
             &rust_path
+                .map(crate::diagnostic::quote_json)
+                .unwrap_or_else(|| "null".to_owned()),
+        );
+    }
+    if schema == SELECTED_RUST_IMPORT_SCHEMA {
+        output.push_str(",\"selected_index_digest\":");
+        output.push_str(
+            &selected_index_digest
                 .map(crate::diagnostic::quote_json)
                 .unwrap_or_else(|| "null".to_owned()),
         );

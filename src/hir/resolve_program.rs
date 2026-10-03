@@ -336,6 +336,16 @@ impl Resolver<'_> {
                     .imports
                     .iter()
                     .map(|import| {
+                        if import.index_selected
+                            && (import.selected_signature.is_none()
+                                || import.selected_index_digest.is_none())
+                        {
+                            return Err(Diagnostic::error(
+                                "SPX-B147",
+                                "selected Rust import requires an authenticated API index",
+                                import.span,
+                            ));
+                        }
                         let parameters = import
                             .params
                             .iter()
@@ -361,6 +371,8 @@ impl Resolver<'_> {
                             interface: interface_id.clone(),
                             import_key: import.stable_id.clone(),
                             native_rust: import.native_rust,
+                            index_selected: import.index_selected,
+                            selected_index_digest: import.selected_index_digest.clone(),
                             rust_path: import.rust_path.clone(),
                             parameters,
                             result: ResolvedImportResult {

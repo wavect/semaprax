@@ -787,6 +787,11 @@ pub struct ImportDeclaration {
     pub name: String,
     pub name_span: Span,
     pub native_rust: bool,
+    /// The short `rust selected fn` form has its scalar signature supplied by
+    /// an admitted prepared index before source verification and lowering.
+    pub index_selected: bool,
+    pub selected_signature: Option<String>,
+    pub selected_index_digest: Option<String>,
     /// A selected Rust API path. Its Cargo alias is checked against the
     /// authenticated dependency closure when a binding plan is prepared.
     pub rust_path: Option<String>,

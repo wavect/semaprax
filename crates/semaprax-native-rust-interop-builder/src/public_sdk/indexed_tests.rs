@@ -12,7 +12,7 @@ permit { host.math }
 @id("host.math")
 interface HostMath permits { host.math } {
     @id("host.add")
-    import rust fn host_add(left: i64, right: i64) -> i64 from "fixture_math::add"
+    import rust selected fn host_add from "fixture_math::add"
         effects { host.math }
         failure status "host.math.v1";
 }
@@ -145,6 +145,38 @@ fn indexed_scalar_sdk_publishes_compiled_adapter_and_refuses_signature_drift() {
         feature_digest: replay.feature_digest(),
         stable_rustc_version: actual_version,
     };
+    let (selected_program, selected_hir, selected_plan, _) = indexed::prepare_indexed_scalar(
+        SOURCE,
+        Path::new("indexed-sdk.spx"),
+        &options(),
+        &index,
+        package,
+        crate_source,
+    )
+    .unwrap();
+    let unbound = semaprax::check(SOURCE, Path::new("indexed-sdk.spx")).unwrap_err();
+    assert_eq!(unbound[0].code, "SPX-B147");
+    assert_eq!(unbound[0].path.as_deref(), Some("indexed-sdk.spx"));
+    assert!(unbound[0].span.is_some());
+    let canonical = semaprax::format::canonical(&selected_program);
+    assert!(canonical.contains("import rust selected fn host_add from \"fixture_math::add\""));
+    let reparsed = semaprax::parse(&canonical, Path::new("indexed-sdk.spx")).unwrap();
+    assert!(reparsed.interfaces[0].imports[0].index_selected);
+    assert_eq!(selected_hir.interfaces[0].imports[0].parameters.len(), 2);
+    let graph = semaprax::graph::to_json(&selected_program).unwrap();
+    assert!(graph.contains("\"schema\":\"semaprax.graph.v53\""));
+    assert!(graph.contains(&selected_plan.index_digest));
+    let (roundtrip, _, roundtrip_plan, _) = indexed::prepare_indexed_scalar(
+        &canonical,
+        Path::new("indexed-sdk.spx"),
+        &options(),
+        &index,
+        package,
+        crate_source,
+    )
+    .unwrap();
+    assert_eq!(roundtrip_plan, selected_plan);
+    assert_eq!(semaprax::graph::to_json(&roundtrip).unwrap(), graph);
     let root = std::fs::canonicalize(std::env::temp_dir())
         .unwrap()
         .join(format!("semaprax-ri04-indexed-sdk-{}", std::process::id()));

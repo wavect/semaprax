@@ -282,3 +282,58 @@ fn parse_scalar_signature(value: &str) -> Option<ScalarSignature<'_>> {
         result,
     })
 }
+
+/// Fills the short indexed import declaration from an already replayed and
+/// selected API item. The caller must bind the returned declaration to the
+/// selected index and package identity before it can reach code generation.
+pub fn bind_selected_scalar_signature(
+    import: &mut crate::ast::ImportDeclaration,
+    signature: &str,
+    index_digest: &str,
+) -> Result<(), Diagnostic> {
+    use crate::ast::{ImportResult, Param, ParamMode, Type};
+    if !import.native_rust || !import.index_selected || !valid_digest(index_digest) {
+        return Err(error(
+            "SPX-B142",
+            "selected Rust import has invalid index identity",
+            import.span,
+        ));
+    }
+    let parsed = parse_scalar_signature(signature).ok_or_else(|| {
+        error(
+            "SPX-B145",
+            "Rust API signature is unsupported by the scalar bridge",
+            import.span,
+        )
+    })?;
+    let path = import
+        .rust_path
+        .as_deref()
+        .ok_or_else(|| error("SPX-B143", "selected Rust API path is missing", import.span))?;
+    if !valid_rust_api_path(path) || path.rsplit("::").next() != Some(parsed.name) {
+        return Err(error(
+            "SPX-B143",
+            "selected Rust API path disagrees with the selected signature",
+            import.span,
+        ));
+    }
+    import.params = parsed
+        .parameters
+        .iter()
+        .enumerate()
+        .map(|(index, ty)| Param {
+            name: format!("arg{index}"),
+            mode: ParamMode::Value,
+            ty: if *ty == "i64" { Type::I64 } else { Type::Bool },
+            span: import.span,
+        })
+        .collect();
+    import.result = match parsed.result {
+        "i64" => ImportResult::I64,
+        "bool" => ImportResult::Bool,
+        _ => ImportResult::Unit,
+    };
+    import.selected_signature = Some(signature.to_owned());
+    import.selected_index_digest = Some(index_digest.to_owned());
+    Ok(())
+}

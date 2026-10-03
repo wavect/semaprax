@@ -367,11 +367,17 @@ impl Parser {
             } else {
                 false
             };
+            let index_selected = native_rust && self.at_keyword("selected");
+            if index_selected {
+                self.bump();
+            }
             self.keyword("fn")?;
             let (import_name, import_name_span) = self.ident("import name")?;
-            self.expect(&TokenKind::LParen, "`(` after import name")?;
             let mut params = Vec::new();
-            if !self.at(&TokenKind::RParen) {
+            if !index_selected {
+                self.expect(&TokenKind::LParen, "`(` after import name")?;
+            }
+            if !index_selected && !self.at(&TokenKind::RParen) {
                 loop {
                     let (param_name, span) = self.ident("import parameter name")?;
                     self.reject_mut_parameter(&param_name, span)?;
@@ -400,10 +406,14 @@ impl Parser {
                     }
                 }
             }
-            self.expect(&TokenKind::RParen, "`)` after import parameters")?;
-            self.expect(&TokenKind::Arrow, "`->` before import result")?;
-            let result = if self.at_keyword("unit") {
-                self.bump();
+            if !index_selected {
+                self.expect(&TokenKind::RParen, "`)` after import parameters")?;
+                self.expect(&TokenKind::Arrow, "`->` before import result")?;
+            }
+            let result = if index_selected || self.at_keyword("unit") {
+                if !index_selected {
+                    self.bump();
+                }
                 ImportResult::Unit
             } else if native_rust && self.at_keyword("i64") {
                 self.bump();
@@ -428,6 +438,11 @@ impl Parser {
             } else {
                 None
             };
+            if index_selected && rust_path.is_none() {
+                return Err(
+                    self.error_here("SPX-P106", "selected Rust import requires `from` path")
+                );
+            }
             self.keyword("effects")?;
             let effects = self.effect_set()?;
             let failure = {
@@ -477,6 +492,9 @@ impl Parser {
                 name: import_name,
                 name_span: import_name_span,
                 native_rust,
+                index_selected,
+                selected_signature: None,
+                selected_index_digest: None,
                 rust_path,
                 params,
                 result,

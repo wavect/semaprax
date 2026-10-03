@@ -154,6 +154,8 @@ codec_struct!(ResolvedImport {
     interface,
     import_key,
     native_rust,
+    index_selected,
+    selected_index_digest,
     rust_path,
     parameters,
     result,

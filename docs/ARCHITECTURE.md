@@ -2966,7 +2966,10 @@ These areas are deliberately outside the public compiler contract:
   adapter source. The separate single-file SDK builder retains selected source
   bytes and a selected stable rustc header through held Phase B compilation,
   then publishes the typed adapter and exact source in the manifest-bound SDK
-  package. The compiler-owned
+  package. Its short `rust selected fn` source form is parsed and formatted by
+  the compiler, but ordinary checking refuses it until this builder binds an
+  exact selected index signature. The bound HIR and Graph v53 retain that
+  index digest separately from the persistent import ID. The compiler-owned
   `src/native_rust_binding.rs` keeps the source/identity-bound plan and stable
   physical symbol separate from the persistent import ID;
 - `crates/semaprax-native-rust-interop-platform/src/host_target.rs`: shared

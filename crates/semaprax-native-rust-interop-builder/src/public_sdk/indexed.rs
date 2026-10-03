@@ -5,6 +5,7 @@ use super::*;
 use crate::indexed_binding::{
     prepare_indexed_scalar_binding, render_checked_scalar_adapter, SelectedPackage,
 };
+use semaprax_rust_api_index::{ItemKind, Receiver, RustApiIndex};
 
 /// Publishes an authenticated nine-file SDK package with one embedded,
 /// dependency-free Rust source module and its generated scalar adapter.
@@ -167,7 +168,7 @@ pub fn build_indexed_scalar_native_rust(
     })
 }
 
-fn prepare_indexed_scalar(
+pub(super) fn prepare_indexed_scalar(
     source: &str,
     source_path: &Path,
     options: &NativeRustSdkOptions,
@@ -186,7 +187,7 @@ fn prepare_indexed_scalar(
     if source.len() > MAX_SOURCE_BYTES || package_source_bytes.len() > MAX_SOURCE_BYTES {
         return Err(vec![sdk_error("indexed Rust source exceeds its bound")]);
     }
-    let program = semaprax::check(source, source_path)?;
+    let mut program = semaprax::parse(source, source_path).map_err(|error| vec![error])?;
     let options = NativeRustSdkOptions {
         exports: canonical_values(options.exports.clone(), MAX_EXPORTS)
             .map_err(|error| vec![error])?,
@@ -199,6 +200,84 @@ fn prepare_indexed_scalar(
         return Err(vec![sdk_error(
             "indexed scalar build requires one selected import and an export",
         )]);
+    }
+    let selected = program
+        .interfaces
+        .iter()
+        .flat_map(|interface| &interface.imports)
+        .filter(|import| import.index_selected)
+        .count();
+    if selected > 0 {
+        if selected != 1 {
+            return Err(vec![sdk_error(
+                "indexed scalar build requires exactly one selected import",
+            )]);
+        }
+        let import = program
+            .interfaces
+            .iter_mut()
+            .flat_map(|interface| &mut interface.imports)
+            .find(|import| import.index_selected)
+            .expect("one selected import");
+        if import.stable_id != options.imports[0] {
+            return Err(vec![Diagnostic::error(
+                "SPX-B140",
+                "selected Rust import disagrees with the requested import identity",
+                import.span,
+            )]);
+        }
+        let index = RustApiIndex::replay(index_bytes).map_err(|_| {
+            vec![Diagnostic::error(
+                "SPX-B142",
+                "selected Rust API index replay failed",
+                import.span,
+            )]
+        })?;
+        index
+            .require_package_identity(
+                package.name,
+                package.version,
+                package.source_sha256,
+                package.target,
+                package.feature_digest,
+            )
+            .and_then(|_| index.require_cargo_alias_identity(package.cargo_alias))
+            .and_then(|_| index.require_stable_compiler_identity(package.stable_rustc_version))
+            .map_err(|_| {
+                vec![Diagnostic::error(
+                    "SPX-B142",
+                    "selected Rust API identity disagrees with the prepared index",
+                    import.span,
+                )]
+            })?;
+        let path = import.rust_path.as_deref().expect("selected path parsed");
+        let items = index.select_supported(&[path]).map_err(|_| {
+            vec![Diagnostic::error(
+                "SPX-B141",
+                "selected Rust API item is unavailable",
+                import.span,
+            )]
+        })?;
+        let item = items[0];
+        if !matches!(item.kind, ItemKind::Function | ItemKind::InherentMethod)
+            || item.receiver != Receiver::None
+        {
+            return Err(vec![Diagnostic::error(
+                "SPX-B144",
+                "Rust API receiver or item kind is unsupported by the scalar bridge",
+                import.span,
+            )]);
+        }
+        semaprax::native_rust_binding::bind_selected_scalar_signature(
+            import,
+            &item.signature,
+            index.digest(),
+        )
+        .map_err(|error| vec![error])?;
+    }
+    let diagnostics = semaprax::verify::verify(&program);
+    if diagnostics.iter().any(|item| item.severity.is_error()) {
+        return Err(diagnostics);
     }
     let resolved = semaprax::hir::resolve(&program)?;
     let import = resolved

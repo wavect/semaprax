@@ -224,6 +224,19 @@ adapter generation. Ordinary native, Wasm, and interpreter paths retain their
 existing refusal. This source form alone does not select a dependency or grant
 any execution authority.
 
+An opt-in short form writes `import rust selected fn local_name from
+"alias::path"` followed by the same `effects` and `failure` clauses. It omits
+authored parameters and result. Ordinary `check` refuses this unbound form
+with source-located `SPX-B147`. The indexed scalar builder replays the selected
+RI-03 item, checks package/alias/target/feature/compiler identity and scalar
+receiver-free signature, and fills the AST parameter/result types before
+verification, HIR resolution, and code generation. Canonical formatting keeps
+the short declaration; the bound module Graph selects `semaprax.graph.v53`,
+records the selected index digest and path separately from the persistent
+Semaprax import ID, and leaves v52 bytes unchanged for authored signatures.
+Only the indexed builder can admit this form; ordinary Wasm and interpreter
+routes still refuse it.
+
 Rich Rust bindings use a separate `semaprax.trusted-native-profile.v1`
 preparation boundary. A profile binds three opaque, exact byte inputs: the
 selected binding plan, crate/index identity, and build-tool identity. They are

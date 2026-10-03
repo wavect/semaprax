@@ -200,6 +200,16 @@ pub(super) fn check_native_rust_imports<'p>(
             .map(String::as_str)
             .collect::<HashSet<_>>();
         for import in &interface.imports {
+            if import.index_selected
+                && (import.selected_signature.is_none() || import.selected_index_digest.is_none())
+            {
+                diagnostics.push(error(
+                    program,
+                    "SPX-B147",
+                    "selected Rust import requires an authenticated API index",
+                    import.span,
+                ));
+            }
             if let Some(path) = &import.rust_path {
                 if !import.native_rust || !crate::native_rust_binding::valid_rust_api_path(path) {
                     diagnostics.push(error(

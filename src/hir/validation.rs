@@ -270,6 +270,16 @@ impl<'a> HirValidator<'a> {
                 )));
             }
             for import in &interface.imports {
+                if import.index_selected
+                    && import
+                        .selected_index_digest
+                        .as_ref()
+                        .is_none_or(|digest| !digest.starts_with("sha256:") || digest.len() != 71)
+                {
+                    return Err(hir_error(
+                        "selected Rust import has no authenticated index digest",
+                    ));
+                }
                 if import.rust_path.as_ref().is_some_and(|path| {
                     !import.native_rust || !crate::native_rust_binding::valid_rust_api_path(path)
                 }) {

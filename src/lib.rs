@@ -68,7 +68,6 @@ pub mod compute_profile;
 pub mod conformance;
 pub mod cxx_shim;
 pub mod diagnostic;
-pub mod native_rust_binding;
 #[doc(hidden)]
 pub mod digest_hex;
 pub mod doc;
@@ -100,6 +99,7 @@ pub mod live_invocation;
 pub mod loan_plan;
 pub mod model_budget_policy;
 pub mod model_call_receipt;
+pub mod native_rust_binding;
 #[cfg(any(test, feature = "unstable-native-host-internal"))]
 #[doc(hidden)]
 pub(crate) mod native_settlement;
@@ -282,7 +282,21 @@ pub fn parse_canonical(
 }
 
 pub fn check(source: &str, path: impl AsRef<Path>) -> Result<Program, Vec<Diagnostic>> {
+    let path = path.as_ref();
     let program = parse(source, path).map_err(|error| vec![error])?;
+    if let Some(import) = program
+        .interfaces
+        .iter()
+        .flat_map(|interface| &interface.imports)
+        .find(|import| import.index_selected)
+    {
+        return Err(vec![Diagnostic::error(
+            "SPX-B147",
+            "selected Rust import requires an authenticated API index",
+            import.span,
+        )
+        .at_path(path.display().to_string())]);
+    }
     let diagnostics = verify::verify(&program);
     if diagnostics.iter().any(|item| item.severity.is_error()) {
         Err(diagnostics)

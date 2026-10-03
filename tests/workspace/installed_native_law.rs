@@ -3,6 +3,7 @@ use super::*;
 use semaprax::assurance_manifest::law_set::native_proof::prove_scalar_law;
 use semaprax::assurance_manifest::law_set::native_proof::prove_scalar_law_lean_cached;
 use semaprax::assurance_manifest::law_set::native_proof::prove_scalar_law_z3_cached;
+use semaprax::assurance_manifest::law_set::work_inventory;
 use semaprax::assurance_manifest::modular_law::cache::ProofTaskCache;
 
 fn native_project(label: &str, proposition: &str) -> Project {
@@ -41,6 +42,15 @@ fn installed_native_relational_lean_cache_reuses_checked_report_and_rebinds_law(
     )
     .unwrap();
     assert_eq!((cold_work.fresh, cold_work.reused), (1, 0));
+    let policy = StrictLawPolicy::new(
+        laws.clone(),
+        BTreeMap::from([("fresh.law.identity".into(), requirement(&tool))]),
+    )
+    .unwrap();
+    let cold_report =
+        strict::derive_with_native_proofs(&revision, &laws, &policy, &[], &[cold.clone()]).unwrap();
+    let cold_inventory =
+        work_inventory::derive(&revision, &laws, &policy, &[], &[cold], &cache).unwrap();
     let (warm, warm_work) = prove_scalar_law_lean_cached(
         &project.root,
         &revision,
@@ -51,16 +61,24 @@ fn installed_native_relational_lean_cache_reuses_checked_report_and_rebinds_law(
     )
     .unwrap();
     assert_eq!((warm_work.fresh, warm_work.reused), (0, 1));
-    let policy = StrictLawPolicy::new(
-        laws.clone(),
-        BTreeMap::from([("fresh.law.identity".into(), requirement(&tool))]),
-    )
-    .unwrap();
-    let cold_report =
-        strict::derive_with_native_proofs(&revision, &laws, &policy, &[], &[cold]).unwrap();
     let warm_report =
         strict::derive_with_native_proofs(&revision, &laws, &policy, &[], &[warm.clone()]).unwrap();
     assert_eq!(cold_report, warm_report);
+    let warm_inventory =
+        work_inventory::derive(&revision, &laws, &policy, &[], &[warm.clone()], &cache).unwrap();
+    let cold_inventory: serde_json::Value = serde_json::from_str(&cold_inventory).unwrap();
+    let warm_inventory: serde_json::Value = serde_json::from_str(&warm_inventory).unwrap();
+    assert_eq!(
+        cold_inventory["law_report_digest"],
+        warm_inventory["law_report_digest"]
+    );
+    assert_eq!(
+        cold_inventory["strict_report_digest"],
+        warm_inventory["strict_report_digest"]
+    );
+    assert_eq!(cold_inventory["counts"]["fresh"], 1);
+    assert_eq!(warm_inventory["counts"]["validated_reuse"], 1);
+    assert_eq!(warm_inventory["laws"][0]["outcome"], "proved");
     strict::require_with_native_proofs(
         &warm_report,
         &revision,

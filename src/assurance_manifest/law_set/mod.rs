@@ -6,6 +6,7 @@ pub mod native_proof;
 pub mod protected;
 pub mod strict;
 mod wire;
+pub mod work_inventory;
 pub mod workflow;
 
 use super::model_checking::Bounds;

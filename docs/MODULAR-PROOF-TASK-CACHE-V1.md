@@ -105,6 +105,30 @@ current source digest, Project revision and ProgramRoot. No prior byte-bound
 certificate is rewritten or treated as current. Cold and warm verdicts and
 law inventory must match; `fresh`, `reused`, and `stale` are work metrics only.
 
+## Per-law work inventory
+
+`law_set::work_inventory::derive` renders the bounded canonical
+`semaprax.law-proof-work-inventory.v1` report for an authenticated current
+Project revision and an independently retained strict LAW-04 policy. It
+rederives the law inventory, strict verdicts, and topological logical dependency
+index from the current LawSet and host-held opaque proofs. Each law is ordered
+by stable identity and retains its semantic digest, logical dependency digest,
+current obligation ID, exact reason, and separate `proved`, `missing`,
+`unsupported`, or `inconclusive` outcome. The strict satisfaction bit stays
+separate from work counters; a cache hit alone cannot change the verdict.
+
+The cache holds at most 4,096 process-local recent task events for one exact
+Project revision. An event is recorded only after the relevant installed proof
+route completes successfully; failed, cancelled, and refuted work cannot
+masquerade as checked success. The report associates each event with its law
+and lists tasks in deterministic role and owner order. `fresh`,
+`validated_reuse`, and `stale` count work for the latest completed invocation
+of each task owner in this process, not a global performance history. Revision
+change clears the observations, and event overflow refuses the report. Events
+are never serialized in the authenticated cache snapshot and cannot grant
+proof, source, execution, or publication authority. The report is a read-only
+diagnostic projection; strict LAW-04 replay remains the decision boundary.
+
 ## Boundaries
 
 Only the installed LAW-06 modular scalar, LAW-07 structured aggregate,

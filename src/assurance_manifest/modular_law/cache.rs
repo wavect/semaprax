@@ -20,6 +20,7 @@ use super::{
 
 const KEY_DOMAIN: &[u8] = b"semaprax.modular-proof-task.v1\0";
 const MAX_ENTRIES: usize = 1024;
+const MAX_WORK_EVENTS: usize = 4096;
 const MAX_SNAPSHOT_BYTES: usize = 1024 * 1024;
 const SNAPSHOT_SCHEMA: &str = "semaprax.modular-proof-task-cache.v1";
 const NUMERIC_MODEL: &str = "semaprax.checked-scalar-qf-lia.v1";
@@ -147,6 +148,9 @@ struct CheckedEntry {
 pub struct ProofTaskCache {
     project_scope: String,
     entries: BTreeMap<String, CheckedEntry>,
+    observed_revision: Option<String>,
+    observed: BTreeMap<(String, String), WorkMetrics>,
+    observed_overflow: bool,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -189,7 +193,45 @@ impl ProofTaskCache {
         Ok(Self {
             project_scope: digest(&["project-root", path]),
             entries: BTreeMap::new(),
+            observed_revision: None,
+            observed: BTreeMap::new(),
+            observed_overflow: false,
         })
+    }
+
+    /// Process-local diagnostic work inventory. It is never persisted in a
+    /// checked-success snapshot and never participates in proof authority.
+    pub(crate) fn record_event(
+        &mut self,
+        revision: &ProjectRevision,
+        role: &str,
+        owner: &str,
+        work: WorkMetrics,
+    ) {
+        if self.observed_revision.as_deref() != Some(revision.project_revision()) {
+            self.observed_revision = Some(revision.project_revision().into());
+            self.observed.clear();
+            self.observed_overflow = false;
+        }
+        let key = (role.to_owned(), owner.to_owned());
+        if self.observed.len() >= MAX_WORK_EVENTS && !self.observed.contains_key(&key) {
+            self.observed_overflow = true;
+        } else {
+            self.observed.insert(key, work);
+        }
+    }
+
+    pub(crate) fn events_for(
+        &self,
+        revision: &ProjectRevision,
+    ) -> Result<BTreeMap<(String, String), WorkMetrics>, Vec<crate::diagnostic::Diagnostic>> {
+        if self.observed_revision.as_deref() != Some(revision.project_revision()) {
+            return Ok(BTreeMap::new());
+        }
+        if self.observed_overflow {
+            return Err(invalid("work inventory exceeds explicit event bound"));
+        }
+        Ok(self.observed.clone())
     }
 
     fn require_project(&self, root: &std::path::Path) -> Result<(), String> {
@@ -269,6 +311,9 @@ impl ProofTaskCache {
         let candidate = Self {
             project_scope: snapshot.project_scope,
             entries: snapshot.entries,
+            observed_revision: None,
+            observed: BTreeMap::new(),
+            observed_overflow: false,
         };
         if candidate.encode_snapshot()? != bytes {
             return Err(invalid("snapshot is noncanonical"));
@@ -428,6 +473,7 @@ pub fn prove_straight_line_installed_cached(
         ));
     }
     cache.entries.extend(pending);
+    cache.record_event(revision, "modular-scalar", target, work);
     Ok(CachedProof { proof, work })
 }
 

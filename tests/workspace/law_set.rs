@@ -1,9 +1,12 @@
 //! LAW-01 protected-inventory and independent replay regressions.
 use super::*;
+use semaprax::assurance_manifest::law_set::strict::{RequiredLawEvidence, StrictLawPolicy};
+use semaprax::assurance_manifest::law_set::work_inventory;
 use semaprax::assurance_manifest::law_set::{
     self as laws, ContractKind, EvidenceRequirement, LawDefinition, LawModule, LawPolicy,
     LawSelector, LawSet, ModelKind,
 };
+use semaprax::assurance_manifest::modular_law::cache::ProofTaskCache;
 
 fn module() -> LawModule {
     LawModule {
@@ -70,6 +73,43 @@ fn inventory_replays_and_existing_project_report_is_unchanged() {
         generate(&fixture.manifest(), &Default::default()).unwrap(),
         original
     );
+}
+#[test]
+fn proof_work_inventory_distinguishes_unproved_and_missing_without_cache_authority() {
+    let fixture = Fixture::new("laws-work-inventory");
+    let baseline = inventory(&fixture, vec![module()]);
+    let policy = StrictLawPolicy::new(
+        baseline.clone(),
+        std::collections::BTreeMap::from([(
+            "calculator.divide.nonzero".into(),
+            RequiredLawEvidence::CompilerStatic,
+        )]),
+    )
+    .unwrap();
+    let cache = ProofTaskCache::for_project(&fixture.0).unwrap();
+    for (candidate, outcome, missing, inconclusive) in [
+        (baseline.clone(), "inconclusive", 0, 1),
+        (inventory(&fixture, vec![]), "missing", 1, 0),
+    ] {
+        with_authenticated_project(&fixture.manifest(), |snapshot| {
+            let report = work_inventory::derive(
+                &snapshot.retain_revision(),
+                &candidate,
+                &policy,
+                &[],
+                &[],
+                &cache,
+            )?;
+            let parsed = wire(&report);
+            assert_eq!(parsed["counts"]["missing"], missing);
+            assert_eq!(parsed["counts"]["inconclusive"], inconclusive);
+            assert_eq!(parsed["counts"]["fresh"], 0);
+            assert_eq!(parsed["laws"][0]["outcome"], outcome);
+            assert_eq!(parsed["laws"][0]["strict_satisfied"], false);
+            Ok(())
+        })
+        .unwrap();
+    }
 }
 #[test]
 fn formatting_and_unrelated_display_rename_preserve_identity_and_semantics() {

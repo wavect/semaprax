@@ -419,6 +419,7 @@ pub fn prove_installed_project_cached(
     let certificate = serde_json::to_string(&subject.certificate)
         .map_err(|_| refused("certificate serialization failed"))?;
     let proof = attached(&subject, &certificate);
+    cache.record_event(revision, role, &owner, work);
     Ok((certificate, proof, work))
 }
 

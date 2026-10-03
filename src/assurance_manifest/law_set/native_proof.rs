@@ -203,6 +203,13 @@ fn prove_scalar_law_with_cache(
             "methods":[method],"scope":"universal_typed_scalar_law","proved_lowering":false,
             "publication_authority":false,"source_authority":false}),
     };
+    if let Some((_, cache)) = cached.as_mut() {
+        let role = match tool.kind() {
+            ToolKind::Lean => "native-relational-lean",
+            ToolKind::Z3 => "native-relational-z3",
+        };
+        cache.record_event(revision, role, law_id, work);
+    }
     Ok((proof, work))
 }
 

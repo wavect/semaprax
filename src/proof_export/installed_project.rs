@@ -138,6 +138,14 @@ fn prove_postcondition_with_cache(
             .map_err(|error| vec![error])?;
         let proof = super::assurance_method_attachment(&certificate, &binding, revision, tool)
             .map_err(|error| vec![error])?;
+        if let Some((_, cache)) = cached.as_mut() {
+            cache.record_event(
+                revision,
+                "direct-project-lean",
+                &format!("{declaration}:{index}"),
+                work,
+            );
+        }
         return Ok((proof, work));
     }
     let function = program
@@ -233,6 +241,14 @@ fn prove_postcondition_with_cache(
         source.source_digest().into(),
         digest,
     );
+    if let Some((_, cache)) = cached.as_mut() {
+        cache.record_event(
+            revision,
+            "direct-project-z3",
+            &format!("{declaration}:{index}"),
+            work,
+        );
+    }
     Ok((proof, work))
 }
 

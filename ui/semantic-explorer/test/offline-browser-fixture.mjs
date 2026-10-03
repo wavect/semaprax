@@ -2,35 +2,49 @@ import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import perfFixtures from "../perf-fixtures.js";
 
 const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const digest = `sha256:${"a".repeat(64)}`;
 const views = ["modules", "declarations", "relations", "frontier"];
 
-function summary() {
+const { PERF_FIXTURES } = perfFixtures;
+
+function summary(inventory = {}) {
   return {
     schema: "semaprax.explorer-view.v1", kind: "summary",
     subject: { kind: "image", image_revision: digest, project_revision: digest, workspace_revision: digest, project_graph_digest: digest, candidate_revision: null, side: "current" },
     mode: "overview", target: null, query: { direction: "both", depth: 1, max_nodes: 256, max_bytes: 262144 }, artifact_digest: digest,
     truncation: { truncated: false, reason: null }, coverage: { owner: "workspace_graph", complete_within_retained_graph: true },
-    inventories: views.map(view => ({ view, handle: digest, total_items: { modules: 1, declarations: 2, relations: 1, frontier: 0 }[view] })),
+    inventories: views.map(view => ({ view, handle: digest, total_items: inventory[view] ?? { modules: 1, declarations: 2, relations: 1, frontier: 0 }[view] })),
     source_authority: false, execution: false, publication_authority: false, nonclaims: ["display data only"]
   };
 }
 
-function page(selected, view, items) {
+function page(selected, view, items, offset = 0) {
+  const end = offset + items.length;
   return {
     schema: selected.schema, kind: "page", subject: selected.subject, mode: selected.mode, target: selected.target, query: selected.query,
     artifact_digest: selected.artifact_digest, truncation: selected.truncation, coverage: selected.coverage, view, handle: digest,
-    cursor: null, offset: 0, total_items: items.length, page_size: 32, max_bytes: 65536, next_cursor: null, items,
+    cursor: offset === 0 ? null : `offset:${offset}`, offset, total_items: selected.inventories.find(row => row.view === view).total_items,
+    page_size: 32, max_bytes: 65536, next_cursor: end === selected.inventories.find(row => row.view === view).total_items ? null : `offset:${end}`, items,
     source_authority: false, execution: false, publication_authority: false, nonclaims: selected.nonclaims
   };
 }
 
-function snapshot(hostile = false) {
-  const selected = summary();
+function pages(selected, view, rows) {
+  if (!rows.length) return [page(selected, view, [])];
+  return Array.from({ length: Math.ceil(rows.length / 32) }, (_, index) => page(selected, view, rows.slice(index * 32, (index + 1) * 32), index * 32));
+}
+
+function snapshot(hostile = false, performance = null) {
   const reference = { path: "src/app.spx", source_revision: digest, source_digest: digest };
-  const items = {
+  const items = performance ? {
+    modules: [...new Set(performance.declarations.map(row => row.module))].map(module => ({ module, path: `${module}.spx`, declaration_count: performance.declarations.filter(row => row.module === module).length, relation_count: performance.relations.filter(row => row.from.startsWith(`@id:fixture.`) && row.to.startsWith(`@id:fixture.`)).length, source_reference: reference })),
+    declarations: performance.declarations.map(row => ({ node_key: row.node_key, id: row.id, identity_origin: "explicit", kind: row.kind, display_name: row.display_name, owner_id: null, module: row.module, path: row.path, source_reference: reference })),
+    relations: performance.relations,
+    frontier: []
+  } : {
     modules: [{ module: "app", path: "src/app.spx", declaration_count: 2, relation_count: 1, source_reference: reference }],
     declarations: [
       { node_key: "app:alpha", id: "app.alpha", identity_origin: "explicit", kind: "function", display_name: "alpha", owner_id: null, module: "app", path: "src/app.spx", source_reference: reference },
@@ -46,19 +60,25 @@ function snapshot(hostile = false) {
     items.declarations[0].path = 'javascript:globalThis.explorerAttack=true';
     items.relations[0].provenance = { markdown: '[open](javascript:globalThis.explorerAttack=true)', svg: '<svg onload="globalThis.explorerAttack=true">' };
   }
+  const selected = summary(Object.fromEntries(views.map(view => [view, items[view].length])));
   return {
     schema: "semaprax.explorer-snapshot.v1", generator: "browser acceptance fixture", snapshot_digest: digest,
     focus: null, focus_sides: [], source_included: false, evidence_availability: "not_requested", confidentiality: "names_ids_and_paths_may_be_confidential",
     evidence: { schema: "semaprax.explorer-evidence-index.v1", entries: [] },
-    views: [{ query: { mode: "overview", target: null, direction: "both", depth: 1, side: "current" }, summary: selected, pages: views.map(view => page(selected, view, items[view])) }]
+    // Renderer stress inventories deliberately retain only their first page in
+    // an offline fixture. The summary still carries all 4,096/65,536 counts;
+    // opening the report must remain a usable aggregate/list view without
+    // eagerly materializing every retained edge into the DOM.
+    views: [{ query: { mode: "overview", target: null, direction: "both", depth: 1, side: "current" }, summary: selected,
+      pages: views.flatMap(view => (performance?.renderer_only ? pages(selected, view, items[view]).slice(0, 1) : pages(selected, view, items[view]))) }]
   };
 }
 
 function script(body) { return `<script>(function(){\n${body}\n})();</script>`; }
 
-export async function writeOfflineBrowserFixture({ hostile = false } = {}) {
+export async function writeOfflineBrowserFixture({ hostile = false, performance = null } = {}) {
   const directory = await mkdtemp(join(tmpdir(), "semaprax-explorer-browser-"));
-  const data = snapshot(hostile);
+  const data = snapshot(hostile, performance && PERF_FIXTURES[performance]);
   const [css, ...assets] = await Promise.all([
     readFile(join(root, "explorer.css"), "utf8"),
     ...["model.js", "layout.js", "changes.js", "evidence.js", "hosts.js", "cache.js", "view.js"].map(name => readFile(join(root, name), "utf8"))

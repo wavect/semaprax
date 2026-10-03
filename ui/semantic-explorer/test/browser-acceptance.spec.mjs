@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { readFile, rm } from "node:fs/promises";
+import os from "node:os";
 import { pathToFileURL } from "node:url";
 import { writeOfflineBrowserFixture } from "./offline-browser-fixture.mjs";
 
@@ -40,6 +41,48 @@ test("hostile snapshot strings stay inert in the generated file artifact", async
     await expect(page.locator("svg[onload], a[href^='javascript:']")).toHaveCount(0);
   } finally {
     await rm(hostile.directory, { recursive: true, force: true });
+  }
+});
+
+test("named-host performance: medium and renderer-stress views stay responsive after snapshot data is available", async ({ page, browserName }) => {
+  test.skip(process.env.SEMAPRAX_EXPLORER_NAMED_HOST !== "1", "named-host measurement only");
+  const medium = await writeOfflineBrowserFixture({ performance: "medium" });
+  try {
+    const started = performance.now();
+    await page.goto(pathToFileURL(medium.htmlPath).href);
+    await expect(page.getByRole("heading", { name: "Meaning, mapped." })).toBeVisible();
+    const firstUsableMs = performance.now() - started;
+    const interactions = await page.evaluate(async () => {
+      const input = document.querySelector(".spx-search");
+      const samples = [];
+      for (let index = 0; index < 30; index++) {
+        const start = performance.now();
+        input.value = `fixture_${index}`;
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+        await new Promise(requestAnimationFrame);
+        samples.push(performance.now() - start);
+      }
+      return samples.sort((a, b) => a - b);
+    });
+    const p95Ms = interactions[Math.ceil(interactions.length * 0.95) - 1];
+    const machine = `${os.hostname()} cpu=${os.cpus()[0]?.model || "unknown"} cores=${os.cpus().length} ram=${Math.round(os.totalmem() / 1024 / 1024)}MiB`;
+    console.log(`explorer named-host benchmark browser=${browserName} first_usable_ms=${firstUsableMs.toFixed(1)} p95_interaction_ms=${p95Ms.toFixed(1)} ${machine}`);
+    expect(firstUsableMs).toBeLessThanOrEqual(1000);
+    expect(p95Ms).toBeLessThanOrEqual(100);
+
+    const stress = await writeOfflineBrowserFixture({ performance: "renderer_stress" });
+    try {
+      const stressStarted = performance.now();
+      await page.goto(pathToFileURL(stress.htmlPath).href);
+      await expect(page.getByRole("heading", { name: "Meaning, mapped." })).toBeVisible();
+      const stressUsableMs = performance.now() - stressStarted;
+      console.log(`explorer named-host renderer_stress browser=${browserName} first_usable_ms=${stressUsableMs.toFixed(1)} ${machine}`);
+      expect(stressUsableMs).toBeLessThanOrEqual(2000);
+    } finally {
+      await rm(stress.directory, { recursive: true, force: true });
+    }
+  } finally {
+    await rm(medium.directory, { recursive: true, force: true });
   }
 });
 

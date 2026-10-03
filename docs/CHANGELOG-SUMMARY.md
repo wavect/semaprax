@@ -25,6 +25,10 @@ was not published. See [v0.7.0 status](RELEASE-0.7.0-STATUS.md) and the
 - Local package-registry work now covers signed metadata, lock-bound artifact
   reads, held generations, and a resolver-cache bridge. It is not a hosted
   package service.
+- The experimental native owner renderer now carries closed Option<String> and
+  Result<String,i64> values through checked helpers and consuming imports.
+  Focused physical cleanup and failure controls pass; selected container
+  packaging and full RI-05 acceptance remain open.
 - Native law declarations now select exact Project law modules through manifest
   v2. Contract and independent scalar relational propositions have stable IDs,
   canonical graph/query projections, and explicit open coverage until verified

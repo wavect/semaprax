@@ -343,6 +343,12 @@ fn result_text(kind: &ResolvedImportResultKind) -> &'static str {
         ResolvedImportResultKind::I64 => "i64",
         ResolvedImportResultKind::Bool => "bool",
         ResolvedImportResultKind::OwnedString => "alloc::string::String",
+        ResolvedImportResultKind::OwnedOptionString => {
+            "core::option::Option<alloc::string::String>"
+        }
+        ResolvedImportResultKind::OwnedResultStringI64 => {
+            "core::result::Result<alloc::string::String, i64>"
+        }
         ResolvedImportResultKind::ResultI64I64 => "core::result::Result<i64, i64>",
         ResolvedImportResultKind::OwnedResource { .. } => "opaque resource",
     }

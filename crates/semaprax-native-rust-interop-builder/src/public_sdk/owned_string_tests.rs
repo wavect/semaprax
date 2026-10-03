@@ -291,3 +291,6 @@ fn owned_string_generated_execution_and_allocation_controls() {
     }
     fs::remove_dir_all(root).unwrap();
 }
+
+#[path = "owned_container_tests.rs"]
+mod container;

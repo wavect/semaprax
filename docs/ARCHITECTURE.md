@@ -3001,6 +3001,11 @@ These areas are deliberately outside the public compiler contract:
   bounded String renderer, fallible table reservation, and core-compatible
   String place cloning. `src/native_rust_binding/string.rs` binds its exact
   selected String signatures; this renderer does not publish Project packages;
+  `owned_container_sdk.rs`, `owned_container_runtime.rs.txt`, and
+  `owner_sdk_container.rs` own the closed Option<String>/Result<String,i64>
+  renderer, explicit tagged C carrier, and canonical active-case cleanup.
+  Its source/HIR admission requires a matching native constructor; it grants
+  no selected container binding or Project publication authority;
 - `public_sdk/borrowed_input.rs` in the native Rust builder owns private
   direct-reference Regex invocation fragments. Its `borrowed_view.rs` child
   adds exact Regex/Url owner-tied view methods, callback scope, and per-owner

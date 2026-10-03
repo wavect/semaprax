@@ -81,6 +81,12 @@ pub(super) fn append(
                     hir::ResolvedImportResultKind::I64 => "i64",
                     hir::ResolvedImportResultKind::Bool => "bool",
                     hir::ResolvedImportResultKind::OwnedString => "string",
+                    hir::ResolvedImportResultKind::OwnedOptionString => {
+                        "core::option::Option<alloc::string::String>"
+                    }
+                    hir::ResolvedImportResultKind::OwnedResultStringI64 => {
+                        "core::result::Result<alloc::string::String, i64>"
+                    }
                     hir::ResolvedImportResultKind::ResultI64I64 => "Result<i64, i64>",
                     hir::ResolvedImportResultKind::OwnedResource { .. } => "opaque resource",
                 },

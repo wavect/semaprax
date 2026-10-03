@@ -14,6 +14,9 @@ use std::collections::{BTreeMap, BTreeSet};
 
 #[path = "owner_sdk_calls.rs"]
 mod calls;
+#[path = "owner_sdk_container.rs"]
+mod container;
+pub(super) use container::Layout as ContainerLayout;
 
 const PRELUDE: &str = "#include \"owner.h\"\n#include <limits.h>\n#include <stddef.h>\n_Static_assert(sizeof(spx_owner)==24,\"owner wire size\");\ntypedef struct { int64_t scalar; spx_owner owner; int32_t status; uint8_t done; } spx_value;\n";
 use std::fmt::Write;
@@ -29,6 +32,7 @@ struct Emitter<'a> {
     callees: BTreeSet<DeclarationId>,
     helper: bool,
     owned_result: bool,
+    container: Option<&'a ContainerLayout>,
 }
 
 pub(super) fn render_program(
@@ -39,7 +43,40 @@ pub(super) fn render_program(
     lifecycle: &DeclarationId,
     resource: &ResolvedType,
 ) -> Result<String, Diagnostic> {
-    calls::render(program, function, constructor, method, lifecycle, resource)
+    calls::render(
+        program,
+        function,
+        constructor,
+        method,
+        lifecycle,
+        resource,
+        None,
+    )
+}
+
+pub(super) fn render_container_program(
+    program: &ResolvedProgram,
+    function: &ResolvedFunction,
+    constructor: &DeclarationId,
+    method: &DeclarationId,
+    lifecycle: &DeclarationId,
+    resource: &ResolvedType,
+    container: &ContainerLayout,
+) -> Result<String, Diagnostic> {
+    let source = calls::render(
+        program,
+        function,
+        constructor,
+        method,
+        lifecycle,
+        resource,
+        Some(container),
+    )?;
+    // Only compiler-owned type and symbol names differ. Cleanup order and case
+    // decisions were emitted directly from the validated plan above.
+    Ok(source
+        .replace("spx_owner", "spx_container")
+        .replace("sizeof(spx_container)==24", "sizeof(spx_container)==40"))
 }
 
 fn render_function(
@@ -51,6 +88,7 @@ fn render_function(
     functions: &[ResolvedFunction],
     symbols: &BTreeMap<DeclarationId, String>,
     helper: bool,
+    container: Option<&ContainerLayout>,
 ) -> Result<String, Diagnostic> {
     if !function.requires.is_empty()
         || !function.ensures.is_empty()
@@ -68,11 +106,12 @@ fn render_function(
                 .entry_state
                 .live_owned_parameters
                 .is_empty())
-        || !function
-            .cleanup_plan
-            .entry_state
-            .conditional_owned_parameters
-            .is_empty()
+        || (container.is_none()
+            && !function
+                .cleanup_plan
+                .entry_state
+                .conditional_owned_parameters
+                .is_empty())
         || function.cleanup_plan.slots.len() > 64
     {
         return Err(sdk_error(
@@ -90,11 +129,12 @@ fn render_function(
         callees: BTreeSet::new(),
         helper,
         owned_result: &function.return_type == resource,
+        container,
     };
     emitter.collect(&function.body)?;
     for slot in &function.cleanup_plan.slots {
         if &slot.ty != resource
-            || !matches!(&slot.field_liveness_shape, FieldLivenessShape::Leaf { lifecycle: id, .. } if id == lifecycle)
+            || !container.map_or_else(|| matches!(&slot.field_liveness_shape, FieldLivenessShape::Leaf { lifecycle: id, .. } if id == lifecycle), |layout| layout.slot(slot,lifecycle))
         {
             return Err(sdk_error("opaque owner cleanup slot is unsupported"));
         }
@@ -181,7 +221,9 @@ impl<'a> Emitter<'a> {
             .ok_or_else(|| sdk_error("opaque owner cleanup expression is missing"))
     }
     fn slot(&self, place: &CleanupPlace) -> Result<usize, Diagnostic> {
-        if !place.projections.is_empty() {
+        if !place.projections.is_empty()
+            && !self.container.is_some_and(|layout| layout.projected(place))
+        {
             return Err(sdk_error("opaque owner projection is unsupported"));
         }
         self.function
@@ -366,6 +408,37 @@ impl<'a> Emitter<'a> {
             )
             .unwrap();
         }
+        for entry in &self
+            .function
+            .cleanup_plan
+            .entry_state
+            .conditional_owned_parameters
+        {
+            let layout = self
+                .container
+                .ok_or_else(|| sdk_error("native container parameter layout is absent"))?;
+            if !layout.entry(entry) {
+                return Err(sdk_error(
+                    "native container conditional entry disagrees with its type",
+                ));
+            }
+            let StorageId::Value(id) = &entry.storage else {
+                return Err(sdk_error(
+                    "native container parameter storage is unsupported",
+                ));
+            };
+            let parameter = self
+                .function
+                .params
+                .iter()
+                .position(|p| &p.id == id && p.ownership == OwnershipMode::Own)
+                .ok_or_else(|| sdk_error("native container parameter is absent"))?;
+            let slot = self.slot(&CleanupPlace {
+                storage: entry.storage.clone(),
+                projections: Vec::new(),
+            })?;
+            writeln!(out,"if(spx_owner_validate(context,f->owner_args[{parameter}])) return 7; f->owners[{slot}]=f->owner_args[{parameter}]; f->live[{slot}]=1;").unwrap();
+        }
         writeln!(out, "goto block_{};", self.function.cleanup_plan.entry.0).unwrap();
         for block in &self.function.cleanup_plan.blocks {
             writeln!(out, "block_{}:;", block.id.0).unwrap();
@@ -410,11 +483,26 @@ impl<'a> Emitter<'a> {
                     let exit = &self.function.cleanup_plan.exits[exit.0 as usize];
                     // The vector is already canonical runtime order. Never sort it.
                     for action in &exit.finalize_in_order {
-                        if &action.lifecycle_id != lifecycle || action.active_case.is_some() {
-                            return Err(sdk_error("opaque owner finalizer is unsupported"));
-                        }
                         let slot = self.slot(&action.source)?;
-                        writeln!(out,"if(f->live[{slot}]) {{ f->live[{slot}]=0; int32_t dropped=spx_owner_drop(context,f->owners[{slot}]); if(!status) status=dropped; }}").unwrap();
+                        let condition = if let Some(layout) = self.container {
+                            if &action.lifecycle_id != lifecycle
+                                || !layout.finalizer(&action.source, action.active_case.as_ref())
+                            {
+                                return Err(sdk_error(
+                                    "native container finalizer disagrees with its active case",
+                                ));
+                            }
+                            format!(
+                                "f->live[{slot}] && f->owners[{slot}].tag=={}",
+                                layout.active_tag
+                            )
+                        } else {
+                            if &action.lifecycle_id != lifecycle || action.active_case.is_some() {
+                                return Err(sdk_error("opaque owner finalizer is unsupported"));
+                            }
+                            format!("f->live[{slot}]")
+                        };
+                        writeln!(out,"if({condition}) {{ f->live[{slot}]=0; int32_t dropped=spx_owner_drop(context,f->owners[{slot}]); if(!status) status=dropped; }}").unwrap();
                     }
                     match &exit.continuation {
                         ExitContinuation::Continue(edge) => {
@@ -439,7 +527,11 @@ impl<'a> Emitter<'a> {
                             // remains guarded through non-result cleanup. A
                             // contained Drop failure disposes this last guard
                             // without publishing it or replacing that failure.
-                            writeln!(out,"if(!f->live[{slot}]) return 7; if(status) {{ f->live[{slot}]=0; (void)spx_owner_drop(context,f->owners[{slot}]); return status; }} *result=f->owners[{slot}]; f->live[{slot}]=0; return 0;").unwrap();
+                            if let Some(layout) = self.container {
+                                writeln!(out,"if(!f->live[{slot}]) return 7; if(status) {{ f->live[{slot}]=0; if(f->owners[{slot}].tag=={}) (void)spx_owner_drop(context,f->owners[{slot}]); return status; }} *result=f->owners[{slot}]; f->live[{slot}]=0; return 0;",layout.active_tag).unwrap();
+                            } else {
+                                writeln!(out,"if(!f->live[{slot}]) return 7; if(status) {{ f->live[{slot}]=0; (void)spx_owner_drop(context,f->owners[{slot}]); return status; }} *result=f->owners[{slot}]; f->live[{slot}]=0; return 0;").unwrap();
+                            }
                         }
                         _ => {
                             return Err(sdk_error(
@@ -459,6 +551,39 @@ impl<'a> Emitter<'a> {
         transition: &CleanupTransition,
     ) -> Result<(), Diagnostic> {
         match transition {
+            CleanupTransition::InitializeVariant {
+                at,
+                destination,
+                variant,
+            } => {
+                let layout = self
+                    .container
+                    .ok_or_else(|| sdk_error("native container initialization has no layout"))?;
+                if variant != &layout.variant || !destination.projections.is_empty() {
+                    return Err(sdk_error("native container initialization changes type"));
+                }
+                let slot = self.slot(destination)?;
+                writeln!(out,"value=spx_eval_{}(context,f); if(value.status || f->live[{slot}] || spx_owner_validate(context,value.owner)) return 7; f->owners[{slot}]=value.owner; f->live[{slot}]=1;",self.index(at)?).unwrap();
+            }
+            CleanupTransition::TransferVariant {
+                source,
+                destination,
+                variant,
+                ..
+            } => {
+                let layout = self
+                    .container
+                    .ok_or_else(|| sdk_error("native container transfer has no layout"))?;
+                if variant != &layout.variant
+                    || !source.projections.is_empty()
+                    || !destination.projections.is_empty()
+                {
+                    return Err(sdk_error("native container transfer changes type"));
+                }
+                let source = self.slot(source)?;
+                let destination = self.slot(destination)?;
+                writeln!(out,"if(!f->live[{source}] || f->live[{destination}] || spx_owner_validate(context,f->owners[{source}])) return 7; f->owners[{destination}]=f->owners[{source}]; f->live[{source}]=0; f->live[{destination}]=1;").unwrap();
+            }
             CleanupTransition::Initialize { at, destination } => {
                 let slot = self.slot(destination)?;
                 writeln!(out,"value=spx_eval_{}(context,f); if(value.status || f->live[{slot}]) return 7; f->owners[{slot}]=value.owner; f->live[{slot}]=1;",self.index(at)?).unwrap();
@@ -476,6 +601,13 @@ impl<'a> Emitter<'a> {
                 for argument in arguments {
                     let slot = self.slot(&argument.source)?;
                     writeln!(out, "if(!f->live[{slot}]) return 7;").unwrap();
+                    if self.container.is_some() {
+                        writeln!(
+                            out,
+                            "if(spx_owner_validate(context,f->owners[{slot}])) return 7;"
+                        )
+                        .unwrap();
+                    }
                 }
                 for argument in arguments {
                     writeln!(out, "f->live[{}]=0;", self.slot(&argument.source)?).unwrap();

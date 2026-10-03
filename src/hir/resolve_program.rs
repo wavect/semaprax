@@ -355,7 +355,8 @@ impl Resolver<'_> {
                                     ty: self.resolve_type(&param.ty, param.span)?,
                                     ownership: param.mode.into(),
                                     consumes_on_failure: param.name == import.consumes
-                                        || (import.native_rust && param.mode == crate::ast::ParamMode::Own),
+                                        || (import.native_rust
+                                            && param.mode == crate::ast::ParamMode::Own),
                                 })
                             })
                             .collect::<Result<Vec<_>, Diagnostic>>()?;
@@ -378,50 +379,10 @@ impl Resolver<'_> {
                             rust_path: import.rust_path.clone(),
                             parameters,
                             result: ResolvedImportResult {
-                                kind: match &import.result {
-                                    crate::ast::ImportResult::Unit => {
-                                        ResolvedImportResultKind::Unit
-                                    }
-                                    crate::ast::ImportResult::I64 => ResolvedImportResultKind::I64,
-                                    crate::ast::ImportResult::Bool => {
-                                        ResolvedImportResultKind::Bool
-                                    }
-                                    crate::ast::ImportResult::ResultI64I64 => {
-                                        ResolvedImportResultKind::ResultI64I64
-                                    }
-                                    crate::ast::ImportResult::OwnedString => ResolvedImportResultKind::OwnedString,
-                                    crate::ast::ImportResult::OwnedResource { name } => {
-                                        let ty = self.resolve_type(
-                                            &crate::ast::Type::Named {
-                                                name: name.clone(),
-                                                arguments: Vec::new(),
-                                            },
-                                            import.span,
-                                        )?;
-                                        let ResolvedType::Nominal { declaration, arguments } = ty else {
-                                            return Err(self.error(
-                                                "SPX-H006",
-                                                "native Rust owned result did not resolve to a resource",
-                                                import.span,
-                                            ));
-                                        };
-                                        if !arguments.is_empty()
-                                            || self.declarations.declaration(&declaration)
-                                                .is_none_or(|item| item.kind != DeclarationKind::Resource)
-                                        {
-                                            return Err(self.error(
-                                                "SPX-H006",
-                                                "native Rust owned result did not resolve to a resource",
-                                                import.span,
-                                            ));
-                                        }
-                                        ResolvedImportResultKind::OwnedResource { resource: declaration }
-                                    }
-                                },
-                                ownership: if matches!(
-                                    &import.result,
-                                    crate::ast::ImportResult::OwnedResource { .. } | crate::ast::ImportResult::OwnedString
-                                ) {
+                                kind: self
+                                    .resolve_native_rust_result(&import.result, import.span)?
+                                    .0,
+                                ownership: if import.result.is_owned() {
                                     OwnershipMode::Own
                                 } else {
                                     OwnershipMode::Value
@@ -1140,6 +1101,7 @@ impl Resolver<'_> {
                                 && !admitted_box
 
                 && !admitted_owned_byte_prelude_instance(&declaration, &resolved)
+                && !crate::ast::ImportResult::container_enabled(self.program, ty)
                                 && !crate::hir::type_reachability::is_flat_owned_byte_record(
                                     &self.declarations,
                                     &instance,
@@ -1283,6 +1245,7 @@ impl Resolver<'_> {
                 )
                 && !super::generic_result::slot(&instance, &owner, function.type_parameters.len())
                 && !admitted_owned_byte_prelude_instance(&declaration, &resolved)
+                && !crate::ast::ImportResult::container_enabled(self.program, ty)
                 && !super::type_reachability::is_flat_owned_byte_record(
                     &self.declarations,
                     &instance,

@@ -615,7 +615,10 @@ pub use indexed_project::{build_indexed_project_native_rust_sdk, IndexedProjectS
 mod owned_data;
 mod owner_sdk;
 mod serde_projection;
-pub use owner_sdk::{prepare_opaque_owner_native, prepare_owned_string_native, OpaqueOwnerNative};
+pub use owner_sdk::{
+    prepare_opaque_owner_native, prepare_owned_container_native, prepare_owned_string_native,
+    OpaqueOwnerNative,
+};
 mod package;
 mod project;
 

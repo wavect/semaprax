@@ -192,15 +192,7 @@ impl Resolver<'_> {
                     return Ok(ResolvedExpr {
                         id,
                         ty,
-                        ownership: if matches!(
-                            result,
-                            ResolvedImportResultKind::OwnedResource { .. }
-                                | ResolvedImportResultKind::OwnedString
-                        ) {
-                            OwnershipMode::Own
-                        } else {
-                            OwnershipMode::Value
-                        },
+                        ownership: result.ownership(),
                         kind: ResolvedExprKind::NativeRustImportCall(
                             ResolvedNativeRustImportCall {
                                 expression: ExpressionId::new(function, path),

@@ -339,7 +339,7 @@ impl<'a> HirValidator<'a> {
                             && ((parameter.ownership == OwnershipMode::Value
                                 && matches!(parameter.ty, ResolvedType::I64 | ResolvedType::Bool))
                                 || (parameter.ownership == OwnershipMode::Own
-                                    && (parameter.ty == ResolvedType::String || matches!(parameter.ty, ResolvedType::Nominal { ref declaration, ref arguments }
+                                    && (parameter.ty == ResolvedType::String || ResolvedImportResultKind::is_owned_container_type(&parameter.ty, &self.program.declarations) || matches!(parameter.ty, ResolvedType::Nominal { ref declaration, ref arguments }
                                         if arguments.is_empty() && self.program.declarations.declaration(declaration)
                                             .is_some_and(|item| item.kind == DeclarationKind::Resource)))))
                     })
@@ -349,7 +349,7 @@ impl<'a> HirValidator<'a> {
                             | ResolvedImportResultKind::I64
                             | ResolvedImportResultKind::Bool
                             | ResolvedImportResultKind::ResultI64I64
-                            | ResolvedImportResultKind::OwnedResource { .. } | ResolvedImportResultKind::OwnedString
+                            | ResolvedImportResultKind::OwnedResource { .. } | ResolvedImportResultKind::OwnedString | ResolvedImportResultKind::OwnedOptionString | ResolvedImportResultKind::OwnedResultStringI64
                     )
                     && (import.result.kind != ResolvedImportResultKind::ResultI64I64
                         || (import.index_selected && import.selected_index_digest.is_some()));
@@ -359,16 +359,7 @@ impl<'a> HirValidator<'a> {
                     && import.parameters[0].consumes_on_failure
                     && import.result.kind == ResolvedImportResultKind::Unit;
                 if (!native_shape && !lifecycle_shape)
-                    || import.result.ownership
-                        != if matches!(
-                            &import.result.kind,
-                            ResolvedImportResultKind::OwnedResource { .. }
-                                | ResolvedImportResultKind::OwnedString
-                        ) {
-                            OwnershipMode::Own
-                        } else {
-                            OwnershipMode::Value
-                        }
+                    || import.result.ownership != import.result.kind.ownership()
                     || import.result.producer != "callee"
                     || import.result.out_slot_initialization != "success_only"
                     || import.result.ownership_transfer != "final_zero_status_commit"
@@ -3344,29 +3335,7 @@ impl<'a> HirValidator<'a> {
                                 }
                                 _ => {}
                             }
-                            let result = match &call.result {
-                                ResolvedImportResultKind::Unit => ResolvedType::Unit,
-                                ResolvedImportResultKind::I64 => ResolvedType::I64,
-                                ResolvedImportResultKind::Bool => ResolvedType::Bool,
-                                ResolvedImportResultKind::OwnedString => ResolvedType::String,
-                                ResolvedImportResultKind::ResultI64I64 => ResolvedType::Nominal {
-                                    declaration: self
-                                        .program
-                                        .declarations
-                                        .type_id("Result")
-                                        .cloned()
-                                        .ok_or_else(|| {
-                                            hir_error("compiler-owned Result type is absent")
-                                        })?,
-                                    arguments: vec![ResolvedType::I64, ResolvedType::I64],
-                                },
-                                ResolvedImportResultKind::OwnedResource { resource } => {
-                                    ResolvedType::Nominal {
-                                        declaration: resource.clone(),
-                                        arguments: Vec::new(),
-                                    }
-                                }
-                            };
+                            let result = call.result.value_type(&self.program.declarations)?;
                             frames.push(Frame::NativeNext {
                                 expression,
                                 args: &call.args,
@@ -3810,9 +3779,10 @@ impl<'a> HirValidator<'a> {
                     path,
                 } => {
                     if index == args.len() {
-                        let ownership = if matches!(&expression.kind, ResolvedExprKind::NativeRustImportCall(call) if matches!(call.result, ResolvedImportResultKind::OwnedResource { .. } | ResolvedImportResultKind::OwnedString))
+                        let ownership = if let ResolvedExprKind::NativeRustImportCall(call) =
+                            &expression.kind
                         {
-                            OwnershipMode::Own
+                            call.result.ownership()
                         } else {
                             OwnershipMode::Value
                         };
@@ -6509,34 +6479,8 @@ impl<'a> HirValidator<'a> {
                         self.mark_value_sources_moved(argument, scope)?;
                     }
                 }
-                let result = match &call.result {
-                    ResolvedImportResultKind::Unit => ResolvedType::Unit,
-                    ResolvedImportResultKind::I64 => ResolvedType::I64,
-                    ResolvedImportResultKind::Bool => ResolvedType::Bool,
-                    ResolvedImportResultKind::OwnedString => ResolvedType::String,
-                    ResolvedImportResultKind::ResultI64I64 => ResolvedType::Nominal {
-                        declaration: self
-                            .program
-                            .declarations
-                            .type_id("Result")
-                            .cloned()
-                            .ok_or_else(|| hir_error("compiler-owned Result type is absent"))?,
-                        arguments: vec![ResolvedType::I64, ResolvedType::I64],
-                    },
-                    ResolvedImportResultKind::OwnedResource { resource } => ResolvedType::Nominal {
-                        declaration: resource.clone(),
-                        arguments: Vec::new(),
-                    },
-                };
-                let ownership = if matches!(
-                    call.result,
-                    ResolvedImportResultKind::OwnedResource { .. }
-                        | ResolvedImportResultKind::OwnedString
-                ) {
-                    OwnershipMode::Own
-                } else {
-                    OwnershipMode::Value
-                };
+                let result = call.result.value_type(&self.program.declarations)?;
+                let ownership = call.result.ownership();
                 (result, ownership)
             }
             ResolvedExprKind::Unary { .. } => unreachable!("unary chain handled above"),

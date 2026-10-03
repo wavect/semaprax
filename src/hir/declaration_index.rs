@@ -448,6 +448,8 @@ impl DeclarationIndex {
                         });
                         continue;
                     }
+                    let native_owned_container =
+                        super::ResolvedImportResultKind::is_owned_container_type(&ty, self);
                     let authored_owned_byte_variant =
                         super::type_reachability::is_admitted_concrete_owned_byte_variant(
                             self, &ty,
@@ -492,6 +494,7 @@ impl DeclarationIndex {
                     if arguments.len() != parameters.len()
                         || (!compiler_byte_option
                             && !owned_byte_variant
+                            && !native_owned_container
                             && item.kind != DeclarationKind::Record
                             && arguments.iter().any(|argument| {
                                 !matches!(argument, ResolvedType::I64 | ResolvedType::Bool)

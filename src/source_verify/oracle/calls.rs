@@ -445,13 +445,8 @@ pub(super) fn oracle_call(
             }
         }
         let native_unit = import.result == ImportResult::Unit;
-        let mut checked = CheckedValue::returned(
-            import.result.value_type(),
-            matches!(
-                import.result,
-                ImportResult::OwnedResource { .. } | ImportResult::OwnedString
-            ),
-        );
+        let mut checked =
+            CheckedValue::returned(import.result.value_type(), import.result.is_owned());
         checked.native_unit = native_unit;
         return Some(checked);
     }

@@ -26,12 +26,14 @@ pub(super) fn render(
     method: &DeclarationId,
     lifecycle: &DeclarationId,
     resource: &ResolvedType,
+    container: Option<&ContainerLayout>,
 ) -> Result<String, Diagnostic> {
     let mut closure = Closure {
         program,
         constructor,
         method,
         resource,
+        container,
         visiting: BTreeSet::new(),
         retained: BTreeSet::new(),
     };
@@ -62,6 +64,7 @@ pub(super) fn render(
         &program.functions,
         &symbols,
         false,
+        container,
     )?;
     // Existing scalar-root programs without helpers retain their exact bytes.
     if helpers.is_empty() {
@@ -92,6 +95,7 @@ pub(super) fn render(
             &program.functions,
             &symbols,
             true,
+            container,
         )?;
         let body = source
             .strip_prefix(PRELUDE)
@@ -117,6 +121,7 @@ struct Closure<'a> {
     constructor: &'a DeclarationId,
     method: &'a DeclarationId,
     resource: &'a ResolvedType,
+    container: Option<&'a ContainerLayout>,
     visiting: BTreeSet<DeclarationId>,
     retained: BTreeSet<DeclarationId>,
 }
@@ -143,6 +148,7 @@ impl<'a> Closure<'a> {
             callees: BTreeSet::new(),
             helper: true,
             owned_result: &function.return_type == self.resource,
+            container: self.container,
         };
         emitter.collect(&function.body)?;
         for callee in emitter.callees {

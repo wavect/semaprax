@@ -19,6 +19,14 @@ impl Resolver<'_> {
             crate::ast::ImportResult::OwnedString => {
                 (ResolvedImportResultKind::OwnedString, ResolvedType::String)
             }
+            crate::ast::ImportResult::OwnedOptionString => (
+                ResolvedImportResultKind::OwnedOptionString,
+                self.resolve_type(&result.value_type(), span)?,
+            ),
+            crate::ast::ImportResult::OwnedResultStringI64 => (
+                ResolvedImportResultKind::OwnedResultStringI64,
+                self.resolve_type(&result.value_type(), span)?,
+            ),
             crate::ast::ImportResult::ResultI64I64 => (
                 ResolvedImportResultKind::ResultI64I64,
                 self.resolve_type(&result.value_type(), span)?,

@@ -85,13 +85,16 @@ impl Parser {
                 let ty = self.ty()?;
                 match ty {
                     Type::String => ImportResult::OwnedString,
+                    ref ty if ImportResult::container_for_type(ty).is_some() => {
+                        ImportResult::container_for_type(ty).unwrap()
+                    }
                     Type::Named { name, arguments } if arguments.is_empty() => {
                         ImportResult::OwnedResource { name }
                     }
                     _ => {
                         return Err(self.error_previous(
                             "SPX-P106",
-                            "expected an opaque resource name as native Rust import result",
+                            "native Rust result requires an opaque resource, string, Option<string>, or Result<string, i64>",
                         ))
                     }
                 }

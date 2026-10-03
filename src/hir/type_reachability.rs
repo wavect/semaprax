@@ -506,6 +506,9 @@ pub(crate) fn is_admitted_owned_string_variant(
     declarations: &DeclarationIndex,
     ty: &ResolvedType,
 ) -> bool {
+    if super::ResolvedImportResultKind::is_owned_container_type(ty, declarations) {
+        return true;
+    }
     let ResolvedType::Nominal {
         declaration,
         arguments,

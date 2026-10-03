@@ -635,10 +635,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         VerifierCallTarget::Native(import) => {
                             let mut value = CheckedValue::returned(
                                 import.result.value_type(),
-                                matches!(
-                                    import.result,
-                                    ImportResult::OwnedResource { .. } | ImportResult::OwnedString
-                                ),
+                                import.result.is_owned(),
                             );
                             value.native_unit = import.result == ImportResult::Unit;
                             value

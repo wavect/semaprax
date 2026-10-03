@@ -628,7 +628,70 @@ pub enum ResolvedImportResultKind {
     Bool,
     ResultI64I64,
     OwnedString,
+    OwnedOptionString,
+    OwnedResultStringI64,
     OwnedResource { resource: DeclarationId },
+}
+
+impl ResolvedImportResultKind {
+    pub fn ownership(&self) -> OwnershipMode {
+        if matches!(
+            self,
+            Self::OwnedResource { .. }
+                | Self::OwnedString
+                | Self::OwnedOptionString
+                | Self::OwnedResultStringI64
+        ) {
+            OwnershipMode::Own
+        } else {
+            OwnershipMode::Value
+        }
+    }
+    pub fn value_type(
+        &self,
+        declarations: &DeclarationIndex,
+    ) -> Result<ResolvedType, crate::diagnostic::Diagnostic> {
+        let nominal = |name: &str,
+                       arguments: Vec<ResolvedType>|
+         -> Result<ResolvedType, crate::diagnostic::Diagnostic> {
+            Ok(ResolvedType::Nominal {
+                declaration: declarations.type_id(name).cloned().ok_or_else(|| {
+                    crate::diagnostic::Diagnostic::io(
+                        "SPX-H006",
+                        if name == "Result" {
+                            "compiler-owned Result type is absent"
+                        } else {
+                            "compiler-owned Option type is absent"
+                        },
+                    )
+                })?,
+                arguments,
+            })
+        };
+        Ok(match self {
+            Self::Unit => ResolvedType::Unit,
+            Self::I64 => ResolvedType::I64,
+            Self::Bool => ResolvedType::Bool,
+            Self::OwnedString => ResolvedType::String,
+            Self::ResultI64I64 => nominal("Result", vec![ResolvedType::I64, ResolvedType::I64])?,
+            Self::OwnedOptionString => nominal("Option", vec![ResolvedType::String])?,
+            Self::OwnedResultStringI64 => {
+                nominal("Result", vec![ResolvedType::String, ResolvedType::I64])?
+            }
+            Self::OwnedResource { resource } => ResolvedType::Nominal {
+                declaration: resource.clone(),
+                arguments: Vec::new(),
+            },
+        })
+    }
+    pub fn is_owned_container_type(ty: &ResolvedType, declarations: &DeclarationIndex) -> bool {
+        [Self::OwnedOptionString, Self::OwnedResultStringI64]
+            .iter()
+            .any(|kind| {
+                kind.value_type(declarations)
+                    .is_ok_and(|actual| &actual == ty)
+            })
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

@@ -426,3 +426,52 @@ selected Project publication, native Semaprax loan lowering, durable checkpoint
 admission, carrier fuzzing, Miri, sanitizer or hosted evidence. The existing v1
 non-reentrant policy, scalar profiles and owned-data snapshots remain unchanged.
 RI-06 stays open until those integration and acceptance gaps are closed.
+
+### Closed owned Option/Result rendering (experimental)
+
+`prepare_owned_container_native` is an additive pure renderer for exactly
+`Option<string>` and `Result<string, i64>` native results. It accepts one
+`(i64) -> container` constructor and one consuming `(own container, i64) -> bool`
+import, plus the existing bounded acyclic Semaprax helper closure and scalar
+public entry. Source and HIR admission require a matching native constructor
+import; ordinary generic String programs retain their prior refusal. The generated Rust function pointers require the corresponding
+standard Rust enum and actual String type. Nested containers, different payload
+or error types, and selected-index/Project publication are outside this route.
+
+The closed C carrier has a byte tag, seven zero reserved bytes, an i64 domain
+error and an opaque String owner token. Option uses None=0/Some=1; Result uses
+Ok=0/Err=1. Inactive owner fields must be zero. Some/Ok require error=0 and a
+live context/generation/slot token. Rust matches real enum values to construct
+or consume this carrier; it never reinterprets a Rust enum layout. None and
+Err retain no owner-table entry. Domain outcomes return bridge status zero;
+allocation, panic, stale carrier and protocol refusal remain separate statuses.
+Strings retain the existing 4096-byte length/capacity bounds and owning-side
+allocation/deallocation. Moving a container does not clone its String payload.
+
+The compiler's existing conditional cleanup inventory and plan remain
+canonical. Generated code authenticates a complete tag before conditional
+entry or initialization, performs TransferVariant and CallCommit in their
+existing order, and executes only the named active-case finalizer. Its whole
+carrier initialization bit records storage availability, not an invented
+payload obligation for None/Err. Helper results stay provisional until all
+non-result cleanup succeeds; a cleanup failure disposes the active provisional
+payload once without overwriting an earlier selected failure.
+
+The two `owned_container_` selectors cover canonical source/graph replay,
+use-after-move and closed-type refusals, checked helpers, real generated C at
+O0/O2, empty/bounded Strings, Some/None/Ok/domain Err, signed error extremes,
+raw pointer preservation, stale/forged/cross-context carrier refusals before
+target effects, constructor/consumer panic and poisoned output preservation.
+Injected pre-target reservation, result admission and cleanup failures retain
+exact deallocation traces. A separate late-argument failure exercises cleanup
+before CallCommit. Compiled missing-drop and domain-as-status controls must
+fail the same assertions; a different actual Rust parameter width must fail
+Rust type checking. Fixture allocation instrumentation is local evidence and
+not a replacement for sanitizer or Miri coverage.
+
+These imports select graph v58, adding owned container results to v57. Prior
+scalar, opaque-resource, String and owned-data v1 schemas and runtime templates
+remain separate. This does not complete RI-05: selected container publication,
+general/nested conversions, full primitive-width and failure-injection matrices,
+public owner-valued exports, fuzzing, sanitizers, Miri and full-profile evidence
+remain outstanding.

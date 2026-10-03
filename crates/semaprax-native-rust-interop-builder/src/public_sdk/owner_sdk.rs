@@ -167,3 +167,7 @@ fn rust_path(import: &ResolvedImport) -> Result<&str, Diagnostic> {
         .map(|_| path)
         .ok_or_else(|| sdk_error("opaque owner Rust path is invalid"))
 }
+
+#[path = "owned_container_sdk.rs"]
+mod container;
+pub use container::prepare_owned_container_native;

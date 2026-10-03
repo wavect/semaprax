@@ -35,6 +35,34 @@ separate type/lifetime/const parameter lists, or bound and associated-type
 graphs. Those require an extractor that supplies compiler-resolved facts and
 are acceptance gaps, not facts inferred from signatures or prose.
 
+The local fixture sources are `fixtures/local_api_fixture.rs` and
+`fixtures/stable_signature_check.rs`. Once the project-pinned nightly is
+available, rustdoc JSON can be produced without Cargo for that dependency-free
+fixture with:
+
+```sh
+rustdoc --edition=2021 --crate-name local_api_fixture \
+  crates/semaprax-rust-api-index/fixtures/local_api_fixture.rs \
+  --cfg 'feature="fixture-selected"' -Z unstable-options \
+  --output-format json -o target/ri03-rustdoc/local
+```
+
+The selected signatures can be independently checked with the selected
+stable compiler:
+
+```sh
+rustc --edition=2021 --crate-type lib --crate-name stable_signature_check \
+  crates/semaprax-rust-api-index/fixtures/stable_signature_check.rs \
+  --cfg 'feature="fixture-selected"' --emit=metadata \
+  -o /tmp/semaprax-ri03-stable-signatures.rmeta
+```
+
+These commands are documented but have not been run in the current turn. The
+stable check asserts the selected inherent method, macro-generated method,
+trait method with associated output, and enabled cfg function. The fixture
+also includes a re-export, disabled cfg item, sealed trait, opaque output, and
+generic case for extractor classification.
+
 Replay requires the exact canonical bytes, a terminal LF, no NUL, at most
 1 MiB, at most 512 items, and type depth at most 32. It rejects duplicate or
 out-of-order paths, unknown/missing fields, malformed digests, feature/target

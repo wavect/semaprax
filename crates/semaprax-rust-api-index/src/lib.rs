@@ -486,7 +486,7 @@ mod tests {
         assert!(first
             .items()
             .iter()
-            .any(|item| item.path == "fixture_api::Matcher::is_match"
+            .any(|item| item.path == "fixture_api::Example::simple"
                 && item.support == Support::Supported));
         assert!(first.items().iter().any(|item| matches!(
             item.support,
@@ -512,19 +512,19 @@ mod tests {
             .unwrap();
         assert_eq!(
             first
-                .select_supported(&["fixture_api::Matcher::is_match"])
+                .select_supported(&["fixture_api::Example::simple"])
                 .unwrap()
                 .len(),
             1
         );
         assert_eq!(
-            first.select_supported(&["fixture_api::Matcher::captures"]),
+            first.select_supported(&["fixture_api::Example::generic"]),
             Err(IndexError::ItemUnavailable)
         );
         assert_eq!(
             first.select_supported(&[
-                "fixture_api::Matcher::is_match",
-                "fixture_api::Matcher::new"
+                "fixture_api::Example::simple",
+                "fixture_api::Example::opaque"
             ]),
             Err(IndexError::ItemUnavailable)
         );

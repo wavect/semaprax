@@ -74,6 +74,36 @@ class TypeClosureBoundsTests(unittest.TestCase):
         with self.assertRaisesRegex(converter.InputError, "selected APIs reach too many types"):
             self.expand({}, over_limit)
 
+    def test_private_method_is_emitted_only_as_an_explicit_rejection(self):
+        item = {
+            "name": "hidden",
+            "visibility": "default",
+            "docs": None,
+            "span": None,
+            "inner": {
+                "function": {
+                    "sig": {
+                        "inputs": [],
+                        "output": {"primitive": "bool"},
+                        "is_c_variadic": False,
+                    },
+                    "generics": {"params": [], "where_predicates": []},
+                }
+            },
+        }
+        row = converter.function_record(
+            ("fixture", "PublicApi", "hidden"),
+            item,
+            "inherent_method",
+            {},
+            {},
+            None,
+            owner_id="public_owner",
+        )
+        self.assertEqual(row["visibility"], "private")
+        self.assertEqual(row["support"], "rejected")
+        self.assertEqual(row["reason"], "private")
+
 
 if __name__ == "__main__":
     unittest.main()

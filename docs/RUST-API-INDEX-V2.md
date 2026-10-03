@@ -56,7 +56,7 @@ and bounded per-item and total documentation/generic metadata. Type closure
 cycles are handled by path identity; missing references, stale closure
 summaries, truncation, and identity drift fail closed. The converter's focused boundary suite exercises cycle handling, exact and
 over-limit transitive depth, per-item demand expansion, and selected-type union
-size with controlled type graphs. Run it with:
+size with controlled type graphs, and private method rejection. Run it with:
 
 ```sh
 python3 crates/semaprax-rust-api-index/tools/test_rustdoc_json_to_index.py

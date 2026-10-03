@@ -2,8 +2,10 @@
 
 use core::{
     any::{Any, TypeId},
+    cell::Cell,
     marker::PhantomData,
 };
+use std::rc::Rc;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 static NEXT_CONTEXT: AtomicU64 = AtomicU64::new(1);
@@ -19,6 +21,16 @@ pub(crate) enum OwnerRefusal {
     Closed,
     Capacity,
     GenerationExhausted,
+    LoanActive,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum OwnerLoanRefusal {
+    Owner(OwnerRefusal),
+    SharedConflict,
+    ExclusiveConflict,
+    Reentrant,
+    CounterExhausted,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -65,6 +77,54 @@ struct Slot {
     live: bool,
     type_id: TypeId,
     value: Option<Box<dyn Any>>,
+    access: Rc<Cell<SlotAccess>>,
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+struct SlotAccess {
+    shared: u32,
+    exclusive: bool,
+    callback_active: bool,
+}
+
+impl SlotAccess {
+    fn has_active_access(self) -> bool {
+        self.shared != 0 || self.exclusive || self.callback_active
+    }
+}
+
+/// Invocation-scoped state guard, not an owning reference to the Rust value.
+/// Dropping it closes the access state; it does not keep the owner alive.
+pub(crate) struct OwnerLoanGuard {
+    access: Rc<Cell<SlotAccess>>,
+    kind: OwnerLoanKind,
+}
+
+#[derive(Clone, Copy)]
+enum OwnerLoanKind {
+    Shared,
+    Exclusive,
+}
+
+impl Drop for OwnerLoanGuard {
+    fn drop(&mut self) {
+        let mut access = self.access.get();
+        match self.kind {
+            OwnerLoanKind::Shared => access.shared -= 1,
+            OwnerLoanKind::Exclusive => access.exclusive = false,
+        }
+        self.access.set(access);
+    }
+}
+
+struct OwnerCallbackGuard(Rc<Cell<SlotAccess>>);
+
+impl Drop for OwnerCallbackGuard {
+    fn drop(&mut self) {
+        let mut access = self.0.get();
+        access.callback_active = false;
+        self.0.set(access);
+    }
 }
 
 #[derive(Debug)]
@@ -148,6 +208,7 @@ impl OwnerContext {
             live: true,
             type_id: TypeId::of::<T>(),
             value: Some(Box::new(value)),
+            access: Rc::new(Cell::new(SlotAccess::default())),
         });
         Owner {
             context: self.id,
@@ -165,11 +226,84 @@ impl OwnerContext {
             .ok_or(OwnerRefusal::WrongType)
     }
 
+    /// Acquire a shared resource loan for the current invocation scope.
+    /// Multiple shared loans may coexist, but no exclusive loan may be live.
+    pub(crate) fn shared_loan<T: 'static>(
+        &self,
+        owner: &Owner<T>,
+    ) -> Result<OwnerLoanGuard, OwnerLoanRefusal> {
+        let access = self
+            .owner_slot(owner)
+            .map_err(OwnerLoanRefusal::Owner)?
+            .access
+            .clone();
+        let mut state = access.get();
+        if state.exclusive {
+            return Err(OwnerLoanRefusal::SharedConflict);
+        }
+        state.shared = state
+            .shared
+            .checked_add(1)
+            .ok_or(OwnerLoanRefusal::CounterExhausted)?;
+        access.set(state);
+        Ok(OwnerLoanGuard {
+            access,
+            kind: OwnerLoanKind::Shared,
+        })
+    }
+
+    /// Acquire an exclusive resource loan for the current invocation scope.
+    pub(crate) fn exclusive_loan<T: 'static>(
+        &self,
+        owner: &Owner<T>,
+    ) -> Result<OwnerLoanGuard, OwnerLoanRefusal> {
+        let access = self
+            .owner_slot(owner)
+            .map_err(OwnerLoanRefusal::Owner)?
+            .access
+            .clone();
+        let mut state = access.get();
+        if state.exclusive || state.shared != 0 {
+            return Err(OwnerLoanRefusal::ExclusiveConflict);
+        }
+        state.exclusive = true;
+        access.set(state);
+        Ok(OwnerLoanGuard {
+            access,
+            kind: OwnerLoanKind::Exclusive,
+        })
+    }
+
+    /// Enter a callback for this resource. Re-entry is rejected before the
+    /// callback closure runs, so a refused call cannot reach the target.
+    pub(crate) fn with_callback<T: 'static, R>(
+        &self,
+        owner: &Owner<T>,
+        callback: impl FnOnce() -> R,
+    ) -> Result<R, OwnerLoanRefusal> {
+        let access = self
+            .owner_slot(owner)
+            .map_err(OwnerLoanRefusal::Owner)?
+            .access
+            .clone();
+        let mut state = access.get();
+        if state.callback_active {
+            return Err(OwnerLoanRefusal::Reentrant);
+        }
+        state.callback_active = true;
+        access.set(state);
+        let _guard = OwnerCallbackGuard(access);
+        Ok(callback())
+    }
+
     pub(crate) fn consume<T: 'static>(&mut self, owner: Owner<T>) -> Result<T, OwnerRefusal> {
         if self.closed {
             return Err(OwnerRefusal::Closed);
         }
         let slot = self.owner_slot_mut(&owner)?;
+        if slot.access.get().has_active_access() {
+            return Err(OwnerRefusal::LoanActive);
+        }
         // Check exhaustion before taking the value so the context retains the
         // Rust value for its mandatory close cleanup on a failed transition.
         let next_generation = slot
@@ -213,6 +347,9 @@ impl OwnerContext {
             Ok(slot) => slot,
             Err(reason) => return refuse(reason, owner),
         };
+        if source.access.get().has_active_access() {
+            return refuse(OwnerRefusal::LoanActive, owner);
+        }
         if source.generation.checked_add(1).is_none() {
             return refuse(OwnerRefusal::GenerationExhausted, owner);
         }
@@ -240,6 +377,7 @@ impl OwnerContext {
             live: true,
             type_id: source_type,
             value: Some(value),
+            access: Rc::new(Cell::new(SlotAccess::default())),
         });
         Ok(Owner {
             context: destination.id,
@@ -250,12 +388,27 @@ impl OwnerContext {
         })
     }
 
+    /// Best-effort legacy close. Use `try_close` to observe active-loan refusal.
     pub(crate) fn close(&mut self) {
+        let _ = self.try_close();
+    }
+
+    /// Close and drop every admitted value, refusing to finalize while any
+    /// invocation-scoped loan or callback remains active.
+    pub(crate) fn try_close(&mut self) -> Result<(), OwnerRefusal> {
+        if self
+            .slots
+            .iter()
+            .any(|slot| slot.access.get().has_active_access())
+        {
+            return Err(OwnerRefusal::LoanActive);
+        }
         self.closed = true;
         for slot in &mut self.slots {
             slot.live = false;
             drop(slot.value.take());
         }
+        Ok(())
     }
 
     fn owner_slot<T: 'static>(&self, owner: &Owner<T>) -> Result<&Slot, OwnerRefusal> {
@@ -463,6 +616,70 @@ mod tests {
 
         drop(destination.consume(moved).unwrap());
         assert_eq!(count.get(), 1);
+    }
+
+    #[test]
+    fn invocation_loans_enforce_shared_exclusive_and_finalize_boundaries() {
+        let count = Rc::new(Cell::new(0));
+        let mut source = OwnerContext::new();
+        let mut destination = OwnerContext::new();
+        let owner = source.admit("count", Count(count.clone())).unwrap();
+
+        let shared_a = source.shared_loan(&owner).unwrap();
+        let shared_b = source.shared_loan(&owner).unwrap();
+        assert!(matches!(
+            source.exclusive_loan(&owner),
+            Err(OwnerLoanRefusal::ExclusiveConflict)
+        ));
+        assert!(matches!(source.try_close(), Err(OwnerRefusal::LoanActive)));
+        let (reason, owner) = source.transfer(owner, &mut destination).unwrap_err();
+        assert_eq!(reason, OwnerRefusal::LoanActive);
+        assert!(source.borrow(&owner).is_ok());
+        drop(shared_a);
+        assert_eq!(count.get(), 0);
+        drop(shared_b);
+
+        let exclusive = source.exclusive_loan(&owner).unwrap();
+        assert!(matches!(
+            source.shared_loan(&owner),
+            Err(OwnerLoanRefusal::SharedConflict)
+        ));
+        assert!(matches!(source.try_close(), Err(OwnerRefusal::LoanActive)));
+        drop(exclusive);
+
+        let moved = source.transfer(owner, &mut destination).unwrap();
+        drop(destination.consume(moved).unwrap());
+        assert_eq!(count.get(), 1);
+
+        let pending = source.admit("count", Count(count.clone())).unwrap();
+        let active = source.shared_loan(&pending).unwrap();
+        assert!(matches!(
+            source.consume(pending),
+            Err(OwnerRefusal::LoanActive)
+        ));
+        assert_eq!(count.get(), 1);
+        drop(active);
+        assert_eq!(source.try_close(), Ok(()));
+        assert_eq!(count.get(), 2);
+    }
+
+    #[test]
+    fn callback_reentry_is_refused_before_the_target_runs() {
+        let mut context = OwnerContext::new();
+        let owner = context.admit("callback", ()).unwrap();
+        let calls = Cell::new(0);
+        context
+            .with_callback(&owner, || {
+                calls.set(calls.get() + 1);
+                let nested = context.with_callback(&owner, || calls.set(calls.get() + 1));
+                assert_eq!(nested, Err(OwnerLoanRefusal::Reentrant));
+            })
+            .unwrap();
+        assert_eq!(calls.get(), 1);
+        context
+            .with_callback(&owner, || calls.set(calls.get() + 1))
+            .unwrap();
+        assert_eq!(calls.get(), 2);
     }
 
     #[test]

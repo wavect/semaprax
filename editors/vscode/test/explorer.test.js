@@ -37,6 +37,8 @@ test('panel messages and page cursors are closed over the retained summary', () 
   assert.equal(message(request, 4).action, 'summary');
   assert.equal(message({ ...request, requestId: 2, action: 'deltaCatalog', value: { candidateRevision: 'sha256:' + 'a'.repeat(64) } }, 4).action, 'deltaCatalog');
   assert.equal(message({ ...request, requestId: 3, action: 'semanticDelta', value: { target: 'calculator.add' } }, 4).action, 'semanticDelta');
+  assert.equal(message({ ...request, requestId: 0, action: 'rendered', value: { mode: 'overview', target: null, side: 'current', loaded: ['modules', 'declarations'] } }, 4).action, 'rendered');
+  assert.equal(message({ ...request, action: 'rendered', value: {} }, 4), null);
   assert.equal(message({ ...request, generation: 3, action: 'tools/call' }, 4), null);
   assert.equal(message({ ...request, foreign: 'ignored before this check' }, 4), null);
   const summary = { inventories: [{ view: 'modules', handle: 'sha256:' + 'a'.repeat(64) }] }, cursors = new Map([['modules', null]]);

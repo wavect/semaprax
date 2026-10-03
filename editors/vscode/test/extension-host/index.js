@@ -43,6 +43,14 @@ async function replaceActiveDocument(value) {
   const end = editor.document.lineAt(editor.document.lineCount - 1).range.end;
   assert.equal(await editor.edit(edit => edit.replace(new vscode.Range(new vscode.Position(0, 0), end), value)), true);
 }
+async function waitForExplorerRender(api, expected) {
+  for (let attempt = 0; attempt < 100; attempt++) {
+    const found = api.state().explorerRenders.find(render => render.mode === expected.mode && render.target === expected.target && render.side === expected.side && expected.loaded.every(view => render.loaded.includes(view)));
+    if (found) return found;
+    await new Promise(resolve => setTimeout(resolve, 50));
+  }
+  assert.fail(`Explorer webview did not render ${JSON.stringify(expected)}`);
+}
 
 async function run() {
   const compiler = required('SEMAPRAX_VSCODE_COMPILER');
@@ -238,10 +246,12 @@ async function run() {
   assert.equal(currentExplorer.viewType, 'semapraxExplorer');
   assert.equal(currentExplorer.title, 'SEMAPRAX Explorer');
   assert.match(currentExplorer.webview.html, /default-src 'none'/);
+  await waitForExplorerRender(api, { mode: 'overview', target: null, side: 'current', loaded: ['modules', 'declarations'] });
   api.enqueueInput('calculator.add');
   const selectedExplorer = await api.execute('exploreSelection');
   assert.equal(selectedExplorer.viewType, 'semapraxExplorer');
   assert.match(selectedExplorer.webview.html, /context · current/);
+  await waitForExplorerRender(api, { mode: 'context', target: 'calculator.add', side: 'current', loaded: ['modules', 'declarations', 'relations', 'frontier'] });
 
   await api.execute('openCandidate');
   api.enqueueInput('calculator.add');
@@ -268,6 +278,8 @@ async function run() {
   const candidateExplorer = await api.execute('reviewCandidateGraph');
   assert.equal(candidateExplorer.viewType, 'semapraxExplorer');
   assert.match(candidateExplorer.webview.html, /overview · candidate/);
+  await waitForExplorerRender(api, { mode: 'overview', target: null, side: 'candidate', loaded: ['modules', 'declarations'] });
+  const webviewRenders = api.state().explorerRenders;
 
   const documentsBeforeCancellation = state.documents.length;
   const cancelledRun = api.execute('runCandidateTests');
@@ -327,6 +339,7 @@ async function run() {
     registered_commands: contributed.length,
     image_revision: workflow.image,
     candidate_revision: workflow.candidate,
+    webview_rendered_views: webviewRenders,
     source_sha256: digest(sourceBefore),
     typed_intent: 'rename_declaration',
     target: 'calculator.add',

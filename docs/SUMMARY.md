@@ -288,6 +288,8 @@ Audience: all documentation readers.
 - [Graph-operational Client and MCP Execution Evidence v2](GRAPH-OPERATIONAL-CLIENT-MCP-EXECUTION-EVIDENCE-V2.md)
 - [Graph-operational VS Code Host Execution Evidence v1](GRAPH-OPERATIONAL-VSCODE-HOST-EXECUTION-EVIDENCE-V1.md)
 - [Graph-operational VS Code Host Execution Evidence v2](GRAPH-OPERATIONAL-VSCODE-HOST-EXECUTION-EVIDENCE-V2.md)
+- [Graph-operational VS Code Host Execution Evidence v3](GRAPH-OPERATIONAL-VSCODE-HOST-EXECUTION-EVIDENCE-V3.md)
+- [Graph-operational VS Code Host Execution Evidence v4](GRAPH-OPERATIONAL-VSCODE-HOST-EXECUTION-EVIDENCE-V4.md)
 - [Graph-operational Phase 0 Execution Evidence v1](GRAPH-OPERATIONAL-PHASE0-EXECUTION-EVIDENCE-V1.md)
 - [Graph-operational Phase 0 Execution Evidence v2](GRAPH-OPERATIONAL-PHASE0-EXECUTION-EVIDENCE-V2.md)
 - [Graph-operational Phase 0 Execution Evidence v3](GRAPH-OPERATIONAL-PHASE0-EXECUTION-EVIDENCE-V3.md)

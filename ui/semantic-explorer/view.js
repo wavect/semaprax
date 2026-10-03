@@ -488,6 +488,10 @@ function createExplorer(root, host, options = {}) {
       for (const view of initialViews) await fetchPage(view, null, generation);
       if (generation !== state.generation) return;
       status.textContent = 'Project view ready'; draw();
+      // The optional callback lets an embedding host record that this actual
+      // document completed its initial render. It carries only view metadata;
+      // it cannot request source, execution, or publication authority.
+      try { options.onReady?.({ mode: selected.mode, target: selected.target, side: selected.subject.side, loaded: [...state.loaded].sort() }); } catch {}
       loadChangeCatalog(generation);
     } catch (error) { if (generation === state.generation) showError(error); }
     finally { if (generation === state.generation) state.busy = false; }

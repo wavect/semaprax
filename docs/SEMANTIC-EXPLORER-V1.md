@@ -16,8 +16,6 @@ Node keys are `project_name:project_revision:side:stable_id`, so the same identi
 
 A response supplies no source, execution, test, or publication authority. It does not claim runtime liveness, coverage, external/dynamic absence, or a complete result when the kernel reports truncation. Source drift stays absorbing at the enclosing v5 session boundary.
 
-## Local review exports
-
 ## User guide
 
 ### Standalone first
@@ -35,7 +33,7 @@ semaprax explore
 semaprax explore ./semaprax.toml --format html --output ./semantic-explorer.html
 
 # Focus the report on one stable declaration identity.
-semaprax explore ./semaprax.toml --target app.main --depth 2 \
+semaprax explore ./semaprax.toml --target calculator.app.main --depth 2 \
   --format markdown --output ./app-main.md
 ```
 
@@ -96,15 +94,7 @@ candidate preparation. If a target is missing, use a stable declaration ID from
 the checked project and regenerate after saving source. If an output cannot be
 created, choose a new explicit path rather than overwriting a prior review.
 
-The public `semaprax explore` command reads an authenticated manifest and writes an explicit, no-clobber output path. A source-free overview can be generated with:
-
-```sh
-semaprax explore ./semaprax.toml --format html --output ./semantic-explorer.html
-semaprax explore ./semaprax.toml --target app.main --depth 2 --format svg --output ./app-main.svg
-```
-
-Open the HTML file locally or attach the SVG to a review manually. The HTML embeds its data and viewer assets, so viewing it does not require an editor, Node.js, or a local server. Markdown and JSON are also available through `--format markdown|json`; none of these commands posts to GitHub or uploads the output. Candidate review additionally requires both `--candidate-capsule` and `--expect-candidate`, and restores the capsule against the held project source before emitting base or candidate views.
-
-The default snapshot contains compiler-owned declaration names, stable IDs, relative paths and structural relationships. These can be confidential even though full source bodies and capsule bytes are omitted. Detail absent from a snapshot is **not bundled**; absence is not a finding. `snapshot_digest` identifies canonical snapshot content for consistency checks, not external provenance, freshness or approval. HTML, JSON, Markdown and SVG remain display artifacts and cannot be replayed as candidate authority.
-
-`--include-source` is an explicit source-inclusive mode for HTML and JSON only. It embeds the authenticated retained `source_files`; candidate exports also embed the existing immutable `source_review` report, including its source pairs and compiler-generated diff. The command still performs no source apply, candidate mutation, execution, approval or publication. Markdown and SVG reject `--include-source` because their formats do not carry the bounded source bundle.
+Exports contain compiler-owned declaration names, stable IDs, relative paths, and
+structural relationships. These may be confidential even when source bodies and
+capsule bytes are omitted. `snapshot_digest` checks canonical snapshot content;
+it is not external provenance, freshness, or approval.

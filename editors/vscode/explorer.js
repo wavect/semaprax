@@ -41,8 +41,10 @@ class ExplorerScheduler {
 }
 
 function message(value, generation) {
-  if (!closed(value, ['type', 'generation', 'requestId', 'action', 'value']) || value.type !== 'semaprax-explorer-request' || value.generation !== generation || !Number.isSafeInteger(value.requestId) || value.requestId < 1 || value.requestId > 1000000 || typeof value.action !== 'string') return null;
-  if (!['summary', 'page', 'readEvidence', 'reveal', 'deltaCatalog', 'semanticDelta'].includes(value.action)) return null;
+  if (!closed(value, ['type', 'generation', 'requestId', 'action', 'value']) || value.type !== 'semaprax-explorer-request' || value.generation !== generation || !Number.isSafeInteger(value.requestId) || value.requestId < 0 || value.requestId > 1000000 || typeof value.action !== 'string') return null;
+  if (!['summary', 'page', 'readEvidence', 'reveal', 'deltaCatalog', 'semanticDelta', 'rendered'].includes(value.action)) return null;
+  if (value.action === 'rendered') return value.requestId === 0 ? value : null;
+  if (value.requestId < 1) return null;
   return value;
 }
 function pageRequest(value, summary, cursors) {
@@ -226,7 +228,7 @@ function wrapped(file) { return `(function(){\n${fs.readFileSync(path.join(__dir
 function html(webview, extensionUri, generation, label, cacheScope) {
   const nonce = crypto.randomBytes(16).toString('base64');
   const style = webview.asWebviewUri(extensionUri.with({ path: extensionUri.path + '/explorer-assets/explorer.css' }));
-  return `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource}; script-src 'nonce-${nonce}'; img-src ${webview.cspSource};"><link rel="stylesheet" href="${style}"></head><body><div id="app"></div><script nonce="${nonce}">${wrapped('model.js')}</script><script nonce="${nonce}">${wrapped('layout.js')}</script><script nonce="${nonce}">${wrapped('cache.js')}</script><script nonce="${nonce}">${wrapped('changes.js')}</script><script nonce="${nonce}">${wrapped('evidence.js')}</script><script nonce="${nonce}">${wrapped('hosts.js')}</script><script nonce="${nonce}">${wrapped('view.js')}</script><script nonce="${nonce}">const port={postMessage:m=>acquireVsCodeApi().postMessage(m),addEventListener:(n,f)=>window.addEventListener(n,f)};SemapraxExplorerView.createExplorer(document.getElementById('app'),SemapraxExplorerHosts.vscodeHost(port,${generation},${JSON.stringify(cacheScope)}),{label:${JSON.stringify(label)}});</script></body></html>`;
+  return `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource}; script-src 'nonce-${nonce}'; img-src ${webview.cspSource};"><link rel="stylesheet" href="${style}"></head><body><div id="app"></div><script nonce="${nonce}">${wrapped('model.js')}</script><script nonce="${nonce}">${wrapped('layout.js')}</script><script nonce="${nonce}">${wrapped('cache.js')}</script><script nonce="${nonce}">${wrapped('changes.js')}</script><script nonce="${nonce}">${wrapped('evidence.js')}</script><script nonce="${nonce}">${wrapped('hosts.js')}</script><script nonce="${nonce}">${wrapped('view.js')}</script><script nonce="${nonce}">const port={postMessage:m=>acquireVsCodeApi().postMessage(m),addEventListener:(n,f)=>window.addEventListener(n,f)};SemapraxExplorerView.createExplorer(document.getElementById('app'),SemapraxExplorerHosts.vscodeHost(port,${generation},${JSON.stringify(cacheScope)}),{label:${JSON.stringify(label)},onReady:value=>port.postMessage({type:'semaprax-explorer-request',generation:${generation},requestId:0,action:'rendered',value})});</script></body></html>`;
 }
 
 function openExplorer(vscode, context, state, query) {
@@ -240,7 +242,11 @@ function openExplorer(vscode, context, state, query) {
   const subscription = panel.webview.onDidReceiveMessage(async raw => {
     const request = message(raw, generation); if (!request || state.panel !== panel || !state.live()) return;
     try {
-      if (request.action === 'summary') {
+      if (request.action === 'rendered') {
+        const value = request.value;
+        if (!summary || !closed(value, ['mode', 'target', 'side', 'loaded']) || value.mode !== summary.mode || value.target !== summary.target || value.side !== summary.subject?.side || !Array.isArray(value.loaded) || value.loaded.some(view => !VIEWS.has(view))) throw new Error('Invalid explorer rendered view');
+        state.rendered?.({ mode: value.mode, target: value.target, side: value.side, loaded: [...value.loaded].sort() });
+      } else if (request.action === 'summary') {
         const next = summaryQuery(request.value, query.side); if (!next) throw new Error('Invalid explorer summary query');
         const key = JSON.stringify([state.image(), next.side === 'current' ? null : state.candidate(), next]);
         const method = next.side === 'current' ? 'image/explorer-summary' : 'candidate/explorer-summary';

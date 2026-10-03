@@ -509,6 +509,7 @@ Audience: all documentation readers.
 - [ADR 0003: Maintained generated-package support for owned-data-api.v1 (Rust)](decisions/0003-maintained-generated-package-support.md)
 - [ADR 0004: Release signing and build provenance via Sigstore keyless identity](decisions/0004-release-signing-and-build-provenance.md)
 - [ADR 0005: Durable job storage uses the workspace generation substrate](decisions/0005-durable-job-storage-medium.md)
+- [ADR 0007: Do not adopt cooperative `rustc_private` monomorphization for RI-15](decisions/0007-ri-15-cooperative-rustc-no-go.md)
 - [Draft string and object-oriented types RFC](RFC-STRING-OO.md)
 - [RFC 0004: Native call settlement](RFC-0004-NATIVE-CALL-SETTLEMENT.md)
 - [RFC 0005: Compute Kernel Profile v1](RFC-0005-COMPUTE-KERNEL-PROFILE.md)

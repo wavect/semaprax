@@ -1,5 +1,9 @@
 # Changelog
 
+- Canonicalize the checked money/state law-pack source, list both new example
+  directories in the index, and check selected native-law modules with their
+  own parser and canonical formatter in the example inventory gate.
+
 - Remove redundant proof clones in the workspace law tests and simplify the
   remaining test-only types for the Ubuntu Clippy job.
 

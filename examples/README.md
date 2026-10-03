@@ -139,6 +139,7 @@ the manifest's `web_exports` already selects the surface.
 | Example | Teaches | Command (observed) | Reference |
 | --- | --- | --- | --- |
 | `examples/calculator-project` | Project schema v1: three modules, cross-module `use function @id(...)`, a `tests` module and six `web_exports` | `semaprax test examples/calculator-project/semaprax.toml` → `project tests passed`; `run` → `42` | [Project Manifest v1](../docs/PROJECT-MANIFEST-V1.md) |
+| `examples/native-law-project` | Project schema v2 with explicitly selected native law declarations alongside executable source and tests | `semaprax check examples/native-law-project` → verified Project | [Native Law Declarations v1](../docs/NATIVE-LAW-DECLARATIONS-V1.md) |
 | `examples/config-validator-project` | Project schema v2 under the `useful-text-consumer.v1` profile: four modules over borrowed UTF-8 input | `semaprax test examples/config-validator-project/semaprax.toml` → `project tests passed`; `run` → `0` | [Project Manifest v2](../docs/PROJECT-MANIFEST-V2.md), [Useful Text Consumer v1](../docs/USEFUL-TEXT-CONSUMER-V1.md) |
 | `examples/binary-frame-project` | Project schema v3 under the `useful-data.v1` profile: indexed byte data with a checksum and magic-number check | `semaprax test examples/binary-frame-project/semaprax.toml` → `project tests passed`; `run` → `0` | [Project Manifest v3](../docs/PROJECT-MANIFEST-V3.md), [Portable Indexed Byte Data v1](../docs/PORTABLE-INDEXED-BYTE-DATA-V1.md) |
 | `examples/spxgrep-project` | Project schema v4 under `useful-data-command.v1`: a `command` entry with a single declared `process.stdout.write` capability | `semaprax test examples/spxgrep-project/semaprax.toml` → `project tests passed`; `run` → `0` | [Project Manifest v4](../docs/PROJECT-MANIFEST-V4.md), [Bounded Stdout Transcript v1](../docs/BOUNDED-STDOUT-TRANSCRIPT-V1.md) |
@@ -171,6 +172,12 @@ the argv/stdin command entry itself is driven by
 `cargo test --locked -p semaprax --test useful_data` (module
 `line_filter_project_v7`). [Completion matrix](../docs/COMPLETION-MATRIX.md)
 owns the status of these profiles.
+
+## Law packs
+
+| Example | Teaches | Command (observed) | Reference |
+| --- | --- | --- | --- |
+| `examples/law-packs` | Checked money/state source with exact debit, credit, conservation, and insufficient-funds clauses; the separate installed-Z3 test proves selected clauses under its finite profile | `semaprax check examples/law-packs/money-state.spx` | [Law packs](law-packs/README.md), [Finite Structured Law v1](../docs/FINITE-STRUCTURED-LAW-V1.md) |
 
 ## Target and host projections
 

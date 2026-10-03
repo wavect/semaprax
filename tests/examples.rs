@@ -68,7 +68,8 @@ fn meaning_revision_matches_the_domain_separated_sha256_contract() {
 /// gate found `owned-data-rust/owned_data.spx` written with brace-on-the-same-
 /// line bodies. A module inside a manifest closure resolves only against its
 /// siblings, so this walk asserts what a single file can own on its own -- it
-/// parses, and its text already is its canonical formatting.
+/// parses, and its text already is its canonical formatting. Selected native
+/// law modules use their own source grammar and canonical formatter.
 #[test]
 fn every_example_below_the_top_level_is_canonical() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("examples");
@@ -83,10 +84,21 @@ fn every_example_below_the_top_level_is_canonical() {
 
     for path in paths {
         let source = std::fs::read_to_string(&path).unwrap();
-        let (program, comments) =
-            semaprax::parse_with_comments(&source, &path).unwrap_or_else(|error| panic!("{error}"));
+        let canonical = match semaprax::parse_with_comments(&source, &path) {
+            Ok((program, comments)) => {
+                semaprax::format::comments::canonical_with_comments(&program, &comments)
+            }
+            Err(source_error) => {
+                let laws = semaprax::native_law_source::parse(
+                    &source,
+                    path.to_str().expect("example path is UTF-8"),
+                )
+                .unwrap_or_else(|_| panic!("{source_error}"));
+                semaprax::native_law_source::canonical(&laws)
+            }
+        };
         assert_eq!(
-            semaprax::format::comments::canonical_with_comments(&program, &comments),
+            canonical,
             source,
             "{} is not canonical; run `semaprax fmt` on it",
             path.display()

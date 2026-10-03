@@ -203,3 +203,6 @@ fn opaque_owner_nested_statement_cleanup_is_refused() {
         "SPX-B112"
     );
 }
+
+#[path = "owner_context_tests.rs"]
+mod context;

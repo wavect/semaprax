@@ -137,6 +137,7 @@ pub(super) fn render(
         .replace("@TYPE@", type_path)
         .replace("@CONSTRUCTOR@", constructor_path)
         .replace("@METHOD@", method_path);
+    rust_adapter.push_str(include_str!("owner_safe_context.rs.txt"));
     let params = (0..function.params.len())
         .map(|index| format!(", arg_{index}:i64"))
         .collect::<String>();

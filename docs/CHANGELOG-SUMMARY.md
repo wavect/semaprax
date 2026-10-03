@@ -10,6 +10,10 @@ For implementation status and required evidence, use the
 
 ## v0.7.0 candidate
 
+- RI-05 adds a generated Rust context lifetime facade with cross-crate
+  compile-fail controls and isolated Drop-panic/abort execution. Actual native
+  archive and complete package bytes match a pre-RI05 capture on arm64 macOS.
+
 - RI-05 adds authenticated owner admission before atomic argument transfer.
   CleanupPlan v14 and Graph v60 retain canonical rollback on carrier refusal,
   including two-owner and sticky cleanup-failure controls. Full RI-05 remains

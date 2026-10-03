@@ -595,3 +595,41 @@ locked resolution, and `SEMAPRAX_ARCHIVER=/usr/bin/libtool`. The first compile
 identified a missing cache-codec lane arm; the additive tag-2 correction was
 included in the passing retry. No hosted, full-profile, Rust sanitizer, or Miri
 coverage is claimed by this gate.
+
+### Generated safe context lifetime and real archive compatibility gates
+
+The experimental opaque renderer exports `SpxOwnerContext` and affine
+`SpxOwned<'context>` in its generated Rust adapter. Owners borrow the context;
+`close(self)` consumes it. Downstream Rust cannot close a context with a live
+owner that is subsequently used, reuse a closed context or consumed owner,
+implicitly copy an owner, escape its context, or move the context across a
+thread. The facade adds no ambient authority and exposes no raw-handle getter.
+The raw C interface remains separately checked at runtime. This is a public
+generated Rust API guarantee; it does not introduce Semaprax context syntax.
+
+`owned_context_public_lifetimes_and_isolated_panic_policy` passed 1/1 locally,
+zero failed/ignored, 193 filtered. It builds a separate consumer crate, observes
+counted physical construction/consumption/drop, and checks six rustc refusal
+cases (E0505/E0382/E0597/E0277). An isolated unwind child reports one Drop panic,
+returns status 2, and closes the context. A separately compiled `panic=abort`
+child terminates with SIGABRT and publishes no success output. A possibly
+executed finalizer is never retried; a refused or uncertain raw state remains
+quarantined. These guarantees do not contain foreign UB or process-global
+panic hooks.
+
+`owned_v1_historical_archive_bytes_and_linked_copy` passed 1/1 locally, zero
+failed/ignored, 60 filtered. Immutable pre-RI05 package production source at
+`4dd73795021564dcc6d90ac6505b2814c1818cd1` produced the pinned expected digests;
+current production produced identical bytes for all seven package files,
+including the 3048-byte native archive. Both platform crate source trees and
+manifests were verified unchanged from that baseline. The comparison shares
+current locked dependencies, Apple Clang 21/libtool, and arm64 macOS; it is not a
+claim about historical toolchain binaries or other native targets.
+
+The actual archived C provider allocates, copies to distinct host storage,
+overwrites/frees its allocation, and counts close/drop/copy. A linked Rust
+consumer passes empty, three-byte and 65536-byte results. An independently
+compiled flipped provider changes the archive and fails the payload oracle.
+The earlier five-target generated-text fixture remains unchanged. This new
+archive fixture is selected only on arm64 macOS; it adds no runtime v1 changes.
+Historical direct-rustc capture also passed 1/1, zero ignored, 60 filtered.

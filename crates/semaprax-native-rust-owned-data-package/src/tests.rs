@@ -204,3 +204,6 @@ fn windows_publication_freezes_the_explicit_toolchain_environment() {
         );
     }
 }
+
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+mod v1_archive;

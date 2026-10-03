@@ -40,6 +40,15 @@ impl Fixture {
             .output()
             .unwrap()
     }
+
+    fn timed_cli(&self, arguments: &[&str]) -> Output {
+        Command::new(env!("CARGO_BIN_EXE_semaprax"))
+            .current_dir(&self.0)
+            .env("SEMAPRAX_EXPLORER_TIMING", "1")
+            .args(arguments)
+            .output()
+            .unwrap()
+    }
 }
 
 fn assert_no_temp_artifacts(fixture: &Fixture) {
@@ -132,6 +141,61 @@ fn digest(snapshot: &serde_json::Value) -> String {
         "sha256:{:x}",
         semaprax::digest_hex::LowerHex(hash.finalize())
     )
+}
+
+fn timing_fields(output: &Output) -> std::collections::BTreeMap<String, String> {
+    let line = std::str::from_utf8(&output.stderr)
+        .unwrap()
+        .trim_end()
+        .strip_prefix("semaprax-explorer-timing-v1 ")
+        .expect("one opt-in timing line");
+    line.split_whitespace()
+        .map(|field| field.split_once('=').expect("timing key=value"))
+        .map(|(key, value)| (key.to_owned(), value.to_owned()))
+        .collect()
+}
+
+#[test]
+fn explorer_timing_is_opt_in_and_records_cold_warm_and_refusal_runs() {
+    let fixture = Fixture::new();
+    for output in ["cold.json", "warm.json"] {
+        let result = fixture.timed_cli(&[
+            "explore",
+            "semaprax.toml",
+            "--format",
+            "json",
+            "--output",
+            output,
+        ]);
+        assert!(result.status.success(), "{result:?}");
+        assert!(result.stdout.is_empty());
+        let fields = timing_fields(&result);
+        assert_eq!(fields.get("outcome").map(String::as_str), Some("complete"));
+        for field in [
+            "source_load_ns",
+            "projection_index_ns",
+            "report_render_ns",
+            "json_parse_ns",
+            "total_ns",
+        ] {
+            assert!(fields[field].parse::<u128>().is_ok(), "{field}");
+        }
+        assert!(fields["transport_bytes"].parse::<usize>().unwrap() > 0);
+    }
+    std::fs::write(fixture.0.join("refused.json"), "sentinel\n").unwrap();
+    let refused = fixture.timed_cli(&[
+        "explore",
+        "semaprax.toml",
+        "--format",
+        "json",
+        "--output",
+        "refused.json",
+    ]);
+    assert!(!refused.status.success());
+    assert_eq!(
+        timing_fields(&refused).get("outcome").map(String::as_str),
+        Some("refused_or_incomplete")
+    );
 }
 
 #[test]

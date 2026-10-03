@@ -3,12 +3,72 @@ use semaprax::project::{
     self, ExplorerMode, ExplorerPageOptions, ExplorerQuery, ExplorerSide, ExplorerView,
     ProjectCandidate, ProjectSemanticImage,
 };
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use std::fs::{self, OpenOptions};
 use std::io::Write;
 use std::path::{Path, PathBuf};
+use std::time::{Duration, Instant};
 const MAX: usize = 16 * 1024 * 1024;
+
+// Opt-in development timing. Its output stays on stderr and never changes
+// canonical snapshots, reports, or generated artifacts.
+struct Timing {
+    enabled: bool,
+    started: Instant,
+    source_load: Duration,
+    projection_index: Duration,
+    report_render: Duration,
+    json_parse: Duration,
+    transport_bytes: usize,
+    outcome: &'static str,
+}
+
+impl Timing {
+    fn from_environment() -> Self {
+        Self {
+            enabled: std::env::var("SEMAPRAX_EXPLORER_TIMING").as_deref() == Ok("1"),
+            started: Instant::now(),
+            source_load: Duration::ZERO,
+            projection_index: Duration::ZERO,
+            report_render: Duration::ZERO,
+            json_parse: Duration::ZERO,
+            transport_bytes: 0,
+            outcome: "refused_or_incomplete",
+        }
+    }
+
+    fn source_loaded(&mut self, elapsed: Duration) {
+        self.source_load += elapsed;
+    }
+    fn projection(&mut self, elapsed: Duration) {
+        self.projection_index += elapsed;
+    }
+    fn rendered(&mut self, elapsed: Duration) {
+        self.report_render += elapsed;
+    }
+    fn parsed(&mut self, elapsed: Duration) {
+        self.json_parse += elapsed;
+    }
+    fn transported(&mut self, bytes: usize) {
+        self.transport_bytes = self.transport_bytes.saturating_add(bytes);
+    }
+    fn complete(&mut self) {
+        self.outcome = "complete";
+    }
+}
+
+impl Drop for Timing {
+    fn drop(&mut self) {
+        if self.enabled {
+            eprintln!(
+                "semaprax-explorer-timing-v1 outcome={} source_load_ns={} projection_index_ns={} report_render_ns={} transport_bytes={} json_parse_ns={} total_ns={}",
+                self.outcome, self.source_load.as_nanos(), self.projection_index.as_nanos(),
+                self.report_render.as_nanos(), self.transport_bytes, self.json_parse.as_nanos(), self.started.elapsed().as_nanos(),
+            );
+        }
+    }
+}
 pub(crate) struct Options {
     pub manifest: PathBuf,
     pub output: PathBuf,
@@ -122,8 +182,11 @@ pub(crate) fn parse(args: &[String]) -> Result<Options, u8> {
     })
 }
 pub(crate) fn run(options: Options) -> Result<(), Vec<Diagnostic>> {
+    let mut timing = Timing::from_environment();
     reject_existing_output(&options.output)?;
+    let source_load_started = Instant::now();
     let bytes = project::with_authenticated_project(&options.manifest, |snapshot| {
+        timing.source_loaded(source_load_started.elapsed());
         let candidate = if let (Some(path), Some(expected)) =
             (&options.candidate_capsule, &options.expect_candidate)
         {
@@ -144,20 +207,26 @@ pub(crate) fn run(options: Options) -> Result<(), Vec<Diagnostic>> {
             None
         };
         let image = if candidate.is_none() {
-            Some(ProjectSemanticImage::derive(
+            let started = Instant::now();
+            let image = ProjectSemanticImage::derive(
                 snapshot.retain_revision(),
                 snapshot.project_revision(),
-            )?)
+            );
+            timing.projection(started.elapsed());
+            Some(image?)
         } else {
             None
         };
         let catalog = if let Some(candidate) = &candidate {
-            Some(
-                serde_json::from_str::<Value>(
-                    &candidate.semantic_delta_catalog(candidate.candidate_digest())?,
-                )
-                .map_err(|_| invalid("invalid candidate change catalog"))?,
-            )
+            let started = Instant::now();
+            let text = candidate.semantic_delta_catalog(candidate.candidate_digest())?;
+            timing.projection(started.elapsed());
+            timing.transported(text.len());
+            let started = Instant::now();
+            let catalog = serde_json::from_str::<Value>(&text)
+                .map_err(|_| invalid("invalid candidate change catalog"))?;
+            timing.parsed(started.elapsed());
+            Some(catalog)
         } else {
             None
         };
@@ -223,6 +292,7 @@ pub(crate) fn run(options: Options) -> Result<(), Vec<Diagnostic>> {
                     256,
                     256 * 1024,
                 )?;
+                let started = Instant::now();
                 let summary_text = if let Some(candidate) = &candidate {
                     candidate.explorer_summary(
                         candidate.candidate_digest(),
@@ -235,8 +305,12 @@ pub(crate) fn run(options: Options) -> Result<(), Vec<Diagnostic>> {
                     let image = image.as_ref().unwrap();
                     image.explorer_summary(image.image_digest(), mode, target, query)?
                 };
+                timing.projection(started.elapsed());
+                timing.transported(summary_text.len());
+                let started = Instant::now();
                 let summary: Value = serde_json::from_str(&summary_text)
                     .map_err(|_| invalid("invalid explorer summary"))?;
+                timing.parsed(started.elapsed());
                 let mut pages = Vec::new();
                 for row in summary["inventories"]
                     .as_array()
@@ -252,6 +326,7 @@ pub(crate) fn run(options: Options) -> Result<(), Vec<Diagnostic>> {
                         .ok_or_else(|| invalid("invalid explorer handle"))?;
                     let mut cursor: Option<String> = None;
                     loop {
+                        let started = Instant::now();
                         let page_text = if let Some(candidate) = &candidate {
                             candidate.explorer_page(
                                 candidate.candidate_digest(),
@@ -277,8 +352,12 @@ pub(crate) fn run(options: Options) -> Result<(), Vec<Diagnostic>> {
                                 ExplorerPageOptions::default(),
                             )?
                         };
+                        timing.projection(started.elapsed());
+                        timing.transported(page_text.len());
+                        let started = Instant::now();
                         let page: Value = serde_json::from_str(&page_text)
                             .map_err(|_| invalid("invalid explorer page"))?;
+                        timing.parsed(started.elapsed());
                         cursor = page["next_cursor"].as_str().map(str::to_owned);
                         pages.push(page);
                         if pages.len() > 1024 {
@@ -304,9 +383,14 @@ pub(crate) fn run(options: Options) -> Result<(), Vec<Diagnostic>> {
         if options.include_source {
             v["source_files"] = json!(source_files);
             if let Some(candidate) = &candidate {
+                let started = Instant::now();
                 let report = candidate.source_review(candidate.candidate_digest())?;
+                timing.projection(started.elapsed());
+                timing.transported(report.len());
+                let started = Instant::now();
                 v["source_review"] = serde_json::from_str::<Value>(&report)
                     .map_err(|_| invalid("invalid authenticated candidate source review"))?;
+                timing.parsed(started.elapsed());
             }
         }
         if let Some(catalog) = catalog {
@@ -315,7 +399,10 @@ pub(crate) fn run(options: Options) -> Result<(), Vec<Diagnostic>> {
         v.sort_all_objects();
         v["snapshot_digest"] = json!(snapshot_digest(&v));
         v.sort_all_objects();
-        Ok(v.to_string().into_bytes())
+        let started = Instant::now();
+        let bytes = v.to_string().into_bytes();
+        timing.rendered(started.elapsed());
+        Ok(bytes)
     })?;
     if bytes.len() > MAX {
         return Err(vec![Diagnostic::io(
@@ -323,15 +410,19 @@ pub(crate) fn run(options: Options) -> Result<(), Vec<Diagnostic>> {
             "explorer snapshot exceeds 16MiB",
         )]);
     }
+    let started = Instant::now();
     let out = if let Some(format) = options.export_format {
+        let parsed = Instant::now();
         let snapshot: Value =
             serde_json::from_slice(&bytes).map_err(|_| invalid("invalid explorer snapshot"))?;
+        timing.parsed(parsed.elapsed());
         super::explorer_export::render(&snapshot, format).map_err(invalid)?
     } else if options.html {
         html(&bytes).into_bytes()
     } else {
         bytes
     };
+    timing.rendered(started.elapsed());
     if out.len() > if options.html { 24 * 1024 * 1024 } else { MAX } {
         return Err(invalid(
             "explorer output exceeds its byte budget; select a smaller focus",
@@ -373,6 +464,9 @@ pub(crate) fn run(options: Options) -> Result<(), Vec<Diagnostic>> {
     })();
     drop(f);
     let _ = fs::remove_file(&temp);
+    if result.is_ok() {
+        timing.complete();
+    }
     result
 }
 fn invalid(message: &'static str) -> Vec<Diagnostic> {

@@ -171,11 +171,13 @@ fn indexed_real_url_project_executes_receiver_tied_view_and_cleanup() {
     }
     let mut generated = std::str::from_utf8(plan.lib_rs()).unwrap().to_owned();
     generated.push_str(include_str!("url_project_controls.rs.txt"));
+    generated.push_str(include_str!("url_project_callback_controls.rs.txt"));
     std::fs::write(sdk.join("src/lib.rs"), &generated).unwrap();
     std::fs::write(
         sdk.join("src/main.rs"),
         r#"fn main() {
     ri06_url_owner::assert_view_controls();
+    ri06_url_owner::assert_exclusive_callback_controls();
     assert_eq!(ri06_url_owner::run(), Ok(41));
     assert!(ri06_url_owner::projected_borrow_matches_target());
     assert_eq!(ri06_url_owner::adapter_copy_count(), 0);
@@ -185,6 +187,21 @@ fn indexed_real_url_project_executes_receiver_tied_view_and_cleanup() {
     assert_eq!(ri06_url_owner::live_view_count(), 0);
 }
 "#,
+    )
+    .unwrap();
+    // The C relay makes the exclusive Rust loan cross an actual foreign
+    // callback boundary before the Rust callback attempts same-owner re-entry.
+    let relay = r#"
+#include <stdint.h>
+typedef struct { uint64_t context, generation, slot; } relay_owner;
+typedef int32_t (*relay_callback)(uint64_t, relay_owner, void *);
+int32_t ri06_url_callback_relay(uint64_t context, relay_owner owner, void *state, relay_callback callback) {
+    return callback(context, owner, state);
+}
+"#;
+    std::fs::write(
+        sdk.join("src/url_project.c"),
+        format!("{}{}", std::str::from_utf8(plan.c_source()).unwrap(), relay),
     )
     .unwrap();
     let object = sdk.join("url_project.o");
@@ -216,10 +233,29 @@ fn indexed_real_url_project_executes_receiver_tied_view_and_cleanup() {
         "{}",
         String::from_utf8_lossy(&run.stderr)
     );
+    // Cross-crate rustc controls authenticate the generated HRTB boundary.
+    let main_source = std::fs::read_to_string(sdk.join("src/main.rs")).unwrap();
+    for (name, body, expected) in [
+        ("exclusive reference escape", "let escaped=ri06_url_owner::with_exclusive_url(c,o,|value|value).unwrap();drop(escaped);", "lifetime may not live long enough"),
+        ("stored exclusive escape", "let mut saved=None;ri06_url_owner::with_exclusive_url(c,o,|value|saved=Some(value)).unwrap();drop(saved);", "E0521"),
+        ("view then mutation", "ri06_url_owner::with_exclusive_url(c,o,|value|{let view=value.as_str();value.set_path(\"changed\");view.len()}).unwrap();", "E0502"),
+        ("async escape", "let _future=ri06_url_owner::with_exclusive_url(c,o,|value|async move {value.as_str().len()}).unwrap();", "lifetime may not live long enough"),
+    ] {
+        std::fs::write(sdk.join("src/main.rs"), format!("fn refuse(c:u64,o:ri06_url_owner::SpxOwner){{{body}}}fn main(){{}}\n")).unwrap();
+        let negative = Command::new(&cargo).args(["check", "--locked", "--offline", "--quiet"])
+            .current_dir(&sdk).env("CARGO_TARGET_DIR", &target)
+            .env("RUSTFLAGS", format!("-C link-arg={}", object.display()))
+            .env("CARGO_INCREMENTAL", "0").env("CARGO_PROFILE_DEV_DEBUG", "0")
+            .env("CARGO_BUILD_JOBS", "1").output().unwrap();
+        let errors = String::from_utf8_lossy(&negative.stderr);
+        assert!(!negative.status.success() && errors.contains(expected), "{name}: {errors}");
+    }
+    std::fs::write(sdk.join("src/main.rs"), main_source).unwrap();
     // These deliberate guard removals must fail the unchanged consumer.
     for needle in [
         "if slot.view.is_some() { return Err(6); }",
         "if owner.context != context { return Err(3); }",
+        "if slot.exclusive { return Err(6); }",
     ] {
         assert!(generated.contains(needle));
         let mutant = generated.replacen(needle, "", 1);
@@ -439,3 +475,6 @@ fn indexed_real_url_project_executes_receiver_tied_view_and_cleanup() {
     std::fs::remove_dir_all(root).unwrap();
     std::fs::remove_dir_all(target).unwrap();
 }
+
+#[path = "url_loan_tests.rs"]
+mod url_loan;

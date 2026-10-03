@@ -157,7 +157,11 @@ pub(super) fn render(program: &ResolvedProgram, export: &str) -> Result<Native, 
         }
     }
     let header=String::from("#include <stdint.h>\n#include <stddef.h>\ntypedef struct {uint64_t context,generation,slot;} spx_owner;\ntypedef struct {uint8_t tag; uint8_t reserved[7]; int64_t error; spx_owner owner;} spx_result;\nint32_t spx_result_owner_new_utf8(uint64_t,const uint8_t*,uint64_t,spx_result*);\ntypedef struct {spx_owner owner;uint64_t lease;const uint8_t *data;uint64_t length;} spx_view;\nint32_t spx_url_owner_view(uint64_t,spx_owner,spx_view*);\nint32_t spx_url_view_length(uint64_t,spx_view,uint64_t*);\nint32_t spx_url_view_end(uint64_t,spx_view);\nint32_t spx_result_owner_drop(uint64_t,spx_owner);\n");
-    let mut rust = include_str!("url_project_carrier.rs.txt").to_owned();
+    let mut rust = format!(
+        "{}{}",
+        include_str!("url_project_carrier.rs.txt"),
+        include_str!("url_project_exclusive.rs.txt")
+    );
     rust.push_str(
         r#"
 unsafe extern "C" {

@@ -762,11 +762,32 @@ Removing the generated finalizer is detected. Source view escape and a
 temporary receiver fail with `SPX-T258` and `SPX-B107`; stale source and lock
 bytes refuse preparation.
 
-This is a bounded local checked-body witness. It does not establish general
-mutable/exclusive returned-view syntax, arbitrary lifetimes, callback-driven
-re-entry through an actual foreign callback, checkpoint escape, cross-thread
-use, a hosted profile, a new fuzz campaign, Miri, or sanitizer results. Those
-remaining RI-06 acceptance claims require their own evidence.
+The generated Rust companion also exposes `with_exclusive_url`: a safe HRTB
+callback primitive whose return type is independent of the exclusive loan.
+It temporarily holds the Url outside the table, reserves its exact owner slot,
+and restores it after success or a caught panic. Same-owner operations refuse
+before target access; an independent owner in the same context remains usable.
+No table `RefCell` borrow is held across user callback code. This primitive
+does not admit arbitrary selected Semaprax `&mut` signatures.
+
+The same owning harness now crosses a real C relay into a Rust callback while
+an exclusive Url reference is live. It checks same-owner view/drop/nested
+exclusive refusal, an unchanged target counter for those attempts, independent
+receiver progress, mutation after callback return and restoration after panic.
+Removing the per-slot exclusive check fails the unchanged consumer. Four
+cross-crate rustc controls reject returned/stored/async exclusive-reference
+escape and mutation while a derived view remains live. The source/HIR selector
+`indexed_url_loan_source_negative_matrix` proves ordinary view use and refuses
+move/drop/replacement during the view (`SPX-T265`), use after move (`SPX-O101`),
+returned `str` escape (`SPX-O116`), a temporary receiver (`SPX-B107`) and a loan
+across suspension/checkpoint (`SPX-T305`). These two owning tests passed locally
+(2 passed, 0 failed/ignored, 206 filtered); the callback relay uses Clang O0.
+
+This remains a bounded local checked-body and generated Rust witness. It does
+not establish general mutable/exclusive returned-view source syntax, arbitrary
+lifetimes, cross-thread use, a hosted profile, a new fuzz campaign, Miri, or
+sanitizer results. Those remaining RI-06 acceptance claims require their own
+evidence; the Rust callback primitive is not source callback syntax.
 
 ## Diagnostics and nonclaims
 

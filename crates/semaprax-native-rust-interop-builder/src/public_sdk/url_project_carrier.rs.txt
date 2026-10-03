@@ -13,7 +13,7 @@ impl Default for SpxStrView {
     fn default() -> Self { Self { owner: SpxOwner::default(), lease: 0, data: std::ptr::null(), length: 0 } }
 }
 struct View { lease: u64, data: *const u8, length: u64 }
-struct Slot { generation: u64, next_lease: u64, view: Option<View>, value: Option<url_alias::Url> }
+struct Slot { generation: u64, next_lease: u64, exclusive: bool, view: Option<View>, value: Option<url_alias::Url> }
 struct Context { id: u64, slots: Vec<Slot> }
 thread_local! {
     static CONTEXTS: RefCell<Vec<Context>> = const { RefCell::new(Vec::new()) };
@@ -31,7 +31,9 @@ fn slot(contexts: &mut [Context], context: u64, owner: SpxOwner) -> Result<&mut 
     if owner.context != context { return Err(3); }
     let context = contexts.iter_mut().find(|candidate| candidate.id == context).ok_or(3)?;
     let slot = context.slots.get_mut(usize::try_from(owner.slot).map_err(|_| 3)?).ok_or(3)?;
-    if slot.generation != owner.generation || slot.value.is_none() { return Err(3); }
+    if slot.generation != owner.generation { return Err(3); }
+    if slot.exclusive { return Err(6); }
+    if slot.value.is_none() { return Err(3); }
     Ok(slot)
 }
 fn validate_view(slot: &Slot, view: SpxStrView) -> Result<(), i32> {
@@ -53,7 +55,7 @@ pub extern "C" fn spx_result_owner_context_close(id: u64) -> i32 {
     CONTEXTS.with(|contexts| {
         let Ok(mut contexts) = contexts.try_borrow_mut() else { return 6; };
         let Some(index) = contexts.iter().position(|context| context.id == id) else { return 3; };
-        if contexts[index].slots.iter().any(|slot| slot.value.is_some() || slot.view.is_some()) { return 5; }
+        if contexts[index].slots.iter().any(|slot| slot.value.is_some() || slot.view.is_some() || slot.exclusive) { return 5; }
         contexts.remove(index); 0
     })
 }
@@ -75,10 +77,10 @@ pub unsafe extern "C" fn spx_result_owner_new_utf8(context: u64, data: *const u8
             Err(_) => return Ok(SpxOwnerResult { tag: 2, reserved: [0; 7], error: 1, owner: SpxOwner::default() }),
             Ok(value) => value,
         };
-        let free = context.slots.iter().position(|slot| slot.value.is_none() && slot.generation != u64::MAX);
+        let free = context.slots.iter().position(|slot| !slot.exclusive && slot.value.is_none() && slot.generation != u64::MAX);
         if free.is_none() && (context.slots.len() >= 32 || context.slots.try_reserve(1).is_err()) { return Err(4); }
         let index = match free { Some(index) => index, None => {
-            context.slots.push(Slot { generation: 0, next_lease: 0, view: None, value: None }); context.slots.len() - 1
+            context.slots.push(Slot { generation: 0, next_lease: 0, exclusive: false, view: None, value: None }); context.slots.len() - 1
         }};
         let slot = &mut context.slots[index]; slot.generation += 1; slot.value = Some(value);
         Ok(SpxOwnerResult { tag: 1, reserved: [0; 7], error: 0, owner: SpxOwner { context: context.id, generation: slot.generation, slot: index as u64 } })
@@ -138,5 +140,5 @@ pub unsafe extern "C" fn spx_result_owner_drop(context: u64, owner: SpxOwner) ->
 pub fn target_call_count() -> usize { TARGET_CALLS.with(Cell::get) }
 pub fn adapter_copy_count() -> usize { 0 }
 pub fn target_view_pointer() -> usize { LAST_VIEW_POINTER.with(Cell::get) }
-pub fn live_owner_count() -> usize { CONTEXTS.with(|contexts| contexts.borrow().iter().flat_map(|context| &context.slots).filter(|slot| slot.value.is_some()).count()) }
+pub fn live_owner_count() -> usize { CONTEXTS.with(|contexts| contexts.borrow().iter().flat_map(|context| &context.slots).filter(|slot| slot.value.is_some() || slot.exclusive).count()) }
 pub fn live_view_count() -> usize { CONTEXTS.with(|contexts| contexts.borrow().iter().flat_map(|context| &context.slots).filter(|slot| slot.view.is_some()).count()) }

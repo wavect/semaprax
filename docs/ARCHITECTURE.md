@@ -2981,7 +2981,11 @@ These areas are deliberately outside the public compiler contract:
   `url_project_package.rs` and `url_project_native.rs` own the separate inert
   exact Url registry Project route. The checked scalar body lowers through
   canonical cleanup CFG; `url_project_carrier.rs.txt` owns receiver-bound view
-  leases and validates context, owner generation, pointer and length. It does
+  leases and validates context, owner generation, pointer and length. Its
+  `url_project_exclusive.rs.txt` companion owns a safe Rust HRTB callback lease:
+  the Url moves outside the table while its slot is exclusively reserved, then
+  is restored on success or panic without holding a table borrow across user
+  code. This is distinct from selected source `&mut` admission. The route does
   not supply CLI execution or publication authority. Source signature admission
   lives in `src/native_rust_binding/url_view.rs`, independent HIR admission in
   `src/hir/validation/native_borrow.rs` and `workspace_link/native_owner/url_view.rs`,

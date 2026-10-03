@@ -258,6 +258,245 @@ fn command_surface_is_single_call_bounded_and_has_no_tool_or_process_defaults() 
     }
 }
 
+#[test]
+fn indexed_project_cli_rejects_relative_output_and_escaping_source_before_build() {
+    let root = TestRoot::new();
+    let selections = root.0.join("selections.json");
+    let manifest = root.0.join("semaprax.toml");
+    let relative = binary()
+        .arg("indexed-project")
+        .arg("--manifest-path")
+        .arg(&manifest)
+        .arg("--selections")
+        .arg(&selections)
+        .args(["--output", "relative"])
+        .output()
+        .unwrap();
+    assert_eq!(relative.status.code(), Some(1));
+    assert_eq!(
+        stderr(&relative),
+        "SPX-B112: indexed Project SDK output must be absolute\n"
+    );
+
+    fs::write(
+        &selections,
+        serde_json::json!({
+            "schema": "semaprax.indexed-project-selection.v1",
+            "selections": [{
+                "source_path": "../outside.spx",
+                "import_id": "host.add",
+                "index_path": "/missing/index.json",
+                "package_source_path": "/missing/lib.rs"
+            }]
+        })
+        .to_string(),
+    )
+    .unwrap();
+    let output = root.0.join("sdk");
+    let escaped = binary()
+        .arg("indexed-project")
+        .arg("--manifest-path")
+        .arg(&manifest)
+        .arg("--selections")
+        .arg(&selections)
+        .arg("--output")
+        .arg(&output)
+        .output()
+        .unwrap();
+    assert_eq!(escaped.status.code(), Some(1));
+    assert_eq!(
+        stderr(&escaped),
+        "SPX-B112: indexed Project source path is invalid\n"
+    );
+    assert!(!output.exists());
+}
+
+#[test]
+fn indexed_project_cli_publishes_a_callable_selected_rust_import() {
+    use semaprax_rust_api_index::RustApiIndex;
+    use sha2::{Digest as _, Sha256};
+
+    let rustc = std::env::var("RUSTC").expect("configure absolute RUSTC");
+    let clang = std::env::var("CLANG").expect("configure absolute CLANG");
+    let _archiver =
+        std::env::var("SEMAPRAX_ARCHIVER").expect("configure absolute SEMAPRAX_ARCHIVER");
+    let version = Command::new(&rustc).arg("--version").output().unwrap();
+    assert!(version.status.success());
+    let version = String::from_utf8(version.stdout).unwrap();
+    let host = Command::new(&rustc).arg("-vV").output().unwrap();
+    assert!(host.status.success());
+    let host = String::from_utf8(host.stdout).unwrap();
+    let target = host
+        .lines()
+        .find_map(|line| line.strip_prefix("host: "))
+        .unwrap();
+
+    let crate_source = b"pub fn add(left:i64,right:i64)->i64{left+right}\n";
+    let crate_digest = format!(
+        "sha256:{}",
+        Sha256::digest(crate_source)
+            .iter()
+            .map(|byte| format!("{byte:02x}"))
+            .collect::<String>()
+    );
+    let mut envelope: serde_json::Value = serde_json::from_slice(include_bytes!(
+        "../../semaprax-rust-api-index/fixtures/local-api-fixture-v2-envelope.json"
+    ))
+    .unwrap();
+    let index = &mut envelope["index"];
+    index["package"]["name"] = "fixture_math".into();
+    index["package"]["version"] = "0.0.1".into();
+    index["package"]["source_sha256"] = crate_digest.into();
+    index["target"] = target.into();
+    index["stable_rustc_version"] = version.trim().into();
+    let mut item = index["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|item| item["path"] == "local_api_fixture::cfg_selected")
+        .unwrap()
+        .clone();
+    item["path"] = "fixture_math::add".into();
+    item["signature"] = "fn add(left: i64, right: i64) -> i64".into();
+    index["items"] = serde_json::json!([item]);
+    index["types"] = serde_json::json!([]);
+    let mut index_bytes = serde_json::to_vec(&envelope).unwrap();
+    index_bytes.push(b'\n');
+    let prepared = RustApiIndex::admit_extractor_output(&index_bytes)
+        .unwrap()
+        .canonical_json()
+        .to_owned();
+
+    let root = TestRoot::new();
+    fs::create_dir(root.0.join("src")).unwrap();
+    let source = r#"module interop.fixture;
+permit { host.math }
+@id("host.math")
+interface HostMath permits { host.math } {
+    @id("host.add")
+    import rust selected fn host_add from "fixture_math::add"
+        effects { host.math }
+        failure status "host.math.v1";
+}
+@id("interop.add")
+fn add(left: i64, right: i64) -> i64 uses { host.math } {
+    host_add(left, right) + right
+}
+@id("interop.main")
+fn main() -> i64 { 0 }
+"#;
+    let source =
+        semaprax::format::canonical(&semaprax::parse(source, Path::new("src/app.spx")).unwrap());
+    fs::write(root.0.join("src/app.spx"), source).unwrap();
+    let test_source = "module interop.tests; @id(\"interop.tests.main\") fn main() -> i64 { 0 }";
+    let test_source = semaprax::format::canonical(
+        &semaprax::parse(test_source, Path::new("src/tests.spx")).unwrap(),
+    );
+    fs::write(root.0.join("src/tests.spx"), test_source).unwrap();
+    fs::write(root.0.join("semaprax.toml"), "schema = \"semaprax.project.v1\"\nname = \"indexed\"\nentry = \"interop.fixture\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\nweb_exports = [\"interop.add\"]\ntests = [\"interop.tests\"]\n").unwrap();
+    let index_path = root.0.join("index.json");
+    let package_path = root.0.join("lib.rs");
+    let selections_path = root.0.join("selections.json");
+    fs::write(&index_path, prepared).unwrap();
+    fs::write(&package_path, crate_source).unwrap();
+    fs::write(
+        &selections_path,
+        serde_json::json!({
+            "schema": "semaprax.indexed-project-selection.v1",
+            "selections": [{
+                "source_path": "src/app.spx",
+                "import_id": "host.add",
+                "index_path": index_path,
+                "package_source_path": package_path
+            }]
+        })
+        .to_string(),
+    )
+    .unwrap();
+    let output = root.0.join("sdk");
+    let result = binary()
+        .arg("indexed-project")
+        .arg("--manifest-path")
+        .arg(root.0.join("semaprax.toml"))
+        .arg("--selections")
+        .arg(&selections_path)
+        .arg("--output")
+        .arg(&output)
+        .output()
+        .unwrap();
+    assert!(result.status.success(), "{}", stderr(&result));
+    let receipt: serde_json::Value = serde_json::from_slice(&result.stdout).unwrap();
+    assert_eq!(
+        receipt["schema"],
+        "semaprax.indexed-project-native-rust-sdk-result.v1"
+    );
+    assert_eq!(receipt["target_triple"], target);
+    assert!(output.join("src/lib.rs").is_file());
+    let archive_name = if cfg!(windows) {
+        "semaprax_native_rust_sdk.lib"
+    } else {
+        "libsemaprax_native_rust_sdk.a"
+    };
+    let archive = output.join("native").join(archive_name);
+    assert!(archive.is_file());
+
+    let library = Command::new(&rustc)
+        .current_dir(&output)
+        .args([
+            "--edition=2021",
+            "--crate-name",
+            "indexed_sdk",
+            "--crate-type=rlib",
+            "src/lib.rs",
+            "-o",
+            "libindexed_sdk.rlib",
+        ])
+        .output()
+        .unwrap();
+    assert!(
+        library.status.success(),
+        "{}",
+        String::from_utf8_lossy(&library.stderr)
+    );
+    fs::write(root.0.join("consumer.rs"), "fn main(){let mut sdk=indexed_sdk::indexed_scalar_sdk(&[\"host.math\"]).unwrap();assert_eq!(sdk.spx_interop_dot_add(20,22).unwrap(),64)}\n").unwrap();
+    let consumer = Command::new(&rustc)
+        .current_dir(&root.0)
+        .args([
+            "--edition=2021",
+            "-C",
+            &format!("linker={clang}"),
+            "--extern",
+            &format!(
+                "indexed_sdk={}",
+                output.join("libindexed_sdk.rlib").display()
+            ),
+            "-C",
+            &format!("link-arg={}", archive.display()),
+            "consumer.rs",
+            "-o",
+            if cfg!(windows) {
+                "consumer.exe"
+            } else {
+                "consumer"
+            },
+        ])
+        .output()
+        .unwrap();
+    assert!(
+        consumer.status.success(),
+        "{}",
+        String::from_utf8_lossy(&consumer.stderr)
+    );
+    assert!(Command::new(root.0.join(if cfg!(windows) {
+        "consumer.exe"
+    } else {
+        "consumer"
+    }))
+    .status()
+    .unwrap()
+    .success());
+}
+
 fn effectful_tools_available() -> bool {
     ["RUSTC", "CLANG", "SEMAPRAX_ARCHIVER"]
         .iter()

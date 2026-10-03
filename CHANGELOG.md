@@ -1,5 +1,10 @@
 # Changelog
 
+- Add an explicit `indexed-project` Native Rust SDK CLI route over a bounded
+  selection file and prepared Rust API index. A focused physical CLI test
+  generates a selected Project package and runs its Rust consumer; read-only
+  context inspection stays separate from build authority.
+
 - Add experimental native Rust opaque-owner rendering from checked Semaprax
   and canonical cleanup plans. Preserve owned constructor results and native
   argument moves through source/HIR verification; generate an opaque C carrier,

@@ -565,7 +565,7 @@ revision, workspace revision, and Project-subject digest in addition to the
 ordinary SDK bundle.
 
 The same unpublished builder crate exposes the strict workspace binary
-`semaprax-native-rust-sdk`. Its only grammar is `project --manifest-path
+`semaprax-native-rust-sdk`. Its `project` route has grammar `project --manifest-path
 <path> --output <fresh-absolute-path>` with each option exactly once. It
 rejects missing, repeated, unknown, and trailing arguments and relative output
 before delegating exactly once to `build_project_native_rust_sdk`. Success is
@@ -576,6 +576,40 @@ one compact JSON object plus LF with schema
 path-, source-, and tool-output-free. The builder remains the sole owner of
 fresh-child admission, held-path authentication, tool execution, and
 publication.
+
+An explicitly selected Rust API index uses `indexed-project --manifest-path
+<path> --selections <json-file> --output <fresh-absolute-path>`. The selection
+file has schema `semaprax.indexed-project-selection.v1` and a nonempty
+`selections` array of at most 32 objects with exactly `source_path`,
+`import_id`, `index_path`, and `package_source_path` string fields. Source
+paths are Project-root-relative and contain only normal path components;
+index and package source paths are absolute. The file and each source are
+bounded before parsing. The command replays each prepared index, derives its
+exact package identity, and delegates to the same indexed Project builder
+used by the library API. It emits one bounded result object with schema
+`semaprax.indexed-project-native-rust-sdk-result.v1`; a stale source or
+package/index mismatch fails before publication. Preparing the index is an
+explicit separate step, never triggered by this build command or by an
+editor/context query. A CLI-only workflow is: prepare and save the index
+with a pinned extractor, write the selection file, run `indexed-project`,
+then build and test the generated Cargo package from its fresh output path.
+
+The prepared-index inspection route is `semaprax context <saved-file.spx>
+<import-stable-id> --rust-index <index.json> --max-bytes 4096`. To inspect
+candidate public paths before writing an import, use `semaprax context
+<saved-file.spx> <path-prefix> --rust-index <index.json> --candidates
+--max-bytes 4096`. Both routes replay the supplied bytes and return bounded
+metadata without running Cargo, rustc, rustdoc, or a build script. They report
+unsupported signatures and setup status; a truncated response is explicitly
+marked. For index preparation, an operator first runs the pinned rustdoc JSON
+extractor against the locked Cargo package outside the query route, then runs
+`python3 crates/semaprax-rust-api-index/tools/rustdoc_json_to_index.py --help`
+to see the required package name/version, exact source digest, target, feature
+digest, stable rustc version, source root, rustdoc version/format, selected
+item paths, and output arguments. Save that output as `index.json`; the
+`indexed-project` selection file points to its absolute path and the exact
+package source file. A replay/identity diagnostic means those recorded facts
+must be refreshed; the CLI does not silently rebuild the index.
 
 Focused local evidence builds and runs the six-export calculator Project as
 both Web/Node and generated Rust consumers, applies the opt-in daemon display

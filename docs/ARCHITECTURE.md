@@ -2959,6 +2959,13 @@ These areas are deliberately outside the public compiler contract:
   admission or imported-finalizer support; owning runtime verification is pending;
 - `crates/semaprax-native-rust-interop-*`: unpublished deterministic Rust SDK
   builder and platform-specific publication authority;
+- `crates/semaprax-native-rust-interop-builder/src/public_sdk/indexed.rs`:
+  narrow public RI-04 admission for one checked scalar Rust import. It replays
+  the selected RI-03 index and exact caller-supplied package source bytes
+  before invoking private Phase A+B; generated adapter source remains in the
+  returned value rather than the published bundle. The compiler-owned
+  `src/native_rust_binding.rs` keeps the source/identity-bound plan and stable
+  physical symbol separate from the persistent import ID;
 - `crates/semaprax-native-rust-interop-platform/src/host_target.rs`: shared
   compile-time native target classification; scalar and owned-data package
   callers retain their narrower publication allowlist, separate from private

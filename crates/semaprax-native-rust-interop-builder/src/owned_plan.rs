@@ -100,6 +100,30 @@ pub(crate) struct OwnerLoanGuard {
     kind: OwnerLoanKind,
 }
 
+/// A private, owner-tied view returned by an admitted Rust operation.
+///
+/// The owner reference makes the Rust lifetime relation explicit: the view
+/// cannot outlive, move, or drop its `Owner`. The guard keeps the matching
+/// slot shared for the lifetime of the view, so dynamic owner transitions and
+/// conflicting exclusive access still fail closed. This is only the builder's
+/// model seam; it does not create a C-ABI view or authorize a generated
+/// Regex/Url binding.
+pub(crate) struct OwnerView<'owner, T, View: ?Sized> {
+    owner: &'owner Owner<T>,
+    view: &'owner View,
+    _loan: OwnerLoanGuard,
+}
+
+impl<T, View: ?Sized> OwnerView<'_, T, View> {
+    pub(crate) fn as_ref(&self) -> &View {
+        self.view
+    }
+
+    pub(crate) fn owner(&self) -> &Owner<T> {
+        self.owner
+    }
+}
+
 #[derive(Clone, Copy)]
 enum OwnerLoanKind {
     Shared,
@@ -287,7 +311,9 @@ impl OwnerContext {
             .access
             .clone();
         let mut state = access.get();
-        if state.callback_active {
+        // M1 rejects all callback entry while this resource is loaned. The
+        // check is per owner slot, before the callback target can execute.
+        if state.has_active_access() {
             return Err(OwnerLoanRefusal::Reentrant);
         }
         state.callback_active = true;
@@ -310,6 +336,26 @@ impl OwnerContext {
         let _loan = self.shared_loan(owner)?;
         let value = self.borrow(owner).map_err(OwnerLoanRefusal::Owner)?;
         Ok(invoke(value.as_str()))
+    }
+
+    /// Return a zero-copy `str` view tied to this exact admitted String owner.
+    ///
+    /// Unlike `with_borrowed_str`, this model represents an approved returned
+    /// owner relation. The caller cannot retain it past the owner borrow, and
+    /// its live shared loan rejects a conflicting exclusive operation or
+    /// callback re-entry. Only Rust's checked `String::as_str` conversion is
+    /// admitted here; arbitrary pointer/slice reinterpretation is absent.
+    pub(crate) fn borrowed_str_view<'owner>(
+        &'owner self,
+        owner: &'owner Owner<String>,
+    ) -> Result<OwnerView<'owner, String, str>, OwnerLoanRefusal> {
+        let loan = self.shared_loan(owner)?;
+        let value = self.borrow(owner).map_err(OwnerLoanRefusal::Owner)?;
+        Ok(OwnerView {
+            owner,
+            view: value.as_str(),
+            _loan: loan,
+        })
     }
 
     pub(crate) fn consume<T: 'static>(&mut self, owner: Owner<T>) -> Result<T, OwnerRefusal> {
@@ -743,6 +789,92 @@ mod tests {
         assert_eq!(
             destination.borrow(&moved).unwrap().as_ptr(),
             original_pointer
+        );
+    }
+
+    #[test]
+    fn returned_str_view_retains_its_owner_loan_and_rejects_reentry() {
+        let mut context = OwnerContext::new();
+        let owner = context.admit("url", String::from("https://example.invalid/🦀")).unwrap();
+        let calls = Cell::new(0);
+        let owner_pointer = context.borrow(&owner).unwrap().as_ptr();
+        let view = context.borrowed_str_view(&owner).unwrap();
+
+        assert_eq!(view.as_ref(), "https://example.invalid/🦀");
+        assert_eq!(view.as_ref().as_ptr(), owner_pointer);
+        assert_eq!(view.owner().slot, owner.slot);
+        // An exclusive operation represents storage mutation or reallocation;
+        // the live returned view holds the conflicting shared loan.
+        assert!(matches!(
+            context.exclusive_loan(&owner),
+            Err(OwnerLoanRefusal::ExclusiveConflict)
+        ));
+        // M1 refuses callback entry for this owner before the target runs.
+        assert_eq!(
+            context.with_callback(&owner, || calls.set(calls.get() + 1)),
+            Err(OwnerLoanRefusal::Reentrant)
+        );
+        assert_eq!(calls.get(), 0);
+
+        drop(view);
+        context
+            .with_callback(&owner, || calls.set(calls.get() + 1))
+            .unwrap();
+        assert_eq!(calls.get(), 1);
+        assert_eq!(context.consume(owner).unwrap(), "https://example.invalid/🦀");
+    }
+
+    #[test]
+    fn returned_view_cannot_escape_its_owner_or_survive_owner_move() {
+        // This is the same owner-tied shape used by `OwnerView`: both the
+        // owner token and returned `str` carry the one borrow lifetime.
+        // Compile it as a negative control so a future lifetime weakening is
+        // visible even though the private model has no public C ABI yet.
+        let root = std::env::temp_dir().join(format!(
+            "semaprax-ri06-returned-view-{}",
+            std::process::id()
+        ));
+        std::fs::create_dir(&root).expect("create private rustc fixture directory");
+        let source = root.join("returned_view_escape.rs");
+        std::fs::write(
+            &source,
+            r#"
+struct Owner(String);
+struct OwnerView<'owner> { owner: &'owner Owner, view: &'owner str }
+fn borrowed_str_view<'owner>(owner: &'owner Owner) -> OwnerView<'owner> {
+    OwnerView { owner, view: owner.0.as_str() }
+}
+pub fn move_owner() {
+    let owner = Owner(String::from("view"));
+    let view = borrowed_str_view(&owner);
+    drop(owner);
+    let _ = view.view;
+}
+pub fn escape_view() -> OwnerView<'static> {
+    let owner = Owner(String::from("view"));
+    borrowed_str_view(&owner)
+}
+"#,
+        )
+        .expect("write compile-fail fixture");
+        let rustc = std::env::var_os("RUSTC").unwrap_or_else(|| "rustc".into());
+        let output = std::process::Command::new(rustc)
+            .arg("--crate-type=lib")
+            .arg("--emit=metadata")
+            .arg("--out-dir")
+            .arg(&root)
+            .arg(&source)
+            .output()
+            .expect("run the selected Rust compiler");
+        let _ = std::fs::remove_dir_all(&root);
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        assert!(!output.status.success(), "returned view escaped: {stderr}");
+        assert!(
+            stderr.contains("cannot move out")
+                || stderr.contains("borrowed value does not live long enough")
+                || stderr.contains("E0505")
+                || stderr.contains("E0515"),
+            "expected owner-bound view rejection, got: {stderr}"
         );
     }
 

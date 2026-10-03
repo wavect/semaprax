@@ -212,10 +212,13 @@ explicit paths and `failure infallible`, with no effects. The destructor's
 logical import is bound to Rust `Drop`; `drop trivial` is refused. The selected
 Semaprax function has at most eight `i64` parameters and an `i64` or `bool`
 result. Its body admits literals, immutable bindings, whole places, these two
-native calls, `if`, and checked `i64` division. Other expressions, contracts,
-resource projections, borrowing, nested statement scopes, and calls to
-Semaprax helpers are refused.
-The renderer bounds one body to 256 expressions and 64 cleanup slots.
+native calls, `if`, checked `i64` division, and a bounded acyclic closure of
+ordinary Semaprax helpers. Helpers may take `i64` values or own the same resource
+and may return that resource, `i64`, or `bool`. Public SDK exports retain their
+scalar signature. Other expressions, contracts, resource projections, borrowing,
+nested statement scopes, and recursive or generic helpers are refused.
+The renderer bounds the closure to 32 functions and each body to 256 expressions,
+eight parameters, and 64 cleanup slots.
 
 The C carrier consists of three `uint64_t` fields in order: context identity,
 slot generation, and slot index. Rust retains the actual object in a table;
@@ -246,6 +249,14 @@ implementation follows the validated cleanup CFG and emits each
 `finalize_in_order` vector as received. A cleanup failure cannot replace a
 previously selected status; result publication occurs after successful cleanup.
 
+Ordinary helper calls use the same checked argument commit boundary. Each
+helper initializes owned parameters from the canonical cleanup entry state and
+executes its independently validated cleanup CFG. An owned result stays in the
+plan's provisional-result slot until all non-result cleanup succeeds. A caught
+destructor failure prevents publication and disposes the provisional result
+last without replacing the selected failure. No downstream sorting or inferred
+cleanup order is introduced.
+
 This experimental ABI uses closed statuses: zero success, 2 caught panic,
 3 carrier or pointer-shape refusal, 4 capacity, 5 live owner at context close,
 6 table re-entry refusal, 7 internal liveness invariant, and 8 checked division
@@ -263,6 +274,16 @@ call-commit regressions. The pure renderer alone does not establish Project
 publication; the indexed package route below adds that separate boundary.
 Standard Rust crate coverage, borrowed owners, general resource methods, hosted coverage, full quality-gate
 passage, and RI-05 completion remain open.
+
+The focused `owner_return_` selector additionally covers constructor → checked
+owner-returning helper → forwarding helper → consuming import, both in the pure
+renderer and a generated indexed Project package. Its counted Rust fixture
+checks exact cleanup order at C `-O0` and `-O2`, constructor/method/destructor
+panics, sticky division failure, and poisoned result preservation. Compiled
+missing-drop and premature-publication controls must fail the same assertions.
+Canonical source/graph round trips retain owned commits and source move
+diagnostics. These are local focused gates; owner-valued public SDK exports and
+general rich conversions are not admitted by this helper extension.
 
 Graph v56 is selected by an ownership-bearing native Rust import. Its import
 result `type` is the resource's persistent declaration ID and its

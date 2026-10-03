@@ -5,12 +5,17 @@ use semaprax::ast::BinaryOp;
 use semaprax::cleanup::FieldLivenessShape;
 use semaprax::cleanup_plan::{
     CleanupPlace, CleanupResultSource, CleanupTerminator, CleanupTransition, EdgeCondition,
-    ExitContinuation,
+    ExitContinuation, StorageId,
 };
 use semaprax::hir::{
     DeclarationId, ResolvedExpr, ResolvedExprKind, ResolvedFunction, ResolvedStatement, ValueId,
 };
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
+
+#[path = "owner_sdk_calls.rs"]
+mod calls;
+
+const PRELUDE: &str = "#include \"owner.h\"\n#include <limits.h>\n#include <stddef.h>\n_Static_assert(sizeof(spx_owner)==24,\"owner wire size\");\ntypedef struct { int64_t scalar; spx_owner owner; int32_t status; uint8_t done; } spx_value;\n";
 use std::fmt::Write;
 
 struct Emitter<'a> {
@@ -19,25 +24,54 @@ struct Emitter<'a> {
     bindings: BTreeMap<ValueId, &'a ResolvedExpr>,
     constructor: &'a DeclarationId,
     method: &'a DeclarationId,
+    functions: &'a [ResolvedFunction],
+    symbols: &'a BTreeMap<DeclarationId, String>,
+    callees: BTreeSet<DeclarationId>,
+    helper: bool,
+    owned_result: bool,
 }
 
-pub(super) fn render(
+pub(super) fn render_program(
+    program: &ResolvedProgram,
     function: &ResolvedFunction,
     constructor: &DeclarationId,
     method: &DeclarationId,
     lifecycle: &DeclarationId,
     resource: &ResolvedType,
 ) -> Result<String, Diagnostic> {
+    calls::render(program, function, constructor, method, lifecycle, resource)
+}
+
+fn render_function(
+    function: &ResolvedFunction,
+    constructor: &DeclarationId,
+    method: &DeclarationId,
+    lifecycle: &DeclarationId,
+    resource: &ResolvedType,
+    functions: &[ResolvedFunction],
+    symbols: &BTreeMap<DeclarationId, String>,
+    helper: bool,
+) -> Result<String, Diagnostic> {
     if !function.requires.is_empty()
         || !function.ensures.is_empty()
         || !function.effects.is_empty()
         || function.params.len() > 8
-        || function.params.iter().any(|p| p.ty != ResolvedType::I64)
-        || !matches!(function.return_type, ResolvedType::I64 | ResolvedType::Bool)
+        || function.params.iter().any(|p| {
+            !(p.ty == ResolvedType::I64 && p.ownership == OwnershipMode::Value
+                || helper && &p.ty == resource && p.ownership == OwnershipMode::Own)
+        })
+        || !(matches!(function.return_type, ResolvedType::I64 | ResolvedType::Bool)
+            || helper && &function.return_type == resource)
+        || (!helper
+            && !function
+                .cleanup_plan
+                .entry_state
+                .live_owned_parameters
+                .is_empty())
         || !function
             .cleanup_plan
             .entry_state
-            .live_owned_parameters
+            .conditional_owned_parameters
             .is_empty()
         || function.cleanup_plan.slots.len() > 64
     {
@@ -51,6 +85,11 @@ pub(super) fn render(
         bindings: BTreeMap::new(),
         constructor,
         method,
+        functions,
+        symbols,
+        callees: BTreeSet::new(),
+        helper,
+        owned_result: &function.return_type == resource,
     };
     emitter.collect(&function.body)?;
     for slot in &function.cleanup_plan.slots {
@@ -76,6 +115,20 @@ impl<'a> Emitter<'a> {
                 if &call.import == self.constructor || &call.import == self.method =>
             {
                 for argument in &call.args {
+                    self.collect(argument)?;
+                }
+            }
+            ResolvedExprKind::Call {
+                callee,
+                type_arguments,
+                instance,
+                args,
+            } if type_arguments.is_empty()
+                && instance.is_none()
+                && self.functions.iter().any(|function| &function.id == callee) =>
+            {
+                self.callees.insert(callee.clone());
+                for argument in args {
                     self.collect(argument)?;
                 }
             }
@@ -145,8 +198,13 @@ impl<'a> Emitter<'a> {
         ))
     }
     fn render(&self, lifecycle: &DeclarationId) -> Result<String, Diagnostic> {
-        let mut out = String::from("#include \"owner.h\"\n#include <limits.h>\n#include <stddef.h>\n_Static_assert(sizeof(spx_owner)==24,\"owner wire size\");\ntypedef struct { int64_t scalar; spx_owner owner; int32_t status; uint8_t done; } spx_value;\n");
-        writeln!(out, "typedef struct {{ spx_value values[{}]; int64_t args[8]; spx_owner owners[{}]; uint8_t live[{}]; }} spx_frame;", self.expressions.len(), self.function.cleanup_plan.slots.len().max(1), self.function.cleanup_plan.slots.len().max(1)).unwrap();
+        let mut out = String::from(PRELUDE);
+        let owner_args = if self.helper {
+            " spx_owner owner_args[8];"
+        } else {
+            ""
+        };
+        writeln!(out, "typedef struct {{ spx_value values[{}]; int64_t args[8];{owner_args} spx_owner owners[{}]; uint8_t live[{}]; }} spx_frame;", self.expressions.len(), self.function.cleanup_plan.slots.len().max(1), self.function.cleanup_plan.slots.len().max(1)).unwrap();
         for index in 0..self.expressions.len() {
             writeln!(
                 out,
@@ -170,7 +228,11 @@ impl<'a> Emitter<'a> {
                         .iter()
                         .position(|parameter| parameter.id == place.root)
                     {
-                        writeln!(out, "v.scalar=f->args[{parameter}];").unwrap();
+                        if self.function.params[parameter].ownership == OwnershipMode::Own {
+                            writeln!(out, "v.owner=f->owner_args[{parameter}];").unwrap();
+                        } else {
+                            writeln!(out, "v.scalar=f->args[{parameter}];").unwrap();
+                        }
                     } else {
                         let value = self
                             .bindings
@@ -193,6 +255,47 @@ impl<'a> Emitter<'a> {
                     } else {
                         out.push_str("uint8_t result=0; v.status=spx_owner_consume(context,a0.owner,a1.scalar,&result); if(!v.status) v.scalar=result;\n");
                     }
+                }
+                ResolvedExprKind::Call { callee, args, .. } => {
+                    let target = self
+                        .functions
+                        .iter()
+                        .find(|function| &function.id == callee)
+                        .ok_or_else(|| sdk_error("opaque owner helper is absent"))?;
+                    let symbol = self
+                        .symbols
+                        .get(callee)
+                        .ok_or_else(|| sdk_error("opaque owner helper symbol is absent"))?;
+                    for (i, argument) in args.iter().enumerate() {
+                        writeln!(
+                            out,
+                            "spx_value a{i}={}; if(a{i}.status) return a{i};",
+                            self.eval(argument)?
+                        )
+                        .unwrap();
+                    }
+                    let arguments = target
+                        .params
+                        .iter()
+                        .enumerate()
+                        .map(|(i, p)| {
+                            format!(
+                                ",a{i}.{}",
+                                if p.ownership == OwnershipMode::Own {
+                                    "owner"
+                                } else {
+                                    "scalar"
+                                }
+                            )
+                        })
+                        .collect::<String>();
+                    let field =
+                        if matches!(target.return_type, ResolvedType::I64 | ResolvedType::Bool) {
+                            "scalar"
+                        } else {
+                            "owner"
+                        };
+                    writeln!(out, "v.status={symbol}(context{arguments},&v.{field});").unwrap();
                 }
                 ResolvedExprKind::Block { statements, tail } => {
                     for statement in statements {
@@ -226,12 +329,37 @@ impl<'a> Emitter<'a> {
             }
             writeln!(out, "v.done=1; f->values[{index}]=v; return v; }}").unwrap();
         }
-        let parameters = (0..self.function.params.len())
-            .map(|index| format!(", int64_t arg_{index}"))
-            .collect::<String>();
-        writeln!(out,"int32_t spx_owner_entry(uint64_t context{parameters}, int64_t *result) {{ if(!result) return 3; spx_frame frame={{0}}, *f=&frame; int32_t status=0; spx_value value={{0}}; (void)value;").unwrap();
-        for index in 0..self.function.params.len() {
-            writeln!(out, "f->args[{index}]=arg_{index};").unwrap();
+        let parameters = calls::parameters(self.function);
+        let result_type = if self.owned_result {
+            "spx_owner"
+        } else {
+            "int64_t"
+        };
+        writeln!(out,"int32_t spx_owner_entry(uint64_t context{parameters}, {result_type} *result) {{ if(!result) return 3; spx_frame frame={{0}}, *f=&frame; int32_t status=0; spx_value value={{0}}; (void)value;").unwrap();
+        for (index, parameter) in self.function.params.iter().enumerate() {
+            let field = if parameter.ownership == OwnershipMode::Own {
+                "owner_args"
+            } else {
+                "args"
+            };
+            writeln!(out, "f->{field}[{index}]=arg_{index};").unwrap();
+        }
+        for place in &self.function.cleanup_plan.entry_state.live_owned_parameters {
+            let StorageId::Value(id) = &place.storage else {
+                return Err(sdk_error("opaque owner parameter storage is unsupported"));
+            };
+            let parameter = self
+                .function
+                .params
+                .iter()
+                .position(|p| &p.id == id && p.ownership == OwnershipMode::Own)
+                .ok_or_else(|| sdk_error("opaque owner parameter is absent"))?;
+            let slot = self.slot(place)?;
+            writeln!(
+                out,
+                "f->owners[{slot}]=f->owner_args[{parameter}]; f->live[{slot}]=1;"
+            )
+            .unwrap();
         }
         writeln!(out, "goto block_{};", self.function.cleanup_plan.entry.0).unwrap();
         for block in &self.function.cleanup_plan.blocks {
@@ -297,6 +425,16 @@ impl<'a> Emitter<'a> {
                             source: CleanupResultSource::Scalar { expression },
                         } => {
                             writeln!(out,"if(status) return status; value=spx_eval_{}(context,f); if(value.status) return value.status; *result=value.scalar; return 0;",self.index(expression)?).unwrap();
+                        }
+                        ExitContinuation::CommitResult {
+                            source: CleanupResultSource::Owned { storage },
+                        } if self.owned_result => {
+                            let slot = self.slot(storage)?;
+                            // The checked plan names the provisional result. It
+                            // remains guarded through non-result cleanup. A
+                            // contained Drop failure disposes this last guard
+                            // without publishing it or replacing that failure.
+                            writeln!(out,"if(!f->live[{slot}]) return 7; if(status) {{ f->live[{slot}]=0; (void)spx_owner_drop(context,f->owners[{slot}]); return status; }} *result=f->owners[{slot}]; f->live[{slot}]=0; return 0;").unwrap();
                         }
                         _ => {
                             return Err(sdk_error(

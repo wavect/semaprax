@@ -373,3 +373,52 @@ fn indexed_owner_binding_roundtrip_graph_and_move_refusal() {
         "{errors:?}"
     );
 }
+
+#[test]
+fn indexed_owner_return_helper_package_executes() {
+    let rustc = std::env::var("RUSTC").expect("absolute RUSTC");
+    let clang = std::env::var("CLANG").expect("absolute CLANG");
+    let version = Command::new(&rustc).arg("--version").output().unwrap();
+    let version = std::str::from_utf8(&version.stdout).unwrap().trim();
+    let source = SOURCE
+        .replace(
+            "@id(\"owner.run\")",
+            r#"@id("owner.make") fn make(pattern:i64, divisor:i64) -> Regex {
+ let spare = regex_new(91);
+ let regex = regex_new(pattern);
+ let checked = pattern / divisor;
+ regex
+}
+@id("owner.forward") fn forward(regex: own Regex) -> Regex { regex }
+@id("owner.run")"#,
+        )
+        .replace(
+            "let regex = regex_new(pattern);\n if",
+            "let regex = forward(make(pattern,divisor));\n if",
+        );
+    let source = canonical(&source);
+    let index = index(RUST, version);
+    let replay = RustApiIndex::replay(&index).unwrap();
+    let digest = raw_digest(RUST);
+    let selections = selections(
+        &source,
+        &index,
+        RUST,
+        version,
+        &digest,
+        replay.feature_digest(),
+    );
+    let root = root("return-helper");
+    write_project(&root, &source);
+    let output = root.join("sdk");
+    build_indexed_project_native_rust_sdk(&root.join("semaprax.toml"), &selections, &output)
+        .unwrap();
+    assert!(execute(
+        &rustc,
+        &clang,
+        &root,
+        &output,
+        "consumer-return-helper"
+    ));
+    fs::remove_dir_all(root).unwrap();
+}

@@ -2992,7 +2992,9 @@ These areas are deliberately outside the public compiler contract:
   owned-data package schemas remain separate.
 - `crates/semaprax-native-rust-interop-builder/src/public_sdk/owner_sdk.rs`
   owns the experimental pure opaque-owner renderer. `owner_sdk_c.rs` consumes
-  validated cleanup CFG vectors directly; `owner_runtime.rs.txt` retains real
+  validated cleanup CFG vectors directly; `owner_sdk_calls.rs` closes and bounds
+  acyclic checked helpers, including owned parameter entry and guarded owner
+  returns, without changing canonical cleanup vectors. `owner_runtime.rs.txt` retains real
   Rust objects behind C-compatible context/generation/slot carriers. This seam
   grants no build, Project publication, or general owner-ABI authority;
 - `src/project/indexed_rust.rs` and

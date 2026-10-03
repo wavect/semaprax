@@ -607,6 +607,8 @@ pub(super) fn private_signature(
     function: &hir::ResolvedFunction,
 ) -> bool {
     private_callable_signature(workspace, module, function)
+        || (function.name != "main"
+            && hir::indexed_owner_helper_signature(&module.types, &module.interfaces, function))
         || hir::generic_result::concrete_signature(function)
         || hir::generic_collection::concrete_signature(function)
         || (hir::generic_variant::concrete_signature(&module.types, function)

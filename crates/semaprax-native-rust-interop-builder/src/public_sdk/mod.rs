@@ -631,6 +631,8 @@ mod tests;
 #[cfg(test)]
 mod indexed_tests;
 #[cfg(test)]
+mod owner_return_tests;
+#[cfg(test)]
 mod owner_sdk_tests;
 
 #[cfg(test)]

@@ -78,3 +78,35 @@ pub(super) fn admitted_finalizer(
     parts.types.iter().any(|declaration| admitted_resource(declaration,&parts.interfaces)
         && matches!(&declaration.kind,ResolvedTypeDeclarationKind::Resource {drop} if matches!(&drop.kind,ResolvedResourceDropKind::Imported {import:id,..} if id==&import.id)))
 }
+
+/// Only internal helpers can carry the selected owner across Semaprax calls.
+/// The public scalar entry remains scalar, and every nominal signature type
+/// must be the resource authenticated by the same selected Rust import pair.
+pub(crate) fn admitted_helper(
+    types: &[ResolvedTypeDeclaration],
+    interfaces: &[ResolvedInterface],
+    function: &ResolvedFunction,
+) -> bool {
+    let owner = |ty: &ResolvedType| {
+        let ResolvedType::Nominal {
+            declaration,
+            arguments,
+        } = ty
+        else {
+            return false;
+        };
+        arguments.is_empty()
+            && types
+                .iter()
+                .any(|ty| &ty.id == declaration && admitted_resource(ty, interfaces))
+    };
+    function.effects.is_empty()
+        && function.params.len() <= 8
+        && function.params.iter().all(|p| {
+            p.ty == ResolvedType::I64 && p.ownership == OwnershipMode::Value
+                || p.ownership == OwnershipMode::Own && owner(&p.ty)
+        })
+        && (matches!(function.return_type, ResolvedType::I64 | ResolvedType::Bool)
+            || owner(&function.return_type))
+        && (owner(&function.return_type) || function.params.iter().any(|p| owner(&p.ty)))
+}

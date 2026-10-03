@@ -125,6 +125,7 @@ pub use agent_nodes::{
 };
 pub(crate) use agent_validation::embedded::replay_agent_source_associations;
 pub(crate) use workspace_link::compiler_prelude_declarations;
+pub(crate) use workspace_link::native_owner::admitted_helper as indexed_owner_helper_signature;
 
 /// Validate resolved HIR and independently replay its canonical shared-loan
 /// proof attachment before any semantic consumer may trust it.

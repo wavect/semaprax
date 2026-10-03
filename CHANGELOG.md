@@ -1,5 +1,11 @@
 # Changelog
 
+- Extend the experimental native owner renderer and indexed Project package with
+  checked owner-returning Semaprax helpers. Replay each helper cleanup plan,
+  preserve provisional-result guards and sticky failures, and exercise counted
+  destruction plus missing-cleanup and early-publication controls. Public SDK
+  exports remain scalar; full RI-05 support remains open.
+
 - Add an explicit CLI handoff from pinned rustdoc extractor output to a
   canonical prepared Rust API index. Bounded selected-import context and
   candidates now expose a scalar callback escape hatch for rejected items;

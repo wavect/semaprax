@@ -115,6 +115,12 @@ fn link_scalar_workspace_impl(
                     (function.id != entrypoint
                         && parts.private_callable_functions.contains(&function.id)
                         && function_value::private_helper_signature(function))
+                        || (function.id != entrypoint
+                            && native_owner::admitted_helper(
+                                &parts.types,
+                                &parts.interfaces,
+                                function,
+                            ))
                         || generic_result::concrete_signature(function)
                         || generic_collection::concrete_signature(function)
                         || (generic_variant::concrete_signature(&parts.types, function)

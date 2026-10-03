@@ -1,5 +1,7 @@
 # Changelog
 
+- Add the bounded RI-08 affine `FnOnce() -> i64` source profile: one owned Bytes capture survives helper returns, moves and single invocation across interpreter, native C and Core Wasm. A generated Rust owner executes the checked callback body with physical drop/failure controls and rustc move/Clone/Send refusals. Mutable, borrowed and foreign-retained registrations remain open.
+
 - Canonicalize the checked money/state law-pack source, list both new example
   directories in the index, and check selected native-law modules with their
   own parser and canonical formatter in the example inventory gate.

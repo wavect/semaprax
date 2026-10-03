@@ -178,6 +178,7 @@ mod ast {
         name,
         name_span,
         native_rust,
+        rust_path,
         params,
         result,
         effects,

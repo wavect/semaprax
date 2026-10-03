@@ -293,6 +293,13 @@ fn prepare_native_rust_interop_from_input<'a>(
         if !import.native_rust {
             return Err(b107("selected identity missing"));
         }
+        // The v1 callback SDK cannot silently reinterpret an indexed Rust
+        // path as a host-provided NativeRustSdkImports implementation.
+        if import.rust_path.is_some() {
+            return Err(b107(
+                "indexed Rust API import requires a verified adapter profile",
+            ));
+        }
         identifier_gate(interface)?;
         identifier_gate(import.id.as_str())?;
         identifier_gate(&import.name)?;

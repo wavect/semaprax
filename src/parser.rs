@@ -414,6 +414,20 @@ impl Parser {
             } else {
                 return Err(self.error_here("SPX-P106", "expected admitted import result type"));
             };
+            let rust_path = if native_rust && self.at_keyword("from") {
+                self.bump();
+                match self.bump().kind.clone() {
+                    TokenKind::String(value) => Some(value),
+                    _ => {
+                        return Err(self.error_previous(
+                            "SPX-P106",
+                            "expected Rust API path string after `from`",
+                        ))
+                    }
+                }
+            } else {
+                None
+            };
             self.keyword("effects")?;
             let effects = self.effect_set()?;
             let failure = {
@@ -463,6 +477,7 @@ impl Parser {
                 name: import_name,
                 name_span: import_name_span,
                 native_rust,
+                rust_path,
                 params,
                 result,
                 effects,

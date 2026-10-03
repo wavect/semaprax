@@ -1498,6 +1498,9 @@ pub(crate) fn graph_schema_from_parts_without_loans(
             },
         ));
     }
+    if native_import::declares_indexed_rust_import(interfaces) {
+        return Ok(native_import::INDEXED_RUST_IMPORT_SCHEMA);
+    }
     if native_import::declares_native_rust_import(interfaces) {
         return Ok(native_import::NATIVE_RUST_IMPORT_SCHEMA);
     }
@@ -4453,7 +4456,12 @@ fn render_graph_json(
                 failure
             )
             .expect("writing to a string cannot fail");
-            native_import::append_import_tail(&mut output, schema, import.native_rust);
+            native_import::append_import_tail(
+                &mut output,
+                schema,
+                import.native_rust,
+                import.rust_path.as_deref(),
+            );
         }
     }
 

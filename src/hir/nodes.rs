@@ -586,6 +586,7 @@ pub struct ResolvedImport {
     pub interface: DeclarationId,
     pub import_key: String,
     pub native_rust: bool,
+    pub rust_path: Option<String>,
     pub parameters: Vec<ResolvedImportParameter>,
     pub result: ResolvedImportResult,
     pub effects: Vec<String>,

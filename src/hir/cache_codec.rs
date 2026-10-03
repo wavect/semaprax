@@ -154,6 +154,7 @@ codec_struct!(ResolvedImport {
     interface,
     import_key,
     native_rust,
+    rust_path,
     parameters,
     result,
     effects,

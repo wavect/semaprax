@@ -787,6 +787,9 @@ pub struct ImportDeclaration {
     pub name: String,
     pub name_span: Span,
     pub native_rust: bool,
+    /// A selected Rust API path. Its Cargo alias is checked against the
+    /// authenticated dependency closure when a binding plan is prepared.
+    pub rust_path: Option<String>,
     pub params: Vec<Param>,
     pub result: ImportResult,
     pub effects: Vec<String>,

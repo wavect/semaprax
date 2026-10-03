@@ -361,6 +361,7 @@ impl Resolver<'_> {
                             interface: interface_id.clone(),
                             import_key: import.stable_id.clone(),
                             native_rust: import.native_rust,
+                            rust_path: import.rust_path.clone(),
                             parameters,
                             result: ResolvedImportResult {
                                 kind: match import.result {

@@ -200,6 +200,16 @@ pub(super) fn check_native_rust_imports<'p>(
             .map(String::as_str)
             .collect::<HashSet<_>>();
         for import in &interface.imports {
+            if let Some(path) = &import.rust_path {
+                if !import.native_rust || !crate::native_rust_binding::valid_rust_api_path(path) {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-B143",
+                        "Rust API path must be a bounded package-qualified path",
+                        import.span,
+                    ));
+                }
+            }
             if import.native_rust && !native_rust_names.insert(import.name.as_str()) {
                 diagnostics.push(error(
                     program,

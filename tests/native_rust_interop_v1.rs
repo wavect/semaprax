@@ -180,6 +180,62 @@ fn selected_scalar_binding_rejects_unchecked_or_drifting_metadata() {
 }
 
 #[test]
+fn indexed_rust_source_path_round_trips_and_selects_graph_v52() {
+    let source = SOURCE.replacen(
+        "import rust fn combine(left: i64, selected: bool) -> i64",
+        "import rust fn combine(left: i64, selected: bool) -> i64 from \"api::combine\"",
+        1,
+    );
+    let program = parse(&source, Path::new("indexed.spx")).unwrap();
+    assert_eq!(format::canonical(&program), source);
+    let resolved = hir::resolve(&program).unwrap();
+    assert_eq!(
+        resolved.interfaces[0].imports[0].rust_path.as_deref(),
+        Some("api::combine")
+    );
+    hir::validate(&resolved).unwrap();
+    let json = graph::to_json(&program).unwrap();
+    assert!(json.contains("\"schema\":\"semaprax.graph.v52\""));
+    assert!(json.contains("\"rust_path\":\"api::combine\""));
+    let import = &resolved.interfaces[0].imports[0];
+    assert!(prepare_scalar_binding(
+        import,
+        selected_item(
+            "api",
+            "api::combine",
+            "fn combine(left: i64, selected: bool) -> i64"
+        )
+    )
+    .is_ok());
+    assert_eq!(
+        prepare_scalar_binding(
+            import,
+            selected_item(
+                "other",
+                "other::combine",
+                "fn combine(left: i64, selected: bool) -> i64"
+            )
+        )
+        .unwrap_err()
+        .code,
+        "SPX-B143"
+    );
+}
+
+#[test]
+fn indexed_rust_source_path_rejects_unqualified_item() {
+    let source = SOURCE.replacen(
+        "import rust fn combine(left: i64, selected: bool) -> i64",
+        "import rust fn combine(left: i64, selected: bool) -> i64 from \"combine\"",
+        1,
+    );
+    let program = parse(&source, Path::new("invalid-indexed.spx")).unwrap();
+    let diagnostic = hir::resolve(&program).unwrap_err();
+    assert_eq!(diagnostic[0].code, "SPX-B143");
+    assert!(diagnostic[0].span.is_some());
+}
+
+#[test]
 fn native_rust_import_syntax_format_and_hir_are_exact_and_deterministic() {
     let parsed = parse(SOURCE, Path::new("native-rust.spx")).unwrap();
     assert_eq!(format::canonical(&parsed), SOURCE);

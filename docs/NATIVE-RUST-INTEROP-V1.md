@@ -17,7 +17,7 @@ and bytes remain unchanged.
 
 ## Source and semantic admission
 
-The only new source form is an explicitly identified Rust import:
+The v1 callback source form is an explicitly identified Rust import:
 
 ```spx
 @id("host.add")
@@ -185,6 +185,16 @@ record is discovery data; this plan cannot execute, does not validate the
 actual Rust crate, and does not make a source import callable. A later adapter
 must compile its generated Rust call against held crate bytes and use the
 trusted-native execution boundary before foreign entry.
+
+An indexed declaration may now write `from "alias::path"` between its result
+and `effects` clauses. The parser and canonical formatter preserve that exact
+source selection; checked HIR retains it separately from the persistent import
+ID. The module Graph selects `semaprax.graph.v52` and records `rust_path` on
+import nodes. An unqualified or malformed path fails with source-located
+`SPX-B143`. The existing scalar callback SDK rejects these declarations before
+adapter generation. Ordinary native, Wasm, and interpreter paths retain their
+existing refusal. This source form alone does not select a dependency or grant
+any execution authority.
 
 Rich Rust bindings use a separate `semaprax.trusted-native-profile.v1`
 preparation boundary. A profile binds three opaque, exact byte inputs: the

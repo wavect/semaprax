@@ -17,6 +17,14 @@ use crate::hir::{ResolvedImportResultKind, ResolvedInterface, ResolvedProgram};
 
 /// The schema selected by any program declaring a native Rust import.
 pub(crate) const NATIVE_RUST_IMPORT_SCHEMA: &str = "semaprax.graph.v25";
+pub(crate) const INDEXED_RUST_IMPORT_SCHEMA: &str = "semaprax.graph.v52";
+
+pub(crate) fn declares_indexed_rust_import(interfaces: &[ResolvedInterface]) -> bool {
+    interfaces
+        .iter()
+        .flat_map(|interface| &interface.imports)
+        .any(|import| import.rust_path.is_some())
+}
 
 const CLOSED_PROJECTION: &str =
     "Native Rust import declarations are outside the agent, review, impact, and evidence Graph projections";
@@ -70,10 +78,23 @@ pub(crate) fn reject_source_native_rust_imports(program: &Program) -> Result<(),
 /// Closes an import node. Graph v25 records whether the declaration is a
 /// native Rust import; every earlier schema closes the node unchanged, so its
 /// previously emitted bytes are preserved exactly.
-pub(crate) fn append_import_tail(output: &mut CappedString, schema: &str, native_rust: bool) {
-    if schema == NATIVE_RUST_IMPORT_SCHEMA {
+pub(crate) fn append_import_tail(
+    output: &mut CappedString,
+    schema: &str,
+    native_rust: bool,
+    rust_path: Option<&str>,
+) {
+    if schema == NATIVE_RUST_IMPORT_SCHEMA || schema == INDEXED_RUST_IMPORT_SCHEMA {
         output.push_str(",\"native_rust\":");
         output.push_str(if native_rust { "true" } else { "false" });
+    }
+    if schema == INDEXED_RUST_IMPORT_SCHEMA {
+        output.push_str(",\"rust_path\":");
+        output.push_str(
+            &rust_path
+                .map(crate::diagnostic::quote_json)
+                .unwrap_or_else(|| "null".to_owned()),
+        );
     }
     output.push('}');
 }

@@ -461,7 +461,13 @@ pub(crate) fn write_canonical_commented(
                 write!(output, "{}: {}", param.name, param.mode.source_prefix()).unwrap();
                 write_type(output, &param.ty);
             }
-            writeln!(output, ") -> {}", import.result).unwrap();
+            write!(output, ") -> {}", import.result).unwrap();
+            if let Some(path) = &import.rust_path {
+                write!(output, " from \"").unwrap();
+                write_escaped(output, path);
+                write!(output, "\"").unwrap();
+            }
+            writeln!(output).unwrap();
             write!(output, "        effects {{ ").unwrap();
             write_joined(output, &import.effects, ", ");
             writeln!(output, " }}").unwrap();

@@ -88,9 +88,12 @@ pub fn prepare_scalar_binding(
         ));
     }
     let path_segments = item.path.split("::").collect::<Vec<_>>();
-    if path_segments.len() < 2
+    if !valid_rust_api_path(item.path)
         || path_segments.first() != Some(&item.cargo_alias)
-        || !path_segments.iter().all(|segment| valid_alias(segment))
+        || import
+            .rust_path
+            .as_ref()
+            .is_some_and(|source_path| source_path != item.path)
     {
         return Err(error(
             "SPX-B143",
@@ -188,6 +191,11 @@ fn valid_alias(value: &str) -> bool {
         && value
             .bytes()
             .all(|byte| byte.is_ascii_alphanumeric() || byte == b'_')
+}
+
+/// Source shape only. Package alias, index, and target are checked later.
+pub fn valid_rust_api_path(path: &str) -> bool {
+    path.len() <= 512 && path.split("::").count() >= 2 && path.split("::").all(valid_alias)
 }
 
 fn type_text(ty: &ResolvedType) -> Option<&'static str> {

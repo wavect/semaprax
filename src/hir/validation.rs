@@ -270,6 +270,13 @@ impl<'a> HirValidator<'a> {
                 )));
             }
             for import in &interface.imports {
+                if import.rust_path.as_ref().is_some_and(|path| {
+                    !import.native_rust || !crate::native_rust_binding::valid_rust_api_path(path)
+                }) {
+                    return Err(hir_error(
+                        "resolved Rust API path has an invalid declaration shape",
+                    ));
+                }
                 if crate::host_io_ops::by_id(import.id.as_str()).is_some() {
                     return Err(hir_error(format!(
                         "resolved import `{}` aliases a compiler-owned host I/O operation",

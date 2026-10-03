@@ -1,7 +1,7 @@
 # Native Rust Local Future Bridge v1
 
-Status: detached RI-09 implementation batch. This is a local Rust adapter
-profile, not a Semaprax source async import or public SDK claim.
+Status: partial RI-09 local Rust adapter profile. This is not a Semaprax
+source async import or public SDK claim.
 
 ## Boundary
 
@@ -32,7 +32,12 @@ The handle owns one of `Pending`, `Ready(T)`, `Taken`, `Cancelled`, or
 `OutputTooLarge`. `poll` rejects reentry before touching the pinned future and
 rejects any poll after `Ready`. On `Ready`, an explicit caller-supplied byte
 weigher checks the output against a per-handle maximum before publication.
-`take_output` transfers the value once. Exceeding the limit discards it. A
+`take_output` transfers the value once. The owned `LocalFuture<T>` and
+`&LocalFuture<T>` also implement Rust `Future<Output = Result<T,
+FutureBridgeError>>`: awaiting either uses the caller's executor, transfers a
+ready value once, and reports a settled error on a later poll. The shared form
+lets another local task request cancellation while the waiter is pending.
+Exceeding the limit discards the output. A
 panic in the future or weigher settles as `Panicked` and cannot cause a second
 poll of a completed future.
 
@@ -60,12 +65,12 @@ requires `Send` from the local handle and must report `E0277`.
 The explicitly selected `generated_local_future_bridge_runs_locked_reqwest_and_cancels_received_request`
 gate stages the exact generated source with the checked-in Cargo manifest and
 lock. It runs `reqwest` against a local TCP server under a caller-created Tokio
-current-thread runtime. The server confirms receipt before cancellation and
+current-thread runtime and directly awaits the shared bridge handle. The server
+confirms receipt before cancellation and
 counts requests to detect an implicit retry. This gate is ignored by default
 until a checkout-private Cargo target is explicitly supplied.
 
-RI-09 remains open until the real locked gate passes at the claimed commit,
-the response becomes a checked Semaprax value, and a source-authenticated
+RI-09 remains open until the response becomes a checked Semaprax value and a source-authenticated
 async import and reverse async export have executable evidence. RI-08's
 callback registration and the source suspension owner must be connected
 without weakening their authority or checkpoint rules. No Stream, implicit

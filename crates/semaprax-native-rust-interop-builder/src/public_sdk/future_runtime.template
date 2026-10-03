@@ -293,6 +293,33 @@ impl<T> LocalFuture<T> {
             CancelOutcome::AlreadyTerminal
         }
     }
+
+    fn poll_output(&self, cx: &mut Context<'_>) -> Poll<Result<T, FutureBridgeError>> {
+        match LocalFuture::poll(self, cx) {
+            Ok(Poll::Pending) => Poll::Pending,
+            Ok(Poll::Ready(())) => Poll::Ready(self.take_output()),
+            Err(error) => Poll::Ready(Err(error)),
+        }
+    }
+}
+
+// The owned and shared local handles both use the caller's executor. Polling
+// through this trait transfers a ready value once; a later poll reports the
+// settled state instead of touching the Rust future again.
+impl<T> Future for LocalFuture<T> {
+    type Output = Result<T, FutureBridgeError>;
+
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        self.as_ref().get_ref().poll_output(cx)
+    }
+}
+
+impl<T> Future for &LocalFuture<T> {
+    type Output = Result<T, FutureBridgeError>;
+
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        (*self.as_ref().get_ref()).poll_output(cx)
+    }
 }
 
 impl<T> Drop for LocalFuture<T> {

@@ -75,7 +75,7 @@ fn generated_local_future_bridge_executes_and_refuses_send_escape() {
         "{}",
         String::from_utf8_lossy(&executed.stderr)
     );
-    assert!(String::from_utf8_lossy(&executed.stdout).contains("7 passed"));
+    assert!(String::from_utf8_lossy(&executed.stdout).contains("8 passed"));
 
     let negative = format!(
         "{}\nfn needs_send<T: Send>(_: T) {{}}\nfn main() {{ let limit = LocalFutureLimit::new(1); let handle = limit.start(async {{ 1usize }}, 8, |_| 8).unwrap(); needs_send(handle); }}\n",

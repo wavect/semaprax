@@ -73,6 +73,36 @@ mod bridge_tests {
     }
 
     #[test]
+    fn direct_future_poll_transfers_once_and_refuses_cancelled_shared_waiter() {
+        let limit = LocalFutureLimit::new(2);
+        let owned = limit.start(async { vec![1, 2, 3] }, 3, Vec::len).unwrap();
+        let mut owned = Box::pin(owned);
+        let (executor, _) = counter();
+        let mut cx = Context::from_waker(&executor);
+        assert_eq!(
+            Future::poll(owned.as_mut(), &mut cx),
+            Poll::Ready(Ok(vec![1, 2, 3]))
+        );
+        assert_eq!(
+            Future::poll(owned.as_mut(), &mut cx),
+            Poll::Ready(Err(FutureBridgeError::AlreadyTaken))
+        );
+
+        let shared = limit.start(std::future::pending::<usize>(), 8, |_| 8).unwrap();
+        let mut waiter = Box::pin(&shared);
+        assert_eq!(Future::poll(waiter.as_mut(), &mut cx), Poll::Pending);
+        assert_eq!(shared.cancel(), CancelOutcome::Cancelled);
+        assert_eq!(
+            Future::poll(waiter.as_mut(), &mut cx),
+            Poll::Ready(Err(FutureBridgeError::Cancelled))
+        );
+        drop(waiter);
+        drop(shared);
+        drop(owned);
+        assert_eq!(limit.live(), 0);
+    }
+
+    #[test]
     fn wake_during_poll_and_after_cancel() {
         let limit = LocalFutureLimit::new(1);
         let polls = Rc::new(Cell::new(0));

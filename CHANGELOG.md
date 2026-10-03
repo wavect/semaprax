@@ -1,5 +1,10 @@
 # Changelog
 
+- Make the bounded RI-09 local Rust Future handle directly awaitable by an
+  explicit caller executor, including shared local waiting for cancellation.
+  The locked reqwest fixture now awaits the generated bridge directly; this
+  does not admit source-level Semaprax async import or reverse export.
+
 - Finish bounded LAW-17 acceptance with an emitted-Core-Wasm Node benchmark
   for the proved add-zero rewrite, plus call-operand, numeric-kind, and stale
   artifact refusals. The installed-Z3 focused gate passed 1/1; the read-only

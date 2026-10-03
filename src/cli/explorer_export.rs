@@ -661,7 +661,7 @@ impl<'a> Projection<'a> {
             "- Hidden frontier entries: {}\n",
             self.frontier_count
         ));
-        out.push_str(&format!("- Tests run: unavailable in this snapshot\n\n"));
+        out.push_str("- Tests run: unavailable in this snapshot\n\n");
         out.push_str("## Bundled evidence\n\n");
         out.push_str(&format!(
             "- Evidence availability: `{}`\n",

@@ -1,5 +1,8 @@
 # Changelog
 
+- Remove a redundant formatting call in the explorer Markdown export so the
+  macOS Rust build passes Clippy with warnings denied.
+
 - Keep the Native Rust interop builder's test-only seams out of production
   compilation and resolve the Clippy findings exposed by the current CI
   toolchain. Check the Windows output-limit fixture's constant bounds at

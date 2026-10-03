@@ -34,6 +34,20 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                 if let (Some(actual), Some(parameter)) = (actual.as_ref(), import.params.get(index))
                 {
                     reject_native_unit_value(self.program, argument, actual, self.diagnostics);
+                    check_argument_ownership(
+                        self.program,
+                        self.current,
+                        name,
+                        argument,
+                        parameter,
+                        Some(actual),
+                        &mut self.scopes[scope].bindings,
+                        self.types,
+                        self.allow_moves,
+                        false,
+                        false,
+                        self.diagnostics,
+                    );
                     if !actual.native_unit
                         && (actual.ty != parameter.ty || actual.mode != parameter.mode)
                     {
@@ -167,7 +181,10 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             );
             let output = match target {
                 VerifierCallTarget::Native(import) => {
-                    let mut value = CheckedValue::value(import.result.value_type());
+                    let mut value = CheckedValue::returned(
+                        import.result.value_type(),
+                        matches!(import.result, ImportResult::OwnedResource { .. }),
+                    );
                     value.native_unit = import.result == ImportResult::Unit;
                     Some(value)
                 }

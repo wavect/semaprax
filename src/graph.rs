@@ -4433,7 +4433,7 @@ fn render_graph_json(
             output.push(',');
             write!(
                 output,
-                "{{\"id\":{},\"kind\":\"import\",\"name\":{},\"owner\":{},\"identity_origin\":{},\"persistent\":{},\"import_key\":{},\"parameters\":[{}],\"result\":{{\"type\":{},\"ownership_mode\":\"value\",\"producer\":{},\"out_slot_initialization\":{},\"ownership_transfer\":{}}},\"effects\":{},\"required_authority\":{},\"failure\":{}",
+                "{{\"id\":{},\"kind\":\"import\",\"name\":{},\"owner\":{},\"identity_origin\":{},\"persistent\":{},\"import_key\":{},\"parameters\":[{}],\"result\":{{\"type\":{},\"ownership_mode\":{},\"producer\":{},\"out_slot_initialization\":{},\"ownership_transfer\":{}}},\"effects\":{},\"required_authority\":{},\"failure\":{}",
                 quote_json(import.id.as_str()),
                 quote_json(&import.name),
                 quote_json(interface.id.as_str()),
@@ -4442,6 +4442,7 @@ fn render_graph_json(
                 quote_json(&import.import_key),
                 parameters,
                 quote_json(native_import::result_text(&import.result.kind)),
+                quote_json(ownership_text(import.result.ownership)),
                 quote_json(import.result.producer),
                 quote_json(import.result.out_slot_initialization),
                 quote_json(import.result.ownership_transfer),

@@ -354,7 +354,8 @@ impl Resolver<'_> {
                                     name: param.name.clone(),
                                     ty: self.resolve_type(&param.ty, param.span)?,
                                     ownership: param.mode.into(),
-                                    consumes_on_failure: param.name == import.consumes,
+                                    consumes_on_failure: param.name == import.consumes
+                                        || (import.native_rust && param.mode == crate::ast::ParamMode::Own),
                                 })
                             })
                             .collect::<Result<Vec<_>, Diagnostic>>()?;

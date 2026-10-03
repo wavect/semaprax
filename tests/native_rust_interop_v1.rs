@@ -95,6 +95,7 @@ fn native_rust_opaque_owner_result_is_affine_in_source_and_hir() {
     ));
     assert_eq!(imports[0].result.ownership, hir::OwnershipMode::Own);
     assert_eq!(imports[1].parameters[0].ownership, hir::OwnershipMode::Own);
+    assert!(imports[1].parameters[0].consumes_on_failure);
     let run = resolved
         .functions
         .iter()
@@ -109,7 +110,16 @@ fn native_rust_opaque_owner_result_is_affine_in_source_and_hir() {
     assert_eq!(value.ownership, hir::OwnershipMode::Own);
     hir::validate(&resolved).unwrap();
     let graph = graph::to_json(&program).unwrap();
-    assert!(graph.contains("\"type\":\"Regex\""));
+    let graph: serde_json::Value = serde_json::from_str(&graph).unwrap();
+    assert_eq!(graph["schema"], "semaprax.graph.v56");
+    let constructor = graph["nodes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|node| node["id"] == "owner.new")
+        .unwrap();
+    assert_eq!(constructor["result"]["type"], "owner.regex");
+    assert_eq!(constructor["result"]["ownership_mode"], "own");
 
     let moved = OPAQUE_OWNER_SOURCE.replace(
         "regex_matches(regex, value)",
@@ -719,4 +729,74 @@ fn forged_native_rust_call_hir_is_rejected_by_target_result_and_effect() {
         diagnostic.message,
         "import `rust.host.combine` has an invalid status contract"
     );
+}
+
+#[test]
+fn native_rust_owned_call_cleanup_stages_before_later_argument_failure() {
+    use semaprax::cleanup_plan::{CleanupTransition, ExitContinuation, StorageId};
+    let source = OPAQUE_OWNER_SOURCE
+        .replace("drop trivial;", "drop import \"owner.drop\";")
+        .replace("interface RegexHost permits {  } {", "interface RegexHost permits {  } {\n    @id(\"owner.drop\") import fn drop_regex(regex: own Regex) -> unit effects { } failure infallible consumes regex always;")
+        .replace("regex_matches(regex, value)", "regex_matches(regex, 100 / value)");
+    let program = semaprax::check(&source, "native-owner-cleanup.spx").unwrap();
+    let resolved = hir::resolve(&program).unwrap();
+    hir::validate(&resolved).unwrap();
+    let run = resolved
+        .functions
+        .iter()
+        .find(|function| function.name == "run")
+        .unwrap();
+    let transitions = run
+        .cleanup_plan
+        .blocks
+        .iter()
+        .flat_map(|block| &block.transitions)
+        .collect::<Vec<_>>();
+    assert!(transitions
+        .iter()
+        .any(|transition| matches!(transition, CleanupTransition::Initialize { .. })));
+    let (call, epoch) = transitions
+        .iter()
+        .find_map(|transition| match transition {
+            CleanupTransition::CallCommit { call, arguments } if !arguments.is_empty() => {
+                Some((call, &arguments[0].source))
+            }
+            _ => None,
+        })
+        .expect("owned method must have an atomic call commit");
+    assert!(
+        matches!(&epoch.storage, StorageId::CallArgument { call: owner, parameter_index: 0, .. } if owner == call)
+    );
+    assert!(transitions.iter().any(|transition| matches!(transition,
+        CleanupTransition::Transfer { destination, .. } if destination == epoch)));
+    assert!(
+        run.cleanup_plan.exits.iter().any(|exit| {
+            matches!(exit.continuation, ExitContinuation::ReturnFailure { .. })
+                && exit
+                    .finalize_in_order
+                    .iter()
+                    .any(|action| &action.source == epoch)
+        }),
+        "late argument failure must finalize the staged owner"
+    );
+    let mut corrupt = resolved.clone();
+    let run = corrupt
+        .functions
+        .iter_mut()
+        .find(|function| function.name == "run")
+        .unwrap();
+    let arguments = run
+        .cleanup_plan
+        .blocks
+        .iter_mut()
+        .flat_map(|block| &mut block.transitions)
+        .find_map(|transition| match transition {
+            CleanupTransition::CallCommit { arguments, .. } if !arguments.is_empty() => {
+                Some(arguments)
+            }
+            _ => None,
+        })
+        .unwrap();
+    arguments.clear();
+    assert_eq!(hir::validate(&corrupt).unwrap_err().code, "SPX-H006");
 }

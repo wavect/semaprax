@@ -2593,6 +2593,23 @@ impl<'a> PlanBuilder<'a> {
                             state,
                         });
                     }
+                    ResolvedExprKind::NativeRustImportCall(call)
+                        if super::native_rust::owns(expression) =>
+                    {
+                        frames.push(Frame::CallNext {
+                            expression,
+                            callee: &call.import,
+                            args: &call.args,
+                            params: super::native_rust::params(self.program, &call.import)?,
+                            index: 0,
+                            flow: EvalResult {
+                                block,
+                                state,
+                                owned_source: None,
+                            },
+                            commits: Vec::new(),
+                        });
+                    }
                     ResolvedExprKind::NativeRustImportCall(call) => {
                         frames.push(Frame::NativeNext {
                             args: &call.args,
@@ -4805,28 +4822,17 @@ impl<'a> PlanBuilder<'a> {
                 (block, state, region),
             ),
             ResolvedExprKind::NativeRustImportCall(call) => {
-                let mut current_block = block;
-                let mut current_state = state;
-                for argument in &call.args {
-                    let evaluated = self.lower_expr_recursive_reference(
-                        argument,
-                        current_block,
-                        current_state,
-                        region,
-                    )?;
-                    if evaluated.owned_source.is_some() {
-                        return Err(plan_error(
-                            "native Rust import received a non-scalar argument",
-                        ));
-                    }
-                    current_block = evaluated.block;
-                    current_state = evaluated.state;
+                if super::native_rust::owns(expression) {
+                    self.lower_call(
+                        expression,
+                        &call.import,
+                        None,
+                        &call.args,
+                        (block, state, region),
+                    )
+                } else {
+                    self.lower_scalar_native_reference(&call.args, block, state, region)
                 }
-                Ok(EvalResult {
-                    block: current_block,
-                    state: current_state,
-                    owned_source: None,
-                })
             }
             ResolvedExprKind::HostCommandCall(call) => {
                 let callee = DeclarationId::new(crate::command_io_ops::id(call.operation));

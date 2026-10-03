@@ -8,6 +8,7 @@
 mod build;
 mod deferred_commit;
 mod execute;
+mod native_rust;
 // Owned-value-across-a-yield liveness query (issue #296, spec section 11.6).
 // `admit_owned_bytes_profile` is the second increment's real caller: the HIR
 // resolve pipeline calls it once a `yields`-declaring function's cleanup plan

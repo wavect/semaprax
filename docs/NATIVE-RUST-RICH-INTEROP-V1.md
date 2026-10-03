@@ -196,3 +196,78 @@ remain outside this profile.
 
 This does not make any target, generated package, Rust ABI, Cargo integration,
 or ecosystem binding supported.
+
+## Experimental opaque-owner rendering (RI-05)
+
+The unpublished builder's `prepare_opaque_owner_native` is a separate pure
+rendering seam. It accepts checked source and one function identity, validates
+HIR and independently replays the attached cleanup plan, then returns a C11
+header, C11 function implementation, and Rust adapter. It grants no build or
+publication authority and is not an extension of the scalar v1 SDK wire format.
+
+This closed profile admits one opaque resource with a real imported,
+infallible destructor; one ordinary Rust associated constructor `(i64) -> Self`;
+and one consuming method `(Self, i64) -> bool`. Both Rust declarations have
+explicit paths and `failure infallible`, with no effects. The destructor's
+logical import is bound to Rust `Drop`; `drop trivial` is refused. The selected
+Semaprax function has at most eight `i64` parameters and an `i64` or `bool`
+result. Its body admits literals, immutable bindings, whole places, these two
+native calls, `if`, and checked `i64` division. Other expressions, contracts,
+resource projections, borrowing, nested statement scopes, and calls to
+Semaprax helpers are refused.
+The renderer bounds one body to 256 expressions and 64 cleanup slots.
+
+The C carrier consists of three `uint64_t` fields in order: context identity,
+slot generation, and slot index. Rust retains the actual object in a table;
+no `repr(Rust)` object or allocation crosses into C. Contexts belong to one
+thread, have process-unique non-repeating identities, and hold at most 32 slots.
+A slot is reused only with a fresh generation. Wrong-context, absent-slot,
+stale-generation, and already-consumed carriers fail before the target method
+or destructor. These are bearer tokens, not cryptographic capabilities. Raw C
+callers retain the ordinary validity obligations for pointer arguments.
+
+Constructor output is written only after the Rust value has entered the table.
+A consuming method validates and removes its slot once before calling Rust.
+Constructor, method, and destructor unwinds are caught within Rust; panic
+payloads are forgotten and never become diagnostics. Abort and allocation
+failure are outside recovery. A generated safe Rust caller creates a context,
+calls the generated Semaprax function, and checks that context closure finds no
+live owner. A leaked owner causes closure to refuse; closure never substitutes
+an invented finalizer order for the compiler plan.
+
+Source verification, HIR validation, and their recursive test oracles preserve
+owned constructor results and reject reuse after a consuming native argument.
+Only ownership-bearing native calls use the existing atomic cleanup-call
+protocol; old scalar imports retain their prior cleanup projection. Arguments
+stage left to right, the declared call commit clears all staged argument
+liveness; owned native parameters retain `consumes_on_failure: true`, and successful constructors initialize their result epoch. Failure
+while evaluating a later argument finalizes the earlier staged owner. The C
+implementation follows the validated cleanup CFG and emits each
+`finalize_in_order` vector as received. A cleanup failure cannot replace a
+previously selected status; result publication occurs after successful cleanup.
+
+This experimental ABI uses closed statuses: zero success, 2 caught panic,
+3 carrier or pointer-shape refusal, 4 capacity, 5 live owner at context close,
+6 table re-entry refusal, 7 internal liveness invariant, and 8 checked division
+failure. These are not scalar v1 status-domain ordinals or Rust domain errors.
+
+The physical gate is builder test
+`generated_opaque_owner_source_and_cleanup_execute_physically`. It compiles
+actual generated Semaprax C11 and Rust glue at C `-O0` and `-O2`, checks counted
+Rust destruction in canonical order on success, late argument failure,
+constructor panic and method panic, and retains poisoned result slots on
+failure. Stale and foreign-context carriers are rejected without taking the
+live value. Compiled missing-drop and flipped-method controls must fail the
+same consumer assertions. The source/HIR harness retains move and tampered
+call-commit regressions. This local experimental seam does not establish a
+Project or CLI owner build, index-selected resource binding, standard Rust
+crate coverage, borrowed owners, general resource methods, hosted coverage,
+full quality-gate passage, or RI-05 completion.
+
+Graph v56 is selected by an ownership-bearing native Rust import. Its import
+result `type` is the resource's persistent declaration ID and its
+`ownership_mode` is `own`. Native call expressions retain the same resource
+identity in `result`, alongside the ordinary nominal `type_id`. It includes
+v52-v55's native-path and selected-index/receiver fields (null when absent).
+Scalar-only modules keep their prior schema and bytes. Graph evidence routes
+that do not admit this projection refuse v56 explicitly.

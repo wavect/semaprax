@@ -2976,6 +2976,15 @@ These areas are deliberately outside the public compiler contract:
   it does not transport an owned Rust object through the C ABI. The compiler-owned
   `src/native_rust_binding.rs` keeps the source/identity-bound plan and stable
   physical symbol separate from the persistent import ID;
+- `src/cleanup_plan/native_rust.rs` selects ownership-bearing native imports
+  for canonical argument epochs and atomic call settlement; scalar native
+  imports retain their existing plan projection. `replay/supplemental.rs`
+  independently reconstructs their argument slots.
+- `crates/semaprax-native-rust-interop-builder/src/public_sdk/owner_sdk.rs`
+  owns the experimental pure opaque-owner renderer. `owner_sdk_c.rs` consumes
+  validated cleanup CFG vectors directly; `owner_runtime.rs.txt` retains real
+  Rust objects behind C-compatible context/generation/slot carriers. This seam
+  grants no build, Project publication, or general owner-ABI authority;
 - `src/project/indexed_rust.rs` and
   `crates/semaprax-native-rust-interop-builder/src/public_sdk/indexed_project.rs`:
   explicit source-bound indexed Project admission and authenticated SDK

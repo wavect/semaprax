@@ -21,9 +21,25 @@ pub(crate) const INDEXED_RUST_IMPORT_SCHEMA: &str = "semaprax.graph.v52";
 pub(crate) const SELECTED_RUST_IMPORT_SCHEMA: &str = "semaprax.graph.v53";
 pub(crate) const SELECTED_RUST_METHOD_SCHEMA: &str = "semaprax.graph.v54";
 pub(crate) const SELECTED_RUST_RESULT_SCHEMA: &str = "semaprax.graph.v55";
+pub(crate) const OWNED_RUST_IMPORT_SCHEMA: &str = "semaprax.graph.v56";
 
 pub(crate) fn selected_schema(interfaces: &[ResolvedInterface]) -> Option<&'static str> {
-    if declares_selected_rust_result(interfaces) {
+    if interfaces
+        .iter()
+        .flat_map(|interface| &interface.imports)
+        .any(|import| {
+            import.native_rust
+                && (matches!(
+                    import.result.kind,
+                    ResolvedImportResultKind::OwnedResource { .. }
+                ) || import
+                    .parameters
+                    .iter()
+                    .any(|parameter| parameter.ownership == crate::hir::OwnershipMode::Own))
+        })
+    {
+        Some(OWNED_RUST_IMPORT_SCHEMA)
+    } else if declares_selected_rust_result(interfaces) {
         Some(SELECTED_RUST_RESULT_SCHEMA)
     } else if declares_selected_rust_method(interfaces) {
         Some(SELECTED_RUST_METHOD_SCHEMA)
@@ -43,6 +59,7 @@ pub(crate) fn evidence_refusal(schema: &str) -> Option<Diagnostic> {
         INDEXED_RUST_IMPORT_SCHEMA => "indexed Rust import programs select `semaprax.graph.v52`, which is outside this evidence flow's admission",
         SELECTED_RUST_IMPORT_SCHEMA => "selected Rust import programs select `semaprax.graph.v53`, which is outside this evidence flow's admission",
         SELECTED_RUST_METHOD_SCHEMA => "selected Rust method programs select `semaprax.graph.v54`, which is outside this evidence flow's admission",
+        OWNED_RUST_IMPORT_SCHEMA => "owned Rust import programs select `semaprax.graph.v56`, which is outside this evidence flow's admission",
         SELECTED_RUST_RESULT_SCHEMA => "selected Rust Result programs select `semaprax.graph.v55`, which is outside this evidence flow's admission",
         NATIVE_RUST_IMPORT_SCHEMA => "native Rust import programs select `semaprax.graph.v25`, which is outside this evidence flow's admission",
         _ => return None,
@@ -96,13 +113,13 @@ pub(crate) fn declares_native_rust_import(interfaces: &[ResolvedInterface]) -> b
 }
 
 /// The projected spelling of an import result type.
-pub(crate) fn result_text(kind: &ResolvedImportResultKind) -> &'static str {
+pub(crate) fn result_text(kind: &ResolvedImportResultKind) -> &str {
     match kind {
         ResolvedImportResultKind::Unit => "unit",
         ResolvedImportResultKind::I64 => "i64",
         ResolvedImportResultKind::Bool => "bool",
         ResolvedImportResultKind::ResultI64I64 => "Result<i64, i64>",
-        ResolvedImportResultKind::OwnedResource { .. } => "opaque resource",
+        ResolvedImportResultKind::OwnedResource { resource } => resource.as_str(),
     }
 }
 
@@ -147,6 +164,7 @@ pub(crate) fn append_import_tail(
         || schema == SELECTED_RUST_IMPORT_SCHEMA
         || schema == SELECTED_RUST_METHOD_SCHEMA
         || schema == SELECTED_RUST_RESULT_SCHEMA
+        || schema == OWNED_RUST_IMPORT_SCHEMA
     {
         output.push_str(",\"native_rust\":");
         output.push_str(if native_rust { "true" } else { "false" });
@@ -155,6 +173,7 @@ pub(crate) fn append_import_tail(
         || schema == SELECTED_RUST_IMPORT_SCHEMA
         || schema == SELECTED_RUST_METHOD_SCHEMA
         || schema == SELECTED_RUST_RESULT_SCHEMA
+        || schema == OWNED_RUST_IMPORT_SCHEMA
     {
         output.push_str(",\"rust_path\":");
         output.push_str(
@@ -166,6 +185,7 @@ pub(crate) fn append_import_tail(
     if schema == SELECTED_RUST_IMPORT_SCHEMA
         || schema == SELECTED_RUST_METHOD_SCHEMA
         || schema == SELECTED_RUST_RESULT_SCHEMA
+        || schema == OWNED_RUST_IMPORT_SCHEMA
     {
         output.push_str(",\"selected_index_digest\":");
         output.push_str(
@@ -174,7 +194,10 @@ pub(crate) fn append_import_tail(
                 .unwrap_or_else(|| "null".to_owned()),
         );
     }
-    if schema == SELECTED_RUST_METHOD_SCHEMA || schema == SELECTED_RUST_RESULT_SCHEMA {
+    if schema == SELECTED_RUST_METHOD_SCHEMA
+        || schema == SELECTED_RUST_RESULT_SCHEMA
+        || schema == OWNED_RUST_IMPORT_SCHEMA
+    {
         output.push_str(",\"rust_receiver\":");
         output.push_str(
             &selected_receiver

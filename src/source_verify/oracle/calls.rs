@@ -418,6 +418,20 @@ pub(super) fn oracle_call(
             );
             if let (Some(actual), Some(parameter)) = (actual, import.params.get(index)) {
                 reject_native_unit_value(program, argument, &actual, diagnostics);
+                check_argument_ownership(
+                    program,
+                    current,
+                    name,
+                    argument,
+                    parameter,
+                    Some(&actual),
+                    variables,
+                    types,
+                    allow_moves,
+                    false,
+                    false,
+                    diagnostics,
+                );
                 if !actual.native_unit
                     && (actual.ty != parameter.ty || actual.mode != parameter.mode)
                 {
@@ -431,7 +445,10 @@ pub(super) fn oracle_call(
             }
         }
         let native_unit = import.result == ImportResult::Unit;
-        let mut checked = CheckedValue::value(import.result.value_type());
+        let mut checked = CheckedValue::returned(
+            import.result.value_type(),
+            matches!(import.result, ImportResult::OwnedResource { .. }),
+        );
         checked.native_unit = native_unit;
         return Some(checked);
     }

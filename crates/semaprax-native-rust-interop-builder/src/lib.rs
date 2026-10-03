@@ -133,10 +133,11 @@ pub use public_sdk::{
     build_authenticated_project_native_rust_sdk, build_indexed_project_native_rust_sdk,
     build_indexed_scalar_native_rust, build_indexed_scalar_native_rust_sdk,
     build_indexed_scalars_native_rust_sdk, build_native_rust_owned_data_sdk, build_native_rust_sdk,
-    build_project_native_rust_sdk, IndexedProjectScalarSelection, IndexedScalarBuild,
-    IndexedScalarSelection, NativeRustOwnedDataSdkBundle, NativeRustSdkBundle,
-    NativeRustSdkOptions, ProjectNativeRustSdkBundle, NATIVE_RUST_OWNED_DATA_SDK_SCHEMA,
-    PROJECT_NATIVE_RUST_SDK_SCHEMA, PROJECT_NATIVE_RUST_SUBJECT_SCHEMA,
+    build_project_native_rust_sdk, prepare_opaque_owner_native, IndexedProjectScalarSelection,
+    IndexedScalarBuild, IndexedScalarSelection, NativeRustOwnedDataSdkBundle, NativeRustSdkBundle,
+    NativeRustSdkOptions, OpaqueOwnerNative, ProjectNativeRustSdkBundle,
+    NATIVE_RUST_OWNED_DATA_SDK_SCHEMA, PROJECT_NATIVE_RUST_SDK_SCHEMA,
+    PROJECT_NATIVE_RUST_SUBJECT_SCHEMA,
 };
 pub use trusted_native::{
     NativeBuildAuthority, NativeBuildPolicy, NativeDispatchError, NativeEffectContract,

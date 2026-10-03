@@ -15,6 +15,8 @@ impl PlanBuilder<'_> {
         let type_arguments = bounded_vec::type_arguments(expression)?;
         let params = if matches!(expression.kind, ResolvedExprKind::Invoke { .. }) {
             crate::hir::function_value::invocation_params(expression)?
+        } else if super::super::native_rust::owns(expression) {
+            super::super::native_rust::params(self.program, callee)?
         } else if instance.is_none() {
             if let Some(op) = crate::string_ops::by_id(callee.as_str()) {
                 crate::string_ops::resolved_params(op)
@@ -166,5 +168,31 @@ impl PlanBuilder<'_> {
             state: success_state,
             owned_source: destination,
         })
+    }
+}
+
+#[cfg(test)]
+impl PlanBuilder<'_> {
+    pub(super) fn lower_scalar_native_reference(
+        &mut self,
+        args: &[ResolvedExpr],
+        block: BlockId,
+        state: FlowState,
+        region: CleanupRegionId,
+    ) -> Result<EvalResult, Diagnostic> {
+        let mut flow = EvalResult {
+            block,
+            state,
+            owned_source: None,
+        };
+        for argument in args {
+            flow = self.lower_expr_recursive_reference(argument, flow.block, flow.state, region)?;
+            if flow.owned_source.is_some() {
+                return Err(plan_error(
+                    "native Rust import received a non-scalar argument",
+                ));
+            }
+        }
+        Ok(flow)
     }
 }

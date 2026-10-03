@@ -1,5 +1,12 @@
 # Changelog
 
+- Add experimental native Rust opaque-owner rendering from checked Semaprax
+  and canonical cleanup plans. Preserve owned constructor results and native
+  argument moves through source/HIR verification; generate an opaque C carrier,
+  Rust ownership table, consuming method and destructor glue. The physical gate
+  covers ordered Rust destruction, failures, and compiled negative controls.
+  Project/CLI owner builds and RI-05 completion remain open.
+
 - Bind explicit indexed Rust imports before Project/workspace frontend
   checking, include selected facts in additive graph v5 projections, and
   invalidate frontend reuse on metadata drift. The authenticated Project SDK

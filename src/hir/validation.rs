@@ -333,7 +333,7 @@ impl<'a> HirValidator<'a> {
                 let native_shape = import.native_rust
                     && import.parameters.len() <= 8
                     && import.parameters.iter().all(|parameter| {
-                        !parameter.consumes_on_failure
+                        parameter.consumes_on_failure == (parameter.ownership == OwnershipMode::Own)
                             && ((parameter.ownership == OwnershipMode::Value
                                 && matches!(parameter.ty, ResolvedType::I64 | ResolvedType::Bool))
                                 || (parameter.ownership == OwnershipMode::Own
@@ -3806,7 +3806,13 @@ impl<'a> HirValidator<'a> {
                     path,
                 } => {
                     if index == args.len() {
-                        self.finish_expr(expression, &result, OwnershipMode::Value)?;
+                        let ownership = if matches!(&expression.kind, ResolvedExprKind::NativeRustImportCall(call) if matches!(call.result, ResolvedImportResultKind::OwnedResource { .. }))
+                        {
+                            OwnershipMode::Own
+                        } else {
+                            OwnershipMode::Value
+                        };
+                        self.finish_expr(expression, &result, ownership)?;
                         scopes.push(scope);
                     } else {
                         frames.push(Frame::NativeAfterArg {
@@ -3832,17 +3838,24 @@ impl<'a> HirValidator<'a> {
                     index,
                     path,
                 } => {
-                    let scope = scopes.pop().expect("native argument scope retained");
+                    let mut scope = scopes.pop().expect("native argument scope retained");
                     publication.publish(&scope);
                     let argument = &args[index];
                     let parameter = &params[index];
                     self.require_type(&argument.ty, &parameter.ty, "native Rust import argument")?;
-                    if argument.ownership != OwnershipMode::Value
-                        || parameter.ownership != OwnershipMode::Value
-                    {
+                    if argument.ownership != parameter.ownership {
                         return Err(hir_error(
-                            "native Rust import arguments must use value ownership",
+                            "native Rust import argument ownership disagrees with its declaration",
                         ));
+                    }
+                    if parameter.ownership == OwnershipMode::Own {
+                        if !allow_moves {
+                            return Err(hir_error(
+                                "contract cannot transfer ownership to native Rust",
+                            ));
+                        }
+                        self.mark_value_sources_moved(argument, &mut scope)?;
+                        publication.publish(&scope);
                     }
                     frames.push(Frame::NativeNext {
                         expression,
@@ -6478,12 +6491,18 @@ impl<'a> HirValidator<'a> {
                         allowed_effects,
                     )?;
                     self.require_type(&argument.ty, &parameter.ty, "native Rust import argument")?;
-                    if argument.ownership != OwnershipMode::Value
-                        || parameter.ownership != OwnershipMode::Value
-                    {
+                    if argument.ownership != parameter.ownership {
                         return Err(hir_error(
-                            "native Rust import arguments must use value ownership",
+                            "native Rust import argument ownership disagrees with its declaration",
                         ));
+                    }
+                    if parameter.ownership == OwnershipMode::Own {
+                        if !allow_moves {
+                            return Err(hir_error(
+                                "contract cannot transfer ownership to native Rust",
+                            ));
+                        }
+                        self.mark_value_sources_moved(argument, scope)?;
                     }
                 }
                 let result = match &call.result {
@@ -6504,7 +6523,13 @@ impl<'a> HirValidator<'a> {
                         arguments: Vec::new(),
                     },
                 };
-                (result, OwnershipMode::Value)
+                let ownership =
+                    if matches!(call.result, ResolvedImportResultKind::OwnedResource { .. }) {
+                        OwnershipMode::Own
+                    } else {
+                        OwnershipMode::Value
+                    };
+                (result, ownership)
             }
             ResolvedExprKind::Unary { .. } => unreachable!("unary chain handled above"),
             ResolvedExprKind::Binary { op, left, right } => {

@@ -53,6 +53,8 @@ use renewal::validate_join_compatibility;
 use strings::temporary_place;
 mod record_destructure;
 mod resolved_call;
+mod supplemental;
+use supplemental::collect_supplemental_slots;
 mod schema;
 #[cfg(test)]
 mod schema_tests;
@@ -1060,7 +1062,11 @@ fn expression_skeleton_work_upper(
                     args.len().saturating_mul(6) + 14
                 }
                 ResolvedExprKind::NativeRustImportCall(call) => {
-                    call.args.len().saturating_mul(4) + 8
+                    if super::native_rust::owns(expression) {
+                        call.args.len().saturating_mul(6) + 14
+                    } else {
+                        call.args.len().saturating_mul(4) + 8
+                    }
                 }
                 ResolvedExprKind::HostCommandCall(call) => call.args.len().saturating_mul(6) + 14,
                 ResolvedExprKind::ByteRange { .. } => 32,
@@ -1282,14 +1288,18 @@ fn expression_path_counts(
             continue;
         }
         result = match &frame.expression.kind {
-            ResolvedExprKind::Call { .. } => HirPathCounts {
-                normal: frame.accumulator.normal,
-                failed: frame
-                    .accumulator
-                    .failed
-                    .saturating_add(frame.accumulator.normal),
-                residual: frame.accumulator.residual,
-            },
+            kind if matches!(kind, ResolvedExprKind::Call { .. })
+                || super::native_rust::owns(frame.expression) =>
+            {
+                HirPathCounts {
+                    normal: frame.accumulator.normal,
+                    failed: frame
+                        .accumulator
+                        .failed
+                        .saturating_add(frame.accumulator.normal),
+                    residual: frame.accumulator.residual,
+                }
+            }
             ResolvedExprKind::Unary {
                 op: UnaryOp::Neg, ..
             }
@@ -1551,107 +1561,6 @@ fn inventory_storage_id(origin: &CleanupStorageOrigin) -> StorageId {
     }
 }
 
-fn collect_supplemental_slots(
-    program: &ResolvedProgram,
-    function: &ResolvedFunction,
-    expression: &ResolvedExpr,
-    next_flag: &mut u32,
-    slots: &mut Vec<ExpectedSupplementalSlot>,
-) -> Result<(), Diagnostic> {
-    enum Frame<'a> {
-        Expr(&'a ResolvedExpr, usize),
-        CallArgument(&'a ResolvedExpr, usize),
-    }
-    let mut frames = Vec::with_capacity(1028);
-    frames.push(Frame::Expr(expression, 0));
-    while let Some(frame) = frames.pop() {
-        match frame {
-            Frame::Expr(expression, next) => {
-                if let ResolvedExprKind::Call {
-                    callee,
-                    instance,
-                    args,
-                    type_arguments,
-                } = &expression.kind
-                {
-                    let params = resolved_call_params(
-                        program,
-                        function,
-                        callee,
-                        instance.as_ref(),
-                        type_arguments,
-                    )?;
-                    if params.len() != args.len() {
-                        return Err(replay_error(
-                            function,
-                            format!("cleanup call `{}` has inconsistent arity", expression.id),
-                        ));
-                    }
-                    if let Some(argument) = args.get(next) {
-                        if frames.len() + 3 > frames.capacity() {
-                            return Err(replay_error(
-                                function,
-                                "supplemental-slot traversal exceeds the admitted depth",
-                            ));
-                        }
-                        frames.push(Frame::Expr(expression, next + 1));
-                        frames.push(Frame::CallArgument(expression, next));
-                        frames.push(Frame::Expr(argument, 0));
-                    }
-                } else if let Some(child) = replay_expression_child(expression, next) {
-                    if frames.len() + 2 > frames.capacity() {
-                        return Err(replay_error(
-                            function,
-                            "supplemental-slot traversal exceeds the admitted depth",
-                        ));
-                    }
-                    frames.push(Frame::Expr(expression, next + 1));
-                    frames.push(Frame::Expr(child, 0));
-                }
-            }
-            Frame::CallArgument(expression, index) => {
-                let ResolvedExprKind::Call {
-                    callee,
-                    instance,
-                    args,
-                    type_arguments,
-                } = &expression.kind
-                else {
-                    unreachable!("call-argument continuation retains a call");
-                };
-                let params = resolved_call_params(
-                    program,
-                    function,
-                    callee,
-                    instance.as_ref(),
-                    type_arguments,
-                )?;
-                let argument = &args[index];
-                let parameter = &params[index];
-                if parameter.ownership == OwnershipMode::Own
-                    && type_needs_drop(program, function, &parameter.ty)?
-                {
-                    let parameter_index = u32::try_from(index)
-                        .map_err(|_| replay_error(function, "too many call parameters"))?;
-                    let storage = StorageId::CallArgument {
-                        call: expression.id.clone(),
-                        parameter_index,
-                        value_expression: argument.id.clone(),
-                    };
-                    let shape =
-                        expected_shape_for_type(program, function, &argument.ty, next_flag)?;
-                    slots.push(ExpectedSupplementalSlot {
-                        storage,
-                        ty: argument.ty.clone(),
-                        shape,
-                    });
-                }
-            }
-        }
-    }
-    Ok(())
-}
-
 fn type_needs_drop(
     program: &ResolvedProgram,
     function: &ResolvedFunction,
@@ -1869,8 +1778,20 @@ fn collect_expression_statuses(
                     statuses.push(checked_status(expression, operation, cases));
                 }
             }
-            ResolvedExprKind::NativeRustImportCall(_)
-            | ResolvedExprKind::Block { .. }
+            ResolvedExprKind::NativeRustImportCall(call) => {
+                if super::native_rust::owns(expression) {
+                    statuses.push(StatusSource {
+                        id: StatusSourceId {
+                            expression: expression.id.clone(),
+                            lane: StatusLane::OperationFailure,
+                        },
+                        producer: StatusProducer::PropagatedCall {
+                            callee: call.import.clone(),
+                        },
+                    });
+                }
+            }
+            ResolvedExprKind::Block { .. }
             | ResolvedExprKind::If { .. }
             | ResolvedExprKind::ConstructRecord { .. }
             | ResolvedExprKind::ConstructVariant { .. }
@@ -3559,6 +3480,31 @@ fn expression_skeleton(
                                     expression,
                                     params,
                                     args,
+                                    index: 0,
+                                    states,
+                                }
+                            );
+                            push_frame!(frames, Frame::Eval(argument));
+                        } else {
+                            produced = Some(finish_call_states(
+                                program, function, expression, states, work,
+                            )?);
+                        }
+                    }
+                    ResolvedExprKind::NativeRustImportCall(call)
+                        if super::native_rust::owns(expression) =>
+                    {
+                        let params =
+                            resolved_call_params(program, function, &call.import, None, &[])?;
+                        work.charge(1, "owned native call skeleton root state")?;
+                        let states = vec![(empty_expr_path(), Vec::new())];
+                        if let Some(argument) = call.args.first() {
+                            push_frame!(
+                                frames,
+                                Frame::CallArgument {
+                                    expression,
+                                    params,
+                                    args: &call.args,
                                     index: 0,
                                     states,
                                 }
@@ -7825,6 +7771,20 @@ fn collect_expression_facts(
                     arguments: args.iter().map(|argument| argument.id.clone()).collect(),
                     type_arguments: type_arguments.clone(),
                 }),
+                ResolvedExprKind::NativeRustImportCall(call)
+                    if super::native_rust::owns(current) =>
+                {
+                    Some(CallFact {
+                        callee: call.import.clone(),
+                        instance: None,
+                        arguments: call
+                            .args
+                            .iter()
+                            .map(|argument| argument.id.clone())
+                            .collect(),
+                        type_arguments: Vec::new(),
+                    })
+                }
                 ResolvedExprKind::HostCommandCall(call) => Some(CallFact {
                     callee: DeclarationId::new(crate::command_io_ops::id(call.operation)),
                     instance: None,

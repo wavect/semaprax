@@ -1,5 +1,12 @@
 # Changelog
 
+- Complete the bounded LAW-07 structured proof profile with a selected
+  four-module Project and managed Workspace. A private record-body law
+  executes under exact installed Z3 evidence; a fresh candidate proof permits
+  strict publication, while stale or missing proofs leave `ACTIVE` unchanged.
+  Reordered fields and added variant branches invalidate source-bound replay.
+  Public authored aggregate ABI remains outside the scalar export profile.
+
 - Add bounded RI-08 checked callback and source-driven registry projections. Real C/Rust iterator and stateful safe-trait consumers pass at O0/O2, with cross-crate lifetime controls, shared nested-call guards, distinct failures, and uncertain-teardown quarantine. Source mutable, borrowed, and owned capture admission remains open.
 
 - Add a LAW-07 versioned Project certificate for finite record and variant laws. Reparse exact retained source, bind field/case and query identities, rerun installed Z3 or pinned Lean on replay, and attach only opaque proof to exact Project assurance. Distinct strict profiles reject scalar-to-structured method substitution. A 196-state reference corpus and real installed Project Z3/Lean gates passed; selected physical publication remains open at the public export profile's `SPX-W115` aggregate refusal.

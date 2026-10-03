@@ -1,7 +1,7 @@
-# Finite Structured Law v1 (LAW-07 draft)
+# Finite Structured Law v1 (LAW-07)
 
-Status: implementation draft. The completion matrix records executable gates and
-remaining acceptance gaps. A scalarized proof result is proof data only; it
+Status: implemented bounded proof profile. The completion matrix records the
+executable gates and explicit limits. A scalarized proof result is proof data only; it
 does not grant source mutation, execution, law publication, database atomicity,
 or removal of runtime guards.
 
@@ -86,12 +86,21 @@ retained Project authentication path, and checked arithmetic/range modeling.
 These proofs do not establish native/Wasm lowering preservation, physical
 database transaction atomicity, execution, source mutation, or publication.
 
-Focused installed Project replay, managed-Workspace source attachment, a
-196-state two-account reference corpus, and recursive/mutable/borrowed
-refusals have passed locally. Native selected strict-law publication remains
-blocked: Package Manifest v2 requires a web export, while the Public Scalar
-Export Profile v1 refuses authored record/variant declarations (`SPX-W115`).
-The current Project route can attach proof for scalar-signature functions
-that construct and match aggregates internally. Aggregate signatures and
-physical selected publication remain open; the completion matrix must not
-mark LAW-07 implemented until that profile boundary is resolved and gated.
+Focused installed Project replay, a 196-state two-account reference corpus,
+and recursive/mutable/borrowed refusals have passed locally. A selected
+four-module Project and managed Workspace now execute and physically publish
+a private scalar-signature law whose body constructs and projects records.
+The source-bound structured proof must be refreshed after a candidate change;
+stale and missing proofs refuse before staging, while an accepted proposal
+alone pivots `ACTIVE`. Reordered fields and newly added variant cases cannot
+reuse the old certificate.
+
+This gate keeps the required web export in a disconnected scalar module. The
+Public Scalar Export Profile v1 still refuses authored record/variant types in
+the selected public export closure (`SPX-W115`); no aggregate public ABI is
+claimed. Direct checked-source Z3 proves aggregate-result transfer clauses,
+while installed Project attachment is currently bounded to scalar-signature
+functions with private aggregate bodies. Lean proves its separately named
+scalar-result structured subset and reports aggregate-result clauses as
+unsupported. All other listed limits continue to refuse rather than confer
+an enclosing proved status.

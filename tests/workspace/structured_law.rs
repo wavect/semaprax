@@ -327,6 +327,19 @@ fn installed_structured_project_z3_certificate_replays_and_refuses_branch_or_fie
     let altered = serde_json::to_string(&modified).unwrap();
     assert!(replay_structured_postcondition(&altered, &revision, &tool).is_err());
 
+    let reordered = source.replace(
+        "    @id(\"law07.accounts.debit\") debit: Account,\n    @id(\"law07.accounts.credit\") credit: Account,",
+        "    @id(\"law07.accounts.credit\") credit: Account,\n    @id(\"law07.accounts.debit\") debit: Account,",
+    );
+    assert_ne!(reordered, source);
+    let reordered_project = Fixture::new("field-reordered", &reordered);
+    reordered_project.initialize_workspace();
+    assert!(
+        replay_structured_postcondition(&certificate, &reordered_project.revision(), &tool)
+            .is_err(),
+        "source-bound proof cannot retarget after record field reordering"
+    );
+
     let (branch_certificate, _) =
         prove_structured_postcondition(&revision, "src/app.spx", "law07.outcome-total", 0, &tool)
             .expect("installed Z3 covers the explicit two-case match");
@@ -334,6 +347,7 @@ fn installed_structured_project_z3_certificate_replays_and_refuses_branch_or_fie
         .replace("@id(\"law07.outcome.failure\") Failure {", "@id(\"law07.outcome.other\") Other { @id(\"law07.outcome.other.code\") code: i64, },\n    @id(\"law07.outcome.failure\") Failure {")
         .replace("Outcome::Failure { code: observed } => observed - observed,", "Outcome::Failure { code: observed } => observed - observed,\n        Outcome::Other { code: extra } => extra - extra,");
     let changed = Fixture::new("branch-added", &branch);
+    changed.initialize_workspace();
     let changed_revision = changed.revision();
     assert!(
         replay_structured_postcondition(&branch_certificate, &changed_revision, &tool).is_err(),
@@ -392,4 +406,224 @@ law contract "law07.total-after" ensures (debit: i64, credit: i64, amount: i64, 
     let error = with_authenticated_project(&project.root.join("semaprax.toml"), |_snapshot| Ok(()))
         .expect_err("selected public export profile has no authored aggregate carrier");
     assert_eq!(error[0].code, "SPX-W115");
+}
+
+#[test]
+#[ignore = "requires explicitly provisioned installed Z3 and selected Unix Project host"]
+fn selected_multimodule_project_and_workspace_accept_private_structured_law() {
+    use semaprax::assurance_manifest::law_set::{
+        protected::{
+            ProtectedLawBaseline, ProtectedLawReview, SpecificationChangeApproval,
+            SpecificationChangeAuthority,
+        },
+        strict::{self, RequiredLawEvidence, StrictLawPolicy},
+        LawSet,
+    };
+    use semaprax::project::{
+        apply_strict_law_publication, install_host_strict_law_policy,
+        prepare_strict_law_publication, with_strict_authenticated_project, ProjectCandidate,
+        ProjectExecutionOptions, SemanticChange, StrictCandidateLawInputs,
+    };
+    use std::collections::BTreeMap;
+
+    let app = r#"module law07.app;
+@id("law07.public") fn public_value() -> i64 { 0 }
+@id("law07.main") fn main() -> i64 { 0 }
+"#;
+    let project = Fixture::new("selected-multimodule", app);
+    let types = SOURCE.split_once("@id(\"law07.sum\")").unwrap().0;
+    let core = format!("{types}\n{TOTAL_AFTER}\n{OUTCOME_TOTAL}");
+    assert_eq!(
+        semaprax::parse(&core, "src/core.spx")
+            .unwrap()
+            .functions
+            .len(),
+        2
+    );
+    std::fs::write(
+        project.root.join("src/core.spx"),
+        semaprax::format::canonical(&semaprax::parse(&core, "src/core.spx").unwrap()),
+    )
+    .unwrap();
+    let tests = r#"module law07.tests;
+use function @id("law07.total-after") from law07.accounting as total_after;
+@id("law07.tests.main") fn main() -> i64 { total_after(1, 2, 0) }
+"#;
+    std::fs::write(
+        project.root.join("src/tests.spx"),
+        semaprax::format::canonical(&semaprax::parse(tests, "src/tests.spx").unwrap()),
+    )
+    .unwrap();
+    let native = r#"module law07.laws;
+@id("law07.total-after.law")
+law contract "law07.total-after" ensures (debit: i64, credit: i64, amount: i64, result: i64)
+    result == debit + credit
+    evidence smt_proved;
+"#;
+    let law = semaprax::native_law_source::parse(native, "src/contracts.spx").unwrap();
+    std::fs::write(
+        project.root.join("src/contracts.spx"),
+        semaprax::native_law_source::canonical(&law),
+    )
+    .unwrap();
+    let manifest = project.root.join("semaprax.toml");
+    std::fs::write(&manifest, "schema = \"semaprax.manifest.v2\"\n\n[package]\nname = \"law07-selected\"\nversion = \"1.0.0\"\n\n[modules]\nentry = \"law07.app\"\nsources = [\"src/app.spx\", \"src/contracts.spx\", \"src/core.spx\", \"src/tests.spx\"]\nlaw_sources = [\"src/contracts.spx\"]\ntests = [\"law07.tests\"]\n\n[exports]\nweb = [\"law07.public\"]\n").unwrap();
+    let paths = project.root.join("paths.json");
+    std::fs::write(&paths, "{\"schema\":\"semaprax.workspace-semantic-path-set.v1\",\"files\":[{\"path\":\"src/app.spx\"},{\"path\":\"src/contracts.spx\"},{\"path\":\"src/core.spx\"},{\"path\":\"src/tests.spx\"}]}\n").unwrap();
+    let workspace_revision =
+        semaprax::semantic_workspace::initialize(&project.root, &paths).unwrap();
+    let revision = project.revision();
+    assert_eq!(revision.workspace_revision(), workspace_revision);
+    let tool = project.tool(ToolKind::Z3);
+    let laws = LawSet::derive(
+        &revision,
+        "structured-proof-v1",
+        revision.law_modules().to_vec(),
+    )
+    .unwrap();
+    let policy = StrictLawPolicy::new(
+        laws.clone(),
+        BTreeMap::from([(
+            "law07.total-after.law".into(),
+            RequiredLawEvidence::PinnedStructuredSmtSource {
+                toolchain: tool.expected_version().into(),
+                accepted_translation: SMT_PROFILE.into(),
+            },
+        )]),
+    )
+    .unwrap();
+    let (certificate, proof) =
+        prove_structured_postcondition(&revision, "src/core.spx", "law07.total-after", 0, &tool)
+            .expect("installed Z3 proves selected private aggregate-body law");
+    let row: Certificate = serde_json::from_str(&certificate).unwrap();
+    assert_eq!(
+        row.program_root,
+        revision.program_root().unwrap().program_root()
+    );
+    let report = strict::derive(&revision, &laws, &policy, &[proof.clone()]).unwrap();
+    strict::require(&report, &revision, &laws, &policy, &[proof.clone()]).unwrap();
+    let protection = ProtectedLawBaseline::new(&revision, laws, vec![]).unwrap();
+    install_host_strict_law_policy(&manifest, &policy, vec![]).unwrap();
+    with_strict_authenticated_project(&manifest, &[proof.clone()], &[], |session| {
+        session.execute_entry(&ProjectExecutionOptions::default())?;
+        Ok(())
+    })
+    .expect("selected Project executes with exact private structured proof");
+    assert!(with_strict_authenticated_project(&manifest, &[], &[], |_session| Ok(())).is_err());
+
+    struct Host;
+    impl SpecificationChangeAuthority for Host {
+        fn approve_specification_change(&mut self, _: &ProtectedLawReview) -> bool {
+            true
+        }
+    }
+    let start = ProjectCandidate::open(revision.clone(), revision.project_revision()).unwrap();
+    let change = SemanticChange::new(
+        revision.project_revision(),
+        &serde_json::json!({
+            "kind":"change_function_signature", "target":"law07.public",
+            "append_parameters":[{"name":"unused","type":"i64","argument":{"kind":"i64","value":0}}]
+        }),
+    )
+    .unwrap();
+    let candidate = start.apply(start.candidate_digest(), &change).unwrap();
+    let second = SemanticChange::new(
+        candidate.revision().project_revision(),
+        &serde_json::json!({
+            "kind":"change_function_signature", "target":"law07.outcome-total",
+            "append_parameters":[{"name":"unused","type":"i64","argument":{"kind":"i64","value":0}}]
+        }),
+    )
+    .unwrap();
+    let candidate = candidate
+        .apply(candidate.candidate_digest(), &second)
+        .unwrap();
+    let candidate_laws = LawSet::derive(
+        candidate.revision(),
+        "structured-proof-v1",
+        candidate.revision().law_modules().to_vec(),
+    )
+    .unwrap();
+    let fresh = prove_structured_postcondition(
+        candidate.revision(),
+        "src/core.spx",
+        "law07.total-after",
+        0,
+        &tool,
+    )
+    .expect("candidate Project requires a new exact structured proof")
+    .1;
+    let intent = candidate
+        .protected_law_review(&protection, &candidate_laws)
+        .unwrap();
+    let approval = SpecificationChangeApproval::request(&intent, &mut Host).unwrap();
+    let stale_proofs = [proof];
+    let stale = StrictCandidateLawInputs {
+        protection: &protection,
+        policy: &policy,
+        laws: &candidate_laws,
+        proofs: &stale_proofs,
+        native_proofs: &[],
+        specification_approval: Some(&approval),
+    };
+    let fresh_proofs = [fresh];
+    let inputs = StrictCandidateLawInputs {
+        protection: &protection,
+        policy: &policy,
+        laws: &candidate_laws,
+        proofs: &fresh_proofs,
+        native_proofs: &[],
+        specification_approval: Some(&approval),
+    };
+    let active = project.root.join(".semaprax-workspace/ACTIVE");
+    let before = std::fs::read(&active).unwrap();
+    assert!(prepare_strict_law_publication(
+        &candidate,
+        &stale,
+        candidate.candidate_digest(),
+        &project.root,
+        &manifest,
+        &workspace_revision,
+    )
+    .is_err());
+    assert_eq!(std::fs::read(&active).unwrap(), before);
+    let proposal = prepare_strict_law_publication(
+        &candidate,
+        &inputs,
+        candidate.candidate_digest(),
+        &project.root,
+        &manifest,
+        &workspace_revision,
+    )
+    .expect("selected Project stages exact structured law publication");
+    assert_eq!(std::fs::read(&active).unwrap(), before);
+    let missing = StrictCandidateLawInputs {
+        protection: &protection,
+        policy: &policy,
+        laws: &candidate_laws,
+        proofs: &[],
+        native_proofs: &[],
+        specification_approval: Some(&approval),
+    };
+    assert!(prepare_strict_law_publication(
+        &candidate,
+        &missing,
+        candidate.candidate_digest(),
+        &project.root,
+        &manifest,
+        &workspace_revision,
+    )
+    .is_err());
+    assert_eq!(std::fs::read(&active).unwrap(), before);
+    apply_strict_law_publication(
+        &candidate,
+        &inputs,
+        candidate.candidate_digest(),
+        &project.root,
+        &manifest,
+        &workspace_revision,
+        proposal.to_json().as_bytes(),
+    )
+    .expect("fresh proof permits one managed-Workspace ACTIVE pivot");
+    assert_ne!(std::fs::read(&active).unwrap(), before);
 }

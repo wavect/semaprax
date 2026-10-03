@@ -2060,12 +2060,17 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     let value = self.emit_expr(&arm.value)?;
                     self.require_type(&value.ty, &expr.ty, "match arm result")?;
                     if is_direct_plan_owned(self.program, &expr.ty) {
-                        let transitions = self
-                            .bytes_plan
-                            .expect("checked above")
-                            .apply_at(&arm.value.id)?;
-                        for line in transitions.lines() {
-                            self.line(line);
+                        // An owned place needs its arm-to-join transfer here.
+                        // Producers replay that same transition in `emit_expr`;
+                        // replaying it again would move from a dead source.
+                        if matches!(arm.value.kind, ResolvedExprKind::Place(_)) {
+                            let transitions = self
+                                .bytes_plan
+                                .expect("checked above")
+                                .apply_at(&arm.value.id)?;
+                            for line in transitions.lines() {
+                                self.line(line);
+                            }
                         }
                     } else if aggregate_result && expr.ownership == hir::OwnershipMode::Own {
                         self.copy_variant_join_carrier(&result, &value.code, &expr.ty)?;

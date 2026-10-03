@@ -72,6 +72,7 @@ pub mod installed;
 pub mod installed_project;
 pub mod kernel_report;
 pub mod lean;
+pub mod list_induction;
 pub mod profile;
 pub mod program_root;
 pub mod trust_chain;

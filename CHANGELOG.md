@@ -1,5 +1,13 @@
 # Changelog
 
+- Start LAW-08's source-bound list induction lane: an exact pure monomorphic
+  `Iter<i64>` tail match may return `Vec<i64>`, and a separate proof module
+  discharges fixed append/reverse laws with real pinned Lean. A versioned
+  certificate replays source, definitions, proof text and law associations;
+  a wrong-reverse control refutes the selected order law and generated native
+  C11 executes the admitted source at O0 and O2. Runtime capacity, call depth,
+  Core Wasm execution and public aggregate ABI remain outside the theorem.
+
 - Bind the experimental Result callback adapter to exact selected Rust
   trait/index/package identities. A captured rustdoc fixture and a separately
   compiled safe implementation exercise retained state; unsafe, sealed,

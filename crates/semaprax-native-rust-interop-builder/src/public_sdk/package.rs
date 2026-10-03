@@ -12,7 +12,17 @@ pub(super) enum IndexedSources<'a> {
     Multiple(
         &'a [semaprax::native_rust_binding::ScalarBindingPlan],
         &'a [&'a str],
+        Option<ForeignReturnGuard<'a>>,
     ),
+}
+
+#[derive(Clone, Copy)]
+pub(super) struct ForeignReturnGuard<'a> {
+    pub import_id: &'a str,
+    pub assumption_id: &'a str,
+    pub proposition_digest: &'a str,
+    pub minimum: i64,
+    pub maximum: i64,
 }
 
 fn parameters(parameters: &[Parameter]) -> String {
@@ -168,8 +178,8 @@ fn render_lib(
         .expect("writing indexed Rust source cannot fail");
         }
     }
-    if let Some(IndexedSources::Multiple(plans, sources)) = indexed {
-        render_indexed_multiple(&mut output, facts, plans, sources);
+    if let Some(IndexedSources::Multiple(plans, sources, guard)) = indexed {
+        render_indexed_multiple(&mut output, facts, plans, sources, guard);
     }
     output.push_str("}\npub use public_api::*;\n");
     for (index, dependency) in rust_dependencies.iter().enumerate() {
@@ -188,6 +198,7 @@ fn render_indexed_multiple(
     facts: &DescriptorFacts,
     plans: &[semaprax::native_rust_binding::ScalarBindingPlan],
     sources: &[&str],
+    guard: Option<ForeignReturnGuard<'_>>,
 ) {
     output.push_str("pub const SEMAPRAX_INDEXED_SCALAR_PROFILE:&str=\"semaprax.native-rust-indexed-scalars.v1\";\npub const SEMAPRAX_RUST_API_SELECTIONS:&[(&str,&str,&str,&str)]=&[");
     for plan in plans {
@@ -242,9 +253,21 @@ fn render_indexed_multiple(
             writeln!(output, "fn {}({declarations})->{result}{{let target:fn({types})->{result}={path};target({})}}", plan.physical_symbol, arguments(&import.parameters))
                 .expect("writing indexed function cannot fail");
         }
-        write!(methods, "fn {}(&mut self{}{})->NativeRustSdkImportResult<{result}>{{NativeRustSdkImportResult::Success({}({}))}}",
-            import.public_method, if declarations.is_empty() { "" } else { "," }, declarations, plan.physical_symbol, arguments(&import.parameters))
-            .expect("writing indexed adapter cannot fail");
+        if let Some(guard) = guard.filter(|guard| guard.import_id == plan.import_id) {
+            assert_eq!(result, "i64", "checked foreign return guard requires i64");
+            write!(methods, "fn {}(&mut self{}{})->NativeRustSdkImportResult<{result}>{{let value={}({});if value<{}||value>{}{{return NativeRustSdkImportResult::Status{{code:NonZeroU32::new(40909).unwrap(),class:NativeRustSdkStatusClass::Import,retryable:false}}}}NativeRustSdkImportResult::Success(value)}}",
+                import.public_method, if declarations.is_empty() { "" } else { "," }, declarations, plan.physical_symbol, arguments(&import.parameters), guard.minimum, guard.maximum)
+                .expect("writing guarded indexed adapter cannot fail");
+        } else {
+            write!(methods, "fn {}(&mut self{}{})->NativeRustSdkImportResult<{result}>{{NativeRustSdkImportResult::Success({}({}))}}",
+                import.public_method, if declarations.is_empty() { "" } else { "," }, declarations, plan.physical_symbol, arguments(&import.parameters))
+                .expect("writing indexed adapter cannot fail");
+        }
+    }
+    if let Some(guard) = guard {
+        writeln!(output, "pub const SEMAPRAX_FOREIGN_RETURN_GUARD:(&str,&str,&str,i64,i64)=({:?},{:?},{:?},{},{});",
+            guard.import_id, guard.assumption_id, guard.proposition_digest, guard.minimum, guard.maximum)
+            .expect("writing guarded identity cannot fail");
     }
     write!(output, "pub struct IndexedScalarHost;\nimpl NativeRustSdkImports for IndexedScalarHost{{{methods}}}\npub fn indexed_scalar_sdk(capabilities:&[&str])->Result<NativeRustSdk<IndexedScalarHost>,NativeRustSdkAdmissionError>{{NativeRustSdk::new(IndexedScalarHost,capabilities)}}\n")
         .expect("writing indexed host cannot fail");

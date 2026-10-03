@@ -1,5 +1,12 @@
 # Changelog
 
+- Add an opt-in LAW-09 guard to the authenticated indexed Project Rust SDK.
+  The generated adapter checks an exact declared i64 return range before
+  publishing the value to Semaprax and reports a stable import status on
+  violation. A real compiled consumer exercised both good and seeded bad
+  returns; the conditional frontier is bound to the published SDK manifest.
+  Caller certificates and protected LawSet association remain open.
+
 - Add a versioned LAW-13 proof-to-runtime trust-chain view with exact source,
   artifact and optional kernel replay, explicit trusted lowering and unexecuted
   runtime status. A scalar reference/interpreter/emitted-Wasm fixture exercises

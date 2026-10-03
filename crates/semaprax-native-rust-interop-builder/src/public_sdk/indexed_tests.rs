@@ -145,6 +145,19 @@ fn method_index_with_signature(
 }
 
 fn run_published_sdk(rustc: &str, clang: &str, root: &Path, output: &Path) -> i32 {
+    run_published_sdk_with_consumer(
+        rustc, clang, root, output,
+        "fn main(){let mut sdk=indexed_sdk::indexed_scalar_sdk(&[\"host.math\"]).unwrap_or_else(|_|std::process::exit(13));match sdk.spx_interop_dot_add(20,22){Ok(64)=>{},_=>std::process::exit(12)}}\n",
+    )
+}
+
+fn run_published_sdk_with_consumer(
+    rustc: &str,
+    clang: &str,
+    root: &Path,
+    output: &Path,
+    consumer_source: &str,
+) -> i32 {
     let mut library = Command::new(rustc);
     library.current_dir(output).args([
         "--edition=2021",
@@ -156,11 +169,7 @@ fn run_published_sdk(rustc: &str, clang: &str, root: &Path, output: &Path) -> i3
         "libindexed_sdk.rlib",
     ]);
     assert!(library.status().unwrap().success());
-    std::fs::write(
-        root.join("consumer.rs"),
-        "fn main(){let mut sdk=indexed_sdk::indexed_scalar_sdk(&[\"host.math\"]).unwrap_or_else(|_|std::process::exit(13));match sdk.spx_interop_dot_add(20,22){Ok(64)=>{},_=>std::process::exit(12)}}\n",
-    )
-    .unwrap();
+    std::fs::write(root.join("consumer.rs"), consumer_source).unwrap();
     let archive = if cfg!(windows) {
         "semaprax_native_rust_sdk.lib"
     } else {

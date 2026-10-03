@@ -2,6 +2,10 @@
 
 use super::*;
 use crate::indexed_binding::prepare_indexed_scalar_binding;
+use semaprax::hir::ResolvedImportResultKind;
+use semaprax::native_rust_binding::foreign_law::{
+    DeclaredForeignSummary, ForeignLawFrontier, ForeignLawRequest,
+};
 use semaprax::project::ProjectIndexedRustImport;
 use semaprax_rust_api_index::{ItemKind, Receiver, RustApiIndex};
 
@@ -22,11 +26,48 @@ pub fn build_indexed_project_native_rust_sdk(
     selections: &[IndexedProjectScalarSelection<'_>],
     output: &Path,
 ) -> Result<ProjectNativeRustSdkBundle, Vec<Diagnostic>> {
+    build_indexed_project_native_rust_sdk_inner(manifest_path, selections, None, output)
+        .map(|(bundle, _)| bundle)
+}
+
+/// One conditional foreign declaration retained in a generated SDK return
+/// guard. The declaration is still an assumption about the Rust implementation.
+#[derive(Clone, Copy)]
+pub struct GuardedForeignLawSelection<'a> {
+    pub import_id: &'a str,
+    pub declared: &'a DeclaredForeignSummary,
+    pub law: &'a ForeignLawRequest,
+}
+
+/// Publish an authenticated Project SDK with one exact i64 return guard.
+/// The returned frontier binds the guard to the published SDK manifest digest.
+pub fn build_guarded_indexed_project_native_rust_sdk(
+    manifest_path: &Path,
+    selections: &[IndexedProjectScalarSelection<'_>],
+    guard: GuardedForeignLawSelection<'_>,
+    output: &Path,
+) -> Result<(ProjectNativeRustSdkBundle, ForeignLawFrontier), Vec<Diagnostic>> {
+    let (bundle, frontier) = build_indexed_project_native_rust_sdk_inner(
+        manifest_path,
+        selections,
+        Some(guard),
+        output,
+    )?;
+    Ok((bundle, frontier.expect("guarded build retains frontier")))
+}
+
+fn build_indexed_project_native_rust_sdk_inner(
+    manifest_path: &Path,
+    selections: &[IndexedProjectScalarSelection<'_>],
+    guard: Option<GuardedForeignLawSelection<'_>>,
+    output: &Path,
+) -> Result<(ProjectNativeRustSdkBundle, Option<ForeignLawFrontier>), Vec<Diagnostic>> {
     let bindings = prepare_project_bindings(selections)?;
     semaprax::project::with_authenticated_indexed_rust_project(
         manifest_path,
         &bindings,
         |snapshot| {
+            let revision = snapshot.retain_revision();
             snapshot.with_authenticated_native_rust_sdk_subject(|input| {
                 let subject = project::ProjectSdkSubject::from_authenticated(&input)?;
                 project::verify_project_subject(subject.canonical.as_bytes(), &subject)
@@ -55,13 +96,16 @@ pub fn build_indexed_project_native_rust_sdk(
                         )
                     })
                 {
+                    if guard.is_some() {
+                        return Err(vec![sdk_error("foreign i64 return guard requires scalar indexed Project imports")]);
+                    }
                     let sdk = indexed_owner::build(input.program(), &subject, selections, output)?;
-                    return Ok(ProjectNativeRustSdkBundle {
+                    return Ok((ProjectNativeRustSdkBundle {
                         sdk,
                         project_revision: subject.project_revision.clone(),
                         workspace_revision: subject.workspace_revision.clone(),
                         subject_digest: subject.digest.clone(),
-                    });
+                    }, None));
                 }
                 let mut plans = Vec::with_capacity(ordered.len());
                 let mut sources = Vec::with_capacity(ordered.len());
@@ -99,21 +143,61 @@ pub fn build_indexed_project_native_rust_sdk(
                             .expect("prepared UTF-8 source"),
                     );
                 }
+                let checked_guard = if let Some(guard) = guard {
+                    let plan = plans.iter().find(|plan| plan.import_id == guard.import_id)
+                        .ok_or_else(|| vec![sdk_error("foreign guard import is absent from exact Project selections")])?;
+                    let import = input.program().interfaces.iter().flat_map(|interface| &interface.imports)
+                        .find(|import| import.id.as_str() == guard.import_id)
+                        .ok_or_else(|| vec![sdk_error("foreign guard import is absent from linked HIR")])?;
+                    if import.result.kind != ResolvedImportResultKind::I64
+                        || !guard.law.require_return_guard
+                        || guard.declared.return_i64_range.is_none()
+                    {
+                        return Err(vec![sdk_error("foreign guard requires an i64 import and explicit retained return range")]);
+                    }
+                    // Check all law conditions before publication. The final
+                    // frontier is rederived with the published artifact digest.
+                    revision.foreign_law_frontier(
+                        plan, plan.target.as_str(),
+                        "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+                        guard.declared, guard.law,
+                    )?;
+                    let (minimum, maximum) = guard.declared.return_i64_range.expect("checked range");
+                    Some(package::ForeignReturnGuard {
+                        import_id: guard.import_id,
+                        assumption_id: &guard.declared.assumption_id,
+                        proposition_digest: &guard.declared.proposition_digest,
+                        minimum,
+                        maximum,
+                    })
+                } else {
+                    None
+                };
                 let sdk = authority::build_indexed_project_sdk_inner(
                     input.program(),
                     &subject,
                     &plans,
                     &sources,
                     selections[0].selection.package.stable_rustc_version,
+                    checked_guard,
                     output,
                 )
                 .map_err(PublicBuildError::into_diagnostics)?;
-                Ok(ProjectNativeRustSdkBundle {
+                let frontier = if let Some(guard) = guard {
+                    let plan = plans.iter().find(|plan| plan.import_id == guard.import_id)
+                        .expect("checked guard selection");
+                    Some(revision.foreign_law_frontier(
+                        plan, plan.target.as_str(), sdk.manifest_digest(), guard.declared, guard.law,
+                    )?)
+                } else {
+                    None
+                };
+                Ok((ProjectNativeRustSdkBundle {
                     sdk,
                     project_revision: subject.project_revision.clone(),
                     workspace_revision: subject.workspace_revision.clone(),
                     subject_digest: subject.digest.clone(),
-                })
+                }, frontier))
             })
         },
     )

@@ -485,3 +485,130 @@ fn indexed_real_regex_project_generates_and_executes_locked_offline_owner_loan()
     std::fs::remove_dir_all(root).unwrap();
     std::fs::remove_dir_all(target).unwrap();
 }
+
+#[test]
+fn guarded_indexed_project_sdk_checks_physical_return_before_semantic_publication() {
+    use semaprax::native_rust_binding::foreign_law::{DeclaredForeignSummary, ForeignLawRequest};
+
+    let rustc = std::env::var("RUSTC").expect("configure absolute RUSTC");
+    let clang = std::env::var("CLANG").expect("configure absolute CLANG");
+    for tool in [&rustc, &clang] {
+        assert!(Path::new(tool).is_absolute());
+    }
+    let version = Command::new(&rustc).arg("--version").output().unwrap();
+    assert!(version.status.success());
+    let version = std::str::from_utf8(&version.stdout).unwrap().trim();
+    let crate_source = b"pub fn add(left:i64,right:i64)->i64{left+right}\n";
+    let index = index_for(crate_source, version);
+    let replay = RustApiIndex::replay(&index).unwrap();
+    let package_digest = raw_digest(crate_source);
+    let source = canonical(SOURCE, "src/app.spx");
+    let tests = canonical(
+        "module interop.tests; @id(\"interop.tests.main\") fn main() -> i64 { 0 }",
+        "src/tests.spx",
+    );
+    let root = std::fs::canonicalize(std::env::temp_dir())
+        .unwrap()
+        .join(format!("semaprax-law09-physical-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&root);
+    std::fs::create_dir_all(root.join("src")).unwrap();
+    std::fs::write(root.join("semaprax.toml"), MANIFEST).unwrap();
+    std::fs::write(root.join("src/app.spx"), &source).unwrap();
+    std::fs::write(root.join("src/tests.spx"), &tests).unwrap();
+    let selected = IndexedProjectScalarSelection {
+        source_path: "src/app.spx",
+        source: &source,
+        selection: IndexedScalarSelection {
+            import_id: "host.add",
+            index_bytes: &index,
+            package_source_bytes: crate_source,
+            package: SelectedPackage {
+                cargo_alias: "fixture_math",
+                name: "fixture_math",
+                version: "0.0.1",
+                source_sha256: &package_digest,
+                target: target_triple().unwrap(),
+                feature_digest: replay.feature_digest(),
+                stable_rustc_version: version,
+            },
+        },
+    };
+    let declared = DeclaredForeignSummary {
+        assumption_id: "law09.add.behavior".into(),
+        proposition_digest: raw_digest(b"fixture add has no hidden behavior"),
+        assumes_no_effects: true,
+        assumes_no_callbacks: true,
+        assumes_no_panics: true,
+        assumes_no_shared_state: true,
+        return_i64_range: Some((0, 50)),
+    };
+    let law = ForeignLawRequest {
+        law_id: "law09.add.range".into(),
+        permit_assumptions: true,
+        require_theorem: false,
+        require_no_effects: true,
+        require_no_callbacks: true,
+        require_no_panics: true,
+        require_no_shared_state: true,
+        require_return_guard: true,
+    };
+    let guard = GuardedForeignLawSelection {
+        import_id: "host.add",
+        declared: &declared,
+        law: &law,
+    };
+    let output = root.join("sdk");
+    reset_build_observer();
+    let (bundle, frontier) = build_guarded_indexed_project_native_rust_sdk(
+        &root.join("semaprax.toml"),
+        &[selected],
+        guard,
+        &output,
+    )
+    .unwrap_or_else(|error| {
+        panic!(
+            "guarded SDK failed: {error:?}; stage {:?}",
+            test_build_snapshot()
+        )
+    });
+    let report: Value = serde_json::from_str(&frontier.public_view()).unwrap();
+    assert_eq!(report["adapter_digest"], bundle.manifest_digest());
+    assert_eq!(report["conditions"][0], "law09.add.behavior:no_effects");
+    assert_eq!(report["foreign_internals_proved"], false);
+    let generated = std::fs::read_to_string(output.join("src/lib.rs")).unwrap();
+    assert!(generated.contains("SEMAPRAX_FOREIGN_RETURN_GUARD"));
+    assert!(generated.contains("NonZeroU32::new(40909)"));
+    assert_eq!(
+        run_published_sdk_with_consumer(
+            &rustc,
+            &clang,
+            &root,
+            &output,
+            r#"fn main(){
+let mut sdk=indexed_sdk::indexed_scalar_sdk(&["host.math"]).unwrap();
+assert_eq!(sdk.spx_interop_dot_add(20,22),Ok(64));
+match sdk.spx_interop_dot_add(1000,22){
+ Err(indexed_sdk::NativeRustSdkCallError::Semantic{domain_id,code,class,retryable})
+  if domain_id=="host.math.v1" && code.get()==40909
+   && class==indexed_sdk::NativeRustSdkStatusClass::Import && !retryable=>{},
+ other=>panic!("foreign return escaped or wrong status: {other:?}"),
+}
+}"#,
+        ),
+        0,
+    );
+    let wrong = GuardedForeignLawSelection {
+        import_id: "host.other",
+        ..guard
+    };
+    let absent = root.join("wrong");
+    assert!(build_guarded_indexed_project_native_rust_sdk(
+        &root.join("semaprax.toml"),
+        &[selected],
+        wrong,
+        &absent,
+    )
+    .is_err());
+    assert!(!absent.exists());
+    std::fs::remove_dir_all(root).unwrap();
+}

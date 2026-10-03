@@ -546,6 +546,7 @@ struct IndexedProjectSources<'a> {
     plans: &'a [semaprax::native_rust_binding::ScalarBindingPlan],
     sources: &'a [&'a str],
     rustc: &'a str,
+    foreign_guard: Option<package::ForeignReturnGuard<'a>>,
 }
 
 enum SdkInput<'a> {
@@ -644,6 +645,7 @@ pub(super) fn build_indexed_project_sdk_inner(
     plans: &[semaprax::native_rust_binding::ScalarBindingPlan],
     sources: &[&str],
     rustc: &str,
+    foreign_guard: Option<package::ForeignReturnGuard<'_>>,
     output: &Path,
 ) -> Result<NativeRustSdkBundle, PublicBuildError> {
     let options = NativeRustSdkOptions {
@@ -659,6 +661,7 @@ pub(super) fn build_indexed_project_sdk_inner(
                 plans,
                 sources,
                 rustc,
+                foreign_guard,
             }),
         },
         options,
@@ -995,13 +998,18 @@ fn build_sdk_inner(
                 plans,
                 package_sources,
                 ..
-            } => Some(package::IndexedSources::Multiple(plans, package_sources)),
+            } => Some(package::IndexedSources::Multiple(
+                plans,
+                package_sources,
+                None,
+            )),
             SdkInput::Project {
                 indexed: Some(indexed),
                 ..
             } => Some(package::IndexedSources::Multiple(
                 indexed.plans,
                 indexed.sources,
+                indexed.foreign_guard,
             )),
             _ => None,
         };

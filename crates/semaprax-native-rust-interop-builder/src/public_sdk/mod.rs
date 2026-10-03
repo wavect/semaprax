@@ -629,7 +629,8 @@ mod indexed_project;
 mod regex_project_package;
 mod regex_project_native;
 pub use indexed_project::{
-    build_indexed_project_native_rust_sdk, prepare_indexed_regex_project_package,
+    build_guarded_indexed_project_native_rust_sdk, build_indexed_project_native_rust_sdk,
+    prepare_indexed_regex_project_package, GuardedForeignLawSelection,
     IndexedProjectRegexRegistrySelection, IndexedProjectScalarSelection,
 };
 pub use regex_project_package::PreparedRegexProjectPackage;

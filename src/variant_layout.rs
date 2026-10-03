@@ -118,10 +118,18 @@ impl VariantLayout {
             && arguments.as_slice() == [ResolvedType::U8];
         let compiler_owned_byte_algebra =
             crate::hir::admitted_owned_byte_prelude_instance(variant, arguments);
+        let compiler_owned_string_algebra =
+            crate::hir::ResolvedImportResultKind::is_owned_container_type(
+                instance,
+                &program.declarations,
+            ) || crate::hir::admitted_ri06_regex_result(program, instance);
         let compiler_iterator_step = crate::iterator_ops::is_step(instance);
         let authored_generic_owned =
             crate::hir::is_admitted_concrete_owned_byte_variant(&program.declarations, instance);
-        if (compiler_owned_byte_algebra || authored_generic_owned || compiler_iterator_step)
+        if (compiler_owned_byte_algebra
+            || compiler_owned_string_algebra
+            || authored_generic_owned
+            || compiler_iterator_step)
             && (program.declarations.type_parameters(variant)
                 != Some(declaration.type_parameters.as_slice())
                 || program.declarations.variant_cases(variant) != Some(cases.as_slice()))
@@ -133,6 +141,7 @@ impl VariantLayout {
         if arguments.len() != declaration.type_parameters.len()
             || (!compiler_byte_option
                 && !compiler_owned_byte_algebra
+                && !compiler_owned_string_algebra
                 && !authored_generic_owned
                 && !compiler_iterator_step
                 && arguments

@@ -69,11 +69,138 @@ export interface McpWireTransport {
     exchange(frame: string): string | Promise<string>;
     notify(frame: string): void | Promise<void>;
 }
+/** A host-selected local tokenizer. The package neither supplies nor starts one. */
+export interface ToolPayloadMeasureText {
+    readonly tokenizer: string;
+    readonly fingerprint: string;
+    measureText(text: string): number | Promise<number>;
+}
+export type ToolPayloadBoundary = 'mcp_content_0_text' | 'direct_v5_response';
+export type ToolPayloadReferenceKind = 'same_selected_json' | 'caller_context';
+export interface ToolPayloadReference {
+    readonly kind: ToolPayloadReferenceKind;
+    /** Transient local text. It is counted, hashed, and then discarded. */
+    readonly text?: string;
+    /** A caller-attested count for a context which the package must not fetch. */
+    readonly tokenCount?: number;
+}
+export interface ToolPayloadObservationContext {
+    readonly sessionId: string;
+    readonly sequence: number;
+    readonly method: string;
+    readonly boundary: ToolPayloadBoundary;
+    readonly subjectRevision: Digest | null;
+    readonly outcome: 'success' | 'error' | 'malformed' | 'timeout' | 'incomplete';
+}
+export interface ToolPayloadObservationEvent {
+    readonly schema: 'semaprax.token-observation.v1';
+    readonly eventId: string;
+    readonly sessionId: string;
+    readonly attemptSequence: number;
+    readonly deliverySequence: number;
+    readonly method: string;
+    readonly boundary: ToolPayloadBoundary;
+    readonly subjectRevision: Digest | null;
+    readonly outcome: ToolPayloadObservationContext['outcome'];
+    readonly status: 'measured' | 'tokenizer_unavailable' | 'tokenizer_failed' | 'baseline_unavailable' | 'incomplete';
+    readonly bytes: number | null;
+    readonly digest: Digest | null;
+    readonly tokenizer: string | null;
+    readonly tokenizerFingerprint: string | null;
+    readonly tokens: number | null;
+    readonly referenceKind: ToolPayloadReferenceKind | null;
+    readonly baselineTokens: number | null;
+}
+export interface ToolPayloadObserverOptions {
+    readonly sessionId: string;
+    readonly measureText?: ToolPayloadMeasureText;
+    readonly reference?: (context: ToolPayloadObservationContext) => ToolPayloadReference | null;
+    readonly maxEvents?: number;
+    readonly sink?: (event: ToolPayloadObservationEvent) => void | Promise<void>;
+}
+export interface ToolPayloadSessionGroup {
+    readonly tokenizer: string | null;
+    readonly tokenizerFingerprint: string | null;
+    readonly boundary: ToolPayloadBoundary;
+    readonly referenceKind: ToolPayloadReferenceKind | null;
+    readonly observed: number;
+    readonly tokenMeasured: number;
+    readonly paired: number;
+    readonly unpaired: number;
+    readonly failed: number;
+    readonly incomplete: number;
+    readonly baselineTokens: number;
+    readonly actualTokens: number;
+    readonly signedDeltaTokens: number;
+    readonly weightedReductionFraction: number | null;
+    readonly tokenMeasurementCoverage: {
+        readonly numerator: number;
+        readonly denominator: number;
+    };
+    readonly pairedCoverage: {
+        readonly numerator: number;
+        readonly denominator: number;
+    };
+}
+export interface ToolPayloadSessionAggregate {
+    readonly schema: 'semaprax.token-session.v1';
+    readonly events: readonly ToolPayloadObservationEvent[];
+    readonly groups: readonly ToolPayloadSessionGroup[];
+    readonly coverage: {
+        readonly observed: number;
+        readonly tokenMeasured: number;
+        readonly paired: number;
+        readonly unpaired: number;
+        readonly failed: number;
+        readonly incomplete: number;
+        readonly tokenMeasurement: {
+            readonly numerator: number;
+            readonly denominator: number;
+        };
+        readonly pairedMeasurement: {
+            readonly numerator: number;
+            readonly denominator: number;
+        };
+    };
+    readonly dropped: number;
+    readonly partial: boolean;
+}
+/** Re-import immutable metadata safely and aggregate only comparable cohorts. */
+export declare function aggregateToolPayloadSession(events: readonly ToolPayloadObservationEvent[], dropped?: number): ToolPayloadSessionAggregate;
+/**
+ * Bounded, metadata-only collection. Observation work is deliberately detached
+ * from dispatch: a counter, hash, or sink failure cannot alter protocol flow.
+ */
+export declare class ToolPayloadObserver {
+    readonly sessionId: string;
+    private readonly measure;
+    private readonly reference;
+    private readonly sink;
+    private readonly maximum;
+    private readonly collected;
+    private readonly pending;
+    private sequence;
+    private dropped;
+    constructor(options: ToolPayloadObserverOptions);
+    observe(input: Omit<ToolPayloadObservationContext, 'sessionId' | 'sequence'>, payload: string | null): void;
+    drain(): Promise<void>;
+    events(): readonly ToolPayloadObservationEvent[];
+    summary(): Readonly<{
+        schema: 'semaprax.token-session.v1';
+        sessionId: string;
+        events: number;
+        dropped: number;
+        partial: boolean;
+    }>;
+    private capture;
+}
+/** Observe a caller-owned already-normalized v5 transport without changing it. */
+export declare function observeDirectWorkflowTransport(transport: WorkflowTransport, observer: ToolPayloadObserver): WorkflowTransport;
 /**
  * Initialize the pinned MCP protocol and adapt its exact Semaprax tools/call
  * envelope to the generated v5 codec expected by runReview and runPublish.
  */
-export declare function connectMcpWorkflowTransport(wire: McpWireTransport): Promise<WorkflowTransport>;
+export declare function connectMcpWorkflowTransport(wire: McpWireTransport, observer?: ToolPayloadObserver): Promise<WorkflowTransport>;
 export interface ApplicationFailure {
     readonly code: number;
     readonly message: string;

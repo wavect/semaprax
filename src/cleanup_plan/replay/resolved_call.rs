@@ -93,6 +93,15 @@ pub(super) fn resolved_call_params(
             return Ok(crate::box_ops::resolved_params(op, element));
         }
     }
+    if instance.is_none()
+        && program
+            .interfaces
+            .iter()
+            .flat_map(|interface| &interface.imports)
+            .any(|import| import.native_rust && &import.id == callee)
+    {
+        return super::super::native_rust::params(program, callee);
+    }
     let target = program
         .resolve_call_target(callee, instance)
         .ok_or_else(|| {

@@ -36,12 +36,171 @@ const HANDOFF_KEYS = [
     'candidateAnalysisCoverage', 'candidateAnalysisCoverageSha256', 'recoveryCapsule',
     'recoveryCapsuleSha256', 'compilerRepairOptions',
 ];
+/** Re-import immutable metadata safely and aggregate only comparable cohorts. */
+export function aggregateToolPayloadSession(events, dropped = 0) {
+    if (!Number.isSafeInteger(dropped) || dropped < 0)
+        throw new Error('dropped count must be a nonnegative safe integer');
+    const unique = new Map();
+    for (const event of events) {
+        if (event.schema !== 'semaprax.token-observation.v1')
+            throw new Error('token observation schema is unsupported');
+        const prior = unique.get(event.eventId);
+        if (prior !== undefined && !same(prior, event))
+            throw new Error('conflicting token observation event ID');
+        unique.set(event.eventId, event);
+    }
+    const groups = new Map();
+    for (const event of unique.values()) {
+        const key = canonical([event.tokenizer, event.tokenizerFingerprint, event.boundary, event.referenceKind]);
+        let group = groups.get(key);
+        if (group === undefined) {
+            group = { key: { tokenizer: event.tokenizer, tokenizerFingerprint: event.tokenizerFingerprint, boundary: event.boundary, referenceKind: event.referenceKind }, observed: 0, tokenMeasured: 0, paired: 0, unpaired: 0, failed: 0, incomplete: 0, baselineTokens: 0, actualTokens: 0 };
+            groups.set(key, group);
+        }
+        group.observed = checkedAdd(group.observed, 1, 'observed events');
+        if (event.tokens !== null)
+            group.tokenMeasured = checkedAdd(group.tokenMeasured, 1, 'measured events');
+        if (event.outcome !== 'success')
+            group.failed = checkedAdd(group.failed, 1, 'failed events');
+        if (event.status === 'incomplete')
+            group.incomplete = checkedAdd(group.incomplete, 1, 'incomplete events');
+        const paired = event.outcome === 'success' && event.status === 'measured' && event.tokens !== null && event.baselineTokens !== null;
+        if (paired) {
+            group.paired = checkedAdd(group.paired, 1, 'paired events');
+            group.baselineTokens = checkedAdd(group.baselineTokens, event.baselineTokens, 'baseline token total');
+            group.actualTokens = checkedAdd(group.actualTokens, event.tokens, 'actual token total');
+        }
+        else
+            group.unpaired = checkedAdd(group.unpaired, 1, 'unpaired events');
+    }
+    const rendered = [...groups.values()].map((group) => {
+        const signedDeltaTokens = group.baselineTokens - group.actualTokens;
+        return Object.freeze({ ...group.key, observed: group.observed, tokenMeasured: group.tokenMeasured, paired: group.paired, unpaired: group.unpaired, failed: group.failed, incomplete: group.incomplete, baselineTokens: group.baselineTokens, actualTokens: group.actualTokens, signedDeltaTokens, weightedReductionFraction: group.baselineTokens === 0 ? null : signedDeltaTokens / group.baselineTokens, tokenMeasurementCoverage: Object.freeze({ numerator: group.tokenMeasured, denominator: group.observed }), pairedCoverage: Object.freeze({ numerator: group.paired, denominator: group.observed }) });
+    }).sort((left, right) => canonical([left.tokenizer, left.tokenizerFingerprint, left.boundary, left.referenceKind]).localeCompare(canonical([right.tokenizer, right.tokenizerFingerprint, right.boundary, right.referenceKind])));
+    const coverage = rendered.reduce((total, group) => ({ observed: checkedAdd(total.observed, group.observed, 'coverage observed'), tokenMeasured: checkedAdd(total.tokenMeasured, group.tokenMeasured, 'coverage token measured'), paired: checkedAdd(total.paired, group.paired, 'coverage paired'), unpaired: checkedAdd(total.unpaired, group.unpaired, 'coverage unpaired'), failed: checkedAdd(total.failed, group.failed, 'coverage failed'), incomplete: checkedAdd(total.incomplete, group.incomplete, 'coverage incomplete') }), { observed: 0, tokenMeasured: 0, paired: 0, unpaired: 0, failed: 0, incomplete: 0 });
+    const orderedEvents = [...unique.values()].sort((left, right) => left.sessionId.localeCompare(right.sessionId) || left.deliverySequence - right.deliverySequence || left.eventId.localeCompare(right.eventId));
+    return Object.freeze({ schema: 'semaprax.token-session.v1', events: Object.freeze(orderedEvents), groups: Object.freeze(rendered), coverage: Object.freeze({ ...coverage, tokenMeasurement: Object.freeze({ numerator: coverage.tokenMeasured, denominator: coverage.observed }), pairedMeasurement: Object.freeze({ numerator: coverage.paired, denominator: coverage.observed }) }), dropped, partial: dropped !== 0 || coverage.incomplete !== 0 });
+}
+/**
+ * Bounded, metadata-only collection. Observation work is deliberately detached
+ * from dispatch: a counter, hash, or sink failure cannot alter protocol flow.
+ */
+export class ToolPayloadObserver {
+    sessionId;
+    measure;
+    reference;
+    sink;
+    maximum;
+    collected = [];
+    pending = new Set();
+    sequence = 0;
+    dropped = 0;
+    constructor(options) {
+        this.sessionId = opaqueSession(options.sessionId);
+        this.measure = options.measureText ?? null;
+        this.reference = options.reference ?? null;
+        this.sink = options.sink ?? null;
+        const maximum = options.maxEvents ?? 1024;
+        if (!Number.isSafeInteger(maximum) || maximum < 1 || maximum > 65536)
+            throw new Error('observer maxEvents must be a safe bounded integer');
+        this.maximum = maximum;
+    }
+    observe(input, payload) {
+        if (this.sequence >= Number.MAX_SAFE_INTEGER || this.collected.length + this.pending.size >= this.maximum) {
+            this.dropped += 1;
+            return;
+        }
+        const sequence = ++this.sequence;
+        const context = Object.freeze({ ...input, sessionId: this.sessionId, sequence });
+        const work = this.capture(context, payload).catch(() => { });
+        this.pending.add(work);
+        void work.finally(() => this.pending.delete(work));
+    }
+    async drain() { await Promise.all([...this.pending]); }
+    events() { return Object.freeze([...this.collected].sort((left, right) => left.deliverySequence - right.deliverySequence)); }
+    summary() {
+        return Object.freeze({ schema: 'semaprax.token-session.v1', sessionId: this.sessionId, events: this.collected.length, dropped: this.dropped, partial: this.dropped !== 0 || this.pending.size !== 0 });
+    }
+    async capture(context, payload) {
+        const bytes = payload === null ? null : new TextEncoder().encode(payload).length;
+        const payloadDigest = payload === null ? null : await sha256(payload);
+        let status = payload === null ? 'incomplete' : this.measure === null ? 'tokenizer_unavailable' : 'measured';
+        let tokens = null;
+        let baselineTokens = null;
+        let referenceKind = null;
+        if (this.measure !== null && payload !== null) {
+            try {
+                tokens = tokenCount(await this.measure.measureText(payload), 'tool-payload token count');
+            }
+            catch {
+                status = 'tokenizer_failed';
+            }
+        }
+        let reference = null;
+        try {
+            reference = payload === null ? null : this.reference?.(context) ?? null;
+        }
+        catch {
+            reference = null;
+        }
+        if (reference !== null) {
+            referenceKind = reference.kind;
+            try {
+                if (reference.kind === 'same_selected_json' && typeof reference.text === 'string' && this.measure !== null)
+                    baselineTokens = tokenCount(await this.measure.measureText(reference.text), 'reference token count');
+                if (reference.kind === 'caller_context' && reference.tokenCount !== undefined)
+                    baselineTokens = tokenCount(reference.tokenCount, 'reference token count');
+            }
+            catch {
+                status = 'tokenizer_failed';
+            }
+            if (baselineTokens === null && status === 'measured')
+                status = 'baseline_unavailable';
+        }
+        const event = Object.freeze({
+            schema: 'semaprax.token-observation.v1', eventId: `${this.sessionId}:${context.sequence}`,
+            sessionId: this.sessionId, attemptSequence: context.sequence, deliverySequence: context.sequence,
+            method: context.method, boundary: context.boundary, subjectRevision: context.subjectRevision,
+            outcome: context.outcome, status, bytes, digest: payloadDigest,
+            tokenizer: this.measure?.tokenizer ?? null, tokenizerFingerprint: this.measure?.fingerprint ?? null,
+            tokens, referenceKind, baselineTokens,
+        });
+        this.collected.push(event);
+        if (this.sink !== null)
+            try {
+                await this.sink(event);
+            }
+            catch { /* caller sink is observational only */ }
+    }
+}
+/** Observe a caller-owned already-normalized v5 transport without changing it. */
+export function observeDirectWorkflowTransport(transport, observer) {
+    const sessionId = transportSession(transport);
+    if (sessionId !== observer.sessionId)
+        throw new Error('direct transport and observer session IDs differ');
+    return Object.freeze({ sessionId, exchange: async (frame) => {
+            const request = parseObjectFrame(frame, 'generated v5 request');
+            const method = typeof request.method === 'string' ? request.method : 'unknown';
+            const subjectRevision = requestSubjectRevision(request);
+            try {
+                const response = await transport.exchange(frame);
+                observer.observe({ method, boundary: 'direct_v5_response', subjectRevision, outcome: 'success' }, response);
+                return response;
+            }
+            catch (error) {
+                observer.observe({ method, boundary: 'direct_v5_response', subjectRevision, outcome: classifyObservationFailure(error) }, null);
+                throw error;
+            }
+        } });
+}
 /**
  * Initialize the pinned MCP protocol and adapt its exact Semaprax tools/call
  * envelope to the generated v5 codec expected by runReview and runPublish.
  */
-export async function connectMcpWorkflowTransport(wire) {
+export async function connectMcpWorkflowTransport(wire, observer) {
     const sessionId = transportSession(wire);
+    if (observer !== undefined && observer.sessionId !== sessionId)
+        throw new Error('MCP wire and observer session IDs differ');
     const initialized = await wire.exchange(`${JSON.stringify({
         jsonrpc: '2.0',
         id: 'semaprax-workflow-initialize',
@@ -99,14 +258,28 @@ export async function connectMcpWorkflowTransport(wire) {
             if (!same(Object.keys(content).sort(), ['type', 'text'].sort()) || content.type !== 'text' || typeof content.text !== 'string') {
                 throw new Error('MCP tools/call content is not one text item');
             }
-            const inner = parseObjectFrame(content.text, 'MCP inner v5 response');
-            const resultResponse = Object.hasOwn(inner, 'result');
-            const errorResponse = Object.hasOwn(inner, 'error');
-            if (inner.jsonrpc !== '2.0' || inner.id !== 0 || resultResponse === errorResponse ||
-                callResult.isError !== errorResponse ||
-                !same(Object.keys(inner).sort(), ['jsonrpc', 'id', resultResponse ? 'result' : 'error'].sort())) {
-                throw new Error('MCP inner v5 response is not exactly correlated');
+            let inner;
+            let resultResponse;
+            let errorResponse;
+            try {
+                inner = parseObjectFrame(content.text, 'MCP inner v5 response');
+                resultResponse = Object.hasOwn(inner, 'result');
+                errorResponse = Object.hasOwn(inner, 'error');
+                if (inner.jsonrpc !== '2.0' || inner.id !== 0 || resultResponse === errorResponse ||
+                    callResult.isError !== errorResponse ||
+                    !same(Object.keys(inner).sort(), ['jsonrpc', 'id', resultResponse ? 'result' : 'error'].sort())) {
+                    throw new Error('MCP inner v5 response is not exactly correlated');
+                }
             }
+            catch (error) {
+                // The decoded tool text exists even though it is malformed; retain its
+                // measurement without changing the original protocol failure.
+                observer?.observe({ method: request.method, boundary: 'mcp_content_0_text', subjectRevision: requestSubjectRevision(request), outcome: 'malformed' }, content.text);
+                throw error;
+            }
+            // This is the decoded MCP text before correlation-ID rewriting. It is the
+            // only primary tool-payload boundary and is charged once per delivery.
+            observer?.observe({ method: request.method, boundary: 'mcp_content_0_text', subjectRevision: requestSubjectRevision(request), outcome: callResult.isError ? 'error' : 'success' }, content.text);
             inner.id = innerId;
             return JSON.stringify(inner);
         },
@@ -335,6 +508,38 @@ function responseContract(value, method, name) {
 }
 function transportSession(transport) {
     return text(transport.sessionId, 'transport sessionId');
+}
+function opaqueSession(value) {
+    const selected = boundedText(value, 'observer sessionId', 256);
+    if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(selected))
+        throw new Error('observer sessionId must be opaque and bounded');
+    return selected;
+}
+function tokenCount(value, name) {
+    if (!Number.isSafeInteger(value) || value < 0)
+        throw new Error(`${name} must be a nonnegative safe integer`);
+    return value;
+}
+function checkedAdd(left, right, name) {
+    const total = left + right;
+    if (!Number.isSafeInteger(total) || total < 0)
+        throw new Error(`${name} exceeds safe integer range`);
+    return total;
+}
+function requestSubjectRevision(request) {
+    const params = request.params;
+    if (!object(params))
+        return null;
+    for (const key of ['image_revision', 'project_revision', 'candidate_revision']) {
+        const value = params[key];
+        if (typeof value === 'string' && /^sha256:[0-9a-f]{64}$/.test(value))
+            return value;
+    }
+    return null;
+}
+function classifyObservationFailure(error) {
+    const message = error instanceof Error ? error.message.toLowerCase() : '';
+    return message.includes('timeout') ? 'timeout' : message.includes('incomplete') ? 'incomplete' : 'malformed';
 }
 function applicationFailure(error) {
     if (!object(error) || !object(error.rpc))

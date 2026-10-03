@@ -64,7 +64,7 @@ fn postcondition_script_has_the_expected_shape() {
     assert!(script.contains("(set-option :timeout 2000)"));
     assert!(script.contains("(set-logic QF_LIA)"));
     assert!(script.contains("(declare-const a Int)"));
-    assert!(script.contains("(assert (>= a 0))"));
+    assert!(script.contains("(=> (>= a 0) (>= result 0))"));
     assert!(script.contains("(assert (not"));
     assert!(script.contains("(check-sat)"));
     assert!(script.contains("(get-model)"));
@@ -99,6 +99,83 @@ fn the_same_function_renders_a_byte_identical_script_every_time() {
     let first = render_postcondition_script(&translate_function(&f).unwrap(), 0, 2000);
     let second = render_postcondition_script(&translate_function(&f).unwrap(), 0, 2000);
     assert_eq!(first, second);
+}
+
+#[test]
+fn a_later_requires_cannot_justify_an_earlier_arithmetic_node() {
+    let f = function(&format!(
+        "module app.t;\n@id(\"app.t.f\")\nfn f(a: i64) -> i64\n    requires a + 1 > a\n    requires a < {}\n    ensures result == a\n{{ a }}\n",
+        i64::MAX
+    ));
+    let encoding = translate_function(&f).expect("supported");
+    assert_eq!(encoding.requires_obligations.len(), 2);
+    assert_eq!(encoding.requires_obligations[0].len(), 1);
+    let script = render_postcondition_script(&encoding, 0, 2000);
+    assert!(script.contains("(=> true (=> true (and (>= (+ a 1)"));
+    assert!(!script.contains(&format!("(assert (< a {}))", i64::MAX)));
+}
+
+#[test]
+fn variable_multiplication_cannot_claim_qf_lia() {
+    let f = function(
+        "module app.t;\n@id(\"app.t.f\")\nfn f(a: i64, b: i64) -> i64\n    ensures result == result\n{ a * b }\n",
+    );
+    assert!(matches!(
+        translate_function(&f),
+        Err(UnsupportedReason::NonlinearMultiplication)
+    ));
+}
+
+#[test]
+fn checked_reference_witness_distinguishes_overflow_and_empty_domain() {
+    let f = function(
+        "module app.t;\n@id(\"app.t.f\")\nfn f(a: i64) -> i64\n    requires a + 1 > a\n    ensures result == a\n{ a }\n"
+    );
+    let witness = bounded_domain_witness(&f, 8).expect("zero is a witness");
+    validate_domain_witness(&f, &witness).expect("checked replay");
+    let overflow = Model::from([("a".to_owned(), ModelValue::Int(i64::MAX as i128))]);
+    assert!(validate_domain_witness(&f, &overflow)
+        .unwrap_err()
+        .contains("trapped"));
+    let contradictory = function(
+        "module app.t;\n@id(\"app.t.f\")\nfn f(a: i64) -> i64\n    requires a > 0\n    requires a < 0\n    ensures result == a\n{ a }\n",
+    );
+    assert!(bounded_domain_witness(&contradictory, 32).is_none());
+}
+
+/// A tiny independent checked-i64 oracle for model interpretation. This is
+/// test evidence about the admitted examples, not a compiler proof.
+#[test]
+fn scalar_model_corpus_matches_checked_reference_execution() {
+    let f = function(
+        "module app.t;\n@id(\"app.t.f\")\nfn f(a: i64) -> i64\n    requires a == 0 || a + 1 > 0\n    ensures result >= a\n{ if a == 0 { 0 } else { a + 1 } }\n",
+    );
+    for a in [i64::MIN, -2, -1, 0, 1, i64::MAX - 1, i64::MAX] {
+        let model = Model::from([("a".to_owned(), ModelValue::Int(i128::from(a)))]);
+        let actual = replay_function(&f, &model).expect("scalar model replays");
+        let expected = if a == 0 {
+            "valid"
+        } else if let Some(next) = a.checked_add(1) {
+            if next > 0 {
+                "valid"
+            } else {
+                "requires_false"
+            }
+        } else {
+            "trapped"
+        };
+        match (expected, &actual) {
+            ("valid", ReplayOutcome::Inconsistent { detail }) => assert!(
+                detail.contains("no trap or ensures violation"),
+                "{a}: {detail}"
+            ),
+            ("requires_false", ReplayOutcome::Inconsistent { detail }) => {
+                assert!(detail.contains("requires clause"), "{a}: {detail}")
+            }
+            ("trapped", ReplayOutcome::Trapped { .. }) => {}
+            _ => panic!("model {a}: expected {expected}, got {actual:?}"),
+        }
+    }
 }
 
 // ---------------------------------------------------------------------
@@ -336,6 +413,36 @@ fn provisioned_z3_reports_a_contradictory_precondition() {
         DischargeOutcome::Inconclusive { reason } => assert!(reason.contains("contradictory")),
         other => panic!("expected a contradictory-precondition finding, got {other:?}"),
     }
+    let outcome = discharge_postcondition(&f, 0, Some(&provisioning), &short_limits());
+    match outcome {
+        DischargeOutcome::Inconclusive { reason } => assert!(reason.contains("contradictory")),
+        other => panic!("a contradictory requires must never prove a law: {other:?}"),
+    }
+    let encoding = translate_function(&f).unwrap();
+    assert_eq!(
+        check_domain(&f, &encoding, &provisioning, &short_limits()),
+        DomainStatus::Contradictory
+    );
+}
+
+#[test]
+#[ignore = "requires explicitly provisioned SEMAPRAX_SMT_Z3_PATH (z3)"]
+fn provisioned_z3_refutes_requires_overflow_before_a_later_filter() {
+    let f = function(&format!(
+        "module app.t;\n@id(\"app.t.f\")\nfn f(a: i64) -> i64\n    requires a + 1 > a\n    requires a < {}\n    ensures result == a\n{{ a }}\n",
+        i64::MAX
+    ));
+    let outcome = discharge_postcondition(&f, 0, Some(&provisioned()), &short_limits());
+    assert!(
+        matches!(
+            outcome,
+            DischargeOutcome::Refuted {
+                replay: ReplayOutcome::Trapped { .. },
+                ..
+            }
+        ),
+        "{outcome:?}"
+    );
 }
 
 #[test]

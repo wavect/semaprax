@@ -13,6 +13,9 @@ const { CandidateTestTask, METHODS: TEST_TASK_METHODS } = require('./tasks');
 const checks = require('./diagnostics');
 const navigation = require('./navigation');
 const { SourceIndex } = require('./positions');
+const { openExplorer, stableId } = require('./explorer');
+const { revealCurrentSource } = require('./explorer-reveal');
+const tokenReport = require('./token-report');
 let stopActive = () => {};
 // Check-on-save: run the user-selected compiler's read-only `check --json` on
 // the saved file's project and publish the result as editor diagnostics. It
@@ -150,6 +153,110 @@ function activateChecks(context, testMode) {
     }
     return result.stdout;
   }
+  const selectedRustIndex = () => {
+    const value = machineSetting('rustIndexPath');
+    return typeof value === 'string' && path.isAbsolute(value) && !/[\u0000-\u001f\u007f]/.test(value) ? value : undefined;
+  };
+  const rustPathAt = (doc, position) => {
+    const line = doc.lineAt(position.line).text;
+    return [...line.matchAll(/(?:[A-Za-z_][A-Za-z0-9_]*::)+[A-Za-z_][A-Za-z0-9_]*/g)]
+      .find(hit => hit.index <= position.character && position.character < hit.index + hit[0].length);
+  };
+  async function rustCandidates(doc, prefix) {
+    const binary = compiler(), indexFile = selectedRustIndex();
+    if (!binary || !indexFile || !vscode.workspace.isTrusted || doc.uri.scheme !== 'file' || !doc.uri.fsPath.endsWith('.spx')) return;
+    const version = doc.version;
+    let stdout;
+    try { stdout = await runNavigation(binary, navigation.rustCandidateArguments(doc.uri.fsPath, prefix, indexFile), doc.uri.fsPath); }
+    catch { return; }
+    if (doc.version !== version) return;
+    return navigation.parseRustCandidates(stdout, prefix);
+  }
+  async function rustImportHover(doc, position) {
+    if (!vscode.workspace.isTrusted || doc.uri.scheme !== 'file' || !doc.uri.fsPath.endsWith('.spx') || doc.isDirty) return;
+    const binary = compiler();
+    if (!binary) return;
+    const match = rustPathAt(doc, position);
+    if (!match || match[0].length > 512) return;
+    const rustPath = match[0], version = doc.version;
+    const indexFile = selectedRustIndex();
+    let stdout;
+    try {
+      stdout = await runNavigation(binary, navigation.rustImportContextArguments(doc.uri.fsPath, rustPath, indexFile), doc.uri.fsPath);
+    } catch { return; }
+    if (doc.isDirty || doc.version !== version) return;
+    const value = navigation.parseRustImportContext(stdout, rustPath);
+    if (!value) return;
+    const selected = value.selected_import;
+    const markdown = new vscode.MarkdownString();
+    markdown.isTrusted = false;
+    markdown.appendText(`${selected.path}\n`);
+    if (value.index.status === 'index_unprepared') {
+      markdown.appendText('Prepared Rust API index required to show the compiler-resolved signature.');
+    } else {
+      markdown.appendCodeblock(selected.signature, 'rust');
+      markdown.appendText(`Crate: ${value.package.name} ${value.package.version} (Cargo alias ${value.package.cargo_alias})\n`);
+      markdown.appendText(`Receiver: ${selected.ownership}; index support: ${selected.support}${selected.reason ? ` (${selected.reason})` : ''}\n`);
+      if (selected.docs) markdown.appendText(String(selected.docs).slice(0, 1024));
+    }
+    return new vscode.Hover(markdown, new vscode.Range(position.line, match.index, position.line, match.index + rustPath.length));
+  }
+  const rustCompletionProvider = {
+    async provideCompletionItems(doc, position) {
+      const before = doc.lineAt(position.line).text.slice(0, position.character);
+      const match = before.match(/\bfrom\s+"([A-Za-z_][A-Za-z0-9_:]*)$/);
+      if (!match) return [];
+      const prefix = match[1], candidates = await rustCandidates(doc, prefix);
+      if (!candidates) return [];
+      const range = new vscode.Range(position.line, position.character - prefix.length, position.line, position.character);
+      return candidates.items.filter(item => item.support === 'supported').map(item => {
+        const result = new vscode.CompletionItem(item.path, item.kind === 'function' ? vscode.CompletionItemKind.Function : vscode.CompletionItemKind.Method);
+        result.detail = item.signature;
+        result.insertText = item.path;
+        result.range = range;
+        return result;
+      });
+    }
+  };
+  const rustDefinitionProvider = {
+    async provideDefinition(doc, position) {
+      if (doc.isDirty || !vscode.workspace.isTrusted) return;
+      const match = rustPathAt(doc, position);
+      if (!match) return;
+      const binary = compiler(), version = doc.version;
+      if (!binary) return;
+      let stdout;
+      try { stdout = await runNavigation(binary, navigation.rustImportContextArguments(doc.uri.fsPath, match[0], selectedRustIndex()), doc.uri.fsPath); }
+      catch { return; }
+      if (doc.isDirty || doc.version !== version) return;
+      const value = navigation.parseRustImportContext(stdout, match[0]);
+      const location = value?.selected_import?.location;
+      const index = savedIndex(doc.uri.fsPath);
+      const mapped = index && location && index.range(location.start, location.end);
+      if (!mapped) return;
+      return new vscode.Location(doc.uri, new vscode.Range(mapped.startLine, mapped.startColumn, mapped.endLine, mapped.endColumn));
+    }
+  };
+  const rustImportFixProvider = {
+    async provideCodeActions(doc, range, codeActionContext) {
+      if (doc.isDirty || !codeActionContext.diagnostics.some(row => String(row.code) === 'SPX-B141')) return [];
+      const line = doc.lineAt(range.start.line).text;
+      const match = /\bfrom\s+"((?:[A-Za-z_][A-Za-z0-9_]*::)+[A-Za-z_][A-Za-z0-9_]*)"/.exec(line);
+      if (!match) return [];
+      const full = match[1], split = full.lastIndexOf('::');
+      const prefix = full.slice(0, split + 2), candidates = await rustCandidates(doc, prefix);
+      if (!candidates) return [];
+      const start = match.index + match[0].indexOf(full);
+      const replace = new vscode.Range(range.start.line, start, range.start.line, start + full.length);
+      return candidates.items.filter(item => item.support === 'supported' && item.path !== full).slice(0, 5).map(item => {
+        const action = new vscode.CodeAction(`Use Rust API ${item.path}`, vscode.CodeActionKind.QuickFix);
+        action.diagnostics = codeActionContext.diagnostics.filter(row => String(row.code) === 'SPX-B141');
+        action.edit = new vscode.WorkspaceEdit();
+        action.edit.replace(doc.uri, replace, item.path);
+        return action;
+      });
+    }
+  };
   // The subject a read-only navigation query answers for, resolved exactly as
   // check-on-save resolves a saved file: the project manifest that owns it, or
   // the file alone. A module with `use` imports has no standalone meaning —
@@ -410,18 +517,25 @@ function activateChecks(context, testMode) {
   };
   const dispose = () => { for (const child of running.values()) child.kill(); running.clear(); };
   context.subscriptions.push(collection, output, vscode.workspace.onDidSaveTextDocument(onSave), { dispose },
-    vscode.languages.registerCodeLensProvider({ language: 'semaprax', scheme: 'file' }, lensProvider));
+    vscode.languages.registerCodeLensProvider({ language: 'semaprax', scheme: 'file' }, lensProvider),
+    vscode.languages.registerHoverProvider({ language: 'semaprax', scheme: 'file' }, { provideHover: rustImportHover }),
+    vscode.languages.registerCompletionItemProvider({ language: 'semaprax', scheme: 'file' }, rustCompletionProvider, ':'),
+    vscode.languages.registerDefinitionProvider({ language: 'semaprax', scheme: 'file' }, rustDefinitionProvider),
+    vscode.languages.registerCodeActionsProvider({ language: 'semaprax', scheme: 'file' }, rustImportFixProvider));
   return { checkProject, goToDeclaration, showReferences, showDocumentation, showOwnership, inspectAgent, safeRename, showCleanupPlan, runAgentTranscript, test: testMode ? { check, ledger, collection, lensProvider } : undefined };
 }
 function activate(context) {
   let client, config, image, candidate, target, stale = true, epoch = 0, busy = false;
   let holes, selectedHole, holeNavigation;
   let imageProject, candidateHandle, repairs;
+  let reportBindingOverride;
   let testTask, testTaskUsed = false;
+  let explorerPanel = null, explorerGeneration = 0;
+  const explorerRenders = [], explorerActions = [], explorerReplies = [];
   let watchers = [];
   const testMode = context.extensionMode === vscode.ExtensionMode.Test;
   const checking = activateChecks(context, testMode);
-  const testInputs = [], testPicks = [];
+  const testInputs = [], testPicks = [], testReports = [];
   const input = options => testMode && testInputs.length ? Promise.resolve(testInputs.shift()) : vscode.window.showInputBox(options);
   const pick = (items, options) => {
     if (!testMode || !testPicks.length) return vscode.window.showQuickPick(items, options);
@@ -431,6 +545,7 @@ function activate(context) {
     return Promise.resolve(selected);
   };
   const documents = new Map(), scratch = new Set(), changed = new vscode.EventEmitter();
+  const tokenDocuments = new Map(), tokenChanged = new vscode.EventEmitter();
   const holeScratch = new Map();
   const holeReports = new Set();
   const attemptReports = new Set();
@@ -483,6 +598,27 @@ function activate(context) {
       }
       return response;
     } catch (error) { if (invalidates(error)) clear(error.semantic ? 'source binding rejected; refresh required' : 'request failed'); throw error; }
+  }
+  async function requireExplorerSession() {
+    saved();
+    if (client && !client.closed && !stale && image) return true;
+    const choice = await vscode.window.showInformationMessage('Start a saved-source session before opening the explorer.', 'Start Session');
+    if (choice === 'Start Session') await commands.start();
+    return Boolean(client && !client.closed && !stale && image);
+  }
+  function showExplorer(query) {
+    return openExplorer(vscode, context, {
+      get panel() { return explorerPanel; }, set panel(value) { explorerPanel = value; },
+      get panelGeneration() { return explorerGeneration; }, set panelGeneration(value) { explorerGeneration = value; },
+      invoke, live: () => Boolean(client && !client.closed && !stale && image), image: () => image, candidate: () => candidate,
+      rendered: value => { if (testMode) explorerRenders.push(value); },
+      message: value => { if (testMode && explorerActions.length < 128) explorerActions.push(typeof value?.action === 'string' ? value.action : '<invalid>'); },
+      reply: value => { if (testMode && explorerReplies.length < 128) explorerReplies.push(value); },
+      reveal: reference => {
+        if (!config?.manifest) throw new Error('Explorer manifest root is unavailable');
+        return revealCurrentSource(vscode, path.dirname(config.manifest), reference, () => Boolean(client && !client.closed && !stale && image));
+      }
+    }, query);
   }
   const requireCandidate = () => { saved(); if (stale || !candidate) throw new Error('Open a current candidate first'); };
   const requireNoDraft = () => { if (holes?.draftRevision) throw new Error('Complete or discard the typed-hole draft before changing or reviewing a candidate'); };
@@ -590,6 +726,38 @@ function activate(context) {
       await vscode.languages.setTextDocumentLanguage(doc, language); ensureEpoch(current); return uri;
     } catch (error) { documents.delete(uri.toString()); changed.fire(uri); throw error; }
   }
+  function readSelectedTokenReport(uri) {
+    if (!uri || uri.scheme !== 'file') throw new Error('Select one local token report file');
+    let handle;
+    try {
+      const before = fs.lstatSync(uri.fsPath);
+      if (!before.isFile() || before.isSymbolicLink() || before.size > tokenReport.MAX_REPORT_BYTES) throw new Error('Token report must be a bounded regular local file');
+      handle = fs.openSync(uri.fsPath, 'r');
+      const checked = fs.fstatSync(handle);
+      if (!checked.isFile() || checked.size !== before.size || checked.size > tokenReport.MAX_REPORT_BYTES) throw new Error('Token report changed while opening');
+      const bytes = Buffer.alloc(checked.size); let offset = 0;
+      while (offset < bytes.length) { const read = fs.readSync(handle, bytes, offset, bytes.length - offset, offset); if (!read) throw new Error('Token report changed while reading'); offset += read; }
+      return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+    } catch (error) {
+      if (error instanceof Error && /Token report/.test(error.message)) throw error;
+      throw new Error(`Cannot read selected token report: ${String(error.message || error)}`);
+    } finally { if (handle !== undefined) fs.closeSync(handle); }
+  }
+  function activeTokenReportProjectRevision() {
+    if (testMode && reportBindingOverride !== undefined) return reportBindingOverride;
+    return client && !client.closed && !stale && imageProject ? imageProject : undefined;
+  }
+  async function showTokenReport() {
+    const uri = testMode && testReports.length ? testReports.shift() : (await vscode.window.showOpenDialog({ canSelectFiles: true, canSelectFolders: false, canSelectMany: false, openLabel: 'Open Token Report', filters: { 'Token reports': ['json'] } }))?.[0];
+    if (!uri) return;
+    const report = tokenReport.validate(readSelectedTokenReport(uri));
+    const text = tokenReport.render(report, { activeProjectRevision: activeTokenReportProjectRevision() });
+    const view = vscode.Uri.from({ scheme: 'semaprax-token-report', path: '/' + crypto.randomUUID() + '/report.txt' });
+    tokenDocuments.set(view.toString(), text);
+    const doc = await vscode.workspace.openTextDocument(view);
+    await vscode.window.showTextDocument(doc, { preview: true });
+    return report;
+  }
   async function catalog(selectedTarget = target) {
     requireCandidate(); if (!selectedTarget) throw new Error('Select a stable target ID first');
     const response = await invoke('change/catalog', { image_revision: image, candidate_revision: candidate, target: selectedTarget });
@@ -597,6 +765,24 @@ function activate(context) {
     return response.payload;
   }
   const commands = {
+    async showTokenReport() { return showTokenReport(); },
+    async openExplorer() {
+      if (!await requireExplorerSession()) return;
+      return showExplorer({ mode: 'overview', target: null, direction: 'both', depth: 1, side: 'current' });
+    },
+    async exploreSelection() {
+      if (!await requireExplorerSession()) return;
+      const selected = target || await input({ prompt: 'Exact declaration stable ID', ignoreFocusOut: true });
+      if (selected === undefined) return;
+      if (!stableId(selected)) throw new Error('Invalid stable declaration ID');
+      return showExplorer({ mode: 'context', target: selected, direction: 'both', depth: 1, side: 'current' });
+    },
+    async reviewCandidateGraph() {
+      if (!await requireExplorerSession()) return;
+      requireCandidate();
+      if (!client.tools.has('candidate/explorer-summary') || !client.tools.has('candidate/explorer-page')) throw new Error('This host policy does not permit candidate explorer reads');
+      return showExplorer({ mode: 'overview', target: null, direction: 'both', depth: 1, side: 'candidate' });
+    },
     async start() {
       saved(); stop(); config = configured(); saved();
       const child = spawn(config.compiler, ['serve-workspace-mcp', config.manifest, config.policy], { shell: false, windowsHide: true, cwd: path.dirname(config.manifest), stdio: ['pipe', 'pipe', 'pipe'] });
@@ -923,9 +1109,12 @@ function activate(context) {
       clear('saved source refreshed'); image = response.image_revision; imageProject = response.project_revision; stale = false;
     }
   };
-  context.subscriptions.push(status, changed, vscode.workspace.registerTextDocumentContentProvider('semaprax-review', {
+  context.subscriptions.push(status, changed, tokenChanged, vscode.workspace.registerTextDocumentContentProvider('semaprax-review', {
     onDidChange: changed.event,
     provideTextDocumentContent(uri) { if (!documents.has(uri.toString())) throw new Error('Unknown virtual source reference'); return documents.get(uri.toString()); }
+  }), vscode.workspace.registerTextDocumentContentProvider('semaprax-token-report', {
+    onDidChange: tokenChanged.event,
+    provideTextDocumentContent(uri) { if (!tokenDocuments.has(uri.toString())) throw new Error('Unknown token report reference'); return tokenDocuments.get(uri.toString()); }
   }), vscode.workspace.onDidChangeTextDocument(event => {
     if (event.document.isDirty && (event.document.uri.path.endsWith('.spx') || path.basename(event.document.uri.path) === 'semaprax.toml')) clear('unsaved source');
   }), vscode.workspace.onDidCloseTextDocument(doc => {
@@ -944,6 +1133,8 @@ function activate(context) {
   if (testMode) return Object.freeze({
     enqueueInput(value) { testInputs.push(value); },
     enqueuePick(label) { testPicks.push(label); },
+    enqueueReport(uri) { testReports.push(uri); },
+    setReportBinding(projectRevision) { reportBindingOverride = projectRevision; },
     async execute(name) {
       if (!Object.prototype.hasOwnProperty.call(commands, name)) throw new Error(`Unknown SEMAPRAX test command: ${name}`);
       return commands[name]();
@@ -955,6 +1146,9 @@ function activate(context) {
         tools: client ? [...client.tools].sort() : [],
         testTask: testTask ? { taskRevision: testTask.taskRevision, state: testTask.state, cancellationRequested: testTask.cancellationRequested } : null,
         testTaskUsed,
+        explorerRenders: explorerRenders.map(value => ({ ...value, loaded: [...value.loaded] })),
+        explorerActions: [...explorerActions],
+        explorerReplies: [...explorerReplies],
         documents: [...documents].map(([uri, text]) => ({ uri, text }))
       };
     },

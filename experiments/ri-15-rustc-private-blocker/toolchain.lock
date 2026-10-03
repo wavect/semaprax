@@ -1,0 +1,9 @@
+schema = "semaprax.ri-15.rustc-private-blocker.v1"
+source_revision = "619d3f742ef5992c85c9899e6955acc4f2ca374e"
+rustc_release = "1.98.0"
+rustc_commit = "88d9e12ae178fab0fb5cc050a94da85685d449ea"
+rustc_commit_date = "2026-08-18"
+host = "aarch64-apple-darwin"
+llvm_version = "22.1.8"
+distribution = "Homebrew rust 1.98.0 local observation"
+required_private_crates = ["rustc_driver", "rustc_interface"]

@@ -7,9 +7,13 @@ network, inspect Git, hold secrets, create approvals, or enlarge the codec's
 capabilities.
 
 ```js
-import { connectMcpWorkflowTransport, runReview, runPublish } from '@semaprax/agent-workflow';
+import { connectMcpWorkflowTransport, ToolPayloadObserver, runReview, runPublish } from '@semaprax/agent-workflow';
 
-const reviewTransport = await connectMcpWorkflowTransport(reviewMcpWire);
+const observer = new ToolPayloadObserver({
+  sessionId: reviewMcpWire.sessionId,
+  measureText: { tokenizer: 'local-tokenizer', fingerprint: 'sha256:...', measureText },
+});
+const reviewTransport = await connectMcpWorkflowTransport(reviewMcpWire, observer);
 const publishTransport = await connectMcpWorkflowTransport(publishMcpWire);
 
 const review = await runReview(codec, reviewTransport, {
@@ -37,6 +41,30 @@ codec correlation ID. Its caller-owned wire supplies `exchange` for requests
 and `notify` for the response-free initialized notification. The adapter does
 not list, infer, or enlarge tools; an unavailable host-selected tool fails at
 the real MCP boundary.
+
+## Optional tool-payload observation
+
+`ToolPayloadObserver` is an opt-in, host-neutral collector for
+`semaprax.token-observation.v1` metadata. For MCP it observes exactly the
+decoded `content[0].text` before the SDK restores the inner correlation ID.
+`observeDirectWorkflowTransport` provides the corresponding wrapper for an
+already connected direct v5 transport. These are separate `boundary` values;
+outer MCP framing and normalized direct-v5 responses must never be combined.
+
+The host supplies an opaque session ID and may supply a local `measureText`
+adapter with its tokenizer identity and fingerprint. Without one, events still
+carry exact UTF-8 byte counts and SHA-256 digests, while `tokens` is null. The
+package retains no payload text, does no I/O, does not invoke a model, and does
+not start a tokenizer. `await observer.drain()` before exporting immutable
+events; `summary()` exposes dropped-event state so a capped session is visibly
+partial. A callback may nominate a same-selected-JSON reference or explicitly
+attested caller-context count. Missing references remain `baseline_unavailable`.
+
+These numbers are **tool-payload tokens**. A paired group describes a payload
+reduction versus the named reference for the selected tokenizer and boundary.
+They are not evidence that a provider read the payload, provider billing,
+prompt replay frequency, cached pricing, output-token reduction, task
+equivalence, or money saved.
 
 The review and publish transports must have different nonempty `sessionId`
 values. `runReview`

@@ -1,5 +1,8 @@
 use super::*;
-use crate::interpreter::retained_call::{RetainedField, RetainedRecord};
+use crate::interpreter::retained_call::{
+    RetainedCallEvaluation, RetainedCallOutcome, RetainedField, RetainedRecord,
+    SemanticCleanupEvent, SemanticWork,
+};
 
 const SOURCE: &str = r#"module migration.copy;
 @id("old.State")
@@ -131,5 +134,36 @@ fn migration_rejects_borrowed_owned_old_state_parameter() {
                     == "ExecutionRevision association rejected: migration.pure_signature"
         }),
         "{errors:?}"
+    );
+}
+
+#[test]
+fn target_migration_refuses_cleanup_receipts_that_recovery_cannot_represent() {
+    let evaluation = |events| RetainedCallEvaluation {
+        function_id: DeclarationId::new("state.migrate"),
+        outcome: RetainedCallOutcome::FuelExhausted,
+        cleanup_events: Vec::new(),
+        steps_used: 0,
+        max_steps: 1,
+        failure: None,
+        semantic_work: Some(SemanticWork {
+            fuel_used: 1,
+            fuel_limit: Some(1),
+            exhausted: true,
+            finalizer_events: Some(events),
+        }),
+    };
+    let event = SemanticCleanupEvent {
+        function: DeclarationId::new("state.migrate"),
+        liveness_flag: 0,
+    };
+    assert!(target_evaluation_facts(&evaluation(vec![
+        event.clone();
+        durable::MAX_FINALIZER_EVENTS
+    ]))
+    .is_ok());
+    assert!(
+        target_evaluation_facts(&evaluation(vec![event; durable::MAX_FINALIZER_EVENTS + 1]))
+            .is_err()
     );
 }

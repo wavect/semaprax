@@ -57,6 +57,75 @@ binary. It counts the whole envelope. Small inputs can grow from fixed metadata;
 this format claims neither universal savings nor token/billing authority.
 Results record exact bytes, hashes, tokenizer versions, and vocabulary fingerprints.
 
+`scripts/token_report.py` is the additive per-input measurement helper. Its
+`projection` route invokes an explicitly named local compiler for `graph`,
+`context`, or `task-context`, replays the selected wire against that producer,
+and compares `same_selected_json` with the complete text or model-text
+envelope. It reruns the producer to refuse a changing source or selected
+revision. `compare` measures two caller-supplied UTF-8 files and labels that
+relationship `reference_only_not_verified`; it establishes no task-quality or
+semantic equivalence. The report's deterministic comparison identity binds
+profile, hashed root/selection/options, selected source revision, exact byte
+facts, tokenizer fingerprint and arithmetic. It records no source text, raw
+wire payload, absolute path, model/billing count, money, or telemetry.
+
+Only cached `cl100k_base` and `o200k_base` are admitted. Missing assets fail
+unless `--allow-bytes-only` is selected; that report sets every token and
+savings field to null. Tokenizer selection is separate from task-context's
+existing selection-budget tokenizer. Reports are atomically created and refuse
+replacement without `--overwrite`.
+
+`token_report.py session --events events.jsonl --output report.json` consumes
+metadata-only `semaprax.token-observation.v1` JSONL from the optional session
+observer. It emits aggregate coverage and totals grouped by tokenizer and
+fingerprint, boundary, and reference kind without retaining event/session IDs,
+source revisions, subjects, or digests. The additive
+`semaprax.token-comparison-session.v2` report also includes paired totals by
+method and the three largest successful paired reductions and regressions in
+each compatible group. It retains method names, but no event or session IDs.
+
+`show` reads either report offline; it needs neither a tokenizer nor a compiler:
+
+```sh
+python3 scripts/token_report.py show ./token-report.json --format text
+python3 scripts/token_report.py show ./session-report.json --format markdown --output ./token-summary.md
+```
+
+The output labels a reduction, growth, and unavailable model tokens separately;
+it is a report snapshot, never provider spending or task-quality evidence.
+**SEMAPRAX: Show Token Report** offers the same optional read-only local view
+in the existing VS Code extension. Issues #237, #309, and #340 remain outside
+this measurement and rendering work.
+
+### Observed comparison examples
+
+These are measured local compact-projection results from the committed
+[`local-token-measurements.json`](../benchmarks/compact-semantic-projection-v2/local-token-measurements.json),
+using cl100k_base over the complete wire envelope. They describe one local
+corpus and do not predict another project or model's billed usage.
+
+| Scope | Reference tokens | Actual payload tokens | Rendered interpretation |
+| --- | ---: | ---: | --- |
+| `examples/http_app_routing.spx` full graph | 161,861 | 134,165 | 27,696 tokens saved versus reference |
+| `ledger.apply` task context | 1,679 | 1,802 | +123 tokens used versus reference |
+
+When the local tokenizer is unavailable and the report was explicitly made
+with `--allow-bytes-only`, the renderer reports the measured byte counts and
+`Model tokens unavailable; byte measurements remain separate.` Token counts,
+delta, and percentage are null in that state; it does not imply zero change.
+For a concrete unavailable run, `python3 -S` below intentionally omits
+site-installed packages, including tiktoken. This is a byte-only comparison of
+two documentation files, explicitly `user_reference` and not an equivalence
+claim:
+
+```text
+Comparison type: user_reference
+Tokenizer: unavailable
+Baseline payload bytes: 5648
+Actual payload bytes: 8726
+Model tokens unavailable; byte measurements remain separate.
+```
+
 ## Local measurements
 
 The committed [measurement report](../benchmarks/compact-semantic-projection-v2/local-token-measurements.json)

@@ -27,10 +27,11 @@
 //!   through [`secrets::resolve_tls`]) -- configuration intent alone never
 //!   mints it.
 //!
-//! The host accepts the explicit `snapshot` state profile and
-//! `semaprax-json-events` telemetry profile. SQL and OTLP labels are refused
-//! during configuration decoding; telemetry is a canonical JSON HTTPS POST
-//! to the granted origin's fixed `/v1/events` route. No hosted, public, or
+//! The host accepts the explicit `snapshot` state profile and either the
+//! signed `semaprax-json-events` telemetry profile or the distinct
+//! `otlp-http-json` OTLP/HTTP JSON-Protobuf logs profile. SQL labels are
+//! refused during configuration decoding; telemetry is a canonical HTTPS POST
+//! to the granted origin's fixed `/v1/events` or `/v1/logs` route. No hosted, public, or
 //! production support is claimed -- TLS
 //! serving included: it is loopback and test/local evidence only, and this
 //! host never chains more than the one leaf certificate it holds. Only the
@@ -95,6 +96,10 @@ pub(crate) mod test_support {
 
         pub(crate) fn join(&self, name: &str) -> PathBuf {
             self.path.join(name)
+        }
+
+        pub(crate) fn path(&self) -> &std::path::Path {
+            &self.path
         }
     }
 

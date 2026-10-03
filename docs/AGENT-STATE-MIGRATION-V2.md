@@ -120,3 +120,9 @@ The focused target gate is
 It uses a real durable suspension, checks all three held target selections for
 both pure migration and continuation, and distinguishes target instruction
 counts from common semantic charges and target cleanup observations.
+The linked-source regression
+`linked_wasm_pure_migration_refuses_before_reserving_or_evaluating` selects a
+held Wasm target for an imported migration closure, which deliberately has no
+single-module Wasm source. It asserts refusal before either the pure-call fuel
+reservation or a target evaluation, preserving the predecessor's usage,
+iterations, and stage count.

@@ -31,6 +31,39 @@ pub struct MeteredTargetEffectRun {
     evidence: String,
     digest: String,
 }
+
+/// A durable run plus its exact observed semantic work for every retained and
+/// newly completed stage. The checkpoint and evidence share one selected
+/// target binding, so recovery cannot publish a target-neutral receipt set.
+pub struct MeteredDurableTypedRun {
+    run: DurableTypedRun,
+    observations: Vec<StageSemanticObservation>,
+    observations_complete: bool,
+    evidence: String,
+    digest: String,
+    target_execution_binding: String,
+}
+impl MeteredDurableTypedRun {
+    pub fn run(&self) -> &DurableTypedRun {
+        &self.run
+    }
+    pub fn observations(&self) -> &[StageSemanticObservation] {
+        &self.observations
+    }
+    pub fn observations_complete(&self) -> bool {
+        self.observations_complete
+    }
+    pub fn evidence(&self) -> &str {
+        &self.evidence
+    }
+    pub fn evidence_digest(&self) -> &str {
+        &self.digest
+    }
+    /// The selected target bound by both the checkpoint and this evidence.
+    pub fn target_execution_binding(&self) -> &str {
+        &self.target_execution_binding
+    }
+}
 impl MeteredTargetEffectRun {
     pub fn run(&self) -> &TargetEffectRun {
         &self.run
@@ -55,7 +88,176 @@ pub(crate) struct MeteredTargetRetainedCall {
     pub(crate) execution_binding: String,
 }
 
+fn metered_durable_evidence(
+    run: DurableTypedRun,
+    observations: Vec<StageSemanticObservation>,
+    semantic_fuel_limit: u64,
+    target_execution_binding: String,
+) -> MeteredDurableTypedRun {
+    let observations_complete = observations.len() == run.run().lifecycle().stages().len();
+    let mut document = serde_json::json!({
+        "schema": "semaprax.agent-durable-semantic-work.v3",
+        "checkpoint_digest": run.checkpoint_digest(),
+        "semantic_fuel_limit": semantic_fuel_limit,
+        "target_execution_binding": target_execution_binding,
+        "observations_complete": observations_complete,
+        "observed_stage_count": observations.len(),
+        "committed_stage_count": run.run().lifecycle().stages().len(),
+        "stages": observations.iter().map(|observation| serde_json::json!({
+            "function": observation.function_id(),
+            "fuel_used": observation.work().fuel_used,
+            "fuel_limit": observation.work().fuel_limit,
+            "exhausted": observation.work().exhausted,
+            "finalizer_events": observation.work().finalizer_events.as_ref().map(|events| events.iter().map(|event| serde_json::json!([event.function.as_str(), event.liveness_flag])).collect::<Vec<_>>()),
+        })).collect::<Vec<_>>(),
+    });
+    document.sort_all_objects();
+    let evidence = format!("{document}\n");
+    let digest = digest(
+        b"semaprax.agent-durable-semantic-work.v3\0",
+        evidence.as_bytes(),
+    );
+    MeteredDurableTypedRun {
+        run,
+        observations,
+        observations_complete,
+        evidence,
+        digest,
+        target_execution_binding,
+    }
+}
+
 impl CompiledTypedEffects {
+    /// Derive the exact metered target binding without executing a call. A
+    /// migrated durable handoff uses this before reserving its first stage.
+    pub(crate) fn migration_target_execution_binding(
+        &self,
+        selected: TargetStageBackend<'_>,
+        semantic_fuel_limit: u64,
+    ) -> Result<String, Vec<Diagnostic>> {
+        if !(1..=1_000_000).contains(&semantic_fuel_limit) {
+            return Err(vec![crate::agent_lifecycle::stages::invariant(
+                "semantic_work.fuel_limit",
+            )]);
+        }
+        let backend = self.selected_target_backend(selected)?;
+        let target_binding = self.target_execution_binding(backend);
+        Ok(digest(
+            b"semaprax.agent-migration-target-execution.v1\0",
+            format!("{target_binding}\0{semantic_fuel_limit}").as_bytes(),
+        ))
+    }
+
+    /// Run a durable typed-effect lifecycle with authenticated semantic-work
+    /// receipts. The explicit metered checkpoint profile binds each completed
+    /// stage before recovery may reuse it.
+    #[allow(clippy::too_many_arguments)]
+    pub fn run_durable_metered_with_backend(
+        &self,
+        task: &LifecycleTask,
+        proposals: &[String],
+        handler: &mut dyn TypedEffectHandler,
+        stages: IterativeBudget,
+        effects: EffectBudget,
+        cancellation: &AgentCancellation,
+        execution_revision_digest: &str,
+        program_root_digest: &str,
+        retained_checkpoint: Option<&str>,
+        store: &mut dyn CheckpointStore,
+        max_reserved_fuel: u64,
+        selected: TargetStageBackend<'_>,
+        semantic_fuel_limit: u64,
+    ) -> Result<MeteredDurableTypedRun, DurableTypedFailure> {
+        if !cancellation.is_cancelled() && !(1..=1_000_000).contains(&semantic_fuel_limit) {
+            return Err(durable::semantic_refusal("semantic_work.fuel_limit", ""));
+        }
+        let selected = self.durable_backend(selected, retained_checkpoint)?;
+        let target_execution_binding = self.target_execution_binding(selected);
+        let observations = RefCell::new(Vec::new());
+        let backend = StageBackend::Metered {
+            backend: &selected,
+            fuel_limit: semantic_fuel_limit,
+            observations: &observations,
+        };
+        let run = self.run_durable_inner(
+            task,
+            proposals,
+            handler,
+            stages,
+            effects,
+            cancellation,
+            execution_revision_digest,
+            program_root_digest,
+            retained_checkpoint,
+            store,
+            max_reserved_fuel,
+            None,
+            Some(backend),
+        )?;
+        Ok(metered_durable_evidence(
+            run,
+            observations.into_inner(),
+            semantic_fuel_limit,
+            target_execution_binding,
+        ))
+    }
+
+    /// Run a migration-seeded durable typed-effect lifecycle with the same
+    /// authenticated semantic-work receipts as the ordinary metered route.
+    /// This stays crate-private until the migrated Runtime facade exposes its
+    /// distinct evidence association.
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn run_durable_from_seed_metered_with_backend(
+        &self,
+        task: &LifecycleTask,
+        proposals: &[String],
+        handler: &mut dyn TypedEffectHandler,
+        stages: IterativeBudget,
+        effects: EffectBudget,
+        cancellation: &AgentCancellation,
+        execution_revision_digest: &str,
+        program_root_digest: &str,
+        retained_checkpoint: Option<&str>,
+        store: &mut dyn CheckpointStore,
+        max_reserved_fuel: u64,
+        seed: &crate::execution_revision::typed::migration::MigrationSeed,
+        selected: TargetStageBackend<'_>,
+        semantic_fuel_limit: u64,
+    ) -> Result<MeteredDurableTypedRun, DurableTypedFailure> {
+        if !cancellation.is_cancelled() && !(1..=1_000_000).contains(&semantic_fuel_limit) {
+            return Err(durable::semantic_refusal("semantic_work.fuel_limit", ""));
+        }
+        let selected = self.durable_backend(selected, retained_checkpoint)?;
+        let target_execution_binding = self.target_execution_binding(selected);
+        let observations = RefCell::new(Vec::new());
+        let backend = StageBackend::Metered {
+            backend: &selected,
+            fuel_limit: semantic_fuel_limit,
+            observations: &observations,
+        };
+        let run = self.run_durable_inner(
+            task,
+            proposals,
+            handler,
+            stages,
+            effects,
+            cancellation,
+            execution_revision_digest,
+            program_root_digest,
+            retained_checkpoint,
+            store,
+            max_reserved_fuel,
+            Some(seed),
+            Some(backend),
+        )?;
+        Ok(metered_durable_evidence(
+            run,
+            observations.into_inner(),
+            semantic_fuel_limit,
+            target_execution_binding,
+        ))
+    }
+
     /// Refuse a selected migration target before that migration reserves fuel
     /// or invokes a compiler/runtime. This is intentionally separate from
     /// execution so migration's existing reservation accounting stays exact.

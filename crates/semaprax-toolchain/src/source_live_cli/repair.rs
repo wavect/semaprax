@@ -8,7 +8,8 @@
 //! (`run_live_bound_model_durable`) so the run is resumable like the general
 //! `source-live run|resume` verbs. V1 retains a bounded, credential-free
 //! scripted fixture for tests; V2 binds the same explicit OpenCode process
-//! provider boundary as `source-live run`. Both modes produce reviewable
+//! provider boundary as `source-live run`; V3 adds the native Claude print host.
+//! These modes produce reviewable
 //! evidence for an *ephemeral* candidate only. They perform no publication or
 //! source mutation; a separately authorized, exact-digest-bound session
 //! (`project-candidate-git-publish`) is the only route that can commit.
@@ -18,6 +19,18 @@ use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::sync::Arc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
+
+#[path = "repair/barrier.rs"]
+mod barrier;
+#[path = "repair/claude.rs"]
+mod claude;
+#[path = "repair/config.rs"]
+mod config;
+#[path = "repair/receipt.rs"]
+mod receipt_impl;
+use receipt_impl::receipt;
+const CONFIG_SCHEMA_V3: &str = "semaprax.source-live-cli.repair-config.v3";
+const RECEIPT_SCHEMA_V3: &str = "semaprax.source-live-cli.repair-receipt.v3";
 
 use semaprax::agent_deployment::migrate_agent_definition_v1;
 use semaprax::agent_lifecycle::canonical_retained_value_json;
@@ -55,6 +68,7 @@ use crate::opencode_host::{
 
 use super::checkpoint::{bounded_read, CheckpointDir};
 use super::CliError;
+use barrier::PostSettledBarrierStore;
 
 const FIXTURE_CLOCK_DOMAIN: &str = "semaprax.source-live-cli.repair.v1";
 const UNIX_CLOCK_DOMAIN: &str = "unix_epoch_millis.v1";
@@ -167,6 +181,7 @@ struct RepairTurn {
 enum RepairProvider {
     Scripted([RepairTurn; 2]),
     OpenCode,
+    Claude,
 }
 
 /// Host-selected, config-driven repair session. Every identity below is a
@@ -213,194 +228,6 @@ struct RepairReceiptContext {
     source_revision: String,
     proposal_schema_digest: String,
     deployment_binding: String,
-}
-
-impl RepairConfig {
-    fn load(path: &Path) -> Result<Self, CliError> {
-        if !is_absolute_like(path) {
-            return Err(CliError::usage("configuration path must be absolute"));
-        }
-        let bytes = bounded_read(path, MAX_CONFIG_BYTES)?;
-        let value: Value = serde_json::from_slice(&bytes)
-            .map_err(|_| CliError::refused("configuration JSON is malformed"))?;
-        let canonical = serde_json::to_vec(&value)
-            .map_err(|_| CliError::refused("configuration cannot be encoded"))?;
-        if bytes.as_slice() != canonical.as_slice()
-            && bytes.strip_suffix(b"\n") != Some(canonical.as_slice())
-        {
-            return Err(CliError::refused("configuration must be canonical JSON"));
-        }
-        let map = value
-            .as_object()
-            .ok_or(CliError::refused("configuration must be an object"))?;
-        const V1_KEYS: [&str; 24] = [
-            "schema",
-            "manifest",
-            "source_path",
-            "agent_id",
-            "step_id",
-            "selector_field_id",
-            "deployment_migration_id",
-            "target",
-            "malformed_operation_id",
-            "corrected_operation_id",
-            "effect_id",
-            "argument_id",
-            "proposal_field_id",
-            "result_id",
-            "task_path",
-            "task_budget",
-            "deadline_millis",
-            "ceiling",
-            "reservation_units",
-            "max_total_steps",
-            "effect_budget",
-            "malformed_replacement",
-            "malformed_bool_literal",
-            "turns",
-        ];
-        const V2_KEYS: [&str; 23] = [
-            "schema",
-            "manifest",
-            "source_path",
-            "agent_id",
-            "step_id",
-            "selector_field_id",
-            "deployment_migration_id",
-            "target",
-            "malformed_operation_id",
-            "corrected_operation_id",
-            "effect_id",
-            "argument_id",
-            "proposal_field_id",
-            "result_id",
-            "task_path",
-            "task_budget",
-            "deadline_millis",
-            "ceiling",
-            "reservation_units",
-            "max_total_steps",
-            "effect_budget",
-            "malformed_replacement",
-            "malformed_bool_literal",
-        ];
-        let schema = text(map, "schema")?;
-        let v1 = schema == CONFIG_SCHEMA_V1
-            && map.len() == V1_KEYS.len()
-            && V1_KEYS.iter().all(|key| map.contains_key(*key));
-        let v2 = schema == CONFIG_SCHEMA_V2
-            && map.len() == V2_KEYS.len()
-            && V2_KEYS.iter().all(|key| map.contains_key(*key));
-        if !v1 && !v2 {
-            return Err(CliError::refused(
-                "repair configuration has missing or unknown keys",
-            ));
-        }
-        let manifest = absolute(map, "manifest")?;
-        let source_path = token(map, "source_path")?;
-        if is_absolute_like(Path::new(&source_path))
-            || Path::new(&source_path)
-                .components()
-                .any(|component| !matches!(component, std::path::Component::Normal(_)))
-            || !source_path.ends_with(".spx")
-        {
-            return Err(CliError::refused(
-                "source_path must be a relative Project .spx path",
-            ));
-        }
-        let target = token(map, "target")?;
-        if target.len() > 256 {
-            return Err(CliError::refused("target exceeds bounds"));
-        }
-        let effect_budget = map
-            .get("effect_budget")
-            .and_then(Value::as_object)
-            .ok_or(CliError::refused("effect_budget must be an object"))?;
-        const EFFECT_BUDGET_KEYS: [&str; 4] = [
-            "max_calls",
-            "max_argument_bytes",
-            "max_result_bytes",
-            "max_total_bytes",
-        ];
-        if effect_budget.len() != EFFECT_BUDGET_KEYS.len()
-            || !EFFECT_BUDGET_KEYS
-                .iter()
-                .all(|key| effect_budget.contains_key(*key))
-        {
-            return Err(CliError::refused(
-                "effect_budget has missing or unknown keys",
-            ));
-        }
-        // These V1 fixture-only fields remain syntactically validated to keep
-        // its frozen configuration key set, but candidate feedback now comes
-        // from the live handler's actual preceding effect result.
-        let _ = signed_i64(map, "malformed_replacement")?;
-        let _ = map
-            .get("malformed_bool_literal")
-            .and_then(Value::as_bool)
-            .ok_or(CliError::refused("malformed_bool_literal must be boolean"))?;
-        let provider = if v1 {
-            let turns = map
-                .get("turns")
-                .and_then(Value::as_array)
-                .ok_or(CliError::refused("turns must be an array"))?;
-            let [first, second] = turns.as_slice() else {
-                return Err(CliError::refused("turns must have exactly two entries"));
-            };
-            let turn = |value: &Value| -> Result<RepairTurn, CliError> {
-                let object = value
-                    .as_object()
-                    .ok_or(CliError::refused("turn must be an object"))?;
-                const TURN_KEYS: [&str; 2] = ["document", "requires_prior_feedback"];
-                if object.len() != TURN_KEYS.len()
-                    || !TURN_KEYS.iter().all(|key| object.contains_key(*key))
-                {
-                    return Err(CliError::refused("turn has missing or unknown keys"));
-                }
-                let document = text(object, "document")?.to_owned();
-                if document.is_empty() || document.len() > MAX_PROPOSAL_BYTES {
-                    return Err(CliError::refused("turn document exceeds bounds"));
-                }
-                let requires_prior_feedback = object
-                    .get("requires_prior_feedback")
-                    .and_then(Value::as_bool)
-                    .ok_or(CliError::refused("requires_prior_feedback must be boolean"))?;
-                Ok(RepairTurn {
-                    document,
-                    requires_prior_feedback,
-                })
-            };
-            RepairProvider::Scripted([turn(first)?, turn(second)?])
-        } else {
-            RepairProvider::OpenCode
-        };
-        Ok(Self {
-            manifest,
-            source_path,
-            agent_id: token(map, "agent_id")?,
-            step_id: token(map, "step_id")?,
-            selector_field_id: token(map, "selector_field_id")?,
-            deployment_migration_id: token(map, "deployment_migration_id")?,
-            target,
-            malformed_operation_id: token(map, "malformed_operation_id")?,
-            corrected_operation_id: token(map, "corrected_operation_id")?,
-            effect_id: token(map, "effect_id")?,
-            argument_id: token(map, "argument_id")?,
-            proposal_field_id: token(map, "proposal_field_id")?,
-            result_id: token(map, "result_id")?,
-            task_path: absolute(map, "task_path")?,
-            task_budget: nonnegative_i64(map, "task_budget")?,
-            deadline_millis: positive_i64(map, "deadline_millis")?,
-            ceiling: nonnegative_i64(map, "ceiling")?,
-            reservation_units: positive_i64(map, "reservation_units")?,
-            max_total_steps: positive_usize(map, "max_total_steps")?,
-            max_calls: positive_usize(effect_budget, "max_calls")?,
-            max_argument_bytes: positive_usize(effect_budget, "max_argument_bytes")?,
-            max_result_bytes: positive_usize(effect_budget, "max_result_bytes")?,
-            max_total_bytes: positive_usize(effect_budget, "max_total_bytes")?,
-            provider,
-        })
-    }
 }
 
 fn text<'a>(map: &'a Map<String, Value>, key: &str) -> Result<&'a str, CliError> {
@@ -481,6 +308,8 @@ pub(super) enum Command {
 pub(super) struct OpenCodeOperands {
     executable: PathBuf,
     scratch: PathBuf,
+    pause_after_settled: bool,
+    claude: bool,
 }
 
 impl Command {
@@ -488,7 +317,8 @@ impl Command {
         let (verb, config, checkpoint, provider) = match arguments {
             [verb, config, checkpoint] => (verb, config, checkpoint, None),
             [verb, config, checkpoint, executable_flag, executable, scratch_flag, scratch]
-                if executable_flag == "--opencode" && scratch_flag == "--scratch" =>
+                if matches!(executable_flag.as_str(), "--opencode" | "--claude")
+                    && scratch_flag == "--scratch" =>
             {
                 (
                     verb,
@@ -497,12 +327,31 @@ impl Command {
                     Some(OpenCodeOperands {
                         executable: absolute_operand(executable)?,
                         scratch: absolute_operand(scratch)?,
+                        pause_after_settled: false,
+                        claude: executable_flag == "--claude",
+                    }),
+                )
+            }
+            [verb, config, checkpoint, executable_flag, executable, scratch_flag, scratch, barrier]
+                if matches!(executable_flag.as_str(), "--opencode" | "--claude")
+                    && scratch_flag == "--scratch"
+                    && barrier == "--pause-after-settled" =>
+            {
+                (
+                    verb,
+                    config,
+                    checkpoint,
+                    Some(OpenCodeOperands {
+                        executable: absolute_operand(executable)?,
+                        scratch: absolute_operand(scratch)?,
+                        pause_after_settled: true,
+                        claude: executable_flag == "--claude",
                     }),
                 )
             }
             _ => {
                 return Err(CliError::usage(
-                    "repair requires run|resume <config.json> <checkpoint-dir> [--opencode ABS --scratch EMPTY_ABS]",
+                    "repair requires run|resume <config.json> <checkpoint-dir> [--opencode ABS --scratch EMPTY_ABS [--pause-after-settled]]",
                 ));
             }
         };
@@ -867,7 +716,17 @@ pub(super) fn execute_with_runner_and_candidate_test<
             provider,
         } => (config, checkpoint, false, provider),
     };
+    let pause_after_settled = provider_operands
+        .as_ref()
+        .is_some_and(|operands| operands.pause_after_settled);
     let config = RepairConfig::load(&config_path)?;
+    if matches!(&config.provider, RepairProvider::Claude)
+        != provider_operands.as_ref().is_some_and(|value| value.claude)
+    {
+        return Err(CliError::usage(
+            "repair Claude configuration requires --claude ABS --scratch EMPTY_ABS",
+        ));
+    }
 
     // --- Ordinary lock/authority is acquired first, before any evidence
     // replay, staging or candidate creation. ---
@@ -940,7 +799,12 @@ pub(super) fn execute_with_runner_and_candidate_test<
         effect_budget,
     )
     .map_err(|diagnostics| diagnostic_error("repair runtime binding refused", diagnostics))?;
-    if candidate_test.is_some() && !matches!(&config.provider, RepairProvider::OpenCode) {
+    if candidate_test.is_some()
+        && !matches!(
+            &config.provider,
+            RepairProvider::OpenCode | RepairProvider::Claude
+        )
+    {
         return Err(CliError::refused(
             "candidate-test capability requires OpenCode repair configuration",
         ));
@@ -983,6 +847,21 @@ pub(super) fn execute_with_runner_and_candidate_test<
                 Some(process_adapter_identity),
             )
         }
+        RepairProvider::Claude => {
+            let operands = provider_operands.as_ref().expect("Claude operands checked");
+            let identity = claude::identity(operands)?;
+            let process_identity = identity.adapter_identity.clone();
+            (
+                candidate_test_bound_identity(
+                    identity,
+                    candidate_test.as_deref().map(|host| &host.capability),
+                    &config.target,
+                    source.source_revision(),
+                ),
+                Box::new(UnixClock),
+                Some(process_identity),
+            )
+        }
         RepairProvider::OpenCode => {
             return Err(CliError::usage(
                 "repair OpenCode configuration requires --opencode ABS --scratch EMPTY_ABS",
@@ -1002,18 +881,21 @@ pub(super) fn execute_with_runner_and_candidate_test<
         model_binding.max_response_bytes(),
         clock.clock_domain(),
     );
-    let receipt_context =
-        matches!(&config.provider, RepairProvider::OpenCode).then(|| RepairReceiptContext {
-            provider_id: receipt_adapter_identity.provider_id,
-            model_id: receipt_adapter_identity.model_id,
-            adapter_identity: receipt_adapter_identity.adapter_identity,
-            adapter_version: receipt_adapter_identity.adapter_version,
-            provider_profile: receipt_adapter_identity.provider_profile,
-            program_root: root.program_root_digest().to_owned(),
-            source_revision: source.source_revision().to_owned(),
-            proposal_schema_digest: compiled.proposal_schema().schema().digest().to_owned(),
-            deployment_binding: model_binding.digest().to_owned(),
-        });
+    let receipt_context = matches!(
+        &config.provider,
+        RepairProvider::OpenCode | RepairProvider::Claude
+    )
+    .then(|| RepairReceiptContext {
+        provider_id: receipt_adapter_identity.provider_id,
+        model_id: receipt_adapter_identity.model_id,
+        adapter_identity: receipt_adapter_identity.adapter_identity,
+        adapter_version: receipt_adapter_identity.adapter_version,
+        provider_profile: receipt_adapter_identity.provider_profile,
+        program_root: root.program_root_digest().to_owned(),
+        source_revision: source.source_revision().to_owned(),
+        proposal_schema_digest: compiled.proposal_schema().schema().digest().to_owned(),
+        deployment_binding: model_binding.digest().to_owned(),
+    });
 
     let mut store = if fresh {
         CheckpointDir::fresh(&checkpoint_path, &project_root)?
@@ -1036,7 +918,7 @@ pub(super) fn execute_with_runner_and_candidate_test<
     // derived by the existing typed runtime and the retained document is
     // admitted by the existing journal decoder; this preflight neither
     // recreates either trust calculation nor treats the evidence as authority.
-    if !fresh {
+    let retained_pause_marker = if !fresh {
         let recovered = runtime
             .preflight_source_live_checkpoint(
                 &model_binding,
@@ -1045,7 +927,7 @@ pub(super) fn execute_with_runner_and_candidate_test<
                 clock.as_ref(),
             )
             .map_err(|error| match &config.provider {
-                RepairProvider::OpenCode => v2_replay_refusal(error),
+                RepairProvider::OpenCode | RepairProvider::Claude => v2_replay_refusal(error),
                 RepairProvider::Scripted(_) => {
                     CliError::refused("repair V1 retained checkpoint cannot be recovered")
                 }
@@ -1071,7 +953,10 @@ pub(super) fn execute_with_runner_and_candidate_test<
                 0,
             );
         }
-    }
+        barrier::marker_for_recovered_checkpoint(&recovered)
+    } else {
+        None
+    };
 
     let envelope = OfflineRepairEnvelope::new(Arc::clone(&project), config.target.clone())
         .map_err(|diagnostics| diagnostic_error("repair target envelope refused", diagnostics))?;
@@ -1094,6 +979,7 @@ pub(super) fn execute_with_runner_and_candidate_test<
     };
 
     let mut scripted_starts = None;
+    let mut pause_marker_host = None;
     let mut factory: Box<dyn FnMut() -> Box<dyn ProviderAdapter>> = match &config.provider {
         RepairProvider::Scripted(turns) => {
             let scripts = RefCell::new(VecDeque::from(
@@ -1126,6 +1012,17 @@ pub(super) fn execute_with_runner_and_candidate_test<
                 })
             })
         }
+        RepairProvider::Claude => claude::factory(
+            provider_operands.expect("Claude operands checked"),
+            config.deadline_millis.saturating_sub(clock.now_millis()),
+            process_adapter_identity
+                .as_deref()
+                .expect("Claude identity checked"),
+            bound_adapter_identity.clone(),
+            compiled.proposal_schema(),
+            retained_pause_marker.as_deref(),
+            &mut pause_marker_host,
+        )?,
         RepairProvider::OpenCode => {
             let operands = provider_operands.expect("OpenCode operands were checked above");
             let grammar = OpenCodeGrammar::from_proposal(compiled.proposal_schema())
@@ -1149,6 +1046,15 @@ pub(super) fn execute_with_runner_and_candidate_test<
                 return Err(CliError::refused(
                     "repair OpenCode executable changed while binding the host",
                 ));
+            }
+            host.clear_repair_post_settled_marker(retained_pause_marker.as_deref())
+                .map_err(|_| {
+                    CliError::refused(
+                        "repair OpenCode post-settlement pause marker does not match authenticated checkpoint",
+                    )
+                })?;
+            if pause_after_settled {
+                pause_marker_host = Some(host.clone());
             }
             let runner = Rc::new(RefCell::new(runner));
             let bound_adapter_identity = bound_adapter_identity.clone();
@@ -1176,6 +1082,10 @@ pub(super) fn execute_with_runner_and_candidate_test<
     )
     .map_err(|diagnostics| diagnostic_error("repair source adapter refused", diagnostics))?;
     let retained_checkpoint = latest.as_deref();
+    // This host-local wrapper has no journal authority of its own. It only
+    // observes a successful physical checkpoint commit and, when explicitly
+    // selected by the operator, parks after one settled provider response.
+    let mut barrier_store = PostSettledBarrierStore::new(&mut store, pause_marker_host);
     let complete = runtime
         .run_live_bound_model_durable(
             &mut source,
@@ -1184,7 +1094,7 @@ pub(super) fn execute_with_runner_and_candidate_test<
             clock.as_ref(),
             &cancellation,
             retained_checkpoint,
-            &mut store,
+            &mut barrier_store,
         )
         .map_err(|failure| {
             diagnostic_error(
@@ -1217,7 +1127,10 @@ pub(super) fn execute_with_runner_and_candidate_test<
     let preview = handler.latest_preview();
     let rejection_count = handler.rejection_count();
     let candidate_test_evidence = handler.candidate_test_evidence();
-    let replayed_candidate_test_evidence = if fresh {
+    // A resumed invocation may execute new candidate tests. Its live evidence
+    // owns this receipt; deriving replay evidence from the just-written journal
+    // would count that same observation twice. Replay-only runs use the journal.
+    let replayed_candidate_test_evidence = if fresh || candidate_test_evidence.is_some() {
         None
     } else {
         replayed_candidate_test_evidence(
@@ -1239,180 +1152,6 @@ pub(super) fn execute_with_runner_and_candidate_test<
         model_dispatches,
         effect_dispatches,
     )
-}
-
-fn receipt(
-    config: &RepairConfig,
-    preview: Option<&semaprax::agent_runtime_v2::OfflineRepairPreview>,
-    candidate_test_evidence: Option<&CandidateTestEvidence>,
-    replayed_candidate_test_evidence: Option<ReplayedCandidateTestEvidence>,
-    candidate_test_selected: bool,
-    receipt_context: Option<&RepairReceiptContext>,
-    checkpoint: &semaprax::live_invocation::source_journal::RecoveredSourceCheckpoint,
-    model_dispatches: u32,
-    effect_dispatches: u32,
-) -> Result<String, CliError> {
-    let terminal = checkpoint.terminal_snapshot().ok_or(CliError::refused(
-        "repair checkpoint has no terminal snapshot",
-    ))?;
-    let mut report = json!({
-        "schema": RECEIPT_SCHEMA_V1,
-        "target": config.target,
-        "status": terminal.status().as_str(),
-        "generation": checkpoint.generation(),
-        "model_dispatches": model_dispatches,
-        "effect_dispatches": effect_dispatches,
-        "source_mutation": false,
-        "publication_authority": false,
-    });
-    if matches!(&config.provider, RepairProvider::OpenCode) {
-        let receipt_context = receipt_context.ok_or(CliError::refused(
-            "repair V2 receipt has no checked profile context",
-        ))?;
-        report["schema"] = json!(RECEIPT_SCHEMA_V2);
-        report["selected_profile"] = json!({
-            "config_schema": CONFIG_SCHEMA_V2,
-            "provider_id": receipt_context.provider_id.as_str(),
-            "model_id": receipt_context.model_id.as_str(),
-            "adapter_identity": receipt_context.adapter_identity.as_str(),
-            "adapter_version": receipt_context.adapter_version.as_str(),
-            "provider_profile": receipt_context.provider_profile.as_str(),
-        });
-        report["checked_prerequisites"] = json!({
-            "program_root": receipt_context.program_root.as_str(),
-            "source_revision": receipt_context.source_revision.as_str(),
-            "proposal_schema_digest": receipt_context.proposal_schema_digest.as_str(),
-            "deployment_binding": receipt_context.deployment_binding.as_str(),
-        });
-        report["model_attempts"] = Value::Array(
-            semaprax::model_call_receipt::source_projection::project_source_calls(checkpoint)
-                .map_err(|_| CliError::refused("repair model-attempt projection refused"))?
-                .into_iter()
-                .map(|attempt| {
-                    checked_value(
-                        &attempt.render(),
-                        "repair model-attempt receipt projection refused",
-                    )
-                })
-                .collect::<Result<Vec<_>, _>>()?,
-        );
-        report["journal_binding"] = json!({
-            "invocation": checkpoint.invocation(),
-            "chain": checkpoint.chain(),
-            "generation": checkpoint.generation(),
-        });
-        report["candidate_test_execution"] =
-            match (candidate_test_evidence, replayed_candidate_test_evidence) {
-                (Some(evidence), None) => json!({
-                    "schema": CANDIDATE_TEST_SCHEMA,
-                    "status": evidence.status.text(),
-                    "feedback_code": evidence.feedback_code,
-                    "replayed": false,
-                    "observation": checked_value(
-                        &evidence.canonical,
-                        "repair candidate-test observation refused",
-                    )?,
-                }),
-                (None, Some(evidence)) => json!({
-                    "schema": CANDIDATE_TEST_SCHEMA,
-                    "status": evidence.status.text(),
-                    "feedback_code": evidence.feedback_code,
-                    "replayed": true,
-                    "observation": Value::Null,
-                }),
-                (None, None) => json!({
-                    "status": "not_run",
-                    "reason": if candidate_test_selected {
-                        "no settled candidate-test observation is available"
-                    } else {
-                        "this repair host has no candidate test-execution authority"
-                    },
-                }),
-                (Some(_), Some(_)) => {
-                    return Err(CliError::refused(
-                        "repair candidate-test receipt has conflicting observations",
-                    ))
-                }
-            };
-    }
-    if let Some(preview) = preview {
-        report["candidate_digest"] = json!(preview.candidate().candidate_digest());
-        report["source_review"] =
-            checked_value(preview.source_review(), "repair source review refused")?;
-        report["semantic_delta"] =
-            checked_value(preview.semantic_delta(), "repair semantic delta refused")?;
-        report["impact_summary"] =
-            checked_value(preview.impact_summary(), "repair impact summary refused")?;
-        if matches!(&config.provider, RepairProvider::OpenCode) {
-            let candidate_test_ran =
-                candidate_test_evidence.is_some() || replayed_candidate_test_evidence.is_some();
-            let mut blind_spots = vec![
-                Value::String(
-                    "no publication, Git mutation, or physical delivery is authorized by this receipt"
-                        .to_owned(),
-                ),
-                Value::String(
-                    "provider usage is an observation, not cost or delivery proof".to_owned(),
-                ),
-            ];
-            if !candidate_test_ran {
-                blind_spots.insert(0, Value::String(if candidate_test_selected {
-                    "candidate tests were not observed: no settled candidate-test observation is available"
-                        .to_owned()
-                } else {
-                    "candidate tests were not executed: this host has no test-execution authority"
-                        .to_owned()
-                }));
-            } else if replayed_candidate_test_evidence.is_some() {
-                blind_spots.insert(
-                    0,
-                    Value::String(
-                        "candidate-test observation is replayed from the durable journal; no new test was executed"
-                            .to_owned(),
-                    ),
-                );
-            }
-            report["analysis"] = json!({
-                "coverage": {
-                    "source_review": true,
-                    "semantic_delta": true,
-                    "impact_summary": true,
-                    "candidate_test_execution": candidate_test_ran,
-                },
-                "blind_spots": blind_spots,
-            });
-        }
-    } else {
-        report["candidate_digest"] = Value::Null;
-        report["source_review"] = Value::Null;
-        report["semantic_delta"] = Value::Null;
-        report["impact_summary"] = Value::Null;
-        if matches!(&config.provider, RepairProvider::OpenCode) {
-            let replayed_candidate_test = replayed_candidate_test_evidence.is_some();
-            report["analysis"] = json!({
-                "coverage": {
-                    "source_review": false,
-                    "semantic_delta": false,
-                    "impact_summary": false,
-                    "candidate_test_execution": replayed_candidate_test,
-                },
-                "blind_spots": [
-                    "terminal checkpoint replay did not create or revalidate a candidate",
-                    if replayed_candidate_test_evidence.is_some() {
-                        "candidate-test observation is replayed from the durable journal; no new test was executed"
-                    } else if candidate_test_selected {
-                        "no settled candidate-test observation is available"
-                    } else {
-                        "candidate tests were not executed: this host has no test-execution authority"
-                    },
-                    "no publication, Git mutation, or physical delivery is authorized by this receipt",
-                ],
-            });
-        }
-    }
-    serde_json::to_string(&report)
-        .map(|report| format!("{report}\n"))
-        .map_err(|_| CliError::refused("repair report cannot be rendered"))
 }
 
 #[allow(clippy::too_many_arguments)]

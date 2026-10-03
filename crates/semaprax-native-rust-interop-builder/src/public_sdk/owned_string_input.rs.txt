@@ -1,0 +1,49 @@
+/// Copies bounded UTF-8 into a Rust-owned String slot.
+///
+/// # Safety
+/// For nonzero length, `data` names a readable, immutable range of `length`
+/// bytes for the call. `out` names one aligned writable SpxOwner. Their memory
+/// must not overlap. The output is written only after complete admission.
+#[no_mangle]
+pub unsafe extern "C" fn spx_owner_string_from_utf8(context: u64, data: *const u8, length: u64, out: *mut SpxOwner) -> i32 {
+    if out.is_null() || (out as usize) % std::mem::align_of::<SpxOwner>() != 0 { return 3; }
+    let Ok(length) = usize::try_from(length) else { return 4; };
+    if length > 4096 { return 4; }
+    if length != 0 && data.is_null() { return 3; }
+    // SAFETY: bounded conversion precedes the slice; the caller supplies the
+    // readable range. The empty case never constructs a slice from null.
+    let bytes = if length == 0 { &[][..] } else { unsafe { std::slice::from_raw_parts(data, length) } };
+    let text = match std::str::from_utf8(bytes) { Ok(text) => text, Err(_) => return 3 };
+    let result = CONTEXTS.with(|contexts| {
+        let mut contexts = contexts.try_borrow_mut().map_err(|_| 6)?;
+        let context = contexts.iter_mut().find(|c| c.id == context).ok_or(3)?;
+        let free = context.slots.iter().position(|s| s.value.is_none() && s.generation != u64::MAX);
+        if free.is_none() {
+            if context.slots.len() >= 32 { return Err(4); }
+            context.slots.try_reserve(1).map_err(|_| 4)?;
+        }
+        let mut value = String::new();
+        value.try_reserve_exact(text.len()).map_err(|_| 4)?;
+        value.push_str(text);
+        if value.capacity() > 4096 { return Err(4); }
+        let index = if let Some(index) = free { index } else {
+            context.slots.push(Slot { generation: 0, value: None }); context.slots.len()-1
+        };
+        let slot = &mut context.slots[index];
+        slot.generation += 1;
+        slot.value = Some(value);
+        Ok(SpxOwner { context: context.id, generation: slot.generation, slot: index as u64 })
+    });
+    match result { Ok(owner) => { unsafe { out.write(owner) }; 0 }, Err(status) => status }
+}
+/// Signed-length entry with checked conversion and the same pointer contract.
+///
+/// # Safety
+/// The pointer requirements of spx_owner_string_from_utf8 apply when length
+/// is nonnegative. Negative or oversized lengths reject before reading data.
+#[no_mangle]
+pub unsafe extern "C" fn spx_owner_string_from_utf8_signed(context: u64, data: *const u8, length: i64, out: *mut SpxOwner) -> i32 {
+    let Ok(length) = u64::try_from(length) else { return 4; };
+    // SAFETY: exactly the caller's range/output contract; no widening cast.
+    unsafe { spx_owner_string_from_utf8(context, data, length, out) }
+}

@@ -161,6 +161,12 @@ pub enum ResolvedType {
 }
 
 impl ResolvedType {
+    pub fn is_compiler_i64_result(&self) -> bool {
+        matches!(self, Self::Nominal { declaration, arguments }
+            if declaration.as_str() == crate::prelude::RESULT_ID
+                && arguments == &[Self::I64, Self::I64])
+    }
+
     /// Canonical ownership classification shared by the resolver, cleanup
     /// builder, hostile validator, and backends. Unique ownership is not the
     /// same fact as containing an opaque resource.
@@ -586,6 +592,10 @@ pub struct ResolvedImport {
     pub interface: DeclarationId,
     pub import_key: String,
     pub native_rust: bool,
+    pub index_selected: bool,
+    pub selected_index_digest: Option<String>,
+    pub selected_receiver: Option<String>,
+    pub rust_path: Option<String>,
     pub parameters: Vec<ResolvedImportParameter>,
     pub result: ResolvedImportResult,
     pub effects: Vec<String>,
@@ -616,6 +626,108 @@ pub enum ResolvedImportResultKind {
     Unit,
     I64,
     Bool,
+    ResultI64I64,
+    OwnedString,
+    OwnedOptionString,
+    OwnedResultStringI64,
+    OwnedResultStringOptionI64,
+    OwnedResultResourceI64 {
+        resource: DeclarationId,
+    },
+    /// Shared parameter-zero resource loan owns this returned Str lifetime.
+    BorrowedStr {
+        resource: DeclarationId,
+    },
+    OwnedResource {
+        resource: DeclarationId,
+    },
+}
+
+impl ResolvedImportResultKind {
+    pub fn ownership(&self) -> OwnershipMode {
+        if matches!(
+            self,
+            Self::OwnedResource { .. }
+                | Self::OwnedString
+                | Self::OwnedOptionString
+                | Self::OwnedResultStringI64
+                | Self::OwnedResultStringOptionI64
+                | Self::OwnedResultResourceI64 { .. }
+        ) {
+            OwnershipMode::Own
+        } else if matches!(self, Self::BorrowedStr { .. }) {
+            OwnershipMode::Borrow
+        } else {
+            OwnershipMode::Value
+        }
+    }
+    pub fn value_type(
+        &self,
+        declarations: &DeclarationIndex,
+    ) -> Result<ResolvedType, crate::diagnostic::Diagnostic> {
+        let nominal = |name: &str,
+                       arguments: Vec<ResolvedType>|
+         -> Result<ResolvedType, crate::diagnostic::Diagnostic> {
+            Ok(ResolvedType::Nominal {
+                declaration: declarations.type_id(name).cloned().ok_or_else(|| {
+                    crate::diagnostic::Diagnostic::io(
+                        "SPX-H006",
+                        if name == "Result" {
+                            "compiler-owned Result type is absent"
+                        } else {
+                            "compiler-owned Option type is absent"
+                        },
+                    )
+                })?,
+                arguments,
+            })
+        };
+        Ok(match self {
+            Self::Unit => ResolvedType::Unit,
+            Self::I64 => ResolvedType::I64,
+            Self::Bool => ResolvedType::Bool,
+            Self::OwnedString => ResolvedType::String,
+            Self::BorrowedStr { .. } => ResolvedType::Str,
+            Self::ResultI64I64 => nominal("Result", vec![ResolvedType::I64, ResolvedType::I64])?,
+            Self::OwnedOptionString => nominal("Option", vec![ResolvedType::String])?,
+            Self::OwnedResultStringI64 => {
+                nominal("Result", vec![ResolvedType::String, ResolvedType::I64])?
+            }
+            Self::OwnedResultStringOptionI64 => nominal(
+                "Result",
+                vec![
+                    ResolvedType::String,
+                    nominal("Option", vec![ResolvedType::I64])?,
+                ],
+            )?,
+            Self::OwnedResultResourceI64 { resource } => nominal(
+                "Result",
+                vec![
+                    ResolvedType::Nominal {
+                        declaration: resource.clone(),
+                        arguments: Vec::new(),
+                    },
+                    ResolvedType::I64,
+                ],
+            )?,
+            Self::OwnedResource { resource } => ResolvedType::Nominal {
+                declaration: resource.clone(),
+                arguments: Vec::new(),
+            },
+        })
+    }
+    pub fn is_owned_container_type(ty: &ResolvedType, declarations: &DeclarationIndex) -> bool {
+        [
+            Self::OwnedOptionString,
+            Self::OwnedResultStringI64,
+            Self::OwnedResultStringOptionI64,
+        ]
+        .iter()
+        .any(|kind| {
+            kind.value_type(declarations)
+                .is_ok_and(|actual| &actual == ty)
+        })
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

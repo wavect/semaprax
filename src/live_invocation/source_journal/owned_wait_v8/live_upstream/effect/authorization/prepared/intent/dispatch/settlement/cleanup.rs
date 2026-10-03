@@ -557,6 +557,14 @@ impl LiveExecutedOwnedEffectV8<'_> {
     }
 }
 impl LiveFailedOwnedEffectV8<'_> {
+    /// Select the sealed failed-observer tail without granting cleanup authority.
+    /// The consuming writer revalidates the actual receipt and seal.
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn observer_cleanup_pending(
+        &self,
+    ) -> bool {
+        self.observer_seal.is_some()
+    }
+
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn failure(
         &self,
     ) -> Option<OwnedEffectFailureV8> {

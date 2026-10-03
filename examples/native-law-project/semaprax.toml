@@ -1,0 +1,14 @@
+schema = "semaprax.manifest.v2"
+
+[package]
+name = "native-law-example"
+version = "0.1.0"
+
+[modules]
+entry = "native_law.app"
+sources = ["src/LAWS.spx", "src/app.spx", "src/core.spx", "src/tests.spx"]
+law_sources = ["src/LAWS.spx"]
+tests = ["native_law.tests"]
+
+[exports]
+web = ["native-law.add"]

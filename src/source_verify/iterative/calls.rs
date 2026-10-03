@@ -34,13 +34,31 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                 if let (Some(actual), Some(parameter)) = (actual.as_ref(), import.params.get(index))
                 {
                     reject_native_unit_value(self.program, argument, actual, self.diagnostics);
+                    check_argument_ownership(
+                        self.program,
+                        self.current,
+                        name,
+                        argument,
+                        parameter,
+                        Some(actual),
+                        &mut self.scopes[scope].bindings,
+                        self.types,
+                        self.allow_moves,
+                        false,
+                        false,
+                        self.diagnostics,
+                    );
                     if !actual.native_unit
-                        && (actual.ty != parameter.ty || actual.mode != ParamMode::Value)
+                        && (actual.ty != parameter.ty
+                            || (actual.mode != parameter.mode
+                                && !(parameter.mode == ParamMode::Borrow
+                                    && actual.mode == ParamMode::Own
+                                    && matches!(&argument.kind, crate::ast::ExprKind::Var(_)))))
                     {
                         self.diagnostics.push(error(
                             self.program,
                             "SPX-B107",
-                            "Native Rust Interop declaration set is unsupported: scalar value signature required",
+                        "Native Rust Interop declaration set is unsupported: scalar value signature required",
                             argument.span,
                         ));
                     }
@@ -167,15 +185,14 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             );
             let output = match target {
                 VerifierCallTarget::Native(import) => {
-                    let mut value = CheckedValue::value(match import.result {
-                        ImportResult::Unit => Type::Named {
-                            name: "\0native-rust-unit".to_owned(),
-                            arguments: Vec::new(),
-                        },
-                        ImportResult::I64 => Type::I64,
-                        ImportResult::Bool => Type::Bool,
-                    });
+                    let mut value = CheckedValue::returned(
+                        import.result.value_type(),
+                        import.result.is_owned(),
+                    );
                     value.native_unit = import.result == ImportResult::Unit;
+                    if import.result.is_borrowed() {
+                        value.mode = ParamMode::Borrow;
+                    }
                     Some(value)
                 }
                 VerifierCallTarget::Byte(op) => {

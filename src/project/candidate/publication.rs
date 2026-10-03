@@ -6,7 +6,8 @@ use std::path::Path;
 use serde_json::json;
 
 use crate::diagnostic::Diagnostic;
-use crate::project::{load_snapshot, ProjectSnapshot};
+use crate::project::host_policy::StrictWorkspacePermit;
+use crate::project::{load_snapshot, ProjectHostAccess, ProjectSnapshot};
 use crate::semantic_workspace_change::{
     self as change, SemanticWorkspaceChangeArtifacts, SemanticWorkspaceChangeFile,
     SemanticWorkspaceChangeSet, SemanticWorkspacePreparedChange,
@@ -56,7 +57,72 @@ pub fn prepare_candidate_publication(
     project_manifest: &Path,
     expected_workspace_revision: &str,
 ) -> Result<ProjectCandidatePublication> {
-    let snapshot = RefCell::new(load_snapshot(project_manifest)?);
+    prepare_with_law_gate(
+        candidate,
+        approved_candidate_digest,
+        workspace_root,
+        project_manifest,
+        expected_workspace_revision,
+        || Ok(()),
+    )
+}
+
+pub(super) fn prepare_with_law_gate(
+    candidate: &ProjectCandidate,
+    approved_candidate_digest: &str,
+    workspace_root: &Path,
+    project_manifest: &Path,
+    expected_workspace_revision: &str,
+    gate: impl FnMut() -> Result<()>,
+) -> Result<ProjectCandidatePublication> {
+    prepare_with_gate(
+        candidate,
+        approved_candidate_digest,
+        workspace_root,
+        project_manifest,
+        expected_workspace_revision,
+        false,
+        gate,
+    )
+}
+
+pub(super) fn prepare_with_selected_law_gate(
+    candidate: &ProjectCandidate,
+    approved_candidate_digest: &str,
+    workspace_root: &Path,
+    project_manifest: &Path,
+    expected_workspace_revision: &str,
+    gate: impl FnMut() -> Result<()>,
+) -> Result<ProjectCandidatePublication> {
+    prepare_with_gate(
+        candidate,
+        approved_candidate_digest,
+        workspace_root,
+        project_manifest,
+        expected_workspace_revision,
+        true,
+        gate,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn prepare_with_gate(
+    candidate: &ProjectCandidate,
+    approved_candidate_digest: &str,
+    workspace_root: &Path,
+    project_manifest: &Path,
+    expected_workspace_revision: &str,
+    allow_selected: bool,
+    mut gate: impl FnMut() -> Result<()>,
+) -> Result<ProjectCandidatePublication> {
+    let snapshot = RefCell::new(if allow_selected {
+        super::super::load_snapshot_for_host_access(
+            project_manifest,
+            ProjectHostAccess::Inspection,
+        )?
+    } else {
+        load_snapshot(project_manifest)?
+    });
     validate_host(
         &snapshot.borrow(),
         candidate,
@@ -66,6 +132,7 @@ pub fn prepare_candidate_publication(
     let result = change::with_project_candidate_change(
         workspace_root,
         |actual, sources| {
+            gate()?;
             derive(
                 candidate,
                 approved_candidate_digest,
@@ -119,14 +186,121 @@ fn apply_with_hook(
     project_manifest: &Path,
     expected_workspace_revision: &str,
     submitted_publication: &[u8],
+    hook: impl FnMut(SemanticChangeApplyPoint) -> std::io::Result<()>,
+) -> Result<String> {
+    apply_with_gate(
+        candidate,
+        approved_candidate_digest,
+        workspace_root,
+        project_manifest,
+        expected_workspace_revision,
+        submitted_publication,
+        hook,
+        false,
+        || Ok(None),
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+pub(super) fn apply_with_law_gate(
+    candidate: &ProjectCandidate,
+    approved_candidate_digest: &str,
+    workspace_root: &Path,
+    project_manifest: &Path,
+    expected_workspace_revision: &str,
+    submitted_publication: &[u8],
+    mut gate: impl FnMut() -> Result<()>,
+) -> Result<String> {
+    apply_with_gate(
+        candidate,
+        approved_candidate_digest,
+        workspace_root,
+        project_manifest,
+        expected_workspace_revision,
+        submitted_publication,
+        |_| Ok(()),
+        false,
+        || {
+            gate()?;
+            Ok(None)
+        },
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+pub(super) fn apply_with_selected_law_gate(
+    candidate: &ProjectCandidate,
+    approved_candidate_digest: &str,
+    workspace_root: &Path,
+    project_manifest: &Path,
+    expected_workspace_revision: &str,
+    submitted_publication: &[u8],
+    gate: impl FnMut() -> Result<Option<StrictWorkspacePermit>>,
+) -> Result<String> {
+    apply_with_selected_law_gate_with_hook(
+        candidate,
+        approved_candidate_digest,
+        workspace_root,
+        project_manifest,
+        expected_workspace_revision,
+        submitted_publication,
+        |_| Ok(()),
+        gate,
+    )
+}
+
+/// Internal composition seam. It remains within the candidate module, and is
+/// used by the strict-law unit regression to inject deterministic final-boundary
+/// source drift. It is not a public host capability.
+#[allow(clippy::too_many_arguments)]
+pub(super) fn apply_with_selected_law_gate_with_hook(
+    candidate: &ProjectCandidate,
+    approved_candidate_digest: &str,
+    workspace_root: &Path,
+    project_manifest: &Path,
+    expected_workspace_revision: &str,
+    submitted_publication: &[u8],
+    hook: impl FnMut(SemanticChangeApplyPoint) -> std::io::Result<()>,
+    gate: impl FnMut() -> Result<Option<StrictWorkspacePermit>>,
+) -> Result<String> {
+    apply_with_gate(
+        candidate,
+        approved_candidate_digest,
+        workspace_root,
+        project_manifest,
+        expected_workspace_revision,
+        submitted_publication,
+        hook,
+        true,
+        gate,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn apply_with_gate(
+    candidate: &ProjectCandidate,
+    approved_candidate_digest: &str,
+    workspace_root: &Path,
+    project_manifest: &Path,
+    expected_workspace_revision: &str,
+    submitted_publication: &[u8],
     mut hook: impl FnMut(SemanticChangeApplyPoint) -> std::io::Result<()>,
+    allow_selected: bool,
+    mut gate: impl FnMut() -> Result<Option<StrictWorkspacePermit>>,
 ) -> Result<String> {
     if submitted_publication.len() > MAX_PROJECT_CANDIDATE_PUBLICATION_BYTES {
         return Err(capacity(
             "candidate publication proof exceeds its byte bound",
         ));
     }
-    let snapshot = RefCell::new(load_snapshot(project_manifest)?);
+    let snapshot = RefCell::new(if allow_selected {
+        super::super::load_snapshot_for_host_access(
+            project_manifest,
+            ProjectHostAccess::Inspection,
+        )?
+    } else {
+        load_snapshot(project_manifest)?
+    });
     validate_host(
         &snapshot.borrow(),
         candidate,
@@ -137,6 +311,7 @@ fn apply_with_hook(
     let drift = RefCell::new(Vec::new());
     let result = change::apply_project_candidate_change(
         workspace_root,
+        || gate(),
         |actual, sources| {
             derive(
                 candidate,

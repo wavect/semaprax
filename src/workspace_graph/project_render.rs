@@ -9,6 +9,7 @@ pub(super) fn render_project_graph_json(
     project_name: &str,
     project_revision: &str,
     test_module: &str,
+    law_modules: &[crate::assurance_manifest::law_set::LawModule],
     digest: Option<&str>,
 ) -> String {
     use std::fmt::Write as _;
@@ -24,12 +25,21 @@ pub(super) fn render_project_graph_json(
     } else {
         PROJECT_GRAPH_SCHEMA
     };
-    push_json_string(
-        &mut output,
+    let schema = super::indexed_rust::schema(
         if super::agent_execution::has_facts(&projection.modules) {
             "semaprax.project-semantic-graph.v4"
         } else {
             base
+        },
+        &projection.modules,
+        true,
+    );
+    push_json_string(
+        &mut output,
+        if law_modules.is_empty() || schema == "semaprax.project-semantic-graph.v7" {
+            schema
+        } else {
+            "semaprax.project-semantic-graph.v6"
         },
     );
     output.push_str(",\"project_schema\":");
@@ -159,6 +169,23 @@ pub(super) fn render_project_graph_json(
         base,
         &projection.modules,
     ));
+    super::indexed_rust::append(&mut output, &projection.modules);
+    if !law_modules.is_empty() {
+        output.push_str(",\"law_modules\":");
+        output.push_str(&serde_json::to_string(law_modules).expect("typed law modules serialize"));
+        let mut dependencies = law_modules.iter().flat_map(|module| module.laws.iter().filter_map(|law| {
+            if let crate::assurance_manifest::law_set::LawSelector::Contract { declaration_id, clause, .. } = &law.selector {
+                Some(serde_json::json!({"law_id":law.law_id,"declaration_id":declaration_id,"clause":clause}))
+            } else {
+                None
+            }
+        })).collect::<Vec<_>>();
+        dependencies.sort_by(|left, right| left["law_id"].as_str().cmp(&right["law_id"].as_str()));
+        output.push_str(",\"law_dependencies\":");
+        output.push_str(
+            &serde_json::to_string(&dependencies).expect("typed law dependencies serialize"),
+        );
+    }
     output.push('}');
     output.into_string()
 }

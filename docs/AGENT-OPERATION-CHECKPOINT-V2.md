@@ -46,6 +46,16 @@ objects, exact canonical re-encoding and closed flat typed values reject
 unknown keys, duplicate keys, malformed integers, reminted predecessors,
 substituted identities/limits and byte-counter refunds.
 
+The additive `semaprax.agent-operation-checkpoint-metered.v2` profile retains
+the v2 ordinary wire unchanged. It binds one admitted semantic-fuel limit, the
+selected target execution binding, and an ordered receipt for each completed
+stage. Receipts are chained through the caller-trusted store; their digest
+binds exact bytes and order but grants no cryptographic authority. An ordinary
+route rejects this profile, and the metered route rejects ordinary, malformed,
+changed-target, changed-limit, or unpaired input before stage, store, or
+handler work. Metered v1 remains parseable for inspection but cannot resume a
+live metered route because it lacks the selected-target binding.
+
 Each effect has these ordered entries:
 
 - Intent: exact turn, registered operation/effect, current authorization binding,
@@ -83,6 +93,10 @@ context, reuses the recorded observation without calling the host, and compares
 every retained transition against the newly checked reducer result. New host
 work is reachable only after that exact prefix is consumed. Resuming a completed
 three-turn run therefore makes zero additional host calls.
+
+Metered recovery validates retained receipts while re-executing deterministic
+stages, then appends a newly charged receipt for each new reservation. It does
+not infer history from output evidence or redeliver retained host effects.
 
 Failure to persist a final Complete/Suspend/Fail transition returns an explicit
 DurableTypedFailure containing the already selected IterativeRun. Persistence

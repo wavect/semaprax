@@ -144,6 +144,64 @@ This closes a local crash window only. It does not prove a remote receipt,
 receiver idempotency, durable-store freshness, or distributed exactly-once
 delivery.
 
+### Authenticated service HTTP intent facts
+
+The additive native-host
+`outbound_delivery_store::service_invocation::authenticated_intent` module
+provides `read_http_intent` and `deliver_http_durable_authenticated`. This is a
+storage primitive used by the reference host's opt-in
+[JSON-event v2 route](REFERENCE-SERVICE-JSON-EVENT-V2.md). The original v1
+JSON-event and OTLP routes retain their existing intent marker behavior.
+
+The authenticated marker uses the **same** identity filename as the original
+pending marker. Its bounded (512-byte maximum) canonical UTF-8 wire contains
+six newline-terminated fields, in order:
+
+1. `semaprax.outbound.authenticated-http-intent.v1`;
+2. the exact `sha256:` pending identity key;
+3. a lowercase `sha256:` HTTP body commitment;
+4. a canonical nonnegative `i64` signing timestamp;
+5. the literal first-attempt number `1`;
+6. a 64-character lowercase HMAC-SHA-256 tag.
+
+The body commitment hashes the domain
+`semaprax.outbound.authenticated-http-intent.body.v1\0`, the body's little-endian
+u64 byte length, and the actual request body bytes. It is explicitly a body
+commitment, not an endpoint/header/policy commitment. The MAC uses an
+independently held 32-byte host key, the domain
+`semaprax.outbound.authenticated-http-intent.mac.v1\0`, and the first five fields
+including their newlines. The wire stores no raw payload or key; a body digest
+can still disclose guessable low-entropy inputs. The timestamp is a host-supplied
+fact; this generic primitive does not establish that an event envelope signed
+that timestamp. That binding belongs to the v2 event encoder and caller.
+
+A read is confined to the caller-held directory and exact identity name.
+`Absent` requires an explicit no-follow absence observation. The original
+fixed marker returns `LegacyBlocked` with no fabricated prior facts; unknown,
+noncanonical, oversized, wrong-key, identity-transplanted, or changed records
+refuse. The read performs no write and chooses no latest checkpoint. An
+absence observation is not a reservation: another invocation can create the
+marker before dispatch. Every new delivery still requires its own successful
+atomic create-new, exact-content check, sync and named recheck, followed by
+the ordinary typed provisional checkpoint ACK. Existing markers of either
+version are never upgraded, replaced, or forgiven. Both directions of a
+version switch therefore retain the no-redispatch rule. A retained authenticated
+intent proves a reserved first attempt, not adapter entry or remote receipt;
+reader authentication does not establish freshness against store deletion or
+rollback. File-only versus namespace-synced durability retains the existing
+store distinction.
+
+Focused regressions live under
+`outbound_delivery_store::service_invocation::tests::authenticated_intent` in
+the native-host library harness: real dispatch/reopen, exact facts, changed
+request/policy/capacity restart, both legacy transitions, tamper/wrong-key/name
+binding, invalid-time nonmutation, competing absence observations and atomic
+creation, a marker-only crash window, symlink refusal, and oversized records.
+The owning native-host library selector passed locally: 19 cases, including
+the eight new authenticated-intent cases and the existing durable-service
+regressions. This does not establish checked webhook policy or provider
+acceptance.
+
 The native host crate now supplies `OutboundDeliveryStore`, an additive local
 implementation of the typed HTTP, webhook, and email checkpoint-store
 interfaces. Construction requires a caller-held `HeldDirectory`; it does not

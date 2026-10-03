@@ -18,7 +18,7 @@ use super::byte_slice_provenance::derive_byte_slice_provenance;
 use super::ids::{DeclarationId, FunctionExecutionId, FunctionInstanceId, ValueId};
 use super::monomorphize::materialize_function_template;
 use super::nodes::{
-    admitted_owned_byte_prelude_instance, OwnershipMode, ResolvedFunction,
+    admitted_owned_byte_prelude_instance, DeclarationKind, OwnershipMode, ResolvedFunction,
     ResolvedFunctionInstance, ResolvedFunctionTemplate, ResolvedImport, ResolvedImportFailure,
     ResolvedImportParameter, ResolvedImportResult, ResolvedImportResultKind, ResolvedInterface,
     ResolvedParam, ResolvedProgram, ResolvedResourceDrop, ResolvedResourceDropKind, ResolvedType,
@@ -336,6 +336,16 @@ impl Resolver<'_> {
                     .imports
                     .iter()
                     .map(|import| {
+                        if import.index_selected
+                            && (import.selected_signature.is_none()
+                                || import.selected_index_digest.is_none())
+                        {
+                            return Err(Diagnostic::error(
+                                "SPX-B147",
+                                "selected Rust import requires an authenticated API index",
+                                import.span,
+                            ));
+                        }
                         let parameters = import
                             .params
                             .iter()
@@ -344,7 +354,9 @@ impl Resolver<'_> {
                                     name: param.name.clone(),
                                     ty: self.resolve_type(&param.ty, param.span)?,
                                     ownership: param.mode.into(),
-                                    consumes_on_failure: param.name == import.consumes,
+                                    consumes_on_failure: param.name == import.consumes
+                                        || (import.native_rust
+                                            && param.mode == crate::ast::ParamMode::Own),
                                 })
                             })
                             .collect::<Result<Vec<_>, Diagnostic>>()?;
@@ -361,18 +373,22 @@ impl Resolver<'_> {
                             interface: interface_id.clone(),
                             import_key: import.stable_id.clone(),
                             native_rust: import.native_rust,
+                            index_selected: import.index_selected,
+                            selected_index_digest: import.selected_index_digest.clone(),
+                            selected_receiver: import.selected_receiver.clone(),
+                            rust_path: import.rust_path.clone(),
                             parameters,
                             result: ResolvedImportResult {
-                                kind: match import.result {
-                                    crate::ast::ImportResult::Unit => {
-                                        ResolvedImportResultKind::Unit
-                                    }
-                                    crate::ast::ImportResult::I64 => ResolvedImportResultKind::I64,
-                                    crate::ast::ImportResult::Bool => {
-                                        ResolvedImportResultKind::Bool
-                                    }
+                                kind: self
+                                    .resolve_native_rust_result(&import.result, import.span)?
+                                    .0,
+                                ownership: if import.result.is_owned() {
+                                    OwnershipMode::Own
+                                } else if import.result.is_borrowed() {
+                                    OwnershipMode::Borrow
+                                } else {
+                                    OwnershipMode::Value
                                 },
-                                ownership: OwnershipMode::Value,
                                 producer: "callee",
                                 out_slot_initialization: "success_only",
                                 ownership_transfer: "final_zero_status_commit",
@@ -1087,6 +1103,7 @@ impl Resolver<'_> {
                                 && !admitted_box
 
                 && !admitted_owned_byte_prelude_instance(&declaration, &resolved)
+                && !crate::ast::ImportResult::container_enabled(self.program, ty)
                                 && !crate::hir::type_reachability::is_flat_owned_byte_record(
                                     &self.declarations,
                                     &instance,
@@ -1230,6 +1247,7 @@ impl Resolver<'_> {
                 )
                 && !super::generic_result::slot(&instance, &owner, function.type_parameters.len())
                 && !admitted_owned_byte_prelude_instance(&declaration, &resolved)
+                && !crate::ast::ImportResult::container_enabled(self.program, ty)
                 && !super::type_reachability::is_flat_owned_byte_record(
                     &self.declarations,
                     &instance,

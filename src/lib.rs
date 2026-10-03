@@ -81,6 +81,7 @@ pub(crate) mod filesystem_ops;
 pub mod format;
 pub mod freestanding_object;
 pub mod graph;
+pub mod rust_api_context;
 pub mod hir;
 pub mod hosted_interpreter;
 #[cfg(not(any(target_arch = "wasm32", target_arch = "wasm64")))]
@@ -99,6 +100,8 @@ pub mod live_invocation;
 pub mod loan_plan;
 pub mod model_budget_policy;
 pub mod model_call_receipt;
+pub mod native_law_source;
+pub mod native_rust_binding;
 #[cfg(any(test, feature = "unstable-native-host-internal"))]
 #[doc(hidden)]
 pub(crate) mod native_settlement;
@@ -163,6 +166,8 @@ pub mod requirement_traceability;
 pub mod resumable_effects;
 pub mod review;
 pub mod runtime_status;
+#[cfg(feature = "unstable-rust-source-lowering")]
+pub mod stable_rust_lowering;
 pub mod scoped_tasks;
 pub mod semantic_cache_store;
 pub mod semantic_discovery;
@@ -281,7 +286,21 @@ pub fn parse_canonical(
 }
 
 pub fn check(source: &str, path: impl AsRef<Path>) -> Result<Program, Vec<Diagnostic>> {
+    let path = path.as_ref();
     let program = parse(source, path).map_err(|error| vec![error])?;
+    if let Some(import) = program
+        .interfaces
+        .iter()
+        .flat_map(|interface| &interface.imports)
+        .find(|import| import.index_selected)
+    {
+        return Err(vec![Diagnostic::error(
+            "SPX-B147",
+            "selected Rust import requires an authenticated API index",
+            import.span,
+        )
+        .at_path(path.display().to_string())]);
+    }
     let diagnostics = verify::verify(&program);
     if diagnostics.iter().any(|item| item.severity.is_error()) {
         Err(diagnostics)

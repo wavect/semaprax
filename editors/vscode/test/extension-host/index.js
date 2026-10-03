@@ -4,6 +4,7 @@ const crypto = require('node:crypto');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const { spawnSync } = require('node:child_process');
 const vscode = require('vscode');
 
 // The exact command inventory this extension contributes, in manifest order.
@@ -21,6 +22,7 @@ const CONTRIBUTED = [
   'semaprax.checkProject', 'semaprax.goToDeclaration', 'semaprax.showReferences',
   'semaprax.showDocumentation', 'semaprax.showOwnership', 'semaprax.inspectAgent',
   'semaprax.safeRename', 'semaprax.showCleanupPlan', 'semaprax.runAgentTranscript'
+  ,'semaprax.openExplorer', 'semaprax.exploreSelection', 'semaprax.reviewCandidateGraph', 'semaprax.showTokenReport'
 ];
 // Authority this extension must never contribute or register, whatever a host
 // selects. Build, commit and publication stay outside the editor entirely.
@@ -41,6 +43,14 @@ async function replaceActiveDocument(value) {
   assert.ok(editor, 'typed intent scratch must be active');
   const end = editor.document.lineAt(editor.document.lineCount - 1).range.end;
   assert.equal(await editor.edit(edit => edit.replace(new vscode.Range(new vscode.Position(0, 0), end), value)), true);
+}
+async function waitForExplorerRender(api, expected) {
+  for (let attempt = 0; attempt < 100; attempt++) {
+    const found = api.state().explorerRenders.find(render => render.mode === expected.mode && render.target === expected.target && render.side === expected.side && expected.loaded.every(view => render.loaded.includes(view)));
+    if (found) return found;
+    await new Promise(resolve => setTimeout(resolve, 50));
+  }
+  assert.fail(`Explorer webview did not render ${JSON.stringify(expected)}; actions=${JSON.stringify(api.state().explorerActions)}; replies=${JSON.stringify(api.state().explorerReplies)}`);
 }
 
 async function run() {
@@ -71,7 +81,9 @@ async function run() {
   }
 
   const extension = vscode.extensions.getExtension('wavect.semaprax');
-  assert.ok(extension, 'development extension must be installed');
+  assert.ok(extension, 'the installed extension must be discovered');
+  const expectedExtensionPath = required('SEMAPRAX_VSCODE_EXPECTED_EXTENSION_PATH');
+  assert.equal(fs.realpathSync(extension.extensionPath), fs.realpathSync(expectedExtensionPath), 'the Extension Host must load the isolated installed VSIX, never the development tree');
   assert.equal(extension.packageJSON.version, '0.1.0');
   const api = await extension.activate();
   assert.ok(api && typeof api.execute === 'function', 'test-only extension API must be available');
@@ -89,6 +101,100 @@ async function run() {
   // Every registered `semaprax.` command must be one this manifest declares:
   // an unlisted registration is as much an inventory break as a missing one.
   assert.deepEqual([...registered].filter(name => name.startsWith('semaprax.')).sort(), [...CONTRIBUTED].sort());
+
+  // VS Code's real hover provider consumes the compiler's bounded selected
+  // import context, even when no prepared index was selected by the host.
+  const hoverFile = path.join(folder.uri.fsPath, 'rust-import-hover.spx');
+  const hoverPath = 'regex::Regex::is_match';
+  const hoverText = value => String(value).replaceAll('&nbsp;', ' ').replaceAll('&amp;', '&').replaceAll('\\_', '_');
+  const fixture = path.resolve(__dirname, '../../../../crates/semaprax-rust-api-index/fixtures/regex-1.13.1-index-envelope.json');
+  const indexDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'semaprax-rust-index-host-'));
+  const indexFile = path.join(indexDirectory, 'prepared-index.json');
+  const fixtureIndex = JSON.parse(fs.readFileSync(fixture, 'utf8')).index;
+  assert.equal(fixtureIndex.schema, 'semaprax.rust-api-index.v2');
+  fs.writeFileSync(indexFile, JSON.stringify(fixtureIndex) + '\n');
+  fs.writeFileSync(hoverFile, `module test.hover;\n@id("rust.host") interface RustHost permits { regex.read } {\n@id("rust.host.method") import rust selected fn is_match from "${hoverPath}" effects { regex.read } failure infallible;\n}\n@id("rust.host.main") fn main() -> i64 { 0 }\n`);
+  try {
+    const document = await vscode.workspace.openTextDocument(vscode.Uri.file(hoverFile));
+    await vscode.window.showTextDocument(document, { preview: false });
+    const line = document.lineAt(2).text;
+    const position = new vscode.Position(2, line.indexOf(hoverPath) + 8);
+    const hovers = await vscode.commands.executeCommand('vscode.executeHoverProvider', document.uri, position);
+    const hoverTexts = hovers.flatMap(hover => hover.contents.map(part => String(part.value ?? part)));
+    assert.ok(hoverTexts.some(value => hoverText(value).includes('Prepared Rust API index required')), `installed extension must show compiler-owned selected-import setup status; observed ${JSON.stringify(hoverTexts)}`);
+    await settings.update('rustIndexPath', indexFile, vscode.ConfigurationTarget.Global);
+    assert.equal(settings.inspect('rustIndexPath').globalValue, indexFile);
+    const cli = spawnSync(compiler, ['context', hoverFile, hoverPath, '--max-bytes', '4096', '--rust-index', indexFile], { encoding: 'utf8', maxBuffer: 8192 });
+    assert.equal(cli.status, 0, cli.stderr);
+    const selected = JSON.parse(cli.stdout);
+    assert.equal(selected.schema, 'semaprax.rust-api-context.v1');
+    assert.equal(selected.index.status, 'prepared_metadata');
+    assert.equal(selected.selected_import.path, hoverPath);
+    assert.equal(selected.selected_import.signature, 'fn is_match(&self, haystack: &str) -> bool');
+    assert.equal(selected.selected_import.ownership, 'shared');
+    assert.equal(selected.package.name, 'regex');
+    assert.equal(selected.package.version, '1.13.1');
+    assert.equal(selected.package.cargo_alias, 'regex_alias');
+    const preparedHovers = await vscode.commands.executeCommand('vscode.executeHoverProvider', document.uri, position);
+    const preparedHoverTexts = preparedHovers.flatMap(hover => hover.contents.map(part => String(part.value ?? part)));
+    assert.ok(preparedHovers.some(hover => hover.contents.some(part => {
+      const value = hoverText(part.value ?? part);
+      return value.includes(selected.selected_import.signature) && value.includes(selected.package.name) && value.includes(selected.package.version) && value.includes(selected.package.cargo_alias) && value.includes(selected.selected_import.ownership);
+    })), `installed extension hover must agree with the compiler-owned prepared Regex method context; observed ${JSON.stringify(preparedHoverTexts).slice(0, 4096)}`);
+  } finally {
+    await settings.update('rustIndexPath', undefined, vscode.ConfigurationTarget.Global);
+    fs.unlinkSync(hoverFile);
+    fs.rmSync(indexDirectory, { recursive: true, force: true });
+  }
+  if (process.env.SEMAPRAX_VSCODE_RUST_INDEX_ONLY === '1') {
+    console.log('SEMAPRAX_RUST_INDEX_HOST_RESULT=' + JSON.stringify({
+      schema: 'semaprax.vscode-rust-index-host-result.v1',
+      app_name: vscode.env.appName,
+      extension_path: fs.realpathSync(extension.extensionPath),
+      installed_vsix: true,
+      selected_path: hoverPath,
+      signature: 'fn is_match(&self, haystack: &str) -> bool',
+      receiver: 'shared',
+      package: 'regex 1.13.1',
+      cargo_alias: 'regex_alias',
+      authority: { build: false, publication: false }
+    }));
+    return;
+  }
+
+  // Token reports are selected local snapshots. This path deliberately runs
+  // before any compiler session exists, proving it neither starts one nor
+  // asks the MCP host to refresh, test, or otherwise inspect source.
+  const reportDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'semaprax-token-report-host-'));
+  try {
+    const reportSourceBefore = fs.readFileSync(source);
+    const sha = character => 'sha256:' + character.repeat(64);
+    const projection = counts => ({
+      schema: 'semaprax.token-comparison.v1', comparison_identity: sha('a'), report_kind: 'projection', profile: 'graph', root_sha256: sha('b'), selection_sha256: sha('c'), source_revision: '<script>old-revision</script>', producer_options_sha256: sha('d'), baseline: { sha256: sha('e'), utf8_bytes: 100 }, actual: { sha256: sha('f'), utf8_bytes: 120 }, tokenizer: counts.measurement_status === 'measured' ? { name: 'cl100k_base' } : null, counts, baseline_kind: 'same_selected_json', actual_kind: 'compact_model-text', display_lf_in_measurement: false, compiler: {}
+    });
+    const write = (name, value) => { const file = path.join(reportDirectory, name); fs.writeFileSync(file, JSON.stringify(value)); return vscode.Uri.file(file); };
+    const measured = write('growth.json', projection({ measurement_status: 'measured', baseline_tokens: 10, actual_tokens: 12, delta_tokens: -2, delta_fraction: { numerator: -2, denominator: 10 }, delta_percentage: -20 }));
+    api.enqueueReport(measured); await api.execute('showTokenReport');
+    assert.match(vscode.window.activeTextEditor.document.getText(), /\+2 tokens used versus reference/);
+    assert.match(vscode.window.activeTextEditor.document.getText(), /Current revision not verified/);
+    assert.match(vscode.window.activeTextEditor.document.getText(), /<script>old-revision<\/script>/, 'untrusted strings stay literal text');
+    api.setReportBinding(sha('9'));
+    api.enqueueReport(measured); await api.execute('showTokenReport');
+    assert.match(vscode.window.activeTextEditor.document.getText(), /Stale\/mismatched report/);
+    assert.match(vscode.window.activeTextEditor.document.getText(), /not current-session savings/);
+    api.setReportBinding(undefined);
+    const unavailable = write('unavailable.json', projection({ measurement_status: 'tokenizer_unavailable', baseline_tokens: null, actual_tokens: null, delta_tokens: null, delta_fraction: null, delta_percentage: null }));
+    api.enqueueReport(unavailable); await api.execute('showTokenReport');
+    assert.match(vscode.window.activeTextEditor.document.getText(), /Model tokens unavailable/);
+    const partial = write('partial.json', { schema: 'semaprax.token-comparison-session.v1', comparison_identity: sha('a'), report_kind: 'session', event_stream_sha256: sha('b'), malformed_events: 0, events: 3, groups: [{ tokenizer: 'cl100k_base', tokenizer_fingerprint: sha('c'), boundary: 'response', reference_kind: 'paired', coverage: { events: 3, token_measured: 2, baseline_available: 2, paired: 1 }, outcomes: { success: 1, error: 1 }, statuses: { measured: 2 }, bytes: 20, tokens: 999, baseline_tokens: 999, paired_actual_tokens: 8, paired_baseline_tokens: 10 }] });
+    api.enqueueReport(partial); await api.execute('showTokenReport');
+    assert.match(vscode.window.activeTextEditor.document.getText(), /Measured pairs: 1\/3 responses/);
+    assert.match(vscode.window.activeTextEditor.document.getText(), /2 tokens saved versus reference/);
+    const hostile = path.join(reportDirectory, 'hostile.json'); fs.writeFileSync(hostile, '{"schema":"x","schema":"y"}');
+    api.enqueueReport(vscode.Uri.file(hostile)); await assert.rejects(api.execute('showTokenReport'), /Duplicate JSON key/);
+    assert.equal(api.state().running, false, 'report snapshots must not start a compiler or MCP session');
+    assert.deepEqual(fs.readFileSync(source), reportSourceBefore, 'report snapshots must not write source');
+  } finally { fs.rmSync(reportDirectory, { recursive: true, force: true }); }
 
   // Check-on-save and navigation by meaning, against the real compiler. The
   // probe file lives outside the fixture workspace so the workspace bytes stay
@@ -193,6 +299,21 @@ async function run() {
     assert.equal(state.tools.includes(method), false, `${method} must remain outside the editor catalogue`);
   }
 
+  // These are actual WebviewPanel instances in the selected Extension Host.
+  // The webview bootstrap issues its read-only summary/page requests after the
+  // panel is shown; command construction itself must not mutate source or
+  // manufacture a candidate.
+  const currentExplorer = await api.execute('openExplorer');
+  assert.equal(currentExplorer.viewType, 'semapraxExplorer');
+  assert.equal(currentExplorer.title, 'SEMAPRAX Explorer');
+  assert.match(currentExplorer.webview.html, /default-src 'none'/);
+  await waitForExplorerRender(api, { mode: 'overview', target: null, side: 'current', loaded: ['modules', 'declarations'] });
+  api.enqueueInput('calculator.add');
+  const selectedExplorer = await api.execute('exploreSelection');
+  assert.equal(selectedExplorer.viewType, 'semapraxExplorer');
+  assert.match(selectedExplorer.webview.html, /context · current/);
+  await waitForExplorerRender(api, { mode: 'context', target: 'calculator.add', side: 'current', loaded: ['modules', 'declarations', 'relations', 'frontier'] });
+
   await api.execute('openCandidate');
   api.enqueueInput('calculator.add');
   await api.execute('selectTarget');
@@ -215,6 +336,11 @@ async function run() {
   assert.match(candidate.text, /fn addition\(/);
   assert.deepEqual(fs.readFileSync(source), sourceBefore, 'candidate review must not write canonical source');
   const workflow = state;
+  const candidateExplorer = await api.execute('reviewCandidateGraph');
+  assert.equal(candidateExplorer.viewType, 'semapraxExplorer');
+  assert.match(candidateExplorer.webview.html, /overview · candidate/);
+  await waitForExplorerRender(api, { mode: 'overview', target: null, side: 'candidate', loaded: ['modules', 'declarations'] });
+  const webviewRenders = api.state().explorerRenders;
 
   const documentsBeforeCancellation = state.documents.length;
   const cancelledRun = api.execute('runCandidateTests');
@@ -274,6 +400,7 @@ async function run() {
     registered_commands: contributed.length,
     image_revision: workflow.image,
     candidate_revision: workflow.candidate,
+    webview_rendered_views: webviewRenders,
     source_sha256: digest(sourceBefore),
     typed_intent: 'rename_declaration',
     target: 'calculator.add',

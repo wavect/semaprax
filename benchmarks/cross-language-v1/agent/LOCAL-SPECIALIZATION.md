@@ -15,7 +15,7 @@ The 81 original slots remain: `base`, `guided`, `constrained`, nine task IDs and
 three repetitions. The later iterative-repair task's nine extra slots stay outside
 this study; the prior accounting command retains their classification.
 
-The default proposed local model is `qwen2.5-coder:7b`. Preparation binds the full
+The default proposed local model is `qwen2.5-coder:3b`. Preparation binds the full
 installed manifest digest, complete `/api/show` metadata digest and daemon version;
 execution checks them before and after each generation. A mutable tag by itself
 is insufficient. No command pulls a model, installs a package, reads an API key or
@@ -38,7 +38,7 @@ All 298 comparison-source files and predecessor wire profiles remain unchanged.
 
 | Item | Local execution choice |
 | --- | --- |
-| Model | Explicit installed Qwen2-family GGUF completion model; default `qwen2.5-coder:7b`; full digest required |
+| Model | Explicit installed Qwen2-family GGUF completion model; default `qwen2.5-coder:3b`; full digest required |
 | Model connection | Only literal `http://127.0.0.1:<port>`; default port 11434; no DNS, proxy lookup, credentials, redirects, cloud model references, pulls or installation hooks |
 | Adaptation | None; generic versioned language guidance only for `guided` and `constrained` |
 | Prompt construction | Public requirements, candidate interfaces, manifest and unchanged public scaffolds; no candidate implementations, EQUIVALENCE documents, README/AGENTS text or hidden trees |
@@ -50,7 +50,7 @@ All 298 comparison-source files and predecessor wire profiles remain unchanged.
 | Scoring bounds | Existing 120-second process-group deadline, existing per-stream output limits, 512 MiB maximum compiler snapshot, existing source/result limits; no increased archive limits |
 | Cost | Zero incremental provider charges; electricity, hardware and operator/reviewer cost are **not measured** |
 | Native execution | Existing Darwin arm64 / macOS 26.5.1 build 25F80 host check; explicitly supplied compiler bytes copied privately and hash-checked; no fallback on another host |
-| Native isolation | Deny-default `sandbox-exec` profile; only the exact compiler may execute, only the current public or hidden phase is writable, protected system libraries are readable, network/fork and sibling-phase authority are not granted |
+| Native isolation | An inverted `sandbox-exec` profile retains Darwin's required anonymous VM setup, then denies network, forks, non-tool execution, external reads and external writes; only the exact compiler may execute, only the current public or hidden phase is writable, and protected system libraries are readable |
 
 The localhost client **does not sandbox an independently running Ollama daemon**.
 The operator must provision and isolate that daemon, disable Ollama cloud features
@@ -95,7 +95,7 @@ COMPILER="$(python3 -c 'import pathlib; print(pathlib.Path("target/debug/semapra
 python3 benchmarks/cross-language-v1/agent/specialization_local.py prepare \
   --compiler "$COMPILER" \
   --endpoint http://127.0.0.1:11434 \
-  --model qwen2.5-coder:7b \
+  --model qwen2.5-coder:3b \
   --operator "Kevin Riedl" \
   --output "$EVIDENCE/plan.json"
 ```
@@ -117,6 +117,21 @@ cryptographically authenticated by this program.
 Retain the completed review as `preflight-review.json`. Obtain its expected digest
 from that independently reviewed record; do not replace the pin with the hash of
 an arbitrary file merely to bypass a mismatch.
+
+If the user has explicitly waived independent human review for this issue, add
+`--review-waiver` to `prepare`, complete the resulting operator-attestation
+record, and add `--accept-review-waiver` to `run`. That distinct record binds the
+same six checks and plan digest, but reports an operator technical attestation
+with `independent_human_review: waived_by_user`; it never names or invents an
+independent reviewer or data custodian.
+
+After a complete run, the waiver path emits a separate summary-digest-bound
+post-run operator-attestation template. Its receipt audit, control comparison
+with uncertainty, and leakage/data-custody checks must all carry retained
+evidence references. `finalize` accepts only that completed exact record and
+only when all 72 eligible generations and nine explicit oracle exclusions are
+accounted for. The closure record remains an operator technical review under
+the waiver; it is not an independent-human review claim.
 
 ## Execute only after real preflight review
 

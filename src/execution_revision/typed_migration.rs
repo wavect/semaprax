@@ -16,7 +16,8 @@ use crate::interpreter::retained_call::{
     RetainedValue,
 };
 pub use durable::{
-    resume_migrated_agent_runtime_v2, DurableMigrationFailure, ResumedMigratedAgentRuntimeV2,
+    resume_migrated_agent_runtime_v2, DurableMigrationFailure,
+    MeteredAgentRuntimeV2DurableMigrationEvidence, ResumedMigratedAgentRuntimeV2,
 };
 
 /// Retained source identities selected by the existing checked typed migration
@@ -64,6 +65,7 @@ pub(crate) struct MigrationSeed {
     iterations: usize,
     stages: usize,
     max_reserved_fuel: u64,
+    target_execution_binding: Option<String>,
 }
 impl MigrationSeed {
     pub(crate) fn value(&self) -> &RetainedValue {
@@ -83,6 +85,9 @@ impl MigrationSeed {
     }
     pub(crate) fn max_reserved_fuel(&self) -> u64 {
         self.max_reserved_fuel
+    }
+    pub(crate) fn target_execution_binding(&self) -> Option<&str> {
+        self.target_execution_binding.as_deref()
     }
     /// Local fixture only: exercises the destination-side durable/backend
     /// parity routes directly against a hand-built seed, without the full
@@ -104,6 +109,7 @@ impl MigrationSeed {
             iterations,
             stages,
             max_reserved_fuel,
+            target_execution_binding: None,
         }
     }
 }
@@ -462,6 +468,10 @@ fn migrate_suspended_agent_runtime_v2_inner(
         } else {
             schema
         };
+        let target_execution_binding = facts["target_execution"]
+            .get("execution_binding")
+            .and_then(serde_json::Value::as_str)
+            .map(str::to_owned);
         let binding = root(schema, facts);
         Ok(MigratedAgentRuntimeV2 {
             runtime: destination,
@@ -472,6 +482,7 @@ fn migrate_suspended_agent_runtime_v2_inner(
                 iterations: prior_iterations,
                 stages: prior_stages,
                 max_reserved_fuel,
+                target_execution_binding,
             },
         })
     })();
@@ -644,12 +655,24 @@ fn target_evaluation_facts(evaluation: &RetainedCallEvaluation) -> Result<serde_
         .semantic_work
         .as_ref()
         .ok_or_else(|| refused("migration.semantic_work"))?;
-    let finalizers = work.finalizer_events.as_ref().map(|events| {
-        events
-            .iter()
-            .map(|event| json!([event.function.as_str(), event.liveness_flag]))
-            .collect::<Vec<_>>()
-    });
+    let finalizers = work
+        .finalizer_events
+        .as_ref()
+        .map(|events| {
+            if events.len() > durable::MAX_FINALIZER_EVENTS
+                || events.iter().any(|event| {
+                    event.function.as_str().is_empty()
+                        || event.function.as_str().len() > durable::MAX_FINALIZER_FUNCTION_BYTES
+                })
+            {
+                return Err(refused("migration.target_cleanup"));
+            }
+            Ok(events
+                .iter()
+                .map(|event| json!([event.function.as_str(), event.liveness_flag]))
+                .collect::<Vec<_>>())
+        })
+        .transpose()?;
     Ok(json!({
         "instruction_steps": evaluation.steps_used,
         "semantic_work": {

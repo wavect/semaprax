@@ -202,6 +202,9 @@ pub(super) fn execute(
                     Operation::VNext(
                         action @ (Action::DependencySummary | Action::DependencyPage),
                     ) => dependencies::prepare_navigation(action, params, image),
+                    Operation::VNext(action @ (Action::ExplorerSummary | Action::ExplorerPage)) => {
+                        explorer::image(action, params, image)
+                    }
                     _ => dispatch(method, params, image),
                 });
             Some(match payload {
@@ -239,6 +242,7 @@ pub(super) fn parallel_read(operation: Operation) -> bool {
             | Operation::VNext(Action::PackageSummary | Action::PackageConsumers)
             | Operation::VNext(Action::CleanupDependencies)
             | Operation::VNext(Action::DependencySummary | Action::DependencyPage)
+            | Operation::VNext(Action::ExplorerSummary | Action::ExplorerPage)
     )
 }
 
@@ -359,11 +363,15 @@ mod tests {
         assert!(parallel_read(Operation::VNext(Action::CleanupDependencies)));
         assert!(parallel_read(Operation::VNext(Action::DependencySummary)));
         assert!(parallel_read(Operation::VNext(Action::DependencyPage)));
+        assert!(parallel_read(Operation::VNext(Action::ExplorerSummary)));
+        assert!(parallel_read(Operation::VNext(Action::ExplorerPage)));
         for action in [
             Action::CandidateCleanupDependencies,
             Action::CandidateAnalysisCoverage,
             Action::CandidateDependencySummary,
             Action::CandidateDependencyPage,
+            Action::CandidateExplorerSummary,
+            Action::CandidateExplorerPage,
             Action::CandidateFunctionSummary,
             Action::CandidateFunctionFacet,
             Action::CandidateImpactSummary,

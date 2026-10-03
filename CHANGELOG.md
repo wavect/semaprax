@@ -1,5 +1,517 @@
 # Changelog
 
+- Add a read-only LAW-17 reduction-eligibility report for one exact checked
+  `i64` CPU fold. It replays the bound artifact and installed identity proof,
+  checks live disjoint buffers and a no-overflow nonnegative domain, and
+  separates regrouping from reordering. The real-Z3 focused gate covers
+  eligible and explicit overflow/alias refusals; no parallel dispatch occurs.
+
+- Run the production Url carrier and exclusive lease under strict-provenance Miri with live backing reads, the bounded hostile-carrier corpus and owner/view cleanup. The explicit offline Rust-only gate passes with default leak checks; native C and panic quarantine remain separate evidence.
+
+- Gate selected guarded Project SDK publication on a host-held LAW-09
+  conditional strict policy. The builder replays source and law before package
+  staging, checks the actual staged manifest digest before the no-clobber
+  pivot, then returns the opaque publication token and conditional report.
+  Mismatched policy leaves the requested output absent; core managed Workspace
+  publication continues to refuse foreign strict coverage.
+
+- Start LAW-17 with an opt-in `i64` add-zero candidate rewrite. It accepts a
+  real installed-tool proof of the exact assumption-free scalar identity,
+  replays its Project/LawSet binding, recognizes only an authored place plus
+  literal zero, and uses ordinary candidate revalidation without source
+  publication. The focused real-Z3 positive and stale-input gate passed;
+  reduction eligibility and target benchmarking remain open.
+
+- Add an explicit builder-owned LAW-09 conditional strict report for one
+  protected foreign law with a unique Project source owner. It requires the
+  guarded SDK publication token, exact host-pinned adapter/summary and all named
+  assumptions; forged report bytes and narrower condition policies refuse.
+  The ordinary core strict route stays open, and no foreign theorem is claimed.
+
+- Add a selected-host LAW-12 CLI failure and repair workflow. The additive
+  `project-proof-check --workflow` route replays the complete strict law verdict
+  after protected-baseline admission, reports bounded summary/detail views,
+  and checks concrete Z3 models against source semantics before labeling a
+  counterexample. Values default to redacted. A real installed-Z3 CLI gate
+  repairs only a function body, rechecks a new Project revision, and refuses
+  a protected law edit. General agent transport and editor delivery remain open.
+
+- Exercise the Url bridge with a fixed 1,024-case hostile-carrier corpus and null/alignment/UTF-8/width/stale-generation controls. The checked generated C and callback relay pass ASan/UBSan; a deliberate heap overflow is detected. Rust dependencies remain uninstrumented and Miri evidence is still pending.
+
+- Retain a guarded foreign frontier in the private authenticated Project SDK
+  bundle and issue an opaque conditional caller publication token only after
+  exact source, summary, target, manifest and file replay. A changed summary
+  refuses token creation and package drift refuses token replay. Protected and
+  strict LawSet attachment is still pending.
+
+- Add a per-owner exclusive Url callback lease to the generated Rust companion. Real C/Rust nested callbacks refuse same-owner access before target entry, allow independent receivers and restore owners after panic. Source move/drop/replacement/escape/checkpoint and cross-crate Rust lifetime controls pass; selected Semaprax &mut imports remain outside this primitive.
+
+- Add a bounded LAW-09 source-derived caller certificate for direct public i64
+  forwarding of a guarded Rust import. It replays exact Project source and
+  retains every foreign assumption. A read-only published SDK verifier checks
+  the manifest, listed files and guard against an independently held digest;
+  forged digests and changed guard files refuse. Protected and strict LawSet
+  coverage remains open pending builder-owned evidence attachment.
+
+- Add a resealed LAW-13 trust-link negative ladder for changed source body,
+  law statement, Lean statement, compiler identity, fixed profile, target,
+  artifact bytes and unauthenticated adapter requests. The bounded Core Wasm
+  certificate refuses each mismatch before publishing a trust-chain view.
+- Complete bounded LAW-11 installed proof-task reuse for modular scalar,
+  finite structured, native relational and direct Project postcondition laws.
+  Authenticated private entries bind checked transitive subjects, tool/profile,
+  model, axioms and budgets; selected native laws recheck in prerequisite order.
+  Fresh current Project/artifact evidence is rebuilt after logical reuse, and a
+  canonical per-law report separates verdicts from fresh, validated-reuse,
+  stale, unsupported and inconclusive work. Focused real Z3/Lean gates and
+  poisoning, cancellation, dependency and artifact-drift controls passed.
+
+- Add an inert exact Url 2.5.8 Project package route with checked Semaprax body execution and receiver-tied returned views. Local locked/offline O0/O2 consumers prove authored-result changes, direct pointer identity, canonical owner/view cleanup and guard-removal controls. Source and HIR retain the owner relation through byte inspection; RI-06 remains partial for its remaining lifetime and safety acceptance.
+
+- Add an opt-in LAW-09 guard to the authenticated indexed Project Rust SDK.
+  The generated adapter checks an exact declared i64 return range before
+  publishing the value to Semaprax and reports a stable import status on
+  violation. A real compiled consumer exercised both good and seeded bad
+  returns; the conditional frontier is bound to the published SDK manifest.
+  Caller certificates and protected LawSet association remain open.
+- Exercise one authored record and variant law-runtime fixture through the
+  interpreter and emitted Core Wasm with a hand-written result reference and
+  seeded body mutation. The scalar public export remains narrower; this is
+  bounded runtime differential evidence, not an aggregate lowering proof.
+
+- Add a versioned LAW-13 proof-to-runtime trust-chain view with exact source,
+  artifact and optional kernel replay, explicit trusted lowering and unexecuted
+  runtime status. A scalar reference/interpreter/emitted-Wasm fixture exercises
+  checked failure semantics and detects a seeded wrong runtime value. Record,
+  variant, foreign-adapter and full mutation-ladder coverage remain open.
+- Complete the bounded LAW-13 trust-chain gates: the record/variant emitted-Wasm
+  fixture and resealed negative ladder now pass, and the owning specification
+  names foreign calls as explicitly unsupported in the Lean proof profile.
+  Runtime guards remain exercised by the scalar differential fixture; no
+  compiler-preservation or foreign-adapter theorem is claimed.
+
+- Add an inert authenticated Project-to-native Regex package route that executes the checked Semaprax body and canonical cleanup plan. Pinned real Regex consumers pass at O0/O2, including authored-result changes, domain errors, zero adapter copies, exact String construction counts, and missing-finalizer controls. Url returned-view integration and the remaining RI-06 safety criteria stay open.
+
+- Complete the bounded LAW-07 structured proof profile with a selected
+  four-module Project and managed Workspace. A private record-body law
+  executes under exact installed Z3 evidence; a fresh candidate proof permits
+  strict publication, while stale or missing proofs leave `ACTIVE` unchanged.
+  Reordered fields and added variant branches invalidate source-bound replay.
+  Public authored aggregate ABI remains outside the scalar export profile.
+
+- Add bounded RI-08 checked callback and source-driven registry projections. Real C/Rust iterator and stateful safe-trait consumers pass at O0/O2, with cross-crate lifetime controls, shared nested-call guards, distinct failures, and uncertain-teardown quarantine. Source mutable, borrowed, and owned capture admission remains open.
+
+- Add a LAW-07 versioned Project certificate for finite record and variant laws. Reparse exact retained source, bind field/case and query identities, rerun installed Z3 or pinned Lean on replay, and attach only opaque proof to exact Project assurance. Distinct strict profiles reject scalar-to-structured method substitution. A 196-state reference corpus and real installed Project Z3/Lean gates passed; selected physical publication remains open at the public export profile's `SPX-W115` aggregate refusal.
+
+- Add a straight-line LAW-06 checked-summary path: separately prove exact callee contracts, instantiate fresh typed results, stage caller-side preconditions before summary assumptions, and prove the caller using installed Z3. A weakened-summary negative control fails the caller proof without claiming a concrete runtime witness.
+
+- Add LAW-06 Project-bound linked-HIR admission and a bounded scalar-call inlining proof fallback. Preserve caller precondition checks as ordered checked obligations, report replayed Z3 witnesses, and bind proof metadata to exact transitive source digests. The reusable summary and LAW-04 attachment work remains open.
+
+- Lower LAW-05's shared typed scalar VC subject directly into SMT and Lean,
+  preserving binding identity and both public proof formats. Add a small
+  checked-i64 model interpretation corpus as test evidence. Stage precondition arithmetic by evaluation order, require a
+  checked satisfiable-domain witness before new proof export, guard Lean's
+  lazy boolean ranges, and refuse nonlinear multiplication under QF_LIA.
+  Focused unit and installed Z3/Lean negative controls passed locally.
+  Source-bound v1 certificate replay now reconstructs a checked domain
+  witness or returns unknown. Structural v1 replay remains envelope-only.
+
+- Enforce host-selected strict laws for native-law v2 Projects. Persist the independently held baseline and method policy under a private host marker, refuse generic Project and Workspace protected routes, and replay exact opaque proofs through selected execution, build and managed publication. Managed Workspace generations retain native law source bytes and facts with no executable law nodes. Focused library 2/2 and real Z3 selected publication 1/1 passed, including omission, drift and bypass controls.
+
+- Add explicit bounded installed Lean/Z3 checking for new exact Project
+  postconditions and native typed relational laws. Opaque proof tokens bind the
+  Project, law inventory and semantic proposition; strict candidate replay
+  preserves open assumptions/prerequisites and refuses missing, forged, stale
+  or wrong-method evidence. The installed CLI checks one selected subject
+  without running application code. Global protected-route admission remains
+  open LAW-04 work.
+
+- Complete the RI-14 stable Rust-source experiment with a no-go promotion
+  decision. The feature-gated checked-HIR owned-Bytes island executed through
+  pinned stable Rust at O0/O3, while the same source's scalar entry ran in the
+  interpreter and C11 at O0/O2. Six focused cases passed, including a generic
+  Rust callback and forged-cleanup refusal. Shared physical cleanup traces and
+  matched allocation/overhead measurements are unavailable, so default targets
+  and support claims remain unchanged.
+
+- Extend private generated Regex/Url adapters with invocation-scoped owner-tied
+  string views. Keep re-entry guards through forgotten views and unwind, reject
+  moves/mutation/escaping views at Rust compile time, and execute pinned-library
+  O0/O2 plus guard-removal/copy controls. Semaprax loan/borrowed-ABI admission and
+  full RI-06 acceptance remain open.
+
+- Add the first Strict Law Assurance v1 library and candidate gate: independently
+  selected complete law inventory, exact method/trust requirements, bounded model
+  separation, and intent plus coverage replay at managed publication. Caller
+  proof-reference strings cannot grant formal acceptance. Global protected-route
+  admission remains open LAW-04 work; installed adapters are recorded above.
+
+- Add an experimental bounded native String renderer with checked source/HIR
+  ownership, graph v57, exact selected signature binding, canonical helper
+  cleanup, and core-compatible String cloning. Focused physical controls cover
+  allocation/admission refusal, panic, stale carriers, missing cleanup, and
+  allocation abort. String Project publication and full RI-05 remain open.
+
+- Protect law intent with independently held revision-bound baselines, conservative
+  specification closure, explicit editable implementation bodies, and exact
+  host-approved specification-change proposals. Candidate review reports unknown
+  semantic changes and protected publication rechecks approval under the ordinary
+  Workspace lock; protected advisory repairs never suggest weakening contracts.
+
+- Add LawSet v1's independently protected inventory of named scalar contract,
+  architecture, protocol-realizer and reference-model laws. Bind exact Project,
+  ProgramRoot, proof profile and provenance; reject ambiguous or retargeted
+  identities and replay missing/open coverage without shrinking expected laws.
+  Existing assurance report bytes and obligation identities remain unchanged.
+
+- Extend the experimental native owner renderer and indexed Project package with
+  checked owner-returning Semaprax helpers. Replay each helper cleanup plan,
+  preserve provisional-result guards and sticky failures, and exercise counted
+  destruction plus missing-cleanup and early-publication controls. Public SDK
+  exports remain scalar; full RI-05 support remains open.
+
+- Add an explicit CLI handoff from pinned rustdoc extractor output to a
+  canonical prepared Rust API index. Bounded selected-import context and
+  candidates now expose a scalar callback escape hatch for rejected items;
+  an installed VS Code Extension Host gate matches Regex hover metadata to
+  the compiler CLI without preparing build tools.
+
+- Exercise the explicit local Semaprax builder from a standalone, locked,
+  offline Cargo consumer. A source change rebuilds the generated SDK and
+  changes the observed result; a wrapper gate rejects nested Cargo. Model
+  owner-tied returned string views and per-resource callback refusal with
+  focused Rust checks. Rich package relocation and generated borrowed ABI
+  remain open RI-10/RI-06 work.
+
+- Map captured generated-wrapper rustc trait, feature, and lifetime errors to
+  the selected `.spx` import with bounded, read-only diagnostics. Keep raw
+  compiler detail and mark external captures unverified; generic context,
+  impact, and review still refuse native Rust imports.
+
+- Add experimental selected-index opaque-owner Project packages over the
+  existing explicit indexed-project route. Bind resource/type/package identity,
+  compile exact Rust signatures, and publish generated owner glue through the
+  held archive and no-clobber package publisher. The scalar and owned-data v1
+  package contracts remain unchanged; general RI-05 support remains open.
+
+- Expose replayed prepared Rust API index facts through a 4 KiB bounded CLI
+  context and candidate projection. VS Code reads the same pure compiler
+  metadata for selected-import hover, completion, declaration navigation, and
+  candidate import fixes. Oversized docs truncate visibly without changing
+  support or rejection status; no editor request invokes a tool or build.
+
+- Add an explicit `indexed-project` Native Rust SDK CLI route over a bounded
+  selection file and prepared Rust API index. A focused physical CLI test
+  generates a selected Project package and runs its Rust consumer; read-only
+  context inspection stays separate from build authority.
+
+- Add experimental native Rust opaque-owner rendering from checked Semaprax
+  and canonical cleanup plans. Preserve owned constructor results and native
+  argument moves through source/HIR verification; generate an opaque C carrier,
+  Rust ownership table, consuming method and destructor glue. The physical gate
+  covers ordered Rust destruction, failures, and compiled negative controls.
+  Project/CLI owner builds and RI-05 completion remain open.
+
+- Bind explicit indexed Rust imports before Project/workspace frontend
+  checking, include selected facts in additive graph v5 projections, and
+  invalidate frontend reuse on metadata drift. The authenticated Project SDK
+  now verifies selected plans and compiles generated package adapters; a
+  physical Project regression retains success and a flipped-result control.
+
+- Disclose the consequences of a later trusted native build separately from
+  read-only CLI inspection: build scripts and proc macros have host filesystem
+  and network access, Cargo's offline flag is not confinement, and the later
+  explicit invocation selects its environment and roots.
+
+- Add a private CLI integration negative control: check, format check, query,
+  and graph run beside a hostile Rust build script and proc macro with Cargo
+  and rustc marker shims, leaving every marker and source byte unchanged. No
+  rich Native Rust index replay CLI route exists in this profile.
+
+- Add a read-only private `native-authority-check` CLI route over explicit plan,
+  crate, and selected tool files. It exercises the native profile's build or
+  dispatch admission and reports actual unsupported target, missing tool,
+  missing capability, untrusted behavior, and unavailable sandbox refusals.
+  It never launches Cargo or a callback and labels audited effects as a
+  maintainer assertion rather than compiler verification.
+
+- Add explicit rich Native Rust host wrappers for admitted Cargo build,
+  capability grant, and callback dispatch. Render unsupported API, missing
+  tool, missing capability, opaque native code, and unavailable sandbox as
+  distinct human/JSON diagnostics. The full CLI has no rich-Cargo route yet.
+
+- Add RI-01 bootstrap negative controls for plan/descriptor disagreement,
+  unsupported target/signature refusal, stable-ID source facts, Rust Result
+  failure, and a caught fixture unwind. Bind missing-effect refusal to RI-11's
+  profile dispatch before callback entry.
+
+- Implement RI-01's local generated scalar round trip: a canonical
+  BindingPlan now renders the Rust callback adapter for an ordinary fixture
+  crate, and the native harness compiles and runs it through the existing C11
+  bridge. Preserve the v1 bridge and leave Result/panic, automatic indexing,
+  Cargo preparation, and target promotion to their separate gates.
+
+- Define RI-01's additive rich-Rust BindingPlan contract and generated
+  C-compatible bootstrap boundary. Reserve its schemas and diagnostics, retain
+  the scalar v1 bridge unchanged, and defer automatic indexing, Rust-source
+  lowering, and patched-rustc monomorphization to their separate issues.
+
+- Use verified #321 guard forwards as dispatch authority while retaining native
+  CLI turn counts as metadata. Preserve cohort07's two trials separately; its
+  guard correctly refused excess bytes before a legacy turn check halted it.
+
+- Add the #321 fixed-TLS request guard and one-use MCP FIFO bridge, with physical
+  network confinement and exact-model/work bounds. Keep unknown-cost incomplete
+  trials under full reservations while preserving integrity/overrun halts; state
+  the provider framing limitation without claiming an invoice ceiling.
+
+- Account for the pinned Claude CLI final non-tool turn on exact terminal
+  success, retaining the same model-request turn/cost limits. Preserve the
+  prior eight-position packet and require a fresh full protocol cohort.
+
+- Freeze a final #321 300-second wall profile while retaining 32 turns and
+  existing token/cost ceilings. Bind MCP temporary files to its private state
+  root; retain the earlier timeout packet and unknown-cost halt unchanged.
+
+- Distinguish exactly observed native turn exhaustion from integrity failures
+  in a new #321 protocol: score the retained partial candidate as a failed task,
+  preserve max-plus-one terminal turn accounting, and bound cached-read tokens
+  separately. Unknown/overrun cost, timeout and model drift still halt dispatch.
+
+- Freeze a separately authorized #321 cohort at 120 seconds, 32 turns,
+  131,072 reported tokens, $0.25 per trial and $9 aggregate API-equivalent
+  reservations. Preserve both earlier halted/aborted packets and unchanged
+  no-refund/admission-halt rules; subscription invoice cost remains unknown.
+
+- Preserve the #321 native compiler MCP under explicit isolated settings;
+  native safe-mode had disabled even the explicitly supplied server. Add a
+  zero-user-turn confined MCP discovery gate alongside hostile-hook refusal.
+  Retain the first two-position packet as aborted evidence without retries.
+
+- Add an explicitly authorized Claude Team coding-agent pilot transport with
+  18 frozen positions per model, separate native receipts, confined compiler
+  gateway, private disjoint authority roots, and durable aggregate reservations.
+  Preserve existing OpenCode evidence and distinguish technical scoring from
+  operator-recorded review waiver metadata. Native admission failures halt
+  further dispatch; no provider inference was needed for the focused gates.
+
+- Provision the #332 Linux provider guest with exact CPython 3.12.14 and a
+  credential-free committed source projection, retaining archive/file hashes
+  without guest Git claims. Add exclusive interactive-login custody and orphan
+  auth cleanup. Pure provider/runtime gates passed 6/6 and 4/4; native Python
+  metadata matched the pin. No model calls or guest restart were performed.
+
+- Admit #332 guest-native generation from an externally pinned controller
+  source snapshot without requiring a guest Git executable. Recompute exact
+  implementation/source/prompt and plan fields, record controller revision
+  provenance explicitly, and preserve ordinary Git-based controller scoring
+  plus one-use cell custody. Focused local fixtures passed 12/12 in 3.479s;
+  no provider inference was performed.
+
+- Add explicit #332 Linux arm64 Apple Container scoring admission with official
+  Node/TypeScript provenance, immutable image and launcher pins, Landlock and
+  seccomp confinement, and physical read/write/fork/socket denial controls.
+  All five focused checks passed in 42.296s, including real guest success and
+  wrong-result/early-exit failures in both phases. This is a local VM scoring
+  fixture with zero provider calls, not independent physical hardware or a
+  second-environment model-generation claim.
+
+- Bind the #332 frozen pilot to distinct native host executable digests, auth
+  homes, kernel/boot identity and shared Claude CLI version/models/caps. Split
+  native generation from controller scoring, revalidate exact provider bytes
+  and consume one create-new ledger entry per model/host cell before scoring.
+  Correct completion evidence for the silent frozen validation harness. The
+  focused protocol/transport/handoff/bridge gate passed 11/11 in 2.231s; no
+  provider inference was run and independent generation remains required.
+
+- Admit only the exact undated Sonnet 5.5 model version ID alongside dated
+  snapshots in the #332 pilot. Preserve family-alias and guessed-version
+  refusal, with a focused protocol regression; no model request was made.
+
+- Add the #332 laboratory pilot route: freeze the full 182-row inventory and
+  two-model/14-adapter pilot dispositions; require disjoint candidate/hidden
+  paths; bind native Claude subscription calls to explicit executable/model
+  authority with bounded capture and truthful usage/cost receipts. The new
+  Darwin candidate session isolates numeric evaluation from fixed assertions
+  and rejects early-exit success forgery. Local fixtures passed 8/8, supported
+  scope preservation 29/29, and existing v3 pure provenance 11/11. No provider
+  trial or second-host admission is claimed; the fixed-source v3 route remains
+  unchanged.
+
+- Pin unsupported native/C11 and Core-Wasm admission for the checked source
+  Agent owned-wait fixture: SPX-B116/SPX-W126, with both scalar artifact
+  projections refusing SPX-H006 before an artifact or effect. The focused gate
+  passed 1/1 in 6.61s on local macOS. Record three narrow cached preservation
+  passes from a62101c84: exact SDK prompt (0.02s), shared Copy/scalar ABI
+  spellings (0.04s), and inert observation SDK refusal/usize bounds (0.00s).
+  These results do not claim native execution or a broader wire suite (#330).
+
+- Add an opaque public first-model prepare/finish/shutdown boundary. Explicit
+  abandonment and cancellation before Authorize settle the same actual State
+  through HostAbandoned, Started, observed receipt and Cancelled Stop ACKs,
+  without evaluator work, target dispatch or new funding. Uncertainty retains
+  custody and cannot retry. Local macOS 2 MiB gates passed explicit/cancel
+  success 1/1 (two scenarios, 64.84s), failure/Started faults 1/1 (four scenarios,
+  129.71s), receipt/Stop faults 1/1 (four scenarios, 129.87s), observer-failure
+  Stop refusal 1/1 (32.75s), and existing cancel/denied-policy preservation 1/1
+  (two scenarios, 52.96s). No full profile was run; current-head Linux process
+  evidence remains a separate closure gate (#330).
+
+- Settle actual first-turn source Refused through its original State, exact
+  compiler cleanup vector and acknowledged State receipt before sticky
+  StageRefused Stop. Empty scalar-only Decision cleanup stays empty; uncertain
+  append or observer failure retains custody without retry. Local macOS 2 MiB
+  gates passed public success 1/1 (33.85s), Started pre/postwrite faults 1/1
+  with two scenarios (54.97s), and observer failure plus failed-receipt Stop
+  refusal 1/1 (33.62s). Broader shutdown remains separate work (#330).
+
+- Add exact first-TransferCompleted public recovery with a consuming State
+  restoration permit, authenticated current-prefix pins and ordinary charged
+  Authorize. Post-restoration failures retain actual State/Decision custody;
+  fresh, terminal and missing-authority recovery refuse before new work. Public
+  subprocess success passed 1/1 (366.52s), State/Decision ACK-fault custody
+  passed 1/1 with two scenarios (131.30s), and settled-without-transfer refusal
+  passed 1/1 (65.97s), all on explicit 2 MiB workers on local macOS (#330).
+
+- Select live candidate-test evidence when an interrupted repair resumes and
+  executes tests; derive replay-only evidence only when no live observation
+  exists. Avoid reporting one observation twice as a receipt conflict, while
+  terminal replay still performs zero provider and effect dispatches (#323).
+
+- Keep the physical repair post-settlement pause parked through queued tokens
+  and spurious or explicit wakes. A process regression exercises the durable
+  ACK/marker path and repeated unpark signals without crossing into subsequent
+  work; interrupted effect intents remain refused on recovery (#323).
+
+- Settle a real second-turn target failure through the original State owner,
+  shared physical CleanupStarted/receipt/Stop ACK adapter and cumulative funding
+  registry. Public `FailedEffectStopped` admits close only after the checked Stop;
+  uncertainty retains custody without redispatch or repeated cleanup. The public
+  2 MiB success gate passed 1/1 in 316.81s; State Started before/after-write faults
+  passed 1/1 (two scenarios) in 615.61s. Receipt and Stop before/after-write
+  selectors passed 1/1 each in 629.13s and 632.35s; State-observer panic and
+  cancelled Stop passed 1/1 each in 317.10s and 315.94s. These six selectors
+  used the same emitted macOS binary for the e97bd0828 core packet. Required
+  transferred-owner recovery and broader shutdown remain open (#330).
+
+- Admit the exact observed `json` fence around a native Claude JSON-string
+  proposal as explicit transport framing. Reject other labels, nested fences,
+  prose and trailing bytes; preserve decoded proposal bytes and strict compiler
+  validation. Private diagnostic08 establishes the framing mismatch (#323).
+
+- Frame native Claude proposal results as one explicit JSON string, preserving
+  the provider-authored escaped final LF through CLI output. Reject unframed
+  objects and trailing JSON; keep exact decoded bytes and the strict compiler
+  decoder unchanged. One private diagnostic observed a missing final LF (#323).
+
+- Raise the native Claude repair V3 per-call ceiling to 90 seconds, bounded by
+  remaining configuration time and checked cumulative deployment budgets.
+  Preserve OpenCode limits and test native ceiling admission, shorter deadlines,
+  timeout termination, output limits and cancellation with local processes (#323).
+
+- Supply native Claude response guidance from the compiled proposal schema,
+  including the exact envelope identity and digest omitted from the frozen
+  source request. Keep provider result bytes and the canonical decoder
+  unchanged; local decoder and executable fixtures cover this boundary (#323).
+
+- Preserve validated USER/LOGNAME login metadata in the native Claude host
+  so its existing keychain subscription login survives environment clearing.
+  A local auth-status diagnostic and credential-free executable regression
+  distinguish this from inherited credential or endpoint variables (#323).
+
+- Bound owned-Agent terminal driver stack retention by carrying owners and
+  typed failures on the heap between each selection, append, ACK, release,
+  transfer and Report claim. Pin the fresh public regression to a 2 MiB worker
+  independently of suite stack settings. At `46d99ddfb`, the local macOS fresh
+  public gate passed 1/1 in 395.90s and the independent prepared-process restart
+  plus hostile-tail gate passed 1/1 in 445.90s with 2 MiB workers. The terminal
+  body frame fell from 1,860,528 to 1,280 bytes; its ACK driver fell from 690,192
+  to 240 bytes. Linux and broader failure/shutdown evidence remain separate
+  (#330).
+
+- Add a private native Claude print-JSON repair V3 route with exact model
+  binding, bounded shared process capture and provider-reported usage. Preserve
+  V1/V2 config meanings and checked source/candidate/journal authority; local
+  fixture gates do not establish live-provider or hosted repair evidence (#323).
+
+- Author a public first-Prepared process recovery entry for Source owned-Agent
+  runs. Strictly parse complete host-retained registration facts, recheck the
+  compiled Project binding and physical store pins, and consume separate
+  recovery and continuation host grants into the existing two-turn runtime.
+  A preparer/relauncher regression covers Report completion and pre-effect
+  refusal for fresh, forged and hostile histories; it awaits execution (#330).
+- Add an authored fresh public Source owned-Agent entry around the existing
+  checked two-turn runtime. It derives the binding from retained Project source,
+  requires complete physical registration retention before append, and returns
+  an opaque custody handle whose terminal projection carries only checked
+  Report data. A real public two-turn regression is authored; its default-stack
+  run overflowed and the corrected fixture rerun hit local disk exhaustion.
+  Broader failure shutdown remains pending (#330).
+- Extend owned-Agent heap transfer boundaries through each second-turn join
+  and each Decision-cleanup append/ACK, preserving typed failure custody and
+  cleanup order. This addresses a late 2 MiB worker-stack overflow; executable
+  validation of this follow-up remains pending (#330).
+
+- Reduce owned-Agent two-turn driver stack retention by transferring physical
+  owners between short heap-backed phases. Preserve existing consuming joins and
+  failure custody, and pin process-restart regression children to a 2 MiB Rust
+  worker stack so larger suite settings cannot hide a regression (#330).
+
+- Fix first Prepared restart admission to compare the authenticated request
+  digest written by the live wait, preserving the frozen wire format. The
+  process regression now explicitly distinguishes that digest from the ordinary
+  observation digest; its Model ACK assertions and fault injection are bound
+  to the actual Prepared sequence. This correction is source-checked, with
+  behavioral rerun pending (#330).
+
+- Preserve real second-turn failed Observe and first-turn Decision-observer
+  failure in private owned-Agent runtime custody, with distinct checked State
+  cleanup/receipt/Stop tails. Earlier target failure remains sticky, normal
+  authority stays poisoned after observer failure, and incomplete boundaries
+  refuse close and retries. Add owning runtime success, cancellation, callback
+  panic and all cleanup before/after-write fault regressions; authored but
+  unexecuted. Public constructor and full shutdown remain open (#330).
+
+- Route an actual first-turn owned-Agent failed target from private runtime
+  custody through its checked State cleanup, receipt and sticky Stop. Failed
+  cleanup boundaries retain the reached owner without retry; owning success
+  and three append-fault regressions are authored but unexecuted. Public entry
+  and full failure/recovery settlement remain open (#330).
+
+- Join the exact authenticated first Prepared restart into private owned-Agent
+  runtime custody before Model execution. The restored owner can continue
+  through the existing two-turn terminal path; continuation failures retain
+  their actual owner and refuse close or retry. Add process-relaunch,
+  terminal/no-redispatch, cancellation, hostile-tail and append-fault regressions,
+  authored but unexecuted. Public construction and full shutdown settlement
+  remain open (#330).
+
+- Fix successful owned-Agent Report projection poisoning its journal when the
+  inherited Reduce hold was dropped. The physical claimed Report now permits
+  one checked retirement of the matching authenticated terminal registry entry;
+  incomplete and failed paths keep quarantine armed. Composed success/reopen
+  and failure-retention regressions are strengthened, unrun in this source-only
+  change (#330).
+
+- Owned Agent v8 now has private typed runtime custody for Initialize through
+  Model/Resume, independent of disposable caller session handles. Runtime-driven
+  failed-Observe cleanup uses the existing acknowledged cleanup/receipt/Stop
+  chain, retains exact failures, and admits no cleanup or dispatch retry.
+  Pending owners refuse normal runtime close; forced teardown retires the
+  journal before backing release without claiming semantic settlement. Six
+  owning regressions are authored, unrun; public lifecycle and restart remain
+  incomplete (#330).
+
+- Define the public owned-Agent entry contract for #330. It records the
+  authenticated two-step fresh-registration boundary, the required ownership
+  transfers, and the conditions for a future bounded two-turn SourceLive-v8
+  driver. Private drivers now join initial, continued, and later failed Observe
+  plus initial failed-target cleanup through acknowledged receipt and sticky
+  Stop, retaining reached owners on incomplete boundaries. A private terminal
+  path consumes the live Report claim into a bounded projection with exact
+  authenticated evidence. Public multi-turn entry, remaining failure tails,
+  and recovery remain open, so this source-only work does not close #330.
+
 Project log follows a compact [Keep a Changelog](https://keepachangelog.com/)
 format: `Unreleased` then release buckets, grouped by impact.
 
@@ -7,6 +519,580 @@ format: `Unreleased` then release buckets, grouped by impact.
 > [docs/CHANGELOG-ARCHIVE.md](docs/CHANGELOG-ARCHIVE.md).
 
 ## Unreleased
+
+- Disable implicit OpenCode title, summary and compaction model work in the
+  private fixed-model host policy, and pin its default, small and selected-agent
+  models. The process-stub regression checks the policy actually staged before
+  dispatch. A refused local #323 attempt exposed title-model selection outside
+  checked attempt accounting; this fix is not successful live-provider evidence.
+
+- Complete #328's exact `f99c76dc2` Kernel-0 accepted-profile record: the
+  124-case Kernel selector, 10-case owned-handoff selector and required Lean
+  gate passed locally. Record the reviewed rung-1 retention decision, raw
+  receipts and bounded proof/authority claims. The baseline alone carries the
+  user's local full-profile waiver; no full-profile pass or rung-2 promotion
+  is claimed.
+
+- Establish the Windows doctor image-binding argument from continuous NTFS
+  deny-write/deny-delete sharing and the existing native retained-section
+  initial-open receipts. Preserve every production guard; add concurrent
+  section/open races and hostile writer attempts at all five launch boundaries
+  to the native selector. The two new cases still require native execution;
+  production Windows support and release trust remain unpromoted.
+
+- Extend the standalone Windows doctor confinement primitive with a two-second
+  per-process CPU ceiling, a 256 MiB committed-memory ceiling, and 64 KiB
+  combined anonymous-pipe output accounting. The 31-case selector preserves a
+  CPU-limit nonzero exit code without unsupported attribution, requires an
+  allocation refusal, and floods both streams below their individual cap but
+  above their shared cap. This source-only change has no Windows runtime
+  receipt and does not wire an ordinary Windows provisioner route.
+
+- Connect private owned-Agent runtime custody across the complete two-turn
+  lifecycle: first Model completion through authorization, target execution,
+  Decision cleanup, Reduce/Continue, the second turn and authenticated Report
+  consumption. Reopened session handles cannot repeat dispatch, cleanup or
+  append; incomplete joins retain their exact owner and refuse runtime close.
+  Add success/store-reopen, all 19 first-bridge prewrite boundaries, later
+  Model/terminal faults, cancellation, policy, target and observer regressions.
+  These tests are authored but unexecuted. Public construction, complete
+  shutdown settlement and general restart recovery remain open (#330).
+
+- Harden the Windows doctor request/bundle carriers against duplicated write
+  access and owner-mediated DACL changes using a protected OWNER RIGHTS deny
+  policy. The existing native child handoff case now rejects `FILE_MAP_WRITE`,
+  `WRITE_DAC`, and `WRITE_OWNER` duplication. This source-only correction keeps
+  all 26 selected Windows cases and still requires native execution evidence.
+
+- Distinguish initial file-open admission from later oplock refusal in the
+  Windows doctor #333 binding corpus. The retained writable-section and
+  surviving-view cases now require refusal before the first successful open;
+  the launch control requires all five checkpoints in order. The existing
+  24-case selector is unchanged. This source-only tightening needs native
+  execution and does not close exact image/request/bundle binding.
+
+- Compose the private owned-Agent second turn from the actual first Continue
+  Step through Observe, Model, authorization, target dispatch, Reduce, and
+  authenticated terminal Report projection (#330). Every failed join retains
+  its physical owner in an opaque quarantine and retires the same journal;
+  cancelled and unsupported iteration admission performs no new effect.
+  Add owning success, prewrite, cancellation and profile-refusal regressions,
+  unexecuted at this change. Public construction, initial-turn orchestration,
+  runtime quarantine lifetime and general restart recovery remain open.
+
+- Retire the failed exploratory Windows OWNER RIGHTS image experiment (#333),
+  preserving the 24 established native cases and every production guard.
+  Native run 36983893062 observed `SetSecurityInfo` access denial; Microsoft's
+  sharing contract also rules out the proposed metadata-only deletion pin.
+  Exact signed-image binding remains open.
+
+- Add source-only process-restart regression coverage for the private prepared
+  owned-wait continuation (#330). An exited preparer and independently rebuilt
+  relaunch use the original pinned directory plus test-held registration facts;
+  the relaunch dispatches once, while hostile tail bytes refuse before any
+  owner or adapter. This test transport is unavailable outside `cfg(test)` and
+  its new regressions are unexecuted.
+
+- Add the sealed first-turn Prepared restart continuation (#330). A second
+  trusted-host grant rechecks the exact source/checkpoint/tail/lease facts
+  before it consumes fresh restored backing into the original model path. The
+  Prepared prefix has no AttemptIntent, so the path cannot redispatch; refusal
+  or model failure quarantines the reopened journal. Cleanup, effects and
+  public Agent execution remain outside this private route.
+
+- Add a sealed first-turn prepared owned-wait v8 restart owner (#330). After
+  close/reopen, one trusted-host grant can authenticate the exact registered
+  Prepared tail and checkpoint before allocating fresh process-local Bytes
+  backing. The recovered lease stays read-only; later turns and StartReserved
+  uncertainty refuse without model dispatch or append authority.
+
+- Fence recovered source-owned-wait v8 leases to authenticated read-only
+  history (#330). Retained registration, matching pins and the MAC chain can
+  inspect evidence but cannot append a successor before a sealed physical
+  owner-restoration permit exists. The store regression proves the bytes stay
+  unchanged after a rejected restart append; physical owner restoration and
+  public multi-turn entry remain open.
+- Strengthen the #333 Windows no-view writable-section regression: a retained
+  section must actually mutate an observed signed-image byte after the expected
+  pre-spawn refusal, then restore the fixture. Native Windows execution remains
+  required; exact image/request/bundle binding remains open.
+
+- Reconcile the full-profile rustfmt gate and two private-interface visibility
+  warnings exposed while validating the #327 Linux migration sanitizer. The
+  formatter changes only Rust layout; stage and cleanup behavior is unchanged.
+
+- Run the Linux held-native migration sanitizer gate through a test-only ELF
+  compiler launcher, preserving exact ASan/UBSan flags and symbol checks when
+  the process provider refuses held shebang scripts (#327). Add a physical
+  refusal regression; production held-executable rules are unchanged.
+
+- Include owned record and variant field transfers in cleanup skeleton work
+  reservations (#337), preserving the global replay limit and refusal before
+  unbudgeted materialization. Add nested generic record and owned variant
+  regressions for the derived bound and one-unit-short diagnostic.
+
+- Preserve the frozen public-generic native byte-runtime and generated-package
+  bytes by emitting newer buffer-store helpers only for resolved calls that use
+  them (#337). The legacy runtime pin and selected-helper regression now run
+  together.
+
+- Add a private consuming turn-two Complete closure through actual Step cleanup,
+  field transfer, terminal ACK and original Report claim (#330). Every refusal
+  retains its reached owner and spent funding. Focused local success and
+  terminal-prewrite refusal passed 1/1 each; the receipt-prewrite case remains
+  unrun. Public delivery and physical owner restoration remain open.
+
+- Expand the Windows doctor hostile/runtime selector to 22 cases (#333),
+  covering retained writable-section refusal cleanup and anonymous carrier
+  handle lifetimes. All 22 ran and passed on Windows Server 2025 at
+  `e15c16202`; exact launched-image binding remains open.
+
+- Join the private turn-two Completed owner into the existing authorization,
+  effect, Reduce and staged Step pipeline (#330). The join retains its physical
+  Resume, exact ACK history and actual later Step hold. Focused local success
+  and foreign-wait refusal passed 1/1 each; the authorization-prewrite
+  regression awaits execution. Public
+  multi-turn execution and restart restoration remain open.
+
+- Bind recovered target-migration finalizer rows to the exact prepared pure
+  migration closure (#327). A structurally valid row for an unrelated source
+  function now refuses before the durable destination can use the handoff.
+
+- Add a branch-scoped Ubuntu/Podman reference-service OCI gate (#336) that
+  builds the exact static Linux artifact, checks source/artifact identity, and
+  exercises refusal plus login/CRUD/job/restart paths. Its selected hosted
+  Linux/Podman journey passed at `c3d5dead8` with a retained artifact digest
+  and evidence record; broader deployment and service acceptance remain open.
+
+- Assert ordered target cleanup-event parity for durable fresh, ordinary
+  recovery, migration-seeded, and seeded-recovery Agent runs (#327). Checkpoint
+  prefix/current-suffix and independent evidence controls passed locally 2/2;
+  hosted migration and the full target profile remain open.
+
+- Resume the actual turn-two Parked wait after its exact reservation ACK and
+  append `OwnedWaitCompleted` only from a checked Resumed State (#330). The
+  owning success and Completed-prewrite refusal selectors passed locally;
+  later Effect/Reduce/Step and public recovery remain open.
+
+- ACK actual turn-two Model Usage and a full-fuel Resume reservation from the
+  retained physical owner (#330). The owning success and both distinct
+  prewrite-refusal selectors passed locally; physical Resume, Completed, and
+  public recovery remain open.
+
+- Add an isolated Windows anonymous request/bundle carrier experiment (#333).
+  It authenticates signed artifact bytes into read-only inheritable mapping
+  handles and adds a native hostile-write selector. The provisioned Windows
+  selector passed 18/18 at `06c0090d9`; production child transport remains open.
+
+- Reject producer-impossible target cleanup receipts during durable Agent
+  recovery (#327): oversized finalizer inventories, invalid function identities,
+  and liveness flags outside `u32`. The focused negative-control gate passed
+  locally; hosted migration and full target-event parity remain open.
+
+- Extend the selected Windows doctor launch test with post-binding hard-link
+  creation and writable-section probes (#333). Those selected cases passed in
+  the eighteen-case native run at `06c0090d9`; exact launched-image binding
+  remains open.
+
+- Check optional inbound version-00 trace metadata through the reference
+  service's source decision before clock or state work (#336). Five focused
+  success, denial, compatibility, and oracle cases passed locally; no trace
+  propagation is claimed.
+
+- Bind outward durable semantic-work evidence to the selected target (#327).
+  Evidence v3 carries the same target binding as the metered checkpoint;
+  fresh and both recovery paths assert parity. Three focused selectors passed
+  locally.
+
+- Dispatch turn-two Model work through the retained physical owner (#330),
+  then append its actual settlement ACK with the fixed writer and cumulative
+  hold. Focused success and settlement prewrite-refusal selectors passed
+  locally; later Usage/Resume and public recovery remain open.
+
+- Bind durable metered Agent recovery to the selected execution target (#327).
+  Metered checkpoint v2 records the target binding; v1 remains inspectable
+  but cannot resume live work under an unbound target. Focused codec,
+  cross-target refusal, and migration-replay selectors passed locally.
+
+- Add opt-in signed-timestamp JSON-event v2 completion delivery (#336),
+  checked against the scaffold webhook decision using authenticated prior
+  intent facts before export, state, or physical delivery. V1 and OTLP remain
+  available to older projects. Focused delivery (4/4), policy (6/6), and
+  decoder (1/1 each) selectors passed locally.
+
+- Append the turn-two Model Intent ACK from the retained physical Prepared
+  owner (#330). The checked request builder uses its actual State, request,
+  observation and ordinal; the fixed writer and cumulative hold retain the
+  parked owner before SDK dispatch. Focused success and prewrite-refusal
+  selectors passed locally.
+
+- Retain authenticated HTTP intent facts for checked webhook admission (#336):
+  the native host records an HMAC-bound body digest, signing timestamp, and
+  first-attempt reservation under the existing no-redispatch marker name.
+  Legacy and invalid records cannot supply invented prior facts.
+
+- Append turn-two `OwnedWaitPrepared` from the retained physical Parked owner
+  (#330), using the existing fixed writer and cumulative hold. The focused
+  success and prewrite-refusal selectors passed locally; later Model and
+  public recovery remain open.
+
+- Enter the physical turn-two source wait from the retained two-ACK Start owner
+  (#330), preserving the State, Copy observation, fuel accounting, and original
+  Start reservation. The focused success and prewrite-refusal selectors passed
+  locally; later checkpoint and public recovery remain open.
+
+- Bind actual OTLP completion logs to the checked structured-log policy
+  (#336), with source denial before delivery and six explicit credential flags.
+  Correct the default metric wrapper so successful completion evaluates under
+  the public decision seam. Five log-policy, metric oracle, delivery protocol,
+  and six separate-process provider selectors passed locally.
+
+- Carry the actual later-turn Observe owner into `OwnedWaitCreated` and Start
+  reservation (#330), retaining its State/Copy observation and two ACKs. The
+  focused success and prewrite-refusal selectors passed locally; later source
+  entry and public recovery remain open.
+
+- Cover lost terminal acknowledgement during metered target migration recovery
+  (#327). The integration regression checks paired replay fuel reservations and
+  semantic-work receipts, one retained Complete transition, and no host
+  redispatch; its focused selector passed locally.
+
+- Gate reference-service completed-job delivery through the checked
+  `completed_job_metric_is_admitted` source decision before outbound delivery
+  or snapshot mutation (#336). Source denial preserves the pending job and
+  outbound inventory.
+
+- Settle the later physical Observe result through `OwnedObserveSettled` and
+  `TurnObserved` (#330), retaining the actual owner and reservation on a
+  rejected append. The focused success and prewrite-refusal selectors passed
+  locally; later Start and public recovery still require their owner joins.
+
+- Verify reference-service outbound delivery against a separate local TLS
+  provider process (#329). Success, provider refusal, and close-after-request
+  settle through the actual service/store and retain one provider-observed
+  request across restart. An optional operator-held DER root enables private
+  provider trust without disabling TLS hostname verification.
+
+- Claim the actual physical Complete Report after its authenticated terminal
+  ACK (#330). The private owner keeps the store borrower and checks a borrowed
+  delivery projection against the terminal carrier. The owning success and
+  prewrite-refusal selectors passed locally. Public Report delivery and
+  restart owner restoration remain open.
+
+- Carry the real continued Step into turn-two State and Observe (#330):
+  a separate later owner selects the State row, ACKs the exact Observe
+  reservation, and enters physical Observe through the existing engine. The
+  owning three-turn success and State-prewrite refusal selectors passed locally.
+  Public multi-turn entry, terminal delivery and owner restoration remain open.
+
+- Bind reference-service job completion to the checked source decision (#336):
+  the host admits only the source-selected Completed status before preparing
+  delivery or a snapshot; source denial and evaluator failure leave committed
+  state and outbound inventory unchanged. Both focused completion-policy tests
+  passed locally. Broader service decisions and storage remain open.
+
+- Add a distinct `otlp-http-json` reference-service telemetry adapter (#336):
+  checked configuration and host replay select OTLP/HTTP JSON-Protobuf logs at
+  `/v1/logs`, with strict full-success response handling and no webhook
+  signature alias. Four focused config, mapping and delivery checks passed
+  locally. SQLite/PostgreSQL storage and physical OCI execution remain open.
+
+- Authenticate read-only terminal recovery for source-owned waits (#330):
+  reopening the real journal with retained registration and an explicit host
+  grant returns copied terminal status and evidence only after the complete
+  terminal row. The real-chain success and terminal-prewrite refusal selectors
+  passed locally. Multi-turn public delivery remains open.
+
+- Complete the catalog-normalizer maximal application gate at the original
+  100,000,000-step bound (#324). Bounded owned-buffer stores, a scalar writer
+  cursor, validated quantity lookup, and one-pass label layout preserve the
+  frozen oracle, target parity, and capacity ceilings. The complete local
+  selector passed across interpreter, native C11 `-O0`/`-O2`, and Core Wasm.
+
+- Carry the actual turn-1 Step through transfer reservation, physical field
+  move, completion and terminal Transition ACKs (#330). The corrected
+  real-chain transfer selector passed locally. A private owner-backed
+  `TerminalSnapshot` writer and fold join passed both the success and
+  prewrite-fault selectors locally. Public entry, delivery and recovery remain
+  open.
+
+- Add an opt-in packaged reference-service OCI runtime journey (#336): an
+  offline layout can be imported into local Podman with explicit state,
+  outbound, secret, and bundle mounts, then exercise auth, task/job mutation,
+  restart, and no redispatch. Separate `Entrypoint` and default-port `Cmd` so
+  an operator-selected port replaces the default. Structural packaging tests
+  passed 3/3 locally; the Linux Podman runtime selector still needs a trusted
+  static Linux executable and has not run on this macOS host.
+
+- Restrict the Windows doctor confined child to its three declared standard
+  handles through an explicit process handle list (#333). Add a selected
+  inheritable-sentinel child probe, raising the provisioned runtime selector
+  to 17 cases. The gate self-test and source formatting passed locally;
+  native Windows execution and exact launched-byte binding remain open.
+
+- Carry the real continued Step cleanup-start owner through the existing
+  physical cleanup engine and durably ACK its actual settled receipt (#330).
+  Success and receipt-prewrite fault real-chain selectors each passed locally;
+  a failed append retains the released owner and cannot release twice. Result
+  transfer, public entry, and restart recovery remain open.
+
+- Close the reference-service authenticated-route clock boundary (#336):
+  unknown route and method shapes now refuse before acquiring a session clock,
+  and exact idle/absolute expiry selects only the checked terminal session
+  transition before any protected route mutation. The five-case focused
+  session selector passed locally; broader service acceptance remains open.
+
+- Append the real turn-1 `OwnedReduceCleanupStarted` row after the continued
+  Step ACK while retaining its evaluated owner and spent Reduce hold (#330).
+  Focused success and prewrite-fault real-chain selectors passed locally;
+  physical Step cleanup, result publication, public entry, and recovery remain.
+
+- Append the first real continued turn-1 Step ACK under the retained physical
+  owner and spent Reduce hold (#330). The focused success selector passed;
+  the corrected prewrite-fault selector also passed. Later Step phases, public
+  entry and recovery remain separate gates.
+
+- Route reference-service task creation through checked
+  `create_is_committed(0)` before task ID allocation or candidate state (#336).
+  Generated-source parity and denial/evaluator-failure nonmutation passed 2/2
+  focused selectors; broader service acceptance remains open.
+
+- Charge cleanup-replay skeleton preflight by actual reachable block
+  transitions and edges instead of a global widest-transition multiplier
+  (#324). Two focused bounds tests passed and the candidate catalog conversion
+  cleared `SPX-H006`; the unchanged 100M catalog selector still returned
+  `FuelExhausted`, so catalog acceptance remains open.
+
+- Consume the real continued Outcome once after the turn-1 Reduce reservation
+  ACK and run the existing checked reducer under the retained spent hold
+  (#330). The private real-chain selector passed 1/1 with full Step facts,
+  unchanged accounting, one host call, and no synthetic Step row. Durable Step
+  ACK, public entry, and restart recovery remain open.
+
+- Route reference-service task deletion through checked
+  `delete_is_committed(0)` before candidate state or snapshot commit (#336).
+  Generated-source parity, denial, evaluator failure, and nonmutation passed
+  two focused local selectors; remaining service routes and OCI execution stay
+  open.
+
+- Refuse a tampered semantic-work event during metered migrated durable
+  recovery before a new host call or checkpoint commit (#327). The focused
+  Runtime-facade regression passed 1/1 locally; the full parity and sanitizer
+  profile remains open.
+
+- Route reference-service task status updates through the scaffold's checked
+  `update_is_committed` decision before candidate state or snapshot commit
+  (#336). Source denial and evaluator failure leave the committed state
+  untouched; the two focused service selectors passed locally.
+
+- Bind the private owned-wait v8 continued physical State/Outcome handoff to
+  its actual successful Decision CleanupSettled ACK (#330). The one-use pending
+  effect holder is consumed under fresh source, policy, clock, and cancellation
+  checks before turn-1 Reduce reservation; failure retains the reached owner
+  and cannot repeat Decision release. The focused Outcome selector passed 1/1
+  locally; public entry, Step, and restart recovery remain open.
+
+- Exercise the reference service from an independently copied development
+  package through local register/login/task/job/restart and refusal paths;
+  canonicalize owned temporary roots before Project v1 checks (#336).
+
+- Reject migrated durable target receipts whose semantic fuel exceeds the
+  declared limit or claims exhaustion before consuming that limit (#327).
+
+- Route new immediate reference-service job enqueues through the checked
+  scaffold's `enqueue_is_legal` decision, with source denial and evaluator
+  failure leaving committed state and outbound work untouched (#336).
+
+- Add offline reference-service packaging for operator-selected development and
+  static Linux OCI executables, with a digest-bound copy, real project/config
+  preflight, deterministic OCI layout, and bounded refusal tests (#336). Runtime
+  installation and container execution remain pending.
+
+- Add the private one-or-five owned byte-buffer primitive for #324. Its wide
+  path reads five ordered bytes from an authenticated distinct borrowed source
+  and zero-fills absent source positions; its one-byte path never reads that
+  source. The catalog source conversion was reverted after it exceeded the
+  replay preflight budget, so the original 100M catalog acceptance remains
+  open.
+
+- Add the private owned-wait v8 continued Decision cleanup driver (#330). It
+  durably records Started, executes the explicit cleanup observer once, and
+  records the sticky Settled receipt while retaining the reached owner on every
+  failure. The focused real-chain selector passed 1/1 locally; public entry and
+  restart recovery remain open.
+
+- Durably ACK the private owned-wait v8 turn-1 Reduce reservation after
+  continued Decision cleanup (#330), advancing its hold from CleanupSettled to
+  SpentReduce once. The focused real-chain selector passed 1/1 locally with no
+  extra host dispatch or cleanup; Step, public entry, and restart recovery remain open.
+
+- Add the internal Owned Bounded Byte Buffer v2 `bytes_set5` operation (#324).
+  It preflights one contiguous five-byte interval before the canonical owner
+  transfer. Its focused language and Core Wasm selectors passed locally; the
+  unchanged 100M catalog application gate remains open because the attempted
+  source conversion exceeded the fixed workspace graph builder budget.
+
+- Dispatch the real owned-wait v8 next-turn effect through an explicit host
+  handler once, then persist ordinary settlement and settlement-record ACKs
+  (#330). The focused real-chain selector passed 1/1 locally; public entry,
+  durable process recovery, and later cleanup remain open.
+
+- Advance the real owned-wait v8 next-turn effect owner through guarded
+  preparation and a durable Intent ACK (#330). The focused real-chain
+  selector passed 1/1 locally with no effect host dispatch. Actual effect
+  dispatch and public durable recovery remain open.
+
+- Add a Linux held-clang ASan/UBSan gate for metered v4 Agent migration and
+  durable recovery; its Linux execution remains pending.
+
+- Bind v4 pure-migration target execution to the metered durable destination
+  route (#327). Missing, unmetered, changed-fuel, and mixed held targets now
+  refuse before destination handoff or host work. Two focused refusal selectors
+  and same-target Interpreter, held native, and held Core Wasm recovery
+  selectors passed locally; sanitizer and full-profile acceptance remain open.
+
+- Advance the real owned-wait v8 next-turn authorization into two durable
+  effect ACKs through promotion (#330). The focused real-chain selector
+  passed 1/1 locally. Actual effect dispatch and public recovery remain open.
+
+- Cover the migrated runtime's metered durable recovery on the same
+  caller-held native target (#327). The focused selector passed 1/1 locally
+  with receipt pairing and zero retained host-work redelivery; mixed target
+  refusal and full acceptance remain open.
+
+- Cover the migrated runtime's metered durable recovery on the same
+  caller-held Core Wasm target (#327). The focused selector passed 1/1
+  locally with receipt pairing and zero retained host-work redelivery;
+  mixed target refusal and full acceptance remain open.
+
+- Expose an explicit metered durable route on fresh and resumed migrated
+  runtimes (#327), binding stage semantic-work evidence to a distinct
+  migration root. The focused same-Interpreter recovery selector passed 1/1
+  locally with no retained host-work redelivery. Cross-target acceptance
+  remains open.
+
+- Advance the real owned-wait v8 next-turn Completed owner through five
+  durable authorization ACKs (#330), including transfer at the second and
+  guarded stage entry at the fifth. The focused real-chain selector passed
+  1/1 locally. Effect execution and public recovery remain open.
+
+- Add a crate-private migration-seeded durable metering route (#327) that
+  retains authenticated per-stage semantic receipts across recovery. The
+  focused seeded interpreter selector passed 1/1 locally and verifies no
+  redelivery of retained host work. Public migrated runtime association
+  remains open.
+
+- Durably ACK the owned-wait v8 next-turn Completed row after the single
+  resumed-program entry (#330). The real-chain selector passed 1/1 locally;
+  authorization and public multi-turn recovery remain open.
+
+- Advance a real owned-wait v8 next-turn Model holder through Usage and
+  Resume-reservation ACKs before one actual resumed-program entry (#330).
+  The focused selector passed 1/1 locally. Completed-row publication,
+  authorization and public recovery remain open.
+
+- Dispatch a real owned-wait v8 next-turn Model request once and durably ACK
+  its settled response before Usage or Resume (#330). The focused selector
+  passed 1/1 locally with one provider start, one Settled row, and no source
+  resume. Public multi-turn recovery remains open.
+
+- Select completed-job retry refusal through the checked source terminality
+  decision (#336), with an explicit mapping from persisted reference-service
+  states to durable-job codes. The focused completion selector passed 1/1
+  locally and verifies no second outbound marker on retry.
+
+- Gate reference-service registration through the checked source admission
+  decision (#336) before password work, using the live account count, persisted
+  capacity and selected Argon parameters. Focused capacity refusal and
+  existing successful register/login route passed 1/1 each locally.
+
+- Advance the real owned-wait v8 next-turn Prepared owner through one checked
+  Model intent and durable Model acknowledgement (#330). The focused selector
+  passed 1/1 locally and proves no provider construction or source resume at
+  this boundary. Dispatch and public multi-turn recovery remain open.
+
+- Gate reference-service completion delivery with the checked source export
+  policy (#336), using the canonical signed-event length and configured
+  telemetry origin before any outbound attempt. Focused refusal and existing
+  successful completion routes passed 1/1 each locally. OCI and remaining
+  service decisions remain open.
+
+- Advance a live owned-wait v8 next-turn Start owner through its sole source
+  entry and durable Prepared acknowledgement (#330). A real-owner selector
+  passed 1/1 locally, including single-entry and holder-release checks.
+  Model dispatch, later turn completion, and public restart recovery remain
+  open.
+
+- Cover the reference service's source-selected absolute session expiry (#336):
+  a focused host regression verifies the checked state transition, persisted
+  terminal state, HTTP refusal, and replay stability (1/1 locally).
+
+- Advance a real owned-wait v8 `Step::Continue` holder through its State and
+  next-turn Observe journal acknowledgements (#330), retaining the unique
+  live owner on each failure path. The focused real-owner selector passed 1/1
+  locally. Later turns and public restart recovery remain open.
+
+- Route reference-service idempotent enqueue through the scaffold's checked
+  scalar decision (#336), removing the Rust truth-table mirror. Focused
+  decision admission, source/host parity, and actual enqueue selectors passed
+  1/1 each locally; the project formatter check passed. Remaining service
+  decision paths and OCI execution remain open.
+
+- Authenticate a recovered owned-wait v8 journal before admitting a fresh
+  first-turn State (#330). A real held-store restart regression verifies that
+  an existing prepared prefix refuses reinitialization, preserves the exact
+  journal bytes and sequence, and keeps the reopened lease valid. The focused
+  selector passed 1/1 locally; multi-turn public recovery remains open.
+
+- Make the reference service's narrower database contract explicit (#336):
+  checked configuration and independent host requests reject SQLite,
+  PostgreSQL, and DSN selections with stable diagnostics. Snapshot remains
+  the named durable state profile. Focused source tests passed 8/8 and the
+  process-level pre-write refusal passed 1/1 locally; SQL support and the
+  runnable OCI route remain open.
+
+- Add #327's explicit metered durable typed-effect checkpoint profile. The
+  caller-trusted store retains hash-chained stage receipts; recovery validates
+  retained deterministic work, appends newly charged replay receipts, and does
+  not redeliver retained host effects. Focused metered recovery evidence passed
+  4/4 and ordinary-route crossover refusal passed 1/1 locally. Digests bind
+  bytes and grant no cryptographic authority.
+
+- Cache immutable owned-wait capacity maxima under exact checked-binding
+  identity (#330). The focused cache reuse and crossed-proof refusal regression
+  passed 1/1 locally; continued lifecycle acceptance remains open.
+
+- Bind the reference service's accepted `semaprax-json-events` telemetry
+  profile to the closed `semaprax.json-event.v1` completion envelope and its
+  fixed `/v1/events` route. The generated configuration still admits only
+  `snapshot` plus that telemetry profile and refuses SQLite, PostgreSQL, DSN,
+  and OTLP selections. Focused event and scaffold selectors passed 1/1 each
+  locally; no hosted, OCI, SQL, or OTLP support is claimed.
+
+- Record the Windows doctor #333 binding decision and native mechanism/corpus
+  plan. Reject advisory oplocks, repeated hashes, byte-range locks and an
+  unproven copy/reopen transition as exact image-binding repairs. Image-section
+  exclusion, request/bundle transport and resource/handle corpus work remain
+  open; this documentation change adds no execution or support evidence.
+
+- Correct the historical effect-capacity phase regression (#330) to assert
+  distinct exact Reduce and Decision-observer State cleanup reserves. The
+  observer branch checks typed authenticated widths, legal cleanup edges,
+  premature/wrong-status Stop refusal and failed-State-observer quarantine.
+  The old equality predated the separate observer closure; production capacity
+  and the fixed-row cache are unchanged. The strengthened selector is unrun.
+
+- Memoize the three immutable v8 effect-room aggregates (#330) through their
+  existing canonical serializers. Compiler-dependent cleanup, current closure,
+  authenticated inventory and physical checks remain live. Fixed-prefix parity
+  and malformed-cleanup refusal coverage is added but unrun; timing remains
+  unverified.
+
+- Retain the immutable cumulative v8 fresh-turn capacity forecast under exact
+  context and checked-proof identities (#330), avoiding repeated maximal
+  checkpoint and effect-result template serialization. Current prefix and
+  physical checks still run. Added parity and refusal tests are unrun; no
+  speedup or owned-Agent lifecycle acceptance is claimed.
 
 ## 0.7.0 — 2026-10-01
 
@@ -63,11 +1149,18 @@ public support through a release tag.
   Resolve the compact CLI's plain-project test fixture from either package
   manifest so the root and full-toolchain binaries test the same project.
 
+
 - Add a closed acceptance-record format for #328's Kernel-0 rung-2 decision.
   It requires every local receipt to bind to one selected revision or an exact
   unchanged subject, keeps all rows pending, and separates an eventual reviewer
   decision from historical local counts and hosted evidence. No gate was run,
   and rung 1 remains the only accepted rung.
+
+- Add a read-only validator for #328's accepted-revision record. It enforces
+  canonical record bytes, the complete ordered receipt inventory, immutable
+  commit bindings, and byte-exact declared-subject reconciliation including
+  `Cargo.lock`; success and drift/inventory refusal regressions are present but
+  unrun. It cannot run receipts or validate a rung-2 promotion.
 
 - Connect actual continued owned-Agent Decision cleanup to the existing v8
   fixed append and physical release path (#330). Preserve the same State,
@@ -85,12 +1178,12 @@ public support through a release tag.
 
 - Retain catalog-normalizer's 100,000,000-step maximal-response requirement
   (#324) in the complete application selector. Its one-call scalar phase
-  encoder omits redundant per-byte token-length arguments and selects the
-  plain or enriched terminal phases without a second per-byte function call.
-  Record the 160,000,000-step library ceiling only as the current execution
-  capacity and retain the separate 2,000,000-step source-suite bound. The
-  frozen oracle, corpus, response capacity, mutation controls and backend
-  lanes are unchanged.
+  encoder omits redundant per-byte token-length, terminal-shape and enrichment
+  arguments; the bounded fixture outcome is represented only in the enriched
+  tail phase. Record the 160,000,000-step library ceiling only as the current
+  execution capacity and retain the separate 2,000,000-step source-suite
+  bound. The frozen oracle, corpus, response capacity, mutation controls and
+  backend lanes are unchanged.
 
 - Add the explicit `endpoint Bytes` session profile, connecting checked protocol
   order to a unique source carrier through local moves and terminal consumption.

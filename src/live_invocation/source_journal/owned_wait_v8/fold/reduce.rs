@@ -334,6 +334,49 @@ pub(super) fn ordinary(
             f.transfer = None;
             f.decision = None;
         }
+        SourceJournalEntry::TerminalSnapshot {
+            turn,
+            status,
+            carrier_digest,
+            carrier,
+            ..
+        } if active(f) => {
+            require(f.tail == TailV8::Reduce && f.failed_effect_state.is_none())?;
+            let r = f.reduce.as_ref().ok_or(SourceJournalError::Order)?;
+            require(r.fold.tail() == super::super::reduce_fold::ReduceTailV8::TerminalPending)?;
+            let Some(SourceJournalEntry::Transition {
+                turn: transitioned_turn,
+                attempt,
+                case,
+                carrier_digest: transitioned_digest,
+            }) = f.ordinary.last()
+            else {
+                return Err(SourceJournalError::Order);
+            };
+            let expected = match case {
+                super::super::super::SourceTransitionCase::Complete => {
+                    super::super::super::SourceTerminalStatus::Complete
+                }
+                super::super::super::SourceTransitionCase::Suspend => {
+                    super::super::super::SourceTerminalStatus::Suspend
+                }
+                super::super::super::SourceTransitionCase::Fail => {
+                    super::super::super::SourceTerminalStatus::Fail
+                }
+                super::super::super::SourceTransitionCase::Continue => {
+                    return Err(SourceJournalError::Order)
+                }
+            };
+            require(
+                *turn == Some(*transitioned_turn)
+                    && *transitioned_turn == f.current_turn
+                    && f.wait.as_ref().is_some_and(|w| w.attempt == *attempt)
+                    && *status == expected
+                    && carrier_digest.as_deref() == Some(transitioned_digest.as_str())
+                    && carrier.is_some(),
+            )?;
+            f.tail = TailV8::Terminal;
+        }
         _ => {
             require(!active(f))?;
             return Ok(false);

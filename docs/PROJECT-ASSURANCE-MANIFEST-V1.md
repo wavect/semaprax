@@ -143,3 +143,11 @@ refused claims, independent replay and drift/capacity refusal.
 `cargo test --locked -p semaprax --test projections assurance_manifest::project_cli`
 executes the actual binary for exact library output and claim/option handling.
 These are local report gates, not evidence of native/Wasm execution or hosted support.
+
+## Independently protected law inventory
+
+[LawSet v1](LAW-SET-V1.md) is the separately selected LAW-01 library surface
+for mandatory named laws. It reuses this report's obligation IDs and evidence
+while binding a protected baseline independent of the candidate's successes.
+The expected union inventory reports every law as covered, missing, unsupported,
+or open. Selecting LawSet does not alter this v1 envelope's bytes.

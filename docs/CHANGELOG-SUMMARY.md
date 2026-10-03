@@ -10,6 +10,44 @@ For implementation status and required evidence, use the
 
 ## v0.7.0 candidate
 
+- LAW-07 begins a bounded structured proof profile for immutable finite
+  records, closed variants, and explicit match paths. Local Z3 gates prove a
+  two-account transfer and reject five seeded defects; pinned Lean checks a
+  record and variant match example plus a false theorem. Source-bound replay
+  and selected-law attachment remain open.
+
+- RI-07 adds checked Semaprax call routing through concrete Rust const/type
+  specializations, source-mapped trait diagnostics, and fallible Serde wire
+  conversion with counted rollback and explicit payload-copy metrics. Bounded
+  acceptance includes non-opt-in JSON/Vec execution, rustc orphan/coherence
+  refusals, field-name hygiene, and the unchanged public-generic separation
+  gates. Generalized Rust trait solving and layout compatibility remain outside
+  this profile.
+
+- LAW-06 adds versioned, live-replayed checked-summary certificates for pure
+  scalar calls and an installed Z3 proof route that joins selected Project and
+  strict managed-Workspace laws. Version 2 records stable IDs for callee clauses,
+  caller preconditions, and caller postconditions. The admitted effectful
+  Project refusal and repeated-call identity controls pass; the bounded
+  profile preserves runtime guards.
+
+- The experimental native String bridge now accepts bounded UTF-8 byte input
+  through an explicit C factory, with checked signed/unsigned lengths, Rust-side
+  allocation, and executed malformed-input/allocation-failure controls.
+
+- RI-05 adds a generated Rust context lifetime facade with cross-crate
+  compile-fail controls and isolated Drop-panic/abort execution. Actual native
+  archive and complete package bytes match a pre-RI05 capture on arm64 macOS.
+
+- RI-05 adds authenticated owner admission before atomic argument transfer.
+  CleanupPlan v14 and Graph v60 retain canonical rollback on carrier refusal,
+  including two-owner and sticky cleanup-failure controls. RI-05 acceptance
+  is complete for the bounded profile; the full quality profile is deferred.
+
+- RI-05 pins frozen owned-data v1 generated-file digests to a pre-owner baseline
+  and executes counted host-copy/provider-free controls, including a compiled
+  skipped-copy negative, without changing the v1 runtime.
+
 `v0.7.0` is the current source version. Its exact release commit, tag gate, and
 archives have not yet been accepted. The v0.6.0 tag gate failed, and v0.6.0
 was not published. See [v0.7.0 status](RELEASE-0.7.0-STATUS.md) and the
@@ -25,6 +63,15 @@ was not published. See [v0.7.0 status](RELEASE-0.7.0-STATUS.md) and the
 - Local package-registry work now covers signed metadata, lock-bound artifact
   reads, held generations, and a resolver-cache bridge. It is not a hosted
   package service.
+- The experimental native owner renderer now carries closed Option<String> and
+  Result<String,i64> values through checked helpers and consuming imports,
+  including the closed nested Result<String,Option<i64>> domain-error shape.
+  Focused physical cleanup and failure controls pass; selected container
+  packaging remains outside this renderer profile.
+- Native law declarations now select exact Project law modules through manifest
+  v2. Contract and independent scalar relational propositions have stable IDs,
+  canonical graph/query projections, and explicit open coverage until verified
+  evidence exists. The filename `LAWS.spx` has no discovery authority.
 - Private native owned-byte and Core Wasm work gained bounded fixtures and
   observed JavaScript-arena settlement evidence. Public parity and complete
   cleanup/fuel evidence remain open.

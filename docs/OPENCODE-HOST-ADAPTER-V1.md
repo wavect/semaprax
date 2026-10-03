@@ -15,6 +15,16 @@ live-kernel source/HIR integration remains tracked in #177.
 The only admitted profile is `opencode/muse-spark-1.3-contributor-free`. There
 is no fallback model, provider, endpoint or paid route. The adapter adds no
 automatic transport retry; OpenCode subprocess work remains deadline-bounded.
+The fixed policy pins the default, small and selected-agent model, admits only
+the OpenCode provider, and disables the built-in title, summary and compaction
+agents plus automatic compaction. The title disable is required: OpenCode
+1.18.33 otherwise starts a separate small-model request before the selected
+agent, outside the checked attempt accounting. The tagged
+[agent loader](https://github.com/anomalyco/opencode/blob/v1.18.33/packages/opencode/src/agent/agent.ts)
+removes disabled agents, and the
+[title path](https://github.com/anomalyco/opencode/blob/v1.18.33/packages/opencode/src/session/prompt.ts)
+returns before model selection when the title agent is absent. These controls
+do not establish a billing guarantee or exclusive physical network execution.
 Host credentials are not added to model context or runtime journals. Provider
 error bodies and headers are discarded from the closed diagnostic categories.
 
@@ -36,6 +46,13 @@ stdin and invokes exactly:
 opencode run --pure --agent semaprax-live \
   --model opencode/muse-spark-1.3-contributor-free --format json --dir WORKSPACE PROMPT
 ```
+
+Executable admission reads one complete regular-file snapshot with a **160 MiB
+maximum**. Dispatch stages only those frozen bytes in the private workspace,
+then reauthenticates the held staged file against the snapshot in fixed 64 KiB
+chunks before execution. A file one byte over the ceiling is refused before its
+contents are read. The configured executable pathname is rechecked before
+staging, so later pathname or byte drift cannot change the dispatched image.
 
 It writes an `opencode.json` agent policy with `"*":"deny"` and
 `"snapshot":false` before the call. Filesystem snapshot tracking is disabled.

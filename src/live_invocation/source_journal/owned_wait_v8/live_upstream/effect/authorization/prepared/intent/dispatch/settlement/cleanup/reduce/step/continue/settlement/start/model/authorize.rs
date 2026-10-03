@@ -397,7 +397,14 @@ impl<'j> ContinuedResumedWaitV8<'j> {
         &mut self,
         clock: &'j dyn crate::live_invocation::SourceInvocationClock,
     ) {
-        self.lineage.step.reduce.cleanup.recorded.intent.clock = clock;
+        self.lineage
+            .step
+            .first_mut()
+            .reduce
+            .cleanup
+            .recorded
+            .intent
+            .clock = clock;
     }
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn test_authorize_cancel(&self) {
         self.lineage.step.origin().cancellation.cancel();

@@ -3,6 +3,8 @@ use sha2::{Digest as _, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::atomic::{AtomicU64, Ordering};
 
+#[path = "tests/host_policy.rs"]
+mod host_policy;
 #[path = "tests/process_profile.rs"]
 mod process_profile;
 

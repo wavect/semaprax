@@ -103,6 +103,9 @@ and `linked_agent_migration_selection_rejects_alias_and_unimported_stable_id`
 cases cover imported State migration, renamed imports selected by stable ID,
 old payload preservation, skipped initialization, cumulative usage, completed
 recovery without redispatch, and refusal of aliases or unimported declarations.
+`linked_wasm_pure_migration_refuses_before_reserving_or_evaluating` separately
+selects a caller-held Wasm target for that imported closure and proves that its
+missing single-module source refuses before pure-call reservation or evaluation.
 The existing linked-role and workspace currentness checks pass alongside them.
 
 `src/project/agent_linked.rs` owns linked source and migration-function closure

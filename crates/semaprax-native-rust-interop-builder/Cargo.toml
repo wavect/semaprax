@@ -9,6 +9,7 @@ license = "Apache-2.0"
 
 [dependencies]
 semaprax = { version = "=0.7.0", path = "../..", default-features = false }
+semaprax-rust-api-index = { version = "=0.1.0", path = "../semaprax-rust-api-index" }
 semaprax-native-rust-interop-platform = { version = "=0.1.0", path = "../semaprax-native-rust-interop-platform" }
 semaprax-native-rust-owned-data-package = { version = "=0.1.0", path = "../semaprax-native-rust-owned-data-package" }
 serde_json = "=1.0.151"

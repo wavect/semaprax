@@ -34,8 +34,15 @@ const MAX_PROMPT_BYTES: usize = 65_536;
 const MAX_EVENTS_BYTES: usize = 1_048_576;
 const MAX_EXPORT_BYTES: usize = 1_048_576;
 const MAX_GRAMMAR_BYTES: usize = 65_536;
-const MAX_EXECUTABLE_BINDING_BYTES: u64 = 64 * 1024 * 1024;
+/// The private host admits one complete frozen executable snapshot up to 160 MiB.
+/// This is deliberately independent from the much smaller provider wire limits.
+const MAX_EXECUTABLE_BINDING_BYTES: u64 = 160 * 1024 * 1024;
+/// Staged-executable reauthentication compares the frozen bytes incrementally.
+/// It must not allocate another executable-sized buffer while dispatching.
+const EXECUTABLE_REAUTH_BUFFER_BYTES: usize = 64 * 1024;
 const STAGED_EXECUTABLE: &str = ".semaprax-opencode-executable";
+const REPAIR_POST_SETTLED_MARKER: &str = ".semaprax-repair-post-settled-pause.json";
+const MAX_REPAIR_POST_SETTLED_MARKER_BYTES: u64 = 512;
 
 /// Host-owned process settings. Constructing this value is distinct from
 /// granting the per-call `ModelInvokeCapability`; both are required to invoke.
@@ -51,7 +58,7 @@ impl OpenCodeCancellation {
     pub fn cancel(&self) {
         self.0.store(true, Ordering::Release);
     }
-    fn is_cancelled(&self) -> bool {
+    pub(crate) fn is_cancelled(&self) -> bool {
         self.0.load(Ordering::Acquire)
     }
 }
@@ -84,11 +91,11 @@ impl OpenCodeGrammar {
 
 #[derive(Clone, Debug)]
 pub struct OpenCodeHostConfig {
-    executable: PathBuf,
+    pub(crate) executable: PathBuf,
     executable_bytes: Arc<[u8]>,
     executable_permissions: std::fs::Permissions,
-    sandbox: PathBuf,
-    executable_binding: String,
+    pub(crate) sandbox: PathBuf,
+    pub(crate) executable_binding: String,
     deadline: Duration,
     cancellation: OpenCodeCancellation,
     grammar: OpenCodeGrammar,
@@ -100,13 +107,50 @@ fn is_absolute_like(path: &std::path::Path) -> bool {
 
 impl OpenCodeHostConfig {
     /// Accepts only an absolute executable and an existing, non-symlink
-    /// workspace containing no foreign state. Exact interrupted host-owned
-    /// state is authenticated and removed before admission.
+    /// workspace containing no foreign state. A retained post-settlement
+    /// marker is admitted only so repair can bind it to an authenticated
+    /// checkpoint before removing it.
     pub fn new(
         executable: PathBuf,
         sandbox: PathBuf,
         deadline: Duration,
         grammar: OpenCodeGrammar,
+    ) -> Result<Self, String> {
+        Self::new_with_limit(
+            executable,
+            sandbox,
+            deadline,
+            grammar,
+            MAX_EXECUTABLE_BINDING_BYTES,
+        )
+    }
+
+    /// Internal image admission for a transport that does not use an OpenCode grammar.
+    pub(crate) fn new_process_image(
+        executable: PathBuf,
+        sandbox: PathBuf,
+        deadline: Duration,
+        limit: u64,
+    ) -> Result<Self, String> {
+        Self::new_with_limit(
+            executable,
+            sandbox,
+            deadline,
+            OpenCodeGrammar {
+                digest: String::new(),
+                canonical_schema: String::new(),
+                provider_schema: String::new(),
+            },
+            limit,
+        )
+    }
+
+    fn new_with_limit(
+        executable: PathBuf,
+        sandbox: PathBuf,
+        deadline: Duration,
+        grammar: OpenCodeGrammar,
+        executable_limit: u64,
     ) -> Result<Self, String> {
         if !is_absolute_like(&executable) || !is_absolute_like(&sandbox) || deadline.is_zero() {
             return Err("OpenCode host requires absolute paths and a positive deadline".into());
@@ -115,7 +159,7 @@ impl OpenCodeHostConfig {
             .canonicalize()
             .map_err(|_| "OpenCode executable must be a readable regular file".to_owned())?;
         let (executable_binding, executable_bytes, executable_permissions) =
-            executable_snapshot(&executable)
+            executable_snapshot_with_limit(&executable, executable_limit)
                 .ok_or_else(|| "OpenCode executable must be a readable regular file".to_owned())?;
         if sandbox
             .symlink_metadata()
@@ -150,7 +194,9 @@ impl OpenCodeHostConfig {
         {
             return Err("OpenCode host could not clear its interrupted session state".into());
         }
-        if !scratch_inventory_is_admitted(&sandbox, policy.as_bytes()) {
+        if !scratch_inventory_is_repair_post_settled_marker(&sandbox)
+            && !scratch_inventory_is_admitted(&sandbox, policy.as_bytes())
+        {
             return Err(
                 "OpenCode host sandbox must be empty or contain only its exact policy".into(),
             );
@@ -171,6 +217,83 @@ impl OpenCodeHostConfig {
     #[must_use]
     pub fn cancellation(&self) -> OpenCodeCancellation {
         self.cancellation.clone()
+    }
+
+    /// Records the private repair-smoke interruption point in the already
+    /// selected scratch directory. The marker grants no host capability.
+    /// Repair removes it only after a recovered checkpoint authenticates its
+    /// exact settled attempt.
+    pub(crate) fn write_repair_post_settled_marker(&self, marker: &[u8]) -> Result<(), String> {
+        if !repair_post_settled_marker_is_valid(marker)
+            || !scratch_inventory_is_empty(&self.sandbox)
+        {
+            return Err("OpenCode repair pause marker is not admissible".into());
+        }
+        let path = self.sandbox.join(REPAIR_POST_SETTLED_MARKER);
+        let mut file = std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(path)
+            .map_err(|_| "OpenCode repair pause marker cannot be created".to_owned())?;
+        file.write_all(marker)
+            .and_then(|_| file.sync_all())
+            .map_err(|_| "OpenCode repair pause marker cannot be acknowledged".to_owned())?;
+        std::fs::File::open(&self.sandbox)
+            .and_then(|directory| directory.sync_all())
+            .map_err(|_| "OpenCode repair pause marker directory cannot be acknowledged".to_owned())
+    }
+
+    /// Removes the retained marker only if its bytes equal the canonical marker
+    /// derived from an already authenticated checkpoint. A mismatch remains in
+    /// place so the caller cannot erase another controller's evidence.
+    pub(crate) fn clear_repair_post_settled_marker(
+        &self,
+        expected: Option<&[u8]>,
+    ) -> Result<bool, String> {
+        if scratch_inventory_is_empty(&self.sandbox) {
+            return Ok(false);
+        }
+        let expected = expected.ok_or_else(|| {
+            "OpenCode repair post-settlement pause marker does not match authenticated checkpoint"
+                .to_owned()
+        })?;
+        if !repair_post_settled_marker_is_valid(expected) {
+            return Err("OpenCode repair checkpoint pause marker is invalid".into());
+        }
+        let path = self.sandbox.join(REPAIR_POST_SETTLED_MARKER);
+        let before = path.symlink_metadata().map_err(|_| {
+            "OpenCode repair post-settlement pause marker is unavailable".to_owned()
+        })?;
+        let bytes = std::fs::read(&path).map_err(|_| {
+            "OpenCode repair post-settlement pause marker is unavailable".to_owned()
+        })?;
+        if !before.file_type().is_file()
+            || before.len() > MAX_REPAIR_POST_SETTLED_MARKER_BYTES
+            || !repair_post_settled_marker_is_valid(&bytes)
+            || bytes != expected
+        {
+            return Err(
+                "OpenCode repair post-settlement pause marker does not match authenticated checkpoint"
+                    .into(),
+            );
+        }
+        let after = path.symlink_metadata().map_err(|_| {
+            "OpenCode repair post-settlement pause marker changed during validation".to_owned()
+        })?;
+        #[cfg(unix)]
+        let same_inode = before.dev() == after.dev() && before.ino() == after.ino();
+        #[cfg(not(unix))]
+        let same_inode = before.len() == after.len();
+        if !same_inode
+            || std::fs::remove_file(path).is_err()
+            || std::fs::File::open(&self.sandbox)
+                .and_then(|directory| directory.sync_all())
+                .is_err()
+            || !scratch_inventory_is_empty(&self.sandbox)
+        {
+            return Err("OpenCode repair post-settlement pause marker could not be cleared".into());
+        }
+        Ok(true)
     }
 }
 
@@ -215,14 +338,14 @@ pub trait OpenCodeRunner {
 pub struct ProcessOpenCodeRunner;
 
 #[cfg(unix)]
-struct StagedExecutable {
-    path: PathBuf,
+pub(crate) struct StagedExecutable {
+    pub(crate) path: PathBuf,
     file: std::fs::File,
 }
 
 #[cfg(unix)]
 impl StagedExecutable {
-    fn create(config: &OpenCodeHostConfig) -> Result<Self, OpenCodeRunnerFailure> {
+    pub(crate) fn create(config: &OpenCodeHostConfig) -> Result<Self, OpenCodeRunnerFailure> {
         let path = config.sandbox.join(STAGED_EXECUTABLE);
         let file = std::fs::OpenOptions::new()
             .read(true)
@@ -302,20 +425,6 @@ impl Drop for StagedExecutable {
 }
 
 impl ProcessOpenCodeRunner {
-    #[cfg(unix)]
-    fn kill_group(child: &mut std::process::Child) {
-        if let Some(group) = rustix::process::Pid::from_raw(child.id() as i32) {
-            let _ = rustix::process::kill_process_group(group, rustix::process::Signal::KILL);
-        }
-    }
-
-    #[cfg(unix)]
-    fn terminate(child: &mut std::process::Child) {
-        Self::kill_group(child);
-        let _ = child.kill();
-        let _ = child.wait();
-    }
-
     fn capture(
         config: &OpenCodeHostConfig,
         args: &[String],
@@ -352,85 +461,15 @@ impl ProcessOpenCodeRunner {
                 .stdin(Stdio::null())
                 .stdout(Stdio::piped())
                 .stderr(Stdio::null());
-            command.process_group(0);
-            let mut child = command
-                .spawn()
-                .map_err(|_| OpenCodeRunnerFailure::Refused)?;
-            let Some(stdout) = child.stdout.take() else {
-                Self::terminate(&mut child);
-                return Err(OpenCodeRunnerFailure::Provider);
-            };
-            let flags = match rustix::fs::fcntl_getfl(&stdout) {
-                Ok(flags) => flags,
-                Err(_) => {
-                    Self::terminate(&mut child);
-                    return Err(OpenCodeRunnerFailure::Provider);
-                }
-            };
-            if rustix::fs::fcntl_setfl(&stdout, flags | rustix::fs::OFlags::NONBLOCK).is_err() {
-                Self::terminate(&mut child);
-                return Err(OpenCodeRunnerFailure::Provider);
-            }
-            let mut output = Vec::new();
-            let mut eof = false;
-            let mut status = None;
-            let mut chunk = [0u8; 8192];
-            loop {
-                if config.cancellation.is_cancelled() {
-                    Self::terminate(&mut child);
-                    return Err(OpenCodeRunnerFailure::Cancelled);
-                }
-                if Instant::now() >= deadline {
-                    Self::terminate(&mut child);
-                    return Err(OpenCodeRunnerFailure::Timeout);
-                }
-                loop {
-                    match rustix::io::read(&stdout, &mut chunk[..]) {
-                        Ok(0) => {
-                            eof = true;
-                            break;
-                        }
-                        Ok(count) if output.len().saturating_add(count) <= limit => {
-                            output.extend_from_slice(&chunk[..count])
-                        }
-                        Ok(_) => {
-                            Self::terminate(&mut child);
-                            return Err(OpenCodeRunnerFailure::Malformed);
-                        }
-                        Err(rustix::io::Errno::AGAIN) => break,
-                        Err(_) => {
-                            Self::terminate(&mut child);
-                            return Err(OpenCodeRunnerFailure::Provider);
-                        }
-                    }
-                }
-                if status.is_none() {
-                    match child.try_wait() {
-                        Ok(Some(exit)) => {
-                            status = Some(exit);
-                            // The leader may have exited while a descendant still
-                            // owns stdout. Group kill forces the pipe to EOF.
-                            Self::kill_group(&mut child);
-                        }
-                        Ok(None) => {}
-                        Err(_) => {
-                            Self::terminate(&mut child);
-                            return Err(OpenCodeRunnerFailure::Provider);
-                        }
-                    }
-                }
-                if let Some(exit) = status {
-                    if eof {
-                        return if exit.success() && !output.is_empty() {
-                            Ok(output)
-                        } else {
-                            Err(provider_error::classify_provider_failure(&output)
-                                .map(OpenCodeRunnerFailure::ProviderStatus)
-                                .unwrap_or(OpenCodeRunnerFailure::Provider))
-                        };
-                    }
-                }
-                std::thread::sleep(Duration::from_millis(5));
+            let (exit, output) = crate::bounded_capture::capture(command, deadline, limit, || {
+                config.cancellation.is_cancelled()
+            })?;
+            if exit.success() && !output.is_empty() {
+                Ok(output)
+            } else {
+                Err(provider_error::classify_provider_failure(&output)
+                    .map(OpenCodeRunnerFailure::ProviderStatus)
+                    .unwrap_or(OpenCodeRunnerFailure::Provider))
             }
         }
     }
@@ -507,7 +546,17 @@ impl OpenCodeRunner for ProcessOpenCodeRunner {
 }
 
 fn policy_document() -> String {
-    serde_json::json!({"$schema":"https://opencode.ai/config.json", "snapshot":false, "agent": {OPENCODE_AGENT: {
+    // OpenCode's built-in title agent otherwise dispatches a separate small
+    // model before the selected agent. Disable auxiliary model work rather
+    // than charging unobserved calls to one checked source attempt.
+    serde_json::json!({"$schema":"https://opencode.ai/config.json", "snapshot":false,
+        "model": OPENCODE_MODEL, "small_model": OPENCODE_MODEL,
+        "enabled_providers": ["opencode"],
+        "compaction": {"auto":false, "prune":false},
+        "agent": {
+        "title":{"disable":true}, "summary":{"disable":true}, "compaction":{"disable":true},
+        OPENCODE_AGENT: {
+        "model": OPENCODE_MODEL,
         "permission":{"*":"deny"}, "steps":1,
         "prompt":"You return canonical structured responses. All schema and context are supplied in the user message. Never inspect files or call tools. Do not narrate plans or explain your work. Return only the requested JSON document, without markdown or extra text. After the final closing brace, press Enter exactly once: the final byte must be a literal newline (U+000A). Do not output a backslash followed by n, and do not omit the newline."
     }}}).to_string()
@@ -541,6 +590,69 @@ fn scratch_inventory_is_empty(sandbox: &std::path::Path) -> bool {
         .read_dir()
         .map(|mut entries| entries.next().is_none())
         .unwrap_or(false)
+}
+
+pub(crate) fn scratch_inventory_is_repair_post_settled_marker(sandbox: &std::path::Path) -> bool {
+    let Ok(mut entries) = sandbox.read_dir() else {
+        return false;
+    };
+    let Some(Ok(entry)) = entries.next() else {
+        return false;
+    };
+    if entries.next().is_some() || entry.file_name() != REPAIR_POST_SETTLED_MARKER {
+        return false;
+    }
+    let path = entry.path();
+    path.symlink_metadata()
+        .map(|metadata| {
+            metadata.file_type().is_file() && metadata.len() <= MAX_REPAIR_POST_SETTLED_MARKER_BYTES
+        })
+        .unwrap_or(false)
+        && std::fs::read(path)
+            .map(|bytes| repair_post_settled_marker_is_valid(&bytes))
+            .unwrap_or(false)
+}
+
+fn repair_post_settled_marker_is_valid(bytes: &[u8]) -> bool {
+    let Ok(value) = serde_json::from_slice::<serde_json::Value>(bytes) else {
+        return false;
+    };
+    let Some(object) = value.as_object() else {
+        return false;
+    };
+    const KEYS: [&str; 6] = [
+        "schema",
+        "invocation",
+        "checkpoint_generation",
+        "turn",
+        "attempt",
+        "response_digest",
+    ];
+    object.len() == KEYS.len()
+        && KEYS.iter().all(|key| object.contains_key(*key))
+        && object.get("schema").and_then(serde_json::Value::as_str)
+            == Some("semaprax.source-live-cli.repair-post-settled-pause.v1")
+        && object
+            .get("invocation")
+            .and_then(serde_json::Value::as_str)
+            .is_some_and(|value| !value.is_empty() && value.len() <= 256)
+        && object
+            .get("checkpoint_generation")
+            .and_then(serde_json::Value::as_u64)
+            .is_some_and(|value| value > 0)
+        && object
+            .get("turn")
+            .and_then(serde_json::Value::as_u64)
+            .is_some_and(|value| u32::try_from(value).is_ok())
+        && object
+            .get("attempt")
+            .and_then(serde_json::Value::as_u64)
+            .is_some_and(|value| u32::try_from(value).is_ok())
+        && object
+            .get("response_digest")
+            .and_then(serde_json::Value::as_str)
+            .is_some_and(|value| !value.is_empty() && value.len() <= 96)
+        && serde_json::to_vec(&value).is_ok_and(|canonical| canonical == bytes)
 }
 
 fn scratch_inventory_is_admitted(sandbox: &std::path::Path, policy: &[u8]) -> bool {
@@ -661,30 +773,45 @@ fn held_file_matches(file: &mut std::fs::File, expected: &[u8]) -> bool {
     if file.seek(SeekFrom::Start(0)).is_err() {
         return false;
     }
-    let mut actual = Vec::with_capacity(expected.len());
-    let read = Read::by_ref(file)
-        .take(MAX_EXECUTABLE_BINDING_BYTES + 1)
-        .read_to_end(&mut actual)
-        .is_ok();
+    let read = frozen_bytes_match(file, expected);
     let rewound = file.seek(SeekFrom::Start(0)).is_ok();
-    read && rewound && actual == expected
+    read && rewound
+}
+
+fn frozen_bytes_match(reader: &mut impl Read, expected: &[u8]) -> bool {
+    let mut actual = [0_u8; EXECUTABLE_REAUTH_BUFFER_BYTES];
+    let read = expected
+        .chunks(EXECUTABLE_REAUTH_BUFFER_BYTES)
+        .all(|expected| {
+            reader.read_exact(&mut actual[..expected.len()]).is_ok()
+                && actual[..expected.len()] == expected[..]
+        });
+    let mut trailing = [0_u8; 1];
+    read && matches!(reader.read(&mut trailing), Ok(0))
 }
 
 fn executable_snapshot(path: &std::path::Path) -> Option<(String, Vec<u8>, std::fs::Permissions)> {
+    executable_snapshot_with_limit(path, MAX_EXECUTABLE_BINDING_BYTES)
+}
+
+pub(crate) fn executable_snapshot_with_limit(
+    path: &std::path::Path,
+    limit: u64,
+) -> Option<(String, Vec<u8>, std::fs::Permissions)> {
     if !path.symlink_metadata().ok()?.file_type().is_file() {
         return None;
     }
     let mut file = std::fs::File::open(path).ok()?;
     let metadata = file.metadata().ok()?;
-    if !metadata.is_file() || metadata.len() > MAX_EXECUTABLE_BINDING_BYTES {
+    if !metadata.is_file() || metadata.len() > limit {
         return None;
     }
     let mut bytes = Vec::with_capacity(metadata.len() as usize);
     Read::by_ref(&mut file)
-        .take(MAX_EXECUTABLE_BINDING_BYTES + 1)
+        .take(limit + 1)
         .read_to_end(&mut bytes)
         .ok()?;
-    if bytes.len() as u64 > MAX_EXECUTABLE_BINDING_BYTES {
+    if bytes.len() as u64 > limit {
         return None;
     }
     let mut hasher = Sha256::new();

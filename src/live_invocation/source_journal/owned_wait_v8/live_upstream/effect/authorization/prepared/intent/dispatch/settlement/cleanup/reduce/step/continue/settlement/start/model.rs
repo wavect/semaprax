@@ -169,15 +169,42 @@ fn guard_model_checked(
 /// original Resume ACK. Its borrowed lineage cannot replace that owner.
 pub(crate) struct LiveContinuedWaitResumePermitV8<'p, 'j> {
     held: HeldOwnedWaitStoreV8<'j>,
-    lineage: &'p ContinueLineageV8<'j>,
+    lineage: ResumeLineageV8<'p, 'j>,
     session: &'p AppendSessionV8<'j>,
     witness: &'p VerifiedOwnedContinuedModelSuccessorV8<'j>,
     fuel: usize,
 }
+enum ResumeLineageV8<'p, 'j> {
+    First(&'p ContinueLineageV8<'j>),
+    Later(&'p super::super::super::later::LaterContinueLineageV8<'j>),
+}
 impl LiveContinuedWaitResumePermitV8<'_, '_> {
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn later<'p, 'j>(
+        held: HeldOwnedWaitStoreV8<'j>,
+        lineage: &'p super::super::super::later::LaterContinueLineageV8<'j>,
+        session: &'p AppendSessionV8<'j>,
+        witness: &'p VerifiedOwnedContinuedModelSuccessorV8<'j>,
+        fuel: usize,
+    ) -> LiveContinuedWaitResumePermitV8<'p, 'j> {
+        LiveContinuedWaitResumePermitV8 {
+            held,
+            lineage: ResumeLineageV8::Later(lineage),
+            session,
+            witness,
+            fuel,
+        }
+    }
     pub(crate) fn validate_guard(&self) -> Result<(), SourceJournalError> {
-        guard_model(self.lineage, self.session, self.witness, true)?;
-        if !matches!(self.witness.selected_row(),EntryV8::Owned(crate::live_invocation::source_journal::owned_wait_v8::model::OwnedBodyV8::OwnedWaitReserved{turn,attempt:0,phase:crate::live_invocation::source_journal::owned_wait_v8::model::PhaseV8::Resume,replay_of:None,fuel,..})if *turn==self.lineage.turn&&*fuel==self.fuel as u64)
+        let turn_number = match self.lineage {
+            ResumeLineageV8::First(lineage) => {
+                guard_model(lineage, self.session, self.witness, true)?;
+                lineage.turn
+            }
+            ResumeLineageV8::Later(lineage) => {
+                lineage.validate_resume_guard(self.session, self.witness)?
+            }
+        };
+        if !matches!(self.witness.selected_row(),EntryV8::Owned(crate::live_invocation::source_journal::owned_wait_v8::model::OwnedBodyV8::OwnedWaitReserved{turn,attempt:0,phase:crate::live_invocation::source_journal::owned_wait_v8::model::PhaseV8::Resume,replay_of:None,fuel,..})if *turn==turn_number&&*fuel==self.fuel as u64)
         {
             return Err(SourceJournalError::Binding);
         }
@@ -362,7 +389,7 @@ impl<'j> ContinuedStartedWaitV8<'j> {
         };
         let permit = LiveContinuedWaitResumePermitV8 {
             held,
-            lineage: &lineage,
+            lineage: ResumeLineageV8::First(&lineage),
             session,
             witness,
             fuel,
@@ -493,6 +520,27 @@ impl<'j> ContinuedStartedWaitV8<'j> {
         &mut self,
         policy: &'j crate::resumable_effects::capability::CapabilityPolicy,
     ) {
-        self.lineage.step.reduce.cleanup.recorded.intent.policy = policy;
+        self.lineage
+            .step
+            .first_mut()
+            .reduce
+            .cleanup
+            .recorded
+            .intent
+            .policy = policy;
+    }
+}
+
+impl<'j> ContinuedResumedWaitV8<'j> {
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn from_later_resume(
+        outcome: LiveContinuedWaitResumeOutcomeV8<'j>,
+        accounting: TargetAccounting,
+        lineage: ContinueLineageV8<'j>,
+    ) -> Self {
+        Self {
+            outcome: ContinuedResumeOutcomeV8::Actual(outcome),
+            accounting,
+            lineage,
+        }
     }
 }

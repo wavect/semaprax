@@ -21,6 +21,8 @@ mod cleanup_census;
 mod cleanup_regions;
 #[path = "tests/hir_traversal.rs"]
 mod hir_traversal;
+#[path = "tests/indexed_scalar.rs"]
+mod indexed_scalar;
 #[path = "tests/ledger_capacity.rs"]
 mod ledger_capacity;
 #[path = "tests/linked_bundle.rs"]
@@ -53,6 +55,7 @@ const IMPLEMENTATION_SOURCE: &str = concat!(
     include_str!("stages.rs"),
     include_str!("authority.rs"),
     include_str!("platform_stage.rs"),
+    include_str!("rich_binding.rs"),
 );
 
 /// The complete capacity module, root first.
@@ -94,6 +97,7 @@ const TESTS_SOURCE: &str = concat!(
     include_str!("tests/source_census.rs"),
     include_str!("tests/cleanup_census.rs"),
     include_str!("tests/hir_traversal.rs"),
+    include_str!("tests/indexed_scalar.rs"),
     include_str!("tests/cleanup_regions.rs"),
     include_str!("tests/resolved_disposal.rs"),
     include_str!("tests/linked_bundle.rs"),
@@ -140,6 +144,70 @@ fn fixture() -> (Program, String) {
     };
     let canonical = render_spec(&spec);
     (program, canonical)
+}
+
+const RICH_SOURCE: &str = r#"module interop.rich_fixture;
+
+permit { host.math }
+
+@id("host.math")
+interface HostMath
+    permits { host.math }
+{
+    @id("host.add")
+    import rust fn host_add(left: i64, right: i64) -> i64
+        effects { host.math }
+        failure infallible;
+
+    @id("host.checked_div")
+    import rust fn host_checked_div(left: i64, right: i64) -> i64
+        effects { host.math }
+        failure status "fixture.math.v1";
+}
+
+@id("interop.rich.add")
+fn add(left: i64, right: i64) -> i64
+    uses { host.math }
+{
+    host_add(left, right) + right
+}
+
+@id("interop.rich.checked_div")
+fn checked_div(left: i64, right: i64) -> i64
+    uses { host.math }
+{
+    host_checked_div(left, right)
+}
+
+@id("interop.rich.semantic_div")
+fn semantic_div(left: i64, right: i64) -> i64
+{
+    left / right
+}
+
+@id("interop.rich.main")
+fn main() -> i64
+{
+    0
+}
+"#;
+
+fn rich_fixture() -> (Program, String) {
+    let program = crate::parse(RICH_SOURCE, Path::new("native-rust-rich-interop.spx")).unwrap();
+    let source = crate::format::canonical(&program);
+    let spec = Spec {
+        module: program.module.clone(),
+        source_revision: Some(domain_digest(SOURCE_DOMAIN, source.as_bytes())),
+        target: current_target().unwrap(),
+        exports: vec![
+            "interop.rich.add".to_owned(),
+            "interop.rich.checked_div".to_owned(),
+            "interop.rich.semantic_div".to_owned(),
+        ],
+        imports: vec!["host.add".to_owned(), "host.checked_div".to_owned()],
+        capabilities: vec!["host.math".to_owned()],
+    };
+    (program, render_spec(&spec))
 }
 
 #[derive(Default)]

@@ -445,6 +445,89 @@ fn a_parameter_range_is_a_hypothesis_and_an_arithmetic_range_is_a_goal() {
     assert!(!lean.contains("(h_range"));
 }
 
+#[test]
+fn lean_short_circuit_range_goal_is_guarded() {
+    let source = with_main(
+        "module app.t;\n@id(\"app.t.short\")\nfn short(a: i64) -> i64\n    requires a == 0\n    ensures a == 0 || a + 1 > 0\n{ a }\n",
+    );
+    let parsed = program(&source);
+    let export = export_function(&parsed.functions[0]).expect("common scalar subset");
+    let ranges: Vec<_> = export
+        .obligations
+        .iter()
+        .filter(|obligation| obligation.kind == "checked_arithmetic_range")
+        .collect();
+    assert_eq!(ranges.len(), 1);
+    assert!(ranges[0].goal.contains("¬(v_a = (0 : Int))"));
+    assert!(ranges[0].goal.contains("→"));
+}
+
+#[test]
+fn smt_and_lean_common_subset_share_typed_operations() {
+    let source = with_main(
+        "module app.t;\n@id(\"app.t.shared\")\nfn shared(a: i64, b: i64) -> i64\n    requires a >= 0\n    ensures result >= a && (a == 0 || b + 1 > 0)\n{ a + b }\n",
+    );
+    let parsed = program(&source);
+    let function = &parsed.functions[0];
+    let subject = assurance_manifest::law_vc::build(function).expect("typed subject");
+    let smt = assurance_manifest::smt_discharge::translate_function(function).expect("SMT");
+    let lean = export_function(function).expect("Lean");
+    let smt_ranges = smt.shared_obligations.len()
+        + smt
+            .ensures
+            .iter()
+            .map(|clause| clause.obligations.len())
+            .sum::<usize>();
+    let lean_ranges = lean
+        .obligations
+        .iter()
+        .filter(|obligation| obligation.kind == "checked_arithmetic_range")
+        .count();
+    assert_eq!(subject.operations.len(), 2);
+    assert_eq!(smt_ranges, subject.operations.len());
+    assert_eq!(lean_ranges, subject.operations.len());
+    assert_eq!(
+        subject.operations[0].stage,
+        assurance_manifest::law_vc::Stage::Body
+    );
+    assert_eq!(
+        subject.operations[1].stage,
+        assurance_manifest::law_vc::Stage::Ensures(0)
+    );
+    assert_eq!(
+        subject.operations[1]
+            .path
+            .iter()
+            .map(|choice| choice.value)
+            .collect::<Vec<_>>(),
+        vec![true, false]
+    );
+    assert!(smt.ensures[0].obligations[0]
+        .guard
+        .contains("(not (= a 0))"));
+    assert!(lean.obligations[1].goal.contains("¬(v_a = (0 : Int))"));
+}
+
+#[test]
+fn contradictory_requires_never_reaches_lean_kernel_as_a_practical_law() {
+    let source = with_main(
+        "module app.t;\n@id(\"app.t.empty\")\nfn empty(a: i64) -> i64\n    requires a > 0\n    requires a < 0\n    ensures result == a\n{ a }\n",
+    );
+    let kernel = CountingKernel {
+        calls: Cell::new(0),
+    };
+    let errors = super::source_certificate(
+        &source,
+        Path::new("empty-domain.spx"),
+        "app.t.empty",
+        0,
+        &kernel,
+    )
+    .expect_err("empty domain cannot become a Lean practical-law certificate");
+    assert!(errors[0].message.contains("domain is unknown"));
+    assert_eq!(kernel.calls.get(), 0);
+}
+
 // ---------------------------------------------------------------------
 // Kernel result parsing: nothing but a clean acceptance is a proof
 // ---------------------------------------------------------------------
@@ -634,6 +717,55 @@ fn artifact_binding_accepts_only_the_exact_bound_bytes() {
     mutated.push(0);
     assert!(verify_certificate_against_artifact(&certificate, &mutated).is_err());
     std::fs::remove_file(&path).ok();
+}
+
+#[test]
+fn trust_chain_view_separates_kernel_artifact_lowering_and_runtime_status() {
+    let path = write_temp(FIXTURE, "trust-chain");
+    let certificate = certificate_for(&path);
+    let parsed = crate::parse(&std::fs::read_to_string(&path).unwrap(), &path).unwrap();
+    let resolved = crate::hir::resolve(&parsed).unwrap();
+    let artifact = crate::wasm::emit_resolved_module(&resolved).unwrap();
+    let recorded = super::render_trust_chain_view(&certificate, &path, &artifact, None).unwrap();
+    let recorded: serde_json::Value = serde_json::from_str(&recorded).unwrap();
+    assert_eq!(recorded["schema"], super::TRUST_CHAIN_VIEW_SCHEMA);
+    assert_eq!(recorded["external_proof_result"]["status"], "recorded_only");
+    assert_eq!(
+        recorded["external_proof_result"]["tcb"],
+        "caller_supplied_kernel_capability"
+    );
+    assert_eq!(
+        recorded["compiler_lowering_identity"]["status"],
+        "trusted_unproved_lowering"
+    );
+    assert_eq!(
+        recorded["artifact_binding"]["status"],
+        "checked_exact_bytes"
+    );
+    assert_eq!(recorded["runtime_boundary"]["status"], "unexecuted");
+    let replayed =
+        super::render_trust_chain_view(&certificate, &path, &artifact, Some(&AcceptingKernel))
+            .unwrap();
+    let replayed: serde_json::Value = serde_json::from_str(&replayed).unwrap();
+    assert_eq!(
+        replayed["external_proof_result"]["status"],
+        "proved_by_replayed_kernel"
+    );
+    let mut wrong_artifact = artifact;
+    wrong_artifact.push(0);
+    let error = super::render_trust_chain_view(&certificate, &path, &wrong_artifact, None)
+        .expect_err("wrong artifact must refuse the entire view");
+    assert_eq!(error.code, "SPX-Z112");
+    std::fs::write(&path, with_main(&FIXTURE.replace("a + b", "a - b"))).unwrap();
+    let error = super::render_trust_chain_view(
+        &certificate,
+        &path,
+        &wrong_artifact[..wrong_artifact.len() - 1],
+        None,
+    )
+    .expect_err("source drift must refuse the entire view");
+    assert_eq!(error.code, "SPX-Z112");
+    std::fs::remove_file(path).ok();
 }
 
 #[test]

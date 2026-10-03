@@ -541,11 +541,33 @@ fn fail_before_publish(
     PublicBuildError::One(primary)
 }
 
+#[derive(Clone, Copy)]
+struct IndexedProjectSources<'a> {
+    plans: &'a [semaprax::native_rust_binding::ScalarBindingPlan],
+    sources: &'a [&'a str],
+    rustc: &'a str,
+    foreign_guard: Option<package::ForeignReturnGuard<'a>>,
+    prepublish: Option<&'a dyn Fn(&str) -> Result<(), Diagnostic>>,
+}
+
 enum SdkInput<'a> {
     Source(&'a crate::ast::Program),
+    IndexedSource {
+        program: &'a crate::ast::Program,
+        plan: &'a semaprax::native_rust_binding::ScalarBindingPlan,
+        package_source: &'a str,
+        selected_rustc: &'a str,
+    },
+    IndexedSources {
+        program: &'a crate::ast::Program,
+        plans: &'a [semaprax::native_rust_binding::ScalarBindingPlan],
+        package_sources: &'a [&'a str],
+        selected_rustc: &'a str,
+    },
     Project {
         program: &'a crate::hir::ResolvedProgram,
         subject: &'a ProjectSdkSubject,
+        indexed: Option<IndexedProjectSources<'a>>,
     },
 }
 
@@ -555,6 +577,46 @@ pub(super) fn build_native_rust_sdk_inner(
     output: &Path,
 ) -> Result<NativeRustSdkBundle, PublicBuildError> {
     build_sdk_inner(SdkInput::Source(program), options, output)
+}
+
+pub(super) fn build_indexed_scalar_sdk_inner(
+    program: &crate::ast::Program,
+    plan: &semaprax::native_rust_binding::ScalarBindingPlan,
+    package_source: &str,
+    selected_rustc: &str,
+    options: NativeRustSdkOptions,
+    output: &Path,
+) -> Result<NativeRustSdkBundle, PublicBuildError> {
+    build_sdk_inner(
+        SdkInput::IndexedSource {
+            program,
+            plan,
+            package_source,
+            selected_rustc,
+        },
+        options,
+        output,
+    )
+}
+
+pub(super) fn build_indexed_scalars_sdk_inner(
+    program: &crate::ast::Program,
+    plans: &[semaprax::native_rust_binding::ScalarBindingPlan],
+    package_sources: &[&str],
+    selected_rustc: &str,
+    options: NativeRustSdkOptions,
+    output: &Path,
+) -> Result<NativeRustSdkBundle, PublicBuildError> {
+    build_sdk_inner(
+        SdkInput::IndexedSources {
+            program,
+            plans,
+            package_sources,
+            selected_rustc,
+        },
+        options,
+        output,
+    )
 }
 
 pub(super) fn build_project_native_rust_sdk_inner(
@@ -567,7 +629,47 @@ pub(super) fn build_project_native_rust_sdk_inner(
         imports: subject.imports.clone(),
         capabilities: subject.capabilities.clone(),
     };
-    build_sdk_inner(SdkInput::Project { program, subject }, options, output)
+    build_sdk_inner(
+        SdkInput::Project {
+            program,
+            subject,
+            indexed: None,
+        },
+        options,
+        output,
+    )
+}
+
+pub(super) fn build_indexed_project_sdk_inner(
+    program: &crate::hir::ResolvedProgram,
+    subject: &ProjectSdkSubject,
+    plans: &[semaprax::native_rust_binding::ScalarBindingPlan],
+    sources: &[&str],
+    rustc: &str,
+    foreign_guard: Option<package::ForeignReturnGuard<'_>>,
+    prepublish: Option<&dyn Fn(&str) -> Result<(), Diagnostic>>,
+    output: &Path,
+) -> Result<NativeRustSdkBundle, PublicBuildError> {
+    let options = NativeRustSdkOptions {
+        exports: subject.exports.iter().map(|fact| fact.id.clone()).collect(),
+        imports: subject.imports.clone(),
+        capabilities: subject.capabilities.clone(),
+    };
+    build_sdk_inner(
+        SdkInput::Project {
+            program,
+            subject,
+            indexed: Some(IndexedProjectSources {
+                plans,
+                sources,
+                rustc,
+                foreign_guard,
+                prepublish,
+            }),
+        },
+        options,
+        output,
+    )
 }
 
 fn build_sdk_inner(
@@ -591,13 +693,17 @@ fn build_sdk_inner(
     let target = target_triple()
         .ok_or_else(|| sdk_error("Native Rust SDK current target is unsupported"))?;
     let (module, source_revision, spec) = match &input {
-        SdkInput::Source(program) => {
+        SdkInput::Source(program)
+        | SdkInput::IndexedSource { program, .. }
+        | SdkInput::IndexedSources { program, .. } => {
             let canonical_source = semaprax::format::canonical(program);
             let revision = domain_digest(SOURCE_DOMAIN, canonical_source.as_bytes());
             let spec = canonical_spec(&program.module, &revision, target, &options)?;
             (program.module.as_str(), revision, spec)
         }
-        SdkInput::Project { program, subject } => {
+        SdkInput::Project {
+            program, subject, ..
+        } => {
             if program.module != subject.entry_module {
                 return Err(sdk_error("Native Rust Project SDK subject replay failed").into());
             }
@@ -748,6 +854,44 @@ fn build_sdk_inner(
             spec.as_bytes(),
             &inner_path,
         ),
+        SdkInput::IndexedSource {
+            program,
+            plan,
+            package_source,
+            selected_rustc,
+        } => crate::implementation::build_indexed_native_rust_interop_bundle_checked(
+            program,
+            spec.as_bytes(),
+            plan,
+            package_source,
+            selected_rustc,
+            &inner_path,
+        ),
+        SdkInput::IndexedSources {
+            program,
+            plans,
+            package_sources,
+            selected_rustc,
+        } => crate::implementation::build_indexed_native_rust_interop_bundles_checked(
+            program,
+            spec.as_bytes(),
+            plans,
+            package_sources,
+            selected_rustc,
+            &inner_path,
+        ),
+        SdkInput::Project {
+            program,
+            indexed: Some(indexed),
+            ..
+        } => crate::implementation::build_indexed_project_native_rust_interop_bundle_checked(
+            program,
+            spec.as_bytes(),
+            indexed.plans,
+            indexed.sources,
+            indexed.rustc,
+            &inner_path,
+        ),
         SdkInput::Project { program, .. } => {
             crate::implementation::build_project_native_rust_interop_bundle(
                 program,
@@ -810,7 +954,9 @@ fn build_sdk_inner(
             object_name,
         };
         match &input {
-            SdkInput::Source(_) => verify_inner_payload_bindings(
+            SdkInput::Source(_)
+            | SdkInput::IndexedSource { .. }
+            | SdkInput::IndexedSources { .. } => verify_inner_payload_bindings(
                 &inner_manifest,
                 &artifacts,
                 inner_facts.manifest_digest(),
@@ -824,7 +970,9 @@ fn build_sdk_inner(
             )?,
         }
         let descriptor_facts = match &input {
-            SdkInput::Source(_) => {
+            SdkInput::Source(_)
+            | SdkInput::IndexedSource { .. }
+            | SdkInput::IndexedSources { .. } => {
                 parse_descriptor(&descriptor, module, &source_revision, target, &options)?
             }
             SdkInput::Project { subject, .. } => {
@@ -832,7 +980,9 @@ fn build_sdk_inner(
             }
         };
         let project_manifest = match &input {
-            SdkInput::Source(_) => None,
+            SdkInput::Source(_)
+            | SdkInput::IndexedSource { .. }
+            | SdkInput::IndexedSources { .. } => None,
             SdkInput::Project { subject, .. } => Some(
                 semaprax::project::ProjectManifest::parse(&subject.manifest)
                     .map_err(|_| sdk_error("Native Rust Project SDK subject replay failed"))?,
@@ -841,8 +991,37 @@ fn build_sdk_inner(
         let rust_dependencies = project_manifest
             .as_ref()
             .map_or(&[][..], |manifest| manifest.rust_dependencies());
-        let sources =
-            render_package_sources(&descriptor_facts, &options.capabilities, rust_dependencies);
+        let indexed = match &input {
+            SdkInput::IndexedSource {
+                plan,
+                package_source,
+                ..
+            } => Some(package::IndexedSources::Single(*plan, *package_source)),
+            SdkInput::IndexedSources {
+                plans,
+                package_sources,
+                ..
+            } => Some(package::IndexedSources::Multiple(
+                plans,
+                package_sources,
+                None,
+            )),
+            SdkInput::Project {
+                indexed: Some(indexed),
+                ..
+            } => Some(package::IndexedSources::Multiple(
+                indexed.plans,
+                indexed.sources,
+                indexed.foreign_guard,
+            )),
+            _ => None,
+        };
+        let sources = render_package_sources(
+            &descriptor_facts,
+            &options.capabilities,
+            rust_dependencies,
+            indexed,
+        );
         Ok((
             descriptor,
             inner_manifest,
@@ -994,7 +1173,9 @@ fn build_sdk_inner(
     record_test_build_stage(TestBuildLastStage::OuterStageCreated);
     let outer_result = (|| -> Result<String, Diagnostic> {
         let manifest_subject = match &input {
-            SdkInput::Source(_) => SdkManifestSubject::Source,
+            SdkInput::Source(_)
+            | SdkInput::IndexedSource { .. }
+            | SdkInput::IndexedSources { .. } => SdkManifestSubject::Source,
             SdkInput::Project { subject, .. } => SdkManifestSubject::Project(subject),
         };
         let manifest_inputs = SdkManifestInputs {
@@ -1027,6 +1208,18 @@ fn build_sdk_inner(
             &mut src_stage_scan,
             &mut native_stage_scan,
         )?;
+        if let SdkInput::Project {
+            indexed: Some(indexed),
+            ..
+        } = &input
+        {
+            if let Some(prepublish) = indexed.prepublish {
+                prepublish(&domain_digest(
+                    PROJECT_SDK_MANIFEST_DOMAIN,
+                    manifest.as_bytes(),
+                ))?;
+            }
+        }
         #[cfg(test)]
         record_test_build_stage(TestBuildLastStage::OuterInventoryAuthenticated);
         Ok(manifest)
@@ -1134,7 +1327,9 @@ fn build_sdk_inner(
     #[cfg(test)]
     record_test_build_stage(TestBuildLastStage::PublishedPackageAuthenticated);
     let manifest_subject = match &input {
-        SdkInput::Source(_) => SdkManifestSubject::Source,
+        SdkInput::Source(_) | SdkInput::IndexedSource { .. } | SdkInput::IndexedSources { .. } => {
+            SdkManifestSubject::Source
+        }
         SdkInput::Project { subject, .. } => SdkManifestSubject::Project(subject),
     };
     verify_sdk_manifest(

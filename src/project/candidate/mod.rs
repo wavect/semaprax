@@ -26,6 +26,7 @@ mod catalog;
 mod cleanup_dependencies;
 mod contract_delta;
 mod declaration;
+mod deletion;
 mod delta;
 mod dependency_navigation;
 mod deployment_contract_evidence;
@@ -36,6 +37,8 @@ mod draft_navigation;
 mod draft_suggestions;
 mod environment_consumer_review;
 mod environment_review;
+mod explorer;
+pub use explorer::CandidateExplorerView;
 mod expression;
 mod external_api_contract_delta;
 mod external_api_contract_evidence;
@@ -49,19 +52,27 @@ mod impact_navigation;
 mod intent;
 mod interface;
 mod interface_delta;
+mod law_rewrite;
 mod merge_preview;
 mod movement;
 mod multi_agent_coordination;
 mod owned_workflow_approval;
 mod ownership_delta;
 mod package_consumer_replay;
+mod protected_laws;
 mod public_generic_delta;
+pub use protected_laws::apply_protected_law_publication;
 mod publication;
 mod rebase;
 mod record_field;
 mod recovery;
 mod schemas;
 mod source_review;
+mod strict_law_assurance;
+pub use strict_law_assurance::{
+    apply_strict_law_publication, prepare_strict_law_publication, StrictCandidateLawInputs,
+    StrictLawPublication, STRICT_CANDIDATE_LAW_SCHEMA, STRICT_LAW_PUBLICATION_SCHEMA,
+};
 mod testing;
 mod type_declaration;
 mod type_rename;
@@ -369,6 +380,11 @@ pub struct ProjectCandidate {
     digest: String,
     // Derived only from this immutable candidate; never serialized or authority.
     source_review_cache: OnceLock<Result<Arc<str>, Vec<Diagnostic>>>,
+    // One bounded derived image per immutable candidate side. These retain
+    // compiler-owned indexes for summary/page requests and are never part of
+    // candidate bytes or authority.
+    base_explorer_image_cache: OnceLock<Result<super::ProjectSemanticImage, Vec<Diagnostic>>>,
+    candidate_explorer_image_cache: OnceLock<Result<super::ProjectSemanticImage, Vec<Diagnostic>>>,
     // Set only when this candidate's last applied change was a body-expression
     // `replace_expression`; the isolated canonical text of the new expression,
     // independent of the rest of the file. Not part of `json`/`digest`: it is
@@ -418,6 +434,7 @@ impl ProjectCandidate {
         let mut movement = None;
         let mut implementation_addition = None;
         let mut type_addition = None;
+        let mut deletion = None;
         let mut nominal_rename = None;
         let mut replacement_preview = None;
         let generic_rename = generic_rename::plan(&self.revision, &programs, &change.intent)?;
@@ -479,6 +496,12 @@ impl ProjectCandidate {
                     (summary, Some(addition))
                 }
             }
+            Some("delete_declaration") => {
+                let (summary, removed) =
+                    deletion::apply(&self.revision, &mut programs, &change.intent)?;
+                deletion = Some(removed);
+                (summary, None)
+            }
             Some("extract_function") => {
                 let (summary, addition) =
                     extraction::apply(&self.revision, &mut programs, &change.intent)?;
@@ -530,6 +553,14 @@ impl ProjectCandidate {
                 "effects":addition.effects, "requires":addition.requires_count, "ensures":addition.ensures_count,
             })).is_some() {
                 return Err(invalid("declaration addition replaced an existing identity"));
+            }
+        }
+        if let Some(removed) = &deletion {
+            let functions = before[&removed.path]["functions"]
+                .as_object_mut()
+                .ok_or_else(|| invalid("deletion owner is absent from source inventory"))?;
+            if functions.remove(&removed.id).is_none() {
+                return Err(invalid("deleted function is absent from source inventory"));
             }
         }
         if summary.kind == "add_contract" {
@@ -600,6 +631,7 @@ impl ProjectCandidate {
             variant_case_addition.as_ref(),
             movement.as_ref(),
             type_addition.as_ref(),
+            deletion.as_ref(),
         )?;
         if let Some(addition) = addition.as_ref() {
             declaration::validate_added_signature(&candidate, addition)?;
@@ -818,6 +850,11 @@ impl ProjectCandidate {
                     .filter_map(|identity| identity["id"].as_str()),
             )
             .collect::<BTreeSet<_>>();
+        let deleted = summaries
+            .iter()
+            .filter(|summary| summary["kind"] == "delete_declaration")
+            .filter_map(|summary| summary["target"].as_str())
+            .collect::<BTreeSet<_>>();
         let selected = summaries
             .iter()
             .filter_map(|s| s["target"].as_str())
@@ -849,6 +886,8 @@ impl ProjectCandidate {
                 .map_err(|_| invalid("invalid candidate impact"))?
             } else if let Some(binding) = interface::binding(&revision, id)? {
                 json!({"availability":"source_static_conformance_only","binding":binding,"cross_file_impact_available":false})
+            } else if deleted.contains(id) {
+                json!({"availability":"deleted_declaration","cross_file_impact_available":false})
             } else {
                 return Err(invalid(
                     "candidate impact target is absent from runtime and source inventories",
@@ -905,6 +944,8 @@ impl ProjectCandidate {
             json,
             digest,
             source_review_cache: OnceLock::new(),
+            base_explorer_image_cache: OnceLock::new(),
+            candidate_explorer_image_cache: OnceLock::new(),
             expression_replacement_preview: None,
         })
     }
@@ -922,6 +963,7 @@ fn parse_revision(revision: &ProjectRevision) -> Result<Vec<Program>, Vec<Diagno
     revision
         .sources()
         .iter()
+        .filter(|source| source.source_graph_schema() != "semaprax.native-law.v1")
         .map(|source| crate::parse(source.source(), source.path()).map_err(|d| vec![d]))
         .collect()
 }
@@ -990,6 +1032,24 @@ fn materialize(
             source,
         });
     }
+    // Candidate intentions mutate executable programs. Native law modules are
+    // separately selected specification sources and keep their exact base bytes.
+    for source in base.sources() {
+        if source.source_graph_schema() != "semaprax.native-law.v1" {
+            continue;
+        }
+        total = total
+            .checked_add(source.source().len())
+            .ok_or_else(|| capacity("candidate source size overflow"))?;
+        if total > MAX_TOTAL_SOURCE_BYTES {
+            return Err(capacity("candidate sources exceed the Project bound"));
+        }
+        sources.push(SemanticWorkspaceSource {
+            path: source.path().to_owned(),
+            source: source.source().to_owned(),
+        });
+    }
+    sources.sort_by(|left, right| left.path.cmp(&right.path));
     Ok(sources)
 }
 
@@ -1040,6 +1100,7 @@ fn preserve_explicit_identities(
     variant_case: Option<&variant_case::VariantCaseAddition>,
     movement: Option<&movement::DeclarationMove>,
     type_addition: Option<&type_declaration::TypeAddition>,
+    deletion: Option<&deletion::DeclarationDeletion>,
 ) -> Result<(), Vec<Diagnostic>> {
     fn identities(revision: &ProjectRevision) -> Result<BTreeMap<String, Value>, Vec<Diagnostic>> {
         let graph: Value = serde_json::from_str(revision.semantic_graph())
@@ -1112,6 +1173,20 @@ fn preserve_explicit_identities(
         }
         fact["path"] = json!(moved.destination_path);
         fact["module"] = json!(moved.destination_module);
+    }
+    if let Some(removed) = deletion {
+        let fact = before
+            .remove(&removed.id)
+            .ok_or_else(|| invalid("deleted identity is absent from original graph"))?;
+        if fact["kind"] != "function"
+            || !fact["owner"].is_null()
+            || fact["path"] != removed.path
+            || after.contains_key(&removed.id)
+        {
+            return Err(invalid(
+                "deleted identity does not match its exact original owner",
+            ));
+        }
     }
     if before != after {
         return Err(invalid(

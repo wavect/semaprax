@@ -1,0 +1,144 @@
+#[derive(Clone,Debug,Eq,PartialEq)]
+pub enum SpxCallbackError {
+    WrongThread, Reentered, DepthLimit, AfterTeardown, UncertainTeardown,
+    Contract(u32), Semantic(u32), Domain{domain:&'static str,code:u32},
+    HostFailed, RustPanicked, AdapterRejected,
+}
+fn spx_callback_error(error:NativeRustCallError)->SpxCallbackError {
+    match error {
+        NativeRustCallError::Semantic{domain_id,code,class,..}=>match class {
+            NativeRustStatusClass::Contract=>SpxCallbackError::Contract(code.get()),
+            NativeRustStatusClass::Semantic=>SpxCallbackError::Semantic(code.get()),
+            NativeRustStatusClass::Import=>SpxCallbackError::Domain{domain:domain_id,code:code.get()},
+            NativeRustStatusClass::Adapter=>SpxCallbackError::AdapterRejected,
+        },
+        NativeRustCallError::HostFailed=>SpxCallbackError::HostFailed,
+        NativeRustCallError::HostPanicked=>SpxCallbackError::RustPanicked,
+        NativeRustCallError::AdapterRejected=>SpxCallbackError::AdapterRejected,
+    }
+}
+struct SpxCallbackHost;
+impl NativeRustImports for SpxCallbackHost {}
+struct SpxCallbackDomainState {
+    owner:std::thread::ThreadId,depth:std::cell::Cell<usize>,
+    live:std::cell::Cell<usize>,limit:usize,
+}
+/// One same-thread callback tree. Cloning shares its explicit depth budget.
+#[derive(Clone)]
+pub struct SpxCallbackDomain(std::rc::Rc<SpxCallbackDomainState>);
+impl SpxCallbackDomain {
+    pub fn new(limit:usize)->Result<Self,SpxCallbackError> {
+        if limit==0 || limit>32 {return Err(SpxCallbackError::DepthLimit)}
+        Ok(Self(std::rc::Rc::new(SpxCallbackDomainState {
+            owner:std::thread::current().id(),depth:std::cell::Cell::new(0),
+            live:std::cell::Cell::new(0),limit,
+        })))
+    }
+    pub fn live_environments(&self)->usize {self.0.live.get()}
+    pub fn active_depth(&self)->usize {self.0.depth.get()}
+}
+struct SpxCallbackEnvironment {
+    bridge:std::cell::RefCell<NativeRustBridge<SpxCallbackHost>>,
+    capture:std::cell::Cell<i64>,
+}
+pub struct SpxCallback {
+    domain:SpxCallbackDomain,environment:Option<Box<SpxCallbackEnvironment>>,
+    active:std::cell::Cell<bool>,lifecycle:std::cell::Cell<u8>,
+}
+struct SpxCallbackGuard<'a>(&'a SpxCallback);
+impl Drop for SpxCallbackGuard<'_> {
+    fn drop(&mut self) {
+        self.0.active.set(false);
+        let depth=&self.0.domain.0.depth;depth.set(depth.get()-1);
+    }
+}
+impl SpxCallback {
+    /// Captures the checked factory's scalar snapshot exactly once.
+    pub fn new(domain:SpxCallbackDomain,capture:i64)->Result<Self,SpxCallbackError> {
+        if domain.0.owner!=std::thread::current().id(){return Err(SpxCallbackError::WrongThread)}
+        if domain.0.live.get()>=64{return Err(SpxCallbackError::AdapterRejected)}
+        let caps=NativeRustCapabilities::new(&[]).map_err(|_|SpxCallbackError::AdapterRejected)?;
+        let environment=Box::new(SpxCallbackEnvironment {
+            bridge:std::cell::RefCell::new(NativeRustBridge::new(SpxCallbackHost,caps)),
+            capture:std::cell::Cell::new(capture),
+        });
+        domain.0.live.set(domain.0.live.get()+1);
+        Ok(Self{domain,environment:Some(environment),active:std::cell::Cell::new(false),lifecycle:std::cell::Cell::new(0)})
+    }
+    fn live(&self)->Result<(),SpxCallbackError> {
+        // Thread admission precedes access to callback environment/bridge state.
+        if self.domain.0.owner!=std::thread::current().id(){return Err(SpxCallbackError::WrongThread)}
+        match self.lifecycle.get(){0=>Ok(()),1=>Err(SpxCallbackError::AfterTeardown),_=>Err(SpxCallbackError::UncertainTeardown)}
+    }
+    fn enter(&self)->Result<SpxCallbackGuard<'_>,SpxCallbackError> {
+        self.live()?;
+        if self.active.get(){return Err(SpxCallbackError::Reentered)}
+        let depth=&self.domain.0.depth;
+        if depth.get()>=self.domain.0.limit{return Err(SpxCallbackError::DepthLimit)}
+        depth.set(depth.get()+1);self.active.set(true);Ok(SpxCallbackGuard(self))
+    }
+    pub fn snapshot(&self)->Result<i64,SpxCallbackError> {self.live()?;Ok(self.environment.as_ref().unwrap().capture.get())}
+    pub fn call(&self,value:i64)->Result<i64,SpxCallbackError> {self.call_with(value,||Ok(()))}
+    /// The hook models an admitted Rust-side pre-call operation. It executes
+    /// under the callback loan/depth guard and cannot bypass callback admission.
+    pub fn call_with(&self,value:i64,before:impl FnOnce()->Result<(),SpxCallbackError>)->Result<i64,SpxCallbackError> {
+        self.invoke(value,false,before)
+    }
+    fn invoke(&self,value:i64,transition:bool,before:impl FnOnce()->Result<(),SpxCallbackError>)->Result<i64,SpxCallbackError> {
+        let _guard=self.enter()?;
+        match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            before()?;self.live()?;
+            let environment=self.environment.as_ref().unwrap();
+            let capture=environment.capture.get();
+            let mut bridge=environment.bridge.try_borrow_mut().map_err(|_|SpxCallbackError::Reentered)?;
+            let output=if transition{bridge.$TRANSITION(capture,value)}else{bridge.$SNAPSHOT(capture,value)}.map_err(spx_callback_error)?;
+            // Publication and state commit occur only after checked C success.
+            if transition {environment.capture.set(output)}
+            Ok(output)
+        })) {
+            Ok(result)=>result,
+            Err(payload)=>{std::mem::forget(payload);Err(SpxCallbackError::RustPanicked)}
+        }
+    }
+    pub fn as_fn(&self)->impl Fn(i64)->Result<i64,SpxCallbackError>+'_ {move|value|self.call(value)}
+    pub fn into_once(self)->impl FnOnce(i64)->Result<i64,SpxCallbackError> {
+        move|value|{let result=self.call(value);drop(self);result}
+    }
+    pub fn unregister(&self)->Result<(),SpxCallbackError> {
+        self.live()?;
+        if self.active.get(){return Err(SpxCallbackError::Reentered)}
+        self.lifecycle.set(1);Ok(())
+    }
+    pub fn quarantine(&self) {self.lifecycle.set(2)}
+}
+impl Drop for SpxCallback {
+    fn drop(&mut self) {
+        if let Some(environment)=self.environment.take() {
+            if self.lifecycle.get()==2 {
+                // Uncertain foreign retention is not proof of release. Keep
+                // environment and its visible live count, never speculate.
+                std::mem::forget(environment);
+            } else {
+                self.domain.0.live.set(self.domain.0.live.get()-1);
+                drop(environment);
+            }
+        }
+    }
+}
+/// State mutation is an explicit scalar transition protocol, not mutable
+/// capture syntax. Its next state is committed only after successful execution.
+pub struct SpxStatefulProxy {callback:std::rc::Rc<SpxCallback>}
+impl SpxStatefulProxy {
+    pub fn new(domain:SpxCallbackDomain,state:i64)->Result<Self,SpxCallbackError> {Ok(Self{callback:std::rc::Rc::new(SpxCallback::new(domain,state)?)})}
+    pub fn state(&self)->Result<i64,SpxCallbackError>{self.callback.snapshot()}
+    pub fn as_fn_mut(&mut self)->impl FnMut(i64)->Result<i64,SpxCallbackError>+'_ {
+        move|value|self.callback.invoke(value,true,||Ok(()))
+    }
+    pub fn unregister(&self)->Result<(),SpxCallbackError>{self.callback.unregister()}
+}
+impl $TRAIT for SpxStatefulProxy {
+    type $ERROR=SpxCallbackError;
+    fn $METHOD(&mut self,value:i64)->Result<i64,Self::$ERROR> {
+        self.callback.invoke(value,true,||Ok(()))
+    }
+}

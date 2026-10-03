@@ -383,7 +383,7 @@ pub(crate) use owned_execute::{
 
 mod physical_step;
 pub(crate) use physical_step::{
-    consume_executed_owned_step_v2, settle_executed_owned_reduce_v2,
+    consume_executed_owned_step_v2, settle_executed_owned_reduce_v2, ClaimedExecutedOwnedReportV2,
     CommittedExecutedOwnedReduceCleanupV2, CommittedExecutedOwnedStepTransferV2,
     ExecutedOwnedReduceSettledV2, HeldExecutedOwnedStepV2, ReadyExecutedOwnedStepV2,
 };
@@ -399,12 +399,13 @@ mod tests;
 mod live_stage;
 pub(crate) use live_stage::{
     evaluate_live_executed_owned_reduce_v2, CheckedLiveOwnedReduceStageFactsV8,
-    LiveReduceEvaluationFailureV8,
+    LiveReduceEvaluationFailureV8, LiveReduceEvaluationGuardV8,
 };
 
 pub(crate) use physical_step::{
     consume_live_owned_step_v8, settle_live_owned_reduce_v8, LiveOwnedReduceCleanupFailureV8,
-    LiveOwnedStepTransferFailureV8, OwnedReduceCleanupOriginV8,
+    LiveOwnedReduceCleanupGuardV8, LiveOwnedStepTransferFailureV8, LiveOwnedStepTransferGuardV8,
+    OwnedReduceCleanupOriginV8,
 };
 
 pub(crate) use physical_step::{

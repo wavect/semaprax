@@ -364,3 +364,55 @@ fn durable_source_reports_deadline_expiry_after_usage_ack_as_terminal_failure() 
         Some(SourceJournalEntry::AttemptSettled { .. })
     ));
 }
+
+#[test]
+fn durable_source_reports_deadline_expiry_at_settlement_ack_as_terminal_failure() {
+    let (_, mut handler, task, grammar) = setup(compiled_proposal());
+    let capability = ModelInvokeCapability::grant("durable source fixture");
+    let value = RetainedValue::I64(0);
+    let shared = Rc::new(Cell::new(0));
+    let clock = SourceClock(shared.clone());
+    let bound = binding(&task, &grammar);
+    let mut ledger = CumulativeBudgetLedger::start_source(&bound, &clock).unwrap();
+    // V2 has four acknowledged prefix entries, then intent at generation 5
+    // and settlement at generation 6. The store can advance the shared
+    // deadline during that real settlement ACK, after the provider has
+    // responded but before its proposal may become visible.
+    let mut store = Store {
+        advance_at: Some((6, shared, 10)),
+        ..Store::default()
+    };
+    let mut sink = SourceCheckpointSink::new(&mut store, bound);
+    begin(&mut sink);
+    let mut source = OpenCodeDurableProposalSource::new(
+        &mut handler,
+        &capability,
+        DEPLOYMENT.into(),
+        grammar.clone(),
+        4096,
+        1,
+    )
+    .unwrap();
+    let outcome = source.propose_checkpointed(
+        request(&task, &grammar, &value),
+        &mut sink,
+        &mut ledger,
+        &clock,
+    );
+    assert!(outcome.result.is_err());
+    assert_eq!(
+        outcome.terminal_failure,
+        Some(SourceTerminalStatus::DeadlineExceeded)
+    );
+    assert_eq!(outcome.model_dispatches, 1);
+    assert!(matches!(
+        sink.journal().entries().last(),
+        Some(SourceJournalEntry::AttemptUsage {
+            turn: 0,
+            attempt: 0,
+            ..
+        })
+    ));
+    drop(source);
+    assert_eq!(handler.runner.calls, 1);
+}

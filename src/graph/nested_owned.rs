@@ -2,8 +2,8 @@ pub(crate) use super::filesystem_outcome::{graph_schema, graph_schema_from_parts
 use crate::cleanup::FieldLivenessShape;
 use crate::cleanup_plan::{
     StorageId, CLEANUP_PLAN_SCHEMA_V10, CLEANUP_PLAN_SCHEMA_V11, CLEANUP_PLAN_SCHEMA_V12,
-    CLEANUP_PLAN_SCHEMA_V13, CLEANUP_PLAN_SCHEMA_V7, CLEANUP_PLAN_SCHEMA_V8,
-    CLEANUP_PLAN_SCHEMA_V9,
+    CLEANUP_PLAN_SCHEMA_V13, CLEANUP_PLAN_SCHEMA_V14, CLEANUP_PLAN_SCHEMA_V7,
+    CLEANUP_PLAN_SCHEMA_V8, CLEANUP_PLAN_SCHEMA_V9,
 };
 use crate::diagnostic::Diagnostic;
 use crate::hir::{PlaceProjection, ResolvedFunction, ResolvedProgram};
@@ -673,6 +673,15 @@ fn iterator_loop_schema<'a>(
 }
 
 pub(super) fn has_iterator_cleanup(function: &ResolvedFunction) -> bool {
+    if function.cleanup_plan.schema == CLEANUP_PLAN_SCHEMA_V14 {
+        return function
+            .cleanup
+            .flags
+            .iter()
+            .any(|flag| flag.lifecycle.as_str() == crate::cleanup::ITER_DROP_LIFECYCLE_ID)
+            || crate::hir::iterator_loop::function_contains(function)
+            || crate::iterator_ops::function_uses_owned_iterator(function);
+    }
     matches!(
         function.cleanup_plan.schema,
         CLEANUP_PLAN_SCHEMA_V10
@@ -683,6 +692,12 @@ pub(super) fn has_iterator_cleanup(function: &ResolvedFunction) -> bool {
 }
 
 pub(super) fn has_nested_cleanup(function: &ResolvedFunction) -> bool {
+    if function.cleanup_plan.schema == CLEANUP_PLAN_SCHEMA_V14 {
+        return function.cleanup.slots.iter().any(|slot| {
+            crate::cleanup::cleanup_shape_profile(&slot.shape)
+                .is_ok_and(|shape| shape.has_nested_owned_bytes)
+        });
+    }
     matches!(
         function.cleanup_plan.schema,
         CLEANUP_PLAN_SCHEMA_V7 | CLEANUP_PLAN_SCHEMA_V8 | CLEANUP_PLAN_SCHEMA_V9

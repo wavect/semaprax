@@ -11,10 +11,12 @@
 
 use super::json::{self, JsonRefusal, JsonValue};
 
-pub const STATE_SCHEMA: &str = "semaprax.reference-service.state.v2";
+pub const STATE_SCHEMA: &str = "semaprax.reference-service.state.v3";
 pub const MAX_STATE_BYTES: usize = 192 * 1024;
 
-const MAX_ACCOUNTS: usize = 64;
+/// The persisted account inventory limit supplied to the checked registration
+/// admission decision before the password host performs any work.
+pub(crate) const MAX_ACCOUNTS: usize = 64;
 const MAX_SESSIONS: usize = 256;
 const MAX_TASKS: usize = 256;
 const MAX_JOBS: usize = 256;
@@ -77,6 +79,16 @@ pub enum JobState {
 }
 
 impl JobState {
+    /// The checked scaffold's durable-job state code for this persisted
+    /// reference-service state. The host owns this representation mapping;
+    /// checked source selects whether the mapped code is terminal.
+    pub(crate) fn source_status(self) -> u64 {
+        match self {
+            Self::Pending => 0,
+            Self::Completed => 4,
+        }
+    }
+
     fn decode(value: &str) -> Option<Self> {
         match value {
             "pending" => Some(Self::Pending),
@@ -154,7 +166,9 @@ pub struct Account {
 pub struct Session {
     pub id: String,
     pub account: i64,
-    pub retired: bool,
+    /// The checked `std.auth.session` state code. Only zero is active;
+    /// nonzero terminal values remain terminal across restart.
+    pub state: u8,
     pub idle_deadline_tick: i64,
     pub absolute_deadline_tick: i64,
 }
@@ -267,7 +281,7 @@ impl ServiceState {
                         "idle_deadline_tick".to_owned(),
                         JsonValue::Int(session.idle_deadline_tick),
                     ),
-                    ("retired".to_owned(), JsonValue::Bool(session.retired)),
+                    ("state".to_owned(), JsonValue::Int(i64::from(session.state))),
                 ])
             })
             .collect();
@@ -359,10 +373,6 @@ fn member_i64(root: &[(String, JsonValue)], key: &str) -> Result<i64, StateRefus
     member(root, key)?.as_i64().ok_or(StateRefusal::Malformed)
 }
 
-fn member_bool(root: &[(String, JsonValue)], key: &str) -> Result<bool, StateRefusal> {
-    member(root, key)?.as_bool().ok_or(StateRefusal::Malformed)
-}
-
 fn bounded_text<'a>(
     root: &'a [(String, JsonValue)],
     key: &str,
@@ -429,7 +439,7 @@ fn decode_sessions(root: &JsonValue, accounts: &[Account]) -> Result<Vec<Session
                 "account",
                 "id",
                 "idle_deadline_tick",
-                "retired",
+                "state",
             ])
             .ok_or(StateRefusal::Closed)?;
         let id = member_str(row, "id")?;
@@ -439,6 +449,11 @@ fn decode_sessions(root: &JsonValue, accounts: &[Account]) -> Result<Vec<Session
         let account = member_i64(row, "account")?;
         let idle_deadline_tick = member_i64(row, "idle_deadline_tick")?;
         let absolute_deadline_tick = member_i64(row, "absolute_deadline_tick")?;
+        let state =
+            u8::try_from(member_i64(row, "state")?).map_err(|_| StateRefusal::OutOfBounds)?;
+        if state > 5 {
+            return Err(StateRefusal::OutOfBounds);
+        }
         if idle_deadline_tick < 0
             || absolute_deadline_tick < 0
             || idle_deadline_tick > absolute_deadline_tick
@@ -452,7 +467,7 @@ fn decode_sessions(root: &JsonValue, accounts: &[Account]) -> Result<Vec<Session
         sessions.push(Session {
             id: id.to_owned(),
             account,
-            retired: member_bool(row, "retired")?,
+            state,
             idle_deadline_tick,
             absolute_deadline_tick,
         });
@@ -555,7 +570,7 @@ mod tests {
             sessions: vec![Session {
                 id: "0123456789abcdef0123456789abcdef".to_owned(),
                 account: 1,
-                retired: false,
+                state: 0,
                 idle_deadline_tick: 100,
                 absolute_deadline_tick: 200,
             }],
@@ -584,7 +599,7 @@ mod tests {
         let rendered = genesis.render();
         assert_eq!(
             rendered,
-            r#"{"accounts":[],"jobs":[],"schema":"semaprax.reference-service.state.v2","seq":0,"sessions":[],"tasks":[]}"#
+            r#"{"accounts":[],"jobs":[],"schema":"semaprax.reference-service.state.v3","seq":0,"sessions":[],"tasks":[]}"#
         );
         assert_eq!(ServiceState::decode(rendered.as_bytes()).unwrap(), genesis);
         let first = ServiceState::digest(&rendered);
@@ -635,6 +650,13 @@ mod tests {
         assert_eq!(
             ServiceState::decode(state.render().as_bytes()),
             Err(StateRefusal::DuplicateId)
+        );
+        // Unknown source state codes cannot enter a durable snapshot.
+        let mut invalid_session_state = populated();
+        invalid_session_state.sessions[0].state = 6;
+        assert_eq!(
+            ServiceState::decode(invalid_session_state.render().as_bytes()),
+            Err(StateRefusal::OutOfBounds)
         );
         // Pending job with a settled webhook is incoherent.
         let mut pending = populated();

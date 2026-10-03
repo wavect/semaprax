@@ -13,6 +13,8 @@ mod binding;
 const TEST_PARENT_ENV: &str = "SEMAPRAX_WINDOWS_CONFINEMENT_TEST_PARENT";
 const TEST_MARKER: &str = "runtime-child-started.bin";
 const DESCENDANT_PERMIT: &str = "runtime-descendant-permit.bin";
+const HANDLE_INVENTORY_PERMIT: &str = "runtime-handle-inventory-permit.bin";
+const INHERITABLE_SENTINEL: &str = "runtime-inheritable-sentinel.bin";
 
 fn runtime_parent() -> PathBuf {
     let parent = std::env::var_os(TEST_PARENT_ENV)
@@ -59,6 +61,14 @@ fn test_capsule_body() -> TestCapsule {
         length: index as u64 + 1,
         digest: [0x42; 32],
     });
+    artifacts[0] = semaprax_doctor_capsule::Artifact {
+        length: TEST_REQUEST_BYTES.len() as u64,
+        digest: Sha256::digest(TEST_REQUEST_BYTES).into(),
+    };
+    artifacts[1] = semaprax_doctor_capsule::Artifact {
+        length: TEST_BUNDLE_BYTES.len() as u64,
+        digest: Sha256::digest(TEST_BUNDLE_BYTES).into(),
+    };
     artifacts[3] = semaprax_doctor_capsule::Artifact {
         length: executable.len() as u64,
         digest: Sha256::digest(&executable).into(),
@@ -148,6 +158,72 @@ fn runtime_child_marks_start_then_waits_for_job_termination() {
 
 #[test]
 #[ignore = "spawned only by the live confinement runtime tests"]
+fn runtime_child_exhausts_cpu_time_limit() {
+    publish_child_marker(b"cpu-limit-started");
+    let mut state = 0x9e37_79b9_7f4a_7c15_u64;
+    loop {
+        state = std::hint::black_box(
+            state
+                .wrapping_mul(0xbf58_476d_1ce4_e5b9)
+                .rotate_left(17)
+                .wrapping_add(0x94d0_49bb_1331_11eb),
+        );
+    }
+}
+
+#[test]
+#[ignore = "spawned only by the live confinement runtime tests"]
+fn runtime_child_exhausts_committed_memory_limit() {
+    const CHUNK_BYTES: usize = 8 * 1024 * 1024;
+    let required_chunks = PROCESS_MEMORY_LIMIT_BYTES.div_ceil(CHUNK_BYTES) + 8;
+    let mut chunks = Vec::with_capacity(required_chunks);
+    for _ in 0..required_chunks {
+        let mut chunk = Vec::new();
+        if chunk.try_reserve_exact(CHUNK_BYTES).is_err() {
+            publish_child_marker(b"committed-memory-limit-refused");
+            return;
+        }
+        // Commit every page rather than merely reserving virtual address space.
+        // With the configured job bound this must fail before the hostile
+        // control can retain its requested `required_chunks` allocation.
+        chunk.resize(CHUNK_BYTES, 0xa5);
+        chunks.push(chunk);
+    }
+    publish_child_marker(b"committed-memory-limit-not-enforced");
+}
+
+#[test]
+#[ignore = "spawned only by the live confinement runtime tests"]
+fn runtime_child_exceeds_combined_output_limit() {
+    use std::io::Write as _;
+
+    const CHUNK_BYTES: usize = 8 * 1024;
+    const CHUNKS_PER_STREAM: usize = 5;
+    const STREAM_BYTES: usize = CHUNK_BYTES * CHUNKS_PER_STREAM;
+    assert!(STREAM_BYTES < OUTPUT_LIMIT_BYTES);
+    assert!(STREAM_BYTES * 2 > OUTPUT_LIMIT_BYTES);
+
+    publish_child_marker(b"output-limit-started");
+    let stdout_chunk = [b'o'; CHUNK_BYTES];
+    let stderr_chunk = [b'e'; CHUNK_BYTES];
+    let stdout = std::io::stdout();
+    let mut stdout = stdout.lock();
+    let stderr = std::io::stderr();
+    let mut stderr = stderr.lock();
+    for _ in 0..CHUNKS_PER_STREAM {
+        stdout
+            .write_all(&stdout_chunk)
+            .expect("write combined-limit stdout stream");
+        stdout.flush().expect("flush confined stdout flood");
+        stderr
+            .write_all(&stderr_chunk)
+            .expect("write combined-limit stderr stream");
+        stderr.flush().expect("flush confined stderr flood");
+    }
+}
+
+#[test]
+#[ignore = "spawned only by the live confinement runtime tests"]
 fn runtime_child_exits_with_nonzero_status() {
     publish_child_marker(b"exit-37");
     std::process::exit(37);
@@ -189,6 +265,124 @@ fn runtime_child_waits_for_job_termination() {
     }
 }
 
+#[test]
+#[ignore = "spawned only by the live confinement runtime tests"]
+fn runtime_child_checks_unrelated_inheritable_handle_is_absent() {
+    let directory = std::env::current_dir().expect("confined current directory");
+    publish_child_marker(b"ready-for-handle-inventory");
+    let permit = directory.join(HANDLE_INVENTORY_PERMIT);
+    let deadline = Instant::now() + Duration::from_secs(10);
+    while !permit.is_file() {
+        assert!(
+            Instant::now() < deadline,
+            "parent did not permit inherited-handle observation"
+        );
+        std::thread::sleep(Duration::from_millis(10));
+    }
+    let sentinel = directory
+        .parent()
+        .expect("confined scratch has the provisioned parent")
+        .join(INHERITABLE_SENTINEL);
+    publish_child_marker(if sentinel.exists() {
+        b"unrelated-inheritable-handle-present"
+    } else {
+        b"unrelated-inheritable-handle-absent"
+    });
+}
+
+#[test]
+#[ignore = "requires the explicitly provisioned Windows runtime gate"]
+fn runtime_child_reads_authenticated_request_bundle_carriers() {
+    use windows_sys::Win32::Foundation::{
+        DuplicateHandle, ERROR_ACCESS_DENIED, GetLastError, HANDLE,
+    };
+    use windows_sys::Win32::Storage::FileSystem::{WRITE_DAC, WRITE_OWNER};
+    use windows_sys::Win32::System::Memory::{
+        FILE_MAP_READ, FILE_MAP_WRITE, MapViewOfFile, UnmapViewOfFile,
+    };
+
+    fn inherited_handle(name: &str) -> HANDLE {
+        std::env::var(name)
+            .expect("parent supplied an authenticated carrier handle")
+            .parse::<usize>()
+            .expect("carrier handle is an unsigned process-local value") as HANDLE
+    }
+
+    fn assert_carrier(handle: HANDLE, expected: &[u8]) {
+        // SAFETY: the parent placed this exact inheritable mapping handle in
+        // the startup handle list and the expected length is the signed size.
+        let view = unsafe { MapViewOfFile(handle, FILE_MAP_READ, 0, 0, expected.len()) };
+        assert!(
+            !view.Value.is_null(),
+            "declared inherited carrier maps read-only in the child"
+        );
+        // SAFETY: the successful view covers exactly `expected.len()` bytes.
+        assert_eq!(
+            unsafe { std::slice::from_raw_parts(view.Value.cast::<u8>(), expected.len()) },
+            expected,
+            "child receives the exact signed carrier bytes"
+        );
+        // SAFETY: the child tests the inherited handle itself; a writable map
+        // must fail because the parent duplicated it with SECTION_MAP_READ.
+        let writable = unsafe { MapViewOfFile(handle, FILE_MAP_WRITE, 0, 0, expected.len()) };
+        assert!(
+            writable.Value.is_null(),
+            "child inherited a writable request/bundle carrier"
+        );
+        // A read-only handle is insufficient if the section's DACL lets this
+        // same-user child obtain a more powerful duplicate. Owner rights must
+        // not let it rewrite that DACL and then obtain a writable duplicate.
+        for access in [FILE_MAP_WRITE, WRITE_DAC, WRITE_OWNER] {
+            let mut duplicate = std::ptr::null_mut();
+            // SAFETY: this process owns the live inherited section handle;
+            // the duplicate output is closed even if the hostile attempt wins.
+            let duplicated = unsafe {
+                DuplicateHandle(
+                    GetCurrentProcess(),
+                    handle,
+                    GetCurrentProcess(),
+                    &mut duplicate,
+                    access,
+                    0,
+                    0,
+                )
+            };
+            // SAFETY: capture the error before any other Win32 call.
+            let error = unsafe { GetLastError() };
+            if !duplicate.is_null() {
+                drop(Handle::new(duplicate));
+            }
+            assert_eq!(duplicated, 0, "carrier duplicate gained access {access:#x}");
+            assert_eq!(
+                error, ERROR_ACCESS_DENIED,
+                "carrier access escalation must fail through access control"
+            );
+        }
+        // SAFETY: unmap the exact successful read view before returning.
+        assert_ne!(unsafe { UnmapViewOfFile(view) }, 0);
+    }
+
+    assert_eq!(
+        std::env::var(CARRIER_ROLE_ENV).expect("parent supplied the signed image role"),
+        "worker",
+        "child role is bound to the selected signed image role"
+    );
+    assert_eq!(
+        std::env::var(CARRIER_SELECTOR_ENV).expect("parent supplied the signed selector"),
+        "runtime-test",
+        "child selector is bound to the signed capsule selector"
+    );
+    assert_carrier(
+        inherited_handle(REQUEST_CARRIER_HANDLE_ENV),
+        TEST_REQUEST_BYTES,
+    );
+    assert_carrier(
+        inherited_handle(BUNDLE_CARRIER_HANDLE_ENV),
+        TEST_BUNDLE_BYTES,
+    );
+    publish_child_marker(b"authenticated-request-bundle-carriers-observed");
+}
+
 fn current_process_handle_count() -> u32 {
     use windows_sys::Win32::System::Threading::{GetCurrentProcess, GetProcessHandleCount};
 
@@ -227,8 +421,8 @@ impl Drop for RuntimeChildCleanupGuard {
     fn drop(&mut self) {
         use windows_sys::Win32::Foundation::WAIT_OBJECT_0;
         use windows_sys::Win32::System::JobObjects::{
-            JobObjectBasicAccountingInformation, QueryInformationJobObject, TerminateJobObject,
-            JOBOBJECT_BASIC_ACCOUNTING_INFORMATION,
+            JOBOBJECT_BASIC_ACCOUNTING_INFORMATION, JobObjectBasicAccountingInformation,
+            QueryInformationJobObject, TerminateJobObject,
         };
         use windows_sys::Win32::System::Threading::WaitForSingleObject;
 
@@ -293,6 +487,7 @@ impl Drop for RuntimeChildCleanupGuard {
             TEST_MARKER,
             "runtime-child-started.bin.tmp",
             DESCENDANT_PERMIT,
+            HANDLE_INVENTORY_PERMIT,
         ] {
             match std::fs::remove_file(self.scratch_dir.join(name)) {
                 Ok(()) => {}
@@ -309,16 +504,17 @@ fn windows_runtime_launches_restricted_child_inside_acl_scratch_and_settles_it()
     use windows_sys::Win32::Foundation::LocalFree;
     use windows_sys::Win32::Security::Authorization::{GetNamedSecurityInfoW, SE_FILE_OBJECT};
     use windows_sys::Win32::Security::{
-        EqualSid, GetSecurityDescriptorControl, GetTokenInformation, LookupPrivilegeValueW,
-        TokenPrivileges, ACCESS_ALLOWED_ACE, DACL_SECURITY_INFORMATION, SE_CHANGE_NOTIFY_NAME,
-        SE_DACL_PROTECTED, SE_PRIVILEGE_ENABLED, TOKEN_PRIVILEGES, TOKEN_QUERY, TOKEN_USER,
+        ACCESS_ALLOWED_ACE, DACL_SECURITY_INFORMATION, EqualSid, GetSecurityDescriptorControl,
+        GetTokenInformation, LookupPrivilegeValueW, SE_CHANGE_NOTIFY_NAME, SE_DACL_PROTECTED,
+        SE_PRIVILEGE_ENABLED, TOKEN_PRIVILEGES, TOKEN_QUERY, TOKEN_USER, TokenPrivileges,
     };
     use windows_sys::Win32::Storage::FileSystem::{DELETE, FILE_GENERIC_READ, FILE_GENERIC_WRITE};
     use windows_sys::Win32::System::JobObjects::{
-        IsProcessInJob, JobObjectBasicUIRestrictions, JobObjectExtendedLimitInformation,
-        QueryInformationJobObject, JOBOBJECT_BASIC_UI_RESTRICTIONS,
-        JOBOBJECT_EXTENDED_LIMIT_INFORMATION, JOB_OBJECT_LIMIT_ACTIVE_PROCESS,
+        IsProcessInJob, JOB_OBJECT_LIMIT_ACTIVE_PROCESS,
         JOB_OBJECT_LIMIT_DIE_ON_UNHANDLED_EXCEPTION, JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE,
+        JOB_OBJECT_LIMIT_PROCESS_MEMORY, JOB_OBJECT_LIMIT_PROCESS_TIME,
+        JOBOBJECT_BASIC_UI_RESTRICTIONS, JOBOBJECT_EXTENDED_LIMIT_INFORMATION,
+        JobObjectBasicUIRestrictions, JobObjectExtendedLimitInformation, QueryInformationJobObject,
     };
     use windows_sys::Win32::System::Threading::OpenProcessToken;
 
@@ -422,12 +618,19 @@ fn windows_runtime_launches_restricted_child_inside_acl_scratch_and_settles_it()
     );
     let required_limits = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
         | JOB_OBJECT_LIMIT_ACTIVE_PROCESS
+        | JOB_OBJECT_LIMIT_PROCESS_TIME
+        | JOB_OBJECT_LIMIT_PROCESS_MEMORY
         | JOB_OBJECT_LIMIT_DIE_ON_UNHANDLED_EXCEPTION;
     assert_eq!(
         limits.BasicLimitInformation.LimitFlags & required_limits,
         required_limits
     );
     assert_eq!(limits.BasicLimitInformation.ActiveProcessLimit, 1);
+    assert_eq!(
+        limits.BasicLimitInformation.PerProcessUserTimeLimit,
+        CPU_TIME_LIMIT_100NS
+    );
+    assert_eq!(limits.ProcessMemoryLimit, PROCESS_MEMORY_LIMIT_BYTES);
     let mut ui = JOBOBJECT_BASIC_UI_RESTRICTIONS::default();
     assert_ne!(
         unsafe {
@@ -554,6 +757,115 @@ fn windows_runtime_timeout_terminates_the_confined_job_and_settles_cancellation(
 
 #[test]
 #[ignore = "requires the explicitly provisioned Windows runtime gate"]
+fn windows_runtime_cpu_time_limit_terminates_and_settles_the_confined_job() {
+    let parent = runtime_parent();
+    let executable = std::env::current_exe().expect("current test executable exists");
+    let args = child_test_args("runtime_child_exhausts_cpu_time_limit");
+    let borrowed_args: Vec<&OsStr> = args.iter().map(OsString::as_os_str).collect();
+    let capsule = test_capsule_body();
+    let child = confined_spawn_with_test_key(
+        &executable,
+        &borrowed_args,
+        &parent,
+        &capsule.bytes,
+        &capsule.public_key_hex,
+    )
+    .expect("restricted child enters the CPU-limited job");
+    let mut cleanup_guard = RuntimeChildCleanupGuard::new(&child);
+    let marker = child._scratch.dir.join(TEST_MARKER);
+    let scratch_dir = child._scratch.dir.clone();
+    wait_for_marker(&marker);
+    assert_eq!(std::fs::read(&marker).unwrap(), b"cpu-limit-started");
+    std::fs::remove_file(&marker).expect("remove exact child marker before scratch settlement");
+    cleanup_guard.disarm();
+    assert!(
+        matches!(
+            settle(child, Duration::from_secs(12)).status,
+            Settlement::Failed(FailureReason::ExitCode(_))
+        ),
+        "without a leader-correlated process-time notification, preserve the nonzero exit code"
+    );
+    assert!(
+        !scratch_dir.exists(),
+        "CPU-limit settlement removes the now-empty per-child scratch directory"
+    );
+    assert_parent_empty(&parent);
+}
+
+#[test]
+#[ignore = "requires the explicitly provisioned Windows runtime gate"]
+fn windows_runtime_committed_memory_limit_refuses_the_hostile_allocation() {
+    let parent = runtime_parent();
+    let executable = std::env::current_exe().expect("current test executable exists");
+    let args = child_test_args("runtime_child_exhausts_committed_memory_limit");
+    let borrowed_args: Vec<&OsStr> = args.iter().map(OsString::as_os_str).collect();
+    let capsule = test_capsule_body();
+    let child = confined_spawn_with_test_key(
+        &executable,
+        &borrowed_args,
+        &parent,
+        &capsule.bytes,
+        &capsule.public_key_hex,
+    )
+    .expect("restricted child enters the committed-memory-limited job");
+    let mut cleanup_guard = RuntimeChildCleanupGuard::new(&child);
+    let marker = child._scratch.dir.join(TEST_MARKER);
+    let scratch_dir = child._scratch.dir.clone();
+    wait_for_marker(&marker);
+    assert_eq!(
+        std::fs::read(&marker).unwrap(),
+        b"committed-memory-limit-refused",
+        "the hostile allocation must fail under the configured committed-memory cap"
+    );
+    std::fs::remove_file(&marker).expect("remove exact child marker before scratch settlement");
+    cleanup_guard.disarm();
+    assert_eq!(
+        settle(child, Duration::from_secs(30)).status,
+        Settlement::Completed
+    );
+    assert!(
+        !scratch_dir.exists(),
+        "memory-limit settlement removes the now-empty per-child scratch directory"
+    );
+    assert_parent_empty(&parent);
+}
+
+#[test]
+#[ignore = "requires the explicitly provisioned Windows runtime gate"]
+fn windows_runtime_combined_output_limit_terminates_and_settles_the_confined_job() {
+    let parent = runtime_parent();
+    let executable = std::env::current_exe().expect("current test executable exists");
+    let args = child_test_args("runtime_child_exceeds_combined_output_limit");
+    let borrowed_args: Vec<&OsStr> = args.iter().map(OsString::as_os_str).collect();
+    let capsule = test_capsule_body();
+    let child = confined_spawn_with_test_key(
+        &executable,
+        &borrowed_args,
+        &parent,
+        &capsule.bytes,
+        &capsule.public_key_hex,
+    )
+    .expect("restricted child enters the output-accounted job");
+    let mut cleanup_guard = RuntimeChildCleanupGuard::new(&child);
+    let marker = child._scratch.dir.join(TEST_MARKER);
+    let scratch_dir = child._scratch.dir.clone();
+    wait_for_marker(&marker);
+    assert_eq!(std::fs::read(&marker).unwrap(), b"output-limit-started");
+    std::fs::remove_file(&marker).expect("remove exact child marker before scratch settlement");
+    cleanup_guard.disarm();
+    assert_eq!(
+        settle(child, Duration::from_secs(12)).status,
+        Settlement::Failed(FailureReason::OutputLimit)
+    );
+    assert!(
+        !scratch_dir.exists(),
+        "output-limit settlement removes the now-empty per-child scratch directory"
+    );
+    assert_parent_empty(&parent);
+}
+
+#[test]
+#[ignore = "requires the explicitly provisioned Windows runtime gate"]
 fn windows_runtime_signed_test_key_capsule_refusals_and_launch_settle() {
     let parent = runtime_parent();
     let executable = std::env::current_exe().expect("current test executable exists");
@@ -567,6 +879,8 @@ fn windows_runtime_signed_test_key_capsule_refusals_and_launch_settle() {
         ImageRole::Worker,
         &borrowed_args,
         &parent,
+        TEST_REQUEST_BYTES,
+        TEST_BUNDLE_BYTES,
         || super::super::capsule::parse_with_anchor(&capsule.bytes, None),
     );
     assert_eq!(
@@ -619,10 +933,88 @@ fn windows_runtime_signed_test_key_capsule_refusals_and_launch_settle() {
 
 #[test]
 #[ignore = "requires the explicitly provisioned Windows runtime gate"]
+fn windows_runtime_signed_request_bundle_substitution_refuses_before_process_effects() {
+    let parent = runtime_parent();
+    let executable = std::env::current_exe().expect("current test executable exists");
+    let capsule = test_capsule_body();
+    let mut substitute_request = TEST_REQUEST_BYTES.to_vec();
+    let mut substitute_bundle = TEST_BUNDLE_BYTES.to_vec();
+    *substitute_request.last_mut().unwrap() ^= 0xa5;
+    *substitute_bundle.last_mut().unwrap() ^= 0x5a;
+
+    let refuse = |request: &[u8], bundle: &[u8]| {
+        assert_eq!(
+            confined_spawn_with_test_key_carriers(
+                &executable,
+                &[],
+                &parent,
+                &capsule.bytes,
+                &capsule.public_key_hex,
+                request,
+                bundle,
+            )
+            .err(),
+            Some(Refusal::Capsule(CapsuleError::ArtifactBinding)),
+            "same-length substituted request or bundle must refuse before process creation"
+        );
+        assert_parent_empty(&parent);
+    };
+
+    // Warm the image admission path before requiring exact live-handle
+    // settlement across repeated hostile substitutions.
+    refuse(&substitute_request, TEST_BUNDLE_BYTES);
+    let baseline = current_process_handle_count();
+    for _ in 0..4 {
+        refuse(&substitute_request, TEST_BUNDLE_BYTES);
+        refuse(TEST_REQUEST_BYTES, &substitute_bundle);
+        assert_eq!(
+            current_process_handle_count(),
+            baseline,
+            "request/bundle substitution refusal settles every held image and carrier handle"
+        );
+    }
+}
+
+#[test]
+#[ignore = "requires the explicitly provisioned Windows runtime gate"]
+fn windows_runtime_signed_request_bundle_carriers_reach_child_with_fixed_bindings() {
+    let parent = runtime_parent();
+    let executable = std::env::current_exe().expect("current test executable exists");
+    let args = child_test_args("runtime_child_reads_authenticated_request_bundle_carriers");
+    let borrowed_args: Vec<&OsStr> = args.iter().map(OsString::as_os_str).collect();
+    let capsule = test_capsule_body();
+    let child = confined_spawn_with_test_key(
+        &executable,
+        &borrowed_args,
+        &parent,
+        &capsule.bytes,
+        &capsule.public_key_hex,
+    )
+    .expect(
+        "authenticated request/bundle carriers reach the child only through the fixed inventory",
+    );
+    let mut guard = RuntimeChildCleanupGuard::new(&child);
+    let marker = child._scratch.dir.join(TEST_MARKER);
+    wait_for_marker(&marker);
+    assert_eq!(
+        std::fs::read(&marker).unwrap(),
+        b"authenticated-request-bundle-carriers-observed"
+    );
+    std::fs::remove_file(&marker).unwrap();
+    guard.disarm();
+    assert_eq!(
+        settle(child, Duration::from_secs(30)).status,
+        Settlement::Completed
+    );
+    assert_parent_empty(&parent);
+}
+
+#[test]
+#[ignore = "requires the explicitly provisioned Windows runtime gate"]
 fn windows_runtime_timeout_terminates_an_actual_job_descendant() {
     use windows_sys::Win32::System::JobObjects::{
+        JOB_OBJECT_LIMIT_ACTIVE_PROCESS, JOBOBJECT_EXTENDED_LIMIT_INFORMATION,
         JobObjectExtendedLimitInformation, QueryInformationJobObject, SetInformationJobObject,
-        JOBOBJECT_EXTENDED_LIMIT_INFORMATION, JOB_OBJECT_LIMIT_ACTIVE_PROCESS,
     };
 
     let parent = runtime_parent();
@@ -817,12 +1209,13 @@ fn windows_runtime_scratch_refusal_closes_setup_handles() {
 fn windows_runtime_protected_scratch_dacl_blocks_inherited_parent_ace() {
     use windows_sys::Win32::Foundation::LocalFree;
     use windows_sys::Win32::Security::Authorization::{
-        GetNamedSecurityInfoW, SetNamedSecurityInfoW, SE_FILE_OBJECT,
+        GetNamedSecurityInfoW, SE_FILE_OBJECT, SetNamedSecurityInfoW,
     };
     use windows_sys::Win32::Security::{
-        AddAccessAllowedAceEx, EqualSid, GetAce, InitializeAcl, ACCESS_ALLOWED_ACE, ACE_HEADER,
-        ACL, ACL_REVISION, CONTAINER_INHERIT_ACE, DACL_SECURITY_INFORMATION, OBJECT_INHERIT_ACE,
-        PROTECTED_DACL_SECURITY_INFORMATION, SE_DACL_PROTECTED, TOKEN_QUERY, TOKEN_USER,
+        ACCESS_ALLOWED_ACE, ACE_HEADER, ACL, ACL_REVISION, AddAccessAllowedAceEx,
+        CONTAINER_INHERIT_ACE, DACL_SECURITY_INFORMATION, EqualSid, GetAce, InitializeAcl,
+        OBJECT_INHERIT_ACE, PROTECTED_DACL_SECURITY_INFORMATION, SE_DACL_PROTECTED, TOKEN_QUERY,
+        TOKEN_USER,
     };
     use windows_sys::Win32::Storage::FileSystem::{DELETE, FILE_ALL_ACCESS};
     use windows_sys::Win32::System::Threading::{GetCurrentProcess, OpenProcessToken};

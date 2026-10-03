@@ -47,7 +47,7 @@ impl CliError {
 }
 
 /// Executes durable source-live verbs or the fixed offline repair demonstration.
-/// Neither route publishes source or selects a paid provider.
+/// Source publication is separate; provider dispatch requires explicit host operands.
 pub fn run(arguments: &[String]) -> Result<String, (String, u8)> {
     let result = match arguments.split_first() {
         Some((verb, rest)) if verb == "offline-repair" => offline_repair_cli::run(rest),
@@ -55,12 +55,13 @@ pub fn run(arguments: &[String]) -> Result<String, (String, u8)> {
             offline_repair_cli::run_model_wait(rest)
         }
         Some((verb, rest)) if verb == "repair" => repair::run(rest),
+        Some((verb, rest)) if verb == "repair-tested" => run_repair_tested(rest),
         _ => options::Command::parse(arguments).and_then(run::execute),
     };
     result.map_err(|error| (error.reason, error.code))
 }
 
-/// Run the durable V2 repair route with an explicitly injected candidate-test
+/// Run the durable V2/V3 repair route with an explicitly injected candidate-test
 /// observer. Ordinary [`run`] calls never acquire this capability.
 pub fn run_repair_with_candidate_test(
     arguments: &[String],
@@ -75,4 +76,15 @@ pub fn run_repair_with_candidate_test(
         Some(&mut host),
     )
     .map_err(|error| (error.reason, error.code))
+}
+
+/// Explicit fixed-profile CLI route for the bounded reference-interpreter
+/// candidate test. The ordinary `repair` route retains no test capability.
+fn run_repair_tested(arguments: &[String]) -> Result<String, CliError> {
+    let capability =
+        CandidateTestCapability::host_selected(candidate_test::REPAIR_TEST_CAPABILITY_ID)
+            .map_err(CliError::detail)?;
+    let mut observer = candidate_test::FixedCandidateTestObserver::new();
+    run_repair_with_candidate_test(arguments, capability, &mut observer)
+        .map_err(|(reason, code)| CliError { reason, code })
 }

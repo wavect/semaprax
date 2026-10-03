@@ -39,8 +39,18 @@ pub(super) fn reachable_scalar_types(
             )]);
         }
     }
-    hir::reachable_authored_types(functions, function_instances, &[], &available)
-        .map_err(|error| vec![error])
+    let owner_interfaces = modules
+        .iter()
+        .flat_map(|module| &module.interfaces)
+        .cloned()
+        .collect::<Vec<_>>();
+    hir::reachable_scalar_authored_types(
+        functions,
+        function_instances,
+        &available,
+        &owner_interfaces,
+    )
+    .map_err(|error| vec![error])
 }
 
 pub(super) fn program_imports_vec_wrapper(program: &Program, programs: &[Program]) -> bool {
@@ -597,6 +607,8 @@ pub(super) fn private_signature(
     function: &hir::ResolvedFunction,
 ) -> bool {
     private_callable_signature(workspace, module, function)
+        || (function.name != "main"
+            && hir::indexed_owner_helper_signature(&module.types, &module.interfaces, function))
         || hir::generic_result::concrete_signature(function)
         || hir::generic_collection::concrete_signature(function)
         || (hir::generic_variant::concrete_signature(&module.types, function)
@@ -796,7 +808,7 @@ impl super::WorkspaceGraphBuild {
         let function_templates = generics.retained_templates(&closure.templates)?;
         let function_instances = generics.retained_instances(&functions, &closure)?;
 
-        let referenced_imports = functions
+        let mut referenced_imports = functions
             .iter()
             .flat_map(|linked| resolved_function_imports(&linked.function))
             .collect::<BTreeSet<_>>();
@@ -814,6 +826,30 @@ impl super::WorkspaceGraphBuild {
                             "SPX-G173",
                             "workspace owned-data import inventory is ambiguous",
                         )]);
+                    }
+                }
+            }
+        }
+        // Resource finalizers belong to the exact reachable owner closure even
+        // though no authored expression calls them. Retain only the finalizer
+        // identified by an admitted selected Regex resource, never its module.
+        let all_interfaces = self
+            .hir
+            .modules
+            .iter()
+            .flat_map(|m| m.interfaces.iter().cloned())
+            .collect::<Vec<_>>();
+        let reached_types = functions
+            .iter()
+            .flat_map(|f| hir::authored_nominal_declarations(&f.function))
+            .collect::<BTreeSet<_>>();
+        for declaration in self.hir.modules.iter().flat_map(|m| &m.types) {
+            if reached_types.contains(&declaration.id)
+                && hir::admitted_ri06_regex_resource(declaration, &all_interfaces)
+            {
+                if let hir::ResolvedTypeDeclarationKind::Resource { drop } = &declaration.kind {
+                    if let hir::ResolvedResourceDropKind::Imported { import, .. } = &drop.kind {
+                        referenced_imports.insert(import.clone());
                     }
                 }
             }
@@ -936,6 +972,11 @@ impl super::WorkspaceGraphBuild {
             let kind = match &declaration.kind {
                 hir::ResolvedTypeDeclarationKind::Record { .. } => hir::DeclarationKind::Record,
                 hir::ResolvedTypeDeclarationKind::Variant { .. } => hir::DeclarationKind::Variant,
+                hir::ResolvedTypeDeclarationKind::Resource { .. }
+                    if hir::admitted_ri06_regex_resource(declaration, &interfaces) =>
+                {
+                    hir::DeclarationKind::Resource
+                }
                 hir::ResolvedTypeDeclarationKind::Class { .. }
                 | hir::ResolvedTypeDeclarationKind::Resource { .. } => {
                     return Err(vec![graph_error(
@@ -982,6 +1023,17 @@ impl super::WorkspaceGraphBuild {
                             )?;
                         }
                     }
+                }
+                hir::ResolvedTypeDeclarationKind::Resource { drop }
+                    if hir::admitted_ri06_regex_resource(declaration, &interfaces) =>
+                {
+                    retain_fact(
+                        &self.hir.declarations,
+                        &mut declaration_facts,
+                        &drop.id,
+                        hir::DeclarationKind::ResourceDrop,
+                        Some(&declaration.id),
+                    )?;
                 }
                 hir::ResolvedTypeDeclarationKind::Class { .. }
                 | hir::ResolvedTypeDeclarationKind::Resource { .. } => {

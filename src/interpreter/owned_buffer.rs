@@ -11,7 +11,7 @@ use std::sync::Arc;
 
 use crate::conformance::{NormalizedStatus, Retryability, StatusClass};
 
-use super::{Flow, OwnedBytesValue};
+use super::{Evaluator, Flow, OwnedBytesValue, Value};
 
 /// The single Owned Bounded Byte Buffer v1 runtime failure. A computed
 /// `bytes_set` index at or above the transferred buffer's length selects this
@@ -83,4 +83,165 @@ pub(super) fn set(buffer: &OwnedBytesValue, index: u64, byte: u8) -> Result<Owne
         allocation: buffer.allocation,
         bytes: Arc::from(filled.as_slice()),
     })
+}
+
+/// Store five consecutive bytes after one all-or-nothing bounds preflight.
+///
+/// The preflight deliberately happens before cloning or writing, so this is
+/// observationally the same as five successful `bytes_set` calls while a
+/// failed store selects the existing operation status without publishing a
+/// partially updated owner.
+pub(super) fn set5(
+    buffer: &OwnedBytesValue,
+    index: u64,
+    bytes: [u8; 5],
+) -> Result<OwnedBytesValue, Flow> {
+    let Some(slot) = usize::try_from(index).ok().filter(|slot| {
+        buffer
+            .bytes
+            .len()
+            .checked_sub(*slot)
+            .is_some_and(|remaining| remaining >= 5)
+    }) else {
+        return Err(Flow::Failure(normalize_byte_buffer(
+            crate::byte_ops::SET_INDEX_OUT_OF_BOUNDS_CODE,
+        )));
+    };
+    let mut filled = buffer.bytes.to_vec();
+    filled[slot..slot + 5].copy_from_slice(&bytes);
+    Ok(OwnedBytesValue {
+        allocation: buffer.allocation,
+        bytes: Arc::from(filled.as_slice()),
+    })
+}
+
+/// Store either one supplied byte or five ordered bytes read from a borrowed
+/// slice. The selector's high bit chooses the wide path; its remaining bits
+/// give the source offset. The wide source read is total: each missing source
+/// position supplies zero after the destination interval has been preflighted.
+pub(super) fn set1_or5(
+    buffer: &OwnedBytesValue,
+    index: u64,
+    one: u8,
+    source: &[u8],
+    selector: u64,
+) -> Result<OwnedBytesValue, Flow> {
+    let wide = selector & crate::byte_ops::SET1_OR5_WIDE_TAG != 0;
+    let source_start = selector & !crate::byte_ops::SET1_OR5_WIDE_TAG;
+    let width = if wide { 5 } else { 1 };
+    let Some(slot) = usize::try_from(index).ok().filter(|slot| {
+        buffer
+            .bytes
+            .len()
+            .checked_sub(*slot)
+            .is_some_and(|remaining| remaining >= width)
+    }) else {
+        return Err(Flow::Failure(normalize_byte_buffer(
+            crate::byte_ops::SET_INDEX_OUT_OF_BOUNDS_CODE,
+        )));
+    };
+    let mut filled = buffer.bytes.to_vec();
+    if wide {
+        let start = usize::try_from(source_start).ok();
+        for offset in 0..5 {
+            filled[slot + offset] = start
+                .and_then(|start| start.checked_add(offset))
+                .and_then(|source_index| source.get(source_index))
+                .copied()
+                .unwrap_or(0);
+        }
+    } else {
+        filled[slot] = one;
+    }
+    Ok(OwnedBytesValue {
+        allocation: buffer.allocation,
+        bytes: Arc::from(filled.as_slice()),
+    })
+}
+
+/// Tagged source store. The copy branch preflights its complete six- or
+/// forty-eight-byte destination interval before the owner is moved.
+pub(super) fn set1_or6_or48(
+    buffer: &OwnedBytesValue,
+    index: u64,
+    one: u8,
+    source: &[u8],
+    selector: u64,
+) -> Result<OwnedBytesValue, Flow> {
+    let copy = selector & crate::byte_ops::SET1_OR6_OR48_COPY_TAG != 0;
+    let wide48 = selector & crate::byte_ops::SET1_OR6_OR48_WIDE48_TAG != 0;
+    let source_start = selector & crate::byte_ops::SET1_OR6_OR48_OFFSET_MASK;
+    let width = if copy {
+        if wide48 {
+            48
+        } else {
+            6
+        }
+    } else {
+        1
+    };
+    let Some(slot) = usize::try_from(index).ok().filter(|slot| {
+        buffer
+            .bytes
+            .len()
+            .checked_sub(*slot)
+            .is_some_and(|remaining| remaining >= width)
+    }) else {
+        return Err(Flow::Failure(normalize_byte_buffer(
+            crate::byte_ops::SET_INDEX_OUT_OF_BOUNDS_CODE,
+        )));
+    };
+    let mut filled = buffer.bytes.to_vec();
+    if copy {
+        let start = usize::try_from(source_start).ok();
+        for offset in 0..width {
+            filled[slot + offset] = start
+                .and_then(|start| start.checked_add(offset))
+                .and_then(|at| source.get(at))
+                .copied()
+                .unwrap_or(0);
+        }
+    } else {
+        filled[slot] = one;
+    }
+    Ok(OwnedBytesValue {
+        allocation: buffer.allocation,
+        bytes: Arc::from(filled.as_slice()),
+    })
+}
+
+/// Evaluate one compiler-owned owned-buffer operation after the caller has
+/// evaluated every operand from left to right.
+impl Evaluator<'_> {
+    pub(super) fn evaluate_owned_buffer_operation(
+        &mut self,
+        op: crate::byte_ops::ByteOp,
+        values: &[Value],
+    ) -> Result<Value, Flow> {
+        match (op, values) {
+            (crate::byte_ops::ByteOp::Zeroed, [Value::Usize(capacity)]) => zeroed(
+                *capacity,
+                &mut self.next_byte_allocation,
+                &mut self.allocated_byte_payload,
+            )
+            .map(Value::Bytes),
+            (
+                crate::byte_ops::ByteOp::Set,
+                [Value::Bytes(buffer), Value::Usize(index), Value::Uint8(byte)],
+            ) => set(buffer, *index, *byte).map(Value::Bytes),
+            (
+                crate::byte_ops::ByteOp::Set5,
+                [Value::Bytes(buffer), Value::Usize(index), Value::Uint8(first), Value::Uint8(second), Value::Uint8(third), Value::Uint8(fourth), Value::Uint8(fifth)],
+            ) => set5(buffer, *index, [*first, *second, *third, *fourth, *fifth]).map(Value::Bytes),
+            (
+                crate::byte_ops::ByteOp::Set1Or5,
+                [Value::Bytes(buffer), Value::Usize(index), Value::Uint8(one), Value::BorrowedSlice(source), Value::Usize(selector)],
+            ) => set1_or5(buffer, *index, *one, source.bytes(), *selector).map(Value::Bytes),
+            (
+                crate::byte_ops::ByteOp::Set1Or6Or48,
+                [Value::Bytes(buffer), Value::Usize(index), Value::Uint8(one), Value::BorrowedSlice(source), Value::Usize(selector)],
+            ) => set1_or6_or48(buffer, *index, *one, source.bytes(), *selector).map(Value::Bytes),
+            _ => Err(Flow::Guard("ill-typed borrowed byte operation operand")),
+        }
+    }
 }

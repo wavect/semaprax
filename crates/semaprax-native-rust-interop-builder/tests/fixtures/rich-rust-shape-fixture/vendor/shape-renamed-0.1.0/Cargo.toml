@@ -1,0 +1,13 @@
+[package]
+name = "shape-renamed"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "different_lib_target"
+path = "src/lib.rs"
+
+[features]
+default = ["default-on"]
+default-on = []
+target-feature = []

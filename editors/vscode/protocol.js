@@ -8,7 +8,12 @@ const ALLOWED = new Set(['workspace/open', 'workspace/refresh-preview', 'workspa
   'hole/open-contract-expression', 'hole/query', 'hole/summary', 'hole/page', 'hole/expression-catalog', 'hole/fill-suggestions', 'hole/fill',
   'hole/complete', 'hole/discard', 'protocol/constructor-schemas',
   'candidate/attempt', 'attempt/summary', 'attempt/query', 'attempt/repair-catalog', 'attempt/repair-apply', 'attempt/discard',
-  'candidate/test-task-start', 'candidate/test-task-status', 'candidate/test-task-cancel', 'candidate/test-task-result']);
+  'candidate/test-task-start', 'candidate/test-task-status', 'candidate/test-task-cancel', 'candidate/test-task-result',
+  'image/explorer-summary', 'image/explorer-page', 'candidate/explorer-summary', 'candidate/explorer-page',
+  'image/dependency-summary', 'image/dependency-page', 'candidate/dependency-summary', 'candidate/dependency-page',
+  'image/function-summary', 'image/facet', 'candidate/function-summary', 'candidate/function-facet',
+  'candidate/semantic-delta', 'candidate/semantic-delta-catalog', 'candidate/contract-delta', 'candidate/ownership-delta',
+  'image/analysis-coverage', 'candidate/analysis-coverage']);
 const digest = value => typeof value === 'string' && value.length === 71 && /^sha256:[0-9a-f]{64}$/.test(value);
 function exact(value, keys) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Unexpected response fields');

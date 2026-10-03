@@ -3,6 +3,7 @@ use super::*;
 use crate::interpreter::resumable::owned_frame::OwnedFrameFailure;
 use crate::live_invocation::source_journal::owned_wait_v8::append::VerifiedOwnedObserveSettlementSuccessorV8;
 use crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect::authorization::step::r#continue::settlement::ContinuedObserveSettlementV8;
+use crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect::authorization::step::r#continue::later::settlement::LaterObserveSettlementV8;
 use crate::interpreter::resumable::ResumableChannelValue;
 use crate::live_invocation::source_journal::owned_wait_v8::model::ObserveSettlementV8;
 
@@ -10,6 +11,7 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) enum LiveObserveSe
 {
     Initial(InitialObserveSettlementV8<'j>),
     Continued(ContinuedObserveSettlementV8<'j>),
+    Later(LaterObserveSettlementV8<'j>),
 }
 pub(in crate::live_invocation::source_journal::owned_wait_v8) struct InitialObserveSettlementV8<'j>
 {
@@ -105,42 +107,49 @@ impl<'j> LiveObserveSettlementOwnerV8<'j> {
         match self {
             Self::Initial(i) => i.journal,
             Self::Continued(c) => c.journal(),
+            Self::Later(c) => c.journal(),
         }
     }
     fn sequence(&self) -> usize {
         match self {
             Self::Initial(i) => i.session.sequence(),
             Self::Continued(c) => c.sequence(),
+            Self::Later(c) => c.sequence(),
         }
     }
     fn bytes(&self) -> usize {
         match self {
             Self::Initial(i) => i.session.acknowledged_bytes(),
             Self::Continued(c) => c.bytes(),
+            Self::Later(c) => c.bytes(),
         }
     }
     fn turn(&self) -> u32 {
         match self {
             Self::Initial(_) => 0,
             Self::Continued(c) => c.turn(),
+            Self::Later(c) => c.turn(),
         }
     }
     fn reservation(&self) -> u32 {
         match self {
             Self::Initial(i) => i.reservation,
             Self::Continued(c) => c.reservation(),
+            Self::Later(c) => c.reservation(),
         }
     }
     fn data(&self) -> Result<ObserveDataV8, SourceJournalError> {
         match self {
             Self::Initial(i) => i.data(),
             Self::Continued(c) => c.data(),
+            Self::Later(c) => c.data(),
         }
     }
     fn guard_at(&self, seq: usize, bytes: usize) -> Result<(), SourceJournalError> {
         match self {
             Self::Initial(i) => i.guard_at(seq, bytes),
             Self::Continued(c) => c.guard_at(seq, bytes),
+            Self::Later(c) => c.guard_at(seq, bytes),
         }
     }
     fn selected_turn_observed(&self) -> Result<EntryV8, SourceJournalError> {
@@ -368,6 +377,9 @@ impl FixedOwnedObserveSettlementAppendPermitV8<'_, '_> {
             LiveObserveSettlementOwnerV8::Continued(c) => {
                 c.validate_append_prefix(journal, inventory, &self.owner.selected)
             }
+            LiveObserveSettlementOwnerV8::Later(c) => {
+                c.validate_append_prefix(journal, inventory, &self.owner.selected)
+            }
         }
     }
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_registry(
@@ -380,6 +392,7 @@ impl FixedOwnedObserveSettlementAppendPermitV8<'_, '_> {
                 witness.validate_against_acknowledged_session(session)
             }
             LiveObserveSettlementOwnerV8::Continued(c) => c.advance_registry(witness, session),
+            LiveObserveSettlementOwnerV8::Later(c) => c.advance_registry(witness, session),
         }
     }
 }
@@ -406,6 +419,14 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_verifie
 }
 
 impl<'j> LiveSettledObserveV8<'j> {
+    /// Data-only classification of the retained actual Observe outcome. Cleanup
+    /// admission independently rechecks its acknowledged lineage and owner.
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn failed(
+        &self,
+    ) -> Result<bool, SourceJournalError> {
+        self.owner.data().map(|data| data.failure.is_some())
+    }
+
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn prepare_turn_observed(
         self,
     ) -> Result<LiveOwnedObserveSettlementAppendV8<'j>, LiveObserveSettlementFailureV8<'j>> {
@@ -583,6 +604,7 @@ mod tests;
 pub(crate) use tests::test_initial_observe_entry_v8;
 
 pub(in crate::live_invocation::source_journal::owned_wait_v8) mod carry;
+pub(in crate::live_invocation::source_journal::owned_wait_v8) mod later_carry;
 pub(in crate::live_invocation::source_journal::owned_wait_v8) use carry::{
     LiveContinuedWaitV8, LiveTurnCarryFailureV8,
 };

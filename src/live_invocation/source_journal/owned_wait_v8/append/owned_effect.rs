@@ -4,6 +4,15 @@ use super::*;
 mod consumed;
 mod intent;
 mod settlement;
+pub(in crate::live_invocation::source_journal::owned_wait_v8) enum ContinuedRunOutcomeV8<'j> {
+    FailedEffectStopped(Box<crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect::authorization::failed_state::continued::StoppedContinuedStateV8<'j>>),
+    Complete(serde_json::Value),
+    FailedObserve(
+        crate::live_invocation::source_journal::owned_wait_v8::live_upstream::LiveSettledObserveV8<
+            'j,
+        >,
+    ),
+}
 use crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect::LiveOwnedEffectAppendV8;
 pub(super) use consumed::OwnedReduceHoldPhaseV8;
 pub(in crate::live_invocation::source_journal::owned_wait_v8) use consumed::{
@@ -14,6 +23,9 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) use consumed::{
 pub(in crate::live_invocation::source_journal::owned_wait_v8) use intent::{
     LiveOwnedEffectIntentAppendFailureV8, VerifiedOwnedEffectIntentAppendV8,
     VerifiedOwnedEffectIntentSuccessorV8,
+};
+pub(in crate::live_invocation::source_journal::owned_wait_v8) use settlement::cleanup::continued_reduce::{
+    LiveContinuedReduceAppendFailureV8, VerifiedOwnedContinuedReduceSuccessorV8,
 };
 pub(in crate::live_invocation::source_journal::owned_wait_v8) use settlement::{
     LiveOwnedEffectSettlementAppendFailureV8, VerifiedOwnedEffectSettlementAppendV8,
@@ -231,9 +243,13 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) use settlement::cl
 #[cfg(all(test, unix))]
 pub(in crate::live_invocation::source_journal::owned_wait_v8) use settlement::cleanup::reduce::test_evaluated_failed;
 
-pub(in crate::live_invocation::source_journal::owned_wait_v8) use settlement::cleanup::reduce::step::VerifiedOwnedStepSuccessorV8;
+pub(in crate::live_invocation::source_journal::owned_wait_v8) use settlement::cleanup::reduce::step::{
+    LiveOwnedStepAppendFailureV8, VerifiedOwnedStepSuccessorV8,
+};
 
-pub(in crate::live_invocation::source_journal::owned_wait_v8) use settlement::cleanup::failed_state::VerifiedFailedEffectStateSuccessorV8;
+pub(in crate::live_invocation::source_journal::owned_wait_v8) use settlement::cleanup::failed_state::{
+    LiveFailedEffectStateAppendFailureV8, VerifiedFailedEffectStateSuccessorV8,
+};
 #[cfg(all(test, unix))]
 pub(in crate::live_invocation::source_journal::owned_wait_v8) use settlement::cleanup::{test_failed_target,TestFailedTargetV8};
 

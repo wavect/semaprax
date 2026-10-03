@@ -143,6 +143,32 @@ fn physical_registered_process_invalid_executable_is_launch_failure() {
 }
 
 #[test]
+#[cfg(target_os = "linux")]
+fn physical_registered_process_refuses_a_held_shebang_script() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let root = fixture();
+    let script = root.join("held-shebang-script");
+    std::fs::write(&script, b"#!/bin/sh\nexit 0\n").unwrap();
+    std::fs::set_permissions(&script, std::fs::Permissions::from_mode(0o700)).unwrap();
+    let tool = HeldProcessTool::new(
+        File::open(&script).unwrap(),
+        File::open(root).unwrap(),
+        b"registered-fixture".to_vec(),
+        Vec::new(),
+        |_| true,
+    )
+    .unwrap();
+    let mut host = RegisteredProcessProvider::new([(7, tool)]).unwrap();
+    assert_eq!(
+        host.run(&request(&[], b"", 3000, 0, 0)),
+        Err(ProcessFailure::LaunchFailed)
+    );
+    host.settle().unwrap();
+    std::fs::remove_file(script).unwrap();
+}
+
+#[test]
 fn physical_registered_process_uses_held_executable_after_path_replacement() {
     let root = fixture();
     let executable_path = root.join("replaceable-tool");

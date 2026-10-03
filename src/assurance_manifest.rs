@@ -31,7 +31,10 @@
 mod delta;
 mod derive;
 mod lattice;
+pub mod law_set;
+pub mod law_vc;
 pub mod model_checking;
+pub mod modular_law;
 mod obligation;
 pub mod project;
 pub mod proof_certificate;
@@ -39,6 +42,7 @@ mod render;
 mod resumable;
 mod session_protocol;
 pub mod smt_discharge;
+pub mod structured_law;
 mod verify;
 
 pub use delta::delta;

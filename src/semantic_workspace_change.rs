@@ -223,6 +223,7 @@ pub(crate) fn apply_authenticated_with_hook(
     };
     workspace::commit_semantic_change_authority_with_hook(
         commit,
+        None,
         |point, active, staged, candidate| {
             hook(
                 SemanticApplyPoint::Workspace(point),
@@ -260,6 +261,10 @@ pub(crate) fn with_project_candidate_change<T>(
 /// remain mandatory; no reusable authority leaves this invocation.
 pub(crate) fn apply_project_candidate_change(
     root: &Path,
+    admit: impl FnOnce() -> Result<
+        Option<crate::project::host_policy::StrictWorkspacePermit>,
+        Vec<Diagnostic>,
+    >,
     derive: impl FnOnce(
         &str,
         &[workspace::WorkspaceSemanticSource],
@@ -277,6 +282,10 @@ pub(crate) fn apply_project_candidate_change(
 ) -> Result<String, Vec<Diagnostic>> {
     let locked = workspace::acquire_semantic_change_apply_lock(root)?;
     let (authority, ()) = locked.authenticate(Ok(()))?;
+    let strict_law_permit = match admit() {
+        Ok(permit) => permit,
+        Err(diagnostics) => return authority.finish(Err(diagnostics)),
+    };
     let (authority, prepared) = prepare_project_candidate_change(authority, derive)?;
     let replayed = (|| {
         let artifacts = artifact::render_artifacts(&prepared)?;
@@ -299,6 +308,7 @@ pub(crate) fn apply_project_candidate_change(
             candidate_revision,
             receipt,
         },
+        strict_law_permit,
         hook,
     )
 }

@@ -1,5 +1,6 @@
 //! Private phase-specific closure room; acknowledged payloads are not reserved twice.
 mod cumulative;
+pub(super) use cumulative::FutureTemplateCacheV8;
 mod effect;
 mod reduce;
 pub(super) use reduce::ReduceTemplateCacheV8;
@@ -8,6 +9,7 @@ use super::*;
 use fold::{FoldV8, TailV8};
 use model::{OwnerV8, PhaseV8};
 use serde_json::json;
+pub(super) use templates::MaximaTemplateCacheV8;
 
 pub(super) struct ClosureFactsV8<'a> {
     pub attempt: Option<u32>,

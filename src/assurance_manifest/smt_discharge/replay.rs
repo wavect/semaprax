@@ -213,6 +213,93 @@ fn eval_binary(env: &mut Env, op: BinaryOp, left: &Expr, right: &Expr) -> Result
     }
 }
 
+/// Validate one concrete satisfiable-domain witness against checked scalar
+/// evaluation. A solver's `sat` token alone is never a witness.
+pub fn validate_domain_witness(function: &Function, model: &Model) -> Result<(), String> {
+    let mut scope = Vec::new();
+    for param in &function.params {
+        let sort = sort_of_type(&param.ty)
+            .ok_or_else(|| format!("unsupported parameter `{}`", param.name))?;
+        let supplied = model
+            .get(&param.name)
+            .ok_or_else(|| format!("witness omits parameter `{}`", param.name))?;
+        let value = match (sort, supplied) {
+            (Sort::Numeric(mode), ModelValue::Int(raw)) if checked_range(mode, *raw).is_some() => {
+                Value::Numeric(*raw, mode)
+            }
+            (Sort::Bool, ModelValue::Bool(value)) => Value::Bool(*value),
+            _ => {
+                return Err(format!(
+                    "witness value for `{}` is outside its sort/range",
+                    param.name
+                ))
+            }
+        };
+        scope.push((param.name.clone(), value));
+    }
+    let mut env = Env { scope };
+    for (index, clause) in function.requires.iter().enumerate() {
+        match eval(&mut env, clause) {
+            Ok(Value::Bool(true)) => {}
+            Ok(Value::Bool(false)) => return Err(format!("requires[{index}] is false")),
+            Ok(Value::Numeric(..)) => return Err(format!("requires[{index}] is not Boolean")),
+            Err(detail) => return Err(format!("requires[{index}] trapped: {detail}")),
+        }
+    }
+    Ok(())
+}
+
+/// Search a fixed finite scalar corpus for a concrete domain witness.
+/// Exhaustion is unknown, never proof of contradiction.
+pub fn bounded_domain_witness(function: &Function, max_states: usize) -> Option<Model> {
+    if max_states == 0 {
+        return None;
+    }
+    let mut candidates = Vec::new();
+    for param in &function.params {
+        let values = match sort_of_type(&param.ty)? {
+            Sort::Bool => vec![ModelValue::Bool(false), ModelValue::Bool(true)],
+            Sort::Numeric(mode) => {
+                let mut values = Vec::new();
+                for raw in [0, 1, -1, mode.min(), mode.max()] {
+                    if checked_range(mode, raw).is_some() {
+                        let value = ModelValue::Int(raw);
+                        if !values.contains(&value) {
+                            values.push(value);
+                        }
+                    }
+                }
+                values
+            }
+        };
+        candidates.push((param.name.clone(), values));
+    }
+    let mut indices = vec![0usize; candidates.len()];
+    for _ in 0..max_states {
+        let model = candidates
+            .iter()
+            .zip(&indices)
+            .map(|((name, values), index)| (name.clone(), values[*index]))
+            .collect::<Model>();
+        if validate_domain_witness(function, &model).is_ok() {
+            return Some(model);
+        }
+        let mut advanced = false;
+        for (index, (_, values)) in candidates.iter().enumerate().rev() {
+            indices[index] += 1;
+            if indices[index] < values.len() {
+                advanced = true;
+                break;
+            }
+            indices[index] = 0;
+        }
+        if !advanced {
+            break;
+        }
+    }
+    None
+}
+
 /// Replay `model` (already type-checked against `function`'s parameter and
 /// return sorts by the caller) against `function`'s real checked
 /// semantics, and classify what the concrete inputs actually do.
@@ -241,8 +328,8 @@ pub fn replay_function(function: &Function, model: &Model) -> Result<ReplayOutco
             }
             Ok(Value::Numeric(..)) => return Err("replay: non-boolean requires clause".to_owned()),
             Err(detail) => {
-                return Ok(ReplayOutcome::Inconsistent {
-                    detail: format!("requires clause {index} failed to evaluate: {detail}"),
+                return Ok(ReplayOutcome::Trapped {
+                    detail: format!("requires clause {index} trapped: {detail}"),
                 })
             }
         }

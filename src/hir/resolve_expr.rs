@@ -821,20 +821,12 @@ impl Resolver<'_> {
                             ));
                         }
                     }
-                    let result = match source_import.result {
-                        crate::ast::ImportResult::Unit => ResolvedImportResultKind::Unit,
-                        crate::ast::ImportResult::I64 => ResolvedImportResultKind::I64,
-                        crate::ast::ImportResult::Bool => ResolvedImportResultKind::Bool,
-                    };
-                    let ty = match result {
-                        ResolvedImportResultKind::Unit => ResolvedType::Unit,
-                        ResolvedImportResultKind::I64 => ResolvedType::I64,
-                        ResolvedImportResultKind::Bool => ResolvedType::Bool,
-                    };
+                    let (result, ty) =
+                        self.resolve_native_rust_result(&source_import.result, span)?;
                     results.push(ResolvedExpr {
                         id: ExpressionId::new(function, &path),
                         ty,
-                        ownership: OwnershipMode::Value,
+                        ownership: result.ownership(),
                         kind: ResolvedExprKind::NativeRustImportCall(
                             ResolvedNativeRustImportCall {
                                 expression: ExpressionId::new(function, &path),

@@ -27,6 +27,7 @@ pub enum LoanPointPhase {
 
 #[cfg(test)]
 mod boundary_tests;
+mod native_view;
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct LoanProgramPoint {
@@ -257,6 +258,7 @@ fn has_own_root_candidate(
         .map(|param| (param.id.clone(), param.ownership))
         .collect::<BTreeMap<_, _>>();
     for expression in &expressions {
+        native_view::inventory_aliases(program, expression, &mut aliases);
         if let ResolvedExprKind::Match { arms, .. } = &expression.kind {
             for arm in arms {
                 inventory_pattern_ownership(&arm.pattern, &mut ownership);
@@ -282,6 +284,14 @@ fn has_own_root_candidate(
         let view = match &expression.kind {
             ResolvedExprKind::BorrowPlace { place, .. } => Some(place.clone()),
             ResolvedExprKind::ByteRange { source, .. } => expression_place(source),
+            ResolvedExprKind::NativeRustImportCall(call)
+                if matches!(
+                    call.result,
+                    crate::hir::ResolvedImportResultKind::BorrowedStr { .. }
+                ) =>
+            {
+                call.args.first().and_then(expression_place)
+            }
             ResolvedExprKind::Place(place) if bound.contains_key(&expression.id) => {
                 Some(place.clone())
             }
@@ -292,35 +302,10 @@ fn has_own_root_candidate(
                 return Ok(true);
             }
         }
-        if let ResolvedExprKind::Call {
-            callee,
-            instance,
-            args,
-            ..
-        } = &expression.kind
-        {
-            let target = program.resolve_call_target(callee, instance.as_ref());
-            for (index, argument) in args.iter().enumerate() {
-                let borrowed = target.map_or_else(
-                    || argument.ownership == OwnershipMode::Borrow,
-                    |target| {
-                        target
-                            .params
-                            .get(index)
-                            .is_some_and(|parameter| parameter.ownership == OwnershipMode::Borrow)
-                    },
-                );
-                if borrowed {
-                    if let Some(place) = expression_place(argument) {
-                        if ultimate_root_is_own(
-                            &place.root,
-                            &aliases,
-                            &ownership,
-                            &mut root_ownership,
-                        )? {
-                            return Ok(true);
-                        }
-                    }
+        for (_, argument) in borrowed_call_arguments(program, expression) {
+            if let Some(place) = expression_place(argument) {
+                if ultimate_root_is_own(&place.root, &aliases, &ownership, &mut root_ownership)? {
+                    return Ok(true);
                 }
             }
         }
@@ -431,6 +416,7 @@ fn build_cfg_plan_counted(
         .collect::<BTreeMap<_, _>>();
     for expression in &cfg.expressions {
         charge(work)?;
+        native_view::inventory_aliases(program, expression, &mut aliases);
         if let ResolvedExprKind::Match { arms, .. } = &expression.kind {
             for arm in arms {
                 inventory_pattern_ownership(&arm.pattern, &mut ownership);
@@ -457,6 +443,14 @@ fn build_cfg_plan_counted(
         let view = match &expression.kind {
             ResolvedExprKind::BorrowPlace { place, .. } => Some(place.clone()),
             ResolvedExprKind::ByteRange { source, .. } => expression_place(source),
+            ResolvedExprKind::NativeRustImportCall(call)
+                if matches!(
+                    call.result,
+                    crate::hir::ResolvedImportResultKind::BorrowedStr { .. }
+                ) =>
+            {
+                call.args.first().and_then(expression_place)
+            }
             ResolvedExprKind::Place(place) if bound.contains_key(&expression.id) => {
                 Some(place.clone())
             }
@@ -479,46 +473,25 @@ fn build_cfg_plan_counted(
                 },
             });
         }
-        if let ResolvedExprKind::Call {
-            callee,
-            instance,
-            args,
-            ..
-        } = &expression.kind
-        {
-            let target = program.resolve_call_target(callee, instance.as_ref());
-            for (index, argument) in args.iter().enumerate() {
-                let borrowed = target.map_or_else(
-                    || argument.ownership == OwnershipMode::Borrow,
-                    |target| {
-                        target
-                            .params
-                            .get(index)
-                            .is_some_and(|parameter| parameter.ownership == OwnershipMode::Borrow)
-                    },
-                );
-                if !borrowed {
-                    continue;
-                }
-                let place = expression_place(argument)
-                    .ok_or_else(|| error("borrowed call lacks an exact place origin"))?;
-                drafts.push(CfgDraft {
-                    site: expression.id.clone(),
-                    origin: resolve_origin(&aliases, place.clone(), work)?,
-                    parent_root: aliases
-                        .contains_key(&place.root)
-                        .then(|| place.root.clone()),
-                    binding: None,
-                    start: cfg.node(expression, LoanPointPhase::Before)?,
-                    seeds: [cfg.node(expression, LoanPointPhase::After)?]
-                        .into_iter()
-                        .collect(),
-                    cause: LoanCause::BorrowedCall {
-                        argument: u16::try_from(index)
-                            .map_err(|_| error("borrowed argument index overflows"))?,
-                    },
-                });
-            }
+        for (index, argument) in borrowed_call_arguments(program, expression) {
+            let place = expression_place(argument)
+                .ok_or_else(|| error("borrowed call lacks an exact place origin"))?;
+            drafts.push(CfgDraft {
+                site: expression.id.clone(),
+                origin: resolve_origin(&aliases, place.clone(), work)?,
+                parent_root: aliases
+                    .contains_key(&place.root)
+                    .then(|| place.root.clone()),
+                binding: None,
+                start: cfg.node(expression, LoanPointPhase::Before)?,
+                seeds: [cfg.node(expression, LoanPointPhase::After)?]
+                    .into_iter()
+                    .collect(),
+                cause: LoanCause::BorrowedCall {
+                    argument: u16::try_from(index)
+                        .map_err(|_| error("borrowed argument index overflows"))?,
+                },
+            });
         }
         if let ResolvedExprKind::Match {
             mode: crate::hir::ResolvedMatchMode::Borrow,
@@ -583,13 +556,14 @@ fn build_cfg_plan_counted(
                 .insert(cfg.node(expression, LoanPointPhase::After)?);
         }
     }
+    let match_parents = native_view::match_parents(&cfg.expressions, &drafts);
     let parents = drafts
         .iter()
         .map(|draft| {
-            draft
-                .parent_root
-                .clone()
-                .and_then(|root| resolve_parent(&aliases, &binding_loans, root))
+            draft.parent_root.clone().and_then(|root| {
+                resolve_parent(&aliases, &binding_loans, root.clone())
+                    .or_else(|| resolve_parent(&aliases, &match_parents, root))
+            })
         })
         .collect::<Vec<_>>();
     let mut live = drafts
@@ -1050,28 +1024,10 @@ fn reject_cfg_overlaps(
 ) -> Result<(), Diagnostic> {
     let mut nonconsuming = BTreeSet::new();
     for expression in &cfg.expressions {
+        for (_, argument) in borrowed_call_arguments(program, expression) {
+            nonconsuming.insert(argument.id.clone());
+        }
         match &expression.kind {
-            ResolvedExprKind::Call {
-                callee,
-                instance,
-                args,
-                ..
-            } => {
-                let target = program.resolve_call_target(callee, instance.as_ref());
-                for (index, argument) in args.iter().enumerate() {
-                    let borrowed = target.map_or_else(
-                        || argument.ownership == OwnershipMode::Borrow,
-                        |target| {
-                            target.params.get(index).is_some_and(|parameter| {
-                                parameter.ownership == OwnershipMode::Borrow
-                            })
-                        },
-                    );
-                    if borrowed {
-                        nonconsuming.insert(argument.id.clone());
-                    }
-                }
-            }
             ResolvedExprKind::Match {
                 mode: crate::hir::ResolvedMatchMode::Borrow,
                 scrutinee,
@@ -1299,6 +1255,14 @@ fn expression_place(expression: &ResolvedExpr) -> Option<Place> {
             Some(place.clone())
         }
         ResolvedExprKind::ByteRange { source, .. } => expression_place(source),
+        ResolvedExprKind::NativeRustImportCall(call)
+            if matches!(
+                call.result,
+                crate::hir::ResolvedImportResultKind::BorrowedStr { .. }
+            ) =>
+        {
+            call.args.first().and_then(expression_place)
+        }
         _ => None,
     }
 }
@@ -1412,3 +1376,55 @@ fn error(message: impl Into<String>) -> Diagnostic {
 #[cfg(test)]
 #[path = "loan_plan/tests.rs"]
 mod tests;
+
+// Native loans use the same exact place origins and CFG interval as ordinary
+// borrowed calls. The declared parameter mode is authoritative; a named owned
+// argument remains an owned Place node while the invocation borrows it.
+fn borrowed_call_arguments<'a>(
+    program: &ResolvedProgram,
+    expression: &'a ResolvedExpr,
+) -> Vec<(usize, &'a ResolvedExpr)> {
+    match &expression.kind {
+        ResolvedExprKind::Call {
+            callee,
+            instance,
+            args,
+            ..
+        } => {
+            let target = program.resolve_call_target(callee, instance.as_ref());
+            args.iter()
+                .enumerate()
+                .filter(|(index, argument)| {
+                    target.map_or_else(
+                        || argument.ownership == OwnershipMode::Borrow,
+                        |target| {
+                            target
+                                .params
+                                .get(*index)
+                                .is_some_and(|p| p.ownership == OwnershipMode::Borrow)
+                        },
+                    )
+                })
+                .collect()
+        }
+        ResolvedExprKind::NativeRustImportCall(call) => {
+            let target = program
+                .interfaces
+                .iter()
+                .flat_map(|i| &i.imports)
+                .find(|i| i.id == call.import);
+            call.args
+                .iter()
+                .enumerate()
+                .filter(|(index, _)| {
+                    target.is_some_and(|i| {
+                        i.parameters
+                            .get(*index)
+                            .is_some_and(|p| p.ownership == OwnershipMode::Borrow)
+                    })
+                })
+                .collect()
+        }
+        _ => Vec::new(),
+    }
+}

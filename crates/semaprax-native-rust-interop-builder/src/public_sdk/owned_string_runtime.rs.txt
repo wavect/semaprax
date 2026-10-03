@@ -1,0 +1,33 @@
+// A canonical owning String place read creates a new allocation. The source
+// remains live; no liveness flag or cleanup vector is repaired here. Core
+// String allocation failure aborts rather than inventing a recoverable edge.
+#[no_mangle]
+pub unsafe extern "C" fn spx_owner_string_clone(context: u64, owner: SpxOwner, out: *mut SpxOwner) -> i32 {
+    if out.is_null() || (out as usize) % std::mem::align_of::<SpxOwner>() != 0 { return 3; }
+    let result = CONTEXTS.with(|contexts| {
+        let mut contexts = contexts.try_borrow_mut().map_err(|_| 6)?;
+        if owner.context != context { return Err(3); }
+        let context = contexts.iter_mut().find(|c| c.id == context).ok_or(3)?;
+        let source_index = usize::try_from(owner.slot).map_err(|_| 3)?;
+        let source_slot = context.slots.get(source_index).ok_or(3)?;
+        if source_slot.generation != owner.generation || source_slot.value.is_none() { return Err(3); }
+        let free = context.slots.iter().position(|s| s.value.is_none() && s.generation != u64::MAX);
+        if free.is_none() {
+            if context.slots.len() >= 32 { std::process::abort(); }
+            context.slots.try_reserve(1).unwrap_or_else(|_| std::process::abort());
+        }
+        let source = context.slots[source_index].value.as_ref().ok_or(3)?;
+        let mut value = std::string::String::new();
+        value.try_reserve_exact(source.len()).unwrap_or_else(|_| std::process::abort());
+        value.push_str(source);
+        if value.len()>4096 || value.capacity()>4096 { std::process::abort(); }
+        let index = if let Some(index) = free { index } else {
+            context.slots.push(Slot { generation: 0, value: None }); context.slots.len() - 1
+        };
+        let slot = &mut context.slots[index];
+        slot.generation += 1;
+        slot.value = Some(value);
+        Ok(SpxOwner { context: context.id, generation: slot.generation, slot: index as u64 })
+    });
+    match result { Ok(owner) => { unsafe { out.write(owner) }; 0 }, Err(status) => status }
+}

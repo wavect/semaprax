@@ -5,7 +5,6 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use super::*;
 use crate::opencode_host::{OpenCodeHostConfig, OpenCodeRunner, OpenCodeRunnerFailure};
-
 static NEXT: AtomicU64 = AtomicU64::new(0);
 
 struct Fixture(PathBuf);
@@ -40,6 +39,11 @@ macro_rules! unix_checkpoint_host {
         }
     };
 }
+
+#[path = "repair_tests/fixed_candidate_test.rs"]
+mod fixed_candidate_test;
+#[path = "repair_tests/post_settled_barrier.rs"]
+mod post_settled_barrier;
 
 const MANIFEST: &str = include_str!("../../../../examples/offline-repair-project/semaprax.toml");
 const APP: &str = include_str!("../../../../examples/offline-repair-project/src/app.spx");
@@ -436,6 +440,8 @@ fn v2_command(verb: &str, config: PathBuf, checkpoint: PathBuf, scratch: PathBuf
     let provider = OpenCodeOperands {
         executable,
         scratch,
+        pause_after_settled: false,
+        claude: false,
     };
     match verb {
         "run" => Command::Run {
@@ -1477,20 +1483,9 @@ fn command_grammar_requires_run_or_resume_and_absolute_operands() {
     assert!(Command::parse(&args(&["resume", "/config.json", "/checkpoint"])).is_ok());
 }
 
-#[test]
-fn opencode_repair_configuration_requires_explicit_host_provider_operands() {
-    let fixture = Fixture::new();
-    let (config, checkpoint) = setup(&fixture, "test.repair.opencode-denial.v1");
-    let mut value: serde_json::Value = serde_json::from_slice(&fs::read(&config).unwrap()).unwrap();
-    value["schema"] = serde_json::json!("semaprax.source-live-cli.repair-config.v2");
-    value.as_object_mut().unwrap().remove("turns");
-    fs::write(&config, serde_json::to_vec(&value).unwrap()).unwrap();
+#[path = "repair_tests/config.rs"]
+mod config;
 
-    let error = run_repair("run", &config, &checkpoint)
-        .expect_err("the production repair configuration must not select an implicit provider");
-    assert!(error.reason.contains("requires --opencode"));
-    assert!(
-        !checkpoint.exists(),
-        "provider authority refusal must happen before a checkpoint exists"
-    );
-}
+#[cfg(unix)]
+#[path = "repair_tests/claude.rs"]
+mod claude;

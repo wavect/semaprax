@@ -4,8 +4,9 @@
 This gate fails if its Windows host or scratch parent is absent, if Cargo or
 libtest fails, or if any named live test is filtered, ignored, or missing. The
 runtime cases use a deterministic test-only signing key to exercise the shared
-capsule verifier and held-image binding; this is not production release trust
-or Windows request/bundle transport evidence.
+ capsule verifier, held-image binding, and the standalone primitive's
+ authenticated request/bundle handoff; this is not production release trust
+ or ordinary Windows CLI transport evidence.
 """
 
 from __future__ import annotations
@@ -26,8 +27,13 @@ PACKAGE = "semaprax-native-rust-interop-platform-sys"
 PARENT_ENV = "SEMAPRAX_WINDOWS_CONFINEMENT_TEST_PARENT"
 FILTER = "windows_runtime_"
 EXPECTED_TESTS = (
+    "doctor::windows_confinement::primitive::tests::binding::windows_runtime_image_sharing_race_preserves_authenticated_bytes",
+    "doctor::windows_confinement::primitive::tests::binding::windows_runtime_image_sharing_excludes_writers_at_every_launch_boundary",
     "doctor::windows_confinement::primitive::tests::windows_runtime_launches_restricted_child_inside_acl_scratch_and_settles_it",
     "doctor::windows_confinement::primitive::tests::windows_runtime_timeout_terminates_the_confined_job_and_settles_cancellation",
+    "doctor::windows_confinement::primitive::tests::windows_runtime_cpu_time_limit_terminates_and_settles_the_confined_job",
+    "doctor::windows_confinement::primitive::tests::windows_runtime_committed_memory_limit_refuses_the_hostile_allocation",
+    "doctor::windows_confinement::primitive::tests::windows_runtime_combined_output_limit_terminates_and_settles_the_confined_job",
     "doctor::windows_confinement::primitive::tests::windows_runtime_timeout_terminates_an_actual_job_descendant",
     "doctor::windows_confinement::primitive::tests::windows_runtime_nonzero_exit_settles_failed_and_cleans_resources",
     "doctor::windows_confinement::primitive::tests::windows_runtime_scratch_refusal_closes_setup_handles",
@@ -42,6 +48,16 @@ EXPECTED_TESTS = (
     "doctor::windows_confinement::primitive::tests::binding::windows_runtime_signed_image_refuses_writable_mapping_after_writer_closes",
     "doctor::windows_confinement::primitive::tests::binding::windows_runtime_dropped_child_releases_image_and_process_handles",
     "doctor::windows_confinement::primitive::tests::binding::windows_runtime_signed_image_refuses_retained_writable_section_without_view",
+    "doctor::windows_confinement::primitive::tests::binding::windows_runtime_retained_writable_section_refuses_before_every_launch_boundary",
+    "doctor::windows_confinement::primitive::tests::binding::windows_runtime_signed_image_reaches_every_launch_boundary",
+    "doctor::windows_confinement::primitive::tests::binding::windows_runtime_retained_writable_section_refusals_settle_handles_and_scratch",
+    "doctor::windows_confinement::primitive::tests::binding::windows_runtime_child_inherits_only_declared_standard_handles",
+    "doctor::windows_confinement::primitive::tests::windows_runtime_signed_request_bundle_substitution_refuses_before_process_effects",
+    "doctor::windows_confinement::primitive::tests::windows_runtime_signed_request_bundle_carriers_reach_child_with_fixed_bindings",
+    "doctor::windows_confinement::carrier::tests::windows_runtime_authenticated_request_bundle_carriers_are_read_only",
+    "doctor::windows_confinement::carrier::tests::windows_runtime_authenticated_carrier_rejects_invalid_artifacts_without_handles",
+    "doctor::windows_confinement::carrier::tests::windows_runtime_authenticated_carrier_repeated_create_drop_settles_one_handle",
+    "doctor::windows_confinement::carrier::tests::windows_runtime_authenticated_carriers_settle_independent_live_handles",
 )
 REPO_ROOT = Path(__file__).resolve().parents[1]
 TERMINATION_TIMEOUT_SECONDS = 30
@@ -306,7 +322,7 @@ def main():
         print(f"Cargo selector: -p {PACKAGE} --lib {FILTER} -- --ignored --nocapture --test-threads=1")
         for test in EXPECTED_TESTS:
             print(f"required executed test: {test}")
-        print("selected tests use a deterministic test-only signing key; this is not release trust or request/bundle transport evidence")
+        print("selected tests use a deterministic test-only signing key; this is not release trust or ordinary Windows CLI transport evidence")
         return 0
     return run_gate()
 

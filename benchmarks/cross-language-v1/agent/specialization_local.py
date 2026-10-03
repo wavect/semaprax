@@ -32,10 +32,14 @@ from agent.specialization_native import NativeScorer
 
 PLAN_SCHEMA = "benchmark.cross_language.agent.local_specialization_inputs.v1"
 REVIEW_SCHEMA = "benchmark.cross_language.agent.local_specialization_review.v1"
+WAIVER_SCHEMA = "benchmark.cross_language.agent.local_specialization_review_waiver.v1"
+POST_RUN_WAIVER_SCHEMA = "benchmark.cross_language.agent.local_specialization_post_run_waiver.v1"
 RUN_SCHEMA = "benchmark.cross_language.agent.local_specialization_results.v1"
 PRECHECKS = ("model_origin_and_local_daemon", "zero_spend_and_no_egress",
              "source_oracle_and_excluded_discount", "prompt_and_split_leakage",
              "compiler_source_and_sandbox_negative_controls", "independent_review_and_custody")
+POST_RUN_CHECKS = ("receipt_audit", "control_comparison_and_uncertainty",
+                   "leakage_and_data_custody")
 RUNTIME_FILES = ("local_ollama.py", "specialization_inputs.py", "specialization_native.py",
                  "specialization_local.py", "specialization_accounting.py",
                  "specialization_protocol.py", "contracts.py", "budget.py", "transport.py")
@@ -199,6 +203,92 @@ def validate_review(review, plan_hash, operator):
     # identity or automatically manufactured independence.
 
 
+def waiver_template(plan_digest, operator):
+    """Render a user-waived review record without manufacturing a reviewer.
+
+    The operator must still complete the technical checks against the exact
+    plan.  This record is deliberately a different schema from a review, so a
+    receipt cannot be described as independent human approval by accident.
+    """
+    return {
+        "schema": WAIVER_SCHEMA, "phase": "preflight", "subject_sha256": plan_digest,
+        "decision": "pending", "operator": operator, "attested_at": None,
+        "review_waiver": "User explicitly waived independent human review for issue #326; this is an operator technical attestation, not independent review.",
+        "checks": {name: {"passed": False, "evidence": None} for name in PRECHECKS},
+        "notes": "Complete only after the operator verifies every preflight check.",
+    }
+
+
+def validate_waiver(record, plan_hash, operator):
+    expected = set(waiver_template(plan_hash, operator))
+    if (set(record) != expected or record["schema"] != WAIVER_SCHEMA or
+            record["phase"] != "preflight" or
+            record["decision"] != "operator_attested_review_waiver" or
+            record["subject_sha256"] != plan_hash or record["operator"] != operator):
+        raise LocalTransportError("operator_review_waiver_attestation_required")
+    if record["review_waiver"] != waiver_template(plan_hash, operator)["review_waiver"]:
+        raise LocalTransportError("unbound_or_ambiguous_review_waiver")
+    for field in ("attested_at", "notes"):
+        if not isinstance(record[field], str) or not record[field].strip():
+            raise LocalTransportError("incomplete_operator_attestation:" + field)
+    if not isinstance(record["checks"], dict) or set(record["checks"]) != set(PRECHECKS):
+        raise LocalTransportError("incomplete_operator_attestation_checks")
+    for check in record["checks"].values():
+        if (not isinstance(check, dict) or set(check) != {"passed", "evidence"} or
+                check["passed"] is not True or not isinstance(check["evidence"], str) or
+                not check["evidence"].strip()):
+            raise LocalTransportError("unsubstantiated_operator_attestation")
+
+
+def validate_preflight(record, plan_hash, operator, *, accept_review_waiver):
+    """Return the exact recorded authorization mode for an execution receipt."""
+    if record.get("schema") == REVIEW_SCHEMA:
+        validate_review(record, plan_hash, operator)
+        return {"mode": "independent_human_review", "independent_human_review": "recorded"}
+    if record.get("schema") != WAIVER_SCHEMA:
+        raise LocalTransportError("unknown_preflight_authorization_schema")
+    if not accept_review_waiver:
+        raise LocalTransportError("review_waiver_requires_explicit_cli_acceptance")
+    validate_waiver(record, plan_hash, operator)
+    return {"mode": "operator_technical_attestation_with_explicit_review_waiver",
+            "independent_human_review": "waived_by_user"}
+
+
+def post_run_waiver_template(summary_digest, operator):
+    return {
+        "schema": POST_RUN_WAIVER_SCHEMA, "phase": "post_run",
+        "subject_sha256": summary_digest, "decision": "pending", "operator": operator,
+        "attested_at": None,
+        "review_waiver": "User explicitly waived independent human review for issue #326; this is an operator technical attestation, not independent review.",
+        "checks": {name: {"passed": False, "evidence": None} for name in POST_RUN_CHECKS},
+        "notes": "Complete only after replaying the exact receipt audit and reviewing the control comparison and leakage evidence.",
+    }
+
+
+def validate_post_run_waiver(record, summary_digest, operator):
+    expected = set(post_run_waiver_template(summary_digest, operator))
+    if (set(record) != expected or record["schema"] != POST_RUN_WAIVER_SCHEMA or
+            record["phase"] != "post_run" or
+            record["decision"] != "operator_attested_review_waiver" or
+            record["subject_sha256"] != summary_digest or record["operator"] != operator):
+        raise LocalTransportError("post_run_operator_review_waiver_attestation_required")
+    template = post_run_waiver_template(summary_digest, operator)
+    if record["review_waiver"] != template["review_waiver"]:
+        raise LocalTransportError("unbound_or_ambiguous_post_run_review_waiver")
+    for field in ("attested_at", "notes"):
+        if not isinstance(record[field], str) or not record[field].strip():
+            raise LocalTransportError("incomplete_post_run_operator_attestation:" + field)
+    if not isinstance(record["checks"], dict) or set(record["checks"]) != set(POST_RUN_CHECKS):
+        raise LocalTransportError("incomplete_post_run_operator_attestation_checks")
+    for check in record["checks"].values():
+        if (not isinstance(check, dict) or set(check) != {"passed", "evidence"} or
+                check["passed"] is not True or not isinstance(check["evidence"], str) or
+                not check["evidence"].strip()):
+            raise LocalTransportError("unsubstantiated_post_run_operator_attestation")
+    return {"mode": "operator_technical_post_run_review_with_explicit_review_waiver",
+            "independent_human_review": "waived_by_user"}
+
+
 def cell_identity(row):
     # The frozen plan's execution=not_attempted is historical planning state,
     # not an observed result. Only stable cell identifiers enter result rows.
@@ -286,14 +376,15 @@ def measured_metrics(response, transport):
             "total_cost_usd": 0.0}
 
 
-def execute(plan_path, expected_plan, review_path, expected_review, output):
+def execute(plan_path, expected_plan, review_path, expected_review, output, *, accept_review_waiver=False):
     plan, raw = read_json(plan_path)
     if digest(raw) != expected_plan or raw != canonical(plan):
         raise LocalTransportError("plan_digest_or_encoding_mismatch")
     review, review_raw = read_json(review_path)
     if digest(review_raw) != expected_review:
         raise LocalTransportError("independent_review_digest_mismatch")
-    validate_review(review, expected_plan, plan["operator"])
+    preflight_authorization = validate_preflight(
+        review, expected_plan, plan["operator"], accept_review_waiver=accept_review_waiver)
     sources, built = verify_plan(plan)
     output = pathlib.Path(output)
     if (not output.is_absolute() or output.parent != output.parent.resolve() or
@@ -397,7 +488,7 @@ def execute(plan_path, expected_plan, review_path, expected_review, output):
         if scorer is not None:
             scorer.close()
     report = {"schema": RUN_SCHEMA, "plan_sha256": expected_plan, "review_sha256": expected_review,
-              "preflight_review": "operator-supplied independent review; not identity-authenticated by this program",
+              "preflight_authorization": preflight_authorization,
               "issue_closable": False, "post_run_independent_review": "not_recorded",
               "source_manifest_sha256": plan["source_manifest_sha256"],
               "model_pin": plan["model_pin"], "row_files": receipt_index,
@@ -407,11 +498,15 @@ def execute(plan_path, expected_plan, review_path, expected_review, output):
                          "unexecuted_cells": sum(r["status"] == "unexecuted" for r in rows)},
               "halted": halted, "cost_scope": plan["cost_scope"], "summary": compare(rows)}
     summary_hash = write_json(output / "summary.json", report)
-    write_json(output / "post-run-review-template.json", {
-        "schema": REVIEW_SCHEMA, "phase": "post_run", "subject_sha256": summary_hash,
-        "decision": "pending", "reviewer": None, "reviewed_at": None,
-        "leakage_review": None, "control_comparison_review": None,
-        "data_custody_evidence": None, "issue_closable": False})
+    if preflight_authorization["mode"] == "operator_technical_attestation_with_explicit_review_waiver":
+        write_json(output / "post-run-operator-attestation-template.json",
+                   post_run_waiver_template(summary_hash, plan["operator"]))
+    else:
+        write_json(output / "post-run-review-template.json", {
+            "schema": REVIEW_SCHEMA, "phase": "post_run", "subject_sha256": summary_hash,
+            "decision": "pending", "reviewer": None, "reviewed_at": None,
+            "leakage_review": None, "control_comparison_review": None,
+            "data_custody_evidence": None, "issue_closable": False})
     return report
 
 
@@ -430,7 +525,11 @@ def audit(directory, expected_summary):
     review, review_raw = read_json(directory / "preflight-review.json")
     if digest(plan_raw) != report["plan_sha256"] or digest(review_raw) != report["review_sha256"]:
         raise LocalTransportError("plan_or_review_receipt_drift")
-    validate_review(review, report["plan_sha256"], plan["operator"])
+    authorization = validate_preflight(
+        review, report["plan_sha256"], plan["operator"],
+        accept_review_waiver=review.get("schema") == WAIVER_SCHEMA)
+    if report.get("preflight_authorization") != authorization:
+        raise LocalTransportError("preflight_authorization_receipt_drift")
     _, sources, frozen_bytes, _, frozen = snapshot()
     if (plan["runtime_files"] != inputs_identity() or
             plan["source_manifest_sha256"] != "sha256:" + provenance.SOURCE_HASH or
@@ -533,32 +632,63 @@ def audit(directory, expected_summary):
             "independent_leakage_and_control_review": "still_required", "issue_closable": False}
 
 
+def finalize(directory, expected_summary, attestation_path, expected_attestation):
+    """Close a complete local run only through the explicit user-waived mode."""
+    audit_report = audit(directory, expected_summary)
+    summary, _ = read_json(pathlib.Path(directory) / "summary.json")
+    plan, _ = read_json(pathlib.Path(directory) / "plan.json")
+    attestation, raw = read_json(attestation_path)
+    if digest(raw) != expected_attestation:
+        raise LocalTransportError("post_run_operator_attestation_digest_mismatch")
+    post_run_authorization = validate_post_run_waiver(attestation, expected_summary, plan["operator"])
+    required = {"planned_cells": 81, "generation_dispatched": 72,
+                "actual_model_responses": 72, "unexecuted_cells": 9}
+    if summary["halted"] is not None or summary["counts"] != required:
+        raise LocalTransportError("complete_eligible_matrix_required_for_closure")
+    return {"schema": "benchmark.cross_language.agent.local_specialization_closure.v1",
+            "summary_sha256": expected_summary, "audit": audit_report,
+            "preflight_authorization": summary["preflight_authorization"],
+            "post_run_authorization": post_run_authorization,
+            "issue_closable": True}
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
-    prep = commands.add_parser("prepare", help="freeze metadata and emit an unapproved review template; no inference")
+    prep = commands.add_parser("prepare", help="freeze metadata and emit an unapproved review or waiver-attestation template; no inference")
     prep.add_argument("--compiler", required=True, type=pathlib.Path)
     prep.add_argument("--endpoint", default="http://127.0.0.1:11434")
-    prep.add_argument("--model", default="qwen2.5-coder:7b")
+    prep.add_argument("--model", default="qwen2.5-coder:3b")
     prep.add_argument("--operator", required=True)
+    prep.add_argument("--review-waiver", action="store_true",
+                      help="emit the explicit user-waiver operator-attestation template")
     prep.add_argument("--output", required=True, type=pathlib.Path)
-    run = commands.add_parser("run", help="execute only the independently reviewed exact plan")
+    run = commands.add_parser("run", help="execute only the exact reviewed or explicitly waived-attested plan")
     run.add_argument("--plan", required=True, type=pathlib.Path)
     run.add_argument("--plan-sha256", required=True)
     run.add_argument("--review", required=True, type=pathlib.Path)
     run.add_argument("--review-sha256", required=True)
+    run.add_argument("--accept-review-waiver", action="store_true",
+                     help="allow an exact explicit-user-waiver operator-attestation record")
     run.add_argument("--output", required=True, type=pathlib.Path)
     check = commands.add_parser("audit", help="replay receipt hashes, public prompts and summaries offline; not an independent review")
     check.add_argument("--run", required=True, type=pathlib.Path)
     check.add_argument("--summary-sha256", required=True)
     check.add_argument("--output", required=True, type=pathlib.Path)
+    close = commands.add_parser("finalize", help="record a complete user-waived operator technical review")
+    close.add_argument("--run", required=True, type=pathlib.Path)
+    close.add_argument("--summary-sha256", required=True)
+    close.add_argument("--post-run-attestation", required=True, type=pathlib.Path)
+    close.add_argument("--post-run-attestation-sha256", required=True)
+    close.add_argument("--output", required=True, type=pathlib.Path)
     args = parser.parse_args(argv)
     try:
         if args.command == "prepare":
             plan = prepare(args.compiler, args.endpoint, args.model, args.operator)
             hash_value = write_json(args.output, plan)
             review_path = args.output.with_name(args.output.stem + ".review-template.json")
-            write_json(review_path, review_template(hash_value, args.operator))
+            template = waiver_template(hash_value, args.operator) if args.review_waiver else review_template(hash_value, args.operator)
+            write_json(review_path, template)
             print(json.dumps({"plan_sha256": hash_value, "review_template": str(review_path),
                               "execution": "not_attempted", "issue_closable": False}))
             return 0
@@ -567,7 +697,14 @@ def main(argv=None):
             write_json(args.output, report)
             print(json.dumps(report))
             return 0
-        report = execute(args.plan, args.plan_sha256, args.review, args.review_sha256, args.output)
+        if args.command == "finalize":
+            report = finalize(args.run, args.summary_sha256, args.post_run_attestation,
+                              args.post_run_attestation_sha256)
+            write_json(args.output, report)
+            print(json.dumps(report))
+            return 0
+        report = execute(args.plan, args.plan_sha256, args.review, args.review_sha256, args.output,
+                         accept_review_waiver=args.accept_review_waiver)
         print(json.dumps({"output": str(args.output), "summary_sha256": digest(canonical(report)),
                           "counts": report["counts"],
                           "issue_closable": False, "post_run_independent_review": "not_recorded"}))

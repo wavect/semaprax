@@ -20,6 +20,8 @@ const fn provider_optimization(target: HostTarget) -> u8 {
     }
 }
 
+pub(crate) mod opaque_rust;
+
 pub(crate) struct HeldTools {
     clang: platform::HeldTool,
     archiver: platform::HeldTool,

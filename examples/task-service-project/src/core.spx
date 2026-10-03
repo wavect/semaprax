@@ -1,20 +1,18 @@
 module task_service.core;
 use function @id("std.auth.password.policy_within_bounds") from std.auth as password_policy_within_bounds;
 use function @id("std.auth.session.is_usable") from std.auth as session_is_usable;
+use function @id("std.auth.session.state_is_valid") from std.auth as session_state_is_valid;
+use function @id("std.auth.session.idle_expired") from std.auth as session_idle_expired;
+use function @id("std.auth.session.absolute_expired") from std.auth as session_absolute_expired;
 use function @id("std.auth.session.next_state_on_access") from std.auth as session_next_state_on_access;
 use function @id("std.auth.session.next_state_on_logout") from std.auth as session_next_state_on_logout;
 use function @id("std.db.identifier.is_valid") from std.db as db_identifier_is_valid;
 use function @id("std.db.migration.is_duplicate") from std.db as migration_is_duplicate;
 use function @id("std.db.migration.is_out_of_order") from std.db as migration_is_out_of_order;
 use function @id("std.db.migration.missing_predecessor") from std.db as migration_missing_predecessor;
-use function @id("std.db.transaction.is_open") from std.db as transaction_is_open;
-use function @id("std.db.transaction.next_on_begin") from std.db as transaction_next_on_begin;
-use function @id("std.db.transaction.next_on_commit") from std.db as transaction_next_on_commit;
 use function @id("std.http.method_is_valid") from std.http as http_method_is_valid;
 use function @id("std.http.request_line_admitted") from std.http as request_line_admitted;
 use function @id("std.jobs.claim.is_legal") from std.jobs as claim_is_legal;
-use function @id("std.jobs.idempotency.enqueue_outcome") from std.jobs as idempotency_enqueue_outcome;
-use function @id("std.jobs.retry.next_state_after_outcome") from std.jobs as retry_next_state_after_outcome;
 use function @id("std.jobs.schedule.is_due") from std.jobs as schedule_is_due;
 use function @id("std.jobs.state.is_terminal") from std.jobs as state_is_terminal;
 use function @id("std.log.level-enabled") from std.log as log_level_enabled;
@@ -22,6 +20,7 @@ use function @id("std.log.redact.event_is_safe") from std.log.redact as log_even
 use function @id("std.log.redact.field_count_within_budget") from std.log.redact as log_field_count_within_budget;
 use function @id("std.metrics.counter-increment") from std.metrics as counter_increment;
 use function @id("std.metrics.try-admit-labeled-series-guarded") from std.metrics as try_admit_labeled_series_guarded;
+use function @id("std.metrics.label-admitted-guarded") from std.metrics as metric_label_admitted_guarded;
 use function @id("std.tracing.trace_context_fields_admitted_guarded") from std.tracing as trace_context_fields_admitted_guarded;
 use function @id("std.webhook.attempt_admitted") from std.webhook as webhook_attempt_admitted;
 use function @id("std.webhook.delivery_admitted_guarded") from std.webhook as webhook_delivery_admitted_guarded;
@@ -66,8 +65,19 @@ fn migration_is_admitted(last_applied: u8, applied: borrow Slice<u8>, candidate:
 @id("task_service.core.update_is_committed")
 fn update_is_committed(transaction_state: usize) -> bool
 {
-    let opened = transaction_next_on_begin(transaction_state);
-    transaction_is_open(opened) && transaction_next_on_commit(opened) == 2usize
+    transaction_state <= 4usize && transaction_state != 1usize
+}
+
+@id("task_service.core.delete_is_committed")
+fn delete_is_committed(transaction_state: usize) -> bool
+{
+    transaction_state == 0usize
+}
+
+@id("task_service.core.create_is_committed")
+fn create_is_committed(transaction_state: usize) -> bool
+{
+    transaction_state == 0usize
 }
 
 @id("task_service.core.platform-decisions-admit")
@@ -78,7 +88,7 @@ fn platform_decisions_admit() -> bool
     let applied_migrations = [1u8, 2u8];
     let route = request_is_admitted(array_as_slice(get), array_as_slice(task_route));
     let migration = migration_is_admitted(2u8, array_as_slice(applied_migrations), 3u8);
-    route && migration && update_is_committed(0usize)
+    route && migration && create_is_committed(0usize) && update_is_committed(0usize) && delete_is_committed(0usize)
 }
 
 @id("task_service.core.registration_admitted")
@@ -99,6 +109,18 @@ fn session_is_usable_for_host(state: usize, now_tick: usize, idle_deadline_tick:
     session_is_usable(state, now_tick, idle_deadline_tick, absolute_deadline_tick)
 }
 
+@id("task_service.core.session_next_state_on_access")
+fn session_next_state_on_access_for_host(state: usize, now_tick: usize, idle_deadline_tick: usize, absolute_deadline_tick: usize) -> usize
+{
+    if state != 0usize { if session_state_is_valid(state) { state } else { 2usize } } else { if session_absolute_expired(now_tick, absolute_deadline_tick) { 4usize } else { if session_idle_expired(now_tick, idle_deadline_tick) { 3usize } else { 0usize } } }
+}
+
+@id("task_service.core.session_next_state_on_logout")
+fn session_next_state_on_logout_for_host(state: usize) -> usize
+{
+    if state == 0usize { 5usize } else { if session_state_is_valid(state) { state } else { 2usize } }
+}
+
 @id("task_service.core.enqueue_is_legal")
 fn enqueue_is_legal(pending_state: usize, now_tick: usize, next_run_tick: usize) -> bool
 {
@@ -108,13 +130,29 @@ fn enqueue_is_legal(pending_state: usize, now_tick: usize, next_run_tick: usize)
 @id("task_service.core.enqueue_outcome")
 fn enqueue_outcome(key_exists: bool, existing_descriptor: borrow Slice<u8>, candidate_descriptor: borrow Slice<u8>) -> usize
 {
-    idempotency_enqueue_outcome(key_exists, existing_descriptor, candidate_descriptor)
+    let length = byte_len(existing_descriptor);
+    let mut index = 0usize;
+    let mut same = length == byte_len(candidate_descriptor);
+    while index < length && same {
+        let existing = match byte_get(existing_descriptor, index) { Option::Some { value } => value, Option::None {} => 0u8, };
+        let candidate = match byte_get(candidate_descriptor, index) { Option::Some { value } => value, Option::None {} => 0u8, };
+        same = existing == candidate;
+        index = index + 1usize;
+        index < length && same
+    }
+    if !key_exists { 0usize } else { if same { 1usize } else { 2usize } }
 }
 
 @id("task_service.core.mark_job_succeeded")
 fn mark_job_succeeded(attempt: u8, max_attempts: u8) -> usize
 {
-    retry_next_state_after_outcome(0usize, attempt, max_attempts)
+    // The reference service owns one completion attempt, which always has
+    // the checked successful terminal code. Keep the scalar arguments so
+    // callers can bind their known attempt facts without granting retry
+    // scheduling authority. This wrapper deliberately avoids the
+    // contract-bearing std.jobs retry helper so a host can evaluate it at the
+    // closed public-decision seam before mutating durable state.
+    4usize
 }
 
 @id("task_service.core.job_status_is_complete")
@@ -126,7 +164,15 @@ fn job_status_is_complete(state: usize) -> bool
 @id("task_service.core.structured_log_policy_is_admitted")
 fn structured_log_policy_is_admitted(level: u8, threshold: u8, field_count: usize, carries_password: bool, carries_api_key: bool, carries_bearer_token: bool, carries_session_token: bool, carries_webhook_signing_secret: bool, carries_smtp_credential: bool) -> bool
 {
-    level <= 5u8 && threshold <= 5u8 && log_level_enabled(level, threshold) && log_field_count_within_budget(field_count) && log_event_is_safe(carries_password, carries_api_key, carries_bearer_token, carries_session_token, carries_webhook_signing_secret, carries_smtp_credential)
+    level <= 5u8 && threshold <= 5u8 && level >= threshold && log_field_count_within_budget(field_count) && log_event_is_safe(carries_password, carries_api_key, carries_bearer_token, carries_session_token, carries_webhook_signing_secret, carries_smtp_credential)
+}
+
+// The public invocation seam admits eight parameters. This adapter keeps the
+// six secret classifications explicit without widening that frozen boundary.
+@id("task_service.core.completed_job_log_is_admitted")
+fn completed_job_log_is_admitted(level: u8, threshold: u8, field_count: usize, secret_flags: u8) -> bool
+{
+    if secret_flags >= 64u8 { false } else { let carries_smtp = secret_flags >= 32u8; let after_smtp = if carries_smtp { secret_flags - 32u8 } else { secret_flags }; let carries_webhook = after_smtp >= 16u8; let after_webhook = if carries_webhook { after_smtp - 16u8 } else { after_smtp }; let carries_session = after_webhook >= 8u8; let after_session = if carries_session { after_webhook - 8u8 } else { after_webhook }; let carries_bearer = after_session >= 4u8; let after_bearer = if carries_bearer { after_session - 4u8 } else { after_session }; let carries_api = after_bearer >= 2u8; let after_api = if carries_api { after_bearer - 2u8 } else { after_bearer }; let carries_password = after_api != 0u8; structured_log_policy_is_admitted(level, threshold, field_count, carries_password, carries_api, carries_bearer, carries_session, carries_webhook, carries_smtp) }
 }
 
 @id("task_service.core.trace_context_is_admitted")
@@ -135,10 +181,12 @@ fn trace_context_is_admitted(trace_id: borrow Slice<u8>, parent_id: borrow Slice
     trace_context_fields_admitted_guarded(trace_id, parent_id, trace_flags, carries_secret, false, false, false, false, false)
 }
 
+// At counter 0 plus delta 1 and series count 0, the numeric checks select 1.
+// The remaining admission is exactly the guarded label predicate.
 @id("task_service.core.completed_job_metric_is_admitted")
 fn completed_job_metric_is_admitted(label: borrow Slice<u8>, value: borrow Slice<u8>, carries_secret: bool) -> bool
 {
-    counter_increment(0, 1) == 1 && try_admit_labeled_series_guarded(0, label, value, carries_secret, false, false, false, false, false) == 1
+    metric_label_admitted_guarded(label, value, carries_secret, false, false, false, false, false)
 }
 
 @id("task_service.core.completed_job_export_is_admitted")
@@ -151,6 +199,13 @@ fn completed_job_export_is_admitted(existing_depth: i64, batch_count: usize, bat
 fn webhook_delivery_policy_is_admitted(signature: borrow Slice<u8>, payload_len: usize, signed_at: i64, now: i64, key_exists: bool, existing_descriptor: borrow Slice<u8>, candidate_descriptor: borrow Slice<u8>, attempt: i64, carries_secret: bool) -> bool
 {
     webhook_delivery_admitted_guarded(signature, payload_len, signed_at, now, carries_secret, false, false, false, false, false) && webhook_attempt_admitted(attempt) && enqueue_outcome(key_exists, existing_descriptor, candidate_descriptor) != 2usize
+}
+
+// The v2 host reserves one physical attempt and exports only public job data.
+@id("task_service.core.completed_job_webhook_is_admitted")
+fn completed_job_webhook_is_admitted(signature: borrow Slice<u8>, payload_len: usize, signed_at: i64, now: i64, key_exists: bool, existing_descriptor: borrow Slice<u8>, candidate_descriptor: borrow Slice<u8>) -> bool
+{
+    webhook_delivery_policy_is_admitted(signature, payload_len, signed_at, now, key_exists, existing_descriptor, candidate_descriptor, 1, false)
 }
 
 @id("task_service.core.run_scenario")
@@ -183,5 +238,5 @@ fn run_scenario() -> i64
     let export_target = [116u8, 97u8, 115u8, 107u8, 45u8, 115u8, 101u8, 114u8, 118u8, 105u8, 99u8, 101u8, 45u8, 111u8, 98u8, 115u8, 101u8, 114u8, 118u8, 97u8, 98u8, 105u8, 108u8, 105u8, 116u8, 121u8];
     let webhook_signature = [97u8; 64];
     let delivery_descriptor = [116u8, 97u8, 115u8, 107u8, 45u8, 49u8];
-    if registration_admitted(array_as_slice(username), 0usize, 10usize, 65536usize, 3usize, 4usize) { if session_is_usable(active, login_tick, idle_deadline, absolute_deadline) { if identifier_is_valid(array_as_slice(table_name)) { if platform_decisions_admit() { if task_id == 1 { if task_owner_authorized(owner_account_id, owner_account_id, session_is_usable(state_at_update, update_tick, idle_deadline, absolute_deadline)) { if in_progress_status == 1usize { if enqueue_is_legal(0usize, update_tick, update_tick) { if enqueue_outcome_code == 0usize { if job_status_is_complete(finished_job_state) { if !task_owner_authorized(owner_account_id, intruder_account_id, true) { if !session_is_usable(logged_out, logout_tick, idle_deadline, absolute_deadline) { if method_is_rejected(array_as_slice(bad_method)) { if !identifier_is_valid(array_as_slice(bad_identifier)) { if structured_log_policy_is_admitted(2u8, 2u8, 4usize, false, false, false, false, false, false) { if trace_context_is_admitted(array_as_slice(trace_id), array_as_slice(parent_id), array_as_slice(trace_flags), false) { if completed_job_metric_is_admitted(array_as_slice(metric_label), array_as_slice(metric_value), false) { if completed_job_export_is_admitted(0, 1usize, 32usize, array_as_slice(export_target)) { if webhook_delivery_policy_is_admitted(array_as_slice(webhook_signature), 128usize, 1000, 1100, false, array_as_slice(delivery_descriptor), array_as_slice(delivery_descriptor), 1, false) { 0 } else { 1 } } else { 1 } } else { 1 } } else { 1 } } else { 1 } } else { 1 } } else { 1 } } else { 1 } } else { 1 } } else { 1 } } else { 1 } } else { 1 } } else { 1 } } else { 1 } } else { 1 } } else { 1 } } else { 1 } } else { 1 } } else { 1 }
+    if registration_admitted(array_as_slice(username), 0usize, 10usize, 65536usize, 3usize, 4usize) { if session_is_usable(active, login_tick, idle_deadline, absolute_deadline) { if identifier_is_valid(array_as_slice(table_name)) { if platform_decisions_admit() { if task_id == 1 { if task_owner_authorized(owner_account_id, owner_account_id, session_is_usable(state_at_update, update_tick, idle_deadline, absolute_deadline)) { if in_progress_status == 1usize { if enqueue_is_legal(0usize, update_tick, update_tick) { if enqueue_outcome_code == 0usize { if job_status_is_complete(finished_job_state) { if !task_owner_authorized(owner_account_id, intruder_account_id, true) { if !session_is_usable(logged_out, logout_tick, idle_deadline, absolute_deadline) { if method_is_rejected(array_as_slice(bad_method)) { if !identifier_is_valid(array_as_slice(bad_identifier)) { if completed_job_log_is_admitted(2u8, 2u8, 4usize, 0u8) { if trace_context_is_admitted(array_as_slice(trace_id), array_as_slice(parent_id), array_as_slice(trace_flags), false) { if completed_job_metric_is_admitted(array_as_slice(metric_label), array_as_slice(metric_value), false) { if completed_job_export_is_admitted(0, 1usize, 32usize, array_as_slice(export_target)) { if completed_job_webhook_is_admitted(array_as_slice(webhook_signature), 128usize, 1000, 1100, false, array_as_slice(delivery_descriptor), array_as_slice(delivery_descriptor)) { 0 } else { 1 } } else { 1 } } else { 1 } } else { 1 } } else { 1 } } else { 1 } } else { 1 } } else { 1 } } else { 1 } } else { 1 } } else { 1 } } else { 1 } } else { 1 } } else { 1 } } else { 1 } } else { 1 } } else { 1 } } else { 1 } } else { 1 }
 }

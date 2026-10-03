@@ -5,7 +5,7 @@ mod live;
 pub(crate) use live::owned_wait_v8::{plan_owned_effect_v8, CheckedOwnedEffectPlanV8};
 mod metered;
 use super::*;
-pub use metered::{MeteredTargetEffectRun, StageSemanticObservation};
+pub use metered::{MeteredDurableTypedRun, MeteredTargetEffectRun, StageSemanticObservation};
 pub mod durable;
 use crate::agent_deployment::BoundAgentDeployment;
 use crate::agent_lifecycle::authorization::target_protocol::{TargetAccounting, TargetEvidence};

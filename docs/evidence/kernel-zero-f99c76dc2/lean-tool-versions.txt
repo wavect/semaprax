@@ -1,0 +1,6 @@
+Retrospective read-only tool-version capture on 2026-10-02 from the same installed host tools and repository-pinned Lean toolchain; not a contemporaneous execution transcript.
+Lean (version 4.34.0, arm64-apple-darwin24.6.0, commit 293d5d0c0c3f3dded4688b3ccd6a33939ac5102b, Release)
+Lake version 5.0.0-src+293d5d0 (Lean version 4.34.0)
+Python 3.14.2
+rustc 1.98.0 (88d9e12ae 2026-08-18) (Homebrew)
+cargo 1.98.0 (797e8a9bc 2026-08-05) (Homebrew)

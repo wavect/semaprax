@@ -199,6 +199,323 @@ fn run_selected(
     )
 }
 
+fn run_metered(
+    compiled: &CompiledTypedEffects,
+    handler: &mut Handler,
+    store: &mut Store,
+    retained: Option<&str>,
+) -> Result<super::super::MeteredDurableTypedRun, DurableTypedFailure> {
+    run_metered_selected(
+        compiled,
+        handler,
+        store,
+        retained,
+        super::super::TargetStageBackend::Interpreter,
+    )
+}
+
+fn run_metered_selected(
+    compiled: &CompiledTypedEffects,
+    handler: &mut Handler,
+    store: &mut Store,
+    retained: Option<&str>,
+    selected: super::super::TargetStageBackend<'_>,
+) -> Result<super::super::MeteredDurableTypedRun, DurableTypedFailure> {
+    compiled.run_durable_metered_with_backend(
+        &task(),
+        &proposals(compiled),
+        handler,
+        IterativeBudget::default(),
+        budget(),
+        &AgentCancellation::new(),
+        &root(),
+        &root(),
+        retained,
+        store,
+        10_000_000,
+        selected,
+        100,
+    )
+}
+
+fn migration_seed() -> crate::execution_revision::typed::migration::MigrationSeed {
+    use crate::execution_revision::root as execution_root;
+    use crate::hir::DeclarationId;
+    use crate::interpreter::retained_call::{RetainedField, RetainedRecord};
+
+    crate::execution_revision::typed::migration::MigrationSeed::for_test(
+        RetainedValue::Record(RetainedRecord {
+            record: DeclarationId::new("fixture.agent.type.state"),
+            fields: vec![
+                RetainedField {
+                    field: DeclarationId::new("fixture.agent.type.state.objective"),
+                    value: RetainedValue::Bytes(vec![9, 8, 7]),
+                },
+                RetainedField {
+                    field: DeclarationId::new("fixture.agent.type.state.budget"),
+                    value: RetainedValue::I64(10),
+                },
+                RetainedField {
+                    field: DeclarationId::new("fixture.agent.type.state.epoch"),
+                    value: RetainedValue::I64(2),
+                },
+            ],
+        }),
+        execution_root(
+            "test.migration-seed.v1",
+            serde_json::json!({"fixture": "durable-metered-seed"}),
+        ),
+        CheckpointUsage::default(),
+        0,
+        0,
+        10_000_000,
+    )
+}
+
+fn run_migration_seed_metered(
+    compiled: &CompiledTypedEffects,
+    handler: &mut Handler,
+    store: &mut Store,
+    retained: Option<&str>,
+) -> Result<super::super::MeteredDurableTypedRun, DurableTypedFailure> {
+    run_migration_seed_metered_selected(
+        compiled,
+        handler,
+        store,
+        retained,
+        super::super::TargetStageBackend::Interpreter,
+    )
+}
+
+fn run_migration_seed_metered_selected(
+    compiled: &CompiledTypedEffects,
+    handler: &mut Handler,
+    store: &mut Store,
+    retained: Option<&str>,
+    selected: super::super::TargetStageBackend<'_>,
+) -> Result<super::super::MeteredDurableTypedRun, DurableTypedFailure> {
+    let seed = migration_seed();
+    compiled.run_durable_from_seed_metered_with_backend(
+        &task(),
+        &proposals(compiled),
+        handler,
+        IterativeBudget::default(),
+        budget(),
+        &AgentCancellation::new(),
+        &root(),
+        &root(),
+        retained,
+        store,
+        10_000_000,
+        &seed,
+        selected,
+        100,
+    )
+}
+
+mod target_cleanup_parity;
+
+#[test]
+fn fresh_durable_semantic_metering_records_every_committed_stage() {
+    let compiled = super::super::tests::compile();
+    let mut handler = Handler::default();
+    let mut store = Store::default();
+    let metered = run_metered(&compiled, &mut handler, &mut store, None).unwrap();
+    assert!(metered.observations_complete());
+    assert_eq!(
+        metered.observations().len(),
+        metered.run().run().lifecycle().stages().len()
+    );
+    let checkpoint: serde_json::Value = serde_json::from_str(metered.run().checkpoint()).unwrap();
+    assert_eq!(
+        checkpoint["schema"],
+        "semaprax.agent-operation-checkpoint-metered.v2"
+    );
+    let evidence: serde_json::Value = serde_json::from_str(metered.evidence()).unwrap();
+    assert_eq!(
+        evidence["schema"],
+        "semaprax.agent-durable-semantic-work.v3"
+    );
+    assert_eq!(
+        evidence["target_execution_binding"],
+        metered.target_execution_binding()
+    );
+    assert_eq!(
+        checkpoint["binding"]["target_execution_binding"],
+        metered.target_execution_binding()
+    );
+    let entries = checkpoint["entries"].as_array().unwrap();
+    assert_eq!(
+        entries
+            .iter()
+            .filter(|entry| entry["event"]["kind"] == "stage_reservation")
+            .count(),
+        entries
+            .iter()
+            .filter(|entry| entry["event"]["kind"] == "semantic_work")
+            .count(),
+        "every published metered stage reservation has an authenticated receipt",
+    );
+    assert!(!metered.evidence().is_empty());
+    assert!(metered.evidence_digest().starts_with("sha256:"));
+}
+
+#[test]
+fn durable_semantic_metering_refuses_target_substitution_before_store_or_handler_work() {
+    let compiled = super::super::tests::compile();
+    let mut handler = Handler::default();
+    let mut store = Store::default();
+    let fresh = run_metered(&compiled, &mut handler, &mut store, None).unwrap();
+    let retained = fresh.run().checkpoint().to_owned();
+    let before = (handler.calls, store.commits);
+    let failure = run_metered_selected(
+        &compiled,
+        &mut handler,
+        &mut store,
+        Some(&retained),
+        super::super::TargetStageBackend::CoreWasm,
+    )
+    .err()
+    .expect("metered durable recovery must bind its selected target");
+    assert!(failure
+        .diagnostics()
+        .iter()
+        .any(|diagnostic| diagnostic.message.contains("semantic_work.profile")));
+    assert_eq!((handler.calls, store.commits), before);
+}
+
+#[test]
+fn durable_semantic_metering_recovers_authenticated_receipts_without_redelivery() {
+    let compiled = super::super::tests::compile();
+    let mut handler = Handler::default();
+    let mut store = Store::default();
+    let fresh = run_metered(&compiled, &mut handler, &mut store, None).unwrap();
+    let retained = fresh.run().checkpoint().to_owned();
+    let before = (handler.calls, store.commits);
+    let recovered = run_metered(&compiled, &mut handler, &mut store, Some(&retained))
+        .expect("authenticated metered checkpoint recovers");
+    assert!(recovered.observations_complete());
+    assert_eq!(
+        recovered.target_execution_binding(),
+        fresh.target_execution_binding(),
+        "recovery evidence retains the selected target bound by its checkpoint"
+    );
+    assert_eq!(
+        recovered.run().run().lifecycle().status(),
+        IterativeStatus::Complete
+    );
+    assert_eq!(
+        handler.calls, before.0,
+        "recovery redelivered retained host work"
+    );
+    assert!(
+        store.commits >= before.1,
+        "recovery lost its authenticated journal"
+    );
+}
+
+#[test]
+fn migration_seeded_durable_semantic_metering_replays_receipts_without_redelivery() {
+    let compiled = super::super::tests::compile();
+    let mut handler = Handler::default();
+    let mut store = Store::default();
+    let fresh = run_migration_seed_metered(&compiled, &mut handler, &mut store, None).unwrap();
+    assert!(fresh.observations_complete());
+    let fresh_evidence: serde_json::Value = serde_json::from_str(fresh.evidence()).unwrap();
+    assert_eq!(
+        fresh_evidence["target_execution_binding"],
+        fresh.target_execution_binding()
+    );
+    let checkpoint: serde_json::Value = serde_json::from_str(fresh.run().checkpoint()).unwrap();
+    assert_eq!(
+        checkpoint["binding"]["target_execution_binding"],
+        fresh.target_execution_binding()
+    );
+    let entries = checkpoint["entries"].as_array().unwrap();
+    assert_eq!(
+        entries
+            .iter()
+            .filter(|entry| entry["event"]["kind"] == "stage_reservation")
+            .count(),
+        entries
+            .iter()
+            .filter(|entry| entry["event"]["kind"] == "semantic_work")
+            .count(),
+        "every migration-seeded stage reservation has an authenticated receipt",
+    );
+    let retained = fresh.run().checkpoint().to_owned();
+    let before = handler.calls;
+    let recovered =
+        run_migration_seed_metered(&compiled, &mut handler, &mut store, Some(&retained))
+            .expect("migration-seeded metered checkpoint recovers");
+    assert!(recovered.observations_complete());
+    assert_eq!(
+        recovered.target_execution_binding(),
+        fresh.target_execution_binding(),
+        "migration-seeded recovery retains the selected target binding"
+    );
+    assert_eq!(
+        recovered.run().run().lifecycle().status(),
+        IterativeStatus::Complete
+    );
+    assert_eq!(
+        handler.calls, before,
+        "recovery redelivered retained host work"
+    );
+}
+
+#[test]
+fn durable_semantic_metering_refuses_ordinary_checkpoint_before_store_or_handler_work() {
+    let compiled = super::super::tests::compile();
+    let mut handler = Handler::default();
+    let mut store = Store::default();
+    let ordinary = run(&compiled, &mut handler, &mut store, None).unwrap();
+    let retained = ordinary.checkpoint().to_owned();
+    let before = (handler.calls, store.commits);
+    let failure = run_metered(&compiled, &mut handler, &mut store, Some(&retained))
+        .err()
+        .expect("ordinary v2 checkpoint lacks retained semantic receipts");
+    assert!(failure
+        .diagnostics()
+        .iter()
+        .any(|diagnostic| diagnostic.message.contains("semantic_work.profile")));
+    assert_eq!((handler.calls, store.commits), before);
+}
+
+#[test]
+fn ordinary_durable_route_refuses_metered_checkpoint_before_store_or_handler_work() {
+    let compiled = super::super::tests::compile();
+    let mut handler = Handler::default();
+    let mut store = Store::default();
+    let metered = run_metered(&compiled, &mut handler, &mut store, None).unwrap();
+    let retained = metered.run().checkpoint().to_owned();
+    let before = (handler.calls, store.commits);
+    let failure = run(&compiled, &mut handler, &mut store, Some(&retained))
+        .err()
+        .expect("ordinary route must not reinterpret metered receipts");
+    assert!(failure
+        .diagnostics()
+        .iter()
+        .any(|diagnostic| diagnostic.message.contains("semantic_work.profile")));
+    assert_eq!((handler.calls, store.commits), before);
+}
+
+#[test]
+fn durable_semantic_metering_refuses_tampered_receipt_before_store_or_handler_work() {
+    let compiled = super::super::tests::compile();
+    let mut handler = Handler::default();
+    let mut store = Store::default();
+    let metered = run_metered(&compiled, &mut handler, &mut store, None).unwrap();
+    let retained = metered.run().checkpoint().replacen(
+        "\"kind\":\"semantic_work\"",
+        "\"kind\":\"semantic_work_tampered\"",
+        1,
+    );
+    let before = (handler.calls, store.commits);
+    assert!(run_metered(&compiled, &mut handler, &mut store, Some(&retained)).is_err());
+    assert_eq!((handler.calls, store.commits), before);
+}
+
 #[test]
 fn public_durable_selector_replays_a_partial_checkpoint_across_targets() {
     if !crate::agent_lifecycle::tests::stage_process_host_supported() {

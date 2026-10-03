@@ -103,6 +103,7 @@ mod resolve_expr_frame;
 mod resolve_expr_reference;
 mod resolve_for;
 mod resolve_for_own;
+mod resolve_native_rust_result;
 mod resolve_pattern;
 mod resolve_program;
 mod resolve_statement;
@@ -124,6 +125,10 @@ pub use agent_nodes::{
 };
 pub(crate) use agent_validation::embedded::replay_agent_source_associations;
 pub(crate) use workspace_link::compiler_prelude_declarations;
+pub(crate) use workspace_link::native_owner::admitted_helper as indexed_owner_helper_signature;
+pub(crate) use workspace_link::native_owner::{
+    admitted_ri06_regex_resource, admitted_ri06_regex_result,
+};
 
 /// Validate resolved HIR and independently replay its canonical shared-loan
 /// proof attachment before any semantic consumer may trust it.
@@ -211,7 +216,7 @@ pub(crate) use inspection::{
 
 pub(crate) use type_reachability::{
     authored_nominal_declarations, is_admitted_nested_owned_byte_record, is_flat_owned_byte_record,
-    reachable_authored_types, reachable_authored_types_with_roots,
+    reachable_authored_types, reachable_authored_types_with_roots, reachable_scalar_authored_types,
 };
 pub(crate) use validation::resolved_type_contains_owned_bytes;
 pub(crate) use validation::validate_core;

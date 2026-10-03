@@ -350,6 +350,19 @@ impl LiveReduceEvaluationPermitV8<'_, '_> {
         Ok(())
     }
 }
+impl crate::interpreter::resumable::owned_frame::registered_stage::reduce::LiveReduceEvaluationGuardV8
+    for LiveReduceEvaluationPermitV8<'_, '_>
+{
+    fn validate_current(&self) -> Result<(), SourceJournalError> {
+        LiveReduceEvaluationPermitV8::validate_current(self)
+    }
+    fn fuel(&self) -> Result<usize, SourceJournalError> {
+        LiveReduceEvaluationPermitV8::fuel(self)
+    }
+    fn validate_plan(&self, plan: &CheckedOwnedReduceV2) -> Result<(), SourceJournalError> {
+        LiveReduceEvaluationPermitV8::validate_plan(self, plan)
+    }
+}
 pub(in crate::live_invocation::source_journal::owned_wait_v8) struct LiveEvaluatedOwnedReduceV8<'j>
 {
     staged: StagedExecutedOwnedReduceV2<'j>,

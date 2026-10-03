@@ -1,0 +1,57 @@
+// Test-only C/Rust callback witness injected into the generated package.
+#[repr(C)]
+struct ReentryState { independent: SpxOwner, entries: usize, refused: usize }
+unsafe extern "C" fn reenter_url(context: u64, owner: SpxOwner, state: *mut core::ffi::c_void) -> i32 {
+    let state = unsafe { &mut *state.cast::<ReentryState>() };
+    state.entries += 1;
+    let before = target_call_count();
+    let mut view = SpxStrView::default();
+    if unsafe { spx_url_owner_view(context, owner, &mut view) } != 6 { return 11; }
+    if unsafe { spx_result_owner_drop(context, owner) } != 6 { return 12; }
+    if with_exclusive_url(context, owner, |_| ()).err() != Some(6) { return 13; }
+    if spx_result_owner_context_close(context) != 5 { return 14; }
+    if target_call_count() != before { return 15; }
+    state.refused += 3;
+    // Another receiver in the same context remains available. A global
+    // reentrant flag or a RefCell held across the callback fails this witness.
+    if unsafe { spx_url_owner_view(context, state.independent, &mut view) } != 0 { return 16; }
+    if spx_url_view_end(context, view) != 0 { return 17; }
+    0
+}
+extern "C" {
+    fn ri06_url_callback_relay(context: u64, owner: SpxOwner, state: *mut core::ffi::c_void,
+        callback: unsafe extern "C" fn(u64, SpxOwner, *mut core::ffi::c_void) -> i32) -> i32;
+}
+pub fn assert_exclusive_callback_controls() {
+    let context = spx_result_owner_context_new();
+    let text = b"https://example.invalid/path";
+    let mut first = SpxOwnerResult::default(); let mut second = SpxOwnerResult::default();
+    assert_eq!(unsafe { spx_result_owner_new_utf8(context, text.as_ptr(), text.len() as u64, &mut first) }, 0);
+    assert_eq!(unsafe { spx_result_owner_new_utf8(context, text.as_ptr(), text.len() as u64, &mut second) }, 0);
+    let mut state = ReentryState { independent: second.owner, entries: 0, refused: 0 };
+    let before = target_call_count();
+    with_exclusive_url(context, first.owner, |borrowed| {
+        let pointer = borrowed.as_str().as_ptr();
+        let result = unsafe { ri06_url_callback_relay(context, first.owner,
+            (&mut state as *mut ReentryState).cast(), reenter_url) };
+        assert_eq!(result, 0, "real nested C/Rust callback failed");
+        assert_eq!(borrowed.as_str().as_ptr(), pointer);
+        borrowed.set_path("/mutated-after-callback");
+    }).unwrap();
+    assert_eq!((state.entries, state.refused), (1, 3));
+    assert_eq!(target_call_count(), before + 1, "only independent owner entered its view target");
+    assert_eq!(live_owner_count(), 2);
+    let mut view = SpxStrView::default();
+    assert_eq!(unsafe { spx_url_owner_view(context, first.owner, &mut view) }, 0);
+    assert_eq!(view.length, "https://example.invalid/mutated-after-callback".len() as u64);
+    assert_eq!(with_exclusive_url(context, first.owner, |_| ()).err(), Some(6));
+    assert_eq!(spx_url_view_end(context, view), 0);
+    assert_eq!(with_exclusive_url::<()>(context, first.owner, |_| panic!("callback panic")), Err(2));
+    // Panic cleanup restores the exact owner and releases its exclusive lease.
+    assert_eq!(live_owner_count(), 2);
+    with_exclusive_url(context, first.owner, |value| assert!(value.path().contains("mutated"))).unwrap();
+    assert_eq!(unsafe { spx_result_owner_drop(context, first.owner) }, 0);
+    assert_eq!(unsafe { spx_result_owner_drop(context, second.owner) }, 0);
+    assert_eq!(spx_result_owner_context_close(context), 0);
+    assert_eq!((live_owner_count(), live_view_count()), (0, 0));
+}

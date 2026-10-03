@@ -58,6 +58,7 @@ use nested_owned::{
 };
 pub(crate) use prelude_binding::revision_from_canonical_program;
 
+pub(crate) use native_import::view_relation as native_view_relation;
 pub(crate) use native_import::{reject_native_rust_imports, reject_source_native_rust_imports};
 pub(crate) use nested_owned::{
     graph_schema, graph_schema_from_parts_and_instances, legacy_graph_schema,
@@ -1278,11 +1279,8 @@ pub(crate) fn reject_while_loop_evidence_schema(schema: &str) -> Result<(), Diag
             "SPX-G410",
             "portable-indexed-byte-data programs select `semaprax.graph.v17`, which is outside this evidence flow's admission",
         ))
-    } else if schema == "semaprax.graph.v25" {
-        Err(Diagnostic::io(
-            "SPX-G410",
-            "native Rust import programs select `semaprax.graph.v25`, which is outside this evidence flow's admission",
-        ))
+    } else if let Some(error) = native_import::evidence_refusal(schema) {
+        Err(error)
     } else if schema == "semaprax.graph.v15" {
         Err(Diagnostic::io(
             "SPX-G410",
@@ -1498,8 +1496,8 @@ pub(crate) fn graph_schema_from_parts_without_loans(
             },
         ));
     }
-    if native_import::declares_native_rust_import(interfaces) {
-        return Ok(native_import::NATIVE_RUST_IMPORT_SCHEMA);
+    if let Some(schema) = native_import::selected_schema(interfaces, functions) {
+        return Ok(schema);
     }
     if functions
         .iter()
@@ -4436,7 +4434,7 @@ fn render_graph_json(
             output.push(',');
             write!(
                 output,
-                "{{\"id\":{},\"kind\":\"import\",\"name\":{},\"owner\":{},\"identity_origin\":{},\"persistent\":{},\"import_key\":{},\"parameters\":[{}],\"result\":{{\"type\":{},\"ownership_mode\":\"value\",\"producer\":{},\"out_slot_initialization\":{},\"ownership_transfer\":{}}},\"effects\":{},\"required_authority\":{},\"failure\":{}",
+                "{{\"id\":{},\"kind\":\"import\",\"name\":{},\"owner\":{},\"identity_origin\":{},\"persistent\":{},\"import_key\":{},\"parameters\":[{}],\"result\":{{\"type\":{},\"ownership_mode\":{},\"producer\":{},\"out_slot_initialization\":{},\"ownership_transfer\":{}{}}},\"effects\":{},\"required_authority\":{},\"failure\":{}",
                 quote_json(import.id.as_str()),
                 quote_json(&import.name),
                 quote_json(interface.id.as_str()),
@@ -4445,15 +4443,24 @@ fn render_graph_json(
                 quote_json(&import.import_key),
                 parameters,
                 quote_json(native_import::result_text(&import.result.kind)),
+                quote_json(ownership_text(import.result.ownership)),
                 quote_json(import.result.producer),
                 quote_json(import.result.out_slot_initialization),
                 quote_json(import.result.ownership_transfer),
+                native_import::view_relation(&import.result.kind),
                 string_array(&import.effects),
                 string_array(&import.required_authority),
                 failure
             )
             .expect("writing to a string cannot fail");
-            native_import::append_import_tail(&mut output, schema, import.native_rust);
+            native_import::append_import_tail(
+                &mut output,
+                schema,
+                import.native_rust,
+                import.rust_path.as_deref(),
+                import.selected_index_digest.as_deref(),
+                import.selected_receiver.as_deref(),
+            );
         }
     }
 

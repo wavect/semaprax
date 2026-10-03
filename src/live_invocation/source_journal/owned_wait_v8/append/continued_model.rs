@@ -83,6 +83,25 @@ impl VerifiedOwnedContinuedModelSuccessorV8<'_> {
         self.validate_against_acknowledged_session(session)?;
         self.successor.validate_current()
     }
+    /// Bind the next ACK to the retained actual predecessor session without
+    /// exposing its authentication tail to the live owner modules.
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_actual_predecessor(
+        &self,
+        session: &AppendSessionV8<'_>,
+    ) -> Result<(), SourceJournalError> {
+        if !session
+            .inventory
+            .belongs_to_context(&session.journal.context)
+        {
+            return Err(SourceJournalError::Binding);
+        }
+        self.validate_previous_registry(
+            session.journal,
+            session.sequence(),
+            session.acknowledged_bytes(),
+            session.inventory.authentication_tail(),
+        )
+    }
     /// Borrow-only old registry lineage comparison; never a cursor setter.
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_previous_registry(
         &self,
@@ -261,6 +280,10 @@ impl<'j> AppendSessionV8<'j> {
 }
 
 mod funnel;
+pub(in crate::live_invocation::source_journal::owned_wait_v8) mod later;
+pub(in crate::live_invocation::source_journal::owned_wait_v8) mod later_resume;
+pub(in crate::live_invocation::source_journal::owned_wait_v8) mod later_settlement;
+pub(in crate::live_invocation::source_journal::owned_wait_v8) mod later_usage;
 
 impl AppendSessionV8<'_> {
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn continued_model_facts(
@@ -304,3 +327,5 @@ impl LiveOwnedContinuedModelAppendFailureV8<'_> {
         )
     }
 }
+
+pub(in crate::live_invocation::source_journal::owned_wait_v8) mod later_completed;

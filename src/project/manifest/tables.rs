@@ -51,6 +51,8 @@ use crate::project::profile::{PROJECT_PROFILE_FILESYSTEM_IO_V2, PROJECT_PROFILE_
 
 /// The schema string of the extensible table layout.
 pub const PACKAGE_MANIFEST_SCHEMA: &str = "semaprax.manifest.v1";
+/// Table layout that explicitly selects native law sources.
+pub const PACKAGE_MANIFEST_SCHEMA_V2: &str = "semaprax.manifest.v2";
 /// Upper bound on `[dependencies]` rows.
 pub const MAX_DEPENDENCIES: usize = 64;
 /// Upper bound on exact local Semantic Package Subject-v3 inputs.
@@ -100,6 +102,8 @@ pub enum ManifestLayout {
     Frozen,
     /// The extensible `semaprax.manifest.v1` table layout.
     Tables,
+    /// The `semaprax.manifest.v2` table layout with explicit law sources.
+    TablesV2,
 }
 
 /// One declared dependency requirement: a package name and a closed
@@ -183,6 +187,7 @@ pub(super) struct TableParts {
     pub(super) profile: ProjectProfile,
     pub(super) entry: String,
     pub(super) sources: Vec<String>,
+    pub(super) law_sources: Vec<String>,
     pub(super) web_exports: Vec<String>,
     pub(super) command: Option<String>,
     pub(super) command_input: Option<String>,
@@ -204,7 +209,7 @@ struct Table<'a> {
     entries: Vec<(&'a str, Value)>,
 }
 
-pub(super) fn parse(lines: &[&str]) -> Result<TableParts, Vec<Diagnostic>> {
+pub(super) fn parse(lines: &[&str], law_layout: bool) -> Result<TableParts, Vec<Diagnostic>> {
     if lines.last() != Some(&"") {
         return Err(grammar(format!("{LABEL} must end with one terminal LF")));
     }
@@ -261,7 +266,7 @@ pub(super) fn parse(lines: &[&str]) -> Result<TableParts, Vec<Diagnostic>> {
         table.entries.push((key, value));
     }
 
-    let structural = structural_diagnostics(&tables);
+    let structural = structural_diagnostics(&tables, law_layout);
     if !structural.is_empty() {
         return Err(structural);
     }
@@ -287,8 +292,22 @@ pub(super) fn parse(lines: &[&str]) -> Result<TableParts, Vec<Diagnostic>> {
     let mut modules = require_table(&tables, "modules")?;
     let entry = modules.text("entry")?;
     let sources = modules.list("sources")?;
+    let law_sources = if law_layout {
+        modules.list("law_sources")?
+    } else {
+        Vec::new()
+    };
     let tests = modules.list("tests")?;
     modules.finish()?;
+    if law_sources.len() > super::MAX_SOURCES {
+        return Err(super::capacity("law_sources", super::MAX_SOURCES));
+    }
+    super::require_strict_order(&law_sources, "law source paths")?;
+    if law_sources.iter().any(|path| !sources.contains(path)) {
+        return Err(grammar(format!(
+            "{LABEL} `[modules] law_sources` must be a subset of `sources`"
+        )));
+    }
 
     let mut exports = require_table(&tables, "exports")?;
     let web_exports = exports.list("web")?;
@@ -364,6 +383,7 @@ pub(super) fn parse(lines: &[&str]) -> Result<TableParts, Vec<Diagnostic>> {
         profile,
         entry,
         sources,
+        law_sources,
         web_exports,
         command,
         command_input,
@@ -376,11 +396,18 @@ pub(super) fn parse(lines: &[&str]) -> Result<TableParts, Vec<Diagnostic>> {
     })
 }
 
-fn structural_diagnostics(tables: &[Table<'_>]) -> Vec<Diagnostic> {
+fn structural_diagnostics(tables: &[Table<'_>], law_layout: bool) -> Vec<Diagnostic> {
     let mut diagnostics = Vec::new();
     for (table, keys) in [
         ("package", &["name", "version"][..]),
-        ("modules", &["entry", "sources", "tests"][..]),
+        (
+            "modules",
+            if law_layout {
+                &["entry", "sources", "law_sources", "tests"][..]
+            } else {
+                &["entry", "sources", "tests"][..]
+            },
+        ),
         ("exports", &["web"][..]),
     ] {
         let Some(found) = tables.iter().find(|candidate| candidate.name == table) else {
@@ -546,7 +573,12 @@ fn structural_diagnostics(tables: &[Table<'_>]) -> Vec<Diagnostic> {
         if sources.iter().any(|path| {
             path.len() > super::MAX_PATH_BYTES
                 || !path.ends_with(".spx")
-                || !crate::workspace::evidence_path_is_valid(path)
+                || !super::valid_manifest_source_path(
+                    path,
+                    law_layout
+                        && table_list(tables, "modules", "law_sources")
+                            .is_some_and(|laws| laws.contains(path)),
+                )
         }) {
             diagnostics.push(scaffold_diagnostic(format!(
                 "{LABEL} source paths must be canonical relative .spx paths of at most 240 bytes"
@@ -620,6 +652,7 @@ fn structural_diagnostics(tables: &[Table<'_>]) -> Vec<Diagnostic> {
     for table in tables {
         let admitted: &[&str] = match table.name {
             "package" => &["name", "version", "profile"],
+            "modules" if law_layout => &["entry", "sources", "law_sources", "tests"],
             "modules" => &["entry", "sources", "tests"],
             "exports" => &["web"],
             "command" => &["function", "input"],
@@ -1005,7 +1038,7 @@ fn validate_target_matrix(matrix: Vec<String>) -> Result<Vec<String>, Vec<Diagno
 /// the `profile` key is omitted for the scalar contract.
 pub(super) fn render(manifest: &ProjectManifest) -> String {
     let mut blocks = Vec::with_capacity(10);
-    blocks.push(format!("schema = \"{PACKAGE_MANIFEST_SCHEMA}\"\n"));
+    blocks.push(format!("schema = \"{}\"\n", manifest.manifest_schema()));
     let mut package = format!(
         "[package]\nname = \"{}\"\nversion = \"{}\"\n",
         manifest.name,
@@ -1018,12 +1051,19 @@ pub(super) fn render(manifest: &ProjectManifest) -> String {
         package.push_str(&format!("profile = \"{profile}\"\n"));
     }
     blocks.push(package);
-    blocks.push(format!(
-        "[modules]\nentry = \"{}\"\nsources = {}\ntests = [\"{}\"]\n",
+    let mut modules = format!(
+        "[modules]\nentry = \"{}\"\nsources = {}\n",
         manifest.entry,
-        super::render_array(&manifest.sources),
-        manifest.test_module,
-    ));
+        super::render_array(&manifest.sources)
+    );
+    if manifest.layout == ManifestLayout::TablesV2 {
+        modules.push_str(&format!(
+            "law_sources = {}\n",
+            super::render_array(&manifest.law_sources)
+        ));
+    }
+    modules.push_str(&format!("tests = [\"{}\"]\n", manifest.test_module));
+    blocks.push(modules);
     blocks.push(format!(
         "[exports]\nweb = {}\n",
         super::render_array(&manifest.web_exports)
@@ -1118,6 +1158,7 @@ impl ProjectManifest {
         match self.layout {
             ManifestLayout::Frozen => self.schema,
             ManifestLayout::Tables => PACKAGE_MANIFEST_SCHEMA,
+            ManifestLayout::TablesV2 => PACKAGE_MANIFEST_SCHEMA_V2,
         }
     }
 

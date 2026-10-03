@@ -54,6 +54,39 @@ fn boundary_options() -> NativeRustSdkOptions {
     }
 }
 
+#[test]
+fn indexed_public_route_rejects_package_byte_drift_before_publication() {
+    let source = BOUNDARY_SOURCE.replacen(
+        "import rust fn host_add(left: i64, right: i64) -> i64",
+        "import rust fn host_add(left: i64, right: i64) -> i64 from \"fixture_math::add\"",
+        1,
+    );
+    let package = crate::indexed_binding::SelectedPackage {
+        cargo_alias: "fixture_math",
+        name: "fixture_math",
+        version: "0.0.1",
+        source_sha256: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        target: target_triple().unwrap(),
+        feature_digest: "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        stable_rustc_version: "rustc 1.98.0 (88d9e12ae 2026-08-18) (Homebrew)",
+    };
+    let destination = std::env::temp_dir().join(format!("ri04-drift-{}", std::process::id()));
+    assert!(!destination.exists());
+    let error = build_indexed_scalar_native_rust(
+        &source,
+        Path::new("indexed-public.spx"),
+        boundary_options(),
+        b"{}\n",
+        package,
+        b"different package source",
+        &destination,
+    )
+    .unwrap_err();
+    assert_eq!(error[0].code, "SPX-B142");
+    assert!(error[0].span.is_some());
+    assert!(!destination.exists());
+}
+
 fn required_env_is_one(name: &str) -> bool {
     std::env::var_os(name).as_deref() == Some(OsStr::new("1"))
 }
@@ -180,7 +213,7 @@ fn generated_cargo_package_has_no_dependency_or_repository_escape() {
             exports: Vec::new(),
             imports: Vec::new(),
         };
-        let sources = render_package_sources(&facts, &[], &[]);
+        let sources = render_package_sources(&facts, &[], &[], None);
         assert!(sources.cargo_toml.contains("publish = false"));
         assert!(!sources.cargo_toml.contains("dependencies"));
         assert!(!sources.cargo_toml.contains("path = \"../"));
@@ -241,6 +274,7 @@ fn generated_cargo_package_never_embeds_a_local_checkout_path_or_a_private_crate
         &facts,
         &["calculator.effects.io".to_owned()],
         manifest.rust_dependencies(),
+        None,
     );
     for rendered in [&sources.cargo_toml, &sources.build_rs, &sources.lib_rs] {
         assert!(
@@ -299,7 +333,7 @@ fn project_rust_dependencies_are_exact_and_publicly_reexported() {
         exports: Vec::new(),
         imports: Vec::new(),
     };
-    let sources = render_package_sources(&facts, &[], manifest.rust_dependencies());
+    let sources = render_package_sources(&facts, &[], manifest.rust_dependencies(), None);
     assert!(sources.cargo_toml.contains(concat!(
         "[dependencies]\n",
         "spx_rust_dependency_0 = { package = \"same-file\", version = \"=1.0.6\" }\n",
@@ -634,7 +668,7 @@ fn main() -> i64 { 0 }
     .unwrap();
     assert_eq!(facts.exports[0].public_method, "spx_sdk_dot_add");
     assert_eq!(facts.imports[0].public_method, "spx_host_dot_add");
-    let sources = render_package_sources(&facts, &options.capabilities, &[]);
+    let sources = render_package_sources(&facts, &options.capabilities, &[], None);
     assert!(!sources.lib_rs.starts_with("#![forbid(unsafe_code)]"));
     assert!(sources
         .lib_rs

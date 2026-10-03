@@ -162,18 +162,23 @@ mod observe;
 pub(crate) use observe::{observe_live_owned_run_v8, LiveObserveOutcomeV8, LiveObservedStateV8};
 
 mod wait;
-pub(crate) use wait::{begin_live_owned_wait_v8, LiveParkedStateV8, LiveWaitStartOutcomeV8};
+pub(crate) use wait::{
+    begin_live_owned_wait_v8, restore_live_parked_state_v8, LiveParkedStateV8,
+    LiveWaitStartOutcomeV8,
+};
 
 mod resume;
 pub(crate) use resume::{resume_live_owned_wait_v8, LiveResumedStateV8, LiveWaitResumeOutcomeV8};
 
 mod authorize;
+mod shutdown;
 pub(crate) use authorize::{
     authorize_live_owned_state_v8, promote_live_owned_authorization_v8,
     transfer_live_owned_state_v8, LiveAuthorizeOutcomeV8, LiveReadyAuthorizationV8,
     LiveReadyEffectPreparationRejectionV8, LiveReadyPromotionOutcomeV8, LiveStagedAuthorizationV8,
     LiveStateTransferOutcomeV8, LiveTransferredStateV8,
 };
+pub(crate) use authorize::{restore_transferred_state_v8, LiveTransferredRestoreFailureV8};
 
 pub(crate) use observe::{
     InitialObserveStateCleanupFailureV8, LiveFailedObserveV8, ReleasedInitialObserveStateV8,

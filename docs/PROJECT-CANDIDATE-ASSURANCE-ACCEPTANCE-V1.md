@@ -103,14 +103,15 @@ truncation cannot look like full assurance."
 
 ## No formal-proof status without real proof evidence
 
-`assurance_manifest`'s own structural replay does not require a `proof_ref`
-on an `smt_proved`/`model_checked`/`theorem_proved` method record (it only
-forbids one on a *weaker* class). This join adds that check independently:
-any obligation whose classification is one of those three formal-proof
-classes, with no method among its records carrying a non-null `proof_ref`, is
-listed under `unsupported_formal_claims`. `grant_candidate_acceptance` refuses
-to grant while that list is non-empty, regardless of how strong the declared
-`classification` string reads.
+`assurance_manifest`'s structural replay cannot establish that a solver or
+kernel proved a supplied method record. Every supplied `smt_proved`,
+`model_checked` or `theorem_proved` classification is therefore listed under
+`unsupported_formal_claims`, including records with nonempty `proof_ref` values.
+A URL or digest string is not checked evidence. `grant_candidate_acceptance`
+refuses while that list is nonempty, regardless of the declared classification.
+The additive [Strict Law Assurance v1](STRICT-LAW-ASSURANCE-V1.md) Project join
+rederives complete law coverage and consumes opaque Project-bound proof evidence
+through its existing trusted host boundary.
 
 ## An unrelated passing obligation never hides a failing one
 
@@ -199,8 +200,8 @@ envelope binding and joining correctly; a hand-tampered envelope (re-signed
 so structural replay still accepts its shape) whose declared revision no
 longer matches the candidate being rejected with `SPX-G932`; an envelope for
 a path outside the candidate being rejected; duplicate input paths being
-rejected; an externally supplied `theorem_proved` obligation with no
-`proof_ref` being flagged under `unsupported_formal_claims` and blocking a
+rejected; externally supplied `theorem_proved` obligations with missing or forged nonempty
+`proof_ref` values being flagged under `unsupported_formal_claims` and blocking a
 grant; a candidate being unable to accept itself (`proposer == reviewer`)
 while a genuinely distinct reviewer can still grant the same inputs; and a
 visible-test-file edit leaving the production obligations byte-identical.
@@ -240,3 +241,9 @@ visible-test-file edit leaving the production obligations byte-identical.
   claim is itself correct; that trust is inherited from
   `assurance_manifest::generate` and the compiler passes it already reused
   (`verify::verify`, `wasm::emit_contract_guard`).
+
+The LAW-04 forged-reference regression is
+`project::candidate::candidate_assurance::tests::forged_nonempty_proof_reference_never_grants_formal_acceptance`
+in the library unit harness. It observes both selected sources, refuses the
+forged formal method and confirms the authority-free result leaves source bytes
+unchanged.

@@ -32,6 +32,34 @@ The supported profile still requires its exact provisioned host and original
 provenance/authority gates. A scope-only #322 reconciliation retains the prior
 corrected 54/54 report; no new hosted run or broader support is implied.
 
+## Live laboratory pilot fixture gate
+
+For the additive #332 protocol, transport or candidate-session changes, run:
+
+```sh
+python3 -m unittest discover -s benchmarks/cross-language-v1/agent/tests -p test_live_pilot.py -v
+```
+
+The existing `documentation` harness owns the `cross_language_benchmark_suite::live_pilot`
+wrapper. A local Node is required for the assertion-isolation positive/hostile
+fixtures. This gate makes no provider call and does not admit the official
+runtime or a second host. [Live pilot v1](CROSS-LANGUAGE-LIVE-PILOT-V1.md) owns
+its scope, operator interface and remaining real-execution gates. Preserve the
+existing supported-scope and v3 pure-provenance selectors when changing admission.
+
+The Linux admission/authority owner also requires its focused pure gate:
+
+```sh
+python3 -m unittest discover -s benchmarks/cross-language-v1/agent/tests -p test_pilot_linux_host.py -v
+```
+
+The same `documentation::cross_language_benchmark_suite::live_pilot` module owns
+this wrapper and clears physical-provision environment variables. Its three
+pure cases do not replace the two explicitly provisioned physical selectors in
+[Linux pilot host v1](CROSS-LANGUAGE-PILOT-LINUX-HOST-V1.md). Those selectors
+exercise actual OS denials and official Node/TypeScript candidate scoring;
+neither pure nor physical fixture evidence implies a provider model trial.
+
 ## Specialization cell-accounting gate
 
 For #326 accounting or provenance changes, run:
@@ -182,6 +210,15 @@ Rust evidence job runs only the provisioned Proposal-client case under its
 explicit environment flag; repeating the entire Agent Runtime harness there
 previously consumed the six-hour job limit. The `project` and
 `agent_runtime_v1` harnesses occupy different integration shards.
+
+The fresh public owned-Agent v1 selector is
+`public_owned_agent_fresh_entry_runs_two_real_turns_and_projects_report` in
+the existing library harness. It must prove retained Project/source binding,
+full fresh registration acknowledgement, two real model and target dispatches,
+ordered cleanup, checked terminal Report projection, and pre-effect wrong
+source/replay refusal. The private `owned_runtime_two_turn_` and
+`owned_runtime_restart_prepared_` matrices remain separate #330 gates; a local
+selector pass alone does not establish full shutdown or recovery support.
 
 The Rust 1.88 minimum-version lane checks every workspace target and feature
 combination once with the locked dependency graph. Runtime suites run on the

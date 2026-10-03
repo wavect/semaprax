@@ -126,7 +126,8 @@ run_registered_authorize(&mut RegisteredAgentState, CheckedProposal,
 
 `CompletedOwnedWait` is an internal postcondition/cleanup-settled result holder; public owned-frame claim is NOT called. Prepare binds exact State/Proposal facts and source authorize ID. TransferReserved ACK precedes taking its root; move into destination RegisteredAgentState once, then TransferCompleted ACK precedes any authorize evaluator or consumer exposure. The receiver owns the actual original backing; while appending Completed it is private/poisonable and lease-held. Stage borrowed aliases/contract temporaries are drained before exclusivity checks/physical cleanup. This needs a narrow interpreter registered-root borrowed evaluator seam, not a public Arc/Value conversion.
 
-Recovery classifications:
+Target recovery classifications for a later owner-restoration packet (not
+implemented by the current recovered lease):
 - committed/prepared/answered: authenticated legal fold + held lease grants one sealed restoration permit; charged historical observe/start/resume compare exact recorded facts; no additional caller Argument.
 - AttemptIntent without recorded settlement: model in doubt, no redispatch/root transfer/effects.
 - failed terminal before cleanup start: one registered failure owner may perform acknowledged compiler cleanup.
@@ -245,7 +246,7 @@ Rows refer to the current attempt's stage/transfer/decision basis; all later cle
 | Decision cleanup Started without Settled | CleanupInDoubt; ZERO owner restoration or physical retry. Explicit failed host confirmation may close THAT cleanup receipt, but first profile does not restore the leftover State; terminal recovery reports in-doubt, never a ready turn. |
 | Decision cleanup Settled, before State cleanup Started | ZERO Decision restoration; one failed State holder may perform its acknowledged compiler cleanup, then terminal. Its active State basis is separately retained by fold and not derived from the disposed Decision. |
 | State cleanup Started without Settled | CleanupInDoubt; ZERO owner restoration/release retry. Only explicit scoped failed host confirmation receipt/evidence; no ready turn. |
-| State cleanup Settled, terminal absent or present | Evidence/status only, ZERO State/Decision/grant restoration. Remaining ordinary Stop/TerminalSnapshot metadata may be appended only from validated fold, without evaluator/physical cleanup. |
+| State cleanup Settled, terminal absent or present | Evidence/status only, ZERO State/Decision/grant restoration. A future restoration packet may append remaining ordinary Stop/TerminalSnapshot metadata only from the validated fold, without evaluator/physical cleanup. |
 | Any host-confirmed failed receipt | No confirmed owner restoration or physical retry; only the exact still-live separate-owner basis permitted by this table can be considered. Decision-confirmation case is conservatively terminal/in-doubt in this first profile. |
 | Any later effect intent, state handoff, failure cleanup or ordinary terminal | No earlier Ready/TransferCompleted/Staged restoration. Future effect packet must add its own exact current-owner phase table; first API refuses those unsupported phases. |
 
@@ -295,6 +296,52 @@ Fresh expected facts are exactly `{scope,execution,binding,limits,directory_iden
 Caller retains the complete registration OUT OF BAND under its protected-history/lifetime assurance before passing lease to the owned run constructor. Start requires an explicit current host registration-retained grant paired with the exact complete registration/lease identity. This is a physical host authority acknowledgement, not evidence or a hash that grants authority. If retention fails, close the empty held lease; no owner was admitted/transferred and no history was committed. The host may not recover from journal-derived file IDs or generation.
 
 Recovery requires independently retained complete four pins and generation, plus current independently expected scope/execution/binding/limits/directory facts and registration grant. It compares expected facts, recomputes generation from those RETAINED full pins (never from opened file or journal) before file opening, verifies held directory pins, opens only the computed v8 filename, then verifies opened file equals retained file pins and all safety/PID/fullscope/profile checks. Authenticate legal v8 history afterward. An alternate/copied/rollback registration is outside protected caller assurance, never legitimized by a matching MAC.
+
+The current recovery lease is read-only after that authentication. It can expose
+the authenticated inventory and terminal evidence, but cannot append any
+successor row. Retained registration, matching pins, and a valid MAC are proof
+data; they do not restore the physical State, wait, or Report owner required
+to advance a phase. A restoration packet must introduce one sealed owner-bound
+permit and may lift this fence only in the exact continuation that consumes an
+owner allowed by its reviewed recovery table.
+
+The first implemented restoration packet is narrower: after close/reopen, one
+non-clone trusted-host grant can materialize a fresh process-local parked Bytes
+owner only for the exact current first-turn `OwnedWaitPrepared` tail. It binds
+the retained registration and generation, held exclusive lease, authenticated
+MAC tail, checked source binding, protected checkpoint key and the exact
+checkpoint/observation/reservation facts. It revalidates the checkpoint before
+allocating fresh Bytes backing and leaves the recovered lease read-only.
+
+A separate non-clone trusted-host grant can consume only that recovered owner
+into the original first model path. Immediately before unsealing append, it
+reauthenticates the current source/tail/checkpoint/observation facts, the MAC
+tail, retained registration and generation, exclusive held lease, exact
+Prepared coordinates and the fresh owner session. The tail contains no
+`AttemptIntent`; the single resulting model dispatch is therefore the original
+attempt, never a redispatch. A pre-transition refusal retains the fresh owner
+and quarantines the journal. After the transition, every model failure also
+quarantines, so no reopened prefix can be claimed again. This route calls no
+cleanup or finalizer and reaches no effect, transfer, authorization, delivery
+or public Agent entry without the carried owned state.
+
+Later turns, any tail other than first-turn Prepared, and a StartReserved
+prefix with no Prepared ACK refuse before owner materialization; uncertain
+append prefixes therefore have no retry, model dispatch or successor append
+route. This remains a private first-model continuation, not general physical
+owner recovery.
+
+The owning restart regression uses two separate libtest subprocesses. The
+preparer creates and parks the actual first-turn owner, records only a
+test-only representation of the trusted host's retained registration facts,
+then exits. The relaunch rebuilds the checked runtime independently, reopens
+the original pinned directory with those retained facts, materializes fresh
+backing and observes exactly one factory/start plus three adapter polls. A
+separate relaunch appends hostile tail bytes after the preparer exits and
+refuses before owner or adapter creation. The test transport is compiled only
+under `cfg(test)` and is not a production registration serialization or a new
+recovery authority. These regressions are source-added and remain unexecuted
+until the required profile runs.
 
 The profile-specific constructor/delegation and narrow store lease paths in §9.3 remain; only the impossible pre-create file-identity requirement/signatures are replaced by this exact ordering. V1 constructors/public signatures/name/generation recipes remain frozen.
 
@@ -482,7 +529,7 @@ Only the original parked owner and that reservation may enter Resume. Successful
 
 This section defines the closed private proof-data grammar. The admitted implementation checks compiler plans, nominal values, causal references, ordered cleanup observations, original aggregate reservation accounting and phase-specific serialized closure capacity. It does not evaluate Reduce, restore owners, dispatch a target, perform cleanup, deliver an Agent result or mint a production physical ACK from decoded rows. Generic append refuses the seven new owned bodies and ordinary Reduce/Transition/Stop advances of an active Reduce obligation.
 
-The prospective hold, physical producer, physical transfer, cumulative next-turn driver and terminal mapping requirements below are required successor boundaries. They are not implemented by the inert codec/fold. In particular, the current fold refuses TerminalSnapshot, replay Reduce, and next-turn execution; a checked Continue or held terminal Transition is proof data only. A failure Stop records the selected failure after its successful whole receipt without granting terminal delivery.
+The prospective hold, physical producer, physical transfer, cumulative next-turn driver and terminal mapping requirements below are separate authority boundaries from the inert codec/fold. The current private path authenticates a terminal `TerminalSnapshot` after the matching mapped Step and Transition; the row remains proof data and grants no Report delivery or owner reconstruction. Replay Reduce and execution beyond the reached continued turn remain separate gates. A failure Stop records the selected failure after its successful whole receipt without granting terminal delivery.
 
 ### 23.1 Admission and start boundary
 
@@ -692,7 +739,7 @@ After an actual failed target and completed Decision cleanup receipt, the retain
 
 The same actual State, accounting ledger and charged Reduce hold remain bound throughout. All four accounting dimensions remain unchanged. Failed or uncertain ACKs quarantine the owner; unsuccessful physical receipts cannot publish Stop. Genuine owning tests cover handler failure, result limit, ordered release, cancellation, wrong binding and persistence faults. Integrated runtime verification remains required; public lifecycle acceptance and terminal publication remain unfinished.
 
-Immutable checked Reduce proof is retained once per invocation Context. Its accessor verifies the exact binding and helper identity. Capacity and reservation borrow that proof while recomputing current prefix and physical guards; no physical authority or capacity result is cached. Unsupported proof errors retain their original deferred failure boundary.
+Immutable checked Reduce proof is retained once per invocation Context. Its accessor verifies the exact binding and helper identity. Capacity and reservation borrow that proof while recomputing current prefix and physical guards; no physical authority or current-prefix capacity verdict is cached. Unsupported proof errors retain their original deferred failure boundary.
 
 ## 39. Explicit cumulative profile and descriptive turn carry
 
@@ -703,6 +750,10 @@ A descriptive next State commitment is admitted only after the same turn's exact
 The authenticated accounting builder extends the existing four-dimension exchange chain only in the selected cumulative Context; final complete fold validation also checks the profile and Continue lineage before exporting its proof. Pure carrier checking uses preceding checked exchange facts for arithmetic validation but exports no authenticated history. Later target exchange, original Reduce and failure cleanup coordinates use the current admitted turn; the legacy first-turn constructors retain their turn-zero refusal.
 
 Capacity forecasting includes the profile row, checked maximal closure of every remaining turn and retained State cleanup at the iteration ceiling, with checked byte/row multiplication and no increase to frozen global limits. Known terminal or failed branches carry no future turn room. All new positive-turn Reduce templates use the authenticated maximal coordinate width; default capacity templates remain unchanged.
+
+The cumulative forecast retains only the immutable maximal fresh-turn byte/row pair. Its key binds every context input used by that forecast and the exact checked Agent and Reduce proof objects; the checked Reduce identity is revalidated on each access. Initialization and cumulative-profile selection clear the cache. Each invocation still recomputes remaining turns, checked multiplication, retained State closure, current-prefix capacity and physical guards. No inventory, ACK, remaining allowance or successful capacity verdict is reused. Uncached-parity, capacity-edge, changed-bound, crossed-proof and profile-reset tests are supplied; execution and any speedup remain unverified.
+
+Effect capacity also retains three constant byte/row aggregates for the fixed Intent, maximal settlement alternative and Recorded rows. These are computed once through the unchanged canonical serializers from frozen schema constants and maximal coordinate/payload widths. The retained values contain no input, inventory, physical proof or capacity verdict. Each call still derives and validates the compiler-dependent Started row and receipt, adds the current after-effect closure, and checks the actual document and entry counts. The fixed-prefix parity and dynamic-cleanup refusal regression is supplied but not yet run; no timing improvement is claimed.
 
 This is profile and inert admission machinery plus the actual initializer's profile ACK. It supplies no physical continuation from JSON, owner reconstruction, second live Intent, terminal delivery, public Agent route or crash recovery. Complete actual ledger/owner carry, Observe consumed evidence and public execution remain required before acceptance.
 
@@ -731,6 +782,15 @@ The failed grammar requires canonical State cleanup and the exact full original 
 
 ## 43. Actual Decision-observer terminal State cleanup
 
+The capacity phase regression distinguishes the successful Decision cleanup's
+Reduce reserve from the failed Decision observer's own State cleanup reserve.
+The historical equality between them predates this separate closure. Its
+replacement pins both fixture bounds, checks the observer bound against typed
+authenticated Started/Settled widths plus terminal allowance, and exercises
+legal cleanup edges, premature or wrong-status Stop refusal, and a failed State
+observer's zero continuation room. This strengthened regression is unrun; no
+capacity formula or production authority is changed by the correction.
+
 The private cleanup seal from a complete failed Decision observation receipt can select a distinct State cleanup Started row, bound to that actual receipt and retained State. Its fixed durable ACK authorizes the original compiler State disposal vector. The actual ordered physical receipt selects Settled; only successful complete observations and its true ACK can select the original sticky Stop. Failed target causes retain EffectFailed; a successful target with failed Decision observation uses the distinct observer cause and Rejected/StageRefused.
 
 The same State, four-dimensional ledger and Reduce hold remain attached. Normal poison stays permanent; only the cleanup seal advances, and all later faults retire it permanently. Incurred release/receipt may finish under the narrow cancellation/deadline exception, preserving store/PID/binding/policy checks; before Started and Stop all full guards apply. Partial or failed State observation cannot publish Stop. Actual owning tests include all sticky target causes, guard loss, persistence faults, wrong journal, reminted joins and pin restoration. Integrated runtime verification remains pending; no public terminal publication or recovery is supplied.
@@ -742,9 +802,15 @@ An actual successful continued Observe holder and both authentic settlement/Turn
 
 ## 45. Actual failed-Observe State cleanup writer
 
-Only an actual failed initial or continued Observe holder with its authentic OwnedObserveSettled ACK can select State cleanup. Started is bound to the actual failure, State provenance, original full Observe failure-cleanup vector and exact retained prefix. Its fixed durable ACK incurs one physical release through the existing failed-Observe settlement primitive. Preallocated canonical slots capture each actual observer outcome; the returned physical receipt and all action outcomes must agree. Partial release, capture mismatch or later guard loss retains the actual boundary holder and permanently quarantines it. No retry, synthetic aggregate receipt or restored owner is admitted.
+Only an actual failed initial, continued, or later-turn Observe holder with its authentic OwnedObserveSettled ACK can select State cleanup. The later-turn bridge consumes the exact retained LaterContinueLineage, including its physical failed State, cumulative accounting, policy, cancellation, and original Reduce hold; journal rows cannot reconstruct it. Started is bound to the actual failure, State provenance, original full Observe failure-cleanup vector and exact retained prefix. Its fixed durable ACK incurs one physical release through the existing failed-Observe settlement primitive. Preallocated canonical slots capture each actual observer outcome; the returned physical receipt and all action outcomes must agree. Partial release, capture mismatch or later guard loss retains the actual boundary holder and permanently quarantines it. No retry, synthetic aggregate receipt or restored owner is admitted.
 
-The receipt row references the actual Started row index. After release, guards use the actual released engine holder and descriptive facts cached before release, never the old State root. Only a full successful receipt and its true Settled ACK can select the sticky Stop: Fuel/Depth exhaustion keeps BudgetExhausted; other admitted Observe failures select Rejected/StageRefused. Full current guards apply before Started and Stop. Incurred release and receipt may finish after cancellation or clock expiry while retaining physical store, PID, schema, exclusivity and applicable policy checks. Initial cleanup adds no policy/clock or accounting authority; continued cleanup retains the unchanged ledger and same Reduce hold without debit, refund or reservation reset.
+The later-turn owning harness separately injects prewrite refusal at Started,
+receipt, and Stop. Started refusal performs no release; receipt and Stop
+refusal retain the post-release physical owner after exactly one canonical
+cleanup pass. Every boundary quarantines the journal before it could retry the
+cleanup or append a successor. These focused regressions remain unexecuted.
+
+The receipt row references the actual Started row index. After release, guards use the actual released engine holder and descriptive facts cached before release, never the old State root. Only a full successful receipt and its true Settled ACK can select the sticky Stop: Fuel/Depth exhaustion keeps BudgetExhausted; other admitted Observe failures select Rejected/StageRefused. Full current guards apply before Started and Stop. Incurred release and receipt may finish after cancellation or clock expiry while retaining physical store, PID, schema, exclusivity and applicable policy checks. Initial cleanup adds no policy/clock or accounting authority; continued and later-turn cleanup retain the unchanged ledger and same Reduce hold without debit, refund or reservation reset.
 
 The generic append classifier denies all State cleanup and Stop spellings at a checked failed cumulative Observe prefix. Only sealed actual-owner permits can advance this writer.
 
@@ -819,7 +885,369 @@ single-fixture cancellation-refusal test was then interrupted after 9 minutes
 without a result. No behavioral gate is claimed passed. The full quality profile
 was not run under the bounded-test instruction.
 
-This private cleanup boundary ends at the retained actual Settled holder;
-continued Outcome/Reduce, terminal publication, public multi-turn entry and
-restart recovery remain unfinished. It is an explicitly unverified increment,
-not completion of the public owned-Agent lifecycle criterion.
+The private driver now composes this exact pair from a real continued
+Recorded holder: it writes Started, invokes the explicit cleanup observer once,
+and writes Settled. Its failure carrier keeps the Prepared, Started, released,
+or append owner that actually reached the failed boundary. A post-release
+failure therefore has no route to invoke cleanup again. The focused real-chain
+selector passed 1/1 locally, asserting one physical cleanup observation and both
+durable rows. This supplies neither a public entry nor restart path.
+
+The actual successful Settled ACK now also binds a one-use physical
+State/Outcome handoff. A live permit checks the exact continued turn, append
+session and Settled witness against the retained source hold, runtime,
+execution, policy, clock and cancellation. The existing consuming effect
+cleanup ACK transfers the pending holder into its executed turn only after
+those checks. The reached owner stays quarantined on failure, with no route
+back to Decision release. The focused Outcome selector passed 1/1 locally for
+success and fresh cancellation, with one physical release and unchanged
+journal bytes. This is private transport, not public recovery authority.
+
+The private continued Reduce sibling requires that minted Outcome on the exact
+Settled holder before selecting one
+positive-turn `StageReservation(role Reduce)` with the retained typed fuel. Its
+fixed same-file ACK moves the existing hold from `CleanupSettled` to
+`SpentReduce` exactly once, preserving the turn-1 lineage, owner, MAC cursor
+and accounting. Prewrite, ACK and post-ACK failures retain their unique reached
+owner and quarantine uncertainty; receipt bytes never grant this authority.
+The reserved holder now consumes the actual executed Outcome once into the
+existing checked reducer. A fresh spent-hold, source, policy, clock, and
+cancellation guard remains valid after that physical owner moves. Pre-entry,
+evaluation, and post-entry failures retain their reached owners and quarantine
+uncertainty. The private real-chain selector passed 1/1 locally, reaching full
+Step facts with unchanged accounting, one durable Reduce reservation row, and
+no second host call or cleanup observation.
+
+The evaluated turn-1 holder can now select the exact Step facts and append the
+first durable Step ACK through the fixed Step permit. The successor retains the
+same physical owner and spent Reduce hold; the row gives no cleanup, result
+move, or public continuation authority. A prewrite fault retains that owner
+and quarantines the append path. The focused real-chain success and prewrite
+selectors each exercise one actual continued turn locally.
+
+The acknowledged staged owner can next select `OwnedReduceCleanupStarted`
+from the same evaluated cleanup basis and append it through the fixed Step
+permit. Its ACK marks cleanup as incurred and retains the owner and spent
+hold. The post-ACK guard still checks physical provenance, source, plan, and
+policy; cancellation or clock expiry can no longer erase incurred cleanup.
+This row does not execute physical cleanup or publish a result. The focused
+real-chain success and prewrite-refusal selectors each passed locally; the
+fault retains the staged owner and quarantines the append lease.
+
+From that actual incurred Started holder, the private continued Step now
+passes the existing physical cleanup engine its sealed owner-bound permit,
+releases the compiler's selected cleanup vector once, and appends the actual
+`OwnedReduceCleanupSettled` receipt. A prewrite fault on the receipt append
+retains the released owner and cannot repeat cleanup. The focused success and
+receipt-prewrite real-chain selectors each passed locally. Result transfer,
+terminal publication, public entry, and restart recovery remain separate.
+
+The same receipt owner now reserves and physically moves the real turn-one
+Step fields, then ACKs `OwnedStepTransferCompleted` and the matching terminal
+`Transition`. The real-chain transfer selector passed locally. For a terminal
+mapped Step, a private successor derives `TerminalSnapshot` from the
+authenticated ordinary execution projection and the actual Step carrier;
+the fixed Step append retains the mapped owner through its ACK. The fold
+accepts this row only after the matching terminal Transition and checks its
+turn, status, carrier digest, committed accounting and canonical evidence.
+The terminal success and prewrite-refusal selectors passed the central gate.
+Evidence input remains descriptive and cannot mint an owner or ACK. A separate
+read-only projection reopens the same registered store and authenticates its
+terminal prefix before returning checked status, evidence and carrier bytes;
+the actual store-reopen success and prewrite-refusal selectors passed. This
+projection returns no physical State or Report owner.
+
+A separate later-Continue holder takes the actual mapped turn-one Step after
+its Continue Transition ACK. It selects turn-two `OwnedStateCommitted` from
+that State, then ACKs the exact turn-two Observe reservation before the
+physical Observe engine runs. The fixed append shares the existing candidate,
+pending and same-file write/reread path; its spent hold registry remains
+cumulative, and failures retain the phase owner. The owning three-turn success
+and State-prewrite refusal selectors passed the central gate.
+
+The private Complete terminal owner now has a consuming Report claim after the
+exact `TerminalSnapshot` ACK. Claim verifies the current registered prefix,
+Complete status, turn, carrier bytes and digest against the live mapped Step,
+then moves the original physical Report into a claimed owner retaining its
+store borrower. A borrowed delivery projection is checked again against the
+terminal carrier; stale store authority drains backing without asserting
+semantic result disposal. Transition alone returns the same unclaimed owner.
+The owning success and terminal-prewrite refusal selectors passed locally;
+this route remains private, and
+the recovered terminal evidence still cannot recreate a physical Report.
+
+The later physical Observe owner can select `OwnedObserveSettled` from its
+actual State and Copy result, then append `TurnObserved` through the fixed
+Observe settlement writer and cumulative hold registry. A rejected append
+keeps the physical Observe owner and its exact reservation under quarantine.
+The focused turn-two success and prewrite-refusal selectors passed locally.
+The actual two-ACK observed owner can then carry the physical State and checked
+Copy observation into turn-two `OwnedWaitCreated` and original Start
+reservation. Both rows use the fixed ContinuedStart candidate, pending writer,
+same-file reread and cumulative hold registry; a refused append retains the
+later owner. The focused Start success and prewrite-refusal selectors passed
+locally. A later two-ACK Start owner now has a consuming source-entry join:
+it validates the current original Start reservation, cumulative hold, policy
+and clock, then moves the same physical State through the existing continued
+wait preparation and source helper. The returned private owner retains the
+actual Parked outcome and original observation and ACKs. This source-entry
+join passed its owning success and Start-prewrite refusal selectors locally.
+The later Parked owner now selects a checkpoint from its physical State and
+request under the original Start ACK, then offers the exact
+`OwnedWaitPrepared` row to the existing fixed writer and cumulative hold.
+The later Prepared ACK retains the same Parked owner and accounting; a
+prewrite refusal keeps that owner under quarantine. Its owning success and
+refusal regressions passed locally. The acknowledged later Prepared owner
+now supplies a borrowed physical State, request, observation and exact
+ordinal to the checked Model request builder. Its ordinary `AttemptIntent`
+uses the existing fixed Model writer and cumulative hold; the retained owner
+validates the exact ACK before any SDK dispatch. The owning Intent success
+and prewrite-refusal regressions passed locally. The same acknowledged
+turn-two owner now dispatches the checked request through the existing SDK
+guard, selecting one ordinary `AttemptSettled` or `AttemptFailed` row from
+the actual response. Its fixed writer ACKs that row under the cumulative
+hold, while prewrite refusal retains the dispatched owner. The owning
+settlement success and refusal gates passed locally. The same physical
+turn-two owner can now select the SDK's reported `AttemptUsage`, ACK it through
+the fixed Model writer, bind the decoded Proposal, and ACK one full-fuel
+`OwnedWaitReserved` Resume row. Prewrite refusals retain the owner at each
+boundary. The owning Usage and Resume reservation success and prewrite-refusal
+gates passed locally. The later Resume ACK now has a consuming physical join:
+a closed lineage permit checks the exact original full-fuel reservation and
+current registered store before the shared interpreter resumes its actual
+Parked owner. Refused, terminal and guard-lost outcomes retain their physical
+owners. Only successful Resumed State can select `OwnedWaitCompleted`, using
+its observed consumption and State-bound result digest. The fixed Model writer
+retains that same State after its Completed ACK or prewrite refusal. The owning
+physical Resume success and Completed-prewrite refusal selectors passed locally
+(1/1 each). The later Effect/Reduce/Step join is specified in section 50;
+The later failed-Observe owner has a closed consuming cleanup bridge; it retains
+the exact LaterContinueLineage through the existing fixed State cleanup and Stop
+writer.
+
+Public multi-turn entry, public Report delivery and physical owner restoration
+after restart remain
+unfinished. This bounded local result is not completion of the
+public owned-Agent lifecycle criterion.
+
+
+## 50. Private later Completed owner join (#330)
+
+The turn-two Completed holder has one consuming join into the existing
+continued authorization, effect, Decision cleanup, Reduce and staged Step
+pipeline. Its live successful Resume owner moves with the checked Proposal,
+actual request and ordinal, Prepared/Observe/Start history, and all five Model
+acknowledgements. The join does not append a row or reenter Resume.
+
+Before moving, the join validates the retained Resume witness against its
+acknowledged session, the Completed witness against that exact predecessor's
+cursor and authentication, and the current Completed prefix. It recomputes the
+Completed row from the actual Resumed State, checked Proposal, wait identity
+and observed fuel, then compares the cumulative accounting. A mismatched wait
+or other provenance failure retains the reached owner and quarantines the
+journal. History and matching bytes cannot construct the physical owner.
+
+The continuation lineage distinguishes the first Step from the retained actual
+later Step. Its borrowed origin selects that owner's physical Reduce hold,
+policy, cancellation and clock; it cannot substitute the first turn's hold or
+reset accounting. The existing fixed authorization and effect writers retain
+all reservation, ACK, transfer and host-entry guards. First authorization ACK
+failure retains the same State, and successful advancement reaches one physical
+effect dispatch, one Decision cleanup, one original Reduce reservation and the
+actual owned Step ACK. The later Step terminal successor and its separate
+executable gate are specified in section 51.
+
+The focused gate is:
+
+```sh
+cargo test --locked -p semaprax --lib owned_continued_step_turn_two -- --nocapture
+```
+
+It includes physical Resume/Completed preservation, the actual turn-two
+Effect/Reduce/Step chain, a foreign-wait refusal with unchanged persisted bytes,
+and first-authorization prewrite refusal retaining State. These new join cases
+have focused local success and foreign-wait refusal passes (1/1 each, 817.26
+and 511.94 seconds). The authorization-prewrite refusal remains pending
+execution. Public multi-turn entry, Report
+delivery, restart restoration, broader iteration and native/Wasm owned-wait
+support remain separate completion requirements.
+
+
+## 51. Private later Complete terminal and Report closure (#330)
+
+The physical turn-two Complete Step has a private consuming closure through
+its existing six fixed ACK boundaries: compiler cleanup Started, actual
+cleanup receipt, field-transfer reservation, completed field transfer,
+ordinary Transition, and TerminalSnapshot. Entry checks the same journal,
+current live owner and full Complete Step before the first append. Each
+successor retains the same spent Reduce hold, cumulative accounting and
+original physical fields. The closure does not supply fresh fuel or repeat
+Model, Resume, authorization, effect, or Reduce execution.
+
+The cleanup engine visits the compiler's canonical vector once. A failed
+receipt cannot yield Ready or result transfer. Every failed selection, session,
+physical append, ACK advancement, cleanup or field move returns its actual
+reached owner, with its selected failure and already incurred release intact.
+There is no driver retry path. In particular, receipt prewrite refusal retains
+the released Step, and terminal prewrite refusal retains the mapped Report;
+neither can claim delivery or derive a replacement physical owner from rows.
+
+Only the authentic terminal ACK enables the existing consuming Complete Report
+claim. Its borrowed delivery projection checks the live Report against that
+exact terminal carrier. The success fixture also reopens the registered store
+and authenticates terminal evidence after dropping the physical holder; this
+recovered evidence remains descriptive and cannot restore a Report owner.
+The private consuming successor now adds the exact authenticated terminal
+evidence bytes to the bounded Report projection before releasing the physical
+owner. Projection refusal returns that same owner; it does not retry cleanup.
+
+The focused gate is:
+
+```sh
+cargo test --locked -p semaprax --lib owned_continued_step_turn_two_terminal_report -- --test-threads=1
+```
+
+The four owning cases cover original Report retention and claim, cleanup
+receipt prewrite refusal, terminal prewrite refusal, and post-claim projection
+refusal with the original Report retained. They assert one physical cleanup,
+exact cumulative funding and turn, no terminal evidence on preterminal
+refusal, and no cleanup retry on drop. Focused local success and terminal
+prewrite refusal passed 1/1 each on 2 October 2026 (811.35 and 808.97
+seconds). The nominal-case mapping regression passed 1/1. Receipt prewrite,
+post-claim projection refusal, and the repository full quality profile remain
+unrun. This is a
+private Complete successor, not public multi-turn
+entry, public Report delivery, failed-Observe cleanup, or physical owner
+restoration after restart. Restart currently exposes only authenticated
+read-only evidence: it cannot append a successor from terminal bytes or a
+retained registration. Broader iteration and native/Wasm owned-wait support
+remain separate completion requirements.
+
+## 52. Opaque first-turn Prepared restart entry (#330)
+
+The one admitted restartable tail now has one consuming internal entry. It
+accepts the authenticated reopened journal, two separate one-use trusted-host
+grants, the already bound model adapter, clock, and cancellation token. It
+first materializes only the exact first-turn `OwnedWaitPrepared` owner, then
+consumes that owner directly into the existing original-model continuation.
+Neither the restored State nor the parked owner is returned to the caller.
+
+The entry returns the existing completed first-turn owner on success. A
+pre-materialization refusal has no physical owner. A continuation refusal
+retains the existing owner-bearing sealed failure, including the reached
+quarantined journal state; it does not recreate an owner from authenticated
+rows or retry dispatch. Retained registration data, checkpoints, and journal
+bytes remain descriptive and cannot replace either grant.
+
+The owning close/reopen and two-subprocess regressions enter this façade. The
+success case proves the relaunch invokes exactly one original model adapter;
+the hostile-tail child proves the façade reaches neither adapter construction
+nor polling. This is a private recovery composition, not the public two-turn
+run method, Report restoration or terminal delivery.
+
+## 53. Runtime custody for failed Observe and Decision observation (#330)
+
+The private two-turn runtime preserves the actual second-turn failed Observe
+settlement as `ObserveCleanupPending`. It does not select TurnObserved, prepare
+another wait, or enter another model. The existing consuming failed-Observe
+State cleanup, receipt and sticky Stop route accepts this same owner after the
+caller session is gone. A failed append retains the reached physical obligation
+and refuses normal close or a second cleanup invocation.
+
+An acknowledged failed Decision cleanup receipt selects the distinct
+`ObserverFailureCleanupPending` runtime phase. The actual failed-receipt seal
+selects its State cleanup append session while normal journal authority remains
+poisoned. Physical State release follows the Started ACK; the actual complete
+receipt precedes Stop. Stop preserves an earlier target failure, or selects
+Rejected/StageRefused when the target succeeded and Decision observation failed.
+The runtime admits close only after the Stop ACK. Cancellation, State-observer
+failure, and before/after-write uncertainty retain their reached obligation and
+never retry target dispatch or cleanup. Dropping a stopped holder does not reopen
+ordinary authority.
+
+The owning runtime selectors are `owned_runtime_continued_observe_failure` and
+`owned_runtime_observer_failure`. They cover the original physical State,
+no second model/target, sticky status, normal-close refusal, cleanup exactly
+once, and all three cleanup/receipt/Stop before/after-write boundaries. These
+regressions are authored but unexecuted in this source batch. Public constructor,
+complete shutdown, other failure phases, broader iteration and durable recovery
+remain required; these private joins do not widen any public executor profile.
+
+## 54. Continued target-failure State settlement (#330)
+
+The actual second-turn target failure now branches after acknowledged Decision
+cleanup into the existing failed-State cleanup grammar. The same physical
+`PendingOwnedEffectReceiptV8` moves once into continued failure custody; no
+success Outcome, Reduce reservation, caller State argument or restored backing
+is created. Its original continued lineage preserves the exact proposal,
+policy, source binding, cumulative funding hold and settlement references.
+
+The shared fixed physical adapter consumes State CleanupStarted, receipt and
+sticky EffectFailed Stop obligations. Each actual ACK advances the same
+inherited registry; the matching nonconstructible continued permit alone
+allows the physical State release. The existing fold already admits these
+rows for cumulative initialized turns below the checked iteration ceiling.
+The inventory now accepts those checked later-turn facts without a separate
+turn-zero restriction. Only successful receipt plus Stop ACK admits normal
+close. Any failed or uncertain boundary retains the reached owner and retires
+normal append authority; release and dispatch cannot retry.
+
+The public two-turn entry consumes this route directly. Its
+`public_owned_agent_second_target_failure_` selectors cover the 2 MiB success
+path, the three before/after-persistence ACK windows, State observer panic and
+cancellation after release. Execution evidence is recorded in the changelog.
+This packet adds no process-restoration permit and does not widen executor or
+iteration profiles, Report recovery, or unrelated shutdown settlement.
+
+## 55. First-turn actual Refused settlement (#330)
+
+The public post-Authorize join now retains the actual first-turn Refused
+Decision and State through the existing refusal grammar. The admitted scalar
+Refused case has an empty compiler disposal vector; the physical path checks
+that exact case and actual scalar root before structurally retiring it. It does
+not emit fictional empty Decision cleanup rows.
+
+The existing AuthorizationRefused row precedes State CleanupStarted, whose
+terminal facts are `{authorization_refused:D}` for that exact checked full
+Decision snapshot. The State basis is its original TransferCompleted row;
+operations are the helper's exact canonical State result-disposal vector.
+Only the live acknowledged Started path constructs the physical permit. The
+actual State release precedes the observed receipt, and only a successful
+receipt permits `Rejected` / `StageRefused` Stop and normal runtime close.
+Inert inventory checks the same exact source Decision, wait, basis, operations,
+receipt and causal adjacency. A failed receipt cannot be reminted into Stop.
+
+Every failed append, observation or guard retains the reached actual holder in
+runtime quarantine without dispatch, evaluation or cleanup retry. This bounded
+route adds no restoration authority and does not settle other shutdown phases.
+The public Refused success, public observer-panic/hostile Stop and runtime
+Started-before/after-write retention regressions use 2 MiB workers; they are
+authored and await execution at this source update.
+
+
+## 56. Eligible Completed-State shutdown
+
+The public prepare/finish boundary preserves the actual first-model Completed
+State before Authorize. Explicit shutdown or cancellation observed before
+Authorize selects existing `OwnedWaitFailed` HostAbandoned with no open
+reservation and zero consumed fuel. The current Completed row is the State
+basis. Exact actual State, original wait argument and checked Proposal/result
+digests bind the private live cleanup permit; no retained bytes recreate an
+owner in this route.
+
+CleanupStarted ACK precedes canonical physical State disposal. The observed
+receipt precedes Cancelled Stop; failed receipt or append uncertainty retains
+the reached holder without retry or close. Cancellation is the selected reason
+for shutdown and does not erase the incurred cleanup, while each append and
+physical release retains exact held-prefix/source/registration/generation
+checks. No evaluator, target, new reservation or accounting credit is introduced.
+The public `ShutdownStopped` status permits close only after successful receipt
+and Stop ACK. Other statuses are preserved by shutdown. Ordinary Drop remains
+process backing release rather than semantic finalization.
+
+The owning public 2 MiB regression family covers explicit and cancelled
+shutdown, before/after persistence faults at all four new row boundaries, and
+observer failure with failed-receipt Stop refusal. All four public selectors
+and the existing cancellation/denied-policy preservation selector passed locally
+on macOS with 2 MiB workers; exact scenario counts and elapsed times are recorded
+in public v1 section 17. This evidence does not claim a full profile run.

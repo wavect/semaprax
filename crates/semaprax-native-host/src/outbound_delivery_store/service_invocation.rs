@@ -56,7 +56,7 @@ use semaprax::outbound_host_adapter::{
     HttpDeliveryReceipt, HttpDeliverySession, HttpDeliverySessionCheckpoint,
     HttpDeliverySessionCheckpointStore, HttpDeliverySessionRestoreCapability,
     HttpDeliverySessionRestoreRefusal, HttpLedgerRefusal, HttpRequest, OutboundAdapter,
-    OutboundCapability,
+    OutboundCapability, PreparedHttpDelivery,
 };
 use semaprax_native_rust_interop_platform as platform;
 use semaprax_native_rust_interop_platform::HeldDirectory;
@@ -64,6 +64,8 @@ use semaprax_native_rust_interop_platform::HeldDirectory;
 use super::{
     CheckpointCommit, OutboundCheckpointKind, OutboundCheckpointSyncMode, OutboundDeliveryStore,
 };
+
+pub mod authenticated_intent;
 
 pub const SERVICE_OUTBOUND_CONFIG_SCHEMA: &str = "semaprax.native-host.service-outbound-config.v1";
 const MAX_SERVICE_OUTBOUND_CONFIG_BYTES: usize = 4_096;
@@ -225,9 +227,7 @@ pub fn deliver_http_durable(
 ) -> Result<ServiceHttpDeliveryOutcome, ServiceHttpDeliveryRefusal> {
     let prepared = prepare_http_delivery(capability, request)
         .map_err(|_| ServiceHttpDeliveryRefusal::InvalidRequest)?;
-    let identity_key = prepared.pending_identity_key().to_owned();
-
-    let mut session = match prior_terminal {
+    let session = match prior_terminal {
         Some(prior) => {
             let restore_capability = HttpDeliverySessionRestoreCapability::grant_for_trusted_host(
                 prior.digest,
@@ -243,9 +243,20 @@ pub fn deliver_http_durable(
         None => HttpDeliverySession::new(capacity).map_err(ServiceHttpDeliveryRefusal::Session)?,
     };
 
+    reconcile_prepared(store, session, prepared, None, adapter)
+}
+
+fn reconcile_prepared(
+    store: &mut OutboundDeliveryStore<'_>,
+    mut session: HttpDeliverySession,
+    prepared: PreparedHttpDelivery,
+    marker_bytes: Option<Vec<u8>>,
+    adapter: &mut impl OutboundAdapter,
+) -> Result<ServiceHttpDeliveryOutcome, ServiceHttpDeliveryRefusal> {
     let mut guard = ProvisionalProbeStore {
         inner: store,
-        identity_key,
+        identity_key: prepared.pending_identity_key().to_owned(),
+        marker_bytes,
         probed: false,
     };
     let outcome = session
@@ -304,6 +315,27 @@ pub(crate) fn commit_pending_intent_marker(
     kind: OutboundCheckpointKind,
     identity_key: &str,
 ) -> PendingIntentCommit {
+    commit_pending_intent_bytes(
+        directory,
+        sync_mode,
+        kind,
+        identity_key,
+        PENDING_INTENT_BYTES,
+        MAX_PENDING_INTENT_BYTES,
+    )
+}
+
+fn commit_pending_intent_bytes(
+    directory: &HeldDirectory,
+    sync_mode: OutboundCheckpointSyncMode,
+    kind: OutboundCheckpointKind,
+    identity_key: &str,
+    bytes: &[u8],
+    max_bytes: usize,
+) -> PendingIntentCommit {
+    if bytes.len() > max_bytes {
+        return PendingIntentCommit::Blocked;
+    }
     let Some(name) = pending_intent_filename(kind, identity_key) else {
         return PendingIntentCommit::Blocked;
     };
@@ -313,20 +345,20 @@ pub(crate) fn commit_pending_intent_marker(
     // No preceding read: the create-new attempt itself is the single atomic
     // decision point. `Err(Exists)` -- from this attempt or a concurrent
     // racer's -- is unconditionally `Blocked`, never compared or forgiven.
-    if platform::write_file_new(directory, OsStr::new(&name), PENDING_INTENT_BYTES, 0o600).is_err()
-    {
+    if platform::write_file_new(directory, OsStr::new(&name), bytes, 0o600).is_err() {
         return PendingIntentCommit::Blocked;
     }
     // Bind the ACK to the current namespace entry, matching the typed
     // checkpoint store's own reopen-by-name discipline, rather than trusting
     // the writer's descriptor.
-    let Ok(existing) = platform::hold_regular_file_bounded_for_sync(
-        directory,
-        OsStr::new(&name),
-        MAX_PENDING_INTENT_BYTES,
-    ) else {
+    let Ok(existing) =
+        platform::hold_regular_file_bounded_for_sync(directory, OsStr::new(&name), max_bytes)
+    else {
         return PendingIntentCommit::Blocked;
     };
+    if platform::read_exact(&existing, max_bytes).ok().as_deref() != Some(bytes) {
+        return PendingIntentCommit::Blocked;
+    }
     if platform::sync_regular_file(&existing).is_err() {
         return PendingIntentCommit::Blocked;
     }
@@ -339,7 +371,7 @@ pub(crate) fn commit_pending_intent_marker(
         directory,
         OsStr::new(&name),
         &existing,
-        MAX_PENDING_INTENT_BYTES,
+        max_bytes,
     )
     .is_err()
     {
@@ -356,6 +388,7 @@ pub(crate) fn commit_pending_intent_marker(
 struct ProvisionalProbeStore<'a, 'directory> {
     inner: &'a mut OutboundDeliveryStore<'directory>,
     identity_key: String,
+    marker_bytes: Option<Vec<u8>>,
     probed: bool,
 }
 
@@ -363,12 +396,22 @@ impl HttpDeliverySessionCheckpointStore for ProvisionalProbeStore<'_, '_> {
     fn commit(&mut self, checkpoint: &HttpDeliverySessionCheckpoint) -> CheckpointCommit {
         if !self.probed {
             self.probed = true;
-            let marker = commit_pending_intent_marker(
-                self.inner.directory(),
-                self.inner.sync_mode(),
-                OutboundCheckpointKind::HttpSession,
-                &self.identity_key,
-            );
+            let marker = match self.marker_bytes.as_deref() {
+                Some(bytes) => commit_pending_intent_bytes(
+                    self.inner.directory(),
+                    self.inner.sync_mode(),
+                    OutboundCheckpointKind::HttpSession,
+                    &self.identity_key,
+                    bytes,
+                    authenticated_intent::MAX_AUTHENTICATED_INTENT_BYTES,
+                ),
+                None => commit_pending_intent_marker(
+                    self.inner.directory(),
+                    self.inner.sync_mode(),
+                    OutboundCheckpointKind::HttpSession,
+                    &self.identity_key,
+                ),
+            };
             if marker != PendingIntentCommit::Fresh {
                 return CheckpointCommit::Uncertain;
             }

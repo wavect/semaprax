@@ -3,6 +3,10 @@ use super::super::live_upstream::{
     advance_verified_continued_start_v8, LiveContinuedStartFailureV8, LiveContinuedStartPhaseV8,
     LiveOwnedContinuedStartAppendV8,
 };
+use super::super::live_upstream::{
+    advance_verified_later_start_v8, LiveLaterStartFailureV8, LiveLaterStartPhaseV8,
+    LiveOwnedLaterStartAppendV8,
+};
 use super::owned_effect::OwnedEffectAppendCursorV8;
 use super::*;
 
@@ -253,6 +257,139 @@ impl<'j> AppendSessionV8<'j> {
         if let Err(error) = envelope.validate_live() {
             return Err(LiveOwnedContinuedStartAppendFailureV8::After {
                 _verified: envelope,
+                error,
+            });
+        }
+        Ok(envelope)
+    }
+}
+
+/// The later owner uses the same fixed candidate, pending write and reread
+/// permit as the first continued turn. Its physical owner never detaches.
+pub(in crate::live_invocation::source_journal::owned_wait_v8) struct VerifiedOwnedLaterStartAppendV8<
+    'j,
+> {
+    obligation: LiveOwnedLaterStartAppendV8<'j>,
+    session: AppendSessionV8<'j>,
+    witness: VerifiedOwnedContinuedStartSuccessorV8<'j>,
+}
+impl<'j> VerifiedOwnedLaterStartAppendV8<'j> {
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_later_start(
+        self,
+    ) -> Result<LiveLaterStartPhaseV8<'j>, LiveLaterStartFailureV8<'j>> {
+        advance_verified_later_start_v8(self.obligation, self.session, self.witness)
+    }
+}
+pub(in crate::live_invocation::source_journal::owned_wait_v8) enum LiveOwnedLaterStartAppendFailureV8<
+    'j,
+> {
+    Before {
+        owner: LiveOwnedLaterStartAppendV8<'j>,
+        session: AppendSessionV8<'j>,
+        error: SourceJournalError,
+    },
+    Append {
+        owner: LiveOwnedLaterStartAppendV8<'j>,
+        failure: AppendFailureV8<'j>,
+    },
+    Acknowledged {
+        owner: LiveOwnedLaterStartAppendV8<'j>,
+        session: AppendSessionV8<'j>,
+        witness: VerifiedOwnedContinuedStartSuccessorV8<'j>,
+        error: SourceJournalError,
+    },
+    After {
+        owner: VerifiedOwnedLaterStartAppendV8<'j>,
+        error: SourceJournalError,
+    },
+}
+impl<'j> AppendSessionV8<'j> {
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn append_owned_later_start(
+        self,
+        obligation: LiveOwnedLaterStartAppendV8<'j>,
+    ) -> Result<VerifiedOwnedLaterStartAppendV8<'j>, LiveOwnedLaterStartAppendFailureV8<'j>> {
+        let same_journal = obligation.belongs_to(self.journal);
+        let predecessor = match (|| {
+            if !same_journal
+                || obligation.sequence() != self.sequence()
+                || obligation.acknowledged_bytes() != self.acknowledged_bytes()
+                || !matches!(obligation.selected(),
+                    EntryV8::Owned(crate::live_invocation::source_journal::owned_wait_v8::model::OwnedBodyV8::OwnedWaitCreated{..}
+                    | crate::live_invocation::source_journal::owned_wait_v8::model::OwnedBodyV8::OwnedWaitReserved{phase:crate::live_invocation::source_journal::owned_wait_v8::model::PhaseV8::Start,replay_of:None,..}))
+            {
+                return Err(SourceJournalError::Binding);
+            }
+            obligation.validate_live()?;
+            self.effect_cursor()
+        })() {
+            Ok(cursor) => cursor,
+            Err(error) => {
+                if same_journal {
+                    self.journal.quarantine();
+                }
+                return Err(LiveOwnedLaterStartAppendFailureV8::Before {
+                    owner: obligation,
+                    session: self,
+                    error,
+                });
+            }
+        };
+        let permit = match obligation.fixed_append_permit() {
+            Ok(permit) => permit,
+            Err(error) => {
+                self.journal.quarantine();
+                return Err(LiveOwnedLaterStartAppendFailureV8::Before {
+                    owner: obligation,
+                    session: self,
+                    error,
+                });
+            }
+        };
+        let selected = permit.selected_row().clone();
+        let (pending, verified, attempting) = match self.begin_fixed_continued_start_append(&permit)
+        {
+            Ok(completion) => completion,
+            Err(failure) => {
+                return Err(LiveOwnedLaterStartAppendFailureV8::Append {
+                    owner: obligation,
+                    failure,
+                })
+            }
+        };
+        let session = AppendSessionV8 {
+            journal: attempting.journal,
+            inventory: pending.acknowledge_verified(verified),
+        };
+        let witness = VerifiedOwnedContinuedStartSuccessorV8 {
+            predecessor,
+            successor: OwnedEffectAppendCursorV8::capture(&session),
+            selected,
+        };
+        let advanced = witness
+            .validate_against_acknowledged_session(&session)
+            .and_then(|_| permit.advance_registry(&witness, &session));
+        if let Err(error) = advanced {
+            drop(attempting);
+            return Err(LiveOwnedLaterStartAppendFailureV8::Acknowledged {
+                owner: obligation,
+                session,
+                witness,
+                error,
+            });
+        }
+        attempting.complete.set(true);
+        drop(attempting);
+        let envelope = VerifiedOwnedLaterStartAppendV8 {
+            obligation,
+            session,
+            witness,
+        };
+        if let Err(error) = envelope
+            .obligation
+            .validate_successor(&envelope.witness, &envelope.session)
+        {
+            return Err(LiveOwnedLaterStartAppendFailureV8::After {
+                owner: envelope,
                 error,
             });
         }

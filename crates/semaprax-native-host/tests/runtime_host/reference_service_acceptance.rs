@@ -12,6 +12,8 @@ use std::sync::mpsc;
 use std::time::{Duration, Instant};
 
 use semaprax::network_provider::{client_tls_config_trusting, NetworkProvider, TcpNetworkProvider};
+#[path = "reference_service_acceptance/local_provider.rs"]
+mod local_provider;
 
 const SERVER: &str = env!("CARGO_BIN_EXE_semaprax-reference-service");
 const READY_TIMEOUT: Duration = Duration::from_secs(300);
@@ -72,6 +74,11 @@ const TLS_ARGS: &[&str] = &[
     "tls.private-key",
 ];
 
+/// The optional outbound trust root is an exact held DER certificate. It is
+/// deliberately separate from the service listener's TLS flags: inbound
+/// serving never grants outbound provider trust.
+const TELEMETRY_ROOT_ARGS: &[&str] = &["--telemetry-root-certificate-secret", "telemetry.root"];
+
 static NEXT_WORKDIR: AtomicU64 = AtomicU64::new(0);
 
 struct Workdir {
@@ -100,12 +107,31 @@ impl Workdir {
     }
 
     fn write_inputs(&self) {
-        std::fs::write(self.root.join("service.config.json"), HOST_CONFIG).unwrap();
+        self.write_inputs_with_telemetry_origin("https://telemetry.invalid:9");
+    }
+
+    fn write_inputs_with_telemetry_origin(&self, telemetry_origin: &str) {
+        self.write_inputs_with_telemetry(telemetry_origin, "semaprax-json-events");
+    }
+
+    fn write_inputs_with_telemetry(&self, telemetry_origin: &str, telemetry_adapter: &str) {
+        let config = HOST_CONFIG
+            .replace("https://telemetry.invalid:9", telemetry_origin)
+            .replace("semaprax-json-events", telemetry_adapter);
+        std::fs::write(self.root.join("service.config.json"), config).unwrap();
         std::fs::write(self.root.join("secrets").join("auth.pepper"), [1_u8; 32]).unwrap();
         std::fs::write(self.root.join("secrets").join("auth.session"), [2_u8; 32]).unwrap();
         std::fs::write(
             self.root.join("secrets").join("webhook.signing"),
             [3_u8; 32],
+        )
+        .unwrap();
+    }
+
+    fn write_telemetry_root_material(&self) {
+        std::fs::write(
+            self.root.join("secrets").join("telemetry.root"),
+            decode64(TLS_ROOT),
         )
         .unwrap();
     }
@@ -621,6 +647,23 @@ fn login_crud_job_restart_preserves_state_without_redispatch() {
 
 #[test]
 fn expired_session_is_refused_by_the_checked_source_policy() {
+    expired_session_policy_survives_restart(&["--session-idle-seconds", "0"]);
+}
+
+#[test]
+fn coincident_session_deadlines_refuse_after_restart() {
+    // idle <= absolute makes zero absolute lifetime a coincident boundary.
+    // This process case proves refusal/restart; the deterministic mapping test
+    // separately asserts the source-selected absolute-expired state code.
+    expired_session_policy_survives_restart(&[
+        "--session-idle-seconds",
+        "0",
+        "--session-absolute-seconds",
+        "0",
+    ]);
+}
+
+fn expired_session_policy_survives_restart(policy: &[&str]) {
     if loopback_denied() {
         eprintln!("skipping: sandbox denies loopback bind");
         return;
@@ -630,7 +673,7 @@ fn expired_session_is_refused_by_the_checked_source_policy() {
     // A zero-length configured host window is an intentional test policy:
     // the persisted deadline equals login's tick, and `session_is_usable`
     // rejects it on the following exchange.
-    let server = Server::spawn(&workdir, &["--session-idle-seconds", "0"]);
+    let server = Server::spawn(&workdir, policy);
     let port = server.port;
     let (status, body) = http(
         port,
@@ -652,6 +695,22 @@ fn expired_session_is_refused_by_the_checked_source_policy() {
     let (status, body) = http(port, "GET", "/v1/tasks/1", "", Some(&token));
     assert_eq!(status, 401, "{body}");
     assert_eq!(field(&body, "error"), "unauthorized");
+    let (status, health) = http(port, "GET", "/v1/health", "", None);
+    assert_eq!(status, 200);
+    let digest = field(&health, "state").to_owned();
+    drop(server);
+    let mut restart_args = policy.to_vec();
+    restart_args.extend(["--state", digest.as_str()]);
+    let restarted = Server::spawn(&workdir, &restart_args);
+    let (status, body) = http(restarted.port, "GET", "/v1/tasks/1", "", Some(&token));
+    assert_eq!(status, 401, "{body}");
+    let (status, health) = http(restarted.port, "GET", "/v1/health", "", None);
+    assert_eq!(status, 200);
+    assert_eq!(
+        field(&health, "state"),
+        digest,
+        "terminal replay must not commit again"
+    );
 }
 
 #[test]
@@ -698,6 +757,58 @@ fn fixture_configuration_is_refused_without_a_runner() {
     );
     // Nothing was served and no bundle was written.
     assert!(workdir.census("bundle").is_empty());
+}
+
+#[test]
+fn sql_configurations_refuse_before_host_binding() {
+    for (adapter, diagnostic) in [
+        (
+            "sqlite",
+            "service database adapter sqlite is unsupported; service-config.v1 admits snapshot only",
+        ),
+        (
+            "postgresql",
+            "service database adapter postgresql is unsupported; service-config.v1 admits snapshot only",
+        ),
+    ] {
+        let workdir = Workdir::create(adapter);
+        workdir.write_inputs();
+        std::fs::write(
+            workdir.path("service.config.json"),
+            HOST_CONFIG.replace("snapshot", adapter),
+        )
+        .unwrap();
+        let output = Command::new(SERVER)
+            .arg("serve")
+            .arg("--project")
+            .arg(workdir.example_project())
+            .arg("--config")
+            .arg(workdir.path("service.config.json"))
+            .arg("--state-dir")
+            .arg(workdir.path("state"))
+            .arg("--outbound-dir")
+            .arg(workdir.path("outbound"))
+            .arg("--secrets-dir")
+            .arg(workdir.path("secrets"))
+            .arg("--bundle-dir")
+            .arg(workdir.path("bundle"))
+            .arg("--port")
+            .arg("9")
+            .stdin(Stdio::null())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .output()
+            .expect("run reference server");
+        assert_eq!(output.status.code(), Some(2));
+        let stderr = String::from_utf8(output.stderr).unwrap();
+        assert!(stderr.contains(diagnostic), "{stderr}");
+        for directory in ["state", "outbound", "bundle"] {
+            assert!(
+                workdir.census(directory).is_empty(),
+                "{adapter} configuration must refuse before touching {directory}"
+            );
+        }
+    }
 }
 
 #[test]
@@ -1211,4 +1322,133 @@ fn tls_listener_refuses_a_plaintext_client() {
         "a plaintext client must never get an HTTP response from a TLS-only listener \
          (a raw TLS alert record, or nothing, is fine): {response:?}"
     );
+}
+
+#[test]
+fn packaged_development_service_runs_from_an_independent_workspace() {
+    if loopback_denied() {
+        eprintln!("skipping: sandbox denies loopback bind");
+        return;
+    }
+    let inputs = Workdir::create("installed-development");
+    inputs.write_inputs();
+    let repository = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("..")
+        .join("..");
+    let output = Command::new("python3")
+        .arg(repository.join("scripts/tests/reference_service_installed_development.py"))
+        .arg("--packager")
+        .arg(repository.join("scripts/package-reference-service.py"))
+        .arg("--checker")
+        .arg(SERVER)
+        .arg("--executable")
+        .arg(SERVER)
+        .arg("--project")
+        .arg(inputs.example_project())
+        .arg("--config")
+        .arg(inputs.path("service.config.json"))
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .output()
+        .expect("run packaged installed-development journey");
+    assert!(
+        output.status.success(),
+        "stdout: {}\nstderr: {}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert_eq!(
+        String::from_utf8(output.stdout).unwrap(),
+        "packaged reference-service installed-development journey passed\n"
+    );
+}
+
+/// This gate needs an operator-supplied static Linux executable and a local
+/// Podman runtime. It imports the exact OCI layout and exercises mounted
+/// physical adapters; keep it opt-in so ordinary macOS/Linux compiler gates do
+/// not infer that every host has a container runtime.
+#[test]
+#[ignore = "requires SEMAPRAX_REFERENCE_SERVICE_OCI_EXECUTABLE and local Podman on Linux"]
+fn packaged_oci_service_runs_with_physical_adapters() {
+    let executable = std::env::var_os("SEMAPRAX_REFERENCE_SERVICE_OCI_EXECUTABLE")
+        .map(PathBuf::from)
+        .expect("set SEMAPRAX_REFERENCE_SERVICE_OCI_EXECUTABLE to a static Linux service binary");
+    let podman = std::env::var_os("SEMAPRAX_REFERENCE_SERVICE_PODMAN")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from("podman"));
+    let inputs = Workdir::create("oci-runtime");
+    inputs.write_inputs();
+    let repository = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("..")
+        .join("..");
+    let output = Command::new("python3")
+        .arg(repository.join("scripts/tests/reference_service_oci_runtime.py"))
+        .arg("--packager")
+        .arg(repository.join("scripts/package-reference-service.py"))
+        .arg("--checker")
+        .arg(&executable)
+        .arg("--executable")
+        .arg(&executable)
+        .arg("--project")
+        .arg(inputs.example_project())
+        .arg("--config")
+        .arg(inputs.path("service.config.json"))
+        .arg("--podman")
+        .arg(podman)
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .output()
+        .expect("run packaged OCI runtime journey");
+    assert!(
+        output.status.success(),
+        "stdout: {}\nstderr: {}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert_eq!(
+        String::from_utf8(output.stdout).unwrap(),
+        "packaged reference-service OCI runtime journey passed\n"
+    );
+}
+
+#[test]
+fn package_preflight_checks_service_without_runtime_grants() {
+    let workdir = Workdir::create("package-preflight");
+    std::fs::write(workdir.path("service.config.json"), HOST_CONFIG).unwrap();
+    let check = |project: PathBuf| {
+        Command::new(SERVER)
+            .arg("check-package")
+            .arg("--project")
+            .arg(project)
+            .arg("--config")
+            .arg(workdir.path("service.config.json"))
+            .output()
+            .unwrap()
+    };
+    let accepted = check(workdir.example_project());
+    assert!(accepted.status.success(), "{:?}", accepted);
+    assert_eq!(
+        String::from_utf8(accepted.stdout).unwrap(),
+        "checked reference-service package inputs\n"
+    );
+    for directory in ["state", "outbound", "secrets", "bundle"] {
+        assert_eq!(
+            std::fs::read_dir(workdir.path(directory)).unwrap().count(),
+            0
+        );
+    }
+    // Host intent alone does not authorize an invalid or absent project.
+    assert_eq!(
+        check(workdir.path("missing-project")).status.code(),
+        Some(2)
+    );
+    let fixture = workdir.example_project().join("service.config.json");
+    std::fs::copy(fixture, workdir.path("service.config.json")).unwrap();
+    let refused = check(workdir.example_project());
+    assert_eq!(refused.status.code(), Some(2));
+    assert!(String::from_utf8(refused.stderr)
+        .unwrap()
+        .contains("package needs valid host-mode configuration"));
 }

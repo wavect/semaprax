@@ -434,6 +434,36 @@ fn focused_r05_controls_agree_across_interpreter_native_and_core_wasm() {
             false,
         ),
         (
+            "two-adjacent-wide-control-runs",
+            "{\"id\":\"one\",\"label\":\"\\u0001\\u0001\\u0001\\u0001\\u0001\\u0001\\u0001\\u0001\\u0001\\u0001\\u0001\\u0001\\u0001\\u0001\\u0001\\u0001\",\"quantity\":1}\n",
+            "{\"status\":\"ok\",\"count\":1,\"total_quantity\":1,\"records\":[{\"id\":\"one\",\"label\":\"\\u0001\\u0001\\u0001\\u0001\\u0001\\u0001\\u0001\\u0001\\u0001\\u0001\\u0001\\u0001\\u0001\\u0001\\u0001\\u0001\",\"quantity\":1}]}\n",
+            false,
+        ),
+        (
+            "wide-control-run-short-tail",
+            "{\"id\":\"one\",\"label\":\"\\u0001\\u0001\\u0001\\u0001\\u0001\\u0001\\u0001\\u0001\\u0001\",\"quantity\":1}\n",
+            "{\"status\":\"ok\",\"count\":1,\"total_quantity\":1,\"records\":[{\"id\":\"one\",\"label\":\"\\u0001\\u0001\\u0001\\u0001\\u0001\\u0001\\u0001\\u0001\\u0001\",\"quantity\":1}]}\n",
+            false,
+        ),
+        (
+            "wide-control-run-stops-at-token",
+            "{\"id\":\"one\",\"label\":\"\\u0001\\u0001\\u0001\\u0001\\u0001\\u0001\\u0001\",\"quantity\":1}\n",
+            "{\"status\":\"ok\",\"count\":1,\"total_quantity\":1,\"records\":[{\"id\":\"one\",\"label\":\"\\u0001\\u0001\\u0001\\u0001\\u0001\\u0001\\u0001\",\"quantity\":1}]}\n",
+            false,
+        ),
+        (
+            "wide-control-run-uppercase-interruption",
+            "{\"id\":\"one\",\"label\":\"\\u0001\\u0001\\u0001\\u0001\\u0001\\u0001\\u0001\\u001A\\u0001\\u0001\\u0001\\u0001\\u0001\\u0001\\u0001\\u0001\",\"quantity\":1}\n",
+            "{\"status\":\"ok\",\"count\":1,\"total_quantity\":1,\"records\":[{\"id\":\"one\",\"label\":\"\\u0001\\u0001\\u0001\\u0001\\u0001\\u0001\\u0001\\u001a\\u0001\\u0001\\u0001\\u0001\\u0001\\u0001\\u0001\\u0001\",\"quantity\":1}]}\n",
+            false,
+        ),
+        (
+            "wide-control-run-named-trimmed-tail",
+            "{\"id\":\"one\",\"label\":\"\\u0001\\u0001\\u0001\\u0001\\u0001\\u0001\\u0001\\u0001\\u0009\",\"quantity\":1}\n",
+            "{\"status\":\"ok\",\"count\":1,\"total_quantity\":1,\"records\":[{\"id\":\"one\",\"label\":\"\\u0001\\u0001\\u0001\\u0001\\u0001\\u0001\\u0001\\u0001\",\"quantity\":1}]}\n",
+            false,
+        ),
+        (
             "named-control-fallback",
             "{\"id\":\"one\",\"label\":\"x\\u000Ay\",\"quantity\":1}\n",
             "{\"status\":\"ok\",\"count\":1,\"total_quantity\":1,\"records\":[{\"id\":\"one\",\"label\":\"x\\ny\",\"quantity\":1}]}\n",

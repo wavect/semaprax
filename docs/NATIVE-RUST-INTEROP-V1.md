@@ -17,7 +17,7 @@ and bytes remain unchanged.
 
 ## Source and semantic admission
 
-The only new source form is an explicitly identified Rust import:
+The v1 callback source form is an explicitly identified Rust import:
 
 ```spx
 @id("host.add")
@@ -29,11 +29,12 @@ import rust fn add(left: i64, right: i64) -> i64
 Every native Rust import must end with an explicit `failure status "domain";`
 or `failure infallible;` clause; omission rejects rather than silently choosing
 a failure model. Parameters are 0–8 value-mode `i64`/`bool`; results are unit,
-`i64`, or `bool`. IDs are explicit, effects are sorted and selected, failure
+`i64`, or `bool` in the base profile. IDs are explicit, effects are sorted and selected, failure
 domains are closed, and calls retain the distinct HIR kind
 `NativeRustImportCall`. Selected exports are 1–32 explicit-ID,
-non-entry, monomorphic scalar functions whose result is `i64` or `bool`; `unit`
-is admitted only as a Rust-import result. Their acyclic transitive closure is at
+non-entry, monomorphic scalar functions whose result is `i64` or `bool`; the
+selected indexed profile also admits direct `Result<i64, i64>` pass-through.
+`unit` is admitted only as a Rust-import result. Their acyclic transitive closure is at
 most 256 functions and may reach only selected Rust imports. Calls from a
 contract, including through a helper, are rejected. The agent context, review,
 impact, and target-evidence projections still reject `SPX-G218` because each
@@ -165,6 +166,241 @@ when applicable, executes the round trip, then publishes a create-new exact
 inventory.
 There is no dylib, loader, symbol lookup, network, CLI, or public execution
 surface.
+
+### Trusted native preparation boundary (RI-11)
+
+The RI-04 checked scalar binding-plan seam is deliberately inert. It replays
+an RI-03 index, requires the selected package name, version, source digest,
+target, and feature digest, and selects one supported item. The scalar plan
+retains the persistent Semaprax import ID separately from the Cargo alias,
+package instance, index digest, and Rust path. Its physical symbol is a
+domain-separated SHA-256 of length-framed package, index, target, item,
+signature, and import identity fields, avoiding alias/version and keyword
+normalization collisions. `SPX-B140`–`SPX-B148` are source-located selection
+diagnostics for wrong declaration kind, unavailable item, identity drift,
+alias/path mismatch, unsupported receiver or item kind, unsupported signature,
+signature disagreement, malformed index, and extractor setup respectively.
+`SPX-B149` rejects an ambiguous or malformed captured rustc diagnostic;
+`SPX-B150` maps a generated-wrapper trait-bound error, `SPX-B151` an
+unavailable item or feature, and `SPX-B152` a lifetime requirement to the
+selected `.spx` import span. The original rustc code, message, and rendered
+detail remain in the report.
+This seam admits receiver-free `fn` signatures with up to eight `i64` or
+`bool` value parameters and `()`, `i64`, `bool`, or exact
+`core::result::Result<i64, i64>` results. A selected index
+record is discovery data; this plan cannot execute or validate the actual
+Rust crate. The private RI-04 scalar adapter rechecks a retained plan against
+current checked HIR at Phase A, requires its target to equal the selected
+native target, and renders a safe Rust trait implementation with a typed
+function pointer to the selected crate item. A stable Rust compile of that
+generated code must agree with the actual crate signature before the private
+C bridge can call it. Its local execution fixture observes a result from a
+real Rust crate through the Semaprax export, rejects a flipped result, and
+refuses a wrong-type crate at compile time. The narrow public
+`build_indexed_scalar_native_rust` route checks source and HIR, exact replayed
+index/package/alias/target/feature/compiler identity, and caller-supplied
+package source bytes before private A+B publication. It returns bounded
+generated adapter source and its digest with the inner bundle's manifest
+digest. That adapter is caller-held: this route does not retain crate bytes
+through stable compilation, publish adapter bytes in the authenticated bundle,
+or expose a supported source-import callable package. The physical fixture
+compiles and runs the returned adapter against a local Rust crate.
+
+The separate `build_indexed_scalar_native_rust_sdk` route accepts one exact,
+UTF-8, dependency-free Rust source file of at most 65,536 bytes for the
+selected package. It binds those bytes to the replayed index package-source
+digest and binds the selected stable rustc header to the held Phase B rustc
+version before compilation. Phase B embeds the exact source with the generated
+typed scalar adapter in its Rust harness, so signature disagreement prevents
+publication. Phase C embeds the same source and adapter in `src/lib.rs`, whose
+bytes are bound by the SDK manifest, and exposes `indexed_scalar_sdk` with the
+ordinary capability admission and generated export methods. This profile has
+no Cargo dependency resolution, build scripts, macros, attributes, imports,
+multi-file modules, external paths, or general Rust type ABI. Admission rejects
+syntax that could read unbound build inputs. Its physical package round trip is owned by
+the focused `indexed_scalar_sdk_publishes_compiled_adapter_and_refuses_signature_drift`
+regression; broader Rust ecosystem imports remain outside this profile.
+
+The additive `build_indexed_scalars_native_rust_sdk` route accepts 1–32
+explicit `IndexedScalarSelection` values, each naming a persistent import ID,
+exact replayable index, package identity, and self-contained source bytes.
+Selections must exactly cover the requested imports; an alias cannot name
+conflicting package instances, and all selections must name the same held
+stable compiler. Each source retains the 65,536-byte bound above. Admission
+checks every index and source before build effects. Phase A verifies all plans,
+Phase B compiles one complete generated trait implementation, and the package
+embeds one source module per alias plus an automatically implemented host.
+The package exposes the same `indexed_scalar_sdk` constructor and per-selection
+index/source/physical-symbol facts in `SEMAPRAX_RUST_API_SELECTIONS`; its
+profile constant is `semaprax.native-rust-indexed-scalars.v1`.
+Selections and package output are ordered by persistent import ID, so caller
+selection order does not change their bytes. Two explicit versions of one
+package can expose the same Rust item through different aliases, including a
+Rust keyword emitted as a raw identifier. The existing singular route retains
+its generated package format and bytes. The owning harness selectors are
+`indexed_multiple_replays_exact_selections_and_preserves_roundtrip_identity`
+and `indexed_multiple_sdk_executes_two_versions_keyword_alias_and_negative_control`.
+The latter compiles and executes both selected implementations, requires a
+flipped second result to fail the consumer assertion, checks reversed-order
+package identity, and refuses signature and source-byte drift before
+publication. This remains the bounded embedded-source profile, without Cargo
+package discovery or general dependency compilation.
+
+The additive `build_indexed_project_native_rust_sdk` route accepts explicit
+`IndexedProjectScalarSelection` rows with a canonical Project source path,
+exact source bytes, and a selected index/package input. The authenticated
+Project loader compares those bytes with its held files, then binds generated
+signatures through the shared workspace frontend before linking and HIR
+validation. Its frontend cache context includes every selection field; changed
+index/signature/receiver facts invalidate parsed and checked reuse even when
+source text is unchanged. The linked public import set must exactly match the
+selections. Project Phase A verifies the binding plans, Phase B compiles the
+selected implementations, and ordinary Project publication and final held-file
+rechecks remain authoritative. Source files are never rewritten.
+
+Selected imports add `indexed_rust_imports` to retained Project/workspace
+projections and select their respective semantic-graph v5 schemas. Each row
+carries the persistent ID, source path, Rust path, selected index digest,
+receiver, result, effects, and failure domain. Older graphs retain their exact
+schemas and bytes. These facts grant no execution authority; ordinary checking,
+legacy Project loading, and managed `ACTIVE` snapshot admission do not infer
+selections. The physical
+`indexed_project_rebinds_graph_and_executes_authenticated_package` regression
+checks the Project route, source/metadata drift, graph/cache rebinding, and a
+real package round trip whose changed Rust result fails the consumer assertion.
+
+An indexed declaration may now write `from "alias::path"` between its result
+and `effects` clauses. The parser and canonical formatter preserve that exact
+source selection; checked HIR retains it separately from the persistent import
+ID. The module Graph selects `semaprax.graph.v52` and records `rust_path` on
+import nodes. An unqualified or malformed path fails with source-located
+`SPX-B143`. The existing scalar callback SDK rejects these declarations before
+adapter generation. Ordinary native, Wasm, and interpreter paths retain their
+existing refusal. This source form alone does not select a dependency or grant
+any execution authority.
+
+An opt-in short form writes `import rust selected fn local_name from
+"alias::path"` followed by the same `effects` and `failure` clauses. It omits
+authored parameters and result. Ordinary `check` refuses this unbound form
+with source-located `SPX-B147`. The indexed scalar builder replays the selected
+RI-03 item, checks package/alias/target/feature/compiler identity and scalar
+receiver-free signature, and fills the AST parameter/result types before
+verification, HIR resolution, and code generation. Canonical formatting keeps
+the short declaration; the bound module Graph selects `semaprax.graph.v53`,
+records the selected index digest and path separately from the persistent
+Semaprax import ID, and leaves v52 bytes unchanged for authored signatures.
+Only the indexed builder can admit this form; ordinary Wasm and interpreter
+routes still refuse it.
+
+The scalar selected-import profile also admits one receiver-bearing inherent
+method shape: a public `&self` method whose remaining arguments and result are
+admitted scalar values. The first Semaprax `i64` argument constructs a
+temporary receiver through the selected Rust type's `From<i64>` implementation;
+the held stable compiler checks both that construction and a typed
+`fn(&Receiver, ...)` method pointer. The temporary is never carried across the
+C ABI. Bound HIR retains `shared` receiver mode, and Graph v54 records it with
+the index digest. Mutable, owned, trait, and inaccessible methods, as well as
+non-scalar method arguments and results, fail before invocation. This
+projection does not claim a persistent Rust object or borrowed ownership
+across calls.
+
+Selected reference signatures remain outside the callable scalar profile.
+Source-located `SPX-B145` identifies the specific missing rule for borrowed
+text or bytes, exclusive loans, returned owner-bound views, returned views
+without an owner relation, higher-ranked lifetimes, pinned references,
+interior mutability, and raw-pointer provenance. These diagnostics classify
+selected metadata only; they do not construct a live loan or authorize a Rust
+reference. RI-06 must bind an invocation loan to verified HIR and enforce its
+runtime scope before admitting those signatures.
+
+The selected indexed profile admits the exact receiver-free Rust return shape
+`core::result::Result<i64, i64>` as a direct pass-through Semaprax export. Its
+tagged C carrier has a zeroed seven-byte reserved field, tag 0 for `Ok(i64)`,
+and tag 1 for `Err(i64)`. Generated safe Rust returns the nested type
+`Result<Result<i64, i64>, NativeRustCallError>`: Rust `Err` remains a domain
+value, while a refused bridge call, host failure, panic, or contract failure
+occupies the outer error. Bound Graph v55 records this Result identity without
+changing earlier graph profiles. Result parameters, other Result type shapes,
+and Match/Try in the native scalar closure remain refused. Those operations
+require a separately verified native lowering; the compiler can still check
+and graph their Semaprax source.
+
+Rich Rust bindings use a separate `semaprax.trusted-native-profile.v1`
+preparation boundary. A profile binds three opaque, exact byte inputs: the
+selected binding plan, crate/index identity, and build-tool identity. They are
+length framed under the profile domain with the acknowledged, canonical effect
+contract and selected build policy. Changing any of the three input bytes
+changes the profile digest and requires a fresh maintainer admission. A hash
+binds identity; it neither verifies the Rust implementation nor grants build
+or execution authority.
+
+The profile accepts either an `Opaque` effect contract or an explicit
+`Audited` contract. Metadata, docs, a package name, or a hash select only
+`Opaque`: they yield no execution grant, including an empty grant, and cannot
+enter the generated adapter. An audited adapter or stronger execution boundary
+may select `Audited`; its canonical effect list is then a conservative
+maintainer assertion. This makes an empty audited effect set an explicit
+decision rather than the default interpretation of absent metadata.
+
+An `Audited` profile keeps the effect list separate from each
+`NativeExecutionGrant`: a grant names only a sorted subset of the acknowledged
+effects and binds the admitting profile digest. Generated adapter dispatch
+checks both the matching profile and every required capability before entering
+the Rust callback. A failure has no callback entry. This is a Semaprax dispatch
+gate; same-process Rust remains able to use any authority already available to
+it, so the profile never describes arbitrary native code as pure,
+deterministic, replay-safe, contract-safe, or syscall-confined.
+
+Build policy is displayed with one of these exact disclosures:
+
+- `StrictDenyExecution`: build scripts and proc macros are denied before Cargo
+  can execute them.
+- `EnforcedSandbox`: build scripts and proc macros require an enforced sandbox;
+  no runner is currently available, so authorization refuses before execution.
+- `TrustedHost`: build scripts and proc macros run with trusted host authority.
+
+The trusted-host policy is never represented as confinement. `cargo --offline` only
+affects dependency acquisition and cannot by itself confine a build script or
+proc macro. The reusable boundary exposes distinct errors for malformed or
+noncanonical effect metadata, undeclared requested capability, a grant/profile
+identity mismatch, and a missing per-call capability. Higher UI and CLI routes
+must preserve those distinctions from unsupported APIs and missing tools.
+The trusted-native errors and dispatch errors now render through the ordinary
+`Diagnostic` host type with fixed, path-free messages and distinct codes. A
+safe-signature Rust callback that writes a file, changes process-global state,
+and attempts a loopback socket connection is a negative control: a metadata
+purity claim leaves it opaque and refuses its grant before callback entry; a
+direct positive control proves that exact callback has all three effects.
+
+This preparation boundary is additive and does not yet admit arbitrary Cargo
+metadata into the v1 scalar SDK path. RI-01 binding-plan bytes are compiler
+input only until a caller explicitly creates a trusted-native profile and a
+separate caller supplies a matching dispatch grant.
+
+The rich Cargo build entry point now requires a typed `NativeBuildAuthority`
+created from that profile, the exact prepared closure bytes, binding plan, and
+tool identity. `StrictDenyExecution` and `EnforcedSandbox` yield no authority;
+the latter reports that no enforcing runner exists. `TrustedHost` yields an
+authority whose disclosure states full host trust, and the build entry point
+rechecks its prepared closure identity before starting Cargo. This is a host
+acknowledgement of exact supplied bytes, not a proof that arbitrary Cargo
+descendants are confined or that filesystem inputs cannot drift unless the
+embedding host holds and rechecks them.
+
+Trusted-host build admission also snapshots the bounded workspace, Cargo home,
+`Cargo.lock`, Cargo config when present, and the direct Cargo and rustc image
+bytes. It recomputes that snapshot immediately before spawning Cargo and
+refuses source, lock, config, or tool drift. The workspace must fit 4,096 files
+and 128 MiB of retained input bytes. The generated target directory is excluded
+from the source snapshot; an included build input must live elsewhere in the
+prepared workspace. This replay is not a race-free filesystem handle protocol
+or OS confinement, and descendant linker images selected through `PATH` remain
+outside the direct-tool byte check.
+File reads use opened handles and compare pre-read, held, and post-read file
+identity and metadata. Cargo command preparation is followed by one final
+snapshot replay before spawn. A test changes source after command preparation
+and proves refusal before Cargo entry. A concurrent replacement after that
+last replay remains outside this path-based profile's guarantee.
 
 This direct-image policy closes ordinary rustup-launcher indirection. It does
 not claim provenance for the selected compiler sysroot, dynamically loaded
@@ -334,7 +570,7 @@ revision, workspace revision, and Project-subject digest in addition to the
 ordinary SDK bundle.
 
 The same unpublished builder crate exposes the strict workspace binary
-`semaprax-native-rust-sdk`. Its only grammar is `project --manifest-path
+`semaprax-native-rust-sdk`. Its `project` route has grammar `project --manifest-path
 <path> --output <fresh-absolute-path>` with each option exactly once. It
 rejects missing, repeated, unknown, and trailing arguments and relative output
 before delegating exactly once to `build_project_native_rust_sdk`. Success is
@@ -345,6 +581,103 @@ one compact JSON object plus LF with schema
 path-, source-, and tool-output-free. The builder remains the sole owner of
 fresh-child admission, held-path authentication, tool execution, and
 publication.
+
+An explicitly selected Rust API index uses `indexed-project --manifest-path
+<path> --selections <json-file> --output <fresh-absolute-path>`. The selection
+file has schema `semaprax.indexed-project-selection.v1` and a nonempty
+`selections` array of at most 32 objects with exactly `source_path`,
+`import_id`, `index_path`, and `package_source_path` string fields. Source
+paths are Project-root-relative and contain only normal path components;
+index and package source paths are absolute. The file and each source are
+bounded before parsing. The command replays each prepared index, derives its
+exact package identity, and delegates to the same indexed Project builder
+used by the library API. It emits one bounded result object with schema
+`semaprax.indexed-project-native-rust-sdk-result.v1`; a stale source or
+package/index mismatch fails before publication. Preparing the index is an
+explicit separate step, never triggered by this build command or by an
+editor/context query. A CLI-only workflow is: prepare and save the index
+with a pinned extractor, write the selection file, run `indexed-project`,
+then build and test the generated Cargo package from its fresh output path.
+The preparation handoff is explicit: the Python extractor emits a
+`semaprax.rustdoc-extractor.v2` envelope, and `indexed-prepare` admits it and
+writes canonical `semaprax.rust-api-index.v2` bytes. For example, from a
+locked package and an already captured nightly rustdoc JSON file:
+
+```sh
+python3 crates/semaprax-rust-api-index/tools/rustdoc_json_to_index.py \
+  --rustdoc-json "$RUSTDOC_JSON" --package-name regex --package-version 1.13.1 \
+  --source-sha256 "$SOURCE_SHA256" --renamed-from regex_alias \
+  --target "$TARGET" --feature-digest "$FEATURE_DIGEST" \
+  --stable-rustc-version "$STABLE_RUSTC_VERSION" \
+  --source-root "$PACKAGE_SOURCE_ROOT" --rustdoc-version "$PINNED_RUSTDOC_VERSION" \
+  --rustdoc-format-version "$RUSTDOC_FORMAT_VERSION" \
+  --select regex::Regex::is_match --output "$EXTRACTOR_ENVELOPE"
+semaprax-native-rust-sdk indexed-prepare \
+  --extractor-output "$EXTRACTOR_ENVELOPE" --output "$PREPARED_INDEX"
+semaprax context "$SAVED_SPX" rust.host.method \
+  --rust-index "$PREPARED_INDEX" --max-bytes 4096
+semaprax-native-rust-sdk indexed-project \
+  --manifest-path "$PROJECT_MANIFEST" --selections "$SELECTIONS_JSON" \
+  --output "$FRESH_SDK_DIRECTORY"
+cargo test --offline --locked --manifest-path "$FRESH_SDK_DIRECTORY/Cargo.toml"
+```
+
+`$SELECTIONS_JSON` uses the schema and four exact fields described above;
+its `index_path` is `$PREPARED_INDEX`, and `package_source_path` points to
+the exact selected Rust crate source. Every path passed to `indexed-prepare`
+is absolute and its output must be fresh. The extractor invocation is an
+explicit operator action; context and editor queries never run it. If the
+generated wrapper fails stable rustc compilation, capture rustc JSON and use
+`indexed-diagnostics` below to inspect the source-located requirement.
+
+For a failed generated-wrapper build, capture rustc JSON diagnostics and run
+`semaprax-native-rust-sdk indexed-diagnostics --manifest-path <absolute-path>
+--selections <absolute-json-path> --rustc-json <absolute-jsonl-path>
+--generated-file <absolute-wrapper-path>`. The command accepts one selected
+import and maps only errors whose primary span names that exact generated
+wrapper. It replays the selected index and checks the saved `.spx` declaration,
+then emits `semaprax.indexed-rustc-diagnostics.v1` with its source span, index
+identity, mapped diagnostic, and original rustc detail. Captured output is
+labelled `external_unverified`: this read-only route does not attest who ran
+rustc, invoke tools, build a package, or publish an artifact. Empty,
+oversized, foreign-file, and ambiguous captures fail with `SPX-B149`.
+
+The prepared-index inspection route is `semaprax context <saved-file.spx>
+<import-stable-id> --rust-index <index.json> --max-bytes 4096`. To inspect
+candidate public paths before writing an import, use `semaprax context
+<saved-file.spx> <path-prefix> --rust-index <index.json> --candidates
+--max-bytes 4096`. Both routes replay the supplied bytes and return bounded
+metadata without running Cargo, rustc, rustdoc, or a build script. They report
+unsupported signatures and setup status; a truncated response is explicitly
+marked. For index preparation, an operator first runs the pinned rustdoc JSON
+extractor against the locked Cargo package outside the query route, then runs
+`python3 crates/semaprax-rust-api-index/tools/rustdoc_json_to_index.py --help`
+to see the required package name/version, exact source digest, target, feature
+digest, stable rustc version, source root, rustdoc version/format, selected
+item paths, and output arguments. Save that output as `index.json`; the
+`indexed-project` selection file points to its absolute path and the exact
+package source file. A replay/identity diagnostic means those recorded facts
+must be refreshed; the CLI does not silently rebuild the index.
+The targeted selected-import context is an additive read-only view. Generic
+agent context, semantic impact, and review still refuse native Rust imports
+with `SPX-G218` (or the source-located missing-index `SPX-B147` for an
+unprepared selected import); they never silently omit an import node.
+
+### Manual Rust adapter for a rejected indexed API
+
+`context --rust-index` and `context --candidates --rust-index` keep a rejected
+item's `support: "rejected"` and precise `reason`. They also show the single
+`manual_adapter.action: "explicit_scalar_callback"` escape hatch. Where the
+application can express the required data through the bounded scalar bridge,
+declare an explicit `import rust fn` with a persistent `@id`, typed parameters,
+selected `effects`, and `failure status "domain"` (or `failure infallible`).
+Run `semaprax-native-rust-sdk project --manifest-path <absolute-manifest>
+--output <fresh-absolute-path>`, then implement the generated
+`NativeRustSdkImports` trait in the Rust consumer. That host implementation may
+call the unsupported Rust API and deliberately convert its inputs and result
+to the declared scalar contract. The manual callback retains the ordinary
+effect and failure checks. It does not admit the rejected indexed signature,
+infer ownership or lifetimes, or make arbitrary Rust types directly callable.
 
 Focused local evidence builds and runs the six-export calculator Project as
 both Web/Node and generated Rust consumers, applies the opt-in daemon display
@@ -389,6 +722,106 @@ current implemented release corpus is HOSTED GREEN within its selected host
 profiles. The builder crate and generated packages remain unpublished. The
 earlier export-only run IDs above retain their original tag and scope.
 
+
+## Bounded indexed Url Project views (RI-06)
+
+`prepare_indexed_url_project_package` returns inert C, Rust, header, descriptor,
+binding-plan and Cargo bytes for one exact registry profile: Url 2.5.8 with its
+committed lock, archive checksum, default/std feature digest, selected index,
+compiler and target identities. It executes no tools and grants no publication
+authority. The caller must separately authorize and perform compilation and
+execution. No RI-11 CLI registration is claimed for this route.
+
+The selected declarations are exactly `url_alias::Url::parse` and
+`url_alias::Url::as_str`. The constructor lowers to `Result<Url, i64>`; the
+view lowers to `str` borrowed from receiver parameter zero and that exact
+resource identity. The captured `parse` signature remains unsupported by
+ordinary scalar discovery. Independent source and HIR checks authenticate the
+closed pair. Module Graph v61, Project semantic Graph v7 and Workspace Graph
+v6 carry the explicit `borrowed_from` relation; earlier shapes retain their
+previous schemas. The scalar ABI remains unchanged.
+
+The generated native path evaluates a checked `fn() -> i64` body with one
+constructor site, one view site, a borrowed Result match and bounded byte-length
+inspection. Canonical cleanup CFG order determines String and Url finalizers.
+The view lease remains live through result computation and ends before owner
+finalization; publication follows successful cleanup. Runtime carriers bind
+context, owner slot/generation, lease generation, pointer and length. A live
+view prevents owner drop and repeated view entry; stale or forged carriers
+fail before target access. These guards supplement the checked source loan.
+
+The owning selector
+`public_sdk::indexed_tests::indexed_url_project::indexed_real_url_project_executes_receiver_tied_view_and_cleanup`
+passed locally on `aarch64-apple-darwin`, Rust 1.98.0, real locked/offline Url
+2.5.8 and Clang O0/O2. It proves authored result changes (41 to 42), parse-domain
+failure (9), target pointer identity without adapter copies, one authored
+String construction, zero live owners/views/Strings after cleanup, malformed
+and stale carrier refusal, live-view/re-entry refusal before target counters,
+and runtime failure after removing either the live-view or context guard.
+Removing the generated finalizer is detected. Source view escape and a
+temporary receiver fail with `SPX-T258` and `SPX-B107`; stale source and lock
+bytes refuse preparation.
+
+The generated Rust companion also exposes `with_exclusive_url`: a safe HRTB
+callback primitive whose return type is independent of the exclusive loan.
+It temporarily holds the Url outside the table, reserves its exact owner slot,
+and restores it after success or a caught panic. Same-owner operations refuse
+before target access; an independent owner in the same context remains usable.
+No table `RefCell` borrow is held across user callback code. This primitive
+does not admit arbitrary selected Semaprax `&mut` signatures.
+
+The same owning harness now crosses a real C relay into a Rust callback while
+an exclusive Url reference is live. It checks same-owner view/drop/nested
+exclusive refusal, an unchanged target counter for those attempts, independent
+receiver progress, mutation after callback return and restoration after panic.
+Removing the per-slot exclusive check fails the unchanged consumer. Four
+cross-crate rustc controls reject returned/stored/async exclusive-reference
+escape and mutation while a derived view remains live. The source/HIR selector
+`indexed_url_loan_source_negative_matrix` proves ordinary view use and refuses
+move/drop/replacement during the view (`SPX-T265`), use after move (`SPX-O101`),
+returned `str` escape (`SPX-O116`), a temporary receiver (`SPX-B107`) and a loan
+across suspension/checkpoint (`SPX-T305`). These two owning tests passed locally
+(2 passed, 0 failed/ignored, 206 filtered); the callback relay uses Clang O0.
+
+The physical Url selector also runs a fixed-seed 1,024-case carrier mutation
+corpus over context, generation, slot, lease, pointer and length. Each refusal
+preserves the output sentinel, target-call count and genuine live lease.
+Additional cases cover alignment, null output/input, host width/length bounds,
+invalid UTF-8, stale views and reused slot generations. This is a bounded
+hostile-input corpus, not an unbounded or coverage-guided fuzz campaign.
+
+Generated C and its callback relay are compiled with Clang O1
+`-fsanitize=address,undefined -fno-sanitize-recover=all`; the ordinary checked
+body, callbacks and corpus complete, and a deliberate one-byte heap overflow
+in the generated C String terminator is detected by ASan. Only the final Rust
+consumer links the exact configured Clang sanitizer runtime, avoiding
+instrumented proc-macro loading inside rustc. Rust dependencies are not
+instrumented, and leak detection is disabled for this C boundary run. The
+exact physical selector passed locally (1 passed, 0 failed/ignored, 207
+filtered; 37.26s runtime). This is C ASan/UBSan evidence.
+
+The separately selected `indexed_url_miri_carrier_and_exclusive_loan_corpus`
+owning test builds the unmodified production Rust carrier and exclusive-lease
+templates with real locked Url 2.5.8, without generated C or native FFI. It
+runs the same fixed-seed corpus, dereferences the authenticated live backing
+across carrier revalidation, refuses conflicting exclusive entry while a
+shared slice remains live, and checks exclusive re-entry, mutation, restored
+views and complete owner/lease cleanup. The local gate passed (1 passed, 0
+failed/ignored, 208 filtered; 30.23s runtime) on `aarch64-apple-darwin` with
+Miri `0.1.0 (c36f145719 2026-10-01)`, nightly `2026-10-02`,
+`-Zmiri-strict-provenance -Zmiri-seed=1` and default leak checking. Toolchain
+components and the pinned std lock dependencies were explicitly prefetched;
+sysroot setup and the test itself run offline in private targets. Select
+`SEMAPRAX_MIRI_CARGO` (absolute rustup Cargo path) and
+`SEMAPRAX_MIRI_TOOLCHAIN`, then explicitly run this ignored owning test.
+It does not interpret native C, callback FFI or the separately exercised
+panic-payload quarantine path.
+
+This remains a bounded local checked-body and generated Rust witness. It does
+not establish general mutable/exclusive returned-view source syntax, arbitrary
+lifetimes, cross-thread use or a hosted profile. Remaining
+RI-06 acceptance claims require their own evidence; the Rust callback primitive
+is not source callback syntax.
 
 ## Diagnostics and nonclaims
 

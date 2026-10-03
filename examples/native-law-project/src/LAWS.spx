@@ -1,0 +1,11 @@
+module native_law.laws;
+
+@id("native-law.add.right-nonnegative")
+law contract "native-law.add" requires (right: i64)
+    right >= 0
+    evidence theorem_proved;
+
+@id("native-law.order.total")
+law relational (left: i64, right: i64)
+    left <= right || right < left
+    evidence smt_proved;

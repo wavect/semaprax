@@ -34,6 +34,19 @@ impl LiveParkedStateV8 {
         super::super::super::snapshot::weak_leaves(self.parked.root.as_ref().unwrap())
     }
 }
+pub(crate) fn restore_live_parked_state_v8(
+    binding: &crate::resumable_effects::owned_frame::v2::CheckedOwnedAgentWaitBindingV8,
+    input: crate::interpreter::resumable::owned_frame::OwnedFrameInput,
+    observation: crate::interpreter::resumable::ResumableChannelValue,
+    consumed: u64,
+) -> Result<LiveParkedStateV8, ()> {
+    let parked = crate::interpreter::resumable::owned_frame::registered_stage::restore_owned_copy_wait_parked_v2(
+        binding,
+        input,
+        observation,
+    )?;
+    Ok(LiveParkedStateV8 { parked, consumed })
+}
 pub(crate) enum LiveWaitStartOutcomeV8 {
     Parked(LiveParkedStateV8),
     Refused(LiveObservedStateV8),

@@ -17,6 +17,7 @@ pub(crate) mod private_capacity_contract;
 #[allow(dead_code, clippy::all, unexpected_cfgs)]
 #[path = "../../../src/format.rs"]
 pub(crate) mod private_format;
+pub mod rustc_diagnostics;
 
 /// The builder path-includes the canonical formatter to retain its private
 /// allocation accounting, but it does not embed or execute Kernel-0 renderer
@@ -124,14 +125,34 @@ pub(crate) mod kernel_zero {
 use semaprax_native_rust_interop_platform as platform;
 use std::path::Path;
 
+pub mod indexed_binding;
+mod owned_plan;
 mod public_sdk;
+mod trusted_native;
 
 pub use public_sdk::{
-    build_authenticated_project_native_rust_sdk, build_native_rust_owned_data_sdk,
-    build_native_rust_sdk, build_project_native_rust_sdk, NativeRustOwnedDataSdkBundle,
-    NativeRustSdkBundle, NativeRustSdkOptions, ProjectNativeRustSdkBundle,
-    NATIVE_RUST_OWNED_DATA_SDK_SCHEMA, PROJECT_NATIVE_RUST_SDK_SCHEMA,
-    PROJECT_NATIVE_RUST_SUBJECT_SCHEMA,
+    build_authenticated_project_native_rust_sdk, build_guarded_indexed_project_native_rust_sdk,
+    build_guarded_indexed_project_native_rust_sdk_with_law_policy,
+    build_indexed_project_native_rust_sdk, build_indexed_scalar_native_rust,
+    build_indexed_scalar_native_rust_sdk, build_indexed_scalars_native_rust_sdk,
+    build_native_rust_owned_data_sdk, build_native_rust_sdk, build_project_native_rust_sdk,
+    prepare_demanded_native_rust, prepare_opaque_owner_native, prepare_owned_container_native,
+    prepare_owned_string_native, prepare_serde_record_projection, render_local_future_bridge,
+    ConcreteRustBindingPlan, DemandedNativeRust, GuardedForeignCallerEvidence,
+    GuardedForeignLawSelection, IndexedProjectScalarSelection, IndexedScalarBuild,
+    IndexedScalarSelection, NativeRustOwnedDataSdkBundle, NativeRustSdkBundle,
+    NativeRustSdkOptions, OpaqueOwnerNative, ProjectNativeRustSdkBundle, RustDemandSelection,
+    SerdeRecordProjection, LOCAL_FUTURE_BRIDGE_SCHEMA, NATIVE_RUST_OWNED_DATA_SDK_SCHEMA,
+    PROJECT_NATIVE_RUST_SDK_SCHEMA, PROJECT_NATIVE_RUST_SUBJECT_SCHEMA,
+};
+pub use public_sdk::{
+    prepare_native_rust_callbacks, prepare_registered_native_rust_callbacks,
+    NativeCallbackProjection, NativeCallbackSelection, NativeRegisteredCallbackProjection,
+    NativeRegistrySelection,
+};
+pub use trusted_native::{
+    NativeBuildAuthority, NativeBuildPolicy, NativeDispatchError, NativeEffectContract,
+    NativeExecutionGrant, NativeTrustError, TrustedNativeProfile, TRUSTED_NATIVE_PROFILE_SCHEMA,
 };
 
 pub(crate) mod workspace {
@@ -306,3 +327,12 @@ pub(crate) mod bounded_output {
     reason = "private A+B has no externally callable surface before evidence-gated public phase C"
 )]
 mod implementation;
+
+pub use public_sdk::{
+    prepare_indexed_regex_project_package, IndexedProjectRegexRegistrySelection,
+    PreparedRegexProjectPackage,
+};
+pub use public_sdk::{
+    prepare_indexed_url_project_package, IndexedProjectUrlRegistrySelection,
+    PreparedUrlProjectPackage,
+};

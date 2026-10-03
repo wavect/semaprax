@@ -1,0 +1,1 @@
+Repair the selected target function so the Project's independently authored test passes. The target must return the expected scalar value. On the initial turn, submit proposal sequence 0 for the checked malformed probe. After the feedback, submit proposal sequence 1 with the corrected scalar value 42.

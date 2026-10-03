@@ -96,5 +96,82 @@ pub(crate) fn bind_owned_wait_proposal_v8(
         canonical_proposal: decoded.canonical_json().into(),
     })
 }
+
+/// Rebind an authenticated retained first-turn Copy carrier. Reconstructing
+/// its canonical proposal document through the checked proposal schema keeps
+/// ready commitments byte-compatible with the original model response.
+pub(crate) fn bind_recovered_owned_wait_proposal_v8(
+    binding: &CheckedOwnedAgentWaitBindingV8,
+    scope: &SourceCheckpointScope,
+    carrier: &ResumableChannelValue,
+    expected_ordinary_digest: &str,
+) -> Result<CheckedOwnedWaitProposalV8, Diagnostic> {
+    if !channel::valid_copy_channel_response(
+        binding.helper().program(),
+        binding.helper().function().id.as_str(),
+        carrier,
+    ) {
+        return Err(refused());
+    }
+    let ResumableChannelValue::Record {
+        declaration,
+        fields,
+    } = carrier
+    else {
+        return Err(refused());
+    };
+    let schema = binding.lifecycle().proposal_schema();
+    let definition = schema.schema();
+    if declaration.as_str() != definition.proposal_type_id() {
+        return Err(refused());
+    }
+    let declared = binding
+        .helper()
+        .program()
+        .declarations
+        .record_fields(declaration)
+        .ok_or_else(refused)?;
+    if declared.len() != fields.len() {
+        return Err(refused());
+    }
+    let mut canonical_fields = String::new();
+    for (index, (field, value)) in declared.iter().zip(fields).enumerate() {
+        let value = match value {
+            crate::interpreter::ArgumentValue::Bool(value) => value.to_string(),
+            crate::interpreter::ArgumentValue::Int(value) => {
+                crate::diagnostic::quote_json(&value.to_string())
+            }
+            crate::interpreter::ArgumentValue::Int32(value) => {
+                crate::diagnostic::quote_json(&value.to_string())
+            }
+            crate::interpreter::ArgumentValue::Uint8(value) => {
+                crate::diagnostic::quote_json(&value.to_string())
+            }
+            crate::interpreter::ArgumentValue::Usize(value) => {
+                crate::diagnostic::quote_json(&value.to_string())
+            }
+            _ => return Err(refused()),
+        };
+        if index != 0 {
+            canonical_fields.push(',');
+        }
+        canonical_fields.push_str(&format!(
+            "{}:{value}",
+            crate::diagnostic::quote_json(field.id.as_str())
+        ));
+    }
+    let canonical = format!(
+        "{{\"schema\":{},\"agent_id\":{},\"proposal_schema_digest\":{},\"value\":{{\"fields\":{{{canonical_fields}}}}}}}\n",
+        crate::diagnostic::quote_json(crate::agent_proposal::PROPOSAL_SCHEMA),
+        crate::diagnostic::quote_json(definition.agent_id()),
+        crate::diagnostic::quote_json(definition.digest()),
+    );
+    let decoded = schema.decode(&canonical).map_err(|_| refused())?;
+    let checked = bind_owned_wait_proposal_v8(binding, scope, &decoded)?;
+    if checked.ordinary_digest() != expected_ordinary_digest || checked.carrier() != carrier {
+        return Err(refused());
+    }
+    Ok(checked)
+}
 #[cfg(test)]
 mod tests;

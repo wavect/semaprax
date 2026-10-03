@@ -356,7 +356,11 @@ fn expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root(
         include_str!("../../src/workspace_graph/prelude_binding.rs"),
         include_str!("../../src/workspace_graph/project_render.rs"),
         include_str!("../../src/workspace_graph/session_protocol_decl.rs"),
-        include_str!("../../src/workspace_graph/agent_execution.rs"),
+        concat!(
+            include_str!("../../src/workspace_graph/agent_execution.rs"),
+            include_str!("../../src/workspace_graph/indexed_rust.rs"),
+            include_str!("../../src/workspace_graph/native_law.rs")
+        ),
         include_str!("../../src/workspace_graph/source_callables.rs"),
         include_str!("../../src/workspace_graph/retained_validation.rs"),
         include_str!("../../src/workspace_graph/retained_validation/dependency_closure.rs"),

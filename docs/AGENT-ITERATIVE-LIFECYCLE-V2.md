@@ -127,7 +127,36 @@ checked stage call performs. It adds a metered dispatch to the same sealed
 stage executor seam; it does not change any lifecycle wire, reservation or
 digest above. Existing frozen, migration-seeded, live and checkpoint entries
 retain their unmetered dispatch. The additive public target route below opts
-into the same metered seam.
+into the same metered seam. A fresh durable typed-effect route also records
+the metered stage receipts beside its authenticated checkpoint. The metered
+checkpoint binds the selected target before its first reservation, so resumed
+work cannot reuse receipts under a substituted backend. Its v3 semantic-work
+evidence carries the same target binding with both observed and committed stage
+counts plus an `observations_complete` fact; a receipt mismatch refuses result
+publication while retaining any selected lifecycle terminal;
+recovery validates retained receipts while it re-executes and newly charges
+deterministic stages, appending a receipt for each new reservation; retained
+observations still prevent host redelivery. An unpaired or malformed receipt
+refuses before handler work. The caller-trusted store and hash chain bind exact
+bytes; they do not grant cryptographic authority.
+
+The durable target-cleanup parity selector uses a source fixture that discards
+one owned Bytes value in observe. It compares the canonical ordered
+[function_id,liveness_flag] vectors from the fresh checkpoint, fresh evidence,
+ordinary recovery, migration-seeded checkpoint, and migration-seeded recovery.
+Those serializations are parsed separately from the in-memory observations; the
+native and held Core Wasm vectors must also agree with the source-level observe
+finalizer oracle, while the interpreter remains null. A recovery checkpoint
+preserves its verified prior vector as a prefix and appends the newly charged
+re-evaluation vector; its outward evidence covers that current suffix only. A
+mutated stored vector refuses before recovery can dispatch or persist work. This
+is read-only local evidence: parsing or comparing a vector does not authorize a
+physical finalizer, target invocation, or publication.
+
+Focused gate: cargo test --locked -p semaprax --lib
+agent_lifecycle::iterative::effects::durable::tests::target_cleanup_parity.
+It passed locally (2/2) with the explicit held clang and Node fixtures and
+remains local target evidence.
 
 **Semantic fuel.** One unit is charged at each of two checked semantic events,
 and at no other point:

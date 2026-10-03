@@ -26,6 +26,10 @@ pub(crate) use owned_wait_v8::{
     CheckedCumulativeEffectPrefixV8, CheckedOwnedWaitJournalContextV8, HeldOwnedWaitStoreV8,
     SourceOwnedWaitJournalV8,
 };
+pub use owned_wait_v8::{
+    SourceOwnedAgentJournalV1, SourceOwnedAgentOpenErrorV1, SourceOwnedAgentRunV1,
+    SourceOwnedAgentStatusV1,
+};
 mod priced_v4;
 mod sink;
 mod validate;
@@ -1291,6 +1295,7 @@ pub(crate) use owned_wait_v8::{
 
 pub(crate) use owned_wait_v8::LiveFailedEffectStateCleanupPermitV8;
 
+pub(crate) use owned_wait_v8::LiveContinueObserveGuardV8;
 pub(crate) use owned_wait_v8::LiveContinueObservePermitV8;
 
 #[cfg(all(test, unix))]
@@ -1302,7 +1307,7 @@ pub(crate) use owned_wait_v8::LiveFailedObserveStateCleanupPermitV8;
 
 pub(crate) use owned_wait_v8::{
     LiveContinuedModelIntentPermitV8, LiveContinuedModelRequestOriginV8,
-    LiveContinuedWaitResumePermitV8,
+    LiveContinuedWaitResumePermitV8, LiveLaterModelIntentPermitV8, LiveLaterModelRequestOriginV8,
 };
 
 pub(crate) use owned_wait_v8::{
@@ -1318,3 +1323,9 @@ pub(crate) use owned_wait_v8::LiveContinuedIntentPermitV8;
 pub(crate) use owned_wait_v8::LiveContinuedSettlementPermitV8;
 
 pub(crate) use owned_wait_v8::LiveContinuedDecisionCleanupPermitV8;
+pub(crate) use owned_wait_v8::LiveContinuedOutcomePermitV8;
+
+pub(crate) use owned_wait_v8::LiveCompletedStateShutdownPermitV8;
+pub(crate) use owned_wait_v8::LiveRefusedStateCleanupPermitV8;
+
+pub(crate) use owned_wait_v8::LiveRecoveredStateTransferPermitV8;

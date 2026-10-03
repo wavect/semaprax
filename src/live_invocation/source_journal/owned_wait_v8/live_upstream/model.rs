@@ -127,16 +127,39 @@ pub(super) enum LiveModelFailureOwnerV8 {
     ),
     Resume(LiveWaitResumeOutcomeV8),
 }
-pub(super) struct LiveModelFailureV8<'j> {
+pub(in crate::live_invocation::source_journal::owned_wait_v8) struct LiveModelFailureV8<'j> {
     owner: LiveModelFailureOwnerV8,
     held: HeldOwnedWaitStoreV8<'j>,
+    journal: &'j SourceOwnedWaitJournalV8,
     error: SourceJournalError,
     reason: Option<super::super::super::SourceAttemptFailure>,
     diagnostics: Vec<crate::diagnostic::Diagnostic>,
     usage: Option<SourceReportedUsage>,
 }
+/// Opaque terminal holder for an abandoned first-turn model owner.
+///
+/// Model may have reached an acknowledged Intent or failed settlement, but it
+/// has not reached a State cleanup boundary.  Quarantine therefore retires the
+/// journal and keeps the exact physical owner sealed until the host drops this
+/// holder.  It offers neither retry nor owner extraction.
+pub(in crate::live_invocation::source_journal::owned_wait_v8) struct LiveModelQuarantinedV8<'j> {
+    _failure: LiveModelFailureV8<'j>,
+}
+impl<'j> LiveModelFailureV8<'j> {
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn quarantine(
+        self,
+    ) -> LiveModelQuarantinedV8<'j> {
+        self.journal.quarantine();
+        LiveModelQuarantinedV8 { _failure: self }
+    }
+}
+impl LiveModelQuarantinedV8<'_> {
+    pub(crate) fn status(&self) -> SourceJournalError {
+        SourceJournalError::Poisoned
+    }
+}
 /// Same physical State remains staged. Transfer/Authorize have not occurred.
-pub(super) struct CompletedLiveOwnedRunV8<'j> {
+pub(in crate::live_invocation::source_journal::owned_wait_v8) struct CompletedLiveOwnedRunV8<'j> {
     pub(super) owner: LiveResumedStateV8,
     pub(super) session: AppendSessionV8<'j>,
     pub(super) held: HeldOwnedWaitStoreV8<'j>,
@@ -177,6 +200,7 @@ pub(super) fn model_live_actor_v8<'j>(
             LiveModelFailureV8 {
                 owner: $owner,
                 held,
+                journal,
                 error: $error,
                 reason: None,
                 diagnostics: Vec::new(),

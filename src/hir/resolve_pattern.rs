@@ -56,7 +56,11 @@ impl Resolver<'_> {
             (DeclarationKind::Variant, ResolvedMatchMode::Borrow) => {
                 (template_variant
                     || resolver_admits_flat_owned_byte_variant(&self.declarations, &scrutinee.ty)
-                    || resolver_admits_flat_owned_string_variant(&self.declarations, &scrutinee.ty))
+                    || resolver_admits_flat_owned_string_variant(&self.declarations, &scrutinee.ty)
+                    || super::workspace_link::native_owner::resolver_ri06_regex_result(
+                        self.program,
+                        &scrutinee.ty,
+                    ))
                     && owned
                     && matches!(
                         scrutinee.ownership,

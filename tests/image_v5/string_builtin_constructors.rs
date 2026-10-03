@@ -163,16 +163,16 @@ fn payload(response: Value) -> Value {
 }
 fn metadata(catalog: &Value) {
     let rows = catalog["builtin_calls"].as_array().unwrap();
-    // Ten byte operations, including the Owned Bounded Byte Buffer v1 pair,
+    // Thirteen byte operations, including the fixed-width and tagged source owned writes,
     // and nine String-producing or String operations.
-    assert_eq!(rows.len(), 19);
-    assert!(rows[..10]
+    assert_eq!(rows.len(), 22);
+    assert!(rows[..13]
         .iter()
         .all(|row| row["evidence_owner"] == "compiler_byte_operations"));
-    assert!(rows[10..]
+    assert!(rows[13..]
         .iter()
         .all(|row| row["evidence_owner"] == "compiler_string_operations"));
-    // The owned buffer pair publishes its exact arity and the transfer that
+    // The owned buffer operations publish their exact arity and the transfer that
     // makes one filled buffer have a single owner.
     let zeroed = row_for(rows, "core.bytes.zeroed");
     assert_eq!(zeroed["name"], "bytes_zeroed");
@@ -184,8 +184,25 @@ fn metadata(catalog: &Value) {
     assert_eq!(set["parameters"][0]["ownership"], "own");
     assert_eq!(set["parameters"][1]["ownership"], "value");
     assert_eq!(set["parameters"][2]["ownership"], "value");
+    let set5 = row_for(rows, "core.bytes.set5");
+    assert_eq!(set5["name"], "bytes_set5");
+    assert_eq!(set5["arity"], 7);
+    assert_eq!(set5["parameters"][0]["ownership"], "own");
+    assert!(set5["parameters"].as_array().unwrap()[1..]
+        .iter()
+        .all(|parameter| parameter["ownership"] == "value"));
+    let set1_or5 = row_for(rows, "core.bytes.set1_or5_from_slice");
+    assert_eq!(set1_or5["name"], "bytes_set1_or5_from_slice");
+    assert_eq!(set1_or5["arity"], 5);
+    assert_eq!(set1_or5["parameters"][0]["ownership"], "own");
+    assert_eq!(set1_or5["parameters"][3]["ownership"], "borrow");
+    let set1_or6_or48 = row_for(rows, "core.bytes.set1_or6_or48_from_slice");
+    assert_eq!(set1_or6_or48["name"], "bytes_set1_or6_or48_from_slice");
+    assert_eq!(set1_or6_or48["arity"], 5);
+    assert_eq!(set1_or6_or48["parameters"][0]["ownership"], "own");
+    assert_eq!(set1_or6_or48["parameters"][3]["ownership"], "borrow");
     for (index, (id, name, arity, ty, ownership, result)) in OPERATIONS.into_iter().enumerate() {
-        let row = &rows[index + 10];
+        let row = &rows[index + 13];
         assert_eq!(row.as_object().unwrap().len(), 9);
         assert_eq!(row["target"], id);
         assert_eq!(row["name"], name);

@@ -29,6 +29,7 @@ pub(super) mod internal_strings;
 mod iterator_ops;
 mod nested_owned;
 mod network_io;
+mod owned_buffer;
 mod owned_stack;
 mod owned_strings;
 mod post_transitions;
@@ -68,7 +69,7 @@ use crate::wasm::vec_ops::is_wasm_owned_vec_type as owned_vec;
 use scalar_shape::{scalar_local, scalar_size_align, scalar_wasm_type, vec_element_tag};
 
 const BYTE_IMPORT_COUNT: u32 = 4;
-const OWNED_BUFFER_IMPORT_COUNT: u32 = 2;
+const OWNED_BUFFER_IMPORT_COUNT: u32 = 5;
 const VEC_IMPORT_COUNT: u32 = 6;
 const EXTENDED_VEC_IMPORT_COUNT: u32 = 3;
 /// The owned-record element adds exactly one function to the owned-payload
@@ -82,6 +83,9 @@ const BYTE_DROP_IMPORT: u32 = SCALAR_IMPORT_COUNT + 2;
 const BYTE_AS_SLICE_IMPORT: u32 = SCALAR_IMPORT_COUNT + 3;
 const BYTE_ZEROED_IMPORT: u32 = SCALAR_IMPORT_COUNT + BYTE_IMPORT_COUNT;
 const BYTE_SET_IMPORT: u32 = BYTE_ZEROED_IMPORT + 1;
+const BYTE_SET5_IMPORT: u32 = BYTE_SET_IMPORT + 1;
+const BYTE_SET1_OR5_IMPORT: u32 = BYTE_SET5_IMPORT + 1;
+const BYTE_SET1_OR6_OR48_IMPORT: u32 = BYTE_SET1_OR5_IMPORT + 1;
 const OWNED_UTF8_LITERAL_BASE: u32 = 196_608;
 #[derive(Default)]
 struct OwnedUtf8Literals {
@@ -1566,16 +1570,8 @@ fn emit_byte_exports_profile(
         &mut types,
         &mut type_indexes,
     );
-    let byte_set = uses_owned_buffer.then(|| {
-        intern_type(
-            Signature {
-                params: vec![I64, I64, I32],
-                results: vec![I64],
-            },
-            &mut types,
-            &mut type_indexes,
-        )
-    });
+    let byte_set_types =
+        owned_buffer::import_types(uses_owned_buffer, &mut types, &mut type_indexes);
     let text_helper_type = uses_str_ops.then(|| {
         intern_type(
             Signature {
@@ -1774,6 +1770,9 @@ fn emit_byte_exports_profile(
         for (id, index) in [
             (crate::byte_ops::ZEROED_ID, base),
             (crate::byte_ops::SET_ID, base + 1),
+            (crate::byte_ops::SET5_ID, base + 2),
+            (crate::byte_ops::SET1_OR5_ID, base + 3),
+            (crate::byte_ops::SET1_OR6_OR48_ID, base + 4),
         ] {
             function_indexes.insert(
                 FunctionExecutionId::Monomorphic(DeclarationId::new(id)),
@@ -1829,9 +1828,8 @@ fn emit_byte_exports_profile(
     if let Some(types) = &process_import_types {
         super::process_io::emit_imports(&mut imports, types);
     }
-    if let Some(ty) = byte_set {
-        function_import(&mut imports, "env", "spx_bytes_zeroed", byte_unary);
-        function_import(&mut imports, "env", "spx_bytes_set", ty);
+    if uses_owned_buffer {
+        owned_buffer::emit_imports(&mut imports, byte_unary, &byte_set_types);
     }
     if let Some(ty) = owned_utf8_validate {
         function_import(&mut imports, "env", "spx_owned_utf8_validate_v1", ty);
@@ -2318,16 +2316,8 @@ fn emit_profile_with_scalar_exports(
             &mut type_indexes,
         )
     });
-    let byte_set = uses_owned_buffer.then(|| {
-        intern_type(
-            Signature {
-                params: vec![I64, I64, I32],
-                results: vec![I64],
-            },
-            &mut types,
-            &mut type_indexes,
-        )
-    });
+    let byte_set_types =
+        owned_buffer::import_types(uses_owned_buffer, &mut types, &mut type_indexes);
     let vec_alloc = uses_vec.then(|| {
         intern_type(
             Signature {
@@ -2625,8 +2615,7 @@ fn emit_profile_with_scalar_exports(
         );
     }
     if uses_owned_buffer {
-        function_import(&mut imports, "env", "spx_bytes_zeroed", byte_unary.unwrap());
-        function_import(&mut imports, "env", "spx_bytes_set", byte_set.unwrap());
+        owned_buffer::emit_imports(&mut imports, byte_unary.unwrap(), &byte_set_types);
     }
     if uses_vec {
         let names = vec_owned_payload::import_names(program);
@@ -6554,6 +6543,14 @@ impl Emitter<'_> {
             // host import keeps its own independent gate, which admitted
             // programs can no longer reach.
             self.emit_owned_buffer_index_failure(&expr.id, &values[0], &values[1])?;
+        } else if op == crate::byte_ops::ByteOp::Set5 {
+            self.emit_owned_buffer_set5_failure(&expr.id, &values[0], &values[1])?;
+        } else if op == crate::byte_ops::ByteOp::Set1Or5 {
+            self.emit_owned_buffer_set1_or5_failure(&expr.id, &values[0], &values[1], &values[4])?;
+        } else if op == crate::byte_ops::ByteOp::Set1Or6Or48 {
+            self.emit_owned_buffer_set1_or6_or48_failure(
+                &expr.id, &values[0], &values[1], &values[4],
+            )?;
         }
         self.apply_call_commit(&expr.id)?;
         if op != crate::byte_ops::ByteOp::Zeroed {
@@ -6697,6 +6694,11 @@ impl Emitter<'_> {
                     local,
                     ty: ResolvedType::Bytes,
                 })
+            }
+            crate::byte_ops::ByteOp::Set5 => self.emit_owned_buffer_set5(expr, &values),
+            crate::byte_ops::ByteOp::Set1Or5 => self.emit_owned_buffer_set1_or5(expr, &values),
+            crate::byte_ops::ByteOp::Set1Or6Or48 => {
+                self.emit_owned_buffer_set1_or6_or48(expr, &values)
             }
         }
     }
@@ -7047,36 +7049,6 @@ impl Emitter<'_> {
             local,
             ty: ResolvedType::SliceU8,
         })
-    }
-
-    /// Select the single owned-buffer failure when the computed element index
-    /// is at or above the transferred buffer's length. The carrier's low word
-    /// is its byte length, which is the same predicate the reference
-    /// interpreter and the native backend apply.
-    fn emit_owned_buffer_index_failure(
-        &mut self,
-        expression: &ExpressionId,
-        buffer: &Value,
-        index: &Value,
-    ) -> Result<(), Diagnostic> {
-        self.get_scalar(index);
-        self.get_scalar(buffer);
-        self.output.extend([0xa7, 0xad, 0x5a]); // index >= carrier length
-        self.output.extend([0x04, 0x40, 0x41]);
-        write_i64(
-            self.output,
-            i64::from(STATUS_BYTE_BUFFER_INDEX_OUT_OF_BOUNDS),
-        );
-        self.output.push(0x21);
-        write_u32(self.output, self.plan.status);
-        self.emit_failure_cleanup(expression, StatusLane::OperationFailure)?;
-        self.output.push(0x0c);
-        write_u32(
-            self.output,
-            self.control_depth + self.status_exit_extra_depth,
-        );
-        self.output.push(0x0b);
-        Ok(())
     }
 
     fn emit_byte_range_failure_if(

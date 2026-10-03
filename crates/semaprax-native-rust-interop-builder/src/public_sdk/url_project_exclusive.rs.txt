@@ -1,0 +1,47 @@
+// Safe Rust invocation primitive; it does not admit a Semaprax &mut signature.
+// The owned Url leaves the table while borrowed exclusively. Reentrant calls
+// authenticate the per-slot lease before touching the owner or target method.
+struct ExclusiveUrlLease { context: u64, owner: SpxOwner, value: Option<url_alias::Url> }
+impl ExclusiveUrlLease {
+    fn acquire(context: u64, owner: SpxOwner) -> Result<Self, i32> {
+        CONTEXTS.with(|contexts| {
+            let mut contexts = contexts.try_borrow_mut().map_err(|_| 6)?;
+            let slot = slot(&mut contexts, context, owner)?;
+            if slot.view.is_some() { return Err(6); }
+            let value = slot.value.take().ok_or(3)?;
+            slot.exclusive = true;
+            Ok(Self { context, owner, value: Some(value) })
+        })
+    }
+    fn restore(&mut self) -> Result<(), i32> {
+        let Some(value) = self.value.take() else { return Ok(()); };
+        let mut value = Some(value);
+        let restored = CONTEXTS.with(|contexts| {
+            let mut contexts = contexts.try_borrow_mut().map_err(|_| 6)?;
+            let context = contexts.iter_mut().find(|c| c.id == self.context).ok_or(3)?;
+            let slot = context.slots.get_mut(usize::try_from(self.owner.slot).map_err(|_| 3)?).ok_or(3)?;
+            if slot.generation != self.owner.generation || !slot.exclusive || slot.value.is_some() || slot.view.is_some() { return Err(3); }
+            slot.value = value.take(); slot.exclusive = false; Ok(())
+        });
+        // A broken internal ledger cannot license dropping an uncertain owner.
+        // Public operations cannot cause this state; retain it on hostile drift.
+        if let Some(value) = value { std::mem::forget(value); }
+        restored
+    }
+}
+impl Drop for ExclusiveUrlLease { fn drop(&mut self) { let _ = self.restore(); } }
+
+/// Runs one callback with an invocation-scoped exclusive reference. The result
+/// type is independent of the loan lifetime; neither the reference nor a view
+/// into it may escape. Panics select status 2 and restoration still runs.
+/// This is a generated Rust primitive, separate from selected source admission.
+pub fn with_exclusive_url<R>(context: u64, owner: SpxOwner,
+    callback: impl for<'loan> FnOnce(&'loan mut url_alias::Url) -> R) -> Result<R, i32> {
+    let mut lease = ExclusiveUrlLease::acquire(context, owner)?;
+    let selected = caught(|| {
+        let value = lease.value.as_mut().ok_or(3)?;
+        Ok(callback(value))
+    });
+    let restored = lease.restore();
+    match selected { Err(status) => Err(status), Ok(value) => restored.map(|()| value) }
+}

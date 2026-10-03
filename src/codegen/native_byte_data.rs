@@ -11,6 +11,15 @@ pub(super) fn emit_runtime(output: &mut impl super::COutput) {
     output.push_str(BYTE_DATA_DROP_C);
 }
 
+/// Emit byte-buffer store helpers introduced after the frozen default runtime.
+///
+/// These functions depend only on the default byte runtime. Keeping them in a
+/// separately selected fragment preserves the exact legacy projection used by
+/// existing generated packages.
+pub(super) fn emit_additive_operations(output: &mut impl super::COutput) {
+    output.push_str(BYTE_DATA_ADDITIVE_OPERATIONS_C);
+}
+
 pub(super) fn emit_reserved_runtime(output: &mut impl super::COutput) {
     output.push_str(BYTE_DATA_PREFIX_C);
     output.push_str(include_str!("native_byte_data/reserved_allocators.c"));
@@ -225,6 +234,138 @@ static __attribute__((unused)) spx_bytes_v1 spx_bytes_move(spx_bytes_v1 *source)
 
 "#;
 
+const BYTE_DATA_ADDITIVE_OPERATIONS_C: &str = r#"/* Five-byte stores use the same status but preflight the whole interval before
+   ownership commits, so no failed call can publish a partial prefix. */
+static __attribute__((unused)) spx_status_token spx_bytes_set5_check_v1(
+    struct spx_context *spx_ctx, spx_bytes_v1 buffer, uint64_t index
+) {
+    spx_bytes_require_valid(buffer);
+    if (index <= buffer.len && buffer.len - index >= UINT64_C(5)) {
+        return SPX_STATUS_SUCCESS;
+    }
+    spx_status_token token = SPX_STATUS_SUCCESS;
+    if (!spx_status_record_adapter(
+        spx_ctx,
+        "semaprax.byte-buffer.v1",
+        UINT32_C(1),
+        SPX_STATUS_CLASS_ADAPTER,
+        SPX_RETRYABILITY_FALSE,
+        &token
+    )) {
+        spx_runtime_invariant_failure("owned byte buffer status could not be recorded");
+    }
+    return token;
+}
+
+/* The one-or-five path has the same destination status as the fixed stores.
+   Its borrowed source is read only after the destination preflight; absent
+   source bytes are deterministic zero rather than a second failure family. */
+static __attribute__((unused)) spx_status_token spx_bytes_set1_or5_check_v1(
+    struct spx_context *spx_ctx, spx_bytes_v1 buffer, uint64_t selector, uint64_t index
+) {
+    return (selector & (UINT64_C(1) << 63)) != 0
+        ? spx_bytes_set5_check_v1(spx_ctx, buffer, index)
+        : spx_bytes_set_check_v1(spx_ctx, buffer, index);
+}
+
+static __attribute__((unused)) spx_bytes_v1 spx_bytes_set1_or5(
+    spx_bytes_v1 buffer, uint64_t index, uint8_t one,
+    spx_slice_u8_v1 source, uint64_t selector
+) {
+    spx_bytes_require_valid(buffer);
+    spx_slice_u8_require_owned_view_valid(source);
+    bool wide = (selector & (UINT64_C(1) << 63)) != 0;
+    uint64_t source_start = selector & ~(UINT64_C(1) << 63);
+    uint64_t width = wide ? UINT64_C(5) : UINT64_C(1);
+    if (index > buffer.len || buffer.len - index < width) {
+        spx_runtime_invariant_failure("owned byte buffer one-or-five interval is outside its capacity");
+    }
+    size_t slot = (size_t)index;
+    if (!wide) {
+        buffer.ptr[slot] = one;
+        return buffer;
+    }
+    for (size_t offset = 0U; offset < 5U; offset++) {
+        uint64_t source_index = source_start + (uint64_t)offset;
+        buffer.ptr[slot + offset] = source_index >= source_start && source_index < source.len
+            ? source.ptr[(size_t)source_index] : UINT8_C(0);
+    }
+    return buffer;
+}
+
+/* Bit 63 selects a source copy; bit 62 selects its forty-eight-byte width
+   instead of six. The low 62 bits are the source offset. */
+static __attribute__((unused)) spx_status_token spx_bytes_set1_or6_or48_check_v1(
+    struct spx_context *spx_ctx, spx_bytes_v1 buffer, uint64_t selector, uint64_t index
+) {
+    if ((selector & (UINT64_C(1) << 63)) == 0) {
+        return spx_bytes_set_check_v1(spx_ctx, buffer, index);
+    }
+    spx_bytes_require_valid(buffer);
+    uint64_t width = (selector & (UINT64_C(1) << 62)) != 0
+        ? UINT64_C(48) : UINT64_C(6);
+    if (index <= buffer.len && buffer.len - index >= width) {
+        return SPX_STATUS_SUCCESS;
+    }
+    spx_status_token token = SPX_STATUS_SUCCESS;
+    if (!spx_status_record_adapter(
+        spx_ctx,
+        "semaprax.byte-buffer.v1",
+        UINT32_C(1),
+        SPX_STATUS_CLASS_ADAPTER,
+        SPX_RETRYABILITY_FALSE,
+        &token
+    )) {
+        spx_runtime_invariant_failure("owned byte buffer status could not be recorded");
+    }
+    return token;
+}
+
+static __attribute__((unused)) spx_bytes_v1 spx_bytes_set1_or6_or48(
+    spx_bytes_v1 buffer, uint64_t index, uint8_t one,
+    spx_slice_u8_v1 source, uint64_t selector
+) {
+    spx_bytes_require_valid(buffer);
+    spx_slice_u8_require_owned_view_valid(source);
+    bool copy = (selector & (UINT64_C(1) << 63)) != 0;
+    bool wide48 = (selector & (UINT64_C(1) << 62)) != 0;
+    uint64_t source_start = selector & ((UINT64_C(1) << 62) - UINT64_C(1));
+    uint64_t width = copy ? (wide48 ? UINT64_C(48) : UINT64_C(6)) : UINT64_C(1);
+    if (index > buffer.len || buffer.len - index < width) {
+        spx_runtime_invariant_failure("owned byte buffer one-or-six-or-forty-eight interval is outside its capacity");
+    }
+    size_t slot = (size_t)index;
+    if (!copy) {
+        buffer.ptr[slot] = one;
+        return buffer;
+    }
+    for (size_t offset = 0U; offset < (size_t)width; offset++) {
+        uint64_t source_index = source_start + (uint64_t)offset;
+        buffer.ptr[slot + offset] = source_index >= source_start && source_index < source.len
+            ? source.ptr[(size_t)source_index] : UINT8_C(0);
+    }
+    return buffer;
+}
+
+static __attribute__((unused)) spx_bytes_v1 spx_bytes_set5(
+    spx_bytes_v1 buffer, uint64_t index, uint8_t first, uint8_t second,
+    uint8_t third, uint8_t fourth, uint8_t fifth
+) {
+    spx_bytes_require_valid(buffer);
+    if (index > buffer.len || buffer.len - index < UINT64_C(5)) {
+        spx_runtime_invariant_failure("owned byte buffer five-byte interval is outside its capacity");
+    }
+    size_t slot = (size_t)index;
+    buffer.ptr[slot] = first;
+    buffer.ptr[slot + 1U] = second;
+    buffer.ptr[slot + 2U] = third;
+    buffer.ptr[slot + 3U] = fourth;
+    buffer.ptr[slot + 4U] = fifth;
+    return buffer;
+}
+
+"#;
+
 const BYTE_DATA_DROP_C: &str = r#"static __attribute__((unused)) void spx_bytes_drop(spx_bytes_v1 *value) {
     if (value == NULL) {
         spx_runtime_invariant_failure("owned byte drop has a null carrier");
@@ -268,5 +409,40 @@ mod tests {
         assert_ne!(digest(&reordered), FROZEN);
         let omitted = [BYTE_DATA_PREFIX_C, BYTE_DATA_ALLOCATORS_C, BYTE_DATA_DROP_C].concat();
         assert_ne!(digest(&omitted), FROZEN);
+    }
+
+    #[test]
+    fn additive_store_helpers_are_emitted_only_for_reachable_operations() {
+        let legacy = crate::check(
+            "module test.byte_runtime_legacy; @id(\"app.main\") fn main() -> i64 { let buffer = bytes_set(bytes_zeroed(1usize), 0usize, 1u8); let view = bytes_as_slice(buffer); if byte_len(view) == 1usize { 0 } else { 1 } }",
+            "byte-runtime-legacy.spx",
+        )
+        .unwrap();
+        let legacy_c = crate::codegen::emit_c(&legacy).unwrap();
+        assert!(!legacy_c.contains("spx_bytes_set5_check_v1"));
+        assert!(!legacy_c.contains("spx_bytes_set1_or5_check_v1"));
+        assert!(!legacy_c.contains("spx_bytes_set1_or6_or48_check_v1"));
+
+        for (source, invoked) in [
+            (
+                "module test.byte_runtime_set5; @id(\"app.main\") fn main() -> i64 { let buffer = bytes_set5(bytes_zeroed(5usize), 0usize, 1u8, 2u8, 3u8, 4u8, 5u8); let view = bytes_as_slice(buffer); if byte_len(view) == 5usize { 0 } else { 1 } }",
+                "spx_bytes_set5(spx_bytes_move",
+            ),
+            (
+                "module test.byte_runtime_set1_or5; @id(\"app.main\") fn main() -> i64 { let raw = [1u8]; let source = array_as_slice(raw); let buffer = bytes_set1_or5_from_slice(bytes_zeroed(5usize), 0usize, 1u8, source, 9223372036854775808usize); let view = bytes_as_slice(buffer); if byte_len(view) == 5usize { 0 } else { 1 } }",
+                "spx_bytes_set1_or5(spx_bytes_move",
+            ),
+            (
+                "module test.byte_runtime_set1_or6_or48; @id(\"app.main\") fn main() -> i64 { let raw = [1u8]; let source = array_as_slice(raw); let buffer = bytes_set1_or6_or48_from_slice(bytes_zeroed(48usize), 0usize, 1u8, source, 13835058055282163712usize); let view = bytes_as_slice(buffer); if byte_len(view) == 48usize { 0 } else { 1 } }",
+                "spx_bytes_set1_or6_or48(spx_bytes_move",
+            ),
+        ] {
+            let program = crate::check(source, "byte-runtime-additive.spx").unwrap();
+            let emitted = crate::codegen::emit_c(&program).unwrap();
+            assert!(emitted.contains(invoked), "missing selected helper for {invoked}");
+            assert!(emitted.contains("spx_bytes_set5_check_v1"));
+            assert!(emitted.contains("spx_bytes_set1_or5_check_v1"));
+            assert!(emitted.contains("spx_bytes_set1_or6_or48_check_v1"));
+        }
     }
 }

@@ -1,7 +1,10 @@
 //! Imported migration roots retain the same Suspend and durable accounting rules.
 use super::super::migration::durable;
 use super::*;
-use semaprax::agent_runtime_v2::{migrate_suspended_agent_runtime_v2, AgentRuntimeV2};
+use semaprax::agent_runtime_v2::{
+    migrate_suspended_agent_runtime_v2, migrate_suspended_agent_runtime_v2_with_backend,
+    AgentRuntimeV2,
+};
 use semaprax::execution_revision::typed::resume_migrated_agent_runtime_v2;
 
 fn link(fixture: &Fixture, migration: bool) {
@@ -265,4 +268,69 @@ fn linked_agent_migration_selection_rejects_alias_and_unimported_stable_id() {
         )
         .is_err());
     }
+}
+
+#[test]
+#[cfg(any(target_os = "linux", target_os = "macos"))]
+fn linked_wasm_pure_migration_refuses_before_reserving_or_evaluating() {
+    use semaprax::agent_lifecycle::iterative::effects::{TargetStageBackend, WasmTargetHost};
+
+    let Some(wasm) = std::env::var_os("SEMAPRAX_TEST_WASM_STAGE_NODE")
+        .map(std::path::PathBuf::from)
+        .into_iter()
+        .chain(
+            [
+                "/usr/bin/node",
+                "/usr/local/bin/node",
+                "/opt/homebrew/bin/node",
+            ]
+            .map(std::path::PathBuf::from),
+        )
+        .find_map(|path| WasmTargetHost::open(path).ok())
+    else {
+        eprintln!("skipping linked Wasm pure-migration refusal: held node unavailable");
+        return;
+    };
+    let (a, b) = fixtures();
+    let previous = runtime(&a);
+    let before = previous.execution_revision().digest().to_owned();
+    let mut handler = durable::handler();
+    let suspended = runtime(&a)
+        .run_durable(
+            &mut handler,
+            &AgentCancellation::new(),
+            None,
+            &mut durable::Store::default(),
+            10_000_000,
+        )
+        .unwrap();
+    let prior_usage = suspended.run().usage();
+    let prior_iterations = suspended.run().iterations();
+    let prior_stages = suspended.run().stages();
+    assert_eq!(handler.calls.len(), 3);
+
+    let destination = runtime(&b);
+    let after = destination.execution_revision().digest().to_owned();
+    let failure = migrate_suspended_agent_runtime_v2_with_backend(
+        previous,
+        suspended,
+        destination,
+        &before,
+        &after,
+        "fixture.agent.fn.migrate_b",
+        10_000,
+        10_000_000,
+        TargetStageBackend::CoreWasmHeld(&wasm),
+        10_000,
+    )
+    .err()
+    .expect("a linked target has no single retained Wasm source");
+
+    assert!(failure.diagnostics().iter().any(|diagnostic| diagnostic
+        .message
+        .contains("target_backend.core_wasm_source")));
+    assert_eq!(failure.usage(), prior_usage);
+    assert_eq!(failure.iterations(), prior_iterations);
+    assert_eq!(failure.stages(), prior_stages);
+    assert_eq!(handler.calls.len(), 3);
 }

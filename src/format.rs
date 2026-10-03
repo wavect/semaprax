@@ -449,19 +449,33 @@ pub(crate) fn write_canonical_commented(
             }
             write!(
                 output,
-                "    import {}fn {}(",
+                "    import {}{}fn {}",
                 if import.native_rust { "rust " } else { "" },
+                if import.index_selected {
+                    "selected "
+                } else {
+                    ""
+                },
                 import.name
             )
             .unwrap();
-            for (index, param) in import.params.iter().enumerate() {
-                if index > 0 {
-                    output.write_str(", ").unwrap();
+            if !import.index_selected {
+                output.write_str("(").unwrap();
+                for (index, param) in import.params.iter().enumerate() {
+                    if index > 0 {
+                        output.write_str(", ").unwrap();
+                    }
+                    write!(output, "{}: {}", param.name, param.mode.source_prefix()).unwrap();
+                    write_type(output, &param.ty);
                 }
-                write!(output, "{}: {}", param.name, param.mode.source_prefix()).unwrap();
-                write_type(output, &param.ty);
+                write!(output, ") -> {}", import.result).unwrap();
             }
-            writeln!(output, ") -> {}", import.result).unwrap();
+            if let Some(path) = &import.rust_path {
+                write!(output, " from \"").unwrap();
+                write_escaped(output, path);
+                write!(output, "\"").unwrap();
+            }
+            writeln!(output).unwrap();
             write!(output, "        effects {{ ").unwrap();
             write_joined(output, &import.effects, ", ");
             writeln!(output, " }}").unwrap();

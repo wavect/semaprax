@@ -67,6 +67,13 @@ pub(crate) struct HeldExecutedOwnedStepV2<'a> {
     effect_settled: u32,
     transfer_reserved: u32,
 }
+/// The original mapped Report after a consuming terminal claim. The retained
+/// store borrower stays with the physical root until delivery or disposal.
+pub(crate) struct ClaimedExecutedOwnedReportV2<'a> {
+    report: OwnedReducedReportV2,
+    inputs: OwnedEffectInputsV8<'a>,
+    creator: u32,
+}
 
 fn physical_guard(
     inputs: &OwnedEffectInputsV8<'_>,
@@ -117,7 +124,27 @@ impl FailedExecutedOwnedReduceV2<'_> {
         self.inputs.store.validate_guard().is_ok()
     }
 }
-impl HeldExecutedOwnedStepV2<'_> {
+impl<'a> HeldExecutedOwnedStepV2<'a> {
+    pub(crate) fn claim_complete_report(
+        mut self,
+    ) -> Result<ClaimedExecutedOwnedReportV2<'a>, Self> {
+        if !self.validate_store()
+            || !matches!(self.owner.as_ref(), Some(OwnedStepTransferV2::Complete(_)))
+        {
+            return Err(self);
+        }
+        let Some(OwnedStepTransferV2::Complete(report)) = self.owner.take() else {
+            unreachable!("checked complete owner")
+        };
+        Ok(ClaimedExecutedOwnedReportV2 {
+            report,
+            inputs: self.inputs.take().expect("checked held inputs"),
+            creator: self.creator,
+        })
+    }
+    pub(crate) fn live_inputs(&self) -> Option<&OwnedEffectInputsV8<'a>> {
+        self.inputs.as_ref()
+    }
     pub(crate) fn kind(&self) -> &'static str {
         match self.owner.as_ref().expect("held Step") {
             OwnedStepTransferV2::Continue(_) => "continue",
@@ -135,6 +162,19 @@ impl HeldExecutedOwnedStepV2<'_> {
     }
     pub(crate) fn causal_refs(&self) -> (u32, u32) {
         (self.effect_settled, self.transfer_reserved)
+    }
+}
+impl ClaimedExecutedOwnedReportV2<'_> {
+    pub(crate) fn validate_store(&self) -> bool {
+        self.creator == std::process::id() && self.inputs.store.validate_guard().is_ok()
+    }
+}
+impl Drop for ClaimedExecutedOwnedReportV2<'_> {
+    fn drop(&mut self) {
+        if !self.validate_store() {
+            // No semantic result disposal under a stale or foreign guard.
+            drop(self.report.root.take());
+        }
     }
 }
 impl ReadyExecutedOwnedStepV2<'_> {
@@ -353,7 +393,7 @@ pub(crate) use continue_observe::{
 mod live_append;
 pub(crate) use live_append::{
     consume_live_owned_step_v8, settle_live_owned_reduce_v8, LiveOwnedReduceCleanupFailureV8,
-    LiveOwnedStepTransferFailureV8,
+    LiveOwnedReduceCleanupGuardV8, LiveOwnedStepTransferFailureV8, LiveOwnedStepTransferGuardV8,
 };
 
 pub(crate) use continue_observe::{observe_live_continued_state_v8, LiveContinuedObserveFailureV8};

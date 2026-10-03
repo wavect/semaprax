@@ -10,12 +10,10 @@
 //! encoding of SEMAPRAX's checked (trapping, never-wrapping) arithmetic —
 //! not an approximation of it.
 
-use crate::ast::{BinaryOp, Expr, ExprKind, Function, Statement, UnaryOp};
+use crate::assurance_manifest::law_vc::{self, Definition, Term as VcTerm, TermKind};
+use crate::ast::{BinaryOp, Function, UnaryOp};
 
-use super::subset::{
-    self, binary_op_reason, check_declaration_supported, expr_reason, statement_reason,
-    NumericMode, Sort, UnsupportedReason,
-};
+use super::subset::{binary_op_reason, NumericMode, Sort, UnsupportedReason};
 
 /// One side condition that must hold whenever `guard` holds, or the
 /// operation it describes would trap at runtime instead of producing the
@@ -31,6 +29,9 @@ pub struct SideObligation {
     pub formula: String,
     /// Human-readable locator for diagnostics, e.g. `"ensure:0 op:2 add"`.
     pub label: String,
+    /// Exact checked scalar mode of the source operation, audited against
+    /// the backend-neutral typed VC subject.
+    pub mode: NumericMode,
 }
 
 impl SideObligation {
@@ -94,17 +95,17 @@ struct Ctx {
     /// line between "always true by construction" and "must be proved".
     definitions: Vec<String>,
     obligations: Vec<SideObligation>,
-    scope: Vec<(String, Translated)>,
+    scope: Vec<(usize, Translated)>,
     fresh: u32,
     label_prefix: String,
 }
 
 impl Ctx {
-    fn lookup(&self, name: &str) -> Option<Translated> {
+    fn lookup(&self, binding: usize) -> Option<Translated> {
         self.scope
             .iter()
             .rev()
-            .find(|(bound, _)| bound == name)
+            .find(|(id, _)| *id == binding)
             .map(|(_, value)| value.clone())
     }
 
@@ -123,52 +124,36 @@ impl Ctx {
 
 fn translate_expr(
     ctx: &mut Ctx,
-    expr: &Expr,
+    expr: &VcTerm,
     guard: &str,
 ) -> Result<Translated, UnsupportedReason> {
-    if let Some(reason) = expr_reason(expr) {
-        return Err(reason);
-    }
     match &expr.kind {
-        ExprKind::Int(v) => Ok(Translated {
-            term: int_literal(i128::from(*v)),
-            sort: Sort::Numeric(NumericMode::I64),
+        TermKind::Number(value) => Ok(Translated {
+            term: int_literal(*value),
+            sort: expr.sort,
         }),
-        ExprKind::Int32(v) => Ok(Translated {
-            term: int_literal(i128::from(*v)),
-            sort: Sort::Numeric(NumericMode::I32),
-        }),
-        ExprKind::Uint8(v) => Ok(Translated {
-            term: int_literal(i128::from(*v)),
-            sort: Sort::Numeric(NumericMode::U8),
-        }),
-        ExprKind::Usize(v) => Ok(Translated {
-            term: int_literal(i128::from(*v)),
-            sort: Sort::Numeric(NumericMode::Usize),
-        }),
-        ExprKind::Bool(b) => Ok(Translated {
-            term: b.to_string(),
+        TermKind::Bool(value) => Ok(Translated {
+            term: value.to_string(),
             sort: Sort::Bool,
         }),
-        ExprKind::Var(name) => ctx
-            .lookup(name)
+        TermKind::Binding { id, name } => ctx
+            .lookup(*id)
             .ok_or_else(|| UnsupportedReason::UnknownName { name: name.clone() }),
-        ExprKind::Unary { op, value } => translate_unary(ctx, *op, value, guard),
-        ExprKind::Binary { op, left, right } => translate_binary(ctx, *op, left, right, guard),
-        ExprKind::If {
+        TermKind::Unary { op, value } => translate_unary(ctx, *op, value, guard),
+        TermKind::Binary { op, left, right } => translate_binary(ctx, *op, left, right, guard),
+        TermKind::If {
             condition,
-            then_branch,
-            else_branch,
-        } => translate_if(ctx, condition, then_branch, else_branch, guard),
-        ExprKind::Block { statements, tail } => translate_block(ctx, statements, tail, guard),
-        _ => unreachable!("expr_reason already rejected every other ExprKind"),
+            then_value,
+            else_value,
+        } => translate_if(ctx, condition, then_value, else_value, guard),
+        TermKind::Block { definitions, tail } => translate_block(ctx, definitions, tail, guard),
     }
 }
 
 fn translate_unary(
     ctx: &mut Ctx,
     op: UnaryOp,
-    value: &Expr,
+    value: &VcTerm,
     guard: &str,
 ) -> Result<Translated, UnsupportedReason> {
     let inner = translate_expr(ctx, value, guard)?;
@@ -194,6 +179,7 @@ fn translate_unary(
                 guard: guard.to_owned(),
                 formula: range_formula(&term, mode),
                 label: format!("{} neg", ctx.label_prefix),
+                mode,
             });
             Ok(Translated {
                 term,
@@ -206,8 +192,8 @@ fn translate_unary(
 fn translate_binary(
     ctx: &mut Ctx,
     op: BinaryOp,
-    left: &Expr,
-    right: &Expr,
+    left: &VcTerm,
+    right: &VcTerm,
     guard: &str,
 ) -> Result<Translated, UnsupportedReason> {
     if let Some(reason) = binary_op_reason(op) {
@@ -235,6 +221,12 @@ fn translate_binary(
             })
         }
         BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul => {
+            if op == BinaryOp::Mul
+                && !matches!(left.kind, TermKind::Number(_))
+                && !matches!(right.kind, TermKind::Number(_))
+            {
+                return Err(UnsupportedReason::NonlinearMultiplication);
+            }
             let l = translate_expr(ctx, left, guard)?;
             let r = translate_expr(ctx, right, guard)?;
             let (Sort::Numeric(lm), Sort::Numeric(rm)) = (l.sort, r.sort) else {
@@ -254,6 +246,7 @@ fn translate_binary(
                 guard: guard.to_owned(),
                 formula: range_formula(&term, lm),
                 label: format!("{} {}", ctx.label_prefix, op.text()),
+                mode: lm,
             });
             Ok(Translated {
                 term,
@@ -298,9 +291,9 @@ fn translate_binary(
 
 fn translate_if(
     ctx: &mut Ctx,
-    condition: &Expr,
-    then_branch: &Expr,
-    else_branch: &Expr,
+    condition: &VcTerm,
+    then_branch: &VcTerm,
+    else_branch: &VcTerm,
     guard: &str,
 ) -> Result<Translated, UnsupportedReason> {
     let cond = translate_expr(ctx, condition, guard)?;
@@ -325,56 +318,25 @@ fn translate_if(
 
 fn translate_block(
     ctx: &mut Ctx,
-    statements: &[Statement],
-    tail: &Expr,
+    definitions: &[Definition],
+    tail: &VcTerm,
     guard: &str,
 ) -> Result<Translated, UnsupportedReason> {
     let scope_depth = ctx.scope.len();
-    let result = translate_block_body(ctx, statements, tail, guard);
-    // A `let` bound inside this block must not leak into the surrounding
-    // scope, on either success or failure.
+    let result = translate_block_body(ctx, definitions, tail, guard);
     ctx.scope.truncate(scope_depth);
     result
 }
 
 fn translate_block_body(
     ctx: &mut Ctx,
-    statements: &[Statement],
-    tail: &Expr,
+    definitions: &[Definition],
+    tail: &VcTerm,
     guard: &str,
 ) -> Result<Translated, UnsupportedReason> {
-    for statement in statements {
-        if let Some(reason) = statement_reason(statement) {
-            return Err(reason);
-        }
-        let Statement::Let {
-            name,
-            declared,
-            value,
-            ..
-        } = statement
-        else {
-            unreachable!("statement_reason already rejected every non-Let statement")
-        };
-        let translated = translate_expr(ctx, value, guard)?;
-        if let Some(declared_ty) = declared {
-            let declared_sort = subset::sort_of_type(declared_ty).ok_or_else(|| {
-                UnsupportedReason::TypeMismatch {
-                    detail: format!("`let {name}` declares an unsupported type `{declared_ty}`"),
-                }
-            })?;
-            if declared_sort != translated.sort {
-                return Err(UnsupportedReason::TypeMismatch {
-                    detail: format!(
-                        "`let {name}` declares `{declared_ty}` but its value has a different sort"
-                    ),
-                });
-            }
-        }
-        // A named skolem constant, not a raw substitution: keeps the
-        // rendered script readable and stable regardless of how many times
-        // `name` is referenced downstream.
-        let bound_name = ctx.fresh_name(name);
+    for definition in definitions {
+        let translated = translate_expr(ctx, &definition.value, guard)?;
+        let bound_name = ctx.fresh_name(&definition.name);
         let sort = translated.sort;
         ctx.declarations.push(Declaration {
             name: bound_name.clone(),
@@ -383,7 +345,7 @@ fn translate_block_body(
         ctx.definitions
             .push(format!("(= {bound_name} {})", translated.term));
         ctx.scope.push((
-            name.clone(),
+            definition.binding,
             Translated {
                 term: bound_name,
                 sort,
@@ -412,6 +374,11 @@ pub struct FunctionEncoding {
     /// part of a provable goal.
     pub definitions: Vec<String>,
     pub requires_terms: Vec<String>,
+    /// Arithmetic checked while evaluating each requires clause. An entry
+    /// may assume only the requires clauses before its index.
+    pub requires_obligations: Vec<Vec<SideObligation>>,
+    /// Arithmetic in the body, evaluated after every requires clause.
+    pub body_obligations: Vec<SideObligation>,
     /// Obligations from parameters/`requires`/body: shared by every
     /// `ensures` query, since all of them execute unconditionally before
     /// any `ensures` clause is reached.
@@ -425,7 +392,7 @@ pub struct FunctionEncoding {
 /// module discharges a function wholesale or not at all, matching the
 /// spec's "wholesale, not per-clause" note.
 pub fn translate_function(function: &Function) -> Result<FunctionEncoding, UnsupportedReason> {
-    check_declaration_supported(function)?;
+    let subject = law_vc::build(function)?;
 
     let mut ctx = Ctx {
         declarations: Vec::new(),
@@ -436,33 +403,34 @@ pub fn translate_function(function: &Function) -> Result<FunctionEncoding, Unsup
         fresh: 0,
         label_prefix: "requires".to_owned(),
     };
-    for param in &function.params {
-        let sort = subset::sort_of_type(&param.ty).expect("checked by check_declaration_supported");
-        ctx.declare(param.name.clone(), sort);
+    for param in &subject.parameters {
+        ctx.declare(param.name.clone(), param.sort);
         ctx.scope.push((
-            param.name.clone(),
+            param.binding,
             Translated {
                 term: param.name.clone(),
-                sort,
+                sort: param.sort,
             },
         ));
     }
 
     let mut requires_terms = Vec::new();
-    for require in &function.requires {
+    let mut requires_obligations = Vec::new();
+    for require in &subject.requires {
+        let before = ctx.obligations.len();
         let translated = translate_expr(&mut ctx, require, "true")?;
         if translated.sort != Sort::Bool {
             return Err(UnsupportedReason::OperandTypeMismatch { op: "requires" });
         }
         requires_terms.push(translated.term);
+        requires_obligations.push(ctx.obligations.split_off(before));
     }
 
     let mut ensures = Vec::new();
-    if !function.ensures.is_empty() {
+    if let Some(result_term) = &subject.result {
         ctx.label_prefix = "body".to_owned();
-        let body = translate_expr(&mut ctx, &function.body, "true")?;
-        let return_sort = subset::sort_of_type(&function.return_type)
-            .expect("checked by check_declaration_supported");
+        let body = translate_expr(&mut ctx, result_term, "true")?;
+        let return_sort = result_term.sort;
         if body.sort != return_sort {
             return Err(UnsupportedReason::TypeMismatch {
                 detail: "function body's inferred sort does not match its declared return type"
@@ -490,14 +458,14 @@ pub fn translate_function(function: &Function) -> Result<FunctionEncoding, Unsup
         ctx.definitions
             .push(format!("(= {result_name} {})", body.term));
         ctx.scope.push((
-            result_name.clone(),
+            subject.result_binding.expect("result term has binding"),
             Translated {
                 term: result_name,
                 sort: return_sort,
             },
         ));
 
-        for (index, clause) in function.ensures.iter().enumerate() {
+        for (index, clause) in subject.ensures.iter().enumerate() {
             ctx.label_prefix = format!("ensure:{index}");
             let before = ctx.obligations.len();
             let translated = translate_expr(&mut ctx, clause, "true")?;
@@ -512,12 +480,58 @@ pub fn translate_function(function: &Function) -> Result<FunctionEncoding, Unsup
         }
     }
 
+    let body_obligations = std::mem::take(&mut ctx.obligations);
+    let shared_obligations = requires_obligations
+        .iter()
+        .flat_map(|group| group.iter().cloned())
+        .chain(body_obligations.iter().cloned())
+        .collect();
+
+    let observed = requires_obligations
+        .iter()
+        .enumerate()
+        .flat_map(|(index, group)| {
+            group.iter().map(move |obligation| {
+                (
+                    crate::assurance_manifest::law_vc::Stage::Requires(index),
+                    obligation.mode,
+                )
+            })
+        })
+        .chain(body_obligations.iter().map(|obligation| {
+            (
+                crate::assurance_manifest::law_vc::Stage::Body,
+                obligation.mode,
+            )
+        }))
+        .chain(ensures.iter().enumerate().flat_map(|(index, clause)| {
+            clause.obligations.iter().map(move |obligation| {
+                (
+                    crate::assurance_manifest::law_vc::Stage::Ensures(index),
+                    obligation.mode,
+                )
+            })
+        }))
+        .collect::<Vec<_>>();
+    let expected = subject
+        .operations
+        .iter()
+        .map(|operation| (operation.stage, operation.mode))
+        .collect::<Vec<_>>();
+    if observed != expected {
+        return Err(UnsupportedReason::TypeMismatch {
+            detail: "SMT obligations disagree with the shared typed VC subject".to_owned(),
+        });
+    }
+
     Ok(FunctionEncoding {
         declarations: ctx.declarations,
         range_axioms: ctx.range_axioms,
         definitions: ctx.definitions,
         requires_terms,
-        shared_obligations: ctx.obligations,
+        requires_obligations,
+        body_obligations,
+        shared_obligations,
         ensures,
     })
 }
@@ -688,19 +702,25 @@ fn f(a: i64) -> i64
         // synthetic body below rather than this parsed one, since the
         // parser's own type checker is out of scope here; the translator
         // must independently reject the mismatch if asked to.
-        let mismatched = Expr {
-            kind: ExprKind::Binary {
+        let mismatched = VcTerm {
+            sort: Sort::Numeric(NumericMode::I64),
+            kind: TermKind::Binary {
                 op: BinaryOp::Add,
-                left: Box::new(Expr {
-                    kind: ExprKind::Var("a".to_owned()),
-                    span: Default::default(),
+                left: Box::new(VcTerm {
+                    sort: Sort::Numeric(NumericMode::I64),
+                    kind: TermKind::Binding {
+                        id: 0,
+                        name: "a".to_owned(),
+                    },
                 }),
-                right: Box::new(Expr {
-                    kind: ExprKind::Var("b".to_owned()),
-                    span: Default::default(),
+                right: Box::new(VcTerm {
+                    sort: Sort::Numeric(NumericMode::I32),
+                    kind: TermKind::Binding {
+                        id: 1,
+                        name: "b".to_owned(),
+                    },
                 }),
             },
-            span: Default::default(),
         };
         let mut ctx = Ctx {
             declarations: Vec::new(),
@@ -709,14 +729,14 @@ fn f(a: i64) -> i64
             obligations: Vec::new(),
             scope: vec![
                 (
-                    "a".to_owned(),
+                    0,
                     Translated {
                         term: "a".to_owned(),
                         sort: Sort::Numeric(NumericMode::I64),
                     },
                 ),
                 (
-                    "b".to_owned(),
+                    1,
                     Translated {
                         term: "b".to_owned(),
                         sort: Sort::Numeric(NumericMode::I32),

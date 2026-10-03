@@ -10,6 +10,7 @@ use super::live_upstream::effect::authorization::FixedOwnedEffectSettlementAppen
 use super::live_upstream::FixedOwnedContinuedStartAppendPermitV8;
 use super::live_upstream::FixedOwnedObserveSettlementAppendPermitV8;
 use super::*;
+mod continued_reduce;
 use crate::resumable_effects::owned_frame::{
     SourceOwnedWaitLeaseV8, SourceOwnedWaitStoreRegistrationV8,
 };
@@ -26,7 +27,7 @@ pub(crate) struct SourceOwnedWaitJournalV8 {
     prospective_reduce_identity: Cell<u64>,
     #[cfg(test)]
     panic_after_append: Cell<bool>,
-    lease: RefCell<SourceOwnedWaitLeaseV8>,
+    pub(super) lease: RefCell<SourceOwnedWaitLeaseV8>,
 }
 struct ProspectiveReduceRegistryV8 {
     phase: owned_effect::OwnedReduceHoldPhaseV8,
@@ -44,7 +45,18 @@ pub(crate) struct HeldOwnedWaitStoreV8<'a> {
 }
 pub(super) struct AppendSessionV8<'a> {
     journal: &'a SourceOwnedWaitJournalV8,
-    inventory: InventoryV8<'a>,
+    pub(super) inventory: InventoryV8<'a>,
+}
+impl AppendSessionV8<'_> {
+    pub(super) fn terminal_entry(
+        &self,
+        turn: u32,
+        status: super::super::SourceTerminalStatus,
+        carrier: Vec<u8>,
+        input: super::super::SourceTerminalEvidenceInput,
+    ) -> Result<EntryV8, SourceJournalError> {
+        self.inventory.terminal_entry(turn, status, carrier, input)
+    }
 }
 pub(super) enum AppendFailureV8<'a> {
     PhysicalBeforeCandidate {
@@ -86,6 +98,14 @@ impl Drop for Attempting<'_> {
     }
 }
 impl SourceOwnedWaitJournalV8 {
+    /// Reopens and authenticates the current bytes on every read. A terminal
+    /// projection never reconstructs the physical State/Report owner.
+    pub(crate) fn terminal_evidence(
+        &self,
+    ) -> Result<super::candidate::terminal::CheckedOwnedTerminalEvidenceV8, SourceJournalError>
+    {
+        self.begin_session()?.inventory.terminal_evidence()
+    }
     pub(crate) fn open(
         context: Arc<CheckedOwnedWaitJournalContextV8>,
         key: SourceCheckpointKey,
@@ -162,6 +182,15 @@ impl SourceOwnedWaitJournalV8 {
             journal: self,
             inventory,
         })
+    }
+    /// Fresh State initialization is admitted only after the held store's
+    /// authenticated prefix proves that no earlier live turn exists.
+    pub(super) fn begin_fresh_session(&self) -> Result<AppendSessionV8<'_>, SourceJournalError> {
+        let session = self.begin_session()?;
+        if session.sequence() != 0 {
+            return Err(SourceJournalError::Order);
+        }
+        Ok(session)
     }
 }
 impl HeldOwnedWaitStoreV8<'_> {
@@ -641,6 +670,7 @@ impl<'a> AppendSessionV8<'a> {
             }),
         }
     }
+
     fn begin_fixed_observe_settlement_append(
         self,
         permit: &FixedOwnedObserveSettlementAppendPermitV8<'_, 'a>,
@@ -1216,6 +1246,7 @@ fn physical_append_fixed_original_reduce(
     pending.validate_fixed_original_reduce_prefix(journal, permit)?;
     Ok(AppendVerifiedV8 { _sealed: () })
 }
+
 fn physical_append_fixed_observe_settlement(
     attempting: &Attempting<'_>,
     pending: &PendingV8<'_>,
@@ -1415,7 +1446,6 @@ mod observer_state;
 
 mod failed_observe_funnel;
 mod failed_observe_state;
-#[cfg(test)]
 pub(super) use failed_observe_state::LiveFailedObserveStateAppendFailureV8;
 pub(in crate::live_invocation::source_journal::owned_wait_v8) use failed_observe_state::VerifiedFailedObserveStateSuccessorV8;
 
@@ -1430,19 +1460,27 @@ impl HeldOwnedWaitStoreV8<'_> {
 }
 
 pub(super) mod continued_prepared;
-pub(in crate::live_invocation::source_journal::owned_wait_v8) use continued_prepared::VerifiedOwnedContinuedPreparedSuccessorV8;
+pub(in crate::live_invocation::source_journal::owned_wait_v8) use continued_prepared::{
+    LiveOwnedContinuedPreparedAppendFailureV8, VerifiedOwnedContinuedPreparedSuccessorV8,
+};
 
 pub(super) mod continued_model;
-pub(in crate::live_invocation::source_journal::owned_wait_v8) use continued_model::VerifiedOwnedContinuedModelSuccessorV8;
+pub(in crate::live_invocation::source_journal::owned_wait_v8) use continued_model::{
+    LiveOwnedContinuedModelAppendFailureV8, VerifiedOwnedContinuedModelSuccessorV8,
+};
 
 pub(super) mod continued_authorize;
+pub(in crate::live_invocation::source_journal::owned_wait_v8) use continued_authorize::LiveOwnedContinuedAuthorizeAppendFailureV8;
 pub(super) use continued_authorize::VerifiedOwnedContinuedAuthorizeSuccessorV8;
 
 pub(super) mod continued_effect;
+pub(in crate::live_invocation::source_journal::owned_wait_v8) use continued_effect::LiveOwnedContinuedEffectAppendFailureV8;
 pub(super) use continued_effect::VerifiedOwnedContinuedEffectSuccessorV8;
 
 mod continued_intent;
+pub(in crate::live_invocation::source_journal::owned_wait_v8) use continued_intent::LiveOwnedContinuedIntentAppendFailureV8;
 pub(super) use continued_intent::VerifiedOwnedContinuedIntentSuccessorV8;
 
 mod continued_settlement;
+pub(in crate::live_invocation::source_journal::owned_wait_v8) use continued_settlement::LiveOwnedContinuedSettlementAppendFailureV8;
 pub(super) use continued_settlement::VerifiedOwnedContinuedSettlementSuccessorV8;

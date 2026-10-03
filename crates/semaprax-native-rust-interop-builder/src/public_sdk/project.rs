@@ -71,12 +71,13 @@ pub fn build_authenticated_project_native_rust_sdk(
             project_revision: subject.project_revision.clone(),
             workspace_revision: subject.workspace_revision.clone(),
             subject_digest: subject.digest.clone(),
+            guarded_frontier: None,
         })
     })
 }
 
 impl ProjectSdkSubject {
-    fn from_authenticated(
+    pub(super) fn from_authenticated(
         input: &semaprax::project::ProjectNativeSdkSubject<'_>,
     ) -> Result<Self, Vec<Diagnostic>> {
         let manifest = input.canonical_manifest();

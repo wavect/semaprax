@@ -131,4 +131,46 @@ physical finalizer events remain target-specific, while semantic fuel is the
 common charge. The root is immutable handoff input, so a recovered destination
 does not repeat either evaluation or charge. The parity evidence above is
 local; hosted migration evidence and full target cleanup-event parity remain
-open.
+open. Recovery accepts finalizer rows only in producer-representable form: a
+bounded ordered sequence of nonempty bounded function identities and `u32`
+liveness flags. Each function identity must also belong to the exact prepared
+migration-call closure. It refuses malformed or detached target cleanup
+evidence before a durable destination can treat the handoff as settled.
+
+Fresh and resumed migrated runtimes also expose
+`run_durable_metered_with_backend` for the explicit metered checkpoint profile.
+It retains one authenticated semantic-work receipt per committed destination
+stage and returns a distinct
+`semaprax.evidence-root.durable-migration-metered.v1` association binding the
+migration handoff, selected target-and-fuel binding, typed-effect evidence,
+checkpoint and semantic-work digest. The selected binding identifies the held
+target and fuel profile; its target-specific instruction observations stay
+separate from the common semantic-work receipts. The ordinary durable migration
+route and evidence schema remain separate.
+Local same-Interpreter, caller-held Core Wasm, and caller-held native
+migration/recovery selectors verify the association, reservation/receipt
+pairing, and no retained host-work redelivery on each selected backend. A v4
+target migration retains its exact metered target binding in the authenticated
+handoff: the durable facade refuses an absent, unmetered, or differently bound
+target before its destination handoff reservation or host work. The full
+acceptance gate remains open.
+
+The durable target-cleanup selector also starts the metered destination from
+the migration seed and compares its ordered physical finalizer vector with the
+equivalent fresh durable run and both recoveries. The retained checkpoint and
+durable semantic-work evidence are independent read-only serializations of
+those target observations: recovery retains the verified prior vector before
+appending the newly charged current vector, while its evidence records that
+current suffix. Both focused cases passed locally; their equality is local
+parity evidence only and does not turn
+a migration receipt into authority to execute a finalizer or target stage.
+Hosted migration evidence and the full profile remain open.
+
+On Linux, `sanitized_held_native_migration_and_recovery` opens a test-only held
+clang wrapper which adds ASan and UBSan to every generated native stage compile,
+requires both symbol families from the generated executable, and then exercises
+pure migration plus durable recovery without redelivery. It grants no `PATH`
+lookup. The local Darwin held-process attestation requires exactly one mapped
+region for the registered executable before it runs; an ASan image maps none at
+that point, so the ordinary held-native recovery selector remains the Darwin
+gate. The sanitizer selector awaits Linux execution.

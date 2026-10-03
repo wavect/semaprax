@@ -25,6 +25,8 @@ use crate::project::ProjectRevision;
 pub const SCHEMA_V1: &str = "semaprax.query.v1";
 /// Schema of the authenticated multi-module Project result.
 pub const PROJECT_SCHEMA_V1: &str = "semaprax.project-query.v1";
+/// Project query envelope when native law declarations are present.
+pub const PROJECT_SCHEMA_V2: &str = "semaprax.project-query.v2";
 
 /// The declaration kinds a `--kind` filter may name, in canonical order.
 pub const KINDS: &[&str] = &[
@@ -38,6 +40,7 @@ pub const KINDS: &[&str] = &[
     "session_protocol",
     "implementation",
     "function",
+    "law",
 ];
 
 /// The conjunction of filters one query applies. Every set field must hold.
@@ -213,6 +216,9 @@ pub fn run_project(
     validate_kinds(filters)?;
     let mut documents = Vec::with_capacity(revision.sources().len());
     for source in revision.sources() {
+        if source.source_graph_schema() == "semaprax.native-law.v1" {
+            continue;
+        }
         let (program, comments) = crate::parse_with_comments(source.source(), source.path())
             .map_err(|error| vec![error])?;
         let document = doc::document(&program, &comments);
@@ -292,6 +298,69 @@ pub fn run_project(
                         entry,
                         calls: declaration_calls,
                         called_by: declaration_callers,
+                    },
+                });
+            }
+        }
+    }
+    for path in revision.manifest().law_sources() {
+        let source = revision
+            .sources()
+            .iter()
+            .find(|source| source.path() == path)
+            .ok_or_else(|| {
+                vec![Diagnostic::io(
+                    "SPX-V213",
+                    "Project query native law source is absent",
+                )]
+            })?;
+        let module = crate::native_law_source::parse(source.source(), source.path())
+            .map_err(|error| vec![error])?;
+        for law in module.laws {
+            let signature = match &law.subject {
+                crate::native_law_source::NativeLawSubject::Contract { subject_id, clause } => {
+                    let clause = match clause {
+                        crate::assurance_manifest::law_set::ContractKind::Precondition => {
+                            "requires"
+                        }
+                        crate::assurance_manifest::law_set::ContractKind::Postcondition => {
+                            "ensures"
+                        }
+                    };
+                    format!("law contract \"{subject_id}\" {clause} {}", law.proposition)
+                }
+                crate::native_law_source::NativeLawSubject::ScalarRelational => {
+                    format!("law relational {}", law.proposition)
+                }
+            };
+            let entry = Entry {
+                kind: "law",
+                id: law.law_id.clone(),
+                name: law.law_id,
+                persistent: true,
+                description: Vec::new(),
+                signature,
+                location: doc::Location {
+                    line: law.span.line,
+                    column: law.span.column,
+                    start: law.span.start,
+                    end: law.span.end,
+                },
+                facts: vec![doc::Fact {
+                    label: "Proposition",
+                    values: vec![law.proposition],
+                }],
+                members: Vec::new(),
+            };
+            if admitted(&entry, &[], &[], filters) {
+                matches.push(ProjectMatch {
+                    path: source.path().to_owned(),
+                    module: module.module_id.clone(),
+                    source_revision: source.source_revision().to_owned(),
+                    found: Match {
+                        entry,
+                        calls: Vec::new(),
+                        called_by: Vec::new(),
                     },
                 });
             }
@@ -414,7 +483,11 @@ pub fn project_json(result: &ProjectQueryResult) -> String {
     let filters = &result.filters;
     let mut output = format!(
         "{{\"schema\":{},\"project\":{},\"project_revision\":{},\"graph_revision\":{},\"filters\":{{\"kinds\":{},\"name\":{},\"id_prefix\":{},\"effect\":{},\"calls\":{},\"called_by\":{}}},\"matches\":[",
-        quote_json(PROJECT_SCHEMA_V1),
+        quote_json(if result.matches.iter().any(|found| found.found.entry.kind == "law") {
+            PROJECT_SCHEMA_V2
+        } else {
+            PROJECT_SCHEMA_V1
+        }),
         quote_json(&result.project),
         quote_json(&result.project_revision),
         quote_json(&result.graph_revision),

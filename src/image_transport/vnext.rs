@@ -22,6 +22,7 @@ mod draft_rebase;
 mod draft_recovery;
 mod environment_consumer_review;
 mod environment_review;
+mod explorer;
 mod external_api_contract_delta;
 mod external_api_contract_evidence;
 mod function_instances;
@@ -155,6 +156,10 @@ pub(super) enum Action {
     CandidateTestTaskCancel,
     CandidateTestTaskResult,
     AgentTaskComparison,
+    ExplorerSummary,
+    ExplorerPage,
+    CandidateExplorerSummary,
+    CandidateExplorerPage,
 }
 
 const REFRESH: Method = Method {
@@ -673,6 +678,21 @@ impl VNextSession {
                     candidate_impact_navigation::prepare(action, params, image, registry)?,
                     candidates::Mutation::None,
                 ),
+                Operation::VNext(action @ (Action::ExplorerSummary | Action::ExplorerPage)) => (
+                    explorer::image(action, params, image)?,
+                    candidates::Mutation::None,
+                ),
+                Operation::VNext(
+                    action @ (Action::CandidateExplorerSummary | Action::CandidateExplorerPage),
+                ) => (
+                    explorer::candidate(
+                        action,
+                        params,
+                        image,
+                        registry.candidate(text(params, "candidate_revision"))?,
+                    )?,
+                    candidates::Mutation::None,
+                ),
                 Operation::VNext(action @ (Action::DependencySummary | Action::DependencyPage)) => {
                     (
                         dependencies::prepare_navigation(action, params, image)?,
@@ -912,6 +932,7 @@ fn session_methods(
     }
     methods.push(cleanup_dependencies::method());
     methods.extend(dependencies::navigation_methods());
+    methods.extend(explorer::image_methods());
     methods.extend(projections::methods(policy.build_enabled));
     methods.extend(review_facets::methods(policy));
     if policy.test_policy.is_some() {
@@ -935,6 +956,7 @@ fn session_methods(
         methods.push(hole_suggestions::method());
         methods.push(cleanup_dependencies::candidate_method());
         methods.extend(candidate_dependency_navigation::methods());
+        methods.extend(explorer::candidate_methods());
         methods.extend(candidate_function_facets::methods());
         methods.extend(candidate_impact_navigation::methods());
         methods.extend(draft_recovery::methods());

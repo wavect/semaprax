@@ -3,6 +3,7 @@
 //! Validates HIR meaning; source resolution remains in
 //! the parent module.
 
+use super::workspace_link::native_owner::admitted_ri06_regex_result as regex_result;
 use super::*;
 use crate::loan_plan::{LoanCause, LoanId, LoanPointPhase};
 
@@ -14,6 +15,7 @@ mod closure;
 mod generic_record_composition;
 mod generic_template;
 mod host_command;
+mod native_borrow;
 mod owned_buffer;
 mod owned_result_try;
 mod proof_return;
@@ -270,6 +272,47 @@ impl<'a> HirValidator<'a> {
                 )));
             }
             for import in &interface.imports {
+                if import.selected_receiver.as_deref().is_some_and(|receiver| {
+                    !import.index_selected || match receiver {
+                        "shared" => {
+                            let scalar = matches!(import.parameters.first(), Some(p)
+                                if p.ty == ResolvedType::I64 && p.ownership == OwnershipMode::Value);
+                            let regex_loan = import.rust_path.as_deref()
+                                == Some("regex_alias::Regex::is_match")
+                                && matches!(import.parameters.as_slice(), [receiver, text]
+                                    if receiver.ownership == OwnershipMode::Borrow
+                                        && matches!(receiver.ty, ResolvedType::Nominal { ref declaration, ref arguments }
+                                            if arguments.is_empty() && self.program.declarations.declaration(declaration)
+                                                .is_some_and(|item| item.kind == DeclarationKind::Resource && item.name == "Regex"))
+                                        && text.ownership == OwnershipMode::Borrow
+                                        && text.ty == ResolvedType::String);
+                            !scalar && !regex_loan && !native_borrow::admitted(self.program, import)
+                        },
+                        "owned" => !matches!(import.parameters.first(), Some(p) if matches!(p.ty, ResolvedType::Nominal { .. }) && p.ownership == OwnershipMode::Own),
+                        _ => true,
+                    }
+                }) {
+                    return Err(hir_error(
+                        "selected Rust method receiver has an invalid ownership projection",
+                    ));
+                }
+                if import.index_selected
+                    && import
+                        .selected_index_digest
+                        .as_ref()
+                        .is_none_or(|digest| !digest.starts_with("sha256:") || digest.len() != 71)
+                {
+                    return Err(hir_error(
+                        "selected Rust import has no authenticated index digest",
+                    ));
+                }
+                if import.rust_path.as_ref().is_some_and(|path| {
+                    !import.native_rust || !crate::native_rust_binding::valid_rust_api_path(path)
+                }) {
+                    return Err(hir_error(
+                        "resolved Rust API path has an invalid declaration shape",
+                    ));
+                }
                 if crate::host_io_ops::by_id(import.id.as_str()).is_some() {
                     return Err(hir_error(format!(
                         "resolved import `{}` aliases a compiler-owned host I/O operation",
@@ -304,26 +347,38 @@ impl<'a> HirValidator<'a> {
                         )));
                     }
                 }
+                let ri06_regex_borrow_shape = native_borrow::admitted(self.program, import);
                 let native_shape = import.native_rust
+                    && (!matches!(import.result.kind, ResolvedImportResultKind::BorrowedStr { .. }) || ri06_regex_borrow_shape)
                     && import.parameters.len() <= 8
-                    && import.parameters.iter().all(|parameter| {
-                        parameter.ownership == OwnershipMode::Value
-                            && !parameter.consumes_on_failure
-                            && matches!(parameter.ty, ResolvedType::I64 | ResolvedType::Bool)
-                    })
+                    && (ri06_regex_borrow_shape || import.parameters.iter().all(|parameter| {
+                        (parameter.ownership == OwnershipMode::Value
+                            && matches!(parameter.ty, ResolvedType::I64 | ResolvedType::Bool))
+                            || (parameter.ownership == OwnershipMode::Own
+                                && (parameter.ty == ResolvedType::String || ResolvedImportResultKind::is_owned_container_type(&parameter.ty, &self.program.declarations) || matches!(parameter.ty, ResolvedType::Nominal { ref declaration, ref arguments }
+                                    if arguments.is_empty() && self.program.declarations.declaration(declaration)
+                                        .is_some_and(|item| item.kind == DeclarationKind::Resource))))
+                    }))
                     && matches!(
-                        import.result.kind,
+                        &import.result.kind,
                         ResolvedImportResultKind::Unit
                             | ResolvedImportResultKind::I64
                             | ResolvedImportResultKind::Bool
-                    );
+                            | ResolvedImportResultKind::ResultI64I64
+                            | ResolvedImportResultKind::BorrowedStr { .. } | ResolvedImportResultKind::OwnedResource { .. } | ResolvedImportResultKind::OwnedResultResourceI64 { .. } | ResolvedImportResultKind::OwnedString | ResolvedImportResultKind::OwnedOptionString | ResolvedImportResultKind::OwnedResultStringI64 | ResolvedImportResultKind::OwnedResultStringOptionI64
+                    )
+                    && (!matches!(
+                        import.result.kind,
+                        ResolvedImportResultKind::ResultI64I64
+                            | ResolvedImportResultKind::OwnedResultResourceI64 { .. }
+                    ) || (import.index_selected && import.selected_index_digest.is_some()));
                 let lifecycle_shape = !import.native_rust
                     && import.parameters.len() == 1
                     && import.parameters[0].ownership == OwnershipMode::Own
                     && import.parameters[0].consumes_on_failure
                     && import.result.kind == ResolvedImportResultKind::Unit;
                 if (!native_shape && !lifecycle_shape)
-                    || import.result.ownership != OwnershipMode::Value
+                    || import.result.ownership != import.result.kind.ownership()
                     || import.result.producer != "callee"
                     || import.result.out_slot_initialization != "success_only"
                     || import.result.ownership_transfer != "final_zero_status_commit"
@@ -3299,11 +3354,7 @@ impl<'a> HirValidator<'a> {
                                 }
                                 _ => {}
                             }
-                            let result = match call.result {
-                                ResolvedImportResultKind::Unit => ResolvedType::Unit,
-                                ResolvedImportResultKind::I64 => ResolvedType::I64,
-                                ResolvedImportResultKind::Bool => ResolvedType::Bool,
-                            };
+                            let result = call.result.value_type(&self.program.declarations)?;
                             frames.push(Frame::NativeNext {
                                 expression,
                                 args: &call.args,
@@ -3747,7 +3798,14 @@ impl<'a> HirValidator<'a> {
                     path,
                 } => {
                     if index == args.len() {
-                        self.finish_expr(expression, &result, OwnershipMode::Value)?;
+                        let ownership = if let ResolvedExprKind::NativeRustImportCall(call) =
+                            &expression.kind
+                        {
+                            call.result.ownership()
+                        } else {
+                            OwnershipMode::Value
+                        };
+                        self.finish_expr(expression, &result, ownership)?;
                         scopes.push(scope);
                     } else {
                         frames.push(Frame::NativeAfterArg {
@@ -3773,17 +3831,28 @@ impl<'a> HirValidator<'a> {
                     index,
                     path,
                 } => {
-                    let scope = scopes.pop().expect("native argument scope retained");
+                    let mut scope = scopes.pop().expect("native argument scope retained");
                     publication.publish(&scope);
                     let argument = &args[index];
                     let parameter = &params[index];
                     self.require_type(&argument.ty, &parameter.ty, "native Rust import argument")?;
-                    if argument.ownership != OwnershipMode::Value
-                        || parameter.ownership != OwnershipMode::Value
+                    if argument.ownership != parameter.ownership
+                        && !(parameter.ownership == OwnershipMode::Borrow
+                            && argument.ownership == OwnershipMode::Own
+                            && matches!(&argument.kind, ResolvedExprKind::Place(place) if place.projections.is_empty()))
                     {
                         return Err(hir_error(
-                            "native Rust import arguments must use value ownership",
+                            "native Rust import argument ownership disagrees with its declaration",
                         ));
+                    }
+                    if parameter.ownership == OwnershipMode::Own {
+                        if !allow_moves {
+                            return Err(hir_error(
+                                "contract cannot transfer ownership to native Rust",
+                            ));
+                        }
+                        self.mark_value_sources_moved(argument, &mut scope)?;
+                        publication.publish(&scope);
                     }
                     frames.push(Frame::NativeNext {
                         expression,
@@ -5067,7 +5136,8 @@ impl<'a> HirValidator<'a> {
                                 ) || resolved_type_is_flat_owned_string_variant(
                                     self.program,
                                     &scrutinee.ty,
-                                )) && facts.needs_drop
+                                ) || regex_result(self.program, &scrutinee.ty))
+                                    && facts.needs_drop
                                     && !facts.copy
                                     && matches!(
                                         scrutinee.ownership,
@@ -6419,20 +6489,27 @@ impl<'a> HirValidator<'a> {
                         allowed_effects,
                     )?;
                     self.require_type(&argument.ty, &parameter.ty, "native Rust import argument")?;
-                    if argument.ownership != OwnershipMode::Value
-                        || parameter.ownership != OwnershipMode::Value
+                    if argument.ownership != parameter.ownership
+                        && !(parameter.ownership == OwnershipMode::Borrow
+                            && argument.ownership == OwnershipMode::Own
+                            && matches!(&argument.kind, ResolvedExprKind::Place(place) if place.projections.is_empty()))
                     {
                         return Err(hir_error(
-                            "native Rust import arguments must use value ownership",
+                            "native Rust import argument ownership disagrees with its declaration",
                         ));
                     }
+                    if parameter.ownership == OwnershipMode::Own {
+                        if !allow_moves {
+                            return Err(hir_error(
+                                "contract cannot transfer ownership to native Rust",
+                            ));
+                        }
+                        self.mark_value_sources_moved(argument, scope)?;
+                    }
                 }
-                let result = match call.result {
-                    ResolvedImportResultKind::Unit => ResolvedType::Unit,
-                    ResolvedImportResultKind::I64 => ResolvedType::I64,
-                    ResolvedImportResultKind::Bool => ResolvedType::Bool,
-                };
-                (result, OwnershipMode::Value)
+                let result = call.result.value_type(&self.program.declarations)?;
+                let ownership = call.result.ownership();
+                (result, ownership)
             }
             ResolvedExprKind::Unary { .. } => unreachable!("unary chain handled above"),
             ResolvedExprKind::Binary { op, left, right } => {
@@ -7365,7 +7442,8 @@ impl<'a> HirValidator<'a> {
                         ) || resolved_type_is_flat_owned_string_variant(
                             self.program,
                             &scrutinee.ty,
-                        )) && facts.needs_drop
+                        ) || regex_result(self.program, &scrutinee.ty))
+                            && facts.needs_drop
                             && !facts.copy
                             && matches!(
                                 scrutinee.ownership,
@@ -8601,117 +8679,8 @@ impl<'a> HirValidator<'a> {
 mod owned_byte_record_hostile_tests;
 
 #[cfg(test)]
-mod borrowed_bytes_call_tests {
-    use super::*;
-
-    const SOURCE: &str = r#"
-module test.borrowed_bytes_call_hir;
-@id("packet.type") record Packet {
-  @id("packet.payload") payload: Bytes,
-  @id("packet.sibling") sibling: Bytes,
-}
-@id("packet.inspect") fn inspect(value: borrow Bytes) -> usize {
-  byte_len(bytes_as_slice(value))
-}
-@id("packet.caller") fn caller(packet: own Packet) -> usize { inspect(packet.payload) }
-@id("app.main") fn main() -> i64 { 0 }
-"#;
-
-    fn fixture() -> ResolvedProgram {
-        let parsed = crate::parse(
-            SOURCE,
-            std::path::Path::new("borrowed-bytes-call-hir-v1.spx"),
-        )
-        .expect("fixture parses");
-        let program = crate::hir::resolve(&parsed).expect("fixture resolves");
-        crate::hir::validate(&program).expect("fixture validates");
-        program
-    }
-
-    fn caller(program: &ResolvedProgram) -> &ResolvedFunction {
-        program
-            .functions
-            .iter()
-            .find(|function| function.id.as_str() == "packet.caller")
-            .expect("caller function")
-    }
-
-    fn caller_mut(program: &mut ResolvedProgram) -> &mut ResolvedFunction {
-        program
-            .functions
-            .iter_mut()
-            .find(|function| function.id.as_str() == "packet.caller")
-            .expect("caller function")
-    }
-
-    fn call_argument_mut(function: &mut ResolvedFunction) -> &mut ResolvedExpr {
-        let ResolvedExprKind::Block { tail, .. } = &mut function.body.kind else {
-            panic!("caller body remains a block")
-        };
-        let ResolvedExprKind::Call { args, .. } = &mut tail.kind else {
-            panic!("caller tail remains a call")
-        };
-        &mut args[0]
-    }
-
-    #[test]
-    fn resolver_preserves_borrowed_bytes_and_attaches_projected_call_loan_identity() {
-        let program = fixture();
-        let inspect = program
-            .functions
-            .iter()
-            .find(|function| function.id.as_str() == "packet.inspect")
-            .expect("inspect function");
-        assert_eq!(inspect.params[0].ownership, OwnershipMode::Borrow);
-
-        let loan = caller(&program)
-            .loan_plan
-            .loans
-            .iter()
-            .find(|loan| loan.cause == LoanCause::BorrowedCall { argument: 0 })
-            .expect("borrowed call loan");
-        assert_eq!(
-            loan.origin.projections,
-            [PlaceProjection::Field(DeclarationId::new("packet.payload"))]
-        );
-        assert_eq!(loan.start.phase, LoanPointPhase::Before);
-        assert!(!loan.end_edges.is_empty());
-    }
-
-    #[test]
-    fn hostile_call_place_and_attached_loan_field_identity_fail_closed() {
-        let mut forged_hir = fixture();
-        let argument = call_argument_mut(caller_mut(&mut forged_hir));
-        let ResolvedExprKind::Place(place) = &mut argument.kind else {
-            panic!("borrowed argument remains a place")
-        };
-        place.projections = vec![PlaceProjection::Field(DeclarationId::new("packet.sibling"))];
-        let diagnostic = crate::hir::validate(&forged_hir).expect_err("HIR drift must fail");
-        assert_eq!(diagnostic.code, "SPX-H006");
-
-        let mut forged_plan = fixture();
-        let loan = caller_mut(&mut forged_plan)
-            .loan_plan
-            .loans
-            .iter_mut()
-            .find(|loan| loan.cause == LoanCause::BorrowedCall { argument: 0 })
-            .expect("borrowed call loan");
-        loan.origin.projections =
-            vec![PlaceProjection::Field(DeclarationId::new("packet.sibling"))];
-        let diagnostic =
-            crate::hir::validate(&forged_plan).expect_err("loan identity drift must fail");
-        assert_eq!(diagnostic.code, "SPX-H006");
-    }
-
-    #[test]
-    fn hostile_non_place_borrowed_bytes_argument_is_h006() {
-        let mut program = fixture();
-        let argument = call_argument_mut(caller_mut(&mut program));
-        argument.kind = ResolvedExprKind::Int(0);
-        let diagnostic = crate::hir::validate(&program).expect_err("non-place must fail");
-        assert_eq!(diagnostic.code, "SPX-H006");
-    }
-}
+#[path = "validation/borrowed_bytes_call_tests.rs"]
+mod borrowed_bytes_call_tests;
 
 #[cfg(test)]
 mod iterative_while_admission_tests {

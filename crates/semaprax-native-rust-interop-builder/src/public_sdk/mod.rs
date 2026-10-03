@@ -163,6 +163,7 @@ pub struct ProjectNativeRustSdkBundle {
     project_revision: String,
     workspace_revision: String,
     subject_digest: String,
+    guarded_frontier: Option<semaprax::native_rust_binding::foreign_law::ForeignLawFrontier>,
 }
 
 impl ProjectNativeRustSdkBundle {
@@ -230,6 +231,7 @@ enum Scalar {
     Unit,
     I64,
     Bool,
+    ResultI64I64,
 }
 
 impl Scalar {
@@ -238,6 +240,7 @@ impl Scalar {
             Self::Unit => "()",
             Self::I64 => "i64",
             Self::Bool => "bool",
+            Self::ResultI64I64 => "core::result::Result<i64,i64>",
         }
     }
 
@@ -246,6 +249,7 @@ impl Scalar {
             Self::Unit => "unit",
             Self::I64 => "i64",
             Self::Bool => "bool",
+            Self::ResultI64I64 => "result<i64,i64>",
         }
     }
 }
@@ -601,18 +605,87 @@ fn full_hash(value: &str) -> String {
 
 mod authentication;
 mod authority;
+mod borrowed_input;
 mod build;
+mod callback;
+mod registered_callback;
+pub use callback::{
+    prepare_native_rust_callbacks, NativeCallbackProjection, NativeCallbackSelection,
+};
+pub use registered_callback::{
+    prepare_registered_native_rust_callbacks, NativeRegisteredCallbackProjection,
+    NativeRegistrySelection,
+};
+mod demanded;
 mod descriptor;
+mod future_bridge;
+pub use demanded::{
+    prepare_demanded_native_rust, ConcreteRustBindingPlan, DemandedNativeRust, RustDemandSelection,
+};
+pub use future_bridge::{render_local_future_bridge, LOCAL_FUTURE_BRIDGE_SCHEMA};
+mod foreign_law;
+mod indexed;
+pub use foreign_law::GuardedForeignCallerEvidence;
+mod indexed_multiple;
+mod indexed_owner;
+mod indexed_project;
+mod indexed_url_project;
+mod regex_project_native;
+mod regex_project_package;
+mod url_project_native;
+mod url_project_package;
+pub use indexed_project::{
+    build_guarded_indexed_project_native_rust_sdk,
+    build_guarded_indexed_project_native_rust_sdk_with_law_policy,
+    build_indexed_project_native_rust_sdk, prepare_indexed_regex_project_package,
+    GuardedForeignLawSelection, IndexedProjectRegexRegistrySelection,
+    IndexedProjectScalarSelection,
+};
+pub use indexed_url_project::{
+    prepare_indexed_url_project_package, IndexedProjectUrlRegistrySelection,
+};
+pub use regex_project_package::PreparedRegexProjectPackage;
+pub use url_project_package::PreparedUrlProjectPackage;
 mod owned_data;
+mod owner_borrowed_result;
+mod owner_sdk;
+mod serde_projection;
+pub use owner_sdk::{
+    prepare_opaque_owner_native, prepare_owned_container_native, prepare_owned_string_native,
+    OpaqueOwnerNative,
+};
 mod package;
 mod project;
 
 pub use build::build_native_rust_sdk;
+pub use indexed::{
+    build_indexed_scalar_native_rust, build_indexed_scalar_native_rust_sdk, IndexedScalarBuild,
+};
+pub use indexed_multiple::{build_indexed_scalars_native_rust_sdk, IndexedScalarSelection};
 pub use owned_data::build_native_rust_owned_data_sdk;
 pub use project::{build_authenticated_project_native_rust_sdk, build_project_native_rust_sdk};
+pub use serde_projection::{prepare_serde_record_projection, SerdeRecordProjection};
 
 #[cfg(test)]
 mod tests;
 
 #[cfg(test)]
+mod borrowed_input_tests;
+#[cfg(test)]
+mod future_bridge_tests;
+#[cfg(test)]
+mod indexed_tests;
+#[cfg(test)]
+mod owned_string_tests;
+#[cfg(test)]
+mod owner_borrowed_result_tests;
+#[cfg(test)]
+mod owner_return_tests;
+#[cfg(test)]
+mod owner_sdk_tests;
+
+#[cfg(test)]
 mod target_tests;
+
+#[cfg(test)]
+mod indexed_owner_tests;

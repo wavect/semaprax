@@ -9,15 +9,15 @@ pub(super) enum ModelOwnerV8<'j> {
 }
 pub(super) struct ResumedModelOwnerV8<'j> {
     pub(super) owner: ContinuedResumedWaitV8<'j>,
-    history: PreparedHistoryV8<'j>,
+    pub(super) history: PreparedHistoryV8<'j>,
 }
-struct PreparedHistoryV8<'j> {
-    observation: CheckedOwnedWaitObservationV8,
-    _observe_acks: Vec<ObserveSettlementAckV8<'j>>,
-    _start_acks: Vec<ContinuedStartAckV8<'j>>,
-    session: AppendSessionV8<'j>,
-    _witness: VerifiedOwnedContinuedPreparedSuccessorV8<'j>,
-    wait: String,
+pub(super) struct PreparedHistoryV8<'j> {
+    pub(super) observation: CheckedOwnedWaitObservationV8,
+    pub(super) _observe_acks: Vec<ObserveSettlementAckV8<'j>>,
+    pub(super) _start_acks: Vec<ContinuedStartAckV8<'j>>,
+    pub(super) session: AppendSessionV8<'j>,
+    pub(super) _witness: VerifiedOwnedContinuedPreparedSuccessorV8<'j>,
+    pub(super) wait: String,
 }
 impl<'j> ModelOwnerV8<'j> {
     pub(super) fn journal(&self) -> &'j SourceOwnedWaitJournalV8 {

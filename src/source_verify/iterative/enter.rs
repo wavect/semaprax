@@ -633,14 +633,10 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                 } else {
                     self.values.push(Some(match target {
                         VerifierCallTarget::Native(import) => {
-                            let mut value = CheckedValue::value(match import.result {
-                                ImportResult::Unit => Type::Named {
-                                    name: "\0native-rust-unit".to_owned(),
-                                    arguments: Vec::new(),
-                                },
-                                ImportResult::I64 => Type::I64,
-                                ImportResult::Bool => Type::Bool,
-                            });
+                            let mut value = CheckedValue::returned(
+                                import.result.value_type(),
+                                import.result.is_owned(),
+                            );
                             value.native_unit = import.result == ImportResult::Unit;
                             value
                         }

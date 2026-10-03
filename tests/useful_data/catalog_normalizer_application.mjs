@@ -14,6 +14,7 @@ assert.deepEqual(
   ['spx_add', 'spx_sub', 'spx_mul', 'spx_div', 'spx_rem', 'spx_neg',
     'spx_contract_fail', 'spx_bytes_copy', 'spx_bytes_get', 'spx_bytes_drop',
     'spx_bytes_as_slice', 'spx_bytes_zeroed', 'spx_bytes_set',
+    'spx_bytes_set5', 'spx_bytes_set1_or5', 'spx_bytes_set1_or6_or48',
     'spx_vec_with_capacity', 'spx_vec_push', 'spx_vec_len',
     'spx_vec_capacity', 'spx_vec_get', 'spx_vec_drop'].sort(),
 );

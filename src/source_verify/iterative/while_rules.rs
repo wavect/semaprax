@@ -326,7 +326,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             self.program,
                             "SPX-T252",
                             format!(
-                                "byte operation `{name}` is not admitted in while bodies; only exact byte_len, byte_get and byte_range reads and the loop-carried bytes_set fill qualify"
+                                "byte operation `{name}` is not admitted in while bodies; only exact byte_len, byte_get and byte_range reads and the loop-carried bytes_set/bytes_set5/bytes_set1_or5_from_slice/bytes_set1_or6_or48_from_slice fills qualify"
                             ),
                             expression.span,
                         ));

@@ -257,6 +257,23 @@ impl LiveOwnedReduceCleanupPermitV8<'_, '_> {
         self.validate_cleanup_current()
     }
 }
+impl crate::interpreter::resumable::owned_frame::registered_stage::reduce::LiveOwnedReduceCleanupGuardV8
+    for LiveOwnedReduceCleanupPermitV8<'_, '_>
+{
+    fn cleanup_origin(&self) -> Result<OwnedReduceCleanupOriginV8, SourceJournalError> {
+        LiveOwnedReduceCleanupPermitV8::cleanup_origin(self)
+    }
+    fn validate_cleanup_current(&self) -> Result<(), SourceJournalError> {
+        LiveOwnedReduceCleanupPermitV8::validate_cleanup_current(self)
+    }
+    fn validate_staged(
+        &self,
+        inputs: &OwnedEffectInputsV8<'_>,
+        facts: &CheckedLiveOwnedReduceStageFactsV8,
+    ) -> Result<(), SourceJournalError> {
+        LiveOwnedReduceCleanupPermitV8::validate_staged(self, inputs, facts)
+    }
+}
 pub(crate) struct LiveOwnedStepTransferPermitV8<'p, 'j> {
     lineage: &'p StepLineageV8<'j>,
 }
@@ -316,6 +333,24 @@ impl LiveOwnedStepTransferPermitV8<'_, '_> {
             }
         }
         self.validate_transfer_current()
+    }
+}
+impl crate::interpreter::resumable::owned_frame::registered_stage::reduce::LiveOwnedStepTransferGuardV8
+    for LiveOwnedStepTransferPermitV8<'_, '_>
+{
+    fn validate_transfer_current(&self) -> Result<(), SourceJournalError> {
+        LiveOwnedStepTransferPermitV8::validate_transfer_current(self)
+    }
+    fn transfer_reserved(&self) -> Result<u32, SourceJournalError> {
+        LiveOwnedStepTransferPermitV8::transfer_reserved(self)
+    }
+    fn validate_ready(
+        &self,
+        inputs: &OwnedEffectInputsV8<'_>,
+        receipt: &Value,
+        origin: OwnedReduceCleanupOriginV8,
+    ) -> Result<(), SourceJournalError> {
+        LiveOwnedStepTransferPermitV8::validate_ready(self, inputs, receipt, origin)
     }
 }
 
@@ -399,6 +434,7 @@ enum StepAppendOwnerV8<'j> {
     Released(LiveReleasedStepV8<'j>),
     Ready(LiveReadyStepV8<'j>),
     Moved(LiveMovedStepV8<'j>),
+    Continued(crate::live_invocation::source_journal::owned_wait_v8::live_upstream::LiveContinuedStagedStepV8<'j>),
 }
 impl<'j> StepAppendOwnerV8<'j> {
     fn lineage(&self) -> &StepLineageV8<'j> {
@@ -407,6 +443,7 @@ impl<'j> StepAppendOwnerV8<'j> {
             Self::Released(o) => &o.lineage,
             Self::Ready(o) => &o.lineage,
             Self::Moved(o) => &o.lineage,
+            Self::Continued(_) => unreachable!("continued Step has its own held lineage"),
         }
     }
 }
@@ -526,6 +563,15 @@ impl<'j> LiveEvaluatedOwnedReduceV8<'j> {
 }
 
 impl<'j> LiveOwnedStepAppendV8<'j> {
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn continued(
+        owner: crate::live_invocation::source_journal::owned_wait_v8::live_upstream::LiveContinuedStagedStepV8<'j>,
+        selected: EntryV8,
+    ) -> Self {
+        Self {
+            owner: StepAppendOwnerV8::Continued(owner),
+            selected,
+        }
+    }
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn selected_row(
         &self,
     ) -> &EntryV8 {
@@ -535,22 +581,35 @@ impl<'j> LiveOwnedStepAppendV8<'j> {
         &self,
         j: &SourceOwnedWaitJournalV8,
     ) -> bool {
-        std::ptr::eq(self.owner.lineage().journal(), j)
+        match &self.owner {
+            StepAppendOwnerV8::Continued(o) => std::ptr::eq(o.journal(), j),
+            _ => std::ptr::eq(self.owner.lineage().journal(), j),
+        }
     }
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn sequence(&self) -> usize {
-        self.owner.lineage().cursor().0
+        match &self.owner {
+            StepAppendOwnerV8::Continued(o) => o.cursor().0,
+            _ => self.owner.lineage().cursor().0,
+        }
     }
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn acknowledged_bytes(
         &self,
     ) -> usize {
-        self.owner.lineage().cursor().1
+        match &self.owner {
+            StepAppendOwnerV8::Continued(o) => o.cursor().1,
+            _ => self.owner.lineage().cursor().1,
+        }
     }
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_live(
         &self,
     ) -> Result<(), SourceJournalError> {
-        self.owner
-            .lineage()
-            .validate_current(self.owner.lineage().incurred())
+        match &self.owner {
+            StepAppendOwnerV8::Continued(o) => o.validate_live(),
+            _ => self
+                .owner
+                .lineage()
+                .validate_current(self.owner.lineage().incurred()),
+        }
     }
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn fixed_append_permit(
         &self,
@@ -564,8 +623,12 @@ impl<'j> LiveOwnedStepAppendV8<'j> {
         s: &AppendSessionV8<'_>,
     ) -> Result<(), SourceJournalError> {
         w.validate_against_acknowledged_session(s)?;
+        let journal = match &self.owner {
+            StepAppendOwnerV8::Continued(o) => o.journal(),
+            _ => self.owner.lineage().journal(),
+        };
         w.validate_predecessor(
-            self.owner.lineage().journal(),
+            journal,
             self.sequence(),
             self.acknowledged_bytes(),
             &self.selected,
@@ -580,7 +643,10 @@ impl<'j> LiveOwnedStepAppendV8<'j> {
                     | OwnedBodyV8::OwnedReduceCleanupSettled { .. }
             )
         );
-        self.owner.lineage().validate_new_prefix(s, incurred)
+        match &self.owner {
+            StepAppendOwnerV8::Continued(o) => o.validate_new_prefix(s, incurred),
+            _ => self.owner.lineage().validate_new_prefix(s, incurred),
+        }
     }
 }
 pub(crate) struct FixedOwnedStepAppendPermitV8<'p, 'j> {
@@ -612,24 +678,35 @@ impl FixedOwnedStepAppendPermitV8<'_, '_> {
         j: &SourceOwnedWaitJournalV8,
         i: &crate::live_invocation::source_journal::owned_wait_v8::candidate::InventoryV8<'_>,
     ) -> Result<(), SourceJournalError> {
-        self.obligation
-            .owner
-            .lineage()
-            .origin()
-            .hold
-            .validate_step_append_prefix(j, i, &self.obligation.selected)
+        match &self.obligation.owner {
+            StepAppendOwnerV8::Continued(o) => {
+                o.hold()?
+                    .validate_step_append_prefix(j, i, &self.obligation.selected)
+            }
+            _ => self
+                .obligation
+                .owner
+                .lineage()
+                .origin()
+                .hold
+                .validate_step_append_prefix(j, i, &self.obligation.selected),
+        }
     }
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_registry(
         &self,
         w: &VerifiedOwnedStepSuccessorV8<'_>,
         s: &AppendSessionV8<'_>,
     ) -> Result<(), SourceJournalError> {
-        self.obligation
-            .owner
-            .lineage()
-            .origin()
-            .hold
-            .advance_step_ack(w, s)
+        match &self.obligation.owner {
+            StepAppendOwnerV8::Continued(o) => o.hold()?.advance_step_ack(w, s),
+            _ => self
+                .obligation
+                .owner
+                .lineage()
+                .origin()
+                .hold
+                .advance_step_ack(w, s),
+        }
     }
 }
 impl<'j> StepLineageV8<'j> {
@@ -724,6 +801,7 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) enum LiveStepAckno
     Released(LiveReleasedStepV8<'j>),
     Ready(LiveReadyStepV8<'j>),
     Moved(LiveMovedStepV8<'j>),
+    Continued(crate::live_invocation::source_journal::owned_wait_v8::live_upstream::LiveContinuedStagedStepV8<'j>),
 }
 pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_verified_step_v8<'j>(
     mut obligation: LiveOwnedStepAppendV8<'j>,
@@ -731,17 +809,33 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_verifie
     witness: VerifiedOwnedStepSuccessorV8<'j>,
 ) -> Result<LiveStepAcknowledgedV8<'j>, LiveStepAdvanceFailureV8<'j>> {
     if let Err(error) = obligation.validate_step_successor(&witness, &session) {
-        obligation.owner.lineage().journal().quarantine();
+        match &obligation.owner {
+            StepAppendOwnerV8::Continued(o) => o.journal().quarantine(),
+            _ => obligation.owner.lineage().journal().quarantine(),
+        }
         return Err(LiveStepAdvanceFailureV8::Before {
             _owner: obligation,
             error,
         });
+    }
+    if matches!(&obligation.owner, StepAppendOwnerV8::Continued(_)) {
+        let StepAppendOwnerV8::Continued(owner) = obligation.owner else {
+            unreachable!()
+        };
+        return owner
+            .acknowledge(session, witness, &obligation.selected)
+            .map(LiveStepAcknowledgedV8::Continued)
+            .map_err(|(owner, error)| LiveStepAdvanceFailureV8::Before {
+                _owner: LiveOwnedStepAppendV8::continued(owner, obligation.selected),
+                error,
+            });
     }
     let lineage = match &mut obligation.owner {
         StepAppendOwnerV8::Staged(o) => &mut o.lineage,
         StepAppendOwnerV8::Released(o) => &mut o.lineage,
         StepAppendOwnerV8::Ready(o) => &mut o.lineage,
         StepAppendOwnerV8::Moved(o) => &mut o.lineage,
+        StepAppendOwnerV8::Continued(_) => unreachable!(),
     };
     if lineage.acks.len() == lineage.acks.capacity() {
         lineage.journal().quarantine();
@@ -756,6 +850,7 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_verifie
         StepAppendOwnerV8::Released(o) => LiveStepAcknowledgedV8::Released(o),
         StepAppendOwnerV8::Ready(o) => LiveStepAcknowledgedV8::Ready(o),
         StepAppendOwnerV8::Moved(o) => LiveStepAcknowledgedV8::Moved(o),
+        StepAppendOwnerV8::Continued(_) => unreachable!(),
     })
 }
 
@@ -1098,7 +1193,14 @@ impl<'j> LiveMovedStepV8<'j> {
     }
 }
 
-impl LiveMovedStepV8<'_> {
+impl<'j> LiveMovedStepV8<'j> {
+    /// The consuming turn driver derives its store from the physical owner.
+    /// Callers cannot pair an owner with a different registered journal.
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn journal(
+        &self,
+    ) -> &'j SourceOwnedWaitJournalV8 {
+        self.lineage.journal()
+    }
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn kind(&self) -> &'static str {
         self.held.kind()
     }

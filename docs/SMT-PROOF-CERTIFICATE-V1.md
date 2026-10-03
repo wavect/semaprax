@@ -318,9 +318,14 @@ one of those toolchains.
 
 ## Scope and honest limitations
 
-- Only postcondition (`ensures`) discharge is certified; precondition
-  consistency (`unsat` meaning "contradictory `requires`", not a proof of
-  any obligation) is out of this tranche's scope.
+- Only postcondition (`ensures`) discharge is certified. Export now requires
+  a bounded Z3 satisfiable-domain model validated by independent checked
+  `requires` replay before a `proved` certificate can be issued. The v1
+  certificate does not embed that witness. Source-bound replay reconstructs
+  a bounded checked witness from the exact source and refuses unknown; the
+  filesystem-free structural check alone does not establish non-vacuity.
+  A future versioned certificate should bind the witness or an explicit
+  unknown status for source-independent review.
 - Exactly one compiled backend target is bound (`artifact`, the Wasm core
   module — see "Artifact binding" above); no native artifact is bound, and
   binding does not by itself prove the backend lowering preserves the

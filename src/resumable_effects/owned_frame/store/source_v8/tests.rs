@@ -111,6 +111,17 @@ fn owned_frame_v8_store_fresh_registration_is_postcreate_retained_and_profile_sp
         recovered.validate(&facts, registration.generation()),
         Ok(())
     );
+    assert_eq!(
+        recovered.validate_append_authorized(&registration),
+        Err(Error::Policy),
+        "authenticated retained history does not restore an append or physical-owner permit"
+    );
+    assert_eq!(
+        recovered.append(b"recovered-successor\n"),
+        Err(Error::Policy),
+        "a restart cannot create a successor row until a sealed owner-restoration path exists"
+    );
+    assert_eq!(recovered.read().unwrap(), b"v8-held-history\n");
     drop(recovered);
     // V1 naming cannot reinterpret the actual v8 file, even with matching pins.
     let v1 = OwnedFrameStoreRegistration::grant_for_trusted_host(

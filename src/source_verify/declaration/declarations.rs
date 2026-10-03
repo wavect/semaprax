@@ -200,6 +200,26 @@ pub(super) fn check_native_rust_imports<'p>(
             .map(String::as_str)
             .collect::<HashSet<_>>();
         for import in &interface.imports {
+            if import.index_selected
+                && (import.selected_signature.is_none() || import.selected_index_digest.is_none())
+            {
+                diagnostics.push(error(
+                    program,
+                    "SPX-B147",
+                    "selected Rust import requires an authenticated API index",
+                    import.span,
+                ));
+            }
+            if let Some(path) = &import.rust_path {
+                if !import.native_rust || !crate::native_rust_binding::valid_rust_api_path(path) {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-B143",
+                        "Rust API path must be a bounded package-qualified path",
+                        import.span,
+                    ));
+                }
+            }
             if import.native_rust && !native_rust_names.insert(import.name.as_str()) {
                 diagnostics.push(error(
                     program,
@@ -250,13 +270,68 @@ pub(super) fn check_native_rust_imports<'p>(
                     diagnostics,
                 );
             }
+            let native_result_is_valid = match &import.result {
+                crate::ast::ImportResult::Unit
+                | crate::ast::ImportResult::I64
+                | crate::ast::ImportResult::Bool
+                | crate::ast::ImportResult::ResultI64I64
+                | crate::ast::ImportResult::OwnedString
+                | crate::ast::ImportResult::OwnedOptionString
+                | crate::ast::ImportResult::OwnedResultStringI64
+                | crate::ast::ImportResult::OwnedResultStringOptionI64 => true,
+                crate::ast::ImportResult::BorrowedStr { owner } => {
+                    crate::native_rust_binding::admitted_url_view(import)
+                        && types.is_opaque_resource(&Type::Named {
+                            name: owner.clone(),
+                            arguments: Vec::new(),
+                        })
+                }
+                crate::ast::ImportResult::OwnedResultResourceI64 { name }
+                | crate::ast::ImportResult::OwnedResource { name } => {
+                    types.is_opaque_resource(&Type::Named {
+                        name: name.clone(),
+                        arguments: Vec::new(),
+                    })
+                }
+            };
+            let ri06_regex_borrow_shape = import.index_selected
+                && match (&import.result, import.params.as_slice()) {
+                    (crate::ast::ImportResult::BorrowedStr { owner }, [receiver]) => {
+                        crate::native_rust_binding::admitted_url_view(import)
+                            && receiver.mode == ParamMode::Borrow
+                            && receiver.ty
+                                == (Type::Named {
+                                    name: owner.clone(),
+                                    arguments: Vec::new(),
+                                })
+                    }
+                    (crate::ast::ImportResult::OwnedResultResourceI64 { .. }, [parameter]) => {
+                        parameter.mode == ParamMode::Borrow && parameter.ty == Type::String
+                    }
+                    (crate::ast::ImportResult::Bool, [receiver, text]) => {
+                        receiver.mode == ParamMode::Borrow
+                            && types.is_opaque_resource(&receiver.ty)
+                            && text.mode == ParamMode::Borrow
+                            && text.ty == Type::String
+                    }
+                    _ => false,
+                };
             let valid_shape = if import.native_rust {
                 import.params.len() <= 8
                     && import.consumes.is_empty()
-                    && import.params.iter().all(|parameter| {
-                        parameter.mode == ParamMode::Value
-                            && matches!(parameter.ty, Type::I64 | Type::Bool)
-                    })
+                    && (ri06_regex_borrow_shape
+                        || import.params.iter().all(|parameter| {
+                            (parameter.mode == ParamMode::Value
+                                && matches!(parameter.ty, Type::I64 | Type::Bool))
+                                || (parameter.mode == ParamMode::Own
+                                    && (parameter.ty == Type::String
+                                        || crate::ast::ImportResult::container_for_type(
+                                            &parameter.ty,
+                                        )
+                                        .is_some()
+                                        || types.is_opaque_resource(&parameter.ty)))
+                        }))
+                    && native_result_is_valid
             } else {
                 import.result == crate::ast::ImportResult::Unit
                     && import.params.len() == 1

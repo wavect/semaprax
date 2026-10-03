@@ -13,15 +13,15 @@
 //! Only the scaffold decisions whose signatures that vocabulary admits,
 //! and whose entire call closure is effect- and contract-free, are
 //! invocable here: `request_is_admitted`, `identifier_is_valid`,
-//! `method_is_rejected`, `task_owner_authorized`, and `session_is_usable`.
-//! `enqueue_outcome`
-//! admits the vocabulary but its closure reaches the contract-bearing
-//! `std.bytes.byte_to_i64`, so the host mirrors its documented 0/1/2 truth
-//! table instead of invoking it (see `mapping`). The remaining scaffold
-//! decisions (registration bounds, job terminality,
-//! migration/transaction, log/trace/metric/export/webhook policies) take
-//! `u8`/`usize` parameters. They keep their existing fixture-mode coverage
-//! until a host route needs them.
+//! `method_is_rejected`, `task_owner_authorized`, and the three session
+//! predicates/transitions.
+//! `registration_admitted`, `enqueue_is_legal`, `enqueue_outcome`, the three
+//! task transaction decisions, `mark_job_succeeded`,
+//! `completed_job_log_is_admitted`, `completed_job_metric_is_admitted`,
+//! `completed_job_export_is_admitted`, and the opt-in v2 webhook decision are invoked through the checked
+//! public-API seam before their corresponding host work. The optional
+//! trace-context decision gates incoming traceparent metadata before routing.
+//! Migration decisions retain fixture-mode coverage until a host route needs them.
 //!
 //! [`ProjectRevision::evaluate_service_decision_v1`]: semaprax::project::ProjectRevision::evaluate_service_decision_v1
 
@@ -49,18 +49,31 @@ pub enum DecisionRefusal {
 
 /// The scaffold decision identities resolved from one revision. The module
 /// prefix is discovered, never assumed: a scaffolded project carries
-/// `<module>.core.<decision>` for its own module name. All six must
-/// resolve (proving the exact decision set), but only five are invoked
-/// (see the module documentation).
+/// `<module>.core.<decision>` for its own module name. Every identity used by
+/// the host resolves from that one family before any route is served.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct DecisionIdentities {
     prefix: String,
     request_is_admitted: String,
     identifier_is_valid: String,
+    registration_admitted: String,
     method_is_rejected: String,
     task_owner_authorized: String,
     session_is_usable: String,
+    session_next_state_on_access: String,
+    session_next_state_on_logout: String,
     enqueue_outcome: String,
+    enqueue_is_legal: String,
+    create_is_committed: String,
+    update_is_committed: String,
+    delete_is_committed: String,
+    mark_job_succeeded: String,
+    job_status_is_complete: String,
+    completed_job_log_is_admitted: String,
+    completed_job_metric_is_admitted: String,
+    completed_job_export_is_admitted: String,
+    completed_job_webhook_is_admitted: Option<String>,
+    trace_context_is_admitted: Option<String>,
 }
 
 impl DecisionIdentities {
@@ -70,19 +83,57 @@ impl DecisionIdentities {
         let program = revision.entry_program();
         let request_is_admitted = sole(program, "request_is_admitted")?;
         let identifier_is_valid = sole(program, "identifier_is_valid")?;
+        let registration_admitted = sole(program, "registration_admitted")?;
         let method_is_rejected = sole(program, "method_is_rejected")?;
         let task_owner_authorized = sole(program, "task_owner_authorized")?;
         let session_is_usable = sole(program, "session_is_usable")?;
+        let session_next_state_on_access = sole(program, "session_next_state_on_access")?;
+        let session_next_state_on_logout = sole(program, "session_next_state_on_logout")?;
         let enqueue_outcome = sole(program, "enqueue_outcome")?;
+        let enqueue_is_legal = sole(program, "enqueue_is_legal")?;
+        let create_is_committed = sole(program, "create_is_committed")?;
+        let update_is_committed = sole(program, "update_is_committed")?;
+        let delete_is_committed = sole(program, "delete_is_committed")?;
+        let mark_job_succeeded = sole(program, "mark_job_succeeded")?;
+        let job_status_is_complete = sole(program, "job_status_is_complete")?;
+        let completed_job_log_is_admitted = sole(program, "completed_job_log_is_admitted")?;
+        let completed_job_metric_is_admitted = sole(program, "completed_job_metric_is_admitted")?;
+        let completed_job_export_is_admitted = sole(program, "completed_job_export_is_admitted")?;
+        let completed_job_webhook_is_admitted =
+            optional_sole(program, "completed_job_webhook_is_admitted")?;
+        let trace_context_is_admitted = optional_sole(program, "trace_context_is_admitted")?;
         let prefix = prefix_of(&request_is_admitted).ok_or(DecisionRefusal::Unresolved)?;
         for identity in [
             &identifier_is_valid,
+            &registration_admitted,
             &method_is_rejected,
             &task_owner_authorized,
             &session_is_usable,
+            &session_next_state_on_access,
+            &session_next_state_on_logout,
             &enqueue_outcome,
+            &enqueue_is_legal,
+            &create_is_committed,
+            &update_is_committed,
+            &delete_is_committed,
+            &mark_job_succeeded,
+            &job_status_is_complete,
+            &completed_job_log_is_admitted,
+            &completed_job_metric_is_admitted,
+            &completed_job_export_is_admitted,
         ] {
             if prefix_of(identity) != Some(prefix) {
+                return Err(DecisionRefusal::Unresolved);
+            }
+        }
+        for identity in [
+            &completed_job_webhook_is_admitted,
+            &trace_context_is_admitted,
+        ] {
+            if identity
+                .as_deref()
+                .is_some_and(|id| prefix_of(id) != Some(prefix))
+            {
                 return Err(DecisionRefusal::Unresolved);
             }
         }
@@ -90,10 +141,24 @@ impl DecisionIdentities {
             prefix: prefix.to_owned(),
             request_is_admitted,
             identifier_is_valid,
+            registration_admitted,
             method_is_rejected,
             task_owner_authorized,
             session_is_usable,
+            session_next_state_on_access,
+            session_next_state_on_logout,
             enqueue_outcome,
+            enqueue_is_legal,
+            create_is_committed,
+            update_is_committed,
+            delete_is_committed,
+            mark_job_succeeded,
+            job_status_is_complete,
+            completed_job_log_is_admitted,
+            completed_job_metric_is_admitted,
+            completed_job_export_is_admitted,
+            completed_job_webhook_is_admitted,
+            trace_context_is_admitted,
         })
     }
 
@@ -101,19 +166,19 @@ impl DecisionIdentities {
     pub fn prefix(&self) -> &str {
         &self.prefix
     }
-
-    /// The resolved but deliberately uninvoked enqueue identity. Its closure
-    /// reaches the contract-bearing `std.bytes.byte_to_i64`, so invocation
-    /// is refused (`SPX-F102`) and the host mirrors its truth table.
-    pub fn enqueue_outcome_id(&self) -> &str {
-        &self.enqueue_outcome
-    }
 }
 
 fn sole(
     program: &semaprax::hir::ResolvedProgram,
     decision: &str,
 ) -> Result<String, DecisionRefusal> {
+    optional_sole(program, decision)?.ok_or(DecisionRefusal::Unresolved)
+}
+
+fn optional_sole(
+    program: &semaprax::hir::ResolvedProgram,
+    decision: &str,
+) -> Result<Option<String>, DecisionRefusal> {
     let suffix = format!(".core.{decision}");
     let mut found: Option<String> = None;
     for function in &program.functions {
@@ -128,17 +193,31 @@ fn sole(
             found = Some(id.to_owned());
         }
     }
-    found.ok_or(DecisionRefusal::Unresolved)
+    Ok(found)
 }
 
 fn prefix_of(identity: &str) -> Option<&str> {
     identity
         .strip_suffix(".core.request_is_admitted")
         .or_else(|| identity.strip_suffix(".core.identifier_is_valid"))
+        .or_else(|| identity.strip_suffix(".core.registration_admitted"))
         .or_else(|| identity.strip_suffix(".core.method_is_rejected"))
         .or_else(|| identity.strip_suffix(".core.task_owner_authorized"))
         .or_else(|| identity.strip_suffix(".core.session_is_usable"))
+        .or_else(|| identity.strip_suffix(".core.session_next_state_on_access"))
+        .or_else(|| identity.strip_suffix(".core.session_next_state_on_logout"))
         .or_else(|| identity.strip_suffix(".core.enqueue_outcome"))
+        .or_else(|| identity.strip_suffix(".core.enqueue_is_legal"))
+        .or_else(|| identity.strip_suffix(".core.create_is_committed"))
+        .or_else(|| identity.strip_suffix(".core.update_is_committed"))
+        .or_else(|| identity.strip_suffix(".core.delete_is_committed"))
+        .or_else(|| identity.strip_suffix(".core.mark_job_succeeded"))
+        .or_else(|| identity.strip_suffix(".core.job_status_is_complete"))
+        .or_else(|| identity.strip_suffix(".core.completed_job_log_is_admitted"))
+        .or_else(|| identity.strip_suffix(".core.completed_job_metric_is_admitted"))
+        .or_else(|| identity.strip_suffix(".core.completed_job_export_is_admitted"))
+        .or_else(|| identity.strip_suffix(".core.completed_job_webhook_is_admitted"))
+        .or_else(|| identity.strip_suffix(".core.trace_context_is_admitted"))
 }
 
 /// One bound decision engine over an operator-retained revision.
@@ -184,6 +263,22 @@ impl<'revision> DecisionEngine<'revision> {
         }
     }
 
+    fn invoke_usize(
+        &self,
+        identity: &str,
+        arguments: &[PublicApiArgument<'_>],
+    ) -> Result<u64, DecisionRefusal> {
+        let evaluation = self
+            .revision
+            .evaluate_service_decision_v1(identity, arguments, self.max_steps)
+            .map_err(|_| DecisionRefusal::EvaluationFailed)?;
+        match evaluation.outcome {
+            PublicApiEvaluationOutcome::Returned(PublicApiValue::Usize(value)) => Ok(value),
+            PublicApiEvaluationOutcome::Returned(_) => Err(DecisionRefusal::UnexpectedResult),
+            _ => Err(DecisionRefusal::EvaluationFailed),
+        }
+    }
+
     /// Evaluate the scaffold's request-line admission decision.
     pub fn request_is_admitted(
         &self,
@@ -199,11 +294,60 @@ impl<'revision> DecisionEngine<'revision> {
         )
     }
 
+    /// Admit actual inbound trace fields. Missing optional identity fails only
+    /// when a request supplies trace metadata; header-free projects remain valid.
+    pub fn trace_context_is_admitted(
+        &self,
+        trace_id: &[u8],
+        parent_id: &[u8],
+        trace_flags: &[u8],
+        carries_secret: bool,
+    ) -> Result<bool, DecisionRefusal> {
+        let identity = self
+            .identities
+            .trace_context_is_admitted
+            .as_deref()
+            .ok_or(DecisionRefusal::Unresolved)?;
+        self.invoke_bool(
+            identity,
+            &[
+                PublicApiArgument::BorrowSliceU8(trace_id),
+                PublicApiArgument::BorrowSliceU8(parent_id),
+                PublicApiArgument::BorrowSliceU8(trace_flags),
+                PublicApiArgument::Bool(carries_secret),
+            ],
+        )
+    }
+
     /// Evaluate the scaffold's identifier-grammar decision.
     pub fn identifier_is_valid(&self, name: &[u8]) -> Result<bool, DecisionRefusal> {
         self.invoke_bool(
             &self.identities.identifier_is_valid,
             &[PublicApiArgument::BorrowSliceU8(name)],
+        )
+    }
+
+    /// Evaluate the checked account-capacity and password-policy admission
+    /// decision before deriving or hashing a registration secret.
+    pub fn registration_admitted(
+        &self,
+        username: &[u8],
+        active_count: u64,
+        max_accounts: u64,
+        password_memory_cost_kib: u64,
+        password_time_cost: u64,
+        password_parallelism: u64,
+    ) -> Result<bool, DecisionRefusal> {
+        self.invoke_bool(
+            &self.identities.registration_admitted,
+            &[
+                PublicApiArgument::BorrowSliceU8(username),
+                PublicApiArgument::Usize(active_count),
+                PublicApiArgument::Usize(max_accounts),
+                PublicApiArgument::Usize(password_memory_cost_kib),
+                PublicApiArgument::Usize(password_time_cost),
+                PublicApiArgument::Usize(password_parallelism),
+            ],
         )
     }
 
@@ -251,6 +395,218 @@ impl<'revision> DecisionEngine<'revision> {
             ],
         )
     }
+
+    /// Evaluate the source transition selected for an access attempt. The
+    /// returned state is persisted by the host, preserving terminality across
+    /// restart instead of treating expiry as a transient authorization check.
+    pub fn session_next_state_on_access(
+        &self,
+        state: u64,
+        now_tick: u64,
+        idle_deadline_tick: u64,
+        absolute_deadline_tick: u64,
+    ) -> Result<u64, DecisionRefusal> {
+        self.invoke_usize(
+            &self.identities.session_next_state_on_access,
+            &[
+                PublicApiArgument::Usize(state),
+                PublicApiArgument::Usize(now_tick),
+                PublicApiArgument::Usize(idle_deadline_tick),
+                PublicApiArgument::Usize(absolute_deadline_tick),
+            ],
+        )
+    }
+
+    /// Evaluate the source transition selected for an explicit logout.
+    pub fn session_next_state_on_logout(&self, state: u64) -> Result<u64, DecisionRefusal> {
+        self.invoke_usize(
+            &self.identities.session_next_state_on_logout,
+            &[PublicApiArgument::Usize(state)],
+        )
+    }
+
+    /// Evaluate source admission using explicit scheduling facts. This method
+    /// does not read a clock or create scheduling authority.
+    pub fn enqueue_is_legal(
+        &self,
+        state: u64,
+        now_tick: u64,
+        next_run_tick: u64,
+    ) -> Result<bool, DecisionRefusal> {
+        self.invoke_bool(
+            &self.identities.enqueue_is_legal,
+            &[
+                PublicApiArgument::Usize(state),
+                PublicApiArgument::Usize(now_tick),
+                PublicApiArgument::Usize(next_run_tick),
+            ],
+        )
+    }
+
+    /// Evaluate the scaffold's contract-free idempotent-enqueue decision.
+    pub fn enqueue_outcome(
+        &self,
+        key_exists: bool,
+        existing_descriptor: &[u8],
+        candidate_descriptor: &[u8],
+    ) -> Result<u64, DecisionRefusal> {
+        self.invoke_usize(
+            &self.identities.enqueue_outcome,
+            &[
+                PublicApiArgument::Bool(key_exists),
+                PublicApiArgument::BorrowSliceU8(existing_descriptor),
+                PublicApiArgument::BorrowSliceU8(candidate_descriptor),
+            ],
+        )
+    }
+
+    /// Evaluate the scaffold's creation decision before the host constructs
+    /// or commits a new task. The host supplies the fixed idle transaction
+    /// fact, so source refusal leaves the authoritative state untouched.
+    pub fn create_is_committed(&self, transaction_state: u64) -> Result<bool, DecisionRefusal> {
+        self.invoke_bool(
+            &self.identities.create_is_committed,
+            &[PublicApiArgument::Usize(transaction_state)],
+        )
+    }
+
+    /// Evaluate the scaffold's transaction decision before publishing one
+    /// task-status update. The host supplies the fixed idle transaction fact;
+    /// it does not synthesize a source-selected commit after mutation.
+    pub fn update_is_committed(&self, transaction_state: u64) -> Result<bool, DecisionRefusal> {
+        self.invoke_bool(
+            &self.identities.update_is_committed,
+            &[PublicApiArgument::Usize(transaction_state)],
+        )
+    }
+
+    /// Evaluate the scaffold's deletion decision before publishing one task
+    /// removal. The host supplies the fixed idle transaction fact before it
+    /// constructs a candidate state.
+    pub fn delete_is_committed(&self, transaction_state: u64) -> Result<bool, DecisionRefusal> {
+        self.invoke_bool(
+            &self.identities.delete_is_committed,
+            &[PublicApiArgument::Usize(transaction_state)],
+        )
+    }
+
+    /// Evaluate the source-selected terminal code before the host publishes
+    /// its one completed-job state. The reference profile binds its only
+    /// completion attempt; this decision does not create retry authority.
+    pub fn mark_job_succeeded(
+        &self,
+        attempt: u8,
+        max_attempts: u8,
+    ) -> Result<u64, DecisionRefusal> {
+        self.invoke_usize(
+            &self.identities.mark_job_succeeded,
+            &[
+                PublicApiArgument::U8(attempt),
+                PublicApiArgument::U8(max_attempts),
+            ],
+        )
+    }
+
+    /// Evaluate whether the persisted job-status representation is terminal
+    /// before the host attempts any completion delivery.
+    pub fn job_status_is_complete(&self, state: u64) -> Result<bool, DecisionRefusal> {
+        self.invoke_bool(
+            &self.identities.job_status_is_complete,
+            &[PublicApiArgument::Usize(state)],
+        )
+    }
+
+    /// Evaluate the checked structured-log policy before serializing an OTLP
+    /// completion. Bits 0..=5 identify password, API key, bearer token, session
+    /// token, webhook signing secret, and SMTP credential. The source adapter
+    /// rejects unknown bits and calls its nine-argument structured-log policy.
+    pub fn completed_job_log_is_admitted(
+        &self,
+        level: u8,
+        threshold: u8,
+        field_count: u64,
+        secret_flags: u8,
+    ) -> Result<bool, DecisionRefusal> {
+        self.invoke_bool(
+            &self.identities.completed_job_log_is_admitted,
+            &[
+                PublicApiArgument::U8(level),
+                PublicApiArgument::U8(threshold),
+                PublicApiArgument::Usize(field_count),
+                PublicApiArgument::U8(secret_flags),
+            ],
+        )
+    }
+
+    /// Evaluate the checked metric policy before the completion route advances
+    /// to outbound delivery. This selects source semantics only; it emits no
+    /// metric by itself.
+    pub fn completed_job_metric_is_admitted(
+        &self,
+        label: &[u8],
+        value: &[u8],
+        carries_secret: bool,
+    ) -> Result<bool, DecisionRefusal> {
+        self.invoke_bool(
+            &self.identities.completed_job_metric_is_admitted,
+            &[
+                PublicApiArgument::BorrowSliceU8(label),
+                PublicApiArgument::BorrowSliceU8(value),
+                PublicApiArgument::Bool(carries_secret),
+            ],
+        )
+    }
+
+    /// Evaluate the checked admission policy before one completion event is
+    /// handed to the host-created outbound adapter.
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "mirrors the fixed seven-input checked webhook admission policy"
+    )]
+    pub fn completed_job_webhook_is_admitted(
+        &self,
+        signature: &[u8],
+        payload_len: u64,
+        signed_at: i64,
+        now: i64,
+        key_exists: bool,
+        existing_descriptor: &[u8],
+        candidate_descriptor: &[u8],
+    ) -> Result<bool, DecisionRefusal> {
+        self.invoke_bool(
+            self.identities
+                .completed_job_webhook_is_admitted
+                .as_deref()
+                .ok_or(DecisionRefusal::Unresolved)?,
+            &[
+                PublicApiArgument::BorrowSliceU8(signature),
+                PublicApiArgument::Usize(payload_len),
+                PublicApiArgument::I64(signed_at),
+                PublicApiArgument::I64(now),
+                PublicApiArgument::Bool(key_exists),
+                PublicApiArgument::BorrowSliceU8(existing_descriptor),
+                PublicApiArgument::BorrowSliceU8(candidate_descriptor),
+            ],
+        )
+    }
+
+    pub fn completed_job_export_is_admitted(
+        &self,
+        existing_depth: i64,
+        batch_count: u64,
+        batch_bytes: u64,
+        target: &[u8],
+    ) -> Result<bool, DecisionRefusal> {
+        self.invoke_bool(
+            &self.identities.completed_job_export_is_admitted,
+            &[
+                PublicApiArgument::I64(existing_depth),
+                PublicApiArgument::Usize(batch_count),
+                PublicApiArgument::Usize(batch_bytes),
+                PublicApiArgument::BorrowSliceU8(target),
+            ],
+        )
+    }
 }
 
 #[cfg(test)]
@@ -282,6 +638,12 @@ mod tests {
         assert!(!engine.request_is_admitted(b"get", b"/tasks").unwrap());
         assert!(engine.identifier_is_valid(b"alice").unwrap());
         assert!(!engine.identifier_is_valid(b"1task").unwrap());
+        assert!(engine
+            .registration_admitted(b"alice", 0, 64, 19_456, 2, 1)
+            .unwrap());
+        assert!(!engine
+            .registration_admitted(b"alice", 64, 64, 19_456, 2, 1)
+            .unwrap());
         assert!(engine.method_is_rejected(b"get").unwrap());
         assert!(!engine.method_is_rejected(b"GET").unwrap());
         assert!(engine.task_owner_authorized(1, 1, true).unwrap());
@@ -290,12 +652,50 @@ mod tests {
         assert!(engine.session_is_usable(0, 1_000, 1_900, 5_000).unwrap());
         assert!(!engine.session_is_usable(0, 1_900, 1_900, 5_000).unwrap());
         assert!(!engine.session_is_usable(0, 5_000, 6_000, 5_000).unwrap());
-        // The enqueue identity resolves (proving the exact decision set)
-        // but is deliberately never invoked (see below).
         assert_eq!(
-            engine.identities().enqueue_outcome_id(),
-            "task_service.core.enqueue_outcome"
+            engine
+                .session_next_state_on_access(0, 1_000, 1_900, 5_000)
+                .unwrap(),
+            0
         );
+        assert_eq!(
+            engine
+                .session_next_state_on_access(0, 1_900, 1_900, 5_000)
+                .unwrap(),
+            3
+        );
+        assert_eq!(engine.session_next_state_on_logout(0).unwrap(), 5);
+        assert_eq!(engine.enqueue_outcome(false, b"", b"job-1").unwrap(), 0);
+        assert_eq!(engine.enqueue_outcome(true, b"job-1", b"job-1").unwrap(), 1);
+        assert_eq!(engine.enqueue_outcome(true, b"job-1", b"job-2").unwrap(), 2);
+        assert!(engine.create_is_committed(0).unwrap());
+        assert!(!engine.create_is_committed(1).unwrap());
+        assert!(engine.update_is_committed(0).unwrap());
+        assert!(!engine.update_is_committed(1).unwrap());
+        assert!(engine.delete_is_committed(0).unwrap());
+        assert!(!engine.delete_is_committed(1).unwrap());
+        assert!(!engine.job_status_is_complete(0).unwrap());
+        assert!(engine.job_status_is_complete(4).unwrap());
+        assert!(engine
+            .completed_job_export_is_admitted(0, 1, 128, b"https://telemetry.example")
+            .unwrap());
+        assert!(!engine
+            .completed_job_export_is_admitted(0, 0, 128, b"https://telemetry.example")
+            .unwrap());
+        assert_eq!(
+            prefix_of("task_service.core.completed_job_webhook_is_admitted"),
+            Some("task_service")
+        );
+        assert!(engine
+            .completed_job_webhook_is_admitted(&[b'a'; 64], 128, 1000, 1100, false, b"", b"body")
+            .unwrap());
+        assert!(!engine
+            .completed_job_webhook_is_admitted(&[b'a'; 64], 128, 1000, 1301, false, b"", b"body")
+            .unwrap());
+        let overlong_target = [b'a'; 129];
+        assert!(!engine
+            .completed_job_export_is_admitted(0, 1, 128, &overlong_target)
+            .unwrap());
     }
 
     #[test]
@@ -313,8 +713,8 @@ mod tests {
                 DECISION_MAX_STEPS
             )
             .is_err());
-        // A decision outside the frozen vocabulary (usize parameter) is not
-        // invocable, even though it is linked and checked.
+        // Scalar usize is admitted, but an i64 argument cannot stand in for
+        // its declared type, even though the function is linked and checked.
         assert!(revision
             .evaluate_service_decision_v1(
                 "task_service.core.job_status_is_complete",
@@ -322,11 +722,10 @@ mod tests {
                 DECISION_MAX_STEPS
             )
             .is_err());
-        // A vocabulary-admitting decision whose closure reaches a
-        // contract-bearing callee (`std.bytes.byte_to_i64`) is refused as
-        // well; the host mirrors its truth table instead of invoking it.
+        // The contract-bearing standard function remains outside the service
+        // vocabulary, while the scaffold wrapper above is admitted.
         let enqueue = revision.evaluate_service_decision_v1(
-            "task_service.core.enqueue_outcome",
+            "std.jobs.idempotency.enqueue_outcome",
             &[
                 PublicApiArgument::Bool(false),
                 PublicApiArgument::BorrowSliceU8(b"job-1"),

@@ -79,12 +79,7 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) struct Prospective
 > {
     journal: &'j SourceOwnedWaitJournalV8,
     identity: u64,
-}
-impl Drop for ProspectiveOwnedReduceHoldV8<'_> {
-    fn drop(&mut self) {
-        // No refund, replacement or terminal retirement exists in this packet.
-        self.journal.quarantine();
-    }
+    terminal_completed: std::cell::Cell<bool>,
 }
 pub(in crate::live_invocation::source_journal::owned_wait_v8) struct ReduceHoldRejectionV8<'j> {
     _owner: VerifiedOwnedAuthorizationConsumedV8<'j>,
@@ -428,7 +423,6 @@ impl ProspectiveOwnedReduceHoldV8<'_> {
         })();
         result.inspect_err(|_| self.journal.quarantine())
     }
-
     /// Callback-free checked phase/funding match. No cancellation or clock call.
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_cleanup_append_prefix(
         &self,
@@ -968,7 +962,7 @@ impl ProspectiveOwnedReduceHoldV8<'_> {
                     |crate::live_invocation::source_journal::owned_wait_v8::model::OwnedBodyV8::OwnedReduceCleanupSettled{..}
                     |crate::live_invocation::source_journal::owned_wait_v8::model::OwnedBodyV8::OwnedStepTransferReserved{..}
                     |crate::live_invocation::source_journal::owned_wait_v8::model::OwnedBodyV8::OwnedStepTransferCompleted{..})
-                |EntryV8::Ordinary(SourceJournalEntry::Transition{..}|SourceJournalEntry::Stop{..})) {
+                |EntryV8::Ordinary(SourceJournalEntry::Transition{..}|SourceJournalEntry::Stop{..}|SourceJournalEntry::TerminalSnapshot{..})) {
                 return Err(SourceJournalError::Binding);
             }
             Ok(())
@@ -1433,7 +1427,11 @@ pub(super) fn reserve<'j>(
     match prepared {
         Ok(identity) => Ok(HeldOwnedAuthorizationConsumedV8 {
             owner,
-            hold: ProspectiveOwnedReduceHoldV8 { journal, identity },
+            hold: ProspectiveOwnedReduceHoldV8 {
+                journal,
+                identity,
+                terminal_completed: std::cell::Cell::new(false),
+            },
         }),
         Err(error) => Err(ReduceHoldRejectionV8 {
             _owner: owner,
@@ -1489,6 +1487,7 @@ mod spent_funding_tests {
     }
 }
 
+mod continued_reduce;
 mod failed_observe_cleanup;
 mod observe_settlement;
 mod turn_authorize;
@@ -1496,3 +1495,4 @@ mod turn_effect;
 mod turn_model;
 mod turn_prepared;
 mod turn_start;
+mod terminal;

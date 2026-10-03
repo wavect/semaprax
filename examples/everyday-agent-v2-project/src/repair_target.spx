@@ -1,0 +1,24 @@
+module everyday.v2.repair;
+
+@id("everyday.v2.repair.export-payload")
+record ExportPayload {
+    @id("everyday.v2.repair.export-payload.bytes")
+    bytes: Bytes,
+}
+
+@id("everyday.v2.repair.build")
+fn build(input: borrow Slice<u8>) -> ExportPayload
+{
+    ExportPayload { bytes: bytes_copy(input) }
+}
+
+// Deliberate localized defect for #323's checked repair subject. The source
+// test owns the independent expected value and is outside the envelope's fixed
+// target (`everyday.v2.repair.target`), so a candidate can only replace this
+// function body. The repair-tested host must observe the candidate's complete
+// manifest test closure before it reports a passing candidate.
+@id("everyday.v2.repair.target")
+fn target() -> i64
+{
+    0
+}

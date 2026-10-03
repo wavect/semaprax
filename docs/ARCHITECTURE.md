@@ -39,6 +39,23 @@ It has no toolchain dispatch or scoring path and does not change v1/v2/v3
 execution authority. [Runnable adapter v3](CROSS-LANGUAGE-RUNNABLE-ADAPTER-V3.md)
 owns the actual official TypeScript admission and runtime evidence.
 
+`benchmarks/cross-language-v1/agent/pilot_{protocol,run,score}.py` and
+`claude_subscription.py` own the additive [live laboratory pilot](CROSS-LANGUAGE-LIVE-PILOT-V1.md).
+The protocol binds all inventory rows; transport owns explicit subscription
+and bounded process authority; the candidate session reuses independent v3
+Darwin admission with a disjoint candidate overlay. It does not widen the
+fixed-source v3 route. `agent/pilot_linux_host.py` and
+`agent/pilot_linux_launcher.c` separately own the [Linux VM scoring profile](CROSS-LANGUAGE-PILOT-LINUX-HOST-V1.md):
+explicit image/toolchain pins, Landlock/seccomp confinement, physical denial
+probes and reuse of the same candidate/assertion bridge. The controller remains
+Darwin; native guest model generation is a separate transport grant. Receipt
+accounting grants no execution or independent-review authority.
+`agent/pilot_linux_provider.py` and `agent/pilot_linux_runtime.py` own
+[provider guest provisioning](CROSS-LANGUAGE-PILOT-LINUX-PROVIDER-V1.md): signed
+native CLI admission, private interactive login, pinned isolated CPython and
+credential-free committed source projection. They grant no model-dispatch
+authority; the frozen native transport remains the sole dispatch route.
+
 `benchmarks/cross-language-v1/agent/specialization_accounting.py` owns the
 read-only [specialization cell accounting](../benchmarks/cross-language-v1/agent/README.md#issue-326-frozen-cell-accounting-blocked).
 It authenticates retained original protocol/task metadata and selected current
@@ -129,8 +146,9 @@ separate admission boundary.
 ## Representations
 
 The registry compiler and unpublished toolchain share one compiler library and
-`src/cli_driver.rs`. The root dispatches; `options.rs` parses bounded command
-options, `report_options.rs` parses report/analysis options, and
+`src/cli_driver.rs`. The root dispatches; `context_dispatch.rs` owns the
+bounded source, Project, and prepared Rust API context routes;
+`options.rs` parses bounded command options, `report_options.rs` parses report/analysis options, and
 `source_execution.rs` owns single-file build, run, and diagnostics.
 The standalone binary supplies no private-host hooks.
 The private `source_live_cli` host supplies the versioned durable source CLI,
@@ -144,8 +162,18 @@ staged publication behind its `new`; the compiler library owns the bounded
 standalone `new` route (`src/project/create.rs`), and both share one grammar and
 one scaffold. The toolchain also owns the
 Project Native Rust package publication adapter, and safe Windows revision-store
-host. Its `opencode_host` module owns the explicit fixed-provider process,
-nonblocking output bounds and transport receipt binding. Its source adapter
+host. Its `rich_native_host` module wraps admitted rich-Cargo builds and native
+callback dispatch with path-free human/JSON refusals. The private
+`native-authority-check` command inspects selected plan, crate, and tool bytes,
+target, trust policy, and per-call effects without launching Cargo or native
+code; the full CLI does not yet route rich-Cargo builds. Its `opencode_host`
+module owns the explicit fixed-provider process,
+transport receipt binding. `bounded_capture` owns shared Unix nonblocking
+process-group capture; `claude_host` owns the separate native Claude print-JSON
+transport and reported-usage validation for [repair V3](CLAUDE-PRINT-REPAIR-V1.md).
+The private repair host keeps config parsing and receipt rendering in
+`source_live_cli/repair/config.rs` and `receipt.rs`; both transports retain the
+same compiler-owned lifecycle, proposal decoder and checkpoint recovery. Its source adapter
 implements the existing lifecycle `ProposalSource`; compiler-owned `run_live`
 retains canonical proposal admission and checked deterministic stages. The
 core exposes only the existing read-only retained-value encoding for context.
@@ -178,10 +206,49 @@ borrowers keep that container through owned stages. Physical uncertainty
 permanently poisons the container; pure prospective row refusal does not.
 `live_upstream` owns fresh initialization through real reservation and State
 ACKs, followed by one actual Observe and TurnObserved ACK, in an explicitly
-selected initialized profile. Its `wait` child retains the actual helper park;
+selected initialized profile. Its private `runtime` child owns lifecycle custody independently of disposable
+borrowed session handles and dispatches the existing acknowledged failed-Observe
+cleanup/Stop tail. Its `continue_run` child consumes the retained first Model
+through the original Authorize/effect/Reduce/Step ACK joins into the existing
+second-turn driver. Success retains only the consumed Report projection; each
+incomplete join retains its physical owner in runtime quarantine. An actual
+first-turn failed target retains its typed State owner in runtime custody and
+can enter the existing acknowledged State cleanup, receipt, and sticky Stop
+driver; a failed cleanup boundary retains the reached owner without retry.
+The `failed_state/continued` child retains the actual second-turn failed-target
+State through the same fixed State cleanup/receipt/Stop adapter. Its distinct
+continued lineage borrows the original funding hold and checked proposal; it
+cannot reconstruct owners from journal evidence. Normal close is admitted after
+authenticated Complete Report consumption or acknowledged failure Stop. Pending
+physical phases refuse normal runtime close; forced host teardown retires
+journal authority before backing release and does not claim semantic settlement.
+The `runtime/abandonment` child owns the bounded actual Refused route: its
+private ACK-created permit allows `registered_stage/authorize/abandonment` to
+consume the original scalar-only Refused Decision and State. The candidate and
+inventory `refusal` children validate exact inert refusal coordinates, canonical
+State operations and successful receipt before Stop; they cannot create owners.
+The `runtime/recovered_authorize` child owns exact first-TransferCompleted
+recovery. `candidate/authorization_recovery` derives inert current-tail facts;
+`live_upstream/authorize` issues a consuming reconstruction permit, and
+`registered_stage/live_run/authorize/recovery` retains materialized State even
+when a subsequent guard fails. The physical `store/source_v8/recovery_grant`
+child binds the one recovered append transition to exact prefix pins. Recovery
+then reuses charged source Authorize and the existing two-turn owner chain.
+The `runtime/shutdown` child owns eligible first-model Completed State
+abandonment: its private Started-ACK permit enables the interpreter
+`registered_stage/live_run/shutdown` child to release the original State.
+Candidate/inventory `shutdown` children validate exact Completed basis, wait,
+proposal, compiler operations and observed receipt before Cancelled Stop.
+`runtime/public/shutdown` exposes the opaque prepare/finish/shutdown boundary;
+other quarantined phases retain custody. Public construction is owned by
+the `runtime/public` child described below.
+Its `wait` child retains the actual helper park;
 `append/checkpoint` seals the frozen v2 frame from the same held session and
 actual witness inventory without exposing the key or restoring an owner. Historical rows cannot
-mint physical owners or permits. `append/owned_effect/intent` owns the actual
+mint physical owners or permits. The `append/owned_effect/consumed/reduce_hold/terminal`
+child owns final registry retirement: only consumption of the actual claimed
+Complete Report can settle its same inherited hold against the exact current
+terminal ACK. All incomplete holds retain quarantine on Drop. `append/owned_effect/intent` owns the actual
 held Intent durable ACK and sealed successor; its callback-free registry
 transition retains the same exclusive future-Reduce hold. The consuming
 `live_upstream/effect/authorization/prepared/intent/activation` adapter owns
@@ -213,9 +280,33 @@ prospective hold under the append marker. `registered_stage/reduce/live_stage`
 then enters the existing evaluator with those same roots and retains Staged
 ownership, observed fuel, accounting, and the fresh charged Reduce lineage.
 Default ObserveOnly remains separate.
+The later `continue/later/settlement/start/resume` child moves the actual Parked
+owner through the existing continued Resume interpreter with a closed lineage
+permit. Its `observe/settlement/later_carry` Completed selector accepts only the
+successful physical Resumed State, retaining failures and exact observed fuel.
+The fixed Model writer owns the Completed ACK and cumulative hold transition.
+Its `completed/join` child checks the exact physical Resume/Completed pair and
+moves the owner into the existing continued authorization/effect/Reduce/Step
+pipeline. The source `model/join` child retains the actual request and ACK
+history; `continue/join` selects the physical hold from either the first Step
+or the retained later Step. No journal fact constructs this lineage.
+The append `step/continue/run` child composes the actual first Continue owner
+through the second turn and terminal Report projection. It derives the journal
+from that physical owner, delegates every ACK and effect to the existing fixed
+joins, and seals each incomplete owner in a private opaque quarantine while
+retiring the store. It is not a public session or a runtime quarantine registry.
 [Source Agent owned wait v1](SOURCE-AGENT-OWNED-WAIT-V1.md) owns these bounded
-private successors; public Agent execution and partial-initialization recovery
-remain unfinished.
+private successors. Its restart child may reauthenticate only a first-turn
+Prepared prefix, materialize fresh Bytes backing, and consume that owner once
+through the original model path under a separate trusted-host grant; later,
+uncertain and post-intent prefixes remain closed. Public Agent execution and
+the remaining recovery classifications remain unfinished.
+The `live_upstream/runtime/restart` child consumes that exact Prepared owner
+directly into the existing runtime slot before Model continuation. Completed
+Model owners enter the same full two-turn chain as fresh runs; continuation
+failures retain their reached physical owner in a distinct restart quarantine.
+No caller session receives a restored owner, new reservation ledger, or store
+authority. The source-added process and append-fault gates remain unexecuted.
 `source_journal/policy_v6` owns independently folded quote reservations, observed
 and unknown exposure, and cumulative policy carry. Its V6 profile composes I/O
 limits and restores reservations before source continuation.
@@ -519,8 +610,21 @@ volume-GUID path components before process setup. An owned asynchronous read
 oplock remains live through child settlement and detects observed breaks before
 creation/resume. Its breaks are advisory; retained writable-section mutation
 can still race and exact image binding remains unresolved. It supplies the
-checked name to the Windows spawn primitive. This does not implement Windows request/bundle transport or
-ordinary CLI admission; its added native regression cases remain unexecuted.
+checked name to the Windows spawn primitive. That primitive now copies the
+signed request/bundle slots into read-only inherited mapping handles, binds
+their fixed order with the signed selector and chosen image role, and retains
+them through child settlement. Each section's protected DACL has no access
+grants and an OWNER RIGHTS denial, preventing a same-user child from obtaining
+writable duplicates or restoring access through the owner's DACL permission.
+The same primitive configures a one-process job with a two-second user CPU
+ceiling and a 256 MiB committed-memory ceiling. Its inherited stdout/stderr
+writers terminate at parent-only anonymous-pipe readers: bounded settlement
+counts the combined streams to 64 KiB, selects output-limit failure, and then
+terminates and reaps the owned job. The native gate includes actual CPU burn,
+committed-allocation, and output-flood fixtures for those limits; its exact
+Windows execution receipt remains required.
+It does not implement ordinary CLI admission;
+its added native regression cases remain unexecuted.
 See [Windows doctor v1](DOCTOR-PRODUCTION-PROVISIONER-WINDOWS-V1.md).
 
 The retained safe `semaprax-native-rust-interop-platform` facade and platform-sys
@@ -2856,6 +2960,114 @@ These areas are deliberately outside the public compiler contract:
   admission or imported-finalizer support; owning runtime verification is pending;
 - `crates/semaprax-native-rust-interop-*`: unpublished deterministic Rust SDK
   builder and platform-specific publication authority;
+- `crates/semaprax-native-rust-interop-builder/src/public_sdk/demanded.rs`:
+  inert RI-07 concrete type/const demand plans, generated Rust specializations
+  over the checked scalar C bridge, and captured trait-error mapping to exact
+  Semaprax call spans. Index/package identity is replayed here; tool execution
+  and package publication remain with the later authority-owning caller.
+  `public_sdk/serde_projection.rs` and its `serde_wire.rs` child own nominal
+  local Serde mirrors, fallible field-wise wire admission, and explicit payload
+  copy accounting; they never equate Rust and Semaprax record layouts;
+- `crates/semaprax-native-rust-interop-builder/src/public_sdk/regex_project_package.rs`
+  authenticates the exact indexed Regex Project, registry checksum, compiler,
+  target and pinned Cargo lock before returning inert package bytes.
+  `regex_project_native.rs` lowers its checked scalar export body through the
+  canonical cleanup CFG to C, with ordinary String storage and Result-owned
+  Regex finalizers. Native String loans suppress value cloning in both planner
+  and independent replay. The existing Rust Result-owner carrier creates the
+  actual Regex and scoped references; caller-held tools execute the artifacts.
+  This route grants no publication authority;
+- `crates/semaprax-native-rust-interop-builder/src/public_sdk/indexed_url_project.rs`,
+  `url_project_package.rs` and `url_project_native.rs` own the separate inert
+  exact Url registry Project route. The checked scalar body lowers through
+  canonical cleanup CFG; `url_project_carrier.rs.txt` owns receiver-bound view
+  leases and validates context, owner generation, pointer and length. Its
+  `url_project_exclusive.rs.txt` companion owns a safe Rust HRTB callback lease:
+  the Url moves outside the table while its slot is exclusively reserved, then
+  is restored on success or panic without holding a table borrow across user
+  code. This is distinct from selected source `&mut` admission. The route does
+  not supply CLI execution or publication authority. Source signature admission
+  lives in `src/native_rust_binding/url_view.rs`, independent HIR admission in
+  `src/hir/validation/native_borrow.rs` and `workspace_link/native_owner/url_view.rs`,
+  and returned-view loan ancestry in `src/loan_plan/native_view.rs`. The ordinary
+  scalar workspace linker rebuilds byte provenance from every retained body,
+  including nongeneric functions. `semaprax-rust-api-index/src/closed_owner.rs`
+  owns closed Regex/Url selection without widening general index support;
+- `crates/semaprax-native-rust-interop-builder/src/public_sdk/callback.rs` and
+  `registered_callback.rs`: inert RI-08 checked scalar-snapshot closure and
+  explicit next-state projections, plus authored registry-export admission.
+  Generated Rust owns private callback environments and independent registry
+  leases; two scalar C bridge instances share depth and receiver guards. An
+  uncertain foreign teardown quarantines the lease. These renderers grant no
+  execution/publication authority and do not admit mutable or owned source
+  captures;
+- `crates/semaprax-native-rust-interop-builder/src/public_sdk/indexed.rs`:
+  narrow public RI-04 admission for one checked scalar Rust import. It replays
+  the selected RI-03 index and exact caller-supplied package source bytes
+  before invoking private Phase A+B. The older builder returns caller-held
+  adapter source. The separate single-file SDK builder retains selected source
+  bytes and a selected stable rustc header through held Phase B compilation,
+  then publishes the typed adapter and exact source in the manifest-bound SDK
+  package. Its short `rust selected fn` source form is parsed and formatted by
+  the compiler, but ordinary checking refuses it until this builder binds an
+  exact selected index signature. The bound HIR and Graph v53 retain that
+  index digest separately from the persistent import ID. The scalar `&self`
+  method profile maps an `i64` carrier to a temporary Rust receiver through
+  compiler-checked `From<i64>`, with HIR and Graph v54 retaining receiver mode;
+  it does not transport an owned Rust object through the C ABI. The compiler-owned
+  `src/native_rust_binding.rs` keeps the source/identity-bound plan and stable
+  physical symbol separate from the persistent import ID;
+- `src/cleanup_plan/owner_admission.rs` classifies checked native owner calls;
+  `build/finish_call.rs` inserts the ordinary precommit failure exit, and
+  independent replay authenticates its v14 status/commit order. The generated
+  `owner_sdk_admission.rs` C bridge caches immutable validation results and
+  follows that exact exit on refusal.
+- `src/cleanup_plan/native_rust.rs` selects ownership-bearing native imports
+  for canonical argument epochs and atomic call settlement; scalar native
+  imports retain their existing plan projection. `replay/supplemental.rs`
+  independently reconstructs their argument slots.
+- `src/hir/workspace_link/native_owner.rs` admits only the destructor of a
+  resource tied to an indexed constructor/consuming-method pair in one Rust
+  type and index. Linked declaration reconstruction retains its resource/drop
+  facts before ordinary cleanup-plan rebuilding and independent validation.
+- `src/native_rust_binding/owner.rs` owns the closed selected-owner signature
+  projection into declared source resources. `public_sdk/indexed_owner.rs` in
+  the native Rust builder replays package/type identity against linked HIR. The
+  lower owned-data package crate owns additive `opaque_owner.rs` packaging and
+  `publication/opaque_rust.rs` held compiler authentication; existing scalar and
+  owned-data package schemas remain separate.
+- `crates/semaprax-native-rust-interop-builder/src/public_sdk/owner_sdk.rs`
+  owns the experimental pure opaque-owner renderer. `owner_sdk_c.rs` consumes
+  validated cleanup CFG vectors directly; `owner_sdk_calls.rs` closes and bounds
+  acyclic checked helpers, including owned parameter entry and guarded owner
+  returns, without changing canonical cleanup vectors. `owner_runtime.rs.txt` retains real
+  Rust objects behind C-compatible context/generation/slot carriers. This seam
+  grants no build, Project publication, or general owner-ABI authority.
+  `owned_string_sdk.rs` and `owned_string_runtime.rs.txt` own the separate
+  bounded String renderer, fallible table reservation, and core-compatible
+  String place cloning. `src/native_rust_binding/string.rs` binds its exact
+  selected String signatures; this renderer does not publish Project packages;
+  `owned_container_sdk.rs`, `owned_container_runtime.rs.txt`, and
+  `owner_sdk_container.rs` own the closed Option<String>/Result<String,i64>
+  renderer, explicit tagged C carrier, and canonical active-case cleanup.
+  Its source/HIR admission requires a matching native constructor; it grants
+  no selected container binding or Project publication authority;
+- `public_sdk/borrowed_input.rs` in the native Rust builder owns private
+  direct-reference Regex invocation fragments. Its `borrowed_view.rs` child
+  adds exact Regex/Url owner-tied view methods, callback scope, and per-owner
+  invocation guards. Rust type checking protects this private seam; it grants
+  no HIR loan authentication, carrier conversion or Project publication;
+- `public_sdk/future_bridge.rs` and `future_runtime.template` in the native
+  Rust builder own the pure, same-thread Rust Future adapter source. The caller
+  supplies the executor and build authority. This seam grants no Project
+  selection, Semaprax async import/export, network effect, or checkpoint route;
+- `src/project/indexed_rust.rs` and
+  `crates/semaprax-native-rust-interop-builder/src/public_sdk/indexed_project.rs`:
+  explicit source-bound indexed Project admission and authenticated SDK
+  publication. The shared workspace frontend binds signatures before checking;
+  `src/workspace_graph/indexed_rust.rs` owns authority-free selected-import
+  graph projection. Prepared index facts change cache identity, while held
+  Project files and the selected native compiler retain publication authority;
 - `crates/semaprax-native-rust-interop-platform/src/host_target.rs`: shared
   compile-time native target classification; scalar and owned-data package
   callers retain their narrower publication allowlist, separate from private
@@ -2953,7 +3165,10 @@ child and exercises the package across the three execution lanes.
 | Native backend | `src/codegen.rs`, `src/codegen/native_*`; Project-v13 HTTPS runtime in `src/codegen/native_emit/http_io.rs`, pinned trust data in `src/codegen/mozilla-roots.pem` |
 | WebAssembly backend | `src/wasm.rs`, `src/wasm/` |
 | Reports and offline package graph | the focused `*_report`, `package_lock`, `package_resolver`, `package_resolution_snapshot`, schema, manifest, header, and shim modules; candidate replay/conflict projection in `src/project/candidate/package_consumer_replay.rs` |
+| Foreign Rust law trust frontier | `src/native_rust_binding/foreign_law.rs` rechecks selected scalar import plans and carries declared behavior as exact conditional evidence, never as a theorem. `src/project/revision/foreign_law.rs` derives the canonical lock identity from retained Project HIR, checks a narrow public direct-forwarding caller and can read-only replay a published SDK manifest, file inventory and generated guard against a host-held digest. `crates/semaprax-native-rust-interop-builder/src/public_sdk/foreign_law.rs` issues an opaque token only from the guarded builder's private publication bundle after exact replay and owns a distinct one-law conditional strict report; `public_sdk/indexed_project.rs` rechecks the selected policy before package staging and its exact rendered digest before no-clobber publication. Ordinary core LawSet/strict and managed Workspace `ACTIVE` routes remain open; `src/assurance_manifest/law_set/evaluate.rs` keeps the foreign selector open without the builder token. [Foreign Law Trust Frontier v1](FOREIGN-LAW-FRONTIER-V1.md) owns this bounded profile. |
+| Source-bound protocol safety | `src/assurance_manifest/model_checking/source_protocol.rs` derives a complete finite transition table by executing checked pure HIR for every protocol state/event pair, compares it with retained session `via` declarations, and reuses the bounded model-checker with concrete source replay of found traces. The authenticated Project diagnostic route stays read-only. [Source-bound protocol safety v1](SOURCE-BOUND-PROTOCOL-SAFETY-V1.md) owns the finite claim and nonclaims. |
 | Project assurance evidence | `src/project/` owns authenticated Project snapshot, canonical workspace revision, ProgramRoot, complete source inventory, shared entry/public/test HIR obligation derivation, and exact architecture-claim result binding for the additive Project Assurance Manifest v1; [Project Assurance Manifest v1](PROJECT-ASSURANCE-MANIFEST-V1.md) owns the schema and replay boundary, while [Assurance Manifest v1](ASSURANCE-MANIFEST-V1.md) remains the unchanged single-file profile. |
+| Protected law inventory | `src/assurance_manifest/law_set/` owns explicit typed law-module admission, persistent law identities, versioned semantic digests, immutable Project/ProgramRoot/profile binding, independent protected-baseline policy, complete expected rows and counts, and exact canonical replay. It reuses existing assurance obligation IDs, architecture evaluation and bounded reference-model checking; reference-model results describe only those models. [LawSet v1](LAW-SET-V1.md) owns selection, capacities and nonclaims. `law_set/protected.rs` owns independently held intent baselines, conservative specification closure and opaque host-approved change binding; `project/candidate/protected_laws.rs` joins the review to the existing publication lock through `publication.rs`. [Protected Law Intent v1](PROTECTED-LAW-INTENT-V1.md) owns the additive review schema and host boundary. `law_set/strict.rs` joins the independent inventory to derived Project evidence and method-specific requirements; `project/candidate/strict_law_assurance.rs` binds exact candidate/policy/proof reports to managed publication under the ordinary lock. `law_vc.rs` owns the backend-neutral typed scalar subject and operation/path inventory lowered directly by SMT and Lean without granting solver authority; `law_set/native_proof.rs` owns opaque exact-inventory typed scalar evidence; `proof_export/installed.rs` uses the bounded registered process provider for explicit installed Lean/Z3 execution, while `installed_project.rs` binds selected postconditions and `cli/project_proof.rs` exposes read-only checks. The additive `cli/project_proof_workflow.rs` route obtains the host-selected protected baseline through `project/host_policy.rs` before acquiring an installed tool, derives complete strict summary/detail views, and labels a concrete Z3 failure only after checked source replay; no diagnostic view or solver model grants proof, source, or publication authority. [Strict Law Assurance v1](STRICT-LAW-ASSURANCE-V1.md) records the remaining protected-route matrix; [Installed Proof Tools v1](INSTALLED-PROOF-TOOLS-V1.md) owns explicit tool authority, bounds and confinement refusal. |
 | Project dependency admission | `src/project/external_dependencies.rs` for exact ordinary Subject-v3 closure replay, including cross-package evidence for the provenance-independent ScalarV1 internal generic-owned body profile behind scalar calls/exports, and `src/project/standard_dependencies.rs` for compiler-bundled packages |
 | Effect-free package build and fixed-inventory publication | `src/package_build.rs`, `src/package_build/`, `src/package_build_v2.rs`, `src/package_build_v2/`, `crates/semaprax-offline-wasm-package/` |
 | Private host/runtime evidence | `crates/semaprax-native-*`, `platform-tests/` |
@@ -3180,3 +3395,28 @@ closed interpreter cleanup-guard sum admit actual physical Decision release
 through the existing release primitive. State and partial-release custody stay
 inside the continued holder. Continued Outcome/Reduce and public/recovered
 execution still require their own consuming joins.
+
+The private owned-Agent runtime's `live_upstream/runtime/observer_failure.rs`
+composes the existing failed Decision-receipt seal, fixed State cleanup writer,
+physical release and sticky Stop. It retains every incomplete obligation; it
+cannot reopen normal journal authority. The continued-run composition returns
+actual failed Observe ownership to runtime custody before any next wait, and
+runtime uses the existing failed-Observe cleanup/Stop consumer. Public shutdown
+and general recovery remain separate admission boundaries.
+
+`live_upstream/runtime/public.rs` owns the fresh and first-Prepared public v1 entries. It compiles
+the selected Agent from the retained runtime Project, checks the typed model
+binding and two-turn ceiling, opens the caller-held directory through the v8
+registration protocol under an explicit protected-history assertion, and
+requires complete registration facts to be retained before authorizing the
+fresh lease. Its recovered constructor strictly imports those inert facts,
+rechecks them against the compiled runtime and registered physical store, and
+holds a read-only lease until the exact first-Prepared restoration consumes
+two distinct trusted-host grants. The public journal wrapper owns the lock;
+the borrowed run handle owns private runtime custody through both turns. Only
+status and a checked terminal Report projection leave this boundary. Unresolved
+physical owners cannot close normally, and dropping their handle retires append
+authority. General semantic shutdown and other recovered phases remain
+separate work. The exact public first-Prepared process-relaunch gate passed
+locally on macOS with 2 MiB workers at `46d99ddfb`; this does not admit other
+recovered phases.

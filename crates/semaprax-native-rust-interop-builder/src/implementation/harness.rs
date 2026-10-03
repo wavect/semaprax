@@ -6,6 +6,7 @@ use super::*;
 fn render_rust_harness(
     output: &mut impl std::fmt::Write,
     prepared: &PreparedNativeRustInterop,
+    indexed_signature_check: Option<&str>,
 ) -> std::fmt::Result {
     output.write_str(
         "#[path=\"semaprax_native_rust_interop.rs\"]mod semaprax_native_rust_interop;\nuse semaprax_native_rust_interop::*;\nstruct Host;\nimpl NativeRustImports for Host{\n",
@@ -35,6 +36,7 @@ fn render_rust_harness(
                 ScalarType::Unit => "NativeRustImportResult::Success(())",
                 ScalarType::Bool => "NativeRustImportResult::Success(false)",
                 ScalarType::I64 => "NativeRustImportResult::Success(0)",
+                ScalarType::ResultI64I64 => "NativeRustImportResult::Success(Ok(0))",
             }
         )?;
     }
@@ -82,11 +84,16 @@ fn render_rust_harness(
                 ScalarType::I64 => "0",
                 ScalarType::Bool => "false",
                 ScalarType::Unit => "()",
+                ScalarType::ResultI64I64 => "Ok(0)",
             })?;
         }
         output.write_str(");")?;
     }
-    output.write_str("0}\n")
+    output.write_str("0}\n")?;
+    if let Some(source) = indexed_signature_check {
+        output.write_str(source)?;
+    }
+    Ok(())
 }
 
 #[derive(Default)]
@@ -106,15 +113,18 @@ impl std::fmt::Write for HarnessCount {
 
 pub(super) fn prepare_rust_harness(
     prepared: &PreparedNativeRustInterop,
+    indexed_signature_check: Option<&str>,
 ) -> Result<(String, TemporaryBudget), PhaseBLocalError> {
     let mut count = HarnessCount::default();
-    render_rust_harness(&mut count, prepared).map_err(|_| PhaseBLocalError::BuilderBudget)?;
+    render_rust_harness(&mut count, prepared, indexed_signature_check)
+        .map_err(|_| PhaseBLocalError::BuilderBudget)?;
     let budget = reserve_phase_b(count.length)?;
     let mut output = String::with_capacity(count.length);
     if output.capacity() != count.length {
         return Err(PhaseBLocalError::BuilderBudget);
     }
-    render_rust_harness(&mut output, prepared).map_err(|_| PhaseBLocalError::BuilderBudget)?;
+    render_rust_harness(&mut output, prepared, indexed_signature_check)
+        .map_err(|_| PhaseBLocalError::BuilderBudget)?;
     if output.len() != count.length || output.capacity() != count.length {
         return Err(PhaseBLocalError::BuilderBudget);
     }

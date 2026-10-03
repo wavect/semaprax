@@ -156,6 +156,7 @@ fn hir_capacity_layout_constants_are_bound_to_root_const_assertions() {
     );
     let hir_validator = concat!(
         include_str!("../../../../../src/hir/validation.rs"),
+        include_str!("../../../../../src/hir/validation/borrowed_bytes_call_tests.rs"),
         include_str!("../../../../../src/hir/validation/iterator_loops.rs"),
         include_str!("../../../../../src/hir/validation/callable_types.rs"),
         include_str!("../../../../../src/hir/validation/closure.rs"),

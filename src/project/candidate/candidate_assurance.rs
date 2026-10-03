@@ -162,7 +162,7 @@ impl ProjectCandidate {
                     .get_mut(class.token())
                     .expect("AssuranceClass::ALL is exhaustive") += 1;
 
-                let methods = obligation["methods"].as_array().ok_or_else(|| {
+                obligation["methods"].as_array().ok_or_else(|| {
                     invalid("candidate assurance obligation methods must be an array")
                 })?;
                 let is_formal_proof_class = matches!(
@@ -171,8 +171,10 @@ impl ProjectCandidate {
                         | AssuranceClass::ModelChecked
                         | AssuranceClass::TheoremProved
                 );
-                let has_proof_ref = methods.iter().any(|method| method["proof_ref"].is_string());
-                if is_formal_proof_class && !has_proof_ref {
+                // Single-file external records are caller-authored. A URL or
+                // nonempty proof_ref is not a solver/kernel replay. Formal
+                // acceptance must use the authenticated strict Project join.
+                if is_formal_proof_class {
                     unsupported_formal_claims.insert(id.to_owned());
                 }
 
@@ -596,6 +598,70 @@ tests = ["assurance.tests"]
             .unwrap();
         let granted: Value = serde_json::from_str(&granted).unwrap();
         assert_eq!(granted["granted"], json!(false));
+    }
+
+    #[test]
+    fn forged_nonempty_proof_reference_never_grants_formal_acceptance() {
+        let fixture = Fixture::new(APP_WITH_CONTRACTS, PLAIN_TESTS_BODY);
+        let revision = fixture.revision();
+        let candidate = open(&revision);
+        let before = std::fs::read(fixture.app_path()).unwrap();
+        let mut method =
+            MethodRecord::new(AssuranceClass::TheoremProved, "caller-asserted-kernel", "0");
+        method.proof_ref = Some("https://untrusted.invalid/forged-proof".to_owned());
+        let obligation = Obligation::new(
+            ObligationKind::ArchitectureLaw,
+            "assurance.divide",
+            "law:forged-ref",
+        )
+        .with_method(method);
+        let mut records = ExternalRecords::default();
+        records.obligations.push(obligation);
+        let options = AssuranceManifestOptions::default().with_external_records(records);
+        let app = assurance_manifest::generate(&fixture.app_path(), &options).unwrap();
+        let tests = manifest_for(&fixture.tests_path());
+        let inputs = [
+            CandidateAssuranceInput {
+                path: "src/app.spx",
+                envelope: &app,
+            },
+            CandidateAssuranceInput {
+                path: "src/tests.spx",
+                envelope: &tests,
+            },
+        ];
+        let summary: Value = serde_json::from_str(
+            &candidate
+                .candidate_assurance_summary(candidate.candidate_digest(), &inputs)
+                .unwrap(),
+        )
+        .unwrap();
+        assert!(summary["sources_not_observed"]
+            .as_array()
+            .unwrap()
+            .is_empty());
+        assert_eq!(
+            summary["unsupported_formal_claims"]
+                .as_array()
+                .unwrap()
+                .len(),
+            1
+        );
+        let acceptance: Value = serde_json::from_str(
+            &candidate
+                .grant_candidate_acceptance(
+                    candidate.candidate_digest(),
+                    &inputs,
+                    AssuranceClass::Open,
+                    "proposer",
+                    "reviewer",
+                )
+                .unwrap(),
+        )
+        .unwrap();
+        assert_eq!(acceptance["granted"], false);
+        assert_eq!(acceptance["acceptance_authority"], false);
+        assert_eq!(std::fs::read(fixture.app_path()).unwrap(), before);
     }
 
     #[test]

@@ -572,7 +572,7 @@ fn phase_b_process_arena_exact_and_one_less_is_zero_effect() {
 fn phase_b_harness_is_exact_capacity_at_representative_and_maximum_and_one_less_is_pre_effect() {
     let (program, spec) = fixture();
     let prepared = prepare_native_rust_interop(&program, spec.as_bytes()).unwrap();
-    let (representative, representative_budget) = prepare_rust_harness(&prepared).unwrap();
+    let (representative, representative_budget) = prepare_rust_harness(&prepared, None).unwrap();
     assert_eq!(representative.len(), representative.capacity());
     assert_eq!(representative.len(), representative_budget.maximum());
     drop((representative, representative_budget));
@@ -599,7 +599,7 @@ fn phase_b_harness_is_exact_capacity_at_representative_and_maximum_and_one_less_
     maximum.exports = vec![export; MAX_EXPORTS];
     let (harness, overflowed, exact) =
         crate::bounded_output::with_limit_usage(MAX_BUILDER_BYTES, || {
-            prepare_rust_harness(&maximum)
+            prepare_rust_harness(&maximum, None)
         });
     assert!(!overflowed);
     let (harness, budget) = harness.unwrap();
@@ -612,7 +612,7 @@ fn phase_b_harness_is_exact_capacity_at_representative_and_maximum_and_one_less_
     PHASE_B_TOOL_HOLDS.with(|count| count.set(0));
     PHASE_B_TOOL_PROCESSES.with(|count| count.set(0));
     let (one_less, overflowed) =
-        crate::bounded_output::with_limit(exact - 1, || prepare_rust_harness(&maximum));
+        crate::bounded_output::with_limit(exact - 1, || prepare_rust_harness(&maximum, None));
     assert!(!overflowed);
     assert!(matches!(one_less, Err(PhaseBLocalError::BuilderBudget)));
     assert_eq!(PHASE_B_OUTPUT_PROBES.with(std::cell::Cell::get), 0);

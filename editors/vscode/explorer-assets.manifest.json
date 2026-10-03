@@ -1,0 +1,13 @@
+{
+  "schema": "semaprax.vscode-explorer-assets.v1",
+  "assets": {
+    "explorer.css": "f21ce2055a1a56bc68e6139e25e309012fce2f8a43db6aada416e5427d510e36",
+    "model.js": "82892f74c6c40a57dc882c6c15e6c21bec20aed38c15d20e6f15902a11426250",
+    "layout.js": "05484d25214ca32bd5c45902064e2ea898a8cc51038ddc2657d24af3df71f260",
+    "cache.js": "3dcf009692270835887bdb0bd7d345016ec8c43efafe8ccef92d2c3068e77294",
+    "changes.js": "8b5d3f07257830f1b4f6007d1238f66732dc557ae67013bafb70d76cd3649718",
+    "evidence.js": "2c7c6f09ab8aa361d4ca2440001932f1060d0a11de700d1315f1d762fe80322f",
+    "hosts.js": "d0774c2962f306fa5ec39cd541abf210172e05f5da8aa6a577771b57a8ea81e4",
+    "view.js": "92b0dcdd3aa61860a3e7ae405efb6c51fba0cec40e08f64e61de3b83e23789c7"
+  }
+}

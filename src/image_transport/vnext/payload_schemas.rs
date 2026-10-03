@@ -7,6 +7,8 @@ use std::collections::BTreeMap;
 mod candidate_function_schemas;
 #[path = "candidate_schemas.rs"]
 mod candidate_schemas;
+#[path = "explorer_schemas.rs"]
+mod explorer_schemas;
 #[path = "function_instance_schemas.rs"]
 mod function_instance_schemas;
 #[path = "function_reference_schemas.rs"]
@@ -1429,6 +1431,16 @@ pub(super) fn documents(capabilities: &Value) -> BTreeMap<String, Value> {
             .any(|method| method == "candidate/environment-consumer-review")
     }) {
         result.remove("urn:semaprax.image-candidate-environment-consumer-review-chunk.v1");
+    }
+    if capabilities["methods"].as_array().is_some_and(|methods| {
+        methods.iter().any(|method| {
+            method == "image/explorer-summary" || method == "candidate/explorer-summary"
+        })
+    }) {
+        result.insert(
+            "urn:semaprax.explorer-view.v1".into(),
+            explorer_schemas::document_schema(),
+        );
     }
     result.extend(candidate_schemas::documents());
     if capabilities["methods"].as_array().is_some_and(|methods| {

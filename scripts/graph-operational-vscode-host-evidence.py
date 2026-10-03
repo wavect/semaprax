@@ -1,19 +1,26 @@
 #!/usr/bin/env python3
 """Execute exact local VS Code Extension Host evidence for SEMAPRAX."""
-import argparse, hashlib, json, os, platform, re, shutil, subprocess, sys, tempfile
+import argparse, hashlib, json, os, platform, re, shutil, subprocess, sys, tempfile, zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-SCHEMA = "semaprax.graph-operational-vscode-host-execution-evidence.v2"
+SCHEMA = "semaprax.graph-operational-vscode-host-execution-evidence.v4"
 MAX_LOG = 16 * 1024 * 1024
 TIMEOUT = 180
+BUILD_TIMEOUT = 600
 FILES = [
     "Cargo.toml", "Cargo.lock", "editors/vscode/package.json",
     "editors/vscode/extension.js", "editors/vscode/protocol.js", "editors/vscode/review.js",
     "editors/vscode/tasks.js",
     "editors/vscode/holes.js", "editors/vscode/repairs.js",
     "editors/vscode/diagnostics.js", "editors/vscode/navigation.js", "editors/vscode/positions.js",
+    "editors/vscode/explorer.js", "editors/vscode/explorer-assets.manifest.json",
     "editors/vscode/test/extension-host/index.js",
+    "ui/semantic-explorer/model.js", "ui/semantic-explorer/layout.js",
+    "ui/semantic-explorer/cache.js", "ui/semantic-explorer/changes.js",
+    "ui/semantic-explorer/evidence.js", "ui/semantic-explorer/hosts.js",
+    "ui/semantic-explorer/view.js", "ui/semantic-explorer/explorer.css",
+    "docs/SEMANTIC-EXPLORER-V1.md",
     "examples/calculator-project/semaprax.toml", "examples/calculator-project/src/app.spx",
     "examples/calculator-project/src/core.spx", "examples/calculator-project/src/tests.spx",
 ]
@@ -23,8 +30,8 @@ NODE_TESTS = [
     "editors/vscode/test/repairs.test.js", "editors/vscode/test/tasks.test.js",
     "editors/vscode/test/diagnostics.test.js", "editors/vscode/test/navigation.test.js",
 ]
-NODE_TEST_COUNT = 97
-CONTRIBUTED_COMMANDS = 37
+NODE_TEST_COUNT = 99
+CONTRIBUTED_COMMANDS = 41
 POLICY = {"schema":"semaprax.workspace-host-policy.v7","candidate_prepare":True,
  "diagnostics":False,"build_enabled":False,"test_policy":{"max_steps":100000,"max_execution_bytes":65536,"max_report_bytes":262144},"git_commit":None,
  "frontend_cache":False,"candidate_archives":[],"semantic_cache":False,
@@ -42,6 +49,8 @@ def run(args, **kw):
 def command(args, label, **kw):
     r=run(args, **kw)
     if len(r.stdout)>MAX_LOG: raise Failure(f"{label} log exceeds bound")
+    if label == "VS Code Extension Host" and os.environ.get("SEMAPRAX_VSCODE_DEBUG_LOG"):
+        Path(os.environ["SEMAPRAX_VSCODE_DEBUG_LOG"]).write_bytes(r.stdout)
     if r.returncode:
         tail=r.stdout[-8192:].decode("utf-8","replace")
         raise Failure(f"{label} failed ({r.returncode}):\n{tail}")
@@ -67,8 +76,74 @@ def tool(name):
     return str(Path(p).resolve(strict=True))
 def artifact(name,body): return {"path":name,"bytes":len(body),"sha256":sha(body)}
 
+def package_vsix(destination):
+    """Build the small, reproducible VSIX used by this isolated host run.
+
+    The extension intentionally has no npm build or packaging dependency.  A
+    VSIX is a ZIP with the extension below `extension/`; fixing each ZIP entry
+    timestamp and order makes the installed subject reproducible from the
+    checked-out revision.  Tests and local editor state stay out of the
+    package, matching `.vscodeignore`.
+    """
+    extension = ROOT / "editors/vscode"
+    ignored_roots = {".vscode", "test", "node_modules", ".vscode-test"}
+    ignored_files = {".vscodeignore", ".gitignore", ".gitattributes", "CHANGELOG.md", "LICENSE", "README.md", "TECHNICAL.md"}
+    files = []
+    for source in extension.rglob("*"):
+        relative = source.relative_to(extension)
+        if relative.parts[0] in ignored_roots or relative.name in ignored_files:
+            continue
+        if source.is_symlink():
+            raise Failure(f"extension package refuses symlink: {relative}")
+        if source.is_file() and not relative.name.endswith(".vsix") and not relative.name.endswith(".test.js"):
+            files.append(relative)
+    if not files or Path("package.json") not in files:
+        raise Failure("extension package inventory is incomplete")
+    package = json.loads((extension / "package.json").read_text())
+    identity = f'''<?xml version="1.0" encoding="UTF-8"?>\n<VsixManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011">\n  <Metadata><Identity Id="{package["name"]}" Version="{package["version"]}" Publisher="{package["publisher"]}"/><DisplayName>{package["displayName"]}</DisplayName><Description xml:space="preserve">{package["description"]}</Description></Metadata>\n  <Installation><InstallationTarget Id="Microsoft.VisualStudio.Code"/></Installation>\n  <Dependencies/><Assets><Asset Type="Microsoft.VisualStudio.Code.Manifest" Path="extension/package.json"/><Asset Type="Microsoft.VisualStudio.Services.Icons.Default" Path="extension/assets/icon.png"/><Asset Type="Microsoft.VisualStudio.Code.VSIXPackage" Path="extension"/></Assets>\n</VsixManifest>\n'''.encode()
+    content_types = b'''<?xml version="1.0" encoding="utf-8"?>\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="json" ContentType="application/json"/><Default Extension="js" ContentType="application/javascript"/><Default Extension="css" ContentType="text/css"/><Default Extension="png" ContentType="image/png"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="tmLanguage" ContentType="application/json"/><Default Extension="" ContentType="application/octet-stream"/></Types>\n'''
+    def entry(archive, name, body):
+        info = zipfile.ZipInfo(name, date_time=(1980, 1, 1, 0, 0, 0))
+        info.compress_type = zipfile.ZIP_DEFLATED
+        info.external_attr = 0o100644 << 16
+        archive.writestr(info, body, compresslevel=9)
+    with zipfile.ZipFile(destination, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9, strict_timestamps=True) as archive:
+        entry(archive, "[Content_Types].xml", content_types)
+        entry(archive, "extension.vsixmanifest", identity)
+        for relative in sorted(files):
+            entry(archive, "extension/" + relative.as_posix(), (extension / relative).read_bytes())
+    with zipfile.ZipFile(destination) as archive:
+        names = archive.namelist()
+        if len(names) != len(set(names)) or "extension/package.json" not in names:
+            raise Failure("VSIX archive inventory is invalid")
+    return file_row(destination)
+
+def verify_viewer_assets(vsix, installed, standalone):
+    """Bind installed VSIX bytes and the guide's HTML output to one viewer set."""
+    extension = ROOT / "editors/vscode"
+    manifest = json.loads((extension / "explorer-assets.manifest.json").read_text())
+    assets = manifest.get("assets")
+    expected = {"cache.js", "changes.js", "evidence.js", "explorer.css", "hosts.js", "layout.js", "model.js", "view.js"}
+    if manifest.get("schema") != "semaprax.vscode-explorer-assets.v1" or set(assets or {}) != expected:
+        raise Failure("Explorer asset manifest inventory is invalid")
+    html = standalone.read_bytes()
+    with zipfile.ZipFile(vsix) as archive:
+        for name, expected_digest in assets.items():
+            shared = (ROOT / "ui" / "semantic-explorer" / name).read_bytes()
+            packaged = archive.read("extension/explorer-assets/" + name)
+            extracted = (installed / "explorer-assets" / name).read_bytes()
+            if packaged != shared or extracted != shared:
+                raise Failure(f"installed VSIX Explorer asset differs from standalone source: {name}")
+            if hashlib.sha256(shared).hexdigest() != expected_digest:
+                raise Failure(f"Explorer asset manifest digest differs: {name}")
+            if name == "explorer.css":
+                if b"<style>" + shared + b"</style>" not in html:
+                    raise Failure("guide standalone HTML omits the exact Explorer stylesheet")
+            elif b"(function(){\n" + shared + b"\n})();" not in html:
+                raise Failure(f"guide standalone HTML omits the exact Explorer asset: {name}")
+
 def main():
-    ap=argparse.ArgumentParser(); ap.add_argument("--vscode-app",required=True); ap.add_argument("--node"); ap.add_argument("--output")
+    ap=argparse.ArgumentParser(); ap.add_argument("--vscode-app",required=True); ap.add_argument("--node"); ap.add_argument("--output"); ap.add_argument("--build-target")
     ns=ap.parse_args(); clean()
     commit=git("rev-parse","HEAD^{commit}"); tree=git("rev-parse","HEAD^{tree}"); tags=git("tag","--points-at",commit).splitlines()
     inputs=[repo_row(x) for x in FILES]
@@ -92,32 +167,51 @@ def main():
     for name,expected in ((b"tests",NODE_TEST_COUNT),(b"pass",NODE_TEST_COUNT),(b"fail",0),(b"skipped",0)):
         rows=re.findall(rb"^# "+name+rb" ([0-9]+)$",node_log,re.MULTILINE)
         if rows != [str(expected).encode()]: raise Failure(f"unexpected Node controller {name.decode()} inventory: {rows!r}")
-    build_temp=tempfile.TemporaryDirectory(prefix="semaprax-vscode-build-",dir="/private/tmp")
-    build_target=Path(build_temp.name)/"target"
+    build_temp=None if ns.build_target else tempfile.TemporaryDirectory(prefix="semaprax-vscode-build-",dir="/private/tmp")
+    build_target=Path(ns.build_target).resolve() if ns.build_target else Path(build_temp.name)/"target"
     build_env=os.environ.copy(); build_env.update({"CARGO_NET_OFFLINE":"true","CARGO_INCREMENTAL":"0","CARGO_TERM_COLOR":"never","RUSTC":rustc,"CARGO_TARGET_DIR":str(build_target)})
-    build_log=command([cargo,"build","--locked","--offline","-p","semaprax","--bin","semaprax"],"compiler build",env=build_env)
+    build_log=command([cargo,"build","--locked","--offline","-p","semaprax","--bin","semaprax"],"compiler build",env=build_env,timeout=BUILD_TIMEOUT)
     compiler=(build_target/"debug/semaprax").resolve(strict=True); compiler_before=file_row(compiler)
     with tempfile.TemporaryDirectory(prefix="semaprax-vscode-host-",dir="/private/tmp") as td:
         area=Path(td); workspace=area/"workspace"; shutil.copytree(ROOT/"examples/calculator-project",workspace)
         policy=area/"policy.json"; policy.write_bytes(canonical(POLICY))
         user=area/"user"; extensions=area/"extensions"; (user/"User").mkdir(parents=True); extensions.mkdir()
+        vsix = area/"wavect.semaprax.vsix"; vsix_before = package_vsix(vsix)
+        vsix_bytes = vsix.read_bytes()
+        command([str(cli),f"--user-data-dir={user}",f"--extensions-dir={extensions}","--install-extension",str(vsix),"--force"],"install exact VSIX")
+        installed = extensions / "wavect.semaprax-0.1.0"
+        if not installed.is_dir() or installed.is_symlink(): raise Failure("exact VSIX was not installed into the isolated extension directory")
+        # VS Code only discovers an extension test path when a development
+        # extension is selected.  Select the directory extracted from the
+        # installed VSIX itself: the host therefore runs the installed bytes
+        # in test mode, never the checkout, and the test-only API remains
+        # unavailable to ordinary installed production sessions.
         settings={"semaprax.compilerPath":str(compiler),"semaprax.manifestPath":str(workspace/"semaprax.toml"),"semaprax.hostPolicyPath":str(policy)}
         (user/"User/settings.json").write_bytes(canonical(settings))
         source=workspace/"src/core.spx"; fixture_before={str(p.relative_to(workspace)):sha(p.read_bytes()) for p in sorted(workspace.rglob("*")) if p.is_file()}
+        standalone = area / "semantic-explorer.html"
+        command([str(compiler),"explore",str(workspace/"semaprax.toml"),"--format","html","--output",str(standalone)],"standalone Explorer guide example")
+        focused = area / "app-main.md"
+        command([str(compiler),"explore",str(workspace/"semaprax.toml"),"--target","calculator.app.main","--depth","2","--format","markdown","--output",str(focused)],"focused Explorer guide example")
+        standalone_bytes = standalone.read_bytes()
+        focused_bytes = focused.read_bytes()
+        if b"Meaning, mapped." not in standalone_bytes or b"calculator.app.main" not in focused_bytes: raise Failure("Explorer guide output is incomplete")
+        verify_viewer_assets(vsix, installed, standalone)
         env=os.environ.copy(); env.update({
           "SEMAPRAX_VSCODE_COMPILER":str(compiler),"SEMAPRAX_VSCODE_MANIFEST":str(workspace/"semaprax.toml"),
-          "SEMAPRAX_VSCODE_POLICY":str(policy),"SEMAPRAX_VSCODE_SOURCE":str(source)})
-        args=[str(code),f"--user-data-dir={user}",f"--extensions-dir={extensions}","--disable-extensions",
+          "SEMAPRAX_VSCODE_POLICY":str(policy),"SEMAPRAX_VSCODE_SOURCE":str(source),
+          "SEMAPRAX_VSCODE_EXPECTED_EXTENSION_PATH":str(installed.resolve(strict=True))})
+        args=[str(code),f"--user-data-dir={user}",f"--extensions-dir={extensions}",
           "--disable-workspace-trust","--disable-gpu","--disable-updates","--skip-welcome","--skip-release-notes",
-          f"--extensionDevelopmentPath={ROOT/'editors/vscode'}",
+          f"--extensionDevelopmentPath={installed}",
           f"--extensionTestsPath={ROOT/'editors/vscode/test/extension-host/index.js'}",str(workspace)]
         host_log=command(args,"VS Code Extension Host",env=env)
         matches=MARKER.findall(host_log)
         if len(matches)!=1: raise Failure("expected one Extension Host result")
         observation=json.loads(matches[0])
-        expected_keys={"schema","vscode_version","app_name","extension_host_exec_path","extension_version","registered_commands","image_revision","candidate_revision","source_sha256","typed_intent","target","verified_virtual_diff","startup_test_grant","discovered_task_tools","explicit_cooperative_cancellation","cancellation","test_task_authority","pending_task_dirty_buffer_invalidated","authority","dirty_buffer_invalidated","source_bytes_unchanged"}
+        expected_keys={"schema","vscode_version","app_name","extension_host_exec_path","extension_version","registered_commands","image_revision","candidate_revision","webview_rendered_views","source_sha256","typed_intent","target","verified_virtual_diff","startup_test_grant","discovered_task_tools","explicit_cooperative_cancellation","cancellation","test_task_authority","pending_task_dirty_buffer_invalidated","authority","dirty_buffer_invalidated","source_bytes_unchanged"}
         if set(observation)!=expected_keys: raise Failure("unexpected Extension Host observation schema")
-        if observation["schema"]!="semaprax.vscode-extension-host-result.v2" or observation["vscode_version"]!=cli_version[0] or observation["app_name"]!="Visual Studio Code" or observation["registered_commands"]!=CONTRIBUTED_COMMANDS: raise Failure("Extension Host identity mismatch")
+        if observation["schema"]!="semaprax.vscode-extension-host-result.v2" or observation["vscode_version"]!=cli_version[0] or observation["app_name"]!="Visual Studio Code" or observation["registered_commands"]!=CONTRIBUTED_COMMANDS: raise Failure(f"Extension Host identity mismatch: schema={observation['schema']!r}, version={observation['vscode_version']!r}, app={observation['app_name']!r}, commands={observation['registered_commands']!r}")
         for key in ("image_revision","candidate_revision"):
             if not re.fullmatch(r"sha256:[0-9a-f]{64}",observation[key]): raise Failure(f"invalid {key}")
         if observation["startup_test_grant"] != POLICY["test_policy"]: raise Failure("host test grant mismatch")
@@ -125,11 +219,19 @@ def main():
         if observation["cancellation"] != {"state":"cancelled","before_step":1,"steps_used":0,"report_released":False,"source_authority":False}: raise Failure("host cancellation boundary mismatch")
         if observation["test_task_authority"] != {"source_write":False,"process":False,"network":False,"target_runtime":False,"publication":False}: raise Failure("candidate test task authority widened")
         if observation["authority"] != {"source_write":False,"build":False,"commit":False,"publication":False}: raise Failure("editor authority widened")
+        rendered=observation["webview_rendered_views"]
+        expected_renders=[
+            {"mode":"overview","target":None,"side":"current","loaded":["declarations","modules"]},
+            {"mode":"context","target":"calculator.add","side":"current","loaded":["declarations","frontier","modules","relations"]},
+            {"mode":"overview","target":None,"side":"candidate","loaded":["declarations","modules"]},
+        ]
+        if not isinstance(rendered,list) or any(row not in rendered for row in expected_renders): raise Failure("actual Explorer webview did not render every selected view")
         if not all(observation[k] is True for k in ("verified_virtual_diff","explicit_cooperative_cancellation","pending_task_dirty_buffer_invalidated","dirty_buffer_invalidated","source_bytes_unchanged")): raise Failure("host scenario incomplete")
         host_exec=Path(observation["extension_host_exec_path"]).resolve(strict=True)
         if app not in host_exec.parents: raise Failure("Extension Host executable is outside selected product")
         fixture_after={str(p.relative_to(workspace)):sha(p.read_bytes()) for p in sorted(workspace.rglob("*")) if p.is_file()}
         if fixture_after!=fixture_before: raise Failure("fixture bytes changed")
+        if file_row(vsix) != vsix_before: raise Failure("VSIX bytes changed during installed host run")
     clean()
     if git("rev-parse","HEAD^{commit}")!=commit or git("rev-parse","HEAD^{tree}")!=tree: raise Failure("repository subject drift")
     compiler_after=file_row(compiler)
@@ -140,9 +242,9 @@ def main():
         if file_row(path) != bound_rows[name]: raise Failure(f"tool or product drift: {path}")
     host_exec_row=file_row(host_exec)
     if file_row(host_exec) != host_exec_row: raise Failure(f"Extension Host executable drift: {host_exec}")
-    logs={"controller-node.tap":node_log,"compiler-build-cargo.log":build_log,"vscode-extension-host.log":host_log,"vscode-host-observation.json":canonical(observation)}
+    logs={"controller-node.tap":node_log,"compiler-build-cargo.log":build_log,"vscode-extension-host.log":host_log,"vscode-host-observation.json":canonical(observation),"installed-extension.vsix":vsix_bytes,"semantic-explorer.html":standalone_bytes,"app-main.md":focused_bytes}
     rows=[artifact(name,body) for name,body in logs.items()]
-    domain=b"semaprax.graph-operational-vscode-host-execution-evidence.bundle.v2\0"
+    domain=b"semaprax.graph-operational-vscode-host-execution-evidence.bundle.v4\0"
     bundle=hashlib.sha256(domain+b"".join(bytes.fromhex(row["sha256"][7:]) for row in rows)).hexdigest()
     default=ROOT/".semaprax/evidence/graph-operational-vscode-host"/commit/bundle
     destination=Path(ns.output).resolve() if ns.output else default
@@ -152,9 +254,9 @@ def main():
       "runner":{"path":"scripts/graph-operational-vscode-host-evidence.py","host":{"system":platform.system(),"machine":platform.machine()},"versions":versions,
         "tools":{"node":bound_rows["node"],"cargo":bound_rows["cargo"],"rustc":bound_rows["rustc"],"compiler":compiler_before},
         "vscode":{"app":str(app),"code":bound_rows["code"],"cli":bound_rows["cli"],"product":bound_rows["product"],"package":bound_rows["package"],"extension_host":host_exec_row}},
-      "executions":[{"id":"vscode_node_mock_controllers_v3","passed":NODE_TEST_COUNT,"failed":0,"ignored":0},{"id":"vscode_extension_host_real_compiler_task_control_v3","passed":1,"failed":0,"ignored":0}],
+      "executions":[{"id":"vscode_node_mock_controllers_v3","passed":NODE_TEST_COUNT,"failed":0,"ignored":0},{"id":"vscode_extension_host_installed_vsix_real_compiler_task_control_and_webview_render_v2","passed":1,"failed":0,"ignored":0},{"id":"explorer_guide_standalone_html_and_markdown_v1","passed":2,"failed":0,"ignored":0}],
       "observation":observation,"artifacts":rows,
-      "claims":{"selected_visual_studio_code_product_extension_host":"passed","actual_compiler_mcp_typed_intent_review_task_cancellation_invalidation":"passed","startup_test_grant":"passed","editor_build_commit_publication_authority":"absent","source_bytes_unchanged":"passed","saved_source_diagnostic_positions_and_project_navigation":"passed","node_controllers_are_extension_host":"not_claimed","marketplace_or_vsix":"not_selected","hosted_or_cross_platform":"not_observed","full_quality_or_programme_completion":"not_selected","os_network_isolation":"not_claimed"}}
+      "claims":{"selected_visual_studio_code_product_extension_host":"passed","installed_vsix_exact_subject":"passed","installed_vsix_and_standalone_html_exact_viewer_assets":"passed","actual_explorer_webview_initial_render":"passed","explorer_guide_examples_on_built_compiler":"passed","actual_compiler_mcp_typed_intent_review_task_cancellation_invalidation":"passed","startup_test_grant":"passed","editor_build_commit_publication_authority":"absent","source_bytes_unchanged":"passed","saved_source_diagnostic_positions_and_project_navigation":"passed","node_controllers_are_extension_host":"not_claimed","marketplace_publication":"not_selected","hosted_or_cross_platform":"not_observed","full_quality_or_programme_completion":"not_selected","os_network_isolation":"not_claimed"}}
     if destination.exists(): raise Failure(f"destination exists: {destination}")
     stage=destination.parent/("."+destination.name+".tmp")
     if stage.exists(): shutil.rmtree(stage)

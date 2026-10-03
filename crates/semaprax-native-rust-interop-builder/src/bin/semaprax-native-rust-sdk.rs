@@ -1,5 +1,8 @@
 #![forbid(unsafe_code)]
 
+#[path = "semaprax-native-rust-sdk/indexed_project_cli.rs"]
+mod indexed_project_cli;
+
 use std::collections::BTreeMap;
 use std::ffi::{OsStr, OsString};
 use std::io::Write as _;
@@ -131,6 +134,16 @@ fn run(command: ProjectCommand) -> Result<String, ExitCode> {
 }
 
 fn main() -> ExitCode {
+    let mut arguments = std::env::args_os().skip(1);
+    if arguments.next().as_deref() == Some(OsStr::new("indexed-project")) {
+        return indexed_project_cli::run(std::env::args_os().skip(2));
+    }
+    if std::env::args_os().nth(1).as_deref() == Some(OsStr::new("indexed-diagnostics")) {
+        return indexed_project_cli::run_diagnostics(std::env::args_os().skip(2));
+    }
+    if std::env::args_os().nth(1).as_deref() == Some(OsStr::new("indexed-prepare")) {
+        return indexed_project_cli::run_prepare(std::env::args_os().skip(2));
+    }
     let command = match parse(std::env::args_os().skip(1)) {
         Ok(command) => command,
         Err(error) => return error.report(),

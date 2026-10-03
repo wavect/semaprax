@@ -12,6 +12,11 @@ mod agent_lowering;
 mod authority;
 mod build;
 mod candidate;
+pub use candidate::apply_protected_law_publication;
+pub use candidate::{
+    apply_strict_law_publication, prepare_strict_law_publication, StrictCandidateLawInputs,
+    StrictLawPublication, STRICT_CANDIDATE_LAW_SCHEMA, STRICT_LAW_PUBLICATION_SCHEMA,
+};
 mod canonical_sources;
 mod canonical_workspace_revision;
 mod contracts_and_tests_facts;
@@ -23,6 +28,12 @@ mod execution;
 mod external_dependencies;
 mod filesystem;
 mod flat_owned_record;
+pub(crate) mod host_policy;
+pub use host_policy::{
+    install_host_strict_law_policy, with_authenticated_project_inspection,
+    with_selected_law_diagnostics, with_strict_authenticated_project, ProjectInspection,
+    StrictProjectSession, HOST_STRICT_LAW_DIRECTORY, HOST_STRICT_LAW_SCHEMA,
+};
 mod image;
 mod image_coverage;
 mod image_dependencies;
@@ -32,6 +43,8 @@ mod image_reference;
 mod image_store;
 mod image_targets;
 pub(crate) mod incremental;
+pub(crate) mod indexed_rust;
+pub use indexed_rust::{with_authenticated_indexed_rust_project, ProjectIndexedRustImport};
 mod interface_artifact_facts;
 mod manifest;
 mod native_publication;
@@ -55,6 +68,7 @@ mod scaffold;
 mod scalar_wit;
 mod scalar_wit_compare;
 mod semantic;
+mod semantic_explorer;
 mod semantic_query;
 mod semantic_query_facts;
 mod semantic_service;
@@ -109,10 +123,10 @@ pub use candidate::{
 };
 pub use candidate::{
     apply_candidate_git_publication, apply_candidate_publication, prepare_candidate_publication,
-    CandidateGitAuthority, CandidateGitCommitMetadata, CandidateGitObject, CandidateGitObjectKind,
-    CandidateGitProcessAuthority, CandidateGitRefUpdate, CandidateGitRepository,
-    CandidateGitTarget, CandidateTestPolicy, CandidateTestReport, GitObjectFormat,
-    ProjectCandidate, ProjectCandidateAttempt, ProjectCandidateAttemptOutcome,
+    CandidateExplorerView, CandidateGitAuthority, CandidateGitCommitMetadata, CandidateGitObject,
+    CandidateGitObjectKind, CandidateGitProcessAuthority, CandidateGitRefUpdate,
+    CandidateGitRepository, CandidateGitTarget, CandidateTestPolicy, CandidateTestReport,
+    GitObjectFormat, ProjectCandidate, ProjectCandidateAttempt, ProjectCandidateAttemptOutcome,
     ProjectCandidateDraft, ProjectCandidatePublication, ProjectCandidateRebase,
     ProjectCandidateTestTaskOutcome, SemanticChange, MAX_CANDIDATE_TEST_STEPS,
     MAX_PROJECT_CANDIDATE_BYTES, MAX_PROJECT_CANDIDATE_DRAFT_LINEAGE, MAX_PROJECT_CANDIDATE_HOLES,
@@ -383,13 +397,13 @@ pub use manifest::{
     MAX_DEPENDENCIES, MAX_DEPENDENCY_SOURCES, MAX_MANIFEST_BYTES, MAX_MODULE_BYTES, MAX_NAME_BYTES,
     MAX_PATH_BYTES, MAX_RUST_DEPENDENCIES, MAX_SOURCES, MAX_STABLE_ID_BYTES,
     MAX_TOTAL_SOURCE_BYTES, MAX_VERSION_BYTES, MAX_WEB_EXPORTS, PACKAGE_MANIFEST_RESERVED_TABLES,
-    PACKAGE_MANIFEST_SCHEMA, PACKAGE_MANIFEST_TABLES, PACKAGE_RESERVED_KEYS,
-    PACKAGE_TARGET_NATIVE64, PACKAGE_TARGET_WASM32, PROJECT_SCHEMA, PROJECT_SCHEMA_V10,
-    PROJECT_SCHEMA_V11, PROJECT_SCHEMA_V12, PROJECT_SCHEMA_V13, PROJECT_SCHEMA_V14,
-    PROJECT_SCHEMA_V15, PROJECT_SCHEMA_V16, PROJECT_SCHEMA_V17, PROJECT_SCHEMA_V18,
-    PROJECT_SCHEMA_V19, PROJECT_SCHEMA_V2, PROJECT_SCHEMA_V20, PROJECT_SCHEMA_V3,
-    PROJECT_SCHEMA_V4, PROJECT_SCHEMA_V5, PROJECT_SCHEMA_V6, PROJECT_SCHEMA_V7, PROJECT_SCHEMA_V8,
-    PROJECT_SCHEMA_V9,
+    PACKAGE_MANIFEST_SCHEMA, PACKAGE_MANIFEST_SCHEMA_V2, PACKAGE_MANIFEST_TABLES,
+    PACKAGE_RESERVED_KEYS, PACKAGE_TARGET_NATIVE64, PACKAGE_TARGET_WASM32, PROJECT_SCHEMA,
+    PROJECT_SCHEMA_V10, PROJECT_SCHEMA_V11, PROJECT_SCHEMA_V12, PROJECT_SCHEMA_V13,
+    PROJECT_SCHEMA_V14, PROJECT_SCHEMA_V15, PROJECT_SCHEMA_V16, PROJECT_SCHEMA_V17,
+    PROJECT_SCHEMA_V18, PROJECT_SCHEMA_V19, PROJECT_SCHEMA_V2, PROJECT_SCHEMA_V20,
+    PROJECT_SCHEMA_V3, PROJECT_SCHEMA_V4, PROJECT_SCHEMA_V5, PROJECT_SCHEMA_V6, PROJECT_SCHEMA_V7,
+    PROJECT_SCHEMA_V8, PROJECT_SCHEMA_V9,
 };
 pub use native_sdk::{
     with_native_owned_data_sdk_subject, ProjectNativeRustPackage, ProjectNativeRustPackageMode,
@@ -436,6 +450,10 @@ pub use project_lock::{
 };
 pub use scalar_wit_compare::{
     classify_scalar_wit_change, ScalarWitCompatibility, SCALAR_WIT_COMPATIBILITY_SCHEMA,
+};
+pub use semantic_explorer::{
+    ExplorerDirection, ExplorerMode, ExplorerPageOptions, ExplorerQuery, ExplorerSide,
+    ExplorerView, EXPLORER_VIEW_SCHEMA, MAX_EXPLORER_PAGE_BYTES, MAX_EXPLORER_SUMMARY_BYTES,
 };
 pub use semantic_query::{
     AgentDefinitionsQuery, AgentDefinitionsQueryResult, SemanticQuery, SemanticQueryResult,
@@ -581,7 +599,7 @@ pub(crate) fn validate_owned_utf8_closure_function(
     public_utf8_api::validate_closure_shape(function)
 }
 pub(crate) use rename::{PreparedProjectRename, ProjectRenameDerivation};
-pub use revision::ProjectRevision;
+pub use revision::{ForeignCallerCertificate, ProjectRevision};
 pub use semantic::{
     PROJECT_SEMANTIC_CONTEXT_SCHEMA, PROJECT_SEMANTIC_GRAPH_SCHEMA, PROJECT_SEMANTIC_IMPACT_SCHEMA,
 };
@@ -641,6 +659,7 @@ impl ProjectSource {
 pub struct ProjectSnapshot {
     root: PathBuf,
     revision: Arc<ProjectRevision>,
+    host_policy: Option<host_policy::SelectedStrictLaw>,
     declared_inputs: Vec<DeclaredPathSelection>,
     held_manifest: HeldFile,
     held_sources: Vec<HeldFile>,
@@ -1144,6 +1163,10 @@ impl ProjectSnapshot {
     }
 
     fn recheck(&mut self) -> Result<(), Vec<Diagnostic>> {
+        match &mut self.host_policy {
+            Some(selection) => selection.recheck()?,
+            None => host_policy::require_unselected(&self.root)?,
+        }
         for declared in &self.declared_inputs {
             declared.recheck()?;
         }
@@ -1167,7 +1190,31 @@ pub fn with_authenticated_project<T>(
     manifest_path: &Path,
     operation: impl FnOnce(&mut ProjectSnapshot) -> Result<T, Vec<Diagnostic>>,
 ) -> Result<T, Vec<Diagnostic>> {
-    let mut snapshot = load_snapshot(manifest_path)?;
+    with_snapshot_operation(load_snapshot(manifest_path)?, operation)
+}
+
+#[derive(Clone, Copy, Eq, PartialEq)]
+enum ProjectHostAccess {
+    Generic,
+    Inspection,
+    Strict,
+}
+
+pub(crate) fn require_unselected_host_law_policy(root: &Path) -> Result<(), Vec<Diagnostic>> {
+    host_policy::require_unselected(root)
+}
+
+pub(crate) fn require_host_law_workspace_admission(
+    root: &Path,
+    permit: Option<&mut host_policy::StrictWorkspacePermit>,
+) -> Result<(), Vec<Diagnostic>> {
+    host_policy::require_workspace_admission(root, permit)
+}
+
+fn with_snapshot_operation<T>(
+    mut snapshot: ProjectSnapshot,
+    operation: impl FnOnce(&mut ProjectSnapshot) -> Result<T, Vec<Diagnostic>>,
+) -> Result<T, Vec<Diagnostic>> {
     let result = operation(&mut snapshot);
     let recheck = snapshot
         .recheck()
@@ -1230,7 +1277,14 @@ pub fn validate_owned_project_test(
 }
 
 pub(crate) fn load_snapshot(manifest_path: &Path) -> Result<ProjectSnapshot, Vec<Diagnostic>> {
-    load_snapshot_building(manifest_path, |manifest, sources| {
+    load_snapshot_for_host_access(manifest_path, ProjectHostAccess::Generic)
+}
+
+fn load_snapshot_for_host_access(
+    manifest_path: &Path,
+    access: ProjectHostAccess,
+) -> Result<ProjectSnapshot, Vec<Diagnostic>> {
+    load_snapshot_building(manifest_path, access, |manifest, sources| {
         let built = build::build_owned(&manifest, sources)?;
         Ok((Arc::new(ProjectRevision::from_built(manifest, built)), ()))
     })
@@ -1243,16 +1297,21 @@ pub(crate) fn load_snapshot_with_frontend(
     manifest_path: &Path,
     mut cache: ProjectFrontendCache,
 ) -> Result<(ProjectSnapshot, ProjectFrontendCache, serde_json::Value), Vec<Diagnostic>> {
-    let (snapshot, work) = load_snapshot_building(manifest_path, |manifest, sources| {
-        let build = cache.build_authenticated_sources(&manifest, sources)?;
-        let work = incremental::work_value(&build)?;
-        Ok((build.into_revision(), work))
-    })?;
+    let (snapshot, work) = load_snapshot_building(
+        manifest_path,
+        ProjectHostAccess::Generic,
+        |manifest, sources| {
+            let build = cache.build_authenticated_sources(&manifest, sources)?;
+            let work = incremental::work_value(&build)?;
+            Ok((build.into_revision(), work))
+        },
+    )?;
     Ok((snapshot, cache, work))
 }
 
 fn load_snapshot_building<T>(
     manifest_path: &Path,
+    access: ProjectHostAccess,
     build: impl FnOnce(
         ProjectManifest,
         Vec<SemanticWorkspaceSource>,
@@ -1267,6 +1326,13 @@ fn load_snapshot_building<T>(
         .parent()
         .ok_or_else(|| grammar("Project v1 manifest must have an explicit project root"))?
         .to_path_buf();
+    let host_policy = host_policy::SelectedStrictLaw::open(&root)?;
+    if host_policy.is_some() && access == ProjectHostAccess::Generic {
+        return Err(host_policy::selected_route_refused());
+    }
+    if host_policy.is_none() && access == ProjectHostAccess::Strict {
+        return Err(host_policy::strict_route_unselected());
+    }
     let mut root_ancestors = root.ancestors().map(Path::to_path_buf).collect::<Vec<_>>();
     if root_ancestors.len() > MAX_HELD_DIRECTORIES {
         return Err(capacity("ancestor_directories", MAX_HELD_DIRECTORIES));
@@ -1427,6 +1493,7 @@ fn load_snapshot_building<T>(
     let mut snapshot = ProjectSnapshot {
         root,
         revision,
+        host_policy,
         declared_inputs,
         held_manifest,
         held_sources,

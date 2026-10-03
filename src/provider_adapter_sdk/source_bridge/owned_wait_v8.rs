@@ -86,6 +86,7 @@ enum OwnedModelRequestOriginV8<'p, 'j> {
     Continued(
         &'p crate::live_invocation::source_journal::LiveContinuedModelRequestOriginV8<'p, 'j>,
     ),
+    Later(&'p crate::live_invocation::source_journal::LiveLaterModelRequestOriginV8<'p, 'j>),
 }
 impl OwnedModelRequestOriginV8<'_, '_> {
     fn checked_facts(
@@ -95,24 +96,33 @@ impl OwnedModelRequestOriginV8<'_, '_> {
         match self {
             Self::Initial { parked, .. } => parked.checked_facts(b),
             Self::Continued(o) => o.checked_facts(b),
+            Self::Later(o) => o.checked_facts(b),
         }
     }
     fn request(&self) -> Option<&crate::interpreter::resumable::ResumableChannelValue> {
         match self {
             Self::Initial { parked, .. } => Some(parked.request()),
             Self::Continued(o) => o.request(),
+            Self::Later(o) => o.request(),
         }
     }
     fn observation(&self) -> &CheckedOwnedWaitObservationV8 {
         match self {
             Self::Initial { observation, .. } => observation,
             Self::Continued(o) => o.observation(),
+            Self::Later(o) => o.observation(),
         }
     }
     fn prompt_coordinates(&self) -> Result<(u32, Option<Vec<u8>>), Vec<Diagnostic>> {
         match self {
             Self::Initial { .. } => Ok((0, None)),
             Self::Continued(o) => {
+                let (_, previous) = o.coordinates().map_err(|_| {
+                    StreamingSourceProposalAdapter::refusal("source.owned_wait_history")
+                })?;
+                Ok((o.turn(), previous))
+            }
+            Self::Later(o) => {
                 let (_, previous) = o.coordinates().map_err(|_| {
                     StreamingSourceProposalAdapter::refusal("source.owned_wait_history")
                 })?;
@@ -126,6 +136,7 @@ impl OwnedModelRequestOriginV8<'_, '_> {
 pub(super) enum OwnedModelGuardV8<'p, 'j> {
     Initial(&'p LiveModelIntentPermitV8<'j>),
     Continued(&'p crate::live_invocation::source_journal::LiveContinuedModelIntentPermitV8<'p, 'j>),
+    Later(&'p crate::live_invocation::source_journal::LiveLaterModelIntentPermitV8<'p, 'j>),
 }
 impl OwnedModelGuardV8<'_, '_> {
     pub(super) fn validate_guard(
@@ -134,6 +145,7 @@ impl OwnedModelGuardV8<'_, '_> {
         match self {
             Self::Initial(p) => p.validate_guard(),
             Self::Continued(p) => p.validate_guard(),
+            Self::Later(p) => p.validate_guard(),
         }
     }
     pub(super) fn validate_store(
@@ -142,18 +154,21 @@ impl OwnedModelGuardV8<'_, '_> {
         match self {
             Self::Initial(p) => p.validate_store(),
             Self::Continued(p) => p.validate_store(),
+            Self::Later(p) => p.validate_store(),
         }
     }
     pub(super) fn guard_failure(&self) -> SourceAttemptFailure {
         match self {
             Self::Initial(p) => p.guard_failure(),
             Self::Continued(p) => p.guard_failure(),
+            Self::Later(p) => p.guard_failure(),
         }
     }
     pub(super) fn quarantine(&self) {
         match self {
             Self::Initial(p) => p.quarantine(),
             Self::Continued(p) => p.quarantine(),
+            Self::Later(p) => p.quarantine(),
         }
     }
 }
@@ -191,6 +206,27 @@ impl StreamingSourceProposalAdapter<'_> {
             execution,
             scope,
             &OwnedModelRequestOriginV8::Continued(origin),
+        );
+        origin
+            .validate_guard()
+            .map_err(|_| Self::refusal("source.owned_wait_guard"))?;
+        result
+    }
+    pub(crate) fn checked_later_model_request_v8(
+        &self,
+        runtime: &AgentRuntimeV2,
+        execution: &CheckedTypedOwnedWaitExecutionV8,
+        scope: &SourceCheckpointScope,
+        origin: &crate::live_invocation::source_journal::LiveLaterModelRequestOriginV8<'_, '_>,
+    ) -> Result<CheckedOwnedModelRequestV8, Vec<Diagnostic>> {
+        origin
+            .validate_guard()
+            .map_err(|_| Self::refusal("source.owned_wait_guard"))?;
+        let result = self.checked_model_request_origin_v8(
+            runtime,
+            execution,
+            scope,
+            &OwnedModelRequestOriginV8::Later(origin),
         );
         origin
             .validate_guard()
@@ -354,6 +390,70 @@ impl StreamingSourceProposalAdapter<'_> {
                 SourceAttemptFailure::Cancelled
             } else if outcome.as_ref().err().is_some_and(|ds| {
                 ds.iter()
+                    .any(|d| d.message.contains("source.adapter_timeout"))
+            }) {
+                SourceAttemptFailure::Timeout
+            } else {
+                SourceAttemptFailure::Refused
+            };
+            self.dispatch_failure(failure, 0);
+        }
+        match self.finish_dispatch(outcome) {
+            SourceAdapterDispatch::Settled {
+                decoded,
+                response,
+                usage,
+                ..
+            } => OwnedModelSettlementV8::Settled {
+                decoded,
+                response,
+                usage,
+            },
+            SourceAdapterDispatch::Failed {
+                diagnostics,
+                reason,
+                attempted_bytes,
+            } => OwnedModelSettlementV8::Failed {
+                diagnostics,
+                reason,
+                attempted_bytes,
+                usage: self.last_owned_usage,
+            },
+        }
+    }
+    pub(crate) fn dispatch_later_wait_v8(
+        &mut self,
+        permit: &crate::live_invocation::source_journal::LiveLaterModelIntentPermitV8<'_, '_>,
+    ) -> OwnedModelSettlementV8 {
+        self.last_dispatch = None;
+        self.last_owned_usage = None;
+        let live = OwnedModelGuardV8::Later(permit);
+        let outcome = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            permit
+                .validate_guard()
+                .map_err(|_| Self::refusal("source.owned_wait_guard"))?;
+            permit.request().matches(self)?;
+            let clock = permit.clock();
+            self.check_deadline_live_v8(Some(clock), Some(&live))?;
+            let request = AdapterRequest {
+                request_bytes: permit.request().request.request_bytes.clone(),
+                max_response_bytes: permit.request().request.max_response_bytes,
+            };
+            self.propose_adapter_inner(request, Some(clock), false, Some(&live))
+        }));
+        let outcome = match outcome {
+            Ok(result) => result,
+            Err(_) => {
+                permit.quarantine();
+                Err(Self::refusal("source.owned_wait_callback_panic"))
+            }
+        };
+        if outcome.is_err() && self.last_dispatch.is_none() {
+            let failure = if permit.guard_failure() == SourceAttemptFailure::Cancelled {
+                SourceAttemptFailure::Cancelled
+            } else if outcome.as_ref().err().is_some_and(|diagnostics| {
+                diagnostics
+                    .iter()
                     .any(|d| d.message.contains("source.adapter_timeout"))
             }) {
                 SourceAttemptFailure::Timeout

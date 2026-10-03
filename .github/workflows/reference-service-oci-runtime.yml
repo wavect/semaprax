@@ -1,0 +1,136 @@
+# Branch-scoped reference-service OCI runtime gate.
+#
+# This runs a locally built, static Linux service image through a local Podman
+# daemon on an ephemeral Ubuntu runner. It never logs in to or contacts an OCI
+# registry, publishes an image, signs an artifact, or treats a successful run
+# as release provenance. The Python journey refuses missing adapters, secrets,
+# and mismatched run bundles before proving the service's CRUD/job/restart path.
+name: Reference service OCI runtime
+
+on:
+  push:
+    branches: [wavect/v080]
+    paths:
+      - .github/workflows/reference-service-oci-runtime.yml
+      - scripts/tests/reference_service_oci_runtime.py
+      - scripts/tests/reference-service-host.config.json
+      - scripts/package-reference-service.py
+      - crates/semaprax-native-host/**
+      - Cargo.lock
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  # Evidence is bound to each selected ref. Do not cancel an already running
+  # observation merely because another maintainer dispatches a different ref.
+  group: reference-service-oci-runtime-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  CARGO_INCREMENTAL: "0"
+  CARGO_TERM_COLOR: never
+  PYTHONDONTWRITEBYTECODE: "1"
+  SERVICE_TARGET: x86_64-unknown-linux-musl
+
+jobs:
+  reference-service-oci-runtime:
+    name: Static Linux service in Podman
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 1
+          filter: blob:none
+          fetch-tags: false
+          lfs: false
+      - uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # master
+        with:
+          toolchain: 1.97.1
+          targets: x86_64-unknown-linux-musl
+
+      - name: Bind the selected checkout and source inputs
+        run: |
+          set -euo pipefail
+          test -z "$(git status --porcelain)"
+          evidence="$RUNNER_TEMP/reference-service-oci-evidence.txt"
+          {
+            echo 'schema=semaprax.reference-service.oci-runtime.evidence.v1'
+            printf 'commit=%s\n' "$(git rev-parse HEAD)"
+            printf 'tree=%s\n' "$(git rev-parse 'HEAD^{tree}')"
+            printf 'workflow_ref=%s\n' "$GITHUB_REF"
+            printf 'workflow_sha=%s\n' "$GITHUB_SHA"
+            sha256sum Cargo.lock \
+              scripts/package-reference-service.py \
+              scripts/tests/reference_service_oci_runtime.py \
+              scripts/tests/reference-service-host.config.json \
+              examples/task-service-project/semaprax.toml \
+              examples/task-service-project/src/app.spx \
+              examples/task-service-project/src/core.spx \
+              examples/task-service-project/src/tests.spx
+          } > "$evidence"
+          echo "REFERENCE_SERVICE_OCI_EVIDENCE=$evidence" >> "$GITHUB_ENV"
+
+      - name: Provision only the selected local runtime and linker
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends musl-tools podman
+          runtime_os="$(podman info --format '{{.Host.OS}}')"
+          test "$runtime_os" = linux
+          printf 'podman_host_os=%s\n' "$runtime_os" >> "$REFERENCE_SERVICE_OCI_EVIDENCE"
+          cargo fetch --locked
+
+      - name: Build and install the exact static service artifact
+        env:
+          CARGO_NET_OFFLINE: "true"
+          CARGO_TARGET_DIR: ${{ runner.temp }}/reference-service-oci-target
+          CC_x86_64_unknown_linux_musl: musl-gcc
+          # musl can otherwise emit a static PIE (ET_DYN).  The local OCI
+          # packager intentionally admits only a static ET_EXEC binary.
+          RUSTFLAGS: -C relocation-model=static
+        run: |
+          set -euo pipefail
+          cargo build --locked --release --target "$SERVICE_TARGET" \
+            -p semaprax-native-host --bin semaprax-reference-service
+          built="$CARGO_TARGET_DIR/$SERVICE_TARGET/release/semaprax-reference-service"
+          artifact="$RUNNER_TEMP/reference-service-oci-artifact/semaprax-reference-service"
+          install -D -m 755 "$built" "$artifact"
+          test "$(stat -c '%h' "$artifact")" = 1
+          command -v readelf
+          if ! readelf -h "$artifact" | grep -Eq '^[[:space:]]*Type:[[:space:]]+EXEC[[:space:]]+'; then
+            echo 'refusing a Linux service executable that is not static ET_EXEC' >&2
+            readelf -h "$artifact" >&2
+            exit 1
+          fi
+          if readelf -l "$artifact" | grep -q 'INTERP'; then
+            echo 'refusing a Linux service executable with a dynamic interpreter' >&2
+            exit 1
+          fi
+          {
+            printf 'artifact_path=%s\n' "$artifact"
+            sha256sum "$artifact"
+            file "$artifact"
+          } >> "$REFERENCE_SERVICE_OCI_EVIDENCE"
+          echo "REFERENCE_SERVICE_OCI_ARTIFACT=$artifact" >> "$GITHUB_ENV"
+
+      - name: Execute the exact artifact through the local OCI runtime
+        run: |
+          set -euo pipefail
+          python3 scripts/tests/reference_service_oci_runtime.py \
+            --packager "$PWD/scripts/package-reference-service.py" \
+            --checker "$REFERENCE_SERVICE_OCI_ARTIFACT" \
+            --executable "$REFERENCE_SERVICE_OCI_ARTIFACT" \
+            --project "$PWD/examples/task-service-project" \
+            --config "$PWD/scripts/tests/reference-service-host.config.json" \
+            --podman "$(command -v podman)" 2>&1 | tee -a "$REFERENCE_SERVICE_OCI_EVIDENCE"
+
+      - name: Retain exact runtime evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: reference-service-oci-runtime-${{ github.sha }}
+          path: ${{ runner.temp }}/reference-service-oci-evidence.txt
+          if-no-files-found: error

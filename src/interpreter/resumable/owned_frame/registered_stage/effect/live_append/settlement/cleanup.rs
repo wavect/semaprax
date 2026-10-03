@@ -182,6 +182,56 @@ pub(crate) fn ack_live_owned_effect_cleanup_v8<'j>(
         },
     }
 }
+pub(crate) fn ack_live_continued_effect_cleanup_v8<'j>(
+    pending: PendingOwnedEffectReceiptV8<'j>,
+    permit: &crate::live_invocation::source_journal::LiveContinuedOutcomePermitV8<'_, 'j>,
+) -> Result<ExecutedOwnedAgentTurnV2<'j>, LiveEffectOutcomeFailureV8<'j>> {
+    let valid = (|| {
+        permit.validate_guard(&pending.inputs)?;
+        let (started, settled, receipt) = permit.settled_receipt()?;
+        if pending.started != started
+            || pending.receipt != *receipt
+            || pending.failure.is_some()
+            || pending.accepted.is_none()
+        {
+            return Err(SourceJournalError::Binding);
+        }
+        Ok(OwnedEffectCleanupSettledAckV8 {
+            basis: pending.basis.clone(),
+            started,
+            settled,
+            receipt: receipt.clone(),
+        })
+    })();
+    let ack = match valid {
+        Ok(ack) => ack,
+        Err(error) => return Err(LiveEffectOutcomeFailureV8::Before { pending, error }),
+    };
+    let error = Cell::new(None);
+    let result = ack_owned_effect_cleanup_v8(pending, ack, |phase| {
+        let result = match phase {
+            OwnedEffectPhaseV8::CleanupSettled(_) => permit.validate_current(),
+            _ => Err(SourceJournalError::Binding),
+        };
+        match result {
+            Ok(()) => true,
+            Err(e) => {
+                error.set(error.get().or(Some(e)));
+                false
+            }
+        }
+    });
+    match result {
+        Err(rejected) => Err(LiveEffectOutcomeFailureV8::Engine {
+            rejected,
+            error: error.get().unwrap_or(SourceJournalError::Binding),
+        }),
+        Ok(executed) => match permit.validate_guard(&executed.inputs) {
+            Ok(()) => Ok(executed),
+            Err(error) => Err(LiveEffectOutcomeFailureV8::After { executed, error }),
+        },
+    }
+}
 impl StagedOwnedEffectV8<'_> {
     pub(crate) fn continued_decision_cleanup_values_v8(
         &self,

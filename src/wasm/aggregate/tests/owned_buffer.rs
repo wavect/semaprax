@@ -36,6 +36,115 @@ fn run() -> i64 {
 fn main() -> i64 { run() }
 "#;
 
+const SET5_SUCCESS: &str = r#"
+module test.wasm_owned_buffer_set5;
+
+@id("buffer.run")
+fn run() -> i64 {
+    let buffer = bytes_set5(bytes_zeroed(5usize), 0usize, 65u8, 66u8, 67u8, 68u8, 69u8);
+    let view = bytes_as_slice(buffer);
+    let first = match byte_get(view, 0usize) {
+        Option::Some { value: byte } => byte,
+        Option::None {} => 0u8,
+    };
+    let last = match byte_get(view, 4usize) {
+        Option::Some { value: byte } => byte,
+        Option::None {} => 0u8,
+    };
+    if first == 65u8 && last == 69u8 { 7 } else { 1 }
+}
+
+@id("app.main")
+fn main() -> i64 { run() }
+"#;
+
+const SET1_OR5_SUCCESS: &str = r#"
+module test.wasm_owned_buffer_set1_or5;
+
+@id("buffer.run")
+fn run() -> i64 {
+    // A zero-length borrowed source proves the wide source read is total and
+    // zero-fills without introducing array initialization into this focused
+    // no-memory-copy owned-buffer lowering audit.
+    let source_buffer = bytes_zeroed(0usize);
+    let source = bytes_as_slice(source_buffer);
+    let mut buffer = bytes_zeroed(6usize);
+    let mut index = 0usize;
+    while index < 2usize {
+        let wide = index == 1usize;
+        let selector = if wide { 9223372036854775808usize } else { 0usize };
+        buffer = bytes_set1_or5_from_slice(buffer, index, 90u8, source, selector);
+        index = index + if wide { 5usize } else { 1usize };
+        0
+    }
+    let view = bytes_as_slice(buffer);
+    let third = match byte_get(view, 3usize) { Option::Some { value: byte } => byte, Option::None {} => 0u8, };
+    let sixth = match byte_get(view, 5usize) { Option::Some { value: byte } => byte, Option::None {} => 1u8, };
+    if third == 0u8 && sixth == 0u8 { 7 } else { 1 }
+}
+
+@id("app.main")
+fn main() -> i64 { run() }
+"#;
+
+const SET1_OR6_OR48_OUT_OF_RANGE: &str = r#"
+module test.wasm_owned_buffer_tagged_failure;
+@id("buffer.offset") fn offset(value: usize) -> usize { value + 1usize }
+@id("buffer.main") fn main() -> i64
+{
+    // Keep this buffer-only instruction audit free of fixed-array binding
+    // copies. Failure must settle both the source owner and staged target.
+    let source_buffer = bytes_zeroed(0usize);
+    let source = bytes_as_slice(source_buffer);
+    let buffer = bytes_set1_or6_or48_from_slice(bytes_zeroed(48usize), offset(0usize), 1u8, source, 13835058055282163712usize);
+    let view = bytes_as_slice(buffer);
+    if byte_len(view) == 48usize { 7 } else { 1 }
+}
+"#;
+
+const SET1_OR6_OR48_SUCCESS: &str = r#"
+module test.wasm_owned_buffer_set1_or6_or48;
+
+@id("buffer.run")
+fn run() -> i64 {
+    let source_buffer = bytes_zeroed(0usize);
+    let source = bytes_as_slice(source_buffer);
+    let mut buffer = bytes_zeroed(49usize);
+    let mut index = 0usize;
+    while index < 2usize {
+        let wide = index == 1usize;
+        let selector = if wide { 13835058055282163712usize } else { 0usize };
+        buffer = bytes_set1_or6_or48_from_slice(buffer, index, 90u8, source, selector);
+        index = index + if wide { 48usize } else { 1usize };
+        0
+    }
+    let view = bytes_as_slice(buffer);
+    let third = match byte_get(view, 3usize) { Option::Some { value: byte } => byte, Option::None {} => 1u8, };
+    let last = match byte_get(view, 48usize) { Option::Some { value: byte } => byte, Option::None {} => 1u8, };
+    if third == 0u8 && last == 0u8 { 7 } else { 1 }
+}
+
+@id("app.main")
+fn main() -> i64 { run() }
+"#;
+
+const SET5_OUT_OF_RANGE: &str = r#"
+module test.wasm_owned_buffer_set5_past_end;
+
+@id("buffer.offset")
+fn offset(base: usize) -> usize { base + 1usize }
+
+@id("buffer.run")
+fn run() -> i64 {
+    let buffer = bytes_set5(bytes_zeroed(5usize), offset(4usize), 1u8, 2u8, 3u8, 4u8, 5u8);
+    let view = bytes_as_slice(buffer);
+    if byte_len(view) == 5usize { 7 } else { 1 }
+}
+
+@id("app.main")
+fn main() -> i64 { run() }
+"#;
+
 fn owned_buffer_host_probe_module() -> Vec<u8> {
     let signatures = [
         Signature {
@@ -361,15 +470,75 @@ fn owned_bounded_byte_buffer_executes_and_reenters_without_memory_copy() {
     const RETURNS_SEVEN: &str =
         "if(instance.exports.semaprax_main()!==7n)throw Error('wrong owned buffer value');";
 
+    // Exercise every selector arm: each failing preflight must exit the
+    // function after cleanup, even inside the selector's nested Wasm blocks.
+    let tagged_failures = [
+        (
+            "tagged-48-past-end",
+            "bytes_set1_or6_or48_from_slice",
+            0,
+            3_u64 << 62,
+        ),
+        (
+            "tagged-6-past-end",
+            "bytes_set1_or6_or48_from_slice",
+            42,
+            1_u64 << 63,
+        ),
+        (
+            "tagged-1-of-6-or48-past-end",
+            "bytes_set1_or6_or48_from_slice",
+            47,
+            0,
+        ),
+        (
+            "tagged-5-past-end",
+            "bytes_set1_or5_from_slice",
+            43,
+            1_u64 << 63,
+        ),
+        ("tagged-1-of-5-past-end", "bytes_set1_or5_from_slice", 47, 0),
+    ]
+    .map(|(label, operation, offset, selector)| {
+        let mut source = SET1_OR6_OR48_OUT_OF_RANGE.to_owned();
+        for (old, new) in [
+            ("bytes_set1_or6_or48_from_slice", operation.to_owned()),
+            ("offset(0usize)", format!("offset({offset}usize)")),
+            ("13835058055282163712usize", format!("{selector}usize")),
+        ] {
+            assert_eq!(
+                source.matches(old).count(),
+                1,
+                "{label}: fixture anchor {old}"
+            );
+            source = source.replace(old, &new);
+        }
+        (label, source)
+    });
+
     for (label, source, expectation) in [
         ("success", SUCCESS, RETURNS_SEVEN),
         ("computed", COMPUTED, RETURNS_SEVEN),
         ("computed-past-end", COMPUTED_OUT_OF_RANGE, BOUND_FAILURE),
         ("loop-fill", LOOP_FILL, RETURNS_SEVEN),
         ("loop-past-end", LOOP_PAST_END, BOUND_FAILURE),
+        ("set5-success", SET5_SUCCESS, RETURNS_SEVEN),
+        ("set1-or5-success", SET1_OR5_SUCCESS, RETURNS_SEVEN),
+        (
+            "set1-or6-or48-success",
+            SET1_OR6_OR48_SUCCESS,
+            RETURNS_SEVEN,
+        ),
+        ("set5-past-end", SET5_OUT_OF_RANGE, BOUND_FAILURE),
         ("decoded-string", DECODED_STRING_BUFFER, RETURNS_SEVEN),
         ("failure", FAILURE, CONTRACT_FAILURE),
-    ] {
+    ]
+    .into_iter()
+    .chain(
+        tagged_failures
+            .iter()
+            .map(|(label, source)| (*label, source.as_str(), BOUND_FAILURE)),
+    ) {
         let parsed = parse(source, Path::new("wasm-owned-buffer-v1.spx")).unwrap();
         let resolved = hir::resolve(&parsed).unwrap();
         hir::validate(&resolved).unwrap();
@@ -379,6 +548,9 @@ fn owned_bounded_byte_buffer_executes_and_reenters_without_memory_copy() {
 
         let mut zeroed_imports = 0;
         let mut set_imports = 0;
+        let mut set5_imports = 0;
+        let mut set1_or5_imports = 0;
+        let mut set1_or6_or48_imports = 0;
         for payload in wasmparser::Parser::new(0).parse_all(&bytes) {
             match payload.unwrap() {
                 wasmparser::Payload::ImportSection(section) => {
@@ -389,6 +561,14 @@ fn owned_bounded_byte_buffer_executes_and_reenters_without_memory_copy() {
                         );
                         set_imports +=
                             usize::from(import.module == "env" && import.name == "spx_bytes_set");
+                        set5_imports +=
+                            usize::from(import.module == "env" && import.name == "spx_bytes_set5");
+                        set1_or5_imports += usize::from(
+                            import.module == "env" && import.name == "spx_bytes_set1_or5",
+                        );
+                        set1_or6_or48_imports += usize::from(
+                            import.module == "env" && import.name == "spx_bytes_set1_or6_or48",
+                        );
                     }
                 }
                 wasmparser::Payload::CodeSectionEntry(body) => {
@@ -400,7 +580,7 @@ fn owned_bounded_byte_buffer_executes_and_reenters_without_memory_copy() {
                                 wasmparser::Operator::MemoryCopy { .. }
                                     | wasmparser::Operator::MemoryGrow { .. }
                             ),
-                            "owned buffer lowering must neither copy nor grow linear memory"
+                            "{label}: owned buffer lowering must neither copy nor grow linear memory"
                         );
                     }
                 }
@@ -409,7 +589,22 @@ fn owned_bounded_byte_buffer_executes_and_reenters_without_memory_copy() {
         }
         assert_eq!(zeroed_imports, 1);
         assert_eq!(set_imports, 1);
+        assert_eq!(set5_imports, 1);
+        assert_eq!(set1_or5_imports, 1);
+        assert_eq!(set1_or6_or48_imports, 1);
 
+        // The ordinary cases prove a one-owner buffer under the strict
+        // one-entry host cap. Source-reading success and failure cases have a
+        // distinct live source owner, so they need exactly two host entries.
+        // Reentry with that cap detects a leak of either owner after failure.
+        let max_owned_byte_entries =
+            if matches!(label, "set1-or5-success" | "set1-or6-or48-success")
+                || label.starts_with("tagged-")
+            {
+                2
+            } else {
+                1
+            };
         let serial = NEXT_ID.fetch_add(1, Ordering::Relaxed);
         let fixture = Fixture(std::env::temp_dir().join(format!(
             "semaprax-owned-buffer-wasm-{}-{serial}-{label}",
@@ -428,7 +623,7 @@ fn owned_bounded_byte_buffer_executes_and_reenters_without_memory_copy() {
                 r#"import {{readFile}} from 'node:fs/promises';
 import {{instantiateBytes,semanticStatus}} from './runtime.mjs';
 const bytes=await readFile('./app.wasm');
-const {{instance}}=await instantiateBytes(bytes,{{maxOwnedByteEntries:1}});
+const {{instance}}=await instantiateBytes(bytes,{{maxOwnedByteEntries:{max_owned_byte_entries}}});
 for(let round=0;round<4;++round){{{expectation}}}
 "#
             ),

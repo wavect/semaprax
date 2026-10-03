@@ -43,6 +43,7 @@ impl CheckedOwnedWaitJournalContextV8 {
             )
             .map_err(|_| SourceJournalError::Binding)?;
         self.fold.reduce_templates.reset();
+        self.fold.future_templates.reset();
         self.fold.initialized_task = Some(
             crate::resumable_effects::owned_frame::v2::live_run_plan::runtime_task_document_v8(
                 task,
@@ -73,6 +74,7 @@ impl CheckedOwnedWaitJournalContextV8 {
     ) -> Result<Self, SourceJournalError> {
         let mut context = self.with_initialization(lease)?;
         context.fold.reduce_templates.reset();
+        context.fold.future_templates.reset();
         context.fold.cumulative_initialization = true;
         context.validate_lease(lease)?;
         Ok(context)
@@ -187,7 +189,9 @@ pub(crate) fn checked_owned_wait_journal_context_v8(
         granted: b.authorize().granted().as_str().into(),
         refused: b.authorize().refused().as_str().into(),
         refused_cleanup_empty,
+        maxima_templates: capacity::MaximaTemplateCacheV8::default(),
         reduce_templates: capacity::ReduceTemplateCacheV8::default(),
+        future_templates: capacity::FutureTemplateCacheV8::default(),
         checked_reduce: crate::resumable_effects::owned_frame::v2::compile_owned_reduce_v2(b)
             .map(Arc::new)
             .map_err(|_| SourceJournalError::Binding),
@@ -206,6 +210,13 @@ mod runtime_tests;
 
 #[cfg(test)]
 impl CheckedOwnedWaitJournalContextV8 {
+    pub(crate) fn test_runtime_arc(&self) -> Arc<AgentRuntimeV2> {
+        Arc::clone(
+            self.runtime
+                .as_ref()
+                .expect("genuine retained runtime fixture"),
+        )
+    }
     pub(crate) fn test_runtime_execution(
         &self,
     ) -> (&AgentRuntimeV2, &CheckedTypedOwnedWaitExecutionV8) {

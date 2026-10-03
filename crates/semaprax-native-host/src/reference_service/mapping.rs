@@ -31,14 +31,16 @@ use crate::outbound_delivery_store::{
 };
 
 use super::decisions::DecisionEngine;
-use super::delivery::{self, DeliveryRefusal, ProviderHttpsAdapter};
+use super::delivery::{self, DeliveryRefusal, ProviderHttpsAdapter, ProviderHttpsAdapterRefusal};
 use super::json::{self, JsonValue};
 use super::secrets::HeldServiceSecrets;
 use super::serve::HttpExchange;
 use super::state::{
     Account, Job, JobState, ServiceState, Session, Task, TaskStatus, WebhookSettlement,
-    MAX_STATE_BYTES,
+    MAX_ACCOUNTS, MAX_STATE_BYTES,
 };
+
+mod trace_admission;
 
 type HmacSha256 = Hmac<Sha256>;
 
@@ -58,6 +60,14 @@ const MAX_DESC_BYTES: usize = 256;
 const MIN_PASSWORD_BYTES: usize = 8;
 const MAX_PASSWORD_BYTES: usize = 256;
 const SESSION_ID_BYTES: usize = 16;
+/// The reference profile has one successful completion attempt. These facts
+/// select source semantics only; they neither schedule nor authorize retry.
+const REFERENCE_JOB_COMPLETION_ATTEMPT: u8 = 0;
+const REFERENCE_JOB_MAX_ATTEMPTS: u8 = 3;
+const COMPLETED_JOB_METRIC_LABEL: &[u8] = b"job_state";
+const COMPLETED_JOB_METRIC_VALUE: &[u8] = b"succeeded";
+// std.log uses 0 = trace through 5 = fatal; this profile exports INFO logs.
+const COMPLETION_LOG_THRESHOLD: u8 = 2;
 /// The local reference profile's bounded session policy. Configuration bytes
 /// never select clock policy.
 pub const DEFAULT_SESSION_IDLE_SECONDS: u64 = 15 * 60;
@@ -77,6 +87,8 @@ pub enum BindRefusal {
     InvalidSessionPolicy,
     /// The decoded telemetry origin is not a usable collector target.
     InvalidTelemetryOrigin,
+    /// The operator-held outbound TLS trust root is not a DER certificate.
+    InvalidTelemetryRootCertificate,
     /// The password host policy is not admitted.
     InvalidPasswordPolicy,
     /// The operator-retained starting digest is absent or not exactly valid.
@@ -89,6 +101,7 @@ pub struct HostGrants<'directory> {
     state_directory: &'directory HeldDirectory,
     outbound_directory: &'directory HeldDirectory,
     secrets: HeldServiceSecrets,
+    telemetry_root_certificate_der: Option<Vec<u8>>,
     deployment_binding: String,
     sync_mode: OutboundCheckpointSyncMode,
     session_idle_seconds: u64,
@@ -100,10 +113,15 @@ impl<'directory> HostGrants<'directory> {
     /// held directory; the deployment binding names this deployment for
     /// outbound-delivery identities and must match the outbound identity
     /// grammar.
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "the public constructor accepts the complete fixed set of operator-held grants"
+    )]
     pub fn from_trusted_host(
         state_directory: &'directory HeldDirectory,
         outbound_directory: &'directory HeldDirectory,
         secrets: HeldServiceSecrets,
+        telemetry_root_certificate_der: Option<Vec<u8>>,
         deployment_binding: String,
         sync_mode: OutboundCheckpointSyncMode,
         session_idle_seconds: u64,
@@ -121,6 +139,7 @@ impl<'directory> HostGrants<'directory> {
             state_directory,
             outbound_directory,
             secrets,
+            telemetry_root_certificate_der,
             deployment_binding,
             sync_mode,
             session_idle_seconds,
@@ -144,6 +163,7 @@ pub struct BoundHost<'revision, 'directory> {
     adapter: ProviderHttpsAdapter,
     secrets: HeldServiceSecrets,
     deployment_binding: String,
+    telemetry_adapter: ServiceTelemetryAdapter,
     telemetry_origin: String,
     password_hasher: PasswordHasherHost,
     session_idle_seconds: u64,
@@ -178,9 +198,7 @@ pub fn bind<'revision, 'directory>(
     let telemetry = intent
         .telemetry()
         .ok_or(BindRefusal::IncompleteRequirements)?;
-    if telemetry.adapter() != ServiceTelemetryAdapter::SemapraxJsonEvents {
-        return Err(BindRefusal::IncompleteRequirements);
-    }
+    let telemetry_adapter = telemetry.adapter();
     let telemetry_origin = telemetry.endpoint_origin().to_owned();
     semaprax::outbound_host_adapter::TelemetryCollectorTarget::for_trusted_host(
         telemetry_origin.clone(),
@@ -195,6 +213,15 @@ pub fn bind<'revision, 'directory>(
         .map_err(|_| BindRefusal::InvalidPasswordPolicy)?,
     )
     .map_err(|_| BindRefusal::InvalidPasswordPolicy)?;
+    let adapter = match grants.telemetry_root_certificate_der {
+        Some(root_certificate_der) => ProviderHttpsAdapter::with_trusted_root_certificate(
+            root_certificate_der,
+        )
+        .map_err(|ProviderHttpsAdapterRefusal::InvalidRootCertificate| {
+            BindRefusal::InvalidTelemetryRootCertificate
+        })?,
+        None => ProviderHttpsAdapter::new(),
+    };
     let state_store =
         OutboundDeliveryStore::with_sync_mode(grants.state_directory, grants.sync_mode);
     let outbound_store =
@@ -226,9 +253,10 @@ pub fn bind<'revision, 'directory>(
             decisions,
             state_store,
             outbound_store,
-            adapter: ProviderHttpsAdapter::new(),
+            adapter,
             secrets: grants.secrets,
             deployment_binding: grants.deployment_binding,
+            telemetry_adapter,
             telemetry_origin,
             password_hasher,
             session_idle_seconds: grants.session_idle_seconds,
@@ -270,6 +298,18 @@ pub fn handle(
     committed: &mut CommittedState,
     exchange: &HttpExchange,
 ) -> PendingResponse {
+    handle_with_clock(host, committed, exchange, &mut current_tick)
+}
+
+// Host-only clock seam: request/configuration bytes cannot provide a clock.
+// Read lazily at the existing login/authentication boundary, so unauthenticated
+// refusals and routes without time policy gain no clock dependency.
+fn handle_with_clock(
+    host: &mut BoundHost<'_, '_>,
+    committed: &mut CommittedState,
+    exchange: &HttpExchange,
+    clock: &mut dyn FnMut() -> Option<u64>,
+) -> PendingResponse {
     // Every exchange passes the scaffold's own request-line admission
     // decision before the host's closed route table is consulted.
     match host
@@ -279,6 +319,9 @@ pub fn handle(
         Ok(true) => {}
         Ok(false) => return error(400, "request_not_admitted", None),
         Err(_) => return error(500, "decision_failed", None),
+    }
+    if let Err(response) = trace_admission::admit(&host.decisions, exchange) {
+        return response;
     }
     if exchange.method == "GET" && exchange.target == "/v1/health" {
         return json(
@@ -293,18 +336,18 @@ pub fn handle(
         return register(host, committed, exchange);
     }
     if exchange.method == "POST" && exchange.target == "/v1/login" {
-        return login(host, committed, exchange);
+        return login(host, committed, exchange, clock);
     }
-    let Some(authenticated) = authenticate(host, committed, exchange) else {
-        // Registration, login, and health are the only unauthenticated
-        // routes; everything else needs a usable session first.
-        if exchange.method == "POST" && exchange.target == "/v1/logout" {
-            return error(401, "unauthorized", None);
-        }
-        if route_needs_auth(&exchange.method, &exchange.target) {
-            return error(401, "unauthorized", None);
-        }
+    // Only the closed set of protected route shapes reaches the session
+    // boundary. Unknown paths must not turn a bearer-looking header into a
+    // clock dependency or a durable session transition.
+    if !route_needs_auth(&exchange.method, &exchange.target) {
         return error(404, "unknown_route", None);
+    }
+    let authenticated = match authenticate(host, committed, exchange, clock) {
+        Authentication::Authenticated(value) => value,
+        Authentication::Unauthorized => return error(401, "unauthorized", None),
+        Authentication::Failed => return error(500, "decision_failed", None),
     };
     if exchange.method == "POST" && exchange.target == "/v1/logout" {
         return logout(host, committed, &authenticated);
@@ -325,7 +368,7 @@ pub fn handle(
     }
     if let Some(id) = job_member(&exchange.target, "/complete") {
         if exchange.method == "POST" {
-            return complete_job(host, committed, id, &authenticated);
+            return complete_job_with_clock(host, committed, id, &authenticated, clock);
         }
         return error(404, "unknown_route", None);
     }
@@ -343,13 +386,19 @@ struct Authenticated {
     session: String,
 }
 
+enum Authentication {
+    Authenticated(Authenticated),
+    Unauthorized,
+    Failed,
+}
+
 fn route_needs_auth(method: &str, target: &str) -> bool {
     (method == "POST" && target == "/v1/logout")
         || (method == "POST" && target == "/v1/tasks")
-        || task_member(target).is_some()
+        || (matches!(method, "GET" | "PATCH" | "DELETE") && task_member(target).is_some())
         || (method == "POST" && target == "/v1/jobs/enqueue")
-        || job_member(target, "/complete").is_some()
-        || job_member(target, "").is_some()
+        || (method == "POST" && job_member(target, "/complete").is_some())
+        || (method == "GET" && job_member(target, "").is_some())
 }
 
 fn task_member(target: &str) -> Option<i64> {
@@ -394,17 +443,22 @@ fn parse_id(text: &str) -> Option<i64> {
 }
 
 fn authenticate(
-    host: &BoundHost<'_, '_>,
-    committed: &CommittedState,
+    host: &mut BoundHost<'_, '_>,
+    committed: &mut CommittedState,
     exchange: &HttpExchange,
-) -> Option<Authenticated> {
+    clock: &mut dyn FnMut() -> Option<u64>,
+) -> Authentication {
     let value = exchange
         .headers
         .iter()
         .find(|(name, _)| name.eq_ignore_ascii_case("authorization"))
-        .map(|(_, value)| value.as_str())?;
-    let token = value.strip_prefix("Bearer ")?;
-    let (id, tag) = token.split_once('.')?;
+        .map(|(_, value)| value.as_str());
+    let Some(token) = value.and_then(|value| value.strip_prefix("Bearer ")) else {
+        return Authentication::Unauthorized;
+    };
+    let Some((id, tag)) = token.split_once('.') else {
+        return Authentication::Unauthorized;
+    };
     if id.len() != SESSION_ID_BYTES * 2
         || tag.len() != 64
         || !id.bytes().all(|byte| byte.is_ascii_hexdigit())
@@ -412,30 +466,75 @@ fn authenticate(
         || id.bytes().any(|byte| byte.is_ascii_uppercase())
         || tag.bytes().any(|byte| byte.is_ascii_uppercase())
     {
-        return None;
+        return Authentication::Unauthorized;
     }
-    let id_bytes = unhex(id)?;
-    let mut mac = HmacSha256::new_from_slice(host.secrets.session_key()).ok()?;
+    let Some(id_bytes) = unhex(id) else {
+        return Authentication::Unauthorized;
+    };
+    let Ok(mut mac) = HmacSha256::new_from_slice(host.secrets.session_key()) else {
+        return Authentication::Failed;
+    };
     mac.update(&id_bytes);
-    mac.verify_slice(&unhex(tag)?).ok()?;
-    let session = committed.state.session_by_id(id)?;
-    if session.retired {
-        return None;
+    let Some(tag) = unhex(tag) else {
+        return Authentication::Unauthorized;
+    };
+    if mac.verify_slice(&tag).is_err() {
+        return Authentication::Unauthorized;
     }
-    let usable = host
-        .decisions
-        .session_is_usable(
-            0,
-            current_tick()?,
-            u64::try_from(session.idle_deadline_tick).ok()?,
-            u64::try_from(session.absolute_deadline_tick).ok()?,
-        )
-        .ok()?;
+    let Some(session) = committed.state.session_by_id(id) else {
+        return Authentication::Unauthorized;
+    };
+    let Some(now_tick) = clock() else {
+        return Authentication::Failed;
+    };
+    let (state, account, idle_deadline_tick, absolute_deadline_tick) = (
+        u64::from(session.state),
+        session.account,
+        match u64::try_from(session.idle_deadline_tick) {
+            Ok(value) => value,
+            Err(_) => return Authentication::Failed,
+        },
+        match u64::try_from(session.absolute_deadline_tick) {
+            Ok(value) => value,
+            Err(_) => return Authentication::Failed,
+        },
+    );
+    let usable = match host.decisions.session_is_usable(
+        state,
+        now_tick,
+        idle_deadline_tick,
+        absolute_deadline_tick,
+    ) {
+        Ok(value) => value,
+        Err(_) => return Authentication::Failed,
+    };
+    let next_state = match host.decisions.session_next_state_on_access(
+        state,
+        now_tick,
+        idle_deadline_tick,
+        absolute_deadline_tick,
+    ) {
+        Ok(value) if value <= 5 => value as u8,
+        Ok(_) | Err(_) => return Authentication::Failed,
+    };
+    if usable != (next_state == 0) {
+        return Authentication::Failed;
+    }
+    if next_state != session.state {
+        let mut state = committed.state.clone();
+        let Some(session) = state.sessions.iter_mut().find(|session| session.id == id) else {
+            return Authentication::Failed;
+        };
+        session.state = next_state;
+        if commit(host, committed, state).is_err() {
+            return Authentication::Failed;
+        }
+    }
     if !usable {
-        return None;
+        return Authentication::Unauthorized;
     }
-    Some(Authenticated {
-        account: session.account,
+    Authentication::Authenticated(Authenticated {
+        account,
         session: id.to_owned(),
     })
 }
@@ -548,6 +647,26 @@ fn register(
     if committed.state.account_by_name(username).is_some() {
         return error(409, "username_taken", Some(&committed.digest));
     }
+    let active_count = match u64::try_from(committed.state.accounts.len()) {
+        Ok(count) => count,
+        Err(_) => return error(500, "decision_failed", None),
+    };
+    let max_accounts = match u64::try_from(MAX_ACCOUNTS) {
+        Ok(limit) => limit,
+        Err(_) => return error(500, "decision_failed", None),
+    };
+    match host.decisions.registration_admitted(
+        username.as_bytes(),
+        active_count,
+        max_accounts,
+        u64::from(PASSWORD_MEMORY_KIB),
+        u64::from(PASSWORD_ITERATIONS),
+        u64::from(PASSWORD_PARALLELISM),
+    ) {
+        Ok(true) => {}
+        Ok(false) => return error(400, "registration_not_admitted", Some(&committed.digest)),
+        Err(_) => return error(500, "decision_failed", None),
+    }
     let account_id = committed
         .state
         .accounts
@@ -595,6 +714,7 @@ fn login(
     host: &mut BoundHost<'_, '_>,
     committed: &mut CommittedState,
     exchange: &HttpExchange,
+    clock: &mut dyn FnMut() -> Option<u64>,
 ) -> PendingResponse {
     let Some(body) = parse_body(exchange, &["password", "username"]) else {
         return error(400, "malformed_body", None);
@@ -632,7 +752,7 @@ fn login(
         .expect("HMAC accepts the held session key");
     mac.update(&id_bytes);
     let token = format!("{id}.{}", hex(mac.finalize().into_bytes().as_slice()));
-    let now_tick = match current_tick() {
+    let now_tick = match clock() {
         Some(tick) => tick,
         None => return error(500, "clock_unavailable", None),
     };
@@ -650,7 +770,7 @@ fn login(
     state.sessions.push(Session {
         id,
         account: account_id,
-        retired: false,
+        state: 0,
         idle_deadline_tick,
         absolute_deadline_tick,
     });
@@ -679,7 +799,13 @@ fn logout(
     else {
         return error(401, "unauthorized", None);
     };
-    session.retired = true;
+    session.state = match host
+        .decisions
+        .session_next_state_on_logout(u64::from(session.state))
+    {
+        Ok(value) if value <= 5 => value as u8,
+        Ok(_) | Err(_) => return error(500, "decision_failed", None),
+    };
     if let Err(response) = commit(host, committed, state) {
         return response;
     }
@@ -708,6 +834,14 @@ fn create_task(
     // identifier-grammar decision guards usernames at registration.
     if title.is_empty() || title.len() > MAX_TITLE_BYTES {
         return error(400, "invalid_title", None);
+    }
+    // Task creation starts from the host's fixed idle transaction fact. The
+    // checked source must admit it before this route derives an identifier,
+    // constructs candidate state, or reaches the durable snapshot commit.
+    match host.decisions.create_is_committed(0) {
+        Ok(true) => {}
+        Ok(false) => return error(403, "create_not_admitted", Some(&committed.digest)),
+        Err(_) => return error(500, "decision_failed", None),
     }
     let id = committed
         .state
@@ -741,9 +875,9 @@ fn authorize_row(
     owner: i64,
     authenticated: &Authenticated,
 ) -> Result<bool, PendingResponse> {
-    // Host usability is presence plus non-retirement (the session passed
-    // `authenticate`); the scaffold's tick-based session decision is not in
-    // the invocable vocabulary, so it keeps its fixture-mode coverage.
+    // `authenticate` has already evaluated the checked session usability and
+    // access transition. Row ownership is therefore the separate source
+    // authorization decision over a currently active session.
     host.decisions
         .task_owner_authorized(owner, authenticated.account, true)
         .map_err(|_| error(500, "decision_failed", None))
@@ -806,6 +940,14 @@ fn update_task(
         Ok(false) => return error(403, "forbidden", None),
         Err(response) => return response,
     }
+    // A task update starts from the host's fixed idle transaction fact. The
+    // checked source must admit that transition before this route constructs
+    // a candidate state or reaches the durable snapshot commit.
+    match host.decisions.update_is_committed(0) {
+        Ok(true) => {}
+        Ok(false) => return error(403, "update_not_admitted", Some(&committed.digest)),
+        Err(_) => return error(500, "decision_failed", None),
+    }
     let mut state = committed.state.clone();
     state
         .tasks
@@ -839,6 +981,14 @@ fn delete_task(
         Ok(false) => return error(403, "forbidden", None),
         Err(response) => return response,
     }
+    // A task deletion starts from the host's fixed idle transaction fact. The
+    // checked source must admit that transition before the host constructs a
+    // candidate state or reaches the durable snapshot commit.
+    match host.decisions.delete_is_committed(0) {
+        Ok(true) => {}
+        Ok(false) => return error(403, "delete_not_admitted", Some(&committed.digest)),
+        Err(_) => return error(500, "decision_failed", None),
+    }
     let mut state = committed.state.clone();
     state.tasks.retain(|candidate| candidate.id != id);
     if let Err(response) = commit(host, committed, state) {
@@ -851,30 +1001,6 @@ fn delete_task(
             JsonValue::Str(committed.digest.clone()),
         )]),
     )
-}
-
-/// The host's Rust mirror of `task_service.core.enqueue_outcome`'s
-/// documented truth table (`std.jobs.idempotency.enqueue_outcome`: fresh 0,
-/// duplicate 1, conflicting reuse 2), used instead of invoking the checked
-/// decision: the decision's closure reaches the contract-bearing
-/// `std.bytes.byte_to_i64`, so invocation through the public-API seam is
-/// refused (`SPX-F102`, see `decisions.rs`).
-///
-/// Extracted to a pure function -- rather than inlined in [`enqueue_job`]
-/// -- so the regression test below can call the exact logic production uses
-/// and check it against the real checked decision, evaluated through the
-/// project's normal (non-public-API) test-execution path, for
-/// representative inputs. Nothing else cross-checks this mirror against the
-/// checked `.spx` truth, so a std-library edit that changes the decision
-/// must fail visibly instead of only diverging silently at runtime.
-fn enqueue_outcome_mirror(key_exists: bool, existing_desc: &[u8], candidate_desc: &[u8]) -> u8 {
-    if !key_exists {
-        0
-    } else if existing_desc == candidate_desc {
-        1
-    } else {
-        2
-    }
 }
 
 fn enqueue_job(
@@ -894,15 +1020,29 @@ fn enqueue_job(
         return error(400, "invalid_job", None);
     }
     let existing = committed.state.job_by_key(key);
-    let outcome = enqueue_outcome_mirror(
+    let outcome = match host.decisions.enqueue_outcome(
         existing.is_some(),
         existing.map(|job| job.desc.as_bytes()).unwrap_or(&[]),
         desc.as_bytes(),
-    );
+    ) {
+        Ok(value) if value <= 2 => value as u8,
+        Ok(_) | Err(_) => return error(500, "decision_failed", None),
+    };
     match outcome {
         0 => {
             if existing.is_some() {
                 return error(500, "decision_failed", None);
+            }
+            // This route creates immediate Pending jobs only. Zero/zero are
+            // explicit immediate-schedule facts, not a sampled wall clock;
+            // scheduled jobs and clock authority are outside this route.
+            match host
+                .decisions
+                .enqueue_is_legal(JobState::Pending.source_status(), 0, 0)
+            {
+                Ok(true) => {}
+                Ok(false) => return error(403, "enqueue_not_admitted", Some(&committed.digest)),
+                Err(_) => return error(500, "decision_failed", None),
             }
             let id = committed
                 .state
@@ -1028,11 +1168,22 @@ fn crash_after_delivery_for_acceptance_test(job_id: i64) {
 #[cfg(not(debug_assertions))]
 fn crash_after_delivery_for_acceptance_test(_job_id: i64) {}
 
+#[cfg(test)]
 fn complete_job(
     host: &mut BoundHost<'_, '_>,
     committed: &mut CommittedState,
     id: i64,
     authenticated: &Authenticated,
+) -> PendingResponse {
+    complete_job_with_clock(host, committed, id, authenticated, &mut current_tick)
+}
+
+fn complete_job_with_clock(
+    host: &mut BoundHost<'_, '_>,
+    committed: &mut CommittedState,
+    id: i64,
+    authenticated: &Authenticated,
+    clock: &mut dyn FnMut() -> Option<u64>,
 ) -> PendingResponse {
     let Some(job) = committed.state.job_by_id(id).cloned() else {
         return error(404, "unknown_job", None);
@@ -1042,24 +1193,127 @@ fn complete_job(
         Ok(false) => return error(403, "forbidden", None),
         Err(response) => return response,
     }
-    if job.state != JobState::Pending {
-        return error(409, "already_completed", Some(&committed.digest));
+    match host
+        .decisions
+        .job_status_is_complete(job.state.source_status())
+    {
+        Ok(false) => {}
+        Ok(true) => return error(409, "already_completed", Some(&committed.digest)),
+        Err(_) => return error(500, "decision_failed", None),
+    }
+    match host
+        .decisions
+        .mark_job_succeeded(REFERENCE_JOB_COMPLETION_ATTEMPT, REFERENCE_JOB_MAX_ATTEMPTS)
+    {
+        Ok(next_state) if next_state == JobState::Completed.source_status() => {}
+        Ok(_) => return error(403, "completion_not_admitted", Some(&committed.digest)),
+        Err(_) => return error(500, "decision_failed", None),
+    }
+    match host.decisions.completed_job_metric_is_admitted(
+        COMPLETED_JOB_METRIC_LABEL,
+        COMPLETED_JOB_METRIC_VALUE,
+        false,
+    ) {
+        Ok(true) => {}
+        Ok(false) => return error(403, "metric_not_admitted", Some(&committed.digest)),
+        Err(_) => return error(500, "decision_failed", None),
+    }
+    if let Some((level, field_count)) =
+        delivery::completion_log_policy_facts(host.telemetry_adapter)
+    {
+        // The fixed envelope exports public job fields and service identity;
+        // none of the six held credential fields is included.
+        match host.decisions.completed_job_log_is_admitted(
+            level,
+            COMPLETION_LOG_THRESHOLD,
+            field_count,
+            0,
+        ) {
+            Ok(true) => {}
+            Ok(false) => return error(403, "log_not_admitted", Some(&committed.digest)),
+            Err(_) => return error(500, "decision_failed", None),
+        }
+    }
+    let webhook_v2 = if host.telemetry_adapter == ServiceTelemetryAdapter::SemapraxJsonEventsV2 {
+        let Some(now) = clock().and_then(|value| i64::try_from(value).ok()) else {
+            return error(500, "decision_failed", None);
+        };
+        let prepared = match delivery::webhook_v2::prepare(
+            &host.outbound_store,
+            &host.deployment_binding,
+            &host.telemetry_origin,
+            job.id,
+            job.owner,
+            &job.desc,
+            host.secrets.webhook_key(),
+            now,
+        ) {
+            Ok(prepared) => prepared,
+            Err(DeliveryRefusal::StoreUnavailable) => {
+                return error(503, "delivery_unavailable", Some(&committed.digest));
+            }
+            Err(_) => return error(500, "decision_failed", None),
+        };
+        match prepared.admitted(&host.decisions) {
+            Ok(true) => {}
+            Ok(false) => return error(403, "webhook_not_admitted", Some(&committed.digest)),
+            Err(_) => return error(500, "decision_failed", None),
+        }
+        Some(prepared)
+    } else {
+        None
+    };
+    let event_bytes = match &webhook_v2 {
+        Some(prepared) => prepared.byte_len(),
+        None => match delivery::completion_event_len(
+            host.telemetry_adapter,
+            job.id,
+            job.owner,
+            &job.desc,
+            host.secrets.webhook_key(),
+        ) {
+            Ok(length) => length,
+            Err(_) => return error(500, "decision_failed", None),
+        },
+    };
+    let event_bytes = match u64::try_from(event_bytes) {
+        Ok(event_bytes) => event_bytes,
+        Err(_) => return error(500, "decision_failed", None),
+    };
+    match host.decisions.completed_job_export_is_admitted(
+        0,
+        1,
+        event_bytes,
+        host.telemetry_origin.as_bytes(),
+    ) {
+        Ok(true) => {}
+        Ok(false) => return error(403, "export_not_admitted", Some(&committed.digest)),
+        Err(_) => return error(500, "decision_failed", None),
     }
     // The durable delivery attempt precedes the state commit, and its
     // identity is stable per job: a crash between the two leaves a pending
     // job whose durable marker already exists, so the retry settles
     // `Uncertain` instead of redispatching. Either way the job completes
     // exactly once in state.
-    let settlement = match delivery::deliver_completion_webhook(
-        &mut host.outbound_store,
-        &host.deployment_binding,
-        &host.telemetry_origin,
-        job.id,
-        job.owner,
-        &job.desc,
-        host.secrets.webhook_key(),
-        &mut host.adapter,
-    ) {
+    let delivered = match webhook_v2 {
+        Some(prepared) => prepared.deliver(
+            &mut host.outbound_store,
+            host.secrets.webhook_key(),
+            &mut host.adapter,
+        ),
+        None => delivery::deliver_completion_telemetry(
+            &mut host.outbound_store,
+            &host.deployment_binding,
+            &host.telemetry_origin,
+            host.telemetry_adapter,
+            job.id,
+            job.owner,
+            &job.desc,
+            host.secrets.webhook_key(),
+            &mut host.adapter,
+        ),
+    };
+    let settlement = match delivered {
         Ok(settlement) => settlement,
         Err(DeliveryRefusal::InvalidRequest | DeliveryRefusal::InvalidPolicy) => {
             return error(500, "decision_failed", None)

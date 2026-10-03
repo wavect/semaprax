@@ -1,0 +1,88 @@
+use std::cell::RefCell;
+use std::sync::atomic::{AtomicU64, Ordering};
+#[repr(C)]
+#[derive(Clone, Copy, Default)]
+pub struct SpxOwner { context: u64, generation: u64, slot: u64 }
+struct Slot { generation: u64, value: Option<@TYPE@> }
+struct Context { id: u64, slots: Vec<Slot> }
+thread_local! { static CONTEXTS: RefCell<Vec<Context>> = const { RefCell::new(Vec::new()) }; }
+static NEXT_CONTEXT: AtomicU64 = AtomicU64::new(1);
+fn caught<T>(f: impl FnOnce() -> T) -> Result<T, i32> {
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)).map_err(|payload| {
+        std::mem::forget(payload); 2
+    })
+}
+fn take(context: u64, owner: SpxOwner) -> Result<@TYPE@, i32> {
+    CONTEXTS.with(|contexts| {
+        let mut contexts = contexts.try_borrow_mut().map_err(|_| 6)?;
+        if owner.context != context { return Err(3); }
+        let context = contexts.iter_mut().find(|c| c.id == context).ok_or(3)?;
+        let index = usize::try_from(owner.slot).map_err(|_| 3)?;
+        let slot = context.slots.get_mut(index).ok_or(3)?;
+        if slot.generation != owner.generation { return Err(3); }
+        slot.value.take().ok_or(3)
+    })
+}
+#[no_mangle]
+pub extern "C" fn spx_owner_context_new() -> u64 {
+    let Ok(id) = NEXT_CONTEXT.fetch_update(Ordering::Relaxed, Ordering::Relaxed, |id| id.checked_add(1)) else { return 0; };
+    CONTEXTS.with(|contexts| {
+        let Ok(mut contexts) = contexts.try_borrow_mut() else { return 0; };
+        if contexts.len() >= 32 { return 0; }
+        contexts.push(Context { id, slots: Vec::new() }); id
+    })
+}
+#[no_mangle]
+pub extern "C" fn spx_owner_context_close(id: u64) -> i32 {
+    CONTEXTS.with(|contexts| {
+        let Ok(mut contexts) = contexts.try_borrow_mut() else { return 6; };
+        let Some(index) = contexts.iter().position(|c| c.id == id) else { return 3; };
+        if contexts[index].slots.iter().any(|s| s.value.is_some()) { return 5; }
+        contexts.remove(index); 0
+    })
+}
+#[no_mangle]
+pub unsafe extern "C" fn spx_owner_new(context: u64, arg: i64, out: *mut SpxOwner) -> i32 {
+    if out.is_null() || (out as usize) % std::mem::align_of::<SpxOwner>() != 0 { return 3; }
+    // Hold the exclusive table borrow through construction: re-entry refuses before effects.
+    let result = caught(|| CONTEXTS.with(|contexts| {
+        let mut contexts = contexts.try_borrow_mut().map_err(|_| 6)?;
+        let context = contexts.iter_mut().find(|c| c.id == context).ok_or(3)?;
+        let free = context.slots.iter().position(|s| s.value.is_none() && s.generation != u64::MAX);
+        if free.is_none() && context.slots.len() >= 32 { return Err(4); }
+        let value = @CONSTRUCTOR@(arg);
+        let index = if let Some(index) = free { index } else {
+            context.slots.push(Slot { generation: 0, value: None }); context.slots.len() - 1
+        };
+        let slot = &mut context.slots[index];
+        slot.generation += 1;
+        slot.value = Some(value);
+        Ok(SpxOwner { context: context.id, generation: slot.generation, slot: index as u64 })
+    }));
+    match result { Ok(Ok(owner)) => { unsafe { out.write(owner) }; 0 }, Ok(Err(s)) | Err(s) => s }
+}
+#[no_mangle]
+pub unsafe extern "C" fn spx_owner_consume(context: u64, owner: SpxOwner, arg: i64, out: *mut u8) -> i32 {
+    if out.is_null() { return 3; }
+    let value = match take(context, owner) { Ok(value) => value, Err(status) => return status };
+    match caught(|| @METHOD@(value, arg)) {
+        Ok(result) => { unsafe { out.write(u8::from(result)) }; 0 }, Err(status) => status
+    }
+}
+#[no_mangle]
+pub extern "C" fn spx_owner_validate(context: u64, owner: SpxOwner) -> i32 {
+    CONTEXTS.with(|contexts| {
+        let Ok(contexts) = contexts.try_borrow() else { return 6; };
+        if owner.context != context { return 3; }
+        let Some(context) = contexts.iter().find(|c| c.id == context) else { return 3; };
+        let Ok(index) = usize::try_from(owner.slot) else { return 3; };
+        let Some(slot) = context.slots.get(index) else { return 3; };
+        if slot.generation != owner.generation || slot.value.is_none() { return 3; }
+        0
+    })
+}
+#[no_mangle]
+pub extern "C" fn spx_owner_drop(context: u64, owner: SpxOwner) -> i32 {
+    let value = match take(context, owner) { Ok(value) => value, Err(status) => return status };
+    match caught(|| drop(value)) { Ok(()) => 0, Err(status) => status }
+}

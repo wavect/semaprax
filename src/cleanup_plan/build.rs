@@ -33,6 +33,7 @@ mod bounded_box;
 mod bounded_vec;
 #[cfg(test)]
 mod call_reference;
+mod finish_call;
 mod generic_variant;
 #[cfg(test)]
 mod hostile_tests;
@@ -952,7 +953,15 @@ impl<'a> PlanBuilder<'a> {
             })
             .collect::<Result<Vec<_>, Diagnostic>>()?;
         Ok(CleanupPlan {
-            schema: self.schema,
+            schema: if self
+                .status_sources
+                .iter()
+                .any(|source| source.id.lane == StatusLane::OwnerAdmission)
+            {
+                super::CLEANUP_PLAN_SCHEMA_V14
+            } else {
+                self.schema
+            },
             entry: BlockId(0),
             entry_state: self.entry_state,
             slots: self.slots,
@@ -2593,6 +2602,23 @@ impl<'a> PlanBuilder<'a> {
                             state,
                         });
                     }
+                    ResolvedExprKind::NativeRustImportCall(call)
+                        if super::native_rust::owns(expression) =>
+                    {
+                        frames.push(Frame::CallNext {
+                            expression,
+                            callee: &call.import,
+                            args: &call.args,
+                            params: super::native_rust::params(self.program, &call.import)?,
+                            index: 0,
+                            flow: EvalResult {
+                                block,
+                                state,
+                                owned_source: None,
+                            },
+                            commits: Vec::new(),
+                        });
+                    }
                     ResolvedExprKind::NativeRustImportCall(call) => {
                         frames.push(Frame::NativeNext {
                             args: &call.args,
@@ -3353,86 +3379,20 @@ impl<'a> PlanBuilder<'a> {
                     commits,
                 } => {
                     if index == args.len() {
-                        let mut state = flow.state;
-                        let (vec_op, defer_commit) =
-                            super::deferred_commit::call_behavior(expression);
-                        if !defer_commit {
-                            for commit in &commits {
-                                self.consume_place(&commit.source, &mut state, &expression.id)?;
-                            }
-                            self.push_transition(
-                                flow.block,
-                                CleanupTransition::CallCommit {
-                                    call: expression.id.clone(),
-                                    arguments: commits.clone(),
-                                },
-                            );
-                        }
-                        if super::deferred_commit::is_total_byte_operation(callee)
-                            || crate::host_io_ops::by_id(callee.as_str()).is_some()
-                            || super::deferred_commit::is_infallible_vec_operation(vec_op)
-                            || super::deferred_commit::is_infallible_box_operation(callee)
-                        {
-                            let destination = self.expression_slot(expression, active_region)?;
-                            if let Some(destination) = destination.clone() {
-                                self.initialize_owned_result(
-                                    flow.block,
-                                    expression,
-                                    destination,
-                                    &mut state,
-                                )?;
-                            }
-                            results.push(EvalResult {
-                                block: flow.block,
-                                state,
-                                owned_source: destination,
-                            });
-                            continue;
-                        }
-                        let source = StatusSourceId {
-                            expression: expression.id.clone(),
-                            lane: StatusLane::OperationFailure,
-                        };
-                        self.add_status_source(
-                            source.clone(),
-                            StatusProducer::PropagatedCall {
-                                callee: callee.clone(),
-                            },
-                        )?;
-                        let (success, mut success_state) =
-                            self.split_status(flow.block, state, active_region, source)?;
-                        if defer_commit {
-                            for commit in &commits {
-                                self.consume_place(
-                                    &commit.source,
-                                    &mut success_state,
-                                    &expression.id,
-                                )?;
-                            }
-                            self.push_transition(
-                                success,
-                                CleanupTransition::CallCommit {
-                                    call: expression.id.clone(),
-                                    arguments: commits,
-                                },
-                            );
-                        }
-                        let destination = self.expression_slot(expression, active_region)?;
-                        if let Some(destination) = destination.clone() {
-                            self.initialize_owned_result(
-                                success,
-                                expression,
-                                destination,
-                                &mut success_state,
-                            )?;
-                        }
-                        results.push(EvalResult {
-                            block: success,
-                            state: success_state,
-                            owned_source: destination,
-                        });
+                        results.push(self.finish_call(
+                            expression,
+                            callee,
+                            flow,
+                            commits,
+                            active_region,
+                        )?);
                     } else {
                         let argument = &args[index];
+                        let lend = super::native_rust::lends_string_place(
+                            expression,
+                            argument,
+                            params[index].ownership,
+                        );
                         frames.push(Frame::CallAfterArg {
                             expression,
                             callee,
@@ -3441,11 +3401,20 @@ impl<'a> PlanBuilder<'a> {
                             index,
                             commits,
                         });
-                        frames.push(Frame::Enter {
-                            expression: argument,
-                            block: flow.block,
-                            state: flow.state,
-                        });
+                        if lend {
+                            self.expression_slot(argument, active_region)?;
+                            results.push(EvalResult {
+                                block: flow.block,
+                                state: flow.state,
+                                owned_source: None,
+                            });
+                        } else {
+                            frames.push(Frame::Enter {
+                                expression: argument,
+                                block: flow.block,
+                                state: flow.state,
+                            });
+                        }
                     }
                 }
                 Frame::CallAfterArg {
@@ -4805,28 +4774,17 @@ impl<'a> PlanBuilder<'a> {
                 (block, state, region),
             ),
             ResolvedExprKind::NativeRustImportCall(call) => {
-                let mut current_block = block;
-                let mut current_state = state;
-                for argument in &call.args {
-                    let evaluated = self.lower_expr_recursive_reference(
-                        argument,
-                        current_block,
-                        current_state,
-                        region,
-                    )?;
-                    if evaluated.owned_source.is_some() {
-                        return Err(plan_error(
-                            "native Rust import received a non-scalar argument",
-                        ));
-                    }
-                    current_block = evaluated.block;
-                    current_state = evaluated.state;
+                if super::native_rust::owns(expression) {
+                    self.lower_call(
+                        expression,
+                        &call.import,
+                        None,
+                        &call.args,
+                        (block, state, region),
+                    )
+                } else {
+                    self.lower_scalar_native_reference(&call.args, block, state, region)
                 }
-                Ok(EvalResult {
-                    block: current_block,
-                    state: current_state,
-                    owned_source: None,
-                })
             }
             ResolvedExprKind::HostCommandCall(call) => {
                 let callee = DeclarationId::new(crate::command_io_ops::id(call.operation));

@@ -178,6 +178,11 @@ mod ast {
         name,
         name_span,
         native_rust,
+        index_selected,
+        selected_signature,
+        selected_index_digest,
+        selected_receiver,
+        rust_path,
         params,
         result,
         effects,
@@ -186,7 +191,7 @@ mod ast {
         consumes_span,
         span
     });
-    codec_enum!(ImportResult { 0 => Unit, 1 => I64, 2 => Bool });
+    codec_enum!(ImportResult { 0 => Unit, 1 => I64, 2 => Bool, 3 => ResultI64I64, 4 => OwnedResource { name }, 5 => OwnedString, 6 => OwnedOptionString, 7 => OwnedResultStringI64, 8 => OwnedResultStringOptionI64, 9 => OwnedResultResourceI64 { name }, 10 => BorrowedStr { owner } });
     codec_enum!(ImportFailure { 0 => Infallible, 1 => Status { domain_id } });
     codec_struct!(FieldDeclaration {
         stable_id,
@@ -366,7 +371,7 @@ mod plan {
     codec_tuple!(CleanupRegionId(0));
     codec_tuple!(ExitTargetId(0));
     codec_tuple!(CleanupSlotId(0));
-    codec_enum!(StatusLane { 0 => OperationFailure, 1 => ContractFalse });
+    codec_enum!(StatusLane { 0 => OperationFailure, 1 => ContractFalse, 2 => OwnerAdmission });
     codec_struct!(StatusSourceId { expression, lane });
     codec_enum!(StorageId {
         0 => Value(value), 1 => Temporary(expression),

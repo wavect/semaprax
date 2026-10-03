@@ -182,6 +182,22 @@ impl<R: OpenCodeRunner> ProposalSource for OpenCodeDurableProposalSource<'_, R> 
             }
         }
         let mut terminal_failure = recorded_attempt_failure(sink, turn, attempt);
+        // The inner bridge preserves a settled response before it rechecks the
+        // physical settlement acknowledgement boundary.  That recheck can
+        // reject publication itself, leaving an acknowledged `AttemptSettled`
+        // row rather than an `AttemptFailed` row.  Carry the live shared
+        // terminal condition through this outer source outcome so the checked
+        // driver records its terminal path rather than treating it as an
+        // unclassified adapter error.
+        if terminal_failure.is_none() && settled_or_failed {
+            if self.handler.runner.cancelled(&self.handler.config) {
+                terminal_failure = Some(SourceTerminalStatus::Cancelled);
+            } else if let Err(refusal) = ledger.check_deadline() {
+                if refusal.0 == "deadline_exceeded" {
+                    terminal_failure = Some(SourceTerminalStatus::DeadlineExceeded);
+                }
+            }
+        }
         if result.is_ok() {
             if self.handler.runner.cancelled(&self.handler.config) {
                 terminal_failure = Some(SourceTerminalStatus::Cancelled);

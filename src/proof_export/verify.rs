@@ -501,6 +501,19 @@ pub(crate) fn rebind_certificate_against_source_text(
                     .to_owned(),
             )
         })?;
+    let source_function = program
+        .functions
+        .iter()
+        .find(|item| item.stable_id == checked.declaration_id)
+        .expect("exported declaration is present in parsed source");
+    if crate::assurance_manifest::smt_discharge::bounded_domain_witness(source_function, 256)
+        .is_none()
+    {
+        return Err(drift_error(
+            "the bound source has no bounded checked precondition witness; domain status is unknown"
+                .to_owned(),
+        ));
+    }
     let obligation = function
         .obligations
         .iter()

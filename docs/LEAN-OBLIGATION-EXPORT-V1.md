@@ -10,6 +10,7 @@ Status: one tranche of [issue #186]. Owns three wire identities:
 | `semaprax.lean-export-coverage.v1` | `proof_export::certificate::render_coverage` | a reader asking what was *not* covered |
 | `semaprax.lean-proof-certificate.v1` | `proof_export::export_obligation_certificate` | `proof_export::verify::*` and any independent replayer |
 | `semaprax.lean-proof-program-root-binding.v1` | `proof_export::bind_certificate_to_program_root` | `proof_export::verify_certificate_against_program_root` and the exact Assurance Manifest method attachment |
+| `semaprax.law-trust-chain-view.v1` | `proof_export::render_trust_chain_view` | read-only clients displaying exact source, proof, artifact, lowering, and runtime status; see [Law Trust Chain v1](LAW-TRUST-CHAIN-V1.md) |
 
 `src/proof_export/` implements this profile. This document owns translation,
 trusted base, result grammar, and certificate schema. If code and specification
@@ -163,6 +164,22 @@ scope when it was discovered. A range obligation arising inside
 `requires[1]` therefore may assume `requires[0]` but not `requires[2]`,
 `result`, or any later `let`.
 
+The right side of `&&` or `||` runs only when the left side requests it.
+Range goals inside that right side now carry the corresponding Lean
+propositional path guard; an overflow in an unevaluated right side is not
+an unconditional goal. The shared typed VC subject records the same
+authored order, scalar modes, and path choices for the common subset. Lean
+lowers that typed expression tree directly, while retaining its narrower
+no-conditional profile, and checks its operation inventory before exporting.
+
+A source certificate also requires a concrete, checked precondition witness
+from a fixed 256-state scalar search before invoking Lean. Failure to find
+one is reported as unknown and refuses practical-law attachment; finite
+search exhaustion is not a contradiction proof. This local witness is test
+evidence for domain non-emptiness, not a Lean theorem of existence or a
+claim about callers. Source-bound certificate replay repeats the same
+deterministic check.
+
 ### Names
 
 A theorem name is `spx_<escape(stable_id)>_<kind>_<index>` inside the fixed
@@ -220,14 +237,13 @@ pub trait LeanKernel {
 }
 ```
 
-**No implementation ships in this crate.** The compiler gains no ambient
-process or filesystem authority because a proof export exists.
+The opt-in [Installed Proof Tools v1](INSTALLED-PROOF-TOOLS-V1.md) adapter now
+implements this capability using explicitly held installed executables and the
+bounded registered process runner. The compiler gains no ambient process or
+filesystem authority because a proof export exists.
 
-The implementation lives in `scripts/lean-export-gate.py`, deliberately
-outside the crate: running an external kernel is process authority, and
-AGENTS.md's "compiler and generated code gain no ambient filesystem,
-process, network... authority" invariant is exactly why the crate expresses
-the kernel as a capability rather than calling one. That script confirms the
+The separate `scripts/lean-export-gate.py` golden regression remains available.
+That script confirms the
 host's toolchain is the pin, checks the golden document and two seeded
 variants, and compares each result byte-for-byte against the committed
 transcripts so recorded evidence cannot silently go stale. With no Lean
@@ -420,12 +436,13 @@ written about this module:
   `kernel0-lean-proof-gate` release blocker, but every kernel result
   transcribed in this document was produced on one developer host. A hosted
   run's verdict becomes quotable when one exists, per commit.
-- **No `LeanKernel` implementation inside the crate**, by design; the runner
-  is `scripts/lean-export-gate.py`. `verify_certificate_with_kernel` is a
-  binding-first adapter over a caller-supplied kernel, not a runner: it grants
-  no process, filesystem, network, or tool-discovery authority. The script is
-  not in `scripts/quality.sh`, which stays toolchain-free; CI runs it directly.
-- The kernel has been run over exactly one module, the committed golden. The
+- Installed execution is opt-in through [Installed Proof Tools v1](INSTALLED-PROOF-TOOLS-V1.md).
+  `verify_certificate_with_kernel` retains binding-first replay and does not
+  acquire tools itself. Complete protected build/transaction admission remains
+  open LAW-04 work.
+- The installed-tool physical gate additionally runs a newly authored bounded
+  `fresh.seventeen` Project postcondition through real Lean, Project/candidate
+  proof attachment and the CLI. The
   ordinary structural/replay corpus also contains one wholly admitted
   `app.scalar` module covering `i32` negation, `u8` increment, `usize`
   decrement, and an `i64` entry point; it reaches certificate, exact Wasm
@@ -438,10 +455,10 @@ written about this module:
   hostile mutations. Each fails its authenticated closed envelope before a
   supplied kernel sees any bytes. This is binding-first replay coverage, not
   a claim that a malformed association can be repaired or accepted.
-- No CLI surface or automatic certificate discovery: a caller explicitly
-  supplies certificate, retained revision, source path and Lean-kernel
-  capability, then passes the opaque kernel-confirmed proof only to the exact
-  Project assurance composition route.
+- `project-proof-check` explicitly selects an installed kernel and one exact
+  retained source postcondition. There is no automatic certificate discovery.
+  Embedders can still explicitly supply certificates and a kernel capability
+  for exact Project assurance composition.
   There remains no `ObligationKind` for checked-range obligations — they carry
   their own `semaprax.lean-export.range.v1:...` ids precisely so they are not
   mistaken for manifest obligations.

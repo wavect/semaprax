@@ -1,0 +1,18 @@
+   Compiling semaprax v0.7.0 (/Users/kevin/Documents/ChatGPT/AI-Lang-v070)
+    Finished `test` profile [unoptimized] target(s) in 2m 39s
+     Running unittests src/lib.rs (target/issue337-29065a007/debug/deps/semaprax-f7e5c6d074eb9fed)
+
+running 10 tests
+test interpreter::retained_call::owned_handoff::tests::bounds_refuse_before_staging_and_exhaustion_cleans_without_publication ... ok
+test interpreter::retained_call::owned_handoff::tests::ownership_body_depth_and_receipt_substitution_cannot_publish ... ok
+test interpreter::retained_call::owned_handoff::tests::synchronous_handoff_transfers_and_releases_one_actual_owner ... ok
+test interpreter::retained_call::owned_handoff::tests::panic_drops_the_staged_owner_and_shallow_handoff_runs_on_two_mib_stack ... ok
+test kernel_zero::rung_two_authority::owned_handoff_refusal_and_candidate_panic_keep_rust_bytes ... ok
+test kernel_zero::rung_two_authority::owned_handoff_panic_restores_fallback_and_reentry ... ok
+test kernel_zero::rung_two_owned_handoff::tests::owned_handoff_binding_is_reproducible_and_real_bytes_settle_before_output ... ok
+test kernel_zero::rung_two_owned_handoff::tests::owned_handoff_exhaustion_has_no_candidate_and_next_invocation_recovers ... ok
+test kernel_zero::rung_two_owned_handoff::targets::owned_handoff_native_and_wasm_settle_refuse_and_reenter ... ok
+test kernel_zero::rung_two_owned_handoff::tests::reminted_owned_handoff_substitutions_refuse_before_owner_allocation ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 5673 filtered out; finished in 2.38s
+

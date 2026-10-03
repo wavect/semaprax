@@ -66,7 +66,9 @@ pub(super) struct FoldContextV8 {
     granted: String,
     refused: String,
     refused_cleanup_empty: bool,
+    maxima_templates: capacity::MaximaTemplateCacheV8,
     reduce_templates: capacity::ReduceTemplateCacheV8,
+    future_templates: capacity::FutureTemplateCacheV8,
     checked_reduce: Result<
         std::sync::Arc<crate::resumable_effects::owned_frame::v2::CheckedOwnedReduceV2>,
         SourceJournalError,
@@ -99,6 +101,10 @@ pub(crate) use checked_context::{
 
 mod live_upstream;
 pub(crate) use live_upstream::effect::authorization::LiveReadyPromotionPermitV8;
+pub use live_upstream::runtime::{
+    OwnedLifecycleStatusV8 as SourceOwnedAgentStatusV1, SourceOwnedAgentJournalV1,
+    SourceOwnedAgentOpenErrorV1, SourceOwnedAgentRunV1,
+};
 pub(crate) use live_upstream::{
     LiveInitializePermitV8, LiveObservePermitV8, LiveWaitStartPermitV8,
 };
@@ -120,6 +126,7 @@ pub(crate) use live_upstream::effect::authorization::step::{
 
 pub(crate) use live_upstream::effect::authorization::failed_state::LiveFailedEffectStateCleanupPermitV8;
 
+pub(crate) use live_upstream::effect::authorization::step::r#continue::LiveContinueObserveGuardV8;
 pub(crate) use live_upstream::effect::authorization::step::r#continue::LiveContinueObservePermitV8;
 
 #[cfg(all(test, unix))]
@@ -131,7 +138,7 @@ pub(crate) use live_upstream::LiveFailedObserveStateCleanupPermitV8;
 
 pub(crate) use live_upstream::{
     LiveContinuedModelIntentPermitV8, LiveContinuedModelRequestOriginV8,
-    LiveContinuedWaitResumePermitV8,
+    LiveContinuedWaitResumePermitV8, LiveLaterModelIntentPermitV8, LiveLaterModelRequestOriginV8,
 };
 
 pub(crate) use live_upstream::{
@@ -147,3 +154,9 @@ pub(crate) use live_upstream::LiveContinuedIntentPermitV8;
 pub(crate) use live_upstream::LiveContinuedSettlementPermitV8;
 
 pub(crate) use live_upstream::LiveContinuedDecisionCleanupPermitV8;
+pub(crate) use live_upstream::LiveContinuedOutcomePermitV8;
+
+pub(crate) use live_upstream::runtime::abandonment::LiveRefusedStateCleanupPermitV8;
+pub(crate) use live_upstream::runtime::shutdown::LiveCompletedStateShutdownPermitV8;
+
+pub(crate) use live_upstream::authorize::LiveRecoveredStateTransferPermitV8;

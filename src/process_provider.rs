@@ -401,10 +401,18 @@ impl ProcessProvider for FixtureProcessProvider {
 /// Per-invocation reservation ledger. A failed provider call never refunds an
 /// admitted reservation, so an invocation cannot turn retry failures into
 /// unbounded host work.
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct ProcessInvocationBudget {
     runs: usize,
     total_bytes: usize,
+    max_runs: usize,
+    max_total_bytes: usize,
+}
+
+impl Default for ProcessInvocationBudget {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl ProcessInvocationBudget {
@@ -412,6 +420,18 @@ impl ProcessInvocationBudget {
         Self {
             runs: 0,
             total_bytes: 0,
+            max_runs: MAX_RUNS,
+            max_total_bytes: MAX_TOTAL_BYTES,
+        }
+    }
+    /// Explicit installed modular-proof budget. Each retained query still
+    /// acquires the same held process provider and consumes its reservation.
+    pub(crate) const fn modular_scalar() -> Self {
+        Self {
+            runs: 0,
+            total_bytes: 0,
+            max_runs: 128,
+            max_total_bytes: 8 * 1024 * 1024,
         }
     }
     pub const fn runs(&self) -> usize {
@@ -430,7 +450,7 @@ impl ProcessInvocationBudget {
             .total_bytes
             .checked_add(reservation)
             .ok_or(ProcessFailure::CapacityExceeded)?;
-        if self.runs >= MAX_RUNS || total > MAX_TOTAL_BYTES {
+        if self.runs >= self.max_runs || total > self.max_total_bytes {
             return Err(ProcessFailure::CapacityExceeded);
         }
         self.runs += 1;

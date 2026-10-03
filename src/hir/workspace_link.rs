@@ -6,6 +6,7 @@
 use super::*;
 
 mod compiler_prelude;
+pub(in crate::hir) mod native_owner;
 
 pub(crate) use compiler_prelude::compiler_prelude_declarations;
 use compiler_prelude::{
@@ -77,7 +78,11 @@ fn link_scalar_workspace_impl(
     let mut import_effects = BTreeSet::new();
     for interface in parts.iter().flat_map(|parts| &parts.interfaces) {
         for import in &interface.imports {
-            if !import.native_rust {
+            if !import.native_rust
+                && !parts
+                    .as_ref()
+                    .is_some_and(|parts| native_owner::admitted_finalizer(parts, import))
+            {
                 return Err(link_error(format!(
                     "workspace interface import `{}` is outside the pure scalar linker profile",
                     import.id
@@ -110,6 +115,12 @@ fn link_scalar_workspace_impl(
                     (function.id != entrypoint
                         && parts.private_callable_functions.contains(&function.id)
                         && function_value::private_helper_signature(function))
+                        || (function.id != entrypoint
+                            && native_owner::admitted_helper(
+                                &parts.types,
+                                &parts.interfaces,
+                                function,
+                            ))
                         || generic_result::concrete_signature(function)
                         || generic_collection::concrete_signature(function)
                         || (generic_variant::concrete_signature(&parts.types, function)
@@ -209,7 +220,14 @@ fn link_scalar_workspace_impl(
                 .map(|instance| &instance.function),
         )
         .any(resolved_function_uses_iterator);
-    let uses_owned_result = functions.iter().any(generic_result::concrete_signature)
+    // Selected native Result owners may occur only inside a scalar body.
+    // Retain their compiler-owned Result declaration before rebuilding cleanup.
+    let uses_owned_result = parts.as_ref().is_some_and(|parts| {
+        parts
+            .types
+            .iter()
+            .any(|ty| native_owner::admitted_ri06_regex_resource(ty, &parts.interfaces))
+    }) || functions.iter().any(generic_result::concrete_signature)
         || parts.as_ref().is_some_and(|parts| {
             functions
                 .iter()
@@ -281,6 +299,10 @@ fn link_scalar_workspace_impl(
         );
         declarations.byte_slice_roots =
             derive_byte_slice_provenance(&cleanup_functions, &declarations)?;
+    } else {
+        // Scalar signatures may contain checked native returned views and byte
+        // inspections. Rebuild their facts from the exact retained bodies too.
+        declarations.byte_slice_roots = derive_byte_slice_provenance(&functions, &declarations)?;
     }
     let mut linked = ResolvedProgram {
         module,

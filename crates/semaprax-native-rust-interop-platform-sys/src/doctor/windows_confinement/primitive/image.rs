@@ -2,12 +2,15 @@
 //!
 //! Require local NTFS, hold a read-only/no-write/no-delete file open, and pin
 //! every component of its normalized volume-GUID name without following
-//! reparse points. A retained read oplock detects observed section changes.
-//! Oplock breaks for writable sections are advisory: this does not establish
-//! atomic exclusion of mutation through every retained writable section.
-//! This is an image binding primitive, not Windows request/bundle transport,
-//! DLL closure validation, or protection from kernel/administrator mutation.
-use super::{wide, Handle, MAX_WIDE};
+//! reparse points. CreateFile's no-write-sharing contract rejects an existing
+//! writable mapping even after its writer handle closes. The continuously held
+//! data-read handle then prevents obtaining the write access needed to create
+//! another writable section. A retained read oplock is defense in depth, not
+//! the exclusion mechanism. See the owning Windows provisioner specification.
+//! This image binding module supplies one part of the primitive's separate
+//! request/bundle handoff; it does not validate DLL closure or protect against
+//! kernel/administrator mutation.
+use super::{Handle, MAX_WIDE, wide};
 use semaprax_doctor_capsule::{Artifact, Capsule, MAX_ARTIFACT_BYTES};
 use sha2::{Digest as _, Sha256};
 use std::cell::UnsafeCell;
@@ -19,24 +22,33 @@ use std::os::windows::fs::OpenOptionsExt as _;
 use std::os::windows::io::AsRawHandle as _;
 use std::path::{Path, PathBuf};
 use windows_sys::Win32::Foundation::{
-    GetLastError, ERROR_IO_PENDING, ERROR_OPERATION_ABORTED, HANDLE, WAIT_TIMEOUT,
+    ERROR_IO_PENDING, ERROR_OPERATION_ABORTED, GetLastError, HANDLE, WAIT_TIMEOUT,
 };
 use windows_sys::Win32::Storage::FileSystem::{
-    GetFileInformationByHandle, GetFileType, GetFinalPathNameByHandleW,
-    GetVolumeInformationByHandleW, BY_HANDLE_FILE_INFORMATION, FILE_ATTRIBUTE_DIRECTORY,
-    FILE_ATTRIBUTE_REPARSE_POINT, FILE_FLAG_BACKUP_SEMANTICS, FILE_FLAG_OPEN_REPARSE_POINT,
-    FILE_FLAG_OVERLAPPED, FILE_SHARE_READ, FILE_TYPE_DISK, VOLUME_NAME_GUID, VOLUME_NAME_NT,
+    BY_HANDLE_FILE_INFORMATION, FILE_ATTRIBUTE_DIRECTORY, FILE_ATTRIBUTE_REPARSE_POINT,
+    FILE_FLAG_BACKUP_SEMANTICS, FILE_FLAG_OPEN_REPARSE_POINT, FILE_FLAG_OVERLAPPED,
+    FILE_SHARE_READ, FILE_TYPE_DISK, GetFileInformationByHandle, GetFileType,
+    GetFinalPathNameByHandleW, GetVolumeInformationByHandleW, VOLUME_NAME_GUID, VOLUME_NAME_NT,
+};
+use windows_sys::Win32::System::IO::{
+    CancelIoEx, DeviceIoControl, GetOverlappedResult, OVERLAPPED,
 };
 use windows_sys::Win32::System::Ioctl::{
     FSCTL_REQUEST_OPLOCK, OPLOCK_LEVEL_CACHE_READ, REQUEST_OPLOCK_CURRENT_VERSION,
     REQUEST_OPLOCK_INPUT_BUFFER, REQUEST_OPLOCK_INPUT_FLAG_REQUEST, REQUEST_OPLOCK_OUTPUT_BUFFER,
 };
 use windows_sys::Win32::System::Threading::{
-    CreateEventW, QueryFullProcessImageNameW, WaitForSingleObject, PROCESS_NAME_NATIVE,
+    CreateEventW, PROCESS_NAME_NATIVE, QueryFullProcessImageNameW, WaitForSingleObject,
 };
-use windows_sys::Win32::System::IO::{
-    CancelIoEx, DeviceIoControl, GetOverlappedResult, OVERLAPPED,
-};
+
+/// Test-visible checkpoints in the image admission half of a launch. These
+/// are observations only: callers cannot waive a failed image check.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) enum ImageBindingBoundary {
+    FileOpened,
+    GuardAcquired,
+    DigestVerified,
+}
 
 /// The capsule's executable slot must be selected explicitly by the caller.
 #[derive(Clone, Copy)]
@@ -54,6 +66,14 @@ impl ImageRole {
             Self::Collector => capsule.collector(),
         }
     }
+
+    pub(super) fn wire(self) -> &'static str {
+        match self {
+            Self::Launcher => "launcher",
+            Self::Worker => "worker",
+            Self::Collector => "collector",
+        }
+    }
 }
 
 pub(super) struct HeldImage {
@@ -66,10 +86,21 @@ pub(super) struct HeldImage {
 
 impl HeldImage {
     pub(super) fn acquire(path: &Path, artifact: Artifact) -> Result<Self, ()> {
+        Self::acquire_observing(path, artifact, |_| {})
+    }
+
+    pub(super) fn acquire_observing(
+        path: &Path,
+        artifact: Artifact,
+        mut observe: impl FnMut(ImageBindingBoundary),
+    ) -> Result<Self, ()> {
         if !path.is_absolute() || artifact.length == 0 || artifact.length > MAX_ARTIFACT_BYTES {
             return Err(());
         }
         let original = open(path, FILE_FLAG_OVERLAPPED)?;
+        // Distinguish sharing admission from later metadata/oplock refusal.
+        // Reaching this observation grants no authenticated-image authority.
+        observe(ImageBindingBoundary::FileOpened);
         let identity = information(&original, false)?;
         require_ntfs(&original)?;
         let application = final_name(&original, VOLUME_NAME_GUID)?;
@@ -83,6 +114,7 @@ impl HeldImage {
         // creation and settlement. An observed break refuses; an unobserved
         // advisory break is not proof that concurrent writes are excluded.
         let oplock = ImageOplock::acquire(original)?;
+        observe(ImageBindingBoundary::GuardAcquired);
         let length = (u64::from(identity.nFileSizeHigh) << 32) | u64::from(identity.nFileSizeLow);
         if length != artifact.length {
             return Err(());
@@ -102,6 +134,7 @@ impl HeldImage {
         {
             return Err(());
         }
+        observe(ImageBindingBoundary::DigestVerified);
         let mut terminated = application;
         terminated.push(0);
         Ok(Self {
@@ -138,8 +171,12 @@ impl HeldImage {
 }
 
 fn open(path: &Path, flags: u32) -> Result<File, ()> {
-    // All handles are non-inheritable. FILE_SHARE_READ denies new write/delete
-    // opens; it does not by itself exclude retained writable sections.
+    // All handles are non-inheritable. Do not add FILE_SHARE_WRITE or replace
+    // the data-read access with metadata-only access: CreateFile documents
+    // refusal for existing writable mappings when write sharing is absent.
+    // Keeping this successful open alive excludes subsequent writable opens
+    // and therefore new writable mappings, including no-view sections.
+    // https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilew
     // OPEN_REPARSE_POINT authenticates
     // the opened component itself rather than a substituted link target.
     let _ = wide(path.as_os_str())?;

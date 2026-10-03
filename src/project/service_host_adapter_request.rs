@@ -52,6 +52,10 @@ pub struct ServiceTelemetryRequirement {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ServiceTelemetryAdapter {
     SemapraxJsonEvents,
+    /// Signed timestamp JSON events with checked webhook admission.
+    SemapraxJsonEventsV2,
+    /// OTLP/HTTP using the JSON Protobuf encoding and the fixed logs route.
+    OtlpHttpJson,
 }
 
 impl ServiceTelemetryRequirement {
@@ -239,6 +243,21 @@ pub fn decode(bytes: &[u8]) -> Result<ServiceHostAdapterRequestV1, String> {
                     ],
                 )?;
                 let telemetry = closed_member(root, "telemetry", &["adapter", "endpoint_origin"])?;
+                match text(database, "adapter")? {
+                    "sqlite" => {
+                        return Err(
+                            "service database adapter sqlite is unsupported; service-config.v1 admits snapshot only"
+                                .into(),
+                        );
+                    }
+                    "postgresql" => {
+                        return Err(
+                            "service database adapter postgresql is unsupported; service-config.v1 admits snapshot only"
+                                .into(),
+                        );
+                    }
+                    _ => {}
+                }
                 if capabilities.len() != HOST_REQUIREMENTS.len()
                     || capabilities
                         .iter()
@@ -248,7 +267,10 @@ pub fn decode(bytes: &[u8]) -> Result<ServiceHostAdapterRequestV1, String> {
                     || text(database, "migration_table")? != "semaprax_migrations"
                     || text(http, "adapter")? != "native"
                     || text(http, "tls_profile")? != "modern"
-                    || text(telemetry, "adapter")? != "semaprax-json-events"
+                    || !matches!(
+                        text(telemetry, "adapter")?,
+                        "semaprax-json-events" | "semaprax-json-events-v2" | "otlp-http-json"
+                    )
                 {
                     return Err("service host adapter requirements are not exact".into());
                 }
@@ -285,7 +307,12 @@ pub fn decode(bytes: &[u8]) -> Result<ServiceHostAdapterRequestV1, String> {
                         .to_owned(),
                 };
                 let telemetry = ServiceTelemetryRequirement {
-                    adapter: ServiceTelemetryAdapter::SemapraxJsonEvents,
+                    adapter: match text(telemetry, "adapter")? {
+                        "semaprax-json-events" => ServiceTelemetryAdapter::SemapraxJsonEvents,
+                        "semaprax-json-events-v2" => ServiceTelemetryAdapter::SemapraxJsonEventsV2,
+                        "otlp-http-json" => ServiceTelemetryAdapter::OtlpHttpJson,
+                        _ => return Err("service host adapter requirements are not exact".into()),
+                    },
                     endpoint_origin: text(telemetry, "endpoint_origin")?.to_owned(),
                 };
                 (
@@ -478,6 +505,38 @@ mod tests {
             decoded.telemetry().unwrap().adapter(),
             ServiceTelemetryAdapter::SemapraxJsonEvents
         );
+
+        for (label, expected) in [
+            (
+                "semaprax-json-events-v2",
+                Some(ServiceTelemetryAdapter::SemapraxJsonEventsV2),
+            ),
+            ("semaprax-json-events-v3", None),
+        ] {
+            let mut versioned: Value = serde_json::from_slice(&host).unwrap();
+            versioned["telemetry"]["adapter"] = Value::String(label.into());
+            versioned.sort_all_objects();
+            let mut bytes = serde_json::to_vec(&versioned).unwrap();
+            bytes.push(b'\n');
+            match expected {
+                Some(expected) => assert_eq!(
+                    decode(&bytes).unwrap().telemetry().unwrap().adapter(),
+                    expected
+                ),
+                None => assert!(decode(&bytes).is_err()),
+            }
+        }
+
+        let mut otlp: Value = serde_json::from_slice(&host).unwrap();
+        otlp["telemetry"]["adapter"] = Value::String("otlp-http-json".into());
+        otlp.sort_all_objects();
+        let mut otlp = serde_json::to_vec(&otlp).unwrap();
+        otlp.push(b'\n');
+        assert_eq!(
+            decode(&otlp).unwrap().telemetry().unwrap().adapter(),
+            ServiceTelemetryAdapter::OtlpHttpJson,
+            "the independent handoff decoder must retain the selected OTLP protocol"
+        );
     }
 
     #[test]
@@ -522,6 +581,23 @@ mod tests {
             let mut request = serde_json::to_vec(&request).unwrap();
             request.push(b'\n');
             assert!(decode(&request).is_err());
+        }
+        for (adapter, expected) in [
+            (
+                "sqlite",
+                "service database adapter sqlite is unsupported; service-config.v1 admits snapshot only",
+            ),
+            (
+                "postgresql",
+                "service database adapter postgresql is unsupported; service-config.v1 admits snapshot only",
+            ),
+        ] {
+            let mut request = canonical.clone();
+            request["database"]["adapter"] = Value::String(adapter.into());
+            request.sort_all_objects();
+            let mut request = serde_json::to_vec(&request).unwrap();
+            request.push(b'\n');
+            assert_eq!(decode(&request).unwrap_err(), expected);
         }
         assert!(decode(&vec![b' '; MAX_SERVICE_HOST_ADAPTER_REQUEST_BYTES + 1]).is_err());
     }

@@ -14,14 +14,11 @@
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum FailureReason {
-    /// The leader process exited on its own with this nonzero code.
+    /// The leader process exited with this nonzero code.
     ExitCode(u32),
-    /// A job-object limit (`JOB_OBJECT_LIMIT_ACTIVE_PROCESS`,
-    /// `JOB_OBJECT_LIMIT_DIE_ON_UNHANDLED_EXCEPTION`, or a UI restriction)
-    /// terminated the whole job. This is the Windows analog of the Linux
-    /// contract's `memory.oom.group = 1`: an overshoot kills the whole scope
-    /// rather than refusing cleanly mid-invocation.
-    JobLimitViolation,
+    /// The bounded pipe reader observed more stdout/stderr bytes than the
+    /// primitive admits and selected failure before terminating its owned job.
+    OutputLimit,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -43,6 +40,9 @@ pub enum UncertainReason {
     /// Termination was requested, but the leader did not become signaled
     /// within the fixed post-kill cleanup grace.
     KillWaitTimedOut,
+    /// The parent-only bounded output reader failed before it could account
+    /// for both child streams through EOF.
+    OutputReadFailed,
 }
 
 /// The four settlement outcomes this contract requires stay distinct. See
@@ -78,6 +78,10 @@ impl StickySettlement {
 
     pub fn resolve(self) -> Option<Settlement> {
         self.0
+    }
+
+    pub fn is_selected(&self) -> bool {
+        self.0.is_some()
     }
 }
 

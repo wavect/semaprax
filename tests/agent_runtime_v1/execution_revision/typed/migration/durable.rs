@@ -1,6 +1,10 @@
 use super::*;
 use semaprax::execution_revision::typed::resume_migrated_agent_runtime_v2;
 
+#[cfg(target_os = "linux")]
+#[path = "durable/sanitized.rs"]
+mod sanitized;
+
 const COMPLETE: &str =
     "Step::Complete { summary: state.objective, budget: state.budget, status: state.epoch }";
 const SUSPEND: &str =
@@ -327,6 +331,18 @@ fn migrated_with_metered_interpreter(
 ) {
     use semaprax::agent_lifecycle::iterative::effects::TargetStageBackend;
 
+    migrated_with_metered_backend(a, b, TargetStageBackend::Interpreter)
+}
+
+fn migrated_with_metered_backend(
+    a: &Fixture,
+    b: &Fixture,
+    selected: semaprax::agent_lifecycle::iterative::effects::TargetStageBackend<'_>,
+) -> (
+    semaprax::execution_revision::typed::MigratedAgentRuntimeV2,
+    String,
+    String,
+) {
     let previous = bind(a, b"chain payload");
     let before = previous.execution_revision().digest().to_owned();
     let suspended = bind(a, b"chain payload")
@@ -350,7 +366,7 @@ fn migrated_with_metered_interpreter(
             "fixture.agent.fn.migrate_b",
             10_000,
             10_000_000,
-            TargetStageBackend::Interpreter,
+            selected,
             10_000,
         )
         .unwrap(),
@@ -522,6 +538,8 @@ fn migrated_durable_complete_and_full_replay_preserve_payload_and_charges() {
 
 #[test]
 fn metered_target_migration_handoff_recovers_without_repeating_the_pure_call() {
+    use semaprax::agent_lifecycle::iterative::effects::TargetStageBackend;
+
     let a = first();
     let b = successor(&a, "State", "StateB", "b", &["marker"], false);
     let (migration, before, after) = migrated_with_metered_interpreter(&a, &b);
@@ -531,10 +549,16 @@ fn metered_target_migration_handoff_recovers_without_repeating_the_pure_call() {
     let mut host = handler();
     let mut store = Store::default();
     let completed = migration
-        .run_durable(&mut host, &AgentCancellation::new(), &mut store)
+        .run_durable_metered_with_backend(
+            &mut host,
+            &AgentCancellation::new(),
+            &mut store,
+            TargetStageBackend::Interpreter,
+            10_000,
+        )
         .unwrap();
     assert_eq!(
-        completed.run().run().lifecycle().status(),
+        completed.run().run().run().lifecycle().status(),
         IterativeStatus::Complete
     );
     assert_eq!(host.calls.len(), 3);
@@ -549,9 +573,607 @@ fn metered_target_migration_handoff_recovers_without_repeating_the_pure_call() {
     )
     .expect("v4 target-migration handoff recovers");
     let replay = resumed
-        .run_durable(&mut host, &AgentCancellation::new(), &mut store)
+        .run_durable_metered_with_backend(
+            &mut host,
+            &AgentCancellation::new(),
+            &mut store,
+            TargetStageBackend::Interpreter,
+            10_000,
+        )
         .unwrap();
-    assert_eq!(replay.run().run().dispatched(), 0);
+    assert_eq!(replay.run().run().run().dispatched(), 0);
+    assert_eq!(host.calls.len(), 3);
+}
+
+#[test]
+fn metered_migrated_durable_recovery_replays_same_target_receipts() {
+    use semaprax::agent_lifecycle::iterative::effects::TargetStageBackend;
+
+    let a = first();
+    let b = successor(&a, "State", "StateB", "b", &["marker"], false);
+    let (migration, before, after) = migrated_with_metered_interpreter(&a, &b);
+    let migration_root: serde_json::Value =
+        serde_json::from_str(migration.migration_root().canonical_json()).unwrap();
+    let expected_target_binding = migration_root["facts"]["target_execution"]["execution_binding"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let handoff = migration.handoff_digest().unwrap();
+    let mut host = handler();
+    let mut store = Store::default();
+    let completed = migration
+        .run_durable_metered_with_backend(
+            &mut host,
+            &AgentCancellation::new(),
+            &mut store,
+            TargetStageBackend::Interpreter,
+            10_000,
+        )
+        .unwrap();
+    assert_eq!(
+        completed.run().run().run().lifecycle().status(),
+        IterativeStatus::Complete
+    );
+    assert!(completed.run().observations_complete());
+    assert_eq!(host.calls.len(), 3);
+    let evidence: serde_json::Value =
+        serde_json::from_str(completed.evidence_root().canonical_json()).unwrap();
+    assert_eq!(
+        evidence["schema"],
+        "semaprax.evidence-root.durable-migration-metered.v1"
+    );
+    assert_eq!(
+        evidence["facts"]["semantic_work_evidence"],
+        completed.run().evidence_digest()
+    );
+    assert_eq!(
+        completed.target_execution_binding(),
+        expected_target_binding
+    );
+    assert_eq!(
+        evidence["facts"]["target_execution_binding"],
+        completed.target_execution_binding()
+    );
+    let retained = store.document.clone();
+    let resumed = resume_migrated_agent_runtime_v2(
+        bind(&a, b"chain payload"),
+        bind(&b, b"destination input ignored"),
+        &retained,
+        &handoff,
+        &before,
+        &after,
+    )
+    .expect("metered v4 target-migration handoff recovers");
+    let replay = resumed
+        .run_durable_metered_with_backend(
+            &mut host,
+            &AgentCancellation::new(),
+            &mut store,
+            TargetStageBackend::Interpreter,
+            10_000,
+        )
+        .unwrap();
+    assert_eq!(replay.run().run().run().dispatched(), 0);
+    assert!(replay.run().observations_complete());
+    assert_eq!(
+        replay.target_execution_binding(),
+        completed.target_execution_binding(),
+        "recovery retains the bound target profile while replaying receipts",
+    );
+    assert_eq!(host.calls.len(), 3);
+}
+
+#[test]
+fn metered_target_migration_terminal_lost_ack_recovers_receipts_without_redispatch() {
+    use semaprax::agent_lifecycle::iterative::effects::TargetStageBackend;
+
+    let a = first();
+    let b = successor(&a, "State", "StateB", "b", &["marker"], false);
+    let (migration, before, after) = migrated_with_metered_interpreter(&a, &b);
+    let expected_target_binding =
+        serde_json::from_str::<serde_json::Value>(migration.migration_root().canonical_json())
+            .unwrap()["facts"]["target_execution"]["execution_binding"]
+            .as_str()
+            .unwrap()
+            .to_owned();
+    let handoff = migration.handoff_digest().unwrap();
+    let mut host = handler();
+    let mut store = Store {
+        fail: Some("terminal"),
+        ..Default::default()
+    };
+    let failure = migration
+        .run_durable_metered_with_backend(
+            &mut host,
+            &AgentCancellation::new(),
+            &mut store,
+            TargetStageBackend::Interpreter,
+            10_000,
+        )
+        .err()
+        .expect("lost terminal acknowledgement remains recoverable");
+    assert_eq!(
+        failure.terminal().unwrap().status(),
+        IterativeStatus::Complete,
+        "the selected terminal result remains sticky across the lost acknowledgement",
+    );
+    let snapshot: serde_json::Value = serde_json::from_str(&store.document).unwrap();
+    let checkpoint: serde_json::Value =
+        serde_json::from_str(snapshot["checkpoint"].as_str().unwrap()).unwrap();
+    let entries = checkpoint["entries"].as_array().unwrap();
+    let count_kind = |entries: &[serde_json::Value], kind: &str| {
+        entries
+            .iter()
+            .filter(|entry| entry["event"]["kind"] == kind)
+            .count()
+    };
+    let count_terminal_complete = |entries: &[serde_json::Value]| {
+        entries
+            .iter()
+            .filter(|entry| {
+                entry["event"]["kind"] == "transition" && entry["event"]["transition"] == "Complete"
+            })
+            .count()
+    };
+    let retained_reservations = count_kind(entries, "stage_reservation");
+    let retained_receipts = count_kind(entries, "semantic_work");
+    let retained_terminal_completes = count_terminal_complete(entries);
+    assert_eq!(
+        retained_reservations, retained_receipts,
+        "the retained terminal candidate carries one semantic receipt for every reserved stage",
+    );
+    let retained = store.document.clone();
+    let before_recovery = (host.calls.len(), store.commits);
+    let replay = resume_migrated_agent_runtime_v2(
+        bind(&a, b"chain payload"),
+        bind(&b, b"destination input ignored"),
+        &retained,
+        &handoff,
+        &before,
+        &after,
+    )
+    .expect("metered terminal candidate recovers")
+    .run_durable_metered_with_backend(
+        &mut host,
+        &AgentCancellation::new(),
+        &mut store,
+        TargetStageBackend::Interpreter,
+        10_000,
+    )
+    .expect("recovery reuses the retained terminal receipts");
+    assert_eq!(
+        replay.run().run().run().lifecycle().status(),
+        IterativeStatus::Complete
+    );
+    assert!(replay.run().observations_complete());
+    assert_eq!(replay.run().run().run().dispatched(), 0);
+    assert_eq!(replay.target_execution_binding(), expected_target_binding);
+    let recovered_snapshot: serde_json::Value = serde_json::from_str(&store.document).unwrap();
+    let recovered_checkpoint: serde_json::Value =
+        serde_json::from_str(recovered_snapshot["checkpoint"].as_str().unwrap()).unwrap();
+    let recovered_entries = recovered_checkpoint["entries"].as_array().unwrap();
+    let replayed_reservations = count_kind(recovered_entries, "stage_reservation")
+        .checked_sub(retained_reservations)
+        .unwrap();
+    let replayed_receipts = count_kind(recovered_entries, "semantic_work")
+        .checked_sub(retained_receipts)
+        .unwrap();
+    assert!(
+        replayed_reservations > 0,
+        "metered recovery takes fresh grants for the retained deterministic stages",
+    );
+    assert_eq!(
+        replayed_reservations, replayed_receipts,
+        "each replayed stage receives one new metered receipt",
+    );
+    assert_eq!(
+        store.commits - before_recovery.1,
+        replayed_reservations + replayed_receipts,
+        "recovery checkpoints only its fresh stage grants and receipts",
+    );
+    assert_eq!(
+        count_terminal_complete(recovered_entries), retained_terminal_completes,
+        "recovery validates the retained terminal transition without committing another terminal result",
+    );
+    assert_eq!(
+        host.calls.len(),
+        before_recovery.0,
+        "terminal recovery does not redeliver retained host work",
+    );
+}
+
+#[test]
+fn metered_migrated_durable_recovery_refuses_tampered_receipts_before_store_or_host_work() {
+    use semaprax::agent_lifecycle::iterative::effects::TargetStageBackend;
+
+    let a = first();
+    let b = successor(&a, "State", "StateB", "b", &["marker"], false);
+    let (migration, before, after) = migrated_with_metered_interpreter(&a, &b);
+    let handoff = migration.handoff_digest().unwrap();
+    let mut host = handler();
+    let mut store = Store::default();
+    migration
+        .run_durable_metered_with_backend(
+            &mut host,
+            &AgentCancellation::new(),
+            &mut store,
+            TargetStageBackend::Interpreter,
+            10_000,
+        )
+        .expect("metered migration creates an authenticated durable receipt");
+    let retained = store.document.replacen(
+        r#"\"kind\":\"semantic_work\""#,
+        r#"\"kind\":\"semantic_work_tampered\""#,
+        1,
+    );
+    assert_ne!(
+        retained, store.document,
+        "the outer snapshot encodes its retained checkpoint as a JSON string",
+    );
+    let resumed = resume_migrated_agent_runtime_v2(
+        bind(&a, b"chain payload"),
+        bind(&b, b"destination input ignored"),
+        &retained,
+        &handoff,
+        &before,
+        &after,
+    )
+    .expect("the outer handoff remains canonical while inner receipt replay validates it");
+    let before_refusal = (host.calls.len(), store.commits);
+    let refusal = resumed
+        .run_durable_metered_with_backend(
+            &mut host,
+            &AgentCancellation::new(),
+            &mut store,
+            TargetStageBackend::Interpreter,
+            10_000,
+        )
+        .err()
+        .expect("tampered durable receipt must refuse recovery");
+    assert!(refusal.diagnostics()[0].message.contains("event.kind"));
+    assert_eq!(
+        (host.calls.len(), store.commits),
+        before_refusal,
+        "receipt refusal runs before host work or a new checkpoint commit",
+    );
+}
+
+#[test]
+fn target_migration_refuses_missing_or_mixed_metered_durable_target_before_handoff() {
+    use semaprax::agent_lifecycle::iterative::effects::TargetStageBackend;
+
+    let a = first();
+    let b = successor(&a, "State", "StateB", "b", &["marker"], false);
+    let (migration, _, _) = migrated_with_metered_interpreter(&a, &b);
+    let mut host = handler();
+    let mut store = Store::default();
+    let missing = migration
+        .run_durable(&mut host, &AgentCancellation::new(), &mut store)
+        .err()
+        .expect("v4 target migration cannot drop its metered target");
+    assert!(missing.diagnostics()[0]
+        .message
+        .contains("migration.target_requires_metered_durable"));
+    assert_eq!((host.calls.len(), store.commits), (0, 0));
+
+    let (migration, _, _) = migrated_with_metered_interpreter(&a, &b);
+    let unmetered = migration
+        .run_durable_with_backend(
+            &mut host,
+            &AgentCancellation::new(),
+            &mut store,
+            TargetStageBackend::Interpreter,
+        )
+        .err()
+        .expect("v4 target migration cannot use an unmetered selected target");
+    assert!(unmetered.diagnostics()[0]
+        .message
+        .contains("migration.target_requires_metered_durable"));
+    assert_eq!((host.calls.len(), store.commits), (0, 0));
+
+    let (migration, _, _) = migrated_with_metered_interpreter(&a, &b);
+    let mixed = migration
+        .run_durable_metered_with_backend(
+            &mut host,
+            &AgentCancellation::new(),
+            &mut store,
+            TargetStageBackend::Interpreter,
+            9_999,
+        )
+        .err()
+        .expect("changed metered target binding cannot stage a handoff");
+    assert!(mixed.diagnostics()[0]
+        .message
+        .contains("migration.target_binding"));
+    assert_eq!((host.calls.len(), store.commits), (0, 0));
+}
+
+#[test]
+fn recovered_target_migration_refuses_changed_metered_profile_before_store_or_host_work() {
+    use semaprax::agent_lifecycle::iterative::effects::TargetStageBackend;
+
+    let a = first();
+    let b = successor(&a, "State", "StateB", "b", &["marker"], false);
+    let (migration, before, after) = migrated_with_metered_interpreter(&a, &b);
+    let handoff = migration.handoff_digest().unwrap();
+    let mut host = handler();
+    let mut store = Store::default();
+    migration
+        .run_durable_metered_with_backend(
+            &mut host,
+            &AgentCancellation::new(),
+            &mut store,
+            TargetStageBackend::Interpreter,
+            10_000,
+        )
+        .expect("metered target migration records a recoverable handoff");
+    let retained = store.document.clone();
+    let before_refusal = (host.calls.len(), store.commits);
+
+    let missing = resume_migrated_agent_runtime_v2(
+        bind(&a, b"chain payload"),
+        bind(&b, b"destination input ignored"),
+        &retained,
+        &handoff,
+        &before,
+        &after,
+    )
+    .expect("target-migration handoff recovers")
+    .run_durable(&mut host, &AgentCancellation::new(), &mut store)
+    .err()
+    .expect("recovery cannot drop its metered target profile");
+    assert!(missing.diagnostics()[0]
+        .message
+        .contains("migration.target_requires_metered_durable"));
+    assert_eq!(
+        (host.calls.len(), store.commits),
+        before_refusal,
+        "unmetered recovery must not dispatch host work or commit a checkpoint",
+    );
+
+    let unmetered = resume_migrated_agent_runtime_v2(
+        bind(&a, b"chain payload"),
+        bind(&b, b"destination input ignored"),
+        &retained,
+        &handoff,
+        &before,
+        &after,
+    )
+    .expect("target-migration handoff recovers")
+    .run_durable_with_backend(
+        &mut host,
+        &AgentCancellation::new(),
+        &mut store,
+        TargetStageBackend::Interpreter,
+    )
+    .err()
+    .expect("recovery cannot use an unmetered selected target");
+    assert!(unmetered.diagnostics()[0]
+        .message
+        .contains("migration.target_requires_metered_durable"));
+    assert_eq!(
+        (host.calls.len(), store.commits),
+        before_refusal,
+        "unmetered target recovery must not dispatch host work or commit a checkpoint",
+    );
+
+    let changed = resume_migrated_agent_runtime_v2(
+        bind(&a, b"chain payload"),
+        bind(&b, b"destination input ignored"),
+        &retained,
+        &handoff,
+        &before,
+        &after,
+    )
+    .expect("target-migration handoff recovers")
+    .run_durable_metered_with_backend(
+        &mut host,
+        &AgentCancellation::new(),
+        &mut store,
+        TargetStageBackend::Interpreter,
+        9_999,
+    )
+    .err()
+    .expect("recovery cannot change the target semantic-fuel binding");
+    assert!(changed.diagnostics()[0]
+        .message
+        .contains("migration.target_binding"));
+    assert_eq!(
+        (host.calls.len(), store.commits),
+        before_refusal,
+        "changed target binding must refuse before host work or a checkpoint commit",
+    );
+}
+
+#[test]
+#[cfg(any(target_os = "linux", target_os = "macos"))]
+fn target_migration_refuses_a_mixed_held_native_target_before_handoff() {
+    use semaprax::agent_lifecycle::iterative::effects::{NativeTargetHost, TargetStageBackend};
+
+    let Some(native) = std::env::var_os("SEMAPRAX_TEST_NATIVE_STAGE_CLANG")
+        .map(std::path::PathBuf::from)
+        .into_iter()
+        .chain(
+            [
+                "/usr/bin/clang",
+                "/usr/local/bin/clang",
+                "/opt/homebrew/bin/clang",
+            ]
+            .map(std::path::PathBuf::from),
+        )
+        .find_map(|path| NativeTargetHost::open(path).ok())
+    else {
+        eprintln!("skipping mixed migration target refusal: held clang unavailable");
+        return;
+    };
+    let a = first();
+    let b = successor(&a, "State", "StateB", "b", &["marker"], false);
+    let (migration, _, _) = migrated_with_metered_interpreter(&a, &b);
+    let mut host = handler();
+    let mut store = Store::default();
+    let failure = migration
+        .run_durable_metered_with_backend(
+            &mut host,
+            &AgentCancellation::new(),
+            &mut store,
+            TargetStageBackend::Native(&native),
+            10_000,
+        )
+        .err()
+        .expect("mixed held native target cannot stage a handoff");
+    assert!(failure.diagnostics()[0]
+        .message
+        .contains("migration.target_binding"));
+    assert_eq!((host.calls.len(), store.commits), (0, 0));
+}
+
+#[test]
+#[cfg(any(target_os = "linux", target_os = "macos"))]
+fn metered_migrated_durable_recovery_replays_same_held_wasm_target() {
+    use semaprax::agent_lifecycle::iterative::effects::{TargetStageBackend, WasmTargetHost};
+
+    let a = first();
+    let b = successor(&a, "State", "StateB", "b", &["marker"], false);
+    let node = std::env::var_os("SEMAPRAX_TEST_WASM_STAGE_NODE")
+        .map(std::path::PathBuf::from)
+        .into_iter()
+        .chain([
+            std::path::PathBuf::from("/usr/bin/node"),
+            std::path::PathBuf::from("/usr/local/bin/node"),
+            std::path::PathBuf::from("/opt/homebrew/bin/node"),
+        ])
+        .find_map(|path| WasmTargetHost::open(path).ok())
+        .expect("metered migration recovery requires an explicit held Node runtime");
+    let (migration, before, after) =
+        migrated_with_metered_backend(&a, &b, TargetStageBackend::CoreWasmHeld(&node));
+    let handoff = migration.handoff_digest().unwrap();
+    let mut host = handler();
+    let mut store = Store::default();
+    let completed = migration
+        .run_durable_metered_with_backend(
+            &mut host,
+            &AgentCancellation::new(),
+            &mut store,
+            TargetStageBackend::CoreWasmHeld(&node),
+            10_000,
+        )
+        .expect("held Core Wasm records durable migration receipts");
+    assert!(completed.run().observations_complete());
+    assert_eq!(host.calls.len(), 3);
+    let snapshot: serde_json::Value = serde_json::from_str(&store.document).unwrap();
+    let checkpoint: serde_json::Value =
+        serde_json::from_str(snapshot["checkpoint"].as_str().unwrap()).unwrap();
+    let entries = checkpoint["entries"].as_array().unwrap();
+    assert_eq!(
+        entries
+            .iter()
+            .filter(|entry| entry["event"]["kind"] == "stage_reservation")
+            .count(),
+        entries
+            .iter()
+            .filter(|entry| entry["event"]["kind"] == "semantic_work")
+            .count(),
+        "every held-Wasm migration stage reservation has an authenticated receipt",
+    );
+    let retained = store.document.clone();
+    let resumed = resume_migrated_agent_runtime_v2(
+        bind(&a, b"chain payload"),
+        bind(&b, b"destination input ignored"),
+        &retained,
+        &handoff,
+        &before,
+        &after,
+    )
+    .expect("held-Wasm v4 migration handoff recovers");
+    let replay = resumed
+        .run_durable_metered_with_backend(
+            &mut host,
+            &AgentCancellation::new(),
+            &mut store,
+            TargetStageBackend::CoreWasmHeld(&node),
+            10_000,
+        )
+        .expect("same held Core Wasm replays durable migration receipts");
+    assert!(replay.run().observations_complete());
+    assert_eq!(replay.run().run().run().dispatched(), 0);
+    assert_eq!(host.calls.len(), 3);
+}
+
+#[test]
+#[cfg(any(target_os = "linux", target_os = "macos"))]
+fn metered_migrated_durable_recovery_replays_same_held_native_target() {
+    use semaprax::agent_lifecycle::iterative::effects::{NativeTargetHost, TargetStageBackend};
+
+    let Some(native) = std::env::var_os("SEMAPRAX_TEST_NATIVE_STAGE_CLANG")
+        .map(std::path::PathBuf::from)
+        .into_iter()
+        .chain(
+            [
+                "/usr/bin/clang",
+                "/usr/local/bin/clang",
+                "/opt/homebrew/bin/clang",
+            ]
+            .map(std::path::PathBuf::from),
+        )
+        .find_map(|path| NativeTargetHost::open(path).ok())
+    else {
+        eprintln!("skipping metered migration recovery: held clang unavailable");
+        return;
+    };
+    let a = first();
+    let b = successor(&a, "State", "StateB", "b", &["marker"], false);
+    let (migration, before, after) =
+        migrated_with_metered_backend(&a, &b, TargetStageBackend::Native(&native));
+    let handoff = migration.handoff_digest().unwrap();
+    let mut host = handler();
+    let mut store = Store::default();
+    let completed = migration
+        .run_durable_metered_with_backend(
+            &mut host,
+            &AgentCancellation::new(),
+            &mut store,
+            TargetStageBackend::Native(&native),
+            10_000,
+        )
+        .expect("held native target records durable migration receipts");
+    assert!(completed.run().observations_complete());
+    assert_eq!(host.calls.len(), 3);
+    let snapshot: serde_json::Value = serde_json::from_str(&store.document).unwrap();
+    let checkpoint: serde_json::Value =
+        serde_json::from_str(snapshot["checkpoint"].as_str().unwrap()).unwrap();
+    let entries = checkpoint["entries"].as_array().unwrap();
+    assert_eq!(
+        entries
+            .iter()
+            .filter(|entry| entry["event"]["kind"] == "stage_reservation")
+            .count(),
+        entries
+            .iter()
+            .filter(|entry| entry["event"]["kind"] == "semantic_work")
+            .count(),
+        "every held-native migration stage reservation has an authenticated receipt",
+    );
+    let retained = store.document.clone();
+    let resumed = resume_migrated_agent_runtime_v2(
+        bind(&a, b"chain payload"),
+        bind(&b, b"destination input ignored"),
+        &retained,
+        &handoff,
+        &before,
+        &after,
+    )
+    .expect("held-native v4 migration handoff recovers");
+    let replay = resumed
+        .run_durable_metered_with_backend(
+            &mut host,
+            &AgentCancellation::new(),
+            &mut store,
+            TargetStageBackend::Native(&native),
+            10_000,
+        )
+        .expect("same held native target replays durable migration receipts");
+    assert!(replay.run().observations_complete());
+    assert_eq!(replay.run().run().run().dispatched(), 0);
     assert_eq!(host.calls.len(), 3);
 }
 

@@ -77,6 +77,8 @@ mod developer_loop;
 mod draft_expression_catalog;
 #[path = "project/draft_field_display_rebase.rs"]
 mod draft_field_display_rebase;
+#[path = "project/explore_cli.rs"]
+mod explore_cli;
 #[path = "project/flat_owned_record_api.rs"]
 mod flat_owned_record_api;
 #[path = "project/flat_owned_record_interpreter.rs"]
@@ -157,6 +159,8 @@ mod owned_utf8_lifetimes;
 mod owned_utf8_npm;
 #[path = "project/package_manifest_v1.rs"]
 mod package_manifest_v1;
+#[path = "project/native_law_v1.rs"]
+mod native_law_v1;
 #[path = "project/profile_admission.rs"]
 mod profile_admission;
 #[path = "project/project_local_aggregates.rs"]
@@ -191,6 +195,8 @@ mod signature_nominal_arguments;
 mod signature_nominal_rebase;
 #[path = "project/signature_owned_values.rs"]
 mod signature_owned_values;
+#[path = "project/source_protocol_law.rs"]
+mod source_protocol_law;
 #[path = "project/standard_library.rs"]
 mod standard_library;
 #[path = "project/std_mem.rs"]

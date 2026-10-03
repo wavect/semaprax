@@ -24,6 +24,8 @@ pub(super) fn supports(operation: Operation) -> bool {
                 | Action::CandidateAnalysisCoverage
                 | Action::CandidateDependencySummary
                 | Action::CandidateDependencyPage
+                | Action::CandidateExplorerSummary
+                | Action::CandidateExplorerPage
                 | Action::CandidateFunctionSummary
                 | Action::CandidateFunctionFacet
                 | Action::CandidateImpactSummary
@@ -109,6 +111,9 @@ pub(super) fn prepare(
         Operation::VNext(
             action @ (Action::CandidateDependencySummary | Action::CandidateDependencyPage),
         ) => candidate_dependency_navigation::for_candidate(action, params, candidate()?),
+        Operation::VNext(
+            action @ (Action::CandidateExplorerSummary | Action::CandidateExplorerPage),
+        ) => explorer::candidate(action, params, image, candidate()?),
         Operation::VNext(
             action @ (Action::CandidateFunctionSummary | Action::CandidateFunctionFacet),
         ) => candidate_function_facets::for_candidate(action, params, candidate()?),

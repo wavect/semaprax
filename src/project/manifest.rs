@@ -11,8 +11,8 @@ use super::profile::{
 pub use tables::{
     ManifestLayout, PackageDependency, PackageDependencySource, RustDependency, MAX_DEPENDENCIES,
     MAX_DEPENDENCY_SOURCES, MAX_RUST_DEPENDENCIES, PACKAGE_MANIFEST_RESERVED_TABLES,
-    PACKAGE_MANIFEST_SCHEMA, PACKAGE_MANIFEST_TABLES, PACKAGE_RESERVED_KEYS,
-    PACKAGE_TARGET_NATIVE64, PACKAGE_TARGET_WASM32,
+    PACKAGE_MANIFEST_SCHEMA, PACKAGE_MANIFEST_SCHEMA_V2, PACKAGE_MANIFEST_TABLES,
+    PACKAGE_RESERVED_KEYS, PACKAGE_TARGET_NATIVE64, PACKAGE_TARGET_WASM32,
 };
 
 use crate::diagnostic::Diagnostic;
@@ -93,6 +93,7 @@ pub struct ProjectManifest {
     profile: ProjectProfile,
     entry: String,
     sources: Vec<String>,
+    law_sources: Vec<String>,
     web_exports: Vec<String>,
     command: Option<String>,
     command_input: Option<String>,
@@ -126,6 +127,7 @@ impl ProjectManifest {
         let mut dependency_sources = Vec::new();
         let mut rust_dependencies = Vec::new();
         let mut target_matrix = None;
+        let mut law_sources = Vec::new();
         let (
             schema,
             name,
@@ -138,9 +140,15 @@ impl ProjectManifest {
             command_input,
             capabilities,
             tests,
-        ) = if schema == PACKAGE_MANIFEST_SCHEMA {
-            let parts = tables::parse(&lines)?;
-            layout = ManifestLayout::Tables;
+        ) = if schema == PACKAGE_MANIFEST_SCHEMA || schema == PACKAGE_MANIFEST_SCHEMA_V2 {
+            let law_layout = schema == PACKAGE_MANIFEST_SCHEMA_V2;
+            let parts = tables::parse(&lines, law_layout)?;
+            layout = if law_layout {
+                ManifestLayout::TablesV2
+            } else {
+                ManifestLayout::Tables
+            };
+            law_sources = parts.law_sources;
             dependencies = parts.dependencies;
             dependency_sources = parts.dependency_sources;
             rust_dependencies = parts.rust_dependencies;
@@ -747,7 +755,7 @@ impl ProjectManifest {
             }
         };
         let version_label = match schema {
-            _ if layout == ManifestLayout::Tables => "Package Manifest v1",
+            _ if layout != ManifestLayout::Frozen => "Package Manifest table layout",
             PROJECT_SCHEMA => "Project v1",
             PROJECT_SCHEMA_V2 => "Project v2",
             PROJECT_SCHEMA_V3 => "Project v3",
@@ -789,14 +797,32 @@ impl ProjectManifest {
             });
         }
         require_strict_order(&sources, "source paths")?;
+        if sources.len().saturating_sub(law_sources.len()) < 2 {
+            return Err(grammar(
+                "Package Manifest v2 requires at least two ordinary Project sources",
+            ));
+        }
         for path in &sources {
             if path.len() > MAX_PATH_BYTES
                 || !path.ends_with(".spx")
-                || !crate::workspace::evidence_path_is_valid(path)
+                || !valid_manifest_source_path(path, law_sources.contains(path))
             {
                 return Err(grammar(format!(
                     "{version_label} source paths must be canonical relative .spx paths of at most 240 bytes"
                 )));
+            }
+        }
+        for path in &law_sources {
+            let lower = if path == "LAWS.spx" {
+                Some("laws.spx".to_owned())
+            } else {
+                path.strip_suffix("/LAWS.spx")
+                    .map(|prefix| format!("{prefix}/laws.spx"))
+            };
+            if lower.is_some_and(|alias| sources.contains(&alias)) {
+                return Err(grammar(
+                    "Package Manifest v2 source inventory aliases LAWS.spx by case",
+                ));
             }
         }
         let std_collections_no_export_shape = schema == PROJECT_SCHEMA_V8
@@ -884,6 +910,7 @@ impl ProjectManifest {
             profile,
             entry,
             sources,
+            law_sources,
             web_exports,
             command,
             command_input,
@@ -896,7 +923,7 @@ impl ProjectManifest {
         };
         let canonical = manifest.to_canonical_toml();
         if canonical != source {
-            return Err(if layout == ManifestLayout::Tables {
+            return Err(if layout != ManifestLayout::Frozen {
                 tables::canonical_mismatch(source, &canonical)
             } else {
                 grammar(format!("{version_label} manifest is not canonical"))
@@ -981,6 +1008,11 @@ impl ProjectManifest {
         &self.sources
     }
 
+    /// Explicit native-law subset of the ordinary Project source inventory.
+    pub fn law_sources(&self) -> &[String] {
+        &self.law_sources
+    }
+
     pub fn web_exports(&self) -> &[String] {
         &self.web_exports
     }
@@ -1028,7 +1060,7 @@ impl ProjectManifest {
     /// Project v1-v13 layout has no dependency table and is rejected, as is a
     /// dependency the manifest already declares.
     pub fn with_dependency(&self, name: &str, range: &str) -> Result<String, Vec<Diagnostic>> {
-        if self.layout != ManifestLayout::Tables {
+        if self.layout == ManifestLayout::Frozen {
             return Err(vec![Diagnostic::io(
                 "SPX-J127",
                 format!(
@@ -1071,7 +1103,7 @@ impl ProjectManifest {
     }
 
     pub fn to_canonical_toml(&self) -> String {
-        if self.layout == ManifestLayout::Tables {
+        if self.layout != ManifestLayout::Frozen {
             tables::render(self)
         } else if self.schema == PROJECT_SCHEMA {
             format!(
@@ -1392,6 +1424,12 @@ fn require_strict_order(values: &[String], subject: &str) -> Result<(), Vec<Diag
             "Project v1 {subject} must be strictly byte-sorted and unique"
         )))
     }
+}
+
+fn valid_manifest_source_path(path: &str, selected_law: bool) -> bool {
+    let conventional_law_name = selected_law && (path == "LAWS.spx" || path.ends_with("/LAWS.spx"));
+    (!path.bytes().any(|byte| byte.is_ascii_uppercase()) || conventional_law_name)
+        && crate::workspace::evidence_path_is_valid(path)
 }
 
 fn valid_name(value: &str) -> bool {

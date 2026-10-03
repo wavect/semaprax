@@ -446,7 +446,11 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                 MatchMode::Borrow
                     if !variant_needs_drop
                         || !(self.types.is_flat_owned_byte_variant(&scrutinee_value.ty)
-                            || self.types.is_flat_owned_string_variant(&scrutinee_value.ty))
+                            || self.types.is_flat_owned_string_variant(&scrutinee_value.ty)
+                            || crate::native_rust_binding::admitted_regex_result(
+                                self.program,
+                                &scrutinee_value.ty,
+                            ))
                         || !matches!(scrutinee_value.mode, ParamMode::Own | ParamMode::Borrow)
                         || source_place(scrutinee, &self.scopes[scope].bindings, self.types)
                             .is_none_or(|place| !place.projections.is_empty()) =>

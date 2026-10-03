@@ -184,60 +184,57 @@ fn failed_observe_state_cleanup_initial_and_continued_actual_receipt_sticky_stop
             let before = journal.begin_session().unwrap();
             let (reserved, stages, turn, _, _, _, _) =
                 before.failed_observe_cleanup_facts().unwrap();
-            let (started, weak) = start(journal, failed);
-            let expected = started.lineage.cache.operations.clone();
-            let selected = started.lineage.cache.failure.clone();
+            let expected = crate::resumable_effects::owned_frame::v2::owned_wait_operations_v8(
+                &journal
+                    .context()
+                    .ready_runtime()
+                    .unwrap()
+                    .1
+                    .wait()
+                    .observe()
+                    .helper()
+                    .liveness()
+                    .failure_cleanup,
+            )
+            .unwrap();
             let mut observed = 0;
-            let released = started
-                .release(|_| {
-                    observed += 1;
-                    assert_eq!(
-                        weak.iter().filter(|w| w.upgrade().is_none()).count(),
-                        observed
-                    );
-                })
-                .unwrap_or_else(|_| panic!("actual ordered State release"));
+            let stopped = stop_failed_observe_state_v8(failed, |_| {
+                observed += 1;
+            })
+            .unwrap_or_else(|_| panic!("actual State cleanup, receipt, and Stop"));
             assert_eq!(observed, expected.as_array().unwrap().len());
-            assert!(weak.iter().all(|w| w.upgrade().is_none()));
-            assert_eq!(released.lineage.cache.failure, selected);
-            match (&released.owner, ledger) {
+            assert!(old_weak.iter().all(|w| w.upgrade().is_none()));
+            match (&stopped._released.owner, ledger) {
                 (ReleasedObserveOwnerV8::Initial(_), None) => {}
                 (ReleasedObserveOwnerV8::Continued { accounting, .. }, Some(expected)) => {
                     assert_eq!(*accounting, expected)
                 }
                 _ => panic!("original route and ledger preserved"),
             }
-            let released = receipt(journal, released);
-            assert_eq!(released.receipt["settlement"], "completed");
+            assert_eq!(stopped._released.receipt["settlement"], "completed");
             assert_eq!(
-                released.receipt["operations"].as_array().unwrap().len(),
+                stopped._released.receipt["operations"]
+                    .as_array()
+                    .unwrap()
+                    .len(),
                 observed
             );
-            let stop = released
-                .prepare_stop()
-                .unwrap_or_else(|_| panic!("sticky Stop after complete receipt"));
-            assert!(
-                matches!(stop.selected_row(),EntryV8::Ordinary(SourceJournalEntry::Stop{turn:Some(t),attempt:None,status:SourceStopStatus::Rejected,reason:SourceStopReason::StageRefused})if *t==turn)
-            );
-            generic_refuses_without_io(journal, stop.selected_row().clone());
-            let terminal = journal
-                .begin_session()
-                .unwrap()
-                .append_failed_observe_state(stop)
-                .unwrap_or_else(|_| panic!("actual Stop ACK"))
-                .advance_failed_observe_state()
-                .unwrap_or_else(|_| panic!("opaque stopped actual owner"));
-            assert!(matches!(
-                terminal,
-                LiveFailedObserveStateAcknowledgedV8::Stopped(_)
-            ));
             let current = journal.begin_session().unwrap();
             let (r, s, t, _) = current
                 .test_observe_inventory()
                 .failed_observe_cleanup_current_facts()
                 .unwrap();
             assert_eq!((r, s, t), (reserved, stages, turn));
-            assert!(old_weak.iter().all(|w| w.upgrade().is_none()));
+            assert!(matches!(
+                current.test_observe_inventory().test_observe_entries().last().unwrap().entry,
+                EntryV8::Ordinary(SourceJournalEntry::Stop {
+                    turn: Some(actual_turn),
+                    attempt: None,
+                    status: SourceStopStatus::Rejected,
+                    reason: SourceStopReason::StageRefused,
+                }) if actual_turn == turn
+            ));
+            drop(stopped);
         });
     }
 }
@@ -247,10 +244,12 @@ fn failed_observe_state_cleanup_cancellation_before_started_has_zero_state_work(
         with_failed(initial_route, |journal, failed, weak, _, cancel, _| {
             let before = journal.begin_session().unwrap().acknowledged_bytes();
             cancel.cancel();
-            let actual = failed
-                .prepare_failed_state_cleanup()
-                .err()
-                .expect("full pre-Started cancellation");
+            let actual = stop_failed_observe_state_v8(failed, |_| {
+                panic!("cancelled before the State cleanup observer")
+            })
+            .err()
+            .expect("private Stop driver seals pre-Started cancellation");
+            assert_eq!(actual.status(), SourceJournalError::Poisoned);
             assert_eq!(
                 journal
                     .test_observe_lease()
@@ -263,6 +262,30 @@ fn failed_observe_state_cleanup_cancellation_before_started_has_zero_state_work(
             assert!(weak.iter().any(|w| w.strong_count() == 1));
             assert!(journal.hold().is_err());
             drop(actual);
+            assert!(weak.iter().all(|w| w.upgrade().is_none()));
+        });
+    }
+}
+#[test]
+#[cfg(unix)]
+fn failed_observe_state_driver_prewrite_fault_retains_actual_owner() {
+    for initial_route in [true, false] {
+        with_failed(initial_route, |journal, failed, weak, _, _, _| {
+            let next = journal.begin_session().unwrap().sequence() + 1;
+            journal
+                .test_observe_lease()
+                .borrow_mut()
+                .test_fail_before_write(next);
+            let quarantined = stop_failed_observe_state_v8(failed, |_| {
+                panic!("prewrite fault cannot release State")
+            })
+            .err()
+            .expect("opaque quarantine retains actual failed Observe owner");
+            assert_eq!(quarantined.status(), SourceJournalError::Poisoned);
+            assert!(weak.iter().any(|w| w.strong_count() == 1));
+            assert!(journal.hold().is_err());
+            assert!(journal.begin_session().is_err());
+            drop(quarantined);
             assert!(weak.iter().all(|w| w.upgrade().is_none()));
         });
     }

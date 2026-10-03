@@ -137,9 +137,9 @@ use crate::hir::ResolvedProgram;
 use crate::{graph, patch};
 
 use super::smt_discharge::{
-    parse_model, postcondition_obligation_id, render_postcondition_script, replay_function, run,
-    solver_version, translate_function, Provisioning, ReplayOutcome, RunLimits, Verdict,
-    ENV_Z3_PATH,
+    check_domain, parse_model, postcondition_obligation_id, render_postcondition_script,
+    replay_function, run, solver_version, translate_function, DomainStatus, Provisioning,
+    ReplayOutcome, RunLimits, Verdict, ENV_Z3_PATH,
 };
 
 use render::CertificateBody;
@@ -257,6 +257,21 @@ pub fn export_postcondition_certificate(
     };
 
     let timeout_ms = u64::try_from(limits.timeout.as_millis()).unwrap_or(u64::MAX);
+    if !encoding.requires_terms.is_empty() {
+        match check_domain(function, &encoding, provisioning, limits) {
+            DomainStatus::Witness { .. } => {}
+            DomainStatus::Contradictory => {
+                return Err(vec![no_certificate(
+                    "requires is contradictory or has no well-defined input".to_owned(),
+                )])
+            }
+            DomainStatus::Unknown { reason } => {
+                return Err(vec![no_certificate(format!(
+                    "requires domain unavailable: {reason}"
+                ))])
+            }
+        }
+    }
     let script = render_postcondition_script(&encoding, ensures_index, timeout_ms);
     let verdict = run(provisioning, &script, limits);
     let solver_ver = solver_version(provisioning).unwrap_or_else(|| "unrecorded".to_owned());

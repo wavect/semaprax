@@ -60,6 +60,7 @@ pub(super) fn effective_record_fields<'t>(
 
 pub(super) struct TypeTable<'a> {
     pub(super) declarations: HashMap<&'a str, &'a TypeDeclaration>,
+    native_owned_containers: [bool; 3],
     declared_fields: HashMap<&'a str, HashMap<&'a str, &'a FieldDeclaration>>,
     /// Class Inheritance v1: declared parent name per extending class.
     pub(super) class_parents: HashMap<&'a str, &'a str>,
@@ -145,6 +146,12 @@ impl<'a> TypeTable<'a> {
             }
         }
         Self {
+            native_owned_containers: [
+                crate::ast::ImportResult::OwnedOptionString,
+                crate::ast::ImportResult::OwnedResultStringI64,
+                crate::ast::ImportResult::OwnedResultStringOptionI64,
+            ]
+            .map(|kind| crate::ast::ImportResult::container_enabled(program, &kind.value_type())),
             declarations,
             declared_fields,
             merged_class_fields,
@@ -738,6 +745,15 @@ impl<'a> TypeTable<'a> {
     /// uniquely owned leaf, so it is deliberately separate from Bytes and
     /// cannot be selected by a generic instantiation.
     pub(super) fn is_flat_owned_string_variant(&self, ty: &Type) -> bool {
+        if let Some(kind) = crate::ast::ImportResult::container_for_type(ty) {
+            let index = match kind {
+                crate::ast::ImportResult::OwnedOptionString => 0,
+                crate::ast::ImportResult::OwnedResultStringI64 => 1,
+                crate::ast::ImportResult::OwnedResultStringOptionI64 => 2,
+                _ => unreachable!(),
+            };
+            return self.native_owned_containers[index];
+        }
         let Type::Named { name, arguments } = ty else {
             return false;
         };

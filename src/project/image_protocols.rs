@@ -21,6 +21,9 @@ impl ProjectSemanticImage {
         self.require_digest(expected_image_digest)?;
         let mut modules = Vec::new();
         for source in self.revision().sources() {
+            if source.source_graph_schema() == "semaprax.native-law.v1" {
+                continue;
+            }
             let program =
                 crate::parse(source.source(), source.path()).map_err(|error| vec![error])?;
             if program.protocols.is_empty() && program.implementations.is_empty() {

@@ -1,0 +1,303 @@
+// Generated RI-09 same-thread Future bridge. The caller owns the executor.
+// No runtime starts here, and no future or waker is checkpoint data.
+#![forbid(unsafe_code)]
+
+use std::cell::{Cell, RefCell};
+use std::future::Future;
+use std::marker::PhantomData;
+use std::pin::Pin;
+use std::rc::Rc;
+use std::sync::{Arc, Mutex};
+use std::task::{Context, Poll, Wake, Waker};
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum FutureBridgeError {
+    Capacity,
+    Reentered,
+    AlreadyReady,
+    AlreadyTaken,
+    Cancelled,
+    OutputTooLarge,
+    Panicked,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum CancelOutcome {
+    Cancelled,
+    RequestedDuringPoll,
+    AlreadyTerminal,
+}
+
+struct RelayState {
+    live: bool,
+    pending: bool,
+    latest: Option<Arc<Waker>>,
+    wakes: u64,
+}
+
+struct WakeRelay(Mutex<RelayState>);
+
+impl WakeRelay {
+    fn new() -> Self {
+        Self(Mutex::new(RelayState {
+            live: true,
+            pending: false,
+            latest: None,
+            wakes: 0,
+        }))
+    }
+
+    fn register(&self, current: &Waker) {
+        // An executor's Waker::clone may run custom code. Clone before the
+        // relay lock; only Arc bookkeeping occurs while the lock is held.
+        let replacement = Arc::new(current.clone());
+        let wake = {
+            let mut state = self.0.lock().expect("wake relay lock poisoned");
+            if !state.live {
+                return;
+            }
+            state.latest = Some(replacement.clone());
+            if state.pending {
+                state.pending = false;
+                Some(replacement)
+            } else {
+                None
+            }
+        };
+        if let Some(waker) = wake {
+            waker.wake_by_ref();
+        }
+    }
+
+    fn invalidate(&self) {
+        let mut state = self.0.lock().expect("wake relay lock poisoned");
+        state.live = false;
+        state.pending = false;
+        state.latest = None;
+    }
+
+    fn cancel_and_wake(&self) {
+        let latest = {
+            let mut state = self.0.lock().expect("wake relay lock poisoned");
+            state.live = false;
+            state.pending = false;
+            state.latest.take()
+        };
+        if let Some(waker) = latest {
+            waker.wake_by_ref();
+        }
+    }
+
+    fn wake_count(&self) -> u64 {
+        self.0.lock().expect("wake relay lock poisoned").wakes
+    }
+}
+
+impl Wake for WakeRelay {
+    fn wake(self: Arc<Self>) {
+        self.wake_by_ref();
+    }
+
+    fn wake_by_ref(self: &Arc<Self>) {
+        let latest = {
+            let mut state = self.0.lock().expect("wake relay lock poisoned");
+            if !state.live {
+                return;
+            }
+            state.wakes = state.wakes.saturating_add(1);
+            if let Some(current) = &state.latest {
+                Some(current.clone())
+            } else {
+                // All pre-registration wakes occupy one bounded slot.
+                state.pending = true;
+                None
+            }
+        };
+        if let Some(waker) = latest {
+            waker.wake_by_ref();
+        }
+    }
+}
+
+struct LimitState {
+    live: Cell<usize>,
+    maximum: usize,
+}
+
+#[derive(Clone)]
+pub struct LocalFutureLimit(Rc<LimitState>);
+
+impl LocalFutureLimit {
+    pub fn new(maximum: usize) -> Self {
+        Self(Rc::new(LimitState {
+            live: Cell::new(0),
+            maximum,
+        }))
+    }
+
+    pub fn live(&self) -> usize {
+        self.0.live.get()
+    }
+
+    pub fn start<T: 'static, F: Future<Output = T> + 'static>(
+        &self,
+        future: F,
+        maximum_output_bytes: usize,
+        output_bytes: fn(&T) -> usize,
+    ) -> Result<LocalFuture<T>, FutureBridgeError> {
+        let live = self.0.live.get();
+        if live >= self.0.maximum {
+            return Err(FutureBridgeError::Capacity);
+        }
+        self.0.live.set(live + 1);
+        Ok(LocalFuture {
+            state: RefCell::new(FutureState::Pending(Box::pin(future))),
+            cancel_requested: Cell::new(false),
+            polling: Cell::new(false),
+            relay: Arc::new(WakeRelay::new()),
+            limit: self.0.clone(),
+            maximum_output_bytes,
+            output_bytes,
+            // Rc also prevents Send/Sync for a future whose captures happen to be Send.
+            _local: PhantomData,
+        })
+    }
+}
+
+enum FutureState<T> {
+    Pending(Pin<Box<dyn Future<Output = T>>>),
+    Ready(T),
+    Taken,
+    Cancelled,
+    OutputTooLarge,
+}
+
+pub struct LocalFuture<T> {
+    state: RefCell<FutureState<T>>,
+    cancel_requested: Cell<bool>,
+    polling: Cell<bool>,
+    relay: Arc<WakeRelay>,
+    limit: Rc<LimitState>,
+    maximum_output_bytes: usize,
+    output_bytes: fn(&T) -> usize,
+    _local: PhantomData<Rc<()>>,
+}
+
+impl<T> LocalFuture<T> {
+    /// A cloned Rust waker may outlive this handle; after cancel/drop it is inert.
+    pub fn notification_waker(&self) -> Waker {
+        Waker::from(self.relay.clone())
+    }
+
+    pub fn wake_count(&self) -> u64 {
+        self.relay.wake_count()
+    }
+
+    pub fn poll(&self, cx: &mut Context<'_>) -> Result<Poll<()>, FutureBridgeError> {
+        if self.polling.replace(true) {
+            return Err(FutureBridgeError::Reentered);
+        }
+        struct Reset<'a>(&'a Cell<bool>);
+        impl Drop for Reset<'_> {
+            fn drop(&mut self) {
+                self.0.set(false);
+            }
+        }
+        let _reset = Reset(&self.polling);
+        let mut state = self.state.borrow_mut();
+        if self.cancel_requested.get() {
+            *state = FutureState::Cancelled;
+            return Err(FutureBridgeError::Cancelled);
+        }
+        let FutureState::Pending(future) = &mut *state else {
+            return Err(match &*state {
+                FutureState::Ready(_) => FutureBridgeError::AlreadyReady,
+                FutureState::Taken => FutureBridgeError::AlreadyTaken,
+                FutureState::Cancelled => FutureBridgeError::Cancelled,
+                FutureState::OutputTooLarge => FutureBridgeError::OutputTooLarge,
+                FutureState::Pending(_) => unreachable!(),
+            });
+        };
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            self.relay.register(cx.waker());
+            let adapter_waker = self.notification_waker();
+            let mut adapter_cx = Context::from_waker(&adapter_waker);
+            future.as_mut().poll(&mut adapter_cx)
+        }));
+        if self.cancel_requested.get() {
+            *state = FutureState::Cancelled;
+            self.relay.invalidate();
+            return Err(FutureBridgeError::Cancelled);
+        }
+        match result {
+            Ok(Poll::Pending) => Ok(Poll::Pending),
+            Ok(Poll::Ready(output)) => {
+                self.relay.invalidate();
+                let measured = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                    (self.output_bytes)(&output)
+                }));
+                let Ok(bytes) = measured else {
+                    *state = FutureState::Cancelled;
+                    return Err(FutureBridgeError::Panicked);
+                };
+                if bytes > self.maximum_output_bytes {
+                    *state = FutureState::OutputTooLarge;
+                    Err(FutureBridgeError::OutputTooLarge)
+                } else {
+                    *state = FutureState::Ready(output);
+                    Ok(Poll::Ready(()))
+                }
+            }
+            Err(_) => {
+                *state = FutureState::Cancelled;
+                self.relay.invalidate();
+                Err(FutureBridgeError::Panicked)
+            }
+        }
+    }
+
+    pub fn take_output(&self) -> Result<T, FutureBridgeError> {
+        if self.polling.get() {
+            return Err(FutureBridgeError::Reentered);
+        }
+        let mut state = self.state.borrow_mut();
+        match std::mem::replace(&mut *state, FutureState::Taken) {
+            FutureState::Ready(output) => Ok(output),
+            previous => {
+                let error = match previous {
+                    FutureState::Pending(_) => FutureBridgeError::AlreadyReady,
+                    FutureState::Taken => FutureBridgeError::AlreadyTaken,
+                    FutureState::Cancelled => FutureBridgeError::Cancelled,
+                    FutureState::OutputTooLarge => FutureBridgeError::OutputTooLarge,
+                    FutureState::Ready(_) => unreachable!(),
+                };
+                *state = previous;
+                Err(error)
+            }
+        }
+    }
+
+    pub fn cancel(&self) -> CancelOutcome {
+        if self.polling.get() {
+            self.cancel_requested.set(true);
+            self.relay.invalidate();
+            return CancelOutcome::RequestedDuringPoll;
+        }
+        let mut state = self.state.borrow_mut();
+        if matches!(*state, FutureState::Pending(_) | FutureState::Ready(_)) {
+            *state = FutureState::Cancelled;
+            self.cancel_requested.set(true);
+            self.relay.cancel_and_wake();
+            CancelOutcome::Cancelled
+        } else {
+            CancelOutcome::AlreadyTerminal
+        }
+    }
+}
+
+impl<T> Drop for LocalFuture<T> {
+    fn drop(&mut self) {
+        self.relay.invalidate();
+        self.limit.live.set(self.limit.live.get() - 1);
+    }
+}

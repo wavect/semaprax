@@ -5,10 +5,10 @@
 //!
 //! The historical ten-case native Windows selector passed on `f4d3291f`;
 //! the owning specification retains the earlier exact compilation/runtime
-//! receipts. The signed-image binding continuation and its six additional
+//! receipts. The signed-image binding continuation and its seven additional
 //! cases have no native Windows execution receipt on this macOS authoring
 //! host. A cross-target type-check is not runtime acceptance. Production
-//! release trust, Windows request/bundle transport and broader confinement
+//! release trust, ordinary Windows CLI transport and broader confinement
 //! remain separate requirements. Retained writable-section mutation can still
 //! race advisory oplock checks; exact image-binding acceptance remains open.
 //!
@@ -27,15 +27,14 @@
 //! Three deliberate simplifications versus a full production primitive,
 //! recorded here rather than left implicit:
 //!
-//! 1. **Output capture is file-based, not pipe-based.** The confined leader's
-//!    stdout/stderr are redirected to two fixed-name log files inside the
-//!    per-invocation scratch root (created with the same restrictive ACL as
-//!    the root itself) rather than inherited pipe handles drained through a
-//!    `PROC_THREAD_ATTRIBUTE_HANDLE_LIST`. This avoids duplicating
-//!    `doctor::windows::launch`'s attribute-list machinery in code nobody
-//!    here can compile-check, at the cost of not sharing that exact
-//!    handle-inheritance precision. Unifying the two is left as follow-up
-//!    work for a Windows-capable session.
+//! 1. **Output capture is bounded anonymous-pipe accounting.** The confined
+//!    leader inherits only the write ends of two anonymous pipes through the
+//!    existing explicit handle list. Settlement drains a fixed amount from the
+//!    parent-only readers and terminates the owned job when the combined
+//!    stdout/stderr ceiling is exceeded. This prevents scratch-file growth and
+//!    keeps a flooding child from retaining unbounded kernel or filesystem
+//!    storage. It remains a primitive-local capture contract, not ordinary
+//!    Windows CLI transport.
 //! 2. **The restricted token disables maximum privilege only**
 //!    (`CreateRestrictedToken` with `DISABLE_MAX_PRIVILEGE` and empty
 //!    disable/delete/restrict lists), not the fuller "disable the caller's
@@ -51,6 +50,7 @@
 //!    session's file lease).
 //!
 //! [doc]: https://github.com/wavect/semaprax/blob/main/docs/DOCTOR-PRODUCTION-PROVISIONER-WINDOWS-V1.md
+use super::carrier::AuthenticatedRequestBundle;
 use super::refusal::{admit, Refusal};
 use super::settlement::{FailureReason, Settlement, StickySettlement, UncertainReason};
 use std::ffi::OsStr;
@@ -58,7 +58,8 @@ use std::os::windows::ffi::OsStrExt;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 use windows_sys::Win32::Foundation::{
-    CloseHandle, HANDLE, INVALID_HANDLE_VALUE, WAIT_OBJECT_0, WAIT_TIMEOUT,
+    CloseHandle, GetLastError, SetHandleInformation, ERROR_BROKEN_PIPE, ERROR_PIPE_NOT_CONNECTED,
+    HANDLE, HANDLE_FLAG_INHERIT, INVALID_HANDLE_VALUE, WAIT_OBJECT_0, WAIT_TIMEOUT,
 };
 use windows_sys::Win32::Security::{
     AddAccessAllowedAceEx, CreateRestrictedToken, GetTokenInformation, InitializeAcl,
@@ -67,7 +68,7 @@ use windows_sys::Win32::Security::{
     SE_DACL_PROTECTED, TOKEN_ASSIGN_PRIMARY, TOKEN_DUPLICATE, TOKEN_QUERY, TOKEN_USER,
 };
 use windows_sys::Win32::Storage::FileSystem::{
-    CreateDirectoryW, CreateFileW, CREATE_NEW, DELETE, FILE_ATTRIBUTE_NORMAL, FILE_GENERIC_READ,
+    CreateDirectoryW, CreateFileW, ReadFile, DELETE, FILE_ATTRIBUTE_NORMAL, FILE_GENERIC_READ,
     FILE_GENERIC_WRITE, FILE_SHARE_READ, FILE_SHARE_WRITE, OPEN_EXISTING,
 };
 use windows_sys::Win32::System::JobObjects::{
@@ -76,20 +77,54 @@ use windows_sys::Win32::System::JobObjects::{
     SetInformationJobObject, TerminateJobObject, JOBOBJECT_BASIC_ACCOUNTING_INFORMATION,
     JOBOBJECT_BASIC_UI_RESTRICTIONS, JOBOBJECT_EXTENDED_LIMIT_INFORMATION,
     JOB_OBJECT_LIMIT_ACTIVE_PROCESS, JOB_OBJECT_LIMIT_DIE_ON_UNHANDLED_EXCEPTION,
-    JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE, JOB_OBJECT_UILIMIT_DESKTOP,
-    JOB_OBJECT_UILIMIT_DISPLAYSETTINGS, JOB_OBJECT_UILIMIT_EXITWINDOWS,
-    JOB_OBJECT_UILIMIT_GLOBALATOMS, JOB_OBJECT_UILIMIT_HANDLES, JOB_OBJECT_UILIMIT_READCLIPBOARD,
-    JOB_OBJECT_UILIMIT_SYSTEMPARAMETERS, JOB_OBJECT_UILIMIT_WRITECLIPBOARD,
+    JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE, JOB_OBJECT_LIMIT_PROCESS_MEMORY,
+    JOB_OBJECT_LIMIT_PROCESS_TIME, JOB_OBJECT_UILIMIT_DESKTOP, JOB_OBJECT_UILIMIT_DISPLAYSETTINGS,
+    JOB_OBJECT_UILIMIT_EXITWINDOWS, JOB_OBJECT_UILIMIT_GLOBALATOMS, JOB_OBJECT_UILIMIT_HANDLES,
+    JOB_OBJECT_UILIMIT_READCLIPBOARD, JOB_OBJECT_UILIMIT_SYSTEMPARAMETERS,
+    JOB_OBJECT_UILIMIT_WRITECLIPBOARD,
 };
+use windows_sys::Win32::System::Pipes::{CreatePipe, PeekNamedPipe};
 use windows_sys::Win32::System::Threading::{
-    CreateProcessAsUserW, GetCurrentProcess, GetExitCodeProcess, OpenProcessToken, ResumeThread,
-    TerminateProcess, WaitForSingleObject, CREATE_SUSPENDED, CREATE_UNICODE_ENVIRONMENT,
-    PROCESS_INFORMATION, STARTF_USESTDHANDLES, STARTUPINFOW,
+    CreateProcessAsUserW, DeleteProcThreadAttributeList, GetCurrentProcess, GetExitCodeProcess,
+    InitializeProcThreadAttributeList, OpenProcessToken, ResumeThread, TerminateProcess,
+    UpdateProcThreadAttribute, WaitForSingleObject, CREATE_SUSPENDED, CREATE_UNICODE_ENVIRONMENT,
+    EXTENDED_STARTUPINFO_PRESENT, LPPROC_THREAD_ATTRIBUTE_LIST, PROCESS_INFORMATION,
+    PROC_THREAD_ATTRIBUTE_HANDLE_LIST, STARTF_USESTDHANDLES, STARTUPINFOEXW,
 };
 
 const MAX_WIDE: usize = 32767;
+/// Each confined leader receives at most two seconds of user-mode CPU time.
+/// `JOBOBJECT_BASIC_LIMIT_INFORMATION` records this value in 100 ns units.
+const CPU_TIME_LIMIT_100NS: i64 = 2 * 10_000_000;
+/// Bound committed address-space usage for one restricted leader. The hostile
+/// fixture grows in 8 MiB chunks and must receive an allocation refusal before
+/// it can retain more than this cap.
+const PROCESS_MEMORY_LIMIT_BYTES: usize = 256 * 1024 * 1024;
+/// The total stdout and stderr bytes settlement may drain from a confined job.
+/// Anonymous pipes bound bytes pending in the kernel; this independent counter
+/// bounds cumulative output from a child that the parent continues to drain.
+const OUTPUT_LIMIT_BYTES: usize = 64 * 1024;
+const OUTPUT_PIPE_BYTES: u32 = 4096;
+const REQUEST_CARRIER_HANDLE_ENV: &str = "SEMAPRAX_DOCTOR_REQUEST_CARRIER_HANDLE";
+const BUNDLE_CARRIER_HANDLE_ENV: &str = "SEMAPRAX_DOCTOR_BUNDLE_CARRIER_HANDLE";
+const CARRIER_ROLE_ENV: &str = "SEMAPRAX_DOCTOR_CARRIER_ROLE";
+const CARRIER_SELECTOR_ENV: &str = "SEMAPRAX_DOCTOR_CARRIER_SELECTOR";
+
+#[cfg(test)]
+const TEST_REQUEST_BYTES: &[u8] = b"SPXDWK1\0windows-request-carrier";
+#[cfg(test)]
+const TEST_BUNDLE_BYTES: &[u8] = b"windows-bundle-carrier";
 
 mod image;
+
+/// Test-visible checkpoints from image admission through the suspended-child
+/// verification. They do not grant authority or alter a failed binding.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum BindingBoundary {
+    Image(image::ImageBindingBoundary),
+    BeforeProcessCreation,
+    SuspendedLeader,
+}
 pub use image::ImageRole;
 /// Denies every UI-affecting capability a confined batch tool has no
 /// legitimate use for, per this contract's job-limit tightening.
@@ -123,6 +158,18 @@ impl Drop for Handle {
     }
 }
 
+/// Owns the Win32 attribute-list initialization until process creation has
+/// copied the explicit inherited-handle inventory.
+struct AttributeList(LPPROC_THREAD_ATTRIBUTE_LIST);
+
+impl Drop for AttributeList {
+    fn drop(&mut self) {
+        // SAFETY: the list was initialized once over backing storage that
+        // outlives this guard.
+        unsafe { DeleteProcThreadAttributeList(self.0) };
+    }
+}
+
 fn wide(value: &OsStr) -> Result<Vec<u16>, ()> {
     let length = value.encode_wide().count();
     if length == 0 || length >= MAX_WIDE || value.encode_wide().any(|unit| unit == 0) {
@@ -131,19 +178,14 @@ fn wide(value: &OsStr) -> Result<Vec<u16>, ()> {
     Ok(value.encode_wide().chain(Some(0)).collect())
 }
 
-/// A per-invocation restricted-ACL scratch root. Only the two log files this
-/// primitive itself creates are ever removed on drop: a closed inventory,
-/// never an arbitrary directory walk.
+/// A per-invocation restricted-ACL scratch root. It owns only the directory it
+/// created, never an arbitrary recursive walk.
 struct ScratchRoot {
     dir: PathBuf,
-    stdout_log: PathBuf,
-    stderr_log: PathBuf,
 }
 
 impl Drop for ScratchRoot {
     fn drop(&mut self) {
-        let _ = std::fs::remove_file(&self.stdout_log);
-        let _ = std::fs::remove_file(&self.stderr_log);
         let _ = std::fs::remove_dir(&self.dir);
     }
 }
@@ -293,11 +335,7 @@ fn confined_scratch_root(scratch_root: &Path, sid_buffer: &[u8; 256]) -> Result<
     if unsafe { CreateDirectoryW(dir_wide.as_ptr(), &security) } == 0 {
         return Err(());
     }
-    Ok(ScratchRoot {
-        stdout_log: dir.join("stdout.log"),
-        stderr_log: dir.join("stderr.log"),
-        dir,
-    })
+    Ok(ScratchRoot { dir })
 }
 
 fn fresh_child_dir(scratch_root: &Path) -> Result<PathBuf, ()> {
@@ -315,30 +353,31 @@ fn fresh_child_dir(scratch_root: &Path) -> Result<PathBuf, ()> {
     )))
 }
 
-fn create_inheritable_log(path: &Path) -> Result<Handle, ()> {
+/// Create one bounded anonymous output pipe. The child receives only its
+/// inheritable writer; the parent reader is explicitly stripped of inheritance
+/// before it is placed outside the startup handle list.
+fn create_inheritable_output_pipe() -> Result<(Handle, Handle), ()> {
     let security = SECURITY_ATTRIBUTES {
         nLength: std::mem::size_of::<SECURITY_ATTRIBUTES>() as u32,
         lpSecurityDescriptor: std::ptr::null_mut(),
         bInheritHandle: 1,
     };
-    let path_wide = wide(path.as_os_str())?;
-    // SAFETY: `path_wide` is a live NUL-terminated wide string; `security`
-    // is a live, stack-owned value for the duration of this call.
-    let raw = unsafe {
-        CreateFileW(
-            path_wide.as_ptr(),
-            FILE_GENERIC_WRITE,
-            FILE_SHARE_READ | FILE_SHARE_WRITE,
-            &security,
-            CREATE_NEW,
-            FILE_ATTRIBUTE_NORMAL,
-            std::ptr::null_mut(),
-        )
-    };
-    if raw == INVALID_HANDLE_VALUE {
+    let mut reader = std::ptr::null_mut();
+    let mut writer = std::ptr::null_mut();
+    // SAFETY: both result pointers and the inherited security attributes are
+    // live. `OUTPUT_PIPE_BYTES` bounds pending output even before settlement
+    // begins draining the parent-only reader.
+    if unsafe { CreatePipe(&mut reader, &mut writer, &security, OUTPUT_PIPE_BYTES) } == 0 {
         return Err(());
     }
-    Ok(Handle::new(raw))
+    let reader = Handle::new(reader);
+    let writer = Handle::new(writer);
+    // SAFETY: the reader is owned by this parent and must never enter the
+    // child inventory. The writer remains inheritable for the fixed list.
+    if unsafe { SetHandleInformation(reader.raw(), HANDLE_FLAG_INHERIT, 0) } == 0 {
+        return Err(());
+    }
+    Ok((reader, writer))
 }
 
 fn open_inheritable_null() -> Result<Handle, ()> {
@@ -369,9 +408,10 @@ fn open_inheritable_null() -> Result<Handle, ()> {
 
 /// Create a job object and tighten its limits per this contract's
 /// "job-object limits, tightened" section: `KILL_ON_JOB_CLOSE` (already the
-/// ordinary probe's behavior), `ACTIVE_PROCESS` capped at one, and
-/// `DIE_ON_UNHANDLED_EXCEPTION`, plus a `JOBOBJECT_BASIC_UI_RESTRICTIONS`
-/// call denying every listed UI capability.
+/// ordinary probe's behavior), `ACTIVE_PROCESS` capped at one, a bounded
+/// user-mode CPU time and committed memory, and `DIE_ON_UNHANDLED_EXCEPTION`,
+/// plus a `JOBOBJECT_BASIC_UI_RESTRICTIONS` call denying every listed UI
+/// capability.
 fn tightened_job() -> Result<Handle, ()> {
     // SAFETY: both name arguments are null, requesting an unnamed job.
     let raw_job = unsafe { CreateJobObjectW(std::ptr::null(), std::ptr::null()) };
@@ -382,8 +422,12 @@ fn tightened_job() -> Result<Handle, ()> {
     let mut limits = JOBOBJECT_EXTENDED_LIMIT_INFORMATION::default();
     limits.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
         | JOB_OBJECT_LIMIT_ACTIVE_PROCESS
+        | JOB_OBJECT_LIMIT_PROCESS_TIME
+        | JOB_OBJECT_LIMIT_PROCESS_MEMORY
         | JOB_OBJECT_LIMIT_DIE_ON_UNHANDLED_EXCEPTION;
     limits.BasicLimitInformation.ActiveProcessLimit = 1;
+    limits.BasicLimitInformation.PerProcessUserTimeLimit = CPU_TIME_LIMIT_100NS;
+    limits.ProcessMemoryLimit = PROCESS_MEMORY_LIMIT_BYTES;
     // SAFETY: `job` is live; `limits` is a live, exclusively-owned local of
     // the exact size passed.
     if unsafe {
@@ -433,16 +477,62 @@ fn forced_environment(scratch_dir: &Path) -> Result<Vec<u16>, ()> {
     Ok(output)
 }
 
+/// Build the closed child environment for an authenticated request/bundle
+/// handoff. The handle values are process-local labels for the exact mapping
+/// handles in the startup list; the signed selector and image role make their
+/// request-then-bundle ordering explicit to the child protocol.
+fn carrier_environment(
+    scratch_dir: &Path,
+    role: ImageRole,
+    selector: &str,
+    carriers: &AuthenticatedRequestBundle,
+) -> Result<Vec<u16>, ()> {
+    if selector.is_empty() || selector.len() > 64 || selector.as_bytes().contains(&0) {
+        return Err(());
+    }
+    let handles = carriers.child_handles();
+    // Windows requires case-insensitive ordering. The `SEMAPRAX_*` names sort
+    // before `TEMP` and `TMP`, and the four handoff names are already ordered.
+    let values = [
+        format!("{BUNDLE_CARRIER_HANDLE_ENV}={}", handles[1] as usize),
+        format!("{CARRIER_ROLE_ENV}={}", role.wire()),
+        format!("{CARRIER_SELECTOR_ENV}={selector}"),
+        format!("{REQUEST_CARRIER_HANDLE_ENV}={}", handles[0] as usize),
+    ];
+    let scratch = wide(scratch_dir.as_os_str())?;
+    let mut environment = Vec::new();
+    for value in values {
+        if value.len() >= MAX_WIDE || value.as_bytes().contains(&0) {
+            return Err(());
+        }
+        environment.extend(value.encode_utf16());
+        environment.push(0);
+    }
+    for name in ["TEMP", "TMP"] {
+        environment.extend(name.encode_utf16());
+        environment.push(u16::from(b'='));
+        environment.extend_from_slice(&scratch[..scratch.len() - 1]);
+        environment.push(0);
+    }
+    environment.push(0);
+    (environment.len() < MAX_WIDE)
+        .then_some(environment)
+        .ok_or(())
+}
+
 pub struct ConfinedProcess {
     process: Handle,
     thread: Handle,
     job: Handle,
     _token: Handle,
     // Rust drops fields in declaration order. Close the parent-held stdio
-    // handles before ScratchRoot removes their files and directory on Windows.
+    // handles before ScratchRoot removes its directory on Windows.
     _stdin: Handle,
-    _stdout: Handle,
-    _stderr: Handle,
+    stdout: Handle,
+    stderr: Handle,
+    // Retain both parent handles until the child has settled. The child sees
+    // only these two mappings, bound in the explicit startup handle list.
+    _carriers: AuthenticatedRequestBundle,
     _scratch: ScratchRoot,
     // Retain the authenticated file and its namespace guards until settlement.
     _image: image::HeldImage,
@@ -475,8 +565,10 @@ pub fn confined_spawn(
     args: &[&OsStr],
     scratch_root: &Path,
     capsule_bytes: &[u8],
+    request: &[u8],
+    bundle: &[u8],
 ) -> Result<ConfinedProcess, Refusal> {
-    confined_spawn_using(exe, role, args, scratch_root, || {
+    confined_spawn_using(exe, role, args, scratch_root, request, bundle, || {
         super::capsule::parse_with_release_anchor(capsule_bytes)
     })
 }
@@ -492,9 +584,36 @@ fn confined_spawn_with_test_key(
     capsule_bytes: &[u8],
     public_key_hex: &str,
 ) -> Result<ConfinedProcess, Refusal> {
-    confined_spawn_using(exe, ImageRole::Worker, args, scratch_root, || {
-        super::capsule::parse_windows_signed_with_key(capsule_bytes, public_key_hex)
-    })
+    confined_spawn_using(
+        exe,
+        ImageRole::Worker,
+        args,
+        scratch_root,
+        TEST_REQUEST_BYTES,
+        TEST_BUNDLE_BYTES,
+        || super::capsule::parse_windows_signed_with_key(capsule_bytes, public_key_hex),
+    )
+}
+
+#[cfg(test)]
+fn confined_spawn_with_test_key_carriers(
+    exe: &Path,
+    args: &[&OsStr],
+    scratch_root: &Path,
+    capsule_bytes: &[u8],
+    public_key_hex: &str,
+    request: &[u8],
+    bundle: &[u8],
+) -> Result<ConfinedProcess, Refusal> {
+    confined_spawn_using(
+        exe,
+        ImageRole::Worker,
+        args,
+        scratch_root,
+        request,
+        bundle,
+        || super::capsule::parse_windows_signed_with_key(capsule_bytes, public_key_hex),
+    )
 }
 
 fn confined_spawn_using(
@@ -502,12 +621,24 @@ fn confined_spawn_using(
     role: ImageRole,
     args: &[&OsStr],
     scratch_root: &Path,
+    request: &[u8],
+    bundle: &[u8],
     parse_capsule: impl FnOnce()
         -> Result<super::capsule::VerifiedCapsule, super::capsule::CapsuleError>,
 ) -> Result<ConfinedProcess, Refusal> {
-    confined_spawn_after_binding(exe, role, args, scratch_root, parse_capsule, || {})
+    confined_spawn_observing_inner(
+        exe,
+        role,
+        args,
+        scratch_root,
+        request,
+        bundle,
+        parse_capsule,
+        |_| {},
+    )
 }
 
+#[cfg(test)]
 fn confined_spawn_after_binding(
     exe: &Path,
     role: ImageRole,
@@ -517,7 +648,59 @@ fn confined_spawn_after_binding(
         -> Result<super::capsule::VerifiedCapsule, super::capsule::CapsuleError>,
     after_binding: impl FnOnce(),
 ) -> Result<ConfinedProcess, Refusal> {
-    let (_host, image, token, job, scratch) = admit(
+    let mut after_binding = Some(after_binding);
+    confined_spawn_observing(
+        exe,
+        role,
+        args,
+        scratch_root,
+        TEST_REQUEST_BYTES,
+        TEST_BUNDLE_BYTES,
+        parse_capsule,
+        |boundary| {
+            if boundary == BindingBoundary::BeforeProcessCreation {
+                after_binding.take().expect("binding callback runs once")();
+            }
+        },
+    )
+}
+
+#[cfg(test)]
+fn confined_spawn_observing(
+    exe: &Path,
+    role: ImageRole,
+    args: &[&OsStr],
+    scratch_root: &Path,
+    request: &[u8],
+    bundle: &[u8],
+    parse_capsule: impl FnOnce()
+        -> Result<super::capsule::VerifiedCapsule, super::capsule::CapsuleError>,
+    observe: impl FnMut(BindingBoundary),
+) -> Result<ConfinedProcess, Refusal> {
+    confined_spawn_observing_inner(
+        exe,
+        role,
+        args,
+        scratch_root,
+        request,
+        bundle,
+        parse_capsule,
+        observe,
+    )
+}
+
+fn confined_spawn_observing_inner(
+    exe: &Path,
+    role: ImageRole,
+    args: &[&OsStr],
+    scratch_root: &Path,
+    request: &[u8],
+    bundle: &[u8],
+    parse_capsule: impl FnOnce()
+        -> Result<super::capsule::VerifiedCapsule, super::capsule::CapsuleError>,
+    mut observe: impl FnMut(BindingBoundary),
+) -> Result<ConfinedProcess, Refusal> {
+    let (_host, (image, carriers, selector), token, job, scratch) = admit(
         || {
             if cfg!(all(
                 windows,
@@ -531,8 +714,15 @@ fn confined_spawn_after_binding(
         },
         || {
             let capsule = parse_capsule()?;
-            image::HeldImage::acquire(exe, role.artifact(&capsule))
-                .map_err(|()| super::capsule::CapsuleError::ArtifactBinding)
+            image::HeldImage::acquire_observing(exe, role.artifact(&capsule), |boundary| {
+                observe(BindingBoundary::Image(boundary));
+            })
+            .map_err(|()| super::capsule::CapsuleError::ArtifactBinding)
+            .and_then(|image| {
+                let carriers = AuthenticatedRequestBundle::create(request, bundle, &capsule)
+                    .map_err(|()| super::capsule::CapsuleError::ArtifactBinding)?;
+                Ok((image, carriers, capsule.selector))
+            })
         },
         restricted_token,
         tightened_job,
@@ -543,12 +733,12 @@ fn confined_spawn_after_binding(
             confined_scratch_root(scratch_root, &sid_buffer)
         },
     )?;
-    after_binding();
+    observe(BindingBoundary::BeforeProcessCreation);
     let stdin = open_inheritable_null().map_err(|()| Refusal::FilesystemConfinement)?;
-    let stdout =
-        create_inheritable_log(&scratch.stdout_log).map_err(|()| Refusal::FilesystemConfinement)?;
-    let stderr =
-        create_inheritable_log(&scratch.stderr_log).map_err(|()| Refusal::FilesystemConfinement)?;
+    let (stdout, stdout_writer) =
+        create_inheritable_output_pipe().map_err(|()| Refusal::FilesystemConfinement)?;
+    let (stderr, stderr_writer) =
+        create_inheritable_output_pipe().map_err(|()| Refusal::FilesystemConfinement)?;
 
     let application = image.application();
     let mut command: Vec<u16> = Vec::new();
@@ -561,14 +751,65 @@ fn confined_spawn_after_binding(
     }
     command.push(0);
     let cwd = wide(scratch.dir.as_os_str()).map_err(|()| Refusal::Invalid)?;
-    let environment = forced_environment(&scratch.dir).map_err(|()| Refusal::Invalid)?;
+    let environment = carrier_environment(&scratch.dir, role, &selector, &carriers)
+        .map_err(|()| Refusal::Invalid)?;
 
-    let mut startup: STARTUPINFOW = unsafe { std::mem::zeroed() };
-    startup.cb = std::mem::size_of::<STARTUPINFOW>() as u32;
-    startup.dwFlags = STARTF_USESTDHANDLES;
-    startup.hStdInput = stdin.raw();
-    startup.hStdOutput = stdout.raw();
-    startup.hStdError = stderr.raw();
+    // `bInheritHandles` alone would copy every inheritable handle held by the
+    // parent into the restricted child. Bind that broad Win32 switch to the
+    // three standard handles plus the exact request-then-bundle carrier pair
+    // authenticated from this capsule.
+    let [request_carrier, bundle_carrier] = carriers.child_handles();
+    let inherited = [
+        stdin.raw(),
+        stdout_writer.raw(),
+        stderr_writer.raw(),
+        request_carrier,
+        bundle_carrier,
+    ];
+    let mut attribute_bytes = 0usize;
+    // SAFETY: this sizing invocation has no output list and only reports the
+    // required bounded allocation through `attribute_bytes`.
+    unsafe {
+        InitializeProcThreadAttributeList(std::ptr::null_mut(), 1, 0, &mut attribute_bytes);
+    }
+    if attribute_bytes == 0 || attribute_bytes > 65_536 {
+        return Err(Refusal::Spawn);
+    }
+    let attribute_words = attribute_bytes.div_ceil(std::mem::size_of::<usize>());
+    let mut attribute_backing = vec![0usize; attribute_words];
+    let attribute_pointer = attribute_backing.as_mut_ptr().cast();
+    // SAFETY: the backing allocation has the requested size and remains live
+    // until `attributes` is dropped after process creation.
+    if unsafe { InitializeProcThreadAttributeList(attribute_pointer, 1, 0, &mut attribute_bytes) }
+        == 0
+    {
+        return Err(Refusal::Spawn);
+    }
+    let attributes = AttributeList(attribute_pointer);
+    // SAFETY: every listed handle is live, inheritable, and remains live until
+    // CreateProcessAsUserW returns; the fixed array is the entire intended
+    // child handle inventory.
+    if unsafe {
+        UpdateProcThreadAttribute(
+            attributes.0,
+            0,
+            PROC_THREAD_ATTRIBUTE_HANDLE_LIST as usize,
+            inherited.as_ptr().cast(),
+            std::mem::size_of_val(&inherited),
+            std::ptr::null_mut(),
+            std::ptr::null(),
+        )
+    } == 0
+    {
+        return Err(Refusal::Spawn);
+    }
+    let mut startup = STARTUPINFOEXW::default();
+    startup.StartupInfo.cb = std::mem::size_of::<STARTUPINFOEXW>() as u32;
+    startup.StartupInfo.dwFlags = STARTF_USESTDHANDLES;
+    startup.StartupInfo.hStdInput = stdin.raw();
+    startup.StartupInfo.hStdOutput = stdout_writer.raw();
+    startup.StartupInfo.hStdError = stderr_writer.raw();
+    startup.lpAttributeList = attributes.0;
     let mut process_information = PROCESS_INFORMATION::default();
     if !image.intact() {
         return Err(Refusal::Capsule(
@@ -579,11 +820,8 @@ fn confined_spawn_after_binding(
     // `CreateProcessAsUserW` requires; `application`/`cwd`/`environment` are
     // live NUL-terminated (or double-NUL-terminated) wide buffers; `command`
     // is a live, exclusively-owned mutable buffer as this API requires;
-    // `startup`'s three handles are live and inheritable; `bInheritHandles`
-    // is `1` and no attribute list restricts which handles are inherited, so
-    // this process also inherits any other inheritable handle this process
-    // holds -- the deliberate simplification the module documentation
-    // records.
+    // `startup`'s three handles are live and inheritable. The extended-startup
+    // handle-list attribute limits inheritance to exactly that inventory.
     if unsafe {
         CreateProcessAsUserW(
             token.raw(),
@@ -592,10 +830,10 @@ fn confined_spawn_after_binding(
             std::ptr::null(),
             std::ptr::null(),
             1,
-            CREATE_SUSPENDED | CREATE_UNICODE_ENVIRONMENT,
+            CREATE_SUSPENDED | CREATE_UNICODE_ENVIRONMENT | EXTENDED_STARTUPINFO_PRESENT,
             environment.as_ptr().cast(),
             cwd.as_ptr(),
-            &startup,
+            &startup.StartupInfo,
             &mut process_information,
         )
     } == 0
@@ -617,6 +855,7 @@ fn confined_spawn_after_binding(
         }
         return Err(Refusal::Spawn);
     }
+    observe(BindingBoundary::SuspendedLeader);
     // CreateProcess can be redirected by host policy (for example IFEO).
     // Require the suspended process's native image name to name the held
     // authenticated file before its first thread may execute any code.
@@ -636,6 +875,13 @@ fn confined_spawn_after_binding(
         return Err(Refusal::Spawn);
     }
 
+    // `CreateProcessAsUserW` duplicated the two exact writers listed above.
+    // Drop the parent's copies before returning so EOF means the confined job
+    // has released its writers; only these parent-only readers remain for
+    // bounded settlement accounting.
+    drop(stdout_writer);
+    drop(stderr_writer);
+
     Ok(ConfinedProcess {
         process,
         thread,
@@ -643,8 +889,9 @@ fn confined_spawn_after_binding(
         _token: token,
         _scratch: scratch,
         _stdin: stdin,
-        _stdout: stdout,
-        _stderr: stderr,
+        stdout,
+        stderr,
+        _carriers: carriers,
         _image: image,
         settled: false,
     })
@@ -663,13 +910,103 @@ pub fn settle(mut confined: ConfinedProcess, deadline: Duration) -> Settled {
     Settled { status }
 }
 
+enum OutputDrain {
+    Pending,
+    Eof,
+    Limit,
+    Failed,
+}
+
+/// Drain one bounded chunk from one parent-only output reader. The pipe itself
+/// limits pending kernel bytes; `charged` limits the complete stream pair even
+/// while a writer keeps making progress.
+fn drain_output(reader: &Handle, charged: &mut usize) -> OutputDrain {
+    let mut available = 0u32;
+    // SAFETY: `reader` is a live parent-only pipe reader. No data buffer is
+    // passed to this sizing query and `available` is exclusively writable.
+    if unsafe {
+        PeekNamedPipe(
+            reader.raw(),
+            std::ptr::null_mut(),
+            0,
+            std::ptr::null_mut(),
+            &mut available,
+            std::ptr::null_mut(),
+        )
+    } == 0
+    {
+        // SAFETY: the failing PeekNamedPipe call set the thread-local error.
+        return match unsafe { GetLastError() } {
+            ERROR_BROKEN_PIPE | ERROR_PIPE_NOT_CONNECTED => OutputDrain::Eof,
+            _ => OutputDrain::Failed,
+        };
+    }
+    let available = available as usize;
+    if available > OUTPUT_LIMIT_BYTES.saturating_sub(*charged) {
+        return OutputDrain::Limit;
+    }
+    if available == 0 {
+        return OutputDrain::Pending;
+    }
+    let mut buffer = [0u8; 8192];
+    let count = available.min(buffer.len());
+    let mut read = 0u32;
+    // SAFETY: PeekNamedPipe reported at least `count` readable bytes, the
+    // fixed buffer is writable for exactly `count`, and this is the sole
+    // parent read handle for the pipe.
+    if unsafe {
+        ReadFile(
+            reader.raw(),
+            buffer.as_mut_ptr().cast(),
+            count as u32,
+            &mut read,
+            std::ptr::null_mut(),
+        )
+    } == 0
+        || read == 0
+        || read as usize > count
+    {
+        return OutputDrain::Failed;
+    }
+    *charged += read as usize;
+    OutputDrain::Pending
+}
+
 fn settle_confined(confined: &mut ConfinedProcess, deadline: Instant) -> Settlement {
     let mut state = StickySettlement::default();
     let mut timed_out = false;
+    let mut output_limited = false;
+    let mut output_fault = false;
     let mut killed_and_reaped = false;
     let mut empty_job_deadline = None;
     let mut exit_code = None;
+    let mut output_eof = [false; 2];
+    let mut charged_output = 0usize;
+    let readers = [&confined.stdout, &confined.stderr];
+
     loop {
+        for (index, reader) in readers.iter().enumerate() {
+            if output_eof[index] {
+                continue;
+            }
+            match drain_output(reader, &mut charged_output) {
+                OutputDrain::Pending => {}
+                OutputDrain::Eof => output_eof[index] = true,
+                OutputDrain::Limit => {
+                    state.select(Settlement::Failed(FailureReason::OutputLimit));
+                    output_limited = true;
+                    break;
+                }
+                OutputDrain::Failed => {
+                    state.select(Settlement::Uncertain(UncertainReason::OutputReadFailed));
+                    output_fault = true;
+                    break;
+                }
+            }
+        }
+        if output_limited || state.is_selected() {
+            break;
+        }
         // SAFETY: `confined.process` is a live, held process handle.
         match unsafe { WaitForSingleObject(confined.process.raw(), 0) } {
             WAIT_OBJECT_0 => {
@@ -696,7 +1033,7 @@ fn settle_confined(confined: &mut ConfinedProcess, deadline: Instant) -> Settlem
         }
     }
 
-    if timed_out {
+    if timed_out || output_limited || output_fault {
         // SAFETY: `confined.job` is live and owns exclusive termination
         // authority over this confined process tree.
         let killed = unsafe { TerminateJobObject(confined.job.raw(), 126) } != 0;
@@ -705,7 +1042,7 @@ fn settle_confined(confined: &mut ConfinedProcess, deadline: Instant) -> Settlem
         } else {
             // TerminateJobObject requests termination; it does not prove that
             // the leader has released its inherited scratch-file handles.
-            // Keep one fixed leader-reap grace after the caller's deadline.
+            // Keep one fixed leader-reap grace after the selected limit.
             match unsafe { WaitForSingleObject(confined.process.raw(), 5_000) } {
                 WAIT_OBJECT_0 => {
                     killed_and_reaped = true;
@@ -720,11 +1057,42 @@ fn settle_confined(confined: &mut ConfinedProcess, deadline: Instant) -> Settlem
                 _ => state.select(Settlement::Uncertain(UncertainReason::WaitFailed)),
             }
         }
-    } else if let Some(code) = exit_code {
-        if code == 0 {
-            state.select(Settlement::Completed);
-        } else {
-            state.select(Settlement::Failed(FailureReason::ExitCode(code)));
+    } else if exit_code.is_some() {
+        // The child has closed both inherited writers once it exits. Drain the
+        // remaining fixed pipe buffers before classifying a successful exit so
+        // an end-of-process flood cannot bypass the combined output ceiling.
+        let output_deadline = Instant::now() + Duration::from_secs(5);
+        while !output_eof.iter().all(|eof| *eof) {
+            for (index, reader) in readers.iter().enumerate() {
+                if output_eof[index] {
+                    continue;
+                }
+                match drain_output(reader, &mut charged_output) {
+                    OutputDrain::Pending => {}
+                    OutputDrain::Eof => output_eof[index] = true,
+                    OutputDrain::Limit => {
+                        state.select(Settlement::Failed(FailureReason::OutputLimit));
+                        output_limited = true;
+                        break;
+                    }
+                    OutputDrain::Failed => {
+                        state.select(Settlement::Uncertain(UncertainReason::OutputReadFailed));
+                        break;
+                    }
+                }
+            }
+            if output_limited
+                || output_fault
+                || state.is_selected()
+                || output_eof.iter().all(|eof| *eof)
+            {
+                break;
+            }
+            if Instant::now() >= output_deadline {
+                state.select(Settlement::Uncertain(UncertainReason::OutputReadFailed));
+                break;
+            }
+            std::thread::sleep(Duration::from_millis(1));
         }
     }
 
@@ -749,6 +1117,12 @@ fn settle_confined(confined: &mut ConfinedProcess, deadline: Instant) -> Settlem
             if timed_out && killed_and_reaped {
                 // Only a reaped leader and empty job prove cancellation.
                 state.select(Settlement::Cancelled);
+            } else if !output_limited {
+                match exit_code {
+                    Some(0) => state.select(Settlement::Completed),
+                    Some(code) => state.select(Settlement::Failed(FailureReason::ExitCode(code))),
+                    None => {}
+                }
             }
             break;
         }

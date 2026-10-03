@@ -2,6 +2,7 @@
 //! causal facts; only the new Prepared successor validates after its ACK.
 use super::*;
 use crate::live_invocation::source_journal::owned_wait_v8::append::VerifiedOwnedContinuedPreparedSuccessorV8;
+use crate::live_invocation::source_journal::owned_wait_v8::live_upstream::observe::settlement::later_carry::start::source::prepared::LiveOwnedLaterPreparedAppendV8;
 
 pub(in crate::live_invocation::source_journal::owned_wait_v8) struct LiveOwnedContinuedPreparedAppendV8<
     'j,
@@ -111,7 +112,9 @@ impl<'j> LiveOwnedContinuedPreparedAppendV8<'j> {
         &self,
     ) -> Result<FixedOwnedContinuedPreparedAppendPermitV8<'_, 'j>, SourceJournalError> {
         self.validate_live()?;
-        Ok(FixedOwnedContinuedPreparedAppendPermitV8 { owner: self })
+        Ok(FixedOwnedContinuedPreparedAppendPermitV8 {
+            owner: PreparedPermitOwnerV8::First(self),
+        })
     }
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_successor(
         &self,
@@ -140,22 +143,47 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) struct FixedOwnedC
     'p,
     'j,
 > {
-    owner: &'p LiveOwnedContinuedPreparedAppendV8<'j>,
+    owner: PreparedPermitOwnerV8<'p, 'j>,
+}
+#[derive(Clone, Copy)]
+enum PreparedPermitOwnerV8<'p, 'j> {
+    First(&'p LiveOwnedContinuedPreparedAppendV8<'j>),
+    Later(&'p LiveOwnedLaterPreparedAppendV8<'j>),
 }
 impl FixedOwnedContinuedPreparedAppendPermitV8<'_, '_> {
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn later<'p, 'j>(
+        owner: &'p LiveOwnedLaterPreparedAppendV8<'j>,
+    ) -> FixedOwnedContinuedPreparedAppendPermitV8<'p, 'j> {
+        FixedOwnedContinuedPreparedAppendPermitV8 {
+            owner: PreparedPermitOwnerV8::Later(owner),
+        }
+    }
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn selected_row(
         &self,
     ) -> &EntryV8 {
-        self.owner.selected()
+        match self.owner {
+            PreparedPermitOwnerV8::First(owner) => owner.selected(),
+            PreparedPermitOwnerV8::Later(owner) => owner.selected(),
+        }
     }
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_preflight(
         &self,
         journal: &SourceOwnedWaitJournalV8,
     ) -> Result<(), SourceJournalError> {
-        if !self.owner.belongs_to(journal) {
-            return Err(SourceJournalError::Binding);
+        match self.owner {
+            PreparedPermitOwnerV8::First(owner) => {
+                if !owner.belongs_to(journal) {
+                    return Err(SourceJournalError::Binding);
+                }
+                owner.validate_live()
+            }
+            PreparedPermitOwnerV8::Later(owner) => {
+                if !owner.belongs_to(journal) {
+                    return Err(SourceJournalError::Binding);
+                }
+                owner.validate_live()
+            }
         }
-        self.owner.validate_live()
     }
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_selected_prefix(
         &self,
@@ -164,27 +192,37 @@ impl FixedOwnedContinuedPreparedAppendPermitV8<'_, '_> {
             '_,
         >,
     ) -> Result<(), SourceJournalError> {
-        if !self.owner.belongs_to(journal)
-            || inventory.sequence() != self.owner.sequence()
-            || inventory.acknowledged_bytes() != self.owner.acknowledged_bytes()
-        {
-            return Err(SourceJournalError::Binding);
+        match self.owner {
+            PreparedPermitOwnerV8::First(owner) => {
+                if !owner.belongs_to(journal)
+                    || inventory.sequence() != owner.sequence()
+                    || inventory.acknowledged_bytes() != owner.acknowledged_bytes()
+                {
+                    return Err(SourceJournalError::Binding);
+                }
+                owner.owner.owner.validate_prepared_append_prefix(
+                    journal,
+                    inventory,
+                    owner.selected(),
+                )
+            }
+            PreparedPermitOwnerV8::Later(owner) => {
+                owner.validate_selected_prefix(journal, inventory)
+            }
         }
-        self.owner.owner.owner.validate_prepared_append_prefix(
-            journal,
-            inventory,
-            self.owner.selected(),
-        )
     }
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_registry(
         &self,
         witness: &VerifiedOwnedContinuedPreparedSuccessorV8<'_>,
         session: &AppendSessionV8<'_>,
     ) -> Result<(), SourceJournalError> {
-        self.owner
-            .owner
-            .owner
-            .advance_prepared_registry(witness, session)
+        match self.owner {
+            PreparedPermitOwnerV8::First(owner) => owner
+                .owner
+                .owner
+                .advance_prepared_registry(witness, session),
+            PreparedPermitOwnerV8::Later(owner) => owner.advance_registry(witness, session),
+        }
     }
 }
 pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_verified_continued_prepared_v8<

@@ -80,6 +80,19 @@ impl DeclarationIndex {
                 ResolvedTypeDeclarationKind::Class { .. } if admit_classes => {
                     DeclarationKind::Class
                 }
+                ResolvedTypeDeclarationKind::Resource { .. }
+                    if (admit_classes
+                        && workspace_link::native_owner::admitted_resource(
+                            declaration,
+                            interfaces,
+                        ))
+                        || workspace_link::native_owner::admitted_ri06_regex_resource(
+                            declaration,
+                            interfaces,
+                        ) =>
+                {
+                    DeclarationKind::Resource
+                }
                 ResolvedTypeDeclarationKind::Class { .. }
                 | ResolvedTypeDeclarationKind::Resource { .. } => {
                     return Err(Diagnostic::io(
@@ -157,7 +170,22 @@ impl DeclarationIndex {
                     self.variant_cases
                         .insert(declaration.id.clone(), cases.clone());
                 }
-                ResolvedTypeDeclarationKind::Resource { .. } => unreachable!("rejected above"),
+                ResolvedTypeDeclarationKind::Resource { drop } => {
+                    let fact = require_fact(
+                        facts,
+                        &mut used,
+                        &drop.id,
+                        DeclarationKind::ResourceDrop,
+                        Some(&declaration.id),
+                    )?;
+                    self.insert_owned_declaration(
+                        declaration.id.clone(),
+                        "drop".to_owned(),
+                        drop.id.clone(),
+                        DeclarationKind::ResourceDrop,
+                        fact.origin,
+                    );
+                }
             }
         }
 

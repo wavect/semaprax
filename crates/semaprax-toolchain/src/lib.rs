@@ -25,8 +25,30 @@ mod settled_report;
 /// Private, explicit OpenCode host adapter; compiler admission remains in `semaprax`.
 pub mod opencode_host;
 
+#[cfg(unix)]
+mod bounded_capture;
+pub mod claude_host;
+
 /// Explicit durable source-agent sessions in the private host.
 pub mod source_live_cli;
+
+/// Explicit, replayable Cargo closure preparation for rich Native Rust interop.
+///
+/// This module records already-collected Cargo metadata; it has no process,
+/// network, package-acquisition, or build-script authority.
+pub mod rich_cargo_preparation;
+
+/// Explicit Cargo metadata and locked/offline build invocations for a prepared
+/// rich Native Rust closure. Build-code authority is checked before spawning.
+#[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
+pub mod rich_cargo_execution;
+#[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
+pub mod rich_cargo_publication;
+mod rich_cargo_snapshot;
+#[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
+pub mod rich_native_host;
+#[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
+pub mod rich_native_cli;
 
 /// Run ordinary doctor policy without discovering or spawning a worker.
 pub fn run_doctor(arguments: &[String]) -> Result<(String, u8), String> {

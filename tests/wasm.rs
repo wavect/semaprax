@@ -14,6 +14,8 @@
 
 #[path = "wasm/internal_strings_v1.rs"]
 mod internal_strings_v1;
+#[path = "wasm/law_runtime_structured.rs"]
+mod law_runtime_structured;
 #[path = "wasm/internal_strings_web_v1.rs"]
 mod internal_strings_web_v1;
 #[path = "wasm/legacy_string_admission_v1.rs"]

@@ -193,6 +193,57 @@ impl ProjectSemanticImage {
         self.revision.semantic_impact(target_kind, target, options)
     }
 
+    pub fn explorer_summary(
+        &self,
+        expected_image: &str,
+        mode: super::ExplorerMode,
+        target: Option<&str>,
+        query: super::ExplorerQuery,
+    ) -> Result<String, Vec<Diagnostic>> {
+        self.require_digest(expected_image)?;
+        super::semantic_explorer::summary(
+            super::semantic_explorer::ExplorerSubject {
+                image_digest: self.image_digest(),
+                candidate_digest: None,
+                side: super::ExplorerSide::Current,
+                revision: self.revision(),
+            },
+            mode,
+            target,
+            query,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn explorer_page(
+        &self,
+        expected_image: &str,
+        mode: super::ExplorerMode,
+        target: Option<&str>,
+        query: super::ExplorerQuery,
+        view: super::ExplorerView,
+        handle: &str,
+        cursor: Option<&str>,
+        options: super::ExplorerPageOptions,
+    ) -> Result<String, Vec<Diagnostic>> {
+        self.require_digest(expected_image)?;
+        super::semantic_explorer::page(
+            super::semantic_explorer::ExplorerSubject {
+                image_digest: self.image_digest(),
+                candidate_digest: None,
+                side: super::ExplorerSide::Current,
+                revision: self.revision(),
+            },
+            mode,
+            target,
+            query,
+            view,
+            handle,
+            cursor,
+            options,
+        )
+    }
+
     pub(super) fn require_digest(&self, expected: &str) -> Result<(), Vec<Diagnostic>> {
         validate_digest(expected)?;
         if expected != self.image_digest() {

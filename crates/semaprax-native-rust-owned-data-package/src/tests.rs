@@ -7,6 +7,7 @@ mod auto_traits;
 pub(crate) mod ffi_boundaries;
 mod flat_input_bounds;
 mod strict_sources;
+mod v1_compatibility;
 
 fn descriptor_bytes(result: &str) -> Vec<u8> {
     format!(
@@ -203,3 +204,6 @@ fn windows_publication_freezes_the_explicit_toolchain_environment() {
         );
     }
 }
+
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+mod v1_archive;

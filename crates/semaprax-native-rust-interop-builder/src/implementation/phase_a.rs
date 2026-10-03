@@ -35,23 +35,48 @@ pub(super) fn prepare_native_rust_interop_bounded(
     program: &Program,
     spec_bytes: &[u8],
 ) -> Result<PreparedNativeRustInterop, Diagnostic> {
-    prepare_native_rust_interop_from_input(Some(program), None, spec_bytes)
+    prepare_native_rust_interop_from_input(Some(program), None, spec_bytes, &[])
+}
+
+/// The indexed path is separate from the v1 callback path: every selected
+/// indexed import must carry an exact source-bound plan before phase A.
+pub(super) fn prepare_indexed_native_rust_interop_bounded(
+    program: &Program,
+    spec_bytes: &[u8],
+    plans: &[semaprax::native_rust_binding::ScalarBindingPlan],
+) -> Result<PreparedNativeRustInterop, Diagnostic> {
+    prepare_native_rust_interop_from_input(Some(program), None, spec_bytes, plans)
 }
 
 pub(super) fn prepare_project_native_rust_interop_bounded(
     program: &ResolvedProgram,
     subject_bytes: &[u8],
 ) -> Result<PreparedNativeRustInterop, Diagnostic> {
-    prepare_native_rust_interop_from_input(None, Some(program), subject_bytes)
+    prepare_native_rust_interop_from_input(None, Some(program), subject_bytes, &[])
+}
+
+pub(super) fn prepare_indexed_project_native_rust_interop_bounded(
+    program: &ResolvedProgram,
+    subject_bytes: &[u8],
+    plans: &[semaprax::native_rust_binding::ScalarBindingPlan],
+) -> Result<PreparedNativeRustInterop, Diagnostic> {
+    prepare_native_rust_interop_from_input(None, Some(program), subject_bytes, plans)
 }
 
 fn prepare_native_rust_interop_from_input<'a>(
     source_program: Option<&'a Program>,
     project_program: Option<&'a ResolvedProgram>,
     input_bytes: &[u8],
+    indexed_plans: &[semaprax::native_rust_binding::ScalarBindingPlan],
 ) -> Result<PreparedNativeRustInterop, Diagnostic> {
     let is_project = project_program.is_some();
     debit(input_bytes.len())?;
+    if indexed_plans.len() > MAX_IMPORTS {
+        return Err(b109("max_imports", MAX_IMPORTS));
+    }
+    // A plan is caller-owned; charge only the bounded validation scratch
+    // allocated while recomputing its scalar signature and physical symbol.
+    debit(indexed_plans.len().saturating_mul(8_192))?;
     let (
         spec,
         spec_authority,
@@ -245,7 +270,11 @@ fn prepare_native_rust_interop_from_input<'a>(
             || function.name == "main"
             || function.params.len() > MAX_PARAMETERS
             || function.params.iter().any(|parameter| {
-                parameter.ownership != OwnershipMode::Value || scalar_type(&parameter.ty).is_none()
+                parameter.ownership != OwnershipMode::Value
+                    || !matches!(
+                        scalar_type(&parameter.ty),
+                        Some(ScalarType::I64 | ScalarType::Bool)
+                    )
             })
             || scalar_type(&function.return_type).is_none()
         {
@@ -293,6 +322,36 @@ fn prepare_native_rust_interop_from_input<'a>(
         if !import.native_rust {
             return Err(b107("selected identity missing"));
         }
+        // The v1 callback SDK cannot silently reinterpret an indexed Rust
+        // path as a host-provided NativeRustSdkImports implementation.
+        match (
+            &import.rust_path,
+            indexed_plans
+                .iter()
+                .find(|plan| plan.import_id == id.as_str()),
+        ) {
+            (Some(_), Some(plan)) => {
+                semaprax::native_rust_binding::verify_scalar_binding(import, plan)?;
+                if plan.target != spec.target.triple {
+                    return Err(Diagnostic::error(
+                        "SPX-B142",
+                        "Rust API binding target disagrees with the selected native target",
+                        import.span,
+                    ));
+                }
+            }
+            (Some(_), None) => {
+                return Err(b107(
+                    "indexed Rust API import requires a verified adapter profile",
+                ))
+            }
+            (None, Some(_)) => {
+                return Err(b107(
+                    "indexed Rust API plan does not select an indexed import",
+                ))
+            }
+            (None, None) => {}
+        }
         identifier_gate(interface)?;
         identifier_gate(import.id.as_str())?;
         identifier_gate(&import.name)?;
@@ -304,10 +363,29 @@ fn prepare_native_rust_interop_from_input<'a>(
             selected_effects.insert(effect.as_str());
         }
         let parameters = import_parameter_facts(import)?;
-        let result = match import.result.kind {
+        let result = match &import.result.kind {
             ResolvedImportResultKind::Unit => ScalarType::Unit,
             ResolvedImportResultKind::I64 => ScalarType::I64,
             ResolvedImportResultKind::Bool => ScalarType::Bool,
+            ResolvedImportResultKind::ResultI64I64 => {
+                if import.rust_path.is_none() {
+                    return Err(Diagnostic::error(
+                        "SPX-B145",
+                        "tagged Rust Result requires a selected indexed import",
+                        import.span,
+                    ));
+                }
+                ScalarType::ResultI64I64
+            }
+            ResolvedImportResultKind::BorrowedStr { .. }
+            | ResolvedImportResultKind::OwnedResource { .. }
+            | ResolvedImportResultKind::OwnedResultResourceI64 { .. }
+            | ResolvedImportResultKind::OwnedString
+            | ResolvedImportResultKind::OwnedOptionString
+            | ResolvedImportResultKind::OwnedResultStringI64
+            | ResolvedImportResultKind::OwnedResultStringOptionI64 => {
+                return Err(b107("opaque Rust owners require the owner bridge profile"));
+            }
         };
         let failure = match &import.failure {
             ResolvedImportFailure::Infallible => None,
@@ -380,6 +458,24 @@ fn prepare_native_rust_interop_from_input<'a>(
             )
             .saturating_add(hash.capacity()),
         );
+    }
+    if indexed_plans.len()
+        != spec
+            .imports
+            .iter()
+            .filter(|id| {
+                resolved_imports.iter().any(|(_, import)| {
+                    import.id.as_str() == id.as_str() && import.rust_path.is_some()
+                })
+            })
+            .count()
+        || indexed_plans
+            .iter()
+            .any(|plan| !spec.imports.iter().any(|id| id == &plan.import_id))
+    {
+        return Err(b107(
+            "indexed Rust API plan selection disagrees with the source closure",
+        ));
     }
     import_facts.sort_by(|left, right| left.id.cmp(&right.id));
     if selected_effects.len() > MAX_EFFECTS {
@@ -1095,7 +1191,10 @@ pub(super) fn validate_selected_scalar_closure(
         if function.params.len() > MAX_PARAMETERS
             || function.params.iter().any(|parameter| {
                 parameter.ownership != hir::OwnershipMode::Value
-                    || scalar_type(&parameter.ty).is_none()
+                    || !matches!(
+                        scalar_type(&parameter.ty),
+                        Some(ScalarType::I64 | ScalarType::Bool)
+                    )
             })
             || scalar_type(&function.return_type).is_none()
             || !function.cleanup.slots.is_empty()

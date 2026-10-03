@@ -1,13 +1,53 @@
 //! Caller-owned handoff persistence and exact-runtime recovery. Store snapshots
 //! and expected handoff digests are trusted inputs, never ambient authority.
 use super::{handoff::Handoff, *};
-use crate::agent_lifecycle::iterative::effects::DurableTypedFailure;
 use crate::agent_lifecycle::iterative::effects::TargetStageBackend;
+use crate::agent_lifecycle::iterative::effects::{DurableTypedFailure, MeteredDurableTypedRun};
 use crate::agent_lifecycle::{CheckpointStore, CheckpointStoreError};
 use serde_json::Value;
 
 const SCHEMA: &str = "semaprax.agent-migrated-checkpoint.v1";
 const MAX_BYTES: usize = 8 * 1024 * 1024;
+/// Bound shared with the target-migration producer. A generated handoff must
+/// be recoverable under this same bounded target-receipt vocabulary.
+pub(super) const MAX_FINALIZER_EVENTS: usize = 256;
+pub(super) const MAX_FINALIZER_FUNCTION_BYTES: usize = 256;
+
+/// A migration-seeded durable run whose evidence also binds target-observed
+/// semantic-work receipts. This is separate from the ordinary durable
+/// migration association because the ordinary checkpoint wire has no receipts.
+pub struct MeteredAgentRuntimeV2DurableMigrationEvidence {
+    run: MeteredDurableTypedRun,
+    evidence: ExecutionRoot,
+    revision: ExecutionRoot,
+    handoff: String,
+    checkpoint: String,
+    target_execution_binding: String,
+}
+impl MeteredAgentRuntimeV2DurableMigrationEvidence {
+    pub fn checkpoint(&self) -> &str {
+        &self.checkpoint
+    }
+    pub fn migration_handoff_digest(&self) -> &str {
+        &self.handoff
+    }
+    pub fn run(&self) -> &MeteredDurableTypedRun {
+        &self.run
+    }
+    pub fn evidence_root(&self) -> &ExecutionRoot {
+        &self.evidence
+    }
+    pub fn execution_revision(&self) -> &ExecutionRoot {
+        &self.revision
+    }
+    /// Exact selected target and semantic-fuel profile for this durable run.
+    /// The same binding appears in the evidence root, so consumers can retain
+    /// it without interpreting target-specific instruction observations as
+    /// common semantic charges.
+    pub fn target_execution_binding(&self) -> &str {
+        &self.target_execution_binding
+    }
+}
 
 pub struct DurableMigrationFailure {
     diagnostics: Vec<Diagnostic>,
@@ -122,6 +162,28 @@ impl MigratedAgentRuntimeV2 {
     ) -> std::result::Result<AgentRuntimeV2DurableEvidence, DurableMigrationFailure> {
         run(self, None, handler, cancellation, store, Some(selected))
     }
+
+    /// Continue the migration handoff with receipts from the held destination
+    /// target. Recovery replays those receipts before reusing a stage.
+    pub fn run_durable_metered_with_backend(
+        self,
+        handler: &mut dyn TypedEffectHandler,
+        cancellation: &AgentCancellation,
+        store: &mut dyn CheckpointStore,
+        selected: TargetStageBackend<'_>,
+        semantic_fuel_limit: u64,
+    ) -> std::result::Result<MeteredAgentRuntimeV2DurableMigrationEvidence, DurableMigrationFailure>
+    {
+        run_metered(
+            self,
+            None,
+            handler,
+            cancellation,
+            store,
+            selected,
+            semantic_fuel_limit,
+        )
+    }
 }
 
 /// A recovered checked runtime plus the trusted journal it must replay.
@@ -167,6 +229,27 @@ impl ResumedMigratedAgentRuntimeV2 {
             Some(selected),
         )
     }
+
+    /// Resume the migration handoff with the same held target profile.
+    pub fn run_durable_metered_with_backend(
+        self,
+        handler: &mut dyn TypedEffectHandler,
+        cancellation: &AgentCancellation,
+        store: &mut dyn CheckpointStore,
+        selected: TargetStageBackend<'_>,
+        semantic_fuel_limit: u64,
+    ) -> std::result::Result<MeteredAgentRuntimeV2DurableMigrationEvidence, DurableMigrationFailure>
+    {
+        run_metered(
+            self.migrated,
+            Some(self.snapshot),
+            handler,
+            cancellation,
+            store,
+            selected,
+            semantic_fuel_limit,
+        )
+    }
 }
 
 fn run(
@@ -191,7 +274,21 @@ fn run(
             checkpoint: None,
         },
     };
+    if selected.is_none() && migrated.seed.target_execution_binding().is_some() {
+        return Err(DurableMigrationFailure {
+            diagnostics: refused("migration.target_requires_metered_durable"),
+            checkpoint: snapshot.canonical_json(),
+            durable: None,
+        });
+    }
     if let Some(selected) = selected {
+        if migrated.seed.target_execution_binding().is_some() {
+            return Err(DurableMigrationFailure {
+                diagnostics: refused("migration.target_requires_metered_durable"),
+                checkpoint: snapshot.canonical_json(),
+                durable: None,
+            });
+        }
         migrated
             .runtime
             .lifecycle
@@ -277,6 +374,125 @@ fn run(
         handoff_digest,
         store.candidate,
     ))
+}
+
+#[allow(clippy::too_many_arguments)]
+fn run_metered(
+    migrated: MigratedAgentRuntimeV2,
+    retained: Option<Snapshot>,
+    handler: &mut dyn TypedEffectHandler,
+    cancellation: &AgentCancellation,
+    store: &mut dyn CheckpointStore,
+    selected: TargetStageBackend<'_>,
+    semantic_fuel_limit: u64,
+) -> std::result::Result<MeteredAgentRuntimeV2DurableMigrationEvidence, DurableMigrationFailure> {
+    let fresh = retained.is_none();
+    let snapshot = match retained {
+        Some(snapshot) => snapshot,
+        None => Snapshot {
+            handoff: Handoff::from_seed(&migrated.seed).map_err(|diagnostics| {
+                DurableMigrationFailure {
+                    diagnostics,
+                    checkpoint: String::new(),
+                    durable: None,
+                }
+            })?,
+            checkpoint: None,
+        },
+    };
+    let actual_binding = migrated
+        .runtime
+        .lifecycle
+        .migration_target_execution_binding(selected, semantic_fuel_limit)
+        .map_err(|diagnostics| DurableMigrationFailure {
+            diagnostics,
+            checkpoint: snapshot.canonical_json(),
+            durable: None,
+        })?;
+    if let Some(expected) = migrated.seed.target_execution_binding() {
+        if expected != actual_binding {
+            return Err(DurableMigrationFailure {
+                diagnostics: refused("migration.target_binding"),
+                checkpoint: snapshot.canonical_json(),
+                durable: None,
+            });
+        }
+    }
+    migrated
+        .runtime
+        .lifecycle
+        .validate_durable_backend(selected)
+        .map_err(|diagnostics| DurableMigrationFailure {
+            diagnostics,
+            checkpoint: snapshot.canonical_json(),
+            durable: None,
+        })?;
+    let candidate = snapshot.canonical_json();
+    if candidate.len() > MAX_BYTES {
+        return Err(DurableMigrationFailure {
+            diagnostics: refused("migration.snapshot.bytes"),
+            checkpoint: String::new(),
+            durable: None,
+        });
+    }
+    let mut store = HandoffStore {
+        store,
+        snapshot,
+        candidate,
+    };
+    if fresh && store.store.commit(0, &store.candidate).is_err() {
+        return Err(DurableMigrationFailure {
+            diagnostics: refused("migration.handoff.uncertain_store"),
+            checkpoint: store.candidate,
+            durable: None,
+        });
+    }
+    let retained_checkpoint = store.snapshot.checkpoint.clone();
+    let runtime = migrated.runtime;
+    let result = runtime
+        .lifecycle
+        .run_durable_from_seed_metered_with_backend(
+            &runtime.task,
+            &runtime.proposals,
+            handler,
+            runtime.budget,
+            runtime.effects,
+            cancellation,
+            runtime.revision.digest(),
+            &runtime.program_root,
+            retained_checkpoint.as_deref(),
+            &mut store,
+            migrated.seed.max_reserved_fuel(),
+            &migrated.seed,
+            selected,
+            semantic_fuel_limit,
+        )
+        .map_err(|durable| DurableMigrationFailure {
+            diagnostics: durable.diagnostics().to_vec(),
+            checkpoint: store.candidate.clone(),
+            durable: Some(durable),
+        })?;
+    let handoff = store.snapshot.handoff.digest();
+    let evidence = root(
+        "semaprax.evidence-root.durable-migration-metered.v1",
+        json!({
+            "execution_revision":runtime.revision.digest(), "instance_root":runtime.instance.digest(),
+            "migration_root":migrated.seed.binding.digest(), "handoff":handoff,
+            "target_execution_binding":actual_binding,
+            "typed_effect_evidence":result.run().run().evidence_digest(),
+            "semantic_work_evidence":result.evidence_digest(),
+            "checkpoint":result.run().checkpoint_digest(), "iterations":result.run().iterations(),
+            "stages":result.run().stages(),
+        }),
+    );
+    Ok(MeteredAgentRuntimeV2DurableMigrationEvidence {
+        run: result,
+        evidence,
+        revision: runtime.revision,
+        handoff,
+        checkpoint: store.candidate,
+        target_execution_binding: actual_binding,
+    })
 }
 
 /// Recover only from the caller-authorized trusted store under exclusive writer
@@ -415,7 +631,10 @@ pub fn resume_migrated_agent_runtime_v2(
     {
         return Err(refused("migration.result_state"));
     }
-    prepare_migration_call(&new_program, function, &old_state, &new_state)?;
+    let call = prepare_migration_call(&new_program, function, &old_state, &new_state)?;
+    if target_schema && !target_execution_matches_call(&facts["target_execution"], &call) {
+        return Err(refused("migration.handoff.target_cleanup"));
+    }
     let seed = MigrationSeed {
         value: handoff.value.clone(),
         binding,
@@ -423,6 +642,10 @@ pub fn resume_migrated_agent_runtime_v2(
         iterations: handoff.iterations,
         stages: handoff.stages,
         max_reserved_fuel: handoff.max_reserved_fuel,
+        target_execution_binding: facts["target_execution"]
+            .get("execution_binding")
+            .and_then(Value::as_str)
+            .map(str::to_owned),
     };
     Ok(ResumedMigratedAgentRuntimeV2 {
         migrated: MigratedAgentRuntimeV2 {
@@ -465,11 +688,52 @@ fn target_execution_valid(value: &Value) -> bool {
             == evaluations[1]["copy_out_cleanup_events"]
 }
 
+/// The target receipt is producer input. Its finalizer identities must name a
+/// function retained by the exact checked migration call, rather than merely
+/// being syntactically bounded text from some unrelated source declaration.
+fn target_execution_matches_call(
+    value: &Value,
+    call: &crate::interpreter::retained_call::PreparedRetainedCall,
+) -> bool {
+    let Some(evaluations) = value.get("evaluations").and_then(Value::as_array) else {
+        return false;
+    };
+    evaluations.iter().all(|evaluation| {
+        let Some(events) = evaluation
+            .get("semantic_work")
+            .and_then(Value::as_object)
+            .and_then(|work| work.get("finalizer_events"))
+        else {
+            return false;
+        };
+        match events {
+            Value::Null => true,
+            Value::Array(events) => events.iter().all(|event| {
+                event
+                    .as_array()
+                    .and_then(|row| row.first())
+                    .and_then(Value::as_str)
+                    .is_some_and(|function| call.function_ids().any(|id| id == function))
+            }),
+            _ => false,
+        }
+    })
+}
+
 fn target_evaluation_valid(value: &Value, expected_limit: Option<u64>) -> bool {
     let Some(evaluation) = value.as_object() else {
         return false;
     };
     let Some(work) = evaluation.get("semantic_work").and_then(Value::as_object) else {
+        return false;
+    };
+    let Some(fuel_used) = work.get("fuel_used").and_then(Value::as_u64) else {
+        return false;
+    };
+    let Some(fuel_limit) = work.get("fuel_limit").and_then(Value::as_u64) else {
+        return false;
+    };
+    let Some(exhausted) = work.get("exhausted").and_then(Value::as_bool) else {
         return false;
     };
     evaluation.len() == 3
@@ -482,20 +746,28 @@ fn target_evaluation_valid(value: &Value, expected_limit: Option<u64>) -> bool {
             .and_then(Value::as_u64)
             .is_some()
         && work.len() == 4
-        && work.get("fuel_used").and_then(Value::as_u64).is_some()
-        && work.get("fuel_limit").and_then(Value::as_u64) == expected_limit
-        && work.get("exhausted").and_then(Value::as_bool).is_some()
+        && expected_limit == Some(fuel_limit)
+        && fuel_used <= fuel_limit
+        && (!exhausted || fuel_used == fuel_limit)
         && work
             .get("finalizer_events")
             .is_some_and(|events| match events {
                 Value::Null => true,
-                Value::Array(events) => events.iter().all(|event| {
-                    event.as_array().is_some_and(|row| {
-                        row.len() == 2
-                            && row[0].as_str().is_some_and(|function| !function.is_empty())
-                            && row[1].as_u64().is_some()
-                    })
-                }),
+                Value::Array(events) => {
+                    events.len() <= MAX_FINALIZER_EVENTS
+                        && events.iter().all(|event| {
+                            event.as_array().is_some_and(|row| {
+                                row.len() == 2
+                                    && row[0].as_str().is_some_and(|function| {
+                                        !function.is_empty()
+                                            && function.len() <= MAX_FINALIZER_FUNCTION_BYTES
+                                    })
+                                    && row[1]
+                                        .as_u64()
+                                        .is_some_and(|flag| u32::try_from(flag).is_ok())
+                            })
+                        })
+                }
                 _ => false,
             })
 }
@@ -541,7 +813,7 @@ mod tests {
     }
 
     #[test]
-    fn target_receipt_rejects_mismatched_common_work_or_copyout_cleanup() {
+    fn target_receipt_rejects_mismatched_or_unrepresentable_cleanup_facts() {
         let receipt = receipt();
         assert!(target_execution_valid(&receipt));
 
@@ -549,8 +821,87 @@ mod tests {
         changed_work["evaluations"][1]["semantic_work"]["fuel_used"] = serde_json::json!(8);
         assert!(!target_execution_valid(&changed_work));
 
-        let mut changed_cleanup = receipt;
+        let mut changed_cleanup = receipt.clone();
         changed_cleanup["evaluations"][1]["copy_out_cleanup_events"] = serde_json::json!(2);
         assert!(!target_execution_valid(&changed_cleanup));
+
+        let mut over_limit = receipt.clone();
+        for evaluation in over_limit["evaluations"].as_array_mut().unwrap() {
+            evaluation["semantic_work"]["fuel_used"] = serde_json::json!(11);
+        }
+        assert!(!target_execution_valid(&over_limit));
+
+        let mut exhausted_before_limit = receipt.clone();
+        for evaluation in exhausted_before_limit["evaluations"]
+            .as_array_mut()
+            .unwrap()
+        {
+            evaluation["semantic_work"]["exhausted"] = serde_json::json!(true);
+        }
+        assert!(!target_execution_valid(&exhausted_before_limit));
+
+        let mut oversized_flag = receipt.clone();
+        for evaluation in oversized_flag["evaluations"].as_array_mut().unwrap() {
+            evaluation["semantic_work"]["finalizer_events"][0][1] =
+                serde_json::json!(u64::from(u32::MAX) + 1);
+        }
+        assert!(!target_execution_valid(&oversized_flag));
+
+        let mut oversized_name = receipt.clone();
+        for evaluation in oversized_name["evaluations"].as_array_mut().unwrap() {
+            evaluation["semantic_work"]["finalizer_events"][0][0] =
+                serde_json::json!("x".repeat(MAX_FINALIZER_FUNCTION_BYTES + 1));
+        }
+        assert!(!target_execution_valid(&oversized_name));
+
+        let mut oversized_inventory = receipt;
+        for evaluation in oversized_inventory["evaluations"].as_array_mut().unwrap() {
+            let events = evaluation["semantic_work"]["finalizer_events"]
+                .as_array_mut()
+                .unwrap();
+            let event = events[0].clone();
+            for _ in 0..MAX_FINALIZER_EVENTS {
+                events.push(event.clone());
+            }
+        }
+        assert!(!target_execution_valid(&oversized_inventory));
+    }
+
+    #[test]
+    fn target_receipt_rejects_finalizers_outside_the_prepared_migration_closure() {
+        let source = r#"module fixture.migration;
+@id("fixture.old")
+record Old { @id("fixture.old.count") count: i64, }
+@id("fixture.new")
+record New { @id("fixture.new.count") count: i64, }
+@id("fixture.helper")
+fn helper(value: i64) -> i64 { value }
+@id("fixture.detached")
+fn detached(value: i64) -> i64 { value }
+@id("fixture.migrate")
+fn migrate(old: Old) -> New { New { count: helper(old.count) } }
+@id("fixture.main")
+fn main() -> i64 { 0 }
+"#;
+        let program = crate::hir::resolve(&crate::check(source, "fixture.spx").unwrap()).unwrap();
+        let call = prepare_migration_call(
+            &program,
+            "fixture.migrate",
+            &DeclarationId::new("fixture.old"),
+            &DeclarationId::new("fixture.new"),
+        )
+        .unwrap();
+        let mut receipt = receipt();
+        for evaluation in receipt["evaluations"].as_array_mut().unwrap() {
+            evaluation["semantic_work"]["finalizer_events"][0][0] =
+                serde_json::json!("fixture.helper");
+        }
+        assert!(target_execution_matches_call(&receipt, &call));
+
+        for evaluation in receipt["evaluations"].as_array_mut().unwrap() {
+            evaluation["semantic_work"]["finalizer_events"][0][0] =
+                serde_json::json!("fixture.detached");
+        }
+        assert!(!target_execution_matches_call(&receipt, &call));
     }
 }

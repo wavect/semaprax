@@ -57,10 +57,15 @@
   "activationEvents": [
     "onCommand:semaprax.start",
     "onLanguage:semaprax",
-    "onCommand:semaprax.checkProject"
+    "onCommand:semaprax.checkProject",
+    "onCommand:semaprax.openExplorer",
+    "onCommand:semaprax.exploreSelection",
+    "onCommand:semaprax.reviewCandidateGraph",
+    "onCommand:semaprax.showTokenReport"
   ],
   "scripts": {
-    "test": "node --test test/*.test.js"
+    "test": "node --test test/*.test.js",
+    "sync-explorer-assets": "node scripts/sync-explorer-assets.js"
   },
   "contributes": {
     "languages": [
@@ -121,11 +126,16 @@
       { "command": "semaprax.safeRename", "title": "SEMAPRAX: Safe Rename by Stable ID" },
       { "command": "semaprax.showCleanupPlan", "title": "SEMAPRAX: Show Cleanup Plan" },
       { "command": "semaprax.runAgentTranscript", "title": "SEMAPRAX: Run Agent Transcript (Trace/Evidence)" }
+      ,{ "command": "semaprax.openExplorer", "title": "SEMAPRAX: Open Semantic Explorer" }
+      ,{ "command": "semaprax.exploreSelection", "title": "SEMAPRAX: Explore Selected Declaration" }
+      ,{ "command": "semaprax.reviewCandidateGraph", "title": "SEMAPRAX: Review Candidate Graph" }
+      ,{ "command": "semaprax.showTokenReport", "title": "SEMAPRAX: Show Token Report" }
     ],
     "configuration": {
       "title": "SEMAPRAX",
       "properties": {
         "semaprax.compilerPath": { "type": "string", "default": "", "scope": "machine", "description": "User-selected absolute compiler binary path. Never read from workspace settings." },
+        "semaprax.rustIndexPath": { "type": "string", "default": "", "scope": "machine", "description": "Optional user-selected absolute prepared Rust API index file for read-only imported API hover, completion, and fixes. The compiler replays its bytes; no extractor or build runs." },
         "semaprax.checkOnSave": { "type": "boolean", "default": true, "scope": "machine", "description": "Run the selected compiler's read-only `check --json` on the saved file's project and show its diagnostics. Effective only when semaprax.compilerPath is set." },
         "semaprax.codeLens": { "type": "boolean", "default": true, "scope": "machine", "description": "Show stable identity, effect, and contract code lenses above each declaration of a saved .spx file, from the selected compiler's read-only `query --json`. Effective only when semaprax.compilerPath is set." },
         "semaprax.manifestPath": { "type": "string", "default": "", "scope": "machine", "description": "User-selected absolute saved semaprax.toml path." },

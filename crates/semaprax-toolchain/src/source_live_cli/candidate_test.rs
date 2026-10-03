@@ -10,7 +10,7 @@ use semaprax::digest_hex::LowerHex;
 use semaprax::live_invocation::source_journal::{
     RecoveredSourceCheckpoint, SourceEffectFailure, SourceJournalEntry,
 };
-use semaprax::project::ProjectCandidate;
+use semaprax::project::{CandidateTestPolicy, ProjectCandidate};
 use serde_json::{Map, Value};
 use sha2::{Digest, Sha256};
 
@@ -21,6 +21,66 @@ pub const CANDIDATE_TEST_SCHEMA: &str = "semaprax.source-live-cli.candidate-test
 const CANDIDATE_TEST_BINDING_DOMAIN: &[u8] = b"semaprax.source-live-cli.repair-candidate-test.v1\0";
 const CANDIDATE_TEST_FEEDBACK_DOMAIN: &[u8] =
     b"semaprax.source-live-cli.repair-candidate-test-feedback.v1\0";
+pub(super) const REPAIR_TEST_CAPABILITY_ID: &str = "semaprax.source-live-cli.repair-tested.v1";
+const REPAIR_TEST_MAX_STEPS: usize = 100_000;
+const REPAIR_TEST_MAX_EXECUTION_BYTES: usize = 65_536;
+const REPAIR_TEST_MAX_REPORT_BYTES: usize = 262_144;
+
+/// Fixed, interpreter-only test observer for the separately selected repair
+/// host profile. Its policy is deliberately not an operand or configuration
+/// field, so a repair request cannot widen test authority.
+pub(super) struct FixedCandidateTestObserver {
+    policy: CandidateTestPolicy,
+}
+
+impl FixedCandidateTestObserver {
+    pub(super) fn new() -> Self {
+        Self {
+            policy: CandidateTestPolicy::new(
+                REPAIR_TEST_MAX_STEPS,
+                REPAIR_TEST_MAX_EXECUTION_BYTES,
+                REPAIR_TEST_MAX_REPORT_BYTES,
+            )
+            .expect("the fixed repair-tested policy is within candidate-test bounds"),
+        }
+    }
+}
+
+impl CandidateTestObserver for FixedCandidateTestObserver {
+    fn observe(
+        &mut self,
+        _: &CandidateTestCapability,
+        subject: &CandidateTestSubject<'_>,
+    ) -> Result<CandidateTestObservation, CandidateTestObservationError> {
+        let (status, detail) = match subject
+            .candidate()
+            .execute_tests(subject.candidate_revision(), &self.policy)
+        {
+            Ok(report) => (
+                if report.passed() { "passed" } else { "failed" },
+                format!(
+                    "candidate-test-report={} policy=repair-tested-v1",
+                    report.report_digest()
+                ),
+            ),
+            Err(_) => (
+                "refused",
+                "candidate-test interpreter replay or execution refused".to_owned(),
+            ),
+        };
+        let bytes = serde_json::to_vec(&serde_json::json!({
+            "schema": CANDIDATE_TEST_SCHEMA,
+            "capability": subject.capability(),
+            "candidate_revision": subject.candidate_revision(),
+            "base_project_revision": subject.base_project_revision(),
+            "source_revision": subject.source_revision(),
+            "status": status,
+            "detail": detail,
+        }))
+        .map_err(|_| CandidateTestObservationError)?;
+        CandidateTestObservation::try_from_bytes(&bytes)
+    }
+}
 
 /// Opaque host-selected authority for one bounded candidate-test observation.
 pub struct CandidateTestCapability {

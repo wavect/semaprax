@@ -111,15 +111,76 @@ struct DurableDriver<'a> {
     failure: Option<&'static str>,
     physical_calls: usize,
     seed_binding: Option<String>,
+    metered_observations:
+        Option<&'a std::cell::RefCell<Vec<super::metered::StageSemanticObservation>>>,
+    semantic_replay: Vec<JournalEvent>,
+    semantic_cursor: usize,
 }
 fn diagnostic(reason: &str) -> Vec<Diagnostic> {
     error(&format!("durable.{reason}"))
+}
+pub(super) fn semantic_refusal(reason: &str, checkpoint: &str) -> DurableTypedFailure {
+    DurableTypedFailure {
+        diagnostics: diagnostic(reason),
+        terminal: None,
+        checkpoint: checkpoint.to_owned(),
+    }
 }
 fn checked_sum(left: u64, right: usize) -> Result<u64, Vec<Diagnostic>> {
     left.checked_add(u64::try_from(right).map_err(|_| diagnostic("usage.overflow"))?)
         .ok_or_else(|| diagnostic("usage.overflow"))
 }
 impl DurableDriver<'_> {
+    fn persist_semantic_work(&mut self) -> Result<(), Vec<Diagnostic>> {
+        let Some(observations) = self.metered_observations else {
+            return Ok(());
+        };
+        loop {
+            let Some(observation) = observations.borrow().get(self.semantic_cursor).cloned() else {
+                return Ok(());
+            };
+            let work = observation.work();
+            let fuel_limit = work
+                .fuel_limit
+                .ok_or_else(|| diagnostic("semantic_work.receipt"))?;
+            let ordinal = u64::try_from(
+                self.journal
+                    .events()
+                    .filter(|event| matches!(event, JournalEvent::SemanticWork { .. }))
+                    .count(),
+            )
+            .map_err(|_| diagnostic("semantic_work.receipt"))?;
+            let current_finalizer_events = work.finalizer_events.as_ref().map(|events| {
+                events
+                    .iter()
+                    .map(|event| (event.function.as_str().to_owned(), event.liveness_flag))
+                    .collect::<Vec<_>>()
+            });
+            let event = JournalEvent::SemanticWork {
+                ordinal,
+                function: observation.function_id().to_owned(),
+                fuel_used: work.fuel_used,
+                fuel_limit,
+                exhausted: work.exhausted,
+                finalizer_events: current_finalizer_events.clone(),
+            };
+            if let Some(expected) = self.semantic_replay.get(self.semantic_cursor) {
+                if !matches!(expected, JournalEvent::SemanticWork { function, fuel_used, fuel_limit: expected_limit, exhausted, finalizer_events: expected_finalizer_events, .. }
+                    if function == observation.function_id()
+                        && *fuel_used == work.fuel_used
+                        && *expected_limit == fuel_limit
+                        && *exhausted == work.exhausted
+                        && *expected_finalizer_events == current_finalizer_events)
+                {
+                    return Err(diagnostic("semantic_work.replay"));
+                }
+            }
+            // Replay validates the retained receipt above, then records the
+            // newly charged replayed stage under its new reservation.
+            self.persist(event, self.journal.usage())?;
+            self.semantic_cursor += 1;
+        }
+    }
     fn persist(
         &mut self,
         event: JournalEvent,
@@ -331,6 +392,11 @@ impl IterativeDriver for DurableDriver<'_> {
         if context.policy != expected_policy {
             return Err(diagnostic("policy.substitution"));
         }
+        // Stage receipts are committed before the effect can enter its
+        // intent/host boundary. A crash after a completed stage but before
+        // this acknowledgement leaves an unpaired reservation, which the
+        // metered recovery route refuses before any handler work.
+        self.persist_semantic_work()?;
         self.pending = Some(Pending {
             turn: context.turn,
             state: context.state.clone(),
@@ -381,6 +447,7 @@ impl IterativeDriver for DurableDriver<'_> {
         kind: &str,
         value: &RetainedValue,
     ) -> Result<(), Vec<Diagnostic>> {
+        self.persist_semantic_work()?;
         let context = self
             .context
             .clone()
@@ -442,7 +509,7 @@ impl CompiledTypedEffects {
         )
     }
 
-    fn durable_backend<'a>(
+    pub(super) fn durable_backend<'a>(
         &'a self,
         selected: super::TargetStageBackend<'a>,
         retained_checkpoint: Option<&str>,
@@ -680,7 +747,7 @@ impl CompiledTypedEffects {
     }
 
     #[allow(clippy::too_many_arguments)]
-    fn run_durable_inner<'a>(
+    pub(super) fn run_durable_inner<'a>(
         &self,
         task: &LifecycleTask,
         proposals: &[String],
@@ -709,11 +776,23 @@ impl CompiledTypedEffects {
         if wasm_source_mismatch(self, backend) {
             return Err(fail(diagnostic("backend.wasm_source")));
         }
+        let (semantic_fuel_limit, metered_observations, metered_target_binding) =
+            match backend.as_ref() {
+                Some(crate::agent_lifecycle::authorization::StageBackend::Metered {
+                    backend,
+                    fuel_limit,
+                    observations,
+                }) => (
+                    Some(*fuel_limit),
+                    Some(*observations),
+                    Some(self.target_execution_binding(**backend)),
+                ),
+                _ => (None, None, None),
+            };
         let requested = super::super::invocation_digest(task, proposals, stages);
-        // Checkpoint identity never depends on which backend is selected: the
-        // same canonical bytes decode and continue under any admitted
-        // backend, so a checkpoint saved under one target restores under
-        // another.
+        // Ordinary checkpoint identity remains target-neutral. The metered
+        // profile below separately binds its selected target before recovery
+        // can reuse receipts or reserve fresh stage fuel.
         let invocation = match seed {
             None => digest(
                 b"semaprax.agent-durable-typed-invocation.v2\0",
@@ -792,16 +871,57 @@ impl CompiledTypedEffects {
             total_bytes: remaining_total,
             reserved_fuel: remaining_fuel,
         };
-        let journal = match retained_checkpoint {
-            Some(document) => OperationCheckpoint::decode_with_limits(document, &identity, limits)
-                .map_err(|e| fail(vec![e]))?,
-            None => OperationCheckpoint::new(identity, limits).map_err(|e| fail(vec![e]))?,
+        let journal = match (
+            retained_checkpoint,
+            semantic_fuel_limit,
+            metered_target_binding,
+        ) {
+            (Some(document), Some(fuel_limit), Some(target_binding)) => {
+                OperationCheckpoint::decode_metered_with_limits(
+                    document,
+                    &identity,
+                    limits,
+                    fuel_limit,
+                    &target_binding,
+                )
+                .map_err(|e| fail(vec![e]))?
+            }
+            (Some(document), None, None) => {
+                OperationCheckpoint::decode_with_limits(document, &identity, limits)
+                    .map_err(|e| fail(vec![e]))?
+            }
+            (None, Some(fuel_limit), Some(target_binding)) => {
+                OperationCheckpoint::new_metered(identity, limits, fuel_limit, target_binding)
+                    .map_err(|e| fail(vec![e]))?
+            }
+            (None, None, None) => {
+                OperationCheckpoint::new(identity, limits).map_err(|e| fail(vec![e]))?
+            }
+            _ => return Err(fail(diagnostic("semantic_work.profile"))),
         };
         if journal.limits() != limits {
             return Err(fail(diagnostic("limits.substitution")));
         }
+        if semantic_fuel_limit.is_none() && journal.semantic_fuel_limit().is_some() {
+            return Err(fail(diagnostic("semantic_work.profile")));
+        }
         if journal.recovery_disposition() == RecoveryDisposition::UncertainIntent {
             return Err(fail(diagnostic("uncertain_intent")));
+        }
+        let semantic_receipts = journal
+            .events()
+            .filter(|event| matches!(event, JournalEvent::SemanticWork { .. }))
+            .cloned()
+            .collect::<Vec<_>>();
+        if semantic_fuel_limit.is_some()
+            && retained_checkpoint.is_some()
+            && journal
+                .events()
+                .filter(|event| matches!(event, JournalEvent::StageReservation { .. }))
+                .count()
+                != semantic_receipts.len()
+        {
+            return Err(fail(diagnostic("semantic_work.unacknowledged")));
         }
         let journal_stages = journal
             .events()
@@ -831,7 +951,12 @@ impl CompiledTypedEffects {
         };
         let replay = journal
             .events()
-            .filter(|event| !matches!(event, JournalEvent::StageReservation { .. }))
+            .filter(|event| {
+                !matches!(
+                    event,
+                    JournalEvent::StageReservation { .. } | JournalEvent::SemanticWork { .. }
+                )
+            })
             .cloned()
             .collect();
         let mut driver = DurableDriver {
@@ -849,6 +974,9 @@ impl CompiledTypedEffects {
             failure: None,
             physical_calls: 0,
             seed_binding: seed.map(|seed| seed.binding_digest().to_owned()),
+            metered_observations,
+            semantic_replay: semantic_receipts,
+            semantic_cursor: 0,
         };
         let outcome = match (seed, backend) {
             (Some(seed), None) => self.lifecycle.run_with_driver_seed(
@@ -884,6 +1012,33 @@ impl CompiledTypedEffects {
                 backend,
             ),
         };
+        // A terminal/budget exit can occur after a stage returned but before
+        // another effect or transition boundary. Commit that final receipt
+        // before exposing the checkpoint; otherwise the next metered resume
+        // correctly treats it as an unacknowledged crash window.
+        if let Err(persist_diagnostics) = driver.persist_semantic_work() {
+            let checkpoint = driver.journal.canonical_json();
+            return Err(match outcome {
+                Err(DriverFailure::Diagnostics(diagnostics)) => DurableTypedFailure {
+                    diagnostics,
+                    terminal: None,
+                    checkpoint,
+                },
+                Err(DriverFailure::Persistence {
+                    terminal,
+                    diagnostics,
+                }) => DurableTypedFailure {
+                    diagnostics,
+                    terminal: Some(*terminal),
+                    checkpoint,
+                },
+                Ok(_) => DurableTypedFailure {
+                    diagnostics: persist_diagnostics,
+                    terminal: None,
+                    checkpoint,
+                },
+            });
+        }
         let checkpoint = driver.journal.canonical_json();
         let checkpoint_digest = driver.journal.digest();
         let local_usage = driver.journal.usage();
@@ -925,11 +1080,36 @@ impl CompiledTypedEffects {
                 })
             }
         };
+        if semantic_fuel_limit.is_some()
+            && driver
+                .journal
+                .events()
+                .filter(|event| matches!(event, JournalEvent::StageReservation { .. }))
+                .count()
+                != driver
+                    .journal
+                    .events()
+                    .filter(|event| matches!(event, JournalEvent::SemanticWork { .. }))
+                    .count()
+        {
+            return Err(DurableTypedFailure {
+                diagnostics: diagnostic("semantic_work.unacknowledged"),
+                terminal: Some(lifecycle),
+                checkpoint,
+            });
+        }
         if driver.cursor != driver.replay.len() && lifecycle.status() != IterativeStatus::Cancelled
         {
             return Err(DurableTypedFailure {
                 diagnostics: diagnostic("replay.incomplete"),
                 terminal: None,
+                checkpoint,
+            });
+        }
+        if driver.semantic_cursor < driver.semantic_replay.len() && retained_checkpoint.is_some() {
+            return Err(DurableTypedFailure {
+                diagnostics: diagnostic("semantic_work.replay_incomplete"),
+                terminal: Some(lifecycle),
                 checkpoint,
             });
         }

@@ -169,6 +169,20 @@ fn proved_certificate(source_path: &Path, source_text: &str, declaration_id: &st
     )
 }
 
+#[test]
+fn source_bound_replay_refuses_a_v1_proof_with_empty_requires_domain() {
+    let source = "module app.t;\n@id(\"app.t.f\")\nfn f(a: i64) -> i64\n    requires a > 0\n    requires a < 0\n    ensures result == a\n{ a }\n";
+    let path = write_temp(source, "empty-domain-v1-replay");
+    let source_text = std::fs::read_to_string(&path).unwrap();
+    let certificate = proved_certificate(&path, &source_text, "app.t.f");
+    verify_certificate(&certificate).expect("v1 envelope is structurally valid");
+    let error = verify_certificate_against_source(&certificate, &path)
+        .expect_err("source-bound proof must not use an empty domain");
+    std::fs::remove_file(&path).ok();
+    assert_eq!(error.code, "SPX-Z106");
+    assert!(error.message.contains("domain is unknown"));
+}
+
 /// Build a genuinely validated `Refuted` certificate: `model` is replayed
 /// against the real declaration via the same checked-arithmetic evaluator a
 /// live discharge attempt uses, and the test asserts the outcome really is

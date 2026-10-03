@@ -418,8 +418,26 @@ pub(super) fn oracle_call(
             );
             if let (Some(actual), Some(parameter)) = (actual, import.params.get(index)) {
                 reject_native_unit_value(program, argument, &actual, diagnostics);
+                check_argument_ownership(
+                    program,
+                    current,
+                    name,
+                    argument,
+                    parameter,
+                    Some(&actual),
+                    variables,
+                    types,
+                    allow_moves,
+                    false,
+                    false,
+                    diagnostics,
+                );
                 if !actual.native_unit
-                    && (actual.ty != parameter.ty || actual.mode != ParamMode::Value)
+                    && (actual.ty != parameter.ty
+                        || (actual.mode != parameter.mode
+                            && !(parameter.mode == ParamMode::Borrow
+                                && actual.mode == ParamMode::Own
+                                && matches!(&argument.kind, crate::ast::ExprKind::Var(_)))))
                 {
                     diagnostics.push(error(
                         program,
@@ -431,15 +449,12 @@ pub(super) fn oracle_call(
             }
         }
         let native_unit = import.result == ImportResult::Unit;
-        let mut checked = CheckedValue::value(match import.result {
-            ImportResult::Unit => Type::Named {
-                name: "\0native-rust-unit".to_owned(),
-                arguments: Vec::new(),
-            },
-            ImportResult::I64 => Type::I64,
-            ImportResult::Bool => Type::Bool,
-        });
+        let mut checked =
+            CheckedValue::returned(import.result.value_type(), import.result.is_owned());
         checked.native_unit = native_unit;
+        if import.result.is_borrowed() {
+            checked.mode = ParamMode::Borrow;
+        }
         return Some(checked);
     }
     let target = functions.get(name.as_str()).copied();

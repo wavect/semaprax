@@ -142,6 +142,8 @@ impl PreparedContinuedDecisionCleanupV8<'_> {
     }
 }
 
+pub(in crate::live_invocation::source_journal::owned_wait_v8) mod continued_reduce;
+
 #[cfg(all(test, unix))]
 mod tests;
 
@@ -410,5 +412,250 @@ impl SettledContinuedDecisionCleanupV8<'_> {
         &self,
     ) -> &TargetAccounting {
         self.owner.owner.owner.accounting()
+    }
+}
+pub(in crate::live_invocation::source_journal::owned_wait_v8) struct ContinuedOutcomeFailureV8<'j> {
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) owner:
+        SettledContinuedDecisionCleanupV8<'j>,
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) error: SourceJournalError,
+}
+impl<'j> SettledContinuedDecisionCleanupV8<'j> {
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn mint_outcome(
+        mut self,
+    ) -> Result<Self, ContinuedOutcomeFailureV8<'j>> {
+        let result = (|| {
+            self.validate_live()?;
+            let completed = &mut self
+                .owner
+                .owner
+                .owner
+                .owner
+                .phase
+                .owner
+                .phase
+                .owner
+                .owner
+                .authorization
+                .completed;
+            let ModelOwnerV8::Resumed(resumed) = &mut completed.owner else {
+                return Err(SourceJournalError::Order);
+            };
+            resumed.owner.mint_continued_outcome(
+                &self.session,
+                &self.witness,
+                completed
+                    .proposal
+                    .as_ref()
+                    .ok_or(SourceJournalError::Binding)?,
+            )?;
+            self.validate_live()
+        })();
+        match result {
+            Ok(()) => Ok(self),
+            Err(error) => {
+                self.owner.journal().quarantine();
+                Err(ContinuedOutcomeFailureV8 { owner: self, error })
+            }
+        }
+    }
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn outcome_minted(
+        &self,
+    ) -> Result<bool, SourceJournalError> {
+        Ok(self.owner.owner.owner.actual()?.continued_outcome_minted())
+    }
+    fn take_reduce_outcome(
+        &mut self,
+    ) -> Result<crate::interpreter::resumable::owned_frame::registered_stage::effect::ExecutedOwnedAgentTurnV2<'j>, SourceJournalError>{
+        let completed = &mut self
+            .owner
+            .owner
+            .owner
+            .owner
+            .phase
+            .owner
+            .phase
+            .owner
+            .owner
+            .authorization
+            .completed;
+        let ModelOwnerV8::Resumed(resumed) = &mut completed.owner else {
+            return Err(SourceJournalError::Order);
+        };
+        resumed.owner.take_continued_reduce_outcome()
+    }
+    fn validate_spent_reduce_context(
+        &self,
+        sequence: usize,
+        bytes: usize,
+        step: bool,
+        incurred: bool,
+    ) -> Result<(), SourceJournalError> {
+        let completed = &self
+            .owner
+            .owner
+            .owner
+            .owner
+            .phase
+            .owner
+            .phase
+            .owner
+            .owner
+            .authorization
+            .completed;
+        let ModelOwnerV8::Resumed(resumed) = &completed.owner else {
+            return Err(SourceJournalError::Order);
+        };
+        resumed.owner.validate_spent_reduce_context(
+            sequence,
+            bytes,
+            completed
+                .proposal
+                .as_ref()
+                .ok_or(SourceJournalError::Binding)?,
+            step,
+            incurred,
+        )
+    }
+
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn continued_model_origin(
+        &self,
+    ) -> Result<
+        (
+            &'j SourceOwnedWaitJournalV8,
+            &dyn crate::live_invocation::SourceInvocationClock,
+            TargetAccounting,
+        ),
+        SourceJournalError,
+    > {
+        let completed = &self
+            .owner
+            .owner
+            .owner
+            .owner
+            .phase
+            .owner
+            .phase
+            .owner
+            .owner
+            .authorization
+            .completed;
+        let ModelOwnerV8::Resumed(resumed) = &completed.owner else {
+            return Err(SourceJournalError::Order);
+        };
+        Ok((
+            resumed.owner.model_journal(),
+            resumed.owner.model_clock(),
+            *resumed.owner.model_accounting(),
+        ))
+    }
+}
+
+impl<'j> SettledContinuedDecisionCleanupV8<'j> {
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn failed_target(&self) -> bool {
+        matches!(
+            self.owner.owner.owner.owner.phase.facts.ordinary(),
+            SourceJournalEntry::EffectFailed {
+                reason: crate::live_invocation::source_journal::SourceEffectFailure::HandlerFailed
+                    | crate::live_invocation::source_journal::SourceEffectFailure::ResultLimit,
+                ..
+            }
+        )
+    }
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn failure_session(
+        &self,
+    ) -> &AppendSessionV8<'j> {
+        &self.session
+    }
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn failure_origin(&self) -> Result<crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect::authorization::failed_state::continued::OriginV8<'_, 'j>, SourceJournalError>{
+        let completed = &self
+            .owner
+            .owner
+            .owner
+            .owner
+            .phase
+            .owner
+            .phase
+            .owner
+            .owner
+            .authorization
+            .completed;
+        let ModelOwnerV8::Resumed(resumed) = &completed.owner else {
+            return Err(SourceJournalError::Order);
+        };
+        Ok(resumed.owner.failed_state_origin(
+            completed
+                .proposal
+                .as_ref()
+                .ok_or(SourceJournalError::Binding)?,
+        ))
+    }
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn failed_state_facts(
+        &self,
+    ) -> Result<
+        (
+            crate::live_invocation::source_journal::SourceEffectFailure,
+            Value,
+            u32,
+            u32,
+        ),
+        SourceJournalError,
+    > {
+        let completed = &self
+            .owner
+            .owner
+            .owner
+            .owner
+            .phase
+            .owner
+            .phase
+            .owner
+            .owner
+            .authorization
+            .completed;
+        let ModelOwnerV8::Resumed(resumed) = &completed.owner else {
+            return Err(SourceJournalError::Order);
+        };
+        let (reason, state) = resumed.owner.continued_failed_state_facts(
+            &self.session,
+            &self.witness,
+            completed
+                .proposal
+                .as_ref()
+                .ok_or(SourceJournalError::Binding)?,
+        )?;
+        let [settled, recorded] = self.owner.owner.owner.owner.phase.acks.as_slice() else {
+            return Err(SourceJournalError::Order);
+        };
+        Ok((
+            reason,
+            state,
+            sequence(&settled.session)?,
+            sequence(&recorded.session)?,
+        ))
+    }
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn take_failed_state(&mut self) -> Result<crate::interpreter::resumable::owned_frame::registered_stage::effect::PendingOwnedEffectReceiptV8<'j>, SourceJournalError>{
+        let completed = &mut self
+            .owner
+            .owner
+            .owner
+            .owner
+            .phase
+            .owner
+            .phase
+            .owner
+            .owner
+            .authorization
+            .completed;
+        let ModelOwnerV8::Resumed(resumed) = &mut completed.owner else {
+            return Err(SourceJournalError::Order);
+        };
+        resumed.owner.take_continued_failed_state(
+            &self.session,
+            &self.witness,
+            completed
+                .proposal
+                .as_ref()
+                .ok_or(SourceJournalError::Binding)?,
+        )
     }
 }

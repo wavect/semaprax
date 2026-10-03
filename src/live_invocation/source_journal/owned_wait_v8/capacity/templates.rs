@@ -6,6 +6,7 @@ use crate::interpreter::ArgumentValue;
 use crate::resumable_effects::owned_frame::v2 as checked;
 use serde_json::json;
 
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub(super) struct Maxima {
     pub state: Value,
     pub proposal: Value,
@@ -17,6 +18,21 @@ pub(super) struct Maxima {
     pub effect_operations: Value,
     pub partial_operations: Value,
     pub terminal: Value,
+}
+
+// The maxima are derived only from the immutable checked wait binding. Keep
+// the proof object with the result so an equal-looking reconstructed binding
+// cannot reuse this capacity proof.
+#[derive(Default)]
+pub(in crate::live_invocation::source_journal::owned_wait_v8) struct MaximaTemplateCacheV8 {
+    pub(super) entry: std::cell::RefCell<
+        Option<(
+            std::sync::Arc<
+                crate::resumable_effects::owned_frame::v2::CheckedOwnedAgentWaitBindingV8,
+            >,
+            Result<Maxima, SourceJournalError>,
+        )>,
+    >,
 }
 fn binding<T>() -> Result<T, SourceJournalError> {
     Err(SourceJournalError::Binding)
@@ -144,6 +160,19 @@ fn largest_terminal(context: &FoldContextV8) -> Result<Value, SourceJournalError
     Ok(largest)
 }
 pub(super) fn maxima(context: &FoldContextV8) -> Result<Maxima, SourceJournalError> {
+    let b = &context.checked_binding;
+    if let Some((binding, retained)) = context.maxima_templates.entry.borrow().as_ref() {
+        if std::sync::Arc::ptr_eq(binding, b) {
+            return retained.clone();
+        }
+    }
+    let retained = maxima_uncached(context);
+    *context.maxima_templates.entry.borrow_mut() =
+        Some((std::sync::Arc::clone(b), retained.clone()));
+    retained
+}
+
+fn maxima_uncached(context: &FoldContextV8) -> Result<Maxima, SourceJournalError> {
     let b = &context.checked_binding;
     let helper = b.helper();
     let id = helper.function().params[0]

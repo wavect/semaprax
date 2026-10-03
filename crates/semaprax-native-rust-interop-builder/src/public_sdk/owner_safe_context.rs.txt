@@ -1,0 +1,73 @@
+/// A thread-affine owner context. Safe owners borrow this value, so closing or
+/// moving it while an owner is still used is rejected by Rust's borrow checker.
+/// Raw C carriers remain a separate, dynamically checked interface.
+pub struct SpxOwnerContext {
+    id: u64,
+    closed: bool,
+    affinity: std::marker::PhantomData<std::rc::Rc<()>>,
+}
+/// One affine Rust allocation retained by its originating context.
+/// There is intentionally no Clone/Copy implementation and no raw-handle getter.
+pub struct SpxOwned<'context> {
+    context: &'context SpxOwnerContext,
+    owner: SpxOwner,
+    live: bool,
+}
+impl SpxOwnerContext {
+    pub fn new() -> Result<Self, i32> {
+        let id = spx_owner_context_new();
+        if id == 0 { return Err(4); }
+        Ok(Self { id, closed: false, affinity: std::marker::PhantomData })
+    }
+    pub fn construct(&self, input: i64) -> Result<SpxOwned<'_>, i32> {
+        let mut owner = SpxOwner::default();
+        // SAFETY: `owner` is an aligned writable local. The context is alive
+        // for this borrow and the generated constructor owns its allocation.
+        let status = unsafe { spx_owner_new(self.id, input, &mut owner) };
+        if status != 0 { return Err(status); }
+        Ok(SpxOwned { context: self, owner, live: true })
+    }
+    pub fn close(mut self) -> Result<(), i32> {
+        self.closed = true;
+        let status = spx_owner_context_close(self.id);
+        if status == 0 { Ok(()) } else { Err(status) }
+    }
+}
+impl Drop for SpxOwnerContext {
+    fn drop(&mut self) {
+        if !self.closed {
+            self.closed = true;
+            // No live safe owner can outlive this borrow. An unsafe/raw caller
+            // can still retain table state; refusal quarantines it, not retry.
+            let _ = spx_owner_context_close(self.id);
+        }
+    }
+}
+impl SpxOwned<'_> {
+    pub fn consume(mut self, input: i64) -> Result<bool, i32> {
+        let mut output = 0u8;
+        // SAFETY: the output is an aligned writable local, and the carrier
+        // comes only from this context's successful typed constructor.
+        let status = unsafe { spx_owner_consume(self.context.id, self.owner, input, &mut output) };
+        // Zero and caught-unwind status mean `take` completed. Never finalize
+        // again after a possibly executed destructor. A rejected take leaves
+        // this owner armed for its one ordinary cleanup attempt.
+        if status == 0 || status == 2 { self.live = false; }
+        if status == 0 { Ok(output != 0) } else { Err(status) }
+    }
+    pub fn dispose(mut self) -> Result<(), i32> {
+        self.live = false;
+        let status = spx_owner_drop(self.context.id, self.owner);
+        // Explicit disposal attempts the finalizer once even if it panics.
+        // A rejected or uncertain raw state is quarantined without retry.
+        if status == 0 { Ok(()) } else { Err(status) }
+    }
+}
+impl Drop for SpxOwned<'_> {
+    fn drop(&mut self) {
+        if self.live {
+            self.live = false;
+            let _ = spx_owner_drop(self.context.id, self.owner);
+        }
+    }
+}

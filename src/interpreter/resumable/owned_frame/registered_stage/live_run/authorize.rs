@@ -9,6 +9,9 @@ use crate::live_invocation::source_journal::{LiveAuthorizePermitV8, LiveStateTra
 use crate::resumable_effects::owned_frame::v2::{
     CheckedOwnedAgentWaitBindingV8, CheckedOwnedWaitProposalV8,
 };
+mod abandonment;
+mod recovery;
+pub(crate) use recovery::{restore_transferred_state_v8, LiveTransferredRestoreFailureV8};
 
 pub(crate) struct LiveTransferredStateV8 {
     state: CompletedOwnedAgentStateV2,

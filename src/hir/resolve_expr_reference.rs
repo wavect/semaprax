@@ -187,20 +187,12 @@ impl Resolver<'_> {
                             ));
                         }
                     }
-                    let result = match import.result {
-                        crate::ast::ImportResult::Unit => ResolvedImportResultKind::Unit,
-                        crate::ast::ImportResult::I64 => ResolvedImportResultKind::I64,
-                        crate::ast::ImportResult::Bool => ResolvedImportResultKind::Bool,
-                    };
-                    let ty = match result {
-                        ResolvedImportResultKind::Unit => ResolvedType::Unit,
-                        ResolvedImportResultKind::I64 => ResolvedType::I64,
-                        ResolvedImportResultKind::Bool => ResolvedType::Bool,
-                    };
+                    let (result, ty) =
+                        self.resolve_native_rust_result(&import.result, expr.span)?;
                     return Ok(ResolvedExpr {
                         id,
                         ty,
-                        ownership: OwnershipMode::Value,
+                        ownership: result.ownership(),
                         kind: ResolvedExprKind::NativeRustImportCall(
                             ResolvedNativeRustImportCall {
                                 expression: ExpressionId::new(function, path),
@@ -1419,7 +1411,11 @@ impl Resolver<'_> {
                             && !facts.copy
                             && scrutinee.ownership == OwnershipMode::Own => {}
                     (DeclarationKind::Variant, ResolvedMatchMode::Borrow)
-                        if resolver_admits_owned_variant(&self.declarations, &scrutinee.ty)
+                        if (resolver_admits_owned_variant(&self.declarations, &scrutinee.ty)
+                            || super::workspace_link::native_owner::resolver_ri06_regex_result(
+                                self.program,
+                                &scrutinee.ty,
+                            ))
                             && facts.needs_drop
                             && !facts.copy
                             && matches!(

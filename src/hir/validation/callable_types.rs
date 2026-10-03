@@ -92,6 +92,22 @@ impl HirValidator<'_> {
                     if !arguments.is_empty()
                         && (!matches!(kind, DeclarationKind::Record | DeclarationKind::Variant)
                             || (!admitted_owned_byte_prelude_instance(declaration, arguments)
+                                && !(ResolvedImportResultKind::is_owned_container_type(
+                                    ty,
+                                    &self.program.declarations,
+                                ) && self
+                                    .program
+                                    .interfaces
+                                    .iter()
+                                    .flat_map(|i| &i.imports)
+                                    .any(|i| {
+                                        i.native_rust
+                                            && i.result
+                                                .kind
+                                                .value_type(&self.program.declarations)
+                                                .is_ok_and(|actual| &actual == ty)
+                                    }))
+                                && !crate::hir::workspace_link::native_owner::admitted_ri06_regex_result(self.program, ty)
                                 && !admitted_owned_record
                                 && !admitted_nested_owned_record
                                 && !admitted_owned_variant

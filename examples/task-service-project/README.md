@@ -10,17 +10,25 @@ fixture mode -- no socket, no file, and no real clock are touched.
 `service.config.json` is its credential-free fixture instance: database, HTTP,
 and telemetry adapters are all explicitly `fixture`, every endpoint is absent,
 and every secret is represented only by a nullable host-owned reference. A
-host deployment may select SQLite or PostgreSQL, native HTTP/TLS, and OTLP only
-by supplying a separately validated configuration and resolving its secret
-references outside Semaprax source. Neither generated file carries credentials
-or grants database, network, telemetry, or secret-store authority.
+host deployment may select the durable `snapshot` store, native HTTP/TLS, and
+either `semaprax-json-events` or `otlp-http-json` only by supplying a
+separately validated configuration and resolving its secret references outside
+Semaprax source. SQLite and PostgreSQL labels are refused. The former telemetry
+profile emits its signed `semaprax.json-event.v1` body at `/v1/events`; the
+latter emits OTLP/HTTP JSON-Protobuf logs at `/v1/logs`. Neither generated file carries
+credentials or grants database, network, telemetry, or secret-store authority.
+`sqlite` and `postgresql` fail during checked configuration and independent
+host-request decoding with adapter-specific diagnostics, before the host opens
+or writes a state directory. A non-null `dsn_secret_ref` is likewise refused:
+the `snapshot` profile persists under the operator-provided `--state-dir` and
+does not reinterpret a DSN as a filesystem path.
 
 `service-host-adapter-request.json` is the canonical bounded handoff derived
 from that fixture configuration. It declares an empty capability list, so it
 cannot ask a host to open a database, serve TLS, resolve a secret, or emit
-telemetry. A valid host-mode configuration instead renders those four named
+telemetry. A valid host-mode configuration instead renders three named
 requirements as a request only; providing and executing an adapter remains an
-explicit host responsibility, and this reference does not implement one.
+explicit host responsibility.
 
 ```sh
 semaprax check examples/task-service-project

@@ -411,7 +411,11 @@ impl PreparedEntry {
                 "Project Workspace revision differs from independent manifest replay",
             ));
         }
-        let project_revision = project_revision(&manifest, &workspace_revision);
+        let project_revision = project_revision(
+            &manifest,
+            &workspace_revision,
+            revision.manifest().manifest_schema() == crate::project::PACKAGE_MANIFEST_SCHEMA_V2,
+        );
         if project_revision != revision.project_revision() {
             return Err(replay(
                 "Project revision differs from independent manifest replay",
@@ -721,7 +725,11 @@ fn replay_stored_for_profile(
     if workspace_revision != header.workspace_revision {
         return Err(replay("stored Workspace revision binding disagrees"));
     }
-    let project_revision = project_revision(manifest.as_bytes(), &workspace_revision);
+    let project_revision = project_revision(
+        manifest.as_bytes(),
+        &workspace_revision,
+        typed_manifest.manifest_schema() == crate::project::PACKAGE_MANIFEST_SCHEMA_V2,
+    );
     if project_revision != header.project_revision {
         return Err(replay("stored Project revision binding disagrees"));
     }
@@ -1185,9 +1193,13 @@ fn framed_digest(domain: &[u8], bytes: &[u8]) -> String {
     )
 }
 
-fn project_revision(manifest: &[u8], workspace_revision: &str) -> String {
+fn project_revision(manifest: &[u8], workspace_revision: &str, law_layout: bool) -> String {
     let mut digest = Sha256::new();
-    digest.update(PROJECT_REVISION_DOMAIN);
+    digest.update(if law_layout {
+        b"semaprax.project-revision.v2\0".as_slice()
+    } else {
+        PROJECT_REVISION_DOMAIN
+    });
     digest.update((manifest.len() as u64).to_le_bytes());
     digest.update(manifest);
     digest.update((workspace_revision.len() as u64).to_le_bytes());

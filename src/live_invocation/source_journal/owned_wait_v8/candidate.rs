@@ -15,7 +15,12 @@ use super::live_upstream::{
 };
 use super::*;
 use crate::resumable_effects::owned_frame::SourceOwnedWaitLeaseV8;
-
+mod authorization_recovery;
+mod continued_reduce;
+mod prepared_recovery;
+mod refusal;
+mod shutdown;
+pub(super) mod terminal;
 enum ProducerV8<'p, 'j> {
     ContinuedSettlement(&'p FixedOwnedContinuedSettlementAppendPermitV8<'p, 'j>),
     ContinuedIntent(&'p super::live_upstream::FixedOwnedContinuedIntentAppendPermitV8<'p, 'j>),
@@ -70,6 +75,10 @@ enum ProducerV8<'p, 'j> {
     OriginalReduce(
         &'p SourceOwnedWaitJournalV8,
         &'p FixedOwnedReduceReservationAppendPermitV8<'p, 'j>,
+    ),
+    ContinuedReduce(
+        &'p SourceOwnedWaitJournalV8,
+        &'p super::live_upstream::FixedOwnedContinuedReduceReservationAppendPermitV8<'p, 'j>,
     ),
     Generic,
     Intent(
@@ -590,51 +599,6 @@ impl<'a> InventoryV8<'a> {
             selected,
         ))
     }
-    pub(super) fn step_reduce_facts(
-        &self,
-    ) -> Result<(u64, u32, u32, u32, &EntryV8), SourceJournalError> {
-        let context = self.context.fold();
-        let folded = fold::fold(context, &self.entries)?;
-        if folded.tail != fold::TailV8::Reduce || folded.reduce_fold().is_none() {
-            return Err(SourceJournalError::Order);
-        }
-        let selected = &self.entries.last().ok_or(SourceJournalError::Order)?.entry;
-        let (turn, attempt) = match selected {
-            EntryV8::Owned(
-                model::OwnedBodyV8::OwnedReduceStaged { turn, attempt, .. }
-                | model::OwnedBodyV8::OwnedReduceCleanupStarted { turn, attempt, .. }
-                | model::OwnedBodyV8::OwnedReduceCleanupSettled { turn, attempt, .. }
-                | model::OwnedBodyV8::OwnedStepTransferReserved { turn, attempt, .. }
-                | model::OwnedBodyV8::OwnedStepTransferCompleted { turn, attempt, .. },
-            ) => (*turn, *attempt),
-            EntryV8::Ordinary(SourceJournalEntry::StageReservation {
-                turn,
-                attempt: Some(attempt),
-                role: super::super::SourceStageRole::Reduce,
-                fuel,
-            }) if Some(*fuel) == context.ordinary.max_steps_per_stage() => (*turn, *attempt),
-            EntryV8::Ordinary(SourceJournalEntry::Transition { turn, attempt, .. }) => {
-                (*turn, *attempt)
-            }
-            EntryV8::Ordinary(SourceJournalEntry::Stop {
-                turn: Some(turn),
-                attempt: Some(attempt),
-                ..
-            }) => (*turn, *attempt),
-            _ => return Err(SourceJournalError::Order),
-        };
-        if turn != 0 {
-            return Err(SourceJournalError::Binding);
-        }
-        capacity::outstanding(context, &folded)?.check(self.document.len(), self.entries.len())?;
-        Ok((
-            folded.reserved_total,
-            folded.stages,
-            turn,
-            attempt,
-            selected,
-        ))
-    }
     /// Exact authenticated target-failure State closure, never failed observer
     /// receipt or successful effect/Reduce. This yields no physical authority.
     pub(super) fn failed_effect_state_facts(
@@ -675,9 +639,6 @@ impl<'a> InventoryV8<'a> {
             ) if folded.failed_effect_state_fold().is_some() => (*turn, *attempt),
             _ => return Err(SourceJournalError::Order),
         };
-        if turn != 0 {
-            return Err(SourceJournalError::Binding);
-        }
         capacity::outstanding(context, &folded)?.check(self.document.len(), self.entries.len())?;
         Ok((
             folded.reserved_total,
@@ -1098,6 +1059,12 @@ impl<'a> InventoryV8<'a> {
                     permit.validate_selected_prefix(journal, &self)?;
                 }
                 ProducerV8::OriginalReduce(journal, permit) => {
+                    if checked.entry != *permit.selected_row() {
+                        return Err(SourceJournalError::Binding);
+                    }
+                    permit.validate_selected_prefix(journal, &self)?;
+                }
+                ProducerV8::ContinuedReduce(journal, permit) => {
                     if checked.entry != *permit.selected_row() {
                         return Err(SourceJournalError::Binding);
                     }

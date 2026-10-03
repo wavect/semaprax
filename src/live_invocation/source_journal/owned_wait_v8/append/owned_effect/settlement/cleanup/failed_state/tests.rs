@@ -2,8 +2,12 @@
 //! Stop is journal evidence only; no terminal delivery or recovered owner mint.
 use super::*;
 use crate::agent_runtime::AgentCancellation;
+use crate::live_invocation::source_journal::SourceJournalError;
 use crate::live_invocation::source_journal::owned_wait_v8::append::owned_effect::{test_failed_target,TestFailedTargetV8};
-use crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect::authorization::failed_state::{LiveFailedEffectStateAppendV8,LiveFailedEffectStateAcknowledgedV8};
+use crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect::authorization::failed_state::{
+    stop_failed_effect_state_v8, LiveFailedEffectStateAcknowledgedV8,
+    LiveFailedEffectStateAppendV8,
+};
 use crate::live_invocation::{InvocationClock,SourceInvocationClock};
 use crate::resumable_effects::CapabilityPolicy;
 use std::{cell::Cell,sync::Arc};
@@ -140,6 +144,74 @@ fn owned_failed_state_append_actual_handler_and_result_failure_preserve_sticky_s
             );
         });
     }
+}
+#[test]
+fn owned_failed_target_driver_joins_cleanup_receipt_and_sticky_stop() {
+    CheckedOwnedWaitJournalContextV8::test_with_actual_runtime(|c, l, k| {
+        let j = journal(c, l, k);
+        let cancel = AgentCancellation::new();
+        let policy = CapabilityPolicy::new(vec!["read".into()]).unwrap();
+        let clock = Clock(Cell::new(0));
+        test_failed_target(
+            &j,
+            &cancel,
+            &policy,
+            &clock,
+            TestFailedTargetV8::HandlerFailed,
+            |owner, weak| {
+                let sequence = j.begin_session().unwrap().sequence();
+                let mut observations = 0;
+                let stopped = stop_failed_effect_state_v8(owner, |_| observations += 1)
+                    .unwrap_or_else(|_| panic!("actual target cleanup, receipt, and Stop"));
+                assert_eq!(observations, 1);
+                assert!(weak.iter().all(|owner| owner.upgrade().is_none()));
+                let current = j.begin_session().unwrap();
+                assert_eq!(current.sequence(), sequence + 3);
+                assert!(matches!(
+                    current.inventory.failed_effect_state_facts().unwrap().4,
+                    EntryV8::Ordinary(SourceJournalEntry::Stop {
+                        status:
+                            crate::live_invocation::source_journal::SourceStopStatus::EffectFailed,
+                        reason:
+                            crate::live_invocation::source_journal::SourceStopReason::EffectFailed,
+                        ..
+                    })
+                ));
+                drop(stopped);
+            },
+        );
+    });
+}
+#[test]
+fn owned_failed_target_driver_cancellation_after_cleanup_seals_reached_owner() {
+    CheckedOwnedWaitJournalContextV8::test_with_actual_runtime(|c, l, k| {
+        let j = journal(c, l, k);
+        let cancel = AgentCancellation::new();
+        let policy = CapabilityPolicy::new(vec!["read".into()]).unwrap();
+        let clock = Clock(Cell::new(0));
+        test_failed_target(
+            &j,
+            &cancel,
+            &policy,
+            &clock,
+            TestFailedTargetV8::HandlerFailed,
+            |owner, weak| {
+                let mut observations = 0;
+                let result = stop_failed_effect_state_v8(owner, |_| {
+                    observations += 1;
+                    cancel.cancel();
+                });
+                let quarantined = result
+                    .err()
+                    .expect("cancelled Stop seals released State owner");
+                assert_eq!(quarantined.status(), SourceJournalError::Poisoned);
+                assert_eq!(observations, 1);
+                assert!(weak.iter().all(|owner| owner.upgrade().is_none()));
+                assert!(j.begin_session().is_err());
+                drop(quarantined);
+            },
+        );
+    });
 }
 #[test]
 fn owned_failed_state_append_cancel_after_started_allows_real_receipt_but_no_stop() {

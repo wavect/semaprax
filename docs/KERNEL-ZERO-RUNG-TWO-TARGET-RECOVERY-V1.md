@@ -2,8 +2,10 @@
 
 Audience: compiler and self-hosting contributors.
 
-Status: local, private test gate for issue #188. It is unexecuted in this
-change, so it is not yet a passing local-evidence result. This document does
+Status: local, private test gate for issue #188. Its required-tool scalar
+target/recovery cases passed in the 124-case exact `f99c76dc2` selector recorded
+by [Accepted-Revision Validation v1](KERNEL-ZERO-ACCEPTED-REVISION-VALIDATION-V1.md).
+This document does
 not promote a self-hosting rung, transfer formatter authority, define a public
 target ABI, or introduce an owned `Bytes`/string buffer.
 

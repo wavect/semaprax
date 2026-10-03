@@ -20,6 +20,7 @@ MAX_PACKET_TOTAL = 8 * 1024 * 1024
 MAX_PACKET_BYTES = 8 * 1024 * 1024
 MAX_RECORD_BYTES = 2 * 1024 * 1024
 MAX_MANIFEST_BYTES = 256 * 1024
+MAX_PROTOCOL_BYTES = 256 * 1024
 REPO_ROOT = Path(__file__).resolve().parents[2]
 FROZEN_MANIFEST = REPO_ROOT / "benchmarks/agent-task-comparison-v1/manifest.json"
 FROZEN_MANIFEST_SHA256 = "3a6b4610aa3b570d6a070afa5381582efb4559b63c4efa73c517f5ab3349e033"
@@ -41,6 +42,57 @@ def _sha(body):
 
 def _canonical(value):
     return json.dumps(value, sort_keys=True, separators=(",", ":")).encode("utf-8")
+
+
+PROTOCOL_SCHEMA = "semaprax.opencode-agent-task-pilot-protocol.v1"
+
+
+def load_frozen_protocol(path):
+    """Read one exact two-model execution protocol without reading credentials.
+
+    The protocol is deliberately a public, non-secret binding artifact.  It
+    identifies a provider/model/revision and the approved budget/egress policy
+    by identifier, never a credential value or environment-variable name.
+    """
+    body = _read_regular(path, MAX_PROTOCOL_BYTES)
+    try:
+        value = json.loads(body.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise ValueError("execution protocol is not JSON") from error
+    if not isinstance(value, dict) or body != _canonical(value) + b"\n":
+        raise ValueError("execution protocol is not canonical JSON")
+    required = {
+        "schema", "id", "manifest_sha256", "runner_revision", "budget_policy",
+        "egress_policy", "models",
+    }
+    if set(value) != required or value.get("schema") != PROTOCOL_SCHEMA:
+        raise ValueError("execution protocol schema or keys differ")
+    if value.get("manifest_sha256") != FROZEN_MANIFEST_SHA256:
+        raise ValueError("execution protocol manifest binding differs")
+    for name in ("id", "runner_revision", "budget_policy", "egress_policy"):
+        if not isinstance(value.get(name), str) or not value[name] or len(value[name]) > 65536:
+            raise ValueError("execution protocol identity is invalid")
+    models = value.get("models")
+    if not isinstance(models, list) or len(models) != 2:
+        raise ValueError("execution protocol requires exactly two models")
+    model_ids = set()
+    configured_models = set()
+    for model in models:
+        if not isinstance(model, dict) or set(model) != {
+            "id", "provider", "model", "revision", "configured_model", "tokenizer", "configuration"
+        }:
+            raise ValueError("execution protocol model keys differ")
+        for name in ("id", "provider", "model", "revision", "configured_model", "tokenizer", "configuration"):
+            item = model.get(name)
+            if not isinstance(item, str) or not item or len(item) > 65536 or item.strip() != item:
+                raise ValueError("execution protocol model identity is invalid")
+        if model["revision"].lower() == "latest" or model["configured_model"] != f"{model['provider']}/{model['model']}":
+            raise ValueError("execution protocol model revision is mutable or mismatched")
+        if model["id"] in model_ids or model["configured_model"] in configured_models:
+            raise ValueError("execution protocol model identities are duplicated")
+        model_ids.add(model["id"])
+        configured_models.add(model["configured_model"])
+    return value, _sha(body)
 
 
 def _read_regular(path, limit):
@@ -241,8 +293,13 @@ def candidate_digest_for_evidence(evidence_dir):
     return _candidate_digest(files)
 
 
-def audit_cohort(evidence_root, manifest_path):
-    """Audit exact tuple accounting without invoking a model or network."""
+def audit_cohort(evidence_root, manifest_path, protocol_path=None):
+    """Audit exact tuple accounting without invoking a model or network.
+
+    A protocol-bound audit is the only form that can describe a future
+    scoreable two-model cohort.  The protocol-free shape remains readable for
+    the September historical archive, but is explicitly ineligible evidence.
+    """
     root = Path(evidence_root)
     if Path(manifest_path).resolve() != FROZEN_MANIFEST.resolve():
         raise ValueError("cohort audit requires the frozen canonical manifest")
@@ -270,20 +327,42 @@ def audit_cohort(evidence_root, manifest_path):
     if sorted(lanes) != ["semaprax-graph-operational", "semaprax-source-first"]:
         raise ValueError("frozen manifest available lanes differ")
     repetitions = manifest["repetitions"]
-    expected = {(task, lane, trial) for task in tasks for lane in lanes for trial in range(1, repetitions + 1)}
+    protocol = None
+    protocol_digest = None
+    if protocol_path is not None:
+        protocol, protocol_digest = load_frozen_protocol(protocol_path)
+        model_ids = [model["id"] for model in protocol["models"]]
+        expected = {
+            (model_id, task, lane, trial)
+            for model_id in model_ids for task in tasks for lane in lanes
+            for trial in range(1, repetitions + 1)
+        }
+    else:
+        expected = {(task, lane, trial) for task in tasks for lane in lanes for trial in range(1, repetitions + 1)}
     records = []
     for path in sorted(root.glob("*/record.json")):
         value = json.loads(_read_regular(path, MAX_RECORD_BYTES).decode("utf-8"))
         records.append((path, value))
-    actual = [(value.get("task"), value.get("lane"), value.get("trial")) for _, value in records]
+    if protocol is None:
+        actual = [(value.get("task"), value.get("lane"), value.get("trial")) for _, value in records]
+    else:
+        actual = [
+            (
+                value["model_identity"].get("id")
+                if isinstance(value.get("model_identity"), dict)
+                and isinstance(value["model_identity"].get("id"), str)
+                else None,
+                value.get("task"), value.get("lane"), value.get("trial"),
+            )
+            for _, value in records
+        ]
     counts = {key: actual.count(key) for key in set(actual)}
     duplicates = sorted(key for key, count in counts.items() if count > 1)
     extra = sorted(set(actual) - expected)
     missing = sorted(expected - set(actual))
     invalid = []
     reasons = {}
-    for path, value in records:
-        key = (value.get("task"), value.get("lane"), value.get("trial"))
+    for (path, value), key in zip(records, actual):
         if value.get("manifest_sha256") != FROZEN_MANIFEST_SHA256:
             invalid.append(f"{path}: manifest binding differs")
         if value.get("task_sha256") != FROZEN_TASK_SHA256.get(value.get("task")):
@@ -295,6 +374,16 @@ def audit_cohort(evidence_root, manifest_path):
             invalid.append(f"{path}: invalid status")
         if value.get("outcome") not in ("completed", "failed", "aborted"):
             invalid.append(f"{path}: invalid outcome")
+        if protocol is None:
+            if value.get("status") != "ineligible":
+                invalid.append(f"{path}: historical evidence must remain explicitly ineligible")
+        else:
+            model_id = value.get("model_identity", {}).get("id") if isinstance(value.get("model_identity"), dict) else None
+            model = next((item for item in protocol["models"] if item["id"] == model_id), None)
+            if value.get("protocol_sha256") != protocol_digest:
+                invalid.append(f"{path}: execution protocol binding differs")
+            if model is None or value.get("model_identity") != model:
+                invalid.append(f"{path}: model identity differs from execution protocol")
         reason = value.get("reason")
         if value.get("status") == "ineligible":
             if not isinstance(reason, str) or not reason:
@@ -302,12 +391,22 @@ def audit_cohort(evidence_root, manifest_path):
             else:
                 reasons[str(key)] = reason
     failed = sum(value.get("outcome") == "failed" for _, value in records)
+    complete = not (missing or duplicates or extra or invalid) and len(records) == len(expected)
+    scoreable = protocol is not None and complete and all(value.get("status") == "eligible" for _, value in records)
     return {
         "schema": "semaprax.opencode-agent-task-pilot-cohort-audit.v1",
+        "protocol_sha256": protocol_digest,
+        "historical_evidence": protocol is None,
+        "eligible_for_scoring": scoreable,
         "expected_tuples": len(expected), "retained_records": len(records),
         "missing": missing, "duplicate": duplicates, "extra": extra,
         "invalid": invalid, "failed_records_retained": failed,
         "aborted_records_retained": sum(value.get("outcome") == "aborted" for _, value in records),
         "ineligibility_reasons": reasons,
-        "complete": not (missing or duplicates or extra or invalid) and len(records) == len(expected),
+        "complete": complete,
+        "claims": {
+            "execution": "not_performed_by_audit",
+            "comparative_result": "not_claimed",
+            "historical_evidence": "explicitly_ineligible" if protocol is None else "not_historical",
+        },
     }

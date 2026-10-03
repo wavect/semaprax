@@ -787,6 +787,15 @@ pub struct ImportDeclaration {
     pub name: String,
     pub name_span: Span,
     pub native_rust: bool,
+    /// The short `rust selected fn` form has its scalar signature supplied by
+    /// an admitted prepared index before source verification and lowering.
+    pub index_selected: bool,
+    pub selected_signature: Option<String>,
+    pub selected_index_digest: Option<String>,
+    pub selected_receiver: Option<String>,
+    /// A selected Rust API path. Its Cargo alias is checked against the
+    /// authenticated dependency closure when a binding plan is prepared.
+    pub rust_path: Option<String>,
     pub params: Vec<Param>,
     pub result: ImportResult,
     pub effects: Vec<String>,
@@ -796,22 +805,9 @@ pub struct ImportDeclaration {
     pub span: Span,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum ImportResult {
-    Unit,
-    I64,
-    Bool,
-}
-
-impl fmt::Display for ImportResult {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(match self {
-            Self::Unit => "unit",
-            Self::I64 => "i64",
-            Self::Bool => "bool",
-        })
-    }
-}
+#[path = "ast/import_result.rs"]
+mod import_result;
+pub use import_result::ImportResult;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ImportFailure {

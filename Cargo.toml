@@ -24,6 +24,7 @@ members = [
     "crates/semaprax-native-rust-interop-platform-sys",
     "crates/semaprax-native-rust-owned-data-package",
     "crates/semaprax-native-rust-interop-builder",
+    "crates/semaprax-rust-api-index",
     "crates/semaprax-project-revision-store-windows-sys",
     "crates/semaprax-toolchain",
 ]
@@ -42,6 +43,7 @@ same-file = "=1.0.6"
 serde = { version = "=1.0.229", features = ["derive"] }
 serde_json = "=1.0.151"
 sha2 = "=0.11.0"
+semaprax-rust-api-index = { path = "crates/semaprax-rust-api-index" }
 ed25519-dalek = { version = "=2.2.0", default-features = false, features = ["std"] }
 rustls = { version = "=0.23.45", default-features = false, features = ["ring", "std", "tls12"] }
 sigstore-verify = { version = "=0.11.0", default-features = false }
@@ -77,6 +79,7 @@ metal-device = ["dep:objc2", "dep:objc2-foundation", "dep:objc2-metal"]
 unstable-workflow-profiling = []
 unstable-native-host-internal = []
 unstable-wit-component-harness = []
+unstable-rust-source-lowering = []
 
 [target.'cfg(not(any(target_arch = "wasm32", target_arch = "wasm64")))'.dependencies]
 fs2 = "=0.4.3"

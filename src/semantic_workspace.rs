@@ -292,8 +292,12 @@ fn preflight_owned_inner_mode(
         let schema = schemas.remove(&source.path).ok_or_else(|| {
             invariant("semantic workspace source Graph schema is absent from the resolved build")
         })?;
-        let source_revision =
-            source_revision_with_frontend(&source.path, &source.source, frontend.as_deref())?;
+        let source_revision = source_revision_with_frontend(
+            &source.path,
+            &source.source,
+            schema,
+            frontend.as_deref(),
+        )?;
         files.push(SemanticWorkspaceFileFact {
             path: source.path,
             source_graph_schema: schema.to_owned(),
@@ -789,8 +793,21 @@ fn validate_preflight_replay(
 fn source_revision_with_frontend(
     path: &str,
     source: &str,
+    schema: &str,
     frontend: Option<&crate::project::incremental::FrontendPass>,
 ) -> Result<String, Vec<Diagnostic>> {
+    if schema == "semaprax.native-law.v1" {
+        let law = crate::native_law_source::parse(source, path).map_err(|error| vec![error])?;
+        if crate::native_law_source::canonical(&law) != source {
+            return Err(grammar(
+                "semantic workspace native-law source is not canonical",
+            ));
+        }
+        return Ok(format!(
+            "sha256:{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(source.as_bytes()))
+        ));
+    }
     match frontend {
         Some(frontend) => Ok(graph::revision_from_canonical_program(
             source,
@@ -814,8 +831,12 @@ fn validate_preflight_replay_with_frontend(
         if path != &file.path
             || schemas.get(path).copied() != Some(file.source_graph_schema.as_str())
             || file.bytes != file.source.len()
-            || source_revision_with_frontend(&file.path, &file.source, frontend)?
-                != file.source_revision
+            || source_revision_with_frontend(
+                &file.path,
+                &file.source,
+                &file.source_graph_schema,
+                frontend,
+            )? != file.source_revision
             || review::source_digest(file.source.as_bytes()) != file.source_digest
         {
             return Err(invariant(
@@ -987,7 +1008,8 @@ fn require_digest(value: &str) -> Result<(), Vec<Diagnostic>> {
 fn is_source_graph_schema(value: &str) -> bool {
     matches!(
         value,
-        "semaprax.graph.v10"
+        "semaprax.native-law.v1"
+            | "semaprax.graph.v10"
             | "semaprax.graph.v11"
             | "semaprax.graph.v12"
             | "semaprax.graph.v13"
@@ -1024,6 +1046,16 @@ fn is_source_graph_schema(value: &str) -> bool {
             | "semaprax.graph.v44"
             | "semaprax.graph.v45"
             | "semaprax.graph.v46"
+            | "semaprax.graph.v52"
+            | "semaprax.graph.v53"
+            | "semaprax.graph.v54"
+            | "semaprax.graph.v55"
+            | "semaprax.graph.v56"
+            | "semaprax.graph.v57"
+            | "semaprax.graph.v58"
+            | "semaprax.graph.v59"
+            | "semaprax.graph.v60"
+            | "semaprax.graph.v61"
     )
 }
 

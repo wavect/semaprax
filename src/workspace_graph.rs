@@ -18,6 +18,8 @@ mod operation_sidecar;
 mod owned_function_import;
 use owned_function_import::validate_imported_function;
 mod agent_execution;
+mod indexed_rust;
+mod native_law;
 mod owned_generics;
 mod package;
 mod prelude_binding;
@@ -501,6 +503,9 @@ struct WorkspaceResolvedModule {
     /// leading key alone, so no extra discriminator field or second `Vec` is
     /// needed (`render_graph_json` partitions on it).
     session_protocol_facts: Vec<String>,
+    // Only the authored native-law bytes own this schema; the resolved module
+    // is an inert internal carrier with no executable declarations.
+    native_law: bool,
 }
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub(crate) struct WorkspaceEdge {
@@ -2275,6 +2280,9 @@ impl WorkspaceGraphBuild {
 fn semantic_workspace_source_schema(
     module: &WorkspaceResolvedModule,
 ) -> Result<&'static str, Vec<Diagnostic>> {
+    if module.native_law {
+        return Ok("semaprax.native-law.v1");
+    }
     graph::graph_schema_from_parts_and_instances(
         &module.interfaces,
         &module.types,
@@ -3222,6 +3230,7 @@ pub(crate) fn render_project_semantic_graph(
     project_name: &str,
     project_revision: &str,
     test_module: &str,
+    law_modules: &[crate::assurance_manifest::law_set::LawModule],
 ) -> Result<ProjectSemanticGraphArtifact, Vec<Diagnostic>> {
     validate_render_projection(projection)?;
     validate_entry_module(test_module)?;
@@ -3242,6 +3251,7 @@ pub(crate) fn render_project_semantic_graph(
             project_name,
             project_revision,
             test_module,
+            law_modules,
             None,
         )
     });
@@ -3256,6 +3266,7 @@ pub(crate) fn render_project_semantic_graph(
             project_name,
             project_revision,
             test_module,
+            law_modules,
             Some(&digest),
         )
     });
@@ -3502,9 +3513,13 @@ fn render_graph_json(
     output.push_str("{\"schema\":");
     push_json_string(
         &mut output,
-        agent_execution::schema(
-            session_protocol_decl::schema(&session_protocols, &session_protocol_follows),
+        indexed_rust::schema(
+            agent_execution::schema(
+                session_protocol_decl::schema(&session_protocols, &session_protocol_follows),
+                &projection.modules,
+            ),
             &projection.modules,
+            false,
         ),
     );
     output.push_str(",\"workspace_manifest_schema\":");
@@ -3633,6 +3648,7 @@ fn render_graph_json(
         session_protocol_decl::schema(&session_protocols, &session_protocol_follows),
         &projection.modules,
     ));
+    indexed_rust::append(&mut output, &projection.modules);
     output.push('}');
     output.into_string()
 }
@@ -3882,17 +3898,30 @@ fn build_owned_inner(
         )?;
     }
     let mut programs = Vec::with_capacity(sources.len());
+    let mut native_law_paths = BTreeSet::new();
     let mut declarations = 0usize;
     let mut callables = 0usize;
     let mut calls = 0usize;
     let mut uses = 0usize;
     let mut canonical_bytes = 0usize;
     for source in &sources {
+        let remaining = active_builder_limit().saturating_sub(canonical_bytes);
+        if let Some((inert, canonical_len)) = native_law::inert_program(source, remaining)? {
+            canonical_bytes = checked_usage(
+                canonical_bytes,
+                canonical_len,
+                "builder_bytes",
+                active_builder_limit(),
+            )?;
+            native_law_paths.insert(source.path.clone());
+            programs.push(inert);
+            continue;
+        }
         let cached = frontend
             .as_deref_mut()
             .and_then(|cache| cache.lookup(&source.path, &source.source));
         let reused = cached.is_some();
-        let (program, comments) = if let Some(program) = cached {
+        let (mut program, comments) = if let Some(program) = cached {
             (program, None)
         } else {
             let (program, comments) =
@@ -3903,6 +3932,9 @@ fn build_owned_inner(
             }
             (program, Some(comments))
         };
+        if let Some(frontend) = frontend.as_deref() {
+            crate::project::indexed_rust::bind_program(&mut program, &frontend.indexed_imports)?;
+        }
         // Check source-local conformance before imported declarations become
         // synthetic stubs. A stub must never acquire local implementation
         // authority merely because it has an authenticated imported identity.
@@ -4054,7 +4086,10 @@ fn build_owned_inner(
         }
         resolve_builder_bytes = tighter;
     };
-    let (modules, module_paths, dependency_depths, declaration_facts, expected_edges) = core?;
+    let (mut modules, module_paths, dependency_depths, declaration_facts, expected_edges) = core?;
+    for module in &mut modules {
+        module.native_law = native_law_paths.contains(&module.path);
+    }
     let dependency_depth = dependency_depths.values().copied().max().unwrap_or(0);
     let resolved_cross_file_edges = expected_edges.len();
     let graph_builder_bytes = canonical_bytes.max(core_builder_bytes);
@@ -4433,6 +4468,7 @@ fn retain_workspace_module(
             function_instances,
             signature_types,
             session_protocol_facts,
+            native_law: false,
         },
         imported_instances,
     ))

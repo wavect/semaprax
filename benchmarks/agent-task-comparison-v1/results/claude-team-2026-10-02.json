@@ -1,0 +1,2495 @@
+{
+  "audit_sha256": "1d72af73cd8f1401c99b530ceb8fce55e2ced8fead1bb4c69140b4b174a86963",
+  "budget_reservations_usd": 9.0,
+  "compiler": {
+    "revision": "eec951eb1cce83e5e0f42edf97cbb5b8f3cffa2c",
+    "sha256": "90b6a3255dc338265606b54daf4590380e18a68863625ca38b21cee5cb86bd11",
+    "version": "0.7.0"
+  },
+  "conclusion": "No task passed all acceptance oracles within this frozen profile. Budget-limited failures and incompletes remain in the denominator; no comparative capability or superiority claim.",
+  "date": "2026-10-02",
+  "evidence_packet": "issue321-native-cohort08-20261002",
+  "genuine_api_trials": 36,
+  "host_profile": "darwin-arm64 native CLI plus independently confined compiler MCP",
+  "issue": 321,
+  "limits": {
+    "forward_guard": {
+      "forwards": 9,
+      "max_tokens": 512,
+      "request_bytes": 32768,
+      "response_bytes": 1048576,
+      "total_request_bytes": 65536
+    },
+    "native": {
+      "agent_retries": 0,
+      "cohort_max_estimated_api_usd": 9.0,
+      "max_cache_read_tokens": 1048576,
+      "max_estimated_api_usd": 0.25,
+      "max_prompt_bytes": 65536,
+      "max_reported_tokens": 131072,
+      "max_stream_bytes": 1048576,
+      "max_turns": 8,
+      "seconds": 120
+    }
+  },
+  "linkage_audit_sha256": "a229f614ff82e15a8494a2bcf7080468e2a65a0f4bbf125b0c8d35d4cc47337e",
+  "manifest_sha256": "3a6b4610aa3b570d6a070afa5381582efb4559b63c4efa73c517f5ab3349e033",
+  "models": {
+    "haiku45": {
+      "all_acceptance_passed": 0,
+      "guarded_forwards": 144,
+      "incomplete": 0,
+      "reported_api_equivalent_usd": 0.396215,
+      "terminal_task_failures": 18,
+      "tool_calls": 144,
+      "trials": 18,
+      "unknown_costs": 0
+    },
+    "sonnet55": {
+      "all_acceptance_passed": 0,
+      "guarded_forwards": 119,
+      "incomplete": 18,
+      "reported_api_equivalent_usd": 1.053706,
+      "terminal_task_failures": 18,
+      "tool_calls": 189,
+      "trials": 18,
+      "unknown_costs": 0
+    }
+  },
+  "planned_trials": 36,
+  "positions_per_model": 18,
+  "protocol_sha256": "2378f87a01a61baf087efb7a161ece8f8c9cfe6bd530b3b3337625b9b7b0573f",
+  "provider_cli": {
+    "name": "Claude Code",
+    "sha256": "75e3016e9d2570767b08e43a7467d4817a4f149232c169ca295f2c95fef21433",
+    "version": "2.1.286"
+  },
+  "provider_framing_bound_proven": false,
+  "reported_api_equivalent_usd": 1.449921,
+  "review_policy": "explicit user waiver; technical outcomes only; no human review measured",
+  "rows": [
+    {
+      "acceptance": [
+        {
+          "id": "signature",
+          "outcome": "failed"
+        },
+        {
+          "id": "identity",
+          "outcome": "failed"
+        },
+        {
+          "id": "callers",
+          "outcome": "failed"
+        },
+        {
+          "id": "meaning",
+          "outcome": "failed"
+        },
+        {
+          "id": "review",
+          "outcome": "passed"
+        },
+        {
+          "id": "authority",
+          "outcome": "passed"
+        }
+      ],
+      "acceptance_error": null,
+      "candidate_archive_error": null,
+      "candidate_source_sha256": "c5a913caeb86e9c9aa26cc646987cb1868413030f65b6e6b1fc115f29b56abdb",
+      "cell": "haiku45-01",
+      "guarded_forwards": 8,
+      "guarded_request_bytes": 59632,
+      "lane": "semaprax-graph-operational",
+      "mcp_tool_calls": 8,
+      "mcp_wire_sha256": "0a1b17b3d6a98740f10c6f5137397bf0d83dea8ef5468cc8bb8e70e02b2f4025",
+      "model": {
+        "canonical_model": "claude-haiku-4-5",
+        "configured_model": "anthropic/claude-haiku-4-5-20251001",
+        "id": "haiku45",
+        "model": "claude-haiku-4-5-20251001",
+        "provider": "anthropic",
+        "revision": "claude-haiku-4-5-20251001",
+        "usage_key": "claude-haiku-4-5-20251001"
+      },
+      "native_duration_ms": 11211,
+      "native_reported_turns": 9,
+      "position": 1,
+      "record_sha256": "b0f223dabc826d53db3853a8c1139a830690f54c7ddf82dd6919f36fc8c71e6b",
+      "reported_api_equivalent_usd": 0.022105,
+      "reported_usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "fallback_credit": null,
+        "inference_geo": "not_available",
+        "input_tokens": 19025,
+        "iterations": [],
+        "output_tokens": 616,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "server_tool_use": {
+          "web_fetch_requests": 0,
+          "web_search_requests": 0
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      },
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "50ef87d4dd29df2eb0f8352df52890d4dd432b49004fa6f4621c29c1370d33a2",
+      "task": "signature-migration-v1",
+      "terminal_classification": "failed",
+      "termination_reason": "native_provider_error_max_turns",
+      "trial": 1
+    },
+    {
+      "acceptance": null,
+      "acceptance_error": null,
+      "candidate_archive_error": null,
+      "candidate_source_sha256": "c5a913caeb86e9c9aa26cc646987cb1868413030f65b6e6b1fc115f29b56abdb",
+      "cell": "sonnet55-01",
+      "guarded_forwards": 6,
+      "guarded_request_bytes": 47094,
+      "lane": "semaprax-graph-operational",
+      "mcp_tool_calls": 12,
+      "mcp_wire_sha256": "cff7dcb3700fb6c18e35591af835a5d058dcb8a429a55823dfdf3974db6ac04a",
+      "model": {
+        "canonical_model": "claude-sonnet-5-5",
+        "configured_model": "anthropic/claude-sonnet-5-5",
+        "id": "sonnet55",
+        "model": "claude-sonnet-5-5",
+        "provider": "anthropic",
+        "revision": "claude-sonnet-5-5",
+        "usage_key": "claude-sonnet-5-5"
+      },
+      "native_duration_ms": 15349,
+      "native_reported_turns": 13,
+      "position": 1,
+      "record_sha256": "ea5fe9e4fddade3c918670a2814e900deea9717de29d6078ff8449effae43fe6",
+      "reported_api_equivalent_usd": 0.044472,
+      "reported_usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "fallback_credit": null,
+        "inference_geo": "not_available",
+        "input_tokens": 17931,
+        "iterations": [],
+        "output_tokens": 861,
+        "output_tokens_details": {
+          "thinking_tokens": 55
+        },
+        "server_tool_use": {
+          "web_fetch_requests": 0,
+          "web_search_requests": 0
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      },
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "3d77309ea0e737f837df2dcbbc601c40cef430bb07dce766e660fce3f78f313a",
+      "task": "signature-migration-v1",
+      "terminal_classification": "incomplete",
+      "termination_reason": "native_guarded_incomplete:aggregate_request_bound",
+      "trial": 1
+    },
+    {
+      "acceptance": [
+        {
+          "id": "signature",
+          "outcome": "failed"
+        },
+        {
+          "id": "identity",
+          "outcome": "failed"
+        },
+        {
+          "id": "callers",
+          "outcome": "failed"
+        },
+        {
+          "id": "meaning",
+          "outcome": "failed"
+        },
+        {
+          "id": "review",
+          "outcome": "passed"
+        },
+        {
+          "id": "authority",
+          "outcome": "passed"
+        }
+      ],
+      "acceptance_error": null,
+      "candidate_archive_error": null,
+      "candidate_source_sha256": "c5a913caeb86e9c9aa26cc646987cb1868413030f65b6e6b1fc115f29b56abdb",
+      "cell": "haiku45-02",
+      "guarded_forwards": 8,
+      "guarded_request_bytes": 55100,
+      "lane": "semaprax-source-first",
+      "mcp_tool_calls": 8,
+      "mcp_wire_sha256": "81c960e01035fa1e7b315eebce4b253b68b4ad22ccb4a99726107853b18e7d40",
+      "model": {
+        "canonical_model": "claude-haiku-4-5",
+        "configured_model": "anthropic/claude-haiku-4-5-20251001",
+        "id": "haiku45",
+        "model": "claude-haiku-4-5-20251001",
+        "provider": "anthropic",
+        "revision": "claude-haiku-4-5-20251001",
+        "usage_key": "claude-haiku-4-5-20251001"
+      },
+      "native_duration_ms": 11253,
+      "native_reported_turns": 9,
+      "position": 2,
+      "record_sha256": "744a6e6c736bd34e746fb63d1e718635222886f60efebcbf94a72813af155dfb",
+      "reported_api_equivalent_usd": 0.021214,
+      "reported_usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "fallback_credit": null,
+        "inference_geo": "not_available",
+        "input_tokens": 17974,
+        "iterations": [],
+        "output_tokens": 648,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "server_tool_use": {
+          "web_fetch_requests": 0,
+          "web_search_requests": 0
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      },
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "53960fd8ccbc6cfff99fbef59dc0f765d20a4ee302ae9e7d1057ad56d6eaa32f",
+      "task": "signature-migration-v1",
+      "terminal_classification": "failed",
+      "termination_reason": "native_provider_error_max_turns",
+      "trial": 1
+    },
+    {
+      "acceptance": null,
+      "acceptance_error": null,
+      "candidate_archive_error": null,
+      "candidate_source_sha256": "c5a913caeb86e9c9aa26cc646987cb1868413030f65b6e6b1fc115f29b56abdb",
+      "cell": "sonnet55-02",
+      "guarded_forwards": 7,
+      "guarded_request_bytes": 55516,
+      "lane": "semaprax-source-first",
+      "mcp_tool_calls": 8,
+      "mcp_wire_sha256": "91c4485fd949da503d76c1865bf4b3859764474fcc78cafb60a52bb642331c22",
+      "model": {
+        "canonical_model": "claude-sonnet-5-5",
+        "configured_model": "anthropic/claude-sonnet-5-5",
+        "id": "sonnet55",
+        "model": "claude-sonnet-5-5",
+        "provider": "anthropic",
+        "revision": "claude-sonnet-5-5",
+        "usage_key": "claude-sonnet-5-5"
+      },
+      "native_duration_ms": 27333,
+      "native_reported_turns": 12,
+      "position": 2,
+      "record_sha256": "0378bc7b244831ad903c48da0a9abae293c99228403d9f07ca32a9911b56299a",
+      "reported_api_equivalent_usd": 0.06201999999999999,
+      "reported_usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "fallback_credit": null,
+        "inference_geo": "not_available",
+        "input_tokens": 20630,
+        "iterations": [],
+        "output_tokens": 2076,
+        "output_tokens_details": {
+          "thinking_tokens": 1283
+        },
+        "server_tool_use": {
+          "web_fetch_requests": 0,
+          "web_search_requests": 0
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      },
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "44c1f882f4904ac4968130fe69e96e06ca0f2ea17b09e264ef477490187d5789",
+      "task": "signature-migration-v1",
+      "terminal_classification": "incomplete",
+      "termination_reason": "native_guarded_incomplete:aggregate_request_bound",
+      "trial": 1
+    },
+    {
+      "acceptance": [
+        {
+          "id": "stale-detection",
+          "outcome": "failed"
+        },
+        {
+          "id": "recovery",
+          "outcome": "failed"
+        },
+        {
+          "id": "signature",
+          "outcome": "failed"
+        },
+        {
+          "id": "identity",
+          "outcome": "failed"
+        },
+        {
+          "id": "review",
+          "outcome": "passed"
+        },
+        {
+          "id": "authority",
+          "outcome": "passed"
+        }
+      ],
+      "acceptance_error": null,
+      "candidate_archive_error": null,
+      "candidate_source_sha256": "c5a913caeb86e9c9aa26cc646987cb1868413030f65b6e6b1fc115f29b56abdb",
+      "cell": "haiku45-03",
+      "guarded_forwards": 8,
+      "guarded_request_bytes": 54873,
+      "lane": "semaprax-source-first",
+      "mcp_tool_calls": 8,
+      "mcp_wire_sha256": "d7dbf3f431a50814cd7281d8e11e46ec7f54a4279390fe05d6826137e460c00d",
+      "model": {
+        "canonical_model": "claude-haiku-4-5",
+        "configured_model": "anthropic/claude-haiku-4-5-20251001",
+        "id": "haiku45",
+        "model": "claude-haiku-4-5-20251001",
+        "provider": "anthropic",
+        "revision": "claude-haiku-4-5-20251001",
+        "usage_key": "claude-haiku-4-5-20251001"
+      },
+      "native_duration_ms": 11206,
+      "native_reported_turns": 9,
+      "position": 3,
+      "record_sha256": "d7ae301e06b2e8a8a723d34581be5053e0752690d438704b76d30bef9f47866d",
+      "reported_api_equivalent_usd": 0.020992,
+      "reported_usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "fallback_credit": null,
+        "inference_geo": "not_available",
+        "input_tokens": 17872,
+        "iterations": [],
+        "output_tokens": 624,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "server_tool_use": {
+          "web_fetch_requests": 0,
+          "web_search_requests": 0
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      },
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "f60c8f4669b2d5a986d824688a8268d0545a8c778d5a5e4e0d5826a502709c22",
+      "task": "stale-signature-recovery-v1",
+      "terminal_classification": "failed",
+      "termination_reason": "native_provider_error_max_turns",
+      "trial": 1
+    },
+    {
+      "acceptance": null,
+      "acceptance_error": null,
+      "candidate_archive_error": null,
+      "candidate_source_sha256": "1ac2d8fb83904c4c1678330f3aa3124c1e5d6fba4b70a1e93d9a259d9830337b",
+      "cell": "sonnet55-03",
+      "guarded_forwards": 7,
+      "guarded_request_bytes": 55918,
+      "lane": "semaprax-source-first",
+      "mcp_tool_calls": 8,
+      "mcp_wire_sha256": "b593e35d73342425f04630e436d3d370e2ca0b32b819e722bbc274aacf41d3ce",
+      "model": {
+        "canonical_model": "claude-sonnet-5-5",
+        "configured_model": "anthropic/claude-sonnet-5-5",
+        "id": "sonnet55",
+        "model": "claude-sonnet-5-5",
+        "provider": "anthropic",
+        "revision": "claude-sonnet-5-5",
+        "usage_key": "claude-sonnet-5-5"
+      },
+      "native_duration_ms": 27666,
+      "native_reported_turns": 12,
+      "position": 3,
+      "record_sha256": "6b131cfa3ba8e63fa40154bc56a94a497b1115f2fc01e09a187803db5c171119",
+      "reported_api_equivalent_usd": 0.062358,
+      "reported_usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "fallback_credit": null,
+        "inference_geo": "not_available",
+        "input_tokens": 20759,
+        "iterations": [],
+        "output_tokens": 2084,
+        "output_tokens_details": {
+          "thinking_tokens": 1291
+        },
+        "server_tool_use": {
+          "web_fetch_requests": 0,
+          "web_search_requests": 0
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      },
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "9ecf48cd90daaa34b50d293307c94dc5f2c571efa75625915f24528bca67e873",
+      "task": "stale-signature-recovery-v1",
+      "terminal_classification": "incomplete",
+      "termination_reason": "native_guarded_incomplete:aggregate_request_bound",
+      "trial": 1
+    },
+    {
+      "acceptance": [
+        {
+          "id": "stale-detection",
+          "outcome": "passed"
+        },
+        {
+          "id": "recovery",
+          "outcome": "failed"
+        },
+        {
+          "id": "signature",
+          "outcome": "failed"
+        },
+        {
+          "id": "identity",
+          "outcome": "failed"
+        },
+        {
+          "id": "review",
+          "outcome": "passed"
+        },
+        {
+          "id": "authority",
+          "outcome": "passed"
+        }
+      ],
+      "acceptance_error": null,
+      "candidate_archive_error": null,
+      "candidate_source_sha256": "1ac2d8fb83904c4c1678330f3aa3124c1e5d6fba4b70a1e93d9a259d9830337b",
+      "cell": "haiku45-04",
+      "guarded_forwards": 8,
+      "guarded_request_bytes": 60835,
+      "lane": "semaprax-graph-operational",
+      "mcp_tool_calls": 8,
+      "mcp_wire_sha256": "b75e21c8c9a184317d0f9add45bb229e99d6daab7a939821f2ff99fccee976ac",
+      "model": {
+        "canonical_model": "claude-haiku-4-5",
+        "configured_model": "anthropic/claude-haiku-4-5-20251001",
+        "id": "haiku45",
+        "model": "claude-haiku-4-5-20251001",
+        "provider": "anthropic",
+        "revision": "claude-haiku-4-5-20251001",
+        "usage_key": "claude-haiku-4-5-20251001"
+      },
+      "native_duration_ms": 13236,
+      "native_reported_turns": 9,
+      "position": 4,
+      "record_sha256": "90ebaefb76d52c629bd700e5f061d2092db1ae463917c9cd45a0011784572aa6",
+      "reported_api_equivalent_usd": 0.022647999999999998,
+      "reported_usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "fallback_credit": null,
+        "inference_geo": "not_available",
+        "input_tokens": 19443,
+        "iterations": [],
+        "output_tokens": 641,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "server_tool_use": {
+          "web_fetch_requests": 0,
+          "web_search_requests": 0
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      },
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "c5a7d0fd0248e10536779df0dd682ed5157969994553433bc035c843cb38bc17",
+      "task": "stale-signature-recovery-v1",
+      "terminal_classification": "failed",
+      "termination_reason": "native_provider_error_max_turns",
+      "trial": 1
+    },
+    {
+      "acceptance": null,
+      "acceptance_error": null,
+      "candidate_archive_error": null,
+      "candidate_source_sha256": "1ac2d8fb83904c4c1678330f3aa3124c1e5d6fba4b70a1e93d9a259d9830337b",
+      "cell": "sonnet55-04",
+      "guarded_forwards": 7,
+      "guarded_request_bytes": 55875,
+      "lane": "semaprax-graph-operational",
+      "mcp_tool_calls": 12,
+      "mcp_wire_sha256": "3570ac60d8e4e3496b8a754c7a0cf7c6c457130acfb8e80406cf65b49eba9bc1",
+      "model": {
+        "canonical_model": "claude-sonnet-5-5",
+        "configured_model": "anthropic/claude-sonnet-5-5",
+        "id": "sonnet55",
+        "model": "claude-sonnet-5-5",
+        "provider": "anthropic",
+        "revision": "claude-sonnet-5-5",
+        "usage_key": "claude-sonnet-5-5"
+      },
+      "native_duration_ms": 15774,
+      "native_reported_turns": 13,
+      "position": 4,
+      "record_sha256": "f75cee86b6a8d389aad3ac3ba65d28f31e68e3b0214fef7d371183ab5cfcdec5",
+      "reported_api_equivalent_usd": 0.050002,
+      "reported_usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "fallback_credit": null,
+        "inference_geo": "not_available",
+        "input_tokens": 20796,
+        "iterations": [],
+        "output_tokens": 841,
+        "output_tokens_details": {
+          "thinking_tokens": 44
+        },
+        "server_tool_use": {
+          "web_fetch_requests": 0,
+          "web_search_requests": 0
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      },
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "439aa989024384e58158cda7d0c5d966d48304e33954028801825bd5a50932f2",
+      "task": "stale-signature-recovery-v1",
+      "terminal_classification": "incomplete",
+      "termination_reason": "native_guarded_incomplete:aggregate_request_bound",
+      "trial": 1
+    },
+    {
+      "acceptance": [
+        {
+          "id": "signature",
+          "outcome": "failed"
+        },
+        {
+          "id": "identity",
+          "outcome": "failed"
+        },
+        {
+          "id": "callers",
+          "outcome": "failed"
+        },
+        {
+          "id": "ownership",
+          "outcome": "failed"
+        },
+        {
+          "id": "meaning",
+          "outcome": "passed"
+        },
+        {
+          "id": "review",
+          "outcome": "failed"
+        },
+        {
+          "id": "authority",
+          "outcome": "passed"
+        }
+      ],
+      "acceptance_error": null,
+      "candidate_archive_error": null,
+      "candidate_source_sha256": "2666e294f34396ec992d59d6a02d795acbecd798d25604468f5c2517e06d4884",
+      "cell": "haiku45-05",
+      "guarded_forwards": 8,
+      "guarded_request_bytes": 61160,
+      "lane": "semaprax-graph-operational",
+      "mcp_tool_calls": 8,
+      "mcp_wire_sha256": "10564f38267b458518514688fbc8fbaca5090fdf352c63206da2749c9ce9d20d",
+      "model": {
+        "canonical_model": "claude-haiku-4-5",
+        "configured_model": "anthropic/claude-haiku-4-5-20251001",
+        "id": "haiku45",
+        "model": "claude-haiku-4-5-20251001",
+        "provider": "anthropic",
+        "revision": "claude-haiku-4-5-20251001",
+        "usage_key": "claude-haiku-4-5-20251001"
+      },
+      "native_duration_ms": 12297,
+      "native_reported_turns": 9,
+      "position": 5,
+      "record_sha256": "7a1505c012d8f73d58d015fd335f77c2844bb0b2213fea8523c382b99c035aeb",
+      "reported_api_equivalent_usd": 0.022963,
+      "reported_usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "fallback_credit": null,
+        "inference_geo": "not_available",
+        "input_tokens": 19628,
+        "iterations": [],
+        "output_tokens": 667,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "server_tool_use": {
+          "web_fetch_requests": 0,
+          "web_search_requests": 0
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      },
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "750135de12c2165b25c2cf8cbad9b47eb2b8f65b694ee9c40ff0f1f728170ca2",
+      "task": "owned-signature-migration-v1",
+      "terminal_classification": "failed",
+      "termination_reason": "native_provider_error_max_turns",
+      "trial": 1
+    },
+    {
+      "acceptance": null,
+      "acceptance_error": null,
+      "candidate_archive_error": null,
+      "candidate_source_sha256": "2666e294f34396ec992d59d6a02d795acbecd798d25604468f5c2517e06d4884",
+      "cell": "sonnet55-05",
+      "guarded_forwards": 6,
+      "guarded_request_bytes": 65346,
+      "lane": "semaprax-graph-operational",
+      "mcp_tool_calls": 13,
+      "mcp_wire_sha256": "ad7c9cfbad659e46c316d9debacfbb8fe068db0e8a8401ab12dde3d2d968720c",
+      "model": {
+        "canonical_model": "claude-sonnet-5-5",
+        "configured_model": "anthropic/claude-sonnet-5-5",
+        "id": "sonnet55",
+        "model": "claude-sonnet-5-5",
+        "provider": "anthropic",
+        "revision": "claude-sonnet-5-5",
+        "usage_key": "claude-sonnet-5-5"
+      },
+      "native_duration_ms": 16759,
+      "native_reported_turns": 14,
+      "position": 5,
+      "record_sha256": "e2beb47a5949f966b4ddcfb8f7bc4e84cce993fc058b30f5b575453a37805ab5",
+      "reported_api_equivalent_usd": 0.063884,
+      "reported_usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "fallback_credit": null,
+        "inference_geo": "not_available",
+        "input_tokens": 26967,
+        "iterations": [],
+        "output_tokens": 995,
+        "output_tokens_details": {
+          "thinking_tokens": 102
+        },
+        "server_tool_use": {
+          "web_fetch_requests": 0,
+          "web_search_requests": 0
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      },
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "8b5342edb924780e8afc2f981cbf8a2b1874bf66891d4551fea5910472d68711",
+      "task": "owned-signature-migration-v1",
+      "terminal_classification": "incomplete",
+      "termination_reason": "native_guarded_incomplete:aggregate_request_bound",
+      "trial": 1
+    },
+    {
+      "acceptance": [
+        {
+          "id": "signature",
+          "outcome": "failed"
+        },
+        {
+          "id": "identity",
+          "outcome": "failed"
+        },
+        {
+          "id": "callers",
+          "outcome": "failed"
+        },
+        {
+          "id": "ownership",
+          "outcome": "failed"
+        },
+        {
+          "id": "meaning",
+          "outcome": "passed"
+        },
+        {
+          "id": "review",
+          "outcome": "failed"
+        },
+        {
+          "id": "authority",
+          "outcome": "passed"
+        }
+      ],
+      "acceptance_error": null,
+      "candidate_archive_error": null,
+      "candidate_source_sha256": "2666e294f34396ec992d59d6a02d795acbecd798d25604468f5c2517e06d4884",
+      "cell": "haiku45-06",
+      "guarded_forwards": 8,
+      "guarded_request_bytes": 57002,
+      "lane": "semaprax-source-first",
+      "mcp_tool_calls": 8,
+      "mcp_wire_sha256": "f037e29651de078ba4b78462c54c38c7b635378ad2abe1f4dbf32b35d264cc28",
+      "model": {
+        "canonical_model": "claude-haiku-4-5",
+        "configured_model": "anthropic/claude-haiku-4-5-20251001",
+        "id": "haiku45",
+        "model": "claude-haiku-4-5-20251001",
+        "provider": "anthropic",
+        "revision": "claude-haiku-4-5-20251001",
+        "usage_key": "claude-haiku-4-5-20251001"
+      },
+      "native_duration_ms": 13754,
+      "native_reported_turns": 9,
+      "position": 6,
+      "record_sha256": "0c469346e9fc7b7fd2f50f35d11f35249f49b7f328c4b914fdf30b5bbff7e5d8",
+      "reported_api_equivalent_usd": 0.021736000000000002,
+      "reported_usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "fallback_credit": null,
+        "inference_geo": "not_available",
+        "input_tokens": 18351,
+        "iterations": [],
+        "output_tokens": 677,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "server_tool_use": {
+          "web_fetch_requests": 0,
+          "web_search_requests": 0
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      },
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "8c928b2bd3d2aff695185b1bfb7e92ba523d067912cc28dc0e0881240c5135f9",
+      "task": "owned-signature-migration-v1",
+      "terminal_classification": "failed",
+      "termination_reason": "native_provider_error_max_turns",
+      "trial": 1
+    },
+    {
+      "acceptance": null,
+      "acceptance_error": null,
+      "candidate_archive_error": null,
+      "candidate_source_sha256": "2666e294f34396ec992d59d6a02d795acbecd798d25604468f5c2517e06d4884",
+      "cell": "sonnet55-06",
+      "guarded_forwards": 7,
+      "guarded_request_bytes": 58562,
+      "lane": "semaprax-source-first",
+      "mcp_tool_calls": 8,
+      "mcp_wire_sha256": "a3c799fcd253a245a3b00118c76f1339f55e1e7f4fc9ea4154bf7c8a529a4031",
+      "model": {
+        "canonical_model": "claude-sonnet-5-5",
+        "configured_model": "anthropic/claude-sonnet-5-5",
+        "id": "sonnet55",
+        "model": "claude-sonnet-5-5",
+        "provider": "anthropic",
+        "revision": "claude-sonnet-5-5",
+        "usage_key": "claude-sonnet-5-5"
+      },
+      "native_duration_ms": 24776,
+      "native_reported_turns": 12,
+      "position": 6,
+      "record_sha256": "857abd7b1ab98c96ac8ef269ef2e503bbea50372f4311afe867e259d1192f206",
+      "reported_api_equivalent_usd": 0.06502999999999999,
+      "reported_usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "fallback_credit": null,
+        "inference_geo": "not_available",
+        "input_tokens": 22170,
+        "iterations": [],
+        "output_tokens": 2069,
+        "output_tokens_details": {
+          "thinking_tokens": 1213
+        },
+        "server_tool_use": {
+          "web_fetch_requests": 0,
+          "web_search_requests": 0
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      },
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "977c7c78e3e9fd34dc8789d440dc407db12990f9a960d1579d26de8dcc5ec5c1",
+      "task": "owned-signature-migration-v1",
+      "terminal_classification": "incomplete",
+      "termination_reason": "native_guarded_incomplete:aggregate_request_bound",
+      "trial": 1
+    },
+    {
+      "acceptance": [
+        {
+          "id": "stale-detection",
+          "outcome": "failed"
+        },
+        {
+          "id": "recovery",
+          "outcome": "failed"
+        },
+        {
+          "id": "signature",
+          "outcome": "failed"
+        },
+        {
+          "id": "identity",
+          "outcome": "failed"
+        },
+        {
+          "id": "review",
+          "outcome": "passed"
+        },
+        {
+          "id": "authority",
+          "outcome": "passed"
+        }
+      ],
+      "acceptance_error": null,
+      "candidate_archive_error": null,
+      "candidate_source_sha256": "c5a913caeb86e9c9aa26cc646987cb1868413030f65b6e6b1fc115f29b56abdb",
+      "cell": "haiku45-07",
+      "guarded_forwards": 8,
+      "guarded_request_bytes": 55609,
+      "lane": "semaprax-source-first",
+      "mcp_tool_calls": 8,
+      "mcp_wire_sha256": "cddecdf5256b46c403e2b9dc1bfa274ee0fc4d43702b56d51b8dd599cf5c613f",
+      "model": {
+        "canonical_model": "claude-haiku-4-5",
+        "configured_model": "anthropic/claude-haiku-4-5-20251001",
+        "id": "haiku45",
+        "model": "claude-haiku-4-5-20251001",
+        "provider": "anthropic",
+        "revision": "claude-haiku-4-5-20251001",
+        "usage_key": "claude-haiku-4-5-20251001"
+      },
+      "native_duration_ms": 16295,
+      "native_reported_turns": 9,
+      "position": 7,
+      "record_sha256": "0be357446c228a90675c4e614062a6f8f579ac55042096206c00f27882933b6b",
+      "reported_api_equivalent_usd": 0.021365000000000002,
+      "reported_usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "fallback_credit": null,
+        "inference_geo": "not_available",
+        "input_tokens": 18075,
+        "iterations": [],
+        "output_tokens": 658,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "server_tool_use": {
+          "web_fetch_requests": 0,
+          "web_search_requests": 0
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      },
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "d087e5c4a7c474c09e1fb97ed391d77dd82ed066ef496b39a2147e055626b6cd",
+      "task": "stale-signature-recovery-v1",
+      "terminal_classification": "failed",
+      "termination_reason": "native_provider_error_max_turns",
+      "trial": 2
+    },
+    {
+      "acceptance": null,
+      "acceptance_error": null,
+      "candidate_archive_error": null,
+      "candidate_source_sha256": "1ac2d8fb83904c4c1678330f3aa3124c1e5d6fba4b70a1e93d9a259d9830337b",
+      "cell": "sonnet55-07",
+      "guarded_forwards": 7,
+      "guarded_request_bytes": 56079,
+      "lane": "semaprax-source-first",
+      "mcp_tool_calls": 8,
+      "mcp_wire_sha256": "8601b847dc4f8746d37fc818988144ac2572a6ed66d528d9c8f89991771bbfc8",
+      "model": {
+        "canonical_model": "claude-sonnet-5-5",
+        "configured_model": "anthropic/claude-sonnet-5-5",
+        "id": "sonnet55",
+        "model": "claude-sonnet-5-5",
+        "provider": "anthropic",
+        "revision": "claude-sonnet-5-5",
+        "usage_key": "claude-sonnet-5-5"
+      },
+      "native_duration_ms": 28134,
+      "native_reported_turns": 12,
+      "position": 7,
+      "record_sha256": "7ca36b3e4345d9043ce348dbbe0d0e88f7b6cb13af336080ad0821073bb00795",
+      "reported_api_equivalent_usd": 0.062470000000000005,
+      "reported_usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "fallback_credit": null,
+        "inference_geo": "not_available",
+        "input_tokens": 20825,
+        "iterations": [],
+        "output_tokens": 2082,
+        "output_tokens_details": {
+          "thinking_tokens": 1094
+        },
+        "server_tool_use": {
+          "web_fetch_requests": 0,
+          "web_search_requests": 0
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      },
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "3c2157c5dad7659c81463fb4de33c21577167c97f80334ba58af7b56de6e8292",
+      "task": "stale-signature-recovery-v1",
+      "terminal_classification": "incomplete",
+      "termination_reason": "native_guarded_incomplete:aggregate_request_bound",
+      "trial": 2
+    },
+    {
+      "acceptance": [
+        {
+          "id": "stale-detection",
+          "outcome": "passed"
+        },
+        {
+          "id": "recovery",
+          "outcome": "failed"
+        },
+        {
+          "id": "signature",
+          "outcome": "failed"
+        },
+        {
+          "id": "identity",
+          "outcome": "failed"
+        },
+        {
+          "id": "review",
+          "outcome": "passed"
+        },
+        {
+          "id": "authority",
+          "outcome": "passed"
+        }
+      ],
+      "acceptance_error": null,
+      "candidate_archive_error": null,
+      "candidate_source_sha256": "1ac2d8fb83904c4c1678330f3aa3124c1e5d6fba4b70a1e93d9a259d9830337b",
+      "cell": "haiku45-08",
+      "guarded_forwards": 8,
+      "guarded_request_bytes": 60990,
+      "lane": "semaprax-graph-operational",
+      "mcp_tool_calls": 8,
+      "mcp_wire_sha256": "7fcaf559794055cd8cc9530e78ef990e34edb6a75788b671453696197b6568c9",
+      "model": {
+        "canonical_model": "claude-haiku-4-5",
+        "configured_model": "anthropic/claude-haiku-4-5-20251001",
+        "id": "haiku45",
+        "model": "claude-haiku-4-5-20251001",
+        "provider": "anthropic",
+        "revision": "claude-haiku-4-5-20251001",
+        "usage_key": "claude-haiku-4-5-20251001"
+      },
+      "native_duration_ms": 11378,
+      "native_reported_turns": 9,
+      "position": 8,
+      "record_sha256": "06936f9914a69b41277eb9d3fcb4a83c7dba68ac2f27398d7cbebc1d87b274d9",
+      "reported_api_equivalent_usd": 0.022452,
+      "reported_usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "fallback_credit": null,
+        "inference_geo": "not_available",
+        "input_tokens": 19277,
+        "iterations": [],
+        "output_tokens": 635,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "server_tool_use": {
+          "web_fetch_requests": 0,
+          "web_search_requests": 0
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      },
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "8358aed0a91c3e972a766adefa94a13ded2152467368057afdbf5a40e200d0c9",
+      "task": "stale-signature-recovery-v1",
+      "terminal_classification": "failed",
+      "termination_reason": "native_provider_error_max_turns",
+      "trial": 2
+    },
+    {
+      "acceptance": null,
+      "acceptance_error": null,
+      "candidate_archive_error": null,
+      "candidate_source_sha256": "1ac2d8fb83904c4c1678330f3aa3124c1e5d6fba4b70a1e93d9a259d9830337b",
+      "cell": "sonnet55-08",
+      "guarded_forwards": 6,
+      "guarded_request_bytes": 60132,
+      "lane": "semaprax-graph-operational",
+      "mcp_tool_calls": 15,
+      "mcp_wire_sha256": "4598d51926826d7e76312a8ade73a02fa0f327d7496d58fe201da7042ef7d106",
+      "model": {
+        "canonical_model": "claude-sonnet-5-5",
+        "configured_model": "anthropic/claude-sonnet-5-5",
+        "id": "sonnet55",
+        "model": "claude-sonnet-5-5",
+        "provider": "anthropic",
+        "revision": "claude-sonnet-5-5",
+        "usage_key": "claude-sonnet-5-5"
+      },
+      "native_duration_ms": 17627,
+      "native_reported_turns": 16,
+      "position": 8,
+      "record_sha256": "173e92073ab4d14104b30f1dac23a483278e23ae366bba0f48a37b3975531828",
+      "reported_api_equivalent_usd": 0.059762,
+      "reported_usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "fallback_credit": null,
+        "inference_geo": "not_available",
+        "input_tokens": 24411,
+        "iterations": [],
+        "output_tokens": 1094,
+        "output_tokens_details": {
+          "thinking_tokens": 110
+        },
+        "server_tool_use": {
+          "web_fetch_requests": 0,
+          "web_search_requests": 0
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      },
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "35d00f326c53df5004c72fa79b5a7a03c2938980d291e215ddf17ec9c9e045c6",
+      "task": "stale-signature-recovery-v1",
+      "terminal_classification": "incomplete",
+      "termination_reason": "native_guarded_incomplete:aggregate_request_bound",
+      "trial": 2
+    },
+    {
+      "acceptance": [
+        {
+          "id": "signature",
+          "outcome": "failed"
+        },
+        {
+          "id": "identity",
+          "outcome": "failed"
+        },
+        {
+          "id": "callers",
+          "outcome": "failed"
+        },
+        {
+          "id": "ownership",
+          "outcome": "failed"
+        },
+        {
+          "id": "meaning",
+          "outcome": "passed"
+        },
+        {
+          "id": "review",
+          "outcome": "failed"
+        },
+        {
+          "id": "authority",
+          "outcome": "passed"
+        }
+      ],
+      "acceptance_error": null,
+      "candidate_archive_error": null,
+      "candidate_source_sha256": "2666e294f34396ec992d59d6a02d795acbecd798d25604468f5c2517e06d4884",
+      "cell": "haiku45-09",
+      "guarded_forwards": 8,
+      "guarded_request_bytes": 59236,
+      "lane": "semaprax-graph-operational",
+      "mcp_tool_calls": 8,
+      "mcp_wire_sha256": "f2c6b8bb4fb5c5d3dbe3e09768e9097926fdf81875e214ba674d5ecdd493b2ab",
+      "model": {
+        "canonical_model": "claude-haiku-4-5",
+        "configured_model": "anthropic/claude-haiku-4-5-20251001",
+        "id": "haiku45",
+        "model": "claude-haiku-4-5-20251001",
+        "provider": "anthropic",
+        "revision": "claude-haiku-4-5-20251001",
+        "usage_key": "claude-haiku-4-5-20251001"
+      },
+      "native_duration_ms": 12757,
+      "native_reported_turns": 9,
+      "position": 9,
+      "record_sha256": "bea906f12f2c5c2fe1a659e21bbef4241f05a97d05b18404070c21e7da740c76",
+      "reported_api_equivalent_usd": 0.022241,
+      "reported_usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "fallback_credit": null,
+        "inference_geo": "not_available",
+        "input_tokens": 19111,
+        "iterations": [],
+        "output_tokens": 626,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "server_tool_use": {
+          "web_fetch_requests": 0,
+          "web_search_requests": 0
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      },
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "013cfc4ebbac0ce8c486c43e62db419003f29a9f8c0bad12af4ff7034b7dfea8",
+      "task": "owned-signature-migration-v1",
+      "terminal_classification": "failed",
+      "termination_reason": "native_provider_error_max_turns",
+      "trial": 2
+    },
+    {
+      "acceptance": null,
+      "acceptance_error": null,
+      "candidate_archive_error": null,
+      "candidate_source_sha256": "2666e294f34396ec992d59d6a02d795acbecd798d25604468f5c2517e06d4884",
+      "cell": "sonnet55-09",
+      "guarded_forwards": 6,
+      "guarded_request_bytes": 61831,
+      "lane": "semaprax-graph-operational",
+      "mcp_tool_calls": 11,
+      "mcp_wire_sha256": "8bbc442ae4b3b580e4d4f33f9a257370550b44948d9bc86147950586bfc1bb41",
+      "model": {
+        "canonical_model": "claude-sonnet-5-5",
+        "configured_model": "anthropic/claude-sonnet-5-5",
+        "id": "sonnet55",
+        "model": "claude-sonnet-5-5",
+        "provider": "anthropic",
+        "revision": "claude-sonnet-5-5",
+        "usage_key": "claude-sonnet-5-5"
+      },
+      "native_duration_ms": 15962,
+      "native_reported_turns": 12,
+      "position": 9,
+      "record_sha256": "8374adff7edca4086b808a5c6dd3e28b31cf2735365756d4b537623459f7aeb5",
+      "reported_api_equivalent_usd": 0.057438,
+      "reported_usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "fallback_credit": null,
+        "inference_geo": "not_available",
+        "input_tokens": 24369,
+        "iterations": [],
+        "output_tokens": 870,
+        "output_tokens_details": {
+          "thinking_tokens": 133
+        },
+        "server_tool_use": {
+          "web_fetch_requests": 0,
+          "web_search_requests": 0
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      },
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "88d84cb4d06bb6f7797840860f4310a21c390fbbf2c03dd3ab486a6fc4923d75",
+      "task": "owned-signature-migration-v1",
+      "terminal_classification": "incomplete",
+      "termination_reason": "native_guarded_incomplete:aggregate_request_bound",
+      "trial": 2
+    },
+    {
+      "acceptance": [
+        {
+          "id": "signature",
+          "outcome": "failed"
+        },
+        {
+          "id": "identity",
+          "outcome": "failed"
+        },
+        {
+          "id": "callers",
+          "outcome": "failed"
+        },
+        {
+          "id": "ownership",
+          "outcome": "failed"
+        },
+        {
+          "id": "meaning",
+          "outcome": "passed"
+        },
+        {
+          "id": "review",
+          "outcome": "failed"
+        },
+        {
+          "id": "authority",
+          "outcome": "passed"
+        }
+      ],
+      "acceptance_error": null,
+      "candidate_archive_error": null,
+      "candidate_source_sha256": "2666e294f34396ec992d59d6a02d795acbecd798d25604468f5c2517e06d4884",
+      "cell": "haiku45-10",
+      "guarded_forwards": 8,
+      "guarded_request_bytes": 56356,
+      "lane": "semaprax-source-first",
+      "mcp_tool_calls": 8,
+      "mcp_wire_sha256": "06863b0870a0554b1d4d0dea77246f390fafc785864f183c3e8932b59716cef2",
+      "model": {
+        "canonical_model": "claude-haiku-4-5",
+        "configured_model": "anthropic/claude-haiku-4-5-20251001",
+        "id": "haiku45",
+        "model": "claude-haiku-4-5-20251001",
+        "provider": "anthropic",
+        "revision": "claude-haiku-4-5-20251001",
+        "usage_key": "claude-haiku-4-5-20251001"
+      },
+      "native_duration_ms": 12653,
+      "native_reported_turns": 9,
+      "position": 10,
+      "record_sha256": "aa26e43ed99be8363e12612d73551d1a6ed9777c4dd3163570a83f37f4b2ccda",
+      "reported_api_equivalent_usd": 0.021737999999999997,
+      "reported_usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "fallback_credit": null,
+        "inference_geo": "not_available",
+        "input_tokens": 18423,
+        "iterations": [],
+        "output_tokens": 663,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "server_tool_use": {
+          "web_fetch_requests": 0,
+          "web_search_requests": 0
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      },
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "24361985874ff986aa88f420bf6dae03a9447b49be79d8083fa0d8aa37c2bcfb",
+      "task": "owned-signature-migration-v1",
+      "terminal_classification": "failed",
+      "termination_reason": "native_provider_error_max_turns",
+      "trial": 2
+    },
+    {
+      "acceptance": null,
+      "acceptance_error": null,
+      "candidate_archive_error": null,
+      "candidate_source_sha256": "2666e294f34396ec992d59d6a02d795acbecd798d25604468f5c2517e06d4884",
+      "cell": "sonnet55-10",
+      "guarded_forwards": 7,
+      "guarded_request_bytes": 58647,
+      "lane": "semaprax-source-first",
+      "mcp_tool_calls": 8,
+      "mcp_wire_sha256": "bf1e8aa5fc5b0003b0e86e22bc6a0521ec33307e2ae9ae65d3952f7af86bf860",
+      "model": {
+        "canonical_model": "claude-sonnet-5-5",
+        "configured_model": "anthropic/claude-sonnet-5-5",
+        "id": "sonnet55",
+        "model": "claude-sonnet-5-5",
+        "provider": "anthropic",
+        "revision": "claude-sonnet-5-5",
+        "usage_key": "claude-sonnet-5-5"
+      },
+      "native_duration_ms": 25710,
+      "native_reported_turns": 12,
+      "position": 10,
+      "record_sha256": "53b12d73547e87db4364d73868ead25ab8297b9365c99b3fac26bf4241348b37",
+      "reported_api_equivalent_usd": 0.065228,
+      "reported_usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "fallback_credit": null,
+        "inference_geo": "not_available",
+        "input_tokens": 22199,
+        "iterations": [],
+        "output_tokens": 2083,
+        "output_tokens_details": {
+          "thinking_tokens": 1272
+        },
+        "server_tool_use": {
+          "web_fetch_requests": 0,
+          "web_search_requests": 0
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      },
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "b99a54c0b044588884efaad73462e958d6f29b84b03c5bd64ed0c5c44ba172ad",
+      "task": "owned-signature-migration-v1",
+      "terminal_classification": "incomplete",
+      "termination_reason": "native_guarded_incomplete:aggregate_request_bound",
+      "trial": 2
+    },
+    {
+      "acceptance": [
+        {
+          "id": "signature",
+          "outcome": "failed"
+        },
+        {
+          "id": "identity",
+          "outcome": "failed"
+        },
+        {
+          "id": "callers",
+          "outcome": "failed"
+        },
+        {
+          "id": "meaning",
+          "outcome": "failed"
+        },
+        {
+          "id": "review",
+          "outcome": "passed"
+        },
+        {
+          "id": "authority",
+          "outcome": "passed"
+        }
+      ],
+      "acceptance_error": null,
+      "candidate_archive_error": null,
+      "candidate_source_sha256": "c5a913caeb86e9c9aa26cc646987cb1868413030f65b6e6b1fc115f29b56abdb",
+      "cell": "haiku45-11",
+      "guarded_forwards": 8,
+      "guarded_request_bytes": 55175,
+      "lane": "semaprax-source-first",
+      "mcp_tool_calls": 8,
+      "mcp_wire_sha256": "ceade9659a3561c3cd298acf35e9ddd91e25c511bca5b64f9f61edd9270c3487",
+      "model": {
+        "canonical_model": "claude-haiku-4-5",
+        "configured_model": "anthropic/claude-haiku-4-5-20251001",
+        "id": "haiku45",
+        "model": "claude-haiku-4-5-20251001",
+        "provider": "anthropic",
+        "revision": "claude-haiku-4-5-20251001",
+        "usage_key": "claude-haiku-4-5-20251001"
+      },
+      "native_duration_ms": 16272,
+      "native_reported_turns": 9,
+      "position": 11,
+      "record_sha256": "d32170b4f109724f55afd804e2869a034debc444f8e60ec8ac772099a98bbe98",
+      "reported_api_equivalent_usd": 0.021251,
+      "reported_usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "fallback_credit": null,
+        "inference_geo": "not_available",
+        "input_tokens": 17966,
+        "iterations": [],
+        "output_tokens": 657,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "server_tool_use": {
+          "web_fetch_requests": 0,
+          "web_search_requests": 0
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      },
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "71ae9d456846e7cbafbd45daee92663072562a7278eb328d13ab73fea5379ffd",
+      "task": "signature-migration-v1",
+      "terminal_classification": "failed",
+      "termination_reason": "native_provider_error_max_turns",
+      "trial": 2
+    },
+    {
+      "acceptance": null,
+      "acceptance_error": null,
+      "candidate_archive_error": null,
+      "candidate_source_sha256": "c5a913caeb86e9c9aa26cc646987cb1868413030f65b6e6b1fc115f29b56abdb",
+      "cell": "sonnet55-11",
+      "guarded_forwards": 7,
+      "guarded_request_bytes": 55652,
+      "lane": "semaprax-source-first",
+      "mcp_tool_calls": 8,
+      "mcp_wire_sha256": "ab4035810374e5be0d5ac0a177738605a1d8cc974bd80b788840b8e892b70824",
+      "model": {
+        "canonical_model": "claude-sonnet-5-5",
+        "configured_model": "anthropic/claude-sonnet-5-5",
+        "id": "sonnet55",
+        "model": "claude-sonnet-5-5",
+        "provider": "anthropic",
+        "revision": "claude-sonnet-5-5",
+        "usage_key": "claude-sonnet-5-5"
+      },
+      "native_duration_ms": 25995,
+      "native_reported_turns": 12,
+      "position": 11,
+      "record_sha256": "83e1f5e1a55fc7f7bd6464cafc1e0ba9145113ea1de5313aaaf273053914703e",
+      "reported_api_equivalent_usd": 0.062288,
+      "reported_usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "fallback_credit": null,
+        "inference_geo": "not_available",
+        "input_tokens": 20694,
+        "iterations": [],
+        "output_tokens": 2090,
+        "output_tokens_details": {
+          "thinking_tokens": 1571
+        },
+        "server_tool_use": {
+          "web_fetch_requests": 0,
+          "web_search_requests": 0
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      },
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "58870bdd0ff578183c495f04c7ce0121278ebf589c7bcfbbe5c5311b7ceae7a0",
+      "task": "signature-migration-v1",
+      "terminal_classification": "incomplete",
+      "termination_reason": "native_guarded_incomplete:aggregate_request_bound",
+      "trial": 2
+    },
+    {
+      "acceptance": [
+        {
+          "id": "signature",
+          "outcome": "failed"
+        },
+        {
+          "id": "identity",
+          "outcome": "failed"
+        },
+        {
+          "id": "callers",
+          "outcome": "failed"
+        },
+        {
+          "id": "meaning",
+          "outcome": "failed"
+        },
+        {
+          "id": "review",
+          "outcome": "passed"
+        },
+        {
+          "id": "authority",
+          "outcome": "passed"
+        }
+      ],
+      "acceptance_error": null,
+      "candidate_archive_error": null,
+      "candidate_source_sha256": "c5a913caeb86e9c9aa26cc646987cb1868413030f65b6e6b1fc115f29b56abdb",
+      "cell": "haiku45-12",
+      "guarded_forwards": 8,
+      "guarded_request_bytes": 59615,
+      "lane": "semaprax-graph-operational",
+      "mcp_tool_calls": 8,
+      "mcp_wire_sha256": "47c14f3e973d51e36e9aa7eda883eb25e3895ed493e3622761e80e2fae9dd060",
+      "model": {
+        "canonical_model": "claude-haiku-4-5",
+        "configured_model": "anthropic/claude-haiku-4-5-20251001",
+        "id": "haiku45",
+        "model": "claude-haiku-4-5-20251001",
+        "provider": "anthropic",
+        "revision": "claude-haiku-4-5-20251001",
+        "usage_key": "claude-haiku-4-5-20251001"
+      },
+      "native_duration_ms": 12278,
+      "native_reported_turns": 9,
+      "position": 12,
+      "record_sha256": "cee63d9b9a7dff5af9b8e2e72f714915ba1f24c34fca1619c52115376be20806",
+      "reported_api_equivalent_usd": 0.022135,
+      "reported_usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "fallback_credit": null,
+        "inference_geo": "not_available",
+        "input_tokens": 18960,
+        "iterations": [],
+        "output_tokens": 635,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "server_tool_use": {
+          "web_fetch_requests": 0,
+          "web_search_requests": 0
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      },
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "eba73cb836acd4126d0095fb5e440293c53aa6ddf56e7ecc0630683401c09941",
+      "task": "signature-migration-v1",
+      "terminal_classification": "failed",
+      "termination_reason": "native_provider_error_max_turns",
+      "trial": 2
+    },
+    {
+      "acceptance": null,
+      "acceptance_error": null,
+      "candidate_archive_error": null,
+      "candidate_source_sha256": "c5a913caeb86e9c9aa26cc646987cb1868413030f65b6e6b1fc115f29b56abdb",
+      "cell": "sonnet55-12",
+      "guarded_forwards": 6,
+      "guarded_request_bytes": 47280,
+      "lane": "semaprax-graph-operational",
+      "mcp_tool_calls": 13,
+      "mcp_wire_sha256": "2494a179907901828e458b9be3f70ca7cafd5a6ac3d4ee96d103fcbce8d514b3",
+      "model": {
+        "canonical_model": "claude-sonnet-5-5",
+        "configured_model": "anthropic/claude-sonnet-5-5",
+        "id": "sonnet55",
+        "model": "claude-sonnet-5-5",
+        "provider": "anthropic",
+        "revision": "claude-sonnet-5-5",
+        "usage_key": "claude-sonnet-5-5"
+      },
+      "native_duration_ms": 15832,
+      "native_reported_turns": 14,
+      "position": 12,
+      "record_sha256": "28de9abb66d1978ddce0c945d1d8e44832f5ac334fae2dba54ad30fd173ac39a",
+      "reported_api_equivalent_usd": 0.045368,
+      "reported_usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "fallback_credit": null,
+        "inference_geo": "not_available",
+        "input_tokens": 18104,
+        "iterations": [],
+        "output_tokens": 916,
+        "output_tokens_details": {
+          "thinking_tokens": 69
+        },
+        "server_tool_use": {
+          "web_fetch_requests": 0,
+          "web_search_requests": 0
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      },
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "c58ac3c329d9a6fd018f665a75cd0a6d1e04e3718707ba9a20b6610a9d0d54f9",
+      "task": "signature-migration-v1",
+      "terminal_classification": "incomplete",
+      "termination_reason": "native_guarded_incomplete:aggregate_request_bound",
+      "trial": 2
+    },
+    {
+      "acceptance": [
+        {
+          "id": "signature",
+          "outcome": "failed"
+        },
+        {
+          "id": "identity",
+          "outcome": "failed"
+        },
+        {
+          "id": "callers",
+          "outcome": "failed"
+        },
+        {
+          "id": "ownership",
+          "outcome": "failed"
+        },
+        {
+          "id": "meaning",
+          "outcome": "passed"
+        },
+        {
+          "id": "review",
+          "outcome": "failed"
+        },
+        {
+          "id": "authority",
+          "outcome": "passed"
+        }
+      ],
+      "acceptance_error": null,
+      "candidate_archive_error": null,
+      "candidate_source_sha256": "2666e294f34396ec992d59d6a02d795acbecd798d25604468f5c2517e06d4884",
+      "cell": "haiku45-13",
+      "guarded_forwards": 8,
+      "guarded_request_bytes": 61325,
+      "lane": "semaprax-graph-operational",
+      "mcp_tool_calls": 8,
+      "mcp_wire_sha256": "3332a14a1055706d2925dff5fd1a02481d4c27cfb131770b2cdb3f86cc98fae3",
+      "model": {
+        "canonical_model": "claude-haiku-4-5",
+        "configured_model": "anthropic/claude-haiku-4-5-20251001",
+        "id": "haiku45",
+        "model": "claude-haiku-4-5-20251001",
+        "provider": "anthropic",
+        "revision": "claude-haiku-4-5-20251001",
+        "usage_key": "claude-haiku-4-5-20251001"
+      },
+      "native_duration_ms": 17888,
+      "native_reported_turns": 9,
+      "position": 13,
+      "record_sha256": "4ed7eb4bc9cc47bd0219bdbf36933863d917709d978b024f9c37f7186aa2f89a",
+      "reported_api_equivalent_usd": 0.022808,
+      "reported_usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "fallback_credit": null,
+        "inference_geo": "not_available",
+        "input_tokens": 19558,
+        "iterations": [],
+        "output_tokens": 650,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "server_tool_use": {
+          "web_fetch_requests": 0,
+          "web_search_requests": 0
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      },
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "0d8acf92296897909e77b8036b668db6d1cd08a559511fe4c8a93a63c1023b24",
+      "task": "owned-signature-migration-v1",
+      "terminal_classification": "failed",
+      "termination_reason": "native_provider_error_max_turns",
+      "trial": 3
+    },
+    {
+      "acceptance": null,
+      "acceptance_error": null,
+      "candidate_archive_error": null,
+      "candidate_source_sha256": "2666e294f34396ec992d59d6a02d795acbecd798d25604468f5c2517e06d4884",
+      "cell": "sonnet55-13",
+      "guarded_forwards": 6,
+      "guarded_request_bytes": 63267,
+      "lane": "semaprax-graph-operational",
+      "mcp_tool_calls": 12,
+      "mcp_wire_sha256": "ea76e90bab7c540fdc6d73acfa5c97d2d7e9dee6c4bb6e9a433588c8d7bd59c5",
+      "model": {
+        "canonical_model": "claude-sonnet-5-5",
+        "configured_model": "anthropic/claude-sonnet-5-5",
+        "id": "sonnet55",
+        "model": "claude-sonnet-5-5",
+        "provider": "anthropic",
+        "revision": "claude-sonnet-5-5",
+        "usage_key": "claude-sonnet-5-5"
+      },
+      "native_duration_ms": 15591,
+      "native_reported_turns": 13,
+      "position": 13,
+      "record_sha256": "c4448515663f1aaa0b01fc8564e55ed0e91007b587c21f317bb15d5d038e19d8",
+      "reported_api_equivalent_usd": 0.059806,
+      "reported_usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "fallback_credit": null,
+        "inference_geo": "not_available",
+        "input_tokens": 25073,
+        "iterations": [],
+        "output_tokens": 966,
+        "output_tokens_details": {
+          "thinking_tokens": 117
+        },
+        "server_tool_use": {
+          "web_fetch_requests": 0,
+          "web_search_requests": 0
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      },
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "f02007f31fbbbdeaa3ee2bf899ff6bc5cae7d90be4a50604b514d7c4fd6c9a69",
+      "task": "owned-signature-migration-v1",
+      "terminal_classification": "incomplete",
+      "termination_reason": "native_guarded_incomplete:aggregate_request_bound",
+      "trial": 3
+    },
+    {
+      "acceptance": [
+        {
+          "id": "signature",
+          "outcome": "failed"
+        },
+        {
+          "id": "identity",
+          "outcome": "failed"
+        },
+        {
+          "id": "callers",
+          "outcome": "failed"
+        },
+        {
+          "id": "ownership",
+          "outcome": "failed"
+        },
+        {
+          "id": "meaning",
+          "outcome": "passed"
+        },
+        {
+          "id": "review",
+          "outcome": "failed"
+        },
+        {
+          "id": "authority",
+          "outcome": "passed"
+        }
+      ],
+      "acceptance_error": null,
+      "candidate_archive_error": null,
+      "candidate_source_sha256": "2666e294f34396ec992d59d6a02d795acbecd798d25604468f5c2517e06d4884",
+      "cell": "haiku45-14",
+      "guarded_forwards": 8,
+      "guarded_request_bytes": 56918,
+      "lane": "semaprax-source-first",
+      "mcp_tool_calls": 8,
+      "mcp_wire_sha256": "92bb2d1102bffd2006fd021219b07f9bb79219401c3af986684417a851514285",
+      "model": {
+        "canonical_model": "claude-haiku-4-5",
+        "configured_model": "anthropic/claude-haiku-4-5-20251001",
+        "id": "haiku45",
+        "model": "claude-haiku-4-5-20251001",
+        "provider": "anthropic",
+        "revision": "claude-haiku-4-5-20251001",
+        "usage_key": "claude-haiku-4-5-20251001"
+      },
+      "native_duration_ms": 11185,
+      "native_reported_turns": 9,
+      "position": 14,
+      "record_sha256": "175f02e45f5da4fa83beff88b94b627144c7b82e903c7ce977944e3d56e4a1d3",
+      "reported_api_equivalent_usd": 0.021727999999999997,
+      "reported_usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "fallback_credit": null,
+        "inference_geo": "not_available",
+        "input_tokens": 18483,
+        "iterations": [],
+        "output_tokens": 649,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "server_tool_use": {
+          "web_fetch_requests": 0,
+          "web_search_requests": 0
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      },
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "ad5544291269ca5b35b52d0415c30aa375d319760f1fc803a8e60c8db069cfbe",
+      "task": "owned-signature-migration-v1",
+      "terminal_classification": "failed",
+      "termination_reason": "native_provider_error_max_turns",
+      "trial": 3
+    },
+    {
+      "acceptance": null,
+      "acceptance_error": null,
+      "candidate_archive_error": null,
+      "candidate_source_sha256": "2666e294f34396ec992d59d6a02d795acbecd798d25604468f5c2517e06d4884",
+      "cell": "sonnet55-14",
+      "guarded_forwards": 7,
+      "guarded_request_bytes": 58653,
+      "lane": "semaprax-source-first",
+      "mcp_tool_calls": 8,
+      "mcp_wire_sha256": "36cb888bf5bb12cdc2ef181aca3a0fd4ace937b169b0062aa59e232193396c95",
+      "model": {
+        "canonical_model": "claude-sonnet-5-5",
+        "configured_model": "anthropic/claude-sonnet-5-5",
+        "id": "sonnet55",
+        "model": "claude-sonnet-5-5",
+        "provider": "anthropic",
+        "revision": "claude-sonnet-5-5",
+        "usage_key": "claude-sonnet-5-5"
+      },
+      "native_duration_ms": 25060,
+      "native_reported_turns": 12,
+      "position": 14,
+      "record_sha256": "f8071da551716b07b6d99d457b6df217c001a875336e49b6f0e6c2f66ffa0d69",
+      "reported_api_equivalent_usd": 0.06523599999999999,
+      "reported_usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "fallback_credit": null,
+        "inference_geo": "not_available",
+        "input_tokens": 22203,
+        "iterations": [],
+        "output_tokens": 2083,
+        "output_tokens_details": {
+          "thinking_tokens": 1251
+        },
+        "server_tool_use": {
+          "web_fetch_requests": 0,
+          "web_search_requests": 0
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      },
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "5b920ed21782903be43ff2dceb3d7d76928cfc8126ed13f852f04ae95148d880",
+      "task": "owned-signature-migration-v1",
+      "terminal_classification": "incomplete",
+      "termination_reason": "native_guarded_incomplete:aggregate_request_bound",
+      "trial": 3
+    },
+    {
+      "acceptance": [
+        {
+          "id": "signature",
+          "outcome": "failed"
+        },
+        {
+          "id": "identity",
+          "outcome": "failed"
+        },
+        {
+          "id": "callers",
+          "outcome": "failed"
+        },
+        {
+          "id": "meaning",
+          "outcome": "failed"
+        },
+        {
+          "id": "review",
+          "outcome": "passed"
+        },
+        {
+          "id": "authority",
+          "outcome": "passed"
+        }
+      ],
+      "acceptance_error": null,
+      "candidate_archive_error": null,
+      "candidate_source_sha256": "c5a913caeb86e9c9aa26cc646987cb1868413030f65b6e6b1fc115f29b56abdb",
+      "cell": "haiku45-15",
+      "guarded_forwards": 8,
+      "guarded_request_bytes": 58516,
+      "lane": "semaprax-source-first",
+      "mcp_tool_calls": 8,
+      "mcp_wire_sha256": "d8f65ee7a7f04876acb83a78c55e1033e8e532a0d8aa7e8e59167ac1baadafa5",
+      "model": {
+        "canonical_model": "claude-haiku-4-5",
+        "configured_model": "anthropic/claude-haiku-4-5-20251001",
+        "id": "haiku45",
+        "model": "claude-haiku-4-5-20251001",
+        "provider": "anthropic",
+        "revision": "claude-haiku-4-5-20251001",
+        "usage_key": "claude-haiku-4-5-20251001"
+      },
+      "native_duration_ms": 12911,
+      "native_reported_turns": 9,
+      "position": 15,
+      "record_sha256": "1265e8b4a1aae772400a55e4cf795384bfb87c22cdaca5806563f3e2321ff48e",
+      "reported_api_equivalent_usd": 0.022345,
+      "reported_usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "fallback_credit": null,
+        "inference_geo": "not_available",
+        "input_tokens": 19065,
+        "iterations": [],
+        "output_tokens": 656,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "server_tool_use": {
+          "web_fetch_requests": 0,
+          "web_search_requests": 0
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      },
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "0cd1ef1d8eacd9f36edf4740a28f8c5a5f75a7e55374c4a6cd9e5c9101702b19",
+      "task": "signature-migration-v1",
+      "terminal_classification": "failed",
+      "termination_reason": "native_provider_error_max_turns",
+      "trial": 3
+    },
+    {
+      "acceptance": null,
+      "acceptance_error": null,
+      "candidate_archive_error": null,
+      "candidate_source_sha256": "c5a913caeb86e9c9aa26cc646987cb1868413030f65b6e6b1fc115f29b56abdb",
+      "cell": "sonnet55-15",
+      "guarded_forwards": 7,
+      "guarded_request_bytes": 55560,
+      "lane": "semaprax-source-first",
+      "mcp_tool_calls": 8,
+      "mcp_wire_sha256": "8ecdccd091c42b7dd99d84c011a8c8393675318616d1ff12598d70c15f6a0198",
+      "model": {
+        "canonical_model": "claude-sonnet-5-5",
+        "configured_model": "anthropic/claude-sonnet-5-5",
+        "id": "sonnet55",
+        "model": "claude-sonnet-5-5",
+        "provider": "anthropic",
+        "revision": "claude-sonnet-5-5",
+        "usage_key": "claude-sonnet-5-5"
+      },
+      "native_duration_ms": 27305,
+      "native_reported_turns": 12,
+      "position": 15,
+      "record_sha256": "734ccea35969059ca54a055e6438a18cc4a3a464438e159e8db987db715a200a",
+      "reported_api_equivalent_usd": 0.062068,
+      "reported_usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "fallback_credit": null,
+        "inference_geo": "not_available",
+        "input_tokens": 20644,
+        "iterations": [],
+        "output_tokens": 2078,
+        "output_tokens_details": {
+          "thinking_tokens": 1345
+        },
+        "server_tool_use": {
+          "web_fetch_requests": 0,
+          "web_search_requests": 0
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      },
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "bd7fc0696188b4b6f720f76704939f173088204cc5830657ca3e65308a6e7ca4",
+      "task": "signature-migration-v1",
+      "terminal_classification": "incomplete",
+      "termination_reason": "native_guarded_incomplete:aggregate_request_bound",
+      "trial": 3
+    },
+    {
+      "acceptance": [
+        {
+          "id": "signature",
+          "outcome": "failed"
+        },
+        {
+          "id": "identity",
+          "outcome": "failed"
+        },
+        {
+          "id": "callers",
+          "outcome": "failed"
+        },
+        {
+          "id": "meaning",
+          "outcome": "failed"
+        },
+        {
+          "id": "review",
+          "outcome": "passed"
+        },
+        {
+          "id": "authority",
+          "outcome": "passed"
+        }
+      ],
+      "acceptance_error": null,
+      "candidate_archive_error": null,
+      "candidate_source_sha256": "c5a913caeb86e9c9aa26cc646987cb1868413030f65b6e6b1fc115f29b56abdb",
+      "cell": "haiku45-16",
+      "guarded_forwards": 8,
+      "guarded_request_bytes": 61130,
+      "lane": "semaprax-graph-operational",
+      "mcp_tool_calls": 8,
+      "mcp_wire_sha256": "e54180110a0080e30bc415bbe2b17ae7bd5fa94c04fe2dae9ce094b0544c5669",
+      "model": {
+        "canonical_model": "claude-haiku-4-5",
+        "configured_model": "anthropic/claude-haiku-4-5-20251001",
+        "id": "haiku45",
+        "model": "claude-haiku-4-5-20251001",
+        "provider": "anthropic",
+        "revision": "claude-haiku-4-5-20251001",
+        "usage_key": "claude-haiku-4-5-20251001"
+      },
+      "native_duration_ms": 11477,
+      "native_reported_turns": 9,
+      "position": 16,
+      "record_sha256": "a0bed26b290c4cbde7222b28d5c1c34d2e5aecbc9d42a7324d100d33d0fe6f7b",
+      "reported_api_equivalent_usd": 0.022739000000000002,
+      "reported_usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "fallback_credit": null,
+        "inference_geo": "not_available",
+        "input_tokens": 19569,
+        "iterations": [],
+        "output_tokens": 634,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "server_tool_use": {
+          "web_fetch_requests": 0,
+          "web_search_requests": 0
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      },
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "ea2469f485aca0e817f2d9ea6fd28d5fcc6ab12b9314b15804a81485a744a577",
+      "task": "signature-migration-v1",
+      "terminal_classification": "failed",
+      "termination_reason": "native_provider_error_max_turns",
+      "trial": 3
+    },
+    {
+      "acceptance": null,
+      "acceptance_error": null,
+      "candidate_archive_error": null,
+      "candidate_source_sha256": "c5a913caeb86e9c9aa26cc646987cb1868413030f65b6e6b1fc115f29b56abdb",
+      "cell": "sonnet55-16",
+      "guarded_forwards": 7,
+      "guarded_request_bytes": 58639,
+      "lane": "semaprax-graph-operational",
+      "mcp_tool_calls": 15,
+      "mcp_wire_sha256": "0ec0328c299780c421b2fbe4747122e80dacd9a0576ad1a6b8f05dd9cf16a881",
+      "model": {
+        "canonical_model": "claude-sonnet-5-5",
+        "configured_model": "anthropic/claude-sonnet-5-5",
+        "id": "sonnet55",
+        "model": "claude-sonnet-5-5",
+        "provider": "anthropic",
+        "revision": "claude-sonnet-5-5",
+        "usage_key": "claude-sonnet-5-5"
+      },
+      "native_duration_ms": 20430,
+      "native_reported_turns": 16,
+      "position": 16,
+      "record_sha256": "e80810d6dba0940b1f9d8f1b7c675ed80fb17e731205a50ff1ad47ddfa92db64",
+      "reported_api_equivalent_usd": 0.05596,
+      "reported_usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "fallback_credit": null,
+        "inference_geo": "not_available",
+        "input_tokens": 22620,
+        "iterations": [],
+        "output_tokens": 1072,
+        "output_tokens_details": {
+          "thinking_tokens": 63
+        },
+        "server_tool_use": {
+          "web_fetch_requests": 0,
+          "web_search_requests": 0
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      },
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "672e4127405f3c7b9c8f7a4de9a652ff65af05951cf4c31dcb8cf6934a904c24",
+      "task": "signature-migration-v1",
+      "terminal_classification": "incomplete",
+      "termination_reason": "native_guarded_incomplete:aggregate_request_bound",
+      "trial": 3
+    },
+    {
+      "acceptance": [
+        {
+          "id": "stale-detection",
+          "outcome": "passed"
+        },
+        {
+          "id": "recovery",
+          "outcome": "failed"
+        },
+        {
+          "id": "signature",
+          "outcome": "failed"
+        },
+        {
+          "id": "identity",
+          "outcome": "failed"
+        },
+        {
+          "id": "review",
+          "outcome": "passed"
+        },
+        {
+          "id": "authority",
+          "outcome": "passed"
+        }
+      ],
+      "acceptance_error": null,
+      "candidate_archive_error": null,
+      "candidate_source_sha256": "1ac2d8fb83904c4c1678330f3aa3124c1e5d6fba4b70a1e93d9a259d9830337b",
+      "cell": "haiku45-17",
+      "guarded_forwards": 8,
+      "guarded_request_bytes": 60025,
+      "lane": "semaprax-graph-operational",
+      "mcp_tool_calls": 8,
+      "mcp_wire_sha256": "4b8523d297a1d57b5dbc01ae04f7c63aa3ce9dc585f3880a1e164f428c1251a3",
+      "model": {
+        "canonical_model": "claude-haiku-4-5",
+        "configured_model": "anthropic/claude-haiku-4-5-20251001",
+        "id": "haiku45",
+        "model": "claude-haiku-4-5-20251001",
+        "provider": "anthropic",
+        "revision": "claude-haiku-4-5-20251001",
+        "usage_key": "claude-haiku-4-5-20251001"
+      },
+      "native_duration_ms": 11861,
+      "native_reported_turns": 9,
+      "position": 17,
+      "record_sha256": "f6f41443ad7e03d0d4e08fcbb462955c43647c8a87c1ff9b760a0da994aed087",
+      "reported_api_equivalent_usd": 0.022292000000000003,
+      "reported_usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "fallback_credit": null,
+        "inference_geo": "not_available",
+        "input_tokens": 19147,
+        "iterations": [],
+        "output_tokens": 629,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "server_tool_use": {
+          "web_fetch_requests": 0,
+          "web_search_requests": 0
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      },
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "0e12167c23d2101b46ce7d65e26b16c65d5cb8b1ca7f65aa6513388a46674298",
+      "task": "stale-signature-recovery-v1",
+      "terminal_classification": "failed",
+      "termination_reason": "native_provider_error_max_turns",
+      "trial": 3
+    },
+    {
+      "acceptance": null,
+      "acceptance_error": null,
+      "candidate_archive_error": null,
+      "candidate_source_sha256": "1ac2d8fb83904c4c1678330f3aa3124c1e5d6fba4b70a1e93d9a259d9830337b",
+      "cell": "sonnet55-17",
+      "guarded_forwards": 6,
+      "guarded_request_bytes": 51592,
+      "lane": "semaprax-graph-operational",
+      "mcp_tool_calls": 14,
+      "mcp_wire_sha256": "9bf90b21f90f4172790fdf3c83eb9a4d623fe15508537fe0c13404c7039df635",
+      "model": {
+        "canonical_model": "claude-sonnet-5-5",
+        "configured_model": "anthropic/claude-sonnet-5-5",
+        "id": "sonnet55",
+        "model": "claude-sonnet-5-5",
+        "provider": "anthropic",
+        "revision": "claude-sonnet-5-5",
+        "usage_key": "claude-sonnet-5-5"
+      },
+      "native_duration_ms": 16587,
+      "native_reported_turns": 15,
+      "position": 17,
+      "record_sha256": "0a6657a3b4a9e480ba0b24c96d58a6e08979615882cc84e149820229d2529fc0",
+      "reported_api_equivalent_usd": 0.048162,
+      "reported_usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "fallback_credit": null,
+        "inference_geo": "not_available",
+        "input_tokens": 18496,
+        "iterations": [],
+        "output_tokens": 1117,
+        "output_tokens_details": {
+          "thinking_tokens": 123
+        },
+        "server_tool_use": {
+          "web_fetch_requests": 0,
+          "web_search_requests": 0
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      },
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "80ace06fdd2c821780bbb8899139f5477d6f45ec2fab35053af78e9d911d5be6",
+      "task": "stale-signature-recovery-v1",
+      "terminal_classification": "incomplete",
+      "termination_reason": "native_guarded_incomplete:aggregate_request_bound",
+      "trial": 3
+    },
+    {
+      "acceptance": [
+        {
+          "id": "stale-detection",
+          "outcome": "failed"
+        },
+        {
+          "id": "recovery",
+          "outcome": "failed"
+        },
+        {
+          "id": "signature",
+          "outcome": "failed"
+        },
+        {
+          "id": "identity",
+          "outcome": "failed"
+        },
+        {
+          "id": "review",
+          "outcome": "passed"
+        },
+        {
+          "id": "authority",
+          "outcome": "passed"
+        }
+      ],
+      "acceptance_error": null,
+      "candidate_archive_error": null,
+      "candidate_source_sha256": "c5a913caeb86e9c9aa26cc646987cb1868413030f65b6e6b1fc115f29b56abdb",
+      "cell": "haiku45-18",
+      "guarded_forwards": 8,
+      "guarded_request_bytes": 56007,
+      "lane": "semaprax-source-first",
+      "mcp_tool_calls": 8,
+      "mcp_wire_sha256": "e8b9617483183c02bfeac9c633ad399908bb3230b39b54850bcaa110017fd4b1",
+      "model": {
+        "canonical_model": "claude-haiku-4-5",
+        "configured_model": "anthropic/claude-haiku-4-5-20251001",
+        "id": "haiku45",
+        "model": "claude-haiku-4-5-20251001",
+        "provider": "anthropic",
+        "revision": "claude-haiku-4-5-20251001",
+        "usage_key": "claude-haiku-4-5-20251001"
+      },
+      "native_duration_ms": 12567,
+      "native_reported_turns": 9,
+      "position": 18,
+      "record_sha256": "be94b6f6c3d2a633393a59b603b019c35059c7b32ea3365019ee7a09b19e64d9",
+      "reported_api_equivalent_usd": 0.021463,
+      "reported_usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "fallback_credit": null,
+        "inference_geo": "not_available",
+        "input_tokens": 18203,
+        "iterations": [],
+        "output_tokens": 652,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "server_tool_use": {
+          "web_fetch_requests": 0,
+          "web_search_requests": 0
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      },
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "029f5f9e5dabf71759753751a5162853b99f97d4fb989790ce1239ea652efce4",
+      "task": "stale-signature-recovery-v1",
+      "terminal_classification": "failed",
+      "termination_reason": "native_provider_error_max_turns",
+      "trial": 3
+    },
+    {
+      "acceptance": null,
+      "acceptance_error": null,
+      "candidate_archive_error": null,
+      "candidate_source_sha256": "1ac2d8fb83904c4c1678330f3aa3124c1e5d6fba4b70a1e93d9a259d9830337b",
+      "cell": "sonnet55-18",
+      "guarded_forwards": 7,
+      "guarded_request_bytes": 55818,
+      "lane": "semaprax-source-first",
+      "mcp_tool_calls": 8,
+      "mcp_wire_sha256": "2a60410ec36e96c01cc540b8391fef5af6063d822d7c4ca38a8bb676ac069357",
+      "model": {
+        "canonical_model": "claude-sonnet-5-5",
+        "configured_model": "anthropic/claude-sonnet-5-5",
+        "id": "sonnet55",
+        "model": "claude-sonnet-5-5",
+        "provider": "anthropic",
+        "revision": "claude-sonnet-5-5",
+        "usage_key": "claude-sonnet-5-5"
+      },
+      "native_duration_ms": 26363,
+      "native_reported_turns": 12,
+      "position": 18,
+      "record_sha256": "3c26ae8aff1fec662579751c511015b9dc6e77f884caf14347d0e8f791c6481b",
+      "reported_api_equivalent_usd": 0.062154,
+      "reported_usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "fallback_credit": null,
+        "inference_geo": "not_available",
+        "input_tokens": 20697,
+        "iterations": [],
+        "output_tokens": 2076,
+        "output_tokens_details": {
+          "thinking_tokens": 1169
+        },
+        "server_tool_use": {
+          "web_fetch_requests": 0,
+          "web_search_requests": 0
+        },
+        "service_tier": "standard",
+        "speed": "standard"
+      },
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "f8728db54e5aa5452bc2123578ebef8b0e2b75d2455f0f7c3bd9bdd649a282d5",
+      "task": "stale-signature-recovery-v1",
+      "terminal_classification": "incomplete",
+      "termination_reason": "native_guarded_incomplete:aggregate_request_bound",
+      "trial": 3
+    }
+  ],
+  "runner_revision": "df6e6d72a49e917810319c1482c1ebb5a56c7a15",
+  "schema": "semaprax.coding-agent-pilot-bounded-result.v1",
+  "subscription_invoice_cost_usd": null,
+  "trial_retries": 0,
+  "unknown_cost_trials": 0
+}

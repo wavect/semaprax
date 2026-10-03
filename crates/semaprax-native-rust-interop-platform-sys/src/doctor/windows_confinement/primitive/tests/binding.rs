@@ -71,6 +71,61 @@ fn assert_refused(fixture: &Fixture, capsule: &TestCapsule, role: ImageRole) {
     assert_parent_empty(&fixture.scratch);
 }
 
+fn retained_writable_section(executable: &Path) -> Handle {
+    use windows_sys::Win32::System::Memory::{CreateFileMappingW, PAGE_READWRITE};
+
+    let file = OpenOptions::new()
+        .read(true)
+        .write(true)
+        .open(executable)
+        .unwrap();
+    // SAFETY: the owned fixture is a nonempty regular file and this test
+    // retains only the hostile writable section after dropping its file handle.
+    let mapping = unsafe {
+        CreateFileMappingW(
+            file.as_raw_handle(),
+            std::ptr::null(),
+            PAGE_READWRITE,
+            0,
+            0,
+            std::ptr::null(),
+        )
+    };
+    assert!(!mapping.is_null(), "create retained writable section");
+    drop(file);
+    Handle::new(mapping)
+}
+
+fn assert_refused_before_file_open(fixture: &Fixture, capsule: &TestCapsule) {
+    let mut reached = Vec::with_capacity(5);
+    let result = confined_spawn_observing(
+        &fixture.executable,
+        ImageRole::Worker,
+        &[],
+        &fixture.scratch,
+        TEST_REQUEST_BYTES,
+        TEST_BUNDLE_BYTES,
+        || Ok(verified(capsule)),
+        |boundary| {
+            reached.push(boundary);
+            assert_ne!(
+                boundary,
+                BindingBoundary::BeforeProcessCreation,
+                "hostile image must not reach process creation"
+            );
+        },
+    );
+    assert_eq!(
+        result.err(),
+        Some(Refusal::Capsule(CapsuleError::ArtifactBinding))
+    );
+    assert!(
+        reached.is_empty(),
+        "initial no-write-sharing open must refuse before metadata or oplock acquisition; reached {reached:?}"
+    );
+    assert_parent_empty(&fixture.scratch);
+}
+
 #[test]
 #[ignore = "requires the explicitly provisioned Windows runtime gate"]
 fn windows_runtime_signed_image_mismatch_refuses_before_process_effects() {
@@ -107,6 +162,8 @@ fn windows_runtime_signed_image_mismatch_refuses_before_process_effects() {
 #[test]
 #[ignore = "requires the explicitly provisioned Windows runtime gate"]
 fn windows_runtime_signed_image_pins_leaf_and_ancestors_through_launch() {
+    use windows_sys::Win32::System::Memory::{CreateFileMappingW, PAGE_READWRITE};
+
     let fixture = Fixture::new();
     let capsule = test_capsule_body();
     let admitted =
@@ -125,15 +182,46 @@ fn windows_runtime_signed_image_pins_leaf_and_ancestors_through_launch() {
         || Ok(verified(&capsule)),
         || {
             attempted.set(true);
+            let late_alias = fixture.images.join("late-alias.exe");
+            if std::fs::hard_link(&fixture.executable, &late_alias).is_ok() {
+                // Keep the owned fixture removable before reporting the failed
+                // exclusion. A successful post-binding hard link would make
+                // the authenticated leaf multiply linked after admission.
+                std::fs::remove_file(&late_alias).unwrap();
+                panic!("held image admitted a post-binding hard-link substitution");
+            }
             assert!(
                 std::fs::rename(&fixture.executable, fixture.images.join("moved.exe")).is_err()
             );
             assert!(std::fs::rename(&fixture.images, fixture.parent.join("moved-images")).is_err());
             assert!(std::fs::remove_file(&fixture.executable).is_err());
-            assert!(OpenOptions::new()
-                .write(true)
+            assert!(
+                OpenOptions::new()
+                    .write(true)
+                    .open(&fixture.executable)
+                    .is_err()
+            );
+            let reader = OpenOptions::new()
+                .read(true)
                 .open(&fixture.executable)
-                .is_err());
+                .unwrap();
+            // SAFETY: `reader` is a live read-only handle. The requested
+            // writable section must fail: the held-image sharing guard denied
+            // a writer, and this new handle never held write access.
+            let mapping = unsafe {
+                CreateFileMappingW(
+                    reader.as_raw_handle(),
+                    std::ptr::null(),
+                    PAGE_READWRITE,
+                    0,
+                    0,
+                    std::ptr::null(),
+                )
+            };
+            if !mapping.is_null() {
+                drop(Handle::new(mapping));
+                panic!("post-binding read handle unexpectedly created a writable section");
+            }
         },
     )
     .expect("authenticated held image launches after every substitution is denied");
@@ -180,8 +268,8 @@ fn windows_runtime_signed_image_refuses_preexisting_writer_and_hardlink() {
 #[ignore = "requires the explicitly provisioned Windows runtime gate"]
 fn windows_runtime_signed_image_refuses_writable_mapping_after_writer_closes() {
     use windows_sys::Win32::System::Memory::{
-        CreateFileMappingW, MapViewOfFile, UnmapViewOfFile, FILE_MAP_WRITE,
-        MEMORY_MAPPED_VIEW_ADDRESS, PAGE_READWRITE,
+        CreateFileMappingW, FILE_MAP_WRITE, MEMORY_MAPPED_VIEW_ADDRESS, MapViewOfFile,
+        PAGE_READWRITE, UnmapViewOfFile,
     };
     struct View(MEMORY_MAPPED_VIEW_ADDRESS);
     impl Drop for View {
@@ -216,10 +304,11 @@ fn windows_runtime_signed_image_refuses_writable_mapping_after_writer_closes() {
     let view = View(view);
     drop(file);
     drop(mapping);
-    // A view survives closure of both handles; a sharing-only guard is unsound.
+    // A view survives closure of both handles. Require the initial open itself
+    // to refuse: a later oplock refusal cannot establish sharing exclusion.
     let baseline = current_process_handle_count();
     for _ in 0..4 {
-        assert_refused(&fixture, &capsule, ImageRole::Worker);
+        assert_refused_before_file_open(&fixture, &capsule);
         assert_eq!(current_process_handle_count(), baseline);
     }
     drop(view);
@@ -262,7 +351,18 @@ fn windows_runtime_dropped_child_releases_image_and_process_handles() {
 #[test]
 #[ignore = "requires the explicitly provisioned Windows runtime gate"]
 fn windows_runtime_signed_image_refuses_retained_writable_section_without_view() {
-    use windows_sys::Win32::System::Memory::{CreateFileMappingW, PAGE_READWRITE};
+    use std::io::Read as _;
+    use windows_sys::Win32::System::Memory::{
+        CreateFileMappingW, FILE_MAP_WRITE, FlushViewOfFile, MEMORY_MAPPED_VIEW_ADDRESS,
+        MapViewOfFile, PAGE_READWRITE, UnmapViewOfFile,
+    };
+    struct View(MEMORY_MAPPED_VIEW_ADDRESS);
+    impl Drop for View {
+        fn drop(&mut self) {
+            // SAFETY: this wrapper owns one successfully mapped view.
+            assert_ne!(unsafe { UnmapViewOfFile(self.0) }, 0);
+        }
+    }
     let fixture = Fixture::new();
     let capsule = test_capsule_body();
     let file = OpenOptions::new()
@@ -287,9 +387,496 @@ fn windows_runtime_signed_image_refuses_retained_writable_section_without_view()
     let mapping = Handle::new(mapping);
     drop(file);
     let baseline = current_process_handle_count();
-    assert_refused(&fixture, &capsule, ImageRole::Worker);
+    assert_refused_before_file_open(&fixture, &capsule);
     assert_eq!(current_process_handle_count(), baseline);
+    // Prove the no-view capability was real: after the guard refuses, the
+    // retained section must be able to create a writable view and change the
+    // exact file bytes. Otherwise this case could pass without exercising the
+    // section-mutation gap it is intended to witness.
+    let view = unsafe { MapViewOfFile(mapping.raw(), FILE_MAP_WRITE, 0, 0, 0) };
+    assert!(
+        !view.Value.is_null(),
+        "retained section cannot map writable"
+    );
+    let view = View(view);
+    let last = usize::try_from(std::fs::metadata(&fixture.executable).unwrap().len()).unwrap() - 1;
+    // SAFETY: a zero-length MapViewOfFile request maps the entire existing
+    // file, and `last` is its final valid byte. The view is exclusively owned
+    // by this test while the hostile byte is changed.
+    let byte = unsafe { view.0.Value.cast::<u8>().add(last) };
+    let original = unsafe { byte.read() };
+    unsafe { byte.write(original ^ 1) };
+    assert_ne!(unsafe { FlushViewOfFile(view.0.Value, 0) }, 0);
+    drop(view);
     drop(mapping);
+    // ReadFile and mapped views are not guaranteed coherent while the view
+    // is live; observe the changed file only after closing the hostile view.
+    let mut reader = OpenOptions::new()
+        .read(true)
+        .open(&fixture.executable)
+        .unwrap();
+    reader.seek(SeekFrom::Start(last as u64)).unwrap();
+    let mut observed = [0];
+    reader.read_exact(&mut observed).unwrap();
+    assert_eq!(
+        observed[0],
+        original ^ 1,
+        "hostile mapped write did not change the signed file"
+    );
+    drop(reader);
+    let mut writer = OpenOptions::new()
+        .write(true)
+        .open(&fixture.executable)
+        .unwrap();
+    writer.seek(SeekFrom::Start(last as u64)).unwrap();
+    writer.write_all(&[original]).unwrap();
+    writer.sync_all().unwrap();
+    drop(writer);
+    let mut reader = OpenOptions::new()
+        .read(true)
+        .open(&fixture.executable)
+        .unwrap();
+    reader.seek(SeekFrom::Start(last as u64)).unwrap();
+    reader.read_exact(&mut observed).unwrap();
+    assert_eq!(observed[0], original);
+    drop(reader);
     // This success control rejects an unavailable-oplock fixture as a failure.
     drop(image::HeldImage::acquire(&fixture.executable, verified(&capsule).worker()).unwrap());
+}
+
+#[test]
+#[ignore = "requires the explicitly provisioned Windows runtime gate"]
+fn windows_runtime_retained_writable_section_refuses_before_every_launch_boundary() {
+    use std::io::Read as _;
+    use windows_sys::Win32::System::Memory::{
+        FILE_MAP_WRITE, FlushViewOfFile, MEMORY_MAPPED_VIEW_ADDRESS, MapViewOfFile, UnmapViewOfFile,
+    };
+    struct View(MEMORY_MAPPED_VIEW_ADDRESS);
+    impl Drop for View {
+        fn drop(&mut self) {
+            // SAFETY: this wrapper owns one successfully mapped view.
+            assert_ne!(unsafe { UnmapViewOfFile(self.0) }, 0);
+        }
+    }
+
+    let fixture = Fixture::new();
+    let capsule = test_capsule_body();
+    let mapping = retained_writable_section(&fixture.executable);
+    let mut reached = Vec::with_capacity(5);
+    let result = confined_spawn_observing(
+        &fixture.executable,
+        ImageRole::Worker,
+        &[],
+        &fixture.scratch,
+        TEST_REQUEST_BYTES,
+        TEST_BUNDLE_BYTES,
+        || Ok(verified(&capsule)),
+        |boundary| reached.push(boundary),
+    );
+    assert_eq!(
+        result.err(),
+        Some(Refusal::Capsule(CapsuleError::ArtifactBinding))
+    );
+    assert!(
+        reached.is_empty(),
+        "a retained writable section must refuse at the initial file open before every launch boundary; reached {reached:?}"
+    );
+    assert_parent_empty(&fixture.scratch);
+
+    // The retained no-view section remains a real hostile capability after
+    // refusal. Map it, change one signed byte, and restore the fixture before
+    // requiring the normal admission success control.
+    let view = unsafe { MapViewOfFile(mapping.raw(), FILE_MAP_WRITE, 0, 0, 0) };
+    assert!(
+        !view.Value.is_null(),
+        "retained section maps writable after refusal"
+    );
+    let view = View(view);
+    let last = usize::try_from(std::fs::metadata(&fixture.executable).unwrap().len()).unwrap() - 1;
+    // SAFETY: the complete nonempty file is mapped and this is its final byte.
+    let byte = unsafe { view.0.Value.cast::<u8>().add(last) };
+    let original = unsafe { byte.read() };
+    unsafe { byte.write(original ^ 1) };
+    assert_ne!(unsafe { FlushViewOfFile(view.0.Value, 0) }, 0);
+    drop(view);
+    drop(mapping);
+    let mut reader = OpenOptions::new()
+        .read(true)
+        .open(&fixture.executable)
+        .unwrap();
+    reader.seek(SeekFrom::Start(last as u64)).unwrap();
+    let mut observed = [0];
+    reader.read_exact(&mut observed).unwrap();
+    assert_eq!(
+        observed,
+        [original ^ 1],
+        "hostile mapped write changed the image"
+    );
+    drop(reader);
+    let mut writer = OpenOptions::new()
+        .write(true)
+        .open(&fixture.executable)
+        .unwrap();
+    writer.seek(SeekFrom::Start(last as u64)).unwrap();
+    writer.write_all(&[original]).unwrap();
+    writer.sync_all().unwrap();
+    drop(writer);
+    drop(image::HeldImage::acquire(&fixture.executable, verified(&capsule).worker()).unwrap());
+}
+
+#[test]
+#[ignore = "requires the explicitly provisioned Windows runtime gate"]
+fn windows_runtime_signed_image_reaches_every_launch_boundary() {
+    let fixture = Fixture::new();
+    let capsule = test_capsule_body();
+    let args = child_test_args("runtime_child_exits_with_nonzero_status");
+    let args: Vec<&OsStr> = args.iter().map(OsString::as_os_str).collect();
+    let mut reached = Vec::with_capacity(5);
+    let child = confined_spawn_observing(
+        &fixture.executable,
+        ImageRole::Worker,
+        &args,
+        &fixture.scratch,
+        TEST_REQUEST_BYTES,
+        TEST_BUNDLE_BYTES,
+        || Ok(verified(&capsule)),
+        |boundary| reached.push(boundary),
+    )
+    .expect("clean signed image reaches every bounded launch checkpoint");
+    assert_eq!(
+        reached,
+        [
+            BindingBoundary::Image(image::ImageBindingBoundary::FileOpened),
+            BindingBoundary::Image(image::ImageBindingBoundary::GuardAcquired),
+            BindingBoundary::Image(image::ImageBindingBoundary::DigestVerified),
+            BindingBoundary::BeforeProcessCreation,
+            BindingBoundary::SuspendedLeader,
+        ]
+    );
+    let mut guard = RuntimeChildCleanupGuard::new(&child);
+    let marker = child._scratch.dir.join(TEST_MARKER);
+    wait_for_marker(&marker);
+    assert_eq!(std::fs::read(&marker).unwrap(), b"exit-37");
+    std::fs::remove_file(marker).unwrap();
+    guard.disarm();
+    assert_eq!(
+        settle(child, Duration::from_secs(30)).status,
+        Settlement::Failed(FailureReason::ExitCode(37))
+    );
+    assert_parent_empty(&fixture.scratch);
+}
+
+#[test]
+#[ignore = "requires the explicitly provisioned Windows runtime gate"]
+fn windows_runtime_retained_writable_section_refusals_settle_handles_and_scratch() {
+    use windows_sys::Win32::System::Memory::{CreateFileMappingW, PAGE_READWRITE};
+
+    let fixture = Fixture::new();
+    let capsule = test_capsule_body();
+    let before_mapping = current_process_handle_count();
+    let file = OpenOptions::new()
+        .read(true)
+        .write(true)
+        .open(&fixture.executable)
+        .unwrap();
+    // Keep only the hostile section capability. This deliberately does not
+    // claim to exclude a later writable view or mutation; it checks that each
+    // refusal settles the primitive's own temporary handles and scratch state.
+    let mapping = unsafe {
+        CreateFileMappingW(
+            file.as_raw_handle(),
+            std::ptr::null(),
+            PAGE_READWRITE,
+            0,
+            0,
+            std::ptr::null(),
+        )
+    };
+    assert!(!mapping.is_null());
+    let mapping = Handle::new(mapping);
+    drop(file);
+
+    let baseline = current_process_handle_count();
+    for _ in 0..4 {
+        assert_refused(&fixture, &capsule, ImageRole::Worker);
+        assert_eq!(
+            current_process_handle_count(),
+            baseline,
+            "retained hostile section leaves no confinement setup handles behind"
+        );
+        assert_parent_empty(&fixture.scratch);
+    }
+    drop(mapping);
+    drop(image::HeldImage::acquire(&fixture.executable, verified(&capsule).worker()).unwrap());
+    assert_eq!(current_process_handle_count(), before_mapping);
+}
+
+#[test]
+#[ignore = "requires the explicitly provisioned Windows runtime gate"]
+fn windows_runtime_child_inherits_only_declared_standard_handles() {
+    use windows_sys::Win32::Foundation::{HANDLE_FLAG_INHERIT, SetHandleInformation};
+    use windows_sys::Win32::Storage::FileSystem::FILE_FLAG_DELETE_ON_CLOSE;
+
+    let fixture = Fixture::new();
+    let capsule = test_capsule_body();
+    // The confined child starts in a new directory beneath `fixture.scratch`.
+    // Its parent-directory probe must name this exact sentinel.
+    let sentinel_path = fixture.scratch.join(INHERITABLE_SENTINEL);
+    let sentinel = OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .custom_flags(FILE_FLAG_DELETE_ON_CLOSE)
+        .open(&sentinel_path)
+        .unwrap();
+    assert_ne!(
+        unsafe {
+            SetHandleInformation(
+                sentinel.as_raw_handle(),
+                HANDLE_FLAG_INHERIT,
+                HANDLE_FLAG_INHERIT,
+            )
+        },
+        0,
+        "make the unrelated delete-on-close sentinel inheritable in the parent"
+    );
+    let args = child_test_args("runtime_child_checks_unrelated_inheritable_handle_is_absent");
+    let args: Vec<&OsStr> = args.iter().map(OsString::as_os_str).collect();
+    let child = confined_spawn_with_test_key(
+        &fixture.executable,
+        &args,
+        &fixture.scratch,
+        &capsule.bytes,
+        &capsule.public_key_hex,
+    )
+    .expect("authenticated child starts with the exact standard-handle inventory");
+    let mut guard = RuntimeChildCleanupGuard::new(&child);
+    let marker = child._scratch.dir.join(TEST_MARKER);
+    wait_for_marker(&marker);
+    assert_eq!(
+        std::fs::read(&marker).unwrap(),
+        b"ready-for-handle-inventory"
+    );
+    std::fs::remove_file(&marker).unwrap();
+    drop(sentinel);
+    assert!(
+        !sentinel_path.exists(),
+        "parent sentinel closes before the child is allowed to observe it"
+    );
+    std::fs::File::create_new(child._scratch.dir.join(HANDLE_INVENTORY_PERMIT)).unwrap();
+    wait_for_marker(&marker);
+    assert_eq!(
+        std::fs::read(&marker).unwrap(),
+        b"unrelated-inheritable-handle-absent"
+    );
+    std::fs::remove_file(&marker).unwrap();
+    std::fs::remove_file(child._scratch.dir.join(HANDLE_INVENTORY_PERMIT)).unwrap();
+    guard.disarm();
+    assert_eq!(
+        settle(child, Duration::from_secs(30)).status,
+        Settlement::Completed
+    );
+    assert_parent_empty(&fixture.scratch);
+}
+
+#[test]
+#[ignore = "requires the explicitly provisioned Windows runtime gate"]
+fn windows_runtime_image_sharing_race_preserves_authenticated_bytes() {
+    use std::sync::{Arc, Barrier, mpsc};
+    use windows_sys::Win32::Foundation::ERROR_SHARING_VIOLATION;
+    use windows_sys::Win32::System::Memory::{
+        FILE_MAP_WRITE, FlushViewOfFile, MapViewOfFile, UnmapViewOfFile,
+    };
+
+    let fixture = Fixture::new();
+    let capsule = test_capsule_body();
+    // Warm std's thread bookkeeping before asserting exact handle settlement.
+    std::thread::spawn(|| {}).join().unwrap();
+    let baseline = current_process_handle_count();
+    // Deterministic controls exercise both orderings; the remaining rounds
+    // race the kernel opens. Stress is coverage, not the sharing proof.
+    for ordering in 0..10 {
+        let barrier = Arc::new(Barrier::new(2));
+        let (ready_tx, ready_rx) = mpsc::sync_channel(1);
+        let (release_tx, release_rx) = mpsc::sync_channel(1);
+        let path = fixture.executable.clone();
+        let worker_barrier = Arc::clone(&barrier);
+        let worker = std::thread::spawn(move || {
+            worker_barrier.wait();
+            let writer = OpenOptions::new().read(true).write(true).open(&path);
+            let section = match writer {
+                Ok(writer) => {
+                    use windows_sys::Win32::System::Memory::{CreateFileMappingW, PAGE_READWRITE};
+                    // SAFETY: owned nonempty PE fixture, live writable file.
+                    let raw = unsafe {
+                        CreateFileMappingW(
+                            writer.as_raw_handle(),
+                            std::ptr::null(),
+                            PAGE_READWRITE,
+                            0,
+                            0,
+                            std::ptr::null(),
+                        )
+                    };
+                    assert!(!raw.is_null(), "winner creates a writable section");
+                    drop(writer);
+                    Some(Handle::new(raw))
+                }
+                Err(error) => {
+                    assert_eq!(error.raw_os_error(), Some(ERROR_SHARING_VIOLATION as i32));
+                    None
+                }
+            };
+            // No view exists and the writer is already closed at this point.
+            ready_tx.send(section.is_some()).unwrap();
+            if release_rx.recv_timeout(Duration::from_secs(30)).is_err() {
+                return;
+            }
+            if let Some(section) = section {
+                // A refused admission must leave a genuinely writable hostile
+                // capability. Change/observe/restore one same-length PE byte.
+                let view = unsafe { MapViewOfFile(section.raw(), FILE_MAP_WRITE, 0, 0, 0) };
+                assert!(!view.Value.is_null());
+                let last = std::fs::metadata(&path).unwrap().len() as usize - 1;
+                let byte = unsafe { view.Value.cast::<u8>().add(last) };
+                let original = unsafe { byte.read() };
+                unsafe { byte.write(original ^ 1) };
+                let changed_flush = unsafe { FlushViewOfFile(view.Value, 0) };
+                let observed = std::fs::read(&path).map(|bytes| bytes[last]);
+                // Restore before assertions, so a failed probe cannot corrupt
+                // a subsequent test's signed fixture.
+                unsafe { byte.write(original) };
+                let restored_flush = unsafe { FlushViewOfFile(view.Value, 0) };
+                let unmapped = unsafe { UnmapViewOfFile(view) };
+                assert_ne!(changed_flush, 0);
+                assert_ne!(restored_flush, 0);
+                assert_ne!(unmapped, 0);
+                assert_eq!(observed.unwrap(), original ^ 1);
+            }
+        });
+        let (image, writer_won) = if ordering == 0 {
+            // Retained section wins before any authenticated image byte read.
+            barrier.wait();
+            let writer_won = ready_rx.recv_timeout(Duration::from_secs(30)).unwrap();
+            (
+                image::HeldImage::acquire(&fixture.executable, verified(&capsule).worker()),
+                writer_won,
+            )
+        } else if ordering == 1 {
+            // The immutable-image open wins before a hostile writer starts.
+            let image = image::HeldImage::acquire(&fixture.executable, verified(&capsule).worker());
+            barrier.wait();
+            let writer_won = ready_rx.recv_timeout(Duration::from_secs(30)).unwrap();
+            (image, writer_won)
+        } else {
+            barrier.wait();
+            let image = image::HeldImage::acquire(&fixture.executable, verified(&capsule).worker());
+            let writer_won = ready_rx.recv_timeout(Duration::from_secs(30)).unwrap();
+            (image, writer_won)
+        };
+        let admitted = image.is_ok();
+        // Settle the hostile thread before assertions, retaining a successful
+        // guard throughout. A failed assertion must not strand a writable
+        // section and contaminate fixture cleanup or the following case.
+        release_tx.send(()).unwrap();
+        worker.join().unwrap();
+        drop(image);
+        drop((release_tx, ready_rx, barrier));
+        if ordering == 0 {
+            assert!(writer_won, "retained-section control must be available");
+        }
+        if ordering == 1 {
+            assert!(admitted, "clean signed-image control must be available");
+        }
+        assert_ne!(admitted, writer_won, "exactly one conflicting open wins");
+        drop(image::HeldImage::acquire(&fixture.executable, verified(&capsule).worker()).unwrap());
+        assert_parent_empty(&fixture.scratch);
+        assert_eq!(current_process_handle_count(), baseline);
+    }
+}
+
+#[test]
+#[ignore = "requires the explicitly provisioned Windows runtime gate"]
+fn windows_runtime_image_sharing_excludes_writers_at_every_launch_boundary() {
+    use windows_sys::Win32::Foundation::ERROR_SHARING_VIOLATION;
+
+    let fixture = Fixture::new();
+    let capsule = test_capsule_body();
+    let args = child_test_args("runtime_child_exits_with_nonzero_status");
+    let args: Vec<&OsStr> = args.iter().map(OsString::as_os_str).collect();
+    let mut reached = Vec::new();
+    let child = confined_spawn_observing(
+        &fixture.executable,
+        ImageRole::Worker,
+        &args,
+        &fixture.scratch,
+        TEST_REQUEST_BYTES,
+        TEST_BUNDLE_BYTES,
+        || Ok(verified(&capsule)),
+        |boundary| {
+            let path = fixture.executable.clone();
+            // The attempt is completed while the launch thread is held at the
+            // boundary, including after CreateProcess while still suspended.
+            let error = std::thread::spawn(move || {
+                use windows_sys::Win32::Foundation::{
+                    DuplicateHandle, GENERIC_READ, GENERIC_WRITE,
+                };
+                use windows_sys::Win32::System::Threading::GetCurrentProcess;
+                let reader = OpenOptions::new().read(true).open(&path).unwrap();
+                let mut upgraded = std::ptr::null_mut();
+                // Files, unlike pagefile sections, cannot gain writable file
+                // access by duplicating a read-only handle. Probe that path as
+                // well as the ordinary fresh writer open at every boundary.
+                let duplicated = unsafe {
+                    DuplicateHandle(
+                        GetCurrentProcess(),
+                        reader.as_raw_handle(),
+                        GetCurrentProcess(),
+                        &mut upgraded,
+                        GENERIC_READ | GENERIC_WRITE,
+                        0,
+                        0,
+                    )
+                };
+                if duplicated != 0 {
+                    drop(Handle::new(upgraded));
+                }
+                assert_eq!(
+                    duplicated, 0,
+                    "read-only file handle cannot gain write access"
+                );
+                OpenOptions::new()
+                    .read(true)
+                    .write(true)
+                    .open(path)
+                    .err()
+                    .and_then(|error| error.raw_os_error())
+            })
+            .join()
+            .unwrap();
+            assert_eq!(error, Some(ERROR_SHARING_VIOLATION as i32), "{boundary:?}");
+            reached.push(boundary);
+        },
+    )
+    .expect("all hostile writer attempts refuse while signed launch succeeds");
+    let mut guard = RuntimeChildCleanupGuard::new(&child);
+    assert_eq!(
+        reached,
+        [
+            BindingBoundary::Image(image::ImageBindingBoundary::FileOpened),
+            BindingBoundary::Image(image::ImageBindingBoundary::GuardAcquired),
+            BindingBoundary::Image(image::ImageBindingBoundary::DigestVerified),
+            BindingBoundary::BeforeProcessCreation,
+            BindingBoundary::SuspendedLeader,
+        ]
+    );
+    let marker = child._scratch.dir.join(TEST_MARKER);
+    wait_for_marker(&marker);
+    assert_eq!(std::fs::read(&marker).unwrap(), b"exit-37");
+    std::fs::remove_file(marker).unwrap();
+    guard.disarm();
+    assert_eq!(
+        settle(child, Duration::from_secs(30)).status,
+        Settlement::Failed(FailureReason::ExitCode(37))
+    );
+    assert_parent_empty(&fixture.scratch);
 }

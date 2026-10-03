@@ -489,6 +489,25 @@ fn indexed_shared_method_executes_and_refuses_inaccessible_or_unsupported_receiv
     .unwrap_err();
     assert_eq!(signature_failure[0].code, "SPX-B145");
     assert!(signature_failure[0].span.is_some());
+    let domain_result_index = method_index_with_signature(
+        crate_source,
+        actual_version,
+        "fixture_math",
+        "shared",
+        true,
+        Some("fn add(&self, delta: i64) -> core::result::Result<i64, i64>"),
+    );
+    let domain_result_failure = indexed::prepare_indexed_scalar(
+        &source,
+        Path::new("indexed-method.spx"),
+        &options(),
+        &domain_result_index,
+        package,
+        crate_source,
+    )
+    .unwrap_err();
+    assert_eq!(domain_result_failure[0].code, "SPX-B145");
+    assert!(domain_result_failure[0].span.is_some());
 
     let root = std::fs::canonicalize(std::env::temp_dir())
         .unwrap()

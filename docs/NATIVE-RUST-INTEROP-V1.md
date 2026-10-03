@@ -249,6 +249,14 @@ non-scalar method arguments and results, fail before invocation. This
 projection does not claim a persistent Rust object or borrowed ownership
 across calls.
 
+The indexed scalar profile rejects a selected Rust `Result<T, E>` signature
+with source-located `SPX-B145` before adapter compilation. Rust `Err(E)` is a
+domain value and must never be encoded as `NativeRustImportResult::Status`,
+which means a refused bridge call, or as `HostFailure` or a panic. Supporting
+Rust `Result` requires a separately admitted tagged value carrier through the
+Semaprax import type, HIR, graph, C boundary, and generated SDK. This profile
+only admits the stated scalar result types.
+
 Rich Rust bindings use a separate `semaprax.trusted-native-profile.v1`
 preparation boundary. A profile binds three opaque, exact byte inputs: the
 selected binding plan, crate/index identity, and build-tool identity. They are

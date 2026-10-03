@@ -296,6 +296,18 @@ impl OwnerContext {
         Ok(callback())
     }
 
+    /// Invoke a Rust operation with a scoped `&str` into an admitted String.
+    /// The higher-ranked closure cannot return a view tied to this call.
+    pub(crate) fn with_borrowed_str<R>(
+        &self,
+        owner: &Owner<String>,
+        invoke: impl for<'loan> FnOnce(&'loan str) -> R,
+    ) -> Result<R, OwnerLoanRefusal> {
+        let _loan = self.shared_loan(owner)?;
+        let value = self.borrow(owner).map_err(OwnerLoanRefusal::Owner)?;
+        Ok(invoke(value.as_str()))
+    }
+
     pub(crate) fn consume<T: 'static>(&mut self, owner: Owner<T>) -> Result<T, OwnerRefusal> {
         if self.closed {
             return Err(OwnerRefusal::Closed);
@@ -530,6 +542,23 @@ mod tests {
             self.0.set(self.0.get() + 1);
         }
     }
+
+    struct RegexFixture {
+        needle: &'static str,
+        input_pointer: *const u8,
+        copied_bytes: Cell<usize>,
+    }
+
+    impl RegexFixture {
+        fn is_match(&self, input: &str) -> bool {
+            if input.as_ptr() != self.input_pointer {
+                self.copied_bytes
+                    .set(self.copied_bytes.get().saturating_add(input.len()));
+            }
+            input.contains(self.needle)
+        }
+    }
+
     #[test]
     fn consume_and_close_drop_real_values_once() {
         let count = Rc::new(Cell::new(0));
@@ -680,6 +709,37 @@ mod tests {
             .with_callback(&owner, || calls.set(calls.get() + 1))
             .unwrap();
         assert_eq!(calls.get(), 2);
+    }
+
+    #[test]
+    fn borrowed_string_reaches_rust_method_without_adapter_copy() {
+        let mut context = OwnerContext::new();
+        let mut destination = OwnerContext::new();
+        let input = String::from("https://example.invalid/🦀");
+        let original_pointer = input.as_ptr();
+        let input_owner = context.admit("url", input).unwrap();
+        let regex = RegexFixture {
+            needle: "example.invalid",
+            input_pointer: original_pointer,
+            copied_bytes: Cell::new(0),
+        };
+
+        let matched = context
+            .with_borrowed_str(&input_owner, |borrowed| regex.is_match(borrowed))
+            .unwrap();
+        assert!(matched);
+        assert_eq!(regex.copied_bytes.get(), 0);
+        assert_eq!(
+            context.borrow(&input_owner).unwrap().as_ptr(),
+            original_pointer
+        );
+
+        // The scoped view has ended, so an affine move is admitted again.
+        let moved = context.transfer(input_owner, &mut destination).unwrap();
+        assert_eq!(
+            destination.borrow(&moved).unwrap().as_ptr(),
+            original_pointer
+        );
     }
 
     #[test]

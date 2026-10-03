@@ -35,6 +35,7 @@ mod generic_record;
 mod generic_variant;
 mod http_io;
 mod literals;
+mod native_list;
 mod nested_owned;
 mod network_io;
 mod output_profile;
@@ -106,12 +107,6 @@ fn emit_hir_c_with_options(
     semantic: Option<&NativeSemanticMetering>,
 ) -> Result<String, Diagnostic> {
     hir::validate(program)?;
-    if crate::list_ops::resolved_program_uses_list(program) {
-        return Err(Diagnostic::io(
-            "SPX-B110",
-            "immutable List<i64> lowering is not admitted by this native profile",
-        ));
-    }
     if program.types.iter().any(|declaration| {
         matches!(
             declaration.kind,
@@ -441,6 +436,7 @@ fn emit_native_prelude_inner(
         native_vec::program_uses_vec(program) || native_iter::program_uses_iterator(program),
         native_box::program_uses_box(program),
         crate::iterator_ops::resolved_program_uses_owned_iterator(program),
+        crate::list_ops::resolved_program_uses_list(program),
     );
     output.push_str(&resource_abi.declarations);
     output.push_str("#include <stdio.h>\n\n");
@@ -454,6 +450,7 @@ fn emit_native_prelude_inner(
     } else {
         output.push_str(NATIVE_SCALAR_RUNTIME_C);
     }
+    native_list::emit_runtime(output, program);
     if closure::enabled(program) || program_uses_u8_arithmetic(program) {
         // Checked u8 helpers stay out of programs that cannot reach them, so
         // existing projections keep their exact committed bytes.
@@ -1020,6 +1017,8 @@ fn c_value_type(
 ) -> Result<String, Diagnostic> {
     if matches!(ty, ResolvedType::OnceFunction) {
         Ok("spx_once_v1".to_owned())
+    } else if crate::list_ops::is_list(ty) {
+        Ok("spx_list_v1".to_owned())
     } else if matches!(ty, ResolvedType::Function { .. }) {
         function_value::c_type(program, ty)
     } else if let Some(iterator) = native_iter::c_type(ty) {
@@ -1062,7 +1061,8 @@ fn record_declaration_id<'a>(
     else {
         return Ok(None);
     };
-    if crate::iterator_ops::is_iter(ty)
+    if crate::list_ops::is_list(ty)
+        || crate::iterator_ops::is_iter(ty)
         || is_native_owned_vec_type(program, ty)
         || crate::cleanup::is_owned_bounded_box_type(ty)
     {
@@ -2105,6 +2105,9 @@ fn emit_function(
     }
     output.push_str("spx_epilogue:\n");
     output.push_str("    if (spx_call_entered) {\n        if (spx_ctx->call_depth == UINT32_C(0)) spx_runtime_invariant_failure(\"call depth underflow\");\n        --spx_ctx->call_depth;\n    }\n");
+    if crate::list_ops::resolved_program_uses_list(program) {
+        output.push_str("    if (spx_call_entered && spx_ctx->call_depth == UINT32_C(0)) spx_list_release(spx_ctx);\n");
+    }
     if !borrowed_params.is_empty() || !borrowed_byte_params.is_empty() {
         output.push_str("    if (spx_ctx->borrowed_str_depth == UINT32_C(0)) spx_runtime_invariant_failure(\"borrowed str call depth underflow\");\n");
         output.push_str("    --spx_ctx->borrowed_str_depth;\n");

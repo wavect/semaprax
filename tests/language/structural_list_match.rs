@@ -47,14 +47,94 @@ fn immutable_list_source_matches_real_cons_tail_in_graph_and_interpreter() {
     assert_eq!(result["payload"]["outcome"]["kind"], "returned");
     assert_eq!(result["payload"]["outcome"]["value"], "3");
     let _ = std::fs::remove_file(path);
-    assert_eq!(
-        semaprax::codegen::emit_c(&reparsed).unwrap_err().code,
-        "SPX-B110"
-    );
+    let native = semaprax::codegen::emit_c(&reparsed).unwrap();
+    assert_eq!(native, semaprax::codegen::emit_c(&reparsed).unwrap());
+    assert!(native.contains("spx_list_cons"));
     assert_eq!(
         semaprax::wasm::emit_module(&reparsed).unwrap_err().code,
         "SPX-W130"
     );
+}
+
+#[test]
+#[ignore = "requires explicitly provisioned C11 compiler"]
+fn immutable_list_source_executes_in_native_c_at_o0_and_o2() {
+    use std::process::Command;
+    let clang = std::env::var("CLANG").expect("explicit C11 compiler");
+    let program = semaprax::check(IMMUTABLE_LIST, "immutable-list-native.spx").unwrap();
+    let generated = semaprax::codegen::emit_c(&program).unwrap();
+    let symbol = "app.main"
+        .as_bytes()
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect::<String>();
+    let probe = format!(
+        r#"
+int main(void) {{
+    struct spx_status_entry entries[UINT32_C(64)];
+    struct spx_context context = {{0}};
+    if (!spx_context_init(&context, UINT64_C(1000), entries, UINT32_C(64), NULL, NULL, NULL)) return 10;
+    int64_t out = 0;
+    if (spx_decl_{symbol}(&context, &out) != SPX_STATUS_SUCCESS || out != INT64_C(3)) return 11;
+    if (context.list_nodes != NULL) return 12;
+    spx_list_v1 tail = NULL, left = NULL, right = NULL;
+    if (spx_list_cons(&context, INT64_C(2), NULL, &tail)) return 13;
+    if (spx_list_cons(&context, INT64_C(1), tail, &left)) return 14;
+    if (spx_list_cons(&context, INT64_C(3), tail, &right)) return 15;
+    if (left->tail != tail || right->tail != tail || tail->head != INT64_C(2)) return 16;
+    spx_list_v1 full = NULL;
+    for (uint64_t i = UINT64_C(0); i < SPX_LIST_MAX_LENGTH; ++i) {{
+        spx_list_v1 next = NULL;
+        if (spx_list_cons(&context, (int64_t)i, full, &next)) return 17;
+        full = next;
+    }}
+    spx_list_v1 unchanged = full;
+    if (spx_list_cons(&context, INT64_C(-1), full, &unchanged) == SPX_STATUS_SUCCESS) return 18;
+    if (unchanged != full || full->length != SPX_LIST_MAX_LENGTH) return 19;
+    spx_list_release(&context);
+    if (context.list_nodes != NULL) return 20;
+    return 0;
+}}
+"#
+    );
+    for optimization in ["-O0", "-O2"] {
+        let stem = format!(
+            "semaprax-law08-immutable-native-{}-{}",
+            std::process::id(),
+            &optimization[2..]
+        );
+        let c = std::env::temp_dir().join(format!("{stem}.c"));
+        let executable = std::env::temp_dir().join(stem);
+        std::fs::write(&c, format!("{generated}\n{probe}")).unwrap();
+        let built = Command::new(&clang)
+            .args([
+                "-std=c11",
+                optimization,
+                "-Wall",
+                "-Wextra",
+                "-Werror",
+                "-DSPX_NO_ENTRY_WRAPPER",
+            ])
+            .arg(&c)
+            .arg("-o")
+            .arg(&executable)
+            .output()
+            .unwrap();
+        assert!(
+            built.status.success(),
+            "C11 {optimization}: {}",
+            String::from_utf8_lossy(&built.stderr)
+        );
+        let result = Command::new(&executable).output().unwrap();
+        assert!(
+            result.status.success(),
+            "C11 {optimization}: {:?} {}",
+            result.status,
+            String::from_utf8_lossy(&result.stderr)
+        );
+        let _ = std::fs::remove_file(c);
+        let _ = std::fs::remove_file(executable);
+    }
 }
 
 #[test]

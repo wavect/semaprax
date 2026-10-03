@@ -19,6 +19,7 @@ use super::{
 mod box_ops;
 mod host_command;
 mod iterator_ops;
+mod list_ops;
 mod nested_owned;
 mod owned_buffer;
 mod owned_try;
@@ -26,14 +27,12 @@ mod owned_values;
 mod unary;
 mod variant_if;
 mod vec_ops;
-
 #[derive(Clone)]
 struct RecordMatchBindingMode<'a> {
     mode: hir::ResolvedMatchMode,
     source_storage: Option<&'a crate::cleanup_plan::StorageId>,
     source_path: Vec<DeclarationId>,
 }
-
 // `format!` resolves to the bounded codegen macro declared before
 // `mod native_emit`; it must never fall back to `std::format!` here.
 impl<'a, O: COutput> CEmitter<'a, O> {
@@ -166,7 +165,6 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             ty: expr.ty.clone(),
         })
     }
-
     fn emit_str_op(
         &mut self,
         op: crate::str_ops::StrOp,
@@ -285,7 +283,6 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         }
         Ok(())
     }
-
     fn emit_byte_op(
         &mut self,
         op: crate::byte_ops::ByteOp,
@@ -844,6 +841,9 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 type_arguments,
             } => {
                 if instance.is_none() {
+                    if let Some(op) = crate::list_ops::by_id(callee.as_str()) {
+                        return self.emit_list_op(expr, op, type_arguments, args);
+                    }
                     if let Some(op) = crate::vec_ops::by_id(callee.as_str()) {
                         return self.emit_vec_op(expr, op, type_arguments, args);
                     }

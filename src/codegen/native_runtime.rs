@@ -19,17 +19,30 @@ pub(super) fn emit_status_runtime_for_profile(
     vec_authority: bool,
     box_authority: bool,
     owned_iterator: bool,
+    immutable_list: bool,
 ) {
     if owned_iterator {
         let mut runtime = String::new();
-        emit_status_runtime_profile(&mut runtime, borrowed_str, vec_authority, box_authority);
+        emit_status_runtime_profile(
+            &mut runtime,
+            borrowed_str,
+            vec_authority,
+            box_authority,
+            immutable_list,
+        );
         output.push_str(&runtime.replacen(
             "    uint32_t type_tag;\n    bool live;",
             "    uint32_t type_tag;\n    bool live;\n    uint64_t iterator_end;",
             1,
         ));
     } else {
-        emit_status_runtime_profile(output, borrowed_str, vec_authority, box_authority);
+        emit_status_runtime_profile(
+            output,
+            borrowed_str,
+            vec_authority,
+            box_authority,
+            immutable_list,
+        );
     }
 }
 
@@ -38,6 +51,7 @@ fn emit_status_runtime_profile(
     borrowed_str: bool,
     vec_authority: bool,
     box_authority: bool,
+    immutable_list: bool,
 ) {
     let mut runtime = STATUS_RUNTIME_C.to_owned();
     if borrowed_str {
@@ -114,6 +128,30 @@ fn emit_status_runtime_profile(
             );
         assert_eq!(runtime.matches("box_next_generation").count(), 3);
         assert_eq!(runtime.matches("SPX_BOX_AUTHORITY_CAPACITY").count(), 4);
+    }
+    if immutable_list {
+        runtime = runtime
+            .replacen(
+                "struct spx_context {",
+                "struct spx_list_node { int64_t head; uint64_t length; struct spx_list_node *tail; struct spx_list_node *allocated_next; };\n\nstruct spx_context {",
+                1,
+            )
+            .replacen(
+                "    uint32_t call_depth;",
+                "    uint32_t call_depth;\n    struct spx_list_node *list_nodes;",
+                1,
+            )
+            .replacen(
+                "        context->call_depth == UINT32_C(0)",
+                "        context->call_depth == UINT32_C(0) &&\n        context->list_nodes == NULL",
+                1,
+            )
+            .replacen(
+                "    context->call_depth = UINT32_C(0);",
+                "    context->call_depth = UINT32_C(0);\n    context->list_nodes = NULL;",
+                1,
+            );
+        assert_eq!(runtime.matches("list_nodes").count(), 3);
     }
     output.push_str(&runtime);
 }

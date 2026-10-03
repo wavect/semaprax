@@ -18,6 +18,13 @@
   investigation. The tiny loopback workload cannot satisfy the nontrivial
   batch threshold; copied bytes and allocations remain unmeasured.
 
+- Lower checked immutable `List<i64>` / `ListStep<i64>` source to native C11
+  using invocation-scoped persistent cons cells. Shared tails stay immutable;
+  each list has the same 8192-node success bound as the interpreter, and a
+  root call releases every allocated node. Focused source/interpreter and
+  real C11 O0/O2 gates passed 2/2, including shared-tail and bound controls.
+  Core Wasm and List-bound Lean proof export remain open under LAW-08.
+
 - Admit a narrow checked `List<i64>` / `ListStep<i64>` immutable source profile
   through a versioned prelude, HIR, graph and interpreter. Exact `list_nil`,
   `list_cons` and `list_uncons` calls use a persistent cons carrier. Native C

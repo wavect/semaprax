@@ -416,3 +416,6 @@ mod strict_law;
 
 #[path = "installed_law.rs"]
 mod installed_law;
+
+#[path = "law14_adversarial.rs"]
+mod law14_adversarial;

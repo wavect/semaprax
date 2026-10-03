@@ -140,3 +140,13 @@ was created. Both native selector invocations used `cargo test --offline
 --locked -p semaprax --test workspace <selector> -- --ignored --test-threads=1`
 with the same explicit tool pins, private target, one job and disabled debug
 info as the installed source-proof gate.
+
+The checked `scripts/law14-strict-gate.sh` selector requires all four exact
+Lean/Z3 provisioning variables before invoking Cargo, so absent tools fail
+setup instead of skipping. It runs the fast mutation corpus, the forged
+nonempty-reference regression, the deterministic strict final-boundary race,
+and the ignored `installed_native_law_law14_adversarial_gate` selector serially. The real corpus rejects
+a wrong law body, proof reuse for another body, Lean `sorry` and a non-policy
+axiom, missing executable, timeout and false proposition through actual Lean
+and Z3 invocations. Its snapshots require authored source, `ACTIVE` and Git to
+remain absent or byte-identical after each refused route.

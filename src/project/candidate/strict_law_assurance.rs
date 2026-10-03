@@ -274,6 +274,32 @@ pub fn apply_strict_law_publication(
     expected_workspace_revision: &str,
     submitted_publication: &[u8],
 ) -> Result<String> {
+    apply_strict_law_publication_with_hook(
+        candidate,
+        inputs,
+        approved_candidate_digest,
+        workspace_root,
+        project_manifest,
+        expected_workspace_revision,
+        submitted_publication,
+        |_| Ok(()),
+    )
+}
+
+/// Internal only: lets the owning unit regression move a retained source at a
+/// named managed-Workspace final boundary. No caller outside this module can
+/// supply a hook.
+#[allow(clippy::too_many_arguments)]
+fn apply_strict_law_publication_with_hook(
+    candidate: &ProjectCandidate,
+    inputs: &StrictCandidateLawInputs<'_>,
+    approved_candidate_digest: &str,
+    workspace_root: &Path,
+    project_manifest: &Path,
+    expected_workspace_revision: &str,
+    submitted_publication: &[u8],
+    hook: impl FnMut(crate::workspace::SemanticChangeApplyPoint) -> std::io::Result<()>,
+) -> Result<String> {
     if submitted_publication.len() > publication::MAX_PROJECT_CANDIDATE_PUBLICATION_BYTES {
         return Err(vec![Diagnostic::io(
             "SPX-LW102",
@@ -296,13 +322,14 @@ pub fn apply_strict_law_publication(
             "strict publication artifact missing",
         )]
     })?;
-    publication::apply_with_selected_law_gate(
+    publication::apply_with_selected_law_gate_with_hook(
         candidate,
         approved_candidate_digest,
         workspace_root,
         project_manifest,
         expected_workspace_revision,
         publication.as_bytes(),
+        hook,
         || {
             inputs.require_host_selection(candidate, workspace_root)?;
             if publication_document(candidate, inputs, workspace_root, publication)?.as_bytes()
@@ -324,4 +351,150 @@ pub fn apply_strict_law_publication(
                 .transpose()?)
         },
     )
+}
+
+#[cfg(test)]
+mod law14_final_boundary_tests {
+    use super::*;
+    use crate::assurance_manifest::law_set::protected::{
+        ProtectedLawReview, SpecificationChangeAuthority,
+    };
+    use crate::assurance_manifest::law_set::{
+        strict::RequiredLawEvidence, EvidenceRequirement, LawDefinition, LawModule, LawSelector,
+    };
+    use crate::project::{with_authenticated_project, SemanticChange};
+    use crate::workspace::SemanticChangeApplyPoint;
+    use std::collections::BTreeMap;
+    use std::sync::atomic::{AtomicU64, Ordering};
+
+    static SERIAL: AtomicU64 = AtomicU64::new(0);
+
+    fn architecture_module() -> LawModule {
+        LawModule {
+            module_id: "calculator.laws".into(),
+            source_path: "src/core.spx".into(),
+            assumptions: vec![],
+            laws: vec![LawDefinition {
+                law_id: "calculator.architecture".into(),
+                selector: LawSelector::ForbidReaches {
+                    claim_id: "no-divide".into(),
+                    from: "calculator.is-negative".into(),
+                    to: "calculator.divide".into(),
+                },
+                assumption_ids: vec![],
+                requires_laws: vec![],
+                evidence: EvidenceRequirement::CompilerProved,
+            }],
+        }
+    }
+
+    struct Approve;
+    impl SpecificationChangeAuthority for Approve {
+        fn approve_specification_change(&mut self, _: &ProtectedLawReview) -> bool {
+            true
+        }
+    }
+
+    #[test]
+    fn law14_strict_publication_final_boundary_source_race_refuses_before_active() {
+        let root = std::env::temp_dir().join(format!(
+            "spx-law14-final-boundary-{}-{}",
+            std::process::id(),
+            SERIAL.fetch_add(1, Ordering::Relaxed)
+        ));
+        std::fs::create_dir_all(root.join("src")).unwrap();
+        let example =
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/calculator-project");
+        for path in [
+            "semaprax.toml",
+            "src/app.spx",
+            "src/core.spx",
+            "src/tests.spx",
+        ] {
+            std::fs::copy(example.join(path), root.join(path)).unwrap();
+        }
+        let root = root.canonicalize().unwrap();
+        let manifest = root.join("semaprax.toml");
+        let paths = root.join("paths.json");
+        std::fs::write(&paths, "{\"schema\":\"semaprax.workspace-semantic-path-set.v1\",\"files\":[{\"path\":\"src/app.spx\"},{\"path\":\"src/core.spx\"},{\"path\":\"src/tests.spx\"}]}\n").unwrap();
+        let workspace = crate::semantic_workspace::initialize(&root, &paths).unwrap();
+        let base = with_authenticated_project(&manifest, |snapshot| Ok(snapshot.retain_revision()))
+            .unwrap();
+        let baseline = LawSet::derive(&base, "law14-race-v1", vec![architecture_module()]).unwrap();
+        let policy = StrictLawPolicy::new(
+            baseline.clone(),
+            BTreeMap::from([(
+                "calculator.architecture".into(),
+                RequiredLawEvidence::CompilerStatic,
+            )]),
+        )
+        .unwrap();
+        let protection = ProtectedLawBaseline::new(&base, baseline, vec![]).unwrap();
+        let candidate = ProjectCandidate::open(base.clone(), base.project_revision()).unwrap();
+        let change = SemanticChange::new(
+            base.project_revision(),
+            &serde_json::json!({"kind":"change_function_signature","target":"calculator.add","append_parameters":[{"name":"unused","type":"i64","argument":{"kind":"i64","value":0}}]}),
+        )
+        .unwrap();
+        let candidate = candidate
+            .apply(candidate.candidate_digest(), &change)
+            .unwrap();
+        let laws = LawSet::derive(
+            candidate.revision(),
+            "law14-race-v1",
+            vec![architecture_module()],
+        )
+        .unwrap();
+        let intent = candidate.protected_law_review(&protection, &laws).unwrap();
+        let approval = SpecificationChangeApproval::request(&intent, &mut Approve).unwrap();
+        let inputs = StrictCandidateLawInputs {
+            protection: &protection,
+            policy: &policy,
+            laws: &laws,
+            proofs: &[],
+            native_proofs: &[],
+            specification_approval: Some(&approval),
+        };
+        let proposal = prepare_strict_law_publication(
+            &candidate,
+            &inputs,
+            candidate.candidate_digest(),
+            &root,
+            &manifest,
+            &workspace,
+        )
+        .unwrap();
+        let active = root.join(".semaprax-workspace/ACTIVE");
+        let before = std::fs::read(&active).unwrap();
+        let source = root.join("src/core.spx");
+        let original = std::fs::read_to_string(&source).unwrap();
+        let points = std::cell::RefCell::new(Vec::new());
+        let error = apply_strict_law_publication_with_hook(
+            &candidate,
+            &inputs,
+            candidate.candidate_digest(),
+            &root,
+            &manifest,
+            &workspace,
+            proposal.to_json().as_bytes(),
+            |point| {
+                points.borrow_mut().push(point);
+                if point == SemanticChangeApplyPoint::BeforeActiveReplace {
+                    std::fs::write(&source, format!("{original}\n"))?;
+                }
+                Ok(())
+            },
+        )
+        .expect_err("final strict-law source drift must refuse publication");
+        assert!(points
+            .borrow()
+            .contains(&SemanticChangeApplyPoint::BeforeActiveReplace));
+        assert!(
+            error.iter().any(|diagnostic| diagnostic.code == "SPX-J102"),
+            "final-boundary source drift must retain SPX-J102: {error:?}"
+        );
+        assert_eq!(std::fs::read(&active).unwrap(), before);
+        assert_ne!(std::fs::read_to_string(&source).unwrap(), original);
+        std::fs::remove_dir_all(root).unwrap();
+    }
 }

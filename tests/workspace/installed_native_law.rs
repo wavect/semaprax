@@ -499,3 +499,154 @@ fn installed_native_law_selected_host_publication_keeps_law_inventory_and_refuse
     assert_ne!(std::fs::read(&active).unwrap(), before);
     assert_eq!(std::fs::read_to_string(law_path).unwrap(), authored);
 }
+
+#[test]
+#[ignore = "LAW-14 strict selector: requires explicitly provisioned installed Lean and Z3"]
+fn installed_native_law_law14_adversarial_gate() {
+    // Calling `provisioned` is intentional: the explicit selector fails its
+    // setup when either exact tool pin is absent.  No fixture transcript can
+    // satisfy this test.
+    let project = native_project("law14-real", "n + 0 == n");
+    let source_paths = [
+        "semaprax.toml",
+        "src/app.spx",
+        "src/contracts.spx",
+        "src/tests.spx",
+    ];
+    let before = source_paths.map(|path| (path, std::fs::read(project.root.join(path)).unwrap()));
+    let revision = project.revision();
+    let laws = LawSet::derive(&revision, "law14-real-v1", revision.law_modules().to_vec()).unwrap();
+    for kind in [ToolKind::Lean, ToolKind::Z3] {
+        let tool = provisioned(&project, kind);
+        let proof = prove_scalar_law(&revision, &laws, "fresh.law.identity", &tool).unwrap();
+        let policy = StrictLawPolicy::new(
+            laws.clone(),
+            BTreeMap::from([("fresh.law.identity".into(), requirement(&tool))]),
+        )
+        .unwrap();
+        let report =
+            strict::derive_with_native_proofs(&revision, &laws, &policy, &[], &[proof.clone()])
+                .unwrap();
+        strict::require_with_native_proofs(&report, &revision, &laws, &policy, &[], &[])
+            .unwrap_err();
+
+        // A real kernel must reject a false implementation; a successful
+        // outer report cannot hide the failed proof acquisition.
+        let false_project = native_project("law14-false", "n + 0 != n");
+        let false_revision = false_project.revision();
+        let false_laws = LawSet::derive(
+            &false_revision,
+            "law14-real-v1",
+            false_revision.law_modules().to_vec(),
+        )
+        .unwrap();
+        assert!(prove_scalar_law(
+            &false_revision,
+            &false_laws,
+            "fresh.law.identity",
+            &provisioned(&false_project, kind),
+        )
+        .is_err());
+        assert!(!false_project
+            .root
+            .join(".semaprax-workspace/ACTIVE")
+            .exists());
+
+        // A proof token is bound to the exact retained body.  It must not
+        // satisfy the otherwise identical law in the false Project.
+        let false_policy = StrictLawPolicy::new(
+            false_laws.clone(),
+            BTreeMap::from([("fresh.law.identity".into(), requirement(&tool))]),
+        )
+        .unwrap();
+        assert_eq!(
+            strict::derive_with_native_proofs(
+                &false_revision,
+                &false_laws,
+                &false_policy,
+                &[],
+                &[proof],
+            )
+            .unwrap_err()[0]
+                .code,
+            "SPX-LW104"
+        );
+    }
+
+    // These are actual Lean runs, not recorded text fixtures.  The kernel
+    // report must reject both an admitted hole and a non-policy axiom even
+    // when Lean itself elaborates the declaration successfully.
+    let lean = provisioned(&project, ToolKind::Lean);
+    for (source, expected) in [
+        (
+            "theorem law14_sorry : True := by sorry\n#print axioms law14_sorry\n",
+            "admitted_hole",
+        ),
+        (
+            "axiom law14_untrusted : True\n#print axioms law14_untrusted\n",
+            "forbidden_axiom",
+        ),
+    ] {
+        let run = semaprax::proof_export::LeanKernel::check(&lean, source).unwrap();
+        let verdict = semaprax::proof_export::kernel_report::parse(
+            &[if expected == "admitted_hole" {
+                "law14_sorry".into()
+            } else {
+                "law14_untrusted".into()
+            }],
+            &run.toolchain,
+            &run.output,
+        );
+        match verdict {
+            semaprax::proof_export::kernel_report::KernelVerdict::Rejected(reason) => {
+                assert_eq!(reason.code(), expected);
+            }
+            accepted => panic!("LAW-14 accepted forbidden Lean evidence: {accepted:?}"),
+        }
+    }
+
+    // Missing tools refuse on explicit acquisition.  The adapter never falls
+    // back to PATH or installs a solver.
+    let missing = project.root.join("missing-z3");
+    let missing = match InstalledProofTool::open(
+        &missing,
+        &project.root,
+        ToolKind::Z3,
+        "missing",
+        HostProfile::TrustedLocal,
+        Limits::default(),
+        AgentCancellation::new(),
+    ) {
+        Err(error) => error,
+        Ok(_) => panic!("LAW-14 opened an unavailable proof tool"),
+    };
+    assert_eq!(missing.code, "SPX-LW140");
+
+    // The bounded runner rejects a timeout from an actual provisioned Z3.
+    let z3 = std::path::PathBuf::from(std::env::var("SEMAPRAX_LAW_Z3").unwrap());
+    let tight = InstalledProofTool::open(
+        &z3,
+        &project.root,
+        ToolKind::Z3,
+        &std::env::var("SEMAPRAX_LAW_Z3_VERSION").unwrap(),
+        HostProfile::TrustedLocal,
+        Limits {
+            version_timeout_ms: 1_000,
+            proof_timeout_ms: 1,
+            stream_max: 32_752,
+        },
+        AgentCancellation::new(),
+    )
+    .unwrap();
+    assert!(prove_scalar_law(&revision, &laws, "fresh.law.identity", &tight).is_err());
+
+    for (path, contents) in before {
+        assert_eq!(
+            std::fs::read(project.root.join(path)).unwrap(),
+            contents,
+            "{path}"
+        );
+    }
+    assert!(!project.root.join(".semaprax-workspace/ACTIVE").exists());
+    assert!(!project.root.join(".git").exists());
+}

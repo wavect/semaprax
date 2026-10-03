@@ -125,3 +125,13 @@ generic loader escape and raw Workspace apply refusal. The ignored
 selector uses real Z3 to check selected execution/build, complete managed law
 source facts, semantic Change bypass refusal, omitted or changed law source
 refusal, and a successful strict managed publication.
+
+`law14_fast_mutation_corpus_rejects_named_weakening_before_authority` covers the
+library and candidate report boundaries for deleted inventory, false
+requirements, narrowed domains, weaker ensures, assumptions, duplicate or
+retargeted IDs, forged receipts, stale non-entry source and smaller model
+bounds. It snapshots authored sources and managed `ACTIVE` before each refusal.
+`law14_strict_publication_final_boundary_source_race_refuses_before_active`
+injects retained-source drift at the named `BeforeActiveReplace` boundary; the
+strict route refuses and preserves the original `ACTIVE` bytes. The injection
+seam is candidate-module private and does not extend a public host API.

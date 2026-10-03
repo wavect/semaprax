@@ -237,7 +237,7 @@ pub(super) fn apply_with_selected_law_gate(
     submitted_publication: &[u8],
     gate: impl FnMut() -> Result<Option<StrictWorkspacePermit>>,
 ) -> Result<String> {
-    apply_with_gate(
+    apply_with_selected_law_gate_with_hook(
         candidate,
         approved_candidate_digest,
         workspace_root,
@@ -245,6 +245,32 @@ pub(super) fn apply_with_selected_law_gate(
         expected_workspace_revision,
         submitted_publication,
         |_| Ok(()),
+        gate,
+    )
+}
+
+/// Internal composition seam. It remains within the candidate module, and is
+/// used by the strict-law unit regression to inject deterministic final-boundary
+/// source drift. It is not a public host capability.
+#[allow(clippy::too_many_arguments)]
+pub(super) fn apply_with_selected_law_gate_with_hook(
+    candidate: &ProjectCandidate,
+    approved_candidate_digest: &str,
+    workspace_root: &Path,
+    project_manifest: &Path,
+    expected_workspace_revision: &str,
+    submitted_publication: &[u8],
+    hook: impl FnMut(SemanticChangeApplyPoint) -> std::io::Result<()>,
+    gate: impl FnMut() -> Result<Option<StrictWorkspacePermit>>,
+) -> Result<String> {
+    apply_with_gate(
+        candidate,
+        approved_candidate_digest,
+        workspace_root,
+        project_manifest,
+        expected_workspace_revision,
+        submitted_publication,
+        hook,
         true,
         gate,
     )

@@ -64,6 +64,49 @@ pub fn prove_scalar_law_lean_cached(
     prove_scalar_law_with_cache(revision, laws, law_id, tool, Some((project_root, cache)))
 }
 
+/// Revalidate a selected native relational law closure in deterministic
+/// prerequisite order. Complete subject/profile admission is checked before
+/// any installed process or cache mutation. Each successful proof is newly
+/// associated with the current Project and LawSet; a failed later law cannot
+/// promote itself or an incomplete dependent as checked.
+pub fn prove_scalar_law_batch_cached(
+    project_root: &Path,
+    revision: &ProjectRevision,
+    laws: &LawSet,
+    selected: &[String],
+    tool: &InstalledProofTool,
+    cache: &mut ProofTaskCache,
+) -> Result<Vec<(String, VerifiedLawProof, WorkMetrics)>> {
+    let laws = LawSet::replay(revision, &laws.payload.proof_profile, laws.to_json())?;
+    let order = super::dependency_index::derive(&laws)?.ordered_closure(selected)?;
+    for id in &order {
+        let row = laws
+            .payload
+            .laws
+            .iter()
+            .find(|row| row.definition.law_id == *id)
+            .ok_or_else(|| invalid("selected native proof law is absent"))?;
+        if row.source_digest.is_none() {
+            return Err(invalid("selected native proof law source is absent"));
+        }
+        if !matches!(
+            row.definition.selector,
+            LawSelector::ScalarRelational { .. }
+        ) {
+            return Err(invalid(
+                "selected native proof dependency is outside the scalar relational profile",
+            ));
+        }
+    }
+    let mut checked = Vec::with_capacity(order.len());
+    for id in order {
+        let (proof, work) =
+            prove_scalar_law_with_cache(revision, &laws, &id, tool, Some((project_root, cache)))?;
+        checked.push((id, proof, work));
+    }
+    Ok(checked)
+}
+
 fn prove_scalar_law_with_cache(
     revision: &ProjectRevision,
     laws: &LawSet,

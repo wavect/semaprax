@@ -43,6 +43,53 @@ impl DependencyIndex {
     pub fn to_json(&self) -> Result<String> {
         wire::canonical(self)
     }
+
+    /// Select exact transitive prerequisites and return them in canonical
+    /// dependency order. Reject missing and cyclic edges even for a caller
+    /// constructed index; no solver work should start from an incomplete plan.
+    pub fn ordered_closure(&self, selected: &[String]) -> Result<Vec<String>> {
+        if selected.is_empty() || selected.len() > super::MAX_LAWS {
+            return Err(invalid(
+                "selected law dependency closure is empty or over capacity",
+            ));
+        }
+        let mut pending = selected.iter().cloned().collect::<BTreeSet<_>>();
+        let mut closure = BTreeSet::new();
+        while let Some(id) = pending.pop_first() {
+            if !closure.insert(id.clone()) {
+                continue;
+            }
+            if closure.len() > super::MAX_LAWS {
+                return Err(invalid("selected law dependency closure exceeds capacity"));
+            }
+            let row = self
+                .laws
+                .get(&id)
+                .ok_or_else(|| invalid("selected law dependency is absent"))?;
+            pending.extend(row.requires_laws.iter().cloned());
+        }
+        let mut order = Vec::with_capacity(closure.len());
+        while !closure.is_empty() {
+            let ready = closure
+                .iter()
+                .filter(|id| {
+                    self.laws[*id]
+                        .requires_laws
+                        .iter()
+                        .all(|required| order.contains(required))
+                })
+                .cloned()
+                .collect::<Vec<_>>();
+            if ready.is_empty() {
+                return Err(invalid("selected law dependency is cyclic or absent"));
+            }
+            for id in ready {
+                closure.remove(&id);
+                order.push(id);
+            }
+        }
+        Ok(order)
+    }
 }
 
 /// Recompute a deterministic topological index from the checked LawSet. A

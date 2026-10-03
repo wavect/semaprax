@@ -478,6 +478,39 @@ fn native_dependency_index_tracks_assumptions_prerequisites_and_profile() {
             .unwrap()
     );
     assert_eq!(first.laws.len(), 3);
+    assert_eq!(
+        first
+            .ordered_closure(&[
+                "calculator.dependent".into(),
+                "calculator.independent".into()
+            ])
+            .unwrap(),
+        [
+            "calculator.divide.nonzero",
+            "calculator.independent",
+            "calculator.dependent",
+        ]
+    );
+    let mut missing_edge = first.clone();
+    missing_edge
+        .laws
+        .get_mut("calculator.dependent")
+        .unwrap()
+        .requires_laws
+        .push("calculator.absent".into());
+    assert!(missing_edge
+        .ordered_closure(&["calculator.dependent".into()])
+        .is_err());
+    let mut cyclic_edge = first.clone();
+    cyclic_edge
+        .laws
+        .get_mut("calculator.divide.nonzero")
+        .unwrap()
+        .requires_laws
+        .push("calculator.dependent".into());
+    assert!(cyclic_edge
+        .ordered_closure(&["calculator.dependent".into()])
+        .is_err());
 
     // Canonical formatting and an unrelated display rename change the
     // Project association, but not any checked law's logical dependencies.

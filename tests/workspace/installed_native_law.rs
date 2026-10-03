@@ -1,6 +1,7 @@
 //! Real native-law proofs are generated from exact retained typed declarations.
 use super::*;
 use semaprax::assurance_manifest::law_set::native_proof::prove_scalar_law;
+use semaprax::assurance_manifest::law_set::native_proof::prove_scalar_law_batch_cached;
 use semaprax::assurance_manifest::law_set::native_proof::prove_scalar_law_lean_cached;
 use semaprax::assurance_manifest::law_set::native_proof::prove_scalar_law_z3_cached;
 use semaprax::assurance_manifest::law_set::work_inventory;
@@ -17,6 +18,173 @@ fn native_project(label: &str, proposition: &str) -> Project {
     .unwrap();
     std::fs::write(project.root.join("semaprax.toml"), "schema = \"semaprax.manifest.v2\"\n\n[package]\nname = \"fresh-law\"\nversion = \"1.0.0\"\n\n[modules]\nentry = \"app.fresh\"\nsources = [\"src/app.spx\", \"src/contracts.spx\", \"src/tests.spx\"]\nlaw_sources = [\"src/contracts.spx\"]\ntests = [\"app.tests\"]\n\n[exports]\nweb = [\"fresh.seventeen\"]\n").unwrap();
     project
+}
+
+#[test]
+#[ignore = "requires explicitly provisioned installed Z3"]
+fn installed_native_dependency_batch_rechecks_only_affected_laws_in_order() {
+    let project = native_project("native-dependency-batch", "n + 0 == n");
+    let original = "module fresh.laws;\n@id(\"fresh.law.base\")\nlaw relational (n: i64)\n n + 0 == n\n evidence smt_proved;\n@id(\"fresh.law.dependent\")\nlaw relational (n: i64)\n n + 0 == n\n evidence smt_proved;\n@id(\"fresh.law.independent\")\nlaw relational (n: i64)\n n + 0 == n\n evidence smt_proved;\n";
+    let write_laws = |text: &str| {
+        let parsed = semaprax::native_law_source::parse(text, "src/contracts.spx").unwrap();
+        std::fs::write(
+            project.root.join("src/contracts.spx"),
+            semaprax::native_law_source::canonical(&parsed),
+        )
+        .unwrap();
+    };
+    write_laws(original);
+    let select = |revision: &semaprax::project::ProjectRevision| {
+        let mut modules = revision.law_modules().to_vec();
+        let dependent = modules[0]
+            .laws
+            .iter_mut()
+            .find(|law| law.law_id == "fresh.law.dependent")
+            .unwrap();
+        dependent.requires_laws.push("fresh.law.base".into());
+        LawSet::derive(revision, "native-proof-v1", modules).unwrap()
+    };
+    let revision = project.revision();
+    let laws = select(&revision);
+    let tool = provisioned(&project, ToolKind::Z3);
+    let mut cache = ProofTaskCache::for_project(&project.root).unwrap();
+    let targets = vec![
+        "fresh.law.dependent".into(),
+        "fresh.law.independent".into(),
+        "fresh.law.dependent".into(),
+    ];
+    let run = |revision: &semaprax::project::ProjectRevision,
+               laws: &LawSet,
+               cache: &mut ProofTaskCache| {
+        prove_scalar_law_batch_cached(&project.root, revision, laws, &targets, &tool, cache)
+            .unwrap()
+    };
+    let cold = run(&revision, &laws, &mut cache);
+    assert_eq!(
+        cold.iter().map(|row| row.0.as_str()).collect::<Vec<_>>(),
+        [
+            "fresh.law.base",
+            "fresh.law.independent",
+            "fresh.law.dependent"
+        ]
+    );
+    assert!(cold.iter().all(|row| row.2.fresh == 1));
+    let warm = run(&revision, &laws, &mut cache);
+    assert!(warm.iter().all(|row| row.2.reused == 1));
+    let policy = StrictLawPolicy::new(
+        laws.clone(),
+        laws::dependency_index::derive(&laws)
+            .unwrap()
+            .laws
+            .keys()
+            .map(|id| (id.clone(), requirement(&tool)))
+            .collect(),
+    )
+    .unwrap();
+    let cold_proofs = cold.iter().map(|row| row.1.clone()).collect::<Vec<_>>();
+    let warm_proofs = warm.iter().map(|row| row.1.clone()).collect::<Vec<_>>();
+    let cold_report =
+        strict::derive_with_native_proofs(&revision, &laws, &policy, &[], &cold_proofs).unwrap();
+    let warm_report =
+        strict::derive_with_native_proofs(&revision, &laws, &policy, &[], &warm_proofs).unwrap();
+    assert_eq!(cold_report, warm_report);
+    strict::require_with_native_proofs(&warm_report, &revision, &laws, &policy, &[], &warm_proofs)
+        .unwrap();
+
+    let app = project.root.join("src/app.spx");
+    let app_source = std::fs::read_to_string(&app).unwrap();
+    std::fs::write(&app, format!("// artifact-only revision\n{app_source}")).unwrap();
+    let artifact_revision = project.revision();
+    let artifact_laws = select(&artifact_revision);
+    let rebound = run(&artifact_revision, &artifact_laws, &mut cache);
+    assert!(rebound.iter().all(|row| row.2.reused == 1));
+    let rebound_proofs = rebound.iter().map(|row| row.1.clone()).collect::<Vec<_>>();
+    assert!(strict::derive_with_native_proofs(
+        &artifact_revision,
+        &artifact_laws,
+        &policy,
+        &[],
+        &warm_proofs
+    )
+    .is_err());
+    let current_policy = StrictLawPolicy::new(
+        artifact_laws.clone(),
+        laws::dependency_index::derive(&artifact_laws)
+            .unwrap()
+            .laws
+            .keys()
+            .map(|id| (id.clone(), requirement(&tool)))
+            .collect(),
+    )
+    .unwrap();
+    let current_report = strict::derive_with_native_proofs(
+        &artifact_revision,
+        &artifact_laws,
+        &current_policy,
+        &[],
+        &rebound_proofs,
+    )
+    .unwrap();
+    strict::require_with_native_proofs(
+        &current_report,
+        &artifact_revision,
+        &artifact_laws,
+        &current_policy,
+        &[],
+        &rebound_proofs,
+    )
+    .unwrap();
+
+    write_laws(&original.replacen("n + 0 == n", "n == n", 1));
+    let changed_revision = project.revision();
+    let changed_laws = select(&changed_revision);
+    let changed = run(&changed_revision, &changed_laws, &mut cache);
+    assert_eq!((changed[0].2.fresh, changed[0].2.stale), (1, 1));
+    assert_eq!((changed[1].2.fresh, changed[1].2.reused), (0, 1));
+    assert_eq!((changed[2].2.fresh, changed[2].2.stale), (1, 1));
+
+    let mut unsupported_modules = changed_revision.law_modules().to_vec();
+    unsupported_modules[0].laws.push(LawDefinition {
+        law_id: "fresh.law.contract".into(),
+        selector: LawSelector::Contract {
+            declaration_id: "fresh.seventeen".into(),
+            clause: ContractKind::Postcondition,
+            proposition: "result == a + 17".into(),
+        },
+        assumption_ids: vec![],
+        requires_laws: vec![],
+        evidence: EvidenceRequirement::SmtProved,
+    });
+    let unsupported =
+        LawSet::derive(&changed_revision, "native-proof-v1", unsupported_modules).unwrap();
+    let mut clean_cache = ProofTaskCache::for_project(&project.root).unwrap();
+    let unsupported_targets = vec!["fresh.law.base".into(), "fresh.law.contract".into()];
+    assert_eq!(
+        prove_scalar_law_batch_cached(
+            &project.root,
+            &changed_revision,
+            &unsupported,
+            &unsupported_targets,
+            &tool,
+            &mut clean_cache,
+        )
+        .unwrap_err()[0]
+            .code,
+        "SPX-LW101"
+    );
+    let only_base = prove_scalar_law_batch_cached(
+        &project.root,
+        &changed_revision,
+        &unsupported,
+        &["fresh.law.base".into()],
+        &tool,
+        &mut clean_cache,
+    )
+    .unwrap();
+    assert_eq!(
+        only_base[0].2.fresh, 1,
+        "unsupported preflight must not warm another task"
+    );
 }
 
 #[test]

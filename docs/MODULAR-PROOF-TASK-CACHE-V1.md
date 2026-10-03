@@ -56,6 +56,14 @@ statement or assumption change invalidates its dependent closure while an
 independent law may reuse its success. Pinned Lean native relational laws use
 the same complete checked theorem/axiom-report mechanism as direct Project
 Lean exports. Their cached key additionally binds the law dependency index.
+`prove_scalar_law_batch_cached` expands selected native relational laws to
+their exact transitive prerequisites, rejects missing/cyclic or nonrelational
+dependencies before any installed process starts, and checks the closure in
+stable prerequisite order. Every returned proof binds the current LawSet and
+Project revision. A changed leaf reproves that leaf and its dependents while
+an independent law may validate and reuse its prior checked task. An unrelated
+Project artifact change still mints current evidence; old opaque proofs are
+not accepted as current.
 
 For a direct scalar Project postcondition, the compiler rebuilds current HIR,
 the complete proof script and the satisfiable-domain script. Each invocation

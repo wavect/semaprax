@@ -7,6 +7,16 @@
 
 #![forbid(unsafe_code)]
 
+mod demand;
+
+pub use demand::{
+    enabled_projected_records, projected_records_from_json, projected_records_to_json,
+    resolve_demanded_instantiations, ConcreteType, ConstArgument, DemandError,
+    DemandedInstantiation, InstantiationRequest, ProjectedRecord, ProjectionError,
+    MAX_CONCRETE_TYPE_BYTES, MAX_DEMANDED_INSTANTIATIONS, MAX_PROJECTED_LABEL_BYTES,
+    MAX_PROJECTED_RECORDS,
+};
+
 use serde_json::{Map, Value};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;

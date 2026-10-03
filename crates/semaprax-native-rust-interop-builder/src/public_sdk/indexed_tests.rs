@@ -707,7 +707,7 @@ fn indexed_result_domain_round_trips_ok_and_err_separately_from_bridge_failure()
     let actual_version = Command::new(&rustc).arg("--version").output().unwrap();
     assert!(actual_version.status.success());
     let actual_version = std::str::from_utf8(&actual_version.stdout).unwrap().trim();
-    let crate_source = b"pub fn divide(left:i64,right:i64)->core::result::Result<i64,i64>{if right==0{Err(7)}else{Ok(left/right)}}\n";
+    let crate_source = b"pub fn divide(left:i64,right:i64)->Result<i64,i64>{if right==0{Err(7)}else{Ok(left/right)}}\n";
     let mut envelope: Value = serde_json::from_slice(include_bytes!(
         "../../../semaprax-rust-api-index/fixtures/local-api-fixture-v2-envelope.json"
     ))
@@ -797,7 +797,7 @@ permit { host.math }
     ]);
     assert!(library.status().unwrap().success());
     std::fs::write(root.join("consumer.rs"),
-        "fn main(){let mut sdk=indexed_sdk::indexed_scalar_sdk(&[\"host.math\"]).unwrap();if !matches!(sdk.spx_result_dot_forward(8,2),Ok(Ok(4))){std::process::exit(11)}if !matches!(sdk.spx_result_dot_forward(8,0),Ok(Err(7))){std::process::exit(12)}if !matches!(sdk.spx_result_dot_forward(-1,2),Err(indexed_sdk::NativeRustCallError::Semantic{class:indexed_sdk::NativeRustStatusClass::Contract,..})){std::process::exit(14)}if indexed_sdk::indexed_scalar_sdk(&[]).is_ok(){std::process::exit(13)}}\n").unwrap();
+        "fn main(){let mut sdk=indexed_sdk::indexed_scalar_sdk(&[\"host.math\"]).unwrap();if !matches!(sdk.spx_result_dot_forward(8,2),Ok(Ok(4))){std::process::exit(11)}if !matches!(sdk.spx_result_dot_forward(8,0),Ok(Err(7))){std::process::exit(12)}if !matches!(sdk.spx_result_dot_forward(-1,2),Err(indexed_sdk::NativeRustSdkCallError::Semantic{class:indexed_sdk::NativeRustSdkStatusClass::Contract,..})){std::process::exit(14)}if indexed_sdk::indexed_scalar_sdk(&[]).is_ok(){std::process::exit(13)}}\n").unwrap();
     let archive = if cfg!(windows) {
         "semaprax_native_rust_sdk.lib"
     } else {

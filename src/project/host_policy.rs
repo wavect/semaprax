@@ -414,6 +414,44 @@ pub fn with_strict_authenticated_project<T>(
     })
 }
 
+/// Read-only selected-law diagnostic route. It authenticates the host's
+/// independently held baseline and rejects specification edits before any
+/// caller-supplied proof attempt. The callback may inspect current evidence
+/// but receives no publication or source-mutation authority.
+pub fn with_selected_law_diagnostics<T>(
+    manifest_path: &Path,
+    operation: impl FnOnce(&ProjectRevision, &LawSet, &StrictLawPolicy) -> Result<T>,
+) -> Result<T> {
+    let mut snapshot =
+        super::load_snapshot_for_host_access(manifest_path, ProjectHostAccess::Strict)?;
+    snapshot.recheck()?;
+    let selection = snapshot
+        .host_policy
+        .as_ref()
+        .expect("strict load retains host selection");
+    let current = LawSet::derive(
+        &snapshot,
+        selection.proof_profile(),
+        snapshot.law_modules().to_vec(),
+    )?;
+    selection
+        .protection()
+        .review(
+            selection.baseline(),
+            &snapshot,
+            &current,
+            snapshot.project_revision(),
+        )?
+        .require(None)?;
+    super::with_snapshot_operation(snapshot, |snapshot| {
+        let selection = snapshot
+            .host_policy
+            .as_ref()
+            .expect("strict snapshot retains host selection");
+        operation(snapshot, &current, selection.policy())
+    })
+}
+
 /// Install once under explicitly held host filesystem authority. The caller
 /// must quiesce concurrent Project and Workspace operations for this root.
 /// The marker is created last; interruption before it remains fail-closed.

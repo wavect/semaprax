@@ -1,5 +1,13 @@
 # Changelog
 
+- Add a selected-host LAW-12 CLI failure and repair workflow. The additive
+  `project-proof-check --workflow` route replays the complete strict law verdict
+  after protected-baseline admission, reports bounded summary/detail views,
+  and checks concrete Z3 models against source semantics before labeling a
+  counterexample. Values default to redacted. A real installed-Z3 CLI gate
+  repairs only a function body, rechecks a new Project revision, and refuses
+  a protected law edit. General agent transport and editor delivery remain open.
+
 - Exercise the Url bridge with a fixed 1,024-case hostile-carrier corpus and null/alignment/UTF-8/width/stale-generation controls. The checked generated C and callback relay pass ASan/UBSan; a deliberate heap overflow is detected. Rust dependencies remain uninstrumented and Miri evidence is still pending.
 
 - Retain a guarded foreign frontier in the private authenticated Project SDK

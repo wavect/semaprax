@@ -13,6 +13,9 @@ use semaprax::{
 use std::{collections::BTreeMap, path::Path};
 
 pub(crate) fn run(args: &[String]) -> Result<(), u8> {
+    if args.iter().any(|arg| arg == "--workflow") {
+        return super::project_proof_workflow::run(args);
+    }
     let Some(manifest) = args.first() else {
         return usage("a manifest is required");
     };

@@ -22,6 +22,147 @@ fn native_project(label: &str, proposition: &str) -> Project {
 
 #[test]
 #[ignore = "requires explicitly provisioned installed Z3"]
+fn selected_law_cli_workflow_replays_failure_then_rechecks_repaired_body() {
+    use semaprax::project::install_host_strict_law_policy;
+    let project = native_project("law12-cli-repair", "n + 0 == n");
+    let law_source = "module fresh.laws;\n@id(\"fresh.law.seventeen\")\nlaw contract \"fresh.seventeen\" ensures (a: i64, result: i64)\n result == a + 17\n evidence smt_proved;\n";
+    let canonical_law = semaprax::native_law_source::canonical(
+        &semaprax::native_law_source::parse(law_source, "src/contracts.spx").unwrap(),
+    );
+    std::fs::write(project.root.join("src/contracts.spx"), canonical_law).unwrap();
+    let bad = semaprax::format::canonical(&semaprax::parse(
+        "module app.fresh; @id(\"fresh.seventeen\") fn seventeen(a: i64) -> i64 requires a >= 0 requires a <= 100 ensures result == a + 17 { a + 16 } @id(\"fresh.main\") fn main() -> i64 { seventeen(0) }",
+        "src/app.spx",
+    ).unwrap());
+    std::fs::write(project.root.join("src/app.spx"), &bad).unwrap();
+    let revision = project.revision();
+    let laws = LawSet::derive(&revision, "law12-cli-v1", revision.law_modules().to_vec()).unwrap();
+    let tool = provisioned(&project, ToolKind::Z3);
+    let policy = StrictLawPolicy::new(
+        laws,
+        BTreeMap::from([(
+            "fresh.law.seventeen".into(),
+            RequiredLawEvidence::PinnedSmtSource {
+                toolchain: tool.expected_version().into(),
+                accepted_translation: semaprax::assurance_manifest::smt_discharge::BOUNDS_V1.into(),
+            },
+        )]),
+    )
+    .unwrap();
+    let manifest = project.root.join("semaprax.toml");
+    install_host_strict_law_policy(&manifest, &policy, vec!["fresh.seventeen".into()]).unwrap();
+    let common = [
+        "project-proof-check".to_owned(),
+        manifest.display().to_string(),
+        "--workflow".into(),
+        "detail".into(),
+        "--law".into(),
+        "fresh.law.seventeen".into(),
+        "--tool".into(),
+        "z3".into(),
+        "--executable".into(),
+        std::env::var("SEMAPRAX_LAW_Z3").unwrap(),
+        "--version-line".into(),
+        std::env::var("SEMAPRAX_LAW_Z3_VERSION").unwrap(),
+        "--host-profile".into(),
+        "trusted-local".into(),
+        "--source".into(),
+        "src/app.spx".into(),
+        "--declaration".into(),
+        "fresh.seventeen".into(),
+        "--ensures".into(),
+        "0".into(),
+    ];
+    let run = |values: bool| {
+        let mut command = std::process::Command::new(env!("CARGO_BIN_EXE_semaprax"));
+        command.args(&common);
+        if values {
+            command.arg("--show-witness-values");
+        }
+        command.output().unwrap()
+    };
+    let failed = run(false);
+    assert!(
+        !failed.status.success(),
+        "{}",
+        String::from_utf8_lossy(&failed.stderr)
+    );
+    let failure: serde_json::Value = serde_json::from_slice(&failed.stdout).unwrap();
+    assert_eq!(failure["view"]["accepted"], false);
+    assert_eq!(failure["proof_attempt"]["outcome"], "disproved_concrete");
+    assert_eq!(
+        failure["proof_attempt"]["counterexample"]["validated"],
+        true
+    );
+    assert_eq!(failure["proof_attempt"]["counterexample"]["redacted"], true);
+    assert!(failure["proof_attempt"]["counterexample"]["values"].is_null());
+    assert_eq!(
+        failure["failed_obligation_ids"].as_array().unwrap().len(),
+        1
+    );
+    assert_eq!(
+        failure["dependencies"]["requires_laws"],
+        serde_json::json!([])
+    );
+    assert!(failure["source_location"]["line"].as_u64().unwrap() > 0);
+    let mut summary_args = common.to_vec();
+    *summary_args
+        .iter_mut()
+        .find(|arg| arg.as_str() == "detail")
+        .unwrap() = "summary".into();
+    summary_args.extend(["--limit".into(), "1".into()]);
+    let summary_output = std::process::Command::new(env!("CARGO_BIN_EXE_semaprax"))
+        .args(&summary_args)
+        .output()
+        .unwrap();
+    assert!(!summary_output.status.success());
+    let summary: serde_json::Value = serde_json::from_slice(&summary_output.stdout).unwrap();
+    assert_eq!(summary["view"]["accepted"], false);
+    assert_eq!(summary["view"]["counts"], failure["view"]["counts"]);
+    assert_eq!(summary["view"]["total"], 1);
+    assert_eq!(summary["view"]["returned"], 1);
+    assert_eq!(summary["candidate_revision"], failure["candidate_revision"]);
+    let visible = run(true);
+    let shown: serde_json::Value = serde_json::from_slice(&visible.stdout).unwrap();
+    assert_eq!(
+        shown["proof_attempt"]["counterexample"]["values"]["a"]["type"],
+        "int"
+    );
+    assert_eq!(shown["candidate_revision"], failure["candidate_revision"]);
+
+    // A body repair preserves the selected law intent and changes the bound
+    // candidate revision. Only fresh checked evidence can satisfy it.
+    let repaired = bad.replace("a + 16", "a + 17");
+    std::fs::write(project.root.join("src/app.spx"), repaired).unwrap();
+    let fixed = run(false);
+    assert!(
+        fixed.status.success(),
+        "{}",
+        String::from_utf8_lossy(&fixed.stderr)
+    );
+    let checked: serde_json::Value = serde_json::from_slice(&fixed.stdout).unwrap();
+    assert_eq!(checked["view"]["accepted"], true);
+    assert_eq!(checked["proof_attempt"]["outcome"], "proved");
+    assert_ne!(checked["candidate_revision"], failure["candidate_revision"]);
+    assert_eq!(
+        checked["view"]["protected_baseline_digest"],
+        failure["view"]["protected_baseline_digest"]
+    );
+    // A source edit to the law's own evidence requirement cannot be reported
+    // as a successful implementation repair, even if the function now proves.
+    let changed_law = law_source.replace("evidence smt_proved", "evidence runtime_guarded");
+    let changed_law = semaprax::native_law_source::canonical(
+        &semaprax::native_law_source::parse(&changed_law, "src/contracts.spx").unwrap(),
+    );
+    std::fs::write(project.root.join("src/contracts.spx"), changed_law).unwrap();
+    let weakened = run(false);
+    assert!(!weakened.status.success());
+    assert!(weakened.stdout.is_empty());
+    assert!(String::from_utf8_lossy(&weakened.stderr).contains("SPX-LW120"));
+}
+
+#[test]
+#[ignore = "requires explicitly provisioned installed Z3"]
 fn installed_native_dependency_batch_rechecks_only_affected_laws_in_order() {
     let project = native_project("native-dependency-batch", "n + 0 == n");
     let original = "module fresh.laws;\n@id(\"fresh.law.base\")\nlaw relational (n: i64)\n n + 0 == n\n evidence smt_proved;\n@id(\"fresh.law.dependent\")\nlaw relational (n: i64)\n n + 0 == n\n evidence smt_proved;\n@id(\"fresh.law.independent\")\nlaw relational (n: i64)\n n + 0 == n\n evidence smt_proved;\n";

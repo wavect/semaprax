@@ -26,6 +26,29 @@ pub enum ToolKind {
     Z3,
 }
 
+/// Diagnostic result of one bounded installed query. A SAT model is untrusted
+/// until the caller independently replays it against checked source semantics.
+pub enum SmtDiagnosticResult {
+    Unsat,
+    Sat(crate::assurance_manifest::smt_discharge::Model),
+    Unknown,
+    TimedOut,
+}
+
+enum RunFailure {
+    TimedOut,
+    Diagnostic(Diagnostic),
+}
+
+impl RunFailure {
+    fn diagnostic(self) -> Diagnostic {
+        match self {
+            Self::TimedOut => refused("bounded process failed: TimedOut"),
+            Self::Diagnostic(error) => error,
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug)]
 pub struct Limits {
     pub version_timeout_ms: u64,
@@ -207,17 +230,33 @@ impl InstalledProofTool {
     }
 
     pub fn version(&self) -> Result<String, Diagnostic> {
-        let output = self.run(&[b"--version"], b"", self.limits.version_timeout_ms)?;
+        self.version_observed().map_err(RunFailure::diagnostic)
+    }
+
+    fn version_observed(&self) -> Result<String, RunFailure> {
+        let output = self.run_observed(&[b"--version"], b"", self.limits.version_timeout_ms)?;
         let version = output.trim();
         if version != self.expected_version {
-            return Err(refused("exact toolchain version pin differs"));
+            return Err(RunFailure::Diagnostic(refused(
+                "exact toolchain version pin differs",
+            )));
         }
         Ok(version.to_owned())
     }
 
     fn run(&self, args: &[&[u8]], input: &[u8], timeout: u64) -> Result<String, Diagnostic> {
+        self.run_observed(args, input, timeout)
+            .map_err(RunFailure::diagnostic)
+    }
+
+    fn run_observed(
+        &self,
+        args: &[&[u8]],
+        input: &[u8],
+        timeout: u64,
+    ) -> Result<String, RunFailure> {
         if self.cancellation.is_cancelled() {
-            return Err(refused("cancelled"));
+            return Err(RunFailure::Diagnostic(refused("cancelled")));
         }
         let mut argv = (args.len() as u32).to_le_bytes().to_vec();
         for arg in args {
@@ -234,27 +273,39 @@ impl InstalledProofTool {
             self.limits.stream_max,
             self.limits.stream_max,
         )
-        .map_err(|_| refused("input/output request exceeds process bounds"))?;
+        .map_err(|_| {
+            RunFailure::Diagnostic(refused("input/output request exceeds process bounds"))
+        })?;
         self.budget
             .borrow_mut()
             .reserve(&request)
-            .map_err(|_| refused("invocation process budget exhausted"))?;
+            .map_err(|_| RunFailure::Diagnostic(refused("invocation process budget exhausted")))?;
         #[cfg(any(target_os = "linux", target_os = "macos"))]
         {
             let output = self
                 .provider
                 .borrow_mut()
                 .run_cancellable(&request, Some(&self.cancellation))
-                .map_err(|error| refused(&format!("bounded process failed: {error:?}")))?;
+                .map_err(|error| match error {
+                    crate::process_provider::ProcessFailure::TimedOut => RunFailure::TimedOut,
+                    other => RunFailure::Diagnostic(refused(&format!(
+                        "bounded process failed: {other:?}"
+                    ))),
+                })?;
             if output.termination != ProcessTermination::Exited(0) {
-                return Err(refused("tool exited unsuccessfully; no proof accepted"));
+                return Err(RunFailure::Diagnostic(refused(
+                    "tool exited unsuccessfully; no proof accepted",
+                )));
             }
             let mut bytes = output.stdout;
             bytes.extend_from_slice(&output.stderr);
-            String::from_utf8(bytes).map_err(|_| refused("tool output is not UTF-8"))
+            String::from_utf8(bytes)
+                .map_err(|_| RunFailure::Diagnostic(refused("tool output is not UTF-8")))
         }
         #[cfg(not(any(target_os = "linux", target_os = "macos")))]
-        Err(refused("host process settlement unavailable"))
+        Err(RunFailure::Diagnostic(refused(
+            "host process settlement unavailable",
+        )))
     }
 
     /// This exact check is intentionally stricter than the older solver's
@@ -275,6 +326,44 @@ impl InstalledProofTool {
             ));
         }
         Ok(())
+    }
+
+    /// Inspect a failed proof goal through the same held process capability.
+    /// This never creates a proof token; callers must replay a returned model.
+    pub fn smt_diagnostic_query(&self, script: &str) -> Result<SmtDiagnosticResult, Diagnostic> {
+        if self.kind != ToolKind::Z3 {
+            return Err(refused("Z3 capability required"));
+        }
+        match self.version_observed() {
+            Ok(_) => {}
+            Err(RunFailure::TimedOut) => return Ok(SmtDiagnosticResult::TimedOut),
+            Err(RunFailure::Diagnostic(error)) => return Err(error),
+        }
+        let output = match self.run_observed(
+            &[b"-in", b"-smt2"],
+            script.as_bytes(),
+            self.limits.proof_timeout_ms,
+        ) {
+            Ok(output) => output,
+            Err(RunFailure::TimedOut) => return Ok(SmtDiagnosticResult::TimedOut),
+            Err(RunFailure::Diagnostic(error)) => return Err(error),
+        };
+        let (status, body) = output
+            .split_once('\n')
+            .map(|(status, body)| (status.trim(), body.trim()))
+            .unwrap_or((output.trim(), ""));
+        match status {
+            "unsat" if body.is_empty() => Ok(SmtDiagnosticResult::Unsat),
+            "unknown" if body.is_empty() => Ok(SmtDiagnosticResult::Unknown),
+            "sat" if !body.is_empty() => {
+                let model = crate::assurance_manifest::smt_discharge::parse_model(body)
+                    .map_err(|_| refused("solver returned an unsupported diagnostic model"))?;
+                Ok(SmtDiagnosticResult::Sat(model))
+            }
+            _ => Err(refused(
+                "solver diagnostic result is malformed or incomplete",
+            )),
+        }
     }
 
     /// Obtain a concrete SAT model through the same held, bounded Z3

@@ -105,6 +105,38 @@ checks one selected postcondition; it does not claim complete law coverage,
 application execution, build admission or publication authority. A false or
 unsupported proof exits unsuccessfully without mutating source or Git.
 
+## Selected-law failure workflow
+
+An installed tool can drive the additive host-selected LAW-12 diagnostic
+workflow after the host installs a strict law policy:
+
+```text
+semaprax project-proof-check /absolute/semaprax.toml \
+  --workflow detail --law app.required-law \
+  --tool z3 --executable /absolute/z3 --version-line "exact version output" \
+  --host-profile trusted-local \
+  --source src/app.spx --declaration app.function --ensures 0
+```
+
+`--workflow summary` returns an `--offset`/`--limit` page; `detail` returns
+one selected law and a repair target. Both replay the complete protected
+inventory against the current authenticated Project and repeat its whole
+acceptance verdict and counts. The JSON envelope binds the candidate revision,
+law semantics, policy, dependency IDs, failed obligation IDs, evidence profile,
+and source location where available. A failure exits with status 1 after
+printing bounded JSON. `--max-bytes` refuses an oversized envelope rather
+than truncating counts or the verdict.
+
+For an admitted Z3 postcondition failure, a separate bounded model query is
+checked with the independent source evaluator. Only a reproduced checked trap
+or violated ensures is reported as `disproved_concrete`. Other results remain
+`unknown`, `timeout`, `unsupported`, `incomplete`, or `solver_error`; none is a proof token.
+Concrete values are redacted by default; `--show-witness-values` is available
+only with `detail` for a trusted local caller. An implementation edit changes
+the candidate revision and must be reproved. An edit to protected law intent
+requires the separate host specification-review route and cannot be counted
+as a successful repair by this command.
+
 ## Focused physical gate
 
 The ignored Workspace selector `project_assurance_manifest::law_set::installed_law`

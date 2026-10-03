@@ -5,7 +5,7 @@ use semaprax::hir::{
     self, DeclarationId, ResolvedExprKind, ResolvedImportFailure, ResolvedImportResultKind,
     ResolvedType,
 };
-use semaprax::native_rust_binding::{prepare_scalar_binding, SelectedRustItem};
+use semaprax::native_rust_binding::{SelectedRustItem, prepare_scalar_binding};
 use semaprax::{graph, parse, wasm};
 
 const SOURCE: &str = r#"module test.native_rust;
@@ -59,8 +59,7 @@ fn selected_item<'a>(alias: &'a str, path: &'a str, signature: &'a str) -> Selec
         cargo_alias: alias,
         package_name: "fixture-api",
         package_version: "1.0.0",
-        package_source_sha256:
-            "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        package_source_sha256: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         index_digest: "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
         target: "x86_64-unknown-linux-gnu",
         feature_digest: "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
@@ -160,12 +159,9 @@ fn selected_scalar_binding_rejects_unchecked_or_drifting_metadata() {
         "fn combine(left: i64, selected: bool) -> i64",
     );
     inaccessible.supported = false;
-    assert_eq!(
-        prepare_scalar_binding(import, inaccessible)
-            .unwrap_err()
-            .code,
-        "SPX-B141"
-    );
+    let inaccessible_error = prepare_scalar_binding(import, inaccessible).unwrap_err();
+    assert_eq!(inaccessible_error.code, "SPX-B141");
+    assert_eq!(inaccessible_error.span, Some(import.span));
     let mut method = selected_item(
         "api",
         "api::combine",
@@ -173,10 +169,9 @@ fn selected_scalar_binding_rejects_unchecked_or_drifting_metadata() {
     );
     method.kind = "inherent_method";
     method.receiver = "shared";
-    assert_eq!(
-        prepare_scalar_binding(import, method).unwrap_err().code,
-        "SPX-B144"
-    );
+    let method_error = prepare_scalar_binding(import, method).unwrap_err();
+    assert_eq!(method_error.code, "SPX-B144");
+    assert_eq!(method_error.span, Some(import.span));
 }
 
 #[test]
@@ -187,16 +182,31 @@ fn indexed_rust_source_path_round_trips_and_selects_graph_v52() {
         1,
     );
     let program = parse(&source, Path::new("indexed.spx")).unwrap();
-    assert_eq!(format::canonical(&program), source);
+    let canonical = format::canonical(&program);
+    assert_eq!(canonical, source);
+    let reparsed = parse(&canonical, Path::new("canonical-indexed.spx")).unwrap();
+    assert_eq!(format::canonical(&reparsed), canonical);
     let resolved = hir::resolve(&program).unwrap();
+    let canonical_resolved = hir::resolve(&reparsed).unwrap();
     assert_eq!(
         resolved.interfaces[0].imports[0].rust_path.as_deref(),
         Some("api::combine")
     );
+    assert_eq!(
+        resolved.interfaces[0].imports[0].id, canonical_resolved.interfaces[0].imports[0].id,
+        "the persistent Semaprax import identity is independent of source-file path"
+    );
+    assert_eq!(
+        resolved.interfaces[0].imports[0].id.as_str(),
+        "rust.host.combine"
+    );
     hir::validate(&resolved).unwrap();
     let json = graph::to_json(&program).unwrap();
+    assert_eq!(json, graph::to_json(&reparsed).unwrap());
     assert!(json.contains("\"schema\":\"semaprax.graph.v52\""));
     assert!(json.contains("\"rust_path\":\"api::combine\""));
+    assert!(json.contains("\"effects\":[]"));
+    assert!(json.contains("\"id\":\"rust.host.combine\""));
     assert_eq!(wasm::emit_module(&program).unwrap_err().code, "SPX-W114");
     assert_eq!(
         wasm::emit_resolved_module(&resolved).unwrap_err().code,
@@ -212,15 +222,42 @@ fn indexed_rust_source_path_round_trips_and_selects_graph_v52() {
     forged.interfaces[0].imports[0].rust_path = Some("combine".to_owned());
     assert_eq!(hir::validate(&forged).unwrap_err().code, "SPX-H006");
     let import = &resolved.interfaces[0].imports[0];
-    assert!(prepare_scalar_binding(
-        import,
-        selected_item(
-            "api",
-            "api::combine",
-            "fn combine(left: i64, selected: bool) -> i64"
+    assert!(
+        prepare_scalar_binding(
+            import,
+            selected_item(
+                "api",
+                "api::combine",
+                "fn combine(left: i64, selected: bool) -> i64"
+            )
         )
-    )
-    .is_ok());
+        .is_ok()
+    );
+    let unindexed_source = parse(SOURCE, Path::new("unindexed.spx")).unwrap();
+    let unindexed = hir::resolve(&unindexed_source).unwrap();
+    assert_eq!(
+        unindexed.interfaces[0].imports[0].id, import.id,
+        "adding a selected Rust path must not replace the persistent source identity"
+    );
+    let invalid_source = SOURCE.replacen(
+        "import rust fn combine(left: i64, selected: bool) -> i64",
+        "import rust fn combine(left: i64, selected: bool) -> i64 from \"api::bad-name\"",
+        1,
+    );
+    let invalid_program = parse(&invalid_source, Path::new("invalid-indexed.spx")).unwrap();
+    let source_error = hir::resolve(&invalid_program).unwrap_err();
+    assert_eq!(source_error.len(), 1);
+    assert_eq!(source_error[0].code, "SPX-B143");
+    assert_eq!(
+        source_error[0].message,
+        "Rust API path must be a bounded package-qualified path"
+    );
+    assert_eq!(source_error[0].path.as_deref(), Some("invalid-indexed.spx"));
+    assert_eq!(
+        source_error[0].span,
+        Some(invalid_program.interfaces[0].imports[0].span),
+        "invalid selected paths diagnose the exact import declaration"
+    );
     assert_eq!(
         prepare_scalar_binding(
             import,

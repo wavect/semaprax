@@ -72,7 +72,9 @@ async function run() {
   }
 
   const extension = vscode.extensions.getExtension('wavect.semaprax');
-  assert.ok(extension, 'development extension must be installed');
+  assert.ok(extension, 'the installed extension must be discovered');
+  const expectedExtensionPath = required('SEMAPRAX_VSCODE_EXPECTED_EXTENSION_PATH');
+  assert.equal(fs.realpathSync(extension.extensionPath), fs.realpathSync(expectedExtensionPath), 'the Extension Host must load the isolated installed VSIX, never the development tree');
   assert.equal(extension.packageJSON.version, '0.1.0');
   const api = await extension.activate();
   assert.ok(api && typeof api.execute === 'function', 'test-only extension API must be available');
@@ -228,6 +230,20 @@ async function run() {
     assert.equal(state.tools.includes(method), false, `${method} must remain outside the editor catalogue`);
   }
 
+  // These are actual WebviewPanel instances in the selected Extension Host.
+  // The webview bootstrap issues its read-only summary/page requests after the
+  // panel is shown; command construction itself must not mutate source or
+  // manufacture a candidate.
+  const currentExplorer = await api.execute('openExplorer');
+  assert.equal(currentExplorer.viewType, 'semapraxExplorer');
+  assert.equal(currentExplorer.title, 'SEMAPRAX Explorer');
+  assert.match(currentExplorer.webview.html, /default-src 'none'/);
+  assert.doesNotMatch(currentExplorer.webview.html, /https?:\/\//);
+  api.enqueueInput('calculator.add');
+  const selectedExplorer = await api.execute('exploreSelection');
+  assert.equal(selectedExplorer.viewType, 'semapraxExplorer');
+  assert.match(selectedExplorer.webview.html, /context · current/);
+
   await api.execute('openCandidate');
   api.enqueueInput('calculator.add');
   await api.execute('selectTarget');
@@ -250,6 +266,9 @@ async function run() {
   assert.match(candidate.text, /fn addition\(/);
   assert.deepEqual(fs.readFileSync(source), sourceBefore, 'candidate review must not write canonical source');
   const workflow = state;
+  const candidateExplorer = await api.execute('reviewCandidateGraph');
+  assert.equal(candidateExplorer.viewType, 'semapraxExplorer');
+  assert.match(candidateExplorer.webview.html, /overview · candidate/);
 
   const documentsBeforeCancellation = state.documents.length;
   const cancelledRun = api.execute('runCandidateTests');

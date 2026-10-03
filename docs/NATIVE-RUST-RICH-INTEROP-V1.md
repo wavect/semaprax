@@ -547,3 +547,27 @@ host observes success; the host's returned bytes must remain intact. Empty and
 drop, and close counts. A successfully compiled skipped-copy control must fail
 the copy-count assertion. Local rustc 1.98 evidence passed 1/1, zero ignored.
 This adds compatibility evidence without changing v1 renderer/runtime bytes.
+
+### Two-owned-argument transfer evidence and remaining refusal gap
+
+`owned_transfer_two_arguments_staging_atomicity_and_failures` executes checked
+Semaprax helpers with two owned Option<String> or Result<String,i64> arguments.
+The source roundtrip preserves the graph, whose CallCommit names two distinct
+source slots. Physical O0/O2 cases count consumption and allocation finalization
+for success, inactive payloads, first/second constructor panic or reservation
+failure, oversized second output, and a scalar argument failure after both
+owners were staged. These ordinary failure paths replay the plan's canonical
+cleanup order and preserve the output sentinel.
+
+Test instrumentation at each validation point observes that neither source
+live bit is cleared until both arguments validate. A compiled control clearing
+the first bit before the second validation must fail the atomic-live-bits
+assertion. This is an executed ordering control, not a textual-only check.
+
+Defensive carrier-validation refusal is still a separate acceptance gap:
+CallCommit has no authenticated precommit rollback edge. Its invariant guard
+returns status 7, leaves both table owners retained, and context closure returns
+5. The test explicitly releases its captured tokens afterward; that release is
+**test-only**, not source-generated cleanup. A production fix must add and replay
+authenticated rollback metadata rather than infer or reorder finalizers in the
+C renderer. Local focused evidence passed 1/1, zero ignored. RI-05 remains open.

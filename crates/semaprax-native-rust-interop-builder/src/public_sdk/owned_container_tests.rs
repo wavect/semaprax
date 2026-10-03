@@ -314,3 +314,6 @@ mod safety;
 
 #[path = "owned_nested_tests.rs"]
 mod nested;
+
+#[path = "owned_transfer_tests.rs"]
+mod transfer;

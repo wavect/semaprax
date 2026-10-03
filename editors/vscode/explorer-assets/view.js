@@ -80,6 +80,11 @@ function createExplorer(root, host, options = {}) {
   const status = element(document, 'p', 'spx-status'); status.setAttribute('role', 'status'); status.setAttribute('aria-live', 'polite');
   shell.append(header, controls, filters, main, status); root.append(shell);
 
+  function summaryAlias(query) {
+    if (typeof host.cacheScope !== 'string' || !host.cacheScope) return null;
+    return JSON.stringify([host.cacheScope, query.mode, query.target, query.direction, query.depth, query.side]);
+  }
+
   function visibleRows() {
     const modules = state.rows.modules;
     const declarations = state.rows.declarations;
@@ -461,7 +466,14 @@ function createExplorer(root, host, options = {}) {
     state.busy = true; status.textContent = 'Loading checked project view…';
     try {
       const requested = { mode: query.mode, target: query.target ?? null, direction: query.direction || 'both', depth: query.depth ?? 1, side: query.side };
-      const selected = semapraxExplorerModel.summary(await host.summary(requested));
+      const alias = summaryAlias(requested);
+      let raw = alias && responseCache.getSummary(alias);
+      if (!raw) raw = await host.summary(requested);
+      const selected = semapraxExplorerModel.summary(raw);
+      if (alias) {
+        responseCache.set({ kind: 'summary', subject: selected.subject, artifact_digest: selected.artifact_digest,
+          target: selected.target, mode: selected.mode, query: selected.query }, selected, alias);
+      }
       if (generation !== state.generation) return;
       state.summary = selected;
       state.rows = Object.fromEntries(semapraxExplorerModel.VIEWS.map(view => [view, []]));

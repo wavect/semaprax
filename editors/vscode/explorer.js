@@ -223,10 +223,10 @@ async function readEvidence(invoke, state, subject, raw) {
   return envelope(subject, request, compact, nonclaims);
 }
 function wrapped(file) { return `(function(){\n${fs.readFileSync(path.join(__dirname, 'explorer-assets', file), 'utf8')}\n})();`; }
-function html(webview, extensionUri, generation, label) {
+function html(webview, extensionUri, generation, label, cacheScope) {
   const nonce = crypto.randomBytes(16).toString('base64');
   const style = webview.asWebviewUri(extensionUri.with({ path: extensionUri.path + '/explorer-assets/explorer.css' }));
-  return `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource}; script-src 'nonce-${nonce}'; img-src ${webview.cspSource};"><link rel="stylesheet" href="${style}"></head><body><div id="app"></div><script nonce="${nonce}">${wrapped('model.js')}</script><script nonce="${nonce}">${wrapped('layout.js')}</script><script nonce="${nonce}">${wrapped('cache.js')}</script><script nonce="${nonce}">${wrapped('changes.js')}</script><script nonce="${nonce}">${wrapped('evidence.js')}</script><script nonce="${nonce}">${wrapped('hosts.js')}</script><script nonce="${nonce}">${wrapped('view.js')}</script><script nonce="${nonce}">const port={postMessage:m=>acquireVsCodeApi().postMessage(m),addEventListener:(n,f)=>window.addEventListener(n,f)};SemapraxExplorerView.createExplorer(document.getElementById('app'),SemapraxExplorerHosts.vscodeHost(port,${generation}),{label:${JSON.stringify(label)}});</script></body></html>`;
+  return `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource}; script-src 'nonce-${nonce}'; img-src ${webview.cspSource};"><link rel="stylesheet" href="${style}"></head><body><div id="app"></div><script nonce="${nonce}">${wrapped('model.js')}</script><script nonce="${nonce}">${wrapped('layout.js')}</script><script nonce="${nonce}">${wrapped('cache.js')}</script><script nonce="${nonce}">${wrapped('changes.js')}</script><script nonce="${nonce}">${wrapped('evidence.js')}</script><script nonce="${nonce}">${wrapped('hosts.js')}</script><script nonce="${nonce}">${wrapped('view.js')}</script><script nonce="${nonce}">const port={postMessage:m=>acquireVsCodeApi().postMessage(m),addEventListener:(n,f)=>window.addEventListener(n,f)};SemapraxExplorerView.createExplorer(document.getElementById('app'),SemapraxExplorerHosts.vscodeHost(port,${generation},${JSON.stringify(cacheScope)}),{label:${JSON.stringify(label)}});</script></body></html>`;
 }
 
 function openExplorer(vscode, context, state, query) {
@@ -234,7 +234,7 @@ function openExplorer(vscode, context, state, query) {
   state.panel?.dispose();
   const panel = vscode.window.createWebviewPanel('semapraxExplorer', 'SEMAPRAX Explorer', vscode.ViewColumn.Beside, { enableScripts: true, retainContextWhenHidden: false, localResourceRoots: [context.extensionUri.with({ path: context.extensionUri.path + '/explorer-assets' })] });
   state.panel = panel; const scheduler = new ExplorerScheduler(state.invoke); let summary = null; const cursors = new Map(); const sourceReferences = new Map();
-  panel.webview.html = html(panel.webview, context.extensionUri, generation, `${query.mode} · ${query.side}`);
+  panel.webview.html = html(panel.webview, context.extensionUri, generation, `${query.mode} · ${query.side}`, JSON.stringify([state.image(), state.candidate()]));
   let selectedQuery = null;
   const reply = (requestId, ok, value) => panel.webview.postMessage({ type: 'semaprax-explorer-response', generation, requestId, ok, ...(ok ? { value } : { error: String(value?.message || value).slice(0, 1024) }) });
   const subscription = panel.webview.onDidReceiveMessage(async raw => {

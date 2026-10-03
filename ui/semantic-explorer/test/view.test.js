@@ -62,11 +62,12 @@ test('overview opens with only bounded module and declaration pages', async () =
 });
 
 test('repeated open and destroy releases host state while retaining only bounded immutable pages', async () => {
-  const cache = new ExplorerCache({ maxEntries: 2, maxBytes: 4096, maxEntryBytes: 2048 });
-  let disposed = 0, pages = 0;
+  const cache = new ExplorerCache({ maxEntries: 3, maxBytes: 4096, maxEntryBytes: 2048 });
+  let disposed = 0, pages = 0, summaries = 0;
   for (let cycle = 0; cycle < 3; cycle++) {
     const host = {
-      async summary() { return summary(); },
+      cacheScope: 'same-live-image',
+      async summary() { summaries++; return summary(); },
       async page(request) { pages++; return page(request.summary, request.view); },
       dispose() { disposed++; }
     };
@@ -77,8 +78,9 @@ test('repeated open and destroy releases host state while retaining only bounded
     assert.equal(root.children.length, 0, `cycle ${cycle} must detach its DOM/listeners`);
   }
   assert.equal(disposed, 3);
+  assert.equal(summaries, 1, 'later openings reuse the exact immutable summary');
   assert.equal(pages, 2, 'later openings reuse the exact immutable first pages');
-  assert.equal(cache.stats().entries, 2);
+  assert.equal(cache.stats().entries, 3);
   assert.ok(cache.stats().retainedBytes <= 4096);
 });
 

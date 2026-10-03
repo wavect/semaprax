@@ -76,6 +76,7 @@ class ExplorerCache {
     this.maxBytes = maxBytes;
     this.maxEntryBytes = maxEntryBytes;
     this.entries = new Map();
+    this.summaryAliases = new Map();
     this.retainedBytes = 0;
   }
 
@@ -88,7 +89,16 @@ class ExplorerCache {
     return JSON.parse(entry.serialized);
   }
 
-  set(request, value) {
+  getSummary(alias) {
+    if (typeof alias !== 'string' || !alias || alias.length > 8192) return null;
+    const key = this.summaryAliases.get(alias), entry = key && this.entries.get(key);
+    if (!entry) { this.summaryAliases.delete(alias); return null; }
+    this.entries.delete(key);
+    this.entries.set(key, entry);
+    return JSON.parse(entry.serialized);
+  }
+
+  set(request, value, summaryAlias = null) {
     const key = requestKey(request);
     if (!plain(value) || value.kind !== request.kind || containsSensitiveValue(value)) return false;
     const serialized = canonical(value);
@@ -101,16 +111,21 @@ class ExplorerCache {
     }
     this.entries.set(key, { bytes, serialized });
     this.retainedBytes += bytes;
+    if (request.kind === 'summary' && typeof summaryAlias === 'string' && summaryAlias && summaryAlias.length <= 8192) {
+      this.summaryAliases.set(summaryAlias, key);
+    }
     while (this.entries.size > this.maxEntries || this.retainedBytes > this.maxBytes) {
       const oldest = this.entries.entries().next().value;
       this.entries.delete(oldest[0]);
       this.retainedBytes -= oldest[1].bytes;
+      for (const [alias, cached] of this.summaryAliases) if (cached === oldest[0]) this.summaryAliases.delete(alias);
     }
     return true;
   }
 
   clear() {
     this.entries.clear();
+    this.summaryAliases.clear();
     this.retainedBytes = 0;
   }
 

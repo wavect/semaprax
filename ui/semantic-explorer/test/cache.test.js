@@ -41,6 +41,15 @@ test('cache retains only immutable responses and returns independent values', ()
   assert.equal(cache.set(request, response('summary', { credentials: 'private' })), false, 'credentials are never retained');
 });
 
+test('summary aliases reuse only an entry retained under its complete subject key', () => {
+  const cache = new ExplorerCache({ maxEntries: 1, maxBytes: 1024, maxEntryBytes: 512 });
+  const request = summaryRequest();
+  assert.equal(cache.set(request, response('summary', { rows: [1] }), 'live-image-and-query'), true);
+  assert.deepEqual(cache.getSummary('live-image-and-query'), response('summary', { rows: [1] }));
+  assert.equal(cache.set(summaryRequest({ target: 'other' }), response('summary', { rows: [2] })), true);
+  assert.equal(cache.getSummary('live-image-and-query'), null, 'eviction removes its lookup alias');
+});
+
 test('cache is an LRU bounded by entry count and retained UTF-8 bytes', () => {
   const cache = new ExplorerCache({ maxEntries: 2, maxBytes: 110, maxEntryBytes: 64 });
   const one = summaryRequest({ target: 'one' }), two = summaryRequest({ target: 'two' }), three = summaryRequest({ target: 'three' });

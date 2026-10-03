@@ -33,6 +33,7 @@ function snapshotHost(bundle) {
     }
     views.set(key, { selected, pages });
   }
+  const cacheScope = typeof bundle.snapshot_digest === 'string' && bundle.snapshot_digest.length <= 128 ? bundle.snapshot_digest : null;
   let active = null;
   const changes = bundle.changes || null;
   const sourceReview = Object.hasOwn(bundle, 'source_review') ? bundle.source_review : null;
@@ -40,6 +41,7 @@ function snapshotHost(bundle) {
   if (changes && (!changes.catalog || !Array.isArray(changes.details) || changes.details.length > 256)) throw new TypeError('invalid bundled changes');
   return Object.freeze({
     offline: true,
+    cacheScope,
     hasView(query) { return views.has(queryKey(query)); },
     async summary(query) {
       const found = views.get(queryKey(query));
@@ -83,7 +85,7 @@ function snapshotHost(bundle) {
 
 // The editor transport is deliberately closed. The extension validates the
 // same request again against its live panel generation and retained subject.
-function vscodeHost(port, generation) {
+function vscodeHost(port, generation, cacheScope = null) {
   if (!port || typeof port.postMessage !== 'function' || typeof port.addEventListener !== 'function' || !Number.isSafeInteger(generation) || generation < 0) throw new TypeError('invalid explorer editor port');
   let serial = 0, disposed = false;
   const pending = new Map();
@@ -106,6 +108,7 @@ function vscodeHost(port, generation) {
     });
   }
   const host = {
+    cacheScope: typeof cacheScope === 'string' && cacheScope.length <= 512 ? cacheScope : null,
     summary(query) { return call('summary', query); },
     page(request) { return call('page', { view: request.view, handle: request.handle, cursor: request.cursor, page_size: request.page_size, max_bytes: request.max_bytes }); },
     readEvidence(request) { return call('readEvidence', evidenceRequest(request)); },

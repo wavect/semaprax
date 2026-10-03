@@ -1,5 +1,12 @@
 # Changelog
 
+- Canonicalize the checked money/state law-pack source, list both new example
+  directories in the index, and check selected native-law modules with their
+  own parser and canonical formatter in the example inventory gate.
+
+- Remove redundant proof clones in the workspace law tests and simplify the
+  remaining test-only types for the Ubuntu Clippy job.
+
 - Record an exploratory RI-13 M3 local HTTP comparison with 90 raw samples
   each for direct Rust, equivalent handwritten checks, and generated checked
   source, plus a 30-call preparation/await attribution probe. Generated versus

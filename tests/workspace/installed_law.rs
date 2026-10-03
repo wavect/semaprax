@@ -54,9 +54,17 @@ fn installed_project_postcondition_cache_reuses_proof_query_with_fresh_domain_wi
     )
     .unwrap();
     let cold_report = strict::derive(&revision, &laws, &policy, &[cold]).unwrap();
-    let warm_report = strict::derive(&revision, &laws, &policy, &[warm.clone()]).unwrap();
+    let warm_report =
+        strict::derive(&revision, &laws, &policy, std::slice::from_ref(&warm)).unwrap();
     assert_eq!(cold_report, warm_report);
-    strict::require(&warm_report, &revision, &laws, &policy, &[warm.clone()]).unwrap();
+    strict::require(
+        &warm_report,
+        &revision,
+        &laws,
+        &policy,
+        std::slice::from_ref(&warm),
+    )
+    .unwrap();
 
     let changed = original.replace("result == a + 17", "result == a + 18");
     assert_ne!(changed, original);
@@ -129,9 +137,17 @@ fn installed_project_lean_cache_reuses_checked_axiom_report_with_current_certifi
     )
     .unwrap();
     let cold_report = strict::derive(&revision, &laws, &policy, &[cold]).unwrap();
-    let warm_report = strict::derive(&revision, &laws, &policy, &[warm.clone()]).unwrap();
+    let warm_report =
+        strict::derive(&revision, &laws, &policy, std::slice::from_ref(&warm)).unwrap();
     assert_eq!(cold_report, warm_report);
-    strict::require(&warm_report, &revision, &laws, &policy, &[warm.clone()]).unwrap();
+    strict::require(
+        &warm_report,
+        &revision,
+        &laws,
+        &policy,
+        std::slice::from_ref(&warm),
+    )
+    .unwrap();
 
     let changed = original.replace("result == a + 17", "result == a + 18");
     assert_ne!(changed, original);
@@ -257,8 +273,16 @@ fn installed_law_real_kernels_prove_new_exact_law_and_refuse_false_stale_or_chan
             BTreeMap::from([("fresh.law.seventeen".into(), req.clone())]),
         )
         .unwrap();
-        let report = strict::derive(&revision, &laws, &policy, &[proof.clone()]).unwrap();
-        strict::require(&report, &revision, &laws, &policy, &[proof.clone()]).unwrap();
+        let report =
+            strict::derive(&revision, &laws, &policy, std::slice::from_ref(&proof)).unwrap();
+        strict::require(
+            &report,
+            &revision,
+            &laws,
+            &policy,
+            std::slice::from_ref(&proof),
+        )
+        .unwrap();
         let candidate = semaprax::project::ProjectCandidate::open(
             revision.clone(),
             revision.project_revision(),
@@ -269,11 +293,16 @@ fn installed_law_real_kernels_prove_new_exact_law_and_refuse_false_stale_or_chan
                 candidate.candidate_digest(),
                 &laws,
                 &policy,
-                &[proof.clone()],
+                std::slice::from_ref(&proof),
             )
             .unwrap();
         candidate
-            .require_strict_law_assurance(&candidate_report, &laws, &policy, &[proof.clone()])
+            .require_strict_law_assurance(
+                &candidate_report,
+                &laws,
+                &policy,
+                std::slice::from_ref(&proof),
+            )
             .unwrap();
         let changed = match req {
             RequiredLawEvidence::PinnedLeanSource {
@@ -299,8 +328,16 @@ fn installed_law_real_kernels_prove_new_exact_law_and_refuse_false_stale_or_chan
             BTreeMap::from([("fresh.law.seventeen".into(), changed)]),
         )
         .unwrap();
-        let report = strict::derive(&revision, &laws, &refused, &[proof.clone()]).unwrap();
-        assert!(strict::require(&report, &revision, &laws, &refused, &[proof.clone()]).is_err());
+        let report =
+            strict::derive(&revision, &laws, &refused, std::slice::from_ref(&proof)).unwrap();
+        assert!(strict::require(
+            &report,
+            &revision,
+            &laws,
+            &refused,
+            std::slice::from_ref(&proof)
+        )
+        .is_err());
         assert!(
             prove_postcondition(&revision, "src/app.spx", "fresh.seventeen", 1, &tool).is_err()
         );

@@ -6,7 +6,7 @@ use std::process::Command;
 /// execute it. Rich Native Rust index replay has no CLI verb in this profile.
 #[test]
 fn check_fmt_query_and_graph_leave_hostile_rust_unexecuted() {
-    let root = super::empty_working_directory();
+    let root = fs::canonicalize(super::empty_working_directory()).unwrap();
     let source = root.join("app.spx");
     let source_bytes = include_bytes!("../../../../examples/calculator.spx");
     fs::write(&source, source_bytes).unwrap();

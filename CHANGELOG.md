@@ -1,5 +1,9 @@
 # Changelog
 
+- Add a resealed LAW-13 trust-link negative ladder for changed source body,
+  law statement, Lean statement, compiler identity, fixed profile, target,
+  artifact bytes and unauthenticated adapter requests. The bounded Core Wasm
+  certificate refuses each mismatch before publishing a trust-chain view.
 - Complete bounded LAW-11 installed proof-task reuse for modular scalar,
   finite structured, native relational and direct Project postcondition laws.
   Authenticated private entries bind checked transitive subjects, tool/profile,

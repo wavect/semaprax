@@ -150,3 +150,7 @@ mod tests {
         assert_eq!(wrong_adapter.code, "SPX-Z112");
     }
 }
+
+#[cfg(test)]
+#[path = "trust_chain/ladder_tests.rs"]
+mod ladder_tests;

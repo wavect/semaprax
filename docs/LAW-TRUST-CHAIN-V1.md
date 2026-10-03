@@ -28,6 +28,15 @@ runtime executor and adapter observation. A caller that supplies a counterfeit
 kernel capability is outside this API's trust boundary; the view does not
 authenticate that caller.
 
+The focused hostile ladder reseals certificate payloads after changing the
+Lean statement, compiler version, profile, or artifact target, and separately
+changes current source body, source law statement, and artifact bytes. Every
+change refuses the view. A requested foreign target or adapter identity is
+also refused before certificate replay. The compiled Core Wasm profile has no
+caller-selectable lowering options; different emitted bytes fail the exact
+artifact binding. This test covers association refusal, not an authenticated
+runtime invocation receipt.
+
 The scalar differential test in
 `tests/scalar_status_backend_equivalence/differential/law_runtime_chain.rs`
 compares a hand-written checked-i64 reference, the interpreter, and actually

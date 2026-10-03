@@ -617,6 +617,8 @@ pub use registered_callback::{
 };
 mod demanded;
 mod descriptor;
+mod future_bridge;
+pub use future_bridge::{render_local_future_bridge, LOCAL_FUTURE_BRIDGE_SCHEMA};
 pub use demanded::{
     prepare_demanded_native_rust, ConcreteRustBindingPlan, DemandedNativeRust, RustDemandSelection,
 };
@@ -652,6 +654,8 @@ mod tests;
 mod borrowed_input_tests;
 #[cfg(test)]
 mod indexed_tests;
+#[cfg(test)]
+mod future_bridge_tests;
 #[cfg(test)]
 mod owned_string_tests;
 #[cfg(test)]

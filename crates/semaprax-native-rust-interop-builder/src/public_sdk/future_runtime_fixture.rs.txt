@@ -1,0 +1,243 @@
+#[cfg(test)]
+mod bridge_tests {
+    use super::*;
+    use std::cell::RefCell;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+
+    struct CountWake(Arc<AtomicUsize>);
+    impl Wake for CountWake {
+        fn wake(self: Arc<Self>) {
+            self.wake_by_ref();
+        }
+        fn wake_by_ref(self: &Arc<Self>) {
+            self.0.fetch_add(1, Ordering::SeqCst);
+        }
+    }
+    fn counter() -> (Waker, Arc<AtomicUsize>) {
+        let count = Arc::new(AtomicUsize::new(0));
+        (Waker::from(Arc::new(CountWake(count.clone()))), count)
+    }
+
+    #[test]
+    fn pending_wakes_latest_executor_and_transfers_once() {
+        let limit = LocalFutureLimit::new(1);
+        let registered = Rc::new(RefCell::new(None::<Waker>));
+        let ready = Rc::new(Cell::new(false));
+        let future = std::future::poll_fn({
+            let registered = registered.clone();
+            let ready = ready.clone();
+            move |cx| {
+                *registered.borrow_mut() = Some(cx.waker().clone());
+                if ready.get() {
+                    Poll::Ready(vec![4, 5, 6])
+                } else {
+                    Poll::Pending
+                }
+            }
+        });
+        let handle = limit.start(future, 3, Vec::len).unwrap();
+        assert_eq!(limit.live(), 1);
+        let before = handle.notification_waker();
+        before.wake_by_ref();
+        before.wake_by_ref();
+        let (first, first_count) = counter();
+        assert_eq!(
+            handle.poll(&mut Context::from_waker(&first)),
+            Ok(Poll::Pending)
+        );
+        assert_eq!(first_count.load(Ordering::SeqCst), 1);
+        let (second, second_count) = counter();
+        assert_eq!(
+            handle.poll(&mut Context::from_waker(&second)),
+            Ok(Poll::Pending)
+        );
+        registered.borrow().as_ref().unwrap().wake_by_ref();
+        assert_eq!(first_count.load(Ordering::SeqCst), 1);
+        assert_eq!(second_count.load(Ordering::SeqCst), 1);
+        ready.set(true);
+        assert_eq!(
+            handle.poll(&mut Context::from_waker(&second)),
+            Ok(Poll::Ready(()))
+        );
+        assert_eq!(
+            handle.poll(&mut Context::from_waker(&second)),
+            Err(FutureBridgeError::AlreadyReady)
+        );
+        assert_eq!(handle.take_output(), Ok(vec![4, 5, 6]));
+        assert_eq!(handle.take_output(), Err(FutureBridgeError::AlreadyTaken));
+        registered.borrow().as_ref().unwrap().wake_by_ref();
+        before.wake_by_ref();
+        assert_eq!(second_count.load(Ordering::SeqCst), 1);
+        drop(handle);
+        assert_eq!(limit.live(), 0);
+    }
+
+    #[test]
+    fn wake_during_poll_and_after_cancel() {
+        let limit = LocalFutureLimit::new(1);
+        let polls = Rc::new(Cell::new(0));
+        let future = std::future::poll_fn({
+            let polls = polls.clone();
+            move |cx| {
+                let count = polls.get() + 1;
+                polls.set(count);
+                if count == 1 {
+                    cx.waker().wake_by_ref();
+                    Poll::Pending
+                } else {
+                    Poll::Ready(7usize)
+                }
+            }
+        });
+        let handle = limit.start(future, 8, |_| 8).unwrap();
+        let stale = handle.notification_waker();
+        let (executor, wakes) = counter();
+        assert_eq!(
+            handle.poll(&mut Context::from_waker(&executor)),
+            Ok(Poll::Pending)
+        );
+        assert_eq!(wakes.load(Ordering::SeqCst), 1);
+        assert_eq!(handle.cancel(), CancelOutcome::Cancelled);
+        assert_eq!(wakes.load(Ordering::SeqCst), 2);
+        stale.wake_by_ref();
+        assert_eq!(wakes.load(Ordering::SeqCst), 2);
+        assert_eq!(
+            handle.poll(&mut Context::from_waker(&executor)),
+            Err(FutureBridgeError::Cancelled)
+        );
+        assert_eq!(handle.take_output(), Err(FutureBridgeError::Cancelled));
+        assert_eq!(polls.get(), 1);
+    }
+
+    struct DropProbe(Arc<AtomicUsize>);
+    impl Drop for DropProbe {
+        fn drop(&mut self) {
+            self.0.fetch_add(1, Ordering::SeqCst);
+        }
+    }
+
+    #[test]
+    fn reentry_and_cancel_during_poll_refuse_before_publication() {
+        let limit = LocalFutureLimit::new(1);
+        let dropped = Arc::new(AtomicUsize::new(0));
+        let owner = Rc::new(RefCell::new(std::rc::Weak::<LocalFuture<DropProbe>>::new()));
+        let future = std::future::poll_fn({
+            let owner = owner.clone();
+            let dropped = dropped.clone();
+            move |cx| {
+                let handle = owner.borrow().upgrade().unwrap();
+                assert_eq!(handle.poll(cx), Err(FutureBridgeError::Reentered));
+                assert_eq!(
+                    handle.take_output().err(),
+                    Some(FutureBridgeError::Reentered)
+                );
+                assert_eq!(handle.cancel(), CancelOutcome::RequestedDuringPoll);
+                Poll::Ready(DropProbe(dropped.clone()))
+            }
+        });
+        let handle = Rc::new(limit.start(future, 1, |_| 1).unwrap());
+        *owner.borrow_mut() = Rc::downgrade(&handle);
+        let (executor, _) = counter();
+        assert_eq!(
+            handle.poll(&mut Context::from_waker(&executor)),
+            Err(FutureBridgeError::Cancelled)
+        );
+        assert_eq!(dropped.load(Ordering::SeqCst), 1);
+        assert_eq!(
+            handle.take_output().err(),
+            Some(FutureBridgeError::Cancelled)
+        );
+        assert_eq!(handle.cancel(), CancelOutcome::AlreadyTerminal);
+    }
+
+    #[test]
+    fn capacity_output_and_shutdown_are_bounded() {
+        let limit = LocalFutureLimit::new(1);
+        let handle = limit.start(async { vec![0u8; 5] }, 4, Vec::len).unwrap();
+        assert!(matches!(
+            limit.start(async { 1usize }, 8, |_| 8),
+            Err(FutureBridgeError::Capacity)
+        ));
+        let stale = handle.notification_waker();
+        let (executor, count) = counter();
+        assert_eq!(
+            handle.poll(&mut Context::from_waker(&executor)),
+            Err(FutureBridgeError::OutputTooLarge)
+        );
+        assert_eq!(handle.take_output(), Err(FutureBridgeError::OutputTooLarge));
+        drop(handle);
+        stale.wake_by_ref();
+        assert_eq!(count.load(Ordering::SeqCst), 0);
+        assert_eq!(limit.live(), 0);
+    }
+
+    #[test]
+    fn cloned_notification_waker_can_cross_threads_and_becomes_inert() {
+        let limit = LocalFutureLimit::new(1);
+        let handle = limit
+            .start(std::future::pending::<usize>(), 8, |_| 8)
+            .unwrap();
+        let (executor, wakes) = counter();
+        assert_eq!(
+            handle.poll(&mut Context::from_waker(&executor)),
+            Ok(Poll::Pending)
+        );
+        let notification = handle.notification_waker();
+        std::thread::spawn({
+            let notification = notification.clone();
+            move || notification.wake_by_ref()
+        })
+        .join()
+        .unwrap();
+        assert_eq!(wakes.load(Ordering::SeqCst), 1);
+        assert_eq!(handle.cancel(), CancelOutcome::Cancelled);
+        assert_eq!(wakes.load(Ordering::SeqCst), 2);
+        drop(handle);
+        std::thread::spawn(move || notification.wake_by_ref())
+            .join()
+            .unwrap();
+        assert_eq!(wakes.load(Ordering::SeqCst), 2);
+        assert_eq!(limit.live(), 0);
+    }
+
+    #[test]
+    fn panic_in_future_poll_settles_without_repoll() {
+        let limit = LocalFutureLimit::new(1);
+        let polls = Rc::new(Cell::new(0));
+        let future = std::future::poll_fn({
+            let polls = polls.clone();
+            move |_| -> Poll<usize> {
+                polls.set(polls.get() + 1);
+                panic!("future poll");
+            }
+        });
+        let handle = limit.start(future, 8, |_| 8).unwrap();
+        let (executor, _) = counter();
+        assert_eq!(
+            handle.poll(&mut Context::from_waker(&executor)),
+            Err(FutureBridgeError::Panicked)
+        );
+        assert_eq!(
+            handle.poll(&mut Context::from_waker(&executor)),
+            Err(FutureBridgeError::Cancelled)
+        );
+        assert_eq!(polls.get(), 1);
+    }
+
+    #[test]
+    fn panic_in_output_measurement_settles_without_repoll() {
+        let limit = LocalFutureLimit::new(1);
+        let future = limit.start(async { 9usize }, 8, |_| panic!("weigher"));
+        let handle = future.unwrap();
+        let (executor, _) = counter();
+        assert_eq!(
+            handle.poll(&mut Context::from_waker(&executor)),
+            Err(FutureBridgeError::Panicked)
+        );
+        assert_eq!(
+            handle.poll(&mut Context::from_waker(&executor)),
+            Err(FutureBridgeError::Cancelled)
+        );
+        assert_eq!(handle.take_output(), Err(FutureBridgeError::Cancelled));
+    }
+}

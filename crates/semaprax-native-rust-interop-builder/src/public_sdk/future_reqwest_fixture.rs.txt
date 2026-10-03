@@ -1,0 +1,122 @@
+use std::io::{Read, Write};
+use std::net::{TcpListener, TcpStream};
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::time::Duration;
+
+fn receive_request(stream: &mut TcpStream) {
+    stream
+        .set_read_timeout(Some(Duration::from_secs(10)))
+        .unwrap();
+    let mut bytes = [0u8; 2048];
+    let mut used = 0;
+    while !bytes[..used].windows(4).any(|window| window == b"\r\n\r\n") {
+        let count = stream.read(&mut bytes[used..]).unwrap();
+        assert!(count > 0 && used + count < bytes.len());
+        used += count;
+    }
+}
+
+async fn drive(handle: Rc<LocalFuture<Vec<u8>>>) -> Result<Vec<u8>, FutureBridgeError> {
+    std::future::poll_fn(|cx| match handle.poll(cx) {
+        Ok(Poll::Pending) => Poll::Pending,
+        Ok(Poll::Ready(())) => Poll::Ready(Ok(())),
+        Err(error) => Poll::Ready(Err(error)),
+    })
+    .await?;
+    handle.take_output()
+}
+
+fn main() {
+    rustls::crypto::ring::default_provider()
+        .install_default()
+        .expect("install explicit rustls ring provider");
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let endpoint = format!("http://{}", listener.local_addr().unwrap());
+    let count = Arc::new(AtomicUsize::new(0));
+    let (received_tx, received_rx) = tokio::sync::oneshot::channel();
+    let (release_tx, release_rx) = std::sync::mpsc::channel();
+    let observed = count.clone();
+    let server = std::thread::spawn(move || {
+        let mut received_tx = Some(received_tx);
+        for request in 0..2 {
+            let (mut socket, _) = listener.accept().unwrap();
+            receive_request(&mut socket);
+            observed.fetch_add(1, Ordering::SeqCst);
+            if request == 0 {
+                socket
+                    .write_all(
+                        b"HTTP/1.1 200 OK\r\nContent-Length: 5\r\nConnection: close\r\n\r\nhello",
+                    )
+                    .unwrap();
+            } else {
+                received_tx.take().unwrap().send(()).unwrap();
+                release_rx.recv_timeout(Duration::from_secs(10)).unwrap();
+                // The server has already seen the request. A cancelled local
+                // Future cannot claim that this external effect was rolled back.
+                let _ = socket.write_all(
+                    b"HTTP/1.1 200 OK\r\nContent-Length: 4\r\nConnection: close\r\n\r\nlate",
+                );
+            }
+        }
+    });
+
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+    let local = tokio::task::LocalSet::new();
+    local.block_on(&runtime, async move {
+        let limit = LocalFutureLimit::new(1);
+        let first_url = format!("{endpoint}/first");
+        let first = Rc::new(
+            limit
+                .start(
+                    async move {
+                        reqwest::get(first_url)
+                            .await
+                            .unwrap()
+                            .bytes()
+                            .await
+                            .unwrap()
+                            .to_vec()
+                    },
+                    16,
+                    Vec::len,
+                )
+                .unwrap(),
+        );
+        assert_eq!(drive(first.clone()).await.unwrap(), b"hello");
+        assert_eq!(first.take_output(), Err(FutureBridgeError::AlreadyTaken));
+        drop(first);
+        assert_eq!(limit.live(), 0);
+
+        let second_url = format!("{endpoint}/second");
+        let second = Rc::new(
+            limit
+                .start(
+                    async move {
+                        reqwest::get(second_url)
+                            .await
+                            .unwrap()
+                            .bytes()
+                            .await
+                            .unwrap()
+                            .to_vec()
+                    },
+                    16,
+                    Vec::len,
+                )
+                .unwrap(),
+        );
+        let task = tokio::task::spawn_local(drive(second.clone()));
+        received_rx.await.unwrap();
+        assert_eq!(second.cancel(), CancelOutcome::Cancelled);
+        release_tx.send(()).unwrap();
+        assert_eq!(task.await.unwrap(), Err(FutureBridgeError::Cancelled));
+        assert_eq!(second.take_output(), Err(FutureBridgeError::Cancelled));
+        drop(second);
+        assert_eq!(limit.live(), 0);
+    });
+    server.join().unwrap();
+    assert_eq!(count.load(Ordering::SeqCst), 2);
+}

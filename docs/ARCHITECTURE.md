@@ -3032,6 +3032,10 @@ These areas are deliberately outside the public compiler contract:
   adds exact Regex/Url owner-tied view methods, callback scope, and per-owner
   invocation guards. Rust type checking protects this private seam; it grants
   no HIR loan authentication, carrier conversion or Project publication;
+- `public_sdk/future_bridge.rs` and `future_runtime.template` in the native
+  Rust builder own the pure, same-thread Rust Future adapter source. The caller
+  supplies the executor and build authority. This seam grants no Project
+  selection, Semaprax async import/export, network effect, or checkpoint route;
 - `src/project/indexed_rust.rs` and
   `crates/semaprax-native-rust-interop-builder/src/public_sdk/indexed_project.rs`:
   explicit source-bound indexed Project admission and authenticated SDK

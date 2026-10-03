@@ -132,3 +132,85 @@ impl CandidateExplorerView<'_> {
         )
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::project::{with_authenticated_project, SemanticChange};
+    use serde_json::{json, Value};
+
+    fn open_candidate() -> ProjectCandidate {
+        let manifest = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("examples/calculator-project/semaprax.toml");
+        with_authenticated_project(&manifest, |snapshot| {
+            ProjectCandidate::open(snapshot.retain_revision(), snapshot.project_revision())
+        })
+        .unwrap()
+    }
+
+    #[test]
+    fn explorer_images_are_reused_per_side_and_fresh_after_a_candidate_change() {
+        let candidate = open_candidate();
+        assert!(candidate.base_explorer_image_cache.get().is_none());
+        assert!(candidate.candidate_explorer_image_cache.get().is_none());
+
+        let first = candidate
+            .explorer_view(candidate.candidate_digest(), ExplorerSide::Base)
+            .unwrap();
+        let first_image = first.image as *const ProjectSemanticImage;
+        let query = ExplorerQuery::default();
+        let summary: Value =
+            serde_json::from_str(&first.summary(ExplorerMode::Overview, None, query).unwrap())
+                .unwrap();
+        let inventory = summary["inventories"].as_array().unwrap().first().unwrap();
+        let view = ExplorerView::parse(inventory["view"].as_str().unwrap()).unwrap();
+        first
+            .page(
+                ExplorerMode::Overview,
+                None,
+                query,
+                view,
+                inventory["handle"].as_str().unwrap(),
+                None,
+                ExplorerPageOptions::default(),
+            )
+            .unwrap();
+        let repeated = candidate
+            .explorer_view(candidate.candidate_digest(), ExplorerSide::Base)
+            .unwrap();
+        assert!(std::ptr::eq(first.image, repeated.image));
+        assert_eq!(first_image, repeated.image as *const ProjectSemanticImage);
+        assert!(candidate.base_explorer_image_cache.get().is_some());
+
+        let candidate_side = candidate
+            .explorer_view(candidate.candidate_digest(), ExplorerSide::Candidate)
+            .unwrap();
+        assert!(!std::ptr::eq(first.image, candidate_side.image));
+        assert!(candidate.candidate_explorer_image_cache.get().is_some());
+        assert!(candidate
+            .explorer_view(candidate.candidate_digest(), ExplorerSide::Current)
+            .is_err());
+
+        let change = SemanticChange::new(
+            candidate.revision().project_revision(),
+            &json!({
+                "kind": "rename_declaration",
+                "target": "calculator.add",
+                "name": "sum",
+            }),
+        )
+        .unwrap();
+        let changed = candidate
+            .apply(candidate.candidate_digest(), &change)
+            .unwrap();
+        assert!(changed.base_explorer_image_cache.get().is_none());
+        assert!(changed.candidate_explorer_image_cache.get().is_none());
+        let changed_view = changed
+            .explorer_view(changed.candidate_digest(), ExplorerSide::Candidate)
+            .unwrap();
+        assert_ne!(
+            first_image, changed_view.image as *const ProjectSemanticImage,
+            "a new immutable candidate must not inherit a predecessor image cache"
+        );
+    }
+}

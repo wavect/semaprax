@@ -1,7 +1,8 @@
 # Native Rust Local Future Bridge v1
 
-Status: partial RI-09 local Rust adapter profile. This is not a Semaprax
-source async import or public SDK claim.
+Status: implemented for the bounded RI-09 same-thread Future bridge and
+Project-selected source `yield` profile. This is not an authored `import rust
+fn` syntax or public SDK package claim.
 
 ## Boundary
 
@@ -55,7 +56,7 @@ Dropping a future does not undo an external effect. A request already received
 by a server remains an observed request after local cancellation. No retry is
 authorized by this bridge.
 
-## Executable gates and remaining work
+## Executable gates and profile limits
 
 The native Rust builder's `future_bridge_tests` module compiles the exact
 rendered source with `rustc --test` and executes deterministic waker,
@@ -67,8 +68,11 @@ gate stages the exact generated source with the checked-in Cargo manifest and
 lock. It runs `reqwest` against a local TCP server under a caller-created Tokio
 current-thread runtime and directly awaits the shared bridge handle. The server
 confirms receipt before cancellation and
-counts requests to detect an implicit retry. This gate is ignored by default
-until a checkout-private Cargo target is explicitly supplied.
+counts requests to detect an implicit retry. It also keeps a pending adapter
+through actual `LocalSet` and runtime shutdown: the future drops once, live
+capacity returns to zero, and a cloned late waker is inert after shutdown.
+This gate is ignored by default until a checkout-private Cargo target is
+explicitly supplied.
 
 The separate ignored toolchain gate
 `ri09_async::locked_reqwest_response_enters_checked_semaprax_bytes_export`
@@ -81,11 +85,14 @@ value. A second response exceeds the bridge output bound and is refused
 before any Semaprax call. This is a Rust-owned suspension followed by a
 checked synchronous Semaprax export; the source program does not await Rust.
 
-RI-09 remains open until source-authenticated async import and reverse async
-export have executable evidence. RI-08's
-callback registration and the source suspension owner must be connected
-without weakening their authority or checkpoint rules. No Stream, implicit
-Tokio startup, background executor thread, or network effect is admitted here.
+The bounded RI-09 source import is the exact Project-selected `yield` site:
+the generated Rust module pins its checked source plan and registers one
+caller-owned Rust Future callback before returning an awaitable checked-source
+export. The [Project contract](PROJECT-SOURCE-LOCAL-FUTURE-V1.md) owns the
+locked, physically compiled generated-module and source-drift gate. Authored
+`import rust fn` syntax, published SDK packaging and RI-08 retained callback
+registration require separate admission. No Stream, implicit Tokio startup,
+background executor thread, or network effect is admitted here.
 
 ## Checked source interpreter adapter
 
@@ -112,9 +119,10 @@ separate outcomes. The exact unit selector
 single host dispatch, checked result, noncanonical source refusal, and pending
 future drop. A second test uses Rust `.await` on the selected checked-source
 adapter while its injected Rust Future returns `Pending`, wakes the explicit
-caller waker, and then returns the checked source result. This is an
-interpreter-backed export, not a generated Project SDK export. Handler or
-host-Future panic settles as `Panicked` and cannot
+caller waker, and then returns the checked source result. This unit selector
+exercises the interpreter-backed export; the generated Project module has a
+separate physical consumer gate. Handler or host-Future panic settles as
+`Panicked` and cannot
 leave a half-consumed handle available for another poll.
 
 An opt-in [Project source local Future](PROJECT-SOURCE-LOCAL-FUTURE-V1.md)

@@ -1,5 +1,11 @@
 # Changelog
 
+- Close the bounded RI-09 Future bridge lifecycle with a real executor
+  shutdown control. A pending local Future drops exactly once when the
+  caller-owned Tokio `LocalSet` and runtime shut down, and its cloned late
+  waker becomes inert. The matrix records the focused acceptance evidence
+  while keeping public package and authored import expansion explicit.
+
 - Add a LAW-15 finite request-identity Project using the existing LAW-10
   source checker. An active request 101 may retry; mismatched request 202
   reaches a terminal refusal. A body-only erased identity check fails exact

@@ -1,7 +1,8 @@
 # Project Source Local Future v1
 
-Status: bounded interpreter-only RI-09 Project profile. Ordinary native and
-Core Wasm `yield` emission remains refused.
+Status: implemented for the bounded interpreter-backed RI-09 Project profile
+and generated Rust module. Ordinary native and Core Wasm `yield` emission
+remains refused.
 
 ## Selection and authority
 

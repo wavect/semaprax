@@ -86,12 +86,14 @@ pub use certificate::{render_coverage, CERTIFICATE_SCHEMA, COVERAGE_SCHEMA};
 pub use kernel_report::{KernelVerdict, Rejection, KERNEL_IDENTITY, PINNED_TOOLCHAIN};
 pub use lean::{export_module, ModuleExport, ASSUMPTIONS, EXPORT_SCHEMA, NAMESPACE};
 pub use profile::{Excluded, PROFILE_V1};
-pub use trust_chain::{render_trust_chain_view, TRUST_CHAIN_VIEW_SCHEMA};
 pub use program_root::{
     assurance_method_attachment, bind_certificate_to_program_root,
     verify_certificate_against_program_root, verify_certificate_against_project_source,
     verify_certificate_with_kernel_against_program_root, verify_program_root_binding,
     CheckedProgramRootBinding, PROGRAM_ROOT_BINDING_SCHEMA,
+};
+pub use trust_chain::{
+    render_trust_chain_view, render_trust_chain_view_for_target, TRUST_CHAIN_VIEW_SCHEMA,
 };
 pub use verify::{
     verify_certificate, verify_certificate_against_artifact, verify_certificate_against_source,

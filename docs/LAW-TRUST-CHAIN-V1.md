@@ -16,6 +16,12 @@ Each link carries an explicit status. Without a kernel capability, proof is
 `trusted_unproved_lowering`. Artifact bytes are `checked_exact_bytes`.
 Runtime is `unexecuted` with no adapter identity. A consumer must not infer a
 runtime result or translation theorem from either the proof or artifact hash.
+`render_trust_chain_view_for_target` accepts an explicit requested target and
+adapter identity; it refuses any target other than the certificate's Core
+Wasm target and refuses every adapter identity because the certificate has no
+authenticated runtime adapter association. Both checks happen before source
+or artifact replay, so a wrong association cannot inherit another target's
+result.
 Each proof/lowering/runtime link names its trusted base: the caller-supplied
 kernel capability, the exact compiler/code generator, or the absence of a
 runtime executor and adapter observation. A caller that supplies a counterfeit

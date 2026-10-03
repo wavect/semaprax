@@ -23,6 +23,39 @@ pub fn render_trust_chain_view(
     artifact_bytes: &[u8],
     kernel: Option<&dyn LeanKernel>,
 ) -> Result<String, Diagnostic> {
+    render_trust_chain_view_for_target(
+        certificate,
+        source_path,
+        artifact_bytes,
+        super::certificate::ARTIFACT_TARGET,
+        None,
+        kernel,
+    )
+}
+
+/// Refuse a consumer's attempted target or runtime-adapter rebinding before
+/// replay. This certificate binds one Core-Wasm target and no runtime adapter;
+/// an adapter result needs a separately authenticated invocation receipt.
+pub fn render_trust_chain_view_for_target(
+    certificate: &str,
+    source_path: &Path,
+    artifact_bytes: &[u8],
+    requested_target: &str,
+    adapter_identity: Option<&str>,
+    kernel: Option<&dyn LeanKernel>,
+) -> Result<String, Diagnostic> {
+    if requested_target != super::certificate::ARTIFACT_TARGET {
+        return Err(Diagnostic::io(
+            "SPX-Z112",
+            "requested target differs from this exact Core-Wasm certificate target".to_owned(),
+        ));
+    }
+    if adapter_identity.is_some() {
+        return Err(Diagnostic::io(
+            "SPX-Z112",
+            "this certificate has no authenticated runtime adapter association".to_owned(),
+        ));
+    }
     let source = verify_certificate_against_source(certificate, source_path)?;
     let artifact = verify_certificate_against_artifact(certificate, artifact_bytes)?;
     if source != artifact {
@@ -91,4 +124,29 @@ pub fn render_trust_chain_view(
     });
     serde_json::to_string(&view)
         .map_err(|error| Diagnostic::io("SPX-Z111", format!("trust-chain view: {error}")))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::render_trust_chain_view_for_target;
+    use std::path::Path;
+
+    #[test]
+    fn wrong_target_and_unauthenticated_adapter_refuse_before_certificate_replay() {
+        let nonexistent = Path::new("no-source-is-opened-for-wrong-association.spx");
+        let wrong_target =
+            render_trust_chain_view_for_target("", nonexistent, &[], "native-llvm-v1", None, None)
+                .unwrap_err();
+        assert_eq!(wrong_target.code, "SPX-Z112");
+        let wrong_adapter = render_trust_chain_view_for_target(
+            "",
+            nonexistent,
+            &[],
+            "wasm-core-module-v1",
+            Some("forged-adapter"),
+            None,
+        )
+        .unwrap_err();
+        assert_eq!(wrong_adapter.code, "SPX-Z112");
+    }
 }

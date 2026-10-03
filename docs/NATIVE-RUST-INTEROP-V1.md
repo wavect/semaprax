@@ -783,11 +783,28 @@ returned `str` escape (`SPX-O116`), a temporary receiver (`SPX-B107`) and a loan
 across suspension/checkpoint (`SPX-T305`). These two owning tests passed locally
 (2 passed, 0 failed/ignored, 206 filtered); the callback relay uses Clang O0.
 
+The physical Url selector also runs a fixed-seed 1,024-case carrier mutation
+corpus over context, generation, slot, lease, pointer and length. Each refusal
+preserves the output sentinel, target-call count and genuine live lease.
+Additional cases cover alignment, null output/input, host width/length bounds,
+invalid UTF-8, stale views and reused slot generations. This is a bounded
+hostile-input corpus, not an unbounded or coverage-guided fuzz campaign.
+
+Generated C and its callback relay are compiled with Clang O1
+`-fsanitize=address,undefined -fno-sanitize-recover=all`; the ordinary checked
+body, callbacks and corpus complete, and a deliberate one-byte heap overflow
+in the generated C String terminator is detected by ASan. Only the final Rust
+consumer links the exact configured Clang sanitizer runtime, avoiding
+instrumented proc-macro loading inside rustc. Rust dependencies are not
+instrumented, and leak detection is disabled for this C boundary run. The
+exact physical selector passed locally (1 passed, 0 failed/ignored, 207
+filtered; 37.26s runtime). This adds C ASan/UBSan evidence, not Miri evidence.
+
 This remains a bounded local checked-body and generated Rust witness. It does
 not establish general mutable/exclusive returned-view source syntax, arbitrary
-lifetimes, cross-thread use, a hosted profile, a new fuzz campaign, Miri, or
-sanitizer results. Those remaining RI-06 acceptance claims require their own
-evidence; the Rust callback primitive is not source callback syntax.
+lifetimes, cross-thread use, a hosted profile or a Miri result. Remaining
+RI-06 acceptance claims require their own evidence; the Rust callback primitive
+is not source callback syntax.
 
 ## Diagnostics and nonclaims
 

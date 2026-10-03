@@ -172,12 +172,14 @@ fn indexed_real_url_project_executes_receiver_tied_view_and_cleanup() {
     let mut generated = std::str::from_utf8(plan.lib_rs()).unwrap().to_owned();
     generated.push_str(include_str!("url_project_controls.rs.txt"));
     generated.push_str(include_str!("url_project_callback_controls.rs.txt"));
+    generated.push_str(include_str!("url_project_carrier_corpus.rs.txt"));
     std::fs::write(sdk.join("src/lib.rs"), &generated).unwrap();
     std::fs::write(
         sdk.join("src/main.rs"),
         r#"fn main() {
     ri06_url_owner::assert_view_controls();
     ri06_url_owner::assert_exclusive_callback_controls();
+    ri06_url_owner::assert_carrier_mutation_corpus();
     assert_eq!(ri06_url_owner::run(), Ok(41));
     assert!(ri06_url_owner::projected_borrow_matches_target());
     assert_eq!(ri06_url_owner::adapter_copy_count(), 0);
@@ -233,6 +235,7 @@ int32_t ri06_url_callback_relay(uint64_t context, relay_owner owner, void *state
         "{}",
         String::from_utf8_lossy(&run.stderr)
     );
+    url_safety::run_native_sanitizers(&cargo, &clang, &sdk, &target, &object);
     // Cross-crate rustc controls authenticate the generated HRTB boundary.
     let main_source = std::fs::read_to_string(sdk.join("src/main.rs")).unwrap();
     for (name, body, expected) in [
@@ -478,3 +481,6 @@ int32_t ri06_url_callback_relay(uint64_t context, relay_owner owner, void *state
 
 #[path = "url_loan_tests.rs"]
 mod url_loan;
+
+#[path = "url_safety_tests.rs"]
+mod url_safety;

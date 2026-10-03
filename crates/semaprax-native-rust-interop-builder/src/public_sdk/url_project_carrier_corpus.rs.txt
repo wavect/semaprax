@@ -1,0 +1,69 @@
+// Test-only deterministic hostile-carrier corpus; no arbitrary pointer is read.
+pub fn assert_carrier_mutation_corpus() {
+    let context = spx_result_owner_context_new();
+    let text = b"https://example.invalid/corpus";
+    let mut result = SpxOwnerResult::default();
+    assert_eq!(unsafe { spx_result_owner_new_utf8(context,text.as_ptr(),text.len() as u64,&mut result) },0);
+    assert_eq!(result.tag,1);
+    let owner = result.owner;
+    let mut view = SpxStrView::default();
+    assert_eq!(unsafe { spx_url_owner_view(context,owner,&mut view) },0);
+    let target_calls = target_call_count();
+    let mut random = 0x6a09_e667_f3bc_c909u64;
+    for index in 0..1024usize {
+        random ^= random << 13; random ^= random >> 7; random ^= random << 17;
+        let delta = random | 1;
+        let mut forged = view;
+        match index % 6 {
+            0 => forged.owner.context ^= delta,
+            1 => forged.owner.generation ^= delta,
+            2 => forged.owner.slot ^= delta,
+            3 => forged.lease ^= delta,
+            4 => forged.length ^= delta,
+            _ => forged.data = forged.data.wrapping_add(delta as usize),
+        }
+        let mut length = u64::MAX;
+        assert_eq!(unsafe { spx_url_view_length(context,forged,&mut length) },3,"case {index}");
+        assert_eq!(length,u64::MAX,"case {index} changed output");
+        assert_eq!(spx_url_view_end(context,forged),3,"case {index} ended the authentic lease");
+        assert_eq!(target_call_count(),target_calls,"case {index} reached target");
+        assert_eq!(unsafe { spx_url_view_length(context,view,&mut length) },0);
+        assert_eq!(length,text.len() as u64);
+    }
+    #[repr(align(16))] struct Aligned([u8;128]);
+    let mut storage=Aligned([0xa5;128]);
+    let misaligned=unsafe { storage.0.as_mut_ptr().add(1) };
+    assert_eq!(unsafe { spx_url_owner_view(context,owner,misaligned.cast()) },3);
+    assert_eq!(unsafe { spx_url_view_length(context,view,misaligned.cast()) },3);
+    assert!(storage.0.iter().all(|byte|*byte==0xa5));
+    assert_eq!(unsafe { spx_url_owner_view(context,owner,std::ptr::null_mut()) },3);
+    assert_eq!(unsafe { spx_url_view_length(context,view,std::ptr::null_mut()) },3);
+    assert_eq!(spx_url_view_end(context,view),0);
+    let mut length=u64::MAX;
+    assert_eq!(unsafe { spx_url_view_length(context,view,&mut length) },3);
+    assert_eq!(length,u64::MAX);
+    assert_eq!(unsafe { spx_result_owner_drop(context,owner) },0);
+    // Slot reuse advances generation; the old owner/view never become valid.
+    let mut replacement=SpxOwnerResult::default();
+    assert_eq!(unsafe { spx_result_owner_new_utf8(context,text.as_ptr(),text.len() as u64,&mut replacement) },0);
+    assert_eq!(replacement.owner.slot,owner.slot);
+    assert_ne!(replacement.owner.generation,owner.generation);
+    assert_eq!(unsafe { spx_result_owner_drop(context,owner) },3);
+    assert_eq!(unsafe { spx_url_view_length(context,view,&mut length) },3);
+    let before=target_call_count();
+    let mut untouched=SpxOwnerResult{tag:0xa5,reserved:[0xa5;7],error:-77,owner:SpxOwner::default()};
+    let invalid_utf8 = [0xffu8,0xfe];
+    for (data,length,expected) in [
+        (std::ptr::null(),u64::MAX,4),
+        (text.as_ptr(),4097,4),
+        (std::ptr::null(),1,3),
+        (invalid_utf8.as_ptr(),2,3),
+    ] {
+        assert_eq!(unsafe {spx_result_owner_new_utf8(context,data,length,&mut untouched)},expected);
+        assert_eq!((untouched.tag,untouched.reserved,untouched.error),(0xa5,[0xa5;7],-77));
+    }
+    assert_eq!(target_call_count(),before);
+    assert_eq!(unsafe {spx_result_owner_drop(context,replacement.owner)},0);
+    assert_eq!(spx_result_owner_context_close(context),0);
+    assert_eq!((live_owner_count(),live_view_count()),(0,0));
+}

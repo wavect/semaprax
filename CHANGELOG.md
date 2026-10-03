@@ -1,5 +1,7 @@
 # Changelog
 
+- Exercise the Url bridge with a fixed 1,024-case hostile-carrier corpus and null/alignment/UTF-8/width/stale-generation controls. The checked generated C and callback relay pass ASan/UBSan; a deliberate heap overflow is detected. Rust dependencies remain uninstrumented and Miri evidence is still pending.
+
 - Retain a guarded foreign frontier in the private authenticated Project SDK
   bundle and issue an opaque conditional caller publication token only after
   exact source, summary, target, manifest and file replay. A changed summary

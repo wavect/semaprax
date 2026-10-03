@@ -1,9 +1,11 @@
 //! Opaque installed-tool evidence for an exact independently selected scalar law.
 use super::{invalid, wire, LawSelector, LawSet, Result};
+use crate::assurance_manifest::modular_law::cache::{self, ProofTaskCache, WorkMetrics};
 use crate::assurance_manifest::{smt_discharge as smt, AssuranceClass, MethodRecord};
 use crate::project::ProjectRevision;
 use crate::proof_export::installed::{InstalledProofTool, ToolKind};
 use serde_json::{json, Value};
+use std::path::Path;
 
 #[derive(Clone, Debug)]
 pub struct VerifiedLawProof {
@@ -24,6 +26,35 @@ pub fn prove_scalar_law(
     law_id: &str,
     tool: &InstalledProofTool,
 ) -> Result<VerifiedLawProof> {
+    prove_scalar_law_with_cache(revision, laws, law_id, tool, None).map(|(proof, _)| proof)
+}
+
+/// Recheck the current relational law and all transitive declared law
+/// dependencies before looking up a checked installed-Z3 task. A cache hit
+/// skips only the registered solver process; the returned opaque proof is
+/// always newly bound to this exact Project and LawSet. Lean uses the regular
+/// fresh kernel route until a separately checked theorem recipe is admitted.
+pub fn prove_scalar_law_z3_cached(
+    project_root: &Path,
+    revision: &ProjectRevision,
+    laws: &LawSet,
+    law_id: &str,
+    tool: &InstalledProofTool,
+    cache: &mut ProofTaskCache,
+) -> Result<(VerifiedLawProof, WorkMetrics)> {
+    if tool.kind() != ToolKind::Z3 {
+        return Err(invalid("native relational cache requires installed Z3"));
+    }
+    prove_scalar_law_with_cache(revision, laws, law_id, tool, Some((project_root, cache)))
+}
+
+fn prove_scalar_law_with_cache(
+    revision: &ProjectRevision,
+    laws: &LawSet,
+    law_id: &str,
+    tool: &InstalledProofTool,
+    mut cached: Option<(&Path, &mut ProofTaskCache)>,
+) -> Result<(VerifiedLawProof, WorkMetrics)> {
     let laws = LawSet::replay(revision, &laws.payload.proof_profile, laws.to_json())?;
     let law = laws
         .payload
@@ -52,6 +83,7 @@ pub fn prove_scalar_law(
     let source = format!("module semaprax.law.proof;\n@id(\"semaprax.law.proposition\")\nfn proposition({parameters}) -> i64\n ensures {proposition}\n{{ 0 }}\n@id(\"semaprax.law.main\") fn main() -> i64 {{ 0 }}\n");
     let program = crate::parse(&source, "<native-law-proof>").map_err(|error| vec![error])?;
     crate::hir::resolve(&program)?;
+    let mut work = WorkMetrics::default();
     let (class, method, artifact) = match tool.kind() {
         ToolKind::Lean => {
             let certificate = crate::proof_export::source_certificate(
@@ -76,7 +108,27 @@ pub fn prove_scalar_law(
             let script = rendered
                 .strip_suffix("(get-model)\n")
                 .ok_or_else(|| invalid("unexpected SMT translation response grammar"))?;
-            tool.confirm_smt(script).map_err(|error| vec![error])?;
+            if let Some((project_root, cache)) = cached.as_mut() {
+                let index = super::dependency_index::derive(&laws)?;
+                let logical = index
+                    .logical_digest(law_id)
+                    .ok_or_else(|| invalid("native proof law has no checked dependency closure"))?;
+                work = cache::check_bound_task(
+                    cache,
+                    project_root,
+                    tool,
+                    "native-relational-z3",
+                    law_id,
+                    logical,
+                    &smt::script_digest(script),
+                    smt::BOUNDS_V1,
+                    "none",
+                    || tool.confirm_smt(script).map_err(|error| vec![error]),
+                )?;
+            } else {
+                tool.confirm_smt(script).map_err(|error| vec![error])?;
+                work.fresh = 1;
+            }
             let method =
                 MethodRecord::new(AssuranceClass::SmtProved, "z3", tool.expected_version());
             (AssuranceClass::SmtProved, method, script.to_owned())
@@ -92,12 +144,18 @@ pub fn prove_scalar_law(
     );
     let mut method = method;
     method.proof_ref = Some(evidence_digest.clone());
-    method.bounds = Some("exact universally quantified typed scalar law; trusted source translation; not proved lowering".into());
+    method.bounds = Some(match tool.kind() {
+        ToolKind::Lean => format!(
+            "{}; exact universally quantified typed scalar law; trusted source translation; not proved lowering",
+            crate::proof_export::PROFILE_V1
+        ),
+        ToolKind::Z3 => smt::BOUNDS_V1.into(),
+    });
     method.inputs = vec![laws.digest().into(), law.semantic_digest.clone()];
     let method: Value =
         serde_json::from_str(&crate::assurance_manifest::render::render_method(&method))
             .map_err(|_| invalid("native proof method rendering failed"))?;
-    Ok(VerifiedLawProof {
+    let proof = VerifiedLawProof {
         law_id: law_id.into(),
         law_digest: laws.digest().into(),
         semantic_digest: law.semantic_digest.clone(),
@@ -107,7 +165,8 @@ pub fn prove_scalar_law(
         evidence: json!({"schema":"semaprax.native-law-proof.v1","proof_digest":evidence_digest,
             "methods":[method],"scope":"universal_typed_scalar_law","proved_lowering":false,
             "publication_authority":false,"source_authority":false}),
-    })
+    };
+    Ok((proof, work))
 }
 
 pub(super) fn validate_all(

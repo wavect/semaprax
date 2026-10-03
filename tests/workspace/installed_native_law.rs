@@ -1,6 +1,8 @@
 //! Real native-law proofs are generated from exact retained typed declarations.
 use super::*;
 use semaprax::assurance_manifest::law_set::native_proof::prove_scalar_law;
+use semaprax::assurance_manifest::law_set::native_proof::prove_scalar_law_z3_cached;
+use semaprax::assurance_manifest::modular_law::cache::ProofTaskCache;
 
 fn native_project(label: &str, proposition: &str) -> Project {
     let project = Project::new(label, false);
@@ -13,6 +15,87 @@ fn native_project(label: &str, proposition: &str) -> Project {
     .unwrap();
     std::fs::write(project.root.join("semaprax.toml"), "schema = \"semaprax.manifest.v2\"\n\n[package]\nname = \"fresh-law\"\nversion = \"1.0.0\"\n\n[modules]\nentry = \"app.fresh\"\nsources = [\"src/app.spx\", \"src/contracts.spx\", \"src/tests.spx\"]\nlaw_sources = [\"src/contracts.spx\"]\ntests = [\"app.tests\"]\n\n[exports]\nweb = [\"fresh.seventeen\"]\n").unwrap();
     project
+}
+
+#[test]
+#[ignore = "requires explicitly provisioned installed Z3"]
+fn installed_native_relational_cache_reuses_checked_query_and_rebinds_current_law() {
+    let project = native_project("native-relational-cache", "n + 0 == n");
+    let revision = project.revision();
+    let laws = LawSet::derive(
+        &revision,
+        "native-proof-v1",
+        revision.law_modules().to_vec(),
+    )
+    .unwrap();
+    let tool = provisioned(&project, ToolKind::Z3);
+    let mut cache = ProofTaskCache::for_project(&project.root).unwrap();
+    let (cold, cold_work) = prove_scalar_law_z3_cached(
+        &project.root,
+        &revision,
+        &laws,
+        "fresh.law.identity",
+        &tool,
+        &mut cache,
+    )
+    .unwrap();
+    assert_eq!((cold_work.fresh, cold_work.reused), (1, 0));
+    let (warm, warm_work) = prove_scalar_law_z3_cached(
+        &project.root,
+        &revision,
+        &laws,
+        "fresh.law.identity",
+        &tool,
+        &mut cache,
+    )
+    .unwrap();
+    assert_eq!((warm_work.fresh, warm_work.reused), (0, 1));
+    let policy = StrictLawPolicy::new(
+        laws.clone(),
+        BTreeMap::from([("fresh.law.identity".into(), requirement(&tool))]),
+    )
+    .unwrap();
+    let cold_report =
+        strict::derive_with_native_proofs(&revision, &laws, &policy, &[], &[cold]).unwrap();
+    let warm_report =
+        strict::derive_with_native_proofs(&revision, &laws, &policy, &[], &[warm.clone()]).unwrap();
+    assert_eq!(cold_report, warm_report);
+    strict::require_with_native_proofs(
+        &warm_report,
+        &revision,
+        &laws,
+        &policy,
+        &[],
+        &[warm.clone()],
+    )
+    .unwrap();
+
+    // A changed native law statement cannot borrow the old checked success.
+    let changed = "module fresh.laws;\n@id(\"fresh.law.identity\")\nlaw relational (n: i64)\n n + 0 != n\n evidence smt_proved;\n";
+    let parsed = semaprax::native_law_source::parse(changed, "src/contracts.spx").unwrap();
+    std::fs::write(
+        project.root.join("src/contracts.spx"),
+        semaprax::native_law_source::canonical(&parsed),
+    )
+    .unwrap();
+    let current = project.revision();
+    let changed_laws =
+        LawSet::derive(&current, "native-proof-v1", current.law_modules().to_vec()).unwrap();
+    assert!(prove_scalar_law_z3_cached(
+        &project.root,
+        &current,
+        &changed_laws,
+        "fresh.law.identity",
+        &tool,
+        &mut cache,
+    )
+    .is_err());
+    assert_eq!(
+        strict::derive_with_native_proofs(&current, &changed_laws, &policy, &[], &[warm])
+            .unwrap_err()[0]
+            .code,
+        "SPX-LW104"
+    );
 }
 
 #[test]

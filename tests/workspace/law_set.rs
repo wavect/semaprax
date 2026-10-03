@@ -412,6 +412,105 @@ fn missing_evidence_assumptions_and_dependencies_stay_open() {
 }
 
 #[test]
+fn native_dependency_index_tracks_assumptions_prerequisites_and_profile() {
+    let fixture = Fixture::new("laws-dependency-index");
+    let mut declared = module();
+    declared.assumptions.push("environment.review".into());
+    declared.laws[0]
+        .assumption_ids
+        .push("environment.review".into());
+    let mut dependent = declared.laws[0].clone();
+    dependent.law_id = "calculator.dependent".into();
+    dependent.assumption_ids.clear();
+    dependent.requires_laws = vec!["calculator.divide.nonzero".into()];
+    let mut independent = declared.laws[0].clone();
+    independent.law_id = "calculator.independent".into();
+    independent.assumption_ids.clear();
+    declared.laws.extend([dependent, independent]);
+
+    let baseline = inventory(&fixture, vec![declared.clone()]);
+    let first = laws::dependency_index::derive(&baseline).unwrap();
+    assert_eq!(
+        first.to_json().unwrap(),
+        laws::dependency_index::derive(&baseline)
+            .unwrap()
+            .to_json()
+            .unwrap()
+    );
+    assert_eq!(first.laws.len(), 3);
+
+    // Canonical formatting and an unrelated display rename change the
+    // Project association, but not any checked law's logical dependencies.
+    patch_core(&fixture, "right != 0", "right  !=  0");
+    let core = fixture.source("src/core.spx");
+    let parsed = semaprax::parse(&std::fs::read_to_string(&core).unwrap(), "src/core.spx").unwrap();
+    std::fs::write(core, semaprax::format::canonical(&parsed)).unwrap();
+    patch_core(&fixture, "fn is_negative", "fn negative_display");
+    for name in ["src/app.spx", "src/tests.spx"] {
+        let path = fixture.source(name);
+        let text = std::fs::read_to_string(&path)
+            .unwrap()
+            .replace("is_negative", "negative_display");
+        std::fs::write(path, text).unwrap();
+    }
+    let formatted = inventory(&fixture, vec![declared.clone()]);
+    let second = laws::dependency_index::derive(&formatted).unwrap();
+    assert_ne!(first.program_root, second.program_root);
+    for id in first.laws.keys() {
+        assert_eq!(first.logical_digest(id), second.logical_digest(id));
+    }
+
+    // A prerequisite statement mutation invalidates its dependent closure,
+    // but leaves an independent law reusable.
+    if let LawSelector::Contract { proposition, .. } = &mut declared.laws[0].selector {
+        *proposition = "right > 0".into();
+    }
+    let changed =
+        laws::dependency_index::derive(&inventory(&fixture, vec![declared.clone()])).unwrap();
+    assert_ne!(
+        second.logical_digest("calculator.divide.nonzero"),
+        changed.logical_digest("calculator.divide.nonzero")
+    );
+    assert_ne!(
+        second.logical_digest("calculator.dependent"),
+        changed.logical_digest("calculator.dependent")
+    );
+    assert_eq!(
+        second.logical_digest("calculator.independent"),
+        changed.logical_digest("calculator.independent")
+    );
+
+    declared.assumptions[0] = "environment.revised".into();
+    declared.laws[0].assumption_ids[0] = "environment.revised".into();
+    let changed_assumption =
+        laws::dependency_index::derive(&inventory(&fixture, vec![declared.clone()])).unwrap();
+    assert_ne!(
+        changed.logical_digest("calculator.divide.nonzero"),
+        changed_assumption.logical_digest("calculator.divide.nonzero")
+    );
+    assert_ne!(
+        changed.logical_digest("calculator.dependent"),
+        changed_assumption.logical_digest("calculator.dependent")
+    );
+    assert_eq!(
+        changed.logical_digest("calculator.independent"),
+        changed_assumption.logical_digest("calculator.independent")
+    );
+
+    let changed_profile = with_authenticated_project(&fixture.manifest(), |snapshot| {
+        LawSet::derive(&snapshot.retain_revision(), "checked-v2", vec![declared])
+    })
+    .unwrap();
+    let changed_profile = laws::dependency_index::derive(&changed_profile).unwrap();
+    for id in first.laws.keys() {
+        assert_ne!(
+            changed_assumption.logical_digest(id),
+            changed_profile.logical_digest(id)
+        );
+    }
+}
+
+#[test]
 fn removing_law_owner_from_project_sources_is_visible() {
     let fixture = Fixture::new("laws-source-removal");
     let mut declared = module();

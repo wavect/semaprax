@@ -2,9 +2,10 @@
 
 Status: bounded installed Z3 and pinned Lean implementation. This is logical
 query reuse for the admitted LAW-06 straight-line, direct, monomorphic, pure
-scalar call profile and LAW-07 finite immutable aggregate scalarization. It is
-not yet a general law cache or a replacement for source-bound certificates,
-strict LAW-04 policy, or Project/Workspace publication checks.
+scalar call profile, LAW-07 finite immutable aggregate scalarization, and
+native LAW-04 scalar relational Z3 laws. It is not yet a general law cache or a
+replacement for source-bound certificates, strict LAW-04 policy, or
+Project/Workspace publication checks.
 
 ## Subject and key
 
@@ -42,6 +43,17 @@ A cached success is accepted only under the same pinned installed tool bytes
 and process options. The current source-bound certificate and Project proof
 are newly constructed; a previous certificate is never retargeted.
 
+The native relational Z3 route replays the current typed `LawSet` and builds a
+deterministic law dependency index. Each logical digest binds its normalized
+law semantics, proof profile, named assumption IDs and owning module, and the
+logical digests of every prerequisite law in topological order. It omits only
+the current Project association, which is required when a new opaque proof is
+built. The exact generated checked-scalar query, translator profile, tool
+binary/version and process options also enter the task key. A prerequisite
+statement or assumption change invalidates its dependent closure while an
+independent law may reuse its success. Lean relational laws retain their fresh
+kernel route in this version.
+
 ## Storage and replay
 
 `ProofTaskCache::for_project` binds a cache to one canonical local Project
@@ -74,9 +86,9 @@ law inventory must match; `fresh`, `reused`, and `stale` are work metrics only.
 
 ## Boundaries
 
-Only the installed LAW-06 modular scalar and LAW-07 structured aggregate
-profiles are cached here. Native relational laws, separately authored library
-lemmas, foreign or dynamic calls, effects, generic instances, unsupported
+Only the installed LAW-06 modular scalar, LAW-07 structured aggregate, and
+native LAW-04 scalar relational Z3 profiles are cached here. Separately
+authored library lemmas, foreign or dynamic calls, effects, generic instances, unsupported
 branches/lazy calls, and target-artifact claims have no cache admission under
 these profiles. LAW-07 Lean reuse binds its explicit export assumptions;
 LAW-06 accepts no added axioms or named assumptions. Their

@@ -1,5 +1,6 @@
 //! Revision-bound mandatory law inventory. Evidence is data and grants no authority.
 //! See docs/LAW-SET-V1.md for policy selection and exact nonclaims.
+pub mod dependency_index;
 mod evaluate;
 pub mod native_proof;
 pub mod protected;

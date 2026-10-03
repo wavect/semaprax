@@ -171,6 +171,8 @@ mod project_lock_v1;
 mod public_generic_wasm_provider;
 #[path = "project/resource_free_record_evolution.rs"]
 mod resource_free_record_evolution;
+#[path = "project/ri13_m3.rs"]
+mod ri13_m3;
 #[path = "project/retained_owned_api.rs"]
 mod retained_owned_api;
 #[path = "project/scaffold.rs"]

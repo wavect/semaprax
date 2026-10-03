@@ -1,0 +1,312 @@
+//! Saved RI-13 M3 Project: a real local HTTP host effect under explicit Tokio.
+//! The owning gate stays inside the Project test binary, so it never starts a
+//! second Cargo build while verifying the saved application's source contract.
+
+use semaprax::project::{with_authenticated_project, ProjectRevision};
+use semaprax::resumable_effects::source_local_future::{
+    SourceLocalFuture, SourceLocalFutureFailure,
+};
+use std::cell::RefCell;
+use std::future::Future;
+use std::io::{Read, Write};
+use std::net::{TcpListener, TcpStream};
+use std::path::{Path, PathBuf};
+use std::rc::Rc;
+use std::sync::Arc;
+use std::thread::JoinHandle;
+use std::time::{Duration, Instant};
+
+#[derive(Debug, Eq, PartialEq)]
+enum HostError {
+    Timeout,
+    HttpStatus(u16),
+    InvalidBody,
+    Transport,
+}
+
+fn transport(error: reqwest::Error) -> HostError {
+    if error.is_timeout() {
+        HostError::Timeout
+    } else {
+        HostError::Transport
+    }
+}
+
+fn receive_request(stream: &mut TcpStream) {
+    stream
+        .set_read_timeout(Some(Duration::from_secs(5)))
+        .unwrap();
+    let mut bytes = [0u8; 2048];
+    let mut used = 0;
+    while !bytes[..used].windows(4).any(|window| window == b"\r\n\r\n") {
+        let count = stream.read(&mut bytes[used..]).unwrap();
+        assert!(count > 0 && used + count < bytes.len());
+        used += count;
+    }
+    assert!(bytes[..used].starts_with(b"GET /value/42 HTTP/1.1\r\n"));
+}
+
+fn local_server(
+    status: u16,
+    body: &'static str,
+    delay: Duration,
+) -> (String, tokio::sync::oneshot::Receiver<()>, JoinHandle<()>) {
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    listener.set_nonblocking(true).unwrap();
+    let endpoint = format!("http://{}", listener.local_addr().unwrap());
+    let (received_tx, received_rx) = tokio::sync::oneshot::channel();
+    let server = std::thread::spawn(move || {
+        let deadline = Instant::now() + Duration::from_secs(5);
+        let mut socket = loop {
+            match listener.accept() {
+                Ok((socket, _)) => break socket,
+                Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
+                    assert!(Instant::now() < deadline, "local request deadline");
+                    std::thread::sleep(Duration::from_millis(5));
+                }
+                Err(error) => panic!("local accept: {error}"),
+            }
+        };
+        receive_request(&mut socket);
+        let _ = received_tx.send(());
+        std::thread::sleep(delay);
+        let reason = if status == 200 {
+            "OK"
+        } else {
+            "Service Unavailable"
+        };
+        let response = format!(
+            "HTTP/1.1 {status} {reason}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+            body.len()
+        );
+        let _ = socket.write_all(response.as_bytes());
+        std::thread::sleep(Duration::from_millis(100));
+        assert_eq!(
+            listener.accept().unwrap_err().kind(),
+            std::io::ErrorKind::WouldBlock,
+            "local client must not retry"
+        );
+    });
+    (endpoint, received_rx, server)
+}
+
+fn selected_call(
+    revision: Arc<ProjectRevision>,
+    endpoint: String,
+    timeout: Option<Duration>,
+) -> Result<
+    impl Future<Output = (Result<i64, SourceLocalFutureFailure>, Option<HostError>)>,
+    Vec<semaprax::diagnostic::Diagnostic>,
+> {
+    let mut builder = reqwest::Client::builder().retry(reqwest::retry::never());
+    if let Some(timeout) = timeout {
+        builder = builder.timeout(timeout);
+    }
+    let client = builder.build().unwrap();
+    let error = Rc::new(RefCell::new(None));
+    let slot = Rc::clone(&error);
+    let selected = SourceLocalFuture::prepare_revision(revision, 41, 10_000, move |request| {
+        let slot = Rc::clone(&slot);
+        async move {
+            let request_result = async {
+                let url = reqwest::Url::parse(&format!("{endpoint}/value/{request}"))
+                    .map_err(|_| HostError::Transport)?;
+                let response = client.get(url).send().await.map_err(transport)?;
+                if !response.status().is_success() {
+                    return Err(HostError::HttpStatus(response.status().as_u16()));
+                }
+                response
+                    .text()
+                    .await
+                    .map_err(transport)?
+                    .parse::<i64>()
+                    .map_err(|_| HostError::InvalidBody)
+            }
+            .await;
+            match request_result {
+                Ok(value) => Ok(value),
+                Err(failure) => {
+                    *slot.borrow_mut() = Some(failure);
+                    Err(())
+                }
+            }
+        }
+    })?;
+    Ok(async move {
+        let result = selected.await;
+        let host_error = error.borrow_mut().take();
+        (result, host_error)
+    })
+}
+
+fn run_case(
+    revision: Arc<ProjectRevision>,
+    runtime: &tokio::runtime::Runtime,
+    local: &tokio::task::LocalSet,
+    status: u16,
+    body: &'static str,
+    delay: Duration,
+    timeout: Option<Duration>,
+) -> (Result<i64, SourceLocalFutureFailure>, Option<HostError>) {
+    let (endpoint, _received, server) = local_server(status, body, delay);
+    let result = local.block_on(runtime, selected_call(revision, endpoint, timeout).unwrap());
+    server.join().unwrap();
+    result
+}
+
+struct Fixture(PathBuf);
+
+impl Fixture {
+    fn new() -> Self {
+        let source =
+            Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/ri13-m3-local-http/project");
+        let root = std::env::temp_dir().join(format!("semaprax-ri13-m3-{}", std::process::id()));
+        std::fs::create_dir_all(root.join("src")).unwrap();
+        for file in ["semaprax.toml", "src/app.spx", "src/tests.spx"] {
+            std::fs::copy(source.join(file), root.join(file)).unwrap();
+        }
+        Self(root.canonicalize().unwrap())
+    }
+}
+
+impl Drop for Fixture {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_dir_all(&self.0);
+    }
+}
+
+#[test]
+#[ignore = "requires local HTTP sockets"]
+fn saved_m3_application_runs_offline_and_refuses_timeout_and_stale_binding_mutants() {
+    rustls::crypto::ring::default_provider()
+        .install_default()
+        .ok();
+    let fixture = Fixture::new();
+    let manifest = fixture.0.join("semaprax.toml");
+    let (revision, module) = with_authenticated_project(&manifest, |snapshot| {
+        snapshot.check()?;
+        let module = snapshot.render_source_local_future_rust_module()?;
+        Ok((snapshot.retain_revision(), module))
+    })
+    .unwrap();
+    assert!(module.contains("pub enum AsyncCallError<E>"));
+    assert!(module.contains("pub fn register<H>"));
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+    let local = tokio::task::LocalSet::new();
+    let timeout = Some(Duration::from_millis(100));
+    assert!(matches!(
+        run_case(
+            Arc::clone(&revision),
+            &runtime,
+            &local,
+            200,
+            "43",
+            Duration::ZERO,
+            timeout
+        ),
+        (Ok(84), None)
+    ));
+    assert!(matches!(
+        run_case(
+            Arc::clone(&revision),
+            &runtime,
+            &local,
+            503,
+            "unavailable",
+            Duration::ZERO,
+            timeout
+        ),
+        (
+            Err(SourceLocalFutureFailure::HandlerFailed),
+            Some(HostError::HttpStatus(503))
+        )
+    ));
+    assert!(matches!(
+        run_case(
+            Arc::clone(&revision),
+            &runtime,
+            &local,
+            200,
+            "invalid",
+            Duration::ZERO,
+            timeout
+        ),
+        (
+            Err(SourceLocalFutureFailure::HandlerFailed),
+            Some(HostError::InvalidBody)
+        )
+    ));
+    assert!(matches!(
+        run_case(
+            Arc::clone(&revision),
+            &runtime,
+            &local,
+            200,
+            "-99",
+            Duration::ZERO,
+            timeout
+        ),
+        (Err(SourceLocalFutureFailure::LanguageFailure(_)), None)
+    ));
+    assert!(matches!(
+        run_case(
+            Arc::clone(&revision),
+            &runtime,
+            &local,
+            200,
+            "43",
+            Duration::from_millis(400),
+            timeout
+        ),
+        (
+            Err(SourceLocalFutureFailure::HandlerFailed),
+            Some(HostError::Timeout)
+        )
+    ));
+    assert!(
+        matches!(
+            run_case(
+                Arc::clone(&revision),
+                &runtime,
+                &local,
+                200,
+                "43",
+                Duration::from_millis(400),
+                None
+            ),
+            (Ok(84), None)
+        ),
+        "omitting the timeout must expose the guard mutation"
+    );
+
+    let (endpoint, received, server) = local_server(200, "43", Duration::from_millis(400));
+    let pending = selected_call(
+        Arc::clone(&revision),
+        endpoint,
+        Some(Duration::from_secs(2)),
+    )
+    .unwrap();
+    local.block_on(&runtime, async move {
+        let task = tokio::task::spawn_local(pending);
+        received.await.unwrap();
+        task.abort();
+        assert!(task.await.unwrap_err().is_cancelled());
+    });
+    server.join().unwrap();
+
+    let source = std::fs::read_to_string(fixture.0.join("src/app.spx")).unwrap();
+    let changed = source.replace("response + seed", "response - seed");
+    assert_ne!(source, changed);
+    let refusal = with_authenticated_project(&manifest, |snapshot| {
+        let held = snapshot.retain_revision();
+        std::fs::write(fixture.0.join("src/app.spx"), &changed).unwrap();
+        Ok(held)
+    });
+    assert!(
+        refusal.is_err(),
+        "held source drift must refuse revision release"
+    );
+}

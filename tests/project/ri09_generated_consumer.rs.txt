@@ -7,6 +7,12 @@ use std::cell::Cell;
 use std::path::Path;
 use std::rc::Rc;
 
+#[derive(Debug, PartialEq)]
+enum HostError {
+    Timeout,
+    Status(u16),
+}
+
 fn main() {
     let mut args = std::env::args().skip(1);
     let manifest = args.next().expect("Project manifest");
@@ -39,5 +45,35 @@ fn main() {
         .unwrap();
     assert_eq!(runtime.block_on(future), Ok(84));
     assert_eq!(calls.get(), 1);
+
+    let revision = with_authenticated_project(Path::new(&manifest), |snapshot| {
+        Ok(snapshot.retain_revision())
+    })
+    .unwrap();
+    let timeout = generated::register(revision, |_request| async {
+        Err::<i64, HostError>(HostError::Timeout)
+    })
+    .unwrap()
+    .call_typed(41, 10_000)
+    .unwrap();
+    assert!(matches!(
+        runtime.block_on(timeout),
+        Err(generated::AsyncCallError::Host(HostError::Timeout))
+    ));
+
+    let revision = with_authenticated_project(Path::new(&manifest), |snapshot| {
+        Ok(snapshot.retain_revision())
+    })
+    .unwrap();
+    let status = generated::register(revision, |_request| async {
+        Err::<i64, HostError>(HostError::Status(503))
+    })
+    .unwrap()
+    .call_typed(41, 10_000)
+    .unwrap();
+    assert!(matches!(
+        runtime.block_on(status),
+        Err(generated::AsyncCallError::Host(HostError::Status(503)))
+    ));
     println!("ri09-generated-source-ok");
 }

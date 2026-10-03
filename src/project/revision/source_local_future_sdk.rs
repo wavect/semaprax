@@ -12,7 +12,8 @@ use crate::diagnostic::Diagnostic;
 const MODULE_BODY: &str = r#"
 use semaprax::diagnostic::Diagnostic;
 use semaprax::project::ProjectRevision;
-use semaprax::resumable_effects::source_local_future::SourceLocalFuture;
+use semaprax::resumable_effects::source_local_future::{SourceLocalFuture, SourceLocalFutureFailure};
+use std::cell::RefCell;
 use std::future::Future;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -22,6 +23,12 @@ pub struct RegisteredAsyncImport<H> {
     revision: Arc<ProjectRevision>,
     callback: H,
     local: Rc<()>,
+}
+
+#[derive(Debug)]
+pub enum AsyncCallError<E> {
+    Host(E),
+    Source(SourceLocalFutureFailure),
 }
 
 /// Register against the exact source and Project revision compiled into this
@@ -66,6 +73,53 @@ impl<H> RegisteredAsyncImport<H> {
             max_steps,
             self.callback,
         )
+    }
+
+
+    /// Preserve a caller's typed Rust error while keeping source failures
+    /// distinct. The error slot is local to this one invocation and is never
+    /// serialized, published, or shared across threads.
+    pub fn call_typed<F, E>(
+        self,
+        seed: i64,
+        max_steps: usize,
+    ) -> Result<impl Future<Output = Result<i64, AsyncCallError<E>>>, Vec<Diagnostic>>
+    where
+        F: Future<Output = Result<i64, E>> + 'static,
+        H: FnOnce(i64) -> F + 'static,
+        E: 'static,
+    {
+        let RegisteredAsyncImport { revision, callback, local: _ } = self;
+        let host_error = Rc::new(RefCell::new(None));
+        let handler_error = Rc::clone(&host_error);
+        let wrapped = move |request| {
+            let future = callback(request);
+            let slot = Rc::clone(&handler_error);
+            async move {
+                match future.await {
+                    Ok(value) => Ok(value),
+                    Err(error) => {
+                        *slot.borrow_mut() = Some(error);
+                        Err(())
+                    }
+                }
+            }
+        };
+        let source = SourceLocalFuture::prepare_revision(
+            revision, seed, max_steps, wrapped,
+        )?;
+        Ok(async move {
+            match source.await {
+                Ok(value) => Ok(value),
+                Err(SourceLocalFutureFailure::HandlerFailed) => {
+                    match host_error.borrow_mut().take() {
+                        Some(error) => Err(AsyncCallError::Host(error)),
+                        None => Err(AsyncCallError::Source(SourceLocalFutureFailure::HandlerFailed)),
+                    }
+                }
+                Err(error) => Err(AsyncCallError::Source(error)),
+            }
+        })
     }
 }
 "#;

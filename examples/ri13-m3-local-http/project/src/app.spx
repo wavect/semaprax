@@ -1,0 +1,17 @@
+module ri13.m3.app;
+
+@id("ri13.m3.score")
+fn score(seed: i64) -> i64
+    yields i64 -> i64
+    requires seed >= 0 && seed <= 1000
+    ensures result >= 0
+{
+    let response = yield seed + 1;
+    response + seed
+}
+
+@id("ri13.m3.main")
+fn main() -> i64
+{
+    0
+}

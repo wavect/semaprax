@@ -1,5 +1,14 @@
 # Changelog
 
+- Save a bounded RI-13 M3 local HTTP application with canonical checked
+  Project source, a generated Rust Future registration module, pinned offline
+  Cargo inputs, and an explicit Tokio/reqwest host effect. The focused Project
+  gate runs real local requests for success, typed 503/parse/timeout failures,
+  source postcondition failure, timeout omission, cancellation, no retry, and
+  held source drift (1/1 on macOS arm64). The standalone generated-module
+  application has a separate locked offline execution gate; M1/M2 integration,
+  measurements, and Linux evidence remain open for RI-13.
+
 - Add a bounded HR-01 prepared-Project hot reload session with checked candidate
   admission, read-only compatibility planning, opaque generation-bound plans,
   and activation through the existing whole-state worker pivot. This is a

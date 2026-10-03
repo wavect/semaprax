@@ -1,10 +1,12 @@
 # Strict Law Assurance v1
 
-Status: first LAW-04 implementation batch, not completion of issue #379.
-This additive library profile joins independently selected laws to an exact
-retained Project and candidate. The opt-in [installed proof-tool adapter](INSTALLED-PROOF-TOOLS-V1.md) adds
-bounded real Lean/Z3 source-postcondition and typed scalar relational-law
-checking. Global protected-route admission remains open.
+Status: LAW-04 host-selected admission implemented for native-law
+`semaprax.manifest.v2` Projects. This additive library profile joins
+independently selected laws to an exact retained Project and candidate. The
+opt-in [installed proof-tool adapter](INSTALLED-PROOF-TOOLS-V1.md) adds bounded
+real Lean/Z3 source-postcondition and typed scalar relational-law checking.
+The [host selection contract](HOST-STRICT-LAW-POLICY-V1.md) owns persistence,
+route admission, and managed Workspace final-boundary replay.
 
 ## Inventory and evidence ownership
 
@@ -84,26 +86,26 @@ publication lock before replay. Strict publication evidence binds the law
 report and policy; apply rechecks that exact association before staging.
 Neither proof evidence nor a specification approval grants publication authority.
 
-## Route inventory and remaining bypass work
+## Route inventory and limits
 
-| Route | First-batch behavior | Remaining issue #379 work |
+| Route | Enforced behavior | Limit |
 | --- | --- | --- |
 | Strict LawSet library derive/require | Complete independently selected inventory, exact method predicates, installed SMT/Lean Project and typed scalar law attachments | Richer proof-provider profiles |
-| Strict candidate report/replay | Exact candidate, policy and Project binding | Persist policy selection across general transaction routes |
-| Strict publication prepare/apply | Coverage plus intent under ordinary lock, exact proposal replay | Toolchain/CLI selection of this route |
-| Existing LAW-03 protected publication | Intent protection only | Require strict coverage when a strict policy is configured |
-| Generic candidate acceptance | Formal proof-ref claims refused; record remains authority-free | Unified opted-in strict acceptance configuration |
-| Generic candidate/publication and semantic transaction routes | Existing contracts, no global strict-law configuration | Persist and enforce strict selection at every equivalent public route |
-| Project/native/Wasm build and run | Existing admission only | Strict build/run joins and final-boundary proof freshness |
-| Installed CLI Z3/Lean adapters | Explicit `project-proof-check` source-postcondition route; bounded trusted-local execution and strict-confinement refusal | Global strict policy selection and additional host profiles |
+| Strict candidate report/replay | Exact candidate, policy and Project binding; selected native-law inventory is rederived from authenticated sources | Explicit unselected APIs retain their original opt-in behavior |
+| Strict publication prepare/apply | Coverage plus intent under ordinary lock, exact proposal replay and selected host permit through the final ACTIVE boundary | Policy installation is a trusted host library operation |
+| Existing LAW-03 protected publication | Refused on a host-selected root unless the strict route supplies policy, intent and exact opaque proofs | Unselected roots retain explicit intent protection |
+| Generic candidate acceptance | Formal proof-ref claims refused; record remains authority-free and cannot replace the selected host gate | A record alone never admits protected work |
+| Generic candidate/publication and Workspace apply routes | Selected roots refuse generic Project snapshots and both raw and semantic Workspace publication paths; inspection remains read-only | Host administrators control policy removal |
+| Project/native/Wasm build and run | Selected roots require a restricted strict session with exact fresh proof bundles before protected execution/build; generic Project routes refuse | Previously retained revisions cannot be revoked by later host installation |
+| Installed CLI Z3/Lean adapters | Explicit `project-proof-check` newly authored source-postcondition and scalar-law routes; bounded trusted-local execution and strict-confinement refusal | No ambient proof-script or build authority; additional host profiles remain unsupported |
 
 The existing `LeanKernel` embedding capability is a trusted host boundary.
 This batch does not turn an arbitrary callback or recorded transcript into
 physical Lean evidence. Tests of that boundary must remain labelled as such.
 Installed tool execution requires the separate explicit capability or CLI
-selection; no external artifact provider is implicit. Issue #379 remains open
-until complete protected-route coverage and the remaining law profiles are
-implemented and exercised.
+selection; no external artifact provider is implicit. Unsupported proof
+profiles, including verified lowering from source evidence alone, refuse under
+strict policy.
 
 ## Focused gates
 
@@ -117,3 +119,9 @@ against new typed native propositions, false laws, missing/duplicate/stale/forge
 evidence, source-proof/lowering separation, and open assumptions/prerequisites.
 It requires the explicit installed-tool provisioning documented in
 [Installed Proof Tools v1](INSTALLED-PROOF-TOOLS-V1.md).
+The focused `selected_host_policy_` library selector checks the selected-root
+generic loader escape and raw Workspace apply refusal. The ignored
+`installed_native_law_selected_host_publication_keeps_law_inventory_and_refuses_drift`
+selector uses real Z3 to check selected execution/build, complete managed law
+source facts, semantic Change bypass refusal, omitted or changed law source
+refusal, and a successful strict managed publication.

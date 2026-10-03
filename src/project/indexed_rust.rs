@@ -137,14 +137,18 @@ pub fn with_authenticated_indexed_rust_project<T>(
     selections: &[ProjectIndexedRustImport],
     operation: impl FnOnce(&mut ProjectSnapshot) -> Result<T, Vec<Diagnostic>>,
 ) -> Result<T, Vec<Diagnostic>> {
-    let (snapshot, ()) = load_snapshot_building(manifest_path, |manifest, sources| {
-        let sources = sources
-            .iter()
-            .map(|source| ProjectFrontendSource::new(&source.path, &source.source))
-            .collect::<Result<Vec<_>, _>>()?;
-        let mut cache = ProjectFrontendCache::new();
-        let build = cache.build_indexed_rust(&manifest, &sources, selections)?;
-        Ok((build.into_revision(), ()))
-    })?;
+    let (snapshot, ()) = load_snapshot_building(
+        manifest_path,
+        super::ProjectHostAccess::Generic,
+        |manifest, sources| {
+            let sources = sources
+                .iter()
+                .map(|source| ProjectFrontendSource::new(&source.path, &source.source))
+                .collect::<Result<Vec<_>, _>>()?;
+            let mut cache = ProjectFrontendCache::new();
+            let build = cache.build_indexed_rust(&manifest, &sources, selections)?;
+            Ok((build.into_revision(), ()))
+        },
+    )?;
     with_snapshot_operation(snapshot, operation)
 }

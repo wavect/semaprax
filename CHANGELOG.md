@@ -1,5 +1,7 @@
 # Changelog
 
+- Enforce host-selected strict laws for native-law v2 Projects. Persist the independently held baseline and method policy under a private host marker, refuse generic Project and Workspace protected routes, and replay exact opaque proofs through selected execution, build and managed publication. Managed Workspace generations retain native law source bytes and facts with no executable law nodes. Focused library 2/2 and real Z3 selected publication 1/1 passed, including omission, drift and bypass controls.
+
 - Add explicit bounded installed Lean/Z3 checking for new exact Project
   postconditions and native typed relational laws. Opaque proof tokens bind the
   Project, law inventory and semantic proposition; strict candidate replay

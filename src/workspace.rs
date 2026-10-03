@@ -2105,6 +2105,9 @@ pub(crate) fn commit_workspace_authority_with_hook(
         mut patch_input,
         plan,
     } = authority;
+    if let Err(diagnostics) = crate::project::require_unselected_host_law_policy(&guard.root) {
+        return Err(unlock_with_diagnostics(&guard.lock, diagnostics));
+    }
     let active_path = guard.control.join("ACTIVE");
     let mut active_replaced = false;
     let result = (|| {
@@ -2225,6 +2228,7 @@ pub(crate) fn commit_workspace_authority_with_hook(
             &mut active_stage,
             &final_facts,
         )?;
+        crate::project::require_unselected_host_law_policy(&guard.root)?;
         let active_fingerprint =
             GenerationFingerprint::from_text(&mut active_stage, &active_stage_path)?;
         #[cfg(windows)]
@@ -2293,10 +2297,12 @@ struct SemanticCandidateCommitParts {
     candidate_manifest: String,
     candidate_revision: String,
     receipt: String,
+    strict_law_permit: Option<crate::project::host_policy::StrictWorkspacePermit>,
 }
 
 pub(crate) fn commit_semantic_change_authority_with_hook(
     authority: crate::semantic_workspace_change::SemanticWorkspaceChangeCommitAuthority,
+    strict_law_permit: Option<crate::project::host_policy::StrictWorkspacePermit>,
     hook: impl FnMut(
         SemanticChangeApplyPoint,
         &Path,
@@ -2313,6 +2319,7 @@ pub(crate) fn commit_semantic_change_authority_with_hook(
             candidate_manifest,
             candidate_revision,
             receipt,
+            strict_law_permit,
         },
         "Semantic Workspace Change",
         hook,
@@ -2341,6 +2348,7 @@ pub(crate) fn commit_semantic_structural_change_authority_with_hook(
             candidate_manifest,
             candidate_revision,
             receipt,
+            strict_law_permit: None,
         },
         "Semantic Workspace Structural Change",
         hook,
@@ -2365,6 +2373,7 @@ pub(crate) fn commit_semantic_operations_authority_with_hook(
             candidate_manifest,
             candidate_revision,
             receipt,
+            strict_law_permit: None,
         },
         "Semantic Workspace Operations",
         hook,
@@ -2387,8 +2396,15 @@ fn commit_semantic_candidate_parts_with_hook(
         candidate_manifest,
         candidate_revision,
         receipt,
+        mut strict_law_permit,
     } = parts;
     let mut guard = authority.guard;
+    if let Err(diagnostics) = crate::project::require_host_law_workspace_admission(
+        &guard.root,
+        strict_law_permit.as_mut(),
+    ) {
+        return Err(unlock_with_diagnostics(&guard.lock, diagnostics));
+    }
     if !guard.exclusive {
         return Err(unlock_with_diagnostics(
             &guard.lock,
@@ -2535,6 +2551,10 @@ fn commit_semantic_candidate_parts_with_hook(
             Some(&candidate.path),
         )
         .map_err(|error| io("SPX-I211", format!("ACTIVE replacement rejected: {error}")))?;
+        crate::project::require_host_law_workspace_admission(
+            &guard.root,
+            strict_law_permit.as_mut(),
+        )?;
         final_semantic_change_recheck(
             &mut guard,
             &mut candidate,

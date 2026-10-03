@@ -10,6 +10,7 @@ use crate::assurance_manifest::{
     VerifiedProjectProof,
 };
 use crate::diagnostic::Diagnostic;
+use crate::project::host_policy::{SelectedStrictLaw, StrictWorkspacePermit};
 use std::path::Path;
 
 type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
@@ -44,6 +45,79 @@ impl StrictCandidateLawInputs<'_> {
             self.proofs,
             self.native_proofs,
         )
+    }
+
+    fn require_host_selection(
+        &self,
+        candidate: &ProjectCandidate,
+        workspace_root: &Path,
+    ) -> Result<(String, String)> {
+        let Some(selection) = SelectedStrictLaw::open(workspace_root)? else {
+            self.require(candidate)?;
+            let report = candidate.strict_law_assurance_with_native_proofs(
+                candidate.candidate_digest(),
+                self.laws,
+                self.policy,
+                self.proofs,
+                self.native_proofs,
+            )?;
+            let intent = candidate.protected_law_review(self.protection, self.laws)?;
+            return Ok((report, intent.digest().to_owned()));
+        };
+        if selection.policy().digest() != self.policy.digest()
+            || selection.protection().digest() != self.protection.digest()
+        {
+            return Err(vec![Diagnostic::io(
+                "SPX-LW150",
+                "candidate strict-law policy or editable intent scope differs from host selection",
+            )]);
+        }
+        let current = LawSet::derive(
+            candidate.revision(),
+            selection.proof_profile(),
+            candidate.revision().law_modules().to_vec(),
+        )?;
+        if current.to_json() != self.laws.to_json() {
+            return Err(vec![Diagnostic::io(
+                "SPX-LW150",
+                "candidate law inventory differs from authenticated native law sources",
+            )]);
+        }
+        let intent = selection.protection().review(
+            selection.baseline(),
+            candidate.revision(),
+            &current,
+            candidate.candidate_digest(),
+        )?;
+        intent.require(self.specification_approval)?;
+        let report = strict::derive_with_native_proofs(
+            candidate.revision(),
+            &current,
+            selection.policy(),
+            self.proofs,
+            self.native_proofs,
+        )?;
+        strict::require_with_native_proofs(
+            &report,
+            candidate.revision(),
+            &current,
+            selection.policy(),
+            self.proofs,
+            self.native_proofs,
+        )?;
+        let report: serde_json::Value =
+            serde_json::from_str(&report).expect("derived strict report is JSON");
+        let association = wire::render(
+            serde_json::json!({
+                "schema":STRICT_CANDIDATE_LAW_SCHEMA,
+                "candidate_digest":candidate.candidate_digest(),
+                "base_project_revision":candidate.base_revision().project_revision(),
+                "host_baseline_project_revision":selection.baseline().project_revision(),
+                "law_report":report,"publication_authority":false
+            }),
+            crate::assurance_manifest::law_set::MAX_BYTES,
+        )?;
+        Ok((association, intent.digest().to_owned()))
     }
 }
 impl ProjectCandidate {
@@ -149,20 +223,14 @@ impl StrictLawPublication {
 fn publication_document(
     candidate: &ProjectCandidate,
     inputs: &StrictCandidateLawInputs<'_>,
+    workspace_root: &Path,
     publication: &str,
 ) -> Result<String> {
-    let law_report = candidate.strict_law_assurance_with_native_proofs(
-        candidate.candidate_digest(),
-        inputs.laws,
-        inputs.policy,
-        inputs.proofs,
-        inputs.native_proofs,
-    )?;
-    let intent = candidate.protected_law_review(inputs.protection, inputs.laws)?;
+    let (law_report, intent_digest) = inputs.require_host_selection(candidate, workspace_root)?;
     wire::render(
         serde_json::json!({
             "schema":STRICT_LAW_PUBLICATION_SCHEMA,"candidate_digest":candidate.candidate_digest(),
-            "protected_intent_review_digest":intent.digest(),"law_assurance":law_report,
+            "protected_intent_review_digest":intent_digest,"law_assurance":law_report,
             "publication":publication,"publication_authority":false
         }),
         publication::MAX_PROJECT_CANDIDATE_PUBLICATION_BYTES,
@@ -179,16 +247,20 @@ pub fn prepare_strict_law_publication(
     project_manifest: &Path,
     expected_workspace_revision: &str,
 ) -> Result<StrictLawPublication> {
-    let publication = publication::prepare_with_law_gate(
+    let publication = publication::prepare_with_selected_law_gate(
         candidate,
         approved_candidate_digest,
         workspace_root,
         project_manifest,
         expected_workspace_revision,
-        || inputs.require(candidate),
+        || {
+            inputs
+                .require_host_selection(candidate, workspace_root)
+                .map(|_| ())
+        },
     )?;
     Ok(StrictLawPublication {
-        document: publication_document(candidate, inputs, publication.to_json())?,
+        document: publication_document(candidate, inputs, workspace_root, publication.to_json())?,
     })
 }
 
@@ -224,7 +296,7 @@ pub fn apply_strict_law_publication(
             "strict publication artifact missing",
         )]
     })?;
-    publication::apply_with_law_gate(
+    publication::apply_with_selected_law_gate(
         candidate,
         approved_candidate_digest,
         workspace_root,
@@ -232,8 +304,8 @@ pub fn apply_strict_law_publication(
         expected_workspace_revision,
         publication.as_bytes(),
         || {
-            inputs.require(candidate)?;
-            if publication_document(candidate, inputs, publication)?.as_bytes()
+            inputs.require_host_selection(candidate, workspace_root)?;
+            if publication_document(candidate, inputs, workspace_root, publication)?.as_bytes()
                 != submitted_publication
             {
                 return Err(vec![Diagnostic::io(
@@ -241,7 +313,15 @@ pub fn apply_strict_law_publication(
                     "strict publication policy, proof or intent association changed",
                 )]);
             }
-            Ok(())
+            Ok(SelectedStrictLaw::open(workspace_root)?
+                .map(|_| {
+                    StrictWorkspacePermit::after_strict_gate(
+                        workspace_root,
+                        inputs.policy,
+                        inputs.protection,
+                    )
+                })
+                .transpose()?)
         },
     )
 }

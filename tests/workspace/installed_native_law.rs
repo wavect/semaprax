@@ -277,3 +277,225 @@ fn installed_native_law_cli_checks_new_law_and_refuses_false_or_mixed_selection(
     assert!(!project.root.join("ACTIVE").exists());
     assert!(!project.root.join(".git").exists());
 }
+#[test]
+#[ignore = "requires explicitly provisioned installed Z3"]
+fn installed_native_law_selected_host_publication_keeps_law_inventory_and_refuses_drift() {
+    use semaprax::assurance_manifest::law_set::protected::{
+        ProtectedLawBaseline, ProtectedLawReview, SpecificationChangeApproval,
+        SpecificationChangeAuthority,
+    };
+    use semaprax::project::{
+        apply_strict_law_publication, install_host_strict_law_policy,
+        prepare_strict_law_publication, with_strict_authenticated_project, ProjectCandidate,
+        ProjectExecutionOptions, SemanticChange, StrictCandidateLawInputs,
+    };
+    struct Host;
+    impl SpecificationChangeAuthority for Host {
+        fn approve_specification_change(&mut self, _: &ProtectedLawReview) -> bool {
+            true
+        }
+    }
+    let project = native_project("selected-publication", "n + 0 == n");
+    // Match the checked native-law example's provider/entry/tests topology:
+    // the changed provider signature rewrites two independent callers.
+    for (path, source) in [
+        ("src/app.spx", "module app.fresh; use function @id(\"fresh.seventeen\") from core.fresh as seventeen; @id(\"fresh.main\") fn main() -> i64 { seventeen(0) }"),
+        ("src/core.spx", "module core.fresh; @id(\"fresh.seventeen\") fn seventeen(a: i64) -> i64 requires a >= 0 requires a <= 100 ensures result == a + 17 { a + 17 }"),
+        ("src/tests.spx", "module app.tests; use function @id(\"fresh.seventeen\") from core.fresh as seventeen; @id(\"fresh.tests\") fn main() -> i64 { seventeen(0) }"),
+    ] {
+        let canonical = semaprax::format::canonical(&semaprax::parse(source, path).unwrap());
+        std::fs::write(project.root.join(path), canonical).unwrap();
+    }
+    let manifest = project.root.join("semaprax.toml");
+    std::fs::write(&manifest, "schema = \"semaprax.manifest.v2\"\n\n[package]\nname = \"fresh-law\"\nversion = \"1.0.0\"\n\n[modules]\nentry = \"app.fresh\"\nsources = [\"src/app.spx\", \"src/contracts.spx\", \"src/core.spx\", \"src/tests.spx\"]\nlaw_sources = [\"src/contracts.spx\"]\ntests = [\"app.tests\"]\n\n[exports]\nweb = [\"fresh.seventeen\"]\n").unwrap();
+    let paths = project.root.join("paths.json");
+    std::fs::write(&paths, concat!(
+        r#"{"schema":"semaprax.workspace-semantic-path-set.v1","files":[{"path":"src/app.spx"},{"path":"src/contracts.spx"},{"path":"src/core.spx"},{"path":"src/tests.spx"}]}"#, "\n",
+    )).unwrap();
+    let initial_workspace =
+        semaprax::semantic_workspace::initialize(&project.root, &paths).unwrap();
+    let graph = semaprax::workspace_graph::snapshot(&project.root, "app.fresh").unwrap();
+    assert_eq!(graph.workspace_revision(), initial_workspace);
+    let graph_json: serde_json::Value = serde_json::from_str(graph.to_json()).unwrap();
+    let active: serde_json::Value = serde_json::from_slice(
+        &std::fs::read(project.root.join(".semaprax-workspace/ACTIVE")).unwrap(),
+    )
+    .unwrap();
+    let generation = active["workspace_revision"]
+        .as_str()
+        .unwrap()
+        .strip_prefix("sha256:")
+        .unwrap();
+    let manifest_bytes = std::fs::read(
+        project
+            .root
+            .join(".semaprax-workspace/generations")
+            .join(generation)
+            .join("manifest.json"),
+    )
+    .unwrap();
+    let managed_manifest: serde_json::Value = serde_json::from_slice(&manifest_bytes).unwrap();
+    let law = managed_manifest["files"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|file| file["path"] == "src/contracts.spx")
+        .unwrap();
+    assert_eq!(law["source_graph_schema"], "semaprax.native-law.v1");
+    assert!(graph_json["declarations"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .all(|declaration| declaration["path"] != "src/contracts.spx"));
+
+    let base = project.revision();
+    assert_eq!(base.workspace_revision(), initial_workspace);
+    let authenticated_law = base
+        .sources()
+        .iter()
+        .find(|source| source.path() == "src/contracts.spx")
+        .unwrap();
+    assert_eq!(law["source_revision"], authenticated_law.source_revision());
+    assert_eq!(law["source_digest"], authenticated_law.source_digest());
+    let laws = LawSet::derive(&base, "native-proof-v1", base.law_modules().to_vec()).unwrap();
+    let tool = provisioned(&project, ToolKind::Z3);
+    let policy = StrictLawPolicy::new(
+        laws.clone(),
+        BTreeMap::from([("fresh.law.identity".into(), requirement(&tool))]),
+    )
+    .unwrap();
+    let protection = ProtectedLawBaseline::new(&base, laws.clone(), vec![]).unwrap();
+    install_host_strict_law_policy(&manifest, &policy, vec![]).unwrap();
+    let base_proof = prove_scalar_law(&base, &laws, "fresh.law.identity", &tool).unwrap();
+    with_strict_authenticated_project(&manifest, &[], &[base_proof], |session| {
+        session.execute_entry(&ProjectExecutionOptions::default())?;
+        session.build_web_inline(8 * 1024 * 1024)?;
+        Ok(())
+    })
+    .unwrap();
+
+    let candidate = ProjectCandidate::open(base.clone(), base.project_revision()).unwrap();
+    let change = SemanticChange::new(
+        base.project_revision(),
+        &serde_json::json!({
+            "kind":"change_function_signature", "target":"fresh.seventeen",
+            "append_parameters":[{"name":"unused","type":"i64","argument":{"kind":"i64","value":0}}]
+        }),
+    )
+    .unwrap();
+    let candidate = candidate
+        .apply(candidate.candidate_digest(), &change)
+        .unwrap();
+    let candidate_laws = LawSet::derive(
+        candidate.revision(),
+        "native-proof-v1",
+        candidate.revision().law_modules().to_vec(),
+    )
+    .unwrap();
+    let proof = prove_scalar_law(
+        candidate.revision(),
+        &candidate_laws,
+        "fresh.law.identity",
+        &tool,
+    )
+    .unwrap();
+    let proofs = [proof];
+    let intent = candidate
+        .protected_law_review(&protection, &candidate_laws)
+        .unwrap();
+    let approval = SpecificationChangeApproval::request(&intent, &mut Host).unwrap();
+    let inputs = StrictCandidateLawInputs {
+        protection: &protection,
+        policy: &policy,
+        laws: &candidate_laws,
+        proofs: &[],
+        native_proofs: &proofs,
+        specification_approval: Some(&approval),
+    };
+    let active = project.root.join(".semaprax-workspace/ACTIVE");
+    let before = std::fs::read(&active).unwrap();
+    let proposal = prepare_strict_law_publication(
+        &candidate,
+        &inputs,
+        candidate.candidate_digest(),
+        &project.root,
+        &manifest,
+        &initial_workspace,
+    )
+    .unwrap();
+    assert_eq!(std::fs::read(&active).unwrap(), before);
+    // The same exact workspace proposal/evidence cannot use the generic
+    // semantic Change publisher to skip the host-selected strict gate.
+    let outer: serde_json::Value = serde_json::from_str(proposal.to_json()).unwrap();
+    let publication: serde_json::Value =
+        serde_json::from_str(outer["publication"].as_str().unwrap()).unwrap();
+    let raw_proposal = project.root.join("selected-change.json");
+    let raw_evidence = project.root.join("selected-evidence.json");
+    std::fs::write(
+        &raw_proposal,
+        publication["workspace_change_proposal"].as_str().unwrap(),
+    )
+    .unwrap();
+    std::fs::write(
+        &raw_evidence,
+        publication["workspace_change_evidence"].as_str().unwrap(),
+    )
+    .unwrap();
+    let generic_error =
+        semaprax::semantic_workspace_change::apply(&project.root, &raw_proposal, &raw_evidence)
+            .err()
+            .unwrap();
+    assert_eq!(generic_error[0].code, "SPX-LW150");
+    assert_eq!(std::fs::read(&active).unwrap(), before);
+
+    let missing = LawSet::derive(candidate.revision(), "native-proof-v1", vec![]).unwrap();
+    let missing_inputs = StrictCandidateLawInputs {
+        protection: &protection,
+        policy: &policy,
+        laws: &missing,
+        proofs: &[],
+        native_proofs: &proofs,
+        specification_approval: Some(&approval),
+    };
+    let missing_error = prepare_strict_law_publication(
+        &candidate,
+        &missing_inputs,
+        candidate.candidate_digest(),
+        &project.root,
+        &manifest,
+        &initial_workspace,
+    )
+    .err()
+    .unwrap();
+    assert_eq!(missing_error[0].code, "SPX-LW150");
+    assert_eq!(std::fs::read(&active).unwrap(), before);
+
+    let law_path = project.root.join("src/contracts.spx");
+    let authored = std::fs::read_to_string(&law_path).unwrap();
+    std::fs::write(&law_path, authored.replace("n + 0 == n", "n + 0 != n")).unwrap();
+    assert!(apply_strict_law_publication(
+        &candidate,
+        &inputs,
+        candidate.candidate_digest(),
+        &project.root,
+        &manifest,
+        &initial_workspace,
+        proposal.to_json().as_bytes()
+    )
+    .is_err());
+    assert_eq!(std::fs::read(&active).unwrap(), before);
+    std::fs::write(&law_path, &authored).unwrap();
+
+    apply_strict_law_publication(
+        &candidate,
+        &inputs,
+        candidate.candidate_digest(),
+        &project.root,
+        &manifest,
+        &initial_workspace,
+        proposal.to_json().as_bytes(),
+    )
+    .unwrap();
+    assert_ne!(std::fs::read(&active).unwrap(), before);
+    assert_eq!(std::fs::read_to_string(law_path).unwrap(), authored);
+}

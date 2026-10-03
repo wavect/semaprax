@@ -11,7 +11,7 @@ use crate::proof_export::{
 };
 use serde_json::{json, Value};
 
-pub const SCHEMA: &str = "semaprax.project-law-workflow-cli.v1";
+pub const SCHEMA: &str = "semaprax.project-law-workflow-cli.v2";
 
 #[derive(Clone, Copy)]
 pub struct SourceGoal<'a> {
@@ -70,6 +70,7 @@ pub fn check(
     }
     let mut proofs: Vec<VerifiedProjectProof> = Vec::new();
     let mut native_proofs = Vec::new();
+    let work_before = tool.work_snapshot();
     let attempt = if stale {
         json!({"outcome":"stale","expected_candidate_revision":request.expected_candidate_revision,
             "current_candidate_revision":revision.project_revision(),"diagnostics":[]})
@@ -98,6 +99,7 @@ pub fn check(
             Err(errors) => json!({"outcome":"incomplete","diagnostics":diagnostic_rows(&errors)}),
         }
     };
+    let work = tool.work_snapshot().since(work_before);
     let report =
         strict::derive_with_native_proofs(revision, laws, policy, &proofs, &native_proofs)?;
     let view = match request.view {
@@ -126,6 +128,12 @@ pub fn check(
     let view: Value = serde_json::from_str(&view).expect("checked workflow view is JSON");
     let accepted = view["accepted"] == true;
     let complete: Value = serde_json::from_str(&report).expect("checked strict report is JSON");
+    let validity = json!({
+        "schema":"semaprax.selected-law-validity.v1",
+        "accepted":accepted,"proof_attempt":attempt["outcome"],
+        "counts":complete["counts"],"candidate_revision":revision.project_revision(),
+        "source":"replayed_strict_report","delivery_independent":true,
+    });
     let failed_obligation_ids = complete["laws"]
         .as_array()
         .expect("checked strict rows")
@@ -151,6 +159,13 @@ pub fn check(
         "failed_obligation_ids":failed_obligation_ids,
         "source_location":attempt["source_location"],
         "proof_attempt":attempt,"view":view,
+        "validity":validity,
+        "work":{"schema":"semaprax.installed-law-work.v1",
+            "reserved_process_invocations":work.reserved_process_invocations,
+            "reserved_solver_queries":work.reserved_solver_queries,
+            "reserved_io_bytes":work.reserved_io_bytes,
+            "model_tokens":null,"provider_cost_micros":null,
+            "cost_status":"unavailable","kind":"held_process_reservation"},
         "toolchain":tool.expected_version(),"evidence_profile":kind_label(tool.kind()),
         "repair_actions":[{"kind":"repair_implementation","target":"selected_subject"},
             {"kind":"supply_checked_proof","target":"selected_obligation"},

@@ -123,9 +123,14 @@ one selected law and a repair target. Both replay the complete protected
 inventory against the current authenticated Project and repeat its whole
 acceptance verdict and counts. The JSON envelope binds the candidate revision,
 law semantics, policy, dependency IDs, failed obligation IDs, evidence profile,
-and source location where available. A failure exits with status 1 after
-printing bounded JSON. `--max-bytes` refuses an oversized envelope rather
-than truncating counts or the verdict.
+and source location where available. The v2 envelope adds `validity` copied
+from the independently replayed strict verdict and full required counts, plus
+`work` from the held tool's monotone process/query and reserved-byte ledger.
+That work is attempted local process reservation, including version probes;
+it is neither a completed-query count nor provider spend. Model tokens and
+provider cost are explicitly unavailable here. A failure exits with status 1
+after printing bounded JSON. `--max-bytes` refuses an oversized envelope
+rather than truncating counts or the verdict.
 
 For an admitted Z3 postcondition failure, a separate bounded model query is
 checked with the independent source evaluator. Only a reproduced checked trap
@@ -171,6 +176,19 @@ MCP does not add edit or publication authority. The direct v7 JSON-RPC mode
 remains the default without `--mcp`.
 
 This is a local stdio MCP tool surface, not a hosted service or editor plugin.
+
+The exact LAW-12 status selector
+`workspace selected_law_status_test::selected_law_unknown_timeout_unsupported_and_stale_preserve_summary_and_detail_counts`
+uses explicitly compiled local process fixtures to exercise diagnostic
+classification in summary and detail. Those fixtures do not establish a proof;
+the installed-Z3 selectors above own the real counterexample and repair gates.
+The existing agent-workflow `connectMcpWorkflowTransport` adapter carries
+`law/status` and `law/check` through the two MCP tool names. Its
+`ToolPayloadObserver` records the one delivered tool text in the existing
+`semaprax.token-observation.v1` envelope. Observer `success` denotes payload
+delivery only; the strict `view.accepted` and complete required count remain
+the independent law-validity result. No model billing or provider cost is
+inferred from tool-payload bytes.
 
 ## Focused physical gate
 

@@ -9,6 +9,9 @@ use semaprax::assurance_manifest::modular_law::cache::ProofTaskCache;
 
 #[path = "installed_native_law/selected_law_mcp_test.rs"]
 mod selected_law_mcp_test;
+#[path = "installed_native_law/selected_law_status_test.rs"]
+#[cfg(unix)]
+mod selected_law_status_test;
 
 fn native_project(label: &str, proposition: &str) -> Project {
     let project = Project::new(label, false);
@@ -98,6 +101,10 @@ fn selected_law_cli_workflow_replays_failure_then_rechecks_repaired_body() {
     let failure: serde_json::Value = serde_json::from_slice(&failed.stdout).unwrap();
     assert_eq!(failure["view"]["accepted"], false);
     assert_eq!(failure["proof_attempt"]["outcome"], "disproved_concrete");
+    assert_eq!(failure["validity"]["accepted"], false);
+    assert_eq!(failure["validity"]["counts"]["required"], 1);
+    assert!(failure["work"]["reserved_solver_queries"].as_u64().unwrap() > 0);
+    assert_eq!(failure["work"]["cost_status"], "unavailable");
     assert_eq!(
         failure["proof_attempt"]["counterexample"]["validated"],
         true
@@ -126,6 +133,7 @@ fn selected_law_cli_workflow_replays_failure_then_rechecks_repaired_body() {
     assert!(!summary_output.status.success());
     let summary: serde_json::Value = serde_json::from_slice(&summary_output.stdout).unwrap();
     assert_eq!(summary["view"]["accepted"], false);
+    assert_eq!(summary["proof_attempt"]["outcome"], "disproved_concrete");
     assert_eq!(summary["view"]["counts"], failure["view"]["counts"]);
     assert_eq!(summary["view"]["total"], 1);
     assert_eq!(summary["view"]["returned"], 1);
@@ -238,6 +246,8 @@ fn selected_law_cli_workflow_replays_failure_then_rechecks_repaired_body() {
     let checked: serde_json::Value = serde_json::from_slice(&fixed.stdout).unwrap();
     assert_eq!(checked["view"]["accepted"], true);
     assert_eq!(checked["proof_attempt"]["outcome"], "proved");
+    assert_eq!(checked["validity"]["accepted"], true);
+    assert!(checked["work"]["reserved_solver_queries"].as_u64().unwrap() > 0);
     assert_ne!(checked["candidate_revision"], failure["candidate_revision"]);
     assert_eq!(
         checked["view"]["protected_baseline_digest"],

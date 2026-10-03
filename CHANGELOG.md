@@ -1,5 +1,11 @@
 # Changelog
 
+- Exercise LAW-12 `unknown`, `timeout`, `unsupported`, and `stale` diagnostic
+  states through held local process fixtures in both selected-law summary and
+  detail without losing strict required counts. The existing agent-workflow MCP
+  adapter and token observer carry a failed law as one measured tool payload;
+  successful delivery does not mark the law valid or create a reward stream.
+
 - Make the bounded RI-09 local Rust Future handle directly awaitable by an
   explicit caller executor, including shared local waiting for cancellation.
   The locked reqwest fixture now awaits the generated bridge directly; this

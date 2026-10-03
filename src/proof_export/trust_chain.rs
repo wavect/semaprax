@@ -63,12 +63,14 @@ pub fn render_trust_chain_view(
         "external_proof_result": {
             "status": proof_status,
             "kernel_identity": super::KERNEL_IDENTITY,
-            "toolchain": super::PINNED_TOOLCHAIN
+            "toolchain": super::PINNED_TOOLCHAIN,
+            "tcb": "caller_supplied_kernel_capability"
         },
         "compiler_lowering_identity": {
             "compiler_version": source.compiler_version,
             "profile": super::PROFILE_V1,
-            "status": "trusted_unproved_lowering"
+            "status": "trusted_unproved_lowering",
+            "tcb": "compiler_and_codegen_for_exact_version"
         },
         "artifact_binding": {
             "target": super::certificate::ARTIFACT_TARGET,
@@ -79,7 +81,8 @@ pub fn render_trust_chain_view(
         "runtime_boundary": {
             "status": "unexecuted",
             "adapter_identity": null,
-            "target_result": null
+            "target_result": null,
+            "tcb": "no_runtime_executor_or_adapter_observation"
         },
         "nonclaims": [
             "artifact binding does not prove semantic preservation",

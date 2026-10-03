@@ -731,6 +731,10 @@ fn trust_chain_view_separates_kernel_artifact_lowering_and_runtime_status() {
     assert_eq!(recorded["schema"], super::TRUST_CHAIN_VIEW_SCHEMA);
     assert_eq!(recorded["external_proof_result"]["status"], "recorded_only");
     assert_eq!(
+        recorded["external_proof_result"]["tcb"],
+        "caller_supplied_kernel_capability"
+    );
+    assert_eq!(
         recorded["compiler_lowering_identity"]["status"],
         "trusted_unproved_lowering"
     );

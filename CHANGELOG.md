@@ -1,5 +1,8 @@
 # Changelog
 
+- Remove redundant proof clones in the workspace law tests and simplify the
+  remaining test-only types for the Ubuntu Clippy job.
+
 - Remove a redundant formatting call in the explorer Markdown export so the
   macOS Rust build passes Clippy with warnings denied.
 

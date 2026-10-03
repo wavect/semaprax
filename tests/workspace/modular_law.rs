@@ -552,7 +552,7 @@ fn installed_modular_postcondition_attaches_to_selected_strict_project() {
     install_host_strict_law_policy(&manifest, &policy, vec![]).unwrap();
     let proof = prove_modular_postcondition(&revision, "src/app.spx", "accounting.total", 0, &tool)
         .expect("registered installed Z3 proves selected modular postcondition");
-    with_strict_authenticated_project(&manifest, &[proof.clone()], &[], |session| {
+    with_strict_authenticated_project(&manifest, std::slice::from_ref(&proof), &[], |session| {
         session.execute_entry(&ProjectExecutionOptions::default())?;
         Ok(())
     })
@@ -833,7 +833,7 @@ fn installed_modular_cache_reuses_logical_work_and_rebinds_current_project() {
         derive_with_verified_proofs(
             &formatted,
             &ProjectAssuranceOptions::default(),
-            &[total.clone()],
+            std::slice::from_ref(&total),
         )
         .is_err(),
         "old source-bound proof must not be retargeted"

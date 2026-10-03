@@ -181,7 +181,8 @@ fn law14_fast_mutation_corpus_rejects_named_weakening_before_authority() {
 
     // Added assumptions and retargeted identities are changed law semantics,
     // not evidence that may weaken a protected baseline.
-    let mutations: [(&str, fn(&mut LawModule)); 2] = [
+    type LawMutation = (&'static str, fn(&mut LawModule));
+    let mutations: [LawMutation; 2] = [
         ("added_assumption", |module: &mut LawModule| {
             module.assumptions.push("unreviewed.assumption".into());
             module.laws[0]

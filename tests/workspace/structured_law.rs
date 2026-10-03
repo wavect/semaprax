@@ -266,7 +266,7 @@ fn installed_structured_project_z3_certificate_replays_and_refuses_branch_or_fie
     let report = derive_with_verified_proofs(
         &revision,
         &ProjectAssuranceOptions::default(),
-        &[proof.clone()],
+        std::slice::from_ref(&proof),
     )
     .unwrap();
     assert!(report.contains(SMT_PROFILE));
@@ -302,8 +302,16 @@ fn installed_structured_project_z3_certificate_replays_and_refuses_branch_or_fie
         )]),
     )
     .unwrap();
-    let accepted = strict::derive(&revision, &laws, &structured, &[proof.clone()]).unwrap();
-    strict::require(&accepted, &revision, &laws, &structured, &[proof.clone()]).unwrap();
+    let accepted =
+        strict::derive(&revision, &laws, &structured, std::slice::from_ref(&proof)).unwrap();
+    strict::require(
+        &accepted,
+        &revision,
+        &laws,
+        &structured,
+        std::slice::from_ref(&proof),
+    )
+    .unwrap();
     let scalar_only = StrictLawPolicy::new(
         laws.clone(),
         BTreeMap::from([(
@@ -315,7 +323,8 @@ fn installed_structured_project_z3_certificate_replays_and_refuses_branch_or_fie
         )]),
     )
     .unwrap();
-    let refused = strict::derive(&revision, &laws, &scalar_only, &[proof.clone()]).unwrap();
+    let refused =
+        strict::derive(&revision, &laws, &scalar_only, std::slice::from_ref(&proof)).unwrap();
     assert!(strict::require(&refused, &revision, &laws, &scalar_only, &[proof]).is_err());
     replay_structured_postcondition(&certificate, &revision, &tool)
         .expect("same exact Project and installed Z3 replay");
@@ -417,7 +426,7 @@ fn installed_structured_cache_reuses_logical_work_and_rebinds_current_project() 
     let cold_report = derive_with_verified_proofs(
         &revision,
         &ProjectAssuranceOptions::default(),
-        &[cold_proof.clone()],
+        std::slice::from_ref(&cold_proof),
     )
     .unwrap();
 
@@ -628,11 +637,18 @@ law contract "law07.total-after" ensures (debit: i64, credit: i64, amount: i64, 
         row.program_root,
         revision.program_root().unwrap().program_root()
     );
-    let report = strict::derive(&revision, &laws, &policy, &[proof.clone()]).unwrap();
-    strict::require(&report, &revision, &laws, &policy, &[proof.clone()]).unwrap();
+    let report = strict::derive(&revision, &laws, &policy, std::slice::from_ref(&proof)).unwrap();
+    strict::require(
+        &report,
+        &revision,
+        &laws,
+        &policy,
+        std::slice::from_ref(&proof),
+    )
+    .unwrap();
     let protection = ProtectedLawBaseline::new(&revision, laws, vec![]).unwrap();
     install_host_strict_law_policy(&manifest, &policy, vec![]).unwrap();
-    with_strict_authenticated_project(&manifest, &[proof.clone()], &[], |session| {
+    with_strict_authenticated_project(&manifest, std::slice::from_ref(&proof), &[], |session| {
         session.execute_entry(&ProjectExecutionOptions::default())?;
         Ok(())
     })

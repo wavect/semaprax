@@ -283,7 +283,6 @@ fn selected_law_cli_workflow_replays_failure_then_rechecks_repaired_body() {
         .contains("SPX-LW120"));
     let shutdown = call(8, "shutdown", serde_json::json!({}));
     assert_eq!(shutdown["result"]["ok"], true);
-    drop(call);
     assert!(daemon.wait().unwrap().success());
 }
 
@@ -482,8 +481,14 @@ fn installed_native_relational_lean_cache_reuses_checked_report_and_rebinds_law(
         BTreeMap::from([("fresh.law.identity".into(), requirement(&tool))]),
     )
     .unwrap();
-    let cold_report =
-        strict::derive_with_native_proofs(&revision, &laws, &policy, &[], &[cold.clone()]).unwrap();
+    let cold_report = strict::derive_with_native_proofs(
+        &revision,
+        &laws,
+        &policy,
+        &[],
+        std::slice::from_ref(&cold),
+    )
+    .unwrap();
     let cold_inventory =
         work_inventory::derive(&revision, &laws, &policy, &[], &[cold], &cache).unwrap();
     let (warm, warm_work) = prove_scalar_law_lean_cached(
@@ -496,11 +501,24 @@ fn installed_native_relational_lean_cache_reuses_checked_report_and_rebinds_law(
     )
     .unwrap();
     assert_eq!((warm_work.fresh, warm_work.reused), (0, 1));
-    let warm_report =
-        strict::derive_with_native_proofs(&revision, &laws, &policy, &[], &[warm.clone()]).unwrap();
+    let warm_report = strict::derive_with_native_proofs(
+        &revision,
+        &laws,
+        &policy,
+        &[],
+        std::slice::from_ref(&warm),
+    )
+    .unwrap();
     assert_eq!(cold_report, warm_report);
-    let warm_inventory =
-        work_inventory::derive(&revision, &laws, &policy, &[], &[warm.clone()], &cache).unwrap();
+    let warm_inventory = work_inventory::derive(
+        &revision,
+        &laws,
+        &policy,
+        &[],
+        std::slice::from_ref(&warm),
+        &cache,
+    )
+    .unwrap();
     let cold_inventory: serde_json::Value = serde_json::from_str(&cold_inventory).unwrap();
     let warm_inventory: serde_json::Value = serde_json::from_str(&warm_inventory).unwrap();
     assert_eq!(
@@ -520,7 +538,7 @@ fn installed_native_relational_lean_cache_reuses_checked_report_and_rebinds_law(
         &laws,
         &policy,
         &[],
-        &[warm.clone()],
+        std::slice::from_ref(&warm),
     )
     .unwrap();
 
@@ -611,8 +629,14 @@ fn installed_native_relational_cache_reuses_checked_query_and_rebinds_current_la
     .unwrap();
     let cold_report =
         strict::derive_with_native_proofs(&revision, &laws, &policy, &[], &[cold]).unwrap();
-    let warm_report =
-        strict::derive_with_native_proofs(&revision, &laws, &policy, &[], &[warm.clone()]).unwrap();
+    let warm_report = strict::derive_with_native_proofs(
+        &revision,
+        &laws,
+        &policy,
+        &[],
+        std::slice::from_ref(&warm),
+    )
+    .unwrap();
     assert_eq!(cold_report, warm_report);
     strict::require_with_native_proofs(
         &warm_report,
@@ -620,7 +644,7 @@ fn installed_native_relational_cache_reuses_checked_query_and_rebinds_current_la
         &laws,
         &policy,
         &[],
-        &[warm.clone()],
+        std::slice::from_ref(&warm),
     )
     .unwrap();
 
@@ -838,9 +862,14 @@ fn installed_native_law_proofs_preserve_open_assumptions_and_prerequisites() {
             .map(|law| (law.law_id.clone(), requirement(&tool)))
             .collect();
         let policy = StrictLawPolicy::new(laws.clone(), requirements).unwrap();
-        let report =
-            strict::derive_with_native_proofs(&revision, &laws, &policy, &[], &[proof.clone()])
-                .unwrap();
+        let report = strict::derive_with_native_proofs(
+            &revision,
+            &laws,
+            &policy,
+            &[],
+            std::slice::from_ref(&proof),
+        )
+        .unwrap();
         assert_eq!(
             strict::require_with_native_proofs(&report, &revision, &laws, &policy, &[], &[proof])
                 .unwrap_err()[0]
@@ -1161,9 +1190,14 @@ fn installed_native_law_law14_adversarial_gate() {
             BTreeMap::from([("fresh.law.identity".into(), requirement(&tool))]),
         )
         .unwrap();
-        let report =
-            strict::derive_with_native_proofs(&revision, &laws, &policy, &[], &[proof.clone()])
-                .unwrap();
+        let report = strict::derive_with_native_proofs(
+            &revision,
+            &laws,
+            &policy,
+            &[],
+            std::slice::from_ref(&proof),
+        )
+        .unwrap();
         strict::require_with_native_proofs(&report, &revision, &laws, &policy, &[], &[])
             .unwrap_err();
 

@@ -1040,6 +1040,7 @@ mod tests {
             SERIAL.fetch_add(1, Ordering::Relaxed)
         ));
         fs::create_dir(&target).unwrap();
+        let target = target.canonicalize().unwrap();
         let cargo_home = target.join("cargo-home");
         fs::create_dir(&cargo_home).unwrap();
         let cargo = configured_tool("CARGO");
@@ -1053,10 +1054,26 @@ mod tests {
             cargo_home,
             target_dir: target.clone(),
         };
-        let prepared = prepare_fixture("rich-rust-vendored-fixture");
+        let prepared = prepare_fixture_for_invocation(&invocation);
         let identity =
             crate::rich_cargo_snapshot::prepared_build_identity(&invocation, prepared.closure())
                 .unwrap();
+        let cargo_mutation_marker = invocation.cargo_home.join(".package-cache-mutate");
+        fs::write(&cargo_mutation_marker, b"Cargo cache lock").unwrap();
+        assert_eq!(
+            crate::rich_cargo_snapshot::prepared_build_identity(&invocation, prepared.closure())
+                .unwrap(),
+            identity
+        );
+        fs::remove_file(cargo_mutation_marker).unwrap();
+        let cargo_home_input = invocation.cargo_home.join("config.toml");
+        fs::write(&cargo_home_input, b"[net] offline = true\n").unwrap();
+        assert_ne!(
+            crate::rich_cargo_snapshot::prepared_build_identity(&invocation, prepared.closure())
+                .unwrap(),
+            identity
+        );
+        fs::remove_file(cargo_home_input).unwrap();
         let profile = profile(&identity, NativeBuildPolicy::TrustedHost);
         let authority = authorize(&profile, &invocation, prepared.closure()).unwrap();
         assert_eq!(
@@ -1069,6 +1086,32 @@ mod tests {
                 .unwrap();
         assert_eq!(receipt.closure_digest(), prepared.closure().digest());
         assert!(target.join("debug").is_dir());
+        let output = target.join("published-bundle");
+        let published = crate::rich_cargo_publication::publish_locked_cargo_artifacts(
+            &invocation,
+            prepared.closure(),
+            &authority,
+            &receipt,
+            &output,
+        )
+        .unwrap();
+        assert_eq!(published.closure_digest(), prepared.closure().digest());
+        let bundle_receipt = fs::read(output.join("receipt.json")).unwrap();
+        let bundle_payload = fs::read(output.join("artifacts.bin")).unwrap();
+        assert!(!bundle_payload.is_empty());
+        assert_eq!(fs::read_dir(&output).unwrap().count(), 2);
+        assert_eq!(
+            crate::rich_cargo_publication::publish_locked_cargo_artifacts(
+                &invocation,
+                prepared.closure(),
+                &authority,
+                &receipt,
+                &output,
+            ),
+            Err(CargoExecutionError::PublicationFailed)
+        );
+        assert_eq!(fs::read(output.join("receipt.json")).unwrap(), bundle_receipt);
+        assert_eq!(fs::read(output.join("artifacts.bin")).unwrap(), bundle_payload);
         fs::remove_dir_all(target).unwrap();
     }
 
@@ -1084,6 +1127,7 @@ mod tests {
             SERIAL.fetch_add(1, Ordering::Relaxed)
         ));
         fs::create_dir(&target).unwrap();
+        let target = target.canonicalize().unwrap();
         let cargo_home = target.join("cargo-home");
         fs::create_dir(&cargo_home).unwrap();
         let cargo = configured_tool("CARGO");
@@ -1097,6 +1141,15 @@ mod tests {
             cargo_home,
             target_dir: target.clone(),
         };
+        let prepared = prepare_fixture_for_invocation(&invocation);
+        fs::remove_dir_all(target).unwrap();
+        prepared
+    }
+
+    fn prepare_fixture_for_invocation(
+        invocation: &ExplicitCargoInvocation,
+    ) -> CargoMetadataPreparation {
+        let fixture = &invocation.workspace;
         let metadata = collect_cargo_metadata(&invocation).unwrap();
         let sources = serde_json::from_slice::<serde_json::Value>(&metadata)
             .unwrap()
@@ -1155,7 +1208,6 @@ mod tests {
         )
         .unwrap();
         assert_eq!(prepared.metadata(), metadata);
-        fs::remove_dir_all(target).unwrap();
         prepared
     }
 

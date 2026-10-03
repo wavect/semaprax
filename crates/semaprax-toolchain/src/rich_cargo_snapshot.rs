@@ -178,6 +178,15 @@ impl Snapshot {
                 let kind = entry
                     .file_type()
                     .map_err(|_| CargoExecutionError::BuildInputsChanged)?;
+                if label == "cargo-home"
+                    && relative.as_os_str().is_empty()
+                    && name == ".package-cache-mutate"
+                {
+                    if !kind.is_file() {
+                        return Err(CargoExecutionError::BuildInputsChanged);
+                    }
+                    continue;
+                }
                 if kind.is_dir() {
                     pending.push((path, next));
                 } else if kind.is_file() {

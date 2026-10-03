@@ -244,9 +244,10 @@ temporary receiver through the selected Rust type's `From<i64>` implementation;
 the held stable compiler checks both that construction and a typed
 `fn(&Receiver, ...)` method pointer. The temporary is never carried across the
 C ABI. Bound HIR retains `shared` receiver mode, and Graph v54 records it with
-the index digest. Mutable, owned, trait, inaccessible, and non-scalar receivers
-fail before invocation. This projection does not claim a persistent Rust
-object or borrowed ownership across calls.
+the index digest. Mutable, owned, trait, and inaccessible methods, as well as
+non-scalar method arguments and results, fail before invocation. This
+projection does not claim a persistent Rust object or borrowed ownership
+across calls.
 
 Rich Rust bindings use a separate `semaprax.trusted-native-profile.v1`
 preparation boundary. A profile binds three opaque, exact byte inputs: the

@@ -713,7 +713,7 @@ mod tests {
             .iter()
             .any(
                 |dependency| dependency.get("name").and_then(serde_json::Value::as_str)
-                    == Some("renamed-shape")
+                    == Some("renamed_shape")
             ));
         let renamed_node = resolve
             .iter()
@@ -734,6 +734,50 @@ mod tests {
             .bytes()
             .windows(b"shape-target@0.1.0".len())
             .any(|window| window == b"shape-target@0.1.0"));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn missing_vendored_dependency_reports_the_exact_required_package() {
+        let fixture = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join(
+                "../semaprax-native-rust-interop-builder/tests/fixtures/rich-rust-missing-vendor-fixture",
+            )
+            .canonicalize()
+            .unwrap();
+        let target = std::env::temp_dir().join(format!(
+            "semaprax-ri02-missing-vendor-target-{}-{}",
+            std::process::id(),
+            SERIAL.fetch_add(1, Ordering::Relaxed)
+        ));
+        fs::create_dir(&target).unwrap();
+        let cargo_home = target.join("cargo-home");
+        fs::create_dir(&cargo_home).unwrap();
+        let cargo = configured_tool("CARGO");
+        let rustc = configured_tool("RUSTC");
+        let invocation = ExplicitCargoInvocation {
+            execution_path: test_execution_path(&cargo, &rustc),
+            cargo,
+            rustc,
+            workspace: fixture.clone(),
+            manifest: fixture.join("Cargo.toml"),
+            cargo_home,
+            target_dir: target.clone(),
+        };
+        let output = cargo_command(&invocation)
+            .arg("metadata")
+            .arg("--format-version=1")
+            .arg("--locked")
+            .arg("--offline")
+            .arg("--manifest-path")
+            .arg(&invocation.manifest)
+            .output()
+            .unwrap();
+        assert!(!output.status.success());
+        let stderr = String::from_utf8(output.stderr).unwrap();
+        assert!(stderr.contains("no matching package named `missing-vendor` found"));
+        assert!(stderr.contains("required by package `semaprax-ri02-missing-vendor-fixture"));
+        fs::remove_dir_all(target).unwrap();
     }
 
     #[test]

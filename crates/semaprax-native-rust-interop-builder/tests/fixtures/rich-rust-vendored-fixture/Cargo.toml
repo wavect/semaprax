@@ -9,3 +9,5 @@ fixture-vendor = "=0.1.0"
 
 [lints.rust]
 unsafe_code = "forbid"
+
+[workspace]

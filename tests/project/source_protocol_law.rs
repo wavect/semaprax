@@ -205,6 +205,16 @@ fn legal_retry_model_is_source_bound_and_finitely_checked() {
     })
     .unwrap_err();
     assert_eq!(refusal[0].code, "SPX-LP407");
+    let mut abstract_trace = report.clone();
+    abstract_trace.outcome = ProtocolSafetyOutcome::AbstractCounterexample { trace: vec![] };
+    let view: serde_json::Value = serde_json::from_str(&abstract_trace.to_json()).unwrap();
+    assert_eq!(view["trace_replay"], "abstract_only");
+    assert_eq!(view["status"], "violated");
+    let refusal = with_authenticated_project(&fixture.manifest(), |snapshot| {
+        replay(&abstract_trace, &snapshot.retain_revision()).map_err(|error| vec![error])
+    })
+    .unwrap_err();
+    assert_eq!(refusal[0].code, "SPX-LP407");
 }
 
 #[test]
@@ -242,6 +252,12 @@ fn source_mutation_and_missing_protocol_coverage_refuse() {
     })
     .unwrap_err();
     assert_eq!(refusal[0].code, "SPX-LP406");
+    let changed_initial = Fixture::new(&source(false).replace("initial Idle;", "initial Retry;"));
+    let refusal = with_authenticated_project(&changed_initial.manifest(), |snapshot| {
+        replay(&verified, &snapshot.retain_revision()).map_err(|error| vec![error])
+    })
+    .unwrap_err();
+    assert_eq!(refusal[0].code, "SPX-LP407");
     let out_of_domain =
         Fixture::new(&source(false).replace("event == 1 { 4 }", "event == 1 { 100 }"));
     let refusal = with_authenticated_project(&out_of_domain.manifest(), |snapshot| {
@@ -381,6 +397,18 @@ fn protected_source_protocol_law_requires_exact_replayed_source_and_bounds() {
         )?;
         let policy = strict_policy(&tiny, model.evidence_digest.clone());
         let refused = strict::derive(&revision, &tiny, &policy, &[])?;
+        let view: serde_json::Value = serde_json::from_str(&refused).unwrap();
+        assert_eq!(view["accepted"], false);
+        assert_eq!(
+            view["laws"][0]["failure"],
+            "law_missing_unsupported_or_open"
+        );
+        let mut assumed = selected_law(BOUNDS);
+        assumed.assumptions = vec!["payment.provider-accepts".into()];
+        assumed.laws[0].assumption_ids = assumed.assumptions.clone();
+        let assumed = LawSet::derive(&revision, "checked-v1", vec![assumed])?;
+        let policy = strict_policy(&assumed, model.evidence_digest.clone());
+        let refused = strict::derive(&revision, &assumed, &policy, &[])?;
         let view: serde_json::Value = serde_json::from_str(&refused).unwrap();
         assert_eq!(view["accepted"], false);
         assert_eq!(

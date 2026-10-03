@@ -3,6 +3,8 @@
 use crate::agent_runtime::AgentCancellation;
 use crate::diagnostic::Diagnostic;
 use crate::process_provider::{ProcessInvocationBudget, ProcessRequest, ProcessTermination};
+#[cfg(any(target_os = "linux", target_os = "macos"))]
+use sha2::{Digest as _, Sha256};
 use std::{cell::RefCell, path::Path};
 
 #[cfg(any(target_os = "linux", target_os = "macos"))]
@@ -44,6 +46,7 @@ pub struct InstalledProofTool {
     kind: ToolKind,
     modular_scalar: bool,
     expected_version: String,
+    executable_digest: String,
     limits: Limits,
     cancellation: AgentCancellation,
     budget: RefCell<ProcessInvocationBudget>,
@@ -97,6 +100,20 @@ impl InstalledProofTool {
     pub fn proof_timeout_ms(&self) -> u64 {
         self.limits.proof_timeout_ms
     }
+    /// Complete pinned process options included in logical proof-task keys.
+    pub(crate) fn proof_cache_active(&self) -> bool {
+        !self.cancellation.is_cancelled()
+    }
+    pub(crate) fn proof_cache_options(&self) -> (u64, u64, usize) {
+        (
+            self.limits.version_timeout_ms,
+            self.limits.proof_timeout_ms,
+            self.limits.stream_max,
+        )
+    }
+    pub(crate) fn proof_cache_executable_digest(&self) -> &str {
+        &self.executable_digest
+    }
     /// Acquisition is itself explicit execution authorization for the selected
     /// installed binary. No PATH lookup, inherited environment or installation.
     #[allow(clippy::too_many_arguments)]
@@ -128,8 +145,26 @@ impl InstalledProofTool {
             let executable = executable
                 .canonicalize()
                 .map_err(|_| refused("executable unavailable"))?;
-            let binary =
+            let mut binary =
                 std::fs::File::open(&executable).map_err(|_| refused("executable unavailable"))?;
+            let executable_digest = {
+                use std::io::{Read, Seek as _};
+                let mut hash = Sha256::new();
+                let mut buffer = [0u8; 64 * 1024];
+                loop {
+                    let size = binary
+                        .read(&mut buffer)
+                        .map_err(|_| refused("executable digest read failed"))?;
+                    if size == 0 {
+                        break;
+                    }
+                    hash.update(&buffer[..size]);
+                }
+                binary
+                    .rewind()
+                    .map_err(|_| refused("executable digest rewind failed"))?;
+                format!("sha256:{:x}", crate::digest_hex::LowerHex(hash.finalize()))
+            };
             let directory =
                 std::fs::File::open(cwd).map_err(|_| refused("working directory unavailable"))?;
             let arguments: fn(&[Vec<u8>]) -> bool = match kind {
@@ -154,6 +189,7 @@ impl InstalledProofTool {
                 kind,
                 modular_scalar: false,
                 expected_version: expected_version.to_owned(),
+                executable_digest,
                 limits,
                 cancellation,
                 budget: RefCell::new(ProcessInvocationBudget::new()),

@@ -500,7 +500,11 @@ pub(super) fn persist(root_path: &Path, payload: &[u8]) -> Result<SemanticCacheR
     Ok(receipt)
 }
 
-pub(super) fn load(root_path: &Path, expected_digest: &str) -> Result<ProjectFrontendCache> {
+fn load_with<T>(
+    root_path: &Path,
+    expected_digest: &str,
+    decode: impl FnOnce(&[u8]) -> Result<T>,
+) -> Result<T> {
     let mut compiler = Compiler::capture()?;
     let root = Root::open(root_path)?;
     let lock = root.lock(false)?;
@@ -514,15 +518,34 @@ pub(super) fn load(root_path: &Path, expected_digest: &str) -> Result<ProjectFro
     let mut file = open_file(&root, &name)?;
     let bytes = read_exact(&mut file, expected)?;
     let payload = super::authenticate(&bytes, expected_digest, &key.secret.0, &compiler.digest)?;
-    // This is the sole filesystem path to private HIR decoding: authentication
-    // has succeeded over every payload byte and the current compiler context.
-    let cache = crate::project::incremental::decode_snapshot(payload)?;
+    // No private decoder runs before the selected envelope and compiler
+    // installation have been authenticated under the held store lock.
+    let cache = decode(payload)?;
     unchanged(&root, &initial)?;
     selected(&root, &name, &mut file, expected, &bytes)?;
     key.recheck(&root)?;
     compiler.recheck()?;
     lock.release()?;
     Ok(cache)
+}
+
+pub(super) fn load(root_path: &Path, expected_digest: &str) -> Result<ProjectFrontendCache> {
+    load_with(
+        root_path,
+        expected_digest,
+        crate::project::incremental::decode_snapshot,
+    )
+}
+
+pub(super) fn load_modular_proofs(
+    root_path: &Path,
+    expected_digest: &str,
+) -> Result<crate::assurance_manifest::modular_law::cache::ProofTaskCache> {
+    load_with(
+        root_path,
+        expected_digest,
+        crate::assurance_manifest::modular_law::cache::ProofTaskCache::decode_snapshot,
+    )
 }
 
 pub(super) fn evict(

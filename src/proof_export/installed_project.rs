@@ -130,14 +130,21 @@ fn error(message: &str) -> Vec<Diagnostic> {
 /// Installed LAW-06 postcondition proof for an exact selected Project source.
 /// The result joins ordinary Project and LAW-04 strict assurance as one opaque
 /// `VerifiedProjectProof`; it carries no execution or publication authority.
-pub fn prove_modular_postcondition(
+fn prove_modular_postcondition_with<F>(
     revision: &ProjectRevision,
     source_path: &str,
     declaration: &str,
     index: usize,
     tool: &InstalledProofTool,
-) -> Result<VerifiedProjectProof, Vec<Diagnostic>> {
-    use crate::assurance_manifest::modular_law::{certificate, installed};
+    prove: F,
+) -> Result<VerifiedProjectProof, Vec<Diagnostic>>
+where
+    F: FnOnce() -> Result<
+        crate::assurance_manifest::modular_law::summary::ModularProof,
+        crate::assurance_manifest::modular_law::summary::ModularFailure,
+    >,
+{
+    use crate::assurance_manifest::modular_law::certificate;
     use sha2::{Digest as _, Sha256};
     if tool.kind() != ToolKind::Z3 {
         return Err(error("modular scalar postconditions require installed Z3"));
@@ -160,7 +167,7 @@ pub fn prove_modular_postcondition(
     if index >= function.ensures.len() {
         return Err(error("modular postcondition index is absent"));
     }
-    let proof = installed::prove_straight_line_installed(revision, declaration, tool)
+    let proof = prove()
         .map_err(|reason| error(&format!("modular proof was not established: {reason:?}")))?;
     if index >= proof.caller_postcondition_scripts.len() {
         return Err(error("modular postcondition was not checked"));
@@ -191,6 +198,62 @@ pub fn prove_modular_postcondition(
         source.source_revision().into(),
         source.source_digest().into(),
         proof_ref,
+    ))
+}
+
+/// Prove every current modular query with registered installed Z3.
+pub fn prove_modular_postcondition(
+    revision: &ProjectRevision,
+    source_path: &str,
+    declaration: &str,
+    index: usize,
+    tool: &InstalledProofTool,
+) -> Result<VerifiedProjectProof, Vec<Diagnostic>> {
+    prove_modular_postcondition_with(revision, source_path, declaration, index, tool, || {
+        crate::assurance_manifest::modular_law::installed::prove_straight_line_installed(
+            revision,
+            declaration,
+            tool,
+        )
+    })
+}
+
+/// Rebuild exact current-Project evidence from checked logical-query reuse.
+/// Only the compiler-owned cache's private installed-Z3 successes may be reused;
+/// the old source-bound proof or certificate is never rewritten.
+pub fn prove_modular_postcondition_cached(
+    project_root: &std::path::Path,
+    revision: &ProjectRevision,
+    source_path: &str,
+    declaration: &str,
+    index: usize,
+    tool: &InstalledProofTool,
+    cache: &mut crate::assurance_manifest::modular_law::cache::ProofTaskCache,
+) -> Result<
+    (
+        VerifiedProjectProof,
+        crate::assurance_manifest::modular_law::cache::WorkMetrics,
+    ),
+    Vec<Diagnostic>,
+> {
+    let mut work = None;
+    let proof = prove_modular_postcondition_with(
+        revision,
+        source_path,
+        declaration,
+        index,
+        tool,
+        || {
+            let cached = crate::assurance_manifest::modular_law::cache::prove_straight_line_installed_cached(
+            project_root, revision, declaration, tool, cache,
+        )?;
+            work = Some(cached.work);
+            Ok(cached.proof)
+        },
+    )?;
+    Ok((
+        proof,
+        work.expect("successful cache proof records work metrics"),
     ))
 }
 

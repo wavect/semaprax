@@ -5,6 +5,7 @@
 //! exact topological order. The per-function digest excludes unrelated source
 //! rows; the separate Project revision still binds any eventual attachment.
 
+pub mod cache;
 pub mod certificate;
 pub mod inline;
 pub mod installed;

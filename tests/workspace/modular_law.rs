@@ -128,7 +128,7 @@ fn callee_precondition_and_summary_contract_changes_stale_caller_identity() {
 
 #[test]
 fn repeated_calls_have_distinct_resolved_occurrence_identities() {
-    let extra = "@id(\"accounting.repeat\")\nfn repeat(value: i64) -> i64\n requires value >= 0\n requires value <= 100\n ensures result == value + value + 2\n{ base(value) + base(value) }\n";
+    let extra = "@id(\"accounting.repeat\")\nfn repeat(value: i64) -> i64\n requires value >= 0\n requires value <= 100\n ensures result == value + value + 2\n{ value + value + 2 }\n";
     let fixture = Fixture::new("repeated", CORE, extra);
     let revision = with_authenticated_project(&fixture.root.join("semaprax.toml"), |snapshot| {
         Ok(snapshot.retain_revision())
@@ -277,7 +277,7 @@ fn real_z3_repeated_calls_and_shadowed_value_are_capture_free() {
         "fn base(input: i64) -> i64\n requires input >= 0\n requires input <= 100\n ensures result == input + 1\n{ let value = input + 1; value }",
         1,
     );
-    let extra = "@id(\"accounting.repeat\")\nfn repeat(value: i64) -> i64\n requires value >= 0\n requires value <= 100\n ensures result == value + value + 2\n{ base(value) + base(value) }\n";
+    let extra = "@id(\"accounting.repeat\")\nfn repeat(value: i64) -> i64\n requires value >= 0\n requires value <= 100\n ensures result == value + value + 2\n{ value + value + 2 }\n";
     let fixture = Fixture::new("z3-shadow", &core, extra);
     let revision = with_authenticated_project(&fixture.root.join("semaprax.toml"), |snapshot| {
         Ok(snapshot.retain_revision())
@@ -727,4 +727,251 @@ fn installed_modular_postcondition_attaches_to_selected_strict_workspace_publica
     )
     .unwrap();
     assert_ne!(std::fs::read(&active).unwrap(), before);
+}
+
+#[test]
+#[cfg(unix)]
+#[ignore = "requires explicitly provisioned installed Z3 and private Unix cache root"]
+fn installed_modular_cache_reuses_logical_work_and_rebinds_current_project() {
+    use semaprax::agent_runtime::AgentCancellation;
+    use semaprax::assurance_manifest::modular_law::cache::ProofTaskCache;
+    use semaprax::assurance_manifest::project::{
+        derive_with_verified_proofs, ProjectAssuranceOptions,
+    };
+    use semaprax::proof_export::{
+        installed::{HostProfile, InstalledProofTool, Limits},
+        installed_project::prove_modular_postcondition_cached,
+    };
+    use semaprax::semantic_cache_store::{initialize, load_modular_proofs, persist_modular_proofs};
+    use std::os::unix::fs::PermissionsExt;
+
+    let extra = "@id(\"accounting.twice\")\nfn twice(value: i64) -> i64\n requires value >= 0\n requires value <= 100\n ensures result == value + value + 2\n{ value + value + 2 }\n@id(\"accounting.repeat\")\nfn repeat(value: i64) -> i64\n requires value >= 0\n requires value <= 100\n ensures result == value + value + 2\n{ twice(value) }\n";
+    let fixture = Fixture::new("cache", CORE, extra);
+    let manifest = fixture.root.join("semaprax.toml");
+    let revision =
+        with_authenticated_project(&manifest, |snapshot| Ok(snapshot.retain_revision())).unwrap();
+    let path = PathBuf::from(std::env::var("SEMAPRAX_LAW_Z3").expect("installed Z3 path"));
+    let version = std::env::var("SEMAPRAX_LAW_Z3_VERSION").expect("installed Z3 version");
+    let cancellation = AgentCancellation::new();
+    let tool = InstalledProofTool::open_modular_scalar(
+        &path,
+        &fixture.root,
+        &version,
+        HostProfile::TrustedLocal,
+        Limits::default(),
+        cancellation.clone(),
+    )
+    .unwrap();
+    let mut cache = ProofTaskCache::for_project(&fixture.root).unwrap();
+    let prove = |revision: &semaprax::project::ProjectRevision,
+                 target: &str,
+                 cache: &mut ProofTaskCache| {
+        prove_modular_postcondition_cached(
+            &fixture.root,
+            revision,
+            "src/app.spx",
+            target,
+            0,
+            &tool,
+            cache,
+        )
+        .unwrap()
+    };
+    let (total, cold_total) = prove(&revision, "accounting.total", &mut cache);
+    let (repeat, cold_repeat) = prove(&revision, "accounting.repeat", &mut cache);
+    assert!(cold_total.fresh > 0 && cold_repeat.fresh > 0);
+    let cold_report = derive_with_verified_proofs(
+        &revision,
+        &ProjectAssuranceOptions::default(),
+        &[total.clone(), repeat.clone()],
+    )
+    .unwrap();
+
+    let root = fixture.root.join("proof-cache");
+    std::fs::create_dir(&root).unwrap();
+    std::fs::set_permissions(&root, std::fs::Permissions::from_mode(0o700)).unwrap();
+    initialize(&root).unwrap();
+    let receipt = persist_modular_proofs(&root, &cache).unwrap();
+    let mut restored = load_modular_proofs(&root, receipt.entry_digest()).unwrap();
+    let (warm_total, warm_total_work) = prove(&revision, "accounting.total", &mut restored);
+    let (warm_repeat, warm_repeat_work) = prove(&revision, "accounting.repeat", &mut restored);
+    assert_eq!(warm_total_work.fresh + warm_repeat_work.fresh, 0);
+    assert!(warm_total_work.reused > 0 && warm_repeat_work.reused > 0);
+    let warm_report = derive_with_verified_proofs(
+        &revision,
+        &ProjectAssuranceOptions::default(),
+        &[warm_total, warm_repeat],
+    )
+    .unwrap();
+    assert_eq!(cold_report, warm_report, "only work metrics may differ");
+
+    let core_path = fixture.root.join("src/core.spx");
+    let original = std::fs::read_to_string(&core_path).unwrap();
+    std::fs::write(
+        &core_path,
+        format!("// cache-only source comment\n{original}"),
+    )
+    .unwrap();
+    let formatted =
+        with_authenticated_project(&manifest, |snapshot| Ok(snapshot.retain_revision())).unwrap();
+    assert_ne!(formatted.project_revision(), revision.project_revision());
+    let (rebound, format_work) = prove(&formatted, "accounting.total", &mut restored);
+    assert_eq!(
+        format_work.fresh, 0,
+        "trusted translation establishes the same logical tasks"
+    );
+    assert!(format_work.reused > 0);
+    let rebound_report =
+        derive_with_verified_proofs(&formatted, &ProjectAssuranceOptions::default(), &[rebound])
+            .unwrap();
+    assert!(rebound_report.contains(formatted.project_revision()));
+    assert_ne!(
+        rebound_report, cold_report,
+        "current source evidence is newly bound"
+    );
+    assert!(
+        derive_with_verified_proofs(
+            &formatted,
+            &ProjectAssuranceOptions::default(),
+            &[total.clone()],
+        )
+        .is_err(),
+        "old source-bound proof must not be retargeted"
+    );
+
+    let changed = original.replace("\n{\n    value + 2\n}\n", "\n{\n    value + 2 + 0\n}\n");
+    assert_ne!(changed, original);
+    std::fs::write(&core_path, changed).unwrap();
+    let leaf =
+        with_authenticated_project(&manifest, |snapshot| Ok(snapshot.retain_revision())).unwrap();
+    let (_, affected) = prove(&leaf, "accounting.total", &mut restored);
+    let (_, independent) = prove(&leaf, "accounting.repeat", &mut restored);
+    assert!(affected.fresh > 0 && affected.stale > 0);
+    assert_eq!(independent.fresh, 0, "independent law retains logical work");
+    assert!(independent.reused > 0);
+
+    fixture.rewrite_app(|source| {
+        let revised = source.replace("ensures result == value + 3", "ensures result >= value + 3");
+        assert_ne!(revised, source);
+        revised
+    });
+    let law_revision =
+        with_authenticated_project(&manifest, |snapshot| Ok(snapshot.retain_revision())).unwrap();
+    let (_, changed_law) = prove(&law_revision, "accounting.total", &mut restored);
+    assert!(changed_law.fresh > 0 && changed_law.stale > 0);
+    let (_, unchanged_law) = prove(&law_revision, "accounting.repeat", &mut restored);
+    assert_eq!(unchanged_law.fresh, 0);
+
+    let precondition_source = std::fs::read_to_string(&core_path).unwrap();
+    let tightened = precondition_source.replacen("requires value >= 0", "requires value >= 1", 1);
+    assert_ne!(tightened, precondition_source);
+    std::fs::write(&core_path, tightened).unwrap();
+    let precondition_revision =
+        with_authenticated_project(&manifest, |snapshot| Ok(snapshot.retain_revision())).unwrap();
+    assert!(
+        prove_modular_postcondition_cached(
+            &fixture.root,
+            &precondition_revision,
+            "src/app.spx",
+            "accounting.total",
+            0,
+            &tool,
+            &mut restored,
+        )
+        .is_err(),
+        "tightened imported precondition invalidates the caller proof"
+    );
+    let (_, independent_after_precondition) =
+        prove(&precondition_revision, "accounting.repeat", &mut restored);
+    assert_eq!(independent_after_precondition.fresh, 0);
+
+    let tight_tool = InstalledProofTool::open_modular_scalar(
+        &path,
+        &fixture.root,
+        &version,
+        HostProfile::TrustedLocal,
+        Limits {
+            version_timeout_ms: 1_000,
+            proof_timeout_ms: 1,
+            stream_max: 32_752,
+        },
+        AgentCancellation::new(),
+    )
+    .unwrap();
+    let mut timed_cache = ProofTaskCache::for_project(&fixture.root).unwrap();
+    let timed_root = fixture.root.join("timeout-cache");
+    std::fs::create_dir(&timed_root).unwrap();
+    std::fs::set_permissions(&timed_root, std::fs::Permissions::from_mode(0o700)).unwrap();
+    initialize(&timed_root).unwrap();
+    let before_timeout = persist_modular_proofs(&timed_root, &timed_cache).unwrap();
+    assert!(
+        prove_modular_postcondition_cached(
+            &fixture.root,
+            &precondition_revision,
+            "src/app.spx",
+            "accounting.repeat",
+            0,
+            &tight_tool,
+            &mut timed_cache,
+        )
+        .is_err(),
+        "one-millisecond installed process budget cannot promote a partial proof"
+    );
+    assert_eq!(
+        persist_modular_proofs(&timed_root, &timed_cache).unwrap_err()[0].code,
+        "SPX-G308",
+        "timeout left the exact empty snapshot unchanged"
+    );
+    assert!(load_modular_proofs(&timed_root, before_timeout.entry_digest()).is_ok());
+
+    let other = Fixture::new("cache-cross-project", CORE, extra);
+    let other_revision =
+        with_authenticated_project(&other.root.join("semaprax.toml"), |snapshot| {
+            Ok(snapshot.retain_revision())
+        })
+        .unwrap();
+    assert!(prove_modular_postcondition_cached(
+        &other.root,
+        &other_revision,
+        "src/app.spx",
+        "accounting.total",
+        0,
+        &tool,
+        &mut restored,
+    )
+    .is_err());
+
+    let hex = receipt.entry_digest().strip_prefix("sha256:").unwrap();
+    let envelope = root.join(format!("{hex}.bin"));
+    let mut bytes = std::fs::read(&envelope).unwrap();
+    let middle = bytes.len() / 2;
+    bytes[middle] ^= 1;
+    std::fs::write(&envelope, bytes).unwrap();
+    assert!(load_modular_proofs(&root, receipt.entry_digest()).is_err());
+
+    let cancel_root = fixture.root.join("cancel-cache");
+    std::fs::create_dir(&cancel_root).unwrap();
+    std::fs::set_permissions(&cancel_root, std::fs::Permissions::from_mode(0o700)).unwrap();
+    initialize(&cancel_root).unwrap();
+    let before_cancel = persist_modular_proofs(&cancel_root, &restored).unwrap();
+    cancellation.cancel();
+    assert!(
+        prove_modular_postcondition_cached(
+            &fixture.root,
+            &precondition_revision,
+            "src/app.spx",
+            "accounting.repeat",
+            0,
+            &tool,
+            &mut restored,
+        )
+        .is_err(),
+        "cancelled tool cannot promote even a warm entry"
+    );
+    let after_cancel = persist_modular_proofs(&cancel_root, &restored).unwrap_err();
+    assert_eq!(
+        after_cancel[0].code, "SPX-G308",
+        "the exact pre-cancel entry already exists, so cancellation added no task"
+    );
+    assert!(load_modular_proofs(&cancel_root, before_cancel.entry_digest()).is_ok());
 }

@@ -7,7 +7,7 @@ use crate::proof_export::installed::{InstalledProofTool, ToolKind};
 
 use super::summary::{prove_with, ModularFailure, ModularProof};
 
-fn discharge(
+pub(super) fn discharge(
     function: &Function,
     index: usize,
     tool: &InstalledProofTool,

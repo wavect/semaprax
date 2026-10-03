@@ -387,18 +387,25 @@ pub(super) fn prepare(revision: &ProjectRevision, target: &str) -> Result<Prepar
     })
 }
 
-pub(super) fn prove_with<F>(
-    revision: &ProjectRevision,
-    target: &str,
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) enum QueryKind {
+    Callee,
+    Precondition,
+    Caller,
+}
+
+/// Execute an already prepared dependency-ordered query inventory. The cache
+/// path and uncached path share this exact acceptance loop.
+pub(super) fn prove_prepared<F>(
+    prepared: Prepared,
     mut discharge: F,
 ) -> Result<ModularProof, ModularFailure>
 where
-    F: FnMut(&Function, usize) -> Result<DischargeOutcome, String>,
+    F: FnMut(QueryKind, &Query) -> Result<DischargeOutcome, String>,
 {
-    let prepared = prepare(revision, target).map_err(ModularFailure::Refused)?;
     let mut checked_callee_clauses = Vec::new();
     for query in &prepared.callees {
-        match discharge(&query.function, query.index).map_err(ModularFailure::CalleeProof)? {
+        match discharge(QueryKind::Callee, query).map_err(ModularFailure::CalleeProof)? {
             DischargeOutcome::Proved {
                 script_digest,
                 solver_identity,
@@ -425,7 +432,7 @@ where
     let mut precondition_obligation_ids = Vec::new();
     let mut precondition_scripts = Vec::new();
     for query in &prepared.preconditions {
-        match discharge(&query.function, query.index).map_err(|reason| {
+        match discharge(QueryKind::Precondition, query).map_err(|reason| {
             ModularFailure::Precondition {
                 callee: query.declaration_id.clone(),
                 reason,
@@ -452,7 +459,7 @@ where
     let mut caller_postcondition_obligation_ids = Vec::new();
     let mut caller_postcondition_scripts = Vec::new();
     for query in &prepared.caller {
-        match discharge(&query.function, query.index)
+        match discharge(QueryKind::Caller, query)
             .map_err(|reason| ModularFailure::Postcondition { reason })?
         {
             DischargeOutcome::Proved { script_digest, .. } => {
@@ -477,6 +484,18 @@ where
         caller_postcondition_obligation_ids,
         caller_postcondition_scripts,
     })
+}
+
+pub(super) fn prove_with<F>(
+    revision: &ProjectRevision,
+    target: &str,
+    mut discharge: F,
+) -> Result<ModularProof, ModularFailure>
+where
+    F: FnMut(&Function, usize) -> Result<DischargeOutcome, String>,
+{
+    let prepared = prepare(revision, target).map_err(ModularFailure::Refused)?;
+    prove_prepared(prepared, |_, query| discharge(&query.function, query.index))
 }
 
 /// Prove a straight-line caller using exact, separately checked callee

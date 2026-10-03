@@ -191,6 +191,80 @@ pub fn load(root: &Path, expected_digest: &str) -> Result<ProjectFrontendCache> 
     }
 }
 
+/// Persist only compiler-owned installed modular proof successes through the
+/// same private host-selected envelope, lock, quota and retention boundary as
+/// checked-module semantic caches. The payload is a distinct versioned codec;
+/// no arbitrary byte signer or proof constructor is exposed.
+pub fn persist_modular_proofs(
+    root: &Path,
+    cache: &crate::assurance_manifest::modular_law::cache::ProofTaskCache,
+) -> Result<SemanticCacheReceipt> {
+    #[cfg(all(
+        unix,
+        any(
+            target_os = "linux",
+            target_os = "android",
+            target_vendor = "apple",
+            target_os = "redox"
+        )
+    ))]
+    {
+        let payload = cache.encode_snapshot()?;
+        unix::persist(root, &payload)
+    }
+    #[cfg(not(all(
+        unix,
+        any(
+            target_os = "linux",
+            target_os = "android",
+            target_vendor = "apple",
+            target_os = "redox"
+        )
+    )))]
+    {
+        let _ = (root, cache);
+        Err(io(
+            "semantic cache store requires supported Unix filesystem authority",
+        ))
+    }
+}
+
+/// Authenticate the complete selected envelope before decoding checked proof
+/// tasks. A restored task never bypasses live HIR translation/key comparison.
+pub fn load_modular_proofs(
+    root: &Path,
+    expected_digest: &str,
+) -> Result<crate::assurance_manifest::modular_law::cache::ProofTaskCache> {
+    digest_hex(expected_digest)?;
+    #[cfg(all(
+        unix,
+        any(
+            target_os = "linux",
+            target_os = "android",
+            target_vendor = "apple",
+            target_os = "redox"
+        )
+    ))]
+    {
+        unix::load_modular_proofs(root, expected_digest)
+    }
+    #[cfg(not(all(
+        unix,
+        any(
+            target_os = "linux",
+            target_os = "android",
+            target_vendor = "apple",
+            target_os = "redox"
+        )
+    )))]
+    {
+        let _ = (root, expected_digest);
+        Err(io(
+            "semantic cache store requires supported Unix filesystem authority",
+        ))
+    }
+}
+
 /// Remove one exact derived entry under the store's ordinary exclusive lock.
 /// The key, other entries, canonical source, and host policy are unchanged.
 /// A failure after the namespace pivot is reported as uncertainty and must not

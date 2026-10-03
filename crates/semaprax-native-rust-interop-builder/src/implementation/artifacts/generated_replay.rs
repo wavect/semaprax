@@ -26,7 +26,17 @@ pub(super) fn replay_header_exact(
     imports: &[ImportFact],
 ) -> bool {
     let mut replay = ExactReplay::new(source);
-    replay.text("#ifndef SEMAPRAX_NATIVE_RUST_INTEROP_H\n#define SEMAPRAX_NATIVE_RUST_INTEROP_H\n#include <stdint.h>\n#include <stddef.h>\n#ifdef __cplusplus\nextern \"C\" {\n#endif\ntypedef uint64_t spxnr_status_v1;\ntypedef struct spxnr_imports_v1 spxnr_imports_v1;\ntypedef struct { uint32_t abi_version; uint32_t size; void *userdata; const spxnr_imports_v1 *imports; uint8_t capabilities_digest[32]; uint32_t call_depth; uint32_t reserved; } spxnr_context_v1;\nstruct spxnr_imports_v1 { uint32_t abi_version; uint32_t size;");
+    replay.text("#ifndef SEMAPRAX_NATIVE_RUST_INTEROP_H\n#define SEMAPRAX_NATIVE_RUST_INTEROP_H\n#include <stdint.h>\n#include <stddef.h>\n#ifdef __cplusplus\nextern \"C\" {\n#endif\ntypedef uint64_t spxnr_status_v1;\ntypedef struct spxnr_imports_v1 spxnr_imports_v1;\ntypedef struct { uint32_t abi_version; uint32_t size; void *userdata; const spxnr_imports_v1 *imports; uint8_t capabilities_digest[32]; uint32_t call_depth; uint32_t reserved; } spxnr_context_v1;\n");
+    if imports
+        .iter()
+        .any(|import| import.result == ScalarType::ResultI64I64)
+        || exports
+            .iter()
+            .any(|export| export.result == ScalarType::ResultI64I64)
+    {
+        replay.text("typedef struct { uint8_t tag; uint8_t reserved[7]; int64_t payload; } spxnr_result_i64_i64_v1;\n");
+    }
+    replay.text("struct spxnr_imports_v1 { uint32_t abi_version; uint32_t size;");
     for import in imports {
         replay.text(" spxnr_status_v1 (*");
         replay.text(&import.c_field);
@@ -71,6 +81,7 @@ fn replay_rust_scalar(replay: &mut ExactReplay<'_>, ty: ScalarType) {
         ScalarType::I64 => "i64",
         ScalarType::Bool => "bool",
         ScalarType::Unit => "()",
+        ScalarType::ResultI64I64 => "core::result::Result<i64,i64>",
     });
 }
 
@@ -149,6 +160,7 @@ fn replay_ffi_wire_scalar(replay: &mut ExactReplay<'_>, ty: ScalarType) {
         ScalarType::I64 => "i64",
         ScalarType::Bool => "u8",
         ScalarType::Unit => "()",
+        ScalarType::ResultI64I64 => "ResultWire",
     });
 }
 
@@ -169,11 +181,24 @@ pub(super) fn replay_private_ffi_exact(
         }
         if import.result != ScalarType::Unit {
             replay.text(", *mut ");
-            replay_ffi_wire_scalar(&mut replay, import.result);
+            if import.result == ScalarType::ResultI64I64 {
+                replay_ffi_wire_scalar(&mut replay, import.result);
+            } else {
+                replay_rust_scalar(&mut replay, import.result);
+            }
         }
         replay.text(")->u64,");
     }
     replay.text(" }\n#[repr(C)]struct Context{abi_version:u32,size:u32,userdata:*mut c_void,imports:*const Imports,capabilities_digest:[u8;32],call_depth:u32,reserved:u32}\n");
+    if imports
+        .iter()
+        .any(|import| import.result == ScalarType::ResultI64I64)
+        || exports
+            .iter()
+            .any(|export| export.result == ScalarType::ResultI64I64)
+    {
+        replay.text("#[repr(C)]#[derive(Clone,Copy)]struct ResultWire{tag:u8,reserved:[u8;7],payload:i64}\n");
+    }
     if !imports.is_empty() {
         replay.text("struct Frame<H>{host:*mut H,calls:*mut u32}\n");
     }
@@ -233,7 +258,7 @@ pub(super) fn replay_private_ffi_exact(
         }
         if import.result != ScalarType::Unit {
             replay.text("if result_out.is_null()||(result_out as usize)%core::mem::align_of::<");
-            replay_rust_scalar(&mut replay, import.result);
+            replay_ffi_wire_scalar(&mut replay, import.result);
             replay.text(">()!=0{return adapter(5);}");
         }
         replay.text("if (userdata as usize)%core::mem::align_of::<Frame<H>>()!=0{return adapter(1);}let frame=&mut*(userdata as *mut Frame<H>);if frame.host.is_null()||frame.calls.is_null()||*frame.calls>=4096{return adapter(7);}*frame.calls+=1;let run=std::panic::catch_unwind(std::panic::AssertUnwindSafe(||{let host=&mut *frame.host;host.");
@@ -262,6 +287,8 @@ pub(super) fn replay_private_ffi_exact(
         }
         if import.result == ScalarType::Unit {
             replay.text("Ok(NativeRustImportResult::Success(()))=>0}}}\n");
+        } else if import.result == ScalarType::ResultI64I64 {
+            replay.text("Ok(NativeRustImportResult::Success(value))=>{*result_out=match value{Ok(payload)=>ResultWire{tag:0,reserved:[0;7],payload},Err(payload)=>ResultWire{tag:1,reserved:[0;7],payload}};0}}}\n");
         } else {
             replay.text("Ok(NativeRustImportResult::Success(value))=>{*result_out=");
             if import.result == ScalarType::Bool {
@@ -319,6 +346,9 @@ pub(super) fn replay_private_ffi_exact(
             ScalarType::Bool => {
                 replay.text("let mut result=core::mem::MaybeUninit::<u8>::uninit();")
             }
+            ScalarType::ResultI64I64 => {
+                replay.text("let mut result=core::mem::MaybeUninit::<ResultWire>::uninit();")
+            }
         }
         replay.text("let status=");
         replay.text(&export.c_symbol);
@@ -342,6 +372,7 @@ pub(super) fn replay_private_ffi_exact(
             ScalarType::Unit => replay.text("Ok(())"),
             ScalarType::I64 => replay.text("Ok(result.assume_init())"),
             ScalarType::Bool => replay.text("let value=result.assume_init();if value>1{return Err(NativeRustCallError::AdapterRejected)}Ok(value!=0)"),
+            ScalarType::ResultI64I64 => replay.text("let value=result.assume_init();if value.reserved!=[0;7]{return Err(NativeRustCallError::AdapterRejected)}match value.tag{0=>Ok(Ok(value.payload)),1=>Ok(Err(value.payload)),_=>Err(NativeRustCallError::AdapterRejected)}"),
         }
         replay.text(" }}\n");
     }
@@ -353,6 +384,7 @@ pub(super) fn replay_c_scalar(ty: ScalarType) -> &'static str {
         ScalarType::I64 => "int64_t",
         ScalarType::Bool => "uint8_t",
         ScalarType::Unit => "void",
+        ScalarType::ResultI64I64 => "spxnr_result_i64_i64_v1",
     }
 }
 
@@ -392,6 +424,7 @@ pub(super) fn replay_resolved_scalar(ty: &ResolvedType) -> Option<ScalarType> {
         ResolvedType::Unit => Some(ScalarType::Unit),
         ResolvedType::I64 => Some(ScalarType::I64),
         ResolvedType::Bool => Some(ScalarType::Bool),
+        ty if ty.is_compiler_i64_result() => Some(ScalarType::ResultI64I64),
         _ => None,
     }
 }

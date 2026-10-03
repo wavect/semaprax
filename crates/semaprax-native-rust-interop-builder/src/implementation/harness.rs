@@ -36,6 +36,7 @@ fn render_rust_harness(
                 ScalarType::Unit => "NativeRustImportResult::Success(())",
                 ScalarType::Bool => "NativeRustImportResult::Success(false)",
                 ScalarType::I64 => "NativeRustImportResult::Success(0)",
+                ScalarType::ResultI64I64 => "NativeRustImportResult::Success(Ok(0))",
             }
         )?;
     }

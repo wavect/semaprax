@@ -107,6 +107,7 @@ fn generate_private_ffi_into(
                 ScalarType::I64 => "i64".to_owned(),
                 ScalarType::Bool => "u8".to_owned(),
                 ScalarType::Unit => "()".to_owned(),
+                ScalarType::ResultI64I64 => "ResultWire".to_owned(),
             })
             .collect::<Vec<_>>();
         let parameters = parameter_values.join(",");
@@ -147,6 +148,15 @@ fn generate_private_ffi_into(
             .saturating_add(import_table.capacity()),
     );
     write!(output, "#![allow(unsafe_code)]\nuse super::api::*;\nuse core::ffi::c_void;\n#[repr(C)]struct Imports{{abi_version:u32,size:u32,{import_table} }}\n#[repr(C)]struct Context{{abi_version:u32,size:u32,userdata:*mut c_void,imports:*const Imports,capabilities_digest:[u8;32],call_depth:u32,reserved:u32}}\n").unwrap();
+    if imports
+        .iter()
+        .any(|import| import.result == ScalarType::ResultI64I64)
+        || exports
+            .iter()
+            .any(|export| export.result == ScalarType::ResultI64I64)
+    {
+        output.write_str("#[repr(C)]#[derive(Clone,Copy)]struct ResultWire{tag:u8,reserved:[u8;7],payload:i64}\n").unwrap();
+    }
     if !imports.is_empty() {
         output
             .write_str("struct Frame<H>{host:*mut H,calls:*mut u32}\n")
@@ -189,6 +199,7 @@ fn generate_private_ffi_into(
                         ScalarType::I64 => "i64",
                         ScalarType::Bool => "u8",
                         ScalarType::Unit => "()",
+                        ScalarType::ResultI64I64 => "ResultWire",
                     }
                 )
             })
@@ -203,6 +214,7 @@ fn generate_private_ffi_into(
                     ScalarType::I64 => "i64",
                     ScalarType::Bool => "u8",
                     ScalarType::Unit => "()",
+                    ScalarType::ResultI64I64 => "ResultWire",
                 }
             )
         };
@@ -221,7 +233,7 @@ fn generate_private_ffi_into(
             }
         }
         if import.result != ScalarType::Unit {
-            write!(output,"if result_out.is_null()||(result_out as usize)%core::mem::align_of::<{}>()!=0{{return adapter(5);}}",rust_type(import.result)).unwrap();
+            write!(output,"if result_out.is_null()||(result_out as usize)%core::mem::align_of::<{}>()!=0{{return adapter(5);}}",if import.result == ScalarType::ResultI64I64 { rust_ffi_wire_type(import.result) } else { rust_type(import.result) }).unwrap();
         }
         let call_argument_values = import
             .parameters
@@ -258,6 +270,8 @@ fn generate_private_ffi_into(
             output
                 .write_str("Ok(NativeRustImportResult::Success(()))=>0}}}\n")
                 .unwrap();
+        } else if import.result == ScalarType::ResultI64I64 {
+            output.write_str("Ok(NativeRustImportResult::Success(value))=>{*result_out=match value{Ok(payload)=>ResultWire{tag:0,reserved:[0;7],payload},Err(payload)=>ResultWire{tag:1,reserved:[0;7],payload}};0}}}\n").unwrap();
         } else {
             write!(
                 output,
@@ -312,6 +326,9 @@ fn generate_private_ffi_into(
             ScalarType::Unit => String::new(),
             ScalarType::I64 => "let mut result=core::mem::MaybeUninit::<i64>::uninit();".to_owned(),
             ScalarType::Bool => "let mut result=core::mem::MaybeUninit::<u8>::uninit();".to_owned(),
+            ScalarType::ResultI64I64 => {
+                "let mut result=core::mem::MaybeUninit::<ResultWire>::uninit();".to_owned()
+            }
         };
         let publish = match export.result {
             ScalarType::Unit => "Ok(())",
@@ -319,6 +336,7 @@ fn generate_private_ffi_into(
             ScalarType::Bool => {
                 "let value=result.assume_init();if value>1{return Err(NativeRustCallError::AdapterRejected)}Ok(value!=0)"
             }
+            ScalarType::ResultI64I64 => "let value=result.assume_init();if value.reserved!=[0;7]{return Err(NativeRustCallError::AdapterRejected)}match value.tag{0=>Ok(Ok(value.payload)),1=>Ok(Err(value.payload)),_=>Err(NativeRustCallError::AdapterRejected)}",
         };
         let parameters = rust_parameters(&export.parameters);
         let callback_values = imports

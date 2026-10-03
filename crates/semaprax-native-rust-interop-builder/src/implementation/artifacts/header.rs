@@ -72,8 +72,20 @@ pub(in crate::implementation) fn generate_header_with_limit(
     }
     render_exact_artifact("max_generated_header_bytes", maximum, |sink| {
         sink.write_str(
-                "#ifndef SEMAPRAX_NATIVE_RUST_INTEROP_H\n#define SEMAPRAX_NATIVE_RUST_INTEROP_H\n#include <stdint.h>\n#include <stddef.h>\n#ifdef __cplusplus\nextern \"C\" {\n#endif\ntypedef uint64_t spxnr_status_v1;\ntypedef struct spxnr_imports_v1 spxnr_imports_v1;\ntypedef struct { uint32_t abi_version; uint32_t size; void *userdata; const spxnr_imports_v1 *imports; uint8_t capabilities_digest[32]; uint32_t call_depth; uint32_t reserved; } spxnr_context_v1;\nstruct spxnr_imports_v1 { uint32_t abi_version; uint32_t size;",
+                "#ifndef SEMAPRAX_NATIVE_RUST_INTEROP_H\n#define SEMAPRAX_NATIVE_RUST_INTEROP_H\n#include <stdint.h>\n#include <stddef.h>\n#ifdef __cplusplus\nextern \"C\" {\n#endif\ntypedef uint64_t spxnr_status_v1;\ntypedef struct spxnr_imports_v1 spxnr_imports_v1;\ntypedef struct { uint32_t abi_version; uint32_t size; void *userdata; const spxnr_imports_v1 *imports; uint8_t capabilities_digest[32]; uint32_t call_depth; uint32_t reserved; } spxnr_context_v1;\n",
             )
+            .map_err(|_| b109("max_generated_header_bytes", MAX_GENERATED_HEADER_BYTES))?;
+        if imports
+            .iter()
+            .any(|import| import.result == ScalarType::ResultI64I64)
+            || exports
+                .iter()
+                .any(|export| export.result == ScalarType::ResultI64I64)
+        {
+            sink.write_str("typedef struct { uint8_t tag; uint8_t reserved[7]; int64_t payload; } spxnr_result_i64_i64_v1;\n")
+                .map_err(|_| b109("max_generated_header_bytes", MAX_GENERATED_HEADER_BYTES))?;
+        }
+        sink.write_str("struct spxnr_imports_v1 { uint32_t abi_version; uint32_t size;")
             .map_err(|_| b109("max_generated_header_bytes", MAX_GENERATED_HEADER_BYTES))?;
         for row in &import_rows {
             sink.write_str(row)

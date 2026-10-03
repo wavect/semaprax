@@ -161,6 +161,12 @@ pub enum ResolvedType {
 }
 
 impl ResolvedType {
+    pub fn is_compiler_i64_result(&self) -> bool {
+        matches!(self, Self::Nominal { declaration, arguments }
+            if declaration.as_str() == crate::prelude::RESULT_ID
+                && arguments == &[Self::I64, Self::I64])
+    }
+
     /// Canonical ownership classification shared by the resolver, cleanup
     /// builder, hostile validator, and backends. Unique ownership is not the
     /// same fact as containing an opaque resource.

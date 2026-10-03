@@ -24,6 +24,7 @@ pub(crate) mod package;
 pub(crate) mod package_lock;
 pub(crate) mod package_resolver;
 pub(crate) mod project;
+pub(crate) mod project_proof;
 pub(crate) mod project_candidate;
 pub(crate) mod project_image;
 pub(crate) mod project_lock;

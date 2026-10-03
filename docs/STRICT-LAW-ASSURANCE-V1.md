@@ -2,8 +2,9 @@
 
 Status: first LAW-04 implementation batch, not completion of issue #379.
 This additive library profile joins independently selected laws to an exact
-retained Project and candidate. Installed CLI solver adapters, process/descendant
-settlement and global protected-route admission remain open.
+retained Project and candidate. The opt-in [installed proof-tool adapter](INSTALLED-PROOF-TOOLS-V1.md) adds
+bounded real Lean/Z3 source-postcondition checking. Global protected-route
+admission and native relational-law checking remain open.
 
 ## Inventory and evidence ownership
 
@@ -42,8 +43,9 @@ The profiles are deliberately separate, not a total evidence ordering:
   counts. A weaker depth cannot satisfy a larger requested depth. This proves
   only the selected finite reference model, never an arbitrary Project protocol
   or an unbounded theorem.
-- `smt_source`: currently refuses because no solver-confirmed Project attachment
-  is joined by this batch. A structurally valid SMT certificate is insufficient.
+- `pinned_smt_source`: exact installed Z3 Project evidence, pinned version and
+  explicitly accepted checked-arithmetic translation profile. A structurally
+  valid SMT certificate is insufficient. Unpinned `smt_source` still refuses.
 - `verified_lowering`: currently refuses; artifact association is insufficient.
 
 Open law assumptions and unmet prerequisite laws remain open. Runtime guards,
@@ -79,14 +81,15 @@ Neither proof evidence nor a specification approval grants publication authority
 | Generic candidate acceptance | Formal proof-ref claims refused; record remains authority-free | Unified opted-in strict acceptance configuration |
 | Generic candidate/publication and semantic transaction routes | Existing contracts, no global strict-law configuration | Persist and enforce strict selection at every equivalent public route |
 | Project/native/Wasm build and run | Existing admission only | Strict build/run joins and final-boundary proof freshness |
-| Installed CLI Z3/Lean adapters | Not implemented by this batch | Real newly authored-law execution with explicit bounded host capabilities, cancellation and descendant settlement |
+| Installed CLI Z3/Lean adapters | Explicit `project-proof-check` source-postcondition route; bounded trusted-local execution and strict-confinement refusal | Native relational laws, global strict policy selection and additional host profiles |
 
 The existing `LeanKernel` embedding capability is a trusted host boundary.
 This batch does not turn an arbitrary callback or recorded transcript into
 physical Lean evidence. Tests of that boundary must remain labelled as such.
-No new toolchain adapter, process authority or external artifact provider is
-implicitly installed. Issue #379 remains open until its CLI, process, complete
-route coverage and real provisioned-tool acceptance criteria are exercised.
+Installed tool execution requires the separate explicit capability or CLI
+selection; no external artifact provider is implicit. Issue #379 remains open
+until complete protected-route coverage and the remaining law profiles are
+implemented and exercised.
 
 ## Focused gates
 

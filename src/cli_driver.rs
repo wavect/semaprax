@@ -1225,6 +1225,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             run_assurance(command_id, &args)
         }
         CommandId::ProjectAssuranceManifest => run_project_assurance(&args),
+        CommandId::ProjectProofCheck => cli::project_proof::run(&args[1..]),
         CommandId::SimdReport => {
             let path = required_path(&args, 1)?;
             let options = simd_report_options(&args)?;

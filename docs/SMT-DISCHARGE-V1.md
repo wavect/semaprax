@@ -346,3 +346,15 @@ such; every admitted numeric type (including `bool`) proves a trivial
 identity postcondition; and a branch-sensitive `if` postcondition proves.
 This is local, developer-machine evidence, not a hosted or CI-provisioned
 run — see the top-level report for exact counts.
+
+## Explicit installed Project checking
+
+[Installed Proof Tools v1](INSTALLED-PROOF-TOOLS-V1.md) adds a separate
+opt-in Z3 runner for exact retained Project postconditions. It reuses this
+checked-arithmetic formula, removes only the trailing model-retrieval command
+for success-only checking, and requires settled exit 0 plus exact `unsat`.
+Version probes and proof runs share bounded held-process execution and
+cancellation; strict confinement requests refuse. The resulting opaque Project
+evidence binds exact source, ProgramRoot, script and pinned tool version.
+This does not upgrade the older environment-provisioned discharge route or
+claim that an SMT solver result is an independently checked proof object.

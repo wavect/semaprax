@@ -68,6 +68,8 @@
 //!    alone.
 
 pub mod certificate;
+pub mod installed;
+pub mod installed_project;
 pub mod kernel_report;
 pub mod lean;
 pub mod profile;
@@ -118,12 +120,10 @@ pub struct KernelRun {
 
 /// Running an external Lean kernel, as an explicit capability.
 ///
-/// No implementation ships in this crate. That is deliberate: the compiler
-/// gains no ambient process or filesystem authority merely because a proof
-/// export exists, and an implementation that was never executed here could
-/// not be honestly tested. A caller that has a provisioned, pinned Lean
-/// toolchain implements this; the tests use fixture implementations that
-/// replay recorded output.
+/// The opt-in [`installed::InstalledProofTool`] implementation uses explicit
+/// held executables and the existing bounded process provider. Merely exporting
+/// proof data gains no process authority. Embedders may supply another trusted
+/// capability; recorded fixture output is not physical kernel evidence.
 pub trait LeanKernel {
     /// Check `lean_source` with a pinned Lean toolchain and return its raw
     /// output verbatim.
@@ -183,6 +183,30 @@ pub fn export_obligation_certificate(
     let canonical = patch::canonical_source_path(source_path)?;
     let snapshot = patch::read_source_snapshot(&canonical)?;
     let program = crate::parse(snapshot.source(), source_path).map_err(|error| vec![error])?;
+    let rendered = source_certificate(
+        snapshot.source(),
+        source_path,
+        declaration_id,
+        ensures_index,
+        kernel,
+    )?;
+    patch::validate_source_unchanged(
+        &canonical,
+        source_path,
+        &snapshot,
+        &graph::revision(&program),
+    )?;
+    Ok(rendered)
+}
+
+pub(super) fn source_certificate(
+    source: &str,
+    source_path: &Path,
+    declaration_id: &str,
+    ensures_index: usize,
+    kernel: &dyn LeanKernel,
+) -> Result<String, Vec<Diagnostic>> {
+    let program = crate::parse(source, source_path).map_err(|error| vec![error])?;
     let diagnostics = crate::verify::verify(&program);
     if diagnostics.iter().any(|item| item.severity.is_error()) {
         return Err(diagnostics);
@@ -245,7 +269,7 @@ pub fn export_obligation_certificate(
     })?;
 
     let path_text = source_path.display().to_string();
-    let source_sha256 = certificate::source_digest(snapshot.source());
+    let source_sha256 = certificate::source_digest(source);
     let artifact_sha256 = certificate::artifact_digest(&artifact);
     let rendered = certificate::render_certificate(&certificate::CertificateInput {
         source_path_text: &path_text,
@@ -262,6 +286,5 @@ pub fn export_obligation_certificate(
         artifact_bytes: artifact.len(),
     });
 
-    patch::validate_source_unchanged(&canonical, source_path, &snapshot, &revision)?;
     Ok(rendered)
 }

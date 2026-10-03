@@ -28,8 +28,14 @@ pub enum RequiredLawEvidence {
         minimum_depth: usize,
         minimum_transitions: usize,
     },
-    /// Visible refusal until a solver-confirmed Project attachment is available.
+    /// Unpinned legacy request: use the explicit pinned SMT trust profile.
     SmtSource,
+    /// Exact installed Z3 version and the frozen checked-arithmetic source
+    /// translation profile must both be independently accepted by the host.
+    PinnedSmtSource {
+        toolchain: String,
+        accepted_translation: String,
+    },
     /// Artifact association is not a proof that lowering preserves semantics.
     VerifiedLowering,
 }
@@ -234,6 +240,22 @@ fn check_requirement(
                 .then_some("reference_model_not_verified")
         }
         RequiredLawEvidence::SmtSource => Some("solver_confirmed_project_attachment_unavailable"),
+        RequiredLawEvidence::PinnedSmtSource {
+            toolchain,
+            accepted_translation,
+        } => {
+            if accepted_translation != crate::assurance_manifest::smt_discharge::BOUNDS_V1 {
+                return Some("smt_translation_profile_not_accepted");
+            }
+            let confirmed = evidence["methods"].as_array().is_some_and(|methods| {
+                methods.iter().any(|method| {
+                    method["class"] == "smt_proved"
+                        && method["tool"] == "z3"
+                        && method["tool_version"] == *toolchain
+                })
+            });
+            (!confirmed).then_some("solver_confirmed_exact_project_evidence_missing")
+        }
         RequiredLawEvidence::VerifiedLowering => Some("proved_lowering_evidence_unavailable"),
     }
 }

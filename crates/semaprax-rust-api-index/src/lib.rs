@@ -1286,7 +1286,7 @@ mod tests {
                     .cloned()
                     .into_iter()
                     .collect::<Vec<_>>();
-                type_record(path, references)
+                type_record(path.clone(), references)
             })
             .collect::<Vec<_>>();
         append_type_records(&mut deep, &mut deep_records);

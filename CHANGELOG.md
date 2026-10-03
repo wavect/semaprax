@@ -1,5 +1,12 @@
 # Changelog
 
+- Gate selected guarded Project SDK publication on a host-held LAW-09
+  conditional strict policy. The builder replays source and law before package
+  staging, checks the actual staged manifest digest before the no-clobber
+  pivot, then returns the opaque publication token and conditional report.
+  Mismatched policy leaves the requested output absent; core managed Workspace
+  publication continues to refuse foreign strict coverage.
+
 - Start LAW-17 with an opt-in `i64` add-zero candidate rewrite. It accepts a
   real installed-tool proof of the exact assumption-free scalar identity,
   replays its Project/LawSet binding, recognizes only an authored place plus

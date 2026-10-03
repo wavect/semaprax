@@ -582,179 +582,227 @@ fn guarded_indexed_project_sdk_checks_physical_return_before_semantic_publicatio
     assert!(generated.contains("SEMAPRAX_FOREIGN_RETURN_GUARD"));
     assert!(generated.contains("NonZeroU32::new(40909)"));
     let bindings = prepare_project_bindings(&[selected]).unwrap();
-    let (evidence, revision) = semaprax::project::with_authenticated_indexed_rust_project(
-        &root.join("semaprax.toml"),
-        &bindings,
-        |snapshot| {
-            use semaprax::assurance_manifest::law_set::{
-                self,
-                strict::{self, RequiredLawEvidence, StrictLawPolicy},
-                EvidenceRequirement, LawDefinition, LawModule, LawSelector, LawSet,
-            };
-            use std::collections::BTreeMap;
-            let revision = snapshot.retain_revision();
-            let import = revision
-                .entry_program()
-                .interfaces
-                .iter()
-                .flat_map(|interface| &interface.imports)
-                .find(|import| import.id.as_str() == "host.add")
-                .unwrap();
-            let plan = crate::indexed_binding::prepare_indexed_scalar_binding(
-                import,
-                &index,
-                selected.selection.package,
-                import.rust_path.as_deref().unwrap(),
-            )
-            .map_err(|error| vec![error])?;
-            let caller = revision.foreign_caller_certificate(
-                "interop.add",
-                &plan,
-                plan.target.as_str(),
-                bundle.manifest_digest(),
-                &declared,
-                &law,
-            )?;
-            let forged = revision.foreign_caller_certificate(
-                "interop.add",
-                &plan,
-                plan.target.as_str(),
-                "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-                &declared,
-                &law,
-            )?;
-            assert_eq!(
-                forged
-                    .verify_published_guard(&revision, &output, bundle.manifest_digest())
-                    .unwrap_err()[0]
-                    .code,
-                "SPX-FL310"
-            );
-            caller.verify_published_guard(&revision, &output, bundle.manifest_digest())?;
-            let view: Value = serde_json::from_str(&caller.public_view()).unwrap();
-            assert_eq!(view["source_route_proved"], true);
-            assert_eq!(view["foreign_internals_proved"], false);
-            assert_eq!(caller.conditions().len(), 4);
-            let mut changed = declared.clone();
-            changed.proposition_digest =
-                "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff".into();
-            let wrong_summary = revision.foreign_caller_certificate(
-                "interop.add",
-                &plan,
-                plan.target.as_str(),
-                bundle.manifest_digest(),
-                &changed,
-                &law,
-            )?;
-            assert_eq!(
-                bundle
-                    .bind_guarded_foreign_caller(&revision, wrong_summary)
-                    .unwrap_err()[0]
-                    .code,
-                "SPX-FL311"
-            );
-            let evidence = bundle.bind_guarded_foreign_caller(&revision, caller)?;
-            evidence.replay(&revision)?;
-            assert_eq!(evidence.manifest_digest(), bundle.manifest_digest());
-            assert_eq!(evidence.caller().conditions().len(), 4);
-            let conditions = evidence.caller().conditions().to_vec();
-            let laws = LawSet::derive(
-                &revision,
-                "checked-v1",
-                vec![LawModule {
-                    module_id: "interop.foreign.laws".into(),
-                    source_path: "src/app.spx".into(),
-                    assumptions: conditions.clone(),
-                    laws: vec![LawDefinition {
-                        law_id: law.law_id.clone(),
-                        selector: LawSelector::ForeignGuardedCaller {
-                            caller_id: "interop.add".into(),
-                            import_id: "host.add".into(),
-                            minimum: 0,
-                            maximum: 50,
-                        },
-                        assumption_ids: conditions.clone(),
-                        requires_laws: vec![],
-                        evidence: EvidenceRequirement::RuntimeGuarded,
+    let (evidence, revision, laws, policy) =
+        semaprax::project::with_authenticated_indexed_rust_project(
+            &root.join("semaprax.toml"),
+            &bindings,
+            |snapshot| {
+                use semaprax::assurance_manifest::law_set::{
+                    self,
+                    strict::{self, RequiredLawEvidence, StrictLawPolicy},
+                    EvidenceRequirement, LawDefinition, LawModule, LawSelector, LawSet,
+                };
+                use std::collections::BTreeMap;
+                let revision = snapshot.retain_revision();
+                let import = revision
+                    .entry_program()
+                    .interfaces
+                    .iter()
+                    .flat_map(|interface| &interface.imports)
+                    .find(|import| import.id.as_str() == "host.add")
+                    .unwrap();
+                let plan = crate::indexed_binding::prepare_indexed_scalar_binding(
+                    import,
+                    &index,
+                    selected.selection.package,
+                    import.rust_path.as_deref().unwrap(),
+                )
+                .map_err(|error| vec![error])?;
+                let caller = revision.foreign_caller_certificate(
+                    "interop.add",
+                    &plan,
+                    plan.target.as_str(),
+                    bundle.manifest_digest(),
+                    &declared,
+                    &law,
+                )?;
+                let forged = revision.foreign_caller_certificate(
+                    "interop.add",
+                    &plan,
+                    plan.target.as_str(),
+                    "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                    &declared,
+                    &law,
+                )?;
+                assert_eq!(
+                    forged
+                        .verify_published_guard(&revision, &output, bundle.manifest_digest())
+                        .unwrap_err()[0]
+                        .code,
+                    "SPX-FL310"
+                );
+                caller.verify_published_guard(&revision, &output, bundle.manifest_digest())?;
+                let view: Value = serde_json::from_str(&caller.public_view()).unwrap();
+                assert_eq!(view["source_route_proved"], true);
+                assert_eq!(view["foreign_internals_proved"], false);
+                assert_eq!(caller.conditions().len(), 4);
+                let mut changed = declared.clone();
+                changed.proposition_digest =
+                    "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+                        .into();
+                let wrong_summary = revision.foreign_caller_certificate(
+                    "interop.add",
+                    &plan,
+                    plan.target.as_str(),
+                    bundle.manifest_digest(),
+                    &changed,
+                    &law,
+                )?;
+                assert_eq!(
+                    bundle
+                        .bind_guarded_foreign_caller(&revision, wrong_summary)
+                        .unwrap_err()[0]
+                        .code,
+                    "SPX-FL311"
+                );
+                let evidence = bundle.bind_guarded_foreign_caller(&revision, caller)?;
+                evidence.replay(&revision)?;
+                assert_eq!(evidence.manifest_digest(), bundle.manifest_digest());
+                assert_eq!(evidence.caller().conditions().len(), 4);
+                let conditions = evidence.caller().conditions().to_vec();
+                let laws = LawSet::derive(
+                    &revision,
+                    "checked-v1",
+                    vec![LawModule {
+                        module_id: "interop.foreign.laws".into(),
+                        source_path: "src/app.spx".into(),
+                        assumptions: conditions.clone(),
+                        laws: vec![LawDefinition {
+                            law_id: law.law_id.clone(),
+                            selector: LawSelector::ForeignGuardedCaller {
+                                caller_id: "interop.add".into(),
+                                import_id: "host.add".into(),
+                                minimum: 0,
+                                maximum: 50,
+                            },
+                            assumption_ids: conditions.clone(),
+                            requires_laws: vec![],
+                            evidence: EvidenceRequirement::RuntimeGuarded,
+                        }],
                     }],
-                }],
-            )?;
-            let policy = StrictLawPolicy::new(
-                laws.clone(),
-                BTreeMap::from([(
-                    law.law_id.clone(),
-                    RequiredLawEvidence::ForeignConditionalGuard {
-                        adapter_digest: bundle.manifest_digest().into(),
-                        summary_digest: evidence.caller().frontier().summary_digest().into(),
-                        accepted_conditions: conditions.clone(),
-                    },
-                )]),
-            )?;
-            let ordinary = law_set::derive_report(
-                &revision,
-                &laws,
-                &law_set::LawPolicy::strict(laws.clone())?,
-            )?;
-            let ordinary: Value = serde_json::from_str(&ordinary).unwrap();
-            assert_eq!(ordinary["payload"]["accepted"], false);
-            let core_strict = strict::derive(&revision, &laws, &policy, &[])?;
-            let core_strict: Value = serde_json::from_str(&core_strict).unwrap();
-            assert_eq!(core_strict["accepted"], false);
-            let conditional =
-                evidence.derive_conditional_strict_law_report(&revision, &laws, &policy)?;
-            let view: Value = serde_json::from_str(&conditional).unwrap();
-            assert_eq!(view["accepted"], true);
-            assert_eq!(view["foreign_internals_proved"], false);
-            assert_eq!(view["runtime_call_observed"], false);
-            assert_eq!(view["accepted_conditions"].as_array().unwrap().len(), 4);
-            evidence.require_conditional_strict_law_report(
-                &conditional,
-                &revision,
-                &laws,
-                &policy,
-            )?;
-            let mut forged_report = conditional.clone();
-            forged_report.push(' ');
-            assert_eq!(
-                evidence
-                    .require_conditional_strict_law_report(
-                        &forged_report,
-                        &revision,
-                        &laws,
-                        &policy,
-                    )
-                    .unwrap_err()[0]
-                    .code,
-                "SPX-FL311"
-            );
-            let narrow = StrictLawPolicy::new(
-                laws.clone(),
-                BTreeMap::from([(
-                    law.law_id.clone(),
-                    RequiredLawEvidence::ForeignConditionalGuard {
-                        adapter_digest: bundle.manifest_digest().into(),
-                        summary_digest: evidence.caller().frontier().summary_digest().into(),
-                        accepted_conditions: conditions[..3].to_vec(),
-                    },
-                )]),
-            )?;
-            assert_eq!(
-                evidence
-                    .derive_conditional_strict_law_report(&revision, &laws, &narrow)
-                    .unwrap_err()[0]
-                    .code,
-                "SPX-FL311"
-            );
-            Ok((evidence, revision))
-        },
+                )?;
+                let policy = StrictLawPolicy::new(
+                    laws.clone(),
+                    BTreeMap::from([(
+                        law.law_id.clone(),
+                        RequiredLawEvidence::ForeignConditionalGuard {
+                            adapter_digest: bundle.manifest_digest().into(),
+                            summary_digest: evidence.caller().frontier().summary_digest().into(),
+                            accepted_conditions: conditions.clone(),
+                        },
+                    )]),
+                )?;
+                let ordinary = law_set::derive_report(
+                    &revision,
+                    &laws,
+                    &law_set::LawPolicy::strict(laws.clone())?,
+                )?;
+                let ordinary: Value = serde_json::from_str(&ordinary).unwrap();
+                assert_eq!(ordinary["payload"]["accepted"], false);
+                let core_strict = strict::derive(&revision, &laws, &policy, &[])?;
+                let core_strict: Value = serde_json::from_str(&core_strict).unwrap();
+                assert_eq!(core_strict["accepted"], false);
+                let conditional =
+                    evidence.derive_conditional_strict_law_report(&revision, &laws, &policy)?;
+                let view: Value = serde_json::from_str(&conditional).unwrap();
+                assert_eq!(view["accepted"], true);
+                assert_eq!(view["foreign_internals_proved"], false);
+                assert_eq!(view["runtime_call_observed"], false);
+                assert_eq!(view["accepted_conditions"].as_array().unwrap().len(), 4);
+                evidence.require_conditional_strict_law_report(
+                    &conditional,
+                    &revision,
+                    &laws,
+                    &policy,
+                )?;
+                let mut forged_report = conditional.clone();
+                forged_report.push(' ');
+                assert_eq!(
+                    evidence
+                        .require_conditional_strict_law_report(
+                            &forged_report,
+                            &revision,
+                            &laws,
+                            &policy,
+                        )
+                        .unwrap_err()[0]
+                        .code,
+                    "SPX-FL311"
+                );
+                let narrow = StrictLawPolicy::new(
+                    laws.clone(),
+                    BTreeMap::from([(
+                        law.law_id.clone(),
+                        RequiredLawEvidence::ForeignConditionalGuard {
+                            adapter_digest: bundle.manifest_digest().into(),
+                            summary_digest: evidence.caller().frontier().summary_digest().into(),
+                            accepted_conditions: conditions[..3].to_vec(),
+                        },
+                    )]),
+                )?;
+                assert_eq!(
+                    evidence
+                        .derive_conditional_strict_law_report(&revision, &laws, &narrow)
+                        .unwrap_err()[0]
+                        .code,
+                    "SPX-FL311"
+                );
+                Ok((evidence, revision, laws, policy))
+            },
+        )
+        .unwrap();
+    use semaprax::assurance_manifest::law_set::strict::{RequiredLawEvidence, StrictLawPolicy};
+    let narrow = StrictLawPolicy::new(
+        laws.clone(),
+        std::collections::BTreeMap::from([(
+            law.law_id.clone(),
+            RequiredLawEvidence::ForeignConditionalGuard {
+                adapter_digest: bundle.manifest_digest().into(),
+                summary_digest: evidence.caller().frontier().summary_digest().into(),
+                accepted_conditions: evidence.caller().conditions()[..3].to_vec(),
+            },
+        )]),
     )
     .unwrap();
+    let refused_output = root.join("policy-refused");
+    reset_build_observer();
+    assert!(
+        build_guarded_indexed_project_native_rust_sdk_with_law_policy(
+            &root.join("semaprax.toml"),
+            &[selected],
+            guard,
+            "interop.add",
+            &laws,
+            &narrow,
+            &refused_output,
+        )
+        .is_err()
+    );
+    assert!(!refused_output.exists());
+    let selected_output = root.join("selected-sdk");
+    reset_build_observer();
+    let (selected_bundle, selected_frontier, selected_evidence, selected_report) =
+        build_guarded_indexed_project_native_rust_sdk_with_law_policy(
+            &root.join("semaprax.toml"),
+            &[selected],
+            guard,
+            "interop.add",
+            &laws,
+            &policy,
+            &selected_output,
+        )
+        .unwrap();
+    assert_eq!(selected_bundle.manifest_digest(), bundle.manifest_digest());
+    assert_eq!(selected_frontier, frontier);
+    selected_evidence
+        .require_conditional_strict_law_report(&selected_report, &revision, &laws, &policy)
+        .unwrap();
     assert_eq!(
         run_published_sdk_with_consumer(
             &rustc,
             &clang,
             &root,
-            &output,
+            &selected_output,
             r#"fn main(){
 let mut sdk=indexed_sdk::indexed_scalar_sdk(&["host.math"]).unwrap();
 assert_eq!(sdk.spx_interop_dot_add(20,22),Ok(42));
@@ -773,6 +821,7 @@ match sdk.spx_interop_dot_add(1000,22){
         ..guard
     };
     let absent = root.join("wrong");
+    reset_build_observer();
     assert!(build_guarded_indexed_project_native_rust_sdk(
         &root.join("semaprax.toml"),
         &[selected],

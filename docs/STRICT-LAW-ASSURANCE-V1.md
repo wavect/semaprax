@@ -74,6 +74,10 @@ The profiles are deliberately separate, not a total evidence ordering:
   source owner and complete condition set at both derive and require. The
   report keeps foreign internals unproved and runtime observation false; it
   grants no execution or publication authority.
+  The selected indexed Project SDK build rechecks this policy before staging
+  and again against the authenticated staged manifest before package
+  publication. The managed Workspace `ACTIVE` gate has no builder token and
+  remains refusing for this foreign requirement.
 - `pinned_smt_source`: exact installed Z3 Project evidence, pinned version and
   explicitly accepted checked-arithmetic translation profile. A structurally
   valid SMT certificate is insufficient. Unpinned `smt_source` still refuses.

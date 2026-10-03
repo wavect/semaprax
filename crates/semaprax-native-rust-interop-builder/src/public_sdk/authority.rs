@@ -547,6 +547,7 @@ struct IndexedProjectSources<'a> {
     sources: &'a [&'a str],
     rustc: &'a str,
     foreign_guard: Option<package::ForeignReturnGuard<'a>>,
+    prepublish: Option<&'a dyn Fn(&str) -> Result<(), Diagnostic>>,
 }
 
 enum SdkInput<'a> {
@@ -646,6 +647,7 @@ pub(super) fn build_indexed_project_sdk_inner(
     sources: &[&str],
     rustc: &str,
     foreign_guard: Option<package::ForeignReturnGuard<'_>>,
+    prepublish: Option<&dyn Fn(&str) -> Result<(), Diagnostic>>,
     output: &Path,
 ) -> Result<NativeRustSdkBundle, PublicBuildError> {
     let options = NativeRustSdkOptions {
@@ -662,6 +664,7 @@ pub(super) fn build_indexed_project_sdk_inner(
                 sources,
                 rustc,
                 foreign_guard,
+                prepublish,
             }),
         },
         options,
@@ -1205,6 +1208,18 @@ fn build_sdk_inner(
             &mut src_stage_scan,
             &mut native_stage_scan,
         )?;
+        if let SdkInput::Project {
+            indexed: Some(indexed),
+            ..
+        } = &input
+        {
+            if let Some(prepublish) = indexed.prepublish {
+                prepublish(&domain_digest(
+                    PROJECT_SDK_MANIFEST_DOMAIN,
+                    manifest.as_bytes(),
+                ))?;
+            }
+        }
         #[cfg(test)]
         record_test_build_stage(TestBuildLastStage::OuterInventoryAuthenticated);
         Ok(manifest)

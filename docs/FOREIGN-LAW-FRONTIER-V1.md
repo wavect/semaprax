@@ -84,6 +84,16 @@ strict routes stay open, and this conditional route grants no Project run or
 publication authority. Guard source authentication is not evidence that a
 call executed.
 
+The selected indexed Project SDK builder also accepts this host-held one-law
+policy. It replays the law and caller under the authenticated Project before
+creating package stages, compares the rendered manifest digest against the
+policy after staged files are verified, and refuses a mismatch before the
+existing no-clobber publication pivot. It then returns the builder token and
+conditional report after published-package replay. Failure before the pivot
+leaves the requested output absent; a post-pivot replay failure leaves the
+complete package for ordinary reconciliation. This selected route does not
+change the core managed Workspace `ACTIVE` boundary.
+
 No externally validated theorem identity is provisioned in this profile;
 theorem requirements continue to refuse until a separately checked semantic
 association exists. Exact published-package replay does not claim an OS

@@ -635,9 +635,11 @@ mod regex_project_package;
 mod url_project_native;
 mod url_project_package;
 pub use indexed_project::{
-    build_guarded_indexed_project_native_rust_sdk, build_indexed_project_native_rust_sdk,
-    prepare_indexed_regex_project_package, GuardedForeignLawSelection,
-    IndexedProjectRegexRegistrySelection, IndexedProjectScalarSelection,
+    build_guarded_indexed_project_native_rust_sdk,
+    build_guarded_indexed_project_native_rust_sdk_with_law_policy,
+    build_indexed_project_native_rust_sdk, prepare_indexed_regex_project_package,
+    GuardedForeignLawSelection, IndexedProjectRegexRegistrySelection,
+    IndexedProjectScalarSelection,
 };
 pub use indexed_url_project::{
     prepare_indexed_url_project_package, IndexedProjectUrlRegistrySelection,

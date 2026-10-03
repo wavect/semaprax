@@ -2,6 +2,7 @@
 
 use super::*;
 use crate::indexed_binding::prepare_indexed_scalar_binding;
+use semaprax::assurance_manifest::law_set::{strict::StrictLawPolicy, LawSet};
 use semaprax::hir::ResolvedImportResultKind;
 use semaprax::native_rust_binding::foreign_law::{
     DeclaredForeignSummary, ForeignLawFrontier, ForeignLawRequest,
@@ -26,8 +27,8 @@ pub fn build_indexed_project_native_rust_sdk(
     selections: &[IndexedProjectScalarSelection<'_>],
     output: &Path,
 ) -> Result<ProjectNativeRustSdkBundle, Vec<Diagnostic>> {
-    build_indexed_project_native_rust_sdk_inner(manifest_path, selections, None, output)
-        .map(|(bundle, _)| bundle)
+    build_indexed_project_native_rust_sdk_inner(manifest_path, selections, None, None, output)
+        .map(|(bundle, _, _)| bundle)
 }
 
 /// One conditional foreign declaration retained in a generated SDK return
@@ -47,21 +48,67 @@ pub fn build_guarded_indexed_project_native_rust_sdk(
     guard: GuardedForeignLawSelection<'_>,
     output: &Path,
 ) -> Result<(ProjectNativeRustSdkBundle, ForeignLawFrontier), Vec<Diagnostic>> {
-    let (bundle, frontier) = build_indexed_project_native_rust_sdk_inner(
+    let (bundle, frontier, _) = build_indexed_project_native_rust_sdk_inner(
         manifest_path,
         selections,
         Some(guard),
+        None,
         output,
     )?;
     Ok((bundle, frontier.expect("guarded build retains frontier")))
+}
+
+/// Selected Project SDK publication: the host's exact conditional law policy
+/// is checked against the authenticated staged manifest before the final
+/// no-clobber publish. The returned opaque token and report are replayed after
+/// publication; a failed preflight leaves the requested output absent.
+pub fn build_guarded_indexed_project_native_rust_sdk_with_law_policy(
+    manifest_path: &Path,
+    selections: &[IndexedProjectScalarSelection<'_>],
+    guard: GuardedForeignLawSelection<'_>,
+    caller_id: &str,
+    laws: &LawSet,
+    policy: &StrictLawPolicy,
+    output: &Path,
+) -> Result<
+    (
+        ProjectNativeRustSdkBundle,
+        ForeignLawFrontier,
+        super::GuardedForeignCallerEvidence,
+        String,
+    ),
+    Vec<Diagnostic>,
+> {
+    let (bundle, frontier, selected) = build_indexed_project_native_rust_sdk_inner(
+        manifest_path,
+        selections,
+        Some(guard),
+        Some((caller_id, laws, policy)),
+        output,
+    )?;
+    let (evidence, report) = selected.expect("selected guarded build retains conditional law");
+    Ok((
+        bundle,
+        frontier.expect("guarded build retains frontier"),
+        evidence,
+        report,
+    ))
 }
 
 fn build_indexed_project_native_rust_sdk_inner(
     manifest_path: &Path,
     selections: &[IndexedProjectScalarSelection<'_>],
     guard: Option<GuardedForeignLawSelection<'_>>,
+    selected_policy: Option<(&str, &LawSet, &StrictLawPolicy)>,
     output: &Path,
-) -> Result<(ProjectNativeRustSdkBundle, Option<ForeignLawFrontier>), Vec<Diagnostic>> {
+) -> Result<
+    (
+        ProjectNativeRustSdkBundle,
+        Option<ForeignLawFrontier>,
+        Option<(super::GuardedForeignCallerEvidence, String)>,
+    ),
+    Vec<Diagnostic>,
+> {
     let bindings = prepare_project_bindings(selections)?;
     semaprax::project::with_authenticated_indexed_rust_project(
         manifest_path,
@@ -106,7 +153,7 @@ fn build_indexed_project_native_rust_sdk_inner(
                         workspace_revision: subject.workspace_revision.clone(),
                         subject_digest: subject.digest.clone(),
                         guarded_frontier: None,
-                    }, None));
+                    }, None, None));
                 }
                 let mut plans = Vec::with_capacity(ordered.len());
                 let mut sources = Vec::with_capacity(ordered.len());
@@ -174,6 +221,34 @@ fn build_indexed_project_native_rust_sdk_inner(
                 } else {
                     None
                 };
+                if let Some((caller_id, laws, policy)) = selected_policy {
+                    let guard = guard.expect("selected foreign guard");
+                    let plan = plans.iter().find(|plan| plan.import_id == guard.import_id)
+                        .expect("checked guard selection");
+                    let Some(semaprax::assurance_manifest::law_set::strict::RequiredLawEvidence::ForeignConditionalGuard { adapter_digest, .. }) = policy.requirements().get(&guard.law.law_id) else {
+                        return Err(vec![sdk_error("selected foreign law policy lacks exact conditional requirement")]);
+                    };
+                    let caller = revision.foreign_caller_certificate(
+                        caller_id, plan, plan.target.as_str(), adapter_digest,
+                        guard.declared, guard.law,
+                    )?;
+                    super::foreign_law::preflight_conditional_strict_law(
+                        &caller, adapter_digest, &revision, laws, policy,
+                    )?;
+                }
+                let prepublish = |digest: &str| -> Result<(), Diagnostic> {
+                    let (caller_id, laws, policy) = selected_policy.expect("selected prepublish policy");
+                    let guard = guard.expect("selected foreign guard");
+                    let plan = plans.iter().find(|plan| plan.import_id == guard.import_id)
+                        .expect("checked guard selection");
+                    let caller = revision.foreign_caller_certificate(
+                        caller_id, plan, plan.target.as_str(), digest, guard.declared, guard.law,
+                    ).map_err(|errors| errors.into_iter().next().unwrap_or_else(|| sdk_error("conditional foreign caller preflight failed")))?;
+                    super::foreign_law::preflight_conditional_strict_law(
+                        &caller, digest, &revision, laws, policy,
+                    ).map_err(|errors| errors.into_iter().next().unwrap_or_else(|| sdk_error("conditional foreign law preflight failed")))
+                };
+                let policy_hook = selected_policy.map(|_| &prepublish as &dyn Fn(&str) -> Result<(), Diagnostic>);
                 let sdk = authority::build_indexed_project_sdk_inner(
                     input.program(),
                     &subject,
@@ -181,6 +256,7 @@ fn build_indexed_project_native_rust_sdk_inner(
                     &sources,
                     selections[0].selection.package.stable_rustc_version,
                     checked_guard,
+                    policy_hook,
                     output,
                 )
                 .map_err(PublicBuildError::into_diagnostics)?;
@@ -193,13 +269,28 @@ fn build_indexed_project_native_rust_sdk_inner(
                 } else {
                     None
                 };
-                Ok((ProjectNativeRustSdkBundle {
+                let bundle = ProjectNativeRustSdkBundle {
                     sdk,
                     project_revision: subject.project_revision.clone(),
                     workspace_revision: subject.workspace_revision.clone(),
                     subject_digest: subject.digest.clone(),
                     guarded_frontier: frontier.clone(),
-                }, frontier))
+                };
+                let selected = if let Some((caller_id, laws, policy)) = selected_policy {
+                    let guard = guard.expect("selected foreign guard");
+                    let plan = plans.iter().find(|plan| plan.import_id == guard.import_id)
+                        .expect("checked guard selection");
+                    let caller = revision.foreign_caller_certificate(
+                        caller_id, plan, plan.target.as_str(), bundle.manifest_digest(),
+                        guard.declared, guard.law,
+                    )?;
+                    let evidence = bundle.bind_guarded_foreign_caller(&revision, caller)?;
+                    let report = evidence.derive_conditional_strict_law_report(&revision, laws, policy)?;
+                    Some((evidence, report))
+                } else {
+                    None
+                };
+                Ok((bundle, frontier, selected))
             })
         },
     )

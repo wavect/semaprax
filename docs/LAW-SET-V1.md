@@ -82,6 +82,9 @@ token. Its explicit one-law, source-owned conditional strict route consumes the
 protected baseline, exact selector, source owner, and all host-accepted
 conditions under replay. Ordinary core LawSet reports remain open. This route
 does not prove hidden foreign effects, callbacks, panics or shared state.
+The selected indexed Project SDK builder can require this exact conditional
+policy before its package publication. Managed Workspace `ACTIVE` still uses
+the core strict route and remains open for foreign laws.
 
 ## Inventory, report, and policy
 

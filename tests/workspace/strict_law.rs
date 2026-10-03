@@ -81,6 +81,55 @@ fn strict_law_compiler_success_replays_exact_candidate_policy_and_report() {
 }
 
 #[test]
+fn candidate_strict_workflow_binds_failure_detail_to_exact_candidate() {
+    let fixture = Fixture::new("strict-candidate-workflow");
+    let base = revision(&fixture);
+    let laws = LawSet::derive(&base, "checked-v1", vec![module()]).unwrap();
+    let policy = policy(
+        &laws,
+        "calculator.divide.nonzero",
+        RequiredLawEvidence::CompilerStatic,
+    );
+    let candidate = ProjectCandidate::open(base.clone(), base.project_revision()).unwrap();
+    let digest = candidate.candidate_digest();
+    let summary = wire(
+        &candidate
+            .strict_law_workflow_summary(digest, &laws, &policy, &[], &[], 0, 1, 8192)
+            .unwrap(),
+    );
+    assert_eq!(summary["candidate_digest"], digest);
+    assert_eq!(summary["view"]["accepted"], false);
+    assert_eq!(summary["view"]["counts"]["required"], 1);
+    let detail = wire(
+        &candidate
+            .strict_law_workflow_detail(
+                digest,
+                &laws,
+                &policy,
+                &[],
+                &[],
+                "calculator.divide.nonzero",
+                8192,
+            )
+            .unwrap(),
+    );
+    assert_eq!(detail["candidate_digest"], digest);
+    assert_eq!(detail["view"]["law"]["satisfied"], false);
+    assert!(candidate
+        .strict_law_workflow_summary(
+            "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+            &laws,
+            &policy,
+            &[],
+            &[],
+            0,
+            1,
+            8192,
+        )
+        .is_err());
+}
+
+#[test]
 fn strict_law_missing_inventory_clause_or_requirement_cannot_pass_empty() {
     let fixture = Fixture::new("strict-law-omissions");
     let base = revision(&fixture);

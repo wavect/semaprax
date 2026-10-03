@@ -135,6 +135,12 @@ tampered proof, policy, candidate, or report bytes refuse before detail output.
 The projection does not launch a solver or turn an open proof into a verified
 one.
 
+`ProjectCandidate::strict_law_workflow_summary` and `strict_law_workflow_detail`
+wrap those exact views with the selected candidate digest. The caller must
+name the current candidate revision, independently supply the strict policy
+and opaque proofs, and accept the same bounded refusal behavior. These methods
+remain read-only candidate inspection, not proof selection or publication.
+
 ## Canonical wire and capacities
 
 The envelope schema is `semaprax.law-set.v1`, with exactly `payload`,

@@ -5,7 +5,7 @@ use crate::assurance_manifest::{
         native_proof::VerifiedLawProof,
         protected::{ProtectedLawBaseline, SpecificationChangeApproval},
         strict::{self, StrictLawPolicy},
-        LawSet,
+        workflow, LawSet,
     },
     VerifiedProjectProof,
 };
@@ -15,6 +15,10 @@ use std::path::Path;
 
 type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
 pub const STRICT_CANDIDATE_LAW_SCHEMA: &str = "semaprax.project-candidate-strict-law-assurance.v1";
+pub const STRICT_CANDIDATE_LAW_WORKFLOW_SUMMARY_SCHEMA: &str =
+    "semaprax.project-candidate-strict-law-workflow-summary.v1";
+pub const STRICT_CANDIDATE_LAW_WORKFLOW_DETAIL_SCHEMA: &str =
+    "semaprax.project-candidate-strict-law-workflow-detail.v1";
 
 /// Independently supplied host policy/evidence selection. No field is a proof
 /// string or an execution capability; opaque approvals/proofs retain their owners.
@@ -121,6 +125,106 @@ impl StrictCandidateLawInputs<'_> {
     }
 }
 impl ProjectCandidate {
+    fn strict_law_workflow_report(
+        &self,
+        expected_candidate: &str,
+        laws: &LawSet,
+        policy: &StrictLawPolicy,
+        proofs: &[VerifiedProjectProof],
+        native_proofs: &[VerifiedLawProof],
+    ) -> Result<String> {
+        self.require_candidate(expected_candidate)?;
+        if self.base_revision().project_revision() != policy.base_revision() {
+            return Err(vec![Diagnostic::io(
+                "SPX-LW104",
+                "strict law policy belongs to a different candidate base revision",
+            )]);
+        }
+        strict::derive_with_native_proofs(self.revision(), laws, policy, proofs, native_proofs)
+    }
+
+    /// Candidate-bound diagnostic view. Exact opaque proofs and policy remain
+    /// caller-held inputs; this route has no publication authority.
+    pub fn strict_law_workflow_summary(
+        &self,
+        expected_candidate: &str,
+        laws: &LawSet,
+        policy: &StrictLawPolicy,
+        proofs: &[VerifiedProjectProof],
+        native_proofs: &[VerifiedLawProof],
+        offset: usize,
+        limit: usize,
+        max_bytes: usize,
+    ) -> Result<String> {
+        let report = self.strict_law_workflow_report(
+            expected_candidate,
+            laws,
+            policy,
+            proofs,
+            native_proofs,
+        )?;
+        let view = workflow::strict_summary(
+            &report,
+            self.revision(),
+            laws,
+            policy,
+            proofs,
+            native_proofs,
+            offset,
+            limit,
+            max_bytes,
+        )?;
+        let view: serde_json::Value =
+            serde_json::from_str(&view).expect("checked workflow summary is JSON");
+        wire::render(
+            serde_json::json!({
+                "schema":STRICT_CANDIDATE_LAW_WORKFLOW_SUMMARY_SCHEMA,
+                "candidate_digest":self.candidate_digest(),
+                "view":view,"source_authority":false,"publication_authority":false
+            }),
+            max_bytes,
+        )
+    }
+
+    pub fn strict_law_workflow_detail(
+        &self,
+        expected_candidate: &str,
+        laws: &LawSet,
+        policy: &StrictLawPolicy,
+        proofs: &[VerifiedProjectProof],
+        native_proofs: &[VerifiedLawProof],
+        law_id: &str,
+        max_bytes: usize,
+    ) -> Result<String> {
+        let report = self.strict_law_workflow_report(
+            expected_candidate,
+            laws,
+            policy,
+            proofs,
+            native_proofs,
+        )?;
+        let view = workflow::strict_detail(
+            &report,
+            self.revision(),
+            laws,
+            policy,
+            proofs,
+            native_proofs,
+            law_id,
+            max_bytes,
+        )?;
+        let view: serde_json::Value =
+            serde_json::from_str(&view).expect("checked workflow detail is JSON");
+        wire::render(
+            serde_json::json!({
+                "schema":STRICT_CANDIDATE_LAW_WORKFLOW_DETAIL_SCHEMA,
+                "candidate_digest":self.candidate_digest(),
+                "view":view,"source_authority":false,"publication_authority":false
+            }),
+            max_bytes,
+        )
+    }
+
     pub fn strict_law_assurance(
         &self,
         expected_candidate: &str,

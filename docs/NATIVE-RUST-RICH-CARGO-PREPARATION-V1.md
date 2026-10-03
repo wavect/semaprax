@@ -97,7 +97,7 @@ closure.
 `semaprax-toolchain::rich_cargo_execution` provides the only current
 effectful entry points. `collect_cargo_metadata` and
 `prepare_with_cargo_metadata` require absolute regular-file paths for Cargo
-and `rustc`, an absolute workspace containing the exact `Cargo.toml`, an empty
+and `rustc`, an absolute workspace containing the exact `Cargo.toml`, a
 caller-owned Cargo home, an explicit vector of executable-search directories,
 and an existing absolute target directory. They clear the inherited environment
 and set only the supplied `RUSTC`, `HOME`/`CARGO_HOME`, `PATH`,

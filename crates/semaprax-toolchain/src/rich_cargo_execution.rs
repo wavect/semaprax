@@ -51,8 +51,8 @@ pub struct ExplicitCargoInvocation {
     pub rustc: PathBuf,
     pub workspace: PathBuf,
     pub manifest: PathBuf,
-    /// An empty, caller-owned Cargo home. It is also the child process's HOME,
-    /// so neither Cargo nor build code inherit the caller's home directory.
+    /// A caller-owned Cargo home. It is also the child process's HOME, so
+    /// neither Cargo nor build code inherit the caller's home directory.
     pub cargo_home: PathBuf,
     /// Absolute directories available to Cargo, rustc, and approved build
     /// code. This is a supplied capability, never the caller's ambient PATH.
@@ -170,7 +170,7 @@ fn validate_invocation(invocation: &ExplicitCargoInvocation) -> Result<(), Cargo
         || !regular_file(&invocation.rustc)
         || !directory(&invocation.workspace)
         || !regular_file(&invocation.manifest)
-        || !empty_directory(&invocation.cargo_home)
+        || !directory(&invocation.cargo_home)
         || invocation.execution_path.is_empty()
         || invocation
             .execution_path
@@ -191,10 +191,6 @@ fn regular_file(path: &Path) -> bool {
 
 fn directory(path: &Path) -> bool {
     path.is_absolute() && path.metadata().is_ok_and(|metadata| metadata.is_dir())
-}
-
-fn empty_directory(path: &Path) -> bool {
-    directory(path) && path.read_dir().is_ok_and(|entries| entries.count() == 0)
 }
 
 fn cargo_command(invocation: &ExplicitCargoInvocation) -> Command {

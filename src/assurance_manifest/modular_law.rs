@@ -7,6 +7,7 @@
 
 pub mod inline;
 pub mod prove;
+pub mod summary;
 
 use std::collections::{BTreeMap, BTreeSet};
 

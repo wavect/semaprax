@@ -1,5 +1,7 @@
 # Changelog
 
+- Add a straight-line LAW-06 checked-summary path: separately prove exact callee contracts, instantiate fresh typed results, stage caller-side preconditions before summary assumptions, and prove the caller using installed Z3. A weakened-summary negative control fails the caller proof without claiming a concrete runtime witness.
+
 - Add LAW-06 Project-bound linked-HIR admission and a bounded scalar-call inlining proof fallback. Preserve caller precondition checks as ordered checked obligations, report replayed Z3 witnesses, and bind proof metadata to exact transitive source digests. The reusable summary and LAW-04 attachment work remains open.
 
 - Lower LAW-05's shared typed scalar VC subject directly into SMT and Lean,

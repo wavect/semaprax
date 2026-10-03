@@ -206,3 +206,49 @@ fn real_z3_repeated_calls_and_shadowed_value_are_capture_free() {
     assert_eq!(proof.clauses.len(), 2);
     assert_eq!(proof.plan.summaries[1].calls.len(), 2);
 }
+#[test]
+#[ignore = "requires explicitly provisioned installed Z3"]
+fn real_z3_checked_summaries_compose_without_caller_body_inlining() {
+    use semaprax::assurance_manifest::modular_law::summary::prove_straight_line;
+    use semaprax::assurance_manifest::smt_discharge::{provision_from_env, RunLimits};
+    let fixture = Fixture::new("z3-summary", CORE, "");
+    let revision = with_authenticated_project(&fixture.root.join("semaprax.toml"), |snapshot| {
+        Ok(snapshot.retain_revision())
+    })
+    .unwrap();
+    let solver = provision_from_env().expect("explicit installed Z3");
+    let proof = prove_straight_line(
+        &revision,
+        "accounting.total",
+        Some(&solver),
+        &RunLimits::default(),
+    )
+    .expect("checked base/tax summaries compose for total");
+    assert_eq!(proof.checked_callee_clauses.len(), 2);
+    assert_eq!(proof.caller_precondition_scripts.len(), 6);
+    assert_eq!(proof.caller_postcondition_scripts.len(), 1);
+}
+
+#[test]
+#[ignore = "requires explicitly provisioned installed Z3"]
+fn real_z3_summary_use_refuses_a_weakened_callee_contract() {
+    use semaprax::assurance_manifest::modular_law::summary::{prove_straight_line, ModularFailure};
+    use semaprax::assurance_manifest::smt_discharge::{provision_from_env, RunLimits};
+    let weak_tax = CORE.replace("ensures result == value + 2", "ensures result >= value + 2");
+    let fixture = Fixture::new("z3-weak-summary", &weak_tax, "");
+    let revision = with_authenticated_project(&fixture.root.join("semaprax.toml"), |snapshot| {
+        Ok(snapshot.retain_revision())
+    })
+    .unwrap();
+    let solver = provision_from_env().expect("explicit installed Z3");
+    let outcome = prove_straight_line(
+        &revision,
+        "accounting.total",
+        Some(&solver),
+        &RunLimits::default(),
+    );
+    assert!(
+        matches!(outcome, Err(ModularFailure::Postcondition { .. })),
+        "{outcome:?}"
+    );
+}

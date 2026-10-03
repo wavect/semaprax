@@ -378,6 +378,7 @@ fn prepare_native_rust_interop_from_input<'a>(
                 ScalarType::ResultI64I64
             }
             ResolvedImportResultKind::OwnedResource { .. }
+            | ResolvedImportResultKind::OwnedResultResourceI64 { .. }
             | ResolvedImportResultKind::OwnedString
             | ResolvedImportResultKind::OwnedOptionString
             | ResolvedImportResultKind::OwnedResultStringI64

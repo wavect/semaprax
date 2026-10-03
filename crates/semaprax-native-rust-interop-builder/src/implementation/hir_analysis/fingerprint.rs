@@ -529,22 +529,31 @@ pub(in crate::implementation) fn hash_expr(
                         frame(hasher, b"native-rust-import");
                         frame(hasher, call.expression.as_str().as_bytes());
                         frame(hasher, call.import.as_str().as_bytes());
-                        frame(
-                            hasher,
-                            match &call.result {
-                                ResolvedImportResultKind::Unit => b"unit",
-                                ResolvedImportResultKind::I64 => b"i64",
-                                ResolvedImportResultKind::Bool => b"bool",
-                                ResolvedImportResultKind::OwnedString => b"string",
-        ResolvedImportResultKind::OwnedOptionString => b"Option<string>",
-        ResolvedImportResultKind::OwnedResultStringI64 => b"Result<string,i64>",
-                ResolvedImportResultKind::OwnedResultStringOptionI64 => b"Result<string,Option<i64>>",
-                                ResolvedImportResultKind::ResultI64I64 => b"result<i64,i64>",
-                                ResolvedImportResultKind::OwnedResource { resource } => {
-                                    resource.as_str().as_bytes()
-                                }
-                            },
-                        );
+                        match &call.result {
+                            ResolvedImportResultKind::Unit => frame(hasher, b"unit"),
+                            ResolvedImportResultKind::I64 => frame(hasher, b"i64"),
+                            ResolvedImportResultKind::Bool => frame(hasher, b"bool"),
+                            ResolvedImportResultKind::OwnedString => frame(hasher, b"string"),
+                            ResolvedImportResultKind::OwnedOptionString => {
+                                frame(hasher, b"Option<string>")
+                            }
+                            ResolvedImportResultKind::OwnedResultStringI64 => {
+                                frame(hasher, b"Result<string,i64>")
+                            }
+                            ResolvedImportResultKind::OwnedResultStringOptionI64 => {
+                                frame(hasher, b"Result<string,Option<i64>>")
+                            }
+                            ResolvedImportResultKind::ResultI64I64 => {
+                                frame(hasher, b"result<i64,i64>")
+                            }
+                            ResolvedImportResultKind::OwnedResource { resource } => {
+                                frame(hasher, resource.as_str().as_bytes());
+                            }
+                            ResolvedImportResultKind::OwnedResultResourceI64 { resource } => {
+                                frame(hasher, b"Result<resource,i64>");
+                                frame(hasher, resource.as_str().as_bytes());
+                            }
+                        };
                         hash_count(hasher, "arguments", call.args.len());
                         actions.push(HirFingerprintAction::Exprs(&call.args, 0, child_depth));
                     }

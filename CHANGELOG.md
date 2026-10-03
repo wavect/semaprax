@@ -1,5 +1,13 @@
 # Changelog
 
+- Save an RI-13 M2 record/iterator Rust application. An opt-in native builder
+  projects one checked record and scalar callback from the same source revision;
+  the locked offline consumer parses and serializes generated Serde records and
+  executes generated `Fn`/`FnMut` adapters under `std::Iterator`. Ordinary
+  callback admission still refuses record declarations. This is source-local
+  projection, with selected Project publication and broader RI-13 acceptance
+  still open.
+
 - Add the bounded RI-08 affine `FnOnce() -> i64` source profile: one owned Bytes capture survives helper returns, moves and single invocation across interpreter, native C and Core Wasm. A generated Rust owner executes the checked callback body with physical drop/failure controls and rustc move/Clone/Send refusals. Mutable, borrowed and foreign-retained registrations remain open.
 
 - Canonicalize the checked money/state law-pack source, list both new example

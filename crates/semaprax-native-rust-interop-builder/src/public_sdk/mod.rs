@@ -613,7 +613,9 @@ pub use affine_callback::{prepare_native_rust_affine_callback, NativeAffineCallb
 mod callback;
 mod registered_callback;
 pub use callback::{
-    prepare_native_rust_callbacks, NativeCallbackProjection, NativeCallbackSelection,
+    prepare_native_rust_callbacks, prepare_native_rust_serde_callbacks,
+    prepare_native_rust_serde_iterator_callbacks, NativeCallbackProjection,
+    NativeCallbackSelection, NativeSerdeCallbackProjection,
 };
 pub use registered_callback::{
     prepare_registered_native_rust_callbacks, NativeRegisteredCallbackProjection,

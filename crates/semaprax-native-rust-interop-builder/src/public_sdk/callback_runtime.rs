@@ -1,6 +1,8 @@
 //! Safe generated runtime for a private C-compatible callback body.
 //! Rust closure values are constructed normally; no unstable Fn trait impls,
 //! Rust trait-object layout assumptions, unsafe Send/Sync, or raw handle API.
+const TRAIT_IMPL: &str = "impl $TRAIT for SpxStatefulProxy {\n    type $ERROR=SpxCallbackError;\n    fn $METHOD(&mut self,value:i64)->Result<i64,Self::$ERROR> {\n        self.callback.invoke(value,true,||Ok(()))\n    }\n}";
+
 pub(super) fn render(
     snapshot: &str,
     transition: &str,
@@ -9,11 +11,19 @@ pub(super) fn render(
     error: &str,
 ) -> String {
     scalar_template()
+        .replace("$TRAIT_IMPL", TRAIT_IMPL)
         .replace("$SNAPSHOT", snapshot)
         .replace("$TRANSITION", transition)
         .replace("$TRAIT", trait_path)
         .replace("$METHOD", method)
         .replace("$ERROR", error)
+}
+
+pub(super) fn render_iterator(snapshot: &str, transition: &str) -> String {
+    scalar_template()
+        .replace("$TRAIT_IMPL", "")
+        .replace("$SNAPSHOT", snapshot)
+        .replace("$TRANSITION", transition)
 }
 
 fn scalar_template() -> String {
@@ -43,6 +53,7 @@ impl NativeRustImports for SpxCallbackHost {
     }
 }"#.replace("$PUBLISH", publish);
     include_str!("callback_runtime.template")
+        .replace("$TRAIT_IMPL", TRAIT_IMPL)
         .replace("$SOURCE_DOMAIN_ERROR", "SourceDomain(i64),")
         .replace(
             "$HOST_SETUP",

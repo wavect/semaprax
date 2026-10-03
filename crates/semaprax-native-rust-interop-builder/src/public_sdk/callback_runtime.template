@@ -138,9 +138,4 @@ impl SpxStatefulProxy {
     }
     pub fn unregister(&self)->Result<(),SpxCallbackError>{self.callback.unregister()}
 }
-impl $TRAIT for SpxStatefulProxy {
-    type $ERROR=SpxCallbackError;
-    fn $METHOD(&mut self,value:i64)->Result<i64,Self::$ERROR> {
-        self.callback.invoke(value,true,||Ok(()))
-    }
-}
+$TRAIT_IMPL

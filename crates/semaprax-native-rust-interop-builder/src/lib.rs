@@ -149,10 +149,11 @@ pub use public_sdk::{
 pub use public_sdk::{
     prepare_indexed_native_rust_result_callback, prepare_native_rust_affine_callback,
     prepare_native_rust_callbacks, prepare_native_rust_result_callback,
+    prepare_native_rust_serde_callbacks, prepare_native_rust_serde_iterator_callbacks,
     prepare_registered_native_rust_callbacks, IndexedResultCallbackProjection,
     IndexedResultCallbackSelection, NativeAffineCallbackProjection, NativeCallbackProjection,
     NativeCallbackSelection, NativeRegisteredCallbackProjection, NativeRegistrySelection,
-    NativeResultCallbackProjection, NativeResultCallbackSelection,
+    NativeResultCallbackProjection, NativeResultCallbackSelection, NativeSerdeCallbackProjection,
 };
 pub use trusted_native::{
     NativeBuildAuthority, NativeBuildPolicy, NativeDispatchError, NativeEffectContract,

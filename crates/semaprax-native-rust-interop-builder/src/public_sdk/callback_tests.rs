@@ -90,6 +90,59 @@ fn selection() -> NativeCallbackSelection {
         error_type: "Error".into(),
     }
 }
+
+#[test]
+fn one_checked_record_and_stateful_callback_share_exact_source_revision() {
+    let source = SOURCE.replace(
+        "@id(\"app.main\")",
+        "@id(\"ri13.event\") record Event { @id(\"ri13.event.value\") value: i64, @id(\"ri13.event.label\") label: string, }\n@id(\"app.main\")",
+    );
+    assert_ne!(source, SOURCE);
+    let path = Path::new("ri13-m2.spx");
+    let checked = semaprax::check(&source, path).unwrap();
+    assert_eq!(checked.types.len(), 1);
+    assert_eq!(checked.types[0].stable_id, "ri13.event");
+    let ordinary = prepare_native_rust_callbacks(&source, path, &selection()).unwrap_err();
+    assert_eq!(ordinary[0].code, "SPX-B154");
+    let combined =
+        prepare_native_rust_serde_callbacks(&source, path, "ri13.event", &selection()).unwrap();
+    assert_eq!(combined.record.record_id, "ri13.event");
+    assert_eq!(combined.source_revision, combined.callback.source_revision);
+    assert!(combined
+        .record
+        .rust_source
+        .contains("::serde_json::from_str"));
+    assert!(combined
+        .record
+        .rust_source
+        .contains("::serde_json::to_string"));
+    assert!(combined.callback.adapter_rust.contains("SpxStatefulProxy"));
+    let iterator = prepare_native_rust_serde_iterator_callbacks(
+        &source,
+        path,
+        "ri13.event",
+        "callback.factory",
+        "callback.advance",
+    )
+    .unwrap();
+    assert_eq!(iterator.source_revision, combined.source_revision);
+    assert!(iterator.callback.adapter_rust.contains("pub fn as_fn_mut"));
+    assert!(!iterator.callback.adapter_rust.contains("$TRAIT"));
+    assert!(!iterator
+        .callback
+        .adapter_rust
+        .contains("impl callback_fixture::Accumulator"));
+
+    let changed = source.replace("label: string", "label: bool");
+    assert_ne!(source, changed);
+    let changed =
+        prepare_native_rust_serde_callbacks(&changed, path, "ri13.event", &selection()).unwrap();
+    assert_ne!(combined.source_revision, changed.source_revision);
+    let wrong =
+        prepare_native_rust_serde_callbacks(&source, path, "ri13.other", &selection()).unwrap_err();
+    assert_eq!(wrong[0].code, "SPX-B154");
+    assert!(wrong[0].message.contains("exactly its selected record"));
+}
 struct Temp(std::path::PathBuf);
 impl Drop for Temp {
     fn drop(&mut self) {

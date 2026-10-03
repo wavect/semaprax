@@ -127,6 +127,14 @@ The first profile replays reports derived without attached installed proof
 tokens; proof-bearing reports need their own exact installed-tool replay before
 they can use this projection.
 
+For strict reports with opaque checked proof tokens,
+`workflow::strict_summary` and `strict_detail` rederive the full strict report
+from the retained Project, host-selected policy, and independently held proof
+tokens. They retain a failed strict verdict and complete counts on every page;
+tampered proof, policy, candidate, or report bytes refuse before detail output.
+The projection does not launch a solver or turn an open proof into a verified
+one.
+
 ## Canonical wire and capacities
 
 The envelope schema is `semaprax.law-set.v1`, with exactly `payload`,

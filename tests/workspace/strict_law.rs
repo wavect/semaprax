@@ -1,5 +1,6 @@
 //! LAW-04's first strict Project/candidate evidence join; no external solver runs.
 use super::*;
+use semaprax::assurance_manifest::law_set::workflow;
 use semaprax::assurance_manifest::{
     law_set::strict::{self, RequiredLawEvidence, StrictLawPolicy},
     model_checking as mc,
@@ -109,6 +110,60 @@ fn strict_law_missing_inventory_clause_or_requirement_cannot_pass_empty() {
         "SPX-LW130",
     );
     assert_eq!(wire(&missing)["counts"]["required"], 1);
+}
+
+#[test]
+fn strict_workflow_keeps_failed_verdict_and_replays_exact_proof_inventory() {
+    let fixture = Fixture::new("strict-law-workflow");
+    let current = revision(&fixture);
+    let laws = LawSet::derive(&current, "checked-v1", vec![module()]).unwrap();
+    let policy = policy(
+        &laws,
+        "calculator.divide.nonzero",
+        RequiredLawEvidence::CompilerStatic,
+    );
+    let report = strict::derive(&current, &laws, &policy, &[]).unwrap();
+    let first = wire(
+        &workflow::strict_summary(&report, &current, &laws, &policy, &[], &[], 0, 1, 8192).unwrap(),
+    );
+    assert_eq!(first["accepted"], false);
+    assert_eq!(first["counts"]["required"], 1);
+    assert_eq!(first["counts"]["satisfied"], 0);
+    assert_eq!(first["laws"][0]["law_id"], "calculator.divide.nonzero");
+    assert_eq!(first["laws"][0]["satisfied"], false);
+    let empty_page = wire(
+        &workflow::strict_summary(&report, &current, &laws, &policy, &[], &[], 1, 1, 8192).unwrap(),
+    );
+    assert_eq!(empty_page["accepted"], false);
+    assert_eq!(empty_page["counts"], first["counts"]);
+    let detail = wire(
+        &workflow::strict_detail(
+            &report,
+            &current,
+            &laws,
+            &policy,
+            &[],
+            &[],
+            "calculator.divide.nonzero",
+            8192,
+        )
+        .unwrap(),
+    );
+    assert_eq!(detail["law"]["satisfied"], false);
+    assert_eq!(detail["repair_target"], "implementation_or_proof");
+    assert_code(
+        workflow::strict_detail(
+            &report.replace("\"accepted\":false", "\"accepted\":true"),
+            &current,
+            &laws,
+            &policy,
+            &[],
+            &[],
+            "calculator.divide.nonzero",
+            8192,
+        ),
+        "SPX-LW104",
+    );
 }
 
 #[test]

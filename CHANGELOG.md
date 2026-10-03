@@ -1,5 +1,14 @@
 # Changelog
 
+- Record an exploratory RI-13 M3 local HTTP comparison with 90 raw samples
+  each for direct Rust, equivalent handwritten checks, and generated checked
+  source, plus a 30-call preparation/await attribution probe. Generated versus
+  handwritten normalized throughput was 0.1242 (paired bootstrap 95%
+  interval [0.1207, 0.1276]); measured registration/preparation accounted
+  for 52.26% of generated total time in the separate probe. This triggers
+  investigation. The tiny loopback workload cannot satisfy the nontrivial
+  batch threshold; copied bytes and allocations remain unmeasured.
+
 - Admit a narrow checked `List<i64>` / `ListStep<i64>` immutable source profile
   through a versioned prelude, HIR, graph and interpreter. Exact `list_nil`,
   `list_cons` and `list_uncons` calls use a persistent cons carrier. Native C

@@ -33,6 +33,7 @@ pub(super) fn required(program: &ResolvedProgram, expression: &ResolvedExpr) -> 
                                 | ResolvedImportResultKind::OwnedOptionString
                                 | ResolvedImportResultKind::OwnedResultStringI64
                                 | ResolvedImportResultKind::OwnedResultStringOptionI64
+                                | ResolvedImportResultKind::OwnedResultResourceI64 { .. }
                         )
                         && import
                             .result

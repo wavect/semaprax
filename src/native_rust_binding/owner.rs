@@ -137,3 +137,103 @@ pub fn bind_selected_owner_signature(
     import.selected_receiver = (receiver == "owned").then(|| "owned".into());
     Ok(true)
 }
+
+/// Bind the single RI-06 constructor/method shape before publication has a
+/// package route.  This models type facts only; callers still need a held,
+/// replayed package closure and a physical publication path.
+pub fn bind_selected_regex_result_signature(
+    import: &mut ImportDeclaration,
+    types: &[TypeDeclaration],
+    signature: &str,
+    index_digest: &str,
+    receiver: &str,
+) -> Result<bool, Diagnostic> {
+    let path = import.rust_path.as_deref().unwrap_or("");
+    let Some((type_path, method)) = path.rsplit_once("::") else {
+        return Ok(false);
+    };
+    let type_name = type_path.rsplit("::").next().unwrap_or("");
+    if type_name != "Regex" || !matches!(method, "new" | "is_match") {
+        return Ok(false);
+    }
+    if !import.native_rust
+        || !import.index_selected
+        || !valid_digest(index_digest)
+        || !valid_rust_api_path(path)
+    {
+        return Err(error(
+            "SPX-B142",
+            "selected Regex Result import has invalid index identity",
+            import.span,
+        ));
+    }
+    let matches = types
+        .iter()
+        .filter(|ty| {
+            ty.name == type_name && matches!(ty.kind, TypeDeclarationKind::Resource { .. })
+        })
+        .count();
+    if matches != 1 {
+        return Err(error(
+            "SPX-B145",
+            "selected Regex Result requires one matching declared resource",
+            import.span,
+        ));
+    }
+    let expected_result = format!(
+        "core::result::Result<{type_path}, {}::Error>",
+        type_path
+            .rsplit_once("::")
+            .map(|(prefix, _)| prefix)
+            .unwrap_or("")
+    );
+    let valid = match (method, receiver) {
+        ("new", "none") => signature == format!("fn new(re: &str) -> {expected_result}"),
+        ("is_match", "shared") => signature == "fn is_match(&self, text: &str) -> bool",
+        _ => false,
+    };
+    if !valid {
+        return Err(error(
+            "SPX-B145",
+            "selected Regex Result signature is outside the RI-06 profile",
+            import.span,
+        ));
+    }
+    import.params = match method {
+        "new" => vec![Param {
+            name: "text".into(),
+            mode: ParamMode::Borrow,
+            ty: Type::String,
+            span: import.span,
+        }],
+        "is_match" => vec![
+            Param {
+                name: "receiver".into(),
+                mode: ParamMode::Borrow,
+                ty: Type::Named {
+                    name: type_name.into(),
+                    arguments: Vec::new(),
+                },
+                span: import.span,
+            },
+            Param {
+                name: "text".into(),
+                mode: ParamMode::Borrow,
+                ty: Type::String,
+                span: import.span,
+            },
+        ],
+        _ => unreachable!(),
+    };
+    import.result = if method == "new" {
+        ImportResult::OwnedResultResourceI64 {
+            name: type_name.into(),
+        }
+    } else {
+        ImportResult::Bool
+    };
+    import.selected_signature = Some(signature.into());
+    import.selected_index_digest = Some(index_digest.into());
+    import.selected_receiver = (receiver == "shared").then(|| "shared".into());
+    Ok(true)
+}

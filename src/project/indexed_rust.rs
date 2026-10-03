@@ -107,6 +107,17 @@ pub(crate) fn bind_program(
             )
             .at_path(&program.path)]);
         }
+        if crate::native_rust_binding::bind_selected_regex_result_signature(
+            import,
+            &program.types,
+            &selection.signature,
+            &selection.index_digest,
+            &selection.receiver,
+        )
+        .map_err(|error| vec![error.at_path(&program.path)])?
+        {
+            continue;
+        }
         if crate::native_rust_binding::bind_selected_owner_signature(
             import,
             &program.types,

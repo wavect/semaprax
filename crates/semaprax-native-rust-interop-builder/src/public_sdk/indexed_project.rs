@@ -197,10 +197,28 @@ pub(super) fn prepare_project_bindings(
             .rust_path
             .as_deref()
             .expect("selected source path parsed");
-        let items = index
-            .select_supported(&[path])
-            .map_err(|_| located("SPX-B141", "selected Project Rust item is unavailable"))?;
-        let item = items[0];
+        let type_path = path.rsplit_once("::").map(|(owner, _)| owner).unwrap_or("");
+        let regex_error = type_path
+            .rsplit_once("::")
+            .map(|(prefix, _)| format!("{prefix}::Error"))
+            .unwrap_or_default();
+        let item = match index.select_supported(&[path]) {
+            Ok(items) => items[0],
+            Err(_) if path.ends_with("::Regex::new") && !regex_error.is_empty() => index
+                .select_closed_owner_result(path, type_path, &regex_error)
+                .map_err(|_| {
+                    located(
+                        "SPX-B141",
+                        "selected Project Regex constructor is unavailable",
+                    )
+                })?,
+            Err(_) => {
+                return Err(located(
+                    "SPX-B141",
+                    "selected Project Rust item is unavailable",
+                ))
+            }
+        };
         if !matches!(
             (item.kind, item.receiver),
             (

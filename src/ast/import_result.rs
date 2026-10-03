@@ -15,6 +15,11 @@ pub enum ImportResult {
     OwnedOptionString,
     OwnedResultStringI64,
     OwnedResultStringOptionI64,
+    /// A selected native constructor whose success arm is one owned resource
+    /// and whose error arm is a stable `i64` domain code.
+    OwnedResultResourceI64 {
+        name: String,
+    },
     /// An opaque resource returned by a native Rust constructor. The source
     /// verifier resolves `name` to an authored `resource` declaration.
     OwnedResource {
@@ -32,6 +37,7 @@ impl fmt::Display for ImportResult {
             Self::OwnedOptionString => "Option<string>",
             Self::OwnedResultStringI64 => "Result<string, i64>",
             Self::OwnedResultStringOptionI64 => "Result<string, Option<i64>>",
+            Self::OwnedResultResourceI64 { name } => return write!(f, "Result<{name}, i64>"),
             Self::ResultI64I64 => "Result<i64, i64>",
             Self::OwnedResource { name } => name,
         })
@@ -47,6 +53,7 @@ impl ImportResult {
                 | Self::OwnedOptionString
                 | Self::OwnedResultStringI64
                 | Self::OwnedResultStringOptionI64
+                | Self::OwnedResultResourceI64 { .. }
         )
     }
     pub fn container_for_type(ty: &Type) -> Option<Self> {
@@ -71,14 +78,37 @@ impl ImportResult {
 
     /// Closed native container admission never widens ordinary generic programs.
     pub(crate) fn container_enabled(program: &super::Program, ty: &Type) -> bool {
-        let Some(kind) = Self::container_for_type(ty) else {
+        if let Some(kind) = Self::container_for_type(ty) {
+            return program
+                .interfaces
+                .iter()
+                .flat_map(|i| &i.imports)
+                .any(|i| i.native_rust && i.result == kind);
+        }
+        let Type::Named { name, arguments } = ty else {
             return false;
         };
-        program
-            .interfaces
-            .iter()
-            .flat_map(|i| &i.imports)
-            .any(|i| i.native_rust && i.result == kind)
+        let [Type::Named {
+            name: resource,
+            arguments: resource_arguments,
+        }, Type::I64] = arguments.as_slice()
+        else {
+            return false;
+        };
+        name == "Result"
+            && resource_arguments.is_empty()
+            && program
+                .interfaces
+                .iter()
+                .flat_map(|interface| &interface.imports)
+                .any(|import| {
+                    import.native_rust
+                        && matches!(
+                            &import.result,
+                            Self::OwnedResultResourceI64 { name }
+                                if name == resource
+                        )
+                })
     }
 
     pub fn value_type(&self) -> Type {
@@ -106,6 +136,16 @@ impl ImportResult {
                         name: "Option".into(),
                         arguments: vec![Type::I64],
                     },
+                ],
+            },
+            Self::OwnedResultResourceI64 { name } => Type::Named {
+                name: "Result".to_owned(),
+                arguments: vec![
+                    Type::Named {
+                        name: name.clone(),
+                        arguments: Vec::new(),
+                    },
+                    Type::I64,
                 ],
             },
             Self::ResultI64I64 => Type::Named {

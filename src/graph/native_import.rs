@@ -57,6 +57,7 @@ pub(crate) fn selected_schema(
                 && (matches!(
                     import.result.kind,
                     ResolvedImportResultKind::OwnedResource { .. }
+                        | ResolvedImportResultKind::OwnedResultResourceI64 { .. }
                 ) || import
                     .parameters
                     .iter()
@@ -152,6 +153,7 @@ pub(crate) fn result_text(kind: &ResolvedImportResultKind) -> &str {
         ResolvedImportResultKind::OwnedResultStringI64 => "Result<string, i64>",
         ResolvedImportResultKind::OwnedResultStringOptionI64 => "Result<string, Option<i64>>",
         ResolvedImportResultKind::ResultI64I64 => "Result<i64, i64>",
+        ResolvedImportResultKind::OwnedResultResourceI64 { .. } => "Result<resource, i64>",
         ResolvedImportResultKind::OwnedResource { resource } => resource.as_str(),
     }
 }

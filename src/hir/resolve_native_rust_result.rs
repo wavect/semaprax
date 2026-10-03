@@ -35,6 +35,44 @@ impl Resolver<'_> {
                 ResolvedImportResultKind::ResultI64I64,
                 self.resolve_type(&result.value_type(), span)?,
             ),
+            crate::ast::ImportResult::OwnedResultResourceI64 { name } => {
+                let resource = self.resolve_type(
+                    &crate::ast::Type::Named {
+                        name: name.clone(),
+                        arguments: Vec::new(),
+                    },
+                    span,
+                )?;
+                let ResolvedType::Nominal {
+                    declaration,
+                    arguments,
+                } = resource
+                else {
+                    return Err(self.error(
+                        "SPX-H006",
+                        "native Rust Result success arm did not resolve to a resource",
+                        span,
+                    ));
+                };
+                if !arguments.is_empty()
+                    || self
+                        .declarations
+                        .declaration(&declaration)
+                        .is_none_or(|item| item.kind != DeclarationKind::Resource)
+                {
+                    return Err(self.error(
+                        "SPX-H006",
+                        "native Rust Result success arm did not resolve to a resource",
+                        span,
+                    ));
+                }
+                (
+                    ResolvedImportResultKind::OwnedResultResourceI64 {
+                        resource: declaration,
+                    },
+                    self.resolve_type(&result.value_type(), span)?,
+                )
+            }
             crate::ast::ImportResult::OwnedResource { .. } => {
                 let ty = self.resolve_type(&result.value_type(), span)?;
                 let ResolvedType::Nominal {

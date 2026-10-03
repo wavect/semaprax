@@ -631,6 +631,7 @@ pub enum ResolvedImportResultKind {
     OwnedOptionString,
     OwnedResultStringI64,
     OwnedResultStringOptionI64,
+    OwnedResultResourceI64 { resource: DeclarationId },
     OwnedResource { resource: DeclarationId },
 }
 
@@ -643,6 +644,7 @@ impl ResolvedImportResultKind {
                 | Self::OwnedOptionString
                 | Self::OwnedResultStringI64
                 | Self::OwnedResultStringOptionI64
+                | Self::OwnedResultResourceI64 { .. }
         ) {
             OwnershipMode::Own
         } else {
@@ -685,6 +687,16 @@ impl ResolvedImportResultKind {
                 vec![
                     ResolvedType::String,
                     nominal("Option", vec![ResolvedType::I64])?,
+                ],
+            )?,
+            Self::OwnedResultResourceI64 { resource } => nominal(
+                "Result",
+                vec![
+                    ResolvedType::Nominal {
+                        declaration: resource.clone(),
+                        arguments: Vec::new(),
+                    },
+                    ResolvedType::I64,
                 ],
             )?,
             Self::OwnedResource { resource } => ResolvedType::Nominal {

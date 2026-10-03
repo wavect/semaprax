@@ -88,13 +88,20 @@ impl Parser {
                     ref ty if ImportResult::container_for_type(ty).is_some() => {
                         ImportResult::container_for_type(ty).unwrap()
                     }
+                    Type::Named { name, arguments }
+                        if name == "Result"
+                            && matches!(arguments.as_slice(), [Type::Named { name, arguments }, Type::I64] if arguments.is_empty()) =>
+                    {
+                        let Type::Named { name, .. } = &arguments[0] else { unreachable!() };
+                        ImportResult::OwnedResultResourceI64 { name: name.clone() }
+                    }
                     Type::Named { name, arguments } if arguments.is_empty() => {
                         ImportResult::OwnedResource { name }
                     }
                     _ => {
                         return Err(self.error_previous(
                             "SPX-P106",
-                            "native Rust result requires an opaque resource, string, Option<string>, Result<string, i64>, or Result<string, Option<i64>>",
+                            "native Rust result requires an opaque resource, string, Option<string>, Result<string, i64>, Result<string, Option<i64>>, or selected Result<resource, i64>",
                         ))
                     }
                 }

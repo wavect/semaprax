@@ -332,27 +332,45 @@ impl<'a> HirValidator<'a> {
                         )));
                     }
                 }
+                let ri06_regex_borrow_shape = import.index_selected
+                    && match (&import.result.kind, import.parameters.as_slice()) {
+                        (ResolvedImportResultKind::OwnedResultResourceI64 { .. }, [parameter]) => {
+                            parameter.ownership == OwnershipMode::Borrow
+                                && parameter.ty == ResolvedType::String
+                        }
+                        (ResolvedImportResultKind::Bool, [receiver, text]) => {
+                            receiver.ownership == OwnershipMode::Borrow
+                                && matches!(receiver.ty, ResolvedType::Nominal { ref declaration, ref arguments }
+                                    if arguments.is_empty() && self.program.declarations.declaration(declaration)
+                                        .is_some_and(|item| item.kind == DeclarationKind::Resource))
+                                && text.ownership == OwnershipMode::Borrow
+                                && text.ty == ResolvedType::String
+                        }
+                        _ => false,
+                    };
                 let native_shape = import.native_rust
                     && import.parameters.len() <= 8
-                    && import.parameters.iter().all(|parameter| {
-                        parameter.consumes_on_failure == (parameter.ownership == OwnershipMode::Own)
-                            && ((parameter.ownership == OwnershipMode::Value
-                                && matches!(parameter.ty, ResolvedType::I64 | ResolvedType::Bool))
-                                || (parameter.ownership == OwnershipMode::Own
-                                    && (parameter.ty == ResolvedType::String || ResolvedImportResultKind::is_owned_container_type(&parameter.ty, &self.program.declarations) || matches!(parameter.ty, ResolvedType::Nominal { ref declaration, ref arguments }
-                                        if arguments.is_empty() && self.program.declarations.declaration(declaration)
-                                            .is_some_and(|item| item.kind == DeclarationKind::Resource)))))
-                    })
+                    && (ri06_regex_borrow_shape || import.parameters.iter().all(|parameter| {
+                        (parameter.ownership == OwnershipMode::Value
+                            && matches!(parameter.ty, ResolvedType::I64 | ResolvedType::Bool))
+                            || (parameter.ownership == OwnershipMode::Own
+                                && (parameter.ty == ResolvedType::String || ResolvedImportResultKind::is_owned_container_type(&parameter.ty, &self.program.declarations) || matches!(parameter.ty, ResolvedType::Nominal { ref declaration, ref arguments }
+                                    if arguments.is_empty() && self.program.declarations.declaration(declaration)
+                                        .is_some_and(|item| item.kind == DeclarationKind::Resource))))
+                    }))
                     && matches!(
                         &import.result.kind,
                         ResolvedImportResultKind::Unit
                             | ResolvedImportResultKind::I64
                             | ResolvedImportResultKind::Bool
                             | ResolvedImportResultKind::ResultI64I64
-                            | ResolvedImportResultKind::OwnedResource { .. } | ResolvedImportResultKind::OwnedString | ResolvedImportResultKind::OwnedOptionString | ResolvedImportResultKind::OwnedResultStringI64 | ResolvedImportResultKind::OwnedResultStringOptionI64
+                            | ResolvedImportResultKind::OwnedResource { .. } | ResolvedImportResultKind::OwnedResultResourceI64 { .. } | ResolvedImportResultKind::OwnedString | ResolvedImportResultKind::OwnedOptionString | ResolvedImportResultKind::OwnedResultStringI64 | ResolvedImportResultKind::OwnedResultStringOptionI64
                     )
-                    && (import.result.kind != ResolvedImportResultKind::ResultI64I64
-                        || (import.index_selected && import.selected_index_digest.is_some()));
+                    && (!matches!(
+                        import.result.kind,
+                        ResolvedImportResultKind::ResultI64I64
+                            | ResolvedImportResultKind::OwnedResultResourceI64 { .. }
+                    ) || (import.index_selected && import.selected_index_digest.is_some()));
                 let lifecycle_shape = !import.native_rust
                     && import.parameters.len() == 1
                     && import.parameters[0].ownership == OwnershipMode::Own

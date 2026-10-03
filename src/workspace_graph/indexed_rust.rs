@@ -91,6 +91,9 @@ pub(super) fn append(
                         "core::result::Result<alloc::string::String, i64>"
                     }
                     hir::ResolvedImportResultKind::ResultI64I64 => "Result<i64, i64>",
+                    hir::ResolvedImportResultKind::OwnedResultResourceI64 { .. } => {
+                        "core::result::Result<opaque resource, i64>"
+                    }
                     hir::ResolvedImportResultKind::OwnedResource { .. } => "opaque resource",
                 },
             );

@@ -279,25 +279,42 @@ pub(super) fn check_native_rust_imports<'p>(
                 | crate::ast::ImportResult::OwnedOptionString
                 | crate::ast::ImportResult::OwnedResultStringI64
                 | crate::ast::ImportResult::OwnedResultStringOptionI64 => true,
-                crate::ast::ImportResult::OwnedResource { name } => {
+                crate::ast::ImportResult::OwnedResultResourceI64 { name }
+                | crate::ast::ImportResult::OwnedResource { name } => {
                     types.is_opaque_resource(&Type::Named {
                         name: name.clone(),
                         arguments: Vec::new(),
                     })
                 }
             };
+            let ri06_regex_borrow_shape = import.index_selected
+                && match (&import.result, import.params.as_slice()) {
+                    (crate::ast::ImportResult::OwnedResultResourceI64 { .. }, [parameter]) => {
+                        parameter.mode == ParamMode::Borrow && parameter.ty == Type::String
+                    }
+                    (crate::ast::ImportResult::Bool, [receiver, text]) => {
+                        receiver.mode == ParamMode::Borrow
+                            && types.is_opaque_resource(&receiver.ty)
+                            && text.mode == ParamMode::Borrow
+                            && text.ty == Type::String
+                    }
+                    _ => false,
+                };
             let valid_shape = if import.native_rust {
                 import.params.len() <= 8
                     && import.consumes.is_empty()
-                    && import.params.iter().all(|parameter| {
-                        (parameter.mode == ParamMode::Value
-                            && matches!(parameter.ty, Type::I64 | Type::Bool))
-                            || (parameter.mode == ParamMode::Own
-                                && (parameter.ty == Type::String
-                                    || crate::ast::ImportResult::container_for_type(&parameter.ty)
+                    && (ri06_regex_borrow_shape
+                        || import.params.iter().all(|parameter| {
+                            (parameter.mode == ParamMode::Value
+                                && matches!(parameter.ty, Type::I64 | Type::Bool))
+                                || (parameter.mode == ParamMode::Own
+                                    && (parameter.ty == Type::String
+                                        || crate::ast::ImportResult::container_for_type(
+                                            &parameter.ty,
+                                        )
                                         .is_some()
-                                    || types.is_opaque_resource(&parameter.ty)))
-                    })
+                                        || types.is_opaque_resource(&parameter.ty)))
+                        }))
                     && native_result_is_valid
             } else {
                 import.result == crate::ast::ImportResult::Unit

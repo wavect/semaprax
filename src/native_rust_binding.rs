@@ -5,7 +5,9 @@
 //! grants execution authority nor turns an index signature into Rust code.
 
 mod owner;
-pub use owner::bind_selected_owner_signature;
+pub use owner::{bind_selected_owner_signature, bind_selected_regex_result_signature};
+#[cfg(test)]
+mod owner_tests;
 
 use sha2::{Digest, Sha256};
 use std::fmt::Write as _;
@@ -353,6 +355,9 @@ fn result_text(kind: &ResolvedImportResultKind) -> &'static str {
             "core::result::Result<alloc::string::String, i64>"
         }
         ResolvedImportResultKind::ResultI64I64 => "core::result::Result<i64, i64>",
+        ResolvedImportResultKind::OwnedResultResourceI64 { .. } => {
+            "core::result::Result<opaque resource, i64>"
+        }
         ResolvedImportResultKind::OwnedResource { .. } => "opaque resource",
     }
 }

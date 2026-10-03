@@ -49,3 +49,14 @@ awaits a caller-owned Rust Future through the source interpreter, and checks
 the source result. It also refuses Web/npm emission, wrong selected identity,
 and source mutation before held-input release. This is a local interpreter
 gate, not a reqwest or generated SDK gate.
+
+The opt-in ignored
+`project::source_local_future::selected_project_future_awaits_locked_reqwest_and_cancel_does_not_undo_request`
+selector takes the same held Project route, then invokes a real local HTTP
+server through locked `reqwest` under a caller-created Tokio current-thread
+runtime. The server returns `43` for the source request `42`; only the checked
+source continuation can produce the asserted result `84`. A second request is
+observed by the server before its local task is aborted. The server checks
+that no third request arrives. The `tokio` dependency is test-only; the core
+library still has no executor or startup path. This gate does not generate a
+Rust SDK or turn a source `yield` into an authored `import rust fn` declaration.

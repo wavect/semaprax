@@ -1,5 +1,11 @@
 # Changelog
 
+- Exercise the selected interpreter-backed Project async export through a
+  real locked local `reqwest` request under an explicit Tokio current-thread
+  runtime. The resumed checked source computes `84` from a server-returned
+  `43`; a second request is cancelled after server receipt without a retry or
+  rollback claim. Generated Rust SDK publication remains open.
+
 - Start LAW-08's source-bound list induction lane: an exact pure monomorphic
   `Iter<i64>` tail match may return `Vec<i64>`, and a separate proof module
   discharges fixed append/reverse laws with real pinned Lean. A versioned

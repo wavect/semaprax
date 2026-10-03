@@ -3,11 +3,14 @@
 use semaprax::project::{with_authenticated_project, ProjectManifest, ProjectProfile};
 use semaprax::resumable_effects::source_local_future::SourceLocalFuture;
 use std::future::Future;
+use std::io::{Read, Write};
+use std::net::{TcpListener, TcpStream};
 use std::path::{Path, PathBuf};
 use std::pin::Pin;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use std::task::{Context, Poll, Wake, Waker};
+use std::time::Duration;
 
 static SERIAL: AtomicU64 = AtomicU64::new(0);
 
@@ -114,4 +117,112 @@ fn authenticated_project_selected_async_export_awaits_host_future_and_refuses_dr
     std::fs::write(wrong.manifest(), wrong_manifest).unwrap();
     let refusal = with_authenticated_project(&wrong.manifest(), |_snapshot| Ok(())).unwrap_err();
     assert_eq!(refusal[0].code, "SPX-H006");
+}
+
+fn receive_request(stream: &mut TcpStream, path: &str) {
+    stream
+        .set_read_timeout(Some(Duration::from_secs(10)))
+        .unwrap();
+    let mut bytes = [0u8; 2048];
+    let mut used = 0;
+    while !bytes[..used].windows(4).any(|window| window == b"\r\n\r\n") {
+        let count = stream.read(&mut bytes[used..]).unwrap();
+        assert!(count > 0 && used + count < bytes.len());
+        used += count;
+    }
+    assert!(bytes[..used].starts_with(format!("GET {path} HTTP/1.1\r\n").as_bytes()));
+}
+
+#[test]
+#[ignore = "requires explicit checkout-private Cargo target and local HTTP sockets"]
+fn selected_project_future_awaits_locked_reqwest_and_cancel_does_not_undo_request() {
+    let target = PathBuf::from(
+        std::env::var_os("SEMAPRAX_RI09_TARGET_DIR")
+            .expect("set SEMAPRAX_RI09_TARGET_DIR to a checkout-private target"),
+    )
+    .canonicalize()
+    .unwrap();
+    let checkout = Path::new(env!("CARGO_MANIFEST_DIR"));
+    assert!(target.starts_with(checkout.join("target")));
+
+    rustls::crypto::ring::default_provider()
+        .install_default()
+        .expect("install explicit rustls provider");
+    let fixture = Fixture::new();
+    let revision = with_authenticated_project(&fixture.manifest(), |snapshot| {
+        snapshot.check()?;
+        Ok(snapshot.retain_revision())
+    })
+    .unwrap();
+
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let endpoint = format!("http://{}", listener.local_addr().unwrap());
+    let (received_tx, received_rx) = tokio::sync::oneshot::channel();
+    let (release_tx, release_rx) = std::sync::mpsc::channel();
+    let server = std::thread::spawn(move || {
+        let mut received_tx = Some(received_tx);
+        for (path, response) in [
+            ("/checked", b"43".as_slice()),
+            ("/cancelled", b"99".as_slice()),
+        ] {
+            let (mut socket, _) = listener.accept().unwrap();
+            receive_request(&mut socket, path);
+            if path == "/cancelled" {
+                received_tx.take().unwrap().send(()).unwrap();
+                release_rx.recv_timeout(Duration::from_secs(10)).unwrap();
+            }
+            let header = format!(
+                "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+                response.len()
+            );
+            let _ = socket.write_all(header.as_bytes());
+            let _ = socket.write_all(response);
+        }
+        listener.set_nonblocking(true).unwrap();
+        std::thread::sleep(Duration::from_millis(100));
+        assert_eq!(
+            listener.accept().unwrap_err().kind(),
+            std::io::ErrorKind::WouldBlock
+        );
+    });
+
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+    let local = tokio::task::LocalSet::new();
+    local.block_on(&runtime, async move {
+        let first_url = format!("{endpoint}/checked");
+        let first = SourceLocalFuture::prepare_revision(
+            Arc::clone(&revision),
+            41,
+            10_000,
+            move |request| async move {
+                assert_eq!(request, 42);
+                let response = reqwest::get(first_url).await?;
+                let body = response.text().await?;
+                Ok::<i64, reqwest::Error>(body.parse().unwrap())
+            },
+        )
+        .unwrap();
+        // The physical response is 43. Authored source adds the seed (41),
+        // so a pass requires resuming the selected checked source body.
+        assert_eq!(first.await, Ok(84));
+
+        let second_url = format!("{endpoint}/cancelled");
+        let second =
+            SourceLocalFuture::prepare_revision(revision, 41, 10_000, move |request| async move {
+                assert_eq!(request, 42);
+                let response = reqwest::get(second_url).await?;
+                let body = response.text().await?;
+                Ok::<i64, reqwest::Error>(body.parse().unwrap())
+            })
+            .unwrap();
+        let task = tokio::task::spawn_local(second);
+        received_rx.await.unwrap();
+        task.abort();
+        assert!(task.await.unwrap_err().is_cancelled());
+        release_tx.send(()).unwrap();
+    });
+    server.join().unwrap();
 }

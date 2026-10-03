@@ -2968,6 +2968,14 @@ These areas are deliberately outside the public compiler contract:
   `public_sdk/serde_projection.rs` and its `serde_wire.rs` child own nominal
   local Serde mirrors, fallible field-wise wire admission, and explicit payload
   copy accounting; they never equate Rust and Semaprax record layouts;
+- `crates/semaprax-native-rust-interop-builder/src/public_sdk/callback.rs` and
+  `registered_callback.rs`: inert RI-08 checked scalar-snapshot closure and
+  explicit next-state projections, plus authored registry-export admission.
+  Generated Rust owns private callback environments and independent registry
+  leases; two scalar C bridge instances share depth and receiver guards. An
+  uncertain foreign teardown quarantines the lease. These renderers grant no
+  execution/publication authority and do not admit mutable or owned source
+  captures;
 - `crates/semaprax-native-rust-interop-builder/src/public_sdk/indexed.rs`:
   narrow public RI-04 admission for one checked scalar Rust import. It replays
   the selected RI-03 index and exact caller-supplied package source bytes

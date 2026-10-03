@@ -142,6 +142,11 @@ pub use public_sdk::{
     SerdeRecordProjection, NATIVE_RUST_OWNED_DATA_SDK_SCHEMA, PROJECT_NATIVE_RUST_SDK_SCHEMA,
     PROJECT_NATIVE_RUST_SUBJECT_SCHEMA,
 };
+pub use public_sdk::{
+    prepare_native_rust_callbacks, prepare_registered_native_rust_callbacks,
+    NativeCallbackProjection, NativeCallbackSelection, NativeRegisteredCallbackProjection,
+    NativeRegistrySelection,
+};
 pub use trusted_native::{
     NativeBuildAuthority, NativeBuildPolicy, NativeDispatchError, NativeEffectContract,
     NativeExecutionGrant, NativeTrustError, TrustedNativeProfile, TRUSTED_NATIVE_PROFILE_SCHEMA,

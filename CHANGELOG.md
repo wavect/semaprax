@@ -1,5 +1,7 @@
 # Changelog
 
+- Add bounded RI-08 checked callback and source-driven registry projections. Real C/Rust iterator and stateful safe-trait consumers pass at O0/O2, with cross-crate lifetime controls, shared nested-call guards, distinct failures, and uncertain-teardown quarantine. Source mutable, borrowed, and owned capture admission remains open.
+
 - Add a LAW-07 versioned Project certificate for finite record and variant laws. Reparse exact retained source, bind field/case and query identities, rerun installed Z3 or pinned Lean on replay, and attach only opaque proof to exact Project assurance. Distinct strict profiles reject scalar-to-structured method substitution. A 196-state reference corpus and real installed Project Z3/Lean gates passed; selected physical publication remains open at the public export profile's `SPX-W115` aggregate refusal.
 
 - Add a straight-line LAW-06 checked-summary path: separately prove exact callee contracts, instantiate fresh typed results, stage caller-side preconditions before summary assumptions, and prove the caller using installed Z3. A weakened-summary negative control fails the caller proof without claiming a concrete runtime witness.

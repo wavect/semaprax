@@ -781,3 +781,85 @@ publication, arbitrary trait implementation, inference, HRTB/GAT/unsized
 obligation, complete Rust solver, storage-layout identity, or hosted support is
 claimed. The full quality profile was deferred under the user's explicit
 instruction; no full-profile pass is claimed.
+
+## RI-08 checked callbacks and source-driven registry evidence
+
+The additive `prepare_native_rust_callbacks` renderer selects a checked
+`fn(i64) -> fn(i64) -> i64` factory with one immutable scalar snapshot capture,
+plus an explicit `fn(i64, i64) -> i64` next-state function. It authenticates the
+closure's independent HIR cleanup/loan body product, lifts the identical body
+into ordinary canonical source, rechecks it, and uses the existing scalar C
+lowering. It never changes ordinary closure syntax or scalar-v1 re-entry rules.
+The original closure identity and source revision remain separate projection
+facts; no public callable or Rust trait-object ABI is introduced.
+
+Generated Rust uses normal closure expressions for `Fn`/`FnOnce`, a local safe
+trait impl, and a private owned environment. The mutable adapter is explicitly
+a next-state protocol: state commits only after the checked call succeeds.
+It does not redefine the source closure's immutable capture as mutable.
+The configured trait path/method/associated error type are bounded Rust tokens;
+compiling the generated safe impl must establish the exact trait obligation.
+This is explicit projection, not automatic API-index trait selection.
+
+`prepare_registered_native_rust_callbacks` additionally selects exact authored
+install/apply/close exports and corresponding declared Rust registry imports.
+Their sole effect is `callback.registry`, and their fixed failure domain is
+`semaprax.rich-callback-registry.v1`. Each export must call its matching import
+once with its unchanged scalar parameter. Registration and callback bodies use
+separate scalar bridge instances. A shared same-thread domain enforces a maximum
+32-level callback depth and 64 live environments without permitting re-entry on
+an active receiver. Normal registration enters from a Semaprax export; dispatch
+runs Rust -> outer Semaprax C -> Rust Registry -> generated local trait proxy ->
+inner Semaprax C. No bridge instance becomes reentrant to achieve that route.
+
+The registry host retains an independent environment lease before handing its
+proxy to the foreign registry. Uncertain foreign register/dispatch/unregister
+outcomes stop future calls and quarantine that environment; guessed registry
+state never authorizes its destruction. Ordinary teardown invokes the authored
+close export and removes the proxy before releasing the retained lease. The
+outer boundary maps only an invocation's exact fixed failure status back to its
+private pending typed error. Contract failure, checked arithmetic failure,
+callback-domain refusal, guard refusal and caught Rust panic remain distinct;
+no failing path manufactures a successful result. Existing Rust trampolines
+catch panic before any C return and forget panic payloads.
+
+Both renderers produce inert source. They invoke no compiler, grant no tool or
+host authority, and publish no Project/Cargo package. The executing caller must
+hold the ordinary native build/execution authority. The same-thread safe API
+is !Send/!Sync; compile-fail transfer evidence is not a forged-pointer runtime
+wrong-thread claim. Abort, OOM and process crashes are not caught.
+
+Focused physical execution passed on arm64 macOS with Rust 1.98.0 and Apple
+Clang 21.0.0: `rich_callback_` passed 2/2 (200 filtered), and the exact registered
+callback selector passed 1/1 (201 filtered), zero failed or ignored. The owning
+tests compile a normal
+Rust trait/Registry fixture, a separate generated Rust rlib, and normal Rust
+consumers with no handwritten FFI adapters. C O0/O2 runs the real iterator and
+nested registration paths. Controls include cross-crate duplicate FnOnce,
+borrowed Rust callback escape, receiver conflict and thread-transfer refusal;
+pre-call re-entry/depth/teardown guards; source contract and arithmetic errors;
+foreign registry panics; zero live environments after normal close/Drop;
+retained environments after uncertain teardown; and compiled teardown/depth
+mutants. Canonical source/graph and unsupported selection diagnostics remain
+in the owning harness.
+
+RI-08 remains open for source-level mutable/once receiver modes, RI-06-proven
+borrowed Semaprax capture scopes and retained affine owned captures, source
+callback Result domain shapes, and automatic selected-index trait admission.
+Explicit next-state functions and a borrowed generated Rust closure do not
+establish those broader source semantics. No hosted or full-quality-profile
+pass is claimed.
+
+The gates ran serially in the builder library harness, with
+`RUSTC=/opt/homebrew/bin/rustc`, `CLANG=/usr/bin/clang`,
+`SEMAPRAX_ARCHIVER=/usr/bin/libtool`, `CARGO_TARGET_DIR=target/ri05-owner`,
+`CARGO_BUILD_JOBS=1`, `CARGO_INCREMENTAL=0`, and both development/test profile
+debug settings zero:
+
+```sh
+cargo test --offline --locked -p semaprax-native-rust-interop --lib \
+  rich_callback_ -- --nocapture --test-threads=1
+cargo test --offline --locked -p semaprax-native-rust-interop --lib \
+  public_sdk::registered_callback::tests::registered_callback_nested_c_rust_round_trip_and_uncertain_teardown \
+  -- --exact --nocapture --test-threads=1
+```

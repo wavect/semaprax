@@ -1,0 +1,147 @@
+// This fragment is appended after the checked callback body's safe adapter.
+// The independent scalar registry boundary lives in its own generated module.
+#[path="registry_boundary.rs"] mod registry_boundary;
+struct SpxRegistryControl {
+    domain:SpxCallbackDomain,
+    registry:Option<$REGISTRY<SpxStatefulProxy>>,
+    lease:Option<std::rc::Rc<SpxCallback>>,
+    pending:Option<SpxCallbackError>,uncertain:bool,closed:bool,
+}
+impl SpxRegistryControl {
+    fn reject(&mut self,error:SpxCallbackError)->registry_boundary::NativeRustImportResult<i64> {
+        self.pending=Some(error);
+        registry_boundary::NativeRustImportResult::Status {
+            code:core::num::NonZeroU32::new(1).unwrap(),
+            class:registry_boundary::NativeRustStatusClass::Import,retryable:false,
+        }
+    }
+    fn quarantine(&mut self) {
+        self.uncertain=true;
+        if let Some(lease)=&self.lease {lease.quarantine()}
+    }
+}
+impl Drop for SpxRegistryControl {
+    fn drop(&mut self) {
+        if self.uncertain || self.registry.is_some() {
+            self.quarantine();
+            // Foreign retention has not been proven to end. Preserve its
+            // owner and the quarantined environment rather than guessing.
+            if let Some(registry)=self.registry.take(){std::mem::forget(registry)}
+        }
+    }
+}
+struct SpxRegistryHost(std::rc::Rc<std::cell::RefCell<SpxRegistryControl>>);
+impl registry_boundary::NativeRustImports for SpxRegistryHost {
+    fn $REGISTER(&mut self,seed:i64)->registry_boundary::NativeRustImportResult<i64> {
+        let Ok(mut control)=self.0.try_borrow_mut() else {return registry_boundary::NativeRustImportResult::HostFailure};
+        if control.uncertain{return control.reject(SpxCallbackError::UncertainTeardown)}
+        if control.closed{return control.reject(SpxCallbackError::AfterTeardown)}
+        if control.registry.is_some(){return control.reject(SpxCallbackError::Reentered)}
+        let proxy=match SpxStatefulProxy::new(control.domain.clone(),seed){Ok(v)=>v,Err(e)=>return control.reject(e)};
+        control.lease=Some(proxy.callback.clone());
+        control.uncertain=true;
+        // Existing generated import trampoline catches a Rust panic before
+        // returning to C. The independent lease survives foreign unwind.
+        let registry=$REGISTRY::register(proxy);
+        control.registry=Some(registry);control.uncertain=false;
+        registry_boundary::NativeRustImportResult::Success(0)
+    }
+    fn $DISPATCH(&mut self,value:i64)->registry_boundary::NativeRustImportResult<i64> {
+        let Ok(mut control)=self.0.try_borrow_mut() else {return registry_boundary::NativeRustImportResult::HostFailure};
+        if control.uncertain{return control.reject(SpxCallbackError::UncertainTeardown)}
+        if control.closed{return control.reject(SpxCallbackError::AfterTeardown)}
+        if control.registry.is_none(){return control.reject(SpxCallbackError::AfterTeardown)}
+        control.uncertain=true;
+        let result=control.registry.as_mut().unwrap().dispatch(value);
+        control.uncertain=false;
+        match result {Ok(value)=>registry_boundary::NativeRustImportResult::Success(value),Err(error)=>control.reject(error)}
+    }
+    fn $UNREGISTER(&mut self)->registry_boundary::NativeRustImportResult<i64> {
+        let Ok(mut control)=self.0.try_borrow_mut() else {return registry_boundary::NativeRustImportResult::HostFailure};
+        if control.uncertain{return control.reject(SpxCallbackError::UncertainTeardown)}
+        if control.closed{return control.reject(SpxCallbackError::AfterTeardown)}
+        let Some(registry)=control.registry.take() else{return control.reject(SpxCallbackError::AfterTeardown)};
+        control.uncertain=true;
+        let proxy=registry.unregister();
+        if let Err(error)=proxy.unregister(){return control.reject(error)}
+        drop(proxy);drop(control.lease.take());
+        control.uncertain=false;control.closed=true;
+        registry_boundary::NativeRustImportResult::Success(0)
+    }
+}
+struct SpxRegistryBoundaryGuard<'a> {domain:&'a SpxCallbackDomain,active:&'a std::cell::Cell<bool>}
+impl Drop for SpxRegistryBoundaryGuard<'_> {
+    fn drop(&mut self){self.active.set(false);let depth=&self.domain.0.depth;depth.set(depth.get()-1)}
+}
+pub struct SpxRegisteredCallbacks {
+    bridge:std::cell::RefCell<registry_boundary::NativeRustBridge<SpxRegistryHost>>,
+    control:std::rc::Rc<std::cell::RefCell<SpxRegistryControl>>,
+    domain:SpxCallbackDomain,active:std::cell::Cell<bool>,
+}
+impl SpxRegisteredCallbacks {
+    pub fn new(domain:SpxCallbackDomain,capabilities:&[&str])->Result<Self,SpxCallbackError> {
+        let caps=registry_boundary::NativeRustCapabilities::new(capabilities).map_err(|_|SpxCallbackError::AdapterRejected)?;
+        let control=std::rc::Rc::new(std::cell::RefCell::new(SpxRegistryControl {
+            domain:domain.clone(),registry:None,lease:None,pending:None,uncertain:false,closed:false,
+        }));
+        Ok(Self {bridge:std::cell::RefCell::new(registry_boundary::NativeRustBridge::new(SpxRegistryHost(control.clone()),caps)),
+            control,domain,active:std::cell::Cell::new(false)})
+    }
+    fn enter(&self)->Result<SpxRegistryBoundaryGuard<'_>,SpxCallbackError> {
+        if self.domain.0.owner!=std::thread::current().id(){return Err(SpxCallbackError::WrongThread)}
+        if self.active.get(){return Err(SpxCallbackError::Reentered)}
+        if self.domain.0.depth.get()>=self.domain.0.limit{return Err(SpxCallbackError::DepthLimit)}
+        {
+            let mut control=self.control.try_borrow_mut().map_err(|_|SpxCallbackError::Reentered)?;
+            if control.uncertain{return Err(SpxCallbackError::UncertainTeardown)}
+            if control.closed{return Err(SpxCallbackError::AfterTeardown)}
+            control.pending=None;
+        }
+        self.active.set(true);self.domain.0.depth.set(self.domain.0.depth.get()+1);
+        Ok(SpxRegistryBoundaryGuard{domain:&self.domain,active:&self.active})
+    }
+    fn finish(&self,result:Result<i64,registry_boundary::NativeRustCallError>)->Result<i64,SpxCallbackError> {
+        let mut control=self.control.try_borrow_mut().map_err(|_|SpxCallbackError::Reentered)?;
+        if control.uncertain {
+            control.quarantine();
+            return match result {Err(registry_boundary::NativeRustCallError::HostPanicked)=>Err(SpxCallbackError::RustPanicked),_=>Err(SpxCallbackError::UncertainTeardown)};
+        }
+        match result {
+            Ok(value)=>{
+                if control.pending.take().is_some(){return Err(SpxCallbackError::AdapterRejected)}
+                Ok(value)
+            },
+            Err(registry_boundary::NativeRustCallError::Semantic{domain_id:$DOMAIN,code,class:registry_boundary::NativeRustStatusClass::Import,retryable:false}) if code.get()==1=>{
+                Err(control.pending.take().unwrap_or(SpxCallbackError::AdapterRejected))
+            },
+            Err(registry_boundary::NativeRustCallError::Semantic{code,class:registry_boundary::NativeRustStatusClass::Contract,..})=>Err(SpxCallbackError::Contract(code.get())),
+            Err(registry_boundary::NativeRustCallError::Semantic{code,class:registry_boundary::NativeRustStatusClass::Semantic,..})=>Err(SpxCallbackError::Semantic(code.get())),
+            Err(registry_boundary::NativeRustCallError::HostPanicked)=>Err(SpxCallbackError::RustPanicked),
+            Err(registry_boundary::NativeRustCallError::HostFailed)=>Err(SpxCallbackError::HostFailed),
+            Err(_)=>Err(SpxCallbackError::AdapterRejected),
+        }
+    }
+    pub fn install(&self,seed:i64)->Result<(),SpxCallbackError> {
+        let _guard=self.enter()?;
+        let result=self.bridge.try_borrow_mut().map_err(|_|SpxCallbackError::Reentered)?.$INSTALL(seed);
+        self.finish(result).map(|_|())
+    }
+    pub fn apply(&self,value:i64)->Result<i64,SpxCallbackError> {
+        let _guard=self.enter()?;
+        let result=self.bridge.try_borrow_mut().map_err(|_|SpxCallbackError::Reentered)?.$APPLY(value);
+        self.finish(result)
+    }
+    pub fn close(&self)->Result<(),SpxCallbackError> {
+        let _guard=self.enter()?;
+        let result=self.bridge.try_borrow_mut().map_err(|_|SpxCallbackError::Reentered)?.$CLOSE();
+        self.finish(result).map(|_|())
+    }
+}
+impl Drop for SpxRegisteredCallbacks {
+    fn drop(&mut self) {
+        // Normal lexical teardown follows the authored close export. Failure
+        // leaves control Drop to quarantine instead of speculating release.
+        let open=self.control.try_borrow().map(|c|!c.closed && !c.uncertain && c.registry.is_some()).unwrap_or(false);
+        if open {let _=self.close();}
+    }
+}

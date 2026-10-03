@@ -606,6 +606,15 @@ mod authentication;
 mod authority;
 mod borrowed_input;
 mod build;
+mod callback;
+mod registered_callback;
+pub use callback::{
+    prepare_native_rust_callbacks, NativeCallbackProjection, NativeCallbackSelection,
+};
+pub use registered_callback::{
+    prepare_registered_native_rust_callbacks, NativeRegisteredCallbackProjection,
+    NativeRegistrySelection,
+};
 mod demanded;
 mod descriptor;
 pub use demanded::{

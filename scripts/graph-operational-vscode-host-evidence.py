@@ -49,6 +49,8 @@ def run(args, **kw):
 def command(args, label, **kw):
     r=run(args, **kw)
     if len(r.stdout)>MAX_LOG: raise Failure(f"{label} log exceeds bound")
+    if label == "VS Code Extension Host" and os.environ.get("SEMAPRAX_VSCODE_DEBUG_LOG"):
+        Path(os.environ["SEMAPRAX_VSCODE_DEBUG_LOG"]).write_bytes(r.stdout)
     if r.returncode:
         tail=r.stdout[-8192:].decode("utf-8","replace")
         raise Failure(f"{label} failed ({r.returncode}):\n{tail}")

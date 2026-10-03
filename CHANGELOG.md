@@ -1,5 +1,10 @@
 # Changelog
 
+- Add an internal persistent `Nil`/`Cons` list value with immutable shared tails,
+  a failure-before-commit 8192-element limit, and iterative cleanup. Its exact
+  unit gate passed 1/1. This is a LAW-08 source-carrier prerequisite; `.spx`
+  syntax, source/HIR admission, native C and Core Wasm lowering remain open.
+
 - Close the bounded RI-09 Future bridge lifecycle with a real executor
   shutdown control. A pending local Future drops exactly once when the
   caller-owned Tokio `LocalSet` and runtime shut down, and its cloned late

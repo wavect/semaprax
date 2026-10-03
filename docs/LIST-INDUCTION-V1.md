@@ -6,6 +6,15 @@ mathematical list.
 
 ## Admitted source and denotation
 
+The compiler now also has an **internal** persistent cons-cell reference value
+in `src/immutable_list.rs`: `Nil` or immutable `Cons { head, tail }`, with a
+bounded physical length, a failure-before-commit constructor, and iterative
+release of long unique spines. The exact unit gate checks shared-tail
+immutability, case selection and the length refusal. This value has no `.spx`
+type, constructor or match admission yet and is not lowered to native C or
+Core Wasm. It is a prerequisite for the literal algebraic-list source profile,
+not evidence that the profile is implemented.
+
 The initial carrier is the existing compiler-owned `Iter<i64>` and
 `IterStep<i64>` pair over a `Vec<i64>`. `iter_next` consumes one iterator and
 reveals either `Done` or `Yield { item, rest }`; `rest` is the visibly smaller

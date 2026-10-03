@@ -60,6 +60,15 @@
   An installed Z3 gate covers direct-library use and a persistent daemon's
   edit, failure, stale request, repair, recheck, and protected-law drift. An
   MCP catalog and editor delivery remain separate work.
+- Repair the follow-up main CI failures: package Rust API index replay with the
+  public compiler, add the full toolchain's direct index dependency, update the
+  embedding example lockfile, and complete the Node Wasm owned-byte harness.
+
+- Restore `main` CI after the Rust API index and Sigstore dependency updates:
+  pin the local index dependency for cargo-deny, refresh the three standalone
+  Cargo locks, adapt offline release verification to Sigstore 0.14, and keep
+  the Unix-only owned-wait fixture out of Windows tests. Apply the repository
+  formatter to the affected workspace.
 
 - Add a read-only LAW-17 reduction-eligibility report for one exact checked
   `i64` CPU fold. It replays the bound artifact and installed identity proof,

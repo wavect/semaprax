@@ -195,12 +195,10 @@ fn windows_runtime_signed_image_pins_leaf_and_ancestors_through_launch() {
             );
             assert!(std::fs::rename(&fixture.images, fixture.parent.join("moved-images")).is_err());
             assert!(std::fs::remove_file(&fixture.executable).is_err());
-            assert!(
-                OpenOptions::new()
-                    .write(true)
-                    .open(&fixture.executable)
-                    .is_err()
-            );
+            assert!(OpenOptions::new()
+                .write(true)
+                .open(&fixture.executable)
+                .is_err());
             let reader = OpenOptions::new()
                 .read(true)
                 .open(&fixture.executable)
@@ -268,8 +266,8 @@ fn windows_runtime_signed_image_refuses_preexisting_writer_and_hardlink() {
 #[ignore = "requires the explicitly provisioned Windows runtime gate"]
 fn windows_runtime_signed_image_refuses_writable_mapping_after_writer_closes() {
     use windows_sys::Win32::System::Memory::{
-        CreateFileMappingW, FILE_MAP_WRITE, MEMORY_MAPPED_VIEW_ADDRESS, MapViewOfFile,
-        PAGE_READWRITE, UnmapViewOfFile,
+        CreateFileMappingW, MapViewOfFile, UnmapViewOfFile, FILE_MAP_WRITE,
+        MEMORY_MAPPED_VIEW_ADDRESS, PAGE_READWRITE,
     };
     struct View(MEMORY_MAPPED_VIEW_ADDRESS);
     impl Drop for View {
@@ -353,8 +351,8 @@ fn windows_runtime_dropped_child_releases_image_and_process_handles() {
 fn windows_runtime_signed_image_refuses_retained_writable_section_without_view() {
     use std::io::Read as _;
     use windows_sys::Win32::System::Memory::{
-        CreateFileMappingW, FILE_MAP_WRITE, FlushViewOfFile, MEMORY_MAPPED_VIEW_ADDRESS,
-        MapViewOfFile, PAGE_READWRITE, UnmapViewOfFile,
+        CreateFileMappingW, FlushViewOfFile, MapViewOfFile, UnmapViewOfFile, FILE_MAP_WRITE,
+        MEMORY_MAPPED_VIEW_ADDRESS, PAGE_READWRITE,
     };
     struct View(MEMORY_MAPPED_VIEW_ADDRESS);
     impl Drop for View {
@@ -449,7 +447,7 @@ fn windows_runtime_signed_image_refuses_retained_writable_section_without_view()
 fn windows_runtime_retained_writable_section_refuses_before_every_launch_boundary() {
     use std::io::Read as _;
     use windows_sys::Win32::System::Memory::{
-        FILE_MAP_WRITE, FlushViewOfFile, MEMORY_MAPPED_VIEW_ADDRESS, MapViewOfFile, UnmapViewOfFile,
+        FlushViewOfFile, MapViewOfFile, UnmapViewOfFile, FILE_MAP_WRITE, MEMORY_MAPPED_VIEW_ADDRESS,
     };
     struct View(MEMORY_MAPPED_VIEW_ADDRESS);
     impl Drop for View {
@@ -614,7 +612,7 @@ fn windows_runtime_retained_writable_section_refusals_settle_handles_and_scratch
 #[test]
 #[ignore = "requires the explicitly provisioned Windows runtime gate"]
 fn windows_runtime_child_inherits_only_declared_standard_handles() {
-    use windows_sys::Win32::Foundation::{HANDLE_FLAG_INHERIT, SetHandleInformation};
+    use windows_sys::Win32::Foundation::{SetHandleInformation, HANDLE_FLAG_INHERIT};
     use windows_sys::Win32::Storage::FileSystem::FILE_FLAG_DELETE_ON_CLOSE;
 
     let fixture = Fixture::new();
@@ -681,10 +679,10 @@ fn windows_runtime_child_inherits_only_declared_standard_handles() {
 #[test]
 #[ignore = "requires the explicitly provisioned Windows runtime gate"]
 fn windows_runtime_image_sharing_race_preserves_authenticated_bytes() {
-    use std::sync::{Arc, Barrier, mpsc};
+    use std::sync::{mpsc, Arc, Barrier};
     use windows_sys::Win32::Foundation::ERROR_SHARING_VIOLATION;
     use windows_sys::Win32::System::Memory::{
-        FILE_MAP_WRITE, FlushViewOfFile, MapViewOfFile, UnmapViewOfFile,
+        FlushViewOfFile, MapViewOfFile, UnmapViewOfFile, FILE_MAP_WRITE,
     };
 
     let fixture = Fixture::new();

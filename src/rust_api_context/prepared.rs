@@ -2,7 +2,7 @@
 //! discovery metadata; this route never prepares a tool or a callable adapter.
 
 use super::*;
-use semaprax_rust_api_index::{
+use crate::rust_api_index::{
     ItemKind, Receiver, RejectionReason, RustApiIndex, Support, Visibility,
 };
 
@@ -15,7 +15,7 @@ pub fn prepared_rust_api_candidates_json(
     prefix: &str,
     requested_max_bytes: usize,
 ) -> Result<String, Vec<Diagnostic>> {
-    if prefix.len() > semaprax_rust_api_index::MAX_PATH_BYTES
+    if prefix.len() > crate::rust_api_index::MAX_PATH_BYTES
         || !prefix
             .bytes()
             .all(|byte| byte.is_ascii_alphanumeric() || byte == b'_' || byte == b':')

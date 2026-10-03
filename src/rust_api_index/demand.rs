@@ -5,7 +5,7 @@
 //! compiled. The projection is intentionally nominal and field-by-field: it
 //! does not claim a layout relationship with SEMAPRAX storage.
 
-use crate::{
+use super::{
     GenericParameterKind, IndexError, ItemKind, RejectionReason, RustApiIndex, Support, Visibility,
     MAX_TYPE_REFERENCES,
 };
@@ -134,7 +134,7 @@ pub fn resolve_demanded_instantiations(
         if item.visibility != Visibility::Public || !item.closure_complete {
             return Err(DemandError::ItemUnavailable);
         }
-        if item.kind != ItemKind::Function || !matches!(item.receiver, crate::Receiver::None) {
+        if item.kind != ItemKind::Function || !matches!(item.receiver, super::Receiver::None) {
             return Err(DemandError::UnsupportedItem);
         }
         if !matches!(
@@ -373,7 +373,9 @@ mod tests {
     use serde_json::Value;
     use std::process::Command;
 
-    const INDEX: &[u8] = include_bytes!("../fixtures/protocol-envelope-example.json");
+    const INDEX: &[u8] = include_bytes!(
+        "../../crates/semaprax-rust-api-index/fixtures/protocol-envelope-example.json"
+    );
 
     fn generic_index() -> RustApiIndex {
         let mut value: Value = serde_json::from_slice(INDEX).unwrap();
@@ -555,8 +557,13 @@ mod tests {
             "<local_api_fixture::ReExported as local_api_fixture::Measures>::Output"
         );
 
-        let fixture =
-            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("fixtures/local_api_fixture.rs");
+        let fixture = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(
+            if env!("CARGO_PKG_NAME") == "semaprax" {
+                "crates/semaprax-rust-api-index/fixtures/local_api_fixture.rs"
+            } else {
+                "fixtures/local_api_fixture.rs"
+            },
+        );
         let fixture = fixture.display().to_string().replace('\\', "\\\\");
         let projection = &associated[0].projection;
         let positive = format!(

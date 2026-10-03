@@ -1490,9 +1490,9 @@ mod spent_funding_tests {
 mod continued_reduce;
 mod failed_observe_cleanup;
 mod observe_settlement;
+mod terminal;
 mod turn_authorize;
 mod turn_effect;
 mod turn_model;
 mod turn_prepared;
 mod turn_start;
-mod terminal;

@@ -66,7 +66,7 @@ fn read_index(path: &Path) -> Result<Vec<u8>, Vec<Diagnostic>> {
         )]
     })?;
     let mut bytes = Vec::new();
-    file.take(semaprax_rust_api_index::MAX_INDEX_BYTES as u64 + 1)
+    file.take(semaprax::rust_api_index::MAX_INDEX_BYTES as u64 + 1)
         .read_to_end(&mut bytes)
         .map_err(|error| {
             vec![Diagnostic::io(
@@ -77,7 +77,7 @@ fn read_index(path: &Path) -> Result<Vec<u8>, Vec<Diagnostic>> {
                 ),
             )]
         })?;
-    if bytes.len() > semaprax_rust_api_index::MAX_INDEX_BYTES {
+    if bytes.len() > semaprax::rust_api_index::MAX_INDEX_BYTES {
         return Err(vec![Diagnostic::io(
             "SPX-B148",
             "prepared Rust API index exceeds its byte bound",
@@ -338,7 +338,7 @@ interface RustHost permits { regex.read } {
         assert_eq!(value["index"]["status"], "index_unprepared");
         assert_eq!(value["authority"]["tool_invocation"], false);
         assert!(output.len() <= 4096);
-        let index = semaprax_rust_api_index::RustApiIndex::admit_extractor_output(include_bytes!(
+        let index = semaprax::rust_api_index::RustApiIndex::admit_extractor_output(include_bytes!(
             "../../crates/semaprax-rust-api-index/fixtures/regex-1.13.1-index-envelope.json"
         ))
         .unwrap();

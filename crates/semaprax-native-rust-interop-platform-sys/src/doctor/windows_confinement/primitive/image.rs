@@ -10,7 +10,7 @@
 //! This image binding module supplies one part of the primitive's separate
 //! request/bundle handoff; it does not validate DLL closure or protect against
 //! kernel/administrator mutation.
-use super::{Handle, MAX_WIDE, wide};
+use super::{wide, Handle, MAX_WIDE};
 use semaprax_doctor_capsule::{Artifact, Capsule, MAX_ARTIFACT_BYTES};
 use sha2::{Digest as _, Sha256};
 use std::cell::UnsafeCell;
@@ -22,23 +22,23 @@ use std::os::windows::fs::OpenOptionsExt as _;
 use std::os::windows::io::AsRawHandle as _;
 use std::path::{Path, PathBuf};
 use windows_sys::Win32::Foundation::{
-    ERROR_IO_PENDING, ERROR_OPERATION_ABORTED, GetLastError, HANDLE, WAIT_TIMEOUT,
+    GetLastError, ERROR_IO_PENDING, ERROR_OPERATION_ABORTED, HANDLE, WAIT_TIMEOUT,
 };
 use windows_sys::Win32::Storage::FileSystem::{
-    BY_HANDLE_FILE_INFORMATION, FILE_ATTRIBUTE_DIRECTORY, FILE_ATTRIBUTE_REPARSE_POINT,
-    FILE_FLAG_BACKUP_SEMANTICS, FILE_FLAG_OPEN_REPARSE_POINT, FILE_FLAG_OVERLAPPED,
-    FILE_SHARE_READ, FILE_TYPE_DISK, GetFileInformationByHandle, GetFileType,
-    GetFinalPathNameByHandleW, GetVolumeInformationByHandleW, VOLUME_NAME_GUID, VOLUME_NAME_NT,
-};
-use windows_sys::Win32::System::IO::{
-    CancelIoEx, DeviceIoControl, GetOverlappedResult, OVERLAPPED,
+    GetFileInformationByHandle, GetFileType, GetFinalPathNameByHandleW,
+    GetVolumeInformationByHandleW, BY_HANDLE_FILE_INFORMATION, FILE_ATTRIBUTE_DIRECTORY,
+    FILE_ATTRIBUTE_REPARSE_POINT, FILE_FLAG_BACKUP_SEMANTICS, FILE_FLAG_OPEN_REPARSE_POINT,
+    FILE_FLAG_OVERLAPPED, FILE_SHARE_READ, FILE_TYPE_DISK, VOLUME_NAME_GUID, VOLUME_NAME_NT,
 };
 use windows_sys::Win32::System::Ioctl::{
     FSCTL_REQUEST_OPLOCK, OPLOCK_LEVEL_CACHE_READ, REQUEST_OPLOCK_CURRENT_VERSION,
     REQUEST_OPLOCK_INPUT_BUFFER, REQUEST_OPLOCK_INPUT_FLAG_REQUEST, REQUEST_OPLOCK_OUTPUT_BUFFER,
 };
 use windows_sys::Win32::System::Threading::{
-    CreateEventW, PROCESS_NAME_NATIVE, QueryFullProcessImageNameW, WaitForSingleObject,
+    CreateEventW, QueryFullProcessImageNameW, WaitForSingleObject, PROCESS_NAME_NATIVE,
+};
+use windows_sys::Win32::System::IO::{
+    CancelIoEx, DeviceIoControl, GetOverlappedResult, OVERLAPPED,
 };
 
 /// Test-visible checkpoints in the image admission half of a launch. These

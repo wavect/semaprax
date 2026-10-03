@@ -115,6 +115,8 @@ mod manifest_v6;
 mod manifest_v7;
 #[path = "project/manifest_v8.rs"]
 mod manifest_v8;
+#[path = "project/native_law_v1.rs"]
+mod native_law_v1;
 #[path = "project/native_publication.rs"]
 mod native_publication;
 #[path = "project/native_rust_owned_data.rs"]
@@ -159,8 +161,6 @@ mod owned_utf8_lifetimes;
 mod owned_utf8_npm;
 #[path = "project/package_manifest_v1.rs"]
 mod package_manifest_v1;
-#[path = "project/native_law_v1.rs"]
-mod native_law_v1;
 #[path = "project/profile_admission.rs"]
 mod profile_admission;
 #[path = "project/project_local_aggregates.rs"]

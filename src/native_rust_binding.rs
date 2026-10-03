@@ -246,7 +246,82 @@ fn valid_alias(value: &str) -> bool {
 
 /// Source shape only. Package alias, index, and target are checked later.
 pub fn valid_rust_api_path(path: &str) -> bool {
-    path.len() <= 512 && path.split("::").count() >= 2 && path.split("::").all(valid_alias)
+    path.len() <= 512 && path.split("::").count() >= 2 && rust_api_path_tokens(path).is_some()
+}
+
+/// Render an index path as Rust tokens without changing its canonical identity.
+/// Cargo aliases and public item names can be Rust keywords; the generated
+/// module and call must use the same raw identifier spelling in that case.
+pub fn rust_api_path_tokens(path: &str) -> Option<String> {
+    let mut rendered = String::with_capacity(path.len() + 8);
+    for (index, segment) in path.split("::").enumerate() {
+        let raw = segment.strip_prefix("r#");
+        let ident = raw.unwrap_or(segment);
+        if !valid_alias(segment) || matches!(ident, "_" | "self" | "Self" | "super" | "crate") {
+            return None;
+        }
+        if index > 0 {
+            rendered.push_str("::");
+        }
+        if raw.is_some() || rust_keyword(ident) {
+            rendered.push_str("r#");
+        }
+        rendered.push_str(ident);
+    }
+    Some(rendered)
+}
+
+fn rust_keyword(ident: &str) -> bool {
+    matches!(
+        ident,
+        "as" | "async"
+            | "await"
+            | "break"
+            | "const"
+            | "continue"
+            | "dyn"
+            | "else"
+            | "enum"
+            | "extern"
+            | "false"
+            | "fn"
+            | "for"
+            | "gen"
+            | "if"
+            | "impl"
+            | "in"
+            | "let"
+            | "loop"
+            | "match"
+            | "mod"
+            | "move"
+            | "mut"
+            | "pub"
+            | "ref"
+            | "return"
+            | "static"
+            | "struct"
+            | "trait"
+            | "true"
+            | "try"
+            | "type"
+            | "unsafe"
+            | "use"
+            | "where"
+            | "while"
+            | "abstract"
+            | "become"
+            | "box"
+            | "do"
+            | "final"
+            | "macro"
+            | "override"
+            | "priv"
+            | "typeof"
+            | "unsized"
+            | "virtual"
+            | "yield"
+    )
 }
 
 fn type_text(ty: &ResolvedType) -> Option<&'static str> {

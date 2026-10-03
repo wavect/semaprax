@@ -5,7 +5,8 @@ use semaprax::diagnostic::Diagnostic;
 use semaprax::hir::ResolvedImport;
 use semaprax::hir::{ResolvedImportResultKind, ResolvedType};
 use semaprax::native_rust_binding::{
-    prepare_scalar_binding, verify_scalar_binding, ScalarBindingPlan, SelectedRustItem,
+    prepare_scalar_binding, rust_api_path_tokens, verify_scalar_binding, ScalarBindingPlan,
+    SelectedRustItem,
 };
 use semaprax_rust_api_index::{IndexError, ItemKind, Receiver, RustApiIndex};
 
@@ -132,9 +133,15 @@ pub fn render_checked_scalar_adapter(
         .join(",");
     let function_type = parameters.join(",");
     let call_arguments = arguments.join(",");
+    let rust_path = rust_api_path_tokens(&plan.rust_path).ok_or_else(|| {
+        Diagnostic::error(
+            "SPX-B143",
+            "selected Rust API path cannot be emitted",
+            import.span,
+        )
+    })?;
     if plan.receiver == "shared" {
-        let receiver_type = plan
-            .rust_path
+        let receiver_type = rust_path
             .rsplit_once("::")
             .ok_or_else(|| {
                 Diagnostic::error(
@@ -161,7 +168,7 @@ pub fn render_checked_scalar_adapter(
         return Ok(format!(
             "fn {}({declarations})->{result}{{let receiver:{receiver_type}=<{receiver_type} as core::convert::From<i64>>::from(arg_0);let target:fn(&{receiver_type}{comma}{method_types})->{result}={};target(&receiver{call_comma}{method_arguments})}}\nstruct GeneratedIndexedAdapter;\nimpl NativeRustImports for GeneratedIndexedAdapter{{fn {rust_method}(&mut self{}{})->NativeRustImportResult<{result}>{{NativeRustImportResult::Success({}({call_arguments}))}}}}\n",
             plan.physical_symbol,
-            plan.rust_path,
+            rust_path,
             if declarations.is_empty() { "" } else { "," },
             declarations,
             plan.physical_symbol,
@@ -170,7 +177,7 @@ pub fn render_checked_scalar_adapter(
     Ok(format!(
         "fn {}({declarations})->{result}{{let target:fn({function_type})->{result}={};target({call_arguments})}}\nstruct GeneratedIndexedAdapter;\nimpl NativeRustImports for GeneratedIndexedAdapter{{fn {rust_method}(&mut self{}{})->NativeRustImportResult<{result}>{{NativeRustImportResult::Success({}({call_arguments}))}}}}\n",
         plan.physical_symbol,
-        plan.rust_path,
+        rust_path,
         if declarations.is_empty() { "" } else { "," },
         declarations,
         plan.physical_symbol,

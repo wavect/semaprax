@@ -76,6 +76,17 @@ fn method_index_for(
     receiver: &str,
     visible: bool,
 ) -> Vec<u8> {
+    method_index_with_signature(source, stable_rustc, alias, receiver, visible, None)
+}
+
+fn method_index_with_signature(
+    source: &[u8],
+    stable_rustc: &str,
+    alias: &str,
+    receiver: &str,
+    visible: bool,
+    signature: Option<&str>,
+) -> Vec<u8> {
     let mut envelope: Value = serde_json::from_slice(include_bytes!(
         "../../../semaprax-rust-api-index/fixtures/local-api-fixture-v2-envelope.json"
     ))
@@ -100,12 +111,13 @@ fn method_index_for(
     let type_path = format!("{alias}::Meter");
     item["path"] = method_path.into();
     item["receiver"] = receiver.into();
-    item["signature"] = if receiver == "mutable" {
-        "fn add(&mut self, delta: i64) -> i64"
-    } else {
-        "fn add(&self, delta: i64) -> i64"
-    }
-    .into();
+    item["signature"] = signature
+        .unwrap_or(if receiver == "mutable" {
+            "fn add(&mut self, delta: i64) -> i64"
+        } else {
+            "fn add(&self, delta: i64) -> i64"
+        })
+        .into();
     if !visible {
         item["visibility"] = "private".into();
         item["support"] = "rejected".into();
@@ -416,6 +428,67 @@ fn indexed_shared_method_executes_and_refuses_inaccessible_or_unsupported_receiv
     .unwrap();
     assert_eq!(rebound_plan, plan);
     assert_eq!(semaprax::graph::to_json(&rebound).unwrap(), graph);
+    assert_eq!(
+        semaprax::wasm::emit_module(&program).unwrap_err().code,
+        "SPX-W114"
+    );
+    assert_eq!(
+        semaprax::wasm::emit_resolved_module(&resolved)
+            .unwrap_err()
+            .code,
+        "SPX-W114"
+    );
+
+    for malformed_call in [
+        source.replace("host_add(left, right)", "host_add(left)"),
+        source.replace("host_add(left, right)", "host_add(true, right)"),
+    ] {
+        let failure = indexed::prepare_indexed_scalar(
+            &malformed_call,
+            Path::new("indexed-method.spx"),
+            &options(),
+            &index,
+            package,
+            crate_source,
+        )
+        .unwrap_err();
+        assert_eq!(failure[0].code, "SPX-B107");
+        assert!(failure[0].span.is_some());
+    }
+    let wrong_feature = SelectedPackage {
+        feature_digest: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        ..package
+    };
+    let feature_failure = indexed::prepare_indexed_scalar(
+        &source,
+        Path::new("indexed-method.spx"),
+        &options(),
+        &index,
+        wrong_feature,
+        crate_source,
+    )
+    .unwrap_err();
+    assert_eq!(feature_failure[0].code, "SPX-B142");
+    assert!(feature_failure[0].span.is_some());
+    let unsupported_index = method_index_with_signature(
+        crate_source,
+        actual_version,
+        "fixture_math",
+        "shared",
+        true,
+        Some("fn add(&self, delta: u8) -> i64"),
+    );
+    let signature_failure = indexed::prepare_indexed_scalar(
+        &source,
+        Path::new("indexed-method.spx"),
+        &options(),
+        &unsupported_index,
+        package,
+        crate_source,
+    )
+    .unwrap_err();
+    assert_eq!(signature_failure[0].code, "SPX-B145");
+    assert!(signature_failure[0].span.is_some());
 
     let root = std::fs::canonicalize(std::env::temp_dir())
         .unwrap()
@@ -425,6 +498,19 @@ fn indexed_shared_method_executes_and_refuses_inaccessible_or_unsupported_receiv
         ));
     let _ = std::fs::remove_dir_all(&root);
     std::fs::create_dir(&root).unwrap();
+    let interpreter_source = root.join("selected.spx");
+    std::fs::write(&interpreter_source, &source).unwrap();
+    let interpreter_failure = semaprax::interpreter::interpret(
+        &interpreter_source,
+        "interop.add",
+        &["20".into(), "22".into()],
+        &semaprax::interpreter::InterpreterOptions::default(),
+    )
+    .unwrap_err();
+    assert!(!interpreter_failure.is_empty());
+    assert!(interpreter_failure
+        .iter()
+        .any(|diagnostic| diagnostic.span.is_some()));
     let output = root.join("sdk");
     reset_build_observer();
     build_indexed_scalar_native_rust_sdk(
@@ -555,5 +641,38 @@ fn indexed_shared_method_executes_and_refuses_inaccessible_or_unsupported_receiv
     )
     .unwrap();
     assert_ne!(plan.physical_symbol, renamed_plan.physical_symbol);
+
+    let keyword_index = method_index_for(crate_source, actual_version, "type", "shared", true);
+    let keyword_source = source.replace("fixture_math::Meter::add", "type::Meter::add");
+    let keyword_package = SelectedPackage {
+        cargo_alias: "type",
+        ..package
+    };
+    let (_, _, keyword_plan, _) = indexed::prepare_indexed_scalar(
+        &keyword_source,
+        Path::new("indexed-method.spx"),
+        &options(),
+        &keyword_index,
+        keyword_package,
+        crate_source,
+    )
+    .unwrap();
+    assert_ne!(plan.physical_symbol, keyword_plan.physical_symbol);
+    let keyword_output = root.join("keyword-sdk");
+    reset_build_observer();
+    build_indexed_scalar_native_rust_sdk(
+        &keyword_source,
+        Path::new("indexed-method.spx"),
+        options(),
+        &keyword_index,
+        keyword_package,
+        crate_source,
+        &keyword_output,
+    )
+    .unwrap();
+    let keyword_lib = std::fs::read_to_string(keyword_output.join("src/lib.rs")).unwrap();
+    assert!(keyword_lib.contains("mod r#type{"));
+    assert!(keyword_lib.contains("r#type::Meter::add"));
+    assert_eq!(run_published_sdk(&rustc, &clang, &root, &keyword_output), 0);
     std::fs::remove_dir_all(root).unwrap();
 }

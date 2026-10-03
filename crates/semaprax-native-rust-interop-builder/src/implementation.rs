@@ -502,9 +502,17 @@ pub(crate) fn build_indexed_native_rust_interop_bundle_checked(
             .map(|import| import.rust_method.as_str())
             .ok_or_else(|| b107("indexed Rust API import selection missing"))?;
         let adapter = crate::indexed_binding::render_checked_scalar_adapter(import, plan, method)?;
+        let cargo_alias = semaprax::native_rust_binding::rust_api_path_tokens(&plan.cargo_alias)
+            .ok_or_else(|| {
+                Diagnostic::error(
+                    "SPX-B143",
+                    "selected Rust Cargo alias cannot be emitted",
+                    import.span,
+                )
+            })?;
         let signature_check = format!(
             "#[allow(dead_code,unused_imports)]mod __spx_ri04_selected{{use super::*;mod {}{{\n{}\n}}\n{}\n}}\n",
-            plan.cargo_alias, package_source, adapter,
+            cargo_alias, package_source, adapter,
         );
         if signature_check.len() > MAX_GENERATED_RUST_BYTES {
             return Err(BundleBuildError::Diagnostic(b109(

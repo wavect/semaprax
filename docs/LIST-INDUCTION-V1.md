@@ -54,10 +54,13 @@ generated definitions, separate proof module, exact Lean document, fixed
 theorem-to-law associations, full declaration coverage and reported axiom
 sets. Replay rechecks source/HIR and all bytes **before** another pinned
 kernel run. A changed list body, element profile, proof tactic, theorem
-association or document refuses. The direct API accepts a caller-held
-`LeanKernel`; the physical gate supplies an explicitly installed pinned Lean
-4.34.0 executable through the existing bounded held-process provider. A
-fabricated caller capability is not physical kernel evidence.
+association or document refuses. `verify` checks the embedded envelope;
+`verify_against_module` additionally requires the current separately held
+proof module and refuses a stale authored lemma before kernel invocation.
+The direct API accepts a caller-held `LeanKernel`; the physical gate supplies
+an explicitly installed pinned Lean 4.34.0 executable through the existing
+bounded held-process provider. A fabricated caller capability is not physical
+kernel evidence.
 
 ## Boundaries
 

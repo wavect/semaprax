@@ -136,6 +136,13 @@ fn pinned_lean_replays_source_bound_unbounded_list_laws() {
             "propext" | "Quot.sound" | "Classical.choice"
         ))));
     list_induction::verify(&program, &certificate, &tool).unwrap();
+    list_induction::verify_against_module(&program, &proofs, &certificate, &tool).unwrap();
+    let mut stale_current_module = proofs.clone();
+    stale_current_module.append_eq.push_str("\n  simp");
+    let stale = list_induction::verify_against_module(
+        &program, &stale_current_module, &certificate, &NoKernel,
+    ).unwrap_err();
+    assert_eq!(stale.code, "SPX-LI001");
 
     let mut wrong_association = certificate.clone();
     wrong_association.theorem_law_ids[0].1 = "list.reverse".into();

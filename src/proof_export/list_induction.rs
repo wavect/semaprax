@@ -448,6 +448,8 @@ pub fn prove(
     })
 }
 
+/// Replay the self-contained certificate envelope. This does not attest that
+/// a separately stored proof module is still the current authored module.
 pub fn verify(
     program: &Program,
     certificate: &Certificate,
@@ -482,4 +484,19 @@ pub fn verify(
         ));
     }
     Ok(())
+}
+
+/// Replay against the caller's current, separately held proof module. A stale
+/// authored lemma is refused before invoking the kernel, even when the old
+/// self-contained certificate envelope still replays successfully.
+pub fn verify_against_module(
+    program: &Program,
+    current_proofs: &ProofModule,
+    certificate: &Certificate,
+    kernel: &impl LeanKernel,
+) -> Result<(), Diagnostic> {
+    if current_proofs != &certificate.proof_module {
+        return Err(refused("current proof module differs from certified proof module"));
+    }
+    verify(program, certificate, kernel)
 }

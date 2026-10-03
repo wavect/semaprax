@@ -10,6 +10,12 @@ For implementation status and required evidence, use the
 
 ## v0.7.0 candidate
 
+- LAW-07 begins a bounded structured proof profile for immutable finite
+  records, closed variants, and explicit match paths. Local Z3 gates prove a
+  two-account transfer and reject five seeded defects; pinned Lean checks a
+  record and variant match example plus a false theorem. Source-bound replay
+  and selected-law attachment remain open.
+
 - RI-07 adds checked Semaprax call routing through concrete Rust const/type
   specializations, source-mapped trait diagnostics, and fallible Serde wire
   conversion with counted rollback and explicit payload-copy metrics. Bounded

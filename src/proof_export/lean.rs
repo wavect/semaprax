@@ -203,6 +203,7 @@ struct Builder {
     pending: Vec<Pending>,
     scope: Vec<(usize, Term)>,
     lets: usize,
+    allow_if: bool,
 }
 
 impl Builder {
@@ -286,7 +287,38 @@ impl Builder {
                 self.scope.truncate(depth);
                 Ok(tail_term)
             }
-            TermKind::If { .. } => Err(Excluded::Conditional),
+            TermKind::If {
+                condition,
+                then_value,
+                else_value,
+            } => {
+                if !self.allow_if {
+                    return Err(Excluded::Conditional);
+                }
+                let condition = self.translate(condition, origin, guard)?;
+                if condition.sort != Sort::Bool {
+                    return Err(Excluded::OperandSort {
+                        op: "if",
+                        wanted: "boolean",
+                    });
+                }
+                let then_guard = format!("({guard} ∧ {})", condition.text);
+                let else_guard = format!("({guard} ∧ ¬{})", condition.text);
+                let then_value = self.translate(then_value, origin, &then_guard)?;
+                let else_value = self.translate(else_value, origin, &else_guard)?;
+                if then_value.sort != else_value.sort {
+                    return Err(Excluded::Shared(UnsupportedReason::OperandTypeMismatch {
+                        op: "if",
+                    }));
+                }
+                Ok(Term {
+                    text: format!(
+                        "(if {} then {} else {})",
+                        condition.text, then_value.text, else_value.text
+                    ),
+                    sort: then_value.sort,
+                })
+            }
         }
     }
 
@@ -421,6 +453,19 @@ impl Builder {
 /// obligation or none, so a partially translated declaration can never leave
 /// an un-exported construct silently unaccounted for.
 pub fn export_function(function: &Function) -> Result<FunctionExport, Excluded> {
+    export_function_with_profile(function, false)
+}
+
+/// LAW-07 scalarized finite-aggregate profile. The caller must independently
+/// bind the scalarized subject to its checked source and field/case inventory.
+pub fn export_structured_function(function: &Function) -> Result<FunctionExport, Excluded> {
+    export_function_with_profile(function, true)
+}
+
+fn export_function_with_profile(
+    function: &Function,
+    allow_if: bool,
+) -> Result<FunctionExport, Excluded> {
     admit_declaration(function)?;
     let return_mode = value_mode(&function.return_type, "return type")?;
     let subject = law_vc::build(function).map_err(Excluded::Shared)?;
@@ -430,6 +475,7 @@ pub fn export_function(function: &Function) -> Result<FunctionExport, Excluded> 
         pending: Vec::new(),
         scope: Vec::new(),
         lets: 0,
+        allow_if,
     };
 
     for param in &subject.parameters {
@@ -611,7 +657,13 @@ fn render_theorem(export: &FunctionExport, obligation: &ExportedObligation) -> S
         let _ = writeln!(out, "    {binder}");
     }
     let _ = writeln!(out, "    : {} := by", obligation.goal);
-    let _ = writeln!(out, "  {TACTIC}");
+    if obligation.goal.contains("(if ")
+        || export.binders.iter().any(|binder| binder.contains("(if "))
+    {
+        let _ = writeln!(out, "  simp_all <;> {TACTIC}");
+    } else {
+        let _ = writeln!(out, "  {TACTIC}");
+    }
     out
 }
 
@@ -655,6 +707,16 @@ impl ModuleExport {
 /// they are never silently omitted.
 #[must_use]
 pub fn export_module(program: &Program, revision: &str) -> ModuleExport {
+    export_module_with_profile(program, revision, false)
+}
+
+/// Render the LAW-07 conditional profile without altering v1 golden exports.
+/// Source/aggregate binding is carried by the caller's separate coverage record.
+pub fn export_structured_module(program: &Program, revision: &str) -> ModuleExport {
+    export_module_with_profile(program, revision, true)
+}
+
+fn export_module_with_profile(program: &Program, revision: &str, allow_if: bool) -> ModuleExport {
     let mut exported = Vec::new();
     let mut unsupported = Vec::new();
     // Non-function declarations first, in a fixed kind order, so a coverage
@@ -705,7 +767,7 @@ pub fn export_module(program: &Program, revision: &str) -> ModuleExport {
         ));
     }
     for function in &program.functions {
-        match export_function(function) {
+        match export_function_with_profile(function, allow_if) {
             Ok(export) => exported.push(export),
             Err(reason) => {
                 unsupported.push((function.stable_id.clone(), function.name.clone(), reason))
@@ -719,7 +781,12 @@ pub fn export_module(program: &Program, revision: &str) -> ModuleExport {
     let _ = writeln!(out, "schema: {EXPORT_SCHEMA}");
     let _ = writeln!(out, "module: {}", program.module);
     let _ = writeln!(out, "revision: {revision}");
-    let _ = writeln!(out, "profile: {PROFILE_V1}");
+    let profile = if allow_if {
+        super::profile::PROFILE_STRUCTURED_V1
+    } else {
+        PROFILE_V1
+    };
+    let _ = writeln!(out, "profile: {profile}");
     let _ = writeln!(out);
     let _ = writeln!(out, "Trusted base and assumptions:");
     for (id, text) in ASSUMPTIONS {

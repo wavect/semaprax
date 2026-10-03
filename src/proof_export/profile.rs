@@ -36,6 +36,10 @@ and/or/not inside contracts, immutable let, at least one `ensures`; no bool-valu
 parameters/lets/returns, no `if`, no division/remainder, no calls, no loops, no mutation, \
 no aggregates; see docs/LEAN-OBLIGATION-EXPORT-V1.md";
 
+/// Additive LAW-07 profile used only for source-bound finite aggregate
+/// scalarization. The older profile and its golden bytes remain unchanged.
+pub const PROFILE_STRUCTURED_V1: &str = "semaprax-lean-structured-profile-v1: scalarized immutable finite records/closed variants, guarded if/match paths, simp_all then omega; explicit checked source/field/case binding required";
+
 /// One closed exclusion category. Either a reason the shared bounded-subset
 /// checker already owns, or one of this profile's own extra narrowings.
 /// Nothing here is a catch-all: every variant names exactly one construct.

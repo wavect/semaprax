@@ -42,6 +42,7 @@ mod render;
 mod resumable;
 mod session_protocol;
 pub mod smt_discharge;
+pub mod structured_law;
 mod verify;
 
 pub use delta::delta;

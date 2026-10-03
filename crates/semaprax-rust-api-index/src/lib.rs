@@ -1251,6 +1251,152 @@ mod tests {
     }
 
     #[test]
+    fn reachable_type_cycles_are_visited_once_and_remain_canonical() {
+        let mut value: Value = serde_json::from_slice(EXAMPLE).unwrap();
+        let path = "local_api_fixture::MacroGenerated";
+        let record = value["types"]
+            .as_array_mut()
+            .unwrap()
+            .iter_mut()
+            .find(|record| record["path"] == path)
+            .unwrap();
+        record["references"] = serde_json::json!([path]);
+        let bytes = canonical_bytes(&value);
+        let index = RustApiIndex::replay(&bytes).unwrap();
+        let item = index
+            .select_supported(&["local_api_fixture::MacroGenerated::answer"])
+            .unwrap()[0];
+        assert_eq!(item.reachable_types, [path]);
+        assert_eq!(item.type_closure_depth, 1);
+        assert!(item.closure_complete);
+    }
+
+    #[test]
+    fn reachable_type_depth_and_demand_expansion_limits_fail_closed() {
+        let mut deep: Value = serde_json::from_slice(EXAMPLE).unwrap();
+        let paths = (0..=MAX_TYPE_DEPTH)
+            .map(|depth| format!("zz_fixture::Deep{depth:02}"))
+            .collect::<Vec<_>>();
+        let mut deep_records = paths
+            .iter()
+            .enumerate()
+            .map(|(position, path)| {
+                let references = paths
+                    .get(position + 1)
+                    .cloned()
+                    .into_iter()
+                    .collect::<Vec<_>>();
+                type_record(path, references)
+            })
+            .collect::<Vec<_>>();
+        append_type_records(&mut deep, &mut deep_records);
+        point_item_at_closure(
+            &mut deep,
+            "local_api_fixture::ReExported::contains",
+            &paths[0],
+            &paths,
+            MAX_TYPE_DEPTH,
+        );
+        assert_eq!(
+            RustApiIndex::replay(&canonical_bytes(&deep)),
+            Err(IndexError::Malformed),
+            "a path whose reachable chain exceeds MAX_TYPE_DEPTH must fail"
+        );
+
+        let expansion_case = |leaf_count: usize| {
+            let mut value: Value = serde_json::from_slice(EXAMPLE).unwrap();
+            let root = "zz_fixture::ExpansionRoot".to_owned();
+            let leaves = (0..leaf_count)
+                .map(|index| format!("zz_fixture::Expansion{index:03}"))
+                .collect::<Vec<_>>();
+            let mut paths = vec![root.clone()];
+            paths.extend(leaves.iter().cloned());
+            paths.sort_by(|left, right| left.as_bytes().cmp(right.as_bytes()));
+            let mut records = vec![type_record(root.clone(), leaves)];
+            records.extend(
+                paths
+                    .iter()
+                    .filter(|path| **path != root)
+                    .map(|path| type_record(path.clone(), Vec::new())),
+            );
+            append_type_records(&mut value, &mut records);
+            point_item_at_closure(
+                &mut value,
+                "local_api_fixture::ReExported::contains",
+                &root,
+                &paths,
+                2,
+            );
+            value
+        };
+        let at_limit = expansion_case(MAX_TYPE_REFERENCES - 1);
+        assert_eq!(
+            RustApiIndex::replay(&canonical_bytes(&at_limit))
+                .unwrap()
+                .select_supported(&["local_api_fixture::ReExported::contains"])
+                .unwrap()[0]
+                .reachable_types
+                .len(),
+            MAX_TYPE_REFERENCES
+        );
+        let over_limit = expansion_case(MAX_TYPE_REFERENCES);
+        assert_eq!(
+            RustApiIndex::replay(&canonical_bytes(&over_limit)),
+            Err(IndexError::Malformed),
+            "demand expansion beyond MAX_TYPE_REFERENCES must fail"
+        );
+    }
+
+    fn type_record(path: String, references: Vec<String>) -> Value {
+        serde_json::json!({
+            "path": path,
+            "kind": "struct",
+            "visibility": "public",
+            "docs": null,
+            "span": null,
+            "generics": { "parameters": [], "where_predicates": [] },
+            "references": references,
+        })
+    }
+
+    fn append_type_records(value: &mut Value, records: &mut Vec<Value>) {
+        let types = value["types"].as_array_mut().unwrap();
+        types.append(records);
+        types.sort_by(|left, right| {
+            left["path"]
+                .as_str()
+                .unwrap()
+                .as_bytes()
+                .cmp(right["path"].as_str().unwrap().as_bytes())
+        });
+    }
+
+    fn point_item_at_closure(
+        value: &mut Value,
+        item_path: &str,
+        root: &str,
+        reachable: &[String],
+        depth: usize,
+    ) {
+        let item = value["items"]
+            .as_array_mut()
+            .unwrap()
+            .iter_mut()
+            .find(|item| item["path"] == item_path)
+            .unwrap();
+        item["type_roots"] = serde_json::json!([root]);
+        item["reachable_types"] = serde_json::json!(reachable);
+        item["type_closure_depth"] = serde_json::json!(depth);
+        item["closure_complete"] = serde_json::json!(true);
+    }
+
+    fn canonical_bytes(value: &Value) -> Vec<u8> {
+        let mut bytes = serde_json::to_vec(value).unwrap();
+        bytes.push(b'\n');
+        bytes
+    }
+
+    #[test]
     fn selected_fixture_signatures_are_checked_by_rustc_and_mismatch_is_rejected() {
         use std::process::Command;
 

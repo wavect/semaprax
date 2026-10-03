@@ -308,3 +308,6 @@ fn main(){
  assert_eq!(spx_container_context_close(context),0);assert_eq!(spx_container_validate(context,wire),3);assert_eq!(spx_container_context_close(other),0);
 }
 "#;
+
+#[path = "owned_container_safety.rs"]
+mod safety;

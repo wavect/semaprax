@@ -475,3 +475,24 @@ remain separate. This does not complete RI-05: selected container publication,
 general/nested conversions, full primitive-width and failure-injection matrices,
 public owner-valued exports, fuzzing, sanitizers, Miri and full-profile evidence
 remain outstanding.
+
+#### Focused container safety evidence
+
+The two `owned_container_safety_` tests separate Rust-only carrier validation
+from the generated C boundary. A real fault allocator refuses context/table
+reservation before target effects or output publication. The owner table is
+filled to its bound, a slot is reclaimed with a new generation, and live-owner
+context closure is refused without finalization. Each closed type exercises
+1536 initialized hostile carriers, unchanged target counters/output, exact
+payload deallocation counts, and five incompatible actual Rust integer widths.
+This is bounded hostile-input coverage, not a broad fuzz campaign.
+
+The physical Semaprax fixture runs with generated C instrumented by the
+configured Clang's AddressSanitizer and UndefinedBehaviorSanitizer at O1.
+An isolated heap-use-after-free child must be detected, proving the sanitizer
+runtime is active. This gate explicitly links the runtime reported by that
+same Clang because rustc uses `-nodefaultlibs`. Rust code and its standard
+library are not sanitizer-instrumented. LeakSanitizer is disabled; existing
+exact allocation/deallocation assertions remain active. Local Apple Clang 21
+and Homebrew rustc 1.98 evidence passed 2/2 without ignored cases. Miri is not
+installed on that host and no Miri result is claimed.

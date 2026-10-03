@@ -7,6 +7,7 @@ ROOT = Path(__file__).resolve().parent.parent
 SCHEMA = "semaprax.graph-operational-vscode-host-execution-evidence.v3"
 MAX_LOG = 16 * 1024 * 1024
 TIMEOUT = 180
+BUILD_TIMEOUT = 600
 FILES = [
     "Cargo.toml", "Cargo.lock", "editors/vscode/package.json",
     "editors/vscode/extension.js", "editors/vscode/protocol.js", "editors/vscode/review.js",
@@ -138,7 +139,7 @@ def main():
     build_temp=tempfile.TemporaryDirectory(prefix="semaprax-vscode-build-",dir="/private/tmp")
     build_target=Path(build_temp.name)/"target"
     build_env=os.environ.copy(); build_env.update({"CARGO_NET_OFFLINE":"true","CARGO_INCREMENTAL":"0","CARGO_TERM_COLOR":"never","RUSTC":rustc,"CARGO_TARGET_DIR":str(build_target)})
-    build_log=command([cargo,"build","--locked","--offline","-p","semaprax","--bin","semaprax"],"compiler build",env=build_env)
+    build_log=command([cargo,"build","--locked","--offline","-p","semaprax","--bin","semaprax"],"compiler build",env=build_env,timeout=BUILD_TIMEOUT)
     compiler=(build_target/"debug/semaprax").resolve(strict=True); compiler_before=file_row(compiler)
     with tempfile.TemporaryDirectory(prefix="semaprax-vscode-host-",dir="/private/tmp") as td:
         area=Path(td); workspace=area/"workspace"; shutil.copytree(ROOT/"examples/calculator-project",workspace)

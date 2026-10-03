@@ -90,6 +90,30 @@ pub fn render_checked_scalar_adapter(
     plan: &ScalarBindingPlan,
     rust_method: &str,
 ) -> Result<String, Diagnostic> {
+    let (wrapper, method) = render_checked_scalar_adapter_parts(import, plan, rust_method)?;
+    Ok(format!("{wrapper}struct GeneratedIndexedAdapter;\nimpl NativeRustImports for GeneratedIndexedAdapter{{{method}}}\n"))
+}
+
+/// Assemble all selected methods into one complete trait implementation.
+/// Each wrapper retains its package/signature/import-derived physical name.
+pub(crate) fn render_checked_scalar_adapters(
+    imports: &[(&ResolvedImport, &ScalarBindingPlan, &str)],
+) -> Result<String, Diagnostic> {
+    let mut wrappers = String::new();
+    let mut methods = String::new();
+    for &(import, plan, method) in imports {
+        let (wrapper, method) = render_checked_scalar_adapter_parts(import, plan, method)?;
+        wrappers.push_str(&wrapper);
+        methods.push_str(&method);
+    }
+    Ok(format!("{wrappers}struct GeneratedIndexedAdapter;\nimpl NativeRustImports for GeneratedIndexedAdapter{{{methods}}}\n"))
+}
+
+fn render_checked_scalar_adapter_parts(
+    import: &ResolvedImport,
+    plan: &ScalarBindingPlan,
+    rust_method: &str,
+) -> Result<(String, String), Diagnostic> {
     verify_scalar_binding(import, plan)?;
     if rust_method.is_empty()
         || rust_method.len() > 128
@@ -140,7 +164,13 @@ pub fn render_checked_scalar_adapter(
             import.span,
         )
     })?;
-    if plan.receiver == "shared" {
+    let method = format!(
+        "fn {rust_method}(&mut self{}{})->NativeRustImportResult<{result}>{{NativeRustImportResult::Success({}({call_arguments}))}}",
+        if declarations.is_empty() { "" } else { "," },
+        declarations,
+        plan.physical_symbol,
+    );
+    let wrapper = if plan.receiver == "shared" {
         let receiver_type = rust_path
             .rsplit_once("::")
             .ok_or_else(|| {
@@ -165,23 +195,17 @@ pub fn render_checked_scalar_adapter(
             .join(",");
         let comma = if method_types.is_empty() { "" } else { "," };
         let call_comma = if method_arguments.is_empty() { "" } else { "," };
-        return Ok(format!(
-            "fn {}({declarations})->{result}{{let receiver:{receiver_type}=<{receiver_type} as core::convert::From<i64>>::from(arg_0);let target:fn(&{receiver_type}{comma}{method_types})->{result}={};target(&receiver{call_comma}{method_arguments})}}\nstruct GeneratedIndexedAdapter;\nimpl NativeRustImports for GeneratedIndexedAdapter{{fn {rust_method}(&mut self{}{})->NativeRustImportResult<{result}>{{NativeRustImportResult::Success({}({call_arguments}))}}}}\n",
-            plan.physical_symbol,
-            rust_path,
-            if declarations.is_empty() { "" } else { "," },
-            declarations,
-            plan.physical_symbol,
-        ));
-    }
-    Ok(format!(
-        "fn {}({declarations})->{result}{{let target:fn({function_type})->{result}={};target({call_arguments})}}\nstruct GeneratedIndexedAdapter;\nimpl NativeRustImports for GeneratedIndexedAdapter{{fn {rust_method}(&mut self{}{})->NativeRustImportResult<{result}>{{NativeRustImportResult::Success({}({call_arguments}))}}}}\n",
-        plan.physical_symbol,
-        rust_path,
-        if declarations.is_empty() { "" } else { "," },
-        declarations,
-        plan.physical_symbol,
-    ))
+        format!(
+            "fn {}({declarations})->{result}{{let receiver:{receiver_type}=<{receiver_type} as core::convert::From<i64>>::from(arg_0);let target:fn(&{receiver_type}{comma}{method_types})->{result}={};target(&receiver{call_comma}{method_arguments})}}\n",
+            plan.physical_symbol, rust_path,
+        )
+    } else {
+        format!(
+            "fn {}({declarations})->{result}{{let target:fn({function_type})->{result}={};target({call_arguments})}}\n",
+            plan.physical_symbol, rust_path,
+        )
+    };
+    Ok((wrapper, method))
 }
 
 fn diagnostic(import: &ResolvedImport, error: IndexError) -> Diagnostic {

@@ -66,7 +66,7 @@ pub fn build_indexed_scalar_native_rust_sdk(
 /// first profile to ASCII, ordinary source tokens: no macro expansion,
 /// attributes, external modules, paths, imports, or literal file reads can
 /// introduce bytes outside the selected package digest.
-fn validate_embedded_scalar_source(source: &str) -> Result<(), &'static str> {
+pub(super) fn validate_embedded_scalar_source(source: &str) -> Result<(), &'static str> {
     let bytes = source.as_bytes();
     let forbidden_pair = bytes
         .windows(2)

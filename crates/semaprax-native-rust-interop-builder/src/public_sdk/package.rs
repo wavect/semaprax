@@ -3,6 +3,18 @@
 use super::project::ProjectSdkSubject;
 use super::*;
 
+#[derive(Clone, Copy)]
+pub(super) enum IndexedSources<'a> {
+    Single(
+        &'a semaprax::native_rust_binding::ScalarBindingPlan,
+        &'a str,
+    ),
+    Multiple(
+        &'a [semaprax::native_rust_binding::ScalarBindingPlan],
+        &'a [&'a str],
+    ),
+}
+
 fn parameters(parameters: &[Parameter]) -> String {
     parameters
         .iter()
@@ -34,7 +46,7 @@ fn render_lib(
     facts: &DescriptorFacts,
     capabilities: &[String],
     rust_dependencies: &[semaprax::project::RustDependency],
-    indexed: Option<(&semaprax::native_rust_binding::ScalarBindingPlan, &str)>,
+    indexed: Option<IndexedSources<'_>>,
 ) -> String {
     let mut output = String::with_capacity(65_536);
     output.push_str("#[path=\"semaprax_native_rust_interop.rs\"]mod inner;\nmod public_api{#![forbid(unsafe_code)]\nuse super::inner;\nuse core::num::NonZeroU32;\n#[repr(u8)]#[derive(Clone,Copy,Debug,Eq,PartialEq)]pub enum NativeRustSdkStatusClass{Semantic=1,Contract=2,Import=3,Adapter=4}\n#[derive(Debug,Eq,PartialEq)]pub enum NativeRustSdkImportResult<T>{Success(T),Status{code:NonZeroU32,class:NativeRustSdkStatusClass,retryable:bool},HostFailure}\n#[derive(Debug,Eq,PartialEq)]pub enum NativeRustSdkCallError{Semantic{domain_id:&'static str,code:NonZeroU32,class:NativeRustSdkStatusClass,retryable:bool},HostFailed,HostPanicked,AdapterRejected}\n#[derive(Clone,Copy,Debug,Eq,PartialEq)]pub struct NativeRustSdkAdmissionError;\n");
@@ -93,7 +105,7 @@ fn render_lib(
         json_string(&mut output, capability);
     }
     output.push_str("];\n");
-    if let Some((plan, package_source)) = indexed {
+    if let Some(IndexedSources::Single(plan, package_source)) = indexed {
         let cargo_alias = semaprax::native_rust_binding::rust_api_path_tokens(&plan.cargo_alias)
             .expect("checked indexed Cargo alias");
         let rust_path = semaprax::native_rust_binding::rust_api_path_tokens(&plan.rust_path)
@@ -156,6 +168,9 @@ fn render_lib(
         .expect("writing indexed Rust source cannot fail");
         }
     }
+    if let Some(IndexedSources::Multiple(plans, sources)) = indexed {
+        render_indexed_multiple(&mut output, facts, plans, sources);
+    }
     output.push_str("}\npub use public_api::*;\n");
     for (index, dependency) in rust_dependencies.iter().enumerate() {
         let ident = dependency.crate_ident();
@@ -168,11 +183,78 @@ fn render_lib(
     output
 }
 
+fn render_indexed_multiple(
+    output: &mut String,
+    facts: &DescriptorFacts,
+    plans: &[semaprax::native_rust_binding::ScalarBindingPlan],
+    sources: &[&str],
+) {
+    output.push_str("pub const SEMAPRAX_INDEXED_SCALAR_PROFILE:&str=\"semaprax.native-rust-indexed-scalars.v1\";\npub const SEMAPRAX_RUST_API_SELECTIONS:&[(&str,&str,&str,&str)]=&[");
+    for plan in plans {
+        write!(
+            output,
+            "({:?},{:?},{:?},{:?}),",
+            plan.import_id, plan.index_digest, plan.package_source_sha256, plan.physical_symbol
+        )
+        .expect("writing indexed identities cannot fail");
+    }
+    output.push_str("];\n");
+    let mut aliases = BTreeSet::new();
+    let mut methods = String::new();
+    for (plan, source) in plans.iter().zip(sources) {
+        let alias = semaprax::native_rust_binding::rust_api_path_tokens(&plan.cargo_alias)
+            .expect("checked indexed Cargo alias");
+        let path = semaprax::native_rust_binding::rust_api_path_tokens(&plan.rust_path)
+            .expect("checked indexed Rust path");
+        if aliases.insert(&plan.cargo_alias) {
+            writeln!(output, "mod {alias}{{\n{source}\n}}")
+                .expect("writing indexed source cannot fail");
+        }
+        let import = facts
+            .imports
+            .iter()
+            .find(|import| import.id == plan.import_id)
+            .expect("replayed indexed import");
+        let declarations = parameters(&import.parameters);
+        let result = import.result.rust();
+        if plan.receiver == "shared" {
+            let receiver_type = path.rsplit_once("::").expect("checked method path").0;
+            let types = import.parameters[1..]
+                .iter()
+                .map(|parameter| parameter.ty.rust())
+                .collect::<Vec<_>>()
+                .join(",");
+            let args = (1..import.parameters.len())
+                .map(|index| format!("arg_{index}"))
+                .collect::<Vec<_>>()
+                .join(",");
+            writeln!(output,
+                "fn {}({declarations})->{result}{{let receiver:{receiver_type}=<{receiver_type} as core::convert::From<i64>>::from(arg_0);let target:fn(&{receiver_type}{}{})->{result}={path};target(&receiver{}{})}}",
+                plan.physical_symbol, if types.is_empty() { "" } else { "," }, types, if args.is_empty() { "" } else { "," }, args)
+                .expect("writing indexed method cannot fail");
+        } else {
+            let types = import
+                .parameters
+                .iter()
+                .map(|parameter| parameter.ty.rust())
+                .collect::<Vec<_>>()
+                .join(",");
+            writeln!(output, "fn {}({declarations})->{result}{{let target:fn({types})->{result}={path};target({})}}", plan.physical_symbol, arguments(&import.parameters))
+                .expect("writing indexed function cannot fail");
+        }
+        write!(methods, "fn {}(&mut self{}{})->NativeRustSdkImportResult<{result}>{{NativeRustSdkImportResult::Success({}({}))}}",
+            import.public_method, if declarations.is_empty() { "" } else { "," }, declarations, plan.physical_symbol, arguments(&import.parameters))
+            .expect("writing indexed adapter cannot fail");
+    }
+    write!(output, "pub struct IndexedScalarHost;\nimpl NativeRustSdkImports for IndexedScalarHost{{{methods}}}\npub fn indexed_scalar_sdk(capabilities:&[&str])->Result<NativeRustSdk<IndexedScalarHost>,NativeRustSdkAdmissionError>{{NativeRustSdk::new(IndexedScalarHost,capabilities)}}\n")
+        .expect("writing indexed host cannot fail");
+}
+
 pub(super) fn render_package_sources(
     facts: &DescriptorFacts,
     capabilities: &[String],
     rust_dependencies: &[semaprax::project::RustDependency],
-    indexed: Option<(&semaprax::native_rust_binding::ScalarBindingPlan, &str)>,
+    indexed: Option<IndexedSources<'_>>,
 ) -> PackageSources {
     let mut cargo_toml = format!(
         "[package]\nname = \"{CRATE_NAME}\"\nversion = \"{CRATE_VERSION}\"\nedition = \"2021\"\nrust-version = \"1.85\"\npublish = false\nbuild = \"build.rs\"\n\n[lib]\npath = \"src/lib.rs\"\n\n[workspace]\n"

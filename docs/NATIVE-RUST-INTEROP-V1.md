@@ -214,6 +214,31 @@ syntax that could read unbound build inputs. Its physical package round trip is 
 the focused `indexed_scalar_sdk_publishes_compiled_adapter_and_refuses_signature_drift`
 regression; broader Rust ecosystem imports remain outside this profile.
 
+The additive `build_indexed_scalars_native_rust_sdk` route accepts 1–32
+explicit `IndexedScalarSelection` values, each naming a persistent import ID,
+exact replayable index, package identity, and self-contained source bytes.
+Selections must exactly cover the requested imports; an alias cannot name
+conflicting package instances, and all selections must name the same held
+stable compiler. Each source retains the 65,536-byte bound above. Admission
+checks every index and source before build effects. Phase A verifies all plans,
+Phase B compiles one complete generated trait implementation, and the package
+embeds one source module per alias plus an automatically implemented host.
+The package exposes the same `indexed_scalar_sdk` constructor and per-selection
+index/source/physical-symbol facts in `SEMAPRAX_RUST_API_SELECTIONS`; its
+profile constant is `semaprax.native-rust-indexed-scalars.v1`.
+Selections and package output are ordered by persistent import ID, so caller
+selection order does not change their bytes. Two explicit versions of one
+package can expose the same Rust item through different aliases, including a
+Rust keyword emitted as a raw identifier. The existing singular route retains
+its generated package format and bytes. The owning harness selectors are
+`indexed_multiple_replays_exact_selections_and_preserves_roundtrip_identity`
+and `indexed_multiple_sdk_executes_two_versions_keyword_alias_and_negative_control`.
+The latter compiles and executes both selected implementations, requires a
+flipped second result to fail the consumer assertion, checks reversed-order
+package identity, and refuses signature and source-byte drift before
+publication. This remains the bounded embedded-source profile, without Cargo
+package discovery or general dependency compilation.
+
 An indexed declaration may now write `from "alias::path"` between its result
 and `effects` clauses. The parser and canonical formatter preserve that exact
 source selection; checked HIR retains it separately from the persistent import

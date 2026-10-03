@@ -695,3 +695,6 @@ fn indexed_shared_method_executes_and_refuses_inaccessible_or_unsupported_receiv
     assert_eq!(run_published_sdk(&rustc, &clang, &root, &keyword_output), 0);
     std::fs::remove_dir_all(root).unwrap();
 }
+
+#[path = "indexed_multiple_tests.rs"]
+mod indexed_multiple;

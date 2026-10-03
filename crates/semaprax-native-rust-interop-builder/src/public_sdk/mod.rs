@@ -604,6 +604,7 @@ mod authority;
 mod build;
 mod descriptor;
 mod indexed;
+mod indexed_multiple;
 mod owned_data;
 mod package;
 mod project;
@@ -612,6 +613,7 @@ pub use build::build_native_rust_sdk;
 pub use indexed::{
     build_indexed_scalar_native_rust, build_indexed_scalar_native_rust_sdk, IndexedScalarBuild,
 };
+pub use indexed_multiple::{build_indexed_scalars_native_rust_sdk, IndexedScalarSelection};
 pub use owned_data::build_native_rust_owned_data_sdk;
 pub use project::{build_authenticated_project_native_rust_sdk, build_project_native_rust_sdk};
 

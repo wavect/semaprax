@@ -726,8 +726,7 @@ fn indexed_result_domain_round_trips_ok_and_err_separately_from_bridge_failure()
         .unwrap()
         .clone();
     item["path"] = "fixture_math::divide".into();
-    item["signature"] =
-        "fn divide(left: i64, right: i64) -> core::result::Result<i64, i64>".into();
+    item["signature"] = "fn divide(left: i64, right: i64) -> core::result::Result<i64, i64>".into();
     index_row["items"] = serde_json::json!([item]);
     index_row["types"] = serde_json::json!([]);
     let mut extractor_bytes = serde_json::to_vec(&envelope).unwrap();
@@ -754,7 +753,9 @@ permit { host.math }
     @id("host.divide") import rust selected fn divide from "fixture_math::divide"
         effects { host.math } failure status "host.math.v1";
 }
-@id("result.forward") fn forward(left: i64, right: i64) -> Result<i64, i64> uses { host.math } {
+@id("result.forward") fn forward(left: i64, right: i64) -> Result<i64, i64> uses { host.math }
+    requires left >= 0
+{
     divide(left, right)
 }
 @id("result.main") fn main() -> i64 { 0 }
@@ -781,25 +782,55 @@ permit { host.math }
     )
     .unwrap_or_else(|error| panic!("Result SDK build failed: {error:?}"));
     let lib = std::fs::read_to_string(output.join("src/lib.rs")).unwrap();
-    assert!(lib.contains("let target:fn(i64,i64)->core::result::Result<i64,i64>=fixture_math::divide"));
+    assert!(
+        lib.contains("let target:fn(i64,i64)->core::result::Result<i64,i64>=fixture_math::divide")
+    );
     let mut library = Command::new(&rustc);
     library.current_dir(&output).args([
-        "--edition=2021", "--crate-name", "indexed_sdk", "--crate-type=rlib", "src/lib.rs",
-        "-o", "libindexed_sdk.rlib",
+        "--edition=2021",
+        "--crate-name",
+        "indexed_sdk",
+        "--crate-type=rlib",
+        "src/lib.rs",
+        "-o",
+        "libindexed_sdk.rlib",
     ]);
     assert!(library.status().unwrap().success());
     std::fs::write(root.join("consumer.rs"),
-        "fn main(){let mut sdk=indexed_sdk::indexed_scalar_sdk(&[\"host.math\"]).unwrap();if !matches!(sdk.spx_result_dot_forward(8,2),Ok(Ok(4))){std::process::exit(11)}if !matches!(sdk.spx_result_dot_forward(8,0),Ok(Err(7))){std::process::exit(12)}if indexed_sdk::indexed_scalar_sdk(&[]).is_ok(){std::process::exit(13)}}\n").unwrap();
-    let archive = if cfg!(windows) { "semaprax_native_rust_sdk.lib" } else { "libsemaprax_native_rust_sdk.a" };
-    let executable = if cfg!(windows) { "consumer.exe" } else { "consumer" };
+        "fn main(){let mut sdk=indexed_sdk::indexed_scalar_sdk(&[\"host.math\"]).unwrap();if !matches!(sdk.spx_result_dot_forward(8,2),Ok(Ok(4))){std::process::exit(11)}if !matches!(sdk.spx_result_dot_forward(8,0),Ok(Err(7))){std::process::exit(12)}if !matches!(sdk.spx_result_dot_forward(-1,2),Err(indexed_sdk::NativeRustCallError::Semantic{class:indexed_sdk::NativeRustStatusClass::Contract,..})){std::process::exit(14)}if indexed_sdk::indexed_scalar_sdk(&[]).is_ok(){std::process::exit(13)}}\n").unwrap();
+    let archive = if cfg!(windows) {
+        "semaprax_native_rust_sdk.lib"
+    } else {
+        "libsemaprax_native_rust_sdk.a"
+    };
+    let executable = if cfg!(windows) {
+        "consumer.exe"
+    } else {
+        "consumer"
+    };
     let status = Command::new(&rustc)
         .current_dir(&root)
-        .args(["--edition=2021", "-C", &format!("linker={clang}"), "--extern",
-            &format!("indexed_sdk={}", output.join("libindexed_sdk.rlib").display()),
-            "-C", &format!("link-arg={}", output.join("native").join(archive).display()),
-            "consumer.rs", "-o", executable])
-        .status().unwrap();
+        .args([
+            "--edition=2021",
+            "-C",
+            &format!("linker={clang}"),
+            "--extern",
+            &format!(
+                "indexed_sdk={}",
+                output.join("libindexed_sdk.rlib").display()
+            ),
+            "-C",
+            &format!("link-arg={}", output.join("native").join(archive).display()),
+            "consumer.rs",
+            "-o",
+            executable,
+        ])
+        .status()
+        .unwrap();
     assert!(status.success());
-    assert!(Command::new(root.join(executable)).status().unwrap().success());
+    assert!(Command::new(root.join(executable))
+        .status()
+        .unwrap()
+        .success());
     std::fs::remove_dir_all(root).unwrap();
 }

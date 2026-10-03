@@ -263,7 +263,10 @@ fn prepare_native_rust_interop_from_input<'a>(
             || function.params.len() > MAX_PARAMETERS
             || function.params.iter().any(|parameter| {
                 parameter.ownership != OwnershipMode::Value
-                    || !matches!(scalar_type(&parameter.ty), Some(ScalarType::I64 | ScalarType::Bool))
+                    || !matches!(
+                        scalar_type(&parameter.ty),
+                        Some(ScalarType::I64 | ScalarType::Bool)
+                    )
             })
             || scalar_type(&function.return_type).is_none()
         {
@@ -1171,7 +1174,10 @@ pub(super) fn validate_selected_scalar_closure(
         if function.params.len() > MAX_PARAMETERS
             || function.params.iter().any(|parameter| {
                 parameter.ownership != hir::OwnershipMode::Value
-                    || !matches!(scalar_type(&parameter.ty), Some(ScalarType::I64 | ScalarType::Bool))
+                    || !matches!(
+                        scalar_type(&parameter.ty),
+                        Some(ScalarType::I64 | ScalarType::Bool)
+                    )
             })
             || scalar_type(&function.return_type).is_none()
             || !function.cleanup.slots.is_empty()

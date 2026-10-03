@@ -30,6 +30,9 @@ pub(crate) fn checked_source_callable_closures(
     let mut programs = Vec::with_capacity(sources.len());
     let mut candidates = BTreeSet::new();
     for source in sources {
+        if source.source_graph_schema() == "semaprax.native-law.v1" {
+            continue;
+        }
         let parsed = crate::parse(source.source(), source.path()).map_err(|e| vec![e])?;
         if matches!(
             source.source_graph_schema(),

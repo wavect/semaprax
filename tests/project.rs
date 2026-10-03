@@ -159,6 +159,8 @@ mod owned_utf8_lifetimes;
 mod owned_utf8_npm;
 #[path = "project/package_manifest_v1.rs"]
 mod package_manifest_v1;
+#[path = "project/native_law_v1.rs"]
+mod native_law_v1;
 #[path = "project/profile_admission.rs"]
 mod profile_admission;
 #[path = "project/project_local_aggregates.rs"]

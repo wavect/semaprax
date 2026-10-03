@@ -193,6 +193,24 @@ impl SemanticWorkspaceRevision {
         let mut normalized_sources = Vec::with_capacity(revision.sources().len());
         let mut selected_prelude = crate::prelude::SCHEMA_V1;
         for source in revision.sources() {
+            if revision
+                .manifest()
+                .law_sources()
+                .iter()
+                .any(|path| path == source.path())
+            {
+                let law = crate::native_law_source::parse(source.source(), source.path())
+                    .map_err(|error| vec![error])?;
+                let normalized = crate::native_law_source::canonical(&law);
+                normalized_sources.push(json!({
+                    "path": source.path(),
+                    "semantic_source_digest": framed_digest(
+                        NORMALIZED_SOURCE_DOMAIN,
+                        normalized.as_bytes(),
+                    ),
+                }));
+                continue;
+            }
             let (program, _) =
                 crate::parse_with_comments(source.source(), Path::new(source.path()))
                     .map_err(|error| vec![error])?;

@@ -987,7 +987,8 @@ fn require_digest(value: &str) -> Result<(), Vec<Diagnostic>> {
 fn is_source_graph_schema(value: &str) -> bool {
     matches!(
         value,
-        "semaprax.graph.v10"
+        "semaprax.native-law.v1"
+            | "semaprax.graph.v10"
             | "semaprax.graph.v11"
             | "semaprax.graph.v12"
             | "semaprax.graph.v13"

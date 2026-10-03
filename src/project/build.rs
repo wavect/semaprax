@@ -9,6 +9,7 @@ use super::{admission, semantic, ProjectManifest, ProjectSource, PublicApiSubjec
 
 pub(super) struct BuiltProject {
     pub(super) sources: Vec<ProjectSource>,
+    pub(super) law_modules: Vec<crate::assurance_manifest::law_set::LawModule>,
     pub(super) workspace_manifest: String,
     pub(super) workspace_revision: String,
     pub(super) project_revision: String,
@@ -28,6 +29,7 @@ pub(super) fn build_owned(
     manifest: &ProjectManifest,
     mut sources: Vec<SemanticWorkspaceSource>,
 ) -> Result<BuiltProject, Vec<Diagnostic>> {
+    let (mut sources, law_sources, law_source_facts) = partition_law_sources(manifest, sources)?;
     super::std_collections::authenticate_no_export_package(manifest, &sources)?;
     super::std_mem::authenticate_no_export_package(manifest, &sources)?;
     super::standard_dependencies::extend_sources(manifest, &mut sources)?;
@@ -38,7 +40,7 @@ pub(super) fn build_owned(
         .collect::<Vec<_>>();
     let path_set = semantic_workspace::render_path_set(&paths)?;
     let preflight = semantic_workspace::preflight_owned(&path_set, sources)?;
-    finish_build(manifest, preflight, None)
+    finish_build(manifest, preflight, None, law_sources, law_source_facts)
 }
 
 pub(super) fn build_owned_with_frontend(
@@ -46,6 +48,7 @@ pub(super) fn build_owned_with_frontend(
     mut sources: Vec<SemanticWorkspaceSource>,
     frontend: &mut super::incremental::FrontendPass,
 ) -> Result<BuiltProject, Vec<Diagnostic>> {
+    let (mut sources, law_sources, law_source_facts) = partition_law_sources(manifest, sources)?;
     super::std_collections::authenticate_no_export_package(manifest, &sources)?;
     super::std_mem::authenticate_no_export_package(manifest, &sources)?;
     super::standard_dependencies::extend_sources(manifest, &mut sources)?;
@@ -57,17 +60,100 @@ pub(super) fn build_owned_with_frontend(
     let path_set = semantic_workspace::render_path_set(&paths)?;
     let preflight =
         semantic_workspace::preflight_owned_with_frontend(&path_set, sources, frontend)?;
-    finish_build(manifest, preflight, Some(frontend))
+    finish_build(
+        manifest,
+        preflight,
+        Some(frontend),
+        law_sources,
+        law_source_facts,
+    )
+}
+
+fn partition_law_sources(
+    manifest: &ProjectManifest,
+    sources: Vec<SemanticWorkspaceSource>,
+) -> Result<
+    (
+        Vec<SemanticWorkspaceSource>,
+        Vec<crate::assurance_manifest::law_set::LawModule>,
+        Vec<ProjectSource>,
+    ),
+    Vec<Diagnostic>,
+> {
+    let mut ordinary = Vec::with_capacity(sources.len());
+    let mut laws = Vec::new();
+    let mut law_facts = Vec::new();
+    for source in sources {
+        if manifest.law_sources().contains(&source.path) {
+            let module = crate::native_law_source::parse(&source.source, &source.path)
+                .map_err(|error| vec![error])?;
+            let canonical = crate::native_law_source::canonical(&module);
+            let source_digest = crate::review::source_digest(source.source.as_bytes());
+            let source_revision = format!(
+                "sha256:{:x}",
+                crate::digest_hex::LowerHex(Sha256::digest(canonical.as_bytes()))
+            );
+            law_facts.push(ProjectSource {
+                path: source.path.clone(),
+                source_graph_schema: "semaprax.native-law.v1".to_owned(),
+                source_revision,
+                source_digest,
+                source: source.source,
+            });
+            laws.push(module.law_module());
+        } else {
+            ordinary.push(source);
+        }
+    }
+    if laws.len() != manifest.law_sources().len() {
+        return Err(vec![Diagnostic::io(
+            "SPX-LW110",
+            "an explicitly selected native law source is absent from the Project source inventory",
+        )]);
+    }
+    Ok((ordinary, laws, law_facts))
 }
 
 fn finish_build(
     manifest: &ProjectManifest,
     preflight: semantic_workspace::SemanticWorkspacePreflight,
     frontend: Option<&super::incremental::FrontendPass>,
+    law_modules: Vec<crate::assurance_manifest::law_set::LawModule>,
+    mut law_source_facts: Vec<ProjectSource>,
 ) -> Result<BuiltProject, Vec<Diagnostic>> {
     #[cfg(feature = "unstable-workflow-profiling")]
     let _workflow_span = crate::workflow_profile::span(crate::workflow_profile::Stage::ProjectLink);
-    let (files, workspace_manifest, workspace_revision, graph) = preflight.into_snapshot_parts();
+    let (files, ordinary_workspace_manifest, ordinary_workspace_revision, graph) =
+        preflight.into_snapshot_parts();
+    let (workspace_manifest, workspace_revision) = if law_source_facts.is_empty() {
+        (ordinary_workspace_manifest, ordinary_workspace_revision)
+    } else {
+        let mut facts = files
+            .iter()
+            .map(|file| {
+                (
+                    file.path(),
+                    file.source_graph_schema(),
+                    file.source_revision(),
+                    file.source_digest(),
+                    file.source().len(),
+                )
+            })
+            .collect::<Vec<_>>();
+        facts.extend(law_source_facts.iter().map(|source| {
+            (
+                source.path.as_str(),
+                source.source_graph_schema.as_str(),
+                source.source_revision.as_str(),
+                source.source_digest.as_str(),
+                source.source.len(),
+            )
+        }));
+        facts.sort_by(|left, right| left.0.cmp(right.0));
+        let manifest = semantic_workspace::render_manifest_facts(&facts)?;
+        let revision = semantic_workspace::semantic_workspace_revision(&manifest);
+        (manifest, revision)
+    };
     // The frontend pass already owns exact, authenticated source ASTs. Reuse
     // those for Agent extraction instead of reparsing outside its work counters.
     let programs = if frontend.is_none() {
@@ -86,10 +172,11 @@ fn finish_build(
     } else {
         programs.iter().collect::<Vec<_>>()
     };
+    validate_native_laws(&law_source_facts, &program_refs)?;
     let (source_agents, agent_definitions) =
         super::compile_source_project_agents(&program_refs)?.into_parts();
     let canonical_manifest = manifest.to_canonical_toml();
-    let project_revision = project_revision(&canonical_manifest, &workspace_revision);
+    let project_revision = project_revision(manifest, &canonical_manifest, &workspace_revision);
     let graph_source_facts = files
         .iter()
         .map(|file| crate::workspace_graph::ProjectGraphSourceFact {
@@ -186,7 +273,7 @@ fn finish_build(
     let entry_program = semantic_parts.entry_program;
     let public_api_program = semantic_parts.web_program;
     let test_program = semantic_parts.test_program;
-    let sources = files
+    let mut sources: Vec<ProjectSource> = files
         .into_iter()
         .map(|file| {
             let (path, source_graph_schema, source_revision, source_digest, source) =
@@ -200,8 +287,11 @@ fn finish_build(
             }
         })
         .collect();
+    sources.append(&mut law_source_facts);
+    sources.sort_by(|left, right| left.path.cmp(&right.path));
     Ok(BuiltProject {
         sources,
+        law_modules,
         workspace_manifest,
         workspace_revision,
         project_revision,
@@ -216,11 +306,98 @@ fn finish_build(
     })
 }
 
-fn project_revision(manifest: &str, workspace_revision: &str) -> String {
+fn validate_native_laws(
+    law_sources: &[ProjectSource],
+    programs: &[&crate::ast::Program],
+) -> Result<(), Vec<Diagnostic>> {
+    use crate::assurance_manifest::law_set::ContractKind;
+    let mut identities = std::collections::BTreeSet::new();
+    for source in law_sources {
+        let module = crate::native_law_source::parse(&source.source, &source.path)
+            .map_err(|error| vec![error])?;
+        for law in module.laws {
+            if !identities.insert(law.law_id.clone()) {
+                return Err(vec![Diagnostic::io(
+                    "SPX-LW110",
+                    "duplicate native law stable ID across selected modules",
+                )]);
+            }
+            let mut subjects = programs
+                .iter()
+                .flat_map(|program| {
+                    program
+                        .functions
+                        .iter()
+                        .chain(program.types.iter().flat_map(|ty| match &ty.kind {
+                            crate::ast::TypeDeclarationKind::Class { methods, .. } => {
+                                methods.iter()
+                            }
+                            _ => [].iter(),
+                        }))
+                })
+                .filter(|function| function.stable_id == law.subject_id);
+            let Some(function) = subjects.next() else {
+                return Err(vec![Diagnostic::io(
+                    "SPX-LW110",
+                    format!(
+                        "native law `{}` has an unresolved contract subject `{}`",
+                        law.law_id, law.subject_id,
+                    ),
+                )]);
+            };
+            if subjects.next().is_some() || !function.explicit_id {
+                return Err(vec![Diagnostic::io(
+                    "SPX-LW110",
+                    "native law contract subject is ambiguous or lacks a persistent @id",
+                )]);
+            }
+            for binder in &law.binders {
+                if !function.params.iter().any(|param| {
+                    param.name == binder.name && param.ty.to_string() == binder.ty.source()
+                }) {
+                    return Err(vec![Diagnostic::io(
+                        "SPX-LW110",
+                        format!(
+                            "native law `{}` binder `{}` does not match a typed subject parameter",
+                            law.law_id, binder.name,
+                        ),
+                    )]);
+                }
+            }
+            let clauses = match law.clause {
+                ContractKind::Precondition => &function.requires,
+                ContractKind::Postcondition => &function.ensures,
+            };
+            if clauses
+                .iter()
+                .filter(|expr| crate::format::expr(expr, 0) == law.proposition)
+                .count()
+                != 1
+            {
+                return Err(vec![Diagnostic::io(
+                    "SPX-LW110",
+                    format!(
+                        "native law `{}` must select exactly one subject contract clause",
+                        law.law_id,
+                    ),
+                )]);
+            }
+        }
+    }
+    Ok(())
+}
+
+fn project_revision(manifest: &ProjectManifest, bytes: &str, workspace_revision: &str) -> String {
     let mut digest = Sha256::new();
-    digest.update(b"semaprax.project-revision.v1\0");
-    digest.update((manifest.len() as u64).to_le_bytes());
-    digest.update(manifest.as_bytes());
+    digest.update(
+        if manifest.manifest_schema() == super::PACKAGE_MANIFEST_SCHEMA_V2 {
+            b"semaprax.project-revision.v2\0".as_slice()
+        } else {
+            b"semaprax.project-revision.v1\0".as_slice()
+        },
+    );
+    digest.update((bytes.len() as u64).to_le_bytes());
+    digest.update(bytes.as_bytes());
     digest.update((workspace_revision.len() as u64).to_le_bytes());
     digest.update(workspace_revision.as_bytes());
     format!(

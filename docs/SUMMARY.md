@@ -174,6 +174,8 @@ Audience: all documentation readers.
 - [Project Manifest v18: Process I/O](PROJECT-MANIFEST-V18.md)
 - [Project Manifest v19: Filesystem I/O v3](PROJECT-MANIFEST-V19.md)
 - [Package Manifest v1](PACKAGE-MANIFEST-V1.md)
+- [Package Manifest v2: explicit native law sources](PACKAGE-MANIFEST-V2.md)
+- [Native Law Declarations v1](NATIVE-LAW-DECLARATIONS-V1.md)
 - [Project Lock v1](PROJECT-LOCK-V1.md)
 - [Project Test Cases and Runtime Failure Report v1](PROJECT-TEST-CASES-V1.md)
 - [Project Dependency Resolution v1](PROJECT-DEPENDENCY-RESOLUTION-V1.md)

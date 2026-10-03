@@ -214,6 +214,9 @@ fn evaluate(revision: &ProjectRevision, row: &LawRow, obligations: &[Value]) -> 
             let mut matches = Vec::new();
             let mut owners = 0;
             for source in revision.sources() {
+                if source.source_graph_schema() == "semaprax.native-law.v1" {
+                    continue;
+                }
                 let mut program =
                     crate::parse(source.source(), source.path()).map_err(|error| vec![error])?;
                 for ty in &mut program.types {

@@ -129,6 +129,9 @@ pub fn derive_with_verified_proofs(
     let mut sources: Vec<_> = revision.sources().iter().collect();
     sources.sort_by(|left, right| left.path().cmp(right.path()));
     for source in sources {
+        if source.source_graph_schema() == "semaprax.native-law.v1" {
+            continue;
+        }
         let mut program =
             crate::parse(source.source(), source.path()).map_err(|error| vec![error])?;
         // Class methods are authored functions too. Move their AST bodies into

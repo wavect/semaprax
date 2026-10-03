@@ -25,6 +25,7 @@ use crate::wasm::{PublicGenericWasmComponentArtifactV1, PublicGenericWasmProvide
 pub struct ProjectRevision {
     pub(super) manifest: ProjectManifest,
     pub(super) sources: Vec<ProjectSource>,
+    pub(super) law_modules: Vec<crate::assurance_manifest::law_set::LawModule>,
     pub(super) workspace_manifest: String,
     pub(super) workspace_revision: String,
     pub(super) project_revision: String,
@@ -43,6 +44,7 @@ impl ProjectRevision {
         Self {
             manifest,
             sources: built.sources,
+            law_modules: built.law_modules,
             workspace_manifest: built.workspace_manifest,
             workspace_revision: built.workspace_revision,
             project_revision: built.project_revision,
@@ -63,6 +65,11 @@ impl ProjectRevision {
 
     pub fn sources(&self) -> &[ProjectSource] {
         &self.sources
+    }
+
+    /// Native law modules from the manifest's explicit `law_sources` subset.
+    pub fn law_modules(&self) -> &[crate::assurance_manifest::law_set::LawModule] {
+        &self.law_modules
     }
 
     pub fn workspace_manifest(&self) -> &str {

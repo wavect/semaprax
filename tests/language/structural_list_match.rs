@@ -57,7 +57,7 @@ fn immutable_list_source_matches_real_cons_tail_in_graph_and_interpreter() {
 
 #[test]
 #[ignore = "requires explicitly provisioned Node.js Core Wasm runtime"]
-fn immutable_list_source_executes_in_core_wasm_with_shared_cells() {
+fn immutable_list_source_executes_in_core_wasm_with_private_cells_and_root_reset() {
     use std::process::Command;
     let node = std::env::var("SEMAPRAX_LAW_NODE").expect("explicit Node.js binary");
     let program = semaprax::check(IMMUTABLE_LIST, "immutable-list-core-wasm.spx").unwrap();

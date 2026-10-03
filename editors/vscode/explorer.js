@@ -240,6 +240,7 @@ function openExplorer(vscode, context, state, query) {
   let selectedQuery = null;
   const reply = (requestId, ok, value) => panel.webview.postMessage({ type: 'semaprax-explorer-response', generation, requestId, ok, ...(ok ? { value } : { error: String(value?.message || value).slice(0, 1024) }) });
   const subscription = panel.webview.onDidReceiveMessage(async raw => {
+    state.message?.(raw);
     const request = message(raw, generation); if (!request || state.panel !== panel || !state.live()) return;
     try {
       if (request.action === 'rendered') {

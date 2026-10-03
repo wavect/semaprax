@@ -49,7 +49,7 @@ async function waitForExplorerRender(api, expected) {
     if (found) return found;
     await new Promise(resolve => setTimeout(resolve, 50));
   }
-  assert.fail(`Explorer webview did not render ${JSON.stringify(expected)}`);
+  assert.fail(`Explorer webview did not render ${JSON.stringify(expected)}; actions=${JSON.stringify(api.state().explorerActions)}`);
 }
 
 async function run() {

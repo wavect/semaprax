@@ -262,6 +262,7 @@ fn strict_law_publication_binds_report_and_policy_before_active_pivot() {
         policy: &selected,
         laws: &laws,
         proofs: &[],
+        native_proofs: &[],
         specification_approval: Some(&approval),
     };
     let workspace = semaprax::workspace_graph::snapshot(&fixture.0, "calculator.app")

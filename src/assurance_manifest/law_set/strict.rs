@@ -80,6 +80,12 @@ impl StrictLawPolicy {
             digest,
         })
     }
+    pub fn baseline(&self) -> &LawSet {
+        &self.baseline
+    }
+    pub fn requirements(&self) -> &BTreeMap<String, RequiredLawEvidence> {
+        &self.requirements
+    }
     pub fn digest(&self) -> &str {
         &self.digest
     }
@@ -97,10 +103,28 @@ pub fn derive(
     policy: &StrictLawPolicy,
     proofs: &[VerifiedProjectProof],
 ) -> Result<String> {
+    derive_with_native_proofs(revision, laws, policy, proofs, &[])
+}
+
+/// Join host-held checked native scalar propositions before settling inventory
+/// assumptions and prerequisite laws. Evidence remains bound to this revision.
+pub fn derive_with_native_proofs(
+    revision: &ProjectRevision,
+    laws: &LawSet,
+    policy: &StrictLawPolicy,
+    proofs: &[VerifiedProjectProof],
+    native_proofs: &[super::native_proof::VerifiedLawProof],
+) -> Result<String> {
     if proofs.len() > super::MAX_LAWS {
         return Err(super::capacity());
     }
-    let inventory = evaluate::derive_report_with_proofs(revision, laws, &policy.inventory, proofs)?;
+    let inventory = evaluate::derive_report_with_evidence(
+        revision,
+        laws,
+        &policy.inventory,
+        proofs,
+        native_proofs,
+    )?;
     let inventory_value = wire::report_value(&inventory)?;
     let mut rows = Vec::new();
     let law_rows = inventory_value["laws"]
@@ -138,10 +162,22 @@ pub fn require(
     policy: &StrictLawPolicy,
     proofs: &[VerifiedProjectProof],
 ) -> Result<()> {
+    require_with_native_proofs(document, revision, laws, policy, proofs, &[])
+}
+
+/// Exact replay requires the same independently held opaque proof bundles.
+pub fn require_with_native_proofs(
+    document: &str,
+    revision: &ProjectRevision,
+    laws: &LawSet,
+    policy: &StrictLawPolicy,
+    proofs: &[VerifiedProjectProof],
+    native_proofs: &[super::native_proof::VerifiedLawProof],
+) -> Result<()> {
     if document.len() > super::MAX_BYTES {
         return Err(super::capacity());
     }
-    let expected = derive(revision, laws, policy, proofs)?;
+    let expected = derive_with_native_proofs(revision, laws, policy, proofs, native_proofs)?;
     if document != expected {
         return Err(super::drift(
             "strict law report differs from independent exact Project, law, policy or proof replay",

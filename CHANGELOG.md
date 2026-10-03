@@ -1,5 +1,13 @@
 # Changelog
 
+- Add explicit bounded installed Lean/Z3 checking for new exact Project
+  postconditions and native typed relational laws. Opaque proof tokens bind the
+  Project, law inventory and semantic proposition; strict candidate replay
+  preserves open assumptions/prerequisites and refuses missing, forged, stale
+  or wrong-method evidence. The installed CLI checks one selected subject
+  without running application code. Global protected-route admission remains
+  open LAW-04 work.
+
 - Complete the RI-14 stable Rust-source experiment with a no-go promotion
   decision. The feature-gated checked-HIR owned-Bytes island executed through
   pinned stable Rust at O0/O3, while the same source's scalar entry ran in the
@@ -18,7 +26,7 @@
   selected complete law inventory, exact method/trust requirements, bounded model
   separation, and intent plus coverage replay at managed publication. Caller
   proof-reference strings cannot grant formal acceptance. Global protected-route
-  admission and installed solver/kernel process adapters remain open LAW-04 work.
+  admission remains open LAW-04 work; installed adapters are recorded above.
 
 - Add an experimental bounded native String renderer with checked source/HIR
   ownership, graph v57, exact selected signature binding, canonical helper

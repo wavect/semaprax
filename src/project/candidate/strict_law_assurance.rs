@@ -2,6 +2,7 @@
 use super::{publication, wire, ProjectCandidate};
 use crate::assurance_manifest::{
     law_set::{
+        native_proof::VerifiedLawProof,
         protected::{ProtectedLawBaseline, SpecificationChangeApproval},
         strict::{self, StrictLawPolicy},
         LawSet,
@@ -21,6 +22,7 @@ pub struct StrictCandidateLawInputs<'a> {
     pub policy: &'a StrictLawPolicy,
     pub laws: &'a LawSet,
     pub proofs: &'a [VerifiedProjectProof],
+    pub native_proofs: &'a [VerifiedLawProof],
     pub specification_approval: Option<&'a SpecificationChangeApproval>,
 }
 impl StrictCandidateLawInputs<'_> {
@@ -28,13 +30,20 @@ impl StrictCandidateLawInputs<'_> {
         candidate
             .protected_law_review(self.protection, self.laws)?
             .require(self.specification_approval)?;
-        let report = candidate.strict_law_assurance(
+        let report = candidate.strict_law_assurance_with_native_proofs(
             candidate.candidate_digest(),
             self.laws,
             self.policy,
             self.proofs,
+            self.native_proofs,
         )?;
-        candidate.require_strict_law_assurance(&report, self.laws, self.policy, self.proofs)
+        candidate.require_strict_law_assurance_with_native_proofs(
+            &report,
+            self.laws,
+            self.policy,
+            self.proofs,
+            self.native_proofs,
+        )
     }
 }
 impl ProjectCandidate {
@@ -45,6 +54,16 @@ impl ProjectCandidate {
         policy: &StrictLawPolicy,
         proofs: &[VerifiedProjectProof],
     ) -> Result<String> {
+        self.strict_law_assurance_with_native_proofs(expected_candidate, laws, policy, proofs, &[])
+    }
+    pub fn strict_law_assurance_with_native_proofs(
+        &self,
+        expected_candidate: &str,
+        laws: &LawSet,
+        policy: &StrictLawPolicy,
+        proofs: &[VerifiedProjectProof],
+        native_proofs: &[VerifiedLawProof],
+    ) -> Result<String> {
         self.require_candidate(expected_candidate)?;
         if self.base_revision().project_revision() != policy.base_revision() {
             return Err(vec![Diagnostic::io(
@@ -52,7 +71,13 @@ impl ProjectCandidate {
                 "strict law policy belongs to a different candidate base revision",
             )]);
         }
-        let report = strict::derive(self.revision(), laws, policy, proofs)?;
+        let report = strict::derive_with_native_proofs(
+            self.revision(),
+            laws,
+            policy,
+            proofs,
+            native_proofs,
+        )?;
         let report: serde_json::Value =
             serde_json::from_str(&report).expect("derived strict report is JSON");
         wire::render(
@@ -67,13 +92,29 @@ impl ProjectCandidate {
         policy: &StrictLawPolicy,
         proofs: &[VerifiedProjectProof],
     ) -> Result<()> {
+        self.require_strict_law_assurance_with_native_proofs(document, laws, policy, proofs, &[])
+    }
+    pub fn require_strict_law_assurance_with_native_proofs(
+        &self,
+        document: &str,
+        laws: &LawSet,
+        policy: &StrictLawPolicy,
+        proofs: &[VerifiedProjectProof],
+        native_proofs: &[VerifiedLawProof],
+    ) -> Result<()> {
         if document.len() > crate::assurance_manifest::law_set::MAX_BYTES {
             return Err(vec![Diagnostic::io(
                 "SPX-LW102",
                 "strict candidate law report exceeds its byte bound",
             )]);
         }
-        let expected = self.strict_law_assurance(self.candidate_digest(), laws, policy, proofs)?;
+        let expected = self.strict_law_assurance_with_native_proofs(
+            self.candidate_digest(),
+            laws,
+            policy,
+            proofs,
+            native_proofs,
+        )?;
         if expected != document {
             return Err(vec![Diagnostic::io(
                 "SPX-LW104",
@@ -110,11 +151,12 @@ fn publication_document(
     inputs: &StrictCandidateLawInputs<'_>,
     publication: &str,
 ) -> Result<String> {
-    let law_report = candidate.strict_law_assurance(
+    let law_report = candidate.strict_law_assurance_with_native_proofs(
         candidate.candidate_digest(),
         inputs.laws,
         inputs.policy,
         inputs.proofs,
+        inputs.native_proofs,
     )?;
     let intent = candidate.protected_law_review(inputs.protection, inputs.laws)?;
     wire::render(

@@ -65,8 +65,19 @@ lowering or independently checked SMT proof objects.
 
 Strict Law Assurance's `pinned_smt_source` requirement additionally requires
 the exact tool version and the accepted frozen SMT translation profile. The
-unpinned `smt_source` requirement continues to refuse. Native relational-law
-synthesis and complete protected-route configuration remain open #379 work.
+unpinned `smt_source` requirement continues to refuse.
+
+`law_set::native_proof::prove_scalar_law` is the explicit native relational-law
+entry point. It authenticates the selected LawSet against the retained Project,
+constructs a typed function whose postcondition is the exact law proposition,
+and obtains actual Lean/Z3 confirmation through the same runner. The function
+introduces no precondition and is never executed. All admitted scalar bounds
+and checked arithmetic remain part of the source proof. The opaque token binds
+the exact Project/ProgramRoot, inventory, law semantics and generated proof
+bytes. It cannot be constructed from a wire success, callback or proof URL.
+Named assumptions and prerequisite laws are settled independently by the law
+inventory evaluator; obtaining one proposition proof does not discharge them.
+Complete protected-route configuration remains open #379 work.
 
 ## CLI
 
@@ -77,7 +88,17 @@ semaprax project-proof-check /absolute/semaprax.toml \
   --source src/app.spx --declaration app.function --ensures 0
 ```
 
-All options are required; duplicates and unknown options are syntax errors.
+For an explicitly selected native relational declaration, replace the last
+three selection options with `--law <stable-law-id>`. This form derives the
+inventory from the Project's retained `law_sources`; it refuses a missing or
+non-relational law. The result schema is
+`semaprax.installed-native-law-proof-check.v1`, binding the Project/ProgramRoot,
+whole law inventory and exact semantic law ID. It reports one checked law;
+serialized output cannot recreate the opaque proof token or select strict
+policy. Source and native-law selection options cannot be mixed.
+
+All common tool options and one complete subject selection are required;
+duplicates and unknown options are syntax errors.
 The result schema is `semaprax.installed-project-proof-check.v1`, including the
 exact Project assurance report, host limits and explicit nonclaims. This route
 checks one selected postcondition; it does not claim complete law coverage,
@@ -102,3 +123,20 @@ above with `--offline --locked`, `--ignored --test-threads=1`, one Cargo job,
 debug info disabled and explicit installed paths/version pins. This is local
 source-proof/process evidence, not cross-platform confinement or complete
 LAW-04 admission.
+
+Native relational local gate (2026-10-03): `workspace installed_native_law`
+with the same explicit tool pins and ignored-test provisioning passed both
+library cases (2 passed, 214 filtered, 5.93s). Actual kernels accepted the new
+typed identity and refused false and overflowing propositions. Exact candidate
+replay, missing/duplicate/stale/forged evidence, proved-lowering refusal and
+open assumptions/prerequisites were exercised.
+
+The separate exact `workspace
+installed_native_law_cli_checks_new_law_and_refuses_false_or_mixed_selection`
+selector passed 1 case (216 filtered, 7.10s), using both actual kernels through
+`project-proof-check --law`. False laws and mixed subject options refused;
+all manifest/source bytes remained unchanged and no `ACTIVE` or Git directory
+was created. Both native selector invocations used `cargo test --offline
+--locked -p semaprax --test workspace <selector> -- --ignored --test-threads=1`
+with the same explicit tool pins, private target, one job and disabled debug
+info as the installed source-proof gate.

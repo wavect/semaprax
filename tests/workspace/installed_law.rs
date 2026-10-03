@@ -347,3 +347,6 @@ return 0;
         }
     }
 }
+
+#[path = "installed_native_law.rs"]
+mod installed_native_law;

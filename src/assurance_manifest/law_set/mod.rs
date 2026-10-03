@@ -1,6 +1,7 @@
 //! Revision-bound mandatory law inventory. Evidence is data and grants no authority.
 //! See docs/LAW-SET-V1.md for policy selection and exact nonclaims.
 mod evaluate;
+pub mod native_proof;
 pub mod protected;
 pub mod strict;
 mod wire;
@@ -254,6 +255,9 @@ impl LawSet {
     }
     pub fn to_json(&self) -> &str {
         &self.document
+    }
+    pub fn proof_profile(&self) -> &str {
+        &self.payload.proof_profile
     }
     pub fn digest(&self) -> &str {
         &self.digest

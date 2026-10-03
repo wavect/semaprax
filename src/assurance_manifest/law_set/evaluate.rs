@@ -52,11 +52,22 @@ pub(super) fn derive_report_with_proofs(
     policy: &LawPolicy,
     proofs: &[super::super::VerifiedProjectProof],
 ) -> Result<String> {
+    derive_report_with_evidence(revision, candidate, policy, proofs, &[])
+}
+
+pub(super) fn derive_report_with_evidence(
+    revision: &ProjectRevision,
+    candidate: &LawSet,
+    policy: &LawPolicy,
+    proofs: &[super::super::VerifiedProjectProof],
+    native_proofs: &[super::native_proof::VerifiedLawProof],
+) -> Result<String> {
     let candidate = LawSet::replay(
         revision,
         &policy.baseline.payload.proof_profile,
         candidate.to_json(),
     )?;
+    super::native_proof::validate_all(revision, &candidate, native_proofs)?;
     let mut expected: BTreeMap<&str, &LawRow> = policy
         .baseline
         .payload
@@ -96,6 +107,9 @@ pub(super) fn derive_report_with_proofs(
             fact("missing", "law_definition_missing", None, None)
         } else if row.source_digest.is_none() {
             fact("missing", "law_source_module_missing", None, None)
+        } else if let Some((class, evidence)) = super::native_proof::evidence_for(id, native_proofs)
+        {
+            evidence_fact(row, format!("relational:{id}"), class, evidence)
         } else {
             evaluate(revision, row, obligations)?
         };

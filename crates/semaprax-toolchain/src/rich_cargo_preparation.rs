@@ -118,6 +118,20 @@ pub struct PreparedCargoClosureCache {
     entries: BTreeMap<String, PreparedCargoClosure>,
 }
 
+/// Caller-owned generated-artifact admission cache. Entries are bound to the
+/// complete canonical closure, never merely a package or target name.
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct PreparedCargoArtifactCache {
+    entries: BTreeMap<String, PreparedCargoArtifact>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PreparedCargoArtifact {
+    closure_digest: String,
+    bytes: Vec<u8>,
+    digest: String,
+}
+
 impl PreparedCargoClosure {
     pub fn bytes(&self) -> &[u8] {
         &self.bytes
@@ -168,6 +182,49 @@ impl PreparedCargoClosureCache {
         self.entries
             .insert(closure.digest().to_owned(), closure.clone());
         Ok((closure, false))
+    }
+}
+
+impl PreparedCargoArtifact {
+    pub fn bytes(&self) -> &[u8] {
+        &self.bytes
+    }
+
+    pub fn digest(&self) -> &str {
+        &self.digest
+    }
+
+    pub fn closure_digest(&self) -> &str {
+        &self.closure_digest
+    }
+}
+
+impl PreparedCargoArtifactCache {
+    pub fn get(&self, closure: &PreparedCargoClosure) -> Option<&PreparedCargoArtifact> {
+        self.entries.get(closure.digest())
+    }
+
+    /// Admit bytes once for this exact closure. An attempt to replace bytes for
+    /// the same closure fails closed and leaves the admitted entry unchanged.
+    pub fn reuse_or_publish(
+        &mut self,
+        closure: &PreparedCargoClosure,
+        bytes: Vec<u8>,
+    ) -> Result<(PreparedCargoArtifact, bool), CargoPreparationError> {
+        if let Some(existing) = self.entries.get(closure.digest()) {
+            if existing.bytes != bytes || existing.closure_digest != closure.digest() {
+                return Err(CargoPreparationError::Disagreement);
+            }
+            return Ok((existing.clone(), true));
+        }
+        let artifact = PreparedCargoArtifact {
+            closure_digest: closure.digest().to_owned(),
+            digest: sha256(&bytes),
+            bytes,
+        };
+        self.entries
+            .insert(closure.digest().to_owned(), artifact.clone());
+        Ok((artifact, false))
     }
 }
 

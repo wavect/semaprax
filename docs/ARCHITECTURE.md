@@ -2635,6 +2635,16 @@ environment direct children and compiles the exact generated Rust codec into
 the owning Rust harness. This is local codec evidence, not a general process,
 tool-provenance, registry, or hosted-client authority claim.
 
+The opt-in selected-law v7 stdio profile lives in
+`src/project_transport/selected_law.rs`. It uses the existing bounded framing
+and JSON-RPC codec, but reloads host-selected law policy and the current Project
+revision for each request. Its startup config pins the installed proof tool;
+request fields cannot select a root, executable, or host profile. The shared
+`src/assurance_manifest/law_set/installed_workflow.rs` evaluator owns exact
+strict-report replay, candidate binding, bounded views, and concrete model
+checks for both this profile and the CLI. Neither surface owns source edits or
+publication. The v7 stdio methods are not an MCP tool catalog.
+
 ## Reports and projections
 
 Read-only commands live in focused modules such as

@@ -1,5 +1,13 @@
 # Changelog
 
+- Add an opt-in selected-law Project v7 stdio agent route using the existing
+  bounded JSON-RPC codec. `law/status` returns the authenticated current
+  revision and policy digests; `law/check` shares one strict-report evaluator
+  with the CLI and refuses stale candidate revisions without a proof query.
+  An installed Z3 gate covers direct-library use and a persistent daemon's
+  edit, failure, stale request, repair, recheck, and protected-law drift. An
+  MCP catalog and editor delivery remain separate work.
+
 - Add a read-only LAW-17 reduction-eligibility report for one exact checked
   `i64` CPU fold. It replays the bound artifact and installed identity proof,
   checks live disjoint buffers and a no-overflow nonnegative domain, and

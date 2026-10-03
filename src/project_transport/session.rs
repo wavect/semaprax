@@ -479,6 +479,7 @@ impl Session {
                 PROJECT_PUBLIC_API_METHODS.as_slice(),
                 "[\"no_network_socket_tls_or_peer_authentication\",\"no_request_selected_root_path_source_patch_output_target_tool_or_environment_authority\",\"project_v8_v11_public_api_descriptors_and_npm_carriers_only\",\"read_only_no_source_write_rename_change_or_publication_authority\",\"no_filesystem_write_process_launch_target_execution_or_package_materialization\",\"no_persistent_disk_cache_or_incremental_refresh\",\"no_concurrent_batch_or_out_of_order_processing\"]",
             ),
+            ServerProfile::ProjectLawWorkflowV1 => unreachable!("selected law uses its own session"),
         };
         Ok(format!(
             "{{\"protocol\":{},\"version\":{},\"state\":{},\"methods\":[{}],\"limits\":{{\"max_request_bytes\":{},\"max_response_bytes\":{}}},\"bound_manifest\":{{\"path\":{},\"project_schema\":{}}},\"nonclaims\":{nonclaims}}}",

@@ -23,7 +23,12 @@ fn native_project(label: &str, proposition: &str) -> Project {
 #[test]
 #[ignore = "requires explicitly provisioned installed Z3"]
 fn selected_law_cli_workflow_replays_failure_then_rechecks_repaired_body() {
-    use semaprax::project::install_host_strict_law_policy;
+    use semaprax::assurance_manifest::law_set::installed_workflow::{
+        self, Request, SourceGoal, View,
+    };
+    use semaprax::project::{install_host_strict_law_policy, with_selected_law_diagnostics};
+    use std::io::{BufRead, Write};
+    use std::process::{Command, Stdio};
     let project = native_project("law12-cli-repair", "n + 0 == n");
     let law_source = "module fresh.laws;\n@id(\"fresh.law.seventeen\")\nlaw contract \"fresh.seventeen\" ensures (a: i64, result: i64)\n result == a + 17\n evidence smt_proved;\n";
     let canonical_law = semaprax::native_law_source::canonical(
@@ -129,6 +134,93 @@ fn selected_law_cli_workflow_replays_failure_then_rechecks_repaired_body() {
         "int"
     );
     assert_eq!(shown["candidate_revision"], failure["candidate_revision"]);
+    let library = with_selected_law_diagnostics(&manifest, |revision, laws, policy| {
+        let tool = provisioned(&project, ToolKind::Z3);
+        installed_workflow::check(
+            revision,
+            laws,
+            policy,
+            &tool,
+            &Request {
+                law_id: "fresh.law.seventeen",
+                source_goal: Some(SourceGoal {
+                    path: "src/app.spx",
+                    declaration: "fresh.seventeen",
+                    ensures_index: 0,
+                }),
+                view: View::Detail,
+                max_bytes: 65_536,
+                show_witness_values: false,
+                expected_candidate_revision: Some(revision.project_revision()),
+            },
+        )
+    })
+    .unwrap();
+    assert!(!library.accepted);
+    let library: serde_json::Value = serde_json::from_str(&library.document).unwrap();
+    assert_eq!(library["proof_attempt"]["outcome"], "disproved_concrete");
+    assert_eq!(library["view"]["counts"], failure["view"]["counts"]);
+
+    // The opt-in agent profile uses the same checked library evaluator. Its
+    // tool pin is startup authority; requests can only name a law and exact
+    // current candidate, and each request reloads the selected host policy.
+    let mut daemon = Command::new(env!("CARGO_BIN_EXE_semapraxd"))
+        .args(["--stdio", "--allow-project-law-workflow", "--manifest-path"])
+        .arg(&manifest)
+        .args(["--law-tool", "z3", "--law-executable"])
+        .arg(std::env::var("SEMAPRAX_LAW_Z3").unwrap())
+        .arg("--law-version-line")
+        .arg(std::env::var("SEMAPRAX_LAW_Z3_VERSION").unwrap())
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap();
+    let mut input = daemon.stdin.take().unwrap();
+    let mut output = std::io::BufReader::new(daemon.stdout.take().unwrap());
+    let mut call = |id: u64, method: &str, params: serde_json::Value| {
+        let request = serde_json::json!({"jsonrpc":"2.0","id":id,"method":method,"params":params});
+        input
+            .write_all(serde_json::to_string(&request).unwrap().as_bytes())
+            .unwrap();
+        input.write_all(b"\n").unwrap();
+        input.flush().unwrap();
+        let mut line = String::new();
+        assert!(
+            output.read_line(&mut line).unwrap() > 0,
+            "selected law daemon exited"
+        );
+        serde_json::from_str::<serde_json::Value>(&line).unwrap()
+    };
+    let protocol = call(1, "protocol", serde_json::json!({}));
+    assert_eq!(
+        protocol["result"]["protocol"],
+        "semaprax.agent-transport.v7"
+    );
+    let status = call(2, "law/status", serde_json::json!({}));
+    assert_eq!(
+        status["result"]["candidate_revision"],
+        failure["candidate_revision"]
+    );
+    let agent_params = |candidate: &serde_json::Value| {
+        serde_json::json!({
+            "candidate_revision":candidate,"law_id":"fresh.law.seventeen","view":"detail",
+            "source":"src/app.spx","declaration":"fresh.seventeen","ensures_index":0
+        })
+    };
+    let agent_failed = call(3, "law/check", agent_params(&failure["candidate_revision"]));
+    assert_eq!(
+        agent_failed["result"]["proof_attempt"]["outcome"],
+        "disproved_concrete"
+    );
+    assert_eq!(
+        agent_failed["result"]["view"]["counts"],
+        failure["view"]["counts"]
+    );
+    assert_eq!(
+        agent_failed["result"]["proof_attempt"]["counterexample"]["redacted"],
+        true
+    );
 
     // A body repair preserves the selected law intent and changes the bound
     // candidate revision. Only fresh checked evidence can satisfy it.
@@ -148,6 +240,18 @@ fn selected_law_cli_workflow_replays_failure_then_rechecks_repaired_body() {
         checked["view"]["protected_baseline_digest"],
         failure["view"]["protected_baseline_digest"]
     );
+    let stale = call(4, "law/check", agent_params(&failure["candidate_revision"]));
+    assert_eq!(stale["result"]["proof_attempt"]["outcome"], "stale");
+    assert_eq!(stale["result"]["view"]["accepted"], false);
+    assert_eq!(stale["result"]["view"]["counts"]["required"], 1);
+    let refreshed = call(5, "law/status", serde_json::json!({}));
+    assert_eq!(
+        refreshed["result"]["candidate_revision"],
+        checked["candidate_revision"]
+    );
+    let agent_fixed = call(6, "law/check", agent_params(&checked["candidate_revision"]));
+    assert_eq!(agent_fixed["result"]["proof_attempt"]["outcome"], "proved");
+    assert_eq!(agent_fixed["result"]["view"]["accepted"], true);
     // A source edit to the law's own evidence requirement cannot be reported
     // as a successful implementation repair, even if the function now proves.
     let changed_law = law_source.replace("evidence smt_proved", "evidence runtime_guarded");
@@ -159,6 +263,15 @@ fn selected_law_cli_workflow_replays_failure_then_rechecks_repaired_body() {
     assert!(!weakened.status.success());
     assert!(weakened.stdout.is_empty());
     assert!(String::from_utf8_lossy(&weakened.stderr).contains("SPX-LW120"));
+    let agent_weakened = call(7, "law/status", serde_json::json!({}));
+    assert!(agent_weakened["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("SPX-LW120"));
+    let shutdown = call(8, "shutdown", serde_json::json!({}));
+    assert_eq!(shutdown["result"]["ok"], true);
+    drop(call);
+    assert!(daemon.wait().unwrap().success());
 }
 
 #[test]

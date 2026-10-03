@@ -137,6 +137,31 @@ the candidate revision and must be reproved. An edit to protected law intent
 requires the separate host specification-review route and cannot be counted
 as a successful repair by this command.
 
+### Opt-in selected-law agent transport
+
+`semapraxd --stdio --manifest-path /absolute/semaprax.toml
+--allow-project-law-workflow --law-tool z3|lean
+--law-executable /absolute/tool --law-version-line "exact output"` selects the
+additive `semaprax.agent-transport.v7` profile. It uses the existing bounded
+Project NDJSON/JSON-RPC codec. Startup pins the manifest and tool; requests
+cannot choose another root, executable, version, host profile, source write,
+or publication route. Existing v2-v6 profiles and methods are unchanged.
+
+The four methods are `protocol`, `law/status`, `law/check`, and `shutdown`.
+`law/status` returns the authenticated current candidate revision, selected
+law inventory digest, and host policy digest. `law/check` requires the exact
+`candidate_revision`, `law_id`, and `view` (`summary` or `detail`); a source
+postcondition also supplies `source`, `declaration`, and `ensures_index`.
+Optional `offset`, `limit`, and `max_bytes` use the owning workflow bounds.
+Both CLI and daemon call the same library evaluator after independently
+reloading the host-selected policy. A stale requested revision yields a
+`stale` nonproof attempt with complete current counts and no solver invocation.
+The daemon never retains a prior proof token across edits. Law intent drift
+refuses through the existing protected review boundary.
+
+This profile is JSON-RPC over stdio. It does not claim an MCP tool catalog,
+hosted service, or editor integration.
+
 ## Focused physical gate
 
 The ignored Workspace selector `project_assurance_manifest::law_set::installed_law`

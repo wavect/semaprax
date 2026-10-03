@@ -240,6 +240,11 @@ impl<'a> Emitter<'a> {
                             .ok_or_else(|| sdk_error("opaque owner binding is missing"))?;
                         writeln!(out, "v={};", self.eval(value)?).unwrap();
                     }
+                    if expression.ty == ResolvedType::String
+                        && expression.ownership == OwnershipMode::Own
+                    {
+                        out.push_str("spx_owner source=v.owner; v.status=spx_owner_string_clone(context,source,&v.owner); if(v.status) return v;\n");
+                    }
                 }
                 ResolvedExprKind::NativeRustImportCall(call) => {
                     for (i, argument) in call.args.iter().enumerate() {

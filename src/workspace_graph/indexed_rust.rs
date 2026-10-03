@@ -80,6 +80,7 @@ pub(super) fn append(
                     hir::ResolvedImportResultKind::Unit => "unit",
                     hir::ResolvedImportResultKind::I64 => "i64",
                     hir::ResolvedImportResultKind::Bool => "bool",
+                    hir::ResolvedImportResultKind::OwnedString => "string",
                     hir::ResolvedImportResultKind::ResultI64I64 => "Result<i64, i64>",
                     hir::ResolvedImportResultKind::OwnedResource { .. } => "opaque resource",
                 },

@@ -829,6 +829,7 @@ impl Resolver<'_> {
                         ownership: if matches!(
                             result,
                             ResolvedImportResultKind::OwnedResource { .. }
+                                | ResolvedImportResultKind::OwnedString
                         ) {
                             OwnershipMode::Own
                         } else {

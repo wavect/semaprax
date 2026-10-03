@@ -614,7 +614,7 @@ mod indexed_project;
 pub use indexed_project::{build_indexed_project_native_rust_sdk, IndexedProjectScalarSelection};
 mod owned_data;
 mod owner_sdk;
-pub use owner_sdk::{prepare_opaque_owner_native, OpaqueOwnerNative};
+pub use owner_sdk::{prepare_opaque_owner_native, prepare_owned_string_native, OpaqueOwnerNative};
 mod package;
 mod project;
 
@@ -631,6 +631,8 @@ mod tests;
 
 #[cfg(test)]
 mod indexed_tests;
+#[cfg(test)]
+mod owned_string_tests;
 #[cfg(test)]
 mod owner_return_tests;
 #[cfg(test)]

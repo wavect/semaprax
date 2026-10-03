@@ -343,3 +343,46 @@ retain repeatability and a stable use-after-move diagnostic. This extends the
 experimental Project and CLI seam; arbitrary owner signatures, real-world
 crate families, borrowed methods, hosted coverage, and full RI-05 completion
 remain open.
+
+### Bounded native String rendering (experimental)
+
+`prepare_owned_string_native` is a separate pure renderer for a checked
+`(i64) -> string` native constructor and consuming `(own string, i64) -> bool`
+native function. The Semaprax spelling is `string`; the Rust value is exactly
+`std::string::String`. Ordinary helper parameters keep the existing implicit
+owned normalization (`value: string`). Selected metadata may bind the exact
+`alloc::string::String` signature; unsupported argument widths are refused.
+The generated Rust is type checked against the actual target functions when
+compiled. Metadata alone grants neither execution nor publication authority.
+
+The actual Rust String stays behind the context/generation/slot carrier and is
+moved into and out of its table without copying its allocation. Owning Semaprax
+string place reads create the fresh allocation required by core String semantics;
+the original owner remains live until its canonical cleanup. Clone allocation
+failure aborts, matching the core runtime, rather than inventing an unplanned
+recoverable failure edge. No Rust object,
+allocation layout, or arbitrary UTF-8 pointer crosses C. Rust's String type
+provides valid UTF-8; this route does not decode raw caller-provided byte spans.
+Length and capacity are each bounded to 4096 bytes after construction. This is
+a retained-value bound, not a sandbox on allocations within trusted Rust code.
+Bridge context and slot storage use fallible reservation; slot reservation
+occurs before constructor effects. A rejected constructed value is dropped
+before returning refusal and leaves the result slot unchanged.
+
+The source/HIR ownership checks, canonical `core.string.drop` lifecycle, helper
+cleanup plans, and provisional result publication rules remain authoritative.
+The two `owned_string_` tests cover canonical source/graph replay, selected
+signature binding, width and use-after-move refusals, generated C at `-O0` and
+`-O2`, pointer preservation, and real deallocation observed by an allocator.
+They exercise late argument failure, constructor/consumer panic, size refusal,
+stale/foreign carriers, and injected bridge-reservation/admission failure. An
+isolated clone-allocation control must terminate with an abort signal.
+A compiled missing-cleanup control must fail the same consumer assertions.
+
+These programs select graph v57, which adds native `string` result/parameter
+meaning to v56. Older programs retain their prior schema and bytes; evidence
+routes without this admission refuse v57. This String renderer does not publish
+a Project/CLI package. Public owner-valued exports, owned Option/Result payload
+conversion, exhaustive failure injection, allocator abort recovery, and full
+RI-05 completion remain open. Existing scalar and owned-data v1 contracts are
+unchanged.

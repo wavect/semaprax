@@ -16,6 +16,9 @@ impl Resolver<'_> {
             crate::ast::ImportResult::Unit => (ResolvedImportResultKind::Unit, ResolvedType::Unit),
             crate::ast::ImportResult::I64 => (ResolvedImportResultKind::I64, ResolvedType::I64),
             crate::ast::ImportResult::Bool => (ResolvedImportResultKind::Bool, ResolvedType::Bool),
+            crate::ast::ImportResult::OwnedString => {
+                (ResolvedImportResultKind::OwnedString, ResolvedType::String)
+            }
             crate::ast::ImportResult::ResultI64I64 => (
                 ResolvedImportResultKind::ResultI64I64,
                 self.resolve_type(&result.value_type(), span)?,

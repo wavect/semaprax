@@ -2996,7 +2996,11 @@ These areas are deliberately outside the public compiler contract:
   acyclic checked helpers, including owned parameter entry and guarded owner
   returns, without changing canonical cleanup vectors. `owner_runtime.rs.txt` retains real
   Rust objects behind C-compatible context/generation/slot carriers. This seam
-  grants no build, Project publication, or general owner-ABI authority;
+  grants no build, Project publication, or general owner-ABI authority.
+  `owned_string_sdk.rs` and `owned_string_runtime.rs.txt` own the separate
+  bounded String renderer, fallible table reservation, and core-compatible
+  String place cloning. `src/native_rust_binding/string.rs` binds its exact
+  selected String signatures; this renderer does not publish Project packages;
 - `src/project/indexed_rust.rs` and
   `crates/semaprax-native-rust-interop-builder/src/public_sdk/indexed_project.rs`:
   explicit source-bound indexed Project admission and authenticated SDK

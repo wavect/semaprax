@@ -274,7 +274,8 @@ pub(super) fn check_native_rust_imports<'p>(
                 crate::ast::ImportResult::Unit
                 | crate::ast::ImportResult::I64
                 | crate::ast::ImportResult::Bool
-                | crate::ast::ImportResult::ResultI64I64 => true,
+                | crate::ast::ImportResult::ResultI64I64
+                | crate::ast::ImportResult::OwnedString => true,
                 crate::ast::ImportResult::OwnedResource { name } => {
                     types.is_opaque_resource(&Type::Named {
                         name: name.clone(),
@@ -289,7 +290,8 @@ pub(super) fn check_native_rust_imports<'p>(
                         (parameter.mode == ParamMode::Value
                             && matches!(parameter.ty, Type::I64 | Type::Bool))
                             || (parameter.mode == ParamMode::Own
-                                && types.is_opaque_resource(&parameter.ty))
+                                && (parameter.ty == Type::String
+                                    || types.is_opaque_resource(&parameter.ty)))
                     })
                     && native_result_is_valid
             } else {

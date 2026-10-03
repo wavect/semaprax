@@ -84,6 +84,7 @@ impl Parser {
             } else if native_rust {
                 let ty = self.ty()?;
                 match ty {
+                    Type::String => ImportResult::OwnedString,
                     Type::Named { name, arguments } if arguments.is_empty() => {
                         ImportResult::OwnedResource { name }
                     }

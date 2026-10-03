@@ -5,6 +5,9 @@ use crate::ast::{
     ImportDeclaration, ImportResult, Param, ParamMode, Type, TypeDeclaration, TypeDeclarationKind,
 };
 
+#[path = "string.rs"]
+mod string;
+
 /// Bind one `(i64) -> Self` constructor or `(self, i64) -> bool` method to a
 /// source resource with the Rust type's final name. Returns false for scalars.
 pub fn bind_selected_owner_signature(
@@ -14,6 +17,9 @@ pub fn bind_selected_owner_signature(
     index_digest: &str,
     receiver: &str,
 ) -> Result<bool, Diagnostic> {
+    if string::bind(import, signature, index_digest, receiver)? {
+        return Ok(true);
+    }
     let path = import.rust_path.as_deref().unwrap_or("");
     let Some((type_path, method)) = path.rsplit_once("::") else {
         return Ok(false);

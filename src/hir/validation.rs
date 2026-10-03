@@ -339,9 +339,9 @@ impl<'a> HirValidator<'a> {
                             && ((parameter.ownership == OwnershipMode::Value
                                 && matches!(parameter.ty, ResolvedType::I64 | ResolvedType::Bool))
                                 || (parameter.ownership == OwnershipMode::Own
-                                    && matches!(parameter.ty, ResolvedType::Nominal { ref declaration, ref arguments }
+                                    && (parameter.ty == ResolvedType::String || matches!(parameter.ty, ResolvedType::Nominal { ref declaration, ref arguments }
                                         if arguments.is_empty() && self.program.declarations.declaration(declaration)
-                                            .is_some_and(|item| item.kind == DeclarationKind::Resource))))
+                                            .is_some_and(|item| item.kind == DeclarationKind::Resource)))))
                     })
                     && matches!(
                         &import.result.kind,
@@ -349,7 +349,7 @@ impl<'a> HirValidator<'a> {
                             | ResolvedImportResultKind::I64
                             | ResolvedImportResultKind::Bool
                             | ResolvedImportResultKind::ResultI64I64
-                            | ResolvedImportResultKind::OwnedResource { .. }
+                            | ResolvedImportResultKind::OwnedResource { .. } | ResolvedImportResultKind::OwnedString
                     )
                     && (import.result.kind != ResolvedImportResultKind::ResultI64I64
                         || (import.index_selected && import.selected_index_digest.is_some()));
@@ -363,6 +363,7 @@ impl<'a> HirValidator<'a> {
                         != if matches!(
                             &import.result.kind,
                             ResolvedImportResultKind::OwnedResource { .. }
+                                | ResolvedImportResultKind::OwnedString
                         ) {
                             OwnershipMode::Own
                         } else {
@@ -3347,6 +3348,7 @@ impl<'a> HirValidator<'a> {
                                 ResolvedImportResultKind::Unit => ResolvedType::Unit,
                                 ResolvedImportResultKind::I64 => ResolvedType::I64,
                                 ResolvedImportResultKind::Bool => ResolvedType::Bool,
+                                ResolvedImportResultKind::OwnedString => ResolvedType::String,
                                 ResolvedImportResultKind::ResultI64I64 => ResolvedType::Nominal {
                                     declaration: self
                                         .program
@@ -3808,7 +3810,7 @@ impl<'a> HirValidator<'a> {
                     path,
                 } => {
                     if index == args.len() {
-                        let ownership = if matches!(&expression.kind, ResolvedExprKind::NativeRustImportCall(call) if matches!(call.result, ResolvedImportResultKind::OwnedResource { .. }))
+                        let ownership = if matches!(&expression.kind, ResolvedExprKind::NativeRustImportCall(call) if matches!(call.result, ResolvedImportResultKind::OwnedResource { .. } | ResolvedImportResultKind::OwnedString))
                         {
                             OwnershipMode::Own
                         } else {
@@ -6511,6 +6513,7 @@ impl<'a> HirValidator<'a> {
                     ResolvedImportResultKind::Unit => ResolvedType::Unit,
                     ResolvedImportResultKind::I64 => ResolvedType::I64,
                     ResolvedImportResultKind::Bool => ResolvedType::Bool,
+                    ResolvedImportResultKind::OwnedString => ResolvedType::String,
                     ResolvedImportResultKind::ResultI64I64 => ResolvedType::Nominal {
                         declaration: self
                             .program
@@ -6525,12 +6528,15 @@ impl<'a> HirValidator<'a> {
                         arguments: Vec::new(),
                     },
                 };
-                let ownership =
-                    if matches!(call.result, ResolvedImportResultKind::OwnedResource { .. }) {
-                        OwnershipMode::Own
-                    } else {
-                        OwnershipMode::Value
-                    };
+                let ownership = if matches!(
+                    call.result,
+                    ResolvedImportResultKind::OwnedResource { .. }
+                        | ResolvedImportResultKind::OwnedString
+                ) {
+                    OwnershipMode::Own
+                } else {
+                    OwnershipMode::Value
+                };
                 (result, ownership)
             }
             ResolvedExprKind::Unary { .. } => unreachable!("unary chain handled above"),

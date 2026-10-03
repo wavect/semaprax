@@ -7,6 +7,9 @@ use semaprax::hir::{
 };
 #[path = "owner_sdk_c.rs"]
 mod c;
+#[path = "owned_string_sdk.rs"]
+mod string;
+pub use string::prepare_owned_string_native;
 
 pub struct OpaqueOwnerNative {
     pub header: String,

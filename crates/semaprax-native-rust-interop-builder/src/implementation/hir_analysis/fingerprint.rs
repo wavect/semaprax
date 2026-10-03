@@ -535,6 +535,7 @@ pub(in crate::implementation) fn hash_expr(
                                 ResolvedImportResultKind::Unit => b"unit",
                                 ResolvedImportResultKind::I64 => b"i64",
                                 ResolvedImportResultKind::Bool => b"bool",
+                                ResolvedImportResultKind::OwnedString => b"string",
                                 ResolvedImportResultKind::ResultI64I64 => b"result<i64,i64>",
                                 ResolvedImportResultKind::OwnedResource { resource } => {
                                     resource.as_str().as_bytes()

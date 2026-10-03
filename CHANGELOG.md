@@ -1,5 +1,11 @@
 # Changelog
 
+- Add an experimental bounded native String renderer with checked source/HIR
+  ownership, graph v57, exact selected signature binding, canonical helper
+  cleanup, and core-compatible String cloning. Focused physical controls cover
+  allocation/admission refusal, panic, stale carriers, missing cleanup, and
+  allocation abort. String Project publication and full RI-05 remain open.
+
 - Protect law intent with independently held revision-bound baselines, conservative
   specification closure, explicit editable implementation bodies, and exact
   host-approved specification-change proposals. Candidate review reports unknown

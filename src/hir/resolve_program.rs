@@ -389,6 +389,7 @@ impl Resolver<'_> {
                                     crate::ast::ImportResult::ResultI64I64 => {
                                         ResolvedImportResultKind::ResultI64I64
                                     }
+                                    crate::ast::ImportResult::OwnedString => ResolvedImportResultKind::OwnedString,
                                     crate::ast::ImportResult::OwnedResource { name } => {
                                         let ty = self.resolve_type(
                                             &crate::ast::Type::Named {
@@ -419,7 +420,7 @@ impl Resolver<'_> {
                                 },
                                 ownership: if matches!(
                                     &import.result,
-                                    crate::ast::ImportResult::OwnedResource { .. }
+                                    crate::ast::ImportResult::OwnedResource { .. } | crate::ast::ImportResult::OwnedString
                                 ) {
                                     OwnershipMode::Own
                                 } else {

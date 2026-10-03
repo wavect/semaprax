@@ -447,7 +447,10 @@ pub(super) fn oracle_call(
         let native_unit = import.result == ImportResult::Unit;
         let mut checked = CheckedValue::returned(
             import.result.value_type(),
-            matches!(import.result, ImportResult::OwnedResource { .. }),
+            matches!(
+                import.result,
+                ImportResult::OwnedResource { .. } | ImportResult::OwnedString
+            ),
         );
         checked.native_unit = native_unit;
         return Some(checked);

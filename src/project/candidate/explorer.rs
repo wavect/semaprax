@@ -13,14 +13,14 @@ type Result<T> = std::result::Result<T, Vec<crate::diagnostic::Diagnostic>>;
 /// summary and its pages. Transport entry points still create a fresh view for
 /// each independent request; callers that assemble a complete offline report
 /// can retain this view for the report's selected side.
-pub(crate) struct CandidateExplorerView<'a> {
+pub struct CandidateExplorerView<'a> {
     candidate: &'a ProjectCandidate,
     side: ExplorerSide,
     image: &'a ProjectSemanticImage,
 }
 
 impl ProjectCandidate {
-    pub(crate) fn explorer_view(
+    pub fn explorer_view(
         &self,
         expected_candidate: &str,
         side: ExplorerSide,
@@ -100,7 +100,7 @@ impl CandidateExplorerView<'_> {
         }
     }
 
-    pub(crate) fn summary(
+    pub fn summary(
         &self,
         mode: ExplorerMode,
         target: Option<&str>,
@@ -110,7 +110,7 @@ impl CandidateExplorerView<'_> {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub(crate) fn page(
+    pub fn page(
         &self,
         mode: ExplorerMode,
         target: Option<&str>,

@@ -110,10 +110,10 @@ pub use candidate::{
 };
 pub use candidate::{
     apply_candidate_git_publication, apply_candidate_publication, prepare_candidate_publication,
-    CandidateGitAuthority, CandidateGitCommitMetadata, CandidateGitObject, CandidateGitObjectKind,
-    CandidateGitProcessAuthority, CandidateGitRefUpdate, CandidateGitRepository,
-    CandidateGitTarget, CandidateTestPolicy, CandidateTestReport, GitObjectFormat,
-    ProjectCandidate, ProjectCandidateAttempt, ProjectCandidateAttemptOutcome,
+    CandidateExplorerView, CandidateGitAuthority, CandidateGitCommitMetadata, CandidateGitObject,
+    CandidateGitObjectKind, CandidateGitProcessAuthority, CandidateGitRefUpdate,
+    CandidateGitRepository, CandidateGitTarget, CandidateTestPolicy, CandidateTestReport,
+    GitObjectFormat, ProjectCandidate, ProjectCandidateAttempt, ProjectCandidateAttemptOutcome,
     ProjectCandidateDraft, ProjectCandidatePublication, ProjectCandidateRebase,
     ProjectCandidateTestTaskOutcome, SemanticChange, MAX_CANDIDATE_TEST_STEPS,
     MAX_PROJECT_CANDIDATE_BYTES, MAX_PROJECT_CANDIDATE_DRAFT_LINEAGE, MAX_PROJECT_CANDIDATE_HOLES,

@@ -38,6 +38,7 @@ mod draft_suggestions;
 mod environment_consumer_review;
 mod environment_review;
 mod explorer;
+pub use explorer::CandidateExplorerView;
 mod expression;
 mod external_api_contract_delta;
 mod external_api_contract_evidence;

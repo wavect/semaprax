@@ -1,5 +1,10 @@
 # Changelog
 
+- Finish bounded LAW-17 acceptance with an emitted-Core-Wasm Node benchmark
+  for the proved add-zero rewrite, plus call-operand, numeric-kind, and stale
+  artifact refusals. The installed-Z3 focused gate passed 1/1; the read-only
+  reduction report continues to state that no parallel execution occurred.
+
 - Add a fixed two-tool MCP stdio catalog over the selected-law Project agent
   route. It shares current-revision and host-policy replay with direct JSON-RPC,
   requires MCP initialization, and cannot select an executable or root from a

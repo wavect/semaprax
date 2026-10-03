@@ -36,4 +36,10 @@ the candidate rewrite. Node executes both emitted modules with checked `i64`
 imports: the normal entry returns the same value, and an independent guarded
 overflow entry fails with the same error before and after its rewrite. This
 covers the admitted target behavior but does not establish a general lowering
-theorem. A target benchmark and broader negative report controls remain open.
+theorem. The same gate times five samples of 100,000 calls on each emitted
+module. One local arm64 run with Node v24.3.0 measured median 25.91 ns/call
+before and 10.42 ns/call after the rewrite; this is a narrow call benchmark,
+not a GPU result or a performance guarantee. The gate also refuses a call
+operand and mismatched `i32` expression, rejects a non-`i64` fold input, and
+refuses a stale CPU artifact after source drift. Floating-point kernels are
+outside the CPU kernel vocabulary, so the report cannot mark one eligible.

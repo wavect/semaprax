@@ -16,7 +16,7 @@ fn proved_add_zero_identity_yields_only_a_revalidated_candidate() {
         .replacen("seventeen(0)", "let n = 40; n + 0", 1)
         .replacen(
             "@id(\"fresh.main\")",
-            "@id(\"fresh.combine\") fn combine(acc: i64, item: i64) -> i64 { acc + item }\n@id(\"fresh.guarded\") fn guarded() -> i64 { let n = 9223372036854775807 + 1; n + 0 }\n@id(\"fresh.main\")",
+            "@id(\"fresh.combine\") fn combine(acc: i64, item: i64) -> i64 { acc + item }\n@id(\"fresh.guarded\") fn guarded() -> i64 { let n = 9223372036854775807 + 1; n + 0 }\n@id(\"fresh.pure\") fn pure() -> i64 { 40 }\n@id(\"fresh.call\") fn call() -> i64 { pure() + 0 }\n@id(\"fresh.i32\") fn wrong(n: i32) -> i32 { n + 0i32 }\n@id(\"fresh.main\")",
             1,
         );
     assert_ne!(original, raw);
@@ -140,6 +140,39 @@ fn proved_add_zero_identity_yields_only_a_revalidated_candidate() {
         alias["reason"],
         "buffer_alias_or_type_outside_admitted_fold"
     );
+    // The kernel vocabulary excludes floats; even another admitted scalar
+    // kind cannot inherit the checked-i64 reduction verdict.
+    let other_kind_input = session.alloc(ScalarKind::I32, 3).unwrap();
+    session
+        .upload(
+            other_kind_input,
+            0,
+            &[Scalar::I32(1), Scalar::I32(2), Scalar::I32(3)],
+        )
+        .unwrap();
+    let other_kind_report = session
+        .checked_add_reduction_eligibility(
+            &revision,
+            &fold,
+            other_kind_input,
+            output,
+            &laws,
+            "fresh.law.identity",
+            &proof,
+            ReductionDomain {
+                minimum: 0,
+                maximum: 100,
+                maximum_elements: 3,
+            },
+            ReductionSchedule::Reorder,
+        )
+        .unwrap();
+    let other_kind_report: serde_json::Value = serde_json::from_str(&other_kind_report).unwrap();
+    assert_eq!(other_kind_report["eligible"], false);
+    assert_eq!(
+        other_kind_report["reason"],
+        "buffer_alias_or_type_outside_admitted_fold"
+    );
     let candidate = ProjectCandidate::open(revision.clone(), revision.project_revision()).unwrap();
     let catalogue: serde_json::Value =
         serde_json::from_str(&candidate.expression_catalog("fresh.main").unwrap()).unwrap();
@@ -177,7 +210,7 @@ fn proved_add_zero_identity_yields_only_a_revalidated_candidate() {
         .iter()
         .any(|source| source.path() == "src/app.spx"
             && source.source().contains("let n = 40")
-            && source.source().matches("n + 0").count() == 1));
+            && source.source().matches("n + 0").count() == 2));
     let guarded_catalogue: serde_json::Value =
         serde_json::from_str(&candidate.expression_catalog("fresh.guarded").unwrap()).unwrap();
     let guarded_id = guarded_catalogue["expressions"]
@@ -203,6 +236,32 @@ fn proved_add_zero_identity_yields_only_a_revalidated_candidate() {
             &proof,
         )
         .unwrap();
+    for (target, text) in [("fresh.call", "pure() + 0"), ("fresh.i32", "n + 0i32")] {
+        let catalogue: serde_json::Value =
+            serde_json::from_str(&candidate.expression_catalog(target).unwrap()).unwrap();
+        let entry = catalogue["expressions"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|entry| {
+                let span = &entry["source_span"];
+                source.get(
+                    span["start"].as_u64().unwrap() as usize
+                        ..span["end"].as_u64().unwrap() as usize,
+                ) == Some(text)
+            })
+            .unwrap();
+        assert!(candidate
+            .propose_checked_i64_add_zero(
+                candidate.candidate_digest(),
+                target,
+                entry["expression_id"].as_str().unwrap(),
+                &laws,
+                "fresh.law.identity",
+                &proof,
+            )
+            .is_err());
+    }
     for (name, variant) in [
         ("before", revision.entry_program()),
         ("rewritten", rewritten.revision().entry_program()),
@@ -232,8 +291,22 @@ function failure(exports) {
   assert.fail('guarded call returned');
 }
 assert.deepEqual(failure(before), failure(guarded));
+function bench(exports) {
+  const samples = [];
+  for (let trial = 0; trial < 5; trial++) {
+    let sum = 0n;
+    const start = process.hrtime.bigint();
+    for (let i = 0; i < 100000; i++) sum += exports.semaprax_main();
+    const elapsed = process.hrtime.bigint() - start;
+    assert.equal(sum, 4000000n);
+    samples.push(Number(elapsed) / 100000);
+  }
+  return samples.sort((a,b) => a-b)[2];
+}
+console.log(JSON.stringify({target: 'emitted_core_wasm_node', calls_per_sample: 100000,
+  before_ns_per_call: bench(before), rewritten_ns_per_call: bench(rewritten)}));
 "#;
-    let output = std::process::Command::new("node")
+    let node_output = std::process::Command::new("node")
         .args(["--input-type=module", "--eval", script])
         .arg(project.root.join("before.wasm"))
         .arg(project.root.join("rewritten.wasm"))
@@ -241,11 +314,17 @@ assert.deepEqual(failure(before), failure(guarded));
         .output()
         .expect("Node is required for the LAW-17 emitted-Wasm comparison");
     assert!(
-        output.status.success(),
+        node_output.status.success(),
         "Node stdout={} stderr={}",
-        String::from_utf8_lossy(&output.stdout),
-        String::from_utf8_lossy(&output.stderr)
+        String::from_utf8_lossy(&node_output.stdout),
+        String::from_utf8_lossy(&node_output.stderr)
     );
+    let benchmark: serde_json::Value = serde_json::from_slice(&node_output.stdout).unwrap();
+    assert_eq!(benchmark["target"], "emitted_core_wasm_node");
+    assert_eq!(benchmark["calls_per_sample"], 100000);
+    assert!(benchmark["before_ns_per_call"].as_f64().unwrap() > 0.0);
+    assert!(benchmark["rewritten_ns_per_call"].as_f64().unwrap() > 0.0);
+    eprintln!("LAW-17 actual-target benchmark: {benchmark}");
     assert_eq!(std::fs::read_to_string(&app).unwrap(), changed);
     assert!(candidate
         .propose_checked_i64_add_zero(
@@ -273,6 +352,25 @@ assert.deepEqual(failure(before), failure(guarded));
             &other_laws,
             "fresh.law.identity",
             &proof,
+        )
+        .is_err());
+    std::fs::write(&app, changed.replace("let n = 40", "let n = 41")).unwrap();
+    let stale_revision = project.revision();
+    assert!(session
+        .checked_add_reduction_eligibility(
+            &stale_revision,
+            &fold,
+            input,
+            output,
+            &laws,
+            "fresh.law.identity",
+            &proof,
+            ReductionDomain {
+                minimum: 0,
+                maximum: 100,
+                maximum_elements: 3,
+            },
+            ReductionSchedule::Regroup,
         )
         .is_err());
 }

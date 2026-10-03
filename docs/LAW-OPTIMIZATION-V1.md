@@ -31,7 +31,9 @@ Project revision, artifact fingerprint, law digests, scheduler, reason for
 ineligibility, and that no rewrite or parallel execution happened. It does
 not claim a GPU speedup or alter the CPU/Metal sequential fold.
 
-This is a narrow code change and bounded static arithmetic decision backed by
-exact law evidence, not a general optimizer or translation-preservation
-theorem. Target differential and benchmark evidence for the rewrite remain
-open.
+The installed-Z3 gate emits and validates actual Core Wasm before and after
+the candidate rewrite. Node executes both emitted modules with checked `i64`
+imports: the normal entry returns the same value, and an independent guarded
+overflow entry fails with the same error before and after its rewrite. This
+covers the admitted target behavior but does not establish a general lowering
+theorem. A target benchmark and broader negative report controls remain open.

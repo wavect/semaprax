@@ -1,5 +1,10 @@
 # Changelog
 
+- Compare actual emitted Core Wasm before and after the LAW-17 proved add-zero
+  candidate in the focused installed-Z3 gate. Node confirms the same return
+  value and checked-overflow failure; the test moves into the owning nested
+  workspace harness to keep its Rust module within the size budget.
+
 - Complete the bounded RI-06 native loan acceptance with precise unchanged-import refusals for unsupported Url reference/lifetime shapes. The owning source/rejection matrix passes alongside retained real Regex/Url, callback, sanitizer and Miri evidence; broader mutable source syntax and hosted support remain outside the claim.
 
 - Add an opt-in selected-law Project v7 stdio agent route using the existing

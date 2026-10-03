@@ -99,6 +99,26 @@ fn selected_scalar_binding_uses_exact_package_and_import_identity() {
             .unwrap()
             .physical_symbol
     );
+    let aliased_source = SOURCE.replacen(
+        "    @id(\"rust.host.invert\")",
+        "    @id(\"rust.host.combine_alias\")\n    import rust fn combine_alias(left: i64, selected: bool) -> i64 from \"first::combine\"\n        effects {  }\n        failure status \"rust.test\";\n    @id(\"rust.host.invert\")",
+        1,
+    );
+    let aliased = hir::resolve(&parse(&aliased_source, Path::new("aliased.spx")).unwrap()).unwrap();
+    let aliased_import = aliased.interfaces[0]
+        .imports
+        .iter()
+        .find(|candidate| candidate.id.as_str() == "rust.host.combine_alias")
+        .unwrap();
+    let same_item_different_import = prepare_scalar_binding(
+        aliased_import,
+        selected_item("first", "first::combine", signature),
+    )
+    .unwrap();
+    assert_ne!(
+        first.physical_symbol, same_item_different_import.physical_symbol,
+        "distinct persistent Semaprax import IDs cannot collide on one Rust item"
+    );
     let mut other_index = selected_item("first", "first::combine", signature);
     other_index.index_digest =
         "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd";

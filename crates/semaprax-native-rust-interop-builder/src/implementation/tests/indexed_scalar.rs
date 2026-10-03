@@ -133,6 +133,40 @@ fn indexed_scalar_adapter_executes_and_rejects_flipped_rust_result() {
     let _ = std::fs::remove_dir_all(&root);
     std::fs::create_dir(&root).unwrap();
     let output = root.join("bundle");
+    for (label, rejected_package) in [
+        (
+            "alias",
+            crate::indexed_binding::SelectedPackage {
+                cargo_alias: "fixture_math_other",
+                ..package
+            },
+        ),
+        (
+            "target",
+            crate::indexed_binding::SelectedPackage {
+                target: "wasm32-unknown-unknown",
+                ..package
+            },
+        ),
+    ] {
+        let error = crate::build_indexed_scalar_native_rust(
+            &source,
+            Path::new("indexed-scalar.spx"),
+            crate::NativeRustSdkOptions {
+                exports: vec!["interop.add".to_owned()],
+                imports: vec!["host.add".to_owned()],
+                capabilities: vec!["host.math".to_owned()],
+            },
+            index_bytes,
+            rejected_package,
+            crate_source.as_bytes(),
+            &output,
+        )
+        .unwrap_err();
+        assert_eq!(error[0].code, "SPX-B142", "{label}");
+        assert_eq!(error[0].span, Some(import.span), "{label}");
+        assert!(!output.exists(), "{label} must refuse before publication");
+    }
     let built = crate::build_indexed_scalar_native_rust(
         &source,
         Path::new("indexed-scalar.spx"),

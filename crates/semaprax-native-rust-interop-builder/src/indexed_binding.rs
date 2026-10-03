@@ -190,54 +190,30 @@ mod tests {
         assert_eq!(rejected.span, Some(import.span));
         let mut stale = package;
         stale.version = "1.0.0";
-        assert_eq!(
-            prepare_indexed_scalar_binding(
-                import,
-                INDEX,
-                stale,
-                "local_api_fixture::MacroGenerated::answer",
-            )
-            .unwrap_err()
-            .code,
-            "SPX-B142"
-        );
         let mut wrong_compiler = package;
         wrong_compiler.stable_rustc_version = "rustc 1.97.1";
-        assert_eq!(
-            prepare_indexed_scalar_binding(
-                import,
-                INDEX,
-                wrong_compiler,
-                "local_api_fixture::MacroGenerated::answer",
-            )
-            .unwrap_err()
-            .code,
-            "SPX-B142"
-        );
         let mut wrong_alias = package;
         wrong_alias.cargo_alias = "other_alias";
-        assert_eq!(
-            prepare_indexed_scalar_binding(
+        for selected in [stale, wrong_compiler, wrong_alias] {
+            let error = prepare_indexed_scalar_binding(
                 import,
                 INDEX,
-                wrong_alias,
+                selected,
                 "local_api_fixture::MacroGenerated::answer",
             )
-            .unwrap_err()
-            .code,
-            "SPX-B142"
-        );
-        assert_eq!(
-            prepare_indexed_scalar_binding(
-                import,
-                b"{}\n",
-                INDEX_PACKAGE,
-                "local_api_fixture::MacroGenerated::answer"
-            )
-            .unwrap_err()
-            .code,
-            "SPX-B147"
-        );
+            .unwrap_err();
+            assert_eq!(error.code, "SPX-B142");
+            assert_eq!(error.span, Some(import.span));
+        }
+        let malformed = prepare_indexed_scalar_binding(
+            import,
+            b"{}\n",
+            INDEX_PACKAGE,
+            "local_api_fixture::MacroGenerated::answer",
+        )
+        .unwrap_err();
+        assert_eq!(malformed.code, "SPX-B147");
+        assert_eq!(malformed.span, Some(import.span));
     }
 
     const INDEX_PACKAGE: SelectedPackage<'static> = SelectedPackage {

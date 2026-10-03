@@ -146,6 +146,7 @@ def main():
         policy=area/"policy.json"; policy.write_bytes(canonical(POLICY))
         user=area/"user"; extensions=area/"extensions"; (user/"User").mkdir(parents=True); extensions.mkdir()
         vsix = area/"wavect.semaprax.vsix"; vsix_before = package_vsix(vsix)
+        vsix_bytes = vsix.read_bytes()
         command([str(cli),f"--user-data-dir={user}",f"--extensions-dir={extensions}","--install-extension",str(vsix),"--force"],"install exact VSIX")
         installed = extensions / "wavect.semaprax-0.1.0"
         if not installed.is_dir() or installed.is_symlink(): raise Failure("exact VSIX was not installed into the isolated extension directory")
@@ -195,7 +196,7 @@ def main():
         if file_row(path) != bound_rows[name]: raise Failure(f"tool or product drift: {path}")
     host_exec_row=file_row(host_exec)
     if file_row(host_exec) != host_exec_row: raise Failure(f"Extension Host executable drift: {host_exec}")
-    logs={"controller-node.tap":node_log,"compiler-build-cargo.log":build_log,"vscode-extension-host.log":host_log,"vscode-host-observation.json":canonical(observation),"installed-extension.vsix":vsix.read_bytes()}
+    logs={"controller-node.tap":node_log,"compiler-build-cargo.log":build_log,"vscode-extension-host.log":host_log,"vscode-host-observation.json":canonical(observation),"installed-extension.vsix":vsix_bytes}
     rows=[artifact(name,body) for name,body in logs.items()]
     domain=b"semaprax.graph-operational-vscode-host-execution-evidence.bundle.v3\0"
     bundle=hashlib.sha256(domain+b"".join(bytes.fromhex(row["sha256"][7:]) for row in rows)).hexdigest()

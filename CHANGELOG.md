@@ -1,5 +1,12 @@
 # Changelog
 
+- Add a LAW-15 finite request-identity Project using the existing LAW-10
+  source checker. An active request 101 may retry; mismatched request 202
+  reaches a terminal refusal. A body-only erased identity check fails exact
+  protocol coverage with a concrete wrong-return witness; restoring the body
+  repairs the unchanged law, and version-only drift invalidates cached evidence.
+  The example states its finite identity domain and no external exactly-once claim.
+
 - Render an exact Project-selected Rust async module and compile its one-shot
   source-yield callback registration in a locked local consumer. The generated
   code pins Project revision, function identity and suspension plan, and

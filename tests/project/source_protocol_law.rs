@@ -499,3 +499,6 @@ fn via_binding_alone_cannot_satisfy_source_protocol_strict_method() {
     })
     .unwrap();
 }
+
+#[path = "source_protocol_law/request_identity.rs"]
+mod request_identity;

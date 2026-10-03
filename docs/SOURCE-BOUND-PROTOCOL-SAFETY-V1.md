@@ -66,3 +66,12 @@ The focused gate is `cargo test --locked --offline --test project
 source_protocol_law::` with one Cargo job and a checkout-private target.
 Remaining work extends the structured source association beyond the narrow
 pure scalar dispatcher without treating an abstract model as a source theorem.
+
+
+The [LAW-15 request identity example](../examples/law-packs/finite-retry/identity/README.md)
+uses this unchanged profile for one active request and two explicit finite
+identity values. Its identity-confusion body mutation is rejected by exhaustive
+source/protocol coverage (`SPX-LP406`), before model evidence can be issued.
+Repair restores the same protocol and evidence; a source-version-only change
+stales replay (`SPX-LP407`). This example makes no arbitrary-key or external
+provider claim and does not extend the report schema.

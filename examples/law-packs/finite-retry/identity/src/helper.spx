@@ -1,0 +1,7 @@
+module payment.tests;
+
+@id("payment.tests.main")
+fn main() -> i64
+{
+    0
+}

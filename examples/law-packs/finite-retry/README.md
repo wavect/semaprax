@@ -34,7 +34,9 @@ source or bound makes old evidence fail replay and requires a fresh check.
 
 The checked claim is pure command safety within the stated finite profile.
 No provider call is made, so this example gives no external exactly-once or
-payment-settlement guarantee. Request identity is not yet represented in this
-source profile; this pack is an incremental LAW-15 example until the identity
-case and its negative control are added. The checker executable and project
+payment-settlement guarantee. The separate [request identity v1 Project](identity/README.md) models one
+active request 101 and a mismatched request 202. Its body-only identity-confusion
+mutation fails exact source/protocol coverage, and restoring the equality
+repairs the unchanged law. This finite case does not generalize to arbitrary
+request keys or concurrent sessions. The checker executable and project
 test require the repository's Rust toolchain; no hosted service is needed.

@@ -1,0 +1,42 @@
+module payment.machine;
+
+@id("payment.protocol")
+session protocol "payment-request-identity-v1" {
+    states { Idle, Pending, Succeeded, Retry, Failed, Rejected }
+    initial Idle;
+    terminal Succeeded cleanup { release_receipt }
+    terminal Failed cleanup { release_receipt }
+    terminal Rejected cleanup { release_receipt }
+    on Idle charge: call ChargeRequest101 via "payment.dispatch" -> Pending;
+    on Pending success: receive Request101Accepted via "payment.dispatch" -> Succeeded;
+    on Pending failure: receive Request101Rejected via "payment.dispatch" -> Retry;
+    on Retry retry_a: call RetryRequest101 via "payment.dispatch" -> Idle;
+    on Retry retry_b: fail WrongRequest202 via "payment.dispatch" -> Rejected;
+    on Retry abort: fail Unit via "payment.dispatch" -> Failed;
+    on Idle cancel: cancel Unit via "payment.dispatch" -> Failed;
+    on Pending timeout: timeout Unit via "payment.dispatch" -> Failed;
+}
+
+@id("payment.dispatch")
+fn dispatch(state: i64, event: i64) -> i64
+{
+    if state == 0 && event == 0 { 3 } else { if state == 1 && event == 1 { 4 } else { if state == 1 && event == 2 { 6 } else { if state == 3 && (event == 3 || event == 4) { if request_id(event) >= 0 { 0 } else { 10 } } else { if state == 3 && event == 5 { 8 } else { if state == 0 && event == 6 { 8 } else { if state == 1 && event == 7 { 8 } else { -1 } } } } } } }
+}
+
+@id("payment.main")
+fn main() -> i64
+{
+    0
+}
+
+@id("payment.request_id")
+fn request_id(event: i64) -> i64
+{
+    if event == 3 { 101 } else { if event == 4 { 202 } else { -1 } }
+}
+
+@id("payment.step")
+fn step(state: i64, event: i64) -> i64
+{
+    dispatch(state, event)
+}

@@ -46,8 +46,10 @@ and a finite command-safety model. The positive test derives and replays
 bounded evidence from this file; the negative test changes the source to send
 a second `charge` command after success and replays the three-step witness.
 Its [README](finite-retry/README.md) gives the exact local commands and trust
-boundary. Request identity and external provider behavior remain outside this
-version of the pack.
+boundary. The [identity extension](finite-retry/identity/README.md) models one
+active request 101 and one mismatched retry 202; an erased identity check fails
+source/protocol coverage and its repair restores the original evidence. External
+provider behavior remains outside both finite examples.
 
 ## Architecture v1
 

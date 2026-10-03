@@ -1,5 +1,10 @@
 # Changelog
 
+- Disclose the consequences of a later trusted native build separately from
+  read-only CLI inspection: build scripts and proc macros have host filesystem
+  and network access, Cargo's offline flag is not confinement, and the later
+  explicit invocation selects its environment and roots.
+
 - Add a private CLI integration negative control: check, format check, query,
   and graph run beside a hostile Rust build script and proc macro with Cargo
   and rustc marker shims, leaving every marker and source byte unchanged. No

@@ -183,6 +183,17 @@ fn inspect(options: &Options<'_>) -> Result<String, NativeHostRefusal> {
     } else {
         "opaque native behavior"
     };
+    let future_build = if options.policy.permits_build_code() {
+        Some(serde_json::json!({
+            "code_execution": "build.rs and proc macros execute with trusted host process authority",
+            "filesystem": "host filesystem access is available to build code, including roots outside the selected workspace",
+            "network": "build code may open sockets; Cargo --offline is not network confinement",
+            "cargo_environment": "workspace, manifest, HOME/CARGO_HOME, PATH, RUSTC, and target directory are selected by the later ExplicitCargoInvocation; this inspection does not bind or expose their exact values",
+            "os_confinement_enforced": false,
+        }))
+    } else {
+        None
+    };
     if options.json {
         Ok(format!(
             "{}\n",
@@ -194,13 +205,18 @@ fn inspect(options: &Options<'_>) -> Result<String, NativeHostRefusal> {
                 "process_execution": false,
                 "exposed_roots": [],
                 "os_confinement_enforced": false,
+                "if_authorized_build": future_build,
             })
         ))
     } else {
-        Ok(format!(
+        let mut output = format!(
             "native authority inspected; {contract}; {}; no process executed or roots exposed; OS confinement is not enforced\n",
             options.policy.disclosure()
-        ))
+        );
+        if options.policy.permits_build_code() {
+            output.push_str("if authorized build: build.rs and proc macros execute as trusted host processes with access to the host filesystem, including roots outside the workspace, and may open network sockets; Cargo --offline is not network confinement. The later ExplicitCargoInvocation selects workspace, manifest, HOME/CARGO_HOME, PATH, RUSTC, and target directory; this inspection does not bind their exact values. No OS confinement is enforced.\n");
+        }
+        Ok(output)
     }
 }
 
@@ -293,6 +309,29 @@ mod tests {
             .as_str()
             .unwrap()
             .contains("trusted host"));
+        assert!(value["if_authorized_build"]["code_execution"]
+            .as_str()
+            .unwrap()
+            .contains("build.rs and proc macros"));
+        assert!(value["if_authorized_build"]["filesystem"]
+            .as_str()
+            .unwrap()
+            .contains("outside the selected workspace"));
+        assert!(value["if_authorized_build"]["network"]
+            .as_str()
+            .unwrap()
+            .contains("may open sockets"));
+        assert!(value["if_authorized_build"]["cargo_environment"]
+            .as_str()
+            .unwrap()
+            .contains("this inspection does not bind"));
+        assert_eq!(
+            value["if_authorized_build"]["os_confinement_enforced"],
+            false
+        );
+        let human = run(&args[..8]).unwrap();
+        assert!(human.contains("if authorized build:"));
+        assert!(human.contains("HOME/CARGO_HOME, PATH, RUSTC"));
         fs::remove_dir_all(root).unwrap();
     }
 }

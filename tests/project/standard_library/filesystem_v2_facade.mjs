@@ -11,7 +11,13 @@ const prefix=(root,carrierLength,logicalLength)=>bytes(carrier(root,carrierLengt
 const key=(root,carrierLength,logicalLength)=>Buffer.from(prefix(root,carrierLength,logicalLength)).toString('hex');
 const raw=process.argv[4]==='1',directories=new Set(); let calls=0;
 const seed=()=>{files.clear();directories.clear();calls=0;if(raw){files.set('61',new Uint8Array());files.set('ff',new Uint8Array([0,255]))}};
+const setBytes=(value,index,values)=>{const [root]=split(value),target=bytes(value);if(!(root&0x80000000)||typeof index!=='bigint'||index<0n||index>BigInt(target.length)||BigInt(target.length)-index<BigInt(values.length)||!values.every(byte=>Number.isInteger(byte)&&byte>=0&&byte<=255))throw Error('set-bounds');target.set(values,Number(index));return value};
+const setChoice=(value,index,one,sourceValue,selector,copyWidth,extended)=>{if(typeof selector!=='bigint'||!Number.isInteger(one)||one<0||one>255)throw Error('set-choice');const bits=BigInt.asUintN(64,selector),copy=(bits&(1n<<63n))!==0n,wide=extended&&(bits&(1n<<62n))!==0n,start=bits&((1n<<(extended?62n:63n))-1n),source=bytes(sourceValue),width=copy?(wide?48:copyWidth):1;const values=copy?Array.from({length:width},(_,offset)=>{const at=start+BigInt(offset);return at<BigInt(source.length)?source[Number(at)]:0}):[one];return setBytes(value,index,values)};
 const env={
+ spx_bytes_set5:(value,index,a,b,c,d,e)=>setBytes(value,index,[a,b,c,d,e]),
+ spx_bytes_set1_or5:(value,index,one,source,selector)=>setChoice(value,index,one,source,selector,5,false),
+ spx_bytes_set1_or6_or48:(value,index,one,source,selector)=>setChoice(value,index,one,source,selector,6,true),
+
  spx_bytes_zeroed:count=>allocate(new Uint8Array(Number(count))),spx_bytes_set:(value,index,byte)=>{const data=bytes(value);if(Number(index)>=data.length)throw Error('set-bounds');data[Number(index)]=byte;return value},
  spx_filesystem_stat_v2:(r,c,l,p)=>{calls++;const k=key(r,c,l);if(k===''){out(p,2n);return 0}const data=files.get(k);if(!data)return 2;out(p,BigInt(data.length)*4n+1n);return 0},
  spx_filesystem_list_v2:(r,c,l,max,p)=>{calls++;const k=key(r,c,l);let data;if(raw&&k==='')data=new Uint8Array([97,0,255,0]);else if(k==='64'&&directories.has(k)&&files.has('642f61')){if(files.get('642f61')[0]!==255)throw Error('replace');data=new Uint8Array([97,0])}else return 2;if(data.length>max)return 4;out(p,allocate(data));return 0},

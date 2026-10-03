@@ -103,8 +103,7 @@ fn assert_refused_before_file_open(fixture: &Fixture, capsule: &TestCapsule) {
         ImageRole::Worker,
         &[],
         &fixture.scratch,
-        TEST_REQUEST_BYTES,
-        TEST_BUNDLE_BYTES,
+        (TEST_REQUEST_BYTES, TEST_BUNDLE_BYTES),
         || Ok(verified(capsule)),
         |boundary| {
             reached.push(boundary);
@@ -466,8 +465,7 @@ fn windows_runtime_retained_writable_section_refuses_before_every_launch_boundar
         ImageRole::Worker,
         &[],
         &fixture.scratch,
-        TEST_REQUEST_BYTES,
-        TEST_BUNDLE_BYTES,
+        (TEST_REQUEST_BYTES, TEST_BUNDLE_BYTES),
         || Ok(verified(&capsule)),
         |boundary| reached.push(boundary),
     );
@@ -535,8 +533,7 @@ fn windows_runtime_signed_image_reaches_every_launch_boundary() {
         ImageRole::Worker,
         &args,
         &fixture.scratch,
-        TEST_REQUEST_BYTES,
-        TEST_BUNDLE_BYTES,
+        (TEST_REQUEST_BYTES, TEST_BUNDLE_BYTES),
         || Ok(verified(&capsule)),
         |boundary| reached.push(boundary),
     )
@@ -807,8 +804,7 @@ fn windows_runtime_image_sharing_excludes_writers_at_every_launch_boundary() {
         ImageRole::Worker,
         &args,
         &fixture.scratch,
-        TEST_REQUEST_BYTES,
-        TEST_BUNDLE_BYTES,
+        (TEST_REQUEST_BYTES, TEST_BUNDLE_BYTES),
         || Ok(verified(&capsule)),
         |boundary| {
             let path = fixture.executable.clone();

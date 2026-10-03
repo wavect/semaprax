@@ -60,6 +60,15 @@
   An installed Z3 gate covers direct-library use and a persistent daemon's
   edit, failure, stale request, repair, recheck, and protected-law drift. An
   MCP catalog and editor delivery remain separate work.
+
+- Complete the main CI fixture follow-up: keep the shared index parser's Regex
+  compile check available to the public crate tests, teach all three filesystem
+  Wasm facades the owned-byte interval imports, refresh the calculator browser
+  graph known answers against explicit import ownership metadata, and use the
+  equivalent `?` propagation required by current Clippy in owned publication.
+  Format the files added by the concurrent v0.8 merge so its Rust build jobs
+  pass the repository format check.
+
 - Repair the follow-up main CI failures: package Rust API index replay with the
   public compiler, add the full toolchain's direct index dependency, update the
   embedding example lockfile, and complete the Node Wasm owned-byte harness.

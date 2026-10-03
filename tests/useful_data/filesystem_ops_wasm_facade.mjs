@@ -9,7 +9,13 @@ const allocate=value=>{const id=next++;owned.set(id,new Uint8Array(value));retur
 const out=(pointer,value)=>view().setBigInt64(pointer,BigInt(value),true);
 const prefix=(root,carrierLength,logicalLength)=>bytes(carrier(root,carrierLength)).slice(0,logicalLength);
 const key=(root,carrierLength,logicalLength)=>Buffer.from(prefix(root,carrierLength,logicalLength)).toString('hex');
+const setBytes=(value,index,values)=>{const [root]=split(value),target=bytes(value);if(!(root&0x80000000)||typeof index!=='bigint'||index<0n||index>BigInt(target.length)||BigInt(target.length)-index<BigInt(values.length)||!values.every(byte=>Number.isInteger(byte)&&byte>=0&&byte<=255))throw Error('set-bounds');target.set(values,Number(index));return value};
+const setChoice=(value,index,one,sourceValue,selector,copyWidth,extended)=>{if(typeof selector!=='bigint'||!Number.isInteger(one)||one<0||one>255)throw Error('set-choice');const bits=BigInt.asUintN(64,selector),copy=(bits&(1n<<63n))!==0n,wide=extended&&(bits&(1n<<62n))!==0n,start=bits&((1n<<(extended?62n:63n))-1n),source=bytes(sourceValue),width=copy?(wide?48:copyWidth):1;const values=copy?Array.from({length:width},(_,offset)=>{const at=start+BigInt(offset);return at<BigInt(source.length)?source[Number(at)]:0}):[one];return setBytes(value,index,values)};
 const env={
+ spx_bytes_set5:(value,index,a,b,c,d,e)=>setBytes(value,index,[a,b,c,d,e]),
+ spx_bytes_set1_or5:(value,index,one,source,selector)=>setChoice(value,index,one,source,selector,5,false),
+ spx_bytes_set1_or6_or48:(value,index,one,source,selector)=>setChoice(value,index,one,source,selector,6,true),
+
  spx_add:(a,b)=>a+b,spx_sub:(a,b)=>a-b,spx_mul:(a,b)=>a*b,spx_div:(a,b)=>a/b,spx_rem:(a,b)=>a%b,spx_neg:a=>-a,spx_contract_fail:()=>{throw Error('contract')},
  spx_bytes_copy:value=>allocate(bytes(value)),spx_bytes_get:(value,index)=>{const data=bytes(value);return Number(index)<data.length?data[Number(index)]:-1},spx_bytes_drop:value=>{const [root]=split(value);if(!owned.delete(root&0x7fffffff))throw Error('drop')},spx_bytes_as_slice:value=>value,
  spx_command_args_len_v1:()=>0n,spx_command_arg_utf8_v1:()=>1,spx_command_stdin_read_v1:()=>3,spx_command_owned_bytes_validate_v1:value=>{try{bytes(value);return 0}catch{return 1}},

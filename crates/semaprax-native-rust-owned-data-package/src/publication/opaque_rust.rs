@@ -127,9 +127,7 @@ impl Compiler {
         })();
         // On a failed compiler invocation its output has no returned held-file
         // authority. Retain the stage for reconciliation, rather than guessing.
-        if result.is_err() {
-            return result;
-        }
+        result?;
         platform::discard_owned_stage_prepared(&authority.parent, &directory, &name, &files)
             .map_err(|_| PackageError::publication())?;
         authority.recheck()

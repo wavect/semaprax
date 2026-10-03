@@ -85,22 +85,23 @@ fn host_strict_installation_refuses_typed_foreign_law_without_native_source_inve
         }],
     )
     .unwrap();
-    let policy = StrictLawPolicy::new(
-        laws,
-        BTreeMap::from([(
-            "host.foreign.caller".into(),
-            RequiredLawEvidence::ForeignConditionalGuard {
-                adapter_digest:
-                    "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-                        .into(),
-                summary_digest:
-                    "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
-                        .into(),
-                accepted_conditions: vec![],
-            },
-        )]),
-    )
-    .unwrap();
+    let policy =
+        StrictLawPolicy::new(
+            laws,
+            BTreeMap::from([(
+                "host.foreign.caller".into(),
+                RequiredLawEvidence::ForeignConditionalGuard {
+                    adapter_digest:
+                        "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                            .into(),
+                    summary_digest:
+                        "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                            .into(),
+                    accepted_conditions: vec![],
+                },
+            )]),
+        )
+        .unwrap();
     let error = install_host_strict_law_policy(&manifest, &policy, vec![]).unwrap_err();
     assert_eq!(error[0].code, "SPX-LW150");
     assert!(!root.join(HOST_STRICT_LAW_DIRECTORY).exists());

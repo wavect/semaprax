@@ -631,8 +631,7 @@ fn confined_spawn_using(
         role,
         args,
         scratch_root,
-        request,
-        bundle,
+        (request, bundle),
         parse_capsule,
         |_| {},
     )
@@ -654,8 +653,7 @@ fn confined_spawn_after_binding(
         role,
         args,
         scratch_root,
-        TEST_REQUEST_BYTES,
-        TEST_BUNDLE_BYTES,
+        (TEST_REQUEST_BYTES, TEST_BUNDLE_BYTES),
         parse_capsule,
         |boundary| {
             if boundary == BindingBoundary::BeforeProcessCreation {
@@ -671,8 +669,7 @@ fn confined_spawn_observing(
     role: ImageRole,
     args: &[&OsStr],
     scratch_root: &Path,
-    request: &[u8],
-    bundle: &[u8],
+    request_bundle: (&[u8], &[u8]),
     parse_capsule: impl FnOnce()
         -> Result<super::capsule::VerifiedCapsule, super::capsule::CapsuleError>,
     observe: impl FnMut(BindingBoundary),
@@ -682,8 +679,7 @@ fn confined_spawn_observing(
         role,
         args,
         scratch_root,
-        request,
-        bundle,
+        request_bundle,
         parse_capsule,
         observe,
     )
@@ -694,12 +690,12 @@ fn confined_spawn_observing_inner(
     role: ImageRole,
     args: &[&OsStr],
     scratch_root: &Path,
-    request: &[u8],
-    bundle: &[u8],
+    request_bundle: (&[u8], &[u8]),
     parse_capsule: impl FnOnce()
         -> Result<super::capsule::VerifiedCapsule, super::capsule::CapsuleError>,
     mut observe: impl FnMut(BindingBoundary),
 ) -> Result<ConfinedProcess, Refusal> {
+    let (request, bundle) = request_bundle;
     let (_host, (image, carriers, selector), token, job, scratch) = admit(
         || {
             if cfg!(all(

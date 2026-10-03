@@ -44,6 +44,12 @@
   unchanged `forbid_reaches` claim flips from held to a three-node violated
   path under a saved call-edge mutation. The source protocol gate passed 7/7
   and the architecture gate passed 8/8.
+- Repair main CI after the toolchain action update: align the AArch64 tracking
+  contract with the pinned action, remove redundant borrows in the shared Rust
+  API index tests, and update the isolated Component runner and its locks to
+  patched Wasmtime 48.0.5. Include the private index crate in the runner's
+  exact workspace inventory. Supply the owned-byte imports in the JSON Wasm
+  round-trip fixture.
 
 - Start LAW-15 with a checked money/state example used directly by the
   finite-structured-law Z3 harness. The pack proves exact debit, credit,
@@ -105,6 +111,15 @@
   An installed Z3 gate covers direct-library use and a persistent daemon's
   edit, failure, stale request, repair, recheck, and protected-law drift. An
   MCP catalog and editor delivery remain separate work.
+
+- Complete the main CI fixture follow-up: keep the shared index parser's Regex
+  compile check available to the public crate tests, teach all three filesystem
+  Wasm facades the owned-byte interval imports, refresh the calculator browser
+  graph known answers against explicit import ownership metadata, and use the
+  equivalent `?` propagation required by current Clippy in owned publication.
+  Format the files added by the concurrent v0.8 merge so its Rust build jobs
+  pass the repository format check.
+
 - Repair the follow-up main CI failures: package Rust API index replay with the
   public compiler, add the full toolchain's direct index dependency, update the
   embedding example lockfile, and complete the Node Wasm owned-byte harness.

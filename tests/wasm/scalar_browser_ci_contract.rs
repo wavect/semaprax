@@ -25,11 +25,10 @@ fn digest_without_checked_value_cursor_budget(graph: &str) -> String {
     // supported 64-bit hosts its tagged reference plus index occupy 24 bytes.
     // Replaying the whole payload after removing only that debit against a
     // pinned digest proves the source, declarations, edges and other budgets
-    // stayed frozen. The pinned digests were re-taken when imported functions
-    // began charging their retained stub plus the peak transient provider
-    // clone, which moved `used_builder_bytes` and therefore both graph
-    // digests; the answers were re-pinned again when the canonical prelude
-    // gained the standard collections module.
+    // stayed frozen at this version. The pinned digests were re-taken when
+    // imported functions began charging their retained stub plus the peak
+    // transient provider clone, when the canonical prelude gained standard
+    // collections, and when import result ownership became explicit.
     let current = parsed["budget"]["used_builder_bytes"].as_u64().unwrap();
     let previous = current.checked_sub(3 * 257 * 24).unwrap();
     let field = format!("\"used_builder_bytes\":{current}");
@@ -128,8 +127,8 @@ fn browser_known_answers_match_authenticated_baseline_and_rename_graphs() {
     assert_eq!(
         previous_digests,
         [
-            "sha256:b330b34bad1f4084f0a955050fa49e42d73df9d5657fb178416893f79f74c301",
-            "sha256:07b57b19cf4a8f9b54063ffb45e493f6f719c3c0968ddfde750af581fe3dee80",
+            "sha256:bb473d70283498df2578e6c1818c3bc13bad8704bbba3f63b28ae6d87320f0cb",
+            "sha256:0eaea8587313f554be3a5213d2968c1b41c750a886353889b03682e134f7730e",
         ],
         "only the checked value cursor budget changed in the browser graphs"
     );

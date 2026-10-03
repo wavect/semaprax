@@ -120,7 +120,7 @@ first-failure behavior, and executable add/subtract/multiply/divide/remainder/
 negate overflow and zero-divisor status paths. Wasmtime fuel exhaustion remains
 an out-of-band engine error rather than a forged typed SEMAPRAX status.
 
-The current isolated runner is pinned to Wasmtime 48.0.3, including its matching
+The current isolated runner is pinned to Wasmtime 48.0.5, including its matching
 lockfile family, to address GHSA-x84v-gj2h-g759, GHSA-vqjp-4c8c-hfgg,
 GHSA-m63x-6p34-q65x (RUSTSEC-2026-0315) and GHSA-jqpg-j7w6-42pr
 (RUSTSEC-2026-0316). The typed runtime test, all four runner tests, the runner

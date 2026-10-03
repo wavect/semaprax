@@ -130,7 +130,8 @@ fn selected_law_unknown_timeout_unsupported_and_stale_preserve_summary_and_detai
                 show_witness_values: false,
                 expected_candidate_revision: Some("sha256:stale"),
             };
-            let result = installed_workflow::check(&revision, &laws, &policy, &tool, &stale).unwrap();
+            let result =
+                installed_workflow::check(&revision, &laws, &policy, &tool, &stale).unwrap();
             let result: serde_json::Value = serde_json::from_str(&result.document).unwrap();
             assert_eq!(result["proof_attempt"]["outcome"], "stale");
             assert_eq!(result["validity"]["proof_attempt"], "stale");

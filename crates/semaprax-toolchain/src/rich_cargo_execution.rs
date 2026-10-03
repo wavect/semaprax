@@ -10,6 +10,7 @@
 use crate::rich_cargo_preparation::{
     prepare_cargo_closure, CargoPreparationError, CargoPreparationInput, PreparedCargoClosure,
 };
+use semaprax::diagnostic::Diagnostic;
 use semaprax_native_rust_interop::{NativeBuildAuthority, NativeTrustError, TrustedNativeProfile};
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -62,6 +63,27 @@ impl CargoExecutionError {
             Self::Preparation(CargoPreparationError::Disagreement) => "SPX-B123",
             Self::Preparation(CargoPreparationError::Capacity) => "SPX-B124",
         }
+    }
+
+    /// Render through the existing SEMAPRAX host diagnostic surface without
+    /// exposing source paths, tool output, environment values, or secrets.
+    pub fn diagnostic(&self) -> Diagnostic {
+        let message = match self {
+            Self::MissingTool => "Native Rust Cargo or rustc tool is missing",
+            Self::UnsupportedApi => "Native Rust API or target is unsupported by this host",
+            Self::BuildCodeDenied => "Native Rust build code is untrusted under the strict profile",
+            Self::SandboxUnavailable => "Native Rust sandbox profile has no enforcing runner",
+            Self::BuildIdentityMismatch | Self::BuildInputsChanged => {
+                "Native Rust build inputs changed; re-admission is required"
+            }
+            Self::InvalidInput | Self::MetadataFailed => {
+                "Native Rust Cargo invocation or metadata is invalid"
+            }
+            Self::BuildFailed => "Native Rust trusted Cargo build failed",
+            Self::OutputTooLarge => "Native Rust Cargo output exceeds its bound",
+            Self::Preparation(_) => "Native Rust Cargo preparation was refused",
+        };
+        Diagnostic::io(self.diagnostic_code(), message)
     }
 }
 
@@ -177,20 +199,35 @@ pub fn build_locked_offline(
     prepared: &PreparedCargoClosure,
     authority: &NativeBuildAuthority,
 ) -> Result<(), CargoExecutionError> {
+    build_locked_offline_with_hook(invocation, prepared, authority, || {})
+}
+
+fn build_locked_offline_with_hook(
+    invocation: &ExplicitCargoInvocation,
+    prepared: &PreparedCargoClosure,
+    authority: &NativeBuildAuthority,
+    mut before_final_replay: impl FnMut(),
+) -> Result<(), CargoExecutionError> {
     validate_invocation(invocation)?;
     validate_native_target(prepared)?;
     let identity = crate::rich_cargo_snapshot::prepared_build_identity(invocation, prepared)?;
     if !authority.matches_crate_identity(&identity) {
         return Err(CargoExecutionError::BuildIdentityMismatch);
     }
-    let output = cargo_command(invocation)
+    let mut command = cargo_command(invocation);
+    command
         .arg("build")
         .arg("--locked")
         .arg("--offline")
         .arg("--manifest-path")
         .arg(&invocation.manifest)
         .arg("--target-dir")
-        .arg(&invocation.target_dir)
+        .arg(&invocation.target_dir);
+    before_final_replay();
+    if crate::rich_cargo_snapshot::prepared_build_identity(invocation, prepared)? != identity {
+        return Err(CargoExecutionError::BuildIdentityMismatch);
+    }
+    let output = command
         .output()
         .map_err(|_| CargoExecutionError::BuildFailed)?;
     bounded(&output.stdout)?;
@@ -555,6 +592,27 @@ mod tests {
 
     #[cfg(unix)]
     #[test]
+    fn change_during_command_preparation_refuses_at_final_replay() {
+        let (root, invocation, marker) = fixture();
+        let prepared = pure_prepared_fixture();
+        let identity =
+            crate::rich_cargo_snapshot::prepared_build_identity(&invocation, &prepared).unwrap();
+        let profile = profile(&identity, NativeBuildPolicy::TrustedHost);
+        let authority = authorize(&profile, &invocation, &prepared).unwrap();
+        let result = build_locked_offline_with_hook(&invocation, &prepared, &authority, || {
+            fs::write(
+                root.join("build.rs"),
+                b"changed while Cargo command was prepared\n",
+            )
+            .unwrap();
+        });
+        assert_eq!(result, Err(CargoExecutionError::BuildIdentityMismatch));
+        assert!(!marker.exists());
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
     fn missing_tool_has_distinct_diagnostic_before_process_entry() {
         let (root, mut invocation, marker) = fixture();
         invocation.cargo = root.join("missing-cargo");
@@ -566,6 +624,13 @@ mod tests {
             CargoExecutionError::MissingTool.diagnostic_code(),
             "SPX-B125"
         );
+        let missing_tool = CargoExecutionError::MissingTool.diagnostic();
+        assert_eq!(missing_tool.code, "SPX-B125");
+        assert_eq!(
+            missing_tool.message,
+            "Native Rust Cargo or rustc tool is missing"
+        );
+        assert!(missing_tool.path.is_none());
         assert_eq!(
             CargoExecutionError::BuildCodeDenied.diagnostic_code(),
             "SPX-B126"
@@ -581,6 +646,18 @@ mod tests {
         assert_eq!(
             CargoExecutionError::Preparation(CargoPreparationError::Unsupported).diagnostic_code(),
             "SPX-B122"
+        );
+        assert_eq!(
+            CargoExecutionError::UnsupportedApi.diagnostic().code,
+            "SPX-B122"
+        );
+        assert_eq!(
+            CargoExecutionError::BuildCodeDenied.diagnostic().code,
+            "SPX-B126"
+        );
+        assert_eq!(
+            CargoExecutionError::SandboxUnavailable.diagnostic().code,
+            "SPX-B127"
         );
         assert!(!marker.exists());
         fs::remove_dir_all(root).unwrap();

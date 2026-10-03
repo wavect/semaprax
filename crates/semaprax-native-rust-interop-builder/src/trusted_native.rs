@@ -5,6 +5,7 @@
 //! In particular, a digest of Cargo metadata or a binding plan is identity
 //! evidence, never permission to run Cargo or to enter native code.
 
+use semaprax::diagnostic::Diagnostic;
 use sha2::{Digest, Sha256};
 
 pub const TRUSTED_NATIVE_PROFILE_SCHEMA: &str = "semaprax.trusted-native-profile.v1";
@@ -90,6 +91,20 @@ impl NativeTrustError {
             | Self::EffectsNotCanonical => "SPX-B121",
         }
     }
+
+    /// Host-facing, path-free diagnostic for the existing SEMAPRAX renderer.
+    pub fn diagnostic(&self) -> Diagnostic {
+        let message = match self {
+            Self::OpaqueNativeBehavior => "Native Rust behavior is opaque; an audited adapter or stronger execution boundary is required",
+            Self::BuildCodeDenied => "Native Rust build scripts and proc macros are untrusted under the strict profile",
+            Self::SandboxUnavailable => "Native Rust sandbox execution was requested but no enforcing runner is available",
+            Self::BuildIdentityMismatch => "Native Rust prepared code or tool identity changed; re-admission is required",
+            Self::CapabilityNotDeclared => "Native Rust capability is not in the audited effect contract",
+            Self::EmptyIdentity | Self::IdentityTooLarge | Self::TooManyEffects
+            | Self::InvalidEffect | Self::EffectsNotCanonical => "Native Rust trust profile input is invalid",
+        };
+        Diagnostic::io(self.diagnostic_code(), message)
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -99,11 +114,24 @@ pub enum NativeDispatchError {
 }
 
 impl NativeDispatchError {
-    pub const fn diagnostic_code(self) -> &'static str {
+    pub const fn diagnostic_code(&self) -> &'static str {
         match self {
             Self::MissingCapability => "SPX-B129",
             Self::ProfileMismatch => "SPX-B128",
         }
+    }
+
+    /// Host-facing refusal that preserves the missing-capability distinction.
+    pub fn diagnostic(&self) -> Diagnostic {
+        let message = match self {
+            Self::MissingCapability => {
+                "Native Rust callback requires a capability that was not granted"
+            }
+            Self::ProfileMismatch => {
+                "Native Rust callback grant belongs to a different admitted profile"
+            }
+        };
+        Diagnostic::io(self.diagnostic_code(), message)
     }
 }
 
@@ -310,6 +338,22 @@ fn frame(hasher: &mut Sha256, bytes: &[u8]) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::path::Path;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+
+    static CALLBACK_ENTRIES: AtomicUsize = AtomicUsize::new(0);
+    static NETWORK_ATTEMPTS: AtomicUsize = AtomicUsize::new(0);
+    static FIXTURE_SERIAL: AtomicUsize = AtomicUsize::new(0);
+
+    // Its Rust signature looks pure. The body proves why index metadata cannot
+    // classify a native callback as pure without an audited adapter.
+    fn safe_looking_native_callback(value: i64, marker: &Path) -> i64 {
+        CALLBACK_ENTRIES.fetch_add(1, Ordering::SeqCst);
+        std::fs::write(marker, b"entered").unwrap();
+        NETWORK_ATTEMPTS.fetch_add(1, Ordering::SeqCst);
+        let _ = std::net::TcpStream::connect("127.0.0.1:9");
+        value + 1
+    }
 
     fn profile() -> TrustedNativeProfile {
         TrustedNativeProfile::admit(
@@ -363,6 +407,10 @@ mod tests {
             callback_entries += 1;
         });
         assert_eq!(result, Err(NativeDispatchError::MissingCapability));
+        assert_eq!(
+            NativeDispatchError::MissingCapability.diagnostic().code,
+            "SPX-B129"
+        );
         assert_eq!(callback_entries, 0);
     }
 
@@ -440,6 +488,42 @@ mod tests {
             profile.grant(&[]),
             Err(NativeTrustError::OpaqueNativeBehavior)
         );
+    }
+
+    #[test]
+    fn safe_looking_callback_with_real_side_effects_stays_opaque() {
+        let root = std::env::temp_dir().join(format!(
+            "semaprax-ri11-opaque-{}-{}",
+            std::process::id(),
+            FIXTURE_SERIAL.fetch_add(1, Ordering::Relaxed)
+        ));
+        std::fs::create_dir(&root).unwrap();
+        let marker = root.join("filesystem-effect");
+        let entries_before = CALLBACK_ENTRIES.load(Ordering::SeqCst);
+        let network_before = NETWORK_ATTEMPTS.load(Ordering::SeqCst);
+        let profile = TrustedNativeProfile::admit(
+            b"safe-looking-fn-i64-to-i64",
+            b"index-metadata-claims-pure",
+            b"exact-rust-tool",
+            NativeEffectContract::Opaque,
+            NativeBuildPolicy::StrictDenyExecution,
+        )
+        .unwrap();
+        let refusal = profile.grant(&[]).unwrap_err();
+        assert_eq!(refusal, NativeTrustError::OpaqueNativeBehavior);
+        assert_eq!(refusal.diagnostic().code, "SPX-B126");
+        assert_eq!(CALLBACK_ENTRIES.load(Ordering::SeqCst), entries_before);
+        assert_eq!(NETWORK_ATTEMPTS.load(Ordering::SeqCst), network_before);
+        assert!(!marker.exists());
+
+        // Positive control: the exact callback has all three side effects if
+        // invoked directly outside the denied SEMAPRAX dispatch path.
+        assert_eq!(safe_looking_native_callback(41, &marker), 42);
+        assert_eq!(CALLBACK_ENTRIES.load(Ordering::SeqCst), entries_before + 1);
+        assert_eq!(NETWORK_ATTEMPTS.load(Ordering::SeqCst), network_before + 1);
+        assert_eq!(std::fs::read(&marker).unwrap(), b"entered");
+        std::fs::remove_file(marker).unwrap();
+        std::fs::remove_dir(root).unwrap();
     }
 
     #[test]

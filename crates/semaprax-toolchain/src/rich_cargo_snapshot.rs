@@ -7,7 +7,8 @@
 use crate::rich_cargo_execution::{CargoExecutionError, ExplicitCargoInvocation};
 use crate::rich_cargo_preparation::PreparedCargoClosure;
 use sha2::{Digest, Sha256};
-use std::fs;
+use std::fs::{self, File, Metadata};
+use std::io::Read;
 use std::path::{Path, PathBuf};
 
 const SNAPSHOT_DOMAIN: &[u8] = b"semaprax.rich-cargo-build-inputs.v1\0";
@@ -98,8 +99,30 @@ impl Snapshot {
         let path_text = path
             .to_str()
             .ok_or(CargoExecutionError::BuildInputsChanged)?;
-        let bytes = fs::read(path).map_err(|_| CargoExecutionError::BuildInputsChanged)?;
-        if bytes.len() as u64 != metadata.len() {
+        let mut held = File::open(path).map_err(|_| CargoExecutionError::BuildInputsChanged)?;
+        if !same_metadata(
+            &metadata,
+            &held
+                .metadata()
+                .map_err(|_| CargoExecutionError::BuildInputsChanged)?,
+        ) {
+            return Err(CargoExecutionError::BuildInputsChanged);
+        }
+        let mut bytes = Vec::with_capacity(metadata.len() as usize);
+        held.read_to_end(&mut bytes)
+            .map_err(|_| CargoExecutionError::BuildInputsChanged)?;
+        if bytes.len() as u64 != metadata.len()
+            || !same_metadata(
+                &metadata,
+                &held
+                    .metadata()
+                    .map_err(|_| CargoExecutionError::BuildInputsChanged)?,
+            )
+            || !same_metadata(
+                &metadata,
+                &fs::symlink_metadata(path).map_err(|_| CargoExecutionError::BuildInputsChanged)?,
+            )
+        {
             return Err(CargoExecutionError::BuildInputsChanged);
         }
         self.bytes(path_text, &bytes)?;
@@ -166,8 +189,39 @@ impl Snapshot {
                     return Err(CargoExecutionError::BuildInputsChanged);
                 }
             }
+            if !same_metadata(
+                &metadata,
+                &fs::symlink_metadata(&directory)
+                    .map_err(|_| CargoExecutionError::BuildInputsChanged)?,
+            ) {
+                return Err(CargoExecutionError::BuildInputsChanged);
+            }
         }
         Ok(())
+    }
+}
+
+fn same_metadata(left: &Metadata, right: &Metadata) -> bool {
+    if left.file_type().is_file() != right.file_type().is_file()
+        || left.file_type().is_dir() != right.file_type().is_dir()
+        || left.len() != right.len()
+        || left.modified().ok() != right.modified().ok()
+    {
+        return false;
+    }
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::MetadataExt;
+        left.dev() == right.dev()
+            && left.ino() == right.ino()
+            && left.mtime() == right.mtime()
+            && left.mtime_nsec() == right.mtime_nsec()
+            && left.ctime() == right.ctime()
+            && left.ctime_nsec() == right.ctime_nsec()
+    }
+    #[cfg(not(unix))]
+    {
+        left.created().ok() == right.created().ok()
     }
 }
 

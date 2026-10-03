@@ -130,12 +130,18 @@ The API exposes distinct diagnostic codes for unsupported native targets/APIs
 (`SPX-B122`), missing direct tools (`SPX-B125`), denied untrusted build code
 (`SPX-B126`), unavailable sandbox enforcement (`SPX-B127`), changed build
 inputs (`SPX-B128`), and missing dispatch capability (`SPX-B129`). These codes
-do not by themselves provide a public UI or CLI route.
+render as ordinary path-free `Diagnostic` values for host callers. No rich
+Cargo CLI command or graphical UI route is currently selected.
 The focused strict and sandbox negative controls use a marker-writing Cargo
 stub and prove that neither policy enters it. A local no-dependency Cargo
 fixture and a checked-in vendored registry fixture supply explicit offline
 metadata/pure-record cases; the vendored fixture also proves a trusted-host
 `--locked --offline` build without registry access.
+The focused RI-11 fixture additionally builds one package whose `build.rs` and
+proc macro both attempt file and loopback-network effects under explicitly
+disclosed trusted-host authority. Strict and unavailable-sandbox controls
+refuse the same source before process entry. A final pre-spawn replay also
+refuses a source change injected after Cargo command preparation.
 
 Acquisition is separately authorized. A future acquisition host must retain
 the exact executable, configuration, source facts, and output directory while

@@ -208,6 +208,12 @@ proc macro. The reusable boundary exposes distinct errors for malformed or
 noncanonical effect metadata, undeclared requested capability, a grant/profile
 identity mismatch, and a missing per-call capability. Higher UI and CLI routes
 must preserve those distinctions from unsupported APIs and missing tools.
+The trusted-native errors and dispatch errors now render through the ordinary
+`Diagnostic` host type with fixed, path-free messages and distinct codes. A
+safe-signature Rust callback that writes a file, changes process-global state,
+and attempts a loopback socket connection is a negative control: a metadata
+purity claim leaves it opaque and refuses its grant before callback entry; a
+direct positive control proves that exact callback has all three effects.
 
 This preparation boundary is additive and does not yet admit arbitrary Cargo
 metadata into the v1 scalar SDK path. RI-01 binding-plan bytes are compiler
@@ -233,6 +239,11 @@ from the source snapshot; an included build input must live elsewhere in the
 prepared workspace. This replay is not a race-free filesystem handle protocol
 or OS confinement, and descendant linker images selected through `PATH` remain
 outside the direct-tool byte check.
+File reads use opened handles and compare pre-read, held, and post-read file
+identity and metadata. Cargo command preparation is followed by one final
+snapshot replay before spawn. A test changes source after command preparation
+and proves refusal before Cargo entry. A concurrent replacement after that
+last replay remains outside this path-based profile's guarantee.
 
 This direct-image policy closes ordinary rustup-launcher indirection. It does
 not claim provenance for the selected compiler sysroot, dynamically loaded

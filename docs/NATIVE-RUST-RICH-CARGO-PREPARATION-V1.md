@@ -155,6 +155,31 @@ owns authorization and physical enforcement for those processes. No current
 preparation result claims such enforcement, hermetic arbitrary Cargo builds,
 or successful compilation.
 
+### Apple Container external-egress profile
+
+The selected Apple Container profile creates a fresh `container network create
+--internal` network, verifies that a bounded TCP attempt to `1.1.1.1:443`
+fails, and runs the checked-in vendored fixture with that network selected. It
+mounts the fixture source read-only and provides separate writable target and
+Cargo-home mounts; the container command still includes `--locked --offline`.
+This is evidence that the selected profile has no public-network egress.
+
+Apple Container reports this network mode as `hostOnly` and gives the guest an
+interface and default gateway. It is therefore not a claim that arbitrary
+local-socket access is disabled, and it is not a hermetic or general sandbox
+claim. RI-11 policy and disclosure remain required before a build script or
+proc macro can run.
+
+### Artifact invalidation boundary
+
+The execution route replays the prepared closure and snapshots source, lock,
+Cargo configuration, direct tools, Cargo home, and execution path before
+spawning Cargo. A change fails before the build process begins. The
+caller-owned closure cache contains only canonical preparation records. It does
+not retain, publish, or reuse compiled Cargo artifacts, so no artifact-cache
+invalidation claim is made here; a future artifact owner must bind its entries
+to the prepared closure digest and reject any changed replay identity.
+
 ## Diagnostics and evidence
 
 | Code | Meaning |

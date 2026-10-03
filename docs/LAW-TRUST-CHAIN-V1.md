@@ -24,8 +24,12 @@ emitted Core Wasm executed by Node. It covers overflow, signed minimum,
 short-circuiting, a returned value, and pre/postcondition guard failures.
 A seeded wrong emitted value must be reported as a translation discrepancy;
 it is not a disproved source law. This is sampled test evidence for this
-admitted scalar export profile. Authored records and variants are currently
-refused by that export profile and require their owning runtime route.
+admitted scalar export profile. The separate `tests/wasm/law_runtime_structured.rs`
+gate runs one authored record and variant through the interpreter and emitted
+Core Wasm under a hand-written result reference, with a seeded changed body.
+The scalar public export still refuses authored records and variants; the
+structured gate exercises the general Core Wasm runtime route and does not
+promote them into that export profile or assert an aggregate proof.
 
 Future formal lowering is separate work: a machine-checked simulation or
 preservation proof would need to relate checked source steps, compiler IR,

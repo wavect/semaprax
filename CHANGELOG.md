@@ -6,6 +6,10 @@
   violation. A real compiled consumer exercised both good and seeded bad
   returns; the conditional frontier is bound to the published SDK manifest.
   Caller certificates and protected LawSet association remain open.
+- Exercise one authored record and variant law-runtime fixture through the
+  interpreter and emitted Core Wasm with a hand-written result reference and
+  seeded body mutation. The scalar public export remains narrower; this is
+  bounded runtime differential evidence, not an aggregate lowering proof.
 
 - Add a versioned LAW-13 proof-to-runtime trust-chain view with exact source,
   artifact and optional kernel replay, explicit trusted lowering and unexecuted

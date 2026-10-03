@@ -22,6 +22,34 @@ pub(crate) const SELECTED_RUST_IMPORT_SCHEMA: &str = "semaprax.graph.v53";
 pub(crate) const SELECTED_RUST_METHOD_SCHEMA: &str = "semaprax.graph.v54";
 pub(crate) const SELECTED_RUST_RESULT_SCHEMA: &str = "semaprax.graph.v55";
 
+pub(crate) fn selected_schema(interfaces: &[ResolvedInterface]) -> Option<&'static str> {
+    if declares_selected_rust_result(interfaces) {
+        Some(SELECTED_RUST_RESULT_SCHEMA)
+    } else if declares_selected_rust_method(interfaces) {
+        Some(SELECTED_RUST_METHOD_SCHEMA)
+    } else if declares_selected_rust_import(interfaces) {
+        Some(SELECTED_RUST_IMPORT_SCHEMA)
+    } else if declares_indexed_rust_import(interfaces) {
+        Some(INDEXED_RUST_IMPORT_SCHEMA)
+    } else if declares_native_rust_import(interfaces) {
+        Some(NATIVE_RUST_IMPORT_SCHEMA)
+    } else {
+        None
+    }
+}
+
+pub(crate) fn evidence_refusal(schema: &str) -> Option<Diagnostic> {
+    let message = match schema {
+        INDEXED_RUST_IMPORT_SCHEMA => "indexed Rust import programs select `semaprax.graph.v52`, which is outside this evidence flow's admission",
+        SELECTED_RUST_IMPORT_SCHEMA => "selected Rust import programs select `semaprax.graph.v53`, which is outside this evidence flow's admission",
+        SELECTED_RUST_METHOD_SCHEMA => "selected Rust method programs select `semaprax.graph.v54`, which is outside this evidence flow's admission",
+        SELECTED_RUST_RESULT_SCHEMA => "selected Rust Result programs select `semaprax.graph.v55`, which is outside this evidence flow's admission",
+        NATIVE_RUST_IMPORT_SCHEMA => "native Rust import programs select `semaprax.graph.v25`, which is outside this evidence flow's admission",
+        _ => return None,
+    };
+    Some(Diagnostic::io("SPX-G410", message))
+}
+
 pub(crate) fn declares_selected_rust_result(interfaces: &[ResolvedInterface]) -> bool {
     interfaces
         .iter()

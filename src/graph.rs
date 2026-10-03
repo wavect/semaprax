@@ -1278,31 +1278,8 @@ pub(crate) fn reject_while_loop_evidence_schema(schema: &str) -> Result<(), Diag
             "SPX-G410",
             "portable-indexed-byte-data programs select `semaprax.graph.v17`, which is outside this evidence flow's admission",
         ))
-    } else if schema == native_import::INDEXED_RUST_IMPORT_SCHEMA {
-        Err(Diagnostic::io(
-            "SPX-G410",
-            "indexed Rust import programs select `semaprax.graph.v52`, which is outside this evidence flow's admission",
-        ))
-    } else if schema == native_import::SELECTED_RUST_IMPORT_SCHEMA {
-        Err(Diagnostic::io(
-            "SPX-G410",
-            "selected Rust import programs select `semaprax.graph.v53`, which is outside this evidence flow's admission",
-        ))
-    } else if schema == native_import::SELECTED_RUST_METHOD_SCHEMA {
-        Err(Diagnostic::io(
-            "SPX-G410",
-            "selected Rust method programs select `semaprax.graph.v54`, which is outside this evidence flow's admission",
-        ))
-    } else if schema == native_import::SELECTED_RUST_RESULT_SCHEMA {
-        Err(Diagnostic::io(
-            "SPX-G410",
-            "selected Rust Result programs select `semaprax.graph.v55`, which is outside this evidence flow's admission",
-        ))
-    } else if schema == "semaprax.graph.v25" {
-        Err(Diagnostic::io(
-            "SPX-G410",
-            "native Rust import programs select `semaprax.graph.v25`, which is outside this evidence flow's admission",
-        ))
+    } else if let Some(error) = native_import::evidence_refusal(schema) {
+        Err(error)
     } else if schema == "semaprax.graph.v15" {
         Err(Diagnostic::io(
             "SPX-G410",
@@ -1518,20 +1495,8 @@ pub(crate) fn graph_schema_from_parts_without_loans(
             },
         ));
     }
-    if native_import::declares_selected_rust_result(interfaces) {
-        return Ok(native_import::SELECTED_RUST_RESULT_SCHEMA);
-    }
-    if native_import::declares_selected_rust_method(interfaces) {
-        return Ok(native_import::SELECTED_RUST_METHOD_SCHEMA);
-    }
-    if native_import::declares_selected_rust_import(interfaces) {
-        return Ok(native_import::SELECTED_RUST_IMPORT_SCHEMA);
-    }
-    if native_import::declares_indexed_rust_import(interfaces) {
-        return Ok(native_import::INDEXED_RUST_IMPORT_SCHEMA);
-    }
-    if native_import::declares_native_rust_import(interfaces) {
-        return Ok(native_import::NATIVE_RUST_IMPORT_SCHEMA);
+    if let Some(schema) = native_import::selected_schema(interfaces) {
+        return Ok(schema);
     }
     if functions
         .iter()

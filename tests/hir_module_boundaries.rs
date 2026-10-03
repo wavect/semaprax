@@ -2,6 +2,7 @@
 fn core_validation_has_no_resolution_cleanup_build_or_physical_authority() {
     let validation = concat!(
         include_str!("../src/hir/validation.rs"),
+        include_str!("../src/hir/validation/borrowed_bytes_call_tests.rs"),
         include_str!("../src/hir/validation/iterator_loops.rs"),
         include_str!("../src/hir/iterator_loop.rs"),
         include_str!("../src/hir/iterator_loop/renewal.rs"),

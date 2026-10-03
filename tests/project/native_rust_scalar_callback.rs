@@ -190,3 +190,174 @@ fn authenticated_project_foreign_law_view_retains_lock_and_conditions() {
     })
     .unwrap();
 }
+
+#[test]
+fn guarded_foreign_caller_certificate_retains_conditions_and_refuses_other_source_shapes() {
+    use semaprax::native_rust_binding::foreign_law::{DeclaredForeignSummary, ForeignLawRequest};
+    use semaprax::native_rust_binding::{prepare_scalar_binding, SelectedRustItem};
+
+    let direct_fixture = fixture();
+    let direct = APP.replace("adjust(left + right)", "adjust(left)");
+    let direct =
+        semaprax::format::canonical(&semaprax::parse(&direct, Path::new("src/app.spx")).unwrap());
+    std::fs::write(direct_fixture.0.join("src/app.spx"), direct).unwrap();
+    let declared = DeclaredForeignSummary {
+        assumption_id: "foreign.adjust.behavior".into(),
+        proposition_digest:
+            "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd".into(),
+        assumes_no_effects: true,
+        assumes_no_callbacks: true,
+        assumes_no_panics: true,
+        assumes_no_shared_state: true,
+        return_i64_range: Some((0, 100)),
+    };
+    let law = ForeignLawRequest {
+        law_id: "law.adjust.forwarded".into(),
+        permit_assumptions: true,
+        require_theorem: false,
+        require_no_effects: true,
+        require_no_callbacks: true,
+        require_no_panics: true,
+        require_no_shared_state: true,
+        require_return_guard: true,
+    };
+    let adapter = "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
+    let certificate =
+        with_authenticated_project(&direct_fixture.0.join("semaprax.toml"), |snapshot| {
+            let revision = snapshot.retain_revision();
+            let import = revision
+                .entry_program()
+                .interfaces
+                .iter()
+                .flat_map(|interface| &interface.imports)
+                .find(|import| import.id.as_str() == "callback.host.adjust")
+                .unwrap();
+            let binding = prepare_scalar_binding(
+                import,
+                SelectedRustItem {
+                    cargo_alias: "fixture",
+                    package_name: "fixture-rust",
+                    package_version: "1.0.0",
+                    package_source_sha256:
+                        "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                    index_digest:
+                        "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                    target: "x86_64-unknown-linux-gnu",
+                    feature_digest:
+                        "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                    path: "fixture::adjust",
+                    kind: "function",
+                    receiver: "none",
+                    signature: "fn adjust(value: i64) -> i64",
+                    supported: true,
+                },
+            )
+            .unwrap();
+            let cert = revision.foreign_caller_certificate(
+                "callback.apply",
+                &binding,
+                "x86_64-unknown-linux-gnu",
+                adapter,
+                &declared,
+                &law,
+            )?;
+            cert.replay(&revision)?;
+            let view: serde_json::Value = serde_json::from_str(&cert.public_view()).unwrap();
+            assert_eq!(view["caller_id"], "callback.apply");
+            assert_eq!(view["source_route_proved"], true);
+            assert_eq!(view["foreign_internals_proved"], false);
+            assert_eq!(
+                view["semantic_graph_digest"],
+                revision.semantic_graph_digest()
+            );
+            assert_eq!(view["conditions"].as_array().unwrap().len(), 4);
+            assert_eq!(view["conditions"][0], "foreign.adjust.behavior:no_effects");
+            assert_eq!(view["guarded_i64_range"], serde_json::json!([0, 100]));
+            let mut strict = law.clone();
+            strict.permit_assumptions = false;
+            assert_eq!(
+                revision
+                    .foreign_caller_certificate(
+                        "callback.apply",
+                        &binding,
+                        "x86_64-unknown-linux-gnu",
+                        adapter,
+                        &declared,
+                        &strict,
+                    )
+                    .unwrap_err()[0]
+                    .code,
+                "SPX-FL303"
+            );
+            let wrong_adapter = revision.foreign_caller_certificate(
+                "callback.apply",
+                &binding,
+                "x86_64-unknown-linux-gnu",
+                "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                &declared,
+                &law,
+            )?;
+            assert_ne!(wrong_adapter.public_view(), cert.public_view());
+            Ok(cert)
+        })
+        .unwrap();
+
+    use semaprax::assurance_manifest::law_set::{
+        self,
+        strict::{self, RequiredLawEvidence, StrictLawPolicy},
+        EvidenceRequirement, LawDefinition, LawModule, LawPolicy, LawSelector, LawSet,
+    };
+    use std::collections::BTreeMap;
+    with_authenticated_project(&direct_fixture.0.join("semaprax.toml"), |snapshot| {
+        let revision = snapshot.retain_revision();
+        let conditions = certificate.conditions().to_vec();
+        let laws = LawSet::derive(
+            &revision,
+            "checked-v1",
+            vec![LawModule {
+                module_id: "callback.foreign.laws".into(),
+                source_path: "src/app.spx".into(),
+                assumptions: conditions.clone(),
+                laws: vec![LawDefinition {
+                    law_id: law.law_id.clone(),
+                    selector: LawSelector::ForeignGuardedCaller {
+                        caller_id: "callback.apply".into(),
+                        import_id: "callback.host.adjust".into(),
+                        minimum: 0,
+                        maximum: 100,
+                    },
+                    assumption_ids: conditions.clone(),
+                    requires_laws: vec![],
+                    evidence: EvidenceRequirement::RuntimeGuarded,
+                }],
+            }],
+        )?;
+        let inventory = LawPolicy::strict(laws.clone())?;
+        let ordinary = law_set::derive_report(&revision, &laws, &inventory)?;
+        let ordinary: serde_json::Value = serde_json::from_str(&ordinary).unwrap();
+        assert_eq!(ordinary["payload"]["accepted"], false);
+        let requirement = RequiredLawEvidence::CompilerStatic;
+        let policy = StrictLawPolicy::new(
+            laws.clone(),
+            BTreeMap::from([(law.law_id.clone(), requirement)]),
+        )?;
+        let open = strict::derive(&revision, &laws, &policy, &[])?;
+        let open: serde_json::Value = serde_json::from_str(&open).unwrap();
+        assert_eq!(open["accepted"], false);
+        // Read-only caller analysis and a caller-supplied adapter digest do
+        // not grant protected or strict LAW-09 coverage.
+        Ok(())
+    })
+    .unwrap();
+
+    let other = fixture();
+    with_authenticated_project(&other.0.join("semaprax.toml"), |snapshot| {
+        let revision = snapshot.retain_revision();
+        assert_eq!(
+            certificate.replay(&revision).unwrap_err()[0].code,
+            "SPX-FL309"
+        );
+        Ok(())
+    })
+    .unwrap();
+}

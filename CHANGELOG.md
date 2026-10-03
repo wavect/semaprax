@@ -1,5 +1,12 @@
 # Changelog
 
+- Add a bounded LAW-09 source-derived caller certificate for direct public i64
+  forwarding of a guarded Rust import. It replays exact Project source and
+  retains every foreign assumption. A read-only published SDK verifier checks
+  the manifest, listed files and guard against an independently held digest;
+  forged digests and changed guard files refuse. Protected and strict LawSet
+  coverage remains open pending builder-owned evidence attachment.
+
 - Add a resealed LAW-13 trust-link negative ladder for changed source body,
   law statement, Lean statement, compiler identity, fixed profile, target,
   artifact bytes and unauthenticated adapter requests. The bounded Core Wasm

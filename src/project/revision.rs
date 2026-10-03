@@ -6,6 +6,7 @@
 //! mutation authority.
 
 mod foreign_law;
+pub use foreign_law::ForeignCallerCertificate;
 
 use crate::diagnostic::Diagnostic;
 

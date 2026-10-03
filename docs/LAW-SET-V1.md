@@ -38,6 +38,7 @@ The admitted selectors are:
 | `protocol_realizers_bound` | Claim ID and persistent protocol ID | Existing architecture evaluator; realizer binding only |
 | `model_property` | Closed `authorization`/`handle` reference model and exact registered invariant | Existing bounded model checker and model descriptor |
 | `source_protocol_safety` | Retained protocol ID, checked pure dispatcher, exact public forwarding caller, success state, charge label and explicit finite bounds | Source-executed complete transition table and bounded checker; only closed exploration supplies `model_checked` |
+| `foreign_guarded_caller` | Exact public direct forwarding caller, selected Rust import and inclusive i64 return range | Read-only source certificate and published guard diagnostic; protected coverage remains open |
 
 Contract selectors accept scalar literals, variables, unary and binary operators.
 They are parsed and canonically formatted, not executed as assertions. Calls,
@@ -71,6 +72,13 @@ then explores the resulting finite system. Missing/unsupported realizers,
 uncovered transitions, abstract traces and exhausted bounds remain visible
 missing, unsupported or open law rows. A held `protocol_realizers_bound` claim
 cannot satisfy this source method: `via` identity alone proves no ordering.
+
+`foreign_guarded_caller` is an opt-in LAW-09 inventory selector. Its law module
+must name the caller's source owner and every foreign condition as a declared
+assumption. Its protected coverage stays open. The source-derived caller
+certificate and published SDK guard verifier are read-only diagnostics;
+neither attaches builder-authenticated evidence to LawSet. They do not prove
+hidden foreign effects, callbacks, panics or shared state.
 
 ## Inventory, report, and policy
 

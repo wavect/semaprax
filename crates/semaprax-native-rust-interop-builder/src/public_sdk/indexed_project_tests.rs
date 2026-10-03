@@ -502,7 +502,10 @@ fn guarded_indexed_project_sdk_checks_physical_return_before_semantic_publicatio
     let index = index_for(crate_source, version);
     let replay = RustApiIndex::replay(&index).unwrap();
     let package_digest = raw_digest(crate_source);
-    let source = canonical(SOURCE, "src/app.spx");
+    let source = canonical(
+        &SOURCE.replace("host_add(left, right) + right", "host_add(left, right)"),
+        "src/app.spx",
+    );
     let tests = canonical(
         "module interop.tests; @id(\"interop.tests.main\") fn main() -> i64 { 0 }",
         "src/tests.spx",
@@ -578,6 +581,58 @@ fn guarded_indexed_project_sdk_checks_physical_return_before_semantic_publicatio
     let generated = std::fs::read_to_string(output.join("src/lib.rs")).unwrap();
     assert!(generated.contains("SEMAPRAX_FOREIGN_RETURN_GUARD"));
     assert!(generated.contains("NonZeroU32::new(40909)"));
+    let bindings = prepare_project_bindings(&[selected]).unwrap();
+    let (caller, revision) = semaprax::project::with_authenticated_indexed_rust_project(
+        &root.join("semaprax.toml"),
+        &bindings,
+        |snapshot| {
+            let revision = snapshot.retain_revision();
+            let import = revision
+                .entry_program()
+                .interfaces
+                .iter()
+                .flat_map(|interface| &interface.imports)
+                .find(|import| import.id.as_str() == "host.add")
+                .unwrap();
+            let plan = crate::indexed_binding::prepare_indexed_scalar_binding(
+                import,
+                &index,
+                selected.selection.package,
+                import.rust_path.as_deref().unwrap(),
+            )
+            .map_err(|error| vec![error])?;
+            let caller = revision.foreign_caller_certificate(
+                "interop.add",
+                &plan,
+                plan.target.as_str(),
+                bundle.manifest_digest(),
+                &declared,
+                &law,
+            )?;
+            let forged = revision.foreign_caller_certificate(
+                "interop.add",
+                &plan,
+                plan.target.as_str(),
+                "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                &declared,
+                &law,
+            )?;
+            assert_eq!(
+                forged
+                    .verify_published_guard(&revision, &output, bundle.manifest_digest())
+                    .unwrap_err()[0]
+                    .code,
+                "SPX-FL310"
+            );
+            caller.verify_published_guard(&revision, &output, bundle.manifest_digest())?;
+            let view: Value = serde_json::from_str(&caller.public_view()).unwrap();
+            assert_eq!(view["source_route_proved"], true);
+            assert_eq!(view["foreign_internals_proved"], false);
+            assert_eq!(caller.conditions().len(), 4);
+            Ok((caller, revision))
+        },
+    )
+    .unwrap();
     assert_eq!(
         run_published_sdk_with_consumer(
             &rustc,
@@ -586,7 +641,7 @@ fn guarded_indexed_project_sdk_checks_physical_return_before_semantic_publicatio
             &output,
             r#"fn main(){
 let mut sdk=indexed_sdk::indexed_scalar_sdk(&["host.math"]).unwrap();
-assert_eq!(sdk.spx_interop_dot_add(20,22),Ok(64));
+assert_eq!(sdk.spx_interop_dot_add(20,22),Ok(42));
 match sdk.spx_interop_dot_add(1000,22){
  Err(indexed_sdk::NativeRustSdkCallError::Semantic{domain_id,code,class,retryable})
   if domain_id=="host.math.v1" && code.get()==40909
@@ -610,5 +665,20 @@ match sdk.spx_interop_dot_add(1000,22){
     )
     .is_err());
     assert!(!absent.exists());
+    std::fs::write(
+        output.join("src/lib.rs"),
+        generated.replace(
+            "SEMAPRAX_FOREIGN_RETURN_GUARD",
+            "SEMAPRAX_FOREIGN_RETURN_GUARD_DRIFT",
+        ),
+    )
+    .unwrap();
+    assert_eq!(
+        caller
+            .verify_published_guard(&revision, &output, bundle.manifest_digest())
+            .unwrap_err()[0]
+            .code,
+        "SPX-FL310"
+    );
     std::fs::remove_dir_all(root).unwrap();
 }

@@ -53,10 +53,29 @@ implementation: an in-range call succeeded, a seeded out-of-range call
 returned exact import status 40909, a wrong selected import refused before
 publication, and the frontier's adapter digest matched the published manifest.
 
-Remaining LAW-09 work: connect conditional foreign conditions into actual
-source-bound caller proof certificates and protected LawSet policy. No
-externally validated theorem identity is provisioned in this profile; theorem
-requirements continue to refuse until a separately checked semantic
-association exists. Generated SDK integrity is authenticated at publication;
-this does not claim an OS sandbox against later same-principal mutation. Tests and signatures alone
-must never satisfy that requirement.
+A second, deliberately narrow route derives a conditional caller certificate
+from checked Project HIR. It admits only a named public i64 export whose body
+directly returns one guarded foreign import call with scalar parameter or
+literal arguments. Local statements, arithmetic, branch conditions, extra
+calls, contracts and yielding refuse. The certificate replays exact Project
+graph and source identity, selected binding, adapter digest, declaration and
+law; all requested foreign behavior assumptions remain in its condition list.
+It proves the direct source route, not the Rust implementation or an executed
+runtime call.
+
+`LawSelector::ForeignGuardedCaller` binds the public caller, import and exact
+range into the protected LawSet inventory. Coverage stays open. The read-only
+`ForeignCallerCertificate::verify_published_guard` checks an explicit
+published SDK package against an independently held builder manifest digest:
+Project revision, graph, target, all eight listed file hashes and generated
+return guard must match. Forged digests and changed files refuse with
+`SPX-FL310`. This check does not create a strict LawSet token because its
+expected digest is supplied by the caller; only a builder-owned publication
+result can safely carry that authority across the crate boundary. Guard source
+authentication is not evidence that a call executed.
+
+No externally validated theorem identity is provisioned in this profile;
+theorem requirements continue to refuse until a separately checked semantic
+association exists. Exact published-package replay does not claim an OS
+sandbox against concurrent same-principal mutation. Tests and signatures
+alone never establish the foreign implementation's behavior.

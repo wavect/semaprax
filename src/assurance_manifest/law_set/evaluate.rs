@@ -230,6 +230,12 @@ fn evidence_fact(row: &LawRow, id: String, class: AssuranceClass, evidence: Valu
 }
 fn evaluate(revision: &ProjectRevision, row: &LawRow, obligations: &[Value]) -> Result<Value> {
     match &row.definition.selector {
+        LawSelector::ForeignGuardedCaller { .. } => Ok(fact(
+            "awaiting_evidence",
+            "builder_authenticated_foreign_attachment_unavailable",
+            Some(format!("foreign:{}", row.definition.law_id)),
+            None,
+        )),
         LawSelector::ScalarRelational { .. } => Ok(fact(
             "awaiting_evidence",
             "scalar_relational_proposition_has_no_verified_proof_attachment",

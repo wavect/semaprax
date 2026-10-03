@@ -65,6 +65,14 @@ pub enum LawSelector {
         charge_label: String,
         bounds: Bounds,
     },
+    /// Exact public direct forwarding route for one guarded foreign i64 import.
+    /// The source certificate is diagnostic; protected coverage remains open.
+    ForeignGuardedCaller {
+        caller_id: String,
+        import_id: String,
+        minimum: i64,
+        maximum: i64,
+    },
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -418,6 +426,20 @@ fn normalize(law: &mut LawDefinition) -> Result<()> {
             };
             if !properties.contains(&property.as_str()) {
                 return Err(invalid("unsupported model property selector"));
+            }
+        }
+        LawSelector::ForeignGuardedCaller {
+            caller_id,
+            import_id,
+            minimum,
+            maximum,
+        } => {
+            text_id(caller_id)?;
+            text_id(import_id)?;
+            if minimum > maximum || !matches!(law.evidence, EvidenceRequirement::RuntimeGuarded) {
+                return Err(invalid(
+                    "foreign guarded caller requires an ordered range and runtime_guarded evidence",
+                ));
             }
         }
         LawSelector::SourceProtocolSafety {

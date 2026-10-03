@@ -599,7 +599,7 @@ pub(crate) fn validate_owned_utf8_closure_function(
     public_utf8_api::validate_closure_shape(function)
 }
 pub(crate) use rename::{PreparedProjectRename, ProjectRenameDerivation};
-pub use revision::ProjectRevision;
+pub use revision::{ForeignCallerCertificate, ProjectRevision};
 pub use semantic::{
     PROJECT_SEMANTIC_CONTEXT_SCHEMA, PROJECT_SEMANTIC_GRAPH_SCHEMA, PROJECT_SEMANTIC_IMPACT_SCHEMA,
 };

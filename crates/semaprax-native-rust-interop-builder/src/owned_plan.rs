@@ -4,6 +4,9 @@ use core::{
     any::{Any, TypeId},
     marker::PhantomData,
 };
+use std::sync::atomic::{AtomicU64, Ordering};
+
+static NEXT_CONTEXT: AtomicU64 = AtomicU64::new(1);
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum OwnerRefusal {
@@ -40,7 +43,9 @@ pub(crate) struct OwnerContext {
 }
 
 impl OwnerContext {
-    pub(crate) fn new(id: u64) -> Self {
+    pub(crate) fn new() -> Self {
+        let id = NEXT_CONTEXT.fetch_add(1, Ordering::Relaxed);
+        assert_ne!(id, 0, "opaque owner context id exhausted");
         Self {
             id,
             closed: false,
@@ -106,6 +111,53 @@ impl OwnerContext {
     }
 }
 
-pub(crate) fn render_drop_fixture() -> &'static str {
-    "struct Owned(std::rc::Rc<std::cell::Cell<u32>>); impl Drop for Owned { fn drop(&mut self) { self.0.set(self.0.get()+1) } }\n"
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::{cell::Cell, rc::Rc};
+    struct Count(Rc<Cell<u32>>);
+    impl Drop for Count {
+        fn drop(&mut self) {
+            self.0.set(self.0.get() + 1);
+        }
+    }
+    #[test]
+    fn consume_and_close_drop_real_values_once() {
+        let count = Rc::new(Cell::new(0));
+        let mut context = OwnerContext::new();
+        let owner = context.admit("count", Count(count.clone())).unwrap();
+        drop(context.consume(owner).unwrap());
+        assert_eq!(count.get(), 1);
+        let owner = context.admit("count", Count(count.clone())).unwrap();
+        context.close();
+        assert_eq!(count.get(), 2);
+        assert_eq!(context.consume(owner), Err(OwnerRefusal::Closed));
+        assert_eq!(count.get(), 2);
+    }
+    #[test]
+    fn refusals_preserve_a_live_owner() {
+        let count = Rc::new(Cell::new(0));
+        let mut first = OwnerContext::new();
+        let mut second = OwnerContext::new();
+        let owner = first.admit("count", Count(count.clone())).unwrap();
+        let foreign = Owner {
+            context: second.id,
+            generation: owner.generation,
+            slot: owner.slot,
+            kind: owner.kind,
+            marker: PhantomData,
+        };
+        assert_eq!(first.consume(foreign), Err(OwnerRefusal::WrongContext));
+        let wrong = Owner::<u64> {
+            context: owner.context,
+            generation: owner.generation,
+            slot: owner.slot,
+            kind: owner.kind,
+            marker: PhantomData,
+        };
+        assert_eq!(first.consume(wrong), Err(OwnerRefusal::WrongType));
+        drop(first.consume(owner).unwrap());
+        assert_eq!(count.get(), 1);
+        assert!(second.admit("count", Count(count.clone())).is_ok());
+    }
 }

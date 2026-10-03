@@ -1,7 +1,7 @@
 //! Explicit host entry points for native build and callback refusals.
 //!
-//! These functions do not acquire authority. Callers supply an admitted
-//! profile, exact prepared closure, and explicit invocation or per-call grant.
+//! These functions do not discover ambient authority. Callers supply an
+//! admitted profile, exact prepared closure, and explicit invocation or grant.
 
 use crate::rich_cargo_execution::{
     authorize_prepared_build, build_locked_offline, CargoExecutionError, ExplicitCargoInvocation,

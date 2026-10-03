@@ -34,6 +34,7 @@ mod lattice;
 pub mod law_set;
 pub mod law_vc;
 pub mod model_checking;
+pub mod modular_law;
 mod obligation;
 pub mod project;
 pub mod proof_certificate;

@@ -74,10 +74,11 @@ variants, `match`, `try`, field projection, mutable locals, `assign`,
   tranche is held to. Division/remainder are a closed, one-line follow-up:
   add the correction to `translate::translate_binary`, add the sign-and-zero
   divisor obligations, and add the property tests before enabling it.
-- **Pure-call inlining or summaries, loops, recursion, effects, floating
-  point, heap aliasing, records/variants/match.** Named out of scope by the
-  issue itself; nothing here should be read as a smaller step toward them
-  without its own design.
+- **Pure-call summaries, loops, recursion, effects, floating point, heap
+  aliasing, records/variants/match.** This single-function API still rejects
+  calls. [Modular Scalar Law v1](MODULAR-SCALAR-LAW-V1.md) adds a separate
+  Project-bound, bounded inlining fallback for direct pure scalar calls; it
+  does not change this no-call grammar or provide reusable summaries.
 - **`cvc5`.** Not installed on any host this tranche was developed or
   evidenced on. [`solver::Provisioning::identity`] and
   [`solver::ENV_Z3_PATH`] are Z3-specific; adding a second transport is a

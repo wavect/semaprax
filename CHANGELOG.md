@@ -1,5 +1,7 @@
 # Changelog
 
+- Add LAW-06 Project-bound linked-HIR admission and a bounded scalar-call inlining proof fallback. Preserve caller precondition checks as ordered checked obligations, report replayed Z3 witnesses, and bind proof metadata to exact transitive source digests. The reusable summary and LAW-04 attachment work remains open.
+
 - Lower LAW-05's shared typed scalar VC subject directly into SMT and Lean,
   preserving binding identity and both public proof formats. Add a small
   checked-i64 model interpretation corpus as test evidence. Stage precondition arithmetic by evaluation order, require a

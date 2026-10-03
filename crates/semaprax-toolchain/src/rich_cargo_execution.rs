@@ -345,6 +345,11 @@ mod tests {
             cargo_config: b"offline".to_vec(),
             toolchain_identity: b"exact-cargo-and-rustc".to_vec(),
             target_spec_identity: b"x86_64-unknown-linux-gnu".to_vec(),
+            host_target_identity: b"host=x86_64-unknown-linux-gnu;target=x86_64-unknown-linux-gnu"
+                .to_vec(),
+            build_script_inputs: b"no-build-script-inputs".to_vec(),
+            proc_macro_inputs: b"no-proc-macro-inputs".to_vec(),
+            native_toolchain_inputs: b"rustc".to_vec(),
             generator_revision: "sha256:fixture".into(),
             target: "x86_64-unknown-linux-gnu".into(),
             panic_strategy: "unwind".into(),
@@ -543,6 +548,11 @@ mod tests {
                 cargo_config: b"[net]\noffline=true\n".to_vec(),
                 toolchain_identity: b"explicit-cargo-and-rustc".to_vec(),
                 target_spec_identity: target_name.as_bytes().to_vec(),
+                host_target_identity: format!("host={target_name};target={target_name}")
+                    .into_bytes(),
+                build_script_inputs: b"fixture-build-script-inputs".to_vec(),
+                proc_macro_inputs: b"fixture-proc-macro-inputs".to_vec(),
+                native_toolchain_inputs: b"fixture-rustc-and-linker".to_vec(),
                 generator_revision: "sha256:rich-fixture".into(),
                 target: target_name.into(),
                 panic_strategy: "unwind".into(),

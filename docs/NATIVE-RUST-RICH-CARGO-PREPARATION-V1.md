@@ -54,7 +54,9 @@ The input holds nonempty exact bytes for:
 
 1. RI-01 binding plan and rich descriptor;
 2. Cargo metadata, `Cargo.lock`, and explicit Cargo configuration;
-3. toolchain identity and target-spec identity.
+3. Rust toolchain, host/target distinction, target-spec, and native link-tool
+   identities;
+4. declared build-script and proc-macro inputs.
 
 It also holds a generator revision, target triple, panic strategy, profile,
 sorted selected feature names, and sorted source facts. The combined byte input
@@ -74,6 +76,10 @@ Successful output is compact JSON plus one LF with this ordered shape:
   "cargo_config_digest":"sha256:…",
   "toolchain_digest":"sha256:…",
   "target_spec_digest":"sha256:…",
+  "host_target_digest":"sha256:…",
+  "build_script_inputs_digest":"sha256:…",
+  "proc_macro_inputs_digest":"sha256:…",
+  "native_toolchain_inputs_digest":"sha256:…",
   "generator_revision":"…",
   "target":"…",
   "panic_strategy":"…",
@@ -88,9 +94,12 @@ The preparation digest is SHA-256 over
 `semaprax.native-rust-rich-cargo-preparation.digest.v1\0` followed by those
 exact canonical bytes. Replay checks the final LF, UTF-8, CR rejection, byte
 bound, and the domain-separated digest. The digest binds source, descriptor,
-generator, lock, features, target, profile, Cargo config, toolchain, and
+generator, lock, features, target, host/target distinction, profile, Cargo
+config, Rust/native toolchains, build-script/proc-macro inputs, and
 source-tree/checksum identities, so any change invalidates a prior prepared
-closure.
+closure. Repeating preparation with unchanged inputs returns identical closure
+bytes and digest, which is the safe reuse key; this module does not itself
+publish or reuse build artifacts.
 
 ## Later effectful stages
 

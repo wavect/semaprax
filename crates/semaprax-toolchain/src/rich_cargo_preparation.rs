@@ -86,6 +86,16 @@ pub struct CargoPreparationInput {
     pub cargo_config: Vec<u8>,
     pub toolchain_identity: Vec<u8>,
     pub target_spec_identity: Vec<u8>,
+    /// Exact host/target distinction used by Cargo's build graph.
+    pub host_target_identity: Vec<u8>,
+    /// Declared build-script inputs, after the execution authority rejects
+    /// undeclared host reads.
+    pub build_script_inputs: Vec<u8>,
+    /// Declared proc-macro inputs, after the execution authority rejects
+    /// undeclared host reads.
+    pub proc_macro_inputs: Vec<u8>,
+    /// Native compiler, linker, and archive tool identities and inputs.
+    pub native_toolchain_inputs: Vec<u8>,
     pub generator_revision: String,
     pub target: String,
     pub panic_strategy: String,
@@ -140,7 +150,7 @@ pub fn prepare_cargo_closure(
     let mut bytes = String::with_capacity(4096);
     write!(
         bytes,
-        "{{\"schema\":\"{RICH_CARGO_PREPARATION_SCHEMA}\",\"binding_plan_digest\":\"{}\",\"descriptor_digest\":\"{}\",\"cargo_metadata_digest\":\"{}\",\"cargo_lock_digest\":\"{}\",\"cargo_config_digest\":\"{}\",\"toolchain_digest\":\"{}\",\"target_spec_digest\":\"{}\",\"generator_revision\":\"{}\",\"target\":\"{}\",\"panic_strategy\":\"{}\",\"profile\":\"{}\",\"features\":[",
+        "{{\"schema\":\"{RICH_CARGO_PREPARATION_SCHEMA}\",\"binding_plan_digest\":\"{}\",\"descriptor_digest\":\"{}\",\"cargo_metadata_digest\":\"{}\",\"cargo_lock_digest\":\"{}\",\"cargo_config_digest\":\"{}\",\"toolchain_digest\":\"{}\",\"target_spec_digest\":\"{}\",\"host_target_digest\":\"{}\",\"build_script_inputs_digest\":\"{}\",\"proc_macro_inputs_digest\":\"{}\",\"native_toolchain_inputs_digest\":\"{}\",\"generator_revision\":\"{}\",\"target\":\"{}\",\"panic_strategy\":\"{}\",\"profile\":\"{}\",\"features\":[",
         sha256(&input.binding_plan),
         sha256(&input.descriptor),
         sha256(&input.cargo_metadata),
@@ -148,6 +158,10 @@ pub fn prepare_cargo_closure(
         sha256(&input.cargo_config),
         sha256(&input.toolchain_identity),
         sha256(&input.target_spec_identity),
+        sha256(&input.host_target_identity),
+        sha256(&input.build_script_inputs),
+        sha256(&input.proc_macro_inputs),
+        sha256(&input.native_toolchain_inputs),
         escape(&input.generator_revision),
         escape(&input.target),
         escape(&input.panic_strategy),
@@ -186,6 +200,10 @@ fn validate_input(input: &CargoPreparationInput) -> Result<(), CargoPreparationE
         &input.cargo_config,
         &input.toolchain_identity,
         &input.target_spec_identity,
+        &input.host_target_identity,
+        &input.build_script_inputs,
+        &input.proc_macro_inputs,
+        &input.native_toolchain_inputs,
     ];
     if byte_inputs.iter().any(|value| value.is_empty())
         || byte_inputs
@@ -400,6 +418,11 @@ mod tests {
             cargo_config: b"source".to_vec(),
             toolchain_identity: b"cargo rustc".to_vec(),
             target_spec_identity: b"aarch64-apple-darwin".to_vec(),
+            host_target_identity: b"host=aarch64-apple-darwin;target=aarch64-apple-darwin"
+                .to_vec(),
+            build_script_inputs: b"build-script-inputs".to_vec(),
+            proc_macro_inputs: b"proc-macro-inputs".to_vec(),
+            native_toolchain_inputs: b"rustc+cc+ar".to_vec(),
             generator_revision: "sha256:generator".into(),
             target: "aarch64-apple-darwin".into(),
             panic_strategy: "unwind".into(),
@@ -455,5 +478,44 @@ mod tests {
             prepare_cargo_closure(missing),
             Err(CargoPreparationError::Disagreement)
         );
+    }
+
+    #[test]
+    fn changes_to_recorded_build_inputs_invalidate_the_closure() {
+        let baseline = prepare_cargo_closure(input()).unwrap();
+        let mutations: [fn(&mut CargoPreparationInput); 8] = [
+            |input: &mut CargoPreparationInput| input.cargo_lock = b"changed-lock".to_vec(),
+            |input: &mut CargoPreparationInput| input.cargo_config = b"changed-config".to_vec(),
+            |input: &mut CargoPreparationInput| {
+                input.toolchain_identity = b"changed-rustc".to_vec()
+            },
+            |input: &mut CargoPreparationInput| {
+                input.target_spec_identity = b"changed-target".to_vec()
+            },
+            |input: &mut CargoPreparationInput| {
+                input.host_target_identity = b"changed-host-target".to_vec()
+            },
+            |input: &mut CargoPreparationInput| {
+                input.build_script_inputs = b"changed-build-script".to_vec()
+            },
+            |input: &mut CargoPreparationInput| {
+                input.proc_macro_inputs = b"changed-proc-macro".to_vec()
+            },
+            |input: &mut CargoPreparationInput| {
+                input.native_toolchain_inputs = b"changed-native-tools".to_vec()
+            },
+        ];
+        for mutate in mutations {
+            let mut changed = input();
+            mutate(&mut changed);
+            assert_ne!(prepare_cargo_closure(changed).unwrap(), baseline);
+        }
+
+        let mut local_edit = input();
+        let LockedCargoSource::Local { tree_digest, .. } = &mut local_edit.sources[0] else {
+            unreachable!("fixture's first source is local");
+        };
+        *tree_digest = digest("edited-local-source");
+        assert_ne!(prepare_cargo_closure(local_edit).unwrap(), baseline);
     }
 }

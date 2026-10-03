@@ -1,5 +1,11 @@
 # Changelog
 
+- Add a versioned LAW-13 proof-to-runtime trust-chain view with exact source,
+  artifact and optional kernel replay, explicit trusted lowering and unexecuted
+  runtime status. A scalar reference/interpreter/emitted-Wasm fixture exercises
+  checked failure semantics and detects a seeded wrong runtime value. Record,
+  variant, foreign-adapter and full mutation-ladder coverage remain open.
+
 - Add an inert authenticated Project-to-native Regex package route that executes the checked Semaprax body and canonical cleanup plan. Pinned real Regex consumers pass at O0/O2, including authored-result changes, domain errors, zero adapter copies, exact String construction counts, and missing-finalizer controls. Url returned-view integration and the remaining RI-06 safety criteria stay open.
 
 - Complete the bounded LAW-07 structured proof profile with a selected

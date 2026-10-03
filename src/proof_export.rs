@@ -74,6 +74,7 @@ pub mod kernel_report;
 pub mod lean;
 pub mod profile;
 pub mod program_root;
+pub mod trust_chain;
 pub mod verify;
 
 #[cfg(test)]
@@ -85,6 +86,7 @@ pub use certificate::{render_coverage, CERTIFICATE_SCHEMA, COVERAGE_SCHEMA};
 pub use kernel_report::{KernelVerdict, Rejection, KERNEL_IDENTITY, PINNED_TOOLCHAIN};
 pub use lean::{export_module, ModuleExport, ASSUMPTIONS, EXPORT_SCHEMA, NAMESPACE};
 pub use profile::{Excluded, PROFILE_V1};
+pub use trust_chain::{render_trust_chain_view, TRUST_CHAIN_VIEW_SCHEMA};
 pub use program_root::{
     assurance_method_attachment, bind_certificate_to_program_root,
     verify_certificate_against_program_root, verify_certificate_against_project_source,

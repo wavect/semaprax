@@ -720,6 +720,51 @@ fn artifact_binding_accepts_only_the_exact_bound_bytes() {
 }
 
 #[test]
+fn trust_chain_view_separates_kernel_artifact_lowering_and_runtime_status() {
+    let path = write_temp(FIXTURE, "trust-chain");
+    let certificate = certificate_for(&path);
+    let parsed = crate::parse(&std::fs::read_to_string(&path).unwrap(), &path).unwrap();
+    let resolved = crate::hir::resolve(&parsed).unwrap();
+    let artifact = crate::wasm::emit_resolved_module(&resolved).unwrap();
+    let recorded = super::render_trust_chain_view(&certificate, &path, &artifact, None).unwrap();
+    let recorded: serde_json::Value = serde_json::from_str(&recorded).unwrap();
+    assert_eq!(recorded["schema"], super::TRUST_CHAIN_VIEW_SCHEMA);
+    assert_eq!(recorded["external_proof_result"]["status"], "recorded_only");
+    assert_eq!(
+        recorded["compiler_lowering_identity"]["status"],
+        "trusted_unproved_lowering"
+    );
+    assert_eq!(
+        recorded["artifact_binding"]["status"],
+        "checked_exact_bytes"
+    );
+    assert_eq!(recorded["runtime_boundary"]["status"], "unexecuted");
+    let replayed =
+        super::render_trust_chain_view(&certificate, &path, &artifact, Some(&AcceptingKernel))
+            .unwrap();
+    let replayed: serde_json::Value = serde_json::from_str(&replayed).unwrap();
+    assert_eq!(
+        replayed["external_proof_result"]["status"],
+        "proved_by_replayed_kernel"
+    );
+    let mut wrong_artifact = artifact;
+    wrong_artifact.push(0);
+    let error = super::render_trust_chain_view(&certificate, &path, &wrong_artifact, None)
+        .expect_err("wrong artifact must refuse the entire view");
+    assert_eq!(error.code, "SPX-Z112");
+    std::fs::write(&path, with_main(&FIXTURE.replace("a + b", "a - b"))).unwrap();
+    let error = super::render_trust_chain_view(
+        &certificate,
+        &path,
+        &wrong_artifact[..wrong_artifact.len() - 1],
+        None,
+    )
+    .expect_err("source drift must refuse the entire view");
+    assert_eq!(error.code, "SPX-Z112");
+    std::fs::remove_file(path).ok();
+}
+
+#[test]
 fn program_root_association_binds_the_exact_project_and_integrates_one_postcondition_method() {
     let (manifest, source_path) = project_fixture("program-root", "proof-root-a");
     let certificate = certificate_for(&source_path);

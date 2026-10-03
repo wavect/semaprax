@@ -25,6 +25,8 @@ mod backends;
 mod grammar;
 #[path = "differential/injection.rs"]
 mod injection;
+#[path = "differential/law_runtime_chain.rs"]
+mod law_runtime_chain;
 #[path = "differential/observe.rs"]
 mod observe;
 #[path = "differential/report.rs"]

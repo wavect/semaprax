@@ -10,6 +10,7 @@ Status: one tranche of [issue #186]. Owns three wire identities:
 | `semaprax.lean-export-coverage.v1` | `proof_export::certificate::render_coverage` | a reader asking what was *not* covered |
 | `semaprax.lean-proof-certificate.v1` | `proof_export::export_obligation_certificate` | `proof_export::verify::*` and any independent replayer |
 | `semaprax.lean-proof-program-root-binding.v1` | `proof_export::bind_certificate_to_program_root` | `proof_export::verify_certificate_against_program_root` and the exact Assurance Manifest method attachment |
+| `semaprax.law-trust-chain-view.v1` | `proof_export::render_trust_chain_view` | read-only clients displaying exact source, proof, artifact, lowering, and runtime status; see [Law Trust Chain v1](LAW-TRUST-CHAIN-V1.md) |
 
 `src/proof_export/` implements this profile. This document owns translation,
 trusted base, result grammar, and certificate schema. If code and specification

@@ -42,6 +42,20 @@ pub enum RequiredLawEvidence {
         toolchain: String,
         accepted_translation: String,
     },
+    /// Exact LAW-07 aggregate scalarization and installed Z3 proof. No scalar
+    /// or modular profile may satisfy this distinct translation policy.
+    PinnedStructuredSmtSource {
+        toolchain: String,
+        accepted_translation: String,
+    },
+    /// Exact LAW-07 aggregate scalarization and pinned Lean proof. The host
+    /// accepts the semantic kernel pin and every explicit export assumption.
+    PinnedStructuredLeanSource {
+        toolchain: String,
+        accepted_translation: String,
+        accepted_assumptions: Vec<String>,
+        accepted_axioms: Vec<String>,
+    },
     /// Artifact association is not a proof that lowering preserves semantics.
     VerifiedLowering,
 }
@@ -247,6 +261,9 @@ fn check_requirement(
                     method["class"] == "theorem_proved"
                         && method["tool"] == crate::proof_export::KERNEL_IDENTITY
                         && method["tool_version"] == *toolchain
+                        && method["bounds"].as_str().is_some_and(|bounds| {
+                            bounds.starts_with(crate::proof_export::PROFILE_V1)
+                        })
                 })
             });
             (!confirmed).then_some("kernel_confirmed_exact_project_evidence_missing")
@@ -294,7 +311,7 @@ fn check_requirement(
                     method["class"] == "smt_proved"
                         && method["tool"] == "z3"
                         && method["tool_version"] == *toolchain
-                        && method["bounds"] != crate::assurance_manifest::modular_law::BOUNDS_V1
+                        && method["bounds"] == *accepted_translation
                 })
             });
             (!confirmed).then_some("solver_confirmed_exact_project_evidence_missing")
@@ -315,6 +332,56 @@ fn check_requirement(
                 })
             });
             (!confirmed).then_some("modular_solver_confirmed_exact_project_evidence_missing")
+        }
+        RequiredLawEvidence::PinnedStructuredSmtSource {
+            toolchain,
+            accepted_translation,
+        } => {
+            if accepted_translation
+                != crate::assurance_manifest::structured_law::installed::SMT_PROFILE
+            {
+                return Some("structured_smt_translation_profile_not_accepted");
+            }
+            let confirmed = evidence["methods"].as_array().is_some_and(|methods| {
+                methods.iter().any(|method| {
+                    method["class"] == "smt_proved"
+                        && method["tool"] == "z3"
+                        && method["tool_version"] == *toolchain
+                        && method["bounds"] == *accepted_translation
+                })
+            });
+            (!confirmed).then_some("structured_solver_confirmed_exact_project_evidence_missing")
+        }
+        RequiredLawEvidence::PinnedStructuredLeanSource {
+            toolchain,
+            accepted_translation,
+            accepted_assumptions,
+            accepted_axioms,
+        } => {
+            if toolchain != crate::proof_export::PINNED_TOOLCHAIN
+                || accepted_translation
+                    != crate::assurance_manifest::structured_law::installed::LEAN_PROFILE
+            {
+                return Some("structured_kernel_or_translation_profile_not_accepted");
+            }
+            if crate::proof_export::ASSUMPTIONS
+                .iter()
+                .any(|(id, _)| !accepted_assumptions.iter().any(|accepted| accepted == id))
+                || crate::proof_export::kernel_report::STANDARD_AXIOMS
+                    .iter()
+                    .any(|id| !accepted_axioms.iter().any(|accepted| accepted == id))
+            {
+                return Some("structured_kernel_assumptions_or_axioms_not_accepted");
+            }
+            let confirmed = evidence["methods"].as_array().is_some_and(|methods| {
+                methods.iter().any(|method| {
+                    method["class"] == "theorem_proved"
+                        && method["tool"] == crate::proof_export::KERNEL_IDENTITY
+                        && method["tool_version"] == *toolchain
+                        && method["bounds"] == *accepted_translation
+                })
+            });
+            (!confirmed).then_some("structured_kernel_confirmed_exact_project_evidence_missing")
         }
         RequiredLawEvidence::VerifiedLowering => Some("proved_lowering_evidence_unavailable"),
     }

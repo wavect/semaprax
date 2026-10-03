@@ -193,3 +193,36 @@ pub fn prove_modular_postcondition(
         proof_ref,
     ))
 }
+
+/// LAW-07 installed finite-aggregate proof. Returns an inert, versioned
+/// source-bound transcript plus an opaque attachment for this exact Project.
+/// The transcript alone cannot be passed as a proved method.
+pub fn prove_structured_postcondition(
+    revision: &ProjectRevision,
+    source_path: &str,
+    declaration: &str,
+    index: usize,
+    tool: &InstalledProofTool,
+) -> Result<(String, VerifiedProjectProof), Vec<Diagnostic>> {
+    crate::assurance_manifest::structured_law::installed::prove_installed_project(
+        revision,
+        source_path,
+        declaration,
+        index,
+        tool,
+    )
+}
+
+/// Recheck an inert LAW-07 transcript against the exact retained Project and
+/// rerun the installed backend before issuing a new opaque attachment.
+pub fn replay_structured_postcondition(
+    certificate: &str,
+    revision: &ProjectRevision,
+    tool: &InstalledProofTool,
+) -> Result<VerifiedProjectProof, Vec<Diagnostic>> {
+    crate::assurance_manifest::structured_law::installed::replay_installed_project(
+        certificate,
+        revision,
+        tool,
+    )
+}

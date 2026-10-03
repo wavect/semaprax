@@ -1,0 +1,80 @@
+
+module law07.accounting;
+
+@id("law07.account")
+record Account {
+    @id("law07.account.balance") balance: i64,
+}
+
+@id("law07.accounts")
+record Accounts {
+    @id("law07.accounts.debit") debit: Account,
+    @id("law07.accounts.credit") credit: Account,
+}
+
+@id("law07.outcome")
+variant Outcome {
+    @id("law07.outcome.success") Success {
+        @id("law07.outcome.success.credited") credited: i64,
+    },
+    @id("law07.outcome.failure") Failure {
+        @id("law07.outcome.failure.code") code: i64,
+    },
+}
+
+@id("law07.sum")
+fn sum(input: Accounts) -> i64
+    requires input.debit.balance >= 0
+    requires input.debit.balance <= 1000
+    requires input.credit.balance >= 0
+    requires input.credit.balance <= 1000
+    ensures result == input.debit.balance + input.credit.balance
+{
+    input.debit.balance + input.credit.balance
+}
+
+@id("law07.transfer")
+fn transfer(before: Accounts, amount: i64) -> Accounts
+    requires before.debit.balance >= 0
+    requires before.debit.balance <= 1000
+    requires before.credit.balance >= 0
+    requires before.credit.balance <= 1000
+    requires amount >= 0
+    requires amount <= before.debit.balance
+    ensures result.debit.balance == before.debit.balance - amount
+    ensures result.credit.balance == before.credit.balance + amount
+    ensures result.debit.balance + result.credit.balance == before.debit.balance + before.credit.balance
+{
+    Accounts {
+        debit: Account { balance: before.debit.balance - amount },
+        credit: Account { balance: before.credit.balance + amount },
+    }
+}
+
+@id("law07.failure")
+fn failure(code: i64) -> Outcome
+    requires code >= 0
+    requires code <= 10
+    ensures match result {
+        Outcome::Success { credited } => false,
+        Outcome::Failure { code: observed } => observed == code,
+    }
+{
+    Outcome::Failure { code: code }
+}
+
+@id("law07.outcome-zero")
+fn outcome_zero(outcome: Outcome) -> i64
+    ensures result == 0
+{
+    match outcome {
+        Outcome::Success { credited } => credited - credited,
+        Outcome::Failure { code } => code - code,
+    }
+}
+
+@id("law07.main")
+fn main() -> i64
+{
+    0
+}

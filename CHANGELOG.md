@@ -1,5 +1,7 @@
 # Changelog
 
+- Add a LAW-07 versioned Project certificate for finite record and variant laws. Reparse exact retained source, bind field/case and query identities, rerun installed Z3 or pinned Lean on replay, and attach only opaque proof to exact Project assurance. Distinct strict profiles reject scalar-to-structured method substitution. A 196-state reference corpus and real installed Project Z3/Lean gates passed; selected physical publication remains open at the public export profile's `SPX-W115` aggregate refusal.
+
 - Add a straight-line LAW-06 checked-summary path: separately prove exact callee contracts, instantiate fresh typed results, stage caller-side preconditions before summary assumptions, and prove the caller using installed Z3. A weakened-summary negative control fails the caller proof without claiming a concrete runtime witness.
 
 - Add LAW-06 Project-bound linked-HIR admission and a bounded scalar-call inlining proof fallback. Preserve caller precondition checks as ordered checked obligations, report replayed Z3 witnesses, and bind proof metadata to exact transitive source digests. The reusable summary and LAW-04 attachment work remains open.

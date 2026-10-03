@@ -1,7 +1,9 @@
 //! LAW-07 bounded immutable aggregate projection into the shared scalar VC.
 //!
-//! This is a source-independent draft. A caller must first obtain a checked
-//! Program; no proof status may be promoted from this lowering alone.
+//! This lowering has no proof authority on its own. `installed` reconstructs
+//! it from an exact retained Project before attaching any proof status.
+
+pub mod installed;
 
 use std::collections::{BTreeMap, BTreeSet};
 

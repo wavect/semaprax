@@ -47,12 +47,51 @@ golden gate. Bool-valued results, aggregate-result clause queries, and other
 untranslated shapes remain outside the Lean structured profile. No report
 may merge a Z3 success with an unsupported Lean shape into common support.
 
-The source-bound certificate, independent replay, LAW-04 selected Project and
-managed-Workspace attachment, and exact backend coverage report are still
-open. Direct scalarized proof attempts cannot be promoted to a selected law
-without those bindings. The reference model corpus must prove a bounded
-two-account transfer's exact debit, credit, conservation, sufficient-balance
-and amount-domain clauses, reject duplicate debit, wrong credit, arithmetic
-trap, nonconservation and wrong failure case, and run the pinned Z3 and Lean
-executables on positive and seeded negative examples before this row is
-marked implemented.
+## Source-bound installed Project proof
+
+`prove_structured_postcondition` selects one stable declaration and
+postcondition in a retained, fully admitted Project. It reparses the exact
+retained source and admits only declarations present in selected Project HIR.
+A scalarized result alone has no authority. The installed capability checks a
+satisfiable precondition domain and the generated SMT query, or a bounded
+checked domain witness and every generated Lean theorem. Failures yield no
+opaque `VerifiedProjectProof`.
+
+The canonical `semaprax.structured-law-project-certificate.v1` record binds
+the compiler version, Project revision, ProgramRoot, source path/revision/
+digest, selected postcondition, lowered scalar revision, ordered scalar leaf
+inventory with persistent field paths, dependent declaration IDs, exact
+query digest, backend, installed tool version, translation profile, domain
+witness method, backend coverage, and trust/nonclaim inventory. The JSON is
+inert. `replay_structured_postcondition` rederives every field and query fact
+from the retained Project and reruns the installed backend before creating a
+new opaque proof. Reordered fields or an added variant case therefore require
+reproof; they cannot retarget an old certificate. Formatting-only source
+changes also invalidate this exact-byte certificate conservatively even when
+persistent declaration IDs and field paths remain stable.
+
+The Project assurance route joins the opaque proof only to a matching
+postcondition, source row, Project revision, and ProgramRoot. Strict law
+policy uses distinct `PinnedStructuredSmtSource` and
+`PinnedStructuredLeanSource` translation requirements; ordinary scalar and
+modular method profiles cannot satisfy them. The method record and
+certificate state exact backend coverage independently. Lean currently
+supports scalar-result record/variant laws and declines aggregate-result
+clauses; Z3 supports those clause queries. Neither backend's status is
+silently merged into a common proof claim.
+
+The trusted base includes the local installed solver/kernel, the compiler's
+source-to-scalar lowering and its unverified translation to SMT/Lean, the
+retained Project authentication path, and checked arithmetic/range modeling.
+These proofs do not establish native/Wasm lowering preservation, physical
+database transaction atomicity, execution, source mutation, or publication.
+
+Focused installed Project replay, managed-Workspace source attachment, a
+196-state two-account reference corpus, and recursive/mutable/borrowed
+refusals have passed locally. Native selected strict-law publication remains
+blocked: Package Manifest v2 requires a web export, while the Public Scalar
+Export Profile v1 refuses authored record/variant declarations (`SPX-W115`).
+The current Project route can attach proof for scalar-signature functions
+that construct and match aggregates internally. Aggregate signatures and
+physical selected publication remain open; the completion matrix must not
+mark LAW-07 implemented until that profile boundary is resolved and gated.

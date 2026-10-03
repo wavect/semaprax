@@ -28,6 +28,21 @@ test("file export opens offline and keeps its embedded JSON byte-identical", asy
   expect(errors).toEqual([]);
 });
 
+test("hostile snapshot strings stay inert in the generated file artifact", async ({ page }) => {
+  const hostile = await writeOfflineBrowserFixture({ hostile: true });
+  try {
+    const requests = [];
+    page.on("request", request => requests.push(request.url()));
+    await page.goto(pathToFileURL(hostile.htmlPath).href);
+    await expect(page.getByRole("heading", { name: "Meaning, mapped." })).toBeVisible();
+    expect(await page.evaluate(() => globalThis.explorerAttack)).toBeUndefined();
+    expect(requests.every(url => url.startsWith("file:"))).toBe(true);
+    await expect(page.locator("svg[onload], a[href^='javascript:']")).toHaveCount(0);
+  } finally {
+    await rm(hostile.directory, { recursive: true, force: true });
+  }
+});
+
 test("keyboard navigation reaches a declaration, relation provenance, and overview", async ({ page }) => {
   await openOffline(page, 1280);
   const search = page.getByRole("searchbox", { name: "Search declarations" });

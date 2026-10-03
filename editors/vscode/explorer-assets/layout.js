@@ -11,21 +11,37 @@ function layout(nodes, edges, pinned = new Map()) {
 
   let next = 0;
   const number = new Map(), low = new Map(), stack = [], onStack = new Set(), components = [];
-  function visit(key) {
-    number.set(key, next); low.set(key, next++); stack.push(key); onStack.add(key);
-    for (const target of outgoing.get(key)) {
-      if (!number.has(target)) { visit(target); low.set(key, Math.min(low.get(key), low.get(target))); }
-      else if (onStack.has(target)) low.set(key, Math.min(low.get(key), number.get(target)));
+  // This is Tarjan's algorithm with an explicit call stack. Explorer callers
+  // cap the rendered graph, but the pure layout helper also serves synthetic
+  // long-chain fixtures and must not make JavaScript call-stack depth a limit.
+  for (const node of ordered) {
+    if (number.has(node.key)) continue;
+    const calls = [{ key: node.key, parent: null, index: 0, entered: false }];
+    while (calls.length) {
+      const frame = calls[calls.length - 1];
+      if (!frame.entered) {
+        frame.entered = true;
+        number.set(frame.key, next); low.set(frame.key, next++);
+        stack.push(frame.key); onStack.add(frame.key);
+      }
+      const targets = outgoing.get(frame.key);
+      if (frame.index < targets.length) {
+        const target = targets[frame.index++];
+        if (!number.has(target)) { calls.push({ key: target, parent: frame.key, index: 0, entered: false }); continue; }
+        if (onStack.has(target)) low.set(frame.key, Math.min(low.get(frame.key), number.get(target)));
+        continue;
+      }
+      calls.pop();
+      if (frame.parent !== null) low.set(frame.parent, Math.min(low.get(frame.parent), low.get(frame.key)));
+      if (low.get(frame.key) !== number.get(frame.key)) continue;
+      const component = [];
+      for (;;) {
+        const member = stack.pop(); onStack.delete(member); component.push(member);
+        if (member === frame.key) break;
+      }
+      components.push(component.sort());
     }
-    if (low.get(key) !== number.get(key)) return;
-    const component = [];
-    for (;;) {
-      const member = stack.pop(); onStack.delete(member); component.push(member);
-      if (member === key) break;
-    }
-    components.push(component.sort());
   }
-  for (const node of ordered) if (!number.has(node.key)) visit(node.key);
   components.sort((a, b) => a[0].localeCompare(b[0]));
 
   const componentOf = new Map();

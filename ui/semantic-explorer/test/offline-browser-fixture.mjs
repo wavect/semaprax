@@ -27,7 +27,7 @@ function page(selected, view, items) {
   };
 }
 
-function snapshot() {
+function snapshot(hostile = false) {
   const selected = summary();
   const reference = { path: "src/app.spx", source_revision: digest, source_digest: digest };
   const items = {
@@ -39,6 +39,13 @@ function snapshot() {
     relations: [{ family: "call", from: "app:alpha", to: "app:beta", direction: "forward", site_id: "app.alpha:call:app.beta", provenance: { source: "fixture" } }],
     frontier: []
   };
+  if (hostile) {
+    // These strings have the shapes that would execute if a snapshot were
+    // interpolated into HTML or SVG. They remain ordinary display fields.
+    items.declarations[0].display_name = '</script><script>globalThis.explorerAttack = true</script><svg onload="globalThis.explorerAttack=true">';
+    items.declarations[0].path = 'javascript:globalThis.explorerAttack=true';
+    items.relations[0].provenance = { markdown: '[open](javascript:globalThis.explorerAttack=true)', svg: '<svg onload="globalThis.explorerAttack=true">' };
+  }
   return {
     schema: "semaprax.explorer-snapshot.v1", generator: "browser acceptance fixture", snapshot_digest: digest,
     focus: null, focus_sides: [], source_included: false, evidence_availability: "not_requested", confidentiality: "names_ids_and_paths_may_be_confidential",
@@ -49,9 +56,9 @@ function snapshot() {
 
 function script(body) { return `<script>(function(){\n${body}\n})();</script>`; }
 
-export async function writeOfflineBrowserFixture() {
+export async function writeOfflineBrowserFixture({ hostile = false } = {}) {
   const directory = await mkdtemp(join(tmpdir(), "semaprax-explorer-browser-"));
-  const data = snapshot();
+  const data = snapshot(hostile);
   const [css, ...assets] = await Promise.all([
     readFile(join(root, "explorer.css"), "utf8"),
     ...["model.js", "layout.js", "changes.js", "evidence.js", "hosts.js", "cache.js", "view.js"].map(name => readFile(join(root, name), "utf8"))

@@ -467,7 +467,12 @@ function createExplorer(root, host, options = {}) {
       state.cursors = Object.fromEntries(semapraxExplorerModel.VIEWS.map(view => [view, null]));
       state.loaded.clear(); state.selectedRelation = null;
       state.changes = { state: 'not_requested', list: null, selectedTarget: null, details: new Map(), impacts: new Map(), view: 'changes', comparison: false, witness: null, sourceReview: null, sourceReviewError: null, sourcePath: null, error: null }; resetEvidence();
-      for (const view of semapraxExplorerModel.VIEWS) await fetchPage(view, null, generation);
+      // An overview is useful as soon as its module map and first declaration
+      // page arrive. Relations and frontier data are detail inventory: asking
+      // for them here makes opening a large project proportional to every
+      // view, even when the user never inspects the graph edges.
+      const initialViews = selected.mode === 'overview' ? ['modules', 'declarations'] : semapraxExplorerModel.VIEWS;
+      for (const view of initialViews) await fetchPage(view, null, generation);
       if (generation !== state.generation) return;
       status.textContent = 'Project view ready'; draw();
       loadChangeCatalog(generation);

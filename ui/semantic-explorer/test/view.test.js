@@ -48,6 +48,18 @@ function sourceReview() {
   return { ...review, report_revision: hash(`${changes.SOURCE_REVIEW_SCHEMA}\0`, `${canonical(review)}\n`) };
 }
 
+test('overview opens with only bounded module and declaration pages', async () => {
+  const calls = [];
+  const host = {
+    async summary() { calls.push('summary'); return summary(); },
+    async page(request) { calls.push(`page:${request.view}`); return page(request.summary, request.view); }
+  };
+  const document = new Document(); const root = new Node(document, 'root');
+  createExplorer(root, host, { side: 'candidate' });
+  for (let index = 0; index < 12; index += 1) await tick();
+  assert.deepEqual(calls, ['summary', 'page:modules', 'page:declarations']);
+});
+
 test('candidate catalog, target delta, and selected evidence remain separate lazy reads', async () => {
   const calls = [];
   const host = {

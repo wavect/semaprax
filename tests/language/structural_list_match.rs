@@ -50,9 +50,52 @@ fn immutable_list_source_matches_real_cons_tail_in_graph_and_interpreter() {
     let native = semaprax::codegen::emit_c(&reparsed).unwrap();
     assert_eq!(native, semaprax::codegen::emit_c(&reparsed).unwrap());
     assert!(native.contains("spx_list_cons"));
-    assert_eq!(
-        semaprax::wasm::emit_module(&reparsed).unwrap_err().code,
-        "SPX-W130"
+    let wasm = semaprax::wasm::emit_module(&reparsed).unwrap();
+    assert_eq!(wasm, semaprax::wasm::emit_module(&reparsed).unwrap());
+    wasmparser::Validator::new().validate_all(&wasm).unwrap();
+}
+
+#[test]
+#[ignore = "requires explicitly provisioned Node.js Core Wasm runtime"]
+fn immutable_list_source_executes_in_core_wasm_with_shared_cells() {
+    use std::process::Command;
+    let node = std::env::var("SEMAPRAX_LAW_NODE").expect("explicit Node.js binary");
+    let program = semaprax::check(IMMUTABLE_LIST, "immutable-list-core-wasm.spx").unwrap();
+    let bytes = semaprax::wasm::emit_module(&program).unwrap();
+    wasmparser::Validator::new().validate_all(&bytes).unwrap();
+    let path = std::env::temp_dir().join(format!(
+        "semaprax-law08-immutable-list-{}.wasm",
+        std::process::id()
+    ));
+    std::fs::write(&path, bytes).unwrap();
+    let script = r#"
+import { readFileSync } from 'node:fs';
+const env = {
+  spx_add: (a, b) => a + b,
+  spx_sub: (a, b) => a - b,
+  spx_mul: (a, b) => a * b,
+  spx_div: (a, b) => a / b,
+  spx_rem: (a, b) => a % b,
+  spx_neg: a => -a,
+  spx_contract_fail: code => { throw Error(`unexpected status ${code}`); },
+};
+const { instance } = await WebAssembly.instantiate(readFileSync(process.argv[1]), { env });
+for (let i = 0; i < 3; i++) {
+  const observed = instance.exports.semaprax_main();
+  if (observed !== 3n) throw Error(`Core Wasm List result ${observed}`);
+}
+"#;
+    let run = Command::new(node)
+        .args(["--input-type=module", "--eval", script])
+        .arg(&path)
+        .output()
+        .unwrap();
+    let _ = std::fs::remove_file(path);
+    assert!(
+        run.status.success(),
+        "Core Wasm stdout={} stderr={}",
+        String::from_utf8_lossy(&run.stdout),
+        String::from_utf8_lossy(&run.stderr)
     );
 }
 

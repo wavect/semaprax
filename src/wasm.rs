@@ -954,8 +954,9 @@ fn emit_resolved_module_internal(
     scalar_exports: &[scalar_exports::ScalarExportPlan],
     text_exports: &[text_exports::TextExportPlan],
 ) -> Result<Vec<u8>, Diagnostic> {
+    let has_public_profile = !scalar_exports.is_empty() || !text_exports.is_empty();
     if crate::list_ops::resolved_program_uses_list(program) {
-        return Err(Diagnostic::io("SPX-W130", "List lowering unavailable"));
+        return aggregate::list_ops::emit_closed_list(program, has_public_profile);
     }
     if !scalar_exports.is_empty() && !text_exports.is_empty() {
         return Err(Diagnostic::io(
@@ -963,7 +964,6 @@ fn emit_resolved_module_internal(
             "scalar-v1 and borrowed-text-v1 exports cannot share one module",
         ));
     }
-    let has_public_profile = !scalar_exports.is_empty() || !text_exports.is_empty();
     if program
         .interfaces
         .iter()

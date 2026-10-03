@@ -342,6 +342,38 @@ fn caller_bypass_or_reordered_arguments_refuse_source_association() {
     }
 }
 
+#[test]
+fn private_wrapper_in_export_closure_is_not_a_selected_public_caller() {
+    let source = source(false).replace(
+        "@id(\"payment.step\")",
+        "@id(\"payment.other\") fn other(state: i64, event: i64) -> i64 { step(state, event) }\n@id(\"payment.step\")",
+    );
+    let fixture = Fixture::new(&source);
+    std::fs::write(
+        fixture.manifest(),
+        MANIFEST.replace(
+            "web_exports = [\"payment.step\"]",
+            "web_exports = [\"payment.other\"]",
+        ),
+    )
+    .unwrap();
+    let refusal = with_authenticated_project(&fixture.manifest(), |snapshot| {
+        check_project_source_protocol(
+            &snapshot.retain_revision(),
+            "payment.protocol",
+            "payment.dispatch",
+            "payment.step",
+            "Succeeded",
+            "charge",
+            BOUNDS,
+        )
+        .map(|_| ())
+        .map_err(|error| vec![error])
+    })
+    .unwrap_err();
+    assert_eq!(refusal[0].code, "SPX-LP408", "{refusal:?}");
+}
+
 fn selected_law(bounds: Bounds) -> LawModule {
     LawModule {
         module_id: "payment.laws".into(),

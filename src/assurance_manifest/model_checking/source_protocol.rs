@@ -324,6 +324,17 @@ fn require_caller_route(
     dispatcher_id: &str,
     caller_id: &str,
 ) -> Result<(), Diagnostic> {
+    if !revision
+        .manifest()
+        .web_exports()
+        .iter()
+        .any(|selected| selected == caller_id)
+    {
+        return Err(refusal(
+            "SPX-LP408",
+            "selected protocol caller is not an explicit Project web export",
+        ));
+    }
     let mut found = false;
     for program in [
         revision.entry_program(),

@@ -168,7 +168,8 @@ Range goals inside that right side now carry the corresponding Lean
 propositional path guard; an overflow in an unevaluated right side is not
 an unconditional goal. The shared typed VC subject records the same
 authored order, scalar modes, and path choices for the common subset. Lean
-checks its operation inventory against that subject before exporting.
+lowers that typed expression tree directly, while retaining its narrower
+no-conditional profile, and checks its operation inventory before exporting.
 
 A source certificate also requires a concrete, checked precondition witness
 from a fixed 256-state scalar search before invoking Lean. Failure to find

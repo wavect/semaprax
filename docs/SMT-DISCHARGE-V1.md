@@ -133,7 +133,9 @@ The query separately stages each `requires` clause's range goals: arithmetic
 in clause `i` may assume only clauses before `i`. The body and
 postconditions may assume the complete well-defined precondition. The shared
 typed VC subject records the stage, scalar mode, authored operation order,
-and lazy path choices; the SMT emitter checks its goal inventory against it.
+and lazy path choices. The SMT emitter lowers that typed expression tree
+directly, using persistent binding IDs for parameters, immutable lets, and
+`result`, then checks its goal inventory against the VC operations.
 
 ## The query
 

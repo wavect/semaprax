@@ -31,13 +31,11 @@
 
 use std::fmt::Write as _;
 
-use crate::assurance_manifest::law_vc::{self, Stage};
+use crate::assurance_manifest::law_vc::{self, Definition, Stage, Term as VcTerm, TermKind};
 use crate::assurance_manifest::smt_discharge::{NumericMode, Sort, UnsupportedReason};
-use crate::ast::{
-    BinaryOp, Expr, ExprKind, Function, Program, Statement, TypeDeclarationKind, UnaryOp,
-};
+use crate::ast::{BinaryOp, Function, Program, TypeDeclarationKind, UnaryOp};
 
-use super::profile::{admit_declaration, sort_of_type, value_mode, Excluded, PROFILE_V1};
+use super::profile::{admit_declaration, value_mode, Excluded, PROFILE_V1};
 
 /// The wire identity of the generated Lean document.
 pub const EXPORT_SCHEMA: &str = "semaprax.lean-obligation-export.v1";
@@ -203,45 +201,11 @@ pub fn range_obligation_id(declaration_id: &str, index: usize) -> String {
 struct Builder {
     binders: Vec<String>,
     pending: Vec<Pending>,
-    scope: Vec<(String, Term)>,
+    scope: Vec<(usize, Term)>,
     lets: usize,
-    result: Option<Term>,
 }
 
 impl Builder {
-    fn expr_excluded(expr: &Expr) -> Option<Excluded> {
-        let what = match &expr.kind {
-            ExprKind::Closure { .. } => "closure",
-            ExprKind::Char(_) => "char literal",
-            ExprKind::ArrayU8(_) => "byte array literal",
-            ExprKind::RepeatArrayU8 { .. } => "repeated byte array literal",
-            ExprKind::Float32(_) | ExprKind::Float64(_) => "floating point",
-            ExprKind::String(_) => "string literal",
-            ExprKind::Call { .. } => "call",
-            ExprKind::MethodCall { .. } => "method call",
-            ExprKind::SuperMethod { .. } => "super method call",
-            ExprKind::ConstructRecord { .. } => "record construction",
-            ExprKind::ConstructVariant { .. } => "variant construction",
-            ExprKind::Match { .. } => "match",
-            ExprKind::Try { .. } => "try",
-            ExprKind::UpdateRecord { .. } => "record update",
-            ExprKind::Project { .. } => "field projection",
-            ExprKind::If { .. } => return Some(Excluded::Conditional),
-            ExprKind::Int(_)
-            | ExprKind::Int32(_)
-            | ExprKind::Uint8(_)
-            | ExprKind::Usize(_)
-            | ExprKind::Bool(_)
-            | ExprKind::Var(_)
-            | ExprKind::Unary { .. }
-            | ExprKind::Binary { .. }
-            | ExprKind::Block { .. } => return None,
-            #[allow(unreachable_patterns)]
-            _ => "expression",
-        };
-        Some(Excluded::Shared(UnsupportedReason::Expr { what }))
-    }
-
     fn record_range(&mut self, term: &str, mode: NumericMode, origin: &str, guard: &str) {
         self.pending.push(Pending {
             binder_count: self.binders.len(),
@@ -252,58 +216,34 @@ impl Builder {
         });
     }
 
-    fn lookup(&self, name: &str) -> Option<&Term> {
+    fn lookup(&self, binding: usize) -> Option<&Term> {
         self.scope
             .iter()
             .rev()
-            .find(|(bound, _)| bound == name)
+            .find(|(id, _)| *id == binding)
             .map(|(_, term)| term)
     }
 
-    fn translate(&mut self, expr: &Expr, origin: &str, guard: &str) -> Result<Term, Excluded> {
-        if let Some(reason) = Self::expr_excluded(expr) {
-            return Err(reason);
-        }
+    fn translate(&mut self, expr: &VcTerm, origin: &str, guard: &str) -> Result<Term, Excluded> {
         match &expr.kind {
-            ExprKind::Int(value) => Ok(Term {
-                text: int_literal(i128::from(*value)),
-                sort: Sort::Numeric(NumericMode::I64),
+            TermKind::Number(value) => Ok(Term {
+                text: int_literal(*value),
+                sort: expr.sort,
             }),
-            ExprKind::Int32(value) => Ok(Term {
-                text: int_literal(i128::from(*value)),
-                sort: Sort::Numeric(NumericMode::I32),
-            }),
-            ExprKind::Uint8(value) => Ok(Term {
-                text: int_literal(i128::from(*value)),
-                sort: Sort::Numeric(NumericMode::U8),
-            }),
-            ExprKind::Usize(value) => Ok(Term {
-                text: int_literal(i128::from(*value)),
-                sort: Sort::Numeric(NumericMode::Usize),
-            }),
-            ExprKind::Bool(value) => Ok(Term {
+            TermKind::Bool(value) => Ok(Term {
                 text: if *value { "True" } else { "False" }.to_owned(),
                 sort: Sort::Bool,
             }),
-            ExprKind::Var(name) => {
-                if name == "result" {
-                    if let Some(result) = &self.result {
-                        return Ok(Term {
-                            text: result.text.clone(),
-                            sort: result.sort,
-                        });
-                    }
-                }
-                self.lookup(name)
-                    .map(|term| Term {
-                        text: term.text.clone(),
-                        sort: term.sort,
-                    })
-                    .ok_or_else(|| {
-                        Excluded::Shared(UnsupportedReason::UnknownName { name: name.clone() })
-                    })
-            }
-            ExprKind::Unary { op, value } => {
+            TermKind::Binding { id, name } => self
+                .lookup(*id)
+                .map(|term| Term {
+                    text: term.text.clone(),
+                    sort: term.sort,
+                })
+                .ok_or_else(|| {
+                    Excluded::Shared(UnsupportedReason::UnknownName { name: name.clone() })
+                }),
+            TermKind::Unary { op, value } => {
                 let inner = self.translate(value, origin, guard)?;
                 match op {
                     UnaryOp::Neg => {
@@ -334,27 +274,27 @@ impl Builder {
                     }
                 }
             }
-            ExprKind::Binary { op, left, right } => {
+            TermKind::Binary { op, left, right } => {
                 self.translate_binary(*op, left, right, origin, guard)
             }
-            ExprKind::Block { statements, tail } => {
+            TermKind::Block { definitions, tail } => {
                 let depth = self.scope.len();
-                for statement in statements {
-                    self.translate_statement(statement, origin, guard)?;
+                for definition in definitions {
+                    self.translate_definition(definition, origin, guard)?;
                 }
                 let tail_term = self.translate(tail, origin, guard)?;
                 self.scope.truncate(depth);
                 Ok(tail_term)
             }
-            _ => unreachable!("expr_excluded already rejected every other form"),
+            TermKind::If { .. } => Err(Excluded::Conditional),
         }
     }
 
     fn translate_binary(
         &mut self,
         op: BinaryOp,
-        left: &Expr,
-        right: &Expr,
+        left: &VcTerm,
+        right: &VcTerm,
         origin: &str,
         guard: &str,
     ) -> Result<Term, Excluded> {
@@ -447,60 +387,26 @@ impl Builder {
         }
     }
 
-    fn translate_statement(
+    fn translate_definition(
         &mut self,
-        statement: &Statement,
+        definition: &Definition,
         origin: &str,
         guard: &str,
     ) -> Result<(), Excluded> {
-        let Statement::Let {
-            name,
-            mutable,
-            declared,
-            value,
-            ..
-        } = statement
-        else {
-            let what = match statement {
-                Statement::Assign { .. } => "assign",
-                Statement::Unsafe { .. } => "unsafe",
-                Statement::While { .. } => "while",
-                Statement::For { .. } => "for",
-                _ => "statement",
-            };
-            return Err(Excluded::Shared(UnsupportedReason::NonLetStatement {
-                what,
-            }));
-        };
-        if *mutable {
-            return Err(Excluded::Shared(UnsupportedReason::MutableLocalBinding {
-                name: name.clone(),
-            }));
-        }
-        let bound = self.translate(value, origin, guard)?;
+        let bound = self.translate(&definition.value, origin, guard)?;
         let Sort::Numeric(mode) = bound.sort else {
             return Err(Excluded::BoolValued {
-                position: format!("`let {name}`"),
+                position: format!("`let {}`", definition.name),
             });
         };
-        if let Some(declared_type) = declared {
-            let declared_mode = value_mode(declared_type, &format!("`let {name}`"))?;
-            if declared_mode != mode {
-                return Err(Excluded::Shared(UnsupportedReason::TypeMismatch {
-                    detail: format!(
-                        "`let {name}: {declared_type}` disagrees with the inferred type of its value"
-                    ),
-                }));
-            }
-        }
         let index = self.lets;
         self.lets += 1;
-        let binder = format!("v_{}_{index}", escape_ident(name));
+        let binder = format!("v_{}_{index}", escape_ident(&definition.name));
         self.binders.push(format!("({binder} : Int)"));
         self.binders
             .push(format!("(h_def_{index} : {binder} = {})", bound.text));
         self.scope.push((
-            name.clone(),
+            definition.binding,
             Term {
                 text: binder,
                 sort: Sort::Numeric(mode),
@@ -517,31 +423,31 @@ impl Builder {
 pub fn export_function(function: &Function) -> Result<FunctionExport, Excluded> {
     admit_declaration(function)?;
     let return_mode = value_mode(&function.return_type, "return type")?;
+    let subject = law_vc::build(function).map_err(Excluded::Shared)?;
 
     let mut builder = Builder {
         binders: Vec::new(),
         pending: Vec::new(),
         scope: Vec::new(),
         lets: 0,
-        result: None,
     };
 
-    for param in &function.params {
-        let Some(Sort::Numeric(mode)) = sort_of_type(&param.ty) else {
-            unreachable!("admit_declaration already restricted every parameter to a numeric type");
+    for param in &subject.parameters {
+        let Sort::Numeric(mode) = param.sort else {
+            unreachable!("admit_declaration excludes bool-valued parameters");
         };
         let binder = format!("v_{}", escape_ident(&param.name));
         builder.binders.push(format!("({binder} : Int)"));
         builder.scope.push((
-            param.name.clone(),
+            param.binding,
             Term {
                 text: binder,
                 sort: Sort::Numeric(mode),
             },
         ));
     }
-    for (index, param) in function.params.iter().enumerate() {
-        let Some(Sort::Numeric(mode)) = sort_of_type(&param.ty) else {
+    for (index, param) in subject.parameters.iter().enumerate() {
+        let Sort::Numeric(mode) = param.sort else {
             unreachable!("checked above");
         };
         let binder = format!("v_{}", escape_ident(&param.name));
@@ -555,7 +461,7 @@ pub fn export_function(function: &Function) -> Result<FunctionExport, Excluded> 
         ));
     }
 
-    for (index, clause) in function.requires.iter().enumerate() {
+    for (index, clause) in subject.requires.iter().enumerate() {
         let origin = format!("requires[{index}]");
         let term = builder.translate(clause, &origin, "True")?;
         if term.sort != Sort::Bool {
@@ -569,7 +475,11 @@ pub fn export_function(function: &Function) -> Result<FunctionExport, Excluded> 
             .push(format!("(h_req_{index} : {})", term.text));
     }
 
-    let body = builder.translate(&function.body, "body", "True")?;
+    let body = builder.translate(
+        subject.result.as_ref().expect("ensures requires result"),
+        "body",
+        "True",
+    )?;
     match body.sort {
         Sort::Numeric(mode) if mode == return_mode => {}
         _ => {
@@ -582,13 +492,16 @@ pub fn export_function(function: &Function) -> Result<FunctionExport, Excluded> 
     builder
         .binders
         .push(format!("(h_result : result = {})", body.text));
-    builder.result = Some(Term {
-        text: "result".to_owned(),
-        sort: Sort::Numeric(return_mode),
-    });
+    builder.scope.push((
+        subject.result_binding.expect("result binding"),
+        Term {
+            text: "result".to_owned(),
+            sort: Sort::Numeric(return_mode),
+        },
+    ));
 
     let mut ensures_goals = Vec::new();
-    for (index, clause) in function.ensures.iter().enumerate() {
+    for (index, clause) in subject.ensures.iter().enumerate() {
         let origin = format!("ensures[{index}]");
         let term = builder.translate(clause, &origin, "True")?;
         if term.sort != Sort::Bool {
@@ -601,7 +514,6 @@ pub fn export_function(function: &Function) -> Result<FunctionExport, Excluded> 
     }
     let all_binders = builder.binders.len();
 
-    let subject = law_vc::build(function).map_err(Excluded::Shared)?;
     let observed = builder
         .pending
         .iter()

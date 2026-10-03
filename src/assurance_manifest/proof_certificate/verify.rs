@@ -544,6 +544,18 @@ pub fn verify_certificate_against_source(
             reason.detail()
         ))
     })?;
+    // The v1 envelope does not embed a domain witness. Reconstruct one
+    // deterministically from exact authenticated source before accepting
+    // any source-bound `proved` claim. Finite exhaustion is unknown, not a
+    // contradiction proof; no solver or process authority is acquired.
+    if matches!(&checked.body, CheckedBody::Proved)
+        && super::super::smt_discharge::bounded_domain_witness(function, 256).is_none()
+    {
+        return Err(consistency_error(
+            "precondition domain is unknown: no bounded checked witness for source-bound proof"
+                .to_owned(),
+        ));
+    }
     if checked.ensures_index >= encoding.ensures.len() {
         return Err(drift_error(
             "ensures_index is out of range for the current declaration".to_owned(),

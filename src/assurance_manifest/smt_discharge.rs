@@ -33,7 +33,7 @@ pub use replay::{bounded_domain_witness, replay_function, validate_domain_witnes
 pub use solver::{
     provision_from_env, run, solver_version, Provisioning, RunLimits, Verdict, ENV_Z3_PATH,
 };
-pub(crate) use subset::sort_of_type;
+pub(crate) use subset::{binary_op_reason, expr_reason, sort_of_type, statement_reason};
 pub use subset::{check_declaration_supported, NumericMode, Sort, UnsupportedReason};
 pub use translate::{translate_function, FunctionEncoding, SideObligation};
 

@@ -6,6 +6,7 @@
 
 use crate::ast::{BinaryOp, Expr, ExprKind, Function, Statement, UnaryOp};
 
+use super::smt_discharge::{binary_op_reason, expr_reason, statement_reason};
 use super::smt_discharge::{check_declaration_supported, NumericMode, Sort, UnsupportedReason};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -37,9 +38,16 @@ pub enum TermKind {
         else_value: Box<Term>,
     },
     Block {
-        definitions: Vec<(usize, Term)>,
+        definitions: Vec<Definition>,
         tail: Box<Term>,
     },
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Definition {
+    pub binding: usize,
+    pub name: String,
+    pub value: Term,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -76,6 +84,7 @@ pub struct Subject {
     pub parameters: Vec<Parameter>,
     pub requires: Vec<Term>,
     pub result: Option<Term>,
+    pub result_binding: Option<usize>,
     pub ensures: Vec<Term>,
     pub operations: Vec<Operation>,
 }
@@ -100,6 +109,9 @@ impl Builder {
         stage: Stage,
         path: &[PathChoice],
     ) -> Result<Term, UnsupportedReason> {
+        if let Some(reason) = expr_reason(expr) {
+            return Err(reason);
+        }
         let simple = |kind, sort| Ok(Term { sort, kind });
         match &expr.kind {
             ExprKind::Int(value) => simple(
@@ -154,10 +166,8 @@ impl Builder {
                 Ok(term)
             }
             ExprKind::Binary { op, left, right } => {
-                if matches!(op, BinaryOp::Div | BinaryOp::Rem) {
-                    return Err(UnsupportedReason::Expr {
-                        what: "division or remainder",
-                    });
+                if let Some(reason) = binary_op_reason(*op) {
+                    return Err(reason);
                 }
                 let lhs = self.expression(left, stage, path)?;
                 let mut rhs_path = path.to_vec();
@@ -251,6 +261,10 @@ impl Builder {
                 let depth = self.scope.len();
                 let mut definitions = Vec::new();
                 for statement in statements {
+                    if let Some(reason) = statement_reason(statement) {
+                        self.scope.truncate(depth);
+                        return Err(reason);
+                    }
                     let Statement::Let {
                         name,
                         mutable: false,
@@ -274,7 +288,11 @@ impl Builder {
                         }
                     }
                     let id = self.binding(name, value.sort);
-                    definitions.push((id, value));
+                    definitions.push(Definition {
+                        binding: id,
+                        name: name.clone(),
+                        value,
+                    });
                 }
                 let tail = self.expression(tail, stage, path)?;
                 self.scope.truncate(depth);
@@ -328,6 +346,7 @@ pub fn build(function: &Function) -> Result<Subject, UnsupportedReason> {
         }
         requires.push(term);
     }
+    let mut result_binding = None;
     let result = if function.ensures.is_empty() {
         None
     } else {
@@ -337,7 +356,7 @@ pub fn build(function: &Function) -> Result<Subject, UnsupportedReason> {
                 detail: "typed VC result sort mismatch".to_owned(),
             });
         }
-        builder.binding("result", term.sort);
+        result_binding = Some(builder.binding("result", term.sort));
         Some(term)
     };
     let mut ensures = Vec::new();
@@ -352,6 +371,7 @@ pub fn build(function: &Function) -> Result<Subject, UnsupportedReason> {
         parameters,
         requires,
         result,
+        result_binding,
         ensures,
         operations: builder.operations,
     })

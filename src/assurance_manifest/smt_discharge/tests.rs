@@ -143,6 +143,41 @@ fn checked_reference_witness_distinguishes_overflow_and_empty_domain() {
     assert!(bounded_domain_witness(&contradictory, 32).is_none());
 }
 
+/// A tiny independent checked-i64 oracle for model interpretation. This is
+/// test evidence about the admitted examples, not a compiler proof.
+#[test]
+fn scalar_model_corpus_matches_checked_reference_execution() {
+    let f = function(
+        "module app.t;\n@id(\"app.t.f\")\nfn f(a: i64) -> i64\n    requires a == 0 || a + 1 > 0\n    ensures result >= a\n{ if a == 0 { 0 } else { a + 1 } }\n",
+    );
+    for a in [i64::MIN, -2, -1, 0, 1, i64::MAX - 1, i64::MAX] {
+        let model = Model::from([("a".to_owned(), ModelValue::Int(i128::from(a)))]);
+        let actual = replay_function(&f, &model).expect("scalar model replays");
+        let expected = if a == 0 {
+            "valid"
+        } else if let Some(next) = a.checked_add(1) {
+            if next > 0 {
+                "valid"
+            } else {
+                "requires_false"
+            }
+        } else {
+            "trapped"
+        };
+        match (expected, &actual) {
+            ("valid", ReplayOutcome::Inconsistent { detail }) => assert!(
+                detail.contains("no trap or ensures violation"),
+                "{a}: {detail}"
+            ),
+            ("requires_false", ReplayOutcome::Inconsistent { detail }) => {
+                assert!(detail.contains("requires clause"), "{a}: {detail}")
+            }
+            ("trapped", ReplayOutcome::Trapped { .. }) => {}
+            _ => panic!("model {a}: expected {expected}, got {actual:?}"),
+        }
+    }
+}
+
 // ---------------------------------------------------------------------
 // Orchestration without a real solver process
 // ---------------------------------------------------------------------

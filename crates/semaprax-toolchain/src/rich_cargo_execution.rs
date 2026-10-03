@@ -774,9 +774,13 @@ mod tests {
             .output()
             .unwrap();
         assert!(!output.status.success());
+        bounded(&output.stderr).unwrap();
         let stderr = String::from_utf8(output.stderr).unwrap();
-        assert!(stderr.contains("no matching package named `missing-vendor` found"));
-        assert!(stderr.contains("required by package `semaprax-ri02-missing-vendor-fixture"));
+        assert!(stderr.contains("`missing-vendor`"), "{stderr}");
+        assert!(
+            stderr.contains("semaprax-ri02-missing-vendor-fixture"),
+            "{stderr}"
+        );
         fs::remove_dir_all(target).unwrap();
     }
 

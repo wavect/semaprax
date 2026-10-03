@@ -6,6 +6,7 @@
 //! and authorized `--locked --offline` execution are separate toolchain steps.
 
 use sha2::{Digest, Sha256};
+use std::collections::BTreeMap;
 use std::fmt::Write;
 
 pub const RICH_CARGO_PREPARATION_SCHEMA: &str = "semaprax.native-rust-rich-cargo-preparation.v1";
@@ -110,6 +111,13 @@ pub struct PreparedCargoClosure {
     digest: String,
 }
 
+/// Caller-owned cache of canonical prepared closures. It holds no paths,
+/// process authority, acquired package data, or generated artifacts.
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct PreparedCargoClosureCache {
+    entries: BTreeMap<String, PreparedCargoClosure>,
+}
+
 impl PreparedCargoClosure {
     pub fn bytes(&self) -> &[u8] {
         &self.bytes
@@ -137,6 +145,29 @@ impl PreparedCargoClosure {
             bytes: bytes.to_vec(),
             digest,
         })
+    }
+}
+
+impl PreparedCargoClosureCache {
+    pub fn get(&self, digest: &str) -> Option<&PreparedCargoClosure> {
+        self.entries.get(digest)
+    }
+
+    /// Insert a newly prepared closure, or return an existing byte-identical
+    /// closure under its digest. A digest collision fails closed.
+    pub fn reuse_or_insert(
+        &mut self,
+        closure: PreparedCargoClosure,
+    ) -> Result<(PreparedCargoClosure, bool), CargoPreparationError> {
+        if let Some(existing) = self.entries.get(closure.digest()) {
+            if existing.bytes() != closure.bytes() {
+                return Err(CargoPreparationError::Disagreement);
+            }
+            return Ok((existing.clone(), true));
+        }
+        self.entries
+            .insert(closure.digest().to_owned(), closure.clone());
+        Ok((closure, false))
     }
 }
 
@@ -189,6 +220,15 @@ pub fn prepare_cargo_closure(
         bytes: bytes.into_bytes(),
         digest,
     })
+}
+
+/// Prepare the pure canonical record and reuse a caller-owned held closure
+/// when every bound input produces the same digest and bytes.
+pub fn prepare_cargo_closure_cached(
+    input: CargoPreparationInput,
+    cache: &mut PreparedCargoClosureCache,
+) -> Result<(PreparedCargoClosure, bool), CargoPreparationError> {
+    cache.reuse_or_insert(prepare_cargo_closure(input)?)
 }
 
 fn validate_input(input: &CargoPreparationInput) -> Result<(), CargoPreparationError> {
@@ -455,6 +495,23 @@ mod tests {
             PreparedCargoClosure::replay(first.bytes(), first.digest()).unwrap(),
             first
         );
+    }
+
+    #[test]
+    fn caller_owned_cache_reuses_only_an_identical_prepared_closure() {
+        let mut cache = PreparedCargoClosureCache::default();
+        let (first, reused) = prepare_cargo_closure_cached(input(), &mut cache).unwrap();
+        assert!(!reused);
+        let (second, reused) = prepare_cargo_closure_cached(input(), &mut cache).unwrap();
+        assert!(reused);
+        assert_eq!(first, second);
+        assert_eq!(cache.get(first.digest()), Some(&first));
+
+        let mut changed = input();
+        changed.cargo_lock = b"changed-lock".to_vec();
+        let (changed, reused) = prepare_cargo_closure_cached(changed, &mut cache).unwrap();
+        assert!(!reused);
+        assert_ne!(changed, first);
     }
 
     #[test]

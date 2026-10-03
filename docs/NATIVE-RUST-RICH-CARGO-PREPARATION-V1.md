@@ -97,9 +97,10 @@ bound, and the domain-separated digest. The digest binds source, descriptor,
 generator, lock, features, target, host/target distinction, profile, Cargo
 config, Rust/native toolchains, build-script/proc-macro inputs, and
 source-tree/checksum identities, so any change invalidates a prior prepared
-closure. Repeating preparation with unchanged inputs returns identical closure
-bytes and digest, which is the safe reuse key; this module does not itself
-publish or reuse build artifacts.
+closure. `PreparedCargoClosureCache` is caller-owned and reuses a
+byte-identical closure under that digest; a changed bound input creates a new
+entry. It holds no authority or artifacts, and this module does not publish or
+reuse build artifacts.
 
 ## Later effectful stages
 

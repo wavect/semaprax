@@ -16,6 +16,7 @@
 //! structural anomaly) or an explicit admission that the bound fired before
 //! closure.
 
+use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::fmt::Debug;
 
@@ -32,7 +33,8 @@ use std::fmt::Debug;
 /// still finish, so the deterministic minimal counterexample search is
 /// never truncated early by a depth limit that a shorter violation would
 /// not have needed.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Bounds {
     pub max_states: usize,
     pub max_depth: usize,

@@ -59,6 +59,13 @@ The profiles are deliberately separate, not a total evidence ordering:
   counts. A weaker depth cannot satisfy a larger requested depth. This proves
   only the selected finite reference model, never an arbitrary Project protocol
   or an unbounded theorem.
+- `source_protocol_safety`: an independently selected exact digest of the
+  source-executed finite protocol report and minimum state, depth and transition
+  bounds. It accepts only a fully closed `model_checked` result for the matching
+  `source_protocol_safety` selector. Via-only architecture evidence, a reference
+  model, missing caller association, an unreplayed abstract trace, and bound
+  exhaustion cannot satisfy this method. The report is rederived from retained
+  Project source at strict replay; it grants no payment or publication authority.
 - `pinned_smt_source`: exact installed Z3 Project evidence, pinned version and
   explicitly accepted checked-arithmetic translation profile. A structurally
   valid SMT certificate is insufficient. Unpinned `smt_source` still refuses.

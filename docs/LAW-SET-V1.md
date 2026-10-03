@@ -37,6 +37,7 @@ The admitted selectors are:
 | `forbid_reaches` | Claim ID and persistent `from`/`to` declaration IDs | Existing architecture evaluator |
 | `protocol_realizers_bound` | Claim ID and persistent protocol ID | Existing architecture evaluator; realizer binding only |
 | `model_property` | Closed `authorization`/`handle` reference model and exact registered invariant | Existing bounded model checker and model descriptor |
+| `source_protocol_safety` | Retained protocol ID, checked pure dispatcher, exact public forwarding caller, success state, charge label and explicit finite bounds | Source-executed complete transition table and bounded checker; only closed exploration supplies `model_checked` |
 
 Contract selectors accept scalar literals, variables, unary and binary operators.
 They are parsed and canonically formatted, not executed as assertions. Calls,
@@ -60,6 +61,16 @@ it does not assert the arbitrary Project implementation conforms to that model.
 Evidence records state `reference_model_only` and bind the model digest. There
 is no caller-authored transition system, assertion-string escape, solver launch,
 or ambient authority.
+
+`source_protocol_safety` is a separate Project-source method. Its law module
+must name the protocol's retained source path. The admitted public caller
+forwards its two scalar inputs exactly once to the pure dispatcher, and no
+other checked function may call or reference that dispatcher. The checker
+executes every state/event pair, compares declared and disabled transitions,
+then explores the resulting finite system. Missing/unsupported realizers,
+uncovered transitions, abstract traces and exhausted bounds remain visible
+missing, unsupported or open law rows. A held `protocol_realizers_bound` claim
+cannot satisfy this source method: `via` identity alone proves no ordering.
 
 ## Inventory, report, and policy
 

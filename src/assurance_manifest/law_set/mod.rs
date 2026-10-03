@@ -7,6 +7,7 @@ pub mod strict;
 mod wire;
 pub mod workflow;
 
+use super::model_checking::Bounds;
 use crate::diagnostic::Diagnostic;
 use crate::project::ProjectRevision;
 use serde::{Deserialize, Serialize};
@@ -53,6 +54,15 @@ pub enum LawSelector {
     },
     /// A property of the named reference model only, never of arbitrary Project code.
     ModelProperty { model: ModelKind, property: String },
+    /// Exact finite source dispatcher and one checked public caller route.
+    SourceProtocolSafety {
+        protocol_id: String,
+        dispatcher_id: String,
+        caller_id: String,
+        success_state: String,
+        charge_label: String,
+        bounds: Bounds,
+    },
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -406,6 +416,34 @@ fn normalize(law: &mut LawDefinition) -> Result<()> {
             };
             if !properties.contains(&property.as_str()) {
                 return Err(invalid("unsupported model property selector"));
+            }
+        }
+        LawSelector::SourceProtocolSafety {
+            protocol_id,
+            dispatcher_id,
+            caller_id,
+            success_state,
+            charge_label,
+            bounds,
+        } => {
+            if !matches!(law.evidence, EvidenceRequirement::ModelChecked) {
+                return Err(invalid(
+                    "source protocol law requires model_checked evidence",
+                ));
+            }
+            for id in [
+                protocol_id,
+                dispatcher_id,
+                caller_id,
+                success_state,
+                charge_label,
+            ] {
+                text_id(id)?;
+            }
+            if bounds.max_states == 0 || bounds.max_depth == 0 || bounds.max_transitions == 0 {
+                return Err(invalid(
+                    "source protocol law requires explicit positive bounds",
+                ));
             }
         }
     }

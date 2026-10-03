@@ -28,6 +28,14 @@ pub enum RequiredLawEvidence {
         minimum_depth: usize,
         minimum_transitions: usize,
     },
+    /// Distinct from a reference model: the entire finite table is executed
+    /// from checked Project source and the public caller route is inspected.
+    SourceProtocolSafety {
+        evidence_digest: String,
+        minimum_states: usize,
+        minimum_depth: usize,
+        minimum_transitions: usize,
+    },
     /// Unpinned legacy request: use the explicit pinned SMT trust profile.
     SmtSource,
     /// Exact installed Z3 version and the frozen checked-arithmetic source
@@ -297,6 +305,30 @@ fn check_requirement(
             }
             (evidence["verified"] != true || evidence["scope"] != "reference_model_only")
                 .then_some("reference_model_not_verified")
+        }
+        RequiredLawEvidence::SourceProtocolSafety {
+            evidence_digest,
+            minimum_states,
+            minimum_depth,
+            minimum_transitions,
+        } => {
+            let LawSelector::SourceProtocolSafety { bounds, .. } = &law.definition.selector else {
+                return Some("source_protocol_scope_does_not_match_law");
+            };
+            if bounds.max_states < *minimum_states
+                || bounds.max_depth < *minimum_depth
+                || bounds.max_transitions < *minimum_transitions
+            {
+                return Some("source_protocol_bound_insufficient");
+            }
+            if evidence["schema"] != mc::source_protocol::SOURCE_PROTOCOL_SCHEMA
+                || evidence["status"] != "model_checked"
+                || evidence["trace_replay"] != "not_applicable"
+                || evidence["evidence_digest"] != *evidence_digest
+            {
+                return Some("source_protocol_source_or_domain_identity_mismatch");
+            }
+            None
         }
         RequiredLawEvidence::SmtSource => Some("solver_confirmed_project_attachment_unavailable"),
         RequiredLawEvidence::PinnedSmtSource {

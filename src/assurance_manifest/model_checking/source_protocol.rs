@@ -12,7 +12,7 @@ use sha2::{Digest as _, Sha256};
 
 use crate::ast::{SessionProtocolDeclaration, SessionProtocolNext};
 use crate::diagnostic::Diagnostic;
-use crate::hir::{ResolvedProgram, ResolvedType};
+use crate::hir::{ResolvedExprKind, ResolvedProgram, ResolvedType};
 use crate::interpreter::{PublicApiEvaluationOutcome, PublicApiValue};
 use crate::project::{ProjectRevision, PublicApiArgument};
 
@@ -72,8 +72,10 @@ pub struct SourceProtocolReport {
     pub schema: &'static str,
     pub project_revision: String,
     pub protocol_id: String,
+    pub protocol_source_path: String,
     pub protocol_source_digest: String,
     pub dispatcher_id: String,
+    pub caller_id: String,
     pub state_domain: Vec<String>,
     pub event_domain: Vec<String>,
     pub initial_state: String,
@@ -149,8 +151,10 @@ impl SourceProtocolReport {
             "claim": "finite_pure_dispatcher_safety_only_no_external_exactly_once",
             "project_revision": self.project_revision,
             "protocol_id": self.protocol_id,
+            "protocol_source_path": self.protocol_source_path,
             "protocol_source_digest": self.protocol_source_digest,
             "dispatcher_id": self.dispatcher_id,
+            "caller_id": self.caller_id,
             "state_domain": self.state_domain,
             "event_domain": self.event_domain,
             "initial_state": self.initial_state,
@@ -311,6 +315,107 @@ fn selected_dispatcher<'a>(
     Ok(program)
 }
 
+/// The selected public route must pass its exact two inputs to the dispatcher.
+/// No other checked function may call or take a reference to that dispatcher.
+/// This is an explicit narrow caller boundary, not a whole-program assertion
+/// that effectful payment code or external providers follow this protocol.
+fn require_caller_route(
+    revision: &ProjectRevision,
+    dispatcher_id: &str,
+    caller_id: &str,
+) -> Result<(), Diagnostic> {
+    let mut found = false;
+    for program in [
+        revision.entry_program(),
+        revision.public_api_program(),
+        revision.test_program(),
+    ] {
+        for function in &program.functions {
+            if function.id.as_str() == caller_id {
+                found = true;
+            }
+            let mut calls_dispatcher = false;
+            for expression in function
+                .requires
+                .iter()
+                .chain(std::iter::once(&function.body))
+                .chain(&function.ensures)
+            {
+                crate::hir::visit_resolved_calls(expression, &mut |callee, _, _| {
+                    calls_dispatcher |= callee.as_str() == dispatcher_id;
+                });
+            }
+            if calls_dispatcher && function.id.as_str() != caller_id {
+                return Err(refusal(
+                    "SPX-LP408",
+                    "checked dispatcher has a call or reference outside the selected public route",
+                ));
+            }
+        }
+    }
+    let caller = revision
+        .public_api_program()
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == caller_id)
+        .ok_or_else(|| {
+            refusal(
+                "SPX-LP408",
+                "selected caller is not a checked public API route",
+            )
+        })?;
+    if !found
+        || caller.params.len() != 2
+        || caller
+            .params
+            .iter()
+            .any(|param| param.ty != ResolvedType::I64)
+        || caller.return_type != ResolvedType::I64
+        || !caller.effects.is_empty()
+        || !caller.requires.is_empty()
+        || !caller.ensures.is_empty()
+        || caller.yields.is_some()
+    {
+        return Err(refusal(
+            "SPX-LP408",
+            "selected caller must be a pure public (i64,i64)->i64 route",
+        ));
+    }
+    let ResolvedExprKind::Block { statements, tail } = &caller.body.kind else {
+        return Err(refusal(
+            "SPX-LP408",
+            "selected caller body is not a direct dispatcher call",
+        ));
+    };
+    let ResolvedExprKind::Call {
+        callee,
+        type_arguments,
+        instance,
+        args,
+    } = &tail.kind
+    else {
+        return Err(refusal(
+            "SPX-LP408",
+            "selected caller body is not a direct dispatcher call",
+        ));
+    };
+    if !statements.is_empty()
+        || callee.as_str() != dispatcher_id
+        || !type_arguments.is_empty()
+        || instance.is_some()
+        || args.len() != 2
+        || args.iter().zip(&caller.params).any(|(arg, param)| {
+            !matches!(&arg.kind, ResolvedExprKind::Place(place) if place.root == param.id && place.projections.is_empty())
+        })
+    {
+        return Err(refusal(
+            "SPX-LP408",
+            "selected caller must forward its exact parameters once to the dispatcher",
+        ));
+    }
+    Ok(())
+}
+
 fn execute(
     program: &ResolvedProgram,
     dispatcher_id: &str,
@@ -348,9 +453,11 @@ fn execute(
 
 fn digest(
     revision: &ProjectRevision,
+    source_path: &str,
     source_digest: &str,
     protocol: &SessionProtocolDeclaration,
     dispatcher_id: &str,
+    caller_id: &str,
     states: &[String],
     events: &[String],
     table: &[Vec<Option<(usize, bool)>>],
@@ -362,9 +469,11 @@ fn digest(
     hash.update(b"semaprax.source-protocol-safety.v1\0");
     for text in [
         revision.project_revision(),
+        source_path,
         source_digest,
         &protocol.stable_id,
         dispatcher_id,
+        caller_id,
         success,
         charge,
         "fairness:none",
@@ -391,6 +500,7 @@ pub fn check_project_source_protocol(
     revision: &ProjectRevision,
     protocol_id: &str,
     dispatcher_id: &str,
+    caller_id: &str,
     success_state: &str,
     charge_label: &str,
     bounds: Bounds,
@@ -440,6 +550,7 @@ pub fn check_project_source_protocol(
         ));
     }
     let program = selected_dispatcher(revision, dispatcher_id)?;
+    require_caller_route(revision, dispatcher_id, caller_id)?;
     let terminals = protocol
         .terminals
         .iter()
@@ -501,9 +612,11 @@ pub fn check_project_source_protocol(
     }
     let evidence_digest = digest(
         revision,
+        &source_path,
         &source_digest,
         &protocol,
         dispatcher_id,
+        caller_id,
         &states,
         &events,
         &table,
@@ -564,8 +677,10 @@ pub fn check_project_source_protocol(
         schema: SOURCE_PROTOCOL_SCHEMA,
         project_revision: revision.project_revision().to_owned(),
         protocol_id: protocol.stable_id,
+        protocol_source_path: source_path,
         protocol_source_digest: source_digest,
         dispatcher_id: dispatcher_id.to_owned(),
+        caller_id: caller_id.to_owned(),
         state_domain: states,
         event_domain: events,
         initial_state: protocol.initial.name,
@@ -592,6 +707,7 @@ pub fn replay(
         revision,
         &recorded.protocol_id,
         &recorded.dispatcher_id,
+        &recorded.caller_id,
         &recorded.success_state,
         &recorded.charge_label,
         recorded.bounds,
@@ -611,6 +727,7 @@ pub fn check_authenticated_snapshot(
     snapshot: &mut crate::project::ProjectSnapshot,
     protocol_id: &str,
     dispatcher_id: &str,
+    caller_id: &str,
     success_state: &str,
     charge_label: &str,
     bounds: Bounds,
@@ -620,6 +737,7 @@ pub fn check_authenticated_snapshot(
             &snapshot.retain_revision(),
             protocol_id,
             dispatcher_id,
+            caller_id,
             success_state,
             charge_label,
             bounds,

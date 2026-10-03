@@ -1,14 +1,19 @@
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
+use semaprax::assurance_manifest::law_set::{
+    strict::{self, RequiredLawEvidence, StrictLawPolicy},
+    EvidenceRequirement, LawDefinition, LawModule, LawSelector, LawSet,
+};
 use semaprax::assurance_manifest::model_checking::source_protocol::{
     check_authenticated_snapshot, check_project_source_protocol, replay, ProtocolSafetyOutcome,
 };
 use semaprax::assurance_manifest::model_checking::Bounds;
 use semaprax::project::with_authenticated_project;
+use std::collections::BTreeMap;
 
 static SERIAL: AtomicU64 = AtomicU64::new(0);
-const MANIFEST: &str = "schema = \"semaprax.project.v1\"\nname = \"payment-machine\"\nentry = \"payment.machine\"\nsources = [\"src/helper.spx\", \"src/machine.spx\"]\nweb_exports = [\"payment.status\"]\ntests = [\"payment.tests\"]\n";
+const MANIFEST: &str = "schema = \"semaprax.project.v1\"\nname = \"payment-machine\"\nentry = \"payment.machine\"\nsources = [\"src/helper.spx\", \"src/machine.spx\"]\nweb_exports = [\"payment.step\"]\ntests = [\"payment.tests\"]\n";
 const BOUNDS: Bounds = Bounds {
     max_states: 64,
     max_depth: 32,
@@ -108,7 +113,7 @@ fn source(repeated_charge: bool) -> String {
     {dispatch}
 }}
 @id("payment.main") fn main() -> i64 {{ 0 }}
-@id("payment.status") fn status() -> i64 {{ 0 }}
+@id("payment.step") fn step(state: i64, event: i64) -> i64 {{ dispatch(state, event) }}
 @id("payment.protocol") session protocol "payment-command-v1" {{
     states {{ Idle, Pending, Succeeded, Retry, Failed }}
     initial Idle;
@@ -137,6 +142,7 @@ fn checked(
             &snapshot.retain_revision(),
             "payment.protocol",
             "payment.dispatch",
+            "payment.step",
             "Succeeded",
             "charge",
             bounds,
@@ -169,6 +175,7 @@ fn legal_retry_model_is_source_bound_and_finitely_checked() {
             snapshot,
             "payment.protocol",
             "payment.dispatch",
+            "payment.step",
             "Succeeded",
             "charge",
             BOUNDS,
@@ -242,6 +249,7 @@ fn source_mutation_and_missing_protocol_coverage_refuse() {
             &snapshot.retain_revision(),
             "payment.protocol",
             "payment.dispatch",
+            "payment.step",
             "Succeeded",
             "charge",
             BOUNDS,
@@ -260,6 +268,7 @@ fn source_mutation_and_missing_protocol_coverage_refuse() {
             &snapshot.retain_revision(),
             "payment.protocol",
             "payment.dispatch",
+            "payment.step",
             "Succeeded",
             "charge",
             BOUNDS,
@@ -269,4 +278,142 @@ fn source_mutation_and_missing_protocol_coverage_refuse() {
     })
     .unwrap_err();
     assert_eq!(refusal[0].code, "SPX-LP406");
+}
+
+#[test]
+fn caller_bypass_or_reordered_arguments_refuse_source_association() {
+    for altered in [
+        source(false).replace(
+            "@id(\"payment.step\")",
+            "@id(\"payment.bypass\") fn bypass(state: i64, event: i64) -> i64 { dispatch(state, event) }\n@id(\"payment.step\")",
+        ),
+        source(false).replace("dispatch(state, event) }", "dispatch(event, state) }"),
+    ] {
+        let fixture = Fixture::new(&altered);
+        let refusal = with_authenticated_project(&fixture.manifest(), |snapshot| {
+            check_project_source_protocol(
+                &snapshot.retain_revision(),
+                "payment.protocol",
+                "payment.dispatch",
+                "payment.step",
+                "Succeeded",
+                "charge",
+                BOUNDS,
+            )
+            .map(|_| ())
+            .map_err(|error| vec![error])
+        })
+        .unwrap_err();
+        assert_eq!(refusal[0].code, "SPX-LP408");
+    }
+}
+
+fn selected_law(bounds: Bounds) -> LawModule {
+    LawModule {
+        module_id: "payment.laws".into(),
+        source_path: "src/machine.spx".into(),
+        assumptions: vec![],
+        laws: vec![LawDefinition {
+            law_id: "payment.no-charge-after-success".into(),
+            selector: LawSelector::SourceProtocolSafety {
+                protocol_id: "payment.protocol".into(),
+                dispatcher_id: "payment.dispatch".into(),
+                caller_id: "payment.step".into(),
+                success_state: "Succeeded".into(),
+                charge_label: "charge".into(),
+                bounds,
+            },
+            assumption_ids: vec![],
+            requires_laws: vec![],
+            evidence: EvidenceRequirement::ModelChecked,
+        }],
+    }
+}
+
+fn strict_policy(laws: &LawSet, digest: String) -> StrictLawPolicy {
+    StrictLawPolicy::new(
+        laws.clone(),
+        BTreeMap::from([(
+            "payment.no-charge-after-success".into(),
+            RequiredLawEvidence::SourceProtocolSafety {
+                evidence_digest: digest,
+                minimum_states: BOUNDS.max_states,
+                minimum_depth: BOUNDS.max_depth,
+                minimum_transitions: BOUNDS.max_transitions,
+            },
+        )]),
+    )
+    .unwrap()
+}
+
+#[test]
+fn protected_source_protocol_law_requires_exact_replayed_source_and_bounds() {
+    let fixture = Fixture::new(&source(false));
+    let model = checked(&fixture, BOUNDS);
+    with_authenticated_project(&fixture.manifest(), |snapshot| {
+        let revision = snapshot.retain_revision();
+        let laws = LawSet::derive(&revision, "checked-v1", vec![selected_law(BOUNDS)])?;
+        let policy = strict_policy(&laws, model.evidence_digest.clone());
+        let report = strict::derive(&revision, &laws, &policy, &[])?;
+        strict::require(&report, &revision, &laws, &policy, &[])?;
+        let view: serde_json::Value = serde_json::from_str(&report).unwrap();
+        assert_eq!(view["accepted"], true);
+        assert_eq!(view["laws"][0]["evidence"]["status"], "model_checked");
+
+        let wrong = strict_policy(&laws, "sha256:wrong".into());
+        let refused = strict::derive(&revision, &laws, &wrong, &[])?;
+        assert_eq!(
+            serde_json::from_str::<serde_json::Value>(&refused).unwrap()["accepted"],
+            false
+        );
+        assert_eq!(
+            strict::require(&refused, &revision, &laws, &wrong, &[]).unwrap_err()[0].code,
+            "SPX-LW130"
+        );
+        let tiny = LawSet::derive(
+            &revision,
+            "checked-v1",
+            vec![selected_law(Bounds {
+                max_states: 1,
+                max_depth: 1,
+                max_transitions: 1,
+            })],
+        )?;
+        let policy = strict_policy(&tiny, model.evidence_digest.clone());
+        let refused = strict::derive(&revision, &tiny, &policy, &[])?;
+        let view: serde_json::Value = serde_json::from_str(&refused).unwrap();
+        assert_eq!(view["accepted"], false);
+        assert_eq!(
+            view["laws"][0]["failure"],
+            "law_missing_unsupported_or_open"
+        );
+        Ok(())
+    })
+    .unwrap();
+}
+
+#[test]
+fn via_binding_alone_cannot_satisfy_source_protocol_strict_method() {
+    let fixture = Fixture::new(&source(false));
+    let model = checked(&fixture, BOUNDS);
+    with_authenticated_project(&fixture.manifest(), |snapshot| {
+        let revision = snapshot.retain_revision();
+        let mut module = selected_law(BOUNDS);
+        module.laws[0].selector = LawSelector::ProtocolRealizersBound {
+            claim_id: "payment-via-only".into(),
+            protocol_id: "payment.protocol".into(),
+        };
+        module.laws[0].evidence = EvidenceRequirement::CompilerProved;
+        let laws = LawSet::derive(&revision, "checked-v1", vec![module])?;
+        let policy = strict_policy(&laws, model.evidence_digest.clone());
+        let report = strict::derive(&revision, &laws, &policy, &[])?;
+        let view: serde_json::Value = serde_json::from_str(&report).unwrap();
+        assert_eq!(view["accepted"], false);
+        assert_eq!(
+            view["laws"][0]["failure"],
+            "source_protocol_scope_does_not_match_law"
+        );
+        Ok(())
+    })
+    .unwrap();
 }

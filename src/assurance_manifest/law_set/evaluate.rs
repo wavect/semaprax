@@ -364,6 +364,92 @@ fn evaluate(revision: &ProjectRevision, row: &LawRow, obligations: &[Value]) -> 
                 ))
             }
         }
+        LawSelector::SourceProtocolSafety {
+            protocol_id,
+            dispatcher_id,
+            caller_id,
+            success_state,
+            charge_label,
+            bounds,
+        } => {
+            use super::super::model_checking::source_protocol::{
+                check_project_source_protocol, ProtocolSafetyOutcome,
+            };
+            let obligation = Some(format!("source-protocol:{}", row.definition.law_id));
+            let report = match check_project_source_protocol(
+                revision,
+                protocol_id,
+                dispatcher_id,
+                caller_id,
+                success_state,
+                charge_label,
+                *bounds,
+            ) {
+                Ok(report) => report,
+                Err(error) => {
+                    let status = if error.code == "SPX-LP400" {
+                        "missing"
+                    } else if matches!(
+                        error.code,
+                        "SPX-LP401" | "SPX-LP402" | "SPX-LP403" | "SPX-LP404"
+                    ) {
+                        "unsupported"
+                    } else {
+                        "awaiting_evidence"
+                    };
+                    return Ok(fact(
+                        status,
+                        "source_protocol_realizer_refused",
+                        obligation,
+                        Some(json!({"diagnostic_code":error.code,"message":error.message})),
+                    ));
+                }
+            };
+            if report.protocol_source_path != row.source_path {
+                return Ok(fact(
+                    "missing",
+                    "protocol_law_source_owner_mismatch",
+                    obligation,
+                    None,
+                ));
+            }
+            let evidence: Value = serde_json::from_str(&report.to_json())
+                .map_err(|_| invalid("derived source protocol report is invalid"))?;
+            match report.outcome {
+                ProtocolSafetyOutcome::ModelChecked => Ok(evidence_fact(
+                    row,
+                    obligation.unwrap(),
+                    AssuranceClass::ModelChecked,
+                    evidence,
+                )),
+                ProtocolSafetyOutcome::ConcreteCounterexample { .. } => Ok(fact(
+                    "awaiting_evidence",
+                    "source_protocol_concrete_counterexample",
+                    obligation,
+                    Some(evidence),
+                )),
+                ProtocolSafetyOutcome::AbstractCounterexample { .. } => Ok(fact(
+                    "awaiting_evidence",
+                    "source_protocol_abstract_trace_unreplayed",
+                    obligation,
+                    Some(evidence),
+                )),
+                ProtocolSafetyOutcome::BoundsExhausted => Ok(fact(
+                    "awaiting_evidence",
+                    "source_protocol_bounds_exhausted",
+                    obligation,
+                    Some(evidence),
+                )),
+                ProtocolSafetyOutcome::DeadState | ProtocolSafetyOutcome::EmptyStateSpace => {
+                    Ok(fact(
+                        "awaiting_evidence",
+                        "source_protocol_state_space_incomplete",
+                        obligation,
+                        Some(evidence),
+                    ))
+                }
+            }
+        }
     }
 }
 fn architecture(

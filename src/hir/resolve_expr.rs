@@ -3129,7 +3129,7 @@ impl Resolver<'_> {
     fn resolve_native_rust_result(
         &self,
         result: crate::ast::ImportResult,
-        span: Span,
+        span: crate::ast::Span,
     ) -> Result<(ResolvedImportResultKind, ResolvedType), Diagnostic> {
         Ok(match result {
             crate::ast::ImportResult::Unit => (ResolvedImportResultKind::Unit, ResolvedType::Unit),

@@ -50,6 +50,17 @@ test("named-host performance: medium and renderer-stress views stay responsive a
     globalThis.explorerLongTasks = [];
     new PerformanceObserver(entries => globalThis.explorerLongTasks.push(...entries.getEntries().map(entry => entry.duration))).observe({ type: "longtask", buffered: true });
   });
+  const small = await writeOfflineBrowserFixture({ performance: "small" });
+  try {
+    const smallStarted = performance.now();
+    await page.goto(pathToFileURL(small.htmlPath).href);
+    await expect(page.getByRole("heading", { name: "Meaning, mapped." })).toBeVisible();
+    const smallUsableMs = performance.now() - smallStarted;
+    console.log(`explorer named-host small browser=${browserName} first_usable_ms=${smallUsableMs.toFixed(1)}`);
+    expect(smallUsableMs).toBeLessThanOrEqual(1000);
+  } finally {
+    await rm(small.directory, { recursive: true, force: true });
+  }
   const medium = await writeOfflineBrowserFixture({ performance: "medium" });
   try {
     const [{ size: htmlBytes }, { size: jsonBytes }] = await Promise.all([stat(medium.htmlPath), stat(medium.jsonPath)]);

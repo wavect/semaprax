@@ -42,6 +42,7 @@ pub mod rich_cargo_preparation;
 /// rich Native Rust closure. Build-code authority is checked before spawning.
 #[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
 pub mod rich_cargo_execution;
+mod rich_cargo_snapshot;
 
 /// Run ordinary doctor policy without discovering or spawning a worker.
 pub fn run_doctor(arguments: &[String]) -> Result<(String, u8), String> {

@@ -22,8 +22,8 @@ const MAX_EFFECT_BYTES: usize = 128;
 pub enum NativeBuildPolicy {
     /// Build scripts and proc macros are denied before Cargo can execute them.
     StrictDenyExecution,
-    /// A separately implemented sandbox was selected and is known to enforce
-    /// the named isolation policy.
+    /// A sandbox was requested. No enforcing runner is currently available,
+    /// so authorization refuses before any Cargo build process starts.
     EnforcedSandbox,
     /// Cargo build code is allowed with full authority of the invoking host.
     TrustedHost,
@@ -42,18 +42,18 @@ pub enum NativeEffectContract<'a> {
 
 impl NativeBuildPolicy {
     pub const fn permits_build_code(self) -> bool {
-        !matches!(self, Self::StrictDenyExecution)
+        matches!(self, Self::TrustedHost)
     }
 
     pub const fn confinement_is_enforced(self) -> bool {
-        matches!(self, Self::EnforcedSandbox)
+        false
     }
 
     pub const fn disclosure(self) -> &'static str {
         match self {
             Self::StrictDenyExecution => "native build scripts and proc macros are denied",
             Self::EnforcedSandbox => {
-                "native build scripts and proc macros run in an enforced sandbox"
+                "native build scripts and proc macros require an enforced sandbox; no runner is available"
             }
             Self::TrustedHost => {
                 "native build scripts and proc macros run with trusted host authority"
@@ -76,10 +76,35 @@ pub enum NativeTrustError {
     SandboxUnavailable,
 }
 
+impl NativeTrustError {
+    pub const fn diagnostic_code(&self) -> &'static str {
+        match self {
+            Self::OpaqueNativeBehavior | Self::BuildCodeDenied => "SPX-B126",
+            Self::SandboxUnavailable => "SPX-B127",
+            Self::BuildIdentityMismatch => "SPX-B128",
+            Self::CapabilityNotDeclared => "SPX-B129",
+            Self::EmptyIdentity
+            | Self::IdentityTooLarge
+            | Self::TooManyEffects
+            | Self::InvalidEffect
+            | Self::EffectsNotCanonical => "SPX-B121",
+        }
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum NativeDispatchError {
     MissingCapability,
     ProfileMismatch,
+}
+
+impl NativeDispatchError {
+    pub const fn diagnostic_code(self) -> &'static str {
+        match self {
+            Self::MissingCapability => "SPX-B129",
+            Self::ProfileMismatch => "SPX-B128",
+        }
+    }
 }
 
 /// An acknowledgement that exact native input bytes may be dispatched.
@@ -363,13 +388,21 @@ mod tests {
     fn build_policy_discloses_host_trust_and_never_labels_it_confinement() {
         assert!(!NativeBuildPolicy::StrictDenyExecution.permits_build_code());
         assert!(!NativeBuildPolicy::StrictDenyExecution.confinement_is_enforced());
-        assert!(NativeBuildPolicy::EnforcedSandbox.permits_build_code());
-        assert!(NativeBuildPolicy::EnforcedSandbox.confinement_is_enforced());
+        assert!(!NativeBuildPolicy::EnforcedSandbox.permits_build_code());
+        assert!(!NativeBuildPolicy::EnforcedSandbox.confinement_is_enforced());
         assert!(NativeBuildPolicy::TrustedHost.permits_build_code());
         assert!(!NativeBuildPolicy::TrustedHost.confinement_is_enforced());
         assert_eq!(
             NativeBuildPolicy::TrustedHost.disclosure(),
             "native build scripts and proc macros run with trusted host authority"
+        );
+        assert_eq!(
+            NativeBuildPolicy::EnforcedSandbox.disclosure(),
+            "native build scripts and proc macros require an enforced sandbox; no runner is available"
+        );
+        assert_eq!(
+            NativeDispatchError::MissingCapability.diagnostic_code(),
+            "SPX-B129"
         );
     }
 

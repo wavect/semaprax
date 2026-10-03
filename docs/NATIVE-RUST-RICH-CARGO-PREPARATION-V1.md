@@ -118,11 +118,18 @@ caller then supplies the held source facts required by the pure record.
 `authorize_prepared_build` first requires exact profile-bound preparation,
 binding-plan, and tool identity bytes. `build_locked_offline` then runs
 `cargo build --locked --offline` only with the resulting typed trusted-host
-authority and rechecks the exact prepared closure before constructing Cargo.
+authority and rechecks the exact prepared closure plus bounded workspace,
+Cargo-home, lock/config, direct Cargo image, and direct rustc image bytes before
+constructing Cargo. Cross-target native execution is refused before spawn.
 It reports that build scripts and proc macros have ordinary host authority.
 `StrictDenyExecution` refuses before Cargo is spawned. The current toolchain
 has no verified sandbox runner, so `EnforcedSandbox` also refuses before Cargo
 is spawned instead of labeling an unenforced process as confined.
+The API exposes distinct diagnostic codes for unsupported native targets/APIs
+(`SPX-B122`), missing direct tools (`SPX-B125`), denied untrusted build code
+(`SPX-B126`), unavailable sandbox enforcement (`SPX-B127`), changed build
+inputs (`SPX-B128`), and missing dispatch capability (`SPX-B129`). These codes
+do not by themselves provide a public UI or CLI route.
 The focused strict and sandbox negative controls use a marker-writing Cargo
 stub and prove that neither policy enters it. A local no-dependency Cargo
 fixture and a checked-in vendored registry fixture supply explicit offline

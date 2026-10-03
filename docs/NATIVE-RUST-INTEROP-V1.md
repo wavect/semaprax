@@ -198,11 +198,11 @@ Build policy is displayed with one of these exact disclosures:
 
 - `StrictDenyExecution`: build scripts and proc macros are denied before Cargo
   can execute them.
-- `EnforcedSandbox`: build scripts and proc macros run in an actually enforced
-  selected sandbox.
+- `EnforcedSandbox`: build scripts and proc macros require an enforced sandbox;
+  no runner is currently available, so authorization refuses before execution.
 - `TrustedHost`: build scripts and proc macros run with trusted host authority.
 
-The third policy is never represented as confinement. `cargo --offline` only
+The trusted-host policy is never represented as confinement. `cargo --offline` only
 affects dependency acquisition and cannot by itself confine a build script or
 proc macro. The reusable boundary exposes distinct errors for malformed or
 noncanonical effect metadata, undeclared requested capability, a grant/profile
@@ -223,6 +223,16 @@ rechecks its prepared closure identity before starting Cargo. This is a host
 acknowledgement of exact supplied bytes, not a proof that arbitrary Cargo
 descendants are confined or that filesystem inputs cannot drift unless the
 embedding host holds and rechecks them.
+
+Trusted-host build admission also snapshots the bounded workspace, Cargo home,
+`Cargo.lock`, Cargo config when present, and the direct Cargo and rustc image
+bytes. It recomputes that snapshot immediately before spawning Cargo and
+refuses source, lock, config, or tool drift. The workspace must fit 4,096 files
+and 128 MiB of retained input bytes. The generated target directory is excluded
+from the source snapshot; an included build input must live elsewhere in the
+prepared workspace. This replay is not a race-free filesystem handle protocol
+or OS confinement, and descendant linker images selected through `PATH` remain
+outside the direct-tool byte check.
 
 This direct-image policy closes ordinary rustup-launcher indirection. It does
 not claim provenance for the selected compiler sysroot, dynamically loaded

@@ -22,6 +22,10 @@ pub enum CargoExecutionError {
     /// Cargo home, executable path, or output directory input is malformed or
     /// changed before invocation.
     InvalidInput,
+    /// SPX-B125: the explicitly selected Cargo or rustc image is unavailable.
+    MissingTool,
+    /// SPX-B122: the prepared API or target has no executable native profile.
+    UnsupportedApi,
     /// SPX-B121: Cargo metadata did not produce a bounded successful response.
     MetadataFailed,
     /// SPX-B122: selected policy cannot execute build scripts or proc macros.
@@ -30,11 +34,35 @@ pub enum CargoExecutionError {
     SandboxUnavailable,
     /// SPX-B122: prepared crate bytes differ from the admitted identity.
     BuildIdentityMismatch,
+    /// SPX-B128: a source, lock, config, Cargo home, or direct tool image
+    /// changed after build admission or exceeds the bounded snapshot profile.
+    BuildInputsChanged,
     /// SPX-B123: locked/offline Cargo build failed after trusted execution.
     BuildFailed,
     /// SPX-B124: Cargo output exceeded the bounded capture budget.
     OutputTooLarge,
     Preparation(CargoPreparationError),
+}
+
+impl CargoExecutionError {
+    /// Stable public distinction for CLI and host adapters; no raw path or
+    /// tool stderr is needed to explain a refused operation.
+    pub const fn diagnostic_code(&self) -> &'static str {
+        match self {
+            Self::InvalidInput | Self::MetadataFailed => "SPX-B121",
+            Self::MissingTool => "SPX-B125",
+            Self::UnsupportedApi => "SPX-B122",
+            Self::BuildCodeDenied => "SPX-B126",
+            Self::SandboxUnavailable => "SPX-B127",
+            Self::BuildIdentityMismatch | Self::BuildInputsChanged => "SPX-B128",
+            Self::BuildFailed => "SPX-B123",
+            Self::OutputTooLarge => "SPX-B124",
+            Self::Preparation(CargoPreparationError::Unsupported) => "SPX-B122",
+            Self::Preparation(CargoPreparationError::Malformed) => "SPX-B121",
+            Self::Preparation(CargoPreparationError::Disagreement) => "SPX-B123",
+            Self::Preparation(CargoPreparationError::Capacity) => "SPX-B124",
+        }
+    }
 }
 
 impl From<CargoPreparationError> for CargoExecutionError {
@@ -106,12 +134,21 @@ impl CargoMetadataPreparation {
 /// build authority before any Cargo build process is constructed.
 pub fn authorize_prepared_build(
     profile: &TrustedNativeProfile,
+    invocation: &ExplicitCargoInvocation,
     prepared: &PreparedCargoClosure,
     binding_plan: &[u8],
     tool_identity: &[u8],
 ) -> Result<NativeBuildAuthority, CargoExecutionError> {
+    validate_invocation(invocation)?;
+    let identity =
+        if profile.build_policy() == semaprax_native_rust_interop::NativeBuildPolicy::TrustedHost {
+            validate_native_target(prepared)?;
+            crate::rich_cargo_snapshot::prepared_build_identity(invocation, prepared)?.to_vec()
+        } else {
+            prepared.bytes().to_vec()
+        };
     profile
-        .authorize_build(binding_plan, prepared.bytes(), tool_identity)
+        .authorize_build(binding_plan, &identity, tool_identity)
         .map_err(|error| match error {
             NativeTrustError::BuildCodeDenied => CargoExecutionError::BuildCodeDenied,
             NativeTrustError::SandboxUnavailable => CargoExecutionError::SandboxUnavailable,
@@ -141,7 +178,9 @@ pub fn build_locked_offline(
     authority: &NativeBuildAuthority,
 ) -> Result<(), CargoExecutionError> {
     validate_invocation(invocation)?;
-    if !authority.matches_crate_identity(prepared.bytes()) {
+    validate_native_target(prepared)?;
+    let identity = crate::rich_cargo_snapshot::prepared_build_identity(invocation, prepared)?;
+    if !authority.matches_crate_identity(&identity) {
         return Err(CargoExecutionError::BuildIdentityMismatch);
     }
     let output = cargo_command(invocation)
@@ -166,9 +205,13 @@ pub fn build_locked_offline(
 }
 
 fn validate_invocation(invocation: &ExplicitCargoInvocation) -> Result<(), CargoExecutionError> {
-    if !regular_file(&invocation.cargo)
-        || !regular_file(&invocation.rustc)
-        || !directory(&invocation.workspace)
+    if !invocation.cargo.is_absolute() || !invocation.rustc.is_absolute() {
+        return Err(CargoExecutionError::InvalidInput);
+    }
+    if !regular_file(&invocation.cargo) || !regular_file(&invocation.rustc) {
+        return Err(CargoExecutionError::MissingTool);
+    }
+    if !directory(&invocation.workspace)
         || !regular_file(&invocation.manifest)
         || !directory(&invocation.cargo_home)
         || invocation.execution_path.is_empty()
@@ -183,6 +226,35 @@ fn validate_invocation(invocation: &ExplicitCargoInvocation) -> Result<(), Cargo
         return Err(CargoExecutionError::InvalidInput);
     }
     Ok(())
+}
+
+fn validate_native_target(prepared: &PreparedCargoClosure) -> Result<(), CargoExecutionError> {
+    let record: serde_json::Value =
+        serde_json::from_slice(prepared.bytes()).map_err(|_| CargoExecutionError::InvalidInput)?;
+    let target = record
+        .get("target")
+        .and_then(serde_json::Value::as_str)
+        .ok_or(CargoExecutionError::InvalidInput)?;
+    if Some(target) != current_host_target() {
+        return Err(CargoExecutionError::UnsupportedApi);
+    }
+    Ok(())
+}
+
+fn current_host_target() -> Option<&'static str> {
+    if cfg!(all(target_arch = "aarch64", target_os = "macos")) {
+        Some("aarch64-apple-darwin")
+    } else if cfg!(all(target_arch = "x86_64", target_os = "macos")) {
+        Some("x86_64-apple-darwin")
+    } else if cfg!(all(target_arch = "x86_64", target_os = "linux")) {
+        Some("x86_64-unknown-linux-gnu")
+    } else if cfg!(all(target_arch = "aarch64", target_os = "linux")) {
+        Some("aarch64-unknown-linux-gnu")
+    } else if cfg!(all(target_arch = "x86_64", target_os = "windows")) {
+        Some("x86_64-pc-windows-msvc")
+    } else {
+        None
+    }
 }
 
 fn regular_file(path: &Path) -> bool {
@@ -256,6 +328,7 @@ mod tests {
             "[package]\nname=\"fixture\"\nversion=\"0.1.0\"\nedition=\"2021\"\nbuild=\"build.rs\"\n[dependencies]\nprobe_macro={path=\"probe_macro\"}\n",
         )
         .unwrap();
+        fs::write(root.join("Cargo.lock"), "version = 4\n\n[[package]]\nname = \"fixture\"\nversion = \"0.1.0\"\ndependencies = [\"probe_macro\"]\n\n[[package]]\nname = \"probe_macro\"\nversion = \"0.1.0\"\n").unwrap();
         fs::create_dir_all(root.join("src")).unwrap();
         fs::write(
             root.join("src/lib.rs"),
@@ -264,7 +337,7 @@ mod tests {
         .unwrap();
         fs::write(
             root.join("build.rs"),
-            "fn main() { std::fs::write(\"build-script-entered\", b\"1\").unwrap(); let _ = std::net::TcpStream::connect(\"127.0.0.1:9\"); }\n",
+            "fn main() { std::fs::write(std::path::Path::new(env!(\"CARGO_MANIFEST_DIR\")).join(\"build-script-entered\"), b\"1\").unwrap(); let _ = std::net::TcpStream::connect(\"127.0.0.1:9\"); }\n",
         )
         .unwrap();
         fs::create_dir_all(root.join("probe_macro/src")).unwrap();
@@ -275,7 +348,7 @@ mod tests {
         .unwrap();
         fs::write(
             root.join("probe_macro/src/lib.rs"),
-            "#[proc_macro] pub fn probe(_: proc_macro::TokenStream) -> proc_macro::TokenStream { std::fs::write(\"proc-macro-entered\", b\"1\").unwrap(); let _ = std::net::TcpStream::connect(\"127.0.0.1:9\"); \"1\".parse().unwrap() }\n",
+            "#[proc_macro] pub fn probe(_: proc_macro::TokenStream) -> proc_macro::TokenStream { std::fs::write(std::path::Path::new(env!(\"CARGO_MANIFEST_DIR\")).join(\"proc-macro-entered\"), b\"1\").unwrap(); let _ = std::net::TcpStream::connect(\"127.0.0.1:9\"); \"1\".parse().unwrap() }\n",
         )
         .unwrap();
         let target = root.join("target");
@@ -325,10 +398,12 @@ mod tests {
 
     fn authorize(
         profile: &TrustedNativeProfile,
+        invocation: &ExplicitCargoInvocation,
         prepared: &PreparedCargoClosure,
     ) -> Result<NativeBuildAuthority, CargoExecutionError> {
         authorize_prepared_build(
             profile,
+            invocation,
             prepared,
             b"exact-binding-plan",
             b"exact-cargo-and-rustc",
@@ -336,6 +411,10 @@ mod tests {
     }
 
     fn pure_prepared_fixture() -> PreparedCargoClosure {
+        pure_prepared_fixture_for_target(native_target())
+    }
+
+    fn pure_prepared_fixture_for_target(target: &str) -> PreparedCargoClosure {
         let package_id = "path+file:///workspace/fixture#fixture@0.1.0";
         prepare_cargo_closure(CargoPreparationInput {
             binding_plan: b"exact-binding-plan".to_vec(),
@@ -344,14 +423,14 @@ mod tests {
             cargo_lock: b"lock".to_vec(),
             cargo_config: b"offline".to_vec(),
             toolchain_identity: b"exact-cargo-and-rustc".to_vec(),
-            target_spec_identity: b"x86_64-unknown-linux-gnu".to_vec(),
-            host_target_identity: b"host=x86_64-unknown-linux-gnu;target=x86_64-unknown-linux-gnu"
-                .to_vec(),
+            target_spec_identity: target.as_bytes().to_vec(),
+            host_target_identity: format!("host={};target={target}", native_target())
+                .into_bytes(),
             build_script_inputs: b"no-build-script-inputs".to_vec(),
             proc_macro_inputs: b"no-proc-macro-inputs".to_vec(),
             native_toolchain_inputs: b"rustc".to_vec(),
             generator_revision: "sha256:fixture".into(),
-            target: "x86_64-unknown-linux-gnu".into(),
+            target: target.into(),
             panic_strategy: "unwind".into(),
             profile: "dev".into(),
             selected_features: Vec::new(),
@@ -370,13 +449,17 @@ mod tests {
         assert_eq!(
             authorize(
                 &profile(prepared.bytes(), NativeBuildPolicy::StrictDenyExecution),
+                &invocation,
                 &prepared
             ),
             Err(CargoExecutionError::BuildCodeDenied)
         );
         assert!(!marker.exists());
         assert!(!invocation.workspace.join("build-script-entered").exists());
-        assert!(!invocation.workspace.join("proc-macro-entered").exists());
+        assert!(!invocation
+            .workspace
+            .join("probe_macro/proc-macro-entered")
+            .exists());
         fs::remove_dir_all(root).unwrap();
     }
 
@@ -388,13 +471,17 @@ mod tests {
         assert_eq!(
             authorize(
                 &profile(prepared.bytes(), NativeBuildPolicy::EnforcedSandbox),
+                &invocation,
                 &prepared
             ),
             Err(CargoExecutionError::SandboxUnavailable)
         );
         assert!(!marker.exists());
         assert!(!invocation.workspace.join("build-script-entered").exists());
-        assert!(!invocation.workspace.join("proc-macro-entered").exists());
+        assert!(!invocation
+            .workspace
+            .join("probe_macro/proc-macro-entered")
+            .exists());
         fs::remove_dir_all(root).unwrap();
     }
 
@@ -405,7 +492,7 @@ mod tests {
         let prepared = pure_prepared_fixture();
         let stale_profile = profile(b"old-prepared-crate", NativeBuildPolicy::TrustedHost);
         assert_eq!(
-            authorize(&stale_profile, &prepared),
+            authorize(&stale_profile, &invocation, &prepared),
             Err(CargoExecutionError::BuildIdentityMismatch)
         );
         let stale_authority = stale_profile
@@ -421,7 +508,138 @@ mod tests {
         );
         assert!(!marker.exists());
         assert!(!invocation.workspace.join("build-script-entered").exists());
-        assert!(!invocation.workspace.join("proc-macro-entered").exists());
+        assert!(!invocation
+            .workspace
+            .join("probe_macro/proc-macro-entered")
+            .exists());
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn physical_source_lock_config_and_tool_drift_refuse_before_cargo_entry() {
+        for changed in [
+            "build.rs",
+            "Cargo.lock",
+            ".cargo/config.toml",
+            "cargo",
+            "rustc",
+        ] {
+            let (root, invocation, marker) = fixture();
+            fs::create_dir(root.join(".cargo")).unwrap();
+            fs::write(root.join(".cargo/config.toml"), b"[net]\noffline=true\n").unwrap();
+            let prepared = pure_prepared_fixture();
+            let identity =
+                crate::rich_cargo_snapshot::prepared_build_identity(&invocation, &prepared)
+                    .unwrap();
+            let profile = profile(&identity, NativeBuildPolicy::TrustedHost);
+            let authority = authorize(&profile, &invocation, &prepared).unwrap();
+            fs::write(
+                root.join(changed),
+                b"changed after native build admission\n",
+            )
+            .unwrap();
+            let refusal = build_locked_offline(&invocation, &prepared, &authority);
+            assert!(
+                matches!(
+                    &refusal,
+                    Err(CargoExecutionError::BuildIdentityMismatch)
+                        | Err(CargoExecutionError::BuildInputsChanged)
+                ),
+                "{changed}: {refusal:?}"
+            );
+            assert!(!marker.exists(), "Cargo entered after {changed} changed");
+            fs::remove_dir_all(root).unwrap();
+        }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn missing_tool_has_distinct_diagnostic_before_process_entry() {
+        let (root, mut invocation, marker) = fixture();
+        invocation.cargo = root.join("missing-cargo");
+        assert_eq!(
+            collect_cargo_metadata(&invocation),
+            Err(CargoExecutionError::MissingTool)
+        );
+        assert_eq!(
+            CargoExecutionError::MissingTool.diagnostic_code(),
+            "SPX-B125"
+        );
+        assert_eq!(
+            CargoExecutionError::BuildCodeDenied.diagnostic_code(),
+            "SPX-B126"
+        );
+        assert_eq!(
+            CargoExecutionError::SandboxUnavailable.diagnostic_code(),
+            "SPX-B127"
+        );
+        assert_eq!(
+            CargoExecutionError::BuildInputsChanged.diagnostic_code(),
+            "SPX-B128"
+        );
+        assert_eq!(
+            CargoExecutionError::Preparation(CargoPreparationError::Unsupported).diagnostic_code(),
+            "SPX-B122"
+        );
+        assert!(!marker.exists());
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn cross_target_build_is_unsupported_before_cargo_entry() {
+        let (root, invocation, marker) = fixture();
+        let wrong_target = if native_target() == "x86_64-unknown-linux-gnu" {
+            "aarch64-apple-darwin"
+        } else {
+            "x86_64-unknown-linux-gnu"
+        };
+        let prepared = pure_prepared_fixture_for_target(wrong_target);
+        let profile = profile(prepared.bytes(), NativeBuildPolicy::TrustedHost);
+        assert_eq!(
+            authorize(&profile, &invocation, &prepared),
+            Err(CargoExecutionError::UnsupportedApi)
+        );
+        assert_eq!(
+            CargoExecutionError::UnsupportedApi.diagnostic_code(),
+            "SPX-B122"
+        );
+        assert!(!marker.exists());
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn trusted_host_executes_build_script_and_proc_macro_with_disclosure() {
+        let (root, mut invocation, _) = fixture();
+        invocation.cargo = configured_tool("CARGO");
+        invocation.rustc = configured_tool("RUSTC");
+        invocation.execution_path = test_execution_path(&invocation.cargo, &invocation.rustc);
+        let lock = cargo_command(&invocation)
+            .arg("generate-lockfile")
+            .arg("--offline")
+            .arg("--manifest-path")
+            .arg(&invocation.manifest)
+            .output()
+            .unwrap();
+        assert!(
+            lock.status.success(),
+            "{}",
+            String::from_utf8_lossy(&lock.stderr)
+        );
+        let prepared = pure_prepared_fixture();
+        let identity =
+            crate::rich_cargo_snapshot::prepared_build_identity(&invocation, &prepared).unwrap();
+        let profile = profile(&identity, NativeBuildPolicy::TrustedHost);
+        let authority = authorize(&profile, &invocation, &prepared).unwrap();
+        assert_eq!(
+            authority.disclosure(),
+            "native build scripts and proc macros run with trusted host authority"
+        );
+        build_locked_offline(&invocation, &prepared, &authority).unwrap();
+        assert!(root.join("build-script-entered").exists());
+        assert!(root.join("probe_macro/proc-macro-entered").exists());
         fs::remove_dir_all(root).unwrap();
     }
 
@@ -546,8 +764,11 @@ mod tests {
             target_dir: target.clone(),
         };
         let prepared = prepare_fixture("rich-rust-vendored-fixture");
-        let profile = profile(prepared.closure().bytes(), NativeBuildPolicy::TrustedHost);
-        let authority = authorize(&profile, prepared.closure()).unwrap();
+        let identity =
+            crate::rich_cargo_snapshot::prepared_build_identity(&invocation, prepared.closure())
+                .unwrap();
+        let profile = profile(&identity, NativeBuildPolicy::TrustedHost);
+        let authority = authorize(&profile, &invocation, prepared.closure()).unwrap();
         assert_eq!(
             authority.disclosure(),
             NativeBuildPolicy::TrustedHost.disclosure()

@@ -249,3 +249,85 @@ int main(void) {{
         let _ = std::fs::remove_file(executable);
     }
 }
+
+#[test]
+#[ignore = "requires explicitly provisioned Node.js Core Wasm runtime"]
+fn recursive_list_match_executes_in_core_wasm_with_owned_vec_host() {
+    use std::process::Command;
+    let node = std::env::var("SEMAPRAX_LAW_NODE").expect("explicit Node.js binary");
+    let program = semaprax::check(REVERSE, "structural-list-wasm.spx").unwrap();
+    let bytes = semaprax::wasm::emit_module(&program).unwrap();
+    wasmparser::Validator::new().validate_all(&bytes).unwrap();
+    let path = std::env::temp_dir().join(format!(
+        "semaprax-law08-wasm-{}.wasm",
+        std::process::id()
+    ));
+    std::fs::write(&path, bytes).unwrap();
+    let script = r#"
+import { readFileSync } from 'node:fs';
+const entries = new Map();
+let next = 1n;
+const key = value => {
+  if (typeof value !== 'bigint' || value === 0n) throw Error('invalid vector handle');
+  return value.toString();
+};
+const read = (handle, tag) => {
+  const entry = entries.get(key(handle));
+  if (!entry || entry.tag !== tag) throw Error('stale or mistyped vector');
+  return entry;
+};
+const alloc = (tag, capacity, values = []) => {
+  const handle = next++;
+  entries.set(key(handle), { tag, capacity, values });
+  return handle;
+};
+const env = {
+  spx_add: (a, b) => a + b,
+  spx_sub: (a, b) => a - b,
+  spx_mul: (a, b) => a * b,
+  spx_div: (a, b) => a / b,
+  spx_rem: (a, b) => a % b,
+  spx_neg: a => -a,
+  spx_contract_fail: code => { throw Error(`unexpected contract ${code}`); },
+  spx_vec_with_capacity: (tag, capacity) => {
+    const n = Number(capacity);
+    return Number.isSafeInteger(n) && n >= 0 && n <= 8192 ? alloc(tag, n) : 0n;
+  },
+  spx_vec_push: (source, tag, value) => {
+    const old = read(source, tag);
+    if (old.values.length >= old.capacity) return 0n;
+    const values = [...old.values, value];
+    entries.delete(key(source));
+    return alloc(tag, old.capacity, values);
+  },
+  spx_vec_len: (source, tag) => BigInt(read(source, tag).values.length),
+  spx_vec_capacity: (source, tag) => BigInt(read(source, tag).capacity),
+  spx_vec_get: (source, tag, index) => {
+    const old = read(source, tag);
+    const n = Number(index);
+    if (!Number.isSafeInteger(n) || n < 0 || n >= old.values.length) throw Error('vector index');
+    return old.values[n];
+  },
+  spx_vec_drop: source => {
+    if (!entries.delete(key(source))) throw Error('double vector drop');
+  },
+};
+const { instance } = await WebAssembly.instantiate(readFileSync(process.argv[1]), { env });
+const observed = instance.exports.semaprax_main();
+if (observed !== 9n || entries.size !== 0) {
+  throw Error(`Core Wasm list result ${observed}, live vectors ${entries.size}`);
+}
+"#;
+    let run = Command::new(node)
+        .args(["--input-type=module", "--eval", script])
+        .arg(&path)
+        .output()
+        .unwrap();
+    let _ = std::fs::remove_file(path);
+    assert!(
+        run.status.success(),
+        "Core Wasm stdout={} stderr={}",
+        String::from_utf8_lossy(&run.stdout),
+        String::from_utf8_lossy(&run.stderr)
+    );
+}

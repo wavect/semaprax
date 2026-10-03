@@ -79,6 +79,7 @@ checks source, formatter, HIR, graph, interpreter and deterministic native/Core
 Wasm emission. `language structural_list_match::pinned_lean_replays_source_bound_unbounded_list_laws`
 requires explicit `SEMAPRAX_LAW_LEAN` and exact version, runs real pinned Lean,
 replays the certificate, and tests source/definition/association/axiom/cycle
-refusals. The separate native C O0/O2 selector is the physical backend gate;
-emission alone is not runtime evidence. Broader source forms and public ABI
+refusals. Separate native C O0/O2 and real Node Core Wasm selectors
+execute the bounded list program and check owner cleanup; emission alone is
+not runtime evidence. Broader source forms and public ABI
 remain separate admissions.

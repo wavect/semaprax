@@ -1,9 +1,10 @@
-# Modular Proof Task Cache v1 (LAW-11 partial)
+# Installed Proof Task Cache v1 (LAW-11 partial)
 
-Status: bounded installed-Z3 implementation. This is logical-query reuse for
-the admitted LAW-06 straight-line, direct, monomorphic, pure scalar call
-profile. It is not a general law cache or a replacement for source-bound
-certificates, strict LAW-04 policy, or Project/Workspace publication checks.
+Status: bounded installed Z3 and pinned Lean implementation. This is logical
+query reuse for the admitted LAW-06 straight-line, direct, monomorphic, pure
+scalar call profile and LAW-07 finite immutable aggregate scalarization. It is
+not yet a general law cache or a replacement for source-bound certificates,
+strict LAW-04 policy, or Project/Workspace publication checks.
 
 ## Subject and key
 
@@ -31,11 +32,21 @@ all dependent tasks. Independent call closures retain their keys. If two
 queries in one run have identical complete keys, the installed work is done
 once and its checked result is reused for the second exact task.
 
+The LAW-07 route rederives scalarization from the current retained Project
+source before lookup. Its logical subject binds the scalarized definition,
+field/case declaration identities and paths, source clause, complete Z3 query
+and satisfiable-domain query or complete generated Lean module, theorem names,
+backend coverage, and proof boundary. The task key adds the exact structured
+backend profile and, for Lean, the full pinned export assumption inventory.
+A cached success is accepted only under the same pinned installed tool bytes
+and process options. The current source-bound certificate and Project proof
+are newly constructed; a previous certificate is never retargeted.
+
 ## Storage and replay
 
 `ProofTaskCache::for_project` binds a cache to one canonical local Project
 root. The caller must hold the matching authenticated Project revision; the
-cache cannot construct one. The cache contains only successful installed-Z3
+cache cannot construct one. The cache contains only successful installed-tool
 task keys, translated script digests, and pinned tool versions. It stores no
 source, solver transcript, counterexample, secret, or application input.
 
@@ -48,8 +59,8 @@ The Unix store authenticates the entire selected envelope before invoking its
 private decoder. Loaded entries are still structurally replayed against live
 translated scripts, the transitive key, Project root scope, tool pin, and
 process limits at each lookup. A mismatch is stale and invokes fresh installed
-checking. A selected law stages successful queries in private memory and commits them
-only after every dependency and caller query is proved and the final
+checking. A selected modular law stages successful queries in private memory
+and commits them only after every dependency and caller query is proved and the final
 cancellation check passes. Failed, refuted, unknown, timed-out, or cancelled
 work inserts no partial task set. Cancellation is checked before, during, and
 after warm reuse.
@@ -63,10 +74,12 @@ law inventory must match; `fresh`, `reused`, and `stale` are work metrics only.
 
 ## Boundaries
 
-Only the installed LAW-06 modular scalar profile is cached here. Native
-relational laws, Lean, LAW-07 aggregate queries, assumptions, library lemmas,
-foreign or dynamic calls, effects, generic instances, branches and lazy calls,
-and target-artifact claims have no cache admission under this profile. Their
+Only the installed LAW-06 modular scalar and LAW-07 structured aggregate
+profiles are cached here. Native relational laws, separately authored library
+lemmas, foreign or dynamic calls, effects, generic instances, unsupported
+branches/lazy calls, and target-artifact claims have no cache admission under
+these profiles. LAW-07 Lean reuse binds its explicit export assumptions;
+LAW-06 accepts no added axioms or named assumptions. Their
 existing proof/refusal routes remain authoritative and no cache entry can
 promote one. The existing trusted-local installed tool and compiler
 translation are trusted; a protected cache key and immutable static compiler

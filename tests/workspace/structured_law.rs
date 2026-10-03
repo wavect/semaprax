@@ -388,6 +388,134 @@ fn installed_structured_project_lean_covers_record_and_refuses_wrong_source() {
 }
 
 #[test]
+#[cfg(unix)]
+#[ignore = "requires explicitly provisioned installed Z3 and private Unix cache root"]
+fn installed_structured_cache_reuses_logical_work_and_rebinds_current_project() {
+    use semaprax::assurance_manifest::modular_law::cache::ProofTaskCache;
+    use semaprax::assurance_manifest::structured_law::installed::prove_installed_project_cached;
+    use semaprax::semantic_cache_store::{initialize, load_modular_proofs, persist_modular_proofs};
+    use std::os::unix::fs::PermissionsExt;
+
+    let project = Fixture::new("cached-z3", &project_source());
+    let revision = project.revision();
+    let tool = project.tool(ToolKind::Z3);
+    let mut cache = ProofTaskCache::for_project(&project.root).unwrap();
+    let prove = |revision: &ProjectRevision, cache: &mut ProofTaskCache| {
+        prove_installed_project_cached(
+            &project.root,
+            revision,
+            "src/app.spx",
+            "law07.total-after",
+            0,
+            &tool,
+            cache,
+        )
+        .unwrap()
+    };
+    let (cold_certificate, cold_proof, cold_work) = prove(&revision, &mut cache);
+    assert_eq!(cold_work.fresh, 1);
+    let cold_report = derive_with_verified_proofs(
+        &revision,
+        &ProjectAssuranceOptions::default(),
+        &[cold_proof.clone()],
+    )
+    .unwrap();
+
+    let root = project.root.join("proof-cache");
+    std::fs::create_dir(&root).unwrap();
+    std::fs::set_permissions(&root, std::fs::Permissions::from_mode(0o700)).unwrap();
+    initialize(&root).unwrap();
+    let receipt = persist_modular_proofs(&root, &cache).unwrap();
+    let mut restored = load_modular_proofs(&root, receipt.entry_digest()).unwrap();
+    let (warm_certificate, warm_proof, warm_work) = prove(&revision, &mut restored);
+    assert_eq!(warm_work.reused, 1);
+    assert_eq!(warm_work.fresh, 0);
+    assert_eq!(warm_certificate, cold_certificate);
+    let warm_report = derive_with_verified_proofs(
+        &revision,
+        &ProjectAssuranceOptions::default(),
+        &[warm_proof],
+    )
+    .unwrap();
+    assert_eq!(warm_report, cold_report);
+
+    let source = project.root.join("src/app.spx");
+    let before = std::fs::read_to_string(&source).unwrap();
+    std::fs::write(&source, format!("// cache-only comment\n{before}")).unwrap();
+    let formatted = project.revision();
+    let (rebound_certificate, rebound, format_work) = prove(&formatted, &mut restored);
+    assert_eq!(format_work.reused, 1);
+    assert_ne!(rebound_certificate, cold_certificate);
+    assert!(derive_with_verified_proofs(
+        &formatted,
+        &ProjectAssuranceOptions::default(),
+        &[cold_proof],
+    )
+    .is_err());
+    assert!(derive_with_verified_proofs(
+        &formatted,
+        &ProjectAssuranceOptions::default(),
+        &[rebound],
+    )
+    .is_ok());
+
+    let changed = before.replace(
+        "after.debit.balance + after.credit.balance",
+        "after.credit.balance + after.debit.balance",
+    );
+    assert_ne!(changed, before);
+    let canonical = semaprax::format::canonical(&semaprax::parse(&changed, &source).unwrap());
+    std::fs::write(&source, canonical).unwrap();
+    let semantic_edit = project.revision();
+    let (_, _, changed_work) = prove(&semantic_edit, &mut restored);
+    assert_eq!(changed_work.fresh, 1);
+    assert_eq!(changed_work.stale, 1);
+}
+
+#[test]
+#[ignore = "requires explicitly provisioned pinned Lean"]
+fn installed_structured_cache_reuses_kernel_checked_query_and_refuses_changed_law() {
+    use semaprax::assurance_manifest::modular_law::cache::ProofTaskCache;
+    use semaprax::assurance_manifest::structured_law::installed::prove_installed_project_cached;
+
+    let project = Fixture::new("cached-lean", &project_source());
+    let revision = project.revision();
+    let tool = project.tool(ToolKind::Lean);
+    let mut cache = ProofTaskCache::for_project(&project.root).unwrap();
+    let prove = |revision: &ProjectRevision, cache: &mut ProofTaskCache| {
+        prove_installed_project_cached(
+            &project.root,
+            revision,
+            "src/app.spx",
+            "law07.total-after",
+            0,
+            &tool,
+            cache,
+        )
+    };
+    let (cold, _, cold_work) = prove(&revision, &mut cache).unwrap();
+    assert_eq!(cold_work.fresh, 1);
+    let (warm, _, warm_work) = prove(&revision, &mut cache).unwrap();
+    assert_eq!(warm_work.reused, 1);
+    assert_eq!(cold, warm);
+
+    let source = project.root.join("src/app.spx");
+    let before = std::fs::read_to_string(&source).unwrap();
+    let wrong = before.replace(
+        "ensures result == debit + credit",
+        "ensures result == debit - credit",
+    );
+    assert_ne!(wrong, before);
+    let canonical = semaprax::format::canonical(&semaprax::parse(&wrong, &source).unwrap());
+    std::fs::write(&source, canonical).unwrap();
+    let revision = project.revision();
+    assert!(
+        prove(&revision, &mut cache).is_err(),
+        "changed false theorem cannot reuse a prior kernel success"
+    );
+}
+
+#[test]
 fn selected_project_public_scalar_export_refuses_authored_aggregate_inventory() {
     let project = Fixture::new("selected-refusal", &project_source());
     let native = r#"module law07.laws;

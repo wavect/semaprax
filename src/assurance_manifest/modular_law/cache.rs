@@ -425,6 +425,107 @@ fn pending_capacity_exceeded(
     entries.len() + additions >= MAX_ENTRIES
 }
 
+/// Share the authenticated checked-success store with another *compiler-owned*
+/// installed law route. The caller must derive `logical_subject` from current
+/// checked HIR and include every admitted implementation and proof dependency
+/// in it. `confirm` is the ordinary complete domain-and-proof checker; a
+/// process failure or cancellation never inserts a task.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn check_bound_task(
+    cache: &mut ProofTaskCache,
+    project_root: &std::path::Path,
+    tool: &InstalledProofTool,
+    role: &str,
+    owner: &str,
+    logical_subject: &str,
+    query_digest: &str,
+    profile: &str,
+    axioms: &str,
+    confirm: impl FnOnce() -> Result<(), Vec<crate::diagnostic::Diagnostic>>,
+) -> Result<WorkMetrics, Vec<crate::diagnostic::Diagnostic>> {
+    cache
+        .require_project(project_root)
+        .map_err(|reason| invalid(&reason))?;
+    if !tool.proof_cache_active() {
+        return Err(invalid("proof task was cancelled"));
+    }
+    if role.is_empty()
+        || owner.is_empty()
+        || !valid_digest(logical_subject)
+        || !valid_digest(query_digest)
+        || profile.is_empty()
+        || axioms.is_empty()
+    {
+        return Err(invalid("checked subject dependency identity is malformed"));
+    }
+    let (version_timeout_ms, proof_timeout_ms, stream_max) = tool.proof_cache_options();
+    let key = TaskKeyFields {
+        role,
+        owner,
+        summary: logical_subject,
+        script: query_digest,
+        compiler: env!("CARGO_PKG_VERSION"),
+        numeric_model: NUMERIC_MODEL,
+        profile,
+        axioms,
+        solver_version: tool.expected_version(),
+        solver_executable: tool.proof_cache_executable_digest(),
+        version_timeout_ms,
+        proof_timeout_ms,
+        stream_max,
+    }
+    .digest();
+    let slot = digest(&["slot", role, owner]);
+    let mut work = WorkMetrics::default();
+    if let Some(entry) = cache.entries.get(&slot) {
+        if entry_matches(entry, &key, query_digest, tool.expected_version()) {
+            if !tool.proof_cache_active() {
+                return Err(invalid("proof task was cancelled"));
+            }
+            work.reused = 1;
+            return Ok(work);
+        }
+        work.stale = 1;
+    }
+    if let Some(existing) = cache
+        .entries
+        .values()
+        .find(|entry| entry_matches(entry, &key, query_digest, tool.expected_version()))
+        .cloned()
+    {
+        if cache.entries.len() >= MAX_ENTRIES && !cache.entries.contains_key(&slot) {
+            return Err(invalid("proof task cache capacity exceeded"));
+        }
+        if !tool.proof_cache_active() {
+            return Err(invalid("proof task was cancelled"));
+        }
+        cache.entries.insert(slot, existing);
+        work.reused = 1;
+        return Ok(work);
+    }
+    confirm()?;
+    if !tool.proof_cache_active() {
+        return Err(invalid("proof task was cancelled"));
+    }
+    if cache.entries.len() >= MAX_ENTRIES && !cache.entries.contains_key(&slot) {
+        return Err(invalid("proof task cache capacity exceeded"));
+    }
+    cache.entries.insert(
+        slot,
+        CheckedEntry {
+            key,
+            script_digest: query_digest.into(),
+            solver_version: tool.expected_version().into(),
+        },
+    );
+    work.fresh = 1;
+    Ok(work)
+}
+
+pub(crate) fn logical_subject_digest(parts: &[&str]) -> String {
+    digest(parts)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

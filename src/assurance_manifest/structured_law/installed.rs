@@ -5,6 +5,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::assurance_manifest::{
+    modular_law::cache::{self, ProofTaskCache, WorkMetrics},
     smt_discharge as smt, AssuranceClass, MethodRecord, VerifiedProjectProof,
 };
 use crate::diagnostic::Diagnostic;
@@ -346,6 +347,79 @@ pub fn prove_installed_project(
         .map_err(|_| refused("certificate serialization failed"))?;
     let proof = attached(&subject, &certificate);
     Ok((certificate, proof))
+}
+
+fn checked_logical_subject(subject: &Subject) -> Result<(String, String), Vec<Diagnostic>> {
+    let row = &subject.certificate;
+    let bindings = serde_json::to_string(&row.field_bindings)
+        .map_err(|_| refused("field dependency encoding failed"))?;
+    let dependencies = serde_json::to_string(&row.dependency_ids)
+        .map_err(|_| refused("declaration dependency encoding failed"))?;
+    let theorem_names = serde_json::to_string(&subject.lean_theorems)
+        .map_err(|_| refused("theorem inventory encoding failed"))?;
+    let coverage = serde_json::to_string(&row.backend_coverage)
+        .map_err(|_| refused("backend coverage encoding failed"))?;
+    let nonclaims = serde_json::to_string(&row.nonclaims)
+        .map_err(|_| refused("proof boundary encoding failed"))?;
+    let axioms = match row.backend {
+        Backend::Z3 => "none".into(),
+        Backend::Lean => serde_json::to_string(&lean::ASSUMPTIONS)
+            .map_err(|_| refused("Lean assumption inventory encoding failed"))?,
+    };
+    let index = row.ensures_index.to_string();
+    let logical = cache::logical_subject_digest(&[
+        "structured-law",
+        &row.declaration_id,
+        &index,
+        &row.scalar_revision,
+        &bindings,
+        &dependencies,
+        &row.query_digest,
+        row.domain_query_digest.as_deref().unwrap_or("none"),
+        &row.domain_witness,
+        &theorem_names,
+        &coverage,
+        &nonclaims,
+    ]);
+    Ok((logical, axioms))
+}
+
+/// Rebuild the exact current source-bound certificate and Project attachment,
+/// while reusing a previously checked logical LAW-07 query only when the
+/// lowered subject, every field/case dependency, backend profile, kernel
+/// assumptions, installed tool and process bounds still match.
+pub fn prove_installed_project_cached(
+    project_root: &std::path::Path,
+    revision: &ProjectRevision,
+    source_path: &str,
+    declaration: &str,
+    index: usize,
+    tool: &InstalledProofTool,
+    cache: &mut ProofTaskCache,
+) -> Result<(String, VerifiedProjectProof, WorkMetrics), Vec<Diagnostic>> {
+    let subject = subject(revision, source_path, declaration, index, tool)?;
+    let (logical, axioms) = checked_logical_subject(&subject)?;
+    let role = match subject.certificate.backend {
+        Backend::Z3 => "structured-z3",
+        Backend::Lean => "structured-lean",
+    };
+    let owner = format!("{declaration}:{index}");
+    let work = cache::check_bound_task(
+        cache,
+        project_root,
+        tool,
+        role,
+        &owner,
+        &logical,
+        &subject.certificate.query_digest,
+        &subject.certificate.profile,
+        &axioms,
+        || confirm(&subject, tool),
+    )?;
+    let certificate = serde_json::to_string(&subject.certificate)
+        .map_err(|_| refused("certificate serialization failed"))?;
+    let proof = attached(&subject, &certificate);
+    Ok((certificate, proof, work))
 }
 
 /// Reparse exact retained source, recompute every field/case/query identity,

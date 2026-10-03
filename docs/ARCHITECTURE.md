@@ -162,8 +162,11 @@ standalone `new` route (`src/project/create.rs`), and both share one grammar and
 one scaffold. The toolchain also owns the
 Project Native Rust package publication adapter, and safe Windows revision-store
 host. Its `rich_native_host` module wraps admitted rich-Cargo builds and native
-callback dispatch with path-free human/JSON refusals; the full CLI does not yet
-route rich-Cargo operations. Its `opencode_host` module owns the explicit fixed-provider process,
+callback dispatch with path-free human/JSON refusals. The private
+`native-authority-check` command inspects selected plan, crate, and tool bytes,
+target, trust policy, and per-call effects without launching Cargo or native
+code; the full CLI does not yet route rich-Cargo builds. Its `opencode_host`
+module owns the explicit fixed-provider process,
 transport receipt binding. `bounded_capture` owns shared Unix nonblocking
 process-group capture; `claude_host` owns the separate native Claude print-JSON
 transport and reported-usage validation for [repair V3](CLAUDE-PRINT-REPAIR-V1.md).

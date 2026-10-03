@@ -1,5 +1,12 @@
 # Changelog
 
+- Add a read-only private `native-authority-check` CLI route over explicit plan,
+  crate, and selected tool files. It exercises the native profile's build or
+  dispatch admission and reports actual unsupported target, missing tool,
+  missing capability, untrusted behavior, and unavailable sandbox refusals.
+  It never launches Cargo or a callback and labels audited effects as a
+  maintainer assertion rather than compiler verification.
+
 - Add explicit rich Native Rust host wrappers for admitted Cargo build,
   capability grant, and callback dispatch. Render unsupported API, missing
   tool, missing capability, opaque native code, and unavailable sandbox as

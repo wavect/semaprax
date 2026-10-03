@@ -242,12 +242,7 @@ fn build_locked_offline_with_hook(
 }
 
 fn validate_invocation(invocation: &ExplicitCargoInvocation) -> Result<(), CargoExecutionError> {
-    if !invocation.cargo.is_absolute() || !invocation.rustc.is_absolute() {
-        return Err(CargoExecutionError::InvalidInput);
-    }
-    if !regular_file(&invocation.cargo) || !regular_file(&invocation.rustc) {
-        return Err(CargoExecutionError::MissingTool);
-    }
+    validate_selected_tools(&invocation.cargo, &invocation.rustc)?;
     if !directory(&invocation.workspace)
         || !regular_file(&invocation.manifest)
         || !directory(&invocation.cargo_home)
@@ -272,8 +267,24 @@ fn validate_native_target(prepared: &PreparedCargoClosure) -> Result<(), CargoEx
         .get("target")
         .and_then(serde_json::Value::as_str)
         .ok_or(CargoExecutionError::InvalidInput)?;
+    validate_selected_native_target(target)
+}
+
+/// Read-only validation shared by the explicit build and private trust CLI.
+pub fn validate_selected_native_target(target: &str) -> Result<(), CargoExecutionError> {
     if Some(target) != current_host_target() {
         return Err(CargoExecutionError::UnsupportedApi);
+    }
+    Ok(())
+}
+
+/// Reject a missing selected tool before any Cargo process is constructed.
+pub fn validate_selected_tools(cargo: &Path, rustc: &Path) -> Result<(), CargoExecutionError> {
+    if !cargo.is_absolute() || !rustc.is_absolute() {
+        return Err(CargoExecutionError::InvalidInput);
+    }
+    if !regular_file(cargo) || !regular_file(rustc) {
+        return Err(CargoExecutionError::MissingTool);
     }
     Ok(())
 }

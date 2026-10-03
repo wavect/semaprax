@@ -62,6 +62,7 @@ pub type OfflineReleaseVerifier =
 pub struct PrivateHost {
     pub new_project: NewProjectHook,
     pub source_live: fn(&[String]) -> Result<String, (String, u8)>,
+    pub native_authority_check: fn(&[String]) -> Result<String, (String, u8)>,
     pub build_rust: fn(&mut project::ProjectSnapshot, &Path) -> Result<(), Vec<Diagnostic>>,
     pub offline_release_verifier: Option<OfflineReleaseVerifier>,
     #[cfg(windows)]
@@ -133,6 +134,15 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             let host = require_private_host(host, "source-live")?;
             let output = (host.source_live)(&args[1..]).map_err(|(error, code)| {
                 eprintln!("source-live: {error}");
+                code
+            })?;
+            print!("{output}");
+            Ok(())
+        }
+        CommandId::NativeAuthorityCheck => {
+            let host = require_private_host(host, "native-authority-check")?;
+            let output = (host.native_authority_check)(&args[1..]).map_err(|(error, code)| {
+                eprint!("{error}");
                 code
             })?;
             print!("{output}");

@@ -1,0 +1,8 @@
+module native_law.tests;
+use function @id("native-law.add") from native_law.core as add;
+
+@id("native-law.test")
+fn main() -> i64
+{
+    if add(1, 2) == 3 { 0 } else { 1 }
+}

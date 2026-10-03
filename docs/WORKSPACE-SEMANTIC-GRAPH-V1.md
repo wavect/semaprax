@@ -381,3 +381,17 @@ module/declaration/edge projection remains intact. Source and selected index
 facts are checked by the [indexed native Rust Project route](NATIVE-RUST-INTEROP-V1.md).
 No selected import means unchanged graph schema and bytes. This addition does
 not add selected-index inputs to managed `ACTIVE` snapshot admission.
+
+### Explicit native law sources in Project graphs
+
+A Project with one or more manifest v2 `law_sources` selects
+`semaprax.project-semantic-graph.v6`. The graph retains its ordinary checked
+module, declaration, and call-edge projection and adds `law_modules` from the
+explicitly selected native source modules. Each typed law row includes its
+persistent ID, closed selector, canonical scalar proposition, evidence
+requirement, and source owner. `law_dependencies` records the exact persistent
+function identity and clause kind selected by contract laws; independent
+scalar relations have no function dependency. Both arrays are derived from
+authenticated Project bytes and included in the graph digest. A Project
+without native laws keeps its previous graph schema and bytes. These rows are
+declarations, not proof or publication authority.

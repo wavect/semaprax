@@ -573,7 +573,12 @@ fn structural_diagnostics(tables: &[Table<'_>], law_layout: bool) -> Vec<Diagnos
         if sources.iter().any(|path| {
             path.len() > super::MAX_PATH_BYTES
                 || !path.ends_with(".spx")
-                || !crate::workspace::evidence_path_is_valid(path)
+                || !super::valid_manifest_source_path(
+                    path,
+                    law_layout
+                        && table_list(tables, "modules", "law_sources")
+                            .is_some_and(|laws| laws.contains(path)),
+                )
         }) {
             diagnostics.push(scaffold_diagnostic(format!(
                 "{LABEL} source paths must be canonical relative .spx paths of at most 240 bytes"

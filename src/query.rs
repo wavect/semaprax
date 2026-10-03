@@ -317,9 +317,21 @@ pub fn run_project(
         let module = crate::native_law_source::parse(source.source(), source.path())
             .map_err(|error| vec![error])?;
         for law in module.laws {
-            let clause = match law.clause {
-                crate::assurance_manifest::law_set::ContractKind::Precondition => "requires",
-                crate::assurance_manifest::law_set::ContractKind::Postcondition => "ensures",
+            let signature = match &law.subject {
+                crate::native_law_source::NativeLawSubject::Contract { subject_id, clause } => {
+                    let clause = match clause {
+                        crate::assurance_manifest::law_set::ContractKind::Precondition => {
+                            "requires"
+                        }
+                        crate::assurance_manifest::law_set::ContractKind::Postcondition => {
+                            "ensures"
+                        }
+                    };
+                    format!("law contract \"{subject_id}\" {clause} {}", law.proposition)
+                }
+                crate::native_law_source::NativeLawSubject::ScalarRelational => {
+                    format!("law relational {}", law.proposition)
+                }
             };
             let entry = Entry {
                 kind: "law",
@@ -327,10 +339,7 @@ pub fn run_project(
                 name: law.law_id,
                 persistent: true,
                 description: Vec::new(),
-                signature: format!(
-                    "law contract \"{}\" {clause} {}",
-                    law.subject_id, law.proposition
-                ),
+                signature,
                 location: doc::Location {
                     line: law.span.line,
                     column: law.span.column,

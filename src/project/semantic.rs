@@ -40,6 +40,7 @@ impl ProjectSemanticState {
         project_name: &str,
         project_revision: &str,
         test_module: &str,
+        law_modules: &[crate::assurance_manifest::law_set::LawModule],
     ) -> Result<Self, Vec<Diagnostic>> {
         let function_origins = projection
             .declarations()
@@ -73,6 +74,7 @@ impl ProjectSemanticState {
                 project_name,
                 project_revision,
                 test_module,
+                law_modules,
             )?
         };
         let graph_json = graph.json().to_owned();

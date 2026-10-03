@@ -233,6 +233,7 @@ fn finish_build(
         manifest.name(),
         &project_revision,
         manifest.test_module(),
+        &law_modules,
     )?;
     // This is the complete public target admission gate used by ordinary
     // Project loading. Candidate planning must not validate a weaker profile,
@@ -311,6 +312,7 @@ fn validate_native_laws(
     programs: &[&crate::ast::Program],
 ) -> Result<(), Vec<Diagnostic>> {
     use crate::assurance_manifest::law_set::ContractKind;
+    use crate::native_law_source::NativeLawSubject;
     let mut identities = std::collections::BTreeSet::new();
     for source in law_sources {
         let module = crate::native_law_source::parse(&source.source, &source.path)
@@ -322,6 +324,12 @@ fn validate_native_laws(
                     "duplicate native law stable ID across selected modules",
                 )]);
             }
+            let NativeLawSubject::Contract { subject_id, clause } = &law.subject else {
+                // The parser has already checked the independent relation's
+                // typed binders and pure scalar proposition. It has no
+                // function-contract owner to resolve here.
+                continue;
+            };
             let mut subjects = programs
                 .iter()
                 .flat_map(|program| {
@@ -335,13 +343,13 @@ fn validate_native_laws(
                             _ => [].iter(),
                         }))
                 })
-                .filter(|function| function.stable_id == law.subject_id);
+                .filter(|function| function.stable_id == *subject_id);
             let Some(function) = subjects.next() else {
                 return Err(vec![Diagnostic::io(
                     "SPX-LW110",
                     format!(
                         "native law `{}` has an unresolved contract subject `{}`",
-                        law.law_id, law.subject_id,
+                        law.law_id, subject_id,
                     ),
                 )]);
             };
@@ -364,7 +372,7 @@ fn validate_native_laws(
                     )]);
                 }
             }
-            let clauses = match law.clause {
+            let clauses = match clause {
                 ContractKind::Precondition => &function.requires,
                 ContractKind::Postcondition => &function.ensures,
             };

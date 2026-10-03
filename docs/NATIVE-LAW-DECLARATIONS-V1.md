@@ -2,14 +2,14 @@
 
 Status: bounded LAW-02 source profile. The executable gate is recorded with
 LAW-02. This specification extends [Law Set v1](LAW-SET-V1.md) with a
-canonical `.spx` projection; it does not widen LAW-01 selectors or evidence.
+canonical `.spx` projection with an additive scalar relational selector.
 
 ## Source form
 
 A native law file has an ordinary module header and one or more declarations.
-Every law has a persistent explicit `@id`, a persistent function subject ID,
-one exact contract-clause kind, typed scalar binders, one scalar proposition,
-and an evidence requirement.
+Every law has a persistent explicit `@id`, typed scalar binders, one pure
+proposition, and an evidence requirement. A contract law selects one precise
+clause of a persistent function identity. A relational law stands alone.
 
 ```semaprax
 module arithmetic.laws;
@@ -18,13 +18,18 @@ module arithmetic.laws;
 law contract "arithmetic.add" ensures (left: i64, right: i64)
     left + right >= left
     evidence smt_proved;
+
+@id("arithmetic.order.total")
+law relational (left: i64, right: i64)
+    left <= right || right < left
+    evidence smt_proved;
 ```
 
 The grammar is:
 
 ```text
 law-declaration := "@id" "(" STRING ")"
-                   "law" "contract" STRING ("requires" | "ensures")
+                   "law" ("contract" STRING ("requires" | "ensures") | "relational")
                    "(" binder ("," binder)* ")"
                    proposition "evidence" evidence ";"
 binder          := IDENT ":" scalar-type
@@ -39,12 +44,12 @@ and binary operators. Calls, field projections, records, blocks, branches,
 quantification, effects, and aliases are refused. This preserves the closed
 scalar selector boundary of Law Set v1.
 
-The subject string is a declaration identity, never a display name. The
-proposition must exactly select one existing `requires` or `ensures` clause of
-that function. Its LAW-01 lowering preserves the subject ID, clause kind,
-canonical proposition, and evidence requirement. Binders and source spans are
-available to source diagnostics and query presentation; they do not invent a
-new proof selector.
+For a contract law, the subject string is a declaration identity, never a
+display name. The proposition must exactly select one existing `requires` or
+`ensures` clause of that function. A relational law has no function subject;
+its typed binders and canonical proposition form a distinct LAW-01 selector.
+Both preserve source spans for diagnostics. Calls remain unsupported in either
+form until a separately reviewed resolved-call profile is available.
 
 ## Explicit Project selection
 
@@ -61,12 +66,34 @@ path. A missing selected path is a Project admission error. An unselected
 `LAWS.spx` has no law effect. LAW-03 supplies an independently held baseline,
 so removing a selected entry cannot reduce protected obligations.
 
+## Complete executable example
+
+[`examples/native-law-project`](../examples/native-law-project/semaprax.toml)
+contains the complete manifest, executable app, tests, and explicitly selected
+`src/LAWS.spx` shown by this profile. From the repository root, run:
+
+```sh
+cargo run --locked -p semaprax -- check examples/native-law-project
+cargo run --locked -p semaprax -- query examples/native-law-project --kind law --json
+cargo run --locked -p semaprax -- graph examples/native-law-project/semaprax.toml
+```
+
+The query and graph expose `native-law.add.right-nonnegative` and
+`native-law.order.total` with their exact scalar propositions. Checking the
+Project admits both declarations; it does not claim either law has proof
+coverage. Use `LawSet::derive` and `derive_report` to inspect their open rows
+under an independently selected policy.
+
 ## Canonical projection and diagnostics
 
 Canonical formatting emits the module header, one blank line before each law,
 the explicit ID, typed binders in source order, normalized scalar proposition,
 and exactly one final LF. Comments are trivia and never contribute to the
 logical selector or LAW-01 digest.
+
+The Project graph v6 projection carries law modules, law IDs, propositions,
+and contract-subject dependencies; Project query v2 exposes the same law IDs
+and propositions.
 
 `SPX-LW110` rejects malformed declarations, missing or duplicate explicit
 identities, invalid clause or evidence words, non-scalar binder types,
@@ -81,7 +108,12 @@ This form declares a law. It carries the required evidence class but contains
 no proof implementation, theorem file, tactic language, solver command, or
 filesystem path. A named theorem or a file named as the law is not evidence of
 coverage. Existing SMT, model-checking, and external-kernel producers remain
-separate evidence sources for the same LAW-01 obligation.
+separate evidence sources for the same LAW-01 obligation. An independent
+relational law currently produces an explicit open coverage row: no verified
+relational proof attachment is admitted by this bounded profile. A false
+relation cannot become covered merely by naming a theorem or choosing
+`smt_proved` as its required evidence class. Inline `proof law` declarations,
+including a proof named for another law, are rejected by the native parser.
 
 ## Non-claims
 

@@ -805,11 +805,24 @@ impl ProjectManifest {
         for path in &sources {
             if path.len() > MAX_PATH_BYTES
                 || !path.ends_with(".spx")
-                || !crate::workspace::evidence_path_is_valid(path)
+                || !valid_manifest_source_path(path, law_sources.contains(path))
             {
                 return Err(grammar(format!(
                     "{version_label} source paths must be canonical relative .spx paths of at most 240 bytes"
                 )));
+            }
+        }
+        for path in &law_sources {
+            let lower = if path == "LAWS.spx" {
+                Some("laws.spx".to_owned())
+            } else {
+                path.strip_suffix("/LAWS.spx")
+                    .map(|prefix| format!("{prefix}/laws.spx"))
+            };
+            if lower.is_some_and(|alias| sources.contains(&alias)) {
+                return Err(grammar(
+                    "Package Manifest v2 source inventory aliases LAWS.spx by case",
+                ));
             }
         }
         let std_collections_no_export_shape = schema == PROJECT_SCHEMA_V8
@@ -1411,6 +1424,12 @@ fn require_strict_order(values: &[String], subject: &str) -> Result<(), Vec<Diag
             "Project v1 {subject} must be strictly byte-sorted and unique"
         )))
     }
+}
+
+fn valid_manifest_source_path(path: &str, selected_law: bool) -> bool {
+    let conventional_law_name = selected_law && (path == "LAWS.spx" || path.ends_with("/LAWS.spx"));
+    (!path.bytes().any(|byte| byte.is_ascii_uppercase()) || conventional_law_name)
+        && crate::workspace::evidence_path_is_valid(path)
 }
 
 fn valid_name(value: &str) -> bool {

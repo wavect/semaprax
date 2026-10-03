@@ -25,6 +25,10 @@ was not published. See [v0.7.0 status](RELEASE-0.7.0-STATUS.md) and the
 - Local package-registry work now covers signed metadata, lock-bound artifact
   reads, held generations, and a resolver-cache bridge. It is not a hosted
   package service.
+- Native law declarations now select exact Project law modules through manifest
+  v2. Contract and independent scalar relational propositions have stable IDs,
+  canonical graph/query projections, and explicit open coverage until verified
+  evidence exists. The filename `LAWS.spx` has no discovery authority.
 - Private native owned-byte and Core Wasm work gained bounded fixtures and
   observed JavaScript-arena settlement evidence. Public parity and complete
   cleanup/fuel evidence remain open.

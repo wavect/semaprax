@@ -3223,6 +3223,7 @@ pub(crate) fn render_project_semantic_graph(
     project_name: &str,
     project_revision: &str,
     test_module: &str,
+    law_modules: &[crate::assurance_manifest::law_set::LawModule],
 ) -> Result<ProjectSemanticGraphArtifact, Vec<Diagnostic>> {
     validate_render_projection(projection)?;
     validate_entry_module(test_module)?;
@@ -3243,6 +3244,7 @@ pub(crate) fn render_project_semantic_graph(
             project_name,
             project_revision,
             test_module,
+            law_modules,
             None,
         )
     });
@@ -3257,6 +3259,7 @@ pub(crate) fn render_project_semantic_graph(
             project_name,
             project_revision,
             test_module,
+            law_modules,
             Some(&digest),
         )
     });

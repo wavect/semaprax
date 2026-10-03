@@ -2,7 +2,8 @@
 
 Status: additive selected-policy interface; its executable gate is
 `workspace project_assurance_manifest::law_set`. This document defines the
-bounded LAW-01 profile, not a claim of universal proof coverage.
+bounded LAW-01 profile, not a claim of universal proof coverage. Native source
+declarations are defined by [Native Law Declarations v1](NATIVE-LAW-DECLARATIONS-V1.md).
 
 `assurance_manifest::law_set` answers which explicitly named laws a retained
 Project must preserve. The protected baseline is supplied independently by the
@@ -11,13 +12,14 @@ reduce its inventory. Law identity grants no authority and inventory is not proo
 
 ## Selection and provenance
 
-The library accepts explicit typed `LawModule` inputs. These are policy data,
-not a new `.spx` declaration or a change to Project manifest parsing. A module
-records `module_id`, its owning Project `source_path`, declared assumption IDs,
-and its law definitions. Exact normalized module bytes, their digest, and the
-retained source digest are included in the inventory. Source owners absent from
-the Project remain visibly missing. Removing an input module, deleting its laws,
-or removing its source from Project sources cannot delete protected rows.
+The library accepts explicit typed `LawModule` inputs. Native law sources lower
+to that one representation; JSON and prose never form an alternate policy
+input. A module records `module_id`, its owning Project `source_path`, declared
+assumption IDs, and its law definitions. Exact normalized module bytes, their
+digest, and the retained source digest are included in the inventory. Source
+owners absent from the Project remain visibly missing. Removing an input module,
+deleting its laws, or removing its source from Project sources cannot delete
+protected rows.
 
 A `LawDefinition` has a persistent `law_id`, closed typed `selector`, declared
 `assumption_ids`, `requires_laws`, and an `evidence` requirement. Evidence uses
@@ -31,6 +33,7 @@ The admitted selectors are:
 | Kind | Typed subject and proposition | Evidence owner |
 | --- | --- | --- |
 | `contract` | Persistent function ID, precondition/postcondition, parsed scalar proposition | Existing Project assurance obligation |
+| `scalar_relational` | Explicit typed scalar binders and a separately stated pure proposition | Open until an independently verified relational proof attachment exists |
 | `forbid_reaches` | Claim ID and persistent `from`/`to` declaration IDs | Existing architecture evaluator |
 | `protocol_realizers_bound` | Claim ID and persistent protocol ID | Existing architecture evaluator; realizer binding only |
 | `model_property` | Closed `authorization`/`handle` reference model and exact registered invariant | Existing bounded model checker and model descriptor |
@@ -44,6 +47,11 @@ matching clauses are ambiguous and refused. Legacy obligation IDs are unchanged.
 Function display names and formatting are not law identity inputs. Changing a
 proposition, subject, requirement, assumptions, or dependencies changes the
 versioned semantic digest and cannot silently retarget a protected law ID.
+Scalar relational selectors have no function subject. Their binder names and
+types are part of the proposition identity. The checker validates the typed
+boolean expression and refuses calls, effects, undeclared variables, and
+unsupported quantification. Merely naming an SMT or theorem evidence class
+leaves the coverage row open; no proof filename supplies evidence.
 
 Model selectors bind only registered invariants of the two existing reference
 models. The checker actually explores the selected reference model under its

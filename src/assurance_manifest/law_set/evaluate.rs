@@ -216,6 +216,12 @@ fn evidence_fact(row: &LawRow, id: String, class: AssuranceClass, evidence: Valu
 }
 fn evaluate(revision: &ProjectRevision, row: &LawRow, obligations: &[Value]) -> Result<Value> {
     match &row.definition.selector {
+        LawSelector::ScalarRelational { .. } => Ok(fact(
+            "awaiting_evidence",
+            "scalar_relational_proposition_has_no_verified_proof_attachment",
+            Some(format!("relational:{}", row.definition.law_id)),
+            None,
+        )),
         LawSelector::Contract {
             declaration_id,
             clause,

@@ -34,6 +34,12 @@ pub enum LawSelector {
         clause: ContractKind,
         proposition: String,
     },
+    /// A closed scalar proposition over explicit typed binders. The source
+    /// declaration alone never supplies evidence that it is true.
+    ScalarRelational {
+        binders: Vec<RelationalBinder>,
+        proposition: String,
+    },
     ForbidReaches {
         claim_id: String,
         from: String,
@@ -45,6 +51,13 @@ pub enum LawSelector {
     },
     /// A property of the named reference model only, never of arbitrary Project code.
     ModelProperty { model: ModelKind, property: String },
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RelationalBinder {
+    pub name: String,
+    pub scalar_type: String,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -309,6 +322,59 @@ fn normalize(law: &mut LawDefinition) -> Result<()> {
             scalar_selector(&program.functions[0].requires[0])?;
             *proposition = crate::format::expr(&program.functions[0].requires[0], 0);
         }
+        LawSelector::ScalarRelational {
+            binders,
+            proposition,
+        } => {
+            if binders.is_empty() || binders.len() > MAX_REFERENCES || proposition.len() > 4096 {
+                return Err(capacity());
+            }
+            let mut names = BTreeSet::new();
+            for binder in binders.iter() {
+                if !names.insert(binder.name.as_str())
+                    || !valid_scalar_binder_name(&binder.name)
+                    || !matches!(
+                        binder.scalar_type.as_str(),
+                        "i64" | "i32" | "u8" | "usize" | "bool" | "char" | "f32" | "f64"
+                    )
+                {
+                    return Err(invalid("invalid or duplicate scalar relational binder"));
+                }
+            }
+            let parameters = binders
+                .iter()
+                .map(|binder| format!("{}: {}", binder.name, binder.scalar_type))
+                .collect::<Vec<_>>()
+                .join(", ");
+            let source = format!("module law.selector;\n@id(\"law.selector\")\nfn selected({parameters}) -> i64\n requires {proposition}\n{{ 0 }}\n@id(\"law.main\") fn main() -> i64 {{ 0 }}\n");
+            let program = crate::parse(&source, "<law-selector>")
+                .map_err(|_| invalid("unsupported scalar relational selector"))?;
+            if program.functions.len() != 2 || program.functions[0].requires.len() != 1 {
+                return Err(invalid("relational selector must contain one proposition"));
+            }
+            let expression = &program.functions[0].requires[0];
+            scalar_selector(expression)?;
+            let mut pending = vec![expression];
+            while let Some(expression) = pending.pop() {
+                match &expression.kind {
+                    crate::ast::ExprKind::Var(name) if !names.contains(name.as_str()) => {
+                        return Err(invalid(
+                            "relational proposition references an undeclared binder",
+                        ));
+                    }
+                    crate::ast::ExprKind::Unary { value, .. } => pending.push(value),
+                    crate::ast::ExprKind::Binary { left, right, .. } => {
+                        pending.push(left);
+                        pending.push(right);
+                    }
+                    _ => {}
+                }
+            }
+            crate::hir::resolve(&program).map_err(|_| {
+                invalid("relational proposition is not a typed boolean scalar expression")
+            })?;
+            *proposition = crate::format::expr(expression, 0);
+        }
         LawSelector::ForbidReaches { claim_id, from, to } => {
             crate::architecture_claims::ArchitectureClaim::forbid_reaches(
                 claim_id.as_str(),
@@ -339,6 +405,13 @@ fn normalize(law: &mut LawDefinition) -> Result<()> {
         }
     }
     Ok(())
+}
+fn valid_scalar_binder_name(name: &str) -> bool {
+    let mut bytes = name.bytes();
+    bytes
+        .next()
+        .is_some_and(|first| first.is_ascii_alphabetic() || first == b'_')
+        && bytes.all(|byte| byte.is_ascii_alphanumeric() || byte == b'_')
 }
 fn canonical_ids(ids: &mut Vec<String>) -> Result<()> {
     if ids.len() > MAX_REFERENCES {

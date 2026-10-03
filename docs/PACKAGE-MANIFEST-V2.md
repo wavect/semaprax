@@ -32,6 +32,11 @@ web = ["calculator.add", "calculator.divide", "calculator.is-negative", "calcula
 `law_sources` is a strictly byte-sorted, duplicate-free subset of `sources`.
 An empty list is allowed. At least two ordinary source files remain required.
 All paths obey the ordinary canonical relative `.spx` source path limits.
+The exact final filename `LAWS.spx` is an additional portable spelling only
+when that path is explicitly selected in `law_sources`; its directory segments
+remain lowercase and canonical. A simultaneous lowercase `laws.spx` path in
+the same inventory is refused as a case alias. V1 manifests keep their
+lowercase-only path rule.
 The v1 layout does not admit this key and rejects it with `SPX-J120`. V2
 requires the key even when empty. Both layouts retain exact canonical table
 order, one-line arrays, blank lines, and one final LF.

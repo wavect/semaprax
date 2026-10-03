@@ -6,8 +6,8 @@
 //! helpful convention, never discovery authority.
 
 use crate::assurance_manifest::law_set::{
-    ContractKind, EvidenceRequirement, LawDefinition, LawModule, LawSelector, MAX_LAWS,
-    MAX_REFERENCES,
+    ContractKind, EvidenceRequirement, LawDefinition, LawModule, LawSelector, RelationalBinder,
+    MAX_LAWS, MAX_REFERENCES,
 };
 use crate::ast::Span;
 use crate::diagnostic::Diagnostic;
@@ -68,13 +68,21 @@ impl ScalarType {
     }
 }
 
-/// A declaration whose subject is a precise precondition or postcondition of
-/// a persistent function identity.
+/// A contract clause or a separately stated scalar relation.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum NativeLawSubject {
+    Contract {
+        subject_id: String,
+        clause: ContractKind,
+    },
+    ScalarRelational,
+}
+
+/// A declaration whose subject and proposition have one persistent law identity.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct NativeLawDeclaration {
     pub law_id: String,
-    pub subject_id: String,
-    pub clause: ContractKind,
+    pub subject: NativeLawSubject,
     pub binders: Vec<LawBinder>,
     /// Canonical scalar expression text.  This is a proposition, never an
     /// executable assertion or a call surface.
@@ -105,10 +113,25 @@ impl NativeLawModule {
                 .iter()
                 .map(|law| LawDefinition {
                     law_id: law.law_id.clone(),
-                    selector: LawSelector::Contract {
-                        declaration_id: law.subject_id.clone(),
-                        clause: law.clause.clone(),
-                        proposition: law.proposition.clone(),
+                    selector: match &law.subject {
+                        NativeLawSubject::Contract { subject_id, clause } => {
+                            LawSelector::Contract {
+                                declaration_id: subject_id.clone(),
+                                clause: clause.clone(),
+                                proposition: law.proposition.clone(),
+                            }
+                        }
+                        NativeLawSubject::ScalarRelational => LawSelector::ScalarRelational {
+                            binders: law
+                                .binders
+                                .iter()
+                                .map(|binder| RelationalBinder {
+                                    name: binder.name.clone(),
+                                    scalar_type: binder.ty.source().to_owned(),
+                                })
+                                .collect(),
+                            proposition: law.proposition.clone(),
+                        },
                     },
                     assumption_ids: Vec::new(),
                     requires_laws: Vec::new(),
@@ -149,13 +172,18 @@ pub fn canonical(module: &NativeLawModule) -> String {
         output.push_str("@id(\"");
         output.push_str(&law.law_id);
         output.push_str("\")\n");
-        output.push_str("law contract \"");
-        output.push_str(&law.subject_id);
-        output.push_str("\" ");
-        output.push_str(match law.clause {
-            ContractKind::Precondition => "requires",
-            ContractKind::Postcondition => "ensures",
-        });
+        match &law.subject {
+            NativeLawSubject::Contract { subject_id, clause } => {
+                output.push_str("law contract \"");
+                output.push_str(subject_id);
+                output.push_str("\" ");
+                output.push_str(match clause {
+                    ContractKind::Precondition => "requires",
+                    ContractKind::Postcondition => "ensures",
+                });
+            }
+            NativeLawSubject::ScalarRelational => output.push_str("law relational"),
+        }
         output.push_str(" (");
         for (index, binder) in law.binders.iter().enumerate() {
             if index != 0 {
@@ -211,18 +239,29 @@ impl Parser<'_> {
                 return Err(self.error("SPX-LW110", "duplicate native law stable ID"));
             }
             self.keyword("law")?;
-            self.keyword("contract")?;
-            let subject_id = self.string("subject declaration @id")?;
-            let clause = if self.at_keyword("requires") {
+            let subject = if self.at_keyword("contract") {
                 self.bump();
-                ContractKind::Precondition
-            } else if self.at_keyword("ensures") {
+                let subject_id = self.string("subject declaration @id")?;
+                let clause = if self.at_keyword("requires") {
+                    self.bump();
+                    ContractKind::Precondition
+                } else if self.at_keyword("ensures") {
+                    self.bump();
+                    ContractKind::Postcondition
+                } else {
+                    return Err(self.error(
+                        "SPX-LW110",
+                        "law contract subject requires `requires` or `ensures`",
+                    ));
+                };
+                NativeLawSubject::Contract { subject_id, clause }
+            } else if self.at_keyword("relational") {
                 self.bump();
-                ContractKind::Postcondition
+                NativeLawSubject::ScalarRelational
             } else {
                 return Err(self.error(
                     "SPX-LW110",
-                    "law contract subject requires `requires` or `ensures`",
+                    "law subject must be `contract` or `relational`",
                 ));
             };
             let binders = self.binders()?;
@@ -235,8 +274,7 @@ impl Parser<'_> {
             )?;
             laws.push(NativeLawDeclaration {
                 law_id,
-                subject_id,
-                clause,
+                subject,
                 binders,
                 proposition,
                 evidence,
@@ -418,8 +456,13 @@ fn canonical_proposition(
     path: &str,
     binders: &[LawBinder],
 ) -> Result<String, Diagnostic> {
+    let parameters = binders
+        .iter()
+        .map(|binder| format!("{}: {}", binder.name, binder.ty.source()))
+        .collect::<Vec<_>>()
+        .join(", ");
     let source = format!(
-        "module law.selector;\n@id(\"law.selector\")\nfn selected() -> i64\n requires {source}\n{{ 0 }}\n"
+        "module law.selector;\n@id(\"law.selector\")\nfn selected({parameters}) -> i64\n requires {source}\n{{ 0 }}\n@id(\"law.main\") fn main() -> i64 {{ 0 }}\n"
     );
     let program = crate::parse(&source, path).map_err(|_| {
         Diagnostic::io(
@@ -430,6 +473,13 @@ fn canonical_proposition(
     })?;
     let expression = &program.functions[0].requires[0];
     scalar_expression(expression, path, binders)?;
+    crate::hir::resolve(&program).map_err(|_| {
+        Diagnostic::io(
+            "SPX-LW110",
+            "native law proposition must be a typed boolean scalar expression",
+        )
+        .at_path(path)
+    })?;
     Ok(crate::format::expr(expression, 0))
 }
 

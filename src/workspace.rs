@@ -5535,6 +5535,15 @@ fn require_distinct_text_identities(
     require_distinct_identities(&identities)
 }
 pub(crate) fn validate_logical_path(path: &str) -> Result<(), Vec<Diagnostic>> {
+    // Native law modules may use the conventional final filename `LAWS.spx`.
+    // Validate every other byte through the existing portable path rule.
+    let law_alias = if path == "LAWS.spx" {
+        Some("laws.spx".to_owned())
+    } else {
+        path.strip_suffix("/LAWS.spx")
+            .map(|prefix| format!("{prefix}/laws.spx"))
+    };
+    let path = law_alias.as_deref().unwrap_or(path);
     if path.len() > 240
         || !path.ends_with(".spx")
         || path

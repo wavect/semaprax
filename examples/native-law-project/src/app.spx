@@ -1,0 +1,8 @@
+module native_law.app;
+use function @id("native-law.add") from native_law.core as add;
+
+@id("native-law.main")
+fn main() -> i64
+{
+    add(1, 2)
+}

@@ -962,6 +962,7 @@ fn parse_revision(revision: &ProjectRevision) -> Result<Vec<Program>, Vec<Diagno
     revision
         .sources()
         .iter()
+        .filter(|source| source.source_graph_schema() != "semaprax.native-law.v1")
         .map(|source| crate::parse(source.source(), source.path()).map_err(|d| vec![d]))
         .collect()
 }
@@ -1030,6 +1031,24 @@ fn materialize(
             source,
         });
     }
+    // Candidate intentions mutate executable programs. Native law modules are
+    // separately selected specification sources and keep their exact base bytes.
+    for source in base.sources() {
+        if source.source_graph_schema() != "semaprax.native-law.v1" {
+            continue;
+        }
+        total = total
+            .checked_add(source.source().len())
+            .ok_or_else(|| capacity("candidate source size overflow"))?;
+        if total > MAX_TOTAL_SOURCE_BYTES {
+            return Err(capacity("candidate sources exceed the Project bound"));
+        }
+        sources.push(SemanticWorkspaceSource {
+            path: source.path().to_owned(),
+            source: source.source().to_owned(),
+        });
+    }
+    sources.sort_by(|left, right| left.path.cmp(&right.path));
     Ok(sources)
 }
 

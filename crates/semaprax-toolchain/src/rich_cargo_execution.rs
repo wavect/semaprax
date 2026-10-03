@@ -44,6 +44,8 @@ pub enum CargoExecutionError {
     BuildFailed,
     /// SPX-B124: Cargo output exceeded the bounded capture budget.
     OutputTooLarge,
+    /// SPX-B130: the bounded artifact bundle could not be committed atomically.
+    PublicationFailed,
     Preparation(CargoPreparationError),
 }
 
@@ -60,6 +62,7 @@ impl CargoExecutionError {
             Self::BuildIdentityMismatch | Self::BuildInputsChanged => "SPX-B128",
             Self::BuildFailed => "SPX-B123",
             Self::OutputTooLarge => "SPX-B124",
+            Self::PublicationFailed => "SPX-B130",
             Self::Preparation(CargoPreparationError::Unsupported) => "SPX-B122",
             Self::Preparation(CargoPreparationError::Malformed) => "SPX-B121",
             Self::Preparation(CargoPreparationError::Disagreement) => "SPX-B123",
@@ -83,6 +86,7 @@ impl CargoExecutionError {
             }
             Self::BuildFailed => "Native Rust trusted Cargo build failed",
             Self::OutputTooLarge => "Native Rust Cargo output exceeds its bound",
+            Self::PublicationFailed => "Native Rust Cargo artifact publication failed",
             Self::Preparation(_) => "Native Rust Cargo preparation was refused",
         };
         Diagnostic::io(self.diagnostic_code(), message)
@@ -380,7 +384,7 @@ pub fn validate_selected_tools(cargo: &Path, rustc: &Path) -> Result<(), CargoEx
     Ok(())
 }
 
-fn current_host_target() -> Option<&'static str> {
+pub(crate) fn current_host_target() -> Option<&'static str> {
     if cfg!(all(target_arch = "aarch64", target_os = "macos")) {
         Some("aarch64-apple-darwin")
     } else if cfg!(all(target_arch = "x86_64", target_os = "macos")) {

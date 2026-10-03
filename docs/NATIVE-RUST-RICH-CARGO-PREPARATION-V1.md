@@ -129,7 +129,8 @@ is spawned instead of labeling an unenforced process as confined.
 The API exposes distinct diagnostic codes for unsupported native targets/APIs
 (`SPX-B122`), missing direct tools (`SPX-B125`), denied untrusted build code
 (`SPX-B126`), unavailable sandbox enforcement (`SPX-B127`), changed build
-inputs (`SPX-B128`), and missing dispatch capability (`SPX-B129`). These codes
+inputs (`SPX-B128`), missing dispatch capability (`SPX-B129`), and artifact
+publication failure (`SPX-B130`). These codes
 render as ordinary path-free `Diagnostic` values for host callers. No rich
 Cargo CLI command or graphical UI route is currently selected.
 The focused strict and sandbox negative controls use a marker-writing Cargo
@@ -184,6 +185,13 @@ receipt for an already admitted closure fails closed, and a changed prepared
 closure has a separate cache entry. The cache has no filesystem or publication
 authority and does not skip Cargo execution: it verifies repeated build output
 before reusing the in-memory receipt.
+`publish_locked_cargo_artifacts` replays the build identity and each held output
+file digest, then publishes `receipt.json` plus a bounded `artifacts.bin` in a
+new directory through the existing held-directory exact-inventory and atomic
+no-clobber rename primitives. The destination parent must be outside the
+workspace so staging cannot change the input snapshot during final replay.
+M1 publication is capped at 32 MiB of artifact bytes; larger successful Cargo
+builds retain their in-memory receipt but fail closed on bundle publication.
 
 ## Diagnostics and evidence
 
@@ -193,6 +201,7 @@ before reusing the in-memory receipt.
 | `SPX-B122` | A git/custom-registry source or custom target is outside the admitted profile. |
 | `SPX-B123` | Resolved package IDs and held registry/local source facts disagree. |
 | `SPX-B124` | A preparation byte or package-inventory bound is exceeded. |
+| `SPX-B130` | The bounded Cargo artifact bundle could not be published atomically. |
 
 Focused coverage proves deterministic closure recording, replay, and closure
 invalidation when the lock, configuration, Rust/native toolchain, host/target,

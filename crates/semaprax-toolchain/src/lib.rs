@@ -42,6 +42,8 @@ pub mod rich_cargo_preparation;
 /// rich Native Rust closure. Build-code authority is checked before spawning.
 #[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
 pub mod rich_cargo_execution;
+#[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
+pub mod rich_cargo_publication;
 mod rich_cargo_snapshot;
 #[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
 pub mod rich_native_host;

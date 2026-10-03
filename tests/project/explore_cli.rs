@@ -1,7 +1,7 @@
 //! Standalone explorer CLI output remains source-free and never clobbers a destination.
 
-use semaprax::project::{ProjectCandidate, SemanticChange, with_authenticated_project};
-use serde_json::{Value, json};
+use semaprax::project::{with_authenticated_project, ProjectCandidate, SemanticChange};
+use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
@@ -83,6 +83,37 @@ fn recovery_capsule(fixture: &Fixture, intent: Value) -> (String, String) {
     .unwrap()
 }
 
+fn deleted_declaration_capsule(fixture: &Fixture) -> (String, String) {
+    let source = fixture.0.join("src/core.spx");
+    let text = std::fs::read_to_string(&source).unwrap();
+    let text = text
+        .replace("    left + right\n", "    explorer_unused(left) + right\n")
+        .replace(
+            "@id(\"calculator.add\")",
+            "@id(\"calculator.explorer-unused\")\nfn explorer_unused(value: i64) -> i64\n{\n    value\n}\n\n@id(\"calculator.add\")",
+        );
+    std::fs::write(&source, text).unwrap();
+    with_authenticated_project(&fixture.0.join("semaprax.toml"), |snapshot| {
+        let base = snapshot.retain_revision();
+        let candidate = ProjectCandidate::open(base, snapshot.project_revision())?;
+        let sever_call = SemanticChange::new(
+            candidate.revision().project_revision(),
+            &json!({"kind":"replace_function_body","target":"calculator.add","body":{"kind":"place","name":"left"}}),
+        )?;
+        let candidate = candidate.apply(candidate.candidate_digest(), &sever_call)?;
+        let remove = SemanticChange::new(
+            candidate.revision().project_revision(),
+            &json!({"kind":"delete_declaration","target":"calculator.explorer-unused"}),
+        )?;
+        let candidate = candidate.apply(candidate.candidate_digest(), &remove)?;
+        Ok((
+            candidate.candidate_digest().to_owned(),
+            candidate.recovery_capsule()?,
+        ))
+    })
+    .unwrap()
+}
+
 impl Drop for Fixture {
     fn drop(&mut self) {
         let _ = std::fs::remove_dir_all(&self.0);
@@ -132,16 +163,12 @@ fn explorer_json_is_canonical_source_free_and_carries_its_payload_digest() {
     assert_eq!(snapshot["evidence"]["entries"], json!([]));
     assert_eq!(snapshot["focus_sides"], serde_json::json!([]));
     assert_eq!(snapshot["snapshot_digest"], digest(&snapshot));
-    assert!(
-        !bytes
-            .windows(secret.len())
-            .any(|window| window == secret.as_bytes())
-    );
-    assert!(
-        !bytes
-            .windows(b"fn add".len())
-            .any(|window| window == b"fn add")
-    );
+    assert!(!bytes
+        .windows(secret.len())
+        .any(|window| window == secret.as_bytes()));
+    assert!(!bytes
+        .windows(b"fn add".len())
+        .any(|window| window == b"fn add"));
 }
 
 #[test]
@@ -312,13 +339,11 @@ fn replayed_candidate_capsules_export_rename_and_move_source_sides() {
         serde_json::from_slice(&std::fs::read(renamed.0.join("rename.json")).unwrap()).unwrap();
     assert_eq!(rename["source_included"], true);
     assert_eq!(rename["focus_sides"], json!(["candidate", "base"]));
-    assert!(
-        rename["views"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .any(|view| view["query"]["side"] == "candidate")
-    );
+    assert!(rename["views"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|view| view["query"]["side"] == "candidate"));
     let rename_sources = rename["source_files"].as_array().unwrap();
     let source_review = &rename["source_review"];
     assert_eq!(
@@ -327,18 +352,16 @@ fn replayed_candidate_capsules_export_rename_and_move_source_sides() {
     );
     assert_eq!(source_review["candidate_revision"], rename_digest);
     assert_eq!(source_review["source_authority"], false);
-    assert!(
-        source_review["files"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .any(|file| {
-                file["path"] == "src/core.spx"
-                    && file["source_diff"]
-                        .as_str()
-                        .is_some_and(|diff| diff.contains("plus"))
-            })
-    );
+    assert!(source_review["files"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|file| {
+            file["path"] == "src/core.spx"
+                && file["source_diff"]
+                    .as_str()
+                    .is_some_and(|diff| diff.contains("plus"))
+        }));
     assert!(rename_sources.iter().any(|file| file["side"] == "candidate"
         && file["path"] == "src/core.spx"
         && file["text"].as_str().unwrap().contains("fn plus(")));
@@ -594,26 +617,20 @@ fn candidate_html_json_markdown_and_svg_share_exact_scope_and_change_identity() 
             .find(|view| view["query"]["mode"] == "context" && view["query"]["side"] == "candidate")
             .unwrap()["summary"]["subject"]
     );
-    assert!(
-        candidate_entry["compact"]["function_summary"]
-            .get("span")
-            .is_none()
-    );
+    assert!(candidate_entry["compact"]["function_summary"]
+        .get("span")
+        .is_none());
     assert!(
         candidate_entry["compact"]["dependency_summary"]["facets"][0]
             .get("handle")
             .is_none()
     );
-    assert!(
-        candidate_entry["compact"]["contract_delta"]
-            .get("source_bindings")
-            .is_none()
-    );
-    assert!(
-        candidate_entry["compact"]["ownership_delta"]
-            .get("functions")
-            .is_none()
-    );
+    assert!(candidate_entry["compact"]["contract_delta"]
+        .get("source_bindings")
+        .is_none());
+    assert!(candidate_entry["compact"]["ownership_delta"]
+        .get("functions")
+        .is_none());
     assert_eq!(json["source_review"], Value::Null);
     let html = std::fs::read_to_string(fixture.0.join("review.html")).unwrap();
     assert!(
@@ -667,4 +684,43 @@ fn candidate_html_json_markdown_and_svg_share_exact_scope_and_change_identity() 
     assert!(svg.contains(&format!("changed declarations: {changed}")));
     assert!(markdown.contains("calculator.add"));
     assert!(svg.contains("calculator.add"));
+}
+
+#[test]
+fn replayed_deletion_capsule_keeps_removed_target_reviewable_on_base_side() {
+    let fixture = Fixture::new();
+    let (candidate_digest, capsule) = deleted_declaration_capsule(&fixture);
+    std::fs::write(fixture.0.join("delete.capsule"), capsule).unwrap();
+    let output = fixture.cli(&[
+        "explore",
+        "semaprax.toml",
+        "--candidate-capsule",
+        "delete.capsule",
+        "--expect-candidate",
+        &candidate_digest,
+        "--target",
+        "calculator.explorer-unused",
+        "--format",
+        "json",
+        "--output",
+        "deleted.json",
+    ]);
+    assert!(output.status.success(), "{output:?}");
+    let report: Value =
+        serde_json::from_slice(&std::fs::read(fixture.0.join("deleted.json")).unwrap()).unwrap();
+    assert_eq!(report["focus_sides"], json!(["base"]));
+    assert_eq!(report["source_included"], false);
+    let views = report["views"].as_array().unwrap();
+    assert!(views.iter().any(|view| {
+        view["query"]["mode"] == "context"
+            && view["query"]["side"] == "base"
+            && view["query"]["target"] == "calculator.explorer-unused"
+    }));
+    assert!(!views.iter().any(|view| {
+        view["query"]["mode"] == "context" && view["query"]["side"] == "candidate"
+    }));
+    assert!(views.iter().any(|view| {
+        view["query"]["mode"] == "overview" && view["query"]["side"] == "candidate"
+    }));
+    assert_no_temp_artifacts(&fixture);
 }

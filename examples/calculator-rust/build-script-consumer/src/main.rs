@@ -12,3 +12,9 @@ fn main() {
     assert_eq!(calculator.spx_calculator_dot_add(19, 23), Ok(42));
     println!("42");
 }
+
+#[test]
+fn generated_calculator_round_trip() {
+    let mut calculator = NativeRustSdk::new(Host, &[]).expect("admit generated calculator SDK");
+    assert_eq!(calculator.spx_calculator_dot_add(19, 23), Ok(42));
+}

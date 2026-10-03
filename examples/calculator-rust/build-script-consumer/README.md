@@ -1,7 +1,8 @@
-# RI-10 prepared Cargo consumer
+# RI-10 Cargo consumer
 
-This is an ordinary standalone Cargo consumer for a previously generated calculator SDK.
-`build.rs` does not invoke Cargo, rustc, the SEMAPRAX compiler, or the network.
+This is an ordinary standalone Cargo consumer for a calculator SDK.
+The default prepared-only `build.rs` mode does not invoke Cargo, rustc, the
+SEMAPRAX compiler, or the network.
 It accepts an explicit absolute prepared-SDK directory and an explicit semicolon-separated
 list of absolute `.spx`, manifest, index, lock, and tool-identity files to track.
 It copies the safe generated facade and private raw adapter into `OUT_DIR`, checks the
@@ -23,3 +24,33 @@ SDK, so a changed input requires a new explicit prebuild. This prepared-only M1 
 missing, relative, unsafe-path, target-mismatched, version-mismatched, descriptor-mismatched,
 or bundle-mismatched inputs before linking. Its stable failure prefixes are `RI10-E001` through
 `RI10-E006`.
+
+An explicitly authorized local build can instead set
+`SEMAPRAX_RI10_BUILDER` to an absolute, already-built
+`semaprax-native-rust-sdk` executable and `SEMAPRAX_RI10_PROJECT_MANIFEST` to
+the absolute Project manifest. Include that manifest and every declared `.spx`
+source in `SEMAPRAX_RI10_INPUTS`. The build script calls the executable's
+`project` route directly into its own `OUT_DIR`, then stages its generated
+facade and archive. It does not run nested Cargo. Source, manifest, tool, or
+tracked lock/index changes rerun the script; the previous generated child is
+removed before rebuilding. The target in the generated SDK must still equal
+Cargo's `TARGET`. `RI10-E007` reports a missing configured builder, untracked
+manifest, invalid generated child, or failed explicit build.
+
+```sh
+SEMAPRAX_RI10_BUILDER=/absolute/bin/semaprax-native-rust-sdk \
+SEMAPRAX_RI10_PROJECT_MANIFEST=/absolute/project/semaprax.toml \
+SEMAPRAX_RI10_INPUTS='/absolute/project/semaprax.toml;/absolute/project/src/app.spx;/absolute/project/Cargo.lock' \
+RUSTC=/absolute/bin/rustc CLANG=/absolute/bin/clang \
+SEMAPRAX_ARCHIVER=/absolute/bin/libtool \
+cargo test --locked --offline
+```
+
+The `libtool` path is the macOS example; other supported hosts must use their
+admitted archiver. The caller explicitly chooses the compiler, native tools,
+Project sources, and build-script authority. The SDK still remains unpublished
+and this example does not admit rich owned resources. The consumer has one real
+Rust-to-SEMAPRAX `cargo test` case; it invokes the generated facade rather than
+merely compiling it.
+The crate denies handwritten unsafe code while the generated private FFI module
+contains its own narrowly scoped unsafe allowance.

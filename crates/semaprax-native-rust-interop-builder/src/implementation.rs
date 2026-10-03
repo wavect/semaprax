@@ -453,7 +453,71 @@ pub(crate) fn build_indexed_native_rust_interop_bundle(
     let (result, overflowed) = crate::bounded_output::with_limit(MAX_BUILDER_BYTES, || {
         let prepared =
             phase_a::prepare_indexed_native_rust_interop_bounded(program, spec_bytes, plans)?;
-        let phase = prepare_phase_b_from_prepared(prepared, output)?;
+        let phase = prepare_phase_b_from_prepared(prepared, output, None, None)?;
+        let mut hook = |_, _: &Path, _: &Path, _: &Path| {};
+        build_prepared_phase_b_bounded(phase, output, &mut hook)
+    });
+    finish_bounded_bundle(result, overflowed)
+}
+
+/// The single-file package route keeps selected crate bytes inside the held
+/// Phase-B Rust harness. The held stable rustc type-checks the generated
+/// callable adapter before any package publication; the harness does not
+/// invoke the foreign item during the build.
+pub(crate) fn build_indexed_native_rust_interop_bundle_checked(
+    program: &Program,
+    spec_bytes: &[u8],
+    plan: &semaprax::native_rust_binding::ScalarBindingPlan,
+    package_source: &str,
+    selected_rustc: &str,
+    output: &Path,
+) -> Result<NativeRustInteropBundleFacts, Vec<Diagnostic>> {
+    reset_phase_b_error_materialization_observer();
+    let (result, overflowed) = crate::bounded_output::with_limit(MAX_BUILDER_BYTES, || {
+        if package_source.len() > 65_536
+            || raw_digest(package_source.as_bytes()) != plan.package_source_sha256
+        {
+            return Err(BundleBuildError::Diagnostic(b107(
+                "indexed Rust API package source bytes disagree with the selected identity",
+            )));
+        }
+        debit(package_source.len().saturating_add(8_192))?;
+        let prepared = phase_a::prepare_indexed_native_rust_interop_bounded(
+            program,
+            spec_bytes,
+            std::slice::from_ref(plan),
+        )?;
+        let resolved = hir::resolve(program)
+            .map_err(|_| b107("indexed Rust API source no longer resolves"))?;
+        let import = resolved
+            .interfaces
+            .iter()
+            .flat_map(|interface| &interface.imports)
+            .find(|import| import.id.as_str() == plan.import_id)
+            .ok_or_else(|| b107("indexed Rust API import selection missing"))?;
+        let method = prepared
+            .imports
+            .iter()
+            .find(|import| import.id == plan.import_id)
+            .map(|import| import.rust_method.as_str())
+            .ok_or_else(|| b107("indexed Rust API import selection missing"))?;
+        let adapter = crate::indexed_binding::render_checked_scalar_adapter(import, plan, method)?;
+        let signature_check = format!(
+            "#[allow(dead_code,unused_imports)]mod __spx_ri04_selected{{use super::*;mod {}{{\n{}\n}}\n{}\n}}\n",
+            plan.cargo_alias, package_source, adapter,
+        );
+        if signature_check.len() > MAX_GENERATED_RUST_BYTES {
+            return Err(BundleBuildError::Diagnostic(b109(
+                "max_generated_rust_bytes",
+                MAX_GENERATED_RUST_BYTES,
+            )));
+        }
+        let phase = prepare_phase_b_from_prepared(
+            prepared,
+            output,
+            Some(&signature_check),
+            Some(selected_rustc),
+        )?;
         let mut hook = |_, _: &Path, _: &Path, _: &Path| {};
         build_prepared_phase_b_bounded(phase, output, &mut hook)
     });
@@ -492,7 +556,7 @@ pub(crate) fn build_project_native_rust_interop_bundle(
     reset_phase_b_error_materialization_observer();
     let (result, overflowed) = crate::bounded_output::with_limit(MAX_BUILDER_BYTES, || {
         let prepared = prepare_project_native_rust_interop_bounded(program, project_subject_bytes)?;
-        let phase = prepare_phase_b_from_prepared(prepared, output)?;
+        let phase = prepare_phase_b_from_prepared(prepared, output, None, None)?;
         let mut hook = |_, _: &Path, _: &Path, _: &Path| {};
         build_prepared_phase_b_bounded(phase, output, &mut hook)
     });

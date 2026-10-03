@@ -1,10 +1,48 @@
-//! Public, narrow RI-04 admission. The generated adapter remains caller-held
-//! until a versioned package profile can publish it with the inner bundle.
+//! Public, narrow RI-04 admission for caller-held adapter source and for the
+//! single-file package profile that publishes an authenticated callable SDK.
 
 use super::*;
 use crate::indexed_binding::{
     prepare_indexed_scalar_binding, render_checked_scalar_adapter, SelectedPackage,
 };
+
+/// Publishes an authenticated nine-file SDK package with one embedded,
+/// dependency-free Rust source module and its generated scalar adapter.
+/// The selected package source is deliberately limited to a single UTF-8 file.
+pub fn build_indexed_scalar_native_rust_sdk(
+    source: &str,
+    source_path: &Path,
+    options: NativeRustSdkOptions,
+    index_bytes: &[u8],
+    package: SelectedPackage<'_>,
+    package_source_bytes: &[u8],
+    output: &Path,
+) -> Result<NativeRustSdkBundle, Vec<Diagnostic>> {
+    if package_source_bytes.len() > 65_536 {
+        return Err(vec![sdk_error(
+            "indexed scalar single-file source exceeds its bound",
+        )]);
+    }
+    let (program, _, plan, _) = prepare_indexed_scalar(
+        source,
+        source_path,
+        &options,
+        index_bytes,
+        package,
+        package_source_bytes,
+    )?;
+    let package_source = std::str::from_utf8(package_source_bytes)
+        .map_err(|_| vec![sdk_error("indexed scalar source must be UTF-8")])?;
+    authority::build_indexed_scalar_sdk_inner(
+        &program,
+        &plan,
+        package_source,
+        package.stable_rustc_version,
+        options,
+        output,
+    )
+    .map_err(PublicBuildError::into_diagnostics)
+}
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct IndexedScalarBuild {
@@ -45,14 +83,69 @@ pub fn build_indexed_scalar_native_rust(
     package_source_bytes: &[u8],
     output: &Path,
 ) -> Result<IndexedScalarBuild, Vec<Diagnostic>> {
+    let (program, resolved, plan, spec) = prepare_indexed_scalar(
+        source,
+        source_path,
+        &options,
+        index_bytes,
+        package,
+        package_source_bytes,
+    )?;
+    let import = resolved
+        .interfaces
+        .iter()
+        .flat_map(|interface| &interface.imports)
+        .find(|import| import.id.as_str() == plan.import_id)
+        .expect("validated import");
+    let method =
+        crate::implementation::indexed_scalar_rust_method(&program, spec.as_bytes(), &plan)?;
+    let adapter_source =
+        render_checked_scalar_adapter(import, &plan, &method).map_err(|error| vec![error])?;
+    if adapter_source.len() > MAX_GENERATED_RUST_BYTES {
+        return Err(vec![sdk_error("indexed scalar adapter exceeds its bound")]);
+    }
+    let adapter_sha256 = raw_digest(adapter_source.as_bytes());
+    let facts = crate::implementation::build_indexed_native_rust_interop_bundle(
+        &program,
+        spec.as_bytes(),
+        &[plan.clone()],
+        output,
+    )?;
+    Ok(IndexedScalarBuild {
+        output_directory: facts.output_directory().to_path_buf(),
+        bundle_manifest_digest: facts.manifest_digest().to_owned(),
+        adapter_source,
+        adapter_sha256,
+        physical_symbol: plan.physical_symbol,
+    })
+}
+
+fn prepare_indexed_scalar(
+    source: &str,
+    source_path: &Path,
+    options: &NativeRustSdkOptions,
+    index_bytes: &[u8],
+    package: SelectedPackage<'_>,
+    package_source_bytes: &[u8],
+) -> Result<
+    (
+        crate::ast::Program,
+        semaprax::hir::ResolvedProgram,
+        semaprax::native_rust_binding::ScalarBindingPlan,
+        String,
+    ),
+    Vec<Diagnostic>,
+> {
     if source.len() > MAX_SOURCE_BYTES || package_source_bytes.len() > MAX_SOURCE_BYTES {
         return Err(vec![sdk_error("indexed Rust source exceeds its bound")]);
     }
     let program = semaprax::check(source, source_path)?;
     let options = NativeRustSdkOptions {
-        exports: canonical_values(options.exports, MAX_EXPORTS).map_err(|error| vec![error])?,
-        imports: canonical_values(options.imports, MAX_IMPORTS).map_err(|error| vec![error])?,
-        capabilities: canonical_values(options.capabilities, MAX_EFFECTS)
+        exports: canonical_values(options.exports.clone(), MAX_EXPORTS)
+            .map_err(|error| vec![error])?,
+        imports: canonical_values(options.imports.clone(), MAX_IMPORTS)
+            .map_err(|error| vec![error])?,
+        capabilities: canonical_values(options.capabilities.clone(), MAX_EFFECTS)
             .map_err(|error| vec![error])?,
     };
     if options.imports.len() != 1 || options.exports.is_empty() {
@@ -96,25 +189,5 @@ pub fn build_indexed_scalar_native_rust(
     let revision = domain_digest(SOURCE_DOMAIN, canonical_source.as_bytes());
     let spec = descriptor::canonical_spec(&program.module, &revision, target, &options)
         .map_err(|error| vec![error])?;
-    let method =
-        crate::implementation::indexed_scalar_rust_method(&program, spec.as_bytes(), &plan)?;
-    let adapter_source =
-        render_checked_scalar_adapter(import, &plan, &method).map_err(|error| vec![error])?;
-    if adapter_source.len() > MAX_GENERATED_RUST_BYTES {
-        return Err(vec![sdk_error("indexed scalar adapter exceeds its bound")]);
-    }
-    let adapter_sha256 = raw_digest(adapter_source.as_bytes());
-    let facts = crate::implementation::build_indexed_native_rust_interop_bundle(
-        &program,
-        spec.as_bytes(),
-        &[plan.clone()],
-        output,
-    )?;
-    Ok(IndexedScalarBuild {
-        output_directory: facts.output_directory().to_path_buf(),
-        bundle_manifest_digest: facts.manifest_digest().to_owned(),
-        adapter_source,
-        adapter_sha256,
-        physical_symbol: plan.physical_symbol,
-    })
+    Ok((program, resolved, plan, spec))
 }

@@ -2962,8 +2962,11 @@ These areas are deliberately outside the public compiler contract:
 - `crates/semaprax-native-rust-interop-builder/src/public_sdk/indexed.rs`:
   narrow public RI-04 admission for one checked scalar Rust import. It replays
   the selected RI-03 index and exact caller-supplied package source bytes
-  before invoking private Phase A+B; generated adapter source remains in the
-  returned value rather than the published bundle. The compiler-owned
+  before invoking private Phase A+B. The older builder returns caller-held
+  adapter source. The separate single-file SDK builder retains selected source
+  bytes and a selected stable rustc header through held Phase B compilation,
+  then publishes the typed adapter and exact source in the manifest-bound SDK
+  package. The compiler-owned
   `src/native_rust_binding.rs` keeps the source/identity-bound plan and stable
   physical symbol separate from the persistent import ID;
 - `crates/semaprax-native-rust-interop-platform/src/host_target.rs`: shared

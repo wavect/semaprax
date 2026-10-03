@@ -609,12 +609,17 @@ mod package;
 mod project;
 
 pub use build::build_native_rust_sdk;
-pub use indexed::{build_indexed_scalar_native_rust, IndexedScalarBuild};
+pub use indexed::{
+    build_indexed_scalar_native_rust, build_indexed_scalar_native_rust_sdk, IndexedScalarBuild,
+};
 pub use owned_data::build_native_rust_owned_data_sdk;
 pub use project::{build_authenticated_project_native_rust_sdk, build_project_native_rust_sdk};
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod indexed_tests;
 
 #[cfg(test)]
 mod target_tests;

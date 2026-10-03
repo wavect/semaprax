@@ -101,6 +101,7 @@ pub(super) fn bind_test_rust_linker(command: &mut std::process::Command, _clang:
 pub(super) struct RustcVersion {
     pub(super) storage: String,
     pub(super) boundaries: [usize; 5],
+    header_sha256: [u8; 32],
 }
 
 impl RustcVersion {
@@ -112,6 +113,7 @@ impl RustcVersion {
         Ok(Self {
             storage,
             boundaries: [0; 5],
+            header_sha256: [0; 32],
         })
     }
 
@@ -160,6 +162,10 @@ impl RustcVersion {
             return Err(PhaseBLocalError::BuilderBudget);
         }
         Ok(())
+    }
+
+    pub(super) fn matches_selected_header(&self, selected: &[u8; 32]) -> bool {
+        &self.header_sha256 == selected
     }
 
     #[cfg(test)]
@@ -767,5 +773,7 @@ pub(super) fn parse_rustc_version(
     {
         return Err(PhaseBLocalError::Unsupported);
     }
-    output.store([release, commit_hash, host, llvm_version])
+    output.store([release, commit_hash, host, llvm_version])?;
+    output.header_sha256 = Sha256::digest(header.as_bytes()).into();
+    Ok(())
 }

@@ -199,6 +199,20 @@ through stable compilation, publish adapter bytes in the authenticated bundle,
 or expose a supported source-import callable package. The physical fixture
 compiles and runs the returned adapter against a local Rust crate.
 
+The separate `build_indexed_scalar_native_rust_sdk` route accepts one exact,
+UTF-8, dependency-free Rust source file of at most 65,536 bytes for the
+selected package. It binds those bytes to the replayed index package-source
+digest and binds the selected stable rustc header to the held Phase B rustc
+version before compilation. Phase B embeds the exact source with the generated
+typed scalar adapter in its Rust harness, so signature disagreement prevents
+publication. Phase C embeds the same source and adapter in `src/lib.rs`, whose
+bytes are bound by the SDK manifest, and exposes `indexed_scalar_sdk` with the
+ordinary capability admission and generated export methods. This profile has
+no Cargo dependency resolution, build scripts, procedural macros, multi-file
+modules, or general Rust type ABI. Its physical package round trip is owned by
+the focused `indexed_scalar_sdk_publishes_compiled_adapter_and_refuses_signature_drift`
+regression; broader Rust ecosystem imports remain outside this profile.
+
 An indexed declaration may now write `from "alias::path"` between its result
 and `effects` clauses. The parser and canonical formatter preserve that exact
 source selection; checked HIR retains it separately from the persistent import

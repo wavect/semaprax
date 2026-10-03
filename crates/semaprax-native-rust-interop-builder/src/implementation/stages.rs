@@ -267,6 +267,7 @@ pub(super) struct PreparedPhaseB {
     carriers: PhaseBErrorCarriers,
     toolchain_plan: PreparedToolchainPlan,
     harness_plan: (String, TemporaryBudget),
+    selected_rustc_header_sha256: Option<[u8; 32]>,
     build_invocations: PreparedBuildInvocations,
     manifest_plan: PreparedManifestPlan,
     link_copies: PreparedLinkCopies,
@@ -280,12 +281,14 @@ pub(super) fn prepare_phase_b(
     output: &Path,
 ) -> Result<PreparedPhaseB, BundleBuildError> {
     let prepared = prepare_native_rust_interop_bounded(program, spec_bytes)?;
-    prepare_phase_b_from_prepared(prepared, output)
+    prepare_phase_b_from_prepared(prepared, output, None, None)
 }
 
 pub(super) fn prepare_phase_b_from_prepared(
     prepared: PreparedNativeRustInterop,
     output: &Path,
+    indexed_signature_check: Option<&str>,
+    selected_rustc: Option<&str>,
 ) -> Result<PreparedPhaseB, BundleBuildError> {
     let object_name: &'static str = if cfg!(windows) {
         "module.obj"
@@ -315,10 +318,12 @@ pub(super) fn prepare_phase_b_from_prepared(
         Ok(plan) => plan,
         Err(error) => return Err(carriers.error(error)),
     };
-    let harness_plan = match prepare_rust_harness(&prepared) {
+    let harness_plan = match prepare_rust_harness(&prepared, indexed_signature_check) {
         Ok(plan) => plan,
         Err(error) => return Err(carriers.error(error)),
     };
+    let selected_rustc_header_sha256 =
+        selected_rustc.map(|value| Sha256::digest(value.as_bytes()).into());
     let build_invocations = match prepare_build_invocations(
         &prepared,
         planned_sanitizers(&toolchain_plan),
@@ -355,6 +360,7 @@ pub(super) fn prepare_phase_b_from_prepared(
         carriers,
         toolchain_plan,
         harness_plan,
+        selected_rustc_header_sha256,
         build_invocations,
         manifest_plan,
         link_copies,
@@ -389,6 +395,7 @@ pub(super) fn build_prepared_phase_b_bounded(
         mut carriers,
         toolchain_plan,
         harness_plan,
+        selected_rustc_header_sha256,
         build_invocations,
         manifest_plan,
         link_copies,
@@ -430,6 +437,12 @@ pub(super) fn build_prepared_phase_b_bounded(
         }
         let mut tools =
             authenticate_toolchain(toolchain_plan, &prepared.target, run_stage.authority.held())?;
+        if selected_rustc_header_sha256
+            .as_ref()
+            .is_some_and(|selected| !tools.rustc_version.matches_selected_header(selected))
+        {
+            return Err(PhaseBLocalError::Unsupported);
+        }
         build_stage_platform(
             &prepared,
             &mut tools,

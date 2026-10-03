@@ -213,7 +213,7 @@ fn generated_cargo_package_has_no_dependency_or_repository_escape() {
             exports: Vec::new(),
             imports: Vec::new(),
         };
-        let sources = render_package_sources(&facts, &[], &[]);
+        let sources = render_package_sources(&facts, &[], &[], None);
         assert!(sources.cargo_toml.contains("publish = false"));
         assert!(!sources.cargo_toml.contains("dependencies"));
         assert!(!sources.cargo_toml.contains("path = \"../"));
@@ -274,6 +274,7 @@ fn generated_cargo_package_never_embeds_a_local_checkout_path_or_a_private_crate
         &facts,
         &["calculator.effects.io".to_owned()],
         manifest.rust_dependencies(),
+        None,
     );
     for rendered in [&sources.cargo_toml, &sources.build_rs, &sources.lib_rs] {
         assert!(
@@ -332,7 +333,7 @@ fn project_rust_dependencies_are_exact_and_publicly_reexported() {
         exports: Vec::new(),
         imports: Vec::new(),
     };
-    let sources = render_package_sources(&facts, &[], manifest.rust_dependencies());
+    let sources = render_package_sources(&facts, &[], manifest.rust_dependencies(), None);
     assert!(sources.cargo_toml.contains(concat!(
         "[dependencies]\n",
         "spx_rust_dependency_0 = { package = \"same-file\", version = \"=1.0.6\" }\n",
@@ -667,7 +668,7 @@ fn main() -> i64 { 0 }
     .unwrap();
     assert_eq!(facts.exports[0].public_method, "spx_sdk_dot_add");
     assert_eq!(facts.imports[0].public_method, "spx_host_dot_add");
-    let sources = render_package_sources(&facts, &options.capabilities, &[]);
+    let sources = render_package_sources(&facts, &options.capabilities, &[], None);
     assert!(!sources.lib_rs.starts_with("#![forbid(unsafe_code)]"));
     assert!(sources
         .lib_rs

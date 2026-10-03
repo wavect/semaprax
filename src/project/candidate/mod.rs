@@ -371,6 +371,11 @@ pub struct ProjectCandidate {
     digest: String,
     // Derived only from this immutable candidate; never serialized or authority.
     source_review_cache: OnceLock<Result<Arc<str>, Vec<Diagnostic>>>,
+    // One bounded derived image per immutable candidate side. These retain
+    // compiler-owned indexes for summary/page requests and are never part of
+    // candidate bytes or authority.
+    base_explorer_image_cache: OnceLock<Result<super::ProjectSemanticImage, Vec<Diagnostic>>>,
+    candidate_explorer_image_cache: OnceLock<Result<super::ProjectSemanticImage, Vec<Diagnostic>>>,
     // Set only when this candidate's last applied change was a body-expression
     // `replace_expression`; the isolated canonical text of the new expression,
     // independent of the rest of the file. Not part of `json`/`digest`: it is
@@ -930,6 +935,8 @@ impl ProjectCandidate {
             json,
             digest,
             source_review_cache: OnceLock::new(),
+            base_explorer_image_cache: OnceLock::new(),
+            candidate_explorer_image_cache: OnceLock::new(),
             expression_replacement_preview: None,
         })
     }

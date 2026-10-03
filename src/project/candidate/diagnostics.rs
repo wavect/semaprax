@@ -3,7 +3,7 @@ use super::{wire, ProjectCandidate, SemanticChange};
 use crate::diagnostic::Diagnostic;
 use crate::hir::ResolvedType;
 use serde_json::{json, Value};
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 
 #[path = "diagnostic_borrow.rs"]
 mod borrow;
@@ -221,6 +221,8 @@ impl ProjectCandidateAttempt {
             json: base.json.clone(),
             digest: base.digest.clone(),
             source_review_cache: base.source_review_cache.clone(),
+            base_explorer_image_cache: OnceLock::new(),
+            candidate_explorer_image_cache: OnceLock::new(),
             expression_replacement_preview: base.expression_replacement_preview.clone(),
         });
         let attempt = Self::rejected(retained, change, diagnostics)?;

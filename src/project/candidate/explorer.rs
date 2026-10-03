@@ -16,7 +16,7 @@ type Result<T> = std::result::Result<T, Vec<crate::diagnostic::Diagnostic>>;
 pub(crate) struct CandidateExplorerView<'a> {
     candidate: &'a ProjectCandidate,
     side: ExplorerSide,
-    image: ProjectSemanticImage,
+    image: &'a ProjectSemanticImage,
 }
 
 impl ProjectCandidate {
@@ -26,9 +26,27 @@ impl ProjectCandidate {
         side: ExplorerSide,
     ) -> Result<CandidateExplorerView<'_>> {
         self.require_candidate(expected_candidate)?;
-        let revision = match side {
-            ExplorerSide::Base => &self.base,
-            ExplorerSide::Candidate => &self.revision,
+        let image = match side {
+            ExplorerSide::Base => self
+                .base_explorer_image_cache
+                .get_or_init(|| {
+                    ProjectSemanticImage::derive(
+                        std::sync::Arc::clone(&self.base),
+                        self.base.project_revision(),
+                    )
+                })
+                .as_ref()
+                .map_err(Clone::clone)?,
+            ExplorerSide::Candidate => self
+                .candidate_explorer_image_cache
+                .get_or_init(|| {
+                    ProjectSemanticImage::derive(
+                        std::sync::Arc::clone(&self.revision),
+                        self.revision.project_revision(),
+                    )
+                })
+                .as_ref()
+                .map_err(Clone::clone)?,
             ExplorerSide::Current => {
                 return Err(vec![crate::diagnostic::Diagnostic::io(
                     "SPX-G326",
@@ -39,10 +57,7 @@ impl ProjectCandidate {
         Ok(CandidateExplorerView {
             candidate: self,
             side,
-            image: ProjectSemanticImage::derive(
-                std::sync::Arc::clone(revision),
-                revision.project_revision(),
-            )?,
+            image,
         })
     }
 

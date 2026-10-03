@@ -1,0 +1,142 @@
+use std::cell::{Cell, RefCell};
+use std::sync::atomic::{AtomicU64, Ordering};
+#[repr(C)]
+#[derive(Clone, Copy, Default)]
+pub struct SpxOwner { context: u64, generation: u64, slot: u64 }
+#[repr(C)]
+#[derive(Clone, Copy, Default)]
+pub struct SpxOwnerResult { pub tag: u8, pub reserved: [u8; 7], pub error: i64, pub owner: SpxOwner }
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct SpxStrView { owner: SpxOwner, lease: u64, data: *const u8, length: u64 }
+impl Default for SpxStrView {
+    fn default() -> Self { Self { owner: SpxOwner::default(), lease: 0, data: std::ptr::null(), length: 0 } }
+}
+struct View { lease: u64, data: *const u8, length: u64 }
+struct Slot { generation: u64, next_lease: u64, view: Option<View>, value: Option<url_alias::Url> }
+struct Context { id: u64, slots: Vec<Slot> }
+thread_local! {
+    static CONTEXTS: RefCell<Vec<Context>> = const { RefCell::new(Vec::new()) };
+    static TARGET_CALLS: Cell<usize> = const { Cell::new(0) };
+    static LAST_VIEW_POINTER: Cell<usize> = const { Cell::new(0) };
+}
+static NEXT_CONTEXT: AtomicU64 = AtomicU64::new(1);
+fn caught<T>(f: impl FnOnce() -> Result<T, i32>) -> Result<T, i32> {
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)).unwrap_or_else(|payload| {
+        std::mem::forget(payload); Err(2)
+    })
+}
+fn output_valid<T>(out: *mut T) -> bool { !out.is_null() && (out as usize) % std::mem::align_of::<T>() == 0 }
+fn slot(contexts: &mut [Context], context: u64, owner: SpxOwner) -> Result<&mut Slot, i32> {
+    if owner.context != context { return Err(3); }
+    let context = contexts.iter_mut().find(|candidate| candidate.id == context).ok_or(3)?;
+    let slot = context.slots.get_mut(usize::try_from(owner.slot).map_err(|_| 3)?).ok_or(3)?;
+    if slot.generation != owner.generation || slot.value.is_none() { return Err(3); }
+    Ok(slot)
+}
+fn validate_view(slot: &Slot, view: SpxStrView) -> Result<(), i32> {
+    let active = slot.view.as_ref().ok_or(3)?;
+    if active.lease != view.lease || active.data != view.data || active.length != view.length { return Err(3); }
+    Ok(())
+}
+#[no_mangle]
+pub extern "C" fn spx_result_owner_context_new() -> u64 {
+    let Ok(id) = NEXT_CONTEXT.fetch_update(Ordering::Relaxed, Ordering::Relaxed, |id| id.checked_add(1)) else { return 0; };
+    CONTEXTS.with(|contexts| {
+        let Ok(mut contexts) = contexts.try_borrow_mut() else { return 0; };
+        if contexts.len() >= 32 || contexts.try_reserve(1).is_err() { return 0; }
+        contexts.push(Context { id, slots: Vec::new() }); id
+    })
+}
+#[no_mangle]
+pub extern "C" fn spx_result_owner_context_close(id: u64) -> i32 {
+    CONTEXTS.with(|contexts| {
+        let Ok(mut contexts) = contexts.try_borrow_mut() else { return 6; };
+        let Some(index) = contexts.iter().position(|context| context.id == id) else { return 3; };
+        if contexts[index].slots.iter().any(|slot| slot.value.is_some() || slot.view.is_some()) { return 5; }
+        contexts.remove(index); 0
+    })
+}
+#[no_mangle]
+pub unsafe extern "C" fn spx_result_owner_new_utf8(context: u64, data: *const u8, length: u64, out: *mut SpxOwnerResult) -> i32 {
+    if !output_valid(out) { return 3; }
+    let Ok(length) = usize::try_from(length) else { return 4; };
+    if length > 4096 { return 4; }
+    if length != 0 && data.is_null() { return 3; }
+    // Caller supplies a readable input range for this invocation only.
+    let bytes = if length == 0 { &[][..] } else { unsafe { std::slice::from_raw_parts(data, length) } };
+    let Ok(text) = std::str::from_utf8(bytes) else { return 3; };
+    let result = caught(|| CONTEXTS.with(|contexts| {
+        let mut contexts = contexts.try_borrow_mut().map_err(|_| 6)?;
+        let context = contexts.iter_mut().find(|candidate| candidate.id == context).ok_or(3)?;
+        if context.slots.iter().any(|slot| slot.view.is_some()) { return Err(6); }
+        TARGET_CALLS.with(|calls| calls.set(calls.get() + 1));
+        let value = match url_alias::Url::parse(text) {
+            Err(_) => return Ok(SpxOwnerResult { tag: 2, reserved: [0; 7], error: 1, owner: SpxOwner::default() }),
+            Ok(value) => value,
+        };
+        let free = context.slots.iter().position(|slot| slot.value.is_none() && slot.generation != u64::MAX);
+        if free.is_none() && (context.slots.len() >= 32 || context.slots.try_reserve(1).is_err()) { return Err(4); }
+        let index = match free { Some(index) => index, None => {
+            context.slots.push(Slot { generation: 0, next_lease: 0, view: None, value: None }); context.slots.len() - 1
+        }};
+        let slot = &mut context.slots[index]; slot.generation += 1; slot.value = Some(value);
+        Ok(SpxOwnerResult { tag: 1, reserved: [0; 7], error: 0, owner: SpxOwner { context: context.id, generation: slot.generation, slot: index as u64 } })
+    }));
+    match result { Ok(value) => { unsafe { out.write(value) }; 0 }, Err(status) => status }
+}
+#[no_mangle]
+pub unsafe extern "C" fn spx_url_owner_view(context: u64, owner: SpxOwner, out: *mut SpxStrView) -> i32 {
+    if !output_valid(out) { return 3; }
+    let result = caught(|| CONTEXTS.with(|contexts| {
+        let mut contexts = contexts.try_borrow_mut().map_err(|_| 6)?;
+        let slot = slot(&mut contexts, context, owner)?;
+        if slot.view.is_some() { return Err(6); }
+        let lease = slot.next_lease.checked_add(1).ok_or(4)?;
+        let owner_value = slot.value.as_ref().ok_or(3)?;
+        // This checked method type is the receiver-lifetime relation. The
+        // table prevents moving, dropping or mutating owner_value until end.
+        let target: for<'owner> fn(&'owner url_alias::Url) -> &'owner str = url_alias::Url::as_str;
+        TARGET_CALLS.with(|calls| calls.set(calls.get() + 1));
+        let value = target(owner_value);
+        let (data, length) = (value.as_ptr(), u64::try_from(value.len()).map_err(|_| 4)?);
+        slot.next_lease = lease; slot.view = Some(View { lease, data, length });
+        LAST_VIEW_POINTER.with(|pointer| pointer.set(data as usize));
+        Ok(SpxStrView { owner, lease, data, length })
+    }));
+    match result { Ok(value) => { unsafe { out.write(value) }; 0 }, Err(status) => status }
+}
+#[no_mangle]
+pub unsafe extern "C" fn spx_url_view_length(context: u64, view: SpxStrView, out: *mut u64) -> i32 {
+    if !output_valid(out) { return 3; }
+    let result = CONTEXTS.with(|contexts| {
+        let mut contexts = contexts.try_borrow_mut().map_err(|_| 6)?;
+        let slot = slot(&mut contexts, context, view.owner)?;
+        validate_view(slot, view)?; Ok(view.length)
+    });
+    match result { Ok(length) => { unsafe { out.write(length) }; 0 }, Err(status) => status }
+}
+#[no_mangle]
+pub extern "C" fn spx_url_view_end(context: u64, view: SpxStrView) -> i32 {
+    let result = CONTEXTS.with(|contexts| {
+        let mut contexts = contexts.try_borrow_mut().map_err(|_| 6)?;
+        let slot = slot(&mut contexts, context, view.owner)?;
+        validate_view(slot, view)?; slot.view = None; Ok(())
+    });
+    match result { Ok(()) => 0, Err(status) => status }
+}
+#[no_mangle]
+pub unsafe extern "C" fn spx_result_owner_drop(context: u64, owner: SpxOwner) -> i32 {
+    let value = CONTEXTS.with(|contexts| {
+        let mut contexts = contexts.try_borrow_mut().map_err(|_| 6)?;
+        let slot = slot(&mut contexts, context, owner)?;
+        if slot.view.is_some() { return Err(6); }
+        slot.value.take().ok_or(3)
+    });
+    match value { Ok(value) => match caught(|| { drop(value); Ok(()) }) { Ok(()) => 0, Err(status) => status }, Err(status) => status }
+}
+pub fn target_call_count() -> usize { TARGET_CALLS.with(Cell::get) }
+pub fn adapter_copy_count() -> usize { 0 }
+pub fn target_view_pointer() -> usize { LAST_VIEW_POINTER.with(Cell::get) }
+pub fn live_owner_count() -> usize { CONTEXTS.with(|contexts| contexts.borrow().iter().flat_map(|context| &context.slots).filter(|slot| slot.value.is_some()).count()) }
+pub fn live_view_count() -> usize { CONTEXTS.with(|contexts| contexts.borrow().iter().flat_map(|context| &context.slots).filter(|slot| slot.view.is_some()).count()) }

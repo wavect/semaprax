@@ -846,3 +846,5 @@ permit { host.math }
 
 #[path = "indexed_project_tests.rs"]
 mod indexed_project;
+#[path = "indexed_url_project_tests.rs"]
+mod indexed_url_project;

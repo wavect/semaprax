@@ -27,11 +27,24 @@ pub(crate) const CONTAINER_RUST_IMPORT_SCHEMA: &str = "semaprax.graph.v58";
 pub(crate) const NESTED_CONTAINER_RUST_IMPORT_SCHEMA: &str = "semaprax.graph.v59";
 
 pub(crate) const OWNER_ADMISSION_SCHEMA: &str = "semaprax.graph.v60";
+pub(crate) const NATIVE_VIEW_SCHEMA: &str = "semaprax.graph.v61";
 
 pub(crate) fn selected_schema(
     interfaces: &[ResolvedInterface],
     functions: &[crate::hir::ResolvedFunction],
 ) -> Option<&'static str> {
+    if interfaces
+        .iter()
+        .flat_map(|interface| &interface.imports)
+        .any(|import| {
+            matches!(
+                import.result.kind,
+                ResolvedImportResultKind::BorrowedStr { .. }
+            )
+        })
+    {
+        return Some(NATIVE_VIEW_SCHEMA);
+    }
     if functions.iter().any(|function| {
         function.cleanup_plan.schema == crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V14
     }) {
@@ -82,6 +95,7 @@ pub(crate) fn selected_schema(
 
 pub(crate) fn evidence_refusal(schema: &str) -> Option<Diagnostic> {
     let message = match schema {
+        NATIVE_VIEW_SCHEMA => "receiver-tied native views select `semaprax.graph.v61`, outside this evidence flow admission",
         OWNER_ADMISSION_SCHEMA => "native owner admission programs select `semaprax.graph.v60`, outside this evidence flow admission",
         INDEXED_RUST_IMPORT_SCHEMA => "indexed Rust import programs select `semaprax.graph.v52`, which is outside this evidence flow's admission",
         SELECTED_RUST_IMPORT_SCHEMA => "selected Rust import programs select `semaprax.graph.v53`, which is outside this evidence flow's admission",
@@ -155,6 +169,7 @@ pub(crate) fn result_text(kind: &ResolvedImportResultKind) -> &str {
         ResolvedImportResultKind::ResultI64I64 => "Result<i64, i64>",
         ResolvedImportResultKind::OwnedResultResourceI64 { .. } => "Result<resource, i64>",
         ResolvedImportResultKind::OwnedResource { resource } => resource.as_str(),
+        ResolvedImportResultKind::BorrowedStr { .. } => "str",
     }
 }
 
@@ -203,6 +218,7 @@ pub(crate) fn append_import_tail(
         || schema == STRING_RUST_IMPORT_SCHEMA
         || schema == CONTAINER_RUST_IMPORT_SCHEMA
         || schema == NESTED_CONTAINER_RUST_IMPORT_SCHEMA
+        || schema == NATIVE_VIEW_SCHEMA
     {
         output.push_str(",\"native_rust\":");
         output.push_str(if native_rust { "true" } else { "false" });
@@ -215,6 +231,7 @@ pub(crate) fn append_import_tail(
         || schema == STRING_RUST_IMPORT_SCHEMA
         || schema == CONTAINER_RUST_IMPORT_SCHEMA
         || schema == NESTED_CONTAINER_RUST_IMPORT_SCHEMA
+        || schema == NATIVE_VIEW_SCHEMA
     {
         output.push_str(",\"rust_path\":");
         output.push_str(
@@ -230,6 +247,7 @@ pub(crate) fn append_import_tail(
         || schema == STRING_RUST_IMPORT_SCHEMA
         || schema == CONTAINER_RUST_IMPORT_SCHEMA
         || schema == NESTED_CONTAINER_RUST_IMPORT_SCHEMA
+        || schema == NATIVE_VIEW_SCHEMA
     {
         output.push_str(",\"selected_index_digest\":");
         output.push_str(
@@ -244,6 +262,7 @@ pub(crate) fn append_import_tail(
         || schema == STRING_RUST_IMPORT_SCHEMA
         || schema == CONTAINER_RUST_IMPORT_SCHEMA
         || schema == NESTED_CONTAINER_RUST_IMPORT_SCHEMA
+        || schema == NATIVE_VIEW_SCHEMA
     {
         output.push_str(",\"rust_receiver\":");
         output.push_str(
@@ -253,4 +272,15 @@ pub(crate) fn append_import_tail(
         );
     }
     output.push('}');
+}
+
+/// Only the new view schema adds a relation; historical graph bytes stay exact.
+pub(crate) fn view_relation(kind: &ResolvedImportResultKind) -> String {
+    match kind {
+        ResolvedImportResultKind::BorrowedStr { resource } => format!(
+            ",\"borrowed_from\":{{\"parameter\":0,\"resource\":{}}}",
+            crate::diagnostic::quote_json(resource.as_str())
+        ),
+        _ => String::new(),
+    }
 }

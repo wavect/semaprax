@@ -27,6 +27,7 @@ pub enum LoanPointPhase {
 
 #[cfg(test)]
 mod boundary_tests;
+mod native_view;
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct LoanProgramPoint {
@@ -257,6 +258,7 @@ fn has_own_root_candidate(
         .map(|param| (param.id.clone(), param.ownership))
         .collect::<BTreeMap<_, _>>();
     for expression in &expressions {
+        native_view::inventory_aliases(program, expression, &mut aliases);
         if let ResolvedExprKind::Match { arms, .. } = &expression.kind {
             for arm in arms {
                 inventory_pattern_ownership(&arm.pattern, &mut ownership);
@@ -282,6 +284,14 @@ fn has_own_root_candidate(
         let view = match &expression.kind {
             ResolvedExprKind::BorrowPlace { place, .. } => Some(place.clone()),
             ResolvedExprKind::ByteRange { source, .. } => expression_place(source),
+            ResolvedExprKind::NativeRustImportCall(call)
+                if matches!(
+                    call.result,
+                    crate::hir::ResolvedImportResultKind::BorrowedStr { .. }
+                ) =>
+            {
+                call.args.first().and_then(expression_place)
+            }
             ResolvedExprKind::Place(place) if bound.contains_key(&expression.id) => {
                 Some(place.clone())
             }
@@ -406,6 +416,7 @@ fn build_cfg_plan_counted(
         .collect::<BTreeMap<_, _>>();
     for expression in &cfg.expressions {
         charge(work)?;
+        native_view::inventory_aliases(program, expression, &mut aliases);
         if let ResolvedExprKind::Match { arms, .. } = &expression.kind {
             for arm in arms {
                 inventory_pattern_ownership(&arm.pattern, &mut ownership);
@@ -432,6 +443,14 @@ fn build_cfg_plan_counted(
         let view = match &expression.kind {
             ResolvedExprKind::BorrowPlace { place, .. } => Some(place.clone()),
             ResolvedExprKind::ByteRange { source, .. } => expression_place(source),
+            ResolvedExprKind::NativeRustImportCall(call)
+                if matches!(
+                    call.result,
+                    crate::hir::ResolvedImportResultKind::BorrowedStr { .. }
+                ) =>
+            {
+                call.args.first().and_then(expression_place)
+            }
             ResolvedExprKind::Place(place) if bound.contains_key(&expression.id) => {
                 Some(place.clone())
             }
@@ -537,13 +556,14 @@ fn build_cfg_plan_counted(
                 .insert(cfg.node(expression, LoanPointPhase::After)?);
         }
     }
+    let match_parents = native_view::match_parents(&cfg.expressions, &drafts);
     let parents = drafts
         .iter()
         .map(|draft| {
-            draft
-                .parent_root
-                .clone()
-                .and_then(|root| resolve_parent(&aliases, &binding_loans, root))
+            draft.parent_root.clone().and_then(|root| {
+                resolve_parent(&aliases, &binding_loans, root.clone())
+                    .or_else(|| resolve_parent(&aliases, &match_parents, root))
+            })
         })
         .collect::<Vec<_>>();
     let mut live = drafts
@@ -1235,6 +1255,14 @@ fn expression_place(expression: &ResolvedExpr) -> Option<Place> {
             Some(place.clone())
         }
         ResolvedExprKind::ByteRange { source, .. } => expression_place(source),
+        ResolvedExprKind::NativeRustImportCall(call)
+            if matches!(
+                call.result,
+                crate::hir::ResolvedImportResultKind::BorrowedStr { .. }
+            ) =>
+        {
+            call.args.first().and_then(expression_place)
+        }
         _ => None,
     }
 }

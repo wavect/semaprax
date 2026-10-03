@@ -109,9 +109,10 @@ pub(super) fn expr_json(
                 .collect::<Result<Vec<_>, _>>()?
                 .budgeted_join(",");
             format!(
-                "{{{header},\"kind\":\"native_rust_import_call\",\"import\":{},\"result\":{},\"args\":[{}]}}",
+                "{{{header},\"kind\":\"native_rust_import_call\",\"import\":{},\"result\":{}{},\"args\":[{}]}}",
                 quote_json(call.import.as_str()),
                 quote_json(native_import::result_text(&call.result)),
+                native_import::view_relation(&call.result),
                 args
             )
         }

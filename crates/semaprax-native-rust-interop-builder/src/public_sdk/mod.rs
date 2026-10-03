@@ -626,14 +626,21 @@ mod indexed;
 mod indexed_multiple;
 mod indexed_owner;
 mod indexed_project;
+mod indexed_url_project;
 mod regex_project_package;
 mod regex_project_native;
+mod url_project_native;
+mod url_project_package;
 pub use indexed_project::{
     build_guarded_indexed_project_native_rust_sdk, build_indexed_project_native_rust_sdk,
     prepare_indexed_regex_project_package, GuardedForeignLawSelection,
     IndexedProjectRegexRegistrySelection, IndexedProjectScalarSelection,
 };
+pub use indexed_url_project::{
+    prepare_indexed_url_project_package, IndexedProjectUrlRegistrySelection,
+};
 pub use regex_project_package::PreparedRegexProjectPackage;
+pub use url_project_package::PreparedUrlProjectPackage;
 mod owned_data;
 mod owner_borrowed_result;
 mod owner_sdk;

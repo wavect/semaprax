@@ -299,6 +299,10 @@ fn link_scalar_workspace_impl(
         );
         declarations.byte_slice_roots =
             derive_byte_slice_provenance(&cleanup_functions, &declarations)?;
+    } else {
+        // Scalar signatures may contain checked native returned views and byte
+        // inspections. Rebuild their facts from the exact retained bodies too.
+        declarations.byte_slice_roots = derive_byte_slice_provenance(&functions, &declarations)?;
     }
     let mut linked = ResolvedProgram {
         module,

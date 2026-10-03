@@ -246,6 +246,9 @@ pub fn bind_selected_regex_result_signature(
 /// Closed source-side borrowed Result profile, after selected declarations have
 /// been bound and independently checked. This grants no backend or tool authority.
 pub(crate) fn admitted_regex_result(program: &crate::ast::Program, ty: &Type) -> bool {
+    if super::url_view::admitted_url_result(program, ty) {
+        return true;
+    }
     let imports = || program.interfaces.iter().flat_map(|i| &i.imports);
     let Some(constructor) = imports().find(|i| {
         i.native_rust

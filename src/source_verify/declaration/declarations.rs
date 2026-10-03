@@ -279,6 +279,13 @@ pub(super) fn check_native_rust_imports<'p>(
                 | crate::ast::ImportResult::OwnedOptionString
                 | crate::ast::ImportResult::OwnedResultStringI64
                 | crate::ast::ImportResult::OwnedResultStringOptionI64 => true,
+                crate::ast::ImportResult::BorrowedStr { owner } => {
+                    crate::native_rust_binding::admitted_url_view(import)
+                        && types.is_opaque_resource(&Type::Named {
+                            name: owner.clone(),
+                            arguments: Vec::new(),
+                        })
+                }
                 crate::ast::ImportResult::OwnedResultResourceI64 { name }
                 | crate::ast::ImportResult::OwnedResource { name } => {
                     types.is_opaque_resource(&Type::Named {
@@ -289,6 +296,15 @@ pub(super) fn check_native_rust_imports<'p>(
             };
             let ri06_regex_borrow_shape = import.index_selected
                 && match (&import.result, import.params.as_slice()) {
+                    (crate::ast::ImportResult::BorrowedStr { owner }, [receiver]) => {
+                        crate::native_rust_binding::admitted_url_view(import)
+                            && receiver.mode == ParamMode::Borrow
+                            && receiver.ty
+                                == (Type::Named {
+                                    name: owner.clone(),
+                                    arguments: Vec::new(),
+                                })
+                    }
                     (crate::ast::ImportResult::OwnedResultResourceI64 { .. }, [parameter]) => {
                         parameter.mode == ParamMode::Borrow && parameter.ty == Type::String
                     }

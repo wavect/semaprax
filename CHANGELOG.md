@@ -1,5 +1,7 @@
 # Changelog
 
+- Add an inert exact Url 2.5.8 Project package route with checked Semaprax body execution and receiver-tied returned views. Local locked/offline O0/O2 consumers prove authored-result changes, direct pointer identity, canonical owner/view cleanup and guard-removal controls. Source and HIR retain the owner relation through byte inspection; RI-06 remains partial for its remaining lifetime and safety acceptance.
+
 - Add an opt-in LAW-09 guard to the authenticated indexed Project Rust SDK.
   The generated adapter checks an exact declared i64 return range before
   publishing the value to Semaprax and reports a stable import status on

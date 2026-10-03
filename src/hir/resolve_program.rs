@@ -384,6 +384,8 @@ impl Resolver<'_> {
                                     .0,
                                 ownership: if import.result.is_owned() {
                                     OwnershipMode::Own
+                                } else if import.result.is_borrowed() {
+                                    OwnershipMode::Borrow
                                 } else {
                                     OwnershipMode::Value
                                 },

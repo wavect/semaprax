@@ -2976,7 +2976,19 @@ These areas are deliberately outside the public compiler contract:
   Regex finalizers. Native String loans suppress value cloning in both planner
   and independent replay. The existing Rust Result-owner carrier creates the
   actual Regex and scoped references; caller-held tools execute the artifacts.
-  This route grants no publication authority and does not implement Url views;
+  This route grants no publication authority;
+- `crates/semaprax-native-rust-interop-builder/src/public_sdk/indexed_url_project.rs`,
+  `url_project_package.rs` and `url_project_native.rs` own the separate inert
+  exact Url registry Project route. The checked scalar body lowers through
+  canonical cleanup CFG; `url_project_carrier.rs.txt` owns receiver-bound view
+  leases and validates context, owner generation, pointer and length. It does
+  not supply CLI execution or publication authority. Source signature admission
+  lives in `src/native_rust_binding/url_view.rs`, independent HIR admission in
+  `src/hir/validation/native_borrow.rs` and `workspace_link/native_owner/url_view.rs`,
+  and returned-view loan ancestry in `src/loan_plan/native_view.rs`. The ordinary
+  scalar workspace linker rebuilds byte provenance from every retained body,
+  including nongeneric functions. `semaprax-rust-api-index/src/closed_owner.rs`
+  owns closed Regex/Url selection without widening general index support;
 - `crates/semaprax-native-rust-interop-builder/src/public_sdk/callback.rs` and
   `registered_callback.rs`: inert RI-08 checked scalar-snapshot closure and
   explicit next-state projections, plus authored registry-export admission.

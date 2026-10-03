@@ -73,6 +73,44 @@ impl Resolver<'_> {
                     self.resolve_type(&result.value_type(), span)?,
                 )
             }
+            crate::ast::ImportResult::BorrowedStr { owner } => {
+                let ty = self.resolve_type(
+                    &crate::ast::Type::Named {
+                        name: owner.clone(),
+                        arguments: Vec::new(),
+                    },
+                    span,
+                )?;
+                let ResolvedType::Nominal {
+                    declaration,
+                    arguments,
+                } = ty
+                else {
+                    return Err(self.error(
+                        "SPX-H006",
+                        "native Rust view owner is not a resource",
+                        span,
+                    ));
+                };
+                if !arguments.is_empty()
+                    || self
+                        .declarations
+                        .declaration(&declaration)
+                        .is_none_or(|item| item.kind != DeclarationKind::Resource)
+                {
+                    return Err(self.error(
+                        "SPX-H006",
+                        "native Rust view owner is not a resource",
+                        span,
+                    ));
+                }
+                (
+                    ResolvedImportResultKind::BorrowedStr {
+                        resource: declaration,
+                    },
+                    ResolvedType::Str,
+                )
+            }
             crate::ast::ImportResult::OwnedResource { .. } => {
                 let ty = self.resolve_type(&result.value_type(), span)?;
                 let ResolvedType::Nominal {

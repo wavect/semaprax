@@ -1119,6 +1119,7 @@ pub(super) fn check_expr(
                             let borrow_origin = matches!(actual.ty, Type::SliceU8 | Type::Str)
                                 .then(|| {
                                     local_borrow_origin(
+                                        program,
                                         value,
                                         name,
                                         *name_span,

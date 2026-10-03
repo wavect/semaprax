@@ -58,6 +58,7 @@ use nested_owned::{
 };
 pub(crate) use prelude_binding::revision_from_canonical_program;
 
+pub(crate) use native_import::view_relation as native_view_relation;
 pub(crate) use native_import::{reject_native_rust_imports, reject_source_native_rust_imports};
 pub(crate) use nested_owned::{
     graph_schema, graph_schema_from_parts_and_instances, legacy_graph_schema,
@@ -4433,7 +4434,7 @@ fn render_graph_json(
             output.push(',');
             write!(
                 output,
-                "{{\"id\":{},\"kind\":\"import\",\"name\":{},\"owner\":{},\"identity_origin\":{},\"persistent\":{},\"import_key\":{},\"parameters\":[{}],\"result\":{{\"type\":{},\"ownership_mode\":{},\"producer\":{},\"out_slot_initialization\":{},\"ownership_transfer\":{}}},\"effects\":{},\"required_authority\":{},\"failure\":{}",
+                "{{\"id\":{},\"kind\":\"import\",\"name\":{},\"owner\":{},\"identity_origin\":{},\"persistent\":{},\"import_key\":{},\"parameters\":[{}],\"result\":{{\"type\":{},\"ownership_mode\":{},\"producer\":{},\"out_slot_initialization\":{},\"ownership_transfer\":{}{}}},\"effects\":{},\"required_authority\":{},\"failure\":{}",
                 quote_json(import.id.as_str()),
                 quote_json(&import.name),
                 quote_json(interface.id.as_str()),
@@ -4446,6 +4447,7 @@ fn render_graph_json(
                 quote_json(import.result.producer),
                 quote_json(import.result.out_slot_initialization),
                 quote_json(import.result.ownership_transfer),
+                native_import::view_relation(&import.result.kind),
                 string_array(&import.effects),
                 string_array(&import.required_authority),
                 failure

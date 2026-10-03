@@ -7,7 +7,10 @@
 pub mod foreign_law;
 mod owner;
 pub(crate) use owner::admitted_regex_result;
+mod url_view;
 pub use owner::{bind_selected_owner_signature, bind_selected_regex_result_signature};
+pub(crate) use url_view::admitted_url_view;
+pub use url_view::bind_selected_url_signature;
 #[cfg(test)]
 mod owner_tests;
 
@@ -361,6 +364,7 @@ fn result_text(kind: &ResolvedImportResultKind) -> &'static str {
             "core::result::Result<opaque resource, i64>"
         }
         ResolvedImportResultKind::OwnedResource { .. } => "opaque resource",
+        ResolvedImportResultKind::BorrowedStr { .. } => "&str",
     }
 }
 

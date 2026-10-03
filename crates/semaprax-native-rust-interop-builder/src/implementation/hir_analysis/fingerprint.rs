@@ -546,6 +546,10 @@ pub(in crate::implementation) fn hash_expr(
                             ResolvedImportResultKind::ResultI64I64 => {
                                 frame(hasher, b"result<i64,i64>")
                             }
+                            ResolvedImportResultKind::BorrowedStr { resource } => {
+                                frame(hasher, b"borrowed-str:receiver-0");
+                                frame(hasher, resource.as_str().as_bytes());
+                            }
                             ResolvedImportResultKind::OwnedResource { resource } => {
                                 frame(hasher, resource.as_str().as_bytes());
                             }

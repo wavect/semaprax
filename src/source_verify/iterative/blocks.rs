@@ -134,6 +134,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     let borrow_origin = matches!(binding_ty, Type::SliceU8 | Type::Str)
                         .then(|| {
                             local_borrow_origin(
+                                self.program,
                                 value,
                                 name,
                                 *name_span,

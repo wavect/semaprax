@@ -326,4 +326,11 @@ pub(crate) mod bounded_output {
 )]
 mod implementation;
 
-pub use public_sdk::{prepare_indexed_regex_project_package, IndexedProjectRegexRegistrySelection, PreparedRegexProjectPackage};
+pub use public_sdk::{
+    prepare_indexed_regex_project_package, IndexedProjectRegexRegistrySelection,
+    PreparedRegexProjectPackage,
+};
+pub use public_sdk::{
+    prepare_indexed_url_project_package, IndexedProjectUrlRegistrySelection,
+    PreparedUrlProjectPackage,
+};

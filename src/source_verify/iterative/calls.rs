@@ -53,10 +53,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             || (actual.mode != parameter.mode
                                 && !(parameter.mode == ParamMode::Borrow
                                     && actual.mode == ParamMode::Own
-                                    && matches!(
-                                        &argument.kind,
-                                        crate::ast::ExprKind::Var(_)
-                                    ))))
+                                    && matches!(&argument.kind, crate::ast::ExprKind::Var(_)))))
                     {
                         self.diagnostics.push(error(
                             self.program,
@@ -193,6 +190,9 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         import.result.is_owned(),
                     );
                     value.native_unit = import.result == ImportResult::Unit;
+                    if import.result.is_borrowed() {
+                        value.mode = ParamMode::Borrow;
+                    }
                     Some(value)
                 }
                 VerifierCallTarget::Byte(op) => {

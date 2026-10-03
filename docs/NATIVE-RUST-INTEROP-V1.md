@@ -723,6 +723,51 @@ profiles. The builder crate and generated packages remain unpublished. The
 earlier export-only run IDs above retain their original tag and scope.
 
 
+## Bounded indexed Url Project views (RI-06)
+
+`prepare_indexed_url_project_package` returns inert C, Rust, header, descriptor,
+binding-plan and Cargo bytes for one exact registry profile: Url 2.5.8 with its
+committed lock, archive checksum, default/std feature digest, selected index,
+compiler and target identities. It executes no tools and grants no publication
+authority. The caller must separately authorize and perform compilation and
+execution. No RI-11 CLI registration is claimed for this route.
+
+The selected declarations are exactly `url_alias::Url::parse` and
+`url_alias::Url::as_str`. The constructor lowers to `Result<Url, i64>`; the
+view lowers to `str` borrowed from receiver parameter zero and that exact
+resource identity. The captured `parse` signature remains unsupported by
+ordinary scalar discovery. Independent source and HIR checks authenticate the
+closed pair. Module Graph v61, Project semantic Graph v7 and Workspace Graph
+v6 carry the explicit `borrowed_from` relation; earlier shapes retain their
+previous schemas. The scalar ABI remains unchanged.
+
+The generated native path evaluates a checked `fn() -> i64` body with one
+constructor site, one view site, a borrowed Result match and bounded byte-length
+inspection. Canonical cleanup CFG order determines String and Url finalizers.
+The view lease remains live through result computation and ends before owner
+finalization; publication follows successful cleanup. Runtime carriers bind
+context, owner slot/generation, lease generation, pointer and length. A live
+view prevents owner drop and repeated view entry; stale or forged carriers
+fail before target access. These guards supplement the checked source loan.
+
+The owning selector
+`public_sdk::indexed_tests::indexed_url_project::indexed_real_url_project_executes_receiver_tied_view_and_cleanup`
+passed locally on `aarch64-apple-darwin`, Rust 1.98.0, real locked/offline Url
+2.5.8 and Clang O0/O2. It proves authored result changes (41 to 42), parse-domain
+failure (9), target pointer identity without adapter copies, one authored
+String construction, zero live owners/views/Strings after cleanup, malformed
+and stale carrier refusal, live-view/re-entry refusal before target counters,
+and runtime failure after removing either the live-view or context guard.
+Removing the generated finalizer is detected. Source view escape and a
+temporary receiver fail with `SPX-T258` and `SPX-B107`; stale source and lock
+bytes refuse preparation.
+
+This is a bounded local checked-body witness. It does not establish general
+mutable/exclusive returned-view syntax, arbitrary lifetimes, callback-driven
+re-entry through an actual foreign callback, checkpoint escape, cross-thread
+use, a hosted profile, a new fuzz campaign, Miri, or sanitizer results. Those
+remaining RI-06 acceptance claims require their own evidence.
+
 ## Diagnostics and nonclaims
 
 The exact owned diagnostics are B106 noncanonical spec; B107 closed declaration

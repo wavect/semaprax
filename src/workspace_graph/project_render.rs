@@ -36,7 +36,7 @@ pub(super) fn render_project_graph_json(
     );
     push_json_string(
         &mut output,
-        if law_modules.is_empty() {
+        if law_modules.is_empty() || schema == "semaprax.project-semantic-graph.v7" {
             schema
         } else {
             "semaprax.project-semantic-graph.v6"

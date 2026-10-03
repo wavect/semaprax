@@ -146,7 +146,8 @@ fn render_checked_scalar_adapter_parts(
         ResolvedImportResultKind::I64 => "i64",
         ResolvedImportResultKind::Bool => "bool",
         ResolvedImportResultKind::ResultI64I64 => "core::result::Result<i64,i64>",
-        ResolvedImportResultKind::OwnedResource { .. }
+        ResolvedImportResultKind::BorrowedStr { .. }
+        | ResolvedImportResultKind::OwnedResource { .. }
         | ResolvedImportResultKind::OwnedResultResourceI64 { .. }
         | ResolvedImportResultKind::OwnedString
         | ResolvedImportResultKind::OwnedOptionString

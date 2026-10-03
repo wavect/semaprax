@@ -11,6 +11,7 @@ use crate::diagnostic::Diagnostic;
 use std::collections::HashMap;
 
 pub(super) fn local_borrow_origin(
+    program: &Program,
     expression: &Expr,
     borrower: &str,
     borrower_span: Span,
@@ -24,6 +25,28 @@ pub(super) fn local_borrow_origin(
                 || Some((source.clone(), Vec::new(), None)),
                 |origin| Some((origin.root, origin.projections, Some(origin.loan))),
             )?
+        }
+        ExprKind::Call { name, args, .. }
+            if program
+                .interfaces
+                .iter()
+                .flat_map(|interface| &interface.imports)
+                .any(|import| {
+                    import.name == *name && crate::native_rust_binding::admitted_url_view(import)
+                }) =>
+        {
+            let [source] = args.as_slice() else {
+                return None;
+            };
+            let place = source_place(source, variables, types)?;
+            if !place.projections.is_empty() {
+                return None;
+            }
+            let parent = variables.get(&place.root)?.borrow_origin.clone();
+            parent.map_or_else(
+                || (place.root, Vec::new(), None),
+                |origin| (origin.root, origin.projections, Some(origin.loan)),
+            )
         }
         ExprKind::Call { name, args, .. } => {
             let operation = crate::byte_ops::by_name(name)?;

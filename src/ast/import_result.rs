@@ -20,6 +20,11 @@ pub enum ImportResult {
     OwnedResultResourceI64 {
         name: String,
     },
+    /// An index-selected shared receiver view. Parameter zero is the exact
+    /// resource named here; the view cannot outlive that receiver loan.
+    BorrowedStr {
+        owner: String,
+    },
     /// An opaque resource returned by a native Rust constructor. The source
     /// verifier resolves `name` to an authored `resource` declaration.
     OwnedResource {
@@ -34,6 +39,7 @@ impl fmt::Display for ImportResult {
             Self::I64 => "i64",
             Self::Bool => "bool",
             Self::OwnedString => "string",
+            Self::BorrowedStr { .. } => "str",
             Self::OwnedOptionString => "Option<string>",
             Self::OwnedResultStringI64 => "Result<string, i64>",
             Self::OwnedResultStringOptionI64 => "Result<string, Option<i64>>",
@@ -45,6 +51,9 @@ impl fmt::Display for ImportResult {
 }
 
 impl ImportResult {
+    pub fn is_borrowed(&self) -> bool {
+        matches!(self, Self::BorrowedStr { .. })
+    }
     pub fn is_owned(&self) -> bool {
         matches!(
             self,
@@ -120,6 +129,7 @@ impl ImportResult {
             Self::I64 => Type::I64,
             Self::Bool => Type::Bool,
             Self::OwnedString => Type::String,
+            Self::BorrowedStr { .. } => Type::Str,
             Self::OwnedOptionString => Type::Named {
                 name: "Option".into(),
                 arguments: vec![Type::String],

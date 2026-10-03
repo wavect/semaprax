@@ -15,6 +15,23 @@ pub(super) fn schema(
     modules: &[WorkspaceGraphProjectionModule],
     project: bool,
 ) -> &'static str {
+    if modules
+        .iter()
+        .flat_map(|module| &module.interfaces)
+        .flat_map(|interface| &interface.imports)
+        .any(|import| {
+            matches!(
+                import.result.kind,
+                hir::ResolvedImportResultKind::BorrowedStr { .. }
+            )
+        })
+    {
+        return if project {
+            "semaprax.project-semantic-graph.v7"
+        } else {
+            "semaprax.workspace-semantic-graph.v6"
+        };
+    }
     if has_facts(modules) {
         if project {
             "semaprax.project-semantic-graph.v5"
@@ -95,8 +112,10 @@ pub(super) fn append(
                         "core::result::Result<opaque resource, i64>"
                     }
                     hir::ResolvedImportResultKind::OwnedResource { .. } => "opaque resource",
+                    hir::ResolvedImportResultKind::BorrowedStr { .. } => "str",
                 },
             );
+            output.push_str(&crate::graph::native_view_relation(&import.result.kind));
             output.push_str(",\"effects\":[");
             for (index, effect) in import.effects.iter().enumerate() {
                 if index != 0 {

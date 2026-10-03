@@ -15,6 +15,7 @@ mod closure;
 mod generic_record_composition;
 mod generic_template;
 mod host_command;
+mod native_borrow;
 mod owned_buffer;
 mod owned_result_try;
 mod proof_return;
@@ -285,7 +286,7 @@ impl<'a> HirValidator<'a> {
                                                 .is_some_and(|item| item.kind == DeclarationKind::Resource && item.name == "Regex"))
                                         && text.ownership == OwnershipMode::Borrow
                                         && text.ty == ResolvedType::String);
-                            !scalar && !regex_loan
+                            !scalar && !regex_loan && !native_borrow::admitted(self.program, import)
                         },
                         "owned" => !matches!(import.parameters.first(), Some(p) if matches!(p.ty, ResolvedType::Nominal { .. }) && p.ownership == OwnershipMode::Own),
                         _ => true,
@@ -346,35 +347,9 @@ impl<'a> HirValidator<'a> {
                         )));
                     }
                 }
-                let ri06_regex_borrow_shape = import.index_selected
-                    && match (
-                        import.rust_path.as_deref(),
-                        &import.result.kind,
-                        import.parameters.as_slice(),
-                    ) {
-                        (
-                            Some("regex_alias::Regex::new"),
-                            ResolvedImportResultKind::OwnedResultResourceI64 { .. },
-                            [parameter],
-                        ) => {
-                            parameter.ownership == OwnershipMode::Borrow
-                                && parameter.ty == ResolvedType::String
-                        }
-                        (
-                            Some("regex_alias::Regex::is_match"),
-                            ResolvedImportResultKind::Bool,
-                            [receiver, text],
-                        ) => {
-                            receiver.ownership == OwnershipMode::Borrow
-                                && matches!(receiver.ty, ResolvedType::Nominal { ref declaration, ref arguments }
-                                    if arguments.is_empty() && self.program.declarations.declaration(declaration)
-                                        .is_some_and(|item| item.kind == DeclarationKind::Resource))
-                                && text.ownership == OwnershipMode::Borrow
-                                && text.ty == ResolvedType::String
-                        }
-                        _ => false,
-                    };
+                let ri06_regex_borrow_shape = native_borrow::admitted(self.program, import);
                 let native_shape = import.native_rust
+                    && (!matches!(import.result.kind, ResolvedImportResultKind::BorrowedStr { .. }) || ri06_regex_borrow_shape)
                     && import.parameters.len() <= 8
                     && (ri06_regex_borrow_shape || import.parameters.iter().all(|parameter| {
                         (parameter.ownership == OwnershipMode::Value
@@ -390,7 +365,7 @@ impl<'a> HirValidator<'a> {
                             | ResolvedImportResultKind::I64
                             | ResolvedImportResultKind::Bool
                             | ResolvedImportResultKind::ResultI64I64
-                            | ResolvedImportResultKind::OwnedResource { .. } | ResolvedImportResultKind::OwnedResultResourceI64 { .. } | ResolvedImportResultKind::OwnedString | ResolvedImportResultKind::OwnedOptionString | ResolvedImportResultKind::OwnedResultStringI64 | ResolvedImportResultKind::OwnedResultStringOptionI64
+                            | ResolvedImportResultKind::BorrowedStr { .. } | ResolvedImportResultKind::OwnedResource { .. } | ResolvedImportResultKind::OwnedResultResourceI64 { .. } | ResolvedImportResultKind::OwnedString | ResolvedImportResultKind::OwnedOptionString | ResolvedImportResultKind::OwnedResultStringI64 | ResolvedImportResultKind::OwnedResultStringOptionI64
                     )
                     && (!matches!(
                         import.result.kind,

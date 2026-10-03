@@ -452,6 +452,9 @@ pub(super) fn oracle_call(
         let mut checked =
             CheckedValue::returned(import.result.value_type(), import.result.is_owned());
         checked.native_unit = native_unit;
+        if import.result.is_borrowed() {
+            checked.mode = ParamMode::Borrow;
+        }
         return Some(checked);
     }
     let target = functions.get(name.as_str()).copied();

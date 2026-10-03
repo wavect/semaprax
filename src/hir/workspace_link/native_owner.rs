@@ -1,6 +1,7 @@
 //! Admission for the destructor belonging to an indexed opaque Rust owner.
 //! The ordinary scalar linker still refuses unrelated interface imports.
 use super::*;
+mod url_view;
 
 pub(in crate::hir) fn admitted_resource(
     declaration: &ResolvedTypeDeclaration,
@@ -78,6 +79,9 @@ pub(crate) fn admitted_ri06_regex_resource(
     declaration: &ResolvedTypeDeclaration,
     interfaces: &[ResolvedInterface],
 ) -> bool {
+    if url_view::admitted_resource(declaration, interfaces) {
+        return true;
+    }
     let ResolvedTypeDeclarationKind::Resource { drop } = &declaration.kind else {
         return false;
     };

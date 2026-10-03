@@ -631,8 +631,16 @@ pub enum ResolvedImportResultKind {
     OwnedOptionString,
     OwnedResultStringI64,
     OwnedResultStringOptionI64,
-    OwnedResultResourceI64 { resource: DeclarationId },
-    OwnedResource { resource: DeclarationId },
+    OwnedResultResourceI64 {
+        resource: DeclarationId,
+    },
+    /// Shared parameter-zero resource loan owns this returned Str lifetime.
+    BorrowedStr {
+        resource: DeclarationId,
+    },
+    OwnedResource {
+        resource: DeclarationId,
+    },
 }
 
 impl ResolvedImportResultKind {
@@ -647,6 +655,8 @@ impl ResolvedImportResultKind {
                 | Self::OwnedResultResourceI64 { .. }
         ) {
             OwnershipMode::Own
+        } else if matches!(self, Self::BorrowedStr { .. }) {
+            OwnershipMode::Borrow
         } else {
             OwnershipMode::Value
         }
@@ -677,6 +687,7 @@ impl ResolvedImportResultKind {
             Self::I64 => ResolvedType::I64,
             Self::Bool => ResolvedType::Bool,
             Self::OwnedString => ResolvedType::String,
+            Self::BorrowedStr { .. } => ResolvedType::Str,
             Self::ResultI64I64 => nominal("Result", vec![ResolvedType::I64, ResolvedType::I64])?,
             Self::OwnedOptionString => nominal("Option", vec![ResolvedType::String])?,
             Self::OwnedResultStringI64 => {

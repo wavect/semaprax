@@ -53,10 +53,11 @@ test('candidate pages bind to the selected subject and artifact digest', () => {
 });
 
 test('editor boundary rejects stale generations, arbitrary RPC and forged cursors', () => {
-  const request = { type: 'semaprax-explorer-request', generation: 8, requestId: 1, action: 'summary' };
+  const request = { type: 'semaprax-explorer-request', generation: 8, requestId: 1, action: 'summary', value: { mode: 'overview', target: null, direction: 'both', depth: 1, side: 'candidate' } };
   assert.equal(message(request, 8).action, 'summary');
   assert.equal(message({ ...request, generation: 7 }, 8), null);
   assert.equal(message({ ...request, action: 'tools/call' }, 8), null);
+  assert.equal(message({ ...request, constructor: { pollution: true } }, 8), null);
   const selected = { inventories: [{ view: 'modules', handle: digest }] };
   const cursors = new Map([['modules', 'page-2']]);
   const valid = { view: 'modules', handle: digest, cursor: 'page-2', page_size: 32, max_bytes: 65536 };

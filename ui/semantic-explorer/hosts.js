@@ -107,7 +107,7 @@ function vscodeHost(port, generation) {
   }
   const host = {
     summary(query) { return call('summary', query); },
-    page(request) { return call('page', { view: request.view, handle: request.handle, cursor: request.cursor, page_size: request.page_size, max_bytes: request.max_bytes, subject: request.summary.subject, artifact_digest: request.summary.artifact_digest }); },
+    page(request) { return call('page', { view: request.view, handle: request.handle, cursor: request.cursor, page_size: request.page_size, max_bytes: request.max_bytes }); },
     readEvidence(request) { return call('readEvidence', evidenceRequest(request)); },
     deltaCatalog(candidateRevision) { return call('deltaCatalog', { candidateRevision }); },
     semanticDelta(candidateRevision, target) { return call('semanticDelta', { candidateRevision, target }); },

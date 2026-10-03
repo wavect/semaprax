@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
-const { ExplorerScheduler, message, pageRequest, readChangeReport, readEvidence } = require('../explorer');
+const { ExplorerScheduler, message, pageRequest, readChangeReport, readEvidence, openExplorer } = require('../explorer');
 
 test('the packaged viewer is an exact, hashed copy of the shared viewer assets', () => {
   const root = path.join(__dirname, '..');
@@ -33,14 +33,40 @@ test('explorer requests coalesce immutable reads and discard queued obsolete wor
 });
 
 test('panel messages and page cursors are closed over the retained summary', () => {
-  assert.equal(message({ type: 'semaprax-explorer-request', generation: 4, requestId: 1, action: 'summary' }, 4).action, 'summary');
-  assert.equal(message({ type: 'semaprax-explorer-request', generation: 4, requestId: 2, action: 'deltaCatalog' }, 4).action, 'deltaCatalog');
-  assert.equal(message({ type: 'semaprax-explorer-request', generation: 4, requestId: 3, action: 'semanticDelta' }, 4).action, 'semanticDelta');
-  assert.equal(message({ type: 'semaprax-explorer-request', generation: 3, requestId: 1, action: 'tools/call' }, 4), null);
+  const request = { type: 'semaprax-explorer-request', generation: 4, requestId: 1, action: 'summary', value: { mode: 'overview', target: null, direction: 'both', depth: 1, side: 'current' } };
+  assert.equal(message(request, 4).action, 'summary');
+  assert.equal(message({ ...request, requestId: 2, action: 'deltaCatalog', value: { candidateRevision: 'sha256:' + 'a'.repeat(64) } }, 4).action, 'deltaCatalog');
+  assert.equal(message({ ...request, requestId: 3, action: 'semanticDelta', value: { target: 'calculator.add' } }, 4).action, 'semanticDelta');
+  assert.equal(message({ ...request, generation: 3, action: 'tools/call' }, 4), null);
+  assert.equal(message({ ...request, foreign: 'ignored before this check' }, 4), null);
   const summary = { inventories: [{ view: 'modules', handle: 'sha256:' + 'a'.repeat(64) }] }, cursors = new Map([['modules', null]]);
-  const request = { view: 'modules', handle: 'sha256:' + 'a'.repeat(64), cursor: null, page_size: 32, max_bytes: 65536 };
-  assert.deepEqual(pageRequest(request, summary, cursors), request);
-  assert.equal(pageRequest({ ...request, cursor: 'forged' }, summary, cursors), null);
+  const page = { view: 'modules', handle: 'sha256:' + 'a'.repeat(64), cursor: null, page_size: 32, max_bytes: 65536 };
+  assert.deepEqual(pageRequest(page, summary, cursors), page);
+  assert.equal(pageRequest({ ...page, cursor: 'forged' }, summary, cursors), null);
+  assert.equal(pageRequest({ ...page, extra: true }, summary, cursors), null);
+});
+
+test('actual webview handler ignores stale and arbitrary RPC messages before invocation', async () => {
+  let receive, dispose;
+  const panel = {
+    webview: {
+      cspSource: 'vscode-webview://test',
+      asWebviewUri(uri) { return uri.path; },
+      postMessage() {},
+      onDidReceiveMessage(listener) { receive = listener; return { dispose() {} }; }
+    },
+    onDidDispose(listener) { dispose = listener; }
+  };
+  const vscode = { ViewColumn: { Beside: 2 }, window: { createWebviewPanel() { return panel; } } };
+  const extensionUri = { path: path.join(__dirname, '..'), with(change) { return { ...this, ...change, with: this.with }; } };
+  let invoked = 0;
+  const state = { panel: null, panelGeneration: 0, live: () => true, image: () => 'sha256:' + 'a'.repeat(64), candidate: () => null, invoke: async () => { invoked++; } };
+  openExplorer(vscode, { extensionUri }, state, { mode: 'overview', target: null, direction: 'both', depth: 1, side: 'current' });
+  await receive({ type: 'semaprax-explorer-request', generation: 0, requestId: 1, action: 'tools/call', value: {} });
+  await receive({ type: 'semaprax-explorer-request', generation: 0, requestId: 2, action: 'summary', value: { mode: 'overview', target: null, direction: 'both', depth: 1, side: 'current' }, foreign: true });
+  await receive({ type: 'semaprax-explorer-request', generation: 9, requestId: 3, action: 'summary', value: { mode: 'overview', target: null, direction: 'both', depth: 1, side: 'current' } });
+  assert.equal(invoked, 0);
+  dispose();
 });
 
 test('candidate change reports are reassembled only from the selected immutable subject', async () => {

@@ -32,14 +32,22 @@ for (const [name, browserType] of [['chromium', chromium], ['firefox', firefox]]
     const embedded = JSON.parse(await page.locator('#snapshot').textContent());
     assert.deepEqual(embedded, jsonSnapshot);
     assert.equal(embedded.snapshot_digest, jsonSnapshot.snapshot_digest);
+    assert.equal(embedded.source_included, false);
+    assert.equal(Object.hasOwn(embedded, 'source_files'), false);
     assert.ok(requests.every(url => url.startsWith('file:')), requests.join('\n'));
     assert.deepEqual(errors, []);
+    const csp = await page.locator('meta[http-equiv="Content-Security-Policy"]').getAttribute('content');
+    for (const directive of ["default-src 'none'", "connect-src 'none'", "form-action 'none'", "base-uri 'none'", "object-src 'none'"]) {
+      assert.ok(csp.includes(directive), directive);
+    }
+    assert.equal(csp.includes('unsafe-eval'), false);
+    assert.equal(await page.locator('svg[onload], a[href^="javascript:"], a[href^="command:"], a[href^="vscode:"]').count(), 0);
     const modules = page.getByRole('button', { name: /\d+ declarations/ });
     assert.ok(await modules.count() > 0, 'module overview must be interactive');
     await modules.first().click();
     assert.ok(await page.locator('.spx-inspector').isVisible(), 'inspector must open');
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
-    console.log(JSON.stringify({ browser: name, version: browser.version(), checks: 6, snapshot_digest: embedded.snapshot_digest, requests: requests.length, page_errors: errors.length }));
+    console.log(JSON.stringify({ browser: name, version: browser.version(), checks: 15, snapshot_digest: embedded.snapshot_digest, requests: requests.length, page_errors: errors.length }));
     await context.close();
   } finally {
     await browser.close();

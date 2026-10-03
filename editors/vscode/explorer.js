@@ -12,6 +12,7 @@ const EVIDENCE_FACETS = new Set(['contracts', 'effects', 'ownership', 'loans', '
 const stableId = value => typeof value === 'string' && value.length > 0 && value.length <= 512 && !/[\u0000-\u001f\u007f]/.test(value);
 const plain = value => value && typeof value === 'object' && !Array.isArray(value) && (Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null);
 const digest = value => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/.test(value);
+const closed = (value, keys) => plain(value) && Object.keys(value).length === keys.length && keys.every(key => Object.hasOwn(value, key));
 
 // The MCP client remains deliberately serial. This layer coalesces immutable
 // explorer reads before they reach it and forgets queued work on a new view.
@@ -40,12 +41,12 @@ class ExplorerScheduler {
 }
 
 function message(value, generation) {
-  if (!plain(value) || value.type !== 'semaprax-explorer-request' || value.generation !== generation || !Number.isSafeInteger(value.requestId) || value.requestId < 1 || value.requestId > 1000000 || typeof value.action !== 'string') return null;
+  if (!closed(value, ['type', 'generation', 'requestId', 'action', 'value']) || value.type !== 'semaprax-explorer-request' || value.generation !== generation || !Number.isSafeInteger(value.requestId) || value.requestId < 1 || value.requestId > 1000000 || typeof value.action !== 'string') return null;
   if (!['summary', 'page', 'readEvidence', 'reveal', 'deltaCatalog', 'semanticDelta'].includes(value.action)) return null;
   return value;
 }
 function pageRequest(value, summary, cursors) {
-  if (!plain(value) || !VIEWS.has(value.view) || !DIGEST.test(value.handle) || !(value.cursor === null || typeof value.cursor === 'string' && value.cursor.length <= 128) || !Number.isSafeInteger(value.page_size) || value.page_size < 1 || value.page_size > 128 || !Number.isSafeInteger(value.max_bytes) || value.max_bytes < 1024 || value.max_bytes > 512 * 1024) return null;
+  if (!closed(value, ['view', 'handle', 'cursor', 'page_size', 'max_bytes']) || !VIEWS.has(value.view) || !DIGEST.test(value.handle) || !(value.cursor === null || typeof value.cursor === 'string' && value.cursor.length <= 128) || !Number.isSafeInteger(value.page_size) || value.page_size < 1 || value.page_size > 128 || !Number.isSafeInteger(value.max_bytes) || value.max_bytes < 1024 || value.max_bytes > 512 * 1024) return null;
   const inventory = summary?.inventories?.find(row => row.view === value.view);
   if (!inventory || inventory.handle !== value.handle || cursors.get(value.view) !== value.cursor) return null;
   return { view: value.view, handle: value.handle, cursor: value.cursor, page_size: value.page_size, max_bytes: value.max_bytes };
@@ -64,7 +65,7 @@ function retainSourceReferences(result, subject, references) {
   }
 }
 function summaryQuery(value, allowedSide) {
-  if (!plain(value) || !['overview', 'context', 'impact'].includes(value.mode) || value.side !== allowedSide ||
+  if (!closed(value, ['mode', 'target', 'direction', 'depth', 'side']) || !['overview', 'context', 'impact'].includes(value.mode) || value.side !== allowedSide ||
       !(value.target === undefined || value.target === null || stableId(value.target)) ||
       !(value.direction === undefined || ['forward', 'reverse', 'both'].includes(value.direction)) ||
       !(value.depth === undefined || Number.isSafeInteger(value.depth) && value.depth >= 0 && value.depth <= 3)) return null;

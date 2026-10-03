@@ -460,7 +460,8 @@ function createExplorer(root, host, options = {}) {
     const generation = ++state.generation;
     state.busy = true; status.textContent = 'Loading checked project view…';
     try {
-      const selected = semapraxExplorerModel.summary(await host.summary(query));
+      const requested = { mode: query.mode, target: query.target ?? null, direction: query.direction || 'both', depth: query.depth ?? 1, side: query.side };
+      const selected = semapraxExplorerModel.summary(await host.summary(requested));
       if (generation !== state.generation) return;
       state.summary = selected;
       state.rows = Object.fromEntries(semapraxExplorerModel.VIEWS.map(view => [view, []]));

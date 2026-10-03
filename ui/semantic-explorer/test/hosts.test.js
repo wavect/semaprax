@@ -29,6 +29,7 @@ test('offline and editor adapters deliver the same checked identities', async ()
     addEventListener(type, fn) { assert.equal(type, 'message'); listener = fn; },
     postMessage(request) {
       assert.ok(['summary', 'page'].includes(request.action));
+      if (request.action === 'page') assert.deepEqual(Object.keys(request.value).sort(), ['cursor', 'handle', 'max_bytes', 'page_size', 'view']);
       const value = request.action === 'summary' ? selected : pages.find(row => row.view === request.value.view);
       queueMicrotask(() => listener({ data: { type: 'semaprax-explorer-response', generation: 7, requestId: request.requestId, ok: true, value } }));
     }

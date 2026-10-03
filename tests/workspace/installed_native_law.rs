@@ -1161,3 +1161,92 @@ fn installed_native_law_law14_adversarial_gate() {
     assert!(!project.root.join(".semaprax-workspace/ACTIVE").exists());
     assert!(!project.root.join(".git").exists());
 }
+
+#[test]
+#[ignore = "requires explicitly provisioned installed Z3"]
+fn proved_add_zero_identity_yields_only_a_revalidated_candidate() {
+    use semaprax::project::ProjectCandidate;
+    let project = native_project("law-add-zero-rewrite", "n + 0 == n");
+    let app = project.root.join("src/app.spx");
+    let original = std::fs::read_to_string(&app).unwrap();
+    let raw = original.replacen("seventeen(0)", "let n = 40; n + 0", 1);
+    assert_ne!(original, raw);
+    let changed = semaprax::format::canonical(&semaprax::parse(&raw, &app).unwrap());
+    std::fs::write(&app, &changed).unwrap();
+    let revision = project.revision();
+    let laws = LawSet::derive(
+        &revision,
+        "native-proof-v1",
+        revision.law_modules().to_vec(),
+    )
+    .unwrap();
+    let tool = provisioned(&project, ToolKind::Z3);
+    let proof = prove_scalar_law(&revision, &laws, "fresh.law.identity", &tool).unwrap();
+    let candidate = ProjectCandidate::open(revision.clone(), revision.project_revision()).unwrap();
+    let catalogue: serde_json::Value =
+        serde_json::from_str(&candidate.expression_catalog("fresh.main").unwrap()).unwrap();
+    let source = revision
+        .sources()
+        .iter()
+        .find(|source| source.path() == "src/app.spx")
+        .unwrap()
+        .source();
+    let selected = catalogue["expressions"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|entry| {
+            let span = &entry["source_span"];
+            source.get(
+                span["start"].as_u64().unwrap() as usize..span["end"].as_u64().unwrap() as usize,
+            ) == Some("n + 0")
+        })
+        .unwrap();
+    let expression_id = selected["expression_id"].as_str().unwrap();
+    let rewritten = candidate
+        .propose_checked_i64_add_zero(
+            candidate.candidate_digest(),
+            "fresh.main",
+            expression_id,
+            &laws,
+            "fresh.law.identity",
+            &proof,
+        )
+        .unwrap();
+    assert!(rewritten
+        .revision()
+        .sources()
+        .iter()
+        .any(|source| source.path() == "src/app.spx"
+            && source.source().contains("let n = 40")
+            && !source.source().contains("n + 0")));
+    assert_eq!(std::fs::read_to_string(&app).unwrap(), changed);
+    assert!(candidate
+        .propose_checked_i64_add_zero(
+            "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+            "fresh.main",
+            expression_id,
+            &laws,
+            "fresh.law.identity",
+            &proof,
+        )
+        .is_err());
+    let other = native_project("law-add-zero-stale", "n + 0 == n");
+    let other_revision = other.revision();
+    let other_laws = LawSet::derive(
+        &other_revision,
+        "native-proof-v1",
+        other_revision.law_modules().to_vec(),
+    )
+    .unwrap();
+    assert!(candidate
+        .propose_checked_i64_add_zero(
+            candidate.candidate_digest(),
+            "fresh.main",
+            expression_id,
+            &other_laws,
+            "fresh.law.identity",
+            &proof,
+        )
+        .is_err());
+}

@@ -1,5 +1,12 @@
 # Changelog
 
+- Start LAW-17 with an opt-in `i64` add-zero candidate rewrite. It accepts a
+  real installed-tool proof of the exact assumption-free scalar identity,
+  replays its Project/LawSet binding, recognizes only an authored place plus
+  literal zero, and uses ordinary candidate revalidation without source
+  publication. The focused real-Z3 positive and stale-input gate passed;
+  reduction eligibility and target benchmarking remain open.
+
 - Add an explicit builder-owned LAW-09 conditional strict report for one
   protected foreign law with a unique Project source owner. It requires the
   guarded SDK publication token, exact host-pinned adapter/summary and all named

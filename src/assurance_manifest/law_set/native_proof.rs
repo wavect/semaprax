@@ -287,3 +287,40 @@ pub(super) fn evidence_for(
         .find(|proof| proof.law_id == law_id)
         .map(|proof| (proof.class, proof.evidence.clone()))
 }
+
+/// A deliberately closed optimization law: checked i64 addition by zero
+/// preserves the exact operand and cannot overflow. A native proof token is
+/// required even though the implementation also recognizes this one safe
+/// primitive shape. No report text or law name can substitute for that token.
+pub fn require_checked_i64_add_zero_identity(
+    revision: &ProjectRevision,
+    laws: &LawSet,
+    law_id: &str,
+    proof: &VerifiedLawProof,
+) -> Result<()> {
+    let replayed = LawSet::replay(revision, &laws.payload.proof_profile, laws.to_json())?;
+    validate_all(revision, &replayed, std::slice::from_ref(proof))?;
+    let row = replayed
+        .payload
+        .laws
+        .iter()
+        .find(|row| row.definition.law_id == law_id)
+        .ok_or_else(|| invalid("optimization identity law is absent"))?;
+    if proof.law_id != law_id
+        || !row.definition.assumption_ids.is_empty()
+        || !row.definition.requires_laws.is_empty()
+        || !matches!(
+            &row.definition.selector,
+            LawSelector::ScalarRelational { binders, proposition }
+                if binders.len() == 1
+                    && binders[0].scalar_type == "i64"
+                    && proposition
+                        == &format!("{} + 0 == {}", binders[0].name, binders[0].name)
+        )
+    {
+        return Err(invalid(
+            "optimization needs the exact assumption-free checked i64 x + 0 == x law",
+        ));
+    }
+    Ok(())
+}

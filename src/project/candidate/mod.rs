@@ -52,6 +52,7 @@ mod impact_navigation;
 mod intent;
 mod interface;
 mod interface_delta;
+mod law_rewrite;
 mod merge_preview;
 mod movement;
 mod multi_agent_coordination;

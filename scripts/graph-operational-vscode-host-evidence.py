@@ -112,7 +112,7 @@ def package_vsix(destination):
     return file_row(destination)
 
 def main():
-    ap=argparse.ArgumentParser(); ap.add_argument("--vscode-app",required=True); ap.add_argument("--node"); ap.add_argument("--output")
+    ap=argparse.ArgumentParser(); ap.add_argument("--vscode-app",required=True); ap.add_argument("--node"); ap.add_argument("--output"); ap.add_argument("--build-target")
     ns=ap.parse_args(); clean()
     commit=git("rev-parse","HEAD^{commit}"); tree=git("rev-parse","HEAD^{tree}"); tags=git("tag","--points-at",commit).splitlines()
     inputs=[repo_row(x) for x in FILES]
@@ -136,8 +136,8 @@ def main():
     for name,expected in ((b"tests",NODE_TEST_COUNT),(b"pass",NODE_TEST_COUNT),(b"fail",0),(b"skipped",0)):
         rows=re.findall(rb"^# "+name+rb" ([0-9]+)$",node_log,re.MULTILINE)
         if rows != [str(expected).encode()]: raise Failure(f"unexpected Node controller {name.decode()} inventory: {rows!r}")
-    build_temp=tempfile.TemporaryDirectory(prefix="semaprax-vscode-build-",dir="/private/tmp")
-    build_target=Path(build_temp.name)/"target"
+    build_temp=None if ns.build_target else tempfile.TemporaryDirectory(prefix="semaprax-vscode-build-",dir="/private/tmp")
+    build_target=Path(ns.build_target).resolve() if ns.build_target else Path(build_temp.name)/"target"
     build_env=os.environ.copy(); build_env.update({"CARGO_NET_OFFLINE":"true","CARGO_INCREMENTAL":"0","CARGO_TERM_COLOR":"never","RUSTC":rustc,"CARGO_TARGET_DIR":str(build_target)})
     build_log=command([cargo,"build","--locked","--offline","-p","semaprax","--bin","semaprax"],"compiler build",env=build_env,timeout=BUILD_TIMEOUT)
     compiler=(build_target/"debug/semaprax").resolve(strict=True); compiler_before=file_row(compiler)

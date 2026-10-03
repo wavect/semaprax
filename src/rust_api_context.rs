@@ -8,7 +8,7 @@
 
 use std::collections::BTreeSet;
 
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 
 use crate::ast::{ImportDeclaration, Program};
 use crate::diagnostic::Diagnostic;
@@ -201,7 +201,7 @@ fn abbreviate(value: &str, max_bytes: usize) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::graph::{AgentContextOptions, agent_context_json};
+    use crate::graph::{agent_context_json, AgentContextOptions};
     use crate::parse;
     use std::path::Path;
 
@@ -214,6 +214,7 @@ interface RustHost permits { regex.read } {
         effects { regex.read }
         failure infallible;
 }
+@id("rust.host.main") fn main() -> i64 { 0 }
 "#;
 
     #[test]
@@ -237,12 +238,10 @@ interface RustHost permits { regex.read } {
         assert_eq!(value["package"]["version"], Value::Null);
         assert_eq!(value["declared_effects"][0], "regex.read");
         assert_eq!(value["setup"]["required"], true);
-        assert!(
-            value["setup"]["instruction"]
-                .as_str()
-                .unwrap()
-                .contains("explicit pinned rustdoc JSON extractor")
-        );
+        assert!(value["setup"]["instruction"]
+            .as_str()
+            .unwrap()
+            .contains("explicit pinned rustdoc JSON extractor"));
         assert_eq!(value["authority"]["tool_invocation"], false);
         assert_eq!(value["authority"]["execution"], false);
         assert_eq!(value["truncation"]["truncated"], false);
@@ -256,7 +255,7 @@ interface RustHost permits { regex.read } {
             .collect::<Vec<_>>();
         let effect_set = effects.join(", ");
         let source = format!(
-            "module test.rust_api_context_large;\n\n@id(\"rust.host\")\ninterface RustHost permits {{ {effect_set} }} {{\n    @id(\"rust.host.is_match\")\n    import rust selected fn is_match from \"regex::Regex::is_match\"\n        effects {{ {effect_set} }}\n        failure infallible;\n}}\n"
+            "module test.rust_api_context_large;\n\n@id(\"rust.host\")\ninterface RustHost permits {{ {effect_set} }} {{\n    @id(\"rust.host.is_match\")\n    import rust selected fn is_match from \"regex::Regex::is_match\"\n        effects {{ {effect_set} }}\n        failure infallible;\n}}\n@id(\"rust.host.main\") fn main() -> i64 {{ 0 }}\n"
         );
         let program = parse(&source, Path::new("large-selected.spx")).unwrap();
         let bounded = selected_rust_import_context_json(&program, "rust.host.is_match", 4096)
@@ -266,17 +265,15 @@ interface RustHost permits { regex.read } {
         assert!(bounded.len() <= MAX_BYTES);
         assert_eq!(value["index"]["status"], "index_unprepared");
         assert_eq!(value["truncation"]["truncated"], true);
-        assert!(
-            value["truncation"]["omitted"]
-                .as_array()
-                .unwrap()
-                .iter()
-                .any(|item| item == "declared_effects")
-        );
+        assert!(value["truncation"]["omitted"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|item| item == "declared_effects"));
         assert_eq!(value["budget"]["used_bytes"], bounded.len());
 
         let old = parse(
-            "module test.old;\n\n@id(\"rust.host\")\ninterface RustHost permits {  } {\n    @id(\"rust.host.ping\")\n    import rust fn ping(value: i64) -> unit effects {  } failure infallible;\n}\n",
+            "module test.old;\n\n@id(\"rust.host\")\ninterface RustHost permits {  } {\n    @id(\"rust.host.ping\")\n    import rust fn ping(value: i64) -> unit effects {  } failure infallible;\n}\n@id(\"rust.host.main\") fn main() -> i64 { 0 }\n",
             Path::new("old-rust-import.spx"),
         )
         .unwrap();

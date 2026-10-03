@@ -5,9 +5,9 @@ use std::path::Path;
 
 use semaprax::diagnostic::Diagnostic;
 use semaprax::{project, workspace_analysis};
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 
-use super::super::options::{ParsedContextOptions, project_context_options};
+use super::super::options::{project_context_options, ParsedContextOptions};
 use super::project::is_project_manifest;
 
 const SCHEMA_V1: &str = "semaprax.project-agent-context.v1";
@@ -200,6 +200,7 @@ interface RustHost permits { regex.read } {
         effects { regex.read }
         failure infallible;
 }
+@id("rust.host.main") fn main() -> i64 { 0 }
 "#,
         )
         .unwrap();

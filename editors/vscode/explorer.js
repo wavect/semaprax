@@ -261,8 +261,10 @@ function openExplorer(vscode, context, state, query) {
       } else if (request.action === 'page') {
         const page = pageRequest(request.value, summary, cursors); if (!page) throw new Error('Invalid explorer page request');
         if (!selectedQuery) throw new Error('Explorer summary required before page');
+        const pageParams = { ...page };
+        if (pageParams.cursor === null) delete pageParams.cursor;
         const method = selectedQuery.side === 'current' ? 'image/explorer-page' : 'candidate/explorer-page';
-        const params = selectedQuery.side === 'current' ? { image_revision: state.image(), mode: selectedQuery.mode, ...(selectedQuery.target === null ? {} : { target: selectedQuery.target }), direction: selectedQuery.direction, depth: selectedQuery.depth, max_nodes: 256, analysis_max_bytes: 65536, ...page } : { image_revision: state.image(), candidate_revision: state.candidate(), side: selectedQuery.side, mode: selectedQuery.mode, ...(selectedQuery.target === null ? {} : { target: selectedQuery.target }), direction: selectedQuery.direction, depth: selectedQuery.depth, max_nodes: 256, analysis_max_bytes: 65536, ...page };
+        const params = selectedQuery.side === 'current' ? { image_revision: state.image(), mode: selectedQuery.mode, ...(selectedQuery.target === null ? {} : { target: selectedQuery.target }), direction: selectedQuery.direction, depth: selectedQuery.depth, max_nodes: 256, analysis_max_bytes: 65536, ...pageParams } : { image_revision: state.image(), candidate_revision: state.candidate(), side: selectedQuery.side, mode: selectedQuery.mode, ...(selectedQuery.target === null ? {} : { target: selectedQuery.target }), direction: selectedQuery.direction, depth: selectedQuery.depth, max_nodes: 256, analysis_max_bytes: 65536, ...pageParams };
         const result = (await scheduler.read(JSON.stringify([method, params]), () => state.invoke(method, params))).payload; cursors.set(page.view, result.next_cursor); retainSourceReferences(result, summary.subject, sourceReferences); reply(request.requestId, true, result);
       } else if (request.action === 'readEvidence') {
         if (!summary) throw new Error('Explorer summary required before evidence');

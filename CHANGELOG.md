@@ -1,5 +1,8 @@
 # Changelog
 
+- Scope the linked agent migration test's backend-only import to macOS and
+  Linux so the Windows Clippy build has no unused import.
+
 - Canonicalize the checked money/state law-pack source, list both new example
   directories in the index, and check selected native-law modules with their
   own parser and canonical formatter in the example inventory gate.

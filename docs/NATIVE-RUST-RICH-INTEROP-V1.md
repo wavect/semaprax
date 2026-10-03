@@ -784,6 +784,15 @@ instruction; no full-profile pass is claimed.
 
 ## RI-08 checked callbacks and source-driven registry evidence
 
+The additive [retained affine callback profile](AFFINE-CALLBACK-V1.md) now
+executes a real source-owned `FnOnce() -> i64` carrier with one Bytes capture.
+It moves through checked source helper results and consuming parameters. Its
+inert generated Rust owner retains the native environment after factory return;
+physical iterator/consuming-trait use, unused drop, changed-body controls,
+postcondition failure cleanup and cross-crate ownership refusals are covered.
+This is a separate closed profile from the scalar state adapters below. Mutable
+or borrowed source captures and affine foreign registration remain open.
+
 The additive `prepare_native_rust_callbacks` renderer selects a checked
 `fn(i64) -> fn(i64) -> i64` factory with one immutable scalar snapshot capture,
 plus an explicit `fn(i64, i64) -> i64` next-state function. It authenticates the

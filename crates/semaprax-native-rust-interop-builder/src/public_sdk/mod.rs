@@ -603,11 +603,13 @@ fn full_hash(value: &str) -> String {
     )
 }
 
+mod affine_callback;
 mod authentication;
 mod authority;
 #[cfg(test)]
 mod borrowed_input;
 mod build;
+pub use affine_callback::{prepare_native_rust_affine_callback, NativeAffineCallbackProjection};
 mod callback;
 mod registered_callback;
 pub use callback::{

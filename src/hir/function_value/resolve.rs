@@ -17,6 +17,9 @@ pub(crate) fn source_scalar(ty: &Type) -> Option<ResolvedType> {
     })
 }
 pub(crate) fn source_type(ty: &Type) -> Option<ResolvedType> {
+    if *ty == Type::OnceFunction {
+        return Some(ResolvedType::OnceFunction);
+    }
     let Type::Function { parameters, result } = ty else {
         return source_scalar(ty);
     };
@@ -101,7 +104,8 @@ impl Resolver<'_> {
         let Some(binding) = bindings.get(name) else {
             return Ok(None);
         };
-        if !is_signature(&binding.ty)
+        if binding.ty != ResolvedType::OnceFunction
+            && !is_signature(&binding.ty)
             && !function.monomorphic_declaration().is_some_and(|owner| {
                 super::super::generic_collection::callback(
                     &binding.ty,
@@ -115,7 +119,7 @@ impl Resolver<'_> {
         Ok(Some(ResolvedExpr {
             id: ExpressionId::new(function, &format!("{path}.callable")),
             ty: binding.ty.clone(),
-            ownership: OwnershipMode::Value,
+            ownership: binding.ownership,
             kind: ResolvedExprKind::Place(Place {
                 root: binding.id.clone(),
                 projections: Vec::new(),
@@ -132,12 +136,14 @@ pub(in crate::hir) fn finish(
     callable: ResolvedExpr,
     args: Vec<ResolvedExpr>,
 ) -> Result<ResolvedExpr, Diagnostic> {
-    let ResolvedType::Function { result, .. } = &callable.ty else {
-        return Err(error("invalid callable"));
+    let result = match &callable.ty {
+        ResolvedType::Function { result, .. } => result.as_ref(),
+        ResolvedType::OnceFunction => &ResolvedType::I64,
+        _ => return Err(error("invalid callable")),
     };
     let expr = ResolvedExpr {
         id: ExpressionId::new(function, path),
-        ty: *result.clone(),
+        ty: result.clone(),
         ownership: OwnershipMode::Value,
         kind: ResolvedExprKind::Invoke {
             callable: Box::new(callable),

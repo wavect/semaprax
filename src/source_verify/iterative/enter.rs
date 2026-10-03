@@ -165,6 +165,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     type_arguments,
                     args,
                     expression.span,
+                    self.allow_moves,
                     &mut self.scopes[scope].bindings,
                     self.types,
                     self.diagnostics,

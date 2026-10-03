@@ -51,6 +51,9 @@ use retained_vectors::{
     filter_owned_vec, filter_owned_vec_accounted, reserve_workspace_module_carrier,
 };
 use sha2::{Digest, Sha256};
+mod type_names;
+use type_names::type_contains_name_from;
+
 use std::cell::Cell;
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
@@ -5311,30 +5314,6 @@ fn validate_uses(
     Ok(())
 }
 
-fn type_contains_name_from(ty: &Type, names: &BTreeSet<&str>) -> bool {
-    match ty {
-        Type::I64
-        | Type::I32
-        | Type::Char
-        | Type::U8
-        | Type::Usize
-        | Type::F32
-        | Type::F64
-        | Type::Bool
-        | Type::String
-        | Type::Str
-        | Type::SliceU8
-        | Type::ArrayU8(_)
-        | Type::Bytes
-        | Type::Function { .. } => false,
-        Type::Named { name, arguments } => {
-            names.contains(name.as_str())
-                || arguments
-                    .iter()
-                    .any(|argument| type_contains_name_from(argument, names))
-        }
-    }
-}
 fn signature_type_is_admitted(
     module: &str,
     ty: &Type,
@@ -5354,7 +5333,11 @@ fn signature_type_is_admitted(
         | Type::Bool
         | Type::String
         | Type::Str => true,
-        Type::SliceU8 | Type::ArrayU8(_) | Type::Bytes | Type::Function { .. } => false,
+        Type::SliceU8
+        | Type::ArrayU8(_)
+        | Type::Bytes
+        | Type::OnceFunction
+        | Type::Function { .. } => false,
         Type::Named { name, arguments } if arguments.is_empty() => {
             let Some(target_id) = resolve_type_id(module, name, programs) else {
                 return false;
@@ -5477,7 +5460,7 @@ fn exposed_type_reference_is_directly_imported(
         | Type::Bool
         | Type::String
         | Type::Str => true,
-        Type::SliceU8 | Type::ArrayU8(_) | Type::Function { .. } => false,
+        Type::SliceU8 | Type::ArrayU8(_) | Type::OnceFunction | Type::Function { .. } => false,
         Type::Bytes => true,
         Type::Named { name, arguments } if arguments.is_empty() => {
             let Some(target_id) = resolve_type_id(module, name, programs) else {
@@ -5554,7 +5537,7 @@ fn type_reference_is_admitted(
         | Type::Bool
         | Type::String
         | Type::Str => true,
-        Type::SliceU8 | Type::ArrayU8(_) | Type::Function { .. } => false,
+        Type::SliceU8 | Type::ArrayU8(_) | Type::OnceFunction | Type::Function { .. } => false,
         Type::Bytes => true,
         Type::Named { name, arguments } if arguments.is_empty() => {
             let Some(program) = programs.iter().find(|item| item.module == module) else {

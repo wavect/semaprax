@@ -354,6 +354,7 @@ pub(super) fn generic_function_signature_slot(ty: &Type, parameters: &HashSet<&s
         | Type::Bytes
         | Type::Str
         | Type::SliceU8
+        | Type::OnceFunction
         | Type::Function { .. } => false,
         Type::Named { name, arguments } => {
             arguments.is_empty() && parameters.contains(name.as_str())
@@ -525,6 +526,7 @@ pub(super) fn substitute_function_type(
                 Type::F64 => resolved.push(Type::F64),
                 Type::Bool => resolved.push(Type::Bool),
                 Type::String => resolved.push(Type::String),
+                Type::OnceFunction => resolved.push(Type::OnceFunction),
                 Type::Bytes => resolved.push(Type::Bytes),
                 Type::Str => resolved.push(Type::Str),
                 Type::SliceU8 => resolved.push(Type::SliceU8),
@@ -947,6 +949,17 @@ pub(super) fn check_ownership_mode(
     types: &TypeTable<'_>,
     diagnostics: &mut Vec<Diagnostic>,
 ) {
+    if param.ty == Type::OnceFunction {
+        if param.mode != ParamMode::Own || !function.type_parameters.is_empty() {
+            diagnostics.push(error(
+                program,
+                "SPX-T308",
+                "affine callable parameters require monomorphic `own FnOnce() -> i64`",
+                param.span,
+            ));
+        }
+        return;
+    }
     if param.ty == Type::Str {
         if param.mode != ParamMode::Borrow {
             diagnostics.push(

@@ -38,10 +38,14 @@ impl Resolver<'_> {
             return_type,
             body,
             owning,
+            retained,
         } = &expression.kind
         else {
             unreachable!()
         };
+        if *retained {
+            return self.resolve_once_closure(parent, expression, outer, path, reference);
+        }
         if *owning {
             // SPX-AI-021 bounded owning-capture profile: admitted and fully
             // checked at the source level (see `source_verify::closure`),

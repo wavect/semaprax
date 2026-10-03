@@ -129,7 +129,6 @@ pub(crate) use source_result_component_v4::{
     CANONICAL_EXPORT as SOURCE_RESULT_COMPONENT_CANONICAL_EXPORT_V4,
     STATUS_OUT_EXPORT as SOURCE_RESULT_COMPONENT_STATUS_OUT_EXPORT_V4,
 };
-
 const I32: u8 = 0x7f;
 const I64: u8 = 0x7e;
 const F32: u8 = 0x7d;
@@ -4643,9 +4642,10 @@ fn wasm_type(ty: &ResolvedType) -> Result<u8, Diagnostic> {
         ResolvedType::Usize => Ok(I64),
         ResolvedType::F32 => Ok(F32),
         ResolvedType::F64 => Ok(F64),
-        ResolvedType::Bool | ResolvedType::Nominal { .. } | ResolvedType::Function { .. } => {
-            Ok(I32)
-        }
+        ResolvedType::Bool
+        | ResolvedType::Nominal { .. }
+        | ResolvedType::OnceFunction
+        | ResolvedType::Function { .. } => Ok(I32),
         // Owned strings lower to an abstract host handle riding the i64 lane.
         ResolvedType::String | ResolvedType::Str | ResolvedType::SliceU8 | ResolvedType::Bytes => {
             Ok(I64)

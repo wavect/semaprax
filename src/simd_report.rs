@@ -383,7 +383,7 @@ fn scalar_type_name(ty: &Type) -> Option<&'static str> {
         Type::Bool => Some("bool"),
         Type::Char => Some("char"),
         Type::String | Type::Str | Type::SliceU8 | Type::ArrayU8(_) | Type::Bytes => None,
-        Type::Function { .. } | Type::Named { .. } => None,
+        Type::OnceFunction | Type::Function { .. } | Type::Named { .. } => None,
     }
 }
 

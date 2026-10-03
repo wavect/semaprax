@@ -14,7 +14,8 @@ impl Parser {
         if let Some(diagnostic) = self.unit_type() {
             return Err(diagnostic);
         }
-        if self.at_keyword("fn") {
+        let once = self.at_keyword("FnOnce");
+        if once || self.at_keyword("fn") {
             self.bump();
             self.expect(&TokenKind::LParen, "`(` after `fn` in function type")?;
             let mut parameters = Vec::new();
@@ -34,9 +35,19 @@ impl Parser {
             }
             self.expect(&TokenKind::RParen, "`)` after function type parameters")?;
             self.expect(&TokenKind::Arrow, "`->` after function type parameters")?;
+            let result = self.ty()?;
+            if once {
+                if !parameters.is_empty() || result != Type::I64 {
+                    return Err(self.error_here(
+                        "SPX-T308",
+                        "the affine callable profile requires `FnOnce() -> i64`",
+                    ));
+                }
+                return Ok(Type::OnceFunction);
+            }
             return Ok(Type::Function {
                 parameters,
-                result: Box::new(self.ty()?),
+                result: Box::new(result),
             });
         }
         if self.take(&TokenKind::LBracket) {

@@ -22,7 +22,7 @@ pub(super) fn collect_supplemental_slots(
                     instance,
                     args,
                     type_arguments,
-                }) = super::super::native_rust::parts(expression)
+                }) = parts(expression)
                 {
                     let params =
                         resolved_call_params(program, function, callee, instance, type_arguments)?;
@@ -60,7 +60,7 @@ pub(super) fn collect_supplemental_slots(
                     instance,
                     args,
                     type_arguments,
-                }) = super::super::native_rust::parts(expression)
+                }) = parts(expression)
                 else {
                     unreachable!("call-argument continuation retains a call");
                 };
@@ -90,4 +90,19 @@ pub(super) fn collect_supplemental_slots(
         }
     }
     Ok(())
+}
+
+// Affine creation and invocation have ordinary owned argument epochs even
+// though their checked syntax is not an ordinary named Call node.
+fn parts(expression: &ResolvedExpr) -> Option<super::super::native_rust::CallParts<'_>> {
+    if let Some((callee, args)) = crate::hir::closure::once::call(expression) {
+        Some(super::super::native_rust::CallParts {
+            callee,
+            args,
+            instance: None,
+            type_arguments: &[],
+        })
+    } else {
+        super::super::native_rust::parts(expression)
+    }
 }

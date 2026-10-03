@@ -13,6 +13,14 @@ pub(crate) fn validate_shape_scoped(
     expression: &ResolvedExpr,
     owner: Option<&DeclarationId>,
 ) -> Result<(), Diagnostic> {
+    if expression.ty == ResolvedType::OnceFunction {
+        if owner.is_some() {
+            return Err(hir_error(
+                "generic affine closures are outside the closed profile",
+            ));
+        }
+        return super::once::validate(program, expression);
+    }
     let count = owner
         .and_then(|owner| {
             program

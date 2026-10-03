@@ -590,7 +590,7 @@ fn validate_supported_type(
     context: &str,
 ) -> Result<(), Diagnostic> {
     match ty {
-        ResolvedType::Function { .. } => Err(unsupported(
+        ResolvedType::OnceFunction | ResolvedType::Function { .. } => Err(unsupported(
             function,
             format!("does not support function {context} values in the cleanup proof slice"),
         )),

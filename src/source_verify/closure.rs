@@ -125,6 +125,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             return_type,
             body,
             owning,
+            retained: _,
         } = &expression.kind
         else {
             unreachable!()
@@ -253,6 +254,7 @@ pub(super) fn oracle(
         return_type,
         body,
         owning: _,
+        retained: _,
     } = &expression.kind
     else {
         unreachable!()
@@ -366,6 +368,7 @@ pub(super) fn validate_generic_syntax(
             return_type,
             body,
             owning: false,
+            retained: false,
         } = &expression.kind
         {
             let scalar = |ty: &Type| {

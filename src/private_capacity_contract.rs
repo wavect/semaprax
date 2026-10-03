@@ -69,7 +69,8 @@ fn resolved_type_owned_capacity(ty: &crate::hir::ResolvedType) -> Option<usize> 
                     .capacity()
                     .checked_mul(std::mem::size_of::<crate::hir::ResolvedType>())?,
             ),
-        crate::hir::ResolvedType::Unit
+        crate::hir::ResolvedType::OnceFunction
+        | crate::hir::ResolvedType::Unit
         | crate::hir::ResolvedType::I64
         | crate::hir::ResolvedType::I32
         | crate::hir::ResolvedType::Char

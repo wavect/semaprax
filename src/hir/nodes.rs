@@ -121,6 +121,8 @@ pub struct ByteSliceProvenance {
 
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum ResolvedType {
+    /// A retained affine zero-argument, i64-result callable.
+    OnceFunction,
     Function {
         parameters: Vec<ResolvedType>,
         result: Box<ResolvedType>,
@@ -171,7 +173,7 @@ impl ResolvedType {
     /// builder, hostile validator, and backends. Unique ownership is not the
     /// same fact as containing an opaque resource.
     pub fn is_uniquely_owned(&self) -> bool {
-        matches!(self, Self::String | Self::Bytes)
+        matches!(self, Self::String | Self::Bytes | Self::OnceFunction)
     }
     pub fn is_compiler_byte_option(&self) -> bool {
         matches!(
@@ -188,6 +190,7 @@ impl ResolvedType {
         match self {
             Self::Nominal { declaration, .. } => Some(declaration),
             Self::Function { .. }
+            | Self::OnceFunction
             | Self::Unit
             | Self::I64
             | Self::I32
@@ -223,6 +226,7 @@ impl ResolvedType {
                         frames.push(Frame::Enter(result));
                         frames.extend(parameters.iter().rev().map(Frame::Enter));
                     }
+                    Self::OnceFunction => keys.push("fn-once:bytes:i64:v1".to_owned()),
                     Self::Unit => keys.push("unit".to_owned()),
                     Self::I64 => keys.push("i64".to_owned()),
                     Self::I32 => keys.push("i32".to_owned()),

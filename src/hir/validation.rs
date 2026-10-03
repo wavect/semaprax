@@ -884,6 +884,7 @@ impl<'a> HirValidator<'a> {
                             | ResolvedType::String
                             | ResolvedType::Bytes
                             | ResolvedType::Str
+                            | ResolvedType::OnceFunction
                             | ResolvedType::Function { .. }
                             | ResolvedType::SliceU8 => {
                                 return Err(hir_error(format!(
@@ -1089,6 +1090,7 @@ impl<'a> HirValidator<'a> {
                             | ResolvedType::String
                             | ResolvedType::Bytes
                             | ResolvedType::Str
+                            | ResolvedType::OnceFunction
                             | ResolvedType::Function { .. }
                             | ResolvedType::SliceU8 => {
                                 return Err(hir_error(format!(
@@ -2849,7 +2851,7 @@ impl<'a> HirValidator<'a> {
                 Frame::InvokeNext {
                     expression,
                     index,
-                    scope,
+                    mut scope,
                     path,
                 } => {
                     let ResolvedExprKind::Invoke { callable, args } = &expression.kind else {
@@ -2877,6 +2879,7 @@ impl<'a> HirValidator<'a> {
                             path: child_path,
                         });
                     } else {
+                        self.finish_affine_invocation(expression, &mut scope, allow_moves)?;
                         scopes.push(scope);
                     }
                 }
@@ -2896,7 +2899,7 @@ impl<'a> HirValidator<'a> {
                 Frame::RestorePublication(enabled) => publication.enabled = enabled,
                 Frame::Enter {
                     expression,
-                    scope,
+                    mut scope,
                     path,
                 } => {
                     reject_nul_identity("resolved expression", expression.id.as_str())?;
@@ -2915,7 +2918,13 @@ impl<'a> HirValidator<'a> {
                     self.validate_type(&expression.ty)?;
                     match &expression.kind {
                         ResolvedExprKind::Closure { .. } => {
-                            self.validate_closure(function, expression, &scope, &path)?;
+                            self.validate_closure(
+                                function,
+                                expression,
+                                &mut scope,
+                                &path,
+                                allow_moves,
+                            )?;
                             scopes.push(scope);
                         }
                         ResolvedExprKind::FunctionReference { target } => {
@@ -3980,9 +3989,13 @@ impl<'a> HirValidator<'a> {
                             ResolvedType::Bool
                         }
                         BinaryOp::Eq | BinaryOp::Ne => {
-                            if matches!(left.ty, ResolvedType::Function { .. })
-                                || matches!(right.ty, ResolvedType::Function { .. })
-                            {
+                            if matches!(
+                                left.ty,
+                                ResolvedType::OnceFunction | ResolvedType::Function { .. }
+                            ) || matches!(
+                                right.ty,
+                                ResolvedType::OnceFunction | ResolvedType::Function { .. }
+                            ) {
                                 return Err(hir_error(
                                     "function value equality is outside the admitted profile",
                                 ));
@@ -6033,8 +6046,8 @@ impl<'a> HirValidator<'a> {
 
         let (ty, ownership) = match &expression.kind {
             ResolvedExprKind::Closure { .. } => {
-                self.validate_closure(function, expression, scope, path)?;
-                (expression.ty.clone(), OwnershipMode::Value)
+                self.validate_closure(function, expression, scope, path, allow_moves)?;
+                (expression.ty.clone(), expression.ownership)
             }
             ResolvedExprKind::FunctionReference { target } => {
                 super::function_value::validate_reference(self.program, target, &expression.ty)?;
@@ -6060,6 +6073,7 @@ impl<'a> HirValidator<'a> {
                         allowed_effects,
                     )?;
                 }
+                self.finish_affine_invocation(expression, scope, allow_moves)?;
                 (expression.ty.clone(), OwnershipMode::Value)
             }
             ResolvedExprKind::String(_) => (ResolvedType::String, OwnershipMode::Own),
@@ -6576,9 +6590,13 @@ impl<'a> HirValidator<'a> {
                         ResolvedType::Bool
                     }
                     BinaryOp::Eq | BinaryOp::Ne => {
-                        if matches!(left.ty, ResolvedType::Function { .. })
-                            || matches!(right.ty, ResolvedType::Function { .. })
-                        {
+                        if matches!(
+                            left.ty,
+                            ResolvedType::OnceFunction | ResolvedType::Function { .. }
+                        ) || matches!(
+                            right.ty,
+                            ResolvedType::OnceFunction | ResolvedType::Function { .. }
+                        ) {
                             return Err(hir_error(
                                 "function value equality is outside the admitted profile",
                             ));

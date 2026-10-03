@@ -698,8 +698,11 @@ fn write_expr_measured(
                         return_type,
                         body,
                         owning,
+                        retained,
                     } => {
-                        if *owning {
+                        if *retained {
+                            output.write_str("once ").unwrap();
+                        } else if *owning {
                             output.write_str("own ").unwrap();
                         }
                         closure::write_signature(&mut output, params, return_type);
@@ -1155,6 +1158,9 @@ pub(crate) fn write_type(output: &mut impl std::fmt::Write, ty: &crate::ast::Typ
             Frame::Type(crate::ast::Type::Bool) => output.write_str("bool").unwrap(),
             Frame::Type(crate::ast::Type::String) => output.write_str("string").unwrap(),
             Frame::Type(crate::ast::Type::Bytes) => output.write_str("Bytes").unwrap(),
+            Frame::Type(crate::ast::Type::OnceFunction) => {
+                output.write_str("FnOnce() -> i64").unwrap()
+            }
             Frame::Type(crate::ast::Type::Str) => output.write_str("str").unwrap(),
             Frame::Type(crate::ast::Type::SliceU8) => output.write_str("Slice<u8>").unwrap(),
             Frame::Type(crate::ast::Type::Function { parameters, result }) => {

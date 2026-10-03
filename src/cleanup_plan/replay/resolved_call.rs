@@ -19,6 +19,12 @@ pub(super) fn resolved_call_params(
     type_arguments: &[ResolvedType],
 ) -> Result<Vec<ResolvedParam>, Diagnostic> {
     if instance.is_none() {
+        if let Some(params) = crate::hir::closure::once::params(callee) {
+            if !type_arguments.is_empty() {
+                return Err(replay_error(function, "affine call has type arguments"));
+            }
+            return Ok(params);
+        }
         if callee == &*crate::hir::function_value::INVOKE_ID {
             let [signature @ ResolvedType::Function { parameters, .. }] = type_arguments else {
                 return Err(replay_error(

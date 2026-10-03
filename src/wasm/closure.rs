@@ -130,6 +130,9 @@ impl Emitter<'_> {
             self.get_scalar(&snapshot);
             self.store_scalar(&capture.binding.ty);
         }
+        if expression.ty == ResolvedType::OnceFunction {
+            self.apply_call_commit(&expression.id)?;
+        }
         Ok(value)
     }
 }

@@ -413,6 +413,7 @@ impl FunctionPlan {
                         && lifecycle.as_str() != crate::cleanup::VEC_DROP_LIFECYCLE_ID
                         && lifecycle.as_str() != crate::cleanup::BOX_DROP_LIFECYCLE_ID
                         && lifecycle.as_str() != crate::cleanup::ITER_DROP_LIFECYCLE_ID
+                        && lifecycle.as_str() != crate::hir::closure::once::DROP_ID
                     {
                         return Err(error("CleanupPlan leaf has an unsupported lifecycle"));
                     }
@@ -434,6 +435,7 @@ impl FunctionPlan {
                         )
                         && !crate::iterator_ops::is_iter(&slot.ty)
                         && !crate::iterator_ops::is_step(&slot.ty)
+                        && slot.ty != ResolvedType::OnceFunction
                     {
                         let carrier = add_local(I64)?;
                         if cleanup_call_argument_carriers
@@ -1106,8 +1108,10 @@ fn is_variant(program: &ResolvedProgram, ty: &ResolvedType) -> Result<bool, Diag
 }
 
 fn is_aggregate(program: &ResolvedProgram, ty: &ResolvedType) -> Result<bool, Diagnostic> {
-    if matches!(ty, ResolvedType::Function { .. })
-        && crate::hir::closure::requires_closures(program)
+    if matches!(
+        ty,
+        ResolvedType::Function { .. } | ResolvedType::OnceFunction
+    ) && crate::hir::closure::requires_closures(program)
     {
         return Ok(true);
     }
@@ -1142,8 +1146,10 @@ fn aggregate_size_align(
     variant_layouts: &VariantLayoutCache,
     ty: &ResolvedType,
 ) -> Result<(u32, u32), Diagnostic> {
-    if matches!(ty, ResolvedType::Function { .. })
-        && crate::hir::closure::requires_closures(program)
+    if matches!(
+        ty,
+        ResolvedType::Function { .. } | ResolvedType::OnceFunction
+    ) && crate::hir::closure::requires_closures(program)
     {
         return Ok((80, 8));
     }
@@ -3491,7 +3497,8 @@ impl Emitter<'_> {
             .flat_map(|statement| {
                 let mut anchors = Vec::with_capacity(2);
                 if let ResolvedStatement::Let { binding, .. } = statement {
-                    if binding.ty == ResolvedType::Bytes
+                    if binding.ty == ResolvedType::OnceFunction
+                        || binding.ty == ResolvedType::Bytes
                         || binding.ty == ResolvedType::String
                         || owned_vec(self.program, &binding.ty)
                         || crate::cleanup::is_owned_bounded_box_type(&binding.ty)
@@ -3508,7 +3515,8 @@ impl Emitter<'_> {
                     ResolvedStatement::While { .. } => None,
                 };
                 if let Some(value) = value.filter(|value| {
-                    value.ty == ResolvedType::Bytes
+                    value.ty == ResolvedType::OnceFunction
+                        || value.ty == ResolvedType::Bytes
                         || value.ty == ResolvedType::String
                         || owned_vec(self.program, &value.ty)
                         || crate::cleanup::is_owned_bounded_box_type(&value.ty)

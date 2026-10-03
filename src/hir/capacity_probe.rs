@@ -103,7 +103,8 @@ pub(super) fn resolved_type_owned_capacity(ty: &ResolvedType) -> usize {
                     .sum::<usize>()
                 + resolved_type_owned_capacity(result)
         }
-        ResolvedType::Unit
+        ResolvedType::OnceFunction
+        | ResolvedType::Unit
         | ResolvedType::I64
         | ResolvedType::I32
         | ResolvedType::Char

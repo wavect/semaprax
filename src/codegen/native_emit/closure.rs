@@ -63,6 +63,12 @@ pub(super) fn emit_carrier_declarations(
     output.push_str("static __attribute__((unused)) float spx_closure_unpack_f32(uint64_t cell) { float value; memcpy(&value, &cell, sizeof value); return value; }\n");
     output.push_str("static __attribute__((unused)) uint64_t spx_closure_pack_f64(double value) { uint64_t cell; memcpy(&cell, &value, sizeof value); return cell; }\n");
     output.push_str("static __attribute__((unused)) double spx_closure_unpack_f64(uint64_t cell) { double value; memcpy(&value, &cell, sizeof value); return value; }\n\n");
+    if hir::closure::inventory(program)
+        .iter()
+        .any(|e| e.ty == ResolvedType::OnceFunction)
+    {
+        super::once::declarations(output);
+    }
     let mut signatures = std::collections::BTreeMap::new();
     for function in program
         .functions
@@ -183,6 +189,10 @@ fn write_thunk_signature(
     ty: &ResolvedType,
     names: bool,
 ) -> Result<(), Diagnostic> {
+    if ty == &ResolvedType::OnceFunction {
+        super::once::signature(output, symbol);
+        return Ok(());
+    }
     let ResolvedType::Function { parameters, result } = ty else {
         return Err(backend_error("closure thunk has no function signature"));
     };
@@ -270,6 +280,10 @@ pub(super) fn emit_thunks(
     emission: &NativeEmissionContext<'_>,
 ) -> Result<(), Diagnostic> {
     for expression in hir::closure::inventory(program) {
+        if expression.ty == ResolvedType::OnceFunction {
+            super::once::thunk(output, expression, emission)?;
+            continue;
+        }
         let ResolvedType::Function {
             parameters,
             result: _,

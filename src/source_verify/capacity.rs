@@ -1,5 +1,4 @@
 //! Source-level byte-data storage, call-path, and transcript capacity projection.
-
 use super::*;
 
 mod command_io;
@@ -236,6 +235,7 @@ fn source_array_payload(types: &TypeTable<'_>, ty: &Type) -> Result<u32, ()> {
             | Type::Bytes
             | Type::Str
             | Type::SliceU8
+            | Type::OnceFunction
             | Type::Function { .. } => {}
         }
     }

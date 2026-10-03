@@ -424,6 +424,9 @@ impl DeclarationIndex {
                         ResolvedType::Bool => Some((true, false, false, "scalar:bool")),
                         ResolvedType::String => Some((false, false, true, "owned:string")),
                         ResolvedType::Bytes => Some((false, false, true, "owned:bytes")),
+                        ResolvedType::OnceFunction => {
+                            Some((false, false, true, "owned:fn-once:bytes:i64:v1"))
+                        }
                         ResolvedType::Str => Some((false, false, false, "borrowed:str")),
                         ResolvedType::SliceU8 => Some((false, false, false, "borrowed:slice-u8")),
                         ResolvedType::TypeParameter { .. } | ResolvedType::Nominal { .. } => None,
@@ -1411,6 +1414,7 @@ impl DeclarationIndex {
                     Type::Bool => resolved.push(ResolvedType::Bool),
                     Type::String => resolved.push(ResolvedType::String),
                     Type::Bytes => resolved.push(ResolvedType::Bytes),
+                    Type::OnceFunction => resolved.push(ResolvedType::OnceFunction),
                     Type::Str => resolved.push(ResolvedType::Str),
                     Type::SliceU8 => resolved.push(ResolvedType::SliceU8),
                     Type::Named { name, arguments } => {

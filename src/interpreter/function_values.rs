@@ -31,6 +31,7 @@ impl Evaluator<'_> {
             Value::Variant(value) => Value::Variant(Arc::clone(value)),
             Value::Function(target) => Value::Function(target.clone()),
             Value::Closure(value) => Value::Closure(Arc::clone(value)),
+            Value::OnceClosure(_) => return Err(Flow::Guard("affine callable cannot be copied")),
             Value::Moved => Value::Moved,
         })
     }
@@ -56,6 +57,15 @@ impl Evaluator<'_> {
             ResolvedExprKind::Invoke { callable, args } => {
                 // Capture the operand before any argument is evaluated.
                 let callable_value = self.evaluate(callable, environment, depth)?;
+                if let Value::OnceClosure(closure) = callable_value {
+                    if callable.ty != ResolvedType::OnceFunction
+                        || !args.is_empty()
+                        || expression.ty != ResolvedType::I64
+                    {
+                        return Err(Flow::Guard("affine invocation signature mismatch"));
+                    }
+                    return self.call_frame(&closure.function, closure.captures, depth + 1);
+                }
                 if let Value::Closure(closure) = callable_value {
                     if closure.result != expression.ty || closure.parameters.len() != args.len() {
                         return Err(Flow::Guard("closure invocation signature mismatch"));

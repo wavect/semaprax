@@ -78,7 +78,12 @@ pub(super) fn is_admitted(
                 _,
             ) => unreachable!("admitted scalar handled above"),
             Frame::Type(
-                Type::ArrayU8(_) | Type::String | Type::Str | Type::SliceU8 | Type::Function { .. },
+                Type::ArrayU8(_)
+                | Type::String
+                | Type::Str
+                | Type::SliceU8
+                | Type::OnceFunction
+                | Type::Function { .. },
                 _,
             ) => {
                 return false;

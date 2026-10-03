@@ -34,10 +34,19 @@ impl Evaluator<'_> {
         let mut values = Vec::with_capacity(captures.len());
         for capture in captures {
             let value = self.evaluate(&capture.value, environment, depth)?;
-            values.push((capture.binding.id.clone(), self.clone_value(&value)?));
+            values.push((
+                capture.binding.id.clone(),
+                if expression.ty == ResolvedType::OnceFunction {
+                    value
+                } else {
+                    self.clone_value(&value)?
+                },
+            ));
         }
-        let ResolvedType::Function { result, .. } = &expression.ty else {
-            return Err(Flow::Guard("closure type"));
+        let result = match &expression.ty {
+            ResolvedType::Function { result, .. } => *result.clone(),
+            ResolvedType::OnceFunction => ResolvedType::I64,
+            _ => return Err(Flow::Guard("closure type")),
         };
         let function = self
             .closure_functions
@@ -45,13 +54,18 @@ impl Evaluator<'_> {
             .ok_or(Flow::Guard("closure product outside checked inventory"))?
             .clone();
         let target = function.id.clone();
-        Ok(Value::Closure(Arc::new(ClosureValue {
+        let value = ClosureValue {
             target,
             parameters: parameters.clone(),
             captures: values,
             function,
-            result: *result.clone(),
-        })))
+            result,
+        };
+        Ok(if expression.ty == ResolvedType::OnceFunction {
+            Value::OnceClosure(Box::new(value))
+        } else {
+            Value::Closure(Arc::new(value))
+        })
     }
 }
 

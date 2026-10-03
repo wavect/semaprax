@@ -613,6 +613,7 @@ fn scalar_type(ty: &ResolvedType) -> Option<ScalarType> {
         | ResolvedType::Bytes
         | ResolvedType::TypeParameter { .. }
         | ResolvedType::Nominal { .. }
+        | ResolvedType::OnceFunction
         | ResolvedType::Function { .. } => None,
     }
 }

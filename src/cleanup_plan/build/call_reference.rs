@@ -13,8 +13,11 @@ impl PlanBuilder<'_> {
     ) -> Result<EvalResult, Diagnostic> {
         let (block, state, region) = flow;
         let type_arguments = bounded_vec::type_arguments(expression)?;
-        let params = if matches!(expression.kind, ResolvedExprKind::Invoke { .. }) {
-            crate::hir::function_value::invocation_params(expression)?
+        let params = if matches!(
+            expression.kind,
+            ResolvedExprKind::Invoke { .. } | ResolvedExprKind::Closure { .. }
+        ) {
+            crate::hir::function_value::cleanup_call(expression)?.2
         } else if super::super::native_rust::owns(expression) {
             super::super::native_rust::params(self.program, callee)?
         } else if instance.is_none() {

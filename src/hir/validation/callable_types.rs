@@ -24,7 +24,8 @@ impl HirValidator<'_> {
                     | ResolvedType::String
                     | ResolvedType::Bytes
                     | ResolvedType::Str
-                    | ResolvedType::SliceU8,
+                    | ResolvedType::SliceU8
+                    | ResolvedType::OnceFunction,
                 ) => {}
                 Frame::Enter(ty @ ResolvedType::Function { .. }) => {
                     if !super::function_value::is_signature(ty) {
@@ -145,6 +146,9 @@ impl HirValidator<'_> {
         ty: &ResolvedType,
         ownership: OwnershipMode,
     ) -> Result<(), Diagnostic> {
+        if ty == &ResolvedType::OnceFunction && ownership != OwnershipMode::Own {
+            return Err(hir_error("affine callable requires unique ownership"));
+        }
         if ty == &ResolvedType::Str {
             return if ownership == OwnershipMode::Borrow {
                 Ok(())

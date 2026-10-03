@@ -3031,6 +3031,12 @@ These areas are deliberately outside the public compiler contract:
   Result trait impl from a bounded mutable method and associated Error; actual
   rustc compilation remains mandatory for safety/coherence obligations absent
   from partial metadata;
+- `src/hir/closure/once.rs` authenticates the closed source-owned affine
+  capture and its constructor/invoke identities. Ordinary CleanupPlan owns
+  staging, commit and finalization; `src/codegen/native_emit/once.rs` and the
+  Wasm aggregate lane execute the retained carrier. `public_sdk/affine_callback.rs`
+  renders an inert Rust unique owner around the actual source-created native
+  environment. It admits no mutable/borrowed capture or registry authority;
 - `crates/semaprax-native-rust-interop-builder/src/public_sdk/indexed.rs`:
   narrow public RI-04 admission for one checked scalar Rust import. It replays
   the selected RI-03 index and exact caller-supplied package source bytes

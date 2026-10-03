@@ -32,7 +32,9 @@ pub(super) fn is_admitted(
     let mut saw_record = false;
     while let Some(frame) = frames.pop() {
         match frame {
-            Frame::Type(ResolvedType::Function { .. }, _) => return false,
+            Frame::Type(ResolvedType::OnceFunction | ResolvedType::Function { .. }, _) => {
+                return false
+            }
             Frame::Type(ResolvedType::Bytes, _) => {
                 byte_leaves += 1;
                 if byte_leaves > MAX_NESTED_OWNED_BYTE_LEAVES {

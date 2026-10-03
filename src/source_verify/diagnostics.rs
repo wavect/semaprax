@@ -64,7 +64,11 @@ pub(super) fn reject_aggregate_equality(
 ) {
     if matches!(
         value.ty,
-        Type::Function { .. } | Type::Named { .. } | Type::ArrayU8(_) | Type::Bytes
+        Type::OnceFunction
+            | Type::Function { .. }
+            | Type::Named { .. }
+            | Type::ArrayU8(_)
+            | Type::Bytes
     ) {
         diagnostics.push(
             error(

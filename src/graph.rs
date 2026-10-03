@@ -22,6 +22,7 @@ macro_rules! format {
     };
 }
 
+mod affine;
 mod agent_execution;
 mod agent_instances;
 mod environment;
@@ -39,8 +40,8 @@ pub(crate) use agent_execution::facts as agent_execution_facts;
 use expression::expr_json;
 mod generic_instances;
 mod generic_mapping;
+use affine::graph_json;
 use filesystem::string_array;
-use filesystem_outcome::graph_json;
 use generic_instances::legacy_graph_json;
 pub(crate) use generic_instances::to_legacy_hir_json;
 pub use generic_instances::{legacy_context_json, to_legacy_json, verify_json};
@@ -1672,7 +1673,8 @@ fn type_has_usize(ty: &ResolvedType) -> bool {
         ResolvedType::Function { parameters, result } => {
             parameters.iter().any(type_has_usize) || type_has_usize(result)
         }
-        ResolvedType::Usize
+        ResolvedType::OnceFunction
+        | ResolvedType::Usize
         | ResolvedType::ArrayU8(_)
         | ResolvedType::Bytes
         | ResolvedType::SliceU8 => true,
@@ -5467,6 +5469,7 @@ fn collect_type(ty: &ResolvedType, types: &mut BTreeMap<String, ResolvedType>) {
 
 fn type_json(ty: &ResolvedType) -> String {
     match ty {
+        ResolvedType::OnceFunction => "{\"kind\":\"affine_function\",\"profile\":\"bytes-to-i64.v1\"}".to_owned(),
         ResolvedType::Function{parameters,result}=>function_values::type_json(parameters,result),
         ResolvedType::Unit => "{\"kind\":\"primitive\",\"name\":\"unit\"}".to_owned(),
         ResolvedType::I64 => "{\"kind\":\"primitive\",\"name\":\"i64\"}".to_owned(),

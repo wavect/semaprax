@@ -4,12 +4,24 @@ impl HirValidator<'_> {
         &mut self,
         function: &FunctionExecutionId,
         expression: &ResolvedExpr,
-        scope: &BTreeMap<ValueId, ValidationBinding>,
+        scope: &mut BTreeMap<ValueId, ValidationBinding>,
         path: &str,
+        allow_moves: bool,
     ) -> Result<(), Diagnostic> {
         super::super::closure::validate_shape(self.program, expression)?;
         let ResolvedExprKind::Closure { captures, .. } = &expression.kind else {
             unreachable!()
+        };
+        let affine = expression.ty == ResolvedType::OnceFunction;
+        if affine && !allow_moves {
+            return Err(hir_error(
+                "affine construction cannot consume in a contract",
+            ));
+        }
+        let ownership = if affine {
+            OwnershipMode::Own
+        } else {
+            OwnershipMode::Value
         };
         for (index, capture) in captures.iter().enumerate() {
             let ResolvedExprKind::Place(place) = &capture.value.kind else {
@@ -24,12 +36,17 @@ impl HirValidator<'_> {
             }
             if scope.get(&place.root).is_none_or(|binding| {
                 binding.ty != capture.value.ty
-                    || binding.ownership != OwnershipMode::Value
+                    || binding.ownership != ownership
                     || binding.availability != Availability::Available
             }) {
                 return Err(hir_error(
                     "closure capture does not name an available outer scalar",
                 ));
+            }
+        }
+        if affine {
+            for capture in captures {
+                self.mark_value_sources_moved(&capture.value, scope)?;
             }
         }
         let body = super::super::closure::closure_function(self.program, expression)?;
@@ -49,7 +66,7 @@ impl HirValidator<'_> {
                 "closure body identities collide with the enclosing program",
             ));
         }
-        self.finish_expr(expression, &expression.ty, OwnershipMode::Value)
+        self.finish_expr(expression, &expression.ty, ownership)
     }
 }
 
@@ -103,5 +120,24 @@ impl HirValidator<'_> {
             FunctionExecutionId::Monomorphic(super::super::closure::closure_id(&expression.id));
         self.validate_template_expr(template, &body_execution, body, &mut body_values, "body")?;
         self.finish_expr(expression, &expression.ty, OwnershipMode::Value)
+    }
+}
+
+impl HirValidator<'_> {
+    pub(super) fn finish_affine_invocation(
+        &self,
+        expression: &ResolvedExpr,
+        scope: &mut BTreeMap<ValueId, ValidationBinding>,
+        allow_moves: bool,
+    ) -> Result<(), Diagnostic> {
+        if let ResolvedExprKind::Invoke { callable, .. } = &expression.kind {
+            if callable.ty == ResolvedType::OnceFunction {
+                if !allow_moves {
+                    return Err(hir_error("affine invocation cannot consume in a contract"));
+                }
+                self.mark_value_sources_moved(callable, scope)?;
+            }
+        }
+        Ok(())
     }
 }

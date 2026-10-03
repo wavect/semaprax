@@ -527,7 +527,8 @@ pub(super) fn frame_owned_capacity(
                         parameters.capacity() * std::mem::size_of::<Type>()
                             + std::mem::size_of::<Type>()
                     }
-                    Type::I64
+                    Type::OnceFunction
+                    | Type::I64
                     | Type::I32
                     | Type::Char
                     | Type::U8

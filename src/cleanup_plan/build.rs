@@ -449,7 +449,8 @@ fn resolved_type_owned_capacity(ty: &ResolvedType) -> usize {
                     .sum::<usize>()
                 + resolved_type_owned_capacity(result)
         }
-        ResolvedType::Unit
+        ResolvedType::OnceFunction
+        | ResolvedType::Unit
         | ResolvedType::I64
         | ResolvedType::I32
         | ResolvedType::Char
@@ -2448,7 +2449,15 @@ impl<'a> PlanBuilder<'a> {
                     state,
                 } => match &expression.kind {
                     ResolvedExprKind::Closure { .. }
-                    | ResolvedExprKind::FunctionReference { .. }
+                        if expression.ty != ResolvedType::OnceFunction =>
+                    {
+                        results.push(EvalResult {
+                            block,
+                            state,
+                            owned_source: None,
+                        })
+                    }
+                    ResolvedExprKind::FunctionReference { .. }
                     | ResolvedExprKind::Int(_)
                     | ResolvedExprKind::Int32(_)
                     | ResolvedExprKind::Char(_)
@@ -2643,11 +2652,12 @@ impl<'a> PlanBuilder<'a> {
                             },
                         });
                     }
-                    ResolvedExprKind::Invoke { args, .. } => {
-                        let params = crate::hir::function_value::invocation_params(expression)?;
+                    ResolvedExprKind::Invoke { .. } | ResolvedExprKind::Closure { .. } => {
+                        let (callee, args, params) =
+                            crate::hir::function_value::cleanup_call(expression)?;
                         frames.push(Frame::CallNext {
                             expression,
-                            callee: &crate::hir::function_value::INVOKE_ID,
+                            callee,
                             args,
                             params,
                             index: 0,
@@ -3879,7 +3889,8 @@ impl<'a> PlanBuilder<'a> {
                             .declarations
                             .declaration(declaration)
                             .is_some_and(|item| item.kind == DeclarationKind::Record),
-                        ResolvedType::Unit
+                        ResolvedType::OnceFunction
+                        | ResolvedType::Unit
                         | ResolvedType::I64
                         | ResolvedType::I32
                         | ResolvedType::Char
@@ -3894,6 +3905,7 @@ impl<'a> PlanBuilder<'a> {
                         | ResolvedType::Str
                         | ResolvedType::SliceU8
                         | ResolvedType::TypeParameter { .. }
+                        | ResolvedType::OnceFunction
                         | ResolvedType::Function { .. } => false,
                     };
                     if is_record {
@@ -4752,20 +4764,22 @@ impl<'a> PlanBuilder<'a> {
                     owned_source: None,
                 })
             }
-            ResolvedExprKind::Closure { .. } | ResolvedExprKind::FunctionReference { .. } => {
+            ResolvedExprKind::Closure { .. } if expression.ty != ResolvedType::OnceFunction => {
                 Ok(EvalResult {
                     block,
                     state,
                     owned_source: None,
                 })
             }
-            ResolvedExprKind::Invoke { args, .. } => self.lower_call(
-                expression,
-                &crate::hir::function_value::INVOKE_ID,
-                None,
-                args,
-                (block, state, region),
-            ),
+            ResolvedExprKind::FunctionReference { .. } => Ok(EvalResult {
+                block,
+                state,
+                owned_source: None,
+            }),
+            ResolvedExprKind::Invoke { .. } | ResolvedExprKind::Closure { .. } => {
+                let (callee, args, _) = crate::hir::function_value::cleanup_call(expression)?;
+                self.lower_call(expression, callee, None, args, (block, state, region))
+            }
             ResolvedExprKind::Call {
                 callee,
                 instance,
@@ -6056,7 +6070,8 @@ impl<'a> PlanBuilder<'a> {
                 .declarations
                 .declaration(declaration)
                 .is_some_and(|item| item.kind == DeclarationKind::Record),
-            ResolvedType::Unit
+            ResolvedType::OnceFunction
+            | ResolvedType::Unit
             | ResolvedType::I64
             | ResolvedType::I32
             | ResolvedType::Char
@@ -6071,6 +6086,7 @@ impl<'a> PlanBuilder<'a> {
             | ResolvedType::Str
             | ResolvedType::SliceU8
             | ResolvedType::TypeParameter { .. }
+            | ResolvedType::OnceFunction
             | ResolvedType::Function { .. } => false,
         };
         if is_record {

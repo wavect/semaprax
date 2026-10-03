@@ -37,6 +37,7 @@ pub(super) fn oracle_call(
         type_arguments,
         args,
         expr.span,
+        allow_moves,
         variables,
         types,
         diagnostics,

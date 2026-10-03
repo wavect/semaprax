@@ -311,7 +311,7 @@ pub fn build_trace_path_certificate(
                             | ResolvedType::String
                             | ResolvedType::Str => TracePathOutcome::ScalarSuccess,
                             ResolvedType::Bytes => TracePathOutcome::OwnedSuccess,
-                            ResolvedType::Function { .. } => {
+                            ResolvedType::OnceFunction | ResolvedType::Function { .. } => {
                                 return Err(certificate_error(
                                     "function value result is outside callable v2",
                                 ))

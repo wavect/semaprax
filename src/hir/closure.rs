@@ -23,8 +23,10 @@ pub fn closure_function(
     else {
         return Err(hir_error("expected closure expression"));
     };
-    let ResolvedType::Function { result, .. } = &expression.ty else {
-        return Err(hir_error("closure has no callable signature"));
+    let result = match &expression.ty {
+        ResolvedType::Function { result, .. } => result.as_ref(),
+        ResolvedType::OnceFunction => &ResolvedType::I64,
+        _ => return Err(hir_error("closure has no callable signature")),
     };
     let id = closure_id(&expression.id);
     let execution = FunctionExecutionId::Monomorphic(id.clone());
@@ -45,7 +47,7 @@ pub fn closure_function(
         name: "closure".to_owned(),
         params,
         result_id: ValueId::result(&execution),
-        return_type: *result.clone(),
+        return_type: result.clone(),
         effects: Vec::new(),
         yields: None,
         requires: Vec::new(),
@@ -127,3 +129,5 @@ mod tests;
 
 mod materialize;
 pub(super) use materialize::materialize;
+
+pub(crate) mod once;

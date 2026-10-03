@@ -22,8 +22,10 @@ pub(in crate::codegen) fn is_native_owned_vec_type(
 /// `true` when the canonical cleanup plan owns `ty` directly, as one leaf,
 /// rather than through projected record or variant fields.
 pub(super) fn is_direct_plan_owned(program: &ResolvedProgram, ty: &ResolvedType) -> bool {
-    matches!(ty, ResolvedType::Bytes | ResolvedType::String)
-        || is_native_owned_vec_type(program, ty)
+    matches!(
+        ty,
+        ResolvedType::Bytes | ResolvedType::String | ResolvedType::OnceFunction
+    ) || is_native_owned_vec_type(program, ty)
         || crate::cleanup::is_owned_bounded_box_type(ty)
         || crate::iterator_ops::is_iter(ty)
 }

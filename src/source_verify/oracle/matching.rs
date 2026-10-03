@@ -442,6 +442,7 @@ pub(super) fn oracle_match(
         | Type::Bytes
         | Type::Str
         | Type::SliceU8
+        | Type::OnceFunction
         | Type::Function { .. }
         | Type::Named { .. } => None,
     });

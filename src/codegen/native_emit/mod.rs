@@ -24,6 +24,7 @@ use std::fmt::Write as _;
 mod closure;
 mod compiler;
 mod contract_status;
+mod once;
 use contract_status::{contract_label, emit_contract_status};
 mod expression;
 mod filesystem_io;
@@ -1017,7 +1018,9 @@ fn c_value_type(
     resource_abi: &native_resource::NativeResourceAbi,
     ty: &ResolvedType,
 ) -> Result<String, Diagnostic> {
-    if matches!(ty, ResolvedType::Function { .. }) {
+    if matches!(ty, ResolvedType::OnceFunction) {
+        Ok("spx_once_v1".to_owned())
+    } else if matches!(ty, ResolvedType::Function { .. }) {
         function_value::c_type(program, ty)
     } else if let Some(iterator) = native_iter::c_type(ty) {
         Ok(iterator.to_owned())

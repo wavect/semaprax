@@ -54,7 +54,14 @@ pub(crate) fn desugar_owning_closures(program: &Program) -> Option<Program> {
 }
 
 fn expr_has_owning_closure(expr: &Expr) -> bool {
-    if matches!(expr.kind, ExprKind::Closure { owning: true, .. }) {
+    if matches!(
+        expr.kind,
+        ExprKind::Closure {
+            owning: true,
+            retained: false,
+            ..
+        }
+    ) {
         return true;
     }
     match &expr.kind {
@@ -216,7 +223,10 @@ fn lower_statements(statements: &mut Vec<Statement>, substitutions: &mut HashMap
     statements.retain_mut(|statement| match statement {
         Statement::Let { name, value, .. } => {
             if let ExprKind::Closure {
-                owning: true, body, ..
+                owning: true,
+                retained: false,
+                body,
+                ..
             } = &value.kind
             {
                 substitutions.insert(name.clone(), unwrap_target_call(body));

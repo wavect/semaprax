@@ -147,9 +147,10 @@ pub use public_sdk::{
     PROJECT_NATIVE_RUST_SDK_SCHEMA, PROJECT_NATIVE_RUST_SUBJECT_SCHEMA,
 };
 pub use public_sdk::{
-    prepare_indexed_native_rust_result_callback, prepare_native_rust_callbacks,
-    prepare_native_rust_result_callback, prepare_registered_native_rust_callbacks,
-    IndexedResultCallbackProjection, IndexedResultCallbackSelection, NativeCallbackProjection,
+    prepare_indexed_native_rust_result_callback, prepare_native_rust_affine_callback,
+    prepare_native_rust_callbacks, prepare_native_rust_result_callback,
+    prepare_registered_native_rust_callbacks, IndexedResultCallbackProjection,
+    IndexedResultCallbackSelection, NativeAffineCallbackProjection, NativeCallbackProjection,
     NativeCallbackSelection, NativeRegisteredCallbackProjection, NativeRegistrySelection,
     NativeResultCallbackProjection, NativeResultCallbackSelection,
 };

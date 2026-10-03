@@ -5,6 +5,9 @@ pub(super) fn replay_expression_child(
     expression: &ResolvedExpr,
     index: usize,
 ) -> Option<&ResolvedExpr> {
+    if let Some((_, args)) = crate::hir::closure::once::call(expression) {
+        return args.get(index);
+    }
     match &expression.kind {
         ResolvedExprKind::Closure { captures, .. } => {
             captures.get(index).map(|capture| &capture.value)

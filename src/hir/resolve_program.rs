@@ -1028,6 +1028,7 @@ impl Resolver<'_> {
                         || super::function_value::error("invalid callable signature"),
                     )?)
                 }
+                Frame::Enter(Type::OnceFunction) => result = Some(ResolvedType::OnceFunction),
                 Frame::Enter(Type::I64) => result = Some(ResolvedType::I64),
                 Frame::Enter(Type::I32) => result = Some(ResolvedType::I32),
                 Frame::Enter(Type::Char) => result = Some(ResolvedType::Char),

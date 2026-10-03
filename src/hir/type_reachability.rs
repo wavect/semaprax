@@ -616,7 +616,7 @@ fn classify_nested_owned_byte_record(
 
     while let Some(frame) = frames.pop() {
         match frame {
-            Frame::Type(ResolvedType::Function { .. }, _) => {
+            Frame::Type(ResolvedType::OnceFunction | ResolvedType::Function { .. }, _) => {
                 return NestedOwnedRecordAdmission::OutsideProfile
             }
             Frame::Type(ResolvedType::Bytes, _) => {

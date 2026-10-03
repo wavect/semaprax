@@ -50,6 +50,8 @@ pub enum Type {
     SliceU8,
     /// A noncapturing source-level callable signature. The resolved function
     /// reference retains its declaration identity separately from this type.
+    /// Affine zero-argument callable with one owned Bytes capture and i64 result.
+    OnceFunction,
     Function {
         parameters: Vec<Type>,
         result: Box<Type>,
@@ -82,6 +84,7 @@ impl fmt::Display for Type {
                 Frame::Type(Type::Bool) => f.write_str("bool")?,
                 Frame::Type(Type::String) => f.write_str("string")?,
                 Frame::Type(Type::Bytes) => f.write_str("Bytes")?,
+                Frame::Type(Type::OnceFunction) => f.write_str("FnOnce() -> i64")?,
                 Frame::Type(Type::Str) => f.write_str("str")?,
                 Frame::Type(Type::SliceU8) => f.write_str("Slice<u8>")?,
                 Frame::Type(Type::Function { parameters, result }) => {
@@ -134,7 +137,7 @@ impl Type {
     /// Canonical ownership predicate. `Bytes` transfers uniquely without
     /// being misclassified as a user resource.
     pub fn is_uniquely_owned(&self) -> bool {
-        matches!(self, Type::String | Type::Bytes)
+        matches!(self, Type::String | Type::Bytes | Type::OnceFunction)
     }
 }
 
@@ -276,6 +279,7 @@ impl Drop for Program {
                     return_type,
                     body,
                     owning: _,
+                    retained: _,
                 } => {
                     types.extend(params.into_iter().map(|param| param.ty));
                     types.push(return_type);
@@ -422,7 +426,8 @@ impl Drop for Program {
                     types.extend(parameters);
                     types.push(*result);
                 }
-                Type::I64
+                Type::OnceFunction
+                | Type::I64
                 | Type::I32
                 | Type::Char
                 | Type::U8
@@ -899,6 +904,8 @@ pub enum ExprKind {
         /// snapshot profile (Closures v1/v2), unchanged. See
         /// `docs/CLOSURES-OWNING-V1.md`.
         owning: bool,
+        /// A retained affine carrier (`once fn`), distinct from lexical `own fn`.
+        retained: bool,
     },
     Int(i64),
     /// An `i32` literal stored as its exact value.

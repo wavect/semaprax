@@ -64,6 +64,7 @@ impl NativeBytesPlan {
                 &mut Vec::new(),
                 &mut |place, flag, lifecycle| {
                     let kind = match lifecycle.as_str() {
+                        crate::hir::closure::once::DROP_ID => OwnedLeafKind::Once,
                         crate::cleanup::BYTES_DROP_LIFECYCLE_ID => OwnedLeafKind::Bytes,
                         crate::cleanup::STRING_DROP_LIFECYCLE_ID => OwnedLeafKind::String,
                         crate::cleanup::ITER_DROP_LIFECYCLE_ID => OwnedLeafKind::Iter,

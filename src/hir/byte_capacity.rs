@@ -54,7 +54,7 @@ pub(super) fn inline_array_payload_bytes(
             ));
         }
         match ty {
-            ResolvedType::Function { .. } => {}
+            ResolvedType::OnceFunction | ResolvedType::Function { .. } => {}
             ResolvedType::ArrayU8(length) => {
                 total = total
                     .checked_add(length)

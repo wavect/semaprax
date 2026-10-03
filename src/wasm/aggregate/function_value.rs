@@ -75,6 +75,12 @@ pub(super) fn abi_signature(
     program: &ResolvedProgram,
     signature: &ResolvedType,
 ) -> Result<Signature, Diagnostic> {
+    if signature == &ResolvedType::OnceFunction {
+        return Ok(Signature {
+            params: vec![I32],
+            results: vec![I32],
+        });
+    }
     let ResolvedType::Function { parameters, .. } = signature else {
         return Err(error(
             "function invocation has a non-function callable type",
@@ -134,7 +140,7 @@ pub(super) fn execution_target(target: &ResolvedFunction) -> FunctionExecutionId
 
 pub(super) fn callable_signature(expr: &ResolvedExpr) -> Result<&ResolvedType, Diagnostic> {
     match &expr.ty {
-        ResolvedType::Function { .. } => Ok(&expr.ty),
+        ResolvedType::Function { .. } | ResolvedType::OnceFunction => Ok(&expr.ty),
         _ => Err(error(
             "aggregate function invocation callable is not a function",
         )),
@@ -173,10 +179,14 @@ impl super::Emitter<'_> {
     ) -> Result<super::Value, Diagnostic> {
         crate::hir::function_value::validate_invocation(expr)?;
         let signature = callable_signature(callable)?;
-        let ResolvedType::Function { parameters, result } = signature else {
-            unreachable!()
+        let (parameters, result) = match signature {
+            ResolvedType::Function { parameters, result } => {
+                (parameters.as_slice(), result.as_ref())
+            }
+            ResolvedType::OnceFunction => (&[][..], &ResolvedType::I64),
+            _ => unreachable!(),
         };
-        if parameters.len() != args.len() || **result != expr.ty {
+        if parameters.len() != args.len() || *result != expr.ty {
             return Err(error(
                 "aggregate function invocation disagrees with its signature",
             ));

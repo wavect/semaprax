@@ -118,6 +118,7 @@ fn prepare(
         return_type,
         body,
         owning: false,
+        retained: false,
     } = &tail.kind
     else {
         return Err(at(

@@ -141,6 +141,9 @@ fn main() -> ExitCode {
     if std::env::args_os().nth(1).as_deref() == Some(OsStr::new("indexed-diagnostics")) {
         return indexed_project_cli::run_diagnostics(std::env::args_os().skip(2));
     }
+    if std::env::args_os().nth(1).as_deref() == Some(OsStr::new("indexed-prepare")) {
+        return indexed_project_cli::run_prepare(std::env::args_os().skip(2));
+    }
     let command = match parse(std::env::args_os().skip(1)) {
         Ok(command) => command,
         Err(error) => return error.report(),

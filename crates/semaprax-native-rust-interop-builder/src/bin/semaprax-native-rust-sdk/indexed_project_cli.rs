@@ -355,3 +355,80 @@ pub(super) fn run_diagnostics(arguments: impl IntoIterator<Item = OsString>) -> 
     }
     ExitCode::SUCCESS
 }
+
+/// Explicitly admit a pinned extractor envelope and save its canonical,
+/// replayable prepared index. This never invokes rustdoc, rustc, or Cargo.
+pub(super) fn run_prepare(arguments: impl IntoIterator<Item = OsString>) -> ExitCode {
+    let mut extractor_output = None;
+    let mut output = None;
+    let mut arguments = arguments.into_iter();
+    while let Some(option) = arguments.next() {
+        let slot = if option == OsStr::new("--extractor-output") {
+            &mut extractor_output
+        } else if option == OsStr::new("--output") {
+            &mut output
+        } else {
+            return refusal("SPX-B148", "unknown indexed preparation option");
+        };
+        if slot.is_some() {
+            return refusal("SPX-B148", "indexed preparation option is repeated");
+        }
+        let Some(value) = arguments.next() else {
+            return refusal("SPX-B148", "indexed preparation option requires a value");
+        };
+        if value.is_empty() || value.to_str().is_some_and(|text| text.starts_with('-')) {
+            return refusal("SPX-B148", "indexed preparation option requires a value");
+        }
+        *slot = Some(PathBuf::from(value));
+    }
+    let (Some(extractor_output), Some(output)) = (extractor_output, output) else {
+        return refusal("SPX-B148", "expected `indexed-prepare --extractor-output <absolute-file> --output <fresh-absolute-file>`");
+    };
+    if !extractor_output.is_absolute() || !output.is_absolute() {
+        return refusal("SPX-B148", "indexed preparation paths must be absolute");
+    }
+    let input = match std::fs::File::open(&extractor_output) {
+        Ok(file) => {
+            let mut bytes = Vec::new();
+            if file
+                .take(MAX_INDEX_BYTES as u64 + 1)
+                .read_to_end(&mut bytes)
+                .is_err()
+                || bytes.len() > MAX_INDEX_BYTES
+            {
+                return refusal(
+                    "SPX-B148",
+                    "extractor output cannot be read within its bound",
+                );
+            }
+            bytes
+        }
+        Err(_) => return refusal("SPX-B148", "extractor output cannot be read"),
+    };
+    let index = match RustApiIndex::admit_extractor_output(&input) {
+        Ok(index) => index,
+        Err(_) => {
+            return refusal(
+                "SPX-B148",
+                "extractor output is not an admitted prepared Rust API index",
+            )
+        }
+    };
+    let mut file = match std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&output)
+    {
+        Ok(file) => file,
+        Err(_) => {
+            return refusal(
+                "SPX-I233",
+                "prepared index output must be a fresh writable file",
+            )
+        }
+    };
+    if file.write_all(index.canonical_json().as_bytes()).is_err() || file.sync_all().is_err() {
+        return refusal("SPX-I233", "prepared index output write failed");
+    }
+    ExitCode::SUCCESS
+}

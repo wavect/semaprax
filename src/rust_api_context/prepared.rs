@@ -62,7 +62,7 @@ pub fn prepared_rust_api_candidates_json(
             Support::Supported => ("supported", None),
             Support::Rejected { reason } => ("rejected", Some(reason_name(*reason))),
         };
-        items.push(json!({"kind": kind_name(item.kind), "ownership": receiver_name(item.receiver), "path": item.path, "reason": reason, "signature": item.signature, "support": support}));
+        items.push(json!({"kind": kind_name(item.kind), "manual_adapter": manual_adapter(&item.support), "ownership": receiver_name(item.receiver), "path": item.path, "reason": reason, "signature": item.signature, "support": support}));
         if candidate(&items).len() > limit {
             items.pop();
             break;
@@ -158,6 +158,7 @@ pub fn prepared_selected_rust_import_context_json(
             "id": import.stable_id,
             "kind": kind_name(item.kind),
             "location": {"start": import.span.start, "end": import.span.end},
+            "manual_adapter": manual_adapter(&item.support),
             "ownership": receiver_name(item.receiver),
             "path": item.path,
             "reachable_types": item.reachable_types,
@@ -188,6 +189,18 @@ pub fn prepared_selected_rust_import_context_json(
             "SPX-G004",
             format!("prepared Rust API context requires at least {} output bytes but max_bytes is {limit}", reduced.len()),
         )])
+    }
+}
+
+fn manual_adapter(support: &Support) -> Value {
+    match support {
+        Support::Supported => Value::Null,
+        Support::Rejected { .. } => json!({
+            "action": "explicit_scalar_callback",
+            "command": "semaprax-native-rust-sdk project --manifest-path <absolute-manifest> --output <fresh-absolute-path>",
+            "source_form": "import rust fn ... effects { ... } failure status \"domain\";",
+            "scope": "bounded_scalar_only; caller implements generated NativeRustSdkImports; indexed item remains rejected",
+        }),
     }
 }
 
@@ -272,6 +285,7 @@ mod tests {
         );
         assert_eq!(value["selected_import"]["ownership"], "shared");
         assert_eq!(value["selected_import"]["support"], "supported");
+        assert!(value["selected_import"]["manual_adapter"].is_null());
         assert_eq!(value["authority"]["tool_invocation"], false);
         assert_eq!(value["budget"]["used_bytes"], first.len());
         assert!(first.len() <= 4096);
@@ -287,6 +301,14 @@ mod tests {
             value["selected_import"]["reason"],
             "incomplete_type_closure"
         );
+        assert_eq!(
+            value["selected_import"]["manual_adapter"]["action"],
+            "explicit_scalar_callback"
+        );
+        assert!(value["selected_import"]["manual_adapter"]["scope"]
+            .as_str()
+            .unwrap()
+            .contains("indexed item remains rejected"));
 
         let mut damaged = bytes.to_vec();
         damaged[0] ^= 1;
@@ -299,6 +321,47 @@ mod tests {
         .unwrap_err();
         assert_eq!(error[0].code, "SPX-B148");
         assert!(error[0].span.is_some());
+    }
+
+    #[test]
+    fn every_selected_import_and_candidate_retains_its_index_status() {
+        let index = regex_index();
+        let bytes = index.canonical_json().as_bytes();
+        let replay_digest = RustApiIndex::replay(bytes).unwrap().digest().to_owned();
+        let program = parse(
+            "module test.prepared_all;\n@id(\"rust.host\") interface RustHost permits { regex.read } {\n@id(\"rust.host.match\") import rust selected fn is_match from \"regex::Regex::is_match\" effects { regex.read } failure infallible;\n@id(\"rust.host.find\") import rust selected fn find from \"regex::Regex::find\" effects { regex.read } failure infallible;\n}\n@id(\"rust.host.main\") fn main() -> i64 { 0 }\n",
+            Path::new("prepared-all.spx"),
+        )
+        .unwrap();
+        let expected = [
+            ("rust.host.match", "regex::Regex::is_match", "supported"),
+            ("rust.host.find", "regex::Regex::find", "rejected"),
+        ];
+        for (id, path, support) in expected {
+            let output = prepared_selected_rust_import_context_json(&program, id, bytes, 4096)
+                .unwrap()
+                .unwrap();
+            assert!(output.len() <= 4096);
+            let value: Value = serde_json::from_str(&output).unwrap();
+            assert_eq!(value["selected_import"]["id"], id);
+            assert_eq!(value["selected_import"]["path"], path);
+            assert_eq!(value["selected_import"]["support"], support);
+            assert_eq!(value["index"]["digest"], replay_digest);
+            assert_eq!(value["authority"]["tool_invocation"], false);
+        }
+        let candidates = prepared_rust_api_candidates_json(bytes, "regex::Regex::", 4096).unwrap();
+        assert!(candidates.len() <= 4096);
+        let value: Value = serde_json::from_str(&candidates).unwrap();
+        for (_, path, support) in expected {
+            let item = value["items"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|item| item["path"] == path)
+                .expect("every declared selected import has an indexed candidate");
+            assert_eq!(item["support"], support);
+            assert_eq!(item["manual_adapter"].is_null(), support == "supported");
+        }
     }
 
     #[test]

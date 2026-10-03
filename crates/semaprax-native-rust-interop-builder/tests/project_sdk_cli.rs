@@ -7,6 +7,8 @@ static SERIAL: AtomicU64 = AtomicU64::new(0);
 
 #[path = "project_sdk_cli/indexed_diagnostics.rs"]
 mod indexed_diagnostics;
+#[path = "project_sdk_cli/indexed_prepare.rs"]
+mod indexed_prepare;
 
 struct TestRoot(PathBuf);
 
@@ -271,6 +273,9 @@ fn command_surface_is_single_call_bounded_and_has_no_tool_or_process_defaults() 
         "read_bounded(",
         "MAX_RUSTC_JSON_BYTES",
         "indexed-diagnostics",
+        "indexed-prepare",
+        "admit_extractor_output(",
+        "create_new(true)",
     ] {
         assert!(
             indexed_source.contains(required),

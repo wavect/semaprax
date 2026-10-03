@@ -4,6 +4,7 @@ const crypto = require('node:crypto');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const { spawnSync } = require('node:child_process');
 const vscode = require('vscode');
 
 // The exact command inventory this extension contributes, in manifest order.
@@ -105,6 +106,13 @@ async function run() {
   // import context, even when no prepared index was selected by the host.
   const hoverFile = path.join(folder.uri.fsPath, 'rust-import-hover.spx');
   const hoverPath = 'regex::Regex::is_match';
+  const hoverText = value => String(value).replaceAll('&nbsp;', ' ').replaceAll('&amp;', '&').replaceAll('\\_', '_');
+  const fixture = path.resolve(__dirname, '../../../../crates/semaprax-rust-api-index/fixtures/regex-1.13.1-index-envelope.json');
+  const indexDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'semaprax-rust-index-host-'));
+  const indexFile = path.join(indexDirectory, 'prepared-index.json');
+  const fixtureIndex = JSON.parse(fs.readFileSync(fixture, 'utf8')).index;
+  assert.equal(fixtureIndex.schema, 'semaprax.rust-api-index.v2');
+  fs.writeFileSync(indexFile, JSON.stringify(fixtureIndex) + '\n');
   fs.writeFileSync(hoverFile, `module test.hover;\n@id("rust.host") interface RustHost permits { regex.read } {\n@id("rust.host.method") import rust selected fn is_match from "${hoverPath}" effects { regex.read } failure infallible;\n}\n@id("rust.host.main") fn main() -> i64 { 0 }\n`);
   try {
     const document = await vscode.workspace.openTextDocument(vscode.Uri.file(hoverFile));
@@ -112,9 +120,46 @@ async function run() {
     const line = document.lineAt(2).text;
     const position = new vscode.Position(2, line.indexOf(hoverPath) + 8);
     const hovers = await vscode.commands.executeCommand('vscode.executeHoverProvider', document.uri, position);
-    assert.ok(hovers.some(hover => hover.contents.some(part => String(part.value ?? part).includes('Prepared Rust API index required'))), 'installed extension must show compiler-owned selected-import setup status');
+    const hoverTexts = hovers.flatMap(hover => hover.contents.map(part => String(part.value ?? part)));
+    assert.ok(hoverTexts.some(value => hoverText(value).includes('Prepared Rust API index required')), `installed extension must show compiler-owned selected-import setup status; observed ${JSON.stringify(hoverTexts)}`);
+    await settings.update('rustIndexPath', indexFile, vscode.ConfigurationTarget.Global);
+    assert.equal(settings.inspect('rustIndexPath').globalValue, indexFile);
+    const cli = spawnSync(compiler, ['context', hoverFile, hoverPath, '--max-bytes', '4096', '--rust-index', indexFile], { encoding: 'utf8', maxBuffer: 8192 });
+    assert.equal(cli.status, 0, cli.stderr);
+    const selected = JSON.parse(cli.stdout);
+    assert.equal(selected.schema, 'semaprax.rust-api-context.v1');
+    assert.equal(selected.index.status, 'prepared_metadata');
+    assert.equal(selected.selected_import.path, hoverPath);
+    assert.equal(selected.selected_import.signature, 'fn is_match(&self, haystack: &str) -> bool');
+    assert.equal(selected.selected_import.ownership, 'shared');
+    assert.equal(selected.package.name, 'regex');
+    assert.equal(selected.package.version, '1.13.1');
+    assert.equal(selected.package.cargo_alias, 'regex_alias');
+    const preparedHovers = await vscode.commands.executeCommand('vscode.executeHoverProvider', document.uri, position);
+    const preparedHoverTexts = preparedHovers.flatMap(hover => hover.contents.map(part => String(part.value ?? part)));
+    assert.ok(preparedHovers.some(hover => hover.contents.some(part => {
+      const value = hoverText(part.value ?? part);
+      return value.includes(selected.selected_import.signature) && value.includes(selected.package.name) && value.includes(selected.package.version) && value.includes(selected.package.cargo_alias) && value.includes(selected.selected_import.ownership);
+    })), `installed extension hover must agree with the compiler-owned prepared Regex method context; observed ${JSON.stringify(preparedHoverTexts).slice(0, 4096)}`);
   } finally {
+    await settings.update('rustIndexPath', undefined, vscode.ConfigurationTarget.Global);
     fs.unlinkSync(hoverFile);
+    fs.rmSync(indexDirectory, { recursive: true, force: true });
+  }
+  if (process.env.SEMAPRAX_VSCODE_RUST_INDEX_ONLY === '1') {
+    console.log('SEMAPRAX_RUST_INDEX_HOST_RESULT=' + JSON.stringify({
+      schema: 'semaprax.vscode-rust-index-host-result.v1',
+      app_name: vscode.env.appName,
+      extension_path: fs.realpathSync(extension.extensionPath),
+      installed_vsix: true,
+      selected_path: hoverPath,
+      signature: 'fn is_match(&self, haystack: &str) -> bool',
+      receiver: 'shared',
+      package: 'regex 1.13.1',
+      cargo_alias: 'regex_alias',
+      authority: { build: false, publication: false }
+    }));
+    return;
   }
 
   // Token reports are selected local snapshots. This path deliberately runs

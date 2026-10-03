@@ -598,6 +598,37 @@ explicit separate step, never triggered by this build command or by an
 editor/context query. A CLI-only workflow is: prepare and save the index
 with a pinned extractor, write the selection file, run `indexed-project`,
 then build and test the generated Cargo package from its fresh output path.
+The preparation handoff is explicit: the Python extractor emits a
+`semaprax.rustdoc-extractor.v2` envelope, and `indexed-prepare` admits it and
+writes canonical `semaprax.rust-api-index.v2` bytes. For example, from a
+locked package and an already captured nightly rustdoc JSON file:
+
+```sh
+python3 crates/semaprax-rust-api-index/tools/rustdoc_json_to_index.py \
+  --rustdoc-json "$RUSTDOC_JSON" --package-name regex --package-version 1.13.1 \
+  --source-sha256 "$SOURCE_SHA256" --renamed-from regex_alias \
+  --target "$TARGET" --feature-digest "$FEATURE_DIGEST" \
+  --stable-rustc-version "$STABLE_RUSTC_VERSION" \
+  --source-root "$PACKAGE_SOURCE_ROOT" --rustdoc-version "$PINNED_RUSTDOC_VERSION" \
+  --rustdoc-format-version "$RUSTDOC_FORMAT_VERSION" \
+  --select regex::Regex::is_match --output "$EXTRACTOR_ENVELOPE"
+semaprax-native-rust-sdk indexed-prepare \
+  --extractor-output "$EXTRACTOR_ENVELOPE" --output "$PREPARED_INDEX"
+semaprax context "$SAVED_SPX" rust.host.method \
+  --rust-index "$PREPARED_INDEX" --max-bytes 4096
+semaprax-native-rust-sdk indexed-project \
+  --manifest-path "$PROJECT_MANIFEST" --selections "$SELECTIONS_JSON" \
+  --output "$FRESH_SDK_DIRECTORY"
+cargo test --offline --locked --manifest-path "$FRESH_SDK_DIRECTORY/Cargo.toml"
+```
+
+`$SELECTIONS_JSON` uses the schema and four exact fields described above;
+its `index_path` is `$PREPARED_INDEX`, and `package_source_path` points to
+the exact selected Rust crate source. Every path passed to `indexed-prepare`
+is absolute and its output must be fresh. The extractor invocation is an
+explicit operator action; context and editor queries never run it. If the
+generated wrapper fails stable rustc compilation, capture rustc JSON and use
+`indexed-diagnostics` below to inspect the source-located requirement.
 
 For a failed generated-wrapper build, capture rustc JSON diagnostics and run
 `semaprax-native-rust-sdk indexed-diagnostics --manifest-path <absolute-path>
@@ -631,6 +662,22 @@ The targeted selected-import context is an additive read-only view. Generic
 agent context, semantic impact, and review still refuse native Rust imports
 with `SPX-G218` (or the source-located missing-index `SPX-B147` for an
 unprepared selected import); they never silently omit an import node.
+
+### Manual Rust adapter for a rejected indexed API
+
+`context --rust-index` and `context --candidates --rust-index` keep a rejected
+item's `support: "rejected"` and precise `reason`. They also show the single
+`manual_adapter.action: "explicit_scalar_callback"` escape hatch. Where the
+application can express the required data through the bounded scalar bridge,
+declare an explicit `import rust fn` with a persistent `@id`, typed parameters,
+selected `effects`, and `failure status "domain"` (or `failure infallible`).
+Run `semaprax-native-rust-sdk project --manifest-path <absolute-manifest>
+--output <fresh-absolute-path>`, then implement the generated
+`NativeRustSdkImports` trait in the Rust consumer. That host implementation may
+call the unsupported Rust API and deliberately convert its inputs and result
+to the declared scalar contract. The manual callback retains the ordinary
+effect and failure checks. It does not admit the rejected indexed signature,
+infer ownership or lifetimes, or make arbitrary Rust types directly callable.
 
 Focused local evidence builds and runs the six-export calculator Project as
 both Web/Node and generated Rust consumers, applies the opt-in daemon display

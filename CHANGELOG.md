@@ -1,5 +1,11 @@
 # Changelog
 
+- Add an explicit CLI handoff from pinned rustdoc extractor output to a
+  canonical prepared Rust API index. Bounded selected-import context and
+  candidates now expose a scalar callback escape hatch for rejected items;
+  an installed VS Code Extension Host gate matches Regex hover metadata to
+  the compiler CLI without preparing build tools.
+
 - Exercise the explicit local Semaprax builder from a standalone, locked,
   offline Cargo consumer. A source change rebuilds the generated SDK and
   changes the observed result; a wrapper gate rejects nested Cargo. Model

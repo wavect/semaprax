@@ -81,6 +81,7 @@ pub(crate) mod filesystem_ops;
 pub mod format;
 pub mod freestanding_object;
 pub mod graph;
+pub mod rust_api_context;
 pub mod hir;
 pub mod hosted_interpreter;
 #[cfg(not(any(target_arch = "wasm32", target_arch = "wasm64")))]

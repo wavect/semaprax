@@ -5,9 +5,9 @@ use std::path::Path;
 
 use semaprax::diagnostic::Diagnostic;
 use semaprax::{project, workspace_analysis};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
-use super::super::options::{project_context_options, ParsedContextOptions};
+use super::super::options::{ParsedContextOptions, project_context_options};
 use super::project::is_project_manifest;
 
 const SCHEMA_V1: &str = "semaprax.project-agent-context.v1";
@@ -110,7 +110,8 @@ fn compact(full: &str, max_bytes: usize) -> Result<String, Vec<Diagnostic>> {
     Ok(compact)
 }
 
-/// Render authenticated Project context, or return `None` for a source input.
+/// Render Project context or selected Rust import status, returning `None` for
+/// source inputs handled by the ordinary verified context path.
 pub(crate) fn project(
     path: &Path,
     symbol: &str,
@@ -119,6 +120,40 @@ pub(crate) fn project(
     report: impl Fn(&[Diagnostic]) -> u8,
 ) -> Result<Option<String>, u8> {
     if !is_project_manifest(path) {
+        let source = match std::fs::read_to_string(path) {
+            Ok(source) => source,
+            Err(error) => {
+                return Err(report(&[Diagnostic::io(
+                    "SPX-I001",
+                    format!("cannot read `{}`: {error}", path.display()),
+                )]));
+            }
+        };
+        let program = match semaprax::parse(&source, path) {
+            Ok(program) => program,
+            // Let the ordinary checked route report parse failures once.
+            Err(_) => return Ok(None),
+        };
+        let projection = semaprax::rust_api_context::selected_rust_import_context_json(
+            &program,
+            symbol,
+            options.max_bytes(),
+        )
+        .map_err(|errors| report(&errors))?;
+        if projection.is_some()
+            && arguments.iter().any(|argument| {
+                matches!(
+                    argument.as_str(),
+                    "--depth" | "--max-nodes" | "--filters" | "--direction"
+                )
+            })
+        {
+            eprintln!("selected Rust import context does not accept graph traversal options");
+            return Err(2);
+        }
+        if projection.is_some() {
+            return Ok(projection);
+        }
         return Ok(None);
     }
     if arguments.iter().any(|argument| argument == "--filters") {
@@ -138,4 +173,44 @@ pub(crate) fn project(
     compact(&full, max_bytes)
         .map(Some)
         .map_err(|errors| report(&errors))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn context_cli_projects_selected_import_setup_without_tools() {
+        let nonce = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!(
+            "semaprax-selected-context-{}-{nonce}.spx",
+            std::process::id()
+        ));
+        std::fs::write(
+            &path,
+            r#"module test.context_cli;
+
+@id("rust.host")
+interface RustHost permits { regex.read } {
+    @id("rust.host.is_match")
+    import rust selected fn is_match from "regex::Regex::is_match"
+        effects { regex.read }
+        failure infallible;
+}
+"#,
+        )
+        .unwrap();
+        let options = ParsedContextOptions::V1(semaprax::graph::AgentContextOptions::default());
+        let output = project(&path, "rust.host.is_match", &[], &options, |_| 1)
+            .unwrap()
+            .expect("selected import gets setup status before ordinary verification");
+        let value: Value = serde_json::from_str(&output).unwrap();
+        assert_eq!(value["index"]["status"], "index_unprepared");
+        assert_eq!(value["authority"]["tool_invocation"], false);
+        assert!(output.len() <= 4096);
+        std::fs::remove_file(path).unwrap();
+    }
 }

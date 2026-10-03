@@ -605,6 +605,7 @@ fn full_hash(value: &str) -> String {
 mod authentication;
 mod authority;
 mod build;
+mod borrowed_input;
 mod descriptor;
 mod indexed;
 mod indexed_multiple;
@@ -634,6 +635,8 @@ mod indexed_tests;
 mod owner_return_tests;
 #[cfg(test)]
 mod owner_sdk_tests;
+#[cfg(test)]
+mod borrowed_input_tests;
 
 #[cfg(test)]
 mod target_tests;

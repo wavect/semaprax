@@ -6,6 +6,15 @@
   incomplete and mismatched trait obligations refuse. Source mutable and
   owned capture modes remain open.
 
+- Add a canonical finite retry Project to the LAW-15 examples and bind the
+  LAW-10 positive model test to its checked source. The retained negative
+  mutation replays `charge, success, charge` from changed source. The example
+  states the finite command-safety boundary and leaves request identity and
+  external provider effects open. Add a second architecture Project whose
+  unchanged `forbid_reaches` claim flips from held to a three-node violated
+  path under a saved call-edge mutation. The source protocol gate passed 7/7
+  and the architecture gate passed 8/8.
+
 - Start LAW-15 with a checked money/state example used directly by the
   finite-structured-law Z3 harness. The pack proves exact debit, credit,
   conservation, and insufficient-funds behavior on bounded checked integers;

@@ -1,0 +1,6 @@
+schema = "semaprax.project.v1"
+name = "archclaims"
+entry = "archclaims.app"
+sources = ["src/app.spx", "src/core.spx", "src/tests.spx"]
+web_exports = ["archclaims.c"]
+tests = ["archclaims.tests"]

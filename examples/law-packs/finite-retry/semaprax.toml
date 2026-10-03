@@ -1,0 +1,6 @@
+schema = "semaprax.project.v1"
+name = "payment-machine"
+entry = "payment.machine"
+sources = ["src/helper.spx", "src/machine.spx"]
+web_exports = ["payment.step"]
+tests = ["payment.tests"]

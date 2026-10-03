@@ -155,7 +155,9 @@ fn checked(
 
 #[test]
 fn legal_retry_model_is_source_bound_and_finitely_checked() {
-    let fixture = Fixture::new(&source(false));
+    let fixture = Fixture::new(include_str!(
+        "../../examples/law-packs/finite-retry/src/machine.spx"
+    ));
     let report = checked(&fixture, BOUNDS);
     assert_eq!(report.outcome, ProtocolSafetyOutcome::ModelChecked);
     assert!(report.model_checked());
@@ -219,7 +221,9 @@ fn legal_retry_model_is_source_bound_and_finitely_checked() {
 
 #[test]
 fn repeated_charge_has_minimal_source_replayed_counterexample() {
-    let fixture = Fixture::new(&source(true));
+    let fixture = Fixture::new(include_str!(
+        "../../examples/law-packs/finite-retry/mutants/repeated-charge.spx"
+    ));
     let report = checked(&fixture, BOUNDS);
     let ProtocolSafetyOutcome::ConcreteCounterexample { trace } = &report.outcome else {
         panic!("expected concrete counterexample: {:?}", report.outcome)

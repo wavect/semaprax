@@ -110,5 +110,9 @@ source language failure, fuel exhaustion, and rejected evaluation have
 separate outcomes. The exact unit selector
 `resumable_effects::source_local_future::tests::` exercises pending/wake/ready,
 single host dispatch, checked result, noncanonical source refusal, and pending
-future drop. Handler or host-Future panic settles as `Panicked` and cannot
+future drop. A second test uses Rust `.await` on the selected checked-source
+adapter while its injected Rust Future returns `Pending`, wakes the explicit
+caller waker, and then returns the checked source result. This is an
+interpreter-backed export, not a generated Project SDK export. Handler or
+host-Future panic settles as `Panicked` and cannot
 leave a half-consumed handle available for another poll.

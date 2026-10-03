@@ -144,12 +144,11 @@ fn conditional_strict_report_for(
             .functions
             .iter()
             .any(|function| function.stable_id == caller.caller_id())
+            && owner.replace(source).is_some()
         {
-            if owner.replace(source).is_some() {
-                return Err(mismatch(
-                    "conditional foreign caller has multiple source owners",
-                ));
-            }
+            return Err(mismatch(
+                "conditional foreign caller has multiple source owners",
+            ));
         }
     }
     let source = owner.ok_or_else(|| mismatch("conditional foreign caller source is absent"))?;

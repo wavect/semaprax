@@ -1,5 +1,10 @@
 # Changelog
 
+- Keep the Native Rust interop builder's test-only seams out of production
+  compilation and resolve the Clippy findings exposed by the current CI
+  toolchain. Check the Windows output-limit fixture's constant bounds at
+  compile time.
+
 - Repair main CI after the toolchain action update: align the AArch64 tracking
   contract with the pinned action, remove redundant borrows in the shared Rust
   API index tests, and update the isolated Component runner and its locks to

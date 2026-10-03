@@ -535,12 +535,14 @@ fn decode_option<T>(
 
 /// Decode the closed 0=Ok / 1=Err result tag. Invalid frames preserve both
 /// alternatives so a caller can run normal Rust cleanup or retry admission.
+type DecodedResult<T, E> = Result<Result<T, E>, (OwnerConversionRefusal, Option<T>, Option<E>)>;
+
 fn decode_result<T, E>(
     tag: u8,
     reserved: [u8; 7],
     success: Option<T>,
     failure: Option<E>,
-) -> Result<Result<T, E>, (OwnerConversionRefusal, Option<T>, Option<E>)> {
+) -> DecodedResult<T, E> {
     if reserved != [0; 7] {
         return Err((OwnerConversionRefusal::NonzeroReserved, success, failure));
     }

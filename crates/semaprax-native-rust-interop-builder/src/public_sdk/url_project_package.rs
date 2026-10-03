@@ -67,6 +67,10 @@ impl PreparedUrlProjectPackage {
 
 /// All bytes were previously acquired under the caller's Project/index/lock
 /// authority. This constructor only validates and canonically binds them.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "binds all exact Project package inputs at the authenticated construction boundary"
+)]
 pub(crate) fn prepare_url_project_package(
     program: &semaprax::hir::ResolvedProgram,
     export: &str,
@@ -142,21 +146,16 @@ pub(crate) fn prepare_url_project_package(
             "selected Url Cargo closure differs from its pinned lock",
         )]);
     }
-    let cargo_toml = format!(
-        "[package]\nname=\"ri06-url-owner\"\nversion=\"0.1.0\"\nedition=\"2021\"\npublish=false\n\n[lib]\npath=\"src/lib.rs\"\n\n[workspace]\n\n[dependencies]\nurl_alias={{package=\"url\",version=\"=2.5.8\"}}\n"
-    );
+    let cargo_toml = "[package]\nname=\"ri06-url-owner\"\nversion=\"0.1.0\"\nedition=\"2021\"\npublish=false\n\n[lib]\npath=\"src/lib.rs\"\n\n[workspace]\n\n[dependencies]\nurl_alias={package=\"url\",version=\"=2.5.8\"}\n".to_string();
     let native = super::url_project_native::render(program, export).map_err(|e| vec![e])?;
     let mut binding = String::new();
     write!(binding,"{{\"schema\":\"semaprax.ri06.url-project-plan.v1\",\"subject\":\"{}\",\"target\":\"{}\",\"constructor\":\"{}\",\"matcher\":\"{}\",\"index\":\"{}\"}}\n",subject_digest,target,URL_CONSTRUCTOR,URL_MATCH,index.digest()).expect("String write");
     let binding = format!(
-        "{}{}",
+        "{},\"c_sha256\":\"{}\",\"header_sha256\":\"{}\",\"rust_sha256\":\"{}\"}}\n",
         binding.trim_end_matches('\n').trim_end_matches('}'),
-        format!(
-            ",\"c_sha256\":\"{}\",\"header_sha256\":\"{}\",\"rust_sha256\":\"{}\"}}\n",
-            raw_digest(native.c.as_bytes()),
-            raw_digest(native.header.as_bytes()),
-            raw_digest(native.rust.as_bytes())
-        )
+        raw_digest(native.c.as_bytes()),
+        raw_digest(native.header.as_bytes()),
+        raw_digest(native.rust.as_bytes())
     );
     let mut descriptor = String::new();
     write!(descriptor,"{{\"schema\":\"semaprax.ri06.url-project-descriptor.v1\",\"subject\":\"{}\",\"source_sha256\":\"{}\",\"lock_sha256\":\"{}\"}}\n",subject_digest,source_sha256,raw_digest(cargo_lock)).expect("String write");

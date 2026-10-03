@@ -81,6 +81,10 @@ pub(super) fn render_container_program(
         .replace("sizeof(spx_container)==24", "sizeof(spx_container)==40"))
 }
 
+#[expect(
+    clippy::too_many_arguments,
+    reason = "emits one validated owner function from its distinct cleanup and layout facts"
+)]
 fn render_function(
     function: &ResolvedFunction,
     constructor: &DeclarationId,

@@ -547,8 +547,10 @@ struct IndexedProjectSources<'a> {
     sources: &'a [&'a str],
     rustc: &'a str,
     foreign_guard: Option<package::ForeignReturnGuard<'a>>,
-    prepublish: Option<&'a dyn Fn(&str) -> Result<(), Diagnostic>>,
+    prepublish: Option<&'a PrepublishCheck<'a>>,
 }
+
+type PrepublishCheck<'a> = dyn Fn(&str) -> Result<(), Diagnostic> + 'a;
 
 enum SdkInput<'a> {
     Source(&'a crate::ast::Program),
@@ -640,6 +642,10 @@ pub(super) fn build_project_native_rust_sdk_inner(
     )
 }
 
+#[expect(
+    clippy::too_many_arguments,
+    reason = "retains the authenticated Project and publication facts at this authority boundary"
+)]
 pub(super) fn build_indexed_project_sdk_inner(
     program: &crate::hir::ResolvedProgram,
     subject: &ProjectSdkSubject,
@@ -647,7 +653,7 @@ pub(super) fn build_indexed_project_sdk_inner(
     sources: &[&str],
     rustc: &str,
     foreign_guard: Option<package::ForeignReturnGuard<'_>>,
-    prepublish: Option<&dyn Fn(&str) -> Result<(), Diagnostic>>,
+    prepublish: Option<&PrepublishCheck<'_>>,
     output: &Path,
 ) -> Result<NativeRustSdkBundle, PublicBuildError> {
     let options = NativeRustSdkOptions {
@@ -996,7 +1002,7 @@ fn build_sdk_inner(
                 plan,
                 package_source,
                 ..
-            } => Some(package::IndexedSources::Single(*plan, *package_source)),
+            } => Some(package::IndexedSources::Single(plan, package_source)),
             SdkInput::IndexedSources {
                 plans,
                 package_sources,

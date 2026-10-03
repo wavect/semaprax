@@ -126,6 +126,7 @@ use semaprax_native_rust_interop_platform as platform;
 use std::path::Path;
 
 pub mod indexed_binding;
+#[cfg(test)]
 mod owned_plan;
 mod public_sdk;
 mod trusted_native;

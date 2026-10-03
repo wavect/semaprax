@@ -1229,6 +1229,26 @@ mod tests {
         too_many.push(b'\n');
         assert_eq!(RustApiIndex::replay(&too_many), Err(IndexError::Malformed));
 
+        let mut value: Value = serde_json::from_slice(EXAMPLE).unwrap();
+        let types = value.get_mut("types").unwrap().as_array_mut().unwrap();
+        let template = types[0].clone();
+        types.resize(MAX_TYPES + 1, template);
+        let mut too_many_types = serde_json::to_vec(&value).unwrap();
+        too_many_types.push(b'\n');
+        assert_eq!(
+            RustApiIndex::replay(&too_many_types),
+            Err(IndexError::Malformed)
+        );
+
+        let mut value: Value = serde_json::from_slice(EXAMPLE).unwrap();
+        value["items"][0]["docs"] = Value::String("x".repeat(MAX_DOC_BYTES + 1));
+        let mut oversized_docs = serde_json::to_vec(&value).unwrap();
+        oversized_docs.push(b'\n');
+        assert_eq!(
+            RustApiIndex::replay(&oversized_docs),
+            Err(IndexError::Malformed)
+        );
+
         let oversized = vec![b' '; MAX_INDEX_BYTES + 1];
         assert_eq!(RustApiIndex::replay(&oversized), Err(IndexError::Malformed));
     }
@@ -1249,6 +1269,10 @@ mod tests {
             compiler_version.status.success() && !release.contains('-'),
             "fixture signature check requires a stable rustc, got {version_text}"
         );
+        RustApiIndex::replay(EXAMPLE)
+            .unwrap()
+            .require_stable_compiler_identity(version_text.trim())
+            .expect("prepared signatures must match the selected stable compiler exactly");
         for (source, should_succeed) in [
             ("stable_signature_check.rs", true),
             ("stable_signature_mismatch.rs", false),

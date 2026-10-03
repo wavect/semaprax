@@ -10,7 +10,10 @@ requires all of the following executable evidence at one source revision:
    checked artifact digest bound to each executable fixture.
 2. The same bounded corpus must execute through interpreter, native C11, and
    Rust-source lowering, comparing value, selected status, effects, and cleanup
-   traces.  The lexical-`Drop` control must fail that differential gate.
+   traces. The owned-`Bytes` identity selector now compares the shared value
+   and proves the generated Rust transfer trace and lexical-`Drop` control,
+   but interpreter and C11 still expose no cleanup trace to compare. The
+   lexical-`Drop` control must fail a common-trace differential gate.
 3. The admitted type/effect/ownership island must be explicit.  Borrowing,
    contracts, resources, async, unadmitted aggregates, and foreign owners need
    a deterministic rejection or an explicit existing boundary.

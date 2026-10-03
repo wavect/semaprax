@@ -286,7 +286,11 @@ fn inert_cleanup_plan(function: &ResolvedFunction) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use std::path::Path;
+    use std::{
+        path::{Path, PathBuf},
+        process::Command,
+        time::{SystemTime, UNIX_EPOCH},
+    };
 
     use super::*;
 
@@ -295,6 +299,44 @@ mod tests {
             target: "aarch64-apple-darwin".into(),
             rustc_commit: "88d9e12ae178fab0fb5cc050a94da85685d449ea".into(),
         }
+    }
+
+    const OWNED_IDENTITY_DIFFERENTIAL: &str = r#"module ri14.transfer;
+@id("ri14.transfer.identity") fn identity(value: own Bytes) -> Bytes { value }
+@id("ri14.transfer.main") fn main() -> i64 {
+    let source = [0u8, 255u8, 7u8, 0u8];
+    let source_view = array_as_slice(source);
+    let owned = bytes_copy(source_view);
+    let forwarded = identity(owned);
+    let forwarded_view = bytes_as_slice(forwarded);
+    match byte_get(forwarded_view, 1usize) {
+        Option::Some { value: byte } => if byte == 255u8 { 42 } else { 0 },
+        Option::None {} => 0,
+    }
+}
+"#;
+
+    fn temporary_root(label: &str) -> PathBuf {
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        std::env::temp_dir().join(format!(
+            "semaprax-ri14-{label}-{}-{nonce}",
+            std::process::id()
+        ))
+    }
+
+    fn command_output(command: &mut Command, label: &str) -> Vec<u8> {
+        let output = command.output().unwrap_or_else(|error| {
+            panic!("{label} did not start: {error}");
+        });
+        assert!(
+            output.status.success(),
+            "{label} failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        output.stdout
     }
 
     #[test]
@@ -351,6 +393,112 @@ mod tests {
             .contains("spx_lexical_drop_negative_control"));
         assert!(artifact.source().contains("lexical.second"));
         assert!(artifact.source().contains("lexical.first"));
+    }
+
+    #[test]
+    fn generated_owned_identity_matches_interpreter_and_c11_when_explicitly_enabled() {
+        let Some(rustc) = std::env::var_os("SEMAPRAX_RI14_RUSTC") else {
+            eprintln!("RI-14 generated Rust differential disabled; set SEMAPRAX_RI14_RUSTC");
+            return;
+        };
+        let rustc = PathBuf::from(rustc);
+        assert!(rustc.is_absolute() && rustc.is_file());
+        let clang = PathBuf::from(std::env::var_os("CLANG").expect(
+            "RI-14 generated Rust differential requires CLANG when SEMAPRAX_RI14_RUSTC is set",
+        ));
+        assert!(clang.is_absolute() && clang.is_file());
+
+        let verbose = String::from_utf8(command_output(
+            Command::new(&rustc).arg("--version").arg("--verbose"),
+            "bound rustc identity",
+        ))
+        .unwrap();
+        let expected = binding();
+        assert!(verbose.contains(&format!("commit-hash: {}", expected.rustc_commit)));
+        assert!(verbose.contains(&format!("host: {}", expected.target)));
+
+        let parsed = crate::parse(
+            OWNED_IDENTITY_DIFFERENTIAL,
+            Path::new("ri14-differential.spx"),
+        )
+        .unwrap();
+        assert!(crate::verify::verify(&parsed).is_empty());
+        let resolved = hir::resolve(&parsed).unwrap();
+        let artifact = lower_noninert_cleanup_plan(
+            &resolved,
+            &DeclarationId::new("ri14.transfer.identity"),
+            &expected,
+        )
+        .unwrap();
+
+        let root = temporary_root("owned-identity");
+        std::fs::create_dir(&root).unwrap();
+        let generated = root.join("generated.rs");
+        let driver = root.join("main.rs");
+        let rust_binary = root.join(format!("generated{}", std::env::consts::EXE_SUFFIX));
+        std::fs::write(&generated, artifact.source()).unwrap();
+        std::fs::write(
+            &driver,
+            r#"include!("generated.rs");
+fn main() {
+    let mut trace = Vec::new();
+    let value = spx_entry(Some(vec![0, 255, 7, 0]), &mut trace);
+    assert_eq!(value, vec![0, 255, 7, 0]);
+    assert_eq!(trace.as_slice(), SPX_CLEANUP_ACTIONS);
+    assert_eq!(spx_lexical_drop_negative_control(), vec!["lexical.second", "lexical.first"]);
+    println!("{value:?}|{trace:?}");
+}
+"#,
+        )
+        .unwrap();
+        command_output(
+            Command::new(&rustc)
+                .arg("--edition=2021")
+                .arg(&driver)
+                .arg("-o")
+                .arg(&rust_binary),
+            "generated stable Rust compilation",
+        );
+        assert_eq!(
+            command_output(
+                Command::new(&rust_binary),
+                "generated stable Rust execution"
+            ),
+            b"[0, 255, 7, 0]|[\"Transfer(parameter -> provisional-result)\"]\n"
+        );
+
+        let source_path = root.join("identity.spx");
+        std::fs::write(&source_path, OWNED_IDENTITY_DIFFERENTIAL).unwrap();
+        let interpreted = crate::interpreter::interpret(
+            &source_path,
+            "ri14.transfer.main",
+            &[],
+            &crate::interpreter::InterpreterOptions::default(),
+        )
+        .unwrap();
+        assert!(interpreted.returned);
+        let envelope: serde_json::Value = serde_json::from_str(&interpreted.envelope).unwrap();
+        assert_eq!(envelope["payload"]["outcome"]["value"], "42");
+
+        let c_source = root.join("identity.c");
+        let c_binary = root.join(format!("identity{}", std::env::consts::EXE_SUFFIX));
+        std::fs::write(&c_source, crate::codegen::emit_c(&parsed).unwrap()).unwrap();
+        assert_eq!(
+            command_output(
+                Command::new(&clang)
+                    .args(["-std=c11", "-Wall", "-Wextra", "-Werror"])
+                    .arg(&c_source)
+                    .arg("-o")
+                    .arg(&c_binary),
+                "C11 identity compilation",
+            ),
+            b""
+        );
+        assert_eq!(
+            command_output(Command::new(&c_binary), "C11 identity execution"),
+            b"42\n"
+        );
+        std::fs::remove_dir_all(root).unwrap();
     }
 
     #[test]

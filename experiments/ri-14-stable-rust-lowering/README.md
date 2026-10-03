@@ -49,3 +49,23 @@ reverse declaration order differs from the Semaprax transfer trace.
 The lowerer refuses every other signature, contract/effect, ownership action,
 and expression shape. It is an emitter seam for the fixture, not a route
 selected by the normal compiler.
+
+The feature test `generated_owned_identity_matches_interpreter_and_c11_when_explicitly_enabled`
+is the executable selector for the admitted island. It writes generated Rust,
+its driver, and C11 output beneath a unique temporary directory; the generated
+Rust driver proves the `Option::take` trace and the lexical-`Drop` reverse-order
+control, while the interpreter and C11 entrypoint both produce `42` from the
+same checked Semaprax source. It runs only when both held tools are explicitly
+bound:
+
+```sh
+SEMAPRAX_RI14_RUSTC=/absolute/path/to/rustc \
+CLANG=/absolute/path/to/clang \
+cargo test --locked --features unstable-rust-source-lowering \
+  generated_owned_identity_matches_interpreter_and_c11_when_explicitly_enabled
+```
+
+Before compiling, the selector verifies `rustc --version --verbose` against
+the target and commit in `toolchain.lock`. It does not claim a common physical
+cleanup trace from interpreter and C11, because those routes expose no such
+trace for this island.

@@ -3081,6 +3081,10 @@ These areas are deliberately outside the public compiler contract:
   the toolchain's local HTTP Project-v8 fixture separately checks response
   bytes through an authenticated synchronous Semaprax export after the Rust
   await point, without moving suspension into Semaprax source;
+- `src/resumable_effects/source_local_future.rs` owns a separate ephemeral
+  source-interpreter Future adapter for one checked scalar yield. It retains
+  only an in-memory suspension binding and caller-owned host Future. It has
+  no Project lock admission, native SDK emission, journal or effect authority;
 - `src/project/indexed_rust.rs` and
   `crates/semaprax-native-rust-interop-builder/src/public_sdk/indexed_project.rs`:
   explicit source-bound indexed Project admission and authenticated SDK

@@ -8,6 +8,12 @@
   field by field under their original execution guards. The focused real-Z3
   positive/mutant selector passed 2/2.
 
+- Add an ephemeral checked-source `Future` adapter for one direct scalar
+  suspension. A caller-owned Rust Future answers the request; the interpreter
+  resumes under its exact in-memory binding. Focused pending/wake/ready,
+  source-refusal and cancellation-drop controls pass. Project-authenticated
+  async SDK admission and external rollback remain open.
+
 - Exercise a real locked reqwest response through the generated local Future
   bridge and an authenticated Project v8 owned-Bytes SDK. The checked `.spx`
   body transforms `hello` to `ello`; an over-limit second response cannot

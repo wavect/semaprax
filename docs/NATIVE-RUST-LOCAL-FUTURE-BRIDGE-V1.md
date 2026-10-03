@@ -86,3 +86,29 @@ export have executable evidence. RI-08's
 callback registration and the source suspension owner must be connected
 without weakening their authority or checkpoint rules. No Stream, implicit
 Tokio startup, background executor thread, or network effect is admitted here.
+
+## Checked source interpreter adapter
+
+`resumable_effects::source_local_future::SourceLocalFuture` is a separate,
+ephemeral adapter over the checked source interpreter. Its constructor takes
+exact canonical `.spx` bytes, checks and resolves them, validates the HIR,
+derives the compiler-owned source effect signature, and admits exactly one
+direct `i64 -> i64` yield in a function with one `i64` argument and result.
+It evaluates the pure prefix to the suspension before returning. The handler
+is invoked only on the first Rust poll, returns one caller-owned Future, and
+receives the checked request. On ready, the interpreter resumes against the
+same in-memory program, argument, state, binding, and request. The adapter
+does not publish a Project SDK, authenticate a Project lock, or turn source
+`yield` into ordinary native emission.
+
+The adapter is deliberately `!Send`; the caller supplies every wake and the
+executor. A pending Rust Future is dropped on cancellation. Any external
+effect already performed by that Future remains external and is never
+reported as rolled back. The source continuation, Rust Future, and waker are
+never serialized or attached to the durable source journal. Handler error,
+source language failure, fuel exhaustion, and rejected evaluation have
+separate outcomes. The exact unit selector
+`resumable_effects::source_local_future::tests::` exercises pending/wake/ready,
+single host dispatch, checked result, noncanonical source refusal, and pending
+future drop. Handler or host-Future panic settles as `Panicked` and cannot
+leave a half-consumed handle available for another poll.

@@ -103,7 +103,41 @@ fn render_lib(
             .join(",");
         let arguments = arguments(&import.parameters);
         let declarations = parameters(&import.parameters);
-        write!(
+        if plan.receiver == "shared" {
+            let receiver_type = plan
+                .rust_path
+                .rsplit_once("::")
+                .expect("checked method path")
+                .0;
+            let method_types = import.parameters[1..]
+                .iter()
+                .map(|parameter| parameter.ty.rust())
+                .collect::<Vec<_>>()
+                .join(",");
+            let method_arguments = (1..import.parameters.len())
+                .map(|index| format!("arg_{index}"))
+                .collect::<Vec<_>>()
+                .join(",");
+            write!(
+                output,
+                "pub const SEMAPRAX_INDEXED_SCALAR_PROFILE:&str=\"semaprax.native-rust-indexed-scalar.v1\";\npub const SEMAPRAX_RUST_API_INDEX_DIGEST:&str={:?};\npub const SEMAPRAX_RUST_API_PACKAGE_SOURCE_DIGEST:&str={:?};\nmod {}{{\n{}\n}}\npub struct IndexedScalarHost;\nimpl NativeRustSdkImports for IndexedScalarHost{{fn {}(&mut self,{})->NativeRustSdkImportResult<{}>{{let receiver:{receiver_type}=<{receiver_type} as core::convert::From<i64>>::from(arg_0);let target:fn(&{receiver_type}{}{})->{}={};NativeRustSdkImportResult::Success(target(&receiver{}{}))}}}}\npub fn indexed_scalar_sdk(capabilities:&[&str])->Result<NativeRustSdk<IndexedScalarHost>,NativeRustSdkAdmissionError>{{NativeRustSdk::new(IndexedScalarHost,capabilities)}}\n",
+                plan.index_digest,
+                plan.package_source_sha256,
+                plan.cargo_alias,
+                package_source,
+                import.public_method,
+                declarations,
+                import.result.rust(),
+                if method_types.is_empty() { "" } else { "," },
+                method_types,
+                import.result.rust(),
+                plan.rust_path,
+                if method_arguments.is_empty() { "" } else { "," },
+                method_arguments,
+            )
+            .expect("writing indexed Rust method source cannot fail");
+        } else {
+            write!(
             output,
             "pub const SEMAPRAX_INDEXED_SCALAR_PROFILE:&str=\"semaprax.native-rust-indexed-scalar.v1\";\npub const SEMAPRAX_RUST_API_INDEX_DIGEST:&str={:?};\npub const SEMAPRAX_RUST_API_PACKAGE_SOURCE_DIGEST:&str={:?};\nmod {}{{\n{}\n}}\npub struct IndexedScalarHost;\nimpl NativeRustSdkImports for IndexedScalarHost{{fn {}(&mut self{}{})->NativeRustSdkImportResult<{}>{{let target:fn({})->{}={};NativeRustSdkImportResult::Success(target({}))}}}}\npub fn indexed_scalar_sdk(capabilities:&[&str])->Result<NativeRustSdk<IndexedScalarHost>,NativeRustSdkAdmissionError>{{NativeRustSdk::new(IndexedScalarHost,capabilities)}}\n",
             plan.index_digest,
@@ -120,6 +154,7 @@ fn render_lib(
             arguments,
         )
         .expect("writing indexed Rust source cannot fail");
+        }
     }
     output.push_str("}\npub use public_api::*;\n");
     for (index, dependency) in rust_dependencies.iter().enumerate() {

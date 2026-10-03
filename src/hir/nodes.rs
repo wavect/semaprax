@@ -588,6 +588,7 @@ pub struct ResolvedImport {
     pub native_rust: bool,
     pub index_selected: bool,
     pub selected_index_digest: Option<String>,
+    pub selected_receiver: Option<String>,
     pub rust_path: Option<String>,
     pub parameters: Vec<ResolvedImportParameter>,
     pub result: ResolvedImportResult,

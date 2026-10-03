@@ -44,6 +44,9 @@ pub struct ScalarBindingPlan {
     pub feature_digest: String,
     pub rust_path: String,
     pub signature: String,
+    /// `shared` means an `i64` carrier is converted to a temporary Rust
+    /// receiver with `From<i64>` before a checked `&self` method call.
+    pub receiver: String,
     pub physical_symbol: String,
 }
 
@@ -101,7 +104,12 @@ pub fn prepare_scalar_binding(
             span,
         ));
     }
-    if !matches!(item.kind, "function" | "inherent_method") || item.receiver != "none" {
+    if !matches!(item.kind, "function" | "inherent_method")
+        || !matches!(item.receiver, "none" | "shared")
+        || (item.receiver == "shared"
+            && (item.kind != "inherent_method" || path_segments.len() < 3))
+        || (item.receiver == "none" && item.kind == "function" && path_segments.len() < 2)
+    {
         return Err(error(
             "SPX-B144",
             "Rust API receiver or item kind is unsupported by the scalar bridge",
@@ -115,12 +123,17 @@ pub fn prepare_scalar_binding(
             span,
         )
     })?;
+    let receiver_parameters = usize::from(item.receiver == "shared");
     if signature.name != *path_segments.last().unwrap()
-        || signature.parameters.len() != import.parameters.len()
+        || signature.receiver != item.receiver
+        || import.selected_receiver.as_deref().unwrap_or("none") != item.receiver
+        || signature.parameters.len() + receiver_parameters != import.parameters.len()
+        || (receiver_parameters == 1
+            && !matches!(import.parameters.first(), Some(parameter) if parameter.ty == ResolvedType::I64 && parameter.ownership == OwnershipMode::Value))
         || signature
             .parameters
             .iter()
-            .zip(&import.parameters)
+            .zip(import.parameters.iter().skip(receiver_parameters))
             .any(|(rust, semaprax)| {
                 *rust != type_text(&semaprax.ty).unwrap_or("")
                     || semaprax.ownership != OwnershipMode::Value
@@ -165,6 +178,7 @@ pub fn prepare_scalar_binding(
         feature_digest: item.feature_digest.to_owned(),
         rust_path: item.path.to_owned(),
         signature: item.signature.to_owned(),
+        receiver: item.receiver.to_owned(),
         physical_symbol,
     })
 }
@@ -186,8 +200,12 @@ pub fn verify_scalar_binding(
             target: &plan.target,
             feature_digest: &plan.feature_digest,
             path: &plan.rust_path,
-            kind: "function",
-            receiver: "none",
+            kind: if plan.receiver == "shared" {
+                "inherent_method"
+            } else {
+                "function"
+            },
+            receiver: &plan.receiver,
             signature: &plan.signature,
             supported: true,
         },
@@ -251,6 +269,7 @@ struct ScalarSignature<'a> {
     name: &'a str,
     parameters: Vec<&'a str>,
     result: &'a str,
+    receiver: &'static str,
 }
 
 fn parse_scalar_signature(value: &str) -> Option<ScalarSignature<'_>> {
@@ -266,11 +285,21 @@ fn parse_scalar_signature(value: &str) -> Option<ScalarSignature<'_>> {
     if !matches!(result, "()" | "i64" | "bool") {
         return None;
     }
+    let (receiver, parameters) = if parameters == "&self" {
+        ("shared", "")
+    } else if let Some(rest) = parameters.strip_prefix("&self, ") {
+        ("shared", rest)
+    } else {
+        ("none", parameters)
+    };
     let mut types = Vec::new();
     if !parameters.is_empty() {
         for parameter in parameters.split(", ") {
             let (name, ty) = parameter.split_once(": ")?;
-            if !valid_alias(name) || !matches!(ty, "i64" | "bool") || types.len() == 8 {
+            if !valid_alias(name)
+                || !matches!(ty, "i64" | "bool")
+                || types.len() + usize::from(receiver == "shared") == 8
+            {
                 return None;
             }
             types.push(ty);
@@ -280,6 +309,7 @@ fn parse_scalar_signature(value: &str) -> Option<ScalarSignature<'_>> {
         name,
         parameters: types,
         result,
+        receiver,
     })
 }
 
@@ -290,6 +320,7 @@ pub fn bind_selected_scalar_signature(
     import: &mut crate::ast::ImportDeclaration,
     signature: &str,
     index_digest: &str,
+    receiver: &str,
 ) -> Result<(), Diagnostic> {
     use crate::ast::{ImportResult, Param, ParamMode, Type};
     if !import.native_rust || !import.index_selected || !valid_digest(index_digest) {
@@ -306,6 +337,13 @@ pub fn bind_selected_scalar_signature(
             import.span,
         )
     })?;
+    if parsed.receiver != receiver || !matches!(receiver, "none" | "shared") {
+        return Err(error(
+            "SPX-B144",
+            "selected Rust method receiver is unsupported by the scalar bridge",
+            import.span,
+        ));
+    }
     let path = import
         .rust_path
         .as_deref()
@@ -328,6 +366,17 @@ pub fn bind_selected_scalar_signature(
             span: import.span,
         })
         .collect();
+    if receiver == "shared" {
+        import.params.insert(
+            0,
+            Param {
+                name: "receiver".to_owned(),
+                mode: ParamMode::Value,
+                ty: Type::I64,
+                span: import.span,
+            },
+        );
+    }
     import.result = match parsed.result {
         "i64" => ImportResult::I64,
         "bool" => ImportResult::Bool,
@@ -335,5 +384,6 @@ pub fn bind_selected_scalar_signature(
     };
     import.selected_signature = Some(signature.to_owned());
     import.selected_index_digest = Some(index_digest.to_owned());
+    import.selected_receiver = (receiver == "shared").then(|| "shared".to_owned());
     Ok(())
 }

@@ -181,6 +181,7 @@ mod ast {
         index_selected,
         selected_signature,
         selected_index_digest,
+        selected_receiver,
         rust_path,
         params,
         result,

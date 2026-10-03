@@ -792,6 +792,7 @@ pub struct ImportDeclaration {
     pub index_selected: bool,
     pub selected_signature: Option<String>,
     pub selected_index_digest: Option<String>,
+    pub selected_receiver: Option<String>,
     /// A selected Rust API path. Its Cargo alias is checked against the
     /// authenticated dependency closure when a binding plan is prepared.
     pub rust_path: Option<String>,

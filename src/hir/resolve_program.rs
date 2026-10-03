@@ -373,6 +373,7 @@ impl Resolver<'_> {
                             native_rust: import.native_rust,
                             index_selected: import.index_selected,
                             selected_index_digest: import.selected_index_digest.clone(),
+                            selected_receiver: import.selected_receiver.clone(),
                             rust_path: import.rust_path.clone(),
                             parameters,
                             result: ResolvedImportResult {

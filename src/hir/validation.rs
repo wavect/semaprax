@@ -270,6 +270,15 @@ impl<'a> HirValidator<'a> {
                 )));
             }
             for import in &interface.imports {
+                if import.selected_receiver.as_deref().is_some_and(|receiver| {
+                    receiver != "shared"
+                        || !import.index_selected
+                        || !matches!(import.parameters.first(), Some(parameter) if parameter.ty == ResolvedType::I64 && parameter.ownership == OwnershipMode::Value)
+                }) {
+                    return Err(hir_error(
+                        "selected Rust method receiver has an invalid scalar projection",
+                    ));
+                }
                 if import.index_selected
                     && import
                         .selected_index_digest

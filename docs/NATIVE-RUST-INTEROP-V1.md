@@ -237,6 +237,17 @@ Semaprax import ID, and leaves v52 bytes unchanged for authored signatures.
 Only the indexed builder can admit this form; ordinary Wasm and interpreter
 routes still refuse it.
 
+The scalar selected-import profile also admits one receiver-bearing inherent
+method shape: a public `&self` method whose remaining arguments and result are
+admitted scalar values. The first Semaprax `i64` argument constructs a
+temporary receiver through the selected Rust type's `From<i64>` implementation;
+the held stable compiler checks both that construction and a typed
+`fn(&Receiver, ...)` method pointer. The temporary is never carried across the
+C ABI. Bound HIR retains `shared` receiver mode, and Graph v54 records it with
+the index digest. Mutable, owned, trait, inaccessible, and non-scalar receivers
+fail before invocation. This projection does not claim a persistent Rust
+object or borrowed ownership across calls.
+
 Rich Rust bindings use a separate `semaprax.trusted-native-profile.v1`
 preparation boundary. A profile binds three opaque, exact byte inputs: the
 selected binding plan, crate/index identity, and build-tool identity. They are

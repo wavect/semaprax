@@ -132,6 +132,41 @@ pub fn render_checked_scalar_adapter(
         .join(",");
     let function_type = parameters.join(",");
     let call_arguments = arguments.join(",");
+    if plan.receiver == "shared" {
+        let receiver_type = plan
+            .rust_path
+            .rsplit_once("::")
+            .ok_or_else(|| {
+                Diagnostic::error(
+                    "SPX-B143",
+                    "selected Rust method has no receiver type path",
+                    import.span,
+                )
+            })?
+            .0;
+        let method_types = parameters
+            .iter()
+            .skip(1)
+            .copied()
+            .collect::<Vec<_>>()
+            .join(",");
+        let method_arguments = arguments
+            .iter()
+            .skip(1)
+            .cloned()
+            .collect::<Vec<_>>()
+            .join(",");
+        let comma = if method_types.is_empty() { "" } else { "," };
+        let call_comma = if method_arguments.is_empty() { "" } else { "," };
+        return Ok(format!(
+            "fn {}({declarations})->{result}{{let receiver:{receiver_type}=<{receiver_type} as core::convert::From<i64>>::from(arg_0);let target:fn(&{receiver_type}{comma}{method_types})->{result}={};target(&receiver{call_comma}{method_arguments})}}\nstruct GeneratedIndexedAdapter;\nimpl NativeRustImports for GeneratedIndexedAdapter{{fn {rust_method}(&mut self{}{})->NativeRustImportResult<{result}>{{NativeRustImportResult::Success({}({call_arguments}))}}}}\n",
+            plan.physical_symbol,
+            plan.rust_path,
+            if declarations.is_empty() { "" } else { "," },
+            declarations,
+            plan.physical_symbol,
+        ));
+    }
     Ok(format!(
         "fn {}({declarations})->{result}{{let target:fn({function_type})->{result}={};target({call_arguments})}}\nstruct GeneratedIndexedAdapter;\nimpl NativeRustImports for GeneratedIndexedAdapter{{fn {rust_method}(&mut self{}{})->NativeRustImportResult<{result}>{{NativeRustImportResult::Success({}({call_arguments}))}}}}\n",
         plan.physical_symbol,

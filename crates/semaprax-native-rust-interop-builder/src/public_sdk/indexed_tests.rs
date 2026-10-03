@@ -69,6 +69,69 @@ fn index_for(source: &[u8], stable_rustc: &str) -> Vec<u8> {
         .to_vec()
 }
 
+fn method_index_for(
+    source: &[u8],
+    stable_rustc: &str,
+    alias: &str,
+    receiver: &str,
+    visible: bool,
+) -> Vec<u8> {
+    let mut envelope: Value = serde_json::from_slice(include_bytes!(
+        "../../../semaprax-rust-api-index/fixtures/local-api-fixture-v2-envelope.json"
+    ))
+    .unwrap();
+    let index = &mut envelope["index"];
+    index["package"]["name"] = "fixture_math".into();
+    index["package"]["version"] = "0.0.1".into();
+    index["package"]["source_sha256"] = raw_digest(source).into();
+    if alias != "fixture_math" {
+        index["package"]["renamed_from"] = alias.into();
+    }
+    index["target"] = target_triple().unwrap().into();
+    index["stable_rustc_version"] = stable_rustc.into();
+    let mut item = index["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|item| item["path"] == "local_api_fixture::MacroGenerated::answer")
+        .unwrap()
+        .clone();
+    let method_path = format!("{alias}::Meter::add");
+    let type_path = format!("{alias}::Meter");
+    item["path"] = method_path.into();
+    item["receiver"] = receiver.into();
+    item["signature"] = if receiver == "mutable" {
+        "fn add(&mut self, delta: i64) -> i64"
+    } else {
+        "fn add(&self, delta: i64) -> i64"
+    }
+    .into();
+    if !visible {
+        item["visibility"] = "private".into();
+        item["support"] = "rejected".into();
+        item["reason"] = "private".into();
+    }
+    item["type_roots"] = serde_json::json!([type_path.clone()]);
+    item["reachable_types"] = serde_json::json!([type_path.clone()]);
+    let mut ty = index["types"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|ty| ty["path"] == "local_api_fixture::MacroGenerated")
+        .unwrap()
+        .clone();
+    ty["path"] = type_path.into();
+    index["items"] = serde_json::json!([item]);
+    index["types"] = serde_json::json!([ty]);
+    let mut bytes = serde_json::to_vec(&envelope).unwrap();
+    bytes.push(b'\n');
+    RustApiIndex::admit_extractor_output(&bytes)
+        .unwrap()
+        .canonical_json()
+        .as_bytes()
+        .to_vec()
+}
+
 fn run_published_sdk(rustc: &str, clang: &str, root: &Path, output: &Path) -> i32 {
     let mut library = Command::new(rustc);
     library.current_dir(output).args([
@@ -293,5 +356,204 @@ fn indexed_scalar_sdk_publishes_compiled_adapter_and_refuses_signature_drift() {
     )
     .is_err());
     assert!(!hidden_output.exists());
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn indexed_shared_method_executes_and_refuses_inaccessible_or_unsupported_receivers() {
+    let rustc = std::env::var("RUSTC").expect("configure absolute RUSTC for physical RI-04 test");
+    let clang = std::env::var("CLANG").expect("configure absolute CLANG for physical RI-04 test");
+    let archiver = std::env::var("SEMAPRAX_ARCHIVER").expect("configure absolute archiver");
+    for tool in [&rustc, &clang, &archiver] {
+        assert!(Path::new(tool).is_absolute());
+    }
+    let actual_version = Command::new(&rustc).arg("--version").output().unwrap();
+    assert!(actual_version.status.success());
+    let actual_version = std::str::from_utf8(&actual_version.stdout).unwrap().trim();
+    let source = SOURCE.replace("fixture_math::add", "fixture_math::Meter::add");
+    let crate_source = b"pub struct Meter{base:i64} impl From<i64> for Meter{fn from(value:i64)->Self{Self{base:value}}} impl Meter{pub fn add(&self,delta:i64)->i64{self.base+delta}}\n";
+    let crate_digest = raw_digest(crate_source);
+    let index = method_index_for(crate_source, actual_version, "fixture_math", "shared", true);
+    let replay = RustApiIndex::replay(&index).unwrap();
+    let package = SelectedPackage {
+        cargo_alias: "fixture_math",
+        name: "fixture_math",
+        version: "0.0.1",
+        source_sha256: &crate_digest,
+        target: target_triple().unwrap(),
+        feature_digest: replay.feature_digest(),
+        stable_rustc_version: actual_version,
+    };
+    let (program, resolved, plan, _) = indexed::prepare_indexed_scalar(
+        &source,
+        Path::new("indexed-method.spx"),
+        &options(),
+        &index,
+        package,
+        crate_source,
+    )
+    .unwrap();
+    assert_eq!(plan.receiver, "shared");
+    assert_eq!(resolved.interfaces[0].imports[0].parameters.len(), 2);
+    assert_eq!(
+        resolved.interfaces[0].imports[0]
+            .selected_receiver
+            .as_deref(),
+        Some("shared")
+    );
+    let graph = semaprax::graph::to_json(&program).unwrap();
+    assert!(graph.contains("\"schema\":\"semaprax.graph.v54\""));
+    assert!(graph.contains("\"rust_receiver\":\"shared\""));
+    let canonical = semaprax::format::canonical(&program);
+    let (rebound, _, rebound_plan, _) = indexed::prepare_indexed_scalar(
+        &canonical,
+        Path::new("indexed-method.spx"),
+        &options(),
+        &index,
+        package,
+        crate_source,
+    )
+    .unwrap();
+    assert_eq!(rebound_plan, plan);
+    assert_eq!(semaprax::graph::to_json(&rebound).unwrap(), graph);
+
+    let root = std::fs::canonicalize(std::env::temp_dir())
+        .unwrap()
+        .join(format!(
+            "semaprax-ri04-indexed-method-{}",
+            std::process::id()
+        ));
+    let _ = std::fs::remove_dir_all(&root);
+    std::fs::create_dir(&root).unwrap();
+    let output = root.join("sdk");
+    reset_build_observer();
+    build_indexed_scalar_native_rust_sdk(
+        &source,
+        Path::new("indexed-method.spx"),
+        options(),
+        &index,
+        package,
+        crate_source,
+        &output,
+    )
+    .unwrap();
+    let lib = std::fs::read_to_string(output.join("src/lib.rs")).unwrap();
+    let manifest = std::fs::read_to_string(output.join("semaprax.native-rust-sdk.json")).unwrap();
+    assert!(lib.contains("let target:fn(&fixture_math::Meter,i64)->i64=fixture_math::Meter::add"));
+    assert!(manifest.contains(&raw_digest(lib.as_bytes())));
+    assert_eq!(run_published_sdk(&rustc, &clang, &root, &output), 0);
+
+    let flipped = b"pub struct Meter{base:i64} impl From<i64> for Meter{fn from(value:i64)->Self{Self{base:value}}} impl Meter{pub fn add(&self,delta:i64)->i64{self.base+delta+1}}\n";
+    let flipped_digest = raw_digest(flipped);
+    let flipped_index = method_index_for(flipped, actual_version, "fixture_math", "shared", true);
+    let flipped_package = SelectedPackage {
+        source_sha256: &flipped_digest,
+        ..package
+    };
+    let flipped_output = root.join("flipped-sdk");
+    reset_build_observer();
+    build_indexed_scalar_native_rust_sdk(
+        &source,
+        Path::new("indexed-method.spx"),
+        options(),
+        &flipped_index,
+        flipped_package,
+        flipped,
+        &flipped_output,
+    )
+    .unwrap();
+    assert_eq!(
+        run_published_sdk(&rustc, &clang, &root, &flipped_output),
+        12
+    );
+
+    let private_index = method_index_for(
+        crate_source,
+        actual_version,
+        "fixture_math",
+        "shared",
+        false,
+    );
+    let private_output = root.join("private-sdk");
+    reset_build_observer();
+    let inaccessible = build_indexed_scalar_native_rust_sdk(
+        &source,
+        Path::new("indexed-method.spx"),
+        options(),
+        &private_index,
+        package,
+        crate_source,
+        &private_output,
+    )
+    .unwrap_err();
+    assert_eq!(inaccessible[0].code, "SPX-B141");
+    assert!(inaccessible[0].span.is_some());
+    assert!(!private_output.exists());
+
+    let mutable_index = method_index_for(
+        crate_source,
+        actual_version,
+        "fixture_math",
+        "mutable",
+        true,
+    );
+    let mutable_output = root.join("mutable-sdk");
+    reset_build_observer();
+    let unsupported = build_indexed_scalar_native_rust_sdk(
+        &source,
+        Path::new("indexed-method.spx"),
+        options(),
+        &mutable_index,
+        package,
+        crate_source,
+        &mutable_output,
+    )
+    .unwrap_err();
+    assert_eq!(unsupported[0].code, "SPX-B144");
+    assert!(unsupported[0].span.is_some());
+    assert!(!mutable_output.exists());
+
+    let wrong_alias = SelectedPackage {
+        cargo_alias: "other_alias",
+        ..package
+    };
+    let alias_output = root.join("wrong-alias-sdk");
+    reset_build_observer();
+    let rejected = build_indexed_scalar_native_rust_sdk(
+        &source,
+        Path::new("indexed-method.spx"),
+        options(),
+        &index,
+        wrong_alias,
+        crate_source,
+        &alias_output,
+    )
+    .unwrap_err();
+    assert_eq!(rejected[0].code, "SPX-B142");
+    assert!(rejected[0].span.is_some());
+    assert!(!alias_output.exists());
+
+    let renamed_index = method_index_for(
+        crate_source,
+        actual_version,
+        "fixture_alias",
+        "shared",
+        true,
+    );
+    let renamed_source = source.replace("fixture_math::Meter::add", "fixture_alias::Meter::add");
+    let renamed_package = SelectedPackage {
+        cargo_alias: "fixture_alias",
+        ..package
+    };
+    let (_, _, renamed_plan, _) = indexed::prepare_indexed_scalar(
+        &renamed_source,
+        Path::new("indexed-method.spx"),
+        &options(),
+        &renamed_index,
+        renamed_package,
+        crate_source,
+    )
+    .unwrap();
+    assert_ne!(plan.physical_symbol, renamed_plan.physical_symbol);
     std::fs::remove_dir_all(root).unwrap();
 }

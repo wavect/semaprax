@@ -259,9 +259,13 @@ pub(super) fn prepare_indexed_scalar(
             )]
         })?;
         let item = items[0];
-        if !matches!(item.kind, ItemKind::Function | ItemKind::InherentMethod)
-            || item.receiver != Receiver::None
-        {
+        if !matches!(
+            (item.kind, item.receiver),
+            (
+                ItemKind::Function | ItemKind::InherentMethod,
+                Receiver::None
+            ) | (ItemKind::InherentMethod, Receiver::Shared)
+        ) {
             return Err(vec![Diagnostic::error(
                 "SPX-B144",
                 "Rust API receiver or item kind is unsupported by the scalar bridge",
@@ -272,6 +276,11 @@ pub(super) fn prepare_indexed_scalar(
             import,
             &item.signature,
             index.digest(),
+            if item.receiver == Receiver::Shared {
+                "shared"
+            } else {
+                "none"
+            },
         )
         .map_err(|error| vec![error])?;
     }

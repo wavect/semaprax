@@ -495,6 +495,7 @@ impl Parser {
                 index_selected,
                 selected_signature: None,
                 selected_index_digest: None,
+                selected_receiver: None,
                 rust_path,
                 params,
                 result,

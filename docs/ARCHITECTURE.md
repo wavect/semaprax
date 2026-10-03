@@ -2969,7 +2969,10 @@ These areas are deliberately outside the public compiler contract:
   package. Its short `rust selected fn` source form is parsed and formatted by
   the compiler, but ordinary checking refuses it until this builder binds an
   exact selected index signature. The bound HIR and Graph v53 retain that
-  index digest separately from the persistent import ID. The compiler-owned
+  index digest separately from the persistent import ID. The scalar `&self`
+  method profile maps an `i64` carrier to a temporary Rust receiver through
+  compiler-checked `From<i64>`, with HIR and Graph v54 retaining receiver mode;
+  it does not transport an owned Rust object through the C ABI. The compiler-owned
   `src/native_rust_binding.rs` keeps the source/identity-bound plan and stable
   physical symbol separate from the persistent import ID;
 - `crates/semaprax-native-rust-interop-platform/src/host_target.rs`: shared

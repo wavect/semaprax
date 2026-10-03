@@ -36,6 +36,12 @@ pub enum RequiredLawEvidence {
         toolchain: String,
         accepted_translation: String,
     },
+    /// Exact installed Z3 version plus explicit LAW-06 straight-line summary
+    /// translation acceptance. A no-call SMT policy cannot cover this proof.
+    PinnedModularSmtSource {
+        toolchain: String,
+        accepted_translation: String,
+    },
     /// Artifact association is not a proof that lowering preserves semantics.
     VerifiedLowering,
 }
@@ -288,9 +294,27 @@ fn check_requirement(
                     method["class"] == "smt_proved"
                         && method["tool"] == "z3"
                         && method["tool_version"] == *toolchain
+                        && method["bounds"] != crate::assurance_manifest::modular_law::BOUNDS_V1
                 })
             });
             (!confirmed).then_some("solver_confirmed_exact_project_evidence_missing")
+        }
+        RequiredLawEvidence::PinnedModularSmtSource {
+            toolchain,
+            accepted_translation,
+        } => {
+            if accepted_translation != crate::assurance_manifest::modular_law::BOUNDS_V1 {
+                return Some("modular_smt_translation_profile_not_accepted");
+            }
+            let confirmed = evidence["methods"].as_array().is_some_and(|methods| {
+                methods.iter().any(|method| {
+                    method["class"] == "smt_proved"
+                        && method["tool"] == "z3"
+                        && method["tool_version"] == *toolchain
+                        && method["bounds"] == *accepted_translation
+                })
+            });
+            (!confirmed).then_some("modular_solver_confirmed_exact_project_evidence_missing")
         }
         RequiredLawEvidence::VerifiedLowering => Some("proved_lowering_evidence_unavailable"),
     }

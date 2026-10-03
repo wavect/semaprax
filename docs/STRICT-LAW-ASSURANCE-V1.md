@@ -62,6 +62,12 @@ The profiles are deliberately separate, not a total evidence ordering:
 - `pinned_smt_source`: exact installed Z3 Project evidence, pinned version and
   explicitly accepted checked-arithmetic translation profile. A structurally
   valid SMT certificate is insufficient. Unpinned `smt_source` still refuses.
+- `pinned_modular_smt_source`: exact installed Z3 Project postcondition evidence
+  for the bounded pure-call summary profile, with an independently pinned
+  version and modular translation bound. The older pinned SMT source policy
+  does not accept this different profile. A summary transcript is replayed
+  through the registered installed tool before attachment; it is never an
+  authorization for Project execution or Workspace publication.
 - `verified_lowering`: currently refuses; artifact association is insufficient.
 
 Open law assumptions and unmet prerequisite laws remain open. Runtime guards,

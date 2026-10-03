@@ -47,6 +47,8 @@ impl Fixture {
         .unwrap();
         plan(&revision, "accounting.total")
     }
+
+
 }
 
 impl Drop for Fixture {
@@ -251,4 +253,340 @@ fn real_z3_summary_use_refuses_a_weakened_callee_contract() {
         matches!(outcome, Err(ModularFailure::Postcondition { .. })),
         "{outcome:?}"
     );
+}
+
+#[test]
+#[ignore = "requires explicitly provisioned installed Z3"]
+fn real_z3_summary_certificate_replays_and_classifies_dependency_drift() {
+    use semaprax::assurance_manifest::modular_law::certificate::{
+        classify_drift, export, replay, Drift, ReplayFailure,
+    };
+    use semaprax::assurance_manifest::smt_discharge::{provision_from_env, RunLimits};
+    let solver = provision_from_env().expect("explicit installed Z3");
+    let baseline = Fixture::new("certificate-baseline", CORE, "");
+    let baseline_revision =
+        with_authenticated_project(&baseline.root.join("semaprax.toml"), |snapshot| {
+            Ok(snapshot.retain_revision())
+        })
+        .unwrap();
+    let certificate = export(
+        &baseline_revision,
+        "accounting.total",
+        &solver,
+        &RunLimits::default(),
+    )
+    .expect("real solver creates source-bound certificate");
+    assert_eq!(
+        classify_drift(&certificate, &baseline_revision, "accounting.total").unwrap(),
+        Drift::Exact
+    );
+    assert_eq!(
+        replay(
+            &certificate,
+            &baseline_revision,
+            "accounting.total",
+            &solver,
+            &RunLimits::default()
+        )
+        .unwrap()
+        .caller_postcondition_scripts
+        .len(),
+        1
+    );
+
+    let changed_core = CORE.replace("{ value + 2 }", "{ value + 3 }");
+    let changed = Fixture::new("certificate-changed", &changed_core, "");
+    let changed_revision =
+        with_authenticated_project(&changed.root.join("semaprax.toml"), |snapshot| {
+            Ok(snapshot.retain_revision())
+        })
+        .unwrap();
+    assert_eq!(
+        classify_drift(&certificate, &changed_revision, "accounting.total").unwrap(),
+        Drift::DependencyChanged
+    );
+
+    let unrelated = Fixture::new(
+        "certificate-unrelated",
+        CORE,
+        "@id(\"accounting.unrelated\") fn unrelated(value: i64) -> i64 { value }\n",
+    );
+    let unrelated_revision =
+        with_authenticated_project(&unrelated.root.join("semaprax.toml"), |snapshot| {
+            Ok(snapshot.retain_revision())
+        })
+        .unwrap();
+    assert_eq!(
+        classify_drift(&certificate, &unrelated_revision, "accounting.total").unwrap(),
+        Drift::UnrelatedRevision
+    );
+    assert!(matches!(
+        replay(
+            &certificate,
+            &unrelated_revision,
+            "accounting.total",
+            &solver,
+            &RunLimits::default()
+        ),
+        Err(ReplayFailure::Stale)
+    ));
+}
+
+#[test]
+fn branching_summary_profile_refuses_before_solver_invocation() {
+    use semaprax::assurance_manifest::modular_law::summary::{prove_straight_line, ModularFailure};
+    use semaprax::assurance_manifest::smt_discharge::RunLimits;
+    let fixture = Fixture::new("branch-refusal", CORE, "");
+    let path = fixture.root.join("src/app.spx");
+    let source = std::fs::read_to_string(&path).unwrap();
+    let changed = source.replace(
+        "    tax(base(value))",
+        "    if value >= 0 { tax(base(value)) } else { tax(base(value)) }",
+    );
+    assert_ne!(source, changed);
+    let canonical = semaprax::format::canonical(&semaprax::parse(&changed, &path).unwrap());
+    std::fs::write(path, canonical).unwrap();
+    let revision = with_authenticated_project(&fixture.root.join("semaprax.toml"), |snapshot| {
+        Ok(snapshot.retain_revision())
+    })
+    .unwrap();
+    match prove_straight_line(&revision, "accounting.total", None, &RunLimits::default()) {
+        Err(ModularFailure::Refused(Refusal::BranchingSummary { .. })) => {}
+        other => panic!("expected named branch refusal: {other:?}"),
+    }
+}
+
+#[test]
+#[ignore = "requires explicitly provisioned installed Z3"]
+fn installed_modular_postcondition_attaches_to_selected_strict_project() {
+    use semaprax::agent_runtime::AgentCancellation;
+    use semaprax::assurance_manifest::law_set::{
+        strict::{RequiredLawEvidence, StrictLawPolicy},
+        LawSet,
+    };
+    use semaprax::project::{
+        install_host_strict_law_policy, with_strict_authenticated_project, ProjectExecutionOptions,
+    };
+    use semaprax::proof_export::{
+        installed::{HostProfile, InstalledProofTool, Limits},
+        installed_project::prove_modular_postcondition,
+    };
+    use std::collections::BTreeMap;
+    let fixture = Fixture::new("selected-modular", CORE, "");
+    let native = "module accounting.laws;\n@id(\"accounting.total.law\")\nlaw contract \"accounting.total\" ensures (value: i64, result: i64)\n result == value + 3\n evidence smt_proved;\n";
+    let law_path = fixture.root.join("src/contracts.spx");
+    let parsed = semaprax::native_law_source::parse(native, "src/contracts.spx").unwrap();
+    std::fs::write(&law_path, semaprax::native_law_source::canonical(&parsed)).unwrap();
+    std::fs::write(fixture.root.join("semaprax.toml"),
+        "schema = \"semaprax.manifest.v2\"\n\n[package]\nname = \"accounting-law\"\nversion = \"1.0.0\"\n\n[modules]\nentry = \"accounting.app\"\nsources = [\"src/app.spx\", \"src/contracts.spx\", \"src/core.spx\", \"src/tests.spx\"]\nlaw_sources = [\"src/contracts.spx\"]\ntests = [\"accounting.tests\"]\n\n[exports]\nweb = [\"accounting.total\"]\n").unwrap();
+    let manifest = fixture.root.join("semaprax.toml");
+    let revision =
+        with_authenticated_project(&manifest, |snapshot| Ok(snapshot.retain_revision())).unwrap();
+    let tool_path =
+        std::path::PathBuf::from(std::env::var("SEMAPRAX_LAW_Z3").expect("installed Z3 path"));
+    let version = std::env::var("SEMAPRAX_LAW_Z3_VERSION").expect("installed Z3 pin");
+    let tool = InstalledProofTool::open_modular_scalar(
+        &tool_path,
+        &fixture.root,
+        &version,
+        HostProfile::TrustedLocal,
+        Limits::default(),
+        AgentCancellation::new(),
+    )
+    .unwrap();
+    let laws = LawSet::derive(
+        &revision,
+        "modular-proof-v1",
+        revision.law_modules().to_vec(),
+    )
+    .unwrap();
+    let policy = StrictLawPolicy::new(
+        laws.clone(),
+        BTreeMap::from([(
+            "accounting.total.law".into(),
+            RequiredLawEvidence::PinnedModularSmtSource {
+                toolchain: version.clone(),
+                accepted_translation: semaprax::assurance_manifest::modular_law::BOUNDS_V1.into(),
+            },
+        )]),
+    )
+    .unwrap();
+    install_host_strict_law_policy(&manifest, &policy, vec![]).unwrap();
+    let proof = prove_modular_postcondition(&revision, "src/app.spx", "accounting.total", 0, &tool)
+        .expect("registered installed Z3 proves selected modular postcondition");
+    with_strict_authenticated_project(&manifest, &[proof.clone()], &[], |session| {
+        session.execute_entry(&ProjectExecutionOptions::default())?;
+        Ok(())
+    })
+    .expect("selected strict Project accepts exact modular proof");
+    let error =
+        with_strict_authenticated_project(&manifest, &[], &[], |_session| Ok(())).unwrap_err();
+    assert_eq!(error[0].code, "SPX-LW130");
+}
+
+#[test]
+#[ignore = "requires explicitly provisioned installed Z3"]
+fn installed_modular_postcondition_attaches_to_selected_strict_workspace_publication() {
+    use semaprax::agent_runtime::AgentCancellation;
+    use semaprax::assurance_manifest::law_set::{
+        protected::{
+            ProtectedLawBaseline, ProtectedLawReview, SpecificationChangeApproval,
+            SpecificationChangeAuthority,
+        },
+        strict::{RequiredLawEvidence, StrictLawPolicy},
+        LawSet,
+    };
+    use semaprax::project::{
+        apply_strict_law_publication, install_host_strict_law_policy,
+        prepare_strict_law_publication, ProjectCandidate, SemanticChange, StrictCandidateLawInputs,
+    };
+    use semaprax::proof_export::{
+        installed::{HostProfile, InstalledProofTool, Limits},
+        installed_project::prove_modular_postcondition,
+    };
+    use std::collections::BTreeMap;
+
+    struct Host;
+    impl SpecificationChangeAuthority for Host {
+        fn approve_specification_change(&mut self, _: &ProtectedLawReview) -> bool {
+            true
+        }
+    }
+    let fixture = Fixture::new("selected-modular-workspace", CORE, "");
+    let native = "module accounting.laws;\n@id(\"accounting.total.law\")\nlaw contract \"accounting.total\" ensures (value: i64, result: i64)\n result == value + 3\n evidence smt_proved;\n";
+    let law_path = fixture.root.join("src/contracts.spx");
+    let parsed = semaprax::native_law_source::parse(native, "src/contracts.spx").unwrap();
+    std::fs::write(&law_path, semaprax::native_law_source::canonical(&parsed)).unwrap();
+    std::fs::write(fixture.root.join("semaprax.toml"),
+        "schema = \"semaprax.manifest.v2\"\n\n[package]\nname = \"accounting-law\"\nversion = \"1.0.0\"\n\n[modules]\nentry = \"accounting.app\"\nsources = [\"src/app.spx\", \"src/contracts.spx\", \"src/core.spx\", \"src/tests.spx\"]\nlaw_sources = [\"src/contracts.spx\"]\ntests = [\"accounting.tests\"]\n\n[exports]\nweb = [\"accounting.total\"]\n").unwrap();
+    let paths = fixture.root.join("paths.json");
+    std::fs::write(&paths, concat!(r#"{"schema":"semaprax.workspace-semantic-path-set.v1","files":[{"path":"src/app.spx"},{"path":"src/contracts.spx"},{"path":"src/core.spx"},{"path":"src/tests.spx"}]}"#, "\n")).unwrap();
+    let workspace = semaprax::semantic_workspace::initialize(&fixture.root, &paths).unwrap();
+    let manifest = fixture.root.join("semaprax.toml");
+    let base =
+        with_authenticated_project(&manifest, |snapshot| Ok(snapshot.retain_revision())).unwrap();
+    let tool_path =
+        std::path::PathBuf::from(std::env::var("SEMAPRAX_LAW_Z3").expect("installed Z3 path"));
+    let version = std::env::var("SEMAPRAX_LAW_Z3_VERSION").expect("installed Z3 pin");
+    let tool = InstalledProofTool::open_modular_scalar(
+        &tool_path,
+        &fixture.root,
+        &version,
+        HostProfile::TrustedLocal,
+        Limits::default(),
+        AgentCancellation::new(),
+    )
+    .unwrap();
+    let baseline = LawSet::derive(&base, "modular-proof-v1", base.law_modules().to_vec()).unwrap();
+    let policy = StrictLawPolicy::new(
+        baseline.clone(),
+        BTreeMap::from([(
+            "accounting.total.law".into(),
+            RequiredLawEvidence::PinnedModularSmtSource {
+                toolchain: version,
+                accepted_translation: semaprax::assurance_manifest::modular_law::BOUNDS_V1.into(),
+            },
+        )]),
+    )
+    .unwrap();
+    let protection = ProtectedLawBaseline::new(&base, baseline, vec![]).unwrap();
+    install_host_strict_law_policy(&manifest, &policy, vec![]).unwrap();
+    let old_proof =
+        prove_modular_postcondition(&base, "src/app.spx", "accounting.total", 0, &tool).unwrap();
+
+    let start = ProjectCandidate::open(base.clone(), base.project_revision()).unwrap();
+    let change = SemanticChange::new(
+        base.project_revision(),
+        &serde_json::json!({
+            "kind":"change_function_signature", "target":"accounting.base",
+            "append_parameters":[{"name":"unused","type":"i64","argument":{"kind":"i64","value":0}}]
+        }),
+    )
+    .unwrap();
+    let candidate = start.apply(start.candidate_digest(), &change).unwrap();
+    let laws = LawSet::derive(
+        candidate.revision(),
+        "modular-proof-v1",
+        candidate.revision().law_modules().to_vec(),
+    )
+    .unwrap();
+    let proof = prove_modular_postcondition(
+        candidate.revision(),
+        "src/app.spx",
+        "accounting.total",
+        0,
+        &tool,
+    )
+    .unwrap();
+    let intent = candidate.protected_law_review(&protection, &laws).unwrap();
+    let approval = SpecificationChangeApproval::request(&intent, &mut Host).unwrap();
+    let stale_proofs = [old_proof];
+    let stale = StrictCandidateLawInputs {
+        protection: &protection,
+        policy: &policy,
+        laws: &laws,
+        proofs: &stale_proofs,
+        native_proofs: &[],
+        specification_approval: Some(&approval),
+    };
+    let proofs = [proof];
+    let inputs = StrictCandidateLawInputs {
+        protection: &protection,
+        policy: &policy,
+        laws: &laws,
+        proofs: &proofs,
+        native_proofs: &[],
+        specification_approval: Some(&approval),
+    };
+    let active = fixture.root.join(".semaprax-workspace/ACTIVE");
+    let before = std::fs::read(&active).unwrap();
+    assert!(prepare_strict_law_publication(
+        &candidate,
+        &stale,
+        candidate.candidate_digest(),
+        &fixture.root,
+        &manifest,
+        &workspace,
+    )
+    .is_err());
+    assert_eq!(std::fs::read(&active).unwrap(), before);
+    let proposal = prepare_strict_law_publication(
+        &candidate,
+        &inputs,
+        candidate.candidate_digest(),
+        &fixture.root,
+        &manifest,
+        &workspace,
+    )
+    .unwrap();
+    assert_eq!(std::fs::read(&active).unwrap(), before);
+    let missing = StrictCandidateLawInputs {
+        protection: &protection,
+        policy: &policy,
+        laws: &laws,
+        proofs: &[],
+        native_proofs: &[],
+        specification_approval: Some(&approval),
+    };
+    assert!(prepare_strict_law_publication(
+        &candidate,
+        &missing,
+        candidate.candidate_digest(),
+        &fixture.root,
+        &manifest,
+        &workspace,
+    )
+    .is_err());
+    assert_eq!(std::fs::read(&active).unwrap(), before);
+    apply_strict_law_publication(
+        &candidate,
+        &inputs,
+        candidate.candidate_digest(),
+        &fixture.root,
+        &manifest,
+        &workspace,
+        proposal.to_json().as_bytes(),
+    )
+    .unwrap();
+    assert_ne!(std::fs::read(&active).unwrap(), before);
 }

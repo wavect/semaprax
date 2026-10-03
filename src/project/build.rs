@@ -360,13 +360,17 @@ fn validate_native_laws(
                 )]);
             }
             for binder in &law.binders {
-                if !function.params.iter().any(|param| {
+                let parameter = function.params.iter().any(|param| {
                     param.name == binder.name && param.ty.to_string() == binder.ty.source()
-                }) {
+                });
+                let result = *clause == ContractKind::Postcondition
+                    && binder.name == "result"
+                    && function.return_type.to_string() == binder.ty.source();
+                if !parameter && !result {
                     return Err(vec![Diagnostic::io(
                         "SPX-LW110",
                         format!(
-                            "native law `{}` binder `{}` does not match a typed subject parameter",
+                            "native law `{}` binder `{}` does not match a typed subject parameter or postcondition result",
                             law.law_id, binder.name,
                         ),
                     )]);

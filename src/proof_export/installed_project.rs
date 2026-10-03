@@ -126,3 +126,70 @@ pub fn prove_postcondition(
 fn error(message: &str) -> Vec<Diagnostic> {
     vec![Diagnostic::io("SPX-LW140", message)]
 }
+
+/// Installed LAW-06 postcondition proof for an exact selected Project source.
+/// The result joins ordinary Project and LAW-04 strict assurance as one opaque
+/// `VerifiedProjectProof`; it carries no execution or publication authority.
+pub fn prove_modular_postcondition(
+    revision: &ProjectRevision,
+    source_path: &str,
+    declaration: &str,
+    index: usize,
+    tool: &InstalledProofTool,
+) -> Result<VerifiedProjectProof, Vec<Diagnostic>> {
+    use crate::assurance_manifest::modular_law::{certificate, installed};
+    use sha2::{Digest as _, Sha256};
+    if tool.kind() != ToolKind::Z3 {
+        return Err(error("modular scalar postconditions require installed Z3"));
+    }
+    let source = revision
+        .sources()
+        .iter()
+        .find(|row| row.path() == source_path)
+        .ok_or_else(|| error("modular proof source is absent from exact retained Project"))?;
+    if source.source_graph_schema() == "semaprax.native-law.v1" {
+        return Err(error("native relational law is not a source postcondition"));
+    }
+    let program =
+        crate::parse(source.source(), source_path).map_err(|diagnostic| vec![diagnostic])?;
+    let function = program
+        .functions
+        .iter()
+        .find(|function| function.stable_id == declaration)
+        .ok_or_else(|| error("modular declaration is absent from exact selected source"))?;
+    if index >= function.ensures.len() {
+        return Err(error("modular postcondition index is absent"));
+    }
+    let proof = installed::prove_straight_line_installed(revision, declaration, tool)
+        .map_err(|reason| error(&format!("modular proof was not established: {reason:?}")))?;
+    if index >= proof.caller_postcondition_scripts.len() {
+        return Err(error("modular postcondition was not checked"));
+    }
+    let certificate = certificate::encode_installed(&proof, tool)
+        .map_err(|reason| error(&format!("modular proof transcript unavailable: {reason:?}")))?;
+    let mut hash = Sha256::new();
+    hash.update(b"semaprax.installed-modular-project-proof.v1\0");
+    hash.update((certificate.len() as u64).to_le_bytes());
+    hash.update(certificate.as_bytes());
+    let proof_ref = format!("sha256:{:x}", crate::digest_hex::LowerHex(hash.finalize()));
+    let root = revision.program_root()?;
+    let mut method = MethodRecord::new(AssuranceClass::SmtProved, "z3", tool.expected_version());
+    method.proof_ref = Some(proof_ref.clone());
+    method.bounds = Some(crate::assurance_manifest::modular_law::BOUNDS_V1.into());
+    method.inputs = vec![root.program_root().into(), source.source_digest().into()];
+    method
+        .inputs
+        .extend(proof.plan.summaries.iter().map(|row| row.digest.clone()));
+    method.detail = Some("Exact retained Project call dependencies checked through registered installed Z3; no proved lowering or publication authority".into());
+    Ok(VerifiedProjectProof::kernel_confirmed(
+        smt::postcondition_obligation_id(declaration, index),
+        declaration.into(),
+        method,
+        revision.project_revision().into(),
+        root.program_root().into(),
+        source.path().into(),
+        source.source_revision().into(),
+        source.source_digest().into(),
+        proof_ref,
+    ))
+}

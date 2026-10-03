@@ -253,7 +253,7 @@ pub fn check_domain(
     }
 }
 
-fn script_digest(script: &str) -> String {
+pub(crate) fn script_digest(script: &str) -> String {
     use sha2::{Digest as _, Sha256};
     let mut hasher = Sha256::new();
     hasher.update(b"semaprax.smt-discharge.script.v1\0");

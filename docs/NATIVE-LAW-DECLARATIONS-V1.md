@@ -46,7 +46,9 @@ scalar selector boundary of Law Set v1.
 
 For a contract law, the subject string is a declaration identity, never a
 display name. The proposition must exactly select one existing `requires` or
-`ensures` clause of that function. A relational law has no function subject;
+`ensures` clause of that function. An `ensures` law may bind `result` at the
+subject function's exact scalar return type; a `requires` law may not. Other
+binders must match typed subject parameters. A relational law has no function subject;
 its typed binders and canonical proposition form a distinct LAW-01 selector.
 Both preserve source spans for diagnostics. Calls remain unsupported in either
 form until a separately reviewed resolved-call profile is available.

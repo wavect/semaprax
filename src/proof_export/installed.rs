@@ -42,6 +42,7 @@ impl Default for Limits {
 
 pub struct InstalledProofTool {
     kind: ToolKind,
+    modular_scalar: bool,
     expected_version: String,
     limits: Limits,
     cancellation: AgentCancellation,
@@ -58,6 +59,35 @@ fn refused(reason: &str) -> Diagnostic {
 }
 
 impl InstalledProofTool {
+    /// Host-selected larger finite ledger for the checked modular scalar
+    /// profile. Ordinary installed proof tools retain their original budget.
+    #[allow(clippy::too_many_arguments)]
+    pub fn open_modular_scalar(
+        executable: &Path,
+        cwd: &Path,
+        expected_version: &str,
+        profile: HostProfile,
+        limits: Limits,
+        cancellation: AgentCancellation,
+    ) -> Result<Self, Diagnostic> {
+        let mut tool = Self::open(
+            executable,
+            cwd,
+            ToolKind::Z3,
+            expected_version,
+            profile,
+            limits,
+            cancellation,
+        )?;
+        tool.budget = RefCell::new(ProcessInvocationBudget::modular_scalar());
+        tool.modular_scalar = true;
+        Ok(tool)
+    }
+
+    pub fn is_modular_scalar(&self) -> bool {
+        self.modular_scalar
+    }
+
     pub fn kind(&self) -> ToolKind {
         self.kind
     }
@@ -122,6 +152,7 @@ impl InstalledProofTool {
                 .map_err(|_| refused("held invocation path unavailable"))?;
             Ok(Self {
                 kind,
+                modular_scalar: false,
                 expected_version: expected_version.to_owned(),
                 limits,
                 cancellation,

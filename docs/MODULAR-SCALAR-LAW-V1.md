@@ -1,67 +1,61 @@
-# Modular Scalar Law v1: bounded calls and checked summaries
+# Modular Scalar Law v1: checked pure-call summaries
 
-Status: implemented as an additive, read-only Project proof API. The completion
-matrix records remaining LAW-06 work. This profile does not attach evidence to
-LAW-04 protected publication.
+Status: bounded LAW-06 Project proof profile. The completion matrix records the
+executable gate and any remaining gaps. Neither a proof record nor a certificate
+grants execution, source mutation, publication, or runtime guard removal.
 
-`src/assurance_manifest/modular_law/` accepts a target stable declaration ID in
-one retained authenticated `ProjectRevision`. It walks linked HIR rather than
-source call names, orders transitive pure scalar callees before callers, and
-refuses a cycle or a body outside the SMT scalar subset. The plan records each
-call's resolved expression and callee IDs, a digest of each function's exact
-source slice, and ordered transitive dependency digests. The Project revision
-is recorded separately: a change to an unrelated function changes that
-revision without changing the selected function's semantic digest. The digest
-includes this profile and compiler package version; it is proof metadata, not
-an opaque certificate or a publication authorization.
+`modular_law::plan` accepts a stable declaration ID in one retained authenticated
+Project revision. It walks linked HIR for direct monomorphic pure scalar calls,
+orders acyclic transitive callees before callers, and records resolved call
+occurrences. A summary digest binds the exact callee source slice, contracts,
+compiler profile, and ordered transitive summary digests. Project revision is
+recorded separately so an unrelated edit can be identified without silently
+reusing a proof token from an older revision. Self or mutual recursion, generic
+instantiation, dynamic or foreign calls, effects, and unsupported scalar forms
+refuse under named reasons.
 
-The fallback real Z3 path is **bounded inlining**. It creates a proof-only AST
-from retained HIR value IDs. Fresh local names prevent capture by shadowed
-source names; each actual argument is evaluated once, left to right. Each
-callee `requires` is checked in source order before its body. A false clause
-selects a deliberately checked-overflowing branch, so the existing typed VC
-must prove that branch unreachable. A caller cannot assume a callee's
-precondition or a later clause before it has proved the earlier check. The
-ordinary checked source and runtime guards remain unchanged.
+`summary::prove_straight_line` checks a callee's own postconditions before its
+postconditions may be used at a caller. Direct call results become fresh typed
+output variables. It proves each actual argument is well defined and each
+callee precondition in evaluation order using only earlier checked summaries.
+The caller postcondition is then proved with the exact instantiated callee
+summaries. Branches and lazy boolean operands refuse this straight-line
+profile explicitly. Abstract SAT does not claim a concrete caller witness.
+The bounded `prove::prove_postconditions` path remains an explicit capture-free
+inlining fallback, with checked-model replay for a concrete witness where
+supported. Source bodies and runtime checks are not rewritten.
 
-`prove_postconditions` proves each transitive function's own postconditions
-before its caller through the existing explicit Z3 provider and checked-model
-replay. Every `unsat` is recorded with the exact plan digest, script digest,
-solver identity and version. A `sat` is returned only after checked replay;
-when possible, the concrete parameter model is returned. Unknown, timeout,
-missing solver, unsupported grammar, and contradictory input domain never
-produce a proof. The full inlined proof subject has a 4096-node bound, and the
-plan has 64-function and 256-call bounds. This fallback retranslates the
-reachable call graph; it does not consume a checked callee postcondition as a
-summary assumption.
+`certificate` exports canonical `semaprax.modular-scalar-summary-proof.v1` JSON
+with the linked dependency graph, ordered query digests, exact Project revision,
+solver identity/version, and trust boundary. A digest authenticates the envelope
+shape only. `replay` rederives the live plan and reruns every query with the
+explicit solver; the installed variant uses the registered held Z3 process
+provider. Stale, missing, unknown, SAT, malformed, oversized, or mismatched
+transcripts refuse. `classify_drift` is advisory: it distinguishes a relevant
+summary change from a Project-only unrelated revision but never attaches a
+proof to the latter.
 
-`summary::prove_straight_line` adds a narrow, separate checked-summary path for
-unconditional straight-line calls. It proves each callee postcondition first
-under its exact dependency digest, then substitutes each resolved call with a
-fresh typed output. For every call, it proves argument well-definedness and
-each callee precondition in order, using only summaries from earlier calls.
-Only then does it instantiate the callee postconditions as assumptions and
-prove the caller postcondition. The installed Z3 gate shows the three-function
-chain succeeds and that weakening the `tax` summary causes the caller proof to
-fail even though the implementation remains correct. This distinguishes
-summary consumption from body inlining. An abstract SAT result is not reported
-as a concrete caller counterexample; the inlining path supplies checked replay
-when one is available. This route rejects calls in target contracts, blocks,
-branches, lazy operands, and other expressions outside its straight-line
-profile; it proves callee summaries anew in the same invocation, rather than
-accepting an externally supplied certificate.
+`proof_export::installed_project::prove_modular_postcondition` returns an opaque
+`VerifiedProjectProof` for the exact retained source, postcondition index,
+ProgramRoot, and Project revision after all modular queries pass through the
+registered installed Z3 provider. LAW-04 strict policy has a distinct
+`pinned_modular_smt_source` requirement, which checks the installed version and
+modular translation bounds. The host selects `open_modular_scalar` explicitly;
+its held process ledger caps the whole tool session at 128 invocations and
+8 MiB reserved input/output, while ordinary installed proof tools retain their
+smaller budget. A native contract law can select a postcondition
+`result` binder only at the subject function's exact return type. Existing
+pinned SMT policy does not accept a modular method under its older profile.
+Selected Project execution and strict managed-Workspace publication rederive
+their ordinary host-selected inventory and acquire their ordinary authority;
+the proof token is only evidence for the corresponding law. Publication still
+performs the same final `ACTIVE` pivot and does not rewrite original files.
 
-Current open LAW-06 requirements: versioned reusable summary certificates and
-exact replay under external assumptions; branch/lazy-call summary guards;
-explicit SCC component reporting beyond cycle refusal; complete effect,
-foreign, dynamic and generic negative corpus; and LAW-04 report/strict
-publication integration. The public
-SMT and Lean no-call profiles are unchanged. Neither a plan nor a `Proof`
-record grants publication or removal of a runtime guard.
-
-Focused evidence: `cargo test --offline --locked --test workspace modular_law::`
-for the planner/cycle tests, then explicitly provision installed Z3 and run
-`cargo test --offline --locked --test workspace modular_law::real_z3_ --
---ignored`. The latter includes the three-function/two-module proof, an
-out-of-precondition caller witness, capture-free repeated calls, and checked
-summary composition plus a deliberately weakened-summary refusal.
+The direct SMT and Lean source profiles remain call-free. No branch or lazy-call
+summary theorem is claimed. The explicit installed Z3 gate exercises a
+three-function, two-module accounting law, a replayed caller precondition
+witness, capture-free repeated calls, weakened-summary refusal, certificate
+replay and drift, selected Project attachment, and selected physical Workspace
+publication. Run `cargo test --offline --locked --test workspace modular_law::`
+for bounded non-solver tests and explicitly provision the pinned installed Z3
+for ignored `modular_law::real_z3_` and `modular_law::installed_modular_` tests.

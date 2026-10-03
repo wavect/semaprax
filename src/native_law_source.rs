@@ -271,6 +271,7 @@ impl Parser<'_> {
                 &self.source[proposition_start..proposition_end],
                 self.path,
                 &binders,
+                &subject,
             )?;
             laws.push(NativeLawDeclaration {
                 law_id,
@@ -455,15 +456,43 @@ fn canonical_proposition(
     source: &str,
     path: &str,
     binders: &[LawBinder],
+    subject: &NativeLawSubject,
 ) -> Result<String, Diagnostic> {
+    let result = if matches!(
+        subject,
+        NativeLawSubject::Contract {
+            clause: ContractKind::Postcondition,
+            ..
+        }
+    ) {
+        binders.iter().find(|binder| binder.name == "result")
+    } else {
+        None
+    };
     let parameters = binders
         .iter()
+        .filter(|binder| binder.name != "result" || result.is_none())
         .map(|binder| format!("{}: {}", binder.name, binder.ty.source()))
         .collect::<Vec<_>>()
         .join(", ");
-    let source = format!(
-        "module law.selector;\n@id(\"law.selector\")\nfn selected({parameters}) -> i64\n requires {source}\n{{ 0 }}\n@id(\"law.main\") fn main() -> i64 {{ 0 }}\n"
-    );
+    let (return_type, clause, body) = match result {
+        Some(binder) => (
+            binder.ty.source(),
+            "ensures",
+            match binder.ty {
+                ScalarType::I64 => "0",
+                ScalarType::I32 => "0i32",
+                ScalarType::U8 => "0u8",
+                ScalarType::Usize => "0usize",
+                ScalarType::Bool => "false",
+                ScalarType::Char => "'a'",
+                ScalarType::F32 => "0.0f32",
+                ScalarType::F64 => "0.0f64",
+            },
+        ),
+        None => ("i64", "requires", "0"),
+    };
+    let source = format!("module law.selector;\n@id(\"law.selector\")\nfn selected({parameters}) -> {return_type}\n {clause} {source}\n{{ {body} }}\n@id(\"law.main\") fn main() -> i64 {{ 0 }}\n");
     let program = crate::parse(&source, path).map_err(|_| {
         Diagnostic::io(
             "SPX-LW110",
@@ -471,7 +500,10 @@ fn canonical_proposition(
         )
         .at_path(path)
     })?;
-    let expression = &program.functions[0].requires[0];
+    let expression = match result {
+        Some(_) => &program.functions[0].ensures[0],
+        None => &program.functions[0].requires[0],
+    };
     scalar_expression(expression, path, binders)?;
     crate::hir::resolve(&program).map_err(|_| {
         Diagnostic::io(

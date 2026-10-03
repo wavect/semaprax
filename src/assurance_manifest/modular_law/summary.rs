@@ -15,9 +15,8 @@ use crate::hir::{ResolvedExpr, ResolvedExprKind, ResolvedFunction, ResolvedType,
 use crate::project::ProjectRevision;
 
 use super::{
-    collect, functions, plan,
-    prove::{prove_postconditions, ProvedClause},
-    CallOccurrence, Plan, Refusal,
+    collect, functions, inline::inline_subject, plan, prove::ProvedClause, CallOccurrence, Plan,
+    Refusal,
 };
 
 type Scope = BTreeMap<ValueId, Expr>;
@@ -92,7 +91,9 @@ impl Symbolic<'_> {
                 // Calls under lazy operands need a path-sensitive summary
                 // predicate. Keep that extension outside this first profile.
                 if matches!(op, BinaryOp::And | BinaryOp::Or) {
-                    return Err(unsupported(owner));
+                    return Err(Refusal::LazySummary {
+                        owner: owner.into(),
+                    });
                 }
                 ExprKind::Binary {
                     op: *op,
@@ -133,6 +134,11 @@ impl Symbolic<'_> {
                     output: output.clone(),
                 });
                 return Ok(var(&output));
+            }
+            ResolvedExprKind::If { .. } => {
+                return Err(Refusal::BranchingSummary {
+                    owner: owner.into(),
+                })
             }
             _ => return Err(unsupported(owner)),
         };
@@ -192,95 +198,71 @@ pub enum ModularFailure {
     Postcondition { reason: String },
 }
 
-fn prove_boolean(
+pub(super) struct Query {
+    pub function: Function,
+    pub index: usize,
+    pub declaration_id: String,
+    pub summary_digest: String,
+}
+
+pub(super) struct Prepared {
+    pub plan: Plan,
+    pub callees: Vec<Query>,
+    pub preconditions: Vec<Query>,
+    pub caller: Vec<Query>,
+}
+
+fn boolean_subject(
     template: &Function,
     params: &[Param],
     assumptions: &[Expr],
     predicate: Expr,
-    provisioning: Option<&Provisioning>,
-    limits: &RunLimits,
-) -> Result<String, String> {
+) -> Function {
     let mut subject = template.clone();
     subject.params = params.to_vec();
     subject.return_type = Type::Bool;
     subject.requires = assumptions.to_vec();
     subject.body = predicate;
     subject.ensures = vec![var("result")];
-    match smt::discharge_postcondition(&subject, 0, provisioning, limits) {
-        DischargeOutcome::Proved { script_digest, .. } => Ok(script_digest),
-        DischargeOutcome::Refuted { .. } => {
-            Err("abstract counterexample; no real caller witness established".into())
-        }
-        DischargeOutcome::Inconclusive { reason } => Err(reason),
-    }
+    subject
 }
 
-/// Prove a straight-line caller using exact, separately checked callee
-/// summaries. This is additive to bounded inlining. Refuted abstract models
-/// are never reported as concrete caller failures without source replay.
-pub fn prove_straight_line(
-    revision: &ProjectRevision,
-    target: &str,
-    provisioning: Option<&Provisioning>,
-    limits: &RunLimits,
-) -> Result<ModularProof, ModularFailure> {
-    let plan = plan(revision, target).map_err(ModularFailure::Refused)?;
-    let mut checked_callee_clauses = Vec::new();
-    for summary in plan
-        .summaries
-        .iter()
-        .take(plan.summaries.len().saturating_sub(1))
-    {
-        let proof = prove_postconditions(revision, &summary.declaration_id, provisioning, limits)
-            .map_err(|failure| ModularFailure::CalleeProof(format!("{failure:?}")))?;
-        if proof.plan.project_revision != plan.project_revision
-            || proof.plan.summaries.last().map(|row| &row.digest) != Some(&summary.digest)
-        {
-            return Err(ModularFailure::CalleeProof("dependency drift".into()));
-        }
-        checked_callee_clauses.extend(
-            proof
-                .clauses
-                .into_iter()
-                .filter(|clause| clause.declaration_id == summary.declaration_id),
-        );
-    }
+/// Admission and query preparation have no solver/process authority. Query
+/// order is the proof order: dependencies, staged call checks, then caller.
+/// A consumer must stop at the first non-proof and must not use later
+/// summaries to justify an earlier precondition.
+pub(super) fn prepare(revision: &ProjectRevision, target: &str) -> Result<Prepared, Refusal> {
+    let plan = plan(revision, target)?;
     let target_fn = functions(revision)
         .get(target)
         .copied()
-        .ok_or_else(|| ModularFailure::Refused(Refusal::Missing { id: target.into() }))?
+        .ok_or_else(|| Refusal::Missing { id: target.into() })?
         .clone();
     let mut template = None;
     for source in revision.sources() {
-        let parsed = crate::parse(source.source(), source.path()).map_err(|_| {
-            ModularFailure::Refused(Refusal::MissingSource {
+        if source.source_graph_schema() == "semaprax.native-law.v1" {
+            continue;
+        }
+        let parsed =
+            crate::parse(source.source(), source.path()).map_err(|_| Refusal::MissingSource {
                 id: source.path().into(),
-            })
-        })?;
+            })?;
         for function in &parsed.functions {
-            if function.stable_id == target {
-                if template.replace(function.clone()).is_some() {
-                    return Err(ModularFailure::Refused(Refusal::MissingSource {
-                        id: target.into(),
-                    }));
-                }
+            if function.stable_id == target && template.replace(function.clone()).is_some() {
+                return Err(Refusal::MissingSource { id: target.into() });
             }
         }
     }
-    let mut template = template
-        .ok_or_else(|| ModularFailure::Refused(Refusal::MissingSource { id: target.into() }))?;
-    if template.ensures.is_empty() {
-        return Err(ModularFailure::Refused(unsupported(target)));
+    let mut template = template.ok_or_else(|| Refusal::MissingSource { id: target.into() })?;
+    if template.ensures.is_empty() || template.params.len() != target_fn.params.len() {
+        return Err(unsupported(target));
     }
     for contract in target_fn.requires.iter().chain(&target_fn.ensures) {
         let mut calls = Vec::<CallOccurrence>::new();
-        collect(contract, target, &mut calls).map_err(ModularFailure::Refused)?;
+        collect(contract, target, &mut calls)?;
         if !calls.is_empty() {
-            return Err(ModularFailure::Refused(unsupported(target)));
+            return Err(unsupported(target));
         }
-    }
-    if template.params.len() != target_fn.params.len() {
-        return Err(ModularFailure::Refused(unsupported(target)));
     }
     let mut scope = Scope::new();
     let mut reserved = BTreeSet::new();
@@ -294,24 +276,42 @@ pub fn prove_straight_line(
         reserved,
         frames: Vec::new(),
     };
-    let body = symbolic
-        .expression(&target_fn.body, &scope, target)
-        .map_err(ModularFailure::Refused)?;
+    let body = symbolic.expression(&target_fn.body, &scope, target)?;
     let frames = symbolic.frames;
     if frames.is_empty() {
-        return Err(ModularFailure::Refused(unsupported(target)));
+        return Err(unsupported(target));
+    }
+
+    let mut callees = Vec::new();
+    for summary in plan
+        .summaries
+        .iter()
+        .take(plan.summaries.len().saturating_sub(1))
+    {
+        let function = inline_subject(revision, &summary.declaration_id)?;
+        if function.ensures.is_empty() {
+            return Err(unsupported(&summary.declaration_id));
+        }
+        for index in 0..function.ensures.len() {
+            callees.push(Query {
+                function: function.clone(),
+                index,
+                declaration_id: summary.declaration_id.clone(),
+                summary_digest: summary.digest.clone(),
+            });
+        }
     }
     let mut params = template.params.clone();
     for frame in &frames {
         params.push(Param {
             name: frame.output.clone(),
             mode: ParamMode::Value,
-            ty: ast_type(&frame.callee.return_type).map_err(ModularFailure::Refused)?,
+            ty: ast_type(&frame.callee.return_type)?,
             span: Span::default(),
         });
     }
     let mut assumptions = template.requires.clone();
-    let mut precondition_scripts = Vec::new();
+    let mut preconditions = Vec::new();
     for frame in &frames {
         let id = frame.callee.id.as_str();
         let mut call_scope = Scope::new();
@@ -322,52 +322,116 @@ pub fn prove_straight_line(
                 left: Box::new(actual.clone()),
                 right: Box::new(actual.clone()),
             });
-            precondition_scripts.push(
-                prove_boolean(
-                    &template,
-                    &params,
-                    &assumptions,
-                    tautology,
-                    provisioning,
-                    limits,
-                )
-                .map_err(|reason| ModularFailure::Precondition {
-                    callee: id.into(),
-                    reason,
-                })?,
-            );
+            preconditions.push(Query {
+                function: boolean_subject(&template, &params, &assumptions, tautology),
+                index: 0,
+                declaration_id: id.into(),
+                summary_digest: String::new(),
+            });
         }
         for require in &frame.callee.requires {
-            let instantiated =
-                instantiate(require, &call_scope, id).map_err(ModularFailure::Refused)?;
-            precondition_scripts.push(
-                prove_boolean(
-                    &template,
-                    &params,
-                    &assumptions,
-                    instantiated.clone(),
-                    provisioning,
-                    limits,
-                )
-                .map_err(|reason| ModularFailure::Precondition {
-                    callee: id.into(),
-                    reason,
-                })?,
-            );
+            let instantiated = instantiate(require, &call_scope, id)?;
+            preconditions.push(Query {
+                function: boolean_subject(&template, &params, &assumptions, instantiated.clone()),
+                index: 0,
+                declaration_id: id.into(),
+                summary_digest: String::new(),
+            });
             assumptions.push(instantiated);
         }
         call_scope.insert(frame.callee.result_id.clone(), var(&frame.output));
         for ensure in &frame.callee.ensures {
-            assumptions
-                .push(instantiate(ensure, &call_scope, id).map_err(ModularFailure::Refused)?);
+            assumptions.push(instantiate(ensure, &call_scope, id)?);
         }
     }
     template.params = params;
     template.requires = assumptions;
     template.body = body;
+    let caller_digest = plan
+        .summaries
+        .last()
+        .map(|row| row.digest.clone())
+        .unwrap_or_default();
+    let caller = (0..template.ensures.len())
+        .map(|index| Query {
+            function: template.clone(),
+            index,
+            declaration_id: target.into(),
+            summary_digest: caller_digest.clone(),
+        })
+        .collect();
+    Ok(Prepared {
+        plan,
+        callees,
+        preconditions,
+        caller,
+    })
+}
+
+pub(super) fn prove_with<F>(
+    revision: &ProjectRevision,
+    target: &str,
+    mut discharge: F,
+) -> Result<ModularProof, ModularFailure>
+where
+    F: FnMut(&Function, usize) -> Result<DischargeOutcome, String>,
+{
+    let prepared = prepare(revision, target).map_err(ModularFailure::Refused)?;
+    let mut checked_callee_clauses = Vec::new();
+    for query in &prepared.callees {
+        match discharge(&query.function, query.index).map_err(ModularFailure::CalleeProof)? {
+            DischargeOutcome::Proved {
+                script_digest,
+                solver_identity,
+                solver_version,
+            } => {
+                checked_callee_clauses.push(ProvedClause {
+                    declaration_id: query.declaration_id.clone(),
+                    summary_digest: query.summary_digest.clone(),
+                    ensures_index: query.index,
+                    script_digest,
+                    solver_identity,
+                    solver_version,
+                });
+            }
+            DischargeOutcome::Refuted { .. } => {
+                return Err(ModularFailure::CalleeProof("callee refuted".into()))
+            }
+            DischargeOutcome::Inconclusive { reason } => {
+                return Err(ModularFailure::CalleeProof(reason))
+            }
+        }
+    }
+    let mut precondition_scripts = Vec::new();
+    for query in &prepared.preconditions {
+        match discharge(&query.function, query.index).map_err(|reason| {
+            ModularFailure::Precondition {
+                callee: query.declaration_id.clone(),
+                reason,
+            }
+        })? {
+            DischargeOutcome::Proved { script_digest, .. } => {
+                precondition_scripts.push(script_digest)
+            }
+            DischargeOutcome::Refuted { .. } => {
+                return Err(ModularFailure::Precondition {
+                    callee: query.declaration_id.clone(),
+                    reason: "abstract counterexample; no real caller witness established".into(),
+                })
+            }
+            DischargeOutcome::Inconclusive { reason } => {
+                return Err(ModularFailure::Precondition {
+                    callee: query.declaration_id.clone(),
+                    reason,
+                })
+            }
+        }
+    }
     let mut caller_postcondition_scripts = Vec::new();
-    for index in 0..template.ensures.len() {
-        match smt::discharge_postcondition(&template, index, provisioning, limits) {
+    for query in &prepared.caller {
+        match discharge(&query.function, query.index)
+            .map_err(|reason| ModularFailure::Postcondition { reason })?
+        {
             DischargeOutcome::Proved { script_digest, .. } => {
                 caller_postcondition_scripts.push(script_digest)
             }
@@ -382,9 +446,28 @@ pub fn prove_straight_line(
         }
     }
     Ok(ModularProof {
-        plan,
+        plan: prepared.plan,
         checked_callee_clauses,
         caller_precondition_scripts: precondition_scripts,
         caller_postcondition_scripts,
+    })
+}
+
+/// Prove a straight-line caller using exact, separately checked callee
+/// summaries and the explicit Z3 path. The installed Project route uses the
+/// same prepared queries through its registered process provider.
+pub fn prove_straight_line(
+    revision: &ProjectRevision,
+    target: &str,
+    provisioning: Option<&Provisioning>,
+    limits: &RunLimits,
+) -> Result<ModularProof, ModularFailure> {
+    prove_with(revision, target, |function, index| {
+        Ok(smt::discharge_postcondition(
+            function,
+            index,
+            provisioning,
+            limits,
+        ))
     })
 }

@@ -205,6 +205,9 @@ pub fn inline_subject(revision: &ProjectRevision, target: &str) -> Result<Functi
     plan(revision, target)?;
     let mut source_function = None;
     for source in revision.sources() {
+        if source.source_graph_schema() == "semaprax.native-law.v1" {
+            continue;
+        }
         let program =
             crate::parse(source.source(), source.path()).map_err(|_| Refusal::MissingSource {
                 id: source.path().into(),

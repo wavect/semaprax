@@ -5,7 +5,9 @@
 //! exact topological order. The per-function digest excludes unrelated source
 //! rows; the separate Project revision still binds any eventual attachment.
 
+pub mod certificate;
 pub mod inline;
+pub mod installed;
 pub mod prove;
 pub mod summary;
 
@@ -21,6 +23,7 @@ use crate::hir::{
 use crate::project::ProjectRevision;
 
 pub const PROFILE: &str = "semaprax.modular-scalar-law-plan.v1";
+pub const BOUNDS_V1: &str = "semaprax.modular-scalar-summary-straight-line.v1: direct pure monomorphic scalar calls, checked callee contracts, staged caller preconditions, no branches/lazy operands/loops/effects/foreign/generics; trusted installed Z3; explicit 128-run/8MiB process ledger";
 const MAX_FUNCTIONS: usize = 64;
 const MAX_CALLS: usize = 256;
 
@@ -36,6 +39,8 @@ pub enum Refusal {
     DynamicCall { owner: String },
     ForeignCall { owner: String },
     UnsupportedExpr { owner: String },
+    BranchingSummary { owner: String },
+    LazySummary { owner: String },
 }
 
 impl Refusal {
@@ -51,6 +56,8 @@ impl Refusal {
             Self::DynamicCall { .. } => "dynamic_call",
             Self::ForeignCall { .. } => "foreign_call",
             Self::UnsupportedExpr { .. } => "unsupported_expression",
+            Self::BranchingSummary { .. } => "branching_summary_requires_path_guards",
+            Self::LazySummary { .. } => "lazy_summary_requires_path_guards",
         }
     }
 }
@@ -236,6 +243,9 @@ fn collect(
 fn source_bodies(revision: &ProjectRevision) -> Result<BTreeMap<String, String>, Refusal> {
     let mut bodies = BTreeMap::new();
     for source in revision.sources() {
+        if source.source_graph_schema() == "semaprax.native-law.v1" {
+            continue;
+        }
         let program =
             crate::parse(source.source(), source.path()).map_err(|_| Refusal::MissingSource {
                 id: source.path().into(),

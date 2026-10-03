@@ -89,7 +89,7 @@ mod tests {
 
     const INDEX: &[u8] =
         include_bytes!("../../semaprax-rust-api-index/fixtures/protocol-envelope-example.json");
-    const SOURCE: &str = "module binding.test; @id(\"binding.host\") interface Host permits {  } { @id(\"binding.simple\") import rust fn simple(value: i64) -> bool effects {  } failure infallible; }";
+    const SOURCE: &str = "module binding.test; @id(\"binding.host\") interface Host permits {  } { @id(\"binding.simple\") import rust fn simple(value: i64) -> bool effects {  } failure infallible; } @id(\"binding.main\") fn main() -> i64 { 1 }";
 
     #[test]
     fn exact_index_replay_precedes_receiver_admission() {

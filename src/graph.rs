@@ -1278,6 +1278,11 @@ pub(crate) fn reject_while_loop_evidence_schema(schema: &str) -> Result<(), Diag
             "SPX-G410",
             "portable-indexed-byte-data programs select `semaprax.graph.v17`, which is outside this evidence flow's admission",
         ))
+    } else if schema == native_import::INDEXED_RUST_IMPORT_SCHEMA {
+        Err(Diagnostic::io(
+            "SPX-G410",
+            "indexed Rust import programs select `semaprax.graph.v52`, which is outside this evidence flow's admission",
+        ))
     } else if schema == "semaprax.graph.v25" {
         Err(Diagnostic::io(
             "SPX-G410",

@@ -386,3 +386,43 @@ a Project/CLI package. Public owner-valued exports, owned Option/Result payload
 conversion, exhaustive failure injection, allocator abort recovery, and full
 RI-05 completion remain open. Existing scalar and owned-data v1 contracts are
 unchanged.
+
+### Scoped generated borrowed views (private RI-06 seam)
+
+The private borrowed-input fragment has an additive `with_str_view` operation
+for the exact `Regex::as_str`/byte-Regex `as_str` relation. A sibling fragment
+inspects an ordinary owned `url::Url` through `Url::as_str`. A typed
+`for<'owner> fn(&'owner Owner) -> &'owner str` method pointer verifies each
+library relation. Neither renderer accepts arbitrary reference signatures or
+constructs a reference from a C carrier.
+
+The callback receives a typed view whose lifetime cannot escape its invocation.
+Its higher-ranked bound prevents returning or storing the view, including in an
+escaping async future. Rust rejects owner moves/drops, replacement and exclusive
+mutation overlapping the invocation. These are Rust compiler checks on the
+private generated fragment, not newly admitted Semaprax source loan rules or
+checkpoint diagnostics. Owner extraction and mutable access resume after the
+callback. The receiver remains owned by its adapter throughout the callback.
+
+A separate guard belongs to the invocation rather than the view. Forgetting the
+view cannot release that guard. All same-owner re-entry is refused before the
+selected library method is called; an independent owner is unaffected. Callback
+unwinding releases the guard. `with_exclusive` requires an exclusive Rust borrow
+of the adapter; no alias or interior-mutability exception is inferred.
+
+The focused `borrowed_view_generated_regex_url_scope_and_negative_controls`
+gate compiles and executes generated fragments against pinned real Regex and
+Url packages at Rust `-O0` and `-O2`. It compares returned pointers with the
+original owner's storage, counts zero allocator calls during a Url view, and
+checks target counters before and after rejected re-entry. It compiles deliberate
+removed-guard and introduced-copy controls and requires their consumer
+assertions to fail. Separate compiler fixtures cover drop, consume, replacement,
+exclusive mutation, temporary escape, stored escape and async escape. These
+measurements are local and noncanonical; they do not promise zero allocations
+inside every Regex operation.
+
+This remains private generated Rust evidence. It does not add a borrowed C ABI,
+selected Project publication, native Semaprax loan lowering, durable checkpoint
+admission, carrier fuzzing, Miri, sanitizer or hosted evidence. The existing v1
+non-reentrant policy, scalar profiles and owned-data snapshots remain unchanged.
+RI-06 stays open until those integration and acceptance gaps are closed.

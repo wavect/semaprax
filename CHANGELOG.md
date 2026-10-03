@@ -1,5 +1,11 @@
 # Changelog
 
+- Extend private generated Regex/Url adapters with invocation-scoped owner-tied
+  string views. Keep re-entry guards through forgotten views and unwind, reject
+  moves/mutation/escaping views at Rust compile time, and execute pinned-library
+  O0/O2 plus guard-removal/copy controls. Semaprax loan/borrowed-ABI admission and
+  full RI-06 acceptance remain open.
+
 - Add an experimental bounded native String renderer with checked source/HIR
   ownership, graph v57, exact selected signature binding, canonical helper
   cleanup, and core-compatible String cloning. Focused physical controls cover

@@ -3001,6 +3001,11 @@ These areas are deliberately outside the public compiler contract:
   bounded String renderer, fallible table reservation, and core-compatible
   String place cloning. `src/native_rust_binding/string.rs` binds its exact
   selected String signatures; this renderer does not publish Project packages;
+- `public_sdk/borrowed_input.rs` in the native Rust builder owns private
+  direct-reference Regex invocation fragments. Its `borrowed_view.rs` child
+  adds exact Regex/Url owner-tied view methods, callback scope, and per-owner
+  invocation guards. Rust type checking protects this private seam; it grants
+  no HIR loan authentication, carrier conversion or Project publication;
 - `src/project/indexed_rust.rs` and
   `crates/semaprax-native-rust-interop-builder/src/public_sdk/indexed_project.rs`:
   explicit source-bound indexed Project admission and authenticated SDK

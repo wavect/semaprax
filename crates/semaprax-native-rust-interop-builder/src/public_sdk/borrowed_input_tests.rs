@@ -225,3 +225,6 @@ assert_eq!(adapter.target_calls(),1);
         "extern crate regex_alias as regex_external;\nmod regex_alias{{pub use super::regex_external::Regex;pub mod bytes{{pub use super::super::regex_external::bytes::Regex;}}}}\n{adapter}\nfn main(){{{body}}}\n"
     )
 }
+
+#[path = "borrowed_view_tests.rs"]
+mod returned_view;

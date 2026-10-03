@@ -5,6 +5,9 @@
 //! HIR loan plan has authenticated its lifetime. The fragment itself holds no
 //! carrier, does no conversion, and has no authority to extend a borrow.
 
+#[path = "borrowed_view.rs"]
+mod returned_view;
+
 use super::sdk_error;
 use semaprax::diagnostic::Diagnostic;
 
@@ -50,7 +53,7 @@ pub(super) fn render_borrowed_input_adapter(
     if owner.is_empty() || method.is_empty() || input.is_empty() {
         return Err(sdk_error("borrowed input profile is incomplete"));
     }
-    Ok(format!(
+    let mut source = format!(
         "use core::cell::Cell;\
 #[derive(Debug)]pub enum SpxBorrowedInputError{{Reentered}}\
 struct SpxBorrowedInputGuard<'a>{{active:&'a Cell<bool>}}\
@@ -77,5 +80,11 @@ debug_assert_eq!(self.adapter_copies.get(),0);\
 self.target_calls.set(self.target_calls.get()+1);Ok(matched)\
 }}\
 }}\n"
-    ))
+    );
+    source.push_str(&returned_view::render(owner, &format!("{owner}::as_str")));
+    Ok(source)
+}
+
+pub(super) fn render_borrowed_url_adapter() -> String {
+    returned_view::render_url()
 }

@@ -168,6 +168,24 @@ surface.
 
 ### Trusted native preparation boundary (RI-11)
 
+The RI-04 checked scalar binding-plan seam is deliberately inert. It replays
+an RI-03 index, requires the selected package name, version, source digest,
+target, and feature digest, and selects one supported item. The scalar plan
+retains the persistent Semaprax import ID separately from the Cargo alias,
+package instance, index digest, and Rust path. Its physical symbol is a
+domain-separated SHA-256 of length-framed package, index, target, item,
+signature, and import identity fields, avoiding alias/version and keyword
+normalization collisions. `SPX-B140`–`SPX-B148` are source-located selection
+diagnostics for wrong declaration kind, unavailable item, identity drift,
+alias/path mismatch, unsupported receiver or item kind, unsupported signature,
+signature disagreement, malformed index, and extractor setup respectively.
+This seam admits only receiver-free `fn` signatures with up to eight `i64` or
+`bool` value parameters and `()`, `i64`, or `bool` results. A selected index
+record is discovery data; this plan cannot execute, does not validate the
+actual Rust crate, and does not make a source import callable. A later adapter
+must compile its generated Rust call against held crate bytes and use the
+trusted-native execution boundary before foreign entry.
+
 Rich Rust bindings use a separate `semaprax.trusted-native-profile.v1`
 preparation boundary. A profile binds three opaque, exact byte inputs: the
 selected binding plan, crate/index identity, and build-tool identity. They are

@@ -5,6 +5,7 @@ use semaprax::hir::{
     self, DeclarationId, ResolvedExprKind, ResolvedImportFailure, ResolvedImportResultKind,
     ResolvedType,
 };
+use semaprax::native_rust_binding::{prepare_scalar_binding, SelectedRustItem};
 use semaprax::{graph, parse, wasm};
 
 const SOURCE: &str = r#"module test.native_rust;
@@ -52,6 +53,131 @@ fn main() -> i64
     call_combine(41, true)
 }
 "#;
+
+fn selected_item<'a>(alias: &'a str, path: &'a str, signature: &'a str) -> SelectedRustItem<'a> {
+    SelectedRustItem {
+        cargo_alias: alias,
+        package_name: "fixture-api",
+        package_version: "1.0.0",
+        package_source_sha256:
+            "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        index_digest: "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        target: "x86_64-unknown-linux-gnu",
+        feature_digest: "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        path,
+        kind: "function",
+        receiver: "none",
+        signature,
+        supported: true,
+    }
+}
+
+#[test]
+fn selected_scalar_binding_uses_exact_package_and_import_identity() {
+    let program = hir::resolve(&parse(SOURCE, Path::new("binding.spx")).unwrap()).unwrap();
+    let import = &program.interfaces[0].imports[0];
+    let signature = "fn combine(left: i64, selected: bool) -> i64";
+    let first = prepare_scalar_binding(import, selected_item("first", "first::combine", signature))
+        .unwrap();
+    let second = prepare_scalar_binding(
+        import,
+        selected_item("second", "second::combine", signature),
+    )
+    .unwrap();
+    assert_eq!(first.import_id, "rust.host.combine");
+    assert_ne!(first.physical_symbol, second.physical_symbol);
+    assert!(first.physical_symbol.starts_with("spx_ri04_"));
+    assert_eq!(
+        first,
+        prepare_scalar_binding(import, selected_item("first", "first::combine", signature))
+            .unwrap()
+    );
+    let mut other_version = selected_item("first", "first::combine", signature);
+    other_version.package_version = "2.0.0";
+    assert_ne!(
+        first.physical_symbol,
+        prepare_scalar_binding(import, other_version)
+            .unwrap()
+            .physical_symbol
+    );
+    let mut other_index = selected_item("first", "first::combine", signature);
+    other_index.index_digest =
+        "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd";
+    assert_ne!(
+        first.physical_symbol,
+        prepare_scalar_binding(import, other_index)
+            .unwrap()
+            .physical_symbol
+    );
+}
+
+#[test]
+fn selected_scalar_binding_rejects_unchecked_or_drifting_metadata() {
+    let program = hir::resolve(&parse(SOURCE, Path::new("binding.spx")).unwrap()).unwrap();
+    let import = &program.interfaces[0].imports[0];
+    let cases = [
+        (
+            selected_item(
+                "api",
+                "other::combine",
+                "fn combine(left: i64, selected: bool) -> i64",
+            ),
+            "SPX-B143",
+        ),
+        (
+            selected_item(
+                "api",
+                "api::combine",
+                "fn combine(left: bool, selected: bool) -> i64",
+            ),
+            "SPX-B146",
+        ),
+        (
+            selected_item(
+                "api",
+                "api::combine",
+                "fn combine<T>(left: i64, selected: bool) -> i64",
+            ),
+            "SPX-B145",
+        ),
+        (
+            selected_item(
+                "api",
+                "api::combine",
+                "fn combine(left: i64, selected: bool) -> Result<i64, E>",
+            ),
+            "SPX-B145",
+        ),
+    ];
+    for (item, code) in cases {
+        let diagnostic = prepare_scalar_binding(import, item).unwrap_err();
+        assert_eq!(diagnostic.code, code);
+        assert_eq!(diagnostic.span, Some(import.span));
+    }
+    let mut inaccessible = selected_item(
+        "api",
+        "api::combine",
+        "fn combine(left: i64, selected: bool) -> i64",
+    );
+    inaccessible.supported = false;
+    assert_eq!(
+        prepare_scalar_binding(import, inaccessible)
+            .unwrap_err()
+            .code,
+        "SPX-B141"
+    );
+    let mut method = selected_item(
+        "api",
+        "api::combine",
+        "fn combine(left: i64, selected: bool) -> i64",
+    );
+    method.kind = "inherent_method";
+    method.receiver = "shared";
+    assert_eq!(
+        prepare_scalar_binding(import, method).unwrap_err().code,
+        "SPX-B144"
+    );
+}
 
 #[test]
 fn native_rust_import_syntax_format_and_hir_are_exact_and_deterministic() {

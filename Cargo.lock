@@ -1900,6 +1900,7 @@ dependencies = [
  "semaprax",
  "semaprax-native-rust-interop-platform",
  "semaprax-native-rust-owned-data-package",
+ "semaprax-rust-api-index",
  "serde_json",
  "sha2 0.11.0",
 ]

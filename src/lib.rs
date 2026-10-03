@@ -68,6 +68,7 @@ pub mod compute_profile;
 pub mod conformance;
 pub mod cxx_shim;
 pub mod diagnostic;
+pub mod native_rust_binding;
 #[doc(hidden)]
 pub mod digest_hex;
 pub mod doc;

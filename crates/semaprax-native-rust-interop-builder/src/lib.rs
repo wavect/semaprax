@@ -126,6 +126,7 @@ use std::path::Path;
 
 mod public_sdk;
 mod trusted_native;
+pub mod indexed_binding;
 
 pub use public_sdk::{
     build_authenticated_project_native_rust_sdk, build_native_rust_owned_data_sdk,

@@ -39,8 +39,9 @@ fn indexed_scalar_adapter_executes_and_rejects_flipped_rust_result() {
     item["signature"] = "fn add(left: i64, right: i64) -> i64".into();
     index_value["items"] = serde_json::json!([item]);
     index_value["types"] = serde_json::json!([]);
-    let admitted =
-        RustApiIndex::admit_extractor_output(&serde_json::to_vec(&envelope).unwrap()).unwrap();
+    let mut extractor_bytes = serde_json::to_vec(&envelope).unwrap();
+    extractor_bytes.push(b'\n');
+    let admitted = RustApiIndex::admit_extractor_output(&extractor_bytes).unwrap();
     let index_bytes = admitted.canonical_json().as_bytes();
     let package = crate::indexed_binding::SelectedPackage {
         cargo_alias: "fixture_math",
@@ -74,7 +75,7 @@ fn indexed_scalar_adapter_executes_and_rejects_flipped_rust_result() {
     let spec = render_spec(&Spec {
         module: program.module.clone(),
         source_revision: Some(domain_digest(SOURCE_DOMAIN, canonical.as_bytes())),
-        target,
+        target: target.clone(),
         exports: vec!["interop.add".to_owned()],
         imports: vec!["host.add".to_owned()],
         capabilities: vec!["host.math".to_owned()],
@@ -218,7 +219,7 @@ fn indexed_scalar_adapter_executes_and_rejects_flipped_rust_result() {
     };
     let export_method = &prepared.exports[0].rust_method;
     let harness = format!(
-        "#[path=\"semaprax_native_rust_interop.rs\"] mod semaprax_native_rust_interop;\nuse semaprax_native_rust_interop::*;\n{adapter}\nfn main(){{let capabilities=NativeRustCapabilities::new(&[\"host.math\"]).unwrap();let mut bridge=NativeRustBridge::new(GeneratedIndexedAdapter,capabilities);match bridge.{export_method}(20,22){{Ok(64)=>{{}},_=>std::process::exit(12)}}}}\n"
+        "#[path=\"semaprax_native_rust_interop.rs\"] mod semaprax_native_rust_interop;\nuse semaprax_native_rust_interop::*;\n{adapter}\nfn main(){{let capabilities=NativeRustCapabilities::new(&[\"host.math\"]).unwrap_or_else(|_|std::process::exit(13));let mut bridge=NativeRustBridge::new(GeneratedIndexedAdapter,capabilities);match bridge.{export_method}(20,22){{Ok(64)=>{{}},_=>std::process::exit(12)}}}}\n"
     );
     std::fs::write(output.join("roundtrip.rs"), harness).unwrap();
 

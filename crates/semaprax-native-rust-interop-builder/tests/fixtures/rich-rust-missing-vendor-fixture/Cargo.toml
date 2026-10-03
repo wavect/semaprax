@@ -1,0 +1,10 @@
+[package]
+name = "semaprax-ri02-missing-vendor-fixture"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+missing-vendor = "=0.1.0"
+
+[workspace]

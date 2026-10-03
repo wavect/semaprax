@@ -1,0 +1,5 @@
+[source.crates-io]
+replace-with = "semaprax-ri02-missing-vendor"
+
+[source.semaprax-ri02-missing-vendor]
+directory = "vendor"

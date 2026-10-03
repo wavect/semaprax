@@ -1,0 +1,19 @@
+[package]
+name = "semaprax-ri02-shape-fixture"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[lib]
+name = "shape_fixture_api"
+path = "src/lib.rs"
+
+[dependencies]
+renamed-shape = { package = "shape-renamed", version = "=0.1.0", default-features = false, features = ["target-feature"] }
+dual-v1 = { package = "shape-dual", version = "=0.1.0" }
+dual-v2 = { package = "shape-dual", version = "=0.2.0" }
+
+[target.'cfg(unix)'.dependencies]
+target-selected = { package = "shape-target", version = "=0.1.0" }
+
+[workspace]

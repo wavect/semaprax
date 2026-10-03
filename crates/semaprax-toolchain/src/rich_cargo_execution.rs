@@ -441,6 +441,83 @@ mod tests {
             .any(|window| window == b"\"kind\":\"registry\""));
     }
 
+    #[cfg(unix)]
+    #[test]
+    fn explicit_offline_metadata_preserves_dependency_shape_facts() {
+        let prepared = prepare_fixture("rich-rust-shape-fixture");
+        let metadata: serde_json::Value = serde_json::from_slice(prepared.metadata()).unwrap();
+        let packages = metadata
+            .get("packages")
+            .and_then(serde_json::Value::as_array)
+            .unwrap();
+        let renamed = packages
+            .iter()
+            .find(|package| {
+                package.get("name").and_then(serde_json::Value::as_str) == Some("shape-renamed")
+            })
+            .unwrap();
+        assert_eq!(
+            renamed
+                .get("targets")
+                .and_then(serde_json::Value::as_array)
+                .and_then(|targets| targets.first())
+                .and_then(|target| target.get("name"))
+                .and_then(serde_json::Value::as_str),
+            Some("different_lib_target")
+        );
+        assert_eq!(
+            packages
+                .iter()
+                .filter(
+                    |package| package.get("name").and_then(serde_json::Value::as_str)
+                        == Some("shape-dual")
+                )
+                .count(),
+            2
+        );
+        let resolve = metadata
+            .get("resolve")
+            .and_then(|resolve| resolve.get("nodes"))
+            .and_then(serde_json::Value::as_array)
+            .unwrap();
+        let root = resolve
+            .iter()
+            .find(|node| {
+                node.get("id")
+                    .and_then(serde_json::Value::as_str)
+                    .is_some_and(|id| id.contains("semaprax-ri02-shape-fixture"))
+            })
+            .unwrap();
+        assert!(root
+            .get("deps")
+            .and_then(serde_json::Value::as_array)
+            .unwrap()
+            .iter()
+            .any(
+                |dependency| dependency.get("name").and_then(serde_json::Value::as_str)
+                    == Some("renamed-shape")
+            ));
+        let renamed_node = resolve
+            .iter()
+            .find(|node| {
+                node.get("id")
+                    .and_then(serde_json::Value::as_str)
+                    .is_some_and(|id| id.contains("shape-renamed@0.1.0"))
+            })
+            .unwrap();
+        let features = renamed_node
+            .get("features")
+            .and_then(serde_json::Value::as_array)
+            .unwrap();
+        assert!(features.iter().any(|feature| feature == "target-feature"));
+        assert!(!features.iter().any(|feature| feature == "default-on"));
+        assert!(prepared
+            .closure()
+            .bytes()
+            .windows(b"shape-target@0.1.0".len())
+            .any(|window| window == b"shape-target@0.1.0"));
+    }
+
     #[test]
     fn trusted_host_runs_the_vendored_fixture_locked_and_offline() {
         let fixture = PathBuf::from(env!("CARGO_MANIFEST_DIR"))

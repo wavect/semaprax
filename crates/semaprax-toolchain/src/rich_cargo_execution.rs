@@ -10,7 +10,7 @@
 use crate::rich_cargo_preparation::{
     prepare_cargo_closure, CargoPreparationError, CargoPreparationInput, PreparedCargoClosure,
 };
-use semaprax_native_rust_interop::NativeBuildPolicy;
+use semaprax_native_rust_interop::{NativeBuildAuthority, NativeTrustError, TrustedNativeProfile};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -28,6 +28,8 @@ pub enum CargoExecutionError {
     BuildCodeDenied,
     /// SPX-B122: a sandbox policy was selected but no enforcing runner exists.
     SandboxUnavailable,
+    /// SPX-B122: prepared crate bytes differ from the admitted identity.
+    BuildIdentityMismatch,
     /// SPX-B123: locked/offline Cargo build failed after trusted execution.
     BuildFailed,
     /// SPX-B124: Cargo output exceeded the bounded capture budget.
@@ -100,6 +102,24 @@ impl CargoMetadataPreparation {
     }
 }
 
+/// Convert an exact prepared closure and explicit host acknowledgement into
+/// build authority before any Cargo build process is constructed.
+pub fn authorize_prepared_build(
+    profile: &TrustedNativeProfile,
+    prepared: &PreparedCargoClosure,
+    binding_plan: &[u8],
+    tool_identity: &[u8],
+) -> Result<NativeBuildAuthority, CargoExecutionError> {
+    profile
+        .authorize_build(binding_plan, prepared.bytes(), tool_identity)
+        .map_err(|error| match error {
+            NativeTrustError::BuildCodeDenied => CargoExecutionError::BuildCodeDenied,
+            NativeTrustError::SandboxUnavailable => CargoExecutionError::SandboxUnavailable,
+            NativeTrustError::BuildIdentityMismatch => CargoExecutionError::BuildIdentityMismatch,
+            _ => CargoExecutionError::InvalidInput,
+        })
+}
+
 /// Invoke `cargo metadata` only after the caller explicitly selects all tool
 /// and directory paths. The supplied metadata bytes are discarded; they cannot
 /// substitute for the output from this invocation.
@@ -113,18 +133,16 @@ pub fn prepare_with_cargo_metadata(
     Ok(CargoMetadataPreparation { closure, metadata })
 }
 
-/// Run the selected Cargo package only after native build-code authority has
-/// been checked. `StrictDenyExecution` returns before constructing a process;
-/// `EnforcedSandbox` also refuses because this module has no sandbox runner.
+/// Run the selected Cargo package only with an exact trusted-host admission.
+/// Strict and unenforced-sandbox profiles cannot create this authority.
 pub fn build_locked_offline(
     invocation: &ExplicitCargoInvocation,
-    policy: NativeBuildPolicy,
+    prepared: &PreparedCargoClosure,
+    authority: &NativeBuildAuthority,
 ) -> Result<(), CargoExecutionError> {
     validate_invocation(invocation)?;
-    match policy {
-        NativeBuildPolicy::StrictDenyExecution => return Err(CargoExecutionError::BuildCodeDenied),
-        NativeBuildPolicy::EnforcedSandbox => return Err(CargoExecutionError::SandboxUnavailable),
-        NativeBuildPolicy::TrustedHost => {}
+    if !authority.matches_crate_identity(prepared.bytes()) {
+        return Err(CargoExecutionError::BuildIdentityMismatch);
     }
     let output = cargo_command(invocation)
         .arg("build")
@@ -217,8 +235,12 @@ fn bounded(bytes: &[u8]) -> Result<(), CargoExecutionError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::rich_cargo_preparation::LockedCargoSource;
+    use crate::rich_cargo_preparation::{prepare_cargo_closure, LockedCargoSource};
+    use semaprax_native_rust_interop::{
+        NativeBuildPolicy, NativeEffectContract, TrustedNativeProfile,
+    };
     use std::fs;
+    #[cfg(unix)]
     use std::os::unix::fs::PermissionsExt;
     use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -235,7 +257,29 @@ mod tests {
         let manifest = root.join("Cargo.toml");
         fs::write(
             &manifest,
-            "[package]\nname=\"fixture\"\nversion=\"0.1.0\"\nedition=\"2021\"\n",
+            "[package]\nname=\"fixture\"\nversion=\"0.1.0\"\nedition=\"2021\"\nbuild=\"build.rs\"\n[dependencies]\nprobe_macro={path=\"probe_macro\"}\n",
+        )
+        .unwrap();
+        fs::create_dir_all(root.join("src")).unwrap();
+        fs::write(
+            root.join("src/lib.rs"),
+            "pub const VALUE: i64 = probe_macro::probe!();\n",
+        )
+        .unwrap();
+        fs::write(
+            root.join("build.rs"),
+            "fn main() { std::fs::write(\"build-script-entered\", b\"1\").unwrap(); let _ = std::net::TcpStream::connect(\"127.0.0.1:9\"); }\n",
+        )
+        .unwrap();
+        fs::create_dir_all(root.join("probe_macro/src")).unwrap();
+        fs::write(
+            root.join("probe_macro/Cargo.toml"),
+            "[package]\nname=\"probe_macro\"\nversion=\"0.1.0\"\nedition=\"2021\"\n[lib]\nproc-macro=true\n",
+        )
+        .unwrap();
+        fs::write(
+            root.join("probe_macro/src/lib.rs"),
+            "#[proc_macro] pub fn probe(_: proc_macro::TokenStream) -> proc_macro::TokenStream { std::fs::write(\"proc-macro-entered\", b\"1\").unwrap(); let _ = std::net::TcpStream::connect(\"127.0.0.1:9\"); \"1\".parse().unwrap() }\n",
         )
         .unwrap();
         let target = root.join("target");
@@ -272,15 +316,66 @@ mod tests {
         )
     }
 
+    fn profile(crate_identity: &[u8], policy: NativeBuildPolicy) -> TrustedNativeProfile {
+        TrustedNativeProfile::admit(
+            b"exact-binding-plan",
+            crate_identity,
+            b"exact-cargo-and-rustc",
+            NativeEffectContract::Opaque,
+            policy,
+        )
+        .unwrap()
+    }
+
+    fn authorize(
+        profile: &TrustedNativeProfile,
+        prepared: &PreparedCargoClosure,
+    ) -> Result<NativeBuildAuthority, CargoExecutionError> {
+        authorize_prepared_build(
+            profile,
+            prepared,
+            b"exact-binding-plan",
+            b"exact-cargo-and-rustc",
+        )
+    }
+
+    fn pure_prepared_fixture() -> PreparedCargoClosure {
+        let package_id = "path+file:///workspace/fixture#fixture@0.1.0";
+        prepare_cargo_closure(CargoPreparationInput {
+            binding_plan: b"exact-binding-plan".to_vec(),
+            descriptor: b"descriptor".to_vec(),
+            cargo_metadata: format!("{{\"packages\":[{{\"id\":\"{package_id}\",\"source\":null}}],\"resolve\":{{\"nodes\":[{{\"id\":\"{package_id}\",\"features\":[]}}]}}}}" ).into_bytes(),
+            cargo_lock: b"lock".to_vec(),
+            cargo_config: b"offline".to_vec(),
+            toolchain_identity: b"exact-cargo-and-rustc".to_vec(),
+            target_spec_identity: b"x86_64-unknown-linux-gnu".to_vec(),
+            generator_revision: "sha256:fixture".into(),
+            target: "x86_64-unknown-linux-gnu".into(),
+            panic_strategy: "unwind".into(),
+            profile: "dev".into(),
+            selected_features: Vec::new(),
+            sources: vec![LockedCargoSource::Local {
+                package_id: package_id.into(),
+                tree_digest: format!("sha256:{}", "0".repeat(64)),
+            }],
+        }).unwrap()
+    }
+
     #[cfg(unix)]
     #[test]
     fn strict_policy_refuses_before_cargo_can_run_a_build_script() {
         let (root, invocation, marker) = fixture();
+        let prepared = pure_prepared_fixture();
         assert_eq!(
-            build_locked_offline(&invocation, NativeBuildPolicy::StrictDenyExecution),
+            authorize(
+                &profile(prepared.bytes(), NativeBuildPolicy::StrictDenyExecution),
+                &prepared
+            ),
             Err(CargoExecutionError::BuildCodeDenied)
         );
         assert!(!marker.exists());
+        assert!(!invocation.workspace.join("build-script-entered").exists());
+        assert!(!invocation.workspace.join("proc-macro-entered").exists());
         fs::remove_dir_all(root).unwrap();
     }
 
@@ -288,11 +383,44 @@ mod tests {
     #[test]
     fn sandbox_policy_refuses_without_claiming_local_confinement() {
         let (root, invocation, marker) = fixture();
+        let prepared = pure_prepared_fixture();
         assert_eq!(
-            build_locked_offline(&invocation, NativeBuildPolicy::EnforcedSandbox),
+            authorize(
+                &profile(prepared.bytes(), NativeBuildPolicy::EnforcedSandbox),
+                &prepared
+            ),
             Err(CargoExecutionError::SandboxUnavailable)
         );
         assert!(!marker.exists());
+        assert!(!invocation.workspace.join("build-script-entered").exists());
+        assert!(!invocation.workspace.join("proc-macro-entered").exists());
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn stale_build_authority_refuses_before_cargo_process_entry() {
+        let (root, invocation, marker) = fixture();
+        let prepared = pure_prepared_fixture();
+        let stale_profile = profile(b"old-prepared-crate", NativeBuildPolicy::TrustedHost);
+        assert_eq!(
+            authorize(&stale_profile, &prepared),
+            Err(CargoExecutionError::BuildIdentityMismatch)
+        );
+        let stale_authority = stale_profile
+            .authorize_build(
+                b"exact-binding-plan",
+                b"old-prepared-crate",
+                b"exact-cargo-and-rustc",
+            )
+            .unwrap();
+        assert_eq!(
+            build_locked_offline(&invocation, &prepared, &stale_authority),
+            Err(CargoExecutionError::BuildIdentityMismatch)
+        );
+        assert!(!marker.exists());
+        assert!(!invocation.workspace.join("build-script-entered").exists());
+        assert!(!invocation.workspace.join("proc-macro-entered").exists());
         fs::remove_dir_all(root).unwrap();
     }
 
@@ -339,7 +467,14 @@ mod tests {
             cargo_home,
             target_dir: target.clone(),
         };
-        build_locked_offline(&invocation, NativeBuildPolicy::TrustedHost).unwrap();
+        let prepared = prepare_fixture("rich-rust-vendored-fixture");
+        let profile = profile(prepared.closure().bytes(), NativeBuildPolicy::TrustedHost);
+        let authority = authorize(&profile, prepared.closure()).unwrap();
+        assert_eq!(
+            authority.disclosure(),
+            NativeBuildPolicy::TrustedHost.disclosure()
+        );
+        build_locked_offline(&invocation, prepared.closure(), &authority).unwrap();
         assert!(target.join("debug").is_dir());
         fs::remove_dir_all(target).unwrap();
     }

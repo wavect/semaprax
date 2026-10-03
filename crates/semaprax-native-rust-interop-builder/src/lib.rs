@@ -135,7 +135,7 @@ pub use public_sdk::{
     PROJECT_NATIVE_RUST_SUBJECT_SCHEMA,
 };
 pub use trusted_native::{
-    NativeBuildPolicy, NativeDispatchError, NativeEffectContract, NativeExecutionGrant,
+    NativeBuildAuthority, NativeBuildPolicy, NativeDispatchError, NativeEffectContract, NativeExecutionGrant,
     NativeTrustError, TrustedNativeProfile, TRUSTED_NATIVE_PROFILE_SCHEMA,
 };
 

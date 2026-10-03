@@ -214,6 +214,16 @@ metadata into the v1 scalar SDK path. RI-01 binding-plan bytes are compiler
 input only until a caller explicitly creates a trusted-native profile and a
 separate caller supplies a matching dispatch grant.
 
+The rich Cargo build entry point now requires a typed `NativeBuildAuthority`
+created from that profile, the exact prepared closure bytes, binding plan, and
+tool identity. `StrictDenyExecution` and `EnforcedSandbox` yield no authority;
+the latter reports that no enforcing runner exists. `TrustedHost` yields an
+authority whose disclosure states full host trust, and the build entry point
+rechecks its prepared closure identity before starting Cargo. This is a host
+acknowledgement of exact supplied bytes, not a proof that arbitrary Cargo
+descendants are confined or that filesystem inputs cannot drift unless the
+embedding host holds and rechecks them.
+
 This direct-image policy closes ordinary rustup-launcher indirection. It does
 not claim provenance for the selected compiler sysroot, dynamically loaded
 libraries or backends, or arbitrary descendants. The configured Visual C++

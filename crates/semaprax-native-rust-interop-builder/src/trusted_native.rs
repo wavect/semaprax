@@ -71,6 +71,9 @@ pub enum NativeTrustError {
     EffectsNotCanonical,
     CapabilityNotDeclared,
     OpaqueNativeBehavior,
+    BuildIdentityMismatch,
+    BuildCodeDenied,
+    SandboxUnavailable,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -87,9 +90,28 @@ pub enum NativeDispatchError {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TrustedNativeProfile {
     digest: [u8; 32],
+    input_digests: [[u8; 32]; 3],
     effects: Box<[String]>,
     effects_are_audited: bool,
     build_policy: NativeBuildPolicy,
+}
+
+/// An admission for one exact prepared crate identity. Only the trusted-host
+/// policy currently yields this value; there is no enforcing sandbox runner.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct NativeBuildAuthority {
+    crate_identity_digest: [u8; 32],
+}
+
+impl NativeBuildAuthority {
+    pub fn matches_crate_identity(&self, bytes: &[u8]) -> bool {
+        let actual: [u8; 32] = Sha256::digest(bytes).into();
+        self.crate_identity_digest == actual
+    }
+
+    pub const fn disclosure(&self) -> &'static str {
+        NativeBuildPolicy::TrustedHost.disclosure()
+    }
 }
 
 /// Per-call capability authority derived from one admitted profile.
@@ -125,6 +147,7 @@ impl TrustedNativeProfile {
         let mut hasher = Sha256::new();
         hasher.update(PROFILE_DOMAIN);
         hasher.update(TRUSTED_NATIVE_PROFILE_SCHEMA.as_bytes());
+        hasher.update([u8::from(effects_are_audited)]);
         for identity in [binding_plan, crate_identity, tool_identity] {
             frame(&mut hasher, identity);
         }
@@ -134,6 +157,11 @@ impl TrustedNativeProfile {
         }
         Ok(Self {
             digest: hasher.finalize().into(),
+            input_digests: [
+                Sha256::digest(binding_plan).into(),
+                Sha256::digest(crate_identity).into(),
+                Sha256::digest(tool_identity).into(),
+            ],
             effects: effects.into_boxed_slice(),
             effects_are_audited,
             build_policy,
@@ -154,6 +182,31 @@ impl TrustedNativeProfile {
 
     pub const fn effects_are_audited(&self) -> bool {
         self.effects_are_audited
+    }
+
+    /// Recheck the exact acknowledged inputs before allowing Cargo build code.
+    /// The caller must separately authenticate the prepared source and tool
+    /// bytes against its held files immediately before this call.
+    pub fn authorize_build(
+        &self,
+        binding_plan: &[u8],
+        crate_identity: &[u8],
+        tool_identity: &[u8],
+    ) -> Result<NativeBuildAuthority, NativeTrustError> {
+        if [binding_plan, crate_identity, tool_identity]
+            .iter()
+            .zip(self.input_digests)
+            .any(|(bytes, expected)| <[u8; 32]>::from(Sha256::digest(bytes)) != expected)
+        {
+            return Err(NativeTrustError::BuildIdentityMismatch);
+        }
+        match self.build_policy {
+            NativeBuildPolicy::StrictDenyExecution => Err(NativeTrustError::BuildCodeDenied),
+            NativeBuildPolicy::EnforcedSandbox => Err(NativeTrustError::SandboxUnavailable),
+            NativeBuildPolicy::TrustedHost => Ok(NativeBuildAuthority {
+                crate_identity_digest: self.input_digests[1],
+            }),
+        }
     }
 
     /// Grants only capabilities listed in this admitted conservative contract.
@@ -354,5 +407,74 @@ mod tests {
             profile.grant(&[]),
             Err(NativeTrustError::OpaqueNativeBehavior)
         );
+    }
+
+    #[test]
+    fn build_authority_rechecks_all_three_identities_before_execution() {
+        let profile = TrustedNativeProfile::admit(
+            b"plan",
+            b"prepared-crate-and-index",
+            b"cargo-rustc-images",
+            NativeEffectContract::Opaque,
+            NativeBuildPolicy::TrustedHost,
+        )
+        .unwrap();
+        for (plan, crate_identity, tools) in [
+            (
+                b"changed-plan".as_slice(),
+                b"prepared-crate-and-index".as_slice(),
+                b"cargo-rustc-images".as_slice(),
+            ),
+            (
+                b"plan".as_slice(),
+                b"changed-crate-and-index".as_slice(),
+                b"cargo-rustc-images".as_slice(),
+            ),
+            (
+                b"plan".as_slice(),
+                b"prepared-crate-and-index".as_slice(),
+                b"changed-cargo-rustc-images".as_slice(),
+            ),
+        ] {
+            assert_eq!(
+                profile.authorize_build(plan, crate_identity, tools),
+                Err(NativeTrustError::BuildIdentityMismatch)
+            );
+        }
+        let authority = profile
+            .authorize_build(b"plan", b"prepared-crate-and-index", b"cargo-rustc-images")
+            .unwrap();
+        assert!(authority.matches_crate_identity(b"prepared-crate-and-index"));
+        assert!(!authority.matches_crate_identity(b"changed-crate-and-index"));
+        assert_eq!(
+            authority.disclosure(),
+            NativeBuildPolicy::TrustedHost.disclosure()
+        );
+    }
+
+    #[test]
+    fn audited_and_opaque_profiles_have_distinct_identities() {
+        let opaque = TrustedNativeProfile::admit(
+            b"plan",
+            b"crate",
+            b"tool",
+            NativeEffectContract::Opaque,
+            NativeBuildPolicy::TrustedHost,
+        )
+        .unwrap();
+        let audited = TrustedNativeProfile::admit(
+            b"plan",
+            b"crate",
+            b"tool",
+            NativeEffectContract::Audited(&[]),
+            NativeBuildPolicy::TrustedHost,
+        )
+        .unwrap();
+        assert_ne!(opaque.digest(), audited.digest());
+        assert_eq!(
+            opaque.grant(&[]),
+            Err(NativeTrustError::OpaqueNativeBehavior)
+        );
+        assert!(audited.grant(&[]).is_ok());
     }
 }

@@ -106,11 +106,14 @@ developer home, credentials, or search path.
 Metadata runs as `cargo metadata --format-version=1 --locked --offline`; the
 caller then supplies the held source facts required by the pure record.
 
-`build_locked_offline` runs `cargo build --locked --offline` only for
-`TrustedHost`. It reports that build scripts and proc macros have ordinary host
-authority. `StrictDenyExecution` refuses before Cargo is spawned. The current
-toolchain has no verified sandbox runner, so `EnforcedSandbox` also refuses
-before Cargo is spawned instead of labeling an unenforced process as confined.
+`authorize_prepared_build` first requires exact profile-bound preparation,
+binding-plan, and tool identity bytes. `build_locked_offline` then runs
+`cargo build --locked --offline` only with the resulting typed trusted-host
+authority and rechecks the exact prepared closure before constructing Cargo.
+It reports that build scripts and proc macros have ordinary host authority.
+`StrictDenyExecution` refuses before Cargo is spawned. The current toolchain
+has no verified sandbox runner, so `EnforcedSandbox` also refuses before Cargo
+is spawned instead of labeling an unenforced process as confined.
 The focused strict and sandbox negative controls use a marker-writing Cargo
 stub and prove that neither policy enters it. A local no-dependency Cargo
 fixture and a checked-in vendored registry fixture supply explicit offline

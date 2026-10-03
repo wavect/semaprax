@@ -44,7 +44,8 @@ Admitted:
 - `Var` referring to a parameter, an immutable `let` in scope, or (only
   inside `ensures`) `result`.
 - Unary `!` (bool) and `-` (signed numeric only).
-- Binary `+ - *`, `== != < <= > >=`, `&& ||`.
+- Binary `+ -`, multiplication with at least one source integer literal,
+  `== != < <= > >=`, `&& ||`.
 - `if`/`else` where both branches share one sort.
 - A `Block` whose statements are all immutable `let` (no `let mut`) and
   whose tail is itself supported.
@@ -57,6 +58,9 @@ variants, `match`, `try`, field projection, mutable locals, `assign`,
 
 ### Explicitly deferred, not merely unimplemented
 
+- **Nonlinear multiplication.** `a * b` for two computed operands is outside
+  `QF_LIA`. A different solver theory requires explicit selection and
+  validation. This profile returns `nonlinear_multiplication` instead.
 - **Division and remainder.** SEMAPRAX's `/`/`%` truncate toward zero
   (matching Rust and C99), while SMT-LIB2's built-in `div`/`mod` are
   Euclidean (always non-negative remainder). The correct encoding needs a
@@ -98,9 +102,10 @@ actually stays in range wherever it is reachable" — which is what the
 side-obligation machinery below does.
 
 Each admitted type gets one `Int`-sorted SMT-LIB2 constant per free
-variable (parameter, `let`-bound skolem constant, or `result`), plus one
-unconditional range axiom `(and (>= x MIN) (<= x MAX))` for its exact
-representable range (`i64`: `[-2^63, 2^63-1]`; `i32`: `[-2^31, 2^31-1]`;
+variable (parameter, `let`-bound skolem constant, or `result`). Only a
+parameter gets an unconditional range axiom
+`(and (>= x MIN) (<= x MAX))` for its exact representable range
+(`i64`: `[-2^63, 2^63-1]`; `i32`: `[-2^31, 2^31-1]`;
 `u8`: `[0, 255]`; `usize`: `[0, 2^64-1]`, since SEMAPRAX's `usize` is a
 target-independent checked unsigned 64-bit semantic integer, not a host
 pointer width). Negative numerals render as `(- <magnitude>)`, since
@@ -123,12 +128,12 @@ short-circuit). `translate::Ctx` threads an accumulated guard term through
 every recursive call and attaches it to each side obligation as
 `(=> guard formula)`, so an operation that can only overflow on an
 unreachable branch is correctly never asserted as a hard failure. `requires`
-clauses and the function body itself use a constant `"true"` guard, which is
-sound specifically because the whole query already asserts every `requires`
-term as an unconditional fact in the same solver context — see
-`translate::translate_function`'s doc comment for why that makes clause-order
-short-circuiting a non-issue for `requires` (unlike for `&&`/`||` inside one
-expression, which still needs path-sensitive guarding).
+clauses and the function body itself use a constant `"true"` branch guard.
+The query separately stages each `requires` clause's range goals: arithmetic
+in clause `i` may assume only clauses before `i`. The body and
+postconditions may assume the complete well-defined precondition. The shared
+typed VC subject records the stage, scalar mode, authored operation order,
+and lazy path choices; the SMT emitter checks its goal inventory against it.
 
 ## The query
 
@@ -139,19 +144,26 @@ For `ensures` clause `i`, `render_postcondition_script` builds one
 requires_conjunction  =>  (well_definedness_i  AND  ensures_i)
 ```
 
-by asserting `requires_conjunction` and `(not (and well_definedness_i
-ensures_i))`, where `well_definedness_i` is the conjunction of every
-`(=> guard formula)` side obligation from parameters/`requires`/the body
-(shared across every clause) plus this clause's own. `unsat` means the
-implication holds for every input satisfying the range axioms and
-`requires` — a genuine proof, not merely "the ensures clause looks true."
+by negating the conjunction of staged `requires` well-definedness goals and
+`requires_conjunction => (body_totality AND ensures_totality AND ensures_i)`.
+Each `requires` range goal can use only preceding clauses. `unsat` means
+the property holds for every admitted input, including safe evaluation of
+the precondition itself.
 Bundling well-definedness into the same query is deliberate: a checked-
 arithmetic trap prevents `ensures` from ever being evaluated at runtime, so
 "the postcondition holds" and "the postcondition holds and nothing traps
 first" are the same real-world property for this subset.
 
-`render_precondition_consistency_script` instead just asks whether
-`requires_conjunction` is satisfiable at all. `unsat` here is not a proof
+`render_precondition_consistency_script` asks whether `requires` and its
+staged well-definedness conditions have a witness.
+`discharge_postcondition` runs that query before reporting a proof when
+`requires` is nonempty; unknown or missing witness evidence is inconclusive.
+`check_domain` asks Z3 for a concrete model and independently evaluates
+every parameter and `requires` expression under checked semantics. A bare
+`sat` token is insufficient. Installed Project Z3 proofs use the same
+bounded witness query and retain its script and validated model in their
+local receipt.
+`unsat` here is not a proof
 that any obligation holds — it means the precondition can never be
 satisfied, so the function's body can never run under any input. This is
 reported as `DischargeOutcome::Inconclusive` with an explicit "contradictory

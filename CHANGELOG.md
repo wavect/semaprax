@@ -1,5 +1,13 @@
 # Changelog
 
+- Start LAW-05's shared typed scalar VC subject for SMT and Lean operation
+  audits. Stage precondition arithmetic by evaluation order, require a
+  checked satisfiable-domain witness before new proof export, guard Lean's
+  lazy boolean ranges, and refuse nonlinear multiplication under QF_LIA.
+  Focused unit and installed Z3/Lean negative controls passed locally.
+  V1 certificate replay still needs a bound domain witness before LAW-05
+  closure.
+
 - Enforce host-selected strict laws for native-law v2 Projects. Persist the independently held baseline and method policy under a private host marker, refuse generic Project and Workspace protected routes, and replay exact opaque proofs through selected execution, build and managed publication. Managed Workspace generations retain native law source bytes and facts with no executable law nodes. Focused library 2/2 and real Z3 selected publication 1/1 passed, including omission, drift and bypass controls.
 
 - Add explicit bounded installed Lean/Z3 checking for new exact Project

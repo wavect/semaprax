@@ -32,6 +32,7 @@ mod delta;
 mod derive;
 mod lattice;
 pub mod law_set;
+pub mod law_vc;
 pub mod model_checking;
 mod obligation;
 pub mod project;

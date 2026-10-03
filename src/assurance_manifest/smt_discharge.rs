@@ -29,10 +29,11 @@ mod translate;
 
 pub use cache::{cache_key, CacheKeyInput, DischargeCache};
 pub use model::{parse_model, Model, ModelValue};
-pub use replay::{replay_function, ReplayOutcome};
+pub use replay::{bounded_domain_witness, replay_function, validate_domain_witness, ReplayOutcome};
 pub use solver::{
     provision_from_env, run, solver_version, Provisioning, RunLimits, Verdict, ENV_Z3_PATH,
 };
+pub(crate) use subset::sort_of_type;
 pub use subset::{check_declaration_supported, NumericMode, Sort, UnsupportedReason};
 pub use translate::{translate_function, FunctionEncoding, SideObligation};
 
@@ -86,12 +87,44 @@ pub enum DischargeOutcome {
     Inconclusive { reason: String },
 }
 
+/// A satisfiable input domain is a separate fact from an accepted proof.
+/// `Unknown` is never interpreted as a witness.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum DomainStatus {
+    Witness { model: Model, source: &'static str },
+    Contradictory,
+    Unknown { reason: String },
+}
+
 fn and_all(terms: &[String]) -> String {
     match terms {
         [] => "true".to_owned(),
         [only] => only.clone(),
         many => format!("(and {})", many.join(" ")),
     }
+}
+
+fn implies(antecedent: &str, consequent: &str) -> String {
+    format!("(=> {antecedent} {consequent})")
+}
+
+fn requires_totality(encoding: &FunctionEncoding) -> Vec<String> {
+    let mut preceding = Vec::new();
+    let mut goals = Vec::new();
+    for (term, obligations) in encoding
+        .requires_terms
+        .iter()
+        .zip(&encoding.requires_obligations)
+    {
+        let prefix = and_all(&preceding);
+        goals.extend(
+            obligations
+                .iter()
+                .map(|obligation| implies(&prefix, &obligation.implication())),
+        );
+        preceding.push(term.clone());
+    }
+    goals
 }
 
 fn render_declarations(encoding: &FunctionEncoding) -> String {
@@ -123,7 +156,7 @@ pub fn render_postcondition_script(
 ) -> String {
     let ensures = &encoding.ensures[ensures_index];
     let mut obligation_terms: Vec<String> = encoding
-        .shared_obligations
+        .body_obligations
         .iter()
         .map(SideObligation::implication)
         .collect();
@@ -139,16 +172,17 @@ pub fn render_postcondition_script(
     for definition in &encoding.definitions {
         script.push_str(&format!("(assert {definition})\n"));
     }
-    for requires_term in &encoding.requires_terms {
-        script.push_str(&format!("(assert {requires_term})\n"));
-    }
-    let goal = and_all(
-        &obligation_terms
-            .iter()
-            .cloned()
-            .chain(std::iter::once(ensures.term.clone()))
-            .collect::<Vec<_>>(),
-    );
+    obligation_terms.push(ensures.term.clone());
+    let goal = if encoding.requires_terms.is_empty() {
+        and_all(&obligation_terms)
+    } else {
+        let mut goals = requires_totality(encoding);
+        goals.push(implies(
+            &and_all(&encoding.requires_terms),
+            &and_all(&obligation_terms),
+        ));
+        and_all(&goals)
+    };
     script.push_str(&format!("(assert (not {goal}))\n"));
     script.push_str("(check-sat)\n(get-model)\n");
     script
@@ -177,8 +211,46 @@ pub fn render_precondition_consistency_script(
     for requires_term in &encoding.requires_terms {
         script.push_str(&format!("(assert {requires_term})\n"));
     }
+    for obligation in requires_totality(encoding) {
+        script.push_str(&format!("(assert {obligation})\n"));
+    }
     script.push_str("(check-sat)\n");
     script
+}
+
+#[must_use]
+pub fn render_domain_witness_script(encoding: &FunctionEncoding, timeout_ms: u64) -> String {
+    let mut script = render_precondition_consistency_script(encoding, timeout_ms);
+    script.push_str("(get-model)\n");
+    script
+}
+
+#[must_use]
+pub fn check_domain(
+    function: &Function,
+    encoding: &FunctionEncoding,
+    provisioning: &Provisioning,
+    limits: &RunLimits,
+) -> DomainStatus {
+    let timeout_ms = u64::try_from(limits.timeout.as_millis()).unwrap_or(u64::MAX);
+    let script = render_domain_witness_script(encoding, timeout_ms);
+    match run(provisioning, &script, limits) {
+        Verdict::Sat(raw) => match parse_model(&raw)
+            .and_then(|model| validate_domain_witness(function, &model).map(|()| model))
+        {
+            Ok(model) => DomainStatus::Witness {
+                model,
+                source: "bounded_z3_checked_replay",
+            },
+            Err(reason) => DomainStatus::Unknown {
+                reason: format!("solver domain witness failed checked replay: {reason}"),
+            },
+        },
+        Verdict::Unsat => DomainStatus::Contradictory,
+        other => DomainStatus::Unknown {
+            reason: describe_non_result_verdict(&other),
+        },
+    }
 }
 
 fn script_digest(script: &str) -> String {
@@ -225,6 +297,21 @@ pub fn discharge_postcondition(
         };
     };
     let timeout_ms = u64::try_from(limits.timeout.as_millis()).unwrap_or(u64::MAX);
+    if !encoding.requires_terms.is_empty() {
+        match check_domain(function, &encoding, provisioning, limits) {
+            DomainStatus::Witness { .. } => {}
+            DomainStatus::Contradictory => {
+                return DischargeOutcome::Inconclusive {
+                    reason: "requires is contradictory or has no well-defined input".to_owned(),
+                }
+            }
+            DomainStatus::Unknown { reason } => {
+                return DischargeOutcome::Inconclusive {
+                    reason: format!("requires domain unavailable: {reason}"),
+                }
+            }
+        }
+    }
     let script = render_postcondition_script(&encoding, ensures_index, timeout_ms);
     let digest = script_digest(&script);
     let verdict = run(provisioning, &script, limits);

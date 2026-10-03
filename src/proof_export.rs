@@ -243,6 +243,18 @@ pub(super) fn source_certificate(
                 "ensures index {ensures_index} is out of range for `{declaration_id}`"
             ))]
         })?;
+    let source_function = program
+        .functions
+        .iter()
+        .find(|item| item.stable_id == declaration_id)
+        .expect("exported function is present in parsed source");
+    if crate::assurance_manifest::smt_discharge::bounded_domain_witness(source_function, 256)
+        .is_none()
+    {
+        return Err(vec![no_export(
+            "source precondition domain is unknown after bounded checked witness search; no practical-law proof accepted".to_owned(),
+        )]);
+    }
     let theorem_name = format!("{NAMESPACE}.{}", obligation.theorem_name);
 
     let run = kernel

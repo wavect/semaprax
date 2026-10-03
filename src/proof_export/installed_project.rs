@@ -66,6 +66,22 @@ pub fn prove_postcondition(
     if index >= encoding.ensures.len() {
         return Err(error("exact selected postcondition is absent"));
     }
+    let domain_script = smt::render_domain_witness_script(&encoding, tool.proof_timeout_ms());
+    let domain_model = tool
+        .smt_domain_model(&domain_script)
+        .map_err(|error| vec![error])?;
+    smt::validate_domain_witness(function, &domain_model)
+        .map_err(|reason| error(&format!("domain witness failed checked replay: {reason}")))?;
+    let domain_witness = domain_model
+        .iter()
+        .map(|(name, value)| {
+            let value = match value {
+                smt::ModelValue::Int(raw) => format!("int:{raw}"),
+                smt::ModelValue::Bool(raw) => format!("bool:{raw}"),
+            };
+            (name.clone(), value)
+        })
+        .collect::<std::collections::BTreeMap<_, _>>();
     // Same existing checked-arithmetic translation. Model retrieval is a
     // separate command and unnecessary for strict success-only proof checking.
     let rendered = smt::render_postcondition_script(&encoding, index, tool.proof_timeout_ms());
@@ -81,7 +97,8 @@ pub fn prove_postcondition(
         "program_root":root.program_root(), "source_path":source.path(),
         "source_revision":source.source_revision(), "source_digest":source.source_digest(),
         "declaration_id":declaration, "obligation_id":obligation,
-        "script":script, "toolchain":version, "profile":smt::BOUNDS_V1,
+        "script":script, "domain_script":domain_script, "domain_witness":domain_witness,
+        "toolchain":version, "profile":smt::BOUNDS_V1,
         "host_profile":"trusted_local", "proved_lowering":false
     });
     let digest = super::certificate::domain_digest(

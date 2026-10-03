@@ -31,6 +31,7 @@
 
 use std::fmt::Write as _;
 
+use crate::assurance_manifest::law_vc::{self, Stage};
 use crate::assurance_manifest::smt_discharge::{NumericMode, Sort, UnsupportedReason};
 use crate::ast::{
     BinaryOp, Expr, ExprKind, Function, Program, Statement, TypeDeclarationKind, UnaryOp,
@@ -145,6 +146,7 @@ struct Term {
 /// proving an earlier clause's overflow-freedom would be unsound.
 struct Pending {
     binder_count: usize,
+    guard: String,
     term: String,
     mode: NumericMode,
     origin: String,
@@ -240,9 +242,10 @@ impl Builder {
         Some(Excluded::Shared(UnsupportedReason::Expr { what }))
     }
 
-    fn record_range(&mut self, term: &str, mode: NumericMode, origin: &str) {
+    fn record_range(&mut self, term: &str, mode: NumericMode, origin: &str, guard: &str) {
         self.pending.push(Pending {
             binder_count: self.binders.len(),
+            guard: guard.to_owned(),
             term: term.to_owned(),
             mode,
             origin: origin.to_owned(),
@@ -257,7 +260,7 @@ impl Builder {
             .map(|(_, term)| term)
     }
 
-    fn translate(&mut self, expr: &Expr, origin: &str) -> Result<Term, Excluded> {
+    fn translate(&mut self, expr: &Expr, origin: &str, guard: &str) -> Result<Term, Excluded> {
         if let Some(reason) = Self::expr_excluded(expr) {
             return Err(reason);
         }
@@ -301,7 +304,7 @@ impl Builder {
                     })
             }
             ExprKind::Unary { op, value } => {
-                let inner = self.translate(value, origin)?;
+                let inner = self.translate(value, origin, guard)?;
                 match op {
                     UnaryOp::Neg => {
                         let Sort::Numeric(mode) = inner.sort else {
@@ -311,7 +314,7 @@ impl Builder {
                             });
                         };
                         let text = format!("(-{})", inner.text);
-                        self.record_range(&text, mode, origin);
+                        self.record_range(&text, mode, origin, guard);
                         Ok(Term {
                             text,
                             sort: Sort::Numeric(mode),
@@ -331,13 +334,15 @@ impl Builder {
                     }
                 }
             }
-            ExprKind::Binary { op, left, right } => self.translate_binary(*op, left, right, origin),
+            ExprKind::Binary { op, left, right } => {
+                self.translate_binary(*op, left, right, origin, guard)
+            }
             ExprKind::Block { statements, tail } => {
                 let depth = self.scope.len();
                 for statement in statements {
-                    self.translate_statement(statement, origin)?;
+                    self.translate_statement(statement, origin, guard)?;
                 }
-                let tail_term = self.translate(tail, origin)?;
+                let tail_term = self.translate(tail, origin, guard)?;
                 self.scope.truncate(depth);
                 Ok(tail_term)
             }
@@ -351,6 +356,7 @@ impl Builder {
         left: &Expr,
         right: &Expr,
         origin: &str,
+        guard: &str,
     ) -> Result<Term, Excluded> {
         if let BinaryOp::Div | BinaryOp::Rem = op {
             let what = if op == BinaryOp::Div {
@@ -360,8 +366,13 @@ impl Builder {
             };
             return Err(Excluded::Shared(UnsupportedReason::Expr { what }));
         }
-        let lhs = self.translate(left, origin)?;
-        let rhs = self.translate(right, origin)?;
+        let lhs = self.translate(left, origin, guard)?;
+        let rhs_guard = match op {
+            BinaryOp::And => format!("({guard} ∧ {})", lhs.text),
+            BinaryOp::Or => format!("({guard} ∧ ¬{})", lhs.text),
+            _ => guard.to_owned(),
+        };
+        let rhs = self.translate(right, origin, &rhs_guard)?;
         let (symbol, op_name) = match op {
             BinaryOp::Add => ("+", "add"),
             BinaryOp::Sub => ("-", "sub"),
@@ -391,7 +402,7 @@ impl Builder {
                         op: op_name,
                     }));
                 }
-                self.record_range(&text, left_mode, origin);
+                self.record_range(&text, left_mode, origin, guard);
                 Ok(Term {
                     text,
                     sort: Sort::Numeric(left_mode),
@@ -436,7 +447,12 @@ impl Builder {
         }
     }
 
-    fn translate_statement(&mut self, statement: &Statement, origin: &str) -> Result<(), Excluded> {
+    fn translate_statement(
+        &mut self,
+        statement: &Statement,
+        origin: &str,
+        guard: &str,
+    ) -> Result<(), Excluded> {
         let Statement::Let {
             name,
             mutable,
@@ -461,7 +477,7 @@ impl Builder {
                 name: name.clone(),
             }));
         }
-        let bound = self.translate(value, origin)?;
+        let bound = self.translate(value, origin, guard)?;
         let Sort::Numeric(mode) = bound.sort else {
             return Err(Excluded::BoolValued {
                 position: format!("`let {name}`"),
@@ -541,7 +557,7 @@ pub fn export_function(function: &Function) -> Result<FunctionExport, Excluded> 
 
     for (index, clause) in function.requires.iter().enumerate() {
         let origin = format!("requires[{index}]");
-        let term = builder.translate(clause, &origin)?;
+        let term = builder.translate(clause, &origin, "True")?;
         if term.sort != Sort::Bool {
             return Err(Excluded::OperandSort {
                 op: "requires",
@@ -553,7 +569,7 @@ pub fn export_function(function: &Function) -> Result<FunctionExport, Excluded> 
             .push(format!("(h_req_{index} : {})", term.text));
     }
 
-    let body = builder.translate(&function.body, "body")?;
+    let body = builder.translate(&function.body, "body", "True")?;
     match body.sort {
         Sort::Numeric(mode) if mode == return_mode => {}
         _ => {
@@ -574,7 +590,7 @@ pub fn export_function(function: &Function) -> Result<FunctionExport, Excluded> 
     let mut ensures_goals = Vec::new();
     for (index, clause) in function.ensures.iter().enumerate() {
         let origin = format!("ensures[{index}]");
-        let term = builder.translate(clause, &origin)?;
+        let term = builder.translate(clause, &origin, "True")?;
         if term.sort != Sort::Bool {
             return Err(Excluded::OperandSort {
                 op: "ensures",
@@ -585,22 +601,68 @@ pub fn export_function(function: &Function) -> Result<FunctionExport, Excluded> 
     }
     let all_binders = builder.binders.len();
 
+    let subject = law_vc::build(function).map_err(Excluded::Shared)?;
+    let observed = builder
+        .pending
+        .iter()
+        .map(|pending| {
+            let stage = if pending.origin == "body" {
+                Some(Stage::Body)
+            } else if let Some(index) = pending
+                .origin
+                .strip_prefix("requires[")
+                .and_then(|rest| rest.strip_suffix(']'))
+                .and_then(|index| index.parse().ok())
+            {
+                Some(Stage::Requires(index))
+            } else {
+                pending
+                    .origin
+                    .strip_prefix("ensures[")
+                    .and_then(|rest| rest.strip_suffix(']'))
+                    .and_then(|index| index.parse().ok())
+                    .map(Stage::Ensures)
+            };
+            stage.map(|stage| (stage, pending.mode))
+        })
+        .collect::<Option<Vec<_>>>()
+        .ok_or_else(|| {
+            Excluded::Shared(UnsupportedReason::TypeMismatch {
+                detail: "Lean operation origin is outside the shared typed VC stages".to_owned(),
+            })
+        })?;
+    let expected = subject
+        .operations
+        .iter()
+        .map(|operation| (operation.stage, operation.mode))
+        .collect::<Vec<_>>();
+    if observed != expected {
+        return Err(Excluded::Shared(UnsupportedReason::TypeMismatch {
+            detail: "Lean obligations disagree with the shared typed VC subject".to_owned(),
+        }));
+    }
+
     let stem = escape_ident(&function.stable_id);
     let mut obligations = Vec::with_capacity(builder.pending.len() + ensures_goals.len());
     for (index, pending) in builder.pending.iter().enumerate() {
+        let range_goal = format!(
+            "{} ≤ {} ∧ {} ≤ {}",
+            int_literal(pending.mode.min()),
+            pending.term,
+            pending.term,
+            int_literal(pending.mode.max())
+        );
         obligations.push(ExportedObligation {
             obligation_id: range_obligation_id(&function.stable_id, index),
             theorem_name: format!("spx_{stem}_range_{index}"),
             kind: "checked_arithmetic_range",
             ensures_index: None,
             origin: pending.origin.clone(),
-            goal: format!(
-                "{} ≤ {} ∧ {} ≤ {}",
-                int_literal(pending.mode.min()),
-                pending.term,
-                pending.term,
-                int_literal(pending.mode.max())
-            ),
+            goal: if pending.guard == "True" {
+                range_goal
+            } else {
+                format!("{} → ({range_goal})", pending.guard)
+            },
             binder_count: pending.binder_count,
         });
     }

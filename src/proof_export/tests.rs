@@ -445,6 +445,89 @@ fn a_parameter_range_is_a_hypothesis_and_an_arithmetic_range_is_a_goal() {
     assert!(!lean.contains("(h_range"));
 }
 
+#[test]
+fn lean_short_circuit_range_goal_is_guarded() {
+    let source = with_main(
+        "module app.t;\n@id(\"app.t.short\")\nfn short(a: i64) -> i64\n    requires a == 0\n    ensures a == 0 || a + 1 > 0\n{ a }\n",
+    );
+    let parsed = program(&source);
+    let export = export_function(&parsed.functions[0]).expect("common scalar subset");
+    let ranges: Vec<_> = export
+        .obligations
+        .iter()
+        .filter(|obligation| obligation.kind == "checked_arithmetic_range")
+        .collect();
+    assert_eq!(ranges.len(), 1);
+    assert!(ranges[0].goal.contains("¬(v_a = (0 : Int))"));
+    assert!(ranges[0].goal.contains("→"));
+}
+
+#[test]
+fn smt_and_lean_common_subset_share_typed_operations() {
+    let source = with_main(
+        "module app.t;\n@id(\"app.t.shared\")\nfn shared(a: i64, b: i64) -> i64\n    requires a >= 0\n    ensures result >= a && (a == 0 || b + 1 > 0)\n{ a + b }\n",
+    );
+    let parsed = program(&source);
+    let function = &parsed.functions[0];
+    let subject = assurance_manifest::law_vc::build(function).expect("typed subject");
+    let smt = assurance_manifest::smt_discharge::translate_function(function).expect("SMT");
+    let lean = export_function(function).expect("Lean");
+    let smt_ranges = smt.shared_obligations.len()
+        + smt
+            .ensures
+            .iter()
+            .map(|clause| clause.obligations.len())
+            .sum::<usize>();
+    let lean_ranges = lean
+        .obligations
+        .iter()
+        .filter(|obligation| obligation.kind == "checked_arithmetic_range")
+        .count();
+    assert_eq!(subject.operations.len(), 2);
+    assert_eq!(smt_ranges, subject.operations.len());
+    assert_eq!(lean_ranges, subject.operations.len());
+    assert_eq!(
+        subject.operations[0].stage,
+        assurance_manifest::law_vc::Stage::Body
+    );
+    assert_eq!(
+        subject.operations[1].stage,
+        assurance_manifest::law_vc::Stage::Ensures(0)
+    );
+    assert_eq!(
+        subject.operations[1]
+            .path
+            .iter()
+            .map(|choice| choice.value)
+            .collect::<Vec<_>>(),
+        vec![true, false]
+    );
+    assert!(smt.ensures[0].obligations[0]
+        .guard
+        .contains("(not (= a 0))"));
+    assert!(lean.obligations[1].goal.contains("¬(v_a = (0 : Int))"));
+}
+
+#[test]
+fn contradictory_requires_never_reaches_lean_kernel_as_a_practical_law() {
+    let source = with_main(
+        "module app.t;\n@id(\"app.t.empty\")\nfn empty(a: i64) -> i64\n    requires a > 0\n    requires a < 0\n    ensures result == a\n{ a }\n",
+    );
+    let kernel = CountingKernel {
+        calls: Cell::new(0),
+    };
+    let errors = super::source_certificate(
+        &source,
+        Path::new("empty-domain.spx"),
+        "app.t.empty",
+        0,
+        &kernel,
+    )
+    .expect_err("empty domain cannot become a Lean practical-law certificate");
+    assert!(errors[0].message.contains("domain is unknown"));
+    assert_eq!(kernel.calls.get(), 0);
+}
+
 // ---------------------------------------------------------------------
 // Kernel result parsing: nothing but a clean acceptance is a proof
 // ---------------------------------------------------------------------

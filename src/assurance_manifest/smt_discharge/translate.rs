@@ -31,6 +31,9 @@ pub struct SideObligation {
     pub formula: String,
     /// Human-readable locator for diagnostics, e.g. `"ensure:0 op:2 add"`.
     pub label: String,
+    /// Exact checked scalar mode of the source operation, audited against
+    /// the backend-neutral typed VC subject.
+    pub mode: NumericMode,
 }
 
 impl SideObligation {
@@ -194,6 +197,7 @@ fn translate_unary(
                 guard: guard.to_owned(),
                 formula: range_formula(&term, mode),
                 label: format!("{} neg", ctx.label_prefix),
+                mode,
             });
             Ok(Translated {
                 term,
@@ -235,6 +239,18 @@ fn translate_binary(
             })
         }
         BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul => {
+            if op == BinaryOp::Mul
+                && !matches!(
+                    left.kind,
+                    ExprKind::Int(_) | ExprKind::Int32(_) | ExprKind::Uint8(_) | ExprKind::Usize(_)
+                )
+                && !matches!(
+                    right.kind,
+                    ExprKind::Int(_) | ExprKind::Int32(_) | ExprKind::Uint8(_) | ExprKind::Usize(_)
+                )
+            {
+                return Err(UnsupportedReason::NonlinearMultiplication);
+            }
             let l = translate_expr(ctx, left, guard)?;
             let r = translate_expr(ctx, right, guard)?;
             let (Sort::Numeric(lm), Sort::Numeric(rm)) = (l.sort, r.sort) else {
@@ -254,6 +270,7 @@ fn translate_binary(
                 guard: guard.to_owned(),
                 formula: range_formula(&term, lm),
                 label: format!("{} {}", ctx.label_prefix, op.text()),
+                mode: lm,
             });
             Ok(Translated {
                 term,
@@ -412,6 +429,11 @@ pub struct FunctionEncoding {
     /// part of a provable goal.
     pub definitions: Vec<String>,
     pub requires_terms: Vec<String>,
+    /// Arithmetic checked while evaluating each requires clause. An entry
+    /// may assume only the requires clauses before its index.
+    pub requires_obligations: Vec<Vec<SideObligation>>,
+    /// Arithmetic in the body, evaluated after every requires clause.
+    pub body_obligations: Vec<SideObligation>,
     /// Obligations from parameters/`requires`/body: shared by every
     /// `ensures` query, since all of them execute unconditionally before
     /// any `ensures` clause is reached.
@@ -449,12 +471,15 @@ pub fn translate_function(function: &Function) -> Result<FunctionEncoding, Unsup
     }
 
     let mut requires_terms = Vec::new();
+    let mut requires_obligations = Vec::new();
     for require in &function.requires {
+        let before = ctx.obligations.len();
         let translated = translate_expr(&mut ctx, require, "true")?;
         if translated.sort != Sort::Bool {
             return Err(UnsupportedReason::OperandTypeMismatch { op: "requires" });
         }
         requires_terms.push(translated.term);
+        requires_obligations.push(ctx.obligations.split_off(before));
     }
 
     let mut ensures = Vec::new();
@@ -512,12 +537,59 @@ pub fn translate_function(function: &Function) -> Result<FunctionEncoding, Unsup
         }
     }
 
+    let body_obligations = std::mem::take(&mut ctx.obligations);
+    let shared_obligations = requires_obligations
+        .iter()
+        .flat_map(|group| group.iter().cloned())
+        .chain(body_obligations.iter().cloned())
+        .collect();
+
+    let subject = crate::assurance_manifest::law_vc::build(function)?;
+    let observed = requires_obligations
+        .iter()
+        .enumerate()
+        .flat_map(|(index, group)| {
+            group.iter().map(move |obligation| {
+                (
+                    crate::assurance_manifest::law_vc::Stage::Requires(index),
+                    obligation.mode,
+                )
+            })
+        })
+        .chain(body_obligations.iter().map(|obligation| {
+            (
+                crate::assurance_manifest::law_vc::Stage::Body,
+                obligation.mode,
+            )
+        }))
+        .chain(ensures.iter().enumerate().flat_map(|(index, clause)| {
+            clause.obligations.iter().map(move |obligation| {
+                (
+                    crate::assurance_manifest::law_vc::Stage::Ensures(index),
+                    obligation.mode,
+                )
+            })
+        }))
+        .collect::<Vec<_>>();
+    let expected = subject
+        .operations
+        .iter()
+        .map(|operation| (operation.stage, operation.mode))
+        .collect::<Vec<_>>();
+    if observed != expected {
+        return Err(UnsupportedReason::TypeMismatch {
+            detail: "SMT obligations disagree with the shared typed VC subject".to_owned(),
+        });
+    }
+
     Ok(FunctionEncoding {
         declarations: ctx.declarations,
         range_axioms: ctx.range_axioms,
         definitions: ctx.definitions,
         requires_terms,
-        shared_obligations: ctx.obligations,
+        requires_obligations,
+        body_obligations,
+        shared_obligations,
         ensures,
     })
 }

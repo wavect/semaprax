@@ -45,6 +45,9 @@ pub enum UnsupportedReason {
     /// A `Var` name that resolves to neither a parameter, a prior `let` in
     /// scope, nor (inside `ensures`) `result`.
     UnknownName { name: String },
+    /// This backend advertises QF_LIA. Multiplication is admitted only when
+    /// at least one operand is a source integer literal.
+    NonlinearMultiplication,
 }
 
 impl UnsupportedReason {
@@ -62,6 +65,7 @@ impl UnsupportedReason {
             Self::TypeMismatch { .. } => "type_mismatch",
             Self::OperandTypeMismatch { .. } => "operand_type_mismatch",
             Self::UnknownName { .. } => "unknown_name",
+            Self::NonlinearMultiplication => "nonlinear_multiplication",
         }
     }
 
@@ -87,6 +91,9 @@ impl UnsupportedReason {
                 format!("`{op}` operands resolved to different sorts")
             }
             Self::UnknownName { name } => format!("unresolved name `{name}`"),
+            Self::NonlinearMultiplication => {
+                "variable-variable multiplication is outside QF_LIA".to_owned()
+            }
         }
     }
 }

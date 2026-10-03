@@ -163,6 +163,21 @@ scope when it was discovered. A range obligation arising inside
 `requires[1]` therefore may assume `requires[0]` but not `requires[2]`,
 `result`, or any later `let`.
 
+The right side of `&&` or `||` runs only when the left side requests it.
+Range goals inside that right side now carry the corresponding Lean
+propositional path guard; an overflow in an unevaluated right side is not
+an unconditional goal. The shared typed VC subject records the same
+authored order, scalar modes, and path choices for the common subset. Lean
+checks its operation inventory against that subject before exporting.
+
+A source certificate also requires a concrete, checked precondition witness
+from a fixed 256-state scalar search before invoking Lean. Failure to find
+one is reported as unknown and refuses practical-law attachment; finite
+search exhaustion is not a contradiction proof. This local witness is test
+evidence for domain non-emptiness, not a Lean theorem of existence or a
+claim about callers. Source-bound certificate replay repeats the same
+deterministic check.
+
 ### Names
 
 A theorem name is `spx_<escape(stable_id)>_<kind>_<index>` inside the fixed

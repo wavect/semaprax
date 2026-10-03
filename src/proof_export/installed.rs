@@ -209,6 +209,32 @@ impl InstalledProofTool {
         }
         Ok(())
     }
+
+    /// Obtain a concrete SAT model through the same held, bounded Z3
+    /// capability. Callers must replay the model against the source before
+    /// treating it as a satisfiable precondition domain.
+    pub fn smt_domain_model(
+        &self,
+        script: &str,
+    ) -> Result<crate::assurance_manifest::smt_discharge::Model, Diagnostic> {
+        if self.kind != ToolKind::Z3 {
+            return Err(refused("Z3 capability required"));
+        }
+        self.version()?;
+        let output = self.run(
+            &[b"-in", b"-smt2"],
+            script.as_bytes(),
+            self.limits.proof_timeout_ms,
+        )?;
+        let (status, body) = output
+            .split_once('\n')
+            .ok_or_else(|| refused("domain query did not return a complete SAT model"))?;
+        if status.trim() != "sat" {
+            return Err(refused("domain is contradictory, unknown or unavailable"));
+        }
+        crate::assurance_manifest::smt_discharge::parse_model(body.trim())
+            .map_err(|_| refused("domain query returned an unsupported model"))
+    }
 }
 
 impl super::LeanKernel for InstalledProofTool {

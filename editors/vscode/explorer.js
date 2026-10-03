@@ -238,7 +238,10 @@ function openExplorer(vscode, context, state, query) {
   state.panel = panel; const scheduler = new ExplorerScheduler(state.invoke); let summary = null; const cursors = new Map(); const sourceReferences = new Map();
   panel.webview.html = html(panel.webview, context.extensionUri, generation, `${query.mode} · ${query.side}`, JSON.stringify([state.image(), state.candidate()]));
   let selectedQuery = null;
-  const reply = (requestId, ok, value) => panel.webview.postMessage({ type: 'semaprax-explorer-response', generation, requestId, ok, ...(ok ? { value } : { error: String(value?.message || value).slice(0, 1024) }) });
+  const reply = (requestId, ok, value) => {
+    state.reply?.({ requestId, ok, error: ok ? null : String(value?.message || value).slice(0, 1024) });
+    return panel.webview.postMessage({ type: 'semaprax-explorer-response', generation, requestId, ok, ...(ok ? { value } : { error: String(value?.message || value).slice(0, 1024) }) });
+  };
   const subscription = panel.webview.onDidReceiveMessage(async raw => {
     state.message?.(raw);
     const request = message(raw, generation); if (!request || state.panel !== panel || !state.live()) return;

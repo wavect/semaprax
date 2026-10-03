@@ -423,7 +423,7 @@ function activate(context) {
   let reportBindingOverride;
   let testTask, testTaskUsed = false;
   let explorerPanel = null, explorerGeneration = 0;
-  const explorerRenders = [], explorerActions = [];
+  const explorerRenders = [], explorerActions = [], explorerReplies = [];
   let watchers = [];
   const testMode = context.extensionMode === vscode.ExtensionMode.Test;
   const checking = activateChecks(context, testMode);
@@ -505,6 +505,7 @@ function activate(context) {
       invoke, live: () => Boolean(client && !client.closed && !stale && image), image: () => image, candidate: () => candidate,
       rendered: value => { if (testMode) explorerRenders.push(value); },
       message: value => { if (testMode && explorerActions.length < 128) explorerActions.push(typeof value?.action === 'string' ? value.action : '<invalid>'); },
+      reply: value => { if (testMode && explorerReplies.length < 128) explorerReplies.push(value); },
       reveal: reference => {
         if (!config?.manifest) throw new Error('Explorer manifest root is unavailable');
         return revealCurrentSource(vscode, path.dirname(config.manifest), reference, () => Boolean(client && !client.closed && !stale && image));
@@ -1039,6 +1040,7 @@ function activate(context) {
         testTaskUsed,
         explorerRenders: explorerRenders.map(value => ({ ...value, loaded: [...value.loaded] })),
         explorerActions: [...explorerActions],
+        explorerReplies: [...explorerReplies],
         documents: [...documents].map(([uri, text]) => ({ uri, text }))
       };
     },

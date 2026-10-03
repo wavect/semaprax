@@ -3092,6 +3092,11 @@ These areas are deliberately outside the public compiler contract:
   source-interpreter Future adapter for one checked scalar yield. It retains
   only an in-memory suspension binding and caller-owned host Future. It has
   no Project lock admission, native SDK emission, journal or effect authority;
+- `src/project/admission/source_local_future.rs` owns the opt-in Project
+  Phase-A signature check for one manifest-selected Rust-only async export.
+  `ProjectRevision` retains the admitted signature and the local Future
+  constructor replays it against the selected linked HIR. This route has no
+  Web/npm/native publication target and grants no host effect authority;
 - `src/project/indexed_rust.rs` and
   `crates/semaprax-native-rust-interop-builder/src/public_sdk/indexed_project.rs`:
   explicit source-bound indexed Project admission and authenticated SDK

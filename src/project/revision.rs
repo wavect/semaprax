@@ -132,6 +132,33 @@ impl ProjectRevision {
         &self.public_api_program
     }
 
+    /// Replay the admitted interpreter-only Rust Future selection against
+    /// this immutable Project revision before an ephemeral invocation.
+    pub fn source_local_future_signature(
+        &self,
+    ) -> Result<&crate::resumable_effects::source_signature::SourceEffectSignature, Vec<Diagnostic>>
+    {
+        if self.manifest.project_profile() != ProjectProfile::SourceLocalFutureV1 {
+            return Err(vec![Diagnostic::io(
+                "SPX-H006",
+                "source-local-future.v1 Project profile is not selected",
+            )]);
+        }
+        let signature = self
+            .profile_admission
+            .source_local_future_signature()
+            .ok_or_else(|| {
+                vec![Diagnostic::io(
+                    "SPX-H006",
+                    "source-local-future.v1 admission is absent",
+                )]
+            })?;
+        signature
+            .verify(&self.public_api_program)
+            .map_err(|e| vec![e])?;
+        Ok(signature)
+    }
+
     /// Re-derive and independently verify the exact compiler-owned endpoint
     /// retained for `public-generic-wasm-provider.v1`.
     pub fn public_generic_wasm_provider_endpoint_v1(
@@ -372,6 +399,12 @@ impl ProjectRevision {
 
     /// Build Project v1 as one deterministic pathless scalar-Web carrier.
     pub fn build_web_inline(&self, max_bytes: usize) -> Result<ProjectWebBuild, Vec<Diagnostic>> {
+        if self.manifest.project_profile() == ProjectProfile::SourceLocalFutureV1 {
+            return Err(vec![Diagnostic::io(
+                "SPX-W120",
+                "source-local-future.v1 has no Web emitter",
+            )]);
+        }
         if self.manifest.project_profile() != ProjectProfile::ScalarV1 {
             let version = match self.manifest.project_profile() {
                 ProjectProfile::ScalarV1 => unreachable!("scalar profile returned above"),
@@ -394,6 +427,7 @@ impl ProjectRevision {
                 ProjectProfile::EnvironmentIoV1 => "v17",
                 ProjectProfile::ProcessIoV1 => "v18",
                 ProjectProfile::PublicGenericWasmProviderV1 => "v20",
+                ProjectProfile::SourceLocalFutureV1 => "v21",
             };
             return Err(vec![Diagnostic::io(
                 "SPX-W120",
@@ -429,6 +463,12 @@ impl ProjectRevision {
 
     /// Build one deterministic, pathless, context-bound npm carrier.
     pub fn build_npm_inline(&self, max_bytes: usize) -> Result<ProjectNpmBuild, Vec<Diagnostic>> {
+        if self.manifest.project_profile() == ProjectProfile::SourceLocalFutureV1 {
+            return Err(vec![Diagnostic::io(
+                "SPX-W120",
+                "source-local-future.v1 has no npm/Web emitter",
+            )]);
+        }
         if self.manifest.project_profile() == ProjectProfile::PublicGenericWasmProviderV1 {
             return Err(vec![Diagnostic::io(
                 "SPX-W120",

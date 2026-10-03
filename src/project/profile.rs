@@ -55,6 +55,8 @@ pub const PROJECT_PROFILE_NESTED_OWNED_RECORD_API_V1: &str = "nested-owned-recor
 /// only; it does not make a Wasm build or runtime route available.
 pub const PROJECT_PROFILE_PUBLIC_GENERIC_WASM_PROVIDER_V1: &str =
     crate::public_generic_abi::compiler_endpoint::PUBLIC_GENERIC_WASM_PROVIDER_PROFILE;
+/// Interpreter-only, caller-executor source Future selection.
+pub const PROJECT_PROFILE_SOURCE_LOCAL_FUTURE_V1: &str = "source-local-future.v1";
 
 /// Frozen Project-v4 semantic stdout authority.
 pub const PROJECT_COMMAND_STDOUT_CAPABILITY: &str = "process.stdout.write";
@@ -121,6 +123,7 @@ pub enum ProjectProfile {
     OwnedUtf8ApiV1,
     NestedOwnedRecordApiV1,
     PublicGenericWasmProviderV1,
+    SourceLocalFutureV1,
 }
 
 impl ProjectProfile {
@@ -147,6 +150,7 @@ impl ProjectProfile {
                 | Self::OwnedUtf8ApiV1
                 | Self::NestedOwnedRecordApiV1
                 | Self::PublicGenericWasmProviderV1
+                | Self::SourceLocalFutureV1
         )
     }
 
@@ -174,6 +178,7 @@ impl ProjectProfile {
             Self::PublicGenericWasmProviderV1 => {
                 Some(PROJECT_PROFILE_PUBLIC_GENERIC_WASM_PROVIDER_V1)
             }
+            Self::SourceLocalFutureV1 => Some(PROJECT_PROFILE_SOURCE_LOCAL_FUTURE_V1),
         }
     }
 }

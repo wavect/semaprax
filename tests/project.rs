@@ -195,6 +195,8 @@ mod signature_nominal_arguments;
 mod signature_nominal_rebase;
 #[path = "project/signature_owned_values.rs"]
 mod signature_owned_values;
+#[path = "project/source_local_future.rs"]
+mod source_local_future;
 #[path = "project/source_protocol_law.rs"]
 mod source_protocol_law;
 #[path = "project/standard_library.rs"]

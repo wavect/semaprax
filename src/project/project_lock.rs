@@ -89,6 +89,7 @@ pub fn render_project_lock(snapshot: &ProjectSnapshot) -> Result<String, Vec<Dia
                     .descriptor_digest(),
             ),
         ),
+        ProjectProfile::SourceLocalFutureV1 => ("source-local-future.v1", None),
         ProjectProfile::UsefulTextConsumerV1
         | ProjectProfile::UsefulDataV1
         | ProjectProfile::UsefulDataV2

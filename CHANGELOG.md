@@ -8,6 +8,12 @@
   C11 executes the admitted source at O0 and O2. Runtime capacity, call depth,
   Core Wasm execution and public aggregate ABI remain outside the theorem.
 
+- Add an interpreter-only Project async selection with a distinct
+  `rust_async` manifest inventory, Phase-A source signature, retained
+  revision and explicit Web/npm/native refusals. The focused held-Project
+  gate covers checked Rust Future completion, source drift and wrong export.
+  Generated async SDK publication remains open.
+
 - Bind the experimental Result callback adapter to exact selected Rust
   trait/index/package identities. A captured rustdoc fixture and a separately
   compiled safe implementation exercise retained state; unsafe, sealed,

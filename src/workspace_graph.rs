@@ -1491,7 +1491,8 @@ impl WorkspaceGraphBuild {
             | crate::project::ProjectProfile::EnvironmentIoV1
             | crate::project::ProjectProfile::ProcessIoV1
             | crate::project::ProjectProfile::OwnedDataApiV1
-            | crate::project::ProjectProfile::PublicGenericWasmProviderV1 => {
+            | crate::project::ProjectProfile::PublicGenericWasmProviderV1
+            | crate::project::ProjectProfile::SourceLocalFutureV1 => {
                 unreachable!("Project v8 uses the exact function-reachable linker")
             }
             crate::project::ProjectProfile::FlatOwnedRecordApiV1 => {
@@ -1732,7 +1733,8 @@ impl WorkspaceGraphBuild {
             | crate::project::ProjectProfile::EnvironmentIoV1
             | crate::project::ProjectProfile::ProcessIoV1
             | crate::project::ProjectProfile::OwnedDataApiV1
-            | crate::project::ProjectProfile::PublicGenericWasmProviderV1 => {
+            | crate::project::ProjectProfile::PublicGenericWasmProviderV1
+            | crate::project::ProjectProfile::SourceLocalFutureV1 => {
                 unreachable!("Project v8 uses the exact function-reachable linker")
             }
             crate::project::ProjectProfile::FlatOwnedRecordApiV1 => {
@@ -2059,7 +2061,8 @@ impl WorkspaceGraphBuild {
                     | crate::project::ProjectProfile::FlatOwnedRecordApiV1
                     | crate::project::ProjectProfile::OwnedUtf8ApiV1
                     | crate::project::ProjectProfile::NestedOwnedRecordApiV1
-                    | crate::project::ProjectProfile::PublicGenericWasmProviderV1 => {
+                    | crate::project::ProjectProfile::PublicGenericWasmProviderV1
+                    | crate::project::ProjectProfile::SourceLocalFutureV1 => {
                         hir::useful_data_workspace_parameter_admitted(
                             &parameter.ty,
                             parameter.ownership,
@@ -2090,7 +2093,8 @@ impl WorkspaceGraphBuild {
                     | crate::project::ProjectProfile::EnvironmentIoV1
                     | crate::project::ProjectProfile::ProcessIoV1
                     | crate::project::ProjectProfile::OwnedDataApiV1
-                    | crate::project::ProjectProfile::PublicGenericWasmProviderV1 => {
+                    | crate::project::ProjectProfile::PublicGenericWasmProviderV1
+                    | crate::project::ProjectProfile::SourceLocalFutureV1 => {
                         hir::owned_data_api_workspace_return_admitted(&function.return_type)
                     }
                     crate::project::ProjectProfile::FlatOwnedRecordApiV1 => true,

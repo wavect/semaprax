@@ -6,7 +6,7 @@
 use crate::rich_cargo_execution::{
     authorize_prepared_build, build_locked_offline, CargoExecutionError, ExplicitCargoInvocation,
 };
-use crate::rich_cargo_preparation::PreparedCargoClosure;
+use crate::rich_cargo_preparation::{PreparedCargoArtifactCache, PreparedCargoClosure};
 use semaprax::diagnostic::Diagnostic;
 use semaprax_native_rust_interop::{
     NativeDispatchError, NativeExecutionGrant, NativeTrustError, TrustedNativeProfile,
@@ -50,11 +50,13 @@ pub fn build_admitted_native(
     prepared: &PreparedCargoClosure,
     binding_plan: &[u8],
     tool_identity: &[u8],
+    artifacts: &mut PreparedCargoArtifactCache,
 ) -> Result<&'static str, NativeHostRefusal> {
     let authority =
         authorize_prepared_build(profile, invocation, prepared, binding_plan, tool_identity)
             .map_err(NativeHostRefusal::Cargo)?;
-    build_locked_offline(invocation, prepared, &authority).map_err(NativeHostRefusal::Cargo)?;
+    build_locked_offline(invocation, prepared, &authority, artifacts)
+        .map_err(NativeHostRefusal::Cargo)?;
     Ok(authority.disclosure())
 }
 

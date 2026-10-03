@@ -243,9 +243,6 @@ fn build_locked_offline_with_hook(
             &output.stderr,
         ));
     }
-    if crate::rich_cargo_snapshot::prepared_build_identity(invocation, prepared)? != identity {
-        return Err(CargoExecutionError::BuildIdentityMismatch);
-    }
     let receipt = artifact_receipt(&invocation.target_dir, &output.stdout)?;
     let (artifact, _) = artifacts
         .reuse_or_publish(prepared, receipt)

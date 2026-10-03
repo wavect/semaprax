@@ -30,6 +30,10 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Check handbook structure and checker regressions
+        run: |
+          python3 scripts/test-check-handbook.py
+          python3 scripts/check-handbook.py --structure-only
       - name: Restore the pinned mdBook executable
         id: mdbook-cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0

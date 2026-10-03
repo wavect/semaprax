@@ -1,72 +1,124 @@
 # Install
 
-Get a working `semaprax` in about five minutes. You need **Git** and
-**Rust/Cargo 1.88+**. Add **Clang** for native builds and **Node.js 22+** for
-web-package verification.
+Install the command-line tool first. You can run the introductory examples
+without a model account, API key, or editor extension.
 
-## Install from source (recommended)
+## What you need
+
+For a source installation, have Git and Rust/Cargo available in your terminal.
+The repository declares Rust **1.88** as its minimum; use a compatible current
+stable toolchain for the recorded dependency set. Clang is needed when you
+build native code. Node.js 22 or newer is used by the web-package examples.
+
+Check the tools you already have:
 
 ```sh
-git clone https://github.com/wavect/semaprax.git
+git --version
+rustc --version
+cargo --version
+```
+
+## Build from main
+
+These commands download the repository and install its standalone CLI:
+
+```sh
+git clone --branch main https://github.com/wavect/semaprax.git
 cd semaprax
-cargo install --locked --path .
+cargo install --locked --path . --bin semaprax
 ```
 
-`--locked` pins the recorded dependencies. Cargo may download them during
-install; later Semaprax builds fetch nothing.
+Cargo is Rust's package and build tool. `--locked` tells it to use the dependency
+versions recorded in `Cargo.lock`. Installing may download those dependencies.
+Keep the checkout: the examples and helper scripts in this handbook live there.
 
-### Fix `command not found`
-
-`cargo install` writes to `~/.cargo/bin` (`%USERPROFILE%\.cargo\bin` on
-Windows). If your shell can't find `semaprax`, add that directory to `PATH`:
+This edition was reviewed against commit
+`508b851a5fda25002ec27453bb559755a6a0d930`. To reproduce that source snapshot,
+run the following **before** the install command, in a clean checkout:
 
 ```sh
-export PATH="$HOME/.cargo/bin:$PATH"   # bash/zsh, then open a new shell
-command -v semaprax                    # should print the binary path
+git switch --detach 508b851a5fda25002ec27453bb559755a6a0d930
 ```
 
-## Verify the install
+A detached checkout is useful for following a fixed tutorial. Create a branch
+before developing your own changes.
+
+## Confirm that it works
+
+Run these from the repository root, where `examples/` exists:
 
 ```sh
+semaprax --version
 semaprax check examples/meaning.spx
-semaprax run examples/meaning.spx     # prints 42
+semaprax run examples/meaning.spx
 ```
 
-The first command verifies a program; the second runs it. No Clang, Node, or
-model provider needed for this — just the checker and interpreter.
+`check` should report a verified file. `run` should print `42`. You now have
+everything needed for [First program](first-program.md).
 
-## Which binary do I have?
-
-| Binary | Source | Commands |
-| --- | --- | --- |
-| `semaprax` | Source install, or release archive | Everyday work: `new`, `fmt`, `check`, `run`, `test`, `graph`, `build`, `doctor` |
-| `semaprax-full` | `cargo install --locked --path crates/semaprax-toolchain` | Same, plus private host and publication operations |
-
-If `semaprax help all` doesn't show a command, you almost certainly have the
-standalone binary and the command is private — that mismatch, not a broken
-install, is the usual cause.
-
-## Alternative: release archive
-
-This handbook describes **v0.7.0**, which is currently available **from source
-only** — its exact tag gate has not passed and no signed v0.7.0 archive is
-published. The last downloadable archives are the
-[v0.5.0 prerelease](https://github.com/wavect/semaprax/releases/tag/v0.5.0)
-(one per host: Linux x86-64, Apple Silicon macOS, Windows x86-64, plus
-`SHA256SUMS`):
+To try the tool without installing it globally, use Cargo directly:
 
 ```sh
-shasum -a 256 -c SHA256SUMS
+cargo run --locked -p semaprax -- check examples/meaning.spx
+cargo run --locked -p semaprax -- run examples/meaning.spx
 ```
 
-Each archive contains `semaprax`, a smoke program, and a release manifest.
-Prefer the source install above when following this handbook: v0.5.0 predates
-several v0.7.0 commands and templates. Check the
-[releases page](https://github.com/wavect/semaprax/releases) for the newest
-version and the completion matrix in
-[`docs/`](https://github.com/wavect/semaprax/tree/main/docs) for what each
-release actually implements — a specification existing is not proof it ships.
+The `--` separates Cargo's options from Semaprax's options.
 
-## Next step
+## Fix “command not found”
 
-Write and run your first file: [First program](first-program.md).
+Cargo normally installs executables in `~/.cargo/bin`. In a macOS or Linux
+shell, add that directory to your search path:
+
+```sh
+export PATH="$HOME/.cargo/bin:$PATH"
+command -v semaprax
+```
+
+In Windows PowerShell, the equivalent for the current terminal is:
+
+```powershell
+$env:Path = "$env:USERPROFILE\.cargo\bin;$env:Path"
+Get-Command semaprax
+```
+
+Custom `CARGO_HOME` or installation roots can change the location. The install
+output tells you where the executable was placed.
+
+## Choose the right installation route
+
+| Route | Use it for |
+| --- | --- |
+| Source-built `semaprax` | The learning path, project checks, interpreter runs, semantic queries, and ordinary builds. |
+| Source-built `semaprax-full` | Workflows that explicitly require private host integration, such as the Project Rust package route and source-live operations. |
+| A release archive | A fixed published build for your host. Match the documentation and examples to that release. |
+
+Install the full toolchain only when a chapter calls for it:
+
+```sh
+cargo install --locked --path crates/semaprax-toolchain
+semaprax-full help all
+```
+
+“Private host” describes an implementation boundary in the source tree. It is
+not an account tier. The standalone executable supplies no private host hooks.
+
+The [v0.7.0 prerelease](https://github.com/wavect/semaprax/releases/tag/v0.7.0)
+was published on October 1, 2026. A release binary and a later source build can
+both print `0.7.0` while exposing different additions. Record the commit as well
+as the version when reproducing an issue. Follow the release's verification
+instructions and retain its supplied provenance files.
+
+## Find help for your build
+
+```sh
+semaprax help run
+semaprax help build
+semaprax help diagnostic SPX-T208
+```
+
+A command absent from `help all` may require a newer build or the full toolchain.
+Use that executable's help rather than guessing a flag.
+
+**Next:** [Write your first program](first-program.md), or
+[configure VS Code](editor.md).

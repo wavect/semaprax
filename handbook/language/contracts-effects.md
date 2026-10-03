@@ -4,6 +4,16 @@ Contracts say what code **means**; effects say what code **touches**. Both
 live in the signature, both are checked, and both show up in the semantic
 graph — so agents and reviewers see them without reading the body.
 
+## Read a contract in plain language
+
+Think of a function call as an agreement. The caller supplies inputs that meet
+`requires`. The function supplies a result that meets `ensures`. `result` is a
+special name for that returned value.
+
+For example, `requires value >= 0` means “call me with a nonnegative value.”
+`ensures result >= 0` means “my returned value will be nonnegative.” Start with
+one useful rule and add the edge cases that matter to your application.
+
 ## Contracts: requires / ensures
 
 ```semaprax
@@ -33,6 +43,18 @@ postcondition captures what you promised, and both get re-checked on every
 `test` run. Start with bounds (`value >= 0`), exact results for pure helpers
 (`result == left + right`), and non-emptiness for builders.
 
+## Decide between a contract and Result
+
+Use a precondition for something the caller must establish before calling.
+Use `Result<T, E>` when an expected outcome, such as invalid user input, should
+be handled by ordinary application code. A deliberate contract violation in
+a normal test makes that test fail; see [Testing](../practices/testing.md) for
+how to keep rejection checks separate from the passing suite.
+
+For named project-wide rules and selected solver-backed checks, continue with
+[Laws and proofs](laws.md). It explains how a law identifies the rule you want
+to keep while the implementation changes.
+
 ## Effects: permit / uses
 
 No function touches the outside world silently. The module **permits** effects
@@ -59,6 +81,11 @@ fn main() -> i64
 }
 ```
 
+In this example, `tick` only adds one. The declared `clock.read` effect shows
+how effect requirements propagate through a call; it does not itself read a
+clock. The [first program](../getting-started/first-program.md) uses a real
+`stdout_write` operation to demonstrate an observable effect.
+
 Missing `permit` is `SPX-E101`; missing `uses` is `SPX-E102`. The effect list
 is closed and explicit:
 
@@ -72,6 +99,18 @@ is closed and explicit:
 Compiler and generated code gain **no** ambient authority from being
 installed: no filesystem, process, network, or signing access unless a
 declared effect and an explicit provider grant it.
+
+## Keep declaration and execution separate
+
+Three things work together: the module permits an effect, the function declares
+it, and the selected host provides the operation. A **host** is the environment
+that runs the program and supplies external services. Declaring `network.read`
+does not create a socket or choose credentials.
+
+This separation is especially useful in tests. A test host can supply fixed
+responses, while an explicitly configured runtime host performs the real I/O.
+See [Profiles](../projects/profiles.md) before moving an effectful helper to a
+new execution target.
 
 ## Querying meaning
 

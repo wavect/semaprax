@@ -1,8 +1,21 @@
 # Types: records, variants, classes
 
-Semaprax has three ways to group data. **Records** hold fields, **variants**
-offer cases, **classes** add methods. All three nest inside functions
-anywhere; only Copy scalars may cross project function boundaries.
+Choose a type based on the question your data answers. A **record** groups
+fields that belong together. A **variant** represents one of several possible
+cases. A **class** groups fields with methods that operate on them.
+
+Declare these types at module level, then construct their values inside
+functions. The examples below are complete standalone modules. When moving
+helpers into a project, use the matching [profile](../projects/profiles.md)
+for their parameter and result types.
+
+| Your data | A useful starting point |
+| --- | --- |
+| A point with `x` and `y` | A record. |
+| A shape that is a dot or a box | A variant. |
+| A value that may be absent | `Option<T>`. |
+| An operation that succeeds or returns an error | `Result<T, E>`. |
+| A counter with associated operations | A class. |
 
 ## Records
 
@@ -32,6 +45,10 @@ fn main() -> i64
 - `record with { field: value }` is immutable update: it builds a new value.
 - Field mutation (`origin.x = …`) needs a `let mut` binding.
 - Give every field its own `@id`, just like the record itself.
+
+The record example returns `12`: mutation changes `x` to `2`, and the update
+builds a value with `y = 10`. A field's name is its local spelling; its `@id`
+is the persistent identity used by semantic tools.
 
 ## Variants, Option, Result
 
@@ -96,6 +113,10 @@ fn main() -> i64
 Match arms can't construct nominal aggregates (`SPX-T258`): bind scalars out
 of the match first, or build the record/variant with `if` instead.
 
+`Result<i64, i64>` uses its first type for success and its second for the error.
+Here, error code `1` means the divisor was zero. The example demonstrates that
+one error case; integer arithmetic still has checked overflow behavior.
+
 ## Classes
 
 Classes are records with methods. Methods take `self` explicitly and are
@@ -133,8 +154,9 @@ fn main() -> i64
    methods genuinely belong to the value.
 2. **Return `Option`/`Result`, don't invent sentinel values.** Callers must
    handle every case — the exhaustiveness check is the point.
-3. **Keep project function signatures scalar.** Rich types are for
-   module-local implementation; function boundaries stay Copy-scalar so every
-   backend and the semantic graph agree on the interface.
+3. **Choose the boundary before moving the helper.** The default scalar
+   Project route has scalar public boundaries. Owned-data routes and selected
+   private helper profiles admit more shapes. Follow [Profiles](../projects/profiles.md)
+   rather than assuming a standalone helper fits every export target.
 
 Exact data-model rules: [RFC 0002](https://github.com/wavect/semaprax/blob/main/docs/RFC-0002-ALGEBRAIC-DATA.md).

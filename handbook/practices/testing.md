@@ -4,6 +4,18 @@ Tests in Semaprax are ordinary modules whose functions return `i64`:
 `0` passes, anything else fails. The runner reports failures by stable id,
 so a failing suite tells you exactly which check broke.
 
+## Run a known suite first
+
+From the repository root, run:
+
+```sh
+semaprax test examples/calculator-project/semaprax.toml
+```
+
+The runner should report that the project tests passed. Open its `src/tests.spx`
+to see the checks. The example below belongs in that calculator project; it
+imports a function from `calculator.core` and is not a standalone program.
+
 ## A test module
 
 ```semaprax
@@ -54,11 +66,29 @@ contract: requires right != 0 in calculator.divide
 arguments: left = 1, right = 0
 ```
 
-Best practice: **write the contract first, then a test that exercises both
-sides** — one passing call and one call that would violate the precondition
-(if the precondition is caller-enforced) or assert the postcondition's edge
-(zero, empty, maximum). The contract guards all future callers; the test
-pins today's behavior.
+Write the contract first. Then test valid inputs at useful edges, such as
+zero, one item, and the largest value the function explicitly accepts.
+For a function requiring a nonzero divisor, ordinary passing tests should
+supply a nonzero divisor.
+
+Test rejection separately. A deliberately invalid call triggers a failure;
+it does not become a passing `test_*` case merely because the failure was
+intentional. Keep that call in a separate fixture and have the surrounding
+harness assert the failure status. This keeps the normal test suite green for
+the right reason.
+
+For expected user-facing errors, return `Result` and assert its error case
+instead of intentionally breaking a precondition. See
+[Contracts and effects](../language/contracts-effects.md).
+
+## Prove that the test can detect a mistake
+
+Temporarily change `add(19, 23) == 42` to `add(19, 23) == 41` and run the suite.
+The corresponding test must fail. Restore the expected value and run it again.
+This small negative control catches tests that never reach their assertion.
+
+Give each test one clear purpose. A function named `test_add_zero` is easier
+to diagnose than a long `test_everything` function with unrelated checks.
 
 ## The verification ladder
 
@@ -77,3 +107,17 @@ all accept a directory or manifest path in v0.7.0. For CI, add
 interface changes.
 
 Exact test-case semantics: [Project Test Cases v1](https://github.com/wavect/semaprax/blob/main/docs/PROJECT-TEST-CASES-V1.md).
+
+## Check handbook examples when editing documentation
+
+The handbook's marked runnable modules and its multi-file tutorial can be
+checked with the accompanying script, from the repository root:
+
+```sh
+python3 scripts/check-handbook.py --compiler /absolute/path/to/semaprax
+```
+
+The script formats temporary copies, checks them, runs the marked examples,
+and compares their output. It also checks local links and chapter navigation.
+`--structure-only` performs just the documentation checks and explicitly skips
+compiler execution. Unmarked reference snippets are not runtime smoke tests.

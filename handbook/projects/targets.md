@@ -4,51 +4,102 @@ One checked meaning, three engines. They share HIR and the cleanup plan, so a
 safe program behaves equivalently on every backend that admits the features
 it uses.
 
-## The three engines
+A **target** is the form you build or run: interpreted execution, a native
+program, or a WebAssembly package. Start with the interpreter, then choose
+the form your application needs.
 
-| Engine | Command | Needs | Good for |
-| --- | --- | --- | --- |
-| Interpreter | `semaprax run <target>` | Nothing | Edit loop, tests, learning |
-| Native (C11) | `semaprax run --native` / `build --target native` | Clang | CLIs, command I/O, resources, speed |
-| Web (Wasm) | `semaprax build --target web -o dist/` | Node 22 for verification | Browser/npm packages, scalar exports |
+## Choose the output you need
 
-```sh
-semaprax run semaprax.toml                              # interpreter
-semaprax run examples/meaning.spx --native              # one file, native lane
-semaprax build semaprax.toml --target web -o dist/web   # web package
-semaprax build semaprax.toml --target native -o dist/native
-```
+| Route | What it gives you | Extra tools |
+| --- | --- | --- |
+| `run` | A result from the interpreter. | None for the introductory pure examples. |
+| `run --native` | A native execution of a supported source program. | Clang. |
+| Single-file `build --target native` | A native executable at the output path. | Clang. |
+| Project `build --target native` | The selected project's native output package. | The tools required by that project profile. |
+| `build --target web` | A WebAssembly package and its consumer interface. | Node.js for the repository's package verification scripts. |
 
-The interpreter is bounded: `--max-steps` and `--max-bytes` cap execution,
-recursion is limited to 256 frames (exceeding it is a reported
-runtime-capacity failure, not a crash), and single-file `run` evaluates
-`app.main` with exactly the `process.stdout.write` transcript profile.
+**Single-file native output is a file; project output is a package directory.**
+Do not pass a directory where an executable filename is expected.
 
-## Choosing per feature
+## Start with interpreter execution
 
-- **Command I/O** (`args`, `stdin`, `stderr`) and **resources** need a
-  project built for **native**. Single-file `run` rejects resource modules
-  (`SPX-B104`).
-- **Web exports** are admitted scalar functions listed in `[exports] web`.
-  The build emits `app.wasm` plus `semaprax.scalar-exports.json` describing
-  the JavaScript/TypeScript boundary.
-- **Effects** must be provided by the target's host: a declared effect with
-  no injected provider fails at the boundary, never silently.
-
-## The build loop
+From the repository root:
 
 ```sh
-semaprax check semaprax.toml                 # verify first, always
-semaprax test semaprax.toml                  # executable checks
-semaprax build semaprax.toml --target web -o dist/web
-semaprax doctor --target web                 # environment + target readiness
+semaprax check examples/meaning.spx
+semaprax run examples/meaning.spx
 ```
 
-`build` creates the output directory if needed. `doctor` checks the
-toolchain and target prerequisites (`--profile`, `--target native|web|all`,
-`--json`) — run it when a build fails for environmental reasons before
-debugging the code.
+The result is `42`. The single-file runner selects `app.main`. It also has a
+specific stdout-transcript route, used by the printing lesson in
+[First program](../getting-started/first-program.md).
 
-Exact rules: [Wasm Scalar Exports v1](https://github.com/wavect/semaprax/blob/main/docs/WASM-SCALAR-EXPORTS-V1.md),
-[Native Callable ABI v3](https://github.com/wavect/semaprax/blob/main/docs/NATIVE-CALLABLE-ABI-V3.md),
-[Interpreter v1](https://github.com/wavect/semaprax/blob/main/docs/INTERPRETER-V1.md).
+For single-file execution, `--max-steps` limits the work performed by the
+interpreter. `--max-bytes` limits the output envelope, not all process memory.
+The implementation also limits call depth to 256 frames. Read
+`semaprax help run` before combining execution options.
+
+## Try native execution
+
+The following commands use the same source file:
+
+```sh
+semaprax run examples/meaning.spx --native
+semaprax build examples/meaning.spx --target native -o meaning-native
+```
+
+On macOS or Linux, run the created executable with `./meaning-native`.
+On Windows, choose an output name such as `meaning-native.exe` and run it
+with `./meaning-native.exe` in PowerShell.
+
+The native route generates C11 and compiles it with Clang. Keep compiler and
+runtime failures separate: a missing Clang executable is an environment issue,
+while an unsupported signature is a source/profile issue.
+
+## Build a web package and check its boundary
+
+From the repository root:
+
+```sh
+semaprax test examples/calculator-project/semaprax.toml
+semaprax build examples/calculator-project/semaprax.toml --target web -o dist/calculator-web
+node scripts/verify-wasm-scalar-exports.mjs dist/calculator-web
+```
+
+The manifest selects the exported functions by stable ID. The scalar route
+emits `app.wasm` and `semaprax.scalar-exports.json`; the latter describes the
+consumer boundary. The Node script checks the generated calculator exports.
+
+To call the package from a page, follow the complete
+[calculator browser consumer](https://github.com/wavect/semaprax/blob/main/examples/calculator-web/README.md).
+A build creates files. Serving those files and loading the package are separate
+steps in the consumer application.
+
+## Choose the route for richer data
+
+Command I/O, resources, owned-data APIs, and host callbacks each use their
+specified execution profile. See [Profiles](profiles.md) before selecting a
+backend for them. A `web` scalar package and an owned-data `npm` package are
+different interfaces, even though both involve WebAssembly.
+
+For a Project Rust SDK, the documented `--target rust` route uses
+`semaprax-full`. The [integration guide](integrations.md) also shows the
+standalone Cargo setup examples and the C-header inspection route.
+
+## Diagnose the environment before changing source
+
+```sh
+semaprax doctor --target web
+semaprax doctor --target native
+```
+
+Read the reported checks and their required/optional status. Use the installed
+command's help for additional doctor profiles. A successful prerequisite check
+helps establish the environment; still run the project's tests and the chosen
+consumer after building.
+
+**Next:** [Integrate with another language](integrations.md), or
+[prepare the package for review](shipping.md).
+References: [Interpreter v1](https://github.com/wavect/semaprax/blob/main/docs/INTERPRETER-V1.md),
+[Wasm Scalar Exports v1](https://github.com/wavect/semaprax/blob/main/docs/WASM-SCALAR-EXPORTS-V1.md),
+and [Native Callable ABI v3](https://github.com/wavect/semaprax/blob/main/docs/NATIVE-CALLABLE-ABI-V3.md).

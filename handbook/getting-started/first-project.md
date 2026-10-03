@@ -1,95 +1,120 @@
 # First project
 
-Single files are for learning; projects are for building. A project is a
-`semaprax.toml` manifest beside a `src/` directory.
+A project connects source files, tests, dependencies, and exports. Its
+`semaprax.toml` file is a **manifest**: a list of those inputs and choices.
+You will create a calculator project and run its checks before changing it.
 
-Ernesto's next stop is the generated calculator: one small project with source,
-tests, and a web target. [See the commands in action](see-it-in-action.md)
-before making your own.
+## 1. Preview the files
 
-## Scaffold it
-
-Preview the template without writing anything:
+From a directory where you keep projects, run:
 
 ```sh
 semaprax project-scaffold --name first-semaprax
 ```
 
-Then create the project (the destination must not exist yet):
+A scaffold is a starter project. This command previews one without writing it.
+Read the proposed manifest and source paths in the output.
+
+## 2. Create the project
+
+The destination must not already exist:
 
 ```sh
 semaprax new first-semaprax
 cd first-semaprax
 ```
 
-v0.7.0 scaffolds three templates — `calculator` (default),
-`--template library`, and `--template service` — with `--layout tables`
-(default) or `--layout frozen` for the one-line-per-key manifest. Both flags
-also work on `project-scaffold` for previewing.
+The default template is `calculator`. To create a different project, use a new
+destination with `--template library` or `--template service`.
 
-You'll get a layout like this:
+The key files are:
 
 ```text
 first-semaprax/
-├── semaprax.toml      # manifest: identity, modules, tests, exports
+├── semaprax.toml
 └── src/
-    ├── app.spx        # entry module, declares main
-    ├── core.spx       # your logic
-    └── tests.spx      # test module
+    ├── app.spx
+    ├── core.spx
+    └── tests.spx
 ```
 
-## The daily commands
+`app.spx` contains the entry point. `core.spx` contains the reusable logic.
+`tests.spx` checks that logic. The generated project also supplies guidance
+for coding agents; keep it with the project.
+
+The standalone `new` command creates the standard table-layout manifest.
+Use `semaprax help project-scaffold` for preview layout options. Do not add
+`--layout` to `new` unless your installed executable's help accepts it.
+
+## 3. Run the existing project
+
+These commands now run **inside `first-semaprax/`**:
 
 ```sh
-semaprax check semaprax.toml                 # verify the whole project
-semaprax test semaprax.toml                  # run the test module
-semaprax run semaprax.toml                   # run main (prints 42 for the scaffold)
-semaprax graph semaprax.toml                 # checked semantic graph as JSON
-semaprax build semaprax.toml --target web -o dist/web   # web package
+semaprax fmt . --check
+semaprax check .
+semaprax test .
+semaprax run .
 ```
 
-`run` prints `42`. `graph` prints deterministic JSON for tooling. `build`
-creates `dist/` if needed and writes the target package there.
+The calculator entry returns `42`, and its tests should pass. Establish this
+working starting point before editing. You can also pass `semaprax.toml`
+instead of `.`.
 
-## The manifest
+## 4. Follow one call
 
-```toml
-schema = "semaprax.manifest.v1"
+Open `src/app.spx`. Find its import and the call that uses it. Then open
+`src/core.spx` and find the matching `@id`.
 
-[package]
-name = "calculator"
-version = "0.1.0"
+Three names have separate meanings:
 
-[modules]
-entry = "calculator.app"
-sources = ["src/app.spx", "src/core.spx", "src/tests.spx"]
-tests = ["calculator.tests"]
+| Name | Example | Purpose |
+| --- | --- | --- |
+| File path | `src/core.spx` | Where the source is stored. |
+| Module name | `calculator.core` | Which module declares a function. |
+| Stable ID | `calculator.add` | Which declaration another module imports. |
 
-[exports]
-web = ["calculator.add"]
+The generated manifest and source are the authority for your template's exact
+names. The [modules tutorial](../projects/modules.md) builds a complete small
+example and explains each part of an import.
 
-[dependencies]
-std.num = "^0.1.0"
+## 5. Inspect and build
+
+List functions without dumping the entire semantic graph:
+
+```sh
+semaprax query . --kind function
 ```
 
-Rules that bite newcomers:
+Then build the calculator's selected web exports:
 
-- **Manifest bytes are canonical.** Keep the table order, one blank line
-  between tables, one-line arrays, no comments. A non-canonical manifest fails
-  with `SPX-J100`, and its `help` line names the first differing line.
-- **`entry` names the one module that declares `main`.**
-- **Import by stable identity, not by path**, directly after the `module` line:
-  `use function @id("calculator.add") from calculator.core as add;`
-- **Project function signatures are Copy scalars only.** Records, variants,
-  and `Option`/`Result` work fine *inside* a function body but can't cross a
-  function boundary (`SPX-G174`).
+```sh
+semaprax build . --target web -o dist/web
+```
 
-The committed
-[`calculator-project`](https://github.com/wavect/semaprax/tree/main/examples/calculator-project)
-is the reference instance. Exact manifest rules live in the Project Manifest
-specifications under
-[`docs/`](https://github.com/wavect/semaprax/tree/main/docs).
+The manifest chooses which functions become callable from the generated
+package. Building a package does not start a web server. See
+[Targets](../projects/targets.md) for the consumer step and native builds.
 
-## Next step
+## Make your first change
 
-Learn the language core: [Essentials](../language/essentials.md).
+Open one `test_*` function in `src/tests.spx`. Change its expected result to a
+wrong value and run `semaprax test .`. Notice the failing test's stable ID.
+Restore the correct value and run the suite again.
+
+This small exercise teaches the feedback loop you will use for larger work:
+change one behavior, run the test that describes it, and inspect the result.
+
+## When the manifest is rejected
+
+Semaprax expects a **canonical** manifest, meaning one accepted spelling and
+layout. Preserve generated table order, one-line arrays, and blank lines.
+Follow the first `SPX-J100` formatting hint instead of trying arbitrary TOML
+layouts. The [manifest guide](../projects/manifests.md) explains the fields.
+
+For richer function boundaries, choose the matching
+[project profile](../projects/profiles.md). You do not need those profiles to
+finish the calculator learning path.
+
+**Next:** [Learn the language essentials](../language/essentials.md), or
+[write your own multi-file project](../projects/modules.md).

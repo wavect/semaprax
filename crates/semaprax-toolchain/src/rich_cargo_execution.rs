@@ -18,8 +18,9 @@ const MAX_CARGO_OUTPUT_BYTES: usize = 1_048_576;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum CargoExecutionError {
-    /// SPX-B121: explicit executable, workspace, manifest, rustc, or output
-    /// directory input is malformed or changed before invocation.
+    /// SPX-B121: explicit executable, workspace, manifest, Rust toolchain,
+    /// Cargo home, executable path, or output directory input is malformed or
+    /// changed before invocation.
     InvalidInput,
     /// SPX-B121: Cargo metadata did not produce a bounded successful response.
     MetadataFailed,
@@ -48,6 +49,12 @@ pub struct ExplicitCargoInvocation {
     pub rustc: PathBuf,
     pub workspace: PathBuf,
     pub manifest: PathBuf,
+    /// An empty, caller-owned Cargo home. It is also the child process's HOME,
+    /// so neither Cargo nor build code inherit the caller's home directory.
+    pub cargo_home: PathBuf,
+    /// Absolute directories available to Cargo, rustc, and approved build
+    /// code. This is a supplied capability, never the caller's ambient PATH.
+    pub execution_path: Vec<PathBuf>,
     pub target_dir: PathBuf,
 }
 
@@ -75,7 +82,10 @@ pub fn collect_cargo_metadata(
     bounded(&output.stdout)?;
     bounded(&output.stderr)?;
     if !output.status.success() {
-        return Err(CargoExecutionError::MetadataFailed);
+        return Err(cargo_failed(
+            CargoExecutionError::MetadataFailed,
+            &output.stderr,
+        ));
     }
     Ok(output.stdout)
 }
@@ -129,7 +139,10 @@ pub fn build_locked_offline(
     bounded(&output.stdout)?;
     bounded(&output.stderr)?;
     if !output.status.success() {
-        return Err(CargoExecutionError::BuildFailed);
+        return Err(cargo_failed(
+            CargoExecutionError::BuildFailed,
+            &output.stderr,
+        ));
     }
     Ok(())
 }
@@ -139,6 +152,13 @@ fn validate_invocation(invocation: &ExplicitCargoInvocation) -> Result<(), Cargo
         || !regular_file(&invocation.rustc)
         || !directory(&invocation.workspace)
         || !regular_file(&invocation.manifest)
+        || !empty_directory(&invocation.cargo_home)
+        || invocation.execution_path.is_empty()
+        || invocation
+            .execution_path
+            .iter()
+            .any(|path| !directory(path))
+        || std::env::join_paths(&invocation.execution_path).is_err()
         || !directory(&invocation.target_dir)
         || invocation.manifest.parent() != Some(invocation.workspace.as_path())
     {
@@ -155,15 +175,35 @@ fn directory(path: &Path) -> bool {
     path.is_absolute() && path.metadata().is_ok_and(|metadata| metadata.is_dir())
 }
 
+fn empty_directory(path: &Path) -> bool {
+    directory(path) && path.read_dir().is_ok_and(|entries| entries.count() == 0)
+}
+
 fn cargo_command(invocation: &ExplicitCargoInvocation) -> Command {
     let mut command = Command::new(&invocation.cargo);
     command
         .env_clear()
         .current_dir(&invocation.workspace)
         .env("RUSTC", &invocation.rustc)
+        .env("HOME", &invocation.cargo_home)
+        .env("CARGO_HOME", &invocation.cargo_home)
+        .env(
+            "PATH",
+            std::env::join_paths(&invocation.execution_path).unwrap(),
+        )
         .env("CARGO_NET_OFFLINE", "true")
         .env("CARGO_TARGET_DIR", &invocation.target_dir);
     command
+}
+
+fn cargo_failed(error: CargoExecutionError, stderr: &[u8]) -> CargoExecutionError {
+    #[cfg(test)]
+    eprintln!(
+        "rich Cargo fixture stderr: {}",
+        String::from_utf8_lossy(stderr)
+    );
+    let _ = stderr;
+    error
 }
 
 fn bounded(bytes: &[u8]) -> Result<(), CargoExecutionError> {
@@ -200,6 +240,8 @@ mod tests {
         .unwrap();
         let target = root.join("target");
         fs::create_dir(&target).unwrap();
+        let cargo_home = root.join("cargo-home");
+        fs::create_dir(&cargo_home).unwrap();
         let marker = root.join("marker");
         let cargo = root.join("cargo");
         fs::write(
@@ -218,10 +260,12 @@ mod tests {
         (
             root.clone(),
             ExplicitCargoInvocation {
+                execution_path: test_execution_path(&cargo, &rustc),
                 cargo,
                 rustc,
                 workspace: root,
                 manifest,
+                cargo_home,
                 target_dir: target,
             },
             marker,
@@ -282,11 +326,17 @@ mod tests {
             SERIAL.fetch_add(1, Ordering::Relaxed)
         ));
         fs::create_dir(&target).unwrap();
+        let cargo_home = target.join("cargo-home");
+        fs::create_dir(&cargo_home).unwrap();
+        let cargo = configured_tool("CARGO");
+        let rustc = configured_tool("RUSTC");
         let invocation = ExplicitCargoInvocation {
-            cargo: configured_tool("CARGO"),
-            rustc: configured_tool("RUSTC"),
+            execution_path: test_execution_path(&cargo, &rustc),
+            cargo,
+            rustc,
             workspace: fixture.clone(),
             manifest: fixture.join("Cargo.toml"),
+            cargo_home,
             target_dir: target.clone(),
         };
         build_locked_offline(&invocation, NativeBuildPolicy::TrustedHost).unwrap();
@@ -306,13 +356,17 @@ mod tests {
             SERIAL.fetch_add(1, Ordering::Relaxed)
         ));
         fs::create_dir(&target).unwrap();
+        let cargo_home = target.join("cargo-home");
+        fs::create_dir(&cargo_home).unwrap();
         let cargo = configured_tool("CARGO");
         let rustc = configured_tool("RUSTC");
         let invocation = ExplicitCargoInvocation {
+            execution_path: test_execution_path(&cargo, &rustc),
             cargo,
             rustc,
             workspace: fixture.clone(),
             manifest: fixture.join("Cargo.toml"),
+            cargo_home,
             target_dir: target.clone(),
         };
         let metadata = collect_cargo_metadata(&invocation).unwrap();
@@ -394,6 +448,18 @@ mod tests {
             })
             .filter(|path| path.is_absolute() && path.is_file())
             .expect("Cargo test harness must provide an absolute tool")
+    }
+
+    fn test_execution_path(cargo: &Path, rustc: &Path) -> Vec<PathBuf> {
+        let mut paths = vec![
+            cargo.parent().unwrap().to_owned(),
+            rustc.parent().unwrap().to_owned(),
+        ];
+        #[cfg(unix)]
+        paths.push(PathBuf::from("/usr/bin"));
+        paths.sort();
+        paths.dedup();
+        paths
     }
 
     fn native_target() -> &'static str {

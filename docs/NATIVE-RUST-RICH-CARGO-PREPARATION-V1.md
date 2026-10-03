@@ -97,9 +97,12 @@ closure.
 `semaprax-toolchain::rich_cargo_execution` provides the only current
 effectful entry points. `collect_cargo_metadata` and
 `prepare_with_cargo_metadata` require absolute regular-file paths for Cargo
-and `rustc`, an absolute workspace containing the exact `Cargo.toml`, and an
-existing absolute target directory. They clear the inherited environment and
-set only the explicit `RUSTC`, `CARGO_TARGET_DIR`, and Cargo offline setting.
+and `rustc`, an absolute workspace containing the exact `Cargo.toml`, an empty
+caller-owned Cargo home, an explicit vector of executable-search directories,
+and an existing absolute target directory. They clear the inherited environment
+and set only the supplied `RUSTC`, `HOME`/`CARGO_HOME`, `PATH`,
+`CARGO_TARGET_DIR`, and Cargo offline setting. The executor never inherits a
+developer home, credentials, or search path.
 Metadata runs as `cargo metadata --format-version=1 --locked --offline`; the
 caller then supplies the held source facts required by the pure record.
 

@@ -187,11 +187,19 @@ impl Resolver<'_> {
                             ));
                         }
                     }
-                    let (result, ty) = self.resolve_native_rust_result(import.result, expr.span)?;
+                    let (result, ty) =
+                        self.resolve_native_rust_result(&import.result, expr.span)?;
                     return Ok(ResolvedExpr {
                         id,
                         ty,
-                        ownership: OwnershipMode::Value,
+                        ownership: if matches!(
+                            result,
+                            ResolvedImportResultKind::OwnedResource { .. }
+                        ) {
+                            OwnershipMode::Own
+                        } else {
+                            OwnershipMode::Value
+                        },
                         kind: ResolvedExprKind::NativeRustImportCall(
                             ResolvedNativeRustImportCall {
                                 expression: ExpressionId::new(function, path),

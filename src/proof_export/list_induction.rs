@@ -35,6 +35,15 @@ const THEOREMS: [(&str, &str, &str); 5] = [
     ),
 ];
 
+/// The only theorem names and source declaration identities admitted by this
+/// closed profile. LawSet selection cannot relabel a proof as another body.
+pub fn declaration_for_theorem(theorem: &str) -> Option<&'static str> {
+    THEOREMS
+        .iter()
+        .find(|(name, _, _)| *name == theorem)
+        .map(|(_, declaration, _)| *declaration)
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ProofModule {
@@ -496,7 +505,9 @@ pub fn verify_against_module(
     kernel: &impl LeanKernel,
 ) -> Result<(), Diagnostic> {
     if current_proofs != &certificate.proof_module {
-        return Err(refused("current proof module differs from certified proof module"));
+        return Err(refused(
+            "current proof module differs from certified proof module",
+        ));
     }
     verify(program, certificate, kernel)
 }

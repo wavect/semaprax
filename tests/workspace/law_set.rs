@@ -719,3 +719,6 @@ mod structured_law;
 
 #[path = "law14_adversarial.rs"]
 mod law14_adversarial;
+
+#[path = "structural_list_law.rs"]
+mod structural_list_law;

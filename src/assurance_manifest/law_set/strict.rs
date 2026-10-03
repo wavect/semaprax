@@ -71,6 +71,13 @@ pub enum RequiredLawEvidence {
         accepted_assumptions: Vec<String>,
         accepted_axioms: Vec<String>,
     },
+    /// LAW-08 source-bound list induction, bound to the separately held
+    /// authored proof module digest and the real pinned Lean kernel.
+    PinnedListInductionLean {
+        toolchain: String,
+        proof_module_sha256: String,
+        accepted_axioms: Vec<String>,
+    },
     /// Artifact association is not a proof that lowering preserves semantics.
     VerifiedLowering,
 }
@@ -424,6 +431,44 @@ fn check_requirement(
                 })
             });
             (!confirmed).then_some("structured_kernel_confirmed_exact_project_evidence_missing")
+        }
+        RequiredLawEvidence::PinnedListInductionLean {
+            toolchain,
+            proof_module_sha256,
+            accepted_axioms,
+        } => {
+            if !matches!(law.definition.selector, LawSelector::ListInduction { .. })
+                || toolchain != crate::proof_export::PINNED_TOOLCHAIN
+                || evidence["proof_module_sha256"] != *proof_module_sha256
+            {
+                return Some("list_induction_source_module_or_kernel_profile_not_accepted");
+            }
+            let Some(axioms) = evidence["axioms"].as_array() else {
+                return Some("list_induction_axiom_inventory_missing");
+            };
+            if axioms.iter().any(|row| {
+                row.as_array().is_none_or(|pair| {
+                    pair.len() != 2
+                        || pair[1].as_array().is_none_or(|names| {
+                            names.iter().any(|name| {
+                                name.as_str().is_none_or(|name| {
+                                    !accepted_axioms.iter().any(|accepted| accepted == name)
+                                })
+                            })
+                        })
+                })
+            }) {
+                return Some("list_induction_axioms_not_accepted");
+            }
+            let confirmed = evidence["methods"].as_array().is_some_and(|methods| {
+                methods.iter().any(|method| {
+                    method["class"] == "theorem_proved"
+                        && method["tool"] == crate::proof_export::KERNEL_IDENTITY
+                        && method["tool_version"] == *toolchain
+                        && method["bounds"] == crate::proof_export::list_induction::PROFILE
+                })
+            });
+            (!confirmed).then_some("list_induction_installed_kernel_evidence_missing")
         }
         RequiredLawEvidence::VerifiedLowering => Some("proved_lowering_evidence_unavailable"),
     }

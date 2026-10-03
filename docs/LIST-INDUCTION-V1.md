@@ -62,6 +62,23 @@ an explicitly installed pinned Lean 4.34.0 executable through the existing
 bounded held-process provider. A fabricated caller capability is not physical
 kernel evidence.
 
+## Selected Project law attachment
+
+A `list_induction` LawSet selector names one of the five fixed theorem names
+and its required `list.append` or `list.reverse` declaration ID. Its law module
+source path must resolve in the retained Project. The installed Lean route
+replays the Project and LawSet, checks the selected HIR and exact source body,
+and checks the caller's current separately held proof module. Only a real
+pinned kernel result creates an opaque `VerifiedLawProof`. The versioned
+certificate replays against current Project source and proof module before a
+fresh kernel run; it cannot create law evidence by structural parsing alone.
+
+Strict protected coverage requires the distinct `pinned_list_induction_lean`
+policy with exact toolchain, proof-module digest and accepted axiom set.
+Missing proof, changed module/source, altered association, wrong method
+profile and rejected axioms leave coverage open. The attached theorem remains
+a source denotation under successful execution, with `proved_lowering=false`.
+
 ## Boundaries
 
 The kernel theorem is over mathematical lists. Runtime `Vec` capacity is at

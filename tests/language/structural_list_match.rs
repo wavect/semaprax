@@ -1,34 +1,5 @@
 //! The monomorphic iterator tail is the source carrier for LAW-08's list lane.
-const REVERSE: &str = r#"
-module test.structural_list;
-@id("list.reverse")
-fn reverse(input: own Iter<i64>) -> Vec<i64> {
-    match own iter_next<i64>(input) {
-        IterStep::Done {} => vec_with_capacity<i64>(8192usize),
-        IterStep::Yield { item, rest } => vec_push<i64>(reverse(rest), item),
-    }
-}
-@id("list.append")
-fn append(left: own Vec<i64>, suffix: own Iter<i64>) -> Vec<i64> {
-    match own iter_next<i64>(suffix) {
-        IterStep::Done {} => left,
-        IterStep::Yield { item, rest } => append(vec_push<i64>(left, item), rest),
-    }
-}
-@id("app.main")
-fn main() -> i64 {
-    let mut values = vec_with_capacity<i64>(2usize);
-    values = vec_push<i64>(values, 1);
-    values = vec_push<i64>(values, 2);
-    let reversed = reverse(vec_into_iter<i64>(values));
-    let suffix = vec_push<i64>(vec_with_capacity<i64>(1usize), 7);
-    let combined = append(reversed, vec_into_iter<i64>(suffix));
-    if vec_len<i64>(combined) == 3usize {
-        vec_get<i64>(combined, 0usize) + vec_get<i64>(combined, 2usize)
-    } else { -1 }
-}
-
-"#;
+const REVERSE: &str = include_str!("../fixtures/law08-structural-list.spx");
 
 #[test]
 fn wrong_reverse_bodies_keep_this_length_but_cannot_inherit_order_or_involution() {

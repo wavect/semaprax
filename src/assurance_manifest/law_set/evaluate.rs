@@ -109,7 +109,13 @@ pub(super) fn derive_report_with_evidence(
             fact("missing", "law_source_module_missing", None, None)
         } else if let Some((class, evidence)) = super::native_proof::evidence_for(id, native_proofs)
         {
-            evidence_fact(row, format!("relational:{id}"), class, evidence)
+            let obligation = if matches!(row.definition.selector, LawSelector::ListInduction { .. })
+            {
+                format!("list-induction:{id}")
+            } else {
+                format!("relational:{id}")
+            };
+            evidence_fact(row, obligation, class, evidence)
         } else {
             evaluate(revision, row, obligations)?
         };
@@ -240,6 +246,12 @@ fn evaluate(revision: &ProjectRevision, row: &LawRow, obligations: &[Value]) -> 
             "awaiting_evidence",
             "scalar_relational_proposition_has_no_verified_proof_attachment",
             Some(format!("relational:{}", row.definition.law_id)),
+            None,
+        )),
+        LawSelector::ListInduction { .. } => Ok(fact(
+            "awaiting_evidence",
+            "list_induction_requires_current_source_and_installed_lean_attachment",
+            Some(format!("list-induction:{}", row.definition.law_id)),
             None,
         )),
         LawSelector::Contract {

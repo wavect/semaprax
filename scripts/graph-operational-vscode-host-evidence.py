@@ -193,7 +193,9 @@ def main():
         command([str(compiler),"explore",str(workspace/"semaprax.toml"),"--format","html","--output",str(standalone)],"standalone Explorer guide example")
         focused = area / "app-main.md"
         command([str(compiler),"explore",str(workspace/"semaprax.toml"),"--target","calculator.app.main","--depth","2","--format","markdown","--output",str(focused)],"focused Explorer guide example")
-        if b"Meaning, mapped." not in standalone.read_bytes() or b"calculator.app.main" not in focused.read_bytes(): raise Failure("Explorer guide output is incomplete")
+        standalone_bytes = standalone.read_bytes()
+        focused_bytes = focused.read_bytes()
+        if b"Meaning, mapped." not in standalone_bytes or b"calculator.app.main" not in focused_bytes: raise Failure("Explorer guide output is incomplete")
         verify_viewer_assets(vsix, installed, standalone)
         env=os.environ.copy(); env.update({
           "SEMAPRAX_VSCODE_COMPILER":str(compiler),"SEMAPRAX_VSCODE_MANIFEST":str(workspace/"semaprax.toml"),
@@ -240,7 +242,7 @@ def main():
         if file_row(path) != bound_rows[name]: raise Failure(f"tool or product drift: {path}")
     host_exec_row=file_row(host_exec)
     if file_row(host_exec) != host_exec_row: raise Failure(f"Extension Host executable drift: {host_exec}")
-    logs={"controller-node.tap":node_log,"compiler-build-cargo.log":build_log,"vscode-extension-host.log":host_log,"vscode-host-observation.json":canonical(observation),"installed-extension.vsix":vsix_bytes,"semantic-explorer.html":standalone.read_bytes(),"app-main.md":focused.read_bytes()}
+    logs={"controller-node.tap":node_log,"compiler-build-cargo.log":build_log,"vscode-extension-host.log":host_log,"vscode-host-observation.json":canonical(observation),"installed-extension.vsix":vsix_bytes,"semantic-explorer.html":standalone_bytes,"app-main.md":focused_bytes}
     rows=[artifact(name,body) for name,body in logs.items()]
     domain=b"semaprax.graph-operational-vscode-host-execution-evidence.bundle.v4\0"
     bundle=hashlib.sha256(domain+b"".join(bytes.fromhex(row["sha256"][7:]) for row in rows)).hexdigest()

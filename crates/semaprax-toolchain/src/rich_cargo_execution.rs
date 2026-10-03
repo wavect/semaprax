@@ -8,10 +8,12 @@
 //! sandbox for build scripts or proc macros.
 
 use crate::rich_cargo_preparation::{
-    prepare_cargo_closure, CargoPreparationError, CargoPreparationInput, PreparedCargoClosure,
+    prepare_cargo_closure, CargoPreparationError, CargoPreparationInput, PreparedCargoArtifact,
+    PreparedCargoArtifactCache, PreparedCargoClosure,
 };
 use semaprax::diagnostic::Diagnostic;
 use semaprax_native_rust_interop::{NativeBuildAuthority, NativeTrustError, TrustedNativeProfile};
+use sha2::{Digest, Sha256};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -198,16 +200,18 @@ pub fn build_locked_offline(
     invocation: &ExplicitCargoInvocation,
     prepared: &PreparedCargoClosure,
     authority: &NativeBuildAuthority,
-) -> Result<(), CargoExecutionError> {
-    build_locked_offline_with_hook(invocation, prepared, authority, || {})
+    artifacts: &mut PreparedCargoArtifactCache,
+) -> Result<PreparedCargoArtifact, CargoExecutionError> {
+    build_locked_offline_with_hook(invocation, prepared, authority, artifacts, || {})
 }
 
 fn build_locked_offline_with_hook(
     invocation: &ExplicitCargoInvocation,
     prepared: &PreparedCargoClosure,
     authority: &NativeBuildAuthority,
+    artifacts: &mut PreparedCargoArtifactCache,
     mut before_final_replay: impl FnMut(),
-) -> Result<(), CargoExecutionError> {
+) -> Result<PreparedCargoArtifact, CargoExecutionError> {
     validate_invocation(invocation)?;
     validate_native_target(prepared)?;
     let identity = crate::rich_cargo_snapshot::prepared_build_identity(invocation, prepared)?;
@@ -222,7 +226,8 @@ fn build_locked_offline_with_hook(
         .arg("--manifest-path")
         .arg(&invocation.manifest)
         .arg("--target-dir")
-        .arg(&invocation.target_dir);
+        .arg(&invocation.target_dir)
+        .arg("--message-format=json-render-diagnostics");
     before_final_replay();
     if crate::rich_cargo_snapshot::prepared_build_identity(invocation, prepared)? != identity {
         return Err(CargoExecutionError::BuildIdentityMismatch);
@@ -238,7 +243,93 @@ fn build_locked_offline_with_hook(
             &output.stderr,
         ));
     }
-    Ok(())
+    let receipt = artifact_receipt(&invocation.target_dir, &output.stdout)?;
+    let (artifact, _) = artifacts
+        .reuse_or_publish(prepared, receipt)
+        .map_err(CargoExecutionError::Preparation)?;
+    Ok(artifact)
+}
+
+const MAX_BUILD_ARTIFACTS: usize = 1024;
+const MAX_BUILD_ARTIFACT_BYTES: u64 = 512 * 1024 * 1024;
+
+fn artifact_receipt(target_dir: &Path, output: &[u8]) -> Result<Vec<u8>, CargoExecutionError> {
+    let target_root = target_dir
+        .canonicalize()
+        .map_err(|_| CargoExecutionError::BuildInputsChanged)?;
+    let mut records = std::collections::BTreeMap::<String, (u64, String)>::new();
+    let mut total = 0u64;
+    for line in output
+        .split(|byte| *byte == b'\n')
+        .filter(|line| !line.is_empty())
+    {
+        let Ok(message) = serde_json::from_slice::<serde_json::Value>(line) else {
+            return Err(CargoExecutionError::BuildFailed);
+        };
+        if message.get("reason").and_then(serde_json::Value::as_str) != Some("compiler-artifact") {
+            continue;
+        }
+        let Some(filenames) = message
+            .get("filenames")
+            .and_then(serde_json::Value::as_array)
+        else {
+            return Err(CargoExecutionError::BuildFailed);
+        };
+        for filename in filenames {
+            let raw = filename.as_str().ok_or(CargoExecutionError::BuildFailed)?;
+            let path = Path::new(raw);
+            let resolved = path
+                .canonicalize()
+                .map_err(|_| CargoExecutionError::BuildInputsChanged)?;
+            if !resolved.starts_with(&target_root) || !resolved.is_file() {
+                return Err(CargoExecutionError::BuildInputsChanged);
+            }
+            let relative = resolved
+                .strip_prefix(&target_root)
+                .map_err(|_| CargoExecutionError::BuildInputsChanged)?;
+            let key = relative
+                .to_str()
+                .ok_or(CargoExecutionError::BuildInputsChanged)?
+                .replace('\\', "/");
+            let metadata = resolved
+                .metadata()
+                .map_err(|_| CargoExecutionError::BuildInputsChanged)?;
+            let size = metadata.len();
+            total = total
+                .checked_add(size)
+                .ok_or(CargoExecutionError::OutputTooLarge)?;
+            if total > MAX_BUILD_ARTIFACT_BYTES || records.len() >= MAX_BUILD_ARTIFACTS {
+                return Err(CargoExecutionError::OutputTooLarge);
+            }
+            let bytes =
+                std::fs::read(&resolved).map_err(|_| CargoExecutionError::BuildInputsChanged)?;
+            if bytes.len() as u64 != size {
+                return Err(CargoExecutionError::BuildInputsChanged);
+            }
+            let digest = format!("sha256:{}", hex(&Sha256::digest(bytes)));
+            if records.insert(key, (size, digest)).is_some() {
+                return Err(CargoExecutionError::BuildFailed);
+            }
+        }
+    }
+    if records.is_empty() {
+        return Err(CargoExecutionError::BuildFailed);
+    }
+    let entries = records.into_iter().map(|(path, (bytes, digest))| {
+        serde_json::json!({"path": path, "bytes": bytes, "digest": digest})
+    }).collect::<Vec<_>>();
+    serde_json::to_vec(&serde_json::json!({"schema":"semaprax.native-rust-cargo-artifact-receipt.v1", "artifacts": entries}))
+        .map_err(|_| CargoExecutionError::BuildFailed)
+}
+
+fn hex(bytes: &[u8]) -> String {
+    const HEX: &[u8; 16] = b"0123456789abcdef";
+    let mut output = String::with_capacity(bytes.len() * 2);
+    for byte in bytes {
+        output.push(HEX[(byte >> 4) as usize] as char);
+        output.push(HEX[(byte & 15) as usize] as char);
+    }
+    output
 }
 
 fn validate_invocation(invocation: &ExplicitCargoInvocation) -> Result<(), CargoExecutionError> {
@@ -361,6 +452,45 @@ mod tests {
     use std::sync::atomic::{AtomicU64, Ordering};
 
     static SERIAL: AtomicU64 = AtomicU64::new(0);
+
+    #[test]
+    fn artifact_receipt_is_bounded_path_bound_and_no_clobber() {
+        let root = std::env::temp_dir().join(format!(
+            "semaprax-ri02-artifact-receipt-{}-{}",
+            std::process::id(),
+            SERIAL.fetch_add(1, Ordering::Relaxed)
+        ));
+        let output_dir = root.join("debug/deps");
+        fs::create_dir_all(&output_dir).unwrap();
+        let artifact_path = output_dir.join("libfixture.rlib");
+        fs::write(&artifact_path, b"artifact bytes").unwrap();
+        let message = serde_json::json!({
+            "reason": "compiler-artifact",
+            "filenames": [artifact_path]
+        });
+        let raw = serde_json::to_vec(&message).unwrap();
+        let receipt = artifact_receipt(&root, &raw).unwrap();
+        let parsed: serde_json::Value = serde_json::from_slice(&receipt).unwrap();
+        assert_eq!(parsed["artifacts"][0]["path"], "debug/deps/libfixture.rlib");
+        assert_eq!(parsed["artifacts"][0]["bytes"], 14);
+
+        let prepared = pure_prepared_fixture();
+        let mut cache = PreparedCargoArtifactCache::default();
+        let (first, reused) = cache.reuse_or_publish(&prepared, receipt.clone()).unwrap();
+        assert!(!reused);
+        let (same, reused) = cache.reuse_or_publish(&prepared, receipt).unwrap();
+        assert!(reused);
+        assert_eq!(first, same);
+        assert_eq!(
+            cache.reuse_or_publish(&prepared, b"changed artifact receipt".to_vec()),
+            Err(CargoPreparationError::Disagreement)
+        );
+        assert_eq!(
+            artifact_receipt(&root, b"not a Cargo JSON message\n"),
+            Err(CargoExecutionError::BuildFailed)
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
 
     #[cfg(unix)]
     fn fixture() -> (PathBuf, ExplicitCargoInvocation, PathBuf) {
@@ -551,7 +681,12 @@ mod tests {
             )
             .unwrap();
         assert_eq!(
-            build_locked_offline(&invocation, &prepared, &stale_authority),
+            build_locked_offline(
+                &invocation,
+                &prepared,
+                &stale_authority,
+                &mut PreparedCargoArtifactCache::default()
+            ),
             Err(CargoExecutionError::BuildIdentityMismatch)
         );
         assert!(!marker.exists());
@@ -587,7 +722,12 @@ mod tests {
                 b"changed after native build admission\n",
             )
             .unwrap();
-            let refusal = build_locked_offline(&invocation, &prepared, &authority);
+            let refusal = build_locked_offline(
+                &invocation,
+                &prepared,
+                &authority,
+                &mut PreparedCargoArtifactCache::default(),
+            );
             assert!(
                 matches!(
                     &refusal,
@@ -610,13 +750,19 @@ mod tests {
             crate::rich_cargo_snapshot::prepared_build_identity(&invocation, &prepared).unwrap();
         let profile = profile(&identity, NativeBuildPolicy::TrustedHost);
         let authority = authorize(&profile, &invocation, &prepared).unwrap();
-        let result = build_locked_offline_with_hook(&invocation, &prepared, &authority, || {
-            fs::write(
-                root.join("build.rs"),
-                b"changed while Cargo command was prepared\n",
-            )
-            .unwrap();
-        });
+        let result = build_locked_offline_with_hook(
+            &invocation,
+            &prepared,
+            &authority,
+            &mut PreparedCargoArtifactCache::default(),
+            || {
+                fs::write(
+                    root.join("build.rs"),
+                    b"changed while Cargo command was prepared\n",
+                )
+                .unwrap();
+            },
+        );
         assert_eq!(result, Err(CargoExecutionError::BuildIdentityMismatch));
         assert!(!marker.exists());
         fs::remove_dir_all(root).unwrap();
@@ -725,7 +871,11 @@ mod tests {
             authority.disclosure(),
             "native build scripts and proc macros run with trusted host authority"
         );
-        build_locked_offline(&invocation, &prepared, &authority).unwrap();
+        let mut artifacts = PreparedCargoArtifactCache::default();
+        let receipt =
+            build_locked_offline(&invocation, &prepared, &authority, &mut artifacts).unwrap();
+        assert_eq!(receipt.closure_digest(), prepared.digest());
+        assert!(!receipt.bytes().is_empty());
         assert!(root.join("build-script-entered").exists());
         assert!(root.join("probe_macro/proc-macro-entered").exists());
         fs::remove_dir_all(root).unwrap();
@@ -909,7 +1059,11 @@ mod tests {
             authority.disclosure(),
             NativeBuildPolicy::TrustedHost.disclosure()
         );
-        build_locked_offline(&invocation, prepared.closure(), &authority).unwrap();
+        let mut artifacts = PreparedCargoArtifactCache::default();
+        let receipt =
+            build_locked_offline(&invocation, prepared.closure(), &authority, &mut artifacts)
+                .unwrap();
+        assert_eq!(receipt.closure_digest(), prepared.closure().digest());
         assert!(target.join("debug").is_dir());
         fs::remove_dir_all(target).unwrap();
     }

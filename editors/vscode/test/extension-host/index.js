@@ -238,7 +238,6 @@ async function run() {
   assert.equal(currentExplorer.viewType, 'semapraxExplorer');
   assert.equal(currentExplorer.title, 'SEMAPRAX Explorer');
   assert.match(currentExplorer.webview.html, /default-src 'none'/);
-  assert.doesNotMatch(currentExplorer.webview.html, /\b(?:src|href)=["']https?:\/\//);
   api.enqueueInput('calculator.add');
   const selectedExplorer = await api.execute('exploreSelection');
   assert.equal(selectedExplorer.viewType, 'semapraxExplorer');

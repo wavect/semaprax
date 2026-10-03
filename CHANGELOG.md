@@ -40,6 +40,11 @@
   runtime status. A scalar reference/interpreter/emitted-Wasm fixture exercises
   checked failure semantics and detects a seeded wrong runtime value. Record,
   variant, foreign-adapter and full mutation-ladder coverage remain open.
+- Complete the bounded LAW-13 trust-chain gates: the record/variant emitted-Wasm
+  fixture and resealed negative ladder now pass, and the owning specification
+  names foreign calls as explicitly unsupported in the Lean proof profile.
+  Runtime guards remain exercised by the scalar differential fixture; no
+  compiler-preservation or foreign-adapter theorem is claimed.
 
 - Add an inert authenticated Project-to-native Regex package route that executes the checked Semaprax body and canonical cleanup plan. Pinned real Regex consumers pass at O0/O2, including authored-result changes, domain errors, zero adapter copies, exact String construction counts, and missing-finalizer controls. Url returned-view integration and the remaining RI-06 safety criteria stay open.
 

@@ -57,3 +57,11 @@ emitted Wasm steps, host imports, and runtime observations. This view does not
 claim one. Runtime adapters and foreign target observations must be bound to
 their own exact identities and execution evidence before that link can gain a
 checked or tested status.
+
+The Lean export's admitted subset excludes calls and declared effects, so no
+foreign-boundary theorem is issued in this profile. The export reports those
+declarations as unsupported with a closed reason, and the runtime link remains
+unexecuted for them. The scalar differential fixture exercises retained
+precondition and postcondition guards plus checked arithmetic failures in
+actual emitted Wasm. Its hand-written reference and interpreter results agree
+with the observed failures; no accepted source theorem removes those guards.

@@ -98,13 +98,19 @@ allowed.
 
 An index provides discovery only. Rust remains authoritative for the selected
 signature and call on the stable target. The RI-04 indexed scalar integration
-test starts from a v2 extractor envelope, calls the public indexed builder,
-then compiles and runs the generated adapter with stable rustc. It checks a
-successful typed provider, a wrong return type rejected by rustc, a same-signature
-provider rejected before publication, and exact equality between actual
-`rustc --version` and the indexed compiler identity. This owning-builder test
-must pass before treating the integration evidence as verified. The builder
-returns adapter source; this replay crate never launches a compiler. The
-current scalar adapter admits only its narrow receiver-free scalar ABI; regex
-methods such as `&self` and `&str` remain outside that ABI. The v2 regex
-envelope is compiler-resolved index evidence only, not adapter support.
+selector `implementation::tests::indexed_scalar::indexed_scalar_adapter_executes_and_rejects_flipped_rust_result`
+passed on 2026-10-03 (1 passed, 0 failed, 0 ignored, 146 filtered). It starts
+from a v2 extractor envelope, calls the public indexed builder, then compiles
+and runs the generated adapter with stable rustc. The test checks exact
+equality between actual `rustc --version` and indexed compiler identity, a
+successful typed provider, a wrong return type rejected by rustc with no
+executable produced, and a same-signature flipped provider rejected before
+publication. Stale compiler, target, and Cargo alias identities also fail
+closed without output.
+
+The builder returns adapter source; this replay crate never launches a
+compiler. Physical compile/run validation is an owning-builder integration
+gate, rather than an operation performed by replay itself. The current scalar
+adapter admits only its narrow receiver-free scalar ABI; regex methods such as
+`&self` and `&str` remain outside that ABI. The v2 regex envelope is
+compiler-resolved index evidence only, not adapter support.

@@ -15,9 +15,9 @@ use super::{
     Refusal,
 };
 
-pub const SCHEMA: &str = "semaprax.modular-scalar-summary-proof.v1";
+pub const SCHEMA: &str = "semaprax.modular-scalar-summary-proof.v2";
 const MAX_CERTIFICATE_BYTES: usize = 262_144;
-const DOMAIN: &[u8] = b"semaprax.modular-scalar-summary-proof.payload.v1\0";
+const DOMAIN: &[u8] = b"semaprax.modular-scalar-summary-proof.payload.v2\0";
 
 #[derive(Clone, Debug)]
 pub enum ReplayFailure {
@@ -73,14 +73,15 @@ fn payload(proof: &ModularProof, identity: &str, version: &str, boundary: &str) 
         "summaries":summary_rows(proof),
         "callee_clauses":proof.checked_callee_clauses.iter().map(|clause| json!({
             "declaration_id":clause.declaration_id,
+            "obligation_id":clause.obligation_id,
             "summary_digest":clause.summary_digest,
             "ensures_index":clause.ensures_index,
             "script_digest":clause.script_digest,
             "solver_identity":clause.solver_identity,
             "solver_version":clause.solver_version
         })).collect::<Vec<_>>(),
-        "caller_precondition_scripts":proof.caller_precondition_scripts,
-        "caller_postcondition_scripts":proof.caller_postcondition_scripts,
+        "caller_precondition_queries":proof.caller_precondition_obligation_ids.iter().zip(&proof.caller_precondition_scripts).map(|(obligation_id,script_digest)| json!({"obligation_id":obligation_id,"script_digest":script_digest})).collect::<Vec<_>>(),
+        "caller_postcondition_queries":proof.caller_postcondition_obligation_ids.iter().zip(&proof.caller_postcondition_scripts).map(|(obligation_id,script_digest)| json!({"obligation_id":obligation_id,"script_digest":script_digest})).collect::<Vec<_>>(),
         "toolchain":{"identity":identity,"version":version},
         "trusted_boundary":boundary,
         "publication_authority":false,

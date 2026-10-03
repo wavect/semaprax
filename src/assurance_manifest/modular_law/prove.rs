@@ -9,6 +9,7 @@ use super::{inline::inline_subject, plan, Plan, Refusal};
 #[derive(Clone, Debug)]
 pub struct ProvedClause {
     pub declaration_id: String,
+    pub obligation_id: String,
     pub summary_digest: String,
     pub ensures_index: usize,
     pub script_digest: String,
@@ -68,6 +69,10 @@ pub fn prove_postconditions(
                 } => {
                     clauses.push(ProvedClause {
                         declaration_id: summary.declaration_id.clone(),
+                        obligation_id: smt::postcondition_obligation_id(
+                            &summary.declaration_id,
+                            ensures_index,
+                        ),
                         summary_digest: summary.digest.clone(),
                         ensures_index,
                         script_digest,

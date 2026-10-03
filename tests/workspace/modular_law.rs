@@ -253,6 +253,19 @@ fn foreign_summary_call_refuses_before_solver_invocation() {
 }
 
 #[test]
+fn admitted_environment_project_effectful_summary_refuses_before_solver_invocation() {
+    let manifest = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("std/env/semaprax.toml");
+    let revision = with_authenticated_project(&manifest, |snapshot| Ok(snapshot.retain_revision()))
+        .expect("committed environment-io Project admits declared environment effects");
+    assert_eq!(
+        plan(&revision, "std.env.examples.inspect")
+            .expect_err("effectful function cannot become a modular pure summary")
+            .code(),
+        "effectful_function"
+    );
+}
+
+#[test]
 #[ignore = "requires explicitly provisioned installed Z3"]
 fn real_z3_repeated_calls_and_shadowed_value_are_capture_free() {
     use semaprax::assurance_manifest::modular_law::prove::prove_postconditions;
@@ -302,6 +315,42 @@ fn real_z3_checked_summaries_compose_without_caller_body_inlining() {
     assert_eq!(proof.checked_callee_clauses.len(), 2);
     assert_eq!(proof.caller_precondition_scripts.len(), 6);
     assert_eq!(proof.caller_postcondition_scripts.len(), 1);
+}
+
+#[test]
+#[ignore = "requires explicitly provisioned installed Z3"]
+fn real_z3_repeated_summary_calls_have_distinct_stable_obligations() {
+    use semaprax::assurance_manifest::modular_law::summary::prove_straight_line;
+    use semaprax::assurance_manifest::smt_discharge::{provision_from_env, RunLimits};
+    use std::collections::BTreeSet;
+    let extra = "@id(\"accounting.repeat\")\nfn repeat(value: i64) -> i64\n requires value >= 0\n requires value <= 100\n ensures result == value + value + 2\n{ base(value) + base(value) }\n";
+    let fixture = Fixture::new("summary-ids", CORE, extra);
+    let revision = with_authenticated_project(&fixture.root.join("semaprax.toml"), |snapshot| {
+        Ok(snapshot.retain_revision())
+    })
+    .unwrap();
+    let solver = provision_from_env().expect("explicit installed Z3");
+    let proof = prove_straight_line(
+        &revision,
+        "accounting.repeat",
+        Some(&solver),
+        &RunLimits::default(),
+    )
+    .expect("checked repeated callee summaries compose");
+    assert_eq!(proof.caller_precondition_obligation_ids.len(), 6);
+    assert_eq!(
+        proof
+            .caller_precondition_obligation_ids
+            .iter()
+            .collect::<BTreeSet<_>>()
+            .len(),
+        6,
+    );
+    assert_eq!(proof.caller_postcondition_obligation_ids.len(), 1);
+    assert!(proof
+        .checked_callee_clauses
+        .iter()
+        .all(|clause| clause.obligation_id.starts_with("semaprax.obligation.v1:")));
 }
 
 #[test]

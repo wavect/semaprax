@@ -25,9 +25,14 @@ The bounded `prove::prove_postconditions` path remains an explicit capture-free
 inlining fallback, with checked-model replay for a concrete witness where
 supported. Source bodies and runtime checks are not rewritten.
 
-`certificate` exports canonical `semaprax.modular-scalar-summary-proof.v1` JSON
+`certificate` exports canonical `semaprax.modular-scalar-summary-proof.v2` JSON
 with the linked dependency graph, ordered query digests, exact Project revision,
-solver identity/version, and trust boundary. A digest authenticates the envelope
+solver identity/version, and trust boundary. Each checked callee clause, staged
+argument and callee precondition, and caller postcondition has an explicit
+stable obligation ID. Per-call IDs include the retained resolved call expression
+identity and source-order clause/argument index, so repeated calls cannot alias.
+Version 1 transcripts lack those bindings and refuse replay under version 2.
+A digest authenticates the envelope
 shape only. `replay` rederives the live plan and reruns every query with the
 explicit solver; the installed variant uses the registered held Z3 process
 provider. Stale, missing, unknown, SAT, malformed, oversized, or mismatched
@@ -56,6 +61,8 @@ summary theorem is claimed. The explicit installed Z3 gate exercises a
 three-function, two-module accounting law, a replayed caller precondition
 witness, capture-free repeated calls, weakened-summary refusal, certificate
 replay and drift, selected Project attachment, and selected physical Workspace
-publication. Run `cargo test --offline --locked --test workspace modular_law::`
+publication. An admitted `environment-io.v1` Project supplies the named
+effectful-function refusal gate without altering its capability policy. Run
+`cargo test --offline --locked --test workspace modular_law::`
 for bounded non-solver tests and explicitly provision the pinned installed Z3
 for ignored `modular_law::real_z3_` and `modular_law::installed_modular_` tests.

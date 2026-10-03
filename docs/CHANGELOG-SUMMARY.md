@@ -17,8 +17,10 @@ For implementation status and required evidence, use the
 
 - LAW-06 adds versioned, live-replayed checked-summary certificates for pure
   scalar calls and an installed Z3 proof route that joins selected Project and
-  strict managed-Workspace laws. The bounded profile preserves runtime guards;
-  further refusal-corpus work remains open.
+  strict managed-Workspace laws. Version 2 records stable IDs for callee clauses,
+  caller preconditions, and caller postconditions. The admitted effectful
+  Project refusal and repeated-call identity controls pass; the bounded
+  profile preserves runtime guards.
 
 - The experimental native String bridge now accepts bounded UTF-8 byte input
   through an explicit C factory, with checked signed/unsigned lengths, Rust-side

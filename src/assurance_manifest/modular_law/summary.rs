@@ -7,6 +7,7 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
+use crate::assurance_manifest::obligation::{obligation_id, ObligationKind};
 use crate::assurance_manifest::smt_discharge::{
     self as smt, DischargeOutcome, Provisioning, RunLimits,
 };
@@ -53,6 +54,7 @@ struct Frame {
     callee: ResolvedFunction,
     args: Vec<Expr>,
     output: String,
+    expression_id: String,
 }
 
 struct Symbolic<'a> {
@@ -132,6 +134,7 @@ impl Symbolic<'_> {
                     callee,
                     args,
                     output: output.clone(),
+                    expression_id: expr.id.as_str().to_owned(),
                 });
                 return Ok(var(&output));
             }
@@ -186,7 +189,9 @@ fn instantiate(expr: &ResolvedExpr, scope: &Scope, owner: &str) -> Result<Expr, 
 pub struct ModularProof {
     pub plan: Plan,
     pub checked_callee_clauses: Vec<ProvedClause>,
+    pub caller_precondition_obligation_ids: Vec<String>,
     pub caller_precondition_scripts: Vec<String>,
+    pub caller_postcondition_obligation_ids: Vec<String>,
     pub caller_postcondition_scripts: Vec<String>,
 }
 
@@ -201,6 +206,7 @@ pub enum ModularFailure {
 pub(super) struct Query {
     pub function: Function,
     pub index: usize,
+    pub obligation_id: String,
     pub declaration_id: String,
     pub summary_digest: String,
 }
@@ -296,6 +302,7 @@ pub(super) fn prepare(revision: &ProjectRevision, target: &str) -> Result<Prepar
             callees.push(Query {
                 function: function.clone(),
                 index,
+                obligation_id: smt::postcondition_obligation_id(&summary.declaration_id, index),
                 declaration_id: summary.declaration_id.clone(),
                 summary_digest: summary.digest.clone(),
             });
@@ -315,7 +322,8 @@ pub(super) fn prepare(revision: &ProjectRevision, target: &str) -> Result<Prepar
     for frame in &frames {
         let id = frame.callee.id.as_str();
         let mut call_scope = Scope::new();
-        for (formal, actual) in frame.callee.params.iter().zip(&frame.args) {
+        for (arg_index, (formal, actual)) in frame.callee.params.iter().zip(&frame.args).enumerate()
+        {
             call_scope.insert(formal.id.clone(), actual.clone());
             let tautology = node(ExprKind::Binary {
                 op: BinaryOp::Eq,
@@ -325,15 +333,25 @@ pub(super) fn prepare(revision: &ProjectRevision, target: &str) -> Result<Prepar
             preconditions.push(Query {
                 function: boolean_subject(&template, &params, &assumptions, tautology),
                 index: 0,
+                obligation_id: obligation_id(
+                    ObligationKind::Precondition,
+                    target,
+                    &format!("call:{}:arg:{arg_index}", frame.expression_id),
+                ),
                 declaration_id: id.into(),
                 summary_digest: String::new(),
             });
         }
-        for require in &frame.callee.requires {
+        for (require_index, require) in frame.callee.requires.iter().enumerate() {
             let instantiated = instantiate(require, &call_scope, id)?;
             preconditions.push(Query {
                 function: boolean_subject(&template, &params, &assumptions, instantiated.clone()),
                 index: 0,
+                obligation_id: obligation_id(
+                    ObligationKind::Precondition,
+                    target,
+                    &format!("call:{}:requires:{require_index}", frame.expression_id),
+                ),
                 declaration_id: id.into(),
                 summary_digest: String::new(),
             });
@@ -356,6 +374,7 @@ pub(super) fn prepare(revision: &ProjectRevision, target: &str) -> Result<Prepar
         .map(|index| Query {
             function: template.clone(),
             index,
+            obligation_id: smt::postcondition_obligation_id(target, index),
             declaration_id: target.into(),
             summary_digest: caller_digest.clone(),
         })
@@ -387,6 +406,7 @@ where
             } => {
                 checked_callee_clauses.push(ProvedClause {
                     declaration_id: query.declaration_id.clone(),
+                    obligation_id: query.obligation_id.clone(),
                     summary_digest: query.summary_digest.clone(),
                     ensures_index: query.index,
                     script_digest,
@@ -402,6 +422,7 @@ where
             }
         }
     }
+    let mut precondition_obligation_ids = Vec::new();
     let mut precondition_scripts = Vec::new();
     for query in &prepared.preconditions {
         match discharge(&query.function, query.index).map_err(|reason| {
@@ -411,6 +432,7 @@ where
             }
         })? {
             DischargeOutcome::Proved { script_digest, .. } => {
+                precondition_obligation_ids.push(query.obligation_id.clone());
                 precondition_scripts.push(script_digest)
             }
             DischargeOutcome::Refuted { .. } => {
@@ -427,12 +449,14 @@ where
             }
         }
     }
+    let mut caller_postcondition_obligation_ids = Vec::new();
     let mut caller_postcondition_scripts = Vec::new();
     for query in &prepared.caller {
         match discharge(&query.function, query.index)
             .map_err(|reason| ModularFailure::Postcondition { reason })?
         {
             DischargeOutcome::Proved { script_digest, .. } => {
+                caller_postcondition_obligation_ids.push(query.obligation_id.clone());
                 caller_postcondition_scripts.push(script_digest)
             }
             DischargeOutcome::Refuted { .. } => {
@@ -448,7 +472,9 @@ where
     Ok(ModularProof {
         plan: prepared.plan,
         checked_callee_clauses,
+        caller_precondition_obligation_ids: precondition_obligation_ids,
         caller_precondition_scripts: precondition_scripts,
+        caller_postcondition_obligation_ids,
         caller_postcondition_scripts,
     })
 }

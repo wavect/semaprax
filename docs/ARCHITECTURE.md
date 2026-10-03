@@ -146,8 +146,9 @@ separate admission boundary.
 ## Representations
 
 The registry compiler and unpublished toolchain share one compiler library and
-`src/cli_driver.rs`. The root dispatches; `options.rs` parses bounded command
-options, `report_options.rs` parses report/analysis options, and
+`src/cli_driver.rs`. The root dispatches; `context_dispatch.rs` owns the
+bounded source, Project, and prepared Rust API context routes;
+`options.rs` parses bounded command options, `report_options.rs` parses report/analysis options, and
 `source_execution.rs` owns single-file build, run, and diagnostics.
 The standalone binary supplies no private-host hooks.
 The private `source_live_cli` host supplies the versioned durable source CLI,

@@ -20,6 +20,8 @@ use semaprax::{
 
 #[path = "cli/mod.rs"]
 mod cli;
+#[path = "cli_driver/context_dispatch.rs"]
+mod context_dispatch;
 #[path = "native_scratch.rs"]
 mod native_scratch;
 #[path = "cli_driver/options.rs"]
@@ -469,45 +471,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             let command = cli::fix::parse(&args[1..])?;
             cli::fix::run(command, |errors| report(errors, false))
         }
-        CommandId::Context => {
-            let path = cli::project::resolve_positional(required_path(&args, 1)?);
-            let symbol = args.get(2).ok_or_else(|| {
-                eprintln!("context requires a symbol name or stable id");
-                2
-            })?;
-            let options = context_options(&args)?;
-            if let Some(context) =
-                cli::context::project(&path, symbol, &args[3..], &options, |errors| {
-                    report(errors, false)
-                })?
-            {
-                println!("{context}");
-                return Ok(());
-            }
-            let program = checked(&path)?;
-            let context = match &options {
-                ParsedContextOptions::V1(options) => {
-                    graph::agent_context_json(&program, symbol, options)
-                }
-                ParsedContextOptions::V2(options) => {
-                    graph::agent_context_v2_json(&program, symbol, options)
-                }
-            }
-            .map_err(|errors| report(&errors, false))?
-            .ok_or_else(|| {
-                report(
-                    &[Diagnostic::io(
-                        "SPX-G404",
-                        format!("symbol `{symbol}` was not found"),
-                    )
-                    .at_path(path.display().to_string())
-                    .with_help("inspect available declaration identities with `semaprax graph <file>`")],
-                    false,
-                )
-            })?;
-            println!("{context}");
-            Ok(())
-        }
+        CommandId::Context => context_dispatch::run(&args),
         CommandId::ServeWorkspace | CommandId::ServeWorkspaceMcp => {
             if args.len() != 3
                 || args[1..]

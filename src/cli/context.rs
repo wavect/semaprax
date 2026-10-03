@@ -1,6 +1,7 @@
 //! Project selection for the bounded `context` command.
 
 use std::fmt::Write as _;
+use std::io::Read as _;
 use std::path::Path;
 
 use semaprax::diagnostic::Diagnostic;
@@ -11,6 +12,65 @@ use super::super::options::{project_context_options, ParsedContextOptions};
 use super::project::is_project_manifest;
 
 const SCHEMA_V1: &str = "semaprax.project-agent-context.v1";
+
+pub(crate) fn split_rust_index_option(
+    args: &[String],
+) -> Result<(Vec<String>, Option<String>), u8> {
+    let mut plain = args.get(..3).unwrap_or(args).to_vec();
+    let mut index_path = None;
+    let mut cursor = 3;
+    while cursor < args.len() {
+        let option = &args[cursor];
+        let value = args.get(cursor + 1).ok_or_else(|| {
+            eprintln!("context option `{option}` requires a value");
+            2
+        })?;
+        if option == "--rust-index" {
+            if index_path.replace(value.clone()).is_some()
+                || value.is_empty()
+                || value.starts_with('-')
+            {
+                eprintln!("context --rust-index requires one nonempty file path");
+                return Err(2);
+            }
+        } else {
+            plain.extend([option.clone(), value.clone()]);
+        }
+        cursor += 2;
+    }
+    Ok((plain, index_path))
+}
+
+fn read_index(path: &Path) -> Result<Vec<u8>, Vec<Diagnostic>> {
+    let file = std::fs::File::open(path).map_err(|error| {
+        vec![Diagnostic::io(
+            "SPX-I001",
+            format!(
+                "cannot read prepared Rust index `{}`: {error}",
+                path.display()
+            ),
+        )]
+    })?;
+    let mut bytes = Vec::new();
+    file.take(semaprax_rust_api_index::MAX_INDEX_BYTES as u64 + 1)
+        .read_to_end(&mut bytes)
+        .map_err(|error| {
+            vec![Diagnostic::io(
+                "SPX-I001",
+                format!(
+                    "cannot read prepared Rust index `{}`: {error}",
+                    path.display()
+                ),
+            )]
+        })?;
+    if bytes.len() > semaprax_rust_api_index::MAX_INDEX_BYTES {
+        return Err(vec![Diagnostic::io(
+            "SPX-B148",
+            "prepared Rust API index exceeds its byte bound",
+        )]);
+    }
+    Ok(bytes)
+}
 
 fn invalid_projection() -> Vec<Diagnostic> {
     vec![Diagnostic::io(
@@ -117,6 +177,7 @@ pub(crate) fn project(
     symbol: &str,
     arguments: &[String],
     options: &ParsedContextOptions,
+    rust_index: Option<&Path>,
     report: impl Fn(&[Diagnostic]) -> u8,
 ) -> Result<Option<String>, u8> {
     if !is_project_manifest(path) {
@@ -134,11 +195,21 @@ pub(crate) fn project(
             // Let the ordinary checked route report parse failures once.
             Err(_) => return Ok(None),
         };
-        let projection = semaprax::rust_api_context::selected_rust_import_context_json(
-            &program,
-            symbol,
-            options.max_bytes(),
-        )
+        let projection = if let Some(index_path) = rust_index {
+            let bytes = read_index(index_path).map_err(|errors| report(&errors))?;
+            semaprax::rust_api_context::prepared_selected_rust_import_context_json(
+                &program,
+                symbol,
+                &bytes,
+                options.max_bytes(),
+            )
+        } else {
+            semaprax::rust_api_context::selected_rust_import_context_json(
+                &program,
+                symbol,
+                options.max_bytes(),
+            )
+        }
         .map_err(|errors| report(&errors))?;
         if projection.is_some()
             && arguments.iter().any(|argument| {
@@ -154,7 +225,17 @@ pub(crate) fn project(
         if projection.is_some() {
             return Ok(projection);
         }
+        if rust_index.is_some() {
+            eprintln!(
+                "context --rust-index requires a declared selected Rust import identity or path"
+            );
+            return Err(2);
+        }
         return Ok(None);
+    }
+    if rust_index.is_some() {
+        eprintln!("context --rust-index requires one .spx source file");
+        return Err(2);
     }
     if arguments.iter().any(|argument| argument == "--filters") {
         eprintln!("context --filters is unavailable for Project inputs");
@@ -205,13 +286,85 @@ interface RustHost permits { regex.read } {
         )
         .unwrap();
         let options = ParsedContextOptions::V1(semaprax::graph::AgentContextOptions::default());
-        let output = project(&path, "rust.host.is_match", &[], &options, |_| 1)
+        let output = project(&path, "rust.host.is_match", &[], &options, None, |_| 1)
             .unwrap()
             .expect("selected import gets setup status before ordinary verification");
         let value: Value = serde_json::from_str(&output).unwrap();
         assert_eq!(value["index"]["status"], "index_unprepared");
         assert_eq!(value["authority"]["tool_invocation"], false);
         assert!(output.len() <= 4096);
+        let index = semaprax_rust_api_index::RustApiIndex::admit_extractor_output(include_bytes!(
+            "../../crates/semaprax-rust-api-index/fixtures/regex-1.13.1-index-envelope.json"
+        ))
+        .unwrap();
+        let index_path = path.with_extension("index.json");
+        std::fs::write(&index_path, index.canonical_json()).unwrap();
+        let prepared = project(
+            &path,
+            "regex::Regex::is_match",
+            &[],
+            &options,
+            Some(&index_path),
+            |_| 1,
+        )
+        .unwrap()
+        .unwrap();
+        let value: Value = serde_json::from_str(&prepared).unwrap();
+        assert_eq!(value["index"]["status"], "prepared_metadata");
+        assert_eq!(value["selected_import"]["support"], "supported");
+        assert_eq!(value["package"]["cargo_alias"], "regex_alias");
+        assert_eq!(value["authority"]["tool_invocation"], false);
+        assert!(prepared.len() <= 4096);
+        assert_eq!(
+            project(
+                &path,
+                "rust.host.main",
+                &[],
+                &options,
+                Some(&index_path),
+                |_| 1
+            )
+            .unwrap_err(),
+            2
+        );
+        std::fs::remove_file(index_path).unwrap();
         std::fs::remove_file(path).unwrap();
+    }
+
+    #[test]
+    fn rust_index_option_is_unique_and_leaves_graph_options_for_the_existing_parser() {
+        let args = [
+            "context",
+            "file.spx",
+            "rust.host.method",
+            "--max-bytes",
+            "4096",
+            "--rust-index",
+            "index.json",
+        ]
+        .map(str::to_owned);
+        let (plain, index) = split_rust_index_option(&args).unwrap();
+        assert_eq!(
+            plain,
+            [
+                "context",
+                "file.spx",
+                "rust.host.method",
+                "--max-bytes",
+                "4096"
+            ]
+        );
+        assert_eq!(index.as_deref(), Some("index.json"));
+        let duplicate = [
+            "context",
+            "file.spx",
+            "id",
+            "--rust-index",
+            "one",
+            "--rust-index",
+            "two",
+        ]
+        .map(str::to_owned);
+        assert_eq!(split_rust_index_option(&duplicate).unwrap_err(), 2);
     }
 }

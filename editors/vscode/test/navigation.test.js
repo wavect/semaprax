@@ -7,7 +7,7 @@ const path = require('node:path');
 const { EventEmitter } = require('node:events');
 const {
   MAX_OUTPUT_BYTES, TIMEOUT_MS, QUERY_SCHEMA,
-  queryArguments, docArguments, contextArguments, agentInspectArguments, parseSchemaDocument, CONTEXT_MAX_BYTES, parseQueryResult,
+  queryArguments, docArguments, contextArguments, rustImportContextArguments, parseRustImportContext, RUST_CONTEXT_MAX_BYTES, agentInspectArguments, parseSchemaDocument, CONTEXT_MAX_BYTES, parseQueryResult,
   SourceIndex, PROJECT_QUERY_SCHEMA, parseProjectQueryResult, resolveInRoot, renamePatch, impactArguments, patchArguments, impactSummary, graphArguments, cleanupPlan, agentRunArguments, toRange, header, declarationItems, referenceItems, lensRecords, runCommand, failureReason
 } = require('../navigation');
 
@@ -119,7 +119,12 @@ test('output beyond the byte budget and silence past the deadline kill the child
 
 test('context and agent inspect argument vectors are exact and schema documents are checked by prefix', () => {
   assert.deepEqual(contextArguments(at('m.spx'), 'app.main'), ['context', at('m.spx'), 'app.main', '--depth', '1', '--filters', 'contracts,ownership,effects', '--max-bytes', String(CONTEXT_MAX_BYTES)]);
+  assert.deepEqual(rustImportContextArguments(at('m.spx'), 'regex::Regex::is_match', at('regex.index.json')),
+    ['context', at('m.spx'), 'regex::Regex::is_match', '--max-bytes', String(RUST_CONTEXT_MAX_BYTES), '--rust-index', at('regex.index.json')]);
+  assert.deepEqual(rustImportContextArguments(at('m.spx'), 'regex::Regex::is_match'),
+    ['context', at('m.spx'), 'regex::Regex::is_match', '--max-bytes', String(RUST_CONTEXT_MAX_BYTES)]);
   assert.equal(CONTEXT_MAX_BYTES, 8192);
+  assert.equal(RUST_CONTEXT_MAX_BYTES, 4096);
   assert.deepEqual(agentInspectArguments(at('agent.json')), ['agent', 'inspect', at('agent.json')]);
   assert.equal(parseSchemaDocument('{"schema":"semaprax.agent-graph.v1","agent_id":"a"}\n', 'semaprax.agent-graph.').agent_id, 'a');
   assert.equal(parseSchemaDocument('{"schema":"semaprax.doc.v1"}', 'semaprax.agent-graph.'), null);
@@ -127,6 +132,27 @@ test('context and agent inspect argument vectors are exact and schema documents 
   assert.equal(parseSchemaDocument('[1]', 'semaprax.'), null);
   assert.equal(parseSchemaDocument('nope', 'semaprax.'), null);
   assert.equal(parseSchemaDocument(7, 'semaprax.'), null);
+});
+
+test('Rust hover accepts only bounded read-only compiler context for the exact declared path', () => {
+  const value = {
+    schema: 'semaprax.rust-api-context.v1',
+    authority: { execution: false, publication: false, tool_invocation: false },
+    budget: { max_bytes: 4096, used_bytes: 0 },
+    index: { status: 'prepared_metadata' },
+    package: { name: 'regex', version: '1.13.1', cargo_alias: 'regex_alias' },
+    selected_import: { id: 'rust.host.method', path: 'regex::Regex::is_match', signature: 'fn is_match(&self, haystack: &str) -> bool', ownership: 'shared', support: 'supported' }
+  };
+  let encoded;
+  do {
+    encoded = JSON.stringify(value);
+    if (value.budget.used_bytes === Buffer.byteLength(encoded)) break;
+    value.budget.used_bytes = Buffer.byteLength(encoded);
+  } while (true);
+  assert.equal(parseRustImportContext(encoded + '\n', 'regex::Regex::is_match').selected_import.ownership, 'shared');
+  assert.equal(parseRustImportContext(encoded, 'regex::Regex::find'), null);
+  assert.equal(parseRustImportContext(JSON.stringify({ ...value, authority: { ...value.authority, tool_invocation: true } }), 'regex::Regex::is_match'), null);
+  assert.equal(parseRustImportContext('x'.repeat(4097), 'regex::Regex::is_match'), null);
 });
 
 test('a safe rename authors exactly the replay-checked patch text and rejects bad names', () => {

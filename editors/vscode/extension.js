@@ -153,6 +153,39 @@ function activateChecks(context, testMode) {
     }
     return result.stdout;
   }
+  async function rustImportHover(doc, position) {
+    if (!vscode.workspace.isTrusted || doc.uri.scheme !== 'file' || !doc.uri.fsPath.endsWith('.spx') || doc.isDirty) return;
+    const binary = compiler();
+    if (!binary) return;
+    const line = doc.lineAt(position.line).text;
+    const match = [...line.matchAll(/(?:[A-Za-z_][A-Za-z0-9_]*::)+[A-Za-z_][A-Za-z0-9_]*/g)]
+      .find(hit => hit.index <= position.character && position.character < hit.index + hit[0].length);
+    if (!match || match[0].length > 512) return;
+    const rustPath = match[0], version = doc.version;
+    const configuredIndex = machineSetting('rustIndexPath');
+    const indexFile = typeof configuredIndex === 'string' && path.isAbsolute(configuredIndex) && !/[\u0000-\u001f\u007f]/.test(configuredIndex)
+      ? configuredIndex : undefined;
+    let stdout;
+    try {
+      stdout = await runNavigation(binary, navigation.rustImportContextArguments(doc.uri.fsPath, rustPath, indexFile), doc.uri.fsPath);
+    } catch { return; }
+    if (doc.isDirty || doc.version !== version) return;
+    const value = navigation.parseRustImportContext(stdout, rustPath);
+    if (!value) return;
+    const selected = value.selected_import;
+    const markdown = new vscode.MarkdownString();
+    markdown.isTrusted = false;
+    markdown.appendText(`${selected.path}\n`);
+    if (value.index.status === 'index_unprepared') {
+      markdown.appendText('Prepared Rust API index required to show the compiler-resolved signature.');
+    } else {
+      markdown.appendCodeblock(selected.signature, 'rust');
+      markdown.appendText(`Crate: ${value.package.name} ${value.package.version} (Cargo alias ${value.package.cargo_alias})\n`);
+      markdown.appendText(`Receiver: ${selected.ownership}; index support: ${selected.support}${selected.reason ? ` (${selected.reason})` : ''}\n`);
+      if (selected.docs) markdown.appendText(String(selected.docs).slice(0, 1024));
+    }
+    return new vscode.Hover(markdown, new vscode.Range(position.line, match.index, position.line, match.index + rustPath.length));
+  }
   // The subject a read-only navigation query answers for, resolved exactly as
   // check-on-save resolves a saved file: the project manifest that owns it, or
   // the file alone. A module with `use` imports has no standalone meaning —
@@ -413,7 +446,8 @@ function activateChecks(context, testMode) {
   };
   const dispose = () => { for (const child of running.values()) child.kill(); running.clear(); };
   context.subscriptions.push(collection, output, vscode.workspace.onDidSaveTextDocument(onSave), { dispose },
-    vscode.languages.registerCodeLensProvider({ language: 'semaprax', scheme: 'file' }, lensProvider));
+    vscode.languages.registerCodeLensProvider({ language: 'semaprax', scheme: 'file' }, lensProvider),
+    vscode.languages.registerHoverProvider({ language: 'semaprax', scheme: 'file' }, { provideHover: rustImportHover }));
   return { checkProject, goToDeclaration, showReferences, showDocumentation, showOwnership, inspectAgent, safeRename, showCleanupPlan, runAgentTranscript, test: testMode ? { check, ledger, collection, lensProvider } : undefined };
 }
 function activate(context) {

@@ -17,6 +17,9 @@ const SCHEMA: &str = "semaprax.rust-api-context.v1";
 pub(crate) const MAX_BYTES: usize = 4096;
 const SETUP: &str = "Prepare a canonical semaprax.rust-api-index.v2 envelope with the explicit pinned rustdoc JSON extractor, then supply those bytes and the exact package, Cargo alias, target, feature, and stable compiler identity to the indexed Rust binding workflow. This context request does not run tools.";
 
+mod prepared;
+pub use prepared::prepared_selected_rust_import_context_json;
+
 /// Return a bounded setup-status view for one selected Rust import.
 ///
 /// `symbol` must exactly match the import's persistent ID or source name. A
@@ -40,7 +43,11 @@ pub fn selected_rust_import_context_json(
     let matching = selected
         .iter()
         .copied()
-        .filter(|import| import.stable_id == symbol || import.name == symbol)
+        .filter(|import| {
+            import.stable_id == symbol
+                || import.name == symbol
+                || import.rust_path.as_deref() == Some(symbol)
+        })
         .collect::<Vec<_>>();
     if matching.is_empty() {
         return Ok(None);

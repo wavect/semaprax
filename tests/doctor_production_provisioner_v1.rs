@@ -143,6 +143,7 @@ impl Sources {
             // proof that no future command module can activate the provisioner.
             known_ordinary_cli_surfaces: [
                 read(repository, "src/cli_driver.rs"),
+                read(repository, "src/cli_driver/context_dispatch.rs"),
                 read(repository, "src/cli_driver/options.rs"),
                 read(repository, "src/cli_driver/options/tests.rs"),
                 read(repository, "src/cli_driver/report_options.rs"),

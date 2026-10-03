@@ -1,13 +1,12 @@
-# Installed Proof Task Cache v1 (LAW-11 partial)
+# Installed Proof Task Cache v1 (LAW-11)
 
-Status: bounded installed Z3 and pinned Lean implementation. This is logical
+Status: implemented bounded installed Z3 and pinned Lean profile. This is logical
 query reuse for the admitted LAW-06 straight-line, direct, monomorphic, pure
 scalar call profile, LAW-07 finite immutable aggregate scalarization, native
 LAW-04 scalar relational laws for installed Z3 and pinned Lean, and direct
 scalar Project postconditions.
-It is not yet a general law cache or a
-replacement for source-bound certificates, strict LAW-04 policy, or
-Project/Workspace publication checks.
+It is not a general law cache or a replacement for source-bound certificates,
+strict LAW-04 policy, or Project/Workspace publication checks.
 
 ## Subject and key
 

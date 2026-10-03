@@ -1,5 +1,14 @@
 # Changelog
 
+- Complete bounded LAW-11 installed proof-task reuse for modular scalar,
+  finite structured, native relational and direct Project postcondition laws.
+  Authenticated private entries bind checked transitive subjects, tool/profile,
+  model, axioms and budgets; selected native laws recheck in prerequisite order.
+  Fresh current Project/artifact evidence is rebuilt after logical reuse, and a
+  canonical per-law report separates verdicts from fresh, validated-reuse,
+  stale, unsupported and inconclusive work. Focused real Z3/Lean gates and
+  poisoning, cancellation, dependency and artifact-drift controls passed.
+
 - Add an inert exact Url 2.5.8 Project package route with checked Semaprax body execution and receiver-tied returned views. Local locked/offline O0/O2 consumers prove authored-result changes, direct pointer identity, canonical owner/view cleanup and guard-removal controls. Source and HIR retain the owner relation through byte inspection; RI-06 remains partial for its remaining lifetime and safety acceptance.
 
 - Add an opt-in LAW-09 guard to the authenticated indexed Project Rust SDK.

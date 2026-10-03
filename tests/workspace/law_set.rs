@@ -112,6 +112,78 @@ fn proof_work_inventory_distinguishes_unproved_and_missing_without_cache_authori
     }
 }
 #[test]
+fn proof_work_inventory_reports_unsupported_dynamic_claim_separately() {
+    let fixture = Fixture::new("laws-work-unsupported");
+    let manifest = r#"schema = "semaprax.manifest.v1"
+
+[package]
+name = "fixture"
+version = "0.1.0"
+
+[modules]
+entry = "fixture.app"
+sources = ["src/app.spx", "src/tests.spx"]
+tests = ["fixture.tests"]
+
+[exports]
+web = ["fixture.public"]
+"#;
+    std::fs::write(fixture.manifest(), manifest).unwrap();
+    for (path, source) in [
+        (
+            "src/app.spx",
+            "module fixture.app;\n@id(\"fixture.increment\") fn increment(value:i64)->i64 { value + 1 }\n@id(\"fixture.decrement\") fn decrement(value:i64)->i64 { value - 1 }\n@id(\"fixture.main\") fn main()->i64 { let callback=if true{decrement}else{increment}; callback(41) }\n@id(\"fixture.public\") fn published()->i64 { 0 }\n",
+        ),
+        (
+            "src/tests.spx",
+            "module fixture.tests; @id(\"fixture.tests.main\") fn main()->i64{0}",
+        ),
+    ] {
+        let parsed = semaprax::parse(source, path).unwrap();
+        std::fs::write(fixture.source(path), semaprax::format::canonical(&parsed)).unwrap();
+    }
+    with_authenticated_project(&fixture.manifest(), |snapshot| {
+        let revision = snapshot.retain_revision();
+        let declared = LawModule {
+            module_id: "fixture.laws".into(),
+            source_path: "src/app.spx".into(),
+            assumptions: vec![],
+            laws: vec![LawDefinition {
+                law_id: "fixture.no-dynamic-path".into(),
+                selector: LawSelector::ForbidReaches {
+                    claim_id: "no-dynamic-path".into(),
+                    from: "fixture.main".into(),
+                    to: "fixture.public".into(),
+                },
+                assumption_ids: vec![],
+                requires_laws: vec![],
+                evidence: EvidenceRequirement::CompilerProved,
+            }],
+        };
+        let laws = LawSet::derive(&revision, "checked-v1", vec![declared])?;
+        let policy = StrictLawPolicy::new(
+            laws.clone(),
+            std::collections::BTreeMap::from([(
+                "fixture.no-dynamic-path".into(),
+                RequiredLawEvidence::CompilerStatic,
+            )]),
+        )?;
+        let cache = ProofTaskCache::for_project(&fixture.0)?;
+        let report = work_inventory::derive(&revision, &laws, &policy, &[], &[], &cache)?;
+        let parsed = wire(&report);
+        assert_eq!(parsed["counts"]["unsupported"], 1);
+        assert_eq!(parsed["counts"]["inconclusive"], 0);
+        assert_eq!(parsed["laws"][0]["outcome"], "unsupported");
+        assert_eq!(
+            parsed["laws"][0]["reason"],
+            "architecture_claim_unevaluable"
+        );
+        assert_eq!(parsed["laws"][0]["strict_satisfied"], false);
+        Ok(())
+    })
+    .unwrap();
+}
+#[test]
 fn formatting_and_unrelated_display_rename_preserve_identity_and_semantics() {
     let fixture = Fixture::new("laws-format");
     let baseline = inventory(&fixture, vec![module()]);

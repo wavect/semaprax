@@ -677,9 +677,9 @@ fn html(snapshot: &[u8]) -> String {
     let assets = [
         include_str!("../../ui/semantic-explorer/model.js"),
         include_str!("../../ui/semantic-explorer/layout.js"),
-        include_str!("../../ui/semantic-explorer/hosts.js"),
         include_str!("../../ui/semantic-explorer/changes.js"),
         include_str!("../../ui/semantic-explorer/evidence.js"),
+        include_str!("../../ui/semantic-explorer/hosts.js"),
         include_str!("../../ui/semantic-explorer/cache.js"),
         include_str!("../../ui/semantic-explorer/view.js"),
     ];

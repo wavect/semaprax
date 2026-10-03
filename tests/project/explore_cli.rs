@@ -616,6 +616,11 @@ fn candidate_html_json_markdown_and_svg_share_exact_scope_and_change_identity() 
     );
     assert_eq!(json["source_review"], Value::Null);
     let html = std::fs::read_to_string(fixture.0.join("review.html")).unwrap();
+    assert!(
+        html.find("semaprax.explorer-evidence-index.v1")
+            < html.find("const semapraxExplorerHostEvidence"),
+        "the offline host must capture the already-loaded evidence API"
+    );
     let prefix = "<script id=snapshot type=application/json>";
     let embedded = html
         .split_once(prefix)

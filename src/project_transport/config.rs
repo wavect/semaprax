@@ -12,6 +12,7 @@ pub(crate) struct ServerConfig {
     limits: StdioLimits,
     profile: ServerProfile,
     law_tool: Option<LawToolConfig>,
+    mcp: bool,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -60,6 +61,7 @@ impl ServerConfig {
         let mut arguments = arguments.into_iter();
         let _program = arguments.next();
         let mut stdio = false;
+        let mut mcp = false;
         let mut manifest_path = None;
         let mut max_request_bytes = None;
         let mut max_response_bytes = None;
@@ -79,6 +81,8 @@ impl ServerConfig {
             match option {
                 "--stdio" if !stdio => stdio = true,
                 "--stdio" => return Err("--stdio may not be repeated".to_owned()),
+                "--mcp" if !mcp => mcp = true,
+                "--mcp" => return Err("--mcp may not be repeated".to_owned()),
                 "--manifest-path" if manifest_path.is_none() => {
                     manifest_path = Some(required_path(&mut arguments, option)?);
                 }
@@ -146,6 +150,9 @@ impl ServerConfig {
         }
         if !stdio {
             return Err("semapraxd requires --stdio".to_owned());
+        }
+        if mcp && !allow_project_law_workflow {
+            return Err("--mcp requires --allow-project-law-workflow".to_owned());
         }
         if allow_project_law_workflow {
             if allow_project_rename
@@ -226,6 +233,7 @@ impl ServerConfig {
             } else {
                 None
             },
+            mcp,
         })
     }
 
@@ -243,6 +251,10 @@ impl ServerConfig {
 
     pub(crate) fn law_tool(&self) -> Option<&LawToolConfig> {
         self.law_tool.as_ref()
+    }
+
+    pub(crate) const fn mcp(&self) -> bool {
+        self.mcp
     }
 }
 
@@ -388,6 +400,7 @@ mod tests {
     fn startup_authority_is_closed_and_nonrepeating() {
         assert!(parse(&["semapraxd"]).is_err());
         assert!(parse(&["semapraxd", "--stdio", "--stdio"]).is_err());
+        assert!(parse(&["semapraxd", "--stdio", "--mcp"]).is_err());
         assert!(parse(&["semapraxd", "--stdio", "--manifest-path"]).is_err());
         assert!(parse(&[
             "semapraxd",

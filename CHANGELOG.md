@@ -1,5 +1,13 @@
 # Changelog
 
+- Add a fixed two-tool MCP stdio catalog over the selected-law Project agent
+  route. It shares current-revision and host-policy replay with direct JSON-RPC,
+  requires MCP initialization, and cannot select an executable or root from a
+  request. A real installed-Z3 selector exercises failure, stale revision,
+  body repair, recheck, and protected-law drift through the MCP wrapper.
+
+- Complete the bounded RI-06 native loan acceptance with precise unchanged-import refusals for unsupported Url reference/lifetime shapes. The owning source/rejection matrix passes alongside retained real Regex/Url, callback, sanitizer and Miri evidence; broader mutable source syntax and hosted support remain outside the claim.
+
 - Compare actual emitted Core Wasm before and after the LAW-17 proved add-zero
   candidate in the focused installed-Z3 gate. Node confirms the same return
   value and checked-overflow failure; the test moves into the owning nested

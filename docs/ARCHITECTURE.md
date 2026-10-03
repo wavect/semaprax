@@ -2643,7 +2643,10 @@ request fields cannot select a root, executable, or host profile. The shared
 `src/assurance_manifest/law_set/installed_workflow.rs` evaluator owns exact
 strict-report replay, candidate binding, bounded views, and concrete model
 checks for both this profile and the CLI. Neither surface owns source edits or
-publication. The v7 stdio methods are not an MCP tool catalog.
+publication. `src/project_transport/selected_law_mcp.rs` is an opt-in MCP
+stdio wrapper around that same selected-law dispatch. Its two fixed tools
+preserve complete v7 result/error text and add no root, process, source-edit,
+or publication grant. The direct v7 JSON-RPC mode remains available.
 
 ## Reports and projections
 

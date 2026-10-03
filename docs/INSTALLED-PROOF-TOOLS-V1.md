@@ -159,8 +159,18 @@ reloading the host-selected policy. A stale requested revision yields a
 The daemon never retains a prior proof token across edits. Law intent drift
 refuses through the existing protected review boundary.
 
-This profile is JSON-RPC over stdio. It does not claim an MCP tool catalog,
-hosted service, or editor integration.
+`--mcp` is an additional exclusive startup switch for this selected-law
+profile. It retains the same manifest/tool pins and bounded stdio framing,
+then exposes a fixed MCP 2025-11-25 catalog with `law__status` and
+`law__check`. After `initialize` and `notifications/initialized`, each
+`tools/call` returns one text item containing the complete v7 JSON-RPC
+response with inner ID zero and `isError` matching its error envelope. The
+same authenticated selected-law dispatch checks current source/policy on
+every call. Unknown tool names and request-supplied tool/root fields refuse;
+MCP does not add edit or publication authority. The direct v7 JSON-RPC mode
+remains the default without `--mcp`.
+
+This is a local stdio MCP tool surface, not a hosted service or editor plugin.
 
 ## Focused physical gate
 

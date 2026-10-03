@@ -9,6 +9,7 @@ mod config;
 pub(crate) mod framing;
 mod sdk;
 mod selected_law;
+mod selected_law_mcp;
 mod session;
 
 pub use sdk::{
@@ -39,6 +40,10 @@ pub fn run_from_args(arguments: impl IntoIterator<Item = OsString>) -> Result<()
     let stdin = std::io::stdin();
     let stdout = std::io::stdout();
     if config.profile() == config::ServerProfile::ProjectLawWorkflowV1 {
+        if config.mcp() {
+            return selected_law_mcp::serve(stdin.lock(), stdout.lock(), config)
+                .map_err(|error| error.to_string());
+        }
         return selected_law::serve(stdin.lock(), stdout.lock(), config)
             .map_err(|error| error.to_string());
     }

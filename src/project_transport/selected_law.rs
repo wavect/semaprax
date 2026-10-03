@@ -32,8 +32,7 @@ pub(super) fn serve<R: BufRead, W: Write>(
         .clone();
     // Startup proves the exact host policy exists and has no unreviewed law
     // drift. It does not acquire or execute the installed process tool.
-    with_selected_law_diagnostics(&manifest, |_, _, _| Ok(()))
-        .map_err(|errors| io::Error::other(error_text(&errors)))?;
+    authenticate(&manifest)?;
     let limits = config.limits();
     let mut input = FrameReader::new(input, limits);
     let mut output = FrameWriter::new(output, limits);
@@ -82,7 +81,12 @@ pub(super) fn serve<R: BufRead, W: Write>(
     Ok(())
 }
 
-fn dispatch(
+pub(super) fn authenticate(manifest: &std::path::Path) -> io::Result<()> {
+    with_selected_law_diagnostics(manifest, |_, _, _| Ok(()))
+        .map_err(|errors| io::Error::other(error_text(&errors)))
+}
+
+pub(super) fn dispatch(
     id: &RequestId,
     method: &str,
     params: Option<Map<String, Value>>,

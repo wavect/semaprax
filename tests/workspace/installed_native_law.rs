@@ -7,6 +7,9 @@ use semaprax::assurance_manifest::law_set::native_proof::prove_scalar_law_z3_cac
 use semaprax::assurance_manifest::law_set::work_inventory;
 use semaprax::assurance_manifest::modular_law::cache::ProofTaskCache;
 
+#[path = "installed_native_law/selected_law_mcp_test.rs"]
+mod selected_law_mcp_test;
+
 fn native_project(label: &str, proposition: &str) -> Project {
     let project = Project::new(label, false);
     let text = format!("module fresh.laws;\n@id(\"fresh.law.identity\")\nlaw relational (n: i64)\n {proposition}\n evidence smt_proved;\n");

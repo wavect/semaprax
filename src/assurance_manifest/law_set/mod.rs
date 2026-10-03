@@ -2,6 +2,7 @@
 //! See docs/LAW-SET-V1.md for policy selection and exact nonclaims.
 mod evaluate;
 pub mod protected;
+pub mod strict;
 mod wire;
 
 use crate::diagnostic::Diagnostic;

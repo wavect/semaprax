@@ -6,6 +6,12 @@
   O0/O2 plus guard-removal/copy controls. Semaprax loan/borrowed-ABI admission and
   full RI-06 acceptance remain open.
 
+- Add the first Strict Law Assurance v1 library and candidate gate: independently
+  selected complete law inventory, exact method/trust requirements, bounded model
+  separation, and intent plus coverage replay at managed publication. Caller
+  proof-reference strings cannot grant formal acceptance. Global protected-route
+  admission and installed solver/kernel process adapters remain open LAW-04 work.
+
 - Add an experimental bounded native String renderer with checked source/HIR
   ownership, graph v57, exact selected signature binding, canonical helper
   cleanup, and core-compatible String cloning. Focused physical controls cover

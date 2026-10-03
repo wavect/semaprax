@@ -13,6 +13,10 @@ mod authority;
 mod build;
 mod candidate;
 pub use candidate::apply_protected_law_publication;
+pub use candidate::{
+    apply_strict_law_publication, prepare_strict_law_publication, StrictCandidateLawInputs,
+    StrictLawPublication, STRICT_CANDIDATE_LAW_SCHEMA, STRICT_LAW_PUBLICATION_SCHEMA,
+};
 mod canonical_sources;
 mod canonical_workspace_revision;
 mod contracts_and_tests_facts;

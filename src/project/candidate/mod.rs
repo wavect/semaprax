@@ -67,6 +67,11 @@ mod record_field;
 mod recovery;
 mod schemas;
 mod source_review;
+mod strict_law_assurance;
+pub use strict_law_assurance::{
+    apply_strict_law_publication, prepare_strict_law_publication, StrictCandidateLawInputs,
+    StrictLawPublication, STRICT_CANDIDATE_LAW_SCHEMA, STRICT_LAW_PUBLICATION_SCHEMA,
+};
 mod testing;
 mod type_declaration;
 mod type_rename;

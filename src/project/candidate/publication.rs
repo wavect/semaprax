@@ -56,6 +56,24 @@ pub fn prepare_candidate_publication(
     project_manifest: &Path,
     expected_workspace_revision: &str,
 ) -> Result<ProjectCandidatePublication> {
+    prepare_with_law_gate(
+        candidate,
+        approved_candidate_digest,
+        workspace_root,
+        project_manifest,
+        expected_workspace_revision,
+        || Ok(()),
+    )
+}
+
+pub(super) fn prepare_with_law_gate(
+    candidate: &ProjectCandidate,
+    approved_candidate_digest: &str,
+    workspace_root: &Path,
+    project_manifest: &Path,
+    expected_workspace_revision: &str,
+    mut gate: impl FnMut() -> Result<()>,
+) -> Result<ProjectCandidatePublication> {
     let snapshot = RefCell::new(load_snapshot(project_manifest)?);
     validate_host(
         &snapshot.borrow(),
@@ -66,6 +84,7 @@ pub fn prepare_candidate_publication(
     let result = change::with_project_candidate_change(
         workspace_root,
         |actual, sources| {
+            gate()?;
             derive(
                 candidate,
                 approved_candidate_digest,

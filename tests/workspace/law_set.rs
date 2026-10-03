@@ -410,3 +410,6 @@ fn unsupported_selectors_and_selector_injection_are_refused() {
 
 #[path = "protected_law.rs"]
 mod protected_law;
+
+#[path = "strict_law.rs"]
+mod strict_law;

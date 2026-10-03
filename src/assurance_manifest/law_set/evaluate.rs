@@ -43,6 +43,15 @@ pub fn derive_report(
     candidate: &LawSet,
     policy: &LawPolicy,
 ) -> Result<String> {
+    derive_report_with_proofs(revision, candidate, policy, &[])
+}
+
+pub(super) fn derive_report_with_proofs(
+    revision: &ProjectRevision,
+    candidate: &LawSet,
+    policy: &LawPolicy,
+    proofs: &[super::super::VerifiedProjectProof],
+) -> Result<String> {
     let candidate = LawSet::replay(
         revision,
         &policy.baseline.payload.proof_profile,
@@ -74,7 +83,8 @@ pub fn derive_report(
     if expected.is_empty() && !policy.allow_empty {
         return Err(empty());
     }
-    let base_report = super::super::project::derive(revision, &Default::default())?;
+    let base_report =
+        super::super::project::derive_with_verified_proofs(revision, &Default::default(), proofs)?;
     let base: Value = serde_json::from_str(&base_report)
         .map_err(|_| invalid("Project assurance derivation failed"))?;
     let obligations = base["payload"]["obligations"]

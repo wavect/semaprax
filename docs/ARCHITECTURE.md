@@ -2991,8 +2991,11 @@ These areas are deliberately outside the public compiler contract:
   `src/hir/validation/native_borrow.rs` and `workspace_link/native_owner/url_view.rs`,
   and returned-view loan ancestry in `src/loan_plan/native_view.rs`. The ordinary
   scalar workspace linker rebuilds byte provenance from every retained body,
-  including nongeneric functions. `semaprax-rust-api-index/src/closed_owner.rs`
-  owns closed Regex/Url selection without widening general index support;
+  including nongeneric functions. `src/rust_api_index/closed_owner.rs`
+  owns closed Regex/Url selection without widening general index support.
+  The public compiler package owns the shared replay implementation under
+  `src/rust_api_index/`; the private index crate reexports that same source for
+  builder consumers, so the public package has no private crate dependency;
 - `crates/semaprax-native-rust-interop-builder/src/public_sdk/callback.rs` and
   `registered_callback.rs`: inert RI-08 checked scalar-snapshot closure and
   explicit next-state projections, plus authored registry-export admission.

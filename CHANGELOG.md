@@ -1,5 +1,9 @@
 # Changelog
 
+- Repair the follow-up main CI failures: package Rust API index replay with the
+  public compiler, add the full toolchain's direct index dependency, update the
+  embedding example lockfile, and complete the Node Wasm owned-byte harness.
+
 - Restore `main` CI after the Rust API index and Sigstore dependency updates:
   pin the local index dependency for cargo-deny, refresh the three standalone
   Cargo locks, adapt offline release verification to Sigstore 0.14, and keep

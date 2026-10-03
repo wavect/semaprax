@@ -1424,7 +1424,6 @@ dependencies = [
  "rustix",
  "rustls",
  "same-file",
- "semaprax-rust-api-index",
  "serde",
  "serde_json",
  "sha2 0.11.0",

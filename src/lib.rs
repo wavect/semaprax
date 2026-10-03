@@ -166,6 +166,8 @@ pub mod resumable_effects;
 pub mod review;
 pub mod runtime_status;
 pub mod rust_api_context;
+#[doc(hidden)]
+pub mod rust_api_index;
 pub mod scoped_tasks;
 pub mod semantic_cache_store;
 pub mod semantic_discovery;

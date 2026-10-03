@@ -35,3 +35,11 @@ Passing this fixture would be limited local evidence for the candidate source
 semantics.  It does not compare C11 and Rust traces from the same checked HIR,
 measure a bridge, or make any target or support claim.  Those gaps are listed
 in [`NEXT-STEPS.md`](NEXT-STEPS.md).
+
+The nondefault `unstable-rust-source-lowering` feature now exposes
+`stable_rust_lowering::lower_i64_literal`.  It validates a real
+`ResolvedProgram`, retains its canonical cleanup-plan schema, and emits Rust
+only for a parameter-free `i64` literal with an inert ownership plan.  It
+explicitly rejects every other signature, contract/effect, ownership action,
+and expression shape.  The module is an emitter seam for the fixture, not a
+route selected by the normal compiler.

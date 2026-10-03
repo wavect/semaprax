@@ -78,6 +78,7 @@ metal-device = ["dep:objc2", "dep:objc2-foundation", "dep:objc2-metal"]
 unstable-workflow-profiling = []
 unstable-native-host-internal = []
 unstable-wit-component-harness = []
+unstable-rust-source-lowering = []
 
 [target.'cfg(not(any(target_arch = "wasm32", target_arch = "wasm64")))'.dependencies]
 fs2 = "=0.4.3"

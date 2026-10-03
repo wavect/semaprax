@@ -164,6 +164,8 @@ pub mod requirement_traceability;
 pub mod resumable_effects;
 pub mod review;
 pub mod runtime_status;
+#[cfg(feature = "unstable-rust-source-lowering")]
+pub mod stable_rust_lowering;
 pub mod scoped_tasks;
 pub mod semantic_cache_store;
 pub mod semantic_discovery;

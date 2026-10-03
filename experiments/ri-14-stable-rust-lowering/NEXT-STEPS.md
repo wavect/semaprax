@@ -3,10 +3,10 @@
 This fixture is intentionally not an RI-14 completion claim.  A go/no-go ADR
 requires all of the following executable evidence at one source revision:
 
-1. A feature-gated, nondefault backend that consumes verified HIR and the
-   compiler-produced canonical cleanup plan.  Handwritten source in this
-   directory must be replaced by deterministic generated Rust and exact source
-   digests.
+1. The feature-gated `stable_rust_lowering` seam now validates real HIR and
+   carries its attached cleanup-plan schema for a parameter-free i64 literal.
+   It must grow into deterministic generated Rust for a bounded island, retain
+   exact source digests, and lower non-inert plan actions verbatim.
 2. The same bounded corpus must execute through interpreter, native C11, and
    Rust-source lowering, comparing value, selected status, effects, and cleanup
    traces.  The lexical-`Drop` control must fail that differential gate.

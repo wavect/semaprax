@@ -197,6 +197,20 @@ fn indexed_rust_source_path_round_trips_and_selects_graph_v52() {
     let json = graph::to_json(&program).unwrap();
     assert!(json.contains("\"schema\":\"semaprax.graph.v52\""));
     assert!(json.contains("\"rust_path\":\"api::combine\""));
+    assert_eq!(wasm::emit_module(&program).unwrap_err().code, "SPX-W114");
+    assert_eq!(
+        wasm::emit_resolved_module(&resolved).unwrap_err().code,
+        "SPX-W114"
+    );
+    assert_eq!(
+        semaprax::codegen::emit_hir_c(&resolved).unwrap_err().code,
+        "SPX-B103"
+    );
+    let context_error = graph::context_json(&program, "test.call_combine", 1).unwrap_err();
+    assert_eq!(context_error[0].code, "SPX-G218");
+    let mut forged = resolved.clone();
+    forged.interfaces[0].imports[0].rust_path = Some("combine".to_owned());
+    assert_eq!(hir::validate(&forged).unwrap_err().code, "SPX-H006");
     let import = &resolved.interfaces[0].imports[0];
     assert!(prepare_scalar_binding(
         import,

@@ -1,5 +1,12 @@
 # Changelog
 
+- Exercise the explicit local Semaprax builder from a standalone, locked,
+  offline Cargo consumer. A source change rebuilds the generated SDK and
+  changes the observed result; a wrapper gate rejects nested Cargo. Model
+  owner-tied returned string views and per-resource callback refusal with
+  focused Rust checks. Rich package relocation and generated borrowed ABI
+  remain open RI-10/RI-06 work.
+
 - Map captured generated-wrapper rustc trait, feature, and lifetime errors to
   the selected `.spx` import with bounded, read-only diagnostics. Keep raw
   compiler detail and mark external captures unverified; generic context,

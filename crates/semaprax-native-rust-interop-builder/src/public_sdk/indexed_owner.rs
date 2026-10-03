@@ -7,6 +7,9 @@ use semaprax_rust_api_index::{
 
 /// Recheck the complete public type closure, not only a matching method name.
 pub(super) fn require_owner_type(index: &RustApiIndex, item: &ApiItem) -> Result<(), &'static str> {
+    if item.receiver == Receiver::Shared {
+        return Err("selected shared owner receiver requires RI-06 loan routing");
+    }
     let (path, _) = item
         .path
         .rsplit_once("::")

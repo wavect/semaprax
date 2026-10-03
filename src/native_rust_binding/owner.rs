@@ -27,6 +27,13 @@ pub fn bind_selected_owner_signature(
     let owner_result = signature
         .rsplit_once(") -> ")
         .is_some_and(|(_, result)| result == "Self" || result == type_path);
+    if receiver == "shared" {
+        return Err(error(
+            "SPX-B145",
+            "selected shared owner receiver requires RI-06 loan routing",
+            import.span,
+        ));
+    }
     if receiver != "owned" && !owner_result {
         return Ok(false);
     }

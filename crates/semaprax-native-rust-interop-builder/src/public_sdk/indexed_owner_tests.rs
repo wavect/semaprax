@@ -67,6 +67,52 @@ fn index(source: &[u8], rustc: &str) -> Vec<u8> {
         .as_bytes()
         .to_vec()
 }
+fn shared_receiver_index(source: &[u8], rustc: &str) -> Vec<u8> {
+    let mut envelope: Value = serde_json::from_slice(include_bytes!(
+        "../../../semaprax-rust-api-index/fixtures/local-api-fixture-v2-envelope.json"
+    ))
+    .unwrap();
+    let index = &mut envelope["index"];
+    index["package"]["name"] = "fixture_regex".into();
+    index["package"]["version"] = "0.0.1".into();
+    index["package"]["source_sha256"] = raw_digest(source).into();
+    index["target"] = target_triple().unwrap().into();
+    index["stable_rustc_version"] = rustc.into();
+    let mut constructor = index["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|item| item["path"] == "local_api_fixture::MacroGenerated::answer")
+        .unwrap()
+        .clone();
+    constructor["path"] = "fixture_regex::Regex::new".into();
+    constructor["receiver"] = "none".into();
+    constructor["signature"] = "fn new(pattern: i64) -> Self".into();
+    constructor["type_roots"] = serde_json::json!(["fixture_regex::Regex"]);
+    constructor["reachable_types"] = serde_json::json!(["fixture_regex::Regex"]);
+    let mut shared = constructor.clone();
+    shared["path"] = "fixture_regex::Regex::is_match".into();
+    shared["receiver"] = "shared".into();
+    shared["signature"] = "fn is_match(&self, input: &str) -> bool".into();
+    let mut ty = index["types"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|ty| ty["path"] == "local_api_fixture::MacroGenerated")
+        .unwrap()
+        .clone();
+    ty["path"] = "fixture_regex::Regex".into();
+    index["items"] = serde_json::json!([shared, constructor]);
+    index["types"] = serde_json::json!([ty]);
+    let mut bytes = serde_json::to_vec(&envelope).unwrap();
+    bytes.push(b'\n');
+    RustApiIndex::admit_extractor_output(&bytes)
+        .unwrap()
+        .canonical_json()
+        .as_bytes()
+        .to_vec()
+}
+
 fn selections<'a>(
     source: &'a str,
     bytes: &'a [u8],
@@ -420,5 +466,51 @@ fn indexed_owner_return_helper_package_executes() {
         &output,
         "consumer-return-helper"
     ));
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn selected_regex_shared_receiver_refuses_before_package_creation_without_ri06_loan_route() {
+    let rustc = std::env::var("RUSTC").expect("absolute RUSTC");
+    let version = Command::new(&rustc).arg("--version").output().unwrap();
+    let version = std::str::from_utf8(&version.stdout).unwrap().trim();
+    let source = canonical(
+        r#"module owner.fixture;
+@id("owner.regex") resource Regex { @id("owner.regex.drop") drop import "owner.drop"; }
+@id("owner.host") interface Host permits { } {
+ @id("owner.drop") import fn drop_regex(regex: own Regex) -> unit effects { } failure infallible consumes regex always;
+ @id("owner.new") import rust selected fn regex_new from "fixture_regex::Regex::new" effects { } failure infallible;
+ @id("owner.match") import rust selected fn regex_match from "fixture_regex::Regex::is_match" effects { } failure infallible;
+}
+@id("owner.run") fn run() -> i64 { 0 }
+@id("owner.main") fn main() -> i64 { 0 }
+"#,
+    );
+    let index = shared_receiver_index(RUST, version);
+    let replay = RustApiIndex::replay(&index).unwrap();
+    let digest = raw_digest(RUST);
+    let selections = selections(
+        &source,
+        &index,
+        RUST,
+        version,
+        &digest,
+        replay.feature_digest(),
+    );
+    let root = root("shared-receiver-refusal");
+    write_project(&root, &source);
+    let output = root.join("sdk");
+    let errors = build_indexed_project_native_rust_sdk(
+        &root.join("semaprax.toml"),
+        &selections,
+        &output,
+    )
+    .unwrap_err();
+    assert_eq!(errors[0].code, "SPX-B145");
+    assert!(
+        errors[0].message.contains("RI-06 loan routing"),
+        "{errors:?}"
+    );
+    assert!(!output.exists(), "refusal must precede package creation");
     fs::remove_dir_all(root).unwrap();
 }

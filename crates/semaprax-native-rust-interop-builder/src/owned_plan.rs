@@ -44,8 +44,9 @@ pub(crate) struct OwnerContext {
 
 impl OwnerContext {
     pub(crate) fn new() -> Self {
-        let id = NEXT_CONTEXT.fetch_add(1, Ordering::Relaxed);
-        assert_ne!(id, 0, "opaque owner context id exhausted");
+        let id = NEXT_CONTEXT
+            .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |id| id.checked_add(1))
+            .expect("opaque owner context id exhausted");
         Self {
             id,
             closed: false,
@@ -131,7 +132,7 @@ mod tests {
         let owner = context.admit("count", Count(count.clone())).unwrap();
         context.close();
         assert_eq!(count.get(), 2);
-        assert_eq!(context.consume(owner), Err(OwnerRefusal::Closed));
+        assert!(matches!(context.consume(owner), Err(OwnerRefusal::Closed)));
         assert_eq!(count.get(), 2);
     }
     #[test]
@@ -140,14 +141,17 @@ mod tests {
         let mut first = OwnerContext::new();
         let mut second = OwnerContext::new();
         let owner = first.admit("count", Count(count.clone())).unwrap();
-        let foreign = Owner {
+        let foreign = Owner::<Count> {
             context: second.id,
             generation: owner.generation,
             slot: owner.slot,
             kind: owner.kind,
             marker: PhantomData,
         };
-        assert_eq!(first.consume(foreign), Err(OwnerRefusal::WrongContext));
+        assert!(matches!(
+            first.consume(foreign),
+            Err(OwnerRefusal::WrongContext)
+        ));
         let wrong = Owner::<u64> {
             context: owner.context,
             generation: owner.generation,
@@ -155,9 +159,35 @@ mod tests {
             kind: owner.kind,
             marker: PhantomData,
         };
-        assert_eq!(first.consume(wrong), Err(OwnerRefusal::WrongType));
+        assert!(matches!(first.consume(wrong), Err(OwnerRefusal::WrongType)));
         drop(first.consume(owner).unwrap());
         assert_eq!(count.get(), 1);
         assert!(second.admit("count", Count(count.clone())).is_ok());
+    }
+
+    #[test]
+    fn forged_and_stale_tokens_cannot_consume_another_value() {
+        let count = Rc::new(Cell::new(0));
+        let mut context = OwnerContext::new();
+        let owner = context.admit("count", Count(count.clone())).unwrap();
+        let forged = Owner::<Count> {
+            context: owner.context,
+            generation: owner.generation,
+            slot: owner.slot + 1,
+            kind: owner.kind,
+            marker: PhantomData,
+        };
+        assert!(matches!(context.consume(forged), Err(OwnerRefusal::Forged)));
+        assert_eq!(count.get(), 0);
+        let stale = Owner::<Count> {
+            context: owner.context,
+            generation: owner.generation,
+            slot: owner.slot,
+            kind: owner.kind,
+            marker: PhantomData,
+        };
+        drop(context.consume(owner).unwrap());
+        assert!(matches!(context.consume(stale), Err(OwnerRefusal::Stale)));
+        assert_eq!(count.get(), 1);
     }
 }

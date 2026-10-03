@@ -1950,6 +1950,7 @@ dependencies = [
 name = "semaprax-rust-api-index"
 version = "0.1.0"
 dependencies = [
+ "regex",
  "serde_json",
  "sha2 0.11.0",
 ]

@@ -113,7 +113,16 @@ impl RustApiIndex {
     pub fn replay(bytes: &[u8]) -> Result<Self, IndexError> {
         validate_input(bytes)?;
         let value: Value = serde_json::from_slice(bytes).map_err(|_| IndexError::Malformed)?;
-        let root = exact_object(&value, 6)?;
+        let index = Self::parse_value(&value)?;
+        if index.canonical.as_bytes() != bytes {
+            return Err(IndexError::Malformed);
+        }
+        let digest = index_digest(bytes);
+        Ok(Self { digest, ..index })
+    }
+
+    fn parse_value(value: &Value) -> Result<Self, IndexError> {
+        let root = exact_object(value, 7)?;
         if string(root, "schema")? != RUST_API_INDEX_SCHEMA {
             return Err(IndexError::Malformed);
         }
@@ -156,11 +165,7 @@ impl RustApiIndex {
             extractor,
             items,
         };
-        if index.canonical.as_bytes() != bytes {
-            return Err(IndexError::Malformed);
-        }
-        let digest = index_digest(bytes);
-        Ok(Self { digest, ..index })
+        Ok(index)
     }
 
     /// Admits output from the explicit extractor protocol.  This does not run
@@ -172,11 +177,7 @@ impl RustApiIndex {
         if string(root, "schema")? != RUSTDOC_EXTRACTOR_SCHEMA {
             return Err(IndexError::SetupRequired);
         }
-        let index = required(root, "index")?;
-        let rendered = serde_json::to_string(index).map_err(|_| IndexError::Malformed)?;
-        let mut canonical = rendered.into_bytes();
-        canonical.push(b'\n');
-        let admitted = Self::replay(&canonical)?;
+        let admitted = Self::parse_value(required(root, "index")?)?;
         if admitted.extractor.mode != ExtractorMode::NightlyRustdocJson {
             return Err(IndexError::Malformed);
         }
@@ -301,7 +302,7 @@ fn parse_extractor(value: &Value) -> Result<ExtractorIdentity, IndexError> {
 }
 
 fn parse_item(value: &Value) -> Result<ApiItem, IndexError> {
-    let object = exact_object(value, 6)?;
+    let object = exact_object(value, 7)?;
     let kind = match string(object, "kind")? {
         "function" => ItemKind::Function,
         "inherent_method" => ItemKind::InherentMethod,
@@ -405,7 +406,12 @@ fn index_digest(bytes: &[u8]) -> String {
     hasher.update(INDEX_DIGEST_DOMAIN);
     hasher.update((bytes.len() as u64).to_be_bytes());
     hasher.update(bytes);
-    format!("sha256:{:x}", hasher.finalize())
+    let hex = hasher
+        .finalize()
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect::<String>();
+    format!("sha256:{hex}")
 }
 
 fn render(
@@ -596,5 +602,92 @@ mod tests {
 
         let oversized = vec![b' '; MAX_INDEX_BYTES + 1];
         assert_eq!(RustApiIndex::replay(&oversized), Err(IndexError::Malformed));
+    }
+
+    #[test]
+    fn selected_fixture_signatures_are_checked_by_rustc_and_mismatch_is_rejected() {
+        use std::process::Command;
+
+        let fixture_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("fixtures");
+        let rustc = std::env::var_os("RUSTC").unwrap_or_else(|| "rustc".into());
+        let compiler_version = Command::new(&rustc)
+            .arg("--version")
+            .output()
+            .expect("read selected stable Rust compiler version");
+        let version_text = String::from_utf8_lossy(&compiler_version.stdout);
+        let release = version_text.split_whitespace().nth(1).unwrap_or_default();
+        assert!(
+            compiler_version.status.success() && !release.contains('-'),
+            "fixture signature check requires a stable rustc, got {version_text}"
+        );
+        for (source, should_succeed) in [
+            ("stable_signature_check.rs", true),
+            ("stable_signature_mismatch.rs", false),
+        ] {
+            let output_path = std::env::temp_dir().join(format!(
+                "semaprax-ri03-{}-{}.rmeta",
+                std::process::id(),
+                source.replace('.', "_")
+            ));
+            let output = Command::new(&rustc)
+                .arg("--edition=2021")
+                .arg("--crate-type=lib")
+                .arg("--crate-name=ri03_stable_fixture")
+                .arg(fixture_dir.join(source))
+                .arg("--cfg")
+                .arg("feature=\"fixture-selected\"")
+                .arg("--emit=metadata")
+                .arg("-o")
+                .arg(&output_path)
+                .output()
+                .expect("launch selected stable Rust compiler");
+            let _ = std::fs::remove_file(&output_path);
+            assert_eq!(
+                output.status.success(),
+                should_succeed,
+                "{source}: {}",
+                String::from_utf8_lossy(&output.stderr)
+            );
+        }
+    }
+
+    #[test]
+    fn pinned_regex_rustdoc_envelope_replays_and_selected_signatures_compile() {
+        const SOURCE: &str =
+            "sha256:f020237b6c8eed93db2e2cb53c00c60a8e1bc73da7d073199a1180401450218d";
+        const FEATURES: &str =
+            "sha256:dcacb5b38acb8b53818ae1c0cb2020947aefbea8ac5a9380e49aa0e0ec4db1aa";
+        let bytes = include_bytes!("../fixtures/regex-1.13.1-index-envelope.json");
+        let index = RustApiIndex::admit_extractor_output(bytes).unwrap();
+        assert_eq!(index.package().name, "regex");
+        assert_eq!(index.package().version, "1.13.1");
+        assert_eq!(index.package().source_sha256, SOURCE);
+        assert_eq!(index.target(), "aarch64-apple-darwin");
+        assert_eq!(index.feature_digest(), FEATURES);
+        assert_eq!(index.extractor().rustdoc_format, "rustdoc-json:61");
+        index
+            .require_package_identity("regex", "1.13.1", SOURCE, "aarch64-apple-darwin", FEATURES)
+            .unwrap();
+        let selected = index
+            .select_supported(&[
+                "regex::Regex::captures",
+                "regex::Regex::find",
+                "regex::Regex::is_match",
+                "regex::Regex::new",
+            ])
+            .unwrap();
+        assert_eq!(selected.len(), 4);
+        assert!(selected
+            .iter()
+            .all(|item| item.kind == ItemKind::InherentMethod));
+        assert!(selected
+            .iter()
+            .all(|item| item.support == Support::Supported));
+
+        let _: for<'h> fn(&regex::Regex, &'h str) -> Option<regex::Captures<'h>> =
+            regex::Regex::captures;
+        let _: for<'h> fn(&regex::Regex, &'h str) -> Option<regex::Match<'h>> = regex::Regex::find;
+        let _: fn(&regex::Regex, &str) -> bool = regex::Regex::is_match;
+        let _: fn(&str) -> Result<regex::Regex, regex::Error> = regex::Regex::new;
     }
 }

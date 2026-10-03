@@ -613,6 +613,7 @@ mod indexed_owner;
 mod indexed_project;
 pub use indexed_project::{build_indexed_project_native_rust_sdk, IndexedProjectScalarSelection};
 mod owned_data;
+mod owner_borrowed_result;
 mod owner_sdk;
 mod serde_projection;
 pub use owner_sdk::{
@@ -642,6 +643,8 @@ mod indexed_tests;
 mod owned_string_tests;
 #[cfg(test)]
 mod owner_return_tests;
+#[cfg(test)]
+mod owner_borrowed_result_tests;
 #[cfg(test)]
 mod owner_sdk_tests;
 

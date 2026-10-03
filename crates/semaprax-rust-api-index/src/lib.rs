@@ -453,6 +453,63 @@ impl RustApiIndex {
         }
         Ok(selected)
     }
+
+    /// Admit the exact closed construction shape needed by a future owner
+    /// carrier without relabeling its generic `Result` as generally supported.
+    /// The caller must still lower both arms through a typed, audited carrier.
+    pub fn select_closed_owner_result(
+        &self,
+        path: &str,
+        owner: &str,
+        error: &str,
+    ) -> Result<&ApiItem, IndexError> {
+        if path.is_empty() || owner.is_empty() || error.is_empty() {
+            return Err(IndexError::ItemUnavailable);
+        }
+        let item = self
+            .items
+            .binary_search_by(|item| item.path.as_str().cmp(path))
+            .ok()
+            .map(|index| &self.items[index])
+            .filter(|item| {
+                item.kind == ItemKind::InherentMethod
+                    && item.receiver == Receiver::None
+                    && item.visibility == Visibility::Public
+                    && item.generics.parameters.is_empty()
+                    && item.generics.where_predicates.is_empty()
+                    && item.support
+                        == Support::Rejected {
+                            reason: RejectionReason::IncompleteTypeClosure,
+                        }
+                    && item.signature
+                        == format!("fn new(re: &str) -> core::result::Result<{owner}, {error}>")
+                    && item.type_roots.iter().map(String::as_str).eq([
+                        "core::result::Result",
+                        error,
+                        owner,
+                    ])
+                    && item.reachable_types.iter().map(String::as_str).eq([
+                        "core::result::Result",
+                        error,
+                        owner,
+                    ])
+            })
+            .ok_or(IndexError::ItemUnavailable)?;
+        let type_record = |path: &str, kind: TypeRecordKind| {
+            self.types.iter().any(|record| {
+                record.path == path
+                    && record.kind == kind
+                    && record.visibility == Visibility::Public
+                    && record.generics.parameters.is_empty()
+                    && record.generics.where_predicates.is_empty()
+            })
+        };
+        if !type_record(owner, TypeRecordKind::Struct) || !type_record(error, TypeRecordKind::Enum)
+        {
+            return Err(IndexError::ItemUnavailable);
+        }
+        Ok(item)
+    }
 }
 
 fn parse_package(value: &Value) -> Result<PackageIdentity, IndexError> {
@@ -1528,6 +1585,24 @@ mod tests {
             assert!(!item.closure_complete);
             assert_eq!(
                 index.select_supported(&[path]),
+                Err(IndexError::ItemUnavailable)
+            );
+        }
+
+        let constructor = index
+            .select_closed_owner_result("regex::Regex::new", "regex::Regex", "regex::Error")
+            .unwrap();
+        assert_eq!(
+            constructor.signature,
+            "fn new(re: &str) -> core::result::Result<regex::Regex, regex::Error>"
+        );
+        for (path, owner, error) in [
+            ("regex::Regex::new", "regex::Regex", "regex::MissingError"),
+            ("regex::Regex::is_match", "regex::Regex", "regex::Error"),
+            ("regex::Regex::new", "regex::Missing", "regex::Error"),
+        ] {
+            assert_eq!(
+                index.select_closed_owner_result(path, owner, error),
                 Err(IndexError::ItemUnavailable)
             );
         }

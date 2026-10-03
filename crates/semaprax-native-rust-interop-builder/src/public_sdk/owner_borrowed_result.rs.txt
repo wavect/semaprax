@@ -1,0 +1,126 @@
+use std::cell::{Cell, RefCell};
+use std::sync::atomic::{AtomicU64, Ordering};
+#[repr(C)]
+#[derive(Clone, Copy, Default)]
+pub struct SpxOwner { context: u64, generation: u64, slot: u64 }
+#[repr(C)]
+#[derive(Clone, Copy, Default)]
+pub struct SpxOwnerResult { pub tag: u8, pub reserved: [u8; 7], pub error: i64, pub owner: SpxOwner }
+const SPX_RESULT_OK: u8 = 1;
+const SPX_RESULT_ERR: u8 = 2;
+struct Slot { generation: u64, value: Option<@OWNER@> }
+struct Context { id: u64, slots: Vec<Slot> }
+thread_local! {
+    static CONTEXTS: RefCell<Vec<Context>> = const { RefCell::new(Vec::new()) };
+    static LAST_INPUT_POINTER: Cell<usize> = const { Cell::new(0) };
+    static LAST_INPUT_LENGTH: Cell<usize> = const { Cell::new(0) };
+    static ADAPTER_COPIES: Cell<usize> = const { Cell::new(0) };
+}
+static NEXT_CONTEXT: AtomicU64 = AtomicU64::new(1);
+fn caught<T>(f: impl FnOnce() -> T) -> Result<T, i32> {
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)).map_err(|payload| {
+        std::mem::forget(payload); 2
+    })
+}
+fn with_utf8<T>(data: *const u8, length: u64, target: impl FnOnce(&str) -> Result<T, i32>) -> Result<T, i32> {
+    let length = usize::try_from(length).map_err(|_| 4)?;
+    if length > 4096 { return Err(4); }
+    if length != 0 && data.is_null() { return Err(3); }
+    // SAFETY: a nonempty input has passed the null and checked-length gates.
+    // `target` is invoked before this borrowed range can escape the carrier.
+    let bytes = if length == 0 { &[][..] } else { unsafe { std::slice::from_raw_parts(data, length) } };
+    let text = std::str::from_utf8(bytes).map_err(|_| 3)?;
+    LAST_INPUT_POINTER.with(|value| value.set(data as usize));
+    LAST_INPUT_LENGTH.with(|value| value.set(length));
+    // This carrier never materializes an owned adapter buffer.
+    ADAPTER_COPIES.with(|value| debug_assert_eq!(value.get(), 0));
+    target(text)
+}
+fn error_code(_: @ERROR@) -> i64 { 1 }
+pub fn spx_result_owner_last_input_pointer() -> usize { LAST_INPUT_POINTER.with(Cell::get) }
+pub fn spx_result_owner_last_input_length() -> usize { LAST_INPUT_LENGTH.with(Cell::get) }
+pub fn spx_result_owner_adapter_copies() -> usize { ADAPTER_COPIES.with(Cell::get) }
+fn take(context: u64, owner: SpxOwner) -> Result<@OWNER@, i32> {
+    CONTEXTS.with(|contexts| {
+        let mut contexts = contexts.try_borrow_mut().map_err(|_| 6)?;
+        if owner.context != context { return Err(3); }
+        let context = contexts.iter_mut().find(|candidate| candidate.id == context).ok_or(3)?;
+        let index = usize::try_from(owner.slot).map_err(|_| 3)?;
+        let slot = context.slots.get_mut(index).ok_or(3)?;
+        if slot.generation != owner.generation { return Err(3); }
+        slot.value.take().ok_or(3)
+    })
+}
+#[no_mangle]
+pub unsafe extern "C" fn spx_result_owner_drop(context: u64, owner: SpxOwner) -> i32 {
+    let value = match take(context, owner) { Ok(value) => value, Err(status) => return status };
+    match caught(|| drop(value)) { Ok(()) => 0, Err(status) => status }
+}
+#[no_mangle]
+pub extern "C" fn spx_result_owner_context_new() -> u64 {
+    let Ok(id) = NEXT_CONTEXT.fetch_update(Ordering::Relaxed, Ordering::Relaxed, |id| id.checked_add(1)) else { return 0; };
+    CONTEXTS.with(|contexts| {
+        let Ok(mut contexts) = contexts.try_borrow_mut() else { return 0; };
+        if contexts.len() >= 32 || contexts.try_reserve(1).is_err() { return 0; }
+        contexts.push(Context { id, slots: Vec::new() }); id
+    })
+}
+#[no_mangle]
+pub extern "C" fn spx_result_owner_context_close(id: u64) -> i32 {
+    CONTEXTS.with(|contexts| {
+        let Ok(mut contexts) = contexts.try_borrow_mut() else { return 6; };
+        let Some(index) = contexts.iter().position(|c| c.id == id) else { return 3; };
+        if contexts[index].slots.iter().any(|slot| slot.value.is_some()) { return 5; }
+        contexts.remove(index); 0
+    })
+}
+#[no_mangle]
+pub unsafe extern "C" fn spx_result_owner_new_utf8(context: u64, data: *const u8, length: u64, out: *mut SpxOwnerResult) -> i32 {
+    if out.is_null() || (out as usize) % std::mem::align_of::<SpxOwnerResult>() != 0 { return 3; }
+    let result = match with_utf8(data, length, |text| caught(|| CONTEXTS.with(|contexts| {
+        // Hold this exclusive borrow across `Regex::new`: a callback attempting
+        // owner entry gets status 6 before target entry can proceed.
+        let mut contexts = contexts.try_borrow_mut().map_err(|_| 6)?;
+        let context = contexts.iter_mut().find(|candidate| candidate.id == context).ok_or(3)?;
+        match @CONSTRUCTOR@(text) {
+            Err(error) => Ok(SpxOwnerResult { tag: SPX_RESULT_ERR, reserved: [0; 7], error: error_code(error), owner: SpxOwner::default() }),
+            Ok(value) => {
+                let free = context.slots.iter().position(|slot| slot.value.is_none() && slot.generation != u64::MAX);
+                if free.is_none() && (context.slots.len() >= 32 || context.slots.try_reserve(1).is_err()) { return Err(4); }
+                let index = if let Some(index) = free { index } else { context.slots.push(Slot { generation: 0, value: None }); context.slots.len() - 1 };
+                let slot = &mut context.slots[index];
+                slot.generation += 1;
+                slot.value = Some(value);
+                Ok(SpxOwnerResult { tag: SPX_RESULT_OK, reserved: [0; 7], error: 0, owner: SpxOwner { context: context.id, generation: slot.generation, slot: index as u64 } })
+            }
+        }
+    }))) { Ok(result) => result, Err(status) => return status };
+    match result { Ok(value) => { unsafe { out.write(value) }; 0 }, Err(status) => status }
+}
+#[no_mangle]
+pub unsafe extern "C" fn spx_result_owner_is_match_utf8(context: u64, owner: SpxOwner, data: *const u8, length: u64, out: *mut u8) -> i32 {
+    if out.is_null() { return 3; }
+    let result = match with_utf8(data, length, |text| caught(|| CONTEXTS.with(|contexts| {
+        // This borrow remains live through the target call. Re-entry of any
+        // owner operation observes `try_borrow_mut` failure before it can call
+        // the selected target.
+        let mut contexts = contexts.try_borrow_mut().map_err(|_| 6)?;
+        if owner.context != context { return Err(3); }
+        let context = contexts.iter_mut().find(|candidate| candidate.id == context).ok_or(3)?;
+        let index = usize::try_from(owner.slot).map_err(|_| 3)?;
+        let slot = context.slots.get_mut(index).ok_or(3)?;
+        if slot.generation != owner.generation { return Err(3); }
+        let value = slot.value.as_ref().ok_or(3)?;
+        Ok(@METHOD@(value, text))
+    }))) { Ok(result) => result, Err(status) => return status };
+    match result { Ok(value) => { unsafe { out.write(u8::from(value)) }; 0 }, Err(status) => status }
+}
+#[cfg(test)]
+fn test_hold_context_borrow(context: u64) -> i32 {
+    CONTEXTS.with(|contexts| {
+        let _held = contexts.borrow_mut();
+        let mut out = SpxOwnerResult::default();
+        // This is a test-only seam. It is not included by the public renderer.
+        unsafe { spx_result_owner_new_utf8(context, b"x".as_ptr(), 1, &mut out) }
+    })
+}

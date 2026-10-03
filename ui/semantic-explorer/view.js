@@ -594,7 +594,7 @@ function createExplorer(root, host, options = {}) {
   graphViewport.addEventListener('pointermove', event => { if (drag) { state.panX = drag.panX + event.clientX - drag.x; state.panY = drag.panY + event.clientY - drag.y; graph.style.transform = `translate(${state.panX}px, ${state.panY}px) scale(${state.scale})`; } });
   graphViewport.addEventListener('pointerup', () => { drag = null; });
 
-  open({ mode: 'overview', side: options.side || 'current' });
+  open(options.initialQuery || { mode: 'overview', side: options.side || 'current' });
   return { open, selectDeclaration, state, destroy: () => {
     ++state.generation;
     state.summary = null;

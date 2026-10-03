@@ -2,7 +2,74 @@
 //! discovery metadata; this route never prepares a tool or a callable adapter.
 
 use super::*;
-use semaprax_rust_api_index::{ItemKind, Receiver, RejectionReason, RustApiIndex, Support};
+use semaprax_rust_api_index::{
+    ItemKind, Receiver, RejectionReason, RustApiIndex, Support, Visibility,
+};
+
+const CANDIDATE_SCHEMA: &str = "semaprax.rust-api-candidates.v1";
+
+/// A pure, prefix-bounded discovery projection over prepared index bytes.
+/// It does not assert that a source declaration is valid or compile a wrapper.
+pub fn prepared_rust_api_candidates_json(
+    index_bytes: &[u8],
+    prefix: &str,
+    requested_max_bytes: usize,
+) -> Result<String, Vec<Diagnostic>> {
+    if prefix.len() > semaprax_rust_api_index::MAX_PATH_BYTES
+        || !prefix
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || byte == b'_' || byte == b':')
+    {
+        return Err(vec![Diagnostic::io("SPX-B141", "Rust API candidate prefix must contain only path characters and fit the index path bound")]);
+    }
+    let index = RustApiIndex::replay(index_bytes).map_err(|error| {
+        vec![Diagnostic::io(
+            "SPX-B148",
+            format!("prepared Rust API index cannot be replayed: {error:?}"),
+        )]
+    })?;
+    let limit = requested_max_bytes.min(MAX_BYTES);
+    let alias = index
+        .package()
+        .renamed_from
+        .as_deref()
+        .unwrap_or(&index.package().name);
+    let matches = index
+        .items()
+        .iter()
+        .filter(|item| item.visibility == Visibility::Public && item.path.starts_with(prefix))
+        .collect::<Vec<_>>();
+    let matches_len = matches.len();
+    let mut items = Vec::new();
+    let candidate = |items: &[Value]| {
+        render(json!({
+            "authority": {"execution": false, "publication": false, "tool_invocation": false},
+            "budget": {"max_bytes": limit, "used_bytes": 0},
+            "index": {"digest": index.digest(), "status": "prepared_metadata"},
+            "items": items,
+            "package": {"cargo_alias": alias, "feature_digest": index.feature_digest(), "name": index.package().name, "source_sha256": index.package().source_sha256, "stable_rustc_version": index.stable_rustc_version(), "target": index.target(), "version": index.package().version},
+            "prefix": prefix,
+            "schema": CANDIDATE_SCHEMA,
+            "truncation": {"omitted_items": matches_len - items.len(), "truncated": items.len() < matches_len},
+        }))
+    };
+    let minimum = candidate(&items);
+    if minimum.len() > limit {
+        return Err(vec![Diagnostic::io("SPX-G004", format!("Rust API candidate context requires at least {} output bytes but max_bytes is {limit}", minimum.len()))]);
+    }
+    for item in matches {
+        let (support, reason) = match &item.support {
+            Support::Supported => ("supported", None),
+            Support::Rejected { reason } => ("rejected", Some(reason_name(*reason))),
+        };
+        items.push(json!({"kind": kind_name(item.kind), "ownership": receiver_name(item.receiver), "path": item.path, "reason": reason, "signature": item.signature, "support": support}));
+        if candidate(&items).len() > limit {
+            items.pop();
+            break;
+        }
+    }
+    Ok(candidate(&items))
+}
 
 /// Inspect one declared selected import against exact prepared index bytes.
 /// Source verification still admits only the expected unbound-index state.
@@ -90,6 +157,7 @@ pub fn prepared_selected_rust_import_context_json(
             "docs": item.docs,
             "id": import.stable_id,
             "kind": kind_name(item.kind),
+            "location": {"start": import.span.start, "end": import.span.end},
             "ownership": receiver_name(item.receiver),
             "path": item.path,
             "reachable_types": item.reachable_types,
@@ -231,5 +299,47 @@ mod tests {
         .unwrap_err();
         assert_eq!(error[0].code, "SPX-B148");
         assert!(error[0].span.is_some());
+    }
+
+    #[test]
+    fn oversized_index_docs_truncate_without_changing_supported_or_rejected_status() {
+        let mut envelope: Value = serde_json::from_slice(include_bytes!(
+            "../../crates/semaprax-rust-api-index/fixtures/regex-1.13.1-index-envelope.json"
+        ))
+        .unwrap();
+        for item in envelope["index"]["items"].as_array_mut().unwrap() {
+            if item["path"] == "regex::Regex::is_match" || item["path"] == "regex::Regex::find" {
+                item["docs"] = json!("x".repeat(8_000));
+            }
+        }
+        let mut extractor_bytes = serde_json::to_vec(&envelope).unwrap();
+        extractor_bytes.push(b'\n');
+        let index = RustApiIndex::admit_extractor_output(&extractor_bytes).unwrap();
+        let bytes = index.canonical_json().as_bytes();
+        for (path, source_name, expected_support) in [
+            ("regex::Regex::is_match", "is_match", "supported"),
+            ("regex::Regex::find", "find", "rejected"),
+        ] {
+            let program = source(path, source_name);
+            let first = prepared_selected_rust_import_context_json(&program, path, bytes, 4096)
+                .unwrap()
+                .unwrap();
+            let second = prepared_selected_rust_import_context_json(&program, path, bytes, 4096)
+                .unwrap()
+                .unwrap();
+            assert_eq!(first, second);
+            assert!(first.len() <= 4096);
+            let value: Value = serde_json::from_str(&first).unwrap();
+            assert_eq!(value["budget"]["used_bytes"], first.len());
+            assert_eq!(value["truncation"]["truncated"], true);
+            assert_eq!(value["selected_import"]["docs"], Value::Null);
+            assert_eq!(value["selected_import"]["support"], expected_support);
+            if expected_support == "rejected" {
+                assert_eq!(
+                    value["selected_import"]["reason"],
+                    "incomplete_type_closure"
+                );
+            }
+        }
     }
 }

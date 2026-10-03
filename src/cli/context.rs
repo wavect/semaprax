@@ -15,12 +15,22 @@ const SCHEMA_V1: &str = "semaprax.project-agent-context.v1";
 
 pub(crate) fn split_rust_index_option(
     args: &[String],
-) -> Result<(Vec<String>, Option<String>), u8> {
+) -> Result<(Vec<String>, Option<String>, bool), u8> {
     let mut plain = args.get(..3).unwrap_or(args).to_vec();
     let mut index_path = None;
+    let mut candidates = false;
     let mut cursor = 3;
     while cursor < args.len() {
         let option = &args[cursor];
+        if option == "--candidates" {
+            if candidates {
+                eprintln!("context --candidates may be supplied only once");
+                return Err(2);
+            }
+            candidates = true;
+            cursor += 1;
+            continue;
+        }
         let value = args.get(cursor + 1).ok_or_else(|| {
             eprintln!("context option `{option}` requires a value");
             2
@@ -38,7 +48,11 @@ pub(crate) fn split_rust_index_option(
         }
         cursor += 2;
     }
-    Ok((plain, index_path))
+    if candidates && index_path.is_none() {
+        eprintln!("context --candidates requires --rust-index");
+        return Err(2);
+    }
+    Ok((plain, index_path, candidates))
 }
 
 fn read_index(path: &Path) -> Result<Vec<u8>, Vec<Diagnostic>> {
@@ -70,6 +84,37 @@ fn read_index(path: &Path) -> Result<Vec<u8>, Vec<Diagnostic>> {
         )]);
     }
     Ok(bytes)
+}
+
+pub(crate) fn candidates(
+    path: &Path,
+    prefix: &str,
+    arguments: &[String],
+    options: &ParsedContextOptions,
+    index_path: &Path,
+    report: impl Fn(&[Diagnostic]) -> u8,
+) -> Result<String, u8> {
+    if is_project_manifest(path)
+        || path.extension().is_none_or(|extension| extension != "spx")
+        || !path.is_file()
+    {
+        eprintln!("context --candidates requires one saved .spx source file");
+        return Err(2);
+    }
+    if arguments
+        .iter()
+        .any(|argument| argument != "--max-bytes" && argument.parse::<usize>().is_err())
+    {
+        eprintln!("context --candidates accepts only --max-bytes N");
+        return Err(2);
+    }
+    let bytes = read_index(index_path).map_err(|errors| report(&errors))?;
+    semaprax::rust_api_context::prepared_rust_api_candidates_json(
+        &bytes,
+        prefix,
+        options.max_bytes(),
+    )
+    .map_err(|errors| report(&errors))
 }
 
 fn invalid_projection() -> Vec<Diagnostic> {
@@ -315,6 +360,17 @@ interface RustHost permits { regex.read } {
         assert_eq!(value["package"]["cargo_alias"], "regex_alias");
         assert_eq!(value["authority"]["tool_invocation"], false);
         assert!(prepared.len() <= 4096);
+        let candidates =
+            candidates(&path, "regex::Regex::", &[], &options, &index_path, |_| 1).unwrap();
+        let value: Value = serde_json::from_str(&candidates).unwrap();
+        assert_eq!(value["schema"], "semaprax.rust-api-candidates.v1");
+        assert_eq!(value["authority"]["tool_invocation"], false);
+        assert!(value["items"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|item| item["path"] == "regex::Regex::is_match"));
+        assert!(candidates.len() <= 4096);
         assert_eq!(
             project(
                 &path,
@@ -343,7 +399,7 @@ interface RustHost permits { regex.read } {
             "index.json",
         ]
         .map(str::to_owned);
-        let (plain, index) = split_rust_index_option(&args).unwrap();
+        let (plain, index, candidates) = split_rust_index_option(&args).unwrap();
         assert_eq!(
             plain,
             [
@@ -355,6 +411,17 @@ interface RustHost permits { regex.read } {
             ]
         );
         assert_eq!(index.as_deref(), Some("index.json"));
+        assert!(!candidates);
+        let with_candidates = [
+            "context",
+            "file.spx",
+            "regex::",
+            "--rust-index",
+            "index.json",
+            "--candidates",
+        ]
+        .map(str::to_owned);
+        assert!(split_rust_index_option(&with_candidates).unwrap().2);
         let duplicate = [
             "context",
             "file.spx",

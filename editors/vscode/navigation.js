@@ -59,6 +59,21 @@ function rustImportContextArguments(file, rustPath, indexFile) {
   return args;
 }
 const RUST_CONTEXT_MAX_BYTES = 4096;
+function rustCandidateArguments(file, prefix, indexFile) {
+  return ['context', file, prefix, '--max-bytes', String(RUST_CONTEXT_MAX_BYTES), '--rust-index', indexFile, '--candidates'];
+}
+
+function parseRustCandidates(text, prefix) {
+  if (typeof text !== 'string' || Buffer.byteLength(text) > RUST_CONTEXT_MAX_BYTES) return null;
+  const value = parseSchemaDocument(text, 'semaprax.rust-api-candidates.v1');
+  if (!value || value.schema !== 'semaprax.rust-api-candidates.v1' || value.prefix !== prefix) return null;
+  if (value.authority?.execution !== false || value.authority?.publication !== false || value.authority?.tool_invocation !== false) return null;
+  if (value.budget?.max_bytes !== RUST_CONTEXT_MAX_BYTES || value.budget?.used_bytes !== Buffer.byteLength(text.trim())) return null;
+  if (!Array.isArray(value.items) || !value.items.every(item => item && typeof item.path === 'string' && item.path.startsWith(prefix)
+    && typeof item.signature === 'string' && ['supported', 'rejected'].includes(item.support))) return null;
+  if (!Number.isSafeInteger(value.truncation?.omitted_items) || value.truncation.omitted_items < 0 || typeof value.truncation.truncated !== 'boolean') return null;
+  return value;
+}
 
 // The editor renders only compiler-authenticated, read-only Rust import
 // context. Treat every string in the document as inert text, including docs.
@@ -351,7 +366,7 @@ function failureReason(result, compiler) {
 
 module.exports = {
   MAX_OUTPUT_BYTES, TIMEOUT_MS, QUERY_SCHEMA, PROJECT_QUERY_SCHEMA,
-  queryArguments, docArguments, contextArguments, rustImportContextArguments, parseRustImportContext, RUST_CONTEXT_MAX_BYTES, resolveInRoot, parseProjectQueryResult, agentInspectArguments, parseSchemaDocument, CONTEXT_MAX_BYTES, parseQueryResult,
+  queryArguments, docArguments, contextArguments, rustImportContextArguments, rustCandidateArguments, parseRustCandidates, parseRustImportContext, RUST_CONTEXT_MAX_BYTES, resolveInRoot, parseProjectQueryResult, agentInspectArguments, parseSchemaDocument, CONTEXT_MAX_BYTES, parseQueryResult,
   SourceIndex, renamePatch, impactArguments, patchArguments, impactSummary, graphArguments, cleanupPlan, agentRunArguments, toRange, header, declarationItems, referenceItems, lensRecords, runCommand, failureReason,
   cwdOf: file => path.dirname(file)
 };

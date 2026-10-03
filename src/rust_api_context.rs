@@ -18,7 +18,7 @@ pub(crate) const MAX_BYTES: usize = 4096;
 const SETUP: &str = "Prepare a canonical semaprax.rust-api-index.v2 envelope with the explicit pinned rustdoc JSON extractor, then supply those bytes and the exact package, Cargo alias, target, feature, and stable compiler identity to the indexed Rust binding workflow. This context request does not run tools.";
 
 mod prepared;
-pub use prepared::prepared_selected_rust_import_context_json;
+pub use prepared::{prepared_rust_api_candidates_json, prepared_selected_rust_import_context_json};
 
 /// Return a bounded setup-status view for one selected Rust import.
 ///
@@ -145,6 +145,7 @@ fn full_envelope(program: &Program, import: &ImportDeclaration, max_bytes: usize
         "selected_import": {
             "docs": null,
             "id": import.stable_id,
+            "location": {"start": import.span.start, "end": import.span.end},
             "ownership": null,
             "path": import.rust_path,
             "signature": null,

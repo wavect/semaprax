@@ -30,7 +30,7 @@ NODE_TESTS = [
     "editors/vscode/test/repairs.test.js", "editors/vscode/test/tasks.test.js",
     "editors/vscode/test/diagnostics.test.js", "editors/vscode/test/navigation.test.js",
 ]
-NODE_TEST_COUNT = 97
+NODE_TEST_COUNT = 99
 CONTRIBUTED_COMMANDS = 41
 POLICY = {"schema":"semaprax.workspace-host-policy.v7","candidate_prepare":True,
  "diagnostics":False,"build_enabled":False,"test_policy":{"max_steps":100000,"max_execution_bytes":65536,"max_report_bytes":262144},"git_commit":None,

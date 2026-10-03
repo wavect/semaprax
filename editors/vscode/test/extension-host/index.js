@@ -101,6 +101,22 @@ async function run() {
   // an unlisted registration is as much an inventory break as a missing one.
   assert.deepEqual([...registered].filter(name => name.startsWith('semaprax.')).sort(), [...CONTRIBUTED].sort());
 
+  // VS Code's real hover provider consumes the compiler's bounded selected
+  // import context, even when no prepared index was selected by the host.
+  const hoverFile = path.join(folder.uri.fsPath, 'rust-import-hover.spx');
+  const hoverPath = 'regex::Regex::is_match';
+  fs.writeFileSync(hoverFile, `module test.hover;\n@id("rust.host") interface RustHost permits { regex.read } {\n@id("rust.host.method") import rust selected fn is_match from "${hoverPath}" effects { regex.read } failure infallible;\n}\n@id("rust.host.main") fn main() -> i64 { 0 }\n`);
+  try {
+    const document = await vscode.workspace.openTextDocument(vscode.Uri.file(hoverFile));
+    await vscode.window.showTextDocument(document, { preview: false });
+    const line = document.lineAt(2).text;
+    const position = new vscode.Position(2, line.indexOf(hoverPath) + 8);
+    const hovers = await vscode.commands.executeCommand('vscode.executeHoverProvider', document.uri, position);
+    assert.ok(hovers.some(hover => hover.contents.some(part => String(part.value ?? part).includes('Prepared Rust API index required'))), 'installed extension must show compiler-owned selected-import setup status');
+  } finally {
+    fs.unlinkSync(hoverFile);
+  }
+
   // Token reports are selected local snapshots. This path deliberately runs
   // before any compiler session exists, proving it neither starts one nor
   // asks the MCP host to refresh, test, or otherwise inspect source.

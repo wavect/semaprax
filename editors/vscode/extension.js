@@ -153,18 +153,33 @@ function activateChecks(context, testMode) {
     }
     return result.stdout;
   }
+  const selectedRustIndex = () => {
+    const value = machineSetting('rustIndexPath');
+    return typeof value === 'string' && path.isAbsolute(value) && !/[\u0000-\u001f\u007f]/.test(value) ? value : undefined;
+  };
+  const rustPathAt = (doc, position) => {
+    const line = doc.lineAt(position.line).text;
+    return [...line.matchAll(/(?:[A-Za-z_][A-Za-z0-9_]*::)+[A-Za-z_][A-Za-z0-9_]*/g)]
+      .find(hit => hit.index <= position.character && position.character < hit.index + hit[0].length);
+  };
+  async function rustCandidates(doc, prefix) {
+    const binary = compiler(), indexFile = selectedRustIndex();
+    if (!binary || !indexFile || !vscode.workspace.isTrusted || doc.uri.scheme !== 'file' || !doc.uri.fsPath.endsWith('.spx')) return;
+    const version = doc.version;
+    let stdout;
+    try { stdout = await runNavigation(binary, navigation.rustCandidateArguments(doc.uri.fsPath, prefix, indexFile), doc.uri.fsPath); }
+    catch { return; }
+    if (doc.version !== version) return;
+    return navigation.parseRustCandidates(stdout, prefix);
+  }
   async function rustImportHover(doc, position) {
     if (!vscode.workspace.isTrusted || doc.uri.scheme !== 'file' || !doc.uri.fsPath.endsWith('.spx') || doc.isDirty) return;
     const binary = compiler();
     if (!binary) return;
-    const line = doc.lineAt(position.line).text;
-    const match = [...line.matchAll(/(?:[A-Za-z_][A-Za-z0-9_]*::)+[A-Za-z_][A-Za-z0-9_]*/g)]
-      .find(hit => hit.index <= position.character && position.character < hit.index + hit[0].length);
+    const match = rustPathAt(doc, position);
     if (!match || match[0].length > 512) return;
     const rustPath = match[0], version = doc.version;
-    const configuredIndex = machineSetting('rustIndexPath');
-    const indexFile = typeof configuredIndex === 'string' && path.isAbsolute(configuredIndex) && !/[\u0000-\u001f\u007f]/.test(configuredIndex)
-      ? configuredIndex : undefined;
+    const indexFile = selectedRustIndex();
     let stdout;
     try {
       stdout = await runNavigation(binary, navigation.rustImportContextArguments(doc.uri.fsPath, rustPath, indexFile), doc.uri.fsPath);
@@ -186,6 +201,62 @@ function activateChecks(context, testMode) {
     }
     return new vscode.Hover(markdown, new vscode.Range(position.line, match.index, position.line, match.index + rustPath.length));
   }
+  const rustCompletionProvider = {
+    async provideCompletionItems(doc, position) {
+      const before = doc.lineAt(position.line).text.slice(0, position.character);
+      const match = before.match(/\bfrom\s+"([A-Za-z_][A-Za-z0-9_:]*)$/);
+      if (!match) return [];
+      const prefix = match[1], candidates = await rustCandidates(doc, prefix);
+      if (!candidates) return [];
+      const range = new vscode.Range(position.line, position.character - prefix.length, position.line, position.character);
+      return candidates.items.filter(item => item.support === 'supported').map(item => {
+        const result = new vscode.CompletionItem(item.path, item.kind === 'function' ? vscode.CompletionItemKind.Function : vscode.CompletionItemKind.Method);
+        result.detail = item.signature;
+        result.insertText = item.path;
+        result.range = range;
+        return result;
+      });
+    }
+  };
+  const rustDefinitionProvider = {
+    async provideDefinition(doc, position) {
+      if (doc.isDirty || !vscode.workspace.isTrusted) return;
+      const match = rustPathAt(doc, position);
+      if (!match) return;
+      const binary = compiler(), version = doc.version;
+      if (!binary) return;
+      let stdout;
+      try { stdout = await runNavigation(binary, navigation.rustImportContextArguments(doc.uri.fsPath, match[0], selectedRustIndex()), doc.uri.fsPath); }
+      catch { return; }
+      if (doc.isDirty || doc.version !== version) return;
+      const value = navigation.parseRustImportContext(stdout, match[0]);
+      const location = value?.selected_import?.location;
+      const index = savedIndex(doc.uri.fsPath);
+      const mapped = index && location && index.range(location.start, location.end);
+      if (!mapped) return;
+      return new vscode.Location(doc.uri, new vscode.Range(mapped.startLine, mapped.startColumn, mapped.endLine, mapped.endColumn));
+    }
+  };
+  const rustImportFixProvider = {
+    async provideCodeActions(doc, range, codeActionContext) {
+      if (doc.isDirty || !codeActionContext.diagnostics.some(row => String(row.code) === 'SPX-B141')) return [];
+      const line = doc.lineAt(range.start.line).text;
+      const match = /\bfrom\s+"((?:[A-Za-z_][A-Za-z0-9_]*::)+[A-Za-z_][A-Za-z0-9_]*)"/.exec(line);
+      if (!match) return [];
+      const full = match[1], split = full.lastIndexOf('::');
+      const prefix = full.slice(0, split + 2), candidates = await rustCandidates(doc, prefix);
+      if (!candidates) return [];
+      const start = match.index + match[0].indexOf(full);
+      const replace = new vscode.Range(range.start.line, start, range.start.line, start + full.length);
+      return candidates.items.filter(item => item.support === 'supported' && item.path !== full).slice(0, 5).map(item => {
+        const action = new vscode.CodeAction(`Use Rust API ${item.path}`, vscode.CodeActionKind.QuickFix);
+        action.diagnostics = codeActionContext.diagnostics.filter(row => String(row.code) === 'SPX-B141');
+        action.edit = new vscode.WorkspaceEdit();
+        action.edit.replace(doc.uri, replace, item.path);
+        return action;
+      });
+    }
+  };
   // The subject a read-only navigation query answers for, resolved exactly as
   // check-on-save resolves a saved file: the project manifest that owns it, or
   // the file alone. A module with `use` imports has no standalone meaning —
@@ -447,7 +518,10 @@ function activateChecks(context, testMode) {
   const dispose = () => { for (const child of running.values()) child.kill(); running.clear(); };
   context.subscriptions.push(collection, output, vscode.workspace.onDidSaveTextDocument(onSave), { dispose },
     vscode.languages.registerCodeLensProvider({ language: 'semaprax', scheme: 'file' }, lensProvider),
-    vscode.languages.registerHoverProvider({ language: 'semaprax', scheme: 'file' }, { provideHover: rustImportHover }));
+    vscode.languages.registerHoverProvider({ language: 'semaprax', scheme: 'file' }, { provideHover: rustImportHover }),
+    vscode.languages.registerCompletionItemProvider({ language: 'semaprax', scheme: 'file' }, rustCompletionProvider, ':'),
+    vscode.languages.registerDefinitionProvider({ language: 'semaprax', scheme: 'file' }, rustDefinitionProvider),
+    vscode.languages.registerCodeActionsProvider({ language: 'semaprax', scheme: 'file' }, rustImportFixProvider));
   return { checkProject, goToDeclaration, showReferences, showDocumentation, showOwnership, inspectAgent, safeRename, showCleanupPlan, runAgentTranscript, test: testMode ? { check, ledger, collection, lensProvider } : undefined };
 }
 function activate(context) {

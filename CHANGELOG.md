@@ -1,5 +1,11 @@
 # Changelog
 
+- Expose replayed prepared Rust API index facts through a 4 KiB bounded CLI
+  context and candidate projection. VS Code reads the same pure compiler
+  metadata for selected-import hover, completion, declaration navigation, and
+  candidate import fixes. Oversized docs truncate visibly without changing
+  support or rejection status; no editor request invokes a tool or build.
+
 - Add an explicit `indexed-project` Native Rust SDK CLI route over a bounded
   selection file and prepared Rust API index. A focused physical CLI test
   generates a selected Project package and runs its Rust consumer; read-only

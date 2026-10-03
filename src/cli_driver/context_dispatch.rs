@@ -8,8 +8,24 @@ pub(super) fn run(args: &[String]) -> Result<(), u8> {
         eprintln!("context requires a symbol name or stable id");
         2
     })?;
-    let (context_args, rust_index) = cli::context::split_rust_index_option(args)?;
+    let (context_args, rust_index, candidates) = cli::context::split_rust_index_option(args)?;
     let options = context_options(&context_args)?;
+    if candidates {
+        let output = cli::context::candidates(
+            &path,
+            symbol,
+            &context_args[3..],
+            &options,
+            Path::new(
+                rust_index
+                    .as_deref()
+                    .expect("candidate option requires index"),
+            ),
+            |errors| report(errors, false),
+        )?;
+        println!("{output}");
+        return Ok(());
+    }
     if let Some(context) = cli::context::project(
         &path,
         symbol,

@@ -7,7 +7,7 @@ const path = require('node:path');
 const { EventEmitter } = require('node:events');
 const {
   MAX_OUTPUT_BYTES, TIMEOUT_MS, QUERY_SCHEMA,
-  queryArguments, docArguments, contextArguments, rustImportContextArguments, parseRustImportContext, RUST_CONTEXT_MAX_BYTES, agentInspectArguments, parseSchemaDocument, CONTEXT_MAX_BYTES, parseQueryResult,
+  queryArguments, docArguments, contextArguments, rustImportContextArguments, rustCandidateArguments, parseRustCandidates, parseRustImportContext, RUST_CONTEXT_MAX_BYTES, agentInspectArguments, parseSchemaDocument, CONTEXT_MAX_BYTES, parseQueryResult,
   SourceIndex, PROJECT_QUERY_SCHEMA, parseProjectQueryResult, resolveInRoot, renamePatch, impactArguments, patchArguments, impactSummary, graphArguments, cleanupPlan, agentRunArguments, toRange, header, declarationItems, referenceItems, lensRecords, runCommand, failureReason
 } = require('../navigation');
 
@@ -153,6 +153,30 @@ test('Rust hover accepts only bounded read-only compiler context for the exact d
   assert.equal(parseRustImportContext(encoded, 'regex::Regex::find'), null);
   assert.equal(parseRustImportContext(JSON.stringify({ ...value, authority: { ...value.authority, tool_invocation: true } }), 'regex::Regex::is_match'), null);
   assert.equal(parseRustImportContext('x'.repeat(4097), 'regex::Regex::is_match'), null);
+});
+
+test('Rust completion consumes only canonical bounded candidate metadata for the exact prefix', () => {
+  const prefix = 'regex::Regex::';
+  assert.deepEqual(rustCandidateArguments(at('m.spx'), prefix, at('regex.index.json')),
+    ['context', at('m.spx'), prefix, '--max-bytes', '4096', '--rust-index', at('regex.index.json'), '--candidates']);
+  const value = {
+    schema: 'semaprax.rust-api-candidates.v1', prefix,
+    authority: { execution: false, publication: false, tool_invocation: false },
+    budget: { max_bytes: 4096, used_bytes: 0 },
+    index: { status: 'prepared_metadata' },
+    items: [{ path: 'regex::Regex::is_match', signature: 'fn is_match(&self, haystack: &str) -> bool', support: 'supported' }],
+    truncation: { omitted_items: 1, truncated: true }
+  };
+  let encoded;
+  do {
+    encoded = JSON.stringify(value);
+    if (value.budget.used_bytes === Buffer.byteLength(encoded)) break;
+    value.budget.used_bytes = Buffer.byteLength(encoded);
+  } while (true);
+  assert.equal(parseRustCandidates(encoded + '\n', prefix).items[0].path, 'regex::Regex::is_match');
+  assert.equal(parseRustCandidates(encoded, 'regex::Regex::find'), null);
+  assert.equal(parseRustCandidates(JSON.stringify({ ...value, authority: { ...value.authority, execution: true } }), prefix), null);
+  assert.equal(parseRustCandidates('x'.repeat(4097), prefix), null);
 });
 
 test('a safe rename authors exactly the replay-checked patch text and rejects bad names', () => {

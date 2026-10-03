@@ -11,8 +11,8 @@ use super::ids::{DeclarationId, ExpressionId, FunctionExecutionId, ValueId};
 use super::monomorphize::substitute_type;
 use super::nodes::{
     is_scalar_resolved_type, resolver_admits_owned_variant, DeclarationKind, OwnershipMode,
-    ResolvedBinding, ResolvedHostCommandCall, ResolvedImportResultKind, ResolvedMatchMode,
-    ResolvedNativeRustImportCall, ResolvedType,
+    ResolvedBinding, ResolvedHostCommandCall, ResolvedMatchMode, ResolvedNativeRustImportCall,
+    ResolvedType,
 };
 use super::type_reachability::record_args_ok;
 use super::{Binding, Place, PlaceProjection, Resolver};
@@ -187,22 +187,7 @@ impl Resolver<'_> {
                             ));
                         }
                     }
-                    let result = match import.result {
-                        crate::ast::ImportResult::Unit => ResolvedImportResultKind::Unit,
-                        crate::ast::ImportResult::I64 => ResolvedImportResultKind::I64,
-                        crate::ast::ImportResult::Bool => ResolvedImportResultKind::Bool,
-                        crate::ast::ImportResult::ResultI64I64 => {
-                            ResolvedImportResultKind::ResultI64I64
-                        }
-                    };
-                    let ty = match result {
-                        ResolvedImportResultKind::Unit => ResolvedType::Unit,
-                        ResolvedImportResultKind::I64 => ResolvedType::I64,
-                        ResolvedImportResultKind::Bool => ResolvedType::Bool,
-                        ResolvedImportResultKind::ResultI64I64 => {
-                            self.resolve_type(&import.result.value_type(), expr.span)?
-                        }
-                    };
+                    let (result, ty) = self.resolve_native_rust_result(import.result, expr.span)?;
                     return Ok(ResolvedExpr {
                         id,
                         ty,

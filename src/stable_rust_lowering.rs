@@ -88,9 +88,6 @@ pub fn lower_i64_literal(
     {
         return Err(StableRustLoweringError::UnsupportedContractsOrEffects);
     }
-    if !inert_cleanup_plan(function) {
-        return Err(StableRustLoweringError::UnsupportedOwnershipPlan);
-    }
     let value = match &function.body.kind {
         ResolvedExprKind::Int(value) => value,
         ResolvedExprKind::Block { statements, tail } if statements.is_empty() => match &tail.kind {
@@ -99,6 +96,9 @@ pub fn lower_i64_literal(
         },
         _ => return Err(StableRustLoweringError::UnsupportedExpression),
     };
+    if !inert_cleanup_plan(function) {
+        return Err(StableRustLoweringError::UnsupportedOwnershipPlan);
+    }
     let source = format!(
             "// RI-14 validated HIR function: {}\n// cleanup-plan schema: {}\npub fn spx_entry() -> i64 {{ {value} }}\n",
             function.id.as_str(), function.cleanup_plan.schema

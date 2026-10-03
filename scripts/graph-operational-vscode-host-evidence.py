@@ -26,7 +26,7 @@ NODE_TESTS = [
     "editors/vscode/test/diagnostics.test.js", "editors/vscode/test/navigation.test.js",
 ]
 NODE_TEST_COUNT = 97
-CONTRIBUTED_COMMANDS = 37
+CONTRIBUTED_COMMANDS = 41
 POLICY = {"schema":"semaprax.workspace-host-policy.v7","candidate_prepare":True,
  "diagnostics":False,"build_enabled":False,"test_policy":{"max_steps":100000,"max_execution_bytes":65536,"max_report_bytes":262144},"git_commit":None,
  "frontend_cache":False,"candidate_archives":[],"semantic_cache":False,
@@ -171,7 +171,7 @@ def main():
         observation=json.loads(matches[0])
         expected_keys={"schema","vscode_version","app_name","extension_host_exec_path","extension_version","registered_commands","image_revision","candidate_revision","source_sha256","typed_intent","target","verified_virtual_diff","startup_test_grant","discovered_task_tools","explicit_cooperative_cancellation","cancellation","test_task_authority","pending_task_dirty_buffer_invalidated","authority","dirty_buffer_invalidated","source_bytes_unchanged"}
         if set(observation)!=expected_keys: raise Failure("unexpected Extension Host observation schema")
-        if observation["schema"]!="semaprax.vscode-extension-host-result.v2" or observation["vscode_version"]!=cli_version[0] or observation["app_name"]!="Visual Studio Code" or observation["registered_commands"]!=CONTRIBUTED_COMMANDS: raise Failure("Extension Host identity mismatch")
+        if observation["schema"]!="semaprax.vscode-extension-host-result.v2" or observation["vscode_version"]!=cli_version[0] or observation["app_name"]!="Visual Studio Code" or observation["registered_commands"]!=CONTRIBUTED_COMMANDS: raise Failure(f"Extension Host identity mismatch: schema={observation['schema']!r}, version={observation['vscode_version']!r}, app={observation['app_name']!r}, commands={observation['registered_commands']!r}")
         for key in ("image_revision","candidate_revision"):
             if not re.fullmatch(r"sha256:[0-9a-f]{64}",observation[key]): raise Failure(f"invalid {key}")
         if observation["startup_test_grant"] != POLICY["test_policy"]: raise Failure("host test grant mismatch")

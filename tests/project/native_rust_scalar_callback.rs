@@ -108,3 +108,85 @@ fn the_same_callback_program_is_still_refused_by_the_wasm_target() {
         "Native Rust imports are unavailable for WebAssembly targets"
     );
 }
+
+#[test]
+fn authenticated_project_foreign_law_view_retains_lock_and_conditions() {
+    use semaprax::native_rust_binding::foreign_law::{DeclaredForeignSummary, ForeignLawRequest};
+    use semaprax::native_rust_binding::{prepare_scalar_binding, SelectedRustItem};
+
+    let fixture = fixture();
+    with_authenticated_project(&fixture.0.join("semaprax.toml"), |snapshot| {
+        let revision = snapshot.retain_revision();
+        let import = revision
+            .entry_program()
+            .interfaces
+            .iter()
+            .flat_map(|interface| &interface.imports)
+            .find(|import| import.id.as_str() == "callback.host.adjust")
+            .unwrap();
+        let binding = prepare_scalar_binding(
+            import,
+            SelectedRustItem {
+                cargo_alias: "fixture",
+                package_name: "fixture-rust",
+                package_version: "1.0.0",
+                package_source_sha256:
+                    "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                index_digest:
+                    "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                target: "x86_64-unknown-linux-gnu",
+                feature_digest:
+                    "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                path: "fixture::adjust",
+                kind: "function",
+                receiver: "none",
+                signature: "fn adjust(value: i64) -> i64",
+                supported: true,
+            },
+        )
+        .unwrap();
+        let declared = DeclaredForeignSummary {
+            assumption_id: "foreign.adjust.behavior".into(),
+            proposition_digest:
+                "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd".into(),
+            assumes_no_effects: false,
+            assumes_no_callbacks: false,
+            assumes_no_panics: false,
+            assumes_no_shared_state: false,
+            return_i64_range: Some((0, 100)),
+        };
+        let law = ForeignLawRequest {
+            law_id: "law.adjust.range".into(),
+            permit_assumptions: false,
+            require_theorem: false,
+            require_no_effects: false,
+            require_no_callbacks: false,
+            require_no_panics: false,
+            require_no_shared_state: false,
+            require_return_guard: true,
+        };
+        let view = snapshot.foreign_law_frontier_json(
+            &binding,
+            "x86_64-unknown-linux-gnu",
+            "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            &declared,
+            &law,
+        )?;
+        let view: serde_json::Value = serde_json::from_str(&view).unwrap();
+        assert_eq!(view["status"], "runtime_guard_only");
+        assert_eq!(view["foreign_internals_proved"], false);
+        for property in ["effects", "callbacks", "panics", "shared_state"] {
+            assert_eq!(view["foreign_behavior"][property], "unknown");
+        }
+        assert_eq!(view["physical_symbol"], binding.physical_symbol);
+        assert_eq!(
+            view["project_lock_digest"],
+            revision
+                .canonical_workspace_revision()?
+                .dependency_lock_digest()
+        );
+        assert_eq!(view["conditions"].as_array().unwrap().len(), 0);
+        Ok(())
+    })
+    .unwrap();
+}

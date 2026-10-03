@@ -5,6 +5,8 @@
 //! state, or publication method, so retaining it cannot extend live input or
 //! mutation authority.
 
+mod foreign_law;
+
 use crate::diagnostic::Diagnostic;
 
 use super::{

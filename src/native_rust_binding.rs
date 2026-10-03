@@ -4,6 +4,7 @@
 //! record with checked HIR and produces an inert binding plan. It neither
 //! grants execution authority nor turns an index signature into Rust code.
 
+pub mod foreign_law;
 mod owner;
 pub(crate) use owner::admitted_regex_result;
 pub use owner::{bind_selected_owner_signature, bind_selected_regex_result_signature};

@@ -206,6 +206,123 @@ pub(super) fn source_certificate(
     ensures_index: usize,
     kernel: &dyn LeanKernel,
 ) -> Result<String, Vec<Diagnostic>> {
+    source_certificate_with(
+        source,
+        source_path,
+        declaration_id,
+        ensures_index,
+        |export, _artifact| {
+            let run = kernel
+                .check(&export.lean_source)
+                .map_err(|error| vec![error])?;
+            checked_kernel_axioms(export, &run).map(|axioms| {
+                (
+                    axioms,
+                    crate::assurance_manifest::modular_law::cache::WorkMetrics::default(),
+                )
+            })
+        },
+    )
+    .map(|(certificate, _)| certificate)
+}
+
+pub(super) fn source_certificate_cached(
+    project_root: &Path,
+    source: &str,
+    source_path: &Path,
+    declaration_id: &str,
+    ensures_index: usize,
+    cache_role: &str,
+    cache_owner: &str,
+    logical_dependency: &str,
+    tool: &installed::InstalledProofTool,
+    cache: &mut crate::assurance_manifest::modular_law::cache::ProofTaskCache,
+) -> Result<
+    (
+        String,
+        crate::assurance_manifest::modular_law::cache::WorkMetrics,
+    ),
+    Vec<Diagnostic>,
+> {
+    use crate::assurance_manifest::modular_law::cache;
+    source_certificate_with(
+        source,
+        source_path,
+        declaration_id,
+        ensures_index,
+        |export, artifact| {
+            let lean_digest = certificate::lean_digest(&export.lean_source);
+            let artifact_digest = certificate::artifact_digest(artifact);
+            let logical = cache::logical_subject_digest(&[
+                cache_role,
+                &export.revision,
+                &lean_digest,
+                &artifact_digest,
+                logical_dependency,
+            ]);
+            let assumptions = serde_json::to_string(&ASSUMPTIONS)
+                .map_err(|_| vec![no_export("Lean assumptions cannot be encoded".into())])?;
+            let standard_axioms = serde_json::to_string(&kernel_report::STANDARD_AXIOMS)
+                .map_err(|_| vec![no_export("Lean axiom policy cannot be encoded".into())])?;
+            let axioms_policy = cache::logical_subject_digest(&[&assumptions, &standard_axioms]);
+            cache::check_bound_kernel_task(
+                cache,
+                project_root,
+                tool,
+                cache_role,
+                cache_owner,
+                &logical,
+                &lean_digest,
+                PROFILE_V1,
+                &axioms_policy,
+                &export.theorem_names(),
+                || {
+                    let run = tool
+                        .check(&export.lean_source)
+                        .map_err(|error| vec![error])?;
+                    checked_kernel_axioms(export, &run)
+                },
+            )
+        },
+    )
+}
+
+fn checked_kernel_axioms(
+    export: &ModuleExport,
+    run: &KernelRun,
+) -> Result<Vec<(String, Vec<String>)>, Vec<Diagnostic>> {
+    match kernel_report::parse(&export.theorem_names(), &run.toolchain, &run.output) {
+        KernelVerdict::Checked { axioms } => Ok(axioms),
+        KernelVerdict::Rejected(rejection) => Err(vec![no_export(format!(
+            "the pinned Lean kernel did not accept this export ({}): {}",
+            rejection.code(),
+            rejection.detail()
+        ))]),
+    }
+}
+
+fn source_certificate_with(
+    source: &str,
+    source_path: &Path,
+    declaration_id: &str,
+    ensures_index: usize,
+    check: impl FnOnce(
+        &ModuleExport,
+        &[u8],
+    ) -> Result<
+        (
+            Vec<(String, Vec<String>)>,
+            crate::assurance_manifest::modular_law::cache::WorkMetrics,
+        ),
+        Vec<Diagnostic>,
+    >,
+) -> Result<
+    (
+        String,
+        crate::assurance_manifest::modular_law::cache::WorkMetrics,
+    ),
+    Vec<Diagnostic>,
+> {
     let program = crate::parse(source, source_path).map_err(|error| vec![error])?;
     let diagnostics = crate::verify::verify(&program);
     if diagnostics.iter().any(|item| item.severity.is_error()) {
@@ -257,21 +374,6 @@ pub(super) fn source_certificate(
     }
     let theorem_name = format!("{NAMESPACE}.{}", obligation.theorem_name);
 
-    let run = kernel
-        .check(&export.lean_source)
-        .map_err(|error| vec![error])?;
-    let expected = export.theorem_names();
-    let axioms = match kernel_report::parse(&expected, &run.toolchain, &run.output) {
-        KernelVerdict::Checked { axioms } => axioms,
-        KernelVerdict::Rejected(rejection) => {
-            return Err(vec![no_export(format!(
-                "the pinned Lean kernel did not accept this export ({}): {}",
-                rejection.code(),
-                rejection.detail()
-            ))])
-        }
-    };
-
     let resolved = crate::hir::resolve(&program)?;
     let artifact = compile_wasm_core_module(&resolved).map_err(|detail| {
         vec![no_export(format!(
@@ -279,6 +381,11 @@ pub(super) fn source_certificate(
              artifact target: {detail}"
         ))]
     })?;
+
+    // All current-source and target-artifact checks finish before a checked
+    // kernel success may enter the cache. The ordinary fresh route uses this
+    // same preparation and rendering path.
+    let (axioms, work) = check(&export, &artifact)?;
 
     let path_text = source_path.display().to_string();
     let source_sha256 = certificate::source_digest(source);
@@ -292,11 +399,11 @@ pub(super) fn source_certificate(
         obligation_id: &obligation.obligation_id,
         theorem_name: &theorem_name,
         compiler_version: env!("CARGO_PKG_VERSION"),
-        toolchain: &run.toolchain,
+        toolchain: PINNED_TOOLCHAIN,
         axioms: &axioms,
         artifact_sha256: &artifact_sha256,
         artifact_bytes: artifact.len(),
     });
 
-    Ok(rendered)
+    Ok((rendered, work))
 }

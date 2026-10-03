@@ -32,8 +32,7 @@ pub fn prove_scalar_law(
 /// Recheck the current relational law and all transitive declared law
 /// dependencies before looking up a checked installed-Z3 task. A cache hit
 /// skips only the registered solver process; the returned opaque proof is
-/// always newly bound to this exact Project and LawSet. Lean uses the regular
-/// fresh kernel route until a separately checked theorem recipe is admitted.
+/// always newly bound to this exact Project and LawSet.
 pub fn prove_scalar_law_z3_cached(
     project_root: &Path,
     revision: &ProjectRevision,
@@ -44,6 +43,23 @@ pub fn prove_scalar_law_z3_cached(
 ) -> Result<(VerifiedLawProof, WorkMetrics)> {
     if tool.kind() != ToolKind::Z3 {
         return Err(invalid("native relational cache requires installed Z3"));
+    }
+    prove_scalar_law_with_cache(revision, laws, law_id, tool, Some((project_root, cache)))
+}
+
+/// The same checked relational-law dependency closure can reuse the pinned
+/// Lean kernel's exact theorem/axiom result. The certificate and opaque law
+/// proof are reconstructed from the current law and Project on every call.
+pub fn prove_scalar_law_lean_cached(
+    project_root: &Path,
+    revision: &ProjectRevision,
+    laws: &LawSet,
+    law_id: &str,
+    tool: &InstalledProofTool,
+    cache: &mut ProofTaskCache,
+) -> Result<(VerifiedLawProof, WorkMetrics)> {
+    if tool.kind() != ToolKind::Lean {
+        return Err(invalid("native relational cache requires installed Lean"));
     }
     prove_scalar_law_with_cache(revision, laws, law_id, tool, Some((project_root, cache)))
 }
@@ -86,13 +102,34 @@ fn prove_scalar_law_with_cache(
     let mut work = WorkMetrics::default();
     let (class, method, artifact) = match tool.kind() {
         ToolKind::Lean => {
-            let certificate = crate::proof_export::source_certificate(
-                &source,
-                std::path::Path::new("<native-law-proof>"),
-                "semaprax.law.proposition",
-                0,
-                tool,
-            )?;
+            let certificate = if let Some((project_root, cache)) = cached.as_mut() {
+                let index = super::dependency_index::derive(&laws)?;
+                let logical = index
+                    .logical_digest(law_id)
+                    .ok_or_else(|| invalid("native proof law has no checked dependency closure"))?;
+                let (certificate, checked_work) = crate::proof_export::source_certificate_cached(
+                    project_root,
+                    &source,
+                    Path::new("<native-law-proof>"),
+                    "semaprax.law.proposition",
+                    0,
+                    "native-relational-lean",
+                    law_id,
+                    logical,
+                    tool,
+                    cache,
+                )?;
+                work = checked_work;
+                certificate
+            } else {
+                crate::proof_export::source_certificate(
+                    &source,
+                    Path::new("<native-law-proof>"),
+                    "semaprax.law.proposition",
+                    0,
+                    tool,
+                )?
+            };
             crate::proof_export::verify_certificate(&certificate).map_err(|error| vec![error])?;
             let method = MethodRecord::new(
                 AssuranceClass::TheoremProved,

@@ -6,7 +6,9 @@ use semaprax::{
     assurance_manifest::modular_law::cache::ProofTaskCache,
     proof_export::{
         installed::{HostProfile, InstalledProofTool, Limits, ToolKind},
-        installed_project::{prove_postcondition, prove_postcondition_z3_cached},
+        installed_project::{
+            prove_postcondition, prove_postcondition_lean_cached, prove_postcondition_z3_cached,
+        },
     },
 };
 use std::{collections::BTreeMap, path::PathBuf, sync::Arc};
@@ -84,6 +86,63 @@ fn installed_project_postcondition_cache_reuses_proof_query_with_fresh_domain_wi
     )
     .unwrap();
     assert_eq!((restored_work.fresh, restored_work.reused), (0, 1));
+}
+
+#[test]
+#[cfg(unix)]
+#[ignore = "requires explicitly provisioned installed Lean and private Unix cache root"]
+fn installed_project_lean_cache_reuses_checked_axiom_report_with_current_certificate() {
+    use semaprax::semantic_cache_store::{initialize, load_modular_proofs, persist_modular_proofs};
+    use std::os::unix::fs::PermissionsExt;
+
+    let project = Project::new("direct-lean-cache", false);
+    let revision = project.revision();
+    let tool = provisioned(&project, ToolKind::Lean);
+    let mut cache = ProofTaskCache::for_project(&project.root).unwrap();
+    let original = std::fs::read_to_string(project.root.join("src/app.spx")).unwrap();
+    let prove = |revision: &semaprax::project::ProjectRevision, cache: &mut ProofTaskCache| {
+        prove_postcondition_lean_cached(
+            &project.root,
+            revision,
+            "src/app.spx",
+            "fresh.seventeen",
+            0,
+            &tool,
+            cache,
+        )
+    };
+    let (cold, cold_work) = prove(&revision, &mut cache).unwrap();
+    assert_eq!((cold_work.fresh, cold_work.reused), (1, 0));
+
+    let private = project.root.join("proof-cache");
+    std::fs::create_dir(&private).unwrap();
+    std::fs::set_permissions(&private, std::fs::Permissions::from_mode(0o700)).unwrap();
+    initialize(&private).unwrap();
+    let receipt = persist_modular_proofs(&private, &cache).unwrap();
+    let mut restored = load_modular_proofs(&private, receipt.entry_digest()).unwrap();
+    let (warm, warm_work) = prove(&revision, &mut restored).unwrap();
+    assert_eq!((warm_work.fresh, warm_work.reused), (0, 1));
+    let laws = laws(&revision, ToolKind::Lean);
+    let policy = StrictLawPolicy::new(
+        laws.clone(),
+        BTreeMap::from([("fresh.law.seventeen".into(), requirement(&tool))]),
+    )
+    .unwrap();
+    let cold_report = strict::derive(&revision, &laws, &policy, &[cold]).unwrap();
+    let warm_report = strict::derive(&revision, &laws, &policy, &[warm.clone()]).unwrap();
+    assert_eq!(cold_report, warm_report);
+    strict::require(&warm_report, &revision, &laws, &policy, &[warm.clone()]).unwrap();
+
+    let changed = original.replace("result == a + 17", "result == a + 18");
+    assert_ne!(changed, original);
+    std::fs::write(project.root.join("src/app.spx"), changed).unwrap();
+    let false_revision = project.revision();
+    assert!(prove(&false_revision, &mut restored).is_err());
+    assert!(strict::derive(&false_revision, &laws, &policy, &[warm]).is_err());
+    std::fs::write(project.root.join("src/app.spx"), original).unwrap();
+    let restored_revision = project.revision();
+    let (_, reused) = prove(&restored_revision, &mut restored).unwrap();
+    assert_eq!((reused.fresh, reused.reused), (0, 1));
 }
 impl Project {
     fn new(label: &str, false_law: bool) -> Self {

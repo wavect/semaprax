@@ -137,6 +137,8 @@ struct CheckedEntry {
     key: String,
     script_digest: String,
     solver_version: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    kernel_axioms: Option<Vec<(String, Vec<String>)>>,
 }
 
 /// Compiler-owned, process-local checked successes. No public entry writer or
@@ -244,6 +246,24 @@ impl ProofTaskCache {
                 || entry.solver_version.len() > 256
             {
                 return Err(invalid("snapshot task entry is malformed"));
+            }
+            if let Some(report) = &entry.kernel_axioms {
+                if report.is_empty()
+                    || report.len() > 1024
+                    || report.iter().any(|(theorem, axioms)| {
+                        theorem.is_empty()
+                            || theorem.len() > 512
+                            || axioms.len()
+                                > crate::proof_export::kernel_report::STANDARD_AXIOMS.len()
+                            || !axioms.windows(2).all(|pair| pair[0] < pair[1])
+                            || axioms.iter().any(|axiom| {
+                                !crate::proof_export::kernel_report::STANDARD_AXIOMS
+                                    .contains(&axiom.as_str())
+                            })
+                    })
+                {
+                    return Err(invalid("snapshot kernel axiom report is malformed"));
+                }
             }
         }
         let candidate = Self {
@@ -395,6 +415,7 @@ pub fn prove_straight_line_installed_cached(
                     key: task_key,
                     script_digest,
                     solver_version: tool.expected_version().into(),
+                    kernel_axioms: None,
                 },
             );
             work.fresh += 1;
@@ -516,6 +537,7 @@ pub(crate) fn check_bound_task(
             key,
             script_digest: query_digest.into(),
             solver_version: tool.expected_version().into(),
+            kernel_axioms: None,
         },
     );
     work.fresh = 1;
@@ -526,9 +548,184 @@ pub(crate) fn logical_subject_digest(parts: &[&str]) -> String {
     digest(parts)
 }
 
+fn valid_kernel_report(report: &[(String, Vec<String>)], expected: &[String]) -> bool {
+    !expected.is_empty()
+        && report.len() == expected.len()
+        && report
+            .iter()
+            .zip(expected)
+            .all(|((theorem, axioms), name)| {
+                theorem == name
+                    && axioms.len() <= crate::proof_export::kernel_report::STANDARD_AXIOMS.len()
+                    && axioms.windows(2).all(|pair| pair[0] < pair[1])
+                    && axioms.iter().all(|axiom| {
+                        crate::proof_export::kernel_report::STANDARD_AXIOMS
+                            .contains(&axiom.as_str())
+                    })
+            })
+}
+
+/// A pinned Lean acceptance includes the kernel's exact per-theorem axiom
+/// report. Persist only the bounded, closed report, never arbitrary output.
+/// A current export must reproduce both the complete Lean source digest and
+/// ordered theorem inventory before the checked report can be reused.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn check_bound_kernel_task(
+    cache: &mut ProofTaskCache,
+    project_root: &std::path::Path,
+    tool: &InstalledProofTool,
+    role: &str,
+    owner: &str,
+    logical_subject: &str,
+    lean_digest: &str,
+    profile: &str,
+    axioms_policy: &str,
+    expected: &[String],
+    confirm: impl FnOnce() -> Result<Vec<(String, Vec<String>)>, Vec<crate::diagnostic::Diagnostic>>,
+) -> Result<(Vec<(String, Vec<String>)>, WorkMetrics), Vec<crate::diagnostic::Diagnostic>> {
+    cache
+        .require_project(project_root)
+        .map_err(|reason| invalid(&reason))?;
+    if !tool.proof_cache_active() {
+        return Err(invalid("proof task was cancelled"));
+    }
+    if role.is_empty()
+        || owner.is_empty()
+        || !valid_digest(logical_subject)
+        || !valid_digest(lean_digest)
+        || profile.is_empty()
+        || axioms_policy.is_empty()
+        || expected.is_empty()
+    {
+        return Err(invalid("checked kernel subject identity is malformed"));
+    }
+    let (version_timeout_ms, proof_timeout_ms, stream_max) = tool.proof_cache_options();
+    let key = TaskKeyFields {
+        role,
+        owner,
+        summary: logical_subject,
+        script: lean_digest,
+        compiler: env!("CARGO_PKG_VERSION"),
+        numeric_model: NUMERIC_MODEL,
+        profile,
+        axioms: axioms_policy,
+        solver_version: tool.expected_version(),
+        solver_executable: tool.proof_cache_executable_digest(),
+        version_timeout_ms,
+        proof_timeout_ms,
+        stream_max,
+    }
+    .digest();
+    let slot = digest(&["slot", role, owner]);
+    let mut work = WorkMetrics::default();
+    if let Some(entry) = cache.entries.get(&slot) {
+        if entry_matches(entry, &key, lean_digest, tool.expected_version()) {
+            let report = entry
+                .kernel_axioms
+                .as_ref()
+                .filter(|report| valid_kernel_report(report, expected))
+                .ok_or_else(|| invalid("checked kernel axiom report is missing or malformed"))?;
+            if !tool.proof_cache_active() {
+                return Err(invalid("proof task was cancelled"));
+            }
+            work.reused = 1;
+            return Ok((report.clone(), work));
+        }
+        work.stale = 1;
+    }
+    if let Some(existing) = cache
+        .entries
+        .values()
+        .find(|entry| entry_matches(entry, &key, lean_digest, tool.expected_version()))
+        .cloned()
+    {
+        let report = existing
+            .kernel_axioms
+            .as_ref()
+            .filter(|report| valid_kernel_report(report, expected))
+            .ok_or_else(|| invalid("checked kernel axiom report is missing or malformed"))?;
+        if cache.entries.len() >= MAX_ENTRIES && !cache.entries.contains_key(&slot) {
+            return Err(invalid("proof task cache capacity exceeded"));
+        }
+        if !tool.proof_cache_active() {
+            return Err(invalid("proof task was cancelled"));
+        }
+        let report = report.clone();
+        cache.entries.insert(slot, existing);
+        work.reused = 1;
+        return Ok((report, work));
+    }
+    let report = confirm()?;
+    if !valid_kernel_report(&report, expected) {
+        return Err(invalid("installed kernel returned an invalid axiom report"));
+    }
+    if !tool.proof_cache_active() {
+        return Err(invalid("proof task was cancelled"));
+    }
+    if cache.entries.len() >= MAX_ENTRIES && !cache.entries.contains_key(&slot) {
+        return Err(invalid("proof task cache capacity exceeded"));
+    }
+    cache.entries.insert(
+        slot,
+        CheckedEntry {
+            key,
+            script_digest: lean_digest.into(),
+            solver_version: tool.expected_version().into(),
+            kernel_axioms: Some(report.clone()),
+        },
+    );
+    work.fresh = 1;
+    Ok((report, work))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn checked_kernel_report_rejects_wrong_theorem_extra_axiom_and_poisoned_snapshot() {
+        let expected = vec!["Semaprax.Proof.ok".to_owned()];
+        let valid = vec![(
+            expected[0].clone(),
+            vec!["Classical.choice".to_owned(), "propext".to_owned()],
+        )];
+        assert!(valid_kernel_report(&valid, &expected));
+        assert!(!valid_kernel_report(
+            &valid,
+            &["Semaprax.Proof.other".into()]
+        ));
+        assert!(!valid_kernel_report(
+            &[(expected[0].clone(), vec!["sorryAx".into()])],
+            &expected
+        ));
+        assert!(!valid_kernel_report(
+            &[(
+                expected[0].clone(),
+                vec!["propext".into(), "propext".into()]
+            )],
+            &expected
+        ));
+
+        let snapshot = Snapshot {
+            schema: SNAPSHOT_SCHEMA.into(),
+            project_scope: digest(&["project-root", "fixture"]),
+            entries: BTreeMap::from([(
+                "slot".into(),
+                CheckedEntry {
+                    key: digest(&["task"]),
+                    script_digest: digest(&["lean"]),
+                    solver_version: "leanprover/lean4:v4.34.0".into(),
+                    kernel_axioms: Some(vec![(expected[0].clone(), vec!["sorryAx".into()])]),
+                },
+            )]),
+        };
+        let mut bytes = serde_json::to_vec(&snapshot).unwrap();
+        bytes.push(b'\n');
+        assert_eq!(
+            ProofTaskCache::decode_snapshot(&bytes).err().unwrap()[0].code,
+            "SPX-G306"
+        );
+    }
 
     #[test]
     fn missing_dependency_and_forced_key_collision_fail_closed() {
@@ -544,6 +741,7 @@ mod tests {
             key: key.clone(),
             script_digest: digest(&["different-script"]),
             solver_version: "Z3 version 4.12.5".into(),
+            kernel_axioms: None,
         };
         assert!(
             !entry_matches(&poisoned, &key, &script, "Z3 version 4.12.5"),

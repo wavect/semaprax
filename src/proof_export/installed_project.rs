@@ -46,6 +46,31 @@ pub fn prove_postcondition_z3_cached(
     )
 }
 
+/// Rebuild the current Lean export, bounded precondition witness, Wasm
+/// artifact, source-bound certificate and ProgramRoot attachment. Only the
+/// pinned kernel's checked theorem/axiom result may be reused.
+pub fn prove_postcondition_lean_cached(
+    project_root: &Path,
+    revision: &ProjectRevision,
+    source_path: &str,
+    declaration: &str,
+    index: usize,
+    tool: &InstalledProofTool,
+    cache: &mut ProofTaskCache,
+) -> Result<(VerifiedProjectProof, WorkMetrics), Vec<Diagnostic>> {
+    if tool.kind() != ToolKind::Lean {
+        return Err(error("source postcondition cache requires installed Lean"));
+    }
+    prove_postcondition_with_cache(
+        revision,
+        source_path,
+        declaration,
+        index,
+        tool,
+        Some((project_root, cache)),
+    )
+}
+
 fn prove_postcondition_with_cache(
     revision: &ProjectRevision,
     source_path: &str,
@@ -84,18 +109,36 @@ fn prove_postcondition_with_cache(
     let program = crate::parse(source.source(), source_path).map_err(|error| vec![error])?;
     crate::hir::resolve(&program)?;
     if tool.kind() == ToolKind::Lean {
-        let certificate = super::source_certificate(
-            source.source(),
-            std::path::Path::new(source_path),
-            declaration,
-            index,
-            tool,
-        )?;
+        let (certificate, work) = if let Some((project_root, cache)) = cached.as_mut() {
+            super::source_certificate_cached(
+                project_root,
+                source.source(),
+                Path::new(source_path),
+                declaration,
+                index,
+                "direct-project-lean",
+                &format!("{declaration}:{index}"),
+                "",
+                tool,
+                cache,
+            )?
+        } else {
+            (
+                super::source_certificate(
+                    source.source(),
+                    Path::new(source_path),
+                    declaration,
+                    index,
+                    tool,
+                )?,
+                WorkMetrics::default(),
+            )
+        };
         let binding = super::bind_certificate_to_program_root(&certificate, revision, source_path)
             .map_err(|error| vec![error])?;
         let proof = super::assurance_method_attachment(&certificate, &binding, revision, tool)
             .map_err(|error| vec![error])?;
-        return Ok((proof, WorkMetrics::default()));
+        return Ok((proof, work));
     }
     let function = program
         .functions

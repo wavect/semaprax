@@ -34,6 +34,10 @@ fn options() -> NativeRustSdkOptions {
     }
 }
 
+fn reset_build_observer() {
+    TEST_BUILD_STATE.with(|state| state.set(TestBuildState::default()));
+}
+
 fn index_for(source: &[u8], stable_rustc: &str) -> Vec<u8> {
     let mut envelope: Value = serde_json::from_slice(include_bytes!(
         "../../../semaprax-rust-api-index/fixtures/local-api-fixture-v2-envelope.json"
@@ -147,6 +151,7 @@ fn indexed_scalar_sdk_publishes_compiled_adapter_and_refuses_signature_drift() {
     let _ = std::fs::remove_dir_all(&root);
     std::fs::create_dir(&root).unwrap();
     let output = root.join("sdk");
+    reset_build_observer();
     let bundle = build_indexed_scalar_native_rust_sdk(
         SOURCE,
         Path::new("indexed-sdk.spx"),
@@ -156,7 +161,12 @@ fn indexed_scalar_sdk_publishes_compiled_adapter_and_refuses_signature_drift() {
         crate_source,
         &output,
     )
-    .unwrap();
+    .unwrap_or_else(|error| {
+        panic!(
+            "indexed SDK build failed: {error:?}; stage: {:?}",
+            test_build_snapshot()
+        )
+    });
     assert_eq!(bundle.output_directory(), output);
     let lib = std::fs::read_to_string(output.join("src/lib.rs")).unwrap();
     let manifest = std::fs::read_to_string(output.join("semaprax.native-rust-sdk.json")).unwrap();
@@ -174,6 +184,7 @@ fn indexed_scalar_sdk_publishes_compiled_adapter_and_refuses_signature_drift() {
         ..package
     };
     let flipped_output = root.join("flipped-sdk");
+    reset_build_observer();
     build_indexed_scalar_native_rust_sdk(
         SOURCE,
         Path::new("indexed-sdk.spx"),
@@ -197,6 +208,7 @@ fn indexed_scalar_sdk_publishes_compiled_adapter_and_refuses_signature_drift() {
         ..package
     };
     let wrong_output = root.join("wrong-sdk");
+    reset_build_observer();
     let rejected = build_indexed_scalar_native_rust_sdk(
         SOURCE,
         Path::new("indexed-sdk.spx"),
@@ -216,6 +228,7 @@ fn indexed_scalar_sdk_publishes_compiled_adapter_and_refuses_signature_drift() {
         ..package
     };
     let stale_output = root.join("stale-sdk");
+    reset_build_observer();
     let rejected = build_indexed_scalar_native_rust_sdk(
         SOURCE,
         Path::new("indexed-sdk.spx"),
@@ -228,5 +241,25 @@ fn indexed_scalar_sdk_publishes_compiled_adapter_and_refuses_signature_drift() {
     .unwrap_err();
     assert!(!rejected.is_empty());
     assert!(!stale_output.exists());
+    let hidden = b"pub fn add(left:i64,right:i64)->i64{include!(\"/tmp/other.rs\");left+right}\n";
+    let hidden_digest = raw_digest(hidden);
+    let hidden_index = index_for(hidden, actual_version);
+    let hidden_package = SelectedPackage {
+        source_sha256: &hidden_digest,
+        ..package
+    };
+    let hidden_output = root.join("hidden-sdk");
+    reset_build_observer();
+    assert!(build_indexed_scalar_native_rust_sdk(
+        SOURCE,
+        Path::new("indexed-sdk.spx"),
+        options(),
+        &hidden_index,
+        hidden_package,
+        hidden,
+        &hidden_output,
+    )
+    .is_err());
+    assert!(!hidden_output.exists());
     std::fs::remove_dir_all(root).unwrap();
 }

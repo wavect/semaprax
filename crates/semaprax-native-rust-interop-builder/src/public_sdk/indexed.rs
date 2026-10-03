@@ -23,7 +23,7 @@ pub fn build_indexed_scalar_native_rust_sdk(
             "indexed scalar single-file source exceeds its bound",
         )]);
     }
-    let (program, _, plan, _) = prepare_indexed_scalar(
+    let (program, resolved, plan, _) = prepare_indexed_scalar(
         source,
         source_path,
         &options,
@@ -31,8 +31,25 @@ pub fn build_indexed_scalar_native_rust_sdk(
         package,
         package_source_bytes,
     )?;
-    let package_source = std::str::from_utf8(package_source_bytes)
-        .map_err(|_| vec![sdk_error("indexed scalar source must be UTF-8")])?;
+    let import_span = resolved
+        .interfaces
+        .iter()
+        .flat_map(|interface| &interface.imports)
+        .find(|import| import.id.as_str() == plan.import_id)
+        .expect("prepared import")
+        .span;
+    let package_source = std::str::from_utf8(package_source_bytes).map_err(|_| {
+        vec![Diagnostic::error(
+            "SPX-B142",
+            "indexed scalar source must be UTF-8",
+            import_span,
+        )
+        .at_path(source_path.display().to_string())]
+    })?;
+    validate_embedded_scalar_source(package_source).map_err(|message| {
+        vec![Diagnostic::error("SPX-B142", message, import_span)
+            .at_path(source_path.display().to_string())]
+    })?;
     authority::build_indexed_scalar_sdk_inner(
         &program,
         &plan,
@@ -42,6 +59,36 @@ pub fn build_indexed_scalar_native_rust_sdk(
         output,
     )
     .map_err(PublicBuildError::into_diagnostics)
+}
+
+/// The selected file is embedded verbatim in both Rust compilations. Keep this
+/// first profile to ASCII, ordinary source tokens: no macro expansion,
+/// attributes, external modules, paths, imports, or literal file reads can
+/// introduce bytes outside the selected package digest.
+fn validate_embedded_scalar_source(source: &str) -> Result<(), &'static str> {
+    let bytes = source.as_bytes();
+    let forbidden_pair = bytes
+        .windows(2)
+        .any(|pair| pair == b"::" || pair == b"/*" || pair == b"//");
+    let forbidden_byte = bytes.iter().any(|byte| {
+        !byte.is_ascii()
+            || matches!(
+                *byte,
+                b'!' | b'#' | b';' | b'"' | b'\'' | b'[' | b']' | b'\\'
+            )
+    });
+    let forbidden_ident = source
+        .split(|character: char| !character.is_ascii_alphanumeric() && character != '_')
+        .any(|ident| {
+            matches!(
+                ident,
+                "mod" | "extern" | "use" | "unsafe" | "std" | "core" | "include" | "env" | "asm"
+            )
+        });
+    if forbidden_pair || forbidden_byte || forbidden_ident {
+        return Err("indexed scalar source uses syntax outside the self-contained profile");
+    }
+    Ok(())
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

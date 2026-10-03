@@ -208,8 +208,9 @@ typed scalar adapter in its Rust harness, so signature disagreement prevents
 publication. Phase C embeds the same source and adapter in `src/lib.rs`, whose
 bytes are bound by the SDK manifest, and exposes `indexed_scalar_sdk` with the
 ordinary capability admission and generated export methods. This profile has
-no Cargo dependency resolution, build scripts, procedural macros, multi-file
-modules, or general Rust type ABI. Its physical package round trip is owned by
+no Cargo dependency resolution, build scripts, macros, attributes, imports,
+multi-file modules, external paths, or general Rust type ABI. Admission rejects
+syntax that could read unbound build inputs. Its physical package round trip is owned by
 the focused `indexed_scalar_sdk_publishes_compiled_adapter_and_refuses_signature_drift`
 regression; broader Rust ecosystem imports remain outside this profile.
 

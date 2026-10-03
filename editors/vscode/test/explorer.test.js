@@ -61,13 +61,17 @@ test('actual webview handler ignores stale and arbitrary RPC messages before inv
   };
   const vscode = { ViewColumn: { Beside: 2 }, window: { createWebviewPanel() { return panel; } } };
   const extensionUri = { path: path.join(__dirname, '..'), with(change) { return { ...this, ...change, with: this.with }; } };
-  let invoked = 0;
-  const state = { panel: null, panelGeneration: 0, live: () => true, image: () => 'sha256:' + 'a'.repeat(64), candidate: () => null, invoke: async () => { invoked++; } };
+  let invoked = 0, admitted;
+  const state = { panel: null, panelGeneration: 0, live: () => true, image: () => 'sha256:' + 'a'.repeat(64), candidate: () => null, invoke: async (method, params) => { invoked++; admitted = [method, params]; throw new Error('stop after parameter validation'); } };
   openExplorer(vscode, { extensionUri }, state, { mode: 'overview', target: null, direction: 'both', depth: 1, side: 'current' });
   await receive({ type: 'semaprax-explorer-request', generation: 0, requestId: 1, action: 'tools/call', value: {} });
   await receive({ type: 'semaprax-explorer-request', generation: 0, requestId: 2, action: 'summary', value: { mode: 'overview', target: null, direction: 'both', depth: 1, side: 'current' }, foreign: true });
   await receive({ type: 'semaprax-explorer-request', generation: 9, requestId: 3, action: 'summary', value: { mode: 'overview', target: null, direction: 'both', depth: 1, side: 'current' } });
   assert.equal(invoked, 0);
+  await receive({ type: 'semaprax-explorer-request', generation: state.panelGeneration, requestId: 4, action: 'summary', value: { mode: 'overview', target: null, direction: 'both', depth: 1, side: 'current' } });
+  assert.equal(invoked, 1);
+  assert.equal(admitted[0], 'image/explorer-summary');
+  assert.equal(Object.hasOwn(admitted[1], 'target'), false, 'overview must omit the optional target parameter');
   dispose();
 });
 

@@ -76,8 +76,9 @@ cannot satisfy this source method: `via` identity alone proves no ordering.
 `foreign_guarded_caller` is an opt-in LAW-09 inventory selector. Its law module
 must name the caller's source owner and every foreign condition as a declared
 assumption. Its protected coverage stays open. The source-derived caller
-certificate and published SDK guard verifier are read-only diagnostics;
-neither attaches builder-authenticated evidence to LawSet. They do not prove
+certificate and published SDK guard verifier are read-only diagnostics. The
+guarded SDK builder can retain their exact identity in an opaque publication
+token, but no LawSet route currently consumes it. They do not prove
 hidden foreign effects, callbacks, panics or shared state.
 
 ## Inventory, report, and policy

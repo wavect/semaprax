@@ -163,6 +163,7 @@ pub struct ProjectNativeRustSdkBundle {
     project_revision: String,
     workspace_revision: String,
     subject_digest: String,
+    guarded_frontier: Option<semaprax::native_rust_binding::foreign_law::ForeignLawFrontier>,
 }
 
 impl ProjectNativeRustSdkBundle {
@@ -618,17 +619,19 @@ pub use registered_callback::{
 mod demanded;
 mod descriptor;
 mod future_bridge;
-pub use future_bridge::{render_local_future_bridge, LOCAL_FUTURE_BRIDGE_SCHEMA};
 pub use demanded::{
     prepare_demanded_native_rust, ConcreteRustBindingPlan, DemandedNativeRust, RustDemandSelection,
 };
+pub use future_bridge::{render_local_future_bridge, LOCAL_FUTURE_BRIDGE_SCHEMA};
+mod foreign_law;
 mod indexed;
+pub use foreign_law::GuardedForeignCallerEvidence;
 mod indexed_multiple;
 mod indexed_owner;
 mod indexed_project;
 mod indexed_url_project;
-mod regex_project_package;
 mod regex_project_native;
+mod regex_project_package;
 mod url_project_native;
 mod url_project_package;
 pub use indexed_project::{
@@ -667,9 +670,9 @@ mod tests;
 #[cfg(test)]
 mod borrowed_input_tests;
 #[cfg(test)]
-mod indexed_tests;
-#[cfg(test)]
 mod future_bridge_tests;
+#[cfg(test)]
+mod indexed_tests;
 #[cfg(test)]
 mod owned_string_tests;
 #[cfg(test)]

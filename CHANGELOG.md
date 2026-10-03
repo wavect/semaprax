@@ -1,5 +1,11 @@
 # Changelog
 
+- Retain a guarded foreign frontier in the private authenticated Project SDK
+  bundle and issue an opaque conditional caller publication token only after
+  exact source, summary, target, manifest and file replay. A changed summary
+  refuses token creation and package drift refuses token replay. Protected and
+  strict LawSet attachment is still pending.
+
 - Add a per-owner exclusive Url callback lease to the generated Rust companion. Real C/Rust nested callbacks refuse same-owner access before target entry, allow independent receivers and restore owners after panic. Source move/drop/replacement/escape/checkpoint and cross-crate Rust lifetime controls pass; selected Semaprax &mut imports remain outside this primitive.
 
 - Add a bounded LAW-09 source-derived caller certificate for direct public i64

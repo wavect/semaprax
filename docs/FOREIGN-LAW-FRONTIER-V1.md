@@ -69,10 +69,14 @@ range into the protected LawSet inventory. Coverage stays open. The read-only
 published SDK package against an independently held builder manifest digest:
 Project revision, graph, target, all eight listed file hashes and generated
 return guard must match. Forged digests and changed files refuse with
-`SPX-FL310`. This check does not create a strict LawSet token because its
-expected digest is supplied by the caller; only a builder-owned publication
-result can safely carry that authority across the crate boundary. Guard source
-authentication is not evidence that a call executed.
+`SPX-FL310`. This read-only check does not create a strict LawSet token because
+its expected digest is supplied by the caller. The guarded builder now retains
+the exact frontier in its private `ProjectNativeRustSdkBundle` and can issue
+`GuardedForeignCallerEvidence` only after matching the caller, source, target,
+manifest digest and all package bytes. Its replay repeats those checks. This
+is a builder-owned publication token, but no core LawSet or strict route yet
+consumes it; protected coverage remains open. Guard source authentication is
+not evidence that a call executed.
 
 No externally validated theorem identity is provisioned in this profile;
 theorem requirements continue to refuse until a separately checked semantic

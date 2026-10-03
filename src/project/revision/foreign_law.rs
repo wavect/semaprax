@@ -217,6 +217,9 @@ impl ForeignCallerCertificate {
     pub fn adapter_digest(&self) -> &str {
         &self.adapter_digest
     }
+    pub fn frontier(&self) -> &ForeignLawFrontier {
+        &self.frontier
+    }
 
     /// Re-derive from checked source, exact binding, lock, adapter and summary.
     pub fn replay(&self, revision: &ProjectRevision) -> Result<(), Vec<Diagnostic>> {

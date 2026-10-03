@@ -105,6 +105,7 @@ fn build_indexed_project_native_rust_sdk_inner(
                         project_revision: subject.project_revision.clone(),
                         workspace_revision: subject.workspace_revision.clone(),
                         subject_digest: subject.digest.clone(),
+                        guarded_frontier: None,
                     }, None));
                 }
                 let mut plans = Vec::with_capacity(ordered.len());
@@ -197,6 +198,7 @@ fn build_indexed_project_native_rust_sdk_inner(
                     project_revision: subject.project_revision.clone(),
                     workspace_revision: subject.workspace_revision.clone(),
                     subject_digest: subject.digest.clone(),
+                    guarded_frontier: frontier.clone(),
                 }, frontier))
             })
         },

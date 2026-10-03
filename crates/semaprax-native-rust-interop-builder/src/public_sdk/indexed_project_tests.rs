@@ -582,7 +582,7 @@ fn guarded_indexed_project_sdk_checks_physical_return_before_semantic_publicatio
     assert!(generated.contains("SEMAPRAX_FOREIGN_RETURN_GUARD"));
     assert!(generated.contains("NonZeroU32::new(40909)"));
     let bindings = prepare_project_bindings(&[selected]).unwrap();
-    let (caller, revision) = semaprax::project::with_authenticated_indexed_rust_project(
+    let (evidence, revision) = semaprax::project::with_authenticated_indexed_rust_project(
         &root.join("semaprax.toml"),
         &bindings,
         |snapshot| {
@@ -629,7 +629,29 @@ fn guarded_indexed_project_sdk_checks_physical_return_before_semantic_publicatio
             assert_eq!(view["source_route_proved"], true);
             assert_eq!(view["foreign_internals_proved"], false);
             assert_eq!(caller.conditions().len(), 4);
-            Ok((caller, revision))
+            let mut changed = declared.clone();
+            changed.proposition_digest =
+                "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff".into();
+            let wrong_summary = revision.foreign_caller_certificate(
+                "interop.add",
+                &plan,
+                plan.target.as_str(),
+                bundle.manifest_digest(),
+                &changed,
+                &law,
+            )?;
+            assert_eq!(
+                bundle
+                    .bind_guarded_foreign_caller(&revision, wrong_summary)
+                    .unwrap_err()[0]
+                    .code,
+                "SPX-FL311"
+            );
+            let evidence = bundle.bind_guarded_foreign_caller(&revision, caller)?;
+            evidence.replay(&revision)?;
+            assert_eq!(evidence.manifest_digest(), bundle.manifest_digest());
+            assert_eq!(evidence.caller().conditions().len(), 4);
+            Ok((evidence, revision))
         },
     )
     .unwrap();
@@ -673,12 +695,6 @@ match sdk.spx_interop_dot_add(1000,22){
         ),
     )
     .unwrap();
-    assert_eq!(
-        caller
-            .verify_published_guard(&revision, &output, bundle.manifest_digest())
-            .unwrap_err()[0]
-            .code,
-        "SPX-FL310"
-    );
+    assert_eq!(evidence.replay(&revision).unwrap_err()[0].code, "SPX-FL310");
     std::fs::remove_dir_all(root).unwrap();
 }

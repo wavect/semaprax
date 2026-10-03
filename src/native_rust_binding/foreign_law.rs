@@ -288,6 +288,9 @@ pub fn guard_i64_return(frontier: &ForeignLawFrontier, value: i64) -> Result<i64
 }
 
 impl ForeignLawFrontier {
+    pub fn target(&self) -> &str {
+        &self.target
+    }
     /// Minimal canonical diagnostic projection. Every unknown remains visible.
     pub fn physical_symbol(&self) -> &str {
         &self.physical_symbol

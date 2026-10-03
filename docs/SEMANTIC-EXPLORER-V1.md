@@ -18,6 +18,84 @@ A response supplies no source, execution, test, or publication authority. It doe
 
 ## Local review exports
 
+## User guide
+
+### Standalone first
+
+Install or build the public `semaprax` compiler, then point it at a checked
+SEMAPRAX project manifest. Here, `repo` means the compiler-admitted `.spx`
+sources and `semaprax.toml` manifest of that project. It does not index an
+arbitrary Rust, TypeScript, Git, or filesystem repository.
+
+```sh
+# Inspect the installed command contract.
+semaprax explore
+
+# Generate a source-free, self-contained overview for offline review.
+semaprax explore ./semaprax.toml --format html --output ./semantic-explorer.html
+
+# Focus the report on one stable declaration identity.
+semaprax explore ./semaprax.toml --target app.main --depth 2 \
+  --format markdown --output ./app-main.md
+```
+
+`--format` accepts `html`, `json`, `markdown`, and `svg`; `--output` is always
+required and is no-clobber. `--target <stable-id>` enables a focused context
+view, and `--depth <1..16>` is valid only with that target. HTML opens directly
+through `file://` in a browser and embeds the same viewer model, layout,
+evidence, cache, change, host, and view assets used by the VS Code extension.
+No Node.js, editor, server, account, network access, model provider, test run,
+or build action is needed to view a generated report.
+
+Use `--include-source` only when reviewers need the authenticated retained
+source. It is accepted for HTML and JSON, rejected for Markdown and SVG, and
+does not grant any apply or execution authority. Without it, source bodies are
+not bundled. Evidence or facets absent from an offline snapshot display as
+`not bundled`; that state is not an error or a claim about the project.
+
+To inspect a candidate, provide both the retained capsule and its expected
+digest. The command restores and verifies that capsule against the manifest's
+saved source before rendering base and candidate views:
+
+```sh
+semaprax explore ./semaprax.toml \
+  --candidate-capsule ./candidate.capsule.json \
+  --expect-candidate sha256:YOUR_EXACT_CANDIDATE_DIGEST \
+  --format html --output ./candidate-explorer.html
+```
+
+The command is read-only for project source and candidate history. It writes
+only the requested output artifact, and refuses an existing output path.
+Snapshots and exports are review displays, never candidate authority.
+
+### Optional VS Code view
+
+The existing `wavect.semaprax` extension packages the same hashed viewer assets.
+Set the compiler path, manifest path, and host-policy path as user or machine
+settings, then run **SEMAPRAX: Start Saved-Source Session**. Use **Open Semantic
+Explorer** for the current project, **Explore Selected Declaration** for a
+stable ID, and **Review Candidate Graph** after explicitly opening a candidate.
+
+The extension never discovers a compiler, changes policy, or silently refreshes
+saved source. A dirty source buffer, stopped session, or stale session blocks
+exploration until it is saved and explicitly refreshed or restarted. Current
+source reveal validates its retained digest and UTF-8 to UTF-16 location at
+click time; candidate and base source remain immutable review material. The
+extension-only actions are panel opening, current-source reveal, and virtual
+before/after review. Offline reports deliberately have no live session, source
+reveal, candidate mutation, test execution, build, approval, commit, or
+publication action.
+
+### Limits and troubleshooting
+
+Explorer responses are bounded projections. Coverage and truncation fields say
+what the selected compiler analysis retained; they do not prove runtime
+reachability, dynamic absence, cross-language indexing, Git history, or an
+approval decision. A candidate view requires a compiler policy that admitted
+candidate preparation. If a target is missing, use a stable declaration ID from
+the checked project and regenerate after saving source. If an output cannot be
+created, choose a new explicit path rather than overwriting a prior review.
+
 The public `semaprax explore` command reads an authenticated manifest and writes an explicit, no-clobber output path. A source-free overview can be generated with:
 
 ```sh

@@ -70,8 +70,19 @@ confirms receipt before cancellation and
 counts requests to detect an implicit retry. This gate is ignored by default
 until a checkout-private Cargo target is explicitly supplied.
 
-RI-09 remains open until the response becomes a checked Semaprax value and a source-authenticated
-async import and reverse async export have executable evidence. RI-08's
+The separate ignored toolchain gate
+`ri09_async::locked_reqwest_response_enters_checked_semaprax_bytes_export`
+builds an authenticated Project v8 owned-data SDK from `.spx` source, then
+runs a locked reqwest consumer against a local server. A caller-created Tokio
+current-thread runtime awaits the Rust bridge and passes the response bytes
+to the generated SDK. The authored Semaprax function copies the slice after
+its first byte, so the observed `hello` response becomes the checked `ello`
+value. A second response exceeds the bridge output bound and is refused
+before any Semaprax call. This is a Rust-owned suspension followed by a
+checked synchronous Semaprax export; the source program does not await Rust.
+
+RI-09 remains open until source-authenticated async import and reverse async
+export have executable evidence. RI-08's
 callback registration and the source suspension owner must be connected
 without weakening their authority or checkpoint rules. No Stream, implicit
 Tokio startup, background executor thread, or network effect is admitted here.

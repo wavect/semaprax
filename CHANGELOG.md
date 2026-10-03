@@ -1,5 +1,11 @@
 # Changelog
 
+- Exercise a real locked reqwest response through the generated local Future
+  bridge and an authenticated Project v8 owned-Bytes SDK. The checked `.spx`
+  body transforms `hello` to `ello`; an over-limit second response cannot
+  reach that body. Rust still owns the await point and source-level async
+  import/export remain open.
+
 - Add checked named Result callbacks to the experimental native Rust adapter. Real O0/O2 iterator and safe-trait consumers preserve signed domain errors, contract/semantic/panic separation and state rollback; forged-success and authored-body controls fail as intended. Source mutable/retained capture semantics remain open.
 
 - Exercise LAW-12 `unknown`, `timeout`, `unsupported`, and `stale` diagnostic

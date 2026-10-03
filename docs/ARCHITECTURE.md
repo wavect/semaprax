@@ -3078,6 +3078,9 @@ These areas are deliberately outside the public compiler contract:
   Rust builder own the pure, same-thread Rust Future adapter source. The caller
   supplies the executor and build authority. This seam grants no Project
   selection, Semaprax async import/export, network effect, or checkpoint route;
+  the toolchain's local HTTP Project-v8 fixture separately checks response
+  bytes through an authenticated synchronous Semaprax export after the Rust
+  await point, without moving suspension into Semaprax source;
 - `src/project/indexed_rust.rs` and
   `crates/semaprax-native-rust-interop-builder/src/public_sdk/indexed_project.rs`:
   explicit source-bound indexed Project admission and authenticated SDK

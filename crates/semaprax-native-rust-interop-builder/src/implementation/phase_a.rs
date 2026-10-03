@@ -35,23 +35,40 @@ pub(super) fn prepare_native_rust_interop_bounded(
     program: &Program,
     spec_bytes: &[u8],
 ) -> Result<PreparedNativeRustInterop, Diagnostic> {
-    prepare_native_rust_interop_from_input(Some(program), None, spec_bytes)
+    prepare_native_rust_interop_from_input(Some(program), None, spec_bytes, &[])
+}
+
+/// The indexed path is separate from the v1 callback path: every selected
+/// indexed import must carry an exact source-bound plan before phase A.
+pub(super) fn prepare_indexed_native_rust_interop_bounded(
+    program: &Program,
+    spec_bytes: &[u8],
+    plans: &[semaprax::native_rust_binding::ScalarBindingPlan],
+) -> Result<PreparedNativeRustInterop, Diagnostic> {
+    prepare_native_rust_interop_from_input(Some(program), None, spec_bytes, plans)
 }
 
 pub(super) fn prepare_project_native_rust_interop_bounded(
     program: &ResolvedProgram,
     subject_bytes: &[u8],
 ) -> Result<PreparedNativeRustInterop, Diagnostic> {
-    prepare_native_rust_interop_from_input(None, Some(program), subject_bytes)
+    prepare_native_rust_interop_from_input(None, Some(program), subject_bytes, &[])
 }
 
 fn prepare_native_rust_interop_from_input<'a>(
     source_program: Option<&'a Program>,
     project_program: Option<&'a ResolvedProgram>,
     input_bytes: &[u8],
+    indexed_plans: &[semaprax::native_rust_binding::ScalarBindingPlan],
 ) -> Result<PreparedNativeRustInterop, Diagnostic> {
     let is_project = project_program.is_some();
     debit(input_bytes.len())?;
+    if indexed_plans.len() > MAX_IMPORTS {
+        return Err(b109("max_imports", MAX_IMPORTS));
+    }
+    // A plan is caller-owned; charge only the bounded validation scratch
+    // allocated while recomputing its scalar signature and physical symbol.
+    debit(indexed_plans.len().saturating_mul(8_192))?;
     let (
         spec,
         spec_authority,
@@ -295,10 +312,33 @@ fn prepare_native_rust_interop_from_input<'a>(
         }
         // The v1 callback SDK cannot silently reinterpret an indexed Rust
         // path as a host-provided NativeRustSdkImports implementation.
-        if import.rust_path.is_some() {
-            return Err(b107(
-                "indexed Rust API import requires a verified adapter profile",
-            ));
+        match (
+            &import.rust_path,
+            indexed_plans
+                .iter()
+                .find(|plan| plan.import_id == id.as_str()),
+        ) {
+            (Some(_), Some(plan)) => {
+                semaprax::native_rust_binding::verify_scalar_binding(import, plan)?;
+                if plan.target != spec.target.triple {
+                    return Err(Diagnostic::error(
+                        "SPX-B142",
+                        "Rust API binding target disagrees with the selected native target",
+                        import.span,
+                    ));
+                }
+            }
+            (Some(_), None) => {
+                return Err(b107(
+                    "indexed Rust API import requires a verified adapter profile",
+                ))
+            }
+            (None, Some(_)) => {
+                return Err(b107(
+                    "indexed Rust API plan does not select an indexed import",
+                ))
+            }
+            (None, None) => {}
         }
         identifier_gate(interface)?;
         identifier_gate(import.id.as_str())?;
@@ -387,6 +427,24 @@ fn prepare_native_rust_interop_from_input<'a>(
             )
             .saturating_add(hash.capacity()),
         );
+    }
+    if indexed_plans.len()
+        != spec
+            .imports
+            .iter()
+            .filter(|id| {
+                resolved_imports.iter().any(|(_, import)| {
+                    import.id.as_str() == id.as_str() && import.rust_path.is_some()
+                })
+            })
+            .count()
+        || indexed_plans
+            .iter()
+            .any(|plan| !spec.imports.iter().any(|id| id == &plan.import_id))
+    {
+        return Err(b107(
+            "indexed Rust API plan selection disagrees with the source closure",
+        ));
     }
     import_facts.sort_by(|left, right| left.id.cmp(&right.id));
     if selected_effects.len() > MAX_EFFECTS {

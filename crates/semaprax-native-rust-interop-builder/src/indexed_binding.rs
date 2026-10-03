@@ -3,7 +3,10 @@
 
 use semaprax::diagnostic::Diagnostic;
 use semaprax::hir::ResolvedImport;
-use semaprax::native_rust_binding::{prepare_scalar_binding, ScalarBindingPlan, SelectedRustItem};
+use semaprax::hir::{ResolvedImportResultKind, ResolvedType};
+use semaprax::native_rust_binding::{
+    prepare_scalar_binding, verify_scalar_binding, ScalarBindingPlan, SelectedRustItem,
+};
 use semaprax_rust_api_index::{IndexError, ItemKind, Receiver, RustApiIndex};
 
 #[derive(Clone, Copy)]
@@ -14,6 +17,7 @@ pub struct SelectedPackage<'a> {
     pub source_sha256: &'a str,
     pub target: &'a str,
     pub feature_digest: &'a str,
+    pub stable_rustc_version: &'a str,
 }
 
 /// Replays index bytes and checks exact package, target, and feature identity
@@ -34,6 +38,12 @@ pub fn prepare_indexed_scalar_binding(
             package.target,
             package.feature_digest,
         )
+        .map_err(|error| diagnostic(import, error))?;
+    index
+        .require_cargo_alias_identity(package.cargo_alias)
+        .map_err(|error| diagnostic(import, error))?;
+    index
+        .require_stable_compiler_identity(package.stable_rustc_version)
         .map_err(|error| diagnostic(import, error))?;
     let selected = index
         .select_supported(&[item_path])
@@ -70,6 +80,68 @@ pub fn prepare_indexed_scalar_binding(
     )
 }
 
+/// Renders a safe Rust trait implementation for the v1 scalar carrier. The
+/// typed function-pointer assignment is intentionally retained: the selected
+/// stable Rust compiler must check the actual crate function before a bridge
+/// executable can be linked or run.
+pub fn render_checked_scalar_adapter(
+    import: &ResolvedImport,
+    plan: &ScalarBindingPlan,
+    rust_method: &str,
+) -> Result<String, Diagnostic> {
+    verify_scalar_binding(import, plan)?;
+    if rust_method.is_empty()
+        || rust_method.len() > 128
+        || !rust_method
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || byte == b'_')
+        || !rust_method.as_bytes()[0].is_ascii_alphabetic()
+    {
+        return Err(Diagnostic::error(
+            "SPX-B145",
+            "generated Rust import method is invalid",
+            import.span,
+        ));
+    }
+    let parameters = import
+        .parameters
+        .iter()
+        .map(|parameter| match parameter.ty {
+            ResolvedType::I64 => Ok("i64"),
+            ResolvedType::Bool => Ok("bool"),
+            _ => Err(Diagnostic::error(
+                "SPX-B145",
+                "Rust API signature is unsupported by the scalar bridge",
+                import.span,
+            )),
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    let result = match import.result.kind {
+        ResolvedImportResultKind::Unit => "()",
+        ResolvedImportResultKind::I64 => "i64",
+        ResolvedImportResultKind::Bool => "bool",
+    };
+    let arguments = (0..parameters.len())
+        .map(|index| format!("arg_{index}"))
+        .collect::<Vec<_>>();
+    let declarations = arguments
+        .iter()
+        .zip(&parameters)
+        .map(|(argument, ty)| format!("{argument}:{ty}"))
+        .collect::<Vec<_>>()
+        .join(",");
+    let function_type = parameters.join(",");
+    let call_arguments = arguments.join(",");
+    Ok(format!(
+        "fn {}({declarations})->{result}{{let target:fn({function_type})->{result}={};target({call_arguments})}}\nstruct GeneratedIndexedAdapter;\nimpl NativeRustImports for GeneratedIndexedAdapter{{fn {rust_method}(&mut self{}{})->NativeRustImportResult<{result}>{{NativeRustImportResult::Success({}({call_arguments}))}}}}\n",
+        plan.physical_symbol,
+        plan.rust_path,
+        if declarations.is_empty() { "" } else { "," },
+        declarations,
+        plan.physical_symbol,
+    ))
+}
+
 fn diagnostic(import: &ResolvedImport, error: IndexError) -> Diagnostic {
     let (code, message) = match error {
         IndexError::Malformed => ("SPX-B147", "Rust API index is malformed or noncanonical"),
@@ -97,26 +169,62 @@ mod tests {
         let resolved = semaprax::hir::resolve(&program).unwrap();
         let import = &resolved.interfaces[0].imports[0];
         let package = SelectedPackage {
-            cargo_alias: "fixture_api",
-            name: "fixture_api",
+            cargo_alias: "local_api_fixture",
+            name: "local_api_fixture",
             version: "0.0.0",
             source_sha256:
-                "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-            target: "x86_64-unknown-linux-gnu",
+                "sha256:dbc31a9272b4e500ca6363d633d8c7b5dac727ce7279cc65391cff5f377010dd",
+            target: "aarch64-apple-darwin",
             feature_digest:
-                "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "sha256:d3e066ea11e87bd8665f8fdca51534758ab735c2346340a1f64895fdd81c5a69",
+            stable_rustc_version: "rustc 1.98.0 (88d9e12ae 2026-08-18) (Homebrew)",
         };
-        let rejected =
-            prepare_indexed_scalar_binding(import, INDEX, package, "fixture_api::Example::simple")
-                .unwrap_err();
+        let rejected = prepare_indexed_scalar_binding(
+            import,
+            INDEX,
+            package,
+            "local_api_fixture::MacroGenerated::answer",
+        )
+        .unwrap_err();
         assert_eq!(rejected.code, "SPX-B144");
         assert_eq!(rejected.span, Some(import.span));
         let mut stale = package;
         stale.version = "1.0.0";
         assert_eq!(
-            prepare_indexed_scalar_binding(import, INDEX, stale, "fixture_api::Example::simple")
-                .unwrap_err()
-                .code,
+            prepare_indexed_scalar_binding(
+                import,
+                INDEX,
+                stale,
+                "local_api_fixture::MacroGenerated::answer",
+            )
+            .unwrap_err()
+            .code,
+            "SPX-B142"
+        );
+        let mut wrong_compiler = package;
+        wrong_compiler.stable_rustc_version = "rustc 1.97.1";
+        assert_eq!(
+            prepare_indexed_scalar_binding(
+                import,
+                INDEX,
+                wrong_compiler,
+                "local_api_fixture::MacroGenerated::answer",
+            )
+            .unwrap_err()
+            .code,
+            "SPX-B142"
+        );
+        let mut wrong_alias = package;
+        wrong_alias.cargo_alias = "other_alias";
+        assert_eq!(
+            prepare_indexed_scalar_binding(
+                import,
+                INDEX,
+                wrong_alias,
+                "local_api_fixture::MacroGenerated::answer",
+            )
+            .unwrap_err()
+            .code,
             "SPX-B142"
         );
         assert_eq!(
@@ -124,7 +232,7 @@ mod tests {
                 import,
                 b"{}\n",
                 INDEX_PACKAGE,
-                "fixture_api::Example::simple"
+                "local_api_fixture::MacroGenerated::answer"
             )
             .unwrap_err()
             .code,
@@ -133,11 +241,12 @@ mod tests {
     }
 
     const INDEX_PACKAGE: SelectedPackage<'static> = SelectedPackage {
-        cargo_alias: "fixture_api",
-        name: "fixture_api",
+        cargo_alias: "local_api_fixture",
+        name: "local_api_fixture",
         version: "0.0.0",
-        source_sha256: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-        target: "x86_64-unknown-linux-gnu",
-        feature_digest: "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        source_sha256: "sha256:dbc31a9272b4e500ca6363d633d8c7b5dac727ce7279cc65391cff5f377010dd",
+        target: "aarch64-apple-darwin",
+        feature_digest: "sha256:d3e066ea11e87bd8665f8fdca51534758ab735c2346340a1f64895fdd81c5a69",
+        stable_rustc_version: "rustc 1.98.0 (88d9e12ae 2026-08-18) (Homebrew)",
     };
 }

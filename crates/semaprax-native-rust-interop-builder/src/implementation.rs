@@ -441,6 +441,25 @@ pub(crate) fn build_native_rust_interop_bundle(
     finish_bounded_bundle(result, overflowed)
 }
 
+/// Additive indexed-scalar route. The ordinary callback builder continues to
+/// refuse source imports carrying `from`; this entry requires exact plans.
+pub(crate) fn build_indexed_native_rust_interop_bundle(
+    program: &Program,
+    spec_bytes: &[u8],
+    plans: &[semaprax::native_rust_binding::ScalarBindingPlan],
+    output: &Path,
+) -> Result<NativeRustInteropBundleFacts, Vec<Diagnostic>> {
+    reset_phase_b_error_materialization_observer();
+    let (result, overflowed) = crate::bounded_output::with_limit(MAX_BUILDER_BYTES, || {
+        let prepared =
+            phase_a::prepare_indexed_native_rust_interop_bounded(program, spec_bytes, plans)?;
+        let phase = prepare_phase_b_from_prepared(prepared, output)?;
+        let mut hook = |_, _: &Path, _: &Path, _: &Path| {};
+        build_prepared_phase_b_bounded(phase, output, &mut hook)
+    });
+    finish_bounded_bundle(result, overflowed)
+}
+
 pub(crate) fn build_project_native_rust_interop_bundle(
     program: &ResolvedProgram,
     project_subject_bytes: &[u8],

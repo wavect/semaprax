@@ -21,6 +21,8 @@ mod cleanup_census;
 mod cleanup_regions;
 #[path = "tests/hir_traversal.rs"]
 mod hir_traversal;
+#[path = "tests/indexed_scalar.rs"]
+mod indexed_scalar;
 #[path = "tests/ledger_capacity.rs"]
 mod ledger_capacity;
 #[path = "tests/linked_bundle.rs"]
@@ -95,6 +97,7 @@ const TESTS_SOURCE: &str = concat!(
     include_str!("tests/source_census.rs"),
     include_str!("tests/cleanup_census.rs"),
     include_str!("tests/hir_traversal.rs"),
+    include_str!("tests/indexed_scalar.rs"),
     include_str!("tests/cleanup_regions.rs"),
     include_str!("tests/resolved_disposal.rs"),
     include_str!("tests/linked_bundle.rs"),

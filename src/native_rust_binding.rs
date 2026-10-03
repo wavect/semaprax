@@ -169,6 +169,39 @@ pub fn prepare_scalar_binding(
     })
 }
 
+/// Rechecks a retained plan against the current HIR declaration. This is
+/// required again at the physical builder boundary, after any source replay.
+pub fn verify_scalar_binding(
+    import: &ResolvedImport,
+    plan: &ScalarBindingPlan,
+) -> Result<(), Diagnostic> {
+    let expected = prepare_scalar_binding(
+        import,
+        SelectedRustItem {
+            cargo_alias: &plan.cargo_alias,
+            package_name: &plan.package_name,
+            package_version: &plan.package_version,
+            package_source_sha256: &plan.package_source_sha256,
+            index_digest: &plan.index_digest,
+            target: &plan.target,
+            feature_digest: &plan.feature_digest,
+            path: &plan.rust_path,
+            kind: "function",
+            receiver: "none",
+            signature: &plan.signature,
+            supported: true,
+        },
+    )?;
+    if &expected != plan {
+        return Err(error(
+            "SPX-B142",
+            "Rust API binding plan disagrees with the checked import or selected identity",
+            import.span,
+        ));
+    }
+    Ok(())
+}
+
 fn error(code: &'static str, message: &'static str, span: Span) -> Diagnostic {
     Diagnostic::error(code, message, span)
 }

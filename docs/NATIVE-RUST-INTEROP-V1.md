@@ -181,10 +181,18 @@ alias/path mismatch, unsupported receiver or item kind, unsupported signature,
 signature disagreement, malformed index, and extractor setup respectively.
 This seam admits only receiver-free `fn` signatures with up to eight `i64` or
 `bool` value parameters and `()`, `i64`, or `bool` results. A selected index
-record is discovery data; this plan cannot execute, does not validate the
-actual Rust crate, and does not make a source import callable. A later adapter
-must compile its generated Rust call against held crate bytes and use the
-trusted-native execution boundary before foreign entry.
+record is discovery data; this plan cannot execute or validate the actual
+Rust crate. The private RI-04 scalar adapter rechecks a retained plan against
+current checked HIR at Phase A, requires its target to equal the selected
+native target, and renders a safe Rust trait implementation with a typed
+function pointer to the selected crate item. A stable Rust compile of that
+generated code must agree with the actual crate signature before the private
+C bridge can call it. Its local execution fixture observes a result from a
+real Rust crate through the Semaprax export, rejects a flipped result, and
+refuses a wrong-type crate at compile time. The adapter is still a private
+test route: it does not authenticate held crate bytes at the build boundary,
+publish the generated adapter as a contracted bundle artifact, or expose a
+supported source-import callable route.
 
 An indexed declaration may now write `from "alias::path"` between its result
 and `effects` clauses. The parser and canonical formatter preserve that exact

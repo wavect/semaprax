@@ -43,6 +43,8 @@ pub mod rich_cargo_preparation;
 #[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
 pub mod rich_cargo_execution;
 mod rich_cargo_snapshot;
+#[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
+pub mod rich_native_host;
 
 /// Run ordinary doctor policy without discovering or spawning a worker.
 pub fn run_doctor(arguments: &[String]) -> Result<(String, u8), String> {

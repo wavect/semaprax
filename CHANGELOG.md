@@ -1,5 +1,10 @@
 # Changelog
 
+- Add explicit rich Native Rust host wrappers for admitted Cargo build,
+  capability grant, and callback dispatch. Render unsupported API, missing
+  tool, missing capability, opaque native code, and unavailable sandbox as
+  distinct human/JSON diagnostics. The full CLI has no rich-Cargo route yet.
+
 - Add RI-01 bootstrap negative controls for plan/descriptor disagreement,
   unsupported target/signature refusal, stable-ID source facts, Rust Result
   failure, and a caught fixture unwind. Bind missing-effect refusal to RI-11's

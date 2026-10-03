@@ -1,12 +1,12 @@
 //! Additive rich callback projection. This module generates inert source only.
 //! Snapshot closure semantics and scalar-v1 admission remain unchanged.
 use super::*;
-use semaprax::ast::{ExprKind, Param, ParamMode, Type};
 use semaprax::ast::Span;
+use semaprax::ast::{ExprKind, Param, ParamMode, Type};
 use semaprax::hir::{ResolvedExprKind, ResolvedType};
 
 #[path = "callback_runtime.rs"]
-mod runtime;
+pub(super) mod runtime;
 #[cfg(test)]
 #[path = "callback_tests.rs"]
 mod tests;

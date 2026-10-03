@@ -1,5 +1,7 @@
 # Changelog
 
+- Add checked named Result callbacks to the experimental native Rust adapter. Real O0/O2 iterator and safe-trait consumers preserve signed domain errors, contract/semantic/panic separation and state rollback; forged-success and authored-body controls fail as intended. Source mutable/retained capture semantics remain open.
+
 - Exercise LAW-12 `unknown`, `timeout`, `unsupported`, and `stale` diagnostic
   states through held local process fixtures in both selected-law summary and
   detail without losing strict required counts. The existing agent-workflow MCP

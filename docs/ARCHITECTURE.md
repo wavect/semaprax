@@ -3013,7 +3013,11 @@ These areas are deliberately outside the public compiler contract:
   leases; two scalar C bridge instances share depth and receiver guards. An
   uncertain foreign teardown quarantines the lease. These renderers grant no
   execution/publication authority and do not admit mutable or owned source
-  captures;
+  captures. The sibling `result_callback.rs` authenticates checked pure named
+  Result bodies, projects terminal constructors into private scalar result
+  staging, and publishes the tag/payload only after boundary/postcondition
+  success. `callback_runtime.rs` shares lifecycle guards while keeping authored
+  signed domain errors distinct from native status failures;
 - `crates/semaprax-native-rust-interop-builder/src/public_sdk/indexed.rs`:
   narrow public RI-04 admission for one checked scalar Rust import. It replays
   the selected RI-03 index and exact caller-supplied package source bytes

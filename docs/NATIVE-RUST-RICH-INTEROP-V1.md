@@ -843,12 +843,48 @@ retained environments after uncertain teardown; and compiled teardown/depth
 mutants. Canonical source/graph and unsupported selection diagnostics remain
 in the owning harness.
 
+### Checked source Result callbacks
+
+`prepare_native_rust_result_callback` selects a pure named
+`fn(i64, i64) -> Result<i64, i64>` declaration. The first scalar parameter is
+an explicit environment value; this is not new closure capture syntax. It
+checks the original source and independently validates its HIR before deriving
+one ordinary scalar entry. Only bounded terminal `Result::Ok` / `Result::Err`
+constructors, blocks and branches are translated. Payloads, conditions and
+preceding statements retain their execution order and execute once. The
+original preconditions are retained; postconditions are restricted to scalar
+parameter expressions, so a Result-dependent contract cannot be reinterpreted
+against a scalar acknowledgement. Unsupported shapes refuse with `SPX-B154`.
+
+A private generated scalar import stages the actual tag and full signed i64
+payload. Its `callback.result` effect is internal result staging, with no
+filesystem, process or network authority. The ordinary scalar boundary and
+postconditions must succeed before generated Rust publishes the staged value.
+`SpxCallbackError::SourceDomain(i64)` carries an authored Err (including zero,
+i64::MIN and i64::MAX), separately from checked contract/semantic errors and
+caught Rust panic. Missing, malformed or duplicate publication refuses; no
+failure becomes a default successful return. The existing explicit next-state
+proxy commits state only after Ok, and clears staged results on all ordinary
+failure returns. Scalar-v1 admission remains unchanged: aggregate Result values
+never cross that ABI or survive in the projected scalar closure.
+
+The `rich_result_callback_` owning selector passed locally: 2 passed, 0
+failed/ignored, 210 filtered, 2.37s runtime. It compiles a separate generated Rust
+rlib, real safe-trait fixture and ordinary Rust iterator/trait consumers with
+C O0/O2. It checks domain/precondition/postcondition/arithmetic/panic separation,
+state rollback, re-entry and teardown, zero live environments, authored-body
+changes and an Err-to-invented-success mutant. Canonical source replay and
+unsupported selection controls are included. The shared runtime-template change
+also passed the existing `rich_callback_` preservation selector (2 passed, 0
+failed/ignored, 210 filtered; 1.75s). Tools were Rust 1.98.0 and Apple Clang
+21.0.0 on aarch64 macOS, offline/locked Cargo, one job, debug0 and incremental0,
+with a private target. No hosted or whole-repository full-profile run is claimed.
+
 RI-08 remains open for source-level mutable/once receiver modes, RI-06-proven
-borrowed Semaprax capture scopes and retained affine owned captures, source
-callback Result domain shapes, and automatic selected-index trait admission.
-Explicit next-state functions and a borrowed generated Rust closure do not
-establish those broader source semantics. No hosted or full-quality-profile
-pass is claimed.
+borrowed Semaprax capture scopes and retained affine owned captures, broader
+callback Result shapes, and automatic selected-index trait admission. Explicit
+next-state functions and a borrowed generated Rust closure do not establish
+those broader source semantics.
 
 The gates ran serially in the builder library harness, with
 `RUSTC=/opt/homebrew/bin/rustc`, `CLANG=/usr/bin/clang`,

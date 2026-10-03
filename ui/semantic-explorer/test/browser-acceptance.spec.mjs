@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { readFile, rm } from "node:fs/promises";
+import { readFile, rm, stat } from "node:fs/promises";
 import os from "node:os";
 import { pathToFileURL } from "node:url";
 import { writeOfflineBrowserFixture } from "./offline-browser-fixture.mjs";
@@ -46,12 +46,21 @@ test("hostile snapshot strings stay inert in the generated file artifact", async
 
 test("named-host performance: medium and renderer-stress views stay responsive after snapshot data is available", async ({ page, browserName }) => {
   test.skip(process.env.SEMAPRAX_EXPLORER_NAMED_HOST !== "1", "named-host measurement only");
+  await page.addInitScript(() => {
+    globalThis.explorerLongTasks = [];
+    new PerformanceObserver(entries => globalThis.explorerLongTasks.push(...entries.getEntries().map(entry => entry.duration))).observe({ type: "longtask", buffered: true });
+  });
   const medium = await writeOfflineBrowserFixture({ performance: "medium" });
   try {
+    const [{ size: htmlBytes }, { size: jsonBytes }] = await Promise.all([stat(medium.htmlPath), stat(medium.jsonPath)]);
     const started = performance.now();
     await page.goto(pathToFileURL(medium.htmlPath).href);
     await expect(page.getByRole("heading", { name: "Meaning, mapped." })).toBeVisible();
     const firstUsableMs = performance.now() - started;
+    const warmStarted = performance.now();
+    await page.reload();
+    await expect(page.getByRole("heading", { name: "Meaning, mapped." })).toBeVisible();
+    const warmUsableMs = performance.now() - warmStarted;
     const interactions = await page.evaluate(async () => {
       const input = document.querySelector(".spx-search");
       const samples = [];
@@ -65,10 +74,12 @@ test("named-host performance: medium and renderer-stress views stay responsive a
       return samples.sort((a, b) => a - b);
     });
     const p95Ms = interactions[Math.ceil(interactions.length * 0.95) - 1];
+    const maxLongTaskMs = Math.max(0, ...(await page.evaluate(() => globalThis.explorerLongTasks)));
     const machine = `${os.hostname()} cpu=${os.cpus()[0]?.model || "unknown"} cores=${os.cpus().length} ram=${Math.round(os.totalmem() / 1024 / 1024)}MiB`;
-    console.log(`explorer named-host benchmark browser=${browserName} first_usable_ms=${firstUsableMs.toFixed(1)} p95_interaction_ms=${p95Ms.toFixed(1)} ${machine}`);
+    console.log(`explorer named-host benchmark browser=${browserName} cold_first_usable_ms=${firstUsableMs.toFixed(1)} warm_first_usable_ms=${warmUsableMs.toFixed(1)} p95_interaction_ms=${p95Ms.toFixed(1)} max_long_task_ms=${maxLongTaskMs.toFixed(1)} html_bytes=${htmlBytes} json_bytes=${jsonBytes} ${machine}`);
     expect(firstUsableMs).toBeLessThanOrEqual(1000);
     expect(p95Ms).toBeLessThanOrEqual(100);
+    expect(maxLongTaskMs).toBeLessThanOrEqual(100);
 
     const stress = await writeOfflineBrowserFixture({ performance: "renderer_stress" });
     try {

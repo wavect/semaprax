@@ -6,6 +6,7 @@ const model = require('../model.js');
 const changes = require('../changes.js');
 const evidence = require('../evidence.js');
 const { createExplorer } = require('../view.js');
+const { ExplorerCache } = require('../cache.js');
 
 const digest = `sha256:${'a'.repeat(64)}`;
 function canonical(value) { if (Array.isArray(value)) return `[${value.map(canonical).join(',')}]`; if (value && typeof value === 'object') return `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${canonical(value[key])}`).join(',')}}`; return JSON.stringify(value); }
@@ -58,6 +59,27 @@ test('overview opens with only bounded module and declaration pages', async () =
   createExplorer(root, host, { side: 'candidate' });
   for (let index = 0; index < 12; index += 1) await tick();
   assert.deepEqual(calls, ['summary', 'page:modules', 'page:declarations']);
+});
+
+test('repeated open and destroy releases host state while retaining only bounded immutable pages', async () => {
+  const cache = new ExplorerCache({ maxEntries: 2, maxBytes: 4096, maxEntryBytes: 2048 });
+  let disposed = 0, pages = 0;
+  for (let cycle = 0; cycle < 3; cycle++) {
+    const host = {
+      async summary() { return summary(); },
+      async page(request) { pages++; return page(request.summary, request.view); },
+      dispose() { disposed++; }
+    };
+    const document = new Document(); const root = new Node(document, 'root');
+    const explorer = createExplorer(root, host, { side: 'candidate', cache });
+    for (let index = 0; index < 12; index += 1) await tick();
+    explorer.destroy();
+    assert.equal(root.children.length, 0, `cycle ${cycle} must detach its DOM/listeners`);
+  }
+  assert.equal(disposed, 3);
+  assert.equal(pages, 2, 'later openings reuse the exact immutable first pages');
+  assert.equal(cache.stats().entries, 2);
+  assert.ok(cache.stats().retainedBytes <= 4096);
 });
 
 test('candidate catalog, target delta, and selected evidence remain separate lazy reads', async () => {

@@ -54,7 +54,16 @@ a terminal LF, lowercase digests, no NUL, at most 1 MiB, at most 512 API items
 and 512 type records, at most 32 type depth, at most 256 references per item,
 and bounded per-item and total documentation/generic metadata. Type closure
 cycles are handled by path identity; missing references, stale closure
-summaries, truncation, and identity drift fail closed.
+summaries, truncation, and identity drift fail closed. The converter's focused boundary suite exercises cycle handling, exact and
+over-limit transitive depth, per-item demand expansion, and selected-type union
+size with controlled type graphs. Run it with:
+
+```sh
+python3 crates/semaprax-rust-api-index/tools/test_rustdoc_json_to_index.py
+```
+
+The Rust replay suite independently tests canonical cycle replay and exact/over
+index closure bounds.
 
 To generate local rustdoc JSON without Cargo, use the explicitly installed
 pinned rustdoc:
@@ -89,16 +98,13 @@ allowed.
 
 An index provides discovery only. Rust remains authoritative for the selected
 signature and call on the stable target. The RI-04 indexed scalar integration
-gate starts from a v2 extractor envelope, calls the public indexed builder,
-then compiles and runs its generated adapter with stable rustc. The gate covers
-a successful typed provider, a wrong return type rejected by rustc, and a
-same-signature provider whose result is rejected before publication. It is an
-owning-builder integration test; this replay crate itself never launches a
-compiler. The builder binds its selected compiler identity to the index; it returns
-adapter source and does not launch rustc during index replay. The integration
-test compiles and executes that source with stable rustc, while the test suite
-is adding an explicit equality check between the actual rustc version and the
-indexed compiler identity. The current scalar adapter admits only its narrow
-receiver-free scalar ABI; regex methods such as `&self` and `&str` remain
-outside that ABI. The v2 regex envelope is compiler-resolved index evidence
-only, not adapter support.
+test starts from a v2 extractor envelope, calls the public indexed builder,
+then compiles and runs the generated adapter with stable rustc. It checks a
+successful typed provider, a wrong return type rejected by rustc, a same-signature
+provider rejected before publication, and exact equality between actual
+`rustc --version` and the indexed compiler identity. This owning-builder test
+must pass before treating the integration evidence as verified. The builder
+returns adapter source; this replay crate never launches a compiler. The
+current scalar adapter admits only its narrow receiver-free scalar ABI; regex
+methods such as `&self` and `&str` remain outside that ABI. The v2 regex
+envelope is compiler-resolved index evidence only, not adapter support.

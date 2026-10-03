@@ -45,8 +45,8 @@ pub mod session;
 pub use kernel_ir::{Scalar, ScalarKind};
 pub use session::{
     BufferHandle, ComputeCapability, CpuReferenceSession, DispatchControl, DispatchOutcome,
-    EffectEvent, KernelArtifact, KernelShape, ReleaseCause, ReleaseEvent, SessionFailure,
-    Settlement,
+    EffectEvent, KernelArtifact, KernelShape, ReductionDomain, ReductionSchedule, ReleaseCause,
+    ReleaseEvent, SessionFailure, Settlement, REDUCTION_ELIGIBILITY_SCHEMA,
 };
 
 /// The frozen executable-semantics schema identifier.

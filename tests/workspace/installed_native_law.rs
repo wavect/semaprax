@@ -1165,11 +1165,21 @@ fn installed_native_law_law14_adversarial_gate() {
 #[test]
 #[ignore = "requires explicitly provisioned installed Z3"]
 fn proved_add_zero_identity_yields_only_a_revalidated_candidate() {
+    use semaprax::compute_profile::cpu_reference::{
+        ComputeCapability, CpuReferenceSession, KernelShape, ReductionDomain, ReductionSchedule,
+        Scalar, ScalarKind,
+    };
     use semaprax::project::ProjectCandidate;
     let project = native_project("law-add-zero-rewrite", "n + 0 == n");
     let app = project.root.join("src/app.spx");
     let original = std::fs::read_to_string(&app).unwrap();
-    let raw = original.replacen("seventeen(0)", "let n = 40; n + 0", 1);
+    let raw = original
+        .replacen("seventeen(0)", "let n = 40; n + 0", 1)
+        .replacen(
+            "@id(\"fresh.main\")",
+            "@id(\"fresh.combine\") fn combine(acc: i64, item: i64) -> i64 { acc + item }\n@id(\"fresh.main\")",
+            1,
+        );
     assert_ne!(original, raw);
     let changed = semaprax::format::canonical(&semaprax::parse(&raw, &app).unwrap());
     std::fs::write(&app, &changed).unwrap();
@@ -1182,6 +1192,115 @@ fn proved_add_zero_identity_yields_only_a_revalidated_candidate() {
     .unwrap();
     let tool = provisioned(&project, ToolKind::Z3);
     let proof = prove_scalar_law(&revision, &laws, "fresh.law.identity", &tool).unwrap();
+    let mut session = CpuReferenceSession::open(ComputeCapability::cpu_reference_all());
+    let fold = session
+        .load_kernel(
+            revision.entry_program(),
+            "fresh.combine",
+            KernelShape::SequentialFold,
+        )
+        .unwrap();
+    let input = session.alloc(ScalarKind::I64, 3).unwrap();
+    let output = session.alloc(ScalarKind::I64, 1).unwrap();
+    session
+        .upload(input, 0, &[Scalar::I64(1), Scalar::I64(2), Scalar::I64(3)])
+        .unwrap();
+    for (schedule, requires_commutativity) in [
+        (ReductionSchedule::Regroup, false),
+        (ReductionSchedule::Reorder, true),
+    ] {
+        let report = session
+            .checked_add_reduction_eligibility(
+                &revision,
+                &fold,
+                input,
+                output,
+                &laws,
+                "fresh.law.identity",
+                &proof,
+                ReductionDomain {
+                    minimum: 0,
+                    maximum: 100,
+                    maximum_elements: 3,
+                },
+                schedule,
+            )
+            .unwrap();
+        let report: serde_json::Value = serde_json::from_str(&report).unwrap();
+        assert_eq!(report["eligible"], true, "{report}");
+        assert_eq!(report["commutativity_required"], requires_commutativity);
+        assert_eq!(report["parallel_execution_occurred"], false);
+        assert_eq!(report["transformation_applied"], false);
+        assert_eq!(report["operation_id"], "fresh.combine");
+    }
+    let unsafe_bound = session
+        .checked_add_reduction_eligibility(
+            &revision,
+            &fold,
+            input,
+            output,
+            &laws,
+            "fresh.law.identity",
+            &proof,
+            ReductionDomain {
+                minimum: 0,
+                maximum: i64::MAX,
+                maximum_elements: 3,
+            },
+            ReductionSchedule::Regroup,
+        )
+        .unwrap();
+    let unsafe_bound: serde_json::Value = serde_json::from_str(&unsafe_bound).unwrap();
+    assert_eq!(unsafe_bound["eligible"], false);
+    assert_eq!(
+        unsafe_bound["reason"],
+        "some_grouping_may_overflow_checked_i64"
+    );
+    for values in [[i64::MIN, i64::MAX, 1], [i64::MAX, 1, -1]] {
+        session.upload(input, 0, &values.map(Scalar::I64)).unwrap();
+        let report = session
+            .checked_add_reduction_eligibility(
+                &revision,
+                &fold,
+                input,
+                output,
+                &laws,
+                "fresh.law.identity",
+                &proof,
+                ReductionDomain {
+                    minimum: 0,
+                    maximum: i64::MAX,
+                    maximum_elements: 3,
+                },
+                ReductionSchedule::Reorder,
+            )
+            .unwrap();
+        let report: serde_json::Value = serde_json::from_str(&report).unwrap();
+        assert_eq!(report["eligible"], false);
+    }
+    let alias = session
+        .checked_add_reduction_eligibility(
+            &revision,
+            &fold,
+            input,
+            input,
+            &laws,
+            "fresh.law.identity",
+            &proof,
+            ReductionDomain {
+                minimum: 0,
+                maximum: 100,
+                maximum_elements: 3,
+            },
+            ReductionSchedule::Regroup,
+        )
+        .unwrap();
+    let alias: serde_json::Value = serde_json::from_str(&alias).unwrap();
+    assert_eq!(alias["eligible"], false);
+    assert_eq!(
+        alias["reason"],
+        "buffer_alias_or_type_outside_admitted_fold"
+    );
     let candidate = ProjectCandidate::open(revision.clone(), revision.project_revision()).unwrap();
     let catalogue: serde_json::Value =
         serde_json::from_str(&candidate.expression_catalog("fresh.main").unwrap()).unwrap();

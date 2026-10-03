@@ -1,5 +1,11 @@
 # Changelog
 
+- Add a read-only LAW-17 reduction-eligibility report for one exact checked
+  `i64` CPU fold. It replays the bound artifact and installed identity proof,
+  checks live disjoint buffers and a no-overflow nonnegative domain, and
+  separates regrouping from reordering. The real-Z3 focused gate covers
+  eligible and explicit overflow/alias refusals; no parallel dispatch occurs.
+
 - Run the production Url carrier and exclusive lease under strict-provenance Miri with live backing reads, the bounded hostile-carrier corpus and owner/view cleanup. The explicit offline Rust-only gate passes with default leak checks; native C and panic quarantine remain separate evidence.
 
 - Gate selected guarded Project SDK publication on a host-held LAW-09

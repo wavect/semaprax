@@ -38,6 +38,9 @@ use crate::hir::{self, IdentityOrigin, OwnershipMode, ResolvedFunction, Resolved
 use super::kernel_ir::{self, EvalStop, KernelIr, LowerStop, Scalar, ScalarKind};
 use super::{ComputeRefusal, MAX_SESSION_LIVE_ELEMENTS};
 
+mod reduction;
+pub use reduction::{ReductionDomain, ReductionSchedule, REDUCTION_ELIGIBILITY_SCHEMA};
+
 /// The device a capability selects. Only the CPU reference exists; there is
 /// no implicit or ambient device selection.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

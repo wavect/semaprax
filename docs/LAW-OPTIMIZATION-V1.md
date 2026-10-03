@@ -17,8 +17,21 @@ publishes a workspace generation. The selected place is evaluated once at
 the same position. Checked `i64` addition by zero cannot overflow, so this
 closed rewrite preserves its value and checked failure behavior.
 
-This is a narrow code change backed by exact law evidence, not a general
-optimizer or a translation-preservation theorem. The CPU reference and Metal
-sequential fold continue to execute in their existing order. Parallel
-reduction eligibility is a separate read-only decision and is not yet
-provided by this v1 route.
+`CpuReferenceSession::checked_add_reduction_eligibility` is the separate
+read-only report `semaprax.law-reduction-eligibility.v1`. It rechecks the
+current Project-bound CPU artifact and the same installed identity-law proof,
+then recognizes only `fn(acc: i64, item: i64) -> i64 { acc + item }` as a fold.
+It checks the input and output as live, disjoint, correctly typed buffers and
+checks every current input against a declared nonnegative interval. A bound
+on maximum element times maximum count proves every regrouping's partial sum
+fits checked `i64`, including the zero identity. A scheduler that may reorder
+elements separately requires commutativity; exact bounded integer addition
+satisfies it under the same no-overflow bound. The report records the exact
+Project revision, artifact fingerprint, law digests, scheduler, reason for
+ineligibility, and that no rewrite or parallel execution happened. It does
+not claim a GPU speedup or alter the CPU/Metal sequential fold.
+
+This is a narrow code change and bounded static arithmetic decision backed by
+exact law evidence, not a general optimizer or translation-preservation
+theorem. Target differential and benchmark evidence for the rewrite remain
+open.

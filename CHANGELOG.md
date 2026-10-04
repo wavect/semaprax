@@ -83,7 +83,7 @@
   and split over-budget source modules while retaining source-locked coverage.
   Cover the checkpoint-waiting branch in the source-agent handoff test fixture.
   Keep the native Regex/Url lint allowance valid under non-Clippy builds with
-  warnings denied.
+  warnings denied. Canonicalize Rust formatting after the merged v0.8.0 work.
 
 - Repair the current main CI fixtures for owned-byte Wasm imports, constructor
   schema counts, the pinned iOS action, and authenticated Everyday Agent

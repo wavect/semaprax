@@ -97,6 +97,8 @@ pub(super) struct Ctx<'a> {
     pub(super) receipts: crate::receipt::ReceiptLog,
     /// Output reserve for the next fit (a bounded larger-cap retry, TC-02).
     pub(super) reserve_override: Option<u64>,
+    /// Opt-in cost-aware ladder state (TC-10).
+    pub(super) ladder: std::cell::RefCell<super::cost_ladder::LadderState>,
 }
 
 impl Ctx<'_> {
@@ -258,6 +260,7 @@ pub fn run(
         started: Instant::now(),
         receipts: Default::default(),
         reserve_override: None,
+        ladder: Default::default(),
     };
     let result = drive(&mut cx, &mut stages, &mut report);
     if let Err(e) = result {

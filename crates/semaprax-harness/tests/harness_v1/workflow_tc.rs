@@ -795,3 +795,124 @@ fn tc02_adapter_framing_is_counted_in_admission_and_bytes_and_tokens_stay_separa
     assert_eq!(codes(&r), ["SPX-HPD100"], "{:?}", r.refusals);
     assert_eq!(a.calls.get(), 0);
 }
+
+// ---- TC-10 ---------------------------------------------------------------
+
+fn ladder_cfg(e: &Env, t: Task) -> RunConfig {
+    let mut cfg = config(e, t, None);
+    cfg.routing.cost_aware = true;
+    cfg.routing.ladders.insert(
+        "mechanical".into(),
+        semaprax_harness::profile::config::LadderConfig {
+            models: vec!["m-a".into(), "m-b".into()],
+            max_escalations: 1,
+            min_tasks: 5,
+        },
+    );
+    // Only `m-b` has a known price; `m-a` is the catalog's cheapest scalar.
+    cfg.budget.prices = PriceBook::default().with(
+        "m-b",
+        PriceRecord {
+            version: "synthetic-v1".into(),
+            pricing: Pricing::Rates {
+                input: Some(1_000_000),
+                cache_read: None,
+                cache_write: None,
+                cache_write_1h: None,
+                output: Some(1_000_000),
+            },
+        },
+    );
+    cfg
+}
+
+fn two_model_task() -> Task {
+    let mut t = task(Some(100), Destination::Local);
+    let remote = |id: &str| {
+        plan(
+            id,
+            Destination::Remote {
+                origin: "https://gw.example".into(),
+            },
+        )
+        .to_json()
+    };
+    t.family = "mechanical".into();
+    t.models = Some(json!([remote("m-a"), remote("m-b")]));
+    t
+}
+
+#[test]
+fn tc10_unknown_price_never_wins_cheapest_and_the_route_records_why_without_a_router() {
+    let e = setup(FIXED);
+    let fake = Fake::new(CHANGED);
+    // Default (opt-in off): the unpriced scalar-cheapest `m-a` wins by id tie.
+    let off = config(&e, two_model_task(), None);
+    let a = Adapter::new(vec![plain_reply()]);
+    let (r, _) = drive(&off, &fake, &a);
+    assert_eq!(r.status, "candidate-ready", "{:?}", r.refusals);
+    assert_eq!(a.wire.borrow()[0]["model"], "m-a");
+    assert!(r.route["cost_policy"].is_null());
+    // Opt-in: no qualified evidence, so the pool is limited to priced ladder models.
+    let on = ladder_cfg(&e, two_model_task());
+    let a = Adapter::new(vec![plain_reply()]);
+    let (r, _) = drive(&on, &fake, &a);
+    assert_eq!(r.status, "candidate-ready", "{:?}", r.refusals);
+    assert_eq!(a.wire.borrow()[0]["model"], "m-b");
+    let cp = &r.route["cost_policy"];
+    assert_eq!(cp["action"], "start");
+    assert!(cp["router"].as_str().unwrap().contains("bypassed"));
+    assert!(cp["choice"]["excluded"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|x| x["model"] == "m-a" && x["reason"] == "unknown price"));
+}
+
+#[test]
+fn tc10_a_pin_is_honoured_exactly_and_a_larger_cap_retry_keeps_the_model() {
+    let e = setup(FIXED);
+    let fake = Fake::new(CHANGED);
+    let mut pinned = ladder_cfg(&e, two_model_task());
+    pinned.routing.cfg.project_pin = Some("m-a".into());
+    let a = Adapter::new(vec![plain_reply()]);
+    let (r, _) = drive(&pinned, &fake, &a);
+    assert_eq!(a.wire.borrow()[0]["model"], "m-a", "{:?}", r.refusals);
+    // The length retry re-routes; the ladder model is sticky, never an escalation.
+    let mut cfg = ladder_cfg(&e, two_model_task());
+    cfg.budget.generation = GenerationPolicy {
+        length_retry_cap: Some(400),
+        ..Default::default()
+    };
+    let a = Adapter::new(vec![cut_reply(100), plain_reply()]);
+    let (r, _) = drive(&cfg, &fake, &a);
+    assert_eq!(r.status, "candidate-ready", "{:?}", r.refusals);
+    let models: Vec<_> = a.wire.borrow().iter().map(|w| w["model"].clone()).collect();
+    assert_eq!(models, ["m-b", "m-b"]);
+    assert_eq!(r.route["cost_policy"]["action"], "sticky");
+}
+
+#[test]
+fn tc10_ladder_config_parses_and_rejects_unknown_families_and_empty_models() {
+    const HDR: &str = "schema = \"semaprax.harness-config.v1\"\n";
+    let ok = semaprax_harness::profile::config::parse(
+        b"schema = \"semaprax.harness-config.v1\"\n[routing]\ncost_aware = true\n[routing.ladder.mechanical]\nmodels = [\"a\", \"b\"]\nmax_escalations = 2\n",
+    )
+    .unwrap();
+    assert!(ok.routing.cost_aware);
+    let l = &ok.routing.ladders["mechanical"];
+    assert_eq!((l.models.len(), l.max_escalations, l.min_tasks), (2, 2, 5));
+    for bad in [
+        "[routing.ladder.nonsense]\nmodels = [\"a\"]\n",
+        "[routing.ladder.mechanical]\nmodels = []\n",
+        "[routing.ladder.mechanical]\nmax_escalations = 1\n",
+    ] {
+        assert!(
+            semaprax_harness::profile::config::parse(format!("{HDR}{bad}").as_bytes()).is_err(),
+            "{bad}"
+        );
+    }
+    // Defaults keep the digest stable: nothing opt-in, no routing key.
+    let d = semaprax_harness::profile::config::parse(HDR.as_bytes()).unwrap();
+    assert!(d.to_json().get("routing").is_none());
+}

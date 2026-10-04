@@ -16,6 +16,7 @@ mod cli;
 mod cli_apply;
 pub mod compiler;
 pub mod composition;
+mod cost_ladder;
 pub mod context_target;
 mod feedback;
 pub mod generation;

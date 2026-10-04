@@ -580,13 +580,11 @@ fn tc12_production_path_campaign_uses_adapter_contract_budget_observations_and_r
         write_attempt["cost_micros"],
         300 + 700 * 1_250_000 / 1_000_000 + 1500
     );
-    // Unavailable placeholder arms are retained and report unavailable, with no invented cost.
+    // TC-03 and TC-10 landed: both are real arms that run, not placeholders.
     for id in ["spend-ledger", "cost-aware-routing"] {
         let u = rows_of(&rows, id);
         assert_eq!(u.len(), TASKS.len() * 2);
-        assert!(u.iter().all(|r| r["outcome"] == "unavailable"
-            && r["spend"]["micros"].is_null()
-            && r["accepted"] == false));
+        assert!(u.iter().all(|r| r["outcome"] != "unavailable"), "{id}");
     }
     // Repo/index cache is labelled separately from the provider cache.
     assert!(
@@ -910,14 +908,15 @@ fn tc12_roster_is_bounded_with_placeholders_and_a_combined_profile() {
         "ordered-v1"
     );
     assert!(
-        get("spend-ledger").unavailable.is_some()
-            && get("cost-aware-routing").unavailable.is_some()
+        get("spend-ledger").unavailable.is_none() && get("cost-aware-routing").unavailable.is_none()
     );
+    assert_eq!(get("spend-ledger").overlay()["budget.strict_monetary"], true);
+    assert_eq!(get("cost-aware-routing").overlay()["routing.cost_aware"], true);
     let c = get("combined");
     assert!(
-        c.has(Policy::PromptRenderer) && c.has(Policy::CompactSkills) && !c.has(Policy::Routing)
+        c.has(Policy::PromptRenderer) && c.has(Policy::CompactSkills) && c.has(Policy::Routing)
     );
-    assert_eq!(c.omitted.len(), 2);
+    assert!(c.omitted.is_empty());
     assert!(get("defaults").overlay().is_empty());
 }
 

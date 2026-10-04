@@ -373,20 +373,33 @@ pub(super) fn route_and_fit(
             .spend
             .available_cost()
             .unwrap_or(DEFAULT_ROUTE_ALLOWANCE_MICROS);
+        // Opt-in cost-aware ladder (TC-10): narrows the pool before rules decide
+        // and bypasses a paid router whose benefit is unknown.
+        let cost = super::cost_ladder::apply(
+            cx,
+            &pool,
+            est,
+            budget.policy.output_reserve_tokens,
+            st.decision.as_ref().map(|d| &d.profile),
+        );
         // A router call is admitted and journaled before it can happen; when it
         // is unaffordable (or unpriced under strict money) rules decide alone.
-        let router = super::spend_dispatch::reserve_router(
-            cx, st, journal, r, &budget, &pool, est, allowance, label,
-        )?;
+        let router = if cost.is_some() {
+            None
+        } else {
+            super::spend_dispatch::reserve_router(
+                cx, st, journal, r, &budget, &pool, est, allowance, label,
+            )?
+        };
         let decision = if router.is_some() {
             st.decision.as_mut()
         } else {
             None
         };
-        let routed = route_models(
+        let mut routed = route_models(
             cx,
             task,
-            pool.clone(),
+            cost.as_ref().map_or_else(|| pool.clone(), |c| c.pool.clone()),
             est,
             decision,
             &budget,
@@ -437,6 +450,10 @@ pub(super) fn route_and_fit(
             .find(|m| m.id == routed.model)
             .expect("router chose a catalog model")
             .clone();
+        super::cost_ladder::note_model(cx, &plan.id);
+        if let Some(c) = &cost {
+            routed.json["cost_policy"] = c.json.clone();
+        }
         let fit = {
             let build = |dr: &BTreeSet<String>| build_prompt(cx, p, dr);
             budget.fit(&plan, &optional, &build)

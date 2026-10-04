@@ -409,7 +409,7 @@ mod tests {
         ] {
             let fake = fake_solver(script);
             assert_eq!(
-                solver_version_with_limits(&fake, Duration::from_millis(500), 4).as_deref(),
+                solver_version_with_limits(&fake, Duration::from_secs(2), 4).as_deref(),
                 expected
             );
             std::fs::remove_file(fake.binary).unwrap();

@@ -328,12 +328,12 @@ def main():
     for name, command, expected in [
         (
             "m1_prepare",
-            cargo_command("examples/ri13-m1-regex-url/prepare/Cargo.toml", "prepare"),
+            cargo_command("examples/ri13-m1-regex-url/prepare/Cargo.toml", "semaprax-ri13-m1-prepare"),
             "ri13-m1-prepared:",
         ),
         (
             "m1_consumer",
-            cargo_command("examples/ri13-m1-regex-url/consumer/Cargo.toml", "consumer"),
+            cargo_command("examples/ri13-m1-regex-url/consumer/Cargo.toml", "semaprax-ri13-m1-consumer"),
             "ri13-m1-regex-url-ok",
         ),
         (

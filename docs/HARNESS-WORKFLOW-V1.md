@@ -169,7 +169,7 @@ on a healthy baseline, no model call), `planned`, `candidate-ready`, `unsupporte
 diagnostics, feedback, mode framing, intents) with the selected model's tokenizer, adds a protocol overhead and the output
 reserve (`budget.protocol_overhead_tokens` default 256, `output_reserve_tokens` default 4096) and requires the total to fit
 the model's `max_context`. The model-to-tokenizer mapping is explicit data (`DEFAULT_MODEL_TOKENIZERS`, longest prefix,
-task `tokenizer_map` overrides; only `cl100k_base`/`o200k_base`); nothing is guessed. Tokenizers are supplied to the run
+task `tokenizer_map` overrides naming a built-in (`cl100k_base`/`o200k_base`) or a host-approved tokenizer, see TC-11); nothing is guessed. Tokenizers are supplied to the run
 (`--tokenizer-python`, `--tokenizer-script scripts/harness_tokenize.py`, `--tokenizer-cache`, repeated `--tokenizer
 <name>`) and served by `ExternalTokenizer`; no helper means `unknown`: `request_tokens` is null, `measured` false, and
 admission uses the UTF-8 byte length (an upper bound for byte-level tokenizers), reported as
@@ -246,3 +246,27 @@ between steps: `SPX-HPD113`, status `cancelled`, journal `cancelled`); an in-fli
 - **Check tokenizer (HN-12).** With `--tokenizer-python/--tokenizer-script/--tokenizer NAME`, the check stage gets
   its own helper instance (the first `--tokenizer`), so check-output measurements are named-token counts.
 - **Routing (HN-16).** See [HARNESS-DECISION-V1](HARNESS-DECISION-V1.md#project-configuration-and-cli-wiring-hn-16).
+
+## TC-09: local proposals before routing
+
+`propose_step` first asks `workflow::acquire::local_proposal`. A supplied `--proposal` / scripted proposal
+(`ProposalStage::local_source()`), or a completed same-lineage journal proposal, is taken before `route_and_fit`. It
+makes zero router calls, zero model calls and no new inference reservation, and still goes through parsing,
+installed-operation checks, protected facts, compiler preview, tests and approval. A journal artifact must exist, be at most
+1 MiB and match its recorded digest, byte count and lineage/task/lock/revision identity. Otherwise the step is refused
+with `SPX-HPD072` and is never replayed billably. A begun or uncertain step is refused before routing. A hit records
+`context.proposal_acquisition` (`source`, `router_calls: 0`, `model_calls: 0`, `new_reservations: 0`,
+`historical_incurred`) and, for journal hits, a `{step}.local-reuse` journal record. New spend stays separate from
+historical spend. An empty scripted proposer still routes, so plan mode is unchanged.
+
+## TC-11: host-approved tokenizers and the count memo
+
+`workflow::tokenizers::TokenizerSet::add` is the host's approval act. It records the tokenizer's own fingerprint and
+counting semantics; `add_pinned` refuses a fingerprint mismatch. `harness run` approves each `--tokenizer <name>` before it
+parses the task, so a task's `tokenizer_map` may name a built-in or an approved tokenizer, and nothing else. A task can
+never load code by naming one. A count needs a mapped, provisioned and approved tokenizer whose fingerprint matches the
+approval. Anything else (including a tokenizer failure) is `tokens: null` with the UTF-8 byte bound, never zero. A bounded
+per-run `CountCache` (FIFO, 1024 entries) is keyed by sha256 of the exact text, tokenizer name, fingerprint and semantics.
+It stores integers only, never caches failures, and is shared by catalog candidates, `floor_estimate` and `fit`. A memo hit
+is local work avoided, not provider tokens saved. A newly approved non-OpenAI tokenizer needs its own reference fixtures
+before it is used to select smaller models.

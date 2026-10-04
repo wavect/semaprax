@@ -234,10 +234,37 @@ pub fn run_with(
         }
         lock_digest = res.profile.lock_digest();
     }
+    // TC-11: tokenizers are host-approved before the task is parsed, so a
+    // task's `tokenizer_map` may name any of them.
+    let mut budget = super::budget::BudgetConfig::default();
+    if let (Some(py), Some(script)) = (&o.tokenizer_python, &o.tokenizer_script) {
+        let mut tenv = std::collections::BTreeMap::new();
+        tenv.insert("PATH".to_string(), "/usr/bin:/bin".to_string());
+        if let Some(c) = &o.tokenizer_cache {
+            tenv.insert(
+                "TIKTOKEN_CACHE_DIR".to_string(),
+                c.to_string_lossy().into_owned(),
+            );
+        }
+        for name in &o.tokenizers {
+            let args = vec![script.to_string_lossy().into_owned(), name.clone()];
+            match crate::observe::ExternalTokenizer::spawn(py, &args, &tenv) {
+                Ok(t) => budget.tokenizers.add(Box::new(t)),
+                Err(e) => notes.push(format!(
+                    "tokenizer `{name}` unavailable ({}); counts are unknown, admission uses the utf8-bytes upper bound",
+                    e.message
+                )),
+            }
+        }
+    }
+
     let task = match &o.task {
-        Some(p) => Task::parse(&std::fs::read(p).map_err(|e| {
-            HarnessDiagnostic::new("SPX-HPD081", format!("task {}: {e}", p.display()))
-        })?)?,
+        Some(p) => Task::parse_with(
+            &std::fs::read(p).map_err(|e| {
+                HarnessDiagnostic::new("SPX-HPD081", format!("task {}: {e}", p.display()))
+            })?,
+            &budget.tokenizers,
+        )?,
         None => Task::default(),
     };
     let apply_policy = match &o.apply_policy {
@@ -412,28 +439,6 @@ pub fn run_with(
         }
         skill_prompt(&config, env, &task, set, &snapshot.root)
     };
-    let mut budget = super::budget::BudgetConfig::default();
-    if let (Some(py), Some(script)) = (&o.tokenizer_python, &o.tokenizer_script) {
-        let mut tenv = std::collections::BTreeMap::new();
-        tenv.insert("PATH".to_string(), "/usr/bin:/bin".to_string());
-        if let Some(c) = &o.tokenizer_cache {
-            tenv.insert(
-                "TIKTOKEN_CACHE_DIR".to_string(),
-                c.to_string_lossy().into_owned(),
-            );
-        }
-        for name in &o.tokenizers {
-            let args = vec![script.to_string_lossy().into_owned(), name.clone()];
-            match crate::observe::ExternalTokenizer::spawn(py, &args, &tenv) {
-                Ok(t) => budget.tokenizers.add(Box::new(t)),
-                Err(e) => notes.push(format!(
-                    "tokenizer `{name}` unavailable ({}); counts are unknown, admission uses the utf8-bytes upper bound",
-                    e.message
-                )),
-            }
-        }
-    }
-
     let mut check_tokenizer: Option<crate::command_view::ViewTokenizer> = None;
     // HN-12: the check stage measures delivered views with a named tokenizer
     // (its own helper instance; the first named tokenizer when several).
@@ -646,12 +651,8 @@ fn skill_prompt(
                 ids.push(r.id.clone());
             }
             if policy.is_compact() {
-                let rep = crate::skills::cost_profile::report_for(
-                    ds.set(),
-                    &policy,
-                    &task.family,
-                    &sel,
-                );
+                let rep =
+                    crate::skills::cost_profile::report_for(ds.set(), &policy, &task.family, &sel);
                 cost_report = Some(rep.to_json());
             }
             text = sel.text;

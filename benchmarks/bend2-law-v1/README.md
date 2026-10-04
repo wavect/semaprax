@@ -52,6 +52,25 @@ repositories, generate source fixtures, publish results, or make a
 superiority claim. Unimplemented fixture/tool combinations remain
 `unavailable` in the result rather than a favorable score.
 
+## Transparent report
+
+Render a reviewable report from a completed, failed, or unavailable benchmark
+receipt with:
+
+```sh
+python3 benchmarks/bend2-law-v1/report.py \
+  --benchmark-result /secure/local/bend2-result.json \
+  --output /secure/local/bend2-report.json
+```
+
+The report binds the exact input receipt, manifest, command, and fixture
+digests; retains the raw warm samples and their per-path p50, p95, mean,
+range, and population standard deviation; carries every law-gaming result;
+and lists the local execution trust boundary. It never merges the ordinary
+Bend checker, Bend verdict kernel, SEMAPRAX SMT, external Lean, or SEMAPRAX
+runtime into a score. Failed, timed-out, and unavailable routes remain visible
+nonresults, and the report cannot emit a winner or superiority claim.
+
 The deterministic no-tool input receipt is useful for review before a local
 toolchain run:
 

@@ -197,6 +197,18 @@ fn finish_build(
         &program_refs,
         &agent_definitions,
     )?;
+    // The closed indexed Future profile has two independent retained products:
+    // its one source-local Future root and the exact Regex/Url Web exports
+    // whose selected Rust paths feed the generated M1 packages.  Retain their
+    // authenticated union so the native SDK subject cannot silently lose the
+    // indexed import facts while rendering either package.
+    let mut indexed_future_roots = Vec::new();
+    if manifest.project_profile() == super::ProjectProfile::SourceLocalFutureIndexedRustV1 {
+        indexed_future_roots.extend_from_slice(manifest.web_exports());
+        indexed_future_roots.extend_from_slice(manifest.rust_async_exports());
+        indexed_future_roots.sort();
+        indexed_future_roots.dedup();
+    }
     let semantic_parts = graph.into_project_semantic_parts(
         &workspace_revision,
         graph_source_facts,
@@ -204,7 +216,11 @@ fn finish_build(
         manifest.entry(),
         manifest.test_module(),
         crate::workspace_graph::ProjectWebRoots {
-            stable_ids: if manifest.project_profile().is_source_local_future() {
+            stable_ids: if manifest.project_profile()
+                == super::ProjectProfile::SourceLocalFutureIndexedRustV1
+            {
+                &indexed_future_roots
+            } else if manifest.project_profile().is_source_local_future() {
                 manifest.rust_async_exports()
             } else if manifest.project_profile().is_filesystem()
                 || manifest.project_profile() == super::ProjectProfile::EnvironmentIoV1

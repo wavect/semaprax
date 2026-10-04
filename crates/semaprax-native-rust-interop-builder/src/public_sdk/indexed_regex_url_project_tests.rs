@@ -249,6 +249,25 @@ fn closed_ri13_profile_binds_indexed_m1_signatures_before_future_admission() {
     })
     .unwrap();
 
+    let packages = prepare_indexed_regex_url_project_packages(
+        &manifest_path,
+        &regex,
+        &url,
+        "regex.run",
+        "url.run",
+        REGEX_LOCK,
+        URL_LOCK,
+    )
+    .unwrap();
+    assert_eq!(
+        packages.regex.project_subject_digest(),
+        packages.subject_digest
+    );
+    assert_eq!(
+        packages.url.project_subject_digest(),
+        packages.subject_digest
+    );
+
     let source_drift = source.replace("example.invalid", "other.invalid");
     fs::write(root.0.join("src/app.spx"), source_drift).unwrap();
     let refusal =
@@ -325,5 +344,8 @@ fn closed_ri13_profile_binds_indexed_m1_signatures_before_future_admission() {
         with_authenticated_indexed_regex_url_project(&manifest_path, &regex, &url, |_| Ok(()))
             .unwrap_err();
     assert_eq!(refusal[0].code, "SPX-J100");
-    assert!(refusal[0].message.contains("rust-dependencies"));
+    assert_eq!(
+        refusal[0].message,
+        "Package Manifest v1 rust_async requires a source-local-future profile and one valid stable ID"
+    );
 }

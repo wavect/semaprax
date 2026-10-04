@@ -1,0 +1,15 @@
+{
+  "schema": "semaprax.bend2-law-benchmark.local-replay-pins.v1",
+  "bend_root": "/absolute/path/to/bend-checkout",
+  "bend_commit": "947db722640c86247849343657bf2f7ef01cb7f1",
+  "semaprax_build_commit": "0000000000000000000000000000000000000000",
+  "tools": {
+    "bun": {"path": "/absolute/path/to/bun", "sha256": "sha256:REPLACE_WITH_64_HEX_DIGEST"},
+    "semaprax": {"path": "/absolute/path/to/semaprax", "sha256": "sha256:REPLACE_WITH_64_HEX_DIGEST"},
+    "z3": {"path": "/absolute/path/to/z3", "sha256": "sha256:REPLACE_WITH_64_HEX_DIGEST"},
+    "clang": {"path": "/absolute/path/to/clang", "sha256": "sha256:REPLACE_WITH_64_HEX_DIGEST"},
+    "lean": {"path": "/absolute/path/to/lean", "sha256": "sha256:REPLACE_WITH_64_HEX_DIGEST"},
+    "lean_test_binary": {"path": "/absolute/path/to/prebuilt-test-binary", "sha256": "sha256:REPLACE_WITH_64_HEX_DIGEST"},
+    "bendtt": {"path": "/absolute/path/to/.bend/bendtt/CACHE_KEY/bendtt", "sha256": "sha256:REPLACE_WITH_64_HEX_DIGEST"}
+  }
+}

@@ -1,5 +1,67 @@
 # Bend 2 law benchmark (v1)
 
+## LAW16 unified replay and fresh capture
+
+`law16_replay.py` provides two modes. Retained mode is an offline integrity and
+semantic replay of existing receipts; it re-renders the LAW16 report, verifies
+the v2 guarded-i64 profile, the Bend all-finite-U32 sort proof, the LAW15 Lean
+capsule, and the bounded-balance agent capsule when its complete raw artifact
+set is present, and records digests for the retained raw evidence. A missing
+artifact marks that cell incomplete and returns failure. It does not re-run a
+tool or reproduce execution time:
+
+```sh
+python3 benchmarks/bend2-law-v1/law16_replay.py \
+  --verify-retained \
+  --output-dir /secure/local/law16-retained-replay
+```
+
+Fresh capture delegates to the existing per-route runners. It requires a local
+pin file based on [`law16-replay-pins.example.json`](law16-replay-pins.example.json).
+The exact pinned Bend checkout, Bun, SEMAPRAX executable, Z3, `clang`, Lean,
+prebuilt Lean test binary, and cached BendTT kernel must exist and match their
+SHA-256 values. Bend source must be clean at the pinned commit. The supplied
+SEMAPRAX source commit is caller-declared and is not a build attestation. No
+Cargo build is run. Fresh capture writes new raw output and a digest inventory
+under a new directory:
+
+```sh
+python3 benchmarks/bend2-law-v1/law16_replay.py \
+  --execute --pins /secure/local/law16-replay-pins.json \
+  --output-dir /secure/local/law16-fresh-capture
+```
+
+This executes the Boolean ordinary-check, verdict/Z3, and peak-RSS routes; the
+guarded-i64 balance/sort and domain controls; the Bend universal U32 sort proof;
+and the supplemental LAW15 Lean profile. The guarded-i64 control run is a
+supplemental route and does not admit the original checked-u32 manifest. The
+Bend proof establishes universal U32 sort laws for its exact Bend source; it
+has no matching `law16.*` SEMAPRAX source certificate or timing comparison.
+The LAW15 Lean profile is likewise a distinct, Bend-incomparable source proof.
+The retained bounded-balance ten-pair trial is re-authenticated, not rerun. Its
+current capsule references one absent cache-replay artifact, so the unified
+command currently labels that retained cell incomplete and exits nonzero; it
+does not turn the gap into a pass.
+
+The Boolean nine-pair continuation (with retained pilot ordinal 1 as the tenth
+pair) makes new Codex calls and is deliberately excluded by default. Request
+it explicitly with `--include-agent-campaign`; the pin file must then also
+contain a SHA-pinned `tools.codex` executable, and its path must match the
+runner's fixed local Bend/Bun/SEMAPRAX/Z3 paths:
+
+```sh
+python3 benchmarks/bend2-law-v1/law16_replay.py \
+  --execute --pins /secure/local/law16-replay-pins.json \
+  --include-agent-campaign \
+  --output-dir /secure/local/law16-fresh-capture-with-agents
+```
+
+This flag runs nine fresh pairs; it does not replace the pilot or turn one
+campaign into ten new trials. Both modes preserve failed/incomplete status and
+publish no winner. AC1 remains partial until the fresh-capture sequence has
+been exercised successfully with the required pins; retained-evidence replay
+alone does not satisfy it.
+
 This is the reproducible benchmark harness for issue #392. It records a
 comparison only when a local command file pins both checked-out source trees,
 their exact commits, tools, and commands. The committed manifest pins Bend 2

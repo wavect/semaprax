@@ -777,7 +777,7 @@ function activate(context) {
     },
     async stopHotReload() { const controller = hotReload; controller?.stop(); const detail = controller?.detail(); hotReload = undefined; status.text = detail?.event === 'unknown' ? `SEMAPRAX hot reload: unknown · ${detail.detail}` : 'SEMAPRAX hot reload: stopped'; },
     async hotReloadStatus() { if (!hotReload) throw new Error('Start Hot Reload first'); hotReload.request('status'); },
-    async hotReloadDetail() { if (!hotReload) throw new Error('Start Hot Reload first'); const detail = hotReload.detail(); await vscode.window.showInformationMessage(`Hot reload ${detail.event}: ${detail.detail}. Active: ${detail.active || 'none'}; pending: ${detail.pending || 'none'}; editor dirty: ${detail.dirty ? 'yes' : 'no'}; saved source changed: ${detail.sourceChanged ? 'yes' : 'no'}`); return detail; },
+    async hotReloadDetail() { if (!hotReload) throw new Error('Start Hot Reload first'); const detail = hotReload.detail(); void vscode.window.showInformationMessage(`Hot reload ${detail.event}: ${detail.detail}. Active: ${detail.active || 'none'}; pending: ${detail.pending || 'none'}; editor dirty: ${detail.dirty ? 'yes' : 'no'}; saved source changed: ${detail.sourceChanged ? 'yes' : 'no'}`); return detail; },
     async hotReloadPlan() { if (!hotReload) throw new Error('Start Hot Reload first'); hotReload.request('plan'); },
     async hotReloadActivate() { if (!hotReload) throw new Error('Start Hot Reload first'); hotReload.request('activate'); },
     async hotReloadInvoke() { if (!hotReload) throw new Error('Start Hot Reload first'); saved(); hotReload.request('invoke'); },

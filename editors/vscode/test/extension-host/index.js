@@ -122,8 +122,27 @@ async function run() {
   const startedDetail = await api.execute('hotReloadDetail');
   assert.equal(startedDetail.dirty, false);
   assert.equal(startedDetail.sourceChanged, false);
-  await api.execute('hotReloadStatus');
-  await waitForHotReload(api, 'status');
+  const app = path.join(folder.uri.fsPath, 'src', 'app.spx');
+  const originalApp = fs.readFileSync(app, 'utf8');
+  try {
+    // B preserves the public callable shape and checked behavior while changing
+    // its source; C is deliberately malformed and must leave B active.
+    fs.writeFileSync(app, originalApp.replace('multiply(6, 7)', 'multiply(6, 8)'));
+    await api.execute('hotReloadPlan');
+    const admittedB = await waitForHotReload(api, 'candidate_admitted');
+    assert.match(admittedB.pending, /^sha256:[0-9a-f]{64}$/);
+    assert.notEqual(admittedB.pending, startedReload.active);
+    await api.execute('hotReloadActivate');
+    const activatedB = await waitForHotReload(api, 'activated');
+    assert.equal(activatedB.active, admittedB.pending);
+    fs.writeFileSync(app, 'not valid SEMAPRAX source\n');
+    await api.execute('hotReloadPlan');
+    const rejectedC = await waitForHotReload(api, 'candidate_rejected');
+    assert.equal(rejectedC.active, activatedB.active);
+    assert.equal(rejectedC.pending, null);
+  } finally {
+    fs.writeFileSync(app, originalApp);
+  }
   await api.execute('stopHotReload');
   assert.equal(api.state().hotReload, null);
 

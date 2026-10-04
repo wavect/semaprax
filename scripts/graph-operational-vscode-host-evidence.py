@@ -145,7 +145,7 @@ def verify_viewer_assets(vsix, installed, standalone):
                 raise Failure(f"guide standalone HTML omits the exact Explorer asset: {name}")
 
 def main():
-    ap=argparse.ArgumentParser(); ap.add_argument("--vscode-app",required=True); ap.add_argument("--node"); ap.add_argument("--output"); ap.add_argument("--build-target")
+    ap=argparse.ArgumentParser(); ap.add_argument("--vscode-app",required=True); ap.add_argument("--node"); ap.add_argument("--output"); ap.add_argument("--build-target"); ap.add_argument("--compiler")
     ns=ap.parse_args(); clean()
     commit=git("rev-parse","HEAD^{commit}"); tree=git("rev-parse","HEAD^{tree}"); tags=git("tag","--points-at",commit).splitlines()
     inputs=[repo_row(x) for x in FILES]
@@ -169,11 +169,16 @@ def main():
     for name,expected in ((b"tests",NODE_TEST_COUNT),(b"pass",NODE_TEST_COUNT),(b"fail",0),(b"skipped",0)):
         rows=re.findall(rb"^# "+name+rb" ([0-9]+)$",node_log,re.MULTILINE)
         if rows != [str(expected).encode()]: raise Failure(f"unexpected Node controller {name.decode()} inventory: {rows!r}")
-    build_temp=None if ns.build_target else tempfile.TemporaryDirectory(prefix="semaprax-vscode-build-",dir="/private/tmp")
-    build_target=Path(ns.build_target).resolve() if ns.build_target else Path(build_temp.name)/"target"
-    build_env=os.environ.copy(); build_env.update({"CARGO_NET_OFFLINE":"true","CARGO_INCREMENTAL":"0","CARGO_TERM_COLOR":"never","RUSTC":rustc,"CARGO_TARGET_DIR":str(build_target)})
-    build_log=command([cargo,"build","--locked","--offline","-p","semaprax","--bin","semaprax"],"compiler build",env=build_env,timeout=BUILD_TIMEOUT)
-    compiler=(build_target/"debug/semaprax").resolve(strict=True); compiler_before=file_row(compiler)
+    if ns.compiler:
+        compiler=Path(ns.compiler).resolve(strict=True)
+        build_log=b"reused selected compiler; no Cargo build\n"
+    else:
+        build_temp=None if ns.build_target else tempfile.TemporaryDirectory(prefix="semaprax-vscode-build-",dir="/private/tmp")
+        build_target=Path(ns.build_target).resolve() if ns.build_target else Path(build_temp.name)/"target"
+        build_env=os.environ.copy(); build_env.update({"CARGO_NET_OFFLINE":"true","CARGO_INCREMENTAL":"0","CARGO_TERM_COLOR":"never","RUSTC":rustc,"CARGO_TARGET_DIR":str(build_target)})
+        build_log=command([cargo,"build","--locked","--offline","-p","semaprax","--bin","semaprax"],"compiler build",env=build_env,timeout=BUILD_TIMEOUT)
+        compiler=(build_target/"debug/semaprax").resolve(strict=True)
+    compiler_before=file_row(compiler)
     with tempfile.TemporaryDirectory(prefix="semaprax-vscode-host-",dir="/private/tmp") as td:
         area=Path(td); workspace=area/"workspace"; shutil.copytree(ROOT/"examples/calculator-project",workspace)
         policy=area/"policy.json"; policy.write_bytes(canonical(POLICY))

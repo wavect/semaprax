@@ -384,8 +384,14 @@ fn write_json(mode: OutputMode, output: &mut impl Write, value: Value) -> Result
             .unwrap_or_else(|| "-".to_owned());
         let revision = value["active_project_revision"].as_str().unwrap_or("-");
         let message = value["message"].as_str().unwrap_or("");
+        let terminal = value["terminal_uncertainty"].as_bool().unwrap_or(false);
+        let terminal = if terminal {
+            "terminal_uncertainty; "
+        } else {
+            ""
+        };
         let line = format!(
-            "SEMAPRAX dev {event}: generation {generation}; active {revision}; {message}\n"
+            "SEMAPRAX dev {event}: generation {generation}; active {revision}; {terminal}{message}\n"
         );
         return output
             .write_all(line.as_bytes())
@@ -530,6 +536,57 @@ mod tests {
         assert!(rendered.contains("SEMAPRAX dev status"));
         assert!(!rendered.contains('{'));
         fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn source_agent_lane_refuses_start_without_creating_a_session() {
+        let root = fixture();
+        let input = concat!(
+            "{\"schema\":\"semaprax.hot-reload-control.v1\",\"id\":1,\"op\":\"start\"}\n",
+            "{\"schema\":\"semaprax.hot-reload-control.v1\",\"id\":2,\"op\":\"status\"}\n",
+            "{\"schema\":\"semaprax.hot-reload-control.v1\",\"id\":3,\"op\":\"stop\"}\n"
+        );
+        let mut output = Vec::new();
+        run_jsonl(
+            root.join("semaprax.toml"),
+            io::Cursor::new(input),
+            &mut output,
+            OutputMode::Jsonl,
+            Lane::SourceAgentUnsupported,
+        )
+        .unwrap();
+        let rows = String::from_utf8(output)
+            .unwrap()
+            .lines()
+            .map(|line| serde_json::from_str::<Value>(line).unwrap())
+            .collect::<Vec<_>>();
+        assert_eq!(rows[0]["event"], "rejected");
+        assert_eq!(
+            rows[0]["message"],
+            "source-Agent development sessions require the authenticated source-live migration adapter"
+        );
+        assert_eq!(rows[1]["message"], "session is not started");
+        assert_eq!(rows[2]["event"], "stopped");
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn human_terminal_uncertainty_matches_the_machine_field() {
+        let value = json!({
+            "schema": SCHEMA,
+            "id": 7,
+            "event": "activation_rejected",
+            "generation": 3,
+            "active_project_revision": "sha256:active",
+            "terminal_uncertainty": true,
+            "watch_state": "failed",
+        });
+        let mut output = Vec::new();
+        write_json(OutputMode::Human, &mut output, value).unwrap();
+        let rendered = String::from_utf8(output).unwrap();
+        assert!(rendered.contains("activation_rejected"));
+        assert!(rendered.contains("terminal_uncertainty"));
+        assert!(rendered.contains("sha256:active"));
     }
 
     #[test]

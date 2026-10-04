@@ -57,8 +57,15 @@ returns.
 `invoke` explicitly runs the current prepared interpreter entry after a
 successful start or activation; a save itself never runs it. The source-Agent
 handoff decision remains a migration-required report until the authenticated
-source-live contract owns its execution. This adapter neither starts an Agent
-runtime nor treats a handoff selection as activation authority.
+source-live contract owns its execution. `--source-agent` therefore refuses
+`start` without retaining a session: the CLI has no checkpoint, proposal
+source, read operation, checkpoint store, clock, or cancellation authority to
+provide to that contract. This adapter neither starts an Agent runtime nor
+treats a handoff selection as activation authority.
+
+Both output modes expose terminal uncertainty. JSONL retains the closed
+`terminal_uncertainty` boolean; human mode prints `terminal_uncertainty` on
+the corresponding status line. Neither form implies rollback or retry.
 
 Invalid, missing, inaccessible, over-bound, escaping, or symlinked inputs are
 reported by the Project admission owner as a rejected candidate. The prepared

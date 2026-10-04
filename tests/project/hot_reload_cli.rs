@@ -52,6 +52,24 @@ fn request(id: u64, op: &str) -> String {
     format!("{{\"schema\":\"semaprax.hot-reload-control.v1\",\"id\":{id},\"op\":\"{op}\"}}\n")
 }
 
+fn send(input: &mut impl Write, id: u64, op: &str) {
+    input.write_all(request(id, op).as_bytes()).unwrap();
+    input.flush().unwrap();
+}
+
+fn receive(output: &mut impl BufRead) -> Value {
+    let mut line = String::new();
+    output.read_line(&mut line).unwrap();
+    assert!(line.len() <= 8192, "response exceeds the control bound");
+    serde_json::from_str(&line).unwrap()
+}
+
+fn rewrite(path: &std::path::Path, old: &str, new: &str) {
+    let source = fs::read_to_string(path).unwrap();
+    assert!(source.contains(old), "fixture source is unexpectedly stale");
+    fs::write(path, source.replacen(old, new, 1)).unwrap();
+}
+
 #[test]
 fn dev_jsonl_child_handles_split_coalesced_eof_stop_and_bounded_output() {
     let fixture = Fixture::new();
@@ -62,6 +80,7 @@ fn dev_jsonl_child_handles_split_coalesced_eof_stop_and_bounded_output() {
     stdin.flush().unwrap();
     stdin.write_all(&start.as_bytes()[11..]).unwrap();
     let mut input = request(2, "status");
+    input.push_str(&request(2, "status"));
     input.push_str(&request(3, "invoke"));
     input.push_str(&request(4, "stop"));
     stdin.write_all(input.as_bytes()).unwrap();
@@ -88,11 +107,13 @@ fn dev_jsonl_child_handles_split_coalesced_eof_stop_and_bounded_output() {
         vec![
             Some("started"),
             Some("status"),
+            Some("rejected"),
             Some("invoked"),
             Some("stopped")
         ]
     );
-    assert_eq!(rows[2]["invocation"]["outcome"]["kind"], "returned");
+    assert_eq!(rows[2]["message"], "request id is stale");
+    assert_eq!(rows[3]["invocation"]["outcome"]["kind"], "returned");
 
     let mut eof = fixture.child();
     eof.stdin
@@ -130,4 +151,57 @@ fn dev_jsonl_child_rejects_malformed_and_oversized_frames() {
         .collect::<Vec<_>>();
     assert_eq!(rows[0]["event"], "rejected");
     assert_eq!(rows[1]["message"], "control frame exceeds its bound");
+}
+
+#[test]
+fn dev_jsonl_child_keeps_b_active_when_invalid_c_is_rejected() {
+    let fixture = Fixture::new();
+    let mut child = fixture.child();
+    let mut input = child.stdin.take().unwrap();
+    let mut output = BufReader::new(child.stdout.take().unwrap());
+
+    send(&mut input, 1, "start");
+    let a = receive(&mut output);
+    assert_eq!(a["event"], "started");
+    assert_eq!(a["generation"], 0);
+
+    rewrite(
+        &fixture.0.join("src/app.spx"),
+        "multiply(6, 7)",
+        "multiply(6, 8)",
+    );
+    send(&mut input, 2, "plan");
+    let b_plan = receive(&mut output);
+    assert_eq!(b_plan["event"], "candidate_admitted");
+    assert_eq!(b_plan["plan"]["decision"], "eligible_code_replacement");
+
+    send(&mut input, 3, "activate");
+    let b = receive(&mut output);
+    assert_eq!(b["event"], "activated");
+    assert_eq!(b["generation"], 1);
+
+    rewrite(
+        &fixture.0.join("src/app.spx"),
+        "multiply(6, 8)",
+        "multiply(",
+    );
+    send(&mut input, 4, "plan");
+    let invalid_c = receive(&mut output);
+    assert_eq!(invalid_c["event"], "candidate_rejected");
+    assert_eq!(invalid_c["generation"], 1);
+
+    send(&mut input, 5, "invoke");
+    let b_after_c = receive(&mut output);
+    assert_eq!(b_after_c["event"], "invoked");
+    assert_eq!(b_after_c["generation"], 1);
+    assert_eq!(
+        b_after_c["invocation"]["outcome"],
+        serde_json::json!({"kind":"returned","value":48})
+    );
+
+    send(&mut input, 6, "stop");
+    assert_eq!(receive(&mut output)["event"], "stopped");
+    drop(input);
+    let status = child.wait().unwrap();
+    assert!(status.success());
 }

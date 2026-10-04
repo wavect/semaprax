@@ -35,7 +35,7 @@ new exact inventory; they are never read directly by the adapter.
 
 `semaprax dev <semaprax.toml> --jsonl|--human [--interpreter|--source-agent]` starts no session until it receives a
 closed `semaprax.hot-reload-control.v1` `start` frame on standard input. Its
-only operations are `start`, `status`, `plan`, `activate`, and `stop`. Frames
+only operations are `start`, `status`, `plan`, `activate`, `invoke`, and `stop`. Frames
 have strictly increasing unsigned request IDs; unknown or duplicate fields,
 unknown operations, invalid UTF-8 JSON, and stale IDs are rejected. The adapter
 accepts at most 64 newline-delimited 4 KiB frames and emits at most 8 KiB per
@@ -62,3 +62,6 @@ A-to-B-to-invalid-C rejection, stale-plan refusal, manifest membership failure,
 symlink rejection, first-over-bound inventory refusal, event-generation
 exhaustion, and stop. These tests do not establish native-notification, hosted,
 editor, or production support.
+The source-built `project::hot_reload_cli` integration child also covers
+A-to-B activation, invalid-C refusal, and continued B invocation through the
+bounded JSONL control stream.

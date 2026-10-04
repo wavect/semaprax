@@ -121,7 +121,7 @@ def invoke(process, request_id, expected):
     return request_id + 1
 
 
-def plan_after_write(process, request_id, root, writes, expected_event):
+def plan_after_write(process, request_id, root, writes, expected_event, expected_decision="eligible_code_replacement", expected_reason=None):
     saved = time.perf_counter_ns()
     for source, destination in writes:
         shutil.copyfile(SUITE / "fixtures" / source, root / destination)
@@ -129,8 +129,10 @@ def plan_after_write(process, request_id, root, writes, expected_event):
     plan_ms, planned = reply(process, request_id, "plan")
     if planned.get("event") != expected_event:
         raise RuntimeError("unexpected candidate plan event: " + repr(planned.get("event")))
-    if expected_event == "candidate_admitted" and planned.get("plan", {}).get("decision") != "eligible_code_replacement":
-        raise RuntimeError("saved source was not admitted as a code-replacement candidate")
+    if expected_event == "candidate_admitted" and planned.get("plan", {}).get("decision") != expected_decision:
+        raise RuntimeError("saved source produced the wrong replacement decision")
+    if expected_reason is not None and planned.get("plan", {}).get("reason") != expected_reason:
+        raise RuntimeError("saved source produced the wrong replacement reason")
     return request_id + 1, {
         "write_ms": write_ms,
         "save_to_plan_response_ms": (time.perf_counter_ns() - saved) / 1_000_000,
@@ -162,10 +164,13 @@ def scenario(binary, scenario_id):
         request_id = invoke(process, request_id, {"kind": "returned", "value": 42})
         phases = []
         if scenario_id == "no-op":
+            saved = time.perf_counter_ns()
+            shutil.copyfile(SUITE / "fixtures/a/src/app.spx", root / "src/app.spx")
             plan_ms, planned = reply(process, request_id, "plan")
             if planned.get("event") != "unchanged":
                 raise RuntimeError("unchanged source did not produce an unchanged plan")
-            phases.append({"plan_control_round_trip_ms": plan_ms, "source_admission_check_ms": None,
+            phases.append({"save_to_plan_response_ms": (time.perf_counter_ns() - saved) / 1_000_000,
+                           "plan_control_round_trip_ms": plan_ms, "source_admission_check_ms": None,
                            "candidate_preparation_ms": None, "safe_point_wait_ms": 0.0,
                            "stage_limitations": ["no candidate is built for an unchanged Project"]})
             request_id += 1
@@ -179,9 +184,11 @@ def scenario(binary, scenario_id):
                 request_id = activate(process, request_id, phase); phases.append(phase)
                 request_id = invoke(process, request_id, {"kind": "returned", "value": expected})
         elif scenario_id == "multi-module-import-closure":
-            request_id, phase = plan_after_write(process, request_id, root, [("c/src/core.spx", "src/core.spx"), ("c/src/tests.spx", "src/tests.spx")], "candidate_admitted")
-            request_id = activate(process, request_id, phase); phases.append(phase)
-            request_id = invoke(process, request_id, {"kind": "returned", "value": 48})
+            request_id, phase = plan_after_write(process, request_id, root, [("c/src/core.spx", "src/core.spx"), ("c/src/tests.spx", "src/tests.spx")], "candidate_admitted", "unsupported_restart_required", "incompatible_closure")
+            phase["activation_control_round_trip_ms"] = None; phase["save_to_ack_ms"] = None
+            phase["decision"] = "unsupported_restart_required"; phase["reason"] = "incompatible_closure"
+            phases.append(phase)
+            request_id = invoke(process, request_id, {"kind": "returned", "value": 42})
         elif scenario_id == "failed-edit-repair":
             request_id, rejected = plan_after_write(process, request_id, root, [("invalid/src/app.spx", "src/app.spx")], "candidate_rejected")
             rejected["activation_control_round_trip_ms"] = None; rejected["save_to_ack_ms"] = None

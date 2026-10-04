@@ -18,10 +18,11 @@ benchmarks/hot-reload-v1/macos-pilot.sh \
 The Mac pilot refuses a non-macOS host and requires the CLI's embedded commit to
 match the current checkout before it runs. The runner creates a private temporary
 Project for every sample. Its scenario matrix records a cold small A→B session,
-a warm A→B→A cycle in one interpreter child, an unchanged no-op plan, a
-core-plus-test import-closure edit, and an invalid-edit rejection followed by B
-repair. Each successful edit requires `candidate_admitted`, `activated`, and
-the expected invocation result. The failed-edit case requires
+a warm A→B→A cycle in one interpreter child, an identical-byte save returning
+`unchanged`, a core-plus-test edit that refuses an incompatible callable closure
+and retains A, and an invalid-edit rejection followed by B repair. Each
+compatible edit requires `candidate_admitted`, `activated`, and the expected
+invocation result. The failed-edit case requires
 `candidate_rejected`, invokes the retained A result, then repairs to B. Every
 live scenario ends with the JSONL `stopped` reply and a zero child exit.
 

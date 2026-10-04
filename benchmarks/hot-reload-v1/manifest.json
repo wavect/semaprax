@@ -29,8 +29,8 @@
   "scenario_matrix": [
     {"id": "cold-small-a-to-b", "availability": "local", "description": "fresh interpreter session applies the small app A-to-B edit"},
     {"id": "warm-repeated-a-b-a", "availability": "local", "description": "one interpreter session applies B then returns to A"},
-    {"id": "no-op", "availability": "local", "description": "unchanged sources return the watcher unchanged event"},
-    {"id": "multi-module-import-closure", "availability": "local", "description": "core and its test module change together while the entry import closure remains active"},
+    {"id": "no-op", "availability": "local", "description": "saving identical source bytes returns the watcher unchanged event"},
+    {"id": "multi-module-import-closure", "availability": "local", "description": "core and test module changes together require restart when the callable closure is incompatible; active A remains usable"},
     {"id": "failed-edit-repair", "availability": "local", "description": "an invalid app edit is rejected, preserves A, then admits repaired B"}
   ],
   "required_test_counts": {"interpreter-save-to-ack": 1, "full-restart": 1, "authenticated-warm-restart": 1},

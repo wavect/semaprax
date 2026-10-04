@@ -285,3 +285,29 @@ bounded by the escalation count, the hard capacity and the remaining task budget
 `escalation_refused`. `r.context.target` reports chosen and omitted identities with reasons, the provenance map, the
 current target and the escalation log, plus `exhaustive: false` whenever anything was omitted. None of this enters
 the prompt. The cost unit is `tokens:<name>` when the first catalog model (`task.models`, else the configured model plans) has a mapped, provisioned tokenizer, and that model's `max_context` is the hard bound. Otherwise it is the labelled `bytes:byte-policy-upper-bound`. The `context_target_*` values are read in that unit. Required references come from the task seed, acceptance `stable_id`s, backtick-quoted identifiers in the goal and in diagnostics, and diagnostic paths, plus packet items labelled `required:`. Free prose is never mined for identifiers. The report lists them as `required_refs`. The handle path (`expand_context`) uses the same dedup and escalating merge as follow-ups. The final request fit still re-measures the routed model.
+
+## TC-06: model-facing repair feedback
+
+The repair loop keeps its raw four-entry failure history for the no-progress stops and the journal. The model sees
+`workflow::feedback::project`, a deterministic projection of that history:
+- The current failure is kept verbatim: stage, code, full message, the proposed operation, and check output.
+- Earlier failures are grouped by diagnostic digest, with attempts, stage, code, the rejected operation kinds, and a
+  first line capped at 120 bytes. A group identical to the current failure is marked `same_as_current`.
+- Oracle-stage diagnostics keep their full text and are dropped last.
+- Runs of identical output lines collapse to one line plus a count.
+- Accounting fields (output digests, delivered-token measurements, recovery handles) are reported, not prompted.
+
+A scratch-candidate failure is labelled `subject: rejected-scratch-candidate` with its `candidate_revision` and
+`base_revision`, so it is never presented as a failure of the current revision. A bare proposal failure carries no
+extra labels.
+
+The allowance is 16 KiB of feedback; older groups are dropped first. A current failure larger than that may enlarge
+the allowance up to 64 KiB; beyond that the session stops with `SPX-HPD111`, so the error is never cut. With
+`[budget] feedback_max_tokens` (opt-in) and a named tokenizer mapped for the routed model, the allowance is in tokens
+instead, with a ceiling of 4x.
+
+No recovery handle is offered to the model (there is no tool loop); incomplete output is marked
+`recovery: "unavailable"`.
+
+`session.feedback_projection[]` reports `unit`, `raw_cost`, `projected_cost`, the dropped groups, the current
+diagnostic digest, `enlarged_within_approval` and `recovery`.

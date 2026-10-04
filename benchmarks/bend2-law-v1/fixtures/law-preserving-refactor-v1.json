@@ -1,0 +1,1 @@
+{"schema":"semaprax.bend2-law-benchmark.fixture.v1","id":"law-preserving-refactor-v1","numeric_domain":"u32 checked","success":[{"input":12,"before":25,"after":25}],"attacks":{"law-dropped-during-refactor":[{"input":12,"before":25,"after":12}]}}

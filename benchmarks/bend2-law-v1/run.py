@@ -48,15 +48,26 @@ def load(path, schema):
     return value
 
 
-def require_manifest(manifest):
+def require_manifest(manifest, root):
     if set(manifest) != {"schema", "bend", "required_paths", "cells"}:
         raise ValueError("manifest keys are not exact")
     if manifest["required_paths"] != list(PATHS):
         raise ValueError("required execution paths changed")
     seen = set()
     for cell in manifest["cells"]:
-        if set(cell) != {"id", "numeric_domain", "laws", "attacks"} or not cell["laws"] or not cell["attacks"]:
+        if set(cell) != {"id", "fixture", "numeric_domain", "laws", "attacks"} or not cell["laws"] or not cell["attacks"]:
             raise ValueError("cell lacks equal-semantics laws or attacks")
+        fixture = root / cell["fixture"]
+        try:
+            fixture_value = json.loads(fixture.read_text())
+        except (OSError, json.JSONDecodeError):
+            raise ValueError("cell fixture is unavailable")
+        if (set(fixture_value) != {"schema", "id", "numeric_domain", "success", "attacks"}
+                or fixture_value["schema"] != "semaprax.bend2-law-benchmark.fixture.v1"
+                or fixture_value["id"] != cell["id"]
+                or fixture_value["numeric_domain"] != cell["numeric_domain"]
+                or set(fixture_value["attacks"]) != set(cell["attacks"])):
+            raise ValueError("cell fixture does not bind the declared semantics")
         if cell["id"] in seen:
             raise ValueError("duplicate cell")
         seen.add(cell["id"])
@@ -147,12 +158,13 @@ def main(argv=None):
     if args.samples < 1 or (args.samples < 30 and not args.pilot):
         parser.error("--samples must be at least 30 unless --pilot labels the smaller run")
     try:
-        manifest = load(args.manifest, MANIFEST_SCHEMA); require_manifest(manifest)
+        manifest = load(args.manifest, MANIFEST_SCHEMA); require_manifest(manifest, args.manifest.parent)
         commands = load(args.commands, COMMANDS_SCHEMA); require_commands(commands, manifest["bend"]["commit"])
     except (OSError, ValueError, json.JSONDecodeError) as error:
         parser.error(str(error))
     identity = identities(commands)
-    document = {"schema": SCHEMA, "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"), "manifest": {"path": str(args.manifest.resolve()), "sha256": digest(args.manifest)}, "commands_sha256": digest(args.commands), "identities": identity, "environment": commands["environment"], "configuration": {"samples": args.samples, "trial_class": "pilot" if args.pilot else "admitted", "timeout_seconds": args.timeout_seconds, "bend_no_telemetry": True}, "nonclaims": ["no cross-host or superiority claim", "ordinary Bend and verdict kernel are separate paths", "SMT, Lean, and runtime paths are separate"], "cells": []}
+    fixture_digests = {cell["id"]: digest(args.manifest.parent / cell["fixture"]) for cell in manifest["cells"]}
+    document = {"schema": SCHEMA, "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"), "manifest": {"path": str(args.manifest.resolve()), "sha256": digest(args.manifest)}, "fixture_digests": fixture_digests, "commands_sha256": digest(args.commands), "identities": identity, "environment": commands["environment"], "configuration": {"samples": args.samples, "trial_class": "pilot" if args.pilot else "admitted", "timeout_seconds": args.timeout_seconds, "bend_no_telemetry": True}, "nonclaims": ["no cross-host or superiority claim", "ordinary Bend and verdict kernel are separate paths", "SMT, Lean, and runtime paths are separate"], "cells": []}
     if any(row["status"] != "ok" for row in identity.values()):
         document["status"] = "unavailable"
         document["reason"] = "pinned subject identity is unavailable or drifted"

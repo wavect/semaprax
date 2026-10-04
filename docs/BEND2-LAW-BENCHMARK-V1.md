@@ -30,8 +30,16 @@ project incremental edit. It binds sort permutation/multiplicity plus
 sortedness, and balance conservation plus intended state change, closing the
 empty-sort and no-op-transfer loopholes at the harness boundary.
 
-No result is committed. Closure still requires real checked source fixtures
-for each declared `u32 checked` domain, a quiet-host 30-repetition run with
-both pinned checkouts, and agent trials with ten independent fixed-budget
-trials per admitted language/model plus token/cost event provenance. Runtime
-throughput and GPU scaling remain a separate family.
+Each cell has a digest-bound checked-`u32` input/output corpus under
+`benchmarks/bend2-law-v1/fixtures/`. It is language-neutral because the
+reviewed SEMAPRAX scalar profile does not admit `u32`; replacing it with its
+smaller `i32` profile would make the comparison unequal. Bend's pinned `U32`
+implementation/proof sources are also unavailable until its pinned executable
+and checkout are provisioned locally. These are explicit unavailable cells,
+not successful evidence.
+
+No result is committed. Closure still requires matched executable source and
+proof fixtures for each declared `u32 checked` domain, a quiet-host
+30-repetition run with both pinned checkouts, and agent trials with ten
+independent fixed-budget trials per admitted language/model plus token/cost
+event provenance. Runtime throughput and GPU scaling remain a separate family.

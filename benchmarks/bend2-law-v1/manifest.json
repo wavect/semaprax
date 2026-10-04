@@ -7,11 +7,11 @@
   },
   "required_paths": ["bend_normal", "bend_verdict", "semaprax_smt", "semaprax_lean", "semaprax_runtime"],
   "cells": [
-    {"id": "scalar-contract-bug-v1", "numeric_domain": "u32 checked", "laws": ["range", "postcondition"], "attacks": ["weakened-postcondition"]},
-    {"id": "structured-balance-transfer-v1", "numeric_domain": "u32 checked", "laws": ["conservation", "intended-state-change", "nonnegative-balances"], "attacks": ["no-op-transfer"]},
-    {"id": "supported-list-theorem-v1", "numeric_domain": "u32 checked", "laws": ["permutation-and-multiplicity", "sortedness"], "attacks": ["empty-sort"]},
-    {"id": "law-preserving-refactor-v1", "numeric_domain": "u32 checked", "laws": ["before-after-observational-equivalence"], "attacks": ["law-dropped-during-refactor"]},
-    {"id": "law-breaking-agent-edit-v1", "numeric_domain": "u32 checked", "laws": ["declared-law-inventory"], "attacks": ["agent-law-gaming"]},
-    {"id": "project-incremental-edit-v1", "numeric_domain": "u32 checked", "laws": ["unchanged-module-reuse", "changed-module-recheck"], "attacks": ["stale-cache-reuse"]}
+    {"id": "scalar-contract-bug-v1", "fixture": "fixtures/scalar-contract-bug-v1.json", "numeric_domain": "u32 checked", "laws": ["range", "postcondition"], "attacks": ["weakened-postcondition"]},
+    {"id": "structured-balance-transfer-v1", "fixture": "fixtures/structured-balance-transfer-v1.json", "numeric_domain": "u32 checked", "laws": ["conservation", "intended-state-change", "nonnegative-balances"], "attacks": ["no-op-transfer"]},
+    {"id": "supported-list-theorem-v1", "fixture": "fixtures/supported-list-theorem-v1.json", "numeric_domain": "u32 checked", "laws": ["permutation-and-multiplicity", "sortedness"], "attacks": ["empty-sort"]},
+    {"id": "law-preserving-refactor-v1", "fixture": "fixtures/law-preserving-refactor-v1.json", "numeric_domain": "u32 checked", "laws": ["before-after-observational-equivalence"], "attacks": ["law-dropped-during-refactor"]},
+    {"id": "law-breaking-agent-edit-v1", "fixture": "fixtures/law-breaking-agent-edit-v1.json", "numeric_domain": "u32 checked", "laws": ["declared-law-inventory"], "attacks": ["agent-law-gaming"]},
+    {"id": "project-incremental-edit-v1", "fixture": "fixtures/project-incremental-edit-v1.json", "numeric_domain": "u32 checked", "laws": ["unchanged-module-reuse", "changed-module-recheck"], "attacks": ["stale-cache-reuse"]}
   ]
 }

@@ -16,13 +16,18 @@ RUN = importlib.util.module_from_spec(SPEC); SPEC.loader.exec_module(RUN)
 
 class RunnerTests(unittest.TestCase):
     def manifest(self):
-        return {"schema": RUN.MANIFEST_SCHEMA, "bend": {"commit": "b", "telemetry_environment": {"BEND_NO_TELEMETRY": "1"}}, "required_paths": list(RUN.PATHS), "cells": [{"id": "sort-v1", "numeric_domain": "u32 checked", "laws": ["sortedness", "permutation-and-multiplicity"], "attacks": ["empty-sort"]}]}
+        return {"schema": RUN.MANIFEST_SCHEMA, "bend": {"commit": "b", "telemetry_environment": {"BEND_NO_TELEMETRY": "1"}}, "required_paths": list(RUN.PATHS), "cells": [{"id": "sort-v1", "fixture": "fixture.json", "numeric_domain": "u32 checked", "laws": ["sortedness", "permutation-and-multiplicity"], "attacks": ["empty-sort"]}]}
+
+    def fixture(self, root):
+        (root / "fixture.json").write_text(json.dumps({"schema": "semaprax.bend2-law-benchmark.fixture.v1", "id": "sort-v1", "numeric_domain": "u32 checked", "success": [{}], "attacks": {"empty-sort": [{}]}}))
 
     def test_manifest_requires_equal_laws_and_all_execution_paths(self):
-        manifest = self.manifest(); RUN.require_manifest(manifest)
-        manifest["cells"][0]["laws"] = []
-        with self.assertRaisesRegex(ValueError, "equal-semantics"):
-            RUN.require_manifest(manifest)
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory); self.fixture(root)
+            manifest = self.manifest(); RUN.require_manifest(manifest, root)
+            manifest["cells"][0]["laws"] = []
+            with self.assertRaisesRegex(ValueError, "equal-semantics"):
+                RUN.require_manifest(manifest, root)
 
     def test_commands_require_distinct_bend_paths_and_pinned_subjects(self):
         commands = {"schema": RUN.COMMANDS_SCHEMA, "bend": {"root": "/x", "commit": "b"}, "semaprax": {"root": "/y", "commit": "s"}, "environment": {field: field for field in RUN.ENVIRONMENT_FIELDS}, "commands": {path: ["tool", "{cell}", "{case}"] for path in RUN.PATHS}}
@@ -34,7 +39,7 @@ class RunnerTests(unittest.TestCase):
     def test_drifted_identity_writes_unavailable_not_a_win(self):
         with tempfile.TemporaryDirectory() as directory:
             root = pathlib.Path(directory); manifest = root / "manifest.json"; commands = root / "commands.json"; output = root / "out.json"
-            manifest.write_text(json.dumps(self.manifest()))
+            self.fixture(root); manifest.write_text(json.dumps(self.manifest()))
             commands.write_text(json.dumps({"schema": RUN.COMMANDS_SCHEMA, "bend": {"root": "/no-bend", "commit": "b"}, "semaprax": {"root": "/no-spx", "commit": "s"}, "environment": {field: field for field in RUN.ENVIRONMENT_FIELDS}, "commands": {path: ["missing", "{cell}", "{case}"] for path in RUN.PATHS}}))
             self.assertEqual(RUN.main(["--manifest", str(manifest), "--commands", str(commands), "--output", str(output)]), 1)
             self.assertEqual(json.loads(output.read_text())["status"], "unavailable")

@@ -19,6 +19,11 @@
   No Bend fixture or result is claimed: missing, drifted, timed-out, or
   semantically mismatched cells remain unavailable or failed.
 
+- Bind six checked-`u32` semantic fixture corpora into LAW-16 benchmark
+  results, including distinct acceptance and law-gaming inputs. SEMAPRAX's
+  admitted scalar profile lacks `u32`, so an `i32` substitute is explicitly
+  unavailable rather than represented as an equal implementation.
+
 - RI-08: add a distinct private `FnOnceI64() -> i64` source profile for retained
   owned Bytes plus immutable i64 captures, with graph v63, versioned cleanup
   identities, and aligned interpreter, C, Core Wasm and generated Rust carriers.

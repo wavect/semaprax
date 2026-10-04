@@ -1,0 +1,1 @@
+{"schema":"semaprax.bend2-law-benchmark.fixture.v1","id":"supported-list-theorem-v1","numeric_domain":"u32 checked","success":[{"input":[3,1,3,2],"output":[1,2,3,3]}],"attacks":{"empty-sort":[{"input":[3,1,3,2],"output":[]}]}}

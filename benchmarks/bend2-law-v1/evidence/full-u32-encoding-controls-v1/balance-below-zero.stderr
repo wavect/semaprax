@@ -1,0 +1,3 @@
+SEMAPRAX contract failure
+  contract: requires before.debit >= 0 && before.debit <= 4294967295 in law16.transfer
+  arguments: before = <data>, amount = 3

@@ -1,0 +1,41 @@
+{
+  "inspected_source": {
+    "observations": [
+      "each 64-operation batch iteration calls execute once per operation",
+      "the generated execute branch registers a one-shot callback per operation",
+      "the generated execute branch consumes that registration through call_typed per operation"
+    ],
+    "path": "examples/ri13-m3-local-http/src/bin/measure.rs",
+    "sha256": "sha256:78a625f655fb166d61bb626dc7d706ed5da7005782b402405930de1b9ae2afe4"
+  },
+  "limitations": [
+    "The receipt measures total route time and allocator requests; it does not time individual registration, checked-prefix, clone, or resume operations.",
+    "The source observations explain the repeated setup shape but do not assign an exact fraction of the measured regression to any one operation.",
+    "This local investigation is not a performance pass, a cross-platform result, or a nontrivial-batch threshold result."
+  ],
+  "measured": {
+    "direct_operations_per_second": 2725.82,
+    "generated_minus_handwritten_allocator_requests_per_operation": {
+      "allocated_bytes": 1988716.0,
+      "allocation_calls": 5176.0,
+      "deallocated_bytes": 1987907.0,
+      "deallocation_calls": 5172.0,
+      "reallocation_calls": 398.0
+    },
+    "generated_operations_per_second": 155.43,
+    "generated_to_handwritten_throughput_ratio": 0.0563,
+    "handwritten_operations_per_second": 2762.88,
+    "investigation_threshold": 0.9
+  },
+  "receipt": {
+    "checkout": "f80beb1336d226aceba19070229223cdc2407507",
+    "path": "/tmp/ri13-linux-evidence-f80beb133-final2/combined-receipt.json",
+    "sha256": "sha256:235871b0fd97454b88739a3bae4834f85ddea84cee3df5a93c3e998f049762a7"
+  },
+  "schema": "semaprax.ri13.m3-batch-investigation.v1",
+  "status": "investigation_required",
+  "workload": {
+    "body_bytes_per_operation": 2,
+    "operations_per_sample": 64
+  }
+}

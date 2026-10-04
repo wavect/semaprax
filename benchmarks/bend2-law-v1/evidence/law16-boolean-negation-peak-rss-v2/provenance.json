@@ -1,0 +1,179 @@
+{
+  "cold_cache": {
+    "reason": "RSS runs do not clear or verify host caches",
+    "status": "unavailable"
+  },
+  "commands": {
+    "bend_verdict": [
+      "/Users/kevin/.bun/bin/bun",
+      "/private/tmp/bend2-law-source/bend2/main.ts",
+      "/private/tmp/semaprax-law12-lane/benchmarks/bend2-law-v1/evidence/law16-boolean-negation-peak-rss-v2/bend-input.bend",
+      "--verdict"
+    ],
+    "semaprax_z3": [
+      "/private/tmp/semaprax-9a9db7a81",
+      "project-proof-check",
+      "/private/tmp/semaprax-law12-lane/benchmarks/bend2-law-v1/evidence/law16-boolean-negation-peak-rss-v2/semaprax-project/semaprax.toml",
+      "--tool",
+      "z3",
+      "--executable",
+      "/opt/homebrew/bin/z3",
+      "--version-line",
+      "Z3 version 4.12.5 - 64 bit",
+      "--host-profile",
+      "trusted-local",
+      "--source",
+      "src/app.spx",
+      "--declaration",
+      "app.negate",
+      "--ensures",
+      "0"
+    ]
+  },
+  "flags": {
+    "BEND_NO_TELEMETRY": "1",
+    "wrapper": [
+      "/usr/bin/time",
+      "-l"
+    ]
+  },
+  "host": {
+    "hardware": {
+      "cpu_brand": {
+        "argv": [
+          "/usr/sbin/sysctl",
+          "-n",
+          "machdep.cpu.brand_string"
+        ],
+        "exit_code": 0,
+        "stderr_utf8": "",
+        "stdout_utf8": "Apple M3 Pro\n"
+      },
+      "logical_cpu_count": {
+        "argv": [
+          "/usr/sbin/sysctl",
+          "-n",
+          "hw.logicalcpu"
+        ],
+        "exit_code": 0,
+        "stderr_utf8": "",
+        "stdout_utf8": "11\n"
+      },
+      "memory_bytes": {
+        "argv": [
+          "/usr/sbin/sysctl",
+          "-n",
+          "hw.memsize"
+        ],
+        "exit_code": 0,
+        "stderr_utf8": "",
+        "stdout_utf8": "19327352832\n"
+      },
+      "physical_cpu_count": {
+        "argv": [
+          "/usr/sbin/sysctl",
+          "-n",
+          "hw.physicalcpu"
+        ],
+        "exit_code": 0,
+        "stderr_utf8": "",
+        "stdout_utf8": "11\n"
+      }
+    },
+    "machine": "arm64",
+    "operating_system": {
+      "sw_vers": {
+        "argv": [
+          "/usr/bin/sw_vers"
+        ],
+        "exit_code": 0,
+        "stderr_utf8": "",
+        "stdout_utf8": "ProductName:\t\tmacOS\nProductVersion:\t\t26.5.1\nBuildVersion:\t\t25F80\n"
+      }
+    },
+    "probes": {
+      "uname": {
+        "argv": [
+          "/usr/bin/uname",
+          "-smr"
+        ],
+        "exit_code": 0,
+        "stderr_utf8": "",
+        "stdout_utf8": "Darwin 25.5.0 arm64\n"
+      }
+    },
+    "release": "25.5.0",
+    "system": "Darwin"
+  },
+  "schema": "semaprax.bend2-law-benchmark.boolean-negation-peak-rss-current.v2",
+  "status": "observed_current_checkout",
+  "tools": {
+    "bend_commit": {
+      "argv": [
+        "/usr/bin/git",
+        "-C",
+        "/private/tmp/bend2-law-source/bend2",
+        "rev-parse",
+        "HEAD"
+      ],
+      "exit_code": 0,
+      "stderr_utf8": "",
+      "stdout_utf8": "947db722640c86247849343657bf2f7ef01cb7f1\n"
+    },
+    "bend_main": {
+      "identity": {
+        "bytes": 34607,
+        "path": "/private/tmp/bend2-law-source/bend2/main.ts",
+        "sha256": "sha256:c48a0274e661a3e529933550752578768e8f029219d814073fbf86537271d475"
+      }
+    },
+    "bun": {
+      "identity": {
+        "bytes": 57940512,
+        "path": "/Users/kevin/.bun/bin/bun",
+        "sha256": "sha256:abe991b29c5151ab11b5344be65dee3a675b0a4a55b8fc493e3cfbe256e61781"
+      },
+      "version": {
+        "argv": [
+          "/Users/kevin/.bun/bin/bun",
+          "--version"
+        ],
+        "exit_code": 0,
+        "stderr_utf8": "",
+        "stdout_utf8": "1.2.5\n"
+      }
+    },
+    "semaprax": {
+      "identity": {
+        "bytes": 172081112,
+        "path": "/private/tmp/semaprax-9a9db7a81",
+        "sha256": "sha256:cc9dd3ca99a74dd973cbfb904621e27b801d8ddea6065873d24c14de9dee1d89"
+      },
+      "version": {
+        "argv": [
+          "/private/tmp/semaprax-9a9db7a81",
+          "--version"
+        ],
+        "exit_code": 0,
+        "stderr_utf8": "",
+        "stdout_utf8": "semaprax 0.7.0 (9a9db7a8117ac8d292b24ffd5671ec3333272290)\n"
+      }
+    },
+    "z3": {
+      "identity": {
+        "bytes": 23365455,
+        "path": "/opt/homebrew/bin/z3",
+        "sha256": "sha256:bbb24b8fed27552f7fb7cfdf0ed9101e6e24fd0cc0b9cfb945233b3f2ed333c5"
+      },
+      "version": {
+        "argv": [
+          "/opt/homebrew/bin/z3",
+          "--version"
+        ],
+        "exit_code": 0,
+        "stderr_utf8": "",
+        "stdout_utf8": "Z3 version 4.12.5 - 64 bit\n"
+      }
+    }
+  }
+}

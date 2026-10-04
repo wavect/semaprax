@@ -1,0 +1,194 @@
+{
+  "caller_owned_host_configuration": {
+    "linked": {
+      "count": 2,
+      "fragments": [
+        "m3::register",
+        "Ok::<i64, ()>(43)"
+      ],
+      "status": "disclosed"
+    },
+    "m3": {
+      "count": 3,
+      "fragments": [
+        "reqwest::Client::builder",
+        "reqwest::Url::parse",
+        "tokio::runtime::Builder"
+      ],
+      "status": "disclosed"
+    }
+  },
+  "comparison_harnesses": {
+    "m1": {
+      "comparison_rust_files": [
+        {
+          "authored_noncomment_lines": 238,
+          "escape_hatch_tokens": {
+            "unsafe": 9
+          },
+          "path": "ri13-m1-regex-url/consumer/src/bin/measure.rs",
+          "sha256": "sha256:158779d86a33966a10d3fe4a362be98664daf26cd83b37750487dbcc36dc5d1b"
+        }
+      ],
+      "handwritten_adapter_symbols": [
+        "HandwrittenRegex",
+        "HandwrittenUrl"
+      ],
+      "purpose": "direct-Rust and handwritten-adapter benchmark comparison; not a generated application ABI"
+    },
+    "m2": {
+      "comparison_rust_files": [
+        {
+          "authored_noncomment_lines": 226,
+          "escape_hatch_tokens": {
+            "unsafe": 9
+          },
+          "path": "ri13-m2-record-iterator/src/bin/measure.rs",
+          "sha256": "sha256:cd239b0ea8811e9a23df9a84246fa7dcf5287210fa362aa6a978ae8e40edb12e"
+        }
+      ],
+      "handwritten_adapter_symbols": [
+        "HandwrittenAdapter",
+        "HandwrittenRecordAdapter"
+      ],
+      "purpose": "direct-Rust and handwritten-adapter benchmark comparison; not a generated application ABI"
+    },
+    "m3": {
+      "comparison_rust_files": [
+        {
+          "authored_noncomment_lines": 447,
+          "escape_hatch_tokens": {
+            "unsafe": 9
+          },
+          "path": "ri13-m3-local-http/src/bin/measure.rs",
+          "sha256": "sha256:78a625f655fb166d61bb626dc7d706ed5da7005782b402405930de1b9ae2afe4"
+        }
+      ],
+      "handwritten_adapter_symbols": [
+        "Route::Handwritten"
+      ],
+      "purpose": "direct-Rust and handwritten-adapter benchmark comparison; not a generated application ABI"
+    }
+  },
+  "generated_code": {
+    "locations": {
+      "linked": [
+        "ri13-combined-app/linked/generated/"
+      ],
+      "m1": [
+        "ri13-m1-regex-url/generated/"
+      ],
+      "m2": [
+        "ri13-m2-record-iterator/generated/",
+        "ri13-m2-record-iterator/src/generated.rs",
+        "ri13-m2-record-iterator/src/semaprax_native_rust_interop_ffi.rs"
+      ],
+      "m3": [
+        "ri13-m3-local-http/src/generated.rs"
+      ]
+    },
+    "measurement_receipt_field": "generated_code_inventory",
+    "reason": "generated files are derived only by authenticated prepare; the measurement receipt records their SHA-256 values and byte counts after creation",
+    "status": "prepared_then_inventory_required"
+  },
+  "limitations": [
+    "line counts are a reproducible disclosure, not a usability or maintenance-quality score",
+    "comparison harnesses include direct and handwritten routes plus allocator instrumentation; their escape-hatch token counts are disclosed separately from application ABI escape hatches",
+    "the ledger does not count Cargo or dependency source, generated artifacts, or compiler internals",
+    "caller-owned host configuration remains explicit and does not grant generated code ambient authority"
+  ],
+  "milestones": {
+    "linked": {
+      "authored_noncomment_lines": 454,
+      "authored_rust_files": [
+        {
+          "authored_noncomment_lines": 143,
+          "path": "ri13-combined-app/linked/src/main.rs",
+          "sha256": "sha256:7f988c4851c48acaa730848c4bee4eaf7fbadbd8f3ecccbf06cb419dddcf1c62"
+        },
+        {
+          "authored_noncomment_lines": 195,
+          "path": "ri13-combined-app/linked/src/bin_prepare.rs",
+          "sha256": "sha256:61eb08f114484d3f110082362ccdd21a76d41f8791d3548fa23a8778cff78ee9"
+        },
+        {
+          "authored_noncomment_lines": 116,
+          "path": "ri13-combined-app/linked/build.rs",
+          "sha256": "sha256:3536283eb1300e0ad1f62d4d8be0996f2e82e8d24f364788734894fa8c44cf1b"
+        }
+      ],
+      "handwritten_abi_or_unsafe_escape_hatches": {
+        "count": 0,
+        "status": "refused"
+      }
+    },
+    "m1": {
+      "authored_noncomment_lines": 189,
+      "authored_rust_files": [
+        {
+          "authored_noncomment_lines": 13,
+          "path": "ri13-m1-regex-url/consumer/src/main.rs",
+          "sha256": "sha256:760fe5505b4ebe5b28971753d07dffdd022a3564d1b1227257de7fc33e6e456e"
+        },
+        {
+          "authored_noncomment_lines": 47,
+          "path": "ri13-m1-regex-url/consumer/build.rs",
+          "sha256": "sha256:f6b2b0204cfa173ed600338809beaa13b5052aabd7c9885d3b01b72f9ec93320"
+        },
+        {
+          "authored_noncomment_lines": 129,
+          "path": "ri13-m1-regex-url/prepare/src/main.rs",
+          "sha256": "sha256:5e79f19cadbf9b3cdb4c2d33ecd5c6f0b668d97e4c830cd9774fed047b689446"
+        }
+      ],
+      "handwritten_abi_or_unsafe_escape_hatches": {
+        "count": 0,
+        "status": "refused"
+      }
+    },
+    "m2": {
+      "authored_noncomment_lines": 129,
+      "authored_rust_files": [
+        {
+          "authored_noncomment_lines": 49,
+          "path": "ri13-m2-record-iterator/src/bin/consumer.rs",
+          "sha256": "sha256:e6cafcf307ebcd9778a39cb19873581caafd78429136771470022bd498f4d80e"
+        },
+        {
+          "authored_noncomment_lines": 48,
+          "path": "ri13-m2-record-iterator/src/bin/prepare.rs",
+          "sha256": "sha256:47e6cb9243e63817103460cae9f46a6e3738e25935124e0b58d6fc88a24b029c"
+        },
+        {
+          "authored_noncomment_lines": 32,
+          "path": "ri13-m2-record-iterator/build.rs",
+          "sha256": "sha256:b24bac5b7eea1f4b894e37e525a21e65ebc0b8bbed5140cb4242ea3445a48785"
+        }
+      ],
+      "handwritten_abi_or_unsafe_escape_hatches": {
+        "count": 0,
+        "status": "refused"
+      }
+    },
+    "m3": {
+      "authored_noncomment_lines": 380,
+      "authored_rust_files": [
+        {
+          "authored_noncomment_lines": 360,
+          "path": "ri13-m3-local-http/src/bin/consumer.rs",
+          "sha256": "sha256:dcf0b55e776709d33c59bfd921fab338a5a28636936f36556bc7581099a2e824"
+        },
+        {
+          "authored_noncomment_lines": 20,
+          "path": "ri13-m3-local-http/src/bin/prepare.rs",
+          "sha256": "sha256:c961a7b4c34f4ac2fabb9c8825e91ae530e4a64a99e185cd6793e25dcfe3eeff"
+        }
+      ],
+      "handwritten_abi_or_unsafe_escape_hatches": {
+        "count": 0,
+        "status": "refused"
+      }
+    }
+  },
+  "schema": "semaprax.ri13.developer-friction-ledger.v2"
+}

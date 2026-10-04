@@ -1,0 +1,1560 @@
+{
+  "batch_throughput": {
+    "raw_csv_sha256": "b8832137056ace05eefe1b5cf01bf916576b237afc16311c033a5275b9aa2419",
+    "routes": {
+      "direct_rust": {
+        "allocator_requests_per_batch": {
+          "allocated_bytes": 2896598.4,
+          "allocation_calls": 5634.4,
+          "deallocated_bytes": 2896598.4,
+          "deallocation_calls": 5634.4,
+          "reallocation_calls": 448
+        },
+        "body_bytes_per_operation": 2,
+        "mean_batch_ns": 18207624.8,
+        "normalized_operations_per_second": 3515.01,
+        "operations_per_sample": 64,
+        "p50_batch_ns": 17681834.0,
+        "p90_batch_ns": 19839432.8,
+        "p99_batch_ns": 33683782.1,
+        "total_operations": 960
+      },
+      "generated_semaprax": {
+        "allocator_requests_per_batch": {
+          "allocated_bytes": 130171129.6,
+          "allocation_calls": 336897.6,
+          "deallocated_bytes": 130119353.6,
+          "deallocation_calls": 336641.6,
+          "reallocation_calls": 25920
+        },
+        "body_bytes_per_operation": 2,
+        "mean_batch_ns": 199290869.5,
+        "normalized_operations_per_second": 321.14,
+        "operations_per_sample": 64,
+        "p50_batch_ns": 186855708.0,
+        "p90_batch_ns": 237179058.0,
+        "p99_batch_ns": 249891599.1,
+        "total_operations": 960
+      },
+      "handwritten_adapter": {
+        "allocator_requests_per_batch": {
+          "allocated_bytes": 2903732.8,
+          "allocation_calls": 5636.1,
+          "deallocated_bytes": 2903732.8,
+          "deallocation_calls": 5636.1,
+          "reallocation_calls": 448
+        },
+        "body_bytes_per_operation": 2,
+        "mean_batch_ns": 16546419.3,
+        "normalized_operations_per_second": 3867.91,
+        "operations_per_sample": 64,
+        "p50_batch_ns": 16817083.0,
+        "p90_batch_ns": 19429491.6,
+        "p99_batch_ns": 20374329.4,
+        "total_operations": 960
+      }
+    },
+    "samples_per_route": 15
+  },
+  "batch_throughput_measurement_command": {
+    "command": [
+      "cargo",
+      "run",
+      "--locked",
+      "--offline",
+      "--quiet",
+      "--manifest-path",
+      "examples/ri13-m3-local-http/Cargo.toml",
+      "--bin",
+      "measure",
+      "--",
+      "batch"
+    ],
+    "elapsed_ns": 6294369250,
+    "raw_artifacts": {
+      "stderr": {
+        "bytes": 1088,
+        "path": "43-m3-batch-throughput.stderr",
+        "sha256": "sha256:ed862273e0231569a78a51cfb0f9287158dac81d41a4293ab2297df2899d707b"
+      },
+      "stdout": {
+        "bytes": 3153,
+        "path": "42-m3-batch-throughput.stdout",
+        "sha256": "sha256:b8832137056ace05eefe1b5cf01bf916576b237afc16311c033a5275b9aa2419"
+      }
+    },
+    "stage": "m3_batch_throughput_measurement",
+    "stderr_sha256": "ed862273e0231569a78a51cfb0f9287158dac81d41a4293ab2297df2899d707b",
+    "stdout_sha256": "b8832137056ace05eefe1b5cf01bf916576b237afc16311c033a5275b9aa2419"
+  },
+  "build_stage_measurement": {
+    "cold": {
+      "counts": {
+        "failed": 0,
+        "passed": 9,
+        "skipped": 0
+      },
+      "elapsed_ns": 585915623875,
+      "status": "passed",
+      "target_preexisted": false
+    },
+    "schema": "semaprax.ri13.build-stage-measurement.v1",
+    "warm": {
+      "counts": {
+        "failed": 0,
+        "passed": 9,
+        "skipped": 0
+      },
+      "elapsed_ns": 23181790207,
+      "status": "passed",
+      "target_preexisted": true
+    }
+  },
+  "checkout": "575768070ce451c786f304a7e1e0623444271d86",
+  "full_build_and_consumer_stages": [
+    {
+      "command": [
+        "cargo",
+        "run",
+        "--locked",
+        "--offline",
+        "--quiet",
+        "--manifest-path",
+        "examples/ri13-m1-regex-url/prepare/Cargo.toml",
+        "--bin",
+        "semaprax-ri13-m1-prepare"
+      ],
+      "elapsed_ns": 242646385708,
+      "raw_artifacts": {
+        "stderr": {
+          "bytes": 0,
+          "path": "01-cold-m1_prepare.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 89,
+          "path": "00-cold-m1_prepare.stdout",
+          "sha256": "sha256:8f40cffed1dffb939fcae3ff62a18cdb4245957e6e009e237224a93995a7a8b1"
+        }
+      },
+      "stage": "m1_prepare",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "8f40cffed1dffb939fcae3ff62a18cdb4245957e6e009e237224a93995a7a8b1"
+    },
+    {
+      "command": [
+        "cargo",
+        "run",
+        "--locked",
+        "--offline",
+        "--quiet",
+        "--manifest-path",
+        "examples/ri13-m1-regex-url/consumer/Cargo.toml",
+        "--bin",
+        "semaprax-ri13-m1-consumer"
+      ],
+      "elapsed_ns": 13195753000,
+      "raw_artifacts": {
+        "stderr": {
+          "bytes": 0,
+          "path": "03-cold-m1_consumer.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 21,
+          "path": "02-cold-m1_consumer.stdout",
+          "sha256": "sha256:8ea9363686d0ba94cd8816a680b304cff543e996c06af18430fbda10e69d1c20"
+        }
+      },
+      "stage": "m1_consumer",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "8ea9363686d0ba94cd8816a680b304cff543e996c06af18430fbda10e69d1c20"
+    },
+    {
+      "command": [
+        "cargo",
+        "run",
+        "--locked",
+        "--offline",
+        "--quiet",
+        "--manifest-path",
+        "examples/ri13-m2-record-iterator/Cargo.toml",
+        "--bin",
+        "prepare"
+      ],
+      "elapsed_ns": 134666964250,
+      "raw_artifacts": {
+        "stderr": {
+          "bytes": 0,
+          "path": "05-cold-m2_prepare.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 89,
+          "path": "04-cold-m2_prepare.stdout",
+          "sha256": "sha256:26c98dd54578b700a708cc6676bb560114ce6e1b4615d4183e981b8286b2d9d6"
+        }
+      },
+      "stage": "m2_prepare",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "26c98dd54578b700a708cc6676bb560114ce6e1b4615d4183e981b8286b2d9d6"
+    },
+    {
+      "command": [
+        "cargo",
+        "run",
+        "--locked",
+        "--offline",
+        "--quiet",
+        "--manifest-path",
+        "examples/ri13-m2-record-iterator/Cargo.toml",
+        "--bin",
+        "consumer"
+      ],
+      "elapsed_ns": 1240872000,
+      "raw_artifacts": {
+        "stderr": {
+          "bytes": 0,
+          "path": "07-cold-m2_consumer.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 27,
+          "path": "06-cold-m2_consumer.stdout",
+          "sha256": "sha256:c304e4f62d05886c7832eaaf0e1232f9f538ae9769d3ac4e6686ce7ecc1db3a7"
+        }
+      },
+      "stage": "m2_consumer",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "c304e4f62d05886c7832eaaf0e1232f9f538ae9769d3ac4e6686ce7ecc1db3a7"
+    },
+    {
+      "command": [
+        "cargo",
+        "run",
+        "--locked",
+        "--offline",
+        "--quiet",
+        "--manifest-path",
+        "examples/ri13-m3-local-http/Cargo.toml",
+        "--bin",
+        "prepare"
+      ],
+      "elapsed_ns": 2888103459,
+      "raw_artifacts": {
+        "stderr": {
+          "bytes": 0,
+          "path": "09-cold-m3_prepare.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 17,
+          "path": "08-cold-m3_prepare.stdout",
+          "sha256": "sha256:2751f797f97977acfa838a1f4a2212cd62548227173bc4923d0d4d854b57e96f"
+        }
+      },
+      "stage": "m3_prepare",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "2751f797f97977acfa838a1f4a2212cd62548227173bc4923d0d4d854b57e96f"
+    },
+    {
+      "command": [
+        "cargo",
+        "run",
+        "--locked",
+        "--offline",
+        "--quiet",
+        "--manifest-path",
+        "examples/ri13-m3-local-http/Cargo.toml",
+        "--bin",
+        "consumer"
+      ],
+      "elapsed_ns": 5156235250,
+      "raw_artifacts": {
+        "stderr": {
+          "bytes": 542,
+          "path": "11-cold-m3_consumer.stderr",
+          "sha256": "sha256:945d03df9f50ca18502d8c7ce3daa95bb6712532a9022e2cc7b9feedc1c1f624"
+        },
+        "stdout": {
+          "bytes": 22,
+          "path": "10-cold-m3_consumer.stdout",
+          "sha256": "sha256:2a46ed05c67ad7ab1f2d24e7edec285432b7371fdb0cd4494ca269f859122ca5"
+        }
+      },
+      "stage": "m3_consumer",
+      "stderr_sha256": "945d03df9f50ca18502d8c7ce3daa95bb6712532a9022e2cc7b9feedc1c1f624",
+      "stdout_sha256": "2a46ed05c67ad7ab1f2d24e7edec285432b7371fdb0cd4494ca269f859122ca5"
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "--quiet",
+        "--test",
+        "project",
+        "ri13_m3::saved_m3_application_runs_offline_and_refuses_timeout_and_stale_binding_mutants",
+        "--",
+        "--ignored",
+        "--exact"
+      ],
+      "elapsed_ns": 176465828083,
+      "raw_artifacts": {
+        "stderr": {
+          "bytes": 0,
+          "path": "13-cold-m3_negative_controls.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 115,
+          "path": "12-cold-m3_negative_controls.stdout",
+          "sha256": "sha256:e47c51b2c300ac06a66e59350f868c46961fe7308eba4fb11482eeb22e99a555"
+        }
+      },
+      "stage": "m3_negative_controls",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "e47c51b2c300ac06a66e59350f868c46961fe7308eba4fb11482eeb22e99a555"
+    },
+    {
+      "command": [
+        "cargo",
+        "run",
+        "--locked",
+        "--offline",
+        "--quiet",
+        "--manifest-path",
+        "examples/ri13-combined-app/linked/prepare/Cargo.toml",
+        "--bin",
+        "prepare"
+      ],
+      "elapsed_ns": 5179845625,
+      "raw_artifacts": {
+        "stderr": {
+          "bytes": 0,
+          "path": "15-cold-linked_prepare.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 165,
+          "path": "14-cold-linked_prepare.stdout",
+          "sha256": "sha256:0246665eaebe153797b404ad6966af74bb04299c44aa4ffc5770c53200a6fa4d"
+        }
+      },
+      "stage": "linked_prepare",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "0246665eaebe153797b404ad6966af74bb04299c44aa4ffc5770c53200a6fa4d"
+    },
+    {
+      "command": [
+        "cargo",
+        "run",
+        "--locked",
+        "--offline",
+        "--quiet",
+        "--manifest-path",
+        "examples/ri13-combined-app/linked/Cargo.toml",
+        "--bin",
+        "consumer"
+      ],
+      "elapsed_ns": 4475636500,
+      "raw_artifacts": {
+        "stderr": {
+          "bytes": 3317,
+          "path": "17-cold-linked_consumer.stderr",
+          "sha256": "sha256:a0ef3af8339dfe7d24951efa5a054ebd843f3e85f43778abfd2653814d2ca269"
+        },
+        "stdout": {
+          "bytes": 1154,
+          "path": "16-cold-linked_consumer.stdout",
+          "sha256": "sha256:96cc3f3ff347e2b87461a36b60a67b351dcbc00ad15b365d99ede3fa5895d0aa"
+        }
+      },
+      "stage": "linked_consumer",
+      "stderr_sha256": "a0ef3af8339dfe7d24951efa5a054ebd843f3e85f43778abfd2653814d2ca269",
+      "stdout_sha256": "96cc3f3ff347e2b87461a36b60a67b351dcbc00ad15b365d99ede3fa5895d0aa"
+    }
+  ],
+  "generated_code_inventory": {
+    "groups": {
+      "linked": {
+        "files": [
+          {
+            "bytes": 4208,
+            "path": "examples/ri13-combined-app/linked/generated/m2/module.c",
+            "sha256": "sha256:7b082fb850cea2184da83880617d6033845a8699a48b1edb031fb8c12687bb36"
+          },
+          {
+            "bytes": 12443,
+            "path": "examples/ri13-combined-app/linked/generated/m2/module.rs",
+            "sha256": "sha256:81713606ef00480bd1349e89da7bb04b32f86755c52864efe8bacb932e9621db"
+          },
+          {
+            "bytes": 880,
+            "path": "examples/ri13-combined-app/linked/generated/m2/semaprax_native_rust_interop.h",
+            "sha256": "sha256:281f76ae8abff58fe607cd624be366ea4b1e7d225e5d7872a513a568cdf8df9a"
+          },
+          {
+            "bytes": 3781,
+            "path": "examples/ri13-combined-app/linked/generated/m2/semaprax_native_rust_interop_ffi.rs",
+            "sha256": "sha256:d668be5937620d9be582146a3a4520e890da5378d855b0703ff387f8457c4bb0"
+          },
+          {
+            "bytes": 3903,
+            "path": "examples/ri13-combined-app/linked/generated/m3.rs",
+            "sha256": "sha256:6367513675bf34a2645492f55d2714fc00c54b6bb06253cc33e77e6700c5cefe"
+          },
+          {
+            "bytes": 11903,
+            "path": "examples/ri13-combined-app/linked/generated/regex/src/lib.rs",
+            "sha256": "sha256:a9f7890ad1fce1d87c4c1ebd55ae411621e7eac108acafe200c0575f33bfd1cb"
+          },
+          {
+            "bytes": 7927,
+            "path": "examples/ri13-combined-app/linked/generated/regex/src/regex_project.c",
+            "sha256": "sha256:2d978c98f5aa495275a279da3088a0b90c096269ac17aed47ffe1e56929f7aee"
+          },
+          {
+            "bytes": 422,
+            "path": "examples/ri13-combined-app/linked/generated/regex/src/regex_project.h",
+            "sha256": "sha256:63c023d5d9e0d32b36094bbd9b5d5c7aec4991c1aa578a4553c22b7139df58b1"
+          },
+          {
+            "bytes": 15342,
+            "path": "examples/ri13-combined-app/linked/generated/url/src/lib.rs",
+            "sha256": "sha256:f3508ecc00f6c526d67e7bce2e5b5379be7743e7218f8cc24b0dae2b42a0ecbb"
+          },
+          {
+            "bytes": 8983,
+            "path": "examples/ri13-combined-app/linked/generated/url/src/url_project.c",
+            "sha256": "sha256:3a48e43a522c0e333d62540df570b6aa05cfd608030710b98c6caa90b9779caa"
+          },
+          {
+            "bytes": 593,
+            "path": "examples/ri13-combined-app/linked/generated/url/src/url_project.h",
+            "sha256": "sha256:b4d86fcd4a5573a86fcd6ed5f5cf9e76897844c5808d6741c43d8604a7ff6996"
+          }
+        ],
+        "total_bytes": 70385
+      },
+      "m1": {
+        "files": [
+          {
+            "bytes": 11903,
+            "path": "examples/ri13-m1-regex-url/generated/regex/src/lib.rs",
+            "sha256": "sha256:a9f7890ad1fce1d87c4c1ebd55ae411621e7eac108acafe200c0575f33bfd1cb"
+          },
+          {
+            "bytes": 7927,
+            "path": "examples/ri13-m1-regex-url/generated/regex/src/regex_project.c",
+            "sha256": "sha256:2d978c98f5aa495275a279da3088a0b90c096269ac17aed47ffe1e56929f7aee"
+          },
+          {
+            "bytes": 422,
+            "path": "examples/ri13-m1-regex-url/generated/regex/src/regex_project.h",
+            "sha256": "sha256:63c023d5d9e0d32b36094bbd9b5d5c7aec4991c1aa578a4553c22b7139df58b1"
+          },
+          {
+            "bytes": 15342,
+            "path": "examples/ri13-m1-regex-url/generated/url/src/lib.rs",
+            "sha256": "sha256:f3508ecc00f6c526d67e7bce2e5b5379be7743e7218f8cc24b0dae2b42a0ecbb"
+          },
+          {
+            "bytes": 8983,
+            "path": "examples/ri13-m1-regex-url/generated/url/src/url_project.c",
+            "sha256": "sha256:3a48e43a522c0e333d62540df570b6aa05cfd608030710b98c6caa90b9779caa"
+          },
+          {
+            "bytes": 593,
+            "path": "examples/ri13-m1-regex-url/generated/url/src/url_project.h",
+            "sha256": "sha256:b4d86fcd4a5573a86fcd6ed5f5cf9e76897844c5808d6741c43d8604a7ff6996"
+          }
+        ],
+        "total_bytes": 45170
+      },
+      "m2": {
+        "files": [
+          {
+            "bytes": 4208,
+            "path": "examples/ri13-m2-record-iterator/generated/module.c",
+            "sha256": "sha256:7b082fb850cea2184da83880617d6033845a8699a48b1edb031fb8c12687bb36"
+          },
+          {
+            "bytes": 880,
+            "path": "examples/ri13-m2-record-iterator/generated/semaprax_native_rust_interop.h",
+            "sha256": "sha256:281f76ae8abff58fe607cd624be366ea4b1e7d225e5d7872a513a568cdf8df9a"
+          },
+          {
+            "bytes": 12443,
+            "path": "examples/ri13-m2-record-iterator/src/generated.rs",
+            "sha256": "sha256:81713606ef00480bd1349e89da7bb04b32f86755c52864efe8bacb932e9621db"
+          },
+          {
+            "bytes": 3781,
+            "path": "examples/ri13-m2-record-iterator/src/semaprax_native_rust_interop_ffi.rs",
+            "sha256": "sha256:d668be5937620d9be582146a3a4520e890da5378d855b0703ff387f8457c4bb0"
+          }
+        ],
+        "total_bytes": 21312
+      },
+      "m3": {
+        "files": [
+          {
+            "bytes": 3907,
+            "path": "examples/ri13-m3-local-http/src/generated.rs",
+            "sha256": "sha256:240378f6a25082c2d8f8f19ad21431de19fbc42892a8f10a0a8a4c4610174af8"
+          }
+        ],
+        "total_bytes": 3907
+      }
+    },
+    "schema": "semaprax.ri13.generated-code-inventory.v1",
+    "total_bytes": 140774
+  },
+  "host": {
+    "platform": "macOS-26.5.1-arm64-arm-64bit-Mach-O",
+    "python": "3.14.2"
+  },
+  "limits": [
+    "The first six stages retain separately admitted M1, M2, and M3 profiles. The final two stages prepare and execute the distinct held linked Project, without claiming that it is one public SDK profile.",
+    "Build-and-consumer stage elapsed times include Cargo work and process startup; they are not route latency. A warm stage result exists only when --warm-stage-pass executed every stage after the cold pass.",
+    "Generated-code inventory hashes emitted Rust, C, and headers after authenticated preparation; it excludes Cargo caches, linked binaries, and dependency source.",
+    "Result totals count only commands actually represented in this receipt. A missing warm pass is not reported as a skipped success.",
+    "Raw artifact files retain each locked stage stdout/stderr and every M1/M2/M3 CSV stream under a bounded caller-supplied directory; the receipt fails verification if a retained file is absent or its bytes change.",
+    "M1 retains matched 4096-operation repeats of the held scalar Regex and Url exports across direct Rust, handwritten adapters, and generated Semaprax. It does not measure varying scan inputs, and Regex/Url foreign implementation copies remain unavailable.",
+    "M2 retains matched 32-operation generic-record and stateful-callback batches for direct Rust, handwritten adapters, and generated Semaprax.",
+    "Scalar route timings include loopback HTTP and two-byte response parsing; the separate 64-operation batch rows retain their own normalized throughput and remain local evidence.",
+    "Allocator values count current-thread requests and do not infer copies. The ledger records exact zero-byte scalar generated and host-callback payload boundaries, response wire bytes, and explicit unavailable cells for reqwest/HTTP/text/capture copies.",
+    "The linked ledger measures only the generated Regex owner carrier, generated Serde mirror clone, and scalar iterator callback boundaries. Url::parse and serde_json deserialization retain unavailable copied-byte states."
+  ],
+  "linked_copy_ledger": {
+    "m1": {
+      "regex_result_owner": {
+        "adapter_borrowed_scan_input_bytes": 28,
+        "adapter_copied_bytes": 0,
+        "adapter_copy_events": 0,
+        "borrow_matches_target": true,
+        "foreign_target_copied_bytes": {
+          "reason": "regex::Regex::is_match does not expose internal copied-byte counts",
+          "status": "unavailable"
+        },
+        "status": "measured"
+      },
+      "url_owner_view": {
+        "adapter_copied_bytes": 0,
+        "adapter_copy_events": 0,
+        "borrow_matches_target": true,
+        "foreign_target_copied_bytes": {
+          "reason": "url::Url::parse does not expose a copied-byte counter",
+          "status": "unavailable"
+        },
+        "status": "measured"
+      }
+    },
+    "m2": {
+      "iterator_callback": {
+        "fn_invocations": 1,
+        "fn_mut_invocations": 1,
+        "scalar_argument_result_copied_bytes": 0
+      },
+      "serde_record": {
+        "deserialize_owned_string_copied_bytes": {
+          "reason": "serde_json deserialization does not expose a copied-byte counter",
+          "status": "unavailable"
+        },
+        "generated_mirror_string_clone_copied_bytes": 3,
+        "generated_mirror_to_record_copied_string_bytes": 0,
+        "generated_mirror_to_record_pointers_preserved": true,
+        "generated_mirror_to_record_transferred_string_bytes": 6,
+        "input_json_bytes": 25,
+        "output_json_bytes": 25
+      }
+    },
+    "schema": "semaprax.ri13.linked-copy-ledger.v1"
+  },
+  "m1_batch_throughput": {
+    "raw_csv_sha256": "5c8178df697a32488eb8e53d8acc40576944706bf6f76d5c3f3201d2314c0569",
+    "tasks": {
+      "regex_scan": {
+        "routes": {
+          "direct_rust": {
+            "adapter_copied_bytes_per_batch": 0,
+            "adapter_copy_events_per_batch": 0,
+            "allocator_requests_per_batch": {
+              "allocated_bytes": 27537408,
+              "allocation_calls": 270336
+            },
+            "borrowed_input_bytes_per_batch": 114688,
+            "foreign_target_copied_bytes": {
+              "reason": "Regex::is_match and Url::parse internal copies are outside the generated adapter boundary",
+              "status": "unavailable"
+            },
+            "mean_batch_ns": 47276275.4,
+            "normalized_operations_per_second": 86639.65,
+            "operations_per_sample": 4096,
+            "p50_batch_ns": 47283042.0,
+            "p90_batch_ns": 47861792.2,
+            "p99_batch_ns": 48189092.3,
+            "post_run_live_counts": {
+              "owner": 0,
+              "string": 0,
+              "view": 0
+            },
+            "total_operations": 20480
+          },
+          "generated_semaprax": {
+            "adapter_copied_bytes_per_batch": 0,
+            "adapter_copy_events_per_batch": 0,
+            "allocator_requests_per_batch": {
+              "allocated_bytes": 27537568,
+              "allocation_calls": 270337
+            },
+            "borrowed_input_bytes_per_batch": 114688,
+            "foreign_target_copied_bytes": {
+              "reason": "Regex::is_match and Url::parse internal copies are outside the generated adapter boundary",
+              "status": "unavailable"
+            },
+            "mean_batch_ns": 53006491.6,
+            "normalized_operations_per_second": 77273.55,
+            "operations_per_sample": 4096,
+            "p50_batch_ns": 52956041.0,
+            "p90_batch_ns": 53232841.4,
+            "p99_batch_ns": 53267221.0,
+            "post_run_live_counts": {
+              "owner": 0,
+              "string": 0,
+              "view": 0
+            },
+            "total_operations": 20480
+          },
+          "handwritten_adapter": {
+            "adapter_copied_bytes_per_batch": 0,
+            "adapter_copy_events_per_batch": 0,
+            "allocator_requests_per_batch": {
+              "allocated_bytes": 27537408,
+              "allocation_calls": 270336
+            },
+            "borrowed_input_bytes_per_batch": 114688,
+            "foreign_target_copied_bytes": {
+              "reason": "Regex::is_match and Url::parse internal copies are outside the generated adapter boundary",
+              "status": "unavailable"
+            },
+            "mean_batch_ns": 47652108.4,
+            "normalized_operations_per_second": 85956.32,
+            "operations_per_sample": 4096,
+            "p50_batch_ns": 47715542.0,
+            "p90_batch_ns": 47922108.6,
+            "p99_batch_ns": 48041373.4,
+            "post_run_live_counts": {
+              "owner": 0,
+              "string": 0,
+              "view": 0
+            },
+            "total_operations": 20480
+          }
+        },
+        "samples_per_route": 5
+      },
+      "url_parse_view": {
+        "routes": {
+          "direct_rust": {
+            "adapter_copied_bytes_per_batch": 0,
+            "adapter_copy_events_per_batch": 0,
+            "allocator_requests_per_batch": {
+              "allocated_bytes": 114688,
+              "allocation_calls": 4096
+            },
+            "borrowed_input_bytes_per_batch": 114688,
+            "foreign_target_copied_bytes": {
+              "reason": "Regex::is_match and Url::parse internal copies are outside the generated adapter boundary",
+              "status": "unavailable"
+            },
+            "mean_batch_ns": 8741675,
+            "normalized_operations_per_second": 468560.09,
+            "operations_per_sample": 4096,
+            "p50_batch_ns": 8738666.0,
+            "p90_batch_ns": 8824000.4,
+            "p99_batch_ns": 8841850.6,
+            "post_run_live_counts": {
+              "owner": 0,
+              "string": 0,
+              "view": 0
+            },
+            "total_operations": 20480
+          },
+          "generated_semaprax": {
+            "adapter_copied_bytes_per_batch": 0,
+            "adapter_copy_events_per_batch": 0,
+            "allocator_requests_per_batch": {
+              "allocated_bytes": 115264,
+              "allocation_calls": 4097
+            },
+            "borrowed_input_bytes_per_batch": 114688,
+            "foreign_target_copied_bytes": {
+              "reason": "Regex::is_match and Url::parse internal copies are outside the generated adapter boundary",
+              "status": "unavailable"
+            },
+            "mean_batch_ns": 13681216.4,
+            "normalized_operations_per_second": 299388.58,
+            "operations_per_sample": 4096,
+            "p50_batch_ns": 13681541.0,
+            "p90_batch_ns": 13710766.6,
+            "p99_batch_ns": 13718026.4,
+            "post_run_live_counts": {
+              "owner": 0,
+              "string": 0,
+              "view": 0
+            },
+            "total_operations": 20480
+          },
+          "handwritten_adapter": {
+            "adapter_copied_bytes_per_batch": 0,
+            "adapter_copy_events_per_batch": 0,
+            "allocator_requests_per_batch": {
+              "allocated_bytes": 114688,
+              "allocation_calls": 4096
+            },
+            "borrowed_input_bytes_per_batch": 114688,
+            "foreign_target_copied_bytes": {
+              "reason": "Regex::is_match and Url::parse internal copies are outside the generated adapter boundary",
+              "status": "unavailable"
+            },
+            "mean_batch_ns": 8739225,
+            "normalized_operations_per_second": 468691.45,
+            "operations_per_sample": 4096,
+            "p50_batch_ns": 8706375.0,
+            "p90_batch_ns": 8819766.8,
+            "p99_batch_ns": 8847426.7,
+            "post_run_live_counts": {
+              "owner": 0,
+              "string": 0,
+              "view": 0
+            },
+            "total_operations": 20480
+          }
+        },
+        "samples_per_route": 5
+      }
+    }
+  },
+  "m1_batch_throughput_measurement_command": {
+    "command": [
+      "cargo",
+      "run",
+      "--locked",
+      "--offline",
+      "--quiet",
+      "--manifest-path",
+      "examples/ri13-m1-regex-url/consumer/Cargo.toml",
+      "--bin",
+      "measure"
+    ],
+    "elapsed_ns": 1805562792,
+    "raw_artifacts": {
+      "stderr": {
+        "bytes": 0,
+        "path": "37-m1-batch-throughput.stderr",
+        "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stdout": {
+        "bytes": 2489,
+        "path": "36-m1-batch-throughput.stdout",
+        "sha256": "sha256:5c8178df697a32488eb8e53d8acc40576944706bf6f76d5c3f3201d2314c0569"
+      }
+    },
+    "stage": "m1_batch_throughput_measurement",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stdout_sha256": "5c8178df697a32488eb8e53d8acc40576944706bf6f76d5c3f3201d2314c0569"
+  },
+  "m2_batch_throughput": {
+    "raw_csv_sha256": "f5fd15a3c26b811d5a222053e1605ceb4cfbd239e18b8a1e835f5477679e158b",
+    "tasks": {
+      "generic_record": {
+        "routes": {
+          "direct_rust": {
+            "adapter_buffer_copied_bytes_per_batch": 0,
+            "allocator_requests_per_batch": {
+              "allocated_bytes": 8384,
+              "allocation_calls": 128
+            },
+            "mean_batch_ns": 230800,
+            "normalized_operations_per_second": 138648.18,
+            "operations_per_sample": 32,
+            "p50_batch_ns": 229958.0,
+            "p90_batch_ns": 234300.2,
+            "p99_batch_ns": 234405.3,
+            "total_operations": 160
+          },
+          "generated_semaprax": {
+            "adapter_buffer_copied_bytes_per_batch": 0,
+            "allocator_requests_per_batch": {
+              "allocated_bytes": 8576,
+              "allocation_calls": 192
+            },
+            "mean_batch_ns": 248324.8,
+            "normalized_operations_per_second": 128863.49,
+            "operations_per_sample": 32,
+            "p50_batch_ns": 245708.0,
+            "p90_batch_ns": 253674.8,
+            "p99_batch_ns": 257079.7,
+            "total_operations": 160
+          },
+          "handwritten_adapter": {
+            "adapter_buffer_copied_bytes_per_batch": 0,
+            "allocator_requests_per_batch": {
+              "allocated_bytes": 8384,
+              "allocation_calls": 128
+            },
+            "mean_batch_ns": 248575,
+            "normalized_operations_per_second": 128733.78,
+            "operations_per_sample": 32,
+            "p50_batch_ns": 235000.0,
+            "p90_batch_ns": 278058.2,
+            "p99_batch_ns": 300992.7,
+            "total_operations": 160
+          }
+        },
+        "samples_per_route": 5
+      },
+      "stateful_callback": {
+        "routes": {
+          "direct_rust": {
+            "adapter_buffer_copied_bytes_per_batch": 0,
+            "allocator_requests_per_batch": {
+              "allocated_bytes": 0,
+              "allocation_calls": 0
+            },
+            "mean_batch_ns": 3858.4,
+            "normalized_operations_per_second": 8293593.2,
+            "operations_per_sample": 32,
+            "p50_batch_ns": 3750.0,
+            "p90_batch_ns": 4108.4,
+            "p99_batch_ns": 4273.6,
+            "total_operations": 160
+          },
+          "generated_semaprax": {
+            "adapter_buffer_copied_bytes_per_batch": 0,
+            "allocator_requests_per_batch": {
+              "allocated_bytes": 5888,
+              "allocation_calls": 128
+            },
+            "mean_batch_ns": 58816.6,
+            "normalized_operations_per_second": 544064.09,
+            "operations_per_sample": 32,
+            "p50_batch_ns": 57667.0,
+            "p90_batch_ns": 60808.0,
+            "p99_batch_ns": 60943.0,
+            "total_operations": 160
+          },
+          "handwritten_adapter": {
+            "adapter_buffer_copied_bytes_per_batch": 0,
+            "allocator_requests_per_batch": {
+              "allocated_bytes": 512,
+              "allocation_calls": 32
+            },
+            "mean_batch_ns": 9941.6,
+            "normalized_operations_per_second": 3218797.78,
+            "operations_per_sample": 32,
+            "p50_batch_ns": 9958.0,
+            "p90_batch_ns": 10075.0,
+            "p99_batch_ns": 10120.0,
+            "total_operations": 160
+          }
+        },
+        "samples_per_route": 5
+      }
+    }
+  },
+  "m2_batch_throughput_measurement_command": {
+    "command": [
+      "cargo",
+      "run",
+      "--locked",
+      "--offline",
+      "--quiet",
+      "--manifest-path",
+      "examples/ri13-m2-record-iterator/Cargo.toml",
+      "--bin",
+      "measure"
+    ],
+    "elapsed_ns": 926836708,
+    "raw_artifacts": {
+      "stderr": {
+        "bytes": 0,
+        "path": "39-m2-batch-throughput.stderr",
+        "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stdout": {
+        "bytes": 1741,
+        "path": "38-m2-batch-throughput.stdout",
+        "sha256": "sha256:f5fd15a3c26b811d5a222053e1605ceb4cfbd239e18b8a1e835f5477679e158b"
+      }
+    },
+    "stage": "m2_batch_throughput_measurement",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stdout_sha256": "f5fd15a3c26b811d5a222053e1605ceb4cfbd239e18b8a1e835f5477679e158b"
+  },
+  "m3_copy_ledger": {
+    "exact_copy_domains": [
+      "generated i64 boundary",
+      "host callback invocation payload",
+      "fixture Bytes-to-Vec response copy",
+      "generated host callback subset of the fixture response copy"
+    ],
+    "routes": {
+      "direct_rust": {
+        "foreign_response_body_copied_bytes": 180,
+        "foreign_response_body_shape": "Response::bytes to callback-owned Vec<u8>",
+        "generated_boundary_copied_bytes": 0,
+        "generated_boundary_shape": "i64-to-i64",
+        "host_callback_capture_copied_bytes": null,
+        "host_callback_captured_bytes": 0,
+        "host_callback_payload_copied_bytes": 0,
+        "host_callback_payload_shape": "i64-to-Future<Result<i64,String>>",
+        "response_wire_bytes": 180,
+        "samples": 90
+      },
+      "generated_semaprax": {
+        "foreign_response_body_copied_bytes": 180,
+        "foreign_response_body_shape": "Response::bytes to callback-owned Vec<u8>",
+        "generated_boundary_copied_bytes": 0,
+        "generated_boundary_shape": "i64-to-i64",
+        "host_callback_capture_copied_bytes": null,
+        "host_callback_captured_bytes": 180,
+        "host_callback_payload_copied_bytes": 0,
+        "host_callback_payload_shape": "i64-to-Future<Result<i64,String>>",
+        "response_wire_bytes": 180,
+        "samples": 90
+      },
+      "handwritten_adapter": {
+        "foreign_response_body_copied_bytes": 180,
+        "foreign_response_body_shape": "Response::bytes to callback-owned Vec<u8>",
+        "generated_boundary_copied_bytes": 0,
+        "generated_boundary_shape": "i64-to-i64",
+        "host_callback_capture_copied_bytes": null,
+        "host_callback_captured_bytes": 0,
+        "host_callback_payload_copied_bytes": 0,
+        "host_callback_payload_shape": "i64-to-Future<Result<i64,String>>",
+        "response_wire_bytes": 180,
+        "samples": 90
+      }
+    },
+    "schema": "semaprax.ri13.m3-copy-ledger.v1",
+    "unmeasured_copy_domains": [
+      "reqwest response buffering before the fixture's Bytes-to-Vec copy",
+      "HTTP decoding before the fixture's Bytes-to-Vec copy",
+      "UTF-8 validation after the fixture's Vec copy",
+      "host callback captures (reqwest Client and endpoint String)"
+    ]
+  },
+  "raw_artifacts": {
+    "directory": "/private/tmp/ri13-macos-575768070/combined-raw",
+    "files": [
+      {
+        "bytes": 89,
+        "path": "00-cold-m1_prepare.stdout",
+        "sha256": "sha256:8f40cffed1dffb939fcae3ff62a18cdb4245957e6e009e237224a93995a7a8b1"
+      },
+      {
+        "bytes": 0,
+        "path": "01-cold-m1_prepare.stderr",
+        "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "bytes": 21,
+        "path": "02-cold-m1_consumer.stdout",
+        "sha256": "sha256:8ea9363686d0ba94cd8816a680b304cff543e996c06af18430fbda10e69d1c20"
+      },
+      {
+        "bytes": 0,
+        "path": "03-cold-m1_consumer.stderr",
+        "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "bytes": 89,
+        "path": "04-cold-m2_prepare.stdout",
+        "sha256": "sha256:26c98dd54578b700a708cc6676bb560114ce6e1b4615d4183e981b8286b2d9d6"
+      },
+      {
+        "bytes": 0,
+        "path": "05-cold-m2_prepare.stderr",
+        "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "bytes": 27,
+        "path": "06-cold-m2_consumer.stdout",
+        "sha256": "sha256:c304e4f62d05886c7832eaaf0e1232f9f538ae9769d3ac4e6686ce7ecc1db3a7"
+      },
+      {
+        "bytes": 0,
+        "path": "07-cold-m2_consumer.stderr",
+        "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "bytes": 17,
+        "path": "08-cold-m3_prepare.stdout",
+        "sha256": "sha256:2751f797f97977acfa838a1f4a2212cd62548227173bc4923d0d4d854b57e96f"
+      },
+      {
+        "bytes": 0,
+        "path": "09-cold-m3_prepare.stderr",
+        "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "bytes": 22,
+        "path": "10-cold-m3_consumer.stdout",
+        "sha256": "sha256:2a46ed05c67ad7ab1f2d24e7edec285432b7371fdb0cd4494ca269f859122ca5"
+      },
+      {
+        "bytes": 542,
+        "path": "11-cold-m3_consumer.stderr",
+        "sha256": "sha256:945d03df9f50ca18502d8c7ce3daa95bb6712532a9022e2cc7b9feedc1c1f624"
+      },
+      {
+        "bytes": 115,
+        "path": "12-cold-m3_negative_controls.stdout",
+        "sha256": "sha256:e47c51b2c300ac06a66e59350f868c46961fe7308eba4fb11482eeb22e99a555"
+      },
+      {
+        "bytes": 0,
+        "path": "13-cold-m3_negative_controls.stderr",
+        "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "bytes": 165,
+        "path": "14-cold-linked_prepare.stdout",
+        "sha256": "sha256:0246665eaebe153797b404ad6966af74bb04299c44aa4ffc5770c53200a6fa4d"
+      },
+      {
+        "bytes": 0,
+        "path": "15-cold-linked_prepare.stderr",
+        "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "bytes": 1154,
+        "path": "16-cold-linked_consumer.stdout",
+        "sha256": "sha256:96cc3f3ff347e2b87461a36b60a67b351dcbc00ad15b365d99ede3fa5895d0aa"
+      },
+      {
+        "bytes": 3317,
+        "path": "17-cold-linked_consumer.stderr",
+        "sha256": "sha256:a0ef3af8339dfe7d24951efa5a054ebd843f3e85f43778abfd2653814d2ca269"
+      },
+      {
+        "bytes": 89,
+        "path": "18-warm-m1_prepare.stdout",
+        "sha256": "sha256:8f40cffed1dffb939fcae3ff62a18cdb4245957e6e009e237224a93995a7a8b1"
+      },
+      {
+        "bytes": 0,
+        "path": "19-warm-m1_prepare.stderr",
+        "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "bytes": 21,
+        "path": "20-warm-m1_consumer.stdout",
+        "sha256": "sha256:8ea9363686d0ba94cd8816a680b304cff543e996c06af18430fbda10e69d1c20"
+      },
+      {
+        "bytes": 0,
+        "path": "21-warm-m1_consumer.stderr",
+        "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "bytes": 89,
+        "path": "22-warm-m2_prepare.stdout",
+        "sha256": "sha256:26c98dd54578b700a708cc6676bb560114ce6e1b4615d4183e981b8286b2d9d6"
+      },
+      {
+        "bytes": 0,
+        "path": "23-warm-m2_prepare.stderr",
+        "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "bytes": 27,
+        "path": "24-warm-m2_consumer.stdout",
+        "sha256": "sha256:c304e4f62d05886c7832eaaf0e1232f9f538ae9769d3ac4e6686ce7ecc1db3a7"
+      },
+      {
+        "bytes": 0,
+        "path": "25-warm-m2_consumer.stderr",
+        "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "bytes": 17,
+        "path": "26-warm-m3_prepare.stdout",
+        "sha256": "sha256:2751f797f97977acfa838a1f4a2212cd62548227173bc4923d0d4d854b57e96f"
+      },
+      {
+        "bytes": 0,
+        "path": "27-warm-m3_prepare.stderr",
+        "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "bytes": 22,
+        "path": "28-warm-m3_consumer.stdout",
+        "sha256": "sha256:2a46ed05c67ad7ab1f2d24e7edec285432b7371fdb0cd4494ca269f859122ca5"
+      },
+      {
+        "bytes": 542,
+        "path": "29-warm-m3_consumer.stderr",
+        "sha256": "sha256:945d03df9f50ca18502d8c7ce3daa95bb6712532a9022e2cc7b9feedc1c1f624"
+      },
+      {
+        "bytes": 115,
+        "path": "30-warm-m3_negative_controls.stdout",
+        "sha256": "sha256:43b9fb9e52c77b9cf61ec8ff5f3c977b99a8c6b275b1584fa88aeab38f28e065"
+      },
+      {
+        "bytes": 0,
+        "path": "31-warm-m3_negative_controls.stderr",
+        "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "bytes": 165,
+        "path": "32-warm-linked_prepare.stdout",
+        "sha256": "sha256:0246665eaebe153797b404ad6966af74bb04299c44aa4ffc5770c53200a6fa4d"
+      },
+      {
+        "bytes": 0,
+        "path": "33-warm-linked_prepare.stderr",
+        "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "bytes": 1154,
+        "path": "34-warm-linked_consumer.stdout",
+        "sha256": "sha256:96cc3f3ff347e2b87461a36b60a67b351dcbc00ad15b365d99ede3fa5895d0aa"
+      },
+      {
+        "bytes": 3317,
+        "path": "35-warm-linked_consumer.stderr",
+        "sha256": "sha256:a0ef3af8339dfe7d24951efa5a054ebd843f3e85f43778abfd2653814d2ca269"
+      },
+      {
+        "bytes": 2489,
+        "path": "36-m1-batch-throughput.stdout",
+        "sha256": "sha256:5c8178df697a32488eb8e53d8acc40576944706bf6f76d5c3f3201d2314c0569"
+      },
+      {
+        "bytes": 0,
+        "path": "37-m1-batch-throughput.stderr",
+        "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "bytes": 1741,
+        "path": "38-m2-batch-throughput.stdout",
+        "sha256": "sha256:f5fd15a3c26b811d5a222053e1605ceb4cfbd239e18b8a1e835f5477679e158b"
+      },
+      {
+        "bytes": 0,
+        "path": "39-m2-batch-throughput.stderr",
+        "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "bytes": 15461,
+        "path": "40-m3-route-measurement.stdout",
+        "sha256": "sha256:e82fe6adf02b30d19bf7ceb9f1de0baf790bdd419a7dbebdfaf57498aed0baf5"
+      },
+      {
+        "bytes": 1088,
+        "path": "41-m3-route-measurement.stderr",
+        "sha256": "sha256:ed862273e0231569a78a51cfb0f9287158dac81d41a4293ab2297df2899d707b"
+      },
+      {
+        "bytes": 3153,
+        "path": "42-m3-batch-throughput.stdout",
+        "sha256": "sha256:b8832137056ace05eefe1b5cf01bf916576b237afc16311c033a5275b9aa2419"
+      },
+      {
+        "bytes": 1088,
+        "path": "43-m3-batch-throughput.stderr",
+        "sha256": "sha256:ed862273e0231569a78a51cfb0f9287158dac81d41a4293ab2297df2899d707b"
+      }
+    ],
+    "max_bytes": 16777216,
+    "schema": "semaprax.ri13.raw-artifacts.v1",
+    "total_bytes": 36136
+  },
+  "result_totals": {
+    "cold_build_and_consumer": {
+      "failed": 0,
+      "passed": 9,
+      "skipped": 0
+    },
+    "executed_total": {
+      "failed": 0,
+      "passed": 22,
+      "skipped": 0
+    },
+    "route_measurements": {
+      "failed": 0,
+      "passed": 4,
+      "skipped": 0
+    },
+    "schema": "semaprax.ri13.result-totals.v1",
+    "warm_build_and_consumer": {
+      "failed": 0,
+      "passed": 9,
+      "skipped": 0
+    }
+  },
+  "route_measurement_command": {
+    "command": [
+      "cargo",
+      "run",
+      "--locked",
+      "--offline",
+      "--quiet",
+      "--manifest-path",
+      "examples/ri13-m3-local-http/Cargo.toml",
+      "--bin",
+      "measure"
+    ],
+    "elapsed_ns": 4124513250,
+    "raw_artifacts": {
+      "stderr": {
+        "bytes": 1088,
+        "path": "41-m3-route-measurement.stderr",
+        "sha256": "sha256:ed862273e0231569a78a51cfb0f9287158dac81d41a4293ab2297df2899d707b"
+      },
+      "stdout": {
+        "bytes": 15461,
+        "path": "40-m3-route-measurement.stdout",
+        "sha256": "sha256:e82fe6adf02b30d19bf7ceb9f1de0baf790bdd419a7dbebdfaf57498aed0baf5"
+      }
+    },
+    "stage": "m3_route_measurement",
+    "stderr_sha256": "ed862273e0231569a78a51cfb0f9287158dac81d41a4293ab2297df2899d707b",
+    "stdout_sha256": "e82fe6adf02b30d19bf7ceb9f1de0baf790bdd419a7dbebdfaf57498aed0baf5"
+  },
+  "route_timing_and_allocator_requests": {
+    "raw_csv_sha256": "e82fe6adf02b30d19bf7ceb9f1de0baf790bdd419a7dbebdfaf57498aed0baf5",
+    "routes": {
+      "direct_rust": {
+        "allocator_requests": {
+          "allocated_bytes": 45105,
+          "allocation_calls": 88,
+          "deallocated_bytes": 45105,
+          "deallocation_calls": 88,
+          "reallocation_calls": 7
+        },
+        "body_bytes_per_sample": 2,
+        "foreign_response_body_copied_bytes_per_sample": 2,
+        "host_callback_captured_bytes_per_sample": 0,
+        "mean_ns": 333030.9,
+        "p50_ns": 317312.5,
+        "p90_ns": 432895.6,
+        "p99_ns": 546162.7,
+        "serialized_calls_per_second": 3002.72
+      },
+      "generated_semaprax": {
+        "allocator_requests": {
+          "allocated_bytes": 2033912.8,
+          "allocation_calls": 5264.0,
+          "deallocated_bytes": 2033215.0,
+          "deallocation_calls": 5260.2,
+          "reallocation_calls": 405
+        },
+        "body_bytes_per_sample": 2,
+        "foreign_response_body_copied_bytes_per_sample": 2,
+        "host_callback_captured_bytes_per_sample": 2,
+        "mean_ns": 2766632.5,
+        "p50_ns": 2569812.0,
+        "p90_ns": 3365250.0,
+        "p99_ns": 4277067.7,
+        "serialized_calls_per_second": 361.45
+      },
+      "handwritten_adapter": {
+        "allocator_requests": {
+          "allocated_bytes": 45104.6,
+          "allocation_calls": 88.0,
+          "deallocated_bytes": 44993.5,
+          "deallocation_calls": 87.9,
+          "reallocation_calls": 7
+        },
+        "body_bytes_per_sample": 2,
+        "foreign_response_body_copied_bytes_per_sample": 2,
+        "host_callback_captured_bytes_per_sample": 0,
+        "mean_ns": 312807.8,
+        "p50_ns": 290437.5,
+        "p90_ns": 418783.0,
+        "p99_ns": 599723.4,
+        "serialized_calls_per_second": 3196.85
+      }
+    },
+    "samples_per_route": 90
+  },
+  "schema": "semaprax.ri13.combination-measurement.v1",
+  "target_dir": "/private/tmp/semaprax-law12-lane/target/ri13-combined-macos-575768070",
+  "target_preexisted": false,
+  "toolchain": {
+    "cargo": "cargo 1.98.0 (797e8a9bc 2026-08-05) (Homebrew)",
+    "clang": "/usr/bin/clang"
+  },
+  "warm_build_and_consumer_stages": [
+    {
+      "command": [
+        "cargo",
+        "run",
+        "--locked",
+        "--offline",
+        "--quiet",
+        "--manifest-path",
+        "examples/ri13-m1-regex-url/prepare/Cargo.toml",
+        "--bin",
+        "semaprax-ri13-m1-prepare"
+      ],
+      "elapsed_ns": 1563451791,
+      "raw_artifacts": {
+        "stderr": {
+          "bytes": 0,
+          "path": "19-warm-m1_prepare.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 89,
+          "path": "18-warm-m1_prepare.stdout",
+          "sha256": "sha256:8f40cffed1dffb939fcae3ff62a18cdb4245957e6e009e237224a93995a7a8b1"
+        }
+      },
+      "stage": "m1_prepare",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "8f40cffed1dffb939fcae3ff62a18cdb4245957e6e009e237224a93995a7a8b1"
+    },
+    {
+      "command": [
+        "cargo",
+        "run",
+        "--locked",
+        "--offline",
+        "--quiet",
+        "--manifest-path",
+        "examples/ri13-m1-regex-url/consumer/Cargo.toml",
+        "--bin",
+        "semaprax-ri13-m1-consumer"
+      ],
+      "elapsed_ns": 1351040959,
+      "raw_artifacts": {
+        "stderr": {
+          "bytes": 0,
+          "path": "21-warm-m1_consumer.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 21,
+          "path": "20-warm-m1_consumer.stdout",
+          "sha256": "sha256:8ea9363686d0ba94cd8816a680b304cff543e996c06af18430fbda10e69d1c20"
+        }
+      },
+      "stage": "m1_consumer",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "8ea9363686d0ba94cd8816a680b304cff543e996c06af18430fbda10e69d1c20"
+    },
+    {
+      "command": [
+        "cargo",
+        "run",
+        "--locked",
+        "--offline",
+        "--quiet",
+        "--manifest-path",
+        "examples/ri13-m2-record-iterator/Cargo.toml",
+        "--bin",
+        "prepare"
+      ],
+      "elapsed_ns": 3200983833,
+      "raw_artifacts": {
+        "stderr": {
+          "bytes": 0,
+          "path": "23-warm-m2_prepare.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 89,
+          "path": "22-warm-m2_prepare.stdout",
+          "sha256": "sha256:26c98dd54578b700a708cc6676bb560114ce6e1b4615d4183e981b8286b2d9d6"
+        }
+      },
+      "stage": "m2_prepare",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "26c98dd54578b700a708cc6676bb560114ce6e1b4615d4183e981b8286b2d9d6"
+    },
+    {
+      "command": [
+        "cargo",
+        "run",
+        "--locked",
+        "--offline",
+        "--quiet",
+        "--manifest-path",
+        "examples/ri13-m2-record-iterator/Cargo.toml",
+        "--bin",
+        "consumer"
+      ],
+      "elapsed_ns": 828304459,
+      "raw_artifacts": {
+        "stderr": {
+          "bytes": 0,
+          "path": "25-warm-m2_consumer.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 27,
+          "path": "24-warm-m2_consumer.stdout",
+          "sha256": "sha256:c304e4f62d05886c7832eaaf0e1232f9f538ae9769d3ac4e6686ce7ecc1db3a7"
+        }
+      },
+      "stage": "m2_consumer",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "c304e4f62d05886c7832eaaf0e1232f9f538ae9769d3ac4e6686ce7ecc1db3a7"
+    },
+    {
+      "command": [
+        "cargo",
+        "run",
+        "--locked",
+        "--offline",
+        "--quiet",
+        "--manifest-path",
+        "examples/ri13-m3-local-http/Cargo.toml",
+        "--bin",
+        "prepare"
+      ],
+      "elapsed_ns": 1664420666,
+      "raw_artifacts": {
+        "stderr": {
+          "bytes": 0,
+          "path": "27-warm-m3_prepare.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 17,
+          "path": "26-warm-m3_prepare.stdout",
+          "sha256": "sha256:2751f797f97977acfa838a1f4a2212cd62548227173bc4923d0d4d854b57e96f"
+        }
+      },
+      "stage": "m3_prepare",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "2751f797f97977acfa838a1f4a2212cd62548227173bc4923d0d4d854b57e96f"
+    },
+    {
+      "command": [
+        "cargo",
+        "run",
+        "--locked",
+        "--offline",
+        "--quiet",
+        "--manifest-path",
+        "examples/ri13-m3-local-http/Cargo.toml",
+        "--bin",
+        "consumer"
+      ],
+      "elapsed_ns": 3426399625,
+      "raw_artifacts": {
+        "stderr": {
+          "bytes": 542,
+          "path": "29-warm-m3_consumer.stderr",
+          "sha256": "sha256:945d03df9f50ca18502d8c7ce3daa95bb6712532a9022e2cc7b9feedc1c1f624"
+        },
+        "stdout": {
+          "bytes": 22,
+          "path": "28-warm-m3_consumer.stdout",
+          "sha256": "sha256:2a46ed05c67ad7ab1f2d24e7edec285432b7371fdb0cd4494ca269f859122ca5"
+        }
+      },
+      "stage": "m3_consumer",
+      "stderr_sha256": "945d03df9f50ca18502d8c7ce3daa95bb6712532a9022e2cc7b9feedc1c1f624",
+      "stdout_sha256": "2a46ed05c67ad7ab1f2d24e7edec285432b7371fdb0cd4494ca269f859122ca5"
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "--quiet",
+        "--test",
+        "project",
+        "ri13_m3::saved_m3_application_runs_offline_and_refuses_timeout_and_stale_binding_mutants",
+        "--",
+        "--ignored",
+        "--exact"
+      ],
+      "elapsed_ns": 2843006708,
+      "raw_artifacts": {
+        "stderr": {
+          "bytes": 0,
+          "path": "31-warm-m3_negative_controls.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 115,
+          "path": "30-warm-m3_negative_controls.stdout",
+          "sha256": "sha256:43b9fb9e52c77b9cf61ec8ff5f3c977b99a8c6b275b1584fa88aeab38f28e065"
+        }
+      },
+      "stage": "m3_negative_controls",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "43b9fb9e52c77b9cf61ec8ff5f3c977b99a8c6b275b1584fa88aeab38f28e065"
+    },
+    {
+      "command": [
+        "cargo",
+        "run",
+        "--locked",
+        "--offline",
+        "--quiet",
+        "--manifest-path",
+        "examples/ri13-combined-app/linked/prepare/Cargo.toml",
+        "--bin",
+        "prepare"
+      ],
+      "elapsed_ns": 2227401166,
+      "raw_artifacts": {
+        "stderr": {
+          "bytes": 0,
+          "path": "33-warm-linked_prepare.stderr",
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 165,
+          "path": "32-warm-linked_prepare.stdout",
+          "sha256": "sha256:0246665eaebe153797b404ad6966af74bb04299c44aa4ffc5770c53200a6fa4d"
+        }
+      },
+      "stage": "linked_prepare",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "0246665eaebe153797b404ad6966af74bb04299c44aa4ffc5770c53200a6fa4d"
+    },
+    {
+      "command": [
+        "cargo",
+        "run",
+        "--locked",
+        "--offline",
+        "--quiet",
+        "--manifest-path",
+        "examples/ri13-combined-app/linked/Cargo.toml",
+        "--bin",
+        "consumer"
+      ],
+      "elapsed_ns": 6076781000,
+      "raw_artifacts": {
+        "stderr": {
+          "bytes": 3317,
+          "path": "35-warm-linked_consumer.stderr",
+          "sha256": "sha256:a0ef3af8339dfe7d24951efa5a054ebd843f3e85f43778abfd2653814d2ca269"
+        },
+        "stdout": {
+          "bytes": 1154,
+          "path": "34-warm-linked_consumer.stdout",
+          "sha256": "sha256:96cc3f3ff347e2b87461a36b60a67b351dcbc00ad15b365d99ede3fa5895d0aa"
+        }
+      },
+      "stage": "linked_consumer",
+      "stderr_sha256": "a0ef3af8339dfe7d24951efa5a054ebd843f3e85f43778abfd2653814d2ca269",
+      "stdout_sha256": "96cc3f3ff347e2b87461a36b60a67b351dcbc00ad15b365d99ede3fa5895d0aa"
+    }
+  ]
+}

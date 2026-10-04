@@ -1,0 +1,4 @@
+empty-output: Diagnostic { code: "SPX-LW140", severity: Error, message: "installed proof tool refused: tool exited unsuccessfully; no proof accepted", path: None, span: None, help: None }
+empty-output: count differs for value 2 on input [1, 2]; sortedness alone holds
+duplicate-element: Diagnostic { code: "SPX-LW140", severity: Error, message: "installed proof tool refused: tool exited unsuccessfully; no proof accepted", path: None, span: None, help: None }
+duplicate-element: count differs for value 2 on input [1, 2]; sortedness alone holds

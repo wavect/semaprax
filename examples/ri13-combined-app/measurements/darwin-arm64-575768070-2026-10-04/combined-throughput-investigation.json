@@ -1,0 +1,112 @@
+{
+  "limitations": [
+    "This is a local investigation record, not a performance pass or cross-platform claim.",
+    "M1 uses a fixed 4096-operation checked-export-repeat.v1 workload; it does not measure varying scan inputs and retains unavailable foreign Regex/Url copies.",
+    "M2 is a fixture-specific matched comparison: generated callbacks retain source contracts and lifecycle checks absent from the direct and handwritten routes.",
+    "The M3 source-bound investigation explains repeated registration but does not attribute an exact share of route time to an operation."
+  ],
+  "m3_investigation": {
+    "path": "/tmp/ri13-macos-575768070/m3-batch-investigation.json",
+    "sha256": "sha256:05873e611bf11a56297cf29d96727f98d937e7b968b752469121b5788e498fbf",
+    "status": "investigation_required"
+  },
+  "profiles": {
+    "m1": {
+      "batch_api": "checked-export-repeat.v1",
+      "investigation_threshold": 0.9,
+      "limitations": "The batch repeats fixed authenticated scalar exports; foreign Regex and Url copy counts remain unavailable.",
+      "status": "investigation_required",
+      "tasks": {
+        "regex_scan": {
+          "adapter_copied_bytes_per_batch": 0,
+          "generated_to_direct_throughput_ratio": 0.8919,
+          "generated_to_handwritten_throughput_ratio": 0.899,
+          "normalized_operations_per_second": {
+            "direct_rust": 86639.65,
+            "generated_semaprax": 77273.55,
+            "handwritten_adapter": 85956.32
+          },
+          "post_run_live_counts": {
+            "owner": 0,
+            "string": 0,
+            "view": 0
+          },
+          "workload": {
+            "operations_per_sample": 4096
+          }
+        },
+        "url_parse_view": {
+          "adapter_copied_bytes_per_batch": 0,
+          "generated_to_direct_throughput_ratio": 0.639,
+          "generated_to_handwritten_throughput_ratio": 0.6388,
+          "normalized_operations_per_second": {
+            "direct_rust": 468560.09,
+            "generated_semaprax": 299388.58,
+            "handwritten_adapter": 468691.45
+          },
+          "post_run_live_counts": {
+            "owner": 0,
+            "string": 0,
+            "view": 0
+          },
+          "workload": {
+            "operations_per_sample": 4096
+          }
+        }
+      }
+    },
+    "m2": {
+      "limitations": "Rust allocator requests cover the measured body; foreign Serde allocation and copy accounting remain unavailable.",
+      "status": "measured",
+      "tasks": {
+        "generic_record": {
+          "adapter_buffer_copied_bytes_per_batch": 0,
+          "generated_to_direct_throughput_ratio": 0.9294,
+          "generated_to_handwritten_throughput_ratio": 1.001,
+          "normalized_operations_per_second": {
+            "direct_rust": 138648.18,
+            "generated_semaprax": 128863.49,
+            "handwritten_adapter": 128733.78
+          },
+          "workload": {
+            "operations_per_sample": 32
+          }
+        },
+        "stateful_callback": {
+          "adapter_buffer_copied_bytes_per_batch": 0,
+          "generated_to_direct_throughput_ratio": 0.0656,
+          "generated_to_handwritten_throughput_ratio": 0.169,
+          "normalized_operations_per_second": {
+            "direct_rust": 8293593.2,
+            "generated_semaprax": 544064.09,
+            "handwritten_adapter": 3218797.78
+          },
+          "workload": {
+            "operations_per_sample": 32
+          }
+        }
+      }
+    },
+    "m3": {
+      "generated_to_direct_throughput_ratio": 0.0914,
+      "generated_to_handwritten_throughput_ratio": 0.083,
+      "investigation_threshold": 0.9,
+      "normalized_operations_per_second": {
+        "direct_rust": 3515.01,
+        "generated_semaprax": 321.14,
+        "handwritten_adapter": 3867.91
+      },
+      "status": "investigation_required",
+      "workload": {
+        "body_bytes_per_operation": 2,
+        "operations_per_sample": 64
+      }
+    }
+  },
+  "receipt": {
+    "checkout": "575768070ce451c786f304a7e1e0623444271d86",
+    "path": "/tmp/ri13-macos-575768070/combined-receipt.json",
+    "sha256": "sha256:f536752f09693329c88f7b83f3393577594761c8a883babd9032e8e212ecb3a1"
+  },
+  "schema": "semaprax.ri13.combined-throughput-investigation.v1"
+}

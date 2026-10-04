@@ -1,0 +1,83 @@
+{
+  "consumer_marker": "ri13-linked-project-ok",
+  "copied_byte_ledger": {
+    "m3_foreign_http_body": {
+      "copied_bytes_per_invocation": null,
+      "reason": "the linked consumer's scalar callback performs no HTTP body transfer",
+      "status": "not_exercised"
+    },
+    "m3_generated_boundary": {
+      "copied_bytes_per_invocation": 0,
+      "shape": "i64-to-i64",
+      "status": "exact"
+    },
+    "m3_host_callback_payload": {
+      "copied_bytes_per_invocation": 0,
+      "shape": "i64-to-Future<Result<i64,()>>",
+      "status": "exact"
+    },
+    "schema": "semaprax.ri13.linked-copy-ledger.v1"
+  },
+  "inputs": {
+    "crates/semaprax-rust-api-index/fixtures/regex-1.13.1-index-envelope.json": "c15d62de0dd1844e4be2843fe0762abac80f4e3268948657332419b07ed9a704",
+    "crates/semaprax-rust-api-index/fixtures/url-2.5.8-index-envelope.json": "dfbc51e9fe1a690b7a23af6e925a4c17f608352bbc91ded73c4e95400a64fea3",
+    "crates/semaprax-toolchain/src/fixtures/ri06-regex-1.13.1.Cargo.lock": "133955c5b309a56339b5cbc0210b01a4d0899c2ef58700c4216fe0bdc1d7e287",
+    "crates/semaprax-toolchain/src/fixtures/ri06-url-2.5.8.Cargo.lock": "b1cfca6e929aeab1558a9693230853318ad3ced4934b663a7e1b1bdd433d9fb5",
+    "ri13-combined-app/linked/Cargo.lock": "e94b5d82592cfccc29a38d62c1d0bf884047a740b36ce37573ac39ff5bcfe68c",
+    "ri13-combined-app/linked/Cargo.toml": "919ba77f3597f69721718e1bf39588c29c41c4bd71833db46326e4bb23aef0d1",
+    "ri13-combined-app/linked/build.rs": "3536283eb1300e0ad1f62d4d8be0996f2e82e8d24f364788734894fa8c44cf1b",
+    "ri13-combined-app/linked/prepare/Cargo.lock": "2d2b103e3f61e6b1bfab77447d057ebc8ec3b8e7f122dcb99892222b4dcf1e98",
+    "ri13-combined-app/linked/prepare/Cargo.toml": "5fd31d19be67a80cb60db5147a3e93a4ee180e1119fc1770048be5457fac9743",
+    "ri13-combined-app/linked/src/bin_prepare.rs": "61eb08f114484d3f110082362ccdd21a76d41f8791d3548fa23a8778cff78ee9",
+    "ri13-combined-app/linked/src/main.rs": "7f988c4851c48acaa730848c4bee4eaf7fbadbd8f3ecccbf06cb419dddcf1c62",
+    "ri13-combined-app/linked/src/selected_index.rs": "d6d6ffe959b0f337d9ce11d2996412f7a0a3265325a7339d806c5887167535c3",
+    "ri13-combined-app/unified-project/semaprax.toml": "87b01d9af0a8a332f722036e01207e1acfd7815abe9dc05b7e27f4b6d6ecd558",
+    "ri13-combined-app/unified-project/src/app.spx": "b732bc0a5d61491f6800f9035a026a3f3b31b88b6b3e2139abdff444b1151afb",
+    "ri13-combined-app/unified-project/src/tests.spx": "c4fab0aea3d98125c9e9364e9dd3c1a120a3779f2b441effdc1b3edf76969e4f",
+    "ri13-m1-regex-url/project/semaprax.toml": "9f0979c4a29774cc9956afb2fa53d2e22dd237d1287d75548a6f7fae331557a2",
+    "ri13-m1-regex-url/project/src/app.spx": "3d1b4e1fbf22b45a63688dd28eb54d752b692ea8bc5d21a8d3af064750706447",
+    "ri13-m1-regex-url/project/src/tests.spx": "d4eaa9165efa6e9c3c2f381f0251aa53e8c298286e152c90538a4fce5836c00e",
+    "ri13-m2-record-iterator/project/app.spx": "c8ca91769adad4c53f84ed6a0668ce9217c0967d4c7dac18111abff61c5d5cd5",
+    "ri13-m2-record-iterator/project/semaprax.toml": "d43df8fece8f6e98ec393c10dcc011653ce06720feffdfd0fa6e4d4784dd8501",
+    "ri13-m2-record-iterator/project/tests.spx": "b70eb262e0bdaa139da490ff621044a70500d9c0875d70f8efe820daeb916852",
+    "ri13-m3-local-http/project/semaprax.toml": "9aa965575b5c17c531508875862cb8693611bda2779443e70cd50803f16a1f30",
+    "ri13-m3-local-http/project/src/app.spx": "1327f700fdeaa98a7a2f2f1ebd9ca72d23e51112a68ffadffff3a24d052c8b61",
+    "ri13-m3-local-http/project/src/tests.spx": "b3432ebf0ae70ad3620228f0a7125062c139fa5697826d173969efeb8a1deb09"
+  },
+  "m1_index_target": {
+    "envelopes": {
+      "regex": {
+        "sha256": "0fed4e1167ead4fde9990603618f5de8ebd0694e1686886528c29df9b6d0bad4",
+        "target": "x86_64-unknown-linux-gnu"
+      },
+      "url": {
+        "sha256": "91e90992fbf69878965e732ed41baa28f3ee3f1c7832582ab4cd793379009305",
+        "target": "x86_64-unknown-linux-gnu"
+      }
+    },
+    "selection": "supplied-linux-envelope",
+    "target": "x86_64-unknown-linux-gnu"
+  },
+  "profiles": {
+    "linked": "source-local-future-indexed-rust.v1"
+  },
+  "schema": "semaprax.ri13.linked-project-receipt.v2",
+  "selected_identities": [
+    "regex.run",
+    "url.run",
+    "ri13.event",
+    "callback.factory",
+    "callback.advance",
+    "ri13.m3.score"
+  ],
+  "stages": [
+    "prepare",
+    "consumer"
+  ],
+  "unified_project_candidate": {
+    "admission": "closed",
+    "diagnostic": null,
+    "path": "ri13-combined-app/unified-project/semaprax.toml",
+    "reason": "one Project admits only the exact Regex/Url dependency and export shape; untrusted combinations remain refused"
+  }
+}

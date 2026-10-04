@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Verify matched Boolean-negation peak-RSS sample files without comparing routes."""
 import argparse,hashlib,json,pathlib,statistics
-ROOT=pathlib.Path(__file__).parent;SCHEMA='semaprax.bend2-law-benchmark.boolean-negation-peak-rss-review.v1'
+ROOT=pathlib.Path(__file__).parent;SCHEMA='semaprax.bend2-law-benchmark.boolean-negation-peak-rss-review.v1';CURRENT_SCHEMA='semaprax.bend2-law-benchmark.boolean-negation-peak-rss-current.v2'
 def digest(p):return 'sha256:'+hashlib.sha256(p.read_bytes()).hexdigest()
 def route(root,name,input_path):
  v=json.loads((root/name).read_text()); rows=v.get('samples')
@@ -16,6 +16,16 @@ def review(root):
  root=root.resolve();bend=root/'bend-input.bend';sem=root/'semaprax-project/src/app.spx'
  if bend.read_bytes()!=(ROOT/'fixtures/bend-boolean-negation-v1.bend').read_bytes() or sem.read_bytes()!=(ROOT/'fixtures/semaprax-boolean-negation-v1.spx').read_bytes():raise ValueError('retained RSS source differs from matched fixture')
  return {'schema':SCHEMA,'status':'local_matched_rss_authenticated','routes':{'bend_verdict':route(root,'bend-verdict.json',bend),'semaprax_z3':route(root,'semaprax-z3.json',root/'semaprax-project/semaprax.toml')},'nonclaims':['RSS includes /usr/bin/time wrapper observation','no RSS ratio or winner','distinct trusted computing bases','not cold-cache isolation']}
+def review_current(root):
+ root=root.resolve();manifest=json.loads((root/'manifest.json').read_text())
+ if manifest.get('schema')!=CURRENT_SCHEMA or manifest.get('status')!='completed' or manifest.get('samples_per_route')!=30:raise ValueError('current RSS manifest drifted')
+ bend=root/manifest['bend_input']['path'];source=root/manifest['semaprax_source']['path'];project=root/manifest['semaprax_manifest']['path']
+ for ref,path in ((manifest['bend_input'],bend),(manifest['semaprax_source'],source),(manifest['semaprax_manifest'],project),(manifest['provenance'],root/'provenance.json')):
+  if path.stat().st_size!=ref['bytes'] or digest(path)!=ref['sha256']:raise ValueError('current RSS identity drifted')
+ if bend.read_bytes()!=(ROOT/'fixtures/bend-boolean-negation-v1.bend').read_bytes() or source.read_bytes()!=(ROOT/'fixtures/semaprax-boolean-negation-v1.spx').read_bytes():raise ValueError('current RSS source differs from matched fixture')
+ provenance=json.loads((root/'provenance.json').read_text())
+ if provenance.get('schema')!=CURRENT_SCHEMA or provenance.get('status')!='observed_current_checkout' or provenance.get('cold_cache',{}).get('status')!='unavailable':raise ValueError('current RSS provenance drifted')
+ return {'schema':SCHEMA,'status':'current_checkout_matched_rss_authenticated','routes':{'bend_verdict':route(root,'bend-verdict.json',bend),'semaprax_z3':route(root,'semaprax-z3.json',project)},'provenance':manifest['provenance'],'nonclaims':['RSS includes /usr/bin/time wrapper observation','no RSS ratio or winner','distinct trusted computing bases','not cold-cache isolation','does not rebind historical RSS evidence']}
 def main(argv=None):
  p=argparse.ArgumentParser(description=__doc__);p.add_argument('--capsule',required=True,type=pathlib.Path);p.add_argument('--output',required=True,type=pathlib.Path);a=p.parse_args(argv)
  if a.output.exists() or not a.output.parent.is_dir():p.error('output must be new')

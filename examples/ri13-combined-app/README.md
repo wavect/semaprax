@@ -135,10 +135,17 @@ CLANG=/usr/bin/clang CARGO_TARGET_DIR="$PWD/target/ri13-linked" \
   cargo run --locked --offline --manifest-path examples/ri13-combined-app/linked/Cargo.toml --bin consumer
 ```
 
-`linked-receipt.py` performs the no-Cargo structural assertion for the route:
-it checks the canonical manifest selections, every required source identity,
-the linked prepare/consumer command order, and emits a deterministic receipt
-whose inputs are SHA-256 hashes of the tracked fixture files.
+`linked-receipt.py` performs the no-Cargo structural assertion for the route.
+It binds each independently admitted M1/M2/M3 source selection to its linked
+preparation path, generated C inputs, consumer result checks, and existing
+copied-byte ledger contract. It preserves unavailable foreign copy cells and
+does not replace the compiled linked consumer gate.
+
+Run its static control without Cargo:
+
+```sh
+python3 examples/ri13-combined-app/linked-receipt.py --self-test
+```
 
 ## Linux x86_64 evidence runner
 

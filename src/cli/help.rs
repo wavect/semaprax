@@ -4,6 +4,7 @@ use std::process::ExitCode;
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[repr(usize)]
 pub(crate) enum CommandId {
+    Dev,
     Check,
     Graph,
     Explore,
@@ -156,6 +157,7 @@ struct CommandSpec {
     usages: &'static [&'static str],
 }
 static COMMANDS: &[CommandSpec] = &[
+    CommandSpec { id: CommandId::Dev, canonical: "dev", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax dev <semaprax.toml> --jsonl"] },
     CommandSpec { id: CommandId::Check, canonical: "check", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax check [<file>|<dir>|semaprax.toml|--manifest-path path] [--json]"] },
     CommandSpec { id: CommandId::Compact, canonical: "compact", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax compact graph|agent-definition <file> [--encoding text|binary|model-text] [--replay <encoded>]", "semaprax compact context <file> <stable-id> [--max-bytes N] [--encoding text|binary|model-text] [--replay <encoded>]", "semaprax compact task-context <file> <stable-id> [--goal text] [--priority N] [--reason text] [--seed stable-id [--priority N] [--reason text]]... [--revision digest] [--tokenizer byte-v1|lexical-v1] [--max-bytes N] [--max-tokens N] [--encoding text|binary|model-text] [--replay <encoded>]", "semaprax compact api-surface <project> [--encoding text|binary|model-text] [--replay <encoded>]", "semaprax compact candidate-diff <project> <capsule> [--encoding text|binary|model-text] [--replay <encoded>]"] },
     CommandSpec { id: CommandId::Graph, canonical: "graph", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax graph <file>"] },

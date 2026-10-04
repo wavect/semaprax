@@ -22,6 +22,8 @@ use semaprax::{
 mod cli;
 #[path = "cli_driver/context_dispatch.rs"]
 mod context_dispatch;
+#[path = "cli_driver/hot_reload.rs"]
+mod hot_reload;
 #[path = "native_scratch.rs"]
 mod native_scratch;
 #[path = "cli_driver/options.rs"]
@@ -132,6 +134,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
     };
     use cli::help::CommandId;
     match command_id {
+        CommandId::Dev => hot_reload::run(&args[1..]),
         CommandId::SourceLive => {
             let host = require_private_host(host, "source-live")?;
             let output = (host.source_live)(&args[1..]).map_err(|(error, code)| {

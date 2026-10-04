@@ -31,6 +31,19 @@ cause a rescan when they affect an admitted input. After a manifest change,
 paths beneath the admitted root are hints until fresh admission establishes the
 new exact inventory; they are never read directly by the adapter.
 
+## Standalone control adapter
+
+`semaprax dev <semaprax.toml> --jsonl` starts no session until it receives a
+closed `semaprax.hot-reload-control.v1` `start` frame on standard input. Its
+only operations are `start`, `status`, `plan`, `activate`, and `stop`. Frames
+have strictly increasing unsigned request IDs; unknown or duplicate fields,
+unknown operations, invalid UTF-8 JSON, and stale IDs are rejected. The adapter
+accepts at most 64 newline-delimited 4 KiB frames and emits at most 8 KiB per
+response. Plans remain opaque in-process values: `plan` can render facts for
+inspection, while `activate` consumes only the retained plan. JSON responses
+are the sole standard-output bytes; human diagnostics remain on standard error.
+EOF and `stop` release the watcher and discard any retained plan.
+
 Invalid, missing, inaccessible, over-bound, escaping, or symlinked inputs are
 reported by the Project admission owner as a rejected candidate. The prepared
 worker retains its earlier revision. A stopped watcher cannot poll or activate.

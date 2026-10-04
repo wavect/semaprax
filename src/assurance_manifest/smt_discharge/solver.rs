@@ -214,6 +214,7 @@ pub fn solver_version(provisioning: &Provisioning) -> Option<String> {
 }
 
 #[cfg(unix)]
+#[allow(unsafe_code)] // fcntl sets nonblocking mode on the owned stdout pipe.
 fn solver_version_with_limits(
     provisioning: &Provisioning,
     timeout: Duration,
@@ -362,6 +363,7 @@ mod tests {
 
     #[cfg(unix)]
     #[test]
+    #[allow(unsafe_code)] // kill(pid, 0) observes that the test child was reaped.
     fn version_probe_bounds_time_and_reaps_child() {
         let pid_file =
             std::env::temp_dir().join(format!("semaprax-version-probe-pid-{}", std::process::id()));

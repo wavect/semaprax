@@ -120,6 +120,8 @@ Rules:
   `extensions` entry are reported as `inactive`.
 - `support.tested` is a record, not a claim: the host never treats a
   declaration as production support (HP-16 conformance decides).
+- `runtime: native` is an adapter executable built natively; its `entry[0]` is
+  a path relative to the descriptor's directory (absolute or `..` refused).
 - `runtime: builtin` descriptors describe host-implemented providers
   (native context, raw command view, rules decision, plain skill roots); they
   have no `entry` and no process.
@@ -216,6 +218,30 @@ are valid for one kind are refused for another.
   must be in the approved catalog.
 - `skill.catalog/v1` — operations `list` (bounded metadata) and `load`
   (content by exact digest).
+
+Every content digest in a payload (context items, skill entries, artifact
+references, requested skill digests) has the form `sha256:<64 lowercase hex>`.
+Paths are project-relative: no leading `/`, drive prefix, backslash, NUL, empty
+or `.`/`..` segment. Shapes are closed (unknown members refused,
+`SPX-HPA040`). Operations per kind: `context.repository` orient/search/
+skeleton/references; `command.view` view/wrap; `decision.evaluate` evaluate;
+`model.generate` generate; `skill.catalog` list/load. Result payloads are also
+checked against their request: a decision `choice` and every score key must be a
+request option (`SPX-HPA043`), and a loaded skill digest must equal the
+requested one.
+
+Stable diagnostics of this layer: HPA001 invalid UTF-8, 002 oversize, 003
+depth, 004 node count, 005 duplicate key, 006 invalid number, 007 trailing
+data, 008 raw line break in a frame, 009 JSON syntax; 010 wrong descriptor
+schema, 011 plugin-manifest document, 012 unknown member, 013 malformed field,
+014 provider id, 015 entry/runtime mismatch, 016 protocol range, 017 duplicate
+capability, 018 resource bound, 019 unknown required kind, 020 duplicate
+identity, 021 downgrade, 022 capability kind/operation, 023 unsupported
+version, 030 request envelope, 031/032/033 spoofed invocation/project/
+capability, 035 status/payload mismatch, 036 authority-like member, 037
+malformed result envelope, 040 payload shape, 041 path, 042 exit status in a
+command view, 043 choice outside options, 044 score range, 045 model id, 046
+operation.
 
 ## Project configuration (`semaprax.harness.toml`)
 

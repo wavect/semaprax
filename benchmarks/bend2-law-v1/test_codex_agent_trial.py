@@ -64,6 +64,7 @@ class CodexTrialTests(unittest.TestCase):
             self.assertTrue((root / "evidence" / "events.jsonl").is_file())
             self.assertTrue((root / "evidence" / "final-source.bend").is_file())
             self.assertIn("seeded_law_gaming_source", command[-1])
+            self.assertIn(digest(attack), command[-1])
 
     def test_missing_usage_or_a_token_overrun_is_ineligible_not_a_pass(self):
         for events in (b'{"type":"turn.completed"}\n', b'{"type":"turn.completed","usage":{"input_tokens":1000,"cached_input_tokens":1,"output_tokens":1}}\n'):

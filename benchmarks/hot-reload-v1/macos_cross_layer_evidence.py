@@ -52,7 +52,7 @@ TARGETS = {
 SELECTORS = {
     "watcher-a-b-invalid-c": ("root-lib", "project::hot_reload_watcher::tests::invalid_c_rejects_after_b_without_replacing_active_a_or_admitting_stale_b"),
     "watcher-invalid-c-repair": ("root-lib", "project::hot_reload_watcher::tests::valid_repair_after_invalid_c_admits_once"),
-    "source-agent-a-b": ("source-agent-integration", "cli_help_surface_v1::source_agent_hot_reload::full_dev_source_agent_migrates_real_journal_a_to_b_with_local_opencode_stub"),
+    "source-agent-a-b": ("source-agent-integration", "source_agent_hot_reload::full_dev_source_agent_migrates_real_journal_a_to_b_with_local_opencode_stub"),
     "source-agent-a-b-c": ("toolchain-lib", "source_live_cli::hr04_state_handoff_tests::retained_a_to_b_to_c_handoff_carries_state_without_initialize_or_redispatch"),
     "prepared-worker-a-b-c-identity": ("root-lib", "project::hot_reload::tests::real_a_to_b_to_c_keeps_one_worker_and_binds_each_trace_to_its_revision"),
     "watcher-stop-resource-release": ("root-lib", "project::hot_reload_watcher::tests::external_stop_during_admission_clears_pending_work_and_releases_the_fixture"),

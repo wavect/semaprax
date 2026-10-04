@@ -41,7 +41,7 @@
     {
       "id": "source-agent-a-b",
       "availability": "selector-required",
-      "selector": "cli_help_surface_v1::source_agent_hot_reload::full_dev_source_agent_migrates_real_journal_a_to_b_with_local_opencode_stub",
+      "selector": "source_agent_hot_reload::full_dev_source_agent_migrates_real_journal_a_to_b_with_local_opencode_stub",
       "requires": [
         "source-built semaprax-full child",
         "A checkpoint",
@@ -245,7 +245,7 @@
     {
       "id": "source-agent-a-b",
       "availability": "selector-required",
-      "selector": "cli_help_surface_v1::source_agent_hot_reload::full_dev_source_agent_migrates_real_journal_a_to_b_with_local_opencode_stub"
+      "selector": "source_agent_hot_reload::full_dev_source_agent_migrates_real_journal_a_to_b_with_local_opencode_stub"
     },
     {
       "id": "source-agent-a-b-c",

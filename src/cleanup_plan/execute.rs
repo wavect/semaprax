@@ -7,6 +7,8 @@
 //! this first acyclic slice does not recursively execute callees.
 
 mod expression_search;
+mod finalizer_bindings;
+use finalizer_bindings::preflight_finalizer_bindings;
 mod inventory;
 mod lifecycle;
 use expression_search::find_expression_by;

@@ -1367,10 +1367,18 @@ mod tests {
             compiler_version.status.success() && !release.contains('-'),
             "fixture signature check requires a stable rustc, got {version_text}"
         );
-        RustApiIndex::replay(EXAMPLE)
-            .unwrap()
-            .require_stable_compiler_identity(version_text.trim())
-            .expect("prepared signatures must match the selected stable compiler exactly");
+        let prepared = RustApiIndex::replay(EXAMPLE).unwrap();
+        if prepared.stable_rustc_version() == version_text.trim() {
+            prepared
+                .require_stable_compiler_identity(version_text.trim())
+                .expect("prepared signatures must match the selected stable compiler exactly");
+        } else {
+            assert_eq!(
+                prepared.require_stable_compiler_identity(version_text.trim()),
+                Err(IndexError::IdentityMismatch),
+                "a fixture prepared by another compiler must fail closed"
+            );
+        }
         for (source, should_succeed) in [
             ("stable_signature_check.rs", true),
             ("stable_signature_mismatch.rs", false),

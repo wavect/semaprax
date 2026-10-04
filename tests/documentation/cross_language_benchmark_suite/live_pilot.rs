@@ -1,5 +1,8 @@
 //! Local fixtures only; no provider or second-host execution claim.
 
+// The pilot's capture and guest-host fixtures require POSIX pipes, process
+// groups, and Unix permissions; the transport admits Darwin and Linux only.
+#[cfg(unix)]
 #[test]
 fn live_pilot_retains_inventory_and_refuses_unsafe_candidate_transport() {
     let output = std::process::Command::new("python3")
@@ -25,6 +28,7 @@ fn live_pilot_retains_inventory_and_refuses_unsafe_candidate_transport() {
     );
 }
 
+#[cfg(unix)]
 #[test]
 fn linux_pilot_requires_explicit_provision_and_restricts_authority() {
     let output = std::process::Command::new("python3")

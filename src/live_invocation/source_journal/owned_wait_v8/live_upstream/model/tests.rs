@@ -491,10 +491,20 @@ fn owned_wait_recovered_first_prepared_requires_process_exit_and_relaunch() {
         std::fs::create_dir(&root).unwrap();
         let metadata = root.join("retained-registration.json");
         spawn_prepared_restart_child("prepare", &metadata, true);
-        let prepared = read_prepared_restart_meta();
+        let prepared: PreparedRestartProcessMeta =
+            serde_json::from_slice(&std::fs::read(&metadata).unwrap()).unwrap();
         assert_ne!(prepared.preparer_pid, std::process::id());
         if mode == "hostile" {
-            let journal = prepared.directory.clone();
+            let journal = std::fs::read_dir(&prepared.directory)
+                .unwrap()
+                .map(|entry| entry.unwrap().path())
+                .find(|path| {
+                    path.file_name()
+                        .unwrap()
+                        .to_string_lossy()
+                        .ends_with(".source-owned-wait.jsonl")
+                })
+                .expect("prepared journal file");
             let before = std::fs::read(&journal).unwrap();
             std::fs::OpenOptions::new()
                 .append(true)

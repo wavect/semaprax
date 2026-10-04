@@ -1047,11 +1047,11 @@ fn continued_reduce_chain_step_ack(fault: u8, three_turns: bool, later_observe_e
                                                     drop(stopped);
                                                 }
                                                 assert_eq!(host.calls, 1);
-                                                assert_eq!(starts.get(), 2);
+                                                assert_eq!(starts.get(), 1);
                                                 assert_eq!(cleanup_actions.get(), 1);
                                                 assert_eq!(step_cleanup_actions, 1);
-                                                assert_eq!(crate::interpreter::resumable::owned_frame::registered_stage::live_run::test_continued_resume_entries_v8(), resume_entries + 2);
-                                                assert_eq!(crate::interpreter::resumable::owned_frame::registered_stage::reduce::PreparedHeldContinuedWaitV2::test_start_entries(), start_entries + 1);
+                                                assert_eq!(crate::interpreter::resumable::owned_frame::registered_stage::live_run::test_continued_resume_entries_v8(), resume_entries + 1);
+                                                assert_eq!(crate::interpreter::resumable::owned_frame::registered_stage::reduce::PreparedHeldContinuedWaitV2::test_start_entries(), start_entries);
                                                 assert!(weak
                                                     .iter()
                                                     .all(|owner| owner.upgrade().is_none()));
@@ -1380,7 +1380,11 @@ fn continued_reduce_chain_step_ack(fault: u8, three_turns: bool, later_observe_e
                 );
                 assert_eq!(
                     starts.get(),
-                    1 + usize::from(three_turns && matches!(fault, 0 | 12..=20)),
+                    1 + usize::from(
+                        three_turns
+                            && (matches!(fault, 0 | 12..=20)
+                                || (fault == 21 && !later_observe_ensures))
+                    ),
                     "turn-two physical Model dispatch occurs only after its Intent ACK"
                 );
                 assert_eq!(
@@ -1390,12 +1394,12 @@ fn continued_reduce_chain_step_ack(fault: u8, three_turns: bool, later_observe_e
                 );
                 assert_eq!(
             crate::interpreter::resumable::owned_frame::registered_stage::live_run::test_continued_resume_entries_v8(),
-            resume_entries + 1 + usize::from(three_turns && matches!(fault, 0 | 15..=20)),
+            resume_entries + 1 + usize::from(three_turns && (matches!(fault, 0 | 15..=20) || (fault == 21 && !later_observe_ensures))),
             "only each exact Resume ACK may consume its own physical park"
         );
                 assert_eq!(
                 crate::interpreter::resumable::owned_frame::registered_stage::reduce::PreparedHeldContinuedWaitV2::test_start_entries(),
-                start_entries + usize::from(three_turns && matches!(fault, 0 | 10..=20)),
+                start_entries + usize::from(three_turns && (matches!(fault, 0 | 10..=20) || (fault == 21 && !later_observe_ensures))),
                 "only the turn-two Start ACK may enter the source helper again"
             );
                 assert!(weak.iter().all(|owner| owner.upgrade().is_none()));

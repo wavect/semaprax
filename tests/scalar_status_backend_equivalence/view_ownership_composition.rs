@@ -652,6 +652,9 @@ const imports = {
       b[Number(i)] = v;
       return BigInt.asIntN(64, d.word);
     },
+    spx_bytes_set5: () => { throw new Error("unexpected five-byte write"); },
+    spx_bytes_set1_or5: () => { throw new Error("unexpected one-or-five write"); },
+    spx_bytes_set1_or6_or48: () => { throw new Error("unexpected one-or-six-or-forty-eight write"); },
   },
 };
 linked = await WebAssembly.instantiate(bytes, imports);

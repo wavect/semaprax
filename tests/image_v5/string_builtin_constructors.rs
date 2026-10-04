@@ -303,7 +303,7 @@ fn every_string_builtin_body_is_replayed_with_exact_selected_identity_and_no_cha
 }
 
 #[test]
-fn schemas_publish_nineteen_exact_arity_branches_and_both_client_type_graphs() {
+fn schemas_publish_twenty_two_exact_arity_branches_and_both_client_type_graphs() {
     let fixture = Fixture::new();
     for diagnostics in [false, true] {
         let mut session = fixture.session(diagnostics);
@@ -321,7 +321,7 @@ fn schemas_publish_nineteen_exact_arity_branches_and_both_client_type_graphs() {
                 .iter()
                 .filter(|row| row["properties"]["kind"]["const"] == "builtin_call")
                 .count(),
-            19
+            22
         );
         assert!(forms
             .iter()
@@ -344,7 +344,7 @@ fn schemas_publish_nineteen_exact_arity_branches_and_both_client_type_graphs() {
             .iter()
             .find(|doc| doc["$id"] == "urn:semaprax.project-change-catalog.v1")
             .unwrap();
-        assert_eq!(catalogue["properties"]["builtin_calls"]["maxItems"], 19);
+        assert_eq!(catalogue["properties"]["builtin_calls"]["maxItems"], 22);
         let kinds = catalogue["properties"]["builtin_calls"]["items"]["oneOf"]
             .as_array()
             .unwrap();

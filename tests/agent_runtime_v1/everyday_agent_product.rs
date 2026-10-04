@@ -53,13 +53,20 @@ fn agent_module_source() -> String {
         .expect("examples/everyday-agent-project/src/agent.spx is checked in")
 }
 
+// The Project admits this module as a provider and therefore forbids `main`.
+// The standalone V1 lifecycle compiler requires an executable projection.
+fn executable_agent_source(source: &str) -> String {
+    format!("{source}\n@id(\"app.main\") fn main() -> i64 {{ 0 }}\n")
+}
+
 fn fixture_input_bytes() -> Vec<u8> {
     fs::read(project_root().join("fixtures/input.json"))
         .expect("examples/everyday-agent-project/fixtures/input.json is checked in")
 }
 
 fn durable_agent_from_source(source: &str, policy_epoch: u64) -> DurableAgent {
-    let checked = semaprax::check(source, "agent.spx").unwrap();
+    let source = executable_agent_source(source);
+    let checked = semaprax::check(&source, "agent.spx").unwrap();
     let declaration = checked
         .agents
         .iter()
@@ -72,7 +79,7 @@ fn durable_agent_from_source(source: &str, policy_epoch: u64) -> DurableAgent {
     )
     .unwrap();
     let bound = bind_agent_deployment(&definition_v2, &deployment).unwrap();
-    bind_durable_agent(source, "agent.spx", &bound, policy_epoch).unwrap()
+    bind_durable_agent(&source, "agent.spx", &bound, policy_epoch).unwrap()
 }
 
 fn durable_agent(policy_epoch: u64) -> DurableAgent {
@@ -188,14 +195,18 @@ fn source_declared_agent_is_admitted_as_an_authenticated_project_source() {
     .unwrap();
 
     let source = agent_module_source();
-    let checked = semaprax::check(&source, "agent.spx").unwrap();
+    let executable = executable_agent_source(&source);
+    let checked = semaprax::check(&executable, "agent.spx").unwrap();
     assert!(checked
         .agents
         .iter()
         .any(|declaration| declaration.stable_id == AGENT_ID));
-    let lifecycle =
-        semaprax::agent_lifecycle::compile_source_agent_lifecycle(&source, "agent.spx", AGENT_ID)
-            .unwrap();
+    let lifecycle = semaprax::agent_lifecycle::compile_source_agent_lifecycle(
+        &executable,
+        "agent.spx",
+        AGENT_ID,
+    )
+    .unwrap();
     assert_eq!(lifecycle.agent_id(), AGENT_ID);
 }
 

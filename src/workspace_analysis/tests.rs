@@ -552,10 +552,10 @@ fn context_impact_and_review_documents_have_frozen_kats_and_exact_digest_replay(
             // (`Function.follows`, 0ce5519b/bcadbaec): only `used_builder_bytes`,
             // the workspace-graph digest, and dependent artifact digests
             // moved; every semantic field remained byte-identical.
-            "sha256:684a83b71aa1ebbae59749bccb453410a6b55bc32dc2e811dd68218f6bec87ab",
-            "sha256:15b3571712ad6bda1b7fd43d9735061bd5ac8ea084fdbc21fc4dc426a0ba5003",
-            "sha256:2c1d413dda2942f7f74f661a9dfc23defa7344b2ecd6ac6d907ec8c75cb5b1b7",
-            "sha256:3cd3514a46d4cc958c4af0aa0caaebd1bf0c54f8a3e8d751204edf2410787448"
+            "sha256:2cb5ebf81880900ac627cd7fec484d5afe93afdde85d2f460059b22af0285562",
+            "sha256:1da3fd5c87175d61cd55dab1704eba7f6299d26c75d5c1e61794d7d22b4a6875",
+            "sha256:0f95c0dd9ebba578652f70a54669d37a1730dc44305e897a05df1b08e641d789",
+            "sha256:0722102fa43d18ed3a7ebd749827c583e6e7280675af1415556f03e2e6d98dca"
         ]
     );
     for artifact in &contexts {

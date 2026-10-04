@@ -13,6 +13,11 @@
     "debit_after + credit_after == 50"
   ],
   "attack": "replace the debit update 20 - 7 with 20 while preserving the three claimed laws",
+  "bend_edit_surface": {
+    "status": "admitted_direct_scalar_helpers_only",
+    "rule": "Bend repairs must keep debit_after, credit_after, and total_after as direct scalar U32 expressions. Do not project a computed record (for example transfer().debit); pinned Bend rejects that syntax.",
+    "failed_predecessor": "bounded-balance-transfer-v1:bend2:1 used transfer().debit and is ineligible after pinned parser rejection"
+  },
   "nonclaims": [
     "this fixed witness is not a checked-u32 scalar cell",
     "this bounded transfer witness does not establish behavior outside 0..100",

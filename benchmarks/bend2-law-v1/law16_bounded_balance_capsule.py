@@ -18,6 +18,18 @@ def review(root):
   b=p.read_bytes().lower()
   if any(x in b for x in markers): hits.append(p.relative_to(root).as_posix())
  if hits: raise ValueError('credential marker in raw events')
+ # Derive Bend outcomes from replay bytes, rather than trusting the summary.
+ bend=json.loads((root/'v2-turns-and-replay/bend-replay.json').read_text())
+ if set(bend)!={str(i) for i in range(1,11)}: raise ValueError('Bend ordinal coverage drift')
+ passes=failures=0
+ for n,row in bend.items():
+  if row.get('attack-normal')!=1 or row.get('attack-verdict')!=1: raise ValueError('seeded Bend attack drift')
+  ok=row.get('candidate-normal')==0 and row.get('candidate-verdict')==0
+  passes+=ok; failures+=not ok
+ if (passes,failures)!=(9,1): raise ValueError('Bend outcome drift')
+ z3=json.loads((root/'v2-turns-and-replay/z3-cache-replay.json').read_text())
+ # cache-root replay is authoritative; the /tmp replay is retained infrastructure failure.
+ z3=json.loads((root/'v2-turns-and-replay/z3-cache-replay.json').read_text()) if (root/'v2-turns-and-replay/z3-cache-replay.json').exists() else None
  a=m.get('aggregate',{})
  expected={'v2_matched_pairs':10,'bend_candidate_passes':9,'bend_candidate_failures':1,'semaprax_z3_candidate_discharges':10,'attack_debit_rejections':10,'attack_credit_discharges':10,'attack_total_rejections':10,'v1_ineligible_pilot':1}
  if a!=expected: raise ValueError('aggregate drift')

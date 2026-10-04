@@ -628,6 +628,47 @@ fn active_post_rename_failure_is_uncertain_and_poisoned_until_reopen() {
     fs::remove_dir_all(&dir).ok();
 }
 
+#[test]
+fn active_pre_rename_retry_and_reopen_never_replace_the_written_generation() {
+    let dir = tempdir("active-pre-rename-immutable-generation");
+    let mut store = GenerationJobStore::open(&dir).unwrap();
+    let mut candidate = store.table.clone();
+    candidate
+        .side_records
+        .insert(b"unpublished-generation".to_vec(), b"first".to_vec());
+    let mut stage_writes = 0usize;
+    let mut closure = |point: HookPoint| {
+        if point == HookPoint::AfterStageWrite {
+            stage_writes += 1;
+            if stage_writes == 2 {
+                return Err(io::Error::other("ACTIVE stage write failed"));
+            }
+        }
+        Ok(())
+    };
+    let mut hook: Option<&mut durable_fs::Hook<'_>> = Some(&mut closure);
+    assert_eq!(
+        store.commit_with_hook(candidate, &mut hook),
+        Err(JobStoreError::Io)
+    );
+    let first_generation = dir.join("generations/1");
+    let first_bytes = fs::read(&first_generation).unwrap();
+
+    assert!(matches!(
+        store.enqueue(request(b"retry-after-active-failure", b"payload", 3, 0)),
+        Ok(EnqueueOutcome::Created(_))
+    ));
+    assert_eq!(fs::read(&first_generation).unwrap(), first_bytes);
+    assert!(dir.join("generations/2").is_file());
+    drop(store);
+
+    let reopened = GenerationJobStore::open(&dir).unwrap();
+    assert_eq!(fs::read(&first_generation).unwrap(), first_bytes);
+    assert!(reopened.side_record(b"unpublished-generation").is_none());
+    assert_eq!(reopened.get(JobId(1)).unwrap().payload, b"payload");
+    fs::remove_dir_all(&dir).ok();
+}
+
 // ---------------------------------------------------------------------
 // Cancellation.
 // ---------------------------------------------------------------------

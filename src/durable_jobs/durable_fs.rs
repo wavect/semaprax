@@ -244,6 +244,31 @@ pub(crate) fn next_job_stage_sequence(directories: [&Path; 2]) -> io::Result<u64
     }
 }
 
+/// Return the greatest committed-generation filename. Generation files are
+/// immutable once renamed, including an unreachable one left when the later
+/// `ACTIVE` publication fails. The bounded scan prevents a malformed root
+/// from making recovery unbounded.
+pub(crate) fn highest_job_generation(directory: &Path) -> io::Result<u64> {
+    const MAX_GENERATION_FILES: usize = 65_536;
+    let mut count = 0usize;
+    let mut highest = 0u64;
+    for entry in fs::read_dir(directory)? {
+        let name = entry?.file_name();
+        let Some(name) = name.to_str() else {
+            continue;
+        };
+        let Ok(generation) = name.parse::<u64>() else {
+            continue;
+        };
+        count += 1;
+        if count > MAX_GENERATION_FILES {
+            return Err(io::Error::other("too many job generations"));
+        }
+        highest = highest.max(generation);
+    }
+    Ok(highest)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

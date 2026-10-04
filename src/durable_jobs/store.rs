@@ -90,6 +90,7 @@ pub struct GenerationJobStore {
     generations_dir: PathBuf,
     active_path: PathBuf,
     current_generation: u64,
+    next_generation: u64,
     table: JobTable,
     stage_seq: AtomicU64,
     poisoned: bool,
@@ -142,11 +143,15 @@ impl GenerationJobStore {
         // so this reopened handle cannot collide with the crashed attempt.
         let stage_seq = durable_fs::next_job_stage_sequence([&root, &generations_dir])
             .map_err(|_| JobStoreError::Io)?;
+        let next_generation = durable_fs::highest_job_generation(&generations_dir)
+            .map_err(|_| JobStoreError::Io)?
+            .max(current_generation);
         Ok(GenerationJobStore {
             _writer_lock: writer_lock,
             generations_dir,
             active_path,
             current_generation,
+            next_generation,
             table,
             stage_seq: AtomicU64::new(stage_seq),
             poisoned: false,
@@ -173,12 +178,16 @@ impl GenerationJobStore {
         }
         let bytes = codec::encode(&candidate).ok_or(JobStoreError::RecordTooLarge)?;
         let new_generation = self
-            .current_generation
+            .next_generation
             .checked_add(1)
             .ok_or(JobStoreError::TickOverflow)?;
         let generation_path = self.generations_dir.join(new_generation.to_string());
         let generation_stage = self.next_stage_name("generation")?;
         self.commit_bytes(&generation_path, &generation_stage, &bytes)?;
+        // From this point the generation filename is immutable, even if the
+        // later ACTIVE write fails before its rename. Reserve the next name
+        // now so this live handle cannot replace it on an ordinary retry.
+        self.next_generation = new_generation;
         let pointer_stage = self.next_stage_name("active")?;
         let active_path = self.active_path.clone();
         self.commit_bytes(&active_path, &pointer_stage, &new_generation.to_le_bytes())?;
@@ -216,12 +225,16 @@ impl GenerationJobStore {
             return Err(JobStoreError::PublicationUncertain);
         }
         let bytes = codec::encode(&candidate).ok_or(JobStoreError::RecordTooLarge)?;
-        let new_generation = self.current_generation + 1;
+        let new_generation = self
+            .next_generation
+            .checked_add(1)
+            .ok_or(JobStoreError::TickOverflow)?;
         let generation_path = self.generations_dir.join(new_generation.to_string());
         let generation_stage = self
             .next_stage_name("generation")
             .map_err(|_| JobStoreError::Io)?;
         self.commit_bytes_with_hook(&generation_path, &generation_stage, &bytes, hook)?;
+        self.next_generation = new_generation;
         let pointer_stage = self
             .next_stage_name("active")
             .map_err(|_| JobStoreError::Io)?;

@@ -179,6 +179,19 @@ owns the status of these profiles.
 | --- | --- | --- | --- |
 | `examples/law-packs` | Checked money/state source with exact debit, credit, conservation, and insufficient-funds clauses; the separate installed-Z3 test proves selected clauses under its finite profile | `semaprax check examples/law-packs/money-state.spx` | [Law packs](law-packs/README.md), [Finite Structured Law v1](../docs/FINITE-STRUCTURED-LAW-V1.md) |
 
+## RI-13 real-application gates
+
+These are locked, offline generated-consumer examples. Their own READMEs own
+the exact commands and limits. The combination harness retains one receipt
+across all three paths while preserving the separate source-profile boundary.
+
+| Example | Teaches | Command | Reference |
+| --- | --- | --- | --- |
+| `examples/ri13-m1-regex-url` | One held Project selecting Regex and Url imports, rendered as separate generated Rust/C owner carriers and linked into one consumer | Run `prepare`, then `consumer`, under their committed locks | [M1 README](ri13-m1-regex-url/README.md) |
+| `examples/ri13-m2-record-iterator` | Generated Serde record mirrors plus `Fn`/`FnMut` callback adapters running under Rust `Iterator` | Run `prepare`, then `consumer`, under its committed lock | [M2 README](ri13-m2-record-iterator/README.md) |
+| `examples/ri13-m3-local-http` | A generated checked source Future registered against caller-owned Tokio and reqwest | Run `prepare`, then `consumer`, under its committed lock | [M3 README](ri13-m3-local-http/README.md) |
+| `examples/ri13-combined-app` | One reproducible receipt across the three actual generated consumers, with build time, M3 route timing, and M3 allocator requests kept separate | `CLANG=/usr/bin/clang python3 examples/ri13-combined-app/measure.py --fresh-target --output /tmp/ri13.json` | [Combination gate](ri13-combined-app/README.md) |
+
 ## Target and host projections
 
 These directories are not programs to run. Each is a committed host-side

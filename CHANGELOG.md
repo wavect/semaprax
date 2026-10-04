@@ -5,6 +5,13 @@
   into the existing environment, so later source mutation cannot alias the
   callback; interpreter, C, Core Wasm and generated Rust regressions cover the
   snapshot boundary.
+- Add an RI-13 combined application measurement gate. It runs the existing
+  locked M1 Regex/Url, M2 Serde record/iterator callback, and M3 local HTTP
+  generated consumers in one ordered receipt; it separately records each
+  Cargo build-and-run stage, M3 route timing and M3 allocator requests. The
+  receipt explicitly preserves the separate source-profile boundary and does
+  not claim copied bytes, a nontrivial batch result, Linux evidence, or one
+  linked M1/M2/M3 Project.
 
 - RI-08: add a distinct private `FnOnceI64() -> i64` source profile for retained
   owned Bytes plus immutable i64 captures, with graph v63, versioned cleanup

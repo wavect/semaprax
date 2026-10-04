@@ -139,6 +139,8 @@ The macOS roll-up also runs three exact VS Code adapter regressions for an
 oversized response, unexpected child exit, and Stop during an unacknowledged
 activation. These use a scripted child and establish editor protocol handling,
 not a physical CLI process-death or core shutdown journey. A hot-reload-specific
-unknown effect outcome still has no matching regression and remains explicitly
-unavailable in the report. A successful run also does not establish native/Wasm
-swapping.
+unknown effect outcome is exercised by the source-Agent journal fault selector:
+the deterministic effect adapter runs once, its `effect_observed` acknowledgement
+is lost before journal write, the retained tail remains an unresolved intent,
+and successor C is refused without another provider or effect dispatch. A
+successful run also does not establish native/Wasm swapping.

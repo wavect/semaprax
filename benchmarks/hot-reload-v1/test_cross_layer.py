@@ -25,7 +25,7 @@ class Contract(unittest.TestCase):
         self.assertIn("B to C replay without redispatch", cells["source-agent-a-b-c"]["requires"])
         categories = {row["id"]: row for row in manifest["fault_categories"]}
         self.assertEqual(categories["watcher-source-race"]["selector"], cells["watcher-source-race"]["selector"])
-        self.assertEqual(categories["hot-reload-unknown-effect-outcome"]["availability"], "unavailable")
+        self.assertIn("no retry and no successor effect dispatch", cells["source-agent-journal-ack-loss"]["requires"])
         self.assertEqual(manifest["platform_lanes"]["Windows"]["status"], "unavailable")
 
     def test_manifest_and_commands_fail_closed(self):

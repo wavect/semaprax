@@ -210,7 +210,7 @@ fn retained_a_to_b_to_c_handoff_carries_state_without_initialize_or_redispatch()
 
 #[cfg(unix)]
 #[test]
-fn physical_journal_ack_loss_keeps_source_handoff_terminal_and_blocks_c_dispatch() {
+fn physical_journal_ack_loss_and_unknown_effect_outcome_keep_source_handoff_terminal_and_block_c_dispatch() {
     use super::super::checkpoint::{commit_fault_pending, inject_commit_fault, CommitFault};
     use semaprax::project::{
         with_authenticated_project, HotReloadDecision, HotReloadSession,
@@ -232,6 +232,11 @@ fn physical_journal_ack_loss_keeps_source_handoff_terminal_and_blocks_c_dispatch
             "transition-rename",
             CommitFault::AfterRename("\"transition\""),
             Some("\"transition\""),
+        ),
+        (
+            "effect-observed-before-write",
+            CommitFault::BeforeWrite("\"effect_observed\""),
+            Some("\"effect_intent\""),
         ),
     ] {
         let fixture = Fixture::new();
@@ -304,6 +309,7 @@ fn physical_journal_ack_loss_keeps_source_handoff_terminal_and_blocks_c_dispatch
             b_scratch.display().to_string(),
         ];
         let b_calls = Rc::new(Cell::new(0));
+        super::super::run::reset_read_calls();
         inject_commit_fault(fault);
         let result = super::super::run::execute_hot_reload_migration_with_runner(
             &mut supervisor,
@@ -320,6 +326,13 @@ fn physical_journal_ack_loss_keeps_source_handoff_terminal_and_blocks_c_dispatch
             "{name} fault must match a rendered migration checkpoint document"
         );
         assert_eq!(b_calls.get(), 1, "{name} reaches exactly one B model call");
+        if name == "effect-observed-before-write" {
+            assert_eq!(
+                super::super::run::read_calls(),
+                1,
+                "the source effect adapter dispatched once before its outcome ACK was lost"
+            );
+        }
         assert_eq!(
             supervisor.source_agent_handoff_status(),
             HotReloadSourceAgentHandoffStatus::TerminalUncertainty,
@@ -347,6 +360,12 @@ fn physical_journal_ack_loss_keeps_source_handoff_terminal_and_blocks_c_dispatch
                 "a failed model-receipt write never acknowledges the model answer"
             ),
         }
+        if name == "effect-observed-before-write" {
+            assert!(
+                !b_journal_text.contains("\"effect_observed\""),
+                "the journal retains the effect intent without claiming an outcome"
+            );
+        }
 
         let c_manifest = source_project(
             &fixture.0.join("project-c"),
@@ -371,6 +390,13 @@ fn physical_journal_ack_loss_keeps_source_handoff_terminal_and_blocks_c_dispatch
         )
         .is_err());
         assert_eq!(c_calls.get(), 0, "{name} cannot dispatch successor C");
+        if name == "effect-observed-before-write" {
+            assert_eq!(
+                super::super::run::read_calls(),
+                1,
+                "unknown effect outcome cannot trigger an automatic retry"
+            );
+        }
         assert_eq!(
             fs::read(b_checkpoint.join("checkpoint.json")).unwrap(),
             b_journal

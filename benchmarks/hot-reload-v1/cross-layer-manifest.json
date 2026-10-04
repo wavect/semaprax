@@ -192,10 +192,13 @@
     {
       "id": "source-agent-journal-ack-loss",
       "availability": "selector-required",
-      "selector": "source_live_cli::hr04_state_handoff_tests::physical_journal_ack_loss_keeps_source_handoff_terminal_and_blocks_c_dispatch",
+      "selector": "source_live_cli::hr04_state_handoff_tests::physical_journal_ack_loss_and_unknown_effect_outcome_keep_source_handoff_terminal_and_block_c_dispatch",
       "requires": [
         "physical journal acknowledgement loss is terminal",
-        "successor dispatch blocked"
+        "successor dispatch blocked",
+        "effect adapter dispatches once before outcome acknowledgement loss",
+        "retained effect_intent has no effect_observed outcome",
+        "no retry and no successor effect dispatch"
       ]
     },
     {
@@ -339,7 +342,7 @@
     {
       "id": "source-agent-journal-ack-loss",
       "availability": "selector-required",
-      "selector": "source_live_cli::hr04_state_handoff_tests::physical_journal_ack_loss_keeps_source_handoff_terminal_and_blocks_c_dispatch"
+      "selector": "source_live_cli::hr04_state_handoff_tests::physical_journal_ack_loss_and_unknown_effect_outcome_keep_source_handoff_terminal_and_block_c_dispatch"
     },
     {
       "id": "source-agent-claim-and-reservation-faults",
@@ -365,12 +368,6 @@
       "id": "vscode-interrupted-activation-stop",
       "availability": "selector-required",
       "selector": "stop marks an unacknowledged activation unknown before bounded forced termination"
-    },
-    {
-      "id": "hot-reload-unknown-effect-outcome",
-      "availability": "unavailable",
-      "selector": null,
-      "reason": "No hot-reload-specific unknown-effect-outcome regression is present in the selected harnesses."
     }
   ],
   "platform_lanes": {

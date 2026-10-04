@@ -67,7 +67,7 @@ SELECTORS = {
     "prepared-worker-outstanding-invocation": ("root-lib", "project::hot_reload::tests::held_real_invocation_waits_for_a_safe_boundary_then_activates_the_same_candidate"),
     "prepared-worker-duplicate-activation": ("root-lib", "project::hot_reload::tests::checked_plan_is_separate_from_activation_and_two_plans_cannot_both_commit"),
     "prepared-worker-post-pivot-ack-loss": ("root-lib", "project::hot_reload::tests::post_pivot_acknowledgement_loss_is_terminal_and_never_retries_the_candidate"),
-    "source-agent-journal-ack-loss": ("toolchain-lib", "source_live_cli::hr04_state_handoff_tests::physical_journal_ack_loss_keeps_source_handoff_terminal_and_blocks_c_dispatch"),
+    "source-agent-journal-ack-loss": ("toolchain-lib", "source_live_cli::hr04_state_handoff_tests::physical_journal_ack_loss_and_unknown_effect_outcome_keep_source_handoff_terminal_and_block_c_dispatch"),
     "source-agent-claim-and-reservation-faults": ("toolchain-lib", "source_live_cli::hr04_handoff_fault_tests::physical_migration_reservation_and_handoff_claim_faults_block_successor_dispatch"),
     "source-agent-capacity-and-path-refusal": ("toolchain-lib", "source_live_cli::tests::exact_config_refuses_duplicate_unknown_negative_and_oversized_capacity"),
     "vscode-oversized-response-frame": ("vscode-tests", "oversized control response is terminal and bounded"),
@@ -75,9 +75,7 @@ SELECTORS = {
     "vscode-interrupted-activation-stop": ("vscode-tests", "stop marks an unacknowledged activation unknown before bounded forced termination"),
 }
 UNAVAILABLE = ("native-process-identity", "native-or-wasm-state-swap")
-UNAVAILABLE_FAULTS = {
-    "hot-reload-unknown-effect-outcome": "No hot-reload-specific unknown-effect-outcome regression is present in the selected harnesses.",
-}
+UNAVAILABLE_FAULTS = {}
 PLATFORM_LANES = {
     "macOS": {"status": "measured-by-this-runner", "lanes": ["interpreter", "watcher", "prepared-worker", "source-agent", "vscode-editor-control"]},
     "Linux": {"status": "unavailable", "reason": "This evidence runner is macOS-only."},

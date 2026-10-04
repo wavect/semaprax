@@ -1,5 +1,12 @@
 # Changelog
 
+- HR-07: complete the macOS arm64 cross-layer hot reload evidence at
+  `9a9db7a81`. Twenty-two exact selectors and a real installed VS Code
+  Extension Host gate pass; 11 raw samples distinguish save-to-ack, full
+  restart, and authenticated warm restart. The observed interpreter reload is
+  slower than full restart on this fixture. Other platforms, native/Wasm state
+  swap, and production rollout remain unclaimed.
+
 - RI-08: admit the narrow noncopyable `FnMutI64(i64) -> i64` receiver with the
   specified direct transition literal. Source/HIR ownership and alias refusals,
   success-only state commit, interpreter/native/Core Wasm parity, generated Rust

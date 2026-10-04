@@ -1,0 +1,29 @@
+{
+ "schema": "semaprax.hn15-post-acceptance-load.v1",
+ "date": "2026-10-04",
+ "setup": "fresh empty HOME/SEMAPRAX_HARNESS_HOME, env -i, cwd outside repo, approved root containing a copy of derived/ (SKILL.md + provenance.json)",
+ "commands": [
+  "semaprax-harness skills list --root <root> --json",
+  "semaprax-harness skills load <digest> --root <root> --json"
+ ],
+ "listed": {
+  "name": "derived-spx-t250-repair-reference",
+  "identity": "artifact-v2",
+  "digest": "sha256:3ab4cfda4157806c7d24437d24c0bd687947a25033dcf4f64f0c365139662a1f",
+  "files": 2,
+  "bytes": 1357
+ },
+ "loaded": {
+  "digest": "sha256:3ab4cfda4157806c7d24437d24c0bd687947a25033dcf4f64f0c365139662a1f",
+  "model_visible_bytes": 1902
+ },
+ "parent_from_bundle": {
+  "digest": "sha256:34dc9057a6584057a458112f2c7a3758ed90526f90cff03d21f3ca293b9e0ec7",
+  "name": "ponytail"
+ },
+ "scope": {
+  "family": "compiler-diagnostic/SPX-T250"
+ },
+ "model_calls": 0,
+ "note": "The artifact-v2 identity covers provenance.json (files=2), so the loaded identity binds the parent digest; no promotion performed."
+}

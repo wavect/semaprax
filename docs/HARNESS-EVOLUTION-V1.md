@@ -55,3 +55,7 @@ An accepted bundle is `derived/derived-<name>/{SKILL.md,provenance.json}`; the n
 ## Tests
 
 `cargo test --offline -p semaprax-harness --test harness_v1 skills::evolution::` (fixture adapter in Rust: all five outcomes, harmful candidate, caps, cancellation, tamper, overlap, ingestion, retention, promotion and loading through `SkillService`, CLI, payloads, and real-process adapters via `/bin/sh`). Provisioned, `cargo test --offline -p semaprax-harness --test real_tools_v1 hp_hn15 -- --ignored`: `hp_hn15_wikiskill_bridge_reports_unavailable_truthfully` (`HARNESS_PYTHON`), `hp_hn15_wikiskill_spend_cap_aborts_truthfully` (`HN15_CAPPED_SPEC`: a shim already at its cap, free) and `hp_hn15_wikiskill_recorded_real_run_is_consistent` (`HN15_EVIDENCE_WS`, `HN15_LEDGER`: checks a finished real run; it does not start a paid run). Rebuild a run with `family.py` and `semaprax-harness evolve run`.
+
+## Post-acceptance isolated load (2026-10-04)
+
+The accepted derived skill `derived-spx-t250-repair-reference` was loaded into a fresh isolated task (empty harness home, scrubbed environment, cwd outside the repository) through the real `semaprax-harness skills list/load` with an approved root holding a copy of the bundle. Its artifact-v2 identity covers `SKILL.md` and `provenance.json` (parent: official Ponytail `sha256:34dc9057…0ec7`), so the loaded identity binds the parent digest. No model call; no promotion. Evidence: `benchmarks/harness/2026-10-04-wikiskill/post-acceptance-load.json`.

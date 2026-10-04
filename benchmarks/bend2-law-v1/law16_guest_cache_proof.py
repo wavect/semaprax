@@ -102,8 +102,11 @@ def check_z3_libraries(z3):
 
 def check_bend(root):
     head = subprocess.check_output(['git', '-C', str(root), 'rev-parse', 'HEAD'], text=True).strip()
-    dirty = subprocess.run(['git', '-C', str(root), 'diff', '--quiet', 'HEAD', '--', 'bend2'], check=False).returncode
-    if head != BEND_COMMIT or dirty != 0:
+    dirty = subprocess.check_output(
+        ['git', '-C', str(root), 'status', '--porcelain', '--untracked-files=all', '--', 'bend2'],
+        text=True,
+    )
+    if head != BEND_COMMIT or dirty:
         raise ValueError('Bend source must be the clean pinned bend2 tree')
     return {p.relative_to(root / 'bend2').as_posix(): digest(p) for p in sorted((root / 'bend2').rglob('*')) if p.is_file() and not p.is_symlink()}
 

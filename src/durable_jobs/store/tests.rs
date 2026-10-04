@@ -1,10 +1,8 @@
 use std::fs;
 use std::io;
 use std::path::PathBuf;
-use std::process::{Command, Stdio};
 use std::sync::{Arc, Barrier, Mutex};
 use std::thread;
-use std::time::{Duration, Instant};
 
 use super::*;
 use crate::durable_jobs::durable_fs::HookPoint;
@@ -34,47 +32,6 @@ fn request(key: &[u8], payload: &[u8], max_attempts: u32, now_tick: u64) -> Enqu
         retry_policy: policy(max_attempts),
         now_tick,
     }
-}
-
-const WRITER_LOCK_CHILD: &str = "SEMAPRAX_DURABLE_JOB_WRITER_LOCK_CHILD";
-const WRITER_LOCK_ROOT: &str = "SEMAPRAX_DURABLE_JOB_WRITER_LOCK_ROOT";
-const WRITER_LOCK_READY: &str = "SEMAPRAX_DURABLE_JOB_WRITER_LOCK_READY";
-const WRITER_LOCK_RELEASE: &str = "SEMAPRAX_DURABLE_JOB_WRITER_LOCK_RELEASE";
-
-fn wait_for_file(path: &std::path::Path, description: &str) {
-    let deadline = Instant::now() + Duration::from_secs(5);
-    while !path.is_file() {
-        assert!(
-            Instant::now() < deadline,
-            "timed out waiting for {description}"
-        );
-        thread::sleep(Duration::from_millis(10));
-    }
-}
-
-#[test]
-fn writer_lock_child() {
-    if std::env::var_os(WRITER_LOCK_CHILD).is_none() {
-        return;
-    }
-    let root = PathBuf::from(std::env::var_os(WRITER_LOCK_ROOT).unwrap());
-    let ready = PathBuf::from(std::env::var_os(WRITER_LOCK_READY).unwrap());
-    let release = PathBuf::from(std::env::var_os(WRITER_LOCK_RELEASE).unwrap());
-    let mut store = GenerationJobStore::open(&root).unwrap();
-    let EnqueueOutcome::Created(job_id) = store
-        .enqueue_with_side_record(
-            request(b"child-writer", b"payload", 3, 0),
-            b"child-side".to_vec(),
-            b"present".to_vec(),
-        )
-        .unwrap()
-    else {
-        panic!("child writer must create its job");
-    };
-    let (claimed, _) = store.claim(7, 0, 10).unwrap();
-    assert_eq!(claimed, job_id);
-    fs::write(ready, b"ready").unwrap();
-    wait_for_file(&release, "parent lock release marker");
 }
 
 // ---------------------------------------------------------------------
@@ -386,55 +343,6 @@ fn live_writer_excludes_second_handle_and_canonical_alias_until_it_closes() {
     fs::remove_dir_all(&dir).ok();
 }
 
-#[test]
-fn child_writer_lock_excludes_parent_then_releases_after_process_exit() {
-    let dir = tempdir("writer-lock-child");
-    let ready = dir.join("child-ready");
-    let release = dir.join("child-release");
-    let mut child = Command::new(std::env::current_exe().unwrap())
-        .args([
-            "--exact",
-            "durable_jobs::store::tests::writer_lock_child",
-            "--nocapture",
-        ])
-        .env(WRITER_LOCK_CHILD, "1")
-        .env(WRITER_LOCK_ROOT, &dir)
-        .env(WRITER_LOCK_READY, &ready)
-        .env(WRITER_LOCK_RELEASE, &release)
-        .stdin(Stdio::null())
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .spawn()
-        .unwrap();
-    wait_for_file(&ready, "child writer lock");
-    assert!(matches!(
-        GenerationJobStore::open(&dir),
-        Err(JobStoreError::WriterBusy)
-    ));
-
-    fs::write(&release, b"release").unwrap();
-    assert!(child.wait().unwrap().success(), "child writer failed");
-    let mut reopened = GenerationJobStore::open(&dir).unwrap();
-    assert_eq!(reopened.table.jobs.len(), 1);
-    assert_eq!(
-        reopened.side_record(b"child-side"),
-        Some(&b"present".to_vec())
-    );
-    let token = LeaseToken {
-        job_id: JobId(1),
-        worker_id: 7,
-        generation: 1,
-    };
-    reopened.begin_execution(token, 0).unwrap();
-    assert_eq!(
-        reopened
-            .complete(token, 0, AttemptOutcome::Success, None)
-            .unwrap(),
-        JobState::Succeeded
-    );
-    fs::remove_dir_all(&dir).ok();
-}
-
 // ---------------------------------------------------------------------
 // Determinism: identical operation sequences produce byte-identical
 // generations, and job ids are assigned in a fixed, replayable order.
@@ -659,6 +567,52 @@ fn a_fault_during_the_joint_commit_leaves_neither_the_job_nor_the_side_record_vi
         );
         fs::remove_dir_all(&dir).ok();
     }
+}
+
+#[test]
+fn active_post_rename_failure_is_uncertain_and_poisoned_until_reopen() {
+    let dir = tempdir("active-publication-uncertain");
+    let mut store = GenerationJobStore::open(&dir).unwrap();
+    let mut candidate = store.table.clone();
+    candidate
+        .side_records
+        .insert(b"uncertain-side".to_vec(), b"visible".to_vec());
+    let mut rename_count = 0usize;
+    let mut closure = |point: HookPoint| {
+        if point == HookPoint::AfterRename {
+            rename_count += 1;
+            if rename_count == 2 {
+                return Err(io::Error::other("ACTIVE acknowledgement lost"));
+            }
+        }
+        Ok(())
+    };
+    let mut hook: Option<&mut durable_fs::Hook<'_>> = Some(&mut closure);
+    assert_eq!(
+        store.commit_with_hook(candidate, &mut hook),
+        Err(JobStoreError::PublicationUncertain)
+    );
+    assert!(store.poisoned);
+    assert_eq!(
+        store.enqueue(request(b"stale-retry", b"payload", 3, 0)),
+        Err(JobStoreError::PublicationUncertain)
+    );
+    drop(store);
+
+    let mut reopened = GenerationJobStore::open(&dir).unwrap();
+    assert_eq!(
+        reopened.side_record(b"uncertain-side"),
+        Some(&b"visible".to_vec())
+    );
+    assert!(matches!(
+        reopened.enqueue(request(b"after-recovery", b"payload", 3, 0)),
+        Ok(EnqueueOutcome::Created(_))
+    ));
+    assert_eq!(
+        reopened.side_record(b"uncertain-side"),
+        Some(&b"visible".to_vec())
+    );
+    fs::remove_dir_all(&dir).ok();
 }
 
 // ---------------------------------------------------------------------

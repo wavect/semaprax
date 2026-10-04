@@ -8,10 +8,10 @@
 //! ([`super::durable_fs::commit_bytes`], twice — once for the generation
 //! file, once for the `ACTIVE` pointer that selects it) before mutating
 //! `self` or returning success to the caller. A call that fails at any
-//! point in that sequence leaves both the in-memory table and the on-disk
-//! state exactly as they were before the call: there is no path that
-//! reports success without a durable commit, and no path that partially
-//! mutates the live table on failure.
+//! point before publication leaves both the in-memory table and the on-disk
+//! state unchanged. A failure after either rename is explicitly uncertain:
+//! the handle is poisoned and callers must reopen rather than retry from a
+//! stale table.
 //!
 //! This is deliberately simple rather than fast: a whole-table rewrite per
 //! mutation does not scale to a high-throughput queue, and does not try to.
@@ -92,6 +92,7 @@ pub struct GenerationJobStore {
     current_generation: u64,
     table: JobTable,
     stage_seq: AtomicU64,
+    poisoned: bool,
 }
 
 fn active_bytes_to_generation(bytes: &[u8]) -> Option<u64> {
@@ -148,6 +149,7 @@ impl GenerationJobStore {
             current_generation,
             table,
             stage_seq: AtomicU64::new(stage_seq),
+            poisoned: false,
         })
     }
 
@@ -162,13 +164,13 @@ impl GenerationJobStore {
     }
 
     /// Durably publish `candidate` as the next generation, then adopt it as
-    /// the live table. On any error, `self` (both in-memory and on-disk)
-    /// remains exactly as it was: either the generation file write failed
-    /// (nothing new is reachable from `ACTIVE`), or it succeeded but the
-    /// `ACTIVE` pointer write failed (a stray but harmless generation file
-    /// exists; `ACTIVE` still names the previous one, which is what a later
-    /// `open` will load).
+    /// the live table. Before either rename, an I/O error leaves this handle
+    /// usable. After a rename, visibility may have occurred; that returns
+    /// `PublicationUncertain` and permanently poisons this handle.
     fn commit(&mut self, candidate: JobTable) -> Result<(), JobStoreError> {
+        if self.poisoned {
+            return Err(JobStoreError::PublicationUncertain);
+        }
         let bytes = codec::encode(&candidate).ok_or(JobStoreError::RecordTooLarge)?;
         let new_generation = self
             .current_generation
@@ -176,18 +178,32 @@ impl GenerationJobStore {
             .ok_or(JobStoreError::TickOverflow)?;
         let generation_path = self.generations_dir.join(new_generation.to_string());
         let generation_stage = self.next_stage_name("generation")?;
-        durable_fs::commit_bytes(&generation_path, &generation_stage, &bytes)
-            .map_err(|_| JobStoreError::Io)?;
+        self.commit_bytes(&generation_path, &generation_stage, &bytes)?;
         let pointer_stage = self.next_stage_name("active")?;
-        durable_fs::commit_bytes(
+        self.commit_bytes(
             &self.active_path,
             &pointer_stage,
             &new_generation.to_le_bytes(),
-        )
-        .map_err(|_| JobStoreError::Io)?;
+        )?;
         self.table = candidate;
         self.current_generation = new_generation;
         Ok(())
+    }
+
+    fn commit_bytes(
+        &mut self,
+        destination: &Path,
+        stage_name: &str,
+        bytes: &[u8],
+    ) -> Result<(), JobStoreError> {
+        match durable_fs::commit_bytes(destination, stage_name, bytes) {
+            Ok(()) => Ok(()),
+            Err(durable_fs::CommitBytesError::NotPublished(_)) => Err(JobStoreError::Io),
+            Err(durable_fs::CommitBytesError::PublishedUncertain(_)) => {
+                self.poisoned = true;
+                Err(JobStoreError::PublicationUncertain)
+            }
+        }
     }
 
     /// Test-only hook into `commit`'s durable-write sequence, used to prove
@@ -198,18 +214,21 @@ impl GenerationJobStore {
         &mut self,
         candidate: JobTable,
         hook: &mut Option<&mut durable_fs::Hook<'_>>,
-    ) -> Result<(), io::Error> {
-        let bytes = codec::encode(&candidate).ok_or_else(|| io::Error::other("too large"))?;
+    ) -> Result<(), JobStoreError> {
+        if self.poisoned {
+            return Err(JobStoreError::PublicationUncertain);
+        }
+        let bytes = codec::encode(&candidate).ok_or(JobStoreError::RecordTooLarge)?;
         let new_generation = self.current_generation + 1;
         let generation_path = self.generations_dir.join(new_generation.to_string());
         let generation_stage = self
             .next_stage_name("generation")
-            .map_err(|_| io::Error::other("job stage sequence exhausted"))?;
-        durable_fs::commit_bytes_with_hook(&generation_path, &generation_stage, &bytes, hook)?;
+            .map_err(|_| JobStoreError::Io)?;
+        self.commit_bytes_with_hook(&generation_path, &generation_stage, &bytes, hook)?;
         let pointer_stage = self
             .next_stage_name("active")
-            .map_err(|_| io::Error::other("job stage sequence exhausted"))?;
-        durable_fs::commit_bytes_with_hook(
+            .map_err(|_| JobStoreError::Io)?;
+        self.commit_bytes_with_hook(
             &self.active_path,
             &pointer_stage,
             &new_generation.to_le_bytes(),
@@ -218,6 +237,24 @@ impl GenerationJobStore {
         self.table = candidate;
         self.current_generation = new_generation;
         Ok(())
+    }
+
+    #[cfg(test)]
+    fn commit_bytes_with_hook(
+        &mut self,
+        destination: &Path,
+        stage_name: &str,
+        bytes: &[u8],
+        hook: &mut Option<&mut durable_fs::Hook<'_>>,
+    ) -> Result<(), JobStoreError> {
+        match durable_fs::commit_bytes_with_hook(destination, stage_name, bytes, hook) {
+            Ok(()) => Ok(()),
+            Err(durable_fs::CommitBytesError::NotPublished(_)) => Err(JobStoreError::Io),
+            Err(durable_fs::CommitBytesError::PublishedUncertain(_)) => {
+                self.poisoned = true;
+                Err(JobStoreError::PublicationUncertain)
+            }
+        }
     }
 
     fn find_by_idempotency_key(&self, key: &[u8]) -> Option<&JobRecord> {

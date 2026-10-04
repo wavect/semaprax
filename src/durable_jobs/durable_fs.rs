@@ -45,6 +45,15 @@ pub enum HookPoint {
 
 pub type Hook<'a> = dyn FnMut(HookPoint) -> io::Result<()> + 'a;
 
+/// A failed durable write distinguishes the point before its destination was
+/// renamed from the point after it became visible.  The latter cannot be
+/// reported as a retry-safe rollback to the generation store.
+#[derive(Debug)]
+pub(crate) enum CommitBytesError {
+    NotPublished(io::Error),
+    PublishedUncertain(io::Error),
+}
+
 fn run_hook(hook: &mut Option<&mut Hook<'_>>, point: HookPoint) -> io::Result<()> {
     match hook {
         Some(hook) => hook(point),
@@ -58,12 +67,15 @@ fn run_hook(hook: &mut Option<&mut Hook<'_>>, point: HookPoint) -> io::Result<()
 /// different destinations in the same directory cannot collide).
 ///
 /// On success, `destination` contains exactly `bytes` and that fact has
-/// survived an fsync of both the file and its parent directory. On failure,
-/// `destination` is guaranteed unchanged from whatever it held before this
-/// call (the earlier generation, or nothing) — a failed commit never leaves
-/// a half-written destination, matching AGENTS.md's "failed or stale
-/// transactions leave authoritative state unchanged."
-pub fn commit_bytes(destination: &Path, stage_name: &str, bytes: &[u8]) -> io::Result<()> {
+/// survived an fsync of both the file and its parent directory. A failure
+/// before rename leaves `destination` unchanged. A failure after rename is
+/// [`CommitBytesError::PublishedUncertain`]: the new destination is already
+/// visible and must not be treated as a retry-safe rollback.
+pub(crate) fn commit_bytes(
+    destination: &Path,
+    stage_name: &str,
+    bytes: &[u8],
+) -> Result<(), CommitBytesError> {
     commit_bytes_with_hook(destination, stage_name, bytes, &mut None)
 }
 
@@ -72,10 +84,11 @@ pub(crate) fn commit_bytes_with_hook(
     stage_name: &str,
     bytes: &[u8],
     hook: &mut Option<&mut Hook<'_>>,
-) -> io::Result<()> {
+) -> Result<(), CommitBytesError> {
     let dir = destination
         .parent()
-        .ok_or_else(|| io::Error::other("destination has no parent directory"))?;
+        .ok_or_else(|| io::Error::other("destination has no parent directory"))
+        .map_err(CommitBytesError::NotPublished)?;
     let stage_path = dir.join(stage_name);
     // `create_new` refuses to clobber a stray leftover from a prior crashed
     // attempt silently; the caller is expected to pick a fresh stage name
@@ -83,7 +96,9 @@ pub(crate) fn commit_bytes_with_hook(
     let mut file = OpenOptions::new()
         .write(true)
         .create_new(true)
-        .open(&stage_path)?;
+        .open(&stage_path)
+        .map_err(CommitBytesError::NotPublished)?;
+    let mut published = false;
     let result = (|| -> io::Result<()> {
         file.write_all(bytes)?;
         file.flush()?;
@@ -92,11 +107,17 @@ pub(crate) fn commit_bytes_with_hook(
         run_hook(hook, HookPoint::AfterStageFsync)?;
         drop_and_forget(file);
         fs::rename(&stage_path, destination)?;
+        published = true;
         run_hook(hook, HookPoint::AfterRename)?;
         sync_directory(dir)?;
         Ok(())
     })();
-    if result.is_err() {
+    let result = match result {
+        Ok(()) => Ok(()),
+        Err(error) if !published => Err(CommitBytesError::NotPublished(error)),
+        Err(error) => Err(CommitBytesError::PublishedUncertain(error)),
+    };
+    if matches!(&result, Err(CommitBytesError::NotPublished(_))) {
         // Best-effort cleanup of the stage file on any failure path; if the
         // rename already happened this is a no-op (the stage path no
         // longer exists), and if it did not, the destination is untouched.

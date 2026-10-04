@@ -171,22 +171,29 @@ fn main() {
         fs::write(destination.join(path), bytes).unwrap();
     }
     embed_generated_package(&destination);
-    let m2 = with_authenticated_project(&unified.join("semaprax.toml"), |snapshot| {
-        snapshot.check()?;
-        let source = snapshot
-            .sources()
-            .iter()
-            .find(|source| source.path() == "src/app.spx")
-            .expect("authenticated unified manifest requires app.spx");
-        prepare_native_rust_serde_iterator_callbacks(
-            source.source(),
-            &unified.join("src/app.spx"),
-            "ri13.event",
-            "callback.factory",
-            "callback.advance",
-        )
-    })
-    .expect("authenticated unified Project M2 selection");
+    // M2's record/callback output and M3's Future module must arise from one
+    // held Project snapshot. A second source read could otherwise assemble
+    // generated modules from different authenticated revisions.
+    let (m2, m3, m3_revision) =
+        with_authenticated_project(&unified.join("semaprax.toml"), |snapshot| {
+            snapshot.check()?;
+            let source = snapshot
+                .sources()
+                .iter()
+                .find(|source| source.path() == "src/app.spx")
+                .expect("authenticated unified manifest requires app.spx");
+            let m2 = prepare_native_rust_serde_iterator_callbacks(
+                source.source(),
+                &unified.join("src/app.spx"),
+                "ri13.event",
+                "callback.factory",
+                "callback.advance",
+            )?;
+            let revision = snapshot.retain_revision();
+            let m3 = snapshot.render_source_local_future_rust_module()?;
+            Ok((m2, m3, revision.project_revision().to_owned()))
+        })
+        .expect("held unified Project M2/M3 selection");
     let m2_dir = root.join("generated/m2");
     fs::create_dir_all(&m2_dir).unwrap();
     fs::write(m2_dir.join("module.c"), &m2.callback.c_source).unwrap();
@@ -208,16 +215,6 @@ fn main() {
         ),
     )
     .unwrap();
-    let (m3, m3_revision) =
-        with_authenticated_project(&unified.join("semaprax.toml"), |snapshot| {
-            snapshot.check()?;
-            let revision = snapshot.retain_revision();
-            Ok((
-                snapshot.render_source_local_future_rust_module()?,
-                revision.project_revision().to_owned(),
-            ))
-        })
-        .expect("held unified Project M3 Future selection");
     fs::write(root.join("generated/m3.rs"), m3).unwrap();
     fs::write(
         root.join("generated/linked-subject.json"),

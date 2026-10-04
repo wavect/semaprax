@@ -55,18 +55,11 @@ fn main() {
     drop(stateful);
     assert_eq!(domain.live_environments(), 0);
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    let revision = with_authenticated_project(
-        &root
-            .parent()
-            .unwrap()
-            .parent()
-            .unwrap()
-            .join("ri13-m3-local-http/project/semaprax.toml"),
-        |snapshot| {
-            snapshot.check()?;
-            Ok(snapshot.retain_revision())
-        },
-    )
+    let unified_manifest = root.parent().unwrap().join("unified-project/semaprax.toml");
+    let revision = with_authenticated_project(&unified_manifest, |snapshot| {
+        snapshot.check()?;
+        Ok(snapshot.retain_revision())
+    })
     .unwrap();
     let runtime = tokio::runtime::Builder::new_current_thread()
         .build()

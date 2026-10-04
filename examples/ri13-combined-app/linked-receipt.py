@@ -69,7 +69,7 @@ def require(sources, name, fragment):
 
 
 def validate_sources(sources):
-    """Bind all structural claims to the separate M1, M2, and M3 inputs."""
+    """Bind the linked M1/M2/M3 route to its selected Project inputs."""
     if 'profile = "source-local-future.v1"' in sources["m1_manifest"]:
         raise ValueError("M1 must not claim the M3 source-local-future profile")
     require(sources, "m3_manifest", 'rust_async = ["ri13.m3.score"]')
@@ -85,13 +85,16 @@ def validate_sources(sources):
     for index in ("m1_regex_index", "m1_url_index"):
         require(sources, index, '"target":"aarch64-apple-darwin"')
 
+    unified_snapshot = 'with_authenticated_project(&unified.join("semaprax.toml"),'
+    if sources["prepare"].count(unified_snapshot) != 1:
+        raise ValueError("linked preparation must derive M2 and M3 from one unified snapshot")
     for fragment in (
         'let unified = root.parent().unwrap().join("unified-project")',
         "prepare_indexed_regex_url_project_packages(",
         "&unified.join(\"semaprax.toml\")",
         '"regex.run"',
         '"url.run"',
-        "with_authenticated_project(&unified.join(\"semaprax.toml\"),",
+        unified_snapshot,
         "prepare_native_rust_serde_iterator_callbacks(",
         '"ri13.event"',
         '"callback.factory"',
@@ -138,6 +141,7 @@ def validate_sources(sources):
         ".map(stateful.as_fn_mut())",
         "assert_eq!(states, [11, 13])",
         "m3::register",
+        'join("unified-project/semaprax.toml")',
         "Ok::<i64, ()>(43)",
         ".call_typed(41, 10_000)",
         "runtime.block_on(call).unwrap(), 84",
@@ -145,6 +149,8 @@ def validate_sources(sources):
         'println!("ri13-linked-project-ok")',
     ):
         require(sources, "consumer", fragment)
+    if "ri13-m3-local-http/project/semaprax.toml" in sources["consumer"]:
+        raise ValueError("linked consumer must retain the unified M3 Project revision")
 
 
 def receipt(sources):
@@ -204,7 +210,9 @@ def self_test():
     for name, fragment in (
         ("prepare", "prepare_native_rust_serde_iterator_callbacks("),
         ("prepare", 'let Some(directory) = env::var_os("RI13_RUST_API_INDEX_DIR")'),
+        ("prepare", 'with_authenticated_project(&unified.join("semaprax.toml"),'),
         ("consumer", "m3::register"),
+        ("consumer", 'join("unified-project/semaprax.toml")'),
         ("m1_source", '@id("regex.run")'),
     ):
         mutant = dict(sources)
@@ -214,6 +222,18 @@ def self_test():
         except ValueError:
             continue
         raise AssertionError(f"validator accepted mutant missing {fragment!r}")
+    mutant = dict(sources)
+    mutant["consumer"] = mutant["consumer"].replace(
+        "unified-project/semaprax.toml",
+        "ri13-m3-local-http/project/semaprax.toml",
+        1,
+    )
+    try:
+        validate_sources(mutant)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("validator accepted a consumer retaining the standalone M3 Project")
     print("ri13-linked-receipt-self-test-ok")
 
 

@@ -182,6 +182,36 @@ bounded witness with local source proof. It does not establish general transfer
 semantics, checked-`u32` support, lowering or execution proof, an agent trial,
 or a language comparison.
 
+## Bounded balance agent-trial observation
+
+[`evidence/law16-bounded-balance-v2/`](evidence/law16-bounded-balance-v2/)
+retains ten fixed-budget, read-only Luna pairs and their raw events, returned
+sources, Bend ordinary/verdict replays, installed-Z3 project proof receipts,
+and the earlier v1 prompt failure. The v2 aggregate is an observation of ten
+independent completed pairs: nine Bend candidates passed both routes and one
+eligible Bend candidate failed its proof syntax; all ten SEMAPRAX candidates
+had debit, credit, and total scalar postconditions discharged by local pinned
+Z3. The fixed no-debit attack was rejected for debit and total in every Z3
+replay; its unchanged credit clause remained provable. Every Bend attack was
+rejected on ordinary and verdict routes.
+
+Re-authenticate the bounded files and derived counts without invoking a tool:
+
+```sh
+python3 benchmarks/bend2-law-v1/law16_bounded_balance_capsule.py \
+  --capsule benchmarks/bend2-law-v1/evidence/law16-bounded-balance-v2 \
+  --output /tmp/law16-bounded-balance-review.json
+```
+
+The v1 Bend pilot is ineligible because its prompt permitted a computed record
+projection that the pinned parser refuses. The v2 ordinal-4 syntax failure is
+an eligible failed trial and remains in the denominator. These are local pinned
+tool observations: source proof does not prove lowering or execution, retained
+Bend verdict output is not an independent proof system, and Codex JSON has no
+monetary billing event. This cell is a fixed `0..100` witness, so it does not
+admit the wider checked-`u32`, list, refactor, or incremental LAW16 cells, and
+it does not establish a general transfer theorem or complete LAW16.
+
 The following local-only provisioning sequence fetches the pinned Bend source
 without building it or placing it in this repository:
 

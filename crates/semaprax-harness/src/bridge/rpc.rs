@@ -1,7 +1,9 @@
 //! `semaprax.harness-bridge.v1` stdio server: LF-delimited JSON-RPC 2.0 frames.
 //! Every method delegates to the existing single-source implementation.
 
+use super::hostskills;
 use super::negotiate::{self, Availability, HostDeclaration, Owner, DEPTH_VAR};
+use super::skills_bridge::SkillsBridge;
 use crate::cli::Environment;
 use crate::command_view::{self, ExecOptions};
 use crate::contract::CapabilityKind;
@@ -24,9 +26,36 @@ pub struct Server<'a> {
     host: Option<HostDeclaration>,
     avail: Availability,
     env_depth: u64,
+    /// Present after a v2 handshake.
+    skills: Option<SkillsBridge<'a>>,
+    session: Option<String>,
+    host_skills_dir: Option<PathBuf>,
+    log: Option<PathBuf>,
 }
 
 impl<'a> Server<'a> {
+    /// Session identity from the launcher (`--session`); a v2 handshake `session` wins.
+    pub fn with_session(mut self, s: Option<String>) -> Self {
+        self.session = s;
+        self
+    }
+    /// A project skills directory (for Claude Code `.claude/skills`) scanned read-only.
+    pub fn with_host_skills_dir(mut self, d: Option<PathBuf>) -> Self {
+        self.host_skills_dir = d;
+        self
+    }
+    pub fn with_log(mut self, l: Option<PathBuf>) -> Self {
+        self.log = l;
+        self
+    }
+    /// Delivery observations recorded by the skills adapter (v2 sessions).
+    pub fn deliveries(&self) -> Vec<Value> {
+        self.skills
+            .as_ref()
+            .map(|s| s.deliveries().to_vec())
+            .unwrap_or_default()
+    }
+
     pub fn new(env: &'a Environment, project: &Path) -> Self {
         let project = env.cwd.join(project);
         let command_view_enabled = HarnessConfig::load(&project)
@@ -54,6 +83,10 @@ impl<'a> Server<'a> {
             host: None,
             avail,
             env_depth,
+            skills: None,
+            session: None,
+            host_skills_dir: None,
+            log: None,
         }
     }
 
@@ -79,7 +112,30 @@ impl<'a> Server<'a> {
             if let Some(e) = self.recursion(decl.depth, &decl.lineage) {
                 return Err(e);
             }
-            let r = negotiate::response(&decl, &self.avail);
+            let mut r = negotiate::response(&decl, &self.avail);
+            if decl.protocol_version == 2 {
+                let mut sb = SkillsBridge::new(
+                    self.env,
+                    &self.project,
+                    decl.session.as_deref().or(self.session.as_deref()),
+                    &format!("{}@{}", decl.name, decl.version),
+                );
+                let set = crate::skills::official::embedded_cached();
+                sb.host_skills = hostskills::from_declared(set, &decl.host_skills);
+                if let Some(dir) = &self.host_skills_dir {
+                    for h in hostskills::scan_dir(set, &self.env.cwd.join(dir)) {
+                        if !sb.host_skills.iter().any(|x| x.id == h.id) {
+                            sb.host_skills.push(h);
+                        }
+                    }
+                }
+                sb.model_routing_delegated = decl.declared.get("model_routing") == Some(&true);
+                sb.log = self.log.clone();
+                r["skill_injection"] = sb.ownership();
+                r["single_owner"]["skill_injection"] = r["skill_injection"]["owner"].clone();
+                r["identity"] = json!({"project": sb.project_id, "session": sb.session});
+                self.skills = Some(sb);
+            }
             self.host = Some(decl);
             return Ok(r);
         }
@@ -89,6 +145,15 @@ impl<'a> Server<'a> {
         let obj = params
             .as_object()
             .ok_or_else(|| diag("SPX-HPN005", "params must be an object"))?;
+        if method.starts_with("bridge/skills/") {
+            return match self.skills.as_mut() {
+                Some(sb) => sb.handle(method, params),
+                None => Err(diag(
+                    "SPX-HPN004",
+                    "skill methods need a `semaprax.harness-bridge.v2` handshake",
+                )),
+            };
+        }
         match method {
             "bridge/status" => {
                 let config = HarnessConfig::load(&self.project)?;
@@ -149,11 +214,19 @@ fn error_frame(id: &Value, d: &HarnessDiagnostic) -> Value {
 /// Serve frames until EOF or `bridge/shutdown`.
 pub fn serve<R: BufRead, W: Write>(
     reader: R,
-    mut out: W,
+    out: W,
     env: &Environment,
     project: &Path,
 ) -> std::io::Result<()> {
-    let mut server = Server::new(env, project);
+    serve_with(reader, out, Server::new(env, project))
+}
+
+/// Serve with a preconfigured server (session, host skills directory, log).
+pub fn serve_with<R: BufRead, W: Write>(
+    reader: R,
+    mut out: W,
+    mut server: Server,
+) -> std::io::Result<()> {
     let limits = JsonLimits::frame(FRAME_LIMIT);
     for line in reader.lines() {
         let line = line?;

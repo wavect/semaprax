@@ -1,13 +1,17 @@
 //! External-host bridge and single-owner negotiation (HP-14).
 //! Specification: `docs/HARNESS-BRIDGE-V1.md`. Diagnostics `SPX-HPN`: 001
 //! handshake/protocol, 002 recursion, 003 publication refused, 004 method/order,
-//! 005 params, 006 hook input, 007 usage/host, 008 delegated verb failed, 009
-//! competing rewriter, 010 log write.
+//! 005 params, 006 hook input, 007 usage/host/unsupported version, 008 delegated
+//! verb failed, 009 competing rewriter, 010 log write, 011 setup refused.
 
 pub mod claude;
+pub mod hostskills;
+pub mod mcp;
 pub mod negotiate;
 pub mod rpc;
+pub mod setup;
 pub mod shell;
+pub mod skills_bridge;
 
 use crate::cli::{Environment, Outcome};
 use crate::diag::HarnessDiagnostic;
@@ -16,12 +20,15 @@ use std::io::{Read, Write};
 use std::path::PathBuf;
 
 fn usage(m: &str) -> Outcome {
-    Outcome::usage(format!("bridge: {m}\nbridge <project> --stdio | --host claude-code [--hook pre-tool-use | --print-config] [--settings-file F]... [--log F] [--harness-bin P]"))
+    Outcome::usage(format!("bridge: {m}\nbridge <project> --stdio | --mcp | --setup claude-code [--write] | --host claude-code [--hook pre-tool-use | --print-config] [--settings-file F]... [--log F] [--harness-bin P] [--session ID] [--host-skills-dir D] [--harness-home D]"))
 }
 
 pub fn cli_bridge(args: &[String], env: &Environment) -> Outcome {
     let mut pos = Vec::new();
     let (mut stdio, mut print, mut host, mut hook) = (false, false, None::<String>, None::<String>);
+    let (mut mcp, mut write, mut setup) = (false, false, None::<String>);
+    let (mut session, mut skills_dir) = (None::<String>, None::<PathBuf>);
+    let mut harness_home = None::<PathBuf>;
     let (mut settings_files, mut log, mut bin) =
         (Vec::<PathBuf>::new(), None::<PathBuf>, None::<PathBuf>);
     let mut it = args.iter();
@@ -30,6 +37,12 @@ pub fn cli_bridge(args: &[String], env: &Environment) -> Outcome {
         match a.as_str() {
             "--stdio" => stdio = true,
             "--print-config" => print = true,
+            "--mcp" => mcp = true,
+            "--write" => write = true,
+            "--setup" => setup = val(),
+            "--session" => session = val(),
+            "--harness-home" => harness_home = val().map(|v| env.cwd.join(v)),
+            "--host-skills-dir" => skills_dir = val().map(|v| env.cwd.join(v)),
             "--host" => host = val(),
             "--hook" => hook = val(),
             "--settings-file" => match val() {
@@ -46,9 +59,53 @@ pub fn cli_bridge(args: &[String], env: &Environment) -> Outcome {
         return usage("expected exactly one <project>");
     };
     let project = env.cwd.join(project);
+    if write && setup.is_none() {
+        return usage("--write belongs to --setup");
+    }
+    if let Some(h) = setup.as_deref() {
+        if h != "claude-code" {
+            return Outcome::refused(&HarnessDiagnostic::new(
+                "SPX-HPN007",
+                format!(
+                    "no setup for host `{h}`; supported: `claude-code` (MCP stdio, pinned {})",
+                    claude::PINNED_VERSION
+                ),
+            ));
+        }
+        let o = setup::SetupOptions {
+            project: project.canonicalize().unwrap_or(project),
+            harness_bin: bin
+                .or_else(|| std::env::current_exe().ok())
+                .unwrap_or_default(),
+            session,
+            write,
+            log,
+            harness_home,
+        };
+        return match setup::claude_code(&o) {
+            Ok(v) => Outcome::ok(format!("{}\n", canonical(&v))),
+            Err(d) => Outcome::refused(&d),
+        };
+    }
+    if mcp {
+        let stdin = std::io::stdin();
+        let opts = mcp::McpOptions {
+            session,
+            host_skills_dir: skills_dir,
+            log,
+        };
+        return match mcp::serve(stdin.lock(), std::io::stdout(), env, &project, opts) {
+            Ok(()) => Outcome::ok(""),
+            Err(e) => Outcome::refused(&HarnessDiagnostic::new("SPX-HPN007", format!("mcp: {e}"))),
+        };
+    }
     if stdio {
         let stdin = std::io::stdin();
-        return match rpc::serve(stdin.lock(), std::io::stdout(), env, &project) {
+        let server = rpc::Server::new(env, &project)
+            .with_session(session)
+            .with_host_skills_dir(skills_dir)
+            .with_log(log);
+        return match rpc::serve_with(stdin.lock(), std::io::stdout(), server) {
             Ok(()) => Outcome::ok(""),
             Err(e) => {
                 Outcome::refused(&HarnessDiagnostic::new("SPX-HPN007", format!("stdio: {e}")))

@@ -767,7 +767,12 @@ function activate(context) {
     const config = configured();
     const result = await runHarness(harness.statusArgv(path.dirname(config.manifest)));
     const parsed = harness.parseStatus(result.stdout);
-    const doc = await vscode.workspace.openTextDocument({ content: harness.summary(parsed), language: 'plaintext' });
+    // Default skills and pending updates share the status view; a failure is shown as a reason, not hidden.
+    const project = path.dirname(config.manifest);
+    const attempt = async (argv, parse) => { try { return parse((await runHarness(argv)).stdout); } catch (error) { return { unavailable: String(error.message).split('\n')[0].slice(0, 200) }; } };
+    const skills = await attempt(harness.skillsStatusArgv(require('node:fs').realpathSync(project)), harness.parseSkillsStatus);
+    const updates = await attempt(harness.updatesStatusArgv(), harness.parseUpdatesStatus);
+    const doc = await vscode.workspace.openTextDocument({ content: harness.summary(parsed, skills, updates), language: 'plaintext' });
     await vscode.window.showTextDocument(doc, { preview: true });
     return harness.selectedProviders(parsed);
   }

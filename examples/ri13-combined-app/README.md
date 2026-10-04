@@ -110,6 +110,24 @@ normalized operations per second separately from scalar samples and includes
 generated registration in every operation, so it is a reproducible local batch
 path without claiming a universal threshold result.
 
+Render the combined investigation only after rendering the source-bound M3
+investigation from the same receipt:
+
+```sh
+python3 examples/ri13-combined-app/investigate-throughput.py \
+  --receipt /path/to/ri13-combined-receipt.json \
+  --m3-investigation /path/to/ri13-m3-batch-investigation.json \
+  --output /path/to/ri13-combined-throughput-investigation.json
+python3 -m unittest examples/ri13-combined-app/test_investigate_throughput.py
+```
+
+It requires the complete ordered M1/M2/M3 prepare and consumer stages, the
+64-operation two-byte M3 workload, and exact receipt digest binding. It emits
+the generated/direct and generated/handwritten normalized M3 ratios with the
+0.90 investigation threshold. M1 and M2 are explicitly `unavailable`: their
+combined stages have no matched direct and handwritten batch measurements, so
+the tool refuses to treat Cargo stage time as throughput.
+
 The linked consumer emits its own one-line canonical ledger after it executes
 the M1 owners and M2 record/callback routes. The measurement parser requires
 the Regex carrier to report its exact 28-byte borrowed matcher input, zero
@@ -124,10 +142,9 @@ foreign internal byte observations remain unavailable.
 
 This gate does not close #371. It still needs exact copied-byte evidence for
 the issue’s buffer scan and the uninstrumented foreign portions of ownership
-transfer and deserialization, a nontrivial batch regression investigation, and
-fresh Linux x86_64 evidence. The receipt makes those gaps explicit rather than
-converting one local run into a portability or
-performance claim.
+transfer and deserialization, matched M1/M2 throughput measurements, and fresh
+Linux x86_64 evidence. The receipt makes those gaps explicit rather than
+converting one local run into a portability or performance claim.
 
 ## Linked generated fixture
 

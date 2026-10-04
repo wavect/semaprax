@@ -565,7 +565,7 @@ fn refine_context(
         let names =
             crate::context::plan::parse_handle(&h).is_some_and(|p| failure.contains(&p.path));
         if names {
-            match expand_context(cx, st, work, &h, kept) {
+            match expand_context(cx, st, work, &h, r, failure, kept) {
                 Ok(n) if n > 0 => {
                     r.context["plan"]["expanded_handles"] = json!(r.context["plan"]
                         ["expanded_handles"]

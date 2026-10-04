@@ -38,6 +38,7 @@ BOOLEAN_REFACTOR = module("law16_boolean_refactor_cell")
 GUEST_CACHE = module("law16_guest_cache")
 PROJECT_INCREMENTAL = module("law16_project_incremental_cell")
 NATIVE_PHASES = module("law16_boolean_native_phases")
+CLAUDE_CAMPAIGN = module("law16_claude_boolean_campaign")
 SCHEMA = "semaprax.bend2-law-benchmark.current-report.v1"
 
 
@@ -146,6 +147,7 @@ def render():
     guest_cache = GUEST_CACHE.review(ROOT / "evidence/law16-guest-cache-thirty-v1")
     project_incremental = PROJECT_INCREMENTAL.verify(ROOT / "evidence/law16-project-incremental-cell-v1")
     native_phases = NATIVE_PHASES.review(ROOT / "evidence/law16-native-phase-thirty-v1")
+    claude_campaign = CLAUDE_CAMPAIGN.review(ROOT / "evidence/law16-claude-campaign-stopped-v1")
     boolean_refactor = BOOLEAN_REFACTOR.verify(ROOT / "evidence/law16-boolean-refactor-cell-v1")
     claude_boolean_pilot = read(ROOT / "evidence/law16-claude-boolean-pilot-v1/capsule.json")
     if claude_boolean_pilot.get("schema") != "semaprax.bend2-law-benchmark.claude-boolean-pilot-capsule.v1" or claude_boolean_pilot.get("campaign_admission") is not False:
@@ -432,6 +434,11 @@ def render():
             "campaign_admission": claude_boolean_pilot["campaign_admission"],
             "nonclaims": claude_boolean_pilot["nonclaims"],
         },
+        "claude_preregistered_campaign": {
+            "source": "evidence/law16-claude-campaign-stopped-v1/summary.json",
+            **claude_campaign,
+            "scope": "four admitted matched pairs, then fifth Bend trial stopped after provider-reported budget overrun; not a 10-pair campaign",
+        },
         "pins_and_trust": {
             "observation_identity": "local historical pins, retained as exact executable/tool evidence",
             "bend": "local historical commit 947db722640c86247849343657bf2f7ef01cb7f1; verdict output is retained tool evidence",
@@ -446,7 +453,7 @@ def render():
             "checked_u32": "unsupported_by_pinned_parser: SPX-P003 admits i32, u8, usize literal suffixes, not u32",
             "cold_cache": "partial: 30 guest file-page-cache cold/warm pairs per ordinary Bend and SEMAPRAX check route; host/Rosetta cache state and proof/verdict cold/warm routes remain unmeasured",
             "Lean": "supplemental LAW15 collection source theorem physically checked by Lean; no Boolean or original law16.* Lean export",
-            "cost": "unavailable for admitted agent trials: Codex JSON has no monetary charge event; a separate Claude probe recorded cost but failed before any source outcome",
+            "cost": "partial: four matched Claude Boolean pairs have provider-reported cost and token events; fifth Bend call failed after an over-cap charge; the preregistered ten-pair campaign is incomplete",
             "project_sized": "partial: three-module SEMAPRAX calculator core edit and signature negative control exercised; no matched Bend route, large project, or incremental timing comparison",
             "list_refactor_lawbreaking": remaining,
         },

@@ -1,0 +1,12 @@
+{
+  "final_source": "import Base\n\ndef negate(value: Bool) -> Bool:\n  Bool.not(value)\n\nlaw negate_matches_boolean_not:\n  for value: Bool\n  {negate(value) == Bool.not(value) : Bool}\n\ndef negate_matches_boolean_not(value):\n  {==}\n",
+  "language": "bend2",
+  "proof_explanation": "The repair fixes the negate function to properly implement Boolean negation by calling Bool.not(value) instead of returning the input unchanged. This ensures the law negate_matches_boolean_not is satisfied: for all Bool values, negate(value) == Bool.not(value). The proof {==} is complete because unfolding the definition of negate yields Bool.not(value), which equals Bool.not(value) by reflexivity.",
+  "schema": "semaprax.bend2-law-benchmark.boolean-edit-response.v1",
+  "seeded_attack": {
+    "decision": "reject",
+    "reason": "The implementation fails to properly negate Boolean values. The law requires negate(value) == Bool.not(value) for all Bool values, but returning the input value unchanged violates this requirement.",
+    "source_sha256": "sha256:5ee075e4f37c305e1aa73ed7c81d7fa59815e58c5f4aeda4ac658e79c1fe96fa"
+  },
+  "trial_id": "boolean-negation-pair-v1:bend2:3"
+}

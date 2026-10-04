@@ -4,14 +4,14 @@
       "assessment": "All seven non-agent routes were physically exercised with raw artifacts and pinned tools: six in the unified capture and the guarded-i64 balance SMT source-proof route in its separate caller-pinned capsule. Both capsules authenticate offline without their original temporary directories. The optional live agent continuation was not rerun, so full available-cell reproduction remains partial.",
       "evidence": [
         {
-          "bytes": 87717,
+          "bytes": 88502,
           "path": "evidence/law16-current-report-v1.json",
-          "sha256": "sha256:14e8ddfde54091c6d49d75002bfc249979f067b7dcee7263aa16e00916f5703e"
+          "sha256": "sha256:fa2c118cb4abe51d19bb06cd09d9e2f4ef41cdda7fc914e71a2d0a05faedd17f"
         },
         {
-          "bytes": 53335,
+          "bytes": 54870,
           "path": "README.md",
-          "sha256": "sha256:76fb9d8aaa5b8fa8b5903d079cce2c1196b2ebca57a7746028206780b15bdb1a"
+          "sha256": "sha256:406d753a70852e786346b240e63618492e7db23b3ab6dcc4dbccfcb317854141"
         },
         {
           "bytes": 28614,
@@ -19,9 +19,9 @@
           "sha256": "sha256:b15db0bdfd1c47f5a7b21cbb8cea7a897bf6f62959fbd2186f2c749ef8bbd0f8"
         },
         {
-          "bytes": 26296,
+          "bytes": 26795,
           "path": "law16_current_report.py",
-          "sha256": "sha256:0d3a0633b6d510d380928e36a07e6487c1cdf2413d061c3b44911ad60c903f72"
+          "sha256": "sha256:c87c1d78570212ce9f1c3d1e35b75c63482ca5c27ae4278a79f3df7a0fc94df2"
         },
         {
           "bytes": 984607,
@@ -42,9 +42,9 @@
       "assessment": "Supplemental guarded-i64/U32 v2 retains balance and sort controls, and separate Bend and Lean source theorems prove aligned universal sort laws over the U32 subdomain for distinct algorithms. A new matched scalar-Boolean refactor cell accepts both candidates and rejects law-breaking attacks with Bend verdict and SEMAPRAX Z3; SEMAPRAX check accepts its attack as an explicit nonproof result. None establishes the original checked-u32 source identities or source translation/lowering; checked-u32 syntax remains unsupported.",
       "evidence": [
         {
-          "bytes": 87717,
+          "bytes": 88502,
           "path": "evidence/law16-current-report-v1.json",
-          "sha256": "sha256:14e8ddfde54091c6d49d75002bfc249979f067b7dcee7263aa16e00916f5703e"
+          "sha256": "sha256:fa2c118cb4abe51d19bb06cd09d9e2f4ef41cdda7fc914e71a2d0a05faedd17f"
         },
         {
           "bytes": 21122,
@@ -100,9 +100,9 @@
       "assessment": "Ordinary Bend, Bend verdict, SEMAPRAX check, and installed-Z3 routes have separate evidence fields and route-specific controls; the report makes no cross-route timing comparison.",
       "evidence": [
         {
-          "bytes": 87717,
+          "bytes": 88502,
           "path": "evidence/law16-current-report-v1.json",
-          "sha256": "sha256:14e8ddfde54091c6d49d75002bfc249979f067b7dcee7263aa16e00916f5703e"
+          "sha256": "sha256:fa2c118cb4abe51d19bb06cd09d9e2f4ef41cdda7fc914e71a2d0a05faedd17f"
         },
         {
           "bytes": 53322,
@@ -128,9 +128,9 @@
       "assessment": "Unavailable/non-admitted routes remain explicit nonresults; infrastructure failure cannot count as attack rejection in the supplemental control tests; differing numeric profiles and source-proof limits are recorded. No superiority result is published.",
       "evidence": [
         {
-          "bytes": 87717,
+          "bytes": 88502,
           "path": "evidence/law16-current-report-v1.json",
-          "sha256": "sha256:14e8ddfde54091c6d49d75002bfc249979f067b7dcee7263aa16e00916f5703e"
+          "sha256": "sha256:fa2c118cb4abe51d19bb06cd09d9e2f4ef41cdda7fc914e71a2d0a05faedd17f"
         },
         {
           "bytes": 2359,
@@ -156,9 +156,9 @@
       "assessment": "Process timing, proof/check routes, agent synthesis tokens, and runtime controls are separated. A Linux/Rosetta guest capsule authenticates 30 cold/warm file-page-cache pairs each for ordinary Bend and SEMAPRAX check. A separate local 30-sample Boolean capsule times Bend check, C emission, Clang compile, and native run separately, and SEMAPRAX check, combined native build, and native run separately. Host/Rosetta caches and proof/verdict cold/warm routes remain unmeasured; SEMAPRAX build internals remain combined.",
       "evidence": [
         {
-          "bytes": 87717,
+          "bytes": 88502,
           "path": "evidence/law16-current-report-v1.json",
-          "sha256": "sha256:14e8ddfde54091c6d49d75002bfc249979f067b7dcee7263aa16e00916f5703e"
+          "sha256": "sha256:fa2c118cb4abe51d19bb06cd09d9e2f4ef41cdda7fc914e71a2d0a05faedd17f"
         },
         {
           "bytes": 1396,
@@ -201,12 +201,12 @@
       "text": "Cold/warm results and proof synthesis/check/compile/run times are separate."
     },
     {
-      "assessment": "Ten fixed-budget matched Boolean Codex pairs include candidate/attack outcomes and token counters but no monetary charges. A separate Claude budget probe and two bounded Bend pilots emitted cost events; the latter failed source parsing or verdict, and none is an admitted matched pair. Other planned task cells lack corresponding ten-trial agent campaigns.",
+      "assessment": "Ten fixed-budget matched Boolean Codex pairs include candidate/attack outcomes and token counters but no monetary charges. A separate preregistered Claude Haiku campaign authenticated four matched candidate/attack pairs with provider token and monetary events; its fifth Bend trial stopped after the CLI charged $0.039957 above the requested $0.03 per-call budget. This is adverse cost evidence, not a completed ten-pair Claude campaign. Other task cells also lack ten-trial campaigns.",
       "evidence": [
         {
-          "bytes": 87717,
+          "bytes": 88502,
           "path": "evidence/law16-current-report-v1.json",
-          "sha256": "sha256:14e8ddfde54091c6d49d75002bfc249979f067b7dcee7263aa16e00916f5703e"
+          "sha256": "sha256:fa2c118cb4abe51d19bb06cd09d9e2f4ef41cdda7fc914e71a2d0a05faedd17f"
         },
         {
           "bytes": 1329,
@@ -232,6 +232,11 @@
           "bytes": 2407,
           "path": "evidence/law16-claude-boolean-pilot-v1/capsule.json",
           "sha256": "sha256:d28f7fba2d041499f7810bcb980ec2a5e1e9c9b39c1d232a62f8efc3667e039e"
+        },
+        {
+          "bytes": 28829,
+          "path": "evidence/law16-claude-campaign-stopped-v1/summary.json",
+          "sha256": "sha256:7489e138193295d6ea97a53c507145508467943e213e36315ca540748df5bc29"
         }
       ],
       "id": "AC6",
@@ -242,14 +247,14 @@
       "assessment": "The current report keeps LAW-16 incomplete, makes no winner or superiority claim, retains adverse/no-op and unsupported results, and reports per-cell timing variation without cross-route ranking.",
       "evidence": [
         {
-          "bytes": 87717,
+          "bytes": 88502,
           "path": "evidence/law16-current-report-v1.json",
-          "sha256": "sha256:14e8ddfde54091c6d49d75002bfc249979f067b7dcee7263aa16e00916f5703e"
+          "sha256": "sha256:fa2c118cb4abe51d19bb06cd09d9e2f4ef41cdda7fc914e71a2d0a05faedd17f"
         },
         {
-          "bytes": 14109,
+          "bytes": 14851,
           "path": "LAW16-REPORT.md",
-          "sha256": "sha256:fc1d15d28a81b772865e50be1bc2b2c4f88cca822e906463e4dba68ba73211b8"
+          "sha256": "sha256:44b6fdffa377ff4beb09d982bbdf24343616d1447fbe0a69ab0aec1a7e1f41ce"
         },
         {
           "bytes": 3144,
@@ -263,7 +268,7 @@
     }
   ],
   "audit_status": "open_requirements_remain",
-  "audited_repository_commit": "d86fb69e2770348513e217e80b128669d1e79467",
+  "audited_repository_commit": "6dbd271c2ee0f4ea1d375e4c777182e2c6ebcb5b",
   "closure": "not_satisfied",
   "current_report_reconciliation": {
     "audit_update": "The current report includes the LAW15 collection List<i64> Lean proof test. It is supplemental and does not close or prove the original LAW16 list cell.",
@@ -436,9 +441,9 @@
       "classification": "supplemental_three_module_cache_control_only",
       "evidence": [
         {
-          "bytes": 87717,
+          "bytes": 88502,
           "path": "evidence/law16-current-report-v1.json",
-          "sha256": "sha256:14e8ddfde54091c6d49d75002bfc249979f067b7dcee7263aa16e00916f5703e"
+          "sha256": "sha256:fa2c118cb4abe51d19bb06cd09d9e2f4ef41cdda7fc914e71a2d0a05faedd17f"
         },
         {
           "bytes": 4365,
@@ -454,12 +459,12 @@
         "AC6",
         "R5"
       ],
-      "classification": "unavailable",
+      "classification": "partial_four_matched_claude_pairs",
       "evidence": [
         {
-          "bytes": 87717,
+          "bytes": 88502,
           "path": "evidence/law16-current-report-v1.json",
-          "sha256": "sha256:14e8ddfde54091c6d49d75002bfc249979f067b7dcee7263aa16e00916f5703e"
+          "sha256": "sha256:fa2c118cb4abe51d19bb06cd09d9e2f4ef41cdda7fc914e71a2d0a05faedd17f"
         },
         {
           "bytes": 1403,
@@ -470,32 +475,37 @@
           "bytes": 2407,
           "path": "evidence/law16-claude-boolean-pilot-v1/capsule.json",
           "sha256": "sha256:d28f7fba2d041499f7810bcb980ec2a5e1e9c9b39c1d232a62f8efc3667e039e"
+        },
+        {
+          "bytes": 28829,
+          "path": "evidence/law16-claude-campaign-stopped-v1/summary.json",
+          "sha256": "sha256:7489e138193295d6ea97a53c507145508467943e213e36315ca540748df5bc29"
         }
       ],
       "id": "agent_monetary_cost_events",
-      "status": "unavailable for admitted agent trials: Codex JSON has no monetary charge event; a separate Claude probe recorded cost but failed before any source outcome"
+      "status": "partial: four matched Claude Boolean pairs have provider-reported cost and token events; fifth Bend call failed after an over-cap charge; the preregistered ten-pair campaign is incomplete"
     }
   ],
   "evidence_basis": [
     {
-      "bytes": 14109,
+      "bytes": 14851,
       "path": "LAW16-REPORT.md",
-      "sha256": "sha256:fc1d15d28a81b772865e50be1bc2b2c4f88cca822e906463e4dba68ba73211b8"
+      "sha256": "sha256:44b6fdffa377ff4beb09d982bbdf24343616d1447fbe0a69ab0aec1a7e1f41ce"
     },
     {
-      "bytes": 53335,
+      "bytes": 54870,
       "path": "README.md",
-      "sha256": "sha256:76fb9d8aaa5b8fa8b5903d079cce2c1196b2ebca57a7746028206780b15bdb1a"
+      "sha256": "sha256:406d753a70852e786346b240e63618492e7db23b3ab6dcc4dbccfcb317854141"
     },
     {
-      "bytes": 26296,
+      "bytes": 26795,
       "path": "law16_current_report.py",
-      "sha256": "sha256:0d3a0633b6d510d380928e36a07e6487c1cdf2413d061c3b44911ad60c903f72"
+      "sha256": "sha256:c87c1d78570212ce9f1c3d1e35b75c63482ca5c27ae4278a79f3df7a0fc94df2"
     },
     {
-      "bytes": 87717,
+      "bytes": 88502,
       "path": "evidence/law16-current-report-v1.json",
-      "sha256": "sha256:14e8ddfde54091c6d49d75002bfc249979f067b7dcee7263aa16e00916f5703e"
+      "sha256": "sha256:fa2c118cb4abe51d19bb06cd09d9e2f4ef41cdda7fc914e71a2d0a05faedd17f"
     }
   ],
   "fresh_guarded_i64_source_proof": {
@@ -631,7 +641,7 @@
       "text": "Measure cold/warm checking wall time, p50/p95, peak memory, proof-writing effort, explicit annotations, generated/changed proof bytes, law inventory coverage, rejection of seeded spec-gaming attacks, and cache invalidation work. Use at least 30 timed repetitions per microbenchmark configuration, separate process/tool provisioning, retain raw samples, and treat tiny/noisy differences as inconclusive. Set `BEND_NO_TELEMETRY=1` for offline/timing trials and record it, because the reviewed CLI performs an opt-out daily version check."
     },
     {
-      "assessment": "Ten fixed-budget matched Codex pairs cover the Boolean task and retain candidate/attack outcomes and token counters without monetary events. Separate Claude cost attempts have monetary events but no successful source outcome, and unsupported planned tasks have no matched agent trials.",
+      "assessment": "Ten fixed-budget matched Codex pairs cover the Boolean task and retain candidate/attack outcomes and token counters without monetary events. Four preregistered matched Claude pairs have admitted source outcomes and monetary events, followed by an over-cap provider failure in trial five; the ten-pair Claude campaign is incomplete. Other planned tasks have no matched agent trials.",
       "id": "R5",
       "status": "partial",
       "text": "For agent experiments, pin model/configuration/tool access/budget, preregister at least 10 matched independent trials per admitted task/language/model (label a smaller run as a pilot), record success criteria and failures, and export token/cost events through existing telemetry. Separate proof synthesis cost from kernel checking and compilation/runtime cost."
@@ -833,7 +843,7 @@
     {
       "id": "AC6",
       "kind": "missing_agent_telemetry_and_task_coverage",
-      "reason": "The admitted ten-trial agent evidence has no monetary cost event and covers only the Boolean task; separate Claude cost attempts produced no successful source outcome."
+      "reason": "The admitted ten-trial Codex evidence has no monetary cost event and covers only the Boolean task; a separate Claude campaign has four matched costed pairs but stopped after a fifth-trial budget overrun."
     }
   ]
 }

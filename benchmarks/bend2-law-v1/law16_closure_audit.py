@@ -262,13 +262,14 @@ def render() -> dict:
             "id": "AC6",
             "text": ACCEPTANCE_TEXT[5],
             "status": "partial",
-            "assessment": "Ten fixed-budget matched Boolean Codex pairs include candidate/attack outcomes and token counters but no monetary charges. A separate Claude budget probe and two bounded Bend pilots emitted cost events; the latter failed source parsing or verdict, and none is an admitted matched pair. Other planned task cells lack corresponding ten-trial agent campaigns.",
+            "assessment": "Ten fixed-budget matched Boolean Codex pairs include candidate/attack outcomes and token counters but no monetary charges. A separate preregistered Claude Haiku campaign authenticated four matched candidate/attack pairs with provider token and monetary events; its fifth Bend trial stopped after the CLI charged $0.039957 above the requested $0.03 per-call budget. This is adverse cost evidence, not a completed ten-pair Claude campaign. Other task cells also lack ten-trial campaigns.",
             "evidence": common + [
                 evidence("evidence/law16-boolean-negation-agent-pilot-v1/review.json"),
                 evidence("evidence/law16-boolean-negation-agent-campaign-v1/review.json"),
                 evidence("evidence/law16-effort-summary-v1.json"),
                 evidence("evidence/law16-claude-cost-pilot-v1.json"),
                 evidence("evidence/law16-claude-boolean-pilot-v1/capsule.json"),
+                evidence("evidence/law16-claude-campaign-stopped-v1/summary.json"),
             ],
         },
         {
@@ -299,7 +300,7 @@ def render() -> dict:
         ),
         (
             "partial",
-            "Ten fixed-budget matched Codex pairs cover the Boolean task and retain candidate/attack outcomes and token counters without monetary events. Separate Claude cost attempts have monetary events but no successful source outcome, and unsupported planned tasks have no matched agent trials.",
+            "Ten fixed-budget matched Codex pairs cover the Boolean task and retain candidate/attack outcomes and token counters without monetary events. Four preregistered matched Claude pairs have admitted source outcomes and monetary events, followed by an over-cap provider failure in trial five; the ten-pair Claude campaign is incomplete. Other planned tasks have no matched agent trials.",
         ),
         (
             "met",
@@ -384,10 +385,10 @@ def render() -> dict:
         },
         {
             "id": "agent_monetary_cost_events",
-            "classification": "unavailable",
+            "classification": "partial_four_matched_claude_pairs",
             "blocking_requirements": ["AC6", "R5"],
             "status": unsupported["cost"],
-            "evidence": common + [evidence("evidence/law16-claude-cost-pilot-v1.json"), evidence("evidence/law16-claude-boolean-pilot-v1/capsule.json")],
+            "evidence": common + [evidence("evidence/law16-claude-cost-pilot-v1.json"), evidence("evidence/law16-claude-boolean-pilot-v1/capsule.json"), evidence("evidence/law16-claude-campaign-stopped-v1/summary.json")],
         },
     ]
 
@@ -435,7 +436,7 @@ def render() -> dict:
             },
             {
                 "id": "AC6",
-                "reason": "The admitted ten-trial agent evidence has no monetary cost event and covers only the Boolean task; separate Claude cost attempts produced no successful source outcome.",
+                "reason": "The admitted ten-trial Codex evidence has no monetary cost event and covers only the Boolean task; a separate Claude campaign has four matched costed pairs but stopped after a fifth-trial budget overrun.",
                 "kind": "missing_agent_telemetry_and_task_coverage",
             },
         ],

@@ -1,0 +1,63 @@
+{
+  "budget": {
+    "max_cost_usd": "0.03"
+  },
+  "campaign_admission": false,
+  "campaign_plan_sha256": "sha256:70159832df07283e65c7d61954acac3f346d9f552e922f21fe8d3d22827bcebb",
+  "execution": {
+    "exit_code": 1,
+    "repository_access": "none",
+    "tools": "disabled",
+    "wall_ms": 72352.959
+  },
+  "nonclaims": [
+    "provider cost is observed only from the result event",
+    "one pilot or campaign record does not close LAW-16 issue #392",
+    "the model's seeded-attack claim does not decide the independent replay"
+  ],
+  "provider": {
+    "id": "anthropic-claude-code-cli",
+    "model_alias": "haiku",
+    "model_id": "claude-haiku-4-5-20251001"
+  },
+  "provider_cost_usd": "0.039957000000000006",
+  "provider_result": {
+    "is_error": true,
+    "subtype": "error_max_budget_usd",
+    "terminal_reason": "budget_exhausted"
+  },
+  "provider_tokens": {
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "input_tokens": 0,
+    "output_tokens": 0
+  },
+  "raw_provider_stream": {
+    "redacted": {
+      "bytes": 52576,
+      "path": "provider-events.redacted.jsonl",
+      "sha256": "sha256:841af82604d5c8011d734c944a22b87eb0cbf99f4686e328f48e8a9ab82500bc"
+    },
+    "stderr": {
+      "bytes": 0,
+      "path": "provider-stderr.txt",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "unredacted_sha256": "sha256:c43f139ae10e8575c75a4226aaa6e4477b8e0f7bc6fd91b1bfa0d72d640e7554"
+  },
+  "replay": {
+    "accepted": false,
+    "status": "not_run"
+  },
+  "response": {
+    "reason": "provider result is not a successful structured response",
+    "status": "invalid"
+  },
+  "schema": "semaprax.bend2-law-benchmark.claude-boolean-campaign.v1",
+  "status": "provider_refused_before_source",
+  "trial": {
+    "id": "boolean-negation-pair-v1:bend2:5",
+    "language": "bend2",
+    "ordinal": 5
+  }
+}

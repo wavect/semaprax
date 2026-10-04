@@ -288,8 +288,12 @@ def review(root: pathlib.Path) -> dict:
         checked_reference(directory, raw["stderr"])
         rows, result = terminal_event(redacted)
         cost = money(result.get("total_cost_usd"))
-        if str(cost) != record.get("provider_cost_usd") or cost > Decimal(record["budget"]["max_cost_usd"]):
-            raise ValueError("Claude campaign provider cost differs or exceeds cap")
+        over_cap = cost > Decimal(record["budget"]["max_cost_usd"])
+        if str(cost) != record.get("provider_cost_usd"):
+            raise ValueError("Claude campaign provider cost differs")
+        if over_cap and not (result.get("is_error") is True and result.get("subtype") == "error_max_budget_usd"
+                             and record.get("campaign_admission") is False):
+            raise ValueError("Claude campaign over-cap charge lacks the required adverse classification")
         total += cost
         usage = record.get("provider_tokens", {})
         if any(usage.get(key) != result.get("usage", {}).get(key) for key in tokens):

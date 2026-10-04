@@ -920,6 +920,24 @@
     "source": "evidence/law16-claude-boolean-pilot-v1/capsule.json",
     "status": "two_bounded_bend_attempts_nonadmitted"
   },
+  "claude_preregistered_campaign": {
+    "matched_pairs": 4,
+    "nonclaims": [
+      "sanitized provider stream is retained; unredacted raw is represented by a local digest only",
+      "different toolchains and trust bases prohibit a cross-route winner claim"
+    ],
+    "provider_cost_usd": "0.151974000000000008",
+    "provider_tokens": {
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "input_tokens": 20602,
+      "output_tokens": 18283
+    },
+    "scope": "four admitted matched pairs, then fifth Bend trial stopped after provider-reported budget overrun; not a 10-pair campaign",
+    "source": "evidence/law16-claude-campaign-stopped-v1/summary.json",
+    "status": "stopped_nonadmitted",
+    "trials": 9
+  },
   "closure": "no: the matched Boolean cell and supplemental U32 semantic theorem comparison do not satisfy the original checked-u32 source admission, full cold-cache and proof-route coverage, matched project-sized incremental/refactor, or monetary cost-event acceptance requirements",
   "guest_file_cache_cold_warm": {
     "nonclaims": [
@@ -2294,7 +2312,7 @@
     "Lean": "supplemental LAW15 collection source theorem physically checked by Lean; no Boolean or original law16.* Lean export",
     "checked_u32": "unsupported_by_pinned_parser: SPX-P003 admits i32, u8, usize literal suffixes, not u32",
     "cold_cache": "partial: 30 guest file-page-cache cold/warm pairs per ordinary Bend and SEMAPRAX check route; host/Rosetta cache state and proof/verdict cold/warm routes remain unmeasured",
-    "cost": "unavailable for admitted agent trials: Codex JSON has no monetary charge event; a separate Claude probe recorded cost but failed before any source outcome",
+    "cost": "partial: four matched Claude Boolean pairs have provider-reported cost and token events; fifth Bend call failed after an over-cap charge; the preregistered ten-pair campaign is incomplete",
     "list_refactor_lawbreaking": {
       "admission_blocker": {
         "receipt": "evidence/law16-checked-u32-nonadmission-v1/review.json",

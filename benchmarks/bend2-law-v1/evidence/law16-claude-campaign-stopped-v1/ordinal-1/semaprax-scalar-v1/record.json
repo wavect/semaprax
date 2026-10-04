@@ -1,0 +1,95 @@
+{
+  "budget": {
+    "max_cost_usd": "0.03"
+  },
+  "campaign_admission": true,
+  "campaign_plan_sha256": "sha256:70159832df07283e65c7d61954acac3f346d9f552e922f21fe8d3d22827bcebb",
+  "execution": {
+    "exit_code": 0,
+    "repository_access": "none",
+    "tools": "disabled",
+    "wall_ms": 19885.284
+  },
+  "nonclaims": [
+    "provider cost is observed only from the result event",
+    "one pilot or campaign record does not close LAW-16 issue #392",
+    "the model's seeded-attack claim does not decide the independent replay"
+  ],
+  "provider": {
+    "id": "anthropic-claude-code-cli",
+    "model_alias": "haiku",
+    "model_id": "claude-haiku-4-5-20251001"
+  },
+  "provider_cost_usd": "0.015054",
+  "provider_result": {
+    "is_error": false,
+    "subtype": "success",
+    "terminal_reason": "completed"
+  },
+  "provider_tokens": {
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "input_tokens": 4914,
+    "output_tokens": 2028
+  },
+  "raw_provider_stream": {
+    "redacted": {
+      "bytes": 23889,
+      "path": "provider-events.redacted.jsonl",
+      "sha256": "sha256:56284a5f114dd0054be6a9d4f2e7189b197a0371e835552f1aa5714d69150e98"
+    },
+    "stderr": {
+      "bytes": 0,
+      "path": "provider-stderr.txt",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "unredacted_sha256": "sha256:824eb0324af77aa6ffae576b4f73db95fdfcd32b751dc9b8552a2c50bdfe0333"
+  },
+  "replay": {
+    "accepted": true,
+    "attack_exit_code": 1,
+    "candidate_exit_code": 0,
+    "raw": {
+      "attack.stderr": {
+        "bytes": 103,
+        "path": "attack.stderr",
+        "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+      },
+      "attack.stdout": {
+        "bytes": 0,
+        "path": "attack.stdout",
+        "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "candidate.stderr": {
+        "bytes": 0,
+        "path": "candidate.stderr",
+        "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "candidate.stdout": {
+        "bytes": 6666,
+        "path": "candidate.stdout",
+        "sha256": "sha256:077385b7019417ecd60edfe29913148ae0f1821bccedd852b6d0bfb515625290"
+      }
+    }
+  },
+  "response": {
+    "final_source": {
+      "bytes": 182,
+      "path": "final-source.spx",
+      "sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063"
+    },
+    "model_response": {
+      "bytes": 1378,
+      "path": "model-response.json",
+      "sha256": "sha256:1f91c355ea96c245fe18da11c185a1dddab8d5e2541c0df21380cfbbec439734"
+    },
+    "status": "schema_valid"
+  },
+  "schema": "semaprax.bend2-law-benchmark.claude-boolean-campaign.v1",
+  "status": "provider_completed",
+  "trial": {
+    "id": "boolean-negation-pair-v1:semaprax-scalar-v1:1",
+    "language": "semaprax-scalar-v1",
+    "ordinal": 1
+  }
+}

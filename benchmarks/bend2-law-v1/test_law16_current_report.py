@@ -62,6 +62,10 @@ class CurrentReportTests(unittest.TestCase):
         self.assertEqual(phases["status"], "thirty_repetitions_authenticated")
         self.assertEqual(phases["summary"]["clang_compile"]["count"], 30)
         self.assertEqual(phases["summary"]["semaprax_run"]["count"], 30)
+        claude = value["claude_preregistered_campaign"]
+        self.assertEqual(claude["status"], "stopped_nonadmitted")
+        self.assertEqual(claude["matched_pairs"], 4)
+        self.assertEqual(claude["trials"], 9)
         process = value["matched_boolean"]["process_provenance"]
         self.assertEqual(process["command_count"], 240)
         self.assertEqual(process["cold_cache"]["status"], "unavailable")

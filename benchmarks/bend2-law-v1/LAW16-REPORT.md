@@ -81,6 +81,15 @@ unsupported Bend syntax; the other returned prose instead of the declared
 JSON source shape. Neither is a successful matched trial, and no ten-pair
 Claude campaign was run. Provider streams and prompts are not retained in
 that sanitized capsule.
+A later [preregistered Claude campaign](evidence/law16-claude-campaign-stopped-v1/summary.json)
+retains four matched Boolean pairs whose candidates passed Bend verdict and
+SEMAPRAX Z3 and whose seeded attacks were rejected. Sanitized provider events
+report **20,602 input** and **18,283 output** tokens with **$0.151974** total
+cost across nine calls. The fifth pair stopped at its Bend call: Claude Code
+reported `error_max_budget_usd` after charging **$0.039957**, above the
+requested **$0.03** per-call limit. This is an adverse provider result; the
+campaign did not reach ten pairs. The retained streams are sanitized, with
+unredacted stream digests rather than unredacted provider transcripts.
 The [Boolean annotation receipt](evidence/law16-boolean-negation-annotation-summary-v1.json)
 binds all 20 final sources in those ten pairs to their fixed seeds and reports
 explicit annotation, proof-term, and changed-byte counts. These textual counts
@@ -110,9 +119,10 @@ non-admission receipt records `SPX-P003`. The later
 [Linux/Rosetta guest capsule](evidence/law16-guest-cache-thirty-v1/receipt.json)
 authenticates 30 cold/warm guest file-page-cache pairs per ordinary Bend and
 SEMAPRAX `check` route. Host and Rosetta caches remain unknown, while
-Bend verdict and SEMAPRAX Z3 cold/warm routes remain unmeasured. There is no
-monetary cost event for admitted matched agent trials or matched project-sized
-incremental cell. The Lean list proof below covers its exact LAW15 source,
+Bend verdict and SEMAPRAX Z3 cold/warm routes remain unmeasured. Monetary
+cost events cover four admitted matched Claude pairs, but not a ten-pair
+campaign; a matched project-sized incremental cell also remains open. The Lean
+list proof below covers its exact LAW15 source,
 not the original LAW16 fixture. These gaps prevent honest closure of #392.
 The separate [three-module calculator capsule](evidence/law16-project-incremental-cell-v1/result.json)
 executes SEMAPRAX compiler cache tests for a provider body edit and a rejected

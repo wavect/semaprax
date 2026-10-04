@@ -14,6 +14,10 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Retain the first preregistered LAW16 Claude campaign: four costed matched
+  Boolean pairs passed, then a fifth Bend call exceeded the requested $0.03
+  per-call limit before source admission. Preserve its sanitized provider and
+  replay streams as an adverse incomplete campaign.
 - Freeze a separate LAW16 Claude Haiku Boolean campaign plan and bounded runner
   with schema-checked edits, observed provider token/cost fields, sanitized
   events, and independent proof/attack replay.

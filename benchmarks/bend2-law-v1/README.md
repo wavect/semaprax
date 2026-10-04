@@ -67,8 +67,8 @@ publish no winner.
 
 The separate [Claude Boolean campaign plan](fixtures/law16-claude-boolean-campaign-plan-v1.json)
 freezes 10 matched pairs against Claude Haiku 4.5, Claude Code CLI 2.1.289,
-the fixed buggy source and attack fixtures, a $0.03 per-call cap, and a $0.60
-total cap. Its runner uses fresh empty directories, disabled tools, structured
+the fixed buggy source and attack fixtures, a requested $0.03 per-call limit,
+and a $0.60 planned total ceiling. Its runner uses fresh empty directories, disabled tools, structured
 responses, and independent Bend verdict/SEMAPRAX Z3 replay. It retains
 sanitized provider events with token and monetary cost fields; failed trials
 stop the campaign. The earlier successful one-pair pilot predates this frozen
@@ -83,6 +83,13 @@ python3 benchmarks/bend2-law-v1/law16_claude_boolean_campaign.py \
 python3 benchmarks/bend2-law-v1/law16_claude_boolean_campaign.py \
   --review /absolute/new-claude-campaign
 ```
+
+The [retained first campaign](evidence/law16-claude-campaign-stopped-v1/summary.json)
+authenticated four matched pairs, then stopped on the fifth Bend trial after
+Claude Code charged $0.039957 and reported budget exhaustion. Its total
+provider-reported charge was $0.151974. The CLI's requested per-call limit was
+not a hard monetary bound in that attempt; the overrun is retained as an
+adverse result rather than treated as an admitted trial.
 
 The retained [unified fresh capture](evidence/law16-unified-fresh-v1/replay-status.json)
 completed six non-agent routes: Boolean ordinary checking, Boolean verdict/Z3

@@ -180,8 +180,8 @@ def render() -> dict:
             "id": "AC1",
             "text": ACCEPTANCE_TEXT[0],
             "status": "partial",
-            "assessment": "The benchmark README documents reproduction commands and the retained capsules carry raw streams and pins. The available cells are documented through separate route-specific commands; this audit found no single sequence that replays every available cell together.",
-            "evidence": common + [evidence("README.md"), evidence("law16_current_report.py")],
+            "assessment": "The benchmark README now documents one pinned replay harness for retained verification and fresh capture routes. The retained replay reports an incomplete bounded-balance capsule because one cache replay artifact is missing; the fresh capture sequence has not been exercised end to end.",
+            "evidence": common + [evidence("README.md"), evidence("law16_replay.py"), evidence("law16_current_report.py")],
         },
         {
             "id": "AC2",
@@ -396,7 +396,7 @@ def render() -> dict:
         "unmet_requirements": [
             {
                 "id": "AC1",
-                "reason": "There is no single documented replay sequence that invokes all available cells together.",
+                "reason": "A single replay sequence is documented, but retained replay finds a missing bounded-balance artifact and fresh capture has not been exercised end to end.",
                 "kind": "reproducibility_harness_gap",
             },
             {

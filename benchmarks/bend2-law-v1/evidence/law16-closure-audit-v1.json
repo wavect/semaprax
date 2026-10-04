@@ -1,7 +1,7 @@
 {
   "acceptance_assessment": [
     {
-      "assessment": "The benchmark README documents reproduction commands and the retained capsules carry raw streams and pins. The available cells are documented through separate route-specific commands; this audit found no single sequence that replays every available cell together.",
+      "assessment": "The benchmark README now documents one pinned replay harness for retained verification and fresh capture routes. The retained replay reports an incomplete bounded-balance capsule because one cache replay artifact is missing; the fresh capture sequence has not been exercised end to end.",
       "evidence": [
         {
           "bytes": 78546,
@@ -12,6 +12,11 @@
           "bytes": 46833,
           "path": "README.md",
           "sha256": "sha256:4cf6c9b1943ead200efa4bbee85d98225988458e0011ca9ad4108d1f129869fa"
+        },
+        {
+          "bytes": 21326,
+          "path": "law16_replay.py",
+          "sha256": "sha256:c182682fbbeb3e07b70c4d8740c78aa56a2923df8c8f609fd9bc1338eb9534a0"
         },
         {
           "bytes": 21547,
@@ -218,7 +223,7 @@
     }
   ],
   "audit_status": "open_requirements_remain",
-  "audited_repository_commit": "5a3628782e8952c4ee38fc4c95647cfe6c3a038f",
+  "audited_repository_commit": "1fdeae07b0a4e4facd1735b7b6df9c9263106d67",
   "closure": "not_satisfied",
   "current_report_reconciliation": {
     "audit_update": "The current report includes the LAW15 collection List<i64> Lean proof test. It is supplemental and does not close or prove the original LAW16 list cell.",
@@ -711,7 +716,7 @@
     {
       "id": "AC1",
       "kind": "reproducibility_harness_gap",
-      "reason": "There is no single documented replay sequence that invokes all available cells together."
+      "reason": "A single replay sequence is documented, but retained replay finds a missing bounded-balance artifact and fresh capture has not been exercised end to end."
     },
     {
       "id": "AC5",

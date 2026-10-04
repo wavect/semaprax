@@ -34,7 +34,7 @@ fn installed_project_postcondition_cache_reuses_proof_query_with_fresh_domain_wi
         &tool,
         &mut cache,
     )
-    .unwrap();
+    .expect("installed Z3 domain symbols must be replayed as authored source names");
     assert_eq!((cold_work.fresh, cold_work.reused), (1, 0));
     let (warm, warm_work) = prove_postcondition_z3_cached(
         &project.root,

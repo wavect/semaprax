@@ -162,6 +162,11 @@ fn prove_postcondition_with_cache(
     let domain_model = tool
         .smt_domain_model(&domain_script)
         .map_err(|error| vec![error])?;
+    // Z3 returns the fresh solver symbols used by the encoding. Receipts and
+    // checked replay are source-facing, so restore authored parameter names
+    // before validating or recording this witness.
+    let domain_model = smt::replay_model_to_source(&encoding, domain_model)
+        .map_err(|reason| error(&format!("domain witness source mapping failed: {reason}")))?;
     smt::validate_domain_witness(function, &domain_model)
         .map_err(|reason| error(&format!("domain witness failed checked replay: {reason}")))?;
     let domain_witness = domain_model

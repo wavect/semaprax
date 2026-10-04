@@ -667,7 +667,10 @@ impl Wire {
             "host/task-models.json",
             &json!({"schema": "semaprax.harness-task.v1", "goal": "fix t.f", "models": models(catalog)}).to_string(),
         );
+        // A supplied --proposal is taken before routing (TC-09); a run
+        // without one still routes and fits, which is what these tests assert.
         o.task = Some(task);
+        o.proposal = None;
         self.run(&o)
     }
 }
@@ -795,7 +798,9 @@ fn auto_run(w: &Wire, cat: &[ModelPlan], section: &RoutingSection, inv: &mut Pic
     let mut cfg = config(&w.e, task, None);
     cfg.routing = RoutingWiring::from_config(section, Some(&w.home)).unwrap();
     let mut native = NativeContext::new(&fake);
-    let mut p = ScriptedProposer::from_bytes(proposal("replace_function_body"));
+    // Model-like proposer: a scripted one bypasses routing (TC-09).
+    let captured = Captured(RefCell::new(None));
+    let mut p = Capture(&captured, proposal("replace_function_body"));
     let mut view = RawCommandView;
     let profile = profile();
     let gate = EnablementGate::not_evaluated("model-route/v1", &profile.provider_id);

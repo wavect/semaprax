@@ -6,6 +6,7 @@
 //! route under a preexisting host policy.
 
 pub mod adapter_config;
+mod acquire;
 mod attempt;
 mod b64;
 pub mod broker_stage;

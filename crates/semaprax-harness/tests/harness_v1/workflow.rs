@@ -975,7 +975,10 @@ fn route_with(mode: ProviderMode, inv: &mut Router) -> Report {
     };
     let cfg = config(&e, task, None);
     let mut native = NativeContext::new(&fake);
-    let mut p = ScriptedProposer::from_bytes(proposal("replace_function_body"));
+    // A model-like (non-scripted) proposer: a scripted one is taken locally
+    // before routing (TC-09), so it would never consult the router.
+    let captured = Captured(RefCell::new(None));
+    let mut p = Capture(&captured, proposal("replace_function_body"));
     let mut view = RawCommandView;
     let mut obs = Observer::new(None, ObserverLimits::default());
     let profile = ProviderProfile {
@@ -1050,7 +1053,24 @@ fn hp_hpwire_model_policy_refuses_a_remote_model_under_local_only() {
         local_only: true,
         strict_one_attempt: false,
     };
-    let r = go(&cfg, &fake, None, proposal("replace_function_body"));
+    // Model-like proposer: a scripted one bypasses routing (TC-09).
+    let captured = Captured(RefCell::new(None));
+    let mut p = Capture(&captured, proposal("replace_function_body"));
+    let mut native = NativeContext::new(&fake);
+    let mut view = RawCommandView;
+    let mut obs = Observer::new(None, ObserverLimits::default());
+    let r = run(
+        &cfg,
+        &fake,
+        Stages {
+            decision: None,
+            native: &mut native,
+            external: None,
+            proposer: &mut p,
+            command: &mut view,
+        },
+        &mut obs,
+    );
     assert_eq!(codes(&r), ["SPX-HPL011"]);
 }
 
@@ -1126,3 +1146,6 @@ mod hn;
 
 #[path = "workflow_wire.rs"]
 mod wire;
+
+#[path = "workflow_tc09.rs"]
+mod tc09;

@@ -1,0 +1,97 @@
+{
+  "schema": "semaprax.bend2-law-benchmark.full-u32-guarded-i64-profile.v2",
+  "profile_id": "semaprax.full-u32-guarded-i64-representation.v2",
+  "status": "supplemental_controls_pass_matched_theorem_incomplete",
+  "base_profile": {
+    "profile_id": "semaprax.checked-u32-value-encoding.v1",
+    "evidence": "evidence/full-u32-encoding-controls-v1/report.json",
+    "native_u32_source_status": "unsupported_by_pinned_parser",
+    "native_u32_nonadmission_result": "evidence/law16-checked-u32-nonadmission-v1/result.json",
+    "native_u32_nonadmission_review": "evidence/law16-checked-u32-nonadmission-v1/review.json",
+    "native_u32_nonadmission_result_sha256": "e08c932daebc7041000f00ef9ee6d54ba56c4dc89b7dbb2d7fa5ac88b50cb4f5",
+    "native_u32_nonadmission_review_sha256": "d123fb87b7b42356c5de84c4f1787c0183eeb0f3840d9fb5bbd9cd1b4a058561"
+  },
+  "numeric_domain": {
+    "name": "U32",
+    "minimum": 0,
+    "maximum": 4294967295,
+    "bend_representation": "unsigned 32-bit U32",
+    "semaprax_representation": "signed 64-bit i64 with explicit 0 <= value <= 4294967295 guards",
+    "embedding": "x maps to zero-extended i64(x); this is injective, preserves order and equality on the stated U32 interval",
+    "addition": "all admitted transfer additions satisfy 0 <= credit + amount <= 4294967295 before execution; arithmetic result agrees with U32.add",
+    "subtraction": "all admitted transfer subtractions satisfy 0 <= debit - amount before execution; arithmetic result agrees with U32.sub",
+    "overflow_behavior": "credit overflow is rejected before state update; failed transfer preserves both fields",
+    "scope": "representation-level mathematical correspondence only; does not prove source translation or backend lowering"
+  },
+  "reproduction": {
+    "command_template": "python3 benchmarks/bend2-law-v1/full_u32_encoding_controls.py --bend-root <pinned-bend-root> --bun <pinned-bun> --semaprax <pinned-semaprax> --z3 <pinned-z3> --semaprax-sha256 <sha256:...> --semaprax-build-commit <full-sha> --artifacts <new-directory>",
+    "retained_evidence": "evidence/law16-guarded-i64-profile-controls-v2/report.json",
+    "report_sha256": "sha256:30a9b6879bff167ecde46965947fe23f6ffbe81aa3839e34e7e9eb75e817eff2",
+    "control_report_status": "supplemental_controls_pass",
+    "claim_limit": "one retained bounded-control replay; no timing experiment or agent-trial claim",
+    "build_association": "caller-declared SEMAPRAX source commit; binary build provenance is not attested"
+  },
+  "routes": [
+    {
+      "route_id": "law16.structured-balance-transfer.guarded-i64.v2",
+      "disposition": "paired_bounded_controls_pass_theorem_match_not_established",
+      "sources": {
+        "bend": {"path": "fixtures/full-u32-encoding-v1/balance.bend", "sha256": "sha256:bd75f28947cacd6ac2a8cecc1856ca4096f33f3cdf70f9169fa668f78294d0a9"},
+        "semaprax": {"path": "fixtures/full-u32-encoding-v1/balance.spx", "sha256": "sha256:a5eb501412f36517614b061cff9dbd5eda4c1ee17fa6acf75012759d8c890d4f"}
+      },
+      "route_evidence": "evidence/law16-guarded-i64-profile-controls-v2/report.json",
+      "observed_controls": [
+        "Bend ordinary check and --verdict on the candidate and exact no-op mutation",
+        "SEMAPRAX native compile/run on the candidate and exact no-op mutation",
+        "SEMAPRAX refusal for explicit -1 and 4294967296 witnesses",
+        "QF_BV representation checks for all U32 balance triples: successful guard/output correspondence is unsat; omitted-overflow-guard and signed-i32-order attacks are sat"
+      ],
+      "law_inventory_comparison": {
+        "bend": ["concrete transfer success witness", "concrete rejection witnesses", "exact no-op mutation rejected by verdict route"],
+        "semaprax": ["guarded-i64 contracts on source", "concrete transfer success witness", "explicit lower/upper domain refusal", "exact no-op mutation rejected by contract route"],
+        "equal_universal_source_law_inventory": false
+      },
+      "coverage_limit": "paired bounded source controls plus an independent universal bitvector representation model; no matched source theorem or translation proof"
+    },
+    {
+      "route_id": "law16.list-sort.guarded-i64.v2",
+      "disposition": "paired_concrete_controls_pass_theorem_match_unsupported",
+      "sources": {
+        "bend": {"path": "fixtures/full-u32-encoding-v1/sort.bend", "sha256": "sha256:3f81c14f6d27925394d288cd4865e5fe1700fedabbd9873f79b6486c76fab032"},
+        "semaprax": {"path": "fixtures/full-u32-encoding-v1/sort.spx", "sha256": "sha256:f288b63d27a3699ecca965f10d72a22414b1a5000b892e30d868832ba8ed719f"}
+      },
+      "route_evidence": "evidence/law16-guarded-i64-profile-controls-v2/report.json",
+      "observed_controls": [
+        "Bend ordinary check and --verdict on concrete witnesses and exact empty-output mutation",
+        "SEMAPRAX native compile/run on concrete witnesses and exact empty-output mutation",
+        "SEMAPRAX refusal for explicit -1 and 4294967296 witnesses",
+        "QF_BV model proves sortedness and multiplicity for all U32-valued four-element inputs, with a satisfiable attack"
+      ],
+      "required_unmatched_laws": ["universal sortedness", "permutation", "duplicate multiplicity", "empty-input behavior"],
+      "bend_source_law_inventory": ["five concrete law case_* equalities; no universal sortedness/permutation/multiplicity law"],
+      "semaprax_source_law_inventory": ["guarded U32 domain", "recursive insert/sort", "concrete witnesses; no authenticated universal source theorem in this route"],
+      "coverage_limit": "four-element model result and concrete source controls do not discharge unbounded-list source laws"
+    },
+    {
+      "route_id": "law15.collection-sort.all-i64.lean.v1",
+      "disposition": "source_authenticated_semaprax_theorem_proved_bend_comparison_incomparable",
+      "source": {"path": "examples/law-packs/collection/sort.spx", "sha256": "sha256:f729230754eae7b60b96bbdb9c4b30f1e4d14133fbdbf548c7040849983bc4b8"},
+      "declarations": ["law15.collection.insert", "law15.collection.sort"],
+      "theorem_laws": ["sort_sorted", "sort_permutation", "sort_multiplicity"],
+      "domain": "all finite List<i64>; U32-valued lists embed as a subset",
+      "evidence_capsule": "evidence/law16-i64-list-proof-v1/capsule.json",
+      "capsule_sha256": "sha256:a14878d87d8f63cb472916239d3e07f9bac46265291159ef4dc994d5735d5b0d",
+      "proof_status": "supplemental_i64_list_profile_proved",
+      "bend_comparison": "none; exact pinned LAW16 Bend source does not provide these universal laws",
+      "identity_boundary": "does not authenticate fixtures/full-u32-encoding-v1/sort.spx or law16.insert/law16.sort; no cross-source aliasing"
+    }
+  ],
+  "admission_policy": "Admit only the stated supplemental route results. The balance route is a bounded paired control, the LAW16 list route is concrete/model control only, and the LAW15 Lean theorem is a distinct source-authenticated SEMAPRAX theorem with no matched Bend verdict. No route is an equal-strength cross-language theorem comparison.",
+  "nonclaims": [
+    "v1 checked-u32 SEMAPRAX source remains unsupported by the pinned parser",
+    "the v2 representation mapping does not establish source translation or backend lowering",
+    "no Bend sortedness, permutation, multiplicity, or empty-input theorem is authenticated for the LAW16 sort source",
+    "the LAW15 Lean proof is bound only to its exact LAW15 source path, source hash, stable IDs, and theorem capsule",
+    "no matched theorem timing, cost, agent trial, public ABI, production support, or LAW16 closure is claimed"
+  ]
+}

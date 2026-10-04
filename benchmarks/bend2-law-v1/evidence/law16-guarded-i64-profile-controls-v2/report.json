@@ -1,0 +1,635 @@
+{
+  "bend_commit": "947db722640c86247849343657bf2f7ef01cb7f1",
+  "build_commit_association": "caller_declared_not_attested",
+  "cases": [
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/semaprax-law12-lane/benchmarks/bend2-law-v1/evidence/law16-guarded-i64-profile-controls-v2/balance-candidate.bend",
+        "--check-only"
+      ],
+      "exit_code": 0,
+      "expected_outcome_observed": true,
+      "kind": "candidate",
+      "route": "bend_normal",
+      "source": {
+        "bytes": 1854,
+        "path": "balance-candidate.bend",
+        "sha256": "sha256:bd75f28947cacd6ac2a8cecc1856ca4096f33f3cdf70f9169fa668f78294d0a9"
+      },
+      "status": "exited",
+      "stderr": {
+        "bytes": 0,
+        "path": "balance-candidate-bend_normal.stderr",
+        "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stdout": {
+        "bytes": 58,
+        "path": "balance-candidate-bend_normal.stdout",
+        "sha256": "sha256:931f1e664a679af1355a9ca547ac1daef9f7b14137bc7cc21b110b0cc504b5b1"
+      },
+      "task": "balance"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/semaprax-law12-lane/benchmarks/bend2-law-v1/evidence/law16-guarded-i64-profile-controls-v2/balance-candidate.bend",
+        "--verdict"
+      ],
+      "exit_code": 0,
+      "expected_outcome_observed": true,
+      "kind": "candidate",
+      "route": "bend_verdict",
+      "source": {
+        "bytes": 1854,
+        "path": "balance-candidate.bend",
+        "sha256": "sha256:bd75f28947cacd6ac2a8cecc1856ca4096f33f3cdf70f9169fa668f78294d0a9"
+      },
+      "status": "exited",
+      "stderr": {
+        "bytes": 0,
+        "path": "balance-candidate-bend_verdict.stderr",
+        "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stdout": {
+        "bytes": 17,
+        "path": "balance-candidate-bend_verdict.stdout",
+        "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+      },
+      "task": "balance"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-law12-lane/target/ri13-wasm-refusal-41fcf3af0/debug/semaprax",
+        "run",
+        "/private/tmp/semaprax-law12-lane/benchmarks/bend2-law-v1/evidence/law16-guarded-i64-profile-controls-v2/balance-candidate.spx",
+        "--native"
+      ],
+      "exit_code": 0,
+      "expected_outcome_observed": true,
+      "kind": "candidate",
+      "route": "semaprax_native",
+      "source": {
+        "bytes": 2225,
+        "path": "balance-candidate.spx",
+        "sha256": "sha256:a5eb501412f36517614b061cff9dbd5eda4c1ee17fa6acf75012759d8c890d4f"
+      },
+      "status": "exited",
+      "stderr": {
+        "bytes": 0,
+        "path": "balance-candidate-semaprax_native.stderr",
+        "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stdout": {
+        "bytes": 2,
+        "path": "balance-candidate-semaprax_native.stdout",
+        "sha256": "sha256:9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+      },
+      "task": "balance"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/semaprax-law12-lane/benchmarks/bend2-law-v1/evidence/law16-guarded-i64-profile-controls-v2/balance-attack.bend",
+        "--check-only"
+      ],
+      "exit_code": 1,
+      "expected_outcome_observed": true,
+      "kind": "attack",
+      "route": "bend_normal",
+      "source": {
+        "bytes": 1820,
+        "path": "balance-attack.bend",
+        "sha256": "sha256:93b438bc190677d2fb405cb3945ac44da88e5bb5f438b93f1c65ce0fbe6fef5b"
+      },
+      "status": "exited",
+      "stderr": {
+        "bytes": 152,
+        "path": "balance-attack-bend_normal.stderr",
+        "sha256": "sha256:dd89fd9771524a0f8b46531e1b12c5952a6ddbb84c4bdb77344f55dc05d7887e"
+      },
+      "stdout": {
+        "bytes": 0,
+        "path": "balance-attack-bend_normal.stdout",
+        "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "task": "balance"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/semaprax-law12-lane/benchmarks/bend2-law-v1/evidence/law16-guarded-i64-profile-controls-v2/balance-attack.bend",
+        "--verdict"
+      ],
+      "exit_code": 1,
+      "expected_outcome_observed": true,
+      "kind": "attack",
+      "route": "bend_verdict",
+      "source": {
+        "bytes": 1820,
+        "path": "balance-attack.bend",
+        "sha256": "sha256:93b438bc190677d2fb405cb3945ac44da88e5bb5f438b93f1c65ce0fbe6fef5b"
+      },
+      "status": "exited",
+      "stderr": {
+        "bytes": 152,
+        "path": "balance-attack-bend_verdict.stderr",
+        "sha256": "sha256:dd89fd9771524a0f8b46531e1b12c5952a6ddbb84c4bdb77344f55dc05d7887e"
+      },
+      "stdout": {
+        "bytes": 0,
+        "path": "balance-attack-bend_verdict.stdout",
+        "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "task": "balance"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-law12-lane/target/ri13-wasm-refusal-41fcf3af0/debug/semaprax",
+        "run",
+        "/private/tmp/semaprax-law12-lane/benchmarks/bend2-law-v1/evidence/law16-guarded-i64-profile-controls-v2/balance-attack.spx",
+        "--native"
+      ],
+      "exit_code": 70,
+      "expected_outcome_observed": true,
+      "kind": "attack",
+      "route": "semaprax_native",
+      "source": {
+        "bytes": 2207,
+        "path": "balance-attack.spx",
+        "sha256": "sha256:ed9f6633ad08491d516e1a377eff739c696d1189914a7f948dd8be13add08e3c"
+      },
+      "status": "exited",
+      "stderr": {
+        "bytes": 462,
+        "path": "balance-attack-semaprax_native.stderr",
+        "sha256": "sha256:cb3c33ac6a860f10961cc8a9ee476971c6dc16c048f9bf5b654a635e987cbc0d"
+      },
+      "stdout": {
+        "bytes": 0,
+        "path": "balance-attack-semaprax_native.stdout",
+        "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "task": "balance"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/semaprax-law12-lane/benchmarks/bend2-law-v1/evidence/law16-guarded-i64-profile-controls-v2/sort-candidate.bend",
+        "--check-only"
+      ],
+      "exit_code": 0,
+      "expected_outcome_observed": true,
+      "kind": "candidate",
+      "route": "bend_normal",
+      "source": {
+        "bytes": 1131,
+        "path": "sort-candidate.bend",
+        "sha256": "sha256:3f81c14f6d27925394d288cd4865e5fe1700fedabbd9873f79b6486c76fab032"
+      },
+      "status": "exited",
+      "stderr": {
+        "bytes": 0,
+        "path": "sort-candidate-bend_normal.stderr",
+        "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stdout": {
+        "bytes": 58,
+        "path": "sort-candidate-bend_normal.stdout",
+        "sha256": "sha256:931f1e664a679af1355a9ca547ac1daef9f7b14137bc7cc21b110b0cc504b5b1"
+      },
+      "task": "sort"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/semaprax-law12-lane/benchmarks/bend2-law-v1/evidence/law16-guarded-i64-profile-controls-v2/sort-candidate.bend",
+        "--verdict"
+      ],
+      "exit_code": 0,
+      "expected_outcome_observed": true,
+      "kind": "candidate",
+      "route": "bend_verdict",
+      "source": {
+        "bytes": 1131,
+        "path": "sort-candidate.bend",
+        "sha256": "sha256:3f81c14f6d27925394d288cd4865e5fe1700fedabbd9873f79b6486c76fab032"
+      },
+      "status": "exited",
+      "stderr": {
+        "bytes": 0,
+        "path": "sort-candidate-bend_verdict.stderr",
+        "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stdout": {
+        "bytes": 17,
+        "path": "sort-candidate-bend_verdict.stdout",
+        "sha256": "sha256:61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47"
+      },
+      "task": "sort"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-law12-lane/target/ri13-wasm-refusal-41fcf3af0/debug/semaprax",
+        "run",
+        "/private/tmp/semaprax-law12-lane/benchmarks/bend2-law-v1/evidence/law16-guarded-i64-profile-controls-v2/sort-candidate.spx",
+        "--native"
+      ],
+      "exit_code": 0,
+      "expected_outcome_observed": true,
+      "kind": "candidate",
+      "route": "semaprax_native",
+      "source": {
+        "bytes": 1917,
+        "path": "sort-candidate.spx",
+        "sha256": "sha256:f288b63d27a3699ecca965f10d72a22414b1a5000b892e30d868832ba8ed719f"
+      },
+      "status": "exited",
+      "stderr": {
+        "bytes": 0,
+        "path": "sort-candidate-semaprax_native.stderr",
+        "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stdout": {
+        "bytes": 2,
+        "path": "sort-candidate-semaprax_native.stdout",
+        "sha256": "sha256:9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+      },
+      "task": "sort"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/semaprax-law12-lane/benchmarks/bend2-law-v1/evidence/law16-guarded-i64-profile-controls-v2/sort-attack.bend",
+        "--check-only"
+      ],
+      "exit_code": 1,
+      "expected_outcome_observed": true,
+      "kind": "attack",
+      "route": "bend_normal",
+      "source": {
+        "bytes": 1112,
+        "path": "sort-attack.bend",
+        "sha256": "sha256:ec41c9f7d8a7cb79637cbea7829d94095a28f031adac00006a05c51e15a0b01f"
+      },
+      "status": "exited",
+      "stderr": {
+        "bytes": 132,
+        "path": "sort-attack-bend_normal.stderr",
+        "sha256": "sha256:2d0033467e27d620dc06654847d81c09e820b73b917847cea19be2fcbff8a53c"
+      },
+      "stdout": {
+        "bytes": 0,
+        "path": "sort-attack-bend_normal.stdout",
+        "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "task": "sort"
+    },
+    {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "/private/tmp/bend2-law-source/bend2/main.ts",
+        "/private/tmp/semaprax-law12-lane/benchmarks/bend2-law-v1/evidence/law16-guarded-i64-profile-controls-v2/sort-attack.bend",
+        "--verdict"
+      ],
+      "exit_code": 1,
+      "expected_outcome_observed": true,
+      "kind": "attack",
+      "route": "bend_verdict",
+      "source": {
+        "bytes": 1112,
+        "path": "sort-attack.bend",
+        "sha256": "sha256:ec41c9f7d8a7cb79637cbea7829d94095a28f031adac00006a05c51e15a0b01f"
+      },
+      "status": "exited",
+      "stderr": {
+        "bytes": 132,
+        "path": "sort-attack-bend_verdict.stderr",
+        "sha256": "sha256:2d0033467e27d620dc06654847d81c09e820b73b917847cea19be2fcbff8a53c"
+      },
+      "stdout": {
+        "bytes": 0,
+        "path": "sort-attack-bend_verdict.stdout",
+        "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "task": "sort"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-law12-lane/target/ri13-wasm-refusal-41fcf3af0/debug/semaprax",
+        "run",
+        "/private/tmp/semaprax-law12-lane/benchmarks/bend2-law-v1/evidence/law16-guarded-i64-profile-controls-v2/sort-attack.spx",
+        "--native"
+      ],
+      "exit_code": 70,
+      "expected_outcome_observed": true,
+      "kind": "attack",
+      "route": "semaprax_native",
+      "source": {
+        "bytes": 1903,
+        "path": "sort-attack.spx",
+        "sha256": "sha256:770328c7f58b7787c81a55404e987cd5e32a0b7d69c714722cd4193585d29e5c"
+      },
+      "status": "exited",
+      "stderr": {
+        "bytes": 88,
+        "path": "sort-attack-semaprax_native.stderr",
+        "sha256": "sha256:034d23927e8eb3ea130b7df34b5e44bfde9ad4b952a9f33fb3c035ec8adf1121"
+      },
+      "stdout": {
+        "bytes": 0,
+        "path": "sort-attack-semaprax_native.stdout",
+        "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "task": "sort"
+    }
+  ],
+  "domain_controls": [
+    {
+      "argv": [
+        "/private/tmp/semaprax-law12-lane/target/ri13-wasm-refusal-41fcf3af0/debug/semaprax",
+        "run",
+        "/private/tmp/semaprax-law12-lane/benchmarks/bend2-law-v1/evidence/law16-guarded-i64-profile-controls-v2/balance-below-zero.spx",
+        "--native"
+      ],
+      "exit_code": 70,
+      "expected_outcome_observed": true,
+      "source": {
+        "bytes": 2226,
+        "path": "balance-below-zero.spx",
+        "sha256": "sha256:a617d5a7a1bd76ad84d7bb1283759ab187e81b6eaf5b8bf5b42936d9bfab73a6"
+      },
+      "status": "exited",
+      "stderr": {
+        "bytes": 154,
+        "path": "balance-below-zero.stderr",
+        "sha256": "sha256:95833c14e7f76ce910afc8ab336f7e188ce779cab7436d41130f8c645f5483a8"
+      },
+      "stdout": {
+        "bytes": 0,
+        "path": "balance-below-zero.stdout",
+        "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "task": "balance"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-law12-lane/target/ri13-wasm-refusal-41fcf3af0/debug/semaprax",
+        "run",
+        "/private/tmp/semaprax-law12-lane/benchmarks/bend2-law-v1/evidence/law16-guarded-i64-profile-controls-v2/balance-above-max.spx",
+        "--native"
+      ],
+      "exit_code": 70,
+      "expected_outcome_observed": true,
+      "source": {
+        "bytes": 2234,
+        "path": "balance-above-max.spx",
+        "sha256": "sha256:e4c3f2bc5e1c04f4bf266a33d2e057ca6b095b5e963d9a3e05f2754137b7700f"
+      },
+      "status": "exited",
+      "stderr": {
+        "bytes": 154,
+        "path": "balance-above-max.stderr",
+        "sha256": "sha256:95833c14e7f76ce910afc8ab336f7e188ce779cab7436d41130f8c645f5483a8"
+      },
+      "stdout": {
+        "bytes": 0,
+        "path": "balance-above-max.stdout",
+        "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "task": "balance"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-law12-lane/target/ri13-wasm-refusal-41fcf3af0/debug/semaprax",
+        "run",
+        "/private/tmp/semaprax-law12-lane/benchmarks/bend2-law-v1/evidence/law16-guarded-i64-profile-controls-v2/sort-below-zero.spx",
+        "--native"
+      ],
+      "exit_code": 70,
+      "expected_outcome_observed": true,
+      "source": {
+        "bytes": 1918,
+        "path": "sort-below-zero.spx",
+        "sha256": "sha256:f53379ef558629813583116e24f16dabfb5ee6bbd5253d2bf68ecac6134a7d72"
+      },
+      "status": "exited",
+      "stderr": {
+        "bytes": 111,
+        "path": "sort-below-zero.stderr",
+        "sha256": "sha256:9986427efb1015394b3f3094c674dbb061bcd29167dc7f7e2e0782c11c231304"
+      },
+      "stdout": {
+        "bytes": 0,
+        "path": "sort-below-zero.stdout",
+        "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "task": "sort"
+    },
+    {
+      "argv": [
+        "/private/tmp/semaprax-law12-lane/target/ri13-wasm-refusal-41fcf3af0/debug/semaprax",
+        "run",
+        "/private/tmp/semaprax-law12-lane/benchmarks/bend2-law-v1/evidence/law16-guarded-i64-profile-controls-v2/sort-above-max.spx",
+        "--native"
+      ],
+      "exit_code": 70,
+      "expected_outcome_observed": true,
+      "source": {
+        "bytes": 1926,
+        "path": "sort-above-max.spx",
+        "sha256": "sha256:987cc28adc29d65feea4536951d9fb7a1ba83faed6955aca4d55618843193130"
+      },
+      "status": "exited",
+      "stderr": {
+        "bytes": 111,
+        "path": "sort-above-max.stderr",
+        "sha256": "sha256:9986427efb1015394b3f3094c674dbb061bcd29167dc7f7e2e0782c11c231304"
+      },
+      "stdout": {
+        "bytes": 0,
+        "path": "sort-above-max.stdout",
+        "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "task": "sort"
+    }
+  ],
+  "environment": {
+    "BEND_NO_TELEMETRY": "1"
+  },
+  "host": {
+    "machine": "arm64",
+    "processor": "arm",
+    "release": "25.5.0",
+    "system": "Darwin"
+  },
+  "nonclaims": [
+    "supplemental representation controls; original checked-u32 cells remain unadmitted",
+    "concrete law witnesses are not universal list or transfer proofs",
+    "Bend ordinary checking, Bend verdict, and SEMAPRAX native runtime are distinct assurance routes",
+    "native compile and run are combined; no timings, agent trial, cost, comparison or issue closure",
+    "no builtin SEMAPRAX u32, lowering proof, full-list runtime totality or current-head build attestation"
+  ],
+  "numeric_domain": "all integers 0..4294967295; explicit transfer failure preserves state",
+  "original_manifest_unchanged": true,
+  "representation_bridge": {
+    "argv": [
+      "/opt/homebrew/bin/z3",
+      "-smt2",
+      "/private/tmp/semaprax-law12-lane/benchmarks/bend2-law-v1/evidence/law16-guarded-i64-profile-controls-v2/representation.smt2"
+    ],
+    "claim": "full-domain mathematical bitvector encoding only; no source translation/lowering certificate",
+    "exit_code": 0,
+    "expected_outcome_observed": true,
+    "source": {
+      "bytes": 2411,
+      "path": "representation.smt2",
+      "sha256": "sha256:eafda2b0d440bd47002072cd596a432df7217db38e5b4078f561ecbf92bfe45a"
+    },
+    "status": "exited",
+    "stderr": {
+      "bytes": 0,
+      "path": "representation-z3.stderr",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "stdout": {
+      "bytes": 14,
+      "path": "representation-z3.stdout",
+      "sha256": "sha256:7c94e20439822905b5d5fff5d540006bb3d179bbedaa45f2e77525bf3a810363"
+    }
+  },
+  "representation_profile": "semaprax.checked-u32-value-encoding.v1",
+  "schema": "semaprax.bend2-law-benchmark.full-u32-encoding-controls.v1",
+  "semaprax_build_commit": "c85b847a2e338abe66fa8edc1d99ab382f05a8b8",
+  "sort_equal_spec_model": {
+    "argv": [
+      "/opt/homebrew/bin/z3",
+      "-smt2",
+      "/private/tmp/semaprax-law12-lane/benchmarks/bend2-law-v1/evidence/law16-guarded-i64-profile-controls-v2/sort-equal-spec.smt2"
+    ],
+    "claim": "universal full-U32 sortedness and multiplicity for the fixed four-element insertion-sort model; no source translation/lowering certificate",
+    "exit_code": 0,
+    "expected_outcome_observed": true,
+    "source": {
+      "bytes": 2412,
+      "path": "sort-equal-spec.smt2",
+      "sha256": "sha256:130534d3a772fe48e906a77f761c6b633c1221a9fc001f392060d39fc2bba0ab"
+    },
+    "status": "exited",
+    "stderr": {
+      "bytes": 0,
+      "path": "sort-equal-spec-z3.stderr",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "stdout": {
+      "bytes": 10,
+      "path": "sort-equal-spec-z3.stdout",
+      "sha256": "sha256:c2af3da181f0cb683d48aba3b47c40b7f3814d13fa817ae57f7f098acb636fca"
+    }
+  },
+  "status": "supplemental_controls_pass",
+  "timeout_seconds": 60,
+  "tools": {
+    "bun": {
+      "bytes": 57940512,
+      "path": "/Users/kevin/.bun/bin/bun",
+      "sha256": "sha256:abe991b29c5151ab11b5344be65dee3a675b0a4a55b8fc493e3cfbe256e61781"
+    },
+    "clang": {
+      "bytes": 118928,
+      "path": "/usr/bin/clang",
+      "sha256": "sha256:179301dcb41ea78accc3fa0048a7e6f6710d891945a751a34addd622020c1818"
+    },
+    "semaprax": {
+      "bytes": 149005456,
+      "path": "/private/tmp/semaprax-law12-lane/target/ri13-wasm-refusal-41fcf3af0/debug/semaprax",
+      "sha256": "sha256:d323bb41413875da4086ecf85f80ca82d729255d3d9da3332414c5e1c83900f1"
+    },
+    "z3": {
+      "bytes": 23365455,
+      "path": "/opt/homebrew/bin/z3",
+      "sha256": "sha256:bbb24b8fed27552f7fb7cfdf0ed9101e6e24fd0cc0b9cfb945233b3f2ed333c5"
+    }
+  },
+  "versions": {
+    "bun": {
+      "argv": [
+        "/Users/kevin/.bun/bin/bun",
+        "--version"
+      ],
+      "exit_code": 0,
+      "status": "exited",
+      "stderr": {
+        "bytes": 0,
+        "path": "version-bun.stderr",
+        "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stdout": {
+        "bytes": 6,
+        "path": "version-bun.stdout",
+        "sha256": "sha256:fe2b7c237b5a6e42818aa3e4f7fc5820f49c32289c32c96260ef89a8c8f6d3d7"
+      }
+    },
+    "clang": {
+      "argv": [
+        "/usr/bin/clang",
+        "--version"
+      ],
+      "exit_code": 0,
+      "status": "exited",
+      "stderr": {
+        "bytes": 0,
+        "path": "version-clang.stderr",
+        "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stdout": {
+        "bytes": 202,
+        "path": "version-clang.stdout",
+        "sha256": "sha256:ea3037e0630fa16798079372fdc24f6542d021dadda4915cc979799682d78295"
+      }
+    },
+    "semaprax": {
+      "argv": [
+        "/private/tmp/semaprax-law12-lane/target/ri13-wasm-refusal-41fcf3af0/debug/semaprax",
+        "--version"
+      ],
+      "exit_code": 0,
+      "status": "exited",
+      "stderr": {
+        "bytes": 0,
+        "path": "version-semaprax.stderr",
+        "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stdout": {
+        "bytes": 32,
+        "path": "version-semaprax.stdout",
+        "sha256": "sha256:2cdf3eec85bc03d525e50a45f80bbcb8e95288da6c7a0ead187d41214d5dae59"
+      }
+    },
+    "z3": {
+      "argv": [
+        "/opt/homebrew/bin/z3",
+        "--version"
+      ],
+      "exit_code": 0,
+      "status": "exited",
+      "stderr": {
+        "bytes": 0,
+        "path": "version-z3.stderr",
+        "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stdout": {
+        "bytes": 27,
+        "path": "version-z3.stdout",
+        "sha256": "sha256:16c65e0e40671ba707bf3e7de02882549ac8e96a29063cc24e1d43b37186311c"
+      }
+    }
+  }
+}

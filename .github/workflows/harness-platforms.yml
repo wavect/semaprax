@@ -2,11 +2,11 @@ name: Harness platforms
 
 # Hosted evidence for HN-18 / HN-07: runs the harness suite, the bridge and
 # isolation tests and the distribution smoke on GitHub-hosted Linux runners.
-# Triggered only by the evidence branch or manually; it gates nothing.
+# Triggered by the evidence branches or manually; it gates nothing.
 on:
   workflow_dispatch:
   push:
-    branches: [hp/hn-hosted]
+    branches: [hp/hn-hosted, wavect/v090]
     paths:
       - crates/semaprax-harness/**
       - packages/semaprax-harness-adapters/**

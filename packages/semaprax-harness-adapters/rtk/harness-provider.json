@@ -8,7 +8,7 @@
     {"kind": "command.view", "version": 1, "required": false, "operations": ["plan", "view"]}
   ],
   "extensions": [],
-  "platforms": ["macos-aarch64", "linux-aarch64"],
+  "platforms": ["macos-aarch64", "linux-aarch64", "linux-x86_64"],
   "config": {"fields": {"allow_wrapper": {"type": "bool", "default": false}}},
   "permissions": {"read": ["retention"], "write": ["retention"], "network": [], "process": ["upstream"], "secrets": []},
   "resources": {"handshake_timeout_ms": 5000, "invoke_timeout_ms": 30000, "max_frame_bytes": 1048576, "max_concurrency": 1, "idle_shutdown_ms": 60000},

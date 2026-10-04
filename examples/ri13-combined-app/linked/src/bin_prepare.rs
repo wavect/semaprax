@@ -221,14 +221,14 @@ fn main() {
         root.join("generated/linked-subject.json"),
         format!(
             concat!(
-                "{\n",
+                "{{\n",
                 "  \"schema\": \"semaprax.ri13.linked-subject.v1\",\n",
                 "  \"m1_project_subject\": {:?},\n",
                 "  \"project_revision\": {:?},\n",
                 "  \"m2_source_revision\": {:?},\n",
                 "  \"m3_project_revision\": {:?},\n",
                 "  \"candidate\": \"unified-project/semaprax.toml\"\n",
-                "}\n"
+                "}}\n"
             ),
             m1.subject_digest, project_revision, m2.source_revision, project_revision,
         ),

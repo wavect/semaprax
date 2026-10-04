@@ -1296,7 +1296,7 @@ pub(super) fn execute_with_runner_and_candidate_test<
     verify_checked_source_snapshot(&source_disk_path, source_before)?;
 
     let preview = handler.latest_preview();
-    let runtime_effect_accounting = receipt::effect_accounting(
+    let runtime_effect_accounting = receipt_impl::effect_accounting(
         &complete.run().checkpoint,
         model_dispatches,
         effect_dispatches,

@@ -83,16 +83,16 @@ pub(super) fn effect_accounting(
                         "repair invocation effect byte count overflowed",
                     ))?;
             let replayed_total = live
-                .replayed_arguments
-                .checked_add(live.replayed_results)
+                .replayed_argument_bytes
+                .checked_add(live.replayed_result_bytes)
                 .ok_or(CliError::refused(
                     "repair replay effect byte count overflowed",
                 ))?;
             if dispatched != effects
                 || invocation_calls != u64::from(effect_dispatches)
                 || total_bytes > live.max_total_bytes
-                || live.replayed_arguments > live.argument_bytes
-                || live.replayed_results > live.result_bytes
+                || live.replayed_argument_bytes > live.argument_bytes
+                || live.replayed_result_bytes > live.result_bytes
             {
                 return Err(CliError::refused(
                     "repair effect accounting does not match the validated terminal journal",
@@ -120,8 +120,8 @@ pub(super) fn effect_accounting(
                 },
                 "historical_replay": {
                     "dispatched_calls": replayed,
-                    "charged_argument_bytes": live.replayed_arguments,
-                    "charged_result_bytes": live.replayed_results,
+                    "charged_argument_bytes": live.replayed_argument_bytes,
+                    "charged_result_bytes": live.replayed_result_bytes,
                     "charged_total_bytes": replayed_total,
                 },
                 "terminal_disposition": if live.failure.is_some() { "failure" } else { "settled" },

@@ -7,6 +7,11 @@ generated mirror, maps their values through the generated `Fn` and `FnMut`
 adapters under the standard Rust `Iterator`, and checks contract refusal and
 teardown. No application-specific Rust trait or per-function adapter is used.
 
+The scalar Project linker retains `app.spx` as the entry module. Its separate
+test root therefore does not import that entry module: an imported module is a
+provider in the test closure and providers cannot declare `main`. The generated
+consumer is the route that exercises the selected record and callbacks.
+
 From the repository root, with a private target under this checkout:
 
 ```sh

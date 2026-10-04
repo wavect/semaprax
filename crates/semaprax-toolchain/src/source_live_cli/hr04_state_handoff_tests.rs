@@ -197,7 +197,7 @@ fn retained_a_to_b_to_c_handoff_carries_state_without_initialize_or_redispatch()
 #[cfg(unix)]
 #[test]
 fn physical_journal_ack_loss_keeps_source_handoff_terminal_and_blocks_c_dispatch() {
-    use super::checkpoint::{inject_commit_fault, CommitFault};
+    use super::super::checkpoint::{inject_commit_fault, CommitFault};
     use semaprax::project::{
         with_authenticated_project, HotReloadDecision, HotReloadSession,
         HotReloadSourceAgentHandoffStatus, PreparedProjectInterpreterOptions,
@@ -235,7 +235,7 @@ fn physical_journal_ack_loss_keeps_source_handoff_terminal_and_blocks_c_dispatch
         fs::rename(a_config, &saved_a_config).unwrap();
         let a_checkpoint = fixture.0.join("checkpoint-a");
         let a_calls = Rc::new(Cell::new(0));
-        super::run::execute_with_runner(
+        super::super::run::execute_with_runner(
             run_command(
                 "run",
                 &saved_a_config,
@@ -291,7 +291,7 @@ fn physical_journal_ack_loss_keeps_source_handoff_terminal_and_blocks_c_dispatch
         ];
         let b_calls = Rc::new(Cell::new(0));
         inject_commit_fault(fault);
-        assert!(super::run::execute_hot_reload_migration_with_runner(
+        assert!(super::super::run::execute_hot_reload_migration_with_runner(
             &mut supervisor,
             plan,
             &arguments,
@@ -337,7 +337,7 @@ fn physical_journal_ack_loss_keeps_source_handoff_terminal_and_blocks_c_dispatch
         fs::rename(c_config, &saved_c_config).unwrap();
         let c_checkpoint = fixture.0.join("checkpoint-c");
         let c_calls = Rc::new(Cell::new(0));
-        assert!(super::run::execute_with_runner(
+        assert!(super::super::run::execute_with_runner(
             migrate_command_with_function(
                 &saved_b_config,
                 &b_checkpoint,

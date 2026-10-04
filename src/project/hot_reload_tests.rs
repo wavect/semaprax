@@ -75,8 +75,10 @@ fn resolved_program(source: &str) -> crate::hir::ResolvedProgram {
 fn indirect_callable_target_universe_participates_in_replacement_compatibility() {
     const SOURCE: &str = r#"
 module test.hot_reload_function_values;
+permit { clock.read, clock.write }
 @id("reload.increment") fn increment(value:i64)->i64{value+1}
 @id("reload.decrement") fn decrement(value:i64)->i64{value-1}
+@id("reload.effectful") fn effectful(value:i64)->i64 uses { clock.read } { value }
 @id("reload.apply") fn apply(callback:fn(i64)->i64,value:i64)->i64{callback(value)}
 @id("reload.catalog") fn catalog()->i64{let callback=decrement;callback(41)}
 @id("reload.main") fn main()->i64{apply(increment,41)}
@@ -85,11 +87,17 @@ module test.hot_reload_function_values;
     let active = resolved_program(SOURCE);
     let body_only = resolved_program(&SOURCE.replace("value+1", "value+2"));
     let indirect_target_changed = resolved_program(&SOURCE.replace("value-1", "value-2"));
+    let indirect_target_effect_changed =
+        resolved_program(&SOURCE.replace("uses { clock.read }", "uses { clock.write }"));
 
     assert!(compatible_program(&active, &body_only));
     assert!(
         !compatible_program(&active, &indirect_target_changed),
         "an indirect invocation must retain every compiler-derived target"
+    );
+    assert!(
+        !compatible_program(&active, &indirect_target_effect_changed),
+        "a compiler-derived indirect target cannot widen its declared effect"
     );
 }
 
@@ -320,6 +328,74 @@ fn checked_identity_cases_and_first_over_bound_submission_preserve_active_code()
         observed(&session),
         ProjectPreparedExecutionOutcome::Returned(42)
     );
+}
+
+#[test]
+fn coordinator_refusal_transition_table_preserves_the_active_revision() {
+    #[derive(Clone, Copy)]
+    enum Refusal {
+        StaleCandidate,
+        IdenticalRevision,
+        GenerationOverflow,
+        SubmissionFirstOverBound,
+    }
+
+    // Keep the coordinator's ordinary refusal rows in one table. Each case
+    // starts from the same checked A revision and proves that refusing B never
+    // changes the active prepared worker.
+    for refusal in [
+        Refusal::StaleCandidate,
+        Refusal::IdenticalRevision,
+        Refusal::GenerationOverflow,
+        Refusal::SubmissionFirstOverBound,
+    ] {
+        let _worker_guard = prepared_worker_test_guard();
+        let fixture = Fixture::new();
+        let active = fixture.revision();
+        let mut session = HotReloadSession::new(
+            Arc::clone(&active),
+            PreparedProjectInterpreterOptions::default(),
+        )
+        .unwrap();
+        let failure = match refusal {
+            Refusal::StaleCandidate => {
+                fixture.rewrite("src/app.spx", "multiply(6, 7)", "multiply(6, 8)");
+                session.admit_candidate(fixture.revision()).unwrap();
+                let stale = session.plan().unwrap();
+                fixture.rewrite("src/app.spx", "multiply(6, 8)", "multiply(6, 9)");
+                session.admit_candidate(fixture.revision()).unwrap();
+                session.activate(stale).unwrap_err()
+            }
+            Refusal::IdenticalRevision => {
+                session.admit_candidate(Arc::clone(&active)).unwrap();
+                session.activate(session.plan().unwrap()).unwrap_err()
+            }
+            Refusal::GenerationOverflow => {
+                fixture.rewrite("src/app.spx", "multiply(6, 7)", "multiply(6, 8)");
+                session.admit_candidate(fixture.revision()).unwrap();
+                session.generation = u64::MAX;
+                session.activate(session.plan().unwrap()).unwrap_err()
+            }
+            Refusal::SubmissionFirstOverBound => {
+                fixture.rewrite("src/app.spx", "multiply(6, 7)", "multiply(6, 8)");
+                session.submission = u64::MAX;
+                session.admit_candidate(fixture.revision()).unwrap_err()
+            }
+        };
+        let expected = match refusal {
+            Refusal::StaleCandidate => HotReloadReason::StaleCandidate,
+            Refusal::IdenticalRevision => HotReloadReason::IdenticalRevision,
+            Refusal::GenerationOverflow | Refusal::SubmissionFirstOverBound => {
+                HotReloadReason::GenerationExhausted
+            }
+        };
+        assert_eq!(failure.reason, expected);
+        assert_eq!(session.active_project_revision(), active.project_revision());
+        assert_eq!(
+            observed(&session),
+            ProjectPreparedExecutionOutcome::Returned(42)
+        );
+    }
 }
 
 #[test]

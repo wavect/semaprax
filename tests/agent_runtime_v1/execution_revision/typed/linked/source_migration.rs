@@ -487,128 +487,138 @@ fn source_agent_handoff_supervisor_activates_once_and_terminalizes_lost_ack() {
         plan
     };
 
-    let mut activated = HotReloadSession::new(
+    let mut waiting = HotReloadSession::new(
         Arc::clone(&old.project),
         PreparedProjectInterpreterOptions::default(),
     )
     .unwrap();
-    let mut destination_store = Store::default();
-    let mut model = Model::new(&life_b);
-    let mut read = Read::default();
-    let activated_plan = plan(&mut activated);
-    let outcome = run_source_live_migration_from_hot_reload_session(
-        &mut activated,
-        activated_plan,
-        request(),
-        &mut model,
-        &mut read,
-        &mut destination_store,
-        &clock,
-        &cancel,
-    )
-    .unwrap();
+    let waiting_plan = plan(&mut waiting);
+    let waiting_handoff = waiting
+        .wait_for_source_agent_handoff(&waiting_plan, "fixture.agent")
+        .unwrap();
+    assert_eq!(waiting_handoff.agent_id(), "fixture.agent");
     assert_eq!(
-        activated.source_agent_handoff_status(),
-        HotReloadSourceAgentHandoffStatus::Activated
+        waiting.source_agent_handoff_status(),
+        HotReloadSourceAgentHandoffStatus::WaitingForCheckpoint
     );
     assert_eq!(
-        activated.observation().lifecycle(),
-        semaprax::project::HotReloadLifecycle::Activated
+        waiting.observation().lifecycle(),
+        semaprax::project::HotReloadLifecycle::WaitingForSafePoint
     );
-    assert_eq!(activated.generation(), 1);
-    assert_eq!(
-        activated.active_project_revision(),
-        project_b.project_revision()
-    );
-    assert_eq!((model.calls, read.calls), (3, 3));
-    assert!(outcome
-        .checked_run
-        .as_ref()
-        .unwrap()
-        .stages()
-        .iter()
-        .all(|stage| stage.role() != "initialize"));
-    assert!(activated
-        .execute_entry(
-            &semaprax::project::PreparedProjectExecutionOptions::default(),
-            &semaprax::project::ProjectExecutionCancellation::new(),
+
+    #[derive(Clone, Copy)]
+    enum Transition {
+        Activate,
+        Refuse,
+        Uncertain,
+    }
+
+    // These cases share the same compiler-derived handoff and exercise every
+    // source-Agent coordinator terminal: authenticated activation, a clean
+    // migration refusal, and an ambiguous journal acknowledgement.
+    for transition in [
+        Transition::Activate,
+        Transition::Refuse,
+        Transition::Uncertain,
+    ] {
+        let mut session = HotReloadSession::new(
+            Arc::clone(&old.project),
+            PreparedProjectInterpreterOptions::default(),
         )
-        .is_err());
+        .unwrap();
+        let mut store = match transition {
+            Transition::Uncertain => Store {
+                lose_ack_on: Some(2),
+                ..Store::default()
+            },
+            Transition::Activate | Transition::Refuse => Store::default(),
+        };
+        let mut model = Model::new(&life_b);
+        let mut read = Read::default();
+        let mut migration_request = request();
+        if matches!(transition, Transition::Refuse) {
+            migration_request.migration_function = "fixture.agent.fn.migrate_c";
+        }
+        let selected_plan = plan(&mut session);
+        let result = run_source_live_migration_from_hot_reload_session(
+            &mut session,
+            selected_plan,
+            migration_request,
+            &mut model,
+            &mut read,
+            &mut store,
+            &clock,
+            &cancel,
+        );
 
-    let mut refused = HotReloadSession::new(
-        Arc::clone(&old.project),
-        PreparedProjectInterpreterOptions::default(),
-    )
-    .unwrap();
-    let mut refused_store = Store::default();
-    let mut refused_model = Model::new(&life_b);
-    let mut refused_read = Read::default();
-    let mut bad_request = request();
-    bad_request.migration_function = "fixture.agent.fn.migrate_c";
-    let refused_plan = plan(&mut refused);
-    let refusal = run_source_live_migration_from_hot_reload_session(
-        &mut refused,
-        refused_plan,
-        bad_request,
-        &mut refused_model,
-        &mut refused_read,
-        &mut refused_store,
-        &clock,
-        &cancel,
-    );
-    assert!(matches!(
-        refusal,
-        Err(SourceAgentHandoffFailure::Migration(_))
-    ));
-    assert_eq!(
-        refused.source_agent_handoff_status(),
-        HotReloadSourceAgentHandoffStatus::MigrationRequired
-    );
-    assert_eq!(
-        refused.observation().lifecycle(),
-        semaprax::project::HotReloadLifecycle::Refused
-    );
-    assert_eq!(refused.generation(), 0);
-    assert_eq!((refused_model.calls, refused_read.calls), (0, 0));
-    assert!(refused_store.document.is_empty());
-
-    let mut uncertain = HotReloadSession::new(
-        Arc::clone(&old.project),
-        PreparedProjectInterpreterOptions::default(),
-    )
-    .unwrap();
-    let mut uncertain_store = Store {
-        lose_ack_on: Some(2),
-        ..Store::default()
-    };
-    let mut uncertain_model = Model::new(&life_b);
-    let mut uncertain_read = Read::default();
-    let uncertain_plan = plan(&mut uncertain);
-    let loss = run_source_live_migration_from_hot_reload_session(
-        &mut uncertain,
-        uncertain_plan,
-        request(),
-        &mut uncertain_model,
-        &mut uncertain_read,
-        &mut uncertain_store,
-        &clock,
-        &cancel,
-    );
-    assert!(matches!(loss, Err(SourceAgentHandoffFailure::Migration(_))));
-    assert_eq!(
-        uncertain.source_agent_handoff_status(),
-        HotReloadSourceAgentHandoffStatus::TerminalUncertainty
-    );
-    assert_eq!(
-        uncertain.observation().lifecycle(),
-        semaprax::project::HotReloadLifecycle::TerminalUncertainty
-    );
-    assert!(uncertain.terminal());
-    assert_eq!(uncertain.generation(), 0);
-    assert_eq!((uncertain_model.calls, uncertain_read.calls), (0, 0));
-    assert!(uncertain_store
-        .document
-        .contains("migration_evaluation_intent"));
+        match transition {
+            Transition::Activate => {
+                let outcome = result.unwrap();
+                assert_eq!(
+                    session.source_agent_handoff_status(),
+                    HotReloadSourceAgentHandoffStatus::Activated
+                );
+                assert_eq!(
+                    session.observation().lifecycle(),
+                    semaprax::project::HotReloadLifecycle::Activated
+                );
+                assert_eq!(session.generation(), 1);
+                assert_eq!(
+                    session.active_project_revision(),
+                    project_b.project_revision()
+                );
+                assert_eq!((model.calls, read.calls), (3, 3));
+                assert!(outcome
+                    .checked_run
+                    .as_ref()
+                    .unwrap()
+                    .stages()
+                    .iter()
+                    .all(|stage| stage.role() != "initialize"));
+                assert!(session
+                    .execute_entry(
+                        &semaprax::project::PreparedProjectExecutionOptions::default(),
+                        &semaprax::project::ProjectExecutionCancellation::new(),
+                    )
+                    .is_err());
+            }
+            Transition::Refuse => {
+                assert!(matches!(
+                    result,
+                    Err(SourceAgentHandoffFailure::Migration(_))
+                ));
+                assert_eq!(
+                    session.source_agent_handoff_status(),
+                    HotReloadSourceAgentHandoffStatus::MigrationRequired
+                );
+                assert_eq!(
+                    session.observation().lifecycle(),
+                    semaprax::project::HotReloadLifecycle::Refused
+                );
+                assert_eq!(session.generation(), 0);
+                assert_eq!((model.calls, read.calls), (0, 0));
+                assert!(store.document.is_empty());
+            }
+            Transition::Uncertain => {
+                assert!(matches!(
+                    result,
+                    Err(SourceAgentHandoffFailure::Migration(_))
+                ));
+                assert_eq!(
+                    session.source_agent_handoff_status(),
+                    HotReloadSourceAgentHandoffStatus::TerminalUncertainty
+                );
+                assert_eq!(
+                    session.observation().lifecycle(),
+                    semaprax::project::HotReloadLifecycle::TerminalUncertainty
+                );
+                assert!(session.terminal());
+                assert_eq!(session.generation(), 0);
+                assert_eq!((model.calls, read.calls), (0, 0));
+                assert!(store.document.contains("migration_evaluation_intent"));
+            }
+        }
+    }
 }
 
 #[test]

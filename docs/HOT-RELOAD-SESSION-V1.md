@@ -105,15 +105,21 @@ The session emits `SPX-HR400` for its own typed refusals and preserves the
 underlying Project and prepared-interpreter diagnostics for those owners'
 failures. A caller must inspect the typed reason as well as the diagnostic.
 
-The focused local gate at `project::hot_reload::tests::` covers checked
-identical/stale/first-over-bound refusal, changed contract and entry identity,
-missing imported stable IDs, forged plan refusal, and one physically paused A
-invocation: B remains pending with `waiting_for_safe_point`, A's trace remains
-bound to A, then the same worker activates B. It also checks retained-worker
-release when that session ends, replacement panic before the pivot, and a
-post-pivot lost acknowledgement that terminalizes without retry. Source-Agent
-handoff refusal and same-worker A-to-B-to-C trace binding remain covered. This
-is local library evidence, not hosted or source-Agent handoff evidence.
+The focused local gates use transition tables at
+`project::hot_reload::tests::coordinator_refusal_transition_table_preserves_the_active_revision`
+and `agent_runtime_v1::source_migration::source_agent_handoff_supervisor_activates_once_and_terminalizes_lost_ack`.
+They cover checked stale, identical, generation-overflow and first-over-bound
+submission refusal; source-Agent checkpoint waiting, activation, clean refusal
+and terminal uncertainty; and preserve the active revision through every
+refusal. The local compatibility gate also rejects a changed declared effect
+on a compiler-derived indirect target. Separate cases cover changed contract
+and entry identity, missing imported stable IDs, forged plans, and one
+physically paused A invocation: B remains pending with
+`waiting_for_safe_point`, A's trace remains bound to A, then the same worker
+activates B. They also check retained-worker release when that session ends,
+replacement panic before the pivot, and a post-pivot lost acknowledgement that
+terminalizes without retry. This is local library evidence, not hosted or
+source-Agent handoff evidence.
 
 ## Completion work
 

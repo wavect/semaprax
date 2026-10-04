@@ -850,3 +850,7 @@ mod io_tests;
 #[cfg(unix)]
 #[path = "hr04_state_handoff_tests.rs"]
 mod hr04_state_handoff_tests;
+
+#[cfg(unix)]
+#[path = "hr04_handoff_fault_tests.rs"]
+mod hr04_handoff_fault_tests;

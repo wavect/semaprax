@@ -67,6 +67,14 @@ The bounded lifecycle observation records the corresponding
 `waiting_for_safe_point`, `activated`, ordinary `refused`, or
 `terminal_uncertainty` transition while the handoff-status accessor retains its
 more specific source-Agent state.
+After an acknowledged source-live destination traversal, the session retains
+that destination's authenticated `SourceInvocationBinding` as an in-process
+recovery fact for its new active Project. A following B-to-C handoff may use
+that migrated binding to recover B's v3 journal only after the CLI independently
+rechecks B's retained checked lifecycle, task, deployment, limits, clock domain
+and deadline. The retained binding supplies neither a checkpoint, a capability,
+nor activation authority. Ordinary prepared-worker activation clears it.
+
 An acknowledged-journal ambiguity terminalizes the supervisor as
 `terminal_uncertainty`, without in-memory retry or rollback. The physical CLI
 claim remains a cooperating-CLI single-destination rule: a post-claim,
@@ -122,8 +130,13 @@ physically paused A invocation: B remains pending with
 `waiting_for_safe_point`, A's trace remains bound to A, then the same worker
 activates B. They also check retained-worker release when that session ends,
 replacement panic before the pivot, and a post-pivot lost acknowledgement that
-terminalizes without retry. This is local library evidence, not hosted or
-source-Agent handoff evidence.
+terminalizes without retry. The physical source-live gates
+`source_live_cli::hr04_state_handoff_tests::retained_a_to_b_to_c_handoff_carries_state_without_initialize_or_redispatch`,
+`source_live_cli::hr04_state_handoff_tests::physical_journal_ack_loss_keeps_source_handoff_terminal_and_blocks_c_dispatch`,
+and `source_live_cli::hr04_handoff_fault_tests::physical_migration_reservation_and_handoff_claim_faults_block_successor_dispatch`
+exercise retained A-to-B-to-C journal/accounting, journal acknowledgement loss,
+and migration-reservation/claim durability faults. This is local library
+evidence, not hosted or source-Agent handoff evidence.
 
 ## Completion work
 

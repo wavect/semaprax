@@ -326,8 +326,13 @@ The CLI uses Unix epoch milliseconds as one restart-stable clock domain,
 with origin zero for a fresh v2 run and an absolute `deadline_millis` supplied
 in CONFIG. A v3 migration's origin is the authenticated predecessor latest
 checkpoint's last checked clock floor; repeating the same handoff derives the
-same origin from that predecessor terminal. Recovery does not reset that
-deadline. A regressed or expired continuation
+same origin from that predecessor terminal. In a same-supervisor source-Agent
+handoff, the supervisor retains the acknowledged destination's complete
+`SourceInvocationBinding`; B-to-C reuses it only after rechecking B's current
+checked lifecycle and all host-selected task, deployment, limit, clock-domain,
+and deadline facts. This preserves the migrated v3 profile as well as its clock
+origin without treating retained state as policy or checkpoint authority.
+Recovery does not reset that deadline. A regressed or expired continuation
 refuses; an already committed terminal is a read-only receipt and can be
 retrieved after expiry with zero model/effect dispatches. The OpenCode
 process timeout is no greater than 30 seconds or the invocation time

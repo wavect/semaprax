@@ -87,14 +87,48 @@ mod platform {
         AfterRename(&'static str),
     }
 
+    /// A test-only predecessor-claim fault. This is separate from journal
+    /// commit faults because the claim is a one-way handoff exclusion record,
+    /// not a checkpoint generation.
+    #[cfg(test)]
+    #[derive(Clone, Copy)]
+    pub(in crate::source_live_cli) enum HandoffClaimFault {
+        BeforeWrite,
+        BeforeSync,
+    }
+
     #[cfg(test)]
     thread_local! {
         static COMMIT_FAULT: RefCell<Option<CommitFault>> = const { RefCell::new(None) };
+        static HANDOFF_CLAIM_FAULT: RefCell<Option<HandoffClaimFault>> = const { RefCell::new(None) };
     }
 
     #[cfg(test)]
     pub(in crate::source_live_cli) fn inject_commit_fault(fault: CommitFault) {
         COMMIT_FAULT.with(|slot| *slot.borrow_mut() = Some(fault));
+    }
+
+    #[cfg(test)]
+    pub(in crate::source_live_cli) fn inject_handoff_claim_fault(fault: HandoffClaimFault) {
+        HANDOFF_CLAIM_FAULT.with(|slot| *slot.borrow_mut() = Some(fault));
+    }
+
+    #[cfg(test)]
+    fn take_handoff_claim_fault(expected: HandoffClaimFault) -> bool {
+        HANDOFF_CLAIM_FAULT.with(|slot| {
+            let actual = slot.borrow_mut().take();
+            match actual {
+                Some(actual)
+                    if std::mem::discriminant(&actual) == std::mem::discriminant(&expected) =>
+                {
+                    true
+                }
+                other => {
+                    *slot.borrow_mut() = other;
+                    false
+                }
+            }
+        })
     }
 
     #[cfg(test)]
@@ -308,7 +342,18 @@ mod platform {
                 )
                 .map_err(|_| CliError::refused("cannot create handoff claim"))?,
             );
+            #[cfg(test)]
+            if take_handoff_claim_fault(HandoffClaimFault::BeforeWrite) {
+                return Err(CliError::refused("injected handoff claim write loss"));
+            }
             file.write_all(expected.as_bytes())
+                .and_then(|_| {
+                    #[cfg(test)]
+                    if take_handoff_claim_fault(HandoffClaimFault::BeforeSync) {
+                        return Err(std::io::Error::other("injected handoff claim sync loss"));
+                    }
+                    Ok(())
+                })
                 .and_then(|_| file.sync_all())
                 .and_then(|_| self.directory.sync_all())
                 .map_err(|_| CliError::refused("cannot acknowledge handoff claim"))
@@ -407,4 +452,6 @@ mod platform {
 }
 pub(super) use platform::CheckpointDir;
 #[cfg(all(test, unix))]
-pub(super) use platform::{inject_commit_fault, CommitFault};
+pub(super) use platform::{
+    inject_commit_fault, inject_handoff_claim_fault, CommitFault, HandoffClaimFault,
+};

@@ -154,6 +154,7 @@ pub use public_sdk::{
     prepare_native_rust_borrowed_callback, prepare_native_rust_callbacks,
     prepare_native_rust_mutable_callback, prepare_native_rust_result_callback,
     prepare_native_rust_serde_callbacks, prepare_native_rust_serde_iterator_callbacks,
+    prepare_native_rust_serde_iterator_callbacks_from_authenticated_project_source,
     prepare_registered_native_rust_callbacks, IndexedResultCallbackProjection,
     IndexedResultCallbackSelection, NativeAffineCallbackProjection,
     NativeBorrowedCallbackProjection, NativeCallbackProjection, NativeCallbackSelection,

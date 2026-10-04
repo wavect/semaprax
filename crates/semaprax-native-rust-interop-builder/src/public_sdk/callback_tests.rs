@@ -171,14 +171,23 @@ fn saved_m2_project_refuses_stale_source_before_iterator_projection_releases() {
             .iter()
             .find(|source| source.path() == "app.spx")
             .expect("saved M2 manifest authenticates app.spx");
-        let projection = prepare_native_rust_serde_iterator_callbacks(
-            source.source(),
-            &source_path,
-            "ri13.event",
-            "callback.factory",
-            "callback.advance",
-        )?;
+        let projection =
+            prepare_native_rust_serde_iterator_callbacks_from_authenticated_project_source(
+                source,
+                &source_path,
+                "ri13.event",
+                "callback.factory",
+                "callback.advance",
+            )?;
         assert_eq!(projection.record.record_id, "ri13.event");
+        let parsed = semaprax::parse(source.source(), &source_path).map_err(|error| vec![error])?;
+        assert_eq!(
+            projection.source_revision,
+            domain_digest(
+                b"semaprax.rich-callback-source.v1\0",
+                semaprax::format::canonical(&parsed).as_bytes(),
+            ),
+        );
         assert!(projection
             .callback
             .adapter_rust
@@ -211,6 +220,73 @@ fn selected_record_and_scalar_callbacks_admit_other_checked_type_declarations() 
     .unwrap();
     assert_eq!(projection.record.record_id, "ri13.event");
     assert!(projection.record.rust_source.contains("SpxMirrorri13event"));
+}
+
+#[test]
+fn authenticated_project_source_route_binds_canonical_source_revision() {
+    let source = SOURCE.replace(
+        "@id(\"app.main\")",
+        "@id(\"ri13.event\") record Event { @id(\"ri13.event.value\") value: i64, @id(\"ri13.event.label\") label: string, }\n@id(\"app.main\")",
+    );
+    let path = Path::new("ri13-m2-held-source.spx");
+    let projection = prepare_serde_callbacks_from_authenticated_project_source(
+        &source,
+        path,
+        "ri13.event",
+        &NativeCallbackSelection {
+            factory_id: "callback.factory".into(),
+            transition_id: "callback.advance".into(),
+            trait_path: String::new(),
+            method: String::new(),
+            error_type: String::new(),
+        },
+    )
+    .unwrap();
+    let parsed = semaprax::parse(&source, path).unwrap();
+    assert_eq!(
+        projection.source_revision,
+        domain_digest(
+            b"semaprax.rich-callback-source.v1\0",
+            semaprax::format::canonical(&parsed).as_bytes(),
+        ),
+    );
+}
+
+#[test]
+fn authenticated_project_source_route_refuses_selected_import_dependency() {
+    let source = r#"
+module ri13.imported_callback;
+@id("ri13.event") record Event { @id("ri13.event.value") value: i64, }
+@id("ri13.host") interface Host permits { } {
+    @id("ri13.import") import rust selected fn selected(value:i64)->i64 effects { } failure infallible;
+}
+@id("callback.factory") fn factory(offset:i64)->fn(i64)->i64 { fn(value:i64)->i64 { selected(value)+offset } }
+@id("callback.advance") fn advance(state:i64,value:i64)->i64 { state+value }
+@id("app.main") fn main()->i64 { 0 }
+"#;
+    let ordinary = prepare_native_rust_serde_iterator_callbacks(
+        source,
+        Path::new("ri13-m2-imported-source.spx"),
+        "ri13.event",
+        "callback.factory",
+        "callback.advance",
+    )
+    .unwrap_err();
+    assert_eq!(ordinary[0].code, "SPX-B147");
+    let error = prepare_serde_callbacks_from_authenticated_project_source(
+        source,
+        Path::new("ri13-m2-imported-source.spx"),
+        "ri13.event",
+        &NativeCallbackSelection {
+            factory_id: "callback.factory".into(),
+            transition_id: "callback.advance".into(),
+            trait_path: String::new(),
+            method: String::new(),
+            error_type: String::new(),
+        },
+    )
+    .unwrap_err();
+    assert_ne!(error[0].code, "SPX-B147");
 }
 struct Temp(std::path::PathBuf);
 impl Drop for Temp {

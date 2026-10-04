@@ -620,8 +620,9 @@ pub use mutable_callback::{prepare_native_rust_mutable_callback, NativeMutableCa
 mod registered_callback;
 pub use callback::{
     prepare_native_rust_callbacks, prepare_native_rust_serde_callbacks,
-    prepare_native_rust_serde_iterator_callbacks, NativeCallbackProjection,
-    NativeCallbackSelection, NativeSerdeCallbackProjection,
+    prepare_native_rust_serde_iterator_callbacks,
+    prepare_native_rust_serde_iterator_callbacks_from_authenticated_project_source,
+    NativeCallbackProjection, NativeCallbackSelection, NativeSerdeCallbackProjection,
 };
 pub use registered_callback::{
     prepare_registered_native_rust_callbacks, NativeRegisteredCallbackProjection,

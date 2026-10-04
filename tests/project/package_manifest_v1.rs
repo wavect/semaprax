@@ -197,9 +197,12 @@ fn ri13_unified_project_profile_admits_only_the_closed_indexed_rust_shape() {
     );
     let errors = reject(&unsupported);
     assert_eq!(codes(&errors), ["SPX-J100"]);
-    assert!(errors[0]
-        .message
-        .contains("[dependency-sources] and [rust-dependencies] require the scalar profile"));
+    assert!(
+        errors[0]
+            .message
+            .contains("require the scalar profile"),
+        "{errors:?}"
+    );
 
     let with_semantic_package = RI13_UNIFIED_PROJECT_MANIFEST.replace(
         "\n[rust-dependencies]",

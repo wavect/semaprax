@@ -156,6 +156,32 @@ fn interrupted_resume_reports_live_candidate_test_then_terminal_replay() {
         paused["entries"].as_array().unwrap().last().unwrap()["kind"],
         "attempt_settled"
     );
+    let receipt_error = execute_with_runner_and_candidate_test(
+        v2_command(
+            "receipt",
+            config.clone(),
+            checkpoint.clone(),
+            scratch.clone(),
+        ),
+        RecordedOpenCodeRunner {
+            answers: VecDeque::new(),
+            last_answer: None,
+            prompts: Rc::clone(&prompts),
+            calls: Rc::clone(&calls),
+        },
+        Some(&mut host),
+    )
+    .expect_err("nonterminal receipt must refuse before provider or test dispatch");
+    assert_eq!(
+        receipt_error.reason,
+        "repair receipt requires a terminal checkpoint"
+    );
+    assert_eq!(calls.get(), 1, "receipt must not start OpenCode");
+    assert_eq!(
+        test_effect_handler_calls(),
+        0,
+        "receipt must not enter the effect handler"
+    );
     let live = execute_with_runner_and_candidate_test(
         v2_command(
             "resume",

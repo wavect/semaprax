@@ -1515,7 +1515,7 @@ fn config_manifest(config: &Path) -> String {
 }
 
 #[test]
-fn command_grammar_requires_run_or_resume_and_absolute_operands() {
+fn command_grammar_requires_repair_verbs_and_absolute_operands() {
     let args = |values: &[&str]| {
         values
             .iter()
@@ -1547,6 +1547,7 @@ fn command_grammar_requires_run_or_resume_and_absolute_operands() {
     .is_err());
     assert!(Command::parse(&args(&["run", "/config.json", "/checkpoint"])).is_ok());
     assert!(Command::parse(&args(&["resume", "/config.json", "/checkpoint"])).is_ok());
+    assert!(Command::parse(&args(&["receipt", "/config.json", "/checkpoint"])).is_ok());
 }
 
 #[path = "repair_tests/config.rs"]

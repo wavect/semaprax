@@ -21,8 +21,10 @@ semaprax-full source-live repair run REPAIR_CONFIG REPAIR_CHECKPOINT
 semaprax-full source-live repair resume REPAIR_CONFIG REPAIR_CHECKPOINT
 semaprax-full source-live repair run REPAIR_CONFIG REPAIR_CHECKPOINT --opencode ABS --scratch EMPTY_ABS [--pause-after-settled]
 semaprax-full source-live repair resume REPAIR_CONFIG REPAIR_CHECKPOINT --opencode ABS --scratch EMPTY_ABS [--pause-after-settled]
+semaprax-full source-live repair receipt REPAIR_CONFIG REPAIR_CHECKPOINT --opencode ABS --scratch EMPTY_ABS
 semaprax-full source-live repair-tested run REPAIR_CONFIG REPAIR_CHECKPOINT --opencode ABS --scratch EMPTY_ABS [--pause-after-settled]
 semaprax-full source-live repair-tested resume REPAIR_CONFIG REPAIR_CHECKPOINT --opencode ABS --scratch EMPTY_ABS [--pause-after-settled]
+semaprax-full source-live repair-tested receipt REPAIR_CONFIG REPAIR_CHECKPOINT --opencode ABS --scratch EMPTY_ABS
 ```
 
 All operands are absolute except the stable migration function identity and
@@ -228,6 +230,12 @@ adapter, candidate, test host, or effect handler, then returns the same patch
 receipt content and digest with zero model, test, or effect redispatch. A
 missing, malformed, or foreign-bound terminal receipt refuses; recovery never
 derives a replacement receipt from caller paths or stale configuration.
+The terminal-only `receipt` verb uses the same configuration and checkpoint
+binding, but refuses a nonterminal journal before it creates a provider or
+effect handler. It accepts no receipt or evidence document operand. Its bounded
+output is the retained runtime/test/effect observation projection already
+admitted by the journal; it does not attach caller-supplied evidence or grant
+test, effect, source, or publication authority.
 `runtime_effect_accounting` is a separate bounded projection of the validated
 terminal journal fold. It reports cumulative model attempts, typed-effect
 dispatches, stages, committed model units and stage fuel alongside the

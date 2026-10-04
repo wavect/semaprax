@@ -386,6 +386,11 @@ pub(super) enum Command {
         checkpoint: PathBuf,
         provider: Option<OpenCodeOperands>,
     },
+    Receipt {
+        config: PathBuf,
+        checkpoint: PathBuf,
+        provider: Option<OpenCodeOperands>,
+    },
 }
 
 pub(super) struct OpenCodeOperands {
@@ -434,7 +439,7 @@ impl Command {
             }
             _ => {
                 return Err(CliError::usage(
-                    "repair requires run|resume <config.json> <checkpoint-dir> [--opencode ABS --scratch EMPTY_ABS [--pause-after-settled]]",
+                    "repair requires run|resume|receipt <config.json> <checkpoint-dir> [--opencode ABS --scratch EMPTY_ABS [--pause-after-settled]]",
                 ));
             }
         };
@@ -451,7 +456,12 @@ impl Command {
                 checkpoint,
                 provider,
             }),
-            _ => Err(CliError::usage("repair expected run or resume")),
+            "receipt" => Ok(Self::Receipt {
+                config,
+                checkpoint,
+                provider,
+            }),
+            _ => Err(CliError::usage("repair expected run, resume, or receipt")),
         }
     }
 }
@@ -787,21 +797,32 @@ pub(super) fn execute_with_runner_and_candidate_test<
     mut candidate_test: Option<&'host mut CandidateTestHost<'observer>>,
 ) -> Result<String, CliError> {
     let candidate_test_selected = candidate_test.is_some();
-    let (config_path, checkpoint_path, fresh, provider_operands) = match command {
-        Command::Run {
-            config,
-            checkpoint,
-            provider,
-        } => (config, checkpoint, true, provider),
-        Command::Resume {
-            config,
-            checkpoint,
-            provider,
-        } => (config, checkpoint, false, provider),
-    };
+    let (config_path, checkpoint_path, fresh, terminal_receipt_only, provider_operands) =
+        match command {
+            Command::Run {
+                config,
+                checkpoint,
+                provider,
+            } => (config, checkpoint, true, false, provider),
+            Command::Resume {
+                config,
+                checkpoint,
+                provider,
+            } => (config, checkpoint, false, false, provider),
+            Command::Receipt {
+                config,
+                checkpoint,
+                provider,
+            } => (config, checkpoint, false, true, provider),
+        };
     let pause_after_settled = provider_operands
         .as_ref()
         .is_some_and(|operands| operands.pause_after_settled);
+    if terminal_receipt_only && pause_after_settled {
+        return Err(CliError::usage(
+            "repair receipt does not accept --pause-after-settled",
+        ));
+    }
     let config = RepairConfig::load(&config_path)?;
     if matches!(&config.provider, RepairProvider::Claude)
         != provider_operands.as_ref().is_some_and(|value| value.claude)
@@ -1047,6 +1068,11 @@ pub(super) fn execute_with_runner_and_candidate_test<
                 0,
                 0,
             );
+        }
+        if terminal_receipt_only {
+            return Err(CliError::refused(
+                "repair receipt requires a terminal checkpoint",
+            ));
         }
         barrier::marker_for_recovered_checkpoint(&recovered)
     } else {

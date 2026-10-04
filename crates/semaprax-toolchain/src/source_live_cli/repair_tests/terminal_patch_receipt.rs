@@ -31,6 +31,47 @@ fn repair_v2_terminal_resume_reuses_exact_retained_patch_receipt_without_dispatc
     let checkpoint_before = fs::read(&checkpoint_document).unwrap();
     let patch_receipt_before = fs::read(&patch_receipt_document).unwrap();
 
+    let retained = execute_with_runner(
+        v2_command(
+            "receipt",
+            config.clone(),
+            checkpoint.clone(),
+            scratch.clone(),
+        ),
+        RecordedOpenCodeRunner {
+            answers: VecDeque::new(),
+            last_answer: None,
+            prompts: Rc::clone(&prompts),
+            calls: Rc::clone(&calls),
+        },
+    )
+    .unwrap();
+    let retained: Value = serde_json::from_str(&retained).unwrap();
+    assert_eq!(retained["patch_receipt"], patch_receipt);
+    assert_eq!(
+        retained["runtime_effect_accounting"]["total_model_attempts"],
+        first["runtime_effect_accounting"]["total_model_attempts"]
+    );
+    assert_eq!(
+        retained["runtime_effect_accounting"]["this_invocation_model_dispatches"],
+        0
+    );
+    assert_eq!(
+        retained["receipt_policy"]["coverage"]["runtime_effects"]["replayed_without_dispatch"],
+        true
+    );
+    assert_eq!(calls.get(), 2, "terminal receipt must not start OpenCode");
+    assert_eq!(
+        test_effect_handler_calls(),
+        2,
+        "terminal receipt must not enter the effect handler"
+    );
+    assert_eq!(fs::read(&checkpoint_document).unwrap(), checkpoint_before);
+    assert_eq!(
+        fs::read(&patch_receipt_document).unwrap(),
+        patch_receipt_before
+    );
+
     let resumed = execute_with_runner(
         v2_command("resume", config, checkpoint.clone(), scratch),
         RecordedOpenCodeRunner {

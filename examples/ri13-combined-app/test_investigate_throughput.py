@@ -22,10 +22,24 @@ def receipt():
             "body_bytes_per_operation": 2,
             "normalized_operations_per_second": rate,
         }
+    m2_tasks = {}
+    for task in THROUGHPUT.M2_TASKS:
+        m2_tasks[task] = {
+            "routes": {
+                name: {
+                    "operations_per_sample": 32,
+                    "normalized_operations_per_second": rate["normalized_operations_per_second"],
+                    "adapter_buffer_copied_bytes_per_batch": 0,
+                }
+                for name, rate in routes.items()
+            }
+        }
     return {
         "schema": THROUGHPUT.COMBINED_SCHEMA,
         "checkout": "reviewed",
         "full_build_and_consumer_stages": [{"stage": stage} for stage in THROUGHPUT.STAGES],
+        "m2_batch_throughput_measurement_command": {"command": ["cargo", "run", "--bin", "measure"]},
+        "m2_batch_throughput": {"tasks": m2_tasks},
         "batch_throughput_measurement_command": {"command": ["cargo", "run", "--", "batch"]},
         "batch_throughput": {"routes": routes},
     }
@@ -45,7 +59,7 @@ def m3(path):
 
 
 class CombinedThroughputTests(unittest.TestCase):
-    def test_binds_m3_investigation_and_marks_unmatched_profiles_unavailable(self):
+    def test_binds_m3_investigation_and_retains_only_m1_unavailable(self):
         with tempfile.TemporaryDirectory() as directory:
             root = pathlib.Path(directory)
             report = root / "receipt.json"
@@ -54,7 +68,11 @@ class CombinedThroughputTests(unittest.TestCase):
             investigation.write_text(json.dumps(m3(report)))
             result = THROUGHPUT.investigate(report, investigation)
         self.assertEqual(result["profiles"]["m1"]["status"], "unavailable")
-        self.assertEqual(result["profiles"]["m2"]["status"], "unavailable")
+        self.assertEqual(result["profiles"]["m2"]["status"], "measured")
+        self.assertEqual(
+            result["profiles"]["m2"]["tasks"]["generic_record"]["generated_to_direct_throughput_ratio"],
+            0.0521,
+        )
         self.assertEqual(result["profiles"]["m3"]["status"], "investigation_required")
         self.assertEqual(result["profiles"]["m3"]["generated_to_direct_throughput_ratio"], 0.0521)
 
@@ -78,6 +96,25 @@ class CombinedThroughputTests(unittest.TestCase):
             report.write_text(json.dumps(receipt()))
             investigation.write_text(json.dumps({**m3(report), "receipt": {"sha256": "sha256:wrong"}}))
             with self.assertRaisesRegex(ValueError, "not bound"):
+                THROUGHPUT.investigate(report, investigation)
+
+
+    def test_refuses_m2_copy_or_workload_drift(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            report = root / "receipt.json"
+            investigation = root / "m3.json"
+            invalid = receipt()
+            invalid["m2_batch_throughput"]["tasks"]["generic_record"]["routes"]["generated_semaprax"]["adapter_buffer_copied_bytes_per_batch"] = 1
+            report.write_text(json.dumps(invalid))
+            investigation.write_text(json.dumps(m3(report)))
+            with self.assertRaisesRegex(ValueError, "M2 scalar copy accounting"):
+                THROUGHPUT.investigate(report, investigation)
+            invalid = receipt()
+            invalid["m2_batch_throughput"]["tasks"]["stateful_callback"]["routes"]["direct_rust"]["operations_per_sample"] = 31
+            report.write_text(json.dumps(invalid))
+            investigation.write_text(json.dumps(m3(report)))
+            with self.assertRaisesRegex(ValueError, "reviewed M2 workload"):
                 THROUGHPUT.investigate(report, investigation)
 
 

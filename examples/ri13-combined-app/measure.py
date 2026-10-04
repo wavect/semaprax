@@ -30,6 +30,11 @@ COPY_COLUMNS = (
 M3_COPY_LEDGER_SCHEMA = "semaprax.ri13.m3-copy-ledger.v1"
 LINKED_COPY_LEDGER_SCHEMA = "semaprax.ri13.linked-copy-ledger.v1"
 LINKED_COPY_PREFIX = "ri13-linked-copy-ledger:"
+M2_TASKS = ("generic_record", "stateful_callback")
+M2_BATCH_COLUMNS = (
+    "task", "route", "iteration", "operations", "elapsed_ns",
+    "allocation_calls", "allocated_bytes", "adapter_buffer_copied_bytes",
+)
 
 
 def percentile(values, percent):
@@ -128,6 +133,61 @@ def parse_m3_samples(text):
         }
     return result
 
+
+
+def parse_m2_batch_samples(text):
+    """Parse the existing matched M2 record/callback batch comparison."""
+    rows = list(csv.DictReader(text.splitlines()))
+    if not rows or tuple(rows[0]) != M2_BATCH_COLUMNS:
+        raise ValueError("M2 measure output must retain its exact batch columns")
+    grouped = {
+        task: {route: [] for route in ROUTES}
+        for task in M2_TASKS
+    }
+    for row in rows:
+        task = row.get("task")
+        route = row.get("route")
+        if task not in grouped or route not in ROUTES:
+            raise ValueError(f"unknown M2 batch row {row!r}")
+        sample = {key: int(value) for key, value in row.items() if key not in {"task", "route"}}
+        if sample["operations"] <= 1 or sample["elapsed_ns"] <= 0:
+            raise ValueError(f"invalid M2 batch row {row!r}")
+        if sample["adapter_buffer_copied_bytes"] != 0:
+            raise ValueError(f"M2 scalar adapter copied bytes {row!r}")
+        grouped[task][route].append(sample)
+    result = {"raw_csv_sha256": digest(text), "tasks": {}}
+    for task, by_route in grouped.items():
+        counts = {route: len(samples) for route, samples in by_route.items()}
+        if len(set(counts.values())) != 1 or not next(iter(counts.values())):
+            raise ValueError(f"unbalanced M2 {task} batch samples {counts}")
+        routes = {}
+        for route, samples in by_route.items():
+            operations = {sample["operations"] for sample in samples}
+            if len(operations) != 1:
+                raise ValueError(f"M2 {task} changed operations for {route}")
+            operation_count = operations.pop()
+            elapsed = [sample["elapsed_ns"] for sample in samples]
+            routes[route] = {
+                "operations_per_sample": operation_count,
+                "total_operations": operation_count * len(samples),
+                "mean_batch_ns": round(statistics.mean(elapsed), 1),
+                "p50_batch_ns": round(percentile(elapsed, 50), 1),
+                "p90_batch_ns": round(percentile(elapsed, 90), 1),
+                "p99_batch_ns": round(percentile(elapsed, 99), 1),
+                "normalized_operations_per_second": round(
+                    operation_count * 1e9 / statistics.mean(elapsed), 2
+                ),
+                "allocator_requests_per_batch": {
+                    key: round(statistics.mean(sample[key] for sample in samples), 1)
+                    for key in ("allocation_calls", "allocated_bytes")
+                },
+                "adapter_buffer_copied_bytes_per_batch": 0,
+            }
+        result["tasks"][task] = {
+            "samples_per_route": next(iter(counts.values())),
+            "routes": routes,
+        }
+    return result
 
 def parse_m3_batch_samples(text):
     rows = list(csv.DictReader(text.splitlines()))
@@ -356,6 +416,22 @@ def self_test():
     batch = parse_m3_batch_samples("\n".join(",".join(row) for row in batch_rows))
     assert batch["routes"]["generated_semaprax"]["total_operations"] == 128
     assert batch["routes"]["generated_semaprax"]["normalized_operations_per_second"] == 10_000_000.0
+    m2_rows = [list(M2_BATCH_COLUMNS)]
+    for task in M2_TASKS:
+        for iteration in range(2):
+            for route in ROUTES:
+                m2_rows.append([task, route, str(iteration), "32", "3200", "4", "96", "0"])
+    m2 = parse_m2_batch_samples("\n".join(",".join(row) for row in m2_rows))
+    assert m2["tasks"]["generic_record"]["routes"]["generated_semaprax"]["total_operations"] == 64
+    assert m2["tasks"]["stateful_callback"]["routes"]["direct_rust"]["normalized_operations_per_second"] == 10_000_000.0
+    tampered_m2 = [row.copy() for row in m2_rows]
+    tampered_m2[1][-1] = "1"
+    try:
+        parse_m2_batch_samples("\n".join(",".join(row) for row in tampered_m2))
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("nonzero M2 scalar copy bytes must fail the batch gate")
     assert m3_negative_control_command() == [
         "cargo", "test", "--locked", "--offline", "--quiet", "--test", "project",
         "ri13_m3::saved_m3_application_runs_offline_and_refuses_timeout_and_stale_binding_mutants",
@@ -491,6 +567,13 @@ def main():
     if linked_copy_ledger is None:
         raise RuntimeError("linked consumer did not produce copied-byte evidence")
 
+    m2_batch_command = cargo_command("examples/ri13-m2-record-iterator/Cargo.toml", "measure")
+    m2_batch_result, m2_batch_samples = run(
+        m2_batch_command, environment, "stateful_callback,generated_semaprax"
+    )
+    m2_batch_result["stage"] = "m2_batch_throughput_measurement"
+    m2_batch_measurement = parse_m2_batch_samples(m2_batch_samples)
+
     measure_command = cargo_command("examples/ri13-m3-local-http/Cargo.toml", "measure")
     measure_result, samples = run(measure_command, environment, "generated_semaprax")
     measure_result["stage"] = "m3_route_measurement"
@@ -509,6 +592,8 @@ def main():
         "full_build_and_consumer_stages": stages,
         "route_measurement_command": measure_result,
         "route_timing_and_allocator_requests": route_measurement,
+        "m2_batch_throughput_measurement_command": m2_batch_result,
+        "m2_batch_throughput": m2_batch_measurement,
         "batch_throughput_measurement_command": batch_result,
         "batch_throughput": batch_measurement,
         "m3_copy_ledger": m3_copy_ledger(route_measurement),
@@ -516,6 +601,7 @@ def main():
         "limits": [
             "The first six stages retain separately admitted M1, M2, and M3 profiles. The final two stages prepare and execute the distinct held linked Project, without claiming that it is one public SDK profile.",
             "Build-and-consumer stage elapsed times include Cargo work and process startup; they are not route latency.",
+            "M2 retains matched 32-operation generic-record and stateful-callback batches for direct Rust, handwritten adapters, and generated Semaprax; M1 remains unavailable because no equivalent handwritten batch route exists.",
             "Scalar route timings include loopback HTTP and two-byte response parsing; the separate 64-operation batch rows retain their own normalized throughput and remain local evidence.",
             "Allocator values count current-thread requests and do not infer copies. The ledger records exact zero-byte scalar generated and host-callback payload boundaries, response wire bytes, and explicit unavailable cells for reqwest/HTTP/text/capture copies.",
             "The linked ledger measures only the generated Regex owner carrier, generated Serde mirror clone, and scalar iterator callback boundaries. Url::parse and serde_json deserialization retain unavailable copied-byte states.",

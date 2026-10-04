@@ -131,8 +131,10 @@ python3 -m unittest examples/ri13-combined-app/test_investigate_throughput.py
 It requires the complete ordered M1/M2/M3 prepare and consumer stages, the
 64-operation two-byte M3 workload, and exact receipt digest binding. It emits
 the generated/direct and generated/handwritten normalized M3 ratios with the
-0.90 investigation threshold. M1 and M2 are explicitly `unavailable`: their
-combined stages have no matched direct and handwritten batch measurements, so
+0.90 investigation threshold. The combined receipt also runs M2's existing
+matched 32-operation generic-record and stateful-callback batches across direct
+Rust, handwritten adapters, and generated Semaprax. M1 remains `unavailable`:
+its combined stages have no comparable direct and handwritten batch route, so
 the tool refuses to treat Cargo stage time as throughput.
 
 The linked consumer emits its own one-line canonical ledger after it executes
@@ -149,9 +151,9 @@ foreign internal byte observations remain unavailable.
 
 This gate does not close #371. It still needs exact copied-byte evidence for
 the issue’s buffer scan and the uninstrumented foreign portions of ownership
-transfer and deserialization, matched M1/M2 throughput measurements, and fresh
-Linux x86_64 evidence. The receipt makes those gaps explicit rather than
-converting one local run into a portability or performance claim.
+transfer and deserialization, a matched M1 throughput route, and fresh Linux
+x86_64 evidence. The receipt makes those gaps explicit rather than converting
+one local run into a portability or performance claim.
 
 ## Linked generated fixture
 

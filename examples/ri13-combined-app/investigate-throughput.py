@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Bind one combined RI-13 receipt to its scoped batch investigation.
 
-M1 and M2 have no matched direct/handwritten batch benchmark in the combined
-fixture.  This tool makes that absence explicit instead of deriving a ratio
-from Cargo stage time or a different workload.
+M1 has no matched direct/handwritten batch benchmark in the combined fixture.
+M2 records its existing matched record and callback batches separately; this
+tool refuses to derive any remaining profile ratio from Cargo stage time.
 """
 
 import argparse
@@ -16,6 +16,7 @@ SCHEMA = "semaprax.ri13.combined-throughput-investigation.v1"
 COMBINED_SCHEMA = "semaprax.ri13.combination-measurement.v1"
 M3_SCHEMA = "semaprax.ri13.m3-batch-investigation.v1"
 ROUTES = ("direct_rust", "handwritten_adapter", "generated_semaprax")
+M2_TASKS = ("generic_record", "stateful_callback")
 STAGES = (
     "m1_prepare", "m1_consumer", "m2_prepare", "m2_consumer",
     "m3_prepare", "m3_consumer", "m3_negative_controls", "linked_prepare", "linked_consumer",
@@ -65,10 +66,65 @@ def batch_routes(receipt):
     return routes
 
 
+def m2_batch_tasks(receipt):
+    command = receipt.get("m2_batch_throughput_measurement_command")
+    batch = receipt.get("m2_batch_throughput")
+    tasks = batch.get("tasks") if isinstance(batch, dict) else None
+    if not isinstance(command, dict) or command.get("command", [])[-1:] != ["measure"]:
+        raise ValueError("combined receipt does not bind the M2 batch selector")
+    if not isinstance(tasks, dict) or set(tasks) != set(M2_TASKS):
+        raise ValueError("combined receipt has no exact M2 comparison tasks")
+    for task, measurement in tasks.items():
+        routes = measurement.get("routes") if isinstance(measurement, dict) else None
+        if not isinstance(routes, dict) or set(routes) != set(ROUTES):
+            raise ValueError(f"combined receipt has no exact M2 routes for {task}")
+        for name, row in routes.items():
+            if not isinstance(row, dict) or row.get("operations_per_sample") != 32:
+                raise ValueError(
+                    f"combined receipt changed the reviewed M2 workload for {task}/{name}"
+                )
+            if row.get("adapter_buffer_copied_bytes_per_batch") != 0:
+                raise ValueError(
+                    f"combined receipt changed M2 scalar copy accounting for {task}/{name}"
+                )
+            rate = row.get("normalized_operations_per_second")
+            if not isinstance(rate, (int, float)) or rate <= 0:
+                raise ValueError(f"combined receipt lacks M2 throughput for {task}/{name}")
+    return tasks
+
+
+def m2_profile(tasks):
+    measured = {}
+    for task, measurement in tasks.items():
+        routes = measurement["routes"]
+        generated = routes["generated_semaprax"]["normalized_operations_per_second"]
+        direct = routes["direct_rust"]["normalized_operations_per_second"]
+        handwritten = routes["handwritten_adapter"]["normalized_operations_per_second"]
+        measured[task] = {
+            "workload": {
+                "operations_per_sample": routes["direct_rust"]["operations_per_sample"]
+            },
+            "normalized_operations_per_second": {
+                name: routes[name]["normalized_operations_per_second"]
+                for name in ROUTES
+            },
+            "generated_to_direct_throughput_ratio": round(generated / direct, 4),
+            "generated_to_handwritten_throughput_ratio": round(
+                generated / handwritten, 4
+            ),
+            "adapter_buffer_copied_bytes_per_batch": 0,
+        }
+    return {
+        "status": "measured",
+        "tasks": measured,
+        "limitations": "Rust allocator requests cover the measured body; foreign Serde allocation and copy accounting remain unavailable.",
+    }
+
 def investigate(receipt_path, m3_path):
     receipt = load(receipt_path, COMBINED_SCHEMA, "combined receipt")
     m3 = load(m3_path, M3_SCHEMA, "M3 investigation")
     routes = batch_routes(receipt)
+    m2_tasks = m2_batch_tasks(receipt)
     m3_receipt = m3.get("receipt")
     if not isinstance(m3_receipt, dict) or m3_receipt.get("sha256") != digest(receipt_path):
         raise ValueError("M3 investigation is not bound to this combined receipt")
@@ -90,10 +146,7 @@ def investigate(receipt_path, m3_path):
                 "status": "unavailable",
                 "reason": "the combined receipt has M1 prepare/consumer stages but no matched direct and handwritten batch routes",
             },
-            "m2": {
-                "status": "unavailable",
-                "reason": "the combined receipt has M2 prepare/consumer stages but no matched direct and handwritten batch routes",
-            },
+            "m2": m2_profile(m2_tasks),
             "m3": {
                 "status": "investigation_required" if ratio < THRESHOLD else "threshold_not_triggered",
                 "workload": {"operations_per_sample": 64, "body_bytes_per_operation": 2},
@@ -103,13 +156,16 @@ def investigate(receipt_path, m3_path):
                     "generated_semaprax": generated,
                 },
                 "generated_to_direct_throughput_ratio": round(ratio, 4),
-                "generated_to_handwritten_throughput_ratio": round(generated / handwritten, 4),
+                "generated_to_handwritten_throughput_ratio": round(
+                generated / handwritten, 4
+            ),
                 "investigation_threshold": THRESHOLD,
             },
         },
         "limitations": [
             "This is a local investigation record, not a performance pass or cross-platform claim.",
-            "M1 and M2 remain unavailable until the same workload has matched direct and handwritten measurements.",
+            "M1 remains unavailable until the same workload has matched direct and handwritten measurements.",
+            "M2 is a fixture-specific matched comparison: generated callbacks retain source contracts and lifecycle checks absent from the direct and handwritten routes.",
             "The M3 source-bound investigation explains repeated registration but does not attribute an exact share of route time to an operation.",
         ],
     }

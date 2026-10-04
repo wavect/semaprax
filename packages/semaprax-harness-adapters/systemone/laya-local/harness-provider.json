@@ -30,10 +30,7 @@
     "secrets": [],
     "write": []
   },
-  "platforms": [
-    "macos-aarch64",
-    "linux-x86_64"
-  ],
+  "platforms": ["macos-aarch64", "linux-x86_64", "linux-aarch64"],
   "protocol": {
     "max": 1,
     "min": 1,

@@ -55,10 +55,7 @@
     }
   ],
   "extensions": [],
-  "platforms": [
-    "macos-aarch64",
-    "linux-x86_64"
-  ],
+  "platforms": ["macos-aarch64", "linux-x86_64", "linux-aarch64"],
   "config": {
     "fields": {}
   },

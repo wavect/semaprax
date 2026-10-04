@@ -27,7 +27,7 @@
     "secrets": [],
     "write": ["cache"]
   },
-  "platforms": ["macos-aarch64"],
+  "platforms": ["macos-aarch64", "linux-aarch64"],
   "protocol": {"max": 1, "min": 1, "name": "semaprax.harness-rpc.v1"},
   "provider": {"id": "com.graphify-labs/graphify-context", "version": "0.1.0"},
   "resources": {

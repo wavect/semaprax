@@ -676,6 +676,7 @@ fn constructor_schemas_are_closed_and_resolve_recursion_locally() {
             "implement_interface",
             "implement_interface",
             "add_declaration",
+            "delete_declaration",
             "extract_function",
             "move_declaration",
             "add_record_field",

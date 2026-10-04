@@ -1888,6 +1888,7 @@ jobs:
           if python3 -c 'import json,sys; p=json.load(sys.stdin); s=next((x for x in p["shards"] if x["name"]==sys.argv[1]), {"targets":[]}); sys.exit(0 if any(t["name"]=="standalone_lockfiles" for t in s["targets"]) else 1)' '${{ matrix.shard }}' <<<"$plan_json"; then
             cargo fetch --locked --manifest-path examples/calculator-rust/Cargo.toml
             cargo fetch --locked --manifest-path examples/embedding-api/Cargo.toml
+            cargo fetch --locked --manifest-path crates/semaprax-native-rust-interop-builder/src/public_sdk/fixtures/ri09-reqwest/Cargo.toml
             cargo fetch --locked --manifest-path platform-tests/component-runtime/Cargo.toml
             cargo fetch --locked --manifest-path platform-tests/public-scalar-wit-interface/Cargo.toml
           fi

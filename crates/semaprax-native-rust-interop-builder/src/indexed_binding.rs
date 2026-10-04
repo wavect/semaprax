@@ -244,7 +244,7 @@ mod tests {
     const SOURCE: &str = "module binding.test; @id(\"binding.host\") interface Host permits {  } { @id(\"binding.simple\") import rust fn simple(value: i64) -> bool effects {  } failure infallible; } @id(\"binding.main\") fn main() -> i64 { 1 }";
 
     #[test]
-    fn exact_index_replay_precedes_receiver_admission() {
+    fn exact_index_replay_precedes_signature_admission() {
         let program = semaprax::parse(SOURCE, Path::new("indexed-binding.spx")).unwrap();
         let resolved = semaprax::hir::resolve(&program).unwrap();
         let import = &resolved.interfaces[0].imports[0];
@@ -266,7 +266,7 @@ mod tests {
             "local_api_fixture::MacroGenerated::answer",
         )
         .unwrap_err();
-        assert_eq!(rejected.code, "SPX-B144");
+        assert_eq!(rejected.code, "SPX-B145");
         assert_eq!(rejected.span, Some(import.span));
         let mut stale = package;
         stale.version = "1.0.0";

@@ -59,12 +59,14 @@ class FakeDaemon:
                 self.send_response(200)
                 self.send_header("Content-Length", str(len(raw)))
                 self.end_headers()
+                if self.path == "/api/generate" and owner.after_generate:
+                    # Publish the post-dispatch mutation before the client can
+                    # receive the complete reply and perform its second pin check.
+                    owner.after_generate()
                 try:
                     self.wfile.write(raw)
                 except (BrokenPipeError, ConnectionResetError):
                     pass
-                if self.path == "/api/generate" and owner.after_generate:
-                    owner.after_generate()
         self.server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Handler)
         self.server.daemon_threads = True
         self.thread = threading.Thread(target=lambda: self.server.serve_forever(poll_interval=0.01), daemon=True)

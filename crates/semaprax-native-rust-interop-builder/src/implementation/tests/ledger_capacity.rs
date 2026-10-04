@@ -153,6 +153,27 @@ fn hir_capacity_layout_constants_are_bound_to_root_const_assertions() {
         include_str!("../../../../../src/hir/resolve_pattern.rs"),
         include_str!("../../../../../src/hir/resolve_program.rs"),
         include_str!("../../../../../src/hir/resolve_statement.rs"),
+        include_str!("../../../../../src/hir/byte_capacity.rs"),
+        include_str!("../../../../../src/hir/byte_slice_provenance.rs"),
+        include_str!("../../../../../src/hir/capacity_probe.rs"),
+        include_str!("../../../../../src/hir/expr_nodes.rs"),
+        include_str!("../../../../../src/hir/ids.rs"),
+        include_str!("../../../../../src/hir/inspection.rs"),
+        include_str!("../../../../../src/hir/monomorphize.rs"),
+        include_str!("../../../../../src/hir/record_evolution.rs"),
+        include_str!("../../../../../src/hir/resolve_native_rust_result.rs"),
+        include_str!("../../../../../src/hir/type_reachability.rs"),
+        include_str!("../../../../../src/hir/workspace_link.rs"),
+        include_str!("../../../../../src/hir/cache_codec.rs"),
+        include_str!("../../../../../src/hir/declaration_index.rs"),
+        include_str!("../../../../../src/hir/owned_record_collection.rs"),
+        include_str!("../../../../../src/hir/generic_mapping.rs"),
+        include_str!("../../../../../src/hir/nodes.rs"),
+        include_str!("../../../../../src/hir/declaration_index/linked_owned_data.rs"),
+        include_str!("../../../../../src/hir/declaration_index/owned_builtin.rs"),
+        include_str!("../../../../../src/hir/declaration_index/projection.rs"),
+        include_str!("../../../../../src/hir/type_reachability/nested_generic_function.rs"),
+        include_str!("../../../../../src/hir/workspace_link/compiler_prelude.rs"),
     );
     let hir_validator = concat!(
         include_str!("../../../../../src/hir/validation.rs"),
@@ -171,6 +192,9 @@ fn hir_capacity_layout_constants_are_bound_to_root_const_assertions() {
         include_str!("../../../../../src/hir/validation/owned_result_try.rs"),
         include_str!("../../../../../src/hir/validation/type_profiles.rs"),
         include_str!("../../../../../src/hir/validation/unsafe_scan.rs"),
+        include_str!("../../../../../src/hir/validation/generic_record_composition.rs"),
+        include_str!("../../../../../src/hir/validation/native_borrow.rs"),
+        include_str!("../../../../../src/hir/validation/proof_return.rs"),
     );
     let verifier = concat!(
         include_str!("../../../../../src/source_verify.rs"),
@@ -199,6 +223,8 @@ fn hir_capacity_layout_constants_are_bound_to_root_const_assertions() {
         include_str!("../../../../../src/cleanup_plan/build/record_destructure/update.rs"),
         include_str!("../../../../../src/cleanup_plan/build/schema.rs"),
         include_str!("../../../../../src/cleanup_plan/build/type_shape.rs"),
+        include_str!("../../../../../src/cleanup_plan/build/finish_call.rs"),
+        include_str!("../../../../../src/cleanup_plan/build/strings.rs"),
     );
     let calls = include_str!("../../../../../src/call_index.rs");
     for (source, expected) in [

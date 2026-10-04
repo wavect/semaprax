@@ -28,6 +28,17 @@ fn indexed_scalar_adapter_executes_and_rejects_flipped_rust_result() {
     index_value["package"]["version"] = "0.0.1".into();
     index_value["package"]["source_sha256"] = crate_source_digest.clone().into();
     index_value["target"] = target.triple.clone().into();
+    let rustc = configured_tool("RUSTC").unwrap();
+    let selected_compiler = Command::new(&rustc.path)
+        .env_clear()
+        .arg("--version")
+        .output()
+        .unwrap();
+    assert!(selected_compiler.status.success());
+    index_value["stable_rustc_version"] = std::str::from_utf8(&selected_compiler.stdout)
+        .unwrap()
+        .trim()
+        .into();
     let mut item = index_value["items"]
         .as_array()
         .unwrap()
@@ -197,13 +208,6 @@ fn indexed_scalar_adapter_executes_and_rejects_flipped_rust_result() {
     );
     assert_eq!(built.physical_symbol(), plan.physical_symbol);
     let adapter = built.adapter_source();
-    let rustc = configured_tool("RUSTC").unwrap();
-    let selected_compiler = Command::new(&rustc.path)
-        .env_clear()
-        .arg("--version")
-        .output()
-        .unwrap();
-    assert!(selected_compiler.status.success());
     assert_eq!(
         std::str::from_utf8(&selected_compiler.stdout)
             .unwrap()

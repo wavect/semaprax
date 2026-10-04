@@ -71,6 +71,12 @@
   and a single-process Rust/C consumer pass locally on macOS arm64. The
   general Project SDK CLI, fresh-checkout/Linux run, and wider RI-13 acceptance
   remain open.
+- Repair main CI's current constructor and discovery contracts, frozen help
+  snapshot, source-locked coverage, standalone lockfile checks, and selected
+  project fixtures. Keep native Rust interop replay on its wire ABI, scope
+  real registry evidence to its recorded target, and make the local benchmark
+  daemon's integrity fault deterministic.
+
 - Repair the current main CI fixtures for owned-byte Wasm imports, constructor
   schema counts, the pinned iOS action, and authenticated Everyday Agent
   examples. Regenerate the Agent skill bundle, refresh exact workspace

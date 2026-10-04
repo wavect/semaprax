@@ -1,0 +1,83 @@
+name: Harness platforms
+
+# Hosted evidence for HN-18 / HN-07: runs the harness suite, the bridge and
+# isolation tests and the distribution smoke on GitHub-hosted Linux runners.
+# Triggered only by the evidence branch or manually; it gates nothing.
+on:
+  workflow_dispatch:
+  push:
+    branches: [hp/hn-hosted]
+    paths:
+      - crates/semaprax-harness/**
+      - packages/semaprax-harness-adapters/**
+      - scripts/harness_dist.sh
+      - .github/workflows/harness-platforms.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: harness-platforms-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: "0"
+  CARGO_PROFILE_DEV_DEBUG: "0"
+  CARGO_PROFILE_TEST_DEBUG: "0"
+
+jobs:
+  platform:
+    name: ${{ matrix.os }} (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest, arch: x86_64 }
+          - { os: ubuntu-24.04-arm, arch: aarch64 }
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 1
+          lfs: false
+      - uses: dtolnay/rust-toolchain@7e38f4b43b4db5c8dd498af069a4f6196df1d067 # master
+        with:
+          toolchain: 1.97.1
+      - name: Install bubblewrap and report tool versions
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bubblewrap
+          mkdir -p report
+          { uname -srm; bwrap --version; python3 --version; git --version; rustc --version; } | tee report/env.txt
+          # Ubuntu 24.04 restricts unprivileged user namespaces via AppArmor; record it.
+          sysctl kernel.apparmor_restrict_unprivileged_userns 2>&1 | tee -a report/env.txt || true
+          bwrap --ro-bind / / --unshare-all true && echo "bwrap-probe ok" | tee -a report/env.txt || echo "bwrap-probe FAILED" | tee -a report/env.txt
+      - name: Build compiler and harness
+        run: |
+          cargo build --locked -p semaprax --bin semaprax
+          cargo build --locked -p semaprax-harness
+      - name: Harness suite (lib + harness_v1, includes bridge lifecycle and isolation)
+        run: cargo test --locked -p semaprax-harness --lib --test harness_v1 2>&1 | tee report/suite.txt
+      - name: Distribution build and smoke-core
+        run: |
+          set -o pipefail
+          sh scripts/harness_dist.sh build --binary target/debug/semaprax-harness --out "$RUNNER_TEMP/dist"
+          t=$(ls "$RUNNER_TEMP"/dist/*.tar.gz | head -1)
+          sh scripts/harness_dist.sh smoke-core --tarball "$t" --compiler "$PWD/target/debug/semaprax" 2>&1 | tee report/smoke-core.txt
+      - name: Cell report
+        if: always()
+        run: |
+          {
+            echo "# Harness platform cells: ${{ matrix.os }} (${{ matrix.arch }})"
+            echo "commit: $GITHUB_SHA"
+            echo '```'; cat report/env.txt 2>/dev/null; echo '```'
+            echo "## suite"; grep -E "^test result|FAILED|failed" report/suite.txt 2>/dev/null || echo "no result"
+            echo "## smoke-core"; grep -E "^(CELL|PLATFORM|SMOKE)" report/smoke-core.txt 2>/dev/null || echo "no result"
+          } | tee -a "$GITHUB_STEP_SUMMARY" > report/cells.md
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: harness-cells-${{ matrix.arch }}
+          path: report/

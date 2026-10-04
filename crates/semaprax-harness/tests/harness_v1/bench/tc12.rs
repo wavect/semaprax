@@ -97,14 +97,14 @@ struct Behaviour {
 
 fn behaviour(arm: &str) -> Behaviour {
     match arm {
-        "compact-skills" => Behaviour {
+        "tiers" => Behaviour {
             uncached: 600,
             output: 300,
             cache: Some(((0, 0), (0, 0))),
             correct: true,
         },
         // Cheap and inferior: far fewer tokens, wrong answers.
-        "context-target" => Behaviour {
+        "feedback-allowance" => Behaviour {
             uncached: 200,
             output: 40,
             cache: Some(((0, 0), (0, 0))),
@@ -131,6 +131,7 @@ struct FakeStage {
     calls: u32,
     served: Arc<AtomicU32>,
     wire: Arc<Mutex<Vec<Value>>>,
+    prompts: Arc<Mutex<Vec<(String, String)>>>,
     support: Support,
 }
 
@@ -155,6 +156,10 @@ impl ProposalStage for FakeStage {
         )
         .expect("valid model.generate/v1 request");
         self.wire.lock().unwrap().push(payload.clone());
+        self.prompts.lock().unwrap().push((
+            self.arm.clone(),
+            r.prompt["text"].as_str().unwrap_or("").to_string(),
+        ));
         let text = r.prompt["text"]
             .as_str()
             .map(String::from)
@@ -236,6 +241,7 @@ struct Fake<'t> {
     served: Arc<AtomicU32>,
     ordered_served: Arc<AtomicU32>,
     wire: Arc<Mutex<Vec<Value>>>,
+    prompts: Arc<Mutex<Vec<(String, String)>>>,
     missing_model: bool,
 }
 
@@ -271,6 +277,7 @@ impl ArmBackend for Fake<'_> {
                 self.served.clone()
             },
             wire: self.wire.clone(),
+            prompts: self.prompts.clone(),
             support: if ordered {
                 Support::Supported
             } else {
@@ -317,7 +324,8 @@ impl ArmBackend for Fake<'_> {
             } else {
                 Support::Unknown
             },
-        );
+        )
+        .with_overlays(profile_arms::overlays_of(arm));
         Ok(Box::new(c))
     }
 }
@@ -331,10 +339,14 @@ fn model() -> ModelSpec {
 }
 
 fn roster(ids: &[&str]) -> Vec<ProfileArm> {
-    profile_arms::screening_roster("native")
-        .into_iter()
-        .filter(|a| a.id == "defaults" || ids.contains(&a.id.as_str()))
-        .collect()
+    profile_arms::screening_roster_ctx(&profile_arms::RosterCtx {
+        base_arm: "ponytail".into(),
+        base_has_skill: true,
+        view_arm: None,
+    })
+    .into_iter()
+    .filter(|a| a.id == "defaults" || ids.contains(&a.id.as_str()))
+    .collect()
 }
 
 fn spec(arms: Vec<ProfileArm>, reps: u32, set: &TaskSet) -> CampaignSpec {
@@ -399,6 +411,7 @@ fn fake(set: &TaskSet) -> Fake<'_> {
         served: Arc::new(AtomicU32::new(0)),
         ordered_served: Arc::new(AtomicU32::new(0)),
         wire: Arc::default(),
+        prompts: Arc::default(),
         missing_model: false,
     }
 }
@@ -607,7 +620,7 @@ fn tc12_cheap_inferior_arm_fails_qualification_despite_fewer_tokens_and_good_arm
     let set = TaskSet::load(&corpus_dir().join("apptasks")).unwrap();
     let w = work("qual");
     let out = w.join("out");
-    let s = spec(roster(&["compact-skills", "context-target"]), 2, &set);
+    let s = spec(roster(&["tiers", "feedback-allowance"]), 2, &set);
     let rows = run_campaign(
         &s,
         &fake(&set),
@@ -615,7 +628,7 @@ fn tc12_cheap_inferior_arm_fails_qualification_despite_fewer_tokens_and_good_arm
         &out,
         &w,
     );
-    let cheap = rows_of(&rows, "context-target");
+    let cheap = rows_of(&rows, "feedback-allowance");
     assert!(cheap
         .iter()
         .all(|r| r["accepted"] == false && r["outcome"] == "failed"));
@@ -667,25 +680,21 @@ fn tc12_cheap_inferior_arm_fails_qualification_despite_fewer_tokens_and_good_arm
             .clone()
     };
     assert_eq!(
-        by("context-target")["decision"],
+        by("feedback-allowance")["decision"],
         "no-go",
         "{}",
-        by("context-target")
+        by("feedback-allowance")
     );
-    assert_eq!(
-        by("compact-skills")["decision"],
-        "go",
-        "{}",
-        by("compact-skills")
-    );
-    assert_eq!(q["recommendation"]["profile"], "compact-skills");
+    assert_eq!(by("tiers")["decision"], "go", "{}", by("tiers"));
+    assert_eq!(q["recommendation"]["profile"], "tiers");
     // Reproducible from the pinned evidence.
     let q2 = qualify(&declared, &crit, &real, &live, &[]);
     assert_eq!(q, q2);
-    assert_eq!(
-        by("compact-skills")["record_digest"],
-        q2["arms"][0]["record_digest"]
-    );
+    assert!(q2["arms"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|a| a["arm"] == "tiers" && a["record_digest"] == by("tiers")["record_digest"]));
     // Drift in the model, tool or task-set pin invalidates the promotion.
     for drifted in [
         Pins {
@@ -706,7 +715,7 @@ fn tc12_cheap_inferior_arm_fails_qualification_despite_fewer_tokens_and_good_arm
             .as_array()
             .unwrap()
             .iter()
-            .find(|a| a["arm"] == "compact-skills")
+            .find(|a| a["arm"] == "tiers")
             .unwrap();
         assert_eq!(c["decision"], "invalidated", "{c}");
         assert_eq!(q["recommendation"]["action"], "leave-defaults-unchanged");
@@ -766,7 +775,7 @@ fn tc12_missing_model_and_budget_abort_are_retained_and_raw_loop_is_labelled_and
         }
     }
     let w = work("abort");
-    let s = spec(roster(&["compact-skills"]), 1, &set);
+    let s = spec(roster(&["tiers"]), 1, &set);
     let rows = run_campaign(
         &s,
         &Raw,
@@ -893,7 +902,11 @@ fn tc12_cache_state_is_receipt_backed_or_unknown_and_never_leaks_answers() {
 
 #[test]
 fn tc12_roster_is_bounded_with_placeholders_and_a_combined_profile() {
-    let r = profile_arms::screening_roster("native");
+    let r = profile_arms::screening_roster_ctx(&profile_arms::RosterCtx {
+        base_arm: "ponytail".into(),
+        base_has_skill: true,
+        view_arm: None,
+    });
     let ids: Vec<&str> = r.iter().map(|a| a.id.as_str()).collect();
     assert_eq!(
         ids.len(),
@@ -919,6 +932,28 @@ fn tc12_roster_is_bounded_with_placeholders_and_a_combined_profile() {
     );
     assert_eq!(c.omitted.len(), 2);
     assert!(get("defaults").overlay().is_empty());
+    // Policies that cannot change an app-task run say so, with the reason.
+    for id in ["context-target", "caveman-view"] {
+        let a = get(id);
+        assert!(
+            a.unavailable
+                .as_deref()
+                .unwrap()
+                .starts_with("not-applicable"),
+            "{id}"
+        );
+        assert!(a.policies.is_empty() && !a.not_applicable.is_empty());
+    }
+    assert_eq!(c.not_applicable.len(), 2);
+    assert!(!c.has(Policy::ContextTarget) && !c.has(Policy::CavemanView));
+    // Without a skill in the base arm, compact skills is not applicable either.
+    let n = profile_arms::screening_roster("native");
+    assert!(n
+        .iter()
+        .find(|a| a.id == "compact-skills")
+        .unwrap()
+        .unavailable
+        .is_some());
 }
 
 #[test]
@@ -958,4 +993,337 @@ fn tc12_paid_command_requires_an_explicit_cap_and_dry_run_spends_and_runs_nothin
     assert_eq!(o.code, 0, "{}", o.stdout);
     assert!(o.stdout.contains("nothing was run"), "{}", o.stdout);
     assert!(!env.cwd.join("o/trials.jsonl").exists() && !env.cwd.join("o/campaign.json").exists());
+}
+
+fn words_counter() -> semaprax_harness::bench::apptask::production::Counter<'static> {
+    Box::new(|_m, t| {
+        let n = t.split_whitespace().count() as u64;
+        semaprax_harness::workflow::budget::RequestCount {
+            bytes: t.len() as u64,
+            tokens: Some(n),
+            tokenizer: Some(("words".into(), "fp".into())),
+            note: None,
+        }
+    })
+}
+
+/// One production client over a capturing fake adapter.
+fn direct<'a>(
+    arm: &str,
+    ov: semaprax_harness::bench::apptask::production::Overlays,
+    wire: &Arc<Mutex<Vec<Value>>>,
+    prompts: &Arc<Mutex<Vec<(String, String)>>>,
+    prices: &'a PriceBook,
+    tracker: &'a CacheTracker,
+) -> ProductionClient<'a> {
+    let stage = FakeStage {
+        arm: arm.into(),
+        answers: vec![],
+        calls: 0,
+        served: Arc::new(AtomicU32::new(0)),
+        wire: wire.clone(),
+        prompts: prompts.clone(),
+        support: Support::Unknown,
+    };
+    let lineage = Lineage::new(
+        ProjectBinding {
+            id: "apptask".into(),
+            worktree: "w".into(),
+            revision: "r".into(),
+        },
+        "sha256:lock",
+        arm,
+    );
+    ProductionClient::new(
+        Box::new(stage),
+        lineage,
+        "fake-model-1",
+        GenerationControls {
+            max_output_tokens: Some(4096),
+            ..Default::default()
+        },
+        words_counter(),
+        prices,
+        Admission {
+            max_request_tokens: 1 << 20,
+            protocol_overhead_tokens: 256,
+        },
+        tracker,
+    )
+    .with_overlays(ov)
+}
+
+#[test]
+fn tc13_applied_overlays_change_the_wire_request_and_inapplicable_ones_report_why() {
+    use semaprax_harness::bench::apptask::model::ModelClient;
+    use semaprax_harness::bench::apptask::production::Overlays;
+    let (prices, tracker) = (prices(), CacheTracker::default());
+    let spec_of = |id: &str| {
+        profile_arms::screening_roster("native")
+            .into_iter()
+            .find(|a| a.id == id)
+            .unwrap()
+    };
+
+    // Tiers: the TC-02 source-repair tier sets a different output cap on the wire.
+    let (w0, w1) = (Arc::new(Mutex::new(vec![])), Arc::new(Mutex::new(vec![])));
+    let p: Arc<Mutex<Vec<(String, String)>>> = Arc::default();
+    let tiers = profile_arms::overlays_of(&spec_of("tiers"));
+    assert!(tiers.generation.is_some());
+    direct("defaults", Overlays::default(), &w0, &p, &prices, &tracker)
+        .generate("hello", 1)
+        .unwrap();
+    direct("tiers", tiers, &w1, &p, &prices, &tracker)
+        .generate("hello", 1)
+        .unwrap();
+    assert_eq!(w0.lock().unwrap()[0]["max_output_tokens"], 4096);
+    assert_eq!(w1.lock().unwrap()[0]["max_output_tokens"], 2048);
+
+    // Feedback allowance: a repair turn carries the projected failure history.
+    let fb = |n: u32| {
+        format!(
+            "failure {n}: {}",
+            (0..25)
+                .map(|i| format!("w{n}x{i}"))
+                .collect::<Vec<_>>()
+                .join(" ")
+        )
+    };
+    let first = "task prompt".to_string();
+    let run = |ov: Overlays, tag: &str| {
+        let pr: Arc<Mutex<Vec<(String, String)>>> = Arc::default();
+        let c = direct(tag, ov, &Arc::default(), &pr, &prices, &tracker);
+        c.generate(&first, 1).unwrap();
+        for n in 1..=3 {
+            c.generate(&arms::retry_prompt(&first, "answer", &fb(n)), 1)
+                .unwrap();
+        }
+        let last = pr.lock().unwrap().last().unwrap().1.clone();
+        (last, c.overlay_reports())
+    };
+    let (raw, none) = run(Overlays::default(), "defaults");
+    let ov = profile_arms::overlays_of(&spec_of("feedback-allowance"));
+    assert_eq!(ov.feedback_max_tokens, Some(600));
+    let (proj, reports) = run(
+        Overlays {
+            feedback_max_tokens: Some(30),
+            ..Default::default()
+        },
+        "feedback",
+    );
+    assert!(none.is_empty() && reports.len() == 3, "{reports:?}");
+    assert_ne!(raw, proj, "the repair request differs on the wire");
+    assert!(
+        proj.contains("\"code\":\"GRADER\"") && proj.contains(&fb(3)),
+        "current failure kept exact"
+    );
+    assert_eq!(reports[2]["entries_in"], 3);
+    assert!(
+        reports[2]["dropped_history_groups"].as_u64().unwrap() >= 1,
+        "history bounded by the allowance: {}",
+        reports[2]
+    );
+
+    // Compact skills and the renderer through a campaign with a skill-carrying base arm.
+    let set = TaskSet::load(&corpus_dir().join("apptasks")).unwrap();
+    let w = work("ov");
+    let s = spec(
+        {
+            let mut r = profile_arms::screening_roster_ctx(&profile_arms::RosterCtx {
+                base_arm: "ponytail".into(),
+                base_has_skill: false,
+                view_arm: None,
+            });
+            r.retain(|a| {
+                [
+                    "defaults",
+                    "compact-skills",
+                    "prompt-renderer",
+                    "context-target",
+                    "caveman-view",
+                    "combined",
+                ]
+                .contains(&a.id.as_str())
+            });
+            r
+        },
+        1,
+        &set,
+    );
+    let b = fake(&set);
+    let rows = run_campaign(
+        &s,
+        &b,
+        &SpendLedger::new(1.0, 1000, 0.02),
+        &w.join("out"),
+        &w,
+    );
+    // Compact skills: for this arm the TC-08 compact rendering is byte-identical, so
+    // the overlay is reported not-applicable instead of silently pinned.
+    let home = w.join("skillprobe");
+    let arm_set = ArmSet::load(&corpus_dir().join("apptasks")).unwrap();
+    let ponytail = arm_set.arm("ponytail").unwrap();
+    assert_eq!(
+        arms::skill_block(&ponytail.skill, &home.join("a")).text,
+        arms::skill_block_with(
+            &ponytail.skill,
+            &home.join("b"),
+            semaprax_harness::skills::cost_profile::CostPolicy::compact()
+        )
+        .text
+    );
+    let wire = b.wire.lock().unwrap();
+    assert!(
+        wire.iter().any(|p| p.get("segments").is_some()),
+        "ordered renderer sends segments"
+    );
+    assert!(
+        wire.iter().any(|p| p.get("segments").is_none()),
+        "default requests do not"
+    );
+    drop(wire);
+    // Not-applicable overlays are reported in the trial record with a reason, never silently pinned.
+    for id in ["compact-skills", "context-target", "caveman-view"] {
+        let r = rows_of(&rows, id);
+        assert!(
+            r.iter().all(|x| x["outcome"] == "not_applicable"
+                && x["reason"].as_str().unwrap().starts_with("not-applicable")),
+            "{id}"
+        );
+    }
+    let comb = rows_of(&rows, "combined");
+    let ov = comb[0]["overlays"].as_array().unwrap();
+    let state = |p: &str| {
+        ov.iter()
+            .find(|o| o["policy"] == p)
+            .map(|o| o["state"].clone())
+    };
+    assert_eq!(state("compact-skills"), Some(json!("not-applicable")));
+    assert_eq!(state("prompt-renderer"), Some(json!("applied")));
+    assert_eq!(state("tiers"), Some(json!("applied")));
+    assert_eq!(state("context-target"), Some(json!("not-applicable")));
+    assert_eq!(state("caveman-view"), Some(json!("not-applicable")));
+    assert_eq!(state("spend-ledger"), Some(json!("unavailable")));
+    assert!(comb[0]["overlays"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|o| o["policy"] == "feedback-allowance")
+        .unwrap()
+        .get("projections")
+        .is_some());
+}
+
+fn copy_dir(from: &Path, to: &Path) {
+    std::fs::create_dir_all(to).unwrap();
+    for e in std::fs::read_dir(from).unwrap().flatten() {
+        if e.file_type().unwrap().is_dir() {
+            copy_dir(&e.path(), &to.join(e.file_name()));
+        } else {
+            std::fs::copy(e.path(), to.join(e.file_name())).unwrap();
+        }
+    }
+}
+
+#[test]
+fn tc13_cli_production_adapter_runs_profile_arms_through_a_real_host_model_and_records_the_path() {
+    use semaprax_harness::cli::{run, Environment};
+    let root = work("cliprod");
+    let fx = crate::support::repo_root().join("crates/semaprax-harness/tests/fixtures/workflow");
+    let project = root.join("project");
+    copy_dir(&fx.join("downstream"), &project);
+    let adapter = root.join("adapters/fake-model");
+    copy_dir(&fx.join("adapters/fake-model"), &adapter);
+    std::fs::copy(
+        crate::support::repo_root()
+            .join("packages/semaprax-harness-adapters/sdk/python/semaprax_harness_adapter.py"),
+        adapter.join("semaprax_harness_adapter.py"),
+    )
+    .unwrap();
+    let home = root.join("home");
+    std::fs::create_dir_all(&home).unwrap();
+    let env = Environment {
+        harness_home: Some(home),
+        compiler: None,
+        cwd: project.clone(),
+        vars: [
+            ("PATH".to_string(), "/usr/bin:/bin".to_string()),
+            ("HARNESS_PYTHON".to_string(), python()),
+        ]
+        .into(),
+    };
+    let go = |a: &[&str]| run(&a.iter().map(|s| s.to_string()).collect::<Vec<_>>(), &env);
+    let o = go(&[
+        "adopt",
+        adapter.join("harness-provider.json").to_str().unwrap(),
+    ]);
+    assert_eq!(o.code, 0, "{}{}", o.stdout, o.stderr);
+    let o = go(&["trust", "org.example/fake-model"]);
+    assert_eq!(o.code, 0, "{}{}", o.stdout, o.stderr);
+
+    let tasks = corpus_dir().join("apptasks").display().to_string();
+    let out = root.join("out");
+    let wk = root.join("w").display().to_string();
+    let base = [
+        "bench",
+        "app",
+        "run",
+        &tasks,
+        "--out",
+        out.to_str().unwrap(),
+        "--work",
+        wk.as_str(),
+        "--task",
+        "feature-py-shop",
+        "--reps",
+        "1",
+        "--profile-arms",
+        "tiers",
+        "--model",
+        "id=fake-model-1,size=small",
+        "--production-adapter",
+        "org.example/fake-model",
+        "--production-project",
+        project.to_str().unwrap(),
+        "--production-goal",
+        "MODE:receipt",
+        "--fixture-tokenizer",
+    ];
+    // The cap stays mandatory.
+    assert_ne!(go(&base).code, 0);
+    let mut a = base.to_vec();
+    a.extend(["--max-usd", "1"]);
+    let o = go(&a);
+    assert_eq!(o.code, 0, "{}{}", o.stdout, o.stderr);
+    let rows: Vec<Value> = std::fs::read_to_string(out.join("trials.jsonl"))
+        .unwrap()
+        .lines()
+        .map(|l| serde_json::from_str(l).unwrap())
+        .collect();
+    assert_eq!(rows.len(), 2, "defaults and tiers");
+    for r in &rows {
+        assert_eq!(r["path"], PATH_PRODUCTION, "{r}");
+        assert_eq!(
+            r["origin"], "fixture",
+            "an unbilled model is never real evidence"
+        );
+        let at = &r["attempts"][0];
+        assert_eq!(
+            at["model_pin"], "fake-model-1",
+            "typed receipt from the real adapter: {r}"
+        );
+        assert_eq!(at["usage"]["cache_read"], 60);
+        assert_eq!(at["cache_state"], "warm");
+        assert!(r["observations"].as_u64().unwrap() >= 1);
+    }
+    let camp: Value =
+        serde_json::from_str(&std::fs::read_to_string(out.join("campaign.json")).unwrap()).unwrap();
+    assert_eq!(camp["paid_qualification"], "unrun");
+    let q = go(&["bench", "app", "qualify", out.to_str().unwrap()]);
+    assert_eq!(q.code, 0, "{}{}", q.stdout, q.stderr);
+    assert!(
+        q.stdout.contains("leave-defaults-unchanged"),
+        "{}",
+        q.stdout
+    );
 }

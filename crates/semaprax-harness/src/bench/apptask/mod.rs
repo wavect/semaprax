@@ -32,7 +32,7 @@ use std::path::{Path, PathBuf};
 use std::time::Duration;
 use task::{TaskSet, Tools};
 
-pub const APP_USAGE: &str = "bench app validate <tasks> [--env K=V]... [--work DIR] | bench app run <tasks> --out DIR --work DIR --reps N --model id=ID,name=NAME,addr=HOST:PORT,size=small|large[,billed=1][,workers=N][,predict=N][,ctx=N][,temp=X]... [--task ID]... [--arm ID]... [--cap-usd X] [--max-calls N] [--ident K=V]... [--env K=V]... [--dry-run] | bench app run <tasks> --profile-arms all|ID,ID --max-usd N [--out DIR --work DIR --reps N --model ...] (capped profile campaign) | bench app qualify <out> [--ident model=ID --ident tools=DIGEST --ident taskset=DIGEST] | bench app report <out> [--label TEXT]";
+pub const APP_USAGE: &str = "bench app validate <tasks> [--env K=V]... [--work DIR] | bench app run <tasks> --out DIR --work DIR --reps N --model id=ID,name=NAME,addr=HOST:PORT,size=small|large[,billed=1][,workers=N][,predict=N][,ctx=N][,temp=X]... [--task ID]... [--arm ID]... [--cap-usd X] [--max-calls N] [--ident K=V]... [--env K=V]... [--dry-run] | bench app run <tasks> --profile-arms all|ID,ID --max-usd N [--production-adapter PROVIDER_ID --production-project DIR] [--base-arm ID] [--view-arm ID] [--max-request-tokens N] [--fixture-tokenizer] [--out DIR --work DIR --reps N --model ...] (capped profile campaign) | bench app qualify <out> [--ident model=ID --ident tools=DIGEST --ident taskset=DIGEST] | bench app report <out> [--label TEXT]";
 
 fn q(code: &'static str, m: impl Into<String>) -> HarnessDiagnostic {
     HarnessDiagnostic::new(code, m)
@@ -103,6 +103,13 @@ struct Args {
     label: Option<String>,
     dry: bool,
     profile_arms: Option<String>,
+    production_adapter: Option<String>,
+    production_project: Option<String>,
+    base_arm: Option<String>,
+    view_arm: Option<String>,
+    max_request_tokens: Option<f64>,
+    fixture_tokenizer: bool,
+    production_goal: Option<String>,
     max_usd: Option<f64>,
 }
 
@@ -146,7 +153,14 @@ fn parse(args: &[String]) -> Result<Args, HarnessDiagnostic> {
             "--max-calls" => a.max_calls = num(x, val(x)?)? as u64,
             "--label" => a.label = Some(val(x)?),
             "--dry-run" => a.dry = true,
+            "--fixture-tokenizer" => a.fixture_tokenizer = true,
+            "--production-goal" => a.production_goal = Some(val(x)?),
             "--profile-arms" => a.profile_arms = Some(val(x)?),
+            "--production-adapter" => a.production_adapter = Some(val(x)?),
+            "--production-project" => a.production_project = Some(val(x)?),
+            "--base-arm" => a.base_arm = Some(val(x)?),
+            "--view-arm" => a.view_arm = Some(val(x)?),
+            "--max-request-tokens" => a.max_request_tokens = Some(num(x, val(x)?)?),
             "--max-usd" => a.max_usd = Some(num(x, val(x)?)?),
             "--env" | "--ident" => {
                 let v = val(x)?;
@@ -305,8 +319,16 @@ fn exec(a: Args, env: &Environment) -> Result<Outcome, HarnessDiagnostic> {
             billed: get("billed").as_deref() == Some("1"),
         };
         let client = HttpModel {
-            addr: get("addr").ok_or_else(|| q("SPX-HPQ007", "--model needs addr="))?,
-            name: get("name").ok_or_else(|| q("SPX-HPQ007", "--model needs name="))?,
+            addr: match (get("addr"), &a.production_adapter) {
+                (Some(x), _) => x,
+                (None, Some(_)) => String::new(),
+                (None, None) => return Err(q("SPX-HPQ007", "--model needs addr=")),
+            },
+            name: match (get("name"), &a.production_adapter) {
+                (Some(x), _) => x,
+                (None, Some(_)) => id.clone(),
+                (None, None) => return Err(q("SPX-HPQ007", "--model needs name=")),
+            },
             temperature: get("temp").and_then(|x| x.parse().ok()).unwrap_or(0.7),
             num_ctx: get("ctx").and_then(|x| x.parse().ok()).unwrap_or(16384),
             num_predict: get("predict").and_then(|x| x.parse().ok()).unwrap_or(3000),
@@ -340,24 +362,60 @@ fn exec(a: Args, env: &Environment) -> Result<Outcome, HarnessDiagnostic> {
         );
         let words = tokens::WordCounter;
         let tik;
-        let counter: &dyn tokens::TokenCounter = if a.dry {
-            &words
-        } else {
-            let py = vars
-                .get("HARNESS_TIKTOKEN_PYTHON")
-                .map(PathBuf::from)
-                .ok_or_else(|| {
-                    q(
-                        "SPX-HPQ007",
-                        "run needs --env HARNESS_TIKTOKEN_PYTHON and HARNESS_TIKTOKEN_CACHE",
+        let counter: &dyn tokens::TokenCounter =
+            if a.dry || (a.fixture_tokenizer && !specs.iter().any(|m| m.billed)) {
+                &words
+            } else {
+                let py = vars
+                    .get("HARNESS_TIKTOKEN_PYTHON")
+                    .map(PathBuf::from)
+                    .ok_or_else(|| {
+                        q(
+                            "SPX-HPQ007",
+                            "run needs --env HARNESS_TIKTOKEN_PYTHON and HARNESS_TIKTOKEN_CACHE",
+                        )
+                    })?;
+                let cache = vars
+                    .get("HARNESS_TIKTOKEN_CACHE")
+                    .map(PathBuf::from)
+                    .ok_or_else(|| q("SPX-HPQ007", "run needs HARNESS_TIKTOKEN_CACHE"))?;
+                tik = tokens::Tiktoken::start(&py, &cache).map_err(|e| q("SPX-HPQ012", e))?;
+                &tik
+            };
+        let raw = profile_cli::RawBackend {
+            clients: raw_models
+                .iter()
+                .map(|(s, c)| {
+                    (
+                        s.id.clone(),
+                        Box::new(c.clone()) as Box<dyn model::ModelClient>,
                     )
-                })?;
-            let cache = vars
-                .get("HARNESS_TIKTOKEN_CACHE")
-                .map(PathBuf::from)
-                .ok_or_else(|| q("SPX-HPQ007", "run needs HARNESS_TIKTOKEN_CACHE"))?;
-            tik = tokens::Tiktoken::start(&py, &cache).map_err(|e| q("SPX-HPQ012", e))?;
-            &tik
+                })
+                .collect(),
+        };
+        let prod;
+        let backend: &dyn profile_campaign::ArmBackend = match (&a.production_adapter, a.dry) {
+            (Some(id), false) => {
+                let proj = a.production_project.as_deref().map(|p| abs(env, p)).ok_or_else(
+                    || q("SPX-HPQ007", "--production-adapter needs --production-project DIR (an adopted, trusted project)"),
+                )?;
+                let opened = crate::workflow::open_model(
+                    env,
+                    &proj,
+                    id,
+                    None,
+                    None,
+                    &work.join("production-cache"),
+                )
+                .map_err(|e| q("SPX-HPQ009", format!("{}: {}", e.code, e.message)))?;
+                prod = profile_cli::ProductionBackend {
+                    opened,
+                    max_request_tokens: a.max_request_tokens.map_or(200_000, |n| n as u64),
+                    goal: a.production_goal.clone(),
+                };
+                &prod
+            }
+            _ => &raw,
         };
         return profile_cli::run_profiles(
             &set,
@@ -370,7 +428,12 @@ fn exec(a: Args, env: &Environment) -> Result<Outcome, HarnessDiagnostic> {
             &a.tasks,
             max_usd,
             a.max_calls,
-            &raw_models,
+            &specs,
+            backend,
+            (
+                a.base_arm.as_deref().unwrap_or("native"),
+                a.view_arm.as_deref(),
+            ),
             &Value::Object(idents),
             a.dry,
             counter,

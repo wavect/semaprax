@@ -38,6 +38,15 @@ driver from timing an unbound substitute. The other five cells retain their
 checked-`u32` domain and remain unavailable until SEMAPRAX has an equal `u32`
 surface; they cannot be replaced with an `i32` benchmark.
 
+The local command file also declares the exact numeric domains each execution
+path can run. The runner records that declaration separately for ordinary
+Bend, Bend `--verdict`, SEMAPRAX SMT, external Lean, and SEMAPRAX runtime.
+It refuses a cell before invoking its command when that path lacks the cell's
+exact domain: an `i32 checked` declaration cannot run a `u32 checked` cell.
+The example keeps the unprovisioned SMT and Lean routes empty and only marks
+the SEMAPRAX runtime route as Boolean-capable, so these declarations are not
+claims that an external tool executed.
+
 `fixtures/` is the committed language-neutral source-input corpus: every cell
 has one accepted witness and one rejected attack witness, and their digests
 are bound into the result. The current SEMAPRAX scalar surface has no `u32`

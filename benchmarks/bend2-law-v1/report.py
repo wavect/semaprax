@@ -63,6 +63,7 @@ def path_report(path: str, observed: object) -> dict:
     row = {
         "path": path,
         "status": observed["status"],
+        "declared_numeric_domains": observed.get("declared_numeric_domains"),
         "cold": observed.get("cold"),
         "law_gaming_attacks": observed.get("attacks", {}),
     }

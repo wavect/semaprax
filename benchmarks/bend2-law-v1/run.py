@@ -26,6 +26,7 @@ SCHEMA = "semaprax.bend2-law-benchmark.result.v1"
 MANIFEST_SCHEMA = "semaprax.bend2-law-benchmark.manifest.v1"
 COMMANDS_SCHEMA = "semaprax.bend2-law-benchmark.commands.v1"
 PATHS = ("bend_normal", "bend_verdict", "semaprax_smt", "semaprax_lean", "semaprax_runtime")
+NUMERIC_DOMAINS = ("bool exact", "u8 checked", "i32 checked", "i64 checked", "u32 checked")
 ENVIRONMENT_FIELDS = ("hardware", "os", "bend_toolchain", "semaprax_toolchain", "backend", "optimization_flags", "inputs")
 
 
@@ -77,7 +78,7 @@ def require_manifest(manifest, root):
 
 
 def require_commands(commands, bend_commit):
-    if set(commands) != {"schema", "semaprax", "bend", "environment", "commands"}:
+    if set(commands) != {"schema", "semaprax", "bend", "environment", "numeric_domains", "commands"}:
         raise ValueError("commands keys are not exact")
     if commands["bend"].get("commit") != bend_commit:
         raise ValueError("commands do not pin the reviewed Bend commit")
@@ -85,6 +86,8 @@ def require_commands(commands, bend_commit):
         raise ValueError("commands must pin a SEMAPRAX commit")
     if set(commands["commands"]) != set(PATHS):
         raise ValueError("commands must separately declare every execution path")
+    if set(commands["numeric_domains"]) != set(PATHS):
+        raise ValueError("numeric domains must separately declare every execution path")
     if set(commands["environment"]) != set(ENVIRONMENT_FIELDS) or not all(
         isinstance(value, str) and value for value in commands["environment"].values()
     ):
@@ -94,6 +97,11 @@ def require_commands(commands, bend_commit):
             raise ValueError("command is invalid")
         if "{fixture}" not in line or "{case}" not in line:
             raise ValueError("command must bind the exact fixture and case")
+    for domains in commands["numeric_domains"].values():
+        if (not isinstance(domains, list)
+                or any(not isinstance(domain, str) or domain not in NUMERIC_DOMAINS for domain in domains)
+                or len(domains) != len(set(domains))):
+            raise ValueError("numeric domain declaration is invalid")
 
 
 def identities(commands):
@@ -137,19 +145,29 @@ def execute(manifest, commands, samples, timeout):
             fixture = pathlib.Path(manifest.get("_root", ".")) / fixture
         paths = {}
         for path in PATHS:
+            domains = commands["numeric_domains"][path]
+            if cell["numeric_domain"] not in domains:
+                paths[path] = {
+                    "status": "unavailable",
+                    "reason": "path does not declare the exact numeric domain required by this cell",
+                    "declared_numeric_domains": domains,
+                    "cold": None,
+                    "attacks": {},
+                }
+                continue
             cold = invoke(commands["commands"][path], cell["id"], "success", fixture, environment, timeout)
             attacks = {attack: invoke(commands["commands"][path], cell["id"], attack, fixture, environment, timeout) for attack in cell["attacks"]}
             if cold["status"] != "accepted":
-                paths[path] = {"status": "unavailable", "cold": cold, "attacks": attacks}
+                paths[path] = {"status": "unavailable", "declared_numeric_domains": domains, "cold": cold, "attacks": attacks}
                 continue
             if any(result["status"] != "rejected" for result in attacks.values()):
-                paths[path] = {"status": "failed", "cold": cold, "attacks": attacks, "reason": "law-gaming control was accepted"}
+                paths[path] = {"status": "failed", "declared_numeric_domains": domains, "cold": cold, "attacks": attacks, "reason": "law-gaming control was accepted"}
                 continue
             warm = [invoke(commands["commands"][path], cell["id"], "success", fixture, environment, timeout) for _ in range(samples)]
             if any(result["status"] != "accepted" for result in warm):
-                paths[path] = {"status": "unavailable", "cold": cold, "attacks": attacks, "warm": warm}
+                paths[path] = {"status": "unavailable", "declared_numeric_domains": domains, "cold": cold, "attacks": attacks, "warm": warm}
             else:
-                paths[path] = {"status": "ok", "cold": cold, "attacks": attacks, "warm": percentiles([result["wall_ms"] for result in warm])}
+                paths[path] = {"status": "ok", "declared_numeric_domains": domains, "cold": cold, "attacks": attacks, "warm": percentiles([result["wall_ms"] for result in warm])}
         rows.append({"id": cell["id"], "numeric_domain": cell["numeric_domain"], "laws": cell["laws"], "paths": paths})
     return rows
 

@@ -11,6 +11,13 @@
     "optimization_flags": "exact optimization flags for every path",
     "inputs": "sha256 identities of the checked source fixtures and inputs"
   },
+  "numeric_domains": {
+    "bend_normal": ["bool exact", "u32 checked"],
+    "bend_verdict": ["bool exact", "u32 checked"],
+    "semaprax_smt": [],
+    "semaprax_lean": [],
+    "semaprax_runtime": ["bool exact"]
+  },
   "commands": {
     "bend_normal": ["/absolute/path/to/bend-fixture-driver", "--fixture", "{fixture}", "--cell", "{cell}", "--case", "{case}"],
     "bend_verdict": ["/absolute/path/to/bend-fixture-driver", "--verdict", "--fixture", "{fixture}", "--cell", "{cell}", "--case", "{case}"],

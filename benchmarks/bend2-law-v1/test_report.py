@@ -21,6 +21,7 @@ class ReportTests(unittest.TestCase):
         }
         paths["bend_normal"] = {
             "status": "ok",
+            "declared_numeric_domains": ["bool exact"],
             "cold": {"status": "accepted", "wall_ms": 9.0},
             "attacks": {"weakened-postcondition": {"status": "rejected"}},
             "warm": {"p50_ms": 2.0, "p95_ms": 3.0, "samples_ms": [1.0, 2.0, 3.0]},
@@ -50,6 +51,7 @@ class ReportTests(unittest.TestCase):
         normal = next(row for row in paths if row["path"] == "bend_normal")
         self.assertEqual(normal["warm"]["variation"]["raw_samples_ms"], [1.0, 2.0, 3.0])
         self.assertEqual(normal["warm"]["variation"]["population_stddev_ms"], 0.816)
+        self.assertEqual(normal["declared_numeric_domains"], ["bool exact"])
         unavailable = next(row for row in paths if row["path"] == "semaprax_lean")
         self.assertEqual(unavailable["status"], "unavailable")
         self.assertNotIn("winner", document)

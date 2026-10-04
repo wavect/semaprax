@@ -18,6 +18,9 @@ RECEIPT = importlib.util.module_from_spec(RECEIPT_SPEC); RECEIPT_SPEC.loader.exe
 
 
 class RunnerTests(unittest.TestCase):
+    def commands(self, domains=None):
+        return {"schema": RUN.COMMANDS_SCHEMA, "bend": {"root": "/x", "commit": "b"}, "semaprax": {"root": "/y", "commit": "s"}, "environment": {field: field for field in RUN.ENVIRONMENT_FIELDS}, "numeric_domains": domains or {path: ["u32 checked"] for path in RUN.PATHS}, "commands": {path: ["tool", "{fixture}", "{cell}", "{case}"] for path in RUN.PATHS}}
+
     def manifest(self):
         return {"schema": RUN.MANIFEST_SCHEMA, "bend": {"commit": "b", "telemetry_environment": {"BEND_NO_TELEMETRY": "1"}}, "required_paths": list(RUN.PATHS), "cells": [{"id": "sort-v1", "fixture": "fixture.json", "numeric_domain": "u32 checked", "laws": ["sortedness", "permutation-and-multiplicity"], "attacks": ["empty-sort"]}]}
 
@@ -33,7 +36,7 @@ class RunnerTests(unittest.TestCase):
                 RUN.require_manifest(manifest, root)
 
     def test_commands_require_distinct_bend_paths_and_pinned_subjects(self):
-        commands = {"schema": RUN.COMMANDS_SCHEMA, "bend": {"root": "/x", "commit": "b"}, "semaprax": {"root": "/y", "commit": "s"}, "environment": {field: field for field in RUN.ENVIRONMENT_FIELDS}, "commands": {path: ["tool", "{fixture}", "{cell}", "{case}"] for path in RUN.PATHS}}
+        commands = self.commands()
         RUN.require_commands(commands, "b")
         del commands["commands"]["bend_verdict"]
         with self.assertRaisesRegex(ValueError, "every execution path"):
@@ -42,12 +45,15 @@ class RunnerTests(unittest.TestCase):
         commands["commands"]["bend_normal"] = ["tool", "{cell}", "{case}"]
         with self.assertRaisesRegex(ValueError, "exact fixture"):
             RUN.require_commands(commands, "b")
+        commands = self.commands({path: ["u128 checked"] for path in RUN.PATHS})
+        with self.assertRaisesRegex(ValueError, "numeric domain declaration"):
+            RUN.require_commands(commands, "b")
 
     def test_drifted_identity_writes_unavailable_not_a_win(self):
         with tempfile.TemporaryDirectory() as directory:
             root = pathlib.Path(directory); manifest = root / "manifest.json"; commands = root / "commands.json"; output = root / "out.json"
             self.fixture(root); manifest.write_text(json.dumps(self.manifest()))
-            commands.write_text(json.dumps({"schema": RUN.COMMANDS_SCHEMA, "bend": {"root": "/no-bend", "commit": "b"}, "semaprax": {"root": "/no-spx", "commit": "s"}, "environment": {field: field for field in RUN.ENVIRONMENT_FIELDS}, "commands": {path: ["missing", "{fixture}", "{cell}", "{case}"] for path in RUN.PATHS}}))
+            commands.write_text(json.dumps({"schema": RUN.COMMANDS_SCHEMA, "bend": {"root": "/no-bend", "commit": "b"}, "semaprax": {"root": "/no-spx", "commit": "s"}, "environment": {field: field for field in RUN.ENVIRONMENT_FIELDS}, "numeric_domains": {path: ["u32 checked"] for path in RUN.PATHS}, "commands": {path: ["missing", "{fixture}", "{cell}", "{case}"] for path in RUN.PATHS}}))
             self.assertEqual(RUN.main(["--manifest", str(manifest), "--commands", str(commands), "--output", str(output)]), 1)
             self.assertEqual(json.loads(output.read_text())["status"], "unavailable")
 
@@ -66,7 +72,7 @@ class RunnerTests(unittest.TestCase):
 
     def test_accepted_law_gaming_fails_only_the_affected_distinct_path(self):
         manifest = self.manifest()
-        commands = {"commands": {path: [path, "{fixture}"] for path in RUN.PATHS}}
+        commands = {"commands": {path: [path, "{fixture}"] for path in RUN.PATHS}, "numeric_domains": {path: ["u32 checked"] for path in RUN.PATHS}}
 
         def fake(template, cell, case, fixture, environment, timeout):
             if template[0] == "bend_normal" and case == "empty-sort":
@@ -80,6 +86,17 @@ class RunnerTests(unittest.TestCase):
         self.assertEqual(paths["bend_normal"]["status"], "failed")
         self.assertEqual(paths["bend_verdict"]["status"], "ok")
         self.assertEqual(paths["bend_verdict"]["warm"]["samples_ms"], [1.0] * 30)
+
+    def test_i32_declaration_refuses_u32_cell_before_invoking_a_route(self):
+        manifest = self.manifest()
+        commands = {"commands": {path: [path, "{fixture}"] for path in RUN.PATHS}, "numeric_domains": {path: ["i32 checked"] for path in RUN.PATHS}}
+        with mock.patch.object(RUN, "invoke") as invoke:
+            paths = RUN.execute(manifest, commands, 30, 1)[0]["paths"]
+        self.assertFalse(invoke.called)
+        for path in RUN.PATHS:
+            self.assertEqual(paths[path]["status"], "unavailable")
+            self.assertEqual(paths[path]["declared_numeric_domains"], ["i32 checked"])
+            self.assertIn("exact numeric domain", paths[path]["reason"])
 
 
 if __name__ == "__main__":

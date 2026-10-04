@@ -10,6 +10,10 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## 0.8.0 — 2026-10-04
 
+- Re-pin the private Wasmtime Component runner's four independent known-answer
+  sets to the 0.8.0 package identity. The owning contract test now reports
+  all mismatches together; unchanged source descriptor digests stay pinned.
+
 - LAW-16: retain pinned Bend U32 universal insertion-sort verdict/kernel
   evidence and pinned SEMAPRAX LAW15 Lean sortedness/permutation/multiplicity
   evidence over the U32 subset. A versioned guarded-i64 profile records their

@@ -706,13 +706,9 @@ fn capability_and_dependency_policy_are_fail_closed() {
             .and_then(|(_, rest)| rest.split_once(';'))
             .map(|(value, _)| value.trim());
         if value != Some(format!("\"{expected}\"").as_str()) {
-            mismatches.push(format!("{name}: {expected}"));
+            mismatches.push(format!("PUBLIC_GENERIC_{name}: {expected}"));
         }
     }
-    assert!(
-        mismatches.is_empty(),
-        "private Component known answers differ: {mismatches:?}"
-    );
     let failure_artifact = semaprax::project::with_authenticated_project(
         &root().join(
             "platform-tests/component-runtime/fixtures/public-generic-contract-failure-v1/semaprax.toml",
@@ -729,7 +725,6 @@ fn capability_and_dependency_policy_are_fail_closed() {
     for byte in Sha256::digest(failure_artifact.bytes()) {
         write!(failure_raw_digest, "{byte:02x}").unwrap();
     }
-    let mut failure_mismatches = Vec::new();
     for (name, expected) in [
         ("COMPONENT_DIGEST", failure_artifact.digest()),
         ("DESCRIPTOR_DIGEST", failure_artifact.descriptor_digest()),
@@ -742,13 +737,9 @@ fn capability_and_dependency_policy_are_fail_closed() {
             .and_then(|(_, rest)| rest.split_once(';'))
             .map(|(value, _)| value.trim());
         if value != Some(format!("\"{expected}\"").as_str()) {
-            failure_mismatches.push(format!("{name}: {expected}"));
+            mismatches.push(format!("CONTRACT_FAILURE_{name}: {expected}"));
         }
     }
-    assert!(
-        failure_mismatches.is_empty(),
-        "contract-failure Component known answers differ: {failure_mismatches:?}"
-    );
     for (prefix, fixture) in [
         ("EXPECTED_PARITY_", "public-generic-parity-v1"),
         (
@@ -772,7 +763,6 @@ fn capability_and_dependency_policy_are_fail_closed() {
         for byte in Sha256::digest(parity_artifact.bytes()) {
             write!(parity_raw_digest, "{byte:02x}").unwrap();
         }
-        let mut parity_mismatches = Vec::new();
         for (name, expected) in [
             ("COMPONENT_DIGEST", parity_artifact.digest()),
             ("DESCRIPTOR_DIGEST", parity_artifact.descriptor_digest()),
@@ -785,14 +775,14 @@ fn capability_and_dependency_policy_are_fail_closed() {
                 .and_then(|(_, rest)| rest.split_once(';'))
                 .map(|(value, _)| value.trim());
             if value != Some(format!("\"{expected}\"").as_str()) {
-                parity_mismatches.push(format!("{name}: {expected}"));
+                mismatches.push(format!("{fixture} {name}: {expected}"));
             }
         }
-        assert!(
-            parity_mismatches.is_empty(),
-            "{fixture} Component known answers differ: {parity_mismatches:?}"
-        );
     }
+    assert!(
+        mismatches.is_empty(),
+        "private Component known answers differ: {mismatches:?}"
+    );
     assert_eq!(
         runner
             .matches("get_typed_func::<(i64, i32, i64, i64), i32>")

@@ -22,6 +22,35 @@ STAGES = (
     "m3_prepare", "m3_consumer", "m3_negative_controls", "linked_prepare", "linked_consumer",
 )
 THRESHOLD = 0.90
+M1_BATCH_GENERATION_GAP = {
+    "status": "unavailable",
+    "reason": (
+        "the authenticated M1 packages publish only fixed scalar run() exports and "
+        "owner counters; they have no parameterized Regex scan or Url parse/view route"
+    ),
+    "fixed_authored_workload": {
+        "regex_pattern": "example",
+        "input": "https://example.invalid/path",
+        "input_bytes": 28,
+        "exports": ["regex.run", "url.run"],
+    },
+    "missing_generation_hook": {
+        "owner": "indexed Regex/Url Project package generator",
+        "required_routes": [
+            "authenticated parameterized Regex::new/is_match scan",
+            "authenticated parameterized Url::parse/as_str normalize/view",
+        ],
+        "required_generated_metrics": [
+            "exact borrowed-input bytes",
+            "adapter copy events and copied bytes",
+            "owner cleanup counts",
+        ],
+        "measurement_consumer_requirement": (
+            "locked direct regex =1.13.1 and url =2.5.8 dependencies plus a "
+            "handwritten adapter must run the identical authenticated workload"
+        ),
+    },
+}
 
 
 def canonical(value):
@@ -142,10 +171,7 @@ def investigate(receipt_path, m3_path):
         "receipt": {"path": str(receipt_path), "sha256": digest(receipt_path), "checkout": receipt.get("checkout")},
         "m3_investigation": {"path": str(m3_path), "sha256": digest(m3_path), "status": m3.get("status")},
         "profiles": {
-            "m1": {
-                "status": "unavailable",
-                "reason": "the combined receipt has M1 prepare/consumer stages but no matched direct and handwritten batch routes",
-            },
+            "m1": M1_BATCH_GENERATION_GAP,
             "m2": m2_profile(m2_tasks),
             "m3": {
                 "status": "investigation_required" if ratio < THRESHOLD else "threshold_not_triggered",
@@ -164,7 +190,7 @@ def investigate(receipt_path, m3_path):
         },
         "limitations": [
             "This is a local investigation record, not a performance pass or cross-platform claim.",
-            "M1 remains unavailable until the same workload has matched direct and handwritten measurements.",
+            "M1 remains unavailable until the closed generator publishes the parameterized routes and the same authenticated workload has matched direct and handwritten measurements.",
             "M2 is a fixture-specific matched comparison: generated callbacks retain source contracts and lifecycle checks absent from the direct and handwritten routes.",
             "The M3 source-bound investigation explains repeated registration but does not attribute an exact share of route time to an operation.",
         ],

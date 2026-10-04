@@ -67,7 +67,19 @@ class CombinedThroughputTests(unittest.TestCase):
             report.write_text(json.dumps(receipt()))
             investigation.write_text(json.dumps(m3(report)))
             result = THROUGHPUT.investigate(report, investigation)
-        self.assertEqual(result["profiles"]["m1"]["status"], "unavailable")
+        m1 = result["profiles"]["m1"]
+        self.assertEqual(m1["status"], "unavailable")
+        self.assertEqual(m1["fixed_authored_workload"]["input_bytes"], 28)
+        self.assertEqual(m1["fixed_authored_workload"]["exports"], ["regex.run", "url.run"])
+        self.assertEqual(
+            m1["missing_generation_hook"]["owner"],
+            "indexed Regex/Url Project package generator",
+        )
+        self.assertEqual(
+            m1["missing_generation_hook"]["required_generated_metrics"],
+            ["exact borrowed-input bytes", "adapter copy events and copied bytes", "owner cleanup counts"],
+        )
+        self.assertIn("locked direct regex =1.13.1", m1["missing_generation_hook"]["measurement_consumer_requirement"])
         self.assertEqual(result["profiles"]["m2"]["status"], "measured")
         self.assertEqual(
             result["profiles"]["m2"]["tasks"]["generic_record"]["generated_to_direct_throughput_ratio"],

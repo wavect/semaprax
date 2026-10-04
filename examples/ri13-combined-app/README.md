@@ -134,8 +134,14 @@ the generated/direct and generated/handwritten normalized M3 ratios with the
 0.90 investigation threshold. The combined receipt also runs M2's existing
 matched 32-operation generic-record and stateful-callback batches across direct
 Rust, handwritten adapters, and generated Semaprax. M1 remains `unavailable`:
-its combined stages have no comparable direct and handwritten batch route, so
-the tool refuses to treat Cargo stage time as throughput.
+its authenticated Regex/Url packages publish only fixed scalar `run()` exports
+and owner counters for the 28-byte `https://example.invalid/path` fixture.
+They do not expose a parameterized Regex scan or Url parse/view route, and the
+consumer does not have locked direct `regex =1.13.1` and `url =2.5.8`
+dependencies for a matched direct and handwritten comparison. The investigation
+therefore records the required closed generator hook, its borrowed-input/copy
+and cleanup metrics, and the measurement-consumer dependency requirement;
+it refuses to treat Cargo stage time as throughput.
 
 The linked consumer emits its own one-line canonical ledger after it executes
 the M1 owners and M2 record/callback routes. The measurement parser requires

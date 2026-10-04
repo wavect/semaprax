@@ -47,6 +47,18 @@ source fixture. The pinned Bend source used for the Boolean smoke route does
 not supply matched checked-`u32` source/proof files or a runnable six-cell
 command configuration; those remain explicitly unavailable.
 
+Before executing any path, the runner validates the canonical equal-spec
+controls in the fixture corpus. The scalar cell requires exact Boolean
+negation; balance requires both conservation and the requested debit/credit;
+sorting requires both sortedness and permutation with multiplicity; refactoring
+requires the same observed result; the agent edit retains its declared law; and
+the incremental cell records rechecking `core` while reusing only `api`.
+The corresponding mutants are rejected as weakened postconditions, no-op
+transfer, empty sort, dropped refactor law, removed agent law, and stale cache
+reuse. These are fixture checks, not tool execution evidence. All five
+checked-`u32` cells remain unavailable until both languages have matched
+executable source and proof routes; this validation never substitutes `i32`.
+
 The harness records local evidence only. It does not provision tools, clone
 repositories, generate source fixtures, publish results, or make a
 superiority claim. Unimplemented fixture/tool combinations remain

@@ -20,6 +20,8 @@ import sys
 import time
 from datetime import datetime, timezone
 
+from equal_spec_controls import validate as validate_equal_spec
+
 SCHEMA = "semaprax.bend2-law-benchmark.result.v1"
 MANIFEST_SCHEMA = "semaprax.bend2-law-benchmark.manifest.v1"
 COMMANDS_SCHEMA = "semaprax.bend2-law-benchmark.commands.v1"
@@ -68,6 +70,7 @@ def require_manifest(manifest, root):
                 or fixture_value["numeric_domain"] != cell["numeric_domain"]
                 or set(fixture_value["attacks"]) != set(cell["attacks"])):
             raise ValueError("cell fixture does not bind the declared semantics")
+        validate_equal_spec(cell, fixture_value)
         if cell["id"] in seen:
             raise ValueError("duplicate cell")
         seen.add(cell["id"])

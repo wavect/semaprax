@@ -9,6 +9,7 @@ use super::journal::Journal;
 use super::pipeline::{change_bytes, Ctx, Stages};
 use super::policy::check_protected_facts;
 use super::report::Report;
+use super::spend_dispatch::Attempt;
 use super::stages::*;
 use crate::decision::{
     gate_attests_key, governed_decide, recheck_dispatch, Budget, Confidentiality,
@@ -152,19 +153,24 @@ struct Routed {
     json: Value,
     model: String,
     router_calls: u32,
+    /// Router calls made, decision plus shadow (what the spend record settles).
+    router_calls_total: u32,
     request_text: String,
     provider: String,
 }
 
-fn route_models(
-    cx: &Ctx,
+/// Routing allowance when no task cost limit is set (the earlier fixed figure).
+const DEFAULT_ROUTE_ALLOWANCE_MICROS: u64 = 1_000_000;
+
+/// Route features, budget and the exact serialized router request. The cost
+/// allowance is the task's remaining cost budget when one is set (TC-03).
+pub(super) fn route_parts(
     task: &Task,
-    catalog: Vec<ModelPlan>,
+    catalog: &[ModelPlan],
     estimated_tokens: u64,
-    decision: Option<&mut super::pipeline::DecisionStage>,
-    rb: &super::budget::RequestBudget,
-    router_headroom_tokens: Option<u64>,
-) -> HarnessResult<Routed> {
+    allowance_micros: u64,
+    router: bool,
+) -> HarnessResult<(TaskFeatures, Budget, String)> {
     let family = TaskFamily::parse(&task.family).ok_or_else(|| {
         d(
             "SPX-HPD081",
@@ -180,12 +186,33 @@ fn route_models(
         latency_class: LatencyClass::Interactive,
     };
     let budget = Budget {
-        max_cost_micros: 1_000_000,
+        max_cost_micros: allowance_micros,
         max_latency_ms: 60_000,
-        max_router_calls: u32::from(decision.is_some()),
+        max_router_calls: u32::from(router),
     };
     let text = crate::json::canonical(&json!({"features": features.to_json(),
         "catalog": catalog.iter().map(ModelPlan::to_json).collect::<Vec<_>>(), "budget": budget.to_json()}));
+    Ok((features, budget, text))
+}
+
+#[allow(clippy::too_many_arguments)]
+fn route_models(
+    cx: &Ctx,
+    task: &Task,
+    catalog: Vec<ModelPlan>,
+    estimated_tokens: u64,
+    decision: Option<&mut super::pipeline::DecisionStage>,
+    rb: &super::budget::RequestBudget,
+    router_headroom_tokens: Option<u64>,
+    allowance_micros: u64,
+) -> HarnessResult<Routed> {
+    let (features, budget, text) = route_parts(
+        task,
+        &catalog,
+        estimated_tokens,
+        allowance_micros,
+        decision.is_some(),
+    )?;
     let request = RouteRequest::new(features, catalog, budget)?;
     let mut policy = RoutePolicy::default();
     if cx.cfg.routing.approve_remote {
@@ -278,6 +305,7 @@ fn route_models(
                "policy": {"allow_remote": cfg.user_allow_remote, "project_pin": cfg.project_pin}}),
         model: dec.choice,
         router_calls: dec.router_calls,
+        router_calls_total: gr.router_calls_total,
         request_text: text,
         provider: dec.provider_id,
     })
@@ -289,10 +317,11 @@ fn route_models(
 pub(super) fn route_and_fit(
     cx: &mut Ctx,
     st: &mut Stages,
+    journal: &mut Journal,
     r: &mut Report,
     p: &PromptCtx,
     label: &str,
-) -> HarnessResult<(Fit, Value)> {
+) -> HarnessResult<(Fit, Value, Attempt)> {
     let cfg = cx.cfg;
     let task = &cfg.task;
     let shape = response_shape(p);
@@ -339,27 +368,47 @@ pub(super) fn route_and_fit(
             .policy
             .max_task_tokens
             .map(|m| m.saturating_sub(cx.ledger.reserved_tokens() + est));
+        let allowance = cx
+            .ledger
+            .spend
+            .available_cost()
+            .unwrap_or(DEFAULT_ROUTE_ALLOWANCE_MICROS);
+        // A router call is admitted and journaled before it can happen; when it
+        // is unaffordable (or unpriced under strict money) rules decide alone.
+        let router = super::spend_dispatch::reserve_router(
+            cx, st, journal, r, &budget, &pool, est, allowance, label,
+        )?;
+        let decision = if router.is_some() {
+            st.decision.as_mut()
+        } else {
+            None
+        };
         let routed = route_models(
             cx,
             task,
             pool.clone(),
             est,
-            st.decision.as_mut(),
+            decision,
             &budget,
             headroom,
+            allowance,
         )?;
+        if let Some(id) = &router {
+            super::spend_dispatch::settle_router(cx, journal, id, routed.router_calls_total)?;
+        }
         if routed.router_calls > 0 {
             let count = budget.count(&routed.provider, &routed.request_text);
-            cx.ledger.reserve(
-                &budget.policy,
-                LedgerEntry {
-                    label: format!("{label}-router"),
-                    kind: "router".into(),
-                    count: count.clone(),
-                    output_reserve: ROUTER_OUTPUT_RESERVE,
-                    cost_micros: 0,
-                },
-            )?;
+            cx.ledger.entries.push(LedgerEntry {
+                id: router.clone().unwrap_or_default(),
+                label: format!("{label}-router"),
+                kind: "router".into(),
+                count: count.clone(),
+                output_reserve: ROUTER_OUTPUT_RESERVE,
+                cost_micros: router
+                    .as_deref()
+                    .and_then(|id| cx.ledger.spend.record(id))
+                    .map_or(0, |x| x.reserved_cost),
+            });
             cx.observe_incurred(
                 &routed.provider,
                 "decision.evaluate",
@@ -414,17 +463,10 @@ pub(super) fn route_and_fit(
                     fit.dropped.join(", ")
                 ));
             }
-            cx.ledger.reserve(
-                &budget.policy,
-                LedgerEntry {
-                    label: label.into(),
-                    kind: "generation".into(),
-                    count: fit.count.clone(),
-                    output_reserve: budget.policy.output_reserve_tokens,
-                    cost_micros: plan.est_cost_micros,
-                },
+            let attempt = super::spend_dispatch::reserve_generation(
+                cx, st, journal, &budget, &plan, &fit, label,
             )?;
-            return Ok((fit, routed.json));
+            return Ok((fit, routed.json, attempt));
         }
         excluded.push(
             json!({"model": plan.id, "required_tokens": fit.required_tokens,
@@ -448,6 +490,7 @@ pub(super) fn generate(
     step: &str,
     count: &RequestCount,
     controls: &GenerationControls,
+    attempt: &Attempt,
 ) -> HarnessResult<Vec<u8>> {
     let side = st.proposer.side_effecting();
     let cache = cx.cfg.cache_dir.join(if step == "generate" {
@@ -458,6 +501,7 @@ pub(super) fn generate(
     if side {
         if matches!(journal.state(step).map(|x| x.state.as_str()), Some("done")) {
             if let Ok(b) = std::fs::read(&cache) {
+                super::spend_dispatch::release(cx, journal, attempt, "reused_not_dispatched")?;
                 r.notes.push(
                     "proposal reused from the journal; the model was not invoked again".into(),
                 );
@@ -470,6 +514,7 @@ pub(super) fn generate(
                 Some("uncertain")
             )
         {
+            super::spend_dispatch::release(cx, journal, attempt, "refused_not_dispatched")?;
             return Err(d("SPX-HPD072", "uncertain: a model generation in this lineage began without a recorded result; it is not replayed, supply --proposal or change the task"));
         }
         journal.append(
@@ -505,6 +550,9 @@ pub(super) fn generate(
         &receipt,
         &estimate,
     );
+    // Settle from the receipt before the step's terminal record (TC-03).
+    let known = !matches!(got, Err(StageFailure::Uncertain(_)));
+    super::spend_dispatch::settle_generation(cx, journal, attempt, &receipt, &estimate, known)?;
     match got {
         Ok(b) => {
             if side {
@@ -554,7 +602,7 @@ fn generate_with_retry(
     p: &PromptCtx,
     step: &str,
 ) -> HarnessResult<Vec<u8>> {
-    let (mut fit, route_json) = route_and_fit(cx, st, r, p, step)?;
+    let (mut fit, route_json, mut attempt) = route_and_fit(cx, st, journal, r, p, step)?;
     r.route = route_json;
     let shape = response_shape(p);
     let mut controls = cx.cfg.budget.generation.controls(shape, fit.output_reserve);
@@ -571,6 +619,7 @@ fn generate_with_retry(
             &gstep,
             &fit.count,
             &controls,
+            &attempt,
         ) {
             // A length-limited reply is a known terminal outcome: one new attempt
             // at the configured larger cap, reserved before dispatch like any other.
@@ -590,9 +639,10 @@ fn generate_with_retry(
                     "reply length-limited at {} output tokens; one new attempt at the larger cap",
                     fit.output_reserve
                 ));
-                let (f2, rj) = route_and_fit(cx, st, r, p, &gstep)?;
+                let (f2, rj, a2) = route_and_fit(cx, st, journal, r, p, &gstep)?;
                 r.route = rj;
                 fit = f2;
+                attempt = a2;
                 controls = cx.cfg.budget.generation.controls(shape, fit.output_reserve);
             }
             other => return other,

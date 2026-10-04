@@ -246,12 +246,15 @@ pub fn run(
     report.providers = cfg.providers.clone();
     report.composition = cfg.composition.to_json();
     report.notes = cfg.notes.clone();
+    let mut ledger = TaskLedger::default();
+    ledger.spend.limits =
+        super::spend::Limits::new(&cfg.budget.for_task(&cfg.task).policy, &cfg.budget.spend);
     let mut cx = Ctx {
         cfg,
         compiler,
         lineage: &lineage,
         observer,
-        ledger: TaskLedger::default(),
+        ledger,
         started: Instant::now(),
         receipts: Default::default(),
         reserve_override: None,
@@ -274,6 +277,12 @@ pub fn run(
             report.context = json!({});
         }
         report.context["task_ledger"] = cx.ledger.to_json();
+    }
+    if !cx.ledger.spend.records.is_empty() {
+        if report.context.is_null() {
+            report.context = json!({});
+        }
+        report.context["spend"] = cx.ledger.spend.to_json();
     }
     if !cx.receipts.is_empty() {
         if report.context.is_null() {
@@ -323,7 +332,11 @@ fn drive(cx: &mut Ctx, st: &mut Stages, r: &mut Report) -> HarnessResult<()> {
         r.schema_version = 2;
         r.task = task.summary_json();
     }
+    // One local writer per lineage; earlier spend of this lineage is restored
+    // (fail closed) before anything can be admitted (TC-03).
+    let _writer = super::spend::WriterLock::acquire(&cfg.cache_dir, &cx.lineage.id)?;
     let mut journal = Journal::open(&cfg.cache_dir, &cx.lineage.id)?;
+    cx.ledger.spend.restore(&journal)?;
 
     // Resume rules: never replay a publication or an unfinished side effect.
     match journal

@@ -258,11 +258,12 @@ def render() -> dict:
             "id": "AC6",
             "text": ACCEPTANCE_TEXT[5],
             "status": "partial",
-            "assessment": "Ten fixed-budget matched Boolean agent pairs include candidate/attack outcomes and retained token counters. No monetary charge event is present, and the other planned task cells have no corresponding ten-trial agent campaigns because they are unsupported or unobserved.",
+            "assessment": "Ten fixed-budget matched Boolean agent pairs include candidate/attack outcomes and retained token counters, but their Codex streams lack monetary charges. A separate Claude Haiku probe emitted a monetary cost event and failed at its budget guard before any source outcome; it does not supply campaign cost provenance. Other planned task cells lack corresponding ten-trial agent campaigns.",
             "evidence": common + [
                 evidence("evidence/law16-boolean-negation-agent-pilot-v1/review.json"),
                 evidence("evidence/law16-boolean-negation-agent-campaign-v1/review.json"),
                 evidence("evidence/law16-effort-summary-v1.json"),
+                evidence("evidence/law16-claude-cost-pilot-v1.json"),
             ],
         },
         {
@@ -289,11 +290,11 @@ def render() -> dict:
         ),
         (
             "partial",
-            "Available process cells have 30 samples, p50/p95, peak RSS, and descriptive MAD; proof synthesis tokens, Boolean annotation/changed-byte counts, and route checks are separately reported. Cold-cache isolation, monetary cost, and separate native compile/run timings are unavailable.",
+            "Available process cells have 30 samples, p50/p95, peak RSS, and descriptive MAD; proof synthesis tokens, Boolean annotation/changed-byte counts, and route checks are separately reported. Cold-cache isolation, monetary cost for admitted matched trials, and separate native compile/run timings are unavailable.",
         ),
         (
             "partial",
-            "Ten fixed-budget matched agent pairs cover the Boolean task and retain candidate/attack outcomes and token counters. No monetary charge event exists, and unsupported planned tasks have no matched agent trials.",
+            "Ten fixed-budget matched agent pairs cover the Boolean task and retain candidate/attack outcomes and token counters. A separate failed Claude probe has a cost event but no source outcome; the admitted Codex trials lack monetary events, and unsupported planned tasks have no matched agent trials.",
         ),
         (
             "met",
@@ -381,7 +382,7 @@ def render() -> dict:
             "classification": "unavailable",
             "blocking_requirements": ["AC6", "R5"],
             "status": unsupported["cost"],
-            "evidence": common,
+            "evidence": common + [evidence("evidence/law16-claude-cost-pilot-v1.json")],
         },
     ]
 
@@ -429,7 +430,7 @@ def render() -> dict:
             },
             {
                 "id": "AC6",
-                "reason": "No monetary cost event exists, and the ten-trial agent evidence covers only the Boolean task.",
+                "reason": "The admitted ten-trial agent evidence has no monetary cost event and covers only the Boolean task; a separate Claude cost probe failed before any source outcome.",
                 "kind": "missing_agent_telemetry_and_task_coverage",
             },
         ],

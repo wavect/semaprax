@@ -70,6 +70,11 @@ Codex JSON records expose token counters but no monetary charge event. The
 [cost-provenance receipt](evidence/law16-boolean-negation-agent-cost-provenance-v1.json)
 authenticates all 20 provider event streams and their 333,999 total tokens;
 its monetary cost is explicitly unavailable, with no price inferred from tokens.
+A separate [Claude Haiku cost probe](evidence/law16-claude-cost-pilot-v1.json)
+recorded a provider-reported **$0.023741** charge, but stopped with
+`error_max_budget_usd` before producing a source outcome. Its sanitized receipt
+does not retain the provider stream, and this failed probe does not supply
+monetary cost for the ten matched Codex pairs or admit a Claude campaign.
 The [Boolean annotation receipt](evidence/law16-boolean-negation-annotation-summary-v1.json)
 binds all 20 final sources in those ten pairs to their fixed seeds and reports
 explicit annotation, proof-term, and changed-byte counts. These textual counts
@@ -89,7 +94,7 @@ execution. Fresh/repeat paths do not isolate operating-system or tool caches.
 
 The pinned SEMAPRAX parser does not admit checked `u32`; its retained
 non-admission receipt records `SPX-P003`. There is no retained cold-cache
-isolation, monetary cost event, or matched project-sized/refactor/incremental
+isolation, monetary cost event for admitted matched agent trials, or matched project-sized/refactor/incremental
 cell. The Lean list proof below covers its exact LAW15 source, not the original
 LAW16 fixture. These gaps prevent honest closure of #392.
 

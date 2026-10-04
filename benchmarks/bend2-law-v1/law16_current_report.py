@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Render the current LAW-16 evidence state from authenticated local capsules."""
 import argparse
+import hashlib
 import importlib.util
 import json
 import pathlib
@@ -125,6 +126,17 @@ def render():
     cost_provenance = COST_PROVENANCE.capture(ROOT / "evidence")
     if cost_provenance != read(ROOT / "evidence/law16-boolean-negation-agent-cost-provenance-v1.json"):
         raise ValueError("Boolean agent cost provenance receipt drifted")
+    claude_plan_path = ROOT / "fixtures/law16-claude-cost-pilot-plan-v1.json"
+    claude_plan = read(claude_plan_path)
+    claude_pilot = read(ROOT / "evidence/law16-claude-cost-pilot-v1.json")
+    if (
+        claude_pilot.get("schema") != "semaprax.bend2-law-benchmark.claude-cost-pilot.v1"
+        or claude_plan.get("schema") != "semaprax.bend2-law-benchmark.claude-cost-pilot-plan.v1"
+        or claude_pilot.get("plan", {}).get("sha256") != "sha256:" + hashlib.sha256(claude_plan_path.read_bytes()).hexdigest()
+        or claude_pilot.get("provider", {}).get("model_id") != claude_plan.get("provider", {}).get("model_id")
+        or claude_pilot.get("campaign_admission") is not False
+    ):
+        raise ValueError("Claude cost pilot plan or nonadmission receipt drifted")
     process_v2_provenance = read(ROOT / "evidence/law16-boolean-negation-process-v2/provenance.json")
     effort = read(ROOT / "evidence/law16-effort-summary-v1.json")
     annotations = read(ROOT / "evidence/law16-annotation-summary-v1.json")
@@ -202,6 +214,17 @@ def render():
                 "aggregate_token_usage": cost_provenance["aggregate_token_usage"],
                 "cost_usage": cost_provenance["cost_usage"],
                 "nonclaims": cost_provenance["nonclaims"],
+            },
+            "claude_cost_probe": {
+                "source": "evidence/law16-claude-cost-pilot-v1.json",
+                "status": claude_pilot["status"],
+                "provider": claude_pilot["provider"],
+                "provider_cost_usd": claude_pilot["provider_cost_usd"],
+                "provider_usage": claude_pilot["provider_usage"],
+                "result": claude_pilot["result"],
+                "campaign_admission": claude_pilot["campaign_admission"],
+                "raw_provider_stream_retained": False,
+                "nonclaims": claude_pilot["nonclaims"],
             },
             "peak_rss": rss["routes"],
             "timing_variation": variation,
@@ -375,7 +398,7 @@ def render():
             "checked_u32": "unsupported_by_pinned_parser: SPX-P003 admits i32, u8, usize literal suffixes, not u32",
             "cold_cache": "unavailable: no retained reproducible clean cache isolation",
             "Lean": "supplemental LAW15 collection source theorem physically checked by Lean; no Boolean or original law16.* Lean export",
-            "cost": "unavailable: no Codex JSON monetary charge event",
+            "cost": "unavailable for admitted agent trials: Codex JSON has no monetary charge event; a separate Claude probe recorded cost but failed before any source outcome",
             "project_sized": "unavailable: Boolean microcell is not project-sized/incremental evidence",
             "list_refactor_lawbreaking": remaining,
         },

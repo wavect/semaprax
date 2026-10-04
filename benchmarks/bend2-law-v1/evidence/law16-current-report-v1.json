@@ -892,6 +892,34 @@
       "semaprax_z3_candidate_postcondition_discharges": 60,
       "semaprax_z3_seeded_attack_rejections": 60
     },
+    "claude_cost_probe": {
+      "campaign_admission": false,
+      "nonclaims": [
+        "the collector does not retain assistant text or claim a source outcome",
+        "a provider cost event without a successful source and independent route outcome cannot start a campaign",
+        "no currency value is derived from token counters"
+      ],
+      "provider": {
+        "cli_version": "2.1.289",
+        "id": "anthropic-claude-code-cli",
+        "model_id": "claude-haiku-4-5-20251001"
+      },
+      "provider_cost_usd": 0.023741,
+      "provider_usage": {
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 0,
+        "output_tokens": 0
+      },
+      "raw_provider_stream_retained": false,
+      "result": {
+        "duration_ms": 1791,
+        "is_error": true,
+        "subtype": "error_max_budget_usd"
+      },
+      "source": "evidence/law16-claude-cost-pilot-v1.json",
+      "status": "blocked_before_source_outcome_review"
+    },
     "cost_provenance": {
       "aggregate_token_usage": {
         "cached_input_tokens": 258048,
@@ -2070,7 +2098,7 @@
     "Lean": "supplemental LAW15 collection source theorem physically checked by Lean; no Boolean or original law16.* Lean export",
     "checked_u32": "unsupported_by_pinned_parser: SPX-P003 admits i32, u8, usize literal suffixes, not u32",
     "cold_cache": "unavailable: no retained reproducible clean cache isolation",
-    "cost": "unavailable: no Codex JSON monetary charge event",
+    "cost": "unavailable for admitted agent trials: Codex JSON has no monetary charge event; a separate Claude probe recorded cost but failed before any source outcome",
     "list_refactor_lawbreaking": {
       "admission_blocker": {
         "receipt": "evidence/law16-checked-u32-nonadmission-v1/review.json",

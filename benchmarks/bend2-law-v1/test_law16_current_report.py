@@ -129,6 +129,11 @@ class CurrentReportTests(unittest.TestCase):
         self.assertEqual(cost["trials"], 20)
         self.assertEqual(cost["aggregate_token_usage"]["total_tokens"], 333999)
         self.assertEqual(cost["cost_usage"]["status"], "unavailable")
+        probe = value["matched_boolean"]["claude_cost_probe"]
+        self.assertEqual(probe["provider_cost_usd"], 0.023741)
+        self.assertEqual(probe["result"]["subtype"], "error_max_budget_usd")
+        self.assertFalse(probe["campaign_admission"])
+        self.assertFalse(probe["raw_provider_stream_retained"])
         self.assertEqual(value["status"], "incomplete")
 
 

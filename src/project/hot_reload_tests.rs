@@ -99,6 +99,7 @@ fn source_agent_handoff_digest_binds_definition_and_interaction_schema_facts() {
         definition_digest: "sha256:definition-a".to_owned(),
         graph_digest: "sha256:graph-a".to_owned(),
         runtime_profile_digest: "sha256:profile-a".to_owned(),
+        state_type_id: "agent.state".to_owned(),
         proposal_type_id: "agent.proposal".to_owned(),
         proposal_type_revision: "sha256:proposal-type-a".to_owned(),
         observation_type_id: "agent.observation".to_owned(),
@@ -110,6 +111,7 @@ fn source_agent_handoff_digest_binds_definition_and_interaction_schema_facts() {
         definition_digest: "sha256:definition-b".to_owned(),
         graph_digest: "sha256:graph-b".to_owned(),
         runtime_profile_digest: "sha256:profile-b".to_owned(),
+        state_type_id: "agent.state.next".to_owned(),
         proposal_type_id: "agent.proposal".to_owned(),
         proposal_type_revision: "sha256:proposal-type-b".to_owned(),
         observation_type_id: "agent.observation".to_owned(),
@@ -123,6 +125,8 @@ fn source_agent_handoff_digest_binds_definition_and_interaction_schema_facts() {
     changed_definition.definition_digest = "sha256:definition-c".to_owned();
     let mut changed_proposal_schema = destination.clone();
     changed_proposal_schema.proposal_schema_digest = "sha256:proposal-schema-c".to_owned();
+    let mut changed_state = destination.clone();
+    changed_state.state_type_id = "agent.state.other".to_owned();
     let mut changed_observation_type = destination;
     changed_observation_type.observation_type_revision = "sha256:observation-type-c".to_owned();
 
@@ -133,6 +137,10 @@ fn source_agent_handoff_digest_binds_definition_and_interaction_schema_facts() {
     assert_ne!(
         digest,
         source_agent_handoff_row_digest("agent.id", &previous, &changed_proposal_schema)
+    );
+    assert_ne!(
+        digest,
+        source_agent_handoff_row_digest("agent.id", &previous, &changed_state)
     );
     assert_ne!(
         digest,

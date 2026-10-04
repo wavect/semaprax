@@ -190,6 +190,7 @@ struct SourceAgentEndpointFacts {
     definition_digest: String,
     graph_digest: String,
     runtime_profile_digest: String,
+    state_type_id: String,
     proposal_type_id: String,
     proposal_type_revision: String,
     observation_type_id: String,
@@ -944,6 +945,7 @@ fn source_agent_endpoint_facts_with_contracts(
     contract: &super::AgentInteractionContractFact,
 ) -> Option<SourceAgentEndpointFacts> {
     if definition.definition().agent_id() != contract.agent_id()
+        || definition.definition().type_id("state")?.is_empty()
         || contract.proposal_type_id().is_empty()
         || contract.proposal_type_revision().is_empty()
         || contract.observation_type_id().is_empty()
@@ -958,6 +960,7 @@ fn source_agent_endpoint_facts_with_contracts(
             b"semaprax.hot-reload-source-agent-runtime.v1\0",
             definition.runtime_v1_profile().as_bytes(),
         ),
+        state_type_id: definition.definition().type_id("state")?.to_owned(),
         proposal_type_id: contract.proposal_type_id().to_owned(),
         proposal_type_revision: contract.proposal_type_revision().to_owned(),
         observation_type_id: contract.observation_type_id().to_owned(),
@@ -971,6 +974,7 @@ fn endpoint_facts_equal(left: &SourceAgentEndpointFacts, right: &SourceAgentEndp
     left.definition_digest == right.definition_digest
         && left.graph_digest == right.graph_digest
         && left.runtime_profile_digest == right.runtime_profile_digest
+        && left.state_type_id == right.state_type_id
         && left.proposal_type_id == right.proposal_type_id
         && left.proposal_type_revision == right.proposal_type_revision
         && left.observation_type_id == right.observation_type_id
@@ -984,6 +988,7 @@ fn endpoint_facts_json(facts: &SourceAgentEndpointFacts) -> serde_json::Value {
         "definition_digest": facts.definition_digest,
         "graph_digest": facts.graph_digest,
         "runtime_profile_digest": facts.runtime_profile_digest,
+        "state_type_id": facts.state_type_id,
         "proposal_type_id": facts.proposal_type_id,
         "proposal_type_revision": facts.proposal_type_revision,
         "observation_type_id": facts.observation_type_id,

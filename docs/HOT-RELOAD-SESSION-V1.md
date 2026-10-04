@@ -51,9 +51,9 @@ pre/postconditions, cleanup inventory/plan, and loan plan agree. A missing or
 ambiguous closure target fails closed. Unreachable functions remain outside
 this local prepared-worker state compatibility decision.
 For every source Agent, planning retains the predecessor and candidate
-AgentDefinition, AgentGraph, Runtime v1 profile, Proposal and Observation
-schema digests in a stable-ID ordered opaque handoff row. Its v2 digest binds
-the row schema and every endpoint fact. The row contains no
+AgentDefinition, AgentGraph, Runtime v1 profile, State type identity, Proposal
+and Observation schema digests in a stable-ID ordered opaque handoff row. Its
+v2 digest binds the row schema and every endpoint fact. The row contains no
 checkpoint bytes, lifecycle binding, store, host capability, or migration
 function. It is therefore a selection record for the source-live migration
 owner, never permission to restore or run a checkpoint. A source-Agent plan

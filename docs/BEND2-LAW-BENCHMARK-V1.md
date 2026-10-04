@@ -17,6 +17,15 @@ paths is declared separately. The five paths are ordinary Bend checking,
 Bend `--verdict`, SEMAPRAX SMT, external Lean, and SEMAPRAX runtime/test.
 Their receipts are never merged.
 
+The unified `law16_replay.py` sequence retains a per-route
+`<name>.command.json` receipt with argv, exit status, timeout budget, timeout
+disposition, and digests of stdout/stderr. A timed-out route retains the
+partial streams returned by the process runner and has a null exit status;
+it cannot become a successful route or a law-gaming rejection. Failure of a
+later route preserves the generated artifact inventory in `replay-status.json`
+so earlier output remains reviewable. These orchestration receipts do not
+replace the individual routes' semantic validators or timing samples.
+
 Each cell declares its numeric semantics and equal law inventory. The runner
 executes the success subject once cold and at least thirty warm times, retains
 all raw warm samples with p50/p95, and runs every seeded law-gaming control.

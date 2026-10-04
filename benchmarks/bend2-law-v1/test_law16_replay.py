@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest import mock
 
 
 ROOT = Path(__file__).parent
@@ -15,6 +16,45 @@ SPEC.loader.exec_module(REPLAY)
 
 
 class Law16ReplayTests(unittest.TestCase):
+    def test_route_receipt_survives_success_failure_and_timeout(self):
+        cases = [
+            ("raise SystemExit(0)", None, 0),
+            ("raise SystemExit(2)", "failed", 2),
+            ("import time; time.sleep(30)", "timed out", None),
+        ]
+        for action, error, code in cases:
+            with self.subTest(error=error), tempfile.TemporaryDirectory() as directory:
+                target = Path(directory)
+                source = "import sys; print('partial', flush=True); print('diagnostic', file=sys.stderr, flush=True); " + action
+                argv = [REPLAY.sys.executable, "-c", source]
+                if error:
+                    with self.assertRaisesRegex(RuntimeError, error):
+                        REPLAY.command(argv, target, "route", timeout=1)
+                else:
+                    REPLAY.command(argv, target, "route", timeout=1)
+                receipt = json.loads((target / "route.command.json").read_text())
+                self.assertEqual(receipt["timed_out"], code is None)
+                self.assertEqual(receipt["timeout_seconds"], 1)
+                self.assertEqual(receipt["exit_code"], code)
+                for channel, expected in (("stdout", b"partial\n"), ("stderr", b"diagnostic\n")):
+                    path = target / receipt[channel]["path"]
+                    self.assertEqual(path.read_bytes(), expected)
+                    self.assertEqual(REPLAY.sha(path), receipt[channel]["sha256"])
+
+    def test_failed_replay_retains_an_inventory_of_partial_output(self):
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / "out"
+            def fail(output):
+                output.mkdir()
+                (output / "partial.stdout").write_bytes(b"prior route output\n")
+                raise RuntimeError("route timed out")
+            with mock.patch.object(REPLAY, "verify_retained", side_effect=fail), contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                REPLAY.main(["--verify-retained", "--output-dir", str(target)])
+            result = json.loads((target / "replay-status.json").read_text())
+            self.assertEqual(result["status"], "failed_closed")
+            self.assertEqual(result["generated_artifacts"], REPLAY.output_inventory(target))
+            self.assertEqual(result["generated_artifacts"][0]["path"], "partial.stdout")
+
     def test_retained_mode_reauthenticates_existing_cells_without_execution_claim(self):
         with tempfile.TemporaryDirectory() as directory:
             target = Path(directory) / "retained"

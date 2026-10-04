@@ -1,5 +1,9 @@
 # Changelog
 
+- Preserve LAW16 unified replay command receipts and partial stdout/stderr on
+  timeout or failure, including a digest inventory of earlier output. Failed
+  routes remain nonresults and never become successful attack rejections.
+
 - LAW-16: retain pinned Bend U32 universal insertion-sort verdict/kernel
   evidence and pinned SEMAPRAX LAW15 Lean sortedness/permutation/multiplicity
   evidence over the U32 subset. A versioned guarded-i64 profile records their

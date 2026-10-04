@@ -104,14 +104,21 @@ def observe(path: Path, args: list[str], env: dict | None = None) -> dict:
 
 
 def command(argv: list[str], output: Path, name: str, *, env: dict | None = None, timeout: int = 3600) -> dict:
-    result = subprocess.run(argv, cwd=PROJECT, env=env, capture_output=True, timeout=timeout, check=False)
+    try:
+        result = subprocess.run(argv, cwd=PROJECT, env=env, capture_output=True, timeout=timeout, check=False)
+        code, stdout, stderr, timed_out = result.returncode, result.stdout, result.stderr, False
+    except subprocess.TimeoutExpired as error:
+        code, stdout, stderr, timed_out = None, error.stdout or b"", error.stderr or b"", True
     out_path, err_path = output / f"{name}.stdout", output / f"{name}.stderr"
-    out_path.write_bytes(result.stdout)
-    err_path.write_bytes(result.stderr)
-    record = {"argv": argv, "exit_code": result.returncode,
+    out_path.write_bytes(stdout)
+    err_path.write_bytes(stderr)
+    record = {"argv": argv, "exit_code": code, "timed_out": timed_out, "timeout_seconds": timeout,
               "stdout": {"path": out_path.relative_to(output).as_posix(), "bytes": out_path.stat().st_size, "sha256": sha(out_path)},
               "stderr": {"path": err_path.relative_to(output).as_posix(), "bytes": err_path.stat().st_size, "sha256": sha(err_path)}}
-    if result.returncode:
+    (output / f"{name}.command.json").write_text(json.dumps(record, indent=2, sort_keys=True) + "\n")
+    if timed_out:
+        raise RuntimeError(f"route command timed out ({name}); see retained partial stdout/stderr")
+    if code:
         raise RuntimeError(f"route command failed ({name}); see retained stderr")
     return record
 
@@ -303,7 +310,8 @@ def main(argv=None) -> int:
         result = verify_retained(args.output_dir) if args.verify_retained else execute(args.output_dir, args.pins, args.include_agent_campaign)
     except (OSError, ValueError, RuntimeError, subprocess.SubprocessError, json.JSONDecodeError) as error:
         if args.output_dir.exists():
-            failure = {"mode": "fresh_execution" if args.execute else "retained_evidence_replay", "status": "failed_closed", "reason": str(error)}
+            failure = {"mode": "fresh_execution" if args.execute else "retained_evidence_replay", "status": "failed_closed", "reason": str(error),
+                       "generated_artifacts": output_inventory(args.output_dir)}
             (args.output_dir / "replay-status.json").write_text(json.dumps(failure, indent=2, sort_keys=True) + "\n")
         parser.error(str(error))
     (args.output_dir / "replay-status.json").write_text(json.dumps(result, indent=2, sort_keys=True) + "\n")

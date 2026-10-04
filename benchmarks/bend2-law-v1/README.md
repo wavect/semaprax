@@ -31,6 +31,11 @@ python3 benchmarks/bend2-law-v1/law16_replay.py \
   --output-dir /secure/local/law16-fresh-capture
 ```
 
+Each route also retains its command receipt, including failures and timeouts.
+Timeouts keep partial stdout/stderr, a null exit status, and the exact timeout
+budget. An interrupted sequence reports `failed_closed` and inventories its
+retained output; no partial route is promoted to successful evidence.
+
 This executes the Boolean ordinary-check, verdict/Z3, and peak-RSS routes; the
 guarded-i64 balance/sort and domain controls; the Bend universal U32 sort proof;
 and the supplemental LAW15 Lean profile. The guarded-i64 control run is a
@@ -38,10 +43,8 @@ supplemental route and does not admit the original checked-u32 manifest. The
 Bend proof establishes universal U32 sort laws for its exact Bend source; it
 has no matching `law16.*` SEMAPRAX source certificate or timing comparison.
 The LAW15 Lean profile is likewise a distinct, Bend-incomparable source proof.
-The retained bounded-balance ten-pair trial is re-authenticated, not rerun. Its
-current capsule references one absent cache-replay artifact, so the unified
-command currently labels that retained cell incomplete and exits nonzero; it
-does not turn the gap into a pass.
+The retained bounded-balance ten-pair trial is re-authenticated, not rerun.
+Its complete raw artifact set is now retained and passes offline replay.
 
 The Boolean nine-pair continuation (with retained pilot ordinal 1 as the tenth
 pair) makes new Codex calls and is deliberately excluded by default. Request

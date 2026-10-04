@@ -1,0 +1,72 @@
+{
+  "attack": {
+    "bend": {
+      "bytes": 331,
+      "path": "inputs/bend-attack.bend",
+      "sha256": "647836d2be777763e77f976a0ae41bf98c714e5eb53e0c13fee169711dd5ce36"
+    },
+    "semaprax_app": {
+      "bytes": 208,
+      "path": "inputs/semaprax-attack/src/app.spx",
+      "sha256": "8b982b56e1b9c4b3b8a61eaa20978b4689c670fa6a24e6cf0ac1811a79a8c944"
+    }
+  },
+  "baseline_direct_implementation": [
+    {
+      "bytes": 327,
+      "path": "fixtures/bend-boolean-negation-v1.bend",
+      "sha256": "91eeeb8c2a9a055a38022e00bf02381a4788cc8608c1d96148dad17e5f109b81"
+    },
+    {
+      "bytes": 182,
+      "path": "fixtures/semaprax-boolean-negation-v1.spx",
+      "sha256": "bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063"
+    }
+  ],
+  "candidate": {
+    "bend": {
+      "bytes": 451,
+      "path": "inputs/bend-candidate.bend",
+      "sha256": "e67898fcf30c2f9321a026df3c8b2be10c79009ce533fd4454b740c9b2fd011f"
+    },
+    "semaprax_app": {
+      "bytes": 208,
+      "path": "inputs/semaprax-candidate/src/app.spx",
+      "sha256": "57b1d76344d658da620c20f9813f5b8487219f8ceb51db2d17a61e70a578d63b"
+    }
+  },
+  "checked_u32_nonadmission_control": [
+    {
+      "bytes": 267,
+      "path": "fixtures/semaprax-checked-u32-success-v1.spx",
+      "sha256": "348dbde02c2f1956f982700ee0af57af577800800d2157230de1f4556f840a38"
+    },
+    {
+      "bytes": 226,
+      "path": "fixtures/semaprax-checked-u32-overflow-v1.spx",
+      "sha256": "513e6e823f2a3f41dfd531a5f22741978a00ce35a483c8c1e8bf46104f83d427"
+    }
+  ],
+  "nonclaims": [
+    "the checked-u32 fixtures are retained controls and are not admitted by this Boolean cell",
+    "SEMAPRAX check accepts the source-contract attack and is not the Z3 discharge route",
+    "Bend verdict and installed Z3 use distinct trusted computing bases",
+    "source proof and verdict do not prove lowering or backend execution equivalence"
+  ],
+  "schema": "semaprax.bend2-law-benchmark.boolean-refactor-cell.v1.law-inventory.v1",
+  "semantic_contract": {
+    "domain": "Bool / bool; exactly two values",
+    "name": "total Boolean negation",
+    "relation": "result == Bool.not(value) / !value",
+    "truth_table": [
+      {
+        "input": false,
+        "output": true
+      },
+      {
+        "input": true,
+        "output": false
+      }
+    ]
+  }
+}

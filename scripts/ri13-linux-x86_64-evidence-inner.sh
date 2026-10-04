@@ -88,6 +88,67 @@ assert linked["schema"] == "semaprax.ri13.linked-project-receipt.v2"
 assert linked["stages"] == ["prepare", "consumer"]
 assert "ri13-linked-project-ok" in (root / "linked-consumer.log").read_text()
 
+# Promote the executed combined ledger into the Linux receipt without
+# reclassifying foreign-library work as an observed adapter copy.
+copy = combined["linked_copy_ledger"]
+regex = copy["m1"]["regex_result_owner"]
+url = copy["m1"]["url_owner_view"]
+record = copy["m2"]["serde_record"]
+callback = copy["m2"]["iterator_callback"]
+assert (regex["status"], regex["adapter_copy_events"], regex["adapter_copied_bytes"], regex["adapter_borrowed_scan_input_bytes"], regex["borrow_matches_target"]) == ("measured", 0, 0, 28, True)
+assert (url["status"], url["adapter_copy_events"], url["adapter_copied_bytes"], url["borrow_matches_target"]) == ("measured", 0, 0, True)
+assert record["input_json_bytes"] == record["output_json_bytes"] == 25
+assert record["generated_mirror_string_clone_copied_bytes"] == 3
+assert callback == {"fn_invocations": 1, "fn_mut_invocations": 1, "scalar_argument_result_copied_bytes": 0}
+for unavailable in (
+    regex["foreign_target_copied_bytes"],
+    url["foreign_target_copied_bytes"],
+    record["deserialize_owned_string_copied_bytes"],
+):
+    assert unavailable["status"] == "unavailable"
+    assert isinstance(unavailable["reason"], str) and unavailable["reason"]
+m3 = combined["m3_copy_ledger"]
+assert m3["schema"] == "semaprax.ri13.m3-copy-ledger.v1"
+assert "generated i64 boundary" in m3["exact_copy_domains"]
+
+copy_accounting = {
+    "schema": "semaprax.ri13.linux-x86_64-copy-accounting.v1",
+    "m1_regex_buffer_scan": {
+        "adapter": {
+            "status": "exact",
+            "copy_events": regex["adapter_copy_events"],
+            "copied_bytes": regex["adapter_copied_bytes"],
+            "borrowed_input_bytes": regex["adapter_borrowed_scan_input_bytes"],
+        },
+        "foreign_regex": regex["foreign_target_copied_bytes"],
+    },
+    "m1_url_ownership": {
+        "adapter": {
+            "status": "exact",
+            "copy_events": url["adapter_copy_events"],
+            "copied_bytes": url["adapter_copied_bytes"],
+        },
+        "foreign_url": url["foreign_target_copied_bytes"],
+    },
+    "m2_generic_record": {
+        "generated_mirror": {
+            "status": "exact",
+            "input_json_bytes": record["input_json_bytes"],
+            "output_json_bytes": record["output_json_bytes"],
+            "string_clone_copied_bytes": record["generated_mirror_string_clone_copied_bytes"],
+        },
+        "foreign_deserialization": record["deserialize_owned_string_copied_bytes"],
+    },
+    "m2_iterator_callback": {
+        "status": "exact",
+        **callback,
+    },
+    "m3_foreign_http_and_text": {
+        "status": "unavailable",
+        "domains": m3["unmeasured_copy_domains"],
+    },
+}
+
 import hashlib
 files = [
     "environment.json", "combined-receipt.json", "combined.log",
@@ -111,6 +172,7 @@ files = [
     "stages": [stage["stage"] for stage in combined["full_build_and_consumer_stages"]],
     "linked_check": "ri13-linked-project-ok",
     "performance_claim": "none",
+    "copy_accounting": copy_accounting,
     "output_digests": json.loads((root / "output-digests.json").read_text())["sha256"],
 }, indent=2, sort_keys=True) + "\n")
 PY

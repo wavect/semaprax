@@ -1,0 +1,125 @@
+{
+  "adopted_installations": {
+    "local-efficient": {
+      "installations": {
+        "ai.rtk/rtk-command-view": {
+          "descriptor_digest": "sha256:fff0d142728d496b9b00afbcc92b97eead1e1960555164d6b4e2a3cf45bfef48",
+          "descriptor_path": "/Users/kevin/Documents/ChatGPT/hp-wt/hp17/target/benchwork/local-efficient/adapters/rtk/harness-provider.json",
+          "entry_digest": "sha256:882711359e99bb009463a595ccec2f1a005c4e6ff5ebaeb5f66b1d11da4cbff5",
+          "upstream": {
+            "compatible": true,
+            "digest": "sha256:02866e65968c0359b19495a5dc2d3ec643a1553fdd1c83c0ad33a8ad33bac3c9",
+            "path": "/private/tmp/claude-501/hp-tools/rtk-0.51.0/rtk",
+            "version": "0.51.0"
+          }
+        },
+        "org.nanonets/graft-context": {
+          "descriptor_digest": "sha256:7fb0ea692dbc653e792d2c1e413fdcc4895e3836801f8778b78a14799d31a7ed",
+          "descriptor_path": "/Users/kevin/Documents/ChatGPT/hp-wt/hp17/target/benchwork/local-efficient/adapters/graft/harness-provider.json",
+          "entry_digest": "sha256:0772d17eeecca9d8337f2a66220e22a83aeb39a48d5d29e39949bbf558c1bcc1",
+          "upstream": {
+            "compatible": true,
+            "digest": "sha256:f076683029cd82afd4fd32817f017b71e28570b390ece80b19c288bd5eb7ce9f",
+            "path": "/Users/kevin/.nvm/versions/node/v24.3.0/lib/node_modules/@nanonets/graft/dist/cli.js",
+            "version": "0.18.0"
+          }
+        }
+      },
+      "schema": "semaprax.harness-installations.v1"
+    },
+    "native+graft": {
+      "installations": {
+        "org.nanonets/graft-context": {
+          "descriptor_digest": "sha256:7fb0ea692dbc653e792d2c1e413fdcc4895e3836801f8778b78a14799d31a7ed",
+          "descriptor_path": "/Users/kevin/Documents/ChatGPT/hp-wt/hp17/target/benchwork/native+graft/adapters/graft/harness-provider.json",
+          "entry_digest": "sha256:0772d17eeecca9d8337f2a66220e22a83aeb39a48d5d29e39949bbf558c1bcc1",
+          "upstream": {
+            "compatible": true,
+            "digest": "sha256:f076683029cd82afd4fd32817f017b71e28570b390ece80b19c288bd5eb7ce9f",
+            "path": "/Users/kevin/.nvm/versions/node/v24.3.0/lib/node_modules/@nanonets/graft/dist/cli.js",
+            "version": "0.18.0"
+          }
+        }
+      },
+      "schema": "semaprax.harness-installations.v1"
+    },
+    "native+graphify": {
+      "installations": {
+        "com.graphify-labs/graphify-context": {
+          "descriptor_digest": "sha256:6b2716bde500bd914bb218d37acfc9742e2f9cfc6e69c387b3ad2b91fee61a4a",
+          "descriptor_path": "/Users/kevin/Documents/ChatGPT/hp-wt/hp17/target/benchwork/native+graphify/adapters/graphify/harness-provider.json",
+          "entry_digest": "sha256:2f572e6eea053ef7201d09b2cc9957be243f7382f8ac1fb0e8e7d9fab2dd7b76",
+          "upstream": {
+            "compatible": true,
+            "digest": "sha256:6aaa8d275a4ebdeb3838c8d6bc8c8ab51b2edefe1cfbba4fdb477aa218458f54",
+            "path": "/Users/kevin/.local/share/uv/tools/graphifyy/bin/graphify",
+            "version": "0.9.25"
+          }
+        }
+      },
+      "schema": "semaprax.harness-installations.v1"
+    },
+    "native+skill": {
+      "installations": {},
+      "schema": "semaprax.harness-installations.v1",
+      "skill_roots": [
+        {
+          "origin": "benchmark",
+          "path": "/Users/kevin/Documents/ChatGPT/hp-wt/hp17/target/benchwork/native+skill/adapters/skills"
+        }
+      ]
+    },
+    "native+source-index": {
+      "installations": {
+        "org.example/source-index": {
+          "descriptor_digest": "sha256:137255661150e95383f0148844376fe58b7eb6d4849679c9d1701f49dbb6a7cc",
+          "descriptor_path": "/Users/kevin/Documents/ChatGPT/hp-wt/hp17/target/benchwork/native+source-index/adapters/examples/source-index-python/harness-provider.json",
+          "entry_digest": "sha256:0469a78e9db8c008f093f4fa3f7fb77503df04b11dfb9e1e6a9ab565cd64d113",
+          "upstream": null
+        }
+      },
+      "schema": "semaprax.harness-installations.v1"
+    },
+    "rtk": {
+      "installations": {
+        "ai.rtk/rtk-command-view": {
+          "descriptor_digest": "sha256:fff0d142728d496b9b00afbcc92b97eead1e1960555164d6b4e2a3cf45bfef48",
+          "descriptor_path": "/Users/kevin/Documents/ChatGPT/hp-wt/hp17/target/benchwork/rtk/adapters/rtk/harness-provider.json",
+          "entry_digest": "sha256:882711359e99bb009463a595ccec2f1a005c4e6ff5ebaeb5f66b1d11da4cbff5",
+          "upstream": {
+            "compatible": true,
+            "digest": "sha256:02866e65968c0359b19495a5dc2d3ec643a1553fdd1c83c0ad33a8ad33bac3c9",
+            "path": "/private/tmp/claude-501/hp-tools/rtk-0.51.0/rtk",
+            "version": "0.51.0"
+          }
+        }
+      },
+      "schema": "semaprax.harness-installations.v1"
+    }
+  },
+  "compiler": "/Users/kevin/Documents/ChatGPT/AI-Lang-v090/target/debug/semaprax",
+  "compiler_version": "semaprax 0.7.0 (commit unknown)",
+  "corpus_digest": "sha256:96af8435a9c706d0ff169106edc8be2056bed99274e3659dd6d3c48b8bed6acf",
+  "corpus_id": "hp17-local-v1",
+  "label": "2026-10-04 local (macOS arm64)",
+  "node_version": "v24.3.0",
+  "os": "Darwin 25.5.0 arm64",
+  "python_version": "Python 3.12.12",
+  "seed": 17,
+  "source_commit": "7e9374e8413680b1fa58f2a9ec8b36fab91488d9",
+  "tokenizer": "byte-v1 only (no named tokenizer on this machine)",
+  "tool_paths": {
+    "HARNESS_GRAFT": "/Users/kevin/.nvm/versions/node/v24.3.0/bin/graft",
+    "HARNESS_GRAPHIFY": "/Users/kevin/.local/bin/graphify",
+    "HARNESS_NODE": "/Users/kevin/.nvm/versions/node/v24.3.0/bin/node",
+    "HARNESS_PYTHON": "/Users/kevin/.local/bin/python3",
+    "HARNESS_RTK": "/private/tmp/claude-501/hp-tools/rtk-0.51.0/rtk"
+  },
+  "variables_provided": [
+    "HARNESS_GRAFT",
+    "HARNESS_GRAPHIFY",
+    "HARNESS_NODE",
+    "HARNESS_PYTHON",
+    "HARNESS_RTK"
+  ]
+}

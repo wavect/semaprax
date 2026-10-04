@@ -91,7 +91,8 @@ fn physical_consumer(source: &str) {
             "flipped",
             source
                 .replace("{ 42 }", "{ 43 }")
-                .replace("offset + 2", "offset + 3"),
+                .replace("offset + 2", "offset + 3")
+                .replace("first + second", "first + second + 1"),
             MAIN,
             false,
         ),

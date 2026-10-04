@@ -1,5 +1,15 @@
 # Changelog
 
+- Fixed the patch-receipt evidence pagination regression to exercise a
+  renameable declaration in the app module; the fixture now preserves its
+  cross-file identity check without attempting to rename `main`.
+- Made the paired affine callback's flipped-source control change the paired
+  return expression, so its physical consumer detects the substitution.
+- Recorded the durable job writer's harness-aware child selector in the
+  self-invocation inventory.
+- Added the explicitly bounded SMT solver process module to the audited unsafe
+  quarantine inventory, including its production and test-only Unix calls.
+
 - RI-08: admit one synchronous parameter-rooted borrowed-text source capture.
   Source/HIR scope validation rejects aliases and escape; interpreter, native C
   and Core Wasm preserve the borrowed descriptor. The generated Rust scope

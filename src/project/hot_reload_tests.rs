@@ -579,11 +579,7 @@ fn changed_effect_is_refused_by_a_session_and_keeps_active_worker_usable() {
         observed(&session),
         ProjectPreparedExecutionOutcome::Returned(42)
     );
-    fixture.rewrite(
-        "src/app.spx",
-        " uses { process.stdout.write } { value",
-        " { value",
-    );
+    fixture.rewrite("src/app.spx", "uses { process.stdout.write }", "");
     let candidate = fixture.revision();
     session.admit_candidate(candidate).unwrap();
     let plan = session.plan().unwrap();

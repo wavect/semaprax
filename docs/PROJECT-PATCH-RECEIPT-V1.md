@@ -40,6 +40,14 @@ pub fn ProjectCandidate::patch_receipt(&self, expected_candidate: &str)
 pub fn ProjectCandidate::verify_patch_receipt(
     &self, expected_candidate: &str, bytes: &[u8],
 ) -> Result<String, Vec<Diagnostic>>;
+
+pub fn ProjectCandidate::patch_receipt_with_assurance_selection(
+    &self, expected_candidate: &str, inputs: &[CandidateAssuranceInput<'_>],
+) -> Result<String, Vec<Diagnostic>>;
+pub fn ProjectCandidate::verify_patch_receipt_with_assurance_selection(
+    &self, expected_candidate: &str, inputs: &[CandidateAssuranceInput<'_>],
+    bytes: &[u8],
+) -> Result<String, Vec<Diagnostic>>;
 ```
 
 Generation independently derives the selected catalog, bounded reverse
@@ -55,9 +63,15 @@ graph edges; they do not claim behavioral impact, compatibility, or test
 coverage.
 
 Generation does not execute tests, invoke a provider, run effects, apply source,
-or publish an artifact. Check rows retain
-separate categories and explicitly report candidate tests and additional
-assurance as `not_run` when no independently bound observation was selected.
+or publish an artifact. Check rows retain separate categories and explicitly
+report candidate tests and additional assurance as `not_run` when no
+independently bound observation was selected. The additive
+`patch_receipt_with_assurance_selection` route names an independently replayed
+candidate-assurance selection in the additional-assurance row instead. Its
+coverage and limitations remain visible: a source without a selected envelope
+is `incomplete`, never a passing assurance result. The opt-in receipt uses
+`semaprax.patch-receipt-policy.v2`; legacy receipts retain policy v1 and their
+canonical bytes.
 
 Verification replays the candidate from its retained base and compares exact
 canonical receipt bytes. Rehashing caller-modified JSON cannot authenticate an
@@ -226,7 +240,13 @@ selection from the exact candidate and supplied envelopes before byte
 comparison, so rehashing altered JSON cannot verify it.
 
 The compact selection does not retain supplied envelopes or grant authority.
-An adapter that references it must preserve the candidate binding and use an
-existing authorized retention owner when envelope retrieval is required. It
-never executes tests/effects, accepts a caller-authored assurance verdict, or
-changes the immutable patch receipt until that adapter is separately integrated.
+The opt-in candidate receipt route above commits the selection digest, schema,
+candidate binding, coverage, and limitations into its immutable content. Its
+evidence reference declares that replay requires the same selected envelope
+inputs; the generic retained-evidence page cannot substitute a receipt-supplied
+path, URL, or envelope. Verification regenerates the selection and complete
+receipt before comparing exact bytes. Comparison has the corresponding
+`compare_patch_receipts_with_assurance_selection` API and independently
+replays both routes before comparing them. Existing `patch_receipt`, verify,
+and comparison APIs remain frozen and continue to report additional assurance
+as `not_run`.

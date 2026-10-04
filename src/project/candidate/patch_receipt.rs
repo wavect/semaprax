@@ -14,7 +14,9 @@ use serde_json::{json, Value};
 use crate::diagnostic::Diagnostic;
 use crate::workspace_analysis::{WorkspaceAnalysisTargetKind, WorkspaceImpactOptions};
 
-use super::{wire, ProjectCandidate};
+use super::{
+    wire, CandidateAssuranceInput, ProjectCandidate, PROJECT_CANDIDATE_ASSURANCE_SELECTION_SCHEMA,
+};
 
 type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
 
@@ -144,7 +146,31 @@ impl ProjectCandidate {
     /// descriptive contract and ownership projections from compiler-held data;
     /// it never runs tests, effects, or an assurance engine.
     pub fn patch_receipt(&self, expected_candidate: &str) -> Result<String> {
+        self.patch_receipt_with_optional_assurance(expected_candidate, None)
+    }
+
+    /// Produce a compact receipt which names assurance evidence only after the
+    /// candidate-assurance join has independently replayed every supplied
+    /// envelope against this exact candidate. The envelopes remain caller-held
+    /// inputs: this receipt stores their verified selection reference, never a
+    /// caller-authored verdict or an authority-bearing copy of their bytes.
+    pub fn patch_receipt_with_assurance_selection(
+        &self,
+        expected_candidate: &str,
+        inputs: &[CandidateAssuranceInput<'_>],
+    ) -> Result<String> {
+        self.patch_receipt_with_optional_assurance(expected_candidate, Some(inputs))
+    }
+
+    fn patch_receipt_with_optional_assurance(
+        &self,
+        expected_candidate: &str,
+        assurance_inputs: Option<&[CandidateAssuranceInput<'_>]>,
+    ) -> Result<String> {
         self.require_candidate(expected_candidate)?;
+        let assurance_selection = assurance_inputs
+            .map(|inputs| selected_assurance(self, expected_candidate, inputs))
+            .transpose()?;
         let catalog_text = self.semantic_delta_catalog(expected_candidate)?;
         let catalog: Value = serde_json::from_str(&catalog_text)
             .map_err(|_| invalid("semantic delta catalog is not valid compiler JSON"))?;
@@ -168,6 +194,7 @@ impl ProjectCandidate {
                 &contract_text,
                 &ownership_text,
                 &dependency_impact,
+                assurance_selection.as_ref(),
                 preview_len,
             )?;
             // The digest commits to exactly these canonical UTF-8 bytes,
@@ -193,6 +220,26 @@ impl ProjectCandidate {
     /// compare every submitted receipt byte. Rehashing caller JSON alone can
     /// therefore never satisfy this verifier.
     pub fn verify_patch_receipt(&self, expected_candidate: &str, bytes: &[u8]) -> Result<String> {
+        self.verify_patch_receipt_with_optional_assurance(expected_candidate, None, bytes)
+    }
+
+    /// Independently replay both the immutable candidate and selected
+    /// assurance envelopes before requiring exact receipt bytes.
+    pub fn verify_patch_receipt_with_assurance_selection(
+        &self,
+        expected_candidate: &str,
+        inputs: &[CandidateAssuranceInput<'_>],
+        bytes: &[u8],
+    ) -> Result<String> {
+        self.verify_patch_receipt_with_optional_assurance(expected_candidate, Some(inputs), bytes)
+    }
+
+    fn verify_patch_receipt_with_optional_assurance(
+        &self,
+        expected_candidate: &str,
+        assurance_inputs: Option<&[CandidateAssuranceInput<'_>]>,
+        bytes: &[u8],
+    ) -> Result<String> {
         self.require_candidate(expected_candidate)?;
         if bytes.len() > MAX_PROJECT_PATCH_RECEIPT_BYTES {
             return Err(capacity("patch receipt verification input exceeds 8 KiB"));
@@ -203,7 +250,12 @@ impl ProjectCandidate {
             &self.changes,
             self.to_json().as_bytes(),
         )?;
-        let expected = replay.patch_receipt(expected_candidate)?;
+        let expected = match assurance_inputs {
+            Some(inputs) => {
+                replay.patch_receipt_with_assurance_selection(expected_candidate, inputs)?
+            }
+            None => replay.patch_receipt(expected_candidate)?,
+        };
         if expected.as_bytes() != bytes {
             return Err(stale(
                 "patch receipt failed exact independent recomputation",
@@ -416,8 +468,56 @@ impl ProjectCandidate {
         other_expected_candidate: &str,
         other_bytes: &[u8],
     ) -> Result<String> {
-        let left = verified_receipt_content(self, expected_candidate, bytes)?;
-        let right = verified_receipt_content(other, other_expected_candidate, other_bytes)?;
+        self.compare_patch_receipts_with_optional_assurance(
+            expected_candidate,
+            None,
+            bytes,
+            other,
+            other_expected_candidate,
+            None,
+            other_bytes,
+        )
+    }
+
+    /// Compare receipts whose additional-assurance rows were derived from the
+    /// supplied independently replayed envelope inputs. Both inputs are
+    /// replayed before comparison; rehashing a receipt cannot substitute for
+    /// that replay.
+    pub fn compare_patch_receipts_with_assurance_selection(
+        &self,
+        expected_candidate: &str,
+        inputs: &[CandidateAssuranceInput<'_>],
+        bytes: &[u8],
+        other: &Self,
+        other_expected_candidate: &str,
+        other_inputs: &[CandidateAssuranceInput<'_>],
+        other_bytes: &[u8],
+    ) -> Result<String> {
+        self.compare_patch_receipts_with_optional_assurance(
+            expected_candidate,
+            Some(inputs),
+            bytes,
+            other,
+            other_expected_candidate,
+            Some(other_inputs),
+            other_bytes,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn compare_patch_receipts_with_optional_assurance(
+        &self,
+        expected_candidate: &str,
+        inputs: Option<&[CandidateAssuranceInput<'_>]>,
+        bytes: &[u8],
+        other: &Self,
+        other_expected_candidate: &str,
+        other_inputs: Option<&[CandidateAssuranceInput<'_>]>,
+        other_bytes: &[u8],
+    ) -> Result<String> {
+        let left = verified_receipt_content(self, expected_candidate, inputs, bytes)?;
+        let right =
+            verified_receipt_content(other, other_expected_candidate, other_inputs, other_bytes)?;
         let mut reasons = Vec::new();
         if left["attempt"]["status"] != "admitted_candidate" {
             reasons.push("left_receipt_did_not_admit_a_candidate");
@@ -472,6 +572,7 @@ impl ProjectCandidate {
         contract_text: &str,
         ownership_text: &str,
         dependency_impact: &DependencyImpactEvidence,
+        assurance_selection: Option<&Value>,
         preview_len: usize,
     ) -> Result<Value> {
         let roots = catalog["roots"]
@@ -495,7 +596,7 @@ impl ProjectCandidate {
                 "identity_method": "retained_canonical_project_manifest",
             },
         });
-        let evidence = vec![
+        let mut evidence = vec![
             evidence_ref(
                 "candidate",
                 "semaprax.project-candidate.v1",
@@ -538,10 +639,27 @@ impl ProjectCandidate {
                 "derivable_from_retained_candidate",
             ),
         ];
+        if let Some(assurance) = assurance_selection {
+            assurance
+                .get("selection")
+                .ok_or_else(|| invalid("selected assurance record is absent"))?;
+            evidence.push(evidence_ref(
+                "additional_assurance",
+                PROJECT_CANDIDATE_ASSURANCE_SELECTION_SCHEMA,
+                selection_digest(assurance)?.to_owned(),
+                &binding,
+                "replay_requires_the_same_selected_candidate_assurance_inputs",
+            ));
+        }
+        let additional_assurance = assurance_check(assurance_selection)?;
         Ok(json!({
             "schema": PROJECT_PATCH_RECEIPT_SCHEMA,
             "binding": binding,
-            "policy": receipt_policy("candidate_projection", "retained_candidate", "not_applicable"),
+            "policy": receipt_policy(
+                "candidate_projection",
+                if assurance_selection.is_some() { "retained_candidate_with_selected_assurance" } else { "retained_candidate" },
+                "not_applicable",
+            ),
             "attempt": {
                 "status": "admitted_candidate",
                 "semantic_change_count": self.changes.len(),
@@ -569,7 +687,7 @@ impl ProjectCandidate {
                 check("contract_inventory_and_delta", "passed", "compiler_descriptive_contract_delta", "complete_candidate_contract_inventory", "contract_delta"),
                 check("ownership_and_cleanup_validation", "passed", "compiler_descriptive_ownership_delta", "complete_candidate_ownership_inventory", "ownership_delta"),
                 check("candidate_test_execution", "not_run", "no_test_execution_in_receipt_generation", "not_observed", "candidate"),
-                check("additional_assurance", "not_run", "no_assurance_evidence_selected", "not_observed", "candidate"),
+                additional_assurance,
             ],
             "effect_usage": {
                 "status": "not_applicable",
@@ -911,7 +1029,12 @@ fn receipt_policy(
     evidence_selection_scope: &str,
     effect_accounting_scope: &str,
 ) -> Value {
-    json!({"schema":"semaprax.patch-receipt-policy.v1","check_profile":check_profile,"evidence_selection_scope":evidence_selection_scope,"effect_accounting_scope":effect_accounting_scope})
+    let schema = if evidence_selection_scope == "retained_candidate_with_selected_assurance" {
+        "semaprax.patch-receipt-policy.v2"
+    } else {
+        "semaprax.patch-receipt-policy.v1"
+    };
+    json!({"schema":schema,"check_profile":check_profile,"evidence_selection_scope":evidence_selection_scope,"effect_accounting_scope":effect_accounting_scope})
 }
 
 fn verify_exact_receipt(
@@ -949,11 +1072,20 @@ fn verify_exact_receipt(
 fn verified_receipt_content(
     candidate: &ProjectCandidate,
     requested: &str,
+    assurance_inputs: Option<&[CandidateAssuranceInput<'_>]>,
     bytes: &[u8],
 ) -> Result<Value> {
     let expected = if requested == candidate.candidate_digest() {
-        candidate.patch_receipt(requested)?
+        match assurance_inputs {
+            Some(inputs) => candidate.patch_receipt_with_assurance_selection(requested, inputs)?,
+            None => candidate.patch_receipt(requested)?,
+        }
     } else {
+        if assurance_inputs.is_some() {
+            return Err(stale(
+                "selected assurance cannot be attached to a refused candidate selector",
+            ));
+        }
         candidate.patch_receipt_refusal(requested)?
     };
     verify_exact_receipt(
@@ -964,6 +1096,77 @@ fn verified_receipt_content(
         "exact_recomputation",
     )?;
     receipt_content(bytes)
+}
+
+/// Rebuild the compact selection through its owning candidate-assurance
+/// replay API, then reject an unexpected wrapper before it enters receipt
+/// content. This is deliberately not a parse-and-rehash operation.
+fn selected_assurance(
+    candidate: &ProjectCandidate,
+    expected_candidate: &str,
+    inputs: &[CandidateAssuranceInput<'_>],
+) -> Result<Value> {
+    let bytes = candidate.candidate_assurance_selection(expected_candidate, inputs)?;
+    let selection: Value = serde_json::from_str(&bytes)
+        .map_err(|_| invalid("candidate assurance selection is not valid compiler JSON"))?;
+    let content = selection
+        .get("selection")
+        .ok_or_else(|| invalid("candidate assurance selection content is absent"))?;
+    if content.get("schema").and_then(Value::as_str)
+        != Some(PROJECT_CANDIDATE_ASSURANCE_SELECTION_SCHEMA)
+        || content["binding"]["candidate_revision"] != candidate.candidate_digest()
+        || content["binding"]["base_project_revision"]
+            != candidate.base_revision().project_revision()
+        || content["binding"]["project_revision"] != candidate.revision().project_revision()
+    {
+        return Err(stale(
+            "candidate assurance selection does not bind the selected candidate",
+        ));
+    }
+    selection_digest(&selection)?;
+    Ok(selection)
+}
+
+fn selection_digest(selection: &Value) -> Result<&str> {
+    let digest = selection
+        .get("selection_digest")
+        .and_then(Value::as_str)
+        .ok_or_else(|| invalid("candidate assurance selection digest is absent"))?;
+    wire::validate_digest(digest)?;
+    Ok(digest)
+}
+
+fn assurance_check(selection: Option<&Value>) -> Result<Value> {
+    let Some(selection) = selection else {
+        return Ok(check(
+            "additional_assurance",
+            "not_run",
+            "no_assurance_evidence_selected",
+            "not_observed",
+            "candidate",
+        ));
+    };
+    let content = selection
+        .get("selection")
+        .ok_or_else(|| invalid("candidate assurance selection content is absent"))?;
+    let coverage = content
+        .get("coverage")
+        .cloned()
+        .ok_or_else(|| invalid("candidate assurance selection coverage is absent"))?;
+    let complete = coverage.get("status").and_then(Value::as_str)
+        == Some("complete_for_selected_assurance_producer");
+    Ok(json!({
+        "category": "additional_assurance",
+        "result": if complete { "passed" } else { "incomplete" },
+        "method": "candidate_assurance_summary_independent_envelope_replay",
+        "coverage": coverage,
+        "evidence": "additional_assurance",
+        "limitations": content["limitations"].clone(),
+        "nonclaims": [
+            "assurance_summary_replay_does_not_establish_formal_proof",
+            "selected_assurance_does_not_execute_tests_or_effects",
+        ],
+    }))
 }
 
 fn receipt_content(bytes: &[u8]) -> Result<Value> {

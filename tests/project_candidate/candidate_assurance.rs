@@ -429,3 +429,97 @@ fn assurance_selection_rejects_a_rehashed_or_cross_candidate_claim() {
         .unwrap_err();
     assert_eq!(error[0].code, "SPX-G935");
 }
+
+#[test]
+fn selected_assurance_is_replayed_into_an_opt_in_compact_patch_receipt() {
+    let fixture = Fixture::new(APP_WITH_CONTRACTS, PLAIN_TESTS_BODY);
+    let revision = fixture.revision();
+    let candidate = open(&revision);
+    let envelope = manifest_for(&fixture.app_path());
+    let inputs = [CandidateAssuranceInput {
+        path: "src/app.spx",
+        envelope: &envelope,
+    }];
+
+    let receipt = candidate
+        .patch_receipt_with_assurance_selection(candidate.candidate_digest(), &inputs)
+        .unwrap();
+    assert!(receipt.len() <= 8 * 1024);
+    let value: Value = serde_json::from_str(&receipt).unwrap();
+    let assurance = value["content"]["checks"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|check| check["category"] == "additional_assurance")
+        .unwrap();
+    // The independently replayed application envelope is real, but the test
+    // source has no selected envelope. The receipt must preserve that gap.
+    assert_eq!(assurance["result"], json!("incomplete"));
+    assert_eq!(assurance["coverage"]["sources_bound"], json!(1));
+    assert_eq!(
+        assurance["coverage"]["sources_not_observed"],
+        json!(["src/tests.spx"])
+    );
+    let evidence = value["content"]["evidence"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|reference| reference["id"] == "additional_assurance")
+        .unwrap();
+    assert_eq!(
+        evidence["schema"],
+        json!("semaprax.project-candidate-assurance-selection.v1")
+    );
+    assert_eq!(
+        value["content"]["policy"]["evidence_selection_scope"],
+        json!("retained_candidate_with_selected_assurance")
+    );
+    assert_eq!(
+        value["content"]["policy"]["schema"],
+        json!("semaprax.patch-receipt-policy.v2")
+    );
+
+    let verification: Value = serde_json::from_str(
+        &candidate
+            .verify_patch_receipt_with_assurance_selection(
+                candidate.candidate_digest(),
+                &inputs,
+                receipt.as_bytes(),
+            )
+            .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(verification["result"], json!("exact_recomputation"));
+
+    let comparison: Value = serde_json::from_str(
+        &candidate
+            .compare_patch_receipts_with_assurance_selection(
+                candidate.candidate_digest(),
+                &inputs,
+                receipt.as_bytes(),
+                &candidate,
+                candidate.candidate_digest(),
+                &inputs,
+                receipt.as_bytes(),
+            )
+            .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(comparison["result"], json!("comparable"));
+    assert_eq!(
+        comparison["comparison"]["checks"]["left"][4]["result"],
+        json!("incomplete")
+    );
+
+    let mut altered: Value = serde_json::from_str(&receipt).unwrap();
+    altered["content"]["checks"][4]["coverage"]["sources_bound"] = json!(2);
+    let altered = serde_json::to_vec(&altered).unwrap();
+    let error = candidate
+        .verify_patch_receipt_with_assurance_selection(
+            candidate.candidate_digest(),
+            &inputs,
+            &altered,
+        )
+        .unwrap_err();
+    assert_eq!(error[0].code, "SPX-G984");
+}

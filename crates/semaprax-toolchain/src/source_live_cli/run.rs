@@ -56,8 +56,22 @@ impl SourceInvocationClock for UnixClock {
 }
 
 struct ReadSnapshot(Vec<u8>);
+#[cfg(test)]
+thread_local! {
+    static READ_CALLS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+}
+#[cfg(test)]
+pub(super) fn reset_read_calls() {
+    READ_CALLS.with(|calls| calls.set(0));
+}
+#[cfg(test)]
+pub(super) fn read_calls() -> usize {
+    READ_CALLS.with(std::cell::Cell::get)
+}
 impl AgentReadOperation for ReadSnapshot {
     fn read(&mut self, _: &AuthorizedRequest) -> Option<Vec<u8>> {
+        #[cfg(test)]
+        READ_CALLS.with(|calls| calls.set(calls.get() + 1));
         Some(self.0.clone())
     }
 }
@@ -462,6 +476,7 @@ pub(super) fn execute_hot_reload_migration(
     arguments: &[String],
 ) -> Result<(), CliError> {
     execute_hot_reload_migration_with_runner(supervisor, plan, arguments, ProcessOpenCodeRunner)
+        .map(|_| ())
 }
 
 pub(super) fn execute_hot_reload_migration_with_runner<R: OpenCodeRunner>(
@@ -469,7 +484,7 @@ pub(super) fn execute_hot_reload_migration_with_runner<R: OpenCodeRunner>(
     plan: HotReloadPlan,
     arguments: &[String],
     runner: R,
-) -> Result<(), CliError> {
+) -> Result<SourceLiveOutcome, CliError> {
     let command = Command::parse(arguments)?;
     let Command::Migrate {
         previous_config,
@@ -594,8 +609,7 @@ pub(super) fn execute_hot_reload_migration_with_runner<R: OpenCodeRunner>(
         &clock,
         &cancellation,
     )
-    .map_err(|_| CliError::refused("source-Agent hot-reload migration refused"))?;
-    Ok(())
+    .map_err(|_| CliError::refused("source-Agent hot-reload migration refused"))
 }
 
 fn execute_run<R: OpenCodeRunner>(

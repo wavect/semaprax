@@ -35,6 +35,7 @@ fn migration_arguments(
 
 #[test]
 fn retained_a_to_b_to_c_handoff_carries_state_without_initialize_or_redispatch() {
+    use semaprax::interpreter::retained_call::RetainedValue;
     use semaprax::live_invocation::source_journal::{
         recover_source_checkpoint, SourceTerminalStatus,
     };
@@ -44,6 +45,7 @@ fn retained_a_to_b_to_c_handoff_carries_state_without_initialize_or_redispatch()
     };
 
     let fixture = Fixture::new();
+    super::super::run::reset_read_calls();
     let project = fixture.0.join("project");
     let a_source = source_fixture::SOURCE.replace(
         "Step::Complete { summary: state.objective, budget: state.budget, status: state.epoch }",
@@ -68,6 +70,7 @@ fn retained_a_to_b_to_c_handoff_carries_state_without_initialize_or_redispatch()
     let a: serde_json::Value = serde_json::from_str(&a).unwrap();
     assert_eq!(a["status"], "suspend");
     assert_eq!(a_calls.get(), 1);
+    assert_eq!(super::super::run::read_calls(), 1);
     let a_project =
         with_authenticated_project(&manifest, |snapshot| Ok(snapshot.retain_revision())).unwrap();
 
@@ -92,7 +95,7 @@ fn retained_a_to_b_to_c_handoff_carries_state_without_initialize_or_redispatch()
     );
     let b_checkpoint = fixture.0.join("checkpoint-b");
     let b_calls = Rc::new(Cell::new(0));
-    super::super::run::execute_hot_reload_migration_with_runner(
+    let b_outcome = super::super::run::execute_hot_reload_migration_with_runner(
         &mut supervisor,
         b_plan,
         &migration_arguments(
@@ -108,6 +111,11 @@ fn retained_a_to_b_to_c_handoff_carries_state_without_initialize_or_redispatch()
     .unwrap();
     assert_eq!(supervisor.generation(), 1);
     assert_eq!(b_calls.get(), 1);
+    assert_eq!(
+        (b_outcome.model_dispatches, b_outcome.effect_dispatches),
+        (1, 1)
+    );
+    assert_eq!(super::super::run::read_calls(), 2);
     let b_journal = fs::read_to_string(b_checkpoint.join("checkpoint.json")).unwrap();
     let b_recovered = recover_source_checkpoint(
         &b_journal,
@@ -121,11 +129,11 @@ fn retained_a_to_b_to_c_handoff_carries_state_without_initialize_or_redispatch()
     assert_eq!(stage_count(&b_document, "initialize"), 0);
     assert_eq!(stage_count(&b_document, "observe"), 1);
 
-    let manifest = source_project(
-        &project,
-        &successor_c_source(),
-        "fixture.agent.type.state_b",
+    let c_source = successor_c_source().replace(
+        "Step::Complete { summary: state.objective, budget: state.budget, status: state.epoch }",
+        "Step::Complete { summary: state.objective, budget: state.budget, status: state.marker }",
     );
+    let manifest = source_project(&project, &c_source, "fixture.agent.type.state_b");
     let c_answer = recorded_answer(&manifest);
     let c_config = source_config(&fixture, &manifest);
     let saved_c_config = fixture.0.join("config-c.json");
@@ -140,7 +148,7 @@ fn retained_a_to_b_to_c_handoff_carries_state_without_initialize_or_redispatch()
     );
     let c_checkpoint = fixture.0.join("checkpoint-c");
     let c_calls = Rc::new(Cell::new(0));
-    super::super::run::execute_hot_reload_migration_with_runner(
+    let c_outcome = super::super::run::execute_hot_reload_migration_with_runner(
         &mut supervisor,
         c_plan,
         &migration_arguments(
@@ -160,6 +168,19 @@ fn retained_a_to_b_to_c_handoff_carries_state_without_initialize_or_redispatch()
         c_project.project_revision()
     );
     assert_eq!(c_calls.get(), 1);
+    assert_eq!(
+        (c_outcome.model_dispatches, c_outcome.effect_dispatches),
+        (1, 1)
+    );
+    assert_eq!(super::super::run::read_calls(), 3);
+    let RetainedValue::Variant(complete) = c_outcome.checked_run.as_ref().unwrap().value().unwrap()
+    else {
+        panic!("C must publish the checked Complete carrier");
+    };
+    assert!(complete.fields.iter().any(|field| {
+        field.field.as_str() == "fixture.agent.step.complete.status"
+            && field.value == RetainedValue::I64(7)
+    }));
     let c_journal = fs::read_to_string(c_checkpoint.join("checkpoint.json")).unwrap();
     let c_recovered = recover_source_checkpoint(
         &c_journal,

@@ -191,6 +191,10 @@ pub enum JobStoreError {
     /// A durable write failed; the store's on-disk state is exactly what it
     /// was before the call (see `super::durable_fs`), so callers may retry.
     Io,
+    /// Another live `GenerationJobStore` holds this root's OS-backed
+    /// exclusive writer lock. The caller must wait for that owner to close or
+    /// terminate, then open a fresh handle instead of writing a stale table.
+    WriterBusy,
     /// The persisted generation bytes were corrupt, truncated, or exceeded
     /// a bound. Refused rather than partially trusted.
     CorruptGeneration,

@@ -19,7 +19,6 @@
 //! medium could sit behind without changing a caller — not a production
 //! scheduler.
 
-#[cfg(test)]
 use std::io;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -87,6 +86,7 @@ pub trait JobStore: sealed::Sealed {
 /// `tests::module_source_never_reaches_for_network_process_or_env_authority`
 /// for an executable check of that claim across this whole module tree).
 pub struct GenerationJobStore {
+    _writer_lock: durable_fs::JobWriterLock,
     generations_dir: PathBuf,
     active_path: PathBuf,
     current_generation: u64,
@@ -108,6 +108,14 @@ impl GenerationJobStore {
     /// a second at the same path.
     pub fn open(root: &Path) -> Result<Self, JobStoreError> {
         durable_fs::ensure_dir(root).map_err(|_| JobStoreError::Io)?;
+        let root = durable_fs::canonical_existing_dir(root).map_err(|_| JobStoreError::Io)?;
+        let writer_lock = match durable_fs::acquire_job_writer_lock(&root) {
+            Ok(lock) => lock,
+            Err(error) if error.kind() == io::ErrorKind::WouldBlock => {
+                return Err(JobStoreError::WriterBusy);
+            }
+            Err(_) => return Err(JobStoreError::Io),
+        };
         let generations_dir =
             durable_fs::ensure_dir(&root.join("generations")).map_err(|_| JobStoreError::Io)?;
         let active_path = root.join("ACTIVE");
@@ -131,9 +139,10 @@ impl GenerationJobStore {
         // not remove or promote it: it may be live, foreign, or incomplete.
         // Start after every owned stage sequence observed in both directories
         // so this reopened handle cannot collide with the crashed attempt.
-        let stage_seq = durable_fs::next_job_stage_sequence([root, &generations_dir])
+        let stage_seq = durable_fs::next_job_stage_sequence([&root, &generations_dir])
             .map_err(|_| JobStoreError::Io)?;
         Ok(GenerationJobStore {
+            _writer_lock: writer_lock,
             generations_dir,
             active_path,
             current_generation,

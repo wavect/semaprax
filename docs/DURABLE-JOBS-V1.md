@@ -331,6 +331,12 @@ Recovery scans its bounded owned staging namespace and allocates later names;
 an excessive or exhausted namespace refuses open. This avoids reusing an
 ambiguous stage while writer exclusion remains a separate store concern.
 
+`GenerationJobStore` supports one writable owner per canonical root. `open`
+holds an OS-backed advisory lock through the handle lifetime and returns a
+closed busy refusal to a second live writer, including relative and canonical
+path aliases. The fixed lock filename is only a rendezvous point: process exit
+releases the OS lock, so its retained name never blocks a later recovery.
+
 Execution checkpoints a claim and then `Running` before invoking the handler.
 Recovery replays the original attempt times, expires an unstarted lease at its
 recorded deadline, and turns a retained `Running` attempt into `Uncertain`.

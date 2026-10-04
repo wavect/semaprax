@@ -142,6 +142,42 @@ pub fn ensure_dir(dir: &Path) -> io::Result<PathBuf> {
     Ok(dir.to_path_buf())
 }
 
+/// Canonicalize a store root after creation, so relative spellings and
+/// symlink aliases contend on the same writer-lock file.
+pub(crate) fn canonical_existing_dir(dir: &Path) -> io::Result<PathBuf> {
+    let canonical = fs::canonicalize(dir)?;
+    if !canonical.is_dir() {
+        return Err(io::Error::other("job store root is not a directory"));
+    }
+    Ok(canonical)
+}
+
+/// A live exclusive writer claim for one canonical generation-store root.
+/// The lock is advisory but OS-backed; its file may survive process death,
+/// while the kernel lock is released with the dead process's descriptor.
+pub(crate) struct JobWriterLock {
+    file: File,
+}
+
+impl Drop for JobWriterLock {
+    fn drop(&mut self) {
+        let _ = fs2::FileExt::unlock(&self.file);
+    }
+}
+
+/// Acquire the one supported writer role for this store root.  The fixed
+/// filename is only the lock rendezvous point, never evidence that an owner
+/// is alive; `try_lock_exclusive` decides that from the OS-held lock.
+pub(crate) fn acquire_job_writer_lock(root: &Path) -> io::Result<JobWriterLock> {
+    let file = OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create(true)
+        .open(root.join(".generation-job-store.lock"))?;
+    fs2::FileExt::try_lock_exclusive(&file)?;
+    Ok(JobWriterLock { file })
+}
+
 /// Find the first stage sequence that cannot name a stage left by an earlier
 /// store instance.  A process can stop after creating a stage file but before
 /// the best-effort cleanup in [`commit_bytes_with_hook`]; recovery must leave

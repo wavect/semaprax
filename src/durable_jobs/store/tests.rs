@@ -1,8 +1,10 @@
 use std::fs;
 use std::io;
 use std::path::PathBuf;
+use std::process::{Command, Stdio};
 use std::sync::{Arc, Barrier, Mutex};
 use std::thread;
+use std::time::{Duration, Instant};
 
 use super::*;
 use crate::durable_jobs::durable_fs::HookPoint;
@@ -32,6 +34,47 @@ fn request(key: &[u8], payload: &[u8], max_attempts: u32, now_tick: u64) -> Enqu
         retry_policy: policy(max_attempts),
         now_tick,
     }
+}
+
+const WRITER_LOCK_CHILD: &str = "SEMAPRAX_DURABLE_JOB_WRITER_LOCK_CHILD";
+const WRITER_LOCK_ROOT: &str = "SEMAPRAX_DURABLE_JOB_WRITER_LOCK_ROOT";
+const WRITER_LOCK_READY: &str = "SEMAPRAX_DURABLE_JOB_WRITER_LOCK_READY";
+const WRITER_LOCK_RELEASE: &str = "SEMAPRAX_DURABLE_JOB_WRITER_LOCK_RELEASE";
+
+fn wait_for_file(path: &std::path::Path, description: &str) {
+    let deadline = Instant::now() + Duration::from_secs(5);
+    while !path.is_file() {
+        assert!(
+            Instant::now() < deadline,
+            "timed out waiting for {description}"
+        );
+        thread::sleep(Duration::from_millis(10));
+    }
+}
+
+#[test]
+fn writer_lock_child() {
+    if std::env::var_os(WRITER_LOCK_CHILD).is_none() {
+        return;
+    }
+    let root = PathBuf::from(std::env::var_os(WRITER_LOCK_ROOT).unwrap());
+    let ready = PathBuf::from(std::env::var_os(WRITER_LOCK_READY).unwrap());
+    let release = PathBuf::from(std::env::var_os(WRITER_LOCK_RELEASE).unwrap());
+    let mut store = GenerationJobStore::open(&root).unwrap();
+    let EnqueueOutcome::Created(job_id) = store
+        .enqueue_with_side_record(
+            request(b"child-writer", b"payload", 3, 0),
+            b"child-side".to_vec(),
+            b"present".to_vec(),
+        )
+        .unwrap()
+    else {
+        panic!("child writer must create its job");
+    };
+    let (claimed, _) = store.claim(7, 0, 10).unwrap();
+    assert_eq!(claimed, job_id);
+    fs::write(ready, b"ready").unwrap();
+    wait_for_file(&release, "parent lock release marker");
 }
 
 // ---------------------------------------------------------------------
@@ -118,6 +161,7 @@ fn racing_enqueue_calls_with_the_same_idempotency_key_create_exactly_one_job() {
             EnqueueOutcome::Duplicate(id) => assert_eq!(*id, winner),
         }
     }
+    drop(store);
     let reopened = GenerationJobStore::open(&dir).unwrap();
     assert_eq!(reopened.table.jobs.len(), 1);
     fs::remove_dir_all(&dir).ok();
@@ -276,6 +320,7 @@ fn reopening_skips_crash_left_stages_without_deleting_or_promoting_them() {
 
     // Reopening again must still select a fresh stage, even though the
     // preexisting crash artifacts remain intentionally untouched.
+    drop(store);
     let mut reopened = GenerationJobStore::open(&dir).unwrap();
     assert!(matches!(
         reopened
@@ -312,6 +357,80 @@ fn opening_refuses_a_bounded_namespace_of_abandoned_stages() {
     assert_eq!(
         fs::read(generations.join(".stage-generation-0")).unwrap(),
         b"uncommitted"
+    );
+    fs::remove_dir_all(&dir).ok();
+}
+
+#[test]
+fn live_writer_excludes_second_handle_and_canonical_alias_until_it_closes() {
+    let dir = tempdir("writer-lock");
+    let alias = dir.join(".");
+    let mut first = GenerationJobStore::open(&dir).unwrap();
+    assert!(matches!(
+        GenerationJobStore::open(&alias),
+        Err(JobStoreError::WriterBusy)
+    ));
+    assert!(matches!(
+        first.enqueue_with_side_record(
+            request(b"held-owner", b"payload", 3, 0),
+            b"orders-total".to_vec(),
+            b"1".to_vec(),
+        ),
+        Ok(EnqueueOutcome::Created(_))
+    ));
+    drop(first);
+
+    let reopened = GenerationJobStore::open(&alias).unwrap();
+    assert_eq!(reopened.table.jobs.len(), 1);
+    assert_eq!(reopened.side_record(b"orders-total"), Some(&b"1".to_vec()));
+    fs::remove_dir_all(&dir).ok();
+}
+
+#[test]
+fn child_writer_lock_excludes_parent_then_releases_after_process_exit() {
+    let dir = tempdir("writer-lock-child");
+    let ready = dir.join("child-ready");
+    let release = dir.join("child-release");
+    let mut child = Command::new(std::env::current_exe().unwrap())
+        .args([
+            "--exact",
+            "durable_jobs::store::tests::writer_lock_child",
+            "--nocapture",
+        ])
+        .env(WRITER_LOCK_CHILD, "1")
+        .env(WRITER_LOCK_ROOT, &dir)
+        .env(WRITER_LOCK_READY, &ready)
+        .env(WRITER_LOCK_RELEASE, &release)
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()
+        .unwrap();
+    wait_for_file(&ready, "child writer lock");
+    assert!(matches!(
+        GenerationJobStore::open(&dir),
+        Err(JobStoreError::WriterBusy)
+    ));
+
+    fs::write(&release, b"release").unwrap();
+    assert!(child.wait().unwrap().success(), "child writer failed");
+    let mut reopened = GenerationJobStore::open(&dir).unwrap();
+    assert_eq!(reopened.table.jobs.len(), 1);
+    assert_eq!(
+        reopened.side_record(b"child-side"),
+        Some(&b"present".to_vec())
+    );
+    let token = LeaseToken {
+        job_id: JobId(1),
+        worker_id: 7,
+        generation: 1,
+    };
+    reopened.begin_execution(token, 0).unwrap();
+    assert_eq!(
+        reopened
+            .complete(token, 0, AttemptOutcome::Success, None)
+            .unwrap(),
+        JobState::Succeeded
     );
     fs::remove_dir_all(&dir).ok();
 }
@@ -474,6 +593,7 @@ fn enqueue_with_side_record_commits_both_or_neither_on_success() {
         .unwrap();
     assert!(matches!(outcome, EnqueueOutcome::Created(_)));
     assert_eq!(store.side_record(b"orders-total"), Some(&b"1".to_vec()));
+    drop(store);
     let reopened = GenerationJobStore::open(&dir).unwrap();
     assert_eq!(reopened.table.jobs.len(), 1);
     assert_eq!(reopened.side_record(b"orders-total"), Some(&b"1".to_vec()));
@@ -527,6 +647,7 @@ fn a_fault_during_the_joint_commit_leaves_neither_the_job_nor_the_side_record_vi
         let result = store.commit_with_hook(candidate, &mut hook);
         assert!(result.is_err(), "{fault_point:?}");
 
+        drop(store);
         let reopened = GenerationJobStore::open(&dir).unwrap();
         assert!(
             reopened.table.jobs.is_empty(),

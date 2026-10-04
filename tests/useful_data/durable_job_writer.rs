@@ -187,7 +187,7 @@ fn killed_child_stage_recovers_for_generation_and_active_paths() {
 
         let mut recovered = GenerationJobStore::open(&root).unwrap();
         assert!(matches!(
-            recovered.enqueue(request(stage)),
+            recovered.enqueue(request(stage.as_bytes())),
             Ok(EnqueueOutcome::Created(JobId(1)))
         ));
         drop(recovered);

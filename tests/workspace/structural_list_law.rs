@@ -193,9 +193,14 @@ fn installed_list_induction_selected_project_replay_and_strict_refusals() {
         )]),
     )
     .unwrap();
-    let report =
-        strict::derive_with_native_proofs(&revision, &laws, &accepted, &[], &[proof.clone()])
-            .unwrap();
+    let report = strict::derive_with_native_proofs(
+        &revision,
+        &laws,
+        &accepted,
+        &[],
+        std::slice::from_ref(&proof),
+    )
+    .unwrap();
     strict::require_with_native_proofs(&report, &revision, &laws, &accepted, &[], &[proof])
         .unwrap();
     let replayed =
@@ -206,7 +211,7 @@ fn installed_list_induction_selected_project_replay_and_strict_refusals() {
         &laws,
         &accepted,
         &[],
-        &[replayed.clone()],
+        std::slice::from_ref(&replayed),
     )
     .unwrap();
     assert!(
@@ -232,7 +237,7 @@ fn installed_list_induction_selected_project_replay_and_strict_refusals() {
         &laws,
         &wrong_module_policy,
         &[],
-        &[replayed.clone()],
+        std::slice::from_ref(&replayed),
     )
     .unwrap();
     assert!(strict::require_with_native_proofs(

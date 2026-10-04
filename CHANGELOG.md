@@ -84,6 +84,8 @@
   Cover the checkpoint-waiting branch in the source-agent handoff test fixture.
   Keep the native Regex/Url lint allowance valid under non-Clippy builds with
   warnings denied. Canonicalize Rust formatting after the merged v0.8.0 work.
+  Repair the durable-job recovery fixture's byte request and the list-proof
+  fixture's borrowed evidence slices.
 
 - Repair the current main CI fixtures for owned-byte Wasm imports, constructor
   schema counts, the pinned iOS action, and authenticated Everyday Agent

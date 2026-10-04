@@ -117,7 +117,7 @@ with tarfile.open(archive, 'r:xz') as contents:
 PY
     installer=$(find "$extract" -mindepth 2 -maxdepth 2 -type f -name install.sh)
     test "$(printf '%s\n' "$installer" | sed '/^$/d' | wc -l | tr -d ' ')" = 1
-    sh "$installer" --prefix /output/toolchain
+    sh "$installer" --prefix=/output/toolchain
 }
 
 component rustc 8e326ba2de1664a1c2f6a53ae6f5d03dffbb68cfe8c2fd4db4daf09cbb4f9257

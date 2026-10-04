@@ -1,6 +1,7 @@
 # RI-13 combined application measurement gate
 
-This gate runs the three saved RI-13 applications as one reproducible receipt:
+This gate runs the three saved RI-13 applications and one linked Project route
+as one reproducible receipt:
 
 1. M1 prepares a held Regex/Url Project and executes its two generated Rust/C
    owner carriers.
@@ -9,6 +10,8 @@ This gate runs the three saved RI-13 applications as one reproducible receipt:
    `std::Iterator`.
 3. M3 prepares and runs the generated local HTTP Future consumer, then records
    direct, handwritten-check, and generated route samples.
+4. The linked Project prepares all selected M1/M2/M3 generated packages and
+   executes its one-process consumer after the three profile-specific routes.
 
 The profiles deliberately remain separate. The current Project Future profile
 does not admit the M1 owner imports or M2 record/callback projection in the
@@ -27,8 +30,12 @@ CLANG=/usr/bin/clang python3 examples/ri13-combined-app/measure.py \
   --output examples/ri13-combined-app/measurements/local-receipt.json
 ```
 
-`--fresh-target` refuses a preexisting target directory. This makes the six
-named prepare/consumer stages a clean-target build receipt. Omit it only when
+`--fresh-target` refuses a preexisting target directory. This makes the eight
+named prepare/consumer stages a clean-target build receipt. The final
+`linked_prepare` and `linked_consumer` stages are the physical M1/M2/M3
+linkage check; `linked_consumer` emits its marker only after the generated M1
+owner carriers, M2 record/callback module, and M3 Future module return their
+checked values in one process. Omit `--fresh-target` only when
 intentionally measuring a warmed target, which the receipt identifies.
 
 The harness is offline and locked. It executes M1 and M2 before M3, requires
@@ -73,11 +80,11 @@ path without claiming a universal threshold result.
 
 ## Acceptance still open
 
-This gate does not close #371. It still needs a source profile that actually
-links all three categories, physical foreign-body and host-capture copy
-measurement, a fresh nontrivial batch comparison that meets its acceptance
-target, and Linux x86_64 evidence. The receipt makes those gaps explicit rather
-than converting one local run into a portability or performance claim.
+This gate does not close #371. It still needs copied-byte measurement for the
+foreign body and host callback paths, a nontrivial batch comparison that meets
+its acceptance target, and fresh Linux x86_64 and macOS arm64 evidence. The
+receipt makes those gaps explicit rather than converting one local run into a
+portability or performance claim.
 
 ## Linked Project fixture
 

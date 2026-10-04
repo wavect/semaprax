@@ -303,6 +303,18 @@ def main():
             cargo_command("examples/ri13-m3-local-http/Cargo.toml", "consumer"),
             "ri13-m3-local-http-ok",
         ),
+        (
+            "linked_prepare",
+            cargo_command(
+                "examples/ri13-combined-app/linked/prepare/Cargo.toml", "prepare"
+            ),
+            "ri13-linked-prepared:",
+        ),
+        (
+            "linked_consumer",
+            cargo_command("examples/ri13-combined-app/linked/Cargo.toml", "consumer"),
+            "ri13-linked-project-ok",
+        ),
     ]:
         result, _ = run(command, environment, expected)
         result["stage"] = name
@@ -330,7 +342,7 @@ def main():
         "batch_throughput": batch_measurement,
         "m3_copy_ledger": m3_copy_ledger(route_measurement),
         "limits": [
-            "M1, M2 and M3 remain separately admitted source profiles; this receipt does not claim one linked Project.",
+            "The first six stages retain separately admitted M1, M2, and M3 profiles. The final two stages prepare and execute the distinct held linked Project, without claiming that it is one public SDK profile.",
             "Build-and-consumer stage elapsed times include Cargo work and process startup; they are not route latency.",
             "Scalar route timings include loopback HTTP and two-byte response parsing; the separate 64-operation batch rows retain their own normalized throughput and remain local evidence.",
             "Allocator values count current-thread requests and do not infer copies. The ledger records exact zero-byte scalar generated and host-callback payload boundaries, response wire bytes, and explicit unavailable cells for reqwest/HTTP/text/capture copies.",

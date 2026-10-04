@@ -231,6 +231,29 @@ fn closed_ri13_profile_binds_indexed_m1_signatures_before_future_admission() {
             snapshot.source_local_future_signature()?.function_id(),
             "ri13.m3.score"
         );
+        snapshot.with_authenticated_native_rust_sdk_subject(|input| {
+            let all = input
+                .program()
+                .interfaces
+                .iter()
+                .flat_map(|interface| &interface.imports)
+                .map(|import| import.id.as_str())
+                .collect::<Vec<_>>();
+            let selected = input
+                .program()
+                .interfaces
+                .iter()
+                .flat_map(|interface| &interface.imports)
+                .filter(|import| import.index_selected)
+                .map(|import| import.id.as_str())
+                .collect::<Vec<_>>();
+            assert!(all.contains(&"regex.drop") && all.contains(&"url.drop"));
+            assert_eq!(
+                selected,
+                ["regex.new", "regex.match", "url.new", "url.view"]
+            );
+            Ok(())
+        })?;
         Ok(())
     })
     .unwrap();
@@ -241,6 +264,37 @@ fn closed_ri13_profile_binds_indexed_m1_signatures_before_future_admission() {
         with_authenticated_indexed_regex_url_project(&manifest_path, &regex, &url, |_| Ok(()))
             .unwrap_err();
     assert_eq!(refusal[0].code, "SPX-B142");
+
+    fs::write(root.0.join("src/app.spx"), &source).unwrap();
+    let unselected = source.replace(
+        "import rust selected fn regex_new",
+        "import rust fn regex_new",
+    );
+    fs::write(root.0.join("src/app.spx"), &unselected).unwrap();
+    let unselected_regex =
+        ["regex.new", "regex.match"].map(|import_id| IndexedProjectRegexRegistrySelection {
+            source_path: "src/app.spx",
+            source: &unselected,
+            import_id,
+            index_bytes: regex_json.as_bytes(),
+            package: regex_package,
+        });
+    let unselected_url =
+        ["url.new", "url.view"].map(|import_id| IndexedProjectUrlRegistrySelection {
+            source_path: "src/app.spx",
+            source: &unselected,
+            import_id,
+            index_bytes: url_json.as_bytes(),
+            package: url_package,
+        });
+    let refusal = with_authenticated_indexed_regex_url_project(
+        &manifest_path,
+        &unselected_regex,
+        &unselected_url,
+        |_| Ok(()),
+    )
+    .unwrap_err();
+    assert_eq!(refusal[0].code, "SPX-B140");
 
     fs::write(root.0.join("src/app.spx"), &source).unwrap();
     let untrusted_dependency = RI13_MANIFEST.replace("url = [\"=2.5.8\"]", "url = [\"=2.5.7\"]");

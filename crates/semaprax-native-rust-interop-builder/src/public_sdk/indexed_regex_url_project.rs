@@ -10,6 +10,18 @@ pub struct PreparedRegexUrlProjectPackages {
     pub url: PreparedUrlProjectPackage,
 }
 
+fn selected_import_ids(program: &semaprax::hir::ResolvedProgram) -> Vec<String> {
+    let mut ids = program
+        .interfaces
+        .iter()
+        .flat_map(|interface| &interface.imports)
+        .filter(|import| import.index_selected)
+        .map(|import| import.id.as_str().to_owned())
+        .collect::<Vec<_>>();
+    ids.sort();
+    ids
+}
+
 /// Admit the closed RI-13 Project profile through one held source snapshot and
 /// four authenticated registry signatures. This performs no native package
 /// preparation; callers that prepare a carrier must still use
@@ -53,7 +65,7 @@ pub fn with_authenticated_indexed_regex_url_project<T>(
                 let subject = project::ProjectSdkSubject::from_authenticated(&input)?;
                 project::verify_project_subject(subject.canonical.as_bytes(), &subject)
                     .map_err(|error| vec![error])?;
-                if subject.imports != expected_imports {
+                if selected_import_ids(input.program()) != expected_imports {
                     return Err(vec![sdk_error(
                         "mixed Regex/Url indexed admission requires the exact four linked imports",
                     )]);
@@ -122,7 +134,7 @@ pub fn with_authenticated_indexed_regex_url_project_packages<T>(
                 let subject = project::ProjectSdkSubject::from_authenticated(&input)?;
                 project::verify_project_subject(subject.canonical.as_bytes(), &subject)
                     .map_err(|error| vec![error])?;
-                if subject.imports != expected_imports
+                if selected_import_ids(input.program()) != expected_imports
                     || subject.exports.len() != 2
                     || subject.exports[0].id != expected_exports[0]
                     || subject.exports[1].id != expected_exports[1]
@@ -202,7 +214,7 @@ pub fn prepare_indexed_regex_url_project_packages(
                 let subject = project::ProjectSdkSubject::from_authenticated(&input)?;
                 project::verify_project_subject(subject.canonical.as_bytes(), &subject)
                     .map_err(|error| vec![error])?;
-                if subject.imports != expected_imports
+                if selected_import_ids(input.program()) != expected_imports
                     || subject.exports.len() != 2
                     || subject.exports[0].id != expected_exports[0]
                     || subject.exports[1].id != expected_exports[1]

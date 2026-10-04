@@ -105,6 +105,7 @@ pub(super) fn resolved_type_owned_capacity(ty: &ResolvedType) -> usize {
         }
         ResolvedType::OnceFunction
         | ResolvedType::OnceFunctionI64
+        | ResolvedType::OnceFunctionI64Pair
         | ResolvedType::Unit
         | ResolvedType::I64
         | ResolvedType::I32

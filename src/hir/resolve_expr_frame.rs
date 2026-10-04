@@ -529,6 +529,7 @@ pub(super) fn frame_owned_capacity(
                     }
                     Type::OnceFunction
                     | Type::OnceFunctionI64
+                    | Type::OnceFunctionI64Pair
                     | Type::I64
                     | Type::I32
                     | Type::Char

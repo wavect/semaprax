@@ -24,6 +24,21 @@ test('malformed output and late output after Stop cannot revive the session', ()
 test('dirty editor state is distinct from the retained active revision and history is bounded', () => {
   let child; const reload = new HotReload(() => (child = new Child()), '/tool/semaprax', '/project/semaprax.toml'); reload.start(); child.send(row(1, 'started')); reload.markDirty();
   assert.equal(reload.detail().dirty, true); assert.match(reload.detail().detail, /older than the editor/);
-  for (let id = 2; id <= 34; id++) { reload.request('status'); child.send(row(id, 'status')); }
+  for (let id = 2; id <= 34; id++) { reload.request('status'); child.send(row(id, 'status')); assert.equal(reload.detail().dirty, true); }
   assert.ok(reload.detail().history.length <= 32);
+});
+test('rejects malformed revision or generation and bounds outstanding requests', () => {
+  let child; const reload = new HotReload(() => (child = new Child()), '/tool/semaprax', '/project/semaprax.toml'); reload.start(); child.send(row(1, 'started'));
+  for (let id = 2; id <= 65; id++) reload.request('status');
+  assert.throws(() => reload.request('status'), /queue is full/);
+  const invalid = new HotReload(() => (child = new Child()), '/tool/semaprax', '/project/semaprax.toml'); invalid.start(); child.send({ ...row(1, 'started'), generation: -1 });
+  assert.equal(invalid.detail().event, 'unknown'); assert.equal(child.killed, true);
+});
+test('accepts the CLI rejected response without inventing generation or revision fields', () => {
+  let child; const reload = new HotReload(() => (child = new Child()), '/tool/semaprax', '/project/semaprax.toml'); reload.start(); child.send({ schema: 'semaprax.hot-reload-control.v1', id: 1, event: 'rejected', message: 'session startup rejected' });
+  assert.equal(reload.detail().event, 'rejected'); assert.equal(reload.detail().active, null); assert.equal(child.killed, false);
+});
+test('stop marks an unacknowledged activation unknown before bounded forced termination', () => {
+  let child; const reload = new HotReload(() => (child = new Child()), '/tool/semaprax', '/project/semaprax.toml'); const terminal=[]; reload.on('terminal', value => terminal.push(value)); reload.start(); child.send(row(1, 'started')); reload.request('activate'); reload.stop();
+  assert.equal(reload.detail().event, 'unknown'); assert.match(reload.detail().detail, /acknowledgement was interrupted/); assert.match(child.writes.at(-1), /"op":"stop"/); assert.equal(child.killed, false); assert.equal(terminal.length, 1);
 });

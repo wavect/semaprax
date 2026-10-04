@@ -771,7 +771,7 @@ function activate(context) {
     async startHotReload() {
       saved(); if (!vscode.workspace.isTrusted || vscode.workspace.workspaceFolders?.some(folder => folder.uri.scheme !== 'file')) throw new Error('Hot reload requires a trusted local filesystem workspace'); const selected = configured();
       hotReload?.stop(); hotReload = new HotReload(spawn, selected.compiler, selected.manifest);
-      hotReload.on('status', value => { status.text = `SEMAPRAX hot reload: ${value.event} · ${String(value.active_project_revision || '').slice(7,19)}`; });
+      hotReload.on('status', value => { status.text = `SEMAPRAX hot reload: ${value.event} · ${String(value.active || '').slice(7,19)}`; });
       hotReload.on('terminal', reason => { status.text = `SEMAPRAX hot reload: terminal · ${reason}`; });
       hotReload.start();
     },

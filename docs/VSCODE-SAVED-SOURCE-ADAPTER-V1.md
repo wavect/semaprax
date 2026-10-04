@@ -84,8 +84,11 @@ compiler and manifest settings, then directly starts `dev <manifest> --jsonl`.
 It never starts on save or workspace open. The extension sends only the closed
 CLI operations and displays the CLI-owned active revision and terminal state;
 it never writes source or activates a candidate itself. Stop and any setting or
-saved-source session change terminate this controller. Source-Agent execution
-is not offered by the editor control.
+saved-source session change terminate this controller. At most 64 control
+requests may await replies. If Stop interrupts an unacknowledged activation,
+the detail view reports the active state as unknown, sends the bounded Stop
+request, and force-terminates the child after its one-second grace period.
+Source-Agent execution is not offered by the editor control.
 
 ## Workflow
 

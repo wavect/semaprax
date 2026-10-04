@@ -141,6 +141,13 @@ def main(argv=None) -> int:
                   expected_outcome_observed=bridge["exit_code"] == 0 and out == b"unsat\nsat\nsat\n" and err == b"",
                   claim="full-domain mathematical bitvector encoding only; no source translation/lowering certificate")
     report["representation_bridge"] = bridge
+    sort_model_source = root / "sort-equal-spec.smt2"
+    sort_model_source.write_bytes((FIXTURES / "sort-equal-spec.smt2").read_bytes())
+    sort_model, out, err = invoke(root, "sort-equal-spec-z3", [str(args.z3), "-smt2", str(sort_model_source)], args.timeout, env)
+    sort_model.update(source=reference(sort_model_source, root),
+                      expected_outcome_observed=sort_model["exit_code"] == 0 and out == b"unsat\nsat\n" and err == b"",
+                      claim="universal full-U32 sortedness and multiplicity for the fixed four-element insertion-sort model; no source translation/lowering certificate")
+    report["sort_equal_spec_model"] = sort_model
     for task in ("balance", "sort"):
         for attack in (False, True):
             kind = "attack" if attack else "candidate"
@@ -178,7 +185,7 @@ def main(argv=None) -> int:
                        and b"SEMAPRAX contract failure" in err and guard in err)
             report["domain_controls"].append(row)
     report["status"] = ("supplemental_controls_pass" if all(row["expected_outcome_observed"] for row in report["cases"] + report["domain_controls"])
-                        and bridge["expected_outcome_observed"]
+                        and bridge["expected_outcome_observed"] and sort_model["expected_outcome_observed"]
                         and all(row["exit_code"] == 0 for row in report["versions"].values()) else "incomplete")
     (root / "report.json").write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
     print(json.dumps({"status": report["status"], "report": str(root / "report.json")}, sort_keys=True))

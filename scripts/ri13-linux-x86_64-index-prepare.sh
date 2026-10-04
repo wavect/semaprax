@@ -119,7 +119,8 @@ RI-13 Linux x86_64 Rust API index preparation plan
 capture regex 1.13.1 and url 2.5.8 Rustdoc JSON with the supplied pinned
 nightly, convert each capture through the repository converter, and retain
 raw JSON, SHA-256 receipt data, and the guest's stdout/stderr below $output.
-The runner retains the stopped guest's inspect record, then deletes the guest.
+The runner waits up to 30 minutes for the guest to stop, retains its inspect
+record, then deletes the guest.
 EOF
 }
 
@@ -184,16 +185,38 @@ container run --detach --name "$container_name" --arch amd64 --rosetta --init --
     > "$output/container-launch.log" 2>&1
 container_started=true
 
-# `logs --follow` closes only after the init process exits, so the following
-# inspect record describes the completed guest rather than a live one.
-container logs --follow "$container_name" > "$output/container.log" 2>&1 || {
+# Apple Container's `logs --follow` can return before a guest has stopped.
+# Poll inspect state first so cleanup cannot terminate a live extraction.
+deadline=$(( $(date +%s) + 1800 ))
+while :; do
+    inspect_json=$(container inspect "$container_name") || {
+        status=$?
+        echo "could not inspect the guest (status $status)" >&2
+        exit "$status"
+    }
+    state=$(printf '%s' "$inspect_json" | python3 -c '
+import json
+import sys
+try:
+    print(json.load(sys.stdin)[0]["status"]["state"])
+except (IndexError, KeyError, TypeError, json.JSONDecodeError) as error:
+    raise SystemExit(f"container inspect did not expose guest state: {error}")
+') || exit 1
+    case "$state" in
+        running|created)
+            if [ "$(date +%s)" -ge "$deadline" ]; then
+                printf '%s\n' "guest remained $state for 1800 seconds" > "$output/container-timeout.txt"
+                exit 124
+            fi
+            sleep 1
+            ;;
+        *) break ;;
+    esac
+done
+printf '%s\n' "$inspect_json" > "$output/container-inspect.json"
+container logs "$container_name" > "$output/container.log" 2>&1 || {
     status=$?
-    echo "could not retain the guest log (status $status)" >&2
-    exit "$status"
-}
-container inspect "$container_name" > "$output/container-inspect.json" 2>&1 || {
-    status=$?
-    echo "could not retain the stopped guest inspection (status $status)" >&2
+    echo "could not retain the stopped guest log (status $status)" >&2
     exit "$status"
 }
 container delete "$container_name" > "$output/container-delete.log" 2>&1 || {

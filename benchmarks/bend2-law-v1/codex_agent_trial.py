@@ -66,6 +66,7 @@ def selected_trial(plan: dict, trial_id: str) -> dict:
 
 
 def usage(events: list[dict]) -> dict | None:
+    """Keep Codex cache telemetry, without charging its input-token subset twice."""
     completed = [event for event in events if event.get("type") == "turn.completed"]
     if len(completed) != 1 or not isinstance(completed[0].get("usage"), dict):
         return None
@@ -73,7 +74,10 @@ def usage(events: list[dict]) -> dict | None:
     fields = ("input_tokens", "cached_input_tokens", "output_tokens")
     if any(not isinstance(raw.get(field), int) or raw[field] < 0 for field in fields):
         return None
-    return {field: raw[field] for field in fields} | {"total_tokens": sum(raw[field] for field in fields)}
+    # Codex reports cached input as the reusable subset of input_tokens.  The
+    # fixed token budget charges the full input once plus generated output;
+    # cached_input_tokens is retained as provenance for later cost analysis.
+    return {field: raw[field] for field in fields} | {"total_tokens": raw["input_tokens"] + raw["output_tokens"]}
 
 
 def edit_context(trial: dict) -> dict:

@@ -185,3 +185,34 @@ are at `/tmp/law16-boolean-negative.json` and
 `/tmp/law16-boolean-negative-artifacts/`. This is Boolean-only local execution
 evidence, not current-head evidence, an agent trial, a timing result, or a
 Bend-versus-SEMAPRAX comparison.
+
+## Boolean cold/warm measurement preparation
+
+`boolean_measure.py` prepares the available Boolean routes for a 30-repetition
+local run. It pins both source heads and executable hashes; takes one cold
+sample and at least 30 warm samples for ordinary Bend checking, Bend
+`--verdict`, and SEMAPRAX runtime separately; retains every elapsed-nanosecond
+sample and each command's stdout/stderr in an artifact directory; and derives
+p50, p95, mean, and per-command peak RSS from those raw samples.
+
+On Darwin, `/usr/bin/time -l` supplies a per-command peak resident-set-size
+observation in bytes. On GNU/Linux the runner uses `/usr/bin/time -f %M` and
+normalizes KiB to bytes. An absent or malformed wrapper remains explicitly
+`unavailable`; the runner never substitutes cumulative parent-process memory.
+The current bounded runner records SMT and external Lean Boolean paths as
+unavailable because it has no compiler-owned command for either one.
+
+```sh
+python3 benchmarks/bend2-law-v1/boolean_measure.py \
+  --bend-root /tmp/bend2-law-source \
+  --bun /absolute/path/to/bun \
+  --semaprax-root /path/to/current/semaprax \
+  --semaprax /path/to/current/semaprax-binary \
+  --semaprax-commit "$(git -C /path/to/current/semaprax rev-parse HEAD)" \
+  --artifact-dir /secure/local/law16-boolean-measure-artifacts \
+  --output /secure/local/law16-boolean-measure.json
+```
+
+This command is prepared but not run against a current-head SEMAPRAX binary.
+Its timing values must remain separate route observations; it emits no ratio,
+winner, GPU result, or claim about the unavailable checked-`u32` cells.

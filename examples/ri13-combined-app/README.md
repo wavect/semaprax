@@ -50,6 +50,20 @@ Run its parser-only control without Cargo:
 python3 examples/ri13-combined-app/measure.py --self-test --output /tmp/unused.json
 ```
 
+The authored-code and escape-hatch disclosure is also reproducible without Cargo:
+
+```sh
+python3 examples/ri13-combined-app/friction-ledger.py \
+  > /tmp/ri13-developer-friction.json
+python3 -m unittest examples/ri13-combined-app/test_friction_ledger.py
+```
+
+It hashes and counts each authored Rust file by M1, M2, M3, and linked route;
+refuses handwritten ABI or `unsafe` escape-hatch tokens in those application
+sources; excludes prepare-derived artifacts from the authored count; and names
+the small caller-owned M3 HTTP/runtime configuration separately. It is a
+reproducible disclosure rather than a developer-effort score.
+
 ## Receipt categories
 
 The JSON receipt intentionally separates three quantities:

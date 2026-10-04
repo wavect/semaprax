@@ -11,10 +11,27 @@ class Contract(unittest.TestCase):
         self.assertEqual(manifest["scope"], "interpreter-only")
         self.assertIn("source-Agent journey", manifest["nonclaims"])
 
+    def test_dry_run_retains_explicit_sample_and_warmup_counts(self):
+        import sys, tempfile
+        with tempfile.TemporaryDirectory() as directory:
+            output = pathlib.Path(directory) / "plan.json"
+            previous = sys.argv
+            try:
+                sys.argv = ["run.py", "--dry-run", "--samples", "11", "--warmups", "3", "--output", str(output)]
+                RUN.main()
+            finally:
+                sys.argv = previous
+            plan = json.loads(output.read_text())
+        self.assertEqual((plan["samples"], plan["warmups"]), (11, 3))
+
     def test_malformed_manifest_and_quantile_are_refused_or_deterministic(self):
         manifest = json.loads(RUN.MANIFEST.read_text())
         broken = copy.deepcopy(manifest); broken["unexpected"] = True
         with self.assertRaises(ValueError): RUN.validate(broken)
         self.assertEqual(RUN.summary([1, 2, 3, 4, 5]), {"samples": 5, "median_ms": 3, "p95_ms": 5, "values_ms": [1, 2, 3, 4, 5]})
+
+    def test_compiler_subject_refuses_a_missing_or_mismatched_embedded_commit(self):
+        with self.assertRaises(RuntimeError):
+            RUN.compiler_subject("/usr/bin/true", None)
 
 if __name__ == "__main__": unittest.main()

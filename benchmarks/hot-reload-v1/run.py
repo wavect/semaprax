@@ -161,23 +161,47 @@ def summary(samples):
     return {"samples": n, "median_ms": round(statistics.median(ordered), 3), "p95_ms": round(ordered[min(n - 1, max(0, (95 * n + 99) // 100 - 1))], 3), "values_ms": [round(value, 3) for value in samples]}
 
 
+def compiler_subject(binary, expected_commit):
+    _, output = run([binary, "version", "--json"])
+    try:
+        version = json.loads(output)
+    except json.JSONDecodeError as error:
+        raise RuntimeError("compiler version output is not JSON") from error
+    if set(version) != {"schema", "version", "commit", "maturity", "rust_min"} or version["schema"] != "semaprax.version.v1":
+        raise RuntimeError("compiler version output has an unexpected schema")
+    commit = version["commit"]
+    if commit is not None and (not isinstance(commit, str) or len(commit) != 40 or any(character not in "0123456789abcdef" for character in commit)):
+        raise RuntimeError("compiler version output has an invalid commit")
+    if expected_commit is not None and commit != expected_commit:
+        raise RuntimeError("compiler embedded commit does not match --expected-commit")
+    return {"path": binary, "digest": digest(pathlib.Path(binary)), "embedded_commit": commit, "version": version["version"]}
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--semaprax")
     parser.add_argument("--samples", type=int, default=11)
+    parser.add_argument("--warmups", type=int, default=3)
+    parser.add_argument("--expected-commit", help="exact 40-character commit embedded by the supplied CLI binary")
     parser.add_argument("--output", type=pathlib.Path, default=pathlib.Path("/tmp/hot-reload-benchmark.json"))
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
     manifest = json.loads(MANIFEST.read_text()); validate(manifest)
     if args.samples < 1: raise SystemExit("--samples must be positive")
+    if args.warmups < 0: raise SystemExit("--warmups must be nonnegative")
+    if args.expected_commit is not None and (len(args.expected_commit) != 40 or any(character not in "0123456789abcdef" for character in args.expected_commit)):
+        raise SystemExit("--expected-commit must be exactly 40 lowercase hexadecimal characters")
     if args.dry_run:
-        args.output.write_text(canonical({"schema": SCHEMA, "mode": "plan", "acceptance_manifest_digest": digest(MANIFEST), "fixture": manifest["fixture"], "lanes": manifest["lanes"]})); return
+        args.output.write_text(canonical({"schema": SCHEMA, "mode": "plan", "acceptance_manifest_digest": digest(MANIFEST), "fixture": manifest["fixture"], "lanes": manifest["lanes"], "samples": args.samples, "warmups": args.warmups})); return
     if not args.semaprax or not pathlib.Path(args.semaprax).is_file(): raise SystemExit("--semaprax must name an already-built executable")
     binary = str(pathlib.Path(args.semaprax).resolve())
+    subject = compiler_subject(binary, args.expected_commit)
     records = {"interpreter-save-to-ack": [], "full-restart": [], "authenticated-warm-restart": []}
+    for _ in range(args.warmups):
+        hot(binary); full_restart(binary); warm_restart(binary)
     for _ in range(args.samples):
         records["interpreter-save-to-ack"].append(hot(binary)); records["full-restart"].append(full_restart(binary)); records["authenticated-warm-restart"].append(warm_restart(binary))
-    report = {"schema": SCHEMA, "acceptance_manifest_digest": digest(MANIFEST), "compiler": {"path": binary, "digest": digest(pathlib.Path(binary)), "git_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()}, "host": {"system": platform.system(), "release": platform.release(), "machine": platform.machine(), "cpu_count": os.cpu_count()}, "samples": args.samples, "peak_rss_bytes": None, "peak_rss_basis": "unavailable: portable per-child peak measurement is not implemented", "loops": {name: {"summary": summary([item["save_to_ack_ms"] for item in rows]), "records": rows} for name, rows in records.items()}, "nonclaims": manifest["nonclaims"]}
+    report = {"schema": SCHEMA, "acceptance_manifest_digest": digest(MANIFEST), "compiler": {**subject, "git_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()}, "host": {"system": platform.system(), "release": platform.release(), "machine": platform.machine(), "cpu_count": os.cpu_count()}, "samples": args.samples, "warmups": args.warmups, "peak_rss_bytes": None, "peak_rss_basis": "unavailable: portable per-child peak measurement is not implemented", "loops": {name: {"summary": summary([item["save_to_ack_ms"] for item in rows]), "records": rows} for name, rows in records.items()}, "nonclaims": manifest["nonclaims"]}
     args.output.parent.mkdir(parents=True, exist_ok=True); args.output.write_text(canonical(report))
 
 

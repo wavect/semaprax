@@ -15,7 +15,7 @@ Run the checked interpreter loop with an already-built binary:
 
 ```sh
 python3 benchmarks/hot-reload-v1/run.py --semaprax target/debug/semaprax \
-  --samples 11 --output /tmp/hot-reload-benchmark.json
+  --samples 11 --warmups 3 --expected-commit "$(git rev-parse HEAD)" --output /tmp/hot-reload-benchmark.json
 ```
 
 The interpreter sequence starts A, invokes A, saves B, admits and plans B,
@@ -26,7 +26,7 @@ Authenticated warm restart uses the persistent semantic-cache refresh and warm
 open commands on that same fixture; it is a separate process restart with
 checked-HIR reuse.
 
-The result reports raw values plus median and p95 for each loop. It makes no
+The result reports the discarded warmup count, raw values, median and p95 for each loop. It makes no
 universal latency claim. It records zero debounce and safe-point wait only for
 this synchronous fixture, records plan as the protocol-visible combined
 admission/preparation interval, and leaves unavailable per-child peak memory

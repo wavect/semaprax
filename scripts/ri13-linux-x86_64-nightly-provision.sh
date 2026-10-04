@@ -56,6 +56,7 @@ if re.fullmatch(r"sha256:[0-9a-f]{64}", sys.argv[1]) is None:
 PY
 
 cargo_home=$(cd "$cargo_home" && pwd -P)
+script_dir=$(cd "$(dirname "$0")" && pwd -P)
 case "$output" in
     /*) ;;
     *) echo "--output must be absolute" >&2; exit 64 ;;
@@ -126,8 +127,9 @@ mkdir "$output"
 trap 'echo "RI-13 nightly provision retained after interruption: $output" >&2' HUP INT TERM
 container run --arch amd64 --rosetta --rm --init \
     --memory 1G --read-only --tmpfs /tmp --tmpfs /work \
+    --mount "type=bind,source=$script_dir,target=/provision-scripts,readonly" \
     --mount "type=bind,source=$cargo_home,target=/cargo-home,readonly" \
     --mount "type=bind,source=$output,target=/output" \
     --env "RI13_IMAGE_TAG=$image_tag" \
     --env "RI13_IMAGE_DIGEST=$image_digest" \
-    "$image_tag" bash /dev/stdin < "$(dirname "$0")/ri13-linux-x86_64-nightly-provision-inner.sh"
+    "$image_tag" bash /provision-scripts/ri13-linux-x86_64-nightly-provision-inner.sh

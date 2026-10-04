@@ -1406,4 +1406,172 @@ mod hn {
         assert_eq!((rep.status, s.calls.get()), ("refused", 0));
         assert_eq!(rep.refusals[0].code, "SPX-HPD100");
     }
+
+    /// Run the built binary with an isolated harness home and the real compiler.
+    fn bin(r: &Rig, args: &[&str]) -> (i32, String) {
+        let home = r.cache.parent().unwrap().join("home");
+        std::fs::create_dir_all(&home).unwrap();
+        let o = Command::new(harness_bin())
+            .args(args)
+            .env_clear()
+            .env("PATH", "/usr/bin:/bin")
+            .env("SEMAPRAX_HARNESS_HOME", &home)
+            .env("SEMAPRAX_COMPILER", required_tool("SEMAPRAX_COMPILER"))
+            .current_dir(&r.project)
+            .output()
+            .expect("run the harness binary");
+        (
+            o.status.code().unwrap_or(-1),
+            format!(
+                "{}{}",
+                String::from_utf8_lossy(&o.stdout),
+                String::from_utf8_lossy(&o.stderr)
+            ),
+        )
+    }
+
+    fn task_file(r: &Rig, name: &str, v: Value) -> String {
+        let p = r.cache.parent().unwrap().join(name);
+        std::fs::write(&p, v.to_string()).unwrap();
+        p.to_string_lossy().into_owned()
+    }
+
+    fn session_task() -> Value {
+        json!({"schema": "semaprax.harness-task.v2", "mode": "change", "goal": "add a discount parameter",
+            "seed": "ledger.invoice_total", "session": {"max_attempts": 3},
+            "acceptance": [{"stable_id": "ledger.invoice_total", "contains": "discount"}]})
+    }
+
+    #[test]
+    #[ignore = "provisioned: needs SEMAPRAX_COMPILER"]
+    fn hp_hn02_real_cli_run_session_then_apply_succeeds_and_drift_is_refused_without_publishing() {
+        let r = rig("hp-hn02cli", None);
+        let proposal = task_file(&r, "proposal.json", add_discount());
+        let task = task_file(&r, "task.json", session_task());
+        let project = r.project.to_str().unwrap().to_string();
+        let (code, out) = bin(
+            &r,
+            &[
+                "run",
+                &project,
+                "--task",
+                &task,
+                "--proposal",
+                &proposal,
+                "--json",
+            ],
+        );
+        assert_eq!(code, 0, "{out}");
+        let rep: Value = serde_json::from_str(out.trim()).unwrap();
+        assert_eq!(rep["status"], "candidate-ready");
+        let rev = rep["session"]["result"]["revision"]
+            .as_str()
+            .unwrap()
+            .to_string();
+        let report = task_file(&r, "report.json", rep.clone());
+        assert!(
+            !read(&r, "src/report.spx").contains("discount"),
+            "run never writes the project"
+        );
+        // Drift: the project changed after the session captured its baseline.
+        let before = read(&r, "src/lib.spx");
+        std::fs::write(r.project.join("src/lib.spx"), format!("{before}// drift\n")).unwrap();
+        let (code, out) = bin(
+            &r,
+            &[
+                "apply",
+                &project,
+                "--session",
+                &report,
+                "--expected-revision",
+                &rev,
+                "--json",
+            ],
+        );
+        assert_eq!(code, 1, "{out}");
+        assert!(out.contains("SPX-HPD115"), "{out}");
+        assert!(!read(&r, "src/report.spx").contains("discount"));
+        // A wrong expected revision is refused too.
+        std::fs::write(r.project.join("src/lib.spx"), &before).unwrap();
+        let (code, out) = bin(
+            &r,
+            &[
+                "apply",
+                &project,
+                "--session",
+                &report,
+                "--expected-revision",
+                "sha256:00",
+                "--json",
+            ],
+        );
+        assert_eq!((code, out.contains("SPX-HPD115")), (1, true), "{out}");
+        // The undrifted project accepts the verified result; nothing is published.
+        let (code, out) = bin(
+            &r,
+            &[
+                "apply",
+                &project,
+                "--session",
+                &report,
+                "--expected-revision",
+                &rev,
+                "--json",
+            ],
+        );
+        assert_eq!(code, 0, "{out}");
+        let v: Value = serde_json::from_str(out.trim()).unwrap();
+        assert_eq!(
+            (v["status"].as_str(), v["published"].as_bool()),
+            (Some("applied"), Some(false))
+        );
+        assert!(read(&r, "src/report.spx").contains("discount"));
+        assert!(
+            r.compiler.check(&r.project).unwrap().ok && r.compiler.test(&r.project).unwrap().passed
+        );
+    }
+
+    #[test]
+    #[ignore = "provisioned: needs SEMAPRAX_COMPILER"]
+    fn hp_hn02_real_cli_run_cancel_file_records_a_cancelled_session() {
+        let r = rig("hp-hn02cancel", None);
+        let proposal = task_file(&r, "proposal.json", add_discount());
+        let task = task_file(&r, "task.json", session_task());
+        let cancel = task_file(&r, "cancel.flag", json!("stop"));
+        let project = r.project.to_str().unwrap().to_string();
+        let (code, out) = bin(
+            &r,
+            &[
+                "run",
+                &project,
+                "--task",
+                &task,
+                "--proposal",
+                &proposal,
+                "--cancel-file",
+                &cancel,
+                "--json",
+            ],
+        );
+        assert_eq!(code, 1, "{out}");
+        let rep: Value = serde_json::from_str(out.trim()).unwrap();
+        assert_eq!(rep["status"], "cancelled");
+        assert_eq!(rep["refusals"][0]["code"], "SPX-HPD113");
+        assert_eq!(
+            rep["session"]["attempts_spent"], 0,
+            "no generation started after the cancel"
+        );
+        let home = r.cache.parent().unwrap().join("home/cache/workflow");
+        let lineage = rep["lineage"].as_str().unwrap();
+        let journal = std::fs::read_dir(&home)
+            .unwrap()
+            .flatten()
+            .map(|d| d.path().join(format!("{lineage}.journal.jsonl")))
+            .find(|p| p.is_file())
+            .expect("journal");
+        assert!(std::fs::read_to_string(journal)
+            .unwrap()
+            .contains("\"cancelled\""));
+        assert!(!read(&r, "src/report.spx").contains("discount"));
+    }
 }

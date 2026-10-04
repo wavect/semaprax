@@ -43,6 +43,7 @@ struct Args {
     tokenizer_script: Option<String>,
     tokenizer_cache: Option<String>,
     tokenizers: Vec<String>,
+    cancel_file: Option<String>,
     disable: bool,
     json: bool,
 }
@@ -67,6 +68,7 @@ fn parse(args: &[String]) -> HarnessResult<Args> {
             "--tokenizer-python" => a.tokenizer_python = Some(val("--tokenizer-python")?),
             "--tokenizer-script" => a.tokenizer_script = Some(val("--tokenizer-script")?),
             "--tokenizer-cache" => a.tokenizer_cache = Some(val("--tokenizer-cache")?),
+            "--cancel-file" => a.cancel_file = Some(val("--cancel-file")?),
             "--tokenizer" => a.tokenizers.push(val("--tokenizer")?),
             "--disable" => a.disable = true,
             "--json" => a.json = true,
@@ -149,6 +151,9 @@ pub struct RunOptions {
     pub tokenizers: Vec<String>,
     /// Cooperative cancellation for sessions.
     pub cancel: Option<super::session::CancelFlag>,
+    /// Polled path: once it exists the session is cancelled (no signal handling:
+    /// that needs `unsafe`, which this crate forbids).
+    pub cancel_file: Option<PathBuf>,
     pub disable: bool,
     pub json: bool,
 }
@@ -168,6 +173,7 @@ fn a_to_opts(a: &Args, env: &Environment) -> RunOptions {
         tokenizer_cache: a.tokenizer_cache.as_deref().map(|p| abs(env, p)),
         tokenizers: a.tokenizers.clone(),
         cancel: None,
+        cancel_file: a.cancel_file.as_deref().map(|p| abs(env, p)),
         disable: a.disable,
         json: a.json,
     }
@@ -402,7 +408,26 @@ pub fn run_with(
         model_plans,
         notes,
         budget,
-        cancel: o.cancel.clone(),
+        cancel: o.cancel.clone().or_else(|| {
+            o.cancel_file.as_ref().map(|p| {
+                let flag = super::session::CancelFlag::default();
+                let (f, path) = (flag.clone(), p.clone());
+                if path.exists() {
+                    f.store(true, std::sync::atomic::Ordering::SeqCst);
+                }
+                std::thread::spawn(move || {
+                    // Ends with the process or once the flag fires (a run is short-lived).
+                    for _ in 0..72_000 {
+                        if path.exists() {
+                            f.store(true, std::sync::atomic::Ordering::SeqCst);
+                            break;
+                        }
+                        std::thread::sleep(std::time::Duration::from_millis(50));
+                    }
+                });
+                flag
+            })
+        }),
     };
     let sink: Option<Box<dyn crate::observe::Sink>> = match &o.observations {
         Some(p) => Some(Box::new(JsonlFileSink::create(p, 16 << 20).map_err(

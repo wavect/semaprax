@@ -11,6 +11,7 @@ pub mod broker_stage;
 pub mod budget;
 pub mod checks;
 mod cli;
+mod cli_apply;
 pub mod compiler;
 pub mod composition;
 pub mod journal;
@@ -24,6 +25,7 @@ pub mod snapshot;
 pub mod stages;
 
 pub use cli::{cli_run, run_with, RunOptions};
+pub use cli_apply::cli_apply;
 pub use compiler::{CompilerService, SubprocessCompiler};
 
 pub use broker_stage::BrokerContext;

@@ -218,3 +218,13 @@ Diagnostics added: 092 unsupported goal, 100 request cannot fit any model, 101 t
 112 no progress, 113 cancelled, 114 oracle edit, 115 apply refused (drift), 116 acceptance/done unmet, 117 invalid
 scratch patch.
 
+### User path: `apply` and cancellation
+
+`semaprax harness apply <project> --session <result-dir|report.json> --expected-revision <digest> [--compiler p] [--json]`
+re-verifies the session result with the compiler, requires the project still to equal the session's captured baseline
+(`semaprax.harness-session.json` in the result directory) and writes the changed files. Drift, a wrong expected revision or
+an unverifiable result is `SPX-HPD115`; it never publishes (publication stays `run --apply-policy` or the compiler's own
+route). `run --cancel-file <path>` cancels a session once the file exists (checked at start, polled every 50 ms, acted on
+between steps: `SPX-HPD113`, status `cancelled`, journal `cancelled`); an in-flight side-effecting generation is recorded
+`uncertain` and not replayed. SIGINT is not handled: it needs `unsafe`, which this crate forbids.
+

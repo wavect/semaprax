@@ -20,6 +20,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
 /// Cooperative cancellation shared with the caller (checked between steps).
+pub const SESSION_FILE: &str = "semaprax.harness-session.json";
+
 pub type CancelFlag = Arc<AtomicBool>;
 
 fn d(code: &'static str, msg: impl Into<String>) -> HarnessDiagnostic {
@@ -535,6 +537,11 @@ pub(super) fn finish(
     let files = changed_files(&s.baseline, &s.work);
     let result_dir = cx.cfg.cache_dir.join(format!("result-{}", cx.lineage.id));
     attempt::copy_project(&s.work, &result_dir)?;
+    // Binds the result to its exact baseline so `apply` can detect drift later.
+    let meta = json!({"schema": "semaprax.harness-session-result.v1", "baseline_revision": cx.cfg.snapshot.revision,
+        "baseline_files": cx.cfg.snapshot.files, "result_revision": revision});
+    std::fs::write(result_dir.join(SESSION_FILE), crate::json::canonical(&meta))
+        .map_err(|e| d("SPX-HPD070", format!("session result: {e}")))?;
     s.result = json!({"revision": revision, "dir": result_dir.to_string_lossy(), "changed_files": files,
         "kind": if after_repair { "scratch-repair-then-change" } else { "semantic-steps" },
         "apply": "separate authority: workflow::apply_result (drift-checked); nothing was written to the project"});

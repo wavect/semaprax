@@ -4,11 +4,14 @@ import argparse
 import importlib.util
 import json
 import pathlib
+import sys
 
 ROOT = pathlib.Path(__file__).parent
 
 
 def module(name):
+    if str(ROOT) not in sys.path:
+        sys.path.insert(0, str(ROOT))
     spec = importlib.util.spec_from_file_location(name, ROOT / f"{name}.py")
     value = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(value)
@@ -22,6 +25,7 @@ REMAINING = module("law16_remaining_cells_admission")
 RSS = module("law16_boolean_negation_rss_capsule")
 NONPROOF = module("law16_boolean_negation_nonproof_capsule")
 PROOFVERDICT = module("law16_boolean_negation_proof_verdict_capsule")
+FULL_U32_EQUAL_SPEC = module("full_u32_equal_spec")
 SCHEMA = "semaprax.bend2-law-benchmark.current-report.v1"
 
 
@@ -71,6 +75,7 @@ def render():
     process = PROCESS.review(ROOT / "evidence/law16-boolean-negation-process-v1")
     process_v2 = PROCESS.review(ROOT / "evidence/law16-boolean-negation-process-v2")
     full_u32_controls = read(ROOT / "evidence/full-u32-encoding-controls-v1/report.json")
+    full_u32_equal_spec = FULL_U32_EQUAL_SPEC.profile()
     process_v2_provenance = read(ROOT / "evidence/law16-boolean-negation-process-v2/provenance.json")
     effort = read(ROOT / "evidence/law16-effort-summary-v1.json")
     annotations = read(ROOT / "evidence/law16-annotation-summary-v1.json")
@@ -137,6 +142,22 @@ def render():
             "domain_boundary_controls": len(full_u32_controls["domain_controls"]),
             "build_commit_association": full_u32_controls["build_commit_association"],
             "nonclaims": full_u32_controls["nonclaims"],
+            "equal_spec_profile": {
+                "source": "full_u32_equal_spec.py",
+                "schema": full_u32_equal_spec["schema"],
+                "profile": full_u32_equal_spec["profile"],
+                "universal_model_checks": full_u32_equal_spec["universal_model_checks"],
+                "sort_result_interpretation": {
+                    "source": "fixtures/full-u32-encoding-v1/sort-equal-spec.smt2",
+                    "test": "test_full_u32_equal_spec.py::test_universal_sort_model_checks_sortedness_and_multiplicity",
+                    "scope": "all U32 values for each element of a list of exactly four elements and every queried U32 value",
+                    "answers": [
+                        "unsat: no length-four output violates sortedness or exact multiplicity",
+                        "sat: a nonempty four-value input with query equal to one element witnesses that zero output multiplicity cannot preserve input multiplicity",
+                    ],
+                    "claim_boundary": "bounded model-level equal-spec result; not a source-translation or lowering certificate and not an unbounded-list theorem",
+                },
+            },
         },
         "measurement_provenance": {
             "identity_scope": "machine-local observations bound to the process-v2 raw samples; not current-head claims",

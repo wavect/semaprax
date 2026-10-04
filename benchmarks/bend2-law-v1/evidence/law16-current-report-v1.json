@@ -959,6 +959,40 @@
     "build_commit_association": "caller_declared_not_attested",
     "candidate_and_attack_routes": 12,
     "domain_boundary_controls": 4,
+    "equal_spec_profile": {
+      "profile": "semaprax.checked-u32-value-encoding.v1",
+      "schema": "semaprax.bend2-law-benchmark.full-u32-equal-spec.v1",
+      "sort_result_interpretation": {
+        "answers": [
+          "unsat: no length-four output violates sortedness or exact multiplicity",
+          "sat: a nonempty four-value input with query equal to one element witnesses that zero output multiplicity cannot preserve input multiplicity"
+        ],
+        "claim_boundary": "bounded model-level equal-spec result; not a source-translation or lowering certificate and not an unbounded-list theorem",
+        "scope": "all U32 values for each element of a list of exactly four elements and every queried U32 value",
+        "source": "fixtures/full-u32-encoding-v1/sort-equal-spec.smt2",
+        "test": "test_full_u32_equal_spec.py::test_universal_sort_model_checks_sortedness_and_multiplicity"
+      },
+      "source": "full_u32_equal_spec.py",
+      "universal_model_checks": {
+        "balance": {
+          "claim": "all U32 balance, credit, amount triples preserve matched guard decisions, outputs, conservation, order, equality, and reject a positive successful no-op",
+          "expected": [
+            "unsat",
+            "sat",
+            "sat"
+          ],
+          "source": "fixtures/full-u32-encoding-v1/representation.smt2"
+        },
+        "sort": {
+          "claim": "every U32 list of length four has sorted output and exact multiplicity for every queried U32 value; the second check exposes the empty-output loophole",
+          "expected": [
+            "unsat",
+            "sat"
+          ],
+          "source": "fixtures/full-u32-encoding-v1/sort-equal-spec.smt2"
+        }
+      }
+    },
     "nonclaims": [
       "supplemental representation controls; original checked-u32 cells remain unadmitted",
       "concrete law witnesses are not universal list or transfer proofs",

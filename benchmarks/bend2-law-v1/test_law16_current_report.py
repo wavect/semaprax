@@ -72,6 +72,19 @@ class CurrentReportTests(unittest.TestCase):
         self.assertTrue(value["closure"].startswith("no:"))
         self.assertTrue(any("original checked-u32 cells remain unadmitted" in row for row in controls["nonclaims"]))
 
+    def test_report_names_bounded_model_level_sort_check_without_source_theorem_claim(self):
+        value = REPORT.render()
+        controls = value["supplemental_full_u32_encoding_controls"]["equal_spec_profile"]
+        self.assertEqual(controls["source"], "full_u32_equal_spec.py")
+        sort = controls["universal_model_checks"]["sort"]
+        self.assertEqual(sort["expected"], ["unsat", "sat"])
+        self.assertIn("length four", sort["claim"])
+        result = controls["sort_result_interpretation"]
+        self.assertIn("exactly four elements", result["scope"])
+        self.assertIn("not an unbounded-list theorem", result["claim_boundary"])
+        self.assertIn("not a source-translation", result["claim_boundary"])
+        self.assertEqual(value["status"], "incomplete")
+
 
 if __name__ == "__main__":
     unittest.main()

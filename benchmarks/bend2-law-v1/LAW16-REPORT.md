@@ -75,3 +75,15 @@ the original checked-u32 cells remain unadmitted, and the concrete witnesses
 do not establish universal list or transfer proofs. They do not add builtin
 SEMAPRAX `u32`, prove lowering, or close LAW-16. The checked-in machine report
 continues to mark the overall result incomplete.
+
+The added [full-u32 equal-spec profile](full_u32_equal_spec.py) records a
+bounded SMT model check in
+[`fixtures/full-u32-encoding-v1/sort-equal-spec.smt2`](fixtures/full-u32-encoding-v1/sort-equal-spec.smt2).
+For every four-element U32 input and every U32 query, the counterexample query
+for sorted output and exact multiplicity returns `unsat`; the separate
+empty-output loophole check returns `sat` for a nonempty input. The matching
+regression is
+[`test_full_u32_equal_spec.py`](test_full_u32_equal_spec.py). This is a
+model-level equal-spec result over lists of exactly four elements, not a
+certificate that either source was translated into the model and not an
+unbounded-list theorem.

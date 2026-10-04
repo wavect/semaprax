@@ -476,6 +476,7 @@ pub fn run_with(
     budget.feedback_max_tokens = config.budget.feedback_max_tokens;
     budget.generation =
         super::generation::GenerationPolicy::from_section(&config.budget.generation);
+    budget.spend = super::spend::SpendPolicy::from_section(&config.budget.generation);
     if let Some(rel) = &config.budget.generation.price_book {
         let path = snapshot.root.join(rel);
         let book = std::fs::metadata(&path)

@@ -199,6 +199,8 @@ pub struct BudgetConfig {
     pub generation: super::generation::GenerationPolicy,
     /// Host-configured price records for local cost estimates (TC-01).
     pub prices: crate::receipt::PriceBook,
+    /// Host monetary limits and strict mode for the task spend budget (TC-03; opt-in).
+    pub spend: super::spend::SpendPolicy,
 }
 
 impl BudgetConfig {
@@ -330,56 +332,35 @@ impl RequestBudget<'_> {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LedgerEntry {
+    /// Stable attempt id shared with the spend record (TC-03).
+    pub id: String,
     pub label: String,
     /// `generation`, `router`, ...
     pub kind: String,
     pub count: RequestCount,
     pub output_reserve: u64,
+    /// Reserved cost: a priced bound, zero when non-billed, else the catalog estimate.
     pub cost_micros: u64,
 }
 
-/// Per-task reservations across attempts and router/decision calls.
+/// Per-task reservations across attempts and router/decision calls. `entries`
+/// are this invocation's reservations; `spend` is the durable account of every
+/// attempt of the lineage (reserved, settled, uncertain, released) and is
+/// what admission counts (TC-03, `super::spend`).
 #[derive(Default)]
 pub struct TaskLedger {
     pub entries: Vec<LedgerEntry>,
+    pub spend: super::spend::SpendBook,
 }
 
 impl TaskLedger {
+    /// Tokens committed across the lineage: settled actuals plus outstanding reservations.
     pub fn reserved_tokens(&self) -> u64 {
-        self.entries
-            .iter()
-            .map(|e| e.count.admission_tokens() + e.output_reserve)
-            .sum()
+        self.spend.committed_tokens()
     }
+    /// Cost committed across the lineage, in micro-units.
     pub fn reserved_cost(&self) -> u64 {
-        self.entries.iter().map(|e| e.cost_micros).sum()
-    }
-    /// Refuse (`SPX-HPD101`) when this call would exceed a whole-task limit;
-    /// otherwise record it. Called before the call starts.
-    pub fn reserve(&mut self, policy: &BudgetPolicy, e: LedgerEntry) -> HarnessResult<()> {
-        let add = e.count.admission_tokens() + e.output_reserve;
-        if let Some(max) = policy.max_task_tokens {
-            if self.reserved_tokens() + add > max {
-                return Err(d(
-                    "SPX-HPD101",
-                    format!(
-                        "task token budget exhausted: {} reserved + {add} for `{}` exceeds {max}",
-                        self.reserved_tokens(),
-                        e.label
-                    ),
-                ));
-            }
-        }
-        if let Some(max) = policy.max_task_cost_micros {
-            if self.reserved_cost() + e.cost_micros > max {
-                return Err(d(
-                    "SPX-HPD101",
-                    format!("task cost budget exhausted for `{}`", e.label),
-                ));
-            }
-        }
-        self.entries.push(e);
-        Ok(())
+        self.spend.committed_cost()
     }
     /// Counts per tokenizer identity; named and upper-bound figures never mix.
     pub fn to_json(&self) -> Value {
@@ -391,9 +372,12 @@ impl TaskLedger {
                 _ => bound += e.count.bytes,
             }
         }
+        let state = |id: &str| self.spend.record(id).map(|r| r.state.as_str());
         json!({"calls": self.entries.len(), "reserved_tokens": self.reserved_tokens(),
+               "reserved_cost_micros": self.reserved_cost(),
                "named_input_tokens": named, "unknown_tokenizer_upper_bound_bytes": bound,
-               "entries": self.entries.iter().map(|e| json!({"label": e.label, "kind": e.kind,
-                    "request": e.count.to_json(), "output_reserve": e.output_reserve})).collect::<Vec<_>>()})
+               "entries": self.entries.iter().map(|e| json!({"id": e.id, "label": e.label, "kind": e.kind,
+                    "request": e.count.to_json(), "output_reserve": e.output_reserve,
+                    "cost_micros": e.cost_micros, "state": state(&e.id)})).collect::<Vec<_>>()})
     }
 }

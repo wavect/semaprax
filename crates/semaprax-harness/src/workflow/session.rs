@@ -268,6 +268,8 @@ fn read_baseline(snapshot: &Snapshot) -> HarnessResult<Baseline> {
 fn start(cx: &mut Ctx, journal: &mut Journal, r: &mut Report) -> HarnessResult<State> {
     let cfg = cx.cfg;
     let bounds = cfg.task.session.clone().unwrap_or_default();
+    // The session's token bound admits each next dispatch, not only the next turn (TC-03).
+    cx.ledger.spend.limits.session_tokens = bounds.max_tokens;
     let baseline = read_baseline(&cfg.snapshot)?;
     let oracle = repair::oracle_files(&baseline);
     let work = cfg.cache_dir.join(format!("work-{}", cx.lineage.id));

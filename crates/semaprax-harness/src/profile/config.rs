@@ -124,6 +124,13 @@ pub struct GenerationSection {
     pub prompt_renderer: Option<String>,
     /// TC-04: `supported` lets an adapter receive cache boundaries.
     pub prompt_cache_support: Option<String>,
+    /// TC-03 `strict_monetary`: refuse billable work without an enforceable price bound.
+    pub strict_monetary: bool,
+    /// TC-03 host ceilings on the whole task (`task_max_cost_micros`, `task_max_tokens`).
+    pub task_max_cost_micros: Option<u64>,
+    pub task_max_tokens: Option<u64>,
+    /// TC-03 disclosed gateway-owned retries per dispatch (`gateway_max_retries`).
+    pub gateway_max_retries: Option<u64>,
 }
 
 impl GenerationSection {
@@ -140,6 +147,18 @@ impl GenerationSection {
         for (k, x) in [
             ("prompt_renderer", &self.prompt_renderer),
             ("prompt_cache_support", &self.prompt_cache_support),
+        ] {
+            if let Some(x) = x {
+                v[k] = json!(x);
+            }
+        }
+        if self.strict_monetary {
+            v["strict_monetary"] = json!(true);
+        }
+        for (k, x) in [
+            ("task_max_cost_micros", self.task_max_cost_micros),
+            ("task_max_tokens", self.task_max_tokens),
+            ("gateway_max_retries", self.gateway_max_retries),
         ] {
             if let Some(x) = x {
                 v[k] = json!(x);
@@ -797,6 +816,12 @@ pub fn parse(bytes: &[u8]) -> HarnessResult<HarnessConfig> {
                 g.repair_cap = t.size("repair_max_output_tokens")?;
                 g.length_retry_cap = t.size("length_retry_max_output_tokens")?;
                 g.framing_tokens = t.size("model_framing_tokens")?;
+                if let Some(b) = t.boolean("strict_monetary")? {
+                    g.strict_monetary = b;
+                }
+                g.task_max_cost_micros = t.size("task_max_cost_micros")?;
+                g.task_max_tokens = t.size("task_max_tokens")?;
+                g.gateway_max_retries = t.size("gateway_max_retries")?;
                 for (key, slot) in [
                     ("intent_reasoning", 0),
                     ("repair_reasoning", 1),
@@ -871,6 +896,10 @@ pub fn parse(bytes: &[u8]) -> HarnessResult<HarnessConfig> {
                     "repair_max_output_tokens",
                     "length_retry_max_output_tokens",
                     "model_framing_tokens",
+                    "strict_monetary",
+                    "task_max_cost_micros",
+                    "task_max_tokens",
+                    "gateway_max_retries",
                     "intent_reasoning",
                     "repair_reasoning",
                     "reasoning_effort",

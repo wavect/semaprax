@@ -2,6 +2,8 @@
 # Runs inside ri13-linux-x86_64-index-prepare.sh's disposable guest.
 set -euo pipefail
 
+trap 'status=$?; printf "RI-13 Linux Rust API index preparation failed at line %s with status %s\\n" "$LINENO" "$status" > /output/preparation-failure.txt; exit "$status"' ERR
+
 readonly target=x86_64-unknown-linux-gnu
 readonly nightly=/nightly-toolchain
 readonly expected_rustdoc='rustdoc 1.101.0-nightly (c36f14571 2026-10-01)'

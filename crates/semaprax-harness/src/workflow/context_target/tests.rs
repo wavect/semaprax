@@ -270,6 +270,7 @@ fn named_tokens_and_byte_fallback_stay_distinct() {
         policy: cfg.policy.clone(),
         map: cfg.map.clone(),
         tokenizers: &cfg.tokenizers,
+        cache: &cfg.cache,
     };
     let named = CostMeter::for_model(&b, "gpt-5-x");
     let fallback = CostMeter::for_model(&b, "unmapped-model");

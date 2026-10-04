@@ -244,6 +244,7 @@ fn config(e: &Env, task: Task, policy: Option<ApplyPolicy>) -> RunConfig {
         budget: Default::default(),
         cancel: None,
         routing: Default::default(),
+        context_target: None,
     }
 }
 

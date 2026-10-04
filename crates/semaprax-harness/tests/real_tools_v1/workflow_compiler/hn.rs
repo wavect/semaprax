@@ -96,6 +96,7 @@ fn cfg(r: &Rig, task: Task) -> RunConfig {
         budget: Default::default(),
         cancel: None,
         routing: Default::default(),
+        context_target: None,
     }
 }
 

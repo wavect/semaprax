@@ -498,6 +498,7 @@ fn hp_hp04_real_stale_revision_during_generation_is_refused() {
         budget: Default::default(),
         cancel: None,
         routing: Default::default(),
+        context_target: None,
     };
     let mut native = NativeContext::new(&compiler);
     let mut p = Racing(w.project.clone());
@@ -1127,6 +1128,7 @@ mod hnwire {
             budget: Default::default(),
             cancel: None,
             routing: Default::default(),
+        context_target: None,
         };
         let mut prop = SeqRef(&seq);
         let mut view = RawCommandView;

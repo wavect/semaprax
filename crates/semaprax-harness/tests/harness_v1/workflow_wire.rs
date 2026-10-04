@@ -900,3 +900,6 @@ fn hp_hnwire_fixture_evidence_cannot_unlock_auto_but_real_matched_evidence_can_a
     write(&w.home, EVIDENCE_FILE, "{not json");
     assert!(RoutingWiring::from_config(&auto, Some(&w.home)).is_err());
 }
+
+#[path = "workflow_target.rs"]
+mod target;

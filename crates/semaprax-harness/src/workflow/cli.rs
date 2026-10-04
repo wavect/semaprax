@@ -464,6 +464,12 @@ pub fn run_with(
 
     let cfg = RunConfig {
         context_max_bytes: config.budget.context_max_bytes as usize,
+        context_target: config.budget.context_target_bytes.map(|n| {
+            super::context_target::TargetConfig {
+                initial_bytes: n,
+                max_escalations: config.budget.context_target_escalations as u32,
+            }
+        }),
         providers: provider_rows(resolution.as_ref().map(|r| &r.profile), disabled),
         snapshot,
         task,

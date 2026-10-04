@@ -987,6 +987,7 @@ mod hn12 {
             budget: Default::default(),
             cancel: None,
             routing: Default::default(),
+        context_target: None,
         };
         let parser = Parser {
             calls: Cell::new(0),

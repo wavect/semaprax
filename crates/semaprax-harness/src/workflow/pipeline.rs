@@ -50,6 +50,8 @@ pub struct RunConfig {
     pub cancel: Option<super::session::CancelFlag>,
     /// `[routing]`, evidence registry and session lock (HN-16).
     pub routing: super::routing::RoutingWiring,
+    /// Opt-in small initial context target (TC-05); `None` is the default fill.
+    pub context_target: Option<super::context_target::TargetConfig>,
 }
 
 /// Skill prompt chosen for this task and its model-visible size.
@@ -630,19 +632,31 @@ pub(super) fn gather_context(
     // 4. final context budget. Native items are protected; external items fill the rest.
     let mut kept: Vec<ContextItem> = Vec::new();
     let (mut used, mut dropped) = (0usize, 0usize);
-    for p in &packets {
-        for it in &p.items {
-            if kept.contains(it) {
-                continue; // exact slice and provenance already present
-            }
-            let native_packet = it.provenance == super::broker_stage::COMPILER_VERIFIED;
-            if used + it.bytes() <= budget {
-                used += it.bytes();
-                kept.push(it.clone());
-            } else if native_packet {
-                return Err(d("SPX-HPD020", format!("native compiler context ({} bytes) exceeds the context budget of {budget} bytes", it.bytes())));
-            } else {
-                dropped += 1;
+    let mut target_report: Option<Value> = None;
+    if let Some(tc) = &cfg.context_target {
+        let all: Vec<ContextItem> = packets.iter().flat_map(|p| p.items.clone()).collect();
+        let goal_text = format!("{} {}", cfg.task.goal, diags.iter().map(|(c, m)| format!("{c} {m}")).collect::<Vec<_>>().join(" "));
+        let t = tc.target(budget, &r.context);
+        let (k, om, rep) = super::context_target::targeted(all, &cfg.snapshot.revision, &goal_text, &t)?;
+        used = k.iter().map(ContextItem::bytes).sum();
+        dropped = om;
+        kept = k;
+        target_report = Some(rep);
+    } else {
+        for p in &packets {
+            for it in &p.items {
+                if kept.contains(it) {
+                    continue; // exact slice and provenance already present
+                }
+                let native_packet = it.provenance == super::broker_stage::COMPILER_VERIFIED;
+                if used + it.bytes() <= budget {
+                    used += it.bytes();
+                    kept.push(it.clone());
+                } else if native_packet {
+                    return Err(d("SPX-HPD020", format!("native compiler context ({} bytes) exceeds the context budget of {budget} bytes", it.bytes())));
+                } else {
+                    dropped += 1;
+                }
             }
         }
     }
@@ -655,6 +669,9 @@ pub(super) fn gather_context(
     }
     r.context = json!({"budget_bytes": budget, "used_bytes": used, "items": kept.len(), "dropped_external_items": dropped,
                        "providers": provider_names});
+    if let Some(rep) = target_report {
+        r.context["target"] = rep;
+    }
     if dropped > 0 {
         unknowns.push(format!(
             "{dropped} external item(s) dropped by the context budget"
@@ -803,7 +820,18 @@ pub(super) fn follow_up_context(
     let added = match got {
         Ok(Some(p)) => {
             let n = p.items.len();
-            let dropped = merge_fitting(kept, p.items, cfg.context_max_bytes);
+            let dropped = match &cfg.context_target {
+                Some(tc) => super::context_target::merge_escalating(
+                    tc,
+                    cfg.context_max_bytes,
+                    &mut r.context,
+                    &cfg.snapshot.revision,
+                    failure,
+                    kept,
+                    p.items,
+                ),
+                None => merge_fitting(kept, p.items, cfg.context_max_bytes),
+            };
             r.context["plan"]["follow_up"] = json!({"added_items": n.saturating_sub(dropped), "dropped_items": dropped, "report": report});
             n > dropped
         }

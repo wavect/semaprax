@@ -87,6 +87,11 @@ impl Default for RoutingSection {
 pub struct BudgetConfig {
     pub context_max_bytes: u64,
     pub command_view_max_bytes: u64,
+    /// Opt-in small initial context target in bytes (TC-05); `None` keeps the
+    /// context at `context_max_bytes`.
+    pub context_target_bytes: Option<u64>,
+    /// Bounded target escalations through the follow-up path.
+    pub context_target_escalations: u64,
 }
 
 impl Default for BudgetConfig {
@@ -94,6 +99,8 @@ impl Default for BudgetConfig {
         Self {
             context_max_bytes: 16384,
             command_view_max_bytes: 8192,
+            context_target_bytes: None,
+            context_target_escalations: 2,
         }
     }
 }
@@ -205,6 +212,11 @@ impl HarnessConfig {
             "inactive": self.inactive,
         });
         // Only present when set, so existing configurations keep their digest.
+        if let Some(n) = self.budget.context_target_bytes {
+            doc["budget"]["context_target_bytes"] = json!(n);
+            doc["budget"]["context_target_escalations"] =
+                json!(self.budget.context_target_escalations);
+        }
         if !self.skills.prefs.is_empty() {
             doc["skills"]["prefs"] = self.skills.prefs.to_json();
         }
@@ -705,7 +717,18 @@ pub fn parse(bytes: &[u8]) -> HarnessResult<HarnessConfig> {
                 if let Some(n) = t.size("command_view_max_bytes")? {
                     cfg.budget.command_view_max_bytes = n;
                 }
-                t.finish(&["context_max_bytes", "command_view_max_bytes"])?;
+                if let Some(n) = t.size("context_target_bytes")? {
+                    cfg.budget.context_target_bytes = Some(n);
+                }
+                if let Some(n) = t.size("context_target_escalations")? {
+                    cfg.budget.context_target_escalations = n;
+                }
+                t.finish(&[
+                    "context_max_bytes",
+                    "command_view_max_bytes",
+                    "context_target_bytes",
+                    "context_target_escalations",
+                ])?;
             }
             ["skills"] => {
                 let mut t = Tab::new("[skills]", entries.clone());

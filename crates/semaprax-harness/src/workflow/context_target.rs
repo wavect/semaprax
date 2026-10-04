@@ -439,6 +439,141 @@ pub fn dedup_spans(entries: Vec<SpanEntry>) -> (Vec<ContextItem>, Vec<Provenance
 
 // ---- whole-task cost ---------------------------------------------------
 
+/// Opt-in wiring config (`[budget] context_target_bytes`), byte policy.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct TargetConfig {
+    pub initial_bytes: u64,
+    pub max_escalations: u32,
+}
+
+impl TargetConfig {
+    /// Target state for this run, restored from the report's `target` block so
+    /// no extra run state is carried.
+    pub fn target(&self, safety_bound_bytes: usize, ctx: &Value) -> ContextTarget {
+        let mut t = ContextTarget::new(
+            None,
+            safety_bound_bytes,
+            self.initial_bytes,
+            self.initial_bytes.max(1),
+            self.max_escalations,
+        );
+        if let Some(cur) = ctx["target"]["current"].as_u64() {
+            t.current = cur;
+        }
+        for e in ctx["target"]["escalations"]
+            .as_array()
+            .into_iter()
+            .flatten()
+        {
+            t.escalations.push((
+                e["to"].as_u64().unwrap_or(0),
+                e["why"].as_str().unwrap_or("").to_string(),
+            ));
+        }
+        t
+    }
+}
+
+/// Initial selection for the pipeline: dedup, then select under the target.
+/// Returns the kept items, omitted count and the report block.
+pub fn targeted(
+    items: Vec<ContextItem>,
+    revision: &str,
+    task_text: &str,
+    target: &ContextTarget,
+) -> HarnessResult<(Vec<ContextItem>, usize, Value)> {
+    let n_in = items.len();
+    let (deduped, map) = dedup_spans(
+        items
+            .into_iter()
+            .map(|item| SpanEntry {
+                item,
+                revision: revision.into(),
+            })
+            .collect(),
+    );
+    let sel = select(
+        &deduped,
+        &identifiers(task_text),
+        &BTreeSet::new(),
+        target,
+        &CostMeter::bytes(),
+    )?;
+    let merged: Vec<Value> = map
+        .iter()
+        .filter(|m| m.sources.len() > 1 || !m.conflicts.is_empty())
+        .map(|m| {
+            json!({"label": m.label, "provenance": m.provenance, "revision": m.revision,
+                        "sources": m.sources, "conflicts": m.conflicts})
+        })
+        .collect();
+    let mut rep = sel.report_json();
+    rep["current"] = json!(target.current());
+    rep["escalations"] = json!(target
+        .escalation_log()
+        .iter()
+        .map(|(to, why)| json!({"to": to, "why": why}))
+        .collect::<Vec<_>>());
+    rep["input_items"] = json!(n_in);
+    rep["provenance_map"] = json!(merged);
+    Ok((sel.items.clone(), sel.omitted.len(), rep))
+}
+
+/// Follow-up/handle merge under the (possibly escalated) target. Escalates
+/// once per call on a validation failure when the bound allows, records the
+/// outcome in `ctx["target"]`, and returns the number of new items dropped.
+pub fn merge_escalating(
+    cfg: &TargetConfig,
+    safety_bound_bytes: usize,
+    ctx: &mut Value,
+    revision: &str,
+    failure: &str,
+    kept: &mut Vec<ContextItem>,
+    items: Vec<ContextItem>,
+) -> usize {
+    let mut t = cfg.target(safety_bound_bytes, ctx);
+    let named: String = failure
+        .lines()
+        .next()
+        .unwrap_or("")
+        .chars()
+        .take(80)
+        .collect();
+    if let Err(why) = t.escalate(&Trigger::ValidationFailure(named), None) {
+        ctx["target"]["escalation_refused"] = json!(why);
+    }
+    let limit = (t.current() as usize).min(safety_bound_bytes);
+    ctx["target"]["current"] = json!(t.current());
+    ctx["target"]["escalations"] = json!(t
+        .escalation_log()
+        .iter()
+        .map(|(to, why)| json!({"to": to, "why": why}))
+        .collect::<Vec<_>>());
+    let before = kept.len();
+    let n_new = items.len();
+    let (all, _) = dedup_spans(
+        kept.drain(..)
+            .chain(items)
+            .map(|item| SpanEntry {
+                item,
+                revision: revision.into(),
+            })
+            .collect(),
+    );
+    let mut used = 0usize;
+    let mut dropped = 0usize;
+    for (i, it) in all.into_iter().enumerate() {
+        // Earlier (already kept) material and compiler facts are never dropped.
+        if i < before || it.provenance == COMPILER_VERIFIED || used + it.bytes() <= limit {
+            used += it.bytes();
+            kept.push(it);
+        } else {
+            dropped += 1;
+        }
+    }
+    dropped.min(n_new)
+}
+
 /// Model-visible input and output cost of one attempt, in one unit.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct AttemptCost {

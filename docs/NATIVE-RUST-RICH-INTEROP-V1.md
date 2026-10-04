@@ -796,8 +796,8 @@ This is a separate closed profile from the scalar state adapters below. Its
 generated Rust owner can now be retained by one same-thread foreign registry
 through an opaque lease that invokes once or unregisters before Drop. The
 separate mixed profile admits one copied scalar snapshot, including a snapshot
-from a mutable outer binding; state-retaining mutable and borrowed source
-captures remain open.
+from a mutable outer binding. The separate noncopyable scalar mutable profile
+below retains state across calls; borrowed source captures remain open.
 
 The additive `prepare_native_rust_callbacks` renderer selects a checked
 `fn(i64) -> fn(i64) -> i64` factory with one immutable scalar snapshot capture,
@@ -858,31 +858,34 @@ retained environments after uncertain teardown; and compiled teardown/depth
 mutants. Canonical source/graph and unsupported selection diagnostics remain
 in the owning harness.
 
-### Reserved transactional mutable syntax
+### Transactional scalar mutable callbacks
 
-The parser preserves the distinct `FnMutI64(i64) -> i64` type and `mut fn`
-literal in canonical source. Both authored source and independent retained-HIR
-admission refuse this profile until its transactional carrier is implemented
-on every execution route. The source diagnostic is `SPX-T308`; parsing and
-formatting this reserved syntax do not establish executable mutable captures.
-The `mutable_closures` language selector checks canonical round-trip, exact
-fixed-signature refusal, inferred-literal refusal and hostile retained HIR.
+The [mutable callback v1](MUTABLE-CALLBACK-V1.md) profile admits the distinct
+noncopyable `FnMutI64(i64) -> i64` type and exact literal
+`mut fn(value:i64)->i64 { transition(state,value) }`. It snapshots one available
+scalar state and invokes a local monomorphic pure transition in state/argument
+order. Invocation borrows its unique mutable local receiver and publishes the
+candidate state/result only on checked success. Copying, aliases, escaping
+receiver reads, contracts, and same-receiver entry during argument staging are
+refused by source verification and independently reconstructed HIR rules. The
+scalar receiver has no resource finalizer.
 
-The staged carrier design has one copied `i64` state cell, one `i64` invocation
-argument and one `i64` result. A candidate-state body calls one pure ordinary
-`fn(i64, i64) -> i64` in state/argument order. The carrier publishes candidate
-state and result only after that checked call succeeds. Copies have independent
-state. Invocations require a mutable local receiver and cannot occur in
-contracts. Each receiver has an active-call guard. Native and interpreter
-carrier tests exercise rollback, independent copies and re-entry refusal; these
-are internal runtime tests, not admitted source execution evidence.
+The `mutable_closures` language selector executes repeated state changes and
+snapshot isolation through the interpreter, native C at O0/O2 and Core Wasm,
+plus canonical source/graph replay and hostile source/HIR controls. The core
+`mutable_` selector covers transactional guards, foreign-thread interpreter
+refusal and a Wasm probe that inspects the actual receiver state and active bit
+after a failed call. Factory postconditions preserve the unique provisional
+result; interpreter success and contract-failure cases are exercised directly.
 
-`prepare_native_rust_mutable_callback` is staged behind the same source check.
-It cannot yet return a successful projection. Its generated safe owner is
-neither `Send` nor `Sync`, and `as_fn_mut(&mut self)` borrows that owner
-exclusively. Compile regressions reject a borrowed callback escaping its owner,
-overlapping mutable calls, and thread-safety bounds. Completion remains Partial
-until admitted source parity and a physical generated consumer pass together.
+`prepare_native_rust_mutable_callback` renders the actual source-created native
+receiver and a same-thread Rust owner. `as_fn_mut(&mut self)` borrows that owner
+exclusively. The `mutable_callback` selector compiles a separate Rust iterator
+consumer, executes native C at O0/O2, and checks repeated contract/arithmetic
+failure rollback, source-body and factory-failure controls, and drop accounting.
+Cross-crate Copy, Clone, Send, Sync, overlapping-borrow and adapter-escape cases
+must fail rustc. This profile neither borrows Semaprax captures nor provides a
+retained registry lease; those capabilities require their own admission.
 
 ### Checked source Result callbacks
 
@@ -921,11 +924,12 @@ failed/ignored, 210 filtered; 1.75s). Tools were Rust 1.98.0 and Apple Clang
 21.0.0 on aarch64 macOS, offline/locked Cargo, one job, debug0 and incremental0,
 with a private target. No hosted or whole-repository full-profile run is claimed.
 
-RI-08 remains open for source-level mutable/once receiver modes, RI-06-proven
-borrowed Semaprax capture scopes and retained affine owned captures, broader
-callback Result shapes. Bounded selected-index trait admission is described below. Explicit
-next-state functions and a borrowed generated Rust closure do not establish
-those broader source semantics.
+RI-08 remains open for RI-06-proven borrowed Semaprax capture scopes and
+broader mutable environments and callback Result shapes. Bounded source FnMut
+and retained affine owned captures have separate owning profiles above; their
+support does not establish borrowed source captures. Selected-index trait
+admission is described below. A borrowed generated Rust closure alone does not
+establish a borrowed Semaprax capture.
 
 The gates ran serially in the builder library harness, with
 `RUSTC=/opt/homebrew/bin/rustc`, `CLANG=/usr/bin/clang`,
@@ -1022,8 +1026,8 @@ teardown. Exact identity/shape refusals and real unsafe/sealed/extra-method/wron
 signature compiler controls accompany affine once, mutable-borrow and thread
 transfer compile failures. This adds selected-trait admission; it does not
 reinterpret scalar state transitions as source mutable/owned captures. Source
-borrowed captures and mutable environments that preserve state across calls
-remain open under RI-08.
+borrowed captures and mutable environments beyond the fixed scalar FnMutI64
+profile remain open under RI-08.
 
 Local evidence: the physical safe-impl/retention case passed in the two-case
 selector; after correcting only canonical JSON in a negative metadata fixture,

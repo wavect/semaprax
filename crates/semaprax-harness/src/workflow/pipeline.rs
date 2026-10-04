@@ -58,6 +58,8 @@ pub struct SkillPromptUse {
     pub text: String,
     pub model_visible_bytes: usize,
     pub loaded: Vec<String>,
+    /// Host-side cost report (TC-08): reasons, snapshot vs rendered bytes.
+    pub cost_report: Option<serde_json::Value>,
 }
 
 /// An external `decision.evaluate` provider offered to the router. The router
@@ -688,6 +690,9 @@ pub(super) fn gather_context(
         );
         r.context["skills"] =
             json!({"loaded": sp.loaded, "model_visible_bytes": sp.model_visible_bytes});
+        if let Some(c) = &sp.cost_report {
+            r.context["skills"]["cost"] = c.clone();
+        }
         step(
             r,
             "skills",

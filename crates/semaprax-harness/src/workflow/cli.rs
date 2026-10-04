@@ -612,6 +612,7 @@ fn skill_prompt(
         return (None, None);
     }
     let budget = config.skills.max_bytes as usize;
+    let policy = cost_policy(config);
     let mut text = String::new();
     let mut loaded: Vec<String> = Vec::new();
     let mut official = None;
@@ -623,7 +624,10 @@ fn skill_prompt(
         super::updates_hook::RUN_SESSION,
     )
     .and_then(|d| d.with_project_prefs(config.skills.prefs.clone()))
-    .ok();
+    .ok()
+    .map(|d| d.with_cost_policy(policy.clone()));
+    let mut cost_decisions: Vec<serde_json::Value> = Vec::new();
+    let mut cost_report = None;
     if let Some(ds) = defaults.as_mut() {
         let input = TaskInput {
             family: &task.family,
@@ -640,6 +644,15 @@ fn skill_prompt(
                     r.locked_revision.as_deref().unwrap_or("")
                 ));
                 ids.push(r.id.clone());
+            }
+            if policy.is_compact() {
+                let rep = crate::skills::cost_profile::report_for(
+                    ds.set(),
+                    &policy,
+                    &task.family,
+                    &sel,
+                );
+                cost_report = Some(rep.to_json());
             }
             text = sel.text;
             official = Some(ids);
@@ -669,7 +682,30 @@ fn skill_prompt(
                     ..Default::default()
                 },
             );
-            let p = svc.render_prompt(&task_tags(&task.family));
+            // Compact fixed invocation: no catalog block, and a tiny task takes
+            // explicit selections only (no tag matching).
+            let p = if policy.is_compact() {
+                let tags = if policy.is_tiny(&task.family) {
+                    Vec::new()
+                } else {
+                    task_tags(&task.family)
+                };
+                svc.render_prompt_compact(&tags)
+            } else {
+                svc.render_prompt(&task_tags(&task.family))
+            };
+            if policy.is_compact() {
+                for (n, dg) in &p.loaded {
+                    cost_decisions.push(serde_json::json!({"id": n, "state": "selected",
+                        "reason": if config.skills.select.iter().any(|s| s == n || s == dg) {
+                            "explicit-selection" } else { "task-tag-match" },
+                        "digest": dg}));
+                }
+                for o in &p.omitted {
+                    cost_decisions.push(serde_json::json!({"id": o.name, "state": "omitted",
+                        "reason": o.reason, "digest": o.digest}));
+                }
+            }
             text.push_str(&p.text);
             loaded.extend(p.loaded.iter().map(|(n, _)| n.clone()));
         }
@@ -682,10 +718,30 @@ fn skill_prompt(
         Some(SkillPromptUse {
             model_visible_bytes: text.len(),
             loaded,
+            cost_report: cost_report.map(|mut c: serde_json::Value| {
+                c["approved_root_skills"] = serde_json::json!(cost_decisions);
+                c["rendered_bytes"] = serde_json::json!(text.len());
+                c
+            }),
             text,
         }),
         used,
     )
+}
+
+/// `[skills] cost_profile` / `host_delivered`; absent keeps today's behaviour.
+fn cost_policy(config: &HarnessConfig) -> crate::skills::cost_profile::CostPolicy {
+    use crate::skills::cost_profile::{CostPolicy, CostProfile};
+    CostPolicy {
+        profile: config
+            .skills
+            .cost_profile
+            .as_deref()
+            .and_then(CostProfile::parse)
+            .unwrap_or_default(),
+        tiny_families: Vec::new(),
+        host_delivered: config.skills.host_delivered.iter().cloned().collect(),
+    }
 }
 
 fn start(

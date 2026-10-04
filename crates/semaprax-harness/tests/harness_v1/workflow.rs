@@ -903,6 +903,7 @@ fn hp_hpwire_skill_prompt_enters_the_proposal_request_and_is_counted() {
     cfg.skill_prompt = Some(SkillPromptUse {
         model_visible_bytes: text.len(),
         loaded: vec!["reuse-api".into()],
+        cost_report: None,
         text: text.clone(),
     });
     let seen = Captured(RefCell::new(None));

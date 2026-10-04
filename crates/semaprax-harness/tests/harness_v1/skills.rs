@@ -1105,3 +1105,8 @@ mod updates;
 
 #[path = "skills/evolution.rs"]
 mod evolution;
+
+// ---- TC-08: opt-in cost-aware activation (tests in skills/cost_profile.rs) ----
+
+#[path = "skills/cost_profile.rs"]
+mod cost_profile;

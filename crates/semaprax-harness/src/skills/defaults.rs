@@ -92,6 +92,7 @@ pub struct DefaultSkills {
     /// `[skills]` keys of the project's configuration (project layer).
     config_prefs: Prefs,
     mem: SessionState,
+    cost: super::cost_profile::CostPolicy,
 }
 
 fn cap(s: &str) -> String {
@@ -118,6 +119,7 @@ impl DefaultSkills {
             session: session.into(),
             config_prefs: Prefs::default(),
             mem: SessionState::default(),
+            cost: Default::default(),
         })
     }
 
@@ -134,6 +136,16 @@ impl DefaultSkills {
         validate_prefs(&self.set, &prefs)?;
         self.config_prefs = prefs;
         Ok(self)
+    }
+
+    /// Opt-in cost-aware activation (TC-08); the default policy changes nothing.
+    pub fn with_cost_policy(mut self, cost: super::cost_profile::CostPolicy) -> Self {
+        self.cost = cost;
+        self
+    }
+
+    pub fn cost_policy(&self) -> &super::cost_profile::CostPolicy {
+        &self.cost
     }
 
     pub fn set(&self) -> &OfficialSet {
@@ -550,6 +562,9 @@ impl DefaultSkills {
             } else if res.mode == "off" {
                 r.omitted = Some("not-requested".into());
                 false
+            } else if self.cost.delivered_by_host(&k.id) && res.source != "explicit-instruction" {
+                r.omitted = Some("already-delivered-by-host".into());
+                false
             } else if res.source == "explicit-instruction" {
                 true
             } else if !a.applies_to(task.family) {
@@ -557,6 +572,9 @@ impl DefaultSkills {
                 false
             } else if res.source == SHIPPED && !a.automatic {
                 r.omitted = Some("not-requested".into());
+                false
+            } else if res.source == SHIPPED && self.cost.suppresses_automatic(task.family) {
+                r.omitted = Some("cost-profile:tiny-structured-task".into());
                 false
             } else {
                 true

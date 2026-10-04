@@ -21,6 +21,7 @@ pub mod host;
 pub mod observe;
 pub mod profile;
 pub mod skills;
+pub mod updates;
 pub mod workflow;
 
 pub mod cli;

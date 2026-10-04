@@ -21,6 +21,17 @@ test('malformed output and late output after Stop cannot revive the session', ()
   child.stdout.emit('data', Buffer.from('{bad}\n')); assert.equal(child.killed, true); assert.deepEqual(terminal, ['malformed, stale, or unsolicited hot reload response']);
   const stopped = new HotReload(() => (child = new Child()), '/tool/semaprax', '/project/semaprax.toml'); stopped.start(); stopped.stop(); child.send(row(1, 'activated')); assert.equal(stopped.detail().event, 'stopped');
 });
+test('oversized control response is terminal and bounded', () => {
+  let child; const reload = new HotReload(() => (child = new Child()), '/tool/semaprax', '/project/semaprax.toml'); const terminal = [];
+  reload.on('terminal', value => terminal.push(value)); reload.start();
+  child.stdout.emit('data', Buffer.alloc(8193, 0x61));
+  assert.equal(reload.detail().event, 'unknown'); assert.deepEqual(terminal, ['response exceeds its bound']); assert.equal(child.killed, true);
+});
+test('unexpected child exit makes the active session unknown', () => {
+  let child; const reload = new HotReload(() => (child = new Child()), '/tool/semaprax', '/project/semaprax.toml'); const terminal = [];
+  reload.on('terminal', value => terminal.push(value)); reload.start(); child.send(row(1, 'started')); child.emit('exit', 9);
+  assert.equal(reload.detail().event, 'unknown'); assert.deepEqual(terminal, ['process exited without a clean stop']); assert.equal(child.killed, true);
+});
 test('dirty editor state is distinct from the retained active revision and history is bounded', () => {
   let child; const reload = new HotReload(() => (child = new Child()), '/tool/semaprax', '/project/semaprax.toml'); reload.start(); child.send(row(1, 'started')); reload.markDirty();
   assert.equal(reload.detail().dirty, true); assert.match(reload.detail().detail, /unsaved source/);

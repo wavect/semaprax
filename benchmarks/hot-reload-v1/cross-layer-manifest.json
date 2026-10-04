@@ -216,6 +216,33 @@
         "oversized capacity refused",
         "path escape refused"
       ]
+    },
+    {
+      "id": "vscode-oversized-response-frame",
+      "availability": "selector-required",
+      "selector": "oversized control response is terminal and bounded",
+      "requires": [
+        "oversized JSONL response makes the editor session terminal",
+        "child process is killed"
+      ]
+    },
+    {
+      "id": "vscode-worker-process-exit",
+      "availability": "selector-required",
+      "selector": "unexpected child exit makes the active session unknown",
+      "requires": [
+        "unexpected child exit makes the editor session unknown",
+        "child process is killed"
+      ]
+    },
+    {
+      "id": "vscode-interrupted-activation-stop",
+      "availability": "selector-required",
+      "selector": "stop marks an unacknowledged activation unknown before bounded forced termination",
+      "requires": [
+        "unacknowledged activation becomes unknown on Stop",
+        "forced termination remains bounded"
+      ]
     }
   ],
   "nonclaims": [
@@ -226,9 +253,6 @@
     "universal-millisecond-target",
     "production rollout",
     "Linux and Windows execution",
-    "hot-reload oversized-control-frame regression",
-    "hot-reload worker-process-death regression",
-    "hot-reload interrupted-shutdown regression",
     "hot-reload-specific unknown-effect-outcome regression"
   ],
   "fault_categories": [
@@ -328,28 +352,25 @@
       "selector": "source_live_cli::tests::exact_config_refuses_duplicate_unknown_negative_and_oversized_capacity"
     },
     {
-      "id": "hot-reload-oversized-control-frame",
-      "availability": "unavailable",
-      "selector": null,
-      "reason": "No exact hot-reload control-frame regression is present in the selected Rust harnesses."
+      "id": "vscode-oversized-response-frame",
+      "availability": "selector-required",
+      "selector": "oversized control response is terminal and bounded"
     },
     {
-      "id": "hot-reload-worker-process-death",
-      "availability": "unavailable",
-      "selector": null,
-      "reason": "No exact hot-reload worker-process-death regression is present in the selected Rust harnesses."
+      "id": "vscode-worker-process-exit",
+      "availability": "selector-required",
+      "selector": "unexpected child exit makes the active session unknown"
     },
     {
-      "id": "hot-reload-interrupted-shutdown",
-      "availability": "unavailable",
-      "selector": null,
-      "reason": "No exact core hot-reload interrupted-shutdown regression is present in the selected Rust harnesses."
+      "id": "vscode-interrupted-activation-stop",
+      "availability": "selector-required",
+      "selector": "stop marks an unacknowledged activation unknown before bounded forced termination"
     },
     {
       "id": "hot-reload-unknown-effect-outcome",
       "availability": "unavailable",
       "selector": null,
-      "reason": "No hot-reload-specific unknown-effect-outcome regression is present in the selected Rust harnesses."
+      "reason": "No hot-reload-specific unknown-effect-outcome regression is present in the selected harnesses."
     }
   ],
   "platform_lanes": {
@@ -359,7 +380,8 @@
         "interpreter",
         "watcher",
         "prepared-worker",
-        "source-agent"
+        "source-agent",
+        "vscode-editor-control"
       ]
     },
     "Linux": {

@@ -20,6 +20,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import shutil
 
 SUITE = pathlib.Path(__file__).resolve().parent
 ROOT = SUITE.parent.parent
@@ -69,19 +70,23 @@ SELECTORS = {
     "source-agent-journal-ack-loss": ("toolchain-lib", "source_live_cli::hr04_state_handoff_tests::physical_journal_ack_loss_keeps_source_handoff_terminal_and_blocks_c_dispatch"),
     "source-agent-claim-and-reservation-faults": ("toolchain-lib", "source_live_cli::hr04_handoff_fault_tests::physical_migration_reservation_and_handoff_claim_faults_block_successor_dispatch"),
     "source-agent-capacity-and-path-refusal": ("toolchain-lib", "source_live_cli::tests::exact_config_refuses_duplicate_unknown_negative_and_oversized_capacity"),
+    "vscode-oversized-response-frame": ("vscode-tests", "oversized control response is terminal and bounded"),
+    "vscode-worker-process-exit": ("vscode-tests", "unexpected child exit makes the active session unknown"),
+    "vscode-interrupted-activation-stop": ("vscode-tests", "stop marks an unacknowledged activation unknown before bounded forced termination"),
 }
 UNAVAILABLE = ("native-process-identity", "native-or-wasm-state-swap")
 UNAVAILABLE_FAULTS = {
-    "hot-reload-oversized-control-frame": "No exact hot-reload control-frame regression is present in the selected Rust harnesses.",
-    "hot-reload-worker-process-death": "No exact hot-reload worker-process-death regression is present in the selected Rust harnesses.",
-    "hot-reload-interrupted-shutdown": "No exact core hot-reload interrupted-shutdown regression is present in the selected Rust harnesses.",
-    "hot-reload-unknown-effect-outcome": "No hot-reload-specific unknown-effect-outcome regression is present in the selected Rust harnesses.",
+    "hot-reload-unknown-effect-outcome": "No hot-reload-specific unknown-effect-outcome regression is present in the selected harnesses.",
 }
 PLATFORM_LANES = {
-    "macOS": {"status": "measured-by-this-runner", "lanes": ["interpreter", "watcher", "prepared-worker", "source-agent"]},
+    "macOS": {"status": "measured-by-this-runner", "lanes": ["interpreter", "watcher", "prepared-worker", "source-agent", "vscode-editor-control"]},
     "Linux": {"status": "unavailable", "reason": "This evidence runner is macOS-only."},
     "Windows": {"status": "unavailable", "reason": "This evidence runner is macOS-only."},
 }
+NODE_SOURCE_FILES = (
+    ROOT / "editors/vscode/hot-reload.js",
+    ROOT / "editors/vscode/test/hot-reload.test.js",
+)
 
 
 def canonical(value):
@@ -150,6 +155,20 @@ def cargo_environment(target, commit):
 
 
 def compile_target(cargo, target, commit, name):
+    if name == "vscode-tests":
+        node = shutil.which("node")
+        if node is None:
+            raise RuntimeError("Node.js is required for the exact VS Code adapter regressions")
+        version = subprocess.run([node, "--version"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        if version.returncode:
+            raise RuntimeError("Node.js version command failed")
+        return pathlib.Path(node).resolve(), {
+            "command": [node, "--version"],
+            "node_version": version.stdout.strip(),
+            "stdout_sha256": "sha256:" + hashlib.sha256(version.stdout.encode()).hexdigest(),
+            "stderr_sha256": "sha256:" + hashlib.sha256(version.stderr.encode()).hexdigest(),
+            "source_files": {str(path.relative_to(ROOT)): digest(path) for path in NODE_SOURCE_FILES},
+        }
     spec = TARGETS[name]
     completed = subprocess.run(
         [cargo, *spec["cargo"]], cwd=ROOT, env=cargo_environment(target, commit),
@@ -212,6 +231,30 @@ def exact_test(binary, selector):
         "executable_sha256": before,
         "stdout_sha256": "sha256:" + hashlib.sha256(completed.stdout).hexdigest(),
         "stderr_sha256": "sha256:" + hashlib.sha256(completed.stderr).hexdigest(),
+    }
+
+
+def exact_node_test(node, selector):
+    before = {str(path.relative_to(ROOT)): digest(path) for path in NODE_SOURCE_FILES}
+    command = [str(node), "--test", "--test-name-pattern", "^" + selector + "$", str(NODE_SOURCE_FILES[1])]
+    started = time.perf_counter_ns()
+    completed = subprocess.run(command, cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    elapsed = round((time.perf_counter_ns() - started) / 1_000_000, 3)
+    after = {str(path.relative_to(ROOT)): digest(path) for path in NODE_SOURCE_FILES}
+    if before != after:
+        raise RuntimeError("VS Code selector source changed while it was measured")
+    passed = re.search(r"^# pass (\d+)$", completed.stdout, re.MULTILINE)
+    failed = re.search(r"^# fail (\d+)$", completed.stdout, re.MULTILINE)
+    if completed.returncode or passed is None or failed is None or int(passed.group(1)) != 1 or int(failed.group(1)) != 0:
+        raise RuntimeError("exact Node selector did not report exactly one passed test: " + selector)
+    return {
+        "selector": selector,
+        "argv": command,
+        "elapsed_ms": elapsed,
+        "test_counts": {"passed": int(passed.group(1)), "failed": int(failed.group(1))},
+        "source_digests": before,
+        "stdout_sha256": "sha256:" + hashlib.sha256(completed.stdout.encode()).hexdigest(),
+        "stderr_sha256": "sha256:" + hashlib.sha256(completed.stderr.encode()).hexdigest(),
     }
 
 
@@ -296,7 +339,7 @@ def main():
         if target_name not in compiled:
             compiled[target_name] = compile_target(args.cargo, target, commit, target_name)
         binary, build = compiled[target_name]
-        row = exact_test(binary, selector)
+        row = exact_node_test(binary, selector) if target_name == "vscode-tests" else exact_test(binary, selector)
         row["serial_ordinal"] = ordinal
         row["source_build"] = build
         if identifier == "watcher-stop-resource-release":

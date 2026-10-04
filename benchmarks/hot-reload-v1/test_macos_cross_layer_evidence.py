@@ -30,7 +30,7 @@ class Contract(unittest.TestCase):
             self.assertIsNone(categories[identifier]["selector"])
             self.assertEqual(categories[identifier]["reason"], reason)
 
-    def test_every_rust_selector_names_an_existing_test_function(self):
+    def test_every_selector_names_an_existing_test_case(self):
         paths = {
             "root-lib": {
                 "watcher": pathlib.Path("src/project/hot_reload_watcher.rs"),
@@ -44,6 +44,9 @@ class Contract(unittest.TestCase):
             "source-agent-integration": {
                 "integration": pathlib.Path("crates/semaprax-toolchain/tests/cli_help_surface_v1/source_agent_hot_reload.rs"),
             },
+            "vscode-tests": {
+                "node": pathlib.Path("editors/vscode/test/hot-reload.test.js"),
+            },
         }
         for identifier, (target, selector) in RUN.SELECTORS.items():
             if "hot_reload_watcher::tests::" in selector:
@@ -56,6 +59,10 @@ class Contract(unittest.TestCase):
                 source = paths[target]["handoff-fault"]
             elif target == "source-agent-integration":
                 source = paths[target]["integration"]
+            elif target == "vscode-tests":
+                source = paths[target]["node"]
+                self.assertIn(f"test('{selector}'", (RUN.ROOT / source).read_text(), identifier)
+                continue
             else:
                 source = paths[target]["config"]
             function = selector.rsplit("::", 1)[-1]

@@ -135,8 +135,10 @@ digest and source-build record. The report includes a platform/lane table:
 macOS lanes are measured by this runner; Linux and Windows remain unavailable
 from this macOS-only command.
 
-The manifest also records fault categories for which this checkout has no
-matching hot-reload regression: oversized control frames, worker process death,
-interrupted core shutdown, and hot-reload-specific unknown effect outcome.
-Those rows remain unavailable in the report; a successful run does not close
-those acceptance items or establish native/Wasm swapping.
+The macOS roll-up also runs three exact VS Code adapter regressions for an
+oversized response, unexpected child exit, and Stop during an unacknowledged
+activation. These use a scripted child and establish editor protocol handling,
+not a physical CLI process-death or core shutdown journey. A hot-reload-specific
+unknown effect outcome still has no matching regression and remains explicitly
+unavailable in the report. A successful run also does not establish native/Wasm
+swapping.

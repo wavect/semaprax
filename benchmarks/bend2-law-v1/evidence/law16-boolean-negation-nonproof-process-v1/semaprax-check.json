@@ -1,0 +1,1387 @@
+{
+  "artifacts": [
+    {
+      "bytes": 182,
+      "path": "/private/tmp/law16-boolean-nonproof.ljRNqb/semaprax/fresh.spx",
+      "role": "fresh_input",
+      "sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063"
+    },
+    {
+      "bytes": 182,
+      "path": "/private/tmp/law16-boolean-nonproof.ljRNqb/semaprax/repeat.spx",
+      "role": "repeat_input",
+      "sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063"
+    },
+    {
+      "bytes": 172081112,
+      "path": "/private/tmp/semaprax-9a9db7a81",
+      "role": "operator_input",
+      "sha256": "sha256:cc9dd3ca99a74dd973cbfb904621e27b801d8ddea6065873d24c14de9dee1d89"
+    },
+    {
+      "bytes": 1378,
+      "path": "/private/tmp/law16-boolean-nonproof.ljRNqb/output-parent/nonproof-v2/identity.json",
+      "role": "operator_input",
+      "sha256": "sha256:85bdae01f0762c5b43d51d367df85634d2986af07b62f30f9faf6bcc2b2b04c5"
+    }
+  ],
+  "cells": {
+    "fresh_process": {
+      "samples": [
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-boolean-nonproof.ljRNqb/semaprax/fresh.spx"
+          ],
+          "command_sha256": "sha256:c6f2a317ee21a9b742df31c30eb9e284ffb8da74a6dfe0df94622c9a63f02247",
+          "elapsed_ns": 250569083,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-001.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 137,
+            "path": "fresh-process-001.stdout",
+            "sha256": "sha256:12d32ca8281f200619a7456b0d2820d9803b1b0cbdf21cd910f081e98a9c40bd"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-boolean-nonproof.ljRNqb/semaprax/fresh.spx"
+          ],
+          "command_sha256": "sha256:c6f2a317ee21a9b742df31c30eb9e284ffb8da74a6dfe0df94622c9a63f02247",
+          "elapsed_ns": 233090375,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-002.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 137,
+            "path": "fresh-process-002.stdout",
+            "sha256": "sha256:12d32ca8281f200619a7456b0d2820d9803b1b0cbdf21cd910f081e98a9c40bd"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-boolean-nonproof.ljRNqb/semaprax/fresh.spx"
+          ],
+          "command_sha256": "sha256:c6f2a317ee21a9b742df31c30eb9e284ffb8da74a6dfe0df94622c9a63f02247",
+          "elapsed_ns": 234419875,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-003.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 137,
+            "path": "fresh-process-003.stdout",
+            "sha256": "sha256:12d32ca8281f200619a7456b0d2820d9803b1b0cbdf21cd910f081e98a9c40bd"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-boolean-nonproof.ljRNqb/semaprax/fresh.spx"
+          ],
+          "command_sha256": "sha256:c6f2a317ee21a9b742df31c30eb9e284ffb8da74a6dfe0df94622c9a63f02247",
+          "elapsed_ns": 234088083,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-004.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 137,
+            "path": "fresh-process-004.stdout",
+            "sha256": "sha256:12d32ca8281f200619a7456b0d2820d9803b1b0cbdf21cd910f081e98a9c40bd"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-boolean-nonproof.ljRNqb/semaprax/fresh.spx"
+          ],
+          "command_sha256": "sha256:c6f2a317ee21a9b742df31c30eb9e284ffb8da74a6dfe0df94622c9a63f02247",
+          "elapsed_ns": 231023042,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-005.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 137,
+            "path": "fresh-process-005.stdout",
+            "sha256": "sha256:12d32ca8281f200619a7456b0d2820d9803b1b0cbdf21cd910f081e98a9c40bd"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-boolean-nonproof.ljRNqb/semaprax/fresh.spx"
+          ],
+          "command_sha256": "sha256:c6f2a317ee21a9b742df31c30eb9e284ffb8da74a6dfe0df94622c9a63f02247",
+          "elapsed_ns": 236668792,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-006.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 137,
+            "path": "fresh-process-006.stdout",
+            "sha256": "sha256:12d32ca8281f200619a7456b0d2820d9803b1b0cbdf21cd910f081e98a9c40bd"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-boolean-nonproof.ljRNqb/semaprax/fresh.spx"
+          ],
+          "command_sha256": "sha256:c6f2a317ee21a9b742df31c30eb9e284ffb8da74a6dfe0df94622c9a63f02247",
+          "elapsed_ns": 230684709,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-007.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 137,
+            "path": "fresh-process-007.stdout",
+            "sha256": "sha256:12d32ca8281f200619a7456b0d2820d9803b1b0cbdf21cd910f081e98a9c40bd"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-boolean-nonproof.ljRNqb/semaprax/fresh.spx"
+          ],
+          "command_sha256": "sha256:c6f2a317ee21a9b742df31c30eb9e284ffb8da74a6dfe0df94622c9a63f02247",
+          "elapsed_ns": 237435208,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-008.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 137,
+            "path": "fresh-process-008.stdout",
+            "sha256": "sha256:12d32ca8281f200619a7456b0d2820d9803b1b0cbdf21cd910f081e98a9c40bd"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-boolean-nonproof.ljRNqb/semaprax/fresh.spx"
+          ],
+          "command_sha256": "sha256:c6f2a317ee21a9b742df31c30eb9e284ffb8da74a6dfe0df94622c9a63f02247",
+          "elapsed_ns": 233137834,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-009.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 137,
+            "path": "fresh-process-009.stdout",
+            "sha256": "sha256:12d32ca8281f200619a7456b0d2820d9803b1b0cbdf21cd910f081e98a9c40bd"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-boolean-nonproof.ljRNqb/semaprax/fresh.spx"
+          ],
+          "command_sha256": "sha256:c6f2a317ee21a9b742df31c30eb9e284ffb8da74a6dfe0df94622c9a63f02247",
+          "elapsed_ns": 231251125,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-010.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 137,
+            "path": "fresh-process-010.stdout",
+            "sha256": "sha256:12d32ca8281f200619a7456b0d2820d9803b1b0cbdf21cd910f081e98a9c40bd"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-boolean-nonproof.ljRNqb/semaprax/fresh.spx"
+          ],
+          "command_sha256": "sha256:c6f2a317ee21a9b742df31c30eb9e284ffb8da74a6dfe0df94622c9a63f02247",
+          "elapsed_ns": 231030166,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-011.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 137,
+            "path": "fresh-process-011.stdout",
+            "sha256": "sha256:12d32ca8281f200619a7456b0d2820d9803b1b0cbdf21cd910f081e98a9c40bd"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-boolean-nonproof.ljRNqb/semaprax/fresh.spx"
+          ],
+          "command_sha256": "sha256:c6f2a317ee21a9b742df31c30eb9e284ffb8da74a6dfe0df94622c9a63f02247",
+          "elapsed_ns": 235788417,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-012.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 137,
+            "path": "fresh-process-012.stdout",
+            "sha256": "sha256:12d32ca8281f200619a7456b0d2820d9803b1b0cbdf21cd910f081e98a9c40bd"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-boolean-nonproof.ljRNqb/semaprax/fresh.spx"
+          ],
+          "command_sha256": "sha256:c6f2a317ee21a9b742df31c30eb9e284ffb8da74a6dfe0df94622c9a63f02247",
+          "elapsed_ns": 231773792,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-013.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 137,
+            "path": "fresh-process-013.stdout",
+            "sha256": "sha256:12d32ca8281f200619a7456b0d2820d9803b1b0cbdf21cd910f081e98a9c40bd"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-boolean-nonproof.ljRNqb/semaprax/fresh.spx"
+          ],
+          "command_sha256": "sha256:c6f2a317ee21a9b742df31c30eb9e284ffb8da74a6dfe0df94622c9a63f02247",
+          "elapsed_ns": 231183833,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-014.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 137,
+            "path": "fresh-process-014.stdout",
+            "sha256": "sha256:12d32ca8281f200619a7456b0d2820d9803b1b0cbdf21cd910f081e98a9c40bd"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-boolean-nonproof.ljRNqb/semaprax/fresh.spx"
+          ],
+          "command_sha256": "sha256:c6f2a317ee21a9b742df31c30eb9e284ffb8da74a6dfe0df94622c9a63f02247",
+          "elapsed_ns": 235940667,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-015.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 137,
+            "path": "fresh-process-015.stdout",
+            "sha256": "sha256:12d32ca8281f200619a7456b0d2820d9803b1b0cbdf21cd910f081e98a9c40bd"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-boolean-nonproof.ljRNqb/semaprax/fresh.spx"
+          ],
+          "command_sha256": "sha256:c6f2a317ee21a9b742df31c30eb9e284ffb8da74a6dfe0df94622c9a63f02247",
+          "elapsed_ns": 238908583,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-016.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 137,
+            "path": "fresh-process-016.stdout",
+            "sha256": "sha256:12d32ca8281f200619a7456b0d2820d9803b1b0cbdf21cd910f081e98a9c40bd"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-boolean-nonproof.ljRNqb/semaprax/fresh.spx"
+          ],
+          "command_sha256": "sha256:c6f2a317ee21a9b742df31c30eb9e284ffb8da74a6dfe0df94622c9a63f02247",
+          "elapsed_ns": 233290667,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-017.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 137,
+            "path": "fresh-process-017.stdout",
+            "sha256": "sha256:12d32ca8281f200619a7456b0d2820d9803b1b0cbdf21cd910f081e98a9c40bd"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-boolean-nonproof.ljRNqb/semaprax/fresh.spx"
+          ],
+          "command_sha256": "sha256:c6f2a317ee21a9b742df31c30eb9e284ffb8da74a6dfe0df94622c9a63f02247",
+          "elapsed_ns": 238188500,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-018.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 137,
+            "path": "fresh-process-018.stdout",
+            "sha256": "sha256:12d32ca8281f200619a7456b0d2820d9803b1b0cbdf21cd910f081e98a9c40bd"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-boolean-nonproof.ljRNqb/semaprax/fresh.spx"
+          ],
+          "command_sha256": "sha256:c6f2a317ee21a9b742df31c30eb9e284ffb8da74a6dfe0df94622c9a63f02247",
+          "elapsed_ns": 237222083,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-019.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 137,
+            "path": "fresh-process-019.stdout",
+            "sha256": "sha256:12d32ca8281f200619a7456b0d2820d9803b1b0cbdf21cd910f081e98a9c40bd"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-boolean-nonproof.ljRNqb/semaprax/fresh.spx"
+          ],
+          "command_sha256": "sha256:c6f2a317ee21a9b742df31c30eb9e284ffb8da74a6dfe0df94622c9a63f02247",
+          "elapsed_ns": 233723167,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-020.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 137,
+            "path": "fresh-process-020.stdout",
+            "sha256": "sha256:12d32ca8281f200619a7456b0d2820d9803b1b0cbdf21cd910f081e98a9c40bd"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-boolean-nonproof.ljRNqb/semaprax/fresh.spx"
+          ],
+          "command_sha256": "sha256:c6f2a317ee21a9b742df31c30eb9e284ffb8da74a6dfe0df94622c9a63f02247",
+          "elapsed_ns": 234079792,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-021.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 137,
+            "path": "fresh-process-021.stdout",
+            "sha256": "sha256:12d32ca8281f200619a7456b0d2820d9803b1b0cbdf21cd910f081e98a9c40bd"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-boolean-nonproof.ljRNqb/semaprax/fresh.spx"
+          ],
+          "command_sha256": "sha256:c6f2a317ee21a9b742df31c30eb9e284ffb8da74a6dfe0df94622c9a63f02247",
+          "elapsed_ns": 231257583,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-022.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 137,
+            "path": "fresh-process-022.stdout",
+            "sha256": "sha256:12d32ca8281f200619a7456b0d2820d9803b1b0cbdf21cd910f081e98a9c40bd"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-boolean-nonproof.ljRNqb/semaprax/fresh.spx"
+          ],
+          "command_sha256": "sha256:c6f2a317ee21a9b742df31c30eb9e284ffb8da74a6dfe0df94622c9a63f02247",
+          "elapsed_ns": 231422666,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-023.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 137,
+            "path": "fresh-process-023.stdout",
+            "sha256": "sha256:12d32ca8281f200619a7456b0d2820d9803b1b0cbdf21cd910f081e98a9c40bd"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-boolean-nonproof.ljRNqb/semaprax/fresh.spx"
+          ],
+          "command_sha256": "sha256:c6f2a317ee21a9b742df31c30eb9e284ffb8da74a6dfe0df94622c9a63f02247",
+          "elapsed_ns": 231490583,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-024.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 137,
+            "path": "fresh-process-024.stdout",
+            "sha256": "sha256:12d32ca8281f200619a7456b0d2820d9803b1b0cbdf21cd910f081e98a9c40bd"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-boolean-nonproof.ljRNqb/semaprax/fresh.spx"
+          ],
+          "command_sha256": "sha256:c6f2a317ee21a9b742df31c30eb9e284ffb8da74a6dfe0df94622c9a63f02247",
+          "elapsed_ns": 236289333,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-025.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 137,
+            "path": "fresh-process-025.stdout",
+            "sha256": "sha256:12d32ca8281f200619a7456b0d2820d9803b1b0cbdf21cd910f081e98a9c40bd"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-boolean-nonproof.ljRNqb/semaprax/fresh.spx"
+          ],
+          "command_sha256": "sha256:c6f2a317ee21a9b742df31c30eb9e284ffb8da74a6dfe0df94622c9a63f02247",
+          "elapsed_ns": 233004958,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-026.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 137,
+            "path": "fresh-process-026.stdout",
+            "sha256": "sha256:12d32ca8281f200619a7456b0d2820d9803b1b0cbdf21cd910f081e98a9c40bd"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-boolean-nonproof.ljRNqb/semaprax/fresh.spx"
+          ],
+          "command_sha256": "sha256:c6f2a317ee21a9b742df31c30eb9e284ffb8da74a6dfe0df94622c9a63f02247",
+          "elapsed_ns": 231837750,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-027.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 137,
+            "path": "fresh-process-027.stdout",
+            "sha256": "sha256:12d32ca8281f200619a7456b0d2820d9803b1b0cbdf21cd910f081e98a9c40bd"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-boolean-nonproof.ljRNqb/semaprax/fresh.spx"
+          ],
+          "command_sha256": "sha256:c6f2a317ee21a9b742df31c30eb9e284ffb8da74a6dfe0df94622c9a63f02247",
+          "elapsed_ns": 235105209,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-028.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 137,
+            "path": "fresh-process-028.stdout",
+            "sha256": "sha256:12d32ca8281f200619a7456b0d2820d9803b1b0cbdf21cd910f081e98a9c40bd"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-boolean-nonproof.ljRNqb/semaprax/fresh.spx"
+          ],
+          "command_sha256": "sha256:c6f2a317ee21a9b742df31c30eb9e284ffb8da74a6dfe0df94622c9a63f02247",
+          "elapsed_ns": 238199875,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-029.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 137,
+            "path": "fresh-process-029.stdout",
+            "sha256": "sha256:12d32ca8281f200619a7456b0d2820d9803b1b0cbdf21cd910f081e98a9c40bd"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-boolean-nonproof.ljRNqb/semaprax/fresh.spx"
+          ],
+          "command_sha256": "sha256:c6f2a317ee21a9b742df31c30eb9e284ffb8da74a6dfe0df94622c9a63f02247",
+          "elapsed_ns": 236879416,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "fresh-process-030.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 137,
+            "path": "fresh-process-030.stdout",
+            "sha256": "sha256:12d32ca8281f200619a7456b0d2820d9803b1b0cbdf21cd910f081e98a9c40bd"
+          },
+          "timeout_seconds": 120
+        }
+      ],
+      "status": "completed",
+      "summary": {
+        "count": 30,
+        "p50_ns": 233901479.5,
+        "p95_ns": 238908583
+      }
+    },
+    "repeat_process": {
+      "samples": [
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-boolean-nonproof.ljRNqb/semaprax/repeat.spx"
+          ],
+          "command_sha256": "sha256:8f775a753b41fc17f0ad4e22713c23aa3ed172adc779c549f142e8c8c0acaf50",
+          "elapsed_ns": 230761917,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-001.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 138,
+            "path": "repeat-process-001.stdout",
+            "sha256": "sha256:f9b20375bb751ff03181c264d9a3f28c3f2e587b87aacc2ee117832802955a24"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-boolean-nonproof.ljRNqb/semaprax/repeat.spx"
+          ],
+          "command_sha256": "sha256:8f775a753b41fc17f0ad4e22713c23aa3ed172adc779c549f142e8c8c0acaf50",
+          "elapsed_ns": 234677083,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-002.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 138,
+            "path": "repeat-process-002.stdout",
+            "sha256": "sha256:f9b20375bb751ff03181c264d9a3f28c3f2e587b87aacc2ee117832802955a24"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-boolean-nonproof.ljRNqb/semaprax/repeat.spx"
+          ],
+          "command_sha256": "sha256:8f775a753b41fc17f0ad4e22713c23aa3ed172adc779c549f142e8c8c0acaf50",
+          "elapsed_ns": 237466584,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-003.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 138,
+            "path": "repeat-process-003.stdout",
+            "sha256": "sha256:f9b20375bb751ff03181c264d9a3f28c3f2e587b87aacc2ee117832802955a24"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-boolean-nonproof.ljRNqb/semaprax/repeat.spx"
+          ],
+          "command_sha256": "sha256:8f775a753b41fc17f0ad4e22713c23aa3ed172adc779c549f142e8c8c0acaf50",
+          "elapsed_ns": 234806125,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-004.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 138,
+            "path": "repeat-process-004.stdout",
+            "sha256": "sha256:f9b20375bb751ff03181c264d9a3f28c3f2e587b87aacc2ee117832802955a24"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-boolean-nonproof.ljRNqb/semaprax/repeat.spx"
+          ],
+          "command_sha256": "sha256:8f775a753b41fc17f0ad4e22713c23aa3ed172adc779c549f142e8c8c0acaf50",
+          "elapsed_ns": 230898542,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-005.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 138,
+            "path": "repeat-process-005.stdout",
+            "sha256": "sha256:f9b20375bb751ff03181c264d9a3f28c3f2e587b87aacc2ee117832802955a24"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-boolean-nonproof.ljRNqb/semaprax/repeat.spx"
+          ],
+          "command_sha256": "sha256:8f775a753b41fc17f0ad4e22713c23aa3ed172adc779c549f142e8c8c0acaf50",
+          "elapsed_ns": 232630375,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-006.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 138,
+            "path": "repeat-process-006.stdout",
+            "sha256": "sha256:f9b20375bb751ff03181c264d9a3f28c3f2e587b87aacc2ee117832802955a24"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-boolean-nonproof.ljRNqb/semaprax/repeat.spx"
+          ],
+          "command_sha256": "sha256:8f775a753b41fc17f0ad4e22713c23aa3ed172adc779c549f142e8c8c0acaf50",
+          "elapsed_ns": 238773500,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-007.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 138,
+            "path": "repeat-process-007.stdout",
+            "sha256": "sha256:f9b20375bb751ff03181c264d9a3f28c3f2e587b87aacc2ee117832802955a24"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-boolean-nonproof.ljRNqb/semaprax/repeat.spx"
+          ],
+          "command_sha256": "sha256:8f775a753b41fc17f0ad4e22713c23aa3ed172adc779c549f142e8c8c0acaf50",
+          "elapsed_ns": 233942083,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-008.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 138,
+            "path": "repeat-process-008.stdout",
+            "sha256": "sha256:f9b20375bb751ff03181c264d9a3f28c3f2e587b87aacc2ee117832802955a24"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-boolean-nonproof.ljRNqb/semaprax/repeat.spx"
+          ],
+          "command_sha256": "sha256:8f775a753b41fc17f0ad4e22713c23aa3ed172adc779c549f142e8c8c0acaf50",
+          "elapsed_ns": 232443666,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-009.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 138,
+            "path": "repeat-process-009.stdout",
+            "sha256": "sha256:f9b20375bb751ff03181c264d9a3f28c3f2e587b87aacc2ee117832802955a24"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-boolean-nonproof.ljRNqb/semaprax/repeat.spx"
+          ],
+          "command_sha256": "sha256:8f775a753b41fc17f0ad4e22713c23aa3ed172adc779c549f142e8c8c0acaf50",
+          "elapsed_ns": 232558584,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-010.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 138,
+            "path": "repeat-process-010.stdout",
+            "sha256": "sha256:f9b20375bb751ff03181c264d9a3f28c3f2e587b87aacc2ee117832802955a24"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-boolean-nonproof.ljRNqb/semaprax/repeat.spx"
+          ],
+          "command_sha256": "sha256:8f775a753b41fc17f0ad4e22713c23aa3ed172adc779c549f142e8c8c0acaf50",
+          "elapsed_ns": 236861208,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-011.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 138,
+            "path": "repeat-process-011.stdout",
+            "sha256": "sha256:f9b20375bb751ff03181c264d9a3f28c3f2e587b87aacc2ee117832802955a24"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-boolean-nonproof.ljRNqb/semaprax/repeat.spx"
+          ],
+          "command_sha256": "sha256:8f775a753b41fc17f0ad4e22713c23aa3ed172adc779c549f142e8c8c0acaf50",
+          "elapsed_ns": 235076625,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-012.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 138,
+            "path": "repeat-process-012.stdout",
+            "sha256": "sha256:f9b20375bb751ff03181c264d9a3f28c3f2e587b87aacc2ee117832802955a24"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-boolean-nonproof.ljRNqb/semaprax/repeat.spx"
+          ],
+          "command_sha256": "sha256:8f775a753b41fc17f0ad4e22713c23aa3ed172adc779c549f142e8c8c0acaf50",
+          "elapsed_ns": 232967041,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-013.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 138,
+            "path": "repeat-process-013.stdout",
+            "sha256": "sha256:f9b20375bb751ff03181c264d9a3f28c3f2e587b87aacc2ee117832802955a24"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-boolean-nonproof.ljRNqb/semaprax/repeat.spx"
+          ],
+          "command_sha256": "sha256:8f775a753b41fc17f0ad4e22713c23aa3ed172adc779c549f142e8c8c0acaf50",
+          "elapsed_ns": 231719791,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-014.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 138,
+            "path": "repeat-process-014.stdout",
+            "sha256": "sha256:f9b20375bb751ff03181c264d9a3f28c3f2e587b87aacc2ee117832802955a24"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-boolean-nonproof.ljRNqb/semaprax/repeat.spx"
+          ],
+          "command_sha256": "sha256:8f775a753b41fc17f0ad4e22713c23aa3ed172adc779c549f142e8c8c0acaf50",
+          "elapsed_ns": 231092208,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-015.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 138,
+            "path": "repeat-process-015.stdout",
+            "sha256": "sha256:f9b20375bb751ff03181c264d9a3f28c3f2e587b87aacc2ee117832802955a24"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-boolean-nonproof.ljRNqb/semaprax/repeat.spx"
+          ],
+          "command_sha256": "sha256:8f775a753b41fc17f0ad4e22713c23aa3ed172adc779c549f142e8c8c0acaf50",
+          "elapsed_ns": 236259333,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-016.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 138,
+            "path": "repeat-process-016.stdout",
+            "sha256": "sha256:f9b20375bb751ff03181c264d9a3f28c3f2e587b87aacc2ee117832802955a24"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-boolean-nonproof.ljRNqb/semaprax/repeat.spx"
+          ],
+          "command_sha256": "sha256:8f775a753b41fc17f0ad4e22713c23aa3ed172adc779c549f142e8c8c0acaf50",
+          "elapsed_ns": 247854875,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-017.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 138,
+            "path": "repeat-process-017.stdout",
+            "sha256": "sha256:f9b20375bb751ff03181c264d9a3f28c3f2e587b87aacc2ee117832802955a24"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-boolean-nonproof.ljRNqb/semaprax/repeat.spx"
+          ],
+          "command_sha256": "sha256:8f775a753b41fc17f0ad4e22713c23aa3ed172adc779c549f142e8c8c0acaf50",
+          "elapsed_ns": 240527500,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-018.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 138,
+            "path": "repeat-process-018.stdout",
+            "sha256": "sha256:f9b20375bb751ff03181c264d9a3f28c3f2e587b87aacc2ee117832802955a24"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-boolean-nonproof.ljRNqb/semaprax/repeat.spx"
+          ],
+          "command_sha256": "sha256:8f775a753b41fc17f0ad4e22713c23aa3ed172adc779c549f142e8c8c0acaf50",
+          "elapsed_ns": 239238041,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-019.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 138,
+            "path": "repeat-process-019.stdout",
+            "sha256": "sha256:f9b20375bb751ff03181c264d9a3f28c3f2e587b87aacc2ee117832802955a24"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-boolean-nonproof.ljRNqb/semaprax/repeat.spx"
+          ],
+          "command_sha256": "sha256:8f775a753b41fc17f0ad4e22713c23aa3ed172adc779c549f142e8c8c0acaf50",
+          "elapsed_ns": 240483000,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-020.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 138,
+            "path": "repeat-process-020.stdout",
+            "sha256": "sha256:f9b20375bb751ff03181c264d9a3f28c3f2e587b87aacc2ee117832802955a24"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-boolean-nonproof.ljRNqb/semaprax/repeat.spx"
+          ],
+          "command_sha256": "sha256:8f775a753b41fc17f0ad4e22713c23aa3ed172adc779c549f142e8c8c0acaf50",
+          "elapsed_ns": 239672250,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-021.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 138,
+            "path": "repeat-process-021.stdout",
+            "sha256": "sha256:f9b20375bb751ff03181c264d9a3f28c3f2e587b87aacc2ee117832802955a24"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-boolean-nonproof.ljRNqb/semaprax/repeat.spx"
+          ],
+          "command_sha256": "sha256:8f775a753b41fc17f0ad4e22713c23aa3ed172adc779c549f142e8c8c0acaf50",
+          "elapsed_ns": 233550167,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-022.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 138,
+            "path": "repeat-process-022.stdout",
+            "sha256": "sha256:f9b20375bb751ff03181c264d9a3f28c3f2e587b87aacc2ee117832802955a24"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-boolean-nonproof.ljRNqb/semaprax/repeat.spx"
+          ],
+          "command_sha256": "sha256:8f775a753b41fc17f0ad4e22713c23aa3ed172adc779c549f142e8c8c0acaf50",
+          "elapsed_ns": 238383333,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-023.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 138,
+            "path": "repeat-process-023.stdout",
+            "sha256": "sha256:f9b20375bb751ff03181c264d9a3f28c3f2e587b87aacc2ee117832802955a24"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-boolean-nonproof.ljRNqb/semaprax/repeat.spx"
+          ],
+          "command_sha256": "sha256:8f775a753b41fc17f0ad4e22713c23aa3ed172adc779c549f142e8c8c0acaf50",
+          "elapsed_ns": 234931375,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-024.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 138,
+            "path": "repeat-process-024.stdout",
+            "sha256": "sha256:f9b20375bb751ff03181c264d9a3f28c3f2e587b87aacc2ee117832802955a24"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-boolean-nonproof.ljRNqb/semaprax/repeat.spx"
+          ],
+          "command_sha256": "sha256:8f775a753b41fc17f0ad4e22713c23aa3ed172adc779c549f142e8c8c0acaf50",
+          "elapsed_ns": 243150709,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-025.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 138,
+            "path": "repeat-process-025.stdout",
+            "sha256": "sha256:f9b20375bb751ff03181c264d9a3f28c3f2e587b87aacc2ee117832802955a24"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-boolean-nonproof.ljRNqb/semaprax/repeat.spx"
+          ],
+          "command_sha256": "sha256:8f775a753b41fc17f0ad4e22713c23aa3ed172adc779c549f142e8c8c0acaf50",
+          "elapsed_ns": 238879084,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-026.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 138,
+            "path": "repeat-process-026.stdout",
+            "sha256": "sha256:f9b20375bb751ff03181c264d9a3f28c3f2e587b87aacc2ee117832802955a24"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-boolean-nonproof.ljRNqb/semaprax/repeat.spx"
+          ],
+          "command_sha256": "sha256:8f775a753b41fc17f0ad4e22713c23aa3ed172adc779c549f142e8c8c0acaf50",
+          "elapsed_ns": 232566125,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-027.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 138,
+            "path": "repeat-process-027.stdout",
+            "sha256": "sha256:f9b20375bb751ff03181c264d9a3f28c3f2e587b87aacc2ee117832802955a24"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-boolean-nonproof.ljRNqb/semaprax/repeat.spx"
+          ],
+          "command_sha256": "sha256:8f775a753b41fc17f0ad4e22713c23aa3ed172adc779c549f142e8c8c0acaf50",
+          "elapsed_ns": 231416167,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-028.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 138,
+            "path": "repeat-process-028.stdout",
+            "sha256": "sha256:f9b20375bb751ff03181c264d9a3f28c3f2e587b87aacc2ee117832802955a24"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-boolean-nonproof.ljRNqb/semaprax/repeat.spx"
+          ],
+          "command_sha256": "sha256:8f775a753b41fc17f0ad4e22713c23aa3ed172adc779c549f142e8c8c0acaf50",
+          "elapsed_ns": 241751792,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-029.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 138,
+            "path": "repeat-process-029.stdout",
+            "sha256": "sha256:f9b20375bb751ff03181c264d9a3f28c3f2e587b87aacc2ee117832802955a24"
+          },
+          "timeout_seconds": 120
+        },
+        {
+          "argv": [
+            "/tmp/semaprax-9a9db7a81",
+            "check",
+            "/tmp/law16-boolean-nonproof.ljRNqb/semaprax/repeat.spx"
+          ],
+          "command_sha256": "sha256:8f775a753b41fc17f0ad4e22713c23aa3ed172adc779c549f142e8c8c0acaf50",
+          "elapsed_ns": 238456708,
+          "exit_code": 0,
+          "outcome": "completed",
+          "stderr": {
+            "bytes": 0,
+            "path": "repeat-process-030.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 138,
+            "path": "repeat-process-030.stdout",
+            "sha256": "sha256:f9b20375bb751ff03181c264d9a3f28c3f2e587b87aacc2ee117832802955a24"
+          },
+          "timeout_seconds": 120
+        }
+      ],
+      "status": "completed",
+      "summary": {
+        "count": 30,
+        "p50_ns": 235004000.0,
+        "p95_ns": 243150709
+      }
+    }
+  },
+  "cold_state": {
+    "reason": "process separation and fresh paths cannot isolate macOS page, executable, solver, or tool caches",
+    "status": "unavailable"
+  },
+  "configuration": {
+    "BEND_NO_TELEMETRY": "1",
+    "fresh_process_meaning": "new child process using the supplied fresh artifact-path command",
+    "repeat_process_meaning": "new child process using the supplied repeat artifact-path command",
+    "samples": 30,
+    "timeout_seconds": 120
+  },
+  "nonclaims": [
+    "fresh_process is not an OS-cache-cold observation",
+    "no cold-versus-warm ratio, winner, or cache-isolation claim"
+  ],
+  "raw_artifact_dir": "/private/tmp/law16-boolean-nonproof.ljRNqb/output-parent/nonproof-v2/semaprax-check-raw",
+  "schema": "semaprax.bend2-law-benchmark.cold-warm-process-cell.v2"
+}

@@ -12,6 +12,8 @@ has retained candidate and assertion-retaining attack controls. Each route has
 route's p50/p95 separately; those numbers are local process-provisioning
 observations only. They do not support a cross-route ratio or winner.
 
+The retained [ordinary/check capsule](evidence/law16-boolean-negation-nonproof-process-v1/) adds the same exact Boolean-negation candidate as separate nonproof routes: Bend ordinary checking measured **83.05 ms / 100.95 ms** fresh p50/p95 and **75.53 ms / 78.08 ms** repeat; SEMAPRAX `check` measured **233.90 ms / 238.91 ms** fresh and **235.00 ms / 243.15 ms** repeat. The capsule validates its raw streams, source hashes, Bend commit, and SEMAPRAX executable SHA from the copied repository path. Ordinary Bend is not `--verdict`, and SEMAPRAX `check` is not external-Z3 proof checking.
+
 Ten fixed-budget Luna matched pairs were completed: ten Bend candidate verdict
 acceptances and ten identity-mutant rejections; ten SEMAPRAX selected
 `app.negate ensures[0]` Z3 discharges and ten false-mutant rejections. All

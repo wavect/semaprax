@@ -73,3 +73,20 @@ The example does not stand in for a committed measurement. A command may be
 supplied only when its prebuilt executable matches the intended subject; the
 report records the repository head at the time it runs and explicitly marks
 the selector executable digest as unobserved.
+
+## Compact cross-layer capture
+
+On macOS, capture the current-head interpreter receipt and the exact native/Wasm
+limitations in one JSON file. The wrapper requires an already-built CLI whose
+`version --json` commit equals the checkout's `HEAD`; it does not invoke Cargo.
+
+```sh
+benchmarks/hot-reload-v1/macos-cross-layer-capture.sh \
+  --semaprax "$SEMAPRAX_BIN" \
+  --output /tmp/hot-reload-cross-layer-capture.json
+```
+
+The capture stores the benchmark receipt SHA-256, CLI binary digest, CLI version
+and commit, and the runner stdout/stderr SHA-256 values. `native-process-identity`
+and `native-or-wasm-state-swap` remain `unavailable` with the committed manifest
+requirements. It does not turn either limitation into a measured selector.

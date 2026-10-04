@@ -792,8 +792,10 @@ It moves through checked source helper results and consuming parameters. Its
 inert generated Rust owner retains the native environment after factory return;
 physical iterator/consuming-trait use, unused drop, changed-body controls,
 postcondition failure cleanup and cross-crate ownership refusals are covered.
-This is a separate closed profile from the scalar state adapters below. Mutable
-or borrowed source captures and affine foreign registration remain open.
+This is a separate closed profile from the scalar state adapters below. Its
+generated Rust owner can now be retained by one same-thread foreign registry
+through an opaque lease that invokes once or unregisters before Drop. Mutable,
+borrowed and mixed source captures remain open.
 
 The additive `prepare_native_rust_callbacks` renderer selects a checked
 `fn(i64) -> fn(i64) -> i64` factory with one immutable scalar snapshot capture,

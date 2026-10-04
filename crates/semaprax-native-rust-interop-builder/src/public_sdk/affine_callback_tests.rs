@@ -124,6 +124,10 @@ fn affine_capture_rust_consumer_retains_source_owner_and_invokes_actual_body() {
             "E0277",
         ),
         (
+            "let f=AffineCallback::new().unwrap().retain(); std::thread::spawn(move||drop(f));",
+            "E0277",
+        ),
+        (
             "let f=AffineCallback::new().unwrap(); let _=f.clone();",
             "E0599",
         ),
@@ -177,6 +181,40 @@ fn retain()->impl FnOnce()->Result<i64,AffineCallbackError> {
 trait Consume { fn finish(self)->Result<i64,AffineCallbackError>; }
 struct Adapter(AffineCallback);
 impl Consume for Adapter { fn finish(self)->Result<i64,AffineCallbackError> { self.0.call() } }
+trait ForeignRetained {
+    fn register(&mut self, callback: RetainedAffineCallback) -> Result<(), AffineCallbackError>;
+    fn dispatch(&mut self) -> Result<i64, AffineCallbackError>;
+    fn unregister(&mut self);
+}
+struct ForeignRegistry {
+    retained: Option<RetainedAffineCallback>,
+    offset: i64,
+    state_accesses: u64,
+    torn_down: bool,
+}
+impl ForeignRegistry {
+    fn new(offset: i64) -> Self {
+        Self { retained: None, offset, state_accesses: 0, torn_down: false }
+    }
+}
+impl ForeignRetained for ForeignRegistry {
+    fn register(&mut self, callback: RetainedAffineCallback) -> Result<(), AffineCallbackError> {
+        if self.torn_down || self.retained.is_some() || !callback.is_active() {
+            return Err(AffineCallbackError::RegistrationClosed);
+        }
+        self.retained = Some(callback);
+        Ok(())
+    }
+    fn dispatch(&mut self) -> Result<i64, AffineCallbackError> {
+        let mut callback = self.retained.take().ok_or(AffineCallbackError::RegistrationClosed)?;
+        self.state_accesses += 1;
+        callback.invoke().map(|value| value + self.offset)
+    }
+    fn unregister(&mut self) {
+        self.torn_down = true;
+        if let Some(mut callback) = self.retained.take() { callback.unregister(); }
+    }
+}
 fn main() {
     let f=retain();
     assert_eq!(counts(),(2,0));
@@ -185,6 +223,23 @@ fn main() {
     let unused=retain(); drop(unused); assert_eq!(counts(),(4,4));
     assert_eq!(Adapter(AffineCallback::new().unwrap()).finish().unwrap(),42);
     assert_eq!(counts(),(6,6));
+
+    let mut registry=ForeignRegistry::new(7);
+    registry.register(AffineCallback::new().unwrap().retain()).unwrap();
+    assert_eq!(counts(),(8,6));
+    assert_eq!(registry.dispatch().unwrap(),49);
+    assert_eq!(counts(),(8,8));
+    assert_eq!(registry.dispatch(),Err(AffineCallbackError::RegistrationClosed));
+    assert_eq!(registry.state_accesses,1);
+
+    let mut torn_down=ForeignRegistry::new(9);
+    torn_down.register(AffineCallback::new().unwrap().retain()).unwrap();
+    assert_eq!(counts(),(10,8));
+    torn_down.unregister();
+    assert_eq!(counts(),(10,10));
+    assert_eq!(torn_down.dispatch(),Err(AffineCallbackError::RegistrationClosed));
+    assert_eq!(torn_down.state_accesses,0);
+    assert_eq!(counts(),(10,10));
 }
 "#;
 

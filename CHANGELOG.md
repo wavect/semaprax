@@ -1,5 +1,13 @@
 # Changelog
 
+- Add a bounded RI-08 same-thread foreign-registration lease to the generated
+  affine FnOnce() -> i64 Rust projection. A physical Rust consumer retains
+  the source-created environment inside a stateful safe registry, dispatches it
+  once, and proves unregister drops an uncalled owner before later dispatch
+  reaches callback state. The generated lease remains !Send and reports a
+  closed registration rather than entering C after teardown. Mutable, borrowed
+  and mixed source capture modes remain open.
+
 - Save an RI-13 M1 mixed Regex/Url application. One held, canonical Project
   source authenticates four selected imports and two exports, then generates
   separate source-bound SDK carriers with distinct C owner symbols. Exact

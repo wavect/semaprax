@@ -100,7 +100,7 @@ void spx_affine_destroy(void *opaque) {
 
 const RUST_BRIDGE: &str = r#"
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum AffineCallbackError { Creation, Call }
+pub enum AffineCallbackError { Creation, Call, RegistrationClosed }
 mod affine_ffi {
     use std::ffi::c_void;
     extern "C" {
@@ -130,6 +130,12 @@ impl AffineCallback {
     pub fn into_fn_once(self) -> impl FnOnce() -> Result<i64, AffineCallbackError> {
         move || self.call()
     }
+    /// Gives a same-thread foreign registry one opaque affine lease. The
+    /// registry can invoke it once or unregister it; it cannot obtain the C
+    /// owner or a second callable copy.
+    pub fn retain(self) -> RetainedAffineCallback {
+        RetainedAffineCallback { callback: Some(self), active: true }
+    }
 }
 impl Drop for AffineCallback {
     fn drop(&mut self) {
@@ -137,5 +143,28 @@ impl Drop for AffineCallback {
             unsafe { affine_ffi::spx_affine_destroy(owner.as_ptr()) }
         }
     }
+}
+/// A same-thread registration lease for a source-created affine callback.
+/// `invoke` closes the lease before entering C, and `unregister` drops an
+/// uncalled owner. Therefore a foreign registry can neither call after
+/// teardown nor free an environment it still retains.
+pub struct RetainedAffineCallback {
+    callback: Option<AffineCallback>,
+    active: bool,
+}
+impl RetainedAffineCallback {
+    pub fn is_active(&self) -> bool { self.active }
+    pub fn invoke(&mut self) -> Result<i64, AffineCallbackError> {
+        if !self.active { return Err(AffineCallbackError::RegistrationClosed); }
+        self.active = false;
+        self.callback.take().expect("active affine lease has an owner").call()
+    }
+    pub fn unregister(&mut self) {
+        self.active = false;
+        drop(self.callback.take());
+    }
+}
+impl Drop for RetainedAffineCallback {
+    fn drop(&mut self) { self.unregister(); }
 }
 "#;

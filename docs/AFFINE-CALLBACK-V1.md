@@ -31,8 +31,11 @@ signatures or parameter modes are `SPX-T308`.
 
 This profile does not admit mutable or borrowed captures, mixed captures,
 callback arguments, generic captures, aggregate fields, foreign imported
-callable signatures, cross-thread calls, or an ambient callback registry.
-It therefore advances RI-08 without closing its broader acceptance criteria.
+callable signatures, cross-thread calls, or an ambient source callback
+registry. Its generated Rust projection has a separate same-thread retained
+lease for one foreign Rust registry; that lease does not change source
+admission. It therefore advances RI-08 without closing its broader acceptance
+criteria.
 
 ## Authority and cleanup
 
@@ -61,6 +64,16 @@ owner settles the environment. A caller can implement its own consuming safe
 trait using this owner; this is not selected-index trait implementation
 synthesis.
 
+`AffineCallback::retain` moves that same unique owner into
+`RetainedAffineCallback`, an opaque same-thread registration lease. A foreign
+Rust registry may retain the lease, invoke it once, or call `unregister`.
+`invoke` marks the lease closed before entering C and `unregister` drops an
+uncalled owner, so a later invocation is
+`AffineCallbackError::RegistrationClosed` without entering the native
+environment. Lease Drop performs the same unregister path. The caller's
+registry state remains foreign and is not an ABI, trait-object-layout, or
+cross-thread claim.
+
 Projection is inert and grants no compiler, filesystem, process, or network
 authority. The caller compiles and links the generated source. Foreign code
 must obey the generated C ABI; arbitrary pointer misuse is outside the safe
@@ -79,9 +92,14 @@ The builder's `affine_capture_rust_consumer_retains_source_owner_and_invokes_act
 selector compiles a separate Rust adapter crate and physical consumer. It
 retains the source-created owner after factory return, invokes it through
 `std::iter::once_with`, drops another uncalled owner, and exercises a consuming
-safe trait. Allocator counters must balance. Changing the authored target
-from 42 to 43 must fail the unchanged consumer expectation. Cross-crate
-rustc controls reject duplicate invocation, clone, and thread escape.
+safe trait. It also compiles a foreign stateful Rust registry that retains the
+generated affine lease, adds its non-zero state after one dispatch, and
+unregisters another lease before any dispatch. The teardown control rejects
+before registry callback-state access, while allocation counters show the
+retained source environment is settled once. Changing the authored target from
+42 to 43 must fail the unchanged consumer expectation. Cross-crate rustc
+controls reject duplicate invocation, clone, and thread escape for both the
+owner and retained lease.
 
 The focused core selector passed 2/2 and the physical Rust selector passed 1/1
 on the submitted implementation. The Rust gate also injects callback and

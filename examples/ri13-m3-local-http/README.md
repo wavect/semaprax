@@ -24,10 +24,11 @@ source identity and suspension plan before registering the callback. The
 consumer owns the executor and network capability. Neither preparation nor
 generated code starts a runtime, accesses the network, or publishes a package.
 
-The consumer runs success, HTTP 503, invalid numeric body, checked source
-postcondition failure, timeout, and cancellation after server receipt. Every
-server accepts one request and checks for a retry. `call_typed` preserves
-timeout/status/parse host errors separately from checked source failures.
+The consumer runs success, loopback connection refusal, HTTP 503, invalid
+numeric body, checked source postcondition failure, timeout, and cancellation
+after server receipt. Every server accepts one request and checks for a retry.
+`call_typed` preserves transport, timeout, status, and parse host errors
+separately from checked source failures.
 The consumer also records the exact application-owned copy from reqwest's
 foreign response `Bytes` into callback-owned `Vec<u8>` storage. Its success,
 invalid-body, and source-postcondition cases assert 2, 7, and 3 copied bytes;

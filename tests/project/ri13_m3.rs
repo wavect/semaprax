@@ -135,6 +135,15 @@ fn local_server(
     (endpoint, received_rx, server)
 }
 
+/// Release a just-reserved loopback address before the client starts so this
+/// route observes connection refusal rather than a delayed HTTP response.
+fn refused_endpoint() -> String {
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let endpoint = format!("http://{}", listener.local_addr().unwrap());
+    drop(listener);
+    endpoint
+}
+
 fn selected_call_with_controls(
     revision: Arc<ProjectRevision>,
     endpoint: String,
@@ -303,6 +312,25 @@ fn saved_m3_application_runs_offline_and_refuses_timeout_and_stale_binding_mutan
             host_callback_captured_bytes: 2,
         }
     );
+
+    let copies = CopyLedger::default();
+    assert_eq!(
+        local.block_on(
+            &runtime,
+            selected_call(
+                Arc::clone(&revision),
+                refused_endpoint(),
+                Some(Duration::from_millis(100)),
+                copies.clone(),
+            )
+            .unwrap(),
+        ),
+        (
+            Err(SourceLocalFutureFailure::HandlerFailed),
+            Some(HostError::Transport)
+        )
+    );
+    assert_eq!(copies.metrics(), CopyMetrics::default());
 
     // A host callback that returns 42 rather than the actual HTTP body 43
     // produces 83 through the checked source body, rather than the admitted

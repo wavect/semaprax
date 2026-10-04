@@ -158,6 +158,16 @@ fn local_server(
     (endpoint, received_rx, server)
 }
 
+/// Reserve a loopback port, then release it before the client starts. The
+/// ensuing connection-refusal case exercises the typed transport path without
+/// any external service or response body.
+fn refused_endpoint() -> String {
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let endpoint = format!("http://{}", listener.local_addr().unwrap());
+    drop(listener);
+    endpoint
+}
+
 fn run_case(
     revision: Arc<ProjectRevision>,
     runtime: &tokio::runtime::Runtime,
@@ -220,6 +230,20 @@ fn main() {
             }
         )
     ));
+    let copies = CopyLedger::default();
+    assert!(matches!(
+        local.block_on(
+            &runtime,
+            selected_call(
+                Arc::clone(&revision),
+                refused_endpoint(),
+                Some(Duration::from_millis(100)),
+                copies.clone(),
+            )
+        ),
+        Err(AsyncCallError::Host(DemoError::Transport))
+    ));
+    assert_eq!(copies.metrics(), CopyMetrics::default());
     assert!(matches!(
         run_case(
             Arc::clone(&revision),

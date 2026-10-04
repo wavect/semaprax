@@ -731,6 +731,24 @@ fn repair_v2_settled_wire_terminal_resume_is_zero_dispatch_and_nonpublishing() {
         false
     );
     assert_eq!(first["candidate_test_execution"]["status"], "not_run");
+    assert_eq!(
+        first["receipt_policy"]["coverage"]["candidate_test_execution"]["status"],
+        "absent"
+    );
+    assert_eq!(
+        first["receipt_policy"]["coverage"]["candidate_test_execution"]["coverage"],
+        "not_observed"
+    );
+    assert_eq!(
+        first["receipt_policy"]["coverage"]["runtime_effects"]["this_invocation"]
+            ["effect_dispatches"],
+        2
+    );
+    assert_eq!(
+        first["receipt_policy"]["coverage"]["runtime_effects"]["cumulative_terminal_journal"]
+            ["effect_dispatches"],
+        2
+    );
     assert_eq!(first["source_mutation"], false);
     assert_eq!(first["publication_authority"], false);
     assert_eq!(first["selected_profile"]["config_schema"], CONFIG_SCHEMA_V2);
@@ -827,6 +845,16 @@ fn repair_v2_settled_wire_terminal_resume_is_zero_dispatch_and_nonpublishing() {
     assert_eq!(
         resumed["runtime_effect_accounting"]["replayed_without_dispatch"],
         true
+    );
+    assert_eq!(
+        resumed["receipt_policy"]["coverage"]["runtime_effects"]["this_invocation"]
+            ["effect_dispatches"],
+        0
+    );
+    assert_eq!(
+        resumed["receipt_policy"]["coverage"]["runtime_effects"]["cumulative_terminal_journal"]
+            ["effect_dispatches"],
+        2
     );
     assert_eq!(resumed["candidate_digest"], serde_json::Value::Null);
     assert_eq!(resumed["analysis"]["coverage"]["source_review"], false);

@@ -37,6 +37,24 @@ fn fixed_candidate_test_profile_runs_the_real_candidate_test_and_replays_it() {
     assert!(first["candidate_test_execution"]["observation"]["detail"]
         .as_str()
         .is_some_and(|detail| detail.starts_with("candidate-test-report=sha256:")));
+    assert_eq!(
+        first["receipt_policy"]["coverage"]["candidate_test_execution"]["status"],
+        "passed"
+    );
+    assert_eq!(
+        first["receipt_policy"]["coverage"]["candidate_test_execution"]["coverage"],
+        "partial_authorized_candidate_test_observation"
+    );
+    assert_eq!(
+        first["receipt_policy"]["coverage"]["runtime_effects"]["this_invocation"]
+            ["model_dispatches"],
+        2
+    );
+    assert_eq!(
+        first["receipt_policy"]["coverage"]["runtime_effects"]["cumulative_terminal_journal"]
+            ["model_attempts"],
+        2
+    );
     assert_eq!(calls.get(), 2);
     let checkpoint_before = fs::read(checkpoint.join("checkpoint.json")).unwrap();
 
@@ -61,6 +79,20 @@ fn fixed_candidate_test_profile_runs_the_real_candidate_test_and_replays_it() {
     assert_eq!(resumed["effect_dispatches"], 0);
     assert_eq!(resumed["candidate_test_execution"]["status"], "passed");
     assert_eq!(resumed["candidate_test_execution"]["replayed"], true);
+    assert_eq!(
+        resumed["receipt_policy"]["coverage"]["candidate_test_execution"]["coverage"],
+        "partial_replayed_candidate_test_feedback_only"
+    );
+    assert_eq!(
+        resumed["receipt_policy"]["coverage"]["runtime_effects"]["this_invocation"]
+            ["model_dispatches"],
+        0
+    );
+    assert_eq!(
+        resumed["receipt_policy"]["coverage"]["runtime_effects"]["cumulative_terminal_journal"]
+            ["model_attempts"],
+        2
+    );
     assert_eq!(calls.get(), 2);
     assert_eq!(
         fs::read(checkpoint.join("checkpoint.json")).unwrap(),

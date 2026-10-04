@@ -1,6 +1,7 @@
 use super::*;
 
 const EFFECT_ACCOUNTING_SCHEMA: &str = "semaprax.source-live-cli.repair-effect-accounting.v1";
+const PATCH_RECEIPT_POLICY_SCHEMA: &str = "semaprax.patch-receipt-policy.v1";
 
 /// Projects terminal execution facts the source-journal validator has already
 /// bound to this invocation. The journal remains the accounting owner.
@@ -67,6 +68,73 @@ fn effect_accounting(
             "receipt_projection_grants_no_effect_or_publication_authority",
         ],
     }))
+}
+
+/// Describes only observations already admitted by the authorized repair
+/// runtime. Rendering this policy neither runs a candidate test nor invokes an
+/// effect; the terminal journal remains the cumulative accounting owner.
+fn runtime_receipt_policy(
+    accounting: &Value,
+    candidate_test_evidence: Option<&CandidateTestEvidence>,
+    replayed_candidate_test_evidence: Option<ReplayedCandidateTestEvidence>,
+    candidate_test_selected: bool,
+) -> Value {
+    let candidate_test_execution = match (candidate_test_evidence, replayed_candidate_test_evidence)
+    {
+        (Some(evidence), None) => json!({
+            "status": evidence.status.text(),
+            "coverage": "partial_authorized_candidate_test_observation",
+            "observation": "present_in_this_invocation_receipt",
+        }),
+        (None, Some(evidence)) => json!({
+            "status": evidence.status.text(),
+            "coverage": "partial_replayed_candidate_test_feedback_only",
+            "observation": "not_retained_in_terminal_journal",
+        }),
+        (None, None) => json!({
+            "status": "absent",
+            "coverage": "not_observed",
+            "reason": if candidate_test_selected {
+                "no_settled_candidate_test_observation_is_available"
+            } else {
+                "this_repair_host_has_no_candidate_test_execution_authority"
+            },
+        }),
+        (Some(_), Some(_)) => json!({
+            "status": "conflicting",
+            "coverage": "invalid",
+        }),
+    };
+    json!({
+        "schema": PATCH_RECEIPT_POLICY_SCHEMA,
+        "check_profile": "authorized_repair_runtime_observations",
+        "evidence_selection_scope": "settled_candidate_test_observation_and_validated_terminal_journal",
+        "effect_accounting_scope": "validated_terminal_journal",
+        "coverage": {
+            "candidate_test_execution": candidate_test_execution,
+            "runtime_effects": {
+                "status": "partial",
+                "coverage": "validated_dispatch_accounting_not_effect_completion",
+                "this_invocation": {
+                    "model_dispatches": accounting["this_invocation_model_dispatches"].clone(),
+                    "effect_dispatches": accounting["this_invocation_effect_dispatches"].clone(),
+                },
+                "cumulative_terminal_journal": {
+                    "model_attempts": accounting["total_model_attempts"].clone(),
+                    "effect_dispatches": accounting["total_effect_dispatches"].clone(),
+                },
+                "replayed_without_dispatch": accounting["replayed_without_dispatch"].clone(),
+            },
+        },
+        "execution": false,
+        "source_authority": false,
+        "publication_authority": false,
+        "nonclaims": [
+            "receipt_generation_did_not_execute_candidate_tests_or_effects",
+            "dispatch_accounting_is_not_external_effect_completion_or_provider_delivery_proof",
+            "receipt_policy_grants_no_test_effect_or_publication_authority",
+        ],
+    })
 }
 
 pub(super) fn receipt(
@@ -137,8 +205,15 @@ pub(super) fn receipt(
             "chain": checkpoint.chain(),
             "generation": checkpoint.generation(),
         });
-        report["runtime_effect_accounting"] =
+        let runtime_effect_accounting =
             effect_accounting(checkpoint, model_dispatches, effect_dispatches)?;
+        report["runtime_effect_accounting"] = runtime_effect_accounting.clone();
+        report["receipt_policy"] = runtime_receipt_policy(
+            &runtime_effect_accounting,
+            candidate_test_evidence,
+            replayed_candidate_test_evidence,
+            candidate_test_selected,
+        );
         report["patch_receipt"] = terminal_patch_receipt
             .map(TerminalPatchReceipt::value)
             .transpose()?

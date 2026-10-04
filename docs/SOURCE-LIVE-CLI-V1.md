@@ -249,6 +249,12 @@ host observation document is not retained in the current journal, and no new
 observation is fabricated. Neither receipt is a cost proof,
 provider-delivery proof, source/Git mutation, or approval to publish the
 candidate.
+The accompanying `receipt_policy` uses the shared patch-receipt policy schema
+to make this coverage explicit: candidate-test evidence is absent, a partial
+live observation, or partial replayed feedback only. Its runtime-effect entry
+keeps the current invocation's model/effect dispatches separate from cumulative
+validated terminal-journal totals. Rendering the policy is read-only and cannot
+grant test, effect, source, or publication authority.
 
 Priced migration requires both predecessor and destination config v2 pricing
 with exactly matching work unit, currency, minor-unit exponent and integer

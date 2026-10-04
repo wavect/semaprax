@@ -3,8 +3,7 @@
 Status: implemented retained-candidate summary and refusal/comparison core.
 The V2/V3 durable repair terminal route retains its exact compiler-derived
 receipt bound to the completed journal and replays it without dispatch. Workflow
-adapters and shared candidate runtime/test/assurance observations remain
-separate work.
+adapters and additional assurance observations remain separate work.
 
 Audience: agents and compiler contributors reviewing semantic edit candidates.
 
@@ -46,6 +45,19 @@ Verification replays the candidate from its retained base and compares exact
 canonical receipt bytes. Rehashing caller-modified JSON cannot authenticate an
 altered receipt. A successful verification proves only the selected retained
 inputs, not a later checkout or publication's freshness.
+
+## Authorized runtime observation policy
+
+The V2/V3 repair receipt carries a separate
+`semaprax.patch-receipt-policy.v1` projection when the authorized repair host
+has already completed its terminal journal. It leaves the compact patch
+receipt's canonical bytes unchanged. Its candidate-test entry is `absent` when
+the host has no test capability or no settled observation, `partial` when it
+has a bounded live observation, and `partial` with feedback-only coverage on a
+terminal replay. The effect entry reports current-invocation model/effect
+dispatches separately from the terminal journal's cumulative model/effect
+counts. It describes settled runtime evidence; rendering it never dispatches a
+test or effect and grants no test, effect, source, or publication authority.
 
 ## Stale selector refusal
 

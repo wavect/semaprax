@@ -88,7 +88,10 @@ saved-source session change terminate this controller. At most 64 control
 requests may await replies. If Stop interrupts an unacknowledged activation,
 the detail view reports the active state as unknown, sends the bounded Stop
 request, and force-terminates the child after its one-second grace period.
-Source-Agent execution is not offered by the editor control.
+The detail view keeps an unsaved editor buffer distinct from a saved source
+change awaiting planning: neither is cleared by a CLI reply. Source-Agent
+execution is not offered by the editor control. A migration-required refusal
+is displayed as such; it does not select or emulate the unavailable lane.
 
 ## Workflow
 

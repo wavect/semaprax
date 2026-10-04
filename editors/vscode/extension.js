@@ -775,9 +775,9 @@ function activate(context) {
       hotReload.on('terminal', reason => { status.text = `SEMAPRAX hot reload: terminal · ${reason}`; });
       hotReload.start();
     },
-    async stopHotReload() { hotReload?.stop(); hotReload = undefined; status.text = 'SEMAPRAX hot reload: stopped'; },
+    async stopHotReload() { const controller = hotReload; controller?.stop(); const detail = controller?.detail(); hotReload = undefined; status.text = detail?.event === 'unknown' ? `SEMAPRAX hot reload: unknown · ${detail.detail}` : 'SEMAPRAX hot reload: stopped'; },
     async hotReloadStatus() { if (!hotReload) throw new Error('Start Hot Reload first'); hotReload.request('status'); },
-    async hotReloadDetail() { if (!hotReload) throw new Error('Start Hot Reload first'); const detail = hotReload.detail(); await vscode.window.showInformationMessage(`Hot reload ${detail.event}: ${detail.detail}. Active: ${detail.active || 'none'}; pending: ${detail.pending || 'none'}; editor dirty: ${detail.dirty ? 'yes' : 'no'}`); return detail; },
+    async hotReloadDetail() { if (!hotReload) throw new Error('Start Hot Reload first'); const detail = hotReload.detail(); await vscode.window.showInformationMessage(`Hot reload ${detail.event}: ${detail.detail}. Active: ${detail.active || 'none'}; pending: ${detail.pending || 'none'}; editor dirty: ${detail.dirty ? 'yes' : 'no'}; saved source changed: ${detail.sourceChanged ? 'yes' : 'no'}`); return detail; },
     async hotReloadPlan() { if (!hotReload) throw new Error('Start Hot Reload first'); hotReload.request('plan'); },
     async hotReloadActivate() { if (!hotReload) throw new Error('Start Hot Reload first'); hotReload.request('activate'); },
     async hotReloadInvoke() { if (!hotReload) throw new Error('Start Hot Reload first'); saved(); hotReload.request('invoke'); },
@@ -1132,7 +1132,12 @@ function activate(context) {
     onDidChange: tokenChanged.event,
     provideTextDocumentContent(uri) { if (!tokenDocuments.has(uri.toString())) throw new Error('Unknown token report reference'); return tokenDocuments.get(uri.toString()); }
   }), vscode.workspace.onDidChangeTextDocument(event => {
-    if (event.document.isDirty && (event.document.uri.path.endsWith('.spx') || path.basename(event.document.uri.path) === 'semaprax.toml')) clear('unsaved source');
+    if (event.document.uri.path.endsWith('.spx') || path.basename(event.document.uri.path) === 'semaprax.toml') {
+      hotReload?.markDirty();
+      if (event.document.isDirty) clear('unsaved source');
+    }
+  }), vscode.workspace.onDidSaveTextDocument(document => {
+    if (document.uri.path.endsWith('.spx') || path.basename(document.uri.path) === 'semaprax.toml') hotReload?.markSaved();
   }), vscode.workspace.onDidCloseTextDocument(doc => {
     holeScratch.delete(doc.uri.toString()); scratch.delete(doc.uri.toString());
   }), vscode.workspace.onDidChangeConfiguration(event => { if (event.affectsConfiguration('semaprax')) stop(); }), { dispose: stop });
@@ -1158,7 +1163,7 @@ function activate(context) {
     state() {
       return {
         running: Boolean(client && !client.closed), stale, image: image || null, candidate: candidate || null,
-        target: target || null, status: status.text, scratch: [...scratch],
+        target: target || null, status: status.text, scratch: [...scratch], hotReload: hotReload ? hotReload.detail() : null,
         tools: client ? [...client.tools].sort() : [],
         testTask: testTask ? { taskRevision: testTask.taskRevision, state: testTask.state, cancellationRequested: testTask.cancellationRequested } : null,
         testTaskUsed,

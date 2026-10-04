@@ -23,5 +23,7 @@ mod graft;
 mod graphify;
 #[path = "real_tools_v1/rtk.rs"]
 mod rtk;
+#[path = "real_tools_v1/setup_dist.rs"]
+mod setup_dist;
 #[path = "real_tools_v1/workflow_compiler.rs"]
 mod workflow_compiler;

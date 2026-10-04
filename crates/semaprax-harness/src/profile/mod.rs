@@ -11,6 +11,9 @@ pub mod config;
 pub mod installations;
 pub mod lock;
 pub mod resolve;
+pub mod runtime;
+pub mod setup;
+mod setup_find;
 pub mod status;
 pub mod trust;
 
@@ -58,6 +61,10 @@ pub fn cli_trust(args: &[String], env: &Environment) -> Outcome {
 
 pub fn cli_revoke(args: &[String], env: &Environment) -> Outcome {
     cli::revoke_verb(args, env)
+}
+
+pub fn cli_setup(args: &[String], env: &Environment) -> Outcome {
+    setup::setup_verb(args, env)
 }
 
 pub fn cli_inspect(args: &[String], env: &Environment) -> Outcome {

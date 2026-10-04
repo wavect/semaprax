@@ -68,7 +68,7 @@ impl Target {
                     return Err(diag(
                         "SPX-HPP002",
                         format!(
-                            "a {} adapter needs `--runtime <absolute path of the interpreter>`; PATH is never searched",
+                            "a {} adapter needs `--runtime <absolute path of the interpreter>` or an adopted runtime (`semaprax harness setup`); PATH is never searched",
                             descriptor.runtime.as_str()
                         ),
                     ))

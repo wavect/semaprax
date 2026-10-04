@@ -137,34 +137,20 @@ impl Provider {
             .harness_home
             .clone()
             .ok_or_else(|| err("no harness home; cannot prepare a provider".into()))?;
-        let runtime = match d.runtime {
-            Runtime::Python => Some(
-                launch
-                    .runtime
-                    .clone()
-                    .or_else(|| policy.runtimes.get("python").cloned())
-                    .or_else(|| env.vars.get("HARNESS_PYTHON").map(PathBuf::from)),
-            ),
-            Runtime::Node => Some(
-                launch
-                    .runtime
-                    .clone()
-                    .or_else(|| policy.runtimes.get("node").cloned())
-                    .or_else(|| env.vars.get("HARNESS_NODE").map(PathBuf::from)),
-            ),
+        let policy_rt = match d.runtime {
+            Runtime::Python => policy.runtimes.get("python"),
+            Runtime::Node => policy.runtimes.get("node"),
             _ => None,
         };
-        let runtime_executable = match runtime {
-            Some(Some(p)) => Some(p),
-            Some(None) => {
-                return Err(err(format!(
-                    "`{}` needs a {} runtime path (policy `runtimes` or environment)",
-                    d.provider_id,
-                    d.runtime.as_str()
-                )))
-            }
-            None => None,
-        };
+        let runtime_executable = crate::profile::runtime::require(
+            "SPX-HPI002",
+            &d.provider_id,
+            d.runtime,
+            None,
+            launch.runtime.as_deref(),
+            policy_rt.map(PathBuf::as_path),
+            env,
+        )?;
         check_grant_current(env, &launch.grant)
             .map_err(|e| HarnessDiagnostic::new("SPX-HPI002", note(&e)))?;
         let key = sanitize(&d.provider_id);

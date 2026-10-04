@@ -55,10 +55,21 @@ pub fn run(opts: &Options, env: &Environment) -> HarnessResult<Report> {
         .vars
         .get("TMPDIR")
         .map_or_else(|| PathBuf::from("/tmp"), PathBuf::from);
+    // Flags the user left out default to the adopted installation of this very
+    // descriptor (the shared resolver, HN-07).
+    let adopted = crate::profile::runtime::adopted_for_descriptor(env, &opts.descriptor);
+    let runtime = opts
+        .runtime
+        .clone()
+        .or_else(|| adopted.as_ref().and_then(|a| a.0.clone()));
+    let upstream = opts
+        .upstream
+        .clone()
+        .or_else(|| adopted.as_ref().and_then(|a| a.1.clone()));
     let t = Target::new(
         &opts.descriptor,
-        opts.runtime.clone(),
-        opts.upstream.clone(),
+        runtime.clone(),
+        upstream,
         opts.forward_env.clone(),
         opts.restricted,
         tmp.clone(),
@@ -103,7 +114,7 @@ pub fn run(opts: &Options, env: &Environment) -> HarnessResult<Report> {
             .or_else(default_hostile_dir)
             .and_then(|dir| {
                 let py = if d.runtime == crate::contract::Runtime::Python {
-                    opts.runtime.clone()
+                    runtime.clone()
                 } else {
                     opts.hostile_runtime.clone()
                 }?;
@@ -138,7 +149,7 @@ pub fn run(opts: &Options, env: &Environment) -> HarnessResult<Report> {
         "license": d.support.license,
         "os": current_platform(),
         "declared_platforms": d.platforms,
-        "runtime": {"kind": d.runtime.as_str(), "executable": opts.runtime.as_ref().map(|p| p.to_string_lossy().into_owned())},
+        "runtime": {"kind": d.runtime.as_str(), "executable": runtime.as_ref().map(|p| p.to_string_lossy().into_owned())},
         "operations": ops,
         "isolation": {"declared": d.support.isolation, "requested": if opts.restricted { "restricted" } else { "none" },
                       "observed": probe.unwrap_or_else(|| "not-recorded".into())},

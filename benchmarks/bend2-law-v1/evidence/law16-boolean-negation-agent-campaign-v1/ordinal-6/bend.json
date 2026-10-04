@@ -1,0 +1,100 @@
+{
+  "artifacts": {
+    "codex_version": {
+      "bytes": 28,
+      "path": "codex-version.txt",
+      "sha256": "sha256:cdfae75a4ea1a6ca8bfd876fa9422186f87b39bcff01e7a3157d1dbc4895bd1b"
+    },
+    "events": {
+      "bytes": 1183,
+      "path": "events.jsonl",
+      "sha256": "sha256:7481764920cb8f7dc33bbba18e0eb150a8f9869c191b795bcb2205005338dded"
+    },
+    "stderr": {
+      "bytes": 871,
+      "path": "stderr.txt",
+      "sha256": "sha256:b0f8d2db804cda4011793bb1194b9cfe14ace0873e1534b01e5f4e2a68092298"
+    }
+  },
+  "edit_artifacts": {
+    "final_source": {
+      "bytes": 206,
+      "path": "final-source.bend",
+      "sha256": "sha256:e3b0838d2688376dffab5a07154ef955c2006059ba08b8b8330cd4e91dc8738f"
+    },
+    "model_response": {
+      "bytes": 840,
+      "path": "model-response.json",
+      "sha256": "sha256:acf5c8c9ce9067485f53c52fb4cce2dcb3a160f2845dd6c27dc60ee3389c328b"
+    },
+    "seeded_attack_claim": {
+      "bytes": 237,
+      "path": "seeded-attack-claim.json",
+      "sha256": "sha256:5f7628c30b908727623aab898b97df4200e44d0a2cf6919ee85b54442c4a353c"
+    }
+  },
+  "execution": {
+    "command": [
+      "codex",
+      "exec",
+      "--skip-git-repo-check",
+      "--ephemeral",
+      "--ignore-user-config",
+      "-s",
+      "read-only",
+      "-m",
+      "gpt-6-luna",
+      "--json",
+      "<preregistered-prompt>"
+    ],
+    "exit_code": 0,
+    "repository_access": "none",
+    "sandbox": "read-only",
+    "wall_ms": 10663.403,
+    "working_directory": "fresh-empty-directory"
+  },
+  "nonclaims": [
+    "captured edit bytes are not a successful law repair",
+    "the seeded-attack claim is not independent rejection evidence",
+    "this record is not a completed LAW-16 agent trial",
+    "no monetary cost observation was available"
+  ],
+  "phase_measurements": {
+    "compile_or_runtime": {
+      "reason": "one Codex turn does not independently execute this phase",
+      "status": "unavailable"
+    },
+    "law_kernel_check": {
+      "reason": "one Codex turn does not independently execute this phase",
+      "status": "unavailable"
+    },
+    "proof_synthesis": {
+      "reason": "one Codex turn does not independently execute this phase",
+      "status": "unavailable"
+    }
+  },
+  "plan": {
+    "path": "/private/tmp/semaprax-law16-closure/benchmarks/bend2-law-v1/evidence/law16-boolean-negation-agent-plan-v1.json",
+    "sha256": "sha256:f5eb4bcba239637f8ea769cb9140aa74ba41feebc0938ac2abc50de6361ea8d1"
+  },
+  "schema": "semaprax.bend2-law-benchmark.codex-agent-trial.v2",
+  "status": "edit_artifacts_captured",
+  "telemetry": {
+    "cost_usage": {
+      "reason": "codex_exec_json_events_do_not_supply_monetary_usage",
+      "status": "unavailable"
+    },
+    "token_usage": {
+      "cached_input_tokens": 11008,
+      "input_tokens": 16403,
+      "output_tokens": 226,
+      "total_tokens": 16629
+    },
+    "within_fixed_token_budget": true
+  },
+  "timestamp": "2026-10-04T10:47:31.404703Z",
+  "trial": {
+    "id": "boolean-negation-pair-v1:bend2:6",
+    "language": "bend2"
+  }
+}

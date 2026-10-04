@@ -761,3 +761,26 @@ python3 benchmarks/bend2-law-v1/law16_boolean_negation_agent_pilot.py \
 This is one matched pilot pair. Nine unrun ordinals remain per lane, so it is
 not the preregistered ten-pair experiment, a cost result, lowering/execution
 proof, timing comparison, or winner claim.
+
+## Completed ten-pair Boolean-negation agent observation
+
+The ordinal-1 pilot and the retained nine-pair continuation now cover all ten
+preregistered matched Boolean-negation ordinals. Each Bend final source passed
+its pinned verdict route and each fixed identity mutant was rejected. Each
+SEMAPRAX final source discharged selected `app.negate ensures[0]` through the
+pinned installed-Z3 route and each fixed `false` mutant was rejected. The
+continuation capsule is
+[`evidence/law16-boolean-negation-agent-campaign-v1/`](evidence/law16-boolean-negation-agent-campaign-v1/);
+its validator authenticates nine pairs without rerunning providers:
+
+```sh
+python3 benchmarks/bend2-law-v1/law16_boolean_negation_agent_campaign_capsule.py \
+  --capsule benchmarks/bend2-law-v1/evidence/law16-boolean-negation-agent-campaign-v1 \
+  --output /tmp/law16-boolean-negation-agent-campaign-review.json
+```
+
+All retained turns stayed within the fixed token ceiling and expose no monetary
+charge event, so cost remains unavailable. The ten pairs concern only this
+matched Boolean negation task. Separate trusted computing bases, cache limits,
+checked-`u32` non-admission, and the wider LAW-16 cells still prevent a
+cross-route timing ratio, winner claim, or complete LAW-16 conclusion.

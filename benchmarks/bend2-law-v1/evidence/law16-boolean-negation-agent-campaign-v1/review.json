@@ -1,0 +1,186 @@
+{
+  "aggregate": {
+    "bend_attack_rejections": 9,
+    "bend_candidate_acceptances": 9,
+    "pairs": 9,
+    "semaprax_attack_rejections": 9,
+    "semaprax_candidate_discharges": 9
+  },
+  "cost_usage": {
+    "reason": "codex_exec_json_events_do_not_supply_monetary_usage",
+    "status": "unavailable"
+  },
+  "nonclaims": [
+    "ordinal 1 is retained in a separate authenticated pilot capsule",
+    "no cross-route timing ratio or winner",
+    "source proof does not prove lowering or execution"
+  ],
+  "ordinals": [
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+  ],
+  "pairs": [
+    {
+      "bend2": {
+        "attack": "rejected",
+        "cached_input_tokens": 11008,
+        "candidate": "accepted",
+        "chargeable_tokens": 16641,
+        "trial_id": "boolean-negation-pair-v1:bend2:2"
+      },
+      "ordinal": 2,
+      "semaprax-scalar-v1": {
+        "attack": "rejected",
+        "cached_input_tokens": 14080,
+        "candidate": "accepted",
+        "chargeable_tokens": 16813,
+        "trial_id": "boolean-negation-pair-v1:semaprax-scalar-v1:2"
+      }
+    },
+    {
+      "bend2": {
+        "attack": "rejected",
+        "cached_input_tokens": 11008,
+        "candidate": "accepted",
+        "chargeable_tokens": 16644,
+        "trial_id": "boolean-negation-pair-v1:bend2:3"
+      },
+      "ordinal": 3,
+      "semaprax-scalar-v1": {
+        "attack": "rejected",
+        "cached_input_tokens": 11008,
+        "candidate": "accepted",
+        "chargeable_tokens": 16723,
+        "trial_id": "boolean-negation-pair-v1:semaprax-scalar-v1:3"
+      }
+    },
+    {
+      "bend2": {
+        "attack": "rejected",
+        "cached_input_tokens": 14080,
+        "candidate": "accepted",
+        "chargeable_tokens": 16639,
+        "trial_id": "boolean-negation-pair-v1:bend2:4"
+      },
+      "ordinal": 4,
+      "semaprax-scalar-v1": {
+        "attack": "rejected",
+        "cached_input_tokens": 14080,
+        "candidate": "accepted",
+        "chargeable_tokens": 16758,
+        "trial_id": "boolean-negation-pair-v1:semaprax-scalar-v1:4"
+      }
+    },
+    {
+      "bend2": {
+        "attack": "rejected",
+        "cached_input_tokens": 14080,
+        "candidate": "accepted",
+        "chargeable_tokens": 16634,
+        "trial_id": "boolean-negation-pair-v1:bend2:5"
+      },
+      "ordinal": 5,
+      "semaprax-scalar-v1": {
+        "attack": "rejected",
+        "cached_input_tokens": 14080,
+        "candidate": "accepted",
+        "chargeable_tokens": 16727,
+        "trial_id": "boolean-negation-pair-v1:semaprax-scalar-v1:5"
+      }
+    },
+    {
+      "bend2": {
+        "attack": "rejected",
+        "cached_input_tokens": 11008,
+        "candidate": "accepted",
+        "chargeable_tokens": 16629,
+        "trial_id": "boolean-negation-pair-v1:bend2:6"
+      },
+      "ordinal": 6,
+      "semaprax-scalar-v1": {
+        "attack": "rejected",
+        "cached_input_tokens": 14080,
+        "candidate": "accepted",
+        "chargeable_tokens": 16736,
+        "trial_id": "boolean-negation-pair-v1:semaprax-scalar-v1:6"
+      }
+    },
+    {
+      "bend2": {
+        "attack": "rejected",
+        "cached_input_tokens": 14080,
+        "candidate": "accepted",
+        "chargeable_tokens": 16635,
+        "trial_id": "boolean-negation-pair-v1:bend2:7"
+      },
+      "ordinal": 7,
+      "semaprax-scalar-v1": {
+        "attack": "rejected",
+        "cached_input_tokens": 14080,
+        "candidate": "accepted",
+        "chargeable_tokens": 16802,
+        "trial_id": "boolean-negation-pair-v1:semaprax-scalar-v1:7"
+      }
+    },
+    {
+      "bend2": {
+        "attack": "rejected",
+        "cached_input_tokens": 15104,
+        "candidate": "accepted",
+        "chargeable_tokens": 16648,
+        "trial_id": "boolean-negation-pair-v1:bend2:8"
+      },
+      "ordinal": 8,
+      "semaprax-scalar-v1": {
+        "attack": "rejected",
+        "cached_input_tokens": 11008,
+        "candidate": "accepted",
+        "chargeable_tokens": 16814,
+        "trial_id": "boolean-negation-pair-v1:semaprax-scalar-v1:8"
+      }
+    },
+    {
+      "bend2": {
+        "attack": "rejected",
+        "cached_input_tokens": 14080,
+        "candidate": "accepted",
+        "chargeable_tokens": 16629,
+        "trial_id": "boolean-negation-pair-v1:bend2:9"
+      },
+      "ordinal": 9,
+      "semaprax-scalar-v1": {
+        "attack": "rejected",
+        "cached_input_tokens": 11008,
+        "candidate": "accepted",
+        "chargeable_tokens": 16850,
+        "trial_id": "boolean-negation-pair-v1:semaprax-scalar-v1:9"
+      }
+    },
+    {
+      "bend2": {
+        "attack": "rejected",
+        "cached_input_tokens": 14080,
+        "candidate": "accepted",
+        "chargeable_tokens": 16626,
+        "trial_id": "boolean-negation-pair-v1:bend2:10"
+      },
+      "ordinal": 10,
+      "semaprax-scalar-v1": {
+        "attack": "rejected",
+        "cached_input_tokens": 11008,
+        "candidate": "accepted",
+        "chargeable_tokens": 16714,
+        "trial_id": "boolean-negation-pair-v1:semaprax-scalar-v1:10"
+      }
+    }
+  ],
+  "schema": "semaprax.bend2-law-benchmark.boolean-negation-agent-campaign-review.v1",
+  "status": "nine_matched_pairs_authenticated"
+}

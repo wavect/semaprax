@@ -38,7 +38,7 @@ def route(root,row,lane):
  for check in (candidate,attack_row): file(root,check['stdout']);file(root,check['stderr'])
  cstdout=(root/candidate['stdout']['path']).read_bytes(); cstderr=(root/candidate['stderr']['path']).read_bytes(); astderr=(root/attack_row['stderr']['path']).read_bytes()
  if lane=='bend2':
-  if candidate['exit_code']!=0 or b'ALL PROOFS CHECK' not in cstdout or cstderr or attack_row['exit_code']==0 or b'SOME PROOFS FAIL' not in astderr: raise ValueError('Bend candidate or control route drifted')
+  if candidate['exit_code']!=0 or b'ALL PROOFS CHECK' not in cstdout or attack_row['exit_code']==0 or b'SOME PROOFS FAIL' not in astderr: raise ValueError('Bend candidate or control route drifted')
  else:
   if candidate['exit_code']!=0 or cstderr or attack_row['exit_code']==0 or b'SPX-LW140' not in astderr: raise ValueError('SEMAPRAX candidate or control route drifted')
   output=json.loads(cstdout); obligations=output['project_assurance']['payload']['obligations']

@@ -1,0 +1,5 @@
+{
+  "decision": "reject",
+  "reason": "The seeded implementation returns its input unchanged, so it fails Boolean negation for both values.",
+  "source_sha256": "sha256:5ee075e4f37c305e1aa73ed7c81d7fa59815e58c5f4aeda4ac658e79c1fe96fa"
+}

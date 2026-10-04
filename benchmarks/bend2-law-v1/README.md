@@ -736,3 +736,28 @@ its lane's exact pinned candidate route, and the fixed identity or `false`
 mutant must be rejected through that lane's exact route. The plan does not run
 provider turns, report a cost, prove lowering or execution, or authorize a
 cross-language timing ratio or winner.
+
+## One matched Boolean-negation agent pilot
+
+[`evidence/law16-boolean-negation-agent-pilot-v1/`](evidence/law16-boolean-negation-agent-pilot-v1/)
+contains the preregistered ordinal-1 pilot pair. Both Luna turns retained raw
+Codex JSON events and complete final sources within the 20,000-token limit:
+Bend used 16,626 chargeable tokens with 11,008 cached-input tokens; SEMAPRAX
+used 16,711 chargeable tokens with 14,080 cached-input tokens. Monetary cost
+remains unavailable because the raw Codex JSON events contain no charge field.
+
+The retained final Bend source passed the pinned `--verdict` route and the
+fixed identity mutant failed it. The retained final SEMAPRAX source discharged
+selected `app.negate ensures[0]` through the pinned installed-Z3 route, while
+the fixed `false` mutant was refused. Reauthenticate raw event, source,
+telemetry, candidate, and attack bindings without invoking a provider or CLI:
+
+```sh
+python3 benchmarks/bend2-law-v1/law16_boolean_negation_agent_pilot.py \
+  --capsule benchmarks/bend2-law-v1/evidence/law16-boolean-negation-agent-pilot-v1 \
+  --output /tmp/law16-boolean-negation-agent-pilot-review.json
+```
+
+This is one matched pilot pair. Nine unrun ordinals remain per lane, so it is
+not the preregistered ten-pair experiment, a cost result, lowering/execution
+proof, timing comparison, or winner claim.

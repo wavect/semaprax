@@ -1,0 +1,7 @@
+Reading additional input from stdin...
+2026-10-04T10:40:58.238792Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-10-04T10:40:58.243728Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-10-04T10:40:58.247563Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-10-04T10:40:58.251367Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-10-04T10:40:58.255202Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-10-04T10:40:58.269113Z ERROR codex_core::session::session: failed to load skill /Users/kevin/.agents/skills/qa-advisor/SKILL.md: missing field `description`

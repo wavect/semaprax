@@ -504,7 +504,7 @@ fn smt_and_lean_common_subset_share_typed_operations() {
     );
     assert!(smt.ensures[0].obligations[0]
         .guard
-        .contains("(not (= a 0))"));
+        .contains("(not (= semaprax_smt_binding_0_0 0))"));
     assert!(lean.obligations[1].goal.contains("¬(v_a = (0 : Int))"));
 }
 

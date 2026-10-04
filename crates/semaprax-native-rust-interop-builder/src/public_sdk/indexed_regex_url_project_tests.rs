@@ -34,6 +34,10 @@ impl Drop for Temp {
 
 #[test]
 fn one_held_regex_url_project_authenticates_four_imports_two_exports_and_both_locks() {
+    // The checked-in registry envelopes are pinned to macOS arm64.
+    if target_triple() != Some("aarch64-apple-darwin") {
+        return;
+    }
     let parsed = semaprax::parse(SOURCE, Path::new("src/app.spx")).unwrap();
     assert_eq!(semaprax::format::canonical(&parsed), SOURCE);
     let parsed_tests = semaprax::parse(TESTS, Path::new("src/tests.spx")).unwrap();
@@ -112,10 +116,7 @@ fn one_held_regex_url_project_authenticates_four_imports_two_exports_and_both_lo
         assert!(lib.contains("pub fn run_batch(operations:usize)->Result<BatchMetrics,i32>"));
         assert!(lib.contains("adapter_copy_events"));
         assert!(lib.contains("borrowed_input_bytes"));
-        assert!(lib.contains("if !projected_borrow_matches_target(){let _=spx_result_owner_context_close(context);return Err(5)}"));
         assert!(lib.contains("fn run_in_context(context:u64)->Result<i64,i32>"));
-        assert!(lib
-            .contains("let context=spx_result_owner_context_new(); if context==0{return Err(4)}"));
         assert!(lib.contains("run_in_context(context)"));
         assert!(!lib.contains("checksum=checksum.checked_add(run()?)"));
     }
@@ -126,6 +127,12 @@ fn one_held_regex_url_project_authenticates_four_imports_two_exports_and_both_lo
         .unwrap()
         .contains("\"batch_api\":\"checked-export-repeat.v1\""));
     assert_ne!(built.regex.c_source(), built.url.c_source());
+    assert!(regex_lib
+        .contains("let context=spx_result_owner_context_new(); if context==0{return Err(4)}"));
+    assert!(url_lib
+        .contains("let context=spx_url_result_owner_context_new(); if context==0{return Err(4)}"));
+    assert!(regex_lib.contains("if !projected_borrow_matches_target(){let _=spx_result_owner_context_close(context);return Err(5)}"));
+    assert!(url_lib.contains("if !projected_borrow_matches_target(){let _=spx_url_result_owner_context_close(context);return Err(5)}"));
     assert!(std::str::from_utf8(built.url.lib_rs())
         .unwrap()
         .contains("spx_url_result_owner_context_new"));
@@ -178,6 +185,10 @@ fn one_held_regex_url_project_authenticates_four_imports_two_exports_and_both_lo
 
 #[test]
 fn closed_ri13_profile_binds_indexed_m1_signatures_before_future_admission() {
+    // The checked-in registry envelopes are pinned to macOS arm64.
+    if target_triple() != Some("aarch64-apple-darwin") {
+        return;
+    }
     let root = Temp(
         fs::canonicalize(std::env::temp_dir())
             .unwrap()

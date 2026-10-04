@@ -1,14 +1,27 @@
 # Changelog
 
+Project log follows a compact [Keep a Changelog](https://keepachangelog.com/)
+format: `Unreleased` then release buckets, grouped by impact.
+
+> For full historical detail of every entry, refer to
+> [docs/CHANGELOG-ARCHIVE.md](docs/CHANGELOG-ARCHIVE.md).
+
+## Unreleased
+
 - Execute and retain six LAW16 unified fresh non-agent routes plus their
   failed first attempt. Fix the forwarded compiler digest prefix and support
   offline verification after copying the raw capsule, including strict RSS
   command/provenance binding. Agent evidence remains retained replay; AC1 and
   issue #392 remain partial/open.
-
 - Preserve LAW16 unified replay command receipts and partial stdout/stderr on
   timeout or failure, including a digest inventory of earlier output. Failed
   routes remain nonresults and never become successful attack rejections.
+
+## 0.8.0 — 2026-10-04
+
+- Re-pin the private Wasmtime Component runner's four independent known-answer
+  sets to the 0.8.0 package identity. The owning contract test now reports
+  all mismatches together; unchanged source descriptor digests stay pinned.
 
 - LAW-16: retain pinned Bend U32 universal insertion-sort verdict/kernel
   evidence and pinned SEMAPRAX LAW15 Lean sortedness/permutation/multiplicity
@@ -25,6 +38,16 @@
   Exact target checks refuse unsupported M1/M3 Wasm routes while the separate
   M2 scalar Project builds; generated Rust Serde/iterator adapters are not
   claimed on Wasm. Linux performance remains guest evidence.
+- Repaired current-main CI regressions in command help, task-service semantic
+  fixture setup, source-local manifest refusals, standalone generated-package
+  lockfile classification, SMT proof guards, review digests, and Windows durable
+  writer contention. The network handle-capacity test now splits its source
+  across bounded helper calls while still exercising the ninth-handle refusal.
+- Pinned native tool setup to the real Linux Clang image, scoped the checked-in
+  macOS arm64 Regex/URL registry envelopes to their host, and checked both
+  carrier-specific generated context names. Linux service packaging acceptance
+  now builds and supplies a static service executable.
+
 - Fixed the patch-receipt evidence pagination regression to exercise a
   renameable declaration in the app module; the fixture now preserves its
   cross-file identity check without attempting to rename `main`. Both renamed
@@ -879,14 +902,6 @@
   path consumes the live Report claim into a bounded projection with exact
   authenticated evidence. Public multi-turn entry, remaining failure tails,
   and recovery remain open, so this source-only work does not close #330.
-
-Project log follows a compact [Keep a Changelog](https://keepachangelog.com/)
-format: `Unreleased` then release buckets, grouped by impact.
-
-> For full historical detail of every entry, refer to
-> [docs/CHANGELOG-ARCHIVE.md](docs/CHANGELOG-ARCHIVE.md).
-
-## Unreleased
 
 - Disable implicit OpenCode title, summary and compaction model work in the
   private fixed-model host policy, and pin its default, small and selected-agent

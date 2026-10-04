@@ -63,7 +63,7 @@ Do not treat all version numbers in the repository as the same thing:
 
 | Version | Example | Meaning |
 | --- | --- | --- |
-| Compiler package | `0.7.0` | The installed Semaprax workspace/package version. |
+| Compiler package | `0.8.0` | The installed Semaprax workspace/package version. |
 | Manifest schema | `semaprax.manifest.v1` | The grammar of this configuration file. |
 | Your package | `version = "0.1.0"` | The version assigned to the application or library. |
 

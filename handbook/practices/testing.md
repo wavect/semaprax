@@ -102,7 +102,7 @@ semaprax build semaprax.toml --target web -o dist/web   # target acceptance
 ```
 
 `fmt .` parses every file before rewriting any, and `check`/`test`/`build`
-all accept a directory or manifest path in v0.7.0. For CI, add
+all accept a directory or manifest path in v0.8.0. For CI, add
 `semaprax lock semaprax.toml --compare <base.lock>` to fail on breaking
 interface changes.
 

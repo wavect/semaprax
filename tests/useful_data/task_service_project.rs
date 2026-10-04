@@ -44,6 +44,12 @@ fn fixture() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/task-service-project")
 }
 
+fn write_comment_free_core(source: &Path, destination: &Path) {
+    let text = std::fs::read_to_string(source).unwrap();
+    let (program, _) = semaprax::parse_with_comments(&text, Path::new("src/core.spx")).unwrap();
+    std::fs::write(destination, semaprax::format::canonical(&program)).unwrap();
+}
+
 fn scratch(label: &str) -> PathBuf {
     let path = std::env::temp_dir().join(format!(
         "semaprax-task-service-{label}-{}",
@@ -466,15 +472,30 @@ assert.equal(linked.instance.exports.semaprax_main(), 0n);
 /// human-facing rename preserves its web-export identity and migrates checked
 /// in-module callers without changing the service outcome.
 ///
-/// `src/core.spx` is deliberately comment-free canonical because it is the
-/// source this operation rewrites. `src/app.spx`, `src/tests.spx`, and the
+/// A disposable copy of `src/core.spx` is comment-free canonical because it is
+/// the source this operation rewrites. `src/app.spx`, `src/tests.spx`, and the
 /// bundled dependency closure retain their own comments; issue #274's
 /// differential precondition preserves every untouched source byte exactly.
 /// Applying here means producing an immutable `ProjectCandidate`, not writing
 /// or publishing any checked-in source.
 #[test]
 fn stable_id_rename_inspect_preview_apply_and_retest_preserve_the_service() {
-    project::with_authenticated_project(&fixture().join("semaprax.toml"), |snapshot| {
+    let checked_in = fixture();
+    let working = ScratchTree::new("semantic-rename");
+    std::fs::create_dir_all(working.join("src")).unwrap();
+    std::fs::copy(
+        checked_in.join("semaprax.toml"),
+        working.join("semaprax.toml"),
+    )
+    .unwrap();
+    for relative in ["src/app.spx", "src/tests.spx"] {
+        std::fs::copy(checked_in.join(relative), working.join(relative)).unwrap();
+    }
+    write_comment_free_core(
+        &checked_in.join("src/core.spx"),
+        &working.join("src/core.spx"),
+    );
+    project::with_authenticated_project(&working.join("semaprax.toml"), |snapshot| {
         snapshot.check()?;
         let revision = snapshot.retain_revision();
         let target = "task_service.core.identifier_is_valid";
@@ -621,9 +642,13 @@ fn coding_agent_transport_completes_service_feature_workflow_in_disposable_proje
         working.join("semaprax.toml"),
     )
     .unwrap();
-    for relative in ["src/app.spx", "src/core.spx", "src/tests.spx"] {
+    for relative in ["src/app.spx", "src/tests.spx"] {
         std::fs::copy(checked_in.join(relative), working.join(relative)).unwrap();
     }
+    write_comment_free_core(
+        &checked_in.join("src/core.spx"),
+        &working.join("src/core.spx"),
+    );
     let manifest = working.join("semaprax.toml");
     let core = working.join("src/core.spx");
     let mut daemon = AgentWorkflowDaemon::start(&manifest);
@@ -756,9 +781,13 @@ fn semantic_workspace_service_validates_and_retests_service_expression_change() 
         working.join("semaprax.toml"),
     )
     .unwrap();
-    for relative in ["src/app.spx", "src/core.spx", "src/tests.spx"] {
+    for relative in ["src/app.spx", "src/tests.spx"] {
         std::fs::copy(checked_in.join(relative), working.join(relative)).unwrap();
     }
+    write_comment_free_core(
+        &checked_in.join("src/core.spx"),
+        &working.join("src/core.spx"),
+    );
     let manifest = working.join("semaprax.toml");
     let base_core = std::fs::read(working.join("src/core.spx")).unwrap();
     let (workspace, transaction, artifacts) =
@@ -913,7 +942,10 @@ fn replace_expression_v2_succeeds_against_the_commented_bundled_dependency_closu
         );
         std::fs::write(scratch.join(file), semaprax::format::canonical(&program)).unwrap();
     }
-    std::fs::copy(fixture().join("src/core.spx"), scratch.join("src/core.spx")).unwrap();
+    write_comment_free_core(
+        &fixture().join("src/core.spx"),
+        &scratch.join("src/core.spx"),
+    );
 
     project::with_authenticated_project(&scratch.join("semaprax.toml"), |snapshot| {
         snapshot.check()?;

@@ -133,7 +133,11 @@ jobs:
         run: |
           set -euo pipefail
           echo "RUSTC=$(rustup which rustc)" >> "$GITHUB_ENV"
-          echo "CLANG=$(command -v clang)" >> "$GITHUB_ENV"
+          clang_path="$(command -v clang)"
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+            clang_path="$(readlink -f "$clang_path")"
+          fi
+          echo "CLANG=$clang_path" >> "$GITHUB_ENV"
           echo "SEMAPRAX_ARCHIVER=$(readlink -f /usr/bin/ar)" >> "$GITHUB_ENV"
       - name: Fetch locked workspace dependencies
         run: cargo fetch --locked
@@ -325,6 +329,9 @@ jobs:
           rustc_path="$(rustup which rustc)"
           cargo_path="$(rustup which cargo)"
           clang_path="$(command -v clang)"
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+            clang_path="$(readlink -f "$clang_path")"
+          fi
           clangxx_path="$(command -v clang++)"
           ld_path="$(command -v ld)"
           node_path="$(command -v node)"
@@ -553,7 +560,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          echo "CLANG=$(command -v clang)" >> "$GITHUB_ENV"
+          clang_path="$(command -v clang)"
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+            clang_path="$(readlink -f "$clang_path")"
+          fi
+          echo "CLANG=$clang_path" >> "$GITHUB_ENV"
       - name: Fetch locked workspace dependencies
         run: cargo fetch --locked
       - name: Require bounded line and path depth on every internal backend
@@ -1043,6 +1054,9 @@ jobs:
           set -euo pipefail
           rustc_path="$(rustup which rustc)"
           clang_path="$(command -v clang)"
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+            clang_path="$(readlink -f "$clang_path")"
+          fi
           test -x "$rustc_path"
           test -x "$clang_path"
           echo "RUSTC=$rustc_path" >> "$GITHUB_ENV"
@@ -1167,6 +1181,9 @@ jobs:
           set -euo pipefail
           echo "RUSTC=$(rustup which rustc)" >> "$GITHUB_ENV"
           clang_path="$(command -v clang)"
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+            clang_path="$(readlink -f "$clang_path")"
+          fi
           test -x "$clang_path"
           echo "CLANG=$clang_path" >> "$GITHUB_ENV"
           if [[ "$RUNNER_OS" == "macOS" ]]; then
@@ -1251,6 +1268,9 @@ jobs:
           set -euo pipefail
           echo "RUSTC=$(rustup which rustc)" >> "$GITHUB_ENV"
           clang_path="$(command -v clang)"
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+            clang_path="$(readlink -f "$clang_path")"
+          fi
           test -x "$clang_path"
           echo "CLANG=$clang_path" >> "$GITHUB_ENV"
           if [[ "$RUNNER_OS" == "macOS" ]]; then
@@ -1368,6 +1388,9 @@ jobs:
         run: |
           set -euo pipefail
           clang_path="$(command -v clang)"
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+            clang_path="$(readlink -f "$clang_path")"
+          fi
           test -x "$clang_path"
           echo "CLANG=$clang_path" >> "$GITHUB_ENV"
           if [[ "$RUNNER_OS" == "macOS" ]]; then
@@ -1666,6 +1689,9 @@ jobs:
         run: |
           set -euo pipefail
           clang_path="$(command -v clang)"
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+            clang_path="$(readlink -f "$clang_path")"
+          fi
           test -x "$clang_path"
           echo "CLANG=$clang_path" >> "$GITHUB_ENV"
           if [[ "$RUNNER_OS" == "macOS" ]]; then
@@ -1816,6 +1842,9 @@ jobs:
         run: |
           set -euo pipefail
           clang_path="$(command -v clang)"
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+            clang_path="$(readlink -f "$clang_path")"
+          fi
           test -x "$clang_path"
           echo "CLANG=$clang_path" >> "$GITHUB_ENV"
           if [[ "$RUNNER_OS" == "macOS" ]]; then
@@ -1892,6 +1921,27 @@ jobs:
             cargo fetch --locked --manifest-path platform-tests/component-runtime/Cargo.toml
             cargo fetch --locked --manifest-path platform-tests/public-scalar-wit-interface/Cargo.toml
           fi
+      - name: Build the static Linux reference service for its packaging acceptance
+        if: runner.os == 'Linux' && matrix.shard == 'integration-0'
+        shell: bash
+        env:
+          CC_x86_64_unknown_linux_musl: musl-gcc
+          CARGO_NET_OFFLINE: "true"
+          RUSTFLAGS: -C relocation-model=static
+        run: |
+          set -euo pipefail
+          sudo apt-get install --yes --no-install-recommends musl-tools
+          rustup target add x86_64-unknown-linux-musl
+          cargo build --locked --target x86_64-unknown-linux-musl \
+            -p semaprax-native-host --bin semaprax-reference-service
+          executable="$PWD/target/x86_64-unknown-linux-musl/debug/semaprax-reference-service"
+          test -x "$executable"
+          readelf -h "$executable" | grep -Eq '^[[:space:]]*Type:[[:space:]]+EXEC[[:space:]]+'
+          if readelf -l "$executable" | grep -q INTERP; then
+            echo 'reference service unexpectedly has a dynamic interpreter' >&2
+            exit 1
+          fi
+          echo "SEMAPRAX_TEST_REFERENCE_SERVICE_STATIC_EXECUTABLE=$executable" >> "$GITHUB_ENV"
       - name: Test the complete workspace target shard (Unix)
         if: runner.os != 'Windows'
         env:
@@ -1941,7 +1991,11 @@ jobs:
         run: |
           set -euo pipefail
           echo "RUSTC=$(rustup which rustc)" >> "$GITHUB_ENV"
-          echo "CLANG=$(command -v clang)" >> "$GITHUB_ENV"
+          clang_path="$(command -v clang)"
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+            clang_path="$(readlink -f "$clang_path")"
+          fi
+          echo "CLANG=$clang_path" >> "$GITHUB_ENV"
           if [[ "$RUNNER_OS" == "macOS" ]]; then
             echo "SEMAPRAX_ARCHIVER=/usr/bin/libtool" >> "$GITHUB_ENV"
           else
@@ -2789,7 +2843,7 @@ jobs:
           root_digest="$(sha256sum dist/trusted_root.jsonl | cut -d ' ' -f1)"
           "$RUNNER_TEMP/semaprax-release-verify" doctor verify-release dist \
             --trusted-root-sha256 "$root_digest"
-      - name: Publish the alpha archives only after complete aggregation
+      - name: Publish the release archives only after complete aggregation
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash

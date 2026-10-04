@@ -198,7 +198,7 @@ fn release_manifest_cli_builds_and_checks_against_real_archives() {
          tag = {tag:?}\n\
          commit = {commit:?}\n\
          def manifest_bytes(target):\n\
-         \treturn json.dumps({{'schema': 'semaprax.release-artifact.v1', 'version': version, 'commit': commit, 'target': target, 'maturity': 'alpha', 'binaries': ['semaprax', 'semapraxd'], 'nonclaims': []}}).encode('utf-8')\n\
+         \treturn json.dumps({{'schema': 'semaprax.release-artifact.v1', 'version': version, 'commit': commit, 'target': target, 'maturity': 'research', 'binaries': ['semaprax', 'semapraxd'], 'nonclaims': []}}).encode('utf-8')\n\
          def write_tar(name, target):\n\
          \twith tarfile.open(scratch / name, 'w:gz') as archive:\n\
          \t\tdata = manifest_bytes(target)\n\
@@ -355,7 +355,7 @@ fn release_manifest_rejects_a_sha256sums_digest_mismatch() {
          tag = {tag:?}\n\
          commit = {commit:?}\n\
          def manifest_bytes(target):\n\
-         \treturn json.dumps({{'schema': 'semaprax.release-artifact.v1', 'version': version, 'commit': commit, 'target': target, 'maturity': 'alpha', 'binaries': ['semaprax', 'semapraxd'], 'nonclaims': []}}).encode('utf-8')\n\
+         \treturn json.dumps({{'schema': 'semaprax.release-artifact.v1', 'version': version, 'commit': commit, 'target': target, 'maturity': 'research', 'binaries': ['semaprax', 'semapraxd'], 'nonclaims': []}}).encode('utf-8')\n\
          def write_tar(name, target):\n\
          \twith tarfile.open(scratch / name, 'w:gz') as archive:\n\
          \t\tdata = manifest_bytes(target)\n\

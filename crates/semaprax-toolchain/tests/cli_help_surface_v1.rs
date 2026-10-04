@@ -115,7 +115,8 @@ fn full_help_is_exact_capability_aware_and_inert() {
     assert!(all.status.success());
     assert!(all.stderr.is_empty());
     let help = String::from_utf8(all.stdout.clone()).unwrap();
-    assert!(help.starts_with(&format!("{BANNER}\nUsage:\nsemaprax check ")));
+    assert!(help.starts_with(&format!("{BANNER}\nUsage:\nsemaprax dev ")));
+    assert_eq!(help.matches("\nsemaprax check ").count(), 1);
     assert_eq!(help.matches(DOCTOR_LINE).count(), 1);
     assert_eq!(help.matches(NEW_LINE).count(), 1);
     assert_eq!(help.matches(PROJECT_SCAFFOLD_LINE).count(), 1);

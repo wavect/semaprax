@@ -112,7 +112,12 @@ fn one_held_regex_url_project_authenticates_four_imports_two_exports_and_both_lo
         assert!(lib.contains("pub fn run_batch(operations:usize)->Result<BatchMetrics,i32>"));
         assert!(lib.contains("adapter_copy_events"));
         assert!(lib.contains("borrowed_input_bytes"));
-        assert!(lib.contains("if !projected_borrow_matches_target(){return Err(5)}"));
+        assert!(lib.contains("if !projected_borrow_matches_target(){let _=spx_result_owner_context_close(context);return Err(5)}"));
+        assert!(lib.contains("fn run_in_context(context:u64)->Result<i64,i32>"));
+        assert!(lib
+            .contains("let context=spx_result_owner_context_new(); if context==0{return Err(4)}"));
+        assert!(lib.contains("run_in_context(context)"));
+        assert!(!lib.contains("checksum=checksum.checked_add(run()?)"));
     }
     assert!(std::str::from_utf8(built.regex.descriptor())
         .unwrap()

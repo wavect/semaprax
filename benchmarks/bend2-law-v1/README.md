@@ -702,3 +702,37 @@ This is evidence that this pinned parser cannot enter a matched checked-`u32`
 success-plus-overflow cell. It does not show an overflow runtime behavior,
 SMT/Lean `u32` support, Bend parity, or a LAW-16 task outcome. In particular,
 `i32`, `i64`, `u8`, and `usize` remain inadmissible substitutes.
+
+## Preregistered Boolean-negation agent experiment
+
+[`evidence/law16-boolean-negation-agent-plan-v1.json`](evidence/law16-boolean-negation-agent-plan-v1.json)
+pre-registers ten independent ordinals for the now matched Boolean-negation
+pair. Each ordinal contains one Bend and one SEMAPRAX turn (20 turns total),
+pinned to `gpt-6-luna`, `codex exec --json`, a fresh empty directory, the
+read-only sandbox, no repository access, a 600-second wall limit, and a
+20,000-token limit. The runner embeds the complete assertion-retaining lane
+mutant and its digest, retains raw JSONL events, stderr, Codex version, model
+response, final source, and attack claim.
+
+A captured turn remains ineligible without exactly one `turn.completed.usage`
+event whose `input_tokens + output_tokens` is within 20,000. Cached input is
+retained separately and is never double-counted. Codex JSON has no monetary
+charge event: the plan's `max_cost_usd: "0.00"` is a preregistered accounting
+ceiling, not an observed or enforceable provider bill, and every result keeps
+cost usage unavailable unless a genuine charge event is supplied.
+
+Run one selected ordinal only after creating a new operator evidence root:
+
+```sh
+python3 benchmarks/bend2-law-v1/codex_agent_trial.py \
+  --plan benchmarks/bend2-law-v1/evidence/law16-boolean-negation-agent-plan-v1.json \
+  --trial boolean-negation-pair-v1:bend2:1 \
+  --evidence-dir /secure/local/law16-negation-agent/bend-1 \
+  --output /secure/local/law16-negation-agent/bend-1.json
+```
+
+Capture is not acceptance. Each retained model source must subsequently pass
+its lane's exact pinned candidate route, and the fixed identity or `false`
+mutant must be rejected through that lane's exact route. The plan does not run
+provider turns, report a cost, prove lowering or execution, or authorize a
+cross-language timing ratio or winner.

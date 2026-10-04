@@ -27,7 +27,23 @@ impl PlainSkills {
                 let digest = request["digest"].as_str().ok_or_else(|| {
                     HarnessDiagnostic::new("SPX-HPM001", "load needs a skill `digest`")
                 })?;
-                Ok(self.svc.load(digest)?.payload())
+                match request.get("resource") {
+                    None => Ok(self.svc.load(digest)?.payload()),
+                    Some(r) => {
+                        let field = |k: &str| {
+                            r.get(k).and_then(Value::as_str).ok_or_else(|| {
+                                HarnessDiagnostic::new(
+                                    "SPX-HPM033",
+                                    format!("resource request needs `{k}`"),
+                                )
+                            })
+                        };
+                        Ok(self
+                            .svc
+                            .load_resource(digest, field("path")?, field("digest")?)?
+                            .payload())
+                    }
+                }
             }
             other => Err(HarnessDiagnostic::new(
                 "SPX-HPM001",

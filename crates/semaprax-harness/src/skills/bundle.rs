@@ -1,7 +1,8 @@
 //! Bundle formats: plain Markdown `SKILL.md` with a small front-matter subset
 //! and the `skill-bundle.json` (`semaprax.skill-bundle.v1`) manifest.
 
-use super::d;
+use super::inventory::{self, Bounds, Inventory, ScanRules, IDENTITY_V2};
+use super::{agentskills, d};
 use crate::diag::HarnessResult;
 use crate::json::{self, JsonLimits};
 use serde_json::Value;
@@ -45,7 +46,22 @@ pub struct Bundle {
     pub body: String,
     /// `scripts/<file>` entries; never executed, only listed.
     pub scripts: Vec<String>,
+    /// Artifact digest v2 over every admitted file (path, kind, exact bytes).
     pub digest: String,
+    /// Always [`IDENTITY_V2`] for `digest`.
+    pub identity: &'static str,
+    /// The pre-v2 digest (`legacy-v1`): SKILL.md or manifest plus script names.
+    pub legacy_digest: String,
+    /// The legacy digest covers every file of the bundle, so approving it
+    /// still pins everything.
+    pub legacy_complete: bool,
+    pub inventory: Inventory,
+    pub compatibility: Option<String>,
+    pub metadata: std::collections::BTreeMap<String, String>,
+    /// Requested capabilities (`tool:..`, `hook:declared`); never grants.
+    pub requested: Vec<String>,
+    /// Inert ecosystem/namespaced front-matter data.
+    pub extensions: std::collections::BTreeMap<String, Value>,
     pub dir: PathBuf,
 }
 
@@ -97,7 +113,7 @@ pub fn bundle_digest(parts: &[(String, Vec<u8>)]) -> String {
     json::sha256_labeled("semaprax.skill-bundle.v1", &buf)
 }
 
-fn scripts_of(dir: &Path) -> Vec<String> {
+pub(super) fn scripts_of(dir: &Path) -> Vec<String> {
     let mut out = Vec::new();
     if let Ok(rd) = std::fs::read_dir(dir.join("scripts")) {
         for e in rd.flatten() {
@@ -110,14 +126,14 @@ fn scripts_of(dir: &Path) -> Vec<String> {
     out
 }
 
-fn token_ok(s: &str) -> bool {
+pub(super) fn token_ok(s: &str) -> bool {
     !s.is_empty()
         && s.len() <= 64
         && s.bytes()
             .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b"-_.:/".contains(&b))
 }
 
-fn name_ok(s: &str) -> bool {
+pub(super) fn name_ok(s: &str) -> bool {
     token_ok(s) && !s.contains('/') && !s.contains(':') && !s.starts_with(['-', '.'])
 }
 
@@ -135,107 +151,53 @@ pub fn read_bundle(dir: &Path) -> HarnessResult<Option<Bundle>> {
     Ok(None)
 }
 
+/// Scan the bundle directory and fill the identity fields.
+fn finish(
+    mut b: Bundle,
+    legacy_parts: &[(String, Vec<u8>)],
+    legacy_paths: &[String],
+) -> HarnessResult<Bundle> {
+    let inv = inventory::scan(&b.dir, &ScanRules::skill(), &Bounds::SKILL)?;
+    b.legacy_digest = bundle_digest(legacy_parts);
+    b.legacy_complete = inv.entries().len() == legacy_paths.len()
+        && inv.entries().iter().all(|e| legacy_paths.contains(&e.path));
+    b.scripts = inv
+        .entries()
+        .iter()
+        .filter(|e| e.kind == inventory::FileKind::ExecutableScript)
+        .map(|e| e.path.clone())
+        .collect();
+    b.digest = inv.digest();
+    b.inventory = inv;
+    Ok(b)
+}
+
 fn parse_markdown(dir: &Path, bytes: &[u8], text: &str) -> HarnessResult<Bundle> {
-    let bad = |m: String| d("SPX-HPM001", format!("{}/SKILL.md: {m}", dir.display()));
-    let text_n = text.replace("\r\n", "\n");
-    let rest = text_n
-        .strip_prefix("---\n")
-        .ok_or_else(|| bad("missing front-matter block (`---` first line)".into()))?;
-    let end = rest
-        .find("\n---\n")
-        .map(|i| (i, i + 5))
-        .or_else(|| {
-            rest.strip_suffix("\n---")
-                .map(|_| (rest.len() - 4, rest.len()))
-        })
-        .ok_or_else(|| bad("unterminated front-matter block".into()))?;
-    let (front, body) = (&rest[..end.0], &rest[end.1..]);
-    let mut name = None;
-    let mut description = None;
-    let mut version = None;
-    let mut license = None;
-    let mut tags = None;
-    let mut deps = None;
-    let mut seen = std::collections::BTreeSet::new();
-    for (i, line) in front.lines().enumerate() {
-        let line = line.trim_end();
-        if line.trim().is_empty() || line.trim_start().starts_with('#') {
-            continue;
-        }
-        let (k, v) = line
-            .split_once(':')
-            .ok_or_else(|| bad(format!("front-matter line {} is not `key: value`", i + 2)))?;
-        let k = k.trim();
-        if !seen.insert(k.to_string()) {
-            return Err(bad(format!("duplicate front-matter key `{k}`")));
-        }
-        let v = v.trim();
-        match k {
-            "name" => name = Some(scalar(v).map_err(&bad)?),
-            "description" => description = Some(scalar(v).map_err(&bad)?),
-            "version" => version = Some(scalar(v).map_err(&bad)?),
-            "license" => license = Some(scalar(v).map_err(&bad)?),
-            "tags" => tags = Some(list(v).map_err(&bad)?),
-            "dependencies" => deps = Some(list(v).map_err(&bad)?),
-            other => return Err(bad(format!("unsupported front-matter key `{other}`"))),
-        }
-    }
-    let name = name.ok_or_else(|| bad("missing required key `name`".into()))?;
-    let description =
-        description.ok_or_else(|| bad("missing required key `description`".into()))?;
-    if !name_ok(&name) {
-        return Err(bad(format!("invalid skill name `{name}`")));
-    }
-    let tags = tags.unwrap_or_default();
-    if let Some(t) = tags.iter().find(|t| !token_ok(t)) {
-        return Err(bad(format!("invalid tag `{t}`")));
-    }
-    let scripts = scripts_of(dir);
+    let p = agentskills::parse(&dir.display().to_string(), text)?;
     let mut parts = vec![("SKILL.md".to_string(), bytes.to_vec())];
-    parts.extend(scripts.iter().map(|s| (s.clone(), Vec::new())));
-    Ok(Bundle {
+    parts.extend(scripts_of(dir).into_iter().map(|s| (s, Vec::new())));
+    let b = Bundle {
         format: BundleFormat::Markdown,
-        name,
-        description,
-        version,
-        license,
-        tags,
-        dependencies: deps.unwrap_or_default(),
-        body: body.to_string(),
-        scripts,
-        digest: bundle_digest(&parts),
+        name: p.name,
+        description: p.description,
+        version: p.version,
+        license: p.license,
+        tags: p.tags,
+        dependencies: p.dependencies,
+        body: p.body,
+        scripts: Vec::new(),
+        digest: String::new(),
+        identity: IDENTITY_V2,
+        legacy_digest: String::new(),
+        legacy_complete: false,
+        inventory: Inventory::default(),
+        compatibility: p.compatibility,
+        metadata: p.metadata,
+        requested: p.requested,
+        extensions: p.extensions,
         dir: dir.to_path_buf(),
-    })
-}
-
-fn unquote(v: &str) -> Result<String, String> {
-    for q in ['"', '\''] {
-        if let Some(inner) = v.strip_prefix(q) {
-            return inner
-                .strip_suffix(q)
-                .map(str::to_string)
-                .ok_or_else(|| format!("unterminated quote in `{v}`"));
-        }
-    }
-    Ok(v.to_string())
-}
-
-fn scalar(v: &str) -> Result<String, String> {
-    if v.starts_with('[') || v.starts_with('{') {
-        return Err(format!("expected a scalar, found `{v}`"));
-    }
-    unquote(v)
-}
-
-fn list(v: &str) -> Result<Vec<String>, String> {
-    let inner = v
-        .strip_prefix('[')
-        .and_then(|s| s.strip_suffix(']'))
-        .ok_or_else(|| format!("expected `[a, b]`, found `{v}`"))?;
-    if inner.trim().is_empty() {
-        return Ok(Vec::new());
-    }
-    inner.split(',').map(|s| unquote(s.trim())).collect()
+    };
+    finish(b, &parts, &["SKILL.md".to_string()])
 }
 
 fn rel_ok(p: &str) -> bool {
@@ -348,9 +310,9 @@ fn parse_manifest(dir: &Path, path: &Path) -> HarnessResult<Bundle> {
                 .map(str::to_string)
         })
         .unwrap_or_default();
-    let scripts = scripts_of(dir);
-    parts.extend(scripts.iter().map(|x| (x.clone(), Vec::new())));
-    Ok(Bundle {
+    let paths: Vec<String> = parts.iter().map(|(n, _)| n.clone()).collect();
+    parts.extend(scripts_of(dir).into_iter().map(|x| (x, Vec::new())));
+    let b = Bundle {
         format: BundleFormat::Manifest,
         name,
         description,
@@ -359,8 +321,17 @@ fn parse_manifest(dir: &Path, path: &Path) -> HarnessResult<Bundle> {
         tags,
         dependencies: strs("dependencies")?,
         body,
-        scripts,
-        digest: bundle_digest(&parts),
+        scripts: Vec::new(),
+        digest: String::new(),
+        identity: IDENTITY_V2,
+        legacy_digest: String::new(),
+        legacy_complete: false,
+        inventory: Inventory::default(),
+        compatibility: None,
+        metadata: Default::default(),
+        requested: Vec::new(),
+        extensions: Default::default(),
         dir: dir.to_path_buf(),
-    })
+    };
+    finish(b, &parts, &paths)
 }

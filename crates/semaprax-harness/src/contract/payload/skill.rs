@@ -1,6 +1,7 @@
 //! `skill.catalog/v1`: bounded metadata listing and exact-digest loading.
 
 use super::*;
+use serde_json::json;
 
 pub fn validate(op: &str, dir: Direction, v: &Value) -> HarnessResult<()> {
     match (op, dir) {
@@ -25,7 +26,14 @@ pub fn validate(op: &str, dir: Direction, v: &Value) -> HarnessResult<()> {
             }
         }
         (_, Direction::Request) => {
-            digest_of(shape(v, "skill load request", &["digest"], &[])?, "digest")?
+            let m = shape(v, "skill load request", &["digest"], &["resource"])?;
+            digest_of(m, "digest")?;
+            // Versioned progressive resource load: exact path and content digest.
+            if let Some(r) = m.get("resource") {
+                let r = shape(r, "skill resource request", &["path", "digest"], &[])?;
+                path_of(r, "path")?;
+                digest_of(r, "digest")?;
+            }
         }
         (_, Direction::Result) => {
             let m = shape(
@@ -55,6 +63,23 @@ pub fn validate(op: &str, dir: Direction, v: &Value) -> HarnessResult<()> {
 }
 
 pub fn check_against_request(request: &Value, result: &Value) -> HarnessResult<()> {
+    if let Some(res) = request.get("resource") {
+        let want = [json!({"path": res.get("path"), "digest": res.get("digest")})];
+        if result
+            .get("artifact_refs")
+            .and_then(Value::as_array)
+            .map(Vec::as_slice)
+            != Some(&want[..])
+        {
+            return Err(e(
+                "SPX-HPA040",
+                "loaded resource differs from the requested path and digest",
+            ));
+        }
+        if !result.get("text").is_some_and(Value::is_string) {
+            return Err(e("SPX-HPA040", "a resource load result needs `text`"));
+        }
+    }
     if let Some(d) = request.get("digest") {
         if result.get("digest") != Some(d) {
             return Err(e(

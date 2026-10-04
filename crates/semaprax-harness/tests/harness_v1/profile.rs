@@ -1347,3 +1347,151 @@ fn hp_hpwire_environment_forwards_only_declared_credential_and_marker_vars() {
     assert_eq!(e.vars["SEMAPRAX_HARNESS_EXTERNAL_VIEW_OWNER"], "rtk-hook");
     assert!(!e.vars.contains_key("SEMAPRAX_HARNESS_HOME"));
 }
+
+// ---- HN-19: artifact-v2 closure identity bound to adoption, trust and grants ----
+
+#[test]
+fn hp_hn19_adoption_binds_the_adapter_closure_and_helper_edits_refuse_the_old_grant() {
+    let home = fixture_dir("hp-hn19-home");
+    let project = fixture_dir("hp-hn19-proj");
+    let root = fixture_dir("hp-hn19-tools");
+    let e = env(&home, &project);
+    let p = provision(&root, "a", "org.example/ctx-a", &[CTX], "1.0.0", None);
+    adopt_trust(&e, &p, "org.example/ctx-a");
+    pin(&project, "auto", "org.example/ctx-a");
+    let st = LocalState::load(&e).unwrap();
+    let rec = st.installations["org.example/ctx-a"]
+        .entry_digest
+        .clone()
+        .unwrap();
+    assert!(rec.starts_with("artifact-v2:sha256:"), "{rec}");
+    let grant = profile::resolve_project(&e, &project).unwrap().launches[&CTX_KIND]
+        .grant
+        .clone();
+    assert_eq!(grant.entry_digest(), Some(rec.as_str()));
+    check_grant_current(&e, &grant).unwrap();
+    // A helper module next to the entry changes the closure, not the entry.
+    write(&root, "a/helper.py", "VALUE = 1\n");
+    let st = LocalState::load(&e).unwrap();
+    let cur = st.installations["org.example/ctx-a"]
+        .inspect()
+        .unwrap()
+        .current;
+    let err = grant_for(&st, "org.example/ctx-a", &cur).unwrap_err();
+    assert_eq!(err.code, "SPX-HPB031");
+    assert!(err.message.contains("artifact closure"), "{}", err.message);
+    assert_eq!(
+        check_grant_current(&e, &grant).unwrap_err().code,
+        "SPX-HPB034"
+    );
+    assert!(profile::resolve_project(&e, &project)
+        .unwrap()
+        .launches
+        .is_empty());
+    // Re-adoption alone does not restore trust: the user must trust the new closure.
+    ok(
+        &e,
+        &[
+            "adopt",
+            p.desc.to_str().unwrap(),
+            "--upstream",
+            p.upstream.to_str().unwrap(),
+        ],
+    );
+    assert!(run(&s(&["trust", "org.example/ctx-a"]), &e).code == 0);
+    let fresh = profile::resolve_project(&e, &project).unwrap().launches[&CTX_KIND]
+        .grant
+        .clone();
+    assert_ne!(fresh.entry_digest(), grant.entry_digest());
+}
+
+#[test]
+fn hp_hn19_closure_rules_exclude_only_what_is_declared_and_never_the_entry() {
+    let home = fixture_dir("hp-hn19-rules-home");
+    let project = fixture_dir("hp-hn19-rules-proj");
+    let root = fixture_dir("hp-hn19-rules-tools");
+    let e = env(&home, &project);
+    let p = provision(&root, "a", "org.example/ctx-a", &[CTX], "1.0.0", None);
+    write(&root, "a/notes/readme.txt", "v1");
+    write(&root, "a/__pycache__/x.pyc", "cache");
+    write(
+        &root,
+        "a/harness-closure.json",
+        r#"{"schema":"semaprax.harness-closure.v1","exclude":["notes/"]}"#,
+    );
+    adopt_trust(&e, &p, "org.example/ctx-a");
+    pin(&project, "auto", "org.example/ctx-a");
+    let grant = profile::resolve_project(&e, &project).unwrap().launches[&CTX_KIND]
+        .grant
+        .clone();
+    // Excluded notes and python caches do not change identity.
+    write(&root, "a/notes/readme.txt", "v2");
+    write(&root, "a/__pycache__/x.pyc", "other cache");
+    check_grant_current(&e, &grant).unwrap();
+    // Editing the rules themselves does.
+    write(
+        &root,
+        "a/harness-closure.json",
+        r#"{"schema":"semaprax.harness-closure.v1","exclude":["notes/","tests/"]}"#,
+    );
+    assert!(check_grant_current(&e, &grant).is_err());
+    // Excluding the entry is refused at adoption.
+    write(
+        &root,
+        "a/harness-closure.json",
+        r#"{"schema":"semaprax.harness-closure.v1","exclude":["adapter.sh"]}"#,
+    );
+    let o = run(
+        &s(&[
+            "adopt",
+            p.desc.to_str().unwrap(),
+            "--upstream",
+            p.upstream.to_str().unwrap(),
+        ]),
+        &e,
+    );
+    assert_ne!(o.code, 0);
+    assert!(
+        o.stderr.contains("SPX-HPB021") && o.stderr.contains("cannot exclude"),
+        "{}",
+        o.stderr
+    );
+}
+
+#[test]
+fn hp_hn19_legacy_entry_only_installations_stay_readable_and_are_labelled_legacy() {
+    let home = fixture_dir("hp-hn19-legacy-home");
+    let project = fixture_dir("hp-hn19-legacy-proj");
+    let root = fixture_dir("hp-hn19-legacy-tools");
+    let e = env(&home, &project);
+    let p = provision(&root, "a", "org.example/ctx-a", &[CTX], "1.0.0", None);
+    adopt_trust(&e, &p, "org.example/ctx-a");
+    // Rewrite the machine-local state as a pre-v2 build recorded it: plain entry digest.
+    let plain = profile::installations::file_digest(&root.join("a/adapter.sh")).unwrap();
+    let v2 = LocalState::load(&e).unwrap().installations["org.example/ctx-a"]
+        .entry_digest
+        .clone()
+        .unwrap();
+    for f in ["installations.json", "trust.json"] {
+        let text = std::fs::read_to_string(home.join(f)).unwrap();
+        std::fs::write(home.join(f), text.replace(&v2, &plain)).unwrap();
+    }
+    let st = LocalState::load(&e).unwrap();
+    let cur = st.installations["org.example/ctx-a"]
+        .inspect()
+        .unwrap()
+        .current;
+    assert_eq!(
+        cur.entry_digest.as_deref(),
+        Some(plain.as_str()),
+        "legacy-v1 interpretation preserved"
+    );
+    assert!(grant_for(&st, "org.example/ctx-a", &cur).is_ok());
+    // legacy-v1 does not bind helpers; this is exactly the gap v2 closes.
+    write(&root, "a/helper.py", "x");
+    let cur = st.installations["org.example/ctx-a"]
+        .inspect()
+        .unwrap()
+        .current;
+    assert!(grant_for(&st, "org.example/ctx-a", &cur).is_ok());
+}

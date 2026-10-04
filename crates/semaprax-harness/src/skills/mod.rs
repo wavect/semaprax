@@ -4,25 +4,34 @@
 //! cheap metadata, loads bodies lazily by exact digest, and renders them as
 //! quoted data below host/compiler authority. See `docs/HARNESS-SKILLS-V1.md`.
 
+pub mod agentskills;
 pub mod bundle;
 pub mod catalog;
 pub mod cli;
+pub mod inventory;
+pub mod legacy;
 pub mod load;
 pub mod plain;
 pub mod policy;
+pub mod resources;
 pub mod select;
+pub mod snapshot;
+pub mod yaml;
 
 pub use catalog::{ApprovedRoot, Catalog, Conflict, SkillEntry};
 pub use cli::cli_skills;
 pub use load::{ListOutput, ListedSkill, Omitted, PromptOutput, Rendered, SkillService};
 pub use plain::PlainSkills;
 pub use policy::Warning;
+pub use resources::{Activation, Drift, ResourceLoad};
 pub use select::{task_tags, NoRecommender, Recommender, Selection};
 
 use std::collections::BTreeSet;
 
 /// Default total model-visible budget (catalog descriptions + loaded content).
 pub const DEFAULT_MAX_BYTES: usize = 16_384;
+/// Default cap on one progressive resource load.
+pub const DEFAULT_MAX_RESOURCE_BYTES: usize = 64 * 1024;
 /// Longest description shown in a catalog line.
 pub const DESCRIPTION_MAX_CHARS: usize = 120;
 /// Most skills chosen by task tags (explicit selections are not capped).
@@ -39,6 +48,8 @@ pub struct SkillCatalogConfig {
     /// Host-provided tools that satisfy `requires_host_tool` dependencies
     /// (script file names such as `scripts/x.sh` or tool names).
     pub host_tools: BTreeSet<String>,
+    /// Most bytes one resource load may return.
+    pub max_resource_bytes: usize,
 }
 
 impl Default for SkillCatalogConfig {
@@ -48,6 +59,7 @@ impl Default for SkillCatalogConfig {
             select: Vec::new(),
             max_bytes: DEFAULT_MAX_BYTES,
             host_tools: BTreeSet::new(),
+            max_resource_bytes: DEFAULT_MAX_RESOURCE_BYTES,
         }
     }
 }

@@ -33,7 +33,21 @@ pub struct SkillEntry {
     pub tags: Vec<String>,
     pub dependencies: Vec<String>,
     pub origin: String,
+    /// Artifact digest v2 (`identity`), the identity every lock binds to.
     pub digest: String,
+    /// `artifact-v2`.
+    pub identity: &'static str,
+    /// `legacy-v1` digest of the same bundle, labelled; readable, not the identity.
+    pub legacy_digest: String,
+    pub compatibility: Option<String>,
+    pub metadata: BTreeMap<String, String>,
+    /// Requested capabilities from front matter; requests only, never grants.
+    pub requested: Vec<String>,
+    /// Inert ecosystem/namespaced front-matter data.
+    pub extensions: BTreeMap<String, serde_json::Value>,
+    /// Every admitted file (path, kind, bytes, digest); contents are not read
+    /// into the catalog.
+    pub resources: Vec<super::inventory::InventoryEntry>,
     /// Body bytes a load would expose.
     pub bytes: usize,
     /// Whitespace-separated word count of the body.
@@ -138,11 +152,18 @@ impl Catalog {
             match bundle::read_bundle(&dir) {
                 Ok(Some(b)) => {
                     if let Some(want) = &root.approved_digest {
-                        if *want != b.digest {
+                        let v2 = *want == b.digest;
+                        let legacy_ok = *want == b.legacy_digest && b.legacy_complete;
+                        if !v2 && !legacy_ok {
+                            let hint = if *want == b.legacy_digest {
+                                " (the legacy-v1 digest does not cover this bundle's resources or scripts; approve the artifact-v2 digest)"
+                            } else {
+                                ""
+                            };
                             self.diagnostics.push(d(
                                 "SPX-HPM012",
                                 format!(
-                                    "bundle `{}` digest {} differs from the approved digest",
+                                    "bundle `{}` digest {} differs from the approved digest{hint}",
                                     b.name, b.digest
                                 ),
                             ));
@@ -217,6 +238,13 @@ impl Catalog {
                     dependencies: b.dependencies,
                     origin,
                     digest: b.digest,
+                    identity: b.identity,
+                    legacy_digest: b.legacy_digest,
+                    compatibility: b.compatibility,
+                    metadata: b.metadata,
+                    requested: b.requested,
+                    extensions: b.extensions,
+                    resources: b.inventory.entries().to_vec(),
                     format: b.format.as_str(),
                     scripts: b.scripts,
                     missing_dependencies: missing,

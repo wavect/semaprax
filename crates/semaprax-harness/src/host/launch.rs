@@ -112,6 +112,28 @@ impl LaunchSpec {
             ));
         }
         match g.entry_digest() {
+            // artifact-v2: the grant binds every adapter file under the
+            // descriptor directory, not only the entry.
+            Some(want) if crate::skills::inventory::is_v2_label(want) => {
+                let rel = entry
+                    .strip_prefix(&dir)
+                    .ok()
+                    .and_then(|p| p.to_str())
+                    .unwrap_or(entry0.as_str());
+                let have = crate::skills::inventory::adapter_closure_label(&dir, rel, &[])
+                    .map_err(|e| {
+                        refuse(
+                            "SPX-HPC002",
+                            format!("adapter closure unreadable: {} ({})", e.message, e.code),
+                        )
+                    })?;
+                if have != want {
+                    return Err(refuse(
+                        "SPX-HPC002",
+                        "adapter closure (entry or helper files) changed since it was granted",
+                    ));
+                }
+            }
             Some(want) if want == digest_of(&entry)? => {}
             _ => {
                 return Err(refuse(
@@ -258,5 +280,90 @@ impl LaunchSpec {
             env.insert(k.clone(), v.clone());
         }
         Ok(env)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::host::grant::GrantedPermissions;
+    use crate::skills::inventory::adapter_closure_label;
+    use serde_json::json;
+
+    fn descriptor() -> Descriptor {
+        let caps = json!([{"kind": "context.repository", "version": 1, "required": true,
+            "operations": crate::contract::CapabilityKind::ContextRepository.operations()}]);
+        Descriptor::parse(
+            json!({
+                "schema": "semaprax.harness-provider.v1",
+                "provider": {"id": "org.example/closure", "version": "0.1.0"},
+                "adapter": {"runtime": "native", "entry": ["adapter.sh"], "version": "0.1.0"},
+                "protocol": {"name": "semaprax.harness-rpc.v1", "min": 1, "max": 1},
+                "capabilities": caps,
+                "platforms": ["macos-aarch64", "linux-x86_64"],
+                "permissions": {"read": ["project"], "write": [], "network": [], "process": [], "secrets": []},
+                "resources": {"handshake_timeout_ms": 5000, "invoke_timeout_ms": 30000, "max_frame_bytes": 1048576,
+                              "max_concurrency": 1, "idle_shutdown_ms": 60000},
+                "cancellation": "cooperative",
+                "support": {"license": "MIT", "isolation": "subprocess", "tested": []}
+            })
+            .to_string()
+            .as_bytes(),
+        )
+        .expect("descriptor")
+    }
+
+    fn spec(root: &Path, entry_digest: Option<String>) -> LaunchSpec {
+        let d = descriptor();
+        let grant = Grant::issue(
+            d.provider_id.clone(),
+            d.digest().to_string(),
+            entry_digest,
+            None,
+            GrantedPermissions::default(),
+        );
+        LaunchSpec {
+            descriptor: d,
+            descriptor_dir: root.join("adapter"),
+            runtime_executable: None,
+            upstream_executable: None,
+            grant,
+            project_root: root.join("project"),
+            cache_dir: root.join("cache"),
+            retention_dir: root.join("retention"),
+            isolation: IsolationRequest::None,
+            forward_env: BTreeMap::new(),
+        }
+    }
+
+    #[test]
+    fn v2_grant_binds_helper_files_but_legacy_grant_does_not() {
+        let root = std::env::temp_dir().join(format!("hp-hn19-launch-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        let dir = root.join("adapter");
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::create_dir_all(root.join("project")).unwrap();
+        std::fs::write(dir.join("adapter.sh"), "#!/bin/sh\nexit 0\n").unwrap();
+        std::fs::write(dir.join("helper.py"), "VALUE = 1\n").unwrap();
+        let backend = IsolationBackend::unavailable();
+        let v2 = adapter_closure_label(&dir, "adapter.sh", &[]).unwrap();
+        let legacy = digest_of(&dir.join("adapter.sh")).unwrap();
+        assert!(spec(&root, Some(v2.clone())).prepare(&backend).is_ok());
+        assert!(spec(&root, Some(legacy.clone())).prepare(&backend).is_ok());
+        std::fs::write(dir.join("helper.py"), "VALUE = 2\n").unwrap();
+        let e = spec(&root, Some(v2.clone()))
+            .prepare(&backend)
+            .err()
+            .expect("refused");
+        assert_eq!(e.code, "SPX-HPC002");
+        assert!(e.message.contains("closure"), "{}", e.message);
+        // legacy-v1 binds only the entry bytes: the helper edit rides along.
+        assert!(spec(&root, Some(legacy)).prepare(&backend).is_ok());
+        // a new file under the descriptor directory is also a closure change
+        std::fs::write(dir.join("helper.py"), "VALUE = 1\n").unwrap();
+        assert!(spec(&root, Some(v2.clone())).prepare(&backend).is_ok());
+        std::fs::write(dir.join("extra.js"), "x\n").unwrap();
+        assert!(spec(&root, Some(v2)).prepare(&backend).is_err());
+        let _ = std::fs::remove_dir_all(&root);
     }
 }

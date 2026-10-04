@@ -106,13 +106,17 @@ underlying Project and prepared-interpreter diagnostics for those owners'
 failures. A caller must inspect the typed reason as well as the diagnostic.
 
 The focused local gates use transition tables at
-`project::hot_reload::tests::coordinator_refusal_transition_table_preserves_the_active_revision`
+`project::hot_reload::tests::coordinator_transition_table_preserves_the_active_revision`
 and `agent_runtime_v1::source_migration::source_agent_handoff_supervisor_activates_once_and_terminalizes_lost_ack`.
-They cover checked stale, identical, generation-overflow and first-over-bound
-submission refusal; source-Agent checkpoint waiting, activation, clean refusal
-and terminal uncertainty; and preserve the active revision through every
-refusal. The local compatibility gate also rejects a changed declared effect
-on a compiler-derived indirect target. Separate cases cover changed contract
+They cover admitted and activated code replacement, incompatible closure,
+checked stale and identical refusal, generation-overflow and first-over-bound
+submission refusal, busy safe-boundary retention, and terminal uncertainty;
+the source-Agent table covers checkpoint waiting, activation, clean refusal and
+terminal uncertainty. Every ordinary refusal preserves the active revision. The
+`project::hot_reload::tests::indirect_changed_effect_is_refused_by_a_session_and_keeps_active_worker_usable`
+gate carries a changed declared effect on a compiler-derived indirect target
+through session admission, planning, refusal and a subsequent active-worker
+execution. Separate cases cover changed contract
 and entry identity, missing imported stable IDs, forged plans, and one
 physically paused A invocation: B remains pending with
 `waiting_for_safe_point`, A's trace remains bound to A, then the same worker

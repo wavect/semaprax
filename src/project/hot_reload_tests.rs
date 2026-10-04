@@ -48,6 +48,39 @@ impl Fixture {
             crate::format::canonical(&crate::parse(&changed, Path::new(relative)).unwrap());
         std::fs::write(path, canonical).unwrap();
     }
+
+    fn indirect_effect() -> Self {
+        let fixture = Self::new();
+        std::fs::write(
+            fixture.0.join("semaprax.toml"),
+            concat!(
+                "schema = \"semaprax.project.v1\"\n",
+                "name = \"hot-reload-effects\"\n",
+                "entry = \"reload.effects\"\n",
+                "sources = [\"src/app.spx\", \"src/tests.spx\"]\n",
+                "web_exports = [\"reload.effects.main\"]\n",
+                "tests = [\"reload.effects.tests\"]\n",
+            ),
+        )
+        .unwrap();
+        std::fs::write(
+            fixture.0.join("src/app.spx"),
+            r#"module reload.effects;
+permit { clock.read, clock.write }
+@id("reload.effects.target") fn target(value:i64)->i64 uses { clock.read } { value }
+@id("reload.effects.main") fn main()->i64 uses { clock.read, clock.write } { let callback=target; callback(42) }
+"#,
+        )
+        .unwrap();
+        std::fs::write(
+            fixture.0.join("src/tests.spx"),
+            r#"module reload.effects.tests;
+@id("reload.effects.tests.main") fn main()->i64 { 0 }
+"#,
+        )
+        .unwrap();
+        fixture
+    }
 }
 
 impl Drop for Fixture {
@@ -331,23 +364,34 @@ fn checked_identity_cases_and_first_over_bound_submission_preserve_active_code()
 }
 
 #[test]
-fn coordinator_refusal_transition_table_preserves_the_active_revision() {
+fn coordinator_transition_table_preserves_the_active_revision() {
     #[derive(Clone, Copy)]
-    enum Refusal {
+    enum Transition {
+        AdmitAndPlan,
+        ActivateEligible,
+        IncompatibleClosure,
         StaleCandidate,
         IdenticalRevision,
         GenerationOverflow,
         SubmissionFirstOverBound,
+        BusyBoundary,
+        TerminalUncertainty,
     }
 
-    // Keep the coordinator's ordinary refusal rows in one table. Each case
-    // starts from the same checked A revision and proves that refusing B never
-    // changes the active prepared worker.
-    for refusal in [
-        Refusal::StaleCandidate,
-        Refusal::IdenticalRevision,
-        Refusal::GenerationOverflow,
-        Refusal::SubmissionFirstOverBound,
+    // The source-Agent checkpoint lifecycle has its own typed owner and its
+    // table lives with that migration harness. Keep every prepared-worker
+    // coordinator path here so each row starts from the same checked A state
+    // and asserts the active worker result after success or refusal.
+    for transition in [
+        Transition::AdmitAndPlan,
+        Transition::ActivateEligible,
+        Transition::IncompatibleClosure,
+        Transition::StaleCandidate,
+        Transition::IdenticalRevision,
+        Transition::GenerationOverflow,
+        Transition::SubmissionFirstOverBound,
+        Transition::BusyBoundary,
+        Transition::TerminalUncertainty,
     ] {
         let _worker_guard = prepared_worker_test_guard();
         let fixture = Fixture::new();
@@ -357,45 +401,183 @@ fn coordinator_refusal_transition_table_preserves_the_active_revision() {
             PreparedProjectInterpreterOptions::default(),
         )
         .unwrap();
-        let failure = match refusal {
-            Refusal::StaleCandidate => {
+        let (failure, expected_result) = match transition {
+            Transition::AdmitAndPlan => {
+                fixture.rewrite("src/app.spx", "multiply(6, 7)", "multiply(6, 8)");
+                let candidate = fixture.revision();
+                session.admit_candidate(Arc::clone(&candidate)).unwrap();
+                assert_eq!(
+                    session.plan().unwrap().decision(),
+                    HotReloadDecision::EligibleCodeReplacement
+                );
+                assert_eq!(
+                    session.observation().pending_project_revision(),
+                    Some(candidate.project_revision())
+                );
+                (None, Some(42))
+            }
+            Transition::ActivateEligible => {
+                fixture.rewrite("src/app.spx", "multiply(6, 7)", "multiply(6, 8)");
+                let candidate = fixture.revision();
+                session.admit_candidate(Arc::clone(&candidate)).unwrap();
+                session.activate(session.plan().unwrap()).unwrap();
+                assert_eq!(
+                    session.active_project_revision(),
+                    candidate.project_revision()
+                );
+                (None, Some(48))
+            }
+            Transition::IncompatibleClosure => {
+                fixture.rewrite("src/core.spx", "requires right != 0", "requires right > 0");
+                session.admit_candidate(fixture.revision()).unwrap();
+                let plan = session.plan().unwrap();
+                assert_eq!(
+                    plan.decision(),
+                    HotReloadDecision::UnsupportedRestartRequired
+                );
+                (Some(session.activate(plan).unwrap_err().reason), Some(42))
+            }
+            Transition::StaleCandidate => {
                 fixture.rewrite("src/app.spx", "multiply(6, 7)", "multiply(6, 8)");
                 session.admit_candidate(fixture.revision()).unwrap();
                 let stale = session.plan().unwrap();
                 fixture.rewrite("src/app.spx", "multiply(6, 8)", "multiply(6, 9)");
                 session.admit_candidate(fixture.revision()).unwrap();
-                session.activate(stale).unwrap_err()
+                (Some(session.activate(stale).unwrap_err().reason), Some(42))
             }
-            Refusal::IdenticalRevision => {
+            Transition::IdenticalRevision => {
                 session.admit_candidate(Arc::clone(&active)).unwrap();
-                session.activate(session.plan().unwrap()).unwrap_err()
+                (
+                    Some(
+                        session
+                            .activate(session.plan().unwrap())
+                            .unwrap_err()
+                            .reason,
+                    ),
+                    Some(42),
+                )
             }
-            Refusal::GenerationOverflow => {
+            Transition::GenerationOverflow => {
                 fixture.rewrite("src/app.spx", "multiply(6, 7)", "multiply(6, 8)");
                 session.admit_candidate(fixture.revision()).unwrap();
                 session.generation = u64::MAX;
-                session.activate(session.plan().unwrap()).unwrap_err()
+                (
+                    Some(
+                        session
+                            .activate(session.plan().unwrap())
+                            .unwrap_err()
+                            .reason,
+                    ),
+                    Some(42),
+                )
             }
-            Refusal::SubmissionFirstOverBound => {
+            Transition::SubmissionFirstOverBound => {
                 fixture.rewrite("src/app.spx", "multiply(6, 7)", "multiply(6, 8)");
                 session.submission = u64::MAX;
-                session.admit_candidate(fixture.revision()).unwrap_err()
+                (
+                    Some(
+                        session
+                            .admit_candidate(fixture.revision())
+                            .unwrap_err()
+                            .reason,
+                    ),
+                    Some(42),
+                )
+            }
+            Transition::BusyBoundary => {
+                fixture.rewrite("src/app.spx", "multiply(6, 7)", "multiply(6, 8)");
+                session.admit_candidate(fixture.revision()).unwrap();
+                let plan = session.plan().unwrap();
+                session.worker.set_execution_for_test(true);
+                let failure = session.activate(plan).unwrap_err().reason;
+                session.worker.set_execution_for_test(false);
+                (Some(failure), Some(42))
+            }
+            Transition::TerminalUncertainty => {
+                fixture.rewrite("src/app.spx", "multiply(6, 7)", "multiply(6, 8)");
+                session.admit_candidate(fixture.revision()).unwrap();
+                session
+                    .worker
+                    .install_replacement_hook(PreparedReplacementTestHook::PanicBeforePrepare);
+                let failure = session
+                    .activate(session.plan().unwrap())
+                    .unwrap_err()
+                    .reason;
+                assert!(session.terminal());
+                assert_eq!(
+                    session.plan().unwrap_err().reason,
+                    HotReloadReason::TerminalUncertainty
+                );
+                (Some(failure), None)
             }
         };
-        let expected = match refusal {
-            Refusal::StaleCandidate => HotReloadReason::StaleCandidate,
-            Refusal::IdenticalRevision => HotReloadReason::IdenticalRevision,
-            Refusal::GenerationOverflow | Refusal::SubmissionFirstOverBound => {
-                HotReloadReason::GenerationExhausted
+        let expected_failure = match transition {
+            Transition::AdmitAndPlan | Transition::ActivateEligible => None,
+            Transition::IncompatibleClosure => Some(HotReloadReason::IncompatibleClosure),
+            Transition::StaleCandidate => Some(HotReloadReason::StaleCandidate),
+            Transition::IdenticalRevision => Some(HotReloadReason::IdenticalRevision),
+            Transition::GenerationOverflow | Transition::SubmissionFirstOverBound => {
+                Some(HotReloadReason::GenerationExhausted)
             }
+            Transition::BusyBoundary => Some(HotReloadReason::BusyBoundary),
+            Transition::TerminalUncertainty => Some(HotReloadReason::TerminalUncertainty),
         };
-        assert_eq!(failure.reason, expected);
-        assert_eq!(session.active_project_revision(), active.project_revision());
-        assert_eq!(
-            observed(&session),
-            ProjectPreparedExecutionOutcome::Returned(42)
-        );
+        assert_eq!(failure, expected_failure);
+        match expected_result {
+            Some(result) => assert_eq!(
+                observed(&session),
+                ProjectPreparedExecutionOutcome::Returned(result)
+            ),
+            None => assert_eq!(
+                session
+                    .execute_entry(
+                        &PreparedProjectExecutionOptions::default(),
+                        &ProjectExecutionCancellation::new()
+                    )
+                    .unwrap_err()[0]
+                    .code,
+                "SPX-HR400"
+            ),
+        }
     }
+}
+
+#[test]
+fn indirect_changed_effect_is_refused_by_a_session_and_keeps_active_worker_usable() {
+    let _worker_guard = prepared_worker_test_guard();
+    let fixture = Fixture::indirect_effect();
+    let active = fixture.revision();
+    let mut session = HotReloadSession::new(
+        Arc::clone(&active),
+        PreparedProjectInterpreterOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(
+        observed(&session),
+        ProjectPreparedExecutionOutcome::Returned(42)
+    );
+    fixture.rewrite(
+        "src/app.spx",
+        "clock.read } { value",
+        "clock.write } { value",
+    );
+    let candidate = fixture.revision();
+    session.admit_candidate(candidate).unwrap();
+    let plan = session.plan().unwrap();
+    assert_eq!(
+        plan.decision(),
+        HotReloadDecision::UnsupportedRestartRequired
+    );
+    assert_eq!(plan.reason(), Some(HotReloadReason::IncompatibleClosure));
+    assert_eq!(
+        session.activate(plan).unwrap_err().reason,
+        HotReloadReason::IncompatibleClosure
+    );
+    assert_eq!(session.active_project_revision(), active.project_revision());
+    assert_eq!(
+        observed(&session),
+        ProjectPreparedExecutionOutcome::Returned(42)
+    );
 }
 
 #[test]

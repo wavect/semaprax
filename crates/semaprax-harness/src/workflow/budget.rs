@@ -190,6 +190,9 @@ pub struct BudgetConfig {
     pub map: ModelTokenizerMap,
     pub tokenizers: TokenizerSet,
     pub cache: CountCache,
+    /// Opt-in repair-feedback allowance in named tokens (TC-06); `None` keeps
+    /// the labelled byte policy.
+    pub feedback_max_tokens: Option<u64>,
 }
 
 impl BudgetConfig {

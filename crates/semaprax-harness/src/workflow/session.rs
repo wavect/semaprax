@@ -96,6 +96,12 @@ pub(super) struct State {
     pub attempts: Vec<Value>,
     pub steps: Vec<Value>,
     pub feedback: Vec<Value>,
+    /// TC-06: per-request projection reports (accounting, never prompted).
+    pub feedback_reports: Vec<Value>,
+    /// Revision, scratch candidate and proposed operation the next failure is about.
+    pub ctx_revision: String,
+    pub ctx_candidate: Option<String>,
+    pub ctx_proposed: Value,
     /// Check output delivered to the model in feedback (HN-12), separate from report compaction.
     pub delivered: Vec<Value>,
     pub candidates: u32,
@@ -110,7 +116,7 @@ impl State {
         json!({"bounds": self.bounds.to_json(), "attempts_spent": self.attempts.len(),
                "candidates_admitted": self.candidates, "attempts": self.attempts, "steps": self.steps,
                "tool_calls": cx.compiler.commands().len().saturating_sub(self.commands_start),
-               "reserved_tokens": cx.ledger.reserved_tokens(), "delivered_to_model": self.delivered_json(),
+               "reserved_tokens": cx.ledger.reserved_tokens(), "delivered_to_model": self.delivered_json(), "feedback_projection": self.feedback_reports,
                "result": self.result})
     }
 
@@ -142,6 +148,24 @@ impl State {
         j: &mut Journal,
     ) -> HarnessResult<()> {
         self.record_failure(n, stage, code, message, j)
+    }
+
+    /// Model-facing feedback for the next request (TC-06); the report is kept.
+    pub(super) fn project_feedback(&mut self, cx: &Ctx, r: &Report) -> HarnessResult<Vec<Value>> {
+        let budget = cx.cfg.budget.for_task(&cx.cfg.task);
+        let meter = match r.route["choice"].as_str() {
+            Some(m) if !self.feedback.is_empty() => {
+                super::context_target::CostMeter::for_model(&budget, m)
+            }
+            _ => super::context_target::CostMeter::bytes(),
+        };
+        let policy =
+            super::feedback::FeedbackPolicy::for_meter(cx.cfg.budget.feedback_max_tokens, &meter);
+        let p = super::feedback::project(&self.feedback, &policy, &meter)?;
+        if !p.entries.is_empty() {
+            self.feedback_reports.push(p.report);
+        }
+        Ok(p.entries)
     }
 
     fn check_bounds(&self, cx: &Ctx) -> HarnessResult<()> {
@@ -190,8 +214,17 @@ impl State {
         journal: &mut Journal,
     ) -> HarnessResult<()> {
         let digest = sha256_plain(format!("{code}\n{message}").as_bytes());
-        self.feedback
-            .push(json!({"attempt": n, "stage": stage, "code": code, "message": message}));
+        let mut entry = json!({"attempt": n, "stage": stage, "code": code, "message": message});
+        if !self.ctx_revision.is_empty() {
+            entry["base_revision"] = json!(self.ctx_revision);
+        }
+        if let Some(c) = self.ctx_candidate.take() {
+            entry["candidate_revision"] = json!(c);
+        }
+        if !self.ctx_proposed.is_null() {
+            entry["proposed"] = self.ctx_proposed.clone();
+        }
+        self.feedback.push(entry);
         // Keep the model-visible history bounded: the newest 4 failures.
         if self.feedback.len() > 4 {
             self.feedback.remove(0);
@@ -264,6 +297,10 @@ fn start(cx: &mut Ctx, journal: &mut Journal, r: &mut Report) -> HarnessResult<S
         attempts: vec![],
         steps: vec![],
         feedback: vec![],
+        feedback_reports: vec![],
+        ctx_revision: String::new(),
+        ctx_candidate: None,
+        ctx_proposed: Value::Null,
         delivered: vec![],
         candidates: 0,
         seen_proposals: BTreeSet::new(),
@@ -366,13 +403,17 @@ pub(super) fn loop_steps(
         }
         let n = s.attempts.len() as u32 + 1;
         let stepname = format!("gen-{n}");
+        let projected = s.project_feedback(cx, r)?;
+        s.ctx_revision = revision.clone();
+        s.ctx_candidate = None;
+        s.ctx_proposed = Value::Null;
         let pc = PromptCtx {
             revision: &revision,
             seed: seed.as_deref(),
             diag_view: &diag_view,
             kept: &kept,
             ops: &ops,
-            feedback: &s.feedback,
+            feedback: &projected,
             attempt: n,
             scratch_repair: false,
         };
@@ -387,6 +428,7 @@ pub(super) fn loop_steps(
             a["proposal_digest"] = json!(pdigest);
             a["kind"] = json!(proposal.kind);
         }
+        s.ctx_proposed = json!({"kind": proposal.kind, "intent": proposal.intent});
         if !s.seen_proposals.insert(pdigest.clone()) {
             if let Some(a) = s.attempts.last_mut() {
                 a["outcome"] = json!("repeated");
@@ -456,6 +498,7 @@ pub(super) fn loop_steps(
             Err(e) => return Err(e),
         };
         s.candidates += 1;
+        s.ctx_candidate = Some(preview.candidate_revision.clone());
         let touched: Vec<&String> = preview
             .source_changes
             .iter()

@@ -243,13 +243,16 @@ pub(super) fn repair_loop(
         let n = s.attempts.len() as u32 + 1;
         let view = st.command.view("diagnostics", &diag_text(&diags), 4096);
         let kept = source_items(s, &diags);
+        let projected = s.project_feedback(cx, r)?;
+        s.ctx_revision = "unverified-baseline".into();
+        s.ctx_candidate = None;
         let pc = PromptCtx {
             revision: "unverified-baseline",
             seed: task.seed.as_deref(),
             diag_view: &view,
             kept: &kept,
             ops: &[],
-            feedback: &s.feedback,
+            feedback: &projected,
             attempt: n,
             scratch_repair: true,
         };
@@ -286,6 +289,7 @@ pub(super) fn repair_loop(
             s.record_failure_pub(n, "patch", e.code, &e.message, journal)?;
             continue;
         }
+        s.ctx_candidate = Some("scratch-edit".into());
         let check = cx.compiler.check(&s.work)?;
         if !check.ok {
             diags = check.diagnostics.clone();

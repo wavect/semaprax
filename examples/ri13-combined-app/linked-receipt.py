@@ -15,6 +15,8 @@ M3_PROJECT = EXAMPLES / "ri13-m3-local-http/project"
 UNIFIED_PROJECT = ROOT / "unified-project"
 M1_REGEX_INDEX = EXAMPLES.parent / "crates/semaprax-rust-api-index/fixtures/regex-1.13.1-index-envelope.json"
 M1_URL_INDEX = EXAMPLES.parent / "crates/semaprax-rust-api-index/fixtures/url-2.5.8-index-envelope.json"
+M1_REGEX_LOCK = EXAMPLES.parent / "crates/semaprax-toolchain/src/fixtures/ri06-regex-1.13.1.Cargo.lock"
+M1_URL_LOCK = EXAMPLES.parent / "crates/semaprax-toolchain/src/fixtures/ri06-url-2.5.8.Cargo.lock"
 PATHS = {
     "m1_manifest": M1_PROJECT / "semaprax.toml",
     "m1_source": M1_PROJECT / "src/app.spx",
@@ -30,6 +32,8 @@ PATHS = {
     "unified_tests": UNIFIED_PROJECT / "src/tests.spx",
     "m1_regex_index": M1_REGEX_INDEX,
     "m1_url_index": M1_URL_INDEX,
+    "m1_regex_lock": M1_REGEX_LOCK,
+    "m1_url_lock": M1_URL_LOCK,
     "consumer_cargo": ROOT / "linked/Cargo.toml",
     "consumer_lock": ROOT / "linked/Cargo.lock",
     "prepare_cargo": ROOT / "linked/prepare/Cargo.toml",
@@ -47,6 +51,16 @@ REQUIRED_IDENTITIES = (
     "callback.advance",
     "ri13.m3.score",
 )
+LOCK_DIGESTS = {
+    "m1_regex_lock": "133955c5b309a56339b5cbc0210b01a4d0899c2ef58700c4216fe0bdc1d7e287",
+    "m1_url_lock": "b1cfca6e929aeab1558a9693230853318ad3ced4934b663a7e1b1bdd433d9fb5",
+}
+CALLBACK_ADVANCE = """@id(\"callback.advance\")
+fn advance(state: i64, value: i64) -> i64
+    requires value >= 0
+{
+    state + value
+}"""
 
 
 def digest(path):
@@ -84,6 +98,12 @@ def validate_sources(sources):
         require(sources, "unified_source", f'@id("{identity}")')
     for index in ("m1_regex_index", "m1_url_index"):
         require(sources, index, '"target":"aarch64-apple-darwin"')
+    for name, expected in LOCK_DIGESTS.items():
+        if hashlib.sha256(sources[name].encode()).hexdigest() != expected:
+            raise ValueError(f"linked RI-13 {name} drifted from its selected package lock")
+    require(sources, "unified_source", CALLBACK_ADVANCE)
+    for interface in ("RegexHost", "UrlHost"):
+        require(sources, "unified_source", f"interface {interface}\n    permits {{  }}")
 
     indexed_snapshot = 'with_authenticated_indexed_regex_url_project_packages('
     if sources["prepare"].count(indexed_snapshot) != 1:
@@ -100,6 +120,7 @@ def validate_sources(sources):
         '"callback.factory"',
         '"callback.advance"',
         "let (m1, m2, m3, project_revision) = with_authenticated_indexed_regex_url_project_packages(",
+        "m1.subject_digest, project_revision, m2.source_revision, project_revision,",
         "snapshot.render_source_local_future_rust_module()",
         'root.join("generated/m3.rs")',
         'root.join("generated/linked-subject.json")',
@@ -220,6 +241,9 @@ def self_test():
         ("consumer", "m3::register"),
         ("consumer", 'join("unified-project/semaprax.toml")'),
         ("m1_source", '@id("regex.run")'),
+        ("unified_source", CALLBACK_ADVANCE),
+        ("unified_source", "interface RegexHost\n    permits {  }"),
+        ("prepare", "m1.subject_digest, project_revision, m2.source_revision, project_revision,"),
     ):
         mutant = dict(sources)
         mutant[name] = mutant[name].replace(fragment, "", 1)
@@ -240,6 +264,14 @@ def self_test():
         pass
     else:
         raise AssertionError("validator accepted a consumer retaining the standalone M3 Project")
+    for name in LOCK_DIGESTS:
+        mutant = dict(sources)
+        mutant[name] = mutant[name].replace("version", "drifted-version", 1)
+        try:
+            validate_sources(mutant)
+        except ValueError:
+            continue
+        raise AssertionError(f"validator accepted drifted {name}")
     print("ri13-linked-receipt-self-test-ok")
 
 

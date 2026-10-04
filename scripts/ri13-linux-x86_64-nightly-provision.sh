@@ -133,3 +133,14 @@ container run --arch amd64 --rosetta --rm --init \
     --env "RI13_IMAGE_TAG=$image_tag" \
     --env "RI13_IMAGE_DIGEST=$image_digest" \
     "$image_tag" bash /provision-scripts/ri13-linux-x86_64-nightly-provision-inner.sh
+
+test -s "$output/receipt.json" || {
+    echo "nightly provision did not produce a receipt; inspect $output/provision-failure.txt" >&2
+    exit 1
+}
+for executable in cargo rustc rustdoc; do
+    test -f "$output/toolchain/bin/$executable" || {
+        echo "nightly provision did not produce regular bin/$executable" >&2
+        exit 1
+    }
+done

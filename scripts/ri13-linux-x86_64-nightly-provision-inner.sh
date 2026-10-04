@@ -2,6 +2,8 @@
 # Runs inside ri13-linux-x86_64-nightly-provision.sh's disposable guest.
 set -euo pipefail
 
+trap 'status=$?; printf "nightly provision failed at line %s with status %s\\n" "$LINENO" "$status" > /output/provision-failure.txt; exit "$status"' ERR
+
 readonly date=2026-10-02
 readonly target=x86_64-unknown-linux-gnu
 readonly expected_rustdoc='rustdoc 1.101.0-nightly (c36f14571 2026-10-01)'

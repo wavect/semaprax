@@ -311,3 +311,51 @@ No recovery handle is offered to the model (there is no tool loop); incomplete o
 
 `session.feedback_projection[]` reports `unit`, `raw_cost`, `projected_cost`, the dropped groups, the current
 diagnostic digest, `enlarged_within_approval` and `recovery`.
+
+## TC-03: one durable task spend budget
+
+`workflow::spend` gives each router or generation dispatch a stable attempt id. An attempt is in one of four states:
+- `reserved`;
+- `settled`;
+- `uncertain`: the outcome or cost is unknown, and it still counts at its reservation;
+- `released`: known never dispatched.
+
+The reservation, in tokens and in cost, is written to the task journal (`spend.<label>.<kind>.<n>`) before the
+provider is called. Settlement is recorded before the step's terminal record. One local writer holds
+`<lineage>.journal.lock` per lineage; a dead holder's lock is taken over.
+
+`call_bound` is the per-call cost bound:
+- Every input token is priced at the dearest of the uncached, cache-read and cache-write rates, because a cache hit is
+  never confirmed before dispatch.
+- It adds the enforceable output cap times the output price.
+- The total is multiplied by `1 + gateway_max_retries` (disclosed gateway-owned retries).
+- Arithmetic is checked. A missing price or an overflow makes the call `unpriced`.
+
+Admission uses the minimum of the task limits (`budget.max_task_*`), the host limits (`[budget] task_max_cost_micros`,
+`task_max_tokens`) and the session `max_tokens`. It includes adapter-declared framing and every retry or decision call.
+The next request is refused before sending: `SPX-HPD111` for the session limit, `SPX-HPD101` for task or host limits.
+
+The router is admitted and journaled before it can be called. When it is unaffordable, unpriced under
+`[budget] strict_monetary`, or blocked by a breach, rules route without any model call. When a cap is set, the route
+allowance is the remaining task cost.
+
+Generations settle from the TC-01 receipt; a provider-reported charge wins over the local estimate. Only output
+headroom is released, and only on a known terminal outcome. Unknown cost stays reserved, and a timeout is not free.
+A charge above the bound, or output above the cap, is a breach and blocks further paid work. Explicitly non-billed
+local work remains allowed and token-bounded. Strict monetary mode refuses unpriced billable work, and a priced
+provider without a declared enforced output cap.
+
+On resume, settlements and outstanding reservations for the lineage are restored from the journal before anything
+runs, so a resumed run cannot bypass the cap. Malformed, out-of-order or contradictory accounting, or a live lock
+holder, fails closed with `SPX-HPD070`.
+
+`context.spend` (`semaprax.harness-task-spend.v1`) reports:
+- `limits`;
+- `known_actual_cost_micros`, `outstanding_upper_bound_micros`;
+- `unknown_spend_attempts`, `unpriced_attempts`, `non_billed_attempts`;
+- `committed_tokens`, `committed_cost_micros`, `available_tokens`, `available_cost_micros`;
+- `breach` and `attempts[]`.
+
+`task_ledger` reports committed totals plus each entry's id, cost and state.
+
+The monetary keys are opt-in. A router has no receipt yet, so a billable router stays `uncertain` at its bound.

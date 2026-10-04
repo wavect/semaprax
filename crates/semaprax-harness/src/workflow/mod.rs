@@ -29,6 +29,8 @@ pub mod routing;
 pub mod session;
 mod session_repair;
 pub mod snapshot;
+pub mod spend;
+mod spend_dispatch;
 pub mod stages;
 pub mod tokenizers;
 mod updates_hook;

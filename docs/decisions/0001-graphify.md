@@ -117,3 +117,27 @@ equal-or-better answer accuracy on maintenance tasks.
 3. Generated graphs and caches excluded from Git: met (harness cache, project tree clean).
 4. Benchmarks showing lower size and equal-or-better accuracy on real tasks: partly met (smaller on real-file tasks, byte-v1 not tokens; accuracy not measured).
 5. Adapter merging SEMAPRAX nodes rather than treating `.spx` as text: met by composition (compiler facts via the broker, `.spx` reported skipped); Graphify itself does not extract `.spx`.
+
+## 2026-10-04 HN-09 re-evaluation: graphifyy 0.9.75
+
+Scope: #446. Details and tables: [graphify/EVIDENCE.md](../../packages/semaprax-harness-adapters/graphify/EVIDENCE.md).
+
+Predeclared gate for making Graphify a default `context.repository` provider (fixed before the run):
+
+1. On the six matched tasks, required facts at least equal to Graft, and result bytes at most
+   Graft's on every real-file task.
+2. Warm read at most 0.1 s and cold extraction on the repo snapshot at most 2x the previous version.
+3. Zero callers presented as resolved in the same-name collision suite where the target is not
+   uniquely justified.
+4. Equal-or-better answer accuracy on maintenance tasks (HP-17), measured, not inferred.
+5. Linux evidence for any non-macOS claim.
+
+Result with 0.9.75 (macOS arm64): gate 1 met on bytes (1.3-1.7 KB versus 4.6-9.2 KB) and tied on facts
+(both miss the T1 caller); gate 2 warm met (about 0.04 s), cold on the Rust snapshot not met (2.7 s versus
+0.74 s on 0.9.25, single sample); gate 3 met by the adapter's own classification, not by upstream
+(0.9.75 still emits a wrongly bound `EXTRACTED` TypeScript edge); gate 4 not measured; gate 5 not met
+(Linux untested).
+
+Outcome: opt-in support extends to 0.9.25 and 0.9.75 with explicit per-version schema profiles and a
+version-bound cache. The default is unchanged. Upstream's improved call binding is a reason the adapter
+now resolves same-class and `super` calls, not evidence that Graphify beats the existing workflow.

@@ -9,7 +9,7 @@ compiler build. Outcome of the ADR 0001 re-evaluation: see
 
 ## Adoption journey
 
-1. Install Graphify yourself, outside Cargo: `uv tool install graphifyy==0.9.25`
+1. Install Graphify yourself, outside Cargo: `uv tool install graphifyy==0.9.75` (0.9.25 also tested)
    (the PyPI package is `graphifyy`, two y's; the adapter checks identity, see below).
 2. `semaprax harness adopt packages/semaprax-harness-adapters/graphify/harness-provider.json --upstream <abs path to graphify>`,
    then `semaprax harness trust com.graphify-labs/graphify-context`.
@@ -23,7 +23,7 @@ compiler build. Outcome of the ADR 0001 re-evaluation: see
 
 * The host supplies `SEMAPRAX_HARNESS_UPSTREAM` (absolute graphify path),
   `SEMAPRAX_HARNESS_PROJECT_ROOT` and `SEMAPRAX_HARNESS_CACHE_DIR`. Graph output
-  goes only to `<cache>/graphify-index` (`--out`); the project tree is never written
+  goes only to `<cache>/graphify-index/<version>` (`--out`, staged then published atomically under a cache lock); the project tree is never written
   (a test compares the file tree before and after). Child cwd is the cache dir.
 * Extraction is always `graphify extract <root> --code-only --out ...`: local
   tree-sitter AST, no model call, no docs/PDF/media ingestion. The adapter never
@@ -61,12 +61,15 @@ Request payloads (contract names): `search {query, max_items?}`, `skeleton {path
 `refresh: "auto"|"rebuild"|"never"` (default `auto`: rebuild a graph that is behind the
 tree; `never` answers `stale`). Digests are `sha256:<hex>` of one line without terminator.
 
-* The adapter reads `graphify-out/graph.json` and validates the pinned 0.9.25
-  schema: top-level `nodes` and `links` lists (NetworkX node-link; `edges` is the
+* The adapter reads `graphify-out/graph.json` and validates an explicit schema profile
+  per tested version (`PROFILES` in `adapter.py`: 0.9.25 and 0.9.75; any other version is
+  `unsupported`, there is no guessing). The 0.9.75 profile additionally admits the optional
+  boolean node keys `_callable` and `_callable_class` and nothing else new. The shape: top-level `nodes` and `links` lists (NetworkX node-link; `edges` is the
   `--no-cluster` raw layout and is refused), node keys `id,label,file_type,source_file`
   with `source_location` as `L<line>` (start line only, so spans are
   `start_line == end_line`), edge keys `source,target,relation,confidence,source_file`
-  with `confidence` in `EXTRACTED|INFERRED|AMBIGUOUS`. Any deviation yields
+  with `confidence` in `EXTRACTED|INFERRED|AMBIGUOUS`. Neither version records an end
+  line; upstream ranges are never invented. Any deviation yields
   `unsupported` (`SPX-HPG003`). It never parses `graphify query` output.
 * Provenance: `EXTRACTED` edge -> `structural`; `INFERRED`/`AMBIGUOUS` -> `inferred`;
   an edge to an unresolved stub target (no `source_file`) -> `inferred`. Nodes are
@@ -86,14 +89,31 @@ tree; `never` answers `stale`). Digests are `sha256:<hex>` of one line without t
   only if root, upstream version and digest all match; otherwise it rebuilds.
 * Results are truncated to 80% of `budget.max_result_bytes` and marked incomplete.
 
+* Cache identity: the index lives in `graphify-index/<extractor version>/`, and
+  `adapter-meta.json` (schema v2) records version, profile id, root, source digest and the
+  graph.json SHA-256. Reuse requires every field to match, so output cached by 0.9.25 is
+  never read as the 0.9.75 schema (and an old unversioned index is ignored). Concurrent
+  adapter processes serialize on `<cache>/graphify-index.lock`; builds stage privately.
+* Spans: a node is `[definition]` only when a version-bound source resolver proved its
+  range (Python `ast` `end_lineno`, recorded as `span_resolver` in metadata); every other
+  node is `[start-line]` (one line, not the whole definition). The closed item shape has no
+  span-kind member, so the kind leads `text` and `metadata.span_kinds` counts them. Digests
+  are the host's rule (LF-joined lines), so the host rehashes them independently.
+* Call resolution (`references`): every edge is `resolved`, `ambiguous` or `unsupported`
+  (edge relation `calls:<status>`, text, `metadata.resolution`). Graphify `EXTRACTED` is a
+  parse fact, not a binding proof: a call whose name matches several methods is
+  `ambiguous` (provenance `inferred`) unless the 0.9.75 profile can justify it (same-class
+  call with no subclass override, or `super` call with exactly one defining ancestor).
+  Stub targets are `unsupported`. Dynamic dispatch, untyped receivers and `getattr` leave
+  no edge (`SPX-HPG012`), so references are never exhaustive.
+
 ## Tested and unsupported
 
-Tested: graphifyy 0.9.25, macOS arm64, Python 3.12. Other versions, Linux, Windows
-and concurrent adapter processes sharing one cache dir are untested/unsupported.
+Tested: graphifyy 0.9.25 and 0.9.75, macOS arm64, Python 3.12, including two and three
+processes sharing one cache dir. Other versions, Linux (untested: no local Linux image) and
+Windows are unsupported.
 Unsupported: `.spx`/`.spatch` content (use the native compiler context), documents,
-PDFs, media, model-backed extraction, `--global` graphs, MCP/serve, call-resolution
-completeness (graphify resolves calls by name; same-named symbols across files
-collide, see EVIDENCE.md), end-line spans.
+PDFs, media, model-backed extraction, `--global` graphs, MCP/serve, exhaustive call resolution (see EVIDENCE.md), end-line spans for non-Python languages.
 
 ## Tests
 
@@ -101,5 +121,6 @@ collide, see EVIDENCE.md), end-line spans.
 cd test && python3 -m unittest -v test_adapter
 ```
 
-Uses the real graphify (`SEMAPRAX_HARNESS_UPSTREAM`, default `~/.local/bin/graphify`)
+Uses the real graphify (`SEMAPRAX_HARNESS_UPSTREAM`, default `~/.local/bin/graphify`;
+`SEMAPRAX_HARNESS_UPSTREAM_NEW` enables the 0.9.75 classes)
 over a temporary Python + TypeScript + `.spx` project.

@@ -145,3 +145,50 @@ then `graphify benchmark <d>/graphify-out/graph.json`: still `KeyError: 'links'`
 on the same 9-file corpus reports `Benchmark error: No matching nodes found for
 sample questions.` (the earlier `src` run in this file benchmarked successfully, 6.3x).
 The adapter does not use `--no-cluster` and does not depend on `benchmark`.
+
+## 2026-10-04 HN-09: graphifyy 0.9.75
+
+Install: `uv venv /private/tmp/claude-501/hp-tools/graphify-0.9.75-venv && uv pip install graphifyy==0.9.75`
+(112 MB). Dist metadata: `Name: graphifyy`, `Version: 0.9.75`, Repository
+`https://github.com/Graphify-Labs/graphify`. macOS arm64, Python 3.12. The user's 0.9.25 tool was not touched.
+
+Schema deltas observed (same `nodes`/`links` layout): nodes gain optional `_callable`/`_callable_class`;
+still `source_location: L<n>` only (no end line). 0.9.75 also parses `Cargo.toml` as a code file
+(one node), where 0.9.25 skipped it; coverage follows what upstream indexed.
+
+Collision fixture (`test/test_adapter.py::COLLISION`, 3 files), upstream edges versus adapter verdicts:
+
+| Call site | 0.9.25 upstream | 0.9.75 upstream | Adapter |
+| --- | --- | --- | --- |
+| `Child.other: self.run()` | `Child.run` EXTRACTED | `Child.run` EXTRACTED | 0.9.25 ambiguous; 0.9.75 resolved |
+| `Child.run: super().run()` | no edge | `Base.run` EXTRACTED | 0.9.75 resolved |
+| `Base.go: self.run()` (Child overrides) | `Child.run` (wrong class) | `Base.run` | ambiguous (dynamic dispatch) |
+| `use(o): o.run()` (untyped) | `Other.run` EXTRACTED (false) | no edge | ambiguous / absent |
+| `Both.call: self.ping()` (L, R) | `R.ping` EXTRACTED (false) | no edge | ambiguous / absent |
+| TS `use(x: A): x.run()` | `B.run` EXTRACTED (wrong) | `B.run` EXTRACTED (wrong) | ambiguous |
+| `getattr(o, name)()` | no edge | no edge | unrepresented, `SPX-HPG012` |
+
+0.9.75 improves intra-class and `super` binding, but still emits a wrongly typed `EXTRACTED` edge
+for TypeScript, so the adapter's verdict, not the upstream label, decides provenance.
+
+Matched run (`measure_model_facing_bytes`, same six tasks, same host, Graft 0.18.0):
+
+| Task | native+Graphify 0.9.25 | native+Graphify 0.9.75 | native+Graft 0.18.0 |
+| --- | --- | --- | --- |
+| T1 renderTotal + caller | 2022 B, 1/2, cold 345 ms, warm 38 ms | 2022 B, 1/2, cold 332, warm 34 | 1875 B, 1/2, cold 634, warm 563 |
+| T2 compiler facts | 2881 B, 2/2 | 2881 B, 2/2 | 2735 B, 2/2 |
+| T3 two files | 5784 B, 2/2 | 5784 B, 2/2 | 5336 B, 2/2 |
+| T4 Rust, 6.7 KB file | 1680 B, 1/1, cold 742 | 1680 B, 1/1, cold 2743 | 9236 B, 1/1, cold 1003 |
+| T5 JS, 13.6 KB file | 1287 B, 1/1 | 1287 B, 1/1 | 4580 B, 1/1 |
+| T6 Python, 29.8 KB file | 1293 B, 1/1 | 1293 B, 1/1 | 5439 B, 1/1 |
+
+Index: 0.9.25 14.4 KB / 935 KB; 0.9.75 13.1 KB / 797 KB; Graft 18.3 KB / 937 KB. Warm reads are about
+35-60 ms for both Graphify versions versus 560-775 ms for Graft. The 0.9.75 cold extraction of the
+repo snapshot is 3.7x slower than 0.9.25 in this one run (2.7 s vs 0.74 s; single sample, not
+repeated). The retrieval result is unchanged: the T1 caller is still missed by all arms. No answer-accuracy
+measurement exists (HP-17).
+
+Commands: `cd test && SEMAPRAX_HARNESS_UPSTREAM=~/.local/bin/graphify SEMAPRAX_HARNESS_UPSTREAM_NEW=<venv>/bin/graphify python3 -m unittest test_adapter`
+(45 tests) and `cargo test --offline -p semaprax-harness --test real_tools_v1 -- --ignored --test-threads=1 graphify::`
+with `HARNESS_GRAPHIFY_NEW` set (10 tests, including `graphify_new_version_runs_host_scenarios`).
+Linux: untested (Apple `container images list` fails here and no local image exists).

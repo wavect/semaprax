@@ -60,3 +60,36 @@ fn project_switches_graft_to_graphify_by_config_only() {
 fn graphify_reference_labels_and_no_absence_claim() {
     scenario_references_labels(Tool::Graphify);
 }
+
+/// Re-runs the host scenarios against the newer qualified Graphify (HARNESS_GRAPHIFY_NEW, a
+/// graphifyy 0.9.75 venv executable) by overriding HARNESS_GRAPHIFY in a child of this binary.
+#[test]
+#[ignore = "provisioned: needs SEMAPRAX_COMPILER HARNESS_GRAPHIFY_NEW HARNESS_PYTHON"]
+fn graphify_new_version_runs_host_scenarios() {
+    let new = std::env::var("HARNESS_GRAPHIFY_NEW").expect("HARNESS_GRAPHIFY_NEW");
+    let exe = std::env::current_exe().unwrap();
+    for name in [
+        "graphify::graphify_facts_and_spans",
+        "graphify::graphify_rename_stale_index_and_warm_reuse",
+        "graphify::graphify_worktree_switch",
+        "graphify::graphify_absent_provider_fallback_and_required",
+        "graphify::graphify_planted_secrets_not_inherited",
+        "graphify::graphify_offline_inner",
+        "graphify::graphify_reference_labels_and_no_absence_claim",
+    ] {
+        let out = std::process::Command::new(&exe)
+            .args([name, "--exact", "--ignored", "--nocapture"])
+            .env("HARNESS_GRAPHIFY", &new)
+            .output()
+            .expect("spawn");
+        let text = format!(
+            "{}{}",
+            String::from_utf8_lossy(&out.stdout),
+            String::from_utf8_lossy(&out.stderr)
+        );
+        assert!(
+            out.status.success() && text.contains("1 passed"),
+            "{name} failed on 0.9.75:\n{text}"
+        );
+    }
+}

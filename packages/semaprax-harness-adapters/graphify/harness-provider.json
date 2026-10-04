@@ -40,13 +40,16 @@
   "support": {
     "isolation": "subprocess",
     "license": "Apache-2.0",
-    "tested": [{"os": "macos-aarch64", "result": "pass", "upstream": "0.9.25"}]
+    "tested": [
+      {"os": "macos-aarch64", "result": "pass", "upstream": "0.9.25"},
+      {"os": "macos-aarch64", "result": "pass", "upstream": "0.9.75"}
+    ]
   },
   "upstream": {
     "identity_probe": ["--version"],
     "name": "graphify",
     "package": "pypi:graphifyy",
     "repository": "https://github.com/Graphify-Labs/graphify",
-    "versions": ["0.9.25"]
+    "versions": ["0.9.25", "0.9.75"]
   }
 }

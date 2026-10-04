@@ -78,6 +78,44 @@ pub enum HotReloadDecision {
     Unchanged,
 }
 
+/// Bounded in-process lifecycle observation for one prepared-worker session.
+///
+/// This carries no plan, source, trace, capability, or activation authority.
+/// It lets a coordinator distinguish an ordinary refusal from a safe-boundary
+/// wait and terminal acknowledgement uncertainty without inventing a wire API.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum HotReloadLifecycle {
+    Started,
+    CandidateAdmitted,
+    WaitingForSafePoint,
+    Activated,
+    Refused,
+    TerminalUncertainty,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct HotReloadObservation {
+    lifecycle: HotReloadLifecycle,
+    generation: u64,
+    active_project_revision: String,
+    pending_project_revision: Option<String>,
+}
+
+impl HotReloadObservation {
+    pub fn lifecycle(&self) -> HotReloadLifecycle {
+        self.lifecycle
+    }
+    pub fn generation(&self) -> u64 {
+        self.generation
+    }
+    pub fn active_project_revision(&self) -> &str {
+        &self.active_project_revision
+    }
+    pub fn pending_project_revision(&self) -> Option<&str> {
+        self.pending_project_revision.as_deref()
+    }
+}
+
 impl HotReloadDecision {
     const fn name(self) -> &'static str {
         match self {
@@ -252,6 +290,7 @@ pub struct HotReloadSession {
     worker: PreparedProjectInterpreter,
     terminal: bool,
     source_agent_handoff_status: HotReloadSourceAgentHandoffStatus,
+    observation: HotReloadObservation,
 }
 
 impl HotReloadSession {
@@ -263,6 +302,7 @@ impl HotReloadSession {
         let worker = active
             .prepare_interpreter(options)
             .map_err(HotReloadFailure::candidate)?;
+        let active_project_revision = active.project_revision().to_owned();
         Ok(Self {
             generation: 0,
             submission: 0,
@@ -271,6 +311,12 @@ impl HotReloadSession {
             worker,
             terminal: false,
             source_agent_handoff_status: HotReloadSourceAgentHandoffStatus::Ready,
+            observation: HotReloadObservation {
+                lifecycle: HotReloadLifecycle::Started,
+                generation: 0,
+                active_project_revision,
+                pending_project_revision: None,
+            },
         })
     }
 
@@ -299,6 +345,22 @@ impl HotReloadSession {
         self.worker.worker_id()
     }
 
+    pub fn observation(&self) -> &HotReloadObservation {
+        &self.observation
+    }
+
+    fn observe(&mut self, lifecycle: HotReloadLifecycle) {
+        self.observation = HotReloadObservation {
+            lifecycle,
+            generation: self.generation,
+            active_project_revision: self.active.project_revision().to_owned(),
+            pending_project_revision: self
+                .pending
+                .as_ref()
+                .map(|revision| revision.project_revision().to_owned()),
+        };
+    }
+
     /// Candidate admission is read-only and does not touch the worker.
     pub fn admit_candidate(
         &mut self,
@@ -316,9 +378,13 @@ impl HotReloadSession {
                 "hot reload submission identity is exhausted",
             )
         })?;
-        candidate.check().map_err(HotReloadFailure::candidate)?;
+        if let Err(diagnostics) = candidate.check() {
+            self.observe(HotReloadLifecycle::Refused);
+            return Err(HotReloadFailure::candidate(diagnostics));
+        }
         self.pending = Some(candidate);
         self.submission = next;
+        self.observe(HotReloadLifecycle::CandidateAdmitted);
         Ok(())
     }
 
@@ -631,6 +697,7 @@ impl HotReloadSession {
             Ok(()) => {
                 self.active = self.pending.take().expect("validated pending candidate");
                 self.generation = next;
+                self.observe(HotReloadLifecycle::Activated);
                 Ok(())
             }
             Err(diagnostics) => {
@@ -639,18 +706,21 @@ impl HotReloadSession {
                         && row.message
                             == "prepared interpreter already has one outstanding execution"
                 }) {
+                    self.observe(HotReloadLifecycle::WaitingForSafePoint);
                     Err(HotReloadFailure {
                         reason: HotReloadReason::BusyBoundary,
                         diagnostics,
                     })
                 } else if diagnostics.iter().any(|row| row.code == "SPX-F109") {
                     self.terminal = true;
+                    self.observe(HotReloadLifecycle::TerminalUncertainty);
                     Err(HotReloadFailure {
                         reason: HotReloadReason::TerminalUncertainty,
                         diagnostics,
                     })
                 } else {
                     self.pending = None;
+                    self.observe(HotReloadLifecycle::Refused);
                     Err(HotReloadFailure {
                         reason: HotReloadReason::InvalidCandidate,
                         diagnostics,
@@ -1269,6 +1339,10 @@ mod tests {
         )
         .unwrap();
         let worker = session.worker_id();
+        assert_eq!(
+            session.observation().lifecycle(),
+            HotReloadLifecycle::Started
+        );
         let a = session
             .execute_entry(
                 &PreparedProjectExecutionOptions::default(),
@@ -1281,8 +1355,26 @@ mod tests {
         fixture.rewrite("src/app.spx", "multiply(6, 7)", "multiply(6, 8)");
         let b = fixture.revision();
         session.admit_candidate(Arc::clone(&b)).unwrap();
+        assert_eq!(
+            session.observation().lifecycle(),
+            HotReloadLifecycle::CandidateAdmitted
+        );
+        assert_eq!(
+            session.observation().pending_project_revision(),
+            Some(b.project_revision())
+        );
         session.activate(session.plan().unwrap()).unwrap();
         assert_eq!(session.worker_id(), worker);
+        assert_eq!(
+            session.observation().lifecycle(),
+            HotReloadLifecycle::Activated
+        );
+        assert_eq!(session.observation().generation(), 1);
+        assert_eq!(
+            session.observation().active_project_revision(),
+            b.project_revision()
+        );
+        assert_eq!(session.observation().pending_project_revision(), None);
         let b_run = session
             .execute_entry(
                 &PreparedProjectExecutionOptions::default(),

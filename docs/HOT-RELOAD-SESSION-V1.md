@@ -31,6 +31,13 @@ neither a stable wire value nor activation authority. Each completed execution
 keeps its ordinary revision-bound source trace: an A trace remains replayable
 only against A after B or C is active.
 
+The session also exposes one bounded in-process lifecycle observation. It
+contains only the last lifecycle state, generation, active revision and an
+optional pending revision. `candidate_admitted`, `waiting_for_safe_point`,
+`activated`, ordinary `refused`, and `terminal_uncertainty` distinguish the
+coordinator outcomes without retaining plans, source, traces, capabilities or
+a second transport protocol.
+
 ## Current compatibility rule
 
 The local prepared-interpreter lane derives the callable closure from each

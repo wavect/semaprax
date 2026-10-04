@@ -27,7 +27,7 @@ fn retained_a_to_b_to_c_handoff_carries_state_without_initialize_or_redispatch()
     let a_config = saved_a_config;
     let a_checkpoint = fixture.0.join("checkpoint-a");
     let a_calls = Rc::new(Cell::new(0));
-    let a = super::run::execute_with_runner(
+    let a = super::super::run::execute_with_runner(
         run_command(
             "run",
             &a_config,
@@ -57,7 +57,7 @@ fn retained_a_to_b_to_c_handoff_carries_state_without_initialize_or_redispatch()
     let b_config = saved_b_config;
     let b_checkpoint = fixture.0.join("checkpoint-b");
     let b_calls = Rc::new(Cell::new(0));
-    let b = super::run::execute_with_runner(
+    let b = super::super::run::execute_with_runner(
         migrate_command(
             &a_config,
             &a_checkpoint,
@@ -95,7 +95,7 @@ fn retained_a_to_b_to_c_handoff_carries_state_without_initialize_or_redispatch()
     // or claims this handoff.
     fs::write(b_checkpoint.join("checkpoint.json"), b"{\"forged\":true}\n").unwrap();
     let fault_calls = Rc::new(Cell::new(0));
-    assert!(super::run::execute_with_runner(
+    assert!(super::super::run::execute_with_runner(
         migrate_command_with_function(
             &b_config,
             &b_checkpoint,
@@ -124,7 +124,7 @@ fn retained_a_to_b_to_c_handoff_carries_state_without_initialize_or_redispatch()
         altered[mutate.0] = mutate.1;
         fs::write(&c_config, serde_json::to_vec(&altered).unwrap()).unwrap();
         let calls = Rc::new(Cell::new(0));
-        assert!(super::run::execute_with_runner(
+        assert!(super::super::run::execute_with_runner(
             migrate_command_with_function(
                 &b_config,
                 &b_checkpoint,
@@ -145,7 +145,7 @@ fn retained_a_to_b_to_c_handoff_carries_state_without_initialize_or_redispatch()
     fs::write(&c_config, &c_config_bytes).unwrap();
 
     let c_calls = Rc::new(Cell::new(0));
-    let c = super::run::execute_with_runner(
+    let c = super::super::run::execute_with_runner(
         migrate_command_with_function(
             &b_config,
             &b_checkpoint,
@@ -162,14 +162,16 @@ fn retained_a_to_b_to_c_handoff_carries_state_without_initialize_or_redispatch()
     assert_eq!(c["model_dispatches"], 1);
     assert_eq!(c["effect_dispatches"], 1);
     assert_eq!(c["committed_model_units"], 3);
-    assert!(c["committed_stage_fuel"] > b["committed_stage_fuel"]);
+    assert!(
+        c["committed_stage_fuel"].as_u64().unwrap() > b["committed_stage_fuel"].as_u64().unwrap()
+    );
     assert_eq!(c_calls.get(), 1);
     let c_journal = fs::read(c_checkpoint.join("checkpoint.json")).unwrap();
     let c_document: serde_json::Value = serde_json::from_slice(&c_journal).unwrap();
     assert_eq!(stage_count(&c_document, "initialize"), 0);
     assert_eq!(stage_count(&c_document, "observe"), 1);
 
-    let replay = super::run::execute_with_runner(
+    let replay = super::super::run::execute_with_runner(
         migrate_command_with_function(
             &b_config,
             &b_checkpoint,

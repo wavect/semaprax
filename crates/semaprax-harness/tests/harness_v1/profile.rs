@@ -1137,10 +1137,213 @@ fn hp_hp02_bundled_local_upstream_is_trusted_without_an_upstream_executable() {
     let home = crate::support::fixture_dir("hp-hp02-bundled-home");
     let project = crate::support::fixture_dir("hp-hp02-bundled-project");
     let e = env(&home, &project);
-    let desc = crate::support::repo_root()
-        .join("packages/semaprax-harness-adapters/examples/output-view-python/harness-provider.json");
+    let desc = crate::support::repo_root().join(
+        "packages/semaprax-harness-adapters/examples/output-view-python/harness-provider.json",
+    );
     ok(&e, &["adopt", desc.to_str().unwrap()]);
     ok(&e, &["trust", "org.example/output-view"]);
-    let status = ok(&e, &["status", "--project", project.to_str().unwrap(), "--json"]);
+    let status = ok(
+        &e,
+        &["status", "--project", project.to_str().unwrap(), "--json"],
+    );
     assert!(status.contains("org.example/output-view"), "{status}");
+}
+
+// ---- hpwire: machine-local runtimes, skill roots, workflow/model config ----
+
+#[test]
+fn hp_hpwire_adopt_runtime_is_recorded_machine_local_and_resolved() {
+    let root = fixture_dir("hp-hpwire-rt").canonicalize().unwrap();
+    let (home, project) = (root.join("home"), root.join("project"));
+    std::fs::create_dir_all(&project).unwrap();
+    let e = env(&home, &project);
+    let p = provision(&root, "ctx", "org.example/ctx-rt", &[CTX], "1.0.0", None);
+    let rt = write(&root, "rt/node", "#!/bin/sh\nexit 0\n");
+    std::fs::set_permissions(&rt, std::fs::Permissions::from_mode(0o755)).unwrap();
+    let out = ok(
+        &e,
+        &[
+            "adopt",
+            p.desc.to_str().unwrap(),
+            "--upstream",
+            p.upstream.to_str().unwrap(),
+            "--runtime",
+            rt.to_str().unwrap(),
+            "--project",
+            project.to_str().unwrap(),
+        ],
+    );
+    assert!(out.contains("runtime "), "{out}");
+    ok(&e, &["trust", "org.example/ctx-rt"]);
+    let state = LocalState::load(&e).unwrap();
+    assert_eq!(
+        state.installations["org.example/ctx-rt"].runtime.as_deref(),
+        Some(rt.canonicalize().unwrap().as_path())
+    );
+    // Re-adopting without --runtime keeps the recorded choice.
+    ok(
+        &e,
+        &[
+            "adopt",
+            p.desc.to_str().unwrap(),
+            "--upstream",
+            p.upstream.to_str().unwrap(),
+        ],
+    );
+    let state = LocalState::load(&e).unwrap();
+    assert!(state.installations["org.example/ctx-rt"].runtime.is_some());
+    // Relative and project-local runtimes are refused.
+    let o = run(
+        &s(&["adopt", p.desc.to_str().unwrap(), "--runtime", "node"]),
+        &e,
+    );
+    assert_eq!(o.code, 1, "{}", o.stderr);
+    let local = write(&project, "bin/node", "#!/bin/sh\n");
+    let o = run(
+        &s(&[
+            "adopt",
+            p.desc.to_str().unwrap(),
+            "--runtime",
+            local.to_str().unwrap(),
+            "--project",
+            project.to_str().unwrap(),
+        ]),
+        &e,
+    );
+    assert!(o.stderr.contains("SPX-HPB024"), "{}", o.stderr);
+    // The resolution carries it to launch consumers.
+    write(
+        &project,
+        "semaprax.harness.toml",
+        "schema = \"semaprax.harness-config.v1\"\n",
+    );
+    let res = profile::resolve_project(&e, &project).unwrap();
+    assert_eq!(
+        res.launches[&CTX_KIND].runtime,
+        state.installations["org.example/ctx-rt"].runtime
+    );
+}
+
+#[test]
+fn hp_hpwire_adopt_skills_root_is_machine_local_and_never_from_the_project() {
+    let root = fixture_dir("hp-hpwire-sk").canonicalize().unwrap();
+    let (home, project) = (root.join("home"), root.join("project"));
+    std::fs::create_dir_all(&project).unwrap();
+    let e = env(&home, &project);
+    let skills = root.join("skills");
+    std::fs::create_dir_all(&skills).unwrap();
+    ok(
+        &e,
+        &[
+            "adopt",
+            "--skills",
+            skills.to_str().unwrap(),
+            "--origin",
+            "team-skills",
+            "--project",
+            project.to_str().unwrap(),
+        ],
+    );
+    let st = LocalState::load(&e).unwrap();
+    assert_eq!(st.skill_roots.len(), 1);
+    assert_eq!(st.skill_roots[0].origin, "team-skills");
+    let inside = project.join("skills");
+    std::fs::create_dir_all(&inside).unwrap();
+    let o = run(
+        &s(&[
+            "adopt",
+            "--skills",
+            inside.to_str().unwrap(),
+            "--project",
+            project.to_str().unwrap(),
+        ]),
+        &e,
+    );
+    assert!(o.stderr.contains("SPX-HPB024"), "{}", o.stderr);
+    let o = run(&s(&["adopt", "--skills", "relative"]), &e);
+    assert_eq!(o.code, 1);
+    assert_eq!(LocalState::load(&e).unwrap().skill_roots.len(), 1);
+}
+
+#[test]
+fn hp_hpwire_config_workflow_checks_and_model_policy() {
+    let text = "schema = \"semaprax.harness-config.v1\"\n[workflow.check.unit]\nargv = [\"cargo\", \"test\", \"-q\"]\n[model]\nlocal_only = true\nstrict_one_attempt = true\nlogical = \"local-strong\"\n";
+    let c = config::parse(text.as_bytes()).unwrap();
+    assert_eq!(c.workflow.checks["unit"], ["cargo", "test", "-q"]);
+    assert!(c.model.local_only && c.model.strict_one_attempt);
+    assert_eq!(c.model.logical.as_deref(), Some("local-strong"));
+    // A default configuration keeps its pre-existing digest (new members are additive).
+    let base = config::parse(b"schema = \"semaprax.harness-config.v1\"\n").unwrap();
+    assert!(base.to_json().get("workflow").is_none() && base.to_json().get("model").is_none());
+    assert_ne!(base.digest(), c.digest());
+    for (bad, code) in [
+        (
+            "[workflow.check.x]\nargv = [\"/usr/bin/git\"]\n",
+            "SPX-HPB007",
+        ),
+        ("[workflow.check.x]\n", "SPX-HPB004"),
+        ("[workflow.check.x]\nargv = []\n", "SPX-HPB004"),
+        (
+            "[workflow.check.x]\nargv = [\"a\"]\nshell = \"x\"\n",
+            "SPX-HPB003",
+        ),
+        ("[model]\nlocal_only = \"yes\"\n", "SPX-HPB004"),
+    ] {
+        let (c, m) = refused(&format!("schema = \"semaprax.harness-config.v1\"\n{bad}"));
+        assert_eq!(c, code, "{bad}: {m}");
+    }
+}
+
+#[test]
+fn hp_hpwire_environment_forwards_only_declared_credential_and_marker_vars() {
+    use semaprax_harness::endpoint::{AttemptOwnership, Catalog, EndpointKind, EndpointRecord};
+    let root = fixture_dir("hp-hpwire-env").canonicalize().unwrap();
+    let home = root.join("home");
+    let mut cat = Catalog::default();
+    cat.endpoints.insert(
+        "gw".into(),
+        EndpointRecord {
+            id: "gw".into(),
+            kind: EndpointKind::LiteLlm,
+            url: "http://127.0.0.1:4000".into(),
+            credential_env: Some("HPWIRE_CRED_DECLARED".into()),
+            probe_model: "m".into(),
+            returned_model: None,
+            models: vec![],
+            probes: BTreeMap::new(),
+            ownership: AttemptOwnership::direct(),
+            destinations: vec![],
+            disclosed: true,
+        },
+    );
+    cat.save(&home).unwrap();
+    // Process-wide environment: unique names, restored below.
+    let set = [
+        ("SEMAPRAX_HARNESS_HOME", home.to_str().unwrap()),
+        ("HPWIRE_CRED_DECLARED", "declared-value"),
+        ("HPWIRE_CRED_UNDECLARED", "must-not-leak"),
+        ("SEMAPRAX_HARNESS_BRIDGE_DEPTH", "2"),
+        ("SEMAPRAX_HARNESS_COMMAND_VIEW_LINEAGE", "exec:abc"),
+        ("SEMAPRAX_HARNESS_EXTERNAL_VIEW_OWNER", "rtk-hook"),
+    ];
+    for (k, v) in set {
+        std::env::set_var(k, v);
+    }
+    let e = Environment::from_process();
+    for (k, _) in set {
+        std::env::remove_var(k);
+    }
+    assert_eq!(
+        e.vars.get("HPWIRE_CRED_DECLARED").map(String::as_str),
+        Some("declared-value")
+    );
+    assert!(
+        !e.vars.contains_key("HPWIRE_CRED_UNDECLARED"),
+        "{:?}",
+        e.vars.keys()
+    );
+    assert_eq!(e.vars["SEMAPRAX_HARNESS_BRIDGE_DEPTH"], "2");
+    assert_eq!(e.vars["SEMAPRAX_HARNESS_COMMAND_VIEW_LINEAGE"], "exec:abc");
+    assert_eq!(e.vars["SEMAPRAX_HARNESS_EXTERNAL_VIEW_OWNER"], "rtk-hook");
+    assert!(!e.vars.contains_key("SEMAPRAX_HARNESS_HOME"));
 }

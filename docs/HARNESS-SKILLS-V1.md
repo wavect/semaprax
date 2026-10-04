@@ -55,3 +55,10 @@ dependency; 012 approved-digest mismatch; 020-023 flagged text (warnings).
 ## CLI
 
 `skills [list|load <digest>] --root <abs-dir>... [--tags t1,t2] [--select a,b] [--max-bytes N] [--json]`
+
+## Workflow integration
+
+`semaprax harness adopt --skills <abs-dir> [--origin label]` approves a machine-local root (refused inside the
+project, `SPX-HPB024`). `skills::PlainSkills` is the builtin `semaprax/plain-skills` provider: `list`/`load`
+payloads from `SkillService` satisfy the `skill.catalog` contract validators (tested). The workflow renders the
+prompt for the task family tags and counts `model_visible_bytes`.

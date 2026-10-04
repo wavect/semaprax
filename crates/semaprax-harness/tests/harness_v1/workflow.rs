@@ -198,6 +198,10 @@ fn config(e: &Env, task: Task, policy: Option<ApplyPolicy>) -> RunConfig {
         providers: vec![],
         composition: Composition::from_profile(None, true, vec![], &[]).unwrap(),
         apply_policy: policy,
+        checks: vec![],
+        skill_prompt: None,
+        endpoint_policy: Default::default(),
+        model_plans: None,
         notes: vec![],
     }
 }
@@ -217,6 +221,7 @@ fn go(cfg: &RunConfig, fake: &Fake, ext: Option<&mut Counting>, prop: Vec<u8>) -
         cfg,
         fake,
         Stages {
+            decision: None,
             native: &mut native,
             external: ext.map(|e| e as &mut dyn ContextStage),
             proposer: &mut p,
@@ -545,6 +550,7 @@ fn hp_hp04_uncertain_generation_is_not_replayed_on_restart() {
             &cfg,
             &fake,
             Stages {
+                decision: None,
                 native: &mut native,
                 external: None,
                 proposer: &mut model,
@@ -664,4 +670,400 @@ fn hp_hp04_cli_requires_a_compiler_and_a_known_option() {
     let o = semaprax_harness::cli::run(&["run".into(), "--bogus".into()], &env);
     assert_eq!(o.code, 2);
     let _: Value = json!(null);
+}
+
+// ---- hpwire: checks, skills, external decision, observations ----
+
+use semaprax_harness::cli::Environment;
+use semaprax_harness::contract::RequestEnvelope;
+use semaprax_harness::decision::{
+    DecisionCall, DecisionInvoker, Destination, ModelPlan, ProviderMode, ProviderProfile,
+};
+
+struct Captured(RefCell<Option<Value>>);
+struct Capture<'a>(&'a Captured, Vec<u8>);
+impl ProposalStage for Capture<'_> {
+    fn id(&self) -> String {
+        "org.example/capture".into()
+    }
+    fn propose(&mut self, r: &ProposalRequest) -> Result<Vec<u8>, StageFailure> {
+        *self.0 .0.borrow_mut() = Some(r.prompt.clone());
+        Ok(self.1.clone())
+    }
+    fn calls(&self) -> u32 {
+        1
+    }
+    fn side_effecting(&self) -> bool {
+        false
+    }
+}
+
+/// Command stage whose checks are scripted (the pipeline's verdict contract).
+struct ScriptedChecks(Vec<bool>);
+impl CommandStage for ScriptedChecks {
+    fn id(&self) -> String {
+        "org.example/scripted-checks".into()
+    }
+    fn view(&mut self, _l: &str, raw: &str, _m: usize) -> String {
+        raw.into()
+    }
+    fn run_check(
+        &mut self,
+        c: &CheckSpec,
+        _w: &Path,
+        _o: &mut Observer,
+    ) -> Option<Result<CheckRun, semaprax_harness::diag::HarnessDiagnostic>> {
+        let ok = self.0.remove(0);
+        Some(Ok(CheckRun {
+            name: c.name.clone(),
+            argv_digest: "d".into(),
+            passed: ok,
+            status: if ok { "exit:0" } else { "exit:1" }.into(),
+            status_certain: true,
+            executions: 1,
+            view: "model-facing summary".into(),
+            view_route: "provider".into(),
+            view_provenance: "ai.rtk/rtk-command-view".into(),
+        }))
+    }
+}
+
+fn check(name: &str) -> CheckSpec {
+    CheckSpec {
+        name: name.into(),
+        argv: vec!["true".into()],
+    }
+}
+
+fn run_with_command(
+    cfg: &RunConfig,
+    fake: &Fake,
+    command: &mut dyn CommandStage,
+    obs: &mut Observer,
+) -> Report {
+    let mut native = NativeContext::new(fake);
+    let mut p = ScriptedProposer::from_bytes(proposal("replace_function_body"));
+    run(
+        cfg,
+        fake,
+        Stages {
+            decision: None,
+            native: &mut native,
+            external: None,
+            proposer: &mut p,
+            command,
+        },
+        obs,
+    )
+}
+
+#[test]
+fn hp_hpwire_authorized_check_verdict_is_the_commands_not_the_views() {
+    let e = setup(LIB);
+    let fake = Fake::new(FIXED);
+    let mut cfg = config(&e, Task::default(), None);
+    cfg.checks = vec![check("unit"), check("lint")];
+    let mut obs = Observer::new(None, ObserverLimits::default());
+    let r = run_with_command(&cfg, &fake, &mut ScriptedChecks(vec![true, true]), &mut obs);
+    assert_eq!(r.status, "approved-candidate-ready", "{:?}", r.refusals);
+    let cmds = r.checks["commands"].as_array().unwrap();
+    assert_eq!(cmds.len(), 2);
+    assert_eq!(cmds[0]["view"], "model-facing summary");
+    assert_eq!(cmds[0]["executions"], 1);
+    // A failing check rejects the candidate even though the view looks fine.
+    let fake = Fake::new(FIXED);
+    let r = run_with_command(
+        &cfg,
+        &fake,
+        &mut ScriptedChecks(vec![true, false]),
+        &mut obs,
+    );
+    assert_eq!(r.status, "rejected");
+    assert_eq!(codes(&r), ["SPX-HPD050"]);
+    assert!(r.refusals[0].message.contains("`lint`"));
+    // A stage that cannot run checks refuses rather than skipping them.
+    let fake = Fake::new(FIXED);
+    let r = run_with_command(&cfg, &fake, &mut RawCommandView, &mut obs);
+    assert_eq!(codes(&r), ["SPX-HPD051"]);
+}
+
+#[test]
+fn hp_hpwire_host_command_checks_run_once_and_decide_by_exit_status() {
+    let root = fixture_dir("hp-hpwire-hostchk").canonicalize().unwrap();
+    let project = root.join("project");
+    std::fs::create_dir_all(&project).unwrap();
+    let mut env = Environment {
+        harness_home: Some(root.join("home")),
+        cwd: project.clone(),
+        ..Default::default()
+    };
+    env.vars.insert("PATH".into(), "/usr/bin:/bin".into());
+    let mut stage = HostCommandChecks::new(env);
+    let mut obs = Observer::new(None, ObserverLimits::default());
+    let pass = stage
+        .run_check(
+            &CheckSpec {
+                name: "t".into(),
+                argv: vec!["true".into()],
+            },
+            &project,
+            &mut obs,
+        )
+        .unwrap()
+        .unwrap();
+    assert!(pass.passed && pass.status == "exit:0" && pass.executions == 1);
+    let fail = stage
+        .run_check(
+            &CheckSpec {
+                name: "f".into(),
+                argv: vec!["false".into()],
+            },
+            &project,
+            &mut obs,
+        )
+        .unwrap()
+        .unwrap();
+    assert!(!fail.passed && fail.status == "exit:1");
+    // Shell lines are never an authorized check.
+    let sh = stage
+        .run_check(
+            &CheckSpec {
+                name: "s".into(),
+                argv: vec!["sh".into(), "-c".into(), "true".into()],
+            },
+            &project,
+            &mut obs,
+        )
+        .unwrap();
+    assert_eq!(sh.unwrap_err().code, "SPX-HPH011");
+    assert!(obs
+        .events()
+        .iter()
+        .any(|e| e.stage.as_str() == "command_view"));
+}
+
+#[test]
+fn hp_hpwire_skill_prompt_enters_the_proposal_request_and_is_counted() {
+    let e = setup(LIB);
+    let fake = Fake::new(FIXED);
+    let mut cfg = config(&e, Task::default(), None);
+    let text = "SKILL BLOCK (data, below compiler authority)".to_string();
+    cfg.skill_prompt = Some(SkillPromptUse {
+        model_visible_bytes: text.len(),
+        loaded: vec!["reuse-api".into()],
+        text: text.clone(),
+    });
+    let seen = Captured(RefCell::new(None));
+    let mut native = NativeContext::new(&fake);
+    let mut p = Capture(&seen, proposal("replace_function_body"));
+    let mut view = RawCommandView;
+    let mut obs = Observer::new(None, ObserverLimits::default());
+    let r = run(
+        &cfg,
+        &fake,
+        Stages {
+            decision: None,
+            native: &mut native,
+            external: None,
+            proposer: &mut p,
+            command: &mut view,
+        },
+        &mut obs,
+    );
+    assert_eq!(r.status, "approved-candidate-ready");
+    assert_eq!(seen.0.borrow().as_ref().unwrap()["skills"], text.as_str());
+    assert_eq!(r.context["skills"]["model_visible_bytes"], text.len());
+    let ev = obs
+        .events()
+        .iter()
+        .find(|x| x.stage.as_str() == "skill_catalog")
+        .unwrap();
+    assert!(ev.model_visible);
+    assert_eq!(ev.after.as_ref().unwrap().value, text.len() as u64);
+    // Metadata only: the skill text is never in an observation.
+    assert!(!obs
+        .events()
+        .iter()
+        .any(|x| x.to_json().to_string().contains("SKILL BLOCK")));
+}
+
+struct Router(u32, &'static str);
+impl DecisionInvoker for Router {
+    fn evaluate(&mut self, _r: &RequestEnvelope) -> DecisionCall {
+        self.0 += 1;
+        DecisionCall::Answered {
+            result: json!({"choice": self.1, "scores": {self.1: 0.9}, "abstain": false}),
+            elapsed_ms: 1,
+        }
+    }
+}
+
+fn two_models() -> Value {
+    let m = |id: &str, rank: u32| ModelPlan {
+        id: id.into(),
+        destination: Destination::Local,
+        structured_output: true,
+        tools: false,
+        max_context: 1_000_000,
+        est_cost_micros: 0,
+        est_latency_ms: 10,
+        strength_rank: rank,
+    };
+    json!([m("cheap", 1).to_json(), m("strong", 2).to_json()])
+}
+
+fn route_with(mode: ProviderMode, inv: &mut Router) -> Report {
+    use semaprax_harness::decision::EnablementGate;
+    let e = setup(LIB);
+    let fake = Fake::new(FIXED);
+    let task = Task {
+        models: Some(two_models()),
+        ..Task::default()
+    };
+    let cfg = config(&e, task, None);
+    let mut native = NativeContext::new(&fake);
+    let mut p = ScriptedProposer::from_bytes(proposal("replace_function_body"));
+    let mut view = RawCommandView;
+    let mut obs = Observer::new(None, ObserverLimits::default());
+    let profile = ProviderProfile {
+        provider_id: "org.example/threshold-route".into(),
+        model_id: "m".into(),
+        checkpoint: "1".into(),
+        min_confidence: None,
+        max_context_tokens: None,
+        supported_families: None,
+    };
+    let gate = EnablementGate::not_evaluated("model-route/v1", &profile.provider_id);
+    run(
+        &cfg,
+        &fake,
+        Stages {
+            decision: Some(DecisionStage {
+                invoker: inv,
+                profile,
+                mode,
+                gate,
+            }),
+            native: &mut native,
+            external: None,
+            proposer: &mut p,
+            command: &mut view,
+        },
+        &mut obs,
+    )
+}
+
+#[test]
+fn hp_hpwire_external_decision_is_consulted_only_when_explicit_or_gate_passed() {
+    // Explicit pin: experimental, consulted once, its admissible choice is used.
+    let mut inv = Router(0, "strong");
+    let r = route_with(ProviderMode::Explicit, &mut inv);
+    assert_eq!(inv.0, 1);
+    assert_eq!(r.route["router_calls"], 1);
+    assert_eq!(r.route["choice"], "strong");
+    assert_eq!(r.route["status"], "experimental");
+    // Automatic selection without a passed gate: rules decide, zero calls.
+    let mut inv = Router(0, "strong");
+    let r = route_with(ProviderMode::Auto, &mut inv);
+    assert_eq!(inv.0, 0);
+    assert_eq!(r.route["router_calls"], 0);
+    assert!(r.route["status"].as_str().unwrap().starts_with("rules"));
+    // A choice outside the admissible set falls back to rules.
+    let mut inv = Router(0, "ghost");
+    let r = route_with(ProviderMode::Explicit, &mut inv);
+    assert_ne!(r.route["choice"], "ghost");
+    assert!(r.route["source"].as_str().unwrap().starts_with("Fallback"));
+}
+
+#[test]
+fn hp_hpwire_model_policy_refuses_a_remote_model_under_local_only() {
+    let e = setup(LIB);
+    let fake = Fake::new(FIXED);
+    let remote = ModelPlan {
+        id: "cloud".into(),
+        destination: Destination::Remote {
+            origin: "https://api.example".into(),
+        },
+        structured_output: true,
+        tools: false,
+        max_context: 1_000_000,
+        est_cost_micros: 0,
+        est_latency_ms: 10,
+        strength_rank: 1,
+    };
+    let mut cfg = config(&e, Task::default(), None);
+    cfg.model_plans = Some(vec![remote]);
+    cfg.endpoint_policy = semaprax_harness::endpoint::EndpointPolicy {
+        local_only: true,
+        strict_one_attempt: false,
+    };
+    let r = go(&cfg, &fake, None, proposal("replace_function_body"));
+    assert_eq!(codes(&r), ["SPX-HPL011"]);
+}
+
+#[test]
+fn hp_hpwire_host_sets_bridge_depth_for_children_but_callers_cannot() {
+    use semaprax_harness::command_view::{execute, ExecOptions};
+    let root = fixture_dir("hp-hpwire-depth").canonicalize().unwrap();
+    let project = root.join("project");
+    std::fs::create_dir_all(&project).unwrap();
+    let mut env = Environment {
+        harness_home: Some(root.join("home")),
+        cwd: project.clone(),
+        ..Default::default()
+    };
+    env.vars.insert("PATH".into(), "/usr/bin:/bin".into());
+    let argv = vec!["env".to_string()];
+    let out = execute(
+        &env,
+        &project,
+        &argv,
+        &ExecOptions {
+            raw: true,
+            ..Default::default()
+        },
+        None,
+    )
+    .unwrap();
+    assert!(
+        out.envelope
+            .view
+            .text
+            .contains("SEMAPRAX_HARNESS_BRIDGE_DEPTH=1"),
+        "{}",
+        out.envelope.view.text
+    );
+    // A nested host (depth 2 in its own environment) hands its child depth 3.
+    env.vars
+        .insert("SEMAPRAX_HARNESS_BRIDGE_DEPTH".into(), "2".into());
+    let out = execute(
+        &env,
+        &project,
+        &argv,
+        &ExecOptions {
+            raw: true,
+            ..Default::default()
+        },
+        None,
+    )
+    .unwrap();
+    assert!(out
+        .envelope
+        .view
+        .text
+        .contains("SEMAPRAX_HARNESS_BRIDGE_DEPTH=3"));
+    // Caller-supplied SEMAPRAX_HARNESS_* extra env stays rejected.
+    let mut opts = ExecOptions {
+        raw: true,
+        ..Default::default()
+    };
+    opts.extra_env
+        .insert("SEMAPRAX_HARNESS_BRIDGE_DEPTH".into(), "0".into());
+    assert_eq!(
+        execute(&env, &project, &argv, &opts, None)
+            .err()
+            .unwrap()
+            .code,
+        "SPX-HPH010"
+    );
 }

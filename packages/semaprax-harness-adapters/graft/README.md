@@ -71,13 +71,13 @@ worktree) maps to a different index.
 ## Result mapping
 
 Item: `{path, span{start_line,end_line}, digest, provenance, language, rank, text?}`. `path` is
-project-relative POSIX. `digest` is lowercase hex sha256 of the exact bytes of the span's lines
-(terminators included); a file-level item hashes the whole file. `rank` is graft's order, 1-based.
+project-relative POSIX. `digest` is `sha256:<hex>` of the exact bytes of the span's lines
+(lines joined by LF, no trailing terminator: the context broker's re-hash convention); a file-level item hashes all lines. `rank` is graft's order, 1-based.
 
 | Operation | Graft command | Provenance | Exhaustive |
 | --- | --- | --- | --- |
 | `orient` `{max_dirs?}` | `map --json` | `structural` | never |
-| `search` `{query, mode:"ranked"\|"exact", limit?, path_prefix?, include_source?}` | `ask --json` / `grep --json --fixed` | `structural` / `inferred` (text match) | ranked never; exact only if not truncated |
+| `search` `{query, max_items?, in?, refresh?}` (`mode`, `include_source` are adapter-internal defaults) | `ask --json` / `grep --json --fixed` | `structural` / `inferred` (text match) | ranked never; exact only if not truncated |
 | `skeleton` `{path}` | `skeleton --json` | `structural` | never |
 | `references` `{symbol, direction?, depth?, path_prefix?, exhaustive?}` | `callers --json`; with `exhaustive:true` also `grep --fixed` | `structural`, `inferred` for text sites | only with `exhaustive:true` and untruncated |
 

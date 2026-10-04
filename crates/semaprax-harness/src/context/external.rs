@@ -224,12 +224,15 @@ impl HostExternal {
             )
         })?;
         let desc = &self.launch.descriptor;
-        let runtime_executable = match desc.runtime {
-            Runtime::Python => self.env.vars.get("HARNESS_PYTHON"),
-            Runtime::Node => self.env.vars.get("HARNESS_NODE"),
-            _ => None,
-        }
-        .map(std::path::PathBuf::from);
+        // The runtime recorded at adoption wins; `HARNESS_*` is the fallback.
+        let runtime_executable = self.launch.runtime.clone().or_else(|| {
+            match desc.runtime {
+                Runtime::Python => self.env.vars.get("HARNESS_PYTHON"),
+                Runtime::Node => self.env.vars.get("HARNESS_NODE"),
+                _ => None,
+            }
+            .map(std::path::PathBuf::from)
+        });
         let tag = format!(
             "{}-{}",
             desc.provider_id.replace('/', "_"),
@@ -373,6 +376,13 @@ fn parse_payload(p: &Value) -> HarnessResult<(Vec<RawItem>, Coverage, bool)> {
         })
         .collect::<Option<Vec<_>>>()
         .ok_or_else(bad)?;
+    // Extraction errors are files the provider failed on: report them as skipped.
+    let mut skipped = skipped;
+    for x in c["extraction_errors"].as_array().into_iter().flatten() {
+        if let (Some(p), Some(r)) = (x["path"].as_str(), x["reason"].as_str()) {
+            skipped.push((p.to_string(), format!("extraction error: {r}")));
+        }
+    }
     let cov = Coverage {
         complete: c["complete"].as_bool().ok_or_else(bad)?,
         exhaustive: c["exhaustive"].as_bool().ok_or_else(bad)?,

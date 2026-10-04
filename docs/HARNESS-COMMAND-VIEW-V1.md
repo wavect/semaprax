@@ -35,6 +35,32 @@ If the provider fails, the raw view is used; the command is never re-run. If a p
 drops a critical raw line, the host appends it, marks the view `incomplete` and adds the recovery
 reference. Undecodable bytes count as omissions.
 
+## Contract operations (`command.view/v1`)
+
+Operations `view`, `wrap`, `plan`; every payload is closed and bounded (`SPX-HPA040`/`041`) and no
+result may carry an exit status or signal (`SPX-HPA042`).
+
+- `view` request: `form:"post-execution"`, `argv`, each of stdout and stderr by exactly one of
+  `stdout|stdout_b64|stdout_path` (and `stderr...`), optional `min_bytes`, `max_bytes`,
+  `recovery_handle`, `config` (flat scalar object, at most 32 members). A `*_path` is relative to the
+  provider's own retention directory (no root, `..`, backslash). Result: `{form, view:{text, lossless,
+  omissions, recovery_handle?}}`.
+- `plan` request: `argv`, `cwd_rel` (`.` or relative), optional `estimated_output_bytes`,
+  `external_hooks`, `lineage`, `form` (`post-execution|wrapper`), `config`. Result: `route`
+  `post-execution | wrapped | bypass`; `bypass` carries `reason`; `wrapped` carries validated string
+  `argv`; optional `form`, `family`, `filter`, `operation`, `raw_recovery`, `env`, `resolves_via` and a
+  bounded `recovery` object (string and string-array members). A wrapped route counts as having raw
+  recovery only when `recovery.coverage` is `complete`.
+- `wrap` (older, kept): `{form:"wrapper", argv}` to `{form, plan:{argv, cwd?}}` plus the
+  `wrapper.raw-recovery` diagnostic.
+
+The host uses `plan` when the provider declares it: `post-execution` runs once and calls `view`;
+`bypass` runs once and shows the raw view without consulting `view`; `wrapped` is taken only with
+`allow_wrapper`, `recovery.coverage:"complete"` and no extra `env`, and is then authorized like a `wrap`
+plan; otherwise the command runs unwrapped, once, and `view` is used. Without `plan`, `view` is used
+directly. Output up to half the provider frame is sent inline; larger output (up to 8 MiB) is staged as
+0600 files under `<provider retention>/views/` and passed by `*_path`, then removed.
+
 ## Exclusions and bypass
 
 `--raw`, `semaprax*` executables, signing tools, machine-output flags (`--json`, `--format`,

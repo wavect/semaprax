@@ -50,7 +50,7 @@ impl CapabilityKind {
     pub fn operations(&self) -> &'static [&'static str] {
         match self {
             Self::ContextRepository => &["orient", "search", "skeleton", "references"],
-            Self::CommandView => &["view", "wrap"],
+            Self::CommandView => &["view", "wrap", "plan"],
             Self::DecisionEvaluate => &["evaluate"],
             Self::ModelGenerate => &["generate"],
             Self::SkillCatalog => &["list", "load"],

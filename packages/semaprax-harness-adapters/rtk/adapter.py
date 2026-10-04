@@ -2,11 +2,12 @@
 """command.view/v1 adapter for rtk-ai/rtk 0.51.0.
 
 Operations
-  plan  {argv, cwd_rel?, estimated_output_bytes?, external_hooks?, lineage?, config?}
+  plan  {argv, cwd_rel, estimated_output_bytes?, external_hooks?, lineage?, form?, config?}
         -> route "post-execution" (host runs argv itself, then calls `view`),
            route "wrapped" (explicit opt-in; raw is recoverable only for failures/truncations),
            or route "bypass" with a reason.
-  view  {argv, stdout_b64|stdout_path, stderr_b64|stderr_path, min_bytes?, recovery_handle?}
+  view  {form, argv, one of stdout|stdout_b64|stdout_path and one of stderr|stderr_b64|stderr_path,
+         min_bytes?, max_bytes?, recovery_handle?, config?}   (paths are relative to the retention dir)
         -> {form:"post-execution", view:{text, lossless, omissions, recovery_handle?}} via `rtk pipe`.
 
 The adapter never reads PATH/HOME configuration or agent settings, never runs the
@@ -87,13 +88,14 @@ def plan(req):
     rtk = upstream()
     ret = retention_dir()
     wants_wrapper = bool(cfg.get("allow_wrapper")) and (p.get("form") == "wrapper" or fam["filter"] is None)
-    if fam["filter"] is not None and not (wants_wrapper and fam["wrapper"]):
+    can_wrap = wants_wrapper and fam["wrapper"] and "/" not in argv[0]
+    if fam["filter"] is not None and not can_wrap:
         return "complete", {
             "form": "post-execution", "route": "post-execution", "operation": "view",
             "family": fam["family"], "filter": fam["filter"],
             "raw_recovery": "host-retained-streams",
         }, []
-    if wants_wrapper and fam["wrapper"] and "/" not in argv[0]:
+    if can_wrap:
         env = rtk_env(ret)
         return "complete", {
             "form": "wrapper", "route": "wrapped", "family": fam["family"],
@@ -120,7 +122,7 @@ def _stream(p, key, ret):
             return f.read(MAX_RAW + 1)
     if p.get(key + "_b64") is not None:
         return base64.b64decode(p[key + "_b64"])
-    return b""
+    return str(p.get(key, "")).encode("utf-8")
 
 
 def _critical_missing(raw_text, view_text):

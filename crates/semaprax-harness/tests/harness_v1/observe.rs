@@ -511,3 +511,58 @@ fn hp_hp15_real_tiktoken_named_tokenizer_matches_independent_count() {
     assert_eq!(measure(&text, Some(&tok)).count.unwrap().value, want);
     assert!(tok.fingerprint().starts_with("sha256:"));
 }
+
+// ---- hpwire: token-observation export ----
+
+#[test]
+fn hp_hpwire_export_rows_use_the_token_observation_schema() {
+    use semaprax_harness::observe::export;
+    use semaprax_harness::observe::{Observation, Role, Stage, TokenCount};
+    let mut paired = Observation::new(
+        "p/view",
+        "command.view",
+        Stage::CommandView,
+        Role::Transform,
+        "inv-1",
+    );
+    paired.payload_id = Some("pl".into());
+    paired.before = Some(TokenCount::named("cl100k_base", "fp", 900));
+    paired.after = Some(TokenCount::named("cl100k_base", "fp", 120));
+    paired.seq = 1;
+    let mut bytes_only = Observation::new(
+        "p/skills",
+        "skill.catalog",
+        Stage::SkillCatalog,
+        Role::Transform,
+        "inv-2",
+    );
+    bytes_only.payload_id = Some("pl".into());
+    bytes_only.after = Some(TokenCount::bytes(512));
+    bytes_only.seq = 2;
+    let mut model = Observation::new(
+        "p/model",
+        "model.generate",
+        Stage::Generation,
+        Role::Incurred,
+        "inv-3",
+    );
+    model.incurred = Some(TokenCount::bytes(2048));
+    model.seq = 3;
+    let rows = export::rows(&[paired, bytes_only, model], "sess");
+    assert_eq!(rows[0]["status"], "measured");
+    assert_eq!(
+        (
+            rows[0]["tokens"].as_u64(),
+            rows[0]["baselineTokens"].as_u64()
+        ),
+        (Some(120), Some(900))
+    );
+    assert_eq!(rows[0]["referenceKind"], "source_context");
+    assert_eq!(rows[1]["status"], "tokenizer_unavailable");
+    assert!(rows[1]["tokens"].is_null() && rows[1]["bytes"] == 512);
+    assert_eq!(rows[2]["bytes"], 2048);
+    for r in &rows {
+        assert_eq!(r["schema"], "semaprax.token-observation.v1");
+        assert_eq!(r["sessionId"], "sess");
+    }
+}

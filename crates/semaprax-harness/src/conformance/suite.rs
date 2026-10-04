@@ -230,9 +230,9 @@ impl Rig {
         )?;
         let trusted = crate::profile::cli_trust(&[id.clone()], &env);
         // An upstream that is just the adapter's own bundled code (`local:`
-        // package, no identity probe) has no separate executable to adopt;
-        // `trust` refuses it (SPX-HPB033), so the temporary grant is derived
-        // in memory instead. Anything else must be trusted by the real verb.
+        // package, no identity probe) is bound by the entry digest and is
+        // trusted by the real verb; the in-memory fallback below only covers
+        // an older trust store that still refuses it (SPX-HPB033).
         let bundled = t
             .descriptor
             .upstream

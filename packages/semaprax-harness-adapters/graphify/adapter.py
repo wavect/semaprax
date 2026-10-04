@@ -110,6 +110,18 @@ def source_digest(root, files):
     return h.hexdigest()
 
 
+def extraction_errors(log, files):
+    """Log lines that name a project file become contract `{path, reason}` entries."""
+    known, out = set(files), []
+    for ln in log:
+        if not re.search(r"error|failed|traceback|permission", ln, re.I):
+            continue
+        hit = next((f for f in sorted(known, key=len, reverse=True) if f in ln), None)
+        if hit:
+            out.append({"path": hit, "reason": ln.strip()[:240]})
+    return out[:200]
+
+
 def skip_reason(rel):
     name, ext = os.path.basename(rel), os.path.splitext(rel)[1].lower()
     if ext == ".spx":
@@ -194,7 +206,7 @@ class Index:
         log = (proc.stdout + proc.stderr).splitlines()
         if proc.returncode != 0 or not os.path.isfile(self.graph_path):
             raise AdapterError("failed", "SPX-HPG004", f"graphify extract exited {proc.returncode}: {' | '.join(log[-3:])[:300]}")
-        errors = [ln.strip()[:300] for ln in log if re.search(r"error|failed|traceback|permission", ln, re.I)]
+        errors = extraction_errors(log, files)
         with open(self.meta_path, "w", encoding="utf-8") as fh:
             json.dump({"schema": "semaprax.graphify-adapter-meta.v1", "upstream": self.identity, "root": self.root,
                        "digest": digest, "errors": errors}, fh, sort_keys=True)
@@ -230,13 +242,22 @@ class Index:
         digest = source_digest(self.root, files)
         if self.state is None:
             meta = self.disk_meta()
-            if meta and meta.get("digest") == digest:
-                return self.load(digest, files, meta.get("errors", [])), False
-            return self.build(digest, files), False
-        if self.state["digest"] != digest:
-            if refresh == "rebuild":
-                return self.build(digest, files), False
+            if meta and meta.get("digest") == digest and refresh != "rebuild":
+                st = self.load(digest, files, meta.get("errors", []))
+                st["action"] = "reuse"
+                return st, False
+            if refresh == "never":
+                raise AdapterError("unavailable", "SPX-HPG011", "no current graph and refresh=never")
+            st = self.build(digest, files)
+            st["action"] = "build"
+            return st, False
+        if self.state["digest"] != digest or refresh == "rebuild":
+            if refresh in ("rebuild", "auto"):
+                st = self.build(digest, files)
+                st["action"] = "refresh"
+                return st, False
             return self.state, True
+        self.state["action"] = "reuse"
         return self.state, False
 
     # -- source lines --------------------------------------------------
@@ -250,7 +271,7 @@ class Index:
                 lines = []
             self._lines[rel] = lines
         text = lines[line - 1] if 0 < line <= len(lines) else b""
-        return hashlib.sha256(text).hexdigest()
+        return "sha256:" + hashlib.sha256(text).hexdigest()
 
 
 def language(rel):
@@ -277,7 +298,7 @@ def clean(label):
     return label.strip().lstrip(".").removesuffix("()").lower()
 
 
-def finish(request, index, state, items, exhaustive, diags=()):
+def finish(request, index, state, items, exhaustive, diags=(), extra=None):
     cov = coverage(state, exhaustive)
     budget = request.get("budget", {}).get("max_result_bytes", 65536)
     limit = int(budget * 0.8)
@@ -289,22 +310,26 @@ def finish(request, index, state, items, exhaustive, diags=()):
     if len(state["skipped"]) > MAX_SKIPPED:
         diags.append({"code": "SPX-HPG008", "message": f"skipped list truncated to {MAX_SKIPPED} of {len(state['skipped'])}"})
     status = "complete" if cov["complete"] else "partial"
-    return status, {"items": items, "coverage": cov}, diags
+    meta = {"upstream_version": index.identity, "index_files": len(state["indexed"]),
+            "source_digest": "sha256:" + state["digest"], "refresh": state.get("action", "reuse")}
+    meta.update(extra or {})
+    return status, {"items": items, "coverage": cov, "metadata": meta}, diags
 
 
 def make_handlers(index):
     def prelude(request, op):
         payload = request.get("payload") or {}
-        state, stale = index.ensure(payload.get("refresh", "stale"))
+        # Contract `refresh`: auto (default) rebuilds a stale graph, rebuild forces, never reports stale.
+        state, stale = index.ensure(payload.get("refresh", "auto"))
         if stale:
             cov = coverage(state, False)
             cov.update(complete=False, exhaustive=False)
             return None, payload, ("stale", {"items": [], "coverage": cov}, [
-                {"code": "SPX-HPG002", "message": "source files changed since the graph was built; resend with payload.refresh=rebuild"}])
+                {"code": "SPX-HPG002", "message": "source files changed since the graph was built and refresh=never"}])
         return state, payload, None
 
     def limit_of(payload):
-        v = payload.get("limit", 20)
+        v = payload.get("max_items", payload.get("limit", 20))
         return v if isinstance(v, int) and 0 < v <= 200 else 20
 
     def orient(request):
@@ -373,8 +398,11 @@ def make_handlers(index):
             src, dst = g.by_id[e["source"]], g.by_id[e["target"]]
             # a stub target was matched by name only, so it is never structural
             prov = "structural" if e["confidence"] == "EXTRACTED" and not dst.get("_stub") else "inferred"
-            items.append(item(index, e["source_file"], e["_line"], prov, i + 1,
-                              f"{src['label']} -{e['relation']}-> {dst['label']} [{e['confidence']}{', unresolved target' if dst.get('_stub') else ''}]"))
+            it = item(index, e["source_file"], e["_line"], prov, i + 1,
+                      f"{src['label']} -{e['relation']}-> {dst['label']} [{e['confidence']}{', unresolved target' if dst.get('_stub') else ''}]")
+            # Graphify confidence maps to structural/inferred only, never to compiler certainty.
+            it["edges"] = [{"target": dst["label"][:1024], "relation": e["relation"][:64], "provenance": prov}]
+            items.append(it)
         diags = []
         if not targets:
             diags.append({"code": "SPX-HPG010", "message": "symbol not found in the graph; this is not evidence it is unused"})

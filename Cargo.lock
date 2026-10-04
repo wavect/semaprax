@@ -1945,6 +1945,7 @@ dependencies = [
  "rustix",
  "same-file",
  "semaprax",
+ "semaprax-harness",
  "semaprax-native-rust-interop",
  "semaprax-native-rust-interop-platform",
  "semaprax-native-rust-owned-data-package",

@@ -279,8 +279,10 @@ fn timeout_is_uncertain_runs_once_and_kills_the_group() {
         "echo started; echo oops error >&2; sleep 30 & sleep 30",
     );
     let t = std::time::Instant::now();
-    let (o, v) = fx.exec_json(&["--timeout-ms", "2500"], &[&cmd]);
-    assert!(t.elapsed().as_secs() < 10);
+    // 6 s leaves room for process start-up when the whole suite runs in
+    // parallel; the script still sleeps 30 s, so the timeout always fires.
+    let (o, v) = fx.exec_json(&["--timeout-ms", "6000"], &[&cmd]);
+    assert!(t.elapsed().as_secs() < 20);
     assert_eq!(o.code, 124);
     assert_eq!(v["result"]["status"], "timeout");
     assert_eq!(v["result"]["status_certain"], false);

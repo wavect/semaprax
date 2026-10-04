@@ -12,9 +12,21 @@ const MAX_TRACE_BYTES: u64 = 64 * 1024 * 1024;
 pub fn cli_report(args: &[String], env: &Environment) -> Outcome {
     let mut json = false;
     let mut path = None;
-    for a in args {
+    let (mut export, mut output, mut session) = (None::<String>, None::<String>, None::<String>);
+    let mut flags = args.iter();
+    while let Some(a) = flags.next() {
         match a.as_str() {
             "--json" => json = true,
+            "--export" | "--output" | "--session" => {
+                let Some(v) = flags.next() else {
+                    return Outcome::usage(format!("`{a}` needs a value"));
+                };
+                match a.as_str() {
+                    "--export" => export = Some(v.clone()),
+                    "--output" => output = Some(v.clone()),
+                    _ => session = Some(v.clone()),
+                }
+            }
             s if s.starts_with("--") => {
                 return Outcome::usage(format!("unknown report flag `{s}`"))
             }
@@ -23,7 +35,7 @@ pub fn cli_report(args: &[String], env: &Environment) -> Outcome {
         }
     }
     let Some(path) = path else {
-        return Outcome::usage("usage: report <observations.jsonl> [--json]");
+        return Outcome::usage("usage: report <observations.jsonl> [--json] [--export token-observation [--output f] [--session id]]");
     };
     let path = env.cwd.join(path);
     let bad = |m: String| Outcome::refused(&HarnessDiagnostic::new("SPX-HPO002", m));
@@ -60,6 +72,34 @@ pub fn cli_report(args: &[String], env: &Environment) -> Outcome {
             Ok(e) => events.push(e),
             Err(d) => return bad(format!("line {}: {}", i + 1, d.message)),
         }
+    }
+    if let Some(kind) = export {
+        if kind != "token-observation" {
+            return Outcome::usage("--export supports only `token-observation`");
+        }
+        let text =
+            super::export::to_jsonl(&events, session.as_deref().unwrap_or("harness-session"));
+        return match output {
+            Some(o) => {
+                let o = env.cwd.join(o);
+                match std::fs::OpenOptions::new()
+                    .write(true)
+                    .create_new(true)
+                    .open(&o)
+                {
+                    Ok(mut f) => match std::io::Write::write_all(&mut f, text.as_bytes()) {
+                        Ok(()) => Outcome::ok(format!(
+                            "exported {} row(s) to {}\n",
+                            events.len(),
+                            o.display()
+                        )),
+                        Err(e) => bad(format!("cannot write {}: {e}", o.display())),
+                    },
+                    Err(e) => bad(format!("cannot create {}: {e}", o.display())),
+                }
+            }
+            None => Outcome::ok(text),
+        };
     }
     let report = build_report(&events, dropped, traffic);
     if json {

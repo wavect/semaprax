@@ -110,7 +110,7 @@ class RealGraphify(AdapterCase):
         first = res["payload"]["items"][0]
         self.assertEqual((first["path"], first["span"]["start_line"], first["provenance"], first["language"]),
                          ("py/util.py", 1, "structural", "python"))
-        self.assertEqual(len(first["digest"]), 64)
+        self.assertRegex(first["digest"], r"^sha256:[0-9a-f]{64}$")
         self.assertEqual(first["rank"], 1)
         orient = self.client.call("orient")
         self.assertTrue(orient["payload"]["items"])
@@ -158,12 +158,13 @@ class RealGraphify(AdapterCase):
         self.client.call("search", {"query": "helper"})
         with open(os.path.join(self.root, "py/util.py"), "a") as fh:
             fh.write("\ndef brand_new():\n    return 1\n")
-        stale = self.client.call("search", {"query": "brand_new"})
+        stale = self.client.call("search", {"query": "brand_new", "refresh": "never"})
         self.assertEqual(stale["status"], "stale")
         self.assertEqual(stale["payload"]["items"], [])
         self.assertEqual(stale["diagnostics"][0]["code"], "SPX-HPG002")
-        fresh = self.client.call("search", {"query": "brand_new", "refresh": "rebuild"})
+        fresh = self.client.call("search", {"query": "brand_new"})  # default refresh=auto rebuilds
         self.assertEqual(fresh["payload"]["items"][0]["path"], "py/util.py")
+        self.assertEqual(fresh["payload"]["metadata"]["refresh"], "refresh")
 
     def test_restart_reuses_verified_index_and_detects_edit(self):
         self.client.init()

@@ -256,6 +256,10 @@ def verify_retained(output: Path) -> dict:
             "nonclaims": ["does not reproduce cell execution or timings", "does not update closure status", "retained paths and tool identities are historical observations"]}
 
 
+def agent_campaign_argv(codex: str, output: Path) -> list[str]:
+    return [sys.executable, str(ROOT / "law16_boolean_negation_agent_campaign.py"), "--first", "2", "--last", "10", "--output", str(output), "--codex", codex]
+
+
 def execute(output: Path, pins_path: Path, include_agent_campaign: bool) -> dict:
     pins = load_pins(pins_path)
     campaign = None
@@ -350,9 +354,8 @@ def execute(output: Path, pins_path: Path, include_agent_campaign: bool) -> dict
     if include_agent_campaign:
         codex = tools["codex"]
         codex["version"] = observe(Path(codex["path"]), ["--version"])
-        env["PATH"] = str(Path(codex["path"]).parent) + os.pathsep + env["PATH"]
         agent_output = output / "boolean-agent-campaign"
-        argv = [sys.executable, str(ROOT / "law16_boolean_negation_agent_campaign.py"), "--first", "2", "--last", "10", "--output", str(agent_output)]
+        argv = agent_campaign_argv(codex["path"], agent_output)
         steps.append({"id": "boolean_ten_pair_agent_campaign_continuation", "opt_in": True, **command(argv, logs, "agent_campaign", env=env, timeout=9000)})
         reviewed = module("law16_agent_campaign_review_for_replay", "law16_boolean_negation_agent_campaign_capsule.py").review(agent_output)
         (output / "agent-campaign-review.json").write_text(json.dumps(reviewed, indent=2, sort_keys=True) + "\n")

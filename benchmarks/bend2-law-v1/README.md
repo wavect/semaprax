@@ -50,8 +50,9 @@ Its complete raw artifact set is now retained and passes offline replay.
 The Boolean nine-pair continuation (with retained pilot ordinal 1 as the tenth
 pair) makes new Codex calls and is deliberately excluded by default. Request
 it explicitly with `--include-agent-campaign`; the pin file must then also
-contain a SHA-pinned `tools.codex` executable, and its path must match the
-runner's fixed local Bend/Bun/SEMAPRAX/Z3 paths:
+contain a SHA-pinned `tools.codex` executable. The replay passes that exact
+executable path to every trial; its other paths must match the runner's fixed
+local Bend/Bun/SEMAPRAX/Z3 paths:
 
 ```sh
 python3 benchmarks/bend2-law-v1/law16_replay.py \

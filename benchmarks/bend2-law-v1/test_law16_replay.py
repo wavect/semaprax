@@ -17,6 +17,14 @@ SPEC.loader.exec_module(REPLAY)
 
 
 class Law16ReplayTests(unittest.TestCase):
+    def test_live_agent_campaign_receipt_binds_the_pinned_executable_path(self):
+        with tempfile.TemporaryDirectory() as directory:
+            codex = Path(directory) / "pinned-codex"
+            output = Path(directory) / "campaign"
+            command = REPLAY.agent_campaign_argv(str(codex), output)
+        self.assertEqual(command[-2:], ["--codex", str(codex)])
+        self.assertEqual(command[command.index("--output") + 1], str(output))
+
     def test_completed_fresh_capture_authenticates_and_rejects_failure_or_raw_drift(self):
         capsule = ROOT / "evidence/law16-unified-fresh-v1"
         result = REPLAY.verify_fresh_capture(capsule)

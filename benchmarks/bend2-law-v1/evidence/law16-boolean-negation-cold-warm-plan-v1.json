@@ -1,0 +1,40 @@
+{
+  "schema": "semaprax.bend2-law-benchmark.boolean-negation-cold-warm.v1",
+  "status": "prepared_not_executed",
+  "runner": "../law16_boolean_negation_cold_warm.py",
+  "delegate_raw_schema": "semaprax.bend2-law-benchmark.cold-warm-process-cell.v2",
+  "samples_per_state": 30,
+  "routes": [
+    {
+      "name": "Bend verdict",
+      "source": "../fixtures/bend-boolean-negation-v1.bend",
+      "required_identity": {
+        "bend_commit": "947db722640c86247849343657bf2f7ef01cb7f1"
+      },
+      "command_shape": ["BUN", "BEND_ROOT/bend2/main.ts", "FRESH_OR_REPEAT_SOURCE", "--verdict"]
+    },
+    {
+      "name": "SEMAPRAX Z3 project proof",
+      "source": "../fixtures/semaprax-boolean-negation-v1.spx",
+      "required_identity": {
+        "semaprax_sha256": "sha256:cc9dd3ca99a74dd973cbfb904621e27b801d8ddea6065873d24c14de9dee1d89",
+        "z3_version": "Z3 version 4.12.5 - 64 bit"
+      },
+      "command_shape": ["SEMAPRAX", "project-proof-check", "FRESH_OR_REPEAT_PROJECT/semaprax.toml", "--tool", "z3", "--executable", "Z3", "--version-line", "Z3 version 4.12.5 - 64 bit", "--host-profile", "trusted-local", "--source", "src/app.spx", "--declaration", "app.negate", "--ensures", "0"]
+    }
+  ],
+  "input_preconditions": [
+    "each fresh and repeat input must be byte-identical to its canonical committed fixture",
+    "each SEMAPRAX project must contain semaprax.toml",
+    "the canonical Boolean-negation pair review must pass before any process is spawned"
+  ],
+  "raw_output": {
+    "per_route": ["ROUTE.json", "ROUTE-raw/fresh-process-001.stdout", "ROUTE-raw/fresh-process-001.stderr", "ROUTE-raw/repeat-process-001.stdout", "ROUTE-raw/repeat-process-001.stderr", "ROUTE-runner.stdout", "ROUTE-runner.stderr"],
+    "timing_fields": ["elapsed_ns", "p50_ns", "p95_ns", "command_sha256", "exit_code", "stdout.sha256", "stderr.sha256"]
+  },
+  "cold_cache": {
+    "status": "unavailable",
+    "reason": "fresh paths cannot isolate OS, executable, solver, or tool caches"
+  },
+  "nonclaims": ["no timing ratio", "no winner", "no unrun result", "no OS-cache-cold observation"]
+}

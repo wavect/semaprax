@@ -189,6 +189,7 @@ pub fn run_batch(operations:usize)->Result<BatchMetrics,i32> {
     let mut borrowed_input_bytes=0u64;
     for _ in 0..operations {
         checksum=checksum.checked_add(run()?).ok_or(4)?;
+        if !projected_borrow_matches_target(){return Err(5)}
         borrowed_input_bytes=borrowed_input_bytes.checked_add(u64::try_from(borrowed_input_length()).map_err(|_|4)?).ok_or(4)?;
     }
     let adapter_copy_events=spx_result_owner_adapter_copies().checked_sub(copies_before).ok_or(5)?;

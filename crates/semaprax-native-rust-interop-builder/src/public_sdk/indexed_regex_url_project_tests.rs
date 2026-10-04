@@ -112,6 +112,7 @@ fn one_held_regex_url_project_authenticates_four_imports_two_exports_and_both_lo
         assert!(lib.contains("pub fn run_batch(operations:usize)->Result<BatchMetrics,i32>"));
         assert!(lib.contains("adapter_copy_events"));
         assert!(lib.contains("borrowed_input_bytes"));
+        assert!(lib.contains("if !projected_borrow_matches_target(){return Err(5)}"));
     }
     assert!(std::str::from_utf8(built.regex.descriptor())
         .unwrap()

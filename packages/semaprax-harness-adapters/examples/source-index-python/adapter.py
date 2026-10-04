@@ -31,8 +31,9 @@ def handler(op):
         p = req.get("payload") or {}
         if op == "orient":
             out = idx.orient()
+            out["metadata"] = {"files": out.pop("files"), "languages": out.pop("languages")}
         elif op == "search":
-            out = idx.search(str(p.get("query", "")), int(p.get("limit", 20)))
+            out = idx.search(str(p.get("query", "")), int(p.get("max_items", p.get("limit", 20))))
         elif op == "skeleton":
             out = idx.skeleton(str(p.get("path", "")))
         else:

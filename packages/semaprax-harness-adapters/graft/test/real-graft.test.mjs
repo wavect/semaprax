@@ -7,8 +7,8 @@ import { Adapter, GRAFT, makeProject, sha, snapshot, tmp } from './helpers.mjs';
 
 const skip = GRAFT ? false : 'graft not installed (set SEMAPRAX_TEST_GRAFT)';
 
-// sha256 of the exact bytes of lines a..b (1-based, inclusive).
-const lines = (root, rel, a, b) => 'sha256:' + sha(Buffer.from(readFileSync(join(root, rel), 'utf8').split(/(?<=\n)/).slice(a - 1, b).join('')));
+// sha256 of lines a..b (1-based, inclusive) joined by LF without a trailing terminator (broker convention).
+const lines = (root, rel, a, b) => 'sha256:' + sha(Buffer.from(readFileSync(join(root, rel), 'utf8').split('\n').slice(a - 1, b).join('\n')));
 
 describe('graft context adapter (real graft)', { skip }, () => {
   let root; let cache; let ad;

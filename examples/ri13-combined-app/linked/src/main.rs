@@ -1,15 +1,16 @@
+mod selected_index;
 mod m2 {
     include!("../generated/m2/module.rs");
 }
 mod m3 {
     include!("../generated/m3.rs");
 }
+use selected_index::admit_selected_index;
 use semaprax::project::ProjectRevision;
 use semaprax_native_rust_interop::{
     indexed_binding::SelectedPackage, with_authenticated_indexed_regex_url_project,
     IndexedProjectRegexRegistrySelection, IndexedProjectUrlRegistrySelection,
 };
-use semaprax_rust_api_index::RustApiIndex;
 use std::sync::Arc;
 
 const REGEX_INDEX: &[u8] = include_bytes!(
@@ -22,8 +23,8 @@ const URL_INDEX: &[u8] = include_bytes!(
 fn unified_revision(manifest: &std::path::Path) -> Arc<ProjectRevision> {
     let source = std::fs::read_to_string(manifest.parent().unwrap().join("src/app.spx"))
         .expect("read unified authenticated Project source");
-    let regex_index = RustApiIndex::admit_extractor_output(REGEX_INDEX).unwrap();
-    let url_index = RustApiIndex::admit_extractor_output(URL_INDEX).unwrap();
+    let regex_index = admit_selected_index("regex-1.13.1-index-envelope.json", REGEX_INDEX);
+    let url_index = admit_selected_index("url-2.5.8-index-envelope.json", URL_INDEX);
     let regex_package = SelectedPackage {
         cargo_alias: "regex_alias",
         name: "regex",

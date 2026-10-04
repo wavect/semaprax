@@ -44,6 +44,7 @@ PATHS = {
     "build": ROOT / "linked/build.rs",
     "prepare": ROOT / "linked/src/bin_prepare.rs",
     "consumer": ROOT / "linked/src/main.rs",
+    "selected_index": ROOT / "linked/src/selected_index.rs",
 }
 TRACKED = tuple(PATHS.values())
 REQUIRED_IDENTITIES = (
@@ -128,12 +129,18 @@ def validate_sources(sources):
         'root.join("generated/m3.rs")',
         'root.join("generated/linked-subject.json")',
         "semaprax.ri13.linked-subject.v1",
-        'let Some(directory) = env::var_os("RI13_RUST_API_INDEX_DIR")',
-        'admit_linux_index("regex-1.13.1-index-envelope.json", REGEX_INDEX)',
-        'admit_linux_index("url-2.5.8-index-envelope.json", URL_INDEX)',
-        "LINUX_X86_64_TARGET",
+        "mod selected_index;",
+        'admit_selected_index("regex-1.13.1-index-envelope.json", REGEX_INDEX)',
+        'admit_selected_index("url-2.5.8-index-envelope.json", URL_INDEX)',
     ):
         require(sources, "prepare", fragment)
+    for fragment in (
+        'let Some(directory) = env::var_os("RI13_RUST_API_INDEX_DIR")',
+        "RI13 Rust API index must be a regular file",
+        "LINUX_X86_64_TARGET",
+        "pub(crate) fn admit_selected_index",
+    ):
+        require(sources, "selected_index", fragment)
 
     for fragment in (
         'name = "prepare"',
@@ -168,6 +175,9 @@ def validate_sources(sources):
         ".map(stateful.as_fn_mut())",
         "assert_eq!(states, [11, 13])",
         "with_authenticated_indexed_regex_url_project(manifest,",
+        "mod selected_index;",
+        'admit_selected_index("regex-1.13.1-index-envelope.json", REGEX_INDEX)',
+        'admit_selected_index("url-2.5.8-index-envelope.json", URL_INDEX)',
         "m3::register",
         'join("unified-project/semaprax.toml")',
         "Ok::<i64, ()>(43)",
@@ -297,9 +307,11 @@ def self_test():
     }
     for name, fragment in (
         ("prepare", "prepare_native_rust_serde_iterator_callbacks_from_authenticated_project_source("),
-        ("prepare", 'let Some(directory) = env::var_os("RI13_RUST_API_INDEX_DIR")'),
+        ("selected_index", 'let Some(directory) = env::var_os("RI13_RUST_API_INDEX_DIR")'),
+        ("selected_index", "RI13 Rust API index must be a regular file"),
         ("prepare", 'with_authenticated_indexed_regex_url_project_packages('),
         ("consumer", 'with_authenticated_indexed_regex_url_project(manifest,'),
+        ("consumer", 'admit_selected_index("regex-1.13.1-index-envelope.json", REGEX_INDEX)'),
         ("build", '\\"project_revision\\": \\"sha256:'),
         ("consumer", "m3::register"),
         ("consumer", 'join("unified-project/semaprax.toml")'),
@@ -336,6 +348,11 @@ def self_test():
             continue
         raise AssertionError(f"validator accepted drifted {name}")
     evidence = json.loads(DARWIN_EVIDENCE.read_text(encoding="utf-8"))
+    # The checked-in execution receipt must fail after authored route inputs
+    # change until a new run replaces it. This self-test exercises verifier
+    # structure with only its static digest refreshed in memory; it never
+    # rewrites or upgrades the Darwin execution claim.
+    evidence["static_route_receipt_sha256"] = stable_digest(document)
     verify_darwin_evidence(evidence, sources)
     forged = dict(evidence)
     forged["linked_subject"] = dict(evidence["linked_subject"])

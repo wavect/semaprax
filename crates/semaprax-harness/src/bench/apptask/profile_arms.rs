@@ -55,11 +55,8 @@ impl Policy {
 
     /// `Some(reason)` while the owning lane has not landed.
     pub fn unavailable(self) -> Option<&'static str> {
-        match self {
-            Self::SpendLedger => Some("durable spend ledger (TC-03) has not landed"),
-            Self::Routing => Some("cost-aware routing (TC-10) has not landed"),
-            _ => None,
-        }
+        // Every policy's lane has landed (TC-03 spend ledger, TC-10 routing).
+        None
     }
 
     /// `Err(reason)` when the policy cannot change an app-task run in this setup.
@@ -92,7 +89,10 @@ impl Policy {
                 ("budget.prompt_renderer", json!("ordered-v1")),
                 ("budget.model_prompt_cache", json!("supported")),
             ],
-            Self::SpendLedger => vec![("spend.ledger", json!("durable"))],
+            Self::SpendLedger => vec![
+                ("budget.task_max_cost_micros", json!(500_000)),
+                ("budget.strict_monetary", json!(true)),
+            ],
             Self::Routing => vec![("routing.cost_aware", json!(true))],
         }
     }

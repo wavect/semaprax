@@ -9,7 +9,8 @@ use crate::decision::{
     EvidenceKey, EvidenceRegistry, GateSpec, RoutingConfig, RoutingMode, SessionLock,
 };
 use crate::diag::{HarnessDiagnostic, HarnessResult};
-use crate::profile::config::RoutingSection;
+use crate::profile::config::{LadderConfig, RoutingSection};
+use std::collections::BTreeMap;
 use serde_json::Value;
 use std::cell::RefCell;
 use std::collections::BTreeSet;
@@ -31,6 +32,9 @@ pub struct RoutingWiring {
     pub approve_remote: bool,
     pub registry: Option<EvidenceRegistry>,
     pub spec: GateSpec,
+    /// `[routing] cost_aware` (TC-10, opt-in) and the approved per-family ladders.
+    pub cost_aware: bool,
+    pub ladders: BTreeMap<String, LadderConfig>,
     /// Locked at the first route of the run; later routes of the same run
     /// compare against it, so a changed profile cannot slip in mid-session.
     pub session_lock: RefCell<Option<SessionLock>>,
@@ -44,6 +48,8 @@ impl Default for RoutingWiring {
             approve_remote: false,
             registry: None,
             spec: GateSpec::default(),
+            cost_aware: false,
+            ladders: BTreeMap::new(),
             session_lock: RefCell::new(None),
         }
     }
@@ -69,7 +75,7 @@ impl RoutingWiring {
             ..RoutingConfig::default()
         };
         let registry = match (sec.mode.as_str(), home) {
-            ("auto", Some(h)) => load_registry(h)?,
+            (m, Some(h)) if m == "auto" || sec.cost_aware => load_registry(h)?,
             _ => None,
         };
         Ok(Self {
@@ -77,6 +83,8 @@ impl RoutingWiring {
             explicit_mode: sec.explicit,
             approve_remote: sec.allow_remote == Some(true),
             registry,
+            cost_aware: sec.cost_aware,
+            ladders: sec.ladders.clone(),
             ..Self::default()
         })
     }

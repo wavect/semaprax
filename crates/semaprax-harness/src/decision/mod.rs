@@ -8,6 +8,7 @@
 //! crate's `ProviderPolicy::new(Vec<ProviderSlot>)` via a later bridge.
 
 pub mod cache;
+pub mod cost_route;
 pub mod cli;
 pub mod evidence;
 pub mod governed;

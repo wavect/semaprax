@@ -2,7 +2,8 @@
 
 - Fixed the patch-receipt evidence pagination regression to exercise a
   renameable declaration in the app module; the fixture now preserves its
-  cross-file identity check without attempting to rename `main`.
+  cross-file identity check without attempting to rename `main`. Both renamed
+  functions now carry contracts so the contract-delta page checks their IDs.
 - Made the paired affine callback's flipped-source control change the paired
   return expression, so its physical consumer detects the substitution.
 - Recorded the durable job writer's harness-aware child selector in the

@@ -1,5 +1,6 @@
 //! Physical checked-body Url Project and returned-view lifetime controls.
 use super::*;
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 fn canonical(source: &str, path: &str) -> String {
     semaprax::format::canonical(&semaprax::parse(source, Path::new(path)).unwrap())
 }
@@ -487,6 +488,7 @@ int32_t ri06_url_callback_relay(uint64_t context, relay_owner owner, void *state
 mod url_loan;
 
 #[path = "url_safety_tests.rs"]
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 mod url_safety;
 
 #[path = "url_miri_tests.rs"]

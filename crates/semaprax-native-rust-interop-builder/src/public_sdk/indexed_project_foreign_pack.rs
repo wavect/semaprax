@@ -74,6 +74,10 @@ pub(super) fn changed_version_digest() -> String {
     raw_digest(&serde_json::to_vec(&value).unwrap())
 }
 
+#[allow(
+    clippy::too_many_arguments,
+    reason = "exact tools and proof inputs are independent fixture controls"
+)]
 pub(super) fn mutation_and_repair(
     root: &Path,
     source: &str,

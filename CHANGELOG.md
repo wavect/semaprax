@@ -1,5 +1,11 @@
 # Changelog
 
+- RI-08: permit a direct mutable `i64` binding as the scalar half of the
+  private retained `FnOnceI64() -> i64` profile. Construction copies the value
+  into the existing environment, so later source mutation cannot alias the
+  callback; interpreter, C, Core Wasm and generated Rust regressions cover the
+  snapshot boundary.
+
 - RI-08: add a distinct private `FnOnceI64() -> i64` source profile for retained
   owned Bytes plus immutable i64 captures, with graph v63, versioned cleanup
   identities, and aligned interpreter, C, Core Wasm and generated Rust carriers.

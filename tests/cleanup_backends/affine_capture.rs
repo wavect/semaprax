@@ -163,7 +163,36 @@ fn mixed_affine_capture_retains_scalar_and_owner_on_all_backends() {
 }
 
 #[test]
-fn mixed_affine_capture_rejects_schema_drift_mutability_and_reuse() {
+fn mixed_affine_capture_snapshots_mutable_scalar_without_aliasing() {
+    assert!(command_available("clang") && command_available("node"));
+    let source = mixed_source().replace(
+        "    let payload = bytes_zeroed(4usize);\n    once fn() -> i64 { consume(payload, offset) }",
+        "    let mut captured_offset = offset;\n    let payload = bytes_zeroed(4usize);\n    let callback = once fn() -> i64 { consume(payload, captured_offset) };\n    captured_offset = 1;\n    callback",
+    );
+    let program = checked_program(&source, "mixed-mutable-snapshot");
+    let canonical = semaprax::format::canonical(&program);
+    assert_eq!(
+        canonical,
+        semaprax::format::canonical(&checked_program(&canonical, "mixed-mutable-snapshot"))
+    );
+    let graph = semaprax::graph::to_json(&program).unwrap();
+    semaprax::graph::verify_json(&program, &graph).unwrap();
+    let generated = codegen::emit_c(&program).unwrap();
+    assert_eq!(run_interpreter(&source, "mixed-mutable-snapshot"), 42);
+    for optimization in ["-O0", "-O2"] {
+        assert_eq!(
+            run_native(&generated, optimization, "mixed-mutable-snapshot", 36803),
+            (42, 1, 1)
+        );
+    }
+    assert_eq!(
+        run_core_wasm(&program, "mixed-mutable-snapshot"),
+        (42, 1, 1)
+    );
+}
+
+#[test]
+fn mixed_affine_capture_rejects_schema_drift_and_reuse() {
     for (source, code) in [
         (
             mixed_source().replace("    run(moved)", "    let first = run(moved); run(moved)"),
@@ -174,18 +203,6 @@ fn mixed_affine_capture_rejects_schema_drift_mutability_and_reuse() {
                 "once fn() -> i64 { consume(payload, offset) }",
                 "once fn() -> i64 { consume(payload, offset + 1) }",
             ),
-            "SPX-T308",
-        ),
-        (
-            mixed_source()
-                .replace(
-                    "let payload = bytes_zeroed",
-                    "let mut mutable_offset = offset; let payload = bytes_zeroed",
-                )
-                .replace(
-                    "consume(payload, offset)",
-                    "consume(payload, mutable_offset)",
-                ),
             "SPX-T308",
         ),
         (

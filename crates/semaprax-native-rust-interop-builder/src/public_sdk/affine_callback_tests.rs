@@ -44,6 +44,22 @@ fn mixed_affine_capture_rust_consumer_retains_source_owner_and_snapshot() {
     physical_consumer(&source);
 }
 
+#[test]
+fn mixed_affine_capture_rust_consumer_snapshots_mutable_source_state() {
+    let source = SOURCE
+        .replace("FnOnce()", "FnOnceI64()")
+        .replace(
+            "consume(payload: own Bytes) -> i64 { 42 }",
+            "consume(payload: own Bytes, offset: i64) -> i64 { offset + 2 }",
+        )
+        .replace("let payload =", "let mut offset = 40; let payload =")
+        .replace(
+            "once fn() -> i64 { consume(payload) }",
+            "let callback = once fn() -> i64 { consume(payload, offset) }; offset = 1; callback",
+        );
+    physical_consumer(&source);
+}
+
 fn physical_consumer(source: &str) {
     let root = Temp(std::env::temp_dir().join(format!(
         "spx-affine-rust-{}-{}",

@@ -3036,7 +3036,9 @@ These areas are deliberately outside the public compiler contract:
   staging, commit and finalization; `src/codegen/native_emit/once.rs` and the
   Wasm aggregate lane execute the retained carrier. `public_sdk/affine_callback.rs`
   renders an inert Rust unique owner around the actual source-created native
-  environment. It admits no mutable/borrowed capture or registry authority;
+  environment. Its v2 `FnOnceI64` scalar snapshot may read a mutable binding at
+  construction, but it admits no state-retaining mutable environment, borrowed
+  capture or registry authority;
 - `crates/semaprax-native-rust-interop-builder/src/public_sdk/indexed.rs`:
   narrow public RI-04 admission for one checked scalar Rust import. It replays
   the selected RI-03 index and exact caller-supplied package source bytes

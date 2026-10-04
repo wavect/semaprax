@@ -5,7 +5,7 @@ Audience: compiler contributors and native Rust callback adapter authors.
 
 This extends [Retained affine callback v1](AFFINE-CALLBACK-V1.md) with the
 separate owned type `FnOnceI64() -> i64`. Its environment has exactly two
-ordered captures: one owned `Bytes`, followed by one immutable value `i64`.
+ordered captures: one owned `Bytes`, followed by one copied value `i64`.
 The original `FnOnce() -> i64` type, graph v62 selection, cache tags, intrinsic
 identities and native carrier remain unchanged.
 
@@ -36,11 +36,13 @@ fn main() -> i64
 ## Admission and identities
 
 The `once fn` literal's exact tail-call shape selects its type: one direct
-`Bytes` binding selects v1; `Bytes` followed by one direct immutable `i64`
+`Bytes` binding selects v1; `Bytes` followed by one direct available `i64`
 binding selects v2. The target must be a pure monomorphic local function with
-exact `(own Bytes, i64) -> i64` signature. Computed scalar operands, mutable
-bindings, borrowed captures, extra captures and generic creation sites remain
-closed. Unsupported scalar capture shapes use `SPX-T308`. The two callable
+exact `(own Bytes, i64) -> i64` signature. The scalar may be mutable, but
+construction copies its current value into the retained environment, so later
+writes to the outer binding cannot alias the callback. Computed scalar operands,
+borrowed captures, extra captures and generic creation sites remain closed.
+Unsupported scalar capture shapes use `SPX-T308`. The two callable
 types cannot substitute for each other. Canonical source retains the distinct
 type spelling, and AST/HIR cache codecs assign new leaf tags without changing
 old tags.
@@ -61,9 +63,9 @@ capture schemas and cleanup facts.
 The owning boundaries are `core.fn_once_i64.construct.v2`,
 `core.fn_once_i64.invoke.v2`, and `core.fn_once_i64.drop.v2`. The constructor's
 canonical owning argument is the `Bytes` value. After staging it, construction
-reads the second capture as a direct, immutable, non-failing scalar snapshot,
+reads the second capture as a direct, non-failing scalar snapshot,
 and commits the sole owning argument. The snapshot has no cleanup epoch or
-transfer authority. Restricting it to a direct immutable scalar read makes
+transfer authority. Restricting it to a direct scalar read makes
 this boundary complete: no omitted operand can fail, allocate, mutate, borrow,
 or transfer another owner. A future computed or owning capture needs a new
 boundary and replay contract.
@@ -89,8 +91,8 @@ and teardown rules. No foreign trait-object layout or cross-thread ABI is added.
 
 `cleanup_backends::executable_owning_closure::affine_capture` owns canonical
 round-trip, graph replay and hostile schema rejection, two distinct scalar
-snapshots, retained helper moves, duplicate-call and mutable/computed-capture
-refusal, unused affine-parameter helpers without a factory, and
+snapshots, mutable-snapshot non-aliasing, retained helper moves, duplicate-call
+and computed-capture refusal, unused affine-parameter helpers without a factory, and
 interpreter/native C O0/O2/Core Wasm execution with balanced owner
 counts. The builder's `mixed_affine_capture_rust_consumer` executes generated
 C and a separately compiled Rust adapter/consumer through `std::iter::once_with`
@@ -99,7 +101,8 @@ factory and callback postcondition failures, unused-drop, unregister, and
 rustc rejection of duplicate use, cloning and thread escape.
 
 This bounded shape does not close RI-08. Synchronous borrowed source callbacks,
-mutable captured source environments, arbitrary capture records, selected safe
+mutable captured environments that preserve state across calls, arbitrary capture
+records, selected safe
 trait synthesis, nested foreign re-entry and broader callback signatures retain
 their own missing implementation and execution gates. No full quality profile
 or hosted result is claimed for this batch.

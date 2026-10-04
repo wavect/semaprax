@@ -37,9 +37,6 @@ impl HirValidator<'_> {
             if scope.get(&place.root).is_none_or(|binding| {
                 binding.ty != capture.value.ty
                     || binding.ownership != capture.value.ownership
-                    || (expression.ty == ResolvedType::OnceFunctionI64
-                        && index == 1
-                        && mixed_capture_is_mutable(self.program, &place.root))
                     || binding.availability != Availability::Available
             }) {
                 return Err(hir_error(
@@ -146,16 +143,4 @@ impl HirValidator<'_> {
         }
         Ok(())
     }
-}
-
-fn mixed_capture_is_mutable(program: &ResolvedProgram, root: &ValueId) -> bool {
-    program.functions.iter().any(|function| {
-        let mut found = false;
-        super::super::function_value::walk(function, |expression| {
-            if let ResolvedExprKind::Block { statements, .. } = &expression.kind {
-                found |= statements.iter().any(|statement| matches!(statement, ResolvedStatement::Let { binding, mutable: true, .. } if &binding.id == root));
-            }
-        });
-        found
-    })
 }

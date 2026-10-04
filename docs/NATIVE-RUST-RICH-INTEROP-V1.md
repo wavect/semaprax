@@ -794,8 +794,10 @@ physical iterator/consuming-trait use, unused drop, changed-body controls,
 postcondition failure cleanup and cross-crate ownership refusals are covered.
 This is a separate closed profile from the scalar state adapters below. Its
 generated Rust owner can now be retained by one same-thread foreign registry
-through an opaque lease that invokes once or unregisters before Drop. Mutable,
-borrowed and mixed source captures remain open.
+through an opaque lease that invokes once or unregisters before Drop. The
+separate mixed profile admits one copied scalar snapshot, including a snapshot
+from a mutable outer binding; state-retaining mutable and borrowed source
+captures remain open.
 
 The additive `prepare_native_rust_callbacks` renderer selects a checked
 `fn(i64) -> fn(i64) -> i64` factory with one immutable scalar snapshot capture,
@@ -994,7 +996,8 @@ teardown. Exact identity/shape refusals and real unsafe/sealed/extra-method/wron
 signature compiler controls accompany affine once, mutable-borrow and thread
 transfer compile failures. This adds selected-trait admission; it does not
 reinterpret scalar state transitions as source mutable/owned captures. Source
-borrowed and retained affine capture modes remain open under RI-08.
+borrowed captures and mutable environments that preserve state across calls
+remain open under RI-08.
 
 Local evidence: the physical safe-impl/retention case passed in the two-case
 selector; after correcting only canonical JSON in a negative metadata fixture,

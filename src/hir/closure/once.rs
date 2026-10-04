@@ -82,11 +82,10 @@ impl Resolver<'_> {
                 .ok_or_else(|| hir_error("mixed scalar capture absent"))?;
             if binding.ty != ResolvedType::I64
                 || binding.ownership != OwnershipMode::Value
-                || binding.mutable
                 || target.params[1].ty != Type::I64
                 || target.params[1].mode != ParamMode::Value
             {
-                return Err(hir_error("mixed capture requires immutable value i64"));
+                return Err(hir_error("mixed capture requires available value i64"));
             }
             Some((name.clone(), binding.clone()))
         } else {

@@ -106,5 +106,6 @@ on the submitted implementation. The Rust gate also injects callback and
 factory postcondition failures; both select the explicit error and settle all
 captured storage. The full quality profile was not run for this batch.
 
-The separate [Mixed affine callback v2](AFFINE-CALLBACK-V2.md) adds one
-immutable `i64` snapshot under its own source type and carrier identity.
+The separate [Mixed affine callback v2](AFFINE-CALLBACK-V2.md) adds one copied
+`i64` snapshot under its own source type and carrier identity; it may read a
+mutable outer binding at construction without retaining an alias to it.

@@ -187,14 +187,14 @@ pub(super) fn check_construction(
         return None;
     }
     if mixed {
-        let valid = matches!(&args[1].kind, ExprKind::Var(name) if variables.get(name).is_some_and(|binding| binding.ty == Type::I64 && binding.mode == ParamMode::Value && !binding.mutable && binding.availability == Availability::Available))
+        let valid = matches!(&args[1].kind, ExprKind::Var(name) if variables.get(name).is_some_and(|binding| binding.ty == Type::I64 && binding.mode == ParamMode::Value && binding.availability == Availability::Available))
             && target.params[1].ty == Type::I64
             && target.params[1].mode == ParamMode::Value;
         if !valid {
             diagnostics.push(error(
                 program,
                 "SPX-T308",
-                "mixed affine capture requires a direct immutable i64 value after own Bytes",
+                "mixed affine capture requires a direct available i64 value after own Bytes",
                 args[1].span,
             ));
             return None;

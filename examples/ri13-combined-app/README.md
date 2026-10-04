@@ -86,7 +86,7 @@ its own private target directory:
 
 ```sh
 CLANG=/usr/bin/clang CARGO_TARGET_DIR="$PWD/target/ri13-linked" \
-  cargo run --locked --offline --manifest-path examples/ri13-combined-app/linked/Cargo.toml --bin prepare
+  cargo run --locked --offline --manifest-path examples/ri13-combined-app/linked/prepare/Cargo.toml --bin prepare
 CLANG=/usr/bin/clang CARGO_TARGET_DIR="$PWD/target/ri13-linked" \
   cargo run --locked --offline --manifest-path examples/ri13-combined-app/linked/Cargo.toml --bin consumer
 ```

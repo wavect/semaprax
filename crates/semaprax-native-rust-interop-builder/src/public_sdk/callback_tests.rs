@@ -141,7 +141,25 @@ fn one_checked_record_and_stateful_callback_share_exact_source_revision() {
     let wrong =
         prepare_native_rust_serde_callbacks(&source, path, "ri13.other", &selection()).unwrap_err();
     assert_eq!(wrong[0].code, "SPX-B154");
-    assert!(wrong[0].message.contains("exactly its selected record"));
+    assert!(wrong[0].message.contains("its selected record"));
+}
+
+#[test]
+fn selected_record_and_scalar_callbacks_admit_other_checked_type_declarations() {
+    let source = SOURCE.replace(
+        "@id(\"app.main\")",
+        "@id(\"ri13.event\") record Event { @id(\"ri13.event.value\") value: i64, @id(\"ri13.event.label\") label: string, }\n@id(\"ri13.other\") record Other { @id(\"ri13.other.value\") value: bool, }\n@id(\"app.main\")",
+    );
+    let projection = prepare_native_rust_serde_iterator_callbacks(
+        &source,
+        Path::new("ri13-m2-linked.spx"),
+        "ri13.event",
+        "callback.factory",
+        "callback.advance",
+    )
+    .unwrap();
+    assert_eq!(projection.record.record_id, "ri13.event");
+    assert!(projection.record.rust_source.contains("SpxMirrorri13event"));
 }
 struct Temp(std::path::PathBuf);
 impl Drop for Temp {

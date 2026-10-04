@@ -8,18 +8,19 @@ use semaprax_rust_api_index::RustApiIndex;
 use std::{fs, path::Path};
 
 const REGEX_INDEX: &[u8] = include_bytes!(
-    "../../../crates/semaprax-rust-api-index/fixtures/regex-1.13.1-index-envelope.json"
+    "../../../../crates/semaprax-rust-api-index/fixtures/regex-1.13.1-index-envelope.json"
 );
 const URL_INDEX: &[u8] = include_bytes!(
-    "../../../crates/semaprax-rust-api-index/fixtures/url-2.5.8-index-envelope.json"
+    "../../../../crates/semaprax-rust-api-index/fixtures/url-2.5.8-index-envelope.json"
 );
-const REGEX_LOCK: &[u8] =
-    include_bytes!("../../../crates/semaprax-toolchain/src/fixtures/ri06-regex-1.13.1.Cargo.lock");
+const REGEX_LOCK: &[u8] = include_bytes!(
+    "../../../../crates/semaprax-toolchain/src/fixtures/ri06-regex-1.13.1.Cargo.lock"
+);
 const URL_LOCK: &[u8] =
-    include_bytes!("../../../crates/semaprax-toolchain/src/fixtures/ri06-url-2.5.8.Cargo.lock");
+    include_bytes!("../../../../crates/semaprax-toolchain/src/fixtures/ri06-url-2.5.8.Cargo.lock");
 
 fn main() {
-    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap();
     let project = root.parent().unwrap().join("project");
     let source_path = project.join("src/app.spx");
     let source = fs::read_to_string(&source_path).expect("combined Project source");

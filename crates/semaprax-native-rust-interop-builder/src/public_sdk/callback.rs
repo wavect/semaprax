@@ -63,7 +63,8 @@ pub fn prepare_native_rust_callbacks(
 
 /// Project one supported record and one scalar-snapshot callback from the
 /// identical checked source. Ordinary callback admission stays scalar-only;
-/// this opt-in route requires exactly the selected record declaration.
+/// this opt-in route requires an exact selected record identity from the
+/// fully checked source.
 pub fn prepare_native_rust_serde_callbacks(
     source: &str,
     path: &Path,
@@ -102,9 +103,9 @@ fn prepare_serde_callbacks(
     let located =
         |message| vec![refusal(message, Span::default()).at_path(path.display().to_string())];
     let parsed = semaprax::check(source, path)?;
-    if parsed.types.len() != 1 || parsed.types[0].stable_id != record_id {
+    if !parsed.types.iter().any(|ty| ty.stable_id == record_id) {
         return Err(located(
-            "Serde callback source requires exactly its selected record",
+            "Serde callback source requires its selected record",
         ));
     }
     let resolved = semaprax::hir::resolve(&parsed)?;
@@ -174,8 +175,8 @@ fn prepare(
         || factory.yields.is_some()
         || factory.follows.is_some()
         || (!program.types.is_empty()
-            && !(program.types.len() == 1
-                && allowed_record_id.is_some_and(|id| program.types[0].stable_id == id)))
+            && !allowed_record_id
+                .is_some_and(|id| program.types.iter().any(|ty| ty.stable_id == id)))
     {
         return Err(at(
             "callback factory requires one scalar snapshot parameter and no effects/contracts",

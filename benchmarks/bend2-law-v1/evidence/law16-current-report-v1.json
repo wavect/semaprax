@@ -24,6 +24,32 @@
       "semaprax_candidate_discharges": 10,
       "total_pairs": 10
     },
+    "bounded_proof_and_verdict_process_routes": {
+      "bend_verdict": {
+        "fresh_process": {
+          "count": 30,
+          "p50_ns": 102798854.0,
+          "p95_ns": 112451083
+        },
+        "repeat_process": {
+          "count": 30,
+          "p50_ns": 100183937.0,
+          "p95_ns": 109771667
+        }
+      },
+      "semaprax_z3": {
+        "fresh_process": {
+          "count": 30,
+          "p50_ns": 485314812.0,
+          "p95_ns": 577496250
+        },
+        "repeat_process": {
+          "count": 30,
+          "p50_ns": 480240292.0,
+          "p95_ns": 528557500
+        }
+      }
+    },
     "candidate_and_attack_controls": {
       "bend_verdict_candidate_acceptances": 60,
       "bend_verdict_seeded_attack_rejections": 60,
@@ -114,6 +140,10 @@
         "p50_ns": 451408458.0,
         "p95_ns": 495566959
       }
+    },
+    "proof_path_nonresult": {
+      "error": "SPX-J102: Project v1 ancestor /tmp must be a real directory",
+      "samples": 60
     },
     "semantic_contract": {
       "domain": "Bool / bool; exactly two values",

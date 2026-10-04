@@ -1,0 +1,43 @@
+{
+  "bend_commit": "947db722640c86247849343657bf2f7ef01cb7f1",
+  "nonclaims": [
+    "no OS-cache-cold observation",
+    "no cross-route timing ratio or winner",
+    "Bend verdict and installed-Z3 have distinct trusted computing bases",
+    "source proof does not prove lowering or execution"
+  ],
+  "path_admission_nonresult": {
+    "exact_error": "SPX-J102: Project v1 ancestor /tmp must be a real directory",
+    "receipt": {
+      "bytes": 76406,
+      "path": "path-admission-nonresult/semaprax-z3.json",
+      "sha256": "sha256:ae28ebde4992fb9765042d729da7c24393ffd4dbb20bef6e9d7d207b3b372e31"
+    }
+  },
+  "schema": "semaprax.bend2-law-benchmark.boolean-negation-proof-verdict-capsule.v1",
+  "semaprax_sha256": "sha256:cc9dd3ca99a74dd973cbfb904621e27b801d8ddea6065873d24c14de9dee1d89",
+  "setup_nonresult": {
+    "bytes": 404,
+    "path": "setup-first-attempt.json",
+    "sha256": "sha256:49b2c364c7ae28c5b50142e2616c9c77c47c1c97c486415fe228a601c68cf558"
+  },
+  "status": "completed_local_process_provisioning_with_retained_path_nonresult",
+  "successful": {
+    "bend_receipt": {
+      "bytes": 54412,
+      "path": "successful/bend-verdict.json",
+      "sha256": "sha256:2139f99b94382df11c5bdbb2dbe5a21cdc81cfc6f8ef9b574c48e08e1b86b672"
+    },
+    "plan": {
+      "bytes": 589,
+      "path": "successful/plan.json",
+      "sha256": "sha256:030e47b97e343a7a7c44421ab0d15f3e5943488e8cc2c577965591856244efa1"
+    },
+    "semaprax_receipt": {
+      "bytes": 77218,
+      "path": "successful/semaprax-z3.json",
+      "sha256": "sha256:848703e027b7674f774951e6ce128fcbe23abdd9795af5d30e01f45f870f163c"
+    }
+  },
+  "z3_sha256": "sha256:bbb24b8fed27552f7fb7cfdf0ed9101e6e24fd0cc0b9cfb945233b3f2ed333c5"
+}

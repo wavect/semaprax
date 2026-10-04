@@ -1,0 +1,9 @@
+{
+  "schema": "semaprax.bend2-law-benchmark.setup-nonresult.v1",
+  "status": "infrastructure_nonresult",
+  "stage": "output-root-precondition",
+  "exit_code": 2,
+  "error": "output root must be new below an existing directory",
+  "resolution": "created the required output parent before the separate successful capture",
+  "nonclaims": ["no child benchmark process was started by this rejected setup"]
+}

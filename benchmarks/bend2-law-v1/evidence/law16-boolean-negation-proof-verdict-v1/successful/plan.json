@@ -1,0 +1,17 @@
+{
+  "cold_cache": {
+    "reason": "fresh paths cannot isolate OS, executable, solver, or tool caches",
+    "status": "unavailable"
+  },
+  "nonclaims": [
+    "no cross-route timing ratio or winner",
+    "no OS-cache-cold observation"
+  ],
+  "samples_per_state": 30,
+  "schema": "semaprax.bend2-law-benchmark.boolean-negation-cold-warm.v1",
+  "sources": {
+    "bend": "sha256:91eeeb8c2a9a055a38022e00bf02381a4788cc8608c1d96148dad17e5f109b81",
+    "semaprax": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063"
+  },
+  "status": "completed_local_process_provisioning"
+}

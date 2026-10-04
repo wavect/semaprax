@@ -1,0 +1,115 @@
+{
+  "adapter_latency_ms": {
+    "max": 56.5,
+    "mean": 44.7,
+    "p95": 48.8
+  },
+  "calibration": {
+    "ece_3bin_vs_author_prior": 0.3731,
+    "n": 12,
+    "note": "n too small and labels unmeasured: uninformative"
+  },
+  "first_call_ms": 5297.3,
+  "label": "PILOT ONLY: seed-author-prior labels, n=12, not evidence",
+  "n": 12,
+  "rows": [
+    {
+      "adapter": "m-strong",
+      "family": "mechanical",
+      "id": "seed-004",
+      "prior_best": "m-cheap",
+      "rules": "m-cheap"
+    },
+    {
+      "adapter": "m-strong",
+      "family": "mechanical",
+      "id": "seed-005",
+      "prior_best": "m-cheap",
+      "rules": "m-cheap"
+    },
+    {
+      "adapter": "m-strong",
+      "family": "mechanical",
+      "id": "seed-006",
+      "prior_best": "m-cheap",
+      "rules": "m-cheap"
+    },
+    {
+      "adapter": "m-cheap",
+      "family": "tests_docs",
+      "id": "seed-010",
+      "prior_best": "m-cheap",
+      "rules": "m-cheap"
+    },
+    {
+      "adapter": "m-cheap",
+      "family": "tests_docs",
+      "id": "seed-011",
+      "prior_best": "m-mid",
+      "rules": "m-cheap"
+    },
+    {
+      "adapter": "m-cheap",
+      "family": "tests_docs",
+      "id": "seed-012",
+      "prior_best": "m-mid",
+      "rules": "m-cheap"
+    },
+    {
+      "adapter": "m-cheap",
+      "family": "localized_debug",
+      "id": "seed-016",
+      "prior_best": "m-mid",
+      "rules": "m-cheap"
+    },
+    {
+      "adapter": "m-cheap",
+      "family": "localized_debug",
+      "id": "seed-017",
+      "prior_best": "m-strong",
+      "rules": "m-cheap"
+    },
+    {
+      "adapter": "m-cheap",
+      "family": "localized_debug",
+      "id": "seed-018",
+      "prior_best": "m-strong",
+      "rules": "m-cheap"
+    },
+    {
+      "adapter": "m-cheap",
+      "family": "semantic_law",
+      "id": "seed-022",
+      "prior_best": "m-strong",
+      "rules": "m-strong"
+    },
+    {
+      "adapter": "m-cheap",
+      "family": "semantic_law",
+      "id": "seed-023",
+      "prior_best": "m-mid",
+      "rules": "m-strong"
+    },
+    {
+      "adapter": "m-cheap",
+      "family": "semantic_law",
+      "id": "seed-024",
+      "prior_best": "m-mid",
+      "rules": "m-strong"
+    }
+  ],
+  "stats": {
+    "adapter": {
+      "abstain": 0,
+      "accepted": 4,
+      "agree": 1,
+      "cost": 93,
+      "refused": 0
+    },
+    "rules": {
+      "accepted": 7,
+      "agree": 5,
+      "cost": 74
+    }
+  }
+}

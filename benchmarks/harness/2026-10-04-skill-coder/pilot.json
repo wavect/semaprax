@@ -1,0 +1,235 @@
+{
+  "base_seed": 17,
+  "calls": 0,
+  "caveat": "small local model, fewer than 10 trials per configuration: not evidence for any default",
+  "configurations": [],
+  "endpoint": "loopback",
+  "label": "pilot-only",
+  "min_trials_per_configuration": 0,
+  "model": "qwen2.5-coder:1.5b",
+  "model_digest": "d7372fd828518a4d38b1eb196c673c31a85f2ed302b3d1e406c4c2d1b64a0668",
+  "rows": [],
+  "scoring": "all expected strings present in the answer (case-insensitive); deterministic",
+  "skill_pilot": {
+    "calls": 20,
+    "caveat": "small local model, few trials: no evidence for any default",
+    "compiler_gate": "unchanged: proposals are still judged only by the workflow's compiler checks (see the native+skill workflow cells)",
+    "label": "matched-trials",
+    "reuse_check": "answer contains [\"multiply(\"]",
+    "rows": [
+      {
+        "answer_digest": "sha256:fccc14402adf748b1be11139b996b9f35082dde9ccb0c1238a844b5c0daa2380",
+        "arm": "without-skill",
+        "error": null,
+        "latency_ms": 1987,
+        "prompt_bytes": 1896,
+        "rep": 0,
+        "reused_existing_api": false,
+        "seed": 17
+      },
+      {
+        "answer_digest": "sha256:fccc14402adf748b1be11139b996b9f35082dde9ccb0c1238a844b5c0daa2380",
+        "arm": "with-skill",
+        "error": null,
+        "latency_ms": 718,
+        "prompt_bytes": 3627,
+        "rep": 0,
+        "reused_existing_api": false,
+        "seed": 17
+      },
+      {
+        "answer_digest": "sha256:fccc14402adf748b1be11139b996b9f35082dde9ccb0c1238a844b5c0daa2380",
+        "arm": "without-skill",
+        "error": null,
+        "latency_ms": 310,
+        "prompt_bytes": 1896,
+        "rep": 1,
+        "reused_existing_api": false,
+        "seed": 18
+      },
+      {
+        "answer_digest": "sha256:0747150d2ede104cb159bc7e051c6f9c6742543c3e0df864ea373e0d10f7e74f",
+        "arm": "with-skill",
+        "error": null,
+        "latency_ms": 1123,
+        "prompt_bytes": 3627,
+        "rep": 1,
+        "reused_existing_api": false,
+        "seed": 18
+      },
+      {
+        "answer_digest": "sha256:fccc14402adf748b1be11139b996b9f35082dde9ccb0c1238a844b5c0daa2380",
+        "arm": "without-skill",
+        "error": null,
+        "latency_ms": 301,
+        "prompt_bytes": 1896,
+        "rep": 2,
+        "reused_existing_api": false,
+        "seed": 19
+      },
+      {
+        "answer_digest": "sha256:0747150d2ede104cb159bc7e051c6f9c6742543c3e0df864ea373e0d10f7e74f",
+        "arm": "with-skill",
+        "error": null,
+        "latency_ms": 1135,
+        "prompt_bytes": 3627,
+        "rep": 2,
+        "reused_existing_api": false,
+        "seed": 19
+      },
+      {
+        "answer_digest": "sha256:fccc14402adf748b1be11139b996b9f35082dde9ccb0c1238a844b5c0daa2380",
+        "arm": "without-skill",
+        "error": null,
+        "latency_ms": 335,
+        "prompt_bytes": 1896,
+        "rep": 3,
+        "reused_existing_api": false,
+        "seed": 20
+      },
+      {
+        "answer_digest": "sha256:fccc14402adf748b1be11139b996b9f35082dde9ccb0c1238a844b5c0daa2380",
+        "arm": "with-skill",
+        "error": null,
+        "latency_ms": 708,
+        "prompt_bytes": 3627,
+        "rep": 3,
+        "reused_existing_api": false,
+        "seed": 20
+      },
+      {
+        "answer_digest": "sha256:fccc14402adf748b1be11139b996b9f35082dde9ccb0c1238a844b5c0daa2380",
+        "arm": "without-skill",
+        "error": null,
+        "latency_ms": 327,
+        "prompt_bytes": 1896,
+        "rep": 4,
+        "reused_existing_api": false,
+        "seed": 21
+      },
+      {
+        "answer_digest": "sha256:0747150d2ede104cb159bc7e051c6f9c6742543c3e0df864ea373e0d10f7e74f",
+        "arm": "with-skill",
+        "error": null,
+        "latency_ms": 1125,
+        "prompt_bytes": 3627,
+        "rep": 4,
+        "reused_existing_api": false,
+        "seed": 21
+      },
+      {
+        "answer_digest": "sha256:fccc14402adf748b1be11139b996b9f35082dde9ccb0c1238a844b5c0daa2380",
+        "arm": "without-skill",
+        "error": null,
+        "latency_ms": 338,
+        "prompt_bytes": 1896,
+        "rep": 5,
+        "reused_existing_api": false,
+        "seed": 22
+      },
+      {
+        "answer_digest": "sha256:fccc14402adf748b1be11139b996b9f35082dde9ccb0c1238a844b5c0daa2380",
+        "arm": "with-skill",
+        "error": null,
+        "latency_ms": 664,
+        "prompt_bytes": 3627,
+        "rep": 5,
+        "reused_existing_api": false,
+        "seed": 22
+      },
+      {
+        "answer_digest": "sha256:fccc14402adf748b1be11139b996b9f35082dde9ccb0c1238a844b5c0daa2380",
+        "arm": "without-skill",
+        "error": null,
+        "latency_ms": 287,
+        "prompt_bytes": 1896,
+        "rep": 6,
+        "reused_existing_api": false,
+        "seed": 23
+      },
+      {
+        "answer_digest": "sha256:0747150d2ede104cb159bc7e051c6f9c6742543c3e0df864ea373e0d10f7e74f",
+        "arm": "with-skill",
+        "error": null,
+        "latency_ms": 1085,
+        "prompt_bytes": 3627,
+        "rep": 6,
+        "reused_existing_api": false,
+        "seed": 23
+      },
+      {
+        "answer_digest": "sha256:fccc14402adf748b1be11139b996b9f35082dde9ccb0c1238a844b5c0daa2380",
+        "arm": "without-skill",
+        "error": null,
+        "latency_ms": 284,
+        "prompt_bytes": 1896,
+        "rep": 7,
+        "reused_existing_api": false,
+        "seed": 24
+      },
+      {
+        "answer_digest": "sha256:0747150d2ede104cb159bc7e051c6f9c6742543c3e0df864ea373e0d10f7e74f",
+        "arm": "with-skill",
+        "error": null,
+        "latency_ms": 1048,
+        "prompt_bytes": 3627,
+        "rep": 7,
+        "reused_existing_api": false,
+        "seed": 24
+      },
+      {
+        "answer_digest": "sha256:fccc14402adf748b1be11139b996b9f35082dde9ccb0c1238a844b5c0daa2380",
+        "arm": "without-skill",
+        "error": null,
+        "latency_ms": 293,
+        "prompt_bytes": 1896,
+        "rep": 8,
+        "reused_existing_api": false,
+        "seed": 25
+      },
+      {
+        "answer_digest": "sha256:0747150d2ede104cb159bc7e051c6f9c6742543c3e0df864ea373e0d10f7e74f",
+        "arm": "with-skill",
+        "error": null,
+        "latency_ms": 1064,
+        "prompt_bytes": 3627,
+        "rep": 8,
+        "reused_existing_api": false,
+        "seed": 25
+      },
+      {
+        "answer_digest": "sha256:fccc14402adf748b1be11139b996b9f35082dde9ccb0c1238a844b5c0daa2380",
+        "arm": "without-skill",
+        "error": null,
+        "latency_ms": 293,
+        "prompt_bytes": 1896,
+        "rep": 9,
+        "reused_existing_api": false,
+        "seed": 26
+      },
+      {
+        "answer_digest": "sha256:0747150d2ede104cb159bc7e051c6f9c6742543c3e0df864ea373e0d10f7e74f",
+        "arm": "with-skill",
+        "error": null,
+        "latency_ms": 1097,
+        "prompt_bytes": 3627,
+        "rep": 9,
+        "reused_existing_api": false,
+        "seed": 26
+      }
+    ],
+    "skill_prompt_bytes": 1730,
+    "status": "ran",
+    "task": "reuse-square-via-multiply",
+    "with_skill": {
+      "n": 10,
+      "reused": 0
+    },
+    "without_skill": {
+      "n": 10,
+      "reused": 0
+    }
+  },
+  "status": "ran",
+  "temperature": 0.2
+}

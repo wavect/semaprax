@@ -1,0 +1,5 @@
+{
+  "schema": "semaprax.harness-task.v1",
+  "goal": "fix ledger.line_total so the contract holds",
+  "external_context": "always"
+}

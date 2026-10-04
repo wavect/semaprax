@@ -1,0 +1,31 @@
+{
+  "schema": "semaprax.fixture-provenance.v1",
+  "repo": "https://github.com/JuliusBrussee/caveman",
+  "tag": "v3.1.0",
+  "commit": "8af1f1b9b1346bca0722a1556f119b4e6675cc96",
+  "license": "Apache-2.0",
+  "note": "byte-exact upstream files; never edit",
+  "files": [
+    {
+      "path": "LICENSE",
+      "upstream_path": "LICENSE",
+      "git_blob_sha": "d645695673349e3947e8e5ae42332d0ac3164cd7",
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+      "bytes": 11358
+    },
+    {
+      "path": "README.md",
+      "upstream_path": "skills/caveman/README.md",
+      "git_blob_sha": "81b24f3dc0d668e08526b2c7d4e6bab2b8a57510",
+      "sha256": "cbe0c714a696d95e8378858c812f3f3157fabf6929cc4cd28f3dcd48123b975b",
+      "bytes": 3009
+    },
+    {
+      "path": "SKILL.md",
+      "upstream_path": "skills/caveman/SKILL.md",
+      "git_blob_sha": "f029f003c1e9ef36d7cef8a76702192dea73c4cd",
+      "sha256": "34255a0215a7701eb83d508d03bc9560dc7bffbeb95a145ad2921ad2598a03bf",
+      "bytes": 4043
+    }
+  ]
+}

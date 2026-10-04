@@ -1,0 +1,24 @@
+{
+  "schema": "semaprax.fixture-provenance.v1",
+  "repo": "https://github.com/DietrichGebert/ponytail",
+  "tag": "v4.10.3",
+  "commit": "ef8ca48fed2321ab6668b2a954f23b1af97d7f6d",
+  "license": "MIT",
+  "note": "byte-exact upstream files; never edit",
+  "files": [
+    {
+      "path": "LICENSE",
+      "upstream_path": "LICENSE",
+      "git_blob_sha": "715d483338cea4365f0d91a27799cf61226d6bcf",
+      "sha256": "fb1bc6909ac3ef82d5c22106e32ef682b0cff66788fa915fb9b53b15c9d2f3ab",
+      "bytes": 1071
+    },
+    {
+      "path": "SKILL.md",
+      "upstream_path": "skills/ponytail/SKILL.md",
+      "git_blob_sha": "02c0712c86277d49d18a77da3a2b825657bf02d1",
+      "sha256": "1316a2f3f95741d2300b116fe0c2d81ce4a9568656ed0a62643f54aaf09957f2",
+      "bytes": 6637
+    }
+  ]
+}

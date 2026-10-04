@@ -1,0 +1,57 @@
+{
+  "adapter": {
+    "entry": ["adapter.py"],
+    "runtime": "python",
+    "version": "0.1.0"
+  },
+  "capabilities": [
+    {
+      "kind": "context.repository",
+      "operations": ["orient", "search", "skeleton", "references"],
+      "required": true,
+      "version": 1
+    }
+  ],
+  "config": {
+    "fields": {
+      "adopt_index": {"default": "", "type": "string"},
+      "refresh": {"default": "stale", "type": "string"},
+      "user_index": {"default": "graphify-out", "type": "string"}
+    }
+  },
+  "extensions": [],
+  "permissions": {
+    "network": [],
+    "process": ["upstream"],
+    "read": ["project"],
+    "secrets": [],
+    "write": ["cache"]
+  },
+  "platforms": ["macos-aarch64", "linux-aarch64", "linux-x86_64"],
+  "protocol": {"max": 1, "min": 1, "name": "semaprax.harness-rpc.v1"},
+  "provider": {"id": "com.graphify-labs/graphify-context", "version": "0.1.0"},
+  "resources": {
+    "handshake_timeout_ms": 5000,
+    "idle_shutdown_ms": 60000,
+    "invoke_timeout_ms": 120000,
+    "max_concurrency": 1,
+    "max_frame_bytes": 1048576
+  },
+  "cancellation": "cooperative",
+  "schema": "semaprax.harness-provider.v1",
+  "support": {
+    "isolation": "subprocess",
+    "license": "Apache-2.0",
+    "tested": [
+      {"os": "macos-aarch64", "result": "pass", "upstream": "0.9.25"},
+      {"os": "macos-aarch64", "result": "pass", "upstream": "0.9.75"}
+    ]
+  },
+  "upstream": {
+    "identity_probe": ["--version"],
+    "name": "graphify",
+    "package": "pypi:graphifyy",
+    "repository": "https://github.com/Graphify-Labs/graphify",
+    "versions": ["0.9.25", "0.9.75"]
+  }
+}

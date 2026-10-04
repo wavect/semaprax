@@ -1,0 +1,50 @@
+{
+  "protocol": "chat_completions",
+  "events": [
+    {
+      "choices": [
+        {
+          "delta": {
+            "content": "x"
+          }
+        }
+      ]
+    },
+    {
+      "choices": [],
+      "usage": {
+        "prompt_tokens": 100,
+        "prompt_tokens_details": {
+          "cached_tokens": 60
+        },
+        "completion_tokens": 50,
+        "completion_tokens_details": {
+          "reasoning_tokens": 20
+        },
+        "total_tokens": 150
+      }
+    },
+    {
+      "choices": [],
+      "usage": {
+        "prompt_tokens": 100,
+        "prompt_tokens_details": {
+          "cached_tokens": 60
+        },
+        "completion_tokens": 50,
+        "completion_tokens_details": {
+          "reasoning_tokens": 20
+        },
+        "total_tokens": 150
+      }
+    }
+  ],
+  "expect": {
+    "input_total": 100,
+    "uncached_input": 40,
+    "cache_read": 60,
+    "cache_write": 0,
+    "output": 50,
+    "reasoning": 20
+  }
+}

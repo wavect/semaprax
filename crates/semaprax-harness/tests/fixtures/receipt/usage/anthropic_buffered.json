@@ -1,0 +1,16 @@
+{
+  "protocol": "anthropic_messages",
+  "usage": {
+    "input_tokens": 40,
+    "cache_read_input_tokens": 60,
+    "cache_creation_input_tokens": 0,
+    "output_tokens": 50
+  },
+  "expect": {
+    "input_total": 100,
+    "uncached_input": 40,
+    "cache_read": 60,
+    "cache_write": 0,
+    "output": 50
+  }
+}

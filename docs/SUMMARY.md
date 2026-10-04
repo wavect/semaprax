@@ -18,6 +18,28 @@ Audience: all documentation readers.
 - [Language tour](LANGUAGE-TOUR.md)
 - [GitHub Linguist submission v1](GITHUB-LINGUIST-SUBMISSION-V1.md)
 
+## Development harness
+
+- [Harness provider host v1](HARNESS-PROVIDER-V1.md)
+- [Harness adapter host v1](HARNESS-HOST-V1.md)
+- [Harness development workflow v1](HARNESS-WORKFLOW-V1.md)
+- [Harness context broker v1](HARNESS-CONTEXT-V1.md)
+- [Harness command views v1](HARNESS-COMMAND-VIEW-V1.md)
+- [Harness decision providers v1](HARNESS-DECISION-V1.md)
+- [Harness Laya and Jev adapters v1](HARNESS-LAYA-JEV-V1.md)
+- [Harness model endpoints v1](HARNESS-ENDPOINTS-V1.md)
+- [Harness skill catalog v1](HARNESS-SKILLS-V1.md)
+- [Harness external-host bridge v1](HARNESS-BRIDGE-V1.md)
+- [Harness observation attribution v1](HARNESS-OBSERVATION-V1.md)
+- [Harness adapter SDK v1](HARNESS-ADAPTER-SDK-V1.md)
+- [Harness toolchain integration v1](HARNESS-TOOLCHAIN-V1.md)
+- [Harness journey benchmark v1](HARNESS-BENCHMARK-V1.md)
+- [Harness artifact identity v1](HARNESS-ARTIFACT-IDENTITY-V1.md)
+- [Harness updates v1](HARNESS-UPDATES-V1.md)
+- [Harness setup v1](HARNESS-SETUP-V1.md)
+- [Harness platforms v1](HARNESS-PLATFORMS-V1.md)
+- [Harness skill evolution v1](HARNESS-EVOLUTION-V1.md)
+
 ## Agent workflows
 
 - [Agent quick reference](AGENT-QUICK-REFERENCE.md)

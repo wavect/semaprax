@@ -1,0 +1,1 @@
+{"schema":"semaprax.skill-bundle.v1","name":"terse-answers","description":"Keep prose short; code blocks over explanation.","version":"0.1.0","license":"MIT","tags":["docs","brevity"],"entries":[{"file":"brevity.md","digest":"sha256:aa71b6e878f8e0874e702e30fb0e516e07ec064bd814c8f956ba6d34e7303ae7"}]}

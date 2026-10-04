@@ -725,7 +725,10 @@ fn patch_receipt_adapters_replay_retained_candidates_without_history_or_path_inp
             .unwrap()
             .is_empty()
     );
-    let stale_transaction = transaction.replace(&workspace, "sha256:stale");
+    let stale_transaction = transaction.replace(
+        &workspace,
+        "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+    );
     assert_eq!(
         error_code(&call(
             &mut session,
@@ -733,6 +736,6 @@ fn patch_receipt_adapters_replay_retained_candidates_without_history_or_path_inp
             "workspace/patch-receipt",
             json!({"transaction":stale_transaction,"candidate_digest":candidate}),
         )),
-        "SPX-G533"
+        "SPX-G530"
     );
 }

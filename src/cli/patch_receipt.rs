@@ -1,12 +1,14 @@
 //! One-shot authority-free patch receipt projections over an authenticated Project.
 
 use semaprax::diagnostic::Diagnostic;
-use semaprax::project::{SemanticWorkspaceService, with_authenticated_project};
+use semaprax::project::{with_authenticated_project, SemanticWorkspaceService};
 use std::path::PathBuf;
 
 use super::project::{is_project_manifest, resolve_positional};
 
-const USAGE: &str = "patch-receipt requires <project> <render|verify|compare> canonical transaction and receipt operands";
+const USAGE: &str = "patch-receipt requires <project> <render|verify|compare|evidence-summary|evidence-page> canonical transaction, receipt, and retained-evidence operands";
+const EVIDENCE_PAGE_SIZE: usize = 32;
+const EVIDENCE_MAX_BYTES: usize = 65_536;
 
 pub(crate) enum Command {
     Render {
@@ -19,6 +21,19 @@ pub(crate) enum Command {
         transaction: String,
         candidate: String,
         receipt: String,
+    },
+    EvidenceSummary {
+        manifest: PathBuf,
+        transaction: String,
+        candidate: String,
+    },
+    EvidencePage {
+        manifest: PathBuf,
+        transaction: String,
+        candidate: String,
+        evidence_id: String,
+        handle: String,
+        cursor: Option<String>,
     },
     Compare {
         manifest: PathBuf,
@@ -57,23 +72,38 @@ pub(crate) fn parse(args: &[String]) -> Result<Command, u8> {
                 receipt: receipt.clone(),
             })
         }
-        [
-            operation,
-            left_transaction,
-            left_candidate,
-            left_receipt,
-            right_transaction,
-            right_candidate,
-            right_receipt,
-        ] if operation == "compare" => Ok(Command::Compare {
-            manifest,
-            left_transaction: left_transaction.clone(),
-            left_candidate: left_candidate.clone(),
-            left_receipt: left_receipt.clone(),
-            right_transaction: right_transaction.clone(),
-            right_candidate: right_candidate.clone(),
-            right_receipt: right_receipt.clone(),
-        }),
+        [operation, transaction, candidate] if operation == "evidence-summary" => {
+            Ok(Command::EvidenceSummary {
+                manifest,
+                transaction: transaction.clone(),
+                candidate: candidate.clone(),
+            })
+        }
+        [operation, transaction, candidate, evidence_id, handle, cursor]
+            if operation == "evidence-page" =>
+        {
+            Ok(Command::EvidencePage {
+                manifest,
+                transaction: transaction.clone(),
+                candidate: candidate.clone(),
+                evidence_id: evidence_id.clone(),
+                handle: handle.clone(),
+                cursor: (cursor != "-").then(|| cursor.clone()),
+            })
+        }
+        [operation, left_transaction, left_candidate, left_receipt, right_transaction, right_candidate, right_receipt]
+            if operation == "compare" =>
+        {
+            Ok(Command::Compare {
+                manifest,
+                left_transaction: left_transaction.clone(),
+                left_candidate: left_candidate.clone(),
+                left_receipt: left_receipt.clone(),
+                right_transaction: right_transaction.clone(),
+                right_candidate: right_candidate.clone(),
+                right_receipt: right_receipt.clone(),
+            })
+        }
         _ => usage(),
     }
 }
@@ -82,6 +112,8 @@ pub(crate) fn run(command: Command, report: impl Fn(&[Diagnostic]) -> u8) -> Res
     let manifest = match &command {
         Command::Render { manifest, .. }
         | Command::Verify { manifest, .. }
+        | Command::EvidenceSummary { manifest, .. }
+        | Command::EvidencePage { manifest, .. }
         | Command::Compare { manifest, .. } => manifest,
     }
     .clone();
@@ -102,6 +134,27 @@ pub(crate) fn run(command: Command, report: impl Fn(&[Diagnostic]) -> u8) -> Res
             } => {
                 service.verify_patch_receipt(transaction.as_bytes(), &candidate, receipt.as_bytes())
             }
+            Command::EvidenceSummary {
+                transaction,
+                candidate,
+                ..
+            } => service.patch_receipt_evidence_summary(transaction.as_bytes(), &candidate),
+            Command::EvidencePage {
+                transaction,
+                candidate,
+                evidence_id,
+                handle,
+                cursor,
+                ..
+            } => service.patch_receipt_evidence_page(
+                transaction.as_bytes(),
+                &candidate,
+                &evidence_id,
+                &handle,
+                cursor.as_deref(),
+                EVIDENCE_PAGE_SIZE,
+                EVIDENCE_MAX_BYTES,
+            ),
             Command::Compare {
                 left_transaction,
                 left_candidate,
@@ -151,6 +204,27 @@ mod tests {
             ])),
             Ok(Command::Render { .. })
         ));
+        assert!(matches!(
+            parse(&args(&[
+                "examples/calculator-project",
+                "evidence-summary",
+                "{\"schema\":\"semaprax.semantic-transaction.v1\"}",
+                "sha256:abc"
+            ])),
+            Ok(Command::EvidenceSummary { .. })
+        ));
+        assert!(matches!(
+            parse(&args(&[
+                "examples/calculator-project",
+                "evidence-page",
+                "{\"schema\":\"semaprax.semantic-transaction.v1\"}",
+                "sha256:abc",
+                "declaration_catalog",
+                "sha256:handle",
+                "-",
+            ])),
+            Ok(Command::EvidencePage { cursor: None, .. })
+        ));
         for malformed in [
             args(&[]),
             args(&[
@@ -161,7 +235,12 @@ mod tests {
                 "extra",
             ]),
             args(&["examples/calculator-project", "verify", "tx", "digest"]),
-            args(&["examples/calculator-project", "page", "tx", "digest"]),
+            args(&[
+                "examples/calculator-project",
+                "evidence-page",
+                "tx",
+                "digest",
+            ]),
         ] {
             assert!(parse(&malformed).is_err());
         }

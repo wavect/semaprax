@@ -25,6 +25,8 @@ evidence, or candidate paths:
 semaprax patch-receipt <project> render <transaction-json> <candidate-digest>
 semaprax patch-receipt <project> verify <transaction-json> <candidate-digest> <receipt-json>
 semaprax patch-receipt <project> compare <left-transaction-json> <left-candidate-digest> <left-receipt-json> <right-transaction-json> <right-candidate-digest> <right-receipt-json>
+semaprax patch-receipt <project> evidence-summary <transaction-json> <candidate-digest>
+semaprax patch-receipt <project> evidence-page <transaction-json> <candidate-digest> <evidence-id> <handle> <cursor|->
 ```
 
 ```rust
@@ -113,7 +115,10 @@ JSON pointer, or caller-provided evidence document.
 Each call reselects the exact candidate and recomputes the complete selected
 family. Its handle binds the candidate digest, family and whole canonical
 evidence bytes. Cursors additionally bind that handle and the selected page
-options. The declaration catalog keeps compiler order and can therefore page
+shape and options. The one-shot CLI fixes evidence pages at 32 items and 64 KiB; use `-`
+for the initial page. It accepts no evidence path, document, or caller-selected
+resource limit.
+The declaration catalog keeps compiler order and can therefore page
 multiple stable IDs across source files without dropping cross-file identities.
 The output is read-only descriptive evidence and does not execute tests or
 effects, observe a runtime, or grant source or publication authority.

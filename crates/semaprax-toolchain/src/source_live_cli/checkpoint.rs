@@ -343,15 +343,16 @@ mod platform {
             staged
                 .write_all(document.as_bytes())
                 .and_then(|_| staged.sync_all())
-                .and_then(|_| {
-                    renameat(
-                        &self.directory,
-                        scratch.as_str(),
-                        &self.directory,
-                        TERMINAL_PATCH_RECEIPT,
-                    )
-                })
-                .and_then(|_| self.directory.sync_all())
+                .map_err(|_| CliError::refused("cannot retain terminal patch receipt"))?;
+            renameat(
+                &self.directory,
+                scratch.as_str(),
+                &self.directory,
+                TERMINAL_PATCH_RECEIPT,
+            )
+            .map_err(|_| CliError::refused("cannot retain terminal patch receipt"))?;
+            self.directory
+                .sync_all()
                 .map_err(|_| CliError::refused("cannot retain terminal patch receipt"))
         }
 

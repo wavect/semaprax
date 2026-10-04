@@ -164,3 +164,27 @@ combined receipt and batch measurement, linked Project receipt, and command
 logs to the named evidence directory. `output-digests.json` records SHA-256
 digests for those outputs. It therefore leaves no running container and does
 not turn a Mac-local result into Linux evidence.
+
+## Explicit Wasm refusal evidence
+
+RI-13's generated Rust routes are not Wasm or cross-target support. The
+following command uses one supplied current-head compiler binary to request the
+Wasm target for each independent M1, M2, and M3 Project manifest. It records
+the exact manifest profile (`implicit scalar.v1` for M1/M2 and
+`source-local-future.v1` for M3), compiler and checkout identity, command,
+diagnostic codes, and raw stdout/stderr artifacts. Every row must exit nonzero
+and leave its requested `.wasm` output absent.
+
+```sh
+python3 examples/ri13-combined-app/wasm-refusal.py \
+  --semaprax /absolute/path/to/current/semaprax \
+  --checkout "$PWD" \
+  --commit "$(git rev-parse HEAD)" \
+  --artifact-dir /secure/local/ri13-wasm-refusal-artifacts \
+  --output /secure/local/ri13-wasm-refusal.json
+```
+
+The receipt proves only an explicit refusal for the named source profiles and
+target. It does not assert a fallback, Wasm execution, a native result, or
+cross-target portability. A missing compiler or changed checkout is
+`unavailable`; a zero exit or materialized output is a failed refusal.

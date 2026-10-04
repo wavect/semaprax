@@ -21,9 +21,18 @@ const URL_LOCK: &[u8] =
 
 fn main() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap();
-    let project = root.parent().unwrap().join("project");
-    let source_path = project.join("src/app.spx");
-    let source = fs::read_to_string(&source_path).expect("combined Project source");
+    let examples = root.parent().unwrap().parent().unwrap();
+    // M1, M2, and M3 retain their independently admitted source profiles.
+    // Combining their declarations into the Future Project was never valid:
+    // dependency tables are scalar-package-only, while M3 selects the Future
+    // profile. This linker exercises the generated outputs together without
+    // widening either profile's manifest authority.
+    let m1_project = examples.join("ri13-m1-regex-url/project");
+    let m1_source_path = m1_project.join("src/app.spx");
+    let m1_source = fs::read_to_string(&m1_source_path).expect("saved M1 Project source");
+    let m2_source_path = examples.join("ri13-m2-record-iterator/project/app.spx");
+    let m2_source = fs::read_to_string(&m2_source_path).expect("saved M2 source");
+    let m3_project = examples.join("ri13-m3-local-http/project");
     let regex_index = RustApiIndex::admit_extractor_output(REGEX_INDEX).unwrap();
     let url_index = RustApiIndex::admit_extractor_output(URL_INDEX).unwrap();
     let regex_package = SelectedPackage {
@@ -47,20 +56,20 @@ fn main() {
     let regex =
         ["regex.new", "regex.match"].map(|import_id| IndexedProjectRegexRegistrySelection {
             source_path: "src/app.spx",
-            source: &source,
+            source: &m1_source,
             import_id,
             index_bytes: regex_index.canonical_json().as_bytes(),
             package: regex_package,
         });
     let url = ["url.new", "url.view"].map(|import_id| IndexedProjectUrlRegistrySelection {
         source_path: "src/app.spx",
-        source: &source,
+        source: &m1_source,
         import_id,
         index_bytes: url_index.canonical_json().as_bytes(),
         package: url_package,
     });
     let m1 = prepare_indexed_regex_url_project_packages(
-        &project.join("semaprax.toml"),
+        &m1_project.join("semaprax.toml"),
         &regex,
         &url,
         "regex.run",
@@ -68,7 +77,7 @@ fn main() {
         REGEX_LOCK,
         URL_LOCK,
     )
-    .expect("one held combined Project M1 selection");
+    .expect("one held M1 Project selection");
     let destination = root.join("generated/regex");
     fs::create_dir_all(destination.join("src")).unwrap();
     for (path, bytes) in [
@@ -96,13 +105,13 @@ fn main() {
         fs::write(destination.join(path), bytes).unwrap();
     }
     let m2 = prepare_native_rust_serde_iterator_callbacks(
-        &source,
-        &source_path,
+        &m2_source,
+        &m2_source_path,
         "ri13.event",
         "callback.factory",
         "callback.advance",
     )
-    .expect("combined Project M2 selection");
+    .expect("saved M2 source selection");
     let m2_dir = root.join("generated/m2");
     fs::create_dir_all(&m2_dir).unwrap();
     fs::write(m2_dir.join("module.c"), &m2.callback.c_source).unwrap();
@@ -119,11 +128,11 @@ fn main() {
         ),
     )
     .unwrap();
-    let m3 = with_authenticated_project(&project.join("semaprax.toml"), |snapshot| {
+    let m3 = with_authenticated_project(&m3_project.join("semaprax.toml"), |snapshot| {
         snapshot.check()?;
         snapshot.render_source_local_future_rust_module()
     })
-    .expect("combined Project M3 selection");
+    .expect("held M3 Future Project selection");
     fs::write(root.join("generated/m3.rs"), m3).unwrap();
     println!(
         "ri13-linked-prepared:{}:{}",

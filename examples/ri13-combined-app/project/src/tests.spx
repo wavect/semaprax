@@ -1,2 +1,0 @@
-module ri13.combined.tests;
-@id("ri13.combined.tests.main") fn main() -> i64 { 0 }

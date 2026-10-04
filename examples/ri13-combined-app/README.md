@@ -1,6 +1,6 @@
 # RI-13 combined application measurement gate
 
-This gate runs the three saved RI-13 applications and one linked Project route
+This gate runs the three saved RI-13 applications and one linked generated route
 as one reproducible receipt:
 
 1. M1 prepares a held Regex/Url Project and executes its two generated Rust/C
@@ -10,12 +10,12 @@ as one reproducible receipt:
    `std::Iterator`.
 3. M3 prepares and runs the generated local HTTP Future consumer, then records
    direct, handwritten-check, and generated route samples.
-4. The linked Project prepares all selected M1/M2/M3 generated packages and
+4. The linked route prepares all selected M1/M2/M3 generated packages and
    executes its one-process consumer after the three profile-specific routes.
 
 The profiles deliberately remain separate. The current Project Future profile
-does not admit the M1 owner imports or M2 record/callback projection in the
-same linked Project. The receipt is a combined executable gate for the three
+does not admit the M1 owner imports or M2 record/callback projection in one
+Project. The receipt is a combined executable gate for the three
 real application paths, not a claim that those source profiles are one ABI.
 
 ## Reproduce
@@ -86,16 +86,16 @@ its acceptance target, and fresh Linux x86_64 and macOS arm64 evidence. The
 receipt makes those gaps explicit rather than converting one local run into a
 portability or performance claim.
 
-## Linked Project fixture
+## Linked generated fixture
 
-`project/` is one held `source-local-future.v1` Project that carries all three
-selected identities: the two M1 indexed native-Rust exports, the M2 record and
-callback declarations, and the single M3 Rust Future export. Its
-`linked/` package has a `prepare` binary that derives all four generated
-packages/modules from that Project source, then a `consumer` binary links the
-M1 owner crates, M2 C/Rust callback module, and M3 generated Future module in
-one process. The consumer emits `ri13-linked-project-ok` only after all three
-routes return their checked values.
+`linked/prepare` authenticates the saved M1 Project, M2 source revision, and
+M3 Future Project independently, then derives their generated packages/modules
+into one local consumer. A single manifest cannot honestly carry all three:
+M1's `[rust-dependencies]` are admitted only by the scalar package profile,
+while M3 selects `source-local-future.v1`. The `consumer` binary links the M1
+owner crates, M2 C/Rust callback module, and M3 generated Future module in one
+process. It emits `ri13-linked-project-ok` only after all three routes return
+their checked values; it does not claim a mixed-profile Project ABI.
 
 The prepare result is intentionally untracked. Reproduce the linked route with
 its own private target directory:

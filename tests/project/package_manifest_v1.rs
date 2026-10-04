@@ -189,7 +189,7 @@ fn ri13_unified_project_profile_admits_only_the_closed_indexed_rust_shape() {
         .expect("the closed indexed-Rust profile admits the exact RI-13 candidate");
     assert_eq!(
         manifest.project_profile(),
-        crate::project::ProjectProfile::SourceLocalFutureIndexedRustV1
+        semaprax::project::ProjectProfile::SourceLocalFutureIndexedRustV1
     );
     let unsupported = RI13_UNIFIED_PROJECT_MANIFEST.replace(
         "source-local-future-indexed-rust.v1",

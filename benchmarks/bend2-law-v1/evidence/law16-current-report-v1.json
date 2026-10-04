@@ -303,49 +303,12 @@
       "semaprax_z3_candidate_postcondition_discharges": 60,
       "semaprax_z3_seeded_attack_rejections": 60
     },
-    "ordinary_and_nonproof_process_routes": {
-      "bend-ordinary": {
-        "fresh_process": {
-          "count": 30,
-          "p50_ns": 83050145.5,
-          "p95_ns": 100950209
-        },
-        "repeat_process": {
-          "count": 30,
-          "p50_ns": 75527833.0,
-          "p95_ns": 78076250
-        }
-      },
-      "semaprax-check": {
-        "fresh_process": {
-          "count": 30,
-          "p50_ns": 233901479.5,
-          "p95_ns": 238908583
-        },
-        "repeat_process": {
-          "count": 30,
-          "p50_ns": 235004000.0,
-          "p95_ns": 243150709
-        }
-      }
+    "historical_peak_rss": {
+      "reason": "bend-verdict.json command does not bind retained input",
+      "scope": "historical absolute-path evidence is not rebound to this checkout",
+      "status": "unavailable"
     },
-    "peak_rss": {
-      "bend_verdict": {
-        "input_sha256": "sha256:91eeeb8c2a9a055a38022e00bf02381a4788cc8608c1d96148dad17e5f109b81",
-        "p50_peak_rss_bytes": 119259136.0,
-        "p95_peak_rss_bytes": 127746048,
-        "samples": 30,
-        "wrapper": "/usr/bin/time -l"
-      },
-      "semaprax_z3": {
-        "input_sha256": "sha256:481999d6499263a605ce8eaf67e8155b772f6cddbe466c87e3087978ff339bb5",
-        "p50_peak_rss_bytes": 50880512.0,
-        "p95_peak_rss_bytes": 51036160,
-        "samples": 30,
-        "wrapper": "/usr/bin/time -l"
-      }
-    },
-    "process_routes": {
+    "historical_process_routes": {
       "bend_attack_fresh_process": {
         "count": 30,
         "p50_ns": 68409687.0,
@@ -387,6 +350,102 @@
         "p95_ns": 495566959
       }
     },
+    "ordinary_and_nonproof_process_routes": {
+      "bend-ordinary": {
+        "fresh_process": {
+          "count": 30,
+          "p50_ns": 83050145.5,
+          "p95_ns": 100950209
+        },
+        "repeat_process": {
+          "count": 30,
+          "p50_ns": 75527833.0,
+          "p95_ns": 78076250
+        }
+      },
+      "semaprax-check": {
+        "fresh_process": {
+          "count": 30,
+          "p50_ns": 233901479.5,
+          "p95_ns": 238908583
+        },
+        "repeat_process": {
+          "count": 30,
+          "p50_ns": 235004000.0,
+          "p95_ns": 243150709
+        }
+      }
+    },
+    "peak_rss": {
+      "bend_verdict": {
+        "input_sha256": "sha256:91eeeb8c2a9a055a38022e00bf02381a4788cc8608c1d96148dad17e5f109b81",
+        "p50_peak_rss_bytes": 118300672.0,
+        "p95_peak_rss_bytes": 122978304,
+        "samples": 30,
+        "wrapper": "/usr/bin/time -l"
+      },
+      "semaprax_z3": {
+        "input_sha256": "sha256:481999d6499263a605ce8eaf67e8155b772f6cddbe466c87e3087978ff339bb5",
+        "p50_peak_rss_bytes": 50970624.0,
+        "p95_peak_rss_bytes": 51167232,
+        "samples": 30,
+        "wrapper": "/usr/bin/time -l"
+      }
+    },
+    "process_provenance": {
+      "cold_cache": {
+        "reason": "the capture does not clear or verify OS page, executable, solver, or tool caches",
+        "status": "unavailable"
+      },
+      "command_count": 240,
+      "process_states": {
+        "fresh_process": "a new child process using the first byte-identical copied input or project path",
+        "repeat_process": "a new child process using the second byte-identical copied input or project path"
+      },
+      "source": "evidence/law16-boolean-negation-process-v2/provenance.json"
+    },
+    "process_routes": {
+      "bend_attack_fresh_process": {
+        "count": 30,
+        "p50_ns": 84425854.5,
+        "p95_ns": 100811334
+      },
+      "bend_attack_repeat_process": {
+        "count": 30,
+        "p50_ns": 88104666.5,
+        "p95_ns": 102983417
+      },
+      "bend_candidate_fresh_process": {
+        "count": 30,
+        "p50_ns": 106149771.0,
+        "p95_ns": 166507667
+      },
+      "bend_candidate_repeat_process": {
+        "count": 30,
+        "p50_ns": 96380958.0,
+        "p95_ns": 160042208
+      },
+      "semaprax_attack_fresh_process": {
+        "count": 30,
+        "p50_ns": 212161979.5,
+        "p95_ns": 228564083
+      },
+      "semaprax_attack_repeat_process": {
+        "count": 30,
+        "p50_ns": 207869375.0,
+        "p95_ns": 319836917
+      },
+      "semaprax_candidate_fresh_process": {
+        "count": 30,
+        "p50_ns": 485345042.0,
+        "p95_ns": 600401500
+      },
+      "semaprax_candidate_repeat_process": {
+        "count": 30,
+        "p50_ns": 470260104.0,
+        "p95_ns": 508084042
+      }
+    },
     "proof_path_nonresult": {
       "error": "SPX-J102: Project v1 ancestor /tmp must be a real directory",
       "samples": 60
@@ -410,35 +469,210 @@
   },
   "measurement_provenance": {
     "backend": {
-      "bend": "ordinary Bend and separate Bend --verdict routes",
-      "semaprax": "separate SEMAPRAX check and installed-Z3 source-proof routes",
-      "status": "observed",
-      "z3_sha256": "sha256:bbb24b8fed27552f7fb7cfdf0ed9101e6e24fd0cc0b9cfb945233b3f2ed333c5"
+      "observation": {
+        "bend_verdict": {
+          "backend": "Bend --verdict",
+          "environment": {
+            "BEND_NO_TELEMETRY": "1"
+          }
+        },
+        "semaprax_z3": {
+          "arguments": [
+            "--tool",
+            "z3",
+            "--host-profile",
+            "trusted-local",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "backend": "SEMAPRAX project-proof-check with installed Z3"
+        }
+      },
+      "source": "evidence/law16-boolean-negation-process-v2/provenance.json",
+      "status": "observed"
     },
     "flags": {
-      "bend_nonproof_environment": {
-        "BEND_NO_TELEMETRY": "1"
-      },
       "compiler_optimization": {
-        "reason": "no retained compiler optimization-flag record",
+        "reason": "the observed process cell invokes retained executables and does not compile them",
         "status": "unavailable"
       },
-      "status": "partially_observed"
+      "observation": {
+        "bend_verdict": {
+          "backend": "Bend --verdict",
+          "environment": {
+            "BEND_NO_TELEMETRY": "1"
+          }
+        },
+        "semaprax_z3": {
+          "arguments": [
+            "--tool",
+            "z3",
+            "--host-profile",
+            "trusted-local",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "backend": "SEMAPRAX project-proof-check with installed Z3"
+        }
+      },
+      "source": "evidence/law16-boolean-negation-process-v2/provenance.json",
+      "status": "observed"
     },
     "hardware": {
-      "reason": "no retained machine-model or CPU-topology record binds these samples",
-      "status": "unavailable"
+      "observation": {
+        "cpu_brand": {
+          "argv": [
+            "/usr/sbin/sysctl",
+            "-n",
+            "machdep.cpu.brand_string"
+          ],
+          "exit_code": 0,
+          "stderr_utf8": "",
+          "stdout_utf8": "Apple M3 Pro\n"
+        },
+        "logical_cpu_count": {
+          "argv": [
+            "/usr/sbin/sysctl",
+            "-n",
+            "hw.logicalcpu"
+          ],
+          "exit_code": 0,
+          "stderr_utf8": "",
+          "stdout_utf8": "11\n"
+        },
+        "memory_bytes": {
+          "argv": [
+            "/usr/sbin/sysctl",
+            "-n",
+            "hw.memsize"
+          ],
+          "exit_code": 0,
+          "stderr_utf8": "",
+          "stdout_utf8": "19327352832\n"
+        },
+        "physical_cpu_count": {
+          "argv": [
+            "/usr/sbin/sysctl",
+            "-n",
+            "hw.physicalcpu"
+          ],
+          "exit_code": 0,
+          "stderr_utf8": "",
+          "stdout_utf8": "11\n"
+        }
+      },
+      "source": "evidence/law16-boolean-negation-process-v2/provenance.json",
+      "status": "observed"
     },
-    "identity_scope": "pinned historical local executable observations; not current-head claims",
+    "identity_scope": "machine-local observations bound to the process-v2 raw samples; not current-head claims",
     "operating_system": {
-      "reason": "no retained OS-version record binds these samples",
-      "status": "unavailable"
+      "observation": {
+        "detail": {
+          "sw_vers": {
+            "argv": [
+              "/usr/bin/sw_vers"
+            ],
+            "exit_code": 0,
+            "stderr_utf8": "",
+            "stdout_utf8": "ProductName:\t\tmacOS\nProductVersion:\t\t26.5.1\nBuildVersion:\t\t25F80\n"
+          }
+        },
+        "machine": "arm64",
+        "release": "25.5.0",
+        "system": "Darwin"
+      },
+      "source": "evidence/law16-boolean-negation-process-v2/provenance.json",
+      "status": "observed"
+    },
+    "process_state_and_cache_boundary": {
+      "cold_cache": {
+        "reason": "the capture does not clear or verify OS page, executable, solver, or tool caches",
+        "status": "unavailable"
+      },
+      "states": {
+        "fresh_process": "a new child process using the first byte-identical copied input or project path",
+        "repeat_process": "a new child process using the second byte-identical copied input or project path"
+      }
     },
     "tool_identities": {
-      "bend_commit": "947db722640c86247849343657bf2f7ef01cb7f1",
-      "bend_main_sha256": "sha256:c48a0274e661a3e529933550752578768e8f029219d814073fbf86537271d475",
-      "bun_sha256": "sha256:abe991b29c5151ab11b5344be65dee3a675b0a4a55b8fc493e3cfbe256e61781",
-      "semaprax_sha256": "sha256:cc9dd3ca99a74dd973cbfb904621e27b801d8ddea6065873d24c14de9dee1d89"
+      "observation": {
+        "bend_main": {
+          "identity": {
+            "bytes": 34607,
+            "path": "/private/tmp/bend2-law-source/bend2/main.ts",
+            "sha256": "sha256:c48a0274e661a3e529933550752578768e8f029219d814073fbf86537271d475"
+          }
+        },
+        "bend_repository": {
+          "commit": {
+            "argv": [
+              "/usr/bin/git",
+              "-C",
+              "/private/tmp/bend2-law-source/bend2",
+              "rev-parse",
+              "HEAD"
+            ],
+            "exit_code": 0,
+            "stderr_utf8": "",
+            "stdout_utf8": "947db722640c86247849343657bf2f7ef01cb7f1\n"
+          },
+          "path": "/private/tmp/bend2-law-source/bend2"
+        },
+        "bun": {
+          "identity": {
+            "bytes": 57940512,
+            "path": "/Users/kevin/.bun/bin/bun",
+            "sha256": "sha256:abe991b29c5151ab11b5344be65dee3a675b0a4a55b8fc493e3cfbe256e61781"
+          },
+          "version": {
+            "argv": [
+              "/Users/kevin/.bun/bin/bun",
+              "--version"
+            ],
+            "exit_code": 0,
+            "stderr_utf8": "",
+            "stdout_utf8": "1.2.5\n"
+          }
+        },
+        "semaprax": {
+          "identity": {
+            "bytes": 172081112,
+            "path": "/private/tmp/semaprax-9a9db7a81",
+            "sha256": "sha256:cc9dd3ca99a74dd973cbfb904621e27b801d8ddea6065873d24c14de9dee1d89"
+          },
+          "version": {
+            "argv": [
+              "/private/tmp/semaprax-9a9db7a81",
+              "--version"
+            ],
+            "exit_code": 0,
+            "stderr_utf8": "",
+            "stdout_utf8": "semaprax 0.7.0 (9a9db7a8117ac8d292b24ffd5671ec3333272290)\n"
+          }
+        },
+        "z3": {
+          "identity": {
+            "bytes": 23365455,
+            "path": "/opt/homebrew/bin/z3",
+            "sha256": "sha256:bbb24b8fed27552f7fb7cfdf0ed9101e6e24fd0cc0b9cfb945233b3f2ed333c5"
+          },
+          "version": {
+            "argv": [
+              "/opt/homebrew/bin/z3",
+              "--version"
+            ],
+            "exit_code": 0,
+            "stderr_utf8": "",
+            "stdout_utf8": "Z3 version 4.12.5 - 64 bit\n"
+          }
+        }
+      },
+      "source": "evidence/law16-boolean-negation-process-v2/provenance.json",
+      "status": "observed"
     }
   },
   "nonclaims": [
@@ -721,6 +955,23 @@
   "schema": "semaprax.bend2-law-benchmark.current-report.v1",
   "scope": "local pinned historical Boolean-negation evidence only",
   "status": "incomplete",
+  "supplemental_full_u32_encoding_controls": {
+    "build_commit_association": "caller_declared_not_attested",
+    "candidate_and_attack_routes": 12,
+    "domain_boundary_controls": 4,
+    "nonclaims": [
+      "supplemental representation controls; original checked-u32 cells remain unadmitted",
+      "concrete law witnesses are not universal list or transfer proofs",
+      "Bend ordinary checking, Bend verdict, and SEMAPRAX native runtime are distinct assurance routes",
+      "native compile and run are combined; no timings, agent trial, cost, comparison or issue closure",
+      "no builtin SEMAPRAX u32, lowering proof, full-list runtime totality or current-head build attestation"
+    ],
+    "numeric_domain": "all integers 0..4294967295; explicit transfer failure preserves state",
+    "original_manifest_unchanged": true,
+    "representation_profile": "semaprax.checked-u32-value-encoding.v1",
+    "source": "evidence/full-u32-encoding-controls-v1/report.json",
+    "status": "supplemental_controls_pass"
+  },
   "unavailable_or_unsupported": {
     "Lean": "unavailable: no retained admitted Lean export/kernel route",
     "checked_u32": "unsupported_by_pinned_parser: SPX-P003 admits i32, u8, usize literal suffixes, not u32",

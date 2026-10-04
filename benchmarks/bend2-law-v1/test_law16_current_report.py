@@ -47,6 +47,12 @@ class CurrentReportTests(unittest.TestCase):
         process = value["matched_boolean"]["process_provenance"]
         self.assertEqual(process["command_count"], 240)
         self.assertEqual(process["cold_cache"]["status"], "unavailable")
+        candidate = value["matched_boolean"]["process_routes"]["bend_candidate_fresh_process"]
+        self.assertEqual(candidate["count"], 30)
+        self.assertEqual(candidate["p50_ns"], 106149771.0)
+        rss = value["matched_boolean"]["peak_rss"]
+        self.assertEqual(rss["bend_verdict"]["samples"], 30)
+        self.assertEqual(rss["semaprax_z3"]["samples"], 30)
         effort = value["proof_effort"]["boolean_agent_synthesis"]
         self.assertEqual(effort["matched_pairs"], 10)
         self.assertEqual(effort["per_language"]["bend2"]["agent_turns"], 10)
@@ -54,6 +60,17 @@ class CurrentReportTests(unittest.TestCase):
         annotations = value["annotations_and_changed_bytes"]
         self.assertEqual(annotations["matched_boolean"]["status"], "unavailable")
         self.assertEqual(annotations["historical_bounded_balance_v2"]["status"], "retained_source_evidence_only")
+
+    def test_report_includes_full_u32_controls_as_supplemental_only(self):
+        value = REPORT.render()
+        controls = value["supplemental_full_u32_encoding_controls"]
+        self.assertEqual(controls["status"], "supplemental_controls_pass")
+        self.assertTrue(controls["original_manifest_unchanged"])
+        self.assertEqual(controls["candidate_and_attack_routes"], 12)
+        self.assertEqual(controls["domain_boundary_controls"], 4)
+        self.assertEqual(value["status"], "incomplete")
+        self.assertTrue(value["closure"].startswith("no:"))
+        self.assertTrue(any("original checked-u32 cells remain unadmitted" in row for row in controls["nonclaims"]))
 
 
 if __name__ == "__main__":

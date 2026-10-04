@@ -70,6 +70,7 @@ def render():
     campaign = CAMPAIGN.review(ROOT / "evidence/law16-boolean-negation-agent-campaign-v1")
     process = PROCESS.review(ROOT / "evidence/law16-boolean-negation-process-v1")
     process_v2 = PROCESS.review(ROOT / "evidence/law16-boolean-negation-process-v2")
+    full_u32_controls = read(ROOT / "evidence/full-u32-encoding-controls-v1/report.json")
     process_v2_provenance = read(ROOT / "evidence/law16-boolean-negation-process-v2/provenance.json")
     effort = read(ROOT / "evidence/law16-effort-summary-v1.json")
     annotations = read(ROOT / "evidence/law16-annotation-summary-v1.json")
@@ -125,6 +126,17 @@ def render():
                 "and RSS are separate local process-provisioning observations; no cross-route "
                 "ratio or winner"
             ),
+        },
+        "supplemental_full_u32_encoding_controls": {
+            "status": full_u32_controls["status"],
+            "source": "evidence/full-u32-encoding-controls-v1/report.json",
+            "original_manifest_unchanged": full_u32_controls["original_manifest_unchanged"],
+            "representation_profile": full_u32_controls["representation_profile"],
+            "numeric_domain": full_u32_controls["numeric_domain"],
+            "candidate_and_attack_routes": len(full_u32_controls["cases"]),
+            "domain_boundary_controls": len(full_u32_controls["domain_controls"]),
+            "build_commit_association": full_u32_controls["build_commit_association"],
+            "nonclaims": full_u32_controls["nonclaims"],
         },
         "measurement_provenance": {
             "identity_scope": "machine-local observations bound to the process-v2 raw samples; not current-head claims",

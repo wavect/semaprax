@@ -7,10 +7,16 @@ is generated from retained, offline-authenticated capsules. Its status is
 ## Matched Boolean-negation evidence
 
 The exact two-value Boolean negation contract (`false → true`, `true → false`)
-has retained candidate and assertion-retaining attack controls. Each route has
-30 fresh-path and 30 repeat-path child processes. The report retains every
-route's p50/p95 separately; those numbers are local process-provisioning
-observations only. They do not support a cross-route ratio or winner.
+has retained candidate and assertion-retaining attack controls. The current
+process-v2 capsule contains 30 fresh-process and 30 repeat-process samples for
+each Bend verdict and SEMAPRAX Z3 candidate/attack route. Candidate p50/p95
+times are Bend **106.15/166.51 ms** fresh and **96.38/160.04 ms** repeat;
+SEMAPRAX Z3 **485.35/600.40 ms** fresh and **470.26/508.08 ms** repeat.
+Attack p50/p95 times are Bend **84.43/100.81 ms** fresh and **88.10/102.98 ms**
+repeat; SEMAPRAX Z3 **212.16/228.56 ms** fresh and **207.87/319.84 ms** repeat.
+These are separate local process-provisioning observations, not a cross-route
+ratio or winner. Fresh/repeat does not isolate operating-system, executable,
+solver, or tool caches.
 
 The retained [ordinary/check capsule](evidence/law16-boolean-negation-nonproof-process-v1/) adds the same exact Boolean-negation candidate as separate nonproof routes: Bend ordinary checking measured **83.05 ms / 100.95 ms** fresh p50/p95 and **75.53 ms / 78.08 ms** repeat; SEMAPRAX `check` measured **233.90 ms / 238.91 ms** fresh and **235.00 ms / 243.15 ms** repeat. The capsule validates its raw streams, source hashes, Bend commit, and SEMAPRAX executable SHA from the copied repository path. Ordinary Bend is not `--verdict`, and SEMAPRAX `check` is not external-Z3 proof checking.
 
@@ -52,8 +58,20 @@ route by checked-`u32` non-admission. Their machine-readable result is
 The list source-proof route, refactor-equivalence route, and law-inventory
 preservation route remain unobserved; none is inferred from the Boolean cell.
 
-Matched Boolean-negation peak RSS is also retained separately in
-[`evidence/law16-boolean-negation-peak-rss-v1/`](evidence/law16-boolean-negation-peak-rss-v1/):
-30 wrapper-bound samples per Bend verdict and SEMAPRAX Z3 route. The offline
-review preserves each route's p50/p95 RSS and source digest while excluding an
-RSS ratio or winner claim. It is not cold-cache isolation.
+Matched Boolean-negation peak RSS v2 is retained separately in
+[`evidence/law16-boolean-negation-peak-rss-v2/`](evidence/law16-boolean-negation-peak-rss-v2/):
+30 wrapper-bound samples per Bend verdict and SEMAPRAX Z3 route. Bend p50/p95
+was **118,300,672/122,978,304 bytes**; SEMAPRAX Z3 was
+**50,970,624/51,167,232 bytes**. The report binds each route to its retained
+input digest and keeps the observations separate; it makes no RSS ratio,
+winner, or cold-cache claim. This current-checkout RSS observation does not
+rebind the historical RSS capsule.
+
+Supplemental [full-u32 encoding controls](evidence/full-u32-encoding-controls-v1/report.json)
+passed 12 candidate/attack route checks and four out-of-domain boundary
+controls, using a full-range representation profile. The controls preserve the
+original manifest unchanged and are supplemental representation evidence only:
+the original checked-u32 cells remain unadmitted, and the concrete witnesses
+do not establish universal list or transfer proofs. They do not add builtin
+SEMAPRAX `u32`, prove lowering, or close LAW-16. The checked-in machine report
+continues to mark the overall result incomplete.

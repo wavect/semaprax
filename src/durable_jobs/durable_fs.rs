@@ -34,8 +34,9 @@ use std::fs::{self, File, OpenOptions};
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 
-/// Points in [`commit_bytes`]'s sequence a test may inject a fault at, to
-/// prove a crash at that exact point leaves the destination untouched.
+/// Points in [`commit_bytes`]'s sequence a test may inject a fault at. Before
+/// rename the destination is untouched; after rename it is publication
+/// uncertainty.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum HookPoint {
     AfterStageWrite,

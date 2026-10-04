@@ -180,11 +180,8 @@ impl GenerationJobStore {
         let generation_stage = self.next_stage_name("generation")?;
         self.commit_bytes(&generation_path, &generation_stage, &bytes)?;
         let pointer_stage = self.next_stage_name("active")?;
-        self.commit_bytes(
-            &self.active_path,
-            &pointer_stage,
-            &new_generation.to_le_bytes(),
-        )?;
+        let active_path = self.active_path.clone();
+        self.commit_bytes(&active_path, &pointer_stage, &new_generation.to_le_bytes())?;
         self.table = candidate;
         self.current_generation = new_generation;
         Ok(())
@@ -206,9 +203,9 @@ impl GenerationJobStore {
         }
     }
 
-    /// Test-only hook into `commit`'s durable-write sequence, used to prove
-    /// that a fault at any point leaves the store's *readable* state
-    /// (`self.table` after a fresh `open`) unchanged.
+    /// Test-only hook into `commit`'s durable-write sequence. A pre-rename
+    /// fault is ordinary I/O; a post-rename fault poisons this handle and a
+    /// fresh open observes whatever `ACTIVE` selected.
     #[cfg(test)]
     fn commit_with_hook(
         &mut self,
@@ -228,8 +225,9 @@ impl GenerationJobStore {
         let pointer_stage = self
             .next_stage_name("active")
             .map_err(|_| JobStoreError::Io)?;
+        let active_path = self.active_path.clone();
         self.commit_bytes_with_hook(
-            &self.active_path,
+            &active_path,
             &pointer_stage,
             &new_generation.to_le_bytes(),
             hook,

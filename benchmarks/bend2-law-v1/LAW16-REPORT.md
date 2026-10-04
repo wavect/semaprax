@@ -3,6 +3,10 @@
 The machine-readable [current report](evidence/law16-current-report-v1.json)
 is generated from retained, offline-authenticated capsules. Its status is
 **incomplete**. It does not claim issue closure.
+The documented `law16_replay.py --verify-retained` sequence now authenticates
+the available capsules, including all 230 recovered bounded-balance raw outputs.
+It rechecks retained evidence; the fresh capture route has not been run end to
+end.
 
 ## Matched Boolean-negation evidence
 

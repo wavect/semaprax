@@ -103,12 +103,22 @@ fn one_held_regex_url_project_authenticates_four_imports_two_exports_and_both_lo
     assert_eq!(built.url.project_subject_digest(), built.subject_digest);
     assert_eq!(built.regex.cargo_lock(), REGEX_LOCK);
     assert_eq!(built.url.cargo_lock(), URL_LOCK);
-    assert!(std::str::from_utf8(built.regex.lib_rs())
+    let regex_lib = std::str::from_utf8(built.regex.lib_rs()).unwrap();
+    let url_lib = std::str::from_utf8(built.url.lib_rs()).unwrap();
+    assert!(regex_lib.contains("pub fn run()"));
+    assert!(url_lib.contains("pub fn run()"));
+    for lib in [regex_lib, url_lib] {
+        assert!(lib.contains("pub const MAX_BATCH_OPERATIONS:usize=4096;"));
+        assert!(lib.contains("pub fn run_batch(operations:usize)->Result<BatchMetrics,i32>"));
+        assert!(lib.contains("adapter_copy_events"));
+        assert!(lib.contains("borrowed_input_bytes"));
+    }
+    assert!(std::str::from_utf8(built.regex.descriptor())
         .unwrap()
-        .contains("pub fn run()"));
-    assert!(std::str::from_utf8(built.url.lib_rs())
+        .contains("\"batch_api\":\"checked-export-repeat.v1\""));
+    assert!(std::str::from_utf8(built.url.descriptor())
         .unwrap()
-        .contains("pub fn run()"));
+        .contains("\"batch_api\":\"checked-export-repeat.v1\""));
     assert_ne!(built.regex.c_source(), built.url.c_source());
     assert!(std::str::from_utf8(built.url.lib_rs())
         .unwrap()

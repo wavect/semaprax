@@ -71,15 +71,21 @@ class CombinedThroughputTests(unittest.TestCase):
         self.assertEqual(m1["status"], "unavailable")
         self.assertEqual(m1["fixed_authored_workload"]["input_bytes"], 28)
         self.assertEqual(m1["fixed_authored_workload"]["exports"], ["regex.run", "url.run"])
+        self.assertEqual(m1["generated_batch_api"]["name"], "checked-export-repeat.v1")
+        self.assertEqual(m1["generated_batch_api"]["operations_bound"], 4096)
+        self.assertIn("accepts no new foreign input", m1["generated_batch_api"]["input_authority"])
         self.assertEqual(
-            m1["missing_generation_hook"]["owner"],
-            "indexed Regex/Url Project package generator",
+            m1["generated_batch_api"]["metrics"],
+            [
+                "exact borrowed-input bytes",
+                "adapter copy events and copied bytes",
+                "post-run owner/view/string cleanup counts",
+            ],
         )
-        self.assertEqual(
-            m1["missing_generation_hook"]["required_generated_metrics"],
-            ["exact borrowed-input bytes", "adapter copy events and copied bytes", "owner cleanup counts"],
+        self.assertIn(
+            "locked measurement consumer",
+            m1["missing_measurement_consumer"]["requirement"],
         )
-        self.assertIn("locked direct regex =1.13.1", m1["missing_generation_hook"]["measurement_consumer_requirement"])
         self.assertEqual(result["profiles"]["m2"]["status"], "measured")
         self.assertEqual(
             result["profiles"]["m2"]["tasks"]["generic_record"]["generated_to_direct_throughput_ratio"],

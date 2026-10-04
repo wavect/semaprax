@@ -290,6 +290,16 @@ fn indexed_real_regex_project_generates_and_executes_locked_offline_owner_loan()
     assert_eq!(ri06_regex_owner::string_constructions(), 2);
     assert_eq!(ri06_regex_owner::live_string_count(), 0);
     assert_eq!(ri06_regex_owner::live_owner_count(), 0);
+    let batch = ri06_regex_owner::run_batch(32).unwrap();
+    assert_eq!(batch.operations, 32);
+    assert_eq!(batch.checksum, 1312);
+    assert_eq!(batch.borrowed_input_bytes, 896);
+    assert_eq!(batch.adapter_copy_events, 0);
+    assert_eq!(batch.adapter_copied_bytes, 0);
+    assert_eq!(batch.live_owner_count, 0);
+    assert_eq!(batch.live_string_count, 0);
+    assert_eq!(ri06_regex_owner::run_batch(0), Err(4));
+    assert_eq!(ri06_regex_owner::run_batch(4097), Err(4));
 }
 "#,
     )

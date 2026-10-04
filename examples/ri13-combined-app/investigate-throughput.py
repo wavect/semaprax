@@ -25,8 +25,8 @@ THRESHOLD = 0.90
 M1_BATCH_GENERATION_GAP = {
     "status": "unavailable",
     "reason": (
-        "the authenticated M1 packages publish only fixed scalar run() exports and "
-        "owner counters; they have no parameterized Regex scan or Url parse/view route"
+        "the authenticated M1 packages expose checked-export-repeat.v1, but the "
+        "combined consumer has no locked direct and handwritten comparison binary"
     ),
     "fixed_authored_workload": {
         "regex_pattern": "example",
@@ -34,20 +34,26 @@ M1_BATCH_GENERATION_GAP = {
         "input_bytes": 28,
         "exports": ["regex.run", "url.run"],
     },
-    "missing_generation_hook": {
-        "owner": "indexed Regex/Url Project package generator",
-        "required_routes": [
-            "authenticated parameterized Regex::new/is_match scan",
-            "authenticated parameterized Url::parse/as_str normalize/view",
-        ],
-        "required_generated_metrics": [
+    "generated_batch_api": {
+        "name": "checked-export-repeat.v1",
+        "operations_bound": 4096,
+        "input_authority": "the generated route repeats the authenticated scalar export and accepts no new foreign input",
+        "metrics": [
             "exact borrowed-input bytes",
             "adapter copy events and copied bytes",
-            "owner cleanup counts",
+            "post-run owner/view/string cleanup counts",
         ],
-        "measurement_consumer_requirement": (
-            "locked direct regex =1.13.1 and url =2.5.8 dependencies plus a "
-            "handwritten adapter must run the identical authenticated workload"
+    },
+    "missing_measurement_consumer": {
+        "required_routes": [
+            "direct Regex::new/is_match scan",
+            "handwritten Regex owner adapter scan",
+            "direct Url::parse/as_str view",
+            "handwritten Url owner/view adapter",
+        ],
+        "requirement": (
+            "a locked measurement consumer with direct regex =1.13.1 and url =2.5.8 "
+            "dependencies must run the identical authenticated workload"
         ),
     },
 }
@@ -190,7 +196,7 @@ def investigate(receipt_path, m3_path):
         },
         "limitations": [
             "This is a local investigation record, not a performance pass or cross-platform claim.",
-            "M1 remains unavailable until the closed generator publishes the parameterized routes and the same authenticated workload has matched direct and handwritten measurements.",
+            "M1 remains unavailable until a locked direct and handwritten measurement consumer runs the same authenticated workload as checked-export-repeat.v1.",
             "M2 is a fixture-specific matched comparison: generated callbacks retain source contracts and lifecycle checks absent from the direct and handwritten routes.",
             "The M3 source-bound investigation explains repeated registration but does not attribute an exact share of route time to an operation.",
         ],

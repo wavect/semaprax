@@ -183,6 +183,38 @@ pub fn projected_borrow_matches_target()->bool {
 }
 pub fn string_constructions()->u64 {unsafe{spx_url_project_string_constructions()}}
 pub fn live_string_count()->u64 {unsafe{spx_url_project_live_strings()}}
+/// Repeats the authenticated scalar export without accepting any new foreign
+/// input. `operations` is bounded so this measurement seam cannot retain an
+/// unbounded amount of work under the caller's authority.
+pub const MAX_BATCH_OPERATIONS:usize=4096;
+#[derive(Clone,Copy,Debug,Eq,PartialEq)]
+pub struct BatchMetrics {
+    pub operations:usize,
+    pub checksum:i64,
+    pub borrowed_input_bytes:u64,
+    pub adapter_copy_events:usize,
+    pub adapter_copied_bytes:u64,
+    pub live_owner_count:usize,
+    pub live_view_count:usize,
+    pub live_string_count:u64,
+}
+pub fn borrowed_input_length()->usize {unsafe{spx_url_project_borrow_length()}}
+pub fn run_batch(operations:usize)->Result<BatchMetrics,i32> {
+    if operations==0||operations>MAX_BATCH_OPERATIONS{return Err(4)}
+    let copies_before=adapter_copy_count();
+    let bytes_before=adapter_copied_bytes();
+    let mut checksum=0i64;
+    let mut borrowed_input_bytes=0u64;
+    for _ in 0..operations {
+        checksum=checksum.checked_add(run()?).ok_or(4)?;
+        borrowed_input_bytes=borrowed_input_bytes.checked_add(u64::try_from(borrowed_input_length()).map_err(|_|4)?).ok_or(4)?;
+    }
+    let adapter_copy_events=adapter_copy_count().checked_sub(copies_before).ok_or(5)?;
+    let adapter_copied_bytes=adapter_copied_bytes().checked_sub(bytes_before).ok_or(5)?;
+    let metrics=BatchMetrics{operations,checksum,borrowed_input_bytes,adapter_copy_events,adapter_copied_bytes,live_owner_count:live_owner_count(),live_view_count:live_view_count(),live_string_count:live_string_count()};
+    if metrics.adapter_copy_events!=0||metrics.adapter_copied_bytes!=0||metrics.live_owner_count!=0||metrics.live_view_count!=0||metrics.live_string_count!=0{return Err(5)}
+    Ok(metrics)
+}
 "#,
     );
     Ok(Native {

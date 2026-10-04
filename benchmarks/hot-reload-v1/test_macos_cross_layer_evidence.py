@@ -40,6 +40,15 @@ class Contract(unittest.TestCase):
         self.assertEqual(value["serial_order"], ["interpreter-a-b", *RUN.SELECTORS])
         self.assertIn("native-or-Wasm state swap", value["nonclaims"])
 
+    def test_documented_command_keeps_source_build_and_limitations_explicit(self):
+        readme = (RUN.SUITE / "README.md").read_text()
+        specification = (RUN.ROOT / "docs/HOT-RELOAD-BENCHMARK-V1.md").read_text()
+        for document in (readme, specification):
+            self.assertIn("macos-cross-layer-evidence.sh", document)
+            self.assertIn("target/hr07-macos-evidence", document)
+            self.assertIn("native/Wasm", document)
+        self.assertIn("No committed\nreport currently says it has been executed on macOS.", readme)
+
     def test_private_target_and_exact_count_parser_fail_closed(self):
         with self.assertRaises(ValueError):
             RUN.private_target(pathlib.Path("/tmp/not-private"))

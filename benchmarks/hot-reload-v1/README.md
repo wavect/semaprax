@@ -92,3 +92,28 @@ The capture stores the benchmark receipt SHA-256, CLI binary digest, CLI version
 and commit, and the runner stdout/stderr SHA-256 values. `native-process-identity`
 and `native-or-wasm-state-swap` remain `unavailable` with the committed manifest
 requirements. It does not turn either limitation into a measured selector.
+
+## macOS source-attributed cross-layer roll-up
+
+For one current-checkout macOS run that builds the CLI and each owned test
+harness itself, use the bounded roll-up command when a Cargo slot is available:
+
+```sh
+benchmarks/hot-reload-v1/macos-cross-layer-evidence.sh \
+  --target-dir "$PWD/target/hr07-macos-evidence" \
+  --output /tmp/hot-reload-macos-cross-layer-evidence.json
+```
+
+It permits only a private target directory below this checkout's `target/` and
+uses one Cargo job. The runner builds the current checkout with
+`SEMAPRAX_BUILD_COMMIT` set to `HEAD`, captures the interpreter receipt, then
+runs every supported test selector exactly once in manifest order. Each row
+records source-build and output digests plus the parsed nonzero Rust test count.
+The Stop/resource selector proves the watcher clears pending work and releases
+its fixture; the interpreter receipt proves the JSONL Stop acknowledgement and
+child exit. This is a local, serial test observation. It does not establish
+OS-wide resource telemetry, source-Agent process identity, native/Wasm swap,
+or production support.
+
+The command is documented for reproducible local execution only. No committed
+report currently says it has been executed on macOS.

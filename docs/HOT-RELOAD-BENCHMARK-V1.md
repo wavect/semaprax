@@ -64,3 +64,33 @@ and no native or Wasm source-Agent state replacement implementation exists to
 time. The prepared worker's `ThreadId` continuity assertion is an opaque local
 library observation. It is not process identity, transport evidence, or a
 native-target claim.
+
+## macOS source-attributed roll-up
+
+`macos-cross-layer-evidence.sh` is the macOS-only roll-up command for the
+interpreter receipt and every supported cross-layer selector. It builds the
+current checkout into a caller-selected private directory below that checkout's
+`target/`, with one Cargo job at a time. It then runs the interpreter capture
+and each exact test selector serially. The report binds the checkout commit,
+`SEMAPRAX_BUILD_COMMIT`, CLI and test-executable digests, Cargo output digests,
+selector stdout/stderr digests, and the nonzero exact test counts.
+
+Run it only when a local Cargo slot is available:
+
+```sh
+benchmarks/hot-reload-v1/macos-cross-layer-evidence.sh \
+  --target-dir "$PWD/target/hr07-macos-evidence" \
+  --output /tmp/hot-reload-macos-cross-layer-evidence.json
+```
+
+The Stop/resource row runs the existing watcher regression that requests Stop
+during admission, clears pending work, retains the active revision, drops the
+watcher, and removes its fixture directory. The interpreter rows require the
+JSONL `stopped` acknowledgement and clean child exit. These are local test and
+protocol observations, not OS-wide process, thread, memory, or production
+telemetry.
+
+This command is a reproducible execution path, not committed macOS evidence:
+no report checked into this repository claims that it has run. The two
+native/Wasm cells remain `unavailable`; a passing local prepared-worker identity
+test does not promote either cell to a physical platform claim.

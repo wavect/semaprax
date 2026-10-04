@@ -1,0 +1,19 @@
+{
+  "schema": "semaprax.harness-evidence.wikiskill-run.v1",
+  "date": "2026-10-04",
+  "candidate": {"repo": "ashutoshsinghpr7/wikiskill", "version": "0.1.5", "commit": "cdc291c4296e30488a5922860dc596763704ede4", "license": "MIT", "publisher": "community (not author-verified official code)", "install": "uv venv + uv pip install of the pinned checkout"},
+  "backend": {"cli": "claude 2.1.289 via call-counting shim", "model_requested": "haiku", "model_observed": "claude-haiku-4-5-20251001", "setting_sources": "project", "auth": "the user's normal Claude Code login; the candidate's isolated homes copied no credentials (empty config dir at init)"},
+  "caps": {"model_invocations": 60, "usd": 5.0},
+  "totals": {"invocations_started": 60, "usd_measured": 3.3944, "cap_reached": "invocations (exactly 60), spend 68 percent of cap", "invocations_that_reached_no_model": 9, "invocations_stopped_at_turn_budget": 9},
+  "compiler": "semaprax 0.7.0 (prebuilt, not the v0.9 head)",
+  "runs": [
+    {"file": "runs/p106-r1-auth-failed-misreported-no-action.result.json", "family": "SPX-P106", "calls": 8, "usd": 0.0, "note": "the adapter env lacked USER/LOGNAME so the claude login did not resolve; the first bridge reported no-action over failed calls. Bridge fixed to abort on calls that never reach a model. Not evolution evidence."},
+    {"file": "runs/p106-r2-rejected.result.json", "family": "SPX-P106", "calls": 20, "usd": 0.9189, "outcome": "rejected", "scores": "validation 3/3 -> 3/3, test 3/3 -> 3/3", "note": "baseline already at ceiling; candidate derived-semaprax-repair rolled back, wiki (3 pages) and negative evidence retained"},
+    {"file": "runs/t250-r3-first-attempt-aborted.result.json", "family": "SPX-T250", "calls": 8, "usd": 0.8249, "outcome": "aborted (bridge over-strict failure check on turn-budget stops)", "note": "model work was real and metered; the finished workspace was re-adopted"},
+    {"file": "runs/t250-r3-no-action.result.json", "family": "SPX-T250", "calls": 8, "usd": 0.8249, "outcome": "no-action", "note": "real wiki update (2 pattern pages); proposer chose no_action (resumed, no model call repeated)"},
+    {"file": "runs/t250-r4-first-attempt-aborted-429.result.json", "family": "SPX-T250", "calls": "(in the 22 below)", "outcome": "aborted", "note": "maintain and propose hit the account session limit (HTTP 429, zero cost); train rollouts were already done"},
+    {"file": "runs/t250-r4-accepted.result.json", "family": "SPX-T250", "calls": 22, "usd": 1.6331, "outcome": "accepted (proposal only, not promoted)", "scores": "validation 2/3 -> 3/3, test 1/3 -> 3/3", "note": "iteration 2: wiki carried from r3; derived skill loaded through the Skill tool in all 6 candidate-condition solves"}
+  ],
+  "protected_content": "official Ponytail/Caveman snapshots and the workflow application fixtures: tree digests identical before and after (protected-digests.*.txt); the host also asserted its own before/after digests in every result.json",
+  "not_proven": ["general improvement (3+3 held-out tasks, one repeat, noisy baseline)", "a deliberately harmful candidate through the real backend (budget exhausted; fixture-tested only)", "post-acceptance load in a fresh task after the cap (the loads happened during the 6 candidate evaluation solves)", "any claim about the paper's results or about the community implementation being the paper authors' code"]
+}

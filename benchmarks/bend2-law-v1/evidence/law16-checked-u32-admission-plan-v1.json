@@ -1,0 +1,42 @@
+{
+  "schema": "semaprax.bend2-law-benchmark.checked-u32-admission-plan.v1",
+  "status": "prepared_not_executed",
+  "numeric_domain": "u32 checked",
+  "sources": {
+    "success": {
+      "path": "fixtures/semaprax-checked-u32-success-v1.spx",
+      "bytes": 267,
+      "sha256": "sha256:348dbde02c2f1956f982700ee0af57af577800800d2157230de1f4556f840a38"
+    },
+    "overflow": {
+      "path": "fixtures/semaprax-checked-u32-overflow-v1.spx",
+      "bytes": 226,
+      "sha256": "sha256:513e6e823f2a3f41dfd531a5f22741978a00ce35a483c8c1e8bf46104f83d427"
+    }
+  },
+  "required_observations": [
+    "pinned SEMAPRAX source commit",
+    "pinned executable bytes",
+    "accepted fixed successor source",
+    "rejected fixed maximum-plus-one overflow source",
+    "raw stdout and stderr for each command"
+  ],
+  "future_route_prerequisite": {
+    "semaprax_runtime": "required before declaring u32 checked",
+    "semaprax_smt": "requires its own u32 translation/proof admission",
+    "semaprax_lean": "requires its own u32 export/kernel admission"
+  },
+  "blocked_cells": [
+    "structured-balance-transfer-v1",
+    "supported-list-theorem-v1",
+    "law-preserving-refactor-v1",
+    "law-breaking-agent-edit-v1",
+    "project-incremental-edit-v1"
+  ],
+  "nonclaims": [
+    "not an executed route receipt",
+    "not a task proof",
+    "not a general overflow theorem",
+    "not a substitute for the fixed bounded-balance witness"
+  ]
+}

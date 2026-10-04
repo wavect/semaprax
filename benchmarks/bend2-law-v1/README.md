@@ -212,6 +212,34 @@ monetary billing event. This cell is a fixed `0..100` witness, so it does not
 admit the wider checked-`u32`, list, refactor, or incremental LAW16 cells, and
 it does not establish a general transfer theorem or complete LAW16.
 
+## Checked-`u32` route admission
+
+The bounded balance witness does not make the five checked-`u32` LAW-16 cells
+available. The current reviewed SEMAPRAX scalar contract admits `i64`, `i32`,
+`u8`, and `usize`, but no `u32`; its existing Z3 route likewise has no `u32`
+encoding. Before any future SEMAPRAX command file declares `u32 checked`, run
+the narrow admission gate using the fixed success and overflow probes. It
+requires the success program to be accepted and a distinct execution of the
+fixed maximum-plus-one program to be rejected, retaining both streams and the
+pinned executable/source identities:
+
+```sh
+python3 benchmarks/bend2-law-v1/law16_checked_u32_admission.py \
+  --semaprax-root /secure/local/semaprax \
+  --semaprax-commit "$(git -C /secure/local/semaprax rev-parse HEAD)" \
+  --semaprax /secure/local/semaprax/target/release/semaprax \
+  --success-command '["/secure/local/semaprax/target/release/semaprax", "check", "{source}", "--json"]' \
+  --overflow-command '["/secure/local/semaprax/target/release/semaprax", "run", "{source}"]' \
+  --raw-artifact-dir /secure/local/law16-u32-admission-artifacts \
+  --output /secure/local/law16-u32-admission.json
+```
+
+`admitted` in that receipt is only an input-capability result. It does not
+establish the list, refactor, agent-edit, balance, or incremental tasks; it
+does not establish SMT or Lean proof support; and it cannot replace each
+cell's equal-spec attacks. A current receipt is absent, so the checked-`u32`
+routes remain unavailable.
+
 The following local-only provisioning sequence fetches the pinned Bend source
 without building it or placing it in this repository:
 

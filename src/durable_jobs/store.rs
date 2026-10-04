@@ -483,4 +483,7 @@ fn lease_is_current(record: &JobRecord, token: &LeaseToken, now_tick: u64) -> bo
 }
 
 #[cfg(test)]
+#[path = "store/process_tests.rs"]
+mod process_tests;
+#[cfg(test)]
 mod tests;

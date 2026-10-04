@@ -1,0 +1,21 @@
+{
+  "argv": [
+    "/Library/Frameworks/Python.framework/Versions/3.14/bin/python3",
+    "/private/tmp/semaprax-law12-lane/benchmarks/bend2-law-v1/law16_bend_u32_sort_proof.py",
+    "--verify",
+    "/private/tmp/semaprax-law12-lane/benchmarks/bend2-law-v1/evidence/bend-u32-sort-universal-v1/capsule.json"
+  ],
+  "exit_code": 0,
+  "stderr": {
+    "bytes": 0,
+    "path": "bend_u32_universal_sort.stderr",
+    "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "stdout": {
+    "bytes": 55,
+    "path": "bend_u32_universal_sort.stdout",
+    "sha256": "sha256:94b3a25352b4efa16f0c3298b7b7bc6a77830079c3748fefd6a51bf6e72069cb"
+  },
+  "timed_out": false,
+  "timeout_seconds": 3600
+}

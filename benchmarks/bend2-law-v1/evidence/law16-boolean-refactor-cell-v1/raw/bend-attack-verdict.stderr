@@ -1,0 +1,9 @@
+SOME PROOFS FAIL
+Error:
+- expected : False{}
+- observed : True{}
+Location: negate_matches_boolean_not
+16 |     case False{}:
+17>|       {==}
+   |       ^^^^
+18 |     case True{}:

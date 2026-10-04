@@ -1,0 +1,2167 @@
+{
+  "cells": {
+    "fresh_process": {
+      "expected_observation_count": 30,
+      "samples": [
+        {
+          "argv": [
+            "/private/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/fresh-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:d35db77f6d53023e142204fbf6eddd555911d1d226912b28c366d7eb7ab69b4f",
+          "elapsed_ns": 208251875,
+          "exit_code": 1,
+          "stderr": {
+            "bytes": 103,
+            "path": "fresh_process-attack-001.stderr",
+            "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+          },
+          "stdout": {
+            "bytes": 0,
+            "path": "fresh_process-attack-001.stdout",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "timed_out": false
+        },
+        {
+          "argv": [
+            "/private/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/fresh-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:d35db77f6d53023e142204fbf6eddd555911d1d226912b28c366d7eb7ab69b4f",
+          "elapsed_ns": 205420458,
+          "exit_code": 1,
+          "stderr": {
+            "bytes": 103,
+            "path": "fresh_process-attack-002.stderr",
+            "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+          },
+          "stdout": {
+            "bytes": 0,
+            "path": "fresh_process-attack-002.stdout",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "timed_out": false
+        },
+        {
+          "argv": [
+            "/private/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/fresh-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:d35db77f6d53023e142204fbf6eddd555911d1d226912b28c366d7eb7ab69b4f",
+          "elapsed_ns": 217557625,
+          "exit_code": 1,
+          "stderr": {
+            "bytes": 103,
+            "path": "fresh_process-attack-003.stderr",
+            "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+          },
+          "stdout": {
+            "bytes": 0,
+            "path": "fresh_process-attack-003.stdout",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "timed_out": false
+        },
+        {
+          "argv": [
+            "/private/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/fresh-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:d35db77f6d53023e142204fbf6eddd555911d1d226912b28c366d7eb7ab69b4f",
+          "elapsed_ns": 207363791,
+          "exit_code": 1,
+          "stderr": {
+            "bytes": 103,
+            "path": "fresh_process-attack-004.stderr",
+            "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+          },
+          "stdout": {
+            "bytes": 0,
+            "path": "fresh_process-attack-004.stdout",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "timed_out": false
+        },
+        {
+          "argv": [
+            "/private/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/fresh-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:d35db77f6d53023e142204fbf6eddd555911d1d226912b28c366d7eb7ab69b4f",
+          "elapsed_ns": 220329167,
+          "exit_code": 1,
+          "stderr": {
+            "bytes": 103,
+            "path": "fresh_process-attack-005.stderr",
+            "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+          },
+          "stdout": {
+            "bytes": 0,
+            "path": "fresh_process-attack-005.stdout",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "timed_out": false
+        },
+        {
+          "argv": [
+            "/private/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/fresh-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:d35db77f6d53023e142204fbf6eddd555911d1d226912b28c366d7eb7ab69b4f",
+          "elapsed_ns": 223610834,
+          "exit_code": 1,
+          "stderr": {
+            "bytes": 103,
+            "path": "fresh_process-attack-006.stderr",
+            "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+          },
+          "stdout": {
+            "bytes": 0,
+            "path": "fresh_process-attack-006.stdout",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "timed_out": false
+        },
+        {
+          "argv": [
+            "/private/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/fresh-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:d35db77f6d53023e142204fbf6eddd555911d1d226912b28c366d7eb7ab69b4f",
+          "elapsed_ns": 245791083,
+          "exit_code": 1,
+          "stderr": {
+            "bytes": 103,
+            "path": "fresh_process-attack-007.stderr",
+            "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+          },
+          "stdout": {
+            "bytes": 0,
+            "path": "fresh_process-attack-007.stdout",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "timed_out": false
+        },
+        {
+          "argv": [
+            "/private/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/fresh-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:d35db77f6d53023e142204fbf6eddd555911d1d226912b28c366d7eb7ab69b4f",
+          "elapsed_ns": 204797000,
+          "exit_code": 1,
+          "stderr": {
+            "bytes": 103,
+            "path": "fresh_process-attack-008.stderr",
+            "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+          },
+          "stdout": {
+            "bytes": 0,
+            "path": "fresh_process-attack-008.stdout",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "timed_out": false
+        },
+        {
+          "argv": [
+            "/private/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/fresh-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:d35db77f6d53023e142204fbf6eddd555911d1d226912b28c366d7eb7ab69b4f",
+          "elapsed_ns": 225865042,
+          "exit_code": 1,
+          "stderr": {
+            "bytes": 103,
+            "path": "fresh_process-attack-009.stderr",
+            "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+          },
+          "stdout": {
+            "bytes": 0,
+            "path": "fresh_process-attack-009.stdout",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "timed_out": false
+        },
+        {
+          "argv": [
+            "/private/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/fresh-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:d35db77f6d53023e142204fbf6eddd555911d1d226912b28c366d7eb7ab69b4f",
+          "elapsed_ns": 232368042,
+          "exit_code": 1,
+          "stderr": {
+            "bytes": 103,
+            "path": "fresh_process-attack-010.stderr",
+            "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+          },
+          "stdout": {
+            "bytes": 0,
+            "path": "fresh_process-attack-010.stdout",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "timed_out": false
+        },
+        {
+          "argv": [
+            "/private/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/fresh-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:d35db77f6d53023e142204fbf6eddd555911d1d226912b28c366d7eb7ab69b4f",
+          "elapsed_ns": 207342875,
+          "exit_code": 1,
+          "stderr": {
+            "bytes": 103,
+            "path": "fresh_process-attack-011.stderr",
+            "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+          },
+          "stdout": {
+            "bytes": 0,
+            "path": "fresh_process-attack-011.stdout",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "timed_out": false
+        },
+        {
+          "argv": [
+            "/private/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/fresh-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:d35db77f6d53023e142204fbf6eddd555911d1d226912b28c366d7eb7ab69b4f",
+          "elapsed_ns": 212485625,
+          "exit_code": 1,
+          "stderr": {
+            "bytes": 103,
+            "path": "fresh_process-attack-012.stderr",
+            "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+          },
+          "stdout": {
+            "bytes": 0,
+            "path": "fresh_process-attack-012.stdout",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "timed_out": false
+        },
+        {
+          "argv": [
+            "/private/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/fresh-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:d35db77f6d53023e142204fbf6eddd555911d1d226912b28c366d7eb7ab69b4f",
+          "elapsed_ns": 211608916,
+          "exit_code": 1,
+          "stderr": {
+            "bytes": 103,
+            "path": "fresh_process-attack-013.stderr",
+            "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+          },
+          "stdout": {
+            "bytes": 0,
+            "path": "fresh_process-attack-013.stdout",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "timed_out": false
+        },
+        {
+          "argv": [
+            "/private/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/fresh-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:d35db77f6d53023e142204fbf6eddd555911d1d226912b28c366d7eb7ab69b4f",
+          "elapsed_ns": 224302500,
+          "exit_code": 1,
+          "stderr": {
+            "bytes": 103,
+            "path": "fresh_process-attack-014.stderr",
+            "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+          },
+          "stdout": {
+            "bytes": 0,
+            "path": "fresh_process-attack-014.stdout",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "timed_out": false
+        },
+        {
+          "argv": [
+            "/private/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/fresh-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:d35db77f6d53023e142204fbf6eddd555911d1d226912b28c366d7eb7ab69b4f",
+          "elapsed_ns": 233973042,
+          "exit_code": 1,
+          "stderr": {
+            "bytes": 103,
+            "path": "fresh_process-attack-015.stderr",
+            "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+          },
+          "stdout": {
+            "bytes": 0,
+            "path": "fresh_process-attack-015.stdout",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "timed_out": false
+        },
+        {
+          "argv": [
+            "/private/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/fresh-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:d35db77f6d53023e142204fbf6eddd555911d1d226912b28c366d7eb7ab69b4f",
+          "elapsed_ns": 223790792,
+          "exit_code": 1,
+          "stderr": {
+            "bytes": 103,
+            "path": "fresh_process-attack-016.stderr",
+            "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+          },
+          "stdout": {
+            "bytes": 0,
+            "path": "fresh_process-attack-016.stdout",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "timed_out": false
+        },
+        {
+          "argv": [
+            "/private/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/fresh-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:d35db77f6d53023e142204fbf6eddd555911d1d226912b28c366d7eb7ab69b4f",
+          "elapsed_ns": 221841750,
+          "exit_code": 1,
+          "stderr": {
+            "bytes": 103,
+            "path": "fresh_process-attack-017.stderr",
+            "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+          },
+          "stdout": {
+            "bytes": 0,
+            "path": "fresh_process-attack-017.stdout",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "timed_out": false
+        },
+        {
+          "argv": [
+            "/private/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/fresh-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:d35db77f6d53023e142204fbf6eddd555911d1d226912b28c366d7eb7ab69b4f",
+          "elapsed_ns": 277255542,
+          "exit_code": 1,
+          "stderr": {
+            "bytes": 103,
+            "path": "fresh_process-attack-018.stderr",
+            "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+          },
+          "stdout": {
+            "bytes": 0,
+            "path": "fresh_process-attack-018.stdout",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "timed_out": false
+        },
+        {
+          "argv": [
+            "/private/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/fresh-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:d35db77f6d53023e142204fbf6eddd555911d1d226912b28c366d7eb7ab69b4f",
+          "elapsed_ns": 301730167,
+          "exit_code": 1,
+          "stderr": {
+            "bytes": 103,
+            "path": "fresh_process-attack-019.stderr",
+            "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+          },
+          "stdout": {
+            "bytes": 0,
+            "path": "fresh_process-attack-019.stdout",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "timed_out": false
+        },
+        {
+          "argv": [
+            "/private/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/fresh-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:d35db77f6d53023e142204fbf6eddd555911d1d226912b28c366d7eb7ab69b4f",
+          "elapsed_ns": 274614583,
+          "exit_code": 1,
+          "stderr": {
+            "bytes": 103,
+            "path": "fresh_process-attack-020.stderr",
+            "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+          },
+          "stdout": {
+            "bytes": 0,
+            "path": "fresh_process-attack-020.stdout",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "timed_out": false
+        },
+        {
+          "argv": [
+            "/private/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/fresh-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:d35db77f6d53023e142204fbf6eddd555911d1d226912b28c366d7eb7ab69b4f",
+          "elapsed_ns": 287317084,
+          "exit_code": 1,
+          "stderr": {
+            "bytes": 103,
+            "path": "fresh_process-attack-021.stderr",
+            "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+          },
+          "stdout": {
+            "bytes": 0,
+            "path": "fresh_process-attack-021.stdout",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "timed_out": false
+        },
+        {
+          "argv": [
+            "/private/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/fresh-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:d35db77f6d53023e142204fbf6eddd555911d1d226912b28c366d7eb7ab69b4f",
+          "elapsed_ns": 268544542,
+          "exit_code": 1,
+          "stderr": {
+            "bytes": 103,
+            "path": "fresh_process-attack-022.stderr",
+            "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+          },
+          "stdout": {
+            "bytes": 0,
+            "path": "fresh_process-attack-022.stdout",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "timed_out": false
+        },
+        {
+          "argv": [
+            "/private/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/fresh-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:d35db77f6d53023e142204fbf6eddd555911d1d226912b28c366d7eb7ab69b4f",
+          "elapsed_ns": 258823291,
+          "exit_code": 1,
+          "stderr": {
+            "bytes": 103,
+            "path": "fresh_process-attack-023.stderr",
+            "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+          },
+          "stdout": {
+            "bytes": 0,
+            "path": "fresh_process-attack-023.stdout",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "timed_out": false
+        },
+        {
+          "argv": [
+            "/private/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/fresh-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:d35db77f6d53023e142204fbf6eddd555911d1d226912b28c366d7eb7ab69b4f",
+          "elapsed_ns": 260267792,
+          "exit_code": 1,
+          "stderr": {
+            "bytes": 103,
+            "path": "fresh_process-attack-024.stderr",
+            "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+          },
+          "stdout": {
+            "bytes": 0,
+            "path": "fresh_process-attack-024.stdout",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "timed_out": false
+        },
+        {
+          "argv": [
+            "/private/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/fresh-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:d35db77f6d53023e142204fbf6eddd555911d1d226912b28c366d7eb7ab69b4f",
+          "elapsed_ns": 358668167,
+          "exit_code": 1,
+          "stderr": {
+            "bytes": 103,
+            "path": "fresh_process-attack-025.stderr",
+            "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+          },
+          "stdout": {
+            "bytes": 0,
+            "path": "fresh_process-attack-025.stdout",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "timed_out": false
+        },
+        {
+          "argv": [
+            "/private/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/fresh-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:d35db77f6d53023e142204fbf6eddd555911d1d226912b28c366d7eb7ab69b4f",
+          "elapsed_ns": 537212417,
+          "exit_code": 1,
+          "stderr": {
+            "bytes": 103,
+            "path": "fresh_process-attack-026.stderr",
+            "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+          },
+          "stdout": {
+            "bytes": 0,
+            "path": "fresh_process-attack-026.stdout",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "timed_out": false
+        },
+        {
+          "argv": [
+            "/private/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/fresh-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:d35db77f6d53023e142204fbf6eddd555911d1d226912b28c366d7eb7ab69b4f",
+          "elapsed_ns": 218615750,
+          "exit_code": 1,
+          "stderr": {
+            "bytes": 103,
+            "path": "fresh_process-attack-027.stderr",
+            "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+          },
+          "stdout": {
+            "bytes": 0,
+            "path": "fresh_process-attack-027.stdout",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "timed_out": false
+        },
+        {
+          "argv": [
+            "/private/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/fresh-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:d35db77f6d53023e142204fbf6eddd555911d1d226912b28c366d7eb7ab69b4f",
+          "elapsed_ns": 224685292,
+          "exit_code": 1,
+          "stderr": {
+            "bytes": 103,
+            "path": "fresh_process-attack-028.stderr",
+            "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+          },
+          "stdout": {
+            "bytes": 0,
+            "path": "fresh_process-attack-028.stdout",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "timed_out": false
+        },
+        {
+          "argv": [
+            "/private/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/fresh-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:d35db77f6d53023e142204fbf6eddd555911d1d226912b28c366d7eb7ab69b4f",
+          "elapsed_ns": 222445042,
+          "exit_code": 1,
+          "stderr": {
+            "bytes": 103,
+            "path": "fresh_process-attack-029.stderr",
+            "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+          },
+          "stdout": {
+            "bytes": 0,
+            "path": "fresh_process-attack-029.stdout",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "timed_out": false
+        },
+        {
+          "argv": [
+            "/private/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/fresh-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:d35db77f6d53023e142204fbf6eddd555911d1d226912b28c366d7eb7ab69b4f",
+          "elapsed_ns": 273636000,
+          "exit_code": 1,
+          "stderr": {
+            "bytes": 103,
+            "path": "fresh_process-attack-030.stderr",
+            "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+          },
+          "stdout": {
+            "bytes": 0,
+            "path": "fresh_process-attack-030.stdout",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "timed_out": false
+        }
+      ],
+      "summary": {
+        "count": 30,
+        "p50_ns": 224493896.0,
+        "p95_ns": 358668167
+      }
+    },
+    "repeat_process": {
+      "expected_observation_count": 30,
+      "samples": [
+        {
+          "argv": [
+            "/private/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/repeat-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:3e0c85457640c837be18860d0eb6e82f2582af30e712ff80ae5f27f45a9a87f5",
+          "elapsed_ns": 221866792,
+          "exit_code": 1,
+          "stderr": {
+            "bytes": 103,
+            "path": "repeat_process-attack-001.stderr",
+            "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+          },
+          "stdout": {
+            "bytes": 0,
+            "path": "repeat_process-attack-001.stdout",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "timed_out": false
+        },
+        {
+          "argv": [
+            "/private/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/repeat-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:3e0c85457640c837be18860d0eb6e82f2582af30e712ff80ae5f27f45a9a87f5",
+          "elapsed_ns": 224545541,
+          "exit_code": 1,
+          "stderr": {
+            "bytes": 103,
+            "path": "repeat_process-attack-002.stderr",
+            "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+          },
+          "stdout": {
+            "bytes": 0,
+            "path": "repeat_process-attack-002.stdout",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "timed_out": false
+        },
+        {
+          "argv": [
+            "/private/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/repeat-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:3e0c85457640c837be18860d0eb6e82f2582af30e712ff80ae5f27f45a9a87f5",
+          "elapsed_ns": 250677250,
+          "exit_code": 1,
+          "stderr": {
+            "bytes": 103,
+            "path": "repeat_process-attack-003.stderr",
+            "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+          },
+          "stdout": {
+            "bytes": 0,
+            "path": "repeat_process-attack-003.stdout",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "timed_out": false
+        },
+        {
+          "argv": [
+            "/private/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/repeat-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:3e0c85457640c837be18860d0eb6e82f2582af30e712ff80ae5f27f45a9a87f5",
+          "elapsed_ns": 212162542,
+          "exit_code": 1,
+          "stderr": {
+            "bytes": 103,
+            "path": "repeat_process-attack-004.stderr",
+            "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+          },
+          "stdout": {
+            "bytes": 0,
+            "path": "repeat_process-attack-004.stdout",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "timed_out": false
+        },
+        {
+          "argv": [
+            "/private/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/repeat-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:3e0c85457640c837be18860d0eb6e82f2582af30e712ff80ae5f27f45a9a87f5",
+          "elapsed_ns": 225160625,
+          "exit_code": 1,
+          "stderr": {
+            "bytes": 103,
+            "path": "repeat_process-attack-005.stderr",
+            "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+          },
+          "stdout": {
+            "bytes": 0,
+            "path": "repeat_process-attack-005.stdout",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "timed_out": false
+        },
+        {
+          "argv": [
+            "/private/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/repeat-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:3e0c85457640c837be18860d0eb6e82f2582af30e712ff80ae5f27f45a9a87f5",
+          "elapsed_ns": 230726583,
+          "exit_code": 1,
+          "stderr": {
+            "bytes": 103,
+            "path": "repeat_process-attack-006.stderr",
+            "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+          },
+          "stdout": {
+            "bytes": 0,
+            "path": "repeat_process-attack-006.stdout",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "timed_out": false
+        },
+        {
+          "argv": [
+            "/private/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/repeat-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:3e0c85457640c837be18860d0eb6e82f2582af30e712ff80ae5f27f45a9a87f5",
+          "elapsed_ns": 219783084,
+          "exit_code": 1,
+          "stderr": {
+            "bytes": 103,
+            "path": "repeat_process-attack-007.stderr",
+            "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+          },
+          "stdout": {
+            "bytes": 0,
+            "path": "repeat_process-attack-007.stdout",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "timed_out": false
+        },
+        {
+          "argv": [
+            "/private/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/repeat-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:3e0c85457640c837be18860d0eb6e82f2582af30e712ff80ae5f27f45a9a87f5",
+          "elapsed_ns": 206668584,
+          "exit_code": 1,
+          "stderr": {
+            "bytes": 103,
+            "path": "repeat_process-attack-008.stderr",
+            "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+          },
+          "stdout": {
+            "bytes": 0,
+            "path": "repeat_process-attack-008.stdout",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "timed_out": false
+        },
+        {
+          "argv": [
+            "/private/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/repeat-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:3e0c85457640c837be18860d0eb6e82f2582af30e712ff80ae5f27f45a9a87f5",
+          "elapsed_ns": 230964291,
+          "exit_code": 1,
+          "stderr": {
+            "bytes": 103,
+            "path": "repeat_process-attack-009.stderr",
+            "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+          },
+          "stdout": {
+            "bytes": 0,
+            "path": "repeat_process-attack-009.stdout",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "timed_out": false
+        },
+        {
+          "argv": [
+            "/private/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/repeat-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:3e0c85457640c837be18860d0eb6e82f2582af30e712ff80ae5f27f45a9a87f5",
+          "elapsed_ns": 262027000,
+          "exit_code": 1,
+          "stderr": {
+            "bytes": 103,
+            "path": "repeat_process-attack-010.stderr",
+            "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+          },
+          "stdout": {
+            "bytes": 0,
+            "path": "repeat_process-attack-010.stdout",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "timed_out": false
+        },
+        {
+          "argv": [
+            "/private/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/repeat-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:3e0c85457640c837be18860d0eb6e82f2582af30e712ff80ae5f27f45a9a87f5",
+          "elapsed_ns": 246109500,
+          "exit_code": 1,
+          "stderr": {
+            "bytes": 103,
+            "path": "repeat_process-attack-011.stderr",
+            "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+          },
+          "stdout": {
+            "bytes": 0,
+            "path": "repeat_process-attack-011.stdout",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "timed_out": false
+        },
+        {
+          "argv": [
+            "/private/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/repeat-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:3e0c85457640c837be18860d0eb6e82f2582af30e712ff80ae5f27f45a9a87f5",
+          "elapsed_ns": 233820958,
+          "exit_code": 1,
+          "stderr": {
+            "bytes": 103,
+            "path": "repeat_process-attack-012.stderr",
+            "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+          },
+          "stdout": {
+            "bytes": 0,
+            "path": "repeat_process-attack-012.stdout",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "timed_out": false
+        },
+        {
+          "argv": [
+            "/private/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/repeat-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:3e0c85457640c837be18860d0eb6e82f2582af30e712ff80ae5f27f45a9a87f5",
+          "elapsed_ns": 242535125,
+          "exit_code": 1,
+          "stderr": {
+            "bytes": 103,
+            "path": "repeat_process-attack-013.stderr",
+            "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+          },
+          "stdout": {
+            "bytes": 0,
+            "path": "repeat_process-attack-013.stdout",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "timed_out": false
+        },
+        {
+          "argv": [
+            "/private/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/repeat-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:3e0c85457640c837be18860d0eb6e82f2582af30e712ff80ae5f27f45a9a87f5",
+          "elapsed_ns": 275853083,
+          "exit_code": 1,
+          "stderr": {
+            "bytes": 103,
+            "path": "repeat_process-attack-014.stderr",
+            "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+          },
+          "stdout": {
+            "bytes": 0,
+            "path": "repeat_process-attack-014.stdout",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "timed_out": false
+        },
+        {
+          "argv": [
+            "/private/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/repeat-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:3e0c85457640c837be18860d0eb6e82f2582af30e712ff80ae5f27f45a9a87f5",
+          "elapsed_ns": 279414625,
+          "exit_code": 1,
+          "stderr": {
+            "bytes": 103,
+            "path": "repeat_process-attack-015.stderr",
+            "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+          },
+          "stdout": {
+            "bytes": 0,
+            "path": "repeat_process-attack-015.stdout",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "timed_out": false
+        },
+        {
+          "argv": [
+            "/private/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/repeat-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:3e0c85457640c837be18860d0eb6e82f2582af30e712ff80ae5f27f45a9a87f5",
+          "elapsed_ns": 241752875,
+          "exit_code": 1,
+          "stderr": {
+            "bytes": 103,
+            "path": "repeat_process-attack-016.stderr",
+            "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+          },
+          "stdout": {
+            "bytes": 0,
+            "path": "repeat_process-attack-016.stdout",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "timed_out": false
+        },
+        {
+          "argv": [
+            "/private/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/repeat-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:3e0c85457640c837be18860d0eb6e82f2582af30e712ff80ae5f27f45a9a87f5",
+          "elapsed_ns": 214214667,
+          "exit_code": 1,
+          "stderr": {
+            "bytes": 103,
+            "path": "repeat_process-attack-017.stderr",
+            "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+          },
+          "stdout": {
+            "bytes": 0,
+            "path": "repeat_process-attack-017.stdout",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "timed_out": false
+        },
+        {
+          "argv": [
+            "/private/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/repeat-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:3e0c85457640c837be18860d0eb6e82f2582af30e712ff80ae5f27f45a9a87f5",
+          "elapsed_ns": 217630583,
+          "exit_code": 1,
+          "stderr": {
+            "bytes": 103,
+            "path": "repeat_process-attack-018.stderr",
+            "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+          },
+          "stdout": {
+            "bytes": 0,
+            "path": "repeat_process-attack-018.stdout",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "timed_out": false
+        },
+        {
+          "argv": [
+            "/private/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/repeat-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:3e0c85457640c837be18860d0eb6e82f2582af30e712ff80ae5f27f45a9a87f5",
+          "elapsed_ns": 249629500,
+          "exit_code": 1,
+          "stderr": {
+            "bytes": 103,
+            "path": "repeat_process-attack-019.stderr",
+            "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+          },
+          "stdout": {
+            "bytes": 0,
+            "path": "repeat_process-attack-019.stdout",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "timed_out": false
+        },
+        {
+          "argv": [
+            "/private/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/repeat-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:3e0c85457640c837be18860d0eb6e82f2582af30e712ff80ae5f27f45a9a87f5",
+          "elapsed_ns": 268863167,
+          "exit_code": 1,
+          "stderr": {
+            "bytes": 103,
+            "path": "repeat_process-attack-020.stderr",
+            "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+          },
+          "stdout": {
+            "bytes": 0,
+            "path": "repeat_process-attack-020.stdout",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "timed_out": false
+        },
+        {
+          "argv": [
+            "/private/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/repeat-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:3e0c85457640c837be18860d0eb6e82f2582af30e712ff80ae5f27f45a9a87f5",
+          "elapsed_ns": 248414959,
+          "exit_code": 1,
+          "stderr": {
+            "bytes": 103,
+            "path": "repeat_process-attack-021.stderr",
+            "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+          },
+          "stdout": {
+            "bytes": 0,
+            "path": "repeat_process-attack-021.stdout",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "timed_out": false
+        },
+        {
+          "argv": [
+            "/private/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/repeat-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:3e0c85457640c837be18860d0eb6e82f2582af30e712ff80ae5f27f45a9a87f5",
+          "elapsed_ns": 317939166,
+          "exit_code": 1,
+          "stderr": {
+            "bytes": 103,
+            "path": "repeat_process-attack-022.stderr",
+            "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+          },
+          "stdout": {
+            "bytes": 0,
+            "path": "repeat_process-attack-022.stdout",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "timed_out": false
+        },
+        {
+          "argv": [
+            "/private/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/repeat-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:3e0c85457640c837be18860d0eb6e82f2582af30e712ff80ae5f27f45a9a87f5",
+          "elapsed_ns": 283277250,
+          "exit_code": 1,
+          "stderr": {
+            "bytes": 103,
+            "path": "repeat_process-attack-023.stderr",
+            "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+          },
+          "stdout": {
+            "bytes": 0,
+            "path": "repeat_process-attack-023.stdout",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "timed_out": false
+        },
+        {
+          "argv": [
+            "/private/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/repeat-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:3e0c85457640c837be18860d0eb6e82f2582af30e712ff80ae5f27f45a9a87f5",
+          "elapsed_ns": 269398583,
+          "exit_code": 1,
+          "stderr": {
+            "bytes": 103,
+            "path": "repeat_process-attack-024.stderr",
+            "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+          },
+          "stdout": {
+            "bytes": 0,
+            "path": "repeat_process-attack-024.stdout",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "timed_out": false
+        },
+        {
+          "argv": [
+            "/private/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/repeat-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:3e0c85457640c837be18860d0eb6e82f2582af30e712ff80ae5f27f45a9a87f5",
+          "elapsed_ns": 223304125,
+          "exit_code": 1,
+          "stderr": {
+            "bytes": 103,
+            "path": "repeat_process-attack-025.stderr",
+            "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+          },
+          "stdout": {
+            "bytes": 0,
+            "path": "repeat_process-attack-025.stdout",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "timed_out": false
+        },
+        {
+          "argv": [
+            "/private/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/repeat-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:3e0c85457640c837be18860d0eb6e82f2582af30e712ff80ae5f27f45a9a87f5",
+          "elapsed_ns": 283840084,
+          "exit_code": 1,
+          "stderr": {
+            "bytes": 103,
+            "path": "repeat_process-attack-026.stderr",
+            "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+          },
+          "stdout": {
+            "bytes": 0,
+            "path": "repeat_process-attack-026.stdout",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "timed_out": false
+        },
+        {
+          "argv": [
+            "/private/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/repeat-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:3e0c85457640c837be18860d0eb6e82f2582af30e712ff80ae5f27f45a9a87f5",
+          "elapsed_ns": 220998667,
+          "exit_code": 1,
+          "stderr": {
+            "bytes": 103,
+            "path": "repeat_process-attack-027.stderr",
+            "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+          },
+          "stdout": {
+            "bytes": 0,
+            "path": "repeat_process-attack-027.stdout",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "timed_out": false
+        },
+        {
+          "argv": [
+            "/private/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/repeat-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:3e0c85457640c837be18860d0eb6e82f2582af30e712ff80ae5f27f45a9a87f5",
+          "elapsed_ns": 248868666,
+          "exit_code": 1,
+          "stderr": {
+            "bytes": 103,
+            "path": "repeat_process-attack-028.stderr",
+            "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+          },
+          "stdout": {
+            "bytes": 0,
+            "path": "repeat_process-attack-028.stdout",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "timed_out": false
+        },
+        {
+          "argv": [
+            "/private/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/repeat-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:3e0c85457640c837be18860d0eb6e82f2582af30e712ff80ae5f27f45a9a87f5",
+          "elapsed_ns": 243761459,
+          "exit_code": 1,
+          "stderr": {
+            "bytes": 103,
+            "path": "repeat_process-attack-029.stderr",
+            "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+          },
+          "stdout": {
+            "bytes": 0,
+            "path": "repeat_process-attack-029.stdout",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "timed_out": false
+        },
+        {
+          "argv": [
+            "/private/tmp/semaprax-9a9db7a81",
+            "project-proof-check",
+            "/private/tmp/law16-fresh-closure-v2/boolean-process/semaprax/attack/repeat-project/semaprax.toml",
+            "--tool",
+            "z3",
+            "--executable",
+            "/opt/homebrew/bin/z3",
+            "--version-line",
+            "Z3 version 4.12.5 - 64 bit",
+            "--host-profile",
+            "trusted-local",
+            "--source",
+            "src/app.spx",
+            "--declaration",
+            "app.negate",
+            "--ensures",
+            "0"
+          ],
+          "command_sha256": "sha256:3e0c85457640c837be18860d0eb6e82f2582af30e712ff80ae5f27f45a9a87f5",
+          "elapsed_ns": 239789333,
+          "exit_code": 1,
+          "stderr": {
+            "bytes": 103,
+            "path": "repeat_process-attack-030.stderr",
+            "sha256": "sha256:8476ac55fc9f1ee1e42eb94fc7acfd266e99d7bc9242374047309a1c90dc37a5"
+          },
+          "stdout": {
+            "bytes": 0,
+            "path": "repeat_process-attack-030.stdout",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "timed_out": false
+        }
+      ],
+      "summary": {
+        "count": 30,
+        "p50_ns": 242144000.0,
+        "p95_ns": 283840084
+      }
+    }
+  },
+  "cold_state": {
+    "reason": "fresh paths and child processes do not isolate macOS page, executable, solver, or tool caches",
+    "status": "unavailable"
+  },
+  "expected": "seeded_attack_rejection",
+  "kind": "attack",
+  "lane": "semaprax",
+  "samples_per_state": 30,
+  "schema": "semaprax.bend2-law-benchmark.boolean-negation-process-capsule.v2",
+  "sources": {
+    "fresh_manifest": {
+      "bytes": 183,
+      "path": "semaprax/attack/fresh-project/semaprax.toml",
+      "sha256": "sha256:481999d6499263a605ce8eaf67e8155b772f6cddbe466c87e3087978ff339bb5"
+    },
+    "fresh_project_app": {
+      "bytes": 337,
+      "path": "semaprax/attack/fresh-project/src/app.spx",
+      "sha256": "sha256:9f6aab36ed9d03ede8e3cb1f79407e77f8fe5395434a6b8579acc59e7270ba2b"
+    },
+    "repeat_manifest": {
+      "bytes": 183,
+      "path": "semaprax/attack/repeat-project/semaprax.toml",
+      "sha256": "sha256:481999d6499263a605ce8eaf67e8155b772f6cddbe466c87e3087978ff339bb5"
+    },
+    "repeat_project_app": {
+      "bytes": 337,
+      "path": "semaprax/attack/repeat-project/src/app.spx",
+      "sha256": "sha256:9f6aab36ed9d03ede8e3cb1f79407e77f8fe5395434a6b8579acc59e7270ba2b"
+    },
+    "semaprax": {
+      "bytes": 172081112,
+      "path": "/private/tmp/semaprax-9a9db7a81",
+      "sha256": "sha256:cc9dd3ca99a74dd973cbfb904621e27b801d8ddea6065873d24c14de9dee1d89"
+    },
+    "z3": {
+      "bytes": 23365455,
+      "path": "/opt/homebrew/bin/z3",
+      "sha256": "sha256:bbb24b8fed27552f7fb7cfdf0ed9101e6e24fd0cc0b9cfb945233b3f2ed333c5"
+    }
+  },
+  "status": "completed_expected_observation",
+  "timeout_seconds": 15
+}

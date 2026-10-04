@@ -1335,14 +1335,16 @@ fn packaged_development_service_runs_from_an_independent_workspace() {
     let repository = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("..")
         .join("..");
+    let executable = std::env::var("SEMAPRAX_TEST_REFERENCE_SERVICE_STATIC_EXECUTABLE")
+        .unwrap_or_else(|_| SERVER.to_owned());
     let output = Command::new("python3")
         .arg(repository.join("scripts/tests/reference_service_installed_development.py"))
         .arg("--packager")
         .arg(repository.join("scripts/package-reference-service.py"))
         .arg("--checker")
-        .arg(SERVER)
+        .arg(&executable)
         .arg("--executable")
-        .arg(SERVER)
+        .arg(&executable)
         .arg("--project")
         .arg(inputs.example_project())
         .arg("--config")

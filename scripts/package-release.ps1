@@ -66,7 +66,7 @@ $manifest = @(
     "  `"version`": `"$version`",",
     "  `"commit`": `"$Commit`",",
     "  `"target`": `"$Target`",",
-    '  "maturity": "alpha",',
+    '  "maturity": "beta",',
     '  "binaries": ["semaprax", "semapraxd"],',
     '  "nonclaims": [',
     '    "production-ready",',
@@ -96,7 +96,7 @@ $binary = Join-Path $unpacked 'semaprax.exe'
 $human = @(& $binary --version)
 if ($LASTEXITCODE -ne 0 -or $human.Count -ne 1 -or $human[0] -cne "semaprax $version ($Commit)") { Reject 'human version smoke disagrees' }
 $json = @(& $binary version --json)
-$expectedJson = "{`"schema`":`"semaprax.version.v1`",`"version`":`"$version`",`"commit`":`"$Commit`",`"maturity`":`"alpha`",`"rust_min`":`"1.88`"}"
+$expectedJson = "{`"schema`":`"semaprax.version.v1`",`"version`":`"$version`",`"commit`":`"$Commit`",`"maturity`":`"beta`",`"rust_min`":`"1.88`"}"
 if ($LASTEXITCODE -ne 0 -or $json.Count -ne 1 -or $json[0] -cne $expectedJson) { Reject 'JSON version smoke disagrees' }
 & $binary check (Join-Path $unpacked 'smoke/meaning.spx')
 if ($LASTEXITCODE -ne 0) { Reject 'check smoke failed' }

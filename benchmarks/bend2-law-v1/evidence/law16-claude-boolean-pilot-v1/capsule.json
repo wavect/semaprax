@@ -1,0 +1,32 @@
+{
+  "attempts": [
+    {
+      "artifacts": {
+        "attack_stderr": {"encoding": "base64", "path": "attempt-1/attack.stderr.base64", "bytes": 249, "sha256": "sha256:7c5d175fb1e481952bc15aba882682625de7d2b5c5f5f4cd7ede7f5d9ad583a9"},
+        "candidate_stderr": {"path": "attempt-1/candidate.stderr", "bytes": 220, "sha256": "sha256:0a5626a2464271f85be4ff5d5f6418e8cc5a208b03546fbec5d7f5308025e297"},
+        "candidate_source": {"path": "attempt-1/final-source.bend", "bytes": 149, "sha256": "sha256:3a521e801f02dacd269a15ae8d87f8915871f6a22babda95cd661a56ee5d3585"}
+      },
+      "id": "bend-syntax-1",
+      "provider": {"cost_usd": "0.008302", "duration_ms": 8376, "input_tokens": 4027, "output_tokens": 855, "stream_bytes": 19206, "stream_sha256": "sha256:9384acd02737ccc158391491a08f32377258af20ff750dcdfa11dd1066466f20", "subtype": "success"},
+      "result": "candidate_rejected_before_law_verdict: unsupported unicode quantifier",
+      "verdict": {"attack_exit_code": 1, "candidate_exit_code": 1}
+    },
+    {
+      "id": "bend-syntax-2",
+      "provider": {"cache_creation_input_tokens": 4248, "cost_usd": "0.016636", "duration_ms": 13719, "input_tokens": 10, "output_tokens": 1626, "stream_bytes": 24372, "stream_sha256": "sha256:6e90b9cfa44ca84f220f0b9e8d90f465df74e79fd016e96eded51fe4a90ab2c2", "subtype": "success"},
+      "result": "response_parse_failed: provider assistant text was prose, not the declared JSON schema",
+      "verdict": "not_run_without_a_parseable_candidate_source"
+    }
+  ],
+  "campaign_admission": false,
+  "config": {"path": "fixtures/law16-claude-boolean-pilot-config-v1.json", "bytes": 1481, "sha256": "sha256:8c78b7a6cc3a554f2a430dca3030d00b9e8133faf6e05a6d4e8ae21a36bbfc9f"},
+  "nonclaims": [
+    "provider streams, session identifiers, assistant transcripts, credentials, and prompt bodies are not retained here",
+    "the first candidate failure and fixed-attack rejection are not a successful matched pilot",
+    "the second provider success does not establish a source outcome because its response was not schema-valid",
+    "the raw Claude streams bind provider telemetry but do not retain the initial prompt event, so this capsule does not claim an exact prompt digest",
+    "no SEMAPRAX pilot or ten-pair campaign ran"
+  ],
+  "schema": "semaprax.bend2-law-benchmark.claude-boolean-pilot-capsule.v1",
+  "status": "two_bounded_bend_attempts_nonadmitted"
+}

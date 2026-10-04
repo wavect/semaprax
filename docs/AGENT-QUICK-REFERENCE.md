@@ -1,6 +1,6 @@
 # Agent quick reference
 
-Status: public alpha reference card. Every `semaprax` code block on this
+Status: public beta reference card. Every `semaprax` code block on this
 page is a complete module that `tests/documentation.rs` checks against the
 compiler: blocks without an `expect` marker must verify without diagnostics and
 already be canonical; blocks with one must produce exactly that diagnostic code.

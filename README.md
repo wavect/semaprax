@@ -10,8 +10,8 @@ Give coding agents a typed map of your program, not just a pile of files.
 Build runtime agents whose proposals must pass checked code before they can act.
 
 [![CI](https://github.com/wavect/semaprax/actions/workflows/ci.yml/badge.svg)](https://github.com/wavect/semaprax/actions/workflows/ci.yml)
-[![Version](https://img.shields.io/badge/version-0.7.0-7c3aed.svg)](Cargo.toml)
-[![Status](https://img.shields.io/badge/status-alpha-f59e0b.svg)](#project-status)
+[![Version](https://img.shields.io/badge/version-0.8.0-7c3aed.svg)](Cargo.toml)
+[![Status](https://img.shields.io/badge/status-beta-f59e0b.svg)](#project-status)
 [![License](https://img.shields.io/badge/license-Apache--2.0-2563eb.svg)](LICENSE)
 
 [Get started](#get-started) · [Why Semaprax?](#why-semaprax) ·
@@ -370,7 +370,7 @@ build, payment, or publication authority.
 
 ## Project status
 
-**Development version: 0.7.0 · Maturity: alpha · Full product goal: Partial.**
+**Development version: 0.8.0 · Maturity: beta · Full product goal: Partial.**
 
 There is executable language, graph, semantic-change, runtime, and host-integration
 work to explore today. There is not yet a production application toolchain,

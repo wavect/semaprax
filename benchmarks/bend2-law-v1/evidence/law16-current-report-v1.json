@@ -241,11 +241,729 @@
       "status": "retained_source_evidence_only"
     },
     "matched_boolean": {
-      "reason": "no retained normalized annotation and changed-proof-byte summary binds Boolean candidates to a fixed seed",
-      "status": "unavailable"
+      "matched_pairs": 10,
+      "nonclaims": [
+        "byte counts do not measure reasoning, difficulty, or semantic proof effort",
+        "the two languages use different annotation and proof syntax, so their raw byte totals are not directly comparable",
+        "the summary does not validate or strengthen the retained candidate proof verdicts"
+      ],
+      "rows": [
+        {
+          "changed_bytes_vs_seed": 121,
+          "explicit_annotation_and_proof_counts": {
+            "law_declarations": {
+              "bytes": 32,
+              "count": 1
+            },
+            "proof_terms": {
+              "bytes": 7,
+              "count": 1
+            }
+          },
+          "final_source": {
+            "bytes": 206,
+            "path": "law16-boolean-negation-agent-pilot-v1/bend-ordinal-1/final-source.bend",
+            "sha256": "sha256:e3b0838d2688376dffab5a07154ef955c2006059ba08b8b8330cd4e91dc8738f"
+          },
+          "fixed_seed": {
+            "bytes": 327,
+            "path": "fixtures/bend-boolean-negation-v1.bend",
+            "sha256": "sha256:91eeeb8c2a9a055a38022e00bf02381a4788cc8608c1d96148dad17e5f109b81"
+          },
+          "language": "bend2",
+          "ordinal": 1
+        },
+        {
+          "changed_bytes_vs_seed": 0,
+          "explicit_annotation_and_proof_counts": {
+            "ensures": {
+              "bytes": 29,
+              "count": 1
+            },
+            "explicit_proof_bodies": {
+              "bytes": 0,
+              "count": 0
+            },
+            "requires": {
+              "bytes": 0,
+              "count": 0
+            },
+            "stable_ids": {
+              "bytes": 34,
+              "count": 2
+            }
+          },
+          "final_source": {
+            "bytes": 182,
+            "path": "law16-boolean-negation-agent-pilot-v1/semaprax-ordinal-1/final-source.spx",
+            "sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063"
+          },
+          "fixed_seed": {
+            "bytes": 182,
+            "path": "fixtures/semaprax-boolean-negation-v1.spx",
+            "sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063"
+          },
+          "language": "semaprax-scalar-v1",
+          "ordinal": 1
+        },
+        {
+          "changed_bytes_vs_seed": 121,
+          "explicit_annotation_and_proof_counts": {
+            "law_declarations": {
+              "bytes": 32,
+              "count": 1
+            },
+            "proof_terms": {
+              "bytes": 7,
+              "count": 1
+            }
+          },
+          "final_source": {
+            "bytes": 206,
+            "path": "law16-boolean-negation-agent-campaign-v1/ordinal-2/bend/final-source.bend",
+            "sha256": "sha256:e3b0838d2688376dffab5a07154ef955c2006059ba08b8b8330cd4e91dc8738f"
+          },
+          "fixed_seed": {
+            "bytes": 327,
+            "path": "fixtures/bend-boolean-negation-v1.bend",
+            "sha256": "sha256:91eeeb8c2a9a055a38022e00bf02381a4788cc8608c1d96148dad17e5f109b81"
+          },
+          "language": "bend2",
+          "ordinal": 2
+        },
+        {
+          "changed_bytes_vs_seed": 318,
+          "explicit_annotation_and_proof_counts": {
+            "ensures": {
+              "bytes": 29,
+              "count": 1
+            },
+            "explicit_proof_bodies": {
+              "bytes": 0,
+              "count": 0
+            },
+            "requires": {
+              "bytes": 0,
+              "count": 0
+            },
+            "stable_ids": {
+              "bytes": 34,
+              "count": 2
+            }
+          },
+          "final_source": {
+            "bytes": 338,
+            "path": "law16-boolean-negation-agent-campaign-v1/ordinal-2/semaprax/final-source.spx",
+            "sha256": "sha256:8e0323e63a4eb7fb0207766d5855ab88a1b7e979c0866b91795ed15b77546b82"
+          },
+          "fixed_seed": {
+            "bytes": 182,
+            "path": "fixtures/semaprax-boolean-negation-v1.spx",
+            "sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063"
+          },
+          "language": "semaprax-scalar-v1",
+          "ordinal": 2
+        },
+        {
+          "changed_bytes_vs_seed": 121,
+          "explicit_annotation_and_proof_counts": {
+            "law_declarations": {
+              "bytes": 32,
+              "count": 1
+            },
+            "proof_terms": {
+              "bytes": 7,
+              "count": 1
+            }
+          },
+          "final_source": {
+            "bytes": 206,
+            "path": "law16-boolean-negation-agent-campaign-v1/ordinal-3/bend/final-source.bend",
+            "sha256": "sha256:e3b0838d2688376dffab5a07154ef955c2006059ba08b8b8330cd4e91dc8738f"
+          },
+          "fixed_seed": {
+            "bytes": 327,
+            "path": "fixtures/bend-boolean-negation-v1.bend",
+            "sha256": "sha256:91eeeb8c2a9a055a38022e00bf02381a4788cc8608c1d96148dad17e5f109b81"
+          },
+          "language": "bend2",
+          "ordinal": 3
+        },
+        {
+          "changed_bytes_vs_seed": 0,
+          "explicit_annotation_and_proof_counts": {
+            "ensures": {
+              "bytes": 29,
+              "count": 1
+            },
+            "explicit_proof_bodies": {
+              "bytes": 0,
+              "count": 0
+            },
+            "requires": {
+              "bytes": 0,
+              "count": 0
+            },
+            "stable_ids": {
+              "bytes": 34,
+              "count": 2
+            }
+          },
+          "final_source": {
+            "bytes": 182,
+            "path": "law16-boolean-negation-agent-campaign-v1/ordinal-3/semaprax/final-source.spx",
+            "sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063"
+          },
+          "fixed_seed": {
+            "bytes": 182,
+            "path": "fixtures/semaprax-boolean-negation-v1.spx",
+            "sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063"
+          },
+          "language": "semaprax-scalar-v1",
+          "ordinal": 3
+        },
+        {
+          "changed_bytes_vs_seed": 121,
+          "explicit_annotation_and_proof_counts": {
+            "law_declarations": {
+              "bytes": 32,
+              "count": 1
+            },
+            "proof_terms": {
+              "bytes": 7,
+              "count": 1
+            }
+          },
+          "final_source": {
+            "bytes": 206,
+            "path": "law16-boolean-negation-agent-campaign-v1/ordinal-4/bend/final-source.bend",
+            "sha256": "sha256:e3b0838d2688376dffab5a07154ef955c2006059ba08b8b8330cd4e91dc8738f"
+          },
+          "fixed_seed": {
+            "bytes": 327,
+            "path": "fixtures/bend-boolean-negation-v1.bend",
+            "sha256": "sha256:91eeeb8c2a9a055a38022e00bf02381a4788cc8608c1d96148dad17e5f109b81"
+          },
+          "language": "bend2",
+          "ordinal": 4
+        },
+        {
+          "changed_bytes_vs_seed": 318,
+          "explicit_annotation_and_proof_counts": {
+            "ensures": {
+              "bytes": 29,
+              "count": 1
+            },
+            "explicit_proof_bodies": {
+              "bytes": 0,
+              "count": 0
+            },
+            "requires": {
+              "bytes": 0,
+              "count": 0
+            },
+            "stable_ids": {
+              "bytes": 34,
+              "count": 2
+            }
+          },
+          "final_source": {
+            "bytes": 338,
+            "path": "law16-boolean-negation-agent-campaign-v1/ordinal-4/semaprax/final-source.spx",
+            "sha256": "sha256:8e0323e63a4eb7fb0207766d5855ab88a1b7e979c0866b91795ed15b77546b82"
+          },
+          "fixed_seed": {
+            "bytes": 182,
+            "path": "fixtures/semaprax-boolean-negation-v1.spx",
+            "sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063"
+          },
+          "language": "semaprax-scalar-v1",
+          "ordinal": 4
+        },
+        {
+          "changed_bytes_vs_seed": 121,
+          "explicit_annotation_and_proof_counts": {
+            "law_declarations": {
+              "bytes": 32,
+              "count": 1
+            },
+            "proof_terms": {
+              "bytes": 7,
+              "count": 1
+            }
+          },
+          "final_source": {
+            "bytes": 206,
+            "path": "law16-boolean-negation-agent-campaign-v1/ordinal-5/bend/final-source.bend",
+            "sha256": "sha256:e3b0838d2688376dffab5a07154ef955c2006059ba08b8b8330cd4e91dc8738f"
+          },
+          "fixed_seed": {
+            "bytes": 327,
+            "path": "fixtures/bend-boolean-negation-v1.bend",
+            "sha256": "sha256:91eeeb8c2a9a055a38022e00bf02381a4788cc8608c1d96148dad17e5f109b81"
+          },
+          "language": "bend2",
+          "ordinal": 5
+        },
+        {
+          "changed_bytes_vs_seed": 0,
+          "explicit_annotation_and_proof_counts": {
+            "ensures": {
+              "bytes": 29,
+              "count": 1
+            },
+            "explicit_proof_bodies": {
+              "bytes": 0,
+              "count": 0
+            },
+            "requires": {
+              "bytes": 0,
+              "count": 0
+            },
+            "stable_ids": {
+              "bytes": 34,
+              "count": 2
+            }
+          },
+          "final_source": {
+            "bytes": 182,
+            "path": "law16-boolean-negation-agent-campaign-v1/ordinal-5/semaprax/final-source.spx",
+            "sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063"
+          },
+          "fixed_seed": {
+            "bytes": 182,
+            "path": "fixtures/semaprax-boolean-negation-v1.spx",
+            "sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063"
+          },
+          "language": "semaprax-scalar-v1",
+          "ordinal": 5
+        },
+        {
+          "changed_bytes_vs_seed": 121,
+          "explicit_annotation_and_proof_counts": {
+            "law_declarations": {
+              "bytes": 32,
+              "count": 1
+            },
+            "proof_terms": {
+              "bytes": 7,
+              "count": 1
+            }
+          },
+          "final_source": {
+            "bytes": 206,
+            "path": "law16-boolean-negation-agent-campaign-v1/ordinal-6/bend/final-source.bend",
+            "sha256": "sha256:e3b0838d2688376dffab5a07154ef955c2006059ba08b8b8330cd4e91dc8738f"
+          },
+          "fixed_seed": {
+            "bytes": 327,
+            "path": "fixtures/bend-boolean-negation-v1.bend",
+            "sha256": "sha256:91eeeb8c2a9a055a38022e00bf02381a4788cc8608c1d96148dad17e5f109b81"
+          },
+          "language": "bend2",
+          "ordinal": 6
+        },
+        {
+          "changed_bytes_vs_seed": 0,
+          "explicit_annotation_and_proof_counts": {
+            "ensures": {
+              "bytes": 29,
+              "count": 1
+            },
+            "explicit_proof_bodies": {
+              "bytes": 0,
+              "count": 0
+            },
+            "requires": {
+              "bytes": 0,
+              "count": 0
+            },
+            "stable_ids": {
+              "bytes": 34,
+              "count": 2
+            }
+          },
+          "final_source": {
+            "bytes": 182,
+            "path": "law16-boolean-negation-agent-campaign-v1/ordinal-6/semaprax/final-source.spx",
+            "sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063"
+          },
+          "fixed_seed": {
+            "bytes": 182,
+            "path": "fixtures/semaprax-boolean-negation-v1.spx",
+            "sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063"
+          },
+          "language": "semaprax-scalar-v1",
+          "ordinal": 6
+        },
+        {
+          "changed_bytes_vs_seed": 121,
+          "explicit_annotation_and_proof_counts": {
+            "law_declarations": {
+              "bytes": 32,
+              "count": 1
+            },
+            "proof_terms": {
+              "bytes": 7,
+              "count": 1
+            }
+          },
+          "final_source": {
+            "bytes": 206,
+            "path": "law16-boolean-negation-agent-campaign-v1/ordinal-7/bend/final-source.bend",
+            "sha256": "sha256:e3b0838d2688376dffab5a07154ef955c2006059ba08b8b8330cd4e91dc8738f"
+          },
+          "fixed_seed": {
+            "bytes": 327,
+            "path": "fixtures/bend-boolean-negation-v1.bend",
+            "sha256": "sha256:91eeeb8c2a9a055a38022e00bf02381a4788cc8608c1d96148dad17e5f109b81"
+          },
+          "language": "bend2",
+          "ordinal": 7
+        },
+        {
+          "changed_bytes_vs_seed": 0,
+          "explicit_annotation_and_proof_counts": {
+            "ensures": {
+              "bytes": 29,
+              "count": 1
+            },
+            "explicit_proof_bodies": {
+              "bytes": 0,
+              "count": 0
+            },
+            "requires": {
+              "bytes": 0,
+              "count": 0
+            },
+            "stable_ids": {
+              "bytes": 34,
+              "count": 2
+            }
+          },
+          "final_source": {
+            "bytes": 182,
+            "path": "law16-boolean-negation-agent-campaign-v1/ordinal-7/semaprax/final-source.spx",
+            "sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063"
+          },
+          "fixed_seed": {
+            "bytes": 182,
+            "path": "fixtures/semaprax-boolean-negation-v1.spx",
+            "sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063"
+          },
+          "language": "semaprax-scalar-v1",
+          "ordinal": 7
+        },
+        {
+          "changed_bytes_vs_seed": 121,
+          "explicit_annotation_and_proof_counts": {
+            "law_declarations": {
+              "bytes": 32,
+              "count": 1
+            },
+            "proof_terms": {
+              "bytes": 7,
+              "count": 1
+            }
+          },
+          "final_source": {
+            "bytes": 206,
+            "path": "law16-boolean-negation-agent-campaign-v1/ordinal-8/bend/final-source.bend",
+            "sha256": "sha256:e3b0838d2688376dffab5a07154ef955c2006059ba08b8b8330cd4e91dc8738f"
+          },
+          "fixed_seed": {
+            "bytes": 327,
+            "path": "fixtures/bend-boolean-negation-v1.bend",
+            "sha256": "sha256:91eeeb8c2a9a055a38022e00bf02381a4788cc8608c1d96148dad17e5f109b81"
+          },
+          "language": "bend2",
+          "ordinal": 8
+        },
+        {
+          "changed_bytes_vs_seed": 318,
+          "explicit_annotation_and_proof_counts": {
+            "ensures": {
+              "bytes": 29,
+              "count": 1
+            },
+            "explicit_proof_bodies": {
+              "bytes": 0,
+              "count": 0
+            },
+            "requires": {
+              "bytes": 0,
+              "count": 0
+            },
+            "stable_ids": {
+              "bytes": 34,
+              "count": 2
+            }
+          },
+          "final_source": {
+            "bytes": 338,
+            "path": "law16-boolean-negation-agent-campaign-v1/ordinal-8/semaprax/final-source.spx",
+            "sha256": "sha256:8e0323e63a4eb7fb0207766d5855ab88a1b7e979c0866b91795ed15b77546b82"
+          },
+          "fixed_seed": {
+            "bytes": 182,
+            "path": "fixtures/semaprax-boolean-negation-v1.spx",
+            "sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063"
+          },
+          "language": "semaprax-scalar-v1",
+          "ordinal": 8
+        },
+        {
+          "changed_bytes_vs_seed": 121,
+          "explicit_annotation_and_proof_counts": {
+            "law_declarations": {
+              "bytes": 32,
+              "count": 1
+            },
+            "proof_terms": {
+              "bytes": 7,
+              "count": 1
+            }
+          },
+          "final_source": {
+            "bytes": 206,
+            "path": "law16-boolean-negation-agent-campaign-v1/ordinal-9/bend/final-source.bend",
+            "sha256": "sha256:e3b0838d2688376dffab5a07154ef955c2006059ba08b8b8330cd4e91dc8738f"
+          },
+          "fixed_seed": {
+            "bytes": 327,
+            "path": "fixtures/bend-boolean-negation-v1.bend",
+            "sha256": "sha256:91eeeb8c2a9a055a38022e00bf02381a4788cc8608c1d96148dad17e5f109b81"
+          },
+          "language": "bend2",
+          "ordinal": 9
+        },
+        {
+          "changed_bytes_vs_seed": 318,
+          "explicit_annotation_and_proof_counts": {
+            "ensures": {
+              "bytes": 29,
+              "count": 1
+            },
+            "explicit_proof_bodies": {
+              "bytes": 0,
+              "count": 0
+            },
+            "requires": {
+              "bytes": 0,
+              "count": 0
+            },
+            "stable_ids": {
+              "bytes": 34,
+              "count": 2
+            }
+          },
+          "final_source": {
+            "bytes": 338,
+            "path": "law16-boolean-negation-agent-campaign-v1/ordinal-9/semaprax/final-source.spx",
+            "sha256": "sha256:8e0323e63a4eb7fb0207766d5855ab88a1b7e979c0866b91795ed15b77546b82"
+          },
+          "fixed_seed": {
+            "bytes": 182,
+            "path": "fixtures/semaprax-boolean-negation-v1.spx",
+            "sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063"
+          },
+          "language": "semaprax-scalar-v1",
+          "ordinal": 9
+        },
+        {
+          "changed_bytes_vs_seed": 121,
+          "explicit_annotation_and_proof_counts": {
+            "law_declarations": {
+              "bytes": 32,
+              "count": 1
+            },
+            "proof_terms": {
+              "bytes": 7,
+              "count": 1
+            }
+          },
+          "final_source": {
+            "bytes": 206,
+            "path": "law16-boolean-negation-agent-campaign-v1/ordinal-10/bend/final-source.bend",
+            "sha256": "sha256:e3b0838d2688376dffab5a07154ef955c2006059ba08b8b8330cd4e91dc8738f"
+          },
+          "fixed_seed": {
+            "bytes": 327,
+            "path": "fixtures/bend-boolean-negation-v1.bend",
+            "sha256": "sha256:91eeeb8c2a9a055a38022e00bf02381a4788cc8608c1d96148dad17e5f109b81"
+          },
+          "language": "bend2",
+          "ordinal": 10
+        },
+        {
+          "changed_bytes_vs_seed": 0,
+          "explicit_annotation_and_proof_counts": {
+            "ensures": {
+              "bytes": 29,
+              "count": 1
+            },
+            "explicit_proof_bodies": {
+              "bytes": 0,
+              "count": 0
+            },
+            "requires": {
+              "bytes": 0,
+              "count": 0
+            },
+            "stable_ids": {
+              "bytes": 34,
+              "count": 2
+            }
+          },
+          "final_source": {
+            "bytes": 182,
+            "path": "law16-boolean-negation-agent-campaign-v1/ordinal-10/semaprax/final-source.spx",
+            "sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063"
+          },
+          "fixed_seed": {
+            "bytes": 182,
+            "path": "fixtures/semaprax-boolean-negation-v1.spx",
+            "sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063"
+          },
+          "language": "semaprax-scalar-v1",
+          "ordinal": 10
+        }
+      ],
+      "scope": "ten matched Boolean final sources versus their fixed seed; byte distance is not semantic effort",
+      "source": "evidence/law16-boolean-negation-annotation-summary-v1.json",
+      "status": "retained_source_evidence_only"
     }
   },
-  "closure": "no: the matched Boolean cell and supplemental U32 semantic theorem comparison do not satisfy the original checked-u32 source admission, cold-cache, project-sized/refactor/incremental, or monetary cost-event acceptance requirements",
+  "cache_isolation_probe": {
+    "checking_measurements": {
+      "samples": 0,
+      "status": "not_collected"
+    },
+    "container_state": {
+      "after_observation": "container list had no rows after probe",
+      "after_running": 0,
+      "before_observation": "container list had no rows immediately before probe",
+      "before_running": 0
+    },
+    "nonclaims": [
+      "no cache-cold or cache-warm checker timings were collected",
+      "fresh process and fresh paths are not OS-cache-cold evidence",
+      "the probe did not write to /proc/sys/vm/drop_caches",
+      "an empty post-probe container list does not prove that caches were cleared",
+      "host purge permission denial is recorded from the prior attempt and was not retried"
+    ],
+    "reason": "container guest mounted /proc/sys read-only, so /proc/sys/vm/drop_caches is not writable even as uid 0 with all capabilities; the prior host purge attempt was permission denied",
+    "source": "evidence/law16-cache-isolation-probe-v1/receipt.json",
+    "status": "unavailable"
+  },
+  "claude_boolean_pilot": {
+    "attempts": [
+      {
+        "artifacts": {
+          "attack_stderr": {
+            "bytes": 249,
+            "encoding": "base64",
+            "path": "attempt-1/attack.stderr.base64",
+            "sha256": "sha256:7c5d175fb1e481952bc15aba882682625de7d2b5c5f5f4cd7ede7f5d9ad583a9"
+          },
+          "candidate_source": {
+            "bytes": 149,
+            "path": "attempt-1/final-source.bend",
+            "sha256": "sha256:3a521e801f02dacd269a15ae8d87f8915871f6a22babda95cd661a56ee5d3585"
+          },
+          "candidate_stderr": {
+            "bytes": 220,
+            "path": "attempt-1/candidate.stderr",
+            "sha256": "sha256:0a5626a2464271f85be4ff5d5f6418e8cc5a208b03546fbec5d7f5308025e297"
+          }
+        },
+        "id": "bend-syntax-1",
+        "provider": {
+          "cost_usd": "0.008302",
+          "duration_ms": 8376,
+          "input_tokens": 4027,
+          "output_tokens": 855,
+          "stream_bytes": 19206,
+          "stream_sha256": "sha256:9384acd02737ccc158391491a08f32377258af20ff750dcdfa11dd1066466f20",
+          "subtype": "success"
+        },
+        "result": "candidate_rejected_before_law_verdict: unsupported unicode quantifier",
+        "verdict": {
+          "attack_exit_code": 1,
+          "candidate_exit_code": 1
+        }
+      },
+      {
+        "id": "bend-syntax-2",
+        "provider": {
+          "cache_creation_input_tokens": 4248,
+          "cost_usd": "0.016636",
+          "duration_ms": 13719,
+          "input_tokens": 10,
+          "output_tokens": 1626,
+          "stream_bytes": 24372,
+          "stream_sha256": "sha256:6e90b9cfa44ca84f220f0b9e8d90f465df74e79fd016e96eded51fe4a90ab2c2",
+          "subtype": "success"
+        },
+        "result": "response_parse_failed: provider assistant text was prose, not the declared JSON schema",
+        "verdict": "not_run_without_a_parseable_candidate_source"
+      }
+    ],
+    "campaign_admission": false,
+    "nonclaims": [
+      "provider streams, session identifiers, assistant transcripts, credentials, and prompt bodies are not retained here",
+      "the first candidate failure and fixed-attack rejection are not a successful matched pilot",
+      "the second provider success does not establish a source outcome because its response was not schema-valid",
+      "the raw Claude streams bind provider telemetry but do not retain the initial prompt event, so this capsule does not claim an exact prompt digest",
+      "no SEMAPRAX pilot or ten-pair campaign ran"
+    ],
+    "source": "evidence/law16-claude-boolean-pilot-v1/capsule.json",
+    "status": "two_bounded_bend_attempts_nonadmitted"
+  },
+  "closure": "no: the matched Boolean cell and supplemental U32 semantic theorem comparison do not satisfy the original checked-u32 source admission, full cold-cache and proof-route coverage, matched project-sized incremental/refactor, or monetary cost-event acceptance requirements",
+  "guest_file_cache_cold_warm": {
+    "nonclaims": [
+      "guest file-page-cache scope only; macOS host cache and Rosetta translation cache are unknown",
+      "live Python/system-library pages and hardware caches are outside the direct residency inventory",
+      "ordinary Bend and SEMAPRAX check only; no verdict, SMT, Lean, or formal proof measurement",
+      "new Linux/Rosetta release profile; not historical macOS executable pins",
+      "no cross-language winner, ratio, native-hardware timing, or issue closure"
+    ],
+    "schema": "semaprax.bend2-law-benchmark.guest-cache.v1",
+    "scope": "Linux guest file page cache only; host and Rosetta caches unknown",
+    "source": "evidence/law16-guest-cache-thirty-v1/receipt.json",
+    "status": "thirty_guest_cache_pairs_authenticated",
+    "summary": {
+      "bend_ordinary": {
+        "cold": {
+          "count": 30,
+          "mad_ns": 136693625.5,
+          "p50_ns": 1578498834.0,
+          "p95_ns": 2269816626
+        },
+        "warm": {
+          "count": 30,
+          "mad_ns": 108287500.5,
+          "p50_ns": 1589668479.5,
+          "p95_ns": 2196996959
+        }
+      },
+      "semaprax_check": {
+        "cold": {
+          "count": 30,
+          "mad_ns": 28778166.5,
+          "p50_ns": 274600458.5,
+          "p95_ns": 367598417
+        },
+        "warm": {
+          "count": 30,
+          "mad_ns": 21766291.5,
+          "p50_ns": 256290021.5,
+          "p95_ns": 342324250
+        }
+      }
+    }
+  },
   "matched_boolean": {
     "agent_pairs": {
       "bend_attack_rejections": 10,
@@ -302,6 +1020,34 @@
       "raw_streams": 480,
       "semaprax_z3_candidate_postcondition_discharges": 60,
       "semaprax_z3_seeded_attack_rejections": 60
+    },
+    "claude_cost_probe": {
+      "campaign_admission": false,
+      "nonclaims": [
+        "the collector does not retain assistant text or claim a source outcome",
+        "a provider cost event without a successful source and independent route outcome cannot start a campaign",
+        "no currency value is derived from token counters"
+      ],
+      "provider": {
+        "cli_version": "2.1.289",
+        "id": "anthropic-claude-code-cli",
+        "model_id": "claude-haiku-4-5-20251001"
+      },
+      "provider_cost_usd": 0.023741,
+      "provider_usage": {
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 0,
+        "output_tokens": 0
+      },
+      "raw_provider_stream_retained": false,
+      "result": {
+        "duration_ms": 1791,
+        "is_error": true,
+        "subtype": "error_max_budget_usd"
+      },
+      "source": "evidence/law16-claude-cost-pilot-v1.json",
+      "status": "blocked_before_source_outcome_review"
     },
     "cost_provenance": {
       "aggregate_token_usage": {
@@ -1137,6 +1883,64 @@
   "schema": "semaprax.bend2-law-benchmark.current-report.v1",
   "scope": "local pinned Boolean-negation evidence and separate guarded-U32 theorem/control routes",
   "status": "incomplete",
+  "supplemental_boolean_native_phases": {
+    "nonclaims": [
+      "SEMAPRAX build combines internal checking, code generation, and native compilation; those internals are not timed separately",
+      "Bend emit-C and Clang compilation are distinct local phases but do not measure Bend --verdict",
+      "process startup and local caches are not isolated; this is not a cold/warm or cross-route comparison",
+      "native execution is a two-input witness, not a source-proof or lowering theorem",
+      "no performance winner or LAW16 issue closure"
+    ],
+    "scope": "30 local samples each for separate Bend check/C emission/Clang compile/run and SEMAPRAX check/combined native build/run phases; no proof, cache isolation, or cross-route comparison",
+    "source": "evidence/law16-native-phase-thirty-v1/receipt.json",
+    "status": "thirty_repetitions_authenticated",
+    "summary": {
+      "bend_check": {
+        "count": 30,
+        "p50_ns": 82684375.0,
+        "p95_ns": 147570042
+      },
+      "bend_emit_c": {
+        "count": 30,
+        "p50_ns": 94438083.5,
+        "p95_ns": 171655917
+      },
+      "bend_run": {
+        "count": 30,
+        "p50_ns": 205188812.0,
+        "p95_ns": 339447125
+      },
+      "clang_compile": {
+        "count": 30,
+        "p50_ns": 183967167.0,
+        "p95_ns": 325482666
+      },
+      "semaprax_build": {
+        "count": 30,
+        "p50_ns": 256792416.5,
+        "p95_ns": 386561209
+      },
+      "semaprax_check": {
+        "count": 30,
+        "p50_ns": 253952812.5,
+        "p95_ns": 352867625
+      },
+      "semaprax_run": {
+        "count": 30,
+        "p50_ns": 198467521.0,
+        "p95_ns": 377667916
+      }
+    }
+  },
+  "supplemental_boolean_refactor_cell": {
+    "checked_u32": "not_admitted_by_this_boolean_cell",
+    "raw_streams": 16,
+    "routes": 8,
+    "schema": "semaprax.bend2-law-benchmark.boolean-refactor-cell.v1.review.v1",
+    "scope": "matched scalar Boolean refactor and law-breaking edit; original checked-u32 cells remain unadmitted",
+    "source": "evidence/law16-boolean-refactor-cell-v1/result.json",
+    "status": "completed_local_matched_boolean_refactor"
+  },
   "supplemental_full_u32_encoding_controls": {
     "build_commit_association": "caller_declared_not_attested",
     "candidate_and_attack_routes": 12,
@@ -1444,6 +2248,15 @@
     "source": "fixtures/full-u32-guarded-i64-profile-v2.json",
     "status": "supplemental_controls_and_matched_sort_law_route_no_timing"
   },
+  "supplemental_project_incremental_cell": {
+    "overall_law16": "incomplete",
+    "project_modules": 3,
+    "raw_streams": 4,
+    "schema": "semaprax.bend2-law-benchmark.project-incremental-cell.v1.review.v1",
+    "scope": "local three-module SEMAPRAX compiler cache control; no matched Bend route or project-sized timing comparison",
+    "source": "evidence/law16-project-incremental-cell-v1/result.json",
+    "status": "completed_local_project_incremental_cell"
+  },
   "supplemental_universal_list_theorems": {
     "bend": {
       "coverage": {
@@ -1480,8 +2293,8 @@
   "unavailable_or_unsupported": {
     "Lean": "supplemental LAW15 collection source theorem physically checked by Lean; no Boolean or original law16.* Lean export",
     "checked_u32": "unsupported_by_pinned_parser: SPX-P003 admits i32, u8, usize literal suffixes, not u32",
-    "cold_cache": "unavailable: no retained reproducible clean cache isolation",
-    "cost": "unavailable: no Codex JSON monetary charge event",
+    "cold_cache": "partial: 30 guest file-page-cache cold/warm pairs per ordinary Bend and SEMAPRAX check route; host/Rosetta cache state and proof/verdict cold/warm routes remain unmeasured",
+    "cost": "unavailable for admitted agent trials: Codex JSON has no monetary charge event; a separate Claude probe recorded cost but failed before any source outcome",
     "list_refactor_lawbreaking": {
       "admission_blocker": {
         "receipt": "evidence/law16-checked-u32-nonadmission-v1/review.json",
@@ -1585,6 +2398,6 @@
       "schema": "semaprax.bend2-law-benchmark.remaining-u32-cells-admission.v1",
       "status": "unsupported"
     },
-    "project_sized": "unavailable: Boolean microcell is not project-sized/incremental evidence"
+    "project_sized": "partial: three-module SEMAPRAX calculator core edit and signature negative control exercised; no matched Bend route, large project, or incremental timing comparison"
   }
 }

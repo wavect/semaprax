@@ -11,6 +11,7 @@ import hashlib
 import json
 import pathlib
 import platform
+import re
 import shutil
 import subprocess
 import tempfile
@@ -20,6 +21,7 @@ ROOT = pathlib.Path(__file__).resolve().parent
 FIXTURE = ROOT / "fixtures/law16-guarded-i64-balance-smt-v1/candidate"
 EVIDENCE = ROOT / "evidence/law16-guarded-i64-balance-smt-v1"
 SCHEMA = "semaprax.bend2-law-benchmark.guarded-i64-balance-smt.v1"
+FRESH_SCHEMA = "semaprax.bend2-law-benchmark.guarded-i64-balance-smt-fresh.v1"
 SOURCE_COMMIT = "5e3720672e441b0202b69b51862058493a1939e9"
 SEMAPRAX_SHA256 = "6f6fa6384c8d2bacca4740485bcb6241dc06fc388e3d3dc36a7a38420d720e5a"
 Z3_SHA256 = "bbb24b8fed27552f7fb7cfdf0ed9101e6e24fd0cc0b9cfb945233b3f2ed333c5"
@@ -231,6 +233,100 @@ def verify_capsule(capsule):
     }
 
 
+def pinned_digest(value, name):
+    if not isinstance(value, str) or not re.fullmatch(r"sha256:[0-9a-f]{64}", value):
+        raise ValueError(f"{name} must be a sha256-prefixed executable digest")
+    return value.removeprefix("sha256:")
+
+
+def verify_fresh_capsule(capsule, semaprax_sha256, z3_sha256, semaprax_build_commit):
+    """Authenticate a caller-pinned fresh source-proof capture without rerunning it."""
+    expected_semaprax = pinned_digest(semaprax_sha256, "SEMAPRAX")
+    expected_z3 = pinned_digest(z3_sha256, "Z3")
+    if not isinstance(semaprax_build_commit, str) or len(semaprax_build_commit) != 40:
+        raise ValueError("fresh source-proof capture needs a full caller-declared build commit")
+    capsule = capsule.resolve(strict=True)
+    result = json.loads((capsule / "result.json").read_text())
+    if result.get("schema") != FRESH_SCHEMA or result.get("status") != "bounded_source_postconditions_proved_full_u32_route_incomplete":
+        raise ValueError("fresh source-proof capsule identity or status drifted")
+    semaprax, z3 = result.get("semaprax", {}), result.get("z3", {})
+    if semaprax.get("sha256") != expected_semaprax or semaprax.get("build_commit") != semaprax_build_commit:
+        raise ValueError("fresh source-proof SEMAPRAX pin drifted")
+    if z3.get("sha256") != expected_z3 or z3.get("version") != Z3_VERSION:
+        raise ValueError("fresh source-proof Z3 pin drifted")
+    for field, path in (
+        ("manifest_sha256", FIXTURE / "semaprax.toml"),
+        ("app_sha256", FIXTURE / "src/app.spx"),
+        ("core_sha256", FIXTURE / "core/core.spx"),
+        ("tests_sha256", FIXTURE / "tests/tests.spx"),
+    ):
+        if result.get("fixture", {}).get(field) != file_digest(path):
+            raise ValueError(f"fresh source-proof fixture drifted: {field}")
+    raw_root = capsule / "raw"
+    if len(result.get("positive_cases", [])) != len(CASES):
+        raise ValueError("fresh source-proof coverage is incomplete")
+    for expected, recorded in zip(CASES, result["positive_cases"], strict=True):
+        name, declaration, index = expected
+        if (recorded.get("name"), recorded.get("declaration_id"), recorded.get("ensures_index"), recorded.get("status")) != (name, declaration, index, "smt_proved"):
+            raise ValueError("fresh source-proof case identity drifted")
+        out, err = verify_raw(raw_root, recorded["stdout"]), verify_raw(raw_root, recorded["stderr"])
+        check_positive(out, err, recorded["exit_code"], declaration, index, recorded.get("source_digest"))
+    negative = result.get("negative_control", {})
+    if negative.get("status") != "proof_tool_refused_no_solver_status_claimed" or negative.get("exit_code") == 0:
+        raise ValueError("fresh no-op refusal classification drifted")
+    out, err = verify_raw(raw_root, negative["stdout"]), verify_raw(raw_root, negative["stderr"])
+    mutant = verify_raw(raw_root, negative["mutant_source"])
+    original = (FIXTURE / "src/app.spx").read_text()
+    anchor = "    if amount > debit { debit } else { if credit > 4294967295 - amount { debit } else { debit - amount } }\n}\n\n@id(\"law16.balance.credit_after\")"
+    if mutant.read_text() != original.replace(anchor, "    debit\n}\n\n@id(\"law16.balance.credit_after\")", 1):
+        raise ValueError("fresh retained no-op mutant differs from the declared attack")
+    if out.stat().st_size or NOOP_DIAGNOSTIC not in err.read_text():
+        raise ValueError("fresh no-op refusal raw evidence drifted")
+    return {"schema": FRESH_SCHEMA + ".review.v1", "status": result["status"],
+            "positive_smt_discharges": len(CASES), "no_op_negative": negative["status"],
+            "raw_streams": 2 * (len(CASES) + 1), "overall_law16": "incomplete"}
+
+
+def run_fresh(cli, z3, output, semaprax_sha256, z3_sha256, semaprax_build_commit):
+    """Capture the source-proof route under the unified replay's explicit local pins."""
+    cli, z3, output = cli.resolve(strict=True), z3.resolve(strict=True), output.resolve()
+    expected_semaprax = pinned_digest(semaprax_sha256, "SEMAPRAX")
+    expected_z3 = pinned_digest(z3_sha256, "Z3")
+    if file_digest(cli) != expected_semaprax or file_digest(z3) != expected_z3:
+        raise ValueError("fresh source-proof executable digest does not match caller pins")
+    if not isinstance(semaprax_build_commit, str) or len(semaprax_build_commit) != 40:
+        raise ValueError("fresh source-proof capture needs a full caller-declared build commit")
+    version = subprocess.run([str(z3), "--version"], capture_output=True, check=True, timeout=5)
+    if version.stdout.decode().strip() != Z3_VERSION or version.stderr:
+        raise ValueError("fresh source-proof Z3 version line drifted")
+    private_tmp = pathlib.Path("/private/tmp")
+    if not private_tmp.is_dir():
+        raise ValueError("fresh source-proof capture requires canonical /private/tmp")
+    if output.exists() or not output.parent.is_dir():
+        raise ValueError("fresh source-proof output must be new below an existing parent")
+    output.mkdir()
+    raw = output / "raw"
+    raw.mkdir()
+    with tempfile.TemporaryDirectory(prefix="law16-guarded-i64-", dir=private_tmp) as temporary:
+        candidate = pathlib.Path(temporary) / "candidate"
+        shutil.copytree(FIXTURE, candidate)
+        positive = [run_case(cli, candidate / "semaprax.toml", z3, raw, case) for case in CASES]
+        negative = run_noop(cli, candidate, z3, raw)
+    source = FIXTURE / "src/app.spx"
+    result = {
+        "schema": FRESH_SCHEMA,
+        "status": "bounded_source_postconditions_proved_full_u32_route_incomplete",
+        "semantic_scope": "guarded i64 projections for full-u32 values, scalar pre/postconditions only",
+        "nonclaims": ["does not close the original structured full-u32 balance fixture", "does not prove source lowering or execute the application", "no-op refusal does not identify a solver counterexample versus another refusal status", "caller-declared build commit is not a build attestation", "overall LAW16 remains incomplete"],
+        "semaprax": {"build_commit": semaprax_build_commit, "sha256": file_digest(cli), "path_at_run": str(cli)},
+        "z3": {"sha256": file_digest(z3), "version": Z3_VERSION, "path_at_run": str(z3)},
+        "fixture": {"manifest_sha256": file_digest(FIXTURE / "semaprax.toml"), "app_sha256": file_digest(source), "app_bytes": source.stat().st_size, "core_sha256": file_digest(FIXTURE / "core/core.spx"), "tests_sha256": file_digest(FIXTURE / "tests/tests.spx")},
+        "positive_cases": positive, "negative_control": negative, "raw_stream_count": 2 * (len(positive) + 1),
+    }
+    (output / "result.json").write_text(json.dumps(result, indent=2, sort_keys=True) + "\n")
+    return verify_fresh_capsule(output, semaprax_sha256, z3_sha256, semaprax_build_commit)
+
+
 def run(cli, z3, output):
     cli, z3, output = cli.resolve(strict=True), z3.resolve(strict=True), output.resolve()
     if not cli.is_absolute() or not z3.is_absolute() or not output.is_absolute():
@@ -301,14 +397,24 @@ def main(argv=None):
     parser.add_argument("--z3", type=pathlib.Path)
     parser.add_argument("--output", type=pathlib.Path)
     parser.add_argument("--review", type=pathlib.Path)
+    parser.add_argument("--fresh", action="store_true", help="capture under caller-pinned local executables")
+    parser.add_argument("--semaprax-sha256")
+    parser.add_argument("--z3-sha256")
+    parser.add_argument("--semaprax-build-commit")
     args = parser.parse_args(argv)
     try:
         if args.review:
+            if args.fresh or args.semaprax_sha256 or args.z3_sha256 or args.semaprax_build_commit:
+                parser.error("--review cannot be combined with fresh capture pins")
             result = verify_capsule(args.review)
+        elif args.fresh and args.semaprax and args.z3 and args.output and args.semaprax_sha256 and args.z3_sha256 and args.semaprax_build_commit:
+            result = run_fresh(args.semaprax, args.z3, args.output, args.semaprax_sha256, args.z3_sha256, args.semaprax_build_commit)
         elif args.semaprax and args.z3 and args.output:
+            if args.semaprax_sha256 or args.z3_sha256 or args.semaprax_build_commit:
+                parser.error("caller pins require --fresh")
             result = run(args.semaprax, args.z3, args.output)
         else:
-            parser.error("provide --review CAPSULE or all of --semaprax, --z3, --output")
+            parser.error("provide --review CAPSULE, legacy --semaprax/--z3/--output, or --fresh with all caller pins")
     except (OSError, ValueError, json.JSONDecodeError, subprocess.SubprocessError) as error:
         parser.error(str(error))
     print(json.dumps(result, indent=2, sort_keys=True))

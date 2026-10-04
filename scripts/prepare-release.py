@@ -23,6 +23,10 @@ VERSION_FILES = (
     "crates/semaprax-offline-wasm-package/Cargo.toml",
     "platform-tests/component-runtime/Cargo.toml",
     "platform-tests/public-scalar-wit-interface/Cargo.toml",
+    "examples/ri13-m2-record-iterator/Cargo.toml",
+    "examples/ri13-m3-local-http/Cargo.toml",
+    "examples/ri13-combined-app/linked/Cargo.toml",
+    "examples/ri13-combined-app/linked/prepare/Cargo.toml",
     "tests/cli_version_v1.rs",
     "tests/agent_transport_v1.rs",
     "tests/public_scalar_wit_interface_external_contract.rs",
@@ -43,6 +47,11 @@ LOCK_MANIFESTS = (
     "examples/calculator-rust/Cargo.toml",
     "examples/embedding-api/Cargo.toml",
     "examples/owned-data-rust/Cargo.toml",
+    "examples/ri13-m1-regex-url/prepare/Cargo.toml",
+    "examples/ri13-m2-record-iterator/Cargo.toml",
+    "examples/ri13-m3-local-http/Cargo.toml",
+    "examples/ri13-combined-app/linked/Cargo.toml",
+    "examples/ri13-combined-app/linked/prepare/Cargo.toml",
     "platform-tests/component-runtime/Cargo.toml",
     "platform-tests/public-scalar-wit-interface/Cargo.toml",
 )
@@ -97,6 +106,18 @@ def verify(version):
     ):
         reject("dated changelog release heading is missing")
     for manifest in LOCK_MANIFESTS:
+        lockfile = ROOT / Path(manifest).parent / "Cargo.lock"
+        lock = lockfile.read_text(encoding="utf-8")
+        packages = ("semaprax", "semaprax-toolchain") if manifest == "Cargo.toml" else ("semaprax",)
+        for package in packages:
+            row = f'[[package]]\nname = "{package}"\nversion = "{version}"'
+            if lock.count(row) != 1:
+                reject(f"{lockfile} does not have one {package} {version} package row")
+        # The linked RI-13 consumer's generated local crates appear only after
+        # its prepare step. Its pinned manifest and lock row are checked above;
+        # Cargo metadata cannot resolve this clean-checkout fixture yet.
+        if manifest == "examples/ri13-combined-app/linked/Cargo.toml":
+            continue
         subprocess.run(
             ["cargo", "metadata", "--locked", "--no-deps", "--format-version", "1", "--manifest-path", manifest],
             cwd=ROOT,

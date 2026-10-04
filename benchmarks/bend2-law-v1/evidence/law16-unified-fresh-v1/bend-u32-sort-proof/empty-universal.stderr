@@ -1,0 +1,15 @@
+SOME PROOFS FAIL
+Error:
+- expected : {0n == count_step(Cmp.is_eq(U32.cmp(probe, h)), count(probe, t)) : Nat}
+- observed : {count(probe, Sort.insert(h, Sort.sort(t))) == count_step(Cmp.is_eq(U32.cmp(probe, h)), count(probe, t)) : Nat}
+Context:
+- probe  : U32
+- h      : U32
+- t      : List<&2, U32>
+- first  : {count(probe, Sort.insert(h, Sort.sort(t))) == count_step(Cmp.is_eq(U32.cmp(probe, h)), count(probe, Sort.sort(t))) : Nat}
+- second : {count_step(Cmp.is_eq(U32.cmp(probe, h)), count(probe, Sort.sort(t))) == count_step(Cmp.is_eq(U32.cmp(probe, h)), count(probe, t)) : Nat}
+Location: count_sort
+61 |       +second = Equal.cong(Nat, Nat, count_step(U32.is_eq(probe, h)), count(probe, Sort.sort(t)), count(probe, t), count_sort(probe, t))
+62>|       Equal.trans(Nat, count(probe, Sort.insert(h, Sort.sort(t))), count_step(U32.is_eq(probe, h), count(probe, Sort.sort(t))), count_step(U32.is_eq(probe, h), count(probe, t)), first, second)
+   |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+63 | 

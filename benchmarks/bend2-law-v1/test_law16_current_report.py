@@ -44,6 +44,24 @@ class CurrentReportTests(unittest.TestCase):
         self.assertEqual(provenance["operating_system"]["status"], "observed")
         self.assertEqual(provenance["backend"]["status"], "observed")
         self.assertEqual(provenance["flags"]["compiler_optimization"]["status"], "unavailable")
+        cache_probe = value["cache_isolation_probe"]
+        self.assertEqual(cache_probe["status"], "unavailable")
+        self.assertEqual(cache_probe["checking_measurements"]["samples"], 0)
+        self.assertEqual(cache_probe["container_state"]["after_running"], 0)
+        guest = value["guest_file_cache_cold_warm"]
+        self.assertEqual(guest["status"], "thirty_guest_cache_pairs_authenticated")
+        self.assertEqual(guest["summary"]["bend_ordinary"]["cold"]["count"], 30)
+        self.assertEqual(guest["summary"]["semaprax_check"]["warm"]["count"], 30)
+        self.assertIn("host and Rosetta caches unknown", guest["scope"])
+        project = value["supplemental_project_incremental_cell"]
+        self.assertEqual(project["status"], "completed_local_project_incremental_cell")
+        self.assertEqual(project["project_modules"], 3)
+        self.assertEqual(project["raw_streams"], 4)
+        self.assertIn("no matched Bend route", project["scope"])
+        phases = value["supplemental_boolean_native_phases"]
+        self.assertEqual(phases["status"], "thirty_repetitions_authenticated")
+        self.assertEqual(phases["summary"]["clang_compile"]["count"], 30)
+        self.assertEqual(phases["summary"]["semaprax_run"]["count"], 30)
         process = value["matched_boolean"]["process_provenance"]
         self.assertEqual(process["command_count"], 240)
         self.assertEqual(process["cold_cache"]["status"], "unavailable")
@@ -58,7 +76,9 @@ class CurrentReportTests(unittest.TestCase):
         self.assertEqual(effort["per_language"]["bend2"]["agent_turns"], 10)
         self.assertEqual(effort["per_language"]["semaprax-scalar-v1"]["agent_turns"], 10)
         annotations = value["annotations_and_changed_bytes"]
-        self.assertEqual(annotations["matched_boolean"]["status"], "unavailable")
+        self.assertEqual(annotations["matched_boolean"]["status"], "retained_source_evidence_only")
+        self.assertEqual(annotations["matched_boolean"]["matched_pairs"], 10)
+        self.assertEqual(len(annotations["matched_boolean"]["rows"]), 20)
         self.assertEqual(annotations["historical_bounded_balance_v2"]["status"], "retained_source_evidence_only")
 
     def test_report_includes_full_u32_controls_as_supplemental_only(self):
@@ -127,6 +147,15 @@ class CurrentReportTests(unittest.TestCase):
         self.assertEqual(cost["trials"], 20)
         self.assertEqual(cost["aggregate_token_usage"]["total_tokens"], 333999)
         self.assertEqual(cost["cost_usage"]["status"], "unavailable")
+        probe = value["matched_boolean"]["claude_cost_probe"]
+        self.assertEqual(probe["provider_cost_usd"], 0.023741)
+        self.assertEqual(probe["result"]["subtype"], "error_max_budget_usd")
+        self.assertFalse(probe["campaign_admission"])
+        self.assertFalse(probe["raw_provider_stream_retained"])
+        refactor = value["supplemental_boolean_refactor_cell"]
+        self.assertEqual(refactor["raw_streams"], 16)
+        self.assertEqual(refactor["checked_u32"], "not_admitted_by_this_boolean_cell")
+        self.assertFalse(value["claude_boolean_pilot"]["campaign_admission"])
         self.assertEqual(value["status"], "incomplete")
 
 

@@ -106,7 +106,7 @@ def create_release(store, tag, commit, manifest, notes, asset_paths):
     store["releases"][tag] = {
         "tag": tag,
         "commit": commit,
-        "prerelease": bool(manifest.get("prerelease", True)),
+        "prerelease": bool(manifest.get("prerelease", False)),
         "notes": notes,
         "assets": sorted(assets, key=lambda asset: asset["name"]),
     }

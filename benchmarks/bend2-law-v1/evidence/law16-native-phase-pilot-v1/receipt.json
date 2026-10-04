@@ -1,0 +1,226 @@
+{
+  "capture_root": "/private/tmp/law16-native-phase-pilot-v2",
+  "environment": {
+    "BEND_NO_TELEMETRY": "1",
+    "DO_NOT_TRACK": "1"
+  },
+  "inputs": {
+    "bend-boolean-negation-v1.bend": {
+      "bytes": 327,
+      "path": "fixtures/bend-boolean-negation-v1.bend",
+      "sha256": "sha256:91eeeb8c2a9a055a38022e00bf02381a4788cc8608c1d96148dad17e5f109b81"
+    },
+    "semaprax-boolean-negation-v1.spx": {
+      "bytes": 182,
+      "path": "fixtures/semaprax-boolean-negation-v1.spx",
+      "sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063"
+    }
+  },
+  "nonclaims": [
+    "SEMAPRAX build combines internal checking, code generation, and native compilation; those internals are not timed separately",
+    "Bend emit-C and Clang compilation are distinct local phases but do not measure Bend --verdict",
+    "process startup and local caches are not isolated; this is not a cold/warm or cross-route comparison",
+    "native execution is a two-input witness, not a source-proof or lowering theorem",
+    "no performance winner or LAW16 issue closure"
+  ],
+  "phase_order": [
+    "bend_check",
+    "bend_emit_c",
+    "clang_compile",
+    "bend_run",
+    "semaprax_check",
+    "semaprax_build",
+    "semaprax_run"
+  ],
+  "pins": {
+    "bend_main": {
+      "commit": "947db722640c86247849343657bf2f7ef01cb7f1",
+      "path": "/private/tmp/bend2-law-source/bend2/main.ts",
+      "sha256": "sha256:c48a0274e661a3e529933550752578768e8f029219d814073fbf86537271d475"
+    },
+    "bun": {
+      "path": "/Users/kevin/.bun/bin/bun",
+      "sha256": "sha256:abe991b29c5151ab11b5344be65dee3a675b0a4a55b8fc493e3cfbe256e61781"
+    },
+    "clang": {
+      "path": "/usr/bin/clang",
+      "sha256": "sha256:179301dcb41ea78accc3fa0048a7e6f6710d891945a751a34addd622020c1818"
+    },
+    "semaprax": {
+      "path": "/private/tmp/semaprax-9a9db7a81",
+      "sha256": "sha256:cc9dd3ca99a74dd973cbfb904621e27b801d8ddea6065873d24c14de9dee1d89"
+    }
+  },
+  "repetitions": 1,
+  "samples": [
+    {
+      "generated": {
+        "bend_c": {
+          "bytes": 78801,
+          "path": "build/01/bend.c",
+          "sha256": "sha256:191238815e282bf3d0649af41f7c248a68d7aa46ac1d7b68e4010ff07abb6fad"
+        },
+        "bend_native": {
+          "bytes": 70552,
+          "path": "build/01/bend",
+          "sha256": "sha256:94a2d7704144d963c28f41d6762616075dcdc64d2a4ec48de1de467a11ae5b96"
+        },
+        "semaprax_native": {
+          "bytes": 33432,
+          "path": "build/01/semaprax",
+          "sha256": "sha256:98e69736d876bf73052a2d904953829ef34de37e690e5fa4be9d0762ea4354c4"
+        }
+      },
+      "ordinal": 1,
+      "phases": {
+        "bend_check": {
+          "argv": [
+            "/Users/kevin/.bun/bin/bun",
+            "/private/tmp/bend2-law-source/bend2/main.ts",
+            "/private/tmp/semaprax-law12-lane/benchmarks/bend2-law-v1/fixtures/bend-boolean-negation-v1.bend",
+            "--check-only"
+          ],
+          "elapsed_ns": 76738875,
+          "exit_code": 0,
+          "stderr": {
+            "bytes": 0,
+            "path": "01-bend_check.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 58,
+            "path": "01-bend_check.stdout",
+            "sha256": "sha256:931f1e664a679af1355a9ca547ac1daef9f7b14137bc7cc21b110b0cc504b5b1"
+          },
+          "timed_out": false
+        },
+        "bend_emit_c": {
+          "argv": [
+            "/Users/kevin/.bun/bin/bun",
+            "/private/tmp/bend2-law-source/bend2/main.ts",
+            "/private/tmp/semaprax-law12-lane/benchmarks/bend2-law-v1/fixtures/bend-boolean-negation-v1.bend",
+            "-o",
+            "/private/tmp/law16-native-phase-pilot-v2/build/01/bend.c"
+          ],
+          "elapsed_ns": 88068833,
+          "exit_code": 0,
+          "stderr": {
+            "bytes": 0,
+            "path": "01-bend_emit_c.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 0,
+            "path": "01-bend_emit_c.stdout",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "timed_out": false
+        },
+        "bend_run": {
+          "argv": [
+            "/private/tmp/law16-native-phase-pilot-v2/build/01/bend"
+          ],
+          "elapsed_ns": 194944875,
+          "exit_code": 0,
+          "stderr": {
+            "bytes": 0,
+            "path": "01-bend_run.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 11,
+            "path": "01-bend_run.stdout",
+            "sha256": "sha256:7ae15ce3109ab5e210cd4686faef828330a0a1511e789b4ac7b806570071c791"
+          },
+          "timed_out": false
+        },
+        "clang_compile": {
+          "argv": [
+            "/usr/bin/clang",
+            "-O2",
+            "/private/tmp/law16-native-phase-pilot-v2/build/01/bend.c",
+            "-o",
+            "/private/tmp/law16-native-phase-pilot-v2/build/01/bend"
+          ],
+          "elapsed_ns": 180635333,
+          "exit_code": 0,
+          "stderr": {
+            "bytes": 0,
+            "path": "01-clang_compile.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 0,
+            "path": "01-clang_compile.stdout",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "timed_out": false
+        },
+        "semaprax_build": {
+          "argv": [
+            "/private/tmp/semaprax-9a9db7a81",
+            "build",
+            "/private/tmp/semaprax-law12-lane/benchmarks/bend2-law-v1/fixtures/semaprax-boolean-negation-v1.spx",
+            "--target",
+            "native",
+            "-o",
+            "/private/tmp/law16-native-phase-pilot-v2/build/01/semaprax"
+          ],
+          "elapsed_ns": 244476250,
+          "exit_code": 0,
+          "stderr": {
+            "bytes": 0,
+            "path": "01-semaprax_build.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 83,
+            "path": "01-semaprax_build.stdout",
+            "sha256": "sha256:cdae4b33b0b385330ad257f49a254f5a81cf05b80c708db9cc1cf68c74ca98e3"
+          },
+          "timed_out": false
+        },
+        "semaprax_check": {
+          "argv": [
+            "/private/tmp/semaprax-9a9db7a81",
+            "check",
+            "/private/tmp/semaprax-law12-lane/benchmarks/bend2-law-v1/fixtures/semaprax-boolean-negation-v1.spx"
+          ],
+          "elapsed_ns": 244283084,
+          "exit_code": 0,
+          "stderr": {
+            "bytes": 0,
+            "path": "01-semaprax_check.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 182,
+            "path": "01-semaprax_check.stdout",
+            "sha256": "sha256:d834c7fb5fcacc791501628e9e18f1e8e413d4dffa43ae86fd9cacf99324827a"
+          },
+          "timed_out": false
+        },
+        "semaprax_run": {
+          "argv": [
+            "/private/tmp/law16-native-phase-pilot-v2/build/01/semaprax"
+          ],
+          "elapsed_ns": 177008334,
+          "exit_code": 0,
+          "stderr": {
+            "bytes": 0,
+            "path": "01-semaprax_run.stderr",
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "stdout": {
+            "bytes": 2,
+            "path": "01-semaprax_run.stdout",
+            "sha256": "sha256:9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+          },
+          "timed_out": false
+        }
+      }
+    }
+  ],
+  "schema": "semaprax.bend2-law-benchmark.boolean-native-phases.v1",
+  "status": "pilot"
+}

@@ -1,0 +1,21 @@
+{
+  "argv": [
+    "/Library/Frameworks/Python.framework/Versions/3.14/bin/python3",
+    "/private/tmp/semaprax-law12-lane/benchmarks/bend2-law-v1/full_u32_guarded_i64_profile_v2.py",
+    "--profile",
+    "/private/tmp/semaprax-law12-lane/benchmarks/bend2-law-v1/fixtures/full-u32-guarded-i64-profile-v2.json"
+  ],
+  "exit_code": 0,
+  "stderr": {
+    "bytes": 0,
+    "path": "guarded_i64_v2.stderr",
+    "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "stdout": {
+    "bytes": 74,
+    "path": "guarded_i64_v2.stdout",
+    "sha256": "sha256:6aecc6fe7391b1c713946d0e130703767ae2a4ea08d22eacf2e9df03f4cf06cc"
+  },
+  "timed_out": false,
+  "timeout_seconds": 3600
+}

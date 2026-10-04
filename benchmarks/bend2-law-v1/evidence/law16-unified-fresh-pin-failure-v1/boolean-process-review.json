@@ -1,0 +1,155 @@
+{
+  "comparability": {
+    "cold_cache": "unavailable: fresh/repeat paths do not isolate OS, executable, solver, or tool caches",
+    "cross_route_timing": "not_reported: separate trusted computing bases and process-provisioning observations; no ratio or winner",
+    "negative_controls": "accepted: both assertion-retaining attacks were rejected in all 60 child processes",
+    "semantic_contract": "accepted: both lanes bind exact total Boolean negation and the two-value truth table"
+  },
+  "measurement_provenance": {
+    "host": {
+      "hardware": {
+        "cpu_brand": {
+          "argv": [
+            "/usr/sbin/sysctl",
+            "-n",
+            "machdep.cpu.brand_string"
+          ],
+          "exit_code": 0,
+          "stderr_utf8": "",
+          "stdout_utf8": "Apple M3 Pro\n"
+        },
+        "logical_cpu_count": {
+          "argv": [
+            "/usr/sbin/sysctl",
+            "-n",
+            "hw.logicalcpu"
+          ],
+          "exit_code": 0,
+          "stderr_utf8": "",
+          "stdout_utf8": "11\n"
+        },
+        "memory_bytes": {
+          "argv": [
+            "/usr/sbin/sysctl",
+            "-n",
+            "hw.memsize"
+          ],
+          "exit_code": 0,
+          "stderr_utf8": "",
+          "stdout_utf8": "19327352832\n"
+        },
+        "physical_cpu_count": {
+          "argv": [
+            "/usr/sbin/sysctl",
+            "-n",
+            "hw.physicalcpu"
+          ],
+          "exit_code": 0,
+          "stderr_utf8": "",
+          "stdout_utf8": "11\n"
+        }
+      },
+      "machine": "arm64",
+      "operating_system": {
+        "sw_vers": {
+          "argv": [
+            "/usr/bin/sw_vers"
+          ],
+          "exit_code": 0,
+          "stderr_utf8": "",
+          "stdout_utf8": "ProductName:\t\tmacOS\nProductVersion:\t\t26.5.1\nBuildVersion:\t\t25F80\n"
+        }
+      },
+      "probes": {
+        "uname": {
+          "argv": [
+            "/usr/bin/uname",
+            "-smr"
+          ],
+          "exit_code": 0,
+          "stderr_utf8": "",
+          "stdout_utf8": "Darwin 25.5.0 arm64\n"
+        }
+      },
+      "release": "25.5.0",
+      "system": "Darwin"
+    },
+    "provenance": {
+      "bytes": 148264,
+      "path": "provenance.json",
+      "sha256": "sha256:70e8ccaeebb2b546eb429c40c3c36764e5a7a366df1c62dc3cbf9ae143553ec2"
+    }
+  },
+  "nonclaims": [
+    "Bend verdict is not an independently replayed proof system",
+    "installed-Z3 source proof does not prove lowering or execution",
+    "no checked-u32, general theorem, timing ratio, or winner result",
+    "local pinned evidence is not current-head evidence"
+  ],
+  "observations": {
+    "bend_verdict_candidate_acceptances": 60,
+    "bend_verdict_seeded_attack_rejections": 60,
+    "raw_streams": 480,
+    "semaprax_z3_candidate_postcondition_discharges": 60,
+    "semaprax_z3_seeded_attack_rejections": 60
+  },
+  "process_states": {
+    "bend_attack_fresh_process": {
+      "count": 30,
+      "p50_ns": 107286083.5,
+      "p95_ns": 211786583
+    },
+    "bend_attack_repeat_process": {
+      "count": 30,
+      "p50_ns": 99799041.5,
+      "p95_ns": 144270375
+    },
+    "bend_candidate_fresh_process": {
+      "count": 30,
+      "p50_ns": 101910646.0,
+      "p95_ns": 125029917
+    },
+    "bend_candidate_repeat_process": {
+      "count": 30,
+      "p50_ns": 104494416.5,
+      "p95_ns": 138731750
+    },
+    "semaprax_attack_fresh_process": {
+      "count": 30,
+      "p50_ns": 222699375.0,
+      "p95_ns": 265756416
+    },
+    "semaprax_attack_repeat_process": {
+      "count": 30,
+      "p50_ns": 204580541.0,
+      "p95_ns": 255500167
+    },
+    "semaprax_candidate_fresh_process": {
+      "count": 30,
+      "p50_ns": 492480584.0,
+      "p95_ns": 560640875
+    },
+    "semaprax_candidate_repeat_process": {
+      "count": 30,
+      "p50_ns": 473724166.5,
+      "p95_ns": 643323917
+    }
+  },
+  "schema": "semaprax.bend2-law-benchmark.boolean-negation-process-capsule-review.v1",
+  "semantic_contract": {
+    "domain": "Bool / bool; exactly two values",
+    "name": "total Boolean negation",
+    "relation": "result == !value / Bool.not(value)",
+    "truth_table": [
+      {
+        "input": false,
+        "output": true
+      },
+      {
+        "input": true,
+        "output": false
+      }
+    ]
+  },
+  "status": "matched_semantics_local_routes_authenticated"
+}

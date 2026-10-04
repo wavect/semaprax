@@ -12,24 +12,24 @@ mod parity;
 
 // Independent known answers for the checked-in, explicitly acquired project.
 // Replay must not accept identity claims supplied by the emitter under test.
-// The v0.7.0 package identity changes the provider/component bytes and their
+// The v0.8.0 package identity changes the provider/component bytes and their
 // digests. Descriptor digests remain bound to the unchanged checked source.
 const EXPECTED_PUBLIC_GENERIC_COMPONENT_DIGEST: &str =
-    "sha256:db4af551339fa1a7ccd799a8acea3ae6b3281382a4888b695ffae704d75886f6";
+    "sha256:6d58d46fdc0293734f0ef13addb279f6abe872686a0a5b025db1e0776a5c7691";
 const EXPECTED_PUBLIC_GENERIC_DESCRIPTOR_DIGEST: &str =
     "sha256:52473587274784c87a62e109cd8640bf337306117f8fa943a6b930aeb6a75b1a";
 const EXPECTED_PUBLIC_GENERIC_PROVIDER_DIGEST: &str =
-    "sha256:c19bd3cc4b185399a3b8bf834359a52bc75b8752f8a471b3b069a2171b3da64d";
+    "sha256:fd3fcbc87e323aedfe33f6e45e23fbcffbd8e29b699186ebe4bb2b99a5ced975";
 const EXPECTED_PUBLIC_GENERIC_COMPONENT_SHA256: &str =
-    "ecd0874cf341240906c025bd6fa664313ae14dd0cceb23cc9dc602554a98affa";
+    "ba58b40d45a6541f47fed665e7a97a91dd12297f6ea4fece2aa398903028280f";
 const EXPECTED_CONTRACT_FAILURE_COMPONENT_DIGEST: &str =
-    "sha256:67cc36a8349b1b74ffe3f5400d965057798809fca4f7c9b332c86802b507dd02";
+    "sha256:9930e1f3ed17ff76ed109985e8bc1c0b28bfc8598c6a7853563d0d35b5186df5";
 const EXPECTED_CONTRACT_FAILURE_DESCRIPTOR_DIGEST: &str =
     "sha256:1cef20213f00dce6e80b9cc1eb977065018986bc5568263d6ab4cd04ba9c5d49";
 const EXPECTED_CONTRACT_FAILURE_PROVIDER_DIGEST: &str =
-    "sha256:6a29c7cd25005961b64081ead3647d618b07d8dd3f38ebf4c3d8f953826e0571";
+    "sha256:4e59031ca8abc020e56a8cf54adf2acf05540901c471669c5e0c660f4c006612";
 const EXPECTED_CONTRACT_FAILURE_COMPONENT_SHA256: &str =
-    "3b5dceb0162840c55cb93dbe0509b28fc32a943e7dd5f7837c71e87432487e4a";
+    "fc1d14f7c77e7bb3f9a0d3132b0f4e73e22e3287300d005e29fa29a31b638728";
 
 const MAX_LIST_BYTES: usize = 65_536;
 const REUSE_CYCLES: usize = 200;

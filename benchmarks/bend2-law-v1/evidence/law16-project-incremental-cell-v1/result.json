@@ -1,0 +1,110 @@
+{
+  "implementation": {
+    "bytes": 24718,
+    "path": "src/project/incremental/clone_cost_report.rs",
+    "sha256": "sha256:4b98c44333a6d8d0a4fb6e3d4625777d61b803e35aceadbadf7519ea60db32bb"
+  },
+  "nonclaims": [
+    "test-binary source association is local rather than a reproducible-build attestation",
+    "this is SEMAPRAX compiler-cache evidence only; no Bend incremental route was executed",
+    "no checked-u32 source, matched cross-language execution, proof, timing, peak-memory, or winner claim",
+    "the signature-edit control records a harness assertion of refusal and does not export a standalone diagnostic transcript",
+    "this local cell does not close LAW-16 issue #392"
+  ],
+  "project": [
+    {
+      "bytes": 308,
+      "path": "examples/calculator-project/semaprax.toml",
+      "sha256": "sha256:1423cbcd10a605d5abed6af6e48dfd99c96659fbbe08960faf82672d4a6d653b"
+    },
+    {
+      "bytes": 405,
+      "path": "examples/calculator-project/src/app.spx",
+      "sha256": "sha256:ddfedb62ccb63930d411bff62716583f075c703b72f8d5434816ff45e1469fcc"
+    },
+    {
+      "bytes": 548,
+      "path": "examples/calculator-project/src/core.spx",
+      "sha256": "sha256:415255f8628535606dcecd8d7459639014d4a3437dc1199ecf7f9cc8074d801e"
+    },
+    {
+      "bytes": 649,
+      "path": "examples/calculator-project/src/tests.spx",
+      "sha256": "sha256:373d4bc3cc3b292da6fdf69c15778c363573af42dde0dc213c23360f499a7b11"
+    }
+  ],
+  "raw_streams": 4,
+  "routes": {
+    "provider_body_edit": {
+      "argv": [
+        "/private/tmp/semaprax-law12-lane/target/law16-project-cell/debug/deps/semaprax-491f4b07aea1c4a7",
+        "project::incremental::clone_cost_report::tests::provider_edit_clones_unaffected_consumers_and_reparses_only_the_provider",
+        "--exact",
+        "--nocapture"
+      ],
+      "command_sha256": "sha256:6b7cf6dd934e289a2ea4bd79f6cdb4b9899fcb804e7d7baca708e33d244de7b3",
+      "exit_code": 0,
+      "stderr": {
+        "bytes": 81,
+        "path": "provider-body-edit.stderr",
+        "sha256": "sha256:51001a52cba8402a293acaee48ec2a9db23ba6e8548def1f1aa86171f26d424f"
+      },
+      "stdout": {
+        "bytes": 248,
+        "path": "provider-body-edit.stdout",
+        "sha256": "sha256:91eb3d490c7262b8b28a5777370a4a6383fac7ec2a2abdf59ce4f5ee4551a68c"
+      },
+      "test": "project::incremental::clone_cost_report::tests::provider_edit_clones_unaffected_consumers_and_reparses_only_the_provider"
+    },
+    "provider_signature_edit": {
+      "argv": [
+        "/private/tmp/semaprax-law12-lane/target/law16-project-cell/debug/deps/semaprax-491f4b07aea1c4a7",
+        "project::incremental::clone_cost_report::tests::provider_signature_change_still_invalidates_and_fails_the_same_way_cold_does",
+        "--exact",
+        "--nocapture"
+      ],
+      "command_sha256": "sha256:36b1a2fa42997bf16dee73359cb8b87d7748fb85f39cf72a24bafcc3fb798773",
+      "exit_code": 0,
+      "stderr": {
+        "bytes": 0,
+        "path": "provider-signature-edit.stderr",
+        "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stdout": {
+        "bytes": 252,
+        "path": "provider-signature-edit.stdout",
+        "sha256": "sha256:5417f27f589f90d22a1bf946327ac7c3f4000dd90286bf698978880fbd549cfa"
+      },
+      "test": "project::incremental::clone_cost_report::tests::provider_signature_change_still_invalidates_and_fails_the_same_way_cold_does"
+    }
+  },
+  "schema": "semaprax.bend2-law-benchmark.project-incremental-cell.v1",
+  "semantic_contract": {
+    "negative_control": {
+      "edit": "add a third parameter to calculator.add",
+      "expected": "warm and cold admission both refuse the changed provider signature"
+    },
+    "project_modules": [
+      "src/app.spx",
+      "src/core.spx",
+      "src/tests.spx"
+    ],
+    "success": {
+      "edit": "replace core body `left + right` with `right + left`",
+      "reparsed": [
+        "src/core.spx"
+      ],
+      "reused": [
+        "src/app.spx",
+        "src/tests.spx"
+      ]
+    }
+  },
+  "source_commit": "1059e175671bafc2ad497d8a0a50d6c013184842",
+  "status": "completed_local_project_incremental_cell",
+  "test_binary": {
+    "bytes": 366053992,
+    "path": "target/law16-project-cell/debug/deps/semaprax-491f4b07aea1c4a7",
+    "sha256": "sha256:c6227e0bc2523ea37bd4a310c725909b04be4984fb813d30a7a7fceca47601bd"
+  }
+}

@@ -155,7 +155,7 @@ fn ri13_closed_indexed_rust_profile_requires_authenticated_indexed_selections() 
     );
     std::fs::write(&manifest, unsupported).unwrap();
     let refusal = with_authenticated_project(&manifest, |_snapshot| Ok(())).unwrap_err();
-    assert_eq!(refusal[0].code, "SPX-H006");
+    assert_eq!(refusal[0].code, "SPX-J100");
     let _ = std::fs::remove_dir_all(root);
 }
 

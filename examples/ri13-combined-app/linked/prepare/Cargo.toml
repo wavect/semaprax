@@ -11,6 +11,6 @@ name = "prepare"
 path = "../src/bin_prepare.rs"
 
 [dependencies]
-semaprax = { path = "../../../..", version = "=0.7.0" }
+semaprax = { path = "../../../..", version = "=0.8.0" }
 semaprax-native-rust-interop = { path = "../../../../crates/semaprax-native-rust-interop-builder", version = "=0.1.0" }
 semaprax-rust-api-index = { path = "../../../../crates/semaprax-rust-api-index", version = "=0.1.0" }

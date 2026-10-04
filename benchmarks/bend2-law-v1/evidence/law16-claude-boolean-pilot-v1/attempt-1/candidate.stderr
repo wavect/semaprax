@@ -1,0 +1,10 @@
+SOME PROOFS FAIL
+Error:
+- expected : a term
+- observed : '∀'
+Location:
+6 | law negate_matches_boolean_not:
+7>|   ∀ value: Bool
+  |   ^
+8 |   negate(value) == Bool.not(value)
+bend 2.0.35 is available: run bend update

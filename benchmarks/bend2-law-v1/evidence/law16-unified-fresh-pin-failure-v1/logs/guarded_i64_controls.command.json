@@ -1,0 +1,33 @@
+{
+  "argv": [
+    "/Library/Frameworks/Python.framework/Versions/3.14/bin/python3",
+    "/private/tmp/semaprax-law12-lane/benchmarks/bend2-law-v1/full_u32_encoding_controls.py",
+    "--bend-root",
+    "/private/tmp/bend2-law-source",
+    "--bun",
+    "/Users/kevin/.bun/bin/bun",
+    "--semaprax",
+    "/private/tmp/semaprax-9a9db7a81",
+    "--z3",
+    "/opt/homebrew/bin/z3",
+    "--semaprax-sha256",
+    "cc9dd3ca99a74dd973cbfb904621e27b801d8ddea6065873d24c14de9dee1d89",
+    "--semaprax-build-commit",
+    "9a9db7a8117ac8d292b24ffd5671ec3333272290",
+    "--artifacts",
+    "/private/tmp/law16-fresh-closure-v1/guarded-i64-controls"
+  ],
+  "exit_code": 2,
+  "stderr": {
+    "bytes": 467,
+    "path": "guarded_i64_controls.stderr",
+    "sha256": "sha256:0428c22a1c7efaa9421d4ec1d8cb92fbd20a350f4ad4b5830f318e7f78977224"
+  },
+  "stdout": {
+    "bytes": 0,
+    "path": "guarded_i64_controls.stdout",
+    "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "timed_out": false,
+  "timeout_seconds": 3600
+}

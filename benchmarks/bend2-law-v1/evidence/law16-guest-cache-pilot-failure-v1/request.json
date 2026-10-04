@@ -1,0 +1,42 @@
+{
+  "bend_commit": "947db722640c86247849343657bf2f7ef01cb7f1",
+  "bend_files": {
+    "base.bend": "sha256:c742fae9c49b14f0cc9128429a2c6109364c8a933a142f2c90b9f2e5fd976661",
+    "bend.ts": "sha256:7deae3693eb896f33c73867081b99d2c6f3ed3b57e77e55eb5f6260840dd0e63",
+    "comp.ts": "sha256:453e5452f7d5ea1d501b29ce2332623c3f9f4c9e89f407352209716d31638c89",
+    "main.ts": "sha256:c48a0274e661a3e529933550752578768e8f029219d814073fbf86537271d475",
+    "safe.ts": "sha256:54cb3a534ab7cc9ee313bf6383b3948ccdcac022469b3020e00745bbfe6f7e04"
+  },
+  "bun_source_commit": "013fdddc6ed18bc849614ccb37a296fa0f69a5db",
+  "inputs": {
+    "candidate.bend": {
+      "bytes": 327,
+      "path": "candidate.bend",
+      "sha256": "sha256:91eeeb8c2a9a055a38022e00bf02381a4788cc8608c1d96148dad17e5f109b81"
+    },
+    "candidate.spx": {
+      "bytes": 182,
+      "path": "candidate.spx",
+      "sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063"
+    }
+  },
+  "repetitions": 1,
+  "tools": {
+    "bun": {
+      "path": "bun/bun-linux-x64-baseline/bun",
+      "sha256": "sha256:c356f5fb6f75a0a83d918ee2391bc4ec1e6061baa08b0ee1c3a5cfb4aaf3d567"
+    },
+    "libc6": {
+      "path": "libc6_2.39-0ubuntu8.9_amd64.deb",
+      "sha256": "sha256:ff5557d99b51f761c4b7c92368b9cc45565eda17df9bf9eb4b134d09825008be"
+    },
+    "semaprax": {
+      "path": "semaprax/semaprax-v0.7.0-x86_64-unknown-linux-gnu/semaprax",
+      "sha256": "sha256:f9bf5d83bdde585eb4f0fc07570730a0bc07930b589ad9eaec4217205c188c95"
+    }
+  },
+  "versions": {
+    "bun": "1.2.5",
+    "semaprax": "semaprax 0.7.0 (eec951eb1cce83e5e0f42edf97cbb5b8f3cffa2c)"
+  }
+}

@@ -59,7 +59,7 @@ printf '%s\n' \
     "  \"version\": \"$version\"," \
     "  \"commit\": \"$commit\"," \
     "  \"target\": \"$target\"," \
-    '  "maturity": "alpha",' \
+    '  "maturity": "beta",' \
     '  "binaries": ["semaprax", "semapraxd"],' \
     '  "nonclaims": [' \
     '    "production-ready",' \
@@ -80,7 +80,7 @@ unpacked="$smoke_root/$package_name"
 human_version=$("$unpacked/semaprax" --version) || fail "human version smoke failed"
 [ "$human_version" = "semaprax $version ($commit)" ] || fail "human version smoke disagrees"
 json_version=$("$unpacked/semaprax" version --json) || fail "JSON version smoke failed"
-[ "$json_version" = "{\"schema\":\"semaprax.version.v1\",\"version\":\"$version\",\"commit\":\"$commit\",\"maturity\":\"alpha\",\"rust_min\":\"1.88\"}" ] || fail "JSON version smoke disagrees"
+[ "$json_version" = "{\"schema\":\"semaprax.version.v1\",\"version\":\"$version\",\"commit\":\"$commit\",\"maturity\":\"beta\",\"rust_min\":\"1.88\"}" ] || fail "JSON version smoke disagrees"
 "$unpacked/semaprax" check "$unpacked/smoke/meaning.spx"
 run_result=$("$unpacked/semaprax" run "$unpacked/smoke/meaning.spx") || fail "run smoke failed"
 [ "$run_result" = 42 ] || fail "run smoke disagrees"

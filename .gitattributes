@@ -34,3 +34,6 @@ Cargo.lock text eol=lf
 *.java text eol=lf
 platform-tests/component-runtime/** text eol=lf
 docs/evidence/**/*.log text eol=lf whitespace=-blank-at-eof
+# Frozen LAW16 process capsules retain exact bytes, including diagnostic whitespace.
+benchmarks/bend2-law-v1/evidence/law16-unified-*/** -text -whitespace
+benchmarks/bend2-law-v1/evidence/law16-guest-cache-*/** -text -whitespace

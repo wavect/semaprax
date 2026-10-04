@@ -1,0 +1,43 @@
+module app;
+
+@id("law16.balances")
+record Balances {
+    @id("law16.balances.debit")
+    debit: i64,
+    @id("law16.balances.credit")
+    credit: i64,
+}
+
+@id("law16.decision")
+record Decision {
+    @id("law16.decision.debit")
+    debit: i64,
+    @id("law16.decision.credit")
+    credit: i64,
+    @id("law16.decision.code")
+    code: i64,
+}
+
+@id("law16.transfer")
+fn transfer(before: Balances, amount: i64) -> Decision
+    requires before.debit >= 0 && before.debit <= 4294967295
+    requires before.credit >= 0 && before.credit <= 4294967295
+    requires amount >= 0 && amount <= 4294967295
+    ensures if amount > before.debit { result.code == 1 && result.debit == before.debit && result.credit == before.credit } else { if before.credit > 4294967295 - amount { result.code == 2 && result.debit == before.debit && result.credit == before.credit } else { result.code == 0 && result.debit == before.debit - amount && result.credit == before.credit + amount } }
+    ensures result.debit + result.credit == before.debit + before.credit
+{
+    if amount > before.debit { Decision { debit: before.debit, credit: before.credit, code: 1 } } else { if before.credit > 4294967295 - amount { Decision { debit: before.debit, credit: before.credit, code: 2 } } else { Decision { debit: before.debit - amount, credit: before.credit + amount, code: 0 } } }
+}
+
+@id("law16.observed")
+fn observed(decision: Decision, debit: i64, credit: i64, code: i64) -> bool
+{
+    decision.debit == debit && decision.credit == credit && decision.code == code
+}
+
+@id("app.main")
+fn main() -> i64
+    ensures result == 0
+{
+    if (observed(transfer(Balances { debit: 4294967296, credit: 4 }, 3), 6, 7, 0) && observed(transfer(Balances { debit: 4294967295, credit: 0 }, 4294967295), 0, 4294967295, 0) && observed(transfer(Balances { debit: 4294967295, credit: 4294967295 }, 0), 4294967295, 4294967295, 0) && observed(transfer(Balances { debit: 0, credit: 0 }, 1), 0, 0, 1) && observed(transfer(Balances { debit: 1, credit: 4294967295 }, 1), 1, 4294967295, 2) && observed(transfer(Balances { debit: 0, credit: 4294967295 }, 1), 0, 4294967295, 1) && observed(transfer(Balances { debit: 2147483648, credit: 2147483647 }, 1), 2147483647, 2147483648, 0)) { 0 } else { 1 }
+}

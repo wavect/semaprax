@@ -1,0 +1,78 @@
+{
+  "preflight": {
+    "bend_ordinary": {
+      "argv": [
+        "/opt/law16/glibc/usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2",
+        "--library-path",
+        "/opt/law16/glibc/usr/lib/x86_64-linux-gnu",
+        "/opt/law16/bun",
+        "/opt/law16/bend2/main.ts",
+        "/opt/law16/candidate.bend"
+      ],
+      "elapsed_ns": 1336641167,
+      "exit_code": 1,
+      "stderr": {
+        "bytes": 83,
+        "path": "preflight-bend_ordinary.stderr",
+        "sha256": "sha256:e6e25def4b4746c3dc53b64a2e4b71a34db63706d4d8c494fdbcbfbbc73b4c14"
+      },
+      "stdout": {
+        "bytes": 0,
+        "path": "preflight-bend_ordinary.stdout",
+        "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "timed_out": false
+    }
+  },
+  "reason": "source is not admitted by guest tool: bend_ordinary",
+  "samples": [],
+  "schema": "semaprax.bend2-law-benchmark.guest-cache-worker.v1",
+  "scope": "Linux guest file page cache only; host and Rosetta caches unknown",
+  "status": "incomplete",
+  "versions": {
+    "bun": {
+      "argv": [
+        "/opt/law16/glibc/usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2",
+        "--library-path",
+        "/opt/law16/glibc/usr/lib/x86_64-linux-gnu",
+        "/opt/law16/bun",
+        "--version"
+      ],
+      "elapsed_ns": 18293875,
+      "exit_code": 0,
+      "stderr": {
+        "bytes": 0,
+        "path": "version-bun.stderr",
+        "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stdout": {
+        "bytes": 6,
+        "path": "version-bun.stdout",
+        "sha256": "sha256:fe2b7c237b5a6e42818aa3e4f7fc5820f49c32289c32c96260ef89a8c8f6d3d7"
+      },
+      "timed_out": false
+    },
+    "semaprax": {
+      "argv": [
+        "/opt/law16/glibc/usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2",
+        "--library-path",
+        "/opt/law16/glibc/usr/lib/x86_64-linux-gnu",
+        "/opt/law16/semaprax",
+        "--version"
+      ],
+      "elapsed_ns": 19387042,
+      "exit_code": 0,
+      "stderr": {
+        "bytes": 0,
+        "path": "version-semaprax.stderr",
+        "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stdout": {
+        "bytes": 58,
+        "path": "version-semaprax.stdout",
+        "sha256": "sha256:270f5813685c06233989789b7828159a8c50e833f08721145f810b3567b43c15"
+      },
+      "timed_out": false
+    }
+  }
+}

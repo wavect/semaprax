@@ -1,0 +1,28 @@
+{
+  "runtime_reason": "Bookworm glibc2.36 cannot start official SEMAPRAX0.7.0 (requires2.38/2.39); both lanes explicitly use the same extracted2.39 loader and library path. Host and Rosetta caches remain unknown.",
+  "schema": "semaprax.bend2-law-benchmark.guest-cache-provisioning.v1",
+  "scope": "Downloaded and extracted before measurement; no Cargo build or download command in the timed route",
+  "sources": {
+    "bend": {
+      "source_commit": "947db722640c86247849343657bf2f7ef01cb7f1",
+      "url": "https://github.com/bendlang/bend"
+    },
+    "bun": {
+      "hash_provenance": "locally observed download digest; release API provides no asset digest",
+      "sha256": "sha256:0e61e7932b0b63b7416028da4be8479562e16b880b3a8e07b6ed457d6d0322e3",
+      "source_commit": "013fdddc6ed18bc849614ccb37a296fa0f69a5db",
+      "url": "https://github.com/oven-sh/bun/releases/download/bun-v1.2.5/bun-linux-x64-baseline.zip"
+    },
+    "libc6": {
+      "hash_provenance": "Canonical package download page",
+      "sha256": "sha256:ff5557d99b51f761c4b7c92368b9cc45565eda17df9bf9eb4b134d09825008be",
+      "source_package": "glibc 2.39-0ubuntu8.9",
+      "url": "https://security.ubuntu.com/ubuntu/pool/main/g/glibc/libc6_2.39-0ubuntu8.9_amd64.deb"
+    },
+    "semaprax": {
+      "sha256": "sha256:55afafdea4578bebbefccc8455f936891d02e6d500cb3b16eb1b700f6a7b3e9d",
+      "source_commit": "eec951eb1cce83e5e0f42edf97cbb5b8f3cffa2c",
+      "url": "https://github.com/wavect/semaprax/releases/download/v0.7.0/semaprax-v0.7.0-x86_64-unknown-linux-gnu.tar.gz"
+    }
+  }
+}

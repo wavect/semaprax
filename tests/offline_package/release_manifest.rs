@@ -198,7 +198,7 @@ fn release_manifest_cli_builds_and_checks_against_real_archives() {
          tag = {tag:?}\n\
          commit = {commit:?}\n\
          def manifest_bytes(target):\n\
-         \treturn json.dumps({{'schema': 'semaprax.release-artifact.v1', 'version': version, 'commit': commit, 'target': target, 'maturity': 'alpha', 'binaries': ['semaprax', 'semapraxd'], 'nonclaims': []}}).encode('utf-8')\n\
+         \treturn json.dumps({{'schema': 'semaprax.release-artifact.v1', 'version': version, 'commit': commit, 'target': target, 'maturity': 'beta', 'binaries': ['semaprax', 'semapraxd'], 'nonclaims': []}}).encode('utf-8')\n\
          def write_tar(name, target):\n\
          \twith tarfile.open(scratch / name, 'w:gz') as archive:\n\
          \t\tdata = manifest_bytes(target)\n\
@@ -252,7 +252,7 @@ fn release_manifest_cli_builds_and_checks_against_real_archives() {
     assert!(manifest_text.contains(&format!("\"version\": \"{version}\"")));
     assert!(manifest_text.contains(&format!("\"tag\": \"{tag}\"")));
     assert!(manifest_text.contains(&format!("\"commit\": \"{commit}\"")));
-    assert!(manifest_text.contains("\"prerelease\": true"));
+    assert!(manifest_text.contains("\"prerelease\": false"));
     assert!(manifest_text.contains("\"changelog_section_digest\": \"sha256:"));
     assert!(manifest_text.contains("\"platform\": \"x86_64-unknown-linux-gnu\""));
     assert!(manifest_text.contains("\"platform\": \"aarch64-apple-darwin\""));
@@ -355,7 +355,7 @@ fn release_manifest_rejects_a_sha256sums_digest_mismatch() {
          tag = {tag:?}\n\
          commit = {commit:?}\n\
          def manifest_bytes(target):\n\
-         \treturn json.dumps({{'schema': 'semaprax.release-artifact.v1', 'version': version, 'commit': commit, 'target': target, 'maturity': 'alpha', 'binaries': ['semaprax', 'semapraxd'], 'nonclaims': []}}).encode('utf-8')\n\
+         \treturn json.dumps({{'schema': 'semaprax.release-artifact.v1', 'version': version, 'commit': commit, 'target': target, 'maturity': 'beta', 'binaries': ['semaprax', 'semapraxd'], 'nonclaims': []}}).encode('utf-8')\n\
          def write_tar(name, target):\n\
          \twith tarfile.open(scratch / name, 'w:gz') as archive:\n\
          \t\tdata = manifest_bytes(target)\n\

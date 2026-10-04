@@ -13,6 +13,8 @@ const CHILD: &str = "SEMAPRAX_DURABLE_JOB_LOCK_CHILD";
 const ROOT: &str = "SEMAPRAX_DURABLE_JOB_LOCK_ROOT";
 const READY: &str = "SEMAPRAX_DURABLE_JOB_LOCK_READY";
 const RELEASE: &str = "SEMAPRAX_DURABLE_JOB_LOCK_RELEASE";
+const START: &str = "SEMAPRAX_DURABLE_JOB_LOCK_START";
+const BUSY_CHILD: &str = "SEMAPRAX_DURABLE_JOB_LOCK_BUSY_CHILD";
 const CRASH_STAGE: &str = "SEMAPRAX_DURABLE_JOB_CRASH_STAGE";
 
 fn request(key: &[u8]) -> EnqueueRequest {
@@ -54,6 +56,16 @@ fn writer_lock_child() {
         loop {
             std::thread::sleep(Duration::from_secs(1));
         }
+    }
+    if std::env::var_os(BUSY_CHILD).is_some() {
+        let start = PathBuf::from(std::env::var_os(START).unwrap());
+        std::fs::write(ready, b"ready-to-probe").unwrap();
+        wait_for(&start, "parent start marker");
+        assert!(matches!(
+            GenerationJobStore::open(&root),
+            Err(JobStoreError::WriterBusy)
+        ));
+        return;
     }
     let release = PathBuf::from(std::env::var_os(RELEASE).unwrap());
     let mut store = GenerationJobStore::open(&root).unwrap();
@@ -115,10 +127,27 @@ fn child_process_writer_is_exclusive_and_releases_on_exit() {
         .spawn()
         .unwrap();
     wait_for(&ready, "child writer lock");
-    assert!(matches!(
-        GenerationJobStore::open(&root),
-        Err(JobStoreError::WriterBusy)
-    ));
+    let second_ready = root.join("second-child-ready");
+    let second_start = root.join("second-child-start");
+    let mut second = Command::new(std::env::current_exe().unwrap())
+        .args([
+            "--exact",
+            "durable_job_writer::writer_lock_child",
+            "--nocapture",
+        ])
+        .env(CHILD, "1")
+        .env(BUSY_CHILD, "1")
+        .env(ROOT, &root)
+        .env(READY, &second_ready)
+        .env(START, &second_start)
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()
+        .unwrap();
+    wait_for(&second_ready, "second child ready barrier");
+    std::fs::write(&second_start, b"probe writer lock").unwrap();
+    assert!(second.wait().unwrap().success());
     std::fs::write(&release, b"release").unwrap();
     assert!(child.wait().unwrap().success());
 

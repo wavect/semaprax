@@ -28,6 +28,12 @@ The consumer runs success, HTTP 503, invalid numeric body, checked source
 postcondition failure, timeout, and cancellation after server receipt. Every
 server accepts one request and checks for a retry. `call_typed` preserves
 timeout/status/parse host errors separately from checked source failures.
+The consumer also records the exact application-owned copy from reqwest's
+foreign response `Bytes` into callback-owned `Vec<u8>` storage. Its success,
+invalid-body, and source-postcondition cases assert 2, 7, and 3 copied bytes;
+the status, timeout, and cancelled calls assert zero because they do not reach
+that conversion. The ledger does not claim reqwest buffering, HTTP decoding,
+or UTF-8 validation copies.
 The focused Project harness loads the same saved source into a held Project and
 runs the local HTTP cases inside the existing Project test binary, with no
 nested Cargo build. It checks generated module rendering, demonstrates that

@@ -5,10 +5,12 @@ mod generated {
 use generated::AsyncCallError;
 use semaprax::project::{with_authenticated_project, ProjectRevision};
 use semaprax::resumable_effects::source_local_future::SourceLocalFutureFailure;
+use std::cell::Cell;
 use std::future::Future;
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::path::Path;
+use std::rc::Rc;
 use std::sync::Arc;
 use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
@@ -19,6 +21,38 @@ enum DemoError {
     HttpStatus(u16),
     InvalidBody,
     Transport,
+}
+
+/// Exact fixture-owned copies. Bytes allocated by reqwest or HTTP decoding
+/// before this conversion are foreign implementation details and are not
+/// represented here.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+struct CopyMetrics {
+    foreign_response_body_copied_bytes: u64,
+    host_callback_captured_bytes: u64,
+}
+
+#[derive(Clone, Default)]
+struct CopyLedger(Rc<Cell<CopyMetrics>>);
+
+impl CopyLedger {
+    fn capture_foreign_response_body(&self, bytes: usize) {
+        let bytes = u64::try_from(bytes).expect("fixture response length fits u64");
+        let mut metrics = self.0.get();
+        metrics.foreign_response_body_copied_bytes = metrics
+            .foreign_response_body_copied_bytes
+            .checked_add(bytes)
+            .expect("fixture response copy total fits u64");
+        metrics.host_callback_captured_bytes = metrics
+            .host_callback_captured_bytes
+            .checked_add(bytes)
+            .expect("fixture callback copy total fits u64");
+        self.0.set(metrics);
+    }
+
+    fn metrics(&self) -> CopyMetrics {
+        self.0.get()
+    }
 }
 
 fn transport(error: reqwest::Error) -> DemoError {
@@ -33,25 +67,33 @@ fn selected_call(
     revision: Arc<ProjectRevision>,
     endpoint: String,
     timeout: Option<Duration>,
+    copies: CopyLedger,
 ) -> impl Future<Output = Result<i64, AsyncCallError<DemoError>>> {
     let mut builder = reqwest::Client::builder().retry(reqwest::retry::never());
     if let Some(timeout) = timeout {
         builder = builder.timeout(timeout);
     }
     let client = builder.build().expect("explicit local HTTP client");
-    generated::register(revision, move |request| async move {
-        let url = reqwest::Url::parse(&format!("{endpoint}/value/{request}"))
-            .map_err(|_| DemoError::Transport)?;
-        let response = client.get(url).send().await.map_err(transport)?;
-        if !response.status().is_success() {
-            return Err(DemoError::HttpStatus(response.status().as_u16()));
+    generated::register(revision, move |request| {
+        let copies = copies.clone();
+        async move {
+            let url = reqwest::Url::parse(&format!("{endpoint}/value/{request}"))
+                .map_err(|_| DemoError::Transport)?;
+            let response = client.get(url).send().await.map_err(transport)?;
+            if !response.status().is_success() {
+                return Err(DemoError::HttpStatus(response.status().as_u16()));
+            }
+            // This is the exact application-owned copy from reqwest's foreign
+            // response Bytes into host-callback Vec storage. It says nothing
+            // about earlier reqwest or HTTP-decoding copies.
+            let body = response.bytes().await.map_err(transport)?;
+            let captured = body.to_vec();
+            copies.capture_foreign_response_body(captured.len());
+            std::str::from_utf8(&captured)
+                .map_err(|_| DemoError::InvalidBody)?
+                .parse::<i64>()
+                .map_err(|_| DemoError::InvalidBody)
         }
-        response
-            .text()
-            .await
-            .map_err(transport)?
-            .parse::<i64>()
-            .map_err(|_| DemoError::InvalidBody)
     })
     .expect("exact generated Project registration")
     .call_typed(41, 10_000)
@@ -124,11 +166,15 @@ fn run_case(
     body: &'static str,
     delay: Duration,
     timeout: Option<Duration>,
-) -> Result<i64, AsyncCallError<DemoError>> {
+) -> (Result<i64, AsyncCallError<DemoError>>, CopyMetrics) {
     let (endpoint, _received, server) = local_server(status, body, delay);
-    let result = local.block_on(runtime, selected_call(revision, endpoint, timeout));
+    let copies = CopyLedger::default();
+    let result = local.block_on(
+        runtime,
+        selected_call(revision, endpoint, timeout, copies.clone()),
+    );
     server.join().unwrap();
-    result
+    (result, copies.metrics())
 }
 
 fn main() {
@@ -166,7 +212,13 @@ fn main() {
             Duration::ZERO,
             timeout,
         ),
-        Ok(84)
+        (
+            Ok(84),
+            CopyMetrics {
+                foreign_response_body_copied_bytes: 2,
+                host_callback_captured_bytes: 2,
+            }
+        )
     ));
     assert!(matches!(
         run_case(
@@ -178,7 +230,10 @@ fn main() {
             Duration::ZERO,
             timeout,
         ),
-        Err(AsyncCallError::Host(DemoError::HttpStatus(503)))
+        (
+            Err(AsyncCallError::Host(DemoError::HttpStatus(503))),
+            CopyMetrics::default()
+        )
     ));
     assert!(matches!(
         run_case(
@@ -190,7 +245,13 @@ fn main() {
             Duration::ZERO,
             timeout,
         ),
-        Err(AsyncCallError::Host(DemoError::InvalidBody))
+        (
+            Err(AsyncCallError::Host(DemoError::InvalidBody)),
+            CopyMetrics {
+                foreign_response_body_copied_bytes: 7,
+                host_callback_captured_bytes: 7,
+            }
+        )
     ));
     assert!(matches!(
         run_case(
@@ -202,9 +263,15 @@ fn main() {
             Duration::ZERO,
             timeout,
         ),
-        Err(AsyncCallError::Source(
-            SourceLocalFutureFailure::LanguageFailure(_)
-        ))
+        (
+            Err(AsyncCallError::Source(
+                SourceLocalFutureFailure::LanguageFailure(_)
+            )),
+            CopyMetrics {
+                foreign_response_body_copied_bytes: 3,
+                host_callback_captured_bytes: 3,
+            }
+        )
     ));
     let timeout = if mode.as_deref() == Some("omit-timeout") {
         None
@@ -222,13 +289,22 @@ fn main() {
                 Duration::from_millis(400),
                 timeout,
             ),
-            Err(AsyncCallError::Host(DemoError::Timeout))
+            (
+                Err(AsyncCallError::Host(DemoError::Timeout)),
+                CopyMetrics::default()
+            )
         ),
         "timeout guard did not reject delayed response"
     );
 
     let (endpoint, received, server) = local_server(200, "43", Duration::from_millis(400));
-    let pending = selected_call(revision, endpoint, Some(Duration::from_secs(2)));
+    let copies = CopyLedger::default();
+    let pending = selected_call(
+        revision,
+        endpoint,
+        Some(Duration::from_secs(2)),
+        copies.clone(),
+    );
     local.block_on(&runtime, async move {
         let task = tokio::task::spawn_local(pending);
         received.await.unwrap();
@@ -236,5 +312,6 @@ fn main() {
         assert!(task.await.unwrap_err().is_cancelled());
     });
     server.join().unwrap();
+    assert_eq!(copies.metrics(), CopyMetrics::default());
     println!("ri13-m3-local-http-ok");
 }

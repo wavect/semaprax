@@ -62,6 +62,13 @@ workspace/history-query
 workspace/validate-transaction
 workspace/validate-transaction-v2
 workspace/validate-transaction-v2-workflow
+workspace/patch-receipt
+workspace/verify-patch-receipt
+workspace/patch-receipt-refusal
+workspace/verify-patch-receipt-refusal
+workspace/patch-receipt-evidence-summary
+workspace/patch-receipt-evidence-page
+workspace/compare-patch-receipts
 workspace/compact-projection
 workspace/refresh
 shutdown
@@ -111,6 +118,16 @@ digests plus the candidate revision. `workspace/validate-transaction-v2-workflow
 accepts the existing bounded ordered v2 step array. Both are validation-only:
 they retain a bounded history item but neither adopts, executes, writes, or
 publishes the candidate.
+
+The patch-receipt methods accept a canonical v1 transaction string and rebuild
+its candidate from the exact active immutable generation before delegating to
+the compiler-owned receipt APIs. Receipt verification and comparison replay the
+candidate independently before exact byte comparison. A stale transaction
+workspace revision fails before candidate derivation. The refusal pair renders
+and verifies only an explicit stale-selector refusal. Evidence summary and page
+accept only the four compiler selectors and their derived handles/cursors;
+they do not accept a path, URL, JSON pointer, or caller-supplied evidence
+document. These receipt adapters do not append service history.
 
 `workspace/compact-projection` accepts `expected_workspace_revision`, one
 closed Compact Semantic Projection v1 profile, and `encoding` (`text` or

@@ -321,7 +321,7 @@ pub use candidate::{
     PROJECT_HOLE_SUMMARY_SCHEMA,
 };
 pub use candidate::{
-    MAX_PROJECT_PATCH_RECEIPT_BYTES, PROJECT_PATCH_RECEIPT_SCHEMA,
+    ProjectPatchReceiptEvidencePageOptions, MAX_PROJECT_PATCH_RECEIPT_BYTES, PROJECT_PATCH_RECEIPT_SCHEMA,
     PROJECT_PATCH_RECEIPT_VERIFICATION_SCHEMA,
 };
 pub use canonical_workspace_revision::{

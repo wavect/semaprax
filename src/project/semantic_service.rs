@@ -7,7 +7,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::{Arc, Mutex};
 
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 
 use crate::diagnostic::Diagnostic;
@@ -18,8 +18,9 @@ use crate::workspace_analysis::{
 use super::semantic_service_indexes::SemanticServiceIndexes;
 use super::{
     AgentDefinitions, AgentDefinitionsQuery, AgentDefinitionsQueryResult, ExactProgramContext,
-    ExactProgramContextV2, ProgramRoot, ProgramRootV2, ProgramRootV3, ProjectFrontendCache,
-    ProjectFrontendSource, ProjectManifest, ProjectRevision, ProjectSemanticImage, SemanticQuery,
+    ExactProgramContextV2, ProgramRoot, ProgramRootV2, ProgramRootV3, ProjectCandidate,
+    ProjectFrontendCache, ProjectFrontendSource, ProjectManifest,
+    ProjectPatchReceiptEvidencePageOptions, ProjectRevision, ProjectSemanticImage, SemanticQuery,
     SemanticQueryResult, SemanticServiceIndexQuery, SemanticServiceIndexResult,
     SemanticTransaction, SemanticTransactionArtifacts, SemanticTransactionArtifactsV2,
     SemanticTransactionV2, SemanticTransactionV2Workflow, SemanticWorkspaceRevision,
@@ -29,15 +30,15 @@ mod history;
 
 use history::SemanticWorkspaceServiceHistory;
 pub use history::{
-    SemanticWorkspaceServiceHistoryEntry, SemanticWorkspaceServiceHistoryQuery,
-    SemanticWorkspaceServiceHistoryResult, SemanticWorkspaceServiceHistorySnapshot,
     MAX_SEMANTIC_WORKSPACE_SERVICE_HISTORY_ENTRIES,
     MAX_SEMANTIC_WORKSPACE_SERVICE_HISTORY_QUERY_BYTES,
     MAX_SEMANTIC_WORKSPACE_SERVICE_HISTORY_QUERY_LIMIT,
     MAX_SEMANTIC_WORKSPACE_SERVICE_HISTORY_RESULT_BYTES,
     SEMANTIC_WORKSPACE_SERVICE_HISTORY_ENTRY_SCHEMA,
     SEMANTIC_WORKSPACE_SERVICE_HISTORY_QUERY_SCHEMA,
-    SEMANTIC_WORKSPACE_SERVICE_HISTORY_RESULT_SCHEMA,
+    SEMANTIC_WORKSPACE_SERVICE_HISTORY_RESULT_SCHEMA, SemanticWorkspaceServiceHistoryEntry,
+    SemanticWorkspaceServiceHistoryQuery, SemanticWorkspaceServiceHistoryResult,
+    SemanticWorkspaceServiceHistorySnapshot,
 };
 
 pub const SEMANTIC_WORKSPACE_SERVICE_WORK_SCHEMA: &str =
@@ -930,6 +931,132 @@ impl SemanticWorkspaceService {
         )?;
         history.append(history_entry);
         Ok(artifacts)
+    }
+
+    /// Reconstruct one v1 candidate from this exact active generation for the
+    /// patch-receipt adapters.  Unlike transaction validation this performs no
+    /// history mutation: receipt rendering, verification, comparison, and
+    /// retained-evidence paging are read-only projections.
+    fn with_patch_receipt_candidate<T>(
+        &self,
+        transaction_bytes: &[u8],
+        operation: impl FnOnce(&ProjectCandidate) -> Result<T>,
+    ) -> Result<T> {
+        let transaction = SemanticTransaction::from_json(transaction_bytes)?;
+        if transaction.expected_workspace_revision() != self.active.workspace_revision() {
+            return Err(stale(
+                "semantic workspace service patch receipt transaction revision is stale",
+            ));
+        }
+        let artifacts = transaction.validate(Arc::clone(&self.active.revision))?;
+        operation(artifacts.candidate())
+    }
+
+    /// Render a compact compiler-owned receipt for a candidate reconstructed
+    /// from the retained active generation.
+    pub fn patch_receipt(
+        &self,
+        transaction_bytes: &[u8],
+        expected_candidate: &str,
+    ) -> Result<String> {
+        self.with_patch_receipt_candidate(transaction_bytes, |candidate| {
+            candidate.patch_receipt(expected_candidate)
+        })
+    }
+
+    /// Independently replay the selected candidate before verifying exact
+    /// receipt bytes.  Caller bytes never become candidate authority.
+    pub fn verify_patch_receipt(
+        &self,
+        transaction_bytes: &[u8],
+        expected_candidate: &str,
+        receipt_bytes: &[u8],
+    ) -> Result<String> {
+        self.with_patch_receipt_candidate(transaction_bytes, |candidate| {
+            candidate.verify_patch_receipt(expected_candidate, receipt_bytes)
+        })
+    }
+
+    /// Render the explicit stale-selector receipt without admitting a
+    /// candidate under the caller's mismatched selector.
+    pub fn patch_receipt_refusal(
+        &self,
+        transaction_bytes: &[u8],
+        requested_candidate: &str,
+    ) -> Result<String> {
+        self.with_patch_receipt_candidate(transaction_bytes, |candidate| {
+            candidate.patch_receipt_refusal(requested_candidate)
+        })
+    }
+
+    pub fn verify_patch_receipt_refusal(
+        &self,
+        transaction_bytes: &[u8],
+        requested_candidate: &str,
+        receipt_bytes: &[u8],
+    ) -> Result<String> {
+        self.with_patch_receipt_candidate(transaction_bytes, |candidate| {
+            candidate.verify_patch_receipt_refusal(requested_candidate, receipt_bytes)
+        })
+    }
+
+    /// List closed evidence families derived from a reconstructed immutable
+    /// candidate.  There is no path, URL, or caller document retrieval route.
+    pub fn patch_receipt_evidence_summary(
+        &self,
+        transaction_bytes: &[u8],
+        expected_candidate: &str,
+    ) -> Result<String> {
+        self.with_patch_receipt_candidate(transaction_bytes, |candidate| {
+            candidate.patch_receipt_evidence_summary(expected_candidate)
+        })
+    }
+
+    pub fn patch_receipt_evidence_page(
+        &self,
+        transaction_bytes: &[u8],
+        expected_candidate: &str,
+        evidence_id: &str,
+        expected_handle: &str,
+        cursor: Option<&str>,
+        page_size: usize,
+        max_bytes: usize,
+    ) -> Result<String> {
+        let options = ProjectPatchReceiptEvidencePageOptions::new(page_size, max_bytes)?;
+        self.with_patch_receipt_candidate(transaction_bytes, |candidate| {
+            candidate.patch_receipt_evidence_page(
+                expected_candidate,
+                evidence_id,
+                expected_handle,
+                cursor,
+                options,
+            )
+        })
+    }
+
+    /// Verify both supplied receipts independently before rendering their
+    /// descriptive comparison. Both transaction inputs are replayed against
+    /// this same retained active generation.
+    pub fn compare_patch_receipts(
+        &self,
+        left_transaction_bytes: &[u8],
+        left_expected_candidate: &str,
+        left_receipt_bytes: &[u8],
+        right_transaction_bytes: &[u8],
+        right_expected_candidate: &str,
+        right_receipt_bytes: &[u8],
+    ) -> Result<String> {
+        self.with_patch_receipt_candidate(left_transaction_bytes, |left| {
+            self.with_patch_receipt_candidate(right_transaction_bytes, |right| {
+                left.compare_patch_receipts(
+                    left_expected_candidate,
+                    left_receipt_bytes,
+                    right,
+                    right_expected_candidate,
+                    right_receipt_bytes,
+                )
+            })
+        })
     }
 
     /// Validate one additive v2 transaction against the active immutable

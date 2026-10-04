@@ -3,13 +3,13 @@
 use std::io::{self, BufRead, Write};
 use std::sync::Arc;
 
-use serde_json::{json, Map, Value};
+use serde_json::{Map, Value, json};
 
-use crate::project::{ProjectRevision, MAX_SEMANTIC_TRANSACTION_V2_WORKFLOW_STEPS, MAX_SOURCES};
+use crate::project::{MAX_SEMANTIC_TRANSACTION_V2_WORKFLOW_STEPS, MAX_SOURCES, ProjectRevision};
 use crate::project_transport::codec;
 use crate::semantic_service_transport::{
-    SemanticWorkspaceStdioSession, MAX_SEMANTIC_SERVICE_REQUEST_BYTES,
-    MAX_SEMANTIC_SERVICE_RESPONSE_BYTES,
+    MAX_SEMANTIC_SERVICE_REQUEST_BYTES, MAX_SEMANTIC_SERVICE_RESPONSE_BYTES,
+    SemanticWorkspaceStdioSession,
 };
 
 pub const SEMANTIC_SERVICE_MCP_SCHEMA: &str = "semaprax.semantic-workspace-service-mcp.v1";
@@ -332,6 +332,48 @@ fn tools() -> Vec<Value> {
             }),
         ),
         tool(
+            "workspace__patch_receipt",
+            "Render one compact compiler-owned patch receipt from a canonical v1 transaction and exact candidate selector.",
+            receipt_schema(&["transaction", "candidate_digest"]),
+        ),
+        tool(
+            "workspace__verify_patch_receipt",
+            "Independently replay a canonical v1 transaction before exact patch-receipt verification.",
+            receipt_schema(&["transaction", "candidate_digest", "receipt"]),
+        ),
+        tool(
+            "workspace__patch_receipt_refusal",
+            "Render the compiler-owned refusal receipt for a stale candidate selector.",
+            receipt_schema(&["transaction", "requested_candidate_digest"]),
+        ),
+        tool(
+            "workspace__verify_patch_receipt_refusal",
+            "Independently recompute a stale-selector refusal receipt.",
+            receipt_schema(&["transaction", "requested_candidate_digest", "receipt"]),
+        ),
+        tool(
+            "workspace__patch_receipt_evidence_summary",
+            "List closed retained compiler evidence families for one exact candidate; it accepts no paths or evidence documents.",
+            receipt_schema(&["transaction", "candidate_digest"]),
+        ),
+        tool(
+            "workspace__patch_receipt_evidence_page",
+            "Page one compiler-owned retained evidence family using its exact handle and cursor.",
+            json!({"type":"object","properties":{"transaction":{"type":"string"},"candidate_digest":{"type":"string"},"evidence_id":{"type":"string","enum":["candidate","declaration_catalog","contract_delta","ownership_delta"]},"handle":{"type":"string"},"cursor":{"type":["string","null"],"maxLength":128},"page_size":{"type":"integer","minimum":1,"maximum":128},"max_bytes":{"type":"integer","minimum":1024,"maximum":1048576}},"required":["transaction","candidate_digest","evidence_id","handle","cursor","page_size","max_bytes"],"additionalProperties":false}),
+        ),
+        tool(
+            "workspace__compare_patch_receipts",
+            "Independently replay and verify two compact receipts before rendering a descriptive comparison.",
+            receipt_schema(&[
+                "left_transaction",
+                "left_candidate_digest",
+                "left_receipt",
+                "right_transaction",
+                "right_candidate_digest",
+                "right_receipt",
+            ]),
+        ),
+        tool(
             "workspace__compact_projection",
             "Compact one existing authoritative projection selected from the exact retained workspace generation. Source labels select retained Project bytes only; they are not host paths.",
             json!({
@@ -376,6 +418,14 @@ fn one_string_schema(name: &str) -> Value {
     json!({"type":"object","properties":properties,"required":[name],"additionalProperties":false})
 }
 
+fn receipt_schema(required: &[&str]) -> Value {
+    let mut properties = Map::new();
+    for field in required {
+        properties.insert((*field).to_owned(), json!({"type":"string"}));
+    }
+    json!({"type":"object","properties":properties,"required":required,"additionalProperties":false})
+}
+
 fn tool_method(name: &str) -> Option<&'static str> {
     match name {
         "service__protocol" => Some("service/protocol"),
@@ -388,6 +438,15 @@ fn tool_method(name: &str) -> Option<&'static str> {
         "workspace__validate_transaction_v2_workflow" => {
             Some("workspace/validate-transaction-v2-workflow")
         }
+        "workspace__patch_receipt" => Some("workspace/patch-receipt"),
+        "workspace__verify_patch_receipt" => Some("workspace/verify-patch-receipt"),
+        "workspace__patch_receipt_refusal" => Some("workspace/patch-receipt-refusal"),
+        "workspace__verify_patch_receipt_refusal" => Some("workspace/verify-patch-receipt-refusal"),
+        "workspace__patch_receipt_evidence_summary" => {
+            Some("workspace/patch-receipt-evidence-summary")
+        }
+        "workspace__patch_receipt_evidence_page" => Some("workspace/patch-receipt-evidence-page"),
+        "workspace__compare_patch_receipts" => Some("workspace/compare-patch-receipts"),
         "workspace__compact_projection" => Some("workspace/compact-projection"),
         "workspace__refresh" => Some("workspace/refresh"),
         _ => None,

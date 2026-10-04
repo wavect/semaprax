@@ -1,5 +1,11 @@
 # Changelog
 
+- Repair the current main CI fixtures for owned-byte Wasm imports, constructor
+  schema counts, the pinned iOS action, and authenticated Everyday Agent
+  examples. Regenerate the Agent skill bundle, refresh exact workspace
+  artifact digests, and keep Rust modules within their size budgets. Correct
+  owned-wait test fixtures and platform-specific host/compiler assertions.
+
 - Keep explorer response branch schemas under the root document identity so
   generated clients can normalize them, and trim generated Rust source
   indentation to keep the selected client within its byte limit. Complete

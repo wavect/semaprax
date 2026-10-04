@@ -25,13 +25,13 @@ fn everyday_v2_agent_is_authenticated_and_compiles_as_a_linked_project_lifecycle
             .iter()
             .find(|source| source.path() == SOURCE_PATH)
             .expect("the V2 Agent source is retained by the Project");
-        assert!(source.source().contains("\"provider_id\":\"opencode\""));
+        assert!(source.source().contains(r#"\"provider_id\":\"opencode\""#));
         assert!(source
             .source()
-            .contains("\"model_id\":\"muse-spark-1.3-contributor-free\""));
+            .contains(r#"\"model_id\":\"muse-spark-1.3-contributor-free\""#));
         assert!(source
             .source()
-            .contains("\"required_locality\":\"remote_allowed\""));
+            .contains(r#"\"required_locality\":\"remote_allowed\""#));
         assert!(!source.source().contains("fake.local"));
 
         let lifecycle =

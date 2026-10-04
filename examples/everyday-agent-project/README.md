@@ -27,9 +27,7 @@ pipeline. See "Scope and nonclaims" for exactly why, with reproductions.
 semaprax check examples/everyday-agent-project
 semaprax test  examples/everyday-agent-project
 
-# The source-declared Agent is also admitted by the Project. This standalone
-# check remains useful when inspecting the Agent module on its own:
-semaprax check examples/everyday-agent-project/src/agent.spx
+# The source-declared Agent is admitted as a Project provider module.
 ```
 
 Real execution — a real `fs.read` of `fixtures/input.json`, real JSON

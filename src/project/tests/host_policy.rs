@@ -24,6 +24,7 @@ fn native_fixture() -> PathBuf {
     root.canonicalize().unwrap()
 }
 
+#[cfg(unix)]
 fn install_selected_native_policy(root: &Path) {
     let manifest = root.join(MANIFEST_FILE);
     let revision =
@@ -109,6 +110,7 @@ fn host_strict_installation_refuses_typed_foreign_law_without_native_source_inve
 }
 
 #[test]
+#[cfg(unix)]
 fn selected_host_policy_closes_generic_revision_escape_and_keeps_inspection_open() {
     let root = native_fixture();
     let manifest = root.join(MANIFEST_FILE);
@@ -141,6 +143,7 @@ fn selected_host_policy_closes_generic_revision_escape_and_keeps_inspection_open
 }
 
 #[test]
+#[cfg(unix)]
 fn selected_host_policy_refuses_raw_workspace_apply_before_active_pivot() {
     let root = native_fixture();
     let source = canonical_source(

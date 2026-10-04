@@ -228,6 +228,9 @@ const env = {
   spx_bytes_zeroed: count => { if (count < 0n || count > 131072n) throw Error("byte capacity"); return allocate(new Uint8Array(Number(count))); },
   spx_bytes_get: (carrier,index) => { const value = read(decode(carrier)); return index < 0n || index >= BigInt(value.length) ? -1 : value[Number(index)]; },
   spx_bytes_set: (carrier,index,byte) => { const value = read(decode(carrier)); if ((decode(carrier).root & 0x80000000) === 0 || index < 0n || index >= BigInt(value.length) || byte < 0 || byte > 255) throw Error("byte write"); value[Number(index)] = byte; return carrier; },
+  spx_bytes_set5: () => { throw Error("unexpected five-byte write"); },
+  spx_bytes_set1_or5: () => { throw Error("unexpected one-or-five write"); },
+  spx_bytes_set1_or6_or48: () => { throw Error("unexpected one-or-six-or-forty-eight write"); },
   spx_bytes_as_slice: carrier => { read(decode(carrier)); return carrier; },
   spx_bytes_drop: carrier => { const value = decode(carrier); read(value); if ((value.root & 0x80000000) === 0 || !entries.delete(value.token)) throw Error("duplicate drop"); drops.push(value.token); },
 };

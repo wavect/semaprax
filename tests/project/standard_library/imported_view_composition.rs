@@ -123,6 +123,9 @@ const env = {
     spx_bytes_as_slice: carrier => { read(carrier); return carrier; },
     spx_bytes_zeroed: length => { if (length < 0n || length > 131072n) throw Error("byte capacity"); return allocate(new Uint8Array(Number(length))); },
     spx_bytes_set: (carrier,index,value) => { owner(carrier); const bytes = read(carrier); if (index < 0n || index >= BigInt(bytes.length) || !Number.isInteger(value) || value < 0 || value > 255) throw Error("byte element"); bytes[Number(index)] = value; return carrier; },
+    spx_bytes_set5: () => { throw Error("unexpected five-byte write"); },
+    spx_bytes_set1_or5: () => { throw Error("unexpected one-or-five write"); },
+    spx_bytes_set1_or6_or48: () => { throw Error("unexpected one-or-six-or-forty-eight write"); },
     spx_bytes_get: (carrier,index) => { const value = read(carrier); const i = BigInt.asUintN(64,index); return i >= BigInt(value.length) ? -1 : value[Number(i)]; }
 };
 linked = await WebAssembly.instantiate(bytes, {env});

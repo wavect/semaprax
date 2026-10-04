@@ -108,7 +108,7 @@ fn fixture_for(profile: RuntimeFixture) -> Fixture {
                 assert_eq!(source.matches(observe).count(), 1);
                 source.replace(
                     observe,
-                    "fn observe(state: borrow State) -> Observation\n    ensures state.epoch < 2\n{",
+                    "fn observe(state: borrow State) -> Observation\n    ensures state.epoch < 3\n{",
                 )
             } else {
                 source

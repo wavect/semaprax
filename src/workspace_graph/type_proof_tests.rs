@@ -828,7 +828,7 @@ module graph.v14;
         // document remains byte for byte identical.
         assert_eq!(
             document_sha,
-            "sha256:dfe513e83805ae6dbffe78c6bb43624e1aaee6850ac2af85c995e071667f5daf"
+            "sha256:adc68354ddf3a5022a1b15835bfb962d9924ef3ec5dae449a886af5344263de5"
         );
         assert!(json.starts_with(
                 "{\"schema\":\"semaprax.workspace-semantic-graph.v1\",\"workspace_manifest_schema\":\"semaprax.workspace-semantic-manifest.v1\",\"workspace_revision\":\"sha256:workspace\",\"graph_digest\":\"sha256:"

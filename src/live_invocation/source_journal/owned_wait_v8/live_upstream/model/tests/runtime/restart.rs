@@ -130,7 +130,8 @@ fn owned_runtime_restart_prepared_model_faults_retain_custody_without_retry() {
                 context.registration().expected_facts().clone(),
                 crate::resumable_effects::owned_frame::ExplicitStoreRegistrationGrant::for_trusted_host(true).unwrap(),
             ).unwrap();
-                lease.test_fail_before_write(append);
+                // Recovery starts a new lease write counter at zero.
+                lease.test_fail_before_write(offset);
                 let journal = SourceOwnedWaitJournalV8::open(
                     Arc::clone(&context),
                     crate::resumable_effects::source_checkpoint::SourceCheckpointKey::new([73; 32]),
@@ -148,7 +149,8 @@ fn owned_runtime_restart_prepared_model_faults_retain_custody_without_retry() {
                 let mut runtime = restart(&journal, &cancellation, &mut adapter).unwrap();
                 assert_eq!(
                     runtime.status(),
-                    OwnedLifecycleStatusV8::Quarantined("restart-model")
+                    OwnedLifecycleStatusV8::Quarantined("restart-model"),
+                    "fault offset {offset}"
                 );
                 let weak = runtime.test_backings();
                 assert!(!weak.is_empty());

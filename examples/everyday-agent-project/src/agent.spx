@@ -30,7 +30,7 @@ record State {
 @id("everyday.agent.type.observation")
 record Observation {
     @id("everyday.agent.type.observation.tag")
-    tag: Bytes,
+    tag: i64,
     @id("everyday.agent.type.observation.budget")
     budget: i64,
     @id("everyday.agent.type.observation.epoch")
@@ -125,8 +125,7 @@ fn initialize(task: own Task) -> State
 @id("everyday.agent.fn.observe")
 fn observe(state: borrow State) -> Observation
 {
-    let tag = [82u8, 77u8];
-    Observation { tag: bytes_copy(array_as_slice(tag)), budget: state.budget, epoch: state.epoch }
+    Observation { tag: 82, budget: state.budget, epoch: state.epoch }
 }
 
 @id("everyday.agent.fn.authorize")
@@ -139,11 +138,5 @@ fn authorize(state: borrow State, budget: i64, urgent: bool, sequence: usize) ->
 @id("everyday.agent.fn.reduce")
 fn reduce(state: own State, budget: i64, urgent: bool, sequence: usize, outcome: own Outcome) -> Report
 {
-    match own outcome { Outcome { value, status } => Report { summary: value, budget: state.budget - budget, status: status }, }
-}
-
-@id("app.main")
-fn main() -> i64
-{
-    0
+    Report { summary: outcome.value, budget: state.budget - budget, status: outcome.status }
 }

@@ -298,6 +298,9 @@ const imports = { env: {
   spx_bytes_get: fail("spx_bytes_get"),
   spx_bytes_as_slice: fail("spx_bytes_as_slice"),
   spx_bytes_set: fail("spx_bytes_set"),
+  spx_bytes_set5: fail("spx_bytes_set5"),
+  spx_bytes_set1_or5: fail("spx_bytes_set1_or5"),
+  spx_bytes_set1_or6_or48: fail("spx_bytes_set1_or6_or48"),
   spx_bytes_zeroed: (count) => {
     if (typeof count !== "bigint" || count < 0n || count > 131072n) {
       throw new Error("owned byte buffer capacity invariant");

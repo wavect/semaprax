@@ -170,7 +170,7 @@ fn authorize(state: borrow State, budget: i64, urgent: bool, sequence: usize) ->
 @id("everyday.v2.agent.fn.reduce")
 fn reduce(state: own State, budget: i64, urgent: bool, sequence: usize, outcome: own Outcome) -> Step
 {
-    if state.epoch < 2 { Step::Continue { objective: state.objective, budget: state.budget, epoch: state.epoch + 1 } } else { match own outcome { Outcome { value, status } => Step::Complete { summary: value, budget: state.budget - budget, status: status }, } }
+    if state.epoch < 2 { Step::Continue { objective: state.objective, budget: state.budget, epoch: state.epoch + 1 } } else { Step::Complete { summary: outcome.value, budget: state.budget - budget, status: outcome.status } }
 }
 
 @id("app.main")

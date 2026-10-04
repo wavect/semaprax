@@ -33,7 +33,7 @@ def digest(path):
 
 
 def validate(manifest):
-    if set(manifest) != {"schema", "scope", "subject", "cells", "nonclaims"}:
+    if set(manifest) != {"schema", "scope", "subject", "cells", "fault_categories", "platform_lanes", "nonclaims"}:
         raise ValueError("cross-layer manifest has an unknown or missing top-level field")
     if manifest["schema"] != "semaprax.hot-reload-cross-layer-acceptance.v1":
         raise ValueError("cross-layer manifest has the wrong schema")
@@ -62,6 +62,33 @@ def validate(manifest):
     unavailable = {cell["id"] for cell in manifest["cells"] if cell["availability"] == "unavailable"}
     if unavailable != {"native-process-identity", "native-or-wasm-state-swap"}:
         raise ValueError("cross-layer manifest must retain its explicit unavailable cells")
+    categories = {}
+    for row in manifest["fault_categories"]:
+        if not isinstance(row, dict) or not isinstance(row.get("id"), str) or row["id"] in categories:
+            raise ValueError("cross-layer fault category IDs must be nonempty and unique")
+        cell = next((item for item in manifest["cells"] if item["id"] == row["id"]), None)
+        if row.get("availability") == "selector-required":
+            if cell is None or cell["availability"] != "selector-required" or row.get("selector") != cell["selector"] or set(row) != {"id", "availability", "selector"}:
+                raise ValueError("fault category must bind to its exact runnable selector cell")
+        elif row.get("availability") == "unavailable":
+            if row.get("selector") is not None or not isinstance(row.get("reason"), str) or not row["reason"] or set(row) != {"id", "availability", "selector", "reason"}:
+                raise ValueError("unavailable fault category must give a reason and no selector")
+        else:
+            raise ValueError("fault category has unknown availability")
+        categories[row["id"]] = row
+    runnable_ids = {cell["id"] for cell in manifest["cells"] if cell["availability"] == "selector-required"}
+    if not runnable_ids.issubset(categories) or not categories:
+        raise ValueError("every exact runnable selector requires an explicit fault-category row")
+    platforms = manifest["platform_lanes"]
+    if not isinstance(platforms, dict) or set(platforms) != {"macOS", "Linux", "Windows"}:
+        raise ValueError("platform/lane availability must name macOS, Linux, and Windows")
+    mac = platforms["macOS"]
+    if set(mac) != {"status", "lanes"} or mac["status"] != "measured-by-this-runner" or not isinstance(mac["lanes"], list) or not mac["lanes"]:
+        raise ValueError("macOS row must name the lanes measured by the owned runner")
+    for name in ("Linux", "Windows"):
+        row = platforms[name]
+        if set(row) != {"status", "reason"} or row["status"] != "unavailable" or not isinstance(row["reason"], str) or not row["reason"]:
+            raise ValueError("unexecuted platform rows must remain explicitly unavailable")
     if "committed timing samples" not in manifest["nonclaims"]:
         raise ValueError("cross-layer manifest must not claim samples before a run")
 
@@ -128,7 +155,7 @@ def main():
     if len(supplied) != len(commands) or not supplied <= known:
         raise SystemExit("selector commands must name distinct runnable manifest cells")
     if args.dry_run:
-        args.output.write_text(canonical({"schema": SCHEMA, "mode": "plan", "acceptance_manifest_digest": digest(MANIFEST), "cells": manifest["cells"]}))
+        args.output.write_text(canonical({"schema": SCHEMA, "mode": "plan", "acceptance_manifest_digest": digest(MANIFEST), "cells": manifest["cells"], "platform_lanes": manifest["platform_lanes"], "fault_categories": manifest["fault_categories"]}))
         return
     by_id = {command["id"]: command["argv"] for command in commands}
     cells = {}
@@ -150,6 +177,8 @@ def main():
         "host": {"system": platform.system(), "release": platform.release(), "machine": platform.machine(), "cpu_count": os.cpu_count()},
         "samples_requested": args.samples,
         "cells": cells,
+        "platform_lanes": manifest["platform_lanes"],
+        "fault_categories": manifest["fault_categories"],
         "nonclaims": manifest["nonclaims"],
     }
     args.output.parent.mkdir(parents=True, exist_ok=True)

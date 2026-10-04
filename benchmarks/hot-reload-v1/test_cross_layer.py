@@ -23,6 +23,10 @@ class Contract(unittest.TestCase):
         self.assertIn("A remains active", cells["watcher-a-b-invalid-c"]["requires"])
         self.assertIn("one admission after repair", cells["watcher-invalid-c-repair"]["requires"])
         self.assertIn("B to C replay without redispatch", cells["source-agent-a-b-c"]["requires"])
+        categories = {row["id"]: row for row in manifest["fault_categories"]}
+        self.assertEqual(categories["watcher-source-race"]["selector"], cells["watcher-source-race"]["selector"])
+        self.assertEqual(categories["hot-reload-oversized-control-frame"]["availability"], "unavailable")
+        self.assertEqual(manifest["platform_lanes"]["Windows"]["status"], "unavailable")
 
     def test_manifest_and_commands_fail_closed(self):
         manifest = json.loads(RUN.MANIFEST.read_text())
@@ -46,8 +50,9 @@ class Contract(unittest.TestCase):
             value = json.loads(output.read_text())
         self.assertEqual(value["mode"], "plan")
         self.assertEqual(value["schema"], RUN.SCHEMA)
-        self.assertEqual({cell["id"] for cell in value["cells"]}, {
-            "interpreter-a-b", "watcher-a-b-invalid-c", "watcher-invalid-c-repair", "source-agent-a-b", "source-agent-a-b-c", "prepared-worker-a-b-c-identity", "watcher-stop-resource-release", "native-process-identity", "native-or-wasm-state-swap"})
+        self.assertEqual({cell["id"] for cell in value["cells"]}, {cell["id"] for cell in json.loads(RUN.MANIFEST.read_text())["cells"]})
+        self.assertEqual(value["platform_lanes"]["macOS"]["status"], "measured-by-this-runner")
+        self.assertEqual(len(value["fault_categories"]), len(json.loads(RUN.MANIFEST.read_text())["fault_categories"]))
 
     def test_supplied_selector_has_actual_samples_and_unsupplied_cells_stay_unavailable(self):
         with tempfile.TemporaryDirectory() as directory:

@@ -56,8 +56,32 @@ SELECTORS = {
     "source-agent-a-b-c": ("toolchain-lib", "source_live_cli::hr04_state_handoff_tests::retained_a_to_b_to_c_handoff_carries_state_without_initialize_or_redispatch"),
     "prepared-worker-a-b-c-identity": ("root-lib", "project::hot_reload::tests::real_a_to_b_to_c_keeps_one_worker_and_binds_each_trace_to_its_revision"),
     "watcher-stop-resource-release": ("root-lib", "project::hot_reload_watcher::tests::external_stop_during_admission_clears_pending_work_and_releases_the_fixture"),
+    "watcher-source-race": ("root-lib", "project::hot_reload_watcher::tests::controlled_b_to_c_save_between_admission_and_commit_never_submits_b"),
+    "watcher-stale-plan": ("root-lib", "project::hot_reload_watcher::tests::pre_activation_edit_rejects_historical_plan_and_queues_current_revision"),
+    "watcher-path-escape": ("root-lib", "project::hot_reload_watcher::tests::derived_outputs_and_lexically_escaping_hints_do_not_start_a_rescan_loop"),
+    "watcher-manifest-membership": ("root-lib", "project::hot_reload_watcher::tests::manifest_membership_failure_is_reauthenticated_and_reported"),
+    "watcher-overflow-and-coalescing": ("root-lib", "project::hot_reload_watcher::tests::real_directory_burst_atomic_save_overflow_and_stop_are_coalesced"),
+    "watcher-event-generation-exhaustion": ("root-lib", "project::hot_reload_watcher::tests::event_generation_exhaustion_is_explicit_and_terminal"),
+    "watcher-input-resource-cap": ("root-lib", "project::hot_reload_watcher::tests::watcher_input_inventory_rejects_empty_and_first_over_bound"),
+    "prepared-worker-outstanding-invocation": ("root-lib", "project::hot_reload::tests::held_real_invocation_waits_for_a_safe_boundary_then_activates_the_same_candidate"),
+    "prepared-worker-duplicate-activation": ("root-lib", "project::hot_reload::tests::checked_plan_is_separate_from_activation_and_two_plans_cannot_both_commit"),
+    "prepared-worker-post-pivot-ack-loss": ("root-lib", "project::hot_reload::tests::post_pivot_acknowledgement_loss_is_terminal_and_never_retries_the_candidate"),
+    "source-agent-journal-ack-loss": ("toolchain-lib", "source_live_cli::hr04_state_handoff_tests::physical_journal_ack_loss_keeps_source_handoff_terminal_and_blocks_c_dispatch"),
+    "source-agent-claim-and-reservation-faults": ("toolchain-lib", "source_live_cli::hr04_handoff_fault_tests::physical_migration_reservation_and_handoff_claim_faults_block_successor_dispatch"),
+    "source-agent-capacity-and-path-refusal": ("toolchain-lib", "source_live_cli::tests::exact_config_refuses_duplicate_unknown_negative_and_oversized_capacity"),
 }
 UNAVAILABLE = ("native-process-identity", "native-or-wasm-state-swap")
+UNAVAILABLE_FAULTS = {
+    "hot-reload-oversized-control-frame": "No exact hot-reload control-frame regression is present in the selected Rust harnesses.",
+    "hot-reload-worker-process-death": "No exact hot-reload worker-process-death regression is present in the selected Rust harnesses.",
+    "hot-reload-interrupted-shutdown": "No exact core hot-reload interrupted-shutdown regression is present in the selected Rust harnesses.",
+    "hot-reload-unknown-effect-outcome": "No hot-reload-specific unknown-effect-outcome regression is present in the selected Rust harnesses.",
+}
+PLATFORM_LANES = {
+    "macOS": {"status": "measured-by-this-runner", "lanes": ["interpreter", "watcher", "prepared-worker", "source-agent"]},
+    "Linux": {"status": "unavailable", "reason": "This evidence runner is macOS-only."},
+    "Windows": {"status": "unavailable", "reason": "This evidence runner is macOS-only."},
+}
 
 
 def canonical(value):
@@ -72,8 +96,7 @@ def current_commit():
     return subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
 
 
-def read_manifest():
-    value = json.loads(MANIFEST.read_text())
+def validate_manifest(value):
     if value.get("schema") != "semaprax.hot-reload-cross-layer-acceptance.v1":
         raise ValueError("cross-layer manifest has an unexpected schema")
     cells = {cell.get("id"): cell for cell in value.get("cells", [])}
@@ -89,7 +112,24 @@ def read_manifest():
     for identifier in UNAVAILABLE:
         if cells[identifier].get("availability") != "unavailable" or cells[identifier].get("selector") is not None:
             raise ValueError("native/Wasm limitation must remain explicit")
+    if value.get("platform_lanes") != PLATFORM_LANES:
+        raise ValueError("platform/lane availability must match the owned macOS-only runner")
+    fault_categories = {row.get("id"): row for row in value.get("fault_categories", [])}
+    if set(fault_categories) != set(SELECTORS) | set(UNAVAILABLE_FAULTS):
+        raise ValueError("fault-category inventory does not exactly match measured and unavailable selectors")
+    for identifier in SELECTORS:
+        row = fault_categories[identifier]
+        if row.get("availability") != "selector-required" or row.get("selector") != SELECTORS[identifier][1]:
+            raise ValueError("fault category is not bound to its exact existing selector")
+    for identifier, reason in UNAVAILABLE_FAULTS.items():
+        row = fault_categories[identifier]
+        if row.get("availability") != "unavailable" or row.get("selector") is not None or row.get("reason") != reason:
+            raise ValueError("uncovered fault category must remain explicitly unavailable")
     return value, cells
+
+
+def read_manifest():
+    return validate_manifest(json.loads(MANIFEST.read_text()))
 
 
 def private_target(path):
@@ -215,6 +255,8 @@ def plan(samples, warmups, target):
         "serial_order": ["interpreter-a-b", *SELECTORS],
         "cells": {identifier: {"selector": cells[identifier]["selector"], "status": "will-run"} for identifier in ["interpreter-a-b", *SELECTORS]},
         "unavailable": {identifier: {"selector": None, "requires": cells[identifier]["requires"]} for identifier in UNAVAILABLE},
+        "platform_lanes": {platform_name: (dict(value) if value["status"] == "unavailable" else {**value, "status": "will-run"}) for platform_name, value in PLATFORM_LANES.items()},
+        "uncovered_fault_categories": {identifier: reason for identifier, reason in UNAVAILABLE_FAULTS.items()},
         "nonclaims": manifest["nonclaims"],
     }
 
@@ -269,6 +311,8 @@ def main():
         "serial_order": ["interpreter-a-b", *SELECTORS],
         "cells": results,
         "unavailable": {identifier: {"selector": None, "requires": cells[identifier]["requires"]} for identifier in UNAVAILABLE},
+        "platform_lanes": {platform_name: (dict(value) if value["status"] == "unavailable" else {**value, "status": "measured"}) for platform_name, value in PLATFORM_LANES.items()},
+        "uncovered_fault_categories": {identifier: reason for identifier, reason in UNAVAILABLE_FAULTS.items()},
         "nonclaims": manifest["nonclaims"],
     }
     args.output.parent.mkdir(parents=True, exist_ok=True)

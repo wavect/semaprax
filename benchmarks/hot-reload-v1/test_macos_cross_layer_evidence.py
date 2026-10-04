@@ -1,4 +1,5 @@
-"""Static contract tests for the source-attributed macOS HR-07 runner."""
+"""Static contract tests for the owned macOS HR-07 runner; no Cargo starts."""
+import copy
 import importlib.util
 import json
 import pathlib
@@ -7,7 +8,8 @@ import tempfile
 import unittest
 
 SPEC = importlib.util.spec_from_file_location(
-    "macos_cross_layer_evidence", pathlib.Path(__file__).with_name("macos_cross_layer_evidence.py")
+    "hot_reload_macos_cross_layer",
+    pathlib.Path(__file__).with_name("macos_cross_layer_evidence.py"),
 )
 RUN = importlib.util.module_from_spec(SPEC)
 sys.modules[SPEC.name] = RUN
@@ -15,46 +17,74 @@ SPEC.loader.exec_module(RUN)
 
 
 class Contract(unittest.TestCase):
-    def test_exact_manifest_inventory_binds_each_owned_selector(self):
-        _, cells = RUN.read_manifest()
-        self.assertEqual(set(RUN.SELECTORS), {
-            "watcher-a-b-invalid-c", "watcher-invalid-c-repair", "source-agent-a-b",
-            "source-agent-a-b-c", "prepared-worker-a-b-c-identity", "watcher-stop-resource-release",
-        })
-        self.assertIn("fixture resource released", cells["watcher-stop-resource-release"]["requires"])
-        self.assertEqual(cells["native-process-identity"]["selector"], None)
+    def test_manifest_binds_measured_faults_to_exact_selectors(self):
+        manifest, cells = RUN.read_manifest()
+        categories = {row["id"]: row for row in manifest["fault_categories"]}
+        self.assertEqual(set(categories), set(RUN.SELECTORS) | set(RUN.UNAVAILABLE_FAULTS))
+        for identifier, (_, selector) in RUN.SELECTORS.items():
+            self.assertEqual(cells[identifier]["selector"], selector)
+            self.assertEqual(categories[identifier]["selector"], selector)
+            self.assertEqual(categories[identifier]["availability"], "selector-required")
+        for identifier, reason in RUN.UNAVAILABLE_FAULTS.items():
+            self.assertEqual(categories[identifier]["availability"], "unavailable")
+            self.assertIsNone(categories[identifier]["selector"])
+            self.assertEqual(categories[identifier]["reason"], reason)
 
-    def test_plan_records_serial_nonzero_execution_and_limitations(self):
-        with tempfile.TemporaryDirectory() as directory:
-            target = RUN.ROOT / "target" / "static-contract"
-            output = pathlib.Path(directory) / "plan.json"
-            previous = sys.argv
-            try:
-                sys.argv = ["runner", "--target-dir", str(target), "--output", str(output), "--samples", "1", "--dry-run"]
-                RUN.main()
-            finally:
-                sys.argv = previous
-            value = json.loads(output.read_text())
-        self.assertEqual(value["mode"], "plan")
-        self.assertEqual(value["interpreter_samples"], 1)
-        self.assertEqual(value["serial_order"], ["interpreter-a-b", *RUN.SELECTORS])
-        self.assertIn("native-or-Wasm state swap", value["nonclaims"])
+    def test_every_rust_selector_names_an_existing_test_function(self):
+        paths = {
+            "root-lib": {
+                "watcher": pathlib.Path("src/project/hot_reload_watcher.rs"),
+                "session": pathlib.Path("src/project/hot_reload_tests.rs"),
+            },
+            "toolchain-lib": {
+                "state-handoff": pathlib.Path("crates/semaprax-toolchain/src/source_live_cli/hr04_state_handoff_tests.rs"),
+                "handoff-fault": pathlib.Path("crates/semaprax-toolchain/src/source_live_cli/hr04_handoff_fault_tests.rs"),
+                "config": pathlib.Path("crates/semaprax-toolchain/src/source_live_cli/tests.rs"),
+            },
+            "source-agent-integration": {
+                "integration": pathlib.Path("crates/semaprax-toolchain/tests/cli_help_surface_v1/source_agent_hot_reload.rs"),
+            },
+        }
+        for identifier, (target, selector) in RUN.SELECTORS.items():
+            if "hot_reload_watcher::tests::" in selector:
+                source = paths[target]["watcher"]
+            elif "hot_reload::tests::" in selector:
+                source = paths[target]["session"]
+            elif "hr04_state_handoff_tests::" in selector:
+                source = paths[target]["state-handoff"]
+            elif "hr04_handoff_fault_tests::" in selector:
+                source = paths[target]["handoff-fault"]
+            elif target == "source-agent-integration":
+                source = paths[target]["integration"]
+            else:
+                source = paths[target]["config"]
+            function = selector.rsplit("::", 1)[-1]
+            self.assertIn(f"fn {function}(", (RUN.ROOT / source).read_text(), identifier)
 
-    def test_documented_command_keeps_source_build_and_limitations_explicit(self):
-        readme = (RUN.SUITE / "README.md").read_text()
-        specification = (RUN.ROOT / "docs/HOT-RELOAD-BENCHMARK-V1.md").read_text()
-        for document in (readme, specification):
-            self.assertIn("macos-cross-layer-evidence.sh", document)
-            self.assertIn("target/hr07-macos-evidence", document)
-            self.assertIn("native/Wasm", document)
-        self.assertIn("No committed\nreport currently says it has been executed on macOS.", readme)
-
-    def test_private_target_and_exact_count_parser_fail_closed(self):
+    def test_manifest_rejects_selector_drift_and_requires_explicit_platform_rows(self):
+        manifest, _ = RUN.read_manifest()
+        broken = copy.deepcopy(manifest)
+        broken["fault_categories"][0]["selector"] = "invented::test"
         with self.assertRaises(ValueError):
-            RUN.private_target(pathlib.Path("/tmp/not-private"))
-        output = b"running 1 test\ntest x ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 17 filtered out\n"
-        match = RUN.SUMMARY.search(output.decode())
-        self.assertEqual({k: int(v) for k, v in match.groupdict().items()}, {"passed": 1, "failed": 0, "ignored": 0, "measured": 0, "filtered": 17})
+            RUN.validate_manifest(broken)
+        broken = copy.deepcopy(manifest)
+        del broken["platform_lanes"]
+        with self.assertRaises(ValueError):
+            RUN.validate_manifest(broken)
+        self.assertEqual(manifest["platform_lanes"], RUN.PLATFORM_LANES)
+        self.assertEqual(RUN.PLATFORM_LANES["Linux"]["status"], "unavailable")
+        self.assertEqual(RUN.PLATFORM_LANES["Windows"]["status"], "unavailable")
+
+    def test_dry_run_lists_serial_fault_inventory_without_claiming_execution(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = pathlib.Path(directory) / "plan.json"
+            value = RUN.plan(5, 1, pathlib.Path(directory) / "target")
+            output.write_text(json.dumps(value))
+            report = json.loads(output.read_text())
+        self.assertEqual(report["serial_order"], ["interpreter-a-b", *RUN.SELECTORS])
+        self.assertEqual(set(report["uncovered_fault_categories"]), set(RUN.UNAVAILABLE_FAULTS))
+        self.assertEqual(report["platform_lanes"]["macOS"]["status"], "will-run")
+        self.assertEqual(report["platform_lanes"]["Linux"]["status"], "unavailable")
 
 
 if __name__ == "__main__":

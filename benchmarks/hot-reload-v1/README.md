@@ -47,6 +47,7 @@ Validate the committed contract without starting the compiler or timing a host:
 
 ```sh
 python3 benchmarks/hot-reload-v1/test_run.py
+python3 benchmarks/hot-reload-v1/test_macos_cross_layer_evidence.py
 python3 benchmarks/hot-reload-v1/run.py --dry-run --output /tmp/hot-reload-plan.json
 ```
 
@@ -123,3 +124,19 @@ or production support.
 
 The command is documented for reproducible local execution only. No committed
 report currently says it has been executed on macOS.
+
+The roll-up now executes exact existing watcher, prepared-worker, and
+source-Agent regressions for source races, stale plans, path escape hints,
+manifest reauthentication, event overflow, inventory bounds, safe-point
+activation, duplicate activation, post-pivot acknowledgement loss, journal
+acknowledgement loss, and migration claim/reservation faults. Every selector
+must report exactly one passed test, and each report row binds its executable
+digest and source-build record. The report includes a platform/lane table:
+macOS lanes are measured by this runner; Linux and Windows remain unavailable
+from this macOS-only command.
+
+The manifest also records fault categories for which this checkout has no
+matching hot-reload regression: oversized control frames, worker process death,
+interrupted core shutdown, and hot-reload-specific unknown effect outcome.
+Those rows remain unavailable in the report; a successful run does not close
+those acceptance items or establish native/Wasm swapping.

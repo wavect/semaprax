@@ -10,6 +10,61 @@ pub struct PreparedRegexUrlProjectPackages {
     pub url: PreparedUrlProjectPackage,
 }
 
+/// Admit the closed RI-13 Project profile through one held source snapshot and
+/// four authenticated registry signatures. This performs no native package
+/// preparation; callers that prepare a carrier must still use
+/// [`prepare_indexed_regex_url_project_packages`], which checks the current
+/// native target and pinned locks before rendering.
+pub fn with_authenticated_indexed_regex_url_project<T>(
+    manifest_path: &Path,
+    regex_selections: &[IndexedProjectRegexRegistrySelection<'_>],
+    url_selections: &[IndexedProjectUrlRegistrySelection<'_>],
+    operation: impl FnOnce(&mut semaprax::project::ProjectSnapshot) -> Result<T, Vec<Diagnostic>>,
+) -> Result<T, Vec<Diagnostic>> {
+    let (regex, mut bindings, regex_ids) =
+        indexed_project::indexed_regex_project_bindings(regex_selections)?;
+    let (url, url_bindings, url_ids) =
+        indexed_url_project::indexed_url_project_bindings(url_selections)?;
+    if regex.source_path != url.source_path
+        || regex.source != url.source
+        || regex.package.target != url.package.target
+        || regex.package.stable_rustc_version != url.package.stable_rustc_version
+    {
+        return Err(vec![sdk_error(
+            "mixed Regex/Url Project requires one exact source and one target/toolchain identity",
+        )]);
+    }
+    bindings.extend(url_bindings);
+    let mut expected_imports = regex_ids;
+    expected_imports.extend(url_ids);
+    expected_imports.sort();
+    semaprax::project::with_authenticated_indexed_rust_project(
+        manifest_path,
+        &bindings,
+        |snapshot| {
+            if snapshot.retain_revision().manifest().project_profile()
+                != semaprax::project::ProjectProfile::SourceLocalFutureIndexedRustV1
+            {
+                return Err(vec![sdk_error(
+                    "mixed Regex/Url indexed admission requires source-local-future-indexed-rust.v1",
+                )]);
+            }
+            snapshot.with_authenticated_native_rust_sdk_subject(|input| {
+                let subject = project::ProjectSdkSubject::from_authenticated(&input)?;
+                project::verify_project_subject(subject.canonical.as_bytes(), &subject)
+                    .map_err(|error| vec![error])?;
+                if subject.imports != expected_imports {
+                    return Err(vec![sdk_error(
+                        "mixed Regex/Url indexed admission requires the exact four linked imports",
+                    )]);
+                }
+                Ok(())
+            })?;
+            operation(snapshot)
+        },
+    )
+}
+
 /// Authenticate all four selected imports and both exports under one held
 /// Project snapshot. Every generated package binds the same Project subject,
 /// while its own exact index and pinned offline lock remain independent.

@@ -17,6 +17,12 @@ the selected Rust API index, Cargo lock, source imports, and exact current
 native target. A mismatched index target remains `SPX-B112`; this profile does
 not authorize retargeting or cross compilation.
 
+Ordinary `with_authenticated_project` refuses this profile with `SPX-H006`.
+The caller must supply all four authenticated selected Rust signatures through
+the closed Regex/Url indexed Project route before the Project frontend resolves
+the owner and borrowed-view calls. This prevents an unselected source load from
+silently treating those declarations as scalar imports.
+
 Any different dependency table, feature list, M1 export set, missing Future
 selection, ordinary `source-local-future.v1` manifest with Rust dependencies,
 or unselected indexed input remains refused. The profile adds no public ABI,

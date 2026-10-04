@@ -126,7 +126,7 @@ fn authenticated_project_selected_async_export_awaits_host_future_and_refuses_dr
 }
 
 #[test]
-fn ri13_closed_indexed_rust_profile_retains_one_authenticated_future() {
+fn ri13_closed_indexed_rust_profile_requires_authenticated_indexed_selections() {
     let root = std::env::temp_dir().join(format!(
         "semaprax-ri13-unified-future-{}-{}",
         std::process::id(),
@@ -144,19 +144,11 @@ fn ri13_closed_indexed_rust_profile_retains_one_authenticated_future() {
         .unwrap();
     }
     let manifest = root.join("semaprax.toml");
-    let result = with_authenticated_project(&manifest, |snapshot| {
-        snapshot.check()?;
-        assert_eq!(
-            snapshot.retain_revision().manifest().project_profile(),
-            ProjectProfile::SourceLocalFutureIndexedRustV1
-        );
-        assert_eq!(
-            snapshot.source_local_future_signature()?.function_id(),
-            "ri13.m3.score"
-        );
-        Ok(())
-    });
-    assert!(result.is_ok(), "{result:?}");
+    let refusal = with_authenticated_project(&manifest, |_snapshot| Ok(())).unwrap_err();
+    assert_eq!(refusal[0].code, "SPX-H006");
+    assert!(refusal[0]
+        .message
+        .contains("authenticated indexed Rust selections"));
 
     let untrusted = RI13_MANIFEST.replace("url = [\"=2.5.8\"]", "url = [\"=2.5.7\"]");
     std::fs::write(&manifest, untrusted).unwrap();

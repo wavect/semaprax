@@ -18,6 +18,12 @@ const REGEX_LOCK: &[u8] =
     include_bytes!("../../../semaprax-toolchain/src/fixtures/ri06-regex-1.13.1.Cargo.lock");
 const URL_LOCK: &[u8] =
     include_bytes!("../../../semaprax-toolchain/src/fixtures/ri06-url-2.5.8.Cargo.lock");
+const RI13_SOURCE: &str =
+    include_str!("../../../../examples/ri13-combined-app/unified-project/src/app.spx");
+const RI13_TESTS: &str =
+    include_str!("../../../../examples/ri13-combined-app/unified-project/src/tests.spx");
+const RI13_MANIFEST: &str =
+    include_str!("../../../../examples/ri13-combined-app/unified-project/semaprax.toml");
 
 struct Temp(std::path::PathBuf);
 impl Drop for Temp {
@@ -152,4 +158,99 @@ fn one_held_regex_url_project_authenticates_four_imports_two_exports_and_both_lo
     )
     .unwrap_err();
     assert_eq!(stale[0].code, "SPX-B142");
+}
+
+#[test]
+fn closed_ri13_profile_binds_indexed_m1_signatures_before_future_admission() {
+    let root = Temp(
+        fs::canonicalize(std::env::temp_dir())
+            .unwrap()
+            .join(format!(
+                "ri13-indexed-future-{}-{}",
+                std::process::id(),
+                NEXT.fetch_add(1, Ordering::Relaxed)
+            )),
+    );
+    fs::create_dir_all(root.0.join("src")).unwrap();
+    fs::write(root.0.join("src/app.spx"), RI13_SOURCE).unwrap();
+    fs::write(root.0.join("src/tests.spx"), RI13_TESTS).unwrap();
+    let manifest_path = root.0.join("semaprax.toml");
+    fs::write(&manifest_path, RI13_MANIFEST).unwrap();
+
+    let regex_index = RustApiIndex::admit_extractor_output(REGEX_INDEX).unwrap();
+    let regex_json = regex_index.canonical_json();
+    let url_index = RustApiIndex::admit_extractor_output(URL_INDEX).unwrap();
+    let url_json = url_index.canonical_json();
+    let regex_package = SelectedPackage {
+        cargo_alias: "regex_alias",
+        name: "regex",
+        version: "1.13.1",
+        source_sha256: regex_index.package().source_sha256.as_str(),
+        target: regex_index.target(),
+        feature_digest: regex_index.feature_digest(),
+        stable_rustc_version: regex_index.stable_rustc_version(),
+    };
+    let url_package = SelectedPackage {
+        cargo_alias: "url_alias",
+        name: "url",
+        version: "2.5.8",
+        source_sha256: url_index.package().source_sha256.as_str(),
+        target: url_index.target(),
+        feature_digest: url_index.feature_digest(),
+        stable_rustc_version: url_index.stable_rustc_version(),
+    };
+    let regex =
+        ["regex.new", "regex.match"].map(|import_id| IndexedProjectRegexRegistrySelection {
+            source_path: "src/app.spx",
+            source: RI13_SOURCE,
+            import_id,
+            index_bytes: regex_json.as_bytes(),
+            package: regex_package,
+        });
+    let url = ["url.new", "url.view"].map(|import_id| IndexedProjectUrlRegistrySelection {
+        source_path: "src/app.spx",
+        source: RI13_SOURCE,
+        import_id,
+        index_bytes: url_json.as_bytes(),
+        package: url_package,
+    });
+
+    with_authenticated_indexed_regex_url_project(&manifest_path, &regex, &url, |snapshot| {
+        snapshot.check()?;
+        assert_eq!(
+            snapshot.retain_revision().manifest().project_profile(),
+            semaprax::project::ProjectProfile::SourceLocalFutureIndexedRustV1
+        );
+        assert_eq!(
+            snapshot.source_local_future_signature()?.function_id(),
+            "ri13.m3.score"
+        );
+        Ok(())
+    })
+    .unwrap();
+
+    let source_drift = RI13_SOURCE.replace("example.invalid", "other.invalid");
+    fs::write(root.0.join("src/app.spx"), source_drift).unwrap();
+    let refusal =
+        with_authenticated_indexed_regex_url_project(&manifest_path, &regex, &url, |_| Ok(()))
+            .unwrap_err();
+    assert_eq!(refusal[0].code, "SPX-B142");
+
+    fs::write(root.0.join("src/app.spx"), RI13_SOURCE).unwrap();
+    let untrusted_dependency = RI13_MANIFEST.replace("url = [\"=2.5.8\"]", "url = [\"=2.5.7\"]");
+    fs::write(&manifest_path, untrusted_dependency).unwrap();
+    let refusal =
+        with_authenticated_indexed_regex_url_project(&manifest_path, &regex, &url, |_| Ok(()))
+            .unwrap_err();
+    assert_eq!(refusal[0].code, "SPX-H006");
+
+    let unsupported_profile =
+        RI13_MANIFEST.replace("profile = \"source-local-future-indexed-rust.v1\"\n", "");
+    fs::write(&manifest_path, unsupported_profile).unwrap();
+    let refusal =
+        with_authenticated_indexed_regex_url_project(&manifest_path, &regex, &url, |_| Ok(()))
+            .unwrap_err();
+    assert!(refusal[0]
+        .message
+        .contains("source-local-future-indexed-rust.v1"));
 }

@@ -139,7 +139,7 @@ pub use public_sdk::{
     build_native_rust_owned_data_sdk, build_native_rust_sdk, build_project_native_rust_sdk,
     prepare_demanded_native_rust, prepare_indexed_regex_url_project_packages,
     prepare_opaque_owner_native, prepare_owned_container_native, prepare_owned_string_native,
-    prepare_serde_record_projection, render_local_future_bridge, ConcreteRustBindingPlan,
+    prepare_serde_record_projection, render_local_future_bridge, with_authenticated_indexed_regex_url_project, ConcreteRustBindingPlan,
     DemandedNativeRust, GuardedForeignCallerEvidence, GuardedForeignLawSelection,
     IndexedProjectScalarSelection, IndexedScalarBuild, IndexedScalarSelection,
     NativeRustOwnedDataSdkBundle, NativeRustSdkBundle, NativeRustSdkOptions, OpaqueOwnerNative,

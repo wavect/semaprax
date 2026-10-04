@@ -1335,6 +1335,12 @@ fn load_snapshot_for_host_access(
     access: ProjectHostAccess,
 ) -> Result<ProjectSnapshot, Vec<Diagnostic>> {
     load_snapshot_building(manifest_path, access, |manifest, sources| {
+        if manifest.project_profile() == ProjectProfile::SourceLocalFutureIndexedRustV1 {
+            return Err(vec![Diagnostic::io(
+                "SPX-H006",
+                "source-local-future-indexed-rust.v1 requires authenticated indexed Rust selections",
+            )]);
+        }
         let built = build::build_owned(&manifest, sources)?;
         Ok((Arc::new(ProjectRevision::from_built(manifest, built)), ()))
     })

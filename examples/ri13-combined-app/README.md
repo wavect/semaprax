@@ -86,6 +86,7 @@ The JSON receipt intentionally separates three quantities:
 | --- | --- | --- |
 | `full_build_and_consumer_stages` | Wall time for each locked Cargo prepare/consumer command, including compilation and process execution | Per-call route latency or compiler-only time |
 | `route_timing_and_allocator_requests.routes.*.{mean_ns,p50_ns,p90_ns,p99_ns}` | M3 route samples around direct Rust, handwritten checks, and generated checked source | A nontrivial batch-work result; every route includes loopback HTTP and numeric parsing |
+| `m1_batch_throughput.tasks.*` | Five 4096-operation fixed Regex scan and Url parse/view batches per direct, handwritten, and generated route, with raw latency, current-thread allocator requests, borrowed bytes, adapter copies, and cleanup counts | A variable-input scan benchmark, an ownership-transfer benchmark, or foreign Regex/Url internal copies |
 | `batch_throughput.routes.*` | Fifteen 64-operation local HTTP batches per route, with normalized operations per second and allocator requests per batch | A portability or production throughput claim; generated registration remains in every operation |
 | `route_timing_and_allocator_requests.routes.*.allocator_requests` | Current-thread allocator calls and requested bytes while one M3 route or batch runs | Copied bytes, retained heap, peak memory, process-wide allocation, or allocations in the server thread |
 | `m3_copy_ledger` | Response wire bytes, the fixture's exact `Bytes` to `Vec<u8>` response copy, its generated host callback subset, and zero-byte scalar boundaries | Copies inside reqwest or HTTP decoding before the observed copy, UTF-8 validation, or a complete application copy total |
@@ -133,16 +134,16 @@ It requires the complete ordered M1/M2/M3 prepare and consumer stages, the
 the generated/direct and generated/handwritten normalized M3 ratios with the
 0.90 investigation threshold. The combined receipt also runs M2's existing
 matched 32-operation generic-record and stateful-callback batches across direct
-Rust, handwritten adapters, and generated Semaprax. M1 remains `unavailable`:
-its authenticated Regex/Url packages now expose the bounded
-`checked-export-repeat.v1` generated batch API for the 28-byte
-`https://example.invalid/path` fixture. It repeats only the checked scalar
-export, accepts no new foreign input, and reports exact borrowed-input bytes,
-adapter-copy deltas, and post-run cleanup counts. The consumer still lacks a
-locked direct `regex =1.13.1` and `url =2.5.8` comparison binary and a
-handwritten-adapter route for the same authenticated workload. The investigation
-records that remaining measurement-consumer requirement and refuses to treat
-Cargo stage time as throughput.
+Rust, handwritten adapters, and generated Semaprax. It also runs M1's matched
+4096-operation fixed Regex scan and Url parse/view batches across direct Rust,
+a handwritten owner/view adapter, and generated Semaprax. The generated route
+uses bounded `checked-export-repeat.v1`: it repeats only the checked scalar
+export for the 28-byte `https://example.invalid/path` fixture and accepts no
+new foreign input. Each raw row binds latency, allocator requests, borrowed
+input bytes, adapter copy counts, and post-run cleanup state; Regex and Url
+foreign implementation copies remain unavailable. The 0.90 generated/direct
+and generated/handwritten threshold opens an investigation, never a performance
+pass or a variable-input claim.
 
 The linked consumer emits its own one-line canonical ledger after it executes
 the M1 owners and M2 record/callback routes. The measurement parser requires
@@ -156,11 +157,11 @@ foreign internal byte observations remain unavailable.
 
 ## Acceptance still open
 
-This gate does not close #371. It still needs exact copied-byte evidence for
-the issue’s buffer scan and the uninstrumented foreign portions of ownership
-transfer and deserialization, a matched M1 throughput route, and fresh Linux
-x86_64 evidence. The receipt makes those gaps explicit rather than converting
-one local run into a portability or performance claim.
+This gate does not close #371. It still needs fresh M1 measured output from
+the locked consumer, exact copied-byte evidence for the issue’s buffer scan and
+the uninstrumented foreign portions of ownership transfer and deserialization,
+and fresh Linux x86_64 evidence. The receipt makes those gaps explicit rather
+than converting one local run into a portability or performance claim.
 
 ## Linked generated fixture
 

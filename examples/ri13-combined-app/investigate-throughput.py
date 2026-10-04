@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Bind one combined RI-13 receipt to its scoped batch investigation.
 
-M1 has no matched direct/handwritten batch benchmark in the combined fixture.
-M2 records its existing matched record and callback batches separately; this
-tool refuses to derive any remaining profile ratio from Cargo stage time.
+M1 records fixed-workload direct, handwritten, and authenticated generated
+batches separately. Its generated route repeats a held scalar export rather
+than accepting a varying scan corpus; foreign Regex and Url copies remain
+unavailable. This tool refuses to derive profile ratios from Cargo stage time.
 """
 
 import argparse
@@ -16,48 +17,13 @@ SCHEMA = "semaprax.ri13.combined-throughput-investigation.v1"
 COMBINED_SCHEMA = "semaprax.ri13.combination-measurement.v1"
 M3_SCHEMA = "semaprax.ri13.m3-batch-investigation.v1"
 ROUTES = ("direct_rust", "handwritten_adapter", "generated_semaprax")
+M1_TASKS = ("regex_scan", "url_parse_view")
 M2_TASKS = ("generic_record", "stateful_callback")
 STAGES = (
     "m1_prepare", "m1_consumer", "m2_prepare", "m2_consumer",
     "m3_prepare", "m3_consumer", "m3_negative_controls", "linked_prepare", "linked_consumer",
 )
 THRESHOLD = 0.90
-M1_BATCH_GENERATION_GAP = {
-    "status": "unavailable",
-    "reason": (
-        "the authenticated M1 packages expose checked-export-repeat.v1, but the "
-        "combined consumer has no locked direct and handwritten comparison binary"
-    ),
-    "fixed_authored_workload": {
-        "regex_pattern": "example",
-        "input": "https://example.invalid/path",
-        "input_bytes": 28,
-        "exports": ["regex.run", "url.run"],
-    },
-    "generated_batch_api": {
-        "name": "checked-export-repeat.v1",
-        "operations_bound": 4096,
-        "input_authority": "the generated route repeats the authenticated scalar export and accepts no new foreign input",
-        "metrics": [
-            "exact borrowed-input bytes",
-            "adapter copy events and copied bytes",
-            "post-run owner/view/string cleanup counts",
-        ],
-    },
-    "missing_measurement_consumer": {
-        "required_routes": [
-            "direct Regex::new/is_match scan",
-            "handwritten Regex owner adapter scan",
-            "direct Url::parse/as_str view",
-            "handwritten Url owner/view adapter",
-        ],
-        "requirement": (
-            "a locked measurement consumer with direct regex =1.13.1 and url =2.5.8 "
-            "dependencies must run the identical authenticated workload"
-        ),
-    },
-}
-
 
 def canonical(value):
     return json.dumps(value, indent=2, sort_keys=True) + "\n"
@@ -99,6 +65,79 @@ def batch_routes(receipt):
         if not isinstance(row.get("normalized_operations_per_second"), (int, float)) or row["normalized_operations_per_second"] <= 0:
             raise ValueError(f"combined receipt lacks normalized throughput for {name}")
     return routes
+
+
+def m1_batch_tasks(receipt):
+    command = receipt.get("m1_batch_throughput_measurement_command")
+    batch = receipt.get("m1_batch_throughput")
+    tasks = batch.get("tasks") if isinstance(batch, dict) else None
+    if not isinstance(command, dict) or command.get("command", [])[-1:] != ["measure"]:
+        raise ValueError("combined receipt does not bind the M1 batch selector")
+    if not isinstance(tasks, dict) or set(tasks) != set(M1_TASKS):
+        raise ValueError("combined receipt has no exact M1 comparison tasks")
+    for task, measurement in tasks.items():
+        routes = measurement.get("routes") if isinstance(measurement, dict) else None
+        if not isinstance(routes, dict) or set(routes) != set(ROUTES):
+            raise ValueError(f"combined receipt has no exact M1 routes for {task}")
+        for name, row in routes.items():
+            if not isinstance(row, dict) or row.get("operations_per_sample") != 4096:
+                raise ValueError(f"combined receipt changed the reviewed M1 workload for {task}/{name}")
+            if row.get("borrowed_input_bytes_per_batch") != 4096 * 28:
+                raise ValueError(f"combined receipt changed M1 borrowed input accounting for {task}/{name}")
+            if row.get("adapter_copy_events_per_batch") != 0 or row.get("adapter_copied_bytes_per_batch") != 0:
+                raise ValueError(f"combined receipt changed M1 adapter copy accounting for {task}/{name}")
+            if row.get("post_run_live_counts") != {"owner": 0, "view": 0, "string": 0}:
+                raise ValueError(f"combined receipt changed M1 cleanup accounting for {task}/{name}")
+            foreign = row.get("foreign_target_copied_bytes")
+            if not isinstance(foreign, dict) or foreign.get("status") != "unavailable" or not isinstance(foreign.get("reason"), str):
+                raise ValueError(f"combined receipt lost M1 foreign copy limitation for {task}/{name}")
+            rate = row.get("normalized_operations_per_second")
+            if not isinstance(rate, (int, float)) or rate <= 0:
+                raise ValueError(f"combined receipt lacks M1 throughput for {task}/{name}")
+    return tasks
+
+
+def measured_profile(tasks, operations, copy_key, cleanup_key=None):
+    measured = {}
+    for task, measurement in tasks.items():
+        routes = measurement["routes"]
+        generated = routes["generated_semaprax"]["normalized_operations_per_second"]
+        direct = routes["direct_rust"]["normalized_operations_per_second"]
+        handwritten = routes["handwritten_adapter"]["normalized_operations_per_second"]
+        measured[task] = {
+            "workload": {"operations_per_sample": operations},
+            "normalized_operations_per_second": {
+                name: routes[name]["normalized_operations_per_second"]
+                for name in ROUTES
+            },
+            "generated_to_direct_throughput_ratio": round(generated / direct, 4),
+            "generated_to_handwritten_throughput_ratio": round(generated / handwritten, 4),
+            copy_key: 0,
+        }
+        if cleanup_key:
+            measured[task][cleanup_key] = {"owner": 0, "view": 0, "string": 0}
+    return measured
+
+
+def m1_profile(tasks):
+    measured = measured_profile(
+        tasks,
+        4096,
+        "adapter_copied_bytes_per_batch",
+        "post_run_live_counts",
+    )
+    needs_investigation = any(
+        task["generated_to_direct_throughput_ratio"] < THRESHOLD
+        or task["generated_to_handwritten_throughput_ratio"] < THRESHOLD
+        for task in measured.values()
+    )
+    return {
+        "status": "investigation_required" if needs_investigation else "threshold_not_triggered",
+        "batch_api": "checked-export-repeat.v1",
+        "tasks": measured,
+        "investigation_threshold": THRESHOLD,
+        "limitations": "The batch repeats fixed authenticated scalar exports; foreign Regex and Url copy counts remain unavailable.",
+    }
 
 
 def m2_batch_tasks(receipt):
@@ -159,6 +198,7 @@ def investigate(receipt_path, m3_path):
     receipt = load(receipt_path, COMBINED_SCHEMA, "combined receipt")
     m3 = load(m3_path, M3_SCHEMA, "M3 investigation")
     routes = batch_routes(receipt)
+    m1_tasks = m1_batch_tasks(receipt)
     m2_tasks = m2_batch_tasks(receipt)
     m3_receipt = m3.get("receipt")
     if not isinstance(m3_receipt, dict) or m3_receipt.get("sha256") != digest(receipt_path):
@@ -177,7 +217,7 @@ def investigate(receipt_path, m3_path):
         "receipt": {"path": str(receipt_path), "sha256": digest(receipt_path), "checkout": receipt.get("checkout")},
         "m3_investigation": {"path": str(m3_path), "sha256": digest(m3_path), "status": m3.get("status")},
         "profiles": {
-            "m1": M1_BATCH_GENERATION_GAP,
+            "m1": m1_profile(m1_tasks),
             "m2": m2_profile(m2_tasks),
             "m3": {
                 "status": "investigation_required" if ratio < THRESHOLD else "threshold_not_triggered",
@@ -196,7 +236,7 @@ def investigate(receipt_path, m3_path):
         },
         "limitations": [
             "This is a local investigation record, not a performance pass or cross-platform claim.",
-            "M1 remains unavailable until a locked direct and handwritten measurement consumer runs the same authenticated workload as checked-export-repeat.v1.",
+            "M1 uses a fixed 4096-operation checked-export-repeat.v1 workload; it does not measure varying scan inputs and retains unavailable foreign Regex/Url copies.",
             "M2 is a fixture-specific matched comparison: generated callbacks retain source contracts and lifecycle checks absent from the direct and handwritten routes.",
             "The M3 source-bound investigation explains repeated registration but does not attribute an exact share of route time to an operation.",
         ],

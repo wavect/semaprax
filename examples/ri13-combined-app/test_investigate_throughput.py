@@ -38,6 +38,22 @@ def receipt():
         "schema": THROUGHPUT.COMBINED_SCHEMA,
         "checkout": "reviewed",
         "full_build_and_consumer_stages": [{"stage": stage} for stage in THROUGHPUT.STAGES],
+        "m1_batch_throughput_measurement_command": {"command": ["cargo", "run", "--bin", "measure"]},
+        "m1_batch_throughput": {"tasks": {
+            task: {"routes": {
+                name: {
+                    "operations_per_sample": 4096,
+                    "borrowed_input_bytes_per_batch": 4096 * 28,
+                    "adapter_copy_events_per_batch": 0,
+                    "adapter_copied_bytes_per_batch": 0,
+                    "post_run_live_counts": {"owner": 0, "view": 0, "string": 0},
+                    "foreign_target_copied_bytes": {"status": "unavailable", "reason": "foreign"},
+                    "normalized_operations_per_second": rate["normalized_operations_per_second"],
+                }
+                for name, rate in routes.items()
+            }}
+            for task in THROUGHPUT.M1_TASKS
+        }},
         "m2_batch_throughput_measurement_command": {"command": ["cargo", "run", "--bin", "measure"]},
         "m2_batch_throughput": {"tasks": m2_tasks},
         "batch_throughput_measurement_command": {"command": ["cargo", "run", "--", "batch"]},
@@ -59,7 +75,7 @@ def m3(path):
 
 
 class CombinedThroughputTests(unittest.TestCase):
-    def test_binds_m3_investigation_and_retains_only_m1_unavailable(self):
+    def test_binds_m1_m2_and_m3_investigations(self):
         with tempfile.TemporaryDirectory() as directory:
             root = pathlib.Path(directory)
             report = root / "receipt.json"
@@ -68,23 +84,14 @@ class CombinedThroughputTests(unittest.TestCase):
             investigation.write_text(json.dumps(m3(report)))
             result = THROUGHPUT.investigate(report, investigation)
         m1 = result["profiles"]["m1"]
-        self.assertEqual(m1["status"], "unavailable")
-        self.assertEqual(m1["fixed_authored_workload"]["input_bytes"], 28)
-        self.assertEqual(m1["fixed_authored_workload"]["exports"], ["regex.run", "url.run"])
-        self.assertEqual(m1["generated_batch_api"]["name"], "checked-export-repeat.v1")
-        self.assertEqual(m1["generated_batch_api"]["operations_bound"], 4096)
-        self.assertIn("accepts no new foreign input", m1["generated_batch_api"]["input_authority"])
+        self.assertEqual(m1["status"], "investigation_required")
+        self.assertEqual(m1["batch_api"], "checked-export-repeat.v1")
         self.assertEqual(
-            m1["generated_batch_api"]["metrics"],
-            [
-                "exact borrowed-input bytes",
-                "adapter copy events and copied bytes",
-                "post-run owner/view/string cleanup counts",
-            ],
+            m1["tasks"]["regex_scan"]["workload"]["operations_per_sample"], 4096
         )
-        self.assertIn(
-            "locked measurement consumer",
-            m1["missing_measurement_consumer"]["requirement"],
+        self.assertEqual(
+            m1["tasks"]["url_parse_view"]["post_run_live_counts"],
+            {"owner": 0, "view": 0, "string": 0},
         )
         self.assertEqual(result["profiles"]["m2"]["status"], "measured")
         self.assertEqual(
@@ -122,6 +129,12 @@ class CombinedThroughputTests(unittest.TestCase):
             root = pathlib.Path(directory)
             report = root / "receipt.json"
             investigation = root / "m3.json"
+            invalid = receipt()
+            invalid["m1_batch_throughput"]["tasks"]["regex_scan"]["routes"]["generated_semaprax"]["borrowed_input_bytes_per_batch"] = 1
+            report.write_text(json.dumps(invalid))
+            investigation.write_text(json.dumps(m3(report)))
+            with self.assertRaisesRegex(ValueError, "M1 borrowed input accounting"):
+                THROUGHPUT.investigate(report, investigation)
             invalid = receipt()
             invalid["m2_batch_throughput"]["tasks"]["generic_record"]["routes"]["generated_semaprax"]["adapter_buffer_copied_bytes_per_batch"] = 1
             report.write_text(json.dumps(invalid))

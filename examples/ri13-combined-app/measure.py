@@ -30,6 +30,13 @@ COPY_COLUMNS = (
 M3_COPY_LEDGER_SCHEMA = "semaprax.ri13.m3-copy-ledger.v1"
 LINKED_COPY_LEDGER_SCHEMA = "semaprax.ri13.linked-copy-ledger.v1"
 LINKED_COPY_PREFIX = "ri13-linked-copy-ledger:"
+M1_TASKS = ("regex_scan", "url_parse_view")
+M1_BATCH_COLUMNS = (
+    "task", "route", "iteration", "operations", "elapsed_ns",
+    "allocation_calls", "allocated_bytes", "borrowed_input_bytes",
+    "adapter_copy_events", "adapter_copied_bytes", "owner_live_count",
+    "view_live_count", "string_live_count",
+)
 M2_TASKS = ("generic_record", "stateful_callback")
 M2_BATCH_COLUMNS = (
     "task", "route", "iteration", "operations", "elapsed_ns",
@@ -134,6 +141,66 @@ def parse_m3_samples(text):
     return result
 
 
+
+
+def parse_m1_batch_samples(text):
+    """Parse matched fixed-workload M1 batches without attributing foreign copies."""
+    rows = list(csv.DictReader(text.splitlines()))
+    if not rows or tuple(rows[0]) != M1_BATCH_COLUMNS:
+        raise ValueError("M1 measure output must retain its exact batch columns")
+    grouped = {task: {route: [] for route in ROUTES} for task in M1_TASKS}
+    for row in rows:
+        task = row.get("task")
+        route = row.get("route")
+        if task not in grouped or route not in ROUTES:
+            raise ValueError(f"unknown M1 batch row {row!r}")
+        sample = {key: int(value) for key, value in row.items() if key not in {"task", "route"}}
+        if sample["operations"] != 4096 or sample["elapsed_ns"] <= 0:
+            raise ValueError(f"M1 batch changed its reviewed held-export workload {row!r}")
+        if sample["borrowed_input_bytes"] != sample["operations"] * 28:
+            raise ValueError(f"M1 batch changed its exact borrowed input accounting {row!r}")
+        if any(sample[key] != 0 for key in (
+            "adapter_copy_events", "adapter_copied_bytes", "owner_live_count",
+            "view_live_count", "string_live_count",
+        )):
+            raise ValueError(f"M1 batch changed generated adapter or cleanup accounting {row!r}")
+        if sample["allocation_calls"] < 0 or sample["allocated_bytes"] < 0:
+            raise ValueError(f"M1 batch has invalid allocator accounting {row!r}")
+        grouped[task][route].append(sample)
+    result = {"raw_csv_sha256": digest(text), "tasks": {}}
+    for task, by_route in grouped.items():
+        counts = {route: len(samples) for route, samples in by_route.items()}
+        if len(set(counts.values())) != 1 or not next(iter(counts.values())):
+            raise ValueError(f"unbalanced M1 {task} batch samples {counts}")
+        routes = {}
+        for route, samples in by_route.items():
+            elapsed = [sample["elapsed_ns"] for sample in samples]
+            routes[route] = {
+                "operations_per_sample": 4096,
+                "total_operations": 4096 * len(samples),
+                "borrowed_input_bytes_per_batch": 4096 * 28,
+                "adapter_copy_events_per_batch": 0,
+                "adapter_copied_bytes_per_batch": 0,
+                "post_run_live_counts": {"owner": 0, "view": 0, "string": 0},
+                "mean_batch_ns": round(statistics.mean(elapsed), 1),
+                "p50_batch_ns": round(percentile(elapsed, 50), 1),
+                "p90_batch_ns": round(percentile(elapsed, 90), 1),
+                "p99_batch_ns": round(percentile(elapsed, 99), 1),
+                "normalized_operations_per_second": round(4096 * 1e9 / statistics.mean(elapsed), 2),
+                "allocator_requests_per_batch": {
+                    key: round(statistics.mean(sample[key] for sample in samples), 1)
+                    for key in ("allocation_calls", "allocated_bytes")
+                },
+                "foreign_target_copied_bytes": {
+                    "status": "unavailable",
+                    "reason": "Regex::is_match and Url::parse internal copies are outside the generated adapter boundary",
+                },
+            }
+        result["tasks"][task] = {
+            "samples_per_route": next(iter(counts.values())),
+            "routes": routes,
+        }
+    return result
 
 def parse_m2_batch_samples(text):
     """Parse the existing matched M2 record/callback batch comparison."""
@@ -416,6 +483,25 @@ def self_test():
     batch = parse_m3_batch_samples("\n".join(",".join(row) for row in batch_rows))
     assert batch["routes"]["generated_semaprax"]["total_operations"] == 128
     assert batch["routes"]["generated_semaprax"]["normalized_operations_per_second"] == 10_000_000.0
+    m1_rows = [list(M1_BATCH_COLUMNS)]
+    for task in M1_TASKS:
+        for iteration in range(2):
+            for route in ROUTES:
+                m1_rows.append([
+                    task, route, str(iteration), "4096", "409600", "16", "512",
+                    str(4096 * 28), "0", "0", "0", "0", "0",
+                ])
+    m1 = parse_m1_batch_samples("\n".join(",".join(row) for row in m1_rows))
+    assert m1["tasks"]["regex_scan"]["routes"]["generated_semaprax"]["total_operations"] == 8192
+    assert m1["tasks"]["url_parse_view"]["routes"]["direct_rust"]["normalized_operations_per_second"] == 10_000_000.0
+    tampered_m1 = [row.copy() for row in m1_rows]
+    tampered_m1[1][7] = "1"
+    try:
+        parse_m1_batch_samples("\n".join(",".join(row) for row in tampered_m1))
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("M1 borrowed-input drift must fail the batch gate")
     m2_rows = [list(M2_BATCH_COLUMNS)]
     for task in M2_TASKS:
         for iteration in range(2):
@@ -567,6 +653,13 @@ def main():
     if linked_copy_ledger is None:
         raise RuntimeError("linked consumer did not produce copied-byte evidence")
 
+    m1_batch_command = cargo_command("examples/ri13-m1-regex-url/consumer/Cargo.toml", "measure")
+    m1_batch_result, m1_batch_samples = run(
+        m1_batch_command, environment, "url_parse_view,generated_semaprax"
+    )
+    m1_batch_result["stage"] = "m1_batch_throughput_measurement"
+    m1_batch_measurement = parse_m1_batch_samples(m1_batch_samples)
+
     m2_batch_command = cargo_command("examples/ri13-m2-record-iterator/Cargo.toml", "measure")
     m2_batch_result, m2_batch_samples = run(
         m2_batch_command, environment, "stateful_callback,generated_semaprax"
@@ -592,6 +685,8 @@ def main():
         "full_build_and_consumer_stages": stages,
         "route_measurement_command": measure_result,
         "route_timing_and_allocator_requests": route_measurement,
+        "m1_batch_throughput_measurement_command": m1_batch_result,
+        "m1_batch_throughput": m1_batch_measurement,
         "m2_batch_throughput_measurement_command": m2_batch_result,
         "m2_batch_throughput": m2_batch_measurement,
         "batch_throughput_measurement_command": batch_result,
@@ -601,7 +696,8 @@ def main():
         "limits": [
             "The first six stages retain separately admitted M1, M2, and M3 profiles. The final two stages prepare and execute the distinct held linked Project, without claiming that it is one public SDK profile.",
             "Build-and-consumer stage elapsed times include Cargo work and process startup; they are not route latency.",
-            "M2 retains matched 32-operation generic-record and stateful-callback batches for direct Rust, handwritten adapters, and generated Semaprax; M1 remains unavailable because no equivalent handwritten batch route exists.",
+            "M1 retains matched 4096-operation repeats of the held scalar Regex and Url exports across direct Rust, handwritten adapters, and generated Semaprax. It does not measure varying scan inputs, and Regex/Url foreign implementation copies remain unavailable.",
+            "M2 retains matched 32-operation generic-record and stateful-callback batches for direct Rust, handwritten adapters, and generated Semaprax.",
             "Scalar route timings include loopback HTTP and two-byte response parsing; the separate 64-operation batch rows retain their own normalized throughput and remain local evidence.",
             "Allocator values count current-thread requests and do not infer copies. The ledger records exact zero-byte scalar generated and host-callback payload boundaries, response wire bytes, and explicit unavailable cells for reqwest/HTTP/text/capture copies.",
             "The linked ledger measures only the generated Regex owner carrier, generated Serde mirror clone, and scalar iterator callback boundaries. Url::parse and serde_json deserialization retain unavailable copied-byte states.",

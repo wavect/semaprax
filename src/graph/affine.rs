@@ -9,7 +9,11 @@ fn requires(program: &ResolvedProgram) -> bool {
 }
 pub(crate) fn graph_schema(program: &ResolvedProgram) -> Result<&'static str, Diagnostic> {
     Ok(if requires(program) {
-        "semaprax.graph.v62"
+        if mixed(program) {
+            "semaprax.graph.v63"
+        } else {
+            "semaprax.graph.v62"
+        }
     } else {
         super::filesystem_outcome::graph_schema(program)?
     })
@@ -27,7 +31,14 @@ pub(crate) fn graph_schema_from_parts_and_instances(
             .chain(n.iter().map(|v| &v.function))
             .any(function_requires)
         {
-            "semaprax.graph.v62"
+            if f.iter()
+                .chain(n.iter().map(|v| &v.function))
+                .any(function_mixed)
+            {
+                "semaprax.graph.v63"
+            } else {
+                "semaprax.graph.v62"
+            }
         } else {
             prior
         },
@@ -59,19 +70,40 @@ pub(super) fn graph_json(
                 "checked graph header is not canonical",
             ));
         }
-        graph.replace_range(..prefix.len(), "{\"schema\":\"semaprax.graph.v62\"");
+        graph.replace_range(
+            ..prefix.len(),
+            if mixed(program) {
+                "{\"schema\":\"semaprax.graph.v63\""
+            } else {
+                "{\"schema\":\"semaprax.graph.v62\""
+            },
+        );
     }
     Ok(graph)
 }
 
 fn function_requires(function: &ResolvedFunction) -> bool {
-    let mut found = function.return_type == ResolvedType::OnceFunction
+    let mut found = function.return_type.is_once_function()
+        || function.params.iter().any(|p| p.ty.is_once_function());
+    hir::function_value::walk(function, |expr| found |= expr.ty.is_once_function());
+    found
+}
+
+fn function_mixed(function: &ResolvedFunction) -> bool {
+    let mut found = function.return_type == ResolvedType::OnceFunctionI64
         || function
             .params
             .iter()
-            .any(|p| p.ty == ResolvedType::OnceFunction);
+            .any(|p| p.ty == ResolvedType::OnceFunctionI64);
     hir::function_value::walk(function, |expr| {
-        found |= expr.ty == ResolvedType::OnceFunction
+        found |= expr.ty == ResolvedType::OnceFunctionI64
     });
     found
+}
+fn mixed(program: &ResolvedProgram) -> bool {
+    program
+        .functions
+        .iter()
+        .chain(program.function_instances.iter().map(|i| &i.function))
+        .any(function_mixed)
 }

@@ -51,7 +51,7 @@ fn resolve_lifecycle_binding(
 ) -> Result<Option<DeclarationId>, CleanupExecutionError> {
     if matches!(
         lifecycle.as_str(),
-        "core.bytes.drop" | "core.string.drop" | "core.fn_once.drop"
+        "core.bytes.drop" | "core.string.drop" | "core.fn_once.drop" | "core.fn_once_i64.drop.v2"
     ) {
         return Ok(None);
     }

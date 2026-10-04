@@ -65,6 +65,7 @@ pub(super) fn reject_aggregate_equality(
     if matches!(
         value.ty,
         Type::OnceFunction
+            | Type::OnceFunctionI64
             | Type::Function { .. }
             | Type::Named { .. }
             | Type::ArrayU8(_)

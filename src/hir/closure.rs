@@ -25,7 +25,7 @@ pub fn closure_function(
     };
     let result = match &expression.ty {
         ResolvedType::Function { result, .. } => result.as_ref(),
-        ResolvedType::OnceFunction => &ResolvedType::I64,
+        ResolvedType::OnceFunction | ResolvedType::OnceFunctionI64 => &ResolvedType::I64,
         _ => return Err(hir_error("closure has no callable signature")),
     };
     let id = closure_id(&expression.id);
@@ -82,6 +82,10 @@ pub fn inventory(program: &ResolvedProgram) -> Vec<&ResolvedExpr> {
     }
     found.sort_by(|left, right| left.id.cmp(&right.id));
     found
+}
+
+pub(crate) fn requires_runtime_closures(program: &ResolvedProgram) -> bool {
+    requires_closures(program) || once::requires_bytes(program)
 }
 
 pub fn requires_closures(program: &ResolvedProgram) -> bool {

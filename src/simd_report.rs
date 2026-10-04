@@ -343,7 +343,6 @@ pub fn generate(
     patch::validate_source_unchanged(&canonical_source_path, source_path, &snapshot, &revision)?;
     Ok(envelope)
 }
-
 /// Closed AST-level function admission gate.
 fn admission(function: &Function) -> Option<&'static str> {
     if !function.explicit_id {
@@ -368,7 +367,6 @@ fn admission(function: &Function) -> Option<&'static str> {
     }
     None
 }
-
 /// The report's primitive-scalar surface: exactly these element types are
 /// analyzed; `bool` and `char` signatures are admitted but their operations
 /// can never join a numeric lane region.
@@ -383,7 +381,9 @@ fn scalar_type_name(ty: &Type) -> Option<&'static str> {
         Type::Bool => Some("bool"),
         Type::Char => Some("char"),
         Type::String | Type::Str | Type::SliceU8 | Type::ArrayU8(_) | Type::Bytes => None,
-        Type::OnceFunction | Type::Function { .. } | Type::Named { .. } => None,
+        Type::OnceFunction | Type::OnceFunctionI64 | Type::Function { .. } | Type::Named { .. } => {
+            None
+        }
     }
 }
 

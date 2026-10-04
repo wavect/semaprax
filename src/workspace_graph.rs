@@ -5313,7 +5313,6 @@ fn validate_uses(
     }
     Ok(())
 }
-
 fn signature_type_is_admitted(
     module: &str,
     ty: &Type,
@@ -5337,6 +5336,7 @@ fn signature_type_is_admitted(
         | Type::ArrayU8(_)
         | Type::Bytes
         | Type::OnceFunction
+        | Type::OnceFunctionI64
         | Type::Function { .. } => false,
         Type::Named { name, arguments } if arguments.is_empty() => {
             let Some(target_id) = resolve_type_id(module, name, programs) else {
@@ -5460,7 +5460,11 @@ fn exposed_type_reference_is_directly_imported(
         | Type::Bool
         | Type::String
         | Type::Str => true,
-        Type::SliceU8 | Type::ArrayU8(_) | Type::OnceFunction | Type::Function { .. } => false,
+        Type::SliceU8
+        | Type::ArrayU8(_)
+        | Type::OnceFunction
+        | Type::OnceFunctionI64
+        | Type::Function { .. } => false,
         Type::Bytes => true,
         Type::Named { name, arguments } if arguments.is_empty() => {
             let Some(target_id) = resolve_type_id(module, name, programs) else {
@@ -5537,7 +5541,11 @@ fn type_reference_is_admitted(
         | Type::Bool
         | Type::String
         | Type::Str => true,
-        Type::SliceU8 | Type::ArrayU8(_) | Type::OnceFunction | Type::Function { .. } => false,
+        Type::SliceU8
+        | Type::ArrayU8(_)
+        | Type::OnceFunction
+        | Type::OnceFunctionI64
+        | Type::Function { .. } => false,
         Type::Bytes => true,
         Type::Named { name, arguments } if arguments.is_empty() => {
             let Some(program) = programs.iter().find(|item| item.module == module) else {

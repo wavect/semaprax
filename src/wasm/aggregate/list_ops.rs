@@ -38,7 +38,7 @@ pub(in crate::wasm) fn emit_closed_list(
         && !crate::wasm::program_uses_vec(program)
         && !crate::wasm::program_uses_box(program)
         && !crate::wasm::program_uses_strings(program)
-        && !crate::hir::closure::requires_closures(program);
+        && !crate::hir::closure::requires_runtime_closures(program);
     if !closed {
         return Err(Diagnostic::io(
             "SPX-W130",

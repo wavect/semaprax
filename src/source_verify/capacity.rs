@@ -204,7 +204,6 @@ pub(super) fn source_transcript_frame_scratch_peak() -> (usize, usize) {
         SOURCE_TRANSCRIPT_ROOT_REF_PEAK.with(std::cell::Cell::get),
     )
 }
-
 fn source_array_payload(types: &TypeTable<'_>, ty: &Type) -> Result<u32, ()> {
     let mut total = 0_u32;
     let mut pending = vec![ty.clone()];
@@ -236,6 +235,7 @@ fn source_array_payload(types: &TypeTable<'_>, ty: &Type) -> Result<u32, ()> {
             | Type::Str
             | Type::SliceU8
             | Type::OnceFunction
+            | Type::OnceFunctionI64
             | Type::Function { .. } => {}
         }
     }

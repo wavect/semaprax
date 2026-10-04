@@ -13,7 +13,7 @@ use super::{backend_error, c_value_type, COutput, NativeEmissionContext};
 pub(super) const CAPTURE_SLOTS: usize = 8;
 
 pub(super) fn enabled(program: &hir::ResolvedProgram) -> bool {
-    hir::closure::requires_closures(program)
+    hir::closure::requires_runtime_closures(program)
 }
 
 pub(super) fn carrier_type(ty: &ResolvedType) -> Result<String, Diagnostic> {
@@ -63,11 +63,11 @@ pub(super) fn emit_carrier_declarations(
     output.push_str("static __attribute__((unused)) float spx_closure_unpack_f32(uint64_t cell) { float value; memcpy(&value, &cell, sizeof value); return value; }\n");
     output.push_str("static __attribute__((unused)) uint64_t spx_closure_pack_f64(double value) { uint64_t cell; memcpy(&cell, &value, sizeof value); return cell; }\n");
     output.push_str("static __attribute__((unused)) double spx_closure_unpack_f64(uint64_t cell) { double value; memcpy(&value, &cell, sizeof value); return value; }\n\n");
-    if hir::closure::inventory(program)
-        .iter()
-        .any(|e| e.ty == ResolvedType::OnceFunction)
-    {
+    if hir::closure::once::uses_type(program, &ResolvedType::OnceFunction) {
         super::once::declarations(output);
+    }
+    if hir::closure::once::uses_type(program, &ResolvedType::OnceFunctionI64) {
+        super::once::mixed_declarations(output);
     }
     let mut signatures = std::collections::BTreeMap::new();
     for function in program
@@ -189,8 +189,8 @@ fn write_thunk_signature(
     ty: &ResolvedType,
     names: bool,
 ) -> Result<(), Diagnostic> {
-    if ty == &ResolvedType::OnceFunction {
-        super::once::signature(output, symbol);
+    if ty.is_once_function() {
+        super::once::signature(output, symbol, ty);
         return Ok(());
     }
     let ResolvedType::Function { parameters, result } = ty else {
@@ -280,7 +280,7 @@ pub(super) fn emit_thunks(
     emission: &NativeEmissionContext<'_>,
 ) -> Result<(), Diagnostic> {
     for expression in hir::closure::inventory(program) {
-        if expression.ty == ResolvedType::OnceFunction {
+        if expression.ty.is_once_function() {
             super::once::thunk(output, expression, emission)?;
             continue;
         }

@@ -236,6 +236,7 @@ impl<'a> TypeTable<'a> {
                     Type::Bool => resolved.push(Type::Bool),
                     Type::String => resolved.push(Type::String),
                     Type::OnceFunction => resolved.push(Type::OnceFunction),
+                    Type::OnceFunctionI64 => resolved.push(Type::OnceFunctionI64),
                     Type::Bytes => resolved.push(Type::Bytes),
                     Type::Str => resolved.push(Type::Str),
                     Type::SliceU8 => resolved.push(Type::SliceU8),
@@ -322,6 +323,7 @@ impl<'a> TypeTable<'a> {
             | Type::Str
             | Type::SliceU8
             | Type::OnceFunction
+            | Type::OnceFunctionI64
             | Type::Function { .. } => false,
             Type::Named { name, arguments } => {
                 if !visiting.insert(name.clone()) {
@@ -423,7 +425,9 @@ impl<'a> TypeTable<'a> {
                     visiting.remove(&instance);
                 }
                 Frame::Enter(ty) => match ty {
-                    Type::String | Type::Bytes | Type::OnceFunction => return true,
+                    Type::String | Type::Bytes | Type::OnceFunction | Type::OnceFunctionI64 => {
+                        return true
+                    }
                     Type::Named { name, arguments } => {
                         if crate::iterator_ops::ast_is_iterator(&Type::Named {
                             name: name.clone(),
@@ -511,7 +515,7 @@ impl<'a> TypeTable<'a> {
         let mut visited = HashSet::new();
         while let Some(current) = pending.pop() {
             match current {
-                Type::Bytes | Type::OnceFunction => return true,
+                Type::Bytes | Type::OnceFunction | Type::OnceFunctionI64 => return true,
                 Type::Named { name, arguments } => {
                     let identity = Type::Named {
                         name: name.clone(),
@@ -986,6 +990,7 @@ pub(super) fn classify_nested_owned_byte_record(
                 | Type::Str
                 | Type::SliceU8
                 | Type::OnceFunction
+                | Type::OnceFunctionI64
                 | Type::Function { .. },
                 _,
             ) => {

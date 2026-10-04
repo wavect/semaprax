@@ -386,6 +386,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             | Type::Str
             | Type::SliceU8
             | Type::OnceFunction
+            | Type::OnceFunctionI64
             | Type::Function { .. }
             | Type::Named { .. } => None,
         });

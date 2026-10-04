@@ -72,6 +72,7 @@ pub(super) fn authenticate(
 
     let expected = match function.return_type {
         Type::OnceFunction => ResolvedType::OnceFunction,
+        Type::OnceFunctionI64 => ResolvedType::OnceFunctionI64,
         Type::Bytes => ResolvedType::Bytes,
         Type::String => ResolvedType::String,
         _ => unreachable!(),
@@ -310,6 +311,7 @@ fn source_type(
         Type::Bool => ResolvedType::Bool,
         Type::String => ResolvedType::String,
         Type::OnceFunction => ResolvedType::OnceFunction,
+        Type::OnceFunctionI64 => ResolvedType::OnceFunctionI64,
         Type::Bytes => ResolvedType::Bytes,
         Type::Str => ResolvedType::Str,
         Type::SliceU8 => ResolvedType::SliceU8,

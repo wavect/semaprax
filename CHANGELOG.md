@@ -1,5 +1,9 @@
 # Changelog
 
+- RI-08: add a distinct private `FnOnceI64() -> i64` source profile for retained
+  owned Bytes plus immutable i64 captures, with graph v63, versioned cleanup
+  identities, and aligned interpreter, C, Core Wasm and generated Rust carriers.
+
 - Add a bounded RI-08 same-thread foreign-registration lease to the generated
   affine FnOnce() -> i64 Rust projection. A physical Rust consumer retains
   the source-created environment inside a stateful safe registry, dispatches it

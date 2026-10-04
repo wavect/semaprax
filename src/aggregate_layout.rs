@@ -262,7 +262,9 @@ fn layout_type(
             let (size, align) = scalar_size_align(target, ty)?;
             scalar_layout(target, ty, size, align)
         }
-        ResolvedType::OnceFunction | ResolvedType::Function { .. } => Err(layout_error(
+        ResolvedType::OnceFunction
+        | ResolvedType::OnceFunctionI64
+        | ResolvedType::Function { .. } => Err(layout_error(
             "function values cannot appear in executable aggregate layouts v1",
         )),
         ResolvedType::ArrayU8(length) => Ok(ValueLayout {
@@ -551,6 +553,7 @@ fn concrete_layout_instance_is_admitted(
                 | ResolvedType::SliceU8
                 | ResolvedType::TypeParameter { .. }
                 | ResolvedType::OnceFunction
+                | ResolvedType::OnceFunctionI64
                 | ResolvedType::Function { .. },
                 _,
             ) => return false,

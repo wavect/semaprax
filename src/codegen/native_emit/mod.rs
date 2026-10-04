@@ -174,7 +174,7 @@ fn emit_hir_c_with_options(
         &record_layouts,
         &variant_layouts,
     )?;
-    if hir::closure::requires_closures(program) {
+    if hir::closure::requires_runtime_closures(program) {
         closure::emit_carrier_declarations(&mut output, program, &resource_abi)?;
     }
     function_value::emit_typedefs(&mut output, program, &resource_abi)?;
@@ -522,11 +522,11 @@ fn emit_native_prelude_inner(
     }
 }
 fn program_uses_byte_data(program: &ResolvedProgram) -> bool {
-    if crate::iterator_ops::resolved_program_uses_owned_iterator(program) {
+    let affine = hir::closure::once::requires_bytes(program);
+    if affine || crate::iterator_ops::resolved_program_uses_owned_iterator(program) {
         return true;
     }
-    // The owned-record element owns two `Bytes` leaves, so its carrier runtime
-    // needs the byte-data runtime even in a program that never names `Bytes`.
+    // Owned-record elements require byte runtime even without a named Bytes slot.
     if crate::hir::owned_record_collection::program_uses_profile(program) {
         return true;
     }
@@ -1015,8 +1015,8 @@ fn c_value_type(
     resource_abi: &native_resource::NativeResourceAbi,
     ty: &ResolvedType,
 ) -> Result<String, Diagnostic> {
-    if matches!(ty, ResolvedType::OnceFunction) {
-        Ok("spx_once_v1".to_owned())
+    if ty.is_once_function() {
+        Ok(once::c_type(ty).to_owned())
     } else if crate::list_ops::is_list(ty) {
         Ok("spx_list_v1".to_owned())
     } else if matches!(ty, ResolvedType::Function { .. }) {

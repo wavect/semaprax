@@ -46,7 +46,9 @@ impl NativeResourceAbi {
             ResolvedType::Unit => Err(resource_error(
                 "unit has no ordinary native value representation",
             )),
-            ResolvedType::OnceFunction | ResolvedType::Function { .. } => Err(resource_error(
+            ResolvedType::OnceFunction
+            | ResolvedType::OnceFunctionI64
+            | ResolvedType::Function { .. } => Err(resource_error(
                 "function values require the ordinary native function-value emitter",
             )),
             ResolvedType::I64 => Ok("int64_t"),

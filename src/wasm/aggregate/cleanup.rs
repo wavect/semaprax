@@ -8,7 +8,10 @@ impl Emitter<'_> {
         actions: &[crate::cleanup_plan::FinalizeAction],
     ) -> Result<(), Diagnostic> {
         for action in actions {
-            if action.lifecycle_id.as_str() == crate::hir::closure::once::DROP_ID {
+            if matches!(
+                action.lifecycle_id.as_str(),
+                crate::hir::closure::once::DROP_ID | crate::hir::closure::once::MIXED_DROP_ID
+            ) {
                 self.emit_once_cleanup(action)?;
                 continue;
             }
@@ -439,7 +442,7 @@ impl Emitter<'_> {
         let value = self.cleanup_value_at(&action.source)?;
         let Value::Aggregate {
             pointer,
-            ty: ResolvedType::OnceFunction,
+            ty: ResolvedType::OnceFunction | ResolvedType::OnceFunctionI64,
         } = value
         else {
             return Err(error(

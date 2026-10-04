@@ -17,6 +17,7 @@ pub(super) fn type_contains_name_from(ty: &Type, names: &BTreeSet<&str>) -> bool
         | Type::ArrayU8(_)
         | Type::Bytes
         | Type::OnceFunction
+        | Type::OnceFunctionI64
         | Type::Function { .. } => false,
         Type::Named { name, arguments } => {
             names.contains(name.as_str())

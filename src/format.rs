@@ -1158,6 +1158,9 @@ pub(crate) fn write_type(output: &mut impl std::fmt::Write, ty: &crate::ast::Typ
             Frame::Type(crate::ast::Type::Bool) => output.write_str("bool").unwrap(),
             Frame::Type(crate::ast::Type::String) => output.write_str("string").unwrap(),
             Frame::Type(crate::ast::Type::Bytes) => output.write_str("Bytes").unwrap(),
+            Frame::Type(crate::ast::Type::OnceFunctionI64) => {
+                output.write_str("FnOnceI64() -> i64").unwrap()
+            }
             Frame::Type(crate::ast::Type::OnceFunction) => {
                 output.write_str("FnOnce() -> i64").unwrap()
             }

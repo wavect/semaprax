@@ -443,6 +443,7 @@ pub(super) fn oracle_match(
         | Type::Str
         | Type::SliceU8
         | Type::OnceFunction
+        | Type::OnceFunctionI64
         | Type::Function { .. }
         | Type::Named { .. } => None,
     });

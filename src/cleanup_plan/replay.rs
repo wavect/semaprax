@@ -1652,7 +1652,7 @@ fn collect_expression_statuses(
             });
         }
         match &expression.kind {
-            ResolvedExprKind::Closure { .. } if expression.ty != ResolvedType::OnceFunction => {}
+            ResolvedExprKind::Closure { .. } if !expression.ty.is_once_function() => {}
             ResolvedExprKind::FunctionReference { .. } => {}
             ResolvedExprKind::ByteRange { operation, .. } => {
                 if operation.as_str() != crate::byte_ops::RANGE_ID {
@@ -2742,6 +2742,7 @@ fn validate_exits(
                             | ResolvedType::Bytes
                             | ResolvedType::String
                             | ResolvedType::OnceFunction
+                            | ResolvedType::OnceFunctionI64
                     ) || !type_needs_drop(program, function, &function.return_type)?
                         || result.storage != StorageId::ProvisionalResult
                         || !result.projections.is_empty()
@@ -3298,9 +3299,7 @@ fn expression_skeleton(
                 }
 
                 match &expression.kind {
-                    ResolvedExprKind::Closure { .. }
-                        if expression.ty != ResolvedType::OnceFunction =>
-                    {
+                    ResolvedExprKind::Closure { .. } if !expression.ty.is_once_function() => {
                         produced = Some(
                             work.singleton_path(empty_expr_path(), "copy closure skeleton path")?,
                         );
@@ -4907,6 +4906,7 @@ fn validate_match_skeleton_shape(
         | ResolvedType::SliceU8
         | ResolvedType::TypeParameter { .. }
         | ResolvedType::OnceFunction
+        | ResolvedType::OnceFunctionI64
         | ResolvedType::Function { .. } => false,
     };
     let is_variant = match &scrutinee.ty {

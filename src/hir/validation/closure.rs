@@ -12,7 +12,7 @@ impl HirValidator<'_> {
         let ResolvedExprKind::Closure { captures, .. } = &expression.kind else {
             unreachable!()
         };
-        let affine = expression.ty == ResolvedType::OnceFunction;
+        let affine = expression.ty.is_once_function();
         if affine && !allow_moves {
             return Err(hir_error(
                 "affine construction cannot consume in a contract",
@@ -36,7 +36,10 @@ impl HirValidator<'_> {
             }
             if scope.get(&place.root).is_none_or(|binding| {
                 binding.ty != capture.value.ty
-                    || binding.ownership != ownership
+                    || binding.ownership != capture.value.ownership
+                    || (expression.ty == ResolvedType::OnceFunctionI64
+                        && index == 1
+                        && mixed_capture_is_mutable(self.program, &place.root))
                     || binding.availability != Availability::Available
             }) {
                 return Err(hir_error(
@@ -45,7 +48,10 @@ impl HirValidator<'_> {
             }
         }
         if affine {
-            for capture in captures {
+            for capture in captures
+                .iter()
+                .filter(|c| c.value.ownership == OwnershipMode::Own)
+            {
                 self.mark_value_sources_moved(&capture.value, scope)?;
             }
         }
@@ -131,7 +137,7 @@ impl HirValidator<'_> {
         allow_moves: bool,
     ) -> Result<(), Diagnostic> {
         if let ResolvedExprKind::Invoke { callable, .. } = &expression.kind {
-            if callable.ty == ResolvedType::OnceFunction {
+            if callable.ty.is_once_function() {
                 if !allow_moves {
                     return Err(hir_error("affine invocation cannot consume in a contract"));
                 }
@@ -140,4 +146,16 @@ impl HirValidator<'_> {
         }
         Ok(())
     }
+}
+
+fn mixed_capture_is_mutable(program: &ResolvedProgram, root: &ValueId) -> bool {
+    program.functions.iter().any(|function| {
+        let mut found = false;
+        super::super::function_value::walk(function, |expression| {
+            if let ResolvedExprKind::Block { statements, .. } = &expression.kind {
+                found |= statements.iter().any(|statement| matches!(statement, ResolvedStatement::Let { binding, mutable: true, .. } if &binding.id == root));
+            }
+        });
+        found
+    })
 }

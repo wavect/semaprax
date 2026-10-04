@@ -724,7 +724,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             } => self.emit_byte_range_expr(expr, operation, source, start, end),
             ResolvedExprKind::HostCommandCall(_) => self.emit_host_command_expr(expr),
             ResolvedExprKind::Call { .. } => self.emit_call_expr(expr),
-            ResolvedExprKind::Closure { .. } if expr.ty == ResolvedType::OnceFunction => {
+            ResolvedExprKind::Closure { .. } if expr.ty.is_once_function() => {
                 super::once::construct(self, expr)
             }
             ResolvedExprKind::Closure { captures, .. } => {
@@ -1022,8 +1022,8 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                             format!("spx_box_move(spx_ctx, &{value})")
                         } else if is_vec {
                             format!("spx_vec_move(spx_ctx, &{value})")
-                        } else if matches!(expected, ResolvedType::OnceFunction) {
-                            format!("spx_once_move(&{value})")
+                        } else if expected.is_once_function() {
+                            super::owned_moves::owned_move(expected, &value)
                         } else if matches!(expected, ResolvedType::String) {
                             value.to_owned()
                         } else {

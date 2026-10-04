@@ -6,6 +6,7 @@ use super::ByteSlot;
 pub(super) enum OwnedLeafKind {
     Bytes,
     Once,
+    OnceI64,
     String,
     Vec,
     Box,
@@ -16,6 +17,7 @@ impl OwnedLeafKind {
     pub(super) fn c_type(self) -> &'static str {
         match self {
             Self::Once => "spx_once_v1",
+            Self::OnceI64 => "spx_once_i64_v2",
             Self::Bytes => "spx_bytes_v1",
             Self::String => "char *",
             Self::Vec => "spx_vec_v1",
@@ -27,6 +29,7 @@ impl OwnedLeafKind {
     pub(super) fn move_call(self, source: &str) -> String {
         match self {
             Self::Once => format!("spx_once_move(&{source})"),
+            Self::OnceI64 => format!("spx_once_i64_move_v2(&{source})"),
             Self::Bytes => format!("spx_bytes_move(&{source})"),
             Self::String => source.to_owned(),
             Self::Vec => format!("spx_vec_move(spx_ctx, &{source})"),
@@ -38,6 +41,7 @@ impl OwnedLeafKind {
     pub(super) fn drop_call(self, value: &str) -> String {
         match self {
             Self::Once => format!("spx_once_drop(&{value})"),
+            Self::OnceI64 => format!("spx_once_i64_drop_v2(&{value})"),
             Self::Bytes => format!("spx_bytes_drop(&{value})"),
             Self::String => format!("spx_string_drop({value})"),
             Self::Vec => format!("spx_vec_drop(spx_ctx, &{value})"),

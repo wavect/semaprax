@@ -24,7 +24,10 @@ pub(in crate::codegen) fn is_native_owned_vec_type(
 pub(super) fn is_direct_plan_owned(program: &ResolvedProgram, ty: &ResolvedType) -> bool {
     matches!(
         ty,
-        ResolvedType::Bytes | ResolvedType::String | ResolvedType::OnceFunction
+        ResolvedType::Bytes
+            | ResolvedType::String
+            | ResolvedType::OnceFunction
+            | ResolvedType::OnceFunctionI64
     ) || is_native_owned_vec_type(program, ty)
         || crate::cleanup::is_owned_bounded_box_type(ty)
         || crate::iterator_ops::is_iter(ty)

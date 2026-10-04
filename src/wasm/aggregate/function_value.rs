@@ -63,7 +63,7 @@ pub(super) fn table_plan(program: &ResolvedProgram) -> Result<TablePlan, Diagnos
     }
     targets.sort_by(|left, right| left.id.cmp(&right.id));
     Ok(TablePlan {
-        closure_profile: !bodies.is_empty(),
+        closure_profile: crate::hir::closure::requires_runtime_closures(program),
         targets,
         bodies,
         captures,
@@ -75,7 +75,7 @@ pub(super) fn abi_signature(
     program: &ResolvedProgram,
     signature: &ResolvedType,
 ) -> Result<Signature, Diagnostic> {
-    if signature == &ResolvedType::OnceFunction {
+    if signature.is_once_function() {
         return Ok(Signature {
             params: vec![I32],
             results: vec![I32],
@@ -140,7 +140,9 @@ pub(super) fn execution_target(target: &ResolvedFunction) -> FunctionExecutionId
 
 pub(super) fn callable_signature(expr: &ResolvedExpr) -> Result<&ResolvedType, Diagnostic> {
     match &expr.ty {
-        ResolvedType::Function { .. } | ResolvedType::OnceFunction => Ok(&expr.ty),
+        ResolvedType::Function { .. }
+        | ResolvedType::OnceFunction
+        | ResolvedType::OnceFunctionI64 => Ok(&expr.ty),
         _ => Err(error(
             "aggregate function invocation callable is not a function",
         )),
@@ -183,7 +185,9 @@ impl super::Emitter<'_> {
             ResolvedType::Function { parameters, result } => {
                 (parameters.as_slice(), result.as_ref())
             }
-            ResolvedType::OnceFunction => (&[][..], &ResolvedType::I64),
+            ResolvedType::OnceFunction | ResolvedType::OnceFunctionI64 => {
+                (&[][..], &ResolvedType::I64)
+            }
             _ => unreachable!(),
         };
         if parameters.len() != args.len() || *result != expr.ty {

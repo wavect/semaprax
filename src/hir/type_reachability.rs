@@ -616,9 +616,12 @@ fn classify_nested_owned_byte_record(
 
     while let Some(frame) = frames.pop() {
         match frame {
-            Frame::Type(ResolvedType::OnceFunction | ResolvedType::Function { .. }, _) => {
-                return NestedOwnedRecordAdmission::OutsideProfile
-            }
+            Frame::Type(
+                ResolvedType::OnceFunction
+                | ResolvedType::OnceFunctionI64
+                | ResolvedType::Function { .. },
+                _,
+            ) => return NestedOwnedRecordAdmission::OutsideProfile,
             Frame::Type(ResolvedType::Bytes, _) => {
                 byte_paths.push(path.clone());
                 if byte_paths.len() > MAX_NESTED_OWNED_BYTE_LEAVES {

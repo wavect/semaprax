@@ -55,6 +55,7 @@ impl Representation {
             ResolvedType::Usize => Some(Self::U64),
             ResolvedType::String => Some(Self::Text),
             ResolvedType::OnceFunction
+            | ResolvedType::OnceFunctionI64
             | ResolvedType::Function { .. }
             | ResolvedType::Unit
             | ResolvedType::Char

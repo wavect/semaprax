@@ -106,3 +106,150 @@ fn affine_capture_rejects_reuse_and_unsupported_signatures_before_codegen() {
         );
     }
 }
+
+fn mixed_source() -> String {
+    SOURCE
+        .replace("FnOnce()", "FnOnceI64()")
+        .replace(
+            "consume(payload: own Bytes) -> i64 { 42 }",
+            "consume(payload: own Bytes, offset: i64) -> i64 { offset + 2 }",
+        )
+        .replace("fn make()", "fn make(offset: i64)")
+        .replace("consume(payload) }", "consume(payload, offset) }")
+        .replace("make();", "make(40);")
+}
+
+#[test]
+fn mixed_affine_capture_retains_scalar_and_owner_on_all_backends() {
+    assert!(command_available("clang") && command_available("node"));
+    for (label, source, expected) in [
+        ("mixed-called", mixed_source(), 42),
+        (
+            "mixed-other-snapshot",
+            mixed_source().replace("make(40)", "make(17)"),
+            19,
+        ),
+        (
+            "mixed-unused",
+            mixed_source().replace("    run(moved)", "    99"),
+            99,
+        ),
+    ] {
+        let program = checked_program(&source, label);
+        let canonical = semaprax::format::canonical(&program);
+        assert!(canonical.contains("FnOnceI64() -> i64"));
+        assert_eq!(
+            canonical,
+            semaprax::format::canonical(&checked_program(&canonical, label))
+        );
+        let graph = semaprax::graph::to_json(&program).unwrap();
+        semaprax::graph::verify_json(&program, &graph).unwrap();
+        for fact in [
+            "semaprax.graph.v63",
+            "bytes-i64-to-i64.v2",
+            "core.fn_once_i64.construct.v2",
+            "core.fn_once_i64.invoke.v2",
+            "core.fn_once_i64.drop.v2",
+        ] {
+            assert!(graph.contains(fact), "missing {fact}");
+        }
+        let c = codegen::emit_c(&program).unwrap();
+        assert_eq!(run_interpreter(&source, label), expected);
+        for optimization in ["-O0", "-O2"] {
+            assert_eq!(run_native(&c, optimization, label, 36801), (expected, 1, 1));
+        }
+        assert_eq!(run_core_wasm(&program, label), (expected, 1, 1));
+    }
+}
+
+#[test]
+fn mixed_affine_capture_rejects_schema_drift_mutability_and_reuse() {
+    for (source, code) in [
+        (
+            mixed_source().replace("    run(moved)", "    let first = run(moved); run(moved)"),
+            "SPX-O101",
+        ),
+        (
+            mixed_source().replace(
+                "once fn() -> i64 { consume(payload, offset) }",
+                "once fn() -> i64 { consume(payload, offset + 1) }",
+            ),
+            "SPX-T308",
+        ),
+        (
+            mixed_source()
+                .replace(
+                    "let payload = bytes_zeroed",
+                    "let mut mutable_offset = offset; let payload = bytes_zeroed",
+                )
+                .replace(
+                    "consume(payload, offset)",
+                    "consume(payload, mutable_offset)",
+                ),
+            "SPX-T308",
+        ),
+        (
+            mixed_source().replace("callback: own FnOnceI64", "callback: FnOnceI64"),
+            "SPX-T308",
+        ),
+    ] {
+        let errors = semaprax::check(&source, "mixed-negative.spx").unwrap_err();
+        assert!(errors.iter().any(|e| e.code == code), "{errors:?}");
+    }
+    let source = mixed_source().replace("FnOnceI64()", "FnOnce()");
+    assert!(semaprax::check(&source, "mixed-wrong-type.spx").is_err());
+    let program = checked_program(&mixed_source(), "mixed-hostile");
+    let graph = semaprax::graph::to_json(&program).unwrap();
+    assert!(semaprax::graph::verify_json(
+        &program,
+        &graph.replace("bytes-i64-to-i64.v2", "bytes-to-i64.v1")
+    )
+    .is_err());
+}
+
+#[test]
+fn mixed_affine_capture_hir_replay_refuses_wrong_scalar_and_cleanup_identity() {
+    use semaprax::hir::{ResolvedExprKind, ResolvedType};
+    let checked = checked_program(&mixed_source(), "mixed-hir");
+    let original = semaprax::hir::resolve(&checked).unwrap();
+    semaprax::hir::validate(&original).unwrap();
+    for mutation in 0..3 {
+        let mut hostile = original.clone();
+        let factory = hostile
+            .functions
+            .iter_mut()
+            .find(|f| f.id.as_str() == "once.make")
+            .unwrap();
+        let ResolvedExprKind::Block { tail, .. } = &mut factory.body.kind else {
+            panic!("factory block");
+        };
+        let ResolvedExprKind::Closure { captures, .. } = &mut tail.kind else {
+            panic!("factory closure");
+        };
+        match mutation {
+            0 => captures[1].value.ty = ResolvedType::Bool,
+            1 => captures[1].binding.id = captures[0].binding.id.clone(),
+            _ => tail.ty = ResolvedType::OnceFunction,
+        }
+        assert!(
+            semaprax::hir::validate(&hostile).is_err(),
+            "accepted mutation {mutation}"
+        );
+    }
+}
+
+#[test]
+fn affine_capture_unused_parameter_helpers_select_the_owned_runtime() {
+    for signature in ["FnOnce", "FnOnceI64"] {
+        let source = format!(
+            r#"module test.affine_unused;
+@id("once.run") fn run(callback: own {signature}() -> i64) -> i64 {{ callback() }}
+@id("app.main") fn main() -> i64 {{ 42 }}
+"#
+        );
+        let program = checked_program(&source, "unused-affine-parameter");
+        let c = codegen::emit_c(&program).unwrap();
+        assert_eq!(run_native(&c, "-O2", signature, 36802), (42, 0, 0));
+        assert_eq!(run_core_wasm(&program, signature), (42, 0, 0));
+    }
+}

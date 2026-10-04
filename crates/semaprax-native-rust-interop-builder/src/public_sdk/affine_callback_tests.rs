@@ -28,6 +28,23 @@ impl Drop for Temp {
 
 #[test]
 fn affine_capture_rust_consumer_retains_source_owner_and_invokes_actual_body() {
+    physical_consumer(SOURCE);
+}
+
+#[test]
+fn mixed_affine_capture_rust_consumer_retains_source_owner_and_snapshot() {
+    let source = SOURCE
+        .replace("FnOnce()", "FnOnceI64()")
+        .replace(
+            "consume(payload: own Bytes) -> i64 { 42 }",
+            "consume(payload: own Bytes, offset: i64) -> i64 { offset + 2 }",
+        )
+        .replace("let payload =", "let offset = 40; let payload =")
+        .replace("consume(payload) }", "consume(payload, offset) }");
+    physical_consumer(&source);
+}
+
+fn physical_consumer(source: &str) {
     let root = Temp(std::env::temp_dir().join(format!(
         "spx-affine-rust-{}-{}",
         std::process::id(),
@@ -37,20 +54,37 @@ fn affine_capture_rust_consumer_retains_source_owner_and_invokes_actual_body() {
     let rustc = std::env::var_os("RUSTC").unwrap_or_else(|| "rustc".into());
     let clang = std::env::var_os("CLANG").unwrap_or_else(|| "clang".into());
     for (label, source, main, expected_success) in [
-        ("correct", SOURCE.to_owned(), MAIN, true),
-        ("flipped", SOURCE.replace("{ 42 }", "{ 43 }"), MAIN, false),
+        ("correct", source.to_owned(), MAIN, true),
+        (
+            "flipped",
+            source
+                .replace("{ 42 }", "{ 43 }")
+                .replace("offset + 2", "offset + 3"),
+            MAIN,
+            false,
+        ),
         (
             "call-failure",
-            SOURCE.replace("-> i64 { 42 }", "-> i64 ensures false { 42 }"),
+            source
+                .replace("-> i64 { 42 }", "-> i64 ensures false { 42 }")
+                .replace(
+                    "-> i64 { offset + 2 }",
+                    "-> i64 ensures false { offset + 2 }",
+                ),
             CALL_FAILURE,
             true,
         ),
         (
             "factory-failure",
-            SOURCE.replace(
-                "fn make() -> FnOnce() -> i64 {",
-                "fn make() -> FnOnce() -> i64 ensures false {",
-            ),
+            source
+                .replace(
+                    "fn make() -> FnOnce() -> i64 {",
+                    "fn make() -> FnOnce() -> i64 ensures false {",
+                )
+                .replace(
+                    "fn make() -> FnOnceI64() -> i64 {",
+                    "fn make() -> FnOnceI64() -> i64 ensures false {",
+                ),
             CREATE_FAILURE,
             true,
         ),

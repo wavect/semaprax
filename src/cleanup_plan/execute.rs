@@ -1448,13 +1448,17 @@ impl<'a> Executor<'a> {
                 ResolvedType::Nominal { .. }
                 | ResolvedType::Bytes
                 | ResolvedType::String
-                | ResolvedType::OnceFunction,
+                | ResolvedType::OnceFunction
+                | ResolvedType::OnceFunctionI64,
             ) => storage.storage == StorageId::ProvisionalResult && storage.projections.is_empty(),
             (CleanupResultSource::Scalar { .. }, ResolvedType::Nominal { .. })
             | (CleanupResultSource::Scalar { .. }, ResolvedType::Unit)
             | (CleanupResultSource::Scalar { .. }, ResolvedType::String)
             | (CleanupResultSource::Scalar { .. }, ResolvedType::Bytes)
-            | (CleanupResultSource::Scalar { .. }, ResolvedType::OnceFunction)
+            | (
+                CleanupResultSource::Scalar { .. },
+                ResolvedType::OnceFunction | ResolvedType::OnceFunctionI64,
+            )
             | (CleanupResultSource::Scalar { .. }, ResolvedType::Str)
             | (CleanupResultSource::Scalar { .. }, ResolvedType::SliceU8)
             | (CleanupResultSource::Owned { .. }, ResolvedType::Unit)

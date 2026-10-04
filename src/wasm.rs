@@ -976,7 +976,7 @@ fn emit_resolved_module_internal(
         ));
     }
     hir::validate(program)?;
-    if hir::closure::requires_closures(program) {
+    if hir::closure::requires_runtime_closures(program) {
         if !text_exports.is_empty() {
             return Err(Diagnostic::io(
                 "SPX-W115",
@@ -4628,7 +4628,6 @@ fn emit_i32_checked_binary(
     output.push(0xa7);
     Ok(())
 }
-
 fn wasm_type(ty: &ResolvedType) -> Result<u8, Diagnostic> {
     match ty {
         ResolvedType::Unit => Err(Diagnostic::io(
@@ -4645,6 +4644,7 @@ fn wasm_type(ty: &ResolvedType) -> Result<u8, Diagnostic> {
         ResolvedType::Bool
         | ResolvedType::Nominal { .. }
         | ResolvedType::OnceFunction
+        | ResolvedType::OnceFunctionI64
         | ResolvedType::Function { .. } => Ok(I32),
         // Owned strings lower to an abstract host handle riding the i64 lane.
         ResolvedType::String | ResolvedType::Str | ResolvedType::SliceU8 | ResolvedType::Bytes => {

@@ -337,7 +337,7 @@ pub(super) fn resolved_data_parameter_is_admitted(
         {
             true
         }
-        (ResolvedType::OnceFunction, hir::OwnershipMode::Own)
+        (ResolvedType::OnceFunction | ResolvedType::OnceFunctionI64, hir::OwnershipMode::Own)
         | (ResolvedType::Bytes, hir::OwnershipMode::Own)
         | (ResolvedType::Bytes, hir::OwnershipMode::Borrow)
         | (ResolvedType::Str, hir::OwnershipMode::Borrow)
@@ -362,7 +362,10 @@ pub(super) fn resolved_data_result_is_admitted(
         || hir::function_value::is_signature(ty)
         || matches!(
             ty,
-            ResolvedType::ArrayU8(_) | ResolvedType::Bytes | ResolvedType::OnceFunction
+            ResolvedType::ArrayU8(_)
+                | ResolvedType::Bytes
+                | ResolvedType::OnceFunction
+                | ResolvedType::OnceFunctionI64
         )
         || owned_vec::is_collection_type(ty)
         || is_admitted_owned_byte_record(declarations, ty)

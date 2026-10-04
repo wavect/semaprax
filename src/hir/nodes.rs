@@ -123,6 +123,7 @@ pub struct ByteSliceProvenance {
 pub enum ResolvedType {
     /// A retained affine zero-argument, i64-result callable.
     OnceFunction,
+    OnceFunctionI64,
     Function {
         parameters: Vec<ResolvedType>,
         result: Box<ResolvedType>,
@@ -163,6 +164,14 @@ pub enum ResolvedType {
 }
 
 impl ResolvedType {
+    pub fn is_callable(&self) -> bool {
+        self.is_once_function() || matches!(self, Self::Function { .. })
+    }
+
+    pub fn is_once_function(&self) -> bool {
+        matches!(self, Self::OnceFunction | Self::OnceFunctionI64)
+    }
+
     pub fn is_compiler_i64_result(&self) -> bool {
         matches!(self, Self::Nominal { declaration, arguments }
             if declaration.as_str() == crate::prelude::RESULT_ID
@@ -173,7 +182,10 @@ impl ResolvedType {
     /// builder, hostile validator, and backends. Unique ownership is not the
     /// same fact as containing an opaque resource.
     pub fn is_uniquely_owned(&self) -> bool {
-        matches!(self, Self::String | Self::Bytes | Self::OnceFunction)
+        matches!(
+            self,
+            Self::String | Self::Bytes | Self::OnceFunction | Self::OnceFunctionI64
+        )
     }
     pub fn is_compiler_byte_option(&self) -> bool {
         matches!(
@@ -191,6 +203,7 @@ impl ResolvedType {
             Self::Nominal { declaration, .. } => Some(declaration),
             Self::Function { .. }
             | Self::OnceFunction
+            | Self::OnceFunctionI64
             | Self::Unit
             | Self::I64
             | Self::I32
@@ -227,6 +240,7 @@ impl ResolvedType {
                         frames.extend(parameters.iter().rev().map(Frame::Enter));
                     }
                     Self::OnceFunction => keys.push("fn-once:bytes:i64:v1".to_owned()),
+                    Self::OnceFunctionI64 => keys.push("fn-once:bytes+i64:i64:v2".to_owned()),
                     Self::Unit => keys.push("unit".to_owned()),
                     Self::I64 => keys.push("i64".to_owned()),
                     Self::I32 => keys.push("i32".to_owned()),

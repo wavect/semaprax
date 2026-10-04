@@ -53,6 +53,7 @@ fn resolved_type_owned_capacity(ty: &ResolvedType) -> usize {
                 + resolved_type_owned_capacity(result)
         }
         ResolvedType::OnceFunction
+        | ResolvedType::OnceFunctionI64
         | ResolvedType::Unit
         | ResolvedType::I64
         | ResolvedType::I32
@@ -492,9 +493,10 @@ pub(crate) fn type_needs_resource_cleanup(
             continue;
         }
         match ty {
-            ResolvedType::Bytes | ResolvedType::String | ResolvedType::OnceFunction => {
-                return Ok(true)
-            }
+            ResolvedType::Bytes
+            | ResolvedType::String
+            | ResolvedType::OnceFunction
+            | ResolvedType::OnceFunctionI64 => return Ok(true),
             ResolvedType::Function { .. } | ResolvedType::Str | ResolvedType::SliceU8 => {}
             ResolvedType::Nominal {
                 declaration,
@@ -571,6 +573,7 @@ pub(crate) fn type_needs_resource_cleanup(
             // shape builder will issue its more specific diagnostic.
             ResolvedType::TypeParameter { .. } => return Ok(true),
             ResolvedType::OnceFunction
+            | ResolvedType::OnceFunctionI64
             | ResolvedType::Unit
             | ResolvedType::I64
             | ResolvedType::I32

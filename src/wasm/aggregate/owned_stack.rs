@@ -60,7 +60,7 @@ fn derive_weighted(
             "owned-data stack inventory is outside the monomorphic bound",
         ));
     }
-    if crate::hir::closure::requires_closures(program) {
+    if crate::hir::closure::requires_runtime_closures(program) {
         return closures::derive(program, layouts, roots, weight);
     }
     let calls = crate::call_index::PersistentCallIndex::build(program)?;

@@ -44,6 +44,8 @@ Audience: all documentation readers.
 - [Scalar Snapshot Closures v1](CLOSURES-V1.md)
 - [Generic and Loop Closures v2](CLOSURES-V2.md)
 - [Bounded Owning-Capture Closures v1](CLOSURES-OWNING-V1.md)
+- [Retained affine callback v1](AFFINE-CALLBACK-V1.md)
+- [Mixed retained affine callback v2](AFFINE-CALLBACK-V2.md)
 - [Execution root association v1](EXECUTION-ROOT-ASSOCIATION-V1.md)
 - [Workspace execution association v1](WORKSPACE-EXECUTION-ASSOCIATION-V1.md)
 - [Workspace execution migration v1](WORKSPACE-EXECUTION-MIGRATION-V1.md)

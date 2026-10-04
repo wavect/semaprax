@@ -76,7 +76,7 @@ fn load(program: &ResolvedProgram, ty: &ResolvedType) -> Result<(u8, u32), Diagn
 
 impl Emitter<'_> {
     pub(super) fn closure_profile(&self) -> bool {
-        crate::hir::closure::requires_closures(self.program)
+        crate::hir::closure::requires_runtime_closures(self.program)
     }
 
     fn closure_destination(&self, expression: &ResolvedExpr) -> Result<Pointer, Diagnostic> {
@@ -130,7 +130,7 @@ impl Emitter<'_> {
             self.get_scalar(&snapshot);
             self.store_scalar(&capture.binding.ty);
         }
-        if expression.ty == ResolvedType::OnceFunction {
+        if expression.ty.is_once_function() {
             self.apply_call_commit(&expression.id)?;
         }
         Ok(value)

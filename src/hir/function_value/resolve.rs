@@ -17,8 +17,12 @@ pub(crate) fn source_scalar(ty: &Type) -> Option<ResolvedType> {
     })
 }
 pub(crate) fn source_type(ty: &Type) -> Option<ResolvedType> {
-    if *ty == Type::OnceFunction {
-        return Some(ResolvedType::OnceFunction);
+    if ty.is_once_function() {
+        return Some(if *ty == Type::OnceFunctionI64 {
+            ResolvedType::OnceFunctionI64
+        } else {
+            ResolvedType::OnceFunction
+        });
     }
     let Type::Function { parameters, result } = ty else {
         return source_scalar(ty);
@@ -104,7 +108,7 @@ impl Resolver<'_> {
         let Some(binding) = bindings.get(name) else {
             return Ok(None);
         };
-        if binding.ty != ResolvedType::OnceFunction
+        if !binding.ty.is_once_function()
             && !is_signature(&binding.ty)
             && !function.monomorphic_declaration().is_some_and(|owner| {
                 super::super::generic_collection::callback(
@@ -138,7 +142,7 @@ pub(in crate::hir) fn finish(
 ) -> Result<ResolvedExpr, Diagnostic> {
     let result = match &callable.ty {
         ResolvedType::Function { result, .. } => result.as_ref(),
-        ResolvedType::OnceFunction => &ResolvedType::I64,
+        ResolvedType::OnceFunction | ResolvedType::OnceFunctionI64 => &ResolvedType::I64,
         _ => return Err(error("invalid callable")),
     };
     let expr = ResolvedExpr {

@@ -36,7 +36,7 @@ pub fn prepare_native_rust_affine_callback(
     if !factory.explicit_id
         || !factory.params.is_empty()
         || !factory.type_parameters.is_empty()
-        || factory.return_type != Type::OnceFunction
+        || !factory.return_type.is_once_function()
         || !factory.effects.is_empty()
         || !program.interfaces.is_empty()
     {
@@ -48,7 +48,11 @@ pub fn prepare_native_rust_affine_callback(
     semaprax::hir::validate(&resolved).map_err(|e| vec![e])?;
     let canonical = semaprax::format::canonical(&program);
     let source_revision = domain_digest(
-        b"semaprax.affine-callback-source.v1\0",
+        if factory.return_type == Type::OnceFunctionI64 {
+            b"semaprax.affine-callback-source.v2\0"
+        } else {
+            b"semaprax.affine-callback-source.v1\0"
+        },
         canonical.as_bytes(),
     );
     let mut c_source = String::from("#define SPX_NO_ENTRY_WRAPPER 1\n");
@@ -60,7 +64,20 @@ pub fn prepare_native_rust_affine_callback(
             .map(|b| format!("{b:02x}"))
             .collect::<String>()
     );
-    c_source.push_str(&C_BRIDGE.replace("FACTORY_SYMBOL", &symbol));
+    let bridge = C_BRIDGE.replace("FACTORY_SYMBOL", &symbol);
+    let bridge = if factory.return_type == Type::OnceFunctionI64 {
+        bridge
+            .replace("spx_once_v1", "spx_once_i64_v2")
+            .replace("spx_once_move", "spx_once_i64_move_v2")
+            .replace("spx_once_drop", "spx_once_i64_drop_v2")
+            .replace(
+                "spx_bytes_move(&callback.capture), out",
+                "spx_bytes_move(&callback.capture), callback.scalar, out",
+            )
+    } else {
+        bridge
+    };
+    c_source.push_str(&bridge);
     Ok(NativeAffineCallbackProjection {
         source_revision,
         c_source,

@@ -3694,7 +3694,7 @@ impl Evaluator<'_> {
             | (Value::Float32(_), ResolvedType::F32)
             | (Value::Float64(_), ResolvedType::F64)
             | (Value::Bool(_), ResolvedType::Bool)
-            | (Value::OnceClosure(_), ResolvedType::OnceFunction)
+            | (Value::OnceClosure(_), ResolvedType::OnceFunction | ResolvedType::OnceFunctionI64)
             | (Value::Bytes(_), ResolvedType::Bytes)
             | (Value::String(_), ResolvedType::String) => true,
             (Value::Variant(carrier), expected) => &carrier.ty == expected,
@@ -3922,6 +3922,7 @@ impl Evaluator<'_> {
                         &expression.ty,
                         ResolvedType::Bytes
                             | ResolvedType::OnceFunction
+                            | ResolvedType::OnceFunctionI64
                             | ResolvedType::Nominal { .. }
                     );
                 if moves_storage {

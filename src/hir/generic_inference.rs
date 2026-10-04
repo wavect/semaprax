@@ -248,7 +248,10 @@ impl Resolver<'_> {
         ty: &ResolvedType,
     ) -> Option<Type> {
         match ty {
-            ResolvedType::OnceFunction | ResolvedType::Function { .. } | ResolvedType::Unit => None,
+            ResolvedType::OnceFunction
+            | ResolvedType::OnceFunctionI64
+            | ResolvedType::Function { .. }
+            | ResolvedType::Unit => None,
             ResolvedType::I64 => Some(Type::I64),
             ResolvedType::I32 => Some(Type::I32),
             ResolvedType::U8 => Some(Type::U8),

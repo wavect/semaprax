@@ -9,7 +9,18 @@ pub(super) fn declarations(output: &mut impl COutput) {
     output.push_str("static __attribute__((unused)) void spx_once_drop(spx_once_v1 *value) { if (!value->entry) spx_runtime_invariant_failure(\"dead affine callable drop\"); value->entry = NULL; spx_bytes_drop(&value->capture); }\n");
 }
 
-pub(super) fn signature(output: &mut impl COutput, symbol: &str) {
+pub(super) fn mixed_declarations(output: &mut impl COutput) {
+    output.push_str("typedef spx_status_token (*spx_once_i64_entry_v2)(struct spx_context *, spx_bytes_v1, int64_t, int64_t *);\n");
+    output.push_str("typedef struct { spx_once_i64_entry_v2 entry; spx_bytes_v1 capture; int64_t scalar; } spx_once_i64_v2;\n");
+    output.push_str("static __attribute__((unused)) spx_once_i64_v2 spx_once_i64_move_v2(spx_once_i64_v2 *source) { if (!source->entry) spx_runtime_invariant_failure(\"dead mixed affine callable\"); spx_once_i64_v2 value = *source; *source = (spx_once_i64_v2){0}; return value; }\n");
+    output.push_str("static __attribute__((unused)) void spx_once_i64_drop_v2(spx_once_i64_v2 *value) { if (!value->entry) spx_runtime_invariant_failure(\"dead mixed affine callable drop\"); value->entry = NULL; spx_bytes_drop(&value->capture); }\n");
+}
+
+pub(super) fn signature(output: &mut impl COutput, symbol: &str, ty: &ResolvedType) {
+    if ty == &ResolvedType::OnceFunctionI64 {
+        write!(output, "static spx_status_token {symbol}(struct spx_context *spx_ctx, spx_bytes_v1 spx_capture, int64_t spx_scalar, int64_t *spx_result_out)").expect("string write");
+        return;
+    }
     write!(output, "static spx_status_token {symbol}(struct spx_context *spx_ctx, spx_bytes_v1 spx_capture, int64_t *spx_result_out)").expect("string write");
 }
 
@@ -24,10 +35,19 @@ pub(super) fn thunk(
             &expression.id,
         )))
         .ok_or_else(|| backend_error("affine body is absent from checked function index"))?;
-    signature(output, &closure::thunk_symbol(&expression.id));
+    signature(
+        output,
+        &closure::thunk_symbol(&expression.id),
+        &expression.ty,
+    );
+    let scalar = if expression.ty == ResolvedType::OnceFunctionI64 {
+        ", spx_scalar"
+    } else {
+        ""
+    };
     writeln!(
         output,
-        " {{ return {}(spx_ctx, spx_capture, spx_result_out); }}",
+        " {{ return {}(spx_ctx, spx_capture{scalar}, spx_result_out); }}",
         target.symbol
     )
     .expect("string write");
@@ -49,6 +69,15 @@ pub(super) fn construct<O: COutput>(
         hir::OwnershipMode::Own,
         capture,
     )?;
+    let scalar = if let ResolvedExprKind::Closure { captures, .. } = &expression.kind {
+        if expression.ty == ResolvedType::OnceFunctionI64 {
+            Some(emitter.emit_expr(&captures[1].value)?)
+        } else {
+            None
+        }
+    } else {
+        None
+    };
     let plan = emitter
         .bytes_plan
         .ok_or_else(|| backend_error("affine constructor lacks canonical plan"))?;
@@ -68,10 +97,13 @@ pub(super) fn construct<O: COutput>(
     emitter.line(&format!(
         "{destination}.capture = spx_bytes_move(&{argument}); {flag} = false;"
     ));
+    if let Some(scalar) = scalar {
+        emitter.line(&format!("{destination}.scalar = {};", scalar.code));
+    }
     // This bounded inline construction cannot fail after the authenticated commit.
     let value = CValue {
         code: destination,
-        ty: ResolvedType::OnceFunction,
+        ty: expression.ty.clone(),
     };
     emitter.apply_owned_plan_at_value(&expression.id, &value)?;
     Ok(CValue {
@@ -104,13 +136,17 @@ pub(super) fn invoke<O: COutput>(
     if value.code != argument {
         return Err(backend_error("affine receiver not staged"));
     }
-    let receiver = emitter.temporary(&ResolvedType::OnceFunction)?;
+    let receiver = emitter.temporary(&callable.ty)?;
     let result = emitter.call_result_temporary(&ResolvedType::I64)?;
+    let moved = super::owned_moves::owned_move(&callable.ty, argument);
+    emitter.line(&format!("{receiver} = {moved}; {flag} = false;"));
+    let scalar = if callable.ty == ResolvedType::OnceFunctionI64 {
+        format!(", {receiver}.scalar")
+    } else {
+        String::new()
+    };
     emitter.line(&format!(
-        "{receiver} = spx_once_move(&{argument}); {flag} = false;"
-    ));
-    emitter.line(&format!(
-        "spx_status = {receiver}.entry(spx_ctx, spx_bytes_move(&{receiver}.capture), &{result});"
+        "spx_status = {receiver}.entry(spx_ctx, spx_bytes_move(&{receiver}.capture){scalar}, &{result});"
     ));
     emitter.line(&format!("{receiver}.entry = NULL;"));
     emitter.line("if (spx_status != SPX_STATUS_SUCCESS) goto spx_epilogue;");
@@ -118,4 +154,12 @@ pub(super) fn invoke<O: COutput>(
         code: result,
         ty: ResolvedType::I64,
     })
+}
+
+pub(super) fn c_type(ty: &ResolvedType) -> &'static str {
+    if ty == &ResolvedType::OnceFunctionI64 {
+        "spx_once_i64_v2"
+    } else {
+        "spx_once_v1"
+    }
 }

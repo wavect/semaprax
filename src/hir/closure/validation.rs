@@ -13,7 +13,7 @@ pub(crate) fn validate_shape_scoped(
     expression: &ResolvedExpr,
     owner: Option<&DeclarationId>,
 ) -> Result<(), Diagnostic> {
-    if expression.ty == ResolvedType::OnceFunction {
+    if expression.ty.is_once_function() {
         if owner.is_some() {
             return Err(hir_error(
                 "generic affine closures are outside the closed profile",

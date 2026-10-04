@@ -619,6 +619,9 @@ fn ownership_text(ownership: OwnershipMode) -> &'static str {
 
 pub(super) fn type_json(ty: &ResolvedType) -> String {
     match ty {
+        ResolvedType::OnceFunctionI64 => bounded_output::budgeted_clone(
+            "{\"kind\":\"affine_function\",\"profile\":\"bytes-i64-to-i64.v2\"}",
+        ),
         ResolvedType::OnceFunction => bounded_output::budgeted_clone(
             "{\"kind\":\"affine_function\",\"profile\":\"bytes-to-i64.v1\"}",
         ),

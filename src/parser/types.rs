@@ -14,7 +14,8 @@ impl Parser {
         if let Some(diagnostic) = self.unit_type() {
             return Err(diagnostic);
         }
-        let once = self.at_keyword("FnOnce");
+        let mixed = self.at_keyword("FnOnceI64");
+        let once = mixed || self.at_keyword("FnOnce");
         if once || self.at_keyword("fn") {
             self.bump();
             self.expect(&TokenKind::LParen, "`(` after `fn` in function type")?;
@@ -43,7 +44,11 @@ impl Parser {
                         "the affine callable profile requires `FnOnce() -> i64`",
                     ));
                 }
-                return Ok(Type::OnceFunction);
+                return Ok(if mixed {
+                    Type::OnceFunctionI64
+                } else {
+                    Type::OnceFunction
+                });
             }
             return Ok(Type::Function {
                 parameters,

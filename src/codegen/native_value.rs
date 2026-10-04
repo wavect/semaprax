@@ -170,7 +170,9 @@ pub(crate) fn plan(
     let body_value = planner.lower_body_tail(tail)?;
 
     let result = match &function.return_type {
-        ResolvedType::OnceFunction | ResolvedType::Function { .. } => {
+        ResolvedType::OnceFunction
+        | ResolvedType::OnceFunctionI64
+        | ResolvedType::Function { .. } => {
             return Err(value_error(
                 "function values are outside the staged single-frame value corpus",
             ))
@@ -977,7 +979,9 @@ fn validate_signature(
     }
     for parameter in &function.params {
         match &parameter.ty {
-            ResolvedType::OnceFunction | ResolvedType::Function { .. } => {
+            ResolvedType::OnceFunction
+            | ResolvedType::OnceFunctionI64
+            | ResolvedType::Function { .. } => {
                 return Err(value_error("function values are outside the staged corpus"))
             }
             ResolvedType::Unit => {
@@ -1027,7 +1031,9 @@ fn validate_signature(
         }
     }
     match &function.return_type {
-        ResolvedType::OnceFunction | ResolvedType::Function { .. } => {
+        ResolvedType::OnceFunction
+        | ResolvedType::OnceFunctionI64
+        | ResolvedType::Function { .. } => {
             Err(value_error("function values are outside the staged corpus"))
         }
         ResolvedType::I64 => Ok(()),

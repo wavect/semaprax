@@ -138,7 +138,8 @@ pub(super) fn check_construction(
         ));
         return None;
     };
-    if !type_arguments.is_empty() || args.len() != 1 {
+    let mixed = retained && args.len() == 2;
+    if !type_arguments.is_empty() || (!mixed && args.len() != 1) {
         diagnostics.push(error(
             program,
             "SPX-T292",
@@ -169,7 +170,7 @@ pub(super) fn check_construction(
         return None;
     };
     if !target.type_parameters.is_empty()
-        || target.params.len() != 1
+        || target.params.len() != args.len()
         || target.params[0].mode != ParamMode::Own
         || target.params[0].ty != Type::Bytes
         || target.return_type != *return_type
@@ -184,6 +185,20 @@ pub(super) fn check_construction(
             body.span,
         ));
         return None;
+    }
+    if mixed {
+        let valid = matches!(&args[1].kind, ExprKind::Var(name) if variables.get(name).is_some_and(|binding| binding.ty == Type::I64 && binding.mode == ParamMode::Value && !binding.mutable && binding.availability == Availability::Available))
+            && target.params[1].ty == Type::I64
+            && target.params[1].mode == ParamMode::Value;
+        if !valid {
+            diagnostics.push(error(
+                program,
+                "SPX-T308",
+                "mixed affine capture requires a direct immutable i64 value after own Bytes",
+                args[1].span,
+            ));
+            return None;
+        }
     }
     let Some(binding) = variables.get(captured_name) else {
         diagnostics.push(error(
@@ -243,7 +258,9 @@ pub(super) fn check_construction(
         .expect("checked above")
         .availability = Availability::Moved;
     Some(CheckedValue {
-        ty: if retained {
+        ty: if mixed {
+            Type::OnceFunctionI64
+        } else if retained {
             Type::OnceFunction
         } else {
             sentinel_type(target_name, return_type)
@@ -272,7 +289,7 @@ pub(super) fn check_call(
     diagnostics: &mut Vec<Diagnostic>,
 ) -> Option<Option<CheckedValue>> {
     let binding_ty = variables.get(name).map(|binding| binding.ty.clone())?;
-    let result = if binding_ty == Type::OnceFunction {
+    let result = if binding_ty.is_once_function() {
         Type::I64
     } else {
         sentinel_parts(&binding_ty)?.1.clone()

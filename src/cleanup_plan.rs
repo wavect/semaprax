@@ -683,6 +683,7 @@ fn resolved_type_owned_capacity(ty: &ResolvedType) -> Option<usize> {
             )?
             .checked_add(resolved_type_owned_capacity(result)?),
         ResolvedType::OnceFunction
+        | ResolvedType::OnceFunctionI64
         | ResolvedType::Unit
         | ResolvedType::I64
         | ResolvedType::I32

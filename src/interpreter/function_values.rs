@@ -58,7 +58,7 @@ impl Evaluator<'_> {
                 // Capture the operand before any argument is evaluated.
                 let callable_value = self.evaluate(callable, environment, depth)?;
                 if let Value::OnceClosure(closure) = callable_value {
-                    if callable.ty != ResolvedType::OnceFunction
+                    if !callable.ty.is_once_function()
                         || !args.is_empty()
                         || expression.ty != ResolvedType::I64
                     {

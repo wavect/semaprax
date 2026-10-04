@@ -329,7 +329,6 @@ impl FunctionPlan {
     ) -> Result<Self, Diagnostic> {
         Self::build_profile(program, function, variant_layouts, false)
     }
-
     fn build_profile(
         program: &ResolvedProgram,
         function: &ResolvedFunction,
@@ -417,6 +416,7 @@ impl FunctionPlan {
                         && lifecycle.as_str() != crate::cleanup::BOX_DROP_LIFECYCLE_ID
                         && lifecycle.as_str() != crate::cleanup::ITER_DROP_LIFECYCLE_ID
                         && lifecycle.as_str() != crate::hir::closure::once::DROP_ID
+                        && lifecycle.as_str() != crate::hir::closure::once::MIXED_DROP_ID
                     {
                         return Err(error("CleanupPlan leaf has an unsupported lifecycle"));
                     }
@@ -438,7 +438,7 @@ impl FunctionPlan {
                         )
                         && !crate::iterator_ops::is_iter(&slot.ty)
                         && !crate::iterator_ops::is_step(&slot.ty)
-                        && slot.ty != ResolvedType::OnceFunction
+                        && !slot.ty.is_once_function()
                     {
                         let carrier = add_local(I64)?;
                         if cleanup_call_argument_carriers
@@ -1116,8 +1116,8 @@ fn is_variant(program: &ResolvedProgram, ty: &ResolvedType) -> Result<bool, Diag
 fn is_aggregate(program: &ResolvedProgram, ty: &ResolvedType) -> Result<bool, Diagnostic> {
     if matches!(
         ty,
-        ResolvedType::Function { .. } | ResolvedType::OnceFunction
-    ) && crate::hir::closure::requires_closures(program)
+        ResolvedType::Function { .. } | ResolvedType::OnceFunction | ResolvedType::OnceFunctionI64
+    ) && crate::hir::closure::requires_runtime_closures(program)
     {
         return Ok(true);
     }
@@ -1154,8 +1154,8 @@ fn aggregate_size_align(
 ) -> Result<(u32, u32), Diagnostic> {
     if matches!(
         ty,
-        ResolvedType::Function { .. } | ResolvedType::OnceFunction
-    ) && crate::hir::closure::requires_closures(program)
+        ResolvedType::Function { .. } | ResolvedType::OnceFunction | ResolvedType::OnceFunctionI64
+    ) && crate::hir::closure::requires_runtime_closures(program)
     {
         return Ok((80, 8));
     }
@@ -3521,7 +3521,7 @@ impl Emitter<'_> {
             .flat_map(|statement| {
                 let mut anchors = Vec::with_capacity(2);
                 if let ResolvedStatement::Let { binding, .. } = statement {
-                    if binding.ty == ResolvedType::OnceFunction
+                    if binding.ty.is_once_function()
                         || binding.ty == ResolvedType::Bytes
                         || binding.ty == ResolvedType::String
                         || owned_vec(self.program, &binding.ty)
@@ -3539,7 +3539,7 @@ impl Emitter<'_> {
                     ResolvedStatement::While { .. } => None,
                 };
                 if let Some(value) = value.filter(|value| {
-                    value.ty == ResolvedType::OnceFunction
+                    value.ty.is_once_function()
                         || value.ty == ResolvedType::Bytes
                         || value.ty == ResolvedType::String
                         || owned_vec(self.program, &value.ty)

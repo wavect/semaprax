@@ -36,7 +36,7 @@ impl Evaluator<'_> {
             let value = self.evaluate(&capture.value, environment, depth)?;
             values.push((
                 capture.binding.id.clone(),
-                if expression.ty == ResolvedType::OnceFunction {
+                if expression.ty.is_once_function() {
                     value
                 } else {
                     self.clone_value(&value)?
@@ -45,7 +45,7 @@ impl Evaluator<'_> {
         }
         let result = match &expression.ty {
             ResolvedType::Function { result, .. } => *result.clone(),
-            ResolvedType::OnceFunction => ResolvedType::I64,
+            ResolvedType::OnceFunction | ResolvedType::OnceFunctionI64 => ResolvedType::I64,
             _ => return Err(Flow::Guard("closure type")),
         };
         let function = self
@@ -61,7 +61,7 @@ impl Evaluator<'_> {
             function,
             result,
         };
-        Ok(if expression.ty == ResolvedType::OnceFunction {
+        Ok(if expression.ty.is_once_function() {
             Value::OnceClosure(Box::new(value))
         } else {
             Value::Closure(Arc::new(value))

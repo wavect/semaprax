@@ -450,6 +450,7 @@ fn resolved_type_owned_capacity(ty: &ResolvedType) -> usize {
                 + resolved_type_owned_capacity(result)
         }
         ResolvedType::OnceFunction
+        | ResolvedType::OnceFunctionI64
         | ResolvedType::Unit
         | ResolvedType::I64
         | ResolvedType::I32
@@ -2448,9 +2449,7 @@ impl<'a> PlanBuilder<'a> {
                     block,
                     state,
                 } => match &expression.kind {
-                    ResolvedExprKind::Closure { .. }
-                        if expression.ty != ResolvedType::OnceFunction =>
-                    {
+                    ResolvedExprKind::Closure { .. } if !expression.ty.is_once_function() => {
                         results.push(EvalResult {
                             block,
                             state,
@@ -2730,8 +2729,14 @@ impl<'a> PlanBuilder<'a> {
                             }
                             crate::host_io_ops::resolved_params(op)
                         } else if let Some(op) = crate::list_ops::by_id(callee.as_str()) {
-                            if instance.is_some() || !type_arguments.is_empty() || args.len() != op.argument_count() {
-                                return Err(plan_error(format!("cleanup immutable list call `{}` has inconsistent shape", expression.id)));
+                            if instance.is_some()
+                                || !type_arguments.is_empty()
+                                || args.len() != op.argument_count()
+                            {
+                                return Err(plan_error(format!(
+                                    "cleanup immutable list call `{}` has inconsistent shape",
+                                    expression.id
+                                )));
                             }
                             op.resolved_params()
                         } else if let Some(op) = crate::iterator_ops::by_id(callee.as_str()) {
@@ -3890,6 +3895,7 @@ impl<'a> PlanBuilder<'a> {
                             .declaration(declaration)
                             .is_some_and(|item| item.kind == DeclarationKind::Record),
                         ResolvedType::OnceFunction
+                        | ResolvedType::OnceFunctionI64
                         | ResolvedType::Unit
                         | ResolvedType::I64
                         | ResolvedType::I32
@@ -3906,6 +3912,7 @@ impl<'a> PlanBuilder<'a> {
                         | ResolvedType::SliceU8
                         | ResolvedType::TypeParameter { .. }
                         | ResolvedType::OnceFunction
+                        | ResolvedType::OnceFunctionI64
                         | ResolvedType::Function { .. } => false,
                     };
                     if is_record {
@@ -4764,7 +4771,7 @@ impl<'a> PlanBuilder<'a> {
                     owned_source: None,
                 })
             }
-            ResolvedExprKind::Closure { .. } if expression.ty != ResolvedType::OnceFunction => {
+            ResolvedExprKind::Closure { .. } if !expression.ty.is_once_function() => {
                 Ok(EvalResult {
                     block,
                     state,
@@ -6071,6 +6078,7 @@ impl<'a> PlanBuilder<'a> {
                 .declaration(declaration)
                 .is_some_and(|item| item.kind == DeclarationKind::Record),
             ResolvedType::OnceFunction
+            | ResolvedType::OnceFunctionI64
             | ResolvedType::Unit
             | ResolvedType::I64
             | ResolvedType::I32
@@ -6087,6 +6095,7 @@ impl<'a> PlanBuilder<'a> {
             | ResolvedType::SliceU8
             | ResolvedType::TypeParameter { .. }
             | ResolvedType::OnceFunction
+            | ResolvedType::OnceFunctionI64
             | ResolvedType::Function { .. } => false,
         };
         if is_record {

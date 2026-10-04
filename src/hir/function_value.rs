@@ -15,14 +15,13 @@ pub fn is_signature(ty: &ResolvedType) -> bool {
 /// Internal helpers may transport scalar callable values; this does not admit
 /// those signatures at an imported or selected public boundary.
 pub(crate) fn private_helper_signature(function: &ResolvedFunction) -> bool {
-    let slot =
-        |ty: &ResolvedType| scalar(ty) || is_signature(ty) || *ty == ResolvedType::OnceFunction;
+    let slot = |ty: &ResolvedType| scalar(ty) || is_signature(ty) || ty.is_once_function();
     function.effects.is_empty()
         && function.params.len() <= 8
         && function.params.iter().all(|p| {
             slot(&p.ty)
                 && p.ownership
-                    == if p.ty == ResolvedType::OnceFunction {
+                    == if p.ty.is_once_function() {
                         OwnershipMode::Own
                     } else {
                         OwnershipMode::Value
@@ -31,11 +30,8 @@ pub(crate) fn private_helper_signature(function: &ResolvedFunction) -> bool {
         && slot(&function.return_type)
         && (function.params.iter().any(|p| is_signature(&p.ty))
             || is_signature(&function.return_type)
-            || function.return_type == ResolvedType::OnceFunction
-            || function
-                .params
-                .iter()
-                .any(|p| p.ty == ResolvedType::OnceFunction))
+            || function.return_type.is_once_function()
+            || function.params.iter().any(|p| p.ty.is_once_function()))
 }
 pub fn signature(function: &ResolvedFunction) -> Option<ResolvedType> {
     (function.effects.is_empty()
@@ -133,7 +129,7 @@ pub(crate) fn validate_invocation_scoped(
     let ResolvedExprKind::Invoke { callable, args } = &expression.kind else {
         return Err(error("expected invocation"));
     };
-    if callable.ty == ResolvedType::OnceFunction {
+    if callable.ty.is_once_function() {
         return if callable.ownership == OwnershipMode::Own
             && args.is_empty()
             && expression.ty == ResolvedType::I64
@@ -285,11 +281,13 @@ pub(crate) fn validate_program(program: &ResolvedProgram) -> Result<(), Diagnost
 pub(crate) fn function_uses_value(f: &ResolvedFunction) -> bool {
     let mut found = matches!(
         f.return_type,
-        ResolvedType::Function { .. } | ResolvedType::OnceFunction
+        ResolvedType::Function { .. } | ResolvedType::OnceFunction | ResolvedType::OnceFunctionI64
     ) || f.params.iter().any(|p| {
         matches!(
             p.ty,
-            ResolvedType::Function { .. } | ResolvedType::OnceFunction
+            ResolvedType::Function { .. }
+                | ResolvedType::OnceFunction
+                | ResolvedType::OnceFunctionI64
         )
     });
     walk(f, |e| {
@@ -317,7 +315,9 @@ pub(crate) fn template_uses_value(template: &super::ResolvedFunctionTemplate) ->
         || template.params.iter().any(|p| {
             matches!(
                 p.ty,
-                ResolvedType::Function { .. } | ResolvedType::OnceFunction
+                ResolvedType::Function { .. }
+                    | ResolvedType::OnceFunction
+                    | ResolvedType::OnceFunctionI64
             )
         })
     {

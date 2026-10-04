@@ -102,6 +102,7 @@ impl<'a> HirValidator<'a> {
     pub(super) fn new(program: &'a ResolvedProgram) -> Result<Self, Diagnostic> {
         validate_nul_free_identities(program)?;
         box_intrinsic::reject_reserved_identities(program)?;
+        super::closure::once::reject_reserved_identities(program)?;
         generic_template::validate_call_graph(program)?;
         for declaration in program.declarations.declarations() {
             if crate::host_io_ops::by_id(declaration.id.as_str()).is_some()
@@ -885,6 +886,7 @@ impl<'a> HirValidator<'a> {
                             | ResolvedType::Bytes
                             | ResolvedType::Str
                             | ResolvedType::OnceFunction
+                            | ResolvedType::OnceFunctionI64
                             | ResolvedType::Function { .. }
                             | ResolvedType::SliceU8 => {
                                 return Err(hir_error(format!(
@@ -1091,6 +1093,7 @@ impl<'a> HirValidator<'a> {
                             | ResolvedType::Bytes
                             | ResolvedType::Str
                             | ResolvedType::OnceFunction
+                            | ResolvedType::OnceFunctionI64
                             | ResolvedType::Function { .. }
                             | ResolvedType::SliceU8 => {
                                 return Err(hir_error(format!(
@@ -3989,13 +3992,7 @@ impl<'a> HirValidator<'a> {
                             ResolvedType::Bool
                         }
                         BinaryOp::Eq | BinaryOp::Ne => {
-                            if matches!(
-                                left.ty,
-                                ResolvedType::OnceFunction | ResolvedType::Function { .. }
-                            ) || matches!(
-                                right.ty,
-                                ResolvedType::OnceFunction | ResolvedType::Function { .. }
-                            ) {
+                            if left.ty.is_callable() || right.ty.is_callable() {
                                 return Err(hir_error(
                                     "function value equality is outside the admitted profile",
                                 ));
@@ -6590,13 +6587,7 @@ impl<'a> HirValidator<'a> {
                         ResolvedType::Bool
                     }
                     BinaryOp::Eq | BinaryOp::Ne => {
-                        if matches!(
-                            left.ty,
-                            ResolvedType::OnceFunction | ResolvedType::Function { .. }
-                        ) || matches!(
-                            right.ty,
-                            ResolvedType::OnceFunction | ResolvedType::Function { .. }
-                        ) {
+                        if left.ty.is_callable() || right.ty.is_callable() {
                             return Err(hir_error(
                                 "function value equality is outside the admitted profile",
                             ));

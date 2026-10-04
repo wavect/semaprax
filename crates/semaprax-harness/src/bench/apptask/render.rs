@@ -115,14 +115,14 @@ pub fn render(summary: &Value, recs: &Value, meta: &Value, ledger: &Value, label
                         )
                     })
                     .collect();
-                let _ = writeln!(o, "| `{arm}` | {}/{} | {} | {}/{} | {}/{} | {} | {} | {}/{} | {} | {} | {} | {} | {} | {} | {} |",
+                let _ = writeln!(o, "| `{arm}` | {}/{} | {} | {}/{} | {}/{} | {} | {} | {}/{} | {} | {} | {} | {} | {}/{} | {}/{} | {} |",
                     s["ok"], s["not_ok"], acc(&s["accepted"]), s["accepted_first_attempt_single_step"]["k"], s["accepted_first_attempt_single_step"]["n"],
                     s["structurally_valid_first_attempt"]["k"], s["structurally_valid_first_attempt"]["n"], mean_sd(&s["tokens_o200k"]["total"]), f(&s["tokens_o200k"]["output"]["mean"], 0),
                     f(&s["provider_usage"]["input"]["mean"], 0), f(&s["provider_usage"]["output"]["mean"], 0),
                     if cost["per_trial"].is_null() { "n/a (local)".to_string() } else { f(&cost["per_trial"]["mean"], 5) },
                     if cost["per_accepted"].is_null() { "n/a".to_string() } else { f(&cost["per_accepted"], 5) },
                     f(&s["completion_ms"]["mean"], 0), f(&s["attempts"]["mean"], 2),
-                    format!("{}/{}", s["cold"]["accepted"]["k"], s["cold"]["accepted"]["n"]), format!("{}/{}", s["warm"]["accepted"]["k"], s["warm"]["accepted"]["n"]),
+                    s["cold"]["accepted"]["k"], s["cold"]["accepted"]["n"], s["warm"]["accepted"]["k"], s["warm"]["accepted"]["n"],
                     per_task.join(" "));
             }
             o.push('\n');

@@ -733,7 +733,7 @@ pub(super) fn candidate_checks(
                     .task
                     .checks
                     .as_ref()
-                    .is_none_or(|n| n.iter().any(|x| *x == c.name))
+                    .is_none_or(|n| n.contains(&c.name))
             })
             .cloned()
             .collect();

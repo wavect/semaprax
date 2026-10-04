@@ -30,7 +30,7 @@ pub struct Selection {
 pub fn selected_arms<'a>(set: &'a ArmSet, sel: &Selection) -> Vec<&'a Arm> {
     set.arms
         .iter()
-        .filter(|a| sel.arms.is_empty() || sel.arms.iter().any(|x| *x == a.id))
+        .filter(|a| sel.arms.is_empty() || sel.arms.contains(&a.id))
         .collect()
 }
 

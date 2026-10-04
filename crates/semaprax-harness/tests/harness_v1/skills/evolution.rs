@@ -144,7 +144,7 @@ impl Rig {
 }
 
 fn code(r: Result<evolution::Report, semaprax_harness::diag::HarnessDiagnostic>) -> &'static str {
-    r.err().expect("expected a refusal").code
+    r.expect_err("expected a refusal").code
 }
 
 #[test]

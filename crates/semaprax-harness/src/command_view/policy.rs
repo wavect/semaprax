@@ -300,12 +300,11 @@ pub fn exclusion(argv: &[String], raw_flag: bool) -> Option<&'static str> {
             .iter()
             .find(|a| !a.starts_with('-'))
             .map(String::as_str);
-        match sub {
-            Some(
-                "apply" | "am" | "format-patch" | "hash-object" | "rev-parse" | "rev-list"
-                | "cat-file",
-            ) => return Some("git-machine-output"),
-            _ => {}
+        if let Some(
+            "apply" | "am" | "format-patch" | "hash-object" | "rev-parse" | "rev-list" | "cat-file",
+        ) = sub
+        {
+            return Some("git-machine-output");
         }
         if matches!(
             sub,

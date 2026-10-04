@@ -190,7 +190,7 @@ pub fn resolve(
                 .filter_map(|r| ver(&r.tag).map(|v| (v, r.tag)))
                 .filter(|(v, _)| satisfies(*v, &cmps))
                 .collect();
-            cands.sort_by(|a, b| b.0.cmp(&a.0));
+            cands.sort_by_key(|a| std::cmp::Reverse(a.0));
             for (_, tag) in cands {
                 let Some(t) = f.tag_ref(repo, &tag)? else {
                     continue;

@@ -451,9 +451,11 @@ fn drive(cx: &mut Ctx, st: &mut Stages, r: &mut Report) -> HarnessResult<()> {
         }
         other => other?,
     };
+    #[allow(clippy::unnecessary_to_owned)]
     step(
         r,
         "route",
+        // Owned copy: `r` is also the first (mutable) argument.
         &r.route["choice"].as_str().unwrap_or("").to_string(),
     );
     attempt::require_intent(&proposal, &ops)?;
@@ -894,7 +896,7 @@ pub(super) fn present_and_publish(
     )?;
     match cx.compiler.publish(
         &root,
-        &capsule,
+        capsule,
         &capsule.candidate_digest,
         &policy.publication_policy,
     ) {

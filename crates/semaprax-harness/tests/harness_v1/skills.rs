@@ -477,7 +477,7 @@ fn hp_hn03_official_ponytail_and_caveman_load_unchanged_with_full_text() {
         assert_eq!(e.description, flat);
         // Body preserved verbatim (everything after the closing delimiter).
         let body = text
-            .splitn(3, "\n---\n")
+            .split("\n---\n")
             .nth(1)
             .map(|_| text.split_once("\n---\n").unwrap().1)
             .unwrap();

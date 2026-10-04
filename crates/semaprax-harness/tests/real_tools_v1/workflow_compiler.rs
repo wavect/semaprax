@@ -1014,10 +1014,10 @@ mod hn {
         // Installed operations were discovered from the compiler, not hard-coded.
         let kinds = rep.operations["kinds"].as_array().unwrap();
         assert!(kinds.iter().any(|k| k == "rename_declaration"), "{kinds:?}");
-        assert_eq!(
-            rep.candidate["changed_files"].as_array().unwrap().len() >= 1,
-            true
-        );
+        assert!(!rep.candidate["changed_files"]
+            .as_array()
+            .unwrap()
+            .is_empty());
         assert_eq!(
             rep.checks["tests"], "passed",
             "baseline tests pass on the candidate"
@@ -1246,9 +1246,8 @@ mod hn {
             .contains("discount"));
         assert!(r.compiler.check(&dir).unwrap().ok);
         assert!(r.compiler.test(&dir).unwrap().passed);
-        assert_eq!(
-            read(&r, "src/report.spx").contains("discount"),
-            false,
+        assert!(
+            !read(&r, "src/report.spx").contains("discount"),
             "the project is untouched"
         );
         assert!(rep.session["result"]["apply"]
@@ -1916,12 +1915,9 @@ mod hnwire {
             p[1].to_string().contains("FOLLOWUP-MARKER"),
             "follow-up result reached attempt 2"
         );
-        assert_eq!(
-            r.context["plan"]["follow_up"]["added_items"]
-                .as_u64()
-                .is_some(),
-            true
-        );
+        assert!(r.context["plan"]["follow_up"]["added_items"]
+            .as_u64()
+            .is_some());
         assert!(r.steps.iter().any(|(k, _)| k == "context-follow-up"));
     }
 

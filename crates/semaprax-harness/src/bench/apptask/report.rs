@@ -310,11 +310,13 @@ pub fn cell_sizes(ts: &[T]) -> Value {
            "label": if min.is_some_and(|x| x >= MIN_TRIALS_PER_CELL) { "matched-trials" } else { "pilot" }, "required_for_non_pilot": MIN_TRIALS_PER_CELL})
 }
 
+type CascadeRows = BTreeMap<(String, String), Vec<(bool, f64, f64, bool)>>;
+
 /// Derived small-then-large cascade from the paired trials of the two sizes
 /// (same task, arm, repetition): the large model is asked only after the small
 /// one failed the grader. A derivation, not an independent run.
 pub fn cascade(ts: &[T]) -> Value {
-    let mut rows: BTreeMap<(String, String), Vec<(bool, f64, f64, bool)>> = BTreeMap::new();
+    let mut rows: CascadeRows = BTreeMap::new();
     let mut idx: BTreeMap<(&str, &str, u64, &str), &T> = BTreeMap::new();
     for t in ts.iter().filter(|t| t.ok()) {
         idx.insert((t.task.as_str(), t.arm.as_str(), t.rep, t.size.as_str()), t);

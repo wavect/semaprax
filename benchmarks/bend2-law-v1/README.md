@@ -162,8 +162,11 @@ transcripts outside the repository. Do not add a Boolean value such as
 exact preregistration digest. Each trial supplies its transcript digest, the
 existing `token_usage` and `cost_usage` telemetry events (with distinct event
 identities), completed wall-time observations for proof synthesis, law-kernel
-checking, and compilation or runtime, plus digest-bound observations for every
-success witness and seeded attack.
+checking, and compilation or runtime, plus a distinct SHA-256 for each raw
+phase-measurement artifact. The capture retains each phase's wall time and
+measurement digest separately; a phase cannot reuse another phase's raw
+artifact. It also retains digest-bound observations for every success witness
+and seeded attack.
 
 The capture command validates that structure against the fixed plan:
 
@@ -177,7 +180,8 @@ python3 benchmarks/bend2-law-v1/agent_trial_capture.py \
 It emits `completed` only when the raw export covers every preregistered trial
 for both languages. A partial export remains `partial` and exits nonzero;
 accepted attacks, omitted phase timings, reused telemetry events, unknown
-trial IDs, and a changed plan digest are refused. The output retains raw-export
+trial IDs, reused phase-measurement artifacts, and a changed plan digest are
+refused. The output retains raw-export
 and transcript digests plus the telemetry values and separate phase durations.
 It does not authenticate an external telemetry provider, execute an agent, or
 state a comparison result.

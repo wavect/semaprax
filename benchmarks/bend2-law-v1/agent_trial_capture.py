@@ -107,11 +107,23 @@ def validate_trial(expected: dict, observed: object) -> dict:
     if not isinstance(phases, dict) or set(phases) != set(PHASES):
         raise ValueError("raw trial lacks separate phase measurements")
     phase_values = {}
+    phase_measurements = {}
+    measurement_digests = set()
     for phase in PHASES:
         row = phases[phase]
-        if not isinstance(row, dict) or set(row) != {"status", "wall_ms"} or row["status"] != "completed" or not isinstance(row["wall_ms"], (int, float)) or row["wall_ms"] < 0:
+        if (not isinstance(row, dict) or set(row) != {"status", "wall_ms", "measurement_sha256"}
+                or row["status"] != "completed" or not isinstance(row["wall_ms"], (int, float))
+                or row["wall_ms"] < 0 or not isinstance(row["measurement_sha256"], str)
+                or not SHA256.fullmatch(row["measurement_sha256"])):
             raise ValueError(f"raw trial {phase} measurement is invalid")
+        if row["measurement_sha256"] in measurement_digests:
+            raise ValueError("raw trial reuses one measurement artifact for multiple phases")
+        measurement_digests.add(row["measurement_sha256"])
         phase_values[phase] = row["wall_ms"]
+        phase_measurements[phase] = {
+            "wall_ms": row["wall_ms"],
+            "measurement_sha256": row["measurement_sha256"],
+        }
     acceptance = expected.get("acceptance")
     if not isinstance(acceptance, dict):
         raise ValueError("preregistered trial lacks acceptance")
@@ -130,6 +142,7 @@ def validate_trial(expected: dict, observed: object) -> dict:
         "transcript_sha256": observed["transcript_sha256"],
         "telemetry": {"token_usage": events[0], "cost_usage": events[1]},
         "phase_wall_ms": phase_values,
+        "phase_measurements": phase_measurements,
         "success_evidence_sha256": success,
         "attack_evidence_sha256": attacks,
     }

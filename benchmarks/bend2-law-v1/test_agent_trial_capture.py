@@ -42,7 +42,9 @@ def observed(identifier):
             {"event_id": identifier + ":tokens", "kind": "token_usage", "value": 123},
             {"event_id": identifier + ":cost", "kind": "cost_usage", "value": "0.01"},
         ],
-        "phases": {phase: {"status": "completed", "wall_ms": 1.0} for phase in CAPTURE.PHASES},
+        "phases": {phase: {"status": "completed", "wall_ms": 1.0,
+                             "measurement_sha256": sha(identifier + " " + phase)}
+                   for phase in CAPTURE.PHASES},
         "success_witnesses": [{"outcome": "accepted", "evidence_sha256": sha(identifier + " success")}],
         "attacks": {"weakened-postcondition": [{"outcome": "rejected", "evidence_sha256": sha(identifier + " attack")}]} ,
     }
@@ -80,6 +82,7 @@ class AgentTrialCaptureTests(unittest.TestCase):
         self.assertEqual(document["trial_counts"]["bend2"], {"captured": 1, "required": 1})
         self.assertEqual(document["captured_trials"][0]["telemetry"]["token_usage"]["value"], 123)
         self.assertEqual(set(document["captured_trials"][0]["phase_wall_ms"]), set(CAPTURE.PHASES))
+        self.assertEqual(set(document["captured_trials"][0]["phase_measurements"]), set(CAPTURE.PHASES))
         self.assertEqual(document["missing_trial_ids"], [])
 
     def test_partial_capture_is_not_a_trial_result(self):
@@ -106,6 +109,17 @@ class AgentTrialCaptureTests(unittest.TestCase):
             value["plan_sha256"] = sha("another plan")
             write(raw, value)
             with self.assertRaisesRegex(ValueError, "exact preregistration"):
+                CAPTURE.capture(plan, raw)
+
+    def test_phase_measurements_must_have_distinct_digest_bound_raw_evidence(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            plan = self.plan(root)
+            row = observed("boolean:bend2:1")
+            first = row["phases"][CAPTURE.PHASES[0]]["measurement_sha256"]
+            row["phases"][CAPTURE.PHASES[1]]["measurement_sha256"] = first
+            raw = self.raw(root, plan, [row])
+            with self.assertRaisesRegex(ValueError, "reuses one measurement artifact"):
                 CAPTURE.capture(plan, raw)
 
 

@@ -83,8 +83,9 @@ pub(crate) fn run(command: Command, report: impl Fn(&[Diagnostic]) -> u8) -> Res
         Command::Render { manifest, .. }
         | Command::Verify { manifest, .. }
         | Command::Compare { manifest, .. } => manifest,
-    };
-    let output = with_authenticated_project(manifest, |snapshot| {
+    }
+    .clone();
+    let output = with_authenticated_project(&manifest, |snapshot| {
         let revision = snapshot.retain_revision();
         let service = SemanticWorkspaceService::open(revision)?;
         match command {

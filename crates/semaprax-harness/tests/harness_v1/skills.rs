@@ -1095,3 +1095,8 @@ fn hp_hn19_adapter_closure_refuses_symlink_and_hardlink_aliases() {
 
 #[path = "skills/defaults.rs"]
 mod defaults;
+
+// ---- HN-05: validated atomic updates (tests in skills/updates.rs) ----
+
+#[path = "skills/updates.rs"]
+mod updates;

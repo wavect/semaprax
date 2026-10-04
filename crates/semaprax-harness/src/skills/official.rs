@@ -90,6 +90,8 @@ pub struct OfficialSkill {
     pub repo: String,
     pub subpath: Option<String>,
     pub channel: String,
+    /// Branch an explicit `head` channel resolves (to a commit) from.
+    pub head_branch: String,
     pub tag: Option<String>,
     pub commit: Option<String>,
     pub re_resolved: Option<String>,
@@ -114,6 +116,16 @@ impl OfficialSkill {
     pub fn feature(&self, name: &str) -> Option<&Feature> {
         self.features.iter().find(|f| f.name == name)
     }
+}
+
+/// An updated revision of a curated skill (see [`OfficialSet::with_revision`]).
+#[derive(Clone, Debug)]
+pub struct Revision {
+    pub version: String,
+    pub tag: Option<String>,
+    pub commit: String,
+    pub bundle_digest: String,
+    pub files: Vec<OfficialFile>,
 }
 
 /// The curated set: catalog data plus the exact bytes of every embedded file.
@@ -194,6 +206,7 @@ fn parse_skill(v: &Value) -> HarnessResult<OfficialSkill> {
         repo: s(src, "repo").unwrap_or_default(),
         subpath: s(src, "subpath"),
         channel: s(src, "channel").unwrap_or_default(),
+        head_branch: s(src, "head_branch").unwrap_or_else(|| "main".into()),
         tag: s(src, "tag"),
         commit: s(src, "commit"),
         re_resolved: s(src, "re_resolved"),
@@ -259,6 +272,31 @@ impl OfficialSet {
             presets,
             assets,
         })
+    }
+
+    /// Resolver hook (HN-05): replace a skill's recorded revision with an
+    /// activated update. Curated applicability, features and aliases stay.
+    pub fn with_revision(
+        &mut self,
+        id: &str,
+        rev: Revision,
+        assets: BTreeMap<String, Vec<u8>>,
+    ) -> HarnessResult<()> {
+        let skill = self
+            .skills
+            .iter_mut()
+            .find(|k| k.id == id)
+            .ok_or_else(|| unknown(id))?;
+        skill.version = rev.version;
+        skill.tag = rev.tag;
+        skill.commit = Some(rev.commit);
+        skill.re_resolved = None;
+        skill.bundle_digest = Some(rev.bundle_digest);
+        skill.files = rev.files;
+        for (path, bytes) in assets {
+            self.assets.insert((id.to_string(), path), bytes);
+        }
+        Ok(())
     }
 
     pub fn find(&self, name: &str) -> Option<&OfficialSkill> {

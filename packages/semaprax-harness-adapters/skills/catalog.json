@@ -19,6 +19,7 @@
         "repo": "https://github.com/DietrichGebert/ponytail",
         "subpath": "skills/ponytail",
         "channel": "latest-stable",
+        "head_branch": "main",
         "tag": "v4.10.3",
         "commit": "ef8ca48fed2321ab6668b2a954f23b1af97d7f6d",
         "re_resolved": "2026-10-04"
@@ -174,6 +175,7 @@
         "repo": "https://github.com/JuliusBrussee/caveman",
         "subpath": "skills/caveman",
         "channel": "latest-stable",
+        "head_branch": "main",
         "tag": "v3.1.0",
         "commit": "8af1f1b9b1346bca0722a1556f119b4e6675cc96",
         "re_resolved": "2026-10-04"

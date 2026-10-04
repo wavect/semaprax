@@ -1,5 +1,4 @@
 module ri13.m2_record_iterator_tests;
-
 use function @id("callback.advance") from ri13.m2_record_iterator as advance;
 
 @id("ri13.m2_record_iterator_tests.main")

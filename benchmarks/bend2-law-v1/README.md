@@ -60,6 +60,27 @@ python3 benchmarks/bend2-law-v1/fixture_receipt.py \
   --output /tmp/bend2-fixture-receipt.json
 ```
 
+## Agent-trial preregistration
+
+Before a live agent experiment, create a local configuration from
+[`agent-trial-config.example.json`](agent-trial-config.example.json), replacing
+its placeholder configuration digest with the SHA-256 of the reviewed model,
+tool policy, and prompt configuration. The plan requires a fixed token/cost
+budget and at least ten trials per language and cell:
+
+```sh
+python3 benchmarks/bend2-law-v1/agent_trial_plan.py \
+  --config /secure/local/law16-agent-config.json \
+  --output /secure/local/law16-agent-plan.json
+```
+
+This writes a preregistration only; it never invokes an agent or reports
+token/cost observations. It binds the manifest and every fixture digest, the
+model/tool/budget configuration, laws, and seeded law-gaming attacks. The
+reviewed SEMAPRAX scalar profile does not support the required checked-`u32`
+cells, so the current plan exits nonzero with each cell explicitly
+`unsupported`. It cannot be relabeled as a successful matched trial.
+
 ## Pinned Bend Boolean smoke fixture
 
 The following local-only provisioning sequence fetches the pinned Bend source

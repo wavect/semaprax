@@ -1,0 +1,18 @@
+{
+  "schema": "semaprax.bend2-law-benchmark.agent-trial-config.v1",
+  "model": {
+    "provider": "operator-selected-provider",
+    "name": "exact-model-version",
+    "configuration_sha256": "sha256:replace-with-reviewed-model-tool-prompt-config-digest"
+  },
+  "tool_access": {
+    "network": "disabled-or-reviewed-policy",
+    "filesystem": "sandboxed-scope",
+    "shell": "bounded-command-policy"
+  },
+  "fixed_budget": {
+    "max_tokens": 100000,
+    "max_cost_usd": "25.00"
+  },
+  "trials_per_cell": 10
+}

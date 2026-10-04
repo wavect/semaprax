@@ -44,6 +44,13 @@ proof fixtures for each declared `u32 checked` domain, a quiet-host
 independent fixed-budget trials per admitted language/model plus token/cost
 event provenance. Runtime throughput and GPU scaling remain a separate family.
 
+`benchmarks/bend2-law-v1/agent_trial_plan.py` provides the prior static
+preregistration boundary. It authenticates the manifest/fixture bytes and a
+fixed model, tool-access, and budget configuration, requires at least ten
+trials per language/cell, and labels every unmatched numeric-domain cell
+`unsupported` without creating an outcome. The checked-in scalar profile has
+no admitted checked-`u32` cell, so this is not execution evidence or a pilot.
+
 ## Pinned Boolean smoke route
 
 `benchmarks/bend2-law-v1/bend_boolean_driver.py` is a narrow provisioning

@@ -14,6 +14,8 @@ use crate::diagnostic::Diagnostic;
 use crate::hir::{ResolvedFunction, ResolvedProgram};
 
 pub const HOT_RELOAD_PLAN_SCHEMA: &str = "semaprax.hot-reload-plan.v1";
+pub const HOT_RELOAD_SOURCE_AGENT_HANDOFF_SCHEMA: &str =
+    "semaprax.hot-reload-source-agent-handoff.v1";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum HotReloadReason {
@@ -49,6 +51,7 @@ impl HotReloadReason {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum HotReloadDecision {
     EligibleCodeReplacement,
+    EligibleSourceAgentCheckpointHandoff,
     UnsupportedRestartRequired,
     Rejected,
     Unchanged,
@@ -58,6 +61,9 @@ impl HotReloadDecision {
     const fn name(self) -> &'static str {
         match self {
             Self::EligibleCodeReplacement => "eligible_code_replacement",
+            Self::EligibleSourceAgentCheckpointHandoff => {
+                "eligible_source_agent_checkpoint_handoff"
+            }
             Self::UnsupportedRestartRequired => "unsupported_restart_required",
             Self::Rejected => "rejected",
             Self::Unchanged => "unchanged",
@@ -100,7 +106,49 @@ pub struct HotReloadPlan {
     test_id: String,
     decision: HotReloadDecision,
     reason: Option<HotReloadReason>,
+    source_agent_handoffs: Vec<HotReloadSourceAgentHandoff>,
+    source_agent_handoff_digest: String,
     digest: String,
+}
+
+/// Compiler-derived compatibility facts for one source Agent checkpoint handoff.
+///
+/// This is an opaque, authority-free plan. It deliberately carries no checkpoint
+/// bytes, lifecycle binding, store, host capability, or migration function. The
+/// source-live migration owner must independently bind and replay all of those
+/// before it can run a destination.
+pub struct HotReloadSourceAgentHandoff {
+    agent_id: String,
+    definition_digest: String,
+    graph_digest: String,
+    runtime_profile_digest: String,
+    proposal_schema_digest: String,
+    observation_schema_digest: String,
+    digest: String,
+}
+
+impl HotReloadSourceAgentHandoff {
+    pub fn agent_id(&self) -> &str {
+        &self.agent_id
+    }
+
+    pub fn digest(&self) -> &str {
+        &self.digest
+    }
+
+    fn json(&self) -> serde_json::Value {
+        serde_json::json!({
+            "schema": HOT_RELOAD_SOURCE_AGENT_HANDOFF_SCHEMA,
+            "agent_id": self.agent_id,
+            "definition_digest": self.definition_digest,
+            "graph_digest": self.graph_digest,
+            "runtime_profile_digest": self.runtime_profile_digest,
+            "proposal_schema_digest": self.proposal_schema_digest,
+            "observation_schema_digest": self.observation_schema_digest,
+            "digest": self.digest,
+            "authority": "none",
+        })
+    }
 }
 
 impl HotReloadPlan {
@@ -110,6 +158,11 @@ impl HotReloadPlan {
 
     pub fn reason(&self) -> Option<HotReloadReason> {
         self.reason
+    }
+
+    /// Exact compiler-derived source Agent facts, stable-ID ordered.
+    pub fn source_agent_handoffs(&self) -> &[HotReloadSourceAgentHandoff] {
+        &self.source_agent_handoffs
     }
 
     pub fn to_json(&self) -> String {
@@ -124,6 +177,8 @@ impl HotReloadPlan {
             "test_id": self.test_id,
             "decision": self.decision.name(),
             "reason": self.reason.map(HotReloadReason::name),
+            "source_agent_handoffs": self.source_agent_handoffs.iter().map(HotReloadSourceAgentHandoff::json).collect::<Vec<_>>(),
+            "source_agent_handoff_digest": self.source_agent_handoff_digest,
             "digest": self.digest,
             "authority": "none",
         })
@@ -220,38 +275,51 @@ impl HotReloadSession {
             .map_err(HotReloadFailure::candidate)?;
         let entry_id = self.active.entry_program().entrypoint.as_str().to_owned();
         let test_id = self.active.test_program().entrypoint.as_str().to_owned();
-        let (decision, reason) = if self.active.project_revision() == candidate.project_revision() {
+        let (decision, reason, source_agent_handoffs) = if self.active.project_revision()
+            == candidate.project_revision()
+        {
             (
                 HotReloadDecision::Unchanged,
                 Some(HotReloadReason::IdenticalRevision),
-            )
-        } else if !self.active.source_agents().is_empty() || !candidate.source_agents().is_empty() {
-            // Durable checkpoint handoff is owned by the source migration
-            // protocol, not by the prepared interpreter replacement lane.
-            (
-                HotReloadDecision::UnsupportedRestartRequired,
-                Some(HotReloadReason::UnsupportedTarget),
+                Vec::new(),
             )
         } else if self.active.manifest().project_profile() != candidate.manifest().project_profile()
         {
             (
                 HotReloadDecision::Rejected,
                 Some(HotReloadReason::PolicyChanged),
+                Vec::new(),
             )
         } else if compatible_program(self.active.entry_program(), candidate.entry_program())
             && compatible_program(self.active.test_program(), candidate.test_program())
         {
-            (HotReloadDecision::EligibleCodeReplacement, None)
+            match source_agent_handoffs(&self.active, candidate) {
+                Some(handoffs) if handoffs.is_empty() => {
+                    (HotReloadDecision::EligibleCodeReplacement, None, handoffs)
+                }
+                Some(handoffs) => (
+                    HotReloadDecision::EligibleSourceAgentCheckpointHandoff,
+                    None,
+                    handoffs,
+                ),
+                None => (
+                    HotReloadDecision::UnsupportedRestartRequired,
+                    Some(HotReloadReason::IncompatibleClosure),
+                    Vec::new(),
+                ),
+            }
         } else {
             (
                 HotReloadDecision::UnsupportedRestartRequired,
                 Some(HotReloadReason::IncompatibleClosure),
+                Vec::new(),
             )
         };
         let expected_project_revision = self.active.project_revision().to_owned();
         let candidate_project_revision = candidate.project_revision().to_owned();
         let expected_program_root = old_root.program_root().to_owned();
         let candidate_program_root = new_root.program_root().to_owned();
+        let source_agent_handoff_digest = source_agent_handoff_digest(&source_agent_handoffs);
         let digest = plan_digest(
             self.generation,
             self.submission,
@@ -263,6 +331,7 @@ impl HotReloadSession {
             &test_id,
             decision,
             reason,
+            &source_agent_handoff_digest,
         );
         Ok(HotReloadPlan {
             generation: self.generation,
@@ -275,6 +344,8 @@ impl HotReloadSession {
             test_id,
             decision,
             reason,
+            source_agent_handoffs,
+            source_agent_handoff_digest,
             digest,
         })
     }
@@ -313,11 +384,18 @@ impl HotReloadSession {
                     &plan.test_id,
                     plan.decision,
                     plan.reason,
+                    &plan.source_agent_handoff_digest,
                 )
         {
             return Err(HotReloadFailure::new(
                 HotReloadReason::StaleCandidate,
                 "hot reload plan no longer matches admitted candidate",
+            ));
+        }
+        if plan.decision == HotReloadDecision::EligibleSourceAgentCheckpointHandoff {
+            return Err(HotReloadFailure::new(
+                HotReloadReason::UnsupportedTarget,
+                "source Agent checkpoint handoff requires authenticated source migration",
             ));
         }
         let fresh = self.plan()?;
@@ -434,6 +512,128 @@ fn compatible_function(left: &ResolvedFunction, right: &ResolvedFunction) -> boo
         })
 }
 
+fn source_agent_handoffs(
+    active: &ProjectRevision,
+    candidate: &ProjectRevision,
+) -> Option<Vec<HotReloadSourceAgentHandoff>> {
+    let active_definitions = active.agent_definitions();
+    let candidate_definitions = candidate.agent_definitions();
+    if active_definitions.len() != candidate_definitions.len()
+        || active.source_agents().len() != active_definitions.len()
+        || candidate.source_agents().len() != candidate_definitions.len()
+    {
+        return None;
+    }
+    let (Some(active_facts), Some(candidate_facts)) = (
+        active.agent_interaction_contract_facts(),
+        candidate.agent_interaction_contract_facts(),
+    ) else {
+        return active_definitions.is_empty().then(Vec::new);
+    };
+    if active_facts.facts().len() != active_definitions.len()
+        || candidate_facts.facts().len() != candidate_definitions.len()
+    {
+        return None;
+    }
+    let mut handoffs = Vec::with_capacity(active_definitions.len());
+    for (left, right) in active_definitions.iter().zip(candidate_definitions) {
+        let left_definition = left.definition();
+        let right_definition = right.definition();
+        let agent_id = left_definition.agent_id();
+        if agent_id != right_definition.agent_id()
+            || left_definition.canonical_source() != right_definition.canonical_source()
+            || left.graph().canonical_json() != right.graph().canonical_json()
+            || left.runtime_v1_profile() != right.runtime_v1_profile()
+        {
+            return None;
+        }
+        let (Some(left_fact), Some(right_fact)) =
+            (active_facts.fact(agent_id), candidate_facts.fact(agent_id))
+        else {
+            return None;
+        };
+        if left_fact.proposal_type_id() != right_fact.proposal_type_id()
+            || left_fact.proposal_type_revision() != right_fact.proposal_type_revision()
+            || left_fact.observation_type_id() != right_fact.observation_type_id()
+            || left_fact.observation_type_revision() != right_fact.observation_type_revision()
+            || left_fact.proposal_schema_digest() != right_fact.proposal_schema_digest()
+            || left_fact.observation_schema_digest() != right_fact.observation_schema_digest()
+        {
+            return None;
+        }
+        let runtime_profile_digest = digest_bytes(
+            b"semaprax.hot-reload-source-agent-runtime.v1\0",
+            left.runtime_v1_profile().as_bytes(),
+        );
+        let digest = source_agent_handoff_row_digest(
+            agent_id,
+            left_definition.digest(),
+            left.graph().digest(),
+            &runtime_profile_digest,
+            left_fact.proposal_schema_digest(),
+            left_fact.observation_schema_digest(),
+        );
+        handoffs.push(HotReloadSourceAgentHandoff {
+            agent_id: agent_id.to_owned(),
+            definition_digest: left_definition.digest().to_owned(),
+            graph_digest: left.graph().digest().to_owned(),
+            runtime_profile_digest,
+            proposal_schema_digest: left_fact.proposal_schema_digest().to_owned(),
+            observation_schema_digest: left_fact.observation_schema_digest().to_owned(),
+            digest,
+        });
+    }
+    Some(handoffs)
+}
+
+fn source_agent_handoff_row_digest(
+    agent_id: &str,
+    definition_digest: &str,
+    graph_digest: &str,
+    runtime_profile_digest: &str,
+    proposal_schema_digest: &str,
+    observation_schema_digest: &str,
+) -> String {
+    digest_bytes(
+        b"semaprax.hot-reload-source-agent-handoff.v1\0",
+        serde_json::to_string(&serde_json::json!({
+            "agent_id": agent_id,
+            "definition_digest": definition_digest,
+            "graph_digest": graph_digest,
+            "runtime_profile_digest": runtime_profile_digest,
+            "proposal_schema_digest": proposal_schema_digest,
+            "observation_schema_digest": observation_schema_digest,
+        }))
+        .expect("fixed source Agent handoff row serializes")
+        .as_bytes(),
+    )
+}
+
+fn source_agent_handoff_digest(handoffs: &[HotReloadSourceAgentHandoff]) -> String {
+    digest_bytes(
+        b"semaprax.hot-reload-source-agent-handoffs.v1\0",
+        serde_json::to_string(
+            &handoffs
+                .iter()
+                .map(HotReloadSourceAgentHandoff::digest)
+                .collect::<Vec<_>>(),
+        )
+        .expect("fixed source Agent handoff digest serializes")
+        .as_bytes(),
+    )
+}
+
+fn digest_bytes(domain: &[u8], bytes: &[u8]) -> String {
+    let mut digest = Sha256::new();
+    digest.update(domain);
+    digest.update((bytes.len() as u64).to_le_bytes());
+    digest.update(bytes);
+    format!(
+        "sha256:{:x}",
+        crate::digest_hex::LowerHex(digest.finalize())
+    )
+}
+
 #[allow(clippy::too_many_arguments)]
 fn plan_digest(
     generation: u64,
@@ -446,6 +646,7 @@ fn plan_digest(
     test_id: &str,
     decision: HotReloadDecision,
     reason: Option<HotReloadReason>,
+    source_agent_handoff_digest: &str,
 ) -> String {
     let value = serde_json::json!({
         "schema": HOT_RELOAD_PLAN_SCHEMA,
@@ -459,6 +660,7 @@ fn plan_digest(
         "test_id": test_id,
         "decision": decision.name(),
         "reason": reason.map(HotReloadReason::name),
+        "source_agent_handoff_digest": source_agent_handoff_digest,
     });
     let bytes = serde_json::to_vec(&value).expect("fixed plan view serializes");
     let mut digest = Sha256::new();
@@ -703,6 +905,42 @@ mod tests {
             HotReloadReason::GenerationExhausted
         );
         assert!(session.pending.is_none());
+        assert_eq!(
+            observed(&session),
+            ProjectPreparedExecutionOutcome::Returned(42)
+        );
+    }
+
+    #[test]
+    fn source_agent_checkpoint_selection_cannot_replace_the_prepared_worker() {
+        let fixture = Fixture::new();
+        let mut session = HotReloadSession::new(
+            fixture.revision(),
+            PreparedProjectInterpreterOptions::default(),
+        )
+        .unwrap();
+        fixture.rewrite("src/app.spx", "multiply(6, 7)", "multiply(6, 8)");
+        session.admit_candidate(fixture.revision()).unwrap();
+        let mut selection = session.plan().unwrap();
+        selection.decision = HotReloadDecision::EligibleSourceAgentCheckpointHandoff;
+        selection.digest = plan_digest(
+            selection.generation,
+            selection.submission,
+            &selection.expected_project_revision,
+            &selection.expected_program_root,
+            &selection.candidate_project_revision,
+            &selection.candidate_program_root,
+            &selection.entry_id,
+            &selection.test_id,
+            selection.decision,
+            selection.reason,
+            &selection.source_agent_handoff_digest,
+        );
+        assert_eq!(
+            session.activate(selection).unwrap_err().reason,
+            HotReloadReason::UnsupportedTarget
+        );
+        assert_eq!(session.generation(), 0);
         assert_eq!(
             observed(&session),
             ProjectPreparedExecutionOutcome::Returned(42)

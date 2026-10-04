@@ -1,8 +1,9 @@
 # Hot Reload Session v1
 
 Status: partial local library profile for HR-01. The prepared interpreter lane
-has a checked revision coordinator; source-Agent checkpoint handoff and a
-complete compatibility planner are not implemented by this profile.
+has a checked revision coordinator. Its plans now retain compiler-derived
+source-Agent checkpoint handoff facts, while durable migration and destination
+execution remain owned by the source-live migration protocol.
 
 ## Boundary
 
@@ -30,12 +31,20 @@ The local prepared-interpreter lane admits a changed code body only when the
 checked entry and test programs retain their selected entrypoints, permit set,
 type and interface records, the exact function stable-ID set, return/parameter types and
 ownership, declared effects and yields, and checked pre/postconditions.
-Source-Agent candidates require an explicit restart in this version. This
-rule is conservative and incomplete: it does not yet compute a reachable
-callable closure, distinguish display-only renames from structural changes,
-or select an Agent checkpoint migration. A positive decision is limited to
-the checked scalar prepared-interpreter profile; it is not a general hot
-reload guarantee.
+For every source Agent, planning compares its retained canonical
+AgentDefinition, AgentGraph, Runtime v1 profile, Proposal and Observation
+type identities/revisions, and schema digests. A compatible plan carries a
+stable-ID ordered opaque handoff row with domain-separated digests of those
+compiler facts. The row contains no checkpoint bytes, lifecycle binding,
+store, host capability, or migration function. It is therefore a selection
+record for the source-live migration owner, never permission to restore or run
+a checkpoint. Such a plan has the distinct
+`eligible_source_agent_checkpoint_handoff` decision and `activate` refuses it;
+only an authenticated source-live migration can consume the selected facts.
+This rule remains conservative and incomplete: it does not yet
+compute a reachable callable closure or select and execute an Agent state
+migration. A positive decision is limited to the checked scalar
+prepared-interpreter profile; it is not a general hot reload guarantee.
 
 ## Transition table
 
@@ -45,6 +54,8 @@ reload guarantee.
 | Live; invalid candidate or exhausted submission identity | Reject with `invalid_candidate` or `generation_exhausted` | Unchanged |
 | Live; plan pending candidate | Read-only eligible, unchanged, unsupported, or rejected decision | Unchanged |
 | Live; activate matching eligible plan | Delegate one worker pivot; advance generation on acknowledgement | New complete revision |
+| Live; plan source-Agent-compatible candidate | Emit checkpoint-handoff selection facts only | Unchanged |
+| Live; activate source-Agent checkpoint-handoff selection | Reject `unsupported_target`; source-live migration must authenticate and run the handoff | Unchanged |
 | Live; activate stale generation or superseded candidate | Reject `stale_generation` or `stale_candidate` | Unchanged |
 | Live; worker has an outstanding invocation | Reject `busy_boundary`; preserve pending plan for an explicit later attempt | Unchanged |
 | Live; activate identical or incompatible plan | Reject `identical_revision`, `incompatible_closure`, `policy_changed`, or `unsupported_target` | Unchanged |
@@ -70,7 +81,8 @@ not hosted or source-Agent handoff evidence.
 
 ## Completion work
 
-HR-01 still needs the source-Agent durable-checkpoint lane, compiler-derived
-reachable closure and state compatibility, a shared table-driven transition
-suite including a physical busy boundary and first-over-bound inputs, and broader adversarial
-coverage of rename, entry, effects, contracts, and missing stable IDs.
+HR-01 still needs the source-Agent durable-checkpoint execution lane,
+compiler-derived reachable closure and state compatibility, a shared
+table-driven transition suite including a physical busy boundary and
+first-over-bound inputs, and broader adversarial coverage of rename, entry,
+effects, contracts, and missing stable IDs.

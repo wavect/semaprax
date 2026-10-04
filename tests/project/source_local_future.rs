@@ -133,6 +133,7 @@ fn ri13_closed_indexed_rust_profile_retains_one_authenticated_future() {
         SERIAL.fetch_add(1, Ordering::Relaxed)
     ));
     std::fs::create_dir_all(root.join("src")).unwrap();
+    let root = root.canonicalize().unwrap();
     std::fs::write(root.join("semaprax.toml"), RI13_MANIFEST).unwrap();
     for (name, source) in [("app.spx", RI13_APP), ("tests.spx", RI13_TESTS)] {
         let parsed = semaprax::parse(source, Path::new(name)).unwrap();

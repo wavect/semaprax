@@ -115,7 +115,7 @@ def validate_sources(sources):
         '"regex.run"',
         '"url.run"',
         indexed_snapshot,
-        "prepare_native_rust_serde_iterator_callbacks(",
+        "prepare_native_rust_serde_iterator_callbacks_from_authenticated_project_source(",
         '"ri13.event"',
         '"callback.factory"',
         '"callback.advance"',
@@ -233,7 +233,7 @@ def self_test():
         "shape": "i64-to-i64",
     }
     for name, fragment in (
-        ("prepare", "prepare_native_rust_serde_iterator_callbacks("),
+        ("prepare", "prepare_native_rust_serde_iterator_callbacks_from_authenticated_project_source("),
         ("prepare", 'let Some(directory) = env::var_os("RI13_RUST_API_INDEX_DIR")'),
         ("prepare", 'with_authenticated_indexed_regex_url_project_packages('),
         ("consumer", 'with_authenticated_indexed_regex_url_project(manifest,'),

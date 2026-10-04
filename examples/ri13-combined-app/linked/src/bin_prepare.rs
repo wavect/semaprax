@@ -1,5 +1,6 @@
 use semaprax_native_rust_interop::{
-    indexed_binding::SelectedPackage, prepare_native_rust_serde_iterator_callbacks,
+    indexed_binding::SelectedPackage,
+    prepare_native_rust_serde_iterator_callbacks_from_authenticated_project_source,
     with_authenticated_indexed_regex_url_project_packages, IndexedProjectRegexRegistrySelection,
     IndexedProjectUrlRegistrySelection,
 };
@@ -141,8 +142,8 @@ fn main() {
         package: url_package,
     });
     // M1 package facts, M2 projection, and M3 Future rendering are all derived
-    // before the held indexed Project snapshot is released. The callback has no
-    // path or selection input, so it cannot substitute a later source revision.
+    // before the held indexed Project snapshot is released. M2 receives the
+    // held Project source, so it cannot substitute a later source revision.
     let (m1, m2, m3, project_revision) = with_authenticated_indexed_regex_url_project_packages(
         &unified.join("semaprax.toml"),
         &regex,
@@ -158,13 +159,14 @@ fn main() {
                 .iter()
                 .find(|source| source.path() == "src/app.spx")
                 .expect("authenticated unified manifest requires app.spx");
-            let m2 = prepare_native_rust_serde_iterator_callbacks(
-                source.source(),
-                &unified.join("src/app.spx"),
-                "ri13.event",
-                "callback.factory",
-                "callback.advance",
-            )?;
+            let m2 =
+                prepare_native_rust_serde_iterator_callbacks_from_authenticated_project_source(
+                    source,
+                    &unified.join("src/app.spx"),
+                    "ri13.event",
+                    "callback.factory",
+                    "callback.advance",
+                )?;
             let project_revision = snapshot.retain_revision().project_revision().to_owned();
             let m3 = snapshot.render_source_local_future_rust_module()?;
             Ok((m1, m2, m3, project_revision))

@@ -52,16 +52,20 @@ The JSON receipt intentionally separates three quantities:
 | `full_build_and_consumer_stages` | Wall time for each locked Cargo prepare/consumer command, including compilation and process execution | Per-call route latency or compiler-only time |
 | `route_timing_and_allocator_requests.routes.*.{mean_ns,p50_ns,p90_ns,p99_ns}` | M3 route samples around direct Rust, handwritten checks, and generated checked source | A nontrivial batch-work result; every route includes loopback HTTP and numeric parsing |
 | `route_timing_and_allocator_requests.routes.*.allocator_requests` | Current-thread allocator calls and requested bytes while one M3 route runs | Copied bytes, retained heap, peak memory, process-wide allocation, or allocations in the server thread |
+| `m3_copy_ledger` | Per-route response wire bytes and the exact zero-byte generated `i64 -> i64` boundary | Copies inside reqwest, HTTP decoding, `Response::text`, or the caller-owned callback |
 
 The M3 measurement requires the allocator instrumentation added with the
 RI-13 measurement work. The request count deliberately records `realloc` as
 one reallocation plus its old-size deallocation and new-size allocation. It
-does not infer byte copies from allocator activity.
+does not infer byte copies from allocator activity. The separate copy ledger
+uses the CSV's exact payload count and the selected generated signature: this
+M3 route crosses only `i64` values, so its generated boundary copies zero byte
+payload. It records the uninstrumented foreign copy domains explicitly.
 
 ## Acceptance still open
 
 This gate does not close #371. It still needs a source profile that actually
-links all three categories, a copy ledger for the foreign and generated
-boundaries, a nontrivial batch comparison that meets its acceptance target,
+links all three categories, copy measurement for the foreign body and host
+callback paths, a nontrivial batch comparison that meets its acceptance target,
 and fresh Linux x86_64 evidence. The receipt makes those gaps explicit rather
 than converting one local run into a portability or performance claim.

@@ -23,6 +23,7 @@ ALLOCATION_COLUMNS = (
     "allocated_bytes",
     "deallocated_bytes",
 )
+M3_COPY_LEDGER_SCHEMA = "semaprax.ri13.m3-copy-ledger.v1"
 
 
 def percentile(values, percent):
@@ -86,7 +87,11 @@ def parse_m3_samples(text):
     result = {"raw_csv_sha256": digest(text), "samples_per_route": next(iter(counts.values())), "routes": {}}
     for route, samples in by_route.items():
         elapsed = [sample["elapsed_ns"] for sample in samples]
+        body_bytes = {sample["body_bytes"] for sample in samples}
+        if len(body_bytes) != 1:
+            raise ValueError(f"M3 route {route} changed response body size")
         result["routes"][route] = {
+            "body_bytes_per_sample": body_bytes.pop(),
             "mean_ns": round(statistics.mean(elapsed), 1),
             "p50_ns": round(percentile(elapsed, 50), 1),
             "p90_ns": round(percentile(elapsed, 90), 1),
@@ -98,6 +103,35 @@ def parse_m3_samples(text):
             },
         }
     return result
+
+
+def m3_copy_ledger(measurement):
+    """Render the byte facts the scalar M3 route can establish exactly.
+
+    Its generated boundary has an `i64` input and result, so no byte carrier
+    crosses that boundary. The CSV establishes response payload bytes per
+    route, while copies inside reqwest and decoding remain unobserved.
+    """
+    samples = measurement["samples_per_route"]
+    routes = {}
+    for route, values in measurement["routes"].items():
+        body_bytes = values["body_bytes_per_sample"]
+        routes[route] = {
+            "samples": samples,
+            "response_wire_bytes": samples * body_bytes,
+            "generated_boundary_copied_bytes": 0,
+            "generated_boundary_shape": "i64-to-i64",
+        }
+    return {
+        "schema": M3_COPY_LEDGER_SCHEMA,
+        "routes": routes,
+        "unmeasured_copy_domains": [
+            "reqwest response buffering",
+            "HTTP decoding",
+            "Response::text UTF-8 handling",
+            "caller-owned host callback",
+        ],
+    }
 
 
 def cargo_command(manifest, binary):
@@ -126,7 +160,14 @@ def self_test():
             rows.append([route, str(iteration), "100", "2", "1", "2", "0", "16", "16"])
     report = parse_m3_samples("\n".join(",".join(row) for row in rows))
     assert report["samples_per_route"] == 2
+    assert report["routes"]["generated_semaprax"]["body_bytes_per_sample"] == 2
     assert report["routes"]["generated_semaprax"]["allocator_requests"]["allocated_bytes"] == 16
+    assert m3_copy_ledger(report)["routes"]["generated_semaprax"] == {
+        "samples": 2,
+        "response_wire_bytes": 4,
+        "generated_boundary_copied_bytes": 0,
+        "generated_boundary_shape": "i64-to-i64",
+    }
     print("ri13-combined-measure-self-test-ok")
 
 
@@ -206,6 +247,7 @@ def main():
     measure_command = cargo_command("examples/ri13-m3-local-http/Cargo.toml", "measure")
     measure_result, samples = run(measure_command, environment, "generated_semaprax")
     measure_result["stage"] = "m3_route_measurement"
+    route_measurement = parse_m3_samples(samples)
     report = {
         "schema": "semaprax.ri13.combination-measurement.v1",
         "checkout": current_text(["git", "rev-parse", "HEAD"]),
@@ -215,12 +257,13 @@ def main():
         "toolchain": {"cargo": current_text(["cargo", "--version"]), "clang": environment["CLANG"]},
         "full_build_and_consumer_stages": stages,
         "route_measurement_command": measure_result,
-        "route_timing_and_allocator_requests": parse_m3_samples(samples),
+        "route_timing_and_allocator_requests": route_measurement,
+        "m3_copy_ledger": m3_copy_ledger(route_measurement),
         "limits": [
             "M1, M2 and M3 remain separately admitted source profiles; this receipt does not claim one linked Project.",
             "Build-and-consumer stage elapsed times include Cargo work and process startup; they are not route latency.",
             "Route timings include loopback HTTP and two-byte response parsing; they do not establish nontrivial batch overhead.",
-            "Allocator values count current-thread requests around each M3 route. They do not measure copied bytes, retained heap, peak residency, or other threads.",
+            "Allocator values count current-thread requests around each M3 route. The copy ledger records the scalar generated boundary and response payload bytes, but not copies inside reqwest, decoding, or the host callback.",
         ],
     }
     arguments.output.parent.mkdir(parents=True, exist_ok=True)

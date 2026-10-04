@@ -115,10 +115,11 @@ RI-13 Linux x86_64 Rust API index preparation plan
   nightly toolchain: $nightly_toolchain
   output: $output
 
---run will start one removed-on-exit Linux x86_64 guest with no network,
+--run will start one named Linux x86_64 guest with no network,
 capture regex 1.13.1 and url 2.5.8 Rustdoc JSON with the supplied pinned
 nightly, convert each capture through the repository converter, and retain
-raw JSON plus SHA-256 receipt data below $output.
+raw JSON, SHA-256 receipt data, and the guest's stdout/stderr below $output.
+The runner retains the stopped guest's inspect record, then deletes the guest.
 EOF
 }
 
@@ -146,9 +147,24 @@ except (IndexError, KeyError, TypeError, json.JSONDecodeError) as error:
 }
 
 mkdir "$output"
-trap 'echo "RI-13 Linux Rust API index preparation retained after interruption: $output" >&2' HUP INT TERM
 printf '%s\n' "$revision" > "$output/revision"
-container run --arch amd64 --rosetta --rm --init --network none \
+container_name="ri13-linux-index-$$"
+container_started=false
+
+cleanup_container() {
+    status=$?
+    trap - EXIT HUP INT TERM
+    if [ "$container_started" = true ]; then
+        # Keep diagnostics even when the caller interrupts a detached guest.
+        container logs "$container_name" > "$output/container.log" 2>&1 || true
+        container inspect "$container_name" > "$output/container-inspect.json" 2>&1 || true
+        container delete --force "$container_name" > "$output/container-delete.log" 2>&1 || true
+    fi
+    exit "$status"
+}
+trap cleanup_container EXIT HUP INT TERM
+
+container run --detach --name "$container_name" --arch amd64 --rosetta --init --network none \
     --memory 6G --read-only --tmpfs /tmp --tmpfs /work \
     --mount "type=bind,source=$repo,target=/repo,readonly" \
     --mount "type=bind,source=$cargo_home,target=/cargo-home,readonly" \
@@ -164,4 +180,33 @@ container run --arch amd64 --rosetta --rm --init --network none \
     --env CARGO_INCREMENTAL=0 \
     --env CARGO_PROFILE_DEV_DEBUG=0 \
     --env HOME=/tmp \
-    "$image_tag" bash /repo/scripts/ri13-linux-x86_64-index-prepare-inner.sh
+    "$image_tag" bash /repo/scripts/ri13-linux-x86_64-index-prepare-inner.sh \
+    > "$output/container-launch.log" 2>&1
+container_started=true
+
+# `logs --follow` closes only after the init process exits, so the following
+# inspect record describes the completed guest rather than a live one.
+container logs --follow "$container_name" > "$output/container.log" 2>&1 || {
+    status=$?
+    echo "could not retain the guest log (status $status)" >&2
+    exit "$status"
+}
+container inspect "$container_name" > "$output/container-inspect.json" 2>&1 || {
+    status=$?
+    echo "could not retain the stopped guest inspection (status $status)" >&2
+    exit "$status"
+}
+container delete "$container_name" > "$output/container-delete.log" 2>&1 || {
+    status=$?
+    echo "could not delete the stopped guest (status $status)" >&2
+    exit "$status"
+}
+container_started=false
+
+# A log stream does not communicate the guest's exit status. The inner runner
+# writes this receipt only after both raw captures and both typed envelopes pass
+# its target/package assertions.
+[ -f "$output/receipt.json" ] || {
+    echo "guest exited without a completed RI-13 Linux preparation receipt" >&2
+    exit 1
+}

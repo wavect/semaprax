@@ -51,6 +51,13 @@ project incremental edit. It binds sort permutation/multiplicity plus
 sortedness, and balance conservation plus intended state change, closing the
 empty-sort and no-op-transfer loopholes at the harness boundary.
 
+The supplemental project-incremental capsule exercises the real three-module
+`examples/calculator-project` cache path. Its provider body edit reparses the
+provider and reuses the two consumers; a changed provider signature is rejected
+by both warm and cold test routes. The capsule records exact source and local
+test-binary identities and raw test streams. It does not establish a matched
+Bend route, checked-`u32` admission, large-project scale, proof, or timing.
+
 Each cell has a digest-bound checked-`u32` input/output corpus under
 `benchmarks/bend2-law-v1/fixtures/`. It is language-neutral because the
 reviewed SEMAPRAX scalar profile does not admit `u32`; replacing it with its

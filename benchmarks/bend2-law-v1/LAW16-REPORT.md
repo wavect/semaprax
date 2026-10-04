@@ -114,6 +114,10 @@ Bend verdict and SEMAPRAX Z3 cold/warm routes remain unmeasured. There is no
 monetary cost event for admitted matched agent trials or matched project-sized
 incremental cell. The Lean list proof below covers its exact LAW15 source,
 not the original LAW16 fixture. These gaps prevent honest closure of #392.
+The separate [three-module calculator capsule](evidence/law16-project-incremental-cell-v1/result.json)
+executes SEMAPRAX compiler cache tests for a provider body edit and a rejected
+provider-signature edit. It is local incremental behavior, with no matched Bend
+route or large-project timing result.
 The [cache-isolation probe](evidence/law16-cache-isolation-probe-v1/receipt.json)
 records an earlier ephemeral Apple Container guest with read-only `/proc/sys`
 even as root. It collected zero checker timings and left no container running.

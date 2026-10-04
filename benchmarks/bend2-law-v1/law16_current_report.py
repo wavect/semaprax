@@ -36,6 +36,7 @@ BOOLEAN_ANNOTATIONS = module("law16_annotation_summary")
 CACHE_ISOLATION = module("law16_cache_isolation_probe")
 BOOLEAN_REFACTOR = module("law16_boolean_refactor_cell")
 GUEST_CACHE = module("law16_guest_cache")
+PROJECT_INCREMENTAL = module("law16_project_incremental_cell")
 SCHEMA = "semaprax.bend2-law-benchmark.current-report.v1"
 
 
@@ -142,6 +143,7 @@ def render():
         raise ValueError("Claude cost pilot plan or nonadmission receipt drifted")
     cache_probe = CACHE_ISOLATION.review()
     guest_cache = GUEST_CACHE.review(ROOT / "evidence/law16-guest-cache-thirty-v1")
+    project_incremental = PROJECT_INCREMENTAL.verify(ROOT / "evidence/law16-project-incremental-cell-v1")
     boolean_refactor = BOOLEAN_REFACTOR.verify(ROOT / "evidence/law16-boolean-refactor-cell-v1")
     claude_boolean_pilot = read(ROOT / "evidence/law16-claude-boolean-pilot-v1/capsule.json")
     if claude_boolean_pilot.get("schema") != "semaprax.bend2-law-benchmark.claude-boolean-pilot-capsule.v1" or claude_boolean_pilot.get("campaign_admission") is not False:
@@ -406,6 +408,11 @@ def render():
             **guest_cache,
             "scope": GUEST_CACHE.GUEST_SCOPE,
         },
+        "supplemental_project_incremental_cell": {
+            "source": "evidence/law16-project-incremental-cell-v1/result.json",
+            **project_incremental,
+            "scope": "local three-module SEMAPRAX compiler cache control; no matched Bend route or project-sized timing comparison",
+        },
         "supplemental_boolean_refactor_cell": {
             "source": "evidence/law16-boolean-refactor-cell-v1/result.json",
             **boolean_refactor,
@@ -433,12 +440,12 @@ def render():
             "cold_cache": "partial: 30 guest file-page-cache cold/warm pairs per ordinary Bend and SEMAPRAX check route; host/Rosetta cache state and proof/verdict cold/warm routes remain unmeasured",
             "Lean": "supplemental LAW15 collection source theorem physically checked by Lean; no Boolean or original law16.* Lean export",
             "cost": "unavailable for admitted agent trials: Codex JSON has no monetary charge event; a separate Claude probe recorded cost but failed before any source outcome",
-            "project_sized": "unavailable: Boolean microcell is not project-sized/incremental evidence",
+            "project_sized": "partial: three-module SEMAPRAX calculator core edit and signature negative control exercised; no matched Bend route, large project, or incremental timing comparison",
             "list_refactor_lawbreaking": remaining,
         },
         "closure": (
             "no: the matched Boolean cell and supplemental U32 semantic theorem comparison do not satisfy "
-            "the original checked-u32 source admission, full cold-cache and proof-route coverage, project-sized/refactor/incremental, "
+            "the original checked-u32 source admission, full cold-cache and proof-route coverage, matched project-sized incremental/refactor, "
             "or monetary cost-event acceptance requirements"
         ),
         "nonclaims": [

@@ -920,7 +920,7 @@
     "source": "evidence/law16-claude-boolean-pilot-v1/capsule.json",
     "status": "two_bounded_bend_attempts_nonadmitted"
   },
-  "closure": "no: the matched Boolean cell and supplemental U32 semantic theorem comparison do not satisfy the original checked-u32 source admission, full cold-cache and proof-route coverage, project-sized/refactor/incremental, or monetary cost-event acceptance requirements",
+  "closure": "no: the matched Boolean cell and supplemental U32 semantic theorem comparison do not satisfy the original checked-u32 source admission, full cold-cache and proof-route coverage, matched project-sized incremental/refactor, or monetary cost-event acceptance requirements",
   "guest_file_cache_cold_warm": {
     "nonclaims": [
       "guest file-page-cache scope only; macOS host cache and Rosetta translation cache are unknown",
@@ -2199,6 +2199,15 @@
     "source": "fixtures/full-u32-guarded-i64-profile-v2.json",
     "status": "supplemental_controls_and_matched_sort_law_route_no_timing"
   },
+  "supplemental_project_incremental_cell": {
+    "overall_law16": "incomplete",
+    "project_modules": 3,
+    "raw_streams": 4,
+    "schema": "semaprax.bend2-law-benchmark.project-incremental-cell.v1.review.v1",
+    "scope": "local three-module SEMAPRAX compiler cache control; no matched Bend route or project-sized timing comparison",
+    "source": "evidence/law16-project-incremental-cell-v1/result.json",
+    "status": "completed_local_project_incremental_cell"
+  },
   "supplemental_universal_list_theorems": {
     "bend": {
       "coverage": {
@@ -2340,6 +2349,6 @@
       "schema": "semaprax.bend2-law-benchmark.remaining-u32-cells-admission.v1",
       "status": "unsupported"
     },
-    "project_sized": "unavailable: Boolean microcell is not project-sized/incremental evidence"
+    "project_sized": "partial: three-module SEMAPRAX calculator core edit and signature negative control exercised; no matched Bend route, large project, or incremental timing comparison"
   }
 }

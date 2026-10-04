@@ -50,6 +50,7 @@ class Law16ClosureAuditTests(unittest.TestCase):
         self.assertEqual(cells["checked_u32_source_syntax"]["classification"], "unsupported")
         self.assertIn("unsupported_by_pinned_parser", cells["checked_u32_source_syntax"]["status"])
         self.assertEqual(cells["cold_cache_isolation"]["classification"], "partially_observed_guest_file_cache")
+        self.assertEqual(cells["project_sized_incremental_cell"]["classification"], "supplemental_three_module_cache_control_only")
         self.assertEqual(cells["supported_list_theorem"]["classification"], "supplemental_profile_only")
         self.assertEqual(cells["law16_list_source_theorem"]["classification"], "unavailable_for_law16_identity")
         self.assertEqual(cells["external_lean_export_kernel"]["classification"], "supplemental_route_available_but_not_law16_cell")

@@ -53,6 +53,11 @@ class CurrentReportTests(unittest.TestCase):
         self.assertEqual(guest["summary"]["bend_ordinary"]["cold"]["count"], 30)
         self.assertEqual(guest["summary"]["semaprax_check"]["warm"]["count"], 30)
         self.assertIn("host and Rosetta caches unknown", guest["scope"])
+        project = value["supplemental_project_incremental_cell"]
+        self.assertEqual(project["status"], "completed_local_project_incremental_cell")
+        self.assertEqual(project["project_modules"], 3)
+        self.assertEqual(project["raw_streams"], 4)
+        self.assertIn("no matched Bend route", project["scope"])
         process = value["matched_boolean"]["process_provenance"]
         self.assertEqual(process["command_count"], 240)
         self.assertEqual(process["cold_cache"]["status"], "unavailable")

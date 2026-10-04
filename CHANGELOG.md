@@ -14,6 +14,10 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Retain a real three-module SEMAPRAX project-incremental cache control for
+  LAW16, with a provider body edit, signature-change refusal, exact test-binary
+  identity, and raw outputs. The matched Bend and large-project comparison
+  remains open.
 - Execute and retain six LAW16 unified fresh non-agent routes plus their
   failed first attempt. Fix the forwarded compiler digest prefix and support
   offline verification after copying the raw capsule, including strict RSS

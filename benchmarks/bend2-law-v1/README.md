@@ -159,6 +159,21 @@ reuse. These are fixture checks, not tool execution evidence. The [project incre
 checked-`u32` cells remain unavailable until both languages have matched
 executable source and proof routes; this validation never substitutes `i32`.
 
+The separate [three-module incremental capsule](evidence/law16-project-incremental-cell-v1/result.json)
+executes two exact compiler tests on `examples/calculator-project`: a body edit
+reparses `core` and reuses `app` and `tests`, while a provider-signature edit is
+rejected on both warm and cold paths. Its raw streams and source/test-binary
+hashes are retained. This is local SEMAPRAX cache behavior, not a matched Bend
+incremental route, large-project benchmark, or timed comparison. Reproduce it
+with a test binary compiled from the recorded source commit:
+
+```sh
+python3 benchmarks/bend2-law-v1/law16_project_incremental_cell.py \
+  --test-binary /absolute/semaprax-lib-test-binary \
+  --source-commit 1059e175671bafc2ad497d8a0a50d6c013184842 \
+  --output /absolute/new-project-incremental-capsule
+```
+
 The harness records local evidence only. It does not provision tools, clone
 repositories, generate source fixtures, publish results, or make a
 superiority claim. Unimplemented fixture/tool combinations remain

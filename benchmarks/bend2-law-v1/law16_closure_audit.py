@@ -286,7 +286,7 @@ def render() -> dict:
         ),
         (
             "partial",
-            "Boolean, balance, and sort controls are retained, including a supplemental LAW15 List<i64> Lean proof test and a matched Boolean refactor candidate/attack cell. The original checked-u32 refactor, law-breaking agent edit, and project-sized incremental cells remain unsupported or unavailable.",
+            "Boolean, balance, and sort controls are retained, including a supplemental LAW15 List<i64> Lean proof test and a matched Boolean refactor candidate/attack cell. A local three-module SEMAPRAX incremental cache control executed, but it is not a matched Bend or large-project comparison. The original checked-u32 refactor and law-breaking agent edit remain unsupported.",
         ),
         (
             "partial",
@@ -294,7 +294,7 @@ def render() -> dict:
         ),
         (
             "partial",
-            "Available process cells have 30 samples, p50/p95, peak RSS, and descriptive MAD; proof synthesis tokens, Boolean annotation/changed-byte counts, and route checks are separately reported. Guest file-page-cache cold/warm pairs now cover ordinary/check routes; proof/verdict cold/warm, monetary cost for admitted matched trials, and separate native compile/run timings remain unavailable.",
+            "Available process cells have 30 samples, p50/p95, peak RSS, and descriptive MAD; proof synthesis tokens, Boolean annotation/changed-byte counts, and route checks are separately reported. A local three-module cache invalidation control and guest file-page-cache cold/warm pairs for ordinary/check routes are retained. Proof/verdict cold/warm, monetary cost for admitted matched trials, and separate native compile/run timings remain unavailable.",
         ),
         (
             "partial",
@@ -376,10 +376,10 @@ def render() -> dict:
         },
         {
             "id": "project_sized_incremental_cell",
-            "classification": "unavailable",
+            "classification": "supplemental_three_module_cache_control_only",
             "blocking_requirements": ["R2", "R4"],
             "status": unsupported["project_sized"],
-            "evidence": common,
+            "evidence": common + [evidence("evidence/law16-project-incremental-cell-v1/result.json")],
         },
         {
             "id": "agent_monetary_cost_events",

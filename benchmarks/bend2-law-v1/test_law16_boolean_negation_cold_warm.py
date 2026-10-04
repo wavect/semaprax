@@ -21,6 +21,7 @@ class ColdWarmTests(unittest.TestCase):
         self.assertEqual(bend[-1], "--verdict")
         self.assertEqual(semaprax[-4:], ["--declaration", "app.negate", "--ensures", "0"])
         self.assertIn(MODULE.Z3_VERSION, semaprax)
+        self.assertEqual(semaprax[2], (pathlib.Path("fresh-project").resolve() / "semaprax.toml"))
         self.assertEqual(json.loads(MODULE.json_command(semaprax)), [str(part) for part in semaprax])
 
     def test_prepared_plan_makes_no_unrun_claim(self):

@@ -50,7 +50,7 @@ def semaprax_command(semaprax, z3, project):
     return [
         semaprax,
         "project-proof-check",
-        project / "semaprax.toml",
+        project.resolve() / "semaprax.toml",
         "--tool",
         "z3",
         "--executable",

@@ -9,7 +9,8 @@ Emulates the loopback wire of middleware protocol 1.1 at upstream commit
   packages/sdk/python/caveman_cloud/middleware/runtime.py   (request body, headers)
   packages/sdk/python/caveman_cloud/middleware/validate.py  (plan shape the client accepts)
   packages/sdk/python/caveman_cloud/middleware/{protocol,types}.py (capabilities, marker, features)
-It is a fixture, not a recorded exchange from a real runtime.
+Shape fields were aligned with a real v3.1.0 runtime on 2026-10-04 (recorded/exchange.json). Mode
+"replay" serves that recording verbatim (patching only the per-request ids and digests).
 Behaviour comes from <dir>/mode.txt; each request appends "METHOD route" to <dir>/calls.log (also
 for refused ones) and the last optimize body and headers are saved in <dir>/last_optimize.json.
 """
@@ -42,6 +43,11 @@ def collapse(t):
 
 
 TOKEN = "tok-1"
+REC = os.path.join(os.path.dirname(os.path.abspath(__file__)), "recorded", "exchange.json")
+
+
+def recorded(method, path):
+    return next(e for e in json.load(open(REC))["exchanges"] if (e["method"], e["path"]) == (method, path))
 
 
 class H(BaseHTTPRequestHandler):
@@ -75,14 +81,20 @@ class H(BaseHTTPRequestHandler):
     def do_GET(self):
         if self.gate() != "capabilities":
             return
+        if mode() == "replay":
+            return self.send(200, recorded("GET", P + "capabilities")["response_body"])
         self.send(200, {
             "schema_version": 1, "protocol": {"min": 1, "max": 1},
             "features": ["http_status_v2", "originals_lifecycle", "revision_tolerant", "tolerant_reader"],
             "mode": "record" if mode() == "record" else "compress",
             "policy_revision": "pr1", "runtime_build": "fake-3.1.0",
-            "transforms": [{"transform_id": "ccr-text", "implementation_version": "1", "deterministic": True,
-                            "recovery": "exact_ccr", "eligible_segment_kinds": ["tool_result"]}],
-            "limits": {"deadline_ms": 500, "request_bytes": 2097152, "segment_bytes": 524288, "page_bytes": 262144},
+            "transforms": [{"transform_id": "caveman.engine.log.v1", "implementation_version": "1", "safety_classes": ["S4"],
+                            "deterministic": True, "recovery": "exact_ccr", "eligible_segment_kinds": ["tool_result"],
+                            "requires_eval": True, "not_smaller_fallback": "original",
+                            "provenance": {"kind": "native", "source_manifest_sha256": None}, "conformance_digest": "0" * 64}],
+            "limits": {"deadline_ms": 500, "request_bytes": 2097152, "segment_bytes": 524288, "page_bytes": 262144,
+                       "retrieve_deadline_ms": 5000, "queue_depth": 16, "retrieve_queue_depth": 16, "max_segments": 256,
+                       "max_manifest_items": 4096, "receipt_bytes": 16384},
             "max_retention_seconds": 604800, "persistent": True, "recovery": True, "retention_seconds": 604800})
 
     def do_POST(self):
@@ -92,12 +104,20 @@ class H(BaseHTTPRequestHandler):
         raw = self.rfile.read(int(self.headers["Content-Length"]))
         body = json.loads(raw)
         if route == "sessions/delete":
+            if mode() == "replay":
+                return self.send(200, recorded("POST", P + route)["response_body"])
             return self.send(200, {"schema_version": 1, "status": "revoked", "originals_deleted": True,
                                    "deleted": {"scopes": 1, "choices": 1, "grants": 1, "originals": 1}})
         if route != "optimize":
             return self.err(404, "not_found")
         json.dump({"headers": dict(self.headers.items()), "body": body}, open(os.path.join(D, "last_optimize.json"), "w"))
         m = mode()
+        if m == "replay":
+            plan = recorded("POST", P + "optimize")["response_body"]
+            plan["request_id"] = body["request_id"]
+            plan["input_digest"] = hashlib.sha256(raw).hexdigest()
+            plan["recovery"]["binding_id"] = body["recovery_binding"]["id"]
+            return self.send(200, plan)
         if m == "crash":
             return self.err(503, "runtime_unavailable")
         if m == "hang":
@@ -112,7 +132,7 @@ class H(BaseHTTPRequestHandler):
                 "replacements": [], "skipped": [],
                 "stability": {"provider_bytes": "unobserved", "provider_cache_hits": "unobserved", "native": "persistent_choices"}}
         n = len(text.split())
-        plan["measurement"] = {"basis": "inferred", "scope": "segment", "verified_saved_usd": 0, "tokenizer": "fake-words",
+        plan["measurement"] = {"basis": "inferred", "scope": "segment", "verified_saved_usd": 0, "tokenizer": "fake-words", "overhead_coverage": "segment_and_declared_recovery_tool",
                                "tokens_before": n, "tokens_after": n, "unique_tokens_reduced": 0, "recovery_overhead_tokens": 2}
         plan["recovery"] = {"available": True, "persistent": True, "expires_at": 4102444800,
                             "binding_id": body["recovery_binding"]["id"]}
@@ -134,7 +154,7 @@ class H(BaseHTTPRequestHandler):
         plan["measurement"].update(tokens_after=after, unique_tokens_reduced=max(0, n - after))
         plan["replacements"].append({
             "segment_id": seg["id"], "source_id": seg["source_id"], "original_sha256": seg["sha256"],
-            "transform_id": "ccr-text", "transform_version": "1", "sha256": sha, "text": out,
+            "transform_id": "caveman.engine.log.v1", "transform_version": "1", "sha256": sha, "text": out,
             "tokens_before": n, "tokens_after": after, "reused": False, "unique_original": True, "recovery_handle": handle})
         self.send(200, plan)
 

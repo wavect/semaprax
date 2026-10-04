@@ -1,0 +1,502 @@
+{
+ "_note": "Recorded 2026-10-04 from a real caveman-proxy built from JuliusBrussee/caveman v3.1.0 (8af1f1b9b1346bca0722a1556f119b4e6675cc96), 127.0.0.1, CAVEMAN_MODE=compress, DO_NOT_TRACK=1, CAVEMAN_WORK_TAGS=0, driven by adapter.py view(). Content is the synthetic raw.log. Bearer token redacted.",
+ "raw_file": "raw.log",
+ "exchanges": [
+  {
+   "method": "GET",
+   "path": "/caveman/v1/middleware/capabilities",
+   "request_headers": {
+    "Authorization": "Bearer <redacted>",
+    "Caveman-Middleware-Features": "http_status_v2, revision_tolerant",
+    "Caveman-Middleware-Client": "semaprax-command-view/0.1.0"
+   },
+   "request_body": null,
+   "status": 200,
+   "response_body": {
+    "schema_version": 1,
+    "runtime_build": "dev",
+    "policy_revision": "middleware-v1:64b06ad2a9c99a5ff6a3ad7029ff9fa439c7435f5d94d01879c9e0e11e29513f",
+    "transforms": [
+     {
+      "transform_id": "caveman.engine.a11y.v1",
+      "implementation_version": "1",
+      "safety_classes": [
+       "S4"
+      ],
+      "deterministic": true,
+      "recovery": "exact_ccr",
+      "eligible_segment_kinds": [
+       "artifact",
+       "tool_result"
+      ],
+      "requires_eval": true,
+      "not_smaller_fallback": "original",
+      "provenance": {
+       "kind": "native",
+       "source_manifest_sha256": null
+      },
+      "conformance_digest": "fab98c3ca53ab35d1f9c8415dc101e4174abbc96f9acb602bcfd2b015673fd52"
+     },
+     {
+      "transform_id": "caveman.engine.code.v1",
+      "implementation_version": "1",
+      "safety_classes": [
+       "S4"
+      ],
+      "deterministic": true,
+      "recovery": "exact_ccr",
+      "eligible_segment_kinds": [
+       "artifact",
+       "history",
+       "skill",
+       "tool_result"
+      ],
+      "requires_eval": true,
+      "not_smaller_fallback": "original",
+      "provenance": {
+       "kind": "native",
+       "source_manifest_sha256": null
+      },
+      "conformance_digest": "65a4f8151ac3c492e761c74364c3cc608b9df0134d58cac55e35b2a91dc1d651"
+     },
+     {
+      "transform_id": "caveman.engine.config.v1",
+      "implementation_version": "1",
+      "safety_classes": [
+       "S4"
+      ],
+      "deterministic": true,
+      "recovery": "exact_ccr",
+      "eligible_segment_kinds": [
+       "artifact",
+       "history",
+       "skill",
+       "tool_result"
+      ],
+      "requires_eval": true,
+      "not_smaller_fallback": "original",
+      "provenance": {
+       "kind": "native",
+       "source_manifest_sha256": null
+      },
+      "conformance_digest": "572acf0de1f5cc5e633782eebd2200032dc3ac12bb0fcd1107fdaebc88ce09ea"
+     },
+     {
+      "transform_id": "caveman.engine.diff.v1",
+      "implementation_version": "1",
+      "safety_classes": [
+       "S4"
+      ],
+      "deterministic": true,
+      "recovery": "exact_ccr",
+      "eligible_segment_kinds": [
+       "artifact",
+       "history",
+       "skill",
+       "tool_result"
+      ],
+      "requires_eval": true,
+      "not_smaller_fallback": "original",
+      "provenance": {
+       "kind": "native",
+       "source_manifest_sha256": null
+      },
+      "conformance_digest": "c384feacaee22f81f2c90be134b3ce1e73e16243369630c858da98f030dc3037"
+     },
+     {
+      "transform_id": "caveman.engine.html.v1",
+      "implementation_version": "1",
+      "safety_classes": [
+       "S4"
+      ],
+      "deterministic": true,
+      "recovery": "exact_ccr",
+      "eligible_segment_kinds": [
+       "artifact",
+       "history",
+       "skill",
+       "tool_result"
+      ],
+      "requires_eval": true,
+      "not_smaller_fallback": "original",
+      "provenance": {
+       "kind": "native",
+       "source_manifest_sha256": null
+      },
+      "conformance_digest": "ee9f58291b60cb5db367dd939064083d05b440abd14cedb25eb0d370b20ed5df"
+     },
+     {
+      "transform_id": "caveman.engine.json.v1",
+      "implementation_version": "1",
+      "safety_classes": [
+       "S4"
+      ],
+      "deterministic": true,
+      "recovery": "exact_ccr",
+      "eligible_segment_kinds": [
+       "artifact",
+       "history",
+       "skill",
+       "tool_result"
+      ],
+      "requires_eval": true,
+      "not_smaller_fallback": "original",
+      "provenance": {
+       "kind": "native",
+       "source_manifest_sha256": null
+      },
+      "conformance_digest": "0c3dbce89c118be01ee9d7e9a20f86f4894b4ec259bb6259723aaf0c9ea95663"
+     },
+     {
+      "transform_id": "caveman.engine.log.v1",
+      "implementation_version": "1",
+      "safety_classes": [
+       "S4"
+      ],
+      "deterministic": true,
+      "recovery": "exact_ccr",
+      "eligible_segment_kinds": [
+       "artifact",
+       "history",
+       "skill",
+       "tool_result"
+      ],
+      "requires_eval": true,
+      "not_smaller_fallback": "original",
+      "provenance": {
+       "kind": "native",
+       "source_manifest_sha256": null
+      },
+      "conformance_digest": "c11b16ec7ec7197670222f2b5cedbf365a1f2f8fc3e30bdb6432d619341c431a"
+     },
+     {
+      "transform_id": "caveman.engine.repetition.v1",
+      "implementation_version": "1",
+      "safety_classes": [
+       "S4"
+      ],
+      "deterministic": true,
+      "recovery": "exact_ccr",
+      "eligible_segment_kinds": [
+       "history",
+       "tool_result"
+      ],
+      "requires_eval": true,
+      "not_smaller_fallback": "original",
+      "provenance": {
+       "kind": "native",
+       "source_manifest_sha256": null
+      },
+      "conformance_digest": "7bc44f0c6a389e2fb16db6c1ee729d4c374b8d5af50841da50550ac689c42633"
+     },
+     {
+      "transform_id": "caveman.engine.search-result.v1",
+      "implementation_version": "1",
+      "safety_classes": [
+       "S4"
+      ],
+      "deterministic": true,
+      "recovery": "exact_ccr",
+      "eligible_segment_kinds": [
+       "artifact",
+       "history",
+       "skill",
+       "tool_result"
+      ],
+      "requires_eval": true,
+      "not_smaller_fallback": "original",
+      "provenance": {
+       "kind": "native",
+       "source_manifest_sha256": null
+      },
+      "conformance_digest": "7e0d1925a788ebb9a7914ecba7677b3ace690c986e0fb7f99e36073de608c295"
+     },
+     {
+      "transform_id": "caveman.engine.tabular.v1",
+      "implementation_version": "1",
+      "safety_classes": [
+       "S4"
+      ],
+      "deterministic": true,
+      "recovery": "exact_ccr",
+      "eligible_segment_kinds": [
+       "artifact",
+       "history",
+       "skill",
+       "tool_result"
+      ],
+      "requires_eval": true,
+      "not_smaller_fallback": "original",
+      "provenance": {
+       "kind": "native",
+       "source_manifest_sha256": null
+      },
+      "conformance_digest": "0583ae3351b166e7b56b9d1ce7d526c065a2a9a1ac2e013b63e500dfcdec299b"
+     },
+     {
+      "transform_id": "caveman.engine.terminal.v1",
+      "implementation_version": "1",
+      "safety_classes": [
+       "S4"
+      ],
+      "deterministic": true,
+      "recovery": "exact_ccr",
+      "eligible_segment_kinds": [
+       "artifact",
+       "history",
+       "skill",
+       "tool_result"
+      ],
+      "requires_eval": true,
+      "not_smaller_fallback": "original",
+      "provenance": {
+       "kind": "native",
+       "source_manifest_sha256": null
+      },
+      "conformance_digest": "e17103e65e276997f33dd2c92f5b9b0a48c4f2eb666b512fda599805de893f12"
+     },
+     {
+      "transform_id": "caveman.engine.text.v1",
+      "implementation_version": "1",
+      "safety_classes": [
+       "S4"
+      ],
+      "deterministic": true,
+      "recovery": "exact_ccr",
+      "eligible_segment_kinds": [
+       "artifact",
+       "history",
+       "skill",
+       "tool_result"
+      ],
+      "requires_eval": true,
+      "not_smaller_fallback": "original",
+      "provenance": {
+       "kind": "native",
+       "source_manifest_sha256": null
+      },
+      "conformance_digest": "3733cb4032a1a0a75f6fc5cc916ab9313164f3db79f21a1c8286716f894c140d"
+     },
+     {
+      "transform_id": "caveman.engine.toolschema.v1",
+      "implementation_version": "1",
+      "safety_classes": [
+       "S4"
+      ],
+      "deterministic": true,
+      "recovery": "exact_ccr",
+      "eligible_segment_kinds": [
+       "tool_schema"
+      ],
+      "requires_eval": true,
+      "not_smaller_fallback": "original",
+      "provenance": {
+       "kind": "native",
+       "source_manifest_sha256": null
+      },
+      "conformance_digest": "64349cacc554310f6966b04ec3abceb6ab4fe43c4f676c1482e9941613212ad6"
+     },
+     {
+      "transform_id": "caveman.engine.toon.v1",
+      "implementation_version": "1",
+      "safety_classes": [
+       "S4"
+      ],
+      "deterministic": true,
+      "recovery": "exact_ccr",
+      "eligible_segment_kinds": [
+       "artifact",
+       "history",
+       "skill",
+       "tool_result"
+      ],
+      "requires_eval": true,
+      "not_smaller_fallback": "original",
+      "provenance": {
+       "kind": "native",
+       "source_manifest_sha256": null
+      },
+      "conformance_digest": "3f4061b489b938fb371f2addce8aa937f9f9d0bf52bc207873e1815cf84087ca"
+     }
+    ],
+    "limits": {
+     "deadline_ms": 500,
+     "request_bytes": 2097152,
+     "segment_bytes": 524288,
+     "page_bytes": 262144,
+     "retrieve_deadline_ms": 5000,
+     "queue_depth": 16,
+     "retrieve_queue_depth": 16,
+     "max_segments": 256,
+     "max_manifest_items": 4096,
+     "receipt_bytes": 16384
+    },
+    "persistent": true,
+    "recovery": true,
+    "retention_seconds": 86400,
+    "trust_mode": "single_operator",
+    "mode": "compress",
+    "protocol": {
+     "min": 1,
+     "max": 1
+    },
+    "features": [
+     "http_status_v2",
+     "originals_lifecycle",
+     "revision_tolerant",
+     "tolerant_reader"
+    ],
+    "max_retention_seconds": 604800
+   }
+  },
+  {
+   "method": "POST",
+   "path": "/caveman/v1/middleware/optimize",
+   "request_headers": {
+    "Authorization": "Bearer <redacted>",
+    "Caveman-Middleware-Features": "http_status_v2, revision_tolerant",
+    "Caveman-Middleware-Client": "semaprax-command-view/0.1.0"
+   },
+   "request_body": {
+    "schema_version": 1,
+    "request_id": "8c5aca33-e0c1-4cff-86c2-252115a5b6c4",
+    "logical_call_id": "8c5aca33-e0c1-4cff-86c2-252115a5b6c4",
+    "attempt_id": "72460a19-f779-40dc-be9b-a72dedcdf184",
+    "idempotency_key": "8c5aca33-e0c1-4cff-86c2-252115a5b6c4",
+    "scope": {
+     "namespace": "semaprax",
+     "session_id": "sx-ee19d07b8ee740809558a03b45c583b3",
+     "branch_id": "main",
+     "cache_epoch": "0"
+    },
+    "sequence": 0,
+    "adapter": {
+     "id": "semaprax-command-view",
+     "version": "0.1.0",
+     "framework_version": "none",
+     "serialization_revision": "1"
+    },
+    "model": null,
+    "mode": "compress",
+    "policy": {
+     "revision": "middleware-v1:64b06ad2a9c99a5ff6a3ad7029ff9fa439c7435f5d94d01879c9e0e11e29513f",
+     "transforms": [
+      "caveman.engine.a11y.v1",
+      "caveman.engine.code.v1",
+      "caveman.engine.config.v1",
+      "caveman.engine.diff.v1",
+      "caveman.engine.html.v1",
+      "caveman.engine.json.v1",
+      "caveman.engine.log.v1",
+      "caveman.engine.repetition.v1",
+      "caveman.engine.search-result.v1",
+      "caveman.engine.tabular.v1",
+      "caveman.engine.terminal.v1",
+      "caveman.engine.text.v1",
+      "caveman.engine.toolschema.v1",
+      "caveman.engine.toon.v1"
+     ]
+    },
+    "segments": [
+     {
+      "id": "cv-4ecdb237fad3bbb622517fa8",
+      "source_id": "cv-4ecdb237fad3bbb622517fa8",
+      "kind": "tool_result",
+      "cache_region": "live_zone",
+      "content": "2026-10-04T12:00:00 INFO worker-0 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:01 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:02 INFO worker-2 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:03 INFO worker-3 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:04 INFO worker-4 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:05 INFO worker-5 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:06 INFO worker-6 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:07 INFO worker-0 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:08 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:09 INFO worker-2 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:10 INFO worker-3 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:11 INFO worker-4 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:12 INFO worker-5 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:13 INFO worker-6 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:14 INFO worker-0 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:15 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:16 INFO worker-2 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:17 INFO worker-3 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:18 INFO worker-4 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:19 INFO worker-5 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:20 INFO worker-6 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:21 INFO worker-0 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:22 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:23 INFO worker-2 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:24 INFO worker-3 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:25 INFO worker-4 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:26 INFO worker-5 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:27 INFO worker-6 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:28 INFO worker-0 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:29 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:30 INFO worker-2 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:31 INFO worker-3 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:32 INFO worker-4 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:33 INFO worker-5 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:34 INFO worker-6 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:35 INFO worker-0 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:36 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:37 INFO worker-2 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:38 INFO worker-3 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:39 INFO worker-4 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:40 INFO worker-5 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:41 INFO worker-6 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:42 INFO worker-0 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:43 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:44 INFO worker-2 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:45 INFO worker-3 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:46 INFO worker-4 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:47 INFO worker-5 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:48 INFO worker-6 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:49 INFO worker-0 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:50 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:51 INFO worker-2 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:52 INFO worker-3 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:53 INFO worker-4 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:54 INFO worker-5 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:55 INFO worker-6 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:56 INFO worker-0 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:57 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:58 INFO worker-2 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:59 INFO worker-3 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:00 INFO worker-4 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:01 INFO worker-5 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:02 INFO worker-6 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:03 INFO worker-0 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:04 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:05 INFO worker-2 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:06 INFO worker-3 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:07 INFO worker-4 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:08 INFO worker-5 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:09 INFO worker-6 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:10 INFO worker-0 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:11 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:12 INFO worker-2 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:13 INFO worker-3 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:14 INFO worker-4 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:15 INFO worker-5 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:16 INFO worker-6 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:17 INFO worker-0 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:18 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:19 INFO worker-2 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:20 INFO worker-3 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:21 INFO worker-4 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:22 INFO worker-5 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:23 INFO worker-6 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:24 INFO worker-0 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:25 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:26 INFO worker-2 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:27 INFO worker-3 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:28 INFO worker-4 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:29 INFO worker-5 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:30 INFO worker-6 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:31 INFO worker-0 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:32 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:33 INFO worker-2 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:34 INFO worker-3 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:35 INFO worker-4 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:36 INFO worker-5 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:37 INFO worker-6 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:38 INFO worker-0 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:39 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:40 INFO worker-2 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:41 INFO worker-3 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:42 INFO worker-4 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:43 INFO worker-5 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:44 INFO worker-6 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:45 INFO worker-0 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:46 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:47 INFO worker-2 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:48 INFO worker-3 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:49 INFO worker-4 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:50 INFO worker-5 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:51 INFO worker-6 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:52 INFO worker-0 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:53 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:54 INFO worker-2 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:55 INFO worker-3 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:56 INFO worker-4 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:57 INFO worker-5 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:58 INFO worker-6 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:59 INFO worker-0 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:01 INFO worker-2 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:02 INFO worker-3 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:03 INFO worker-4 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:04 INFO worker-5 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:05 INFO worker-6 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:06 INFO worker-0 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:07 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:08 INFO worker-2 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:09 INFO worker-3 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:10 INFO worker-4 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:11 INFO worker-5 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:12 INFO worker-6 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:13 INFO worker-0 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:14 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:15 INFO worker-2 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:16 INFO worker-3 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:17 INFO worker-4 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:18 INFO worker-5 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:19 INFO worker-6 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:20 INFO worker-0 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:21 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:22 INFO worker-2 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:23 INFO worker-3 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:24 INFO worker-4 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:25 INFO worker-5 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:26 INFO worker-6 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:27 INFO worker-0 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:28 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:29 INFO worker-2 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:30 INFO worker-3 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:31 INFO worker-4 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:32 INFO worker-5 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:33 INFO worker-6 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:34 INFO worker-0 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:35 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:36 INFO worker-2 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:37 INFO worker-3 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:38 INFO worker-4 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:39 INFO worker-5 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:40 INFO worker-6 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:41 INFO worker-0 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:42 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:43 INFO worker-2 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:44 INFO worker-3 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:45 INFO worker-4 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:46 INFO worker-5 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:47 INFO worker-6 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:48 INFO worker-0 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:49 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:50 INFO worker-2 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:51 INFO worker-3 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:52 INFO worker-4 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:53 INFO worker-5 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:54 INFO worker-6 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:55 INFO worker-0 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:56 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:57 INFO worker-2 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:58 INFO worker-3 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:59 INFO worker-4 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:00 INFO worker-5 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:01 INFO worker-6 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:02 INFO worker-0 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:03 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:04 INFO worker-2 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:05 INFO worker-3 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:06 INFO worker-4 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:07 INFO worker-5 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:08 INFO worker-6 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:09 INFO worker-0 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:10 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:11 INFO worker-2 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:12 INFO worker-3 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:13 INFO worker-4 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:14 INFO worker-5 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:15 INFO worker-6 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:16 INFO worker-0 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:17 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:18 INFO worker-2 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:19 INFO worker-3 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:20 INFO worker-4 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:21 INFO worker-5 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:22 INFO worker-6 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:23 INFO worker-0 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:24 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:25 INFO worker-2 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:26 INFO worker-3 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:27 INFO worker-4 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:28 INFO worker-5 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:29 INFO worker-6 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:30 INFO worker-0 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:31 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:32 INFO worker-2 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:33 INFO worker-3 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:34 INFO worker-4 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:35 INFO worker-5 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:36 INFO worker-6 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:37 INFO worker-0 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:38 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:39 INFO worker-2 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:40 INFO worker-3 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:41 INFO worker-4 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:42 INFO worker-5 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:43 INFO worker-6 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:44 INFO worker-0 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:45 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:46 INFO worker-2 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:47 INFO worker-3 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:48 INFO worker-4 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:49 INFO worker-5 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:50 INFO worker-6 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:51 INFO worker-0 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:52 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:53 INFO worker-2 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:54 INFO worker-3 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:55 INFO worker-4 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:56 INFO worker-5 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:57 INFO worker-6 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:58 INFO worker-0 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:59 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:00 INFO worker-2 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:01 INFO worker-3 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:02 INFO worker-4 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:03 INFO worker-5 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:04 INFO worker-6 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:05 INFO worker-0 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:06 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:07 INFO worker-2 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:08 INFO worker-3 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:09 INFO worker-4 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:10 INFO worker-5 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:11 INFO worker-6 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:12 INFO worker-0 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:13 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:14 INFO worker-2 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:15 INFO worker-3 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:16 INFO worker-4 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:17 INFO worker-5 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:18 INFO worker-6 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:19 INFO worker-0 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:20 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:21 INFO worker-2 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:22 INFO worker-3 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:23 INFO worker-4 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:24 INFO worker-5 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:25 INFO worker-6 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:26 INFO worker-0 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:27 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:28 INFO worker-2 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:29 INFO worker-3 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:30 INFO worker-4 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:31 INFO worker-5 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:32 INFO worker-6 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:33 INFO worker-0 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:34 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:35 INFO worker-2 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:36 INFO worker-3 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:37 INFO worker-4 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:38 INFO worker-5 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:39 INFO worker-6 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:40 INFO worker-0 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:41 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:42 INFO worker-2 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:43 INFO worker-3 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:44 INFO worker-4 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:45 INFO worker-5 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:46 INFO worker-6 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:47 INFO worker-0 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:48 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:49 INFO worker-2 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:50 INFO worker-3 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:51 INFO worker-4 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:52 INFO worker-5 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:53 INFO worker-6 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:54 INFO worker-0 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:55 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:56 INFO worker-2 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:57 INFO worker-3 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:58 INFO worker-4 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:59 INFO worker-5 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:00 INFO worker-6 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:01 INFO worker-0 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:02 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:03 INFO worker-2 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:04 INFO worker-3 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:05 INFO worker-4 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:06 INFO worker-5 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:07 INFO worker-6 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:08 INFO worker-0 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:09 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:10 INFO worker-2 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:11 INFO worker-3 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:12 INFO worker-4 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:13 INFO worker-5 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:14 INFO worker-6 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:15 INFO worker-0 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:16 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:17 INFO worker-2 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:18 INFO worker-3 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:19 INFO worker-4 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:20 INFO worker-5 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:21 INFO worker-6 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:22 INFO worker-0 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:23 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:24 INFO worker-2 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:25 INFO worker-3 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:26 INFO worker-4 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:27 INFO worker-5 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:28 INFO worker-6 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:29 INFO worker-0 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:30 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:31 INFO worker-2 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:32 INFO worker-3 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:33 INFO worker-4 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:34 INFO worker-5 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:35 INFO worker-6 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:36 INFO worker-0 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:37 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:38 INFO worker-2 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:39 INFO worker-3 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:40 INFO worker-4 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:41 INFO worker-5 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:42 INFO worker-6 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:43 INFO worker-0 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:44 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:45 INFO worker-2 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:46 INFO worker-3 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:47 INFO worker-4 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:48 INFO worker-5 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:49 INFO worker-6 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:50 INFO worker-0 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:51 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:52 INFO worker-2 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:53 INFO worker-3 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:54 INFO worker-4 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:55 INFO worker-5 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:56 INFO worker-6 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:57 INFO worker-0 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:58 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:59 INFO worker-2 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:00 INFO worker-3 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:01 INFO worker-4 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:02 INFO worker-5 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:03 INFO worker-6 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:04 INFO worker-0 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:05 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:06 INFO worker-2 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:07 INFO worker-3 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:08 INFO worker-4 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:09 INFO worker-5 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:10 INFO worker-6 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:11 INFO worker-0 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:12 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:13 INFO worker-2 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:14 INFO worker-3 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:15 INFO worker-4 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:16 INFO worker-5 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:17 INFO worker-6 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:18 INFO worker-0 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:19 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:20 INFO worker-2 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:21 INFO worker-3 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:22 INFO worker-4 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:23 INFO worker-5 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:24 INFO worker-6 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:25 INFO worker-0 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:26 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:27 INFO worker-2 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:28 INFO worker-3 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:29 INFO worker-4 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:30 INFO worker-5 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:31 INFO worker-6 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:32 INFO worker-0 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:33 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:34 INFO worker-2 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:35 INFO worker-3 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:36 INFO worker-4 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:37 INFO worker-5 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:38 INFO worker-6 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:39 INFO worker-0 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:30:01 ERROR payment-svc: decisive failure 7731 connection refused\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:32:00 ERROR db: second planted failure 4410 deadlock detected\n",
+      "sha256": "4ecdb237fad3bbb622517fa8ca038b074c9976ebd1e3fdb32f16881d0995efe7",
+      "protected": false,
+      "opaque": false
+     }
+    ],
+    "context_manifest": [],
+    "recovery_binding": {
+     "id": "bcf8ae5e-f420-4072-945a-73d8e2c880a3",
+     "kind": "host_tool",
+     "tool_name": "caveman_retrieve",
+     "overhead_text": "Exact output is recoverable through the Semaprax recovery handle."
+    }
+   },
+   "status": 200,
+   "response_body": {
+    "schema_version": 1,
+    "request_id": "8c5aca33-e0c1-4cff-86c2-252115a5b6c4",
+    "input_digest": "f590fa55dde2cfdc4acf9a86ba1113956c5ba6c85edec3a4ce62fa557c3acf7b",
+    "runtime_build": "dev",
+    "policy_revision": "middleware-v1:64b06ad2a9c99a5ff6a3ad7029ff9fa439c7435f5d94d01879c9e0e11e29513f",
+    "replacement_set_id": "65af53fa2a5e58415869be04325344f35bb853aee7ba08aa35c95f06622548f7",
+    "status": "optimized",
+    "reason": "eligible",
+    "replacements": [
+     {
+      "segment_id": "cv-4ecdb237fad3bbb622517fa8",
+      "source_id": "cv-4ecdb237fad3bbb622517fa8",
+      "original_sha256": "4ecdb237fad3bbb622517fa8ca038b074c9976ebd1e3fdb32f16881d0995efe7",
+      "text": "[caveman: shortened; exact original via caveman_retrieve handle=cmw_775a8e31de8f579b0496e54a180dfd3eff08364054e85d0b]\n2026-10-04T12:00:00 INFO worker-0 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:00:01 INFO worker-1 heartbeat ok queue=0 latency=12ms\n… 398 lines elided (caveman): all queue=0 latency=12ms …\n2026-10-04T12:30:01 ERROR payment-svc: decisive failure 7731 connection refused\n… 99 lines elided (caveman): all queue=0 latency=12ms …\n2026-10-04T12:31:00 INFO worker-1 heartbeat ok queue=0 latency=12ms\n2026-10-04T12:32:00 ERROR db: second planted failure 4410 deadlock detected\n… caveman: elided lines resemble shown lines and match the stated invariants — answer from this view; if you truly cannot, one broad caveman_retrieve …\n",
+      "sha256": "10f2540abcea66a2ada5bb5533ef208ff8808e75fc948b8b3c73fe84c3969922",
+      "transform_id": "caveman.engine.log.v1",
+      "transform_version": "1",
+      "recovery_handle": "cmw_775a8e31de8f579b0496e54a180dfd3eff08364054e85d0b",
+      "tokens_before": 13050,
+      "tokens_after": 249,
+      "reused": false,
+      "unique_original": true
+     }
+    ],
+    "skipped": [],
+    "measurement": {
+     "basis": "inferred",
+     "tokenizer": "o200k_base",
+     "scope": "segment",
+     "tokens_before": 13050,
+     "tokens_after": 249,
+     "unique_tokens_reduced": 12801,
+     "recovery_overhead_tokens": 13,
+     "overhead_coverage": "segment_and_declared_recovery_tool",
+     "verified_saved_usd": 0
+    },
+    "stability": {
+     "native": "persistent_choices",
+     "provider_bytes": "unobserved",
+     "provider_cache_hits": "unobserved"
+    },
+    "recovery": {
+     "binding_id": "bcf8ae5e-f420-4072-945a-73d8e2c880a3",
+     "available": true,
+     "persistent": true,
+     "expires_at": 1791237336
+    }
+   }
+  },
+  {
+   "method": "POST",
+   "path": "/caveman/v1/middleware/sessions/delete",
+   "request_headers": {
+    "Authorization": "Bearer <redacted>",
+    "Caveman-Middleware-Features": "http_status_v2, revision_tolerant",
+    "Caveman-Middleware-Client": "semaprax-command-view/0.1.0"
+   },
+   "request_body": {
+    "schema_version": 1,
+    "scope": {
+     "namespace": "semaprax",
+     "session_id": "sx-ee19d07b8ee740809558a03b45c583b3",
+     "branch_id": "main",
+     "cache_epoch": "0"
+    }
+   },
+   "status": 200,
+   "response_body": {
+    "schema_version": 1,
+    "status": "revoked",
+    "originals_deleted": true,
+    "deleted": {
+     "scopes": 1,
+     "choices": 1,
+     "grants": 1,
+     "originals": 1
+    }
+   }
+  }
+ ]
+}

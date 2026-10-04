@@ -1,6 +1,6 @@
 // Sanitized, bounded, killable spawning of the upstream graft executable.
 import { spawn } from 'node:child_process';
-import { existsSync, mkdirSync, rmSync, symlinkSync } from 'node:fs';
+import { existsSync, mkdirSync, readlinkSync, renameSync, rmSync, symlinkSync } from 'node:fs';
 import { join } from 'node:path';
 
 export const MAX_STDOUT_BYTES = 4 * 1024 * 1024;
@@ -30,8 +30,15 @@ export function prepareWork(work, nodePath, gitPath) {
   for (const d of ['bin', 'home', 'tmp', 'cwd']) mkdirSync(join(work, d), { recursive: true });
   for (const [name, target] of [['node', nodePath], ['git', gitPath]]) {
     const link = join(work, 'bin', name);
-    rmSync(link, { force: true });
-    if (target) symlinkSync(target, link);
+    // Idempotent and race-free: concurrent adapter processes share this directory, so never remove a live link.
+    let cur = null;
+    try { cur = readlinkSync(link); } catch { /* absent */ }
+    if (!target) { if (cur !== null) rmSync(link, { force: true }); continue; }
+    if (cur === target) continue;
+    const tmp = `${link}.${process.pid}.tmp`;
+    rmSync(tmp, { force: true });
+    symlinkSync(target, tmp);
+    renameSync(tmp, link);
   }
 }
 

@@ -4,10 +4,12 @@ import { existsSync, readFileSync, readdirSync, realpathSync, rmSync, statSync, 
 import { dirname, isAbsolute, join, posix, sep } from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { findGit, prepareWork, runGraft, RunError, sanitizedEnv } from './runner.mjs';
+import { QUALIFICATION_PATH, loadProfiles, profileFor, testedVersions } from './compat.mjs';
+import { beginGen, currentGen, discardGen, publish, withRefreshLock } from './generation.mjs';
+import { adoptionConfig, snapshotIndex, treeDigest, verifyUserIndex } from './adopt.mjs';
 
 export const PROVIDER_ID = 'org.nanonets/graft-context';
 export const UPSTREAM_PACKAGE = '@nanonets/graft';
-export const TESTED_VERSIONS = ['0.18.0'];
 const MAX_WIRING_BYTES = 64 * 1024 * 1024;
 export const MAX_INDEX_FILES = 20000;
 const MAX_WALK_FILES = 50000;
@@ -62,7 +64,7 @@ export function loadConfig(env) {
     // A cache inside the project would be indexed as project content and pollute the user's tree.
     throw new Refusal('refused', 'graft.cache-inside-project', 'cache root must not overlap the project root');
   }
-  return { upstream, root: realRoot, work, idx: join(work, 'idx'), git: findGit(env.SEMAPRAX_HARNESS_GIT), nodePath: process.execPath };
+  return { upstream, root: realRoot, work, git: findGit(env.SEMAPRAX_HARNESS_GIT), nodePath: process.execPath, adopt: adoptionConfig(env) };
 }
 
 // Verifies the executable is really @nanonets/graft at a tested version (similarly named
@@ -79,16 +81,21 @@ export async function probeIdentity(cfg, signal) {
   if (!pkg || pkg.name !== UPSTREAM_PACKAGE) {
     throw new Refusal('refused', 'graft.identity-mismatch', `executable is not package ${UPSTREAM_PACKAGE}`);
   }
+  const repo = typeof pkg.repository === 'string' ? pkg.repository : pkg.repository?.url ?? '';
+  if (!loadProfiles().repositories.some((r) => repo.toLowerCase().replace(/\.git$/, '').endsWith(`github.com/${r.toLowerCase()}`))) {
+    throw new Refusal('refused', 'graft.identity-mismatch', `package repository "${repo}" is not a known upstream of ${UPSTREAM_PACKAGE}`);
+  }
   prepareWork(cfg.work, cfg.nodePath, cfg.git);
   const r = await runGraft(cfg.upstream, ['--version'], { work: cfg.work, signal, timeoutMs: 10000 });
   const reported = r.stdout.trim();
   if (r.code !== 0 || reported !== pkg.version) {
     throw new Refusal('refused', 'graft.identity-mismatch', `--version reported "${reported}" but package is ${pkg.version}`);
   }
-  if (!TESTED_VERSIONS.includes(pkg.version)) {
-    throw new Refusal('unsupported', 'graft.version-untested', `graft ${pkg.version} is not in the tested set ${TESTED_VERSIONS.join(', ')}`);
+  const profile = profileFor(pkg.version);
+  if (!profile) {
+    throw new Refusal('unsupported', 'graft.version-unqualified', `graft ${pkg.version} has no compatibility profile (qualified: ${testedVersions().join(', ')}); to qualify it: ${QUALIFICATION_PATH}`);
   }
-  return { version: pkg.version, license: pkg.license ?? null };
+  return { version: pkg.version, license: pkg.license ?? null, profile };
 }
 
 function readWiring(idx) {
@@ -111,51 +118,113 @@ function indexDigest(files) {
 
 const driftPaths = (g) => new Set([...(g.added ?? []), ...(g.removed ?? []), ...(g.changed ?? []), ...(g.stale ?? [])].map((s) => s.split('#')[0]));
 
-// Builds (code-only, never --deep) or refreshes the private index when missing/stale.
-// Returns {files, action: reuse|build|refresh, ms, files_changed, index_digest}.
-export async function ensureFresh(cfg, version, { signal, deadline, force = false, readOnly = false }) {
+// Resolves the index to query: an adopted user index (opt-in, verified every call), else the adapter-owned
+// generation, building or refreshing it under a single-flight lock and publishing atomically.
+// Returns {dir, files, action, outcome, work, ms, files_changed, index_digest, adoption}.
+//   outcome: reused-user-index | copied-validated-index | incremental-refresh | rebuilt | incompatible
+//            (| reused-owned-index when the owned index was already fresh).
+export async function ensureFresh(cfg, identity, { signal, deadline, force = false, readOnly = false }) {
+  const { version, profile } = identity;
   prepareWork(cfg.work, cfg.nodePath, cfg.git);
-  const owner = join(cfg.work, 'owner.json');
-  const buildEnv = { provider: PROVIDER_ID, root: cfg.root, graft: version, git: Boolean(cfg.git) };
   const t0 = Date.now();
   const left = () => Math.max(1000, deadline - Date.now());
-  let action = 'reuse';
-  let changed = 0;
-  let files = existsSync(cfg.idx) ? readWiring(cfg.idx) : null;
-  if (existsSync(cfg.idx)) {
+  let adoption = null;
+  if (cfg.adopt && !force) {
+    if (cfg.adopt.invalid) adoption = { outcome: 'incompatible', reasons: [`invalid adoption setting ${cfg.adopt.mode} / ${cfg.adopt.rel}`] };
+    else {
+      const v = verifyUserIndex(cfg, profile, version, cfg.adopt);
+      if (v.ok) {
+        let dir = v.dir; let outcome = 'reused-user-index'; const work = { ...v.work, index_ms: 0, copied_bytes: 0 };
+        if (cfg.adopt.mode === 'copied-snapshot') {
+          const s = snapshotIndex(cfg.work, v.dir);
+          dir = s.dir; work.copied_bytes = s.copied_bytes; outcome = 'copied-validated-index';
+        }
+        const before = cfg.adopt.mode === 'read-only' ? treeDigest(v.dir).digest : null;
+        return {
+          dir, files: v.files, action: 'reuse', outcome, work, ms: Date.now() - t0, files_changed: 0, index_digest: v.descriptor.inputs_digest,
+          adoption: { ...v.descriptor, mode: cfg.adopt.mode }, userIndexDigest: before, userDir: v.dir,
+        };
+      }
+      adoption = { outcome: 'incompatible', reasons: v.reasons, work: v.work };
+    }
+  }
+  const owned = await ensureOwned(cfg, identity, { signal, left, force, readOnly });
+  const work = { ...owned.work, ...(adoption?.work ?? {}) };
+  return { ...owned, work, ms: Date.now() - t0, adoption: adoption ? { outcome: 'incompatible', reasons: adoption.reasons, fallback: owned.outcome } : null };
+}
+
+const driftFiles = (g) => driftPaths(g).size;
+
+async function ensureOwned(cfg, identity, { signal, left, force, readOnly }) {
+  const { version, profile } = identity;
+  const cli = profile.cli;
+  const owner = join(cfg.work, 'owner.json');
+  const buildEnv = { provider: PROVIDER_ID, root: cfg.root, graft: version, git: Boolean(cfg.git) };
+  const genDir = join(cfg.work, 'gen');
+  const hasState = existsSync(genDir) || existsSync(join(cfg.work, 'CURRENT'));
+  if (hasState) {
     let mine = false;
     try { mine = JSON.stringify(JSON.parse(readFileSync(owner, 'utf8'))) === JSON.stringify(buildEnv); } catch { /* unowned or env changed */ }
     if (!mine) {
       if (!existsSync(owner)) throw new Refusal('refused', 'graft.index-not-owned', 'cache index exists without an adapter ownership marker; refusing to overwrite');
-      rmSync(cfg.idx, { recursive: true, force: true }); // ours, but built under a different environment
-      files = null;
+      rmSync(genDir, { recursive: true, force: true }); // ours, but built under a different environment
+      rmSync(join(cfg.work, 'CURRENT'), { force: true });
     }
   }
-  let needsBuild = force || !files;
-  if (!needsBuild) {
-    const c = await runGraft(cfg.upstream, ['check', '--json', '--dir', cfg.idx, cfg.root], { work: cfg.work, signal, timeoutMs: left() });
-    let g = null;
-    try { g = JSON.parse(c.stdout).graph; } catch { /* unparsable -> rebuild */ }
-    if (!g) needsBuild = true;
-    else if (!g.ok || g.missing) { needsBuild = true; changed = driftPaths(g).size; }
-  }
-  if (needsBuild && readOnly) {
+  const t0 = Date.now();
+  const work = { verification_ms: 0, index_ms: 0, files_verified: 0, bytes_hashed: 0, copied_bytes: 0 };
+  const probe = async (dir) => {
+    const v0 = Date.now();
+    const c = await runGraft(cfg.upstream, ['check', cli.json, cli.dir, dir, '--', cfg.root], { work: cfg.work, signal, timeoutMs: left() });
+    work.verification_ms += Date.now() - v0;
+    try { return JSON.parse(c.stdout).graph; } catch { return null; }
+  };
+  const staleOf = async (cur) => {
+    const g = await probe(cur.dir);
+    if (!g) return { needs: true, changed: 0 };
+    return g.ok && !g.missing ? { needs: false, changed: 0 } : { needs: true, changed: driftFiles(g) };
+  };
+  let cur = currentGen(cfg.work);
+  let files = cur ? readWiring(cur.dir) : null;
+  let changed = 0;
+  let needs = force || !files;
+  if (!needs) { const s = await staleOf(cur); needs = s.needs; changed = s.changed; }
+  const done = (dir, fl, action, outcome, extra = {}) => ({
+    dir, files: fl, action, outcome, work, ms: Date.now() - t0, files_changed: extra.changed ?? changed, index_digest: indexDigest(fl), adoption: null, coalesced: Boolean(extra.coalesced),
+  });
+  if (!needs) return done(cur.dir, files, 'reuse', 'reused-owned-index');
+  if (readOnly) {
     // refresh=never: report staleness instead of building.
     if (!files) throw new Refusal('unavailable', 'graft.index-missing', 'no index and refresh=never');
-    action = 'drift';
-  } else if (needsBuild) {
-    action = files ? 'refresh' : 'build';
-    const pre = walkCandidates(cfg.root, cfg);
-    if (pre.count > MAX_INDEX_FILES) throw new Refusal('refused', 'graft.project-too-large', `${pre.count} candidate files exceeds the indexing bound ${MAX_INDEX_FILES}`);
-    mkdirSync(cfg.work, { recursive: true });
-    writeFileSync(owner, JSON.stringify(buildEnv));
-    const b = await runGraft(cfg.upstream, ['build', '--dir', cfg.idx, cfg.root], { work: cfg.work, signal, timeoutMs: left() });
-    if (b.code !== 0) throw new RunError('build-failed', `graft build exited ${b.code}: ${firstLine(b.stderr)}`);
-    files = readWiring(cfg.idx);
-    if (!files) throw new RunError('build-failed', 'graft build produced an unreadable wiring index');
-    if (action === 'build') changed = files.size;
+    return done(cur.dir, files, 'drift', 'reused-owned-index');
   }
-  return { files, action, ms: Date.now() - t0, files_changed: changed, index_digest: indexDigest(files) };
+  const pre = walkCandidates(cfg.root, cfg);
+  if (pre.count > MAX_INDEX_FILES) throw new Refusal('refused', 'graft.project-too-large', `${pre.count} candidate files exceeds the indexing bound ${MAX_INDEX_FILES}`);
+  mkdirSync(cfg.work, { recursive: true });
+  return withRefreshLock(cfg.work, async ({ coalesced }) => {
+    // Single flight: a process that waited re-reads CURRENT; if another process already published a fresh
+    // generation, adopt it instead of rebuilding.
+    if (coalesced && !force) {
+      const now = currentGen(cfg.work);
+      const f = now ? readWiring(now.dir) : null;
+      if (f) { const s = await staleOf(now); if (!s.needs) return done(now.dir, f, 'reuse', 'reused-owned-index', { coalesced: true, changed: 0 }); }
+    }
+    cur = currentGen(cfg.work);
+    files = cur ? readWiring(cur.dir) : null;
+    const reuseCache = Boolean(files) && !force;
+    writeFileSync(owner, JSON.stringify(buildEnv));
+    const gen = beginGen(cfg.work, reuseCache ? cur : null);
+    const b0 = Date.now();
+    try {
+      const b = await runGraft(cfg.upstream, ['build', ...(force ? [cli.noReuse] : []), cli.dir, gen.dir, '--', cfg.root], { work: cfg.work, signal, timeoutMs: left() });
+      if (b.code !== 0) throw new RunError('build-failed', `graft build exited ${b.code}: ${firstLine(b.stderr)}`);
+      const nf = readWiring(gen.dir);
+      if (!nf) throw new RunError('build-failed', 'graft build produced an unreadable wiring index');
+      work.index_ms = Date.now() - b0;
+      const pub = publish(cfg.work, gen);
+      return done(pub.dir, nf, reuseCache ? 'refresh' : 'build', reuseCache ? 'incremental-refresh' : 'rebuilt', { changed: reuseCache ? changed : nf.size, coalesced });
+    } catch (e) { discardGen(gen); throw e; }
+  }, { signal });
 }
 
 export const firstLine = (s) => (String(s).split('\n').find((l) => l.trim()) ?? '').slice(0, 300);
@@ -207,16 +276,19 @@ function gitCandidates(cfg) {
   } catch { return null; }
 }
 
-export function coverageFor(cfg, indexed) {
+export function coverageFor(cfg, indexed, profile = null) {
   const w = walkCandidates(cfg.root, cfg);
   const skipped = [];
+  const parsed = profile ? new Set(profile.parsed_extensions) : null;
   for (const p of w.found) {
     if (indexed.has(p)) continue;
     skipped.push({
       path: p,
       reason: isSemaprax(p)
         ? 'unsupported: Semaprax source; semantic .spx/.spatch queries belong to the Semaprax compiler, not graft'
-        : 'not indexed by graft (no parser for this language, git-ignored, or larger than 1 MB)',
+        : parsed && !parsed.has(extOf(p))
+          ? `unsupported: the installed graft parser indexes no ${extOf(p)} files`
+          : 'not indexed by graft (git-ignored, unparsable, or larger than 1 MB)',
     });
   }
   const listed = skipped.slice(0, MAX_SKIPPED_LISTED);

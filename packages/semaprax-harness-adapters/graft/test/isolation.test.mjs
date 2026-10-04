@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, test } from 'node:test';
-import { Adapter, GRAFT, makeProject, makeShim, tmp } from './helpers.mjs';
+import { Adapter, GRAFT, GRAFT_NEW, makeProject, makeShim, tmp } from './helpers.mjs';
 
 const PLANTED = {
   GRAFT_API_KEY: 'sk-planted-remote-ingestion', GRAFT_PROVIDER: 'openai', GRAFT_MODEL: 'gpt-x', GRAFT_BASE_URL: 'https://example.invalid/v1',
@@ -48,12 +48,24 @@ describe('what graft is given (shim upstream)', () => {
     await a.close();
   });
 
-  test('an untested graft version is unsupported', async () => {
-    const shim = makeShim({ version: '0.21.1' });
+  test('a package whose repository is not a known graft upstream is refused', async () => {
+    const shim = makeShim({ repository: 'git+https://github.com/someone/graft-fork.git' });
+    const a = new Adapter({ root: makeProject('repo'), cache: tmp('c'), upstream: shim.bin });
+    const r = await a.call('orient', {});
+    assert.equal(r.status, 'refused');
+    assert.equal(r.diagnostics[0].code, 'graft.identity-mismatch');
+    assert.match(r.diagnostics[0].message, /repository/);
+    await a.close();
+  });
+
+  test('an unqualified graft version is unsupported and names the qualification path', async () => {
+    const shim = makeShim({ version: '9.9.9' });
     const a = new Adapter({ root: makeProject('ver'), cache: tmp('c'), upstream: shim.bin });
     const r = await a.call('orient', {});
     assert.equal(r.status, 'unsupported');
-    assert.equal(r.diagnostics[0].code, 'graft.version-untested');
+    assert.equal(r.diagnostics[0].code, 'graft.version-unqualified');
+    assert.match(r.diagnostics[0].message, /qualify\.mjs.*profiles\.json/);
+    assert.match(r.diagnostics[0].message, /0\.18\.0, 0\.21\.1/);
     await a.close();
   });
 
@@ -87,8 +99,9 @@ describe('what graft is given (shim upstream)', () => {
 });
 
 const sandbox = existsSync('/usr/bin/sandbox-exec') && process.platform === 'darwin';
-describe('network blocked (macOS sandbox-exec deny network*)', { skip: !GRAFT ? 'graft not installed' : !sandbox ? 'sandbox-exec unavailable' : false }, () => {
+for (const [label, bin] of [['global', GRAFT], ['newer', GRAFT_NEW]]) describe(`network blocked (macOS sandbox-exec deny network*, ${label})`, { skip: !bin ? 'graft not installed' : !sandbox ? 'sandbox-exec unavailable' : false }, () => {
   test('cold build and warm reuse both work with all network denied', async () => {
+    Adapter.upstream = bin;
     const wrap = ['/usr/bin/sandbox-exec', '-p', '(version 1)(allow default)(deny network*)'];
     // Positive control: the sandbox really denies network for a child.
     const probe = new Adapter({ root: makeProject('probe'), cache: tmp('c'), wrap });

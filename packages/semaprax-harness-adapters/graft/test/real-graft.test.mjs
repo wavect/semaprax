@@ -3,16 +3,18 @@ import assert from 'node:assert/strict';
 import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, utimesSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { after, before, describe, test } from 'node:test';
-import { Adapter, GRAFT, makeProject, sha, snapshot, tmp } from './helpers.mjs';
+import { Adapter, GRAFT, GRAFT_NEW, makeProject, sha, snapshot, tmp, versionOf } from './helpers.mjs';
 
-const skip = GRAFT ? false : 'graft not installed (set SEMAPRAX_TEST_GRAFT)';
+// Every upstream install under test: the user's global graft and, when provisioned, the newer qualified one.
+const INSTALLS = [['global', GRAFT], ['newer', GRAFT_NEW]].filter(([, b]) => b);
 
 // sha256 of lines a..b (1-based, inclusive) joined by LF without a trailing terminator (broker convention).
 const lines = (root, rel, a, b) => 'sha256:' + sha(Buffer.from(readFileSync(join(root, rel), 'utf8').split('\n').slice(a - 1, b).join('\n')));
 
-describe('graft context adapter (real graft)', { skip }, () => {
-  let root; let cache; let ad;
+for (const [label, bin] of INSTALLS) describe(`graft context adapter (real graft, ${label})`, () => {
+  let root; let cache; let ad; let VERSION;
   before(() => {
+    Adapter.upstream = bin; VERSION = versionOf(bin);
     root = makeProject('real'); cache = tmp('cache');
     ad = new Adapter({ root, cache });
   });
@@ -26,9 +28,11 @@ describe('graft context adapter (real graft)', { skip }, () => {
   test('orient: lazy first build, structural provenance, relative paths, .spx reported as skipped', async () => {
     const r = await ad.call('orient', {});
     assert.equal(r.status, 'complete', JSON.stringify(r.diagnostics));
-    assert.equal(r.provenance.upstream_version, '0.18.0');
+    assert.equal(r.provenance.upstream_version, VERSION);
     const p = r.payload;
     assert.equal(p.metadata.refresh.action, 'build');
+    assert.equal(p.metadata.refresh.outcome, 'rebuilt');
+    assert.ok(p.metadata.refresh.index_ms >= 0 && p.metadata.refresh.verification_ms === 0, 'cold build reports construction apart from verification');
     assert.equal(p.metadata.refresh.files_indexed, 3, 'git-ignored gen/ must not be indexed');
     assert.ok(p.items.length > 0);
     for (const it of p.items) {
@@ -208,12 +212,13 @@ describe('graft context adapter (real graft)', { skip }, () => {
     await first.close();
     const work = join(c, 'graft-context', readdirSync(join(c, 'graft-context'))[0]);
     rmSync(join(work, 'owner.json'));
-    writeFileSync(join(work, 'idx', 'USER-FILE'), 'precious');
+    const live = join(work, 'gen', readFileSync(join(work, 'CURRENT'), 'utf8').trim());
+    writeFileSync(join(live, 'USER-FILE'), 'precious');
     const second = new Adapter({ root: r2, cache: c });
     const r = await second.call('orient', {});
     assert.equal(r.status, 'refused');
     assert.equal(r.diagnostics[0].code, 'graft.index-not-owned');
-    assert.equal(readFileSync(join(work, 'idx', 'USER-FILE'), 'utf8'), 'precious');
+    assert.equal(readFileSync(join(live, 'USER-FILE'), 'utf8'), 'precious');
     await second.close();
   });
 

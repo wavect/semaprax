@@ -15,6 +15,9 @@ export function findGraft() {
   try { return execFileSync('/bin/sh', ['-c', 'command -v graft'], { encoding: 'utf8' }).trim() || null; } catch { return null; }
 }
 export const GRAFT = findGraft();
+// A second, newer qualified install (isolated npm prefix); null when not provisioned.
+export const GRAFT_NEW = process.env.SEMAPRAX_TEST_GRAFT_NEW && existsSync(process.env.SEMAPRAX_TEST_GRAFT_NEW) ? process.env.SEMAPRAX_TEST_GRAFT_NEW : null;
+export const versionOf = (bin) => execFileSync(bin, ['--version'], { encoding: 'utf8', env: { PATH: dirname(process.execPath) + ':/usr/bin:/bin', HOME: tmp('vhome'), DO_NOT_TRACK: '1', CI: '1' } }).trim();
 export const GIT = existsSync('/usr/bin/git') ? '/usr/bin/git' : undefined;
 
 export function tmp(label) { return realpathSync(mkdtempSync(join(tmpdir(), `hp06a-${label}-`))); }
@@ -59,7 +62,8 @@ const LIVE = new Set();
 process.on('exit', () => { for (const c of LIVE) try { c.kill('SIGKILL'); } catch { /* gone */ } });
 
 export class Adapter {
-  constructor({ root, cache, upstream = GRAFT, env = {}, wrap = null }) {
+  static upstream = null; // suites that run against several installs set this per describe
+  constructor({ root, cache, upstream = Adapter.upstream ?? GRAFT, env = {}, wrap = null }) {
     const adapterEnv = {
       PATH: dirname(process.execPath) + ':/usr/bin:/bin',
       SEMAPRAX_HARNESS_UPSTREAM: upstream,
@@ -120,10 +124,10 @@ export class Adapter {
 
 // A stand-in "graft" package for tests that must observe what the adapter passes to the upstream.
 // Behaviour is read from <dir>/mode.json (never from env); every call appends to <dir>/calls.jsonl.
-export function makeShim({ name = '@nanonets/graft', version = '0.18.0', mode = {} } = {}) {
+export function makeShim({ name = '@nanonets/graft', version = '0.18.0', mode = {}, repository = 'git+https://github.com/NanoNets/context-graph-engine.git' } = {}) {
   const dir = join(tmp('shim'), 'pkg');
   mkdirSync(join(dir, 'dist'), { recursive: true });
-  writeFileSync(join(dir, 'package.json'), JSON.stringify({ name, version, license: 'MIT', type: 'module' }));
+  writeFileSync(join(dir, 'package.json'), JSON.stringify({ name, version, license: 'MIT', type: 'module', repository: { type: 'git', url: repository } }));
   writeFileSync(join(dir, 'mode.json'), JSON.stringify(mode));
   const cli = join(dir, 'dist', 'cli.js');
   writeFileSync(cli, `#!/usr/bin/env node
@@ -138,9 +142,11 @@ const dirIdx = argv.indexOf('--dir');
 const idx = dirIdx >= 0 ? argv[dirIdx + 1] : null;
 if (argv[0] === '--version') { console.log(${JSON.stringify(version)}); }
 else if (argv[0] === 'build') {
+  if (mode.failBuild) process.exit(3);
+  if (mode.buildDelayMs) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, mode.buildDelayMs);
   mkdirSync(join(idx, '.graph'), { recursive: true });
   writeFileSync(join(idx, '.graph', 'wiring.json'), JSON.stringify({ meta: { version: 1 }, nodes: [] }));
-} else if (argv[0] === 'check') { console.log(JSON.stringify({ graph: { ok: true, missing: false } })); }
+} else if (argv[0] === 'check') { console.log(JSON.stringify({ graph: mode.failBuild ? { ok: false, missing: false, changed: ['util.py'] } : { ok: true, missing: false } })); }
 else if (mode.hang) { setInterval(() => {}, 1000); }
 else if (argv[0] === 'map') { console.log(JSON.stringify({ totals: { files: 0, symbols: 0, edges: 0, languages: [] }, dirs: [], hotspots: [], dropped: 0 })); }
 else { process.exit(2); }
@@ -148,3 +154,27 @@ else { process.exit(2); }
   chmodSync(cli, 0o755);
   return { dir, bin: cli, calls: () => (existsSync(join(dir, 'calls.jsonl')) ? readFileSync(join(dir, 'calls.jsonl'), 'utf8').trim().split('\n').map((l) => JSON.parse(l)) : []) };
 }
+
+// Builds a user-owned graft index the way a user would (their own graft, their own HOME).
+export function buildUserIndex(bin, root, dir = join(root, 'graft')) {
+  const home = tmp('uhome');
+  execFileSync(bin, ['build', '--dir', dir, '--', root], {
+    env: { PATH: dirname(process.execPath) + ':/usr/bin:/bin', HOME: home, DO_NOT_TRACK: '1', CI: '1' }, cwd: home, stdio: 'ignore',
+  });
+  return dir;
+}
+
+// Content digest of a whole tree (paths + bytes) to prove "byte-identical after queries".
+export function treeHash(dir) {
+  const out = [];
+  const walk = (rel) => {
+    for (const e of readdirSync(join(dir, rel), { withFileTypes: true }).sort((a, b) => (a.name < b.name ? -1 : 1))) {
+      const p = rel ? `${rel}/${e.name}` : e.name;
+      if (e.isDirectory()) walk(p); else out.push(`${p}:${sha(readFileSync(join(dir, p)))}`);
+    }
+  };
+  walk('');
+  return sha(Buffer.from(out.join('\n')));
+}
+
+export const ADOPT = (mode) => ({ SEMAPRAX_GRAFT_ADOPT_INDEX: mode });

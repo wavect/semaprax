@@ -119,9 +119,18 @@ impl ResultCache {
         }
         let doc = json!({"schema": ENTRY_SCHEMA, "key": k.key, "created": (self.clock)(), "worktree_id": k.worktree_id,
                          "provider_id": k.provider_id, "group": k.group, "response": resp.to_json()});
-        let tmp = self.root.join(format!(".tmp-{}", std::process::id()));
-        if std::fs::write(&tmp, doc.to_string()).is_ok() {
-            let _ = std::fs::rename(&tmp, self.path(&k.key));
+        // Unique per write: two threads or processes must never share a temp file, or one entry's bytes
+        // could be renamed into another's slot.
+        static SEQ: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+        let tmp = self.root.join(format!(
+            ".tmp-{}-{}",
+            std::process::id(),
+            SEQ.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+        ));
+        if std::fs::write(&tmp, doc.to_string()).is_ok()
+            && std::fs::rename(&tmp, self.path(&k.key)).is_err()
+        {
+            let _ = std::fs::remove_file(&tmp);
         }
         self.evict();
     }

@@ -2,7 +2,7 @@
   "adapter": {
     "entry": ["adapter.mjs"],
     "runtime": "node",
-    "version": "0.1.0"
+    "version": "0.2.0"
   },
   "cancellation": "cooperative",
   "capabilities": [
@@ -40,13 +40,16 @@
   "support": {
     "isolation": "subprocess",
     "license": "MIT",
-    "tested": [{"os": "macos-aarch64", "result": "pass", "upstream": "0.18.0"}]
+    "tested": [
+      {"os": "macos-aarch64", "result": "pass", "upstream": "0.18.0"},
+      {"os": "macos-aarch64", "result": "pass", "upstream": "0.21.1"}
+    ]
   },
   "upstream": {
     "identity_probe": ["--version"],
     "name": "graft",
     "package": "npm:@nanonets/graft",
     "repository": "https://github.com/trailhq/Graft",
-    "versions": ["0.18.0"]
+    "versions": ["0.18.0", "0.21.1"]
   }
 }

@@ -76,10 +76,17 @@ python3 benchmarks/bend2-law-v1/agent_trial_plan.py \
 
 This writes a preregistration only; it never invokes an agent or reports
 token/cost observations. It binds the manifest and every fixture digest, the
-model/tool/budget configuration, laws, and seeded law-gaming attacks. The
-reviewed SEMAPRAX scalar profile does not support the required checked-`u32`
-cells, so the current plan exits nonzero with each cell explicitly
-`unsupported`. It cannot be relabeled as a successful matched trial.
+model/tool/budget configuration, laws, and seeded law-gaming attacks. The exact
+Boolean scalar cell preregisters 10 independent trials for each language. Each
+trial requires acceptance of its success witness, rejection of every seeded
+attack, existing telemetry token/cost events, and separate proof-synthesis,
+law-kernel-check, and compile-or-runtime observations. These remain required
+observations, not invented measurements.
+
+The reviewed SEMAPRAX scalar profile does not support the checked-`u32` cells.
+They remain explicitly `unsupported`, so the current mixed plan is
+`partially_preregistered` and exits nonzero. It cannot be relabeled as a
+successful matched trial or use an `i32` substitute.
 
 ## Pinned Bend Boolean smoke fixture
 

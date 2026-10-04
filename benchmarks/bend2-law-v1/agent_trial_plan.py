@@ -21,6 +21,11 @@ CONFIG_SCHEMA = "semaprax.bend2-law-benchmark.agent-trial-config.v1"
 LANGUAGES = ("bend2", "semaprax-scalar-v1")
 MIN_TRIALS = 10
 SHA256 = re.compile(r"sha256:[0-9a-f]{64}\Z")
+MEASUREMENT_PHASES = (
+    "proof_synthesis",
+    "law_kernel_check",
+    "compile_or_runtime",
+)
 
 
 def _runner_module():
@@ -80,13 +85,13 @@ def require_config(config: dict) -> None:
 
 
 def semaprax_supports(domain: str) -> bool:
-    # The reviewed scalar profile admits i32/i64/u8, not u32. This policy is
-    # owned here, rather than by caller-supplied availability flags.
-    return domain in {"i32 checked", "i64 checked", "u8 checked"}
+    # The reviewed scalar profile admits the exact two-value Boolean cell and
+    # i32/i64/u8. It does not admit a checked u32 comparison cell.
+    return domain in {"bool exact", "i32 checked", "i64 checked", "u8 checked"}
 
 
 def bend_supports(domain: str) -> bool:
-    return domain == "u32 checked"
+    return domain in {"bool exact", "u32 checked"}
 
 
 def unavailable_reason(domain: str) -> str | None:
@@ -97,6 +102,37 @@ def unavailable_reason(domain: str) -> str | None:
     return None
 
 
+def trial_rows(cell: dict, fixture: dict, trials_per_cell: int) -> list[dict]:
+    """Return independent, unexecuted trial contracts for one admitted cell."""
+    acceptance = {
+        "success_witnesses": fixture["success"],
+        "rejected_law_gaming_attacks": fixture["attacks"],
+        "required_outcome": "each success witness is accepted and every seeded attack is rejected",
+    }
+    observations = {
+        "telemetry": {
+            "status": "required_on_execution",
+            "events": ["token_usage", "cost_usage"],
+            "provenance": "existing agent telemetry export",
+        },
+        "separate_measurements": {
+            phase: "required_on_execution" for phase in MEASUREMENT_PHASES
+        },
+    }
+    return [
+        {
+            "id": f"{cell['id']}:{language}:{ordinal}",
+            "language": language,
+            "ordinal": ordinal,
+            "status": "not_run",
+            "acceptance": acceptance,
+            **observations,
+        }
+        for language in LANGUAGES
+        for ordinal in range(1, trials_per_cell + 1)
+    ]
+
+
 def plan(manifest_path: pathlib.Path, config_path: pathlib.Path) -> dict:
     manifest = object_json(manifest_path, RUN.MANIFEST_SCHEMA)
     RUN.require_manifest(manifest, manifest_path.parent)
@@ -105,6 +141,7 @@ def plan(manifest_path: pathlib.Path, config_path: pathlib.Path) -> dict:
     cells = []
     for cell in manifest["cells"]:
         fixture = manifest_path.parent / cell["fixture"]
+        fixture_value = object_json(fixture, "semaprax.bend2-law-benchmark.fixture.v1")
         reason = unavailable_reason(cell["numeric_domain"])
         row = {
             "id": cell["id"],
@@ -116,11 +153,18 @@ def plan(manifest_path: pathlib.Path, config_path: pathlib.Path) -> dict:
             "trials_per_language": config["trials_per_cell"],
         }
         if reason:
-            row.update({"status": "unsupported", "reason": reason})
+            row.update({"status": "unsupported", "reason": reason, "trials": []})
         else:
-            row.update({"status": "preregistered", "trial_status": "not_run"})
+            row.update({
+                "status": "preregistered",
+                "trial_status": "not_run",
+                "trials": trial_rows(cell, fixture_value, config["trials_per_cell"]),
+            })
         cells.append(row)
-    status = "preregistered" if all(row["status"] == "preregistered" for row in cells) else "unavailable"
+    registered = sum(row["status"] == "preregistered" for row in cells)
+    status = "preregistered" if registered == len(cells) else (
+        "partially_preregistered" if registered else "unavailable"
+    )
     return {
         "schema": SCHEMA,
         "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
@@ -128,9 +172,11 @@ def plan(manifest_path: pathlib.Path, config_path: pathlib.Path) -> dict:
         "manifest": {"path": str(manifest_path.resolve()), "sha256": digest(manifest_path)},
         "agent_configuration": {"path": str(config_path.resolve()), "sha256": digest(config_path), "value": config},
         "cells": cells,
+        "measurement_phases": list(MEASUREMENT_PHASES),
         "nonclaims": [
             "no agent trial executed",
             "no token or cost events observed",
+            "no proof synthesis, law-kernel check, or compile/runtime time observed",
             "no comparative or superiority result",
         ],
     }

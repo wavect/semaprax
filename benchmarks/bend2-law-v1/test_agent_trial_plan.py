@@ -60,6 +60,35 @@ class AgentTrialPlanTests(unittest.TestCase):
         self.assertIn("does not admit numeric domain", document["cells"][0]["reason"])
         self.assertEqual(document["nonclaims"][0], "no agent trial executed")
 
+    def test_boolean_cell_preregisters_independent_trials_with_required_attack_and_cost_evidence(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            fixture = root / "fixture.json"
+            fixture.write_text(json.dumps({
+                "schema": "semaprax.bend2-law-benchmark.fixture.v1",
+                "id": "boolean-v1", "numeric_domain": "bool exact",
+                "success": [{"input": False, "output": True}],
+                "attacks": {"weakened-postcondition": [{"input": False, "output": False}]},
+            }))
+            manifest = root / "manifest.json"
+            manifest.write_text(json.dumps({
+                "schema": PLAN.RUN.MANIFEST_SCHEMA,
+                "bend": {"commit": "pinned", "telemetry_environment": {"BEND_NO_TELEMETRY": "1"}},
+                "required_paths": list(PLAN.RUN.PATHS),
+                "cells": [{"id": "boolean-v1", "fixture": "fixture.json", "numeric_domain": "bool exact", "laws": ["total-negation"], "attacks": ["weakened-postcondition"]}],
+            }))
+            configuration = root / "config.json"
+            configuration.write_text(json.dumps(config()))
+            document = PLAN.plan(manifest, configuration)
+        self.assertEqual(document["status"], "preregistered")
+        trials = document["cells"][0]["trials"]
+        self.assertEqual(len(trials), 20)
+        self.assertEqual({trial["language"] for trial in trials}, set(PLAN.LANGUAGES))
+        self.assertEqual({trial["ordinal"] for trial in trials}, set(range(1, 11)))
+        self.assertEqual(trials[0]["telemetry"]["events"], ["token_usage", "cost_usage"])
+        self.assertEqual(trials[0]["separate_measurements"], {phase: "required_on_execution" for phase in PLAN.MEASUREMENT_PHASES})
+        self.assertIn("weakened-postcondition", trials[0]["acceptance"]["rejected_law_gaming_attacks"])
+
 
 if __name__ == "__main__":
     unittest.main()

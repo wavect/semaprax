@@ -27,6 +27,7 @@ class Contract(unittest.TestCase):
         self.assertEqual(categories["watcher-source-race"]["selector"], cells["watcher-source-race"]["selector"])
         self.assertIn("no retry and no successor effect dispatch", cells["source-agent-journal-ack-loss"]["requires"])
         self.assertEqual(manifest["platform_lanes"]["Windows"]["status"], "unavailable")
+        self.assertNotIn("hot-reload-specific unknown-effect-outcome regression", manifest["nonclaims"])
 
     def test_manifest_and_commands_fail_closed(self):
         manifest = json.loads(RUN.MANIFEST.read_text())

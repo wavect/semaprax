@@ -255,8 +255,7 @@
     "provider latency",
     "universal-millisecond-target",
     "production rollout",
-    "Linux and Windows execution",
-    "hot-reload-specific unknown-effect-outcome regression"
+    "Linux and Windows execution"
   ],
   "fault_categories": [
     {

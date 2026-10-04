@@ -152,11 +152,13 @@ def plan_after_write(process, request_id, root, writes, expected_event, expected
         "write_ms": write_ms,
         "save_to_plan_response_ms": (time.perf_counter_ns() - saved) / 1_000_000,
         "plan_control_round_trip_ms": plan_ms,
+        "debounce_wait_ms": 0.0,
         "source_admission_check_ms": source_admission_check_ms,
         "candidate_preparation_ms": candidate_preparation_ms,
         "safe_point_wait_ms": 0.0,
         "stage_limitations": [
             "timings cover authenticated admission/check and HR-01 candidate admission; unchanged or rejected polls report null",
+            "the synchronous plan request triggers polling directly, with no debounce interval",
             "the fixture has no outstanding invocation, so safe-point wait is exactly zero",
         ],
     }
@@ -187,6 +189,7 @@ def scenario(binary, scenario_id):
                 raise RuntimeError("unchanged source did not produce an unchanged plan")
             phases.append({"save_to_plan_response_ms": (time.perf_counter_ns() - saved) / 1_000_000,
                            "plan_control_round_trip_ms": plan_ms,
+                           "debounce_wait_ms": 0.0,
                            "source_admission_check_ms": phase_ms(planned, "source_admission_check_ns", required=False),
                            "candidate_preparation_ms": phase_ms(planned, "candidate_preparation_ns", required=False), "safe_point_wait_ms": 0.0,
                            "stage_limitations": ["no candidate is built for an unchanged Project"]})

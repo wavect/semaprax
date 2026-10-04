@@ -39,9 +39,9 @@ The JSONL response reports nanosecond timings for authenticated source
 admission/check and HR-01 candidate preparation on the poll that admits a
 candidate. Interpreter activation separately reports the time spent in the
 actual activation call; the runner retains the full control round trip as a
-separate metric. Unchanged and rejected polls report null admission/preparation
-timings. The fixture has no outstanding invocation, so safe-point wait is
-exactly zero.
+separate metric. The `plan` request invokes polling directly, so debounce wait
+is zero; the fixture has no outstanding invocation, so safe-point wait is also
+zero. Unchanged and rejected polls report null admission/preparation timings.
 
 Validate the committed contract without starting the compiler or timing a host:
 
@@ -134,6 +134,12 @@ must report exactly one passed test, and each report row binds its executable
 digest and source-build record. The report includes a platform/lane table:
 macOS lanes are measured by this runner; Linux and Windows remain unavailable
 from this macOS-only command.
+
+| Platform | Interpreter | Watcher | Prepared worker | Source-Agent | VS Code editor control |
+| --- | --- | --- | --- | --- | --- |
+| macOS | measured by runner | measured by runner | measured by runner | measured by runner | measured by runner |
+| Linux | unavailable | unavailable | unavailable | unavailable | unavailable |
+| Windows | unavailable | unavailable | unavailable | unavailable | unavailable |
 
 The macOS roll-up also runs three exact VS Code adapter regressions for an
 oversized response, unexpected child exit, and Stop during an unacknowledged

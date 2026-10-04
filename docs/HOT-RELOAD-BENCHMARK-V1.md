@@ -26,12 +26,14 @@ Authenticated warm restart uses the persistent semantic-cache refresh and warm
 open commands on that same fixture; it is a separate process restart with
 checked-HIR reuse.
 
-The result reports the discarded warmup count, raw values, median and p95 for each loop. It makes no
-universal latency claim. It records zero debounce and safe-point wait only for
-this synchronous fixture, records plan as the protocol-visible combined
-admission/preparation interval, and leaves unavailable per-child peak memory
-and separately observable admission timing as `null`. The report never fills
-those fields with estimates.
+The result reports the discarded warmup count, raw values, median and p95 for
+each loop. It makes no universal latency claim. For this synchronous control
+flow, debounce wait and safe-point wait are exactly zero: a `plan` request polls
+immediately, and the fixture has no outstanding invocation. JSONL records
+authenticated source admission/check, HR-01 candidate preparation, and the
+interpreter activation call as separate nanosecond timings, alongside the
+control round trips. Unavailable per-child peak memory remains `null` rather
+than an estimate.
 
 The source-Agent lane is listed as `migration-required`; this benchmark does
 not claim an Agent handoff, migration, accounting preservation, provider work,
@@ -94,3 +96,15 @@ This command is a reproducible execution path, not committed macOS evidence:
 no report checked into this repository claims that it has run. The two
 native/Wasm cells remain `unavailable`; a passing local prepared-worker identity
 test does not promote either cell to a physical platform claim.
+
+The supported-lane table follows the owned runner's execution matrix:
+
+| Platform | Interpreter | Watcher | Prepared worker | Source-Agent | VS Code editor control |
+| --- | --- | --- | --- | --- | --- |
+| macOS | measured by runner | measured by runner | measured by runner | measured by runner | measured by runner |
+| Linux | unavailable | unavailable | unavailable | unavailable | unavailable |
+| Windows | unavailable | unavailable | unavailable | unavailable | unavailable |
+
+“Measured by runner” describes the local macOS command's selector coverage; it
+does not imply an executed report exists in the repository. Linux and Windows
+are explicit limitations, not passes.

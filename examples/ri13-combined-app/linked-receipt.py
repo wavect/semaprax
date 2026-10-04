@@ -4,10 +4,13 @@
 import argparse
 import hashlib
 import json
+import subprocess
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parent
+DARWIN_EVIDENCE = ROOT / "linked-darwin-evidence.json"
+LINKED_SUBJECT = ROOT / "linked/generated/linked-subject.json"
 EXAMPLES = ROOT.parent
 M1_PROJECT = EXAMPLES / "ri13-m1-regex-url/project"
 M2_PROJECT = EXAMPLES / "ri13-m2-record-iterator/project"
@@ -220,6 +223,66 @@ def receipt(sources):
     }
 
 
+def stable_digest(value):
+    encoded = json.dumps(value, sort_keys=True, separators=(",", ":")).encode()
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def recorded_head_is_reachable(head):
+    return subprocess.run(
+        ["git", "merge-base", "--is-ancestor", head, "HEAD"],
+        cwd=EXAMPLES.parent,
+        capture_output=True,
+    ).returncode == 0
+
+
+def verify_darwin_evidence(document, sources, subject_path=None):
+    """Verify the compact Darwin execution claim against live authored inputs."""
+    if document.get("schema") != "semaprax.ri13.linked-darwin-evidence.v1":
+        raise ValueError("unsupported linked Darwin evidence schema")
+    head = document.get("source_head")
+    if not isinstance(head, str) or not recorded_head_is_reachable(head):
+        raise ValueError("linked Darwin evidence source head is unavailable")
+    if document.get("static_route_receipt_sha256") != stable_digest(receipt(sources)):
+        raise ValueError("linked Darwin evidence authored route inputs drifted")
+    bound = document.get("linked_subject", {})
+    for key in ("m1_project_subject", "project_revision", "m2_source_revision", "m3_project_revision"):
+        if not isinstance(bound.get(key), str) or not bound[key].startswith("sha256:"):
+            raise ValueError(f"linked Darwin evidence subject {key} is absent")
+    if bound["project_revision"] != bound["m3_project_revision"]:
+        raise ValueError("linked Darwin evidence must bind one Project and M3 revision")
+    if subject_path is not None:
+        subject = json.loads(subject_path.read_text(encoding="utf-8"))
+        if bound.get("sha256") != digest(subject_path):
+            raise ValueError("linked Darwin evidence subject bytes drifted")
+        for key in ("m1_project_subject", "project_revision", "m2_source_revision", "m3_project_revision"):
+            if bound[key] != subject.get(key):
+                raise ValueError(f"linked Darwin evidence subject {key} drifted")
+    consumer = document.get("consumer", {})
+    if consumer.get("environment") != {
+        "CLANG": "/usr/bin/clang",
+        "CARGO_BUILD_JOBS": "1",
+        "CARGO_INCREMENTAL": "0",
+    }:
+        raise ValueError("linked Darwin consumer environment is not the measured SDK wrapper route")
+    if consumer.get("marker") != "ri13-linked-project-ok":
+        raise ValueError("linked Darwin consumer marker is absent")
+    ledger = consumer.get("copy_ledger")
+    if not isinstance(ledger, dict) or ledger.get("schema") != "semaprax.ri13.linked-copy-ledger.v1":
+        raise ValueError("linked Darwin consumer ledger is absent")
+    regex = ledger.get("m1", {}).get("regex_result_owner", {})
+    callback = ledger.get("m2", {}).get("iterator_callback", {})
+    if regex.get("adapter_copied_bytes") != 0 or regex.get("adapter_borrowed_scan_input_bytes") != 28:
+        raise ValueError("linked Darwin Regex copy ledger changed")
+    if callback != {"fn_invocations": 1, "fn_mut_invocations": 1, "scalar_argument_result_copied_bytes": 0}:
+        raise ValueError("linked Darwin callback copy ledger changed")
+
+
+def verify_darwin_evidence_file(path, subject_path):
+    document = json.loads(path.read_text(encoding="utf-8"))
+    verify_darwin_evidence(document, read_sources(), subject_path)
+    return document
+
 def self_test():
     sources = read_sources()
     document = receipt(sources)
@@ -272,15 +335,39 @@ def self_test():
         except ValueError:
             continue
         raise AssertionError(f"validator accepted drifted {name}")
+    evidence = json.loads(DARWIN_EVIDENCE.read_text(encoding="utf-8"))
+    verify_darwin_evidence(evidence, sources)
+    forged = dict(evidence)
+    forged["linked_subject"] = dict(evidence["linked_subject"])
+    forged["linked_subject"]["m3_project_revision"] = "sha256:forged"
+    try:
+        verify_darwin_evidence(forged, sources)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("verifier accepted a forged linked subject binding")
     print("ri13-linked-receipt-self-test-ok")
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--self-test", action="store_true")
+    parser.add_argument("--verify-darwin-evidence", type=Path)
+    parser.add_argument("--linked-subject", type=Path)
     arguments = parser.parse_args()
     if arguments.self_test:
         self_test()
+        return
+    if arguments.verify_darwin_evidence:
+        if arguments.linked_subject is None:
+            parser.error("--verify-darwin-evidence requires --linked-subject")
+        print(json.dumps(
+            verify_darwin_evidence_file(
+                arguments.verify_darwin_evidence, arguments.linked_subject
+            ),
+            indent=2,
+            sort_keys=True,
+        ))
         return
     print(json.dumps(receipt(read_sources()), indent=2, sort_keys=True))
 

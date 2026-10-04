@@ -186,6 +186,18 @@ Run its static control without Cargo:
 python3 examples/ri13-combined-app/linked-receipt.py --self-test
 ```
 
+`linked-darwin-evidence.json` is a compact local Darwin execution receipt. It
+binds the checked-out source head, the static route receipt, generated subject
+bytes, M1/M2/M3 revisions, `/usr/bin/clang` consumer environment, and the
+consumer's exact copy ledger. Verify it offline after a linked prepare has
+produced the ignored generated subject:
+
+```sh
+python3 examples/ri13-combined-app/linked-receipt.py \
+  --verify-darwin-evidence examples/ri13-combined-app/linked-darwin-evidence.json \
+  --linked-subject examples/ri13-combined-app/linked/generated/linked-subject.json
+```
+
 ## Linux x86_64 evidence runner
 
 `scripts/ri13-linux-x86_64-evidence.sh` plans a reproducible Apple Container

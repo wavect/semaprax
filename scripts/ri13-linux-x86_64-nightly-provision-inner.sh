@@ -90,7 +90,31 @@ if observed != expected:
 Path(destination).write_bytes(data)
 PY
     mkdir "$extract"
-    tar -xJf "$archive" -C "$extract"
+    python3 - "$archive" "$extract" <<'PY'
+from pathlib import Path
+import shutil
+import sys
+import tarfile
+
+archive, destination = map(Path, sys.argv[1:])
+with tarfile.open(archive, 'r:xz') as contents:
+    for member in contents.getmembers():
+        path = destination / member.name
+        if path.parent != destination and destination not in path.parents:
+            raise SystemExit(f'archive member escapes extraction root: {member.name}')
+        if member.isdir():
+            path.mkdir(parents=True, exist_ok=True)
+            continue
+        if not member.isfile() or member.issym() or member.islnk():
+            raise SystemExit(f'archive member is not a regular file: {member.name}')
+        path.parent.mkdir(parents=True, exist_ok=True)
+        stream = contents.extractfile(member)
+        if stream is None:
+            raise SystemExit(f'archive member has no content: {member.name}')
+        with path.open('wb') as output:
+            shutil.copyfileobj(stream, output)
+        path.chmod(member.mode)
+PY
     installer=$(find "$extract" -mindepth 2 -maxdepth 2 -type f -name install.sh)
     test "$(printf '%s\n' "$installer" | sed '/^$/d' | wc -l | tr -d ' ')" = 1
     sh "$installer" --prefix /output/toolchain

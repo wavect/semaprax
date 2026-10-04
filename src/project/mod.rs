@@ -38,7 +38,7 @@ pub use host_policy::{
 };
 pub use hot_reload::{
     HotReloadDecision, HotReloadFailure, HotReloadPlan, HotReloadReason, HotReloadSession,
-    HOT_RELOAD_PLAN_SCHEMA,
+    HotReloadSourceAgentHandoff, HOT_RELOAD_PLAN_SCHEMA, HOT_RELOAD_SOURCE_AGENT_HANDOFF_SCHEMA,
 };
 pub use hot_reload_watcher::{
     HotReloadWatchEvent, HotReloadWatchState, HotReloadWatcher, HotReloadWatcherFailure,

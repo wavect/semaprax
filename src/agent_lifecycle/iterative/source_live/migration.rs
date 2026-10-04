@@ -15,7 +15,7 @@ use crate::live_invocation::source_journal::{
     PricedMigrationCarryV4, SourceJournalEntry, SourceMigrationCarry, SourceMigrationFailure,
     SourcePolicyBindingV6, MAX_SOURCE_CARRIER_BYTES,
 };
-use crate::project::ProjectRevision;
+use crate::project::{HotReloadSourceAgentHandoff, ProjectRevision};
 use serde_json::Value;
 
 /// The retained Project and compiled source lifecycle at one side of a handoff.
@@ -232,6 +232,24 @@ pub fn prepare_source_live_migration<'a>(
     request: SourceLiveMigrationRequest<'a>,
 ) -> Result<PreparedSourceLiveMigration<'a>, SourceLiveFailure> {
     prepare_source_live_migration_inner(request, None, None, None, InvocationRootProfile::Source)
+}
+
+/// Consumes compiler-derived hot-reload selection facts through the ordinary
+/// authenticated source migration path. The facts restrict endpoint selection;
+/// they never provide checkpoint, store, or dispatch authority.
+pub fn prepare_source_live_migration_from_hot_reload_handoff<'a>(
+    request: SourceLiveMigrationRequest<'a>,
+    handoff: &HotReloadSourceAgentHandoff,
+) -> Result<PreparedSourceLiveMigration<'a>, SourceLiveFailure> {
+    if !handoff.matches_endpoints(
+        request.previous.project,
+        request.destination.project,
+        request.previous.agent_id,
+        request.destination.agent_id,
+    ) {
+        return Err(refused("migration.hot_reload_selection"));
+    }
+    prepare_source_live_migration(request)
 }
 
 /// Preserves checked monetary history through the existing migration evaluator.

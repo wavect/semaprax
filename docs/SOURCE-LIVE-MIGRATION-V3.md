@@ -20,6 +20,14 @@ function; the checked linked closure admits only its pure signature
 identity and leaf type are checked against the predecessor and destination
 lifecycles. Submitted HIR and caller-asserted roots cannot select code.
 
+A `semaprax.hot-reload-source-agent-handoff.v2` row may restrict this
+selection when it replays against both retained Projects. It commits each
+endpoint's AgentDefinition, AgentGraph, Runtime profile, Proposal and
+Observation facts but carries no checkpoint, writer, provider, capability, or
+dispatch authority. After it matches, this protocol still performs every
+ordinary predecessor-binding, checkpoint, State-schema, pure-migration and
+destination-journal check before it can dispatch a successor.
+
 The predecessor must have an actual committed Suspend terminal with a retained
 canonical State carrier. The carrier is decoded under the exact predecessor
 flat State schema, then re-encoded byte-for-byte. Its terminal chain and

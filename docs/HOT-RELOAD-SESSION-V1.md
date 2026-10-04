@@ -37,16 +37,17 @@ The local prepared-interpreter lane admits a changed code body only when the
 checked entry and test programs retain their selected entrypoints, permit set,
 type and interface records, the exact function stable-ID set, return/parameter types and
 ownership, declared effects and yields, and checked pre/postconditions.
-For every source Agent, planning compares its retained canonical
+For every source Agent, planning retains the predecessor and candidate
 AgentDefinition, AgentGraph, Runtime v1 profile, Proposal and Observation
-type identities/revisions, and schema digests. A compatible plan carries a
-stable-ID ordered opaque handoff row with domain-separated digests of those
-compiler facts. The row contains no checkpoint bytes, lifecycle binding,
-store, host capability, or migration function. It is therefore a selection
-record for the source-live migration owner, never permission to restore or run
-a checkpoint. Such a plan has the distinct
-`eligible_source_agent_checkpoint_handoff` decision and `activate` refuses it;
-only an authenticated source-live migration can consume the selected facts.
+schema digests in a stable-ID ordered opaque handoff row. The row contains no
+checkpoint bytes, lifecycle binding, store, host capability, or migration
+function. It is therefore a selection record for the source-live migration
+owner, never permission to restore or run a checkpoint. Such a plan has the
+distinct `eligible_source_agent_checkpoint_handoff` decision and `activate`
+refuses it. The source-live preparation adapter replays the row against both
+retained Projects, then still authenticates the predecessor checkpoint,
+selection, schema transition, pure migration and destination journal before
+dispatch. A changed row does not grant a policy or capability widening.
 This rule remains conservative and incomplete: it does not yet
 compute a reachable callable closure or select and execute an Agent state
 migration. A positive decision is limited to the checked scalar

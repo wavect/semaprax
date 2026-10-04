@@ -15,7 +15,7 @@ use crate::hir::{ResolvedFunction, ResolvedProgram};
 
 pub const HOT_RELOAD_PLAN_SCHEMA: &str = "semaprax.hot-reload-plan.v1";
 pub const HOT_RELOAD_SOURCE_AGENT_HANDOFF_SCHEMA: &str =
-    "semaprax.hot-reload-source-agent-handoff.v1";
+    "semaprax.hot-reload-source-agent-handoff.v2";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum HotReloadReason {
@@ -119,12 +119,21 @@ pub struct HotReloadPlan {
 /// before it can run a destination.
 pub struct HotReloadSourceAgentHandoff {
     agent_id: String,
+    previous: SourceAgentEndpointFacts,
+    destination: SourceAgentEndpointFacts,
+    digest: String,
+}
+
+struct SourceAgentEndpointFacts {
     definition_digest: String,
     graph_digest: String,
     runtime_profile_digest: String,
+    proposal_type_id: String,
+    proposal_type_revision: String,
+    observation_type_id: String,
+    observation_type_revision: String,
     proposal_schema_digest: String,
     observation_schema_digest: String,
-    digest: String,
 }
 
 impl HotReloadSourceAgentHandoff {
@@ -136,15 +145,38 @@ impl HotReloadSourceAgentHandoff {
         &self.digest
     }
 
+    /// Recomputes this row against the two retained Projects. This is only a
+    /// restrictive selection check; it supplies no checkpoint, store, or
+    /// runtime authority to the caller.
+    pub fn matches_endpoints(
+        &self,
+        previous: &ProjectRevision,
+        destination: &ProjectRevision,
+        previous_agent_id: &str,
+        destination_agent_id: &str,
+    ) -> bool {
+        self.agent_id == previous_agent_id
+            && self.agent_id == destination_agent_id
+            && source_agent_endpoint_facts(previous, previous_agent_id)
+                .as_ref()
+                .is_some_and(|facts| endpoint_facts_equal(facts, &self.previous))
+            && source_agent_endpoint_facts(destination, destination_agent_id)
+                .as_ref()
+                .is_some_and(|facts| endpoint_facts_equal(facts, &self.destination))
+            && self.digest
+                == source_agent_handoff_row_digest(
+                    &self.agent_id,
+                    &self.previous,
+                    &self.destination,
+                )
+    }
+
     fn json(&self) -> serde_json::Value {
         serde_json::json!({
             "schema": HOT_RELOAD_SOURCE_AGENT_HANDOFF_SCHEMA,
             "agent_id": self.agent_id,
-            "definition_digest": self.definition_digest,
-            "graph_digest": self.graph_digest,
-            "runtime_profile_digest": self.runtime_profile_digest,
-            "proposal_schema_digest": self.proposal_schema_digest,
-            "observation_schema_digest": self.observation_schema_digest,
+            "previous": endpoint_facts_json(&self.previous),
+            "destination": endpoint_facts_json(&self.destination),
             "digest": self.digest,
             "authority": "none",
         })
@@ -297,23 +329,24 @@ impl HotReloadSession {
                 Some(HotReloadReason::PolicyChanged),
                 Vec::new(),
             )
-        } else if compatible_program(self.active.entry_program(), candidate.entry_program())
-            && compatible_program(self.active.test_program(), candidate.test_program())
-        {
-            match source_agent_handoffs(&self.active, candidate) {
-                Some(handoffs) if handoffs.is_empty() => {
-                    (HotReloadDecision::EligibleCodeReplacement, None, handoffs)
-                }
-                Some(handoffs) => (
+        } else if let Some(handoffs) = source_agent_handoffs(&self.active, candidate) {
+            if handoffs.is_empty()
+                && compatible_program(self.active.entry_program(), candidate.entry_program())
+                && compatible_program(self.active.test_program(), candidate.test_program())
+            {
+                (HotReloadDecision::EligibleCodeReplacement, None, handoffs)
+            } else if handoffs.is_empty() {
+                (
+                    HotReloadDecision::UnsupportedRestartRequired,
+                    Some(HotReloadReason::IncompatibleClosure),
+                    handoffs,
+                )
+            } else {
+                (
                     HotReloadDecision::EligibleSourceAgentCheckpointHandoff,
                     None,
                     handoffs,
-                ),
-                None => (
-                    HotReloadDecision::UnsupportedRestartRequired,
-                    Some(HotReloadReason::IncompatibleClosure),
-                    Vec::new(),
-                ),
+                )
             }
         } else {
             (
@@ -544,72 +577,121 @@ fn source_agent_handoffs(
     }
     let mut handoffs = Vec::with_capacity(active_definitions.len());
     for (left, right) in active_definitions.iter().zip(candidate_definitions) {
-        let left_definition = left.definition();
-        let right_definition = right.definition();
-        let agent_id = left_definition.agent_id();
-        if agent_id != right_definition.agent_id()
-            || left_definition.canonical_source() != right_definition.canonical_source()
-            || left.graph().canonical_json() != right.graph().canonical_json()
-            || left.runtime_v1_profile() != right.runtime_v1_profile()
-        {
+        let agent_id = left.definition().agent_id();
+        if agent_id != right.definition().agent_id() {
             return None;
         }
-        let (Some(left_fact), Some(right_fact)) =
-            (active_facts.fact(agent_id), candidate_facts.fact(agent_id))
+        let Some(previous) =
+            source_agent_endpoint_facts_with_contracts(left, active_facts.fact(agent_id)?)
         else {
             return None;
         };
-        if left_fact.proposal_type_id() != right_fact.proposal_type_id()
-            || left_fact.proposal_type_revision() != right_fact.proposal_type_revision()
-            || left_fact.observation_type_id() != right_fact.observation_type_id()
-            || left_fact.observation_type_revision() != right_fact.observation_type_revision()
-            || left_fact.proposal_schema_digest() != right_fact.proposal_schema_digest()
-            || left_fact.observation_schema_digest() != right_fact.observation_schema_digest()
-        {
+        let Some(destination) =
+            source_agent_endpoint_facts_with_contracts(right, candidate_facts.fact(agent_id)?)
+        else {
             return None;
-        }
-        let runtime_profile_digest = digest_bytes(
-            b"semaprax.hot-reload-source-agent-runtime.v1\0",
-            left.runtime_v1_profile().as_bytes(),
-        );
-        let digest = source_agent_handoff_row_digest(
-            agent_id,
-            left_definition.digest(),
-            left.graph().digest(),
-            &runtime_profile_digest,
-            left_fact.proposal_schema_digest(),
-            left_fact.observation_schema_digest(),
-        );
+        };
+        let digest = source_agent_handoff_row_digest(agent_id, &previous, &destination);
         handoffs.push(HotReloadSourceAgentHandoff {
             agent_id: agent_id.to_owned(),
-            definition_digest: left_definition.digest().to_owned(),
-            graph_digest: left.graph().digest().to_owned(),
-            runtime_profile_digest,
-            proposal_schema_digest: left_fact.proposal_schema_digest().to_owned(),
-            observation_schema_digest: left_fact.observation_schema_digest().to_owned(),
+            previous,
+            destination,
             digest,
         });
     }
     Some(handoffs)
 }
 
+fn source_agent_endpoint_facts(
+    project: &ProjectRevision,
+    agent_id: &str,
+) -> Option<SourceAgentEndpointFacts> {
+    if project.source_agents().len() != project.agent_definitions().len()
+        || project
+            .agent_definitions()
+            .iter()
+            .filter(|definition| definition.definition().agent_id() == agent_id)
+            .count()
+            != 1
+    {
+        return None;
+    }
+    let definition = project
+        .agent_definitions()
+        .iter()
+        .find(|definition| definition.definition().agent_id() == agent_id)?;
+    let contracts = project.agent_interaction_contract_facts()?;
+    if contracts.facts().len() != project.agent_definitions().len() {
+        return None;
+    }
+    source_agent_endpoint_facts_with_contracts(definition, contracts.fact(agent_id)?)
+}
+
+fn source_agent_endpoint_facts_with_contracts(
+    definition: &crate::agent_definition::CompiledAgentDefinition,
+    contract: &super::AgentInteractionContractFact,
+) -> Option<SourceAgentEndpointFacts> {
+    if definition.definition().agent_id() != contract.agent_id()
+        || contract.proposal_type_id().is_empty()
+        || contract.proposal_type_revision().is_empty()
+        || contract.observation_type_id().is_empty()
+        || contract.observation_type_revision().is_empty()
+    {
+        return None;
+    }
+    Some(SourceAgentEndpointFacts {
+        definition_digest: definition.definition().digest().to_owned(),
+        graph_digest: definition.graph().digest().to_owned(),
+        runtime_profile_digest: digest_bytes(
+            b"semaprax.hot-reload-source-agent-runtime.v1\0",
+            definition.runtime_v1_profile().as_bytes(),
+        ),
+        proposal_type_id: contract.proposal_type_id().to_owned(),
+        proposal_type_revision: contract.proposal_type_revision().to_owned(),
+        observation_type_id: contract.observation_type_id().to_owned(),
+        observation_type_revision: contract.observation_type_revision().to_owned(),
+        proposal_schema_digest: contract.proposal_schema_digest().to_owned(),
+        observation_schema_digest: contract.observation_schema_digest().to_owned(),
+    })
+}
+
+fn endpoint_facts_equal(left: &SourceAgentEndpointFacts, right: &SourceAgentEndpointFacts) -> bool {
+    left.definition_digest == right.definition_digest
+        && left.graph_digest == right.graph_digest
+        && left.runtime_profile_digest == right.runtime_profile_digest
+        && left.proposal_type_id == right.proposal_type_id
+        && left.proposal_type_revision == right.proposal_type_revision
+        && left.observation_type_id == right.observation_type_id
+        && left.observation_type_revision == right.observation_type_revision
+        && left.proposal_schema_digest == right.proposal_schema_digest
+        && left.observation_schema_digest == right.observation_schema_digest
+}
+
+fn endpoint_facts_json(facts: &SourceAgentEndpointFacts) -> serde_json::Value {
+    serde_json::json!({
+        "definition_digest": facts.definition_digest,
+        "graph_digest": facts.graph_digest,
+        "runtime_profile_digest": facts.runtime_profile_digest,
+        "proposal_type_id": facts.proposal_type_id,
+        "proposal_type_revision": facts.proposal_type_revision,
+        "observation_type_id": facts.observation_type_id,
+        "observation_type_revision": facts.observation_type_revision,
+        "proposal_schema_digest": facts.proposal_schema_digest,
+        "observation_schema_digest": facts.observation_schema_digest,
+    })
+}
+
 fn source_agent_handoff_row_digest(
     agent_id: &str,
-    definition_digest: &str,
-    graph_digest: &str,
-    runtime_profile_digest: &str,
-    proposal_schema_digest: &str,
-    observation_schema_digest: &str,
+    previous: &SourceAgentEndpointFacts,
+    destination: &SourceAgentEndpointFacts,
 ) -> String {
     digest_bytes(
         b"semaprax.hot-reload-source-agent-handoff.v1\0",
         serde_json::to_string(&serde_json::json!({
             "agent_id": agent_id,
-            "definition_digest": definition_digest,
-            "graph_digest": graph_digest,
-            "runtime_profile_digest": runtime_profile_digest,
-            "proposal_schema_digest": proposal_schema_digest,
-            "observation_schema_digest": observation_schema_digest,
+            "previous": endpoint_facts_json(previous),
+            "destination": endpoint_facts_json(destination),
         }))
         .expect("fixed source Agent handoff row serializes")
         .as_bytes(),
@@ -987,7 +1069,10 @@ mod tests {
                 &ProjectExecutionCancellation::new(),
             )
             .unwrap();
-        assert_eq!(b_run.outcome(), &ProjectPreparedExecutionOutcome::Returned(48));
+        assert_eq!(
+            b_run.outcome(),
+            &ProjectPreparedExecutionOutcome::Returned(48)
+        );
         verify_project_source_trace_against_revision(&b, b_run.trace().envelope()).unwrap();
         assert!(verify_project_source_trace_against_revision(&b, a.trace().envelope()).is_err());
 
@@ -996,6 +1081,9 @@ mod tests {
         session.admit_candidate(Arc::clone(&c)).unwrap();
         session.activate(session.plan().unwrap()).unwrap();
         assert_eq!(session.worker_id(), worker);
-        assert_eq!(observed(&session), ProjectPreparedExecutionOutcome::Returned(54));
+        assert_eq!(
+            observed(&session),
+            ProjectPreparedExecutionOutcome::Returned(54)
+        );
     }
 }

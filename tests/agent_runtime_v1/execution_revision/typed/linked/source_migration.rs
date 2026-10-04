@@ -3,9 +3,10 @@ use super::super::migration::durable;
 use super::*;
 use semaprax::agent_lifecycle::iterative::driver::{ProposalRequest, ProposalSource};
 use semaprax::agent_lifecycle::iterative::source_live::{
-    prepare_source_live_migration, prepare_source_live_priced_migration, SourceAttemptIdentity,
-    SourceLiveMigrationEndpoint, SourceLiveMigrationRequest, SourceLivePolicy, SourceLivePricing,
-    SourceLiveRequest, SourceProposalOutcome, SourceProposalPolicy,
+    prepare_source_live_migration, prepare_source_live_migration_from_hot_reload_handoff,
+    prepare_source_live_priced_migration, SourceAttemptIdentity, SourceLiveMigrationEndpoint,
+    SourceLiveMigrationRequest, SourceLivePolicy, SourceLivePricing, SourceLiveRequest,
+    SourceProposalOutcome, SourceProposalPolicy,
 };
 use semaprax::agent_lifecycle::iterative::{
     compile_project_agent_lifecycle_v2, CompiledIterativeLifecycle,
@@ -20,6 +21,7 @@ use semaprax::live_invocation::source_journal::{
     SourceInvocationBinding, SourceJournalEntry, SourceJournalError, SourceTerminalStatus,
 };
 use semaprax::live_invocation::{CumulativeBudgetLedger, InvocationClock, SourceInvocationClock};
+use semaprax::project::{HotReloadDecision, HotReloadSession, PreparedProjectInterpreterOptions};
 use sha2::{Digest, Sha256};
 use std::cell::Cell;
 use std::rc::Rc;
@@ -345,6 +347,110 @@ fn suspended(a: &Fixture) -> Suspended {
         committed_stage_fuel: result.checkpoint.committed_stage_fuel(),
         store,
     }
+}
+
+#[test]
+fn source_migration_consumes_hot_reload_selection_only_through_authenticated_handoff() {
+    let a = durable::first();
+    let b = durable::successor(&a, "State", "StateB", "b", &["marker"], false);
+    let c = durable::successor(&b, "StateB", "StateC", "c", &["marker", "extra"], false);
+    let old = suspended(&a);
+    let project_b = retained(&b);
+    let life_b = compiled(&project_b);
+    let policy_b = policy(&project_b);
+
+    let mut plan_session = HotReloadSession::new(
+        Arc::clone(&old.project),
+        PreparedProjectInterpreterOptions::default(),
+    )
+    .unwrap();
+    plan_session
+        .admit_candidate(Arc::clone(&project_b))
+        .unwrap();
+    let plan = plan_session.plan().unwrap();
+    assert_eq!(
+        plan.decision(),
+        HotReloadDecision::EligibleSourceAgentCheckpointHandoff
+    );
+    let handoff = plan
+        .source_agent_handoffs()
+        .iter()
+        .find(|handoff| handoff.agent_id() == "fixture.agent")
+        .expect("the checked Project plan must select the source Agent");
+
+    let prepared = prepare_source_live_migration_from_hot_reload_handoff(
+        SourceLiveMigrationRequest {
+            previous: endpoint(&old.project, &old.life, &old.policy),
+            previous_binding: &old.binding,
+            previous_checkpoint: &old.store.document,
+            destination: endpoint(&project_b, &life_b, &policy_b),
+            task: &old.task,
+            migration_function: "fixture.agent.fn.migrate_b",
+            max_migration_steps: 10_000,
+            expected_handoff_digest: None,
+        },
+        handoff,
+    )
+    .unwrap();
+    let mut destination_store = Store::default();
+    let mut model = Model::new(&life_b);
+    let mut read = Read::default();
+    let outcome = prepared
+        .run(
+            &mut model,
+            &mut read,
+            &mut destination_store,
+            &Clock::at(0),
+            &AgentCancellation::new(),
+        )
+        .unwrap();
+    assert_eq!(outcome.model_dispatches, 3);
+    assert!(outcome
+        .checked_run
+        .unwrap()
+        .stages()
+        .iter()
+        .all(|stage| stage.role() != "initialize"));
+
+    let project_c = retained(&c);
+    let mut wrong_plan_session = HotReloadSession::new(
+        Arc::clone(&project_b),
+        PreparedProjectInterpreterOptions::default(),
+    )
+    .unwrap();
+    wrong_plan_session
+        .admit_candidate(Arc::clone(&project_c))
+        .unwrap();
+    let wrong_plan = wrong_plan_session.plan().unwrap();
+    let wrong_handoff = wrong_plan
+        .source_agent_handoffs()
+        .iter()
+        .find(|handoff| handoff.agent_id() == "fixture.agent")
+        .expect("the checked Project plan must select the source Agent");
+    let checkpoint_before_refusal = destination_store.document.clone();
+    let error = match prepare_source_live_migration_from_hot_reload_handoff(
+        SourceLiveMigrationRequest {
+            previous: endpoint(&old.project, &old.life, &old.policy),
+            previous_binding: &old.binding,
+            previous_checkpoint: &old.store.document,
+            destination: endpoint(&project_b, &life_b, &policy_b),
+            task: &old.task,
+            migration_function: "fixture.agent.fn.migrate_b",
+            max_migration_steps: 10_000,
+            expected_handoff_digest: None,
+        },
+        wrong_handoff,
+    ) {
+        Ok(_) => panic!("a handoff row for a different retained Project pair must refuse"),
+        Err(error) => error,
+    };
+    assert_eq!(error.diagnostics[0].code, "SPX-G582");
+    assert_eq!(
+        error.diagnostics[0].message,
+        "Agent iterative lifecycle invariant failed: migration.hot_reload_selection"
+    );
+    assert_eq!(error.model_dispatches, 0);
+    assert_eq!(destination_store.document, checkpoint_before_refusal);
 }
 
 #[test]

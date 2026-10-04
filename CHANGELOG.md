@@ -82,6 +82,8 @@
   Windows checkpoint API, documentation catalog and editor activation snapshot,
   and split over-budget source modules while retaining source-locked coverage.
   Cover the checkpoint-waiting branch in the source-agent handoff test fixture.
+  Keep the native Regex/Url lint allowance valid under non-Clippy builds with
+  warnings denied.
 
 - Repair the current main CI fixtures for owned-byte Wasm imports, constructor
   schema counts, the pinned iOS action, and authenticated Everyday Agent

@@ -13,7 +13,7 @@ pub struct PreparedRegexUrlProjectPackages {
 /// Authenticate all four selected imports and both exports under one held
 /// Project snapshot. Every generated package binds the same Project subject,
 /// while its own exact index and pinned offline lock remain independent.
-#[expect(
+#[allow(
     clippy::too_many_arguments,
     reason = "four selected APIs and two exact Cargo closures"
 )]

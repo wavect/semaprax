@@ -1,0 +1,13 @@
+schema = "semaprax.manifest.v1"
+
+[package]
+name = "ledger"
+version = "0.1.0"
+
+[modules]
+entry = "ledger.examples"
+sources = ["src/examples.spx", "src/lib.spx", "src/report.spx", "src/tests.spx"]
+tests = ["ledger.tests"]
+
+[exports]
+web = ["ledger.line_total"]

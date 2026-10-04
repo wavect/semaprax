@@ -39,6 +39,11 @@ struct Args {
     python: Option<String>,
     node: Option<String>,
     observations: Option<String>,
+    tokenizer_python: Option<String>,
+    tokenizer_script: Option<String>,
+    tokenizer_cache: Option<String>,
+    tokenizers: Vec<String>,
+    cancel_file: Option<String>,
     disable: bool,
     json: bool,
 }
@@ -60,6 +65,11 @@ fn parse(args: &[String]) -> HarnessResult<Args> {
             "--python" => a.python = Some(val("--python")?),
             "--node" => a.node = Some(val("--node")?),
             "--observations" => a.observations = Some(val("--observations")?),
+            "--tokenizer-python" => a.tokenizer_python = Some(val("--tokenizer-python")?),
+            "--tokenizer-script" => a.tokenizer_script = Some(val("--tokenizer-script")?),
+            "--tokenizer-cache" => a.tokenizer_cache = Some(val("--tokenizer-cache")?),
+            "--cancel-file" => a.cancel_file = Some(val("--cancel-file")?),
+            "--tokenizer" => a.tokenizers.push(val("--tokenizer")?),
             "--disable" => a.disable = true,
             "--json" => a.json = true,
             o if o.starts_with("--") => return Err(usage(format!("unknown option `{o}`"))),
@@ -132,6 +142,18 @@ pub struct RunOptions {
     pub compiler: Option<PathBuf>,
     /// JSONL file receiving one metadata-only observation per stage.
     pub observations: Option<PathBuf>,
+    /// Named-tokenizer helper (HN-11): python, `scripts/harness_tokenize.py`, the
+    /// local tiktoken cache directory and the encodings to start. Without it
+    /// token counts are `unknown` and admission uses the byte upper bound.
+    pub tokenizer_python: Option<PathBuf>,
+    pub tokenizer_script: Option<PathBuf>,
+    pub tokenizer_cache: Option<PathBuf>,
+    pub tokenizers: Vec<String>,
+    /// Cooperative cancellation for sessions.
+    pub cancel: Option<super::session::CancelFlag>,
+    /// Polled path: once it exists the session is cancelled (no signal handling:
+    /// that needs `unsafe`, which this crate forbids).
+    pub cancel_file: Option<PathBuf>,
     pub disable: bool,
     pub json: bool,
 }
@@ -146,6 +168,12 @@ fn a_to_opts(a: &Args, env: &Environment) -> RunOptions {
         node: a.node.as_deref().map(|p| abs(env, p)),
         compiler: None,
         observations: a.observations.as_deref().map(|p| abs(env, p)),
+        tokenizer_python: a.tokenizer_python.as_deref().map(|p| abs(env, p)),
+        tokenizer_script: a.tokenizer_script.as_deref().map(|p| abs(env, p)),
+        tokenizer_cache: a.tokenizer_cache.as_deref().map(|p| abs(env, p)),
+        tokenizers: a.tokenizers.clone(),
+        cancel: None,
+        cancel_file: a.cancel_file.as_deref().map(|p| abs(env, p)),
         disable: a.disable,
         json: a.json,
     }
@@ -343,6 +371,27 @@ pub fn run_with(
         })
         .collect();
     let skill_prompt = skill_prompt(&config, env, &task, disabled);
+    let mut budget = super::budget::BudgetConfig::default();
+    if let (Some(py), Some(script)) = (&o.tokenizer_python, &o.tokenizer_script) {
+        let mut tenv = std::collections::BTreeMap::new();
+        tenv.insert("PATH".to_string(), "/usr/bin:/bin".to_string());
+        if let Some(c) = &o.tokenizer_cache {
+            tenv.insert(
+                "TIKTOKEN_CACHE_DIR".to_string(),
+                c.to_string_lossy().into_owned(),
+            );
+        }
+        for name in &o.tokenizers {
+            let args = vec![script.to_string_lossy().into_owned(), name.clone()];
+            match crate::observe::ExternalTokenizer::spawn(py, &args, &tenv) {
+                Ok(t) => budget.tokenizers.add(Box::new(t)),
+                Err(e) => notes.push(format!(
+                    "tokenizer `{name}` unavailable ({}); counts are unknown, admission uses the utf8-bytes upper bound",
+                    e.message
+                )),
+            }
+        }
+    }
 
     let cfg = RunConfig {
         context_max_bytes: config.budget.context_max_bytes as usize,
@@ -358,6 +407,27 @@ pub fn run_with(
         endpoint_policy,
         model_plans,
         notes,
+        budget,
+        cancel: o.cancel.clone().or_else(|| {
+            o.cancel_file.as_ref().map(|p| {
+                let flag = super::session::CancelFlag::default();
+                let (f, path) = (flag.clone(), p.clone());
+                if path.exists() {
+                    f.store(true, std::sync::atomic::Ordering::SeqCst);
+                }
+                std::thread::spawn(move || {
+                    // Ends with the process or once the flag fires (a run is short-lived).
+                    for _ in 0..72_000 {
+                        if path.exists() {
+                            f.store(true, std::sync::atomic::Ordering::SeqCst);
+                            break;
+                        }
+                        std::thread::sleep(std::time::Duration::from_millis(50));
+                    }
+                });
+                flag
+            })
+        }),
     };
     let sink: Option<Box<dyn crate::observe::Sink>> = match &o.observations {
         Some(p) => Some(Box::new(JsonlFileSink::create(p, 16 << 20).map_err(

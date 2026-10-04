@@ -117,6 +117,14 @@ pub trait CompilerService {
     ) -> Result<PublishReceipt, PublishError>;
     /// Commands run so far (subcommand and fixed flags only).
     fn commands(&self) -> Vec<String>;
+    /// Candidate intent kinds the installed compiler admits (HN-01). The
+    /// default trusts the documented catalog; [`SubprocessCompiler`] probes.
+    fn supported_intents(&self, _project: &Path, _revision: &str) -> HarnessResult<Vec<String>> {
+        Ok(super::stages::INTENT_KINDS
+            .iter()
+            .map(|s| s.to_string())
+            .collect())
+    }
 }
 
 struct Run {
@@ -132,6 +140,7 @@ pub struct SubprocessCompiler {
     scratch: PathBuf,
     timeout: Duration,
     log: RefCell<Vec<String>>,
+    intents: RefCell<Option<Vec<String>>>,
 }
 
 impl SubprocessCompiler {
@@ -155,6 +164,7 @@ impl SubprocessCompiler {
             scratch,
             timeout: Duration::from_secs(120),
             log: RefCell::default(),
+            intents: RefCell::default(),
         })
     }
 
@@ -525,5 +535,27 @@ impl CompilerService for SubprocessCompiler {
 
     fn commands(&self) -> Vec<String> {
         self.log.borrow().clone()
+    }
+
+    /// Probe each documented kind with a minimal intent: the installed compiler
+    /// answers `unsupported candidate intention kind` for a kind it lacks, and
+    /// any other answer (missing fields, unknown target) means it is admitted.
+    fn supported_intents(&self, project: &Path, revision: &str) -> HarnessResult<Vec<String>> {
+        if let Some(v) = self.intents.borrow().as_ref() {
+            return Ok(v.clone());
+        }
+        let mut out = Vec::new();
+        for kind in super::stages::INTENT_KINDS {
+            let change = super::pipeline::change_bytes(
+                revision,
+                &serde_json::json!({"kind": kind, "target": "semaprax.harness.probe"}),
+            );
+            match self.candidate_preview(project, &change) {
+                Err(e) if e.message.contains("unsupported candidate intention kind") => {}
+                _ => out.push(kind.to_string()),
+            }
+        }
+        *self.intents.borrow_mut() = Some(out.clone());
+        Ok(out)
     }
 }

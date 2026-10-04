@@ -180,18 +180,33 @@ M1 and linked preparation routes replay them and retain the existing exact
 target and package checks.
 
 The pinned evidence image supplies stable Rust 1.98 but does not contain the
-pinned nightly extractor. Prepare the two envelopes first with a separately
-installed Linux x86_64 `nightly-2026-10-02` toolchain and an already populated
-Linux Cargo home. The preparation runner mounts both inputs read-only, verifies
-the exact `regex` and `url` crate archive checksums from the committed locks,
-uses locked offline `cargo rustdoc`, and retains the raw JSON plus canonical
-envelopes and digest receipt. It does not run the M1/M2/M3 application gate:
+pinned nightly extractor. First provision the exact Linux x86_64
+`nightly-2026-10-02` toolchain with the bounded provisioner below. It starts a
+single 1 GiB guest, verifies the official dated manifest plus the `rustc`,
+`cargo`, and `rust-std` archive SHA-256 values, installs only those components,
+and verifies the exact rustdoc version. Its supplied Cargo home is read-only;
+it verifies the locked `regex` and `url` archives and that each mounted source
+directory matches its verified archive, but does not invoke Cargo. The output
+receipt records all those inputs. This is the one preparation step with guest
+network access.
+
+```sh
+scripts/ri13-linux-x86_64-nightly-provision.sh --run \
+  --image 'ri13-linux-evidence:rust-1.98.0@sha256:c9024b5897124ae3a7f124a41dbe4d301c7319daf4e9aed82b23424648eb311e' \
+  --cargo-home /absolute/linux-x86_64-cargo-home \
+  --output /absolute/ri13-nightly-2026-10-02-x86_64-linux
+```
+
+Then prepare the two envelopes. The preparation runner mounts the provisioned
+toolchain and Cargo inputs read-only, uses locked offline `cargo rustdoc`, and
+retains the raw JSON plus canonical envelopes and digest receipt. It does not
+run the M1/M2/M3 application gate:
 
 ```sh
 scripts/ri13-linux-x86_64-index-prepare.sh --run \
   --image 'ri13-linux-evidence:rust-1.98.0@sha256:c9024b5897124ae3a7f124a41dbe4d301c7319daf4e9aed82b23424648eb311e' \
   --cargo-home /absolute/linux-x86_64-cargo-home \
-  --nightly-toolchain /absolute/nightly-2026-10-02-x86_64-linux \
+  --nightly-toolchain /absolute/ri13-nightly-2026-10-02-x86_64-linux/toolchain \
   --output /absolute/ri13-linux-rust-api-index-preparation
 ```
 

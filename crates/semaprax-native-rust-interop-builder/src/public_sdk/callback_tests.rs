@@ -19,6 +19,8 @@ const RI13_M2_TESTS: &str =
     include_str!("../../../../examples/ri13-m2-record-iterator/project/tests.spx");
 const RI13_M2_MANIFEST: &str =
     include_str!("../../../../examples/ri13-m2-record-iterator/project/semaprax.toml");
+const RI13_UNIFIED_SOURCE: &str =
+    include_str!("../../../../examples/ri13-combined-app/unified-project/src/app.spx");
 const FIXTURE: &str = r#"
 pub trait Accumulator {type Error;fn advance(&mut self,value:i64)->Result<i64,Self::Error>;}
 pub struct Registry<T:Accumulator>{implementation:Option<T>}
@@ -287,6 +289,28 @@ module ri13.imported_callback;
     )
     .unwrap_err();
     assert_ne!(error[0].code, "SPX-B147");
+}
+
+#[test]
+fn authenticated_project_source_route_isolates_m2_from_unified_indexed_imports() {
+    let projection = prepare_serde_callbacks_from_authenticated_project_source(
+        RI13_UNIFIED_SOURCE,
+        Path::new("ri13-unified-app.spx"),
+        "ri13.event",
+        &NativeCallbackSelection {
+            factory_id: "callback.factory".into(),
+            transition_id: "callback.advance".into(),
+            trait_path: String::new(),
+            method: String::new(),
+            error_type: String::new(),
+        },
+    )
+    .unwrap();
+    assert_eq!(projection.record.record_id, "ri13.event");
+    assert!(projection
+        .callback
+        .adapter_rust
+        .contains("pub fn as_fn_mut"));
 }
 struct Temp(std::path::PathBuf);
 impl Drop for Temp {

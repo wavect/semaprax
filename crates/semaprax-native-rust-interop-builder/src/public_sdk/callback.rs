@@ -98,9 +98,10 @@ pub fn prepare_native_rust_serde_iterator_callbacks(
 ///
 /// Indexed Rust imports are admitted by the Project frontend before this
 /// operation. They do not enter the callback ABI: the local projection first
-/// removes every interface, then resolves and validates the selected record
-/// and callback declarations. A callback that depends on an imported item is
-/// therefore refused. This returns inert generated source and carries no
+/// removes every interface and unrelated declaration, then resolves and
+/// validates only the selected record and callback declarations. A callback
+/// that depends on an imported item is therefore refused. This returns inert
+/// generated source and carries no
 /// publication or foreign-call authority; callers must keep the surrounding
 /// Project transaction live so its final held-input recheck binds these bytes.
 pub fn prepare_native_rust_serde_iterator_callbacks_from_authenticated_project_source(
@@ -186,10 +187,17 @@ fn prepare_serde_callbacks_from_authenticated_project_source(
     let canonical = semaprax::format::canonical(&parsed);
     let source_revision =
         domain_digest(b"semaprax.rich-callback-source.v1\0", canonical.as_bytes());
-    // The selected callback must be closed over Semaprax declarations alone.
-    // Clearing imports makes any selected-Rust dependency fail HIR resolution.
+    // The selected callback must be closed over its exact M2 declarations.
+    // Do not resolve unrelated Project functions: in the unified Project those
+    // deliberately use separately authenticated M1 indexed imports.
     let mut isolated = parsed.clone();
     isolated.interfaces.clear();
+    isolated.types.retain(|ty| ty.stable_id == record_id);
+    isolated.functions.retain(|function| {
+        function.stable_id == selection.factory_id
+            || function.stable_id == selection.transition_id
+            || function.name == "main"
+    });
     let resolved = semaprax::hir::resolve(&isolated)
         .map_err(|mut errors| errors.remove(0).at_path(path.display().to_string()))?;
     semaprax::hir::validate(&resolved).map_err(located)?;

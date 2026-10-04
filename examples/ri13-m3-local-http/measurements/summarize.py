@@ -11,6 +11,13 @@ from pathlib import Path
 
 ROUTES = ("direct_rust", "handwritten_adapter", "generated_semaprax")
 EXPECTED = 90
+ALLOCATION_COLUMNS = (
+    "allocation_calls",
+    "deallocation_calls",
+    "reallocation_calls",
+    "allocated_bytes",
+    "deallocated_bytes",
+)
 
 
 def percentile(values, percent):
@@ -25,6 +32,7 @@ def summarize(path):
     rows = list(csv.DictReader(path.open(newline="", encoding="utf-8")))
     assert len(rows) == EXPECTED * len(ROUTES), "missing or extra samples"
     samples = {route: {} for route in ROUTES}
+    has_allocation_metrics = all(column in rows[0] for column in ALLOCATION_COLUMNS)
     for row in rows:
         route = row["route"]
         assert route in samples
@@ -33,12 +41,16 @@ def summarize(path):
         assert int(row["body_bytes"]) == 2
         elapsed_ns = int(row["elapsed_ns"])
         assert elapsed_ns > 0
-        samples[route][iteration] = elapsed_ns
+        allocations = None
+        if has_allocation_metrics:
+            allocations = {column: int(row[column]) for column in ALLOCATION_COLUMNS}
+            assert all(value >= 0 for value in allocations.values())
+        samples[route][iteration] = (elapsed_ns, allocations)
     assert all(len(values) == EXPECTED for values in samples.values())
 
     result = {"input": str(path), "samples_per_route": EXPECTED, "routes": {}}
     for route in ROUTES:
-        durations = list(samples[route].values())
+        durations = [sample[0] for sample in samples[route].values()]
         mean_ns = statistics.mean(durations)
         result["routes"][route] = {
             "mean_ns": round(mean_ns, 1),
@@ -47,9 +59,16 @@ def summarize(path):
             "p99_ns": round(percentile(durations, 99), 1),
             "serialized_calls_per_second": round(1e9 / mean_ns, 2),
         }
+        if has_allocation_metrics:
+            result["routes"][route]["allocation_metrics"] = {
+                column: round(
+                    statistics.mean(sample[1][column] for sample in samples[route].values()), 1
+                )
+                for column in ALLOCATION_COLUMNS
+            }
 
-    manual = samples["handwritten_adapter"]
-    generated = samples["generated_semaprax"]
+    manual = {iteration: sample[0] for iteration, sample in samples["handwritten_adapter"].items()}
+    generated = {iteration: sample[0] for iteration, sample in samples["generated_semaprax"].items()}
     ratio = statistics.mean(manual.values()) / statistics.mean(generated.values())
     rng = random.Random(371)
     ratios = []

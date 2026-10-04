@@ -11,6 +11,12 @@ route must return `84` on every sample. Route order rotates each iteration.
 
 `measure.rs` runs nine warmups and 90 timed requests per route, recording each
 elapsed nanosecond duration in CSV. The server accepts exactly 297 requests.
+New runs also record current-thread allocation/deallocation/reallocation calls
+and requested allocation/deallocation bytes around each route invocation. The
+counter excludes the local server thread and setup before the timed call. It
+measures allocator requests, not copied bytes, retained heap, peak residency,
+or allocations made by another thread. Older committed CSVs omit these columns;
+the summary accepts both shapes and records allocation means only when present.
 Each sample includes loopback TCP, HTTP parsing, a new closed connection and
 numeric body parsing. These costs are substantial in the direct and handwritten
 routes; the separate generated probe attributes a majority of that route's
@@ -35,8 +41,8 @@ python3 measurements/summarize.py measurements/local-samples.csv > measurements/
 
 The CSV and summary should be committed only with exact toolchain, target,
 checkout, command and pass/fail receipt. Cold/warm build times, generated
-binary size, process allocations and total copied bytes need separate
-measurements; this run does not infer them from API shape.
+binary size, process-wide allocations, retained heap and total copied bytes
+need separate measurements; this run does not infer them from API shape.
 
 The local `prepare` run on Darwin arm64 with Cargo/rustc 1.98.0 rendered a
 4,176-byte `src/generated.rs` file. That is the generated module's source

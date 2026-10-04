@@ -4,6 +4,8 @@ mod generated {
 }
 
 use semaprax::project::{with_authenticated_project, ProjectRevision};
+use std::alloc::{GlobalAlloc, Layout, System};
+use std::cell::Cell;
 use std::io::{Read, Write};
 use std::net::TcpListener;
 use std::path::Path;
@@ -13,6 +15,92 @@ use std::time::{Duration, Instant};
 
 const WARMUP: usize = 9;
 const SAMPLES: usize = 90;
+
+#[derive(Clone, Copy, Default)]
+struct AllocationMetrics {
+    allocation_calls: u64,
+    deallocation_calls: u64,
+    reallocation_calls: u64,
+    allocated_bytes: u64,
+    deallocated_bytes: u64,
+}
+
+impl AllocationMetrics {
+    fn allocation(&mut self, bytes: usize) {
+        self.allocation_calls += 1;
+        self.allocated_bytes = self.allocated_bytes.saturating_add(bytes as u64);
+    }
+
+    fn deallocation(&mut self, bytes: usize) {
+        self.deallocation_calls += 1;
+        self.deallocated_bytes = self.deallocated_bytes.saturating_add(bytes as u64);
+    }
+}
+
+thread_local! {
+    static ALLOCATION_METRICS: Cell<Option<AllocationMetrics>> = const { Cell::new(None) };
+}
+
+struct CountingAllocator;
+
+#[global_allocator]
+static ALLOCATOR: CountingAllocator = CountingAllocator;
+
+fn note_allocation(layout: Layout) {
+    let _ = ALLOCATION_METRICS.try_with(|slot| {
+        if let Some(mut metrics) = slot.get() {
+            metrics.allocation(layout.size());
+            slot.set(Some(metrics));
+        }
+    });
+}
+
+fn note_deallocation(layout: Layout) {
+    let _ = ALLOCATION_METRICS.try_with(|slot| {
+        if let Some(mut metrics) = slot.get() {
+            metrics.deallocation(layout.size());
+            slot.set(Some(metrics));
+        }
+    });
+}
+
+unsafe impl GlobalAlloc for CountingAllocator {
+    unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
+        note_allocation(layout);
+        unsafe { System.alloc(layout) }
+    }
+
+    unsafe fn alloc_zeroed(&self, layout: Layout) -> *mut u8 {
+        note_allocation(layout);
+        unsafe { System.alloc_zeroed(layout) }
+    }
+
+    unsafe fn dealloc(&self, pointer: *mut u8, layout: Layout) {
+        note_deallocation(layout);
+        unsafe { System.dealloc(pointer, layout) }
+    }
+
+    unsafe fn realloc(&self, pointer: *mut u8, layout: Layout, size: usize) -> *mut u8 {
+        let _ = ALLOCATION_METRICS.try_with(|slot| {
+            if let Some(mut metrics) = slot.get() {
+                metrics.reallocation_calls += 1;
+                metrics.deallocation(layout.size());
+                metrics.allocation(size);
+                slot.set(Some(metrics));
+            }
+        });
+        unsafe { System.realloc(pointer, layout, size) }
+    }
+}
+
+fn measure_allocations<T>(operation: impl FnOnce() -> T) -> (T, AllocationMetrics) {
+    ALLOCATION_METRICS.with(|slot| {
+        assert!(slot.replace(Some(AllocationMetrics::default())).is_none());
+    });
+    let output = operation();
+    let metrics = ALLOCATION_METRICS.with(|slot| slot.replace(None).unwrap());
+    (output, metrics)
+}
 
 #[derive(Clone, Copy)]
 enum Route {
@@ -154,17 +242,28 @@ fn main() {
         return;
     }
     let (endpoint, server) = local_server((WARMUP + SAMPLES) * 3);
-    println!("route,iteration,elapsed_ns,body_bytes");
+    println!("route,iteration,elapsed_ns,body_bytes,allocation_calls,deallocation_calls,reallocation_calls,allocated_bytes,deallocated_bytes");
     for iteration in 0..(WARMUP + SAMPLES) {
         let routes = [Route::Direct, Route::Handwritten, Route::Generated];
         for shift in 0..3 {
             let route = routes[(iteration + shift) % 3];
             let start = Instant::now();
-            let (result, _) = execute(route, &runtime, &client, &endpoint, &revision);
+            let ((result, _), allocations) =
+                measure_allocations(|| execute(route, &runtime, &client, &endpoint, &revision));
             let elapsed = start.elapsed().as_nanos();
             assert_eq!(result, 84);
             if iteration >= WARMUP {
-                println!("{},{},{},2", route.label(), iteration - WARMUP, elapsed);
+                println!(
+                    "{},{},{},2,{},{},{},{},{}",
+                    route.label(),
+                    iteration - WARMUP,
+                    elapsed,
+                    allocations.allocation_calls,
+                    allocations.deallocation_calls,
+                    allocations.reallocation_calls,
+                    allocations.allocated_bytes,
+                    allocations.deallocated_bytes,
+                );
             }
         }
     }

@@ -1,0 +1,10 @@
+{
+  "schema": "semaprax.bend2-law-benchmark.local-tool-identity.v1",
+  "tool": "semaprax",
+  "commit": "9a9db7a8117ac8d292b24ffd5671ec3333272290",
+  "executable_path_at_measurement": "/tmp/semaprax-9a9db7a81",
+  "executable_sha256": "sha256:cc9dd3ca99a74dd973cbfb904621e27b801d8ddea6065873d24c14de9dee1d89",
+  "source_fixture_sha256": "sha256:bc71b8bde8cb43cc10b49742e7e5abb3717cd28402a1ab53e7d549f540093063",
+  "route": "semaprax check --json",
+  "scope": "local pinned executable; not current-head evidence"
+}

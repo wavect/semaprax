@@ -546,3 +546,26 @@ python3 benchmarks/bend2-law-v1/law16_cold_warm_cell.py \
 This is process provisioning evidence, not a cold-cache result. Preserve the
 fresh and repeat source byte digests in the receipt; if they differ, the
 result compares different programs and must be rejected during review.
+
+On 4 October 2026, the retained executable at commit
+`9a9db7a8117ac8d292b24ffd5671ec3333272290` (SHA-256
+`cc9dd3ca99a74dd973cbfb904621e27b801d8ddea6065873d24c14de9dee1d89`)
+completed this Boolean `semaprax check --json` process-state cell. The bounded
+capsule at
+[`evidence/law16-process-state-semaprax-bool-v1/`](evidence/law16-process-state-semaprax-bool-v1/)
+contains two byte-identical inputs and 120 raw streams: 30 successful fresh
+path children had p50/p95 256.172/264.991 ms; 30 successful repeat-path
+children had p50/p95 256.873/264.982 ms. Re-authenticate the receipt without
+running SEMAPRAX with:
+
+```sh
+python3 benchmarks/bend2-law-v1/law16_process_state_capsule.py \
+  --capsule benchmarks/bend2-law-v1/evidence/law16-process-state-semaprax-bool-v1 \
+  --output /tmp/law16-process-state-review.json
+```
+
+The fresh and repeat command paths are separate processes with identical input
+bytes. macOS page, executable, solver, and tool-cache state were not isolated,
+so these numbers are not cold/warm values and are not compared as a ratio or a
+winner. This route is a SEMAPRAX compiler check, not an SMT proof, Lean proof,
+or runtime measurement.

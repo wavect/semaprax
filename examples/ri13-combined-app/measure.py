@@ -388,8 +388,15 @@ def parse_linked_copy_ledger(text):
         or not isinstance(foreign_url_bytes.get("reason"), str)
     ):
         raise ValueError("linked Url ownership evidence must retain the unavailable foreign byte count")
-    if record.get("input_json_bytes") != 25 or record.get("output_json_bytes") != 25 or record.get("generated_mirror_string_clone_copied_bytes") != 3:
-        raise ValueError("linked Serde record evidence changed its exact fixture bytes")
+    if (
+        record.get("input_json_bytes") != 25
+        or record.get("output_json_bytes") != 25
+        or record.get("generated_mirror_string_clone_copied_bytes") != 3
+        or record.get("generated_mirror_to_record_transferred_string_bytes") != 6
+        or record.get("generated_mirror_to_record_copied_string_bytes") != 0
+        or record.get("generated_mirror_to_record_pointers_preserved") is not True
+    ):
+        raise ValueError("linked Serde record evidence changed its exact fixture transfer")
     deserialization = record.get("deserialize_owned_string_copied_bytes")
     if not isinstance(deserialization, dict) or deserialization.get("status") != "unavailable" or not isinstance(deserialization.get("reason"), str):
         raise ValueError("linked Serde deserialization must retain its unavailable byte count")
@@ -524,7 +531,7 @@ def self_test():
         "--", "--ignored", "--exact",
     ]
     linked_row = (
-        "ri13-linked-copy-ledger:{\"schema\":\"semaprax.ri13.linked-copy-ledger.v1\",\"m1\":{\"regex_result_owner\":{\"status\":\"measured\",\"adapter_copy_events\":0,\"adapter_copied_bytes\":0,\"adapter_borrowed_scan_input_bytes\":28,\"borrow_matches_target\":true,\"foreign_target_copied_bytes\":{\"status\":\"unavailable\",\"reason\":\"no counter\"}},\"url_owner_view\":{\"status\":\"measured\",\"adapter_copy_events\":0,\"adapter_copied_bytes\":0,\"borrow_matches_target\":true,\"foreign_target_copied_bytes\":{\"status\":\"unavailable\",\"reason\":\"no counter\"}}},\"m2\":{\"serde_record\":{\"input_json_bytes\":25,\"output_json_bytes\":25,\"generated_mirror_string_clone_copied_bytes\":3,\"deserialize_owned_string_copied_bytes\":{\"status\":\"unavailable\",\"reason\":\"no counter\"}},\"iterator_callback\":{\"fn_invocations\":1,\"fn_mut_invocations\":1,\"scalar_argument_result_copied_bytes\":0}}}"
+        "ri13-linked-copy-ledger:{\"schema\":\"semaprax.ri13.linked-copy-ledger.v1\",\"m1\":{\"regex_result_owner\":{\"status\":\"measured\",\"adapter_copy_events\":0,\"adapter_copied_bytes\":0,\"adapter_borrowed_scan_input_bytes\":28,\"borrow_matches_target\":true,\"foreign_target_copied_bytes\":{\"status\":\"unavailable\",\"reason\":\"no counter\"}},\"url_owner_view\":{\"status\":\"measured\",\"adapter_copy_events\":0,\"adapter_copied_bytes\":0,\"borrow_matches_target\":true,\"foreign_target_copied_bytes\":{\"status\":\"unavailable\",\"reason\":\"no counter\"}}},\"m2\":{\"serde_record\":{\"input_json_bytes\":25,\"output_json_bytes\":25,\"generated_mirror_string_clone_copied_bytes\":3,\"generated_mirror_to_record_transferred_string_bytes\":6,\"generated_mirror_to_record_copied_string_bytes\":0,\"generated_mirror_to_record_pointers_preserved\":true,\"deserialize_owned_string_copied_bytes\":{\"status\":\"unavailable\",\"reason\":\"no counter\"}},\"iterator_callback\":{\"fn_invocations\":1,\"fn_mut_invocations\":1,\"scalar_argument_result_copied_bytes\":0}}}"
     )
     linked = parse_linked_copy_ledger(linked_row)
     assert linked["m2"]["serde_record"]["generated_mirror_string_clone_copied_bytes"] == 3
@@ -538,6 +545,14 @@ def self_test():
         pass
     else:
         raise AssertionError("nonzero Url adapter bytes must fail the exact zero-copy ledger")
+    tampered_linked = json.loads(linked_row.removeprefix(LINKED_COPY_PREFIX))
+    tampered_linked["m2"]["serde_record"]["generated_mirror_to_record_copied_string_bytes"] = 1
+    try:
+        parse_linked_copy_ledger(LINKED_COPY_PREFIX + json.dumps(tampered_linked))
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("nonzero generated mirror-to-record bytes must fail the exact transfer ledger")
     tampered_linked = json.loads(linked_row.removeprefix(LINKED_COPY_PREFIX))
     tampered_linked["m1"]["regex_result_owner"]["adapter_borrowed_scan_input_bytes"] = 27
     try:

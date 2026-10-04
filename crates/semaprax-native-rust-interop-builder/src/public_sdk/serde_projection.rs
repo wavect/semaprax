@@ -105,6 +105,36 @@ pub fn prepare_serde_record_projection(
     source.push_str(",::serde_json::Error>{::serde_json::from_str::<");
     source.push_str(&mirror_name);
     source.push_str(">(input).map(core::convert::Into::into)}\n");
+    let transfer = format!("{mirror_name}DeserializeTransferMetrics");
+    source.push_str("#[derive(Clone,Copy,Debug,Eq,PartialEq)]pub struct ");
+    source.push_str(&transfer);
+    source.push_str("{pub transferred_string_bytes:usize,pub copied_string_bytes:Option<usize>,pub string_pointers_preserved:bool}\n");
+    source.push_str("pub fn deserialize_");
+    source.push_str(&mirror_name.to_ascii_lowercase());
+    source.push_str("_with_transfer_metrics(input:&str)->Result<(");
+    source.push_str(&record.name);
+    source.push(',');
+    source.push_str(&transfer);
+    source.push_str("),::serde_json::Error>{let mirror=::serde_json::from_str::<");
+    source.push_str(&mirror_name);
+    source.push_str(">(input)?;");
+    let string_fields = fields
+        .iter()
+        .filter(|field| field.ty == ResolvedType::String)
+        .collect::<Vec<_>>();
+    for (index, field) in string_fields.iter().enumerate() {
+        source.push_str(&format!("let _spx_transfer_pointer_{index}=mirror.{}.as_ptr();let _spx_transfer_length_{index}=mirror.{}.len();", field.name, field.name));
+    }
+    source.push_str("let record:");
+    source.push_str(&record.name);
+    source.push_str("=mirror.into();let mut transferred_string_bytes=0usize;let mut string_pointers_preserved=true;");
+    for (index, field) in string_fields.iter().enumerate() {
+        source.push_str(&format!("transferred_string_bytes=transferred_string_bytes.saturating_add(_spx_transfer_length_{index});string_pointers_preserved&=_spx_transfer_length_{index}==0||(_spx_transfer_pointer_{index}==record.{}.as_ptr()&&_spx_transfer_length_{index}==record.{}.len());", field.name, field.name));
+    }
+    source.push_str("let copied_string_bytes=string_pointers_preserved.then_some(0);Ok((record,");
+    source.push_str(&transfer);
+    source
+        .push_str("{transferred_string_bytes,copied_string_bytes,string_pointers_preserved}))}\n");
     source.push_str("pub fn serialize_");
     source.push_str(&mirror_name.to_ascii_lowercase());
     source.push_str("(value:&");
@@ -201,6 +231,15 @@ mod tests {
             .contains("::serde_json::to_string(&mirror)"));
         assert!(projection
             .rust_source
+            .contains("DeserializeTransferMetrics"));
+        assert!(projection
+            .rust_source
+            .contains("_with_transfer_metrics(input:&str)"));
+        assert!(projection
+            .rust_source
+            .contains("copied_string_bytes:Option<usize>"));
+        assert!(projection
+            .rust_source
             .contains("id:value.id,label:value.label,enabled:value.enabled,"));
     }
 
@@ -254,7 +293,10 @@ mod tests {
 fn main() {
     let record = Projected { id: 7, label: String::from("bounded"), enabled: true };
     let json = serialize_spxmirrorri07record(&record).unwrap();
-    let recovered = deserialize_spxmirrorri07record(&json).unwrap();
+    let (recovered, transfer) = deserialize_spxmirrorri07record_with_transfer_metrics(&json).unwrap();
+    assert_eq!(transfer.transferred_string_bytes, 7);
+    assert_eq!(transfer.copied_string_bytes, Some(0));
+    assert!(transfer.string_pointers_preserved);
     assert_eq!(recovered, record);
     let mut values = Vec::<Projected>::new();
     values.push(recovered);

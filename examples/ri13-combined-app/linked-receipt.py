@@ -170,6 +170,8 @@ def validate_sources(sources):
         "ri06_url_owner::run(), Ok(41)",
         "spx_result_owner_adapter_copied_bytes(), 0",
         "adapter_copied_bytes(), 0",
+        "deserialize_spxmirrorri13event_with_transfer_metrics",
+        "generated_mirror_to_record_transferred_string_bytes",
         ".map(callback.as_fn())",
         "SpxStatefulProxy::new",
         ".map(stateful.as_fn_mut())",
@@ -281,9 +283,16 @@ def verify_darwin_evidence(document, sources, subject_path=None):
     if not isinstance(ledger, dict) or ledger.get("schema") != "semaprax.ri13.linked-copy-ledger.v1":
         raise ValueError("linked Darwin consumer ledger is absent")
     regex = ledger.get("m1", {}).get("regex_result_owner", {})
+    record = ledger.get("m2", {}).get("serde_record", {})
     callback = ledger.get("m2", {}).get("iterator_callback", {})
     if regex.get("adapter_copied_bytes") != 0 or regex.get("adapter_borrowed_scan_input_bytes") != 28:
         raise ValueError("linked Darwin Regex copy ledger changed")
+    if (
+        record.get("generated_mirror_to_record_transferred_string_bytes") != 6
+        or record.get("generated_mirror_to_record_copied_string_bytes") != 0
+        or record.get("generated_mirror_to_record_pointers_preserved") is not True
+    ):
+        raise ValueError("linked Darwin generated mirror-to-record transfer changed")
     if callback != {"fn_invocations": 1, "fn_mut_invocations": 1, "scalar_argument_result_copied_bytes": 0}:
         raise ValueError("linked Darwin callback copy ledger changed")
 
@@ -314,6 +323,7 @@ def self_test():
         ("consumer", 'admit_selected_index("regex-1.13.1-index-envelope.json", REGEX_INDEX)'),
         ("build", '\\"project_revision\\": \\"sha256:'),
         ("consumer", "m3::register"),
+        ("consumer", "deserialize_spxmirrorri13event_with_transfer_metrics"),
         ("consumer", 'join("unified-project/semaprax.toml")'),
         ("m1_source", '@id("regex.run")'),
         ("unified_source", CALLBACK_ADVANCE),
@@ -349,11 +359,32 @@ def self_test():
         raise AssertionError(f"validator accepted drifted {name}")
     evidence = json.loads(DARWIN_EVIDENCE.read_text(encoding="utf-8"))
     # The checked-in execution receipt must fail after authored route inputs
-    # change until a new run replaces it. This self-test exercises verifier
-    # structure with only its static digest refreshed in memory; it never
-    # rewrites or upgrades the Darwin execution claim.
+    # change until a new run replaces it.
+    try:
+        verify_darwin_evidence(evidence, sources)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("stale Darwin execution evidence was accepted")
+    # This self-test validates verifier structure using an in-memory fixture
+    # only. It never rewrites or upgrades the checked-in execution claim.
     evidence["static_route_receipt_sha256"] = stable_digest(document)
+    evidence["consumer"]["copy_ledger"]["m2"]["serde_record"].update({
+        "generated_mirror_to_record_transferred_string_bytes": 6,
+        "generated_mirror_to_record_copied_string_bytes": 0,
+        "generated_mirror_to_record_pointers_preserved": True,
+    })
     verify_darwin_evidence(evidence, sources)
+    forged = dict(evidence)
+    forged["consumer"] = dict(evidence["consumer"])
+    forged["consumer"]["copy_ledger"] = json.loads(json.dumps(evidence["consumer"]["copy_ledger"]))
+    forged["consumer"]["copy_ledger"]["m2"]["serde_record"]["generated_mirror_to_record_copied_string_bytes"] = 1
+    try:
+        verify_darwin_evidence(forged, sources)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("verifier accepted forged mirror-to-record copy bytes")
     forged = dict(evidence)
     forged["linked_subject"] = dict(evidence["linked_subject"])
     forged["linked_subject"]["m3_project_revision"] = "sha256:forged"

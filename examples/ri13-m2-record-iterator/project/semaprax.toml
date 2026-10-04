@@ -1,0 +1,13 @@
+schema = "semaprax.manifest.v1"
+
+[package]
+name = "ri13-m2-record-iterator"
+version = "0.1.0"
+
+[modules]
+entry = "ri13.m2_record_iterator"
+sources = ["app.spx"]
+tests = []
+
+[exports]
+web = []

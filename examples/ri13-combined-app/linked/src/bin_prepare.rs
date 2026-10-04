@@ -30,8 +30,8 @@ fn main() {
     let m1_project = examples.join("ri13-m1-regex-url/project");
     let m1_source_path = m1_project.join("src/app.spx");
     let m1_source = fs::read_to_string(&m1_source_path).expect("saved M1 Project source");
-    let m2_source_path = examples.join("ri13-m2-record-iterator/project/app.spx");
-    let m2_source = fs::read_to_string(&m2_source_path).expect("saved M2 source");
+    let m2_project = examples.join("ri13-m2-record-iterator/project");
+    let m2_source_path = m2_project.join("app.spx");
     let m3_project = examples.join("ri13-m3-local-http/project");
     let regex_index = RustApiIndex::admit_extractor_output(REGEX_INDEX).unwrap();
     let url_index = RustApiIndex::admit_extractor_output(URL_INDEX).unwrap();
@@ -104,14 +104,22 @@ fn main() {
     ] {
         fs::write(destination.join(path), bytes).unwrap();
     }
-    let m2 = prepare_native_rust_serde_iterator_callbacks(
-        &m2_source,
-        &m2_source_path,
-        "ri13.event",
-        "callback.factory",
-        "callback.advance",
-    )
-    .expect("saved M2 source selection");
+    let m2 = with_authenticated_project(&m2_project.join("semaprax.toml"), |snapshot| {
+        snapshot.check()?;
+        let source = snapshot
+            .sources()
+            .iter()
+            .find(|source| source.path() == "app.spx")
+            .expect("authenticated M2 manifest requires app.spx");
+        prepare_native_rust_serde_iterator_callbacks(
+            source.source(),
+            &m2_source_path,
+            "ri13.event",
+            "callback.factory",
+            "callback.advance",
+        )
+    })
+    .expect("authenticated M2 Project source selection");
     let m2_dir = root.join("generated/m2");
     fs::create_dir_all(&m2_dir).unwrap();
     fs::write(m2_dir.join("module.c"), &m2.callback.c_source).unwrap();

@@ -1,18 +1,27 @@
+use semaprax::project::with_authenticated_project;
 use semaprax_native_rust_interop::prepare_native_rust_serde_iterator_callbacks;
 use std::{fs, path::Path};
 
 fn main() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let manifest = root.join("project/semaprax.toml");
     let source_path = root.join("project/app.spx");
-    let source = fs::read_to_string(&source_path).expect("saved source");
-    let projection = prepare_native_rust_serde_iterator_callbacks(
-        &source,
-        &source_path,
-        "ri13.event",
-        "callback.factory",
-        "callback.advance",
-    )
-    .expect("one checked source revision with a record and iterator callback");
+    let projection = with_authenticated_project(&manifest, |snapshot| {
+        snapshot.check()?;
+        let source = snapshot
+            .sources()
+            .iter()
+            .find(|source| source.path() == "app.spx")
+            .expect("authenticated M2 manifest requires app.spx");
+        prepare_native_rust_serde_iterator_callbacks(
+            source.source(),
+            &source_path,
+            "ri13.event",
+            "callback.factory",
+            "callback.advance",
+        )
+    })
+    .expect("one authenticated M2 Project source revision with a record and iterator callback");
     let generated = root.join("generated");
     fs::create_dir_all(&generated).unwrap();
     fs::write(generated.join("module.c"), &projection.callback.c_source).unwrap();

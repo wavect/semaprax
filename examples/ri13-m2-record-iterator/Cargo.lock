@@ -1485,6 +1485,7 @@ dependencies = [
 name = "semaprax-ri13-m2-record-iterator"
 version = "0.1.0"
 dependencies = [
+ "semaprax",
  "semaprax-native-rust-interop",
  "serde",
  "serde_json",

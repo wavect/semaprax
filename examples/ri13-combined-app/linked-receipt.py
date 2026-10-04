@@ -11,7 +11,7 @@ M2_PROJECT = EXAMPLES / "ri13-m2-record-iterator/project"
 M3_PROJECT = EXAMPLES / "ri13-m3-local-http/project"
 TRACKED = [
     M1_PROJECT / "semaprax.toml", M1_PROJECT / "src/app.spx", M1_PROJECT / "src/tests.spx",
-    M2_PROJECT / "app.spx",
+    M2_PROJECT / "semaprax.toml", M2_PROJECT / "app.spx",
     M3_PROJECT / "semaprax.toml", M3_PROJECT / "src/app.spx", M3_PROJECT / "src/tests.spx",
     ROOT / "linked/Cargo.toml", ROOT / "linked/Cargo.lock", ROOT / "linked/prepare/Cargo.toml", ROOT / "linked/prepare/Cargo.lock", ROOT / "linked/build.rs", ROOT / "linked/src/bin_prepare.rs",
     ROOT / "linked/src/main.rs",

@@ -39,7 +39,16 @@ pub fn render(summary: &Value, recs: &Value, meta: &Value, ledger: &Value, label
     let cs = &summary["cell_size_check"];
     let _ = writeln!(o, "Contract `semaprax.harness-apptask-summary.v1`. Task-set digest `{}`. Trials recorded: {}. Repetitions per (task, arm, model) cell: {} to {} over {} cells: **{}** (non-pilot needs at least {}).\n",
         meta["taskset_digest"].as_str().unwrap_or("?"), summary["trials_total"], cs["min_trials_per_cell"], cs["max_trials_per_cell"], cs["cells"], cs["label"].as_str().unwrap_or("?").to_uppercase(), cs["required_for_non_pilot"]);
-    o.push_str("## Labels and identities\n\n");
+    for (m, v) in cs["by_model"].as_object().into_iter().flatten() {
+        let _ = writeln!(
+            o,
+            "- Model `{m}`: {} to {} repetitions per cell: **{}**.",
+            v["min"],
+            v["max"],
+            v["label"].as_str().unwrap_or("?").to_uppercase()
+        );
+    }
+    o.push_str("\n## Labels and identities\n\n");
     let _ = writeln!(o, "- Tokens: `{}` counts of the exact text sent (all attempts, skill prompt, retrieval pack and command view included) and of the exact answers. These are not billing units for any provider.", meta["tokenizer"].as_str().unwrap_or("?"));
     o.push_str("- Provider usage: the provider's own reported input/output tokens (Claude Code CLI JSON `usage`, Ollama `prompt_eval_count`/`eval_count`). Claude figures include the CLI's own system overhead; they are kept separate from the named-tokenizer counts and never merged.\n");
     o.push_str("- Cost: USD from the CLI's `total_cost_usd` for the larger model; the local model has no billing (`unavailable`, never zero). Cost is not estimated from tokens.\n");

@@ -295,7 +295,18 @@ pub fn cell_sizes(ts: &[T]) -> Value {
             .or_default() += 1;
     }
     let min = m.values().copied().min();
-    json!({"min_trials_per_cell": min, "max_trials_per_cell": m.values().copied().max(), "cells": m.len(),
+    let mut by_model: BTreeMap<&str, (u64, u64)> = BTreeMap::new();
+    for ((_, _, model), n) in &m {
+        let e = by_model.entry(model).or_insert((u64::MAX, 0));
+        e.0 = e.0.min(*n);
+        e.1 = e.1.max(*n);
+    }
+    let by_model: Value = by_model
+        .into_iter()
+        .map(|(k, (lo, hi))| (k.to_string(), json!({"min": lo, "max": hi, "label": if lo >= MIN_TRIALS_PER_CELL { "matched-trials" } else { "pilot" }})))
+        .collect::<Map<String, Value>>()
+        .into();
+    json!({"by_model": by_model, "min_trials_per_cell": min, "max_trials_per_cell": m.values().copied().max(), "cells": m.len(),
            "label": if min.is_some_and(|x| x >= MIN_TRIALS_PER_CELL) { "matched-trials" } else { "pilot" }, "required_for_non_pilot": MIN_TRIALS_PER_CELL})
 }
 

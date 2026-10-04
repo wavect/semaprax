@@ -95,7 +95,7 @@ fn killed_normal_writer_after_generation_or_active_stage_recovers() {
 
         let mut recovered = GenerationJobStore::open(&root).unwrap();
         assert!(matches!(
-            recovered.enqueue(request(label)),
+            recovered.enqueue(request(label.as_bytes())),
             Ok(EnqueueOutcome::Created(_))
         ));
         drop(recovered);

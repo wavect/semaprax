@@ -187,6 +187,22 @@ def render():
     return {
         "schema": SCHEMA,
         "status": "incomplete",
+        "issue_acceptance": {
+            "status": "open",
+            "remaining_measurement": "AC5: proof/verdict cold/warm evidence",
+            "unsupported_cell_policy": "retain original cells as explicit nonresults; no substitution, score, or source admission",
+            "original_manifest_cells": [
+                {
+                    **cell,
+                    "disposition": (
+                        "available_boolean_profile"
+                        if cell["numeric_domain"] == "bool exact"
+                        else "unsupported_by_pinned_parser"
+                    ),
+                }
+                for cell in read(ROOT / "manifest.json")["cells"]
+            ],
+        },
         "scope": "local pinned Boolean-negation evidence and separate guarded-U32 theorem/control routes",
         "matched_boolean": {
             "semantic_contract": process["semantic_contract"],
@@ -464,9 +480,9 @@ def render():
             "list_refactor_lawbreaking": remaining,
         },
         "closure": (
-            "no: the matched Boolean cell and supplemental U32 semantic theorem comparison do not satisfy "
-            "the original checked-u32 source admission, full cold-cache and proof-route coverage, "
-            "or matched project-sized incremental/refactor task coverage"
+            "no: AC5 proof/verdict cold/warm evidence remains missing; original checked-u32 cells "
+            "remain declared unsupported nonresults under issue #392's available-cell policy. "
+            "The combined SEMAPRAX native build metric does not establish isolated compilation time"
         ),
         "nonclaims": [
             "no cross-route timing ratio, winner, or superiority claim",

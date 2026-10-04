@@ -2,7 +2,11 @@
 
 The machine-readable [current report](evidence/law16-current-report-v1.json)
 is generated from retained, offline-authenticated capsules. Its status is
-**incomplete**. It does not claim issue closure.
+**incomplete** because AC5 proof/verdict cold/warm evidence remains missing.
+Issue acceptance and language admission are separate: the five original
+checked-`u32` cells retain their identities and unsupported dispositions,
+contribute no successful outcome or score, and are not replaced by supplemental
+profiles. The report does not claim issue closure.
 The documented `law16_replay.py --verify-retained` sequence now authenticates
 the available capsules, including all 230 recovered bounded-balance raw outputs.
 The [unified fresh capture](evidence/law16-unified-fresh-v1/replay-status.json)
@@ -11,8 +15,9 @@ The separate [caller-pinned guarded-i64 balance SMT source-proof capsule](eviden
 physically exercised the seventh non-agent route and retained its 16 raw
 streams. Offline review of both capsules succeeds. The retained agent campaigns
 were re-authenticated, not rerun. All seven non-agent routes have now been
-physically exercised, but AC1 remains partial because the optional live agent
-continuation was not rerun.
+physically exercised. Together with the documented reproduction sequence and
+the separately retained twenty-trial Claude campaign, these satisfy the
+current audit's AC1 assessment; offline review does not rerun any campaign.
 
 The [preceding failed capture](evidence/law16-unified-fresh-pin-failure-v1/replay-status.json)
 retains all output from the first three routes and the following compiler-pin
@@ -120,18 +125,21 @@ require a current-head observation. Bend verdict and SEMAPRAX Z3 use distinct
 trusted computing bases; source proof does not prove lowering or
 execution. Fresh/repeat paths do not isolate operating-system or tool caches.
 
-## Remaining blockers
+## Remaining acceptance evidence and unsupported cells
 
 The pinned SEMAPRAX parser does not admit checked `u32`; its retained
 non-admission receipt records `SPX-P003`. The later
 [Linux/Rosetta guest capsule](evidence/law16-guest-cache-thirty-v1/receipt.json)
 authenticates 30 cold/warm guest file-page-cache pairs per ordinary Bend and
 SEMAPRAX `check` route. Host and Rosetta caches remain unknown, while
-Bend verdict and SEMAPRAX Z3 cold/warm routes remain unmeasured. A full
-ten-pair costed Boolean agent campaign is retained, but a matched project-sized
-incremental cell remains open. The Lean
-list proof below covers its exact LAW15 source,
-not the original LAW16 fixture. These gaps prevent honest closure of #392.
+Bend verdict and SEMAPRAX Z3 cold/warm routes remain unmeasured. That AC5
+measurement gap keeps issue acceptance open. A full ten-pair costed Boolean
+agent campaign is retained. The original checked-`u32` project-sized
+incremental cell is unsupported, and the Lean list proof below covers its
+exact LAW15 source without admitting the original LAW16 fixture. These
+unsupported dispositions remain explicit under #392's policy; they do not
+require a new language feature to complete the benchmark and cannot count as
+successful comparisons.
 The separate [three-module calculator capsule](evidence/law16-project-incremental-cell-v1/result.json)
 executes SEMAPRAX compiler cache tests for a provider body edit and a rejected
 provider-signature edit. It is local incremental behavior, with no matched Bend

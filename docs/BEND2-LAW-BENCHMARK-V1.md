@@ -75,19 +75,32 @@ failed Bend candidate and nine fully accepted pairs. The earlier v1 profile
 stopped after the CLI exceeded its requested per-call budget; its observations
 are not pooled with v2.
 
-Each cell has a digest-bound checked-`u32` input/output corpus under
+The five checked-`u32` cells have a digest-bound input/output corpus under
 `benchmarks/bend2-law-v1/fixtures/`. It is language-neutral because the
 reviewed SEMAPRAX scalar profile does not admit `u32`; replacing it with its
-smaller `i32` profile would make the comparison unequal. Bend's pinned `U32`
-implementation/proof sources are also unavailable until its pinned executable
-and checkout are provisioned locally. These are explicit unavailable cells,
-not successful evidence.
+smaller `i32` profile would make the comparison unequal. Pinned Bend `U32`
+source and verdict observations are retained, but they have no equal
+SEMAPRAX checked-`u32` route. These are explicit unsupported matched cells,
+not successful cross-language evidence.
 
-No result is committed. Closure still requires matched executable source and
-proof fixtures for each declared `u32 checked` domain, a quiet-host
-30-repetition run with both pinned checkouts, and agent trials with ten
-independent fixed-budget trials per admitted language/model plus token/cost
-event provenance. Runtime throughput and GPU scaling remain a separate family.
+Issue acceptance requires reproducible evidence for admitted benchmark
+configurations and an explicit disposition for every original manifest cell.
+This follows #392's instruction to state unsupported cells rather than
+substitute a weaker task. Unsupported cells retain their original identities,
+numeric domains, laws and attacks; they contribute no timing result,
+successful task outcome or superiority claim. Completing the benchmark does
+not admit checked-`u32` source syntax. Supplemental profiles remain separately
+identified and do not replace original manifest cells.
+
+Available configurations must satisfy the required repetition, phase
+separation, provenance, control and agent-trial gates, including thirty timed
+repetitions per microbenchmark configuration and ten independent fixed-budget
+trials per admitted task/language/model with token/cost provenance. Retained
+local results exist, but acceptance remains open for AC5's proof/verdict
+cold/warm measurement. Guest file-page-cache observations retain their exact
+scope; host and Rosetta cache state are unobserved. SEMAPRAX's combined native
+build metric does not establish isolated compilation time. Runtime throughput
+and GPU scaling remain a separate family.
 
 `benchmarks/bend2-law-v1/agent_trial_plan.py` provides the prior static
 preregistration boundary. It authenticates the manifest/fixture bytes and a

@@ -958,7 +958,7 @@
     "status": "twenty_trials_authenticated",
     "trials": 20
   },
-  "closure": "no: the matched Boolean cell and supplemental U32 semantic theorem comparison do not satisfy the original checked-u32 source admission, full cold-cache and proof-route coverage, or matched project-sized incremental/refactor task coverage",
+  "closure": "no: AC5 proof/verdict cold/warm evidence remains missing; original checked-u32 cells remain declared unsupported nonresults under issue #392's available-cell policy. The combined SEMAPRAX native build metric does not establish isolated compilation time",
   "guest_file_cache_cold_warm": {
     "nonclaims": [
       "guest file-page-cache scope only; macOS host cache and Rosetta translation cache are unknown",
@@ -1001,6 +1001,90 @@
         }
       }
     }
+  },
+  "issue_acceptance": {
+    "original_manifest_cells": [
+      {
+        "attacks": [
+          "weakened-postcondition"
+        ],
+        "disposition": "available_boolean_profile",
+        "fixture": "fixtures/scalar-contract-bug-v1.json",
+        "id": "scalar-contract-bug-v1",
+        "laws": [
+          "postcondition",
+          "total-negation"
+        ],
+        "numeric_domain": "bool exact"
+      },
+      {
+        "attacks": [
+          "no-op-transfer"
+        ],
+        "disposition": "unsupported_by_pinned_parser",
+        "fixture": "fixtures/structured-balance-transfer-v1.json",
+        "id": "structured-balance-transfer-v1",
+        "laws": [
+          "conservation",
+          "intended-state-change",
+          "nonnegative-balances"
+        ],
+        "numeric_domain": "u32 checked"
+      },
+      {
+        "attacks": [
+          "empty-sort"
+        ],
+        "disposition": "unsupported_by_pinned_parser",
+        "fixture": "fixtures/supported-list-theorem-v1.json",
+        "id": "supported-list-theorem-v1",
+        "laws": [
+          "permutation-and-multiplicity",
+          "sortedness"
+        ],
+        "numeric_domain": "u32 checked"
+      },
+      {
+        "attacks": [
+          "law-dropped-during-refactor"
+        ],
+        "disposition": "unsupported_by_pinned_parser",
+        "fixture": "fixtures/law-preserving-refactor-v1.json",
+        "id": "law-preserving-refactor-v1",
+        "laws": [
+          "before-after-observational-equivalence"
+        ],
+        "numeric_domain": "u32 checked"
+      },
+      {
+        "attacks": [
+          "agent-law-gaming"
+        ],
+        "disposition": "unsupported_by_pinned_parser",
+        "fixture": "fixtures/law-breaking-agent-edit-v1.json",
+        "id": "law-breaking-agent-edit-v1",
+        "laws": [
+          "declared-law-inventory"
+        ],
+        "numeric_domain": "u32 checked"
+      },
+      {
+        "attacks": [
+          "stale-cache-reuse"
+        ],
+        "disposition": "unsupported_by_pinned_parser",
+        "fixture": "fixtures/project-incremental-edit-v1.json",
+        "id": "project-incremental-edit-v1",
+        "laws": [
+          "unchanged-module-reuse",
+          "changed-module-recheck"
+        ],
+        "numeric_domain": "u32 checked"
+      }
+    ],
+    "remaining_measurement": "AC5: proof/verdict cold/warm evidence",
+    "status": "open",
+    "unsupported_cell_policy": "retain original cells as explicit nonresults; no substitution, score, or source admission"
   },
   "matched_boolean": {
     "agent_pairs": {

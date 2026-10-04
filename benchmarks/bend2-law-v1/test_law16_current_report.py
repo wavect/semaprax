@@ -9,6 +9,36 @@ SPEC.loader.exec_module(REPORT)
 
 
 class CurrentReportTests(unittest.TestCase):
+    def test_acceptance_policy_preserves_every_original_u32_cell_without_promotion(self):
+        value = REPORT.render()
+        acceptance = value["issue_acceptance"]
+        self.assertEqual(acceptance["status"], "open")
+        self.assertIn("AC5", acceptance["remaining_measurement"])
+        cells = acceptance["original_manifest_cells"]
+        self.assertEqual(
+            {row["id"] for row in cells},
+            {
+                "scalar-contract-bug-v1",
+                "structured-balance-transfer-v1",
+                "supported-list-theorem-v1",
+                "law-preserving-refactor-v1",
+                "law-breaking-agent-edit-v1",
+                "project-incremental-edit-v1",
+            },
+        )
+        self.assertEqual(len(cells), 6)
+        self.assertEqual(
+            [{key: item for key, item in row.items() if key != "disposition"} for row in cells],
+            REPORT.read(ROOT / "manifest.json")["cells"],
+        )
+        for row in cells:
+            if row["id"] == "scalar-contract-bug-v1":
+                continue
+            self.assertEqual(row["numeric_domain"], "u32 checked")
+            self.assertEqual(row["disposition"], "unsupported_by_pinned_parser")
+            self.assertTrue(row["laws"])
+            self.assertTrue(row["attacks"])
+
     def test_report_preserves_ten_pairs_separate_timing_and_open_closure(self):
         value = REPORT.render()
         self.assertEqual(value["status"], "incomplete")

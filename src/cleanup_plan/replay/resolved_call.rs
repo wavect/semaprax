@@ -26,13 +26,12 @@ pub(super) fn resolved_call_params(
             return Ok(params);
         }
         if callee == &*crate::hir::function_value::INVOKE_ID {
-            let [signature @ ResolvedType::Function { parameters, .. }] = type_arguments else {
-                return Err(replay_error(
-                    function,
-                    "indirect call lacks exact callable signature",
-                ));
+            let (signature, parameters): (&ResolvedType, &[ResolvedType]) = match type_arguments {
+                [signature @ ResolvedType::Function { parameters, .. }] => (signature, parameters),
+                [signature @ ResolvedType::MutFunctionI64] => (signature, &[ResolvedType::I64]),
+                _ => return Err(replay_error(function, "indirect call lacks exact callable signature")),
             };
-            if !crate::hir::function_value::is_signature(signature) {
+            if !signature.is_mut_function() && !crate::hir::function_value::is_signature(signature) {
                 return Err(replay_error(
                     function,
                     "indirect call signature is not admitted",

@@ -25,6 +25,7 @@ mod closure;
 mod compiler;
 mod contract_status;
 mod once;
+mod mutable;
 use contract_status::{contract_label, emit_contract_status};
 mod expression;
 mod filesystem_io;
@@ -1010,38 +1011,7 @@ fn emit_variant_declaration(
     Ok(())
 }
 
-fn c_value_type(
-    program: &ResolvedProgram,
-    resource_abi: &native_resource::NativeResourceAbi,
-    ty: &ResolvedType,
-) -> Result<String, Diagnostic> {
-    if ty.is_once_function() {
-        Ok(once::c_type(ty).to_owned())
-    } else if crate::list_ops::is_list(ty) {
-        Ok("spx_list_v1".to_owned())
-    } else if matches!(ty, ResolvedType::Function { .. }) {
-        function_value::c_type(program, ty)
-    } else if let Some(iterator) = native_iter::c_type(ty) {
-        Ok(iterator.to_owned())
-    } else if is_native_owned_vec_type(program, ty) {
-        Ok("spx_vec_v1".to_owned())
-    } else if crate::cleanup::is_owned_bounded_box_type(ty) {
-        Ok("spx_box_v1".to_owned())
-    } else if matches!(ty, ResolvedType::ArrayU8(0)) {
-        // ISO C11 has no zero-sized value type. Ordinary internal calls use
-        // one byte as a non-semantic ABI carrier while all actual array
-        // storage and element access remain erased.
-        Ok("uint8_t".to_owned())
-    } else if let ResolvedType::ArrayU8(length) = ty {
-        Ok(format!("struct spx_array_u8_{length}"))
-    } else if record_declaration_id(program, ty)?.is_some() {
-        Ok(format!("struct {}", c_record_symbol(ty)))
-    } else if variant_declaration_id(program, ty)?.is_some() {
-        Ok(format!("struct {}", c_variant_symbol(ty)))
-    } else {
-        resource_abi.c_type(program, ty).map(str::to_owned)
-    }
-}
+use owned_carrier::c_value_type;
 
 fn is_aggregate_type(program: &ResolvedProgram, ty: &ResolvedType) -> Result<bool, Diagnostic> {
     Ok(matches!(ty, ResolvedType::ArrayU8(length) if *length != 0)

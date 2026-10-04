@@ -182,6 +182,9 @@ pub(super) fn invoke<O: COutput>(
 }
 
 pub(super) fn c_type(ty: &ResolvedType) -> &'static str {
+    if ty.is_mut_function() {
+        return "spx_mut_i64_v1";
+    }
     if ty == &ResolvedType::OnceFunctionI64Pair {
         "spx_once_i64_pair_v3"
     } else if ty == &ResolvedType::OnceFunctionI64 {

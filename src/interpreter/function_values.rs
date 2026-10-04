@@ -30,6 +30,9 @@ impl Evaluator<'_> {
             Value::Record(value) => Value::Record(Arc::clone(value)),
             Value::Variant(value) => Value::Variant(Arc::clone(value)),
             Value::Function(target) => Value::Function(target.clone()),
+            Value::Closure(value) if value.mutable.is_some() => {
+                self.clone_mutable_closure(value)?
+            }
             Value::Closure(value) => Value::Closure(Arc::clone(value)),
             Value::OnceClosure(_) => return Err(Flow::Guard("affine callable cannot be copied")),
             Value::Moved => Value::Moved,
@@ -55,6 +58,15 @@ impl Evaluator<'_> {
                 Ok(Value::Function(target.clone()))
             }
             ResolvedExprKind::Invoke { callable, args } => {
+                if callable.ty.is_mut_function() {
+                    return self.evaluate_mutable_invocation(
+                        expression,
+                        callable,
+                        args,
+                        environment,
+                        depth,
+                    );
+                }
                 // Capture the operand before any argument is evaluated.
                 let callable_value = self.evaluate(callable, environment, depth)?;
                 if let Value::OnceClosure(closure) = callable_value {

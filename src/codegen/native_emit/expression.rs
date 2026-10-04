@@ -727,32 +727,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             ResolvedExprKind::Closure { .. } if expr.ty.is_once_function() => {
                 super::once::construct(self, expr)
             }
-            ResolvedExprKind::Closure { captures, .. } => {
-                if !super::closure::enabled(self.program) {
-                    return Err(backend_error(
-                        "capturing closure lowering requires the closure native profile",
-                    ));
-                }
-                let carrier = self.temporary(&expr.ty)?;
-                self.line(&format!(
-                    "{carrier}.entry = {};",
-                    super::closure::thunk_symbol(&expr.id)
-                ));
-                for (slot, capture) in captures.iter().enumerate() {
-                    let value = self.emit_expr(&capture.value)?;
-                    self.require_type(&value.ty, &capture.binding.ty, "closure capture")?;
-                    let staged = self.temporary(&value.ty)?;
-                    self.line(&format!("{staged} = {};", value.code));
-                    self.line(&format!(
-                        "{carrier}.cells[{slot}] = {};",
-                        super::closure::pack(&value.ty, &staged)?
-                    ));
-                }
-                Ok(CValue {
-                    code: carrier,
-                    ty: expr.ty.clone(),
-                })
-            }
+            ResolvedExprKind::Closure { captures, .. } => super::closure::construct(self, expr, captures),
             ResolvedExprKind::FunctionReference { .. } => {
                 super::function_value::emit_reference(self, expr)
             }

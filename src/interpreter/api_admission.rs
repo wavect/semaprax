@@ -325,6 +325,7 @@ pub(super) fn resolved_data_parameter_is_admitted(
             if is_admitted_resolved_scalar(ty)
                 || crate::list_ops::is_list(ty)
                 || hir::function_value::is_signature(ty)
+                || ty.is_mut_function()
                 || matches!(ty, ResolvedType::ArrayU8(_)) =>
         {
             true
@@ -340,8 +341,7 @@ pub(super) fn resolved_data_parameter_is_admitted(
         (
             ResolvedType::OnceFunction
             | ResolvedType::OnceFunctionI64
-            | ResolvedType::OnceFunctionI64Pair
-            | ResolvedType::MutFunctionI64,
+            | ResolvedType::OnceFunctionI64Pair,
             hir::OwnershipMode::Own,
         )
         | (ResolvedType::Bytes, hir::OwnershipMode::Own)

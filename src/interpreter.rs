@@ -59,6 +59,7 @@
 //! changes no source.
 mod api_admission;
 mod closures;
+mod mutable_closure;
 mod command_state;
 pub(crate) mod environment;
 mod expression_children;
@@ -3698,11 +3699,11 @@ impl Evaluator<'_> {
                 Value::OnceClosure(_),
                 ResolvedType::OnceFunction
                 | ResolvedType::OnceFunctionI64
-                | ResolvedType::OnceFunctionI64Pair
-                | ResolvedType::MutFunctionI64,
+                | ResolvedType::OnceFunctionI64Pair,
             )
             | (Value::Bytes(_), ResolvedType::Bytes)
             | (Value::String(_), ResolvedType::String) => true,
+            (Value::Closure(value), ResolvedType::MutFunctionI64) => value.mutable.is_some(),
             (Value::Variant(carrier), expected) => &carrier.ty == expected,
             (Value::Iter(carrier), expected) => {
                 crate::iterator_ops::is_iter(expected)

@@ -1,5 +1,10 @@
 # Changelog
 
+- RI-08: stage the transactional scalar mutable carrier across HIR, interpreter,
+  native C, Wasm and the generated Rust owner. State commits only on checked
+  success; internal guard/copy tests and Rust borrow/thread-bound negatives
+  cover the carrier seams. Source and retained-HIR admission stay closed.
+
 - RI-08: reserve distinct `FnMutI64(i64) -> i64` and `mut fn` syntax with
   canonical source preservation, private AST/HIR codec tags, exhaustive leaf
   classifications and independent source/HIR refusal. The mutable runtime

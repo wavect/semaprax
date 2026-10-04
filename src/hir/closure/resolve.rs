@@ -48,9 +48,7 @@ impl Resolver<'_> {
             return self.resolve_once_closure(parent, expression, outer, path, reference);
         }
         if *mutable {
-            return Err(hir_error(
-                "transactional mutable closures await their checked carrier lowering",
-            ));
+            return self.resolve_mutable_closure(parent, expression, outer, path, reference);
         }
         if *owning {
             // SPX-AI-021 bounded owning-capture profile: admitted and fully

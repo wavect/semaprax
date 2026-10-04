@@ -428,7 +428,7 @@ impl DeclarationIndex {
                             Some((false, false, true, "owned:fn-once:bytes+i64:i64:v2"))
                         }
                         ResolvedType::MutFunctionI64 => {
-                            Some((false, false, true, "owned:fn-mut:i64+i64:i64:v1"))
+                            Some((true, false, false, "value:fn-mut:i64+i64:i64:v1"))
                         }
                         ResolvedType::OnceFunctionI64Pair => {
                             Some((false, false, true, "owned:fn-once:bytes+i64+i64:i64:v3"))

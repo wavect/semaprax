@@ -1441,6 +1441,7 @@ impl<'a> Executor<'a> {
                 | ResolvedType::F32
                 | ResolvedType::F64
                 | ResolvedType::Bool
+                | ResolvedType::MutFunctionI64
                 | ResolvedType::Function { .. },
             ) => true,
             (
@@ -1450,8 +1451,7 @@ impl<'a> Executor<'a> {
                 | ResolvedType::String
                 | ResolvedType::OnceFunction
                 | ResolvedType::OnceFunctionI64
-                | ResolvedType::OnceFunctionI64Pair
-                | ResolvedType::MutFunctionI64,
+                | ResolvedType::OnceFunctionI64Pair,
             ) => storage.storage == StorageId::ProvisionalResult && storage.projections.is_empty(),
             (CleanupResultSource::Scalar { .. }, ResolvedType::Nominal { .. })
             | (CleanupResultSource::Scalar { .. }, ResolvedType::Unit)
@@ -1461,8 +1461,7 @@ impl<'a> Executor<'a> {
                 CleanupResultSource::Scalar { .. },
                 ResolvedType::OnceFunction
                 | ResolvedType::OnceFunctionI64
-                | ResolvedType::OnceFunctionI64Pair
-                | ResolvedType::MutFunctionI64,
+                | ResolvedType::OnceFunctionI64Pair,
             )
             | (CleanupResultSource::Scalar { .. }, ResolvedType::Str)
             | (CleanupResultSource::Scalar { .. }, ResolvedType::SliceU8)
@@ -1480,6 +1479,7 @@ impl<'a> Executor<'a> {
                 | ResolvedType::Bool
                 | ResolvedType::Str
                 | ResolvedType::SliceU8
+                | ResolvedType::MutFunctionI64
                 | ResolvedType::Function { .. },
             )
             | (_, ResolvedType::TypeParameter { .. }) => false,

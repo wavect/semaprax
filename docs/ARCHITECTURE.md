@@ -99,6 +99,15 @@ and `hir/validation/callable_types.rs`. Leaf type helpers remain under their
 existing graph, Wasm, capacity and workspace owners; `properties/scalar_types.rs`
 owns the property analyzer's scalar spelling projection.
 
+The staged transactional carrier is owned by `hir/closure/mutable.rs` (fixed
+state/argument body product and independent receiver checks),
+`interpreter/mutable_closure.rs` (copied state and scoped invocation guard),
+`codegen/native_emit/mutable.rs` (success-only native publication), and
+`wasm/aggregate/function_value.rs` (guarded indirect call and state commit).
+The Rust interop builder's `public_sdk/mutable_callback` renderer retains the
+actual source-created native carrier behind an exclusive safe Rust owner.
+These internal products do not remove the source or HIR admission guards.
+
 ### Agent and generic owners
 
 The additive `agent_lifecycle/iterative` module owns checked Step transitions,

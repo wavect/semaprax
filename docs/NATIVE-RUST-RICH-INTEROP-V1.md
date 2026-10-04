@@ -868,6 +868,22 @@ formatting this reserved syntax do not establish executable mutable captures.
 The `mutable_closures` language selector checks canonical round-trip, exact
 fixed-signature refusal, inferred-literal refusal and hostile retained HIR.
 
+The staged carrier design has one copied `i64` state cell, one `i64` invocation
+argument and one `i64` result. A candidate-state body calls one pure ordinary
+`fn(i64, i64) -> i64` in state/argument order. The carrier publishes candidate
+state and result only after that checked call succeeds. Copies have independent
+state. Invocations require a mutable local receiver and cannot occur in
+contracts. Each receiver has an active-call guard. Native and interpreter
+carrier tests exercise rollback, independent copies and re-entry refusal; these
+are internal runtime tests, not admitted source execution evidence.
+
+`prepare_native_rust_mutable_callback` is staged behind the same source check.
+It cannot yet return a successful projection. Its generated safe owner is
+neither `Send` nor `Sync`, and `as_fn_mut(&mut self)` borrows that owner
+exclusively. Compile regressions reject a borrowed callback escaping its owner,
+overlapping mutable calls, and thread-safety bounds. Completion remains Partial
+until admitted source parity and a physical generated consumer pass together.
+
 ### Checked source Result callbacks
 
 `prepare_native_rust_result_callback` selects a pure named

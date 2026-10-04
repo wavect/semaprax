@@ -72,6 +72,9 @@ pub(super) fn emit_carrier_declarations(
     if hir::closure::once::uses_type(program, &ResolvedType::OnceFunctionI64Pair) {
         super::once::pair_declarations(output);
     }
+    if hir::closure::once::uses_type(program, &ResolvedType::MutFunctionI64) {
+        super::mutable::declarations(output);
+    }
     let mut signatures = std::collections::BTreeMap::new();
     for function in program
         .functions
@@ -192,6 +195,10 @@ fn write_thunk_signature(
     ty: &ResolvedType,
     names: bool,
 ) -> Result<(), Diagnostic> {
+    if ty.is_mut_function() {
+        super::mutable::signature(output, symbol);
+        return Ok(());
+    }
     if ty.is_once_function() {
         super::once::signature(output, symbol, ty);
         return Ok(());
@@ -283,6 +290,10 @@ pub(super) fn emit_thunks(
     emission: &NativeEmissionContext<'_>,
 ) -> Result<(), Diagnostic> {
     for expression in hir::closure::inventory(program) {
+        if expression.ty.is_mut_function() {
+            super::mutable::thunk(output, expression, emission)?;
+            continue;
+        }
         if expression.ty.is_once_function() {
             super::once::thunk(output, expression, emission)?;
             continue;
@@ -419,4 +430,35 @@ pub(super) fn emit_thunks(
         }
     }
     Ok(())
+}
+
+pub(super) fn construct<O: COutput>(
+    emitter: &mut super::CEmitter<'_, O>,
+    expr: &hir::ResolvedExpr,
+    captures: &[hir::ResolvedClosureCapture],
+) -> Result<super::CValue, Diagnostic> {
+    if expr.ty.is_mut_function() {
+        return super::mutable::construct(emitter, expr);
+    }
+    if !enabled(emitter.program) {
+        return Err(backend_error(
+            "capturing closure lowering requires the closure native profile",
+        ));
+    }
+    let carrier = emitter.temporary(&expr.ty)?;
+    emitter.line(&format!("{carrier}.entry = {};", thunk_symbol(&expr.id)));
+    for (slot, capture) in captures.iter().enumerate() {
+        let value = emitter.emit_expr(&capture.value)?;
+        emitter.require_type(&value.ty, &capture.binding.ty, "closure capture")?;
+        let staged = emitter.temporary(&value.ty)?;
+        emitter.line(&format!("{staged} = {};", value.code));
+        emitter.line(&format!(
+            "{carrier}.cells[{slot}] = {};",
+            pack(&value.ty, &staged)?
+        ));
+    }
+    Ok(super::CValue {
+        code: carrier,
+        ty: expr.ty.clone(),
+    })
 }

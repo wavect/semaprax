@@ -113,7 +113,11 @@ impl Resolver<'_> {
         let Some(binding) = bindings.get(name) else {
             return Ok(None);
         };
+        if binding.ty.is_mut_function() && !binding.mutable {
+            return Err(error("mutable invocation requires a mutable local receiver"));
+        }
         if !binding.ty.is_once_function()
+            && !binding.ty.is_mut_function()
             && !is_signature(&binding.ty)
             && !function.monomorphic_declaration().is_some_and(|owner| {
                 super::super::generic_collection::callback(

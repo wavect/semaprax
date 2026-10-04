@@ -11,6 +11,7 @@ pub(super) struct ClosureValue {
     pub(super) captures: Vec<(ValueId, Value)>,
     pub(super) function: ResolvedFunction,
     pub(super) result: ResolvedType,
+    pub(super) mutable: Option<super::mutable_closure::MutableState>,
 }
 
 impl Evaluator<'_> {
@@ -57,12 +58,21 @@ impl Evaluator<'_> {
             .ok_or(Flow::Guard("closure product outside checked inventory"))?
             .clone();
         let target = function.id.clone();
+        let mutable = if expression.ty.is_mut_function() {
+            let Some((_, Value::Int(state))) = values.first() else {
+                return Err(Flow::Guard("mutable capture is not i64"));
+            };
+            Some(super::mutable_closure::MutableState::new(*state))
+        } else {
+            None
+        };
         let value = ClosureValue {
             target,
             parameters: parameters.clone(),
             captures: values,
             function,
             result,
+            mutable,
         };
         Ok(if expression.ty.is_once_function() {
             Value::OnceClosure(Box::new(value))

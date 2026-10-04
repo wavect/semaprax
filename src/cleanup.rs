@@ -499,8 +499,8 @@ pub(crate) fn type_needs_resource_cleanup(
             | ResolvedType::String
             | ResolvedType::OnceFunction
             | ResolvedType::OnceFunctionI64
-            | ResolvedType::OnceFunctionI64Pair
-            | ResolvedType::MutFunctionI64 => return Ok(true),
+            | ResolvedType::OnceFunctionI64Pair => return Ok(true),
+            ResolvedType::MutFunctionI64 => {},
             ResolvedType::Function { .. } | ResolvedType::Str | ResolvedType::SliceU8 => {}
             ResolvedType::Nominal {
                 declaration,

@@ -13,6 +13,14 @@ pub(crate) fn validate_shape_scoped(
     expression: &ResolvedExpr,
     owner: Option<&DeclarationId>,
 ) -> Result<(), Diagnostic> {
+    if expression.ty.is_mut_function() {
+        if owner.is_some() {
+            return Err(hir_error(
+                "generic mutable closures are outside the closed profile",
+            ));
+        }
+        return super::mutable::validate(program, expression);
+    }
     if expression.ty.is_once_function() {
         if owner.is_some() {
             return Err(hir_error(

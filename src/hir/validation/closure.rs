@@ -134,6 +134,9 @@ impl HirValidator<'_> {
         allow_moves: bool,
     ) -> Result<(), Diagnostic> {
         if let ResolvedExprKind::Invoke { callable, .. } = &expression.kind {
+            if callable.ty.is_mut_function() {
+                super::super::closure::mutable::validate_receiver(self.program, callable, allow_moves)?;
+            }
             if callable.ty.is_once_function() {
                 if !allow_moves {
                     return Err(hir_error("affine invocation cannot consume in a contract"));

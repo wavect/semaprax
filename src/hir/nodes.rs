@@ -200,7 +200,6 @@ impl ResolvedType {
                 | Self::OnceFunction
                 | Self::OnceFunctionI64
                 | Self::OnceFunctionI64Pair
-                | Self::MutFunctionI64
         )
     }
     pub fn is_compiler_byte_option(&self) -> bool {

@@ -88,7 +88,9 @@ pub fn inventory(program: &ResolvedProgram) -> Vec<&ResolvedExpr> {
 }
 
 pub(crate) fn requires_runtime_closures(program: &ResolvedProgram) -> bool {
-    requires_closures(program) || once::requires_bytes(program)
+    requires_closures(program)
+        || once::requires_bytes(program)
+        || once::uses_type(program, &ResolvedType::MutFunctionI64)
 }
 
 pub fn requires_closures(program: &ResolvedProgram) -> bool {
@@ -137,4 +139,5 @@ mod tests;
 mod materialize;
 pub(super) use materialize::materialize;
 
+pub(crate) mod mutable;
 pub(crate) mod once;

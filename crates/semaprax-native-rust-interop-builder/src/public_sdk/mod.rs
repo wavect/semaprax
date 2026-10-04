@@ -611,6 +611,8 @@ mod borrowed_input;
 mod build;
 pub use affine_callback::{prepare_native_rust_affine_callback, NativeAffineCallbackProjection};
 mod callback;
+mod mutable_callback;
+pub use mutable_callback::{prepare_native_rust_mutable_callback, NativeMutableCallbackProjection};
 mod registered_callback;
 pub use callback::{
     prepare_native_rust_callbacks, prepare_native_rust_serde_callbacks,
@@ -710,3 +712,6 @@ pub use indexed_callback::{
     prepare_indexed_native_rust_result_callback, IndexedResultCallbackProjection,
     IndexedResultCallbackSelection,
 };
+
+#[cfg(test)]
+mod mutable_callback_tests;

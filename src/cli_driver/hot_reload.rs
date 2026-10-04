@@ -5,15 +5,16 @@
 
 use std::io::{self, BufRead, Write};
 use std::path::PathBuf;
+use std::time::Instant;
 
 use semaprax::project::{
-    HotReloadPlan, HotReloadWatcher, HotReloadWatcherUpdate, PreparedProjectExecutionOptions,
-    PreparedProjectInterpreterOptions, ProjectExecutionCancellation,
-    ProjectPreparedExecutionOutcome,
+    HotReloadAdmissionTimings, HotReloadPlan, HotReloadWatcher, HotReloadWatcherUpdate,
+    PreparedProjectExecutionOptions, PreparedProjectInterpreterOptions,
+    ProjectExecutionCancellation, ProjectPreparedExecutionOutcome,
 };
-use serde::de::{self, MapAccess, Visitor};
 use serde::Deserialize;
-use serde_json::{json, Value};
+use serde::de::{self, MapAccess, Visitor};
+use serde_json::{Value, json};
 
 const SCHEMA: &str = "semaprax.hot-reload-control.v1";
 const MAX_FRAME_BYTES: usize = 4096;
@@ -169,7 +170,9 @@ pub(super) fn run(
         }
     };
     if manifest.is_empty() || manifest.starts_with('-') {
-        eprintln!("dev requires <semaprax.toml> --jsonl|--human [--interpreter|--source-agent <explicit-source-live-migrate-operands>]");
+        eprintln!(
+            "dev requires <semaprax.toml> --jsonl|--human [--interpreter|--source-agent <explicit-source-live-migrate-operands>]"
+        );
         return Err(2);
     }
     let stdin = io::stdin();
@@ -221,7 +224,12 @@ fn run_jsonl(
         match request.op.as_str() {
             "start" => {
                 if matches!(&lane, Lane::SourceAgentUnsupported) {
-                    write_error(output, mode, request.id, "source-Agent development sessions require the authenticated source-live migration adapter")?;
+                    write_error(
+                        output,
+                        mode,
+                        request.id,
+                        "source-Agent development sessions require the authenticated source-live migration adapter",
+                    )?;
                     continue;
                 }
                 if session.watcher.is_some() {
@@ -260,14 +268,31 @@ fn run_jsonl(
                         HotReloadWatcherUpdate::Idle => "waiting_safe_point",
                         HotReloadWatcherUpdate::Stopped => "stopped",
                     };
+                    let phase_timings = admission_timings_json(value.last_admission_timings());
                     match value.session().plan() {
                         Ok(plan) => {
                             let rendered: Value =
                                 serde_json::from_str(&plan.to_json()).expect("plan JSON is closed");
                             session.retained_plan = Some(plan);
-                            write_status(output, request.id, value, event, Some(rendered), mode)?;
+                            write_status_with_timings(
+                                output,
+                                request.id,
+                                value,
+                                event,
+                                Some(rendered),
+                                mode,
+                                Some(phase_timings),
+                            )?;
                         }
-                        Err(_) => write_status(output, request.id, value, event, None, mode)?,
+                        Err(_) => write_status_with_timings(
+                            output,
+                            request.id,
+                            value,
+                            event,
+                            None,
+                            mode,
+                            Some(phase_timings),
+                        )?,
                     }
                 }
                 None => write_error(output, mode, request.id, "session is not started")?,
@@ -277,6 +302,7 @@ fn run_jsonl(
                     let retained_source_agent_plan =
                         matches!(&lane, Lane::SourceAgent { .. }).then(|| plan.clone());
                     let mut refusal = None;
+                    let activation_started = Instant::now();
                     let activation = match &lane {
                         Lane::Interpreter | Lane::SourceAgentUnsupported => value.activate(plan),
                         Lane::SourceAgent { hook, arguments } => {
@@ -296,8 +322,20 @@ fn run_jsonl(
                             }
                         }
                     };
+                    let pivot_ns =
+                        matches!(&lane, Lane::Interpreter).then(|| elapsed_ns(activation_started));
                     match activation {
-                        Ok(()) => write_status(output, request.id, value, "activated", None, mode)?,
+                        Ok(()) => write_status_with_timings(
+                            output,
+                            request.id,
+                            value,
+                            "activated",
+                            None,
+                            mode,
+                            Some(
+                                json!({"source_admission_check_ns": null, "candidate_preparation_ns": null, "activation_pivot_ns": pivot_ns}),
+                            ),
+                        )?,
                         Err(_) if value.session().terminal() => write_status(
                             output,
                             request.id,
@@ -413,6 +451,18 @@ fn write_status(
     plan: Option<Value>,
     mode: OutputMode,
 ) -> Result<(), u8> {
+    write_status_with_timings(output, id, watcher, event, plan, mode, None)
+}
+
+fn write_status_with_timings(
+    output: &mut impl Write,
+    id: u64,
+    watcher: &HotReloadWatcher,
+    event: &str,
+    plan: Option<Value>,
+    mode: OutputMode,
+    phase_timings: Option<Value>,
+) -> Result<(), u8> {
     let session = watcher.session();
     let mut value = json!({
         "schema": SCHEMA,
@@ -430,7 +480,22 @@ fn write_status(
             value["plan"] = plan;
         }
     }
+    if let Some(timings) = phase_timings {
+        value["phase_timings_ns"] = timings;
+    }
     write_json(mode, output, value)
+}
+
+fn admission_timings_json(timings: Option<HotReloadAdmissionTimings>) -> Value {
+    json!({
+        "source_admission_check_ns": timings.map(|value| value.source_admission_check_ns),
+        "candidate_preparation_ns": timings.map(|value| value.candidate_preparation_ns),
+        "activation_pivot_ns": null,
+    })
+}
+
+fn elapsed_ns(started: Instant) -> u64 {
+    u64::try_from(started.elapsed().as_nanos()).unwrap_or(u64::MAX)
 }
 
 fn write_error(
@@ -580,8 +645,23 @@ mod tests {
             .collect();
         assert_eq!(rows[1]["event"], "candidate_admitted");
         assert_eq!(rows[1]["plan"]["decision"], "eligible_code_replacement");
+        assert!(
+            rows[1]["phase_timings_ns"]["source_admission_check_ns"]
+                .as_u64()
+                .is_some_and(|value| value > 0)
+        );
+        assert!(
+            rows[1]["phase_timings_ns"]["candidate_preparation_ns"]
+                .as_u64()
+                .is_some_and(|value| value > 0)
+        );
         assert_eq!(rows[2]["event"], "activated");
         assert_eq!(rows[2]["generation"], 1);
+        assert!(
+            rows[2]["phase_timings_ns"]["activation_pivot_ns"]
+                .as_u64()
+                .is_some()
+        );
         fs::remove_dir_all(root).unwrap();
     }
 

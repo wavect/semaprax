@@ -8,13 +8,14 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::{
-    atomic::{AtomicBool, Ordering},
     Arc,
+    atomic::{AtomicBool, Ordering},
 };
+use std::time::Instant;
 
 use super::{
-    with_authenticated_project, HotReloadFailure, HotReloadPlan, HotReloadSession,
-    HotReloadSourceAgentHandoffStatus, PreparedProjectInterpreterOptions, ProjectRevision,
+    HotReloadFailure, HotReloadPlan, HotReloadSession, HotReloadSourceAgentHandoffStatus,
+    PreparedProjectInterpreterOptions, ProjectRevision, with_authenticated_project,
 };
 use crate::diagnostic::Diagnostic;
 
@@ -44,6 +45,12 @@ pub enum HotReloadWatcherUpdate {
     CandidateAdmitted,
     CandidateRejected,
     Stopped,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct HotReloadAdmissionTimings {
+    pub source_admission_check_ns: u64,
+    pub candidate_preparation_ns: u64,
 }
 
 /// A bounded external stop request for one watcher.
@@ -98,6 +105,7 @@ pub struct HotReloadWatcher {
     last_diagnostics: Vec<Diagnostic>,
     pending_candidate_revision: Option<String>,
     stop_requested: Arc<AtomicBool>,
+    last_admission_timings: Option<HotReloadAdmissionTimings>,
     #[cfg(test)]
     after_admission: Option<Box<dyn FnMut()>>,
 }
@@ -131,6 +139,7 @@ impl HotReloadWatcher {
             last_diagnostics: Vec::new(),
             pending_candidate_revision: None,
             stop_requested: Arc::new(AtomicBool::new(false)),
+            last_admission_timings: None,
             #[cfg(test)]
             after_admission: None,
         })
@@ -144,6 +153,9 @@ impl HotReloadWatcher {
     }
     pub fn last_diagnostics(&self) -> &[Diagnostic] {
         &self.last_diagnostics
+    }
+    pub fn last_admission_timings(&self) -> Option<HotReloadAdmissionTimings> {
+        self.last_admission_timings
     }
     pub fn control(&self) -> HotReloadWatchControl {
         HotReloadWatchControl {
@@ -181,6 +193,7 @@ impl HotReloadWatcher {
 
     /// Do one bounded metadata scan then at most two authenticated admissions.
     pub fn poll(&mut self) -> HotReloadWatcherUpdate {
+        self.last_admission_timings = None;
         if self.observe_stop_request() {
             return HotReloadWatcherUpdate::Stopped;
         }
@@ -340,6 +353,7 @@ impl HotReloadWatcher {
     }
 
     fn admit(&mut self, generation: u64) -> HotReloadWatcherUpdate {
+        let admission_started = Instant::now();
         let admitted = with_authenticated_project(&self.manifest_path, |snapshot| {
             Ok((
                 snapshot.authoritative_input_paths(),
@@ -403,8 +417,14 @@ impl HotReloadWatcher {
             self.last_diagnostics.clear();
             return HotReloadWatcherUpdate::Unchanged;
         }
+        let source_admission_check_ns = elapsed_ns(admission_started);
+        let preparation_started = Instant::now();
         match self.session.admit_candidate(candidate.clone()) {
             Ok(()) => {
+                self.last_admission_timings = Some(HotReloadAdmissionTimings {
+                    source_admission_check_ns,
+                    candidate_preparation_ns: elapsed_ns(preparation_started),
+                });
                 self.pending_candidate_revision = Some(candidate.project_revision().to_owned());
                 self.last_diagnostics.clear();
                 HotReloadWatcherUpdate::CandidateAdmitted
@@ -415,6 +435,10 @@ impl HotReloadWatcher {
             }
         }
     }
+}
+
+fn elapsed_ns(started: Instant) -> u64 {
+    u64::try_from(started.elapsed().as_nanos()).unwrap_or(u64::MAX)
 }
 
 fn strictly_beneath(root: &Path, path: &Path) -> bool {
@@ -475,8 +499,8 @@ mod tests {
     use super::*;
     use crate::project::HotReloadDecision;
     use std::sync::{
-        atomic::{AtomicU64, AtomicUsize, Ordering},
         Mutex, MutexGuard,
+        atomic::{AtomicU64, AtomicUsize, Ordering},
     };
     static SERIAL: AtomicU64 = AtomicU64::new(0);
     static TEST_LOCK: Mutex<()> = Mutex::new(());
@@ -608,12 +632,14 @@ mod tests {
         let plan = watcher.session().plan().unwrap();
         let invoked = Arc::new(AtomicBool::new(false));
         let observed = Arc::clone(&invoked);
-        assert!(watcher
-            .activate_source_agent(plan, move |_, _| {
-                observed.store(true, Ordering::Release);
-                Ok(())
-            })
-            .is_err());
+        assert!(
+            watcher
+                .activate_source_agent(plan, move |_, _| {
+                    observed.store(true, Ordering::Release);
+                    Ok(())
+                })
+                .is_err()
+        );
         assert!(
             !invoked.load(Ordering::Acquire),
             "an injected host cannot convert a code-only plan into Agent authority"

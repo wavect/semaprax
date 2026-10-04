@@ -42,7 +42,7 @@ pub use hot_reload::{
     HOT_RELOAD_SOURCE_AGENT_HANDOFF_SCHEMA,
 };
 pub use hot_reload_watcher::{
-    HotReloadWatchControl, HotReloadWatchEvent, HotReloadWatchState, HotReloadWatcher,
+    HotReloadAdmissionTimings, HotReloadWatchControl, HotReloadWatchEvent, HotReloadWatchState, HotReloadWatcher,
     HotReloadWatcherFailure, HotReloadWatcherUpdate,
 };
 mod image;

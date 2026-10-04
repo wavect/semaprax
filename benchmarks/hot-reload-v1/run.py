@@ -98,6 +98,18 @@ def outcome(row, expected):
         raise RuntimeError("unexpected invocation outcome: " + repr(actual))
 
 
+def phase_ms(reply_value, key, *, required):
+    timings = reply_value.get("phase_timings_ns")
+    value = timings.get(key) if isinstance(timings, dict) else None
+    if value is None:
+        if required:
+            raise RuntimeError("JSONL response omitted required phase timing: " + key)
+        return None
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+        raise RuntimeError("JSONL response returned invalid phase timing: " + key)
+    return value / 1_000_000
+
+
 def start_session(binary, root):
     process = subprocess.Popen([binary, "dev", str(root / "semaprax.toml"), "--jsonl", "--interpreter"], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     _, started = reply(process, 1, "start")
@@ -133,26 +145,30 @@ def plan_after_write(process, request_id, root, writes, expected_event, expected
         raise RuntimeError("saved source produced the wrong replacement decision")
     if expected_reason is not None and planned.get("plan", {}).get("reason") != expected_reason:
         raise RuntimeError("saved source produced the wrong replacement reason")
+    admitted = expected_event == "candidate_admitted"
+    source_admission_check_ms = phase_ms(planned, "source_admission_check_ns", required=admitted)
+    candidate_preparation_ms = phase_ms(planned, "candidate_preparation_ns", required=admitted)
     return request_id + 1, {
         "write_ms": write_ms,
         "save_to_plan_response_ms": (time.perf_counter_ns() - saved) / 1_000_000,
         "plan_control_round_trip_ms": plan_ms,
-        "source_admission_check_ms": None,
-        "candidate_preparation_ms": None,
+        "source_admission_check_ms": source_admission_check_ms,
+        "candidate_preparation_ms": candidate_preparation_ms,
         "safe_point_wait_ms": 0.0,
         "stage_limitations": [
-            "the JSONL plan reply combines source admission/check with candidate preparation",
+            "timings cover authenticated admission/check and HR-01 candidate admission; unchanged or rejected polls report null",
             "the fixture has no outstanding invocation, so safe-point wait is exactly zero",
         ],
     }
 
 
 def activate(process, request_id, phase):
-    pivot_ms, activated = reply(process, request_id, "activate")
+    round_trip_ms, activated = reply(process, request_id, "activate")
     if activated.get("event") != "activated":
         raise RuntimeError("candidate did not receive an activation acknowledgement")
-    phase["activation_control_round_trip_ms"] = pivot_ms
-    phase["save_to_ack_ms"] = phase["save_to_plan_response_ms"] + pivot_ms
+    phase["activation_control_round_trip_ms"] = round_trip_ms
+    phase["activation_pivot_ms"] = phase_ms(activated, "activation_pivot_ns", required=True)
+    phase["save_to_ack_ms"] = phase["save_to_plan_response_ms"] + round_trip_ms
     return request_id + 1
 
 
@@ -170,8 +186,9 @@ def scenario(binary, scenario_id):
             if planned.get("event") != "unchanged":
                 raise RuntimeError("unchanged source did not produce an unchanged plan")
             phases.append({"save_to_plan_response_ms": (time.perf_counter_ns() - saved) / 1_000_000,
-                           "plan_control_round_trip_ms": plan_ms, "source_admission_check_ms": None,
-                           "candidate_preparation_ms": None, "safe_point_wait_ms": 0.0,
+                           "plan_control_round_trip_ms": plan_ms,
+                           "source_admission_check_ms": phase_ms(planned, "source_admission_check_ns", required=False),
+                           "candidate_preparation_ms": phase_ms(planned, "candidate_preparation_ns", required=False), "safe_point_wait_ms": 0.0,
                            "stage_limitations": ["no candidate is built for an unchanged Project"]})
             request_id += 1
         elif scenario_id == "cold-small-a-to-b":
@@ -185,13 +202,13 @@ def scenario(binary, scenario_id):
                 request_id = invoke(process, request_id, {"kind": "returned", "value": expected})
         elif scenario_id == "multi-module-import-closure":
             request_id, phase = plan_after_write(process, request_id, root, [("c/src/core.spx", "src/core.spx"), ("c/src/tests.spx", "src/tests.spx")], "candidate_admitted", "unsupported_restart_required", "incompatible_closure")
-            phase["activation_control_round_trip_ms"] = None; phase["save_to_ack_ms"] = None
+            phase["activation_control_round_trip_ms"] = None; phase["activation_pivot_ms"] = None; phase["save_to_ack_ms"] = None
             phase["decision"] = "unsupported_restart_required"; phase["reason"] = "incompatible_closure"
             phases.append(phase)
             request_id = invoke(process, request_id, {"kind": "returned", "value": 42})
         elif scenario_id == "failed-edit-repair":
             request_id, rejected = plan_after_write(process, request_id, root, [("invalid/src/app.spx", "src/app.spx")], "candidate_rejected")
-            rejected["activation_control_round_trip_ms"] = None; rejected["save_to_ack_ms"] = None
+            rejected["activation_control_round_trip_ms"] = None; rejected["activation_pivot_ms"] = None; rejected["save_to_ack_ms"] = None
             phases.append(rejected)
             request_id = invoke(process, request_id, {"kind": "returned", "value": 42})
             request_id, repaired = plan_after_write(process, request_id, root, [("b/src/app.spx", "src/app.spx")], "candidate_admitted")

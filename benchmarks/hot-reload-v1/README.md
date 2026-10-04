@@ -35,13 +35,13 @@ hot reload.
 Each result includes every raw sample, measured and discarded warmup counts, median, p95, binary digest,
 Git commit, host facts, the acceptance-manifest digest, and all fixture digests.
 `peak_rss_bytes` is `null` until a portable per-child measurement exists.
-The v1 control protocol exposes plan and activate acknowledgements but no
-internal admission or candidate-preparation timers. Each phase therefore keeps
-the measured source-write duration, save-to-plan response, plan-control round
-trip, and activation-control round trip separate, while retaining
-`source_admission_check_ms` and `candidate_preparation_ms` as unavailable. The
-fixture has no outstanding invocation, so safe-point wait is exactly zero.
-Those limitations are carried in each live record instead of being estimated.
+The JSONL response reports nanosecond timings for authenticated source
+admission/check and HR-01 candidate preparation on the poll that admits a
+candidate. Interpreter activation separately reports the time spent in the
+actual activation call; the runner retains the full control round trip as a
+separate metric. Unchanged and rejected polls report null admission/preparation
+timings. The fixture has no outstanding invocation, so safe-point wait is
+exactly zero.
 
 Validate the committed contract without starting the compiler or timing a host:
 

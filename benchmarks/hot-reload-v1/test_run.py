@@ -44,4 +44,14 @@ class Contract(unittest.TestCase):
         no_op = [{"phases": [{"plan_control_round_trip_ms": 2.0}]}]
         self.assertEqual(RUN.scenario_summary(no_op)["values_ms"], [2.0])
 
+    def test_phase_timings_require_nonnegative_integer_nanoseconds(self):
+        response = {"phase_timings_ns": {"source_admission_check_ns": 1234567}}
+        self.assertEqual(RUN.phase_ms(response, "source_admission_check_ns", required=True), 1.234567)
+        self.assertIsNone(RUN.phase_ms({}, "candidate_preparation_ns", required=False))
+        for invalid in (-1, 1.5, True, "5"):
+            with self.subTest(invalid=invalid), self.assertRaises(RuntimeError):
+                RUN.phase_ms({"phase_timings_ns": {"candidate_preparation_ns": invalid}}, "candidate_preparation_ns", required=True)
+        with self.assertRaises(RuntimeError):
+            RUN.phase_ms({}, "source_admission_check_ns", required=True)
+
 if __name__ == "__main__": unittest.main()

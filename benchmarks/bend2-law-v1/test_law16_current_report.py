@@ -66,6 +66,11 @@ class CurrentReportTests(unittest.TestCase):
         self.assertEqual(claude["status"], "stopped_nonadmitted")
         self.assertEqual(claude["matched_pairs"], 4)
         self.assertEqual(claude["trials"], 9)
+        complete = value["claude_twenty_trial_campaign"]
+        self.assertEqual(complete["status"], "twenty_trials_authenticated")
+        self.assertEqual(complete["trials"], 20)
+        self.assertEqual(complete["accepted_trials"], 19)
+        self.assertEqual(complete["matched_pairs"], 9)
         process = value["matched_boolean"]["process_provenance"]
         self.assertEqual(process["command_count"], 240)
         self.assertEqual(process["cold_cache"]["status"], "unavailable")

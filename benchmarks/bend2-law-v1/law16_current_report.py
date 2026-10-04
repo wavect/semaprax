@@ -148,6 +148,7 @@ def render():
     project_incremental = PROJECT_INCREMENTAL.verify(ROOT / "evidence/law16-project-incremental-cell-v1")
     native_phases = NATIVE_PHASES.review(ROOT / "evidence/law16-native-phase-thirty-v1")
     claude_campaign = CLAUDE_CAMPAIGN.review(ROOT / "evidence/law16-claude-campaign-stopped-v1")
+    claude_twenty = CLAUDE_CAMPAIGN.review(ROOT / "evidence/law16-claude-campaign-twenty-v2")
     boolean_refactor = BOOLEAN_REFACTOR.verify(ROOT / "evidence/law16-boolean-refactor-cell-v1")
     claude_boolean_pilot = read(ROOT / "evidence/law16-claude-boolean-pilot-v1/capsule.json")
     if claude_boolean_pilot.get("schema") != "semaprax.bend2-law-benchmark.claude-boolean-pilot-capsule.v1" or claude_boolean_pilot.get("campaign_admission") is not False:
@@ -439,6 +440,11 @@ def render():
             **claude_campaign,
             "scope": "four admitted matched pairs, then fifth Bend trial stopped after provider-reported budget overrun; not a 10-pair campaign",
         },
+        "claude_twenty_trial_campaign": {
+            "source": "evidence/law16-claude-campaign-twenty-v2/summary.json",
+            **claude_twenty,
+            "scope": "ten matched independent Boolean trial pairs; one Bend candidate failed verdict, nineteen trial candidates/attacks admitted; no result for other task cells",
+        },
         "pins_and_trust": {
             "observation_identity": "local historical pins, retained as exact executable/tool evidence",
             "bend": "local historical commit 947db722640c86247849343657bf2f7ef01cb7f1; verdict output is retained tool evidence",
@@ -453,14 +459,14 @@ def render():
             "checked_u32": "unsupported_by_pinned_parser: SPX-P003 admits i32, u8, usize literal suffixes, not u32",
             "cold_cache": "partial: 30 guest file-page-cache cold/warm pairs per ordinary Bend and SEMAPRAX check route; host/Rosetta cache state and proof/verdict cold/warm routes remain unmeasured",
             "Lean": "supplemental LAW15 collection source theorem physically checked by Lean; no Boolean or original law16.* Lean export",
-            "cost": "partial: four matched Claude Boolean pairs have provider-reported cost and token events; fifth Bend call failed after an over-cap charge; the preregistered ten-pair campaign is incomplete",
+            "cost": "observed for a complete twenty-trial Claude Boolean campaign: $0.291235 provider-reported total with token events and one failed Bend candidate; Codex monetary charges and other task cells remain unavailable",
             "project_sized": "partial: three-module SEMAPRAX calculator core edit and signature negative control exercised; no matched Bend route, large project, or incremental timing comparison",
             "list_refactor_lawbreaking": remaining,
         },
         "closure": (
             "no: the matched Boolean cell and supplemental U32 semantic theorem comparison do not satisfy "
-            "the original checked-u32 source admission, full cold-cache and proof-route coverage, matched project-sized incremental/refactor, "
-            "or monetary cost-event acceptance requirements"
+            "the original checked-u32 source admission, full cold-cache and proof-route coverage, "
+            "or matched project-sized incremental/refactor task coverage"
         ),
         "nonclaims": [
             "no cross-route timing ratio, winner, or superiority claim",

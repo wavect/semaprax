@@ -30,6 +30,13 @@ class ClaudeBooleanCampaignTests(unittest.TestCase):
         self.assertEqual(value["accepted_trials"], 8)
         self.assertEqual(value["trials"], 9)
 
+    def test_full_campaign_retains_all_trials_and_the_failed_bend_candidate(self):
+        value = RUNNER.review(ROOT / "evidence/law16-claude-campaign-twenty-v2")
+        self.assertEqual(value["status"], "twenty_trials_authenticated")
+        self.assertEqual(value["trials"], 20)
+        self.assertEqual(value["accepted_trials"], 19)
+        self.assertEqual(value["matched_pairs"], 9)
+
     def test_schema_binds_trial_and_attack_digest(self):
         trial = RUNNER.selected_trial("bend2", 1)
         attack, _ = RUNNER.fixtures("bend2")

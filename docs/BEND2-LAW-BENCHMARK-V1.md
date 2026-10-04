@@ -66,6 +66,15 @@ artifacts are retained with digests. Each native output must match the fixed
 two-value witness. The profile has no cache isolation or formal proof route,
 and it cannot split SEMAPRAX build's internal check/codegen/compile work.
 
+The Boolean agent campaign has a separate preregistered Claude Haiku profile:
+ten matched pairs, fresh no-tool sessions, a requested per-call budget, and
+independent Bend verdict/SEMAPRAX Z3 candidate and attack replay. The v2
+profile retains failures as trial outcomes and reports provider token and
+monetary events from sanitized streams. Its completed 20-trial capsule has one
+failed Bend candidate and nine fully accepted pairs. The earlier v1 profile
+stopped after the CLI exceeded its requested per-call budget; its observations
+are not pooled with v2.
+
 Each cell has a digest-bound checked-`u32` input/output corpus under
 `benchmarks/bend2-law-v1/fixtures/`. It is language-neutral because the
 reviewed SEMAPRAX scalar profile does not admit `u32`; replacing it with its

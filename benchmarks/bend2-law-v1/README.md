@@ -107,6 +107,13 @@ python3 benchmarks/bend2-law-v1/law16_claude_boolean_campaign.py \
   --z3 /absolute/pinned-z3 --max-cost-usd 0.06
 ```
 
+The [completed v2 campaign](evidence/law16-claude-campaign-twenty-v2/summary.json)
+retains all 20 trial outcomes across ten matched pairs. Nineteen trial
+candidate/attack routes passed; ordinal 6's Bend candidate failed verdict
+because it supplied an invalid proof term. Nine pairs are fully admitted.
+Provider-reported cost totaled $0.291235, with input/output token events for
+every trial. The failure stays in the aggregate and no route winner is claimed.
+
 The retained [unified fresh capture](evidence/law16-unified-fresh-v1/replay-status.json)
 completed six non-agent routes: Boolean ordinary checking, Boolean verdict/Z3
 candidate and attack checking, peak RSS, guarded-i64 balance/sort controls,

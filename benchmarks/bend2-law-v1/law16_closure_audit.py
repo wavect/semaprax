@@ -261,8 +261,8 @@ def render() -> dict:
         {
             "id": "AC6",
             "text": ACCEPTANCE_TEXT[5],
-            "status": "partial",
-            "assessment": "Ten fixed-budget matched Boolean Codex pairs include candidate/attack outcomes and token counters but no monetary charges. A separate preregistered Claude Haiku campaign authenticated four matched candidate/attack pairs with provider token and monetary events; its fifth Bend trial stopped after the CLI charged $0.039957 above the requested $0.03 per-call budget. This is adverse cost evidence, not a completed ten-pair Claude campaign. Other task cells also lack ten-trial campaigns.",
+            "status": "met",
+            "assessment": "A preregistered Claude Haiku campaign completed ten matched independent Boolean pairs under a fixed model/tool/prompt/budget plan. All twenty provider token and monetary events are retained; nineteen candidate/attack trials passed independent replay and one Bend candidate failed verdict. The earlier $0.03 campaign's over-budget charge remains adverse evidence. Separate Codex trials retain token counters with monetary cost unavailable. Unsupported task cells are not relabelled as admitted campaigns.",
             "evidence": common + [
                 evidence("evidence/law16-boolean-negation-agent-pilot-v1/review.json"),
                 evidence("evidence/law16-boolean-negation-agent-campaign-v1/review.json"),
@@ -270,6 +270,7 @@ def render() -> dict:
                 evidence("evidence/law16-claude-cost-pilot-v1.json"),
                 evidence("evidence/law16-claude-boolean-pilot-v1/capsule.json"),
                 evidence("evidence/law16-claude-campaign-stopped-v1/summary.json"),
+                evidence("evidence/law16-claude-campaign-twenty-v2/summary.json"),
             ],
         },
         {
@@ -296,11 +297,11 @@ def render() -> dict:
         ),
         (
             "partial",
-            "Available process cells have 30 samples, p50/p95, peak RSS, and descriptive MAD; proof synthesis tokens, Boolean annotation/changed-byte counts, and route checks are separately reported. A local three-module cache invalidation control and guest file-page-cache cold/warm pairs for ordinary/check routes are retained. Local native phase samples separate Bend Clang compilation and both run phases; SEMAPRAX build internals remain combined. Proof/verdict cold/warm and monetary cost for admitted matched trials remain unavailable.",
+            "Available process cells have 30 samples, p50/p95, peak RSS, and descriptive MAD; proof synthesis tokens, Boolean annotation/changed-byte counts, and route checks are separately reported. A local three-module cache invalidation control and guest file-page-cache cold/warm pairs for ordinary/check routes are retained. Local native phase samples separate Bend Clang compilation and both run phases; SEMAPRAX build internals remain combined. Proof/verdict cold/warm remains unavailable; the completed Claude Boolean campaign adds monetary cost observations.",
         ),
         (
             "partial",
-            "Ten fixed-budget matched Codex pairs cover the Boolean task and retain candidate/attack outcomes and token counters without monetary events. Four preregistered matched Claude pairs have admitted source outcomes and monetary events, followed by an over-cap provider failure in trial five; the ten-pair Claude campaign is incomplete. Other planned tasks have no matched agent trials.",
+            "Ten fixed-budget matched Codex pairs cover the Boolean task and retain candidate/attack outcomes and token counters without monetary events. A separate frozen Claude configuration completed ten matched pairs, with twenty provider token/cost events and one failed Bend candidate retained. The earlier over-cap provider charge is retained separately. Other planned task cells are unsupported rather than admitted agent comparisons.",
         ),
         (
             "met",
@@ -385,10 +386,10 @@ def render() -> dict:
         },
         {
             "id": "agent_monetary_cost_events",
-            "classification": "partial_four_matched_claude_pairs",
-            "blocking_requirements": ["AC6", "R5"],
+            "classification": "observed_for_complete_boolean_claude_campaign",
+            "blocking_requirements": ["R5"],
             "status": unsupported["cost"],
-            "evidence": common + [evidence("evidence/law16-claude-cost-pilot-v1.json"), evidence("evidence/law16-claude-boolean-pilot-v1/capsule.json"), evidence("evidence/law16-claude-campaign-stopped-v1/summary.json")],
+            "evidence": common + [evidence("evidence/law16-claude-cost-pilot-v1.json"), evidence("evidence/law16-claude-boolean-pilot-v1/capsule.json"), evidence("evidence/law16-claude-campaign-stopped-v1/summary.json"), evidence("evidence/law16-claude-campaign-twenty-v2/summary.json")],
         },
     ]
 
@@ -433,11 +434,6 @@ def render() -> dict:
                 "id": "AC5",
                 "reason": "Thirty guest file-page-cache cold/warm pairs exist for ordinary/check routes, but proof/verdict routes and host/Rosetta cache state are unmeasured; fresh/repeat process states cannot substitute for them.",
                 "kind": "missing_measurement",
-            },
-            {
-                "id": "AC6",
-                "reason": "The admitted ten-trial Codex evidence has no monetary cost event and covers only the Boolean task; a separate Claude campaign has four matched costed pairs but stopped after a fifth-trial budget overrun.",
-                "kind": "missing_agent_telemetry_and_task_coverage",
             },
         ],
         "declared_unsupported_or_unavailable_cells": cells,

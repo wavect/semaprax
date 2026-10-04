@@ -38,7 +38,7 @@ class Law16ClosureAuditTests(unittest.TestCase):
         self.assertEqual(value["fresh_guarded_i64_source_proof"]["positive_smt_discharges"], 7)
         self.assertEqual(value["fresh_guarded_i64_source_proof"]["no_op_negative"], "proof_tool_refused_no_solver_status_claimed")
         self.assertEqual(status["AC5"], "partial")
-        self.assertEqual(status["AC6"], "partial")
+        self.assertEqual(status["AC6"], "met")
         required = {row["id"]: row["status"] for row in value["required_implementation_assessment"]}
         self.assertEqual(len(required), 7)
         self.assertEqual(required["R2"], "partial")
@@ -51,11 +51,11 @@ class Law16ClosureAuditTests(unittest.TestCase):
         self.assertIn("unsupported_by_pinned_parser", cells["checked_u32_source_syntax"]["status"])
         self.assertEqual(cells["cold_cache_isolation"]["classification"], "partially_observed_guest_file_cache")
         self.assertEqual(cells["project_sized_incremental_cell"]["classification"], "supplemental_three_module_cache_control_only")
-        self.assertEqual(cells["agent_monetary_cost_events"]["classification"], "partial_four_matched_claude_pairs")
+        self.assertEqual(cells["agent_monetary_cost_events"]["classification"], "observed_for_complete_boolean_claude_campaign")
         self.assertEqual(cells["supported_list_theorem"]["classification"], "supplemental_profile_only")
         self.assertEqual(cells["law16_list_source_theorem"]["classification"], "unavailable_for_law16_identity")
         self.assertEqual(cells["external_lean_export_kernel"]["classification"], "supplemental_route_available_but_not_law16_cell")
-        self.assertEqual(len(value["unmet_requirements"]), 3)
+        self.assertEqual(len(value["unmet_requirements"]), 2)
         valid_ids = set(status) | set(required)
         self.assertTrue(all(
             set(row["blocking_requirements"]) <= valid_ids

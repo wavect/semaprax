@@ -14,6 +14,9 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Complete and retain the preregistered 20-trial LAW16 Claude Boolean campaign:
+  19 candidate/attack trials passed, one Bend candidate failed verdict, and
+  provider-reported cost was $0.291235. The adverse result remains visible.
 - Freeze a separate LAW16 Claude campaign configuration that retains failed
   trials, requests a higher per-call budget after the first CLI overrun, and
   can resume after provider rate limiting without pooling configurations.

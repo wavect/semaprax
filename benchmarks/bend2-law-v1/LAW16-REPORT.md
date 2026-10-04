@@ -90,6 +90,14 @@ reported `error_max_budget_usd` after charging **$0.039957**, above the
 requested **$0.03** per-call limit. This is an adverse provider result; the
 campaign did not reach ten pairs. The retained streams are sanitized, with
 unredacted stream digests rather than unredacted provider transcripts.
+The [separately preregistered v2 campaign](evidence/law16-claude-campaign-twenty-v2/summary.json)
+completed **10 matched independent pairs** under a $0.06 requested per-call
+limit. Its 20 provider events report **43,518 input**, **47,053 output**,
+**6,226 cache-creation input** tokens, and **$0.291235** total cost. Nineteen
+candidate/attack trials passed independent replay, making nine fully accepted
+pairs. Ordinal 6's Bend candidate failed verdict after emitting an invalid
+proof term; that real failure remains in the result. The two Claude campaigns
+have different frozen budgets and are reported separately.
 The [Boolean annotation receipt](evidence/law16-boolean-negation-annotation-summary-v1.json)
 binds all 20 final sources in those ten pairs to their fixed seeds and reports
 explicit annotation, proof-term, and changed-byte counts. These textual counts
@@ -119,9 +127,9 @@ non-admission receipt records `SPX-P003`. The later
 [Linux/Rosetta guest capsule](evidence/law16-guest-cache-thirty-v1/receipt.json)
 authenticates 30 cold/warm guest file-page-cache pairs per ordinary Bend and
 SEMAPRAX `check` route. Host and Rosetta caches remain unknown, while
-Bend verdict and SEMAPRAX Z3 cold/warm routes remain unmeasured. Monetary
-cost events cover four admitted matched Claude pairs, but not a ten-pair
-campaign; a matched project-sized incremental cell also remains open. The Lean
+Bend verdict and SEMAPRAX Z3 cold/warm routes remain unmeasured. A full
+ten-pair costed Boolean agent campaign is retained, but a matched project-sized
+incremental cell remains open. The Lean
 list proof below covers its exact LAW15 source,
 not the original LAW16 fixture. These gaps prevent honest closure of #392.
 The separate [three-module calculator capsule](evidence/law16-project-incremental-cell-v1/result.json)

@@ -939,7 +939,26 @@
     "status": "stopped_nonadmitted",
     "trials": 9
   },
-  "closure": "no: the matched Boolean cell and supplemental U32 semantic theorem comparison do not satisfy the original checked-u32 source admission, full cold-cache and proof-route coverage, matched project-sized incremental/refactor, or monetary cost-event acceptance requirements",
+  "claude_twenty_trial_campaign": {
+    "accepted_trials": 19,
+    "matched_pairs": 9,
+    "nonclaims": [
+      "sanitized provider stream is retained; unredacted raw is represented by a local digest only",
+      "different toolchains and trust bases prohibit a cross-route winner claim"
+    ],
+    "provider_cost_usd": "0.291235000000000004",
+    "provider_tokens": {
+      "cache_creation_input_tokens": 6226,
+      "cache_read_input_tokens": 0,
+      "input_tokens": 43518,
+      "output_tokens": 47053
+    },
+    "scope": "ten matched independent Boolean trial pairs; one Bend candidate failed verdict, nineteen trial candidates/attacks admitted; no result for other task cells",
+    "source": "evidence/law16-claude-campaign-twenty-v2/summary.json",
+    "status": "twenty_trials_authenticated",
+    "trials": 20
+  },
+  "closure": "no: the matched Boolean cell and supplemental U32 semantic theorem comparison do not satisfy the original checked-u32 source admission, full cold-cache and proof-route coverage, or matched project-sized incremental/refactor task coverage",
   "guest_file_cache_cold_warm": {
     "nonclaims": [
       "guest file-page-cache scope only; macOS host cache and Rosetta translation cache are unknown",
@@ -2313,7 +2332,7 @@
     "Lean": "supplemental LAW15 collection source theorem physically checked by Lean; no Boolean or original law16.* Lean export",
     "checked_u32": "unsupported_by_pinned_parser: SPX-P003 admits i32, u8, usize literal suffixes, not u32",
     "cold_cache": "partial: 30 guest file-page-cache cold/warm pairs per ordinary Bend and SEMAPRAX check route; host/Rosetta cache state and proof/verdict cold/warm routes remain unmeasured",
-    "cost": "partial: four matched Claude Boolean pairs have provider-reported cost and token events; fifth Bend call failed after an over-cap charge; the preregistered ten-pair campaign is incomplete",
+    "cost": "observed for a complete twenty-trial Claude Boolean campaign: $0.291235 provider-reported total with token events and one failed Bend candidate; Codex monetary charges and other task cells remain unavailable",
     "list_refactor_lawbreaking": {
       "admission_blocker": {
         "receipt": "evidence/law16-checked-u32-nonadmission-v1/review.json",

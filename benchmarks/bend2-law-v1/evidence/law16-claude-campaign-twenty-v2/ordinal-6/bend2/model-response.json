@@ -1,0 +1,12 @@
+{
+  "final_source": "import Base\n\ndef negate(value: Bool) -> Bool:\n  Bool.not(value)\n\nlaw negate_matches_boolean_not:\n  for value: Bool\n  {negate(value) == Bool.not(value) : Bool}\n\ndef negate_matches_boolean_not(value):\n  {}\n",
+  "language": "bend2",
+  "proof_explanation": "The proof is reflexivity. By implementing negate(value) as Bool.not(value), both sides of the equality negate(value) == Bool.not(value) are definitionally identical, making the proof trivial. The empty proof term {} represents this reflexive equality.",
+  "schema": "semaprax.bend2-law-benchmark.boolean-edit-response.v1",
+  "seeded_attack": {
+    "decision": "reject",
+    "reason": "The implementation fails to implement Boolean negation. The negate function returns its input value unchanged instead of applying Bool.not, which violates the law requiring negate(value) == Bool.not(value) for all Bool values.",
+    "source_sha256": "sha256:5ee075e4f37c305e1aa73ed7c81d7fa59815e58c5f4aeda4ac658e79c1fe96fa"
+  },
+  "trial_id": "boolean-negation-pair-v1:bend2:6"
+}

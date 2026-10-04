@@ -1,0 +1,16 @@
+module app;
+
+// Mutant control: the checked postcondition retains total Boolean negation,
+// but the implementation always returns false. The runtime route must refuse.
+@id("app.negate")
+fn negate(value: bool) -> bool
+    ensures result == !value
+{
+    false
+}
+
+@id("app.main")
+fn main() -> i64
+{
+    if negate(false) { 0 } else { 1 }
+}

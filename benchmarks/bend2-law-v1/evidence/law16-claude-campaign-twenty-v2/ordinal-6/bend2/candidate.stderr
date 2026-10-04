@@ -1,0 +1,10 @@
+SOME PROOFS FAIL
+Error:
+- expected : a term
+- observed : '}'
+Location:
+10 | def negate_matches_boolean_not(value):
+11>|   {}
+   |    ^
+12 | 
+bend 2.0.35 is available: run bend update

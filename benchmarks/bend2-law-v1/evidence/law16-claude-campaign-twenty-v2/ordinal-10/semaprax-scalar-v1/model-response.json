@@ -1,0 +1,12 @@
+{
+  "final_source": "module app;\n\n@id(\"app.negate\")\nfn negate(value: bool) -> bool\n    ensures result == !value\n{\n    !value\n}\n\n@id(\"app.main\")\nfn main() -> i64\n{\n    if negate(false) { 0 } else { 1 }\n}\n",
+  "language": "semaprax-scalar-v1",
+  "proof_explanation": "The repaired negate function now returns !value, implementing total Boolean negation over the complete boolean domain. This satisfies the postcondition ensures result == !value: for negate(true) it returns !true = false, and for negate(false) it returns !false = true. The implementation is deterministic and covers all possible boolean inputs, establishing the Boolean negation law.",
+  "schema": "semaprax.bend2-law-benchmark.boolean-edit-response.v1",
+  "seeded_attack": {
+    "decision": "reject",
+    "reason": "The seeded attack violates the Boolean negation law. A compliant implementation must return the logical negation of the input value (result == !value) for all boolean inputs. Any implementation that fails to satisfy this postcondition breaches the total Boolean negation requirement.",
+    "source_sha256": "sha256:9f6aab36ed9d03ede8e3cb1f79407e77f8fe5395434a6b8579acc59e7270ba2b"
+  },
+  "trial_id": "boolean-negation-pair-v1:semaprax-scalar-v1:10"
+}

@@ -14,7 +14,7 @@ use std::time::Duration;
 
 use super::*;
 use crate::assurance_manifest::{
-    generate, obligation_id, AssuranceManifestOptions, ExternalRecords, Obligation, ObligationKind,
+    AssuranceManifestOptions, ExternalRecords, Obligation, ObligationKind, generate, obligation_id,
 };
 use crate::ast::Function;
 
@@ -80,6 +80,85 @@ fn short_limits() -> RunLimits {
         timeout: Duration::from_secs(5),
         max_output_bytes: 65_536,
     }
+}
+
+#[cfg(unix)]
+fn fake_solver(label: &str, script: &str) -> (std::path::PathBuf, Provisioning) {
+    use std::os::unix::fs::PermissionsExt;
+
+    let path = std::env::temp_dir().join(format!(
+        "semaprax-smt-public-version-{label}-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    ));
+    std::fs::write(&path, format!("#!/bin/sh\n{script}\n")).unwrap();
+    std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o700)).unwrap();
+    (
+        path.clone(),
+        Provisioning {
+            binary: path,
+            identity: "z3",
+        },
+    )
+}
+
+#[cfg(unix)]
+#[test]
+fn public_solver_version_refuses_empty_nonzero_malformed_and_missing_fixtures() {
+    for (label, script, expected) in [
+        (
+            "success",
+            "printf 'Z3 version fixture\\n'",
+            Some("Z3 version fixture"),
+        ),
+        ("empty", "exit 0", None),
+        ("nonzero", "printf bad; exit 1", None),
+        ("malformed", "printf '\\377'", None),
+    ] {
+        let (path, provisioning) = fake_solver(label, script);
+        assert_eq!(solver_version(&provisioning).as_deref(), expected);
+        std::fs::remove_file(path).unwrap();
+    }
+    assert_eq!(
+        solver_version(&Provisioning {
+            binary: std::path::PathBuf::from("/missing/semaprax-public-version"),
+            identity: "z3",
+        }),
+        None
+    );
+}
+
+#[cfg(unix)]
+#[test]
+fn proof_version_failure_is_inconclusive_and_timeout_skips_the_probe() {
+    let (path, provisioning) = fake_solver(
+        "broken-proof-version",
+        "if [ \"$1\" = --version ]; then exec sleep 30; fi\ncat >/dev/null\nprintf unsat",
+    );
+    let f =
+        function("module app.t; @id(\"app.t.f\") fn f(a: i64) -> i64 ensures result == a { a }");
+    let start = std::time::Instant::now();
+    let outcome = discharge_postcondition(&f, 0, Some(&provisioning), &short_limits());
+    assert!(
+        matches!(outcome, DischargeOutcome::Inconclusive { reason } if reason.contains("version probe unavailable"))
+    );
+    assert!(start.elapsed() < Duration::from_secs(2));
+    std::fs::remove_file(path).unwrap();
+
+    let (path, provisioning) = fake_solver(
+        "timeout-skips-version",
+        "if [ \"$1\" = --version ]; then exec sleep 30; fi\ncat >/dev/null\nprintf timeout",
+    );
+    let start = std::time::Instant::now();
+    let outcome = discharge_postcondition(&f, 0, Some(&provisioning), &short_limits());
+    assert!(
+        matches!(outcome, DischargeOutcome::Inconclusive { reason } if reason.contains("bounded timeout"))
+    );
+    assert!(start.elapsed() < Duration::from_millis(500));
+    std::fs::remove_file(path).unwrap();
 }
 
 #[cfg(unix)]
@@ -157,7 +236,9 @@ fn a_derived_arithmetic_value_never_gets_an_unconditional_range_axiom() {
     let encoding = translate_function(&f).expect("supported");
     let script = render_postcondition_script(&encoding, 0, 2000);
     assert!(!script.contains("(and (>= semaprax_smt_binding_1_0"));
-    assert!(script.contains("(assert (= semaprax_smt_binding_1_0 (+ semaprax_smt_binding_0_0 1)))"));
+    assert!(
+        script.contains("(assert (= semaprax_smt_binding_1_0 (+ semaprax_smt_binding_0_0 1)))")
+    );
     assert!(script.contains("(>= (+ semaprax_smt_binding_0_0 1)"));
 }
 
@@ -202,14 +283,16 @@ fn variable_multiplication_cannot_claim_qf_lia() {
 #[test]
 fn checked_reference_witness_distinguishes_overflow_and_empty_domain() {
     let f = function(
-        "module app.t;\n@id(\"app.t.f\")\nfn f(a: i64) -> i64\n    requires a + 1 > a\n    ensures result == a\n{ a }\n"
+        "module app.t;\n@id(\"app.t.f\")\nfn f(a: i64) -> i64\n    requires a + 1 > a\n    ensures result == a\n{ a }\n",
     );
     let witness = bounded_domain_witness(&f, 8).expect("zero is a witness");
     validate_domain_witness(&f, &witness).expect("checked replay");
     let overflow = Model::from([("a".to_owned(), ModelValue::Int(i64::MAX as i128))]);
-    assert!(validate_domain_witness(&f, &overflow)
-        .unwrap_err()
-        .contains("trapped"));
+    assert!(
+        validate_domain_witness(&f, &overflow)
+            .unwrap_err()
+            .contains("trapped")
+    );
     let contradictory = function(
         "module app.t;\n@id(\"app.t.f\")\nfn f(a: i64) -> i64\n    requires a > 0\n    requires a < 0\n    ensures result == a\n{ a }\n",
     );
@@ -229,11 +312,7 @@ fn scalar_model_corpus_matches_checked_reference_execution() {
         let expected = if a == 0 {
             "valid"
         } else if let Some(next) = a.checked_add(1) {
-            if next > 0 {
-                "valid"
-            } else {
-                "requires_false"
-            }
+            if next > 0 { "valid" } else { "requires_false" }
         } else {
             "trapped"
         };
@@ -374,12 +453,10 @@ fn merging_an_smt_method_into_an_already_derived_obligation_fails_closed_today()
     };
     let method = to_method_record(&outcome, Duration::from_secs(2)).expect("a record");
     let external = ExternalRecords {
-        obligations: vec![Obligation::new(
-            ObligationKind::Postcondition,
-            "app.t.check",
-            "ensure:0",
-        )
-        .with_method(method)],
+        obligations: vec![
+            Obligation::new(ObligationKind::Postcondition, "app.t.check", "ensure:0")
+                .with_method(method),
+        ],
         assumptions: Vec::new(),
     };
     let options = AssuranceManifestOptions::default().with_external_records(external);
@@ -392,9 +469,11 @@ fn merging_an_smt_method_into_an_already_derived_obligation_fails_closed_today()
          this documents rather than silently works around",
     );
     assert_eq!(diagnostics[0].code, "SPX-Z101");
-    assert!(diagnostics[0]
-        .message
-        .contains("collided with an automatically derived obligation"));
+    assert!(
+        diagnostics[0]
+            .message
+            .contains("collided with an automatically derived obligation")
+    );
 }
 
 // ---------------------------------------------------------------------

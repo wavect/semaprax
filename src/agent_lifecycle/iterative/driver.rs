@@ -50,6 +50,23 @@ pub(crate) struct EffectContext<'a> {
     pub(crate) authorization: &'a AuthorizedRequest,
 }
 
+/// Exact byte and call accounting held by a typed effect dispatcher. This is
+/// descriptive only: obtaining it cannot replay or authorize an effect.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct EffectAccounting {
+    pub max_calls: usize,
+    pub max_argument_bytes: usize,
+    pub max_result_bytes: usize,
+    pub max_total_bytes: usize,
+    pub dispatched_calls: u32,
+    pub argument_bytes: usize,
+    pub result_bytes: usize,
+    pub replayed_calls: u32,
+    pub replayed_argument_bytes: usize,
+    pub replayed_result_bytes: usize,
+    pub failure: Option<&'static str>,
+}
+
 /// The one point where an iterative executor may elect to spend the freshly
 /// minted authorization on a more constrained target boundary.  The kernel
 /// owns every value here: a driver can neither substitute a model proposal nor
@@ -116,6 +133,11 @@ pub(crate) trait IterativeDriver {
         _observation: Option<&[u8]>,
     ) -> Result<(), Vec<Diagnostic>> {
         Ok(())
+    }
+    /// Typed dispatchers expose their already charged accounting for a
+    /// retained terminal receipt. Ordinary read drivers have no such ledger.
+    fn effect_accounting(&self) -> Option<EffectAccounting> {
+        None
     }
     fn read(
         &mut self,

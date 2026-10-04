@@ -60,8 +60,13 @@ the host has no test capability or no settled observation, `partial` when it
 has a bounded live observation, and `partial` with feedback-only coverage on a
 terminal replay. The effect entry reports current-invocation model/effect
 dispatches separately from the terminal journal's cumulative model/effect
-counts. It describes settled runtime evidence; rendering it never dispatches a
-test or effect and grants no test, effect, source, or publication authority.
+counts. Its terminal sidecar also carries the typed dispatcher's effective
+call, per-call argument/result, and aggregate charged-byte limits, plus exact
+cumulative, current-invocation, and replayed historical charges. A refusal or
+failure is explicit; older terminal sidecars report this byte coverage as
+`absent`. It never estimates charges from request digests or claims provider
+billing. Rendering it never dispatches a test or effect and grants no test,
+effect, source, or publication authority.
 
 ## Stale selector refusal
 

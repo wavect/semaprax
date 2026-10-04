@@ -643,6 +643,7 @@ fn execute_run<R: OpenCodeRunner>(
                 checkpoint: recovered,
                 model_dispatches: 0,
                 effect_dispatches: 0,
+                effect_accounting: None,
             });
         }
     }
@@ -806,6 +807,7 @@ fn execute_migrate<R: OpenCodeRunner>(
             checkpoint,
             model_dispatches: 0,
             effect_dispatches: 0,
+            effect_accounting: None,
         });
     }
     let (mut handler, grammar, capability) = prepared_provider.expect("nonterminal prepared");

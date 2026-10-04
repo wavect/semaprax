@@ -712,7 +712,7 @@ fn repair_v2_settled_wire_terminal_resume_is_zero_dispatch_and_nonpublishing() {
     assert_eq!(first["effect_dispatches"], 2);
     assert_eq!(
         first["runtime_effect_accounting"]["schema"],
-        "semaprax.source-live-cli.repair-effect-accounting.v1"
+        "semaprax.source-live-cli.repair-effect-accounting.v2"
     );
     assert_eq!(
         first["runtime_effect_accounting"]["total_effect_dispatches"],
@@ -730,6 +730,20 @@ fn repair_v2_settled_wire_terminal_resume_is_zero_dispatch_and_nonpublishing() {
         first["runtime_effect_accounting"]["replayed_without_dispatch"],
         false
     );
+    let charges = &first["runtime_effect_accounting"]["effect_budget"];
+    assert_eq!(charges["status"], "complete");
+    assert_eq!(charges["effective_limits"]["dispatched_calls"], 2);
+    assert_eq!(charges["effective_limits"]["argument_bytes_per_call"], 4096);
+    assert_eq!(charges["effective_limits"]["result_bytes_per_call"], 4096);
+    assert_eq!(charges["effective_limits"]["total_charged_bytes"], 8192);
+    assert_eq!(
+        charges["cumulative_terminal_journal"]["dispatched_calls"],
+        2
+    );
+    assert_eq!(charges["this_invocation"]["dispatched_calls"], 2);
+    assert_eq!(charges["historical_replay"]["dispatched_calls"], 0);
+    assert_eq!(charges["terminal_disposition"], "settled");
+    assert_eq!(charges["uncertain"], false);
     assert_eq!(first["candidate_test_execution"]["status"], "not_run");
     assert_eq!(
         first["receipt_policy"]["coverage"]["candidate_test_execution"]["status"],
@@ -845,6 +859,11 @@ fn repair_v2_settled_wire_terminal_resume_is_zero_dispatch_and_nonpublishing() {
     assert_eq!(
         resumed["runtime_effect_accounting"]["replayed_without_dispatch"],
         true
+    );
+    assert_eq!(
+        resumed["runtime_effect_accounting"]["effect_budget"],
+        first["runtime_effect_accounting"]["effect_budget"],
+        "the journal-bound terminal sidecar preserves exact limits and charges"
     );
     assert_eq!(
         resumed["receipt_policy"]["coverage"]["runtime_effects"]["this_invocation"]

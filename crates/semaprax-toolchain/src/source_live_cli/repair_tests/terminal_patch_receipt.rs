@@ -57,6 +57,11 @@ fn repair_v2_terminal_resume_reuses_exact_retained_patch_receipt_without_dispatc
         0
     );
     assert_eq!(
+        retained["runtime_effect_accounting"]["effect_budget"],
+        first["runtime_effect_accounting"]["effect_budget"],
+        "terminal receipt reuses the checkpoint-authenticated charge ledger"
+    );
+    assert_eq!(
         retained["receipt_policy"]["coverage"]["runtime_effects"]["replayed_without_dispatch"],
         true
     );
@@ -189,13 +194,10 @@ fn repair_v2_terminal_resume_refuses_receipt_sidecar_mutation_against_commitment
     let commitment_document = checkpoint.join("terminal-patch-receipt-commitment.json");
     let mut retained: Value =
         serde_json::from_slice(&fs::read(&patch_receipt_document).unwrap()).unwrap();
-    let receipt = retained["receipt"].as_str().unwrap();
-    let altered = receipt.replacen("\"result\":\"passed\"", "\"result\":\"failed\"", 1);
-    assert_ne!(
-        altered, receipt,
-        "fixture receipt has a passed check to alter"
-    );
-    retained["receipt"] = json!(altered);
+    let limit = &mut retained["runtime_effect_accounting"]["effect_budget"]["effective_limits"]
+        ["total_charged_bytes"];
+    assert_eq!(*limit, json!(8192));
+    *limit = json!(8193);
     fs::write(
         &patch_receipt_document,
         serde_json::to_vec(&retained).unwrap(),

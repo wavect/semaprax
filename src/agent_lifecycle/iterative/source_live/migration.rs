@@ -834,6 +834,7 @@ impl<'a> PreparedSourceLiveMigration<'a> {
                     checkpoint: checkpoint.clone(),
                     model_dispatches: 0,
                     effect_dispatches: 0,
+                    effect_accounting: None,
                 });
             }
             if checkpoint.is_uncertain() {
@@ -1061,12 +1062,14 @@ impl<'a> PreparedSourceLiveMigration<'a> {
             Some(&seed),
             false,
         ) {
-            Ok(run) => session.complete(Some(run), None, Vec::new()),
-            Err(driver::DriverFailure::Diagnostics(errors)) => session.complete(None, None, errors),
+            Ok(run) => session.complete(Some(run), None, Vec::new(), None),
+            Err(driver::DriverFailure::Diagnostics(errors)) => {
+                session.complete(None, None, errors, None)
+            }
             Err(driver::DriverFailure::Persistence {
                 terminal,
                 diagnostics,
-            }) => session.complete(Some(*terminal), None, diagnostics),
+            }) => session.complete(Some(*terminal), None, diagnostics, None),
         }
     }
 }

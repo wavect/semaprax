@@ -771,6 +771,7 @@ impl SourceExecutionSession<'_> {
         run: Option<IterativeRun>,
         selected: Option<SourceTerminalStatus>,
         mut diagnostics: Vec<Diagnostic>,
+        effect_accounting: Option<crate::agent_lifecycle::iterative::driver::EffectAccounting>,
     ) -> Result<SourceLiveOutcome, SourceLiveFailure> {
         let candidate = self
             .selected
@@ -901,7 +902,7 @@ impl SourceExecutionSession<'_> {
             self.selected = None;
             if let Err(errors) = self.guard() {
                 diagnostics.extend(errors);
-                return self.complete(run, Some(status), diagnostics);
+                return self.complete(run, Some(status), diagnostics, effect_accounting);
             }
             self.selected = Some(status);
         }
@@ -935,6 +936,7 @@ impl SourceExecutionSession<'_> {
             checkpoint,
             model_dispatches: self.model_dispatches,
             effect_dispatches: self.effect_dispatches,
+            effect_accounting,
         })
     }
 }

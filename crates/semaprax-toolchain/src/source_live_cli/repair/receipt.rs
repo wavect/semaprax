@@ -1,14 +1,15 @@
 use super::*;
 
-const EFFECT_ACCOUNTING_SCHEMA: &str = "semaprax.source-live-cli.repair-effect-accounting.v1";
+const EFFECT_ACCOUNTING_SCHEMA: &str = "semaprax.source-live-cli.repair-effect-accounting.v2";
 const PATCH_RECEIPT_POLICY_SCHEMA: &str = "semaprax.patch-receipt-policy.v1";
 
 /// Projects terminal execution facts the source-journal validator has already
 /// bound to this invocation. The journal remains the accounting owner.
-fn effect_accounting(
+pub(super) fn effect_accounting(
     checkpoint: &semaprax::live_invocation::source_journal::RecoveredSourceCheckpoint,
     model_dispatches: u32,
     effect_dispatches: u32,
+    live: Option<&semaprax::agent_lifecycle::iterative::driver::EffectAccounting>,
 ) -> Result<Value, CliError> {
     let terminal = checkpoint.terminal_snapshot().ok_or(CliError::refused(
         "repair checkpoint has no terminal snapshot",
@@ -50,6 +51,90 @@ fn effect_accounting(
             "repair dispatch counters exceed validated terminal accounting",
         ));
     }
+    let accounting = match live {
+        Some(live) => {
+            let dispatched = u64::from(live.dispatched_calls);
+            let replayed = u64::from(live.replayed_calls);
+            let invocation_calls = dispatched.checked_sub(replayed).ok_or(CliError::refused(
+                "repair effect accounting replay calls exceed total calls",
+            ))?;
+            let invocation_arguments = live
+                .argument_bytes
+                .checked_sub(live.replayed_argument_bytes)
+                .ok_or(CliError::refused(
+                    "repair effect accounting replay arguments exceed total arguments",
+                ))?;
+            let invocation_results = live
+                .result_bytes
+                .checked_sub(live.replayed_result_bytes)
+                .ok_or(CliError::refused(
+                    "repair effect accounting replay results exceed total results",
+                ))?;
+            let total_bytes =
+                live.argument_bytes
+                    .checked_add(live.result_bytes)
+                    .ok_or(CliError::refused(
+                        "repair effect accounting total byte count overflowed",
+                    ))?;
+            let invocation_total =
+                invocation_arguments
+                    .checked_add(invocation_results)
+                    .ok_or(CliError::refused(
+                        "repair invocation effect byte count overflowed",
+                    ))?;
+            let replayed_total = live
+                .replayed_arguments
+                .checked_add(live.replayed_results)
+                .ok_or(CliError::refused(
+                    "repair replay effect byte count overflowed",
+                ))?;
+            if dispatched != effects
+                || invocation_calls != u64::from(effect_dispatches)
+                || total_bytes > live.max_total_bytes
+                || live.replayed_arguments > live.argument_bytes
+                || live.replayed_results > live.result_bytes
+            {
+                return Err(CliError::refused(
+                    "repair effect accounting does not match the validated terminal journal",
+                ));
+            }
+            json!({
+                "status": "complete",
+                "effective_limits": {
+                    "dispatched_calls": live.max_calls,
+                    "argument_bytes_per_call": live.max_argument_bytes,
+                    "result_bytes_per_call": live.max_result_bytes,
+                    "total_charged_bytes": live.max_total_bytes,
+                },
+                "cumulative_terminal_journal": {
+                    "dispatched_calls": dispatched,
+                    "charged_argument_bytes": live.argument_bytes,
+                    "charged_result_bytes": live.result_bytes,
+                    "charged_total_bytes": total_bytes,
+                },
+                "this_invocation": {
+                    "dispatched_calls": invocation_calls,
+                    "charged_argument_bytes": invocation_arguments,
+                    "charged_result_bytes": invocation_results,
+                    "charged_total_bytes": invocation_total,
+                },
+                "historical_replay": {
+                    "dispatched_calls": replayed,
+                    "charged_argument_bytes": live.replayed_arguments,
+                    "charged_result_bytes": live.replayed_results,
+                    "charged_total_bytes": replayed_total,
+                },
+                "terminal_disposition": if live.failure.is_some() { "failure" } else { "settled" },
+                "failure_reason": live.failure,
+                "uncertain": false,
+            })
+        }
+        None => json!({
+            "status": "absent",
+            "reason": "terminal_checkpoint_predates_exact_effect_byte_accounting",
+            "uncertain": false,
+        }),
+    };
     Ok(json!({
         "schema": EFFECT_ACCOUNTING_SCHEMA,
         "status": "validated_terminal_journal_projection",
@@ -62,6 +147,7 @@ fn effect_accounting(
         "this_invocation_model_dispatches": model_dispatches,
         "this_invocation_effect_dispatches": effect_dispatches,
         "replayed_without_dispatch": model_dispatches == 0 && effect_dispatches == 0,
+        "effect_budget": accounting,
         "nonclaims": [
             "journal_accounting_is_not_provider_delivery_or_cost_proof",
             "effect_counts_do_not_describe_external_side_effect_completion",
@@ -113,8 +199,8 @@ fn runtime_receipt_policy(
         "coverage": {
             "candidate_test_execution": candidate_test_execution,
             "runtime_effects": {
-                "status": "partial",
-                "coverage": "validated_dispatch_accounting_not_effect_completion",
+                "status": accounting["effect_budget"]["status"].clone(),
+                "coverage": "validated_dispatch_and_charged_byte_accounting_not_effect_completion",
                 "this_invocation": {
                     "model_dispatches": accounting["this_invocation_model_dispatches"].clone(),
                     "effect_dispatches": accounting["this_invocation_effect_dispatches"].clone(),
@@ -124,6 +210,7 @@ fn runtime_receipt_policy(
                     "effect_dispatches": accounting["total_effect_dispatches"].clone(),
                 },
                 "replayed_without_dispatch": accounting["replayed_without_dispatch"].clone(),
+                "budget_and_charges": accounting["effect_budget"].clone(),
             },
         },
         "execution": false,
@@ -205,8 +292,15 @@ pub(super) fn receipt(
             "chain": checkpoint.chain(),
             "generation": checkpoint.generation(),
         });
-        let runtime_effect_accounting =
-            effect_accounting(checkpoint, model_dispatches, effect_dispatches)?;
+        let runtime_effect_accounting = terminal_patch_receipt
+            .and_then(TerminalPatchReceipt::runtime_effect_accounting)
+            .cloned()
+            .unwrap_or(effect_accounting(
+                checkpoint,
+                model_dispatches,
+                effect_dispatches,
+                None,
+            )?);
         report["runtime_effect_accounting"] = runtime_effect_accounting.clone();
         report["receipt_policy"] = runtime_receipt_policy(
             &runtime_effect_accounting,

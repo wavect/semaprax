@@ -253,7 +253,14 @@ therefore retains the cumulative effect count while its current-invocation
 count is zero and `replayed_without_dispatch` is true. The projection is
 accepted only after normal journal binding and execution-fold replay; malformed
 or counter-inconsistent terminal evidence refuses before rendering. It does
-not prove provider delivery, external-effect completion, or monetary cost.
+not prove provider delivery, external-effect completion, or monetary cost. The
+versioned terminal patch-receipt sidecar also binds the typed dispatcher's
+effective call limit, per-call argument/result limits, aggregate charged-byte
+limit, and exact charged argument/result/total byte counters. It separates the
+terminal cumulative values from the producing invocation and historical replay,
+and records a failure or `uncertain` state explicitly. Older authenticated
+sidecars have `effect_budget.status: "absent"`; recovery never derives bytes
+from request digests, count limits, or provider billing data.
 The hash chain supplies integrity and causal shape, not freshness or external
 authentication; a storage controller can replay an older same-binding journal,
 so consumers must not treat this receipt as proof that it is the newest state.

@@ -82,18 +82,20 @@ const CONFIG_SCHEMA_V1: &str = "semaprax.source-live-cli.repair-config.v1";
 const CONFIG_SCHEMA_V2: &str = "semaprax.source-live-cli.repair-config.v2";
 const MAX_ONE_PROVIDER_CALL_MS: i64 = 30_000;
 const TERMINAL_PATCH_RECEIPT_SCHEMA: &str =
-    "semaprax.source-live-cli.repair-terminal-patch-receipt.v1";
+    "semaprax.source-live-cli.repair-terminal-patch-receipt.v2";
 
 struct TerminalPatchReceipt {
     document: String,
     receipt: String,
     receipt_digest: String,
+    runtime_effect_accounting: Option<Value>,
 }
 
 impl TerminalPatchReceipt {
     fn derive(
         preview: &semaprax::agent_runtime_v2::OfflineRepairPreview,
         checkpoint: &semaprax::live_invocation::source_journal::RecoveredSourceCheckpoint,
+        runtime_effect_accounting: Value,
     ) -> Result<Self, CliError> {
         let candidate = preview.candidate();
         let candidate_digest = candidate.candidate_digest();
@@ -115,6 +117,7 @@ impl TerminalPatchReceipt {
             "candidate_digest": candidate_digest,
             "receipt_digest": receipt_digest,
             "receipt": receipt,
+            "runtime_effect_accounting": runtime_effect_accounting,
         }))
         .map(|document| format!("{document}\n"))
         .map_err(|_| CliError::refused("repair terminal patch receipt cannot be rendered"))?;
@@ -122,6 +125,7 @@ impl TerminalPatchReceipt {
             document,
             receipt,
             receipt_digest: receipt_digest.to_owned(),
+            runtime_effect_accounting: Some(runtime_effect_accounting),
         })
     }
 
@@ -136,15 +140,27 @@ impl TerminalPatchReceipt {
             .as_object()
             .ok_or(CliError::refused("terminal patch receipt is malformed"))?;
         let keys = object.keys().map(String::as_str).collect::<Vec<_>>();
-        if keys.as_slice()
-            != [
-                "candidate_digest",
-                "journal_binding",
-                "receipt",
-                "receipt_digest",
-                "schema",
-            ]
-            || value["schema"] != TERMINAL_PATCH_RECEIPT_SCHEMA
+        let v1 = "semaprax.source-live-cli.repair-terminal-patch-receipt.v1";
+        let is_v1 = value["schema"] == v1
+            && keys.as_slice()
+                == [
+                    "candidate_digest",
+                    "journal_binding",
+                    "receipt",
+                    "receipt_digest",
+                    "schema",
+                ];
+        let is_v2 = value["schema"] == TERMINAL_PATCH_RECEIPT_SCHEMA
+            && keys.as_slice()
+                == [
+                    "candidate_digest",
+                    "journal_binding",
+                    "receipt",
+                    "receipt_digest",
+                    "runtime_effect_accounting",
+                    "schema",
+                ];
+        if (!is_v1 && !is_v2)
             || value["journal_binding"]["invocation"] != checkpoint.invocation()
             || value["journal_binding"]["chain"] != checkpoint.chain()
             || value["journal_binding"]["generation"] != checkpoint.generation()
@@ -176,12 +192,17 @@ impl TerminalPatchReceipt {
             document,
             receipt,
             receipt_digest: receipt_digest.to_owned(),
+            runtime_effect_accounting: is_v2.then(|| value["runtime_effect_accounting"].clone()),
         })
     }
 
     fn value(&self) -> Result<Value, CliError> {
         serde_json::from_str(&self.receipt)
             .map_err(|_| CliError::refused("terminal patch receipt is malformed"))
+    }
+
+    fn runtime_effect_accounting(&self) -> Option<&Value> {
+        self.runtime_effect_accounting.as_ref()
     }
 }
 
@@ -1275,6 +1296,12 @@ pub(super) fn execute_with_runner_and_candidate_test<
     verify_checked_source_snapshot(&source_disk_path, source_before)?;
 
     let preview = handler.latest_preview();
+    let runtime_effect_accounting = receipt::effect_accounting(
+        &complete.run().checkpoint,
+        model_dispatches,
+        effect_dispatches,
+        complete.run().effect_accounting.as_ref(),
+    )?;
     let terminal_patch_receipt = matches!(
         &config.provider,
         RepairProvider::OpenCode | RepairProvider::Claude
@@ -1284,7 +1311,13 @@ pub(super) fn execute_with_runner_and_candidate_test<
             .ok_or(CliError::refused(
                 "repair terminal candidate preview is unavailable",
             ))
-            .and_then(|preview| TerminalPatchReceipt::derive(preview, &complete.run().checkpoint))
+            .and_then(|preview| {
+                TerminalPatchReceipt::derive(
+                    preview,
+                    &complete.run().checkpoint,
+                    runtime_effect_accounting.clone(),
+                )
+            })
     })
     .transpose()?;
     if let Some(terminal_patch_receipt) = &terminal_patch_receipt {

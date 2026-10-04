@@ -218,6 +218,25 @@ per-artifact and 8 MiB export bound, and rejects absolute paths, `.`/`..`, and
 any symbolic link component. A v1 export with bare digest strings is refused:
 a claimed digest without its retained raw file is not evidence.
 
+## Boolean final-source pair review
+
+`boolean_pair_acceptance.py` reviews one preregistered Boolean ordinal after a
+trial operator retains its final source and verification files. Its
+`semaprax.bend2-law-benchmark.boolean-final-artifacts.v1` input binds the exact
+plan digest, both lane trial IDs, each final source, and a raw verification
+file by relative path, byte count, and SHA-256. The evaluator re-hashes those
+bounded regular files below a supplied artifact root and rejects links or
+source bytes that differ from the committed Boolean success fixtures.
+
+The Bend side requires a retained verdict stream containing `ALL PROOFS CHECK`.
+The SEMAPRAX side requires only its exact runtime witness (`0`), then labels
+its formal proof phase unavailable because this scalar route has no admitted
+Boolean proof command. Cost is likewise unavailable unless a separately
+retained provider billing record is introduced. The result is named
+`source_pair_authenticated`, never `accepted` or a successful law repair: it
+does not execute a command, interpret an exit code, establish agent authorship,
+or turn the runtime witness into a proof.
+
 The local pinned Bend Boolean smoke route was executed on 4 October 2026 with
 Bun 1.2.5 and `BEND_NO_TELEMETRY=1`. Its receipt is
 `/tmp/bend-two-value-boolean.json`: the checked-out source was

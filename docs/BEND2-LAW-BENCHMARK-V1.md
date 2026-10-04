@@ -64,6 +64,15 @@ transcript, telemetry, phase, and acceptance artifact as a bounded regular
 file below a selected artifact root and re-hashes it; digest-only v1 exports
 are rejected.
 
+`boolean_pair_acceptance.py` adds a narrower read-only final-artifact review
+for one preregistered Boolean ordinal. It authenticates each retained source
+and verification file under a no-link artifact root, requires exact pinned
+success source bytes for Bend and SEMAPRAX, and distinguishes Bend's raw
+verdict marker from SEMAPRAX's runtime witness. The latter leaves the
+SEMAPRAX formal proof phase unavailable; provider cost is also unavailable.
+Its `source_pair_authenticated` result cannot claim a successful law repair,
+agent authorship, command execution, or a matched comparative result.
+
 ## Pinned Boolean smoke route
 
 `benchmarks/bend2-law-v1/bend_boolean_driver.py` is a narrow provisioning

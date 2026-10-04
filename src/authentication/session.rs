@@ -190,6 +190,8 @@ pub trait SessionStore {
 pub struct InMemorySessionStore {
     capacity: usize,
     records: BTreeMap<SessionId, SessionRecord>,
+    /// Host-supplied time through which expired records were reclaimed.
+    purged_through: u64,
 }
 
 impl InMemorySessionStore {
@@ -200,6 +202,7 @@ impl InMemorySessionStore {
         Ok(Self {
             capacity,
             records: BTreeMap::new(),
+            purged_through: 0,
         })
     }
 
@@ -210,6 +213,20 @@ impl InMemorySessionStore {
     pub fn is_empty(&self) -> bool {
         self.records.is_empty()
     }
+
+    /// Remove records expired at or before `now`, including rotated and
+    /// revoked records. The host must supply a nondecreasing trusted tick.
+    /// Refusing clock regression also prevents an expired bearer from being
+    /// recreated with the same random id and original issue time.
+    pub fn purge_expired(&mut self, now: u64) -> Result<usize, AuthError> {
+        if now < self.purged_through {
+            return Err(AuthError::InvalidInput);
+        }
+        let before = self.records.len();
+        self.records.retain(|_, record| now < record.expires_at);
+        self.purged_through = now;
+        Ok(before - self.records.len())
+    }
 }
 
 impl SessionStore for InMemorySessionStore {
@@ -218,6 +235,9 @@ impl SessionStore for InMemorySessionStore {
     }
 
     fn issue_if_absent(&mut self, record: SessionRecord) -> Result<(), AuthError> {
+        if record.issued_at < self.purged_through {
+            return Err(AuthError::InvalidInput);
+        }
         if self.records.contains_key(&record.id) {
             return Err(AuthError::Conflict);
         }
@@ -234,6 +254,9 @@ impl SessionStore for InMemorySessionStore {
         generation: u64,
         replacement: SessionRecord,
     ) -> Result<(), AuthError> {
+        if replacement.issued_at < self.purged_through {
+            return Err(AuthError::InvalidInput);
+        }
         if replacement.id == *id || self.records.contains_key(&replacement.id) {
             return Err(AuthError::Conflict);
         }
@@ -776,6 +799,102 @@ mod tests {
 
     fn entropy() -> Entropy {
         Entropy(vec![[2; SESSION_ID_BYTES], [1; SESSION_ID_BYTES]])
+    }
+
+    #[test]
+    fn expiry_maintenance_reuses_one_capped_store_without_reviving_bearers() {
+        let service = service();
+        let mut store = InMemorySessionStore::new(2).unwrap();
+        let mut entropy = Entropy(
+            (1..=10)
+                .rev()
+                .map(|byte| [byte; SESSION_ID_BYTES])
+                .collect(),
+        );
+        let first = service
+            .issue(&mut store, &mut entropy, "alice", 10, 1)
+            .unwrap();
+        let second = service
+            .issue(&mut store, &mut entropy, "bob", 10, 1)
+            .unwrap();
+        assert!(matches!(
+            service.issue(&mut store, &mut entropy, "full", 10, 1),
+            Err(AuthError::Capacity)
+        ));
+        assert_eq!(
+            service.verify(&store, first.bearer(), 11),
+            Err(AuthError::Expired)
+        );
+        assert_eq!(store.purge_expired(10), Ok(0));
+        assert_eq!(store.len(), 2);
+        assert_eq!(store.purge_expired(11), Ok(2));
+        for tick in 11..16 {
+            let current = service
+                .issue(&mut store, &mut entropy, "carol", tick, 1)
+                .unwrap();
+            assert!(service.verify(&store, current.bearer(), tick).is_ok());
+            assert_eq!(store.purge_expired(tick + 1), Ok(1));
+            assert_eq!(
+                service.verify(&store, current.bearer(), tick + 1),
+                Err(AuthError::Expired)
+            );
+        }
+        assert_eq!(
+            service.verify(&store, second.bearer(), 16),
+            Err(AuthError::Expired)
+        );
+        assert_eq!(store.purge_expired(15), Err(AuthError::InvalidInput));
+        assert!(matches!(
+            service.issue(&mut store, &mut entropy, "regressed", 10, 1),
+            Err(AuthError::InvalidInput)
+        ));
+    }
+
+    #[test]
+    fn expiry_maintenance_preserves_live_and_unexpired_retired_records() {
+        let service = service();
+        let mut store = InMemorySessionStore::new(4).unwrap();
+        let mut entropy = Entropy((1..=5).rev().map(|byte| [byte; SESSION_ID_BYTES]).collect());
+        let expiring = service
+            .issue(&mut store, &mut entropy, "short", 10, 2)
+            .unwrap();
+        let live = service
+            .issue(&mut store, &mut entropy, "live", 10, 30)
+            .unwrap();
+        let rotated = service
+            .issue(&mut store, &mut entropy, "rotated", 10, 3)
+            .unwrap();
+        let successor = service
+            .rotate(&mut store, &mut entropy, rotated.bearer(), 11, 5)
+            .unwrap();
+        assert_eq!(store.purge_expired(11), Ok(0));
+        assert_eq!(store.purge_expired(12), Ok(1));
+        assert_eq!(
+            service.verify(&store, expiring.bearer(), 12),
+            Err(AuthError::Expired)
+        );
+        assert!(service.verify(&store, live.bearer(), 12).is_ok());
+        assert_eq!(
+            service.verify(&store, rotated.bearer(), 12),
+            Err(AuthError::Revoked)
+        );
+        assert_eq!(store.purge_expired(13), Ok(1));
+        assert_eq!(
+            service.verify(&store, rotated.bearer(), 13),
+            Err(AuthError::Expired)
+        );
+        service.revoke(&mut store, successor.bearer(), 13).unwrap();
+        assert_eq!(
+            service.verify(&store, successor.bearer(), 13),
+            Err(AuthError::Revoked)
+        );
+        assert_eq!(store.purge_expired(16), Ok(1));
+        assert_eq!(
+            service.verify(&store, successor.bearer(), 16),
+            Err(AuthError::Expired)
+        );
+        assert!(service.verify(&store, live.bearer(), 16).is_ok());
+        assert_eq!(store.len(), 1);
     }
 
     #[test]

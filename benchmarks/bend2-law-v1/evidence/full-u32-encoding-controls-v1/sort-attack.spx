@@ -1,0 +1,39 @@
+module app;
+
+@id("law16.domain")
+fn domain(input: List<i64>) -> bool
+{
+    match list_uncons(input) { ListStep::Nil {} => true, ListStep::Cons { head, tail } => head >= 0 && head <= 4294967295 && domain(tail), }
+}
+
+@id("law16.insert")
+fn insert(value: i64, input: List<i64>) -> List<i64>
+{
+    match list_uncons(input) { ListStep::Nil {} => list_cons(value, list_nil()), ListStep::Cons { head, tail } => if value <= head { list_cons(value, list_cons(head, tail)) } else { list_cons(head, insert(value, tail)) }, }
+}
+
+@id("law16.sort")
+fn sort(input: List<i64>) -> List<i64>
+{
+    match list_uncons(input) { ListStep::Nil {} => list_nil(), ListStep::Cons { head, tail } => list_nil(), }
+}
+
+@id("law16.checked_sort")
+fn checked_sort(input: List<i64>) -> List<i64>
+    requires domain(input)
+{
+    sort(input)
+}
+
+@id("law16.equal")
+fn equal(left: List<i64>, right: List<i64>) -> bool
+{
+    match list_uncons(left) { ListStep::Nil {} => match list_uncons(right) { ListStep::Nil {} => true, ListStep::Cons { head, tail } => false, }, ListStep::Cons { head, tail } => match list_uncons(right) { ListStep::Nil {} => false, ListStep::Cons { head: other, tail: rest } => head == other && equal(tail, rest), }, }
+}
+
+@id("app.main")
+fn main() -> i64
+    ensures result == 0
+{
+    if equal(checked_sort(list_cons(3, list_cons(1, list_cons(3, list_cons(2, list_nil()))))), list_cons(1, list_cons(2, list_cons(3, list_cons(3, list_nil()))))) && equal(checked_sort(list_nil()), list_nil()) && equal(checked_sort(list_cons(4294967295, list_cons(0, list_cons(2147483648, list_cons(4294967295, list_nil()))))), list_cons(0, list_cons(2147483648, list_cons(4294967295, list_cons(4294967295, list_nil()))))) && equal(checked_sort(list_cons(1, list_cons(2, list_nil()))), list_cons(1, list_cons(2, list_nil()))) && equal(checked_sort(list_cons(4294967295, list_nil())), list_cons(4294967295, list_nil())) { 0 } else { 1 }
+}

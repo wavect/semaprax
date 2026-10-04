@@ -1,0 +1,9 @@
+SOME PROOFS FAIL
+Error:
+- expected : []
+- observed : [1, 2, 3, 3]
+Location: case_0
+27 | def case_0():
+28>|   {==}
+   |   ^^^^
+29 | 

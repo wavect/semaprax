@@ -64,7 +64,7 @@ requires the same observed result; the agent edit retains its declared law; and
 the incremental cell records rechecking `core` while reusing only `api`.
 The corresponding mutants are rejected as weakened postconditions, no-op
 transfer, empty sort, dropped refactor law, removed agent law, and stale cache
-reuse. These are fixture checks, not tool execution evidence. All five
+reuse. These are fixture checks, not tool execution evidence. The [project incremental admission review](evidence/law16-project-incremental-admission-v1.json) additionally binds the exact stale-cache negative control, the checked-`u32` parser receipt, and the limits of the retained `project-proof-check` source-obligation route. All five
 checked-`u32` cells remain unavailable until both languages have matched
 executable source and proof routes; this validation never substitutes `i32`.
 

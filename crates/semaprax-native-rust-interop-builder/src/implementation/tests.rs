@@ -262,7 +262,8 @@ fn observed_type_bytes(ty: &ResolvedType) -> usize {
         | ResolvedType::SliceU8
         | ResolvedType::Function { .. }
         | ResolvedType::OnceFunction
-        | ResolvedType::OnceFunctionI64 => 0,
+        | ResolvedType::OnceFunctionI64
+        | ResolvedType::OnceFunctionI64Pair => 0,
         ResolvedType::TypeParameter { owner, .. } => owner.as_str().len(),
         ResolvedType::Nominal {
             declaration,

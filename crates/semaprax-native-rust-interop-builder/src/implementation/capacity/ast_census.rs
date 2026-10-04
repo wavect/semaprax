@@ -429,7 +429,8 @@ fn ast_resource_leaf_count(
             Frame::Enter(
                 crate::ast::Type::Bytes
                 | crate::ast::Type::OnceFunction
-                | crate::ast::Type::OnceFunctionI64,
+                | crate::ast::Type::OnceFunctionI64
+                | crate::ast::Type::OnceFunctionI64Pair,
                 _,
             ) => {
                 // Bytes is one compiler-owned cleanup leaf even though this

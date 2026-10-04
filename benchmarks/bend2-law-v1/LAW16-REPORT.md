@@ -33,3 +33,10 @@ non-admission receipt records `SPX-P003`. There is no retained cold-cache
 isolation, Lean export/kernel route, monetary cost event, current-head run, or
 matched project-sized/list/refactor/incremental cell. These blockers prevent
 honest closure of #392.
+
+The remaining required list-theorem, law-preserving-refactor, and law-breaking
+edit fixtures have dedicated controls but are also blocked before a matched
+route by checked-`u32` non-admission. Their machine-readable result is
+[`evidence/law16-remaining-u32-cells-admission-v1.json`](evidence/law16-remaining-u32-cells-admission-v1.json).
+The list source-proof route, refactor-equivalence route, and law-inventory
+preservation route remain unobserved; none is inferred from the Boolean cell.

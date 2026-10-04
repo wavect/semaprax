@@ -15,6 +15,7 @@ pub mod cache;
 pub mod cli;
 pub mod external;
 pub mod identity;
+pub mod index_adoption;
 pub mod item;
 pub mod native;
 pub mod plan;

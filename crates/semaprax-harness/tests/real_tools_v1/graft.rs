@@ -15,25 +15,28 @@ pub const GRAPHIFY_ID: &str = "com.graphify-labs/graphify-context";
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Tool {
     Graft,
+    /// The newer qualified Graft install (`HARNESS_GRAFT_NEW`); same provider id and adapter.
+    GraftNew,
     Graphify,
 }
 
 impl Tool {
     pub fn id(self) -> &'static str {
         match self {
-            Tool::Graft => GRAFT_ID,
+            Tool::Graft | Tool::GraftNew => GRAFT_ID,
             Tool::Graphify => GRAPHIFY_ID,
         }
     }
     pub fn dir(self) -> &'static str {
         match self {
-            Tool::Graft => "graft",
+            Tool::Graft | Tool::GraftNew => "graft",
             Tool::Graphify => "graphify",
         }
     }
     pub fn upstream_var(self) -> &'static str {
         match self {
             Tool::Graft => "HARNESS_GRAFT",
+            Tool::GraftNew => "HARNESS_GRAFT_NEW",
             Tool::Graphify => "HARNESS_GRAPHIFY",
         }
     }
@@ -210,10 +213,12 @@ impl Rig {
                 let p = e.path();
                 if p.is_dir() {
                     walk(&p, out);
-                } else if p
-                    .components()
-                    .any(|c| matches!(c.as_os_str().to_str(), Some("idx" | "graphify-index")))
-                {
+                } else if p.components().any(|c| {
+                    matches!(
+                        c.as_os_str().to_str(),
+                        Some("gen" | "idx" | "graphify-index")
+                    )
+                }) {
                     // Only the index itself: adapter scratch dirs are rewritten on every start.
                     if let Ok(m) = e.metadata().and_then(|m| m.modified()) {
                         out.push(m);
@@ -648,6 +653,73 @@ fn graft_offline_inner() {
 #[ignore = "provisioned: needs SEMAPRAX_COMPILER HARNESS_GRAFT HARNESS_NODE, macOS sandbox-exec"]
 fn graft_network_denied_cold_and_warm() {
     run_offline("graft::graft_offline_inner");
+}
+
+// ---- newer qualified Graft (HN-08): the same scenarios through the host ----------------
+
+#[test]
+#[ignore = "provisioned: needs SEMAPRAX_COMPILER HARNESS_GRAFT_NEW HARNESS_NODE"]
+fn graft_new_facts_and_spans() {
+    scenario_facts_and_spans(Tool::GraftNew);
+}
+
+#[test]
+#[ignore = "provisioned: needs SEMAPRAX_COMPILER HARNESS_GRAFT_NEW HARNESS_NODE"]
+fn graft_new_rename_stale_index_and_warm_reuse() {
+    scenario_rename_stale_warm(Tool::GraftNew);
+}
+
+#[test]
+#[ignore = "provisioned: needs SEMAPRAX_COMPILER HARNESS_GRAFT_NEW HARNESS_NODE"]
+fn graft_new_worktree_switch() {
+    scenario_worktree_switch(Tool::GraftNew);
+}
+
+#[test]
+#[ignore = "provisioned: needs SEMAPRAX_COMPILER HARNESS_GRAFT_NEW HARNESS_NODE"]
+fn graft_new_planted_secrets_not_inherited() {
+    scenario_planted_secrets(Tool::GraftNew);
+}
+
+#[test]
+#[ignore = "provisioned: needs SEMAPRAX_COMPILER HARNESS_GRAFT_NEW HARNESS_NODE"]
+fn graft_new_reference_labels_and_no_absence_claim() {
+    scenario_references_labels(Tool::GraftNew);
+}
+
+#[test]
+#[ignore = "provisioned: needs SEMAPRAX_COMPILER HARNESS_GRAFT_NEW HARNESS_NODE"]
+fn graft_new_offline_inner() {
+    scenario_offline_inner(Tool::GraftNew);
+}
+
+#[test]
+#[ignore = "provisioned: needs SEMAPRAX_COMPILER HARNESS_GRAFT_NEW HARNESS_NODE, macOS sandbox-exec"]
+fn graft_new_network_denied_cold_and_warm() {
+    run_offline("graft::graft_new_offline_inner");
+}
+
+/// The newer install is adopted by exact version from the descriptor data alone, and the
+/// report names the version the adapter qualified (no compiler edit selects it).
+#[test]
+#[ignore = "provisioned: needs SEMAPRAX_COMPILER HARNESS_GRAFT_NEW HARNESS_NODE"]
+fn graft_new_adopted_by_declared_version() {
+    let rig = Rig::new(Tool::GraftNew, "adoptver");
+    let up = required_tool("HARNESS_GRAFT_NEW");
+    let d = Rig::descriptor(Tool::GraftNew);
+    let o = rig.sh(&[
+        "adopt",
+        d.to_str().unwrap(),
+        "--upstream",
+        up.to_str().unwrap(),
+    ]);
+    assert_eq!(o.code, 0, "{}{}", o.stdout, o.stderr);
+    assert!(o.stdout.contains("compatible=true"), "{}", o.stdout);
+    assert!(
+        o.stdout.contains("0.21"),
+        "adopted version not reported: {}",
+        o.stdout
+    );
 }
 
 // ---- measurement (HP-06 criterion 4, HP-07 revisit gate) ---------------------------

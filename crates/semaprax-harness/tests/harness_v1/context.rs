@@ -1126,3 +1126,314 @@ fn hp_hp05_real_graphify_through_the_broker() {
 
 #[path = "context_plan.rs"]
 mod hn13;
+
+// ---- HN-10 index adoption and worktree-safe refresh (fixture prefix `hp-hnf`) ----------
+
+mod index_adoption_tests {
+    use super::*;
+    use semaprax_harness::context::index_adoption::{
+        copy_snapshot, first_diagnostic, verify, Expected, GenerationStore, IndexDescriptor,
+        Outcome, Ownership,
+    };
+    use std::collections::BTreeSet;
+    use std::time::Duration;
+
+    fn dg(s: &str) -> String {
+        sha256_plain(s.as_bytes())
+    }
+
+    fn expected() -> Expected {
+        Expected {
+            provider: "org.example/idx".into(),
+            upstream_version: "1.0.0".into(),
+            index_schema: "wiring.v1".into(),
+            source_root: "/work/a".into(),
+            worktree_id: "wt-a".into(),
+            config_digest: dg("cfg"),
+            tree: BTreeMap::from([
+                ("a.rs".into(), dg("fn a(){}")),
+                ("b.py".into(), dg("def b(): pass")),
+            ]),
+            excluded: BTreeSet::from(["secret/k.py".to_string()]),
+        }
+    }
+
+    fn descriptor(e: &Expected) -> IndexDescriptor {
+        IndexDescriptor {
+            provider: e.provider.clone(),
+            upstream_version: e.upstream_version.clone(),
+            index_schema: e.index_schema.clone(),
+            source_root: e.source_root.clone(),
+            worktree_id: e.worktree_id.clone(),
+            config_digest: e.config_digest.clone(),
+            inputs: e.tree.clone(),
+            coverage_languages: vec!["python".into(), "rust".into()],
+            ownership: Ownership::ReadOnly,
+        }
+    }
+
+    fn codes(d: &IndexDescriptor, e: &Expected) -> Vec<&'static str> {
+        verify(d, e).iter().map(|m| m.code).collect()
+    }
+
+    #[test]
+    fn hn10_matching_descriptor_verifies_and_serializes_deterministically() {
+        let e = expected();
+        let d = descriptor(&e);
+        assert!(verify(&d, &e).is_empty());
+        let j = d.to_json();
+        assert_eq!(j["schema"], "semaprax.harness-index-adoption.v1");
+        assert_eq!(j["ownership"], "read-only");
+        assert_eq!(j["coverage"]["files"], 2);
+        assert_eq!(j, descriptor(&e).to_json());
+        assert_eq!(Outcome::ReusedUserIndex.as_str(), "reused-user-index");
+        assert_eq!(
+            Outcome::CopiedValidatedIndex.as_str(),
+            "copied-validated-index"
+        );
+        assert_eq!(Outcome::IncrementalRefresh.as_str(), "incremental-refresh");
+        assert_eq!(Outcome::Rebuilt.as_str(), "rebuilt");
+        assert_eq!(Outcome::Incompatible.as_str(), "incompatible");
+        assert_eq!(
+            Ownership::parse("copied-snapshot"),
+            Some(Ownership::CopiedSnapshot)
+        );
+        assert_eq!(Ownership::parse("write-through"), None);
+    }
+
+    #[test]
+    fn hn10_each_mismatch_class_has_its_own_stable_code() {
+        let e = expected();
+        let mut d = descriptor(&e);
+        d.upstream_version = "2.0.0".into();
+        assert_eq!(codes(&d, &e), ["SPX-HPF001"]);
+        let mut d = descriptor(&e);
+        d.worktree_id = "wt-b".into();
+        d.source_root = "/work/b".into();
+        assert_eq!(codes(&d, &e), ["SPX-HPF002"], "another worktree");
+        let mut d = descriptor(&e);
+        d.config_digest = dg("other parser");
+        assert_eq!(codes(&d, &e), ["SPX-HPF003"]);
+        let mut d = descriptor(&e);
+        d.inputs.insert("secret/k.py".into(), dg("key"));
+        assert_eq!(codes(&d, &e), ["SPX-HPF004"], "private excluded path");
+        // Same-size edit: the digest differs although length and Git revision match.
+        let mut e2 = e.clone();
+        e2.tree.insert("b.py".into(), dg("def c(): pass"));
+        assert_eq!("def b(): pass".len(), "def c(): pass".len());
+        assert_eq!(codes(&descriptor(&e), &e2), ["SPX-HPF005"]);
+        let mut e3 = e.clone();
+        e3.tree.insert("new.rs".into(), dg("fn n(){}"));
+        let v = verify(&descriptor(&e), &e3);
+        assert_eq!(v.len(), 1);
+        assert_eq!(first_diagnostic(&v).unwrap().code, "SPX-HPF006");
+        let mut e4 = e.clone();
+        e4.tree.remove("a.rs");
+        assert_eq!(
+            codes(&descriptor(&e), &e4),
+            ["SPX-HPF005"],
+            "indexed file gone"
+        );
+    }
+
+    #[test]
+    fn hn10_generation_swap_is_atomic_for_concurrent_readers() {
+        let root = fixture_dir("hp-hnf-gen").canonicalize().unwrap();
+        let store = GenerationStore::new(root.join("owned"));
+        assert!(store.current().is_none());
+        let put = |n: u64| {
+            let _lock = store.lock(Duration::from_secs(5)).unwrap();
+            let (g, dir) = store.begin().unwrap();
+            assert_eq!(g, n);
+            // A large file written in pieces, then the marker: a torn read would disagree with the name.
+            let body = format!("generation-{n}\n").repeat(20_000);
+            std::fs::write(dir.join("graph.json"), &body).unwrap();
+            store.publish(g).unwrap();
+        };
+        put(1);
+        let stop = Arc::new(AtomicBool::new(false));
+        let bad = Arc::new(AtomicUsize::new(0));
+        let reads = Arc::new(AtomicUsize::new(0));
+        let readers: Vec<_> = (0..3)
+            .map(|_| {
+                let (s, stop, bad, reads) = (
+                    GenerationStore::new(root.join("owned")),
+                    stop.clone(),
+                    bad.clone(),
+                    reads.clone(),
+                );
+                std::thread::spawn(move || {
+                    while !stop.load(Ordering::Relaxed) {
+                        match s.current().and_then(|(n, d)| {
+                            Some((n, std::fs::read_to_string(d.join("graph.json")).ok()?))
+                        }) {
+                            Some((n, body))
+                                if body.lines().all(|l| l == format!("generation-{n}"))
+                                    && body.lines().count() == 20_000 =>
+                            {
+                                reads.fetch_add(1, Ordering::Relaxed);
+                            }
+                            _ => {
+                                bad.fetch_add(1, Ordering::Relaxed);
+                            }
+                        }
+                    }
+                })
+            })
+            .collect();
+        for n in 2..=25 {
+            put(n);
+        }
+        stop.store(true, Ordering::Relaxed);
+        for r in readers {
+            r.join().unwrap();
+        }
+        assert_eq!(
+            bad.load(Ordering::Relaxed),
+            0,
+            "a reader saw a torn or missing generation"
+        );
+        assert!(reads.load(Ordering::Relaxed) > 10);
+        let live: Vec<_> = std::fs::read_dir(root.join("owned/gen"))
+            .unwrap()
+            .flatten()
+            .collect();
+        assert!(
+            live.len() <= 2,
+            "old generations pruned, previous kept: {}",
+            live.len()
+        );
+        assert!(!live
+            .iter()
+            .any(|e| e.file_name().to_string_lossy().ends_with(".partial")));
+    }
+
+    #[test]
+    fn hn10_unpublished_partial_build_is_invisible_and_lock_is_single_flight() {
+        let root = fixture_dir("hp-hnf-lock").canonicalize().unwrap();
+        let store = GenerationStore::new(root.join("owned"));
+        let first = store.lock(Duration::from_secs(1)).unwrap();
+        let err = store
+            .lock(Duration::from_millis(100))
+            .err()
+            .expect("second holder must wait");
+        assert_eq!(err.code, "SPX-HPF010");
+        let (g, dir) = store.begin().unwrap();
+        std::fs::write(dir.join("graph.json"), "half").unwrap();
+        assert!(
+            store.current().is_none(),
+            "a build in progress is never visible"
+        );
+        drop(first);
+        assert!(
+            store.lock(Duration::from_millis(100)).is_ok(),
+            "released on drop"
+        );
+        // A crashed holder (dead pid) does not wedge refresh.
+        let lockdir = root.join("owned/refresh.lock");
+        std::fs::create_dir_all(&lockdir).unwrap();
+        std::fs::write(lockdir.join("owner"), "2000000000").unwrap();
+        assert!(store.lock(Duration::from_millis(200)).is_ok());
+        store.publish(g).unwrap();
+        assert_eq!(store.current().unwrap().0, g);
+    }
+
+    #[test]
+    fn hn10_copied_snapshot_is_read_only_idempotent_and_never_touches_the_source() {
+        let root = fixture_dir("hp-hnf-snap").canonicalize().unwrap();
+        let src = root.join("user-index");
+        std::fs::create_dir_all(src.join(".graph")).unwrap();
+        std::fs::write(src.join(".graph/wiring.json"), "{\"meta\":{}}").unwrap();
+        let before = std::fs::read(src.join(".graph/wiring.json")).unwrap();
+        let (dir, bytes) = copy_snapshot(&src, &root.join("adopted"), &dg("digest-1")).unwrap();
+        assert!(bytes > 0);
+        assert!(std::fs::metadata(dir.join(".graph/wiring.json"))
+            .unwrap()
+            .permissions()
+            .readonly());
+        let (again, bytes2) = copy_snapshot(&src, &root.join("adopted"), &dg("digest-1")).unwrap();
+        assert_eq!(
+            (again, bytes2),
+            (dir, 0),
+            "same digest reuses the immutable copy"
+        );
+        assert_eq!(
+            std::fs::read(src.join(".graph/wiring.json")).unwrap(),
+            before
+        );
+        assert!(
+            !std::fs::metadata(src.join(".graph/wiring.json"))
+                .unwrap()
+                .permissions()
+                .readonly(),
+            "source permissions untouched"
+        );
+    }
+
+    #[test]
+    fn hn10_result_cache_concurrent_puts_never_cross_entries() {
+        let root = fixture_dir("hp-hnf-cache").canonicalize().unwrap();
+        let c = Arc::new(ResultCache::new(
+            root.join("c"),
+            CacheConfig {
+                max_entries: 1000,
+                max_bytes: 1 << 26,
+                ttl_secs: 3600,
+            },
+            system_clock(),
+        ));
+        let snap = Snapshot::capture(&fake_world_project()).unwrap();
+        let ident = FakeSource::new("p/a", grep_answer("p/a")).identity();
+        let mk = |q: String| {
+            semaprax_harness::context::CacheKey::new(
+                &snap,
+                &ident,
+                &ExternalQuery {
+                    op: "search".into(),
+                    payload: json!({"query": q}),
+                },
+            )
+        };
+        let resp = |q: &str| {
+            (grep_answer("p/a"))(
+                &snap,
+                &ExternalQuery {
+                    op: "search".into(),
+                    payload: json!({"query": q}),
+                },
+            )
+        };
+        let hs: Vec<_> = (0..4)
+            .map(|t| {
+                let (c, keys): (_, Vec<_>) = (
+                    c.clone(),
+                    (0..30)
+                        .map(|i| (mk(format!("q{t}-{i}")), resp(&format!("q{t}-{i}"))))
+                        .collect(),
+                );
+                std::thread::spawn(move || {
+                    for (k, r) in &keys {
+                        c.put(k, r);
+                    }
+                })
+            })
+            .collect();
+        for h in hs {
+            h.join().unwrap();
+        }
+        let tmp_left = std::fs::read_dir(root.join("c"))
+            .unwrap()
+            .flatten()
+            .filter(|e| e.file_name().to_string_lossy().starts_with(".tmp"))
+            .count();
+        assert_eq!(tmp_left, 0, "no orphaned temp files");
+        for t in 0..4 {
+            for i in 0..30 {
+                assert!(
+                    c.get(&mk(format!("q{t}-{i}"))).is_some(),
+                    "entry q{t}-{i} lost or overwritten"
+                );
+            }
+        }
+    }
+}

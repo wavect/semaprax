@@ -7,7 +7,7 @@ import { OPERATIONS, invoke } from './lib/ops.mjs';
 import { Refusal, loadConfig } from './lib/project.mjs';
 import { RunError } from './lib/runner.mjs';
 
-const ADAPTER_VERSION = '0.1.0';
+const ADAPTER_VERSION = '0.2.0';
 const ACCEPTED = [{ kind: 'context.repository', version: 1, operations: OPERATIONS }];
 
 function sortKeys(v) {

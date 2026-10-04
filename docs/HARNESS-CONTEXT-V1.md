@@ -139,3 +139,31 @@ already binds project + worktree, the content digest of the working tree,
 provider/descriptor/upstream identity, the lock digest (added to the provider
 identity), configuration, permission scope and the exact query, so a changed
 plan step, edit, worktree or lock is a miss. A hit is not a provider invocation.
+
+## Index adoption (HN-10)
+
+Owner: `crates/semaprax-harness/src/context/index_adoption.rs`; diagnostics `SPX-HPF`. Reusing an installed
+executable is not reusing the user's index. Adoption is generic, opt-in per provider, and never blind.
+
+An `IndexDescriptor` (`semaprax.harness-index-adoption.v1`) names provider, upstream version, index schema, canonical
+source root, worktree id, a configuration digest (parser/extractor identity and indexing options), the content digest of
+every indexed input, coverage and the ownership mode `read-only` or `copied-snapshot`. `verify(descriptor, expected)`
+returns every mismatch: `SPX-HPF001` provider/version/schema, `002` another root or worktree, `003` changed parser or
+configuration, `004` a private/excluded path in the index, `005` stale content (digest differs or file gone; length and
+Git revision are never evidence), `006` a current file the index lacks. Only an empty result lets the index answer. The
+user's index is read in place or copied once into an immutable snapshot (`copy_snapshot`); it is never overwritten,
+refreshed or upgraded, and an adopted index may not carry content from a richer mode than the project's policy allows.
+Any refusal falls back to an owned cache or native context and is reported, never silent.
+
+Semaprax-owned caches use `GenerationStore`: a `mkdir` single-flight `RefreshLock` (dead holders reclaimed,
+`SPX-HPF010` on wait timeout), `begin` into `gen/g<N>.partial`, `publish` by directory rename then `CURRENT` rename, and
+pruning that keeps the previous generation. A reader sees a complete old or a complete new generation. The broker's
+`ResultCache` writes each entry through a unique temp file, so concurrent writers cannot cross entries.
+
+`Outcome` reports what happened: `reused-user-index`, `copied-validated-index`, `incremental-refresh`, `rebuilt`,
+`incompatible`, with `Work` counters (files verified, bytes hashed, bytes copied, files indexed) kept apart from
+index-construction time. Shared blobs, if any, are keyed by content, version and configuration; working-tree state,
+locks, permissions and query results stay per worktree, and no cache crosses a project trust boundary. The Graft
+adapter implements the same rules in Node (`packages/semaprax-harness-adapters/graft/lib/adopt.mjs`,
+`generation.mjs`); the Graphify adapter reuses this contract.
+

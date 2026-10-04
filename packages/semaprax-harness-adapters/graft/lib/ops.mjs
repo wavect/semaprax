@@ -1,5 +1,6 @@
 // context.repository v1 operations over graft's JSON output.
 import { runGraft, RunError } from './runner.mjs';
+import { treeDigest } from './adopt.mjs';
 import {
   Refusal, coverageFor, ensureFresh, firstLine, isSemaprax, languageOf, makeFileReader, probeIdentity, safeRel, sourceText, spanDigest,
 } from './project.mjs';
@@ -28,7 +29,7 @@ function parseSpan(span) {
 
 export class Context {
   constructor(cfg, req, signal, state) {
-    this.cfg = cfg; this.req = req; this.signal = signal; this.state = state;
+    this.cfg = cfg; this.req = req; this.signal = signal; this.state = state; this.profile = state.profile; this.cli = state.profile.cli;
     this.deadline = Date.now() + Math.min(Math.max(req.deadline_ms ?? 30000, 1000), 300000);
     this.budget = Math.min(req.budget?.max_result_bytes ?? DEFAULT_BUDGET, FRAME_CAP);
     this.reader = makeFileReader(cfg);
@@ -43,7 +44,8 @@ export class Context {
     const i = args.indexOf('--');
     const head = i < 0 ? args : args.slice(0, i);
     const pos = i < 0 ? [] : args.slice(i + 1);
-    return runGraft(this.cfg.upstream, [...head, '--no-refresh', '--dir', this.cfg.idx, '--', ...pos, this.cfg.root], {
+    const c = this.profile.cli;
+    return runGraft(this.cfg.upstream, [...head, c.noRefresh, c.dir, this.state.index.dir, '--', ...pos, this.cfg.root], {
       work: this.cfg.work, signal: this.signal, timeoutMs: left,
     });
   }
@@ -86,7 +88,7 @@ function stringArg(payload, name, max = 500) {
 
 async function orient(ctx, payload) {
   const maxDirs = limitOf({ max_items: payload.max_items ?? payload.max_dirs }, 16, 64);
-  const r = await ctx.query(['map', '--json', '--max-dirs', String(maxDirs)]);
+  const r = await ctx.query(['map', ctx.cli.json, ctx.cli.maxDirs, String(maxDirs)]);
   if (r.code !== 0) throw new RunError('query-failed', `graft map exited ${r.code}: ${firstLine(r.stderr)}`);
   const m = parseJson(r, 'map');
   const items = [];
@@ -112,7 +114,7 @@ async function search(ctx, payload) {
   const limit = limitOf(payload, 8, mode === 'exact' ? 200 : 50);
   const withSource = payload.include_source === true;
   if (mode === 'ranked') {
-    const r = await ctx.query(['ask', '--json', '-n', String(limit), ...(prefix ? ['--in', prefix] : []), '--', query]);
+    const r = await ctx.query(['ask', ctx.cli.json, ctx.cli.limit, String(limit), ...(prefix ? [ctx.cli.in, prefix] : []), '--', query]);
     if (r.code !== 0) throw new RunError('query-failed', `graft ask exited ${r.code}: ${firstLine(r.stderr)}`);
     const a = parseJson(r, 'ask');
     const items = [];
@@ -132,7 +134,7 @@ async function search(ctx, payload) {
 
 // Literal text occurrences over the indexed files (graft grep --fixed); lexical, so provenance is "inferred".
 async function grepItems(ctx, literal, prefix, limit, mode) {
-  const r = await ctx.query(['grep', '--json', '--fixed', ...(prefix ? ['--in', prefix] : []), '--', literal]);
+  const r = await ctx.query(['grep', ctx.cli.json, ctx.cli.fixed, ...(prefix ? [ctx.cli.in, prefix] : []), '--', literal]);
   if (r.code !== 0) throw new RunError('query-failed', `graft grep exited ${r.code}: ${firstLine(r.stderr)}`);
   const g = parseJson(r, 'grep');
   const items = [];
@@ -152,7 +154,7 @@ async function grepItems(ctx, literal, prefix, limit, mode) {
 async function skeleton(ctx, payload) {
   const rel = safeRel(payload.path);
   if (!rel) throw new Refusal('refused', 'graft.bad-path', 'path must be a relative path inside the project');
-  const r = await ctx.query(['skeleton', '--json', '--', rel]);
+  const r = await ctx.query(['skeleton', ctx.cli.json, '--', rel]);
   if (r.code !== 0) {
     return { items: [], truncated: false, exhaustive: false, diags: [{ code: 'graft.file-not-indexed', message: firstLine(r.stderr) || 'file not in graft index' }], extra: {} };
   }
@@ -176,7 +178,7 @@ async function references(ctx, payload) {
   if (!Number.isInteger(depth) || depth < 1 || depth > 5) throw new Refusal('refused', 'graft.bad-payload', 'depth must be 1..5');
   const prefix = pathPrefix(payload);
   const limit = limitOf(payload, 50, 200);
-  const r = await ctx.query(['callers', '--json', '--direction', direction, '--depth', String(depth), ...(prefix ? ['--in', prefix] : []), '--', symbol]);
+  const r = await ctx.query(['callers', ctx.cli.json, ctx.cli.direction, direction, ctx.cli.depth, String(depth), ...(prefix ? [ctx.cli.in, prefix] : []), '--', symbol]);
   const diags = [];
   const items = [];
   let known = true;
@@ -214,6 +216,16 @@ async function references(ctx, payload) {
   return { items, truncated, exhaustive, diags, extra: { symbol, direction, depth, symbol_known: known } };
 }
 
+// Host metadata allows only scalars or one level of scalar objects.
+function flatAdoption(a) {
+  const reasons = (a.reasons ?? []).join('; ').slice(0, 900);
+  if (a.outcome === 'incompatible') return { outcome: 'incompatible', reasons, reasons_count: (a.reasons ?? []).length, fallback: a.fallback ?? null };
+  return {
+    schema: a.schema, provider: a.provider, upstream_version: a.upstream_version, index_schema: a.index_schema, ownership: a.ownership, mode: a.mode,
+    extractor: a.config?.extractor ?? null, languages: (a.coverage?.languages ?? []).join(','), files: a.coverage?.files ?? 0, inputs_digest: a.inputs_digest, source_root: a.source_root,
+  };
+}
+
 const OPS = { orient, search, skeleton, references };
 export const OPERATIONS = Object.keys(OPS);
 
@@ -245,19 +257,22 @@ export async function invoke(cfg, req, signal, session) {
     }, [{ code: 'graft.semaprax-source', message: reason }]];
   }
   session.identity ??= await probeIdentity(cfg, signal);
+  const identity = session.identity;
   const refresh = payload.refresh ?? 'auto';
   if (!['auto', 'rebuild', 'never'].includes(refresh)) throw new Refusal('refused', 'graft.bad-payload', 'refresh must be auto, rebuild or never');
-  let index = await ensureFresh(cfg, session.identity.version, { signal, deadline, force: refresh === 'rebuild', readOnly: refresh === 'never' });
+  let index = await ensureFresh(cfg, identity, { signal, deadline, force: refresh === 'rebuild', readOnly: refresh === 'never' });
   if (index.action === 'drift') return ['stale', null, [{ code: 'graft.index-stale', message: 'index is behind the working tree and refresh=never' }]];
   let result;
   for (let attempt = 0; attempt < 2; attempt++) {
-    const ctx = new Context(cfg, req, signal, { index });
+    const ctx = new Context(cfg, req, signal, { index, profile: identity.profile });
     result = { ctx, ...(await OPS[req.operation](ctx, payload)) };
     if (!ctx.stale.size) break;
     if (attempt === 0 && refresh !== 'never') {
-      // Content changed under an index graft's own check considered fresh (e.g. mtime preserved): force a rebuild.
-      const again = await ensureFresh(cfg, session.identity.version, { signal, deadline, force: true });
+      // Content changed under an index graft's own check considered fresh (e.g. mtime preserved), or an
+      // adopted index went stale mid-call: force an owned rebuild.
+      const again = await ensureFresh(cfg, identity, { signal, deadline, force: true });
       again.ms += index.ms; again.action = 'refresh'; again.files_changed = Math.max(again.files_changed, ctx.stale.size);
+      again.adoption = index.adoption ? { outcome: 'incompatible', reasons: ['index changed under the query'], fallback: again.outcome } : again.adoption;
       index = again;
     }
   }
@@ -265,8 +280,14 @@ export async function invoke(cfg, req, signal, session) {
   if (ctx.stale.size) {
     return ['stale', null, [{ code: 'graft.index-stale', message: `index disagrees with ${ctx.stale.size} file(s) on disk after refresh: ${[...ctx.stale].slice(0, 3).join(', ')}` }]];
   }
-  const cov = coverageFor(cfg, index.files);
+  const diags0 = [];
+  if (index.userDir && index.userIndexDigest && treeDigest(index.userDir).digest !== index.userIndexDigest) {
+    diags0.push({ code: 'graft.user-index-modified', message: 'the user index changed while it was being queried; its answers are not used as evidence' });
+    return ['failed', null, diags0];
+  }
+  const cov = coverageFor(cfg, index.files, identity.profile);
   const diags = [...(result.diags ?? [])];
+  if (index.adoption?.outcome === 'incompatible') diags.push({ code: 'graft.index-incompatible', message: `user index not adopted (${index.adoption.reasons.slice(0, 3).join('; ')}); served from ${index.adoption.fallback}` });
   if (!cfg.git) diags.push({ code: 'graft.gitignore-unavailable', message: 'git not available to graft; .gitignore is not honoured and ignored files may be indexed' });
   if (cov.skipped.length) diags.push({ code: 'graft.coverage-incomplete', message: `${cov.skipped.length + cov.skipped_omitted} source file(s) are not covered by graft` });
   const payloadOut = {
@@ -276,7 +297,13 @@ export async function invoke(cfg, req, signal, session) {
     },
     metadata: {
       ...result.extra,
-      refresh: { action: index.action, ms: index.ms, files_changed: index.files_changed, files_indexed: index.files.size },
+      refresh: {
+        action: index.action, outcome: index.adoption?.outcome === 'incompatible' ? 'incompatible' : index.outcome, served_by: index.outcome, ms: index.ms,
+        files_changed: index.files_changed, files_indexed: index.files.size, coalesced: Boolean(index.coalesced),
+        verification_ms: index.work.verification_ms ?? 0, index_ms: index.work.index_ms ?? 0, files_verified: index.work.files_verified ?? 0,
+        bytes_hashed: index.work.bytes_hashed ?? 0, copied_bytes: index.work.copied_bytes ?? 0,
+      },
+      ...(index.adoption ? { index_adoption: flatAdoption(index.adoption) } : {}),
       index_digest: index.index_digest,
       upstream_version: session.identity.version,
       skipped_omitted: cov.skipped_omitted,

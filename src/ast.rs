@@ -68,7 +68,6 @@ pub enum Type {
     },
 }
 
-
 mod type_properties;
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]

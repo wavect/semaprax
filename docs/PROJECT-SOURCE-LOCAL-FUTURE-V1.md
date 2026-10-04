@@ -1,5 +1,7 @@
 # Project Source Local Future v1
 
+Audience: Project and Rust SDK implementers.
+
 Status: implemented for the bounded interpreter-backed RI-09 Project profile
 and generated Rust module. Ordinary native and Core Wasm `yield` emission
 remains refused.

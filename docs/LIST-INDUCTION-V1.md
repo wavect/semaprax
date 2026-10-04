@@ -1,5 +1,7 @@
 # Source-bound list induction v1
 
+Audience: proof authors and language implementers.
+
 Status: bounded LAW-08 proof profile with local real-Lean evidence. It is not a
 public collection ABI or a proof that backend executions terminate on every
 mathematical list.

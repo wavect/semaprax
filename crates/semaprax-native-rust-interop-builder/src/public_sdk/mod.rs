@@ -610,9 +610,11 @@ mod authority;
 mod borrowed_input;
 mod build;
 pub use affine_callback::{prepare_native_rust_affine_callback, NativeAffineCallbackProjection};
-mod callback;
 mod borrowed_callback;
-pub use borrowed_callback::{prepare_native_rust_borrowed_callback, NativeBorrowedCallbackProjection};
+mod callback;
+pub use borrowed_callback::{
+    prepare_native_rust_borrowed_callback, NativeBorrowedCallbackProjection,
+};
 mod mutable_callback;
 pub use mutable_callback::{prepare_native_rust_mutable_callback, NativeMutableCallbackProjection};
 mod registered_callback;

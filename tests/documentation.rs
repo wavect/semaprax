@@ -218,6 +218,7 @@ mod editor_grammar {
             manifest["activationEvents"],
             serde_json::json!([
                 "onCommand:semaprax.start",
+                "onCommand:semaprax.startHotReload",
                 "onLanguage:semaprax",
                 "onCommand:semaprax.checkProject",
                 "onCommand:semaprax.openExplorer",

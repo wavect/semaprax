@@ -160,7 +160,7 @@ fn repair_v2_terminal_resume_refuses_patch_receipt_with_foreign_journal_binding(
     .expect_err("foreign terminal receipt binding must refuse before replay");
     assert_eq!(
         error.reason,
-        "terminal patch receipt binding is stale or mismatched"
+        "terminal patch receipt commitment is stale or mismatched"
     );
     assert_eq!(calls.get(), 2, "refusal must not start OpenCode");
     assert_eq!(

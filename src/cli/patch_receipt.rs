@@ -1,7 +1,7 @@
 //! One-shot authority-free patch receipt projections over an authenticated Project.
 
 use semaprax::diagnostic::Diagnostic;
-use semaprax::project::{SemanticWorkspaceService, with_authenticated_project};
+use semaprax::project::{with_authenticated_project, SemanticWorkspaceService};
 use std::path::PathBuf;
 
 use super::project::{is_project_manifest, resolve_positional};
@@ -109,38 +109,31 @@ pub(crate) fn parse(args: &[String]) -> Result<Command, u8> {
                 candidate: candidate.clone(),
             })
         }
-        [
-            operation,
-            transaction,
-            candidate,
-            evidence_id,
-            handle,
-            cursor,
-        ] if operation == "evidence-page" => Ok(Command::EvidencePage {
-            manifest,
-            transaction: transaction.clone(),
-            candidate: candidate.clone(),
-            evidence_id: evidence_id.clone(),
-            handle: handle.clone(),
-            cursor: (cursor != "-").then(|| cursor.clone()),
-        }),
-        [
-            operation,
-            left_transaction,
-            left_candidate,
-            left_receipt,
-            right_transaction,
-            right_candidate,
-            right_receipt,
-        ] if operation == "compare" => Ok(Command::Compare {
-            manifest,
-            left_transaction: left_transaction.clone(),
-            left_candidate: left_candidate.clone(),
-            left_receipt: left_receipt.clone(),
-            right_transaction: right_transaction.clone(),
-            right_candidate: right_candidate.clone(),
-            right_receipt: right_receipt.clone(),
-        }),
+        [operation, transaction, candidate, evidence_id, handle, cursor]
+            if operation == "evidence-page" =>
+        {
+            Ok(Command::EvidencePage {
+                manifest,
+                transaction: transaction.clone(),
+                candidate: candidate.clone(),
+                evidence_id: evidence_id.clone(),
+                handle: handle.clone(),
+                cursor: (cursor != "-").then(|| cursor.clone()),
+            })
+        }
+        [operation, left_transaction, left_candidate, left_receipt, right_transaction, right_candidate, right_receipt]
+            if operation == "compare" =>
+        {
+            Ok(Command::Compare {
+                manifest,
+                left_transaction: left_transaction.clone(),
+                left_candidate: left_candidate.clone(),
+                left_receipt: left_receipt.clone(),
+                right_transaction: right_transaction.clone(),
+                right_candidate: right_candidate.clone(),
+                right_receipt: right_receipt.clone(),
+            })
+        }
         [operation, entries @ ..]
             if operation == "compare-set" && entries.len() >= 6 && entries.len() % 3 == 0 =>
         {

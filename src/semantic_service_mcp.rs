@@ -3,13 +3,13 @@
 use std::io::{self, BufRead, Write};
 use std::sync::Arc;
 
-use serde_json::{Map, Value, json};
+use serde_json::{json, Map, Value};
 
-use crate::project::{MAX_SEMANTIC_TRANSACTION_V2_WORKFLOW_STEPS, MAX_SOURCES, ProjectRevision};
+use crate::project::{ProjectRevision, MAX_SEMANTIC_TRANSACTION_V2_WORKFLOW_STEPS, MAX_SOURCES};
 use crate::project_transport::codec;
 use crate::semantic_service_transport::{
-    MAX_SEMANTIC_SERVICE_REQUEST_BYTES, MAX_SEMANTIC_SERVICE_RESPONSE_BYTES,
-    SemanticWorkspaceStdioSession,
+    SemanticWorkspaceStdioSession, MAX_SEMANTIC_SERVICE_REQUEST_BYTES,
+    MAX_SEMANTIC_SERVICE_RESPONSE_BYTES,
 };
 
 pub const SEMANTIC_SERVICE_MCP_SCHEMA: &str = "semaprax.semantic-workspace-service-mcp.v1";

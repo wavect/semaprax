@@ -233,7 +233,7 @@ fn generate_private_ffi_into(
             }
         }
         if import.result != ScalarType::Unit {
-            write!(output,"if result_out.is_null()||(result_out as usize)%core::mem::align_of::<{}>()!=0{{return adapter(5);}}",if import.result == ScalarType::ResultI64I64 { rust_ffi_wire_type(import.result) } else { rust_type(import.result) }).unwrap();
+            write!(output,"if result_out.is_null()||(result_out as usize)%core::mem::align_of::<{}>()!=0{{return adapter(5);}}",rust_ffi_wire_type(import.result)).unwrap();
         }
         let call_argument_values = import
             .parameters

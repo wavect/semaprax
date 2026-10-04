@@ -12,7 +12,9 @@ fn regex_result_owner_carrier_is_closed_and_direct() {
     .unwrap();
     assert!(!source.contains("@OWNER@"));
     assert!(source.contains("fn with_utf8<T>(data: *const u8"));
-    assert!(source.contains("`target` is invoked before this borrowed range can escape the carrier"));
+    assert!(
+        source.contains("`target` is invoked before this borrowed range can escape the carrier")
+    );
     assert!(source.contains("pub fn spx_result_owner_adapter_copied_bytes() -> u64"));
     assert!(source.contains("let value = slot.value.as_ref().ok_or(3)?"));
     assert!(source.contains("Ok(regex_alias::Regex::is_match(value, text))"));

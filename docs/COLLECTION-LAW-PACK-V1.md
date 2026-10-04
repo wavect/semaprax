@@ -1,5 +1,8 @@
 # Collection law pack v1
 
+Status: local checked-source and pinned Lean proof pack.
+Audience: law-pack authors and proof reviewers.
+
 This document owns `semaprax.collection-sort-i64.v1`, its separate authored
 proof module `semaprax.collection-sort-proof-module.v1`, and its inert
 `semaprax.collection-sort-certificate.v1` report. The saved first-user pack is

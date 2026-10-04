@@ -611,6 +611,26 @@ mod platform {
         pub(in crate::source_live_cli) fn latest(&self) -> Result<Option<String>, CliError> {
             unreachable!()
         }
+        pub(in crate::source_live_cli) fn retain_terminal_patch_receipt(
+            &self,
+            _: &str,
+            _: &str,
+            _: &str,
+        ) -> Result<(), CliError> {
+            unreachable!()
+        }
+        pub(in crate::source_live_cli) fn terminal_patch_receipt(
+            &self,
+        ) -> Result<Option<String>, CliError> {
+            unreachable!()
+        }
+        pub(in crate::source_live_cli) fn terminal_patch_receipt_commitment(
+            &self,
+            _: &str,
+            _: &str,
+        ) -> Result<Option<String>, CliError> {
+            unreachable!()
+        }
         pub(in crate::source_live_cli) fn set_generation(&mut self, _: u64) {
             unreachable!()
         }

@@ -210,7 +210,8 @@ fn retained_a_to_b_to_c_handoff_carries_state_without_initialize_or_redispatch()
 
 #[cfg(unix)]
 #[test]
-fn physical_journal_ack_loss_and_unknown_effect_outcome_keep_source_handoff_terminal_and_block_c_dispatch() {
+fn physical_journal_ack_loss_and_unknown_effect_outcome_keep_source_handoff_terminal_and_block_c_dispatch(
+) {
     use super::super::checkpoint::{commit_fault_pending, inject_commit_fault, CommitFault};
     use semaprax::project::{
         with_authenticated_project, HotReloadDecision, HotReloadSession,

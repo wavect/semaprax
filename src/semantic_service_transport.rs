@@ -5,13 +5,13 @@ mod compact;
 use std::io::{self, BufRead, Write};
 use std::sync::Arc;
 
-use serde_json::{Map, Value, json};
+use serde_json::{json, Map, Value};
 
 use crate::diagnostic::Diagnostic;
 use crate::project::{
+    ProjectFrontendSource, ProjectManifest, ProjectRevision, SemanticWorkspaceService,
     MAX_SEMANTIC_TRANSACTION_V2_WORKFLOW_STEPS,
     MAX_SEMANTIC_WORKSPACE_SERVICE_PATCH_RECEIPT_COMPARISON_INPUTS, MAX_SOURCES,
-    ProjectFrontendSource, ProjectManifest, ProjectRevision, SemanticWorkspaceService,
 };
 use crate::project_transport::codec::{self, RequestId, RequestKind, RpcRequest};
 

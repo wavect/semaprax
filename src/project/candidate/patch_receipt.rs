@@ -9,13 +9,13 @@
 use std::collections::BTreeSet;
 use std::sync::Arc;
 
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 
 use crate::diagnostic::Diagnostic;
 use crate::workspace_analysis::{WorkspaceAnalysisTargetKind, WorkspaceImpactOptions};
 
 use super::{
-    CandidateAssuranceInput, PROJECT_CANDIDATE_ASSURANCE_SELECTION_SCHEMA, ProjectCandidate, wire,
+    wire, CandidateAssuranceInput, ProjectCandidate, PROJECT_CANDIDATE_ASSURANCE_SELECTION_SCHEMA,
 };
 
 type Result<T> = std::result::Result<T, Vec<Diagnostic>>;

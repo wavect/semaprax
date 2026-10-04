@@ -4365,9 +4365,7 @@ impl<'a> HirValidator<'a> {
                                 })?;
                                 (place, origin)
                             }
-                            ResolvedExprKind::BorrowPlace { place, .. } => {
-                                (place, place.clone())
-                            }
+                            ResolvedExprKind::BorrowPlace { place, .. } => (place, place.clone()),
                             ResolvedExprKind::ByteRange { source, .. } => {
                                 let ResolvedExprKind::Place(place) = &source.kind else {
                                     return Err(hir_error(
@@ -4379,9 +4377,7 @@ impl<'a> HirValidator<'a> {
                                     .get(&place.root)
                                     .cloned()
                                     .ok_or_else(|| {
-                                        hir_error(
-                                            "byte range local lacks symbolic root provenance",
-                                        )
+                                        hir_error("byte range local lacks symbolic root provenance")
                                     })?;
                                 (place, origin)
                             }

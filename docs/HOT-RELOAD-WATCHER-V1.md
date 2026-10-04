@@ -1,5 +1,7 @@
 # Hot Reload Watcher v1
 
+Audience: Project hot-reload implementers and reviewers.
+
 Status: local library profile for HR-02. This is development-session support,
 not a hosted, editor, or release-support claim.
 

@@ -856,7 +856,12 @@ fn service_scaffold_configuration_is_closed_and_credential_free() {
     );
     assert_eq!(
         schema["properties"]["telemetry"]["properties"]["adapter"]["enum"],
-        serde_json::json!(["fixture", "semaprax-json-events", "semaprax-json-events-v2", "otlp-http-json"]),
+        serde_json::json!([
+            "fixture",
+            "semaprax-json-events",
+            "semaprax-json-events-v2",
+            "otlp-http-json"
+        ]),
         "the generated contract names each implemented telemetry profile"
     );
 

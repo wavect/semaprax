@@ -27,4 +27,3 @@ pub(super) fn scalar_type_text(ty: &Type) -> &'static str {
         ),
     }
 }
-

@@ -1,5 +1,7 @@
 # Hot Reload Session v1
 
+Audience: Project hot-reload implementers and reviewers.
+
 Status: partial local library profile for HR-04. The prepared interpreter lane
 has a checked revision coordinator. Source-Agent handoff selection now has a
 same-supervisor lifecycle, while durable migration, checkpoint claim, and

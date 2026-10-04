@@ -27,6 +27,7 @@ use crate::diagnostic::Diagnostic;
 
 mod arguments;
 mod binding;
+pub(crate) mod borrowed_closure;
 mod capacity;
 pub(crate) mod closure;
 mod declaration;
@@ -38,7 +39,6 @@ mod hints;
 mod iterative;
 mod loans;
 mod mutable_closure;
-pub(crate) mod borrowed_closure;
 mod owned_buffer;
 mod owning_closure;
 mod place;

@@ -739,7 +739,7 @@ mod pipeline {
             budget: Default::default(),
             cancel: None,
             routing: Default::default(),
-        context_target: None,
+            context_target: None,
         };
         let svc = SubprocessCompiler::new(compiler(), cache.join("scratch")).unwrap();
         let mut native = NativeContext::new(&svc);

@@ -21,6 +21,8 @@ allow = [
   "CDLA-Permissive-2.0",
   "ISC",
   "MIT",
+  # foldhash 0.2.0 enters through the locked hashbrown/reqwest graph.
+  "Zlib",
   # unicode-ident carries its character tables under the Unicode license. It
   # reaches the normal graph through curve25519-dalek-derive. Already allowed
   # by platform-tests/component-runtime/deny.toml.

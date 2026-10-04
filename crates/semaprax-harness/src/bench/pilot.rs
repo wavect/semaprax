@@ -24,7 +24,13 @@ fn http(addr: &str, method: &str, path: &str, body: &str) -> Result<String, Stri
 }
 
 /// Same request with an explicit read timeout (application trials wait longer).
-pub(crate) fn http_with(addr: &str, method: &str, path: &str, body: &str, timeout: Duration) -> Result<String, String> {
+pub(crate) fn http_with(
+    addr: &str,
+    method: &str,
+    path: &str,
+    body: &str,
+    timeout: Duration,
+) -> Result<String, String> {
     let mut s = TcpStream::connect(addr).map_err(|e| format!("connect {addr}: {e}"))?;
     s.set_read_timeout(Some(timeout)).ok();
     let req = format!(

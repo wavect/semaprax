@@ -10,13 +10,16 @@ pub fn validate(dir: Direction, v: &Value) -> HarnessResult<()> {
                 v,
                 "model request",
                 &["model", "input_base64", "max_output_bytes"],
-                &["max_output_tokens", "reasoning_effort"],
+                &["max_output_tokens", "reasoning_effort", "segments"],
             )?;
             logical_id(m)?;
             base64(m, "input_base64")?;
             uint_of(m, "max_output_bytes")?;
             if m.contains_key("max_output_tokens") && uint_of(m, "max_output_tokens")? == 0 {
                 return Err(e("SPX-HPA040", "`max_output_tokens` must be at least 1"));
+            }
+            if let Some(seg) = m.get("segments") {
+                segments(seg, str_of(m, "input_base64", 1 << 24)?)?;
             }
             if m.contains_key("reasoning_effort")
                 && !matches!(
@@ -46,6 +49,52 @@ pub fn validate(dir: Direction, v: &Value) -> HarnessResult<()> {
                 receipt(r)?;
             }
         }
+    }
+    Ok(())
+}
+
+/// Optional ordered-prompt `segments` (TC-04): closed, bounded, and
+/// consistent with the encoded input (the item sizes sum to the decoded
+/// length), so a boundary can never point outside the request.
+fn segments(v: &Value, input_b64: &str) -> HarnessResult<()> {
+    let m = shape(
+        v,
+        "segments",
+        &[
+            "renderer",
+            "prefix_identity",
+            "items",
+            "cache_boundary_after",
+        ],
+        &[],
+    )?;
+    str_of(m, "renderer", 32)?;
+    let id = str_of(m, "prefix_identity", 80)?;
+    if !id.starts_with("sha256:") {
+        return Err(e("SPX-HPA040", "`prefix_identity` must be a sha256 digest"));
+    }
+    let items = array_of(m, "items", 8)?;
+    if items.is_empty() {
+        return Err(e("SPX-HPA040", "`segments.items` must not be empty"));
+    }
+    let (mut total, mut ids) = (0u64, Vec::new());
+    for it in items {
+        let im = shape(it, "segment item", &["id", "bytes"], &[])?;
+        ids.push(str_of(im, "id", 32)?);
+        total += uint_of(im, "bytes")?;
+    }
+    let body = input_b64.trim_end_matches('=').len() as u64;
+    if total != body * 3 / 4 {
+        return Err(e(
+            "SPX-HPA040",
+            "`segments` sizes do not add up to the input length",
+        ));
+    }
+    if !ids.contains(&str_of(m, "cache_boundary_after", 32)?) {
+        return Err(e(
+            "SPX-HPA040",
+            "`cache_boundary_after` must name a segment item",
+        ));
     }
     Ok(())
 }

@@ -33,6 +33,8 @@ pub struct GenerationPolicy {
     /// A larger cap for one new, separately reserved attempt after a
     /// length-limited reply. Unset: a truncated reply is never retried.
     pub length_retry_cap: Option<u64>,
+    /// Model-facing rendering (TC-04); `Canonical` keeps today's bytes.
+    pub renderer: super::prompt_render::PromptRenderer,
 }
 
 /// Marker beginning the message of a length-truncation refusal (`SPX-HPD030`).
@@ -59,6 +61,15 @@ pub fn declared_support(g: &crate::profile::config::GenerationSection) -> Genera
     }
 }
 
+/// Declared support for provider prompt-cache controls (`[budget] model_prompt_cache`).
+pub fn declared_prompt_cache(g: &crate::profile::config::GenerationSection) -> Support {
+    match g.prompt_cache_support.as_deref() {
+        Some("supported") => Support::Supported,
+        Some("unsupported") => Support::Unsupported,
+        _ => Support::Unknown,
+    }
+}
+
 impl GenerationPolicy {
     /// Build the policy from `[budget]`; members left unset change nothing.
     pub fn from_section(g: &crate::profile::config::GenerationSection) -> Self {
@@ -67,6 +78,11 @@ impl GenerationPolicy {
             strict: g.strict,
             reasoning_override: eff(&g.reasoning_override),
             length_retry_cap: g.length_retry_cap,
+            renderer: g
+                .prompt_renderer
+                .as_deref()
+                .and_then(super::prompt_render::PromptRenderer::parse)
+                .unwrap_or_default(),
             ..Default::default()
         };
         if g.intent_cap.is_some() || g.intent_reasoning.is_some() {

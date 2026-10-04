@@ -120,6 +120,10 @@ pub struct GenerationSection {
     pub reasoning_support: Option<String>,
     /// Tokens of framing the model adapter adds beyond the harness prompt.
     pub framing_tokens: Option<u64>,
+    /// TC-04: `ordered-v1` opts into the ordered prompt rendering.
+    pub prompt_renderer: Option<String>,
+    /// TC-04: `supported` lets an adapter receive cache boundaries.
+    pub prompt_cache_support: Option<String>,
 }
 
 impl GenerationSection {
@@ -127,11 +131,21 @@ impl GenerationSection {
         *self == Self::default()
     }
     pub fn to_json(&self) -> Value {
-        json!({"strict": self.strict, "intent_cap": self.intent_cap, "intent_reasoning": self.intent_reasoning,
+        let mut v = json!({"strict": self.strict, "intent_cap": self.intent_cap, "intent_reasoning": self.intent_reasoning,
                "repair_cap": self.repair_cap, "repair_reasoning": self.repair_reasoning,
                "reasoning_override": self.reasoning_override, "length_retry_cap": self.length_retry_cap,
                "price_book": self.price_book, "output_cap_support": self.output_cap_support,
-               "reasoning_support": self.reasoning_support, "framing_tokens": self.framing_tokens})
+               "reasoning_support": self.reasoning_support, "framing_tokens": self.framing_tokens});
+        // Absent unless set, so existing config digests are unchanged.
+        for (k, x) in [
+            ("prompt_renderer", &self.prompt_renderer),
+            ("prompt_cache_support", &self.prompt_cache_support),
+        ] {
+            if let Some(x) = x {
+                v[k] = json!(x);
+            }
+        }
+        v
     }
 }
 
@@ -819,6 +833,28 @@ pub fn parse(bytes: &[u8]) -> HarnessResult<HarnessConfig> {
                         }
                     }
                 }
+                if let Some((v, l)) = t.string("prompt_renderer")? {
+                    if crate::workflow::prompt_render::PromptRenderer::parse(&v).is_none() {
+                        return Err(bad(
+                            "SPX-HPB004",
+                            l,
+                            format!(
+                                "`prompt_renderer` must be `canonical` or `ordered-v1`, not `{v}`"
+                            ),
+                        ));
+                    }
+                    g.prompt_renderer = Some(v);
+                }
+                if let Some((v, l)) = t.string("model_prompt_cache")? {
+                    if !matches!(v.as_str(), "supported" | "unsupported") {
+                        return Err(bad(
+                            "SPX-HPB004",
+                            l,
+                            format!("`model_prompt_cache` must be `supported` or `unsupported`, not `{v}`"),
+                        ));
+                    }
+                    g.prompt_cache_support = Some(v);
+                }
                 if let Some((v, l)) = t.string("price_book")? {
                     if v.starts_with('/') || v.contains("..") {
                         return Err(bad(
@@ -840,6 +876,8 @@ pub fn parse(bytes: &[u8]) -> HarnessResult<HarnessConfig> {
                     "reasoning_effort",
                     "model_output_cap",
                     "model_reasoning",
+                    "prompt_renderer",
+                    "model_prompt_cache",
                     "price_book",
                     "feedback_max_tokens",
                     "context_max_bytes",

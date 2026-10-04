@@ -345,6 +345,9 @@ pub fn run_with(
                             .with_support(super::generation::declared_support(
                                 &config.budget.generation,
                             ))
+                            .with_prompt_cache(super::generation::declared_prompt_cache(
+                                &config.budget.generation,
+                            ))
                             .with_framing_tokens(
                                 config.budget.generation.framing_tokens.unwrap_or(0),
                             ),

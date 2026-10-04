@@ -522,3 +522,42 @@ fn caveman_is_opt_in_unadopted_or_disabled_means_raw_and_the_runtime_is_never_ca
     .unwrap();
     assert_eq!(r.envelope.view.route, "raw");
 }
+
+/// Replays the exchange recorded from a real Caveman v3.1.0 runtime (fixtures/caveman/recorded/): the adapter
+/// must reach the same decision it reached live, keep both planted ERROR lines, and still recover raw exactly.
+#[test]
+fn caveman_replays_a_recorded_real_runtime_exchange_to_the_same_view() {
+    let rec = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/caveman/recorded");
+    let ex: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(rec.join("exchange.json")).unwrap()).unwrap();
+    let live_view = ex["exchanges"][1]["response_body"]["replacements"][0]["text"]
+        .as_str()
+        .unwrap();
+    let live_view = live_view.split_once('\n').unwrap().1; // the Caveman marker is stripped
+    let raw = std::fs::read_to_string(rec.join("raw.log")).unwrap();
+    let fx = Fx::new(true, "");
+    fx.mode("replay");
+    let cmd = fx.script(
+        "replay.sh",
+        &format!("cat '{}'", rec.join("raw.log").display()),
+    );
+    let r = fx.exec(&cmd, true);
+    assert_eq!(r.envelope.view.route, "provider");
+    assert_eq!(r.envelope.view.text, live_view);
+    for planted in ["decisive failure 7731", "planted failure 4410"] {
+        assert!(r.envelope.view.text.contains(planted), "{planted}");
+    }
+    assert!(r.envelope.view.text.len() < raw.len() / 10);
+    assert_eq!(
+        (
+            fx.runtime_calls("GET capabilities"),
+            fx.runtime_calls("POST optimize"),
+            fx.runtime_calls("POST sessions/delete")
+        ),
+        (1, 1, 1)
+    );
+    // A plan the adapter cannot verify (fake bad_sha mode) still falls back to raw.
+    fx.mode("bad_sha");
+    let r = fx.exec(&cmd, true);
+    assert_ne!(r.envelope.view.route, "provider");
+}

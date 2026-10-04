@@ -140,10 +140,13 @@ tokens; without the flags measurements are bytes-only.
 ## TC-07: Caveman input-compression adapter (opt-in)
 
 `packages/semaprax-harness-adapters/caveman/` (`ai.caveman/caveman-command-view`) is a `command.view` provider. It acts
-as a client of a Caveman 3.1.0 runtime that the user starts (`caveman start`, loopback `127.0.0.1:8787`), speaking
-middleware protocol 1.1. It was checked against the upstream source at commit
-`8af1f1b9b1346bca0722a1556f119b4e6675cc96` (`docs/technical/middleware-protocol.md`, `packages/sdk/python/caveman_cloud/middleware/*`).
-It has not yet been run against a real runtime.
+as a client of a Caveman 3.1.0 runtime that the user starts (loopback `127.0.0.1:8787`), speaking
+middleware protocol 1.1. The pin is the GitHub tag `v3.1.0` (commit `8af1f1b9`, full
+`8af1f1b9b1346bca0722a1556f119b4e6675cc96`) built from source (`go build ./proxy/cmd/caveman-proxy`); npm has no 3.1.0
+(`@caveman-ai/cli` stops at 2.0.1 and is the agent wrapper, not the runtime). It was checked against the upstream source
+(`docs/technical/middleware-protocol.md`, `packages/sdk/python/caveman_cloud/middleware/*`) and, on 2026-10-04, run against
+a real runtime built that way; the recorded exchange is `crates/semaprax-harness/tests/fixtures/caveman/recorded/` and is
+replayed by a test.
 
 The adapter never installs, starts or logs in to Caveman. It is adopted with `adopt --upstream <caveman>`, which only
 probes `--version`, and is selected only by an explicit `command.view` provider pin. Setup never adopts it

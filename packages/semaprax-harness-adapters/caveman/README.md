@@ -1,7 +1,7 @@
 # Caveman command.view adapter (opt-in)
 
 Compresses already-captured command output through a user-started local Caveman runtime
-(`caveman start`, 127.0.0.1:8787, started by the user with `DO_NOT_TRACK=1` and `CAVEMAN_WORK_TAGS=0`).
+(`caveman-proxy`, 127.0.0.1:8787, started by the user with `DO_NOT_TRACK=1` and `CAVEMAN_WORK_TAGS=0`).
 Nothing installs, starts, logs in to or updates Caveman; `adopt --upstream <caveman>` only identity-probes
 `caveman --version` (3.1.0). Host provisioning, in the provider retention directory: `caveman-token`
 (runtime credential, required) and optionally `caveman-endpoint` (`host:port`, loopback only).
@@ -33,6 +33,13 @@ Verified against source at JuliusBrussee/caveman 8af1f1b9b1346bca0722a1556f119b4
   best effort and never changes the view. No receipts are posted.
 - `caveman shrink` compresses MCP tool catalogs and is not used.
 
-Still unverified: nothing here has run against a real Caveman runtime; the test fixture
-(`crates/semaprax-harness/tests/fixtures/caveman/fake_runtime.py`) is written from the files above. The real
-runtime's compress-mode eligibility and token measurements are TC-12's to measure.
+Verified against a real 3.1.0 runtime on 2026-10-04. Pin: GitHub tag `v3.1.0` / commit 8af1f1b9 built from source
+(`go build ./proxy/cmd/caveman-proxy`, Go 1.27.1); npm has no 3.1.0 (`@caveman-ai/cli` ends at 2.0.1 and is the agent
+wrapper). The binary ran on 127.0.0.1:8787 with `CAVEMAN_MODE=compress DO_NOT_TRACK=1 CAVEMAN_WORK_TAGS=0` and a local
+`CAVEMAN_AUTH_TOKEN`; its only socket was the loopback listener, before and during the exchange. Exactly verified: this
+adapter's `view()` ran `GET capabilities`, `POST optimize` and `POST sessions/delete` against it on a synthetic noisy log
+with two planted ERROR lines; every response passed the adapter's validation unchanged, the `log` transform kept both
+ERROR lines, `sessions/delete` returned `revoked` with `originals_deleted:true`, and the view was far smaller than raw.
+The exchange (token redacted) is `crates/semaprax-harness/tests/fixtures/caveman/recorded/`, replayed by
+`caveman_replays_a_recorded_real_runtime_exchange_to_the_same_view`. Not verified: other transforms and content types,
+record mode, error statuses and timeouts of the real runtime, and token measurements (TC-12).
